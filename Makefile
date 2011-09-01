@@ -12,7 +12,7 @@ include $(ADHD_DIR)/defs/definitions.mk
 all:	gavd
 
 gavd:				# Google Audio Visual Daemon
-	@$(call remake,gavd)
+	@$(call remake,$@)
 
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)

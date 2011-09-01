@@ -10,20 +10,19 @@ ifndef VERBOSE
 SILENT	= --silent
 endif
 
-# This ADHD_BUILD_DIR is changed to allow multiple simultaneous
-# builds, then the associated ebuild will need to be changed.  The
-# Portage ebuild has been written to handle only one build directory,
-# and to install files from that location directly.
-#
-# If multiple simultaneous build types are supported, then the logic
-# to determine the output directory must be put into the ebuild.
-#
-export ADHD_BUILD_DIR	= $(ADHD_DIR)/build
+ifdef BOARD
+export ADHD_BUILD_DIR	= $(ADHD_DIR)/build/$(BOARD)
+else
+# For testing on the development desktop only.  This should not ever
+# be used for a production build.  All production builds should be for
+# a specific board.
+export ADHD_BUILD_DIR	= $(ADHD_DIR)/build/development
+endif
 
 # mkdir: Creates a directory, and all its parents, if it does not exist.
 #
-mkdir	= [ ! -d $(ADHD_DIR)/$(1) ] &&			\
-	    $(MKDIR) --parents $(ADHD_DIR)/$(1) || true
+mkdir	= [ ! -d $(1) ] &&			\
+	    $(MKDIR) --parents $(1) || true
 
 # remake: Gnu Make function which will create the build directory,
 #         then build the first argument by recursively invoking make.
@@ -35,7 +34,7 @@ mkdir	= [ ! -d $(ADHD_DIR)/$(1) ] &&			\
 #         ex: @$(call remake,gavd)
 #             @$(call remake,gavd/hypothetical_gavd_subdirectory)
 #
-remake	= +$(call mkdir,build/$(1)) &&			\
+remake	= +$(call mkdir,$(ADHD_BUILD_DIR)/$(1)) &&	\
 	    echo "[$(MAKELEVEL)] Building $(1)";	\
 	    $(MAKE) $(SILENT)				\
 		-f $(ADHD_DIR)/$(1)/Makefile		\
