@@ -2,21 +2,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 ifndef BOARD
-$(warning 'BOARD' is not defined.  Board-specific features will \
-	not be available.)
+$(error 'BOARD' is not defined.  Unable to build gavd.)
 endif
 
 export ADHD_DIR = $(shell pwd)
 include $(ADHD_DIR)/defs/definitions.mk
 
-all:	gavd
+all:	gavd alsainfo
 
-gavd::	lib
+alsainfo gavd::	lib
 
-lib gavd::				# Google Audio Visual Daemon
+lib gavd alsainfo::
 	@$(call remake,$@)
 
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
 
-.PHONY:	gavd clean
+.PHONY:	gavd clean alsainfo lib

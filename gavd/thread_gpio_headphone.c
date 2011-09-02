@@ -7,7 +7,6 @@
 #include <unistd.h>
 
 #include "board.h"
-
 #if defined(ADHD_GPIO_HEADPHONE)
 #include "verbose.h"
 #include "thread_management.h"

@@ -4,16 +4,13 @@
 include $(ADHD_DIR)/defs/definitions.mk
 
 CFILES	=					\
-	main.c					\
-	signal_handling.c			\
-	thread_gpio_headphone.c			\
-	thread_management.c
+	main.c
 
 OFILES	= $(CFILES:.c=.o)
 LIBS	= $(GAVD_LIB)
 
-gavd:	$(OFILES) $(LIBS)
-	$(CC) -o $@ $(OFILES) $(LIBS)				\
-		-Xlinker --library=pthread
+alsainfo:	$(OFILES) $(LIBS)
+	$(CC) -o $@ $(OFILES) $(LIBS)		\
+		-Xlinker --library=asound
 
 -include *.d

@@ -9,10 +9,12 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "verbose.h"
+
+#include "board.h"
+#include "adhd_alsa.h"
 #include "signal_handling.h"
 #include "thread_management.h"
-#include "board.h"
+#include "verbose.h"
 
 static const char * const program_name = "gavd";
 
@@ -83,7 +85,7 @@ static void daemonize(void)
     if (chdir("/") != 0) {
         verbose_log(0, LOG_ERR, "Failed to chdir('/')");
         exit(-errno);
-    }        
+    }
 
     signal_start();
     threads_start();
@@ -91,7 +93,7 @@ static void daemonize(void)
     while(!threads_quit_daemon()) {
         sleep(3);
     }
-    
+
     verbose_log(0, LOG_INFO, "%s: stopped", program_name);
 }
 

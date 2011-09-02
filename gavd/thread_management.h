@@ -14,13 +14,16 @@ typedef struct thread_descriptor_t {
     void       *data;
 } thread_descriptor_t;
 
-#define THREAD_DESCRIPTOR(_name, _start_routine)                \
-    thread_descriptor_t                                         \
-    __attribute__((section(".thread_descriptor")))              \
-    __thread_descriptor_##_start_routine = {                    \
-        .name          = _name,                                 \
-        .start_routine = _start_routine,                        \
-    }
+#define THREAD_DESCRIPTOR(_name, _start_routine)                        \
+    static thread_descriptor_t __thread_descriptor_##_start_routine = { \
+        .name          = _name,                                         \
+        .start_routine = _start_routine,                                \
+    };                                                                  \
+    __asm__(".global __start_thread_descriptor");                       \
+    __asm__(".global __stop_thread_descriptor");                        \
+    static void const * const __thread_descriptor_ptr_##_start_routine  \
+    __attribute__((section("thread_descriptor"),used)) =                \
+         &__thread_descriptor_##_start_routine
 
 typedef struct thread_management_t {
     unsigned      quit;         /* quit == 0 => Daemon continues to run.

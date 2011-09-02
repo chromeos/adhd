@@ -4,7 +4,8 @@
 include $(ADHD_DIR)/defs/definitions.mk
 
 CFILES	=					\
-	verbose.c
+	verbose.c				\
+	adhd_alsa.c
 
 OFILES	= $(CFILES:.c=.o)
 
