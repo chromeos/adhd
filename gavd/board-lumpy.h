@@ -4,4 +4,6 @@
  */
 #if !defined(_BOARD_LUMPY_H_)
 #define _BOARD_LUMPY_H_
+
+#undef  ADHD_GPIO_HEADPHONE     /* No GPIO headphone switch. */
 #endif

@@ -2,6 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#if !defined(_BOARD_X86_MARIO_H_)
-#define _BOARD_X86_MARIO_H_
+#if !defined(_SIGNAL_HANDLING_H_)
+#define _SIGNAL_HANDLING_H_
+
+void signal_start(void);
 #endif

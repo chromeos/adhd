@@ -19,6 +19,8 @@ else
 export ADHD_BUILD_DIR	= $(ADHD_DIR)/build/development
 endif
 
+GAVD_LIB	= $(ADHD_BUILD_DIR)/lib/gavd.a
+
 # mkdir: Creates a directory, and all its parents, if it does not exist.
 #
 mkdir	= [ ! -d $(1) ] &&			\
@@ -40,4 +42,5 @@ remake	= +$(call mkdir,$(ADHD_BUILD_DIR)/$(1)) &&	\
 		-f $(ADHD_DIR)/$(1)/Makefile		\
 		-C $(ADHD_BUILD_DIR)/$(1)		\
 		VPATH=$(ADHD_DIR)/$(1)			\
+		ADHD_SOURCE_DIR=$(ADHD_DIR)/$(1)	\
 		$(1)

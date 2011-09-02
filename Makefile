@@ -11,7 +11,9 @@ include $(ADHD_DIR)/defs/definitions.mk
 
 all:	gavd
 
-gavd:				# Google Audio Visual Daemon
+gavd::	lib
+
+lib gavd::				# Google Audio Visual Daemon
 	@$(call remake,$@)
 
 clean:

@@ -10,4 +10,5 @@
 # This makes it easy to ensure there are no host OS utility
 # dependencies when cross compiling.
 
-MKDIR	= mkdir
+MKDIR	= /bin/mkdir
+AR	= /usr/bin/ar

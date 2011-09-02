@@ -6,7 +6,8 @@
 
 
 COPTIONS =					\
-	-O3					\
+	-g					\
+	-O2					\
 	-funit-at-a-time
 
 # Compiler is too old to support
@@ -14,6 +15,18 @@ COPTIONS =					\
 #	-Wframe-larger-than=256
 #	-Wlarger-than=4096
 #	-Wsync-nand
+
+# Enable GC on unused functions and data
+CGC	=					\
+	-ffunction-sections			\
+	-fdata-sections
+
+# Also need to link with '-Xlinker --library=pthread'.
+PTHREAD	= 					\
+	-pthread
+
+LDGC	=					\
+	-Xlinker --gc-sections
 
 CWARN	=					\
 	-Waddress				\
@@ -57,7 +70,6 @@ CWARN	=					\
 	-Woverlength-strings			\
 	-Woverride-init				\
 	-Wpacked				\
-	-Wpadded				\
 	-Wparentheses				\
 	-Wpointer-arith				\
 	-Wpointer-sign				\
@@ -82,7 +94,6 @@ CWARN	=					\
 	-Wundef					\
 	-Wuninitialized				\
 	-Wunknown-pragmas			\
-	-Wunreachable-code			\
 	-Wunsafe-loop-optimizations		\
 	-Wunused-function			\
 	-Wunused-label				\
@@ -101,12 +112,15 @@ else
 BOARD_INCLUDE	= -DADHD_BOARD_INCLUDE='"board-generic.h"'
 endif
 
-INCLUDES =	-I$(ADHD_DIR)/include
+INCLUDES	=				\
+		-I$(ADHD_DIR)/include		\
+		-I$(ADHD_SOURCE_DIR)
 
 CFLAGS	=					\
-	-ansi					\
+	-std=gnu99				\
+	-MD \
 	$(INCLUDES)				\
+	$(PTHREADS)				\
 	$(BOARD_INCLUDE)			\
-	$(CWARN) $(COPTIONS)
-
-
+	-DBOARD='"$(BOARD)"'			\
+	$(CWARN) $(COPTIONS) $(CGC) $(LDGC)
