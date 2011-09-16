@@ -2,8 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#if !defined(_BOARD_X86_MARIO_H_)
-#define _BOARD_X86_MARIO_H_
+#if !defined(_BOARD_X86_GENERIC_H_)
+#define _BOARD_X86_GENERIC_H_
 
 #undef  ADHD_GPIO_HEADPHONE     /* No GPIO headphone switch. */
 #endif

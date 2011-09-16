@@ -2,8 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#if !defined(_BOARD_TEGRA2_AEBL_H_)
-#define _BOARD_TEGRA2_AEBL_H_
+#if !defined(_BOARD_TEGRA2_GENERIC_H_)
+#define _BOARD_TEGRA2_GENERIC_H_
 
 #undef ADHD_GPIO_HEADPHONE
 
