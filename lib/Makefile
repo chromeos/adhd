@@ -10,5 +10,5 @@ CFILES	=					\
 OFILES	= $(CFILES:.c=.o)
 
 lib:	$(OFILES)
-	$(AR) -r $(GAVD_LIB) $(OFILES) 2>/dev/null
+	$(AR) -r $(GAVD_ARCHIVE) $(OFILES) 2>/dev/null
 

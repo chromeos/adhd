@@ -19,7 +19,11 @@ else
 export ADHD_BUILD_DIR	= $(ADHD_DIR)/build/development
 endif
 
-GAVD_LIB	= $(ADHD_BUILD_DIR)/lib/gavd.a
+GAVD_ARCHIVE	= $(ADHD_BUILD_DIR)/lib/gavd.a
+
+LIBS		=							\
+		$(GAVD_ARCHIVE)						\
+		$(foreach lib,$(MY_LIBS),-l$(lib))
 
 # mkdir: Creates a directory, and all its parents, if it does not exist.
 #

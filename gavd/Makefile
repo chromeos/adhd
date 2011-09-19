@@ -10,10 +10,9 @@ CFILES	=					\
 	thread_management.c
 
 OFILES	= $(CFILES:.c=.o)
-LIBS	= $(GAVD_LIB)
+MY_LIBS	= pthread asound
 
-gavd:	$(OFILES) $(LIBS)
-	$(CC) -o $@ $(OFILES) $(LIBS)				\
-		-Xlinker --library=pthread
+gavd:	$(OFILES) $(GAVD_ARCHIVE)
+	$(CC) -o $@ $(OFILES) $(LIBS)
 
 -include *.d

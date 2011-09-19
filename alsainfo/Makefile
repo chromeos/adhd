@@ -7,10 +7,9 @@ CFILES	=					\
 	main.c
 
 OFILES	= $(CFILES:.c=.o)
-LIBS	= $(GAVD_LIB)
+MY_LIBS	= asound
 
-alsainfo:	$(OFILES) $(LIBS)
-	$(CC) -o $@ $(OFILES) $(LIBS)		\
-		-Xlinker --library=asound
+alsainfo:	$(OFILES) $(GAVD_ARCHIVE)
+	$(CC) -o $@ $(OFILES) $(LIBS)
 
 -include *.d
