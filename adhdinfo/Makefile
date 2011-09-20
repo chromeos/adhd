@@ -9,7 +9,7 @@ CFILES	=					\
 OFILES	= $(CFILES:.c=.o)
 MY_LIBS	= asound
 
-alsainfo:	$(OFILES) $(GAVD_ARCHIVE)
+adhdinfo:	$(OFILES) $(GAVD_ARCHIVE)
 	$(CC) -o $@ $(OFILES) $(LIBS)
 
 -include *.d

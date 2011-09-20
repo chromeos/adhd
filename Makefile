@@ -8,14 +8,14 @@ endif
 export ADHD_DIR = $(shell pwd)
 include $(ADHD_DIR)/defs/definitions.mk
 
-all:	gavd alsainfo
+all:	gavd adhdinfo
 
-alsainfo gavd::	lib
+adhdinfo gavd::	lib
 
-lib gavd alsainfo::
+lib gavd adhdinfo::
 	@$(call remake,$@)
 
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
 
-.PHONY:	gavd clean alsainfo lib
+.PHONY:	gavd clean adhdinfo lib
