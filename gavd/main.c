@@ -69,6 +69,7 @@ static void process_arguments(int argc, char **argv)
 static void daemonize(void)
 {
     pid_t child_pid;
+    VERBOSE_FUNCTION_ENTER()
 
     child_pid = fork();
     if (child_pid != 0) {
@@ -81,7 +82,6 @@ static void daemonize(void)
      * TODO(thutt): Detach from console.
      * TODO(thutt): close stdin/stdout/stderr
      */
-    verbose_log(0, LOG_INFO, "%s: started", __FUNCTION__);
     if (chdir("/") != 0) {
         verbose_log(0, LOG_ERR, "Failed to chdir('/')");
         exit(-errno);
@@ -94,7 +94,7 @@ static void daemonize(void)
         sleep(3);
     }
 
-    verbose_log(0, LOG_INFO, "%s: stopped", program_name);
+    VERBOSE_FUNCTION_EXIT()
 }
 
 int main(int argc, char **argv)
@@ -108,5 +108,6 @@ int main(int argc, char **argv)
     daemonize();
 
     verbose_finalize();
+    verbose_log(0, LOG_INFO, "deamon exited");
     return 0;
 }

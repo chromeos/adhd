@@ -7,6 +7,13 @@
 #define _VERBOSE_H_
 #include <syslog.h>
 
+#define VERBOSE_FUNCTION_ENTER() \
+    verbose_log(5, LOG_INFO, "%s: enter", __FUNCTION__);
+
+#define VERBOSE_FUNCTION_EXIT() \
+    verbose_log(5, LOG_INFO, "%s: exit", __FUNCTION__);
+
+
 /* verbose_set: Set verbosity of the daemon.
  *
  *  verbosity: The new level of verbosity.

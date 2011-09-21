@@ -9,12 +9,24 @@
 #include ADHD_BOARD_INCLUDE
 
 #if !defined(ADHD_GPIO_HEADPHONE)
-#define adhd_gpio_headphone 0
-#undef ADHD_GPIO_HEADPHONE_GPIO_NUMBER
+    #define adhd_gpio_headphone 0
+    #undef ADHD_GPIO_HEADPHONE_GPIO_NUMBER
 #else
-#define adhd_gpio_headphone 1
-#if !defined(ADHD_GPIO_HEADPHONE_GPIO_NUMBER)
-#error "ADHD_GPIO_HEADPHONE_GPIO_NUMBER must be defined."
+    #define adhd_gpio_headphone 1
+    #if !defined(ADHD_GPIO_HEADPHONE_GPIO_NUMBER)
+        #error "ADHD_GPIO_HEADPHONE_GPIO_NUMBER must be defined."
+    #endif
 #endif
-#endif
+
+/* When ADHD_SET_FACTORY_DEFAULT is defined, 'alsactl restore' will be
+ * used when to set all the Alsa controls of the internal devices to
+ * their 'factory default values.
+ *
+ * The setting will occur when the deamon is loaded, exited (for
+ * accessibility on the login screen), and when SIGHUP is received.
+ *
+ * This cannot be enabled until defect 'chromium:97144' is addressed.
+ */
+#undef ADHD_SET_FACTORY_DEFAULT
+
 #endif

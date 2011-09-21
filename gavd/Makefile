@@ -6,6 +6,8 @@ include $(ADHD_DIR)/defs/definitions.mk
 CFILES	=					\
 	main.c					\
 	signal_handling.c			\
+	initialization.c			\
+	set_factory_default.c			\
 	thread_gpio_headphone.c			\
 	thread_management.c
 
@@ -13,6 +15,6 @@ OFILES	= $(CFILES:.c=.o)
 MY_LIBS	= pthread asound
 
 gavd:	$(OFILES) $(GAVD_ARCHIVE)
-	$(CC) -o $@ $(OFILES) $(LIBS)
+	$(CC) -o $@ $(OFILES) $(LIBS) -Xlinker -Map=$@.map
 
 -include *.d

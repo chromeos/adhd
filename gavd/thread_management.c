@@ -9,6 +9,7 @@
 
 #include "board.h"
 #include "verbose.h"
+#include "initialization.h"
 #include "thread_management.h"
 
 #define WEAK __attribute__((weak))
@@ -53,6 +54,7 @@ void threads_start(void)
 {
     thread_management.exit = 0;
     thread_management.quit = 0;
+    initialization_initialize();
     FOREACH_THREAD({
         pthread_create(&desc->thread, NULL, desc->start_routine, desc);
         });
@@ -64,6 +66,7 @@ void threads_kill_all(void)
     FOREACH_THREAD({
         pthread_join(desc->thread, NULL);
         });
+    initialization_finalize();
     thread_management.exit = 0;
 }
 

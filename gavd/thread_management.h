@@ -14,8 +14,14 @@ typedef struct thread_descriptor_t {
     void       *data;
 } thread_descriptor_t;
 
+/* inv: There can be no ordering dependencies between threads.  If
+ *      ordering dependencies are ever required, then additional
+ *      fields which indicate priority must be added to the
+ *      descriptor.
+ */
 #define THREAD_DESCRIPTOR(_name, _start_routine)                        \
-    static thread_descriptor_t __thread_descriptor_##_start_routine = { \
+    static thread_descriptor_t  /* Cannot be 'const'. */                \
+    __thread_descriptor_##_start_routine = {                            \
         .name          = _name,                                         \
         .start_routine = _start_routine,                                \
     };                                                                  \
@@ -26,10 +32,10 @@ typedef struct thread_descriptor_t {
          &__thread_descriptor_##_start_routine
 
 typedef struct thread_management_t {
-    unsigned      quit;         /* quit == 0 => Daemon continues to run.
+    volatile unsigned quit;     /* quit == 0 => Daemon continues to run.
                                  * quit      != 1 => Daemon exits.
                                  */
-    unsigned      exit;         /* exit == 0 => Continue running.
+    volatile unsigned exit;     /* exit == 0 => Continue running.
                                  * exit      != 0 => Thread should exit.
                                  *
                                  * There is no mutex controlling this

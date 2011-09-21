@@ -14,13 +14,13 @@
 
 static void *gpio_headphone(void *arg)
 {
-    verbose_log(5, LOG_INFO, "%s: start", __FUNCTION__);
+    VERBOSE_FUNCTION_ENTER();
     arg = arg;                  /* Silence compiler warning. */
 
     while (!thread_management.exit) {
         sleep(1);
     }
-    verbose_log(5, LOG_INFO, "%s exited", __FUNCTION__);
+    VERBOSE_FUNCTION_EXIT();
     return NULL;
 }
 

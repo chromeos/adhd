@@ -43,6 +43,7 @@ static void signal_handle_sigterm(int        signum,
     signum   = signum;          /* Silence compiler warning. */
     siginfo  = siginfo;         /* Silence compiler warning. */
     ucontext = ucontext;        /* Silence compiler warning. */
+    threads_kill_all();
     thread_management.quit = 1;
 }
 
