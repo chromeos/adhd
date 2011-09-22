@@ -18,6 +18,16 @@
     #endif
 #endif
 
+#if !defined(ADHD_GPIO_MICROPHONE)
+    #define adhd_gpio_microphone 0
+    #undef ADHD_GPIO_MICROPHONE_GPIO_NUMBER
+#else
+    #define adhd_gpio_microphone 1
+    #if !defined(ADHD_GPIO_MICROPHONE_GPIO_NUMBER)
+        #error "ADHD_GPIO_MICROPHONE_GPIO_NUMBER must be defined."
+    #endif
+#endif
+
 /* When ADHD_SET_FACTORY_DEFAULT is defined, 'alsactl restore' will be
  * used when to set all the Alsa controls of the internal devices to
  * their 'factory default values.

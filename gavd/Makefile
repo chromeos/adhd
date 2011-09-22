@@ -8,7 +8,9 @@ CFILES	=					\
 	signal_handling.c			\
 	initialization.c			\
 	set_factory_default.c			\
-	thread_gpio_headphone.c			\
+	sys_input.c				\
+	gpio_switch_monitor.c			\
+	thread_gpio_switch_monitor.c		\
 	thread_management.c
 
 OFILES	= $(CFILES:.c=.o)
