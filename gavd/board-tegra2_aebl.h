@@ -7,5 +7,6 @@
 
 #define ADHD_GPIO_HEADPHONE
 #define ADHD_GPIO_HEADPHONE_GPIO_NUMBER 185
+#define ADHD_INPUT_NAME_HEADPHONE_JACK  "tegra-seaboard Headphone Jack"
 
 #endif
