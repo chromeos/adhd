@@ -5,8 +5,7 @@
 #if !defined(_BOARD_TEGRA2_AEBL_H_)
 #define _BOARD_TEGRA2_AEBL_H_
 
-#define ADHD_GPIO_HEADPHONE
-#define ADHD_GPIO_HEADPHONE_GPIO_NUMBER 185
-#define ADHD_INPUT_NAME_HEADPHONE_JACK  "tegra-seaboard Headphone Jack"
+//#define ADHD_GPIO_HEADPHONE
+//#define ADHD_GPIO_HEADPHONE_GPIO_NUMBER 185
 
 #endif
