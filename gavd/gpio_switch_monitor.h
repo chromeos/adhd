@@ -7,5 +7,7 @@
 
 void gpio_switch_monitor(const char *thread_name,
                          const char *device_name,
-                         unsigned    switch_event);
+                         unsigned    switch_event,
+                         const char *insert_command,
+                         const char *remove_command);
 #endif

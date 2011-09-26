@@ -9,6 +9,7 @@ CFILES	=					\
 	initialization.c			\
 	set_factory_default.c			\
 	sys_input.c				\
+	utils.c					\
 	gpio_switch_monitor.c			\
 	thread_gpio_switch_monitor.c		\
 	thread_management.c

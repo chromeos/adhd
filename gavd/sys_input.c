@@ -57,6 +57,7 @@ char *sys_input_find_device_by_name(const char *name)
         char device_name[256];
         int  fd;
 
+        /* 'path' becomes "/dev/input/event[0..32)" */
         bytes = snprintf(path, sizeof(path), "%s/%s", dir, namelist[i]->d_name);
         assert((size_t)bytes <= sizeof(path));
 

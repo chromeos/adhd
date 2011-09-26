@@ -1,0 +1,4 @@
+o On Chromium OS, this daemon is started by the audiopolicy.conf
+  Upstart script.
+o Existence of alsactl and amixer are checked by sound_infrastructure
+  test.

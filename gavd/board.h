@@ -4,6 +4,7 @@
  */
 #if !defined(_BOARD_GENERIC_H_)
 #define _BOARD_GENERIC_H_
+#include "codec_wm8903.h"
 
 #define ADHD_TARGET_MACHINE BOARD
 #include ADHD_BOARD_INCLUDE
@@ -38,5 +39,42 @@
  * This cannot be enabled until defect 'chromium:97144' is addressed.
  */
 #undef ADHD_SET_FACTORY_DEFAULT
+
+/* TODO(thutt):
+ *
+ *   When /etc/asound.rc is loaded at login, the command for
+ *   initializing the sound system should be entirely removed from all
+ *   board files.
+ */
+#if defined(ADHD_INITIALIZE_SOUND_COMMAND)
+#define adhd_initialize_sound_command 1
+#else
+#define adhd_initialize_sound_command 0
+#define ADHD_INITIALIZE_SOUND_COMMAND NULL
+#endif
+
+/* gavd manages the multiplexing between the internal speakers or
+ * headphone jack, depending on the state of the jack switch.  The
+ * 'ADHD_GPIO_HEADPHONE_INSERT_COMMAND' identifier contains the shell
+ * command to execute when the headphones are inserted, or NULL.
+ */
+#if defined(ADHD_GPIO_HEADPHONE_INSERT_COMMAND)
+#define adhd_headphone_insert_command 1
+#else
+#define adhd_headphone_insert_command 0
+#define ADHD_GPIO_HEADPHONE_INSERT_COMMAND NULL
+#endif
+
+/* gavd manages the multiplexing between the internal speakers or
+ * headphone jack, depending on the state of the jack switch.  The
+ * 'ADHD_GPIO_HEADPHONE_REMOVE_COMMAND' identifier contains the shell
+ * command to execute when the headphones are removed, or NULL.
+ */
+#if defined(ADHD_GPIO_HEADPHONE_REMOVE_COMMAND)
+#define adhd_headphone_remove_command 1
+#else
+#define adhd_headphone_remove_command 0
+#define ADHD_GPIO_HEADPHONE_REMOVE_COMMAND NULL
+#endif
 
 #endif

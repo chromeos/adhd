@@ -4,9 +4,13 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -18,9 +22,40 @@
 
 static const char * const program_name = "gavd";
 
+/*
+ * arg_release_mode == 0 -> {stdin, stdout, stderr} <=> original descriptors
+ * arg_release_mode == 1 -> {stdin, stdout, stderr} <=> /dev/null
+ */
+static unsigned arg_release_mode = 1;
+
 static void help(void)
 {
-    /* TODO(thutt): Add help */
+    static char const * const msg[] = {
+        "gavd [options]...",
+        "",
+        "Google A/V Daemon",
+        "",
+        "  options := --help              |",
+        "             --developer         |",
+        "             --verbose=<integer>",
+        "",
+        "  --help     : Produces this help message.",
+        "  --developer: Runs the daemon in developer mode.",
+        "  --verbose  : Set the verbosity level to <integer>.",
+        "               0 is the default, and provides minimal",
+        "               logging.  Greater numbers provide greater",
+        "               verbosity."
+        "",
+        "All messages produced by this daemon are output using the",
+        "syslog service.",
+        "",
+        "",
+    };
+    unsigned i;
+
+    for (i = 0; i < sizeof(msg) / sizeof(msg[0]); ++i) {
+        fprintf(stderr, "%s\n", msg[i]);
+    }
 }
 
 static void process_arguments(int argc, char **argv)
@@ -37,6 +72,12 @@ static void process_arguments(int argc, char **argv)
             .has_arg = optional_argument,
             .flag    = NULL,
             .val     = 257
+        },
+        {
+            .name    = "developer",
+            .has_arg = no_argument,
+            .flag    = NULL,
+            .val     = 258
         },
     };
 
@@ -60,15 +101,31 @@ static void process_arguments(int argc, char **argv)
             verbose_set((unsigned)atoi(optarg));
             break;
 
+        case 258:
+            arg_release_mode = 0;
+            break;
+
         default:
             printf("?? getopt returned character code 0%o ??\n", choice);
         }
     }
 }
 
+static void setup_release_environment(void)
+{
+    /*
+     * TODO(thutt): Detach from console.
+     */
+    if (chdir("/") != 0) {
+        verbose_log(0, LOG_ERR, "Failed to chdir('/')");
+        exit(-errno);
+    }
+}
+
 static void daemonize(void)
 {
     pid_t child_pid;
+    const char *operational_mode;
     VERBOSE_FUNCTION_ENTER()
 
     child_pid = fork();
@@ -77,15 +134,16 @@ static void daemonize(void)
         exit(0);
     }
 
-    /* Now running as daemon.
-     *
-     * TODO(thutt): Detach from console.
-     * TODO(thutt): close stdin/stdout/stderr
-     */
-    if (chdir("/") != 0) {
-        verbose_log(0, LOG_ERR, "Failed to chdir('/')");
-        exit(-errno);
+    /* Now running as daemon. */
+
+    assert(arg_release_mode == 0 || arg_release_mode == 1);
+    if (arg_release_mode) {
+        operational_mode = "release";
+        setup_release_environment();
+    } else {
+        operational_mode = "developer";
     }
+    verbose_log(3, LOG_INFO, "%s: %s mode.", __FUNCTION__, operational_mode);
 
     signal_start();
     threads_start();
