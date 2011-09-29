@@ -37,6 +37,15 @@ static void gpio_switch_notify_state(const char *thread_name,
     }
 }
 
+static const char *gpio_switch_decode_state(unsigned state)
+{
+    switch (state) {
+    case 0:  return "off";
+    case 1:  return "on";
+    default: return "(invalid)";
+    }
+}
+
 void gpio_switch_monitor(const char *thread_name,
                          const char *device_name,
                          unsigned    switch_event,
@@ -60,6 +69,11 @@ void gpio_switch_monitor(const char *thread_name,
             while (!thread_management.exit) {
                 struct timeval timeout;
 
+                verbose_log(9, LOG_INFO,
+                            "%s: %s: last: '%s' current: '%s'",
+                            __FUNCTION__, thread_name,
+                            gpio_switch_decode_state(last_state),
+                            gpio_switch_decode_state(current_state));
                 if (current_state != last_state) {
                     last_state = current_state;
                     gpio_switch_notify_state(thread_name, current_state,
