@@ -126,8 +126,8 @@ static void daemonize(void)
 {
     pid_t child_pid;
     const char *operational_mode;
-    VERBOSE_FUNCTION_ENTER()
 
+    VERBOSE_FUNCTION_ENTER("%s", "void")
     child_pid = fork();
     if (child_pid != 0) {
         verbose_log(0, LOG_INFO, "Child process: '%u'.", child_pid);
@@ -152,7 +152,7 @@ static void daemonize(void)
         sleep(3);
     }
 
-    VERBOSE_FUNCTION_EXIT()
+    VERBOSE_FUNCTION_EXIT("%s", "void")
 }
 
 int main(int argc, char **argv)

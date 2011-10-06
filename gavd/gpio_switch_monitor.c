@@ -56,7 +56,9 @@ void gpio_switch_monitor(const char *thread_name,
     unsigned  current_state;
     int       fd;
 
-    VERBOSE_FUNCTION_ENTER();
+    VERBOSE_FUNCTION_ENTER("%s, %s, %u, %s, %s",
+                           thread_name, device_name, switch_event,
+                           insert_command, remove_command);
 
     device = sys_input_find_device_by_name(device_name);
     if (device != NULL) {
@@ -96,5 +98,7 @@ void gpio_switch_monitor(const char *thread_name,
                         __FUNCTION__, device_name);
     }
 
-    VERBOSE_FUNCTION_EXIT();
+    VERBOSE_FUNCTION_EXIT("%s, %s, %u, %s, %s",
+                          thread_name, device_name, switch_event,
+                          insert_command, remove_command);
 }

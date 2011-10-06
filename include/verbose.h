@@ -7,11 +7,19 @@
 #define _VERBOSE_H_
 #include <syslog.h>
 
-#define VERBOSE_FUNCTION_ENTER() \
-    verbose_log(5, LOG_INFO, "%s: enter", __FUNCTION__);
+/* 'format' must be a string literal, because this macro relies on
+ * string conactenation.
+ */
+#define VERBOSE_FUNCTION_ENTER(format, ...)             \
+    verbose_log(5, LOG_INFO, "beg %s(" format ")",      \
+                __FUNCTION__, __VA_ARGS__);
 
-#define VERBOSE_FUNCTION_EXIT() \
-    verbose_log(5, LOG_INFO, "%s: exit", __FUNCTION__);
+/* 'format' must be a string literal, because this macro relies on
+ * string conactenation.
+ */
+#define VERBOSE_FUNCTION_EXIT(format, ...)              \
+    verbose_log(5, LOG_INFO, "end %s(" format ")",      \
+                __FUNCTION__, __VA_ARGS__);
 
 
 /* verbose_set: Set verbosity of the daemon.

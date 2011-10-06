@@ -51,6 +51,7 @@ char *sys_input_find_device_by_name(const char *name)
     int             i;
     int             bytes;
 
+    VERBOSE_FUNCTION_ENTER("%s", name);
     ndev = scandir(dir, &namelist, is_event_device, alphasort);
     for (i = 0; i < ndev; ++i) {
         char path[128];
@@ -74,7 +75,7 @@ char *sys_input_find_device_by_name(const char *name)
     for (i = 0; i < ndev; ++i) {
         free(namelist[i]);
     }
-    VERBOSE_FUNCTION_EXIT();
+    VERBOSE_FUNCTION_EXIT("%s", name);
     return result;
 }
 

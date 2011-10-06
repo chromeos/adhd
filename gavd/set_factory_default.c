@@ -16,9 +16,9 @@ static void set_factory_default(void)
 {
     char const * const cmd = "alsactl --file /etc/asound.state restore";
 
-    VERBOSE_FUNCTION_ENTER();
+    VERBOSE_FUNCTION_ENTER("%s", "void")
     utils_execute_command(cmd);
-    VERBOSE_FUNCTION_EXIT();
+    VERBOSE_FUNCTION_EXIT("%s", "void");
 }
 
 INITIALIZER("Set Factory Default",
