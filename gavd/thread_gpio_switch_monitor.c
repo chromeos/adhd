@@ -22,17 +22,6 @@ static void *gpio_headphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
 
-    if (adhd_initialize_sound_command) {
-        /* TODO(thutt): Stop gap only until /etc/asound.rc is loaded
-         *              on login.
-         *
-         * Warning: Adding other Alsa-based threads before
-         *          /etc/asound.rc is loaded will cause race
-         *          conditions with sound initialization.
-         */
-        utils_execute_command(ADHD_INITIALIZE_SOUND_COMMAND);
-    }
-
     gpio_switch_monitor(desc->name,
                         ADHD_INPUT_NAME_HEADPHONE_JACK,
                         SW_HEADPHONE_INSERT,
