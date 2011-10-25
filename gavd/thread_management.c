@@ -8,11 +8,10 @@
 #include <limits.h>
 
 #include "board.h"
-#include "verbose.h"
 #include "initialization.h"
+#include "verbose.h"
+#include "linkerset.h"
 #include "thread_management.h"
-
-#define WEAK __attribute__((weak))
 
 /* [__start_thread_descriptor, __stop_thread_descriptor) is an array
  * of pointers which reference the actual thread descriptors.
@@ -21,53 +20,33 @@
  * take this detail into consideration when traversing the set of
  * threads.
  */
-extern thread_descriptor_t WEAK *__start_thread_descriptor;
-extern thread_descriptor_t WEAK *__stop_thread_descriptor;
+LINKERSET_DECLARE(thread_descriptor);
 
 thread_management_t thread_management;
-
-static thread_descriptor_t **threads_descriptor_start(void)
-{
-    return &__start_thread_descriptor;
-}
-
-static thread_descriptor_t **threads_descriptor_stop(void)
-{
-    return &__stop_thread_descriptor;
-}
-
-#define FOREACH_THREAD(_desc, _body)                            \
-    {                                                           \
-    thread_descriptor_t **_beg = threads_descriptor_start();    \
-    thread_descriptor_t **_end = threads_descriptor_stop();     \
-    while (_beg < _end) {                                       \
-        thread_descriptor_t *_desc = *_beg;                     \
-        verbose_log(1, LOG_INFO, "%s: '%s'",                    \
-                    __FUNCTION__, _desc->td_name);              \
-        _body;                                                  \
-        ++_beg;                                                 \
-    }                                                           \
-}
 
 void threads_start(void)
 {
     thread_management.tm_exit = 0;
     thread_management.tm_quit = 0;
     initialization_initialize();
-    FOREACH_THREAD(desc,
-                   {
-                       pthread_create(&desc->td_thread, NULL,
-                                      desc->td_start_routine, desc);
-                   });
+    LINKERSET_ITERATE(thread_descriptor, desc,
+                      {
+                          verbose_log(1, LOG_INFO, "%s: '%s'",
+                                      __FUNCTION__, desc->td_name);
+                          pthread_create(&desc->td_thread, NULL,
+                                         desc->td_start_routine, desc);
+                      });
 }
 
 void threads_kill_all(void)
 {
     thread_management.tm_exit = 1;
-    FOREACH_THREAD(desc,
-                   {
-                       pthread_join(desc->td_thread, NULL);
-                   });
+    LINKERSET_ITERATE(thread_descriptor, desc,
+                      {
+                          verbose_log(1, LOG_INFO, "%s: '%s'",
+                                      __FUNCTION__, desc->td_name);
+                          pthread_join(desc->td_thread, NULL);
+                      });
     initialization_finalize();
     thread_management.tm_exit = 0;
 }

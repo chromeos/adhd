@@ -7,56 +7,28 @@
 
 #include "board.h"
 #include "verbose.h"
+#include "linkerset.h"
 #include "initialization.h"
 
 #define WEAK __attribute__((weak))
 
-/* [__start_initialization, __stop_initialization) is an array
- * of pointers which reference the actual initializers.
- *
- * If no initializers are defined, both symbols will be NULL; be sure
- * to take this detail into consideration when traversing the set of
- * initializers.
- */
-extern initialization_descriptor_t WEAK *__start_initialization_descriptors;
-extern initialization_descriptor_t WEAK *__stop_initialization_descriptors;
-
-static initialization_descriptor_t **initialization_descriptor_start(void)
-{
-    return &__start_initialization_descriptors;
-}
-
-static initialization_descriptor_t **initialization_descriptor_stop(void)
-{
-    return &__stop_initialization_descriptors;
-}
-
-#define FOREACH_INITIALIZER(_desc, _body)                               \
-    {                                                                   \
-        initialization_descriptor_t **_beg =                            \
-            initialization_descriptor_start();                          \
-        initialization_descriptor_t **_end =                            \
-            initialization_descriptor_stop();                           \
-        while (_beg < _end) {                                           \
-            initialization_descriptor_t *_desc = *_beg;                 \
-            verbose_log(1, LOG_INFO, "%s: '%s'",                        \
-                        __FUNCTION__, _desc->id_name);                  \
-            _body;                                                      \
-            ++_beg;                                                     \
-        }                                                               \
-    }
+LINKERSET_DECLARE(initialization_descriptor);
 
 void initialization_initialize(void)
 {
-    FOREACH_INITIALIZER(desc,
-                        {
-                            desc->id_initialize();
-                        });
+    LINKERSET_ITERATE(initialization_descriptor, desc,
+                      {
+                          verbose_log(1, LOG_INFO, "%s: '%s'",
+                                      __FUNCTION__, desc->id_name);
+                          desc->id_initialize();
+                      });
 }
 void initialization_finalize(void)
 {
-    FOREACH_INITIALIZER(desc,
-                        {
-                            desc->id_finalize();
-                        });
+    LINKERSET_ITERATE(initialization_descriptor, desc,
+                      {
+                          verbose_log(1, LOG_INFO, "%s: '%s'",
+                                      __FUNCTION__, desc->id_name);
+                          desc->id_finalize();
+                      });
 }

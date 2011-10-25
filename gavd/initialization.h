@@ -4,6 +4,7 @@
  */
 #if !defined(_INITIALIZATION_H_)
 #define _INITIALIZATION_H_
+#include "linkerset.h"
 
 typedef void (*initialization_fn_t)(void);
 
@@ -21,12 +22,8 @@ typedef struct initialization_descriptor_t {
         .id_initialize = _initialize,                                   \
         .id_finalize   = _finalize,                                     \
     };                                                                  \
-    __asm__(".global __start_initialization_descriptors");              \
-    __asm__(".global __stop_initialization_descriptors");               \
-    static void const * const                                           \
-    __initialization_descriptor_ptr_##_fn                               \
-    __attribute__((section("initialization_descriptors"),used)) =       \
-         &__initialization_descriptor_##_fn
+    LINKERSET_ADD_ITEM(initialization_descriptor,                       \
+                       __initialization_descriptor_##_fn)
 
 void initialization_initialize(void);
 void initialization_finalize(void);

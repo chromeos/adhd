@@ -5,6 +5,7 @@
 #if !defined(_THREAD_MANAGEMENT_H_)
 #define _THREAD_MANAGEMENT_H_
 #include <pthread.h>
+#include "linkerset.h"
 
 typedef struct thread_descriptor_t {
     void       *(*td_start_routine)(void*); /* pthread start routine */
@@ -25,11 +26,8 @@ typedef struct thread_descriptor_t {
         .td_name          = _name,                                      \
         .td_start_routine = _start_routine,                             \
     };                                                                  \
-    __asm__(".global __start_thread_descriptor");                       \
-    __asm__(".global __stop_thread_descriptor");                        \
-    static void const * const __thread_descriptor_ptr_##_start_routine  \
-    __attribute__((section("thread_descriptor"),used)) =                \
-         &__thread_descriptor_##_start_routine
+    LINKERSET_ADD_ITEM(thread_descriptor,                               \
+                       __thread_descriptor_##_start_routine)
 
 typedef struct thread_management_t {
     volatile unsigned tm_quit;  /* quit == 0 => Daemon continues to run.
