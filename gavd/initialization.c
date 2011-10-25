@@ -31,17 +31,16 @@ static initialization_descriptor_t **initialization_descriptor_stop(void)
     return &__stop_initialization_descriptors;
 }
 
-#define FOREACH_INITIALIZER(_body)                                      \
+#define FOREACH_INITIALIZER(_desc, _body)                               \
     {                                                                   \
         initialization_descriptor_t **_beg =                            \
             initialization_descriptor_start();                          \
         initialization_descriptor_t **_end =                            \
             initialization_descriptor_stop();                           \
         while (_beg < _end) {                                           \
-            /* 'desc' variable is available for use in '_body' */       \
-            initialization_descriptor_t *desc = *_beg;                  \
+            initialization_descriptor_t *_desc = *_beg;                 \
             verbose_log(1, LOG_INFO, "%s: '%s'",                        \
-                        __FUNCTION__, desc->name);                      \
+                        __FUNCTION__, _desc->id_name);                  \
             _body;                                                      \
             ++_beg;                                                     \
         }                                                               \
@@ -49,13 +48,15 @@ static initialization_descriptor_t **initialization_descriptor_stop(void)
 
 void initialization_initialize(void)
 {
-    FOREACH_INITIALIZER({
-            desc->initialize();
-        });
+    FOREACH_INITIALIZER(desc,
+                        {
+                            desc->id_initialize();
+                        });
 }
 void initialization_finalize(void)
 {
-    FOREACH_INITIALIZER({
-            desc->finalize();
-        });
+    FOREACH_INITIALIZER(desc,
+                        {
+                            desc->id_finalize();
+                        });
 }

@@ -7,11 +7,11 @@
 #include <pthread.h>
 
 typedef struct thread_descriptor_t {
-    void       *(*start_routine)(void*); /* pthread start routine */
-    const char *name;
+    void       *(*td_start_routine)(void*); /* pthread start routine */
+    const char *td_name;
 
-    pthread_t   thread;
-    void       *data;
+    pthread_t   td_thread;
+    void       *td_data;
 } thread_descriptor_t;
 
 /* inv: There can be no ordering dependencies between threads.  If
@@ -22,8 +22,8 @@ typedef struct thread_descriptor_t {
 #define THREAD_DESCRIPTOR(_name, _start_routine)                        \
     static thread_descriptor_t  /* Cannot be 'const'. */                \
     __thread_descriptor_##_start_routine = {                            \
-        .name          = _name,                                         \
-        .start_routine = _start_routine,                                \
+        .td_name          = _name,                                      \
+        .td_start_routine = _start_routine,                             \
     };                                                                  \
     __asm__(".global __start_thread_descriptor");                       \
     __asm__(".global __stop_thread_descriptor");                        \
@@ -32,10 +32,10 @@ typedef struct thread_descriptor_t {
          &__thread_descriptor_##_start_routine
 
 typedef struct thread_management_t {
-    volatile unsigned quit;     /* quit == 0 => Daemon continues to run.
+    volatile unsigned tm_quit;  /* quit == 0 => Daemon continues to run.
                                  * quit      != 1 => Daemon exits.
                                  */
-    volatile unsigned exit;     /* exit == 0 => Continue running.
+    volatile unsigned tm_exit;  /* exit == 0 => Continue running.
                                  * exit      != 0 => Thread should exit.
                                  *
                                  * There is no mutex controlling this

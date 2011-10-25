@@ -22,7 +22,7 @@ static void *gpio_headphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
 
-    gpio_switch_monitor(desc->name,
+    gpio_switch_monitor(desc->td_name,
                         ADHD_INPUT_NAME_HEADPHONE_JACK,
                         SW_HEADPHONE_INSERT,
                         ADHD_GPIO_HEADPHONE_INSERT_COMMAND,
@@ -37,7 +37,7 @@ THREAD_DESCRIPTOR("Internal Headphone", gpio_headphone_monitor);
 static void *gpio_microphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
-    gpio_switch_monitor(desc->name,
+    gpio_switch_monitor(desc->td_name,
                         ADHD_INPUT_NAME_MICROPHONE_JACK,
                         SW_MICROPHONE_INSERT,
                         NULL,

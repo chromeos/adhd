@@ -8,18 +8,18 @@
 typedef void (*initialization_fn_t)(void);
 
 typedef struct initialization_descriptor_t {
-    initialization_fn_t  initialize;
-    initialization_fn_t  finalize;
-    const char          *name;
+    initialization_fn_t  id_initialize;
+    initialization_fn_t  id_finalize;
+    const char          *id_name;
 } initialization_descriptor_t;
 
 /* inv: There can be no ordering dependencies between initializers. */
 #define INITIALIZER(_name, _initialize, _finalize)                      \
     static const initialization_descriptor_t                            \
     __initialization_descriptor_##_fn = {                               \
-        .name       = _name,                                            \
-        .initialize = _initialize,                                      \
-        .finalize   = _finalize,                                        \
+        .id_name       = _name,                                         \
+        .id_initialize = _initialize,                                   \
+        .id_finalize   = _finalize,                                     \
     };                                                                  \
     __asm__(".global __start_initialization_descriptors");              \
     __asm__(".global __stop_initialization_descriptors");               \

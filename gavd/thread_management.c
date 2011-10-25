@@ -36,15 +36,14 @@ static thread_descriptor_t **threads_descriptor_stop(void)
     return &__stop_thread_descriptor;
 }
 
-#define FOREACH_THREAD(_body)                                   \
+#define FOREACH_THREAD(_desc, _body)                            \
     {                                                           \
     thread_descriptor_t **_beg = threads_descriptor_start();    \
     thread_descriptor_t **_end = threads_descriptor_stop();     \
     while (_beg < _end) {                                       \
-        /* 'desc' variable is available for use in '_body' */   \
-        thread_descriptor_t *desc = *_beg;                      \
+        thread_descriptor_t *_desc = *_beg;                     \
         verbose_log(1, LOG_INFO, "%s: '%s'",                    \
-                    __FUNCTION__, desc->name);                  \
+                    __FUNCTION__, _desc->td_name);              \
         _body;                                                  \
         ++_beg;                                                 \
     }                                                           \
@@ -52,25 +51,28 @@ static thread_descriptor_t **threads_descriptor_stop(void)
 
 void threads_start(void)
 {
-    thread_management.exit = 0;
-    thread_management.quit = 0;
+    thread_management.tm_exit = 0;
+    thread_management.tm_quit = 0;
     initialization_initialize();
-    FOREACH_THREAD({
-        pthread_create(&desc->thread, NULL, desc->start_routine, desc);
-        });
+    FOREACH_THREAD(desc,
+                   {
+                       pthread_create(&desc->td_thread, NULL,
+                                      desc->td_start_routine, desc);
+                   });
 }
 
 void threads_kill_all(void)
 {
-    thread_management.exit = 1;
-    FOREACH_THREAD({
-        pthread_join(desc->thread, NULL);
-        });
+    thread_management.tm_exit = 1;
+    FOREACH_THREAD(desc,
+                   {
+                       pthread_join(desc->td_thread, NULL);
+                   });
     initialization_finalize();
-    thread_management.exit = 0;
+    thread_management.tm_exit = 0;
 }
 
 unsigned threads_quit_daemon(void)
 {
-    return thread_management.quit;
+    return thread_management.tm_quit;
 }

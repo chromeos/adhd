@@ -68,7 +68,7 @@ void gpio_switch_monitor(const char *thread_name,
             unsigned last_state = !current_state;
 
             assert(current_state == 0 || current_state == 1);
-            while (!thread_management.exit) {
+            while (!thread_management.tm_exit) {
                 struct timeval timeout;
 
                 verbose_log(9, LOG_INFO,
