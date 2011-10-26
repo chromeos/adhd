@@ -7,27 +7,39 @@
 #include <pthread.h>
 #include "linkerset.h"
 
-typedef struct thread_descriptor_t {
-    void       *(*td_start_routine)(void*); /* pthread start routine */
-    const char *td_name;
+#define THREAD_STARTUP_PRIORITIES                       \
+    TSP(INITIALIZE)                                     \
+    TSP(NORMAL)
 
-    pthread_t   td_thread;
-    void       *td_data;
+typedef enum thread_startup_priority_t {
+#define TSP(_tp) TSP_##_tp,
+    THREAD_STARTUP_PRIORITIES
+#undef TSP
+    N_THREAD_PRIORITIES
+} thread_startup_priority_t;
+
+typedef struct thread_descriptor_t {
+    void                      *(*td_entry)(void*); /* pthread entry point */
+    const char                *td_name;
+    thread_startup_priority_t  td_priority;
+
+    pthread_t                  td_thread;
+    void                      *td_data;
 } thread_descriptor_t;
 
-/* inv: There can be no ordering dependencies between threads.  If
- *      ordering dependencies are ever required, then additional
- *      fields which indicate priority must be added to the
- *      descriptor.
+/*  _name : String literal name for the thread.
+ *  _pri  : thread_startup_priority_t for the thread.
+ *  _entry: Function used to start the pthread.
  */
-#define THREAD_DESCRIPTOR(_name, _start_routine)                        \
-    static thread_descriptor_t  /* Cannot be 'const'. */                \
-    __thread_descriptor_##_start_routine = {                            \
-        .td_name          = _name,                                      \
-        .td_start_routine = _start_routine,                             \
-    };                                                                  \
-    LINKERSET_ADD_ITEM(thread_descriptor,                               \
-                       __thread_descriptor_##_start_routine)
+#define THREAD_DESCRIPTOR(_name, _pri, _entry)                  \
+    static thread_descriptor_t  /* Cannot be 'const'. */        \
+    __thread_descriptor_##_entry = {                            \
+        .td_name     = _name,                                   \
+        .td_entry    = _entry,                                  \
+        .td_priority = _pri,                                    \
+    };                                                          \
+    LINKERSET_ADD_ITEM(thread_descriptor,                       \
+                       __thread_descriptor_##_entry)
 
 typedef struct thread_management_t {
     volatile unsigned tm_quit;  /* quit == 0 => Daemon continues to run.
@@ -48,4 +60,5 @@ extern thread_management_t thread_management;
 void threads_start(void);
 void threads_kill_all(void);
 unsigned threads_quit_daemon(void);
+void threads_sort_descriptors(void);
 #endif

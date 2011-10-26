@@ -30,13 +30,14 @@ static void *gpio_headphone_monitor(void *arg)
     return NULL;
 }
 
-THREAD_DESCRIPTOR("Internal Headphone", gpio_headphone_monitor);
+THREAD_DESCRIPTOR("Internal Headphone", TSP_NORMAL, gpio_headphone_monitor);
 #endif
 
 #if defined(ADHD_GPIO_MICROPHONE)
 static void *gpio_microphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
+
     gpio_switch_monitor(desc->td_name,
                         ADHD_INPUT_NAME_MICROPHONE_JACK,
                         SW_MICROPHONE_INSERT,
@@ -45,5 +46,5 @@ static void *gpio_microphone_monitor(void *arg)
     return NULL;
 }
 
-THREAD_DESCRIPTOR("Internal Microphone", gpio_microphone_monitor);
+THREAD_DESCRIPTOR("Internal Microphone", TSP_NORMAL, gpio_microphone_monitor);
 #endif

@@ -145,6 +145,7 @@ static void daemonize(void)
     }
     verbose_log(3, LOG_INFO, "%s: %s mode.", __FUNCTION__, operational_mode);
 
+    threads_sort_descriptors();
     signal_start();
     threads_start();
 
