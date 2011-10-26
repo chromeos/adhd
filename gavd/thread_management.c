@@ -37,8 +37,12 @@ void threads_sort_descriptors(void)
 
 void threads_start(void)
 {
+    const unsigned n_threads = LINKERSET_SIZE(thread_descriptor, unsigned);
     thread_management.tm_exit = 0;
     thread_management.tm_quit = 0;
+
+    assert((ptrdiff_t)n_threads == /* Truncation? */
+           LINKERSET_SIZE_PTRDIFF(thread_descriptor));
 
     /* The thread descriptors are sorted in order of priorty.  There
      * is no ordering in a priority level, but lower priorities can
@@ -47,12 +51,47 @@ void threads_start(void)
 
     initialization_initialize();
 
+    /* To ensure that each thread gets to start up in priority order,
+     * and with no race conditions for initialiation, two barriers are
+     * used.
+     *
+     *  o creation barrier
+     *
+     *    Each thread will execute its startup code and reach a
+     *    barrier shared only by the loop iterating over the set of
+     *    threads.
+     *
+     *    This is most notably used by the thread which resets the
+     *    internal sound card to the 'factory default' values.
+     *
+     *  o startup barrier
+     *
+     *    After the thread has completed its initialiation and passed
+     *    the 'creation' barrier, it will wait for all threads to be
+     *    started at the 'startup' barrier.  The startup barrier is
+     *    shared between all threads and this code.
+     *
+     * After both barriers are passed, all threads will begin running
+     * normally.
+     */
+    pthread_barrier_init(&thread_management.tm_start_barrier, NULL,
+                         n_threads /* Declared threads. */ +
+                         1         /* This function.    */);
     LINKERSET_ITERATE(thread_descriptor, desc, {
             verbose_log(1, LOG_INFO, "%s: '%s'",
                         __FUNCTION__, desc->td_name);
+            pthread_barrier_init(&thread_management.tm_create_barrier, NULL,
+                                 1 /* Created thread. */ +
+                                 1 /* This function.  */);
             pthread_create(&desc->td_thread, NULL,
                            desc->td_entry, desc);
+            pthread_barrier_wait(&thread_management.tm_create_barrier);
+            pthread_barrier_destroy(&thread_management.tm_create_barrier);
         });
+
+    pthread_barrier_wait(&thread_management.tm_start_barrier);
+    verbose_log(5, LOG_INFO, "%s: start barrier passed.\n", __FUNCTION__);
+    pthread_barrier_destroy(&thread_management.tm_start_barrier);
 }
 
 void threads_kill_all(void)

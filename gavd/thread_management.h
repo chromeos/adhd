@@ -53,6 +53,8 @@ typedef struct thread_management_t {
                                  * function.  All readers will exit
                                  * when a non-zero value is present.
                                  */
+    pthread_barrier_t tm_create_barrier;
+    pthread_barrier_t tm_start_barrier;
 } thread_management_t;
 
 extern thread_management_t thread_management;

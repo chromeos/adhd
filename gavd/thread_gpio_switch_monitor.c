@@ -22,6 +22,11 @@ static void *gpio_headphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
 
+    /* Initialization Code. */
+    pthread_barrier_wait(&thread_management.tm_create_barrier);
+
+    /* Wait for all other threads to start. */
+    pthread_barrier_wait(&thread_management.tm_start_barrier);
     gpio_switch_monitor(desc->td_name,
                         ADHD_INPUT_NAME_HEADPHONE_JACK,
                         SW_HEADPHONE_INSERT,
@@ -38,6 +43,11 @@ static void *gpio_microphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
 
+    /* Initialization Code. */
+    pthread_barrier_wait(&thread_management.tm_create_barrier);
+
+    /* Wait for all other threads to start. */
+    pthread_barrier_wait(&thread_management.tm_start_barrier);
     gpio_switch_monitor(desc->td_name,
                         ADHD_INPUT_NAME_MICROPHONE_JACK,
                         SW_MICROPHONE_INSERT,
