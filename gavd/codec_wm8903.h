@@ -33,8 +33,6 @@
     ADHD_AMIXER_COMMAND " set 'Headphone' 100%"              " && "     \
     ADHD_AMIXER_COMMAND " set 'Digital'   100%"              " && "     \
     ADHD_AMIXER_COMMAND " set 'Left Speaker Mixer DACL'  on" " && "     \
-    ADHD_AMIXER_COMMAND " set 'Right Speaker Mixer DACL' on" " && "     \
-    ADHD_AMIXER_COMMAND " set 'Left Speaker Mixer DACR'  on" " && "     \
     ADHD_AMIXER_COMMAND " set 'Right Speaker Mixer DACR' on" " && "     \
     ADHD_AMIXER_COMMAND " set 'ADC Input' 'DMIC'"
 
