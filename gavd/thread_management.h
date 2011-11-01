@@ -5,6 +5,7 @@
 #if !defined(_THREAD_MANAGEMENT_H_)
 #define _THREAD_MANAGEMENT_H_
 #include <pthread.h>
+#include "stdmacro.h"
 #include "linkerset.h"
 
 #define THREAD_STARTUP_PRIORITIES                       \
@@ -12,14 +13,14 @@
     TSP(NORMAL)
 
 typedef enum thread_startup_priority_t {
-#define TSP(_tp) TSP_##_tp,
+#define TSP(_tp) XCONCAT(TSP_, _tp),
     THREAD_STARTUP_PRIORITIES
 #undef TSP
     N_THREAD_PRIORITIES
 } thread_startup_priority_t;
 
 typedef struct thread_descriptor_t {
-    void                      *(*td_entry)(void*); /* pthread entry point */
+    void                      *(*td_entry)(void *); /* pthread entry point */
     const char                *td_name;
     thread_startup_priority_t  td_priority;
 
@@ -31,15 +32,15 @@ typedef struct thread_descriptor_t {
  *  _pri  : thread_startup_priority_t for the thread.
  *  _entry: Function used to start the pthread.
  */
-#define THREAD_DESCRIPTOR(_name, _pri, _entry)                  \
-    static thread_descriptor_t  /* Cannot be 'const'. */        \
-    __thread_descriptor_##_entry = {                            \
-        .td_name     = _name,                                   \
-        .td_entry    = _entry,                                  \
-        .td_priority = _pri,                                    \
-    };                                                          \
-    LINKERSET_ADD_ITEM(thread_descriptor,                       \
-                       __thread_descriptor_##_entry)
+#define THREAD_DESCRIPTOR(_name, _pri, _entry)                          \
+    static thread_descriptor_t  /* Cannot be 'const'; set is sorted. */ \
+    XCONCAT(__thread_descriptor_, _entry) = {                           \
+        .td_name     = _name,                                           \
+        .td_entry    = _entry,                                          \
+        .td_priority = _pri,                                            \
+    };                                                                  \
+    LINKERSET_ADD_ITEM(thread_descriptor,                               \
+                       XCONCAT(__thread_descriptor_, _entry))
 
 typedef struct thread_management_t {
     volatile unsigned tm_quit;  /* quit == 0 => Daemon continues to run.
