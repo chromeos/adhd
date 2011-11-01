@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
@@ -7,15 +6,15 @@
 
 #include "board.h"
 
-#if defined(ADHD_SET_FACTORY_DEFAULT) || \
-    defined(ADHD_INITIALIZE_SOUND_COMMAND)
 #include "utils.h"
 #include "verbose.h"
-#include "initialization.h"
+#include "workfifo.h"
+#include "thread_management.h"
+#include "set_factory_default.h"
 
-static void set_factory_default(void)
+WORKFIFO_ENTRY("Set Internal Factory Default", set_factory_default,
 {
-    VERBOSE_FUNCTION_ENTER("%s", "void")
+    VERBOSE_FUNCTION_ENTER("%p", data);
     if (adhd_initialize_sound_command) {
         /* TODO(thutt): Stop gap only until /etc/asound.rc is loaded
          *              on login.
@@ -25,15 +24,19 @@ static void set_factory_default(void)
          *          /etc/asound.rc is loaded will cause race
          *          conditions with sound initialization.
          */
+        threads_lock_hardware();
         utils_execute_command(ADHD_INITIALIZE_SOUND_COMMAND);
-    } else {
+        threads_unlock_hardware();
+    } else if (adhd_set_factory_default) {
         char const * const cmd = "alsactl --file /etc/asound.state restore";
+        threads_lock_hardware();
         utils_execute_command(cmd);
+        threads_unlock_hardware();
     }
-    VERBOSE_FUNCTION_EXIT("%s", "void");
-}
+    VERBOSE_FUNCTION_EXIT("%p", data);
+ });
 
-INITIALIZER("Set Factory Default",
-            set_factory_default,
-            set_factory_default);
-#endif
+void factory_default_add_event(void)
+{
+    workfifo_add_item(WORKFIFO_ENTRY_ID(set_factory_default), NULL);
+}
