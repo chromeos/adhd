@@ -12,6 +12,7 @@ CFILES	=					\
 	thread_gpio_switch_monitor.c		\
 	thread_management.c			\
 	utils.c					\
+	workfifo.c				\
 	main.c
 
 OFILES	= $(CFILES:.c=.o)
