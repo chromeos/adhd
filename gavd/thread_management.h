@@ -65,4 +65,6 @@ void threads_start(void);
 void threads_kill_all(void);
 unsigned threads_quit_daemon(void);
 void threads_sort_descriptors(void);
+void threads_lock_hardware(void);
+void threads_unlock_hardware(void);
 #endif

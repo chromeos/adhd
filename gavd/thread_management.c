@@ -125,3 +125,17 @@ unsigned threads_quit_daemon(void)
 {
     return thread_management.tm_quit;
 }
+
+void threads_lock_hardware(void)
+{
+    VERBOSE_FUNCTION_ENTER("%s", "void");
+    pthread_mutex_lock(&thread_management.tm_hardware);
+    VERBOSE_FUNCTION_EXIT("%s", "void");
+}
+
+void threads_unlock_hardware(void)
+{
+    VERBOSE_FUNCTION_ENTER("%s", "void");
+    pthread_mutex_unlock(&thread_management.tm_hardware);
+    VERBOSE_FUNCTION_EXIT("%s", "void");
+}
