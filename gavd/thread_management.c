@@ -51,6 +51,9 @@ void threads_start(void)
 
     initialization_initialize();
 
+    /* tm_hardware: Lock only when modifying Alsa hardware state. */
+    pthread_mutex_init(&thread_management.tm_hardware, NULL);
+
     /* To ensure that each thread gets to start up in priority order,
      * and with no race conditions for initialiation, two barriers are
      * used.
@@ -89,6 +92,16 @@ void threads_start(void)
             pthread_barrier_destroy(&thread_management.tm_create_barrier);
         });
 
+    /* All threads are waiting at the 'tm_start_barrier' barrier.
+     *
+     * Before reaching the barrier here, we can dope data structures
+     * which will be used by the threads to affect actions which must
+     * be done on startup.
+     *
+     * For example, adding an element to a worklist to reset the
+     * internal hardware to the 'factory default' values.
+     */
+
     pthread_barrier_wait(&thread_management.tm_start_barrier);
     verbose_log(5, LOG_INFO, "%s: start barrier passed.\n", __FUNCTION__);
     pthread_barrier_destroy(&thread_management.tm_start_barrier);
@@ -103,6 +116,7 @@ void threads_kill_all(void)
                                       __FUNCTION__, desc->td_name);
                           pthread_join(desc->td_thread, NULL);
                       });
+    pthread_mutex_destroy(&thread_management.tm_hardware);
     initialization_finalize();
     thread_management.tm_exit = 0;
 }

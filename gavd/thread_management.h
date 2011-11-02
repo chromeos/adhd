@@ -55,6 +55,7 @@ typedef struct thread_management_t {
                                  */
     pthread_barrier_t tm_create_barrier;
     pthread_barrier_t tm_start_barrier;
+    pthread_mutex_t   tm_hardware; /* Global lock for hardware changes. */
 } thread_management_t;
 
 extern thread_management_t thread_management;

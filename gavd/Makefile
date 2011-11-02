@@ -4,15 +4,15 @@
 include $(ADHD_DIR)/defs/definitions.mk
 
 CFILES	=					\
-	main.c					\
-	signal_handling.c			\
+	gpio_switch_monitor.c			\
 	initialization.c			\
 	set_factory_default.c			\
+	signal_handling.c			\
 	sys_input.c				\
-	utils.c					\
-	gpio_switch_monitor.c			\
 	thread_gpio_switch_monitor.c		\
-	thread_management.c
+	thread_management.c			\
+	utils.c					\
+	main.c
 
 OFILES	= $(CFILES:.c=.o)
 MY_LIBS	= pthread asound

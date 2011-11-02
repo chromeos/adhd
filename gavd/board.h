@@ -40,6 +40,7 @@
  * This cannot be enabled until defect 'chromium:97144' is addressed.
  */
 #undef ADHD_SET_FACTORY_DEFAULT
+#define adhd_set_factory_default 0
 
 /* TODO(thutt):
  *
@@ -51,7 +52,7 @@
 #define adhd_initialize_sound_command 1
 #else
 #define adhd_initialize_sound_command 0
-#define ADHD_INITIALIZE_SOUND_COMMAND NULL
+#define ADHD_INITIALIZE_SOUND_COMMAND NULL /* For compilation only. */
 #endif
 
 /* gavd manages the multiplexing between the internal speakers or
@@ -63,7 +64,7 @@
 #define adhd_headphone_insert_command 1
 #else
 #define adhd_headphone_insert_command 0
-#define ADHD_GPIO_HEADPHONE_INSERT_COMMAND NULL
+#define ADHD_GPIO_HEADPHONE_INSERT_COMMAND NULL /* For compilation only. */
 #endif
 
 /* gavd manages the multiplexing between the internal speakers or
