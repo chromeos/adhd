@@ -51,9 +51,7 @@ static void workfifo_unlock(void)
 
 static workfifo_node_t *workfifo_allocate_node(void)
 {
-    workfifo_node_t *result = calloc((size_t)1, sizeof(workfifo_node_t));
-    assert(result != NULL);
-    return result;
+    return calloc((size_t)1, sizeof(workfifo_node_t));
 }
 
 static unsigned workfifo_empty(void)
@@ -99,7 +97,7 @@ static void workfifo_create(void)
 {
     /* Workfifo is a doubly linked list, with a dummy head node. */
     wf = workfifo_allocate_node();
-    assert(wf != NULL);
+    assert(wf != NULL);   /* Cannot create work fifo -> cannot run. */
     wf->wfn_next = wf;
     wf->wfn_prev = wf;
     pthread_mutex_init(&wf_mutex, NULL);
@@ -118,13 +116,15 @@ static void workfifo_destroy(void)
     pthread_mutex_destroy(&wf_mutex);
 }
 
-void workfifo_add_item(const workfifo_entry_t *entry, void *data)
+unsigned workfifo_add_item(const workfifo_entry_t *entry, void *data)
 {
     workfifo_node_t *node = workfifo_allocate_node();
-
-    node->wfn_entry = entry;
-    node->wfn_data  = data;
-    workfifo_append_node(node);
+    if (node != NULL) {
+        node->wfn_entry = entry;
+        node->wfn_data  = data;
+        workfifo_append_node(node);
+    }
+    return node != NULL;
 }
 
 static void workfifo_monitor_work(const char *thread_name)

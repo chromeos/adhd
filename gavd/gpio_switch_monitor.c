@@ -88,18 +88,24 @@ static void gpio_switch_monitor_work(const char *thread_name,
             switch_state_t *ss = calloc((size_t)1,
                                         sizeof(switch_state_t));
 
-            /* Only craete workfifo entry if associated data
-               can be allocated.  If 'ss' cannot be allocated,
-               don't update the state of the switch either;
-               try again on next time slice.
+            /* Only create workfifo entry if associated data can be
+             * allocated.
+             *
+             * If 'ss' cannot be allocated, or if the work fifo item
+             * cannot be added, don't update the state of the switch
+             * either; try again during the next time quantum.
             */
             if (ss != NULL) {
                 ss->thread_name    = thread_name;
                 ss->insert_command = insert_command;
                 ss->remove_command = remove_command;
                 ss->state          = current_state;
-                last_state         = current_state;
-                workfifo_add_item(WORKFIFO_ENTRY_ID(gpio_switch_state), ss);
+                if (workfifo_add_item(WORKFIFO_ENTRY_ID(gpio_switch_state),
+                                       ss)) {
+                    last_state = current_state;
+                } else {
+                    free(ss);
+                }
             }
         }
 

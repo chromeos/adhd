@@ -36,5 +36,14 @@ typedef struct workfifo_entry_t {
     };                                                          \
     LINKERSET_ADD_ITEM(workfifo_entry, __WORKFIFO_ENTRY_ID(_id))
 
-void workfifo_add_item(const workfifo_entry_t *handler, void *data);
+/* workfifo_add_item: Add an item to the end of the work fifo
+ *
+ *  result == 1 -> Successfully added.
+ *  result == 0 -> Entry not added.
+ *
+ *  result == 1 -> 'data' is managed (i.e., free()) by 'handler'.
+ *  result == 0 -> 'data' is managed (i.e., free()) by the caller
+ *                 of this function.
+ */
+unsigned workfifo_add_item(const workfifo_entry_t *handler, void *data);
 #endif
