@@ -16,26 +16,16 @@
 #include "sys_input.h"
 #include "thread_management.h"
 #include "utils.h"
+#include "workfifo.h"
 #include "gpio_switch_monitor.h"
 
-static void gpio_switch_notify_state(const char *thread_name,
-                                     unsigned    state, /* 0 -> remove,
-                                                         * 1 -> insert
-                                                         */
-                                     const char *insert_command,
-                                     const char *remove_command)
-{
-    verbose_log(5, LOG_INFO, "%s: %s state: '%u'", __FUNCTION__,
-                thread_name, state);
-
-    if (insert_command != NULL && remove_command != NULL) {
-        const char *cmd = state ? insert_command
-                                : remove_command;
-        utils_execute_command(cmd);
-    } else {
-        assert(insert_command == NULL && remove_command == NULL);
-    }
-}
+typedef struct switch_state_t {
+    const char *thread_name;
+    const char *device_name;
+    const char *insert_command;
+    const char *remove_command;
+    unsigned    state;          /* 0 -> remove, 1 -> insert */
+} switch_state_t;
 
 static const char *gpio_switch_decode_state(unsigned state)
 {
@@ -43,6 +33,80 @@ static const char *gpio_switch_decode_state(unsigned state)
     case 0:  return "off";
     case 1:  return "on";
     default: return "(invalid)";
+    }
+}
+
+WORKFIFO_ENTRY("GPIO Switch Notify State", gpio_switch_state,
+{
+    switch_state_t *ss = (switch_state_t *)data;
+
+    VERBOSE_FUNCTION_ENTER("%s: %s", ss->thread_name,
+                           gpio_switch_decode_state(ss->state));
+
+    if (ss->insert_command != NULL && ss->remove_command != NULL) {
+        const char *cmd = ss->state ? ss->insert_command
+                                    : ss->remove_command;
+        threads_lock_hardware();
+        utils_execute_command(cmd);
+        threads_unlock_hardware();
+        free(ss);
+    } else {
+        /* If there is no command for insertion, or there is no
+         * command for removal, then both commands must not exist.  In
+         * other words, both must be present, or both must not be
+         * present.
+         *
+         * This invariant is done so that board-based CPP identifiers
+         * can be used to define the insert & remove commands.
+         */
+        assert(ss->insert_command == NULL && ss->remove_command == NULL);
+    }
+
+    VERBOSE_FUNCTION_EXIT("%s: %s", ss->thread_name,
+                           gpio_switch_decode_state(ss->state));
+});
+
+static void gpio_switch_monitor_work(const char *thread_name,
+                                     unsigned    switch_event,
+                                     const char *insert_command,
+                                     const char *remove_command,
+                                     int         fd,
+                                     unsigned    current_state)
+{
+    unsigned last_state = !current_state;
+
+    assert(current_state == 0 || current_state == 1);
+    while (!thread_management.tm_exit) {
+        struct timeval timeout;
+
+        verbose_log(9, LOG_INFO,
+                    "%s: %s: last: '%s' current: '%s'",
+                    __FUNCTION__, thread_name,
+                    gpio_switch_decode_state(last_state),
+                    gpio_switch_decode_state(current_state));
+        if (current_state != last_state) {
+            switch_state_t *ss = calloc((size_t)1,
+                                        sizeof(switch_state_t));
+
+            /* Only craete workfifo entry if associated data
+               can be allocated.  If 'ss' cannot be allocated,
+               don't update the state of the switch either;
+               try again on next time slice.
+            */
+            if (ss != NULL) {
+                ss->thread_name    = thread_name;
+                ss->insert_command = insert_command;
+                ss->remove_command = remove_command;
+                ss->state          = current_state;
+                last_state         = current_state;
+                workfifo_add_item(WORKFIFO_ENTRY_ID(gpio_switch_state), ss);
+            }
+        }
+
+        timeout.tv_sec  = 0;
+        timeout.tv_usec = 500000;   /* 1/2 second. */
+        select(fd + 1, NULL, NULL, NULL, &timeout);
+        sys_input_get_switch_state(fd, switch_event, &current_state);
     }
 }
 
@@ -65,28 +129,12 @@ void gpio_switch_monitor(const char *thread_name,
         fd = open(device, O_RDONLY);
         if (fd != -1 &&
             sys_input_get_switch_state(fd, switch_event, &current_state)) {
-            unsigned last_state = !current_state;
-
-            assert(current_state == 0 || current_state == 1);
-            while (!thread_management.tm_exit) {
-                struct timeval timeout;
-
-                verbose_log(9, LOG_INFO,
-                            "%s: %s: last: '%s' current: '%s'",
-                            __FUNCTION__, thread_name,
-                            gpio_switch_decode_state(last_state),
-                            gpio_switch_decode_state(current_state));
-                if (current_state != last_state) {
-                    last_state = current_state;
-                    gpio_switch_notify_state(thread_name, current_state,
-                                             insert_command, remove_command);
-                }
-
-                timeout.tv_sec  = 0;
-                timeout.tv_usec = 500000;   /* 1/2 second. */
-                select(fd + 1, NULL, NULL, NULL, &timeout);
-                sys_input_get_switch_state(fd, switch_event, &current_state);
-            }
+            gpio_switch_monitor_work(thread_name,
+                                     switch_event,
+                                     insert_command,
+                                     remove_command,
+                                     fd,
+                                     current_state);
             close(fd);
         } else {
             verbose_log(0, LOG_ERR, "%s: unable to find device for '%s'",
