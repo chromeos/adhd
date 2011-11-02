@@ -6,8 +6,7 @@
 #define _LINKERSET_H_
 #include <assert.h>
 #include <stdlib.h>
-
-#define WEAK __attribute__((weak))
+#include "stdmacro.h"
 
 /* LINKERSET
  *
@@ -110,10 +109,10 @@
  */
 
 #define LINKERSET_START(_name) \
-    &__start_##_name
+    XCONCAT(&__start_, _name)
 
 #define LINKERSET_STOP(_name) \
-    &__stop_##_name
+    XCONCAT(&__stop_, _name)
 
 /* LINKERSET_DECLARE: Enable access to a linker set in a source file.
  *
@@ -127,10 +126,10 @@
  * that are C identifiers; '.section'-style names will not cause this
  * symbol generation feature to occur.
  */
-#define LINKERSET_DECLARE(_name)                \
-    extern _name##_t WEAK *__start_##_name;     \
-    extern _name##_t WEAK *__stop_##_name;      \
-    __asm__(".global __start_" #_name);         \
+#define LINKERSET_DECLARE(_name)                                \
+    extern XCONCAT(_name, _t) WEAK *XCONCAT(__start_, _name);   \
+    extern XCONCAT(_name, _t) WEAK *XCONCAT(__stop_, _name);    \
+    __asm__(".global __start_" #_name);                         \
     __asm__(".global __stop_" #_name)
 
 /* LINKERSET_ADD_ITEM: Add an item to a linker set.
@@ -142,8 +141,10 @@
  *              as the 'linker set data type', as described above.
  *              Generally this variable is statically initialized.
  */
-#define LINKERSET_ADD_ITEM(_name, _desc_name)                    \
-    static void const *__##_name##_ptr_##_desc_name              \
+#define LINKERSET_ADD_ITEM(_name, _desc_name)                           \
+    static void const * XCONCAT(__, XCONCAT(_name,                      \
+                                            XCONCAT(_ptr_,              \
+                                                    _desc_name)))       \
     __attribute__((section(#_name),used)) = &_desc_name
 
 /* LINKERSET_ITERATE: Iterate over an entire linker set.
@@ -159,15 +160,15 @@
  *         in the linker set.  You may use the '_var' argument to
  *         access fields of the data type.
  */
-#define LINKERSET_ITERATE(_name, _var, _body)           \
-    do {                                                \
-        _name##_t **_beg = LINKERSET_START(_name);      \
-        _name##_t **_end = LINKERSET_STOP(_name);       \
-        while (_beg < _end) {                           \
-            _name##_t *_var = *_beg;                    \
-            _body;                                      \
-            ++_beg;                                     \
-        }                                               \
+#define LINKERSET_ITERATE(_name, _var, _body)                   \
+    do {                                                        \
+        XCONCAT(_name, _t) **_beg = LINKERSET_START(_name);     \
+        XCONCAT(_name, _t) **_end = LINKERSET_STOP(_name);      \
+        while (_beg < _end) {                                   \
+            XCONCAT(_name, _t) *_var = *_beg;                   \
+            _body;                                              \
+            ++_beg;                                             \
+        }                                                       \
     } while (0)
 
 /* LINKERSET_SIZE: Produces the number of elements in a linker set.
