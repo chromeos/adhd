@@ -8,7 +8,7 @@
 
 #include "utils.h"
 #include "verbose.h"
-#include "workfifo.h"
+#include "fifo.h"
 #include "thread_management.h"
 #include "set_factory_default.h"
 

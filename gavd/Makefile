@@ -4,6 +4,7 @@
 include $(ADHD_DIR)/defs/definitions.mk
 
 CFILES	=					\
+	fifo.c					\
 	gpio_switch_monitor.c			\
 	initialization.c			\
 	set_factory_default.c			\
@@ -12,7 +13,6 @@ CFILES	=					\
 	thread_gpio_switch_monitor.c		\
 	thread_management.c			\
 	utils.c					\
-	workfifo.c				\
 	main.c
 
 OFILES	= $(CFILES:.c=.o)

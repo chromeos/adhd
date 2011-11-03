@@ -16,7 +16,7 @@
 #include "initialization.h"
 #include "thread_management.h"
 #include "verbose.h"
-#include "workfifo.h"
+#include "fifo.h"
 
 LINKERSET_DECLARE(workfifo_entry);
 

@@ -16,7 +16,7 @@
 #include "sys_input.h"
 #include "thread_management.h"
 #include "utils.h"
-#include "workfifo.h"
+#include "fifo.h"
 #include "gpio_switch_monitor.h"
 
 typedef struct switch_state_t {
