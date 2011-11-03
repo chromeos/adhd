@@ -129,8 +129,8 @@
 #define LINKERSET_DECLARE(_name)                                \
     extern XCONCAT(_name, _t) WEAK *XCONCAT(__start_, _name);   \
     extern XCONCAT(_name, _t) WEAK *XCONCAT(__stop_, _name);    \
-    __asm__(".global __start_" #_name);                         \
-    __asm__(".global __stop_" #_name)
+    __asm__(".global __start_" XSTRING(_name));                 \
+    __asm__(".global __stop_" XSTRING(_name))
 
 /* LINKERSET_ADD_ITEM: Add an item to a linker set.
  *
@@ -145,7 +145,7 @@
     static void const * XCONCAT(__, XCONCAT(_name,                      \
                                             XCONCAT(_ptr_,              \
                                                     _desc_name)))       \
-    __attribute__((section(#_name),used)) = &_desc_name
+         __attribute__((section(XSTRING(_name)),used)) = &_desc_name
 
 /* LINKERSET_ITERATE: Iterate over an entire linker set.
  *
