@@ -8,6 +8,10 @@
 #include <stdlib.h>
 
 #define WEAK __attribute__((weak))
+
+#define STRING(x)       #x        /* Stringify 'x'. */
+#define XSTRING(x)      STRING(x) /* Expand 'x', then stringify. */
+
 #define CONCAT(_a, _b) _a##_b
 #define XCONCAT(_a, _b) CONCAT(_a, _b)
 
