@@ -28,9 +28,9 @@ WORKFIFO_ENTRY("Set Internal Factory Default", set_factory_default,
         utils_execute_command(ADHD_INITIALIZE_SOUND_COMMAND);
         threads_unlock_hardware();
     } else if (adhd_set_factory_default) {
-        char const * const cmd = "alsactl --file /etc/asound.state restore";
         threads_lock_hardware();
-        utils_execute_command(cmd);
+        utils_execute_command(ADHD_ALSACTL_COMMAND
+                              " --file /etc/asound.state restore");
         threads_unlock_hardware();
     }
     VERBOSE_FUNCTION_EXIT("%p", data);
