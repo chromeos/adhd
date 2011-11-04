@@ -100,10 +100,7 @@ static void gpio_switch_monitor_work(const char *thread_name,
                 ss->insert_command = insert_command;
                 ss->remove_command = remove_command;
                 ss->state          = current_state;
-                if (fifo_add_item(workfifo,
-                                  FIFO_DESCRIPTOR_ADDRESS(workfifo,
-                                                          gpio_switch_state),
-                                  ss)) {
+                if (FIFO_ADD_ITEM(workfifo, gpio_switch_state, ss)) {
                     last_state = current_state;
                 } else {
                     free(ss);

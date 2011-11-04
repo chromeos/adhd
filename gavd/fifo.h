@@ -89,9 +89,21 @@ typedef struct fifo_t {
         fifo_entry_t entry;                                             \
     } FIFO_ENTRY_TYPE(_name);                                           \
     extern fifo_t *_name;                                               \
-    extern unsigned fifo_add_item(fifo_t *fifo,                         \
+    extern unsigned XCONCAT(fifo_add_item_, _name)(fifo_t *fifo,        \
                                   const FIFO_ENTRY_TYPE(_name) *entry,  \
                                   void *data)
+
+/* FIFO_ADD_ITEM: Add an item to the named FIFO.
+ *
+ * _name : The name of the fifo.  See FIFO_DEFINE, FIFO_DECLARE
+ * _entry: The name of the FIFO entry handler.  See FIFO_ENTRY.
+ * _data : The data which is passed as an argument to '_entry'.
+ */
+#define FIFO_ADD_ITEM(_name, _entry, _data)                             \
+    XCONCAT(fifo_add_item_, _name)(_name,                               \
+                                  __FIFO_DESCRIPTOR_ADDRESS(_name,      \
+                                                            _entry),    \
+                                  _data)
 
 /* FIFO_DEFINE(<fifo name>): Define types & variables for a FIFO.
  *
@@ -99,8 +111,8 @@ typedef struct fifo_t {
  */
 #define FIFO_DEFINE(_name)                                              \
     LINKERSET_DECLARE(XCONCAT(fifo_entry_, _name));                     \
-    fifo_t *workfifo;                                                   \
-    unsigned fifo_add_item(fifo_t *fifo,                                \
+    fifo_t *_name;                                                      \
+    unsigned XCONCAT(fifo_add_item_, _name)(fifo_t *fifo,               \
                            const FIFO_ENTRY_TYPE(_name) *entry,         \
                            void *data)                                  \
     {                                                                   \
@@ -109,18 +121,23 @@ typedef struct fifo_t {
 
 /* __FIFO_DESCRIPTOR_ID: Creates the name of the internal FIFO descriptor.
  *
+ *  Internal use only.
+ *
  *  _fifo: The name of the FIFO.  See FIFO_DECLARE().
  *  _id  : The name of the FIFO entry.  See FIFO_ENTRY().
  */
 #define __FIFO_DESCRIPTOR_ID(_fifo, _id)                                \
     XCONCAT(__fifo_descriptor_, XCONCAT(_fifo, XCONCAT(_, _id)))
 
-/*  FIFO_DESCRIPTOR_ADDRESS: Obtains address of the descrbied FIFO descriptor.
+/*  __FIFO_DESCRIPTOR_ADDRESS: Obtains address of the descrbied FIFO
+ *                             descriptor.
+ *
+ *  Internal use only.
  *
  *  _fifo: The name of the FIFO.  See FIFO_DECLARE().
  *  _id  : The name of the FIFO entry.  See FIFO_ENTRY().
  */
-#define FIFO_DESCRIPTOR_ADDRESS(_fifo, _id)     \
+#define __FIFO_DESCRIPTOR_ADDRESS(_fifo, _id)     \
     &__FIFO_DESCRIPTOR_ID(_fifo, _id)
 
 /* __FIFO_ENTRY_FUNCTION: Creates function name for FIFO entry handler.

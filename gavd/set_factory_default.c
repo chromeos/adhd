@@ -38,6 +38,5 @@ FIFO_ENTRY("Set Internal Factory Default", workfifo, set_factory_default,
 
 void factory_default_add_event(void)
 {
-    fifo_add_item(workfifo, FIFO_DESCRIPTOR_ADDRESS(workfifo,
-                                                    set_factory_default), NULL);
+    FIFO_ADD_ITEM(workfifo, set_factory_default, NULL);
 }
