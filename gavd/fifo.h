@@ -2,41 +2,63 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#if !defined(_WORKFIFO_H_)
-#define _WORKFIFO_H_
+#if !defined(_FIFO_H_)
+#define _FIFO_H_
 #include "stdmacro.h"
 #include "linkerset.h"
 
-typedef struct workfifo_entry_t {
-    void       (*wf_handler)(void *);
-    const char *wf_name;
-} workfifo_entry_t;
-
-#define __WORKFIFO_ENTRY_ID(_id)                \
-    XCONCAT(__workfifo_descriptor_, _id)
-
-#define WORKFIFO_ENTRY_ID(_id)                  \
-    &__WORKFIFO_ENTRY_ID(_id)
-
-#define WORKFIFO_ENTRY_FUNCTION(_id)            \
-    XCONCAT(workfifo_handler_, _id)
-
-/*  _name   : String literal name for the fifo entry.
- *  _handler: Code used to handle the FIFO data.
+/* fifo_entry_t: FIFO entry handler information
+ *
+ *  This type is the primary data which is placed into a FIFO.
+ *
+ * inv: fe_handler != NULL
+ *      fe_handler is a function which is called to 'handle' the FIFO element.
+ *
+ * inv: fe_name    != NULL
+ *      fe_name is a string which identifies the fifo_entry_t.
+ *      The names need not be unique; uniqueness is guaranteed by the
+ *      fact that each 'fifo_entry_t' has a unique address.
  */
-#define WORKFIFO_ENTRY(_name, _id, _handler)                    \
-    static void WORKFIFO_ENTRY_FUNCTION(_id)(void *data)        \
+typedef struct fifo_entry_t {
+    void       (*fe_handler)(void *);
+    const char *fe_name;
+} fifo_entry_t;
+
+#define __FIFO_ENTRY_ID(_id)                \
+    XCONCAT(__fifo_descriptor_, _id)
+
+#define FIFO_ENTRY_ID(_id)                  \
+    &__FIFO_ENTRY_ID(_id)
+
+/* __FIFO_ENTRY_FUNCTION: Creates function name for FIFO entry handler.
+ *
+ * Internal use only.
+ */
+#define __FIFO_ENTRY_FUNCTION(_id)            \
+    XCONCAT(fifo_handler_, _id)
+
+/* FIFO_ENTRY: Describes a handler for a FIFO entry.
+ *
+ *  _name   : String literal name which describes the handler.
+ *  _id     : The name of the handler.
+ *            This must be a valid C identifier, and it is used
+ *            to create a function name for the FIFO element
+ *            handler code.
+ *  _handler: Code used to handle the FIFO element.
+ */
+#define FIFO_ENTRY(_name, _id, _handler)                        \
+    static void __FIFO_ENTRY_FUNCTION(_id)(void *data)          \
     {                                                           \
         _handler;                                               \
     }                                                           \
-    static const workfifo_entry_t                               \
-    __WORKFIFO_ENTRY_ID(_id) = {                                \
-        .wf_name     = _name,                                   \
-        .wf_handler  = WORKFIFO_ENTRY_FUNCTION(_id),            \
+    static const fifo_entry_t                                   \
+    __FIFO_ENTRY_ID(_id) = {                                    \
+        .fe_name     = _name,                                   \
+        .fe_handler  = __FIFO_ENTRY_FUNCTION(_id),              \
     };                                                          \
-    LINKERSET_ADD_ITEM(workfifo_entry, __WORKFIFO_ENTRY_ID(_id))
+    LINKERSET_ADD_ITEM(fifo_entry, __FIFO_ENTRY_ID(_id))
 
-/* workfifo_add_item: Add an item to the end of the work fifo
+/* fifo_add_item: Add an item to the end of the work fifo
  *
  *  result == 1 -> Successfully added.
  *  result == 0 -> Entry not added.
@@ -45,5 +67,5 @@ typedef struct workfifo_entry_t {
  *  result == 0 -> 'data' is managed (i.e., free()) by the caller
  *                 of this function.
  */
-unsigned workfifo_add_item(const workfifo_entry_t *handler, void *data);
+unsigned fifo_add_item(const fifo_entry_t *handler, void *data);
 #endif

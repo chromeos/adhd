@@ -12,7 +12,7 @@
 #include "thread_management.h"
 #include "set_factory_default.h"
 
-WORKFIFO_ENTRY("Set Internal Factory Default", set_factory_default,
+FIFO_ENTRY("Set Internal Factory Default", set_factory_default,
 {
     VERBOSE_FUNCTION_ENTER("%p", data);
     if (adhd_initialize_sound_command) {
@@ -38,5 +38,5 @@ WORKFIFO_ENTRY("Set Internal Factory Default", set_factory_default,
 
 void factory_default_add_event(void)
 {
-    workfifo_add_item(WORKFIFO_ENTRY_ID(set_factory_default), NULL);
+    fifo_add_item(FIFO_ENTRY_ID(set_factory_default), NULL);
 }
