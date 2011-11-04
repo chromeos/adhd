@@ -16,7 +16,7 @@
 #include "sys_input.h"
 #include "thread_management.h"
 #include "utils.h"
-#include "fifo.h"
+#include "workfifo.h"
 #include "gpio_switch_monitor.h"
 
 typedef struct switch_state_t {
@@ -36,7 +36,7 @@ static const char *gpio_switch_decode_state(unsigned state)
     }
 }
 
-FIFO_ENTRY("GPIO Switch Notify State", gpio_switch_state,
+FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
 {
     switch_state_t *ss = (switch_state_t *)data;
 
@@ -100,7 +100,9 @@ static void gpio_switch_monitor_work(const char *thread_name,
                 ss->insert_command = insert_command;
                 ss->remove_command = remove_command;
                 ss->state          = current_state;
-                if (fifo_add_item(FIFO_ENTRY_ID(gpio_switch_state),
+                if (fifo_add_item(workfifo,
+                                  FIFO_DESCRIPTOR_ADDRESS(workfifo,
+                                                          gpio_switch_state),
                                   ss)) {
                     last_state = current_state;
                 } else {
