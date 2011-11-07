@@ -17,6 +17,7 @@
 #include "thread_management.h"
 #include "utils.h"
 #include "workfifo.h"
+#include "dbus_to_chrome_fifo.h"
 #include "gpio_switch_monitor.h"
 
 typedef struct switch_state_t {
@@ -46,10 +47,11 @@ FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
     if (ss->insert_command != NULL && ss->remove_command != NULL) {
         const char *cmd = ss->state ? ss->insert_command
                                     : ss->remove_command;
+
         threads_lock_hardware();
         utils_execute_command(cmd);
         threads_unlock_hardware();
-        free(ss);
+        dbus_to_chrome_fifo_internal_speaker_headphone_state(ss->state);
     } else {
         /* If there is no command for insertion, or there is no
          * command for removal, then both commands must not exist.  In
@@ -62,6 +64,7 @@ FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
         assert(ss->insert_command == NULL && ss->remove_command == NULL);
     }
 
+    free(ss);
     VERBOSE_FUNCTION_EXIT("%s: %s", ss->thread_name,
                            gpio_switch_decode_state(ss->state));
 });

@@ -4,6 +4,7 @@
 include $(ADHD_DIR)/defs/definitions.mk
 
 CFILES	=					\
+	dbus_to_chrome_fifo.c			\
 	fifo.c					\
 	gpio_switch_monitor.c			\
 	initialization.c			\
