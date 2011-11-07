@@ -12,7 +12,7 @@ unsigned utils_execute_command(const char *cmd)
     int result = system(cmd);
 
     if (result == 0) {
-        verbose_log(0, LOG_WARNING, "%s: '%s' succeeded.",
+        verbose_log(7, LOG_WARNING, "%s: '%s' succeeded.",
                     __FUNCTION__, cmd);
         return 1;
     } else {
