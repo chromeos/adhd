@@ -16,5 +16,5 @@ FIFO_DECLARE(dbus_to_chrome_fifo);
  *  state = 1 -> Speaker disabled, headphone enabled.
  *  state not in {0, 1} -> error
  */
-void  dbus_to_chrome_fifo_internal_speaker_headphone_state(unsigned state);
+void dbus_to_chrome_fifo_internal_speaker_headphone_state(unsigned state);
 #endif
