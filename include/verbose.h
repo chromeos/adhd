@@ -11,14 +11,14 @@
  * string conactenation.
  */
 #define VERBOSE_FUNCTION_ENTER(format, ...)             \
-    verbose_log(5, LOG_INFO, "beg %s(" format ")",      \
+    verbose_log(100, LOG_INFO, "beg %s(" format ")",    \
                 __FUNCTION__, __VA_ARGS__);
 
 /* 'format' must be a string literal, because this macro relies on
  * string conactenation.
  */
 #define VERBOSE_FUNCTION_EXIT(format, ...)              \
-    verbose_log(5, LOG_INFO, "end %s(" format ")",      \
+    verbose_log(100, LOG_INFO, "end %s(" format ")",    \
                 __FUNCTION__, __VA_ARGS__);
 
 
