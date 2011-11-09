@@ -12,3 +12,5 @@
 
 MKDIR	= /bin/mkdir
 AR	= /usr/bin/ar
+ECHO	= /bin/echo
+MESSAGE	= $(ECHO) "$(foreach v,$(shell seq $(MAKELEVEL))," ") [$(MAKELEVEL)] "
