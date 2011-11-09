@@ -46,23 +46,6 @@
     ADHD_AMIXER_COMMAND " set 'Int Spk' on"   " && "    \
     ADHD_AMIXER_COMMAND " set 'Headphone' off"
 
-/* Between Linux Kernel 2.6.38 and 3.0, the names of the WM8903 input
- * devices changed.  Further, using kernel 3.0, the sound system on
- * Kaen does not function properly.  To facilitate faster switching to
- * the new values, and to facilitate better testing with 3.0, these
- * preprocessor symbols define the input devices.
- *
- * When we make the switch to kernel 3.0, the definitions should be
- * changed accordingly.
- *
- * This information was gathered with 'evtest' on the target devices.
- */
-#if !defined(SWITCH_TO_KERNEL_3_0_COMPLETE)
-#define ADHD_WM803_INPUT_NAME_HEADPHONE_JACK  "tegra-seaboard Headphone Jack"
-#define ADHD_WM803_INPUT_NAME_MICROPHONE_JACK "tegra-seaboard Mic Jack"
-#else
 #define ADHD_WM803_INPUT_NAME_HEADPHONE_JACK  "tegra-wm8903 Headphone Jack"
 #define ADHD_WM803_INPUT_NAME_MICROPHONE_JACK "tegra-wm8903 Mic Jack"
-#endif
-
 #endif
