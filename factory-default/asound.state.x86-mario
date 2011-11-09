@@ -98,6 +98,18 @@ state.Intel {
 	}
 	control.8 {
 		iface MIXER
+		name 'Auto-Mute Mode'
+		value Enabled
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Disabled
+			item.1 Enabled
+		}
+	}
+	control.9 {
+		iface MIXER
 		name 'Capture Switch'
 		value.0 false
 		value.1 false
@@ -107,7 +119,7 @@ state.Intel {
 			count 2
 		}
 	}
-	control.9 {
+	control.10 {
 		iface MIXER
 		name 'Capture Switch'
 		index 1
@@ -119,11 +131,11 @@ state.Intel {
 			count 2
 		}
 	}
-	control.10 {
+	control.11 {
 		iface MIXER
 		name 'Capture Volume'
-		value.0 25
-		value.1 25
+		value.0 19
+		value.1 19
 		comment {
 			access 'read write'
 			type INTEGER
@@ -131,11 +143,11 @@ state.Intel {
 			range '0 - 31'
 			dbmin -1650
 			dbmax 3000
-			dbvalue.0 2100
-			dbvalue.1 2100
+			dbvalue.0 1200
+			dbvalue.1 1200
 		}
 	}
-	control.11 {
+	control.12 {
 		iface MIXER
 		name 'Capture Volume'
 		index 1
@@ -152,10 +164,10 @@ state.Intel {
 			dbvalue.1 0
 		}
 	}
-	control.12 {
+	control.13 {
 		iface MIXER
 		name 'Master Playback Volume'
-		value 64
+		value 49
 		comment {
 			access 'read write'
 			type INTEGER
@@ -163,10 +175,10 @@ state.Intel {
 			range '0 - 64'
 			dbmin -5900
 			dbmax 500
-			dbvalue.0 500
+			dbvalue.0 -1000
 		}
 	}
-	control.13 {
+	control.14 {
 		iface MIXER
 		name 'Master Playback Switch'
 		value true
@@ -176,7 +188,7 @@ state.Intel {
 			count 1
 		}
 	}
-	control.14 {
+	control.15 {
 		iface MIXER
 		name 'PCM Playback Volume'
 		value.0 255
