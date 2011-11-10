@@ -13,7 +13,7 @@ all:	gavd adhdinfo
 adhdinfo gavd::	lib
 
 lib gavd adhdinfo::
-	@$(call remake,$@)
+	@$(call remake,Building,$@,$@)
 
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
