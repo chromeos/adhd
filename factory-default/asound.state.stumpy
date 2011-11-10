@@ -252,21 +252,4 @@ state.PCH {
 			dbvalue.1 0
 		}
 	}
-	control.22 {
-		iface MIXER
-		name 'Digital Capture Volume'
-		value.0 60
-		value.1 60
-		comment {
-			access 'read write user'
-			type INTEGER
-			count 2
-			range '0 - 120'
-			tlv '0000000100000008fffff44800000032'
-			dbmin -3000
-			dbmax 3000
-			dbvalue.0 0
-			dbvalue.1 0
-		}
-	}
 }
