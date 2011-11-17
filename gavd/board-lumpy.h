@@ -4,6 +4,10 @@
  */
 #if !defined(_BOARD_LUMPY_H_)
 #define _BOARD_LUMPY_H_
+#include "codec_cirrus_cougarpoint.h"
 
 #undef  ADHD_GPIO_HEADPHONE     /* No GPIO headphone switch. */
+
+#define ADHD_INITIALIZE_SOUND_COMMAND       ADHD_CIRRUS_COUGARPOINT_INIT_COMMAND
+
 #endif
