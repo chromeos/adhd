@@ -51,8 +51,8 @@ static void *gpio_microphone_monitor(void *arg)
     gpio_switch_monitor(desc->td_name,
                         ADHD_INPUT_NAME_MICROPHONE_JACK,
                         SW_MICROPHONE_INSERT,
-                        NULL,
-                        NULL);
+                        ADHD_GPIO_MIRCOPHONE_INSERT_COMMAND,
+                        ADHD_GPIO_MIRCOPHONE_REMOVE_COMMAND);
     return NULL;
 }
 

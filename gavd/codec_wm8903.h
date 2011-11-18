@@ -28,13 +28,24 @@
  *    The strings in this file are executed using 'system()'.
  */
 
-#define ADHD_WM8903_INIT_COMMAND                                        \
-    ADHD_AMIXER_COMMAND " set 'Speaker'   100%"              " && "     \
-    ADHD_AMIXER_COMMAND " set 'Headphone' 100%"              " && "     \
-    ADHD_AMIXER_COMMAND " set 'Digital'   100%"              " && "     \
-    ADHD_AMIXER_COMMAND " set 'Left Speaker Mixer DACL'  on" " && "     \
-    ADHD_AMIXER_COMMAND " set 'Right Speaker Mixer DACR' on" " && "     \
-    ADHD_AMIXER_COMMAND " set 'ADC Input' 'DMIC'"
+#define ADHD_WM8903_INIT_COMMAND                                                \
+    ADHD_AMIXER_COMMAND " set 'Speaker'   100%"                          " && " \
+    ADHD_AMIXER_COMMAND " set 'Headphone' 100%"                          " && " \
+    ADHD_AMIXER_COMMAND " set 'Digital'   100%"                          " && " \
+    ADHD_AMIXER_COMMAND " set 'Left Speaker Mixer DACL'  on"             " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Speaker Mixer DACR' on"             " && " \
+    ADHD_AMIXER_COMMAND " set 'ADC Input' 'DMIC'"                        " && " \
+    ADHD_AMIXER_COMMAND " set 'ADC Companding' off"                      " && " \
+    ADHD_AMIXER_COMMAND " set 'ADC Companding Mode' ulaw"                " && " \
+    ADHD_AMIXER_COMMAND " set 'ADC OSR' 'High performance'"              " && " \
+    ADHD_AMIXER_COMMAND " set 'Left Capture Mux' 'Right'"                " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Capture Mux' 'Right'"               " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Input Inverting Mux' 'IN2R'"        " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Input Mode Mux' 'Differential Mic'" " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Input Mux' 'IN1R'" /* or IN3R */    " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Input PGA' '3'"    /* or more */    " && " \
+    ADHD_AMIXER_COMMAND " set 'Right Input PGA' on"
+
 
 #define ADHD_WM8903_HEADPHONE_INSERT                    \
     ADHD_AMIXER_COMMAND " set 'Speaker' off"  " && "    \
@@ -45,6 +56,12 @@
     ADHD_AMIXER_COMMAND " set 'Speaker' on"   " && "    \
     ADHD_AMIXER_COMMAND " set 'Int Spk' on"   " && "    \
     ADHD_AMIXER_COMMAND " set 'Headphone' off"
+
+#define ADHD_WM8903_MICROPHONE_INSERT                    \
+    ADHD_AMIXER_COMMAND " set 'ADC Input' 'ADC'"
+
+#define ADHD_WM8903_MICROPHONE_REMOVE                    \
+    ADHD_AMIXER_COMMAND " set 'ADC Input' 'DMIC'"
 
 #define ADHD_WM803_INPUT_NAME_HEADPHONE_JACK  "tegra-wm8903 Headphone Jack"
 #define ADHD_WM803_INPUT_NAME_MICROPHONE_JACK "tegra-wm8903 Mic Jack"
