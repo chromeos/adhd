@@ -10,13 +10,8 @@ ifndef VERBOSE
 SILENT	= --silent
 endif
 
-ifdef BOARD
+ifndef ADHD_BUILD_DIR
 export ADHD_BUILD_DIR	= $(ADHD_DIR)/build/$(BOARD)
-else
-# For testing on the development desktop only.  This should not ever
-# be used for a production build.  All production builds should be for
-# a specific board.
-export ADHD_BUILD_DIR	= $(ADHD_DIR)/build/development
 endif
 
 GAVD_ARCHIVE	= $(ADHD_BUILD_DIR)/lib/gavd.a
