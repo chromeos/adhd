@@ -10,7 +10,8 @@
 # This makes it easy to ensure there are no host OS utility
 # dependencies when cross compiling.
 
-MKDIR	= /bin/mkdir
-AR	= /usr/bin/ar
-ECHO	= /bin/echo
-MESSAGE	= $(ECHO) "$(foreach v,$(shell seq $(MAKELEVEL))," ") [$(MAKELEVEL)] "
+export MKDIR	= /bin/mkdir
+export AR	= /usr/bin/ar
+export ECHO	= /bin/echo
+export MESSAGE	= $(ECHO) "$(foreach v,$(shell seq $(MAKELEVEL))," ") [$(MAKELEVEL)] "
+export INSTALL	= /usr/bin/install

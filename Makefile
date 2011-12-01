@@ -15,6 +15,19 @@ adhdinfo gavd::	lib
 lib gavd adhdinfo::
 	@$(call remake,Building,$@,$@)
 
+$(DESTDIR)/etc/init/adhd.conf:	$(ADHD_DIR)/upstart/adhd.conf
+	$(INSTALL) -D $< $@
+
+$(DESTDIR)/usr/bin/gavd:	$(ADHD_BUILD_DIR)/gavd/gavd
+	$(INSTALL) -D $< $@
+
+$(DESTDIR)/etc/asound.state:	$(ADHD_DIR)/factory-default/asound.state.$(BOARD)
+	$(INSTALL) -D $< $@
+
+install:	$(DESTDIR)/etc/init/adhd.conf	\
+		$(DESTDIR)/etc/asound.state	\
+		$(DESTDIR)/usr/bin/gavd
+
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
 
