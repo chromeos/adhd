@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "adhd_alsa.h"
 #include "verbose.h"
