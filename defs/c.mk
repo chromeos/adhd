@@ -21,7 +21,6 @@ CGC	=					\
 	-ffunction-sections			\
 	-fdata-sections
 
-# Also need to link with '-Xlinker --library=pthread'.
 PTHREAD	= 					\
 	-pthread
 
@@ -106,19 +105,15 @@ CWARN	=					\
 	-Wwrite-strings				\
 	-pedantic-errors
 
-ifdef BOARD
 BOARD_INCLUDE	= -DADHD_BOARD_INCLUDE='"board-$(BOARD).h"'
-else
-BOARD_INCLUDE	= -DADHD_BOARD_INCLUDE='"board-generic.h"'
-endif
 
 INCLUDES	=				\
 		-I$(ADHD_DIR)/include		\
 		-I$(ADHD_SOURCE_DIR)
 
-CFLAGS	=					\
+CFLAGS		=				\
 	-std=gnu99				\
-	-MD \
+	-MD 					\
 	$(INCLUDES)				\
 	$(PTHREADS)				\
 	$(BOARD_INCLUDE)			\
