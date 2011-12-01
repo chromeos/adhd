@@ -16,6 +16,7 @@
 #include "initialization.h"
 #include "thread_management.h"
 #include "verbose.h"
+#include "dbus_connection.h"
 #include "dbus_to_chrome_fifo.h"
 
 typedef struct state_t {
@@ -60,9 +61,12 @@ FIFO_ENTRY("Internal Speaker/Headphone State",
 {
     const char *speaker;
     const char *headphone;
-    state_t    *state = (state_t *)data;
+    unsigned    state;
+    state_t    *p = (state_t *)data;
 
-    switch (state->state) {
+    assert(p != NULL);
+    state = p->state;
+    switch (state) {
     case 0:
         speaker   = "on";
         headphone = "off";
@@ -73,6 +77,12 @@ FIFO_ENTRY("Internal Speaker/Headphone State",
         break;
 
     default:
+        /* If an invalid state occurs, treat it as if the headphones
+         * were not plugged in.  This will at least keep output going
+         * to the internal speakers.  The converse would keep output
+         * going to the, perhaps non-existent, headphones.
+         */
+        state     = 0;
         speaker   = "invalid";
         headphone = "invalid";
         break;
@@ -80,6 +90,8 @@ FIFO_ENTRY("Internal Speaker/Headphone State",
 
     verbose_log(0, LOG_INFO, "%s: speaker: %s.  headphone: %s", __FUNCTION__,
                 speaker, headphone);
+
+    dbus_connection_headphone_state(state);
     free(data);
 });
 

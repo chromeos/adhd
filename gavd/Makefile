@@ -3,7 +3,15 @@
 # found in the LICENSE file.
 include $(ADHD_DIR)/defs/definitions.mk
 
+__dbus_includes	=				\
+		/usr/include/dbus-1.0 		\
+		/usr/lib64/dbus-1.0/include
+
+DBUS_INCLUDES	=					\
+		$(foreach v,$(__dbus_includes),-I$(v))
+
 CFILES	=					\
+	dbus_connection.c			\
 	dbus_to_chrome_fifo.c			\
 	fifo.c					\
 	gpio_switch_monitor.c			\
@@ -17,8 +25,17 @@ CFILES	=					\
 	workfifo.c				\
 	main.c
 
-OFILES	= $(CFILES:.c=.o)
-MY_LIBS	= pthread asound
+OFILES	= 					\
+	$(CFILES:.c=.o)
+
+MY_LIBS	=					\
+	pthread					\
+	asound					\
+	dbus-1
+
+CFLAGS	+=					\
+	$(DBUS_INCLUDES)			\
+	$(DBUS_DEFINES)
 
 gavd:	$(OFILES) $(GAVD_ARCHIVE)
 	$(CC) -o $@ $(OFILES) $(LIBS) -Xlinker -Map=$@.map
