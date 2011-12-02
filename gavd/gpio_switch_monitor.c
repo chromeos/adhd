@@ -22,7 +22,7 @@
 
 typedef struct switch_state_t {
     const char *thread_name;
-    const char *device_name;
+    const char *jack;
     const char *insert_command;
     const char *remove_command;
     unsigned    state;          /* 0 -> remove, 1 -> insert */
@@ -51,7 +51,8 @@ FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
         threads_lock_hardware();
         utils_execute_command(cmd);
         threads_unlock_hardware();
-        dbus_to_chrome_fifo_internal_speaker_headphone_state(ss->state);
+        dbus_to_chrome_fifo_internal_speaker_headphone_state(ss->jack,
+                                                             ss->state);
     } else {
         /* If there is no command for insertion, or there is no
          * command for removal, then both commands must not exist.  In
@@ -70,6 +71,7 @@ FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
 });
 
 static void gpio_switch_monitor_work(const char *thread_name,
+                                     const char *jack,
                                      unsigned    switch_event,
                                      const char *insert_command,
                                      const char *remove_command,
@@ -100,6 +102,7 @@ static void gpio_switch_monitor_work(const char *thread_name,
             */
             if (ss != NULL) {
                 ss->thread_name    = thread_name;
+                ss->jack           = jack;
                 ss->insert_command = insert_command;
                 ss->remove_command = remove_command;
                 ss->state          = current_state;
@@ -119,6 +122,7 @@ static void gpio_switch_monitor_work(const char *thread_name,
 }
 
 void gpio_switch_monitor(const char *thread_name,
+                         const char *jack,
                          const char *device_name,
                          unsigned    switch_event,
                          const char *insert_command,
@@ -138,6 +142,7 @@ void gpio_switch_monitor(const char *thread_name,
         if (fd != -1 &&
             sys_input_get_switch_state(fd, switch_event, &current_state)) {
             gpio_switch_monitor_work(thread_name,
+                                     jack,
                                      switch_event,
                                      insert_command,
                                      remove_command,

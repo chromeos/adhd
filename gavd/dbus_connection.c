@@ -23,7 +23,7 @@ static DBusConnection *dbus_bus_connection;
 static const char     *dbus_connection_name = "org.chromium.gavd";
 
 
-static void dbus_connection_jack_state(const char *jack, unsigned state)
+void dbus_connection_jack_state(const char *jack, unsigned state)
 {
     dbus_uint32_t  serial = 0;
     DBusMessage   *msg;
@@ -59,16 +59,6 @@ static void dbus_connection_jack_state(const char *jack, unsigned state)
         verbose_log(0, LOG_ERR, "%s: out of memory", __FUNCTION__);
     }
 
-}
-
-void dbus_connection_headphone_state(unsigned state)
-{
-    dbus_connection_jack_state("headphone", state);
-}
-
-void dbus_connection_microphone_state(unsigned state)
-{
-    dbus_connection_jack_state("microphone", state);
 }
 
 static void initialize(void)

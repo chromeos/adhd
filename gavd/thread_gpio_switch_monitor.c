@@ -28,6 +28,7 @@ static void *gpio_headphone_monitor(void *arg)
     /* Wait for all other threads to start. */
     pthread_barrier_wait(&thread_management.tm_start_barrier);
     gpio_switch_monitor(desc->td_name,
+                        "headphone",
                         ADHD_INPUT_NAME_HEADPHONE_JACK,
                         SW_HEADPHONE_INSERT,
                         ADHD_GPIO_HEADPHONE_INSERT_COMMAND,
@@ -49,6 +50,7 @@ static void *gpio_microphone_monitor(void *arg)
     /* Wait for all other threads to start. */
     pthread_barrier_wait(&thread_management.tm_start_barrier);
     gpio_switch_monitor(desc->td_name,
+                        "microphone",
                         ADHD_INPUT_NAME_MICROPHONE_JACK,
                         SW_MICROPHONE_INSERT,
                         ADHD_GPIO_MIRCOPHONE_INSERT_COMMAND,

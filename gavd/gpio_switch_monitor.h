@@ -23,6 +23,7 @@
  *                   switch is deactivated.
  */
 void gpio_switch_monitor(const char *thread_name,
+                         const char *jack,
                          const char *device_name,
                          unsigned    switch_event,
                          const char *insert_command,

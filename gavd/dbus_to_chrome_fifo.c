@@ -20,8 +20,9 @@
 #include "dbus_to_chrome_fifo.h"
 
 typedef struct state_t {
-    unsigned state;             /* 0     -> Speaker enabled, headphone disabled.
-                                 * 1     -> Speaker disabled, headphone enabled.
+    const char *jack;           /* non-NULL jack name */
+    unsigned    state;          /* 0     -> jack unplugged.
+                                 * 1     -> jack plugged.
                                  * other -> llegal.
                                  */
 } state_t;
@@ -91,17 +92,19 @@ FIFO_ENTRY("Internal Speaker/Headphone State",
     verbose_log(0, LOG_INFO, "%s: speaker: %s.  headphone: %s", __FUNCTION__,
                 speaker, headphone);
 
-    dbus_connection_headphone_state(state);
+    dbus_connection_jack_state(p->jack, state);
     free(data);
 });
 
-void dbus_to_chrome_fifo_internal_speaker_headphone_state(unsigned state)
+void dbus_to_chrome_fifo_internal_speaker_headphone_state(const char *jack,
+                                                          unsigned    state)
 {
     state_t *data = calloc((size_t)1, sizeof(state_t));
 
     assert(state == 0 || state == 1);
     if (data != NULL) {
         data->state = state;
+        data->jack  = jack;
         if (!FIFO_ADD_ITEM(dbus_to_chrome_fifo,
                            internal_speaker_headphone_state, data)) {
             free(data);

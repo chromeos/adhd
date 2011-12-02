@@ -12,9 +12,12 @@ FIFO_DECLARE(dbus_to_chrome_fifo);
 /*  dbus_to_chrome_fifo_internal_speaker_headphone_state
  *   Indicate state change to internal speaker / heaphones.
  *
- *  state = 0 -> Speaker enable, headphone disabled.
- *  state = 1 -> Speaker disabled, headphone enabled.
+ *  jack == NULL -> Invalid invocation.
+ *  jack != NULL -> Name of the jack.
+ *  state = 0    -> Speaker enable, headphone disabled.
+ *  state = 1    -> Speaker disabled, headphone enabled.
  *  state not in {0, 1} -> error
  */
-void dbus_to_chrome_fifo_internal_speaker_headphone_state(unsigned state);
+void dbus_to_chrome_fifo_internal_speaker_headphone_state(const char *jack,
+                                                          unsigned    state);
 #endif
