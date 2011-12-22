@@ -11,18 +11,20 @@ DBUS_INCLUDES	=					\
 		$(foreach v,$(__dbus_includes),-I$(v))
 
 CFILES	=					\
-	dbus_connection.c			\
-	dbus_to_chrome_fifo.c			\
-	fifo.c					\
-	gpio_switch_monitor.c			\
-	initialization.c			\
-	set_factory_default.c			\
-	signal_handling.c			\
-	sys_input.c				\
-	thread_gpio_switch_monitor.c		\
-	thread_management.c			\
-	utils.c					\
-	workfifo.c				\
+	chrome_card_info_fifo.c			\
+	dbus_connection.c                       \
+	dbus_to_chrome_fifo.c                   \
+	fifo.c                                  \
+	gpio_switch_monitor.c                   \
+	initialization.c                        \
+	set_factory_default.c                   \
+	signal_handling.c                       \
+	sys_input.c                             \
+	thread_gpio_switch_monitor.c            \
+	thread_management.c                     \
+	udev_listen.c                           \
+	utils.c                                 \
+	workfifo.c                              \
 	main.c
 
 OFILES	= 					\
@@ -31,7 +33,8 @@ OFILES	= 					\
 MY_LIBS	=					\
 	pthread					\
 	asound					\
-	dbus-1
+	dbus-1					\
+	udev
 
 CFLAGS	+=					\
 	$(DBUS_INCLUDES)			\

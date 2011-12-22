@@ -34,7 +34,6 @@ CWARN	=					\
 	-Warray-bounds				\
 	-Wbad-function-cast			\
 	-Wcast-align				\
-	-Wcast-qual				\
 	-Wchar-subscripts			\
 	-Wclobbered				\
 	-Wcomment				\
@@ -87,7 +86,6 @@ CWARN	=					\
 	-Wswitch				\
 	-Wswitch-default			\
 	-Wswitch-enum				\
-	-Wtraditional-conversion		\
 	-Wtrigraphs				\
 	-Wtype-limits				\
 	-Wundef					\

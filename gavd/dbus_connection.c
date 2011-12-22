@@ -58,7 +58,56 @@ void dbus_connection_jack_state(const char *jack, unsigned state)
     } else {
         verbose_log(0, LOG_ERR, "%s: out of memory", __FUNCTION__);
     }
+}
 
+void dbus_connection_card_state(unsigned    action,
+                                const char *udev_sysname,
+                                unsigned    card_num,
+                                unsigned    active,
+                                unsigned    internal,
+                                unsigned    primary)
+{
+    const char  *mode;
+    DBusMessage *msg;
+
+    switch (action) {
+    case 0:  mode = "add";       break;
+    case 1:  mode = "remove";    break;
+    case 2:  mode = "change";    break;
+    default: mode = "<invalid>"; break;
+    }
+
+    msg = dbus_message_new_signal("/gavd/alsa", "gavd.alsa.card", mode);
+    if (msg != NULL) {
+        dbus_uint32_t   serial = 0;
+        dbus_uint32_t   bits;
+        DBusMessageIter args;
+
+        bits = (((card_num & 0xffffU) << 16) | /* bits 31..16 */
+                ((active   & 1)       << 15) | /* bit      15 */
+                ((internal & 1)       << 14) | /* bit      14 */
+                ((primary  & 1)       << 13) | /* bit      13 */
+                ((action   & 2)       <<  0)); /* bits 01..00 */
+
+        dbus_message_iter_init_append(msg, &args);
+        if (dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING,
+                                           &udev_sysname)           &&
+            dbus_message_iter_append_basic(&args, DBUS_TYPE_UINT32,
+                                           &bits)) {
+            if (!dbus_connection_send(dbus_bus_connection, msg, &serial)) {
+                verbose_log(0, LOG_ERR, "%s: out of memory: message send",
+                        __FUNCTION__);
+            }
+            dbus_connection_flush(dbus_bus_connection);
+        } else {
+            verbose_log(0, LOG_ERR, "%s: out of memory: argument append",
+                        __FUNCTION__);
+        }
+        dbus_message_unref(msg);
+    } else {
+        verbose_log(0, LOG_ERR, "%s: out of memory: argument append",
+                    __FUNCTION__);
+    }
 }
 
 static void initialize(void)
