@@ -1,4 +1,4 @@
-/* Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+/* Copyright (c) 2011, 2012 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
@@ -27,7 +27,8 @@ typedef struct info_t {
                                  * 2      => change
                                  * others => invalid
                                  */
-    unsigned    num;            /* card number        */
+    unsigned    card_number;    /* card number        */
+    unsigned    device_number;  /* device number      */
     unsigned    internal;       /* internal device    */
     unsigned    active;         /* current I/O device */
     unsigned    primary;        /* 'default' device   */
@@ -81,23 +82,24 @@ FIFO_ENTRY("Chrome: Send Card Add / Remove",
 
     switch (p->action) {
     case 0:  action = "add";       break;
-    case 1:  action = "remove";    break;
-    case 2:  action = "change";    break;
+    case 1:  action = "rem";       break;
+    case 2:  action = "chg";       break;
     default: action = "<invalid>"; break;
     }
-    verbose_log(5, LOG_INFO, "%s: action: %s  card: %s  num: %u  "
-                "active: %u  internal:  %u  primary: %u",
-                __FUNCTION__, action,
-                p->udev_sysname, p->num, p->active, p->internal, p->primary);
+    verbose_log(5, LOG_INFO, "%s: %s  card: %s "
+                "PIA: %.1u%.1u%.1u", __FUNCTION__, action,
+                p->udev_sysname, p->primary, p->internal, p->active);
 
-    dbus_connection_card_state(p->action, p->udev_sysname,
-                               p->num, p->active, p->internal, p->primary);
+    dbus_connection_device_state(p->action, p->udev_sysname,
+                                 p->card_number, p->device_number,
+                                 p->active, p->internal, p->primary);
     free_info(p);
 });
 
 static void chrome_card_status(unsigned    action,
                                const char *udev_sysname,
-                               unsigned    num,
+                               unsigned    card_number,
+                               unsigned    device_number,
                                unsigned    active,
                                unsigned    internal,
                                unsigned    primary)
@@ -109,12 +111,13 @@ static void chrome_card_status(unsigned    action,
                                  * 2 -> changed
                                  */
     if (data != NULL) {
-        data->action       = action;
-        data->udev_sysname = strdup(udev_sysname);
-        data->num          = num;
-        data->active       = active;
-        data->internal     = internal;
-        data->primary      = primary;
+        data->action        = action;
+        data->udev_sysname  = strdup(udev_sysname);
+        data->card_number   = card_number;
+        data->device_number = device_number;
+        data->active        = active;
+        data->internal      = internal;
+        data->primary       = primary;
 
         if (!FIFO_ADD_ITEM(chrome_card_info_fifo, card_status, data)) {
             free_info(data);
@@ -122,18 +125,23 @@ static void chrome_card_status(unsigned    action,
     }
 }
 
-void chrome_card_added(const char *udev_sysname, unsigned num)
+void chrome_card_added(const char *udev_sysname,
+                       unsigned    card_number,
+                       unsigned    device_number)
 {
-    chrome_card_status(0, udev_sysname, num, 0, 0, 0);
+    chrome_card_status(0, udev_sysname, card_number, device_number, 0, 0, 0);
 }
 
-void chrome_card_removed(const char *udev_sysname, unsigned num)
+void chrome_card_removed(const char *udev_sysname,
+                         unsigned    card_number,
+                         unsigned    device_number)
 {
-    chrome_card_status(1, udev_sysname, num, 0, 0, 0);
+    chrome_card_status(1, udev_sysname, card_number, device_number, 0, 0, 0);
 }
 
 void chrome_card_changed(const char *udev_sysname,
-                         unsigned    num,
+                         unsigned    card_number,
+                         unsigned    device_number,
                          unsigned    active,
                          unsigned    internal,
                          unsigned    primary)
@@ -141,7 +149,8 @@ void chrome_card_changed(const char *udev_sysname,
     /* Some attribute has been changed.  It is the responsibility of
      * the listener to determine which attribute chagned.
      */
-    chrome_card_status(2, udev_sysname, num, active, internal, primary);
+    chrome_card_status(2, udev_sysname, card_number, device_number,
+                       active, internal, primary);
 }
 
 THREAD_DESCRIPTOR("Chrome: Send Card Info FIFO", TSP_NORMAL,

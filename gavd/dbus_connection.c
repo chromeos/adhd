@@ -1,4 +1,4 @@
-/* Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+/* Copyright (c) 2011, 2012 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
@@ -60,12 +60,13 @@ void dbus_connection_jack_state(const char *jack, unsigned state)
     }
 }
 
-void dbus_connection_card_state(unsigned    action,
-                                const char *udev_sysname,
-                                unsigned    card_num,
-                                unsigned    active,
-                                unsigned    internal,
-                                unsigned    primary)
+void dbus_connection_device_state(unsigned    action,
+                                  const char *udev_sysname,
+                                  unsigned    card_number,
+                                  unsigned    device_number,
+                                  unsigned    active,
+                                  unsigned    internal,
+                                  unsigned    primary)
 {
     const char  *mode;
     DBusMessage *msg;
@@ -83,11 +84,12 @@ void dbus_connection_card_state(unsigned    action,
         dbus_uint32_t   bits;
         DBusMessageIter args;
 
-        bits = (((card_num & 0xffffU) << 16) | /* bits 31..16 */
-                ((active   & 1)       << 15) | /* bit      15 */
-                ((internal & 1)       << 14) | /* bit      14 */
-                ((primary  & 1)       << 13) | /* bit      13 */
-                ((action   & 2)       <<  0)); /* bits 01..00 */
+        bits = (((card_number   & 0xffU) << 24) | /* bits 31..24 */
+                ((device_number & 0xffU) << 16) | /* bits 23..16 */
+                ((active   & 1)          << 15) | /* bit      15 */
+                ((internal & 1)          << 14) | /* bit      14 */
+                ((primary  & 1)          << 13) | /* bit      13 */
+                ((action   & 2)          <<  0)); /* bits 01..00 */
 
         dbus_message_iter_init_append(msg, &args);
         if (dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING,
