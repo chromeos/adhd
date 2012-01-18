@@ -1,4 +1,4 @@
-/* Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+/* Copyright (c) 2011, 2012 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
@@ -118,7 +118,7 @@ void fifo_monitor_work(const char *thread_name,
     while (!thread_management.tm_exit) {
         if (!fifo_empty(fifo)) {
             fifo_node_t *node = fifo->fifo_head->fn_next;
-            verbose_log(5, LOG_INFO, "%s: %s",
+            verbose_log(8, LOG_INFO, "%s: %s",
                         __FUNCTION__, node->fn_entry->fe_name);
             node->fn_entry->fe_handler(node->fn_data);
 
