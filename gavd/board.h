@@ -6,6 +6,7 @@
 #define _BOARD_GENERIC_H_
 #include <stddef.h>
 #include "codec_wm8903.h"
+#include "codec_max98095.h"
 
 #define ADHD_TARGET_MACHINE BOARD
 #include ADHD_BOARD_INCLUDE
