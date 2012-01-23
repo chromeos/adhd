@@ -1,11 +1,12 @@
 
-/* Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+/* Copyright (c) 2011, 2012 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
 #include <assert.h>
 #include <pthread.h>
 #include <limits.h>
+#include <sys/time.h>
 
 #include "board.h"
 #include "set_factory_default.h"
@@ -39,6 +40,9 @@ void threads_sort_descriptors(void)
 void threads_start(void)
 {
     const unsigned n_threads = LINKERSET_SIZE(thread_descriptor, unsigned);
+    struct timeval beg;
+    struct timeval end;
+
     thread_management.tm_exit = 0;
     thread_management.tm_quit = 0;
 
@@ -81,6 +85,8 @@ void threads_start(void)
     pthread_barrier_init(&thread_management.tm_start_barrier, NULL,
                          n_threads /* Declared threads. */ +
                          1         /* This function.    */);
+
+    gettimeofday(&beg, NULL);
     LINKERSET_ITERATE(thread_descriptor, desc, {
             verbose_log(1, LOG_INFO, "%s: '%s'",
                         __FUNCTION__, desc->td_name);
@@ -92,6 +98,11 @@ void threads_start(void)
             pthread_barrier_wait(&thread_management.tm_create_barrier);
             pthread_barrier_destroy(&thread_management.tm_create_barrier);
         });
+    gettimeofday(&end, NULL);
+    verbose_log(0, LOG_INFO, "%s: time to start %u threads: %u.%u seconds",
+                __FUNCTION__, n_threads,
+                (unsigned)(end.tv_sec - beg.tv_sec),
+                (unsigned)(end.tv_usec - beg.tv_usec));
 
     /* All threads are waiting at the 'tm_start_barrier' barrier.
      *

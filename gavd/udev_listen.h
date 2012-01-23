@@ -3,6 +3,6 @@
  * found in the LICENSE file.
  */
 #if !defined(_UDEV_LISTEN_H_)
-#define _UDEV_LISTEN_H__
+#define _UDEV_LISTEN_H_
 
 #endif
