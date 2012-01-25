@@ -1,0 +1,13 @@
+CRAS = ChromeOS Audio Server
+
+Directories
+src/server - the source for the sound server
+src/libcras - client library for interacting with cras
+src/common - files common to both the server and library
+src/tests - tests for cras and libcras
+
+Building from source:
+./git_prepare.sh
+./configure
+make
+sudo make install
