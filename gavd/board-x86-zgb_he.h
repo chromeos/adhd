@@ -5,6 +5,4 @@
 #if !defined(_BOARD_X86_ZGB_HE_H_)
 #define _BOARD_X86_ZGB_HE_H_
 
-#undef  ADHD_GPIO_HEADPHONE     /* No GPIO headphone switch. */
-
 #endif

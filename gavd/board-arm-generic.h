@@ -5,6 +5,4 @@
 #if !defined(_BOARD_ARM_GENERIC_H_)
 #define _BOARD_ARM_GENERIC_H_
 
-#undef ADHD_GPIO_HEADPHONE
-
 #endif
