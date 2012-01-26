@@ -145,11 +145,9 @@ static inline size_t cras_shm_get_avail_curr_buffer(
 /* Return 1 if there is an empty buffer in the list. */
 static inline int cras_shm_is_buffer_available(struct cras_audio_shm_area *shm)
 {
-	size_t i = shm->write_buf_idx;
+	size_t buf_idx = shm->write_buf_idx;
 
-	if (shm->write_offset[i] == 0 && shm->read_offset[i] == 0)
-		return 1;
-	return 0;
+	return (shm->write_offset[buf_idx] == 0);
 }
 
 /* Increment the write pointer for the current buffer. */
