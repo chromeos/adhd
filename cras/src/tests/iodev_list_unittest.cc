@@ -21,16 +21,21 @@ class IoDevTestSuite : public testing::Test {
       sample_rates_[1] = 48000;
       sample_rates_[2] = 0;
 
+      channel_counts_[0] = 2;
+      channel_counts_[1] = 0;
+
       d1_.add_stream = add_stream_1;
       d1_.rm_stream = rm_stream_1;
       d1_.format = NULL;
       d1_.info.idx = -999;
       d1_.supported_rates = sample_rates_;
+      d1_.supported_channel_counts = channel_counts_;
       d2_.add_stream = add_stream_2;
       d2_.rm_stream = rm_stream_2;
       d2_.format = NULL;
       d2_.info.idx = -999;
       d2_.supported_rates = sample_rates_;
+      d2_.supported_channel_counts = channel_counts_;
     }
 
     static int add_stream_1(struct cras_iodev *iodev,
@@ -64,6 +69,7 @@ class IoDevTestSuite : public testing::Test {
     struct cras_iodev d1_;
     struct cras_iodev d2_;
     size_t sample_rates_[3];
+    size_t channel_counts_[2];
     static int add_stream_1_called_;
     static int rm_stream_1_called_;
     static int add_stream_2_called_;
@@ -292,6 +298,21 @@ TEST_F(IoDevTestSuite, SupportedFormatDivisor) {
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 96000;
   fmt.num_channels = 2;
+  d1_.format = NULL;
+  rc = cras_iodev_set_format(&d1_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevTestSuite, UnsupportedChannelCount) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 96000;
+  fmt.num_channels = 1;
   d1_.format = NULL;
   rc = cras_iodev_set_format(&d1_, &fmt);
   EXPECT_EQ(0, rc);

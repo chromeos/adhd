@@ -144,6 +144,22 @@ static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
 	return iodev->supported_rates[0];
 }
 
+/* Finds the best match for the channel count.  This will return an exact match
+ * only, if there is no exact match, it falls back to the default channel count
+ * for the device (The first in the list). */
+static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
+{
+	size_t i;
+
+	assert(iodev->supported_channel_counts[0] != 0);
+
+	for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
+		if (iodev->supported_channel_counts[i] == count)
+			return count;
+	}
+	return iodev->supported_channel_counts[0];
+}
+
 /*
  * Exported Functions.
  */
@@ -243,7 +259,7 @@ int cras_iodev_detach_stream(struct cras_iodev *iodev,
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
-	size_t actual_rate;
+	size_t actual_rate, actual_num_channels;
 
 	/* If this device isn't already using a format, try to match the one
 	 * requested in "fmt". */
@@ -253,13 +269,16 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			return -ENOMEM;
 		*iodev->format = *fmt;
 		actual_rate = get_best_rate(iodev, fmt->frame_rate);
-		if (actual_rate == 0) {
+		actual_num_channels = get_best_channel_count(iodev,
+							     fmt->num_channels);
+		if (actual_rate == 0 || actual_num_channels == 0) {
 			/* No compatible frame rate found. */
 			free(iodev->format);
 			iodev->format = NULL;
 			return -EINVAL;
 		}
 		iodev->format->frame_rate = actual_rate;
+		iodev->format->num_channels = actual_num_channels;
 	}
 
 	*fmt = *(iodev->format);
