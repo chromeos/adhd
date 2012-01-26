@@ -89,6 +89,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	}
 
 	/* Tell client about the stream setup. */
+	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
 	cras_fill_client_stream_connected(
 			&reply,
 			0, /* No error. */

@@ -71,7 +71,7 @@ static void handle_client_message(struct serv_data *serv,
 	return;
 
 read_error:
-	syslog(LOG_ERR, "read err, removing client\n");
+	syslog(LOG_ERR, "read err, removing client %zu\n", client->id);
 	remove_client(serv, client);
 }
 
