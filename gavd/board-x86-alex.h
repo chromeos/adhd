@@ -4,5 +4,4 @@
  */
 #if !defined(_BOARD_X86_ALEX_H_)
 #define _BOARD_X86_ALEX_H_
-#undef  ADHD_GPIO_HEADPHONE     /* No GPIO headphone switch. */
 #endif

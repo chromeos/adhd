@@ -5,5 +5,4 @@
 #if !defined(_BOARD_AMD64_COREI7_H_)
 #define _BOARD_AMD64_COREI7_H_
 
-#undef  ADHD_GPIO_HEADPHONE     /* No GPIO headphone switch. */
 #endif

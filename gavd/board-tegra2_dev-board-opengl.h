@@ -5,6 +5,4 @@
 #if !defined(_BOARD_TEGRA2_DEV_BOARD_OPENGL_H_)
 #define _BOARD_TEGRA2_DEV_BOARD_OPENGL_H_
 
-#undef ADHD_GPIO_HEADPHONE
-
 #endif
