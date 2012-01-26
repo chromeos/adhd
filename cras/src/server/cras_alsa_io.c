@@ -80,6 +80,9 @@ static int open_alsa(struct alsa_io *aio)
 	cras_rstream_get_format(stream, aio->base.format);
 	aio->num_underruns = 0;
 
+	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
+	       aio->dev, aio->base.format->frame_rate,
+	       aio->base.format->num_channels);
 	handle = 0; /* Avoid unused warning. */
 	rc = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
 	if (rc < 0)
