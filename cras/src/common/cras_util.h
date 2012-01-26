@@ -7,9 +7,9 @@
 #define CRAS_UTIL_H_
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-#define max(a,b) ({ typeof (a) _a = (a); \
-		    typeof (b) _b = (b); \
-		    _a > _b ? _a : _b; })
+#define max(a, b) ({ typeof(a) _a = (a); \
+		     typeof(b) _b = (b); \
+		     _a > _b ? _a : _b; })
 
 #define assert_on_compile(e) ((void)sizeof(char[1 - 2 * !!(e)]))
 #define assert_on_compile_is_power_of_2(n) \

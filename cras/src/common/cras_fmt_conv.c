@@ -13,13 +13,36 @@
 /* Want the fastest conversion we can get. */
 #define SPEEX_QUALITY_LEVEL 0
 
+typedef size_t (*channel_converter_t)(const int16_t *in, size_t in_frames,
+				      int16_t *out);
+
 /* Member data for the resampler. */
 struct cras_fmt_conv {
 	SpeexResamplerState *speex_state;
+	channel_converter_t channel_converter;
 	struct cras_audio_format in_fmt;
 	struct cras_audio_format out_fmt;
-	uint8_t *buf;
+	uint8_t *tmp_buf; /* Only needed if changing channels and doing SRC. */
+	uint8_t *input_buf;
 };
+
+/*
+ * Convert between different channel numbers.
+ */
+
+/* Converts S16 mono to S16 stereo. The out buffer must be double the size of
+ * the input buffer. */
+static size_t s16_mono_to_stereo(const int16_t *in, size_t in_frames,
+				 int16_t *out)
+{
+	size_t i;
+
+	for (i = 0; i < in_frames; i++) {
+		out[2 * i] = in[i];
+		out[2 * i + 1] = in[i];
+	}
+	return in_frames;
+}
 
 /*
  * External interface
@@ -30,36 +53,56 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   size_t max_frames)
 {
 	struct cras_fmt_conv *conv;
+	channel_converter_t channel_converter = NULL;
 	int rc;
 
-	/* Don't support format conversion or up/down sampling(yet).
-	 * Only support S16 samples */
+	/* Don't support format conversion(yet).
+	 * Only support S16 samples. */
 	if (in->format != out->format ||
-	    in->num_channels != out->num_channels ||
 	    in->format != SND_PCM_FORMAT_S16_LE)
 		return NULL;
+	/* Only support Stero to Mono Conversion. */
+	if (in->num_channels != out->num_channels) {
+		if (in->num_channels == 1 && out->num_channels == 2)
+			channel_converter = s16_mono_to_stereo;
+		else
+			return NULL;
+	}
 
-	conv = malloc(sizeof(*conv));
+	conv = calloc(1, sizeof(*conv));
 	if (conv == NULL)
 		return NULL;
 
-	conv->buf = malloc(max_frames * cras_get_format_bytes(in));
-	if (conv->buf == NULL) {
+	conv->input_buf = malloc(max_frames * cras_get_format_bytes(in));
+	if (conv->input_buf == NULL) {
 		free(conv);
 		return NULL;
 	}
 
 	conv->in_fmt = *in;
 	conv->out_fmt = *out;
+	conv->channel_converter = channel_converter;
 
-	conv->speex_state = speex_resampler_init(in->num_channels,
-						 in->frame_rate,
-						 out->frame_rate,
-						 SPEEX_QUALITY_LEVEL,
-						 &rc);
-	if (conv->speex_state == NULL) {
-		cras_fmt_conv_destroy(conv);
-		return NULL;
+	if (in->frame_rate != out->frame_rate) {
+		conv->speex_state = speex_resampler_init(in->num_channels,
+							 in->frame_rate,
+							 out->frame_rate,
+							 SPEEX_QUALITY_LEVEL,
+							 &rc);
+		if (conv->speex_state == NULL) {
+			cras_fmt_conv_destroy(conv);
+			return NULL;
+		}
+
+		if (conv->channel_converter) {
+			/* Will need a temporary area to stage before SRC. */
+			conv->tmp_buf =
+				malloc(max_frames * cras_get_format_bytes(out));
+			if (conv->tmp_buf == NULL) {
+				cras_fmt_conv_destroy(conv);
+				return NULL;
+			}
+		}
 	}
 	return conv;
 }
@@ -68,41 +111,64 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 {
 	if (conv->speex_state)
 		speex_resampler_destroy(conv->speex_state);
-	free(conv->buf);
+	free(conv->tmp_buf);
+	free(conv->input_buf);
 	free(conv);
 }
 
 uint8_t *cras_fmt_conv_get_buffer(struct cras_fmt_conv *conv)
 {
-	return conv->buf;
+	return conv->input_buf;
 }
 
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 				      size_t in_frames)
 {
-	return cras_frames_at_rate(conv->in_fmt.frame_rate, in_frames,
+	return cras_frames_at_rate(conv->in_fmt.frame_rate,
+				   in_frames,
 				   conv->out_fmt.frame_rate);
 }
 
 size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 				      size_t out_frames)
 {
-	return cras_frames_at_rate(conv->out_fmt.frame_rate, out_frames,
+	return cras_frames_at_rate(conv->out_fmt.frame_rate,
+				   out_frames,
 				   conv->in_fmt.frame_rate);
 }
 
 size_t cras_fmt_conv_convert_to(struct cras_fmt_conv *conv, uint8_t *out_buf,
 				size_t in_frames)
 {
-	uint32_t fr_in, fr_out;
-
-	fr_in = in_frames;
-	fr_out = cras_fmt_conv_in_frames_to_out(conv, fr_in);
 	/* Enforced 16bit samples in create, when other formats are supported,
 	 * expand this to call the correct function and cast appropriately based
 	 * on the format. */
-	speex_resampler_process_interleaved_int(conv->speex_state,
-						(int16_t *)conv->buf, &fr_in,
-						(int16_t *)out_buf, &fr_out);
+	uint32_t fr_in, fr_out;
+	uint8_t *src_in_buf = conv->input_buf;
+
+	fr_in = in_frames;
+	fr_out = fr_in;
+
+	/* Start with channel conversion. */
+	if (conv->channel_converter != NULL) {
+		uint8_t *chan_out_buf = out_buf;
+		if (conv->tmp_buf != NULL)
+			chan_out_buf = conv->tmp_buf;
+		conv->channel_converter((int16_t *)conv->input_buf, fr_in,
+					(int16_t *)chan_out_buf);
+		src_in_buf = conv->tmp_buf;
+	}
+
+	/* Then SRC. */
+	if (conv->speex_state != NULL) {
+		fr_out = cras_frames_at_rate(conv->in_fmt.frame_rate,
+					     fr_in,
+					     conv->out_fmt.frame_rate);
+		speex_resampler_process_interleaved_int(conv->speex_state,
+							(int16_t *)src_in_buf,
+							&fr_in,
+							(int16_t *)out_buf,
+							&fr_out);
+	}
 	return fr_out;
 }

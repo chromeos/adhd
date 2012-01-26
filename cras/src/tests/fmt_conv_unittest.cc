@@ -49,6 +49,51 @@ TEST(FormatConverterTest,  InvalidParamsOnlyS16LE) {
   EXPECT_EQ(NULL, c);
 }
 
+// Test Mono to Stereo mix.
+TEST(FormatConverterTest, MonoToStereo) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  uint16_t *in_buff;
+  uint16_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 1;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_out_frames_to_in(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  in_buff = (uint16_t *)cras_fmt_conv_get_buffer(c);
+  EXPECT_NE(in_buff, (void *)NULL);
+  out_buff = (uint16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  out_frames = cras_fmt_conv_convert_to(c,
+                                        (uint8_t *)out_buff,
+                                        buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (size_t i = 0; i < buf_size; i++) {
+    if (in_buff[i] != out_buff[i*2] ||
+        in_buff[i] != out_buff[i*2 + 1]) {
+      EXPECT_TRUE(false);
+      break;
+    }
+  }
+
+  cras_fmt_conv_destroy(c);
+}
+
 // Test 2 to 1 SRC.
 TEST(FormatConverterTest,  Convert2To1) {
   struct cras_fmt_conv *c;
@@ -106,6 +151,40 @@ TEST(FormatConverterTest,  Convert1To2) {
   out_buff = (uint8_t *)malloc(buf_size*2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_to(c, out_buff, buf_size);
   EXPECT_EQ(buf_size*2, out_frames);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test 1 to 2 SRC with mono to stereo conversion.
+TEST(FormatConverterTest,  Convert1To2MonoToStereo) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+  size_t out_frames;
+  uint8_t *in_buff;
+  uint8_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 1;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 22050;
+  out_fmt.frame_rate = 44100;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_out_frames_to_in(c, buf_size);
+  EXPECT_EQ(buf_size / 2, out_frames);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size * 2, out_frames);
+
+  in_buff = cras_fmt_conv_get_buffer(c);
+  EXPECT_NE(in_buff, (void *)NULL);
+  out_buff = (uint8_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  out_frames = cras_fmt_conv_convert_to(c, out_buff, buf_size);
+  EXPECT_EQ(buf_size * 2, out_frames);
 
   cras_fmt_conv_destroy(c);
 }
