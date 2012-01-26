@@ -45,6 +45,7 @@ static int cras_rstream_audio_ready_count;
 static uint8_t *cras_alsa_mmap_begin_buffer;
 static size_t cras_alsa_mmap_begin_frames;
 static size_t cras_mix_add_stream_count;
+static size_t cras_rstream_request_audio_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -53,6 +54,8 @@ void ResetStubData() {
   cras_alsa_get_avail_frames_avail = 0;
   cras_alsa_start_called = 0;
   select_return_value = 0;
+  cras_rstream_request_audio_called = 0;
+  select_max_fd = -1;
 }
 
 namespace {
@@ -591,6 +594,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStream) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
 }
 
@@ -739,6 +744,7 @@ int cras_set_thread_priority(int priority)
 //  From rstream.
 int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count)
 {
+  cras_rstream_request_audio_called++;
   return 0;
 }
 int cras_rstream_request_audio_buffer(const struct cras_rstream *stream)
