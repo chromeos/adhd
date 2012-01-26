@@ -415,21 +415,56 @@ static alsa_device_t *allocate_alsa_device(const char  *sysname,
     return p;
 }
 
+/* device_find_alsa: Find an Alsa device
+ *
+ *   Searches the list of attached devices for an Alsa device which
+ *   matches all the arguments.
+ *
+ *   If such a device is found, it is returned.
+ *   If no such device is found, NULL is returned.
+ */
+static device_t *device_find_alsa(unsigned        card,
+                                  unsigned        device,
+                                  direction_t     direction)
+{
+    DEVICES_ITERATE(dev, {
+            if (dev->kind == DK_ALSA) {
+                alsa_device_t *ad = (alsa_device_t *)dev;
+                if (ad->card_number   == card   &&
+                    ad->device_number == device &&
+                    dev->direction    == direction) {
+                    return dev;
+                }
+            }
+        });
+    return NULL;
+}
+
 void device_add_alsa(const char     *sysname,
                      unsigned        internal,
                      unsigned        card,
                      unsigned        device,
                      direction_t     direction)
 {
-    alsa_device_t *p = allocate_alsa_device(sysname, internal, card,
-                                            device, direction);
-    if (p) {
-        LOCK();
-        add_device(&p->header);
-        send_card_added_message(&p->header);
-        set_active_device_with_direction(&p->header);
-        UNLOCK();
+    LOCK();
+    /* If this device already exists in the list of devices, ignore
+     * the request to add it.
+     *
+     * This can happen because we start to enumerate after beginning
+     * to listen on the udev connection.  A device may appear in the
+     * enumeration list, and also appear on the device which reports
+     * udev events.
+     */
+    if (device_find_alsa(card, device, direction) == NULL) {
+        alsa_device_t *p = allocate_alsa_device(sysname, internal, card,
+                                                device, direction);
+        if (p) {
+            add_device(&p->header);
+            send_card_added_message(&p->header);
+            set_active_device_with_direction(&p->header);
+        }
     }
+    UNLOCK();
 }
 
 void device_remove_alsa(const char     *sysname,

@@ -178,6 +178,27 @@ static void remove_device_if_card(struct udev_device *dev)
     }
 }
 
+static void enumerate_devices(void)
+{
+    struct udev_enumerate  *enumerate = udev_enumerate_new(udev);
+    struct udev_list_entry *dl;
+    struct udev_list_entry *dev_list_entry;
+
+    udev_enumerate_add_match_subsystem(enumerate, subsystem);
+    udev_enumerate_scan_devices(enumerate);
+    dl = udev_enumerate_get_list_entry(enumerate);
+
+    udev_list_entry_foreach(dev_list_entry, dl) {
+        const char         *path = udev_list_entry_get_name(dev_list_entry);
+        struct udev_device *dev  = udev_device_new_from_syspath(udev, path);
+
+        add_udev_device_if_alsa_device(dev);
+    }
+    udev_enumerate_unref(enumerate);
+
+    device_set_primary_playback_and_capture();
+}
+
 static void udev_sound_subsystem_monitor_work(void)
 {
     struct udev_monitor *mon = udev_monitor_new_from_netlink(udev, "udev");
@@ -186,6 +207,7 @@ static void udev_sound_subsystem_monitor_work(void)
     udev_monitor_filter_add_match_subsystem_devtype(mon, subsystem, NULL);
     udev_monitor_enable_receiving(mon);
     fd = udev_monitor_get_fd(mon);
+    enumerate_devices();
 
     while (!thread_management.tm_exit) {
         fd_set              fds;
@@ -220,27 +242,6 @@ static void udev_sound_subsystem_monitor_work(void)
     }
 }
 
-static void enumerate_devices(void)
-{
-    struct udev_enumerate  *enumerate = udev_enumerate_new(udev);
-    struct udev_list_entry *dl;
-    struct udev_list_entry *dev_list_entry;
-
-    udev_enumerate_add_match_subsystem(enumerate, subsystem);
-    udev_enumerate_scan_devices(enumerate);
-    dl = udev_enumerate_get_list_entry(enumerate);
-
-    udev_list_entry_foreach(dev_list_entry, dl) {
-        const char         *path = udev_list_entry_get_name(dev_list_entry);
-        struct udev_device *dev  = udev_device_new_from_syspath(udev, path);
-
-        add_udev_device_if_alsa_device(dev);
-    }
-    udev_enumerate_unref(enumerate);
-
-    device_set_primary_playback_and_capture();
-}
-
 static void *udev_sound_subsystem_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
@@ -248,8 +249,6 @@ static void *udev_sound_subsystem_monitor(void *arg)
 
     /* Initialization Code. */
     pthread_barrier_wait(&thread_management.tm_create_barrier);
-
-    enumerate_devices();
 
     /* Wait for all other threads to start. */
     pthread_barrier_wait(&thread_management.tm_start_barrier);
