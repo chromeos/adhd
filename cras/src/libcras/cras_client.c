@@ -70,11 +70,11 @@ struct thread_state {
 /* Parameters used when setting up a capture or playback stream. See comment
  * above cras_client_create_stream_params in the header for descriptions. */
 struct cras_stream_params {
-	unsigned direction;
+	enum CRAS_STREAM_DIRECTION direction;
 	size_t buffer_frames;
 	size_t cb_threshold;
 	size_t min_cb_level;
-	unsigned stream_type;
+	enum CRAS_STREAM_TYPE stream_type;
 	uint32_t flags;
 	void *user_data;
 	cras_playback_cb_t aud_cb;
@@ -102,7 +102,7 @@ struct client_stream {
 	cras_stream_id_t id;
 	int connection_fd; /* Listen for incoming connection from the server. */
 	int aud_fd; /* After server connects audio messages come in here. */
-	unsigned direction; /* playback or capture. */
+	enum CRAS_STREAM_DIRECTION direction; /* playback or capture. */
 	uint32_t flags;
 	struct thread_state thread;
 	int wake_fds[2]; /* Pipe to wake the thread */
@@ -833,11 +833,11 @@ int cras_client_connect(struct cras_client *client)
 }
 
 struct cras_stream_params *cras_client_stream_params_create(
-		unsigned direction,
+		enum CRAS_STREAM_DIRECTION direction,
 		size_t buffer_frames,
 		size_t cb_threshold,
 		size_t min_cb_level,
-		unsigned stream_type,
+		enum CRAS_STREAM_TYPE stream_type,
 		uint32_t flags,
 		void *user_data,
 		cras_playback_cb_t aud_cb,
@@ -875,7 +875,7 @@ int cras_client_add_stream(struct cras_client *client,
 	struct cras_connect_message serv_msg;
 	struct client_stream *stream;
 	int rc = 0;
-	uint32_t new_id;
+	cras_stream_id_t new_id;
 
 	if (client == NULL || config == NULL)
 		return -EINVAL;
@@ -977,7 +977,8 @@ int cras_client_rm_stream(struct cras_client *client,
 	return send_command_message(client, stream_id, CLIENT_REMOVE_STREAM);
 }
 
-int cras_client_switch_iodev(struct cras_client *client, int stream_type,
+int cras_client_switch_iodev(struct cras_client *client,
+			     enum CRAS_STREAM_TYPE stream_type,
 			     int iodev)
 {
 	struct cras_switch_stream_type_iodev serv_msg;

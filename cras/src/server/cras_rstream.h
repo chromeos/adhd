@@ -21,8 +21,8 @@ struct cras_rclient;
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
-	size_t stream_type;
-	size_t direction; /* CRAS_STREAM_INPUT or CRAS_STREAM_OUTPUT */
+	enum CRAS_STREAM_TYPE stream_type;
+	enum CRAS_STREAM_DIRECTION direction;
 	int fd; /* Socket for requesting and sending audio buffer events. */
 	int shm_key;
 	int shm_id;
@@ -54,8 +54,8 @@ struct cras_rstream {
  *    memory.
  */
 int cras_rstream_create(cras_stream_id_t stream_id,
-			size_t stream_type,
-			size_t direction,
+			enum CRAS_STREAM_TYPE stream_type,
+			enum CRAS_STREAM_DIRECTION direction,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
@@ -88,13 +88,14 @@ static inline size_t cras_rstream_get_min_cb_level(
 }
 
 /* Gets the stream type of this stream. */
-static inline size_t cras_rstream_get_type(const struct cras_rstream *stream)
+static inline enum CRAS_STREAM_TYPE cras_rstream_get_type(
+		const struct cras_rstream *stream)
 {
 	return stream->stream_type;
 }
 
 /* Gets the direction (input/output) of the stream. */
-static inline size_t cras_rstream_get_direction(
+static inline enum CRAS_STREAM_DIRECTION cras_rstream_get_direction(
 		const struct cras_rstream *stream)
 {
 	return stream->direction;

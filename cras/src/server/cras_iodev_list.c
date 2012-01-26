@@ -27,7 +27,7 @@ static struct cras_iodev *default_input;
  * found, then return NULL. */
 static struct cras_iodev *get_curr_iodev_for_stream_type(
 		struct iodev_list *list,
-		uint32_t type)
+		enum CRAS_STREAM_TYPE type)
 {
 	struct cras_iodev *dev;
 	struct cras_io_stream *iostream;
@@ -49,7 +49,7 @@ static int add_dev_to_list(struct iodev_list *list,
 			   struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp;
-	uint32_t new_idx;
+	size_t new_idx;
 
 	DL_FOREACH(list->iodevs, tmp)
 		if (tmp == dev)
@@ -150,8 +150,9 @@ static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
 
 /* Finds the current device for a stream of "type", if there isn't one fall
  * back to the default input or output device depending on "direction" */
-struct cras_iodev *cras_get_iodev_for_stream_type(uint32_t type,
-						  uint32_t direction)
+struct cras_iodev *cras_get_iodev_for_stream_type(
+		enum CRAS_STREAM_TYPE type,
+		enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_iodev *dev, *def;
 	struct iodev_list *list;
@@ -265,7 +266,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 	return 0;
 }
 
-int cras_iodev_move_stream_type(uint32_t type, uint32_t index)
+int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 {
 	struct cras_iodev *curr_dev, *new_dev;
 	struct iodev_list *list;

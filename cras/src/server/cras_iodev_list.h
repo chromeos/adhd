@@ -11,6 +11,8 @@
 
 #include <stdint.h>
 
+#include "cras_types.h"
+
 struct cras_iodev;
 struct cras_iodev_info;
 struct cras_rclient;
@@ -24,8 +26,9 @@ struct cras_audio_format;
  * Returns:
  *    A pointer to the device to use, or NULL if none found.
  */
-struct cras_iodev *cras_get_iodev_for_stream_type(uint32_t type,
-						  uint32_t direction);
+struct cras_iodev *cras_get_iodev_for_stream_type(
+		enum CRAS_STREAM_TYPE type,
+		enum CRAS_STREAM_DIRECTION direction);
 
 /* Adds an output to the output list.
  * Args:
@@ -109,6 +112,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
  *    type - The stream type to move.
  *    index - The index of the otuput to move to.
  */
-int cras_iodev_move_stream_type(uint32_t type, uint32_t index);
+int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
 
 #endif /* CRAS_IODEV_LIST_H_ */

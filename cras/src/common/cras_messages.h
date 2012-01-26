@@ -17,7 +17,7 @@
 #define MAX_AUD_SERV_MSG_SIZE 256
 
 /* Message IDs. */
-enum {
+enum CRAS_MESSAGE_ID {
 	/* Client -> Server*/
 	AUD_SERV_CLIENT_STREAM_CONNECT,
 	AUD_SERV_CLIENT_STREAM_DISCONNECT,
@@ -31,8 +31,8 @@ enum {
 
 /* Message "base class". */
 struct cras_message {
-	uint32_t length;
-	uint32_t id;
+	size_t length;
+	enum CRAS_MESSAGE_ID id;
 };
 
 /*
@@ -42,23 +42,23 @@ struct cras_message {
 /* Sent by a client to connect a stream to the server. */
 struct cras_connect_message {
 	struct cras_message header;
-	uint32_t proto_version;
-	uint32_t direction; /* input or output */
+	size_t proto_version;
+	enum CRAS_STREAM_DIRECTION direction; /* input or output */
 	cras_stream_id_t stream_id; /* unique id for this stream */
-	uint32_t stream_type; /* media, or call, etc. */
-	uint32_t buffer_frames; /* Buffer size in frames. */
-	uint32_t cb_threshold; /* callback client when this much is left */
-	uint32_t min_cb_level; /* don't callback unless this much is avail */
+	enum CRAS_STREAM_TYPE stream_type; /* media, or call, etc. */
+	size_t buffer_frames; /* Buffer size in frames. */
+	size_t cb_threshold; /* callback client when this much is left */
+	size_t min_cb_level; /* don't callback unless this much is avail */
 	uint32_t flags;
 	struct cras_audio_format format; /* rate, channels, sample size */
 };
 static inline void cras_fill_connect_message(struct cras_connect_message *m,
-					   uint32_t direction,
+					   enum CRAS_STREAM_DIRECTION direction,
 					   cras_stream_id_t stream_id,
-					   uint32_t stream_type,
-					   uint32_t buffer_frames,
-					   uint32_t cb_threshold,
-					   uint32_t min_cb_level,
+					   enum CRAS_STREAM_TYPE stream_type,
+					   size_t buffer_frames,
+					   size_t cb_threshold,
+					   size_t min_cb_level,
 					   uint32_t flags,
 					   struct cras_audio_format format)
 {
@@ -92,12 +92,12 @@ static inline void cras_fill_disconnect_stream_message(
 /* Move streams of "type" to the iodev at "iodev_idx". */
 struct cras_switch_stream_type_iodev {
 	struct cras_message header;
-	uint32_t stream_type;
-	uint32_t iodev_idx;
+	enum CRAS_STREAM_TYPE stream_type;
+	size_t iodev_idx;
 };
 static inline void fill_cras_switch_stream_type_iodev(
 		struct cras_switch_stream_type_iodev *m,
-		uint32_t stream_type, uint32_t iodev_idx)
+		enum CRAS_STREAM_TYPE stream_type, size_t iodev_idx)
 {
 	m->stream_type = stream_type;
 	m->iodev_idx = iodev_idx;
@@ -112,11 +112,11 @@ static inline void fill_cras_switch_stream_type_iodev(
 /* Reply from the server indicating that the client has connected. */
 struct cras_client_connected {
 	struct cras_message header;
-	uint32_t client_id;
+	size_t client_id;
 };
 static inline void cras_fill_client_connected(
 		struct cras_client_connected *m,
-		uint32_t client_id)
+		size_t client_id)
 {
 	m->client_id = client_id;
 	m->header.id = AUD_SERV_CLIENT_CONNECTED;
@@ -168,16 +168,16 @@ static inline void cras_fill_client_stream_reattach(
 /*
  * Messages specific to passing audio between client and server
  */
-enum {
+enum CRAS_AUDIO_MESSAGE_ID {
 	AUDIO_MESSAGE_REQUEST_DATA,
 	AUDIO_MESSAGE_DATA_READY,
 	NUM_AUDIO_MESSAGES
 };
 
 struct audio_message {
-	uint32_t id;
+	enum CRAS_AUDIO_MESSAGE_ID id;
 	int error;
-	uint32_t frames; /* number of samples per channel */
+	size_t frames; /* number of samples per channel */
 };
 
 #endif /* CRAS_MESSAGES_H_ */

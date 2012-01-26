@@ -197,7 +197,8 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   EXPECT_EQ(0, rc);
 
   // Default should be most recently added.
-  ret_dev = cras_get_iodev_for_stream_type(0, CRAS_STREAM_OUTPUT);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d1_, ret_dev);
 
   s1.stream_id = 555;

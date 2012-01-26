@@ -213,8 +213,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 }
 
 int cras_rstream_create(cras_stream_id_t stream_id,
-			size_t stream_type,
-			size_t direction,
+			enum CRAS_STREAM_TYPE stream_type,
+			enum CRAS_STREAM_DIRECTION direction,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,

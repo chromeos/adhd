@@ -105,7 +105,7 @@ size_t *cras_alsa_check_sample_rates(const char *dev, snd_pcm_stream_t stream)
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			   snd_pcm_uframes_t *buffer_frames)
 {
-	uint32_t rate, ret_rate;
+	unsigned int rate, ret_rate;
 	int err, dir;
 	snd_pcm_uframes_t period_size;
 	snd_pcm_hw_params_t *hwparams;

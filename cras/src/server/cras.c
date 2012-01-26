@@ -209,7 +209,8 @@ bail:
 }
 
 // TODO(dgreid) dynamic output adding - remove this hack.
-extern int init_alsa_iodev(const char *dev, uint32_t direction);
+extern int init_alsa_iodev(const char *dev,
+			   enum CRAS_STREAM_DIRECTION direction);
 static int setup_devs()
 {
 	init_alsa_iodev("hw:0,0", CRAS_STREAM_OUTPUT);
