@@ -355,11 +355,11 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 			FD_SET(curr->fd, &poll_set);
 			if (curr->fd > max_fd)
 				max_fd = curr->fd;
-		} else if (cras_shm_get_frames(curr->shm) > 0) {
-			cras_mix_add_stream(curr->shm,
-					    aio->base.format->num_channels,
-					    dst, &write_limit, &num_mixed);
-			curr->mixed = 1;
+		} else {
+			curr->mixed = cras_mix_add_stream(
+				curr->shm,
+				aio->base.format->num_channels,
+				dst, &write_limit, &num_mixed);
 		}
 	}
 
@@ -392,10 +392,10 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 			}
 			if (curr->mixed)
 				continue;
-			cras_mix_add_stream(curr->shm,
-					    aio->base.format->num_channels,
-					    dst, &write_limit, &num_mixed);
-			curr->mixed = 1;
+			curr->mixed = cras_mix_add_stream(
+				curr->shm,
+				aio->base.format->num_channels,
+				dst, &write_limit, &num_mixed);
 		}
 	}
 
