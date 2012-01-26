@@ -787,7 +787,7 @@ static void *alsa_io_thread(void *arg)
  * code that can be handled by the caller.
  */
 static int post_message_to_playback_thread(struct alsa_io *aio,
-					   struct cras_message *msg)
+					   struct cras_iodev_msg *msg)
 {
 	int rc, err;
 
@@ -850,7 +850,8 @@ static int rm_stream(struct cras_iodev *iodev,
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
-struct cras_iodev *init_alsa_iodev(const char *dev, uint32_t direction)
+struct cras_iodev *init_alsa_iodev(const char *dev,
+				   enum CRAS_STREAM_DIRECTION direction)
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
@@ -911,7 +912,7 @@ cleanup_iodev:
 void destroy_alsa_io(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
-	struct cras_message msg;
+	struct cras_iodev_msg msg;
 
 	msg.id = CRAS_IODEV_STOP;
 	msg.length = sizeof(struct cras_message);

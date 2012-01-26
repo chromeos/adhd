@@ -14,13 +14,13 @@
 #include <stdlib.h>
 
 /* Directions of audio streams. */
-enum {
+enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_OUTPUT,
 	CRAS_STREAM_INPUT,
 };
 
 /* Types of audio streams. */
-enum {
+enum CRAS_STREAM_TYPE {
 	CRAS_STREAM_TYPE_DEFAULT,
 };
 

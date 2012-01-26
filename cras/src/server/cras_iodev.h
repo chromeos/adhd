@@ -38,21 +38,26 @@ struct cras_iodev {
 	struct cras_audio_format *format;
 	struct cras_io_stream *streams;
 	struct cras_iodev_info info; /* index unique to this device */
-	int direction;
+	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates; /* 0 terminated array of frame rates */
 	struct cras_iodev *prev, *next;
 };
 
 /* Define messages that can be sent from the main context to the device's
  * playback thread. */
-enum {
+enum CRAS_IODEV_COMMAND {
 	CRAS_IODEV_ADD_STREAM,
 	CRAS_IODEV_RM_STREAM,
 	CRAS_IODEV_STOP,
 };
 
+struct cras_iodev_msg {
+	size_t length;
+	enum CRAS_IODEV_COMMAND id;
+};
+
 struct cras_iodev_add_rm_stream_msg {
-	struct cras_message header;
+	struct cras_iodev_msg header;
 	struct cras_rstream *stream;
 };
 

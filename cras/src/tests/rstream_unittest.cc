@@ -31,7 +31,7 @@ TEST_F(RstreamTestSuite, InvalidDirection) {
 
   rc = cras_rstream_create(555,
       CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT + 66,
+      (enum CRAS_STREAM_DIRECTION)66,
       &fmt_,
       4096,
       1024,

@@ -110,11 +110,11 @@ int cras_client_stop(struct cras_client *client);
  *        number of channels, and sample rate.
  */
 struct cras_stream_params *cras_client_stream_params_create(
-		unsigned direction,
+		enum CRAS_STREAM_DIRECTION direction,
 		size_t buffer_frames,
 		size_t cb_threshold,
 		size_t min_cb_level,
-		unsigned stream_type,
+		enum CRAS_STREAM_TYPE stream_type,
 		uint32_t flags,
 		void *user_data,
 		cras_playback_cb_t aud_cb,
@@ -156,7 +156,8 @@ int cras_client_rm_stream(struct cras_client *client,
  *    0 if the message was sent to the server successfully.  A negative error
  *    code if there was a communication error (from errno.h).
  */
-int cras_client_switch_iodev(struct cras_client *client, int stream_type,
+int cras_client_switch_iodev(struct cras_client *client,
+			     enum CRAS_STREAM_TYPE stream_type,
 			     int iodev);
 
 /*

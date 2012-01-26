@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "cras_client.h"
+#include "cras_types.h"
 
 #define CAPTURE_CB_THRESHOLD (4800*5)
 #define PLAYBACK_CB_THRESHOLD (480)
@@ -89,7 +90,7 @@ static void print_last_latency()
 
 static int run_file_io_stream(struct cras_client *client,
 			      int fd,
-			      uint32_t direction,
+			      enum CRAS_STREAM_DIRECTION direction,
 			      uint32_t buffer_frames,
 			      uint32_t cb_threshold,
 			      uint32_t rate,
@@ -255,7 +256,7 @@ int main(int argc, char **argv)
 	int32_t cb_threshold = -1;
 	int32_t rate = -1;
 	int32_t iodev_index = -1;
-	int32_t stream_type = -1;
+	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
 
@@ -289,7 +290,7 @@ int main(int argc, char **argv)
 			iodev_index = atoi(optarg);
 			break;
 		case 's':
-			stream_type = atoi(optarg);
+			stream_type = (enum CRAS_STREAM_TYPE)atoi(optarg);
 			break;
 		default:
 			break;
@@ -309,7 +310,7 @@ int main(int argc, char **argv)
 	if (rate == -1)
 		rate = 48000;
 
-	if (iodev_index >= 0 && stream_type >= 0)
+	if (iodev_index >= 0)
 		cras_client_switch_iodev(client, stream_type, iodev_index);
 
 	if (capture_file != NULL) {
