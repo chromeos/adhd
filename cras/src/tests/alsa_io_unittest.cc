@@ -514,15 +514,8 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       aio_->cb_threshold = 96;
       aio_->min_cb_level = 240;
 
-      shm_ = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm_) + aio_->used_size * 8);
-      shm_->frame_bytes = 4;
-      shm_->used_size = aio_->used_size * 4; // channels * bytes/sample
-      shm_->size = shm_->used_size * 2;
-
-      rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
-      rstream_->shm = shm_;
-      memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
+      SetupShm(&shm_);
+      SetupRstream(&rstream_, shm_);
 
       cras_iodev_append_stream(&aio_->base, rstream_);
 
@@ -538,6 +531,21 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       destroy_alsa_io((struct cras_iodev *)aio_);
       free(rstream_);
       free(shm_);
+    }
+
+    void SetupShm(struct cras_audio_shm_area **shm) {
+      *shm = (struct cras_audio_shm_area *)calloc(1,
+          sizeof(**shm) + aio_->used_size * 8);
+      (*shm)->frame_bytes = 4;
+      (*shm)->used_size = aio_->used_size * 4; //  channels * bytes/sample
+      (*shm)->size = (*shm)->used_size * 2;
+    }
+
+    void SetupRstream(struct cras_rstream **rstream,
+                      struct cras_audio_shm_area *shm) {
+      *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
+      (*rstream)->shm = shm;
+      memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
     }
 
   struct alsa_io *aio_;
@@ -573,7 +581,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillEarlyWake) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 }
 
-TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStream) {
+TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
   struct timespec ts;
   int rc;
   uint64_t nsec_expected;
@@ -583,6 +591,37 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStream) {
   cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
   nsec_expected = (aio_->used_size - aio_->cb_threshold) *
       1000000000 / fmt_.frame_rate;
+
+  // shm has plenty of data in it.
+  shm_->write_offset[0] = shm_->used_size;
+
+  FD_ZERO(&select_out_fds);
+  FD_SET(rstream_->fd, &select_out_fds);
+  select_return_value = 1;
+
+  rc = possibly_fill_audio(aio_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_EQ(0, cras_rstream_request_audio_called);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(-1, select_max_fd);
+}
+
+TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamNeedFill) {
+  struct timespec ts;
+  int rc;
+  uint64_t nsec_expected;
+
+  //  Have cb_threshold samples left.
+  cras_alsa_get_avail_frames_ret = 0;
+  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
+  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+      1000000000 / fmt_.frame_rate;
+
+  // shm is out of data.
+  shm_->write_offset[0] = 0;
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
