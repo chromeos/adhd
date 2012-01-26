@@ -51,16 +51,19 @@ int cras_alsa_pcm_start(snd_pcm_t *handle);
  */
 int cras_alsa_pcm_drain(snd_pcm_t *handle);
 
-/* Checks what sample rates are supported.
+/* Checks what sample rates and channel counts are supported.
  * Args:
  *    dev - Path to the alsa device to test.
  *    stream - Alsa stream type, input or output.
+ *    rates - Pointer that will be set to the arrary of valid samples rates.
+ *            Must be freed by the caller.
+ *    channel_counts - Pointer that will be set to the array of valid channel
+ *                     counts.  Must be freed by the caller.
  * Returns:
- *    A pointer to the list of supported sample rates.  This list is NULL
- *    terminated, and must be freed by the caller when he's done with it.
- *    NULL is returned on error.
+ *   0 on success.  On failure an error code from alsa or -ENOMEM.
  */
-size_t *cras_alsa_check_sample_rates(const char *dev, snd_pcm_stream_t stream);
+int cras_alsa_check_formats(const char *dev, snd_pcm_stream_t stream,
+			    size_t **rates, size_t **channel_counts);
 
 /* Sets up the hwparams to alsa.
  * Args:

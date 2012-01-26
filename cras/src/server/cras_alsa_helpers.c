@@ -15,8 +15,8 @@
 #define MAX_MMAP_BEGIN_ATTEMPTS 3
 
 /* What rates should we check for on this dev?
- * Listed in order of preference. */
-static size_t test_sample_rates[] = {
+ * Listed in order of preference. 0 terminalted. */
+static const size_t test_sample_rates[] = {
 	44100,
 	48000,
 	32000,
@@ -25,6 +25,14 @@ static size_t test_sample_rates[] = {
 	8000,
 	4000,
 	192000,
+	0
+};
+
+/* What channel counts shoud be checked on this dev?
+ * Listed in order of preference. 0 terminalted. */
+static const size_t test_channel_counts[] = {
+	2,
+	1,
 	0
 };
 
@@ -55,12 +63,12 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 	return snd_pcm_drain(handle);
 }
 
-size_t *cras_alsa_check_sample_rates(const char *dev, snd_pcm_stream_t stream)
+int cras_alsa_check_formats(const char *dev, snd_pcm_stream_t stream,
+			    size_t **rates, size_t **channel_counts)
 {
 	int rc;
 	snd_pcm_t *handle;
-	size_t i, num_rates;
-	size_t *rates;
+	size_t i, num_found;
 	snd_pcm_hw_params_t *params;
 
 	snd_pcm_hw_params_alloca(&params);
@@ -73,33 +81,48 @@ size_t *cras_alsa_check_sample_rates(const char *dev, snd_pcm_stream_t stream)
 			  SND_PCM_NO_AUTO_CHANNELS |
 			  SND_PCM_NO_AUTO_FORMAT);
 	if (rc < 0)
-		return NULL;
+		return rc;
 
 	rc = snd_pcm_hw_params_any(handle, params);
 	if (rc < 0) {
 		snd_pcm_close(handle);
-		return NULL;
+		return rc;
 	}
 
-	rates = malloc(sizeof(test_sample_rates));
-	if (rates == NULL) {
+	*rates = malloc(sizeof(test_sample_rates));
+	if (*rates == NULL) {
 		snd_pcm_close(handle);
-		return NULL;
+		return -ENOMEM;
+	}
+	*channel_counts = malloc(sizeof(test_channel_counts));
+	if (*channel_counts == NULL) {
+		free(*rates);
+		snd_pcm_close(handle);
+		return -ENOMEM;
 	}
 
-	num_rates = 0;
-	for (i = 0; i < ARRAY_SIZE(test_sample_rates); i++) {
+	num_found = 0;
+	for (i = 0; test_sample_rates[i] != 0; i++) {
 		rc = snd_pcm_hw_params_test_rate(handle, params,
 						 test_sample_rates[i], 0);
 		if (rc == 0)
-			rates[num_rates++] = test_sample_rates[i];
+			(*rates)[num_found++] = test_sample_rates[i];
 	}
+	(*rates)[num_found] = 0;
+
+	num_found = 0;
+	for (i = 0; test_channel_counts[i] != 0; i++) {
+		rc = snd_pcm_hw_params_set_channels(handle, params,
+						    test_channel_counts[i]);
+		if (rc == 0)
+			(*channel_counts)[num_found++] = test_channel_counts[i];
+	}
+	(*channel_counts)[num_found] = 0;
 
 	snd_pcm_close(handle);
 
-	rates[num_rates] = 0;
 
-	return rates;
+	return 0;
 }
 
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,

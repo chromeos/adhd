@@ -887,10 +887,11 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 	if (err < 0)
 		goto cleanup_iodev;
 
-	iodev->supported_rates = cras_alsa_check_sample_rates(aio->dev,
-							      aio->alsa_stream);
-	if (iodev->supported_rates == NULL ||
-	    iodev->supported_rates[0] == 0)
+	err = cras_alsa_check_formats(aio->dev, aio->alsa_stream,
+				      &iodev->supported_rates,
+				      &iodev->supported_channel_counts);
+	if (err < 0 || iodev->supported_rates[0] == 0 ||
+	    iodev->supported_channel_counts[0] == 0)
 		goto cleanup_iodev;
 
 	/* Start the device thread, it will block until a stream is added. */
@@ -928,8 +929,8 @@ void destroy_alsa_io(struct cras_iodev *iodev)
 	close(aio->to_main_fds[0]);
 	close(aio->to_main_fds[1]);
 
-	if (aio->base.supported_rates)
-		free(aio->base.supported_rates);
+	free(aio->base.supported_rates);
+	free(aio->base.supported_channel_counts);
 
 	if (cras_iodev_list_rm_output(iodev) == 0)
 		free(iodev);

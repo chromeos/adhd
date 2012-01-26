@@ -40,6 +40,7 @@ struct cras_iodev {
 	struct cras_iodev_info info; /* index unique to this device */
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates; /* 0 terminated array of frame rates */
+	size_t *supported_channel_counts; /* Array of supported chan counts. */
 	struct cras_iodev *prev, *next;
 };
 

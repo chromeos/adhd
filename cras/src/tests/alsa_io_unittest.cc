@@ -47,6 +47,7 @@ static size_t cras_alsa_mmap_begin_frames;
 static size_t cras_mix_add_stream_count;
 static int cras_mix_add_stream_dont_fill_next;
 static size_t cras_rstream_request_audio_called;
+static size_t cras_alsa_check_formats_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -58,6 +59,7 @@ void ResetStubData() {
   cras_rstream_request_audio_called = 0;
   select_max_fd = -1;
   cras_mix_add_stream_dont_fill_next = 0;
+  cras_alsa_check_formats_called = 0;
 }
 
 namespace {
@@ -65,10 +67,12 @@ namespace {
 TEST(AlsaIoInit, InitializePlayback) {
   struct alsa_io *aio;
 
+  ResetStubData();
   aio = (struct alsa_io *)init_alsa_iodev("hw:0,0", CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ(1, cras_alsa_check_formats_called);
 
   destroy_alsa_io((struct cras_iodev *)aio);
 }
@@ -76,10 +80,12 @@ TEST(AlsaIoInit, InitializePlayback) {
 TEST(AlsaIoInit, InitializeCapture) {
   struct alsa_io *aio;
 
+  ResetStubData();
   aio = (struct alsa_io *)init_alsa_iodev("hw:0,0", CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_read_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ(1, cras_alsa_check_formats_called);
 
   destroy_alsa_io((struct cras_iodev *)aio);
 }
@@ -888,14 +894,21 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 {
   return 0;
 }
-size_t *cras_alsa_check_sample_rates(const char *dev, snd_pcm_stream_t stream)
+int cras_alsa_check_formats(const char *dev,
+                            snd_pcm_stream_t stream,
+                            size_t **rates,
+                            size_t **channel_counts)
 {
-  static size_t *rates;
-  rates = (size_t *)malloc(sizeof(rates[0]) * 3);
-  rates[0] = 44100;
-  rates[1] = 48000;
-  rates[2] = 0;
-  return rates;
+  *rates = (size_t *)malloc(sizeof(**rates) * 3);
+  (*rates)[0] = 44100;
+  (*rates)[1] = 48000;
+  (*rates)[2] = 0;
+  *channel_counts = (size_t *)malloc(sizeof(**channel_counts) * 2);
+  (*channel_counts)[0] = 2;
+  (*channel_counts)[1] = 0;
+
+  cras_alsa_check_formats_called++;
+  return 0;
 }
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			   snd_pcm_uframes_t *buffer_size)
