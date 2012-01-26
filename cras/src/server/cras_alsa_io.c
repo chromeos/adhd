@@ -289,7 +289,8 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 		if (frames_in_buff >= fetch_size)
 			continue;
 
-		if (!curr->shm->callback_pending) {
+		if (!curr->shm->callback_pending &&
+		    cras_shm_is_buffer_available(curr->shm)) {
 			rc = cras_rstream_request_audio(curr->stream,
 							fetch_size);
 			if (rc < 0) {
