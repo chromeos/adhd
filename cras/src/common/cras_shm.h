@@ -183,7 +183,12 @@ static inline void cras_shm_buffer_read(struct cras_audio_shm_area *shm,
 		shm->read_offset[buf_idx] = shm->write_offset[buf_idx] = 0;
 		assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 		buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
-		shm->read_offset[buf_idx] = remainder;
+		if (remainder < shm->write_offset[buf_idx])
+			shm->read_offset[buf_idx] = remainder;
+		else {
+			shm->read_offset[buf_idx] = 0;
+			shm->write_offset[buf_idx] = 0;
+		}
 		shm->read_buf_idx = buf_idx;
 	}
 }
