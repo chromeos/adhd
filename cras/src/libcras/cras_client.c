@@ -429,7 +429,7 @@ static int config_shm(struct client_stream *stream, int key, size_t size)
 static int config_format_converter(struct client_stream *stream,
 				   const struct cras_audio_format *fmt)
 {
-	if (stream->config->format.frame_rate != fmt->frame_rate) {
+	if (memcmp(&stream->config->format, fmt, sizeof(*fmt)) != 0) {
 		stream->conv = cras_fmt_conv_create(
 			&stream->config->format,
 			fmt,
