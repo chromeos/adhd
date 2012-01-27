@@ -14,7 +14,6 @@
 #include "cras_client.h"
 #include "cras_types.h"
 
-#define CAPTURE_CB_THRESHOLD (4800*5)
 #define PLAYBACK_CB_THRESHOLD (480)
 #define PLAYBACK_BUFFER_SIZE (4800)
 
@@ -25,7 +24,7 @@ static struct timespec last_latency;
 static int show_latency;
 static int keep_looping = 1;
 static int full_frames;
-uint32_t min_cb_level;
+uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
 
 /* Run from callback thread. */
 static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
@@ -91,9 +90,10 @@ static void print_last_latency()
 static int run_file_io_stream(struct cras_client *client,
 			      int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
-			      uint32_t buffer_frames,
-			      uint32_t cb_threshold,
-			      uint32_t rate,
+			      size_t buffer_frames,
+			      size_t cb_threshold,
+			      size_t rate,
+			      size_t num_channels,
 			      int flags)
 {
 	struct cras_stream_params *params;
@@ -114,7 +114,8 @@ static int run_file_io_stream(struct cras_client *client,
 	else
 		aud_cb = put_samples;
 
-	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate, 2);
+	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
+					      num_channels);
 	if (aud_format == NULL)
 		return -ENOMEM;
 
@@ -195,15 +196,16 @@ static int run_file_io_stream(struct cras_client *client,
 
 static int run_capture(struct cras_client *client,
 		       const char *file,
-		       uint32_t buffer_frames,
-		       uint32_t cb_threshold,
-		       uint32_t rate,
+		       size_t buffer_frames,
+		       size_t cb_threshold,
+		       size_t rate,
+		       size_t num_channels,
 		       int flags)
 {
 	int fd = open(file, O_CREAT | O_RDWR, 0666);
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, buffer_frames,
-			   cb_threshold, rate, flags);
+			   cb_threshold, rate, num_channels, flags);
 
 	close(fd);
 	return 0;
@@ -211,9 +213,10 @@ static int run_capture(struct cras_client *client,
 
 static int run_playback(struct cras_client *client,
 			const char *file,
-			uint32_t buffer_frames,
-			uint32_t cb_threshold,
-			uint32_t rate,
+			size_t buffer_frames,
+			size_t cb_threshold,
+			size_t rate,
+			size_t num_channels,
 			int flags)
 {
 	int fd;
@@ -228,7 +231,7 @@ static int run_playback(struct cras_client *client,
 	file_buf_size = read(fd, file_buf, 1024*1024*4);
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, buffer_frames,
-			   cb_threshold, rate, flags);
+			   cb_threshold, rate, num_channels, flags);
 
 	close(fd);
 	return 0;
@@ -238,6 +241,7 @@ static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"write_full_frames",	no_argument, &full_frames, 1},
 	{"rate",		required_argument,	0, 'r'},
+	{"num_channels",        required_argument,      0, 'n'},
 	{"iodev_index",		required_argument,	0, 'o'},
 	{"stream_type",		required_argument,	0, 's'},
 	{"capture_file",	required_argument,	0, 'c'},
@@ -252,10 +256,12 @@ int main(int argc, char **argv)
 {
 	struct cras_client *client;
 	int c, err, option_index;
-	int32_t buffer_size = -1;
-	int32_t cb_threshold = -1;
-	int32_t rate = -1;
-	int32_t iodev_index = -1;
+	size_t buffer_size = PLAYBACK_BUFFER_SIZE;
+	size_t cb_threshold = PLAYBACK_CB_THRESHOLD;
+	size_t rate = 48000;
+	size_t iodev_index = 0;
+	int set_iodev = 0;
+	size_t num_channels = 2;
 	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
@@ -286,7 +292,11 @@ int main(int argc, char **argv)
 		case 'r':
 			rate = atoi(optarg);
 			break;
+		case 'n':
+			num_channels = atoi(optarg);
+			break;
 		case 'o':
+			set_iodev = 1;
 			iodev_index = atoi(optarg);
 			break;
 		case 's':
@@ -307,27 +317,17 @@ int main(int argc, char **argv)
 	if (err)
 		return err;
 
-	if (rate == -1)
-		rate = 48000;
-
-	if (iodev_index >= 0)
+	if (set_iodev)
 		cras_client_switch_iodev(client, stream_type, iodev_index);
 
 	if (capture_file != NULL) {
-		if (buffer_size == -1)
-			buffer_size = CAPTURE_CB_THRESHOLD;
-		run_capture(client, capture_file, buffer_size, 0, rate, 0);
+		run_capture(client, capture_file, buffer_size, 0, rate,
+			    num_channels, 0);
 	}
 
 	if (playback_file != NULL) {
-		if (cb_threshold == -1)
-			cb_threshold = PLAYBACK_CB_THRESHOLD;
-		if (buffer_size == -1)
-			buffer_size = PLAYBACK_BUFFER_SIZE;
-		if (min_cb_level == -1)
-			min_cb_level = buffer_size/2;
 		run_playback(client, playback_file, buffer_size, cb_threshold,
-			     rate, 0);
+			     rate, num_channels, 0);
 	}
 
 	cras_client_destroy(client);
