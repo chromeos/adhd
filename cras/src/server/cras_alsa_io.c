@@ -847,6 +847,28 @@ static int rm_stream(struct cras_iodev *iodev,
 	return post_message_to_playback_thread(aio, &msg.header);
 }
 
+/* Frees resources used by the alsa iodev.
+ * Args:
+ *    iodev - the iodev to free the resources from.
+ */
+static void free_alsa_iodev_resources(struct alsa_io *aio)
+{
+	if (aio->to_thread_fds[0] != -1) {
+		close(aio->to_thread_fds[0]);
+		close(aio->to_thread_fds[1]);
+		aio->to_thread_fds[0] = -1;
+		aio->to_thread_fds[1] = -1;
+	}
+	if (aio->to_main_fds[0] != -1) {
+		close(aio->to_main_fds[0]);
+		close(aio->to_main_fds[1]);
+		aio->to_main_fds[0] = -1;
+		aio->to_main_fds[1] = -1;
+	}
+	free(aio->base.supported_rates);
+	free(aio->base.supported_channel_counts);
+}
+
 /* Initialize an alsa iodev.
  * Args:
  *    dev - the path to the alsa device to use.
@@ -867,6 +889,10 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 	memset(aio, 0, sizeof(*aio));
 	iodev = &aio->base;
 	aio->dev = dev;
+	aio->to_thread_fds[0] = -1;
+	aio->to_thread_fds[1] = -1;
+	aio->to_main_fds[0] = -1;
+	aio->to_main_fds[1] = -1;
 	iodev->direction = direction;
 	iodev->rm_stream = rm_stream;
 	iodev->add_stream = add_stream;
@@ -909,6 +935,7 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 	return &aio->base;
 
 cleanup_iodev:
+	free_alsa_iodev_resources(aio);
 	free(aio);
 	return NULL;
 }
@@ -918,21 +945,22 @@ void destroy_alsa_io(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	struct cras_iodev_msg msg;
+	int rc;
 
 	msg.id = CRAS_IODEV_STOP;
 	msg.length = sizeof(struct cras_message);
 	post_message_to_playback_thread(aio, &msg);
 	pthread_join(aio->tid, NULL);
 
-	close(aio->to_thread_fds[0]);
-	close(aio->to_thread_fds[1]);
-	close(aio->to_main_fds[0]);
-	close(aio->to_main_fds[1]);
+	free_alsa_iodev_resources(aio);
 
-	free(aio->base.supported_rates);
-	free(aio->base.supported_channel_counts);
-
-	if (cras_iodev_list_rm_output(iodev) == 0)
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		rc = cras_iodev_list_rm_input(iodev);
+	else {
+		assert(iodev->direction == CRAS_STREAM_OUTPUT);
+		rc = cras_iodev_list_rm_output(iodev);
+	}
+	if (rc == 0)
 		free(iodev);
 }
 
