@@ -246,15 +246,17 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 			       snd_pcm_uframes_t *used)
 {
 	snd_pcm_sframes_t frames;
+	int rc = 0;
 
 	frames = snd_pcm_avail(handle);
-	*used = frames;
 	if (frames < 0) {
 		syslog(LOG_ERR, "pcm_avail error %s\n", snd_strerror(frames));
-		return frames;
+		rc = frames;
+		frames = 0;
 	} else if (frames > buf_size)
 		frames = buf_size;
-	return 0;
+	*used = frames;
+	return rc;
 }
 
 int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
