@@ -518,8 +518,8 @@ class AlsaPlaybackStreamSuite : public testing::Test {
 
       SetupShm(&shm_);
       SetupShm(&shm2_);
-      SetupRstream(&rstream_, shm_);
-      SetupRstream(&rstream2_, shm2_);
+      SetupRstream(&rstream_, shm_, 1);
+      SetupRstream(&rstream2_, shm2_, 2);
 
       cras_iodev_append_stream(&aio_->base, rstream_);
 
@@ -546,10 +546,12 @@ class AlsaPlaybackStreamSuite : public testing::Test {
     }
 
     void SetupRstream(struct cras_rstream **rstream,
-                      struct cras_audio_shm_area *shm) {
+                      struct cras_audio_shm_area *shm,
+                      int fd) {
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       (*rstream)->shm = shm;
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
+      (*rstream)->fd = fd;
     }
 
   struct alsa_io *aio_;
@@ -762,6 +764,39 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
   EXPECT_EQ(2, cras_rstream_request_audio_called);
+  EXPECT_NE(-1, select_max_fd);
+}
+
+TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
+  struct timespec ts;
+  int rc;
+  uint64_t nsec_expected;
+
+  //  Have cb_threshold samples left.
+  cras_alsa_get_avail_frames_ret = 0;
+  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
+  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+      1000000000 / fmt_.frame_rate;
+
+  //  One has too little the other is full.
+  shm_->write_offset[0] = 40;
+  shm_->write_buf_idx = 1;
+  shm2_->write_offset[0] = shm2_->used_size;
+  shm2_->write_buf_idx = 1;
+
+  cras_iodev_append_stream(&aio_->base, rstream2_);
+
+  FD_ZERO(&select_out_fds);
+  FD_SET(rstream_->fd, &select_out_fds);
+  select_return_value = 1;
+
+  rc = possibly_fill_audio(aio_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
 
