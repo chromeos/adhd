@@ -4,6 +4,8 @@
  */
 #if !defined(_ADHD_UTILS_H_)
 #define _ADHD_UTILS_H_
+#include <sys/types.h>
+#include <regex.h>
 
 /* utils_execute_command: Execute a command using 'system()'.
  *
@@ -13,4 +15,6 @@
  * Logs at verbosity '0' the status of the command executed.
  */
 unsigned utils_execute_command(const char *cmd);
+
+void compile_regex(regex_t *regex, const char *str);
 #endif

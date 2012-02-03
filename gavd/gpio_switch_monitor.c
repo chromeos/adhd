@@ -128,7 +128,6 @@ void gpio_switch_monitor(const char *thread_name,
                          const char *insert_command,
                          const char *remove_command)
 {
-    char     *device;
     unsigned  current_state;
     int       fd;
 
@@ -136,27 +135,21 @@ void gpio_switch_monitor(const char *thread_name,
                            thread_name, device_name, switch_event,
                            insert_command, remove_command);
 
-    device = sys_input_find_device_by_name(device_name);
-    if (device != NULL) {
-        fd = open(device, O_RDONLY);
-        if (fd != -1 &&
-            sys_input_get_switch_state(fd, switch_event, &current_state)) {
-            gpio_switch_monitor_work(thread_name,
-                                     jack,
-                                     switch_event,
-                                     insert_command,
-                                     remove_command,
-                                     fd,
-                                     current_state);
-            close(fd);
-        } else {
-            verbose_log(0, LOG_ERR, "%s: unable to find device for '%s'",
-                        __FUNCTION__, device_name);
-        }
-        free(device);
+    assert(device_name != NULL);
+    fd = open(device_name, O_RDONLY);
+    if (fd != -1 &&
+        sys_input_get_switch_state(fd, switch_event, &current_state)) {
+        gpio_switch_monitor_work(thread_name,
+                                 jack,
+                                 switch_event,
+                                 insert_command,
+                                 remove_command,
+                                 fd,
+                                 current_state);
+        close(fd);
     } else {
         verbose_log(0, LOG_ERR, "%s: unable to find device for '%s'",
-                        __FUNCTION__, device_name);
+                    __FUNCTION__, device_name);
     }
 
     VERBOSE_FUNCTION_EXIT("%s, %s, %u, %s, %s",

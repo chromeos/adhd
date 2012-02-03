@@ -9,12 +9,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <regex.h>
 
 #define __USE_UNIX98            /* For pthread_mutexattr_settype et al. */
 #include <pthread.h>
 
+#include "utils.h"
 #include "thread_management.h"
 #include "initialization.h"
 #include "verbose.h"
@@ -258,12 +257,10 @@ static void *udev_sound_subsystem_monitor(void *arg)
 
 static void initialize(void)
 {
-    int r;
-
     udev = udev_new();
     assert(udev != NULL);
-    r = regcomp(&pcm_regex, pcm_regex_string, REG_EXTENDED);
-    assert(r == 0);
+
+    compile_regex(&pcm_regex, pcm_regex_string);
 }
 
 

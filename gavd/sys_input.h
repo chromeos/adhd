@@ -5,11 +5,10 @@
 #if !defined(_SYS_INPUT_H_)
 #define _SYS_INPUT_H_
 
-/* Caller must free() non-NULL results of sys_input_find_device_by_name() */
-char *sys_input_find_device_by_name(const char *name);
 unsigned sys_input_get_switch_state(int       fd,     /* /dev/input/event fd. */
                                     unsigned  sw,     /* SW_xxx identifier    */
                                     unsigned *state); /* out: 0 -> off
                                                        *      1 -> on
                                                        */
+char *sys_input_get_device_name(const char *path); /* caller: free() result */
 #endif

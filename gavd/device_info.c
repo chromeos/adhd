@@ -9,12 +9,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <regex.h>
 
 #define __USE_UNIX98            /* For pthread_mutexattr_settype et al. */
 #include <pthread.h>
 
+#include "utils.h"
 #include "thread_management.h"
 #include "initialization.h"
 #include "verbose.h"

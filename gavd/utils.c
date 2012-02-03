@@ -2,6 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include <assert.h>
 #include <stdlib.h>
 
 #include "verbose.h"
@@ -26,4 +27,11 @@ unsigned utils_execute_command(const char *cmd)
         }
         return 0;
     }
+}
+
+void compile_regex(regex_t *regex, const char *str)
+{
+    int r;
+    r = regcomp(regex, str, REG_EXTENDED);
+    assert(r == 0);
 }

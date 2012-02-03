@@ -25,60 +25,6 @@
 #define IS_BIT_SET(bit, array)  !!((array[LONG(bit)]) & (1UL << OFF(bit)))
 
 
-static int is_event_device(const struct dirent *dir)
-{
-    /* If 'prefix' is not static, it will be initialized on each
-     * invocation.  This causes the following error to be produced:
-     *
-     *   error: not protecting function: no buffer at least 8 bytes long
-     *
-     * It's probably a warning which is turned into an error, but it's
-     * not useful.  Declaring 'prefix' static removes the
-     * initialization and removes the error.
-     */
-    static const char prefix[]   = "event";
-    const size_t      prefix_len = sizeof(prefix) / sizeof(prefix[0]) - 1;
-
-    return strncmp(dir->d_name, prefix, prefix_len) == 0;
-}
-
-char *sys_input_find_device_by_name(const char *name)
-{
-    const char     *dir    = "/dev/input";
-    struct dirent **namelist;
-    char           *result = NULL;
-    int             ndev;
-    int             i;
-    int             bytes;
-
-    VERBOSE_FUNCTION_ENTER("%s", name);
-    ndev = scandir(dir, &namelist, is_event_device, alphasort);
-    for (i = 0; i < ndev; ++i) {
-        char path[128];
-        char device_name[256];
-        int  fd;
-
-        /* 'path' becomes "/dev/input/event[0..32)" */
-        bytes = snprintf(path, sizeof(path), "%s/%s", dir, namelist[i]->d_name);
-        assert((size_t)bytes <= sizeof(path));
-
-        fd = open(path, O_RDONLY);
-        if (fd >= 0) {
-            ioctl(fd, EVIOCGNAME(sizeof(device_name)), device_name);
-            close(fd);
-            if (strncmp(name, device_name, strlen(name) + 1) == 0) {
-                result = strdup(path);
-                break;
-            }
-        }
-    }
-    for (i = 0; i < ndev; ++i) {
-        free(namelist[i]);
-    }
-    VERBOSE_FUNCTION_EXIT("%s", name);
-    return result;
-}
-
 unsigned sys_input_get_switch_state(int       fd,    /* Open file descriptor. */
                                     unsigned  sw,    /* SW_xxx identifier */
                                     unsigned *state) /* out: 0 -> off, 1 -> on */
@@ -98,3 +44,16 @@ unsigned sys_input_get_switch_state(int       fd,    /* Open file descriptor. */
     return 0;
 }
 
+char *sys_input_get_device_name(const char *path)
+{
+    char name[256];
+    int  fd = open(path, O_RDONLY);
+
+    if (fd >= 0) {
+        ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+        close(fd);
+        return strdup(name);
+    } else {
+        return NULL;
+    }
+}
