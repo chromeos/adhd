@@ -23,7 +23,7 @@ CFILES	=					\
 	sys_input.c                             \
 	thread_gpio_switch_monitor.c            \
 	thread_management.c                     \
-	udev_listen.c                           \
+	udev_sound.c                            \
 	utils.c                                 \
 	workfifo.c                              \
 	main.c

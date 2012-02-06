@@ -17,7 +17,7 @@
 #include "thread_management.h"
 #include "initialization.h"
 #include "verbose.h"
-#include "udev_listen.h"
+#include "udev_sound.h"
 #include "device_info.h"
 
 static unsigned is_action(const char *desired,

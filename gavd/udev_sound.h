@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#if !defined(_UDEV_LISTEN_H_)
-#define _UDEV_LISTEN_H_
+#if !defined(_UDEV_SOUND_H_)
+#define _UDEV_SOUND_H_
 
 #endif

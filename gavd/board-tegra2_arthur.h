@@ -5,7 +5,4 @@
 #if !defined(_BOARD_TEGRA2_ARTHUR_H_)
 #define _BOARD_TEGRA2_ARTHUR_H_
 
-//#define ADHD_GPIO_HEADPHONE
-//#define ADHD_GPIO_HEADPHONE_GPIO_NUMBER 185
-
 #endif
