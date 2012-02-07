@@ -6,10 +6,6 @@
 #ifndef _CRAS_MIX_H
 #define _CRAS_MIX_H
 
-/* Adds src into dst, if it's the first stream added, just memcpy. */
-void cras_mix_add_buffer(int16_t *dst, const int16_t *src,
-			 size_t samples, size_t *index);
-
 /* Renders count frames from shm into dst.  Updates count if anything is
  * written.
  * Args:
