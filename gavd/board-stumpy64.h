@@ -1,1 +1,0 @@
-board-stumpy.h

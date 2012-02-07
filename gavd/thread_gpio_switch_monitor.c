@@ -13,28 +13,13 @@
 #include <libudev.h>
 
 #include "board.h"
+#include "codec.h"
 #include "verbose.h"
 #include "sys_input.h"
 #include "initialization.h"
 #include "thread_management.h"
 #include "utils.h"
 #include "gpio_switch_monitor.h"
-
-#if !defined(ADHD_GPIO_HEADPHONE_INSERT_COMMAND)
-#define ADHD_GPIO_HEADPHONE_INSERT_COMMAND NULL
-#endif
-
-#if !defined(ADHD_GPIO_HEADPHONE_REMOVE_COMMAND)
-#define ADHD_GPIO_HEADPHONE_REMOVE_COMMAND NULL
-#endif
-
-#if !defined(ADHD_GPIO_MIRCOPHONE_INSERT_COMMAND)
-#define ADHD_GPIO_MIRCOPHONE_INSERT_COMMAND NULL
-#endif
-
-#if !defined(ADHD_GPIO_MIRCOPHONE_REMOVE_COMMAND)
-#define ADHD_GPIO_MIRCOPHONE_REMOVE_COMMAND NULL
-#endif
 
 static char *microphone_jack_device;
 static char *headphone_jack_device;
@@ -53,8 +38,8 @@ static void *gpio_headphone_monitor(void *arg)
                             "headphone",
                             headphone_jack_device,
                             SW_HEADPHONE_INSERT,
-                            ADHD_GPIO_HEADPHONE_INSERT_COMMAND,
-                            ADHD_GPIO_HEADPHONE_REMOVE_COMMAND);
+                            codec_headphone_insert,
+                            codec_headphone_remove);
     }
     return NULL;
 }
@@ -74,8 +59,8 @@ static void *gpio_microphone_monitor(void *arg)
                             "microphone",
                             microphone_jack_device,
                             SW_MICROPHONE_INSERT,
-                            ADHD_GPIO_MIRCOPHONE_INSERT_COMMAND,
-                            ADHD_GPIO_MIRCOPHONE_REMOVE_COMMAND);
+                            codec_microphone_insert,
+                            codec_microphone_remove);
     }
     return NULL;
 }

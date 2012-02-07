@@ -5,7 +5,8 @@
 #include <assert.h>
 
 #include "board.h"
-
+#include "adhd_alsa_defs.h"
+#include "codec.h"
 #include "utils.h"
 #include "verbose.h"
 #include "workfifo.h"
@@ -15,7 +16,7 @@
 FIFO_ENTRY("Set Internal Factory Default", workfifo, set_factory_default,
 {
     VERBOSE_FUNCTION_ENTER("%p", data);
-    if (adhd_initialize_sound_command) {
+    if (1) {
         /* TODO(thutt): Stop gap only until /etc/asound.rc is loaded
          *              on login.
          *
@@ -25,7 +26,7 @@ FIFO_ENTRY("Set Internal Factory Default", workfifo, set_factory_default,
          *          conditions with sound initialization.
          */
         threads_lock_hardware();
-        utils_execute_command(ADHD_INITIALIZE_SOUND_COMMAND);
+        codec_initialize_hardware();
         threads_unlock_hardware();
     } else if (adhd_set_factory_default) {
         threads_lock_hardware();

@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 /* TODO(thutt): Try to exclude this module if input events are not used. */
+#include "codec.h"
 #include "verbose.h"
 #include "sys_input.h"
 #include "thread_management.h"
@@ -21,11 +22,11 @@
 #include "gpio_switch_monitor.h"
 
 typedef struct switch_state_t {
-    const char *thread_name;
-    const char *jack;
-    const char *insert_command;
-    const char *remove_command;
-    unsigned    state;          /* 0 -> remove, 1 -> insert */
+    const char                 *thread_name;
+    const char                 *jack;
+    switch_insert_command_fn_t  insert_command;
+    switch_remove_command_fn_t  remove_command;
+    unsigned                    state; /* 0 -> remove, 1 -> insert */
 } switch_state_t;
 
 static const char *gpio_switch_decode_state(unsigned state)
@@ -45,11 +46,12 @@ FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
                            gpio_switch_decode_state(ss->state));
 
     if (ss->insert_command != NULL && ss->remove_command != NULL) {
-        const char *cmd = ss->state ? ss->insert_command
-                                    : ss->remove_command;
-
         threads_lock_hardware();
-        utils_execute_command(cmd);
+        if (ss->state) {
+            ss->insert_command();
+        } else {
+            ss->remove_command();
+        }
         threads_unlock_hardware();
         dbus_to_chrome_fifo_internal_speaker_headphone_state(ss->jack,
                                                              ss->state);
@@ -70,13 +72,13 @@ FIFO_ENTRY("GPIO Switch Notify State", workfifo, gpio_switch_state,
                            gpio_switch_decode_state(ss->state));
 });
 
-static void gpio_switch_monitor_work(const char *thread_name,
-                                     const char *jack,
-                                     unsigned    switch_event,
-                                     const char *insert_command,
-                                     const char *remove_command,
-                                     int         fd,
-                                     unsigned    current_state)
+static void gpio_switch_monitor_work(const char                 *thread_name,
+                                     const char                 *jack,
+                                     unsigned                    switch_event,
+                                     switch_insert_command_fn_t  insert_command,
+                                     switch_remove_command_fn_t  remove_command,
+                                     int                         fd,
+                                     unsigned                    current_state)
 {
     unsigned last_state = !current_state;
 
@@ -121,19 +123,18 @@ static void gpio_switch_monitor_work(const char *thread_name,
     }
 }
 
-void gpio_switch_monitor(const char *thread_name,
-                         const char *jack,
-                         const char *device_name,
-                         unsigned    switch_event,
-                         const char *insert_command,
-                         const char *remove_command)
+void gpio_switch_monitor(const char                 *thread_name,
+                         const char                 *jack,
+                         const char                 *device_name,
+                         unsigned                    switch_event,
+                         switch_insert_command_fn_t  insert_command,
+                         switch_remove_command_fn_t  remove_command)
 {
     unsigned  current_state;
     int       fd;
 
-    VERBOSE_FUNCTION_ENTER("%s, %s, %u, %s, %s",
-                           thread_name, device_name, switch_event,
-                           insert_command, remove_command);
+    VERBOSE_FUNCTION_ENTER("%s, %s, %u",
+                           thread_name, device_name, switch_event);
 
     assert(device_name != NULL);
     fd = open(device_name, O_RDONLY);
@@ -152,7 +153,6 @@ void gpio_switch_monitor(const char *thread_name,
                     __FUNCTION__, device_name);
     }
 
-    VERBOSE_FUNCTION_EXIT("%s, %s, %u, %s, %s",
-                          thread_name, device_name, switch_event,
-                          insert_command, remove_command);
+    VERBOSE_FUNCTION_EXIT("%s, %s, %u",
+                          thread_name, device_name, switch_event);
 }
