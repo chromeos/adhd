@@ -25,6 +25,8 @@
  *  write_offset - offset of the next sample to write (one per buffer).
  *  size - The size of the samples area in bytes.
  *  used_size - The size in bytes of the sample area being actively used.
+ *  volume - volume (0.0-1.0) scaling factor.
+ *  muted - bool, true if stream should be muted.
  *  num_overruns - Starting at 0 this is incremented very time data is over
  *    written because too much accumulated before a read.
  *  num_cb_timeouts = how many times has the client failed to meet the read or
@@ -43,6 +45,8 @@ struct cras_audio_shm_area {
 	size_t frame_bytes;
 	size_t size;
 	size_t used_size;
+	float volume;
+	size_t mute;
 	size_t callback_pending;
 	size_t num_overruns;
 	size_t num_cb_timeouts;
@@ -189,6 +193,34 @@ static inline void cras_shm_buffer_read(struct cras_audio_shm_area *shm,
 		}
 		shm->read_buf_idx = buf_idx;
 	}
+}
+
+/* Sets the volume for the stream.  The volume level is a scaling factor that
+ * will be applied to the stream before mixing. */
+static inline void cras_shm_set_volume(struct cras_audio_shm_area *shm,
+				       float volume)
+{
+	volume = max(volume, 0.0);
+	shm->volume = min(volume, 1.0);
+}
+
+/* Returns the volume of the stream(0.0-1.0). */
+static inline float cras_shm_get_volume(struct cras_audio_shm_area *shm)
+{
+	return shm->volume;
+}
+
+/* Indicates that the stream should be muted/unmuted */
+static inline void cras_shm_set_mute(struct cras_audio_shm_area *shm,
+				     size_t mute)
+{
+	shm->mute = !!mute;
+}
+
+/* Returns the mute state of the stream.  0 if not muted, non-zero if muted. */
+static inline size_t cras_shm_get_mute(struct cras_audio_shm_area *shm)
+{
+	return shm->mute;
 }
 
 #endif /* CRAS_SHM_H_ */

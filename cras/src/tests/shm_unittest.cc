@@ -106,6 +106,17 @@ TEST_F(ShmTestSuite, WrapFromFinalBuffer) {
   EXPECT_EQ(230 * shm_.frame_bytes, shm_.read_offset[0]);
 }
 
+TEST_F(ShmTestSuite, SetVolume) {
+  cras_shm_set_volume(&shm_, 1.0);
+  EXPECT_EQ(shm_.volume, 1.0);
+  cras_shm_set_volume(&shm_, 1.4);
+  EXPECT_EQ(shm_.volume, 1.0);
+  cras_shm_set_volume(&shm_, -0.5);
+  EXPECT_EQ(shm_.volume, 0.0);
+  cras_shm_set_volume(&shm_, 0.5);
+  EXPECT_EQ(shm_.volume, 0.5);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
