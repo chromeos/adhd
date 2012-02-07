@@ -38,7 +38,8 @@ typedef int (*cras_playback_cb_t)(struct cras_client *client,
 /* Callback for handling errors. */
 typedef int (*cras_error_cb_t)(struct cras_client *client,
 			       cras_stream_id_t stream_id,
-			       int error);
+			       int error,
+			       void *user_arg);
 
 /*
  * Client handling.

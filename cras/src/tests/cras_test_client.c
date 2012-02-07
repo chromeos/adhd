@@ -74,8 +74,10 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	return this_size / frame_bytes;
 }
 
-static int stream_error(struct cras_client *client, cras_stream_id_t stream_id,
-			int err)
+static int stream_error(struct cras_client *client,
+			cras_stream_id_t stream_id,
+			int err,
+			void *arg)
 {
 	printf("Stream error %d\n", err);
 	keep_looping = 0;

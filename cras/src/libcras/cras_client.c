@@ -644,7 +644,8 @@ static int handle_server_message(struct cras_client *client)
 		if (rc < 0)
 			stream->config->err_cb(stream->client,
 					       stream->id,
-					       rc);
+					       rc,
+					       stream->config->user_data);
 		break;
 	}
 	case AUD_SERV_CLIENT_STREAM_REATTACH: {
