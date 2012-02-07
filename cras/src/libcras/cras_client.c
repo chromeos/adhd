@@ -39,15 +39,24 @@
 #include "cras_util.h"
 #include "utlist.h"
 
+static const size_t MAX_CMD_MSG_LEN = 256;
+
 /* Commands sent from the user to the running client. */
 enum {
 	CLIENT_STOP,
 	CLIENT_REMOVE_STREAM,
+	CLIENT_SET_STREAM_VOLUME,
 };
 
 struct command_msg {
+	unsigned len;
 	unsigned msg_id;
 	cras_stream_id_t stream_id;
+};
+
+struct set_volume_command_message {
+	struct command_msg header;
+	float volume;
 };
 
 /* Commands send from a running stream to the client. */
@@ -104,6 +113,7 @@ struct client_stream {
 	int aud_fd; /* After server connects audio messages come in here. */
 	enum CRAS_STREAM_DIRECTION direction; /* playback or capture. */
 	uint32_t flags;
+	float volume;
 	struct thread_state thread;
 	int wake_fds[2]; /* Pipe to wake the thread */
 	struct cras_client *client;
@@ -465,6 +475,7 @@ static int stream_connected(struct client_stream *stream,
 		syslog(LOG_ERR, "Error configuring shared memory");
 		goto err_ret;
 	}
+	cras_shm_set_volume(stream->shm, stream->volume);
 
 	rc = pipe(stream->wake_fds);
 	if (rc < 0) {
@@ -529,6 +540,24 @@ static int client_thread_rm_stream(struct cras_client *client,
 		cras_fmt_conv_destroy(stream->conv);
 	free(stream->config);
 	free(stream);
+
+	return 0;
+}
+
+/* Sets the volume for a playing stream. */
+static int client_thread_set_stream_volume(struct cras_client *client,
+					   cras_stream_id_t stream_id,
+					   float volume)
+{
+	struct client_stream *stream;
+
+	stream = stream_from_id(client, stream_id);
+	if (stream == NULL || volume > 1.0 || volume < 0.0)
+		return -EINVAL;
+
+	stream->volume = volume;
+	if (stream->shm != NULL)
+		cras_shm_set_volume(stream->shm, volume);
 
 	return 0;
 }
@@ -651,14 +680,23 @@ static int handle_stream_message(struct cras_client *client)
 /* Handles messages from users to this client. */
 static int handle_command_message(struct cras_client *client)
 {
-	struct command_msg msg;
-	int rc;
+	uint8_t buf[MAX_CMD_MSG_LEN];
+	struct command_msg *msg = (struct command_msg *)buf;
+	int rc, to_read;
 
-	rc = read(client->command_fds[0], &msg, sizeof(msg));
-	if (rc != sizeof(msg))
+	rc = read(client->command_fds[0], buf, sizeof(msg->len));
+	if (rc != sizeof(msg->len) || msg->len > MAX_CMD_MSG_LEN) {
+		rc = -EIO;
 		goto cmd_msg_complete;
+	}
+	to_read = msg->len - rc;
+	rc = read(client->command_fds[0], &buf[0] + rc, to_read);
+	if (rc != to_read) {
+		rc = -EIO;
+		goto cmd_msg_complete;
+	}
 
-	switch (msg.msg_id) {
+	switch (msg->msg_id) {
 	case CLIENT_STOP: {
 		struct client_stream *s, *tmp;
 
@@ -668,10 +706,22 @@ static int handle_command_message(struct cras_client *client)
 
 		/* And stop this client */
 		client->thread.running = 0;
+		rc = 0;
 		break;
 	}
 	case CLIENT_REMOVE_STREAM:
-		rc = client_thread_rm_stream(client, msg.stream_id);
+		rc = client_thread_rm_stream(client, msg->stream_id);
+		break;
+	case CLIENT_SET_STREAM_VOLUME: {
+		struct set_volume_command_message *vol_msg =
+			(struct set_volume_command_message *)msg;
+		rc = client_thread_set_stream_volume(client,
+						     vol_msg->header.stream_id,
+						     vol_msg->volume);
+		break;
+	}
+	default:
+		assert(0);
 		break;
 	}
 
@@ -737,20 +787,45 @@ static void *client_thread(void *arg)
 /* Sends a message to the client thread to complete an action requested by the
  * user.  Then waits for the action to complete and returns the result. */
 static int send_command_message(struct cras_client *client,
-				cras_stream_id_t stream_id,
-				unsigned msg_id) {
-	int res;
-	struct command_msg msg;
-
-	msg.stream_id = stream_id;
-	msg.msg_id = msg_id;
-	res = write(client->command_fds[1], &msg, sizeof(msg));
-	if (res != sizeof(msg))
+				struct command_msg *msg)
+{
+	int rc;
+	rc = write(client->command_fds[1], msg, msg->len);
+	if (rc != msg->len)
 		return -EPIPE;
 
 	/* Wait for command to complete. */
 	pthread_barrier_wait(&client->command_barrier);
 	return client->last_command_result;
+}
+
+/* Send a simple message to the client thread that holds no data. */
+static int send_simple_cmd_msg(struct cras_client *client,
+			       cras_stream_id_t stream_id,
+			       unsigned msg_id)
+{
+	struct command_msg msg;
+
+	msg.len = sizeof(msg);
+	msg.stream_id = stream_id;
+	msg.msg_id = msg_id;
+
+	return send_command_message(client, &msg);
+}
+
+/* Sends the set volume message to the client thread. */
+static int send_volume_command_msg(struct cras_client *client,
+				   cras_stream_id_t stream_id,
+				   float volume)
+{
+	struct set_volume_command_message msg;
+
+	msg.header.len = sizeof(msg);
+	msg.header.stream_id = stream_id;
+	msg.header.msg_id = CLIENT_SET_STREAM_VOLUME;
+	msg.volume = volume;
+
+	return send_command_message(client, &msg.header);
 }
 
 /*
@@ -915,6 +990,7 @@ int cras_client_add_stream(struct cras_client *client,
 	stream->aud_fd = -1;
 	stream->connection_fd = -1;
 	stream->direction = config->direction;
+	stream->volume = 1.0;
 
 	/* Create a socket for the server to notify of audio events. */
 	stream->aud_address.sun_family = AF_UNIX;
@@ -974,7 +1050,17 @@ int cras_client_rm_stream(struct cras_client *client,
 	if (client == NULL)
 		return -EINVAL;
 
-	return send_command_message(client, stream_id, CLIENT_REMOVE_STREAM);
+	return send_simple_cmd_msg(client, stream_id, CLIENT_REMOVE_STREAM);
+}
+
+int cras_client_set_stream_volume(struct cras_client *client,
+				  cras_stream_id_t stream_id,
+				  float volume)
+{
+	if (client == NULL)
+		return -EINVAL;
+
+	return send_volume_command_msg(client, stream_id, volume);
 }
 
 int cras_client_switch_iodev(struct cras_client *client,
@@ -1012,7 +1098,7 @@ int cras_client_stop(struct cras_client *client)
 	if (client == NULL || !client->thread.running)
 		return -EINVAL;
 
-	send_command_message(client, 0, CLIENT_STOP);
+	send_simple_cmd_msg(client, 0, CLIENT_STOP);
 	pthread_join(client->thread.tid, NULL);
 
 	return 0;

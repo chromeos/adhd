@@ -13,6 +13,7 @@
 
 #include "cras_client.h"
 #include "cras_types.h"
+#include "cras_util.h"
 
 #define PLAYBACK_CB_THRESHOLD (480)
 #define PLAYBACK_BUFFER_SIZE (4800)
@@ -105,6 +106,7 @@ static int run_file_io_stream(struct cras_client *client,
 	*pfd = fd;
 	fd_set poll_set;
 	struct timespec sleep_ts;
+	float volume = 1.0;
 
 	sleep_ts.tv_sec = 0;
 	sleep_ts.tv_nsec = 250 * 1000000;
@@ -169,6 +171,9 @@ static int run_file_io_stream(struct cras_client *client,
 					fprintf(stderr, "adding a stream\n");
 					break;
 				}
+				cras_client_set_stream_volume(client,
+							      stream_id,
+							      volume);
 				stream_playing = 1;
 			}
 			break;
@@ -177,6 +182,18 @@ static int run_file_io_stream(struct cras_client *client,
 				cras_client_rm_stream(client, stream_id);
 				stream_playing = 0;
 			}
+			break;
+		case 'u':
+			volume = min(volume + 0.1, 1.0);
+			cras_client_set_stream_volume(client,
+						      stream_id,
+						      volume);
+			break;
+		case 'd':
+			volume = max(volume - 0.1, 0.0);
+			cras_client_set_stream_volume(client,
+						      stream_id,
+						      volume);
 			break;
 		case '\n':
 			break;
