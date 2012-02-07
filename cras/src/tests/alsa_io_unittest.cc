@@ -995,11 +995,6 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
 }
 
 //  From mixer.
-void cras_mix_add_buffer(int16_t *dst, const int16_t *src,
-			 size_t samples, size_t *index)
-{
-}
-
 size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
 			   size_t num_channels,
 			   uint8_t *dst,
