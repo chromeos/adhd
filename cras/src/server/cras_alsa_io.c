@@ -676,7 +676,7 @@ static int terminate_pb_thread(struct alsa_io *aio)
 static int handle_playback_thread_message(struct alsa_io *aio)
 {
 	uint8_t buf[256];
-	struct cras_message *msg = (struct cras_message *)&buf;
+	struct cras_message *msg = (struct cras_message *)buf;
 	int to_read, nread;
 	int ret = 0;
 	int err;
