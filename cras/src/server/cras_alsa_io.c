@@ -99,7 +99,7 @@ static int open_alsa(struct alsa_io *aio)
 	if (aio->used_size > aio->buffer_size)
 		aio->used_size = aio->buffer_size;
 
-	/* Configure sofware params. */
+	/* Configure software params. */
 	rc = cras_alsa_set_swparams(handle);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
@@ -108,7 +108,7 @@ static int open_alsa(struct alsa_io *aio)
 
 	aio->handle = handle;
 
-	/* capture starts right away, playback will wait for samples */
+	/* Capture starts right away, playback will wait for samples. */
 	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE) {
 		cras_alsa_pcm_start(aio->handle);
 		aio->stream_started = 1;
@@ -145,7 +145,7 @@ static void config_alsa_iodev_params(struct alsa_io *aio)
  */
 
 /* Handles the rm_stream message from the main thread.
- * If this is the last stream to be reoved then stop the
+ * If this is the last stream to be removed then stop the
  * audio thread and free the resources. */
 static int thread_remove_stream(struct alsa_io *aio,
 				struct cras_rstream *stream)
@@ -157,7 +157,7 @@ static int thread_remove_stream(struct alsa_io *aio,
 		return rc;
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
-		/* no more streams, close alsa dev. */
+		/* No more streams, close alsa dev. */
 		cras_alsa_pcm_drain(aio->handle);
 		cras_alsa_pcm_close(aio->handle);
 		aio->handle = NULL;
