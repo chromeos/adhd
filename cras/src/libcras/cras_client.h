@@ -172,6 +172,21 @@ int cras_client_switch_iodev(struct cras_client *client,
 			     int iodev);
 
 /*
+ * System level functions.
+ */
+
+/* Sets the volume of the system.  Volume here ranges from 0 to 100, and will be
+ * translated to dB based on the output-specific volume curve.
+ * Args:
+ *    client - Client owning the stream.
+ *    volume - 0-100 the new volume index.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_system_volume(struct cras_client *client, size_t volume);
+
+/*
  * Utility functions.
  */
 

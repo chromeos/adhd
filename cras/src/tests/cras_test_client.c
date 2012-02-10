@@ -109,6 +109,7 @@ static int run_file_io_stream(struct cras_client *client,
 	fd_set poll_set;
 	struct timespec sleep_ts;
 	float volume = 1.0;
+	size_t sys_volume = 100;
 
 	sleep_ts.tv_sec = 0;
 	sleep_ts.tv_nsec = 250 * 1000000;
@@ -196,6 +197,14 @@ static int run_file_io_stream(struct cras_client *client,
 			cras_client_set_stream_volume(client,
 						      stream_id,
 						      volume);
+			break;
+		case 'k':
+			sys_volume = min(sys_volume + 1, 100);
+			cras_client_set_system_volume(client, sys_volume);
+			break;
+		case 'j':
+			sys_volume = sys_volume == 0 ? 0 : sys_volume - 1;
+			cras_client_set_system_volume(client, sys_volume);
 			break;
 		case '\n':
 			break;

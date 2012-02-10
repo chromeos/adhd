@@ -829,6 +829,15 @@ static int send_volume_command_msg(struct cras_client *client,
 	return send_command_message(client, &msg.header);
 }
 
+/* Sends a message back to the client and returns the error code. */
+static int write_message_to_server(const struct cras_client *client,
+				   const struct cras_message *msg)
+{
+	if (write(client->server_fd, msg, msg->length) != msg->length)
+		return -EPIPE;
+	return 0;
+}
+
 /*
  * Exported Client Interface
  */
@@ -1069,17 +1078,23 @@ int cras_client_switch_iodev(struct cras_client *client,
 			     int iodev)
 {
 	struct cras_switch_stream_type_iodev serv_msg;
-	int rc;
 
 	if (client == NULL)
 		return -EINVAL;
 
 	fill_cras_switch_stream_type_iodev(&serv_msg, stream_type, iodev);
-	rc = write(client->server_fd, &serv_msg, sizeof(serv_msg));
-	if (rc != sizeof(serv_msg))
-		return -EPIPE;
+	return write_message_to_server(client, &serv_msg.header);
+}
 
-	return 0;
+int cras_client_set_system_volume(struct cras_client *client, size_t volume)
+{
+	struct cras_set_system_volume msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	fill_cras_set_system_volume(&msg, volume);
+	return write_message_to_server(client, &msg.header);
 }
 
 int cras_client_run_thread(struct cras_client *client)
