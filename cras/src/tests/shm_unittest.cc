@@ -107,14 +107,14 @@ TEST_F(ShmTestSuite, WrapFromFinalBuffer) {
 }
 
 TEST_F(ShmTestSuite, SetVolume) {
-  cras_shm_set_volume(&shm_, 1.0);
-  EXPECT_EQ(shm_.volume, 1.0);
-  cras_shm_set_volume(&shm_, 1.4);
-  EXPECT_EQ(shm_.volume, 1.0);
-  cras_shm_set_volume(&shm_, -0.5);
-  EXPECT_EQ(shm_.volume, 0.0);
-  cras_shm_set_volume(&shm_, 0.5);
-  EXPECT_EQ(shm_.volume, 0.5);
+  cras_shm_set_volume_scaler(&shm_, 1.0);
+  EXPECT_EQ(shm_.volume_scaler, 1.0);
+  cras_shm_set_volume_scaler(&shm_, 1.4);
+  EXPECT_EQ(shm_.volume_scaler, 1.0);
+  cras_shm_set_volume_scaler(&shm_, -0.5);
+  EXPECT_EQ(shm_.volume_scaler, 0.0);
+  cras_shm_set_volume_scaler(&shm_, 0.5);
+  EXPECT_EQ(shm_.volume_scaler, 0.5);
 }
 
 }  //  namespace

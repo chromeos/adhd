@@ -108,7 +108,7 @@ static int run_file_io_stream(struct cras_client *client,
 	*pfd = fd;
 	fd_set poll_set;
 	struct timespec sleep_ts;
-	float volume = 1.0;
+	float volume_scaler = 1.0;
 	size_t sys_volume = 100;
 
 	sleep_ts.tv_sec = 0;
@@ -176,7 +176,7 @@ static int run_file_io_stream(struct cras_client *client,
 				}
 				cras_client_set_stream_volume(client,
 							      stream_id,
-							      volume);
+							      volume_scaler);
 				stream_playing = 1;
 			}
 			break;
@@ -187,16 +187,16 @@ static int run_file_io_stream(struct cras_client *client,
 			}
 			break;
 		case 'u':
-			volume = min(volume + 0.1, 1.0);
+			volume_scaler = min(volume_scaler + 0.1, 1.0);
 			cras_client_set_stream_volume(client,
 						      stream_id,
-						      volume);
+						      volume_scaler);
 			break;
 		case 'd':
-			volume = max(volume - 0.1, 0.0);
+			volume_scaler = max(volume_scaler - 0.1, 0.0);
 			cras_client_set_stream_volume(client,
 						      stream_id,
-						      volume);
+						      volume_scaler);
 			break;
 		case 'k':
 			sys_volume = min(sys_volume + 1, 100);

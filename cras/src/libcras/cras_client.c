@@ -45,7 +45,7 @@ static const size_t MAX_CMD_MSG_LEN = 256;
 enum {
 	CLIENT_STOP,
 	CLIENT_REMOVE_STREAM,
-	CLIENT_SET_STREAM_VOLUME,
+	CLIENT_SET_STREAM_VOLUME_SCALER,
 };
 
 struct command_msg {
@@ -54,9 +54,9 @@ struct command_msg {
 	cras_stream_id_t stream_id;
 };
 
-struct set_volume_command_message {
+struct set_stream_volume_command_message {
 	struct command_msg header;
-	float volume;
+	float volume_scaler;
 };
 
 /* Commands send from a running stream to the client. */
@@ -97,6 +97,7 @@ struct cras_stream_params {
  * aud_fd - After server connects audio messages come in here.
  * direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
  * flags - Currently not used.
+ * volume_scaler - Amount to scale the stream by, 0.0 to 1.0.
  * tid - Thread id of the audio thread spawned for this stream.
  * running - Audio thread runs while this is non-zero.
  * wake_fds - Pipe to wake the audio thread.
@@ -113,7 +114,7 @@ struct client_stream {
 	int aud_fd; /* After server connects audio messages come in here. */
 	enum CRAS_STREAM_DIRECTION direction; /* playback or capture. */
 	uint32_t flags;
-	float volume;
+	float volume_scaler;
 	struct thread_state thread;
 	int wake_fds[2]; /* Pipe to wake the thread */
 	struct cras_client *client;
@@ -475,7 +476,7 @@ static int stream_connected(struct client_stream *stream,
 		syslog(LOG_ERR, "Error configuring shared memory");
 		goto err_ret;
 	}
-	cras_shm_set_volume(stream->shm, stream->volume);
+	cras_shm_set_volume_scaler(stream->shm, stream->volume_scaler);
 
 	rc = pipe(stream->wake_fds);
 	if (rc < 0) {
@@ -544,20 +545,20 @@ static int client_thread_rm_stream(struct cras_client *client,
 	return 0;
 }
 
-/* Sets the volume for a playing stream. */
+/* Sets the volume scaling factor for a playing stream. */
 static int client_thread_set_stream_volume(struct cras_client *client,
 					   cras_stream_id_t stream_id,
-					   float volume)
+					   float volume_scaler)
 {
 	struct client_stream *stream;
 
 	stream = stream_from_id(client, stream_id);
-	if (stream == NULL || volume > 1.0 || volume < 0.0)
+	if (stream == NULL || volume_scaler > 1.0 || volume_scaler < 0.0)
 		return -EINVAL;
 
-	stream->volume = volume;
+	stream->volume_scaler = volume_scaler;
 	if (stream->shm != NULL)
-		cras_shm_set_volume(stream->shm, volume);
+		cras_shm_set_volume_scaler(stream->shm, volume_scaler);
 
 	return 0;
 }
@@ -713,12 +714,12 @@ static int handle_command_message(struct cras_client *client)
 	case CLIENT_REMOVE_STREAM:
 		rc = client_thread_rm_stream(client, msg->stream_id);
 		break;
-	case CLIENT_SET_STREAM_VOLUME: {
-		struct set_volume_command_message *vol_msg =
-			(struct set_volume_command_message *)msg;
+	case CLIENT_SET_STREAM_VOLUME_SCALER: {
+		struct set_stream_volume_command_message *vol_msg =
+			(struct set_stream_volume_command_message *)msg;
 		rc = client_thread_set_stream_volume(client,
 						     vol_msg->header.stream_id,
-						     vol_msg->volume);
+						     vol_msg->volume_scaler);
 		break;
 	}
 	default:
@@ -815,16 +816,16 @@ static int send_simple_cmd_msg(struct cras_client *client,
 }
 
 /* Sends the set volume message to the client thread. */
-static int send_volume_command_msg(struct cras_client *client,
-				   cras_stream_id_t stream_id,
-				   float volume)
+static int send_stream_volume_command_msg(struct cras_client *client,
+					  cras_stream_id_t stream_id,
+					  float volume_scaler)
 {
-	struct set_volume_command_message msg;
+	struct set_stream_volume_command_message msg;
 
 	msg.header.len = sizeof(msg);
 	msg.header.stream_id = stream_id;
-	msg.header.msg_id = CLIENT_SET_STREAM_VOLUME;
-	msg.volume = volume;
+	msg.header.msg_id = CLIENT_SET_STREAM_VOLUME_SCALER;
+	msg.volume_scaler = volume_scaler;
 
 	return send_command_message(client, &msg.header);
 }
@@ -1000,7 +1001,7 @@ int cras_client_add_stream(struct cras_client *client,
 	stream->aud_fd = -1;
 	stream->connection_fd = -1;
 	stream->direction = config->direction;
-	stream->volume = 1.0;
+	stream->volume_scaler = 1.0;
 
 	/* Create a socket for the server to notify of audio events. */
 	stream->aud_address.sun_family = AF_UNIX;
@@ -1065,12 +1066,12 @@ int cras_client_rm_stream(struct cras_client *client,
 
 int cras_client_set_stream_volume(struct cras_client *client,
 				  cras_stream_id_t stream_id,
-				  float volume)
+				  float volume_scaler)
 {
 	if (client == NULL)
 		return -EINVAL;
 
-	return send_volume_command_msg(client, stream_id, volume);
+	return send_stream_volume_command_msg(client, stream_id, volume_scaler);
 }
 
 int cras_client_switch_iodev(struct cras_client *client,

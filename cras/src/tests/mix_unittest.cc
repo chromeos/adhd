@@ -35,7 +35,7 @@ class MixTestSuite : public testing::Test{
       }
       shm_->write_offset[0] = kBufferFrames * 4;
       shm_->mute = 0;
-      shm_->volume = 1.0;
+      shm_->volume_scaler = 1.0;
 
       compare_buffer_ = (int16_t *)malloc(kBufferFrames * 4);
     }
@@ -95,7 +95,7 @@ TEST_F(MixTestSuite, MixFirstMuted) {
 TEST_F(MixTestSuite, MixFirstZeroVolume) {
   size_t count = kBufferFrames;
 
-  shm_->volume = 0.0;
+  shm_->volume_scaler = 0.0;
   cras_mix_add_stream(shm_, kNumChannels, (uint8_t *)mix_buffer_, &count,
       &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
@@ -110,7 +110,7 @@ TEST_F(MixTestSuite, MixFirstHalfVolume) {
   size_t count = kBufferFrames;
   int16_t *buf;
 
-  shm_->volume = 0.5;
+  shm_->volume_scaler = 0.5;
   cras_mix_add_stream(shm_, kNumChannels, (uint8_t *)mix_buffer_, &count,
       &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
@@ -126,12 +126,12 @@ TEST_F(MixTestSuite, MixTwoSecondHalfVolume) {
   size_t count = kBufferFrames;
   int16_t *buf;
 
-  shm_->volume = 1.0;
+  shm_->volume_scaler = 1.0;
   cras_mix_add_stream(shm_, kNumChannels, (uint8_t *)mix_buffer_, &count,
       &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
-  shm_->volume = 0.5;
+  shm_->volume_scaler = 0.5;
   cras_mix_add_stream(shm_, kNumChannels, (uint8_t *)mix_buffer_, &count,
       &mix_index_);
   EXPECT_EQ(kBufferFrames, count);

@@ -148,15 +148,15 @@ int cras_client_add_stream(struct cras_client *client,
 int cras_client_rm_stream(struct cras_client *client,
 			  cras_stream_id_t stream_id);
 
-/* Sets the volume for the given stream.
+/* Sets the volume scaling factor for the given stream.
  * Args:
  *    client - Client owning the stream.
  *    stream_id - ID returned from add_stream.
- *    volume - 0.0-1.0 the new value to scale this stream by.
+ *    volume_scaler - 0.0-1.0 the new value to scale this stream by.
  */
 int cras_client_set_stream_volume(struct cras_client *client,
 				  cras_stream_id_t stream_id,
-				  float volume);
+				  float volume_scaler);
 
 /* Moves stream type to a different input or output.
  * Args:

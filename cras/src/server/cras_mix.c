@@ -35,17 +35,17 @@ static void scale_add_clip(int16_t *dst,
 static void copy_scaled(int16_t *dst,
 			const int16_t *src,
 			size_t count,
-			float vol)
+			float volume_scaler)
 {
 	int i;
 
-	if (vol > MAX_VOLUME_TO_SCALE) {
+	if (volume_scaler > MAX_VOLUME_TO_SCALE) {
 		memcpy(dst, src, count * sizeof(*src));
 		return;
 	}
 
 	for (i = 0; i < count; i++)
-		dst[i] = src[i] * vol;
+		dst[i] = src[i] * volume_scaler;
 }
 
 /* Renders count frames from shm into dst.  Updates count if anything is
@@ -68,7 +68,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
 	if (fr_in_buf < *count)
 		*count = fr_in_buf;
 
-	if (shm->mute || shm->volume < MIN_VOLUME_TO_SCALE) {
+	if (shm->mute || shm->volume_scaler < MIN_VOLUME_TO_SCALE) {
 		/* Muted, if first then zero fill, otherwise, nop. */
 		if (*index == 0)
 			memset(dst, 0, *count * num_channels * sizeof(*src));
@@ -82,10 +82,10 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
 			num_samples = frames * num_channels;
 			if (*index == 0)
 				copy_scaled(target, src,
-					    num_samples, shm->volume);
+					    num_samples, shm->volume_scaler);
 			else
 				scale_add_clip(target, src,
-					       num_samples, shm->volume);
+					       num_samples, shm->volume_scaler);
 			fr_written += frames;
 			target += num_samples;
 		}
