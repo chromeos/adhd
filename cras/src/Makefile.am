@@ -27,7 +27,7 @@ libcras_la_LDFLAGS = -version-info 0:0:0
 
 check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	fmt_conv_unittest shm_unittest mix_unittest alsa_io_unittest \
-	rclient_unittest
+	rclient_unittest system_settings_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -70,3 +70,9 @@ alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/common
 alsa_io_unittest_LDADD = -lgtest -lpthread
+
+system_settings_unittest_SOURCES = tests/system_settings_unittest.cc \
+	server/cras_system_settings.c
+system_settings_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
+system_settings_unittest_LDADD = -lgtest

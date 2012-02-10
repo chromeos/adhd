@@ -19,6 +19,7 @@
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
+#include "cras_system_settings.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -177,6 +178,9 @@ static int run_server()
 		rc = errno;
 		goto bail;
 	}
+
+	/* Initialize settings. */
+	cras_system_settings_init();
 
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {

@@ -6,6 +6,8 @@
 #ifndef CRAS_UTIL_H_
 #define CRAS_UTIL_H_
 
+#include "cras_types.h"
+
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #define max(a, b) ({ typeof(a) _a = (a); \
 		     typeof(b) _b = (b); \
