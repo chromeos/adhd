@@ -13,7 +13,9 @@
 
 #include "cras_types.h"
 
-#define CRAS_PROTO_VER 0 /* Rev when message format changes. */
+/* Rev when message format changes. If new messages are added, or message ID
+ * values change. */
+#define CRAS_PROTO_VER 0
 #define MAX_AUD_SERV_MSG_SIZE 256
 
 /* Message IDs. */
@@ -22,6 +24,7 @@ enum CRAS_MESSAGE_ID {
 	AUD_SERV_CLIENT_STREAM_CONNECT,
 	AUD_SERV_CLIENT_STREAM_DISCONNECT,
 	AUD_SERV_SWITCH_STREAM_TYPE_IODEV,
+	AUD_SERV_SET_SYSTEM_VOLUME,
 	/* Server -> Client */
 	AUD_SERV_CLIENT_CONNECTED,
 	AUD_SERV_CLIENT_STREAM_CONNECTED,
@@ -103,6 +106,20 @@ static inline void fill_cras_switch_stream_type_iodev(
 	m->iodev_idx = iodev_idx;
 	m->header.id = AUD_SERV_SWITCH_STREAM_TYPE_IODEV;
 	m->header.length = sizeof(struct cras_switch_stream_type_iodev);
+}
+
+/* Set the system volume. */
+struct cras_set_system_volume {
+	struct cras_message header;
+	size_t volume;
+};
+static inline void fill_cras_set_system_volume(
+		struct cras_set_system_volume *m,
+		size_t volume)
+{
+	m->volume = volume;
+	m->header.id = AUD_SERV_SET_SYSTEM_VOLUME;
+	m->header.length = sizeof(*m);
 }
 
 /*

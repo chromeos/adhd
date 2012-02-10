@@ -3,14 +3,12 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 COMMON_CPPFLAGS = -O2 -Wall -Werror
 
-COMMON_FILES = common/cras_util.c common/cras_config.c
-
 bin_PROGRAMS = cras cras_test_client
 cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_rclient.c server/cras_alsa_io.c server/cras_rstream.c \
 	server/cras_mix.c common/cras_util.c common/cras_config.c \
-	server/cras_alsa_helpers.c common/cras_audio_format.c
-	${COMMON_FILES}
+	server/cras_alsa_helpers.c common/cras_audio_format.c \
+	server/cras_system_settings.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common
 cras_LDADD = -lpthread -lasound -lrt
 

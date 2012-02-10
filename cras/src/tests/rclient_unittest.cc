@@ -19,13 +19,17 @@ static struct cras_rstream *cras_rstream_create_stream_out;
 static int cras_rstream_destroy_called;
 static int cras_server_connect_retval;
 static int cras_iodev_attach_stream_retval;
+static size_t cras_system_set_volume_value;
+static int cras_system_set_volume_called;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
   cras_rstream_create_stream_out = (struct cras_rstream *)NULL;
   cras_server_connect_retval = 0;
   cras_rstream_destroy_called = 0;
-  cras_iodev_attach_stream_retval  = 0;
+  cras_iodev_attach_stream_retval = 0;
+  cras_system_set_volume_value = 0;
+  cras_system_set_volume_called = 0;
 }
 
 namespace {
@@ -185,6 +189,20 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(0, cras_rstream_destroy_called);
 }
 
+TEST_F(RClientMessagesSuite, SetVolume) {
+  struct cras_set_system_volume msg;
+  int rc;
+
+  msg.header.id = AUD_SERV_SET_SYSTEM_VOLUME;
+  msg.header.length = sizeof(msg);
+  msg.volume = 66;
+
+  rc = cras_rclient_message(rclient_, &msg.header);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_system_set_volume_called);
+  EXPECT_EQ(66, cras_system_set_volume_value);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -230,7 +248,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 int cras_iodev_attach_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream)
 {
-	return cras_iodev_attach_stream_retval;
+  return cras_iodev_attach_stream_retval;
 }
 
 void cras_rstream_destroy(struct cras_rstream *stream)
@@ -254,4 +272,9 @@ int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
   return cras_server_connect_retval;
 }
 
+void cras_system_set_volume(size_t volume)
+{
+  cras_system_set_volume_value = volume;
+  cras_system_set_volume_called++;
+}
 }

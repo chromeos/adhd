@@ -11,6 +11,7 @@
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
+#include "cras_system_settings.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -210,6 +211,10 @@ int cras_rclient_message(struct cras_rclient *client,
 	case AUD_SERV_SWITCH_STREAM_TYPE_IODEV:
 		handle_switch_stream_type_iodev(client,
 			(const struct cras_switch_stream_type_iodev *)msg);
+		break;
+	case AUD_SERV_SET_SYSTEM_VOLUME:
+		cras_system_set_volume(
+			((const struct cras_set_system_volume *)msg)->volume);
 		break;
 	default:
 		break;
