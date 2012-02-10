@@ -616,7 +616,7 @@ static int handle_stream_reattach(struct cras_client *client,
 /* Handles messages from the cras server. */
 static int handle_server_message(struct cras_client *client)
 {
-	uint8_t buf[MAX_AUD_SERV_MSG_SIZE];
+	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
 	struct cras_message *msg;
 	int rc = 0;
 
@@ -628,13 +628,13 @@ static int handle_server_message(struct cras_client *client)
 
 	msg = (struct cras_message *)buf;
 	switch (msg->id) {
-	case AUD_SERV_CLIENT_CONNECTED: {
+	case CRAS_CLIENT_CONNECTED: {
 		struct cras_client_connected *cmsg =
 			(struct cras_client_connected *)msg;
 		client->id = cmsg->client_id;
 		break;
 	}
-	case AUD_SERV_CLIENT_STREAM_CONNECTED: {
+	case CRAS_CLIENT_STREAM_CONNECTED: {
 		struct cras_client_stream_connected *cmsg =
 			(struct cras_client_stream_connected *)msg;
 		struct client_stream *stream =
@@ -649,7 +649,7 @@ static int handle_server_message(struct cras_client *client)
 					       stream->config->user_data);
 		break;
 	}
-	case AUD_SERV_CLIENT_STREAM_REATTACH: {
+	case CRAS_CLIENT_STREAM_REATTACH: {
 		struct cras_client_stream_reattach *cmsg =
 			(struct cras_client_stream_reattach *)msg;
 		handle_stream_reattach(client, cmsg->stream_id);

@@ -16,20 +16,19 @@
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
 #define CRAS_PROTO_VER 0
-#define MAX_AUD_SERV_MSG_SIZE 256
+#define CRAS_SERV_MAX_MSG_SIZE 256
 
 /* Message IDs. */
 enum CRAS_MESSAGE_ID {
 	/* Client -> Server*/
-	AUD_SERV_CLIENT_STREAM_CONNECT,
-	AUD_SERV_CLIENT_STREAM_DISCONNECT,
-	AUD_SERV_SWITCH_STREAM_TYPE_IODEV,
-	AUD_SERV_SET_SYSTEM_VOLUME,
+	CRAS_CLIENT_STREAM_CONNECT,
+	CRAS_CLIENT_STREAM_DISCONNECT,
+	CRAS_SWITCH_STREAM_TYPE_IODEV,
+	CRAS_SET_SYSTEM_VOLUME,
 	/* Server -> Client */
-	AUD_SERV_CLIENT_CONNECTED,
-	AUD_SERV_CLIENT_STREAM_CONNECTED,
-	AUD_SERV_CLIENT_STREAM_REATTACH,
-	NUM_AUD_SERV_MESSAGES
+	CRAS_CLIENT_CONNECTED,
+	CRAS_CLIENT_STREAM_CONNECTED,
+	CRAS_CLIENT_STREAM_REATTACH,
 };
 
 /* Message "base class". */
@@ -74,7 +73,7 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 	m->min_cb_level = min_cb_level;
 	m->flags = flags;
 	m->format = format;
-	m->header.id = AUD_SERV_CLIENT_STREAM_CONNECT;
+	m->header.id = CRAS_CLIENT_STREAM_CONNECT;
 	m->header.length = sizeof(struct cras_connect_message);
 }
 
@@ -88,7 +87,7 @@ static inline void cras_fill_disconnect_stream_message(
 		cras_stream_id_t stream_id)
 {
 	m->stream_id = stream_id;
-	m->header.id = AUD_SERV_CLIENT_STREAM_DISCONNECT;
+	m->header.id = CRAS_CLIENT_STREAM_DISCONNECT;
 	m->header.length = sizeof(struct cras_disconnect_stream_message);
 }
 
@@ -104,7 +103,7 @@ static inline void fill_cras_switch_stream_type_iodev(
 {
 	m->stream_type = stream_type;
 	m->iodev_idx = iodev_idx;
-	m->header.id = AUD_SERV_SWITCH_STREAM_TYPE_IODEV;
+	m->header.id = CRAS_SWITCH_STREAM_TYPE_IODEV;
 	m->header.length = sizeof(struct cras_switch_stream_type_iodev);
 }
 
@@ -118,7 +117,7 @@ static inline void fill_cras_set_system_volume(
 		size_t volume)
 {
 	m->volume = volume;
-	m->header.id = AUD_SERV_SET_SYSTEM_VOLUME;
+	m->header.id = CRAS_SET_SYSTEM_VOLUME;
 	m->header.length = sizeof(*m);
 }
 
@@ -136,7 +135,7 @@ static inline void cras_fill_client_connected(
 		size_t client_id)
 {
 	m->client_id = client_id;
-	m->header.id = AUD_SERV_CLIENT_CONNECTED;
+	m->header.id = CRAS_CLIENT_CONNECTED;
 	m->header.length = sizeof(struct cras_client_connected);
 }
 
@@ -162,7 +161,7 @@ static inline void cras_fill_client_stream_connected(
 	m->format = format;
 	m->shm_key = shm_key;
 	m->shm_max_size = shm_max_size;
-	m->header.id = AUD_SERV_CLIENT_STREAM_CONNECTED;
+	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
 	m->header.length = sizeof(struct cras_client_stream_connected);
 }
 
@@ -178,7 +177,7 @@ static inline void cras_fill_client_stream_reattach(
 		cras_stream_id_t stream_id)
 {
 	m->stream_id = stream_id;
-	m->header.id = AUD_SERV_CLIENT_STREAM_REATTACH;
+	m->header.id = CRAS_CLIENT_STREAM_REATTACH;
 	m->header.length = sizeof(struct cras_client_stream_reattach);
 }
 

@@ -54,7 +54,7 @@ static void remove_client(struct serv_data *serv,
 static void handle_client_message(struct serv_data *serv,
 				  struct attached_client *client)
 {
-	uint8_t buf[MAX_AUD_SERV_MSG_SIZE];
+	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
 	struct cras_message *msg;
 	int nread;
 
