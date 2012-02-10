@@ -35,8 +35,8 @@ void cras_rclient_destroy(struct cras_rclient *client);
  * Returns:
  *    0 on success, otherwise a negative error code.
  */
-int cras_rclient_message(struct cras_rclient *client,
-			 const struct cras_message *msg);
+int cras_rclient_message_from_client(struct cras_rclient *client,
+				     const struct cras_server_message *msg);
 
 /* Sends a message to the client.
  * Args:
@@ -46,6 +46,6 @@ int cras_rclient_message(struct cras_rclient *client,
  *    number of bytes written on success, otherwise a negative error code.
  */
 int cras_rclient_send_message(const struct cras_rclient *client,
-			      const struct cras_message *msg);
+			      const struct cras_client_message *msg);
 
 #endif /* CRAS_RCLIENT_H_ */

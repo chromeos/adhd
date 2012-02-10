@@ -195,8 +195,8 @@ void cras_rclient_destroy(struct cras_rclient *client)
 
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
-int cras_rclient_message(struct cras_rclient *client,
-			 const struct cras_message *msg) {
+int cras_rclient_message_from_client(struct cras_rclient *client,
+				     const struct cras_server_message *msg) {
 	assert(client && msg);
 
 	switch (msg->id) {
@@ -225,7 +225,7 @@ int cras_rclient_message(struct cras_rclient *client,
 
 /* Sends a message to the client. */
 int cras_rclient_send_message(const struct cras_rclient *client,
-			      const struct cras_message *msg)
+			      const struct cras_client_message *msg)
 {
 	return write(client->fd, msg, msg->length);
 }

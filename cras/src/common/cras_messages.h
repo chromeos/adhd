@@ -19,12 +19,15 @@
 #define CRAS_SERV_MAX_MSG_SIZE 256
 
 /* Message IDs. */
-enum CRAS_MESSAGE_ID {
+enum CRAS_SERVER_MESSAGE_ID {
 	/* Client -> Server*/
 	CRAS_CLIENT_STREAM_CONNECT,
 	CRAS_CLIENT_STREAM_DISCONNECT,
 	CRAS_SWITCH_STREAM_TYPE_IODEV,
 	CRAS_SET_SYSTEM_VOLUME,
+};
+
+enum CRAS_CLIENT_MESSAGE_ID {
 	/* Server -> Client */
 	CRAS_CLIENT_CONNECTED,
 	CRAS_CLIENT_STREAM_CONNECTED,
@@ -32,9 +35,14 @@ enum CRAS_MESSAGE_ID {
 };
 
 /* Message "base class". */
-struct cras_message {
+struct cras_server_message {
 	size_t length;
-	enum CRAS_MESSAGE_ID id;
+	enum CRAS_SERVER_MESSAGE_ID id;
+};
+
+struct cras_client_message {
+	size_t length;
+	enum CRAS_CLIENT_MESSAGE_ID id;
 };
 
 /*
@@ -43,7 +51,7 @@ struct cras_message {
 
 /* Sent by a client to connect a stream to the server. */
 struct cras_connect_message {
-	struct cras_message header;
+	struct cras_server_message header;
 	size_t proto_version;
 	enum CRAS_STREAM_DIRECTION direction; /* input or output */
 	cras_stream_id_t stream_id; /* unique id for this stream */
@@ -79,7 +87,7 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 
 /* Sent by a client to remove a stream from the server. */
 struct cras_disconnect_stream_message {
-	struct cras_message header;
+	struct cras_server_message header;
 	cras_stream_id_t stream_id;
 };
 static inline void cras_fill_disconnect_stream_message(
@@ -93,7 +101,7 @@ static inline void cras_fill_disconnect_stream_message(
 
 /* Move streams of "type" to the iodev at "iodev_idx". */
 struct cras_switch_stream_type_iodev {
-	struct cras_message header;
+	struct cras_server_message header;
 	enum CRAS_STREAM_TYPE stream_type;
 	size_t iodev_idx;
 };
@@ -109,7 +117,7 @@ static inline void fill_cras_switch_stream_type_iodev(
 
 /* Set the system volume. */
 struct cras_set_system_volume {
-	struct cras_message header;
+	struct cras_server_message header;
 	size_t volume;
 };
 static inline void fill_cras_set_system_volume(
@@ -127,7 +135,7 @@ static inline void fill_cras_set_system_volume(
 
 /* Reply from the server indicating that the client has connected. */
 struct cras_client_connected {
-	struct cras_message header;
+	struct cras_client_message header;
 	size_t client_id;
 };
 static inline void cras_fill_client_connected(
@@ -141,7 +149,7 @@ static inline void cras_fill_client_connected(
 
 /* Reply from server that a stream has been successfully added. */
 struct cras_client_stream_connected {
-	struct cras_message header;
+	struct cras_client_message header;
 	int err;
 	cras_stream_id_t stream_id;
 	struct cras_audio_format format;
@@ -169,7 +177,7 @@ static inline void cras_fill_client_stream_connected(
  * removed from it's device and should be re-attached.  Occurs when moving
  * streams. */
 struct cras_client_stream_reattach {
-	struct cras_message header;
+	struct cras_client_message header;
 	cras_stream_id_t stream_id;
 };
 static inline void cras_fill_client_stream_reattach(

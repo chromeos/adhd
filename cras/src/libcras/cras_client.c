@@ -614,10 +614,10 @@ static int handle_stream_reattach(struct cras_client *client,
 }
 
 /* Handles messages from the cras server. */
-static int handle_server_message(struct cras_client *client)
+static int handle_message_from_server(struct cras_client *client)
 {
 	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
-	struct cras_message *msg;
+	struct cras_client_message *msg;
 	int rc = 0;
 
 	if (read(client->server_fd, buf, sizeof(buf)) <= 0) {
@@ -626,7 +626,7 @@ static int handle_server_message(struct cras_client *client)
 		return -EIO;
 	}
 
-	msg = (struct cras_message *)buf;
+	msg = (struct cras_client_message *)buf;
 	switch (msg->id) {
 	case CRAS_CLIENT_CONNECTED: {
 		struct cras_client_connected *cmsg =
@@ -752,7 +752,7 @@ static void *client_thread(void *arg)
 		return (void *)-EINVAL;
 
 	server_input.fd = client->server_fd;
-	server_input.cb = handle_server_message;
+	server_input.cb = handle_message_from_server;
 	LL_APPEND(inputs, &server_input);
 	command_input.fd = client->command_fds[0];
 	command_input.cb = handle_command_message;
@@ -832,7 +832,7 @@ static int send_stream_volume_command_msg(struct cras_client *client,
 
 /* Sends a message back to the client and returns the error code. */
 static int write_message_to_server(const struct cras_client *client,
-				   const struct cras_message *msg)
+				   const struct cras_server_message *msg)
 {
 	if (write(client->server_fd, msg, msg->length) != msg->length)
 		return -EPIPE;
@@ -913,7 +913,7 @@ int cras_client_connect(struct cras_client *client)
 		return rc;
 	}
 
-	handle_server_message(client);
+	handle_message_from_server(client);
 
 	return rc;
 }

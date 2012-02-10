@@ -51,14 +51,14 @@ static void remove_client(struct serv_data *serv,
 /* This is called when "select" indicates that the client has written data to
  * the socket.  Read out one message and pass it to the client message handler.
  */
-static void handle_client_message(struct serv_data *serv,
-				  struct attached_client *client)
+static void handle_message_from_client(struct serv_data *serv,
+				       struct attached_client *client)
 {
 	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
-	struct cras_message *msg;
+	struct cras_server_message *msg;
 	int nread;
 
-	msg = (struct cras_message *)buf;
+	msg = (struct cras_server_message *)buf;
 	nread = read(client->fd, buf, sizeof(msg->length));
 	if (nread <= 0)
 		goto read_error;
@@ -67,7 +67,7 @@ static void handle_client_message(struct serv_data *serv,
 	nread = read(client->fd, buf + nread, msg->length - nread);
 	if (nread <= 0)
 		goto read_error;
-	cras_rclient_message(client->client, msg);
+	cras_rclient_message_from_client(client->client, msg);
 
 	return;
 
@@ -199,7 +199,7 @@ static int run_server()
 
 			DL_FOREACH_SAFE(serv->clients_head, elm, tmp)
 				if (FD_ISSET(elm->fd, &poll_set))
-					handle_client_message(serv, elm);
+					handle_message_from_client(serv, elm);
 		}
 	}
 

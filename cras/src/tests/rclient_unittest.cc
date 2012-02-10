@@ -111,7 +111,7 @@ TEST_F(RClientMessagesSuite, NoDevErrorReply) {
 
   get_iodev_return = (struct cras_iodev *)NULL;
 
-  rc = cras_rclient_message(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -127,7 +127,7 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   get_iodev_return = (struct cras_iodev *)0xbaba;
   cras_rstream_create_return = -1;
 
-  rc = cras_rclient_message(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -143,7 +143,7 @@ TEST_F(RClientMessagesSuite, AudSockConnectErrorReply) {
   get_iodev_return = (struct cras_iodev *)0xbaba;
   cras_server_connect_retval = -1;
 
-  rc = cras_rclient_message(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -161,7 +161,7 @@ TEST_F(RClientMessagesSuite, IoDevAttachErrorReply) {
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = -1;
 
-  rc = cras_rclient_message(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -179,7 +179,7 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
-  rc = cras_rclient_message(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -197,7 +197,7 @@ TEST_F(RClientMessagesSuite, SetVolume) {
   msg.header.length = sizeof(msg);
   msg.volume = 66;
 
-  rc = cras_rclient_message(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_volume_called);
   EXPECT_EQ(66, cras_system_set_volume_value);
