@@ -676,7 +676,7 @@ static int terminate_pb_thread(struct alsa_io *aio)
 static int handle_playback_thread_message(struct alsa_io *aio)
 {
 	uint8_t buf[256];
-	struct cras_message *msg = (struct cras_message *)buf;
+	struct cras_iodev_msg *msg = (struct cras_iodev_msg *)buf;
 	int to_read, nread;
 	int ret = 0;
 	int err;
@@ -948,7 +948,7 @@ void destroy_alsa_io(struct cras_iodev *iodev)
 	int rc;
 
 	msg.id = CRAS_IODEV_STOP;
-	msg.length = sizeof(struct cras_message);
+	msg.length = sizeof(msg);
 	post_message_to_playback_thread(aio, &msg);
 	pthread_join(aio->tid, NULL);
 
