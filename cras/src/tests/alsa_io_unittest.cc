@@ -28,6 +28,7 @@ int ut_select(int nfds,
 #define select ut_select
 
 #include "cras_shm.h"
+#include "cras_system_settings.h"
 #include "cras_types.h"
 
 //  Include C file to test static functions.
@@ -48,6 +49,16 @@ static size_t cras_mix_add_stream_count;
 static int cras_mix_add_stream_dont_fill_next;
 static size_t cras_rstream_request_audio_called;
 static size_t cras_alsa_fill_properties_called;
+static struct cras_alsa_mixer *mixer_destroy_value;
+static struct cras_alsa_mixer *mixer_create_return_value;
+static size_t alsa_mixer_set_volume_called;
+static int alsa_mixer_set_volume_value;
+static size_t mixer_destroy_called;
+static cras_system_volume_changed_cb sys_register_volume_cb_value;
+static void * sys_register_volume_cb_arg;
+static size_t sys_register_volume_cb_called;
+static size_t sys_get_volume_called;
+static size_t sys_get_volume_return_value;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -60,21 +71,34 @@ void ResetStubData() {
   select_max_fd = -1;
   cras_mix_add_stream_dont_fill_next = 0;
   cras_alsa_fill_properties_called = 0;
+  mixer_destroy_called = 0;
+  sys_register_volume_cb_called = 0;
+  sys_get_volume_called = 0;
+  alsa_mixer_set_volume_called = 0;
 }
 
 namespace {
 
 TEST(AlsaIoInit, InitializePlayback) {
   struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  const size_t fake_system_volume = 55;
+  const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
 
   ResetStubData();
+  mixer_create_return_value = fake_mixer;
+  sys_get_volume_return_value = fake_system_volume;
   aio = (struct alsa_io *)init_alsa_iodev("hw:0,0", CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(1, alsa_mixer_set_volume_called);
+  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
 
   destroy_alsa_io((struct cras_iodev *)aio);
+  EXPECT_EQ(1, mixer_destroy_called);
+  EXPECT_EQ(fake_mixer, mixer_destroy_value);
 }
 
 TEST(AlsaIoInit, InitializeCapture) {
@@ -1010,6 +1034,46 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
   cras_mix_add_stream_count = *count;
   *index = *index + 1;
   return *count;
+}
+
+//  From alsa_mixer.
+struct cras_alsa_mixer *cras_alsa_mixer_create(int card_index)
+{
+  return mixer_create_return_value;
+}
+
+void cras_alsa_mixer_destroy(struct cras_alsa_mixer *m)
+{
+  mixer_destroy_value = m;
+  mixer_destroy_called++;
+}
+
+//  From system_settings.
+size_t cras_system_get_volume()
+{
+  sys_get_volume_called++;
+  return sys_get_volume_return_value;
+}
+
+void cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
+					    void *arg)
+{
+  sys_register_volume_cb_called++;
+  sys_register_volume_cb_value = cb;
+  sys_register_volume_cb_arg = arg;
+}
+
+//  From cras_alsa_mixer.
+void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *m, long dB_level)
+{
+  alsa_mixer_set_volume_called++;
+  alsa_mixer_set_volume_value = dB_level;
+}
+
+//  From cras_volume_curve.
+long cras_volume_curve_get_db_for_index(size_t volume)
+{
+	return 100 * (volume - 100);
 }
 
 }

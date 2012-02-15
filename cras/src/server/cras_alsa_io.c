@@ -15,6 +15,7 @@
 #include <time.h>
 
 #include "cras_alsa_helpers.h"
+#include "cras_alsa_mixer.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -23,8 +24,10 @@
 #include "cras_rclient.h"
 #include "cras_rstream.h"
 #include "cras_shm.h"
+#include "cras_system_settings.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "cras_volume_curve.h"
 #include "utlist.h"
 
 #define DEFAULT_BUFFER_SECONDS 2 /* default to a 2 second ALSA buffer. */
@@ -46,6 +49,7 @@
  * to_thread_fds - Send a message from main to running thread.
  * to_main_fds - Send a message to main from running thread.
  * alsa_stream - Playback or capture type.
+ * mixer - Alsa mixer used to control volume and mute of the device.
  * alsa_cb - Callback to fill or read samples (depends on direction).
  */
 struct alsa_io {
@@ -62,6 +66,7 @@ struct alsa_io {
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	snd_pcm_stream_t alsa_stream;
+	struct cras_alsa_mixer *mixer;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
 
@@ -847,6 +852,27 @@ static int rm_stream(struct cras_iodev *iodev,
 	return post_message_to_playback_thread(aio, &msg.header);
 }
 
+/* Sets the volume of the playback device to the specified level. */
+static void set_alsa_volume(size_t volume, void *arg)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	assert(aio);
+	if (aio->mixer == NULL)
+		return;
+	cras_alsa_mixer_set_volume(aio->mixer,
+		cras_volume_curve_get_db_for_index(volume));
+}
+
+/* Initializes the device settings and registers for callbacks when system
+ * settings have been changed.
+ */
+static void init_device_settings(struct alsa_io *aio)
+{
+	/* Register for volume callback and set initial volume for device. */
+	cras_system_register_volume_changed_cb(set_alsa_volume, aio);
+	set_alsa_volume(cras_system_get_volume(), aio);
+}
+
 /* Frees resources used by the alsa iodev.
  * Args:
  *    iodev - the iodev to free the resources from.
@@ -865,6 +891,8 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		aio->to_main_fds[0] = -1;
 		aio->to_main_fds[1] = -1;
 	}
+	if (aio->mixer != NULL)
+		cras_alsa_mixer_destroy(aio->mixer);
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
 }
@@ -921,6 +949,10 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
 	    iodev->supported_channel_counts[0] == 0)
 		goto cleanup_iodev;
+
+	aio->mixer = cras_alsa_mixer_create(card_index);
+
+	init_device_settings(aio);
 
 	/* Start the device thread, it will block until a stream is added. */
 	if (pthread_create(&aio->tid, NULL, alsa_io_thread, aio))
