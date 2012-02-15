@@ -179,9 +179,6 @@ static int run_server()
 		goto bail;
 	}
 
-	/* Initialize settings. */
-	cras_system_settings_init();
-
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {
 		FD_ZERO(&poll_set);
@@ -234,7 +231,14 @@ static void set_signals()
 int main(int argc, char **argv)
 {
 	set_signals();
+
+	/* Initialize settings. */
+	cras_system_settings_init();
+
+	/* Remove this when dynamic device addition works. */
 	setup_devs();
+
+	/* Start the server. */
 	run_server();
 
 	return 0;
