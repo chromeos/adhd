@@ -8,7 +8,7 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_rclient.c server/cras_alsa_io.c server/cras_rstream.c \
 	server/cras_mix.c common/cras_util.c common/cras_config.c \
 	server/cras_alsa_helpers.c common/cras_audio_format.c \
-	server/cras_system_settings.c
+	server/cras_system_settings.c  server/cras_volume_curve.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common
 cras_LDADD = -lpthread -lasound -lrt
 
@@ -25,7 +25,7 @@ libcras_la_LDFLAGS = -version-info 0:0:0
 
 check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	fmt_conv_unittest shm_unittest mix_unittest alsa_io_unittest \
-	rclient_unittest system_settings_unittest
+	rclient_unittest system_settings_unittest volume_curve_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -74,3 +74,9 @@ system_settings_unittest_SOURCES = tests/system_settings_unittest.cc \
 system_settings_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
 system_settings_unittest_LDADD = -lgtest
+
+volume_curve_unittest_SOURCES = tests/volume_curve_unittest.cc \
+	server/cras_volume_curve.c
+volume_curve_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
+volume_curve_unittest_LDADD = -lgtest
