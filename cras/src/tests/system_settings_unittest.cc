@@ -13,10 +13,12 @@ extern "C" {
 namespace {
 size_t volume_changed_called;
 size_t volume_changed_value;
+void *volume_changed_arg_value;
 
-static void volume_changed(size_t volume) {
+static void volume_changed(size_t volume, void *arg) {
   volume_changed_called++;
   volume_changed_value = volume;
+  volume_changed_arg_value = arg;
 }
 
 TEST(SystemSettingsSuite, DefaultVolume) {
@@ -37,18 +39,23 @@ TEST(SystemSettingsSuite, SetVolume) {
 }
 
 TEST(SystemSettingsSuite, ChangedCallback) {
-  cras_system_settings_init();
-  cras_system_register_volume_changed_cb(volume_changed);
-  volume_changed_called = 0;
-  cras_system_set_volume(55);
-  EXPECT_EQ(55, cras_system_get_volume());
-  EXPECT_EQ(1, volume_changed_called);
-  EXPECT_EQ(55, volume_changed_value);
+  void * const fake_user_arg = (void *)1;
+  const size_t fake_volume = 55;
+  const size_t fake_volume_2 = 44;
 
-  cras_system_register_volume_changed_cb(NULL);
+  cras_system_settings_init();
+  cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   volume_changed_called = 0;
-  cras_system_set_volume(44);
-  EXPECT_EQ(44, cras_system_get_volume());
+  cras_system_set_volume(fake_volume);
+  EXPECT_EQ(fake_volume, cras_system_get_volume());
+  EXPECT_EQ(1, volume_changed_called);
+  EXPECT_EQ(fake_volume, volume_changed_value);
+  EXPECT_EQ(fake_user_arg, volume_changed_arg_value);
+
+  cras_system_register_volume_changed_cb(NULL, NULL);
+  volume_changed_called = 0;
+  cras_system_set_volume(fake_volume_2);
+  EXPECT_EQ(fake_volume_2, cras_system_get_volume());
   EXPECT_EQ(0, volume_changed_called);
 }
 

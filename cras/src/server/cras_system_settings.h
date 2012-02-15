@@ -18,7 +18,7 @@
 #define CRAS_MAX_SYSTEM_VOLUME 100
 
 /* Callback function to be notified when the system volume changes. */
-typedef void (*cras_system_volume_changed_cb)(size_t volume);
+typedef void (*cras_system_volume_changed_cb)(size_t volume, void *data);
 
 /* Initialize system settings. */
 void cras_system_settings_init();
@@ -27,7 +27,12 @@ void cras_system_settings_init();
 void cras_system_set_volume(size_t volume);
 /* Gets the current system volume. */
 size_t cras_system_get_volume();
-/* Set the callback to call when the volume changes. */
-void cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb);
+/* Set the callback to call when the volume changes.
+ * Args:
+ *    cb - Function to call when volume changes.
+ *    arg - Value to pass back to callback.
+ */
+void cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
+					    void *arg);
 
 #endif /* CRAS_SYSTEM_SETTINGS_H_ */
