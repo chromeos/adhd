@@ -47,7 +47,7 @@ static size_t cras_alsa_mmap_begin_frames;
 static size_t cras_mix_add_stream_count;
 static int cras_mix_add_stream_dont_fill_next;
 static size_t cras_rstream_request_audio_called;
-static size_t cras_alsa_check_formats_called;
+static size_t cras_alsa_fill_properties_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -59,7 +59,7 @@ void ResetStubData() {
   cras_rstream_request_audio_called = 0;
   select_max_fd = -1;
   cras_mix_add_stream_dont_fill_next = 0;
-  cras_alsa_check_formats_called = 0;
+  cras_alsa_fill_properties_called = 0;
 }
 
 namespace {
@@ -72,7 +72,7 @@ TEST(AlsaIoInit, InitializePlayback) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
-  EXPECT_EQ(1, cras_alsa_check_formats_called);
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
 
   destroy_alsa_io((struct cras_iodev *)aio);
 }
@@ -85,7 +85,7 @@ TEST(AlsaIoInit, InitializeCapture) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_read_audio, (void *)aio->alsa_cb);
-  EXPECT_EQ(1, cras_alsa_check_formats_called);
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
 
   destroy_alsa_io((struct cras_iodev *)aio);
 }
@@ -894,10 +894,11 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 {
   return 0;
 }
-int cras_alsa_check_formats(const char *dev,
-                            snd_pcm_stream_t stream,
-                            size_t **rates,
-                            size_t **channel_counts)
+int cras_alsa_fill_properties(const char *dev,
+			      snd_pcm_stream_t stream,
+			      size_t **rates,
+			      size_t **channel_counts,
+			      int *card_index)
 {
   *rates = (size_t *)malloc(sizeof(**rates) * 3);
   (*rates)[0] = 44100;
@@ -906,8 +907,9 @@ int cras_alsa_check_formats(const char *dev,
   *channel_counts = (size_t *)malloc(sizeof(**channel_counts) * 2);
   (*channel_counts)[0] = 2;
   (*channel_counts)[1] = 0;
+  *card_index = 1;
 
-  cras_alsa_check_formats_called++;
+  cras_alsa_fill_properties_called++;
   return 0;
 }
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,

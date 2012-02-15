@@ -51,7 +51,7 @@ int cras_alsa_pcm_start(snd_pcm_t *handle);
  */
 int cras_alsa_pcm_drain(snd_pcm_t *handle);
 
-/* Checks what sample rates and channel counts are supported.
+/* Probes properties of the alsa device.
  * Args:
  *    dev - Path to the alsa device to test.
  *    stream - Alsa stream type, input or output.
@@ -59,11 +59,13 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle);
  *            Must be freed by the caller.
  *    channel_counts - Pointer that will be set to the array of valid channel
  *                     counts.  Must be freed by the caller.
+ *    card_index - Filled with the index of the alsa card for this device.
  * Returns:
  *   0 on success.  On failure an error code from alsa or -ENOMEM.
  */
-int cras_alsa_check_formats(const char *dev, snd_pcm_stream_t stream,
-			    size_t **rates, size_t **channel_counts);
+int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
+			      size_t **rates, size_t **channel_counts,
+			      int *card_index);
 
 /* Sets up the hwparams to alsa.
  * Args:
@@ -135,5 +137,13 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
  */
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 			  snd_pcm_uframes_t frames, size_t *underruns);
+
+/* Determine the card number of the given pcm device.
+ * Args:
+ *    pcm - The opened pcm device.
+ * Returns:
+ *    The index number of the card for the passed device.
+ */
+int cras_alsa_get_card_index(snd_pcm_t *pcm);
 
 #endif /* _CRAS_ALSA_HELPERS_H */

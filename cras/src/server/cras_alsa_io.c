@@ -881,6 +881,7 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
+	int card_index;
 	int err;
 
 	aio = (struct alsa_io *)malloc(sizeof(*aio));
@@ -913,9 +914,10 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 	if (err < 0)
 		goto cleanup_iodev;
 
-	err = cras_alsa_check_formats(aio->dev, aio->alsa_stream,
-				      &iodev->supported_rates,
-				      &iodev->supported_channel_counts);
+	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
+					&iodev->supported_rates,
+					&iodev->supported_channel_counts,
+					&card_index);
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
 	    iodev->supported_channel_counts[0] == 0)
 		goto cleanup_iodev;
