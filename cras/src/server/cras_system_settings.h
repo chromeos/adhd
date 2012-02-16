@@ -17,8 +17,9 @@
 
 #define CRAS_MAX_SYSTEM_VOLUME 100
 
-/* Callback function to be notified when the system volume changes. */
+/* Callback functions to be notified when settings change. */
 typedef void (*cras_system_volume_changed_cb)(size_t volume, void *data);
+typedef void (*cras_system_mute_changed_cb)(int mute, void *data);
 
 /* Initialize system settings. */
 void cras_system_settings_init();
@@ -34,5 +35,17 @@ size_t cras_system_get_volume();
  */
 void cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
 					    void *arg);
+
+/* Sets if the system is muted or not. */
+void cras_system_set_mute(int muted);
+/* Gets the current mute state of the system. */
+int cras_system_get_mute();
+/* Sets the callback to call when the mute state changes.
+ * Args:
+ *    cb - Function to call when mute state changes.
+ *    arg - Value to pass back to callback.
+ */
+void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
+					  void *arg);
 
 #endif /* CRAS_SYSTEM_SETTINGS_H_ */

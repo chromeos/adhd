@@ -11,15 +11,21 @@
 
 static struct {
 	size_t volume; /* Volume index from 0-100. */
-	cras_system_volume_changed_cb callback;
-	void *callback_data;
+	int mute; /* 0 = unmuted, 1 = muted. */
+	cras_system_volume_changed_cb volume_callback;
+	void *volume_callback_data;
+	cras_system_mute_changed_cb mute_callback;
+	void *mute_callback_data;
 } settings;
 
 void cras_system_settings_init()
 {
 	settings.volume = CRAS_MAX_SYSTEM_VOLUME;
-	settings.callback = NULL;
-	settings.callback_data = NULL;
+	settings.mute = 0;
+	settings.volume_callback = NULL;
+	settings.volume_callback_data = NULL;
+	settings.mute_callback = NULL;
+	settings.mute_callback_data = NULL;
 }
 
 void cras_system_set_volume(size_t volume)
@@ -28,8 +34,9 @@ void cras_system_set_volume(size_t volume)
 		syslog(LOG_DEBUG, "system volume set out of range %zu", volume);
 
 	settings.volume = min(volume, CRAS_MAX_SYSTEM_VOLUME);
-	if (settings.callback != NULL)
-		settings.callback(settings.volume, settings.callback_data);
+	if (settings.volume_callback != NULL)
+		settings.volume_callback(settings.volume,
+					 settings.volume_callback_data);
 }
 
 size_t cras_system_get_volume()
@@ -40,7 +47,27 @@ size_t cras_system_get_volume()
 void cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
 					    void *arg)
 {
-	settings.callback = cb;
-	settings.callback_data = arg;
+	settings.volume_callback = cb;
+	settings.volume_callback_data = arg;
+}
+
+void cras_system_set_mute(int mute)
+{
+	settings.mute = !!mute;
+	if (settings.mute_callback != NULL)
+		settings.mute_callback(settings.mute,
+					 settings.mute_callback_data);
+}
+
+int cras_system_get_mute()
+{
+	return settings.mute;
+}
+
+void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
+					  void *arg)
+{
+	settings.mute_callback = cb;
+	settings.mute_callback_data = arg;
 }
 

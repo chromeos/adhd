@@ -14,11 +14,20 @@ namespace {
 size_t volume_changed_called;
 size_t volume_changed_value;
 void *volume_changed_arg_value;
+size_t mute_changed_called;
+size_t mute_changed_value;
+void *mute_changed_arg_value;
 
 static void volume_changed(size_t volume, void *arg) {
   volume_changed_called++;
   volume_changed_value = volume;
   volume_changed_arg_value = arg;
+}
+
+static void mute_changed(int mute, void *arg) {
+  mute_changed_called++;
+  mute_changed_value = mute;
+  mute_changed_arg_value = arg;
 }
 
 TEST(SystemSettingsSuite, DefaultVolume) {
@@ -38,7 +47,7 @@ TEST(SystemSettingsSuite, SetVolume) {
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
 }
 
-TEST(SystemSettingsSuite, ChangedCallback) {
+TEST(SystemSettingsSuite, VolumeChangedCallback) {
   void * const fake_user_arg = (void *)1;
   const size_t fake_volume = 55;
   const size_t fake_volume_2 = 44;
@@ -57,6 +66,38 @@ TEST(SystemSettingsSuite, ChangedCallback) {
   cras_system_set_volume(fake_volume_2);
   EXPECT_EQ(fake_volume_2, cras_system_get_volume());
   EXPECT_EQ(0, volume_changed_called);
+}
+
+TEST(SystemSettingsSuite, SetMute) {
+  cras_system_settings_init();
+  EXPECT_EQ(0, cras_system_get_mute());
+  cras_system_set_mute(0);
+  EXPECT_EQ(0, cras_system_get_mute());
+  cras_system_set_mute(1);
+  EXPECT_EQ(1, cras_system_get_mute());
+  cras_system_set_mute(22);
+  EXPECT_EQ(1, cras_system_get_mute());
+}
+
+TEST(SystemSettingsSuite, MuteChangedCallback) {
+  void * const fake_user_arg = (void *)1;
+
+  cras_system_settings_init();
+  cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
+  cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
+  mute_changed_called = 0;
+  cras_system_set_mute(1);
+  EXPECT_EQ(1, cras_system_get_mute());
+  EXPECT_EQ(1, mute_changed_called);
+  EXPECT_EQ(1, mute_changed_value);
+  EXPECT_EQ(fake_user_arg, mute_changed_arg_value);
+  EXPECT_EQ(0, volume_changed_called);
+
+  cras_system_register_mute_changed_cb(NULL, NULL);
+  mute_changed_called = 0;
+  cras_system_set_mute(0);
+  EXPECT_EQ(0, cras_system_get_mute());
+  EXPECT_EQ(0, mute_changed_called);
 }
 
 }  //  namespace
