@@ -110,6 +110,7 @@ static int run_file_io_stream(struct cras_client *client,
 	struct timespec sleep_ts;
 	float volume_scaler = 1.0;
 	size_t sys_volume = 100;
+	int mute = 0;
 
 	sleep_ts.tv_sec = 0;
 	sleep_ts.tv_nsec = 250 * 1000000;
@@ -205,6 +206,10 @@ static int run_file_io_stream(struct cras_client *client,
 		case 'j':
 			sys_volume = sys_volume == 0 ? 0 : sys_volume - 1;
 			cras_client_set_system_volume(client, sys_volume);
+			break;
+		case 'm':
+			mute = !mute;
+			cras_client_set_system_mute(client, mute);
 			break;
 		case '\n':
 			break;

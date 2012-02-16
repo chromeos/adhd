@@ -186,6 +186,16 @@ int cras_client_switch_iodev(struct cras_client *client,
  */
 int cras_client_set_system_volume(struct cras_client *client, size_t volume);
 
+/* Sets the mute state of the system.
+ * Args:
+ *    client - Client owning the stream.
+ *    mute - 0 is un-mute, 1 is muted.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_system_mute(struct cras_client *client, int mute);
+
 /*
  * Utility functions.
  */

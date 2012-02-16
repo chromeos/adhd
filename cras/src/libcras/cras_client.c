@@ -1098,6 +1098,17 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_set_system_mute(struct cras_client *client, int mute)
+{
+	struct cras_set_system_mute msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	fill_cras_set_system_mute(&msg, mute);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_run_thread(struct cras_client *client)
 {
 	if (client == NULL)
