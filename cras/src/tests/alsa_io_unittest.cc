@@ -59,6 +59,13 @@ static void * sys_register_volume_cb_arg;
 static size_t sys_register_volume_cb_called;
 static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
+static size_t alsa_mixer_set_mute_called;
+static int alsa_mixer_set_mute_value;
+static cras_system_mute_changed_cb sys_register_mute_cb_value;
+static void * sys_register_mute_cb_arg;
+static size_t sys_register_mute_cb_called;
+static size_t sys_get_mute_called;
+static int sys_get_mute_return_value;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -75,6 +82,9 @@ void ResetStubData() {
   sys_register_volume_cb_called = 0;
   sys_get_volume_called = 0;
   alsa_mixer_set_volume_called = 0;
+  sys_register_mute_cb_called = 0;
+  sys_get_mute_called = 0;
+  alsa_mixer_set_mute_called = 0;
 }
 
 namespace {
@@ -95,6 +105,8 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, alsa_mixer_set_volume_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
   destroy_alsa_io((struct cras_iodev *)aio);
   EXPECT_EQ(1, mixer_destroy_called);
@@ -1063,11 +1075,31 @@ void cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
   sys_register_volume_cb_arg = arg;
 }
 
+int cras_system_get_mute()
+{
+  sys_get_mute_called++;
+  return sys_get_mute_return_value;
+}
+
+void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
+					  void *arg)
+{
+  sys_register_mute_cb_called++;
+  sys_register_mute_cb_value = cb;
+  sys_register_mute_cb_arg = arg;
+}
+
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *m, long dB_level)
 {
   alsa_mixer_set_volume_called++;
   alsa_mixer_set_volume_value = dB_level;
+}
+
+void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *m, int mute)
+{
+  alsa_mixer_set_mute_called++;
+  alsa_mixer_set_mute_value = mute;
 }
 
 //  From cras_volume_curve.

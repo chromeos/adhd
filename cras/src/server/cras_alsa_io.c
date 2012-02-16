@@ -863,13 +863,26 @@ static void set_alsa_volume(size_t volume, void *arg)
 		cras_volume_curve_get_db_for_index(volume));
 }
 
+/* Sets the mute of the playback device to the specified level. */
+static void set_alsa_mute(int mute, void *arg)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	assert(aio);
+	if (aio->mixer == NULL)
+		return;
+	cras_alsa_mixer_set_mute(aio->mixer, mute);
+}
+
 /* Initializes the device settings and registers for callbacks when system
  * settings have been changed.
  */
 static void init_device_settings(struct alsa_io *aio)
 {
-	/* Register for volume callback and set initial volume for device. */
+	/* Register for volume/mute callback and set initial volume/mute for
+	 * the device. */
 	cras_system_register_volume_changed_cb(set_alsa_volume, aio);
+	cras_system_register_mute_changed_cb(set_alsa_mute, aio);
+	set_alsa_mute(cras_system_get_mute(), aio);
 	set_alsa_volume(cras_system_get_volume(), aio);
 }
 
