@@ -25,6 +25,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_CLIENT_STREAM_DISCONNECT,
 	CRAS_SWITCH_STREAM_TYPE_IODEV,
 	CRAS_SET_SYSTEM_VOLUME,
+	CRAS_SET_SYSTEM_MUTE,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -126,6 +127,20 @@ static inline void fill_cras_set_system_volume(
 {
 	m->volume = volume;
 	m->header.id = CRAS_SET_SYSTEM_VOLUME;
+	m->header.length = sizeof(*m);
+}
+
+/* Set the system mute state. */
+struct cras_set_system_mute {
+	struct cras_server_message header;
+	int mute; /* 0 = un-mute, 1 = mute. */
+};
+static inline void fill_cras_set_system_mute(
+		struct cras_set_system_mute *m,
+		int mute)
+{
+	m->mute = mute;
+	m->header.id = CRAS_SET_SYSTEM_MUTE;
 	m->header.length = sizeof(*m);
 }
 

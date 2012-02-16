@@ -216,6 +216,10 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_system_set_volume(
 			((const struct cras_set_system_volume *)msg)->volume);
 		break;
+	case CRAS_SET_SYSTEM_MUTE:
+		cras_system_set_mute(
+			((const struct cras_set_system_mute *)msg)->mute);
+		break;
 	default:
 		break;
 	}
