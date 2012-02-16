@@ -909,11 +909,10 @@ int cras_client_connect(struct cras_client *client)
 	rc = connect(client->server_fd, (struct sockaddr *)&address,
 		      sizeof(struct sockaddr_un));
 	if (rc != 0) {
+		close(client->server_fd);
 		perror("connect failed\n");
 		return rc;
 	}
-
-	handle_message_from_server(client);
 
 	return rc;
 }
