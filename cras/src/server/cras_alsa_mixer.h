@@ -37,4 +37,11 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer);
 void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *cras_mixer,
 				long volume_dB);
 
+/* Sets the playback switch for the device.
+ * Args:
+ *    cras_mixer - Mixer to set the volume in.
+ *    muted - 1 if muted, 0 if not.
+ */
+void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted);
+
 #endif /* _CRAS_ALSA_MIXER_H */

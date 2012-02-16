@@ -38,6 +38,7 @@ struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
 	char name[MAX_ALSA_PCM_NAME_LENGTH + 1];
 	struct mixer_volume_control *main_volume_controls;
+	snd_mixer_elem_t *playback_switch;
 };
 
 /* Wrapper for snd_mixer_open and helpers.
@@ -110,10 +111,13 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(int card_index)
 		return NULL;
 	}
 
-	elem = snd_mixer_first_elem(cmix->mixer);
-	while (elem != NULL) {
-		if (snd_mixer_selem_has_playback_volume(elem) &&
-		    is_main_volume_control(elem)) {
+	/* Find volume and mute controls. */
+	for(elem = snd_mixer_first_elem(cmix->mixer);
+			elem != NULL; elem = snd_mixer_elem_next(elem)) {
+		if (!is_main_volume_control(elem))
+			continue;
+
+		if (snd_mixer_selem_has_playback_volume(elem)) {
 			struct mixer_volume_control *c;
 
 			c = calloc(1, sizeof(*c));
@@ -127,7 +131,13 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(int card_index)
 
 			DL_APPEND(cmix->main_volume_controls, c);
 		}
-		elem = snd_mixer_elem_next(elem);
+
+		/* Grab the first playback switch along the main output path.
+		 * Ignore other switches in the path one mute is sufficient. */
+		if (cmix->playback_switch == NULL &&
+		    snd_mixer_selem_has_playback_switch(elem)) {
+			cmix->playback_switch = elem;
+		}
 	}
 
 	return cmix;
@@ -172,3 +182,16 @@ void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *cras_mixer,
 			return;
 	}
 }
+
+void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
+{
+	assert(cras_mixer);
+	if (cras_mixer->playback_switch == NULL)
+		return;
+	syslog(LOG_DEBUG, "Mute switch %s\n",
+	       snd_mixer_selem_get_name(cras_mixer->playback_switch));
+
+	snd_mixer_selem_set_playback_switch_all(cras_mixer->playback_switch,
+						!muted);
+}
+
