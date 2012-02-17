@@ -13,7 +13,7 @@ struct cras_message;
 struct cras_rclient;
 struct cras_rstream;
 
-/* Crates an rclient structure.
+/* Creates an rclient structure.
  * Args:
  *    fd - The file descriptor used for communication with the client.
  *    id - Unique identifier for this client.
