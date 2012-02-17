@@ -5,7 +5,9 @@
 
 #include <stddef.h>
 
-/* Default to 1dB per tick.  Volume level 100 = 0dB level 0 = -100dB. */
+/* Default to 1dB per tick.
+ * Volume = 100 -> 0dB.
+ * Volume = 0 -> -100dB. */
 long cras_volume_curve_get_db_for_index(size_t volume)
 {
 	/* dB to cut * 100 */
