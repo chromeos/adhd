@@ -200,23 +200,23 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	assert(client && msg);
 
 	switch (msg->id) {
-	case CRAS_CLIENT_STREAM_CONNECT:
+	case CRAS_SERVER_CONNECT_STREAM:
 		handle_client_stream_connect(client,
 			(const struct cras_connect_message *)msg);
 		break;
-	case CRAS_CLIENT_STREAM_DISCONNECT:
+	case CRAS_SERVER_DISCONNECT_STREAM:
 		handle_client_stream_disconnect(client,
 			(const struct cras_disconnect_stream_message *)msg);
 		break;
-	case CRAS_SWITCH_STREAM_TYPE_IODEV:
+	case CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV:
 		handle_switch_stream_type_iodev(client,
 			(const struct cras_switch_stream_type_iodev *)msg);
 		break;
-	case CRAS_SET_SYSTEM_VOLUME:
+	case CRAS_SERVER_SET_SYSTEM_VOLUME:
 		cras_system_set_volume(
 			((const struct cras_set_system_volume *)msg)->volume);
 		break;
-	case CRAS_SET_SYSTEM_MUTE:
+	case CRAS_SERVER_SET_SYSTEM_MUTE:
 		cras_system_set_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;

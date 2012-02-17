@@ -21,11 +21,11 @@
 /* Message IDs. */
 enum CRAS_SERVER_MESSAGE_ID {
 	/* Client -> Server*/
-	CRAS_CLIENT_STREAM_CONNECT,
-	CRAS_CLIENT_STREAM_DISCONNECT,
-	CRAS_SWITCH_STREAM_TYPE_IODEV,
-	CRAS_SET_SYSTEM_VOLUME,
-	CRAS_SET_SYSTEM_MUTE,
+	CRAS_SERVER_CONNECT_STREAM,
+	CRAS_SERVER_DISCONNECT_STREAM,
+	CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV,
+	CRAS_SERVER_SET_SYSTEM_VOLUME,
+	CRAS_SERVER_SET_SYSTEM_MUTE,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -35,12 +35,15 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_STREAM_REATTACH,
 };
 
-/* Message "base class". */
+/* Messages that control the server. These are sent from the client to affect
+ * and action on the server. */
 struct cras_server_message {
 	size_t length;
 	enum CRAS_SERVER_MESSAGE_ID id;
 };
 
+/* Messages that control the client. These are sent from the server to affect
+ * and action on the client. */
 struct cras_client_message {
 	size_t length;
 	enum CRAS_CLIENT_MESSAGE_ID id;
@@ -82,7 +85,7 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 	m->min_cb_level = min_cb_level;
 	m->flags = flags;
 	m->format = format;
-	m->header.id = CRAS_CLIENT_STREAM_CONNECT;
+	m->header.id = CRAS_SERVER_CONNECT_STREAM;
 	m->header.length = sizeof(struct cras_connect_message);
 }
 
@@ -96,7 +99,7 @@ static inline void cras_fill_disconnect_stream_message(
 		cras_stream_id_t stream_id)
 {
 	m->stream_id = stream_id;
-	m->header.id = CRAS_CLIENT_STREAM_DISCONNECT;
+	m->header.id = CRAS_SERVER_DISCONNECT_STREAM;
 	m->header.length = sizeof(struct cras_disconnect_stream_message);
 }
 
@@ -112,7 +115,7 @@ static inline void fill_cras_switch_stream_type_iodev(
 {
 	m->stream_type = stream_type;
 	m->iodev_idx = iodev_idx;
-	m->header.id = CRAS_SWITCH_STREAM_TYPE_IODEV;
+	m->header.id = CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV;
 	m->header.length = sizeof(struct cras_switch_stream_type_iodev);
 }
 
@@ -126,7 +129,7 @@ static inline void fill_cras_set_system_volume(
 		size_t volume)
 {
 	m->volume = volume;
-	m->header.id = CRAS_SET_SYSTEM_VOLUME;
+	m->header.id = CRAS_SERVER_SET_SYSTEM_VOLUME;
 	m->header.length = sizeof(*m);
 }
 
@@ -140,7 +143,7 @@ static inline void fill_cras_set_system_mute(
 		int mute)
 {
 	m->mute = mute;
-	m->header.id = CRAS_SET_SYSTEM_MUTE;
+	m->header.id = CRAS_SERVER_SET_SYSTEM_MUTE;
 	m->header.length = sizeof(*m);
 }
 

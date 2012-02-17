@@ -78,7 +78,7 @@ class RClientMessagesSuite : public testing::Test {
       rstream_->shm = &shm_;
 
       stream_id_ = 0x10002;
-      connect_msg_.header.id = CRAS_CLIENT_STREAM_CONNECT;
+      connect_msg_.header.id = CRAS_SERVER_CONNECT_STREAM;
       connect_msg_.header.length = sizeof(connect_msg_);
       connect_msg_.stream_type = CRAS_STREAM_TYPE_DEFAULT;
       connect_msg_.direction = CRAS_STREAM_OUTPUT;
@@ -197,7 +197,7 @@ TEST_F(RClientMessagesSuite, SetVolume) {
   struct cras_set_system_volume msg;
   int rc;
 
-  msg.header.id = CRAS_SET_SYSTEM_VOLUME;
+  msg.header.id = CRAS_SERVER_SET_SYSTEM_VOLUME;
   msg.header.length = sizeof(msg);
   msg.volume = 66;
 
@@ -211,7 +211,7 @@ TEST_F(RClientMessagesSuite, SetMute) {
   struct cras_set_system_mute msg;
   int rc;
 
-  msg.header.id = CRAS_SET_SYSTEM_MUTE;
+  msg.header.id = CRAS_SERVER_SET_SYSTEM_MUTE;
   msg.header.length = sizeof(msg);
   msg.mute = 1;
 
