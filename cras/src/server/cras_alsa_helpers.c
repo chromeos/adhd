@@ -65,8 +65,7 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 }
 
 int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
-			      size_t **rates, size_t **channel_counts,
-			      int *card_index)
+			      size_t **rates, size_t **channel_counts)
 {
 	int rc;
 	snd_pcm_t *handle;
@@ -89,12 +88,6 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 	if (rc < 0) {
 		snd_pcm_close(handle);
 		return rc;
-	}
-
-	*card_index = cras_alsa_get_card_index(handle);
-	if (*card_index < 0) {
-		snd_pcm_close(handle);
-		return *card_index;
 	}
 
 	*rates = malloc(sizeof(test_sample_rates));
@@ -347,18 +340,4 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 		}
 	}
 	return 0;
-}
-
-int cras_alsa_get_card_index(snd_pcm_t *pcm)
-{
-	snd_pcm_info_t *info;
-	int rc;
-
-	snd_pcm_info_alloca(&info);
-
-	rc = snd_pcm_info(pcm, info);
-	if (rc < 0)
-		return rc;
-
-	return snd_pcm_info_get_card(info);
 }

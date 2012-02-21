@@ -66,6 +66,7 @@ static void * sys_register_mute_cb_arg;
 static size_t sys_register_mute_cb_called;
 static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
+static struct cras_alsa_mixer *fake_mixer = (struct cras_alsa_mixer *)1;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -98,7 +99,9 @@ TEST(AlsaIoInit, InitializePlayback) {
   ResetStubData();
   mixer_create_return_value = fake_mixer;
   sys_get_volume_return_value = fake_system_volume;
-  aio = (struct alsa_io *)init_alsa_iodev("hw:0,0", CRAS_STREAM_OUTPUT);
+  aio = (struct alsa_io *)alsa_iodev_create("hw:0,0",
+                                            fake_mixer,
+                                            CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
@@ -108,7 +111,7 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
-  destroy_alsa_io((struct cras_iodev *)aio);
+  alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, mixer_destroy_called);
   EXPECT_EQ(fake_mixer, mixer_destroy_value);
 }
@@ -117,13 +120,15 @@ TEST(AlsaIoInit, InitializeCapture) {
   struct alsa_io *aio;
 
   ResetStubData();
-  aio = (struct alsa_io *)init_alsa_iodev("hw:0,0", CRAS_STREAM_INPUT);
+  aio = (struct alsa_io *)alsa_iodev_create("hw:0,0",
+                                            fake_mixer,
+                                            CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_read_audio, (void *)aio->alsa_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
 
-  destroy_alsa_io((struct cras_iodev *)aio);
+  alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
 //  Test set_playback_timestamp.
@@ -225,9 +230,9 @@ TEST(AlsaTimeStampTestSuite, FillTimeFromFramesShort) {
 class AlsaAddStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_output_ = (struct alsa_io *)init_alsa_iodev("hw:0,0",
+      aio_output_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
           CRAS_STREAM_OUTPUT);
-      aio_input_ = (struct alsa_io *)init_alsa_iodev("hw:0,0",
+      aio_input_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
           CRAS_STREAM_INPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -239,8 +244,8 @@ class AlsaAddStreamSuite : public testing::Test {
     }
 
     virtual void TearDown() {
-      destroy_alsa_io((struct cras_iodev *)aio_output_);
-      destroy_alsa_io((struct cras_iodev *)aio_input_);
+      alsa_iodev_destroy((struct cras_iodev *)aio_output_);
+      alsa_iodev_destroy((struct cras_iodev *)aio_input_);
       cras_alsa_get_avail_frames_ret = 0;
     }
 
@@ -378,7 +383,7 @@ TEST_F(AlsaAddStreamSuite, OneInputStreamPerDevice) {
 class AlsaCaptureStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_ = (struct alsa_io *)init_alsa_iodev("hw:0,0",
+      aio_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
           CRAS_STREAM_INPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -408,7 +413,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
     virtual void TearDown() {
       free(cras_alsa_mmap_begin_buffer);
       cras_iodev_delete_stream(&aio_->base, rstream_);
-      destroy_alsa_io((struct cras_iodev *)aio_);
+      alsa_iodev_destroy((struct cras_iodev *)aio_);
       free(rstream_);
       free(shm_);
     }
@@ -547,7 +552,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
 class AlsaPlaybackStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_ = (struct alsa_io *)init_alsa_iodev("hw:0,0",
+      aio_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
           CRAS_STREAM_OUTPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -574,7 +579,7 @@ class AlsaPlaybackStreamSuite : public testing::Test {
     virtual void TearDown() {
       free(cras_alsa_mmap_begin_buffer);
       cras_iodev_delete_stream(&aio_->base, rstream_);
-      destroy_alsa_io((struct cras_iodev *)aio_);
+      alsa_iodev_destroy((struct cras_iodev *)aio_);
       free(rstream_);
       free(shm_);
     }
@@ -933,8 +938,7 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 int cras_alsa_fill_properties(const char *dev,
 			      snd_pcm_stream_t stream,
 			      size_t **rates,
-			      size_t **channel_counts,
-			      int *card_index)
+			      size_t **channel_counts)
 {
   *rates = (size_t *)malloc(sizeof(**rates) * 3);
   (*rates)[0] = 44100;
@@ -943,7 +947,6 @@ int cras_alsa_fill_properties(const char *dev,
   *channel_counts = (size_t *)malloc(sizeof(**channel_counts) * 2);
   (*channel_counts)[0] = 2;
   (*channel_counts)[1] = 0;
-  *card_index = 1;
 
   cras_alsa_fill_properties_called++;
   return 0;

@@ -910,19 +910,16 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	free(aio->base.supported_channel_counts);
 }
 
-/* Initialize an alsa iodev.
- * Args:
- *    dev - the path to the alsa device to use.
- *    direciton - input or output.
- * Returns:
- *    A pointer to the newly created iodev if successful, NULL otherwise.
+/*
+ * Exported Interface.
  */
-struct cras_iodev *init_alsa_iodev(const char *dev,
-				   enum CRAS_STREAM_DIRECTION direction)
+
+struct cras_iodev *alsa_iodev_create(const char *dev,
+				     struct cras_alsa_mixer *mixer,
+				     enum CRAS_STREAM_DIRECTION direction)
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
-	int card_index;
 	int err;
 
 	aio = (struct alsa_io *)malloc(sizeof(*aio));
@@ -957,13 +954,12 @@ struct cras_iodev *init_alsa_iodev(const char *dev,
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
-					&iodev->supported_channel_counts,
-					&card_index);
+					&iodev->supported_channel_counts);
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
 	    iodev->supported_channel_counts[0] == 0)
 		goto cleanup_iodev;
 
-	aio->mixer = cras_alsa_mixer_create(card_index);
+	aio->mixer = mixer;
 
 	init_device_settings(aio);
 
@@ -987,8 +983,7 @@ cleanup_iodev:
 	return NULL;
 }
 
-/* Delete an iodev created with "init_alsa_iodev". */
-void destroy_alsa_io(struct cras_iodev *iodev)
+void alsa_iodev_destroy(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	struct cras_iodev_msg msg;

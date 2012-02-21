@@ -16,6 +16,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras_alsa_io.h"
+#include "cras_alsa_mixer.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
@@ -210,14 +212,20 @@ bail:
 }
 
 // TODO(dgreid) dynamic output adding - remove this hack.
-extern int init_alsa_iodev(const char *dev,
-			   enum CRAS_STREAM_DIRECTION direction);
 static int setup_devs()
 {
-	init_alsa_iodev("hw:0,0", CRAS_STREAM_OUTPUT);
-	init_alsa_iodev("hw:0,0", CRAS_STREAM_INPUT);
-	init_alsa_iodev("hw:1,0", CRAS_STREAM_OUTPUT);
-	init_alsa_iodev("hw:1,0", CRAS_STREAM_INPUT);
+	struct cras_alsa_mixer *mixer;
+
+	mixer = cras_alsa_mixer_create(0);
+	if (mixer == NULL)
+		return 0;
+	alsa_iodev_create("hw:0,0", mixer, CRAS_STREAM_OUTPUT);
+	alsa_iodev_create("hw:0,0", mixer, CRAS_STREAM_INPUT);
+	mixer = cras_alsa_mixer_create(1);
+	if (mixer == NULL)
+		return 0;
+	alsa_iodev_create("hw:1,0", mixer, CRAS_STREAM_OUTPUT);
+	alsa_iodev_create("hw:1,0", mixer, CRAS_STREAM_INPUT);
 	return 0;
 }
 
