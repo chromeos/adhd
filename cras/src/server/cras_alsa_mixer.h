@@ -15,12 +15,13 @@ struct cras_alsa_mixer;
 
 /* Creates a cras_alsa_mixer instance for the given alsa device.
  * Args:
- *    card_index - Index of the card to open a mixer for.
+ *    card_name - Name of the card to open a mixer for.  This is an alsa name of
+ *    the form "hw:X" where X ranges from 0 to 31 inclusive.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy.
  */
-struct cras_alsa_mixer *cras_alsa_mixer_create(int card_index);
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

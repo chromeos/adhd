@@ -31,12 +31,10 @@ struct mixer_volume_control {
 
 /* Holds a reference to the opened mixer and the volume controls.
  * mixer - Pointer to the opened alsa mixer.
- * name - Of the owning device (e.g. "hw:0").
  * main_volume_controls - List of volume controls (normally 'Master' and 'PCM').
  */
 struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
-	char name[MAX_ALSA_PCM_NAME_LENGTH + 1];
 	struct mixer_volume_control *main_volume_controls;
 	snd_mixer_elem_t *playback_switch;
 };
@@ -91,21 +89,18 @@ static int is_main_volume_control(snd_mixer_elem_t *elem)
  * Exported interface.
  */
 
-struct cras_alsa_mixer *cras_alsa_mixer_create(int card_index)
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 {
 	snd_mixer_elem_t *elem;
 	struct cras_alsa_mixer *cmix;
-
-	assert(card_index < 32); /* ALSA supports up to 32 cards. */
 
 	cmix = calloc(1, sizeof(*cmix));
 	if (cmix == NULL)
 		return NULL;
 
-	snprintf(cmix->name, MAX_ALSA_PCM_NAME_LENGTH, "hw:%d", card_index);
-	syslog(LOG_DEBUG, "Add mixer for device %s", cmix->name);
+	syslog(LOG_DEBUG, "Add mixer for device %s", card_name);
 
-	cmix->mixer = alsa_mixer_open(cmix->name);
+	cmix->mixer = alsa_mixer_open(card_name);
 	if (cmix->mixer == NULL) {
 		syslog(LOG_DEBUG, "Couldn't open mixer.");
 		return NULL;

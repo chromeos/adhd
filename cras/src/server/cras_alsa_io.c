@@ -54,7 +54,7 @@
  */
 struct alsa_io {
 	struct cras_iodev base;
-	const char *dev;
+	char *dev;
 	snd_pcm_t *handle;
 	snd_pcm_uframes_t buffer_size;
 	snd_pcm_uframes_t used_size;
@@ -908,6 +908,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		cras_alsa_mixer_destroy(aio->mixer);
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
+	free(aio->dev);
 }
 
 /*
@@ -922,12 +923,17 @@ struct cras_iodev *alsa_iodev_create(const char *dev,
 	struct cras_iodev *iodev;
 	int err;
 
+	if (dev == NULL)
+		return NULL;
+
 	aio = (struct alsa_io *)malloc(sizeof(*aio));
 	if (!aio)
 		return NULL;
 	memset(aio, 0, sizeof(*aio));
 	iodev = &aio->base;
-	aio->dev = dev;
+	aio->dev = strdup(dev);
+	if (aio->dev == NULL)
+		goto cleanup_iodev;
 	aio->to_thread_fds[0] = -1;
 	aio->to_thread_fds[1] = -1;
 	aio->to_main_fds[0] = -1;

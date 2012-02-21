@@ -16,8 +16,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_alsa_io.h"
-#include "cras_alsa_mixer.h"
+#include "cras_alsa_card.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
@@ -214,18 +213,8 @@ bail:
 // TODO(dgreid) dynamic output adding - remove this hack.
 static int setup_devs()
 {
-	struct cras_alsa_mixer *mixer;
-
-	mixer = cras_alsa_mixer_create(0);
-	if (mixer == NULL)
-		return 0;
-	alsa_iodev_create("hw:0,0", mixer, CRAS_STREAM_OUTPUT);
-	alsa_iodev_create("hw:0,0", mixer, CRAS_STREAM_INPUT);
-	mixer = cras_alsa_mixer_create(1);
-	if (mixer == NULL)
-		return 0;
-	alsa_iodev_create("hw:1,0", mixer, CRAS_STREAM_OUTPUT);
-	alsa_iodev_create("hw:1,0", mixer, CRAS_STREAM_INPUT);
+	cras_alsa_card_create(0);
+	cras_alsa_card_create(1);
 	return 0;
 }
 

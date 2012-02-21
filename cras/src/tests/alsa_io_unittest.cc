@@ -1052,7 +1052,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
 }
 
 //  From alsa_mixer.
-struct cras_alsa_mixer *cras_alsa_mixer_create(int card_index)
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 {
   return mixer_create_return_value;
 }
