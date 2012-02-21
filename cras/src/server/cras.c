@@ -73,7 +73,7 @@ static void handle_message_from_client(struct serv_data *serv,
 	return;
 
 read_error:
-	syslog(LOG_ERR, "read err, removing client %zu\n", client->id);
+	syslog(LOG_ERR, "read err, removing client %zu", client->id);
 	remove_client(serv, client);
 }
 
@@ -117,7 +117,7 @@ static void handle_new_connection(struct serv_data *serv,
 	poll_client->client = cras_rclient_create(connection_fd,
 						  poll_client->id);
 	if (poll_client->client == NULL) {
-		syslog(LOG_ERR, "failed to create client\n");
+		syslog(LOG_ERR, "failed to create client");
 		close(connection_fd);
 		free(poll_client);
 		return;
@@ -150,7 +150,7 @@ static int run_server()
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {
-		perror("socket\n");
+		perror("socket");
 		rc = socket_fd;
 		goto bail;
 	}
@@ -169,13 +169,13 @@ static int run_server()
 
 	if (bind(socket_fd, (struct sockaddr *) &addr,
 		 sizeof(struct sockaddr_un)) != 0) {
-		perror("bind\n");
+		perror("bind");
 		rc = errno;
 		goto bail;
 	}
 
 	if (listen(socket_fd, 5) != 0) {
-		perror("listen\n");
+		perror("listen");
 		rc = errno;
 		goto bail;
 	}

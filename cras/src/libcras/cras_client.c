@@ -893,7 +893,7 @@ int cras_client_connect(struct cras_client *client)
 
 	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (client->server_fd < 0) {
-		perror("socket\n");
+		perror("socket");
 		return client->server_fd;
 	}
 
@@ -910,7 +910,7 @@ int cras_client_connect(struct cras_client *client)
 		      sizeof(struct sockaddr_un));
 	if (rc != 0) {
 		close(client->server_fd);
-		perror("connect failed\n");
+		perror("connect failed");
 		return rc;
 	}
 
