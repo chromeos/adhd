@@ -56,9 +56,8 @@ int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
 	const char *sockdir;
 
 	/* Build the name of the socket from the path and stream id. */
-	sockdir = cras_config_get_socket_file_dir();
-	if (!sockdir)
-		return -ENOTDIR;
+	sockdir = cras_config_get_system_socket_file_dir();
+	assert(sockdir);
 
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;

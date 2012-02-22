@@ -13,9 +13,7 @@
 #define CRAS_SOCKET_FILE ".cras_socket"
 #define CRAS_AUD_FILE_PATTERN ".cras_aud"
 
-/* Gets the path to the user's home directory. */
-const char *cras_config_get_user_homedir();
-/* Gets the path to save UDS socket files to. */
-const char *cras_config_get_socket_file_dir();
+/* Gets the path to save UDS socket files. */
+const char *cras_config_get_system_socket_file_dir();
 
 #endif /* CRAS_CONFIG_H_ */

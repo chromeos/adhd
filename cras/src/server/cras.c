@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <syslog.h>
@@ -155,7 +156,7 @@ static int run_server()
 		goto bail;
 	}
 
-	sockdir = cras_config_get_socket_file_dir();
+	sockdir = cras_config_get_system_socket_file_dir();
 	if (sockdir == NULL) {
 		rc = -ENOTDIR;
 		goto bail;
@@ -167,12 +168,24 @@ static int run_server()
 		 "%s/%s", sockdir, CRAS_SOCKET_FILE);
 	unlink(addr.sun_path);
 
+	/* Linux quirk: calling fchmod before bind, sets the permissions of the
+	 * file created by bind, leaving no window for it to be modified. Start
+	 * with very restricted permissions. */
+	rc = fchmod(socket_fd, 0700);
+	if (rc < 0)
+		goto bail;
+
 	if (bind(socket_fd, (struct sockaddr *) &addr,
 		 sizeof(struct sockaddr_un)) != 0) {
 		perror("bind");
 		rc = errno;
 		goto bail;
 	}
+
+	/* Let other members in our group play audio through this socket. */
+	rc = chmod(addr.sun_path, 0770);
+	if (rc < 0)
+		goto bail;
 
 	if (listen(socket_fd, 5) != 0) {
 		perror("listen");

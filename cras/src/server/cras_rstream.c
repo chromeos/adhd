@@ -34,7 +34,7 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	do {
 		stream->shm_key = getpid() + stream->stream_id + loops;
 		stream->shm_id = shmget(stream->shm_key, total_size,
-					IPC_CREAT | IPC_EXCL | 0640);
+					IPC_CREAT | IPC_EXCL | 0660);
 	} while (stream->shm_id < 0 && loops++ < 100);
 	if (stream->shm_id < 0) {
 		syslog(LOG_ERR, "shmget");

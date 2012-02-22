@@ -27,6 +27,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/un.h>
 #include <syslog.h>
 
@@ -889,7 +890,7 @@ void cras_client_destroy(struct cras_client *client)
 int cras_client_connect(struct cras_client *client)
 {
 	struct sockaddr_un address;
-	int rc = 0;
+	int rc;
 
 	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (client->server_fd < 0) {
@@ -900,9 +901,8 @@ int cras_client_connect(struct cras_client *client)
 	memset(&address, 0, sizeof(struct sockaddr_un));
 
 	address.sun_family = AF_UNIX;
-	client->sock_dir = cras_config_get_socket_file_dir();
-	if (!client->sock_dir)
-		return -ENOMEM;
+	client->sock_dir = cras_config_get_system_socket_file_dir();
+	assert(client->sock_dir);
 	snprintf(address.sun_path, sizeof(address.sun_path),
 		 "%s/%s", client->sock_dir, CRAS_SOCKET_FILE);
 
@@ -1013,10 +1013,19 @@ int cras_client_add_stream(struct cras_client *client,
 	if (stream->connection_fd < 0)
 		goto add_failed;
 
+	rc = fchmod(stream->connection_fd, 0700);
+	if (rc < 0)
+		goto add_failed;
+
 	rc = bind(stream->connection_fd,
 		   (struct sockaddr *)&stream->aud_address,
 		   sizeof(struct sockaddr_un));
 	if (rc != 0)
+		goto add_failed;
+
+	/* Let other members in our group play audio through this socket. */
+	rc = chmod(stream->aud_address.sun_path, 0770);
+	if (rc < 0)
 		goto add_failed;
 
 	rc = listen(stream->connection_fd, 1);

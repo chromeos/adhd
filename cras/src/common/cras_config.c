@@ -8,23 +8,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-const char *cras_config_get_user_homedir()
+const char *cras_config_get_system_socket_file_dir()
 {
-	const char *dir;
-	struct passwd *pw;
-
-	dir = getenv("HOME");
-	if (dir)
-		return dir;
-
-	pw = getpwuid(getuid());
-	if (!pw)
-		return NULL;
-
-	return pw->pw_dir;
-}
-
-const char *cras_config_get_socket_file_dir()
-{
-	return cras_config_get_user_homedir();
+	/* This directory is created by the upstart script, eventually it would
+	 * be nice to make this more dynamic, but it isn't needed right now for
+	 * Chrome OS. */
+	return "/var/run/cras";
 }
