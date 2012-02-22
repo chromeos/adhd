@@ -5,12 +5,23 @@
 #if !defined(_DEVICE_INFO_H_)
 #define _DEVICE_INFO_H_
 
+#define DEVICE_SPEED_LIST                       \
+    DS(SLOW, "up to 12 mb/s")                   \
+    DS(FAST, "more than 12 mb/s")
+
 #define DEVICE_DIRECTION_LIST                   \
     DD(PLAYBACK, "playback")                    \
     DD(CAPTURE,  "capture")
 
 #define DEVICE_KIND_LIST                        \
     DK(ALSA,  "alsa")
+
+typedef enum device_speed_t {
+#define DS(_id_, _text_) DS_##_id_,
+    DEVICE_SPEED_LIST
+#undef DS
+    D_NUM_SPEED
+} device_speed_t;
 
 typedef enum direction_t {
 #define DD(_id_, _text_) D_##_id_,
@@ -32,6 +43,7 @@ struct device_t {
     device_t       *next;
     device_kind_t   kind;
     direction_t     direction;
+    device_speed_t  speed;
     unsigned        active;
     unsigned        primary;
     unsigned        internal;
@@ -48,6 +60,7 @@ void device_add_alsa(const char     *sysname,
                      unsigned        internal,
                      unsigned        card,
                      unsigned        device,
+                     device_speed_t  speed,
                      direction_t     direction);
 void device_remove_alsa(const char     *sysname,
                         unsigned        card,
