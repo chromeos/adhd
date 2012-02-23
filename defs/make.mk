@@ -29,10 +29,10 @@ mkdir	= [ ! -d $(1) ] &&			\
 #         then build the first argument by recursively invoking make.
 #         The recursive make is performed in the build directory.
 #
-#         $(call remake,<label>,<subdirectory>,<target>)
+#         $(call remake,<label>,<subdirectory>,<makefile>,<target>)
 #
-#         ex: @$(call remake,Building,gavd,gavd)
-#                             $(1)    $(2) $(3)
+#         ex: @$(call remake,Building,gavd,Makefile,gavd)
+#                             $(1)    $(2) $(3)     $(4)
 #
 #  REL_DIR:
 #
@@ -61,9 +61,9 @@ remake	=							\
 	$(call mkdir,$(ADHD_BUILD_DIR)/$${REL_DIR}) &&		\
 	    $(MESSAGE) "$(1) $${REL_DIR}";			\
 	    $(MAKE) $(SILENT)					\
-		-f $(ADHD_DIR)/$${REL_DIR}/Makefile		\
+		-f $(ADHD_DIR)/$${REL_DIR}/$(3)			\
 		-C $(ADHD_BUILD_DIR)/$${REL_DIR}		\
 		VPATH=$(ADHD_DIR)/$${REL_DIR}			\
 		ADHD_SOURCE_DIR=$(ADHD_DIR)/$${REL_DIR}		\
 		THIS_BUILD_DIR=$(ADHD_BUILD_DIR)/$${REL_DIR}	\
-		$(3))
+		$(4))

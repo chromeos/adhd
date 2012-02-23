@@ -1,3 +1,6 @@
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
 AC_INIT([cras], [0.1], [dgreid@chromium.org],
              [cras], [http://www.chromium.org/])
 AC_PREREQ([2.59])
