@@ -109,12 +109,50 @@ static unsigned is_internal_device(struct udev_device *dev)
     return 0;
 }
 
+/* get_usb_device_speed: Determine if a usb device is fast or slow.
+ *
+ *   Return: 0: device speed could not be determined.
+ *   Return: 1: device speed determined
+ *
+ *   When the speed cannot be determined, '*speed' is not updated.
+ *   When the speed can be determined, '*speed' is updated.
+ */
+static unsigned get_usb_device_speed(struct udev_device *dev,
+                                     device_speed_t     *speed)
+{
+    unsigned            result = 0;
+    struct udev_device *parent;
+
+    parent = udev_device_get_parent_with_subsystem_devtype(dev,
+                                                           "usb", "usb_device");
+    /* If the speed cannot be determined to be either '12' or '480',
+     * then we consider that we don't know the speed of the specific
+     * device.
+     */
+    if (parent != NULL) {
+        const char *attr  = udev_device_get_sysattr_value(parent, "speed");
+
+        if (attr != NULL) {
+            if (strcmp(attr, "12") == 0) {
+                *speed = DS_SLOW;
+                result = 1;
+            } else if (strcmp(attr, "480") == 0) {
+                *speed = DS_FAST;
+                result = 1;
+            }
+        }
+    }
+    return result;
+}
+
+
 /* is_alsa_device: Determine if a device is an alsa device.
  */
 static unsigned is_alsa_device(struct udev_device  *dev,
                                unsigned            *internal,
                                unsigned            *card_number,
                                unsigned            *device_number,
+                               device_speed_t      *speed,
                                direction_t         *direction,
                                const char         **sysname)
 {
@@ -140,6 +178,10 @@ static unsigned is_alsa_device(struct udev_device  *dev,
         *sysname       = udev_device_get_sysname(dev);
         *direction     = devpath[m[3].rm_so] == 'p' ? D_PLAYBACK
                                                     : D_CAPTURE;
+
+        if (!get_usb_device_speed(dev, speed)) {
+            *speed = DS_FAST;
+        }
         return 1;
     }
     return 0;
@@ -150,29 +192,31 @@ static void add_udev_device_if_alsa_device(struct udev_device *dev)
     /* If the device, 'dev' is an alsa device, add it to the set of
      * devices available for I/O.  Mark it as the active device.
      */
-    unsigned     internal;
-    unsigned     card_number;
-    unsigned     device_number;
-    direction_t  direction;
-    const char  *sysname;
+    unsigned        internal;
+    unsigned        card_number;
+    unsigned        device_number;
+    direction_t     direction;
+    device_speed_t  speed;
+    const char     *sysname;
 
     if (is_alsa_device(dev, &internal, &card_number,
-                       &device_number, &direction, &sysname)) {
+                       &device_number, &speed, &direction, &sysname)) {
         device_add_alsa(sysname, internal, card_number,
-                        device_number, direction);
+                        device_number, speed, direction);
     }
 }
 
 static void remove_device_if_card(struct udev_device *dev)
 {
-    unsigned     internal;
-    unsigned     card_number;
-    unsigned     device_number;
-    direction_t  direction;
-    const char  *sysname;
+    unsigned        internal;
+    unsigned        card_number;
+    unsigned        device_number;
+    direction_t     direction;
+    device_speed_t  speed;
+    const char     *sysname;
 
     if (is_alsa_device(dev, &internal, &card_number,
-                       &device_number, &direction, &sysname)) {
+                       &device_number, &speed, &direction, &sysname)) {
         device_remove_alsa(sysname, card_number, device_number);
     }
 }

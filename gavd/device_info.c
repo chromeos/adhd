@@ -32,6 +32,12 @@ static char const * const device_directions[D_NUM_DIRECTION] = {
 #undef DD
 };
 
+static char const * const device_speeds[D_NUM_SPEED] = {
+#define DS(_id_, _text_) _text_,
+    DEVICE_SPEED_LIST
+#undef DS
+};
+
 typedef struct alsa_device_t {
     device_t    header;
     unsigned    card_number;
@@ -165,9 +171,10 @@ static void log_device_info(const device_t *dev,
         const alsa_device_t *ad = (alsa_device_t *)dev;
         verbose_log(5, LOG_INFO,
                     "%s: [%s, %s]: '%s' "
-                    "PIA: %.1u%.1u%.1u",
+                    "PIA: %.1u%.1u%.1u  %s  %s",
                     __FUNCTION__, device_kinds[DK_ALSA], action,
-                    ad->sysname, dev->primary, dev->internal, dev->active);
+                    ad->sysname, dev->primary, dev->internal, dev->active,
+                    device_directions[dev->direction], device_speeds[dev->speed]);
         break;
     }
 
@@ -378,11 +385,12 @@ static alsa_device_t *find_alsa_device(const char *sysname,
     return NULL;
 }
 
-static alsa_device_t *allocate_alsa_device(const char  *sysname,
-                                           unsigned     internal,
-                                           unsigned     card,
-                                           unsigned     device,
-                                           direction_t  direction)
+static alsa_device_t *allocate_alsa_device(const char     *sysname,
+                                           unsigned        internal,
+                                           unsigned        card,
+                                           unsigned        device,
+                                           device_speed_t  speed,
+                                           direction_t     direction)
 {
     /* Allocate a device.  If the device cannot be allocated, then it
      * will be ignored by the sound system.  This is most likely due
@@ -391,6 +399,7 @@ static alsa_device_t *allocate_alsa_device(const char  *sysname,
      */
     alsa_device_t *p = calloc(1, sizeof(alsa_device_t));
 
+    assert(sizeof(alsa_device_t) > sizeof(device_t));
     assert(sysname != NULL);    /* precondition */
     if (p) {
         p->sysname = strdup(sysname);
@@ -399,6 +408,7 @@ static alsa_device_t *allocate_alsa_device(const char  *sysname,
             p->header.primary   = 0;
             p->header.internal  = internal;
             p->header.direction = direction;
+            p->header.speed     = speed;
             p->header.active    = 0;
             p->card_number      = card;
             p->device_number    = device;
@@ -443,6 +453,7 @@ void device_add_alsa(const char     *sysname,
                      unsigned        internal,
                      unsigned        card,
                      unsigned        device,
+                     device_speed_t  speed,
                      direction_t     direction)
 {
     LOCK();
@@ -456,7 +467,7 @@ void device_add_alsa(const char     *sysname,
      */
     if (device_find_alsa(card, device, direction) == NULL) {
         alsa_device_t *p = allocate_alsa_device(sysname, internal, card,
-                                                device, direction);
+                                                device, speed, direction);
         if (p) {
             add_device(&p->header);
             send_card_added_message(&p->header);
