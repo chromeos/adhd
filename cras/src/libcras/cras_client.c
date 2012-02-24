@@ -21,6 +21,8 @@
  *    requests on aud_fd and fill the shm region with the requested number of
  *    samples. This happens in the aud_cb specified in the stream parameters.
  */
+
+#include <grp.h>
 #include <limits.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -28,8 +30,10 @@
 #include <sys/shm.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras_client.h"
 #include "cras_config.h"
@@ -185,6 +189,21 @@ static void subtract_timespecs(const struct timespec *end,
 			diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
 		}
 	}
+}
+
+/* Attempts to set the group of the socket file to "cras" if that group exists,
+ * then makes the socket readable and writable by that group, so the server can
+ * have access to this socket file. */
+static int set_socket_perms(const char *socket_path)
+{
+	const struct group *group_info;
+
+	group_info = getgrnam(CRAS_DEFAULT_GROUP_NAME);
+	if (group_info != NULL)
+		if (chown(socket_path, -1, group_info->gr_gid) != 0)
+			syslog(LOG_ERR, "Couldn't set group of audio socket.");
+
+	return chmod(socket_path, 0770);
 }
 
 /*
@@ -1023,8 +1042,7 @@ int cras_client_add_stream(struct cras_client *client,
 	if (rc != 0)
 		goto add_failed;
 
-	/* Let other members in our group play audio through this socket. */
-	rc = chmod(stream->aud_address.sun_path, 0770);
+	rc = set_socket_perms(stream->aud_address.sun_path);
 	if (rc < 0)
 		goto add_failed;
 
