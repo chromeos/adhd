@@ -93,12 +93,9 @@ namespace {
 TEST(AlsaIoInit, InitializePlayback) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  const size_t fake_system_volume = 55;
-  const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
 
   ResetStubData();
   mixer_create_return_value = fake_mixer;
-  sys_get_volume_return_value = fake_system_volume;
   aio = (struct alsa_io *)alsa_iodev_create("hw:0,0",
                                             fake_mixer,
                                             CRAS_STREAM_OUTPUT);
@@ -106,10 +103,6 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
-  EXPECT_EQ(1, alsa_mixer_set_volume_called);
-  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
-  EXPECT_EQ(1, alsa_mixer_set_mute_called);
-  EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, mixer_destroy_called);
@@ -258,6 +251,8 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   int rc;
   struct cras_rstream *new_stream;
   struct cras_audio_format *fmt;
+  const size_t fake_system_volume = 55;
+  const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
 
   fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));
@@ -268,6 +263,7 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   new_stream->cb_threshold = 80;
   memcpy(&new_stream->format, fmt, sizeof(*fmt));
   aio_output_->num_underruns = 3; //  Something non-zero.
+  sys_get_volume_return_value = fake_system_volume;
   rc = thread_add_stream(aio_output_, new_stream);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(55, aio_output_->base.streams->stream->fd);
@@ -280,6 +276,10 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(0, aio_output_->num_underruns);
   EXPECT_EQ(0, cras_alsa_start_called); //  Shouldn't start playback.
   EXPECT_NE((void *)NULL, aio_output_->handle);
+  EXPECT_EQ(1, alsa_mixer_set_volume_called);
+  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
   //  remove the stream.
   rc = thread_remove_stream(aio_output_, new_stream);

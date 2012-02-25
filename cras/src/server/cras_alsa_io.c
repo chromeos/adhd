@@ -122,6 +122,40 @@ static int open_alsa(struct alsa_io *aio)
 	return 0;
 }
 
+/* Sets the volume of the playback device to the specified level. */
+static void set_alsa_volume(size_t volume, void *arg)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	assert(aio);
+	if (aio->mixer == NULL)
+		return;
+	cras_alsa_mixer_set_volume(aio->mixer,
+		cras_volume_curve_get_db_for_index(volume));
+}
+
+/* Sets the mute of the playback device to the specified level. */
+static void set_alsa_mute(int mute, void *arg)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	assert(aio);
+	if (aio->mixer == NULL)
+		return;
+	cras_alsa_mixer_set_mute(aio->mixer, mute);
+}
+
+/* Initializes the device settings and registers for callbacks when system
+ * settings have been changed.
+ */
+static void init_device_settings(struct alsa_io *aio)
+{
+	/* Register for volume/mute callback and set initial volume/mute for
+	 * the device. */
+	cras_system_register_volume_changed_cb(set_alsa_volume, aio);
+	cras_system_register_mute_changed_cb(set_alsa_mute, aio);
+	set_alsa_mute(cras_system_get_mute(), aio);
+	set_alsa_volume(cras_system_get_volume(), aio);
+}
+
 /* Configures when to wake up, the minimum amount free before refilling, and
  * other params that are independent of alsa configuration. */
 static void config_alsa_iodev_params(struct alsa_io *aio)
@@ -191,6 +225,8 @@ static int thread_add_stream(struct alsa_io *aio,
 
 	/* If not already, open alsa. */
 	if (aio->handle == NULL) {
+		init_device_settings(aio);
+
 		rc = open_alsa(aio);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", aio->dev);
@@ -852,40 +888,6 @@ static int rm_stream(struct cras_iodev *iodev,
 	return post_message_to_playback_thread(aio, &msg.header);
 }
 
-/* Sets the volume of the playback device to the specified level. */
-static void set_alsa_volume(size_t volume, void *arg)
-{
-	const struct alsa_io *aio = (const struct alsa_io *)arg;
-	assert(aio);
-	if (aio->mixer == NULL)
-		return;
-	cras_alsa_mixer_set_volume(aio->mixer,
-		cras_volume_curve_get_db_for_index(volume));
-}
-
-/* Sets the mute of the playback device to the specified level. */
-static void set_alsa_mute(int mute, void *arg)
-{
-	const struct alsa_io *aio = (const struct alsa_io *)arg;
-	assert(aio);
-	if (aio->mixer == NULL)
-		return;
-	cras_alsa_mixer_set_mute(aio->mixer, mute);
-}
-
-/* Initializes the device settings and registers for callbacks when system
- * settings have been changed.
- */
-static void init_device_settings(struct alsa_io *aio)
-{
-	/* Register for volume/mute callback and set initial volume/mute for
-	 * the device. */
-	cras_system_register_volume_changed_cb(set_alsa_volume, aio);
-	cras_system_register_mute_changed_cb(set_alsa_mute, aio);
-	set_alsa_mute(cras_system_get_mute(), aio);
-	set_alsa_volume(cras_system_get_volume(), aio);
-}
-
 /* Frees resources used by the alsa iodev.
  * Args:
  *    iodev - the iodev to free the resources from.
@@ -966,8 +968,6 @@ struct cras_iodev *alsa_iodev_create(const char *dev,
 		goto cleanup_iodev;
 
 	aio->mixer = mixer;
-
-	init_device_settings(aio);
 
 	/* Start the device thread, it will block until a stream is added. */
 	if (pthread_create(&aio->tid, NULL, alsa_io_thread, aio))
