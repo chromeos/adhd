@@ -122,7 +122,9 @@ static int open_alsa(struct alsa_io *aio)
 	return 0;
 }
 
-/* Sets the volume of the playback device to the specified level. */
+/* Sets the volume of the playback device to the specified level. Receives a
+ * volume index from the system settings, ranging from 0 to 100, converts it to
+ * dB using the volume curve, and sends the dB value to alsa. */
 static void set_alsa_volume(size_t volume, void *arg)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)arg;
@@ -131,6 +133,9 @@ static void set_alsa_volume(size_t volume, void *arg)
 		return;
 	cras_alsa_mixer_set_volume(aio->mixer,
 		cras_volume_curve_get_db_for_index(volume));
+	/* Mute for zero. */
+	cras_alsa_mixer_set_mute(aio->mixer,
+				 cras_system_get_mute() || volume == 0);
 }
 
 /* Sets the mute of the playback device to the specified level. */

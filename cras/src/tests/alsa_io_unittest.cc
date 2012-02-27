@@ -278,7 +278,9 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_NE((void *)NULL, aio_output_->handle);
   EXPECT_EQ(1, alsa_mixer_set_volume_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
-  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(1, sys_register_volume_cb_called);
+  EXPECT_EQ(1, sys_register_mute_cb_called);
+  EXPECT_EQ(2, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
   //  remove the stream.
@@ -330,6 +332,62 @@ TEST_F(AlsaAddStreamSuite, AddRmTwoOutputStreams) {
 
   free(new_stream);
   free(second_stream);
+}
+
+TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
+  int rc;
+  struct cras_rstream *new_stream;
+  struct cras_audio_format *fmt;
+  const size_t fake_system_volume = 55;
+  const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
+
+  fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
+  memcpy(fmt, &fmt_, sizeof(fmt_));
+  aio_output_->base.format = fmt;
+  new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
+  new_stream->fd = 55;
+  new_stream->buffer_frames = 65;
+  new_stream->cb_threshold = 80;
+  memcpy(&new_stream->format, fmt, sizeof(*fmt));
+  aio_output_->num_underruns = 3; //  Something non-zero.
+  sys_get_volume_return_value = fake_system_volume;
+  rc = thread_add_stream(aio_output_, new_stream);
+  ASSERT_EQ(0, rc);
+  EXPECT_EQ(1, alsa_mixer_set_volume_called);
+  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, sys_register_volume_cb_called);
+  EXPECT_EQ(1, sys_register_mute_cb_called);
+  EXPECT_EQ(2, alsa_mixer_set_mute_called);
+  EXPECT_EQ(0, alsa_mixer_set_mute_value);
+
+  alsa_mixer_set_mute_called = 0;
+  alsa_mixer_set_mute_value = 0;
+  alsa_mixer_set_volume_called = 0;
+  alsa_mixer_set_volume_value = 0;
+  sys_register_volume_cb_value(50, sys_register_volume_cb_arg);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(0, alsa_mixer_set_mute_value);
+  EXPECT_EQ(1, alsa_mixer_set_volume_called);
+  EXPECT_EQ(cras_volume_curve_get_db_for_index(50),
+            alsa_mixer_set_volume_value);
+
+  alsa_mixer_set_mute_called = 0;
+  alsa_mixer_set_mute_value = 0;
+  alsa_mixer_set_volume_called = 0;
+  alsa_mixer_set_volume_value = 0;
+  sys_register_volume_cb_value(0, sys_register_volume_cb_arg);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_mute_value);
+  EXPECT_EQ(1, alsa_mixer_set_volume_called);
+  EXPECT_EQ(cras_volume_curve_get_db_for_index(0),
+            alsa_mixer_set_volume_value);
+
+  //  remove the stream.
+  rc = thread_remove_stream(aio_output_, new_stream);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ((void *)NULL, aio_output_->handle);
+
+  free(new_stream);
 }
 
 TEST_F(AlsaAddStreamSuite, AppendStreamErrorPropogated) {
