@@ -160,12 +160,14 @@ void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *cras_mixer,
 
 	assert(cras_mixer);
 
+	/* volume_dB is normally < 0 to specify the attenuation. */
 	to_set = volume_dB;
 	/* Go through all the controls, set the volume level for each,
 	 * taking the value closest but greater than the desired volume.  If the
 	 * entire volume can't be set on the current control, move on to the
 	 * next one until we have the exact volume, or gotten as close as we
-	 * can. */
+	 * can. Once all of the volume is set the rest of the controls should be
+	 * set to 0dB. */
 	DL_FOREACH(cras_mixer->main_volume_controls, c) {
 		long actual_dB;
 		snd_mixer_selem_set_playback_dB_all(c->elem, to_set, 1);
@@ -173,8 +175,6 @@ void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *cras_mixer,
 						SND_MIXER_SCHN_FRONT_LEFT,
 						&actual_dB);
 		to_set -= actual_dB;
-		if (to_set == 0)
-			return;
 	}
 }
 

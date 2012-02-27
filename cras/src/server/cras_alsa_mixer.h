@@ -33,7 +33,8 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer);
 /* Sets the output volume for the device associated with this mixer.
  * Args:
  *    cras_mixer - The mixer to set the volume on.
- *    volume_dB - The volume level as dB * 100.
+ *    volume_dB - The volume level as dB * 100.  dB is a negative quantity
+ *      specifying how much to attenuate.
  */
 void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *cras_mixer,
 				long volume_dB);
