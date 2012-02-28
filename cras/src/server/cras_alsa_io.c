@@ -131,8 +131,8 @@ static void set_alsa_volume(size_t volume, void *arg)
 	assert(aio);
 	if (aio->mixer == NULL)
 		return;
-	cras_alsa_mixer_set_volume(aio->mixer,
-		cras_volume_curve_get_db_for_index(volume));
+	cras_alsa_mixer_set_dBFS(aio->mixer,
+		cras_volume_curve_get_dBFS_for_index(volume));
 	/* Mute for zero. */
 	cras_alsa_mixer_set_mute(aio->mixer,
 				 cras_system_get_mute() || volume == 0);

@@ -10,8 +10,9 @@
  * Args:
  *    volume - the volume level from 0 to 100.
  * Returns:
- *    The volume to apply in dB * 100
+ *    The volume to apply in dB * 100.  This value will normally be negative and
+ *    is means dB down form full scale.
  */
-long cras_volume_curve_get_db_for_index(size_t volume);
+long cras_volume_curve_get_dBFS_for_index(size_t volume);
 
 #endif /* CRAS_VOLUME_CURVE_H_ */

@@ -51,8 +51,8 @@ static size_t cras_rstream_request_audio_called;
 static size_t cras_alsa_fill_properties_called;
 static struct cras_alsa_mixer *mixer_destroy_value;
 static struct cras_alsa_mixer *mixer_create_return_value;
-static size_t alsa_mixer_set_volume_called;
-static int alsa_mixer_set_volume_value;
+static size_t alsa_mixer_set_dBFS_called;
+static int alsa_mixer_set_dBFS_value;
 static size_t mixer_destroy_called;
 static cras_system_volume_changed_cb sys_register_volume_cb_value;
 static void * sys_register_volume_cb_arg;
@@ -82,7 +82,7 @@ void ResetStubData() {
   mixer_destroy_called = 0;
   sys_register_volume_cb_called = 0;
   sys_get_volume_called = 0;
-  alsa_mixer_set_volume_called = 0;
+  alsa_mixer_set_dBFS_called = 0;
   sys_register_mute_cb_called = 0;
   sys_get_mute_called = 0;
   alsa_mixer_set_mute_called = 0;
@@ -276,8 +276,8 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(0, aio_output_->num_underruns);
   EXPECT_EQ(0, cras_alsa_start_called); //  Shouldn't start playback.
   EXPECT_NE((void *)NULL, aio_output_->handle);
-  EXPECT_EQ(1, alsa_mixer_set_volume_called);
-  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
   EXPECT_EQ(1, sys_register_volume_cb_called);
   EXPECT_EQ(1, sys_register_mute_cb_called);
   EXPECT_EQ(2, alsa_mixer_set_mute_called);
@@ -353,8 +353,8 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   sys_get_volume_return_value = fake_system_volume;
   rc = thread_add_stream(aio_output_, new_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(1, alsa_mixer_set_volume_called);
-  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
   EXPECT_EQ(1, sys_register_volume_cb_called);
   EXPECT_EQ(1, sys_register_mute_cb_called);
   EXPECT_EQ(2, alsa_mixer_set_mute_called);
@@ -362,25 +362,25 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
 
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;
-  alsa_mixer_set_volume_called = 0;
-  alsa_mixer_set_volume_value = 0;
+  alsa_mixer_set_dBFS_called = 0;
+  alsa_mixer_set_dBFS_value = 0;
   sys_register_volume_cb_value(50, sys_register_volume_cb_arg);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
-  EXPECT_EQ(1, alsa_mixer_set_volume_called);
-  EXPECT_EQ(cras_volume_curve_get_db_for_index(50),
-            alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(cras_volume_curve_get_dBFS_for_index(50),
+            alsa_mixer_set_dBFS_value);
 
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;
-  alsa_mixer_set_volume_called = 0;
-  alsa_mixer_set_volume_value = 0;
+  alsa_mixer_set_dBFS_called = 0;
+  alsa_mixer_set_dBFS_value = 0;
   sys_register_volume_cb_value(0, sys_register_volume_cb_arg);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_value);
-  EXPECT_EQ(1, alsa_mixer_set_volume_called);
-  EXPECT_EQ(cras_volume_curve_get_db_for_index(0),
-            alsa_mixer_set_volume_value);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(cras_volume_curve_get_dBFS_for_index(0),
+            alsa_mixer_set_dBFS_value);
 
   //  remove the stream.
   rc = thread_remove_stream(aio_output_, new_stream);
@@ -1151,10 +1151,10 @@ void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
 }
 
 //  From cras_alsa_mixer.
-void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *m, long dB_level)
+void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *m, long dB_level)
 {
-  alsa_mixer_set_volume_called++;
-  alsa_mixer_set_volume_value = dB_level;
+  alsa_mixer_set_dBFS_called++;
+  alsa_mixer_set_dBFS_value = dB_level;
 }
 
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *m, int mute)
@@ -1164,7 +1164,7 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *m, int mute)
 }
 
 //  From cras_volume_curve.
-long cras_volume_curve_get_db_for_index(size_t volume)
+long cras_volume_curve_get_dBFS_for_index(size_t volume)
 {
 	return 100 * (volume - 100);
 }
