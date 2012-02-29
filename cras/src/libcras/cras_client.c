@@ -45,10 +45,12 @@
 #include "utlist.h"
 
 static const size_t MAX_CMD_MSG_LEN = 256;
+static const size_t SERVER_CONNECT_TIMEOUT_US = 500000;
 
 /* Commands sent from the user to the running client. */
 enum {
 	CLIENT_STOP,
+	CLIENT_ADD_STREAM,
 	CLIENT_REMOVE_STREAM,
 	CLIENT_SET_STREAM_VOLUME_SCALER,
 };
@@ -62,6 +64,11 @@ struct command_msg {
 struct set_stream_volume_command_message {
 	struct command_msg header;
 	float volume_scaler;
+};
+
+struct add_stream_command_message {
+	struct command_msg header;
+	struct client_stream *stream;
 };
 
 /* Commands send from a running stream to the client. */
@@ -131,7 +138,7 @@ struct client_stream {
 };
 
 /* Represents a client used to communicate with the audio server.
- * id - unique identifier for this client.
+ * id - Unique identifier for this client, negative until connected.
  * server_fd Incoming messages from server.
  * stream_fds - Pipe for attached streams.
  * command_fds - Pipe for user commands to thread.
@@ -144,7 +151,7 @@ struct client_stream {
  * streams - Linked list of streams attached to this client.
  */
 struct cras_client {
-	unsigned id;
+	int id;
 	int server_fd;
 	int stream_fds[2];
 	int command_fds[2];
@@ -159,6 +166,8 @@ struct cras_client {
 /*
  * Local Helpers
  */
+
+static int handle_message_from_server(struct cras_client *client);
 
 /* Get the stream pointer from a stream id. */
 static struct client_stream *stream_from_id(const struct cras_client *client,
@@ -519,6 +528,120 @@ err_ret:
 	return rc;
 }
 
+/* Waits until we have heard back from the server so that we know we are
+ * connected.  The connected success/failure message is always the first message
+ * the server sends. Return non zero if client is connected to the server. A
+ * return code of zero means that the client are not connected to the server. */
+static int check_server_connected_wait(struct cras_client *client)
+{
+	fd_set poll_set;
+	int rc;
+	int fd = client->server_fd;
+	struct timeval timeout;
+
+	timeout.tv_sec = 0;
+	timeout.tv_usec = SERVER_CONNECT_TIMEOUT_US;
+
+	while(timeout.tv_usec > 0 && client->id < 0) {
+		FD_ZERO(&poll_set);
+		FD_SET(fd, &poll_set);
+		rc = select(fd + 1, &poll_set, NULL, NULL, &timeout);
+		if (rc <= 0)
+			return 0; /* Timeout or error. */
+		if (FD_ISSET(fd, &poll_set)) {
+			rc = handle_message_from_server(client);
+			if (rc < 0)
+				return 0;
+		}
+	}
+
+	return client->id >= 0;
+}
+
+/* Adds a stream to a running client.  Checks to make sure that the client is
+ * attached, waits if it isn't.  The stream is prepared on the  main thread and
+ * passed here. */
+static int client_thread_add_stream(struct cras_client *client,
+				    struct client_stream *stream)
+{
+	int rc;
+	struct cras_connect_message serv_msg;
+	cras_stream_id_t new_id;
+	struct client_stream *out;
+
+	if (!check_server_connected_wait(client)) {
+		syslog(LOG_ERR, "Add stream failed to connect to server.");
+		return -EIO;
+	}
+
+	/* Find an available stream id. */
+	do {
+		new_id = cras_get_stream_id(client->id, client->next_stream_id);
+		client->next_stream_id++;
+		DL_SEARCH_SCALAR(client->streams, out, id, new_id);
+	} while (out != NULL);
+
+	stream->id = new_id;
+	stream->client = client;
+
+	/* Create a socket for the server to notify of audio events. */
+	stream->aud_address.sun_family = AF_UNIX;
+	snprintf(stream->aud_address.sun_path,
+		 sizeof(stream->aud_address.sun_path), "%s/%s-%x",
+		 client->sock_dir, CRAS_AUD_FILE_PATTERN, stream->id);
+	unlink(stream->aud_address.sun_path);
+
+	stream->connection_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	if (stream->connection_fd < 0)
+		return stream->connection_fd;
+
+	rc = fchmod(stream->connection_fd, 0700);
+	if (rc < 0)
+		goto add_stream_failed;
+
+	rc = bind(stream->connection_fd,
+		   (struct sockaddr *)&stream->aud_address,
+		   sizeof(struct sockaddr_un));
+	if (rc != 0)
+		goto add_stream_failed;
+
+	rc = set_socket_perms(stream->aud_address.sun_path);
+	if (rc < 0)
+		goto add_stream_failed;
+
+	rc = listen(stream->connection_fd, 1);
+	if (rc != 0) {
+		syslog(LOG_ERR, "add_stream: Listen failed.");
+		goto add_stream_failed;
+	}
+
+	/* Add the stream to the linked list and send a message to the server
+	 * requesting that the stream be started. */
+	DL_APPEND(client->streams, stream);
+
+	cras_fill_connect_message(&serv_msg,
+				  stream->config->direction,
+				  stream->id,
+				  stream->config->stream_type,
+				  stream->config->buffer_frames,
+				  stream->config->cb_threshold,
+				  stream->config->min_cb_level,
+				  stream->flags,
+				  stream->config->format);
+	rc = write(client->server_fd, &serv_msg, sizeof(serv_msg));
+	if (rc != sizeof(serv_msg)) {
+		syslog(LOG_ERR, "add_stream: Send server message failed.");
+		DL_DELETE(client->streams, stream);
+		goto add_stream_failed;
+	}
+
+	return 0;
+
+add_stream_failed:
+	close(stream->connection_fd);
+	return rc;
+}
+
 /* Removes a stream from a running client from within the running client's
  * context. */
 static int client_thread_rm_stream(struct cras_client *client,
@@ -731,6 +854,12 @@ static int handle_command_message(struct cras_client *client)
 		rc = 0;
 		break;
 	}
+	case CLIENT_ADD_STREAM: {
+		struct add_stream_command_message *add_msg =
+			(struct add_stream_command_message *)msg;
+		rc = client_thread_add_stream(client, add_msg->stream);
+		break;
+	}
 	case CLIENT_REMOVE_STREAM:
 		rc = client_thread_rm_stream(client, msg->stream_id);
 		break;
@@ -871,6 +1000,7 @@ int cras_client_create(struct cras_client **client)
 	if (*client == NULL)
 		return -ENOMEM;
 	(*client)->server_fd = -1;
+	(*client)->id = -1;
 
 	/* Barrier used by the main thread and the audio thread, so require 2
 	 * calls to pass through. */
@@ -979,10 +1109,9 @@ int cras_client_add_stream(struct cras_client *client,
 			   cras_stream_id_t *stream_id_out,
 			   struct cras_stream_params *config)
 {
-	struct cras_connect_message serv_msg;
+	struct add_stream_command_message cmd_msg;
 	struct client_stream *stream;
 	int rc = 0;
-	cras_stream_id_t new_id;
 
 	if (client == NULL || config == NULL)
 		return -EINVAL;
@@ -1005,69 +1134,18 @@ int cras_client_add_stream(struct cras_client *client,
 		goto add_failed;
 	}
 	memcpy(stream->config, config, sizeof(*config));
-
-	/* Find an available stream id. */
-	while (1) {
-		struct client_stream *out;
-
-		new_id = cras_get_stream_id(client->id, client->next_stream_id);
-		DL_SEARCH_SCALAR(client->streams, out, id, new_id);
-		if (out == NULL)
-			break;
-		client->next_stream_id++;
-	}
-	stream->id = new_id;
-	client->next_stream_id++;
-	stream->client = client;
 	stream->aud_fd = -1;
 	stream->connection_fd = -1;
 	stream->direction = config->direction;
 	stream->volume_scaler = 1.0;
 
-	/* Create a socket for the server to notify of audio events. */
-	stream->aud_address.sun_family = AF_UNIX;
-	snprintf(stream->aud_address.sun_path,
-		 sizeof(stream->aud_address.sun_path), "%s/%s-%x",
-		 client->sock_dir, CRAS_AUD_FILE_PATTERN, stream->id);
-	unlink(stream->aud_address.sun_path);
 
-	stream->connection_fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (stream->connection_fd < 0)
-		goto add_failed;
-
-	rc = fchmod(stream->connection_fd, 0700);
+	cmd_msg.header.len = sizeof(cmd_msg);
+	cmd_msg.header.msg_id = CLIENT_ADD_STREAM;
+	cmd_msg.header.stream_id = stream->id;
+	cmd_msg.stream = stream;
+	rc = send_command_message(client, &cmd_msg.header);
 	if (rc < 0)
-		goto add_failed;
-
-	rc = bind(stream->connection_fd,
-		   (struct sockaddr *)&stream->aud_address,
-		   sizeof(struct sockaddr_un));
-	if (rc != 0)
-		goto add_failed;
-
-	rc = set_socket_perms(stream->aud_address.sun_path);
-	if (rc < 0)
-		goto add_failed;
-
-	rc = listen(stream->connection_fd, 1);
-	if (rc != 0)
-		goto add_failed;
-
-	/* Add the stream to the linked list and send a message to the server
-	 * requesting that the stream be started. */
-	DL_APPEND(client->streams, stream);
-
-	cras_fill_connect_message(&serv_msg,
-				  config->direction,
-				  stream->id,
-				  config->stream_type,
-				  config->buffer_frames,
-				  config->cb_threshold,
-				  config->min_cb_level,
-				  stream->flags,
-				  config->format);
-	rc = write(client->server_fd, &serv_msg, sizeof(serv_msg));
-	if (rc != sizeof(serv_msg))
 		goto add_failed;
 
 	*stream_id_out = stream->id;
@@ -1075,8 +1153,6 @@ int cras_client_add_stream(struct cras_client *client,
 
 add_failed:
 	if (stream) {
-		if (stream->connection_fd >= 0)
-			close(stream->connection_fd);
 		if (stream->config)
 			free(stream->config);
 		free(stream);
