@@ -136,4 +136,15 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 			  snd_pcm_uframes_t frames, size_t *underruns);
 
+/* When the stream is suspended, due to a system suspend, loop until we can
+ * resume it. Won't actually loop very much because the system will be
+ * suspended.
+ * Args:
+ *    handle - The open PCM to configure.
+ * Returns:
+ *    zero on success, negative error code for fatal
+ *    errors.
+ */
+int cras_alsa_attempt_resume(snd_pcm_t *handle);
+
 #endif /* _CRAS_ALSA_HELPERS_H */

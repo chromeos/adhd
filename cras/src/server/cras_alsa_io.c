@@ -541,6 +541,13 @@ static int possibly_fill_audio(struct alsa_io *aio,
 
 	/* Make sure we should actually be awake right now (or close enough) */
 	if (used > aio->cb_threshold + SLEEP_FUZZ_FRAMES) {
+		/* Check if the pcm is still running. */
+		if (snd_pcm_state(aio->handle) == SND_PCM_STATE_SUSPENDED) {
+			aio->stream_started = 0;
+			rc = cras_alsa_attempt_resume(aio->handle);
+			if (rc < 0)
+				return rc;
+		}
 		fill_time_from_frames(used, aio->cb_threshold,
 			      aio->base.format->frame_rate, ts);
 		return 0;
