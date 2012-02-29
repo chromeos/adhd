@@ -151,7 +151,7 @@ static int run_server()
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {
-		perror("socket");
+		syslog(LOG_ERR, "Main server socket failed.");
 		rc = socket_fd;
 		goto bail;
 	}
@@ -177,7 +177,7 @@ static int run_server()
 
 	if (bind(socket_fd, (struct sockaddr *) &addr,
 		 sizeof(struct sockaddr_un)) != 0) {
-		perror("bind");
+		syslog(LOG_ERR, "Bind to server socket failed.");
 		rc = errno;
 		goto bail;
 	}
@@ -188,7 +188,7 @@ static int run_server()
 		goto bail;
 
 	if (listen(socket_fd, 5) != 0) {
-		perror("listen");
+		syslog(LOG_ERR, "Listen on server socket failed.");
 		rc = errno;
 		goto bail;
 	}

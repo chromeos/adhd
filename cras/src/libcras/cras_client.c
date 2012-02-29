@@ -592,22 +592,30 @@ static int client_thread_add_stream(struct cras_client *client,
 	unlink(stream->aud_address.sun_path);
 
 	stream->connection_fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (stream->connection_fd < 0)
+	if (stream->connection_fd < 0) {
+		syslog(LOG_ERR, "add_stream failed to socket.");
 		return stream->connection_fd;
+	}
 
 	rc = fchmod(stream->connection_fd, 0700);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "add_stream failed to fchmod socket.");
 		goto add_stream_failed;
+	}
 
 	rc = bind(stream->connection_fd,
 		   (struct sockaddr *)&stream->aud_address,
 		   sizeof(struct sockaddr_un));
-	if (rc != 0)
+	if (rc != 0) {
+		syslog(LOG_ERR, "add_stream failed to bind.");
 		goto add_stream_failed;
+	}
 
 	rc = set_socket_perms(stream->aud_address.sun_path);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "add_stream failed to set socket params.");
 		goto add_stream_failed;
+	}
 
 	rc = listen(stream->connection_fd, 1);
 	if (rc != 0) {
@@ -1046,7 +1054,7 @@ int cras_client_connect(struct cras_client *client)
 
 	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (client->server_fd < 0) {
-		perror("socket");
+		syslog(LOG_ERR, "client_connect: Socket failed.");
 		return client->server_fd;
 	}
 
@@ -1062,7 +1070,7 @@ int cras_client_connect(struct cras_client *client)
 		      sizeof(struct sockaddr_un));
 	if (rc != 0) {
 		close(client->server_fd);
-		perror("connect failed");
+		syslog(LOG_ERR, "client_connect: Connect to server_fd failed.");
 		return rc;
 	}
 
@@ -1145,8 +1153,10 @@ int cras_client_add_stream(struct cras_client *client,
 	cmd_msg.header.stream_id = stream->id;
 	cmd_msg.stream = stream;
 	rc = send_command_message(client, &cmd_msg.header);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "adding stream failed in thread %d", rc);
 		goto add_failed;
+	}
 
 	*stream_id_out = stream->id;
 	return 0;

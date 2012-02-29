@@ -67,13 +67,13 @@ int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
 
 	fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
-		perror("socket failed\n");
+		syslog(LOG_ERR, "socket failed");
 		return fd;
 	}
 
 	err = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
 	if (err != 0) {
-		perror("connect failed\n");
+		syslog(LOG_ERR, "connect to client socket %x", stream_id);
 		return err;
 	}
 
