@@ -871,7 +871,10 @@ int cras_client_create(struct cras_client **client)
 	if (*client == NULL)
 		return -ENOMEM;
 	(*client)->server_fd = -1;
-	rc = pthread_barrier_init(&(*client)->command_barrier, NULL, 1);
+
+	/* Barrier used by the main thread and the audio thread, so require 2
+	 * calls to pass through. */
+	rc = pthread_barrier_init(&(*client)->command_barrier, NULL, 2);
 	if (rc != 0)
 		goto free_error;
 
