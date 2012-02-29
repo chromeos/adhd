@@ -8,7 +8,7 @@
 /* Default to 1dB per tick.
  * Volume = 100 -> 0dB.
  * Volume = 0 -> -100dB. */
-long cras_volume_curve_get_db_for_index(size_t volume)
+long cras_volume_curve_get_dBFS_for_index(size_t volume)
 {
 	/* dB to cut * 100 */
 	return (volume - 100) * 100;

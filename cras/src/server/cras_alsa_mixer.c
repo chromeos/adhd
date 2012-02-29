@@ -152,16 +152,16 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 	free(cras_mixer);
 }
 
-void cras_alsa_mixer_set_volume(struct cras_alsa_mixer *cras_mixer,
-				long volume_dB)
+void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
+			      long dBFS)
 {
 	struct mixer_volume_control *c;
 	long to_set;
 
 	assert(cras_mixer);
 
-	/* volume_dB is normally < 0 to specify the attenuation. */
-	to_set = volume_dB;
+	/* dBFS is normally < 0 to specify the attenuation. */
+	to_set = dBFS;
 	/* Go through all the controls, set the volume level for each,
 	 * taking the value closest but greater than the desired volume.  If the
 	 * entire volume can't be set on the current control, move on to the
