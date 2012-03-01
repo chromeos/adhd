@@ -26,14 +26,15 @@ static char *headphone_jack_device;
 
 static void *gpio_headphone_monitor(void *arg)
 {
+    thread_descriptor_t *desc = (thread_descriptor_t *)arg;
+
+    /* Initialization Code. */
+    pthread_barrier_wait(&thread_management.tm_create_barrier);
+
+    /* Wait for all other threads to start. */
+    pthread_barrier_wait(&thread_management.tm_start_barrier);
+
     if (headphone_jack_device != NULL) {
-        thread_descriptor_t *desc = (thread_descriptor_t *)arg;
-
-        /* Initialization Code. */
-        pthread_barrier_wait(&thread_management.tm_create_barrier);
-
-        /* Wait for all other threads to start. */
-        pthread_barrier_wait(&thread_management.tm_start_barrier);
         gpio_switch_monitor(desc->td_name,
                             "headphone",
                             headphone_jack_device,
@@ -47,14 +48,15 @@ static void *gpio_headphone_monitor(void *arg)
 
 static void *gpio_microphone_monitor(void *arg)
 {
+    thread_descriptor_t *desc = (thread_descriptor_t *)arg;
+    
+    /* Initialization Code. */
+    pthread_barrier_wait(&thread_management.tm_create_barrier);
+    
+    /* Wait for all other threads to start. */
+    pthread_barrier_wait(&thread_management.tm_start_barrier);
+
     if (microphone_jack_device != NULL) {
-        thread_descriptor_t *desc = (thread_descriptor_t *)arg;
-
-        /* Initialization Code. */
-        pthread_barrier_wait(&thread_management.tm_create_barrier);
-
-        /* Wait for all other threads to start. */
-        pthread_barrier_wait(&thread_management.tm_start_barrier);
         gpio_switch_monitor(desc->td_name,
                             "microphone",
                             microphone_jack_device,
