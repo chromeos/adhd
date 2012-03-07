@@ -51,13 +51,13 @@ static unsigned execute_commands(const char **c)
 
             snprintf(cmd, len, "%s %s", amixer, c[0]);
             result = utils_execute_command(cmd);
-            free(cmd);
 
             if (result == 0) {
                 verbose_log(0, LOG_WARNING, "%s: '%s': failure",
                             __FUNCTION__, cmd);
                 return 0;
             }
+            free(cmd);
         }
         ++c;
     }
