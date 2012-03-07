@@ -41,6 +41,10 @@ static void *gpio_headphone_monitor(void *arg)
                             SW_HEADPHONE_INSERT,
                             codec_headphone_insert,
                             codec_headphone_remove);
+    } else {
+        verbose_log(5, LOG_INFO,
+                    "%s: no headphone switch; thread exiting",
+                    __FUNCTION__);
     }
     return NULL;
 }
@@ -49,10 +53,10 @@ static void *gpio_headphone_monitor(void *arg)
 static void *gpio_microphone_monitor(void *arg)
 {
     thread_descriptor_t *desc = (thread_descriptor_t *)arg;
-    
+
     /* Initialization Code. */
     pthread_barrier_wait(&thread_management.tm_create_barrier);
-    
+
     /* Wait for all other threads to start. */
     pthread_barrier_wait(&thread_management.tm_start_barrier);
 
@@ -63,6 +67,10 @@ static void *gpio_microphone_monitor(void *arg)
                             SW_MICROPHONE_INSERT,
                             codec_microphone_insert,
                             codec_microphone_remove);
+    } else {
+        verbose_log(5, LOG_INFO,
+                    "%s: no microphone switch; thread exiting",
+                    __FUNCTION__);
     }
     return NULL;
 }
