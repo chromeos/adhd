@@ -341,6 +341,10 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
 			       snd_strerror(rc));
 			return rc;
 		}
+		if (*frames == 0) {
+			syslog(LOG_ERR, "mmap_begin set frames to 0.");
+			return -EIO;
+		}
 		*dst = (uint8_t *)my_areas[0].addr + (*offset) * format_bytes;
 		return 0;
 	}
