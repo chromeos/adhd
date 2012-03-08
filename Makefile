@@ -12,6 +12,8 @@ all:	gavd adhdinfo cras
 
 adhdinfo gavd::	lib
 
+gavd::		cras
+
 lib gavd adhdinfo::
 	@$(call remake,Building,$@,Makefile,$@)
 
