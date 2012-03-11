@@ -5,9 +5,13 @@
 CWARN=
 CFLAGS=
 
-cras:
+$(ADHD_DIR)/cras/configure: $(ADHD_DIR)/cras/configure.ac \
+                            $(ADHD_DIR)/cras/Makefile.am
 	(cd $(ADHD_DIR)/cras		&&	\
-	$(ADHD_DIR)/cras/git_prepare.sh	&&	\
+	$(ADHD_DIR)/cras/git_prepare.sh)
+
+$(ADHD_DIR)/cras/Makefile: $(ADHD_DIR)/cras/configure
+	(cd $(ADHD_DIR)/cras		&&	\
 	$(ADHD_DIR)/cras/configure		\
 	    --build=$(CBUILD)			\
 	    --host=$(CHOST)			\
@@ -16,7 +20,10 @@ cras:
 	    --infodir=/usr/share/info		\
 	    --datadir=/usr/share		\
 	    --sysconfdir=/etc			\
-	    --localstatedir=/var/lib	&&	\
+	    --localstatedir=/var/lib)
+
+cras: $(ADHD_DIR)/cras/Makefile
+	(cd $(ADHD_DIR)/cras		&&	\
 	$(MAKE) -f $(ADHD_DIR)/cras/Makefile)
 
 cras_install:
