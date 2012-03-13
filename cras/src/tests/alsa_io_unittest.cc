@@ -1043,6 +1043,10 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 {
   return 0;
 }
+int cras_alsa_attempt_resume(snd_pcm_t *handle)
+{
+  return 0;
+}
 
 //  From util.
 int cras_set_rt_scheduling(int rt_lim)
@@ -1078,6 +1082,11 @@ int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count)
 int snd_pcm_format_physical_width(snd_pcm_format_t format)
 {
   return 16;
+}
+
+snd_pcm_state_t snd_pcm_state(snd_pcm_t *handle)
+{
+  return SND_PCM_STATE_RUNNING;
 }
 
 const char *snd_strerror(int errnum)

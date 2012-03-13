@@ -13,7 +13,9 @@
 #include "cras_util.h"
 
 /* Chances to give mmap_begin to work. */
-#define MAX_MMAP_BEGIN_ATTEMPTS 3
+static const size_t MAX_MMAP_BEGIN_ATTEMPTS = 3;
+/* Time to sleep between resume attempts. */
+static const size_t ALSA_SUSPENDED_SLEEP_TIME_US = 250000;
 
 /* What rates should we check for on this dev?
  * Listed in order of preference. 0 terminalted. */
@@ -297,6 +299,24 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 	return 0;
 }
 
+int cras_alsa_attempt_resume(snd_pcm_t *handle)
+{
+	int rc;
+
+	syslog(LOG_DEBUG, "System suspended.");
+	while ((rc = snd_pcm_resume(handle)) == -EAGAIN)
+		usleep(ALSA_SUSPENDED_SLEEP_TIME_US);
+	if (rc < 0) {
+		syslog(LOG_ERR, "System suspended, failed to resume %s.",
+		       snd_strerror(rc));
+		rc = snd_pcm_prepare(handle);
+		if (rc < 0)
+			syslog(LOG_ERR, "Suspended, failed to prepare: %s.",
+			       snd_strerror(rc));
+	}
+	return rc;
+}
+
 int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
 			 snd_pcm_uframes_t *frames, size_t *underruns)
@@ -307,11 +327,16 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
 
 	while (attempts++ < MAX_MMAP_BEGIN_ATTEMPTS) {
 		rc = snd_pcm_mmap_begin(handle, &my_areas, offset, frames);
-		if (rc < 0) {
-			rc = snd_pcm_recover(handle, rc, 0);
-			*underruns = *underruns + 1;
-			if (rc == 0)
+		if (rc == -ESTRPIPE) {
+			/* First handle suspend/resume. */
+			rc = cras_alsa_attempt_resume(handle);
+			if (rc < 0)
 				return rc;
+		} else if (rc < 0) {
+			*underruns = *underruns + 1;
+			/* If we can recover, continue and try again. */
+			if (snd_pcm_recover(handle, rc, 0) == 0)
+				continue;
 			syslog(LOG_ERR, "recover failed begin: %s\n",
 			       snd_strerror(rc));
 			return rc;
@@ -331,12 +356,21 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 	res = snd_pcm_mmap_commit(handle, offset, frames);
 	if (res != frames) {
 		res = res >= 0 ? (int)-EPIPE : res;
-		*underruns = *underruns + 1;
-		rc = snd_pcm_recover(handle, res, 0);
-		if (rc < 0) {
-			syslog(LOG_ERR, "recover failed commit: %s\n",
-			       snd_strerror(rc));
-			return rc;
+		if (res == -ESTRPIPE) {
+			/* First handle suspend/resume. */
+			rc = cras_alsa_attempt_resume(handle);
+			if (rc < 0)
+				return rc;
+		} else {
+			*underruns = *underruns + 1;
+			/* If we can recover, continue and try again. */
+			rc = snd_pcm_recover(handle, res, 0);
+			if (rc < 0) {
+				syslog(LOG_ERR,
+				       "mmap_commit: pcm_recover failed: %s\n",
+				       snd_strerror(rc));
+				return rc;
+			}
 		}
 	}
 	return 0;
