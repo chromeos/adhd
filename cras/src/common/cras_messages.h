@@ -124,7 +124,7 @@ struct cras_set_system_volume {
 	struct cras_server_message header;
 	size_t volume;
 };
-static inline void fill_cras_set_system_volume(
+static inline void cras_fill_set_system_volume(
 		struct cras_set_system_volume *m,
 		size_t volume)
 {
@@ -138,7 +138,7 @@ struct cras_set_system_mute {
 	struct cras_server_message header;
 	int mute; /* 0 = un-mute, 1 = mute. */
 };
-static inline void fill_cras_set_system_mute(
+static inline void cras_fill_set_system_mute(
 		struct cras_set_system_mute *m,
 		int mute)
 {

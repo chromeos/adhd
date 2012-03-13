@@ -1054,7 +1054,7 @@ int cras_client_connect(struct cras_client *client)
 
 	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (client->server_fd < 0) {
-		syslog(LOG_ERR, "client_connect: Socket failed.");
+		syslog(LOG_ERR, "%s: Socket failed.", __FUNCTION__);
 		return client->server_fd;
 	}
 
@@ -1070,7 +1070,7 @@ int cras_client_connect(struct cras_client *client)
 		      sizeof(struct sockaddr_un));
 	if (rc != 0) {
 		close(client->server_fd);
-		syslog(LOG_ERR, "client_connect: Connect to server_fd failed.");
+		syslog(LOG_ERR, "%s: Connect to server failed.", __FUNCTION__);
 		return rc;
 	}
 
@@ -1209,7 +1209,7 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume)
 	if (client == NULL)
 		return -EINVAL;
 
-	fill_cras_set_system_volume(&msg, volume);
+	cras_fill_set_system_volume(&msg, volume);
 	return write_message_to_server(client, &msg.header);
 }
 
@@ -1220,7 +1220,7 @@ int cras_client_set_system_mute(struct cras_client *client, int mute)
 	if (client == NULL)
 		return -EINVAL;
 
-	fill_cras_set_system_mute(&msg, mute);
+	cras_fill_set_system_mute(&msg, mute);
 	return write_message_to_server(client, &msg.header);
 }
 
