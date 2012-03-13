@@ -196,6 +196,13 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume);
  */
 int cras_client_set_system_mute(struct cras_client *client, int mute);
 
+int cras_client_notify_device(struct cras_client *client,
+                              unsigned action,
+                              unsigned card_number,
+                              unsigned device_number,
+                              unsigned active,
+                              unsigned internal,
+                              unsigned primary);
 /*
  * Utility functions.
  */

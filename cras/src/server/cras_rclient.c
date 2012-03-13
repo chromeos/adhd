@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
 
@@ -159,6 +160,14 @@ static int handle_switch_stream_type_iodev(
 	return cras_iodev_move_stream_type(msg->stream_type, msg->iodev_idx);
 }
 
+static void handle_notify_device_info(const struct cras_notify_device_info *msg)
+{
+	syslog(LOG_DEBUG,
+	       "action: %u  card: %u  device: %u  act: %u  int: %u  pri: %u",
+	       msg->action, msg->card_number, msg->device_number,
+	       msg->active, msg->internal, msg->primary);
+}
+
 /*
  * Exported Functions.
  */
@@ -220,6 +229,12 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_system_set_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
+	case CRAS_SERVER_NOTIFY_DEVICE_INFO: {
+		const struct cras_notify_device_info *m =
+			(const struct cras_notify_device_info *)msg;
+		handle_notify_device_info(m);
+		break;
+        }
 	default:
 		break;
 	}

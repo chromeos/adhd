@@ -26,6 +26,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV,
 	CRAS_SERVER_SET_SYSTEM_VOLUME,
 	CRAS_SERVER_SET_SYSTEM_MUTE,
+	CRAS_SERVER_NOTIFY_DEVICE_INFO,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -144,6 +145,39 @@ static inline void cras_fill_set_system_mute(
 {
 	m->mute = mute;
 	m->header.id = CRAS_SERVER_SET_SYSTEM_MUTE;
+	m->header.length = sizeof(*m);
+}
+
+enum cras_notify_device_action { /* Must match gavd action definitions.  */
+	CRAS_DEVICE_ACTION_ADD    = 0,
+	CRAS_DEVICE_ACTION_REMOVE = 1,
+	CRAS_DEVICE_ACTION_CHANGE = 2,
+};
+
+struct cras_notify_device_info {
+	struct cras_server_message header;
+	enum cras_notify_device_action action;
+	unsigned card_number;
+	unsigned device_number;
+	unsigned active;
+	unsigned internal;
+	unsigned primary;
+};
+static inline void cras_set_device_info(struct cras_notify_device_info *m,
+					unsigned action,
+					unsigned card_number,
+					unsigned device_number,
+					unsigned active,
+					unsigned internal,
+					unsigned primary)
+{
+	m->action = action;
+	m->card_number = card_number;
+	m->device_number = device_number;
+	m->active = active;
+	m->internal = internal;
+	m->primary = primary;
+	m->header.id = CRAS_SERVER_NOTIFY_DEVICE_INFO;
 	m->header.length = sizeof(*m);
 }
 
