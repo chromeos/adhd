@@ -44,9 +44,8 @@ void cras_audio_format_destroy(struct cras_audio_format *fmt);
  */
 static inline size_t cras_get_format_bytes(const struct cras_audio_format *fmt)
 {
-	size_t bytes = snd_pcm_format_physical_width(fmt->format) / 8;
-	bytes = bytes * fmt->num_channels;
-	return bytes;
+	const int bytes = snd_pcm_format_physical_width(fmt->format) / 8;
+	return (size_t)bytes * fmt->num_channels;
 }
 
 /* Unique identifier for each active stream.
@@ -57,7 +56,8 @@ typedef uint32_t cras_stream_id_t;
 static inline cras_stream_id_t cras_get_stream_id(uint16_t client_id,
 						  uint16_t stream_id)
 {
-	return ((client_id & 0x0000ffff) << 16) | (stream_id & 0x0000ffff);
+	return (cras_stream_id_t)(((client_id & 0x0000ffff) << 16) |
+				  (stream_id & 0x0000ffff));
 }
 
 #endif /* CRAS_TYPES_H_ */
