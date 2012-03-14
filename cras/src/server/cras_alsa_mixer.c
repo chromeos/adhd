@@ -11,16 +11,6 @@
 #include "cras_util.h"
 #include "utlist.h"
 
-/* Alsa names of the form "hw:X". */
-#define MAX_ALSA_PCM_NAME_LENGTH 5
-
-/* Control names to look for to control the main volume of an alsa device. */
-static const char * const main_volume_control_names[] = {
-	"Master",
-	"Digital",
-	"PCM"
-};
-
 /* Represents an ALSA volume control element. Each device can have several
  * volume controls in the path to the output, a list of these will be used to
  * represent that so we can used each volume control in sequence. */
@@ -68,20 +58,44 @@ fail_after_open:
 	return NULL;
 }
 
-/* Checks if the given element is one of the main mixer controls by
- * matching against the standard control names. */
-static int is_main_volume_control(snd_mixer_elem_t *elem)
+/* Checks if the given element's name is in the list. */
+static int name_in_list(const char *name,
+			const char * const list[],
+			size_t len)
 {
-	const char *name;
 	size_t i;
 
-	name = snd_mixer_selem_get_name(elem);
-	for (i = 0; i < ARRAY_SIZE(main_volume_control_names); i++) {
-		if (strcmp(main_volume_control_names[i], name) == 0) {
-			syslog(LOG_DEBUG, "- Add volume control %s.", name);
+	for (i = 0; i < len; i++)
+		if (strcmp(list[i], name) == 0)
 			return 1;
+	return 0;
+}
+
+/* Adds the main volume control to the list and grabs the first seen playback
+ * switch to use for mute. */
+static int add_main_volume_control(struct cras_alsa_mixer *cmix,
+				   snd_mixer_elem_t *elem)
+{
+	if (snd_mixer_selem_has_playback_volume(elem)) {
+		struct mixer_volume_control *c;
+
+		c = calloc(1, sizeof(*c));
+		if (c == NULL) {
+			syslog(LOG_ERR, "No memory for mixer.");
+			return -ENOMEM;
 		}
+
+		c->elem = elem;
+
+		DL_APPEND(cmix->main_volume_controls, c);
 	}
+
+	/* If cmix doesn't yet have a playback switch and this is a playback
+	 * switch, use it. */
+	if (cmix->playback_switch == NULL &&
+			snd_mixer_selem_has_playback_switch(elem))
+		cmix->playback_switch = elem;
+
 	return 0;
 }
 
@@ -91,6 +105,12 @@ static int is_main_volume_control(snd_mixer_elem_t *elem)
 
 struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 {
+	/* Names of controls for main system volume. */
+	static const char * const main_volume_names[] = {
+		"Master",
+		"Digital",
+		"PCM",
+	};
 	snd_mixer_elem_t *elem;
 	struct cras_alsa_mixer *cmix;
 
@@ -109,29 +129,18 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 	/* Find volume and mute controls. */
 	for(elem = snd_mixer_first_elem(cmix->mixer);
 			elem != NULL; elem = snd_mixer_elem_next(elem)) {
-		if (!is_main_volume_control(elem))
+		const char *name;
+
+		name = snd_mixer_selem_get_name(elem);
+		if (name == NULL)
 			continue;
 
-		if (snd_mixer_selem_has_playback_volume(elem)) {
-			struct mixer_volume_control *c;
-
-			c = calloc(1, sizeof(*c));
-			if (c == NULL) {
+		if (name_in_list(name, main_volume_names,
+				 ARRAY_SIZE(main_volume_names))) {
+			if (add_main_volume_control(cmix, elem) != 0) {
 				cras_alsa_mixer_destroy(cmix);
-				syslog(LOG_ERR, "No memory for mixer.");
 				return NULL;
 			}
-
-			c->elem = elem;
-
-			DL_APPEND(cmix->main_volume_controls, c);
-		}
-
-		/* Grab the first playback switch along the main output path.
-		 * Ignore other switches in the path one mute is sufficient. */
-		if (cmix->playback_switch == NULL &&
-		    snd_mixer_selem_has_playback_switch(elem)) {
-			cmix->playback_switch = elem;
 		}
 	}
 
