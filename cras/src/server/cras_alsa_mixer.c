@@ -19,6 +19,17 @@ struct mixer_volume_control {
 	struct mixer_volume_control *prev, *next;
 };
 
+/* Represents an ALSA control element related to a specific output such as
+ * speakers or headphones.  A device can have several of these, each potentially
+ * having independent volume and mute controls. */
+ struct mixer_output_control {
+	snd_mixer_elem_t *elem;
+	int has_volume; /* non-zero indicates there is a volume control. */
+	int has_mute; /* non-zero indicates there is a mute switch. */
+	size_t device_number; /* Device associated with this control. */
+	struct mixer_output_control *prev, *next;
+};
+
 /* Holds a reference to the opened mixer and the volume controls.
  * mixer - Pointer to the opened alsa mixer.
  * main_volume_controls - List of volume controls (normally 'Master' and 'PCM').
@@ -26,6 +37,7 @@ struct mixer_volume_control {
 struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
 	struct mixer_volume_control *main_volume_controls;
+	struct mixer_output_control *output_controls;
 	snd_mixer_elem_t *playback_switch;
 };
 
@@ -99,6 +111,32 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 	return 0;
 }
 
+/* Adds an output control to the list for the specified device. */
+static int add_output_control(struct cras_alsa_mixer *cmix,
+			      snd_mixer_elem_t *elem,
+			      size_t device_index)
+{
+	int index; /* Index part of mixer simple element */
+	struct mixer_output_control *c;
+
+	index = snd_mixer_selem_get_index(elem);
+	syslog(LOG_DEBUG, "Add output control for dev %zu: %s,%d\n",
+	       device_index, snd_mixer_selem_get_name(elem), index);
+
+	c = calloc(1, sizeof(*c));
+	if (c == NULL) {
+		syslog(LOG_ERR, "No memory for output control.");
+		return -ENOMEM;
+	}
+
+	c->elem = elem;
+	c->has_volume = snd_mixer_selem_has_playback_volume(elem);
+	c->has_mute = snd_mixer_selem_has_playback_switch(elem);
+	DL_APPEND(cmix->output_controls, c);
+
+	return 0;
+}
+
 /*
  * Exported interface.
  */
@@ -110,6 +148,11 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 		"Master",
 		"Digital",
 		"PCM",
+	};
+	/* Names of controls for individual outputs. */
+	static const char * const output_names[] = {
+		"Headphone",
+		"Speaker",
 	};
 	snd_mixer_elem_t *elem;
 	struct cras_alsa_mixer *cmix;
@@ -142,6 +185,15 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 				return NULL;
 			}
 		}
+
+		if (name_in_list(name, output_names,
+				 ARRAY_SIZE(output_names))) {
+			/* TODO(dgreid) - determine device index. */
+			if (add_output_control(cmix, elem, 0) != 0) {
+				cras_alsa_mixer_destroy(cmix);
+				return NULL;
+			}
+		}
 	}
 
 	return cmix;
@@ -150,12 +202,17 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 {
 	struct mixer_volume_control *c, *tmp;
+	struct mixer_output_control *output, *output_tmp;
 
 	assert(cras_mixer);
 
 	DL_FOREACH_SAFE(cras_mixer->main_volume_controls, c, tmp) {
 		DL_DELETE(cras_mixer->main_volume_controls, c);
 		free(c);
+	}
+	DL_FOREACH_SAFE(cras_mixer->output_controls, output, output_tmp) {
+		DL_DELETE(cras_mixer->output_controls, output);
+		free(output);
 	}
 	snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
