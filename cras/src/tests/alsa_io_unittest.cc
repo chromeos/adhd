@@ -96,7 +96,7 @@ TEST(AlsaIoInit, InitializePlayback) {
 
   ResetStubData();
   mixer_create_return_value = fake_mixer;
-  aio = (struct alsa_io *)alsa_iodev_create("hw:0,0",
+  aio = (struct alsa_io *)alsa_iodev_create(0, 0,
                                             fake_mixer,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -113,7 +113,7 @@ TEST(AlsaIoInit, InitializeCapture) {
   struct alsa_io *aio;
 
   ResetStubData();
-  aio = (struct alsa_io *)alsa_iodev_create("hw:0,0",
+  aio = (struct alsa_io *)alsa_iodev_create(0, 0,
                                             fake_mixer,
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -223,9 +223,9 @@ TEST(AlsaTimeStampTestSuite, FillTimeFromFramesShort) {
 class AlsaAddStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_output_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
+      aio_output_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
           CRAS_STREAM_OUTPUT);
-      aio_input_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
+      aio_input_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
           CRAS_STREAM_INPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -441,7 +441,7 @@ TEST_F(AlsaAddStreamSuite, OneInputStreamPerDevice) {
 class AlsaCaptureStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
+      aio_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
           CRAS_STREAM_INPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -610,7 +610,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
 class AlsaPlaybackStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_ = (struct alsa_io *)alsa_iodev_create("hw:0,0", fake_mixer,
+      aio_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
           CRAS_STREAM_OUTPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;

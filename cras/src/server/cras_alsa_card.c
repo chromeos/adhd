@@ -13,7 +13,6 @@
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
 #define MAX_ALSA_PCM_NAME_LENGTH 6 /* Alsa names "hw:XX" + 1 for null. */
-#define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 
 struct iodev_list_node {
 	struct cras_iodev *iodev;
@@ -29,7 +28,8 @@ struct cras_alsa_card {
 
 /* Creates an iodev for the given device. */
 static struct iodev_list_node *create_iodev_for_device(
-		const char *dev_name,
+		size_t card_index,
+		size_t device_index,
 		struct cras_alsa_mixer *mixer,
 		enum CRAS_STREAM_DIRECTION direction)
 {
@@ -38,7 +38,8 @@ static struct iodev_list_node *create_iodev_for_device(
 	new_dev = calloc(1, sizeof(*calloc));
 	if (new_dev == NULL)
 		return NULL;
-	new_dev->iodev = alsa_iodev_create(dev_name, mixer, direction);
+	new_dev->iodev =
+		alsa_iodev_create(card_index, device_index, mixer, direction);
 	if (new_dev->iodev == NULL) {
 		free(new_dev);
 		return NULL;
@@ -56,7 +57,6 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 	snd_ctl_t *handle = NULL;
 	int rc, dev_idx;
 	snd_pcm_info_t *dev_info;
-	char dev_name[MAX_ALSA_DEV_NAME_LENGTH + 1];
 	struct cras_alsa_card *alsa_card;
 
 	if (card_idx >= MAX_ALSA_CARDS) {
@@ -93,11 +93,6 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		snd_ctl_pcm_next_device(handle, &dev_idx);
 		if (dev_idx < 0)
 			break;
-		snprintf(dev_name,
-			 MAX_ALSA_DEV_NAME_LENGTH,
-			 "hw:%zu,%d",
-			 card_idx,
-			 dev_idx);
 
 		snd_pcm_info_set_device(dev_info, dev_idx);
 		snd_pcm_info_set_subdevice(dev_info, 0);
@@ -108,7 +103,8 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		if (rc == 0) {
 			struct iodev_list_node *new_dev;
 
-			new_dev = create_iodev_for_device(dev_name,
+			new_dev = create_iodev_for_device(card_idx,
+							  dev_idx,
 							  alsa_card->mixer,
 							  CRAS_STREAM_OUTPUT);
 			if (new_dev != NULL) {
@@ -124,7 +120,8 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		if (rc == 0) {
 			struct iodev_list_node *new_dev;
 
-			new_dev = create_iodev_for_device(dev_name,
+			new_dev = create_iodev_for_device(card_idx,
+							  dev_idx,
 							  alsa_card->mixer,
 							  CRAS_STREAM_INPUT);
 			if (new_dev != NULL) {

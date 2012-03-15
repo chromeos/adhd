@@ -18,7 +18,8 @@ struct cras_alsa_mixer;
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
-struct cras_iodev *alsa_iodev_create(const char *dev,
+struct cras_iodev *alsa_iodev_create(size_t card_index,
+				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     enum CRAS_STREAM_DIRECTION direction);
 

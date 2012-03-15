@@ -34,10 +34,12 @@
 #define MIN_READ_WAIT_US 2000 /* 2ms */
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
+#define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 
 /* Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
  * base - The cras_iodev structure "base class".
  * dev - String that names this device (e.g. "hw:0,0").
+ * device_index - ALSA index of device, Y in "hw:X:Y".
  * handle - Handle to the opened ALSA device.
  * buffer_size - Size of the ALSA buffer in frames.
  * used_size - Number of frames that are used for audio.
@@ -55,6 +57,7 @@
 struct alsa_io {
 	struct cras_iodev base;
 	char *dev;
+	size_t device_index;
 	snd_pcm_t *handle;
 	snd_pcm_uframes_t buffer_size;
 	snd_pcm_uframes_t used_size;
@@ -929,7 +932,8 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
  * Exported Interface.
  */
 
-struct cras_iodev *alsa_iodev_create(const char *dev,
+struct cras_iodev *alsa_iodev_create(size_t card_index,
+				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     enum CRAS_STREAM_DIRECTION direction)
 {
@@ -937,17 +941,20 @@ struct cras_iodev *alsa_iodev_create(const char *dev,
 	struct cras_iodev *iodev;
 	int err;
 
-	if (dev == NULL)
-		return NULL;
-
 	aio = (struct alsa_io *)malloc(sizeof(*aio));
 	if (!aio)
 		return NULL;
 	memset(aio, 0, sizeof(*aio));
 	iodev = &aio->base;
-	aio->dev = strdup(dev);
+	aio->device_index = device_index;
+	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
 	if (aio->dev == NULL)
 		goto cleanup_iodev;
+	snprintf(aio->dev,
+		 MAX_ALSA_DEV_NAME_LENGTH,
+		 "hw:%zu,%zu",
+		 card_index,
+		 device_index);
 	aio->to_thread_fds[0] = -1;
 	aio->to_thread_fds[1] = -1;
 	aio->to_main_fds[0] = -1;

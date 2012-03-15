@@ -202,7 +202,8 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer) {
   cras_alsa_mixer_destroy_called++;
 }
 
-struct cras_iodev *alsa_iodev_create(const char *dev,
+struct cras_iodev *alsa_iodev_create(size_t card_index,
+				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     enum CRAS_STREAM_DIRECTION direction) {
   cras_alsa_iodev_create_called++;
