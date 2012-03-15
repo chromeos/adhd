@@ -141,7 +141,7 @@ static void set_alsa_volume(size_t volume, void *arg)
 				 cras_system_get_mute() || volume == 0);
 }
 
-/* Sets the mute of the playback device to the specified level. */
+/* Sets or unsets mute on the playback device. */
 static void set_alsa_mute(int mute, void *arg)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)arg;
