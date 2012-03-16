@@ -122,19 +122,11 @@ static void setup_release_environment(void)
     }
 }
 
-static void daemonize(void)
+static void gavd(void)
 {
-    pid_t       child_pid;
     const char *operational_mode;
 
     VERBOSE_FUNCTION_ENTER("%s", "void");
-    child_pid = fork();
-    if (child_pid != 0) {
-        verbose_log(0, LOG_INFO, "Child process: '%u'.", child_pid);
-        exit(0);
-    }
-
-    /* Now running as daemon. */
 
     assert(arg_release_mode == 0 || arg_release_mode == 1);
     if (arg_release_mode) {
@@ -164,7 +156,7 @@ int main(int argc, char **argv)
     verbose_log(0, LOG_INFO, "compiled for target machine: '%s'",
                 ADHD_TARGET_MACHINE);
 
-    daemonize();
+    gavd();
 
     verbose_finalize();
     verbose_log(0, LOG_INFO, "daemon exited");
