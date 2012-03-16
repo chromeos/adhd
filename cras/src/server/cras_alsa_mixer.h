@@ -71,4 +71,9 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 				  cras_alsa_mixer_output_callback cb,
 				  void *cb_arg);
 
+/* Sets the given output active or inactive. */
+int cras_alsa_mixer_set_output_active_state(
+		struct cras_alsa_mixer_output *output,
+		int active);
+
 #endif /* _CRAS_ALSA_MIXER_H */

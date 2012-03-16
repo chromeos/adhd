@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <gtest/gtest.h>
+#include <vector>
 
 extern "C" {
 #include "cras_alsa_mixer.h"
@@ -34,6 +35,7 @@ static long *snd_mixer_selem_set_playback_dB_all_values;
 static int snd_mixer_selem_set_playback_dB_all_values_index;
 static int snd_mixer_selem_set_playback_dB_all_values_length;
 static int snd_mixer_selem_set_playback_switch_all_called;
+static int snd_mixer_selem_set_playback_switch_all_value;
 static int snd_mixer_selem_has_playback_volume_called;
 static int *snd_mixer_selem_has_playback_volume_return_values;
 static int snd_mixer_selem_has_playback_volume_return_values_index;
@@ -336,6 +338,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
 class AlsaMixerOutputs : public testing::Test {
   protected:
     virtual void SetUp() {
+      output_called_values_.clear();
       output_callback_called_ = 0;
       snd_mixer_elem_t *elements[] = {
         reinterpret_cast<snd_mixer_elem_t *>(1),
@@ -399,13 +402,17 @@ class AlsaMixerOutputs : public testing::Test {
 
     static void OutputCallback(struct cras_alsa_mixer_output *out, void *arg) {
       output_callback_called_++;
+      output_called_values_.push_back(out);
     }
 
   struct cras_alsa_mixer *cras_mixer_;
   static size_t output_callback_called_;
+  static std::vector<struct cras_alsa_mixer_output *> output_called_values_;
 };
 
 size_t AlsaMixerOutputs::output_callback_called_;
+std::vector<struct cras_alsa_mixer_output *>
+    AlsaMixerOutputs::output_called_values_;
 
 TEST_F(AlsaMixerOutputs, CheckNoOutputsForDeviceOne) {
   cras_alsa_mixer_list_outputs(cras_mixer_,
@@ -421,6 +428,23 @@ TEST_F(AlsaMixerOutputs, CheckTwoOutputsForDeviceZero) {
                                AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
   EXPECT_EQ(2, output_callback_called_);
+}
+
+TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
+  int rc;
+
+  cras_alsa_mixer_list_outputs(cras_mixer_,
+                               0,
+                               AlsaMixerOutputs::OutputCallback,
+                               reinterpret_cast<void*>(555));
+  EXPECT_EQ(2, output_callback_called_);
+  EXPECT_EQ(2, output_called_values_.size());
+
+  rc = cras_alsa_mixer_set_output_active_state(output_called_values_[0], 0);
+  ASSERT_EQ(0, rc);
+  EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
+  cras_alsa_mixer_set_output_active_state(output_called_values_[0], 1);
+  EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
 }
 
 /* Stubs */
@@ -517,6 +541,7 @@ int snd_mixer_selem_get_playback_dB(snd_mixer_elem_t *elem,
 }
 int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value) {
   snd_mixer_selem_set_playback_switch_all_called++;
+  snd_mixer_selem_set_playback_switch_all_value = value;
   return 0;
 }
 } /* extern "C" */

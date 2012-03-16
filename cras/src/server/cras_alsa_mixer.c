@@ -263,3 +263,13 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 		if (output->properties.device_index == device_index)
 			cb(&output->properties, cb_arg);
 }
+
+int cras_alsa_mixer_set_output_active_state(
+		struct cras_alsa_mixer_output *output,
+		int active)
+{
+	assert(output);
+	if (!output->has_mute)
+		return -1;
+	return snd_mixer_selem_set_playback_switch_all(output->elem, active);
+}
