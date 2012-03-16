@@ -49,11 +49,10 @@ static size_t cras_mix_add_stream_count;
 static int cras_mix_add_stream_dont_fill_next;
 static size_t cras_rstream_request_audio_called;
 static size_t cras_alsa_fill_properties_called;
-static struct cras_alsa_mixer *mixer_destroy_value;
-static struct cras_alsa_mixer *mixer_create_return_value;
 static size_t alsa_mixer_set_dBFS_called;
 static int alsa_mixer_set_dBFS_value;
-static size_t mixer_destroy_called;
+static size_t cras_alsa_mixer_list_outputs_called;
+static size_t cras_alsa_mixer_list_outputs_device_value;
 static cras_system_volume_changed_cb sys_register_volume_cb_value;
 static void * sys_register_volume_cb_arg;
 static size_t sys_register_volume_cb_called;
@@ -67,6 +66,12 @@ static size_t sys_register_mute_cb_called;
 static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
 static struct cras_alsa_mixer *fake_mixer = (struct cras_alsa_mixer *)1;
+static struct cras_alsa_mixer_output **cras_alsa_mixer_list_outputs_outputs;
+static size_t cras_alsa_mixer_list_outputs_outputs_length;
+static size_t cras_alsa_mixer_set_output_active_state_called;
+static std::vector<struct cras_alsa_mixer_output *>
+    cras_alsa_mixer_set_output_active_state_outputs;
+static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -79,13 +84,17 @@ void ResetStubData() {
   select_max_fd = -1;
   cras_mix_add_stream_dont_fill_next = 0;
   cras_alsa_fill_properties_called = 0;
-  mixer_destroy_called = 0;
   sys_register_volume_cb_called = 0;
   sys_get_volume_called = 0;
   alsa_mixer_set_dBFS_called = 0;
   sys_register_mute_cb_called = 0;
   sys_get_mute_called = 0;
   alsa_mixer_set_mute_called = 0;
+  cras_alsa_mixer_list_outputs_called = 0;
+  cras_alsa_mixer_list_outputs_outputs_length = 0;
+  cras_alsa_mixer_set_output_active_state_called = 0;
+  cras_alsa_mixer_set_output_active_state_outputs.clear();
+  cras_alsa_mixer_set_output_active_state_values.clear();
 }
 
 namespace {
@@ -95,7 +104,6 @@ TEST(AlsaIoInit, InitializePlayback) {
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
 
   ResetStubData();
-  mixer_create_return_value = fake_mixer;
   aio = (struct alsa_io *)alsa_iodev_create(0, 0,
                                             fake_mixer,
                                             CRAS_STREAM_OUTPUT);
@@ -103,10 +111,10 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-  EXPECT_EQ(1, mixer_destroy_called);
-  EXPECT_EQ(fake_mixer, mixer_destroy_value);
 }
 
 TEST(AlsaIoInit, InitializeCapture) {
@@ -217,6 +225,45 @@ TEST(AlsaTimeStampTestSuite, FillTimeFromFramesShort) {
   fill_time_from_frames(12000, 12000, 48000, &ts);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
+}
+
+//  Test handling of different amounts of outputs.
+TEST(AlsaOutputNode, TwoOutputs) {
+  int rc;
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  struct cras_alsa_mixer_output *outputs[] = {
+    reinterpret_cast<struct cras_alsa_mixer_output *>(3),
+    reinterpret_cast<struct cras_alsa_mixer_output *>(4),
+  };
+  struct cras_alsa_mixer_output *fake_output =
+      reinterpret_cast<struct cras_alsa_mixer_output *>(7);
+
+  ResetStubData();
+  cras_alsa_mixer_list_outputs_outputs = outputs;
+  cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
+  aio = (struct alsa_io *)alsa_iodev_create(0, 0,
+                                            fake_mixer,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
+
+  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
+  EXPECT_EQ(-EINVAL, rc);
+  ResetStubData();
+  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, outputs[0]);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2, alsa_mixer_set_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  ASSERT_EQ(2, cras_alsa_mixer_set_output_active_state_called);
+  EXPECT_EQ(outputs[0], cras_alsa_mixer_set_output_active_state_outputs[0]);
+  EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[0]);
+  EXPECT_EQ(outputs[1], cras_alsa_mixer_set_output_active_state_outputs[1]);
+  EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
 //  Test thread add/rm stream, open_alsa, and iodev config.
@@ -1118,18 +1165,6 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
   return *count;
 }
 
-//  From alsa_mixer.
-struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
-{
-  return mixer_create_return_value;
-}
-
-void cras_alsa_mixer_destroy(struct cras_alsa_mixer *m)
-{
-  mixer_destroy_value = m;
-  mixer_destroy_called++;
-}
-
 //  From system_settings.
 size_t cras_system_get_volume()
 {
@@ -1170,6 +1205,27 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *m, int mute)
 {
   alsa_mixer_set_mute_called++;
   alsa_mixer_set_mute_value = mute;
+}
+
+void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
+				  size_t device_index,
+				  cras_alsa_mixer_output_callback cb,
+				  void *callback_arg)
+{
+  cras_alsa_mixer_list_outputs_called++;
+  cras_alsa_mixer_list_outputs_device_value = device_index;
+  for (size_t i = 0; i < cras_alsa_mixer_list_outputs_outputs_length; i++) {
+    cb(cras_alsa_mixer_list_outputs_outputs[i], callback_arg);
+  }
+}
+int cras_alsa_mixer_set_output_active_state(
+		struct cras_alsa_mixer_output *output,
+		int active)
+{
+  cras_alsa_mixer_set_output_active_state_called++;
+  cras_alsa_mixer_set_output_active_state_outputs.push_back(output);
+  cras_alsa_mixer_set_output_active_state_values.push_back(active);
+  return 0;
 }
 
 //  From cras_volume_curve.

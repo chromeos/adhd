@@ -36,6 +36,13 @@
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 
+/* Holds an output for this device.  An output is a control that can be switched
+ * on and off such as headphones or speakers. */
+struct alsa_output_node {
+	struct cras_alsa_mixer_output *mixer_output;
+	struct alsa_output_node *prev, *next;
+};
+
 /* Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
  * base - The cras_iodev structure "base class".
  * dev - String that names this device (e.g. "hw:0,0").
@@ -52,6 +59,7 @@
  * to_main_fds - Send a message to main from running thread.
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
+ * output_nodes - Alsa mixer outputs (Only used for output devices).
  * alsa_cb - Callback to fill or read samples (depends on direction).
  */
 struct alsa_io {
@@ -70,9 +78,10 @@ struct alsa_io {
 	int to_main_fds[2];
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
+	struct alsa_output_node *output_nodes;
+	struct alsa_output_node *active_output;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
-
 
 /* Configure the alsa device we will use. */
 static int open_alsa(struct alsa_io *aio)
@@ -909,6 +918,8 @@ static int rm_stream(struct cras_iodev *iodev,
  */
 static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
+	struct alsa_output_node *output, *tmp;
+
 	if (aio->to_thread_fds[0] != -1) {
 		close(aio->to_thread_fds[0]);
 		close(aio->to_thread_fds[1]);
@@ -921,11 +932,37 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		aio->to_main_fds[0] = -1;
 		aio->to_main_fds[1] = -1;
 	}
-	if (aio->mixer != NULL)
-		cras_alsa_mixer_destroy(aio->mixer);
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
+	DL_FOREACH_SAFE(aio->output_nodes, output, tmp) {
+		DL_DELETE(aio->output_nodes, output);
+		free(output);
+	}
 	free(aio->dev);
+}
+
+/* Callback for listing mixer outputs.  The mixer will call this once for each
+ * output associated with this device.  Most commonly this is used to tell the
+ * device it has Headphones and Speakers. */
+static void new_output(struct cras_alsa_mixer_output *cras_output,
+		       void *callback_arg)
+{
+	struct alsa_io *aio;
+	struct alsa_output_node *output;
+
+	aio = (struct alsa_io *)callback_arg;
+	if (aio == NULL) {
+		syslog(LOG_ERR, "Invalid aio when listing outputs.");
+		return;
+	}
+	output = (struct alsa_output_node *)calloc(1, sizeof(*output));
+	if (output == NULL) {
+		syslog(LOG_ERR, "Out of memory when listing outputs.");
+		return;
+	}
+
+	output->mixer_output = cras_output;
+	DL_APPEND(aio->output_nodes, output);
 }
 
 /*
@@ -987,6 +1024,13 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		goto cleanup_iodev;
 
 	aio->mixer = mixer;
+	cras_alsa_mixer_list_outputs(mixer, device_index, new_output, aio);
+
+	/* If we don't have separate outputs just make a default one. */
+	if (aio->output_nodes == NULL) {
+		new_output(NULL, aio);
+		aio->active_output = aio->output_nodes;
+	}
 
 	/* Start the device thread, it will block until a stream is added. */
 	if (pthread_create(&aio->tid, NULL, alsa_io_thread, aio))
@@ -1031,3 +1075,31 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 		free(iodev);
 }
 
+int alsa_iodev_set_active_output(struct cras_iodev *iodev,
+				 struct cras_alsa_mixer_output *active)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	struct alsa_output_node *output;
+	int found_output = 0;
+
+	set_alsa_mute(1, aio);
+	/* Unmute the acrtive input, mute all others. */
+	DL_FOREACH(aio->output_nodes, output) {
+		if (output->mixer_output == NULL)
+			continue;
+		if (output->mixer_output == active) {
+			aio->active_output = output;
+			found_output = 1;
+		}
+		cras_alsa_mixer_set_output_active_state(
+				output->mixer_output,
+				output->mixer_output == active);
+	}
+	if (!found_output) {
+		syslog(LOG_ERR, "Attempt to switch to non-existant output.");
+		return -EINVAL;
+	}
+	/* Setting the volume will also unmute if the system isn't muted. */
+	set_alsa_volume(cras_system_get_volume(), aio);
+	return 0;
+}
