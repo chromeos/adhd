@@ -183,9 +183,6 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
 	assert(cras_mixer);
 	if (cras_mixer->playback_switch == NULL)
 		return;
-	syslog(LOG_DEBUG, "Mute switch %s\n",
-	       snd_mixer_selem_get_name(cras_mixer->playback_switch));
-
 	snd_mixer_selem_set_playback_switch_all(cras_mixer->playback_switch,
 						!muted);
 }
