@@ -22,11 +22,8 @@ struct mixer_volume_control {
 /* Represents an ALSA control element related to a specific output such as
  * speakers or headphones.  A device can have several of these, each potentially
  * having independent volume and mute controls. */
- struct mixer_output_control {
-	snd_mixer_elem_t *elem;
-	int has_volume; /* non-zero indicates there is a volume control. */
-	int has_mute; /* non-zero indicates there is a mute switch. */
-	size_t device_number; /* Device associated with this control. */
+struct mixer_output_control {
+	struct cras_alsa_mixer_output properties;
 	struct mixer_output_control *prev, *next;
 };
 
@@ -129,9 +126,10 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 		return -ENOMEM;
 	}
 
-	c->elem = elem;
-	c->has_volume = snd_mixer_selem_has_playback_volume(elem);
-	c->has_mute = snd_mixer_selem_has_playback_switch(elem);
+	c->properties.elem = elem;
+	c->properties.has_volume = snd_mixer_selem_has_playback_volume(elem);
+	c->properties.has_mute = snd_mixer_selem_has_playback_switch(elem);
+	c->properties.device_index = device_index;
 	DL_APPEND(cmix->output_controls, c);
 
 	return 0;
@@ -253,3 +251,15 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
 						!muted);
 }
 
+void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
+				  size_t device_index,
+				  cras_alsa_mixer_output_callback cb,
+				  void *cb_arg)
+{
+	assert(cras_mixer);
+	struct mixer_output_control *output;
+
+	DL_FOREACH(cras_mixer->output_controls, output)
+		if (output->properties.device_index == device_index)
+			cb(&output->properties, cb_arg);
+}

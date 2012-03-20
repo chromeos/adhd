@@ -6,12 +6,21 @@
 #ifndef _CRAS_ALSA_MIXER_H
 #define _CRAS_ALSA_MIXER_H
 
+#include <alsa/asoundlib.h>
+
 /* cras_alsa_mixer represents the alsa mixer interface for an alsa card.  It
  * houses the volume and mute controls as well as playback switches for
  * headphones and mic.
  */
 
 struct cras_alsa_mixer;
+
+struct cras_alsa_mixer_output {
+	snd_mixer_elem_t *elem; /* ALSA mixer element. */
+	int has_volume; /* non-zero indicates there is a volume control. */
+	int has_mute; /* non-zero indicates there is a mute switch. */
+	size_t device_index; /* ALSA device index for this control. */
+};
 
 /* Creates a cras_alsa_mixer instance for the given alsa device.
  * Args:
@@ -45,5 +54,21 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
  *    muted - 1 if muted, 0 if not.
  */
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted);
+
+/* Invokes the provided callback once for each output associated with the given
+ * device number.  The callback will be provided with a reference to the control
+ * that can be queried to see what the control supports.
+ * Args:
+ *    cras_mixer - Mixer to set the volume in.
+ *    device_index - Y in hw:X,Y.
+ *    cb - Function to call for each output.
+ *    cb_arg - Argument to pass to cb.
+ */
+typedef void (*cras_alsa_mixer_output_callback)(
+		struct cras_alsa_mixer_output *output, void *arg);
+void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
+				  size_t device_index,
+				  cras_alsa_mixer_output_callback cb,
+				  void *cb_arg);
 
 #endif /* _CRAS_ALSA_MIXER_H */

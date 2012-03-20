@@ -333,106 +333,96 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   EXPECT_EQ(1, snd_mixer_close_called);
 }
 
-TEST(AlsaMixer, CreateTwoMainElementsWithHeadphoneAndSpeaker) {
-  struct cras_alsa_mixer *c;
-  snd_mixer_elem_t *elements[] = {
-    reinterpret_cast<snd_mixer_elem_t *>(1),
-    reinterpret_cast<snd_mixer_elem_t *>(2),
-    reinterpret_cast<snd_mixer_elem_t *>(3),
-  };
-  int element_playback_volume[] = {
-    1,
-    1,
-    1,
-    1,
-  };
-  int element_playback_switches[] = {
-    1,
-    1,
-    1,
-    1,
-  };
-  const char *element_names[] = {
-    "Master",
-    "PCM",
-    "Headphone",
-    "Headphone", /* Called twice because of log. */
-    "Speaker",
-    "Speaker",
-  };
+class AlsaMixerOutputs : public testing::Test {
+  protected:
+    virtual void SetUp() {
+      output_callback_called_ = 0;
+      snd_mixer_elem_t *elements[] = {
+        reinterpret_cast<snd_mixer_elem_t *>(1),
+        reinterpret_cast<snd_mixer_elem_t *>(2),
+        reinterpret_cast<snd_mixer_elem_t *>(3),
+      };
+      int element_playback_volume[] = {
+        1,
+        1,
+        1,
+        1,
+      };
+      int element_playback_switches[] = {
+        1,
+        1,
+        1,
+        1,
+      };
+      const char *element_names[] = {
+        "Master",
+        "PCM",
+        "Headphone",
+        "Headphone", /* Called twice because of log. */
+        "Speaker",
+        "Speaker",
+      };
 
-  ResetStubData();
-  snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
-  snd_mixer_elem_next_return_values = elements;
-  snd_mixer_elem_next_return_values_length = ARRAY_SIZE(elements);
-  snd_mixer_selem_has_playback_volume_return_values = element_playback_volume;
-  snd_mixer_selem_has_playback_volume_return_values_length =
-      ARRAY_SIZE(element_playback_volume);
-  snd_mixer_selem_has_playback_switch_return_values = element_playback_switches;
-  snd_mixer_selem_has_playback_switch_return_values_length =
-      ARRAY_SIZE(element_playback_switches);
-  snd_mixer_selem_get_name_return_values = element_names;
-  snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0");
-  ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
-  EXPECT_EQ(1, snd_mixer_open_called);
-  EXPECT_EQ(1, snd_mixer_attach_called);
-  EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
-  EXPECT_EQ(1, snd_mixer_selem_register_called);
-  EXPECT_EQ(1, snd_mixer_load_called);
-  EXPECT_EQ(0, snd_mixer_close_called);
-  EXPECT_EQ(4, snd_mixer_elem_next_called);
-  EXPECT_EQ(6, snd_mixer_selem_get_name_called);
-  EXPECT_EQ(4, snd_mixer_selem_has_playback_volume_called);
-  EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
+      ResetStubData();
+      snd_mixer_first_elem_return_value =
+          reinterpret_cast<snd_mixer_elem_t *>(1);
+      snd_mixer_elem_next_return_values = elements;
+      snd_mixer_elem_next_return_values_length = ARRAY_SIZE(elements);
+      snd_mixer_selem_has_playback_volume_return_values =
+          element_playback_volume;
+      snd_mixer_selem_has_playback_volume_return_values_length =
+        ARRAY_SIZE(element_playback_volume);
+      snd_mixer_selem_has_playback_switch_return_values =
+          element_playback_switches;
+      snd_mixer_selem_has_playback_switch_return_values_length =
+        ARRAY_SIZE(element_playback_switches);
+      snd_mixer_selem_get_name_return_values = element_names;
+      snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+      cras_mixer_ = cras_alsa_mixer_create("hw:0");
+      ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), cras_mixer_);
+      EXPECT_EQ(1, snd_mixer_open_called);
+      EXPECT_EQ(1, snd_mixer_attach_called);
+      EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
+      EXPECT_EQ(1, snd_mixer_selem_register_called);
+      EXPECT_EQ(1, snd_mixer_load_called);
+      EXPECT_EQ(0, snd_mixer_close_called);
+      EXPECT_EQ(4, snd_mixer_elem_next_called);
+      EXPECT_EQ(6, snd_mixer_selem_get_name_called);
+      EXPECT_EQ(4, snd_mixer_selem_has_playback_volume_called);
+      EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
+    }
 
-  /* Set mute should be called for Master only. */
-  cras_alsa_mixer_set_mute(c, 0);
-  EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
-  /* Set volume should be called for Master and PCM. If Master doesn't set to
-   * anything but zero then the entire volume should be passed to the PCM
-   * control.*/
-  long get_dB_returns[] = {
-    0,
-    0,
-  };
-  long set_dB_values[2];
-  snd_mixer_selem_get_playback_dB_return_values = get_dB_returns;
-  snd_mixer_selem_get_playback_dB_return_values_length =
-      ARRAY_SIZE(get_dB_returns);
-  snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
-  snd_mixer_selem_set_playback_dB_all_values_length =
-      ARRAY_SIZE(set_dB_values);
-  cras_alsa_mixer_set_dBFS(c, -50);
-  EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
-  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  EXPECT_EQ(-50, set_dB_values[0]);
-  EXPECT_EQ(-50, set_dB_values[1]);
-  /* Set volume should be called for Master and PCM. PCM should get the volume
-   * remaining after Master is set, in this cast -50 - -25 = -25. */
-  long get_dB_returns2[] = {
-    -25,
-    -25,
-  };
-  snd_mixer_selem_get_playback_dB_return_values = get_dB_returns2;
-  snd_mixer_selem_get_playback_dB_return_values_length =
-      ARRAY_SIZE(get_dB_returns2);
-  snd_mixer_selem_get_playback_dB_return_values_index = 0;
-  snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
-  snd_mixer_selem_set_playback_dB_all_values_length =
-      ARRAY_SIZE(set_dB_values);
-  snd_mixer_selem_set_playback_dB_all_values_index = 0;
-  snd_mixer_selem_set_playback_dB_all_called = 0;
-  snd_mixer_selem_get_playback_dB_called = 0;
-  cras_alsa_mixer_set_dBFS(c, -50);
-  EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
-  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  EXPECT_EQ(-50, set_dB_values[0]);
-  EXPECT_EQ(-25, set_dB_values[1]);
+    virtual void TearDown() {
+      cras_alsa_mixer_destroy(cras_mixer_);
+      EXPECT_EQ(1, snd_mixer_close_called);
+    }
 
-  cras_alsa_mixer_destroy(c);
-  EXPECT_EQ(1, snd_mixer_close_called);
+    static void OutputCallback(struct cras_alsa_mixer_output *out, void *arg) {
+      output_callback_called_++;
+    }
+
+  struct cras_alsa_mixer *cras_mixer_;
+  static size_t output_callback_called_;
+};
+
+size_t AlsaMixerOutputs::output_callback_called_;
+
+TEST_F(AlsaMixerOutputs, CheckNoOutputsForDeviceOne) {
+  cras_alsa_mixer_list_outputs(cras_mixer_,
+                               1,
+                               AlsaMixerOutputs::OutputCallback,
+                               reinterpret_cast<void*>(555));
+  EXPECT_EQ(0, output_callback_called_);
 }
+
+TEST_F(AlsaMixerOutputs, CheckTwoOutputsForDeviceZero) {
+  cras_alsa_mixer_list_outputs(cras_mixer_,
+                               0,
+                               AlsaMixerOutputs::OutputCallback,
+                               reinterpret_cast<void*>(555));
+  EXPECT_EQ(2, output_callback_called_);
+}
+
 /* Stubs */
 
 extern "C" {
