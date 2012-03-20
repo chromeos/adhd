@@ -164,7 +164,7 @@ struct cras_notify_device_info {
 	unsigned primary;
 };
 static inline void cras_set_device_info(struct cras_notify_device_info *m,
-					unsigned action,
+					enum cras_notify_device_action action,
 					unsigned card_number,
 					unsigned device_number,
 					unsigned active,
