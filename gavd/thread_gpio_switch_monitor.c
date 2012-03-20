@@ -4,6 +4,7 @@
  */
 #include <assert.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <malloc.h>
@@ -147,10 +148,53 @@ static void enumerate_input(void)
     udev_unref(udev);
 }
 
+static void wait_for_dev_input_access(void)
+{
+    /* Wait for /dev/input/event* files to become accessible by having
+     * group 'input'.  Setting these files to have 'rw' access to
+     * group 'input' is done throug a udev rule installed by adhd into
+     * /lib/udev/rules.d.
+     *
+     * Wait for up to 2 seconds for the /dev/input/event* files to be
+     * readable by gavd.
+     *
+     * This could also be done with a udev enumerate and then a udev
+     * monitor.
+     */
+    const unsigned max_iterations = 4;
+    unsigned       i              = 0;
+
+    while (i < max_iterations) {
+        int                readable;
+        struct timeval     timeout;
+        const char * const pathname = "/dev/input/event0";
+
+        timeout.tv_sec  = 0;
+        timeout.tv_usec = 500000;   /* 1/2 second. */
+        readable = access(pathname, O_RDONLY);
+
+        /* If the file could be opened, then the udev rule has been
+         * applied and gavd can read the event files.  If there are no
+         * event files, then we don't need to wait.
+         *
+         * If access does not become available, then headphone &
+         * microphone jack autoswitching will not function properly.
+         */
+        if (readable == 0 || (readable == -1 && errno == ENOENT)) {
+            /* Access allowed, or file does not exist. */
+            break;
+        }
+        assert(readable == -1 && errno == EACCES);
+        select(1, NULL, NULL, NULL, &timeout);
+        ++i;
+    }
+}
+
 static void initialize(void)
 {
     microphone_jack_device = NULL;
     headphone_jack_device  = NULL;
+    wait_for_dev_input_access();
     enumerate_input();
 }
 
