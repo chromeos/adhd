@@ -18,3 +18,18 @@ AC_OUTPUT
 
 PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.23 ])
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
+
+# Get iniparser library and include locations
+AC_ARG_WITH([iniparser-include-path],
+  [AS_HELP_STRING([--with-iniparser-include-path],
+      [location of the iniparser headers, defaults to /usr/include/])],
+        [INIPARSER_CFLAGS="-I$withval"],
+	  [INIPARSER_CFLAGS='-I/usr/include'])
+AC_SUBST([INIPARSER_CFLAGS])
+
+AC_ARG_WITH([iniparser-lib-path],
+  [AS_HELP_STRING([--with-iniparser-lib-path],
+      [location of the iniparser libraries])],
+        [INIPARSER_LIBS="-L$withval -liniparser"],
+          [INIPARSER_LIBS='-liniparser'])
+AC_SUBST([INIPARSER_LIBS])
