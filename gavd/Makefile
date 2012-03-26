@@ -14,8 +14,9 @@ CFILES	=					\
 	chrome_card_info_fifo.c			\
 	codec.c					\
 	codec_cirrus_cougarpoint.c		\
-	codec_max98095.c				\
+	codec_max98095.c			\
 	codec_wm8903.c				\
+	cras_connection.c			\
 	device_info.c				\
 	dbus_connection.c                       \
 	dbus_to_chrome_fifo.c                   \
@@ -39,7 +40,8 @@ MY_LIBS	=					\
 	pthread					\
 	asound					\
 	dbus-1					\
-	udev
+	udev					\
+	cras
 
 CFLAGS	+=					\
 	$(DBUS_INCLUDES)			\
