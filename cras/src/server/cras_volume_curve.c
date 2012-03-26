@@ -8,16 +8,6 @@
 
 #include "cras_volume_curve.h"
 
-/* Default to 1dB per tick.
- * Volume = 100 -> 0dB.
- * Volume = 0 -> -100dB. */
-static long get_dBFS_default(const struct cras_volume_curve *curve,
-			     size_t volume)
-{
-	/* dB to cut * 100 */
-	return (volume - 100) * 100;
-}
-
 /* Simple curve with configurable max volume and volume step. */
 struct stepped_curve {
 	struct cras_volume_curve curve;
@@ -37,11 +27,8 @@ static long get_dBFS_step(const struct cras_volume_curve *curve, size_t volume)
 
 struct cras_volume_curve *cras_volume_curve_create_default()
 {
-	struct cras_volume_curve *curve;
-	curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
-	if (curve != NULL)
-		curve->get_dBFS = get_dBFS_default;
-	return curve;
+	/* Default to max volume of 0dBFS, and a step of 0.75dBFS. */
+	return cras_volume_curve_create_simple_step(0, 75);
 }
 
 struct cras_volume_curve *cras_volume_curve_create_simple_step(
