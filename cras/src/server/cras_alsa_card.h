@@ -32,4 +32,11 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_index);
  */
 void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card);
 
+/* Returns the alsa card index for the given card.
+ * Args:
+ *    alsa_card - The cras_alsa_card pointer returned from
+ *        cras_alsa_card_create.
+ */
+size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card);
+
 #endif /* _CRAS_ALSA_CARD_H */

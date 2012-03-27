@@ -97,6 +97,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 	alsa_card = calloc(1, sizeof(*alsa_card));
 	if (alsa_card == NULL)
 		return NULL;
+	alsa_card->card_index = card_idx;
 
 	snprintf(alsa_card->name,
 		 MAX_ALSA_PCM_NAME_LENGTH,
@@ -203,4 +204,10 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 	if (alsa_card->ini)
 		iniparser_freedict(alsa_card->ini);
 	free(alsa_card);
+}
+
+size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card)
+{
+	assert(alsa_card);
+	return alsa_card->card_index;
 }

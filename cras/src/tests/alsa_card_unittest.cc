@@ -115,11 +115,12 @@ TEST(AlsaCard, CreateNoDevices) {
   struct cras_alsa_card *c;
 
   ResetStubData();
-  c = cras_alsa_card_create(0);
+  c = cras_alsa_card_create(1);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(1, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_card_get_index(c));
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
