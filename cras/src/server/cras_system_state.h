@@ -10,8 +10,8 @@
  * the best.
  */
 
-#ifndef CRAS_SYSTEM_SETTINGS_H_
-#define CRAS_SYSTEM_SETTINGS_H_
+#ifndef CRAS_SYSTEM_STATE_H_
+#define CRAS_SYSTEM_STATE_H_
 
 #include <stddef.h>
 
@@ -22,7 +22,7 @@ typedef void (*cras_system_volume_changed_cb)(size_t volume, void *data);
 typedef void (*cras_system_mute_changed_cb)(int mute, void *data);
 
 /* Initialize system settings. */
-void cras_system_settings_init();
+void cras_system_state_init();
 
 /* Sets the system volume.  Will be applied by the active device. */
 void cras_system_set_volume(size_t volume);
@@ -48,4 +48,4 @@ int cras_system_get_mute();
 void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
 					  void *arg);
 
-#endif /* CRAS_SYSTEM_SETTINGS_H_ */
+#endif /* CRAS_SYSTEM_STATE_H_ */

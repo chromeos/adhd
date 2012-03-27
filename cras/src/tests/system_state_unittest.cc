@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_system_settings.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 }
 
@@ -30,13 +30,13 @@ static void mute_changed(int mute, void *arg) {
   mute_changed_arg_value = arg;
 }
 
-TEST(SystemSettingsSuite, DefaultVolume) {
-  cras_system_settings_init();
+TEST(SystemStateSuite, DefaultVolume) {
+  cras_system_state_init();
   EXPECT_EQ(100, cras_system_get_volume());
 }
 
-TEST(SystemSettingsSuite, SetVolume) {
-  cras_system_settings_init();
+TEST(SystemStateSuite, SetVolume) {
+  cras_system_state_init();
   cras_system_set_volume(0);
   EXPECT_EQ(0, cras_system_get_volume());
   cras_system_set_volume(50);
@@ -47,12 +47,12 @@ TEST(SystemSettingsSuite, SetVolume) {
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
 }
 
-TEST(SystemSettingsSuite, VolumeChangedCallback) {
+TEST(SystemStateSuite, VolumeChangedCallback) {
   void * const fake_user_arg = (void *)1;
   const size_t fake_volume = 55;
   const size_t fake_volume_2 = 44;
 
-  cras_system_settings_init();
+  cras_system_state_init();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   volume_changed_called = 0;
   cras_system_set_volume(fake_volume);
@@ -68,8 +68,8 @@ TEST(SystemSettingsSuite, VolumeChangedCallback) {
   EXPECT_EQ(0, volume_changed_called);
 }
 
-TEST(SystemSettingsSuite, SetMute) {
-  cras_system_settings_init();
+TEST(SystemStateSuite, SetMute) {
+  cras_system_state_init();
   EXPECT_EQ(0, cras_system_get_mute());
   cras_system_set_mute(0);
   EXPECT_EQ(0, cras_system_get_mute());
@@ -79,10 +79,10 @@ TEST(SystemSettingsSuite, SetMute) {
   EXPECT_EQ(1, cras_system_get_mute());
 }
 
-TEST(SystemSettingsSuite, MuteChangedCallback) {
+TEST(SystemStateSuite, MuteChangedCallback) {
   void * const fake_user_arg = (void *)1;
 
-  cras_system_settings_init();
+  cras_system_state_init();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
   mute_changed_called = 0;

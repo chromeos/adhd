@@ -28,7 +28,7 @@ int ut_select(int nfds,
 #define select ut_select
 
 #include "cras_shm.h"
-#include "cras_system_settings.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_alsa_mixer.h"
 
@@ -1185,7 +1185,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
   return *count;
 }
 
-//  From system_settings.
+//  From system_state.
 size_t cras_system_get_volume()
 {
   sys_get_volume_called++;

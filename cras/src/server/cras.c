@@ -21,7 +21,7 @@
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
-#include "cras_system_settings.h"
+#include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -242,8 +242,8 @@ int main(int argc, char **argv)
 {
 	set_signals();
 
-	/* Initialize settings. */
-	cras_system_settings_init();
+	/* Initialize system. */
+	cras_system_state_init();
 
 	/* Remove this when dynamic device addition works. */
 	setup_devs();

@@ -12,7 +12,7 @@
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
-#include "cras_system_settings.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
