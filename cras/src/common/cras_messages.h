@@ -148,12 +148,6 @@ static inline void cras_fill_set_system_mute(
 	m->header.length = sizeof(*m);
 }
 
-enum cras_notify_device_action { /* Must match gavd action definitions.  */
-	CRAS_DEVICE_ACTION_ADD    = 0,
-	CRAS_DEVICE_ACTION_REMOVE = 1,
-	CRAS_DEVICE_ACTION_CHANGE = 2,
-};
-
 struct cras_notify_device_info {
 	struct cras_server_message header;
 	enum cras_notify_device_action action;

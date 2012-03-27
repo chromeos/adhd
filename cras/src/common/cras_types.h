@@ -31,6 +31,13 @@ struct cras_audio_format {
 	size_t num_channels;
 };
 
+/* Actions for card add/remove/change. */
+enum cras_notify_device_action { /* Must match gavd action definitions.  */
+	CRAS_DEVICE_ACTION_ADD    = 0,
+	CRAS_DEVICE_ACTION_REMOVE = 1,
+	CRAS_DEVICE_ACTION_CHANGE = 2,
+};
+
 /* Create an audio format structure. */
 struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 						   size_t frame_rate,
