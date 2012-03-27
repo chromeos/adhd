@@ -140,11 +140,16 @@ static int open_alsa(struct alsa_io *aio)
 static void set_alsa_volume(size_t volume, void *arg)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	const struct cras_volume_curve *curve;
+
 	assert(aio);
 	if (aio->mixer == NULL)
 		return;
-	cras_alsa_mixer_set_dBFS(aio->mixer,
-		cras_volume_curve_get_dBFS_for_index(volume));
+	if (aio->active_output && aio->active_output->mixer_output)
+		curve = aio->active_output->mixer_output->volume_curve;
+	else
+		curve = cras_alsa_mixer_default_volume_curve(aio->mixer);
+	cras_alsa_mixer_set_dBFS(aio->mixer, curve->get_dBFS(curve, volume));
 	/* Mute for zero. */
 	cras_alsa_mixer_set_mute(aio->mixer,
 				 cras_system_get_mute() || volume == 0);

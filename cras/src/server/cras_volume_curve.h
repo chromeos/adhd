@@ -6,13 +6,29 @@
 #ifndef CRAS_VOLUME_CURVE_H_
 #define CRAS_VOLUME_CURVE_H_
 
-/* Converts a volume index into a dB level.
- * Args:
- *    volume - the volume level from 0 to 100.
- * Returns:
- *    The volume to apply in dB * 100.  This value will normally be negative and
- *    is means dB down form full scale.
+/* Holds the function that converts from a volume index to a dBFS value. */
+struct cras_volume_curve {
+	/* Function to convert from index to dBFS value.
+	 * Args:
+	 *    curve - A curve from cras_volume_curve_create_* functions.
+	 *    volume - The volume level from 0 to 100.
+	 * Returns:
+	 *    The volume to apply in dB * 100.  This value will normally be
+	 *    negative and is means dB down from full scale.
+	 */
+	long (*get_dBFS)(const struct cras_volume_curve *curve, size_t volume);
+};
+
+/* Creates a system-default volume curve. The default curve maps one volume step
+ * to 1 dB down.
+ * Returns null on error, or the new volume curve on success.
  */
-long cras_volume_curve_get_dBFS_for_index(size_t volume);
+struct cras_volume_curve *cras_volume_curve_create_default();
+
+/* Destroys a curve created with cras_volume_curve_create_*.
+ * Args:
+ *    curve - The curve to destroy.
+ */
+void cras_volume_curve_destroy(struct cras_volume_curve *curve);
 
 #endif /* CRAS_VOLUME_CURVE_H_ */

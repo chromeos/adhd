@@ -30,6 +30,7 @@ int ut_select(int nfds,
 #include "cras_shm.h"
 #include "cras_system_settings.h"
 #include "cras_types.h"
+#include "cras_alsa_mixer.h"
 
 //  Include C file to test static functions.
 #include "cras_alsa_io.c"
@@ -72,6 +73,8 @@ static size_t cras_alsa_mixer_set_output_active_state_called;
 static std::vector<struct cras_alsa_mixer_output *>
     cras_alsa_mixer_set_output_active_state_outputs;
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
+static size_t cras_alsa_mixer_default_volume_curve_called;
+static cras_volume_curve *fake_curve;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -95,6 +98,12 @@ void ResetStubData() {
   cras_alsa_mixer_set_output_active_state_called = 0;
   cras_alsa_mixer_set_output_active_state_outputs.clear();
   cras_alsa_mixer_set_output_active_state_values.clear();
+  cras_alsa_mixer_default_volume_curve_called = 0;
+}
+
+static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
+{
+  return (volume - 100) * 100;
 }
 
 namespace {
@@ -232,14 +241,20 @@ TEST(AlsaOutputNode, TwoOutputs) {
   int rc;
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  struct cras_alsa_mixer_output *outputs[] = {
-    reinterpret_cast<struct cras_alsa_mixer_output *>(3),
-    reinterpret_cast<struct cras_alsa_mixer_output *>(4),
-  };
+  struct cras_alsa_mixer_output *outputs[2];
   struct cras_alsa_mixer_output *fake_output =
       reinterpret_cast<struct cras_alsa_mixer_output *>(7);
 
   ResetStubData();
+  outputs[0] =
+    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
+  outputs[1] =
+    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
+  fake_curve =
+    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+  fake_curve->get_dBFS = fake_get_dBFS;
+  outputs[0]->volume_curve = fake_curve;
+  outputs[1]->volume_curve = fake_curve;
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, 0,
@@ -264,6 +279,9 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
+  free(outputs[0]);
+  free(outputs[1]);
+  free(fake_curve);
 }
 
 //  Test thread add/rm stream, open_alsa, and iodev config.
@@ -281,12 +299,16 @@ class AlsaAddStreamSuite : public testing::Test {
       aio_output_->base.format = &fmt_;
       ResetStubData();
       cras_alsa_get_avail_frames_ret = -1;
+      fake_curve =
+        static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+      fake_curve->get_dBFS = fake_get_dBFS;
     }
 
     virtual void TearDown() {
       alsa_iodev_destroy((struct cras_iodev *)aio_output_);
       alsa_iodev_destroy((struct cras_iodev *)aio_input_);
       cras_alsa_get_avail_frames_ret = 0;
+      free(fake_curve);
     }
 
   struct alsa_io *aio_output_;
@@ -415,8 +437,7 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
-  EXPECT_EQ(cras_volume_curve_get_dBFS_for_index(50),
-            alsa_mixer_set_dBFS_value);
+  EXPECT_EQ(-5000, alsa_mixer_set_dBFS_value);
 
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;
@@ -426,8 +447,7 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
-  EXPECT_EQ(cras_volume_curve_get_dBFS_for_index(0),
-            alsa_mixer_set_dBFS_value);
+  EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 
   //  remove the stream.
   rc = thread_remove_stream(aio_output_, new_stream);
@@ -1228,10 +1248,11 @@ int cras_alsa_mixer_set_output_active_state(
   return 0;
 }
 
-//  From cras_volume_curve.
-long cras_volume_curve_get_dBFS_for_index(size_t volume)
+const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
+		const struct cras_alsa_mixer *cras_mixer)
 {
-	return 100 * (volume - 100);
+  cras_alsa_mixer_default_volume_curve_called++;
+  return fake_curve;
 }
 
 }

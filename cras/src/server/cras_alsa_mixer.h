@@ -8,18 +8,22 @@
 
 #include <alsa/asoundlib.h>
 
+#include "cras_alsa_mixer.h"
+
 /* cras_alsa_mixer represents the alsa mixer interface for an alsa card.  It
  * houses the volume and mute controls as well as playback switches for
  * headphones and mic.
  */
 
 struct cras_alsa_mixer;
+struct cras_volume_curve;
 
 struct cras_alsa_mixer_output {
 	snd_mixer_elem_t *elem; /* ALSA mixer element. */
 	int has_volume; /* non-zero indicates there is a volume control. */
 	int has_mute; /* non-zero indicates there is a mute switch. */
 	size_t device_index; /* ALSA device index for this control. */
+	struct cras_volume_curve *volume_curve; /* Curve for this output. */
 };
 
 /* Creates a cras_alsa_mixer instance for the given alsa device.
@@ -39,6 +43,12 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name);
  */
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer);
 
+/* Gets the default volume curve for this mixer.  This curve will be used if
+ * there is not output-node specific curve to use.
+ */
+const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
+		const struct cras_alsa_mixer *mixer);
+
 /* Sets the output volume for the device associated with this mixer.
  * Args:
  *    cras_mixer - The mixer to set the volume on.
@@ -46,7 +56,7 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer);
  *      specifying how much to attenuate.
  */
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
-				long dBFS);
+			      long dBFS);
 
 /* Sets the playback switch for the device.
  * Args:

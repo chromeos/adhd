@@ -9,6 +9,7 @@
 
 #include "cras_alsa_mixer.h"
 #include "cras_util.h"
+#include "cras_volume_curve.h"
 #include "utlist.h"
 
 /* Represents an ALSA volume control element. Each device can have several
@@ -30,12 +31,15 @@ struct mixer_output_control {
 /* Holds a reference to the opened mixer and the volume controls.
  * mixer - Pointer to the opened alsa mixer.
  * main_volume_controls - List of volume controls (normally 'Master' and 'PCM').
+ * playback_switch - Switch used to mute the device.
+ * volume_curve - Default volume curve that converts from an index to dBFS.
  */
 struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
 	struct mixer_volume_control *main_volume_controls;
 	struct mixer_output_control *output_controls;
 	snd_mixer_elem_t *playback_switch;
+	struct cras_volume_curve *volume_curve;
 };
 
 /* Wrapper for snd_mixer_open and helpers.
@@ -130,6 +134,7 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 	c->properties.has_volume = snd_mixer_selem_has_playback_volume(elem);
 	c->properties.has_mute = snd_mixer_selem_has_playback_switch(elem);
 	c->properties.device_index = device_index;
+	c->properties.volume_curve = cras_volume_curve_create_default();
 	DL_APPEND(cmix->output_controls, c);
 
 	return 0;
@@ -166,6 +171,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 		syslog(LOG_DEBUG, "Couldn't open mixer.");
 		return NULL;
 	}
+
+	cmix->volume_curve = cras_volume_curve_create_default();
 
 	/* Find volume and mute controls. */
 	for(elem = snd_mixer_first_elem(cmix->mixer);
@@ -214,6 +221,14 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 	}
 	snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
+}
+
+const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
+		const struct cras_alsa_mixer *cras_mixer)
+{
+	assert(cras_mixer);
+	assert(cras_mixer->volume_curve);
+	return cras_mixer->volume_curve;
 }
 
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,

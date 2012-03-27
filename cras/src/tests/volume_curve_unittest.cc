@@ -12,10 +12,13 @@ extern "C" {
 namespace {
 
 TEST(VolumeCurve, DefaultCurve) {
-  EXPECT_EQ(-5000, cras_volume_curve_get_dBFS_for_index(50));
-  EXPECT_EQ(0, cras_volume_curve_get_dBFS_for_index(100));
-  EXPECT_EQ(-10000, cras_volume_curve_get_dBFS_for_index(0));
-  EXPECT_EQ(-2500, cras_volume_curve_get_dBFS_for_index(75));
+  struct cras_volume_curve *curve;
+  curve = cras_volume_curve_create_default();
+  ASSERT_NE(static_cast<struct cras_volume_curve *>(NULL), curve);
+  EXPECT_EQ(-5000, curve->get_dBFS(curve, 50));
+  EXPECT_EQ(0, curve->get_dBFS(curve, 100));
+  EXPECT_EQ(-10000, curve->get_dBFS(curve, 0));
+  EXPECT_EQ(-2500, curve->get_dBFS(curve, 75));
 }
 
 }  //  namespace

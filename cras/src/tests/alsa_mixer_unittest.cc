@@ -10,6 +10,7 @@ extern "C" {
 #include "cras_alsa_mixer.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "cras_volume_curve.h"
 }
 
 namespace {
@@ -52,6 +53,8 @@ static int snd_mixer_selem_get_playback_dB_called;
 static long *snd_mixer_selem_get_playback_dB_return_values;
 static int snd_mixer_selem_get_playback_dB_return_values_index;
 static int snd_mixer_selem_get_playback_dB_return_values_length;
+static size_t cras_volume_curve_create_default_called;
+static size_t cras_volume_curve_destroy_called;
 
 static void ResetStubData() {
   snd_mixer_open_called = 0;
@@ -90,6 +93,8 @@ static void ResetStubData() {
   snd_mixer_selem_get_playback_dB_return_values = static_cast<long *>(NULL);
   snd_mixer_selem_get_playback_dB_return_values_index = 0;
   snd_mixer_selem_get_playback_dB_return_values_length = 0;
+  cras_volume_curve_create_default_called = 0;
+  cras_volume_curve_destroy_called = 0;
 }
 
 TEST(AlsaMixer, CreateFailOpen) {
@@ -544,6 +549,29 @@ int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value) {
   snd_mixer_selem_set_playback_switch_all_value = value;
   return 0;
 }
+//  From cras_volume_curve.
+static long get_dBFS_default(const struct cras_volume_curve *curve,
+			     size_t volume)
+{
+  return 100 * (volume - 100);
+}
+
+struct cras_volume_curve *cras_volume_curve_create_default()
+{
+  struct cras_volume_curve *curve;
+  curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
+  cras_volume_curve_create_default_called++;
+  if (curve != NULL)
+    curve->get_dBFS = get_dBFS_default;
+  return curve;
+}
+
+void cras_volume_curve_destroy(struct cras_volume_curve *curve)
+{
+  cras_volume_curve_destroy_called++;
+  free(curve);
+}
+
 } /* extern "C" */
 
 }  //  namespace
