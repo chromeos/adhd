@@ -4,6 +4,7 @@
  */
 
 #include <alsa/asoundlib.h>
+#include <iniparser.h>
 #include <stdio.h>
 #include <syslog.h>
 
@@ -33,6 +34,7 @@ struct mixer_output_control {
  * main_volume_controls - List of volume controls (normally 'Master' and 'PCM').
  * playback_switch - Switch used to mute the device.
  * volume_curve - Default volume curve that converts from an index to dBFS.
+ * ini - Configuration dictionary from libiniparser.
  */
 struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
@@ -40,6 +42,7 @@ struct cras_alsa_mixer {
 	struct mixer_output_control *output_controls;
 	snd_mixer_elem_t *playback_switch;
 	struct cras_volume_curve *volume_curve;
+	dictionary *ini;
 };
 
 /* Wrapper for snd_mixer_open and helpers.
@@ -112,6 +115,44 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 	return 0;
 }
 
+/* Creates a volume curve for a new output. Consulting any card/output specific
+ * configuration first, and falling back to the system default curve. See README
+ * for a description of the ini file format. */
+static struct cras_volume_curve *create_volume_curve_for_output(
+		const struct cras_alsa_mixer *cmix,
+		struct cras_alsa_mixer_output *output)
+{
+#define INI_KEY_LEN 31 /* 31 chars + 1 in declaration for null. */
+	const char *curve_type;
+	const char *output_name;
+	char ini_key[INI_KEY_LEN + 1];
+
+	output_name = snd_mixer_selem_get_name(output->elem);
+	if (cmix->ini == NULL || output_name == NULL)
+		return cras_volume_curve_create_default();
+
+	snprintf(ini_key, INI_KEY_LEN, "%s:volume_curve", output_name);
+	ini_key[INI_KEY_LEN] = 0;
+	curve_type = iniparser_getstring(cmix->ini, ini_key, NULL);
+
+	if (strcmp(curve_type, "simple_step") == 0) {
+		int max_volume;
+		int volume_step;
+
+		snprintf(ini_key, INI_KEY_LEN, "%s:max_volume", output_name);
+		ini_key[INI_KEY_LEN] = 0;
+		max_volume = iniparser_getint(cmix->ini, ini_key, 0);
+		snprintf(ini_key, INI_KEY_LEN, "%s:volume_step", output_name);
+		ini_key[INI_KEY_LEN] = 0;
+		volume_step = iniparser_getint(cmix->ini, ini_key, 300);
+		return cras_volume_curve_create_simple_step(max_volume,
+							    volume_step);
+	} else {
+		syslog(LOG_ERR, "Invalid volume curve type %s.", curve_type);
+		return cras_volume_curve_create_default();
+	}
+}
+
 /* Adds an output control to the list for the specified device. */
 static int add_output_control(struct cras_alsa_mixer *cmix,
 			      snd_mixer_elem_t *elem,
@@ -134,7 +175,8 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 	c->properties.has_volume = snd_mixer_selem_has_playback_volume(elem);
 	c->properties.has_mute = snd_mixer_selem_has_playback_switch(elem);
 	c->properties.device_index = device_index;
-	c->properties.volume_curve = cras_volume_curve_create_default();
+	c->properties.volume_curve =
+		create_volume_curve_for_output(cmix, &c->properties);
 	DL_APPEND(cmix->output_controls, c);
 
 	return 0;
@@ -144,7 +186,8 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
  * Exported interface.
  */
 
-struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
+					       dictionary *ini)
 {
 	/* Names of controls for main system volume. */
 	static const char * const main_volume_names[] = {
@@ -172,6 +215,7 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 		return NULL;
 	}
 
+	cmix->ini = ini;
 	cmix->volume_curve = cras_volume_curve_create_default();
 
 	/* Find volume and mute controls. */

@@ -121,7 +121,8 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
 
 	/* Create one mixer per card. */
-	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name);
+	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
+						  alsa_card->ini);
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
 		goto error_bail;

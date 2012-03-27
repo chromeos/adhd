@@ -54,6 +54,7 @@ static long *snd_mixer_selem_get_playback_dB_return_values;
 static int snd_mixer_selem_get_playback_dB_return_values_index;
 static int snd_mixer_selem_get_playback_dB_return_values_length;
 static size_t cras_volume_curve_create_default_called;
+static size_t cras_volume_curve_create_simple_step_called;
 static size_t cras_volume_curve_destroy_called;
 
 static void ResetStubData() {
@@ -94,6 +95,7 @@ static void ResetStubData() {
   snd_mixer_selem_get_playback_dB_return_values_index = 0;
   snd_mixer_selem_get_playback_dB_return_values_length = 0;
   cras_volume_curve_create_default_called = 0;
+  cras_volume_curve_create_simple_step_called = 0;
   cras_volume_curve_destroy_called = 0;
 }
 
@@ -102,7 +104,7 @@ TEST(AlsaMixer, CreateFailOpen) {
 
   ResetStubData();
   snd_mixer_open_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(0, snd_mixer_close_called);
@@ -113,7 +115,7 @@ TEST(AlsaMixer, CreateFailAttach) {
 
   ResetStubData();
   snd_mixer_attach_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -126,7 +128,7 @@ TEST(AlsaMixer, CreateFailSelemRegister) {
 
   ResetStubData();
   snd_mixer_selem_register_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -140,7 +142,7 @@ TEST(AlsaMixer, CreateFailLoad) {
 
   ResetStubData();
   snd_mixer_load_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -154,7 +156,7 @@ TEST(AlsaMixer, CreateNoElements) {
   struct cras_alsa_mixer *c;
 
   ResetStubData();
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -184,7 +186,7 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -228,7 +230,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -280,7 +282,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0");
+  c = cras_alsa_mixer_create("hw:0", NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -366,7 +368,9 @@ class AlsaMixerOutputs : public testing::Test {
         "Master",
         "PCM",
         "Headphone",
-        "Headphone", /* Called twice because of log. */
+        "Headphone",
+        "Headphone", /* Called three times because of log. */
+        "Speaker",
         "Speaker",
         "Speaker",
       };
@@ -386,7 +390,8 @@ class AlsaMixerOutputs : public testing::Test {
         ARRAY_SIZE(element_playback_switches);
       snd_mixer_selem_get_name_return_values = element_names;
       snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-      cras_mixer_ = cras_alsa_mixer_create("hw:0");
+      cras_mixer_ = cras_alsa_mixer_create("hw:0",
+          reinterpret_cast<dictionary*>(5));
       ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), cras_mixer_);
       EXPECT_EQ(1, snd_mixer_open_called);
       EXPECT_EQ(1, snd_mixer_attach_called);
@@ -395,9 +400,10 @@ class AlsaMixerOutputs : public testing::Test {
       EXPECT_EQ(1, snd_mixer_load_called);
       EXPECT_EQ(0, snd_mixer_close_called);
       EXPECT_EQ(4, snd_mixer_elem_next_called);
-      EXPECT_EQ(6, snd_mixer_selem_get_name_called);
       EXPECT_EQ(4, snd_mixer_selem_has_playback_volume_called);
       EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
+      EXPECT_EQ(1, cras_volume_curve_create_default_called);
+      EXPECT_EQ(2, cras_volume_curve_create_simple_step_called);
     }
 
     virtual void TearDown() {
@@ -566,10 +572,34 @@ struct cras_volume_curve *cras_volume_curve_create_default()
   return curve;
 }
 
+struct cras_volume_curve *cras_volume_curve_create_simple_step(
+		long max_volume,
+		long volume_step)
+{
+  struct cras_volume_curve *curve;
+  curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
+  cras_volume_curve_create_simple_step_called++;
+  if (curve != NULL)
+    curve->get_dBFS = get_dBFS_default;
+  return curve;
+}
+
 void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 {
   cras_volume_curve_destroy_called++;
   free(curve);
+}
+
+// From libiniparser.
+static char fake_return_string[] = "simple_step";
+char *iniparser_getstring(dictionary * d, char * key, char * def)
+{
+	return fake_return_string;
+}
+
+int iniparser_getint(dictionary * d, char * key, int notfound)
+{
+	return 1;
 }
 
 } /* extern "C" */

@@ -11,3 +11,35 @@ Building from source:
 ./configure
 make
 sudo make install
+
+---------------------
+Configuration:
+---------------------
+
+There can be a config file for each sound alsa card on the system.  This file
+lives in /etc/cras/.  The file should be named with the card name returned by
+ALSA, the string in the first set of '[]' in the aplay -l output.  The ini file
+has the following format.
+
+[<output-node-name>] ; Name of the mixer control for this output.
+  "<config-option>":"<config-value>"
+
+output-node-name is the mixer control name, e.g. "Headphone" or "Speaker".
+config-option can be the following:
+  volume_curve - The type of volume curve, only "simple_step" is allowed.
+  max_volume - The maximum volume for this output specified in dBFS * 100.
+  volume_step - Number of dB per volume 'tick' specified in  dBFS * 100.
+
+Example:
+This example configures the Headphones to have a max volume of 3dB with a step
+size of 0.75dB and the speakers to have a max volume of 6dB with a step of
+1dB.
+
+[Headphone]
+  "volume_curve":"simple_step"
+  "volume_step":"75"
+  "max_volume":"-300"
+[Speaker]
+  "volume_curve":"simple_step"
+  "volume_step":"100"
+  "max_volume":"-600"
