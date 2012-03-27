@@ -48,4 +48,25 @@ int cras_system_get_mute();
 void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
 					  void *arg);
 
+/* Adds a card at the given index to the system.  When a new card is found
+ * (through a udev event notification) this will add the card to the system,
+ * causing its devices to become available for playback/capture.
+ * Args:
+ *    alsa_card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ * Returns:
+ *    0 on success, negative error on failure (Can't create or card already
+ *    exists).
+ */
+int cras_system_add_alsa_card(size_t alsa_card_index);
+
+/* Removes a card.  When a device is removed this will do the cleanup.  Device
+ * at index must have been added using cras_system_add_alsa_card().
+ * Args:
+ *    alsa_card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ * Returns:
+ *    0 on success, negative error on failure (Can't destroy or card doesn't
+ *    exist).
+ */
+int cras_system_remove_alsa_card(size_t alsa_card_index);
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

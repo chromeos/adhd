@@ -6,8 +6,15 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras_alsa_card.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
+#include "utlist.h"
+
+struct card_list {
+	struct cras_alsa_card *card;
+	struct card_list *prev, *next;
+};
 
 static struct {
 	size_t volume; /* Volume index from 0-100. */
@@ -16,6 +23,7 @@ static struct {
 	void *volume_callback_data;
 	cras_system_mute_changed_cb mute_callback;
 	void *mute_callback_data;
+	struct card_list *cards;
 } state;
 
 void cras_system_state_init()
@@ -67,4 +75,40 @@ void cras_system_register_mute_changed_cb(cras_system_mute_changed_cb cb,
 {
 	state.mute_callback = cb;
 	state.mute_callback_data = arg;
+}
+
+int cras_system_add_alsa_card(size_t alsa_card_index)
+{
+	struct card_list *card;
+	struct cras_alsa_card *alsa_card;
+
+	DL_FOREACH(state.cards, card) {
+		if (alsa_card_index == cras_alsa_card_get_index(card->card))
+			return -EINVAL;
+	}
+	alsa_card = cras_alsa_card_create(alsa_card_index);
+	if (alsa_card == NULL)
+		return -ENOMEM;
+	card = calloc(1, sizeof(*card));
+	if (card == NULL)
+		return -ENOMEM;
+	card->card = alsa_card;
+	DL_APPEND(state.cards, card);
+	return 0;
+}
+
+int cras_system_remove_alsa_card(size_t alsa_card_index)
+{
+	struct card_list *card;
+
+	DL_FOREACH(state.cards, card) {
+		if (alsa_card_index == cras_alsa_card_get_index(card->card))
+			break;
+	}
+	if (card == NULL)
+		return -EINVAL;
+	DL_DELETE(state.cards, card);
+	cras_alsa_card_destroy(card->card);
+	free(card);
+	return 0;
 }

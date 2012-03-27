@@ -17,6 +17,19 @@ void *volume_changed_arg_value;
 size_t mute_changed_called;
 size_t mute_changed_value;
 void *mute_changed_arg_value;
+static struct cras_alsa_card* kFakeAlsaCard;
+size_t cras_alsa_card_create_called;
+size_t cras_alsa_card_destroy_called;
+
+static void ResetStubData() {
+  volume_changed_called = 0;
+  volume_changed_value = 0;
+  mute_changed_called = 0;
+  mute_changed_value = 0;
+  cras_alsa_card_create_called = 0;
+  cras_alsa_card_destroy_called = 0;
+  kFakeAlsaCard = reinterpret_cast<struct cras_alsa_card*>(0x33);
+}
 
 static void volume_changed(size_t volume, void *arg) {
   volume_changed_called++;
@@ -100,7 +113,43 @@ TEST(SystemStateSuite, MuteChangedCallback) {
   EXPECT_EQ(0, mute_changed_called);
 }
 
-}  //  namespace
+TEST(SystemStateSuite, AddCardFailCreate) {
+  ResetStubData();
+  kFakeAlsaCard = NULL;
+  EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(0));
+  EXPECT_EQ(1, cras_alsa_card_create_called);
+}
+
+TEST(SystemStateSuite, AddCard) {
+  ResetStubData();
+  EXPECT_EQ(0, cras_system_add_alsa_card(0));
+  EXPECT_EQ(1, cras_alsa_card_create_called);
+  // Adding the same card again should fail.
+  ResetStubData();
+  EXPECT_NE(0, cras_system_add_alsa_card(0));
+  EXPECT_EQ(0, cras_alsa_card_create_called);
+  // Removing card should destroy it.
+  cras_system_remove_alsa_card(0);
+  EXPECT_EQ(1, cras_alsa_card_destroy_called);
+}
+
+extern "C" {
+
+struct cras_alsa_card *cras_alsa_card_create(size_t card_index) {
+  cras_alsa_card_create_called++;
+  return kFakeAlsaCard;
+}
+
+void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card) {
+  cras_alsa_card_destroy_called++;
+}
+
+size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card) {
+  return 0;
+}
+
+}  // extern "C"
+}  // namespace
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
