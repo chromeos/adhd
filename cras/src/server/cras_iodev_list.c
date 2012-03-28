@@ -216,8 +216,12 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
-	if (default_output == dev)
-		default_output = outputs.iodevs->next;
+	if (default_output == dev) {
+		if (dev == outputs.iodevs)
+			default_output = outputs.iodevs->next;
+		else
+			default_output = outputs.iodevs;
+	}
 	return rm_dev_from_list(&outputs, dev);
 }
 
