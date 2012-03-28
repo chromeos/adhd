@@ -17,7 +17,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_alsa_card.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
@@ -223,14 +222,6 @@ bail:
 	return rc;
 }
 
-// TODO(dgreid) dynamic output adding - remove this hack.
-static int setup_devs()
-{
-	cras_alsa_card_create(0);
-	cras_alsa_card_create(1);
-	return 0;
-}
-
 /* Ignores sigpipe, we'll notice when a read/write fails. */
 static void set_signals()
 {
@@ -244,9 +235,6 @@ int main(int argc, char **argv)
 
 	/* Initialize system. */
 	cras_system_state_init();
-
-	/* Remove this when dynamic device addition works. */
-	setup_devs();
 
 	/* Start the server. */
 	run_server();

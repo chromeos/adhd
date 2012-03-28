@@ -166,6 +166,16 @@ static void handle_notify_device_info(const struct cras_notify_device_info *msg)
 	       "action: %u  card: %u  device: %u  act: %u  int: %u  pri: %u",
 	       msg->action, msg->card_number, msg->device_number,
 	       msg->active, msg->internal, msg->primary);
+	switch (msg->action) {
+	case CRAS_DEVICE_ACTION_ADD:
+		cras_system_add_alsa_card(msg->card_number);
+		break;
+	case CRAS_DEVICE_ACTION_REMOVE:
+		cras_system_remove_alsa_card(msg->card_number);
+		break;
+	case CRAS_DEVICE_ACTION_CHANGE:
+		break;
+	}
 }
 
 /*
