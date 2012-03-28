@@ -37,7 +37,6 @@ int ut_select(int nfds,
 }
 
 //  Data for simulating functions stubbed below.
-static struct timespec clock_gettime_retspec;
 static int cras_alsa_open_called;
 static int cras_iodev_append_stream_ret;
 static int cras_alsa_get_avail_frames_ret;
@@ -75,6 +74,9 @@ static std::vector<struct cras_alsa_mixer_output *>
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static size_t cras_alsa_mixer_default_volume_curve_called;
 static cras_volume_curve *fake_curve;
+static size_t cras_iodev_post_message_to_playback_thread_called;
+static size_t cras_iodev_init_called;
+static size_t cras_iodev_deinit_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -99,6 +101,9 @@ void ResetStubData() {
   cras_alsa_mixer_set_output_active_state_outputs.clear();
   cras_alsa_mixer_set_output_active_state_values.clear();
   cras_alsa_mixer_default_volume_curve_called = 0;
+  cras_iodev_post_message_to_playback_thread_called = 0;
+  cras_iodev_init_called = 0;
+  cras_iodev_deinit_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -139,101 +144,6 @@ TEST(AlsaIoInit, InitializeCapture) {
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-}
-
-//  Test set_playback_timestamp.
-TEST(AlsaTimeStampTestSuite, SetPlaybackTimeStampSimple) {
-  struct timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 0;
-  set_playback_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 499900000);
-  EXPECT_LE(ts.tv_nsec, 500100000);
-}
-
-TEST(AlsaTimeStampTestSuite, SetPlaybackTimeStampWrap) {
-  struct timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  set_playback_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(2, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-TEST(AlsaTimeStampTestSuite, SetPlaybackTimeStampWrapTwice) {
-  struct timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  set_playback_timestamp(48000, 72000, &ts);
-  EXPECT_EQ(3, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-//  Test set_capture_timestamp.
-TEST(AlsaTimeStampTestSuite, SetCaptureTimeStampSimple) {
-  struct timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  set_capture_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-TEST(AlsaTimeStampTestSuite, SetCaptureTimeStampWrap) {
-  struct timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 0;
-  set_capture_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 499900000);
-  EXPECT_LE(ts.tv_nsec, 500100000);
-}
-
-TEST(AlsaTimeStampTestSuite, SetCaptureTimeStampWrapPartial) {
-  struct timespec ts;
-
-  clock_gettime_retspec.tv_sec = 2;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  set_capture_timestamp(48000, 72000, &ts);
-  EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-//  Test fill_time_from_frames
-TEST(AlsaTimeStampTestSuite, FillTimeFromFramesNormal) {
-  struct timespec ts;
-
-  fill_time_from_frames(24000, 12000, 48000, &ts);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-TEST(AlsaTimeStampTestSuite, FillTimeFromFramesLong) {
-  struct timespec ts;
-
-  fill_time_from_frames(120000, 12000, 48000, &ts);
-  EXPECT_EQ(2, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-TEST(AlsaTimeStampTestSuite, FillTimeFromFramesShort) {
-  struct timespec ts;
-
-  fill_time_from_frames(12000, 12000, 48000, &ts);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_EQ(0, ts.tv_nsec);
 }
 
 //  Test handling of different amounts of outputs.
@@ -290,8 +200,10 @@ class AlsaAddStreamSuite : public testing::Test {
     virtual void SetUp() {
       aio_output_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
           CRAS_STREAM_OUTPUT);
+      aio_output_->base.direction = CRAS_STREAM_OUTPUT;
       aio_input_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
           CRAS_STREAM_INPUT);
+      aio_input_->base.direction = CRAS_STREAM_INPUT;
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
       fmt_.format = SND_PCM_FORMAT_S16_LE;
@@ -337,9 +249,6 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   ASSERT_EQ(0, rc);
   EXPECT_EQ(55, aio_output_->base.streams->stream->fd);
   EXPECT_EQ(1, cras_alsa_open_called);
-  //  Test that config_alsa_iodev_params was run.
-  EXPECT_EQ(65, aio_output_->base.used_size);
-  EXPECT_EQ(80, aio_output_->base.cb_threshold);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, aio_output_->base.format->format);
   //  open_alsa should configure the following.
   EXPECT_EQ(0, aio_output_->num_underruns);
@@ -384,17 +293,12 @@ TEST_F(AlsaAddStreamSuite, AddRmTwoOutputStreams) {
   memcpy(&second_stream->format, fmt, sizeof(*fmt));
   rc = thread_add_stream(aio_output_, second_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(25, aio_output_->base.used_size);
-  EXPECT_EQ(12, aio_output_->base.cb_threshold);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, aio_output_->base.format->format);
 
   //  remove the stream.
   rc = thread_remove_stream(aio_output_, second_stream);
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, aio_output_->handle);
-  //  Params should be back to first stream.
-  EXPECT_EQ(65, aio_output_->base.used_size);
-  EXPECT_EQ(80, aio_output_->base.cb_threshold);
   rc = thread_remove_stream(aio_output_, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
@@ -495,7 +399,7 @@ TEST_F(AlsaAddStreamSuite, OneInputStreamPerDevice) {
 
   cras_alsa_open_called = 0;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
-  aio_input_->handle = (snd_pcm_t *)0x01;
+  aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
   rc = thread_add_stream(aio_input_, new_stream);
   EXPECT_NE(0, rc);
   EXPECT_EQ(0, cras_alsa_open_called);
@@ -1015,51 +919,31 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
   return 0;
 }
 
-int cras_iodev_init(struct cras_iodev *dev,
+int cras_iodev_init(struct cras_iodev *iodev,
 		    enum CRAS_STREAM_DIRECTION direction,
-		    int (*add_stream)(struct cras_iodev *iodev,
-				      struct cras_rstream *stream),
-		    int (*rm_stream)(struct cras_iodev *iodev,
-				     struct cras_rstream *stream))
+		    void *(*thread_function)(void *arg),
+		    void *thread_data)
 {
-	int rc;
-
-	dev->to_thread_fds[0] = -1;
-	dev->to_thread_fds[1] = -1;
-	dev->to_main_fds[0] = -1;
-	dev->to_main_fds[1] = -1;
-	dev->direction = direction;
-	dev->rm_stream = rm_stream;
-	dev->add_stream = add_stream;
-
-	/* Two way pipes for communication with the device's audio thread. */
-	rc = pipe(dev->to_thread_fds);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		return rc;
-	}
-	rc = pipe(dev->to_main_fds);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		return rc;
-	}
-
-	return 0;
+  cras_iodev_init_called++;
+  return 0;
 }
 void cras_iodev_deinit(struct cras_iodev *dev)
 {
-	if (dev->to_thread_fds[0] != -1) {
-		close(dev->to_thread_fds[0]);
-		close(dev->to_thread_fds[1]);
-		dev->to_thread_fds[0] = -1;
-		dev->to_thread_fds[1] = -1;
-	}
-	if (dev->to_main_fds[0] != -1) {
-		close(dev->to_main_fds[0]);
-		close(dev->to_main_fds[1]);
-		dev->to_main_fds[0] = -1;
-		dev->to_main_fds[1] = -1;
-	}
+  cras_iodev_deinit_called++;
+}
+int cras_iodev_get_thread_poll_fd(const struct cras_iodev *iodev)
+{
+  return 0;
+}
+int cras_iodev_read_thread_command(struct cras_iodev *iodev,
+				   uint8_t *buf,
+				   size_t max_len)
+{
+  return 0;
+}
+int cras_iodev_send_command_response(struct cras_iodev *iodev, int rc)
+{
+  return 0;
 }
 int cras_iodev_append_stream(struct cras_iodev *dev,
 			     struct cras_rstream *stream)
@@ -1083,6 +967,12 @@ int cras_iodev_append_stream(struct cras_iodev *dev,
 
   return 0;
 }
+int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
+					       struct cras_iodev_msg *msg)
+{
+  cras_iodev_post_message_to_playback_thread_called++;
+  return 0;
+}
 int cras_iodev_delete_stream(struct cras_iodev *dev,
 			     struct cras_rstream *stream)
 {
@@ -1096,6 +986,40 @@ int cras_iodev_delete_stream(struct cras_iodev *dev,
   free(out);
 
   return 0;
+}
+void cras_iodev_fill_time_from_frames(size_t frames,
+				      size_t cb_threshold,
+				      size_t frame_rate,
+				      struct timespec *ts)
+{
+	size_t to_play_usec;
+
+        ts->tv_sec = 0;
+	/* adjust sleep time to target our callback threshold */
+	if (frames > cb_threshold)
+		to_play_usec = (frames - cb_threshold) *
+			1000000 / frame_rate;
+	else
+		to_play_usec = 0;
+	ts->tv_nsec = to_play_usec * 1000;
+
+	while (ts->tv_nsec > 1000000000L) {
+		ts->tv_sec++;
+		ts->tv_nsec -= 1000000000L;
+	}
+}
+void cras_iodev_set_playback_timestamp(size_t frame_rate,
+				       size_t frames,
+				       struct timespec *ts)
+{
+}
+void cras_iodev_set_capture_timestamp(size_t frame_rate,
+				      size_t frames,
+				      struct timespec *ts)
+{
+}
+void cras_iodev_config_params_for_streams(struct cras_iodev *iodev)
+{
 }
 
 //  From alsa helper.
@@ -1218,14 +1142,6 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *handle)
 const char *snd_strerror(int errnum)
 {
   return "Alsa Error in UT";
-}
-
-//  From librt.
-int clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-  tp->tv_sec = clock_gettime_retspec.tv_sec;
-  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
-  return 0;
 }
 
 //  From mixer.

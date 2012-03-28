@@ -43,6 +43,7 @@ struct cras_io_stream {
  * cb_threshold - Level below which to call back to the client (in frames).
  * to_thread_fds - Send a message from main to running thread.
  * to_main_fds - Send a message to main from running thread.
+ * tid - Thread ID of the running playback/capture thread.
  */
 struct cras_iodev {
 	int (*add_stream)(struct cras_iodev *iodev,
@@ -60,6 +61,7 @@ struct cras_iodev {
 	snd_pcm_uframes_t cb_threshold;
 	int to_thread_fds[2];
 	int to_main_fds[2];
+	pthread_t tid;
 	struct cras_iodev *prev, *next;
 };
 
@@ -87,55 +89,140 @@ struct cras_iodev_add_rm_stream_msg {
 
 /* Initializes the cras_iodev structure.
  * Args:
- *    dev - The device to initialize.
+ *    iodev - The device to initialize.
  *    direction - input or output.
- *    add_stream - Function to call when adding a stream.
- *    rm_stream - Function to call when removing a stream.
+ *    thread_function - The function to run for playback/capture threads.
+ *    thread_arg - Passed to thread_function when it is run.
  * Returns:
  *    0 on success or negative error on failure.
  */
-int cras_iodev_init(struct cras_iodev *dev,
+int cras_iodev_init(struct cras_iodev *iodev,
 		    enum CRAS_STREAM_DIRECTION direction,
-		    int (*add_stream)(struct cras_iodev *iodev,
-				      struct cras_rstream *stream),
-		    int (*rm_stream)(struct cras_iodev *iodev,
-				     struct cras_rstream *stream));
+		    void *(*thread_function)(void *arg),
+		    void *thread_data);
 
 /* Un-initializes a cras_iodev structure that was setup by cras_iodev_init().
  * Args:
- *    dev - The device to initialize.
+ *    iodev - The device to initialize.
  */
-void cras_iodev_deinit(struct cras_iodev *dev);
+void cras_iodev_deinit(struct cras_iodev *iodev);
 
 /* Adds a stream to the iodev.
  * Args:
- *    dev - The device to add the stream to.
+ *    iodev - The device to add the stream to.
  *    stream - The stream to add.
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int cras_iodev_append_stream(struct cras_iodev *dev,
+int cras_iodev_append_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream);
 
 /* Removes a stream from the iodev.
  * Args:
- *    dev - The device to remove the stream from.
+ *    iodev - The device to remove the stream from.
  *    stream - The stream previously added with cras_iodev_append_stream().
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int cras_iodev_delete_stream(struct cras_iodev *dev,
+int cras_iodev_delete_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream);
 
 /* Checks if there are any streams playing on this device.
  * Args:
- *    dev - iodev to check for active streams.
+ *    iodev - iodev to check for active streams.
  * Returns:
  *    non-zero if the device has streams attached.
  */
-static inline int cras_iodev_streams_attached(struct cras_iodev *dev)
+static inline int cras_iodev_streams_attached(struct cras_iodev *iodev)
 {
-	return dev->streams != NULL;
+	return iodev->streams != NULL;
 }
+
+/* Write a message to the playback thread and wait for an ack, This keeps these
+ * operations synchronous for the main server thread.  For instance when the
+ * RM_STREAM message is sent, the stream can be deleted after the function
+ * returns.  Making this synchronous also allows the thread to return an error
+ * code that can be handled by the caller.
+ * Args:
+ *    iodev - iodev to check for active streams.
+ *    msg - The message to send.
+ * Returns:
+ *    A return code from the message handler in the thread.
+ */
+int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
+					       struct cras_iodev_msg *msg);
+
+/* Fill timespec ts with the time to sleep based on the number of frames and
+ * frame rate.  Threshold is how many frames should be left when the timer
+ * expires.
+ * Args:
+ *    frames - Number of frames in buffer..
+ *    cb_threshold - Number of frames that should be left when time expires.
+ *    frame_rate - 44100, 48000, etc.
+ *    ts - Filled with the time to sleep for.
+ */
+void cras_iodev_fill_time_from_frames(size_t frames,
+				      size_t cb_threshold,
+				      size_t frame_rate,
+				      struct timespec *ts);
+
+/* Sends a response (error code) from the playback/capture thread to the main
+ * thread.  Indicates that the last message sent to the playback/capture thread
+ * has been handled with an error code of (rc).
+ * Args:
+ *    iodev - iodev to check for active streams.
+ *    rc - Result code to send back to the main thread.
+ * Returns:
+ *    The number of bytes written to the main thread.
+ */
+int cras_iodev_send_command_response(struct cras_iodev *iodev, int rc);
+
+/* Reads a command from the main thread.  Called from the playback/capture
+ * thread.  This will read the next available command from the main thread and
+ * put it in buf.
+ * Args:
+ *    iodev - iodev to check for active streams.
+ *    buf - Message is stored here on return.
+ *    max_len - maximum length of message to put into buf.
+ * Returns:
+ *    0 on success, negative error code on failure.
+ */
+int cras_iodev_read_thread_command(struct cras_iodev *iodev,
+				   uint8_t *buf,
+				   size_t max_len);
+
+/* Returns the fd to pass to select when waiting for a new message from the main
+ * thread.  Called from the playback/capture thread.
+ * Args:
+ *    iodev - iodev to check for active streams.
+ * Returns:
+ *    The file descriptor to poll.
+ */
+int cras_iodev_get_thread_poll_fd(const struct cras_iodev *iodev);
+
+/* Sets the timestamp for when the next sample will be rendered.  Determined by
+ * combining the current time with the playback latency specified in frames.
+ * Args:
+ *    frame_rate - in Hz.
+ *    frames - Delay specified in frames.
+ *    ts - Filled with the time that the next sample will be played.
+ */
+void cras_iodev_set_playback_timestamp(size_t frame_rate,
+				       size_t frames,
+				       struct timespec *ts);
+
+/* Sets the time that the first sample in the buffer was captured at the ADC.
+ * Args:
+ *    frame_rate - in Hz.
+ *    frames - Delay specified in frames.
+ *    ts - Filled with the time that the next sample was captured.
+ */
+void cras_iodev_set_capture_timestamp(size_t frame_rate,
+				      size_t frames,
+				      struct timespec *ts);
+
+/* Configures when to wake up, the minimum amount free before refilling, and
+ * other params that are independent of alsa configuration. */
+void cras_iodev_config_params_for_streams(struct cras_iodev *iodev);
 
 #endif /* CRAS_IODEV_H_ */

@@ -48,7 +48,6 @@ struct alsa_output_node {
  * dev - String that names this device (e.g. "hw:0,0").
  * device_index - ALSA index of device, Y in "hw:X:Y".
  * handle - Handle to the opened ALSA device.
- * tid - Thread ID of the running ALSA thread.
  * stream_started - Has the ALSA device been started.
  * num_underruns - Number of times we have run out of data (playback only).
  * alsa_stream - Playback or capture type.
@@ -61,7 +60,6 @@ struct alsa_io {
 	char *dev;
 	size_t device_index;
 	snd_pcm_t *handle;
-	pthread_t tid;
 	int stream_started;
 	size_t num_underruns;
 	snd_pcm_stream_t alsa_stream;
@@ -166,29 +164,6 @@ static void init_device_settings(struct alsa_io *aio)
 	set_alsa_volume(cras_system_get_volume(), aio);
 }
 
-/* Configures when to wake up, the minimum amount free before refilling, and
- * other params that are independent of alsa configuration. */
-static void config_alsa_iodev_params(struct alsa_io *aio)
-{
-	const struct cras_io_stream *lowest, *curr;
-	/* Base settings on the lowest-latency stream. */
-	lowest = aio->base.streams;
-	DL_FOREACH(aio->base.streams, curr)
-		if (cras_rstream_get_buffer_size(curr->stream) <
-		    cras_rstream_get_buffer_size(lowest->stream))
-			lowest = curr;
-
-	aio->base.used_size = cras_rstream_get_buffer_size(lowest->stream);
-	aio->base.cb_threshold = cras_rstream_get_cb_threshold(lowest->stream);
-
-	syslog(LOG_DEBUG,
-	       "used_size %u format %u cb_threshold %u min_cb_level %zu",
-	       (unsigned)aio->base.used_size,
-	       aio->base.format->format,
-	       (unsigned)aio->base.cb_threshold,
-	       cras_rstream_get_min_cb_level(lowest->stream));
-}
-
 /*
  * Alsa I/O thread functions.
  *    These functions are all run from the audio thread.
@@ -214,8 +189,15 @@ static int thread_remove_stream(struct alsa_io *aio,
 		aio->stream_started = 0;
 		free(aio->base.format);
 		aio->base.format = NULL;
-	} else
-		config_alsa_iodev_params(aio);
+	} else {
+		cras_iodev_config_params_for_streams(&aio->base);
+		syslog(LOG_DEBUG,
+		       "used_size %u format %u cb_threshold %u",
+		       (unsigned)aio->base.used_size,
+		       aio->base.format->format,
+		       (unsigned)aio->base.cb_threshold);
+	}
+
 	cras_rstream_set_iodev(stream, NULL);
 	return 0;
 }
@@ -228,7 +210,7 @@ static int thread_add_stream(struct alsa_io *aio,
 
 	/* Only allow one capture stream to attach. */
 	if (aio->base.direction == CRAS_STREAM_INPUT &&
-	    aio->handle != NULL)
+	    aio->base.streams != NULL)
 		return -EBUSY;
 
 	rc = cras_iodev_append_stream(&aio->base, stream);
@@ -247,52 +229,8 @@ static int thread_add_stream(struct alsa_io *aio,
 		}
 	}
 
-	config_alsa_iodev_params(aio);
+	cras_iodev_config_params_for_streams(&aio->base);
 	return 0;
-}
-
-/* Sets the timestamp for when the next sample will be rendered.  Figure
- * this out by combining the current time with the alsa latency */
-static void set_playback_timestamp(size_t frame_rate,
-				   size_t frames,
-				   struct timespec *ts)
-{
-	clock_gettime(CLOCK_MONOTONIC, ts);
-
-	/* For playback, want now + samples left to be played.
-	 * ts = time next written sample will be played to DAC,
-	 */
-	ts->tv_nsec += frames * (1000000000L / frame_rate);
-	while (ts->tv_nsec > 1000000000) {
-		ts->tv_sec++;
-		ts->tv_nsec -= 1000000000L;
-	}
-}
-
-/* Sets the time that the first sample in the buffer was captured at the ADC. */
-static void set_capture_timestamp(size_t frame_rate,
-				  size_t frames,
-				  struct timespec *ts)
-{
-	long tmp;
-
-	clock_gettime(CLOCK_MONOTONIC, ts);
-
-	/* For capture, now - samples left to be read.
-	 * ts = time next sample to be read was captured at ADC.
-	 */
-	tmp = frames * (1000000000L / frame_rate);
-	while (tmp > 1000000000L) {
-		tmp -= 1000000000L;
-		ts->tv_sec--;
-	}
-	if (ts->tv_nsec >= tmp)
-		ts->tv_nsec -= tmp;
-	else {
-		tmp -= ts->tv_nsec;
-		ts->tv_nsec = 1000000000L - tmp;
-		ts->tv_sec--;
-	}
 }
 
 /* Reads any pending audio message from the socket. */
@@ -338,8 +276,9 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 
 		frames_in_buff = cras_shm_get_frames(curr->shm);
 
-		set_playback_timestamp(fr_rate, frames_in_buff + alsa_delay,
-				       &curr->shm->ts);
+		cras_iodev_set_playback_timestamp(fr_rate,
+						  frames_in_buff + alsa_delay,
+						  &curr->shm->ts);
 
 		/* If we already have enough data, don't poll this stream. */
 		if (frames_in_buff >= fetch_size)
@@ -494,29 +433,6 @@ void get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
 	}
 }
 
-/* Fill timespec ts with the time to sleep based on the number of frames and
- * frame rate.  Threshold is how many frames should be left when the timer
- * expires */
-static void fill_time_from_frames(size_t frames, size_t cb_threshold,
-				  size_t frame_rate, struct timespec *ts)
-{
-	size_t to_play_usec;
-
-        ts->tv_sec = 0;
-	/* adjust sleep time to target our callback threshold */
-	if (frames > cb_threshold)
-		to_play_usec = (frames - cb_threshold) *
-			1000000 / frame_rate;
-	else
-		to_play_usec = 0;
-	ts->tv_nsec = to_play_usec * 1000;
-
-	while (ts->tv_nsec > 1000000000L) {
-		ts->tv_sec++;
-		ts->tv_nsec -= 1000000000L;
-	}
-}
-
 /* Check if we should get more samples for playback from the source streams. If
  * more data is needed by the output, fetch and render it.
  * Args:
@@ -557,8 +473,10 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			if (rc < 0)
 				return rc;
 		}
-		fill_time_from_frames(used, aio->base.cb_threshold,
-			      aio->base.format->frame_rate, ts);
+		cras_iodev_fill_time_from_frames(used,
+						 aio->base.cb_threshold,
+						 aio->base.format->frame_rate,
+						 ts);
 		return 0;
 	}
 
@@ -616,8 +534,10 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	get_data_from_other_streams(aio, total_written + used);
 
 	/* Set the sleep time based on how much is left to play */
-	fill_time_from_frames(total_written + used, aio->base.cb_threshold,
-			      aio->base.format->frame_rate, ts);
+	cras_iodev_fill_time_from_frames(total_written + used,
+					 aio->base.cb_threshold,
+					 aio->base.format->frame_rate,
+					 ts);
 
 	return 0;
 }
@@ -656,7 +576,9 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 	if (rc < 0)
 		return rc;
 
-	set_capture_timestamp(aio->base.format->frame_rate, delay, &shm->ts);
+	cras_iodev_set_capture_timestamp(aio->base.format->frame_rate,
+					 delay,
+					 &shm->ts);
 
 	dst = cras_shm_get_curr_write_buffer(shm);
 	memcpy(dst, src, count * shm->frame_bytes);
@@ -745,19 +667,10 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 {
 	uint8_t buf[256];
 	struct cras_iodev_msg *msg = (struct cras_iodev_msg *)buf;
-	int to_read, nread;
 	int ret = 0;
 	int err;
 
-	/* Get the length of the message first */
-	nread = read(aio->base.to_thread_fds[0], buf, sizeof(msg->length));
-	if (nread < 0)
-		return nread;
-	if (msg->length > 256)
-		return -ENOMEM;
-
-	to_read = msg->length - nread;
-	err = read(aio->base.to_thread_fds[0], &buf[0] + nread, to_read);
+	err = cras_iodev_read_thread_command(&aio->base, buf, 256);
 	if (err < 0)
 		return err;
 
@@ -787,7 +700,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 	}
 	case CRAS_IODEV_STOP:
 		ret = 0;
-		err = write(aio->base.to_main_fds[1], &ret, sizeof(ret));
+		err = cras_iodev_send_command_response(&aio->base, ret);
 		if (err < 0)
 			return err;
 		terminate_pb_thread(aio);
@@ -797,7 +710,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 		break;
 	}
 
-	err = write(aio->base.to_main_fds[1], &ret, sizeof(ret));
+	err = cras_iodev_send_command_response(&aio->base, ret);
 	if (err < 0)
 		return err;
 	return ret;
@@ -808,15 +721,18 @@ static int handle_playback_thread_message(struct alsa_io *aio)
  * This thread will attempt to run at a high priority to allow for low latency
  * streams.  This thread sleeps while alsa plays back or captures audio, it
  * will wake up as little as it can while avoiding xruns.  It can also be woken
- * by sending it a message using the "post_message_to_playback_thread" function.
+ * by sending it a message using the
+ * "cras_iodev_post_message_to_playback_thread" function.
  */
 static void *alsa_io_thread(void *arg)
 {
 	struct alsa_io *aio = (struct alsa_io *)arg;
 	struct timespec ts;
 	fd_set poll_set;
-	int msg_fd = aio->base.to_thread_fds[0];
+	int msg_fd;
 	int err;
+
+	msg_fd = cras_iodev_get_thread_poll_fd(&aio->base);
 
 	/* Attempt to get realtime scheduling */
 	if (cras_set_rt_scheduling(CRAS_SERVER_RT_THREAD_PRIORITY) == 0)
@@ -851,73 +767,6 @@ static void *alsa_io_thread(void *arg)
 /*
  * Functions run in the main server context.
  */
-
-/* Write a message to the playback thread and wait for an ack, This keeps these
- * operations synchronous for the main server thread.  For instance when the
- * RM_STREAM message is sent, the stream can be deleted after the function
- * returns.  Making this synchronous also allows the thread to return an error
- * code that can be handled by the caller.
- */
-static int post_message_to_playback_thread(struct alsa_io *aio,
-					   struct cras_iodev_msg *msg)
-{
-	int rc, err;
-
-	err = write(aio->base.to_thread_fds[1], msg, msg->length);
-	if (err < 0) {
-		syslog(LOG_ERR, "Failed to post message to playback thread.");
-		return err;
-	}
-	err = read(aio->base.to_main_fds[0], &rc, sizeof(rc));
-	if (err < 0) {
-		syslog(LOG_ERR, "Failed to read reply from playback thread.");
-		return err;
-	}
-
-	return rc;
-}
-
-/* Add a stream to the output (called by iodev_list).
- * Args:
- *    iodev - a pointer to the alsa_io device.
- *    stream - the new stream to add.
- * Returns:
- *    zero on success negative error otherwise.
- */
-static int add_stream(struct cras_iodev *iodev,
-		      struct cras_rstream *stream)
-{
-	struct alsa_io *aio = (struct alsa_io *)iodev;
-	struct cras_iodev_add_rm_stream_msg msg;
-
-	assert(iodev && stream);
-
-	msg.header.id = CRAS_IODEV_ADD_STREAM;
-	msg.header.length = sizeof(struct cras_iodev_add_rm_stream_msg);
-	msg.stream = stream;
-	return post_message_to_playback_thread(aio, &msg.header);
-}
-
-/* Remove a stream from the output (called by iodev_list).
- * Args:
- *    iodev - a pointer to the alsa_io device.
- *    stream - the new stream to add.
- * Returns:
- *    zero on success negative error otherwise.
- */
-static int rm_stream(struct cras_iodev *iodev,
-		     struct cras_rstream *stream)
-{
-	struct alsa_io *aio = (struct alsa_io *)iodev;
-	struct cras_iodev_add_rm_stream_msg msg;
-
-	assert(iodev && stream);
-
-	msg.header.id = CRAS_IODEV_RM_STREAM;
-	msg.header.length = sizeof(struct cras_iodev_add_rm_stream_msg);
-	msg.stream = stream;
-	return post_message_to_playback_thread(aio, &msg.header);
-}
 
 /* Frees resources used by the alsa iodev.
  * Args:
@@ -988,7 +837,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		 card_index,
 		 device_index);
 
-	if (cras_iodev_init(iodev, direction, add_stream, rm_stream))
+	if (cras_iodev_init(iodev, direction, alsa_io_thread, aio))
 		goto cleanup_iodev;
 
 	if (direction == CRAS_STREAM_INPUT) {
@@ -1018,12 +867,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->active_output = aio->output_nodes;
 	}
 
-	/* Start the device thread, it will block until a stream is added. */
-	if (pthread_create(&aio->tid, NULL, alsa_io_thread, aio)) {
-		syslog(LOG_ERR, "Failed pthread_create");
-		goto cleanup_iodev;
-	}
-
 	/* Finally add it to the approriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base);
@@ -1043,13 +886,7 @@ cleanup_iodev:
 void alsa_iodev_destroy(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
-	struct cras_iodev_msg msg;
 	int rc;
-
-	msg.id = CRAS_IODEV_STOP;
-	msg.length = sizeof(msg);
-	post_message_to_playback_thread(aio, &msg);
-	pthread_join(aio->tid, NULL);
 
 	free_alsa_iodev_resources(aio);
 

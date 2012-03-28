@@ -346,6 +346,44 @@ int main(int argc, char **argv) {
 extern "C" {
 
 // Stubs
+
+int cras_iodev_append_stream(struct cras_iodev *iodev,
+			     struct cras_rstream *stream)
+{
+	struct cras_io_stream *out;
+
+	/* Check that we don't already have this stream */
+	DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
+	if (out != NULL)
+		return -EEXIST;
+
+	/* New stream, allocate a container and add it to the list. */
+	out = static_cast<struct cras_io_stream*>(calloc(1, sizeof(*out)));
+	if (out == NULL)
+		return -ENOMEM;
+	out->stream = stream;
+	out->shm = cras_rstream_get_shm(stream);
+	out->fd = cras_rstream_get_audio_fd(stream);
+	DL_APPEND(iodev->streams, out);
+
+	return 0;
+}
+
+int cras_iodev_delete_stream(struct cras_iodev *iodev,
+			     struct cras_rstream *stream)
+{
+	struct cras_io_stream *out;
+
+	/* Find stream, and if found, delete it. */
+	DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
+	if (out == NULL)
+		return -EINVAL;
+	DL_DELETE(iodev->streams, out);
+	free(out);
+
+	return 0;
+}
+
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 {
 }
