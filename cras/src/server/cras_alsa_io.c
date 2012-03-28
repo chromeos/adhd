@@ -227,6 +227,7 @@ static int thread_remove_stream(struct alsa_io *aio,
 		aio->base.format = NULL;
 	} else
 		config_alsa_iodev_params(aio);
+	cras_rstream_set_iodev(stream, NULL);
 	return 0;
 }
 
