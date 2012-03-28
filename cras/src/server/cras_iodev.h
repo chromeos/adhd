@@ -29,7 +29,16 @@ struct cras_io_stream {
 	struct cras_io_stream *prev, *next;
 };
 
-/* An input or output device, that can have audio routed to/from it. */
+/* An input or output device, that can have audio routed to/from it.
+ * add_stream - Function to call when adding a stream.
+ * rm_stream - Function to call when removing a stream.
+ * format - The audio format being rendered or captured.
+ * info - Unique identifier for this device (index and name).
+ * streams - List of streams attached to device.
+ * direction - Input or Output.
+ * supported_rates - Array of sample rates supported by device 0-terminated.
+ * supported_channel_counts - List of number of channels supported by device.
+ */
 struct cras_iodev {
 	int (*add_stream)(struct cras_iodev *iodev,
 			  struct cras_rstream *stream);
@@ -37,10 +46,10 @@ struct cras_iodev {
 			 struct cras_rstream *stream);
 	struct cras_audio_format *format;
 	struct cras_io_stream *streams;
-	struct cras_iodev_info info; /* index unique to this device */
+	struct cras_iodev_info info;
 	enum CRAS_STREAM_DIRECTION direction;
-	size_t *supported_rates; /* 0 terminated array of frame rates */
-	size_t *supported_channel_counts; /* Array of supported chan counts. */
+	size_t *supported_rates;
+	size_t *supported_channel_counts;
 	struct cras_iodev *prev, *next;
 };
 
