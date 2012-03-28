@@ -974,10 +974,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	struct cras_iodev *iodev;
 	int err;
 
-	aio = (struct alsa_io *)malloc(sizeof(*aio));
+	aio = (struct alsa_io *)calloc(1, sizeof(*aio));
 	if (!aio)
 		return NULL;
-	memset(aio, 0, sizeof(*aio));
 	iodev = &aio->base;
 	aio->device_index = device_index;
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
