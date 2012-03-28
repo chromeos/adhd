@@ -686,7 +686,6 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       aio_->base.buffer_size = 16384;
       aio_->base.used_size = 480;
       aio_->base.cb_threshold = 96;
-      aio_->base.min_cb_level = 240;
 
       SetupShm(&shm_);
       SetupShm(&shm2_);

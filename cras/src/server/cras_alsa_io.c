@@ -180,14 +180,13 @@ static void config_alsa_iodev_params(struct alsa_io *aio)
 
 	aio->base.used_size = cras_rstream_get_buffer_size(lowest->stream);
 	aio->base.cb_threshold = cras_rstream_get_cb_threshold(lowest->stream);
-	aio->base.min_cb_level = cras_rstream_get_min_cb_level(lowest->stream);
 
 	syslog(LOG_DEBUG,
-	       "used_size %u format %u cb_threshold %u min_cb_level %u",
+	       "used_size %u format %u cb_threshold %u min_cb_level %zu",
 	       (unsigned)aio->base.used_size,
 	       aio->base.format->format,
 	       (unsigned)aio->base.cb_threshold,
-	       (unsigned)aio->base.min_cb_level);
+	       cras_rstream_get_min_cb_level(lowest->stream));
 }
 
 /*
