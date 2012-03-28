@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <syslog.h>
+
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
@@ -72,6 +74,7 @@ static int add_dev_to_list(struct iodev_list *list,
 	list->size++;
 
 	DL_APPEND(list->iodevs, dev);
+	syslog(LOG_DEBUG, "Added iodev at index %zu.\n", new_idx);
 	return 0;
 }
 

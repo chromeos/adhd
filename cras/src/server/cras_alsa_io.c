@@ -866,11 +866,15 @@ static int post_message_to_playback_thread(struct alsa_io *aio,
 	int rc, err;
 
 	err = write(aio->to_thread_fds[1], msg, msg->length);
-	if (err < 0)
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to post message to playback thread.");
 		return err;
+	}
 	err = read(aio->to_main_fds[0], &rc, sizeof(rc));
-	if (err < 0)
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to read reply from playback thread.");
 		return err;
+	}
 
 	return rc;
 }
@@ -1015,18 +1019,24 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Two way pipes for communication with the device's audio thread. */
 	err = pipe(aio->to_thread_fds);
-	if (err < 0)
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to pipe");
 		goto cleanup_iodev;
+	}
 	err = pipe(aio->to_main_fds);
-	if (err < 0)
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to pipe");
 		goto cleanup_iodev;
+	}
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
 					&iodev->supported_channel_counts);
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
-	    iodev->supported_channel_counts[0] == 0)
+	    iodev->supported_channel_counts[0] == 0) {
+		syslog(LOG_ERR, "cras_alsa_fill_properties: %s", strerror(err));
 		goto cleanup_iodev;
+	}
 
 	aio->mixer = mixer;
 	cras_alsa_mixer_list_outputs(mixer, device_index, new_output, aio);
@@ -1038,8 +1048,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	/* Start the device thread, it will block until a stream is added. */
-	if (pthread_create(&aio->tid, NULL, alsa_io_thread, aio))
+	if (pthread_create(&aio->tid, NULL, alsa_io_thread, aio)) {
+		syslog(LOG_ERR, "Failed pthread_create");
 		goto cleanup_iodev;
+	}
 
 	/* Finally add it to the approriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT)

@@ -83,8 +83,10 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 			  SND_PCM_NO_AUTO_RESAMPLE |
 			  SND_PCM_NO_AUTO_CHANNELS |
 			  SND_PCM_NO_AUTO_FORMAT);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "snd_pcm_open_failed: %s", snd_strerror(rc));
 		return rc;
+	}
 
 	rc = snd_pcm_hw_params_any(handle, params);
 	if (rc < 0) {
