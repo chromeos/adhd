@@ -48,15 +48,9 @@ struct alsa_output_node {
  * dev - String that names this device (e.g. "hw:0,0").
  * device_index - ALSA index of device, Y in "hw:X:Y".
  * handle - Handle to the opened ALSA device.
- * buffer_size - Size of the ALSA buffer in frames.
- * used_size - Number of frames that are used for audio.
- * cb_threshold - Level below which to call back to the client (in frames).
- * min_cb_level - Minimum amount of free frames to tell the client about.
  * tid - Thread ID of the running ALSA thread.
  * stream_started - Has the ALSA device been started.
  * num_underruns - Number of times we have run out of data (playback only).
- * to_thread_fds - Send a message from main to running thread.
- * to_main_fds - Send a message to main from running thread.
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * output_nodes - Alsa mixer outputs (Only used for output devices).
@@ -67,15 +61,9 @@ struct alsa_io {
 	char *dev;
 	size_t device_index;
 	snd_pcm_t *handle;
-	snd_pcm_uframes_t buffer_size;
-	snd_pcm_uframes_t used_size;
-	snd_pcm_uframes_t cb_threshold;
-	snd_pcm_sframes_t min_cb_level;
 	pthread_t tid;
 	int stream_started;
 	size_t num_underruns;
-	int to_thread_fds[2];
-	int to_main_fds[2];
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
@@ -106,15 +94,15 @@ static int open_alsa(struct alsa_io *aio)
 		return rc;
 
 	rc = cras_alsa_set_hwparams(handle, aio->base.format,
-				    &aio->buffer_size);
+				    &aio->base.buffer_size);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
 		return rc;
 	}
 
 	/* Set minimum number of available frames. */
-	if (aio->used_size > aio->buffer_size)
-		aio->used_size = aio->buffer_size;
+	if (aio->base.used_size > aio->base.buffer_size)
+		aio->base.used_size = aio->base.buffer_size;
 
 	/* Configure software params. */
 	rc = cras_alsa_set_swparams(handle);
@@ -190,14 +178,16 @@ static void config_alsa_iodev_params(struct alsa_io *aio)
 		    cras_rstream_get_buffer_size(lowest->stream))
 			lowest = curr;
 
-	aio->used_size = cras_rstream_get_buffer_size(lowest->stream);
-	aio->cb_threshold = cras_rstream_get_cb_threshold(lowest->stream);
-	aio->min_cb_level = cras_rstream_get_min_cb_level(lowest->stream);
+	aio->base.used_size = cras_rstream_get_buffer_size(lowest->stream);
+	aio->base.cb_threshold = cras_rstream_get_cb_threshold(lowest->stream);
+	aio->base.min_cb_level = cras_rstream_get_min_cb_level(lowest->stream);
 
 	syslog(LOG_DEBUG,
 	       "used_size %u format %u cb_threshold %u min_cb_level %u",
-	       (unsigned)aio->used_size, aio->base.format->format,
-	       (unsigned)aio->cb_threshold, (unsigned)aio->min_cb_level);
+	       (unsigned)aio->base.used_size,
+	       aio->base.format->format,
+	       (unsigned)aio->base.cb_threshold,
+	       (unsigned)aio->base.min_cb_level);
 }
 
 /*
@@ -552,13 +542,15 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	fr_bytes = cras_get_format_bytes(aio->base.format);
 
 	frames = 0;
-	rc = cras_alsa_get_avail_frames(aio->handle, aio->buffer_size, &frames);
+	rc = cras_alsa_get_avail_frames(aio->handle,
+					aio->base.buffer_size,
+					&frames);
 	if (rc < 0)
 		return rc;
-	used = aio->buffer_size - frames;
+	used = aio->base.buffer_size - frames;
 
 	/* Make sure we should actually be awake right now (or close enough) */
-	if (used > aio->cb_threshold + SLEEP_FUZZ_FRAMES) {
+	if (used > aio->base.cb_threshold + SLEEP_FUZZ_FRAMES) {
 		/* Check if the pcm is still running. */
 		if (snd_pcm_state(aio->handle) == SND_PCM_STATE_SUSPENDED) {
 			aio->stream_started = 0;
@@ -566,18 +558,20 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			if (rc < 0)
 				return rc;
 		}
-		fill_time_from_frames(used, aio->cb_threshold,
+		fill_time_from_frames(used, aio->base.cb_threshold,
 			      aio->base.format->frame_rate, ts);
 		return 0;
 	}
 
 	/* check the current delay through alsa */
-	rc = cras_alsa_get_delay_frames(aio->handle, aio->buffer_size, &delay);
+	rc = cras_alsa_get_delay_frames(aio->handle,
+					aio->base.buffer_size,
+					&delay);
 	if (rc < 0)
 		return rc;
 
 	/* Request data from streams that need more */
-	fr_to_req = aio->used_size - used;
+	fr_to_req = aio->base.used_size - used;
 	rc = fetch_and_set_timestamp(aio, fr_to_req, delay);
 	if (rc < 0)
 		return rc;
@@ -623,7 +617,7 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	get_data_from_other_streams(aio, total_written + used);
 
 	/* Set the sleep time based on how much is left to play */
-	fill_time_from_frames(total_written + used, aio->cb_threshold,
+	fill_time_from_frames(total_written + used, aio->base.cb_threshold,
 			      aio->base.format->frame_rate, ts);
 
 	return 0;
@@ -657,7 +651,9 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 	curr = streams;
 	shm = curr->shm;
 
-	rc = cras_alsa_get_delay_frames(aio->handle, aio->buffer_size, &delay);
+	rc = cras_alsa_get_delay_frames(aio->handle,
+					aio->base.buffer_size,
+					&delay);
 	if (rc < 0)
 		return rc;
 
@@ -698,12 +694,14 @@ static int possibly_read_audio(struct alsa_io *aio,
 	ts->tv_sec = ts->tv_nsec = 0;
 	fr_bytes = cras_get_format_bytes(aio->base.format);
 
-	rc = cras_alsa_get_avail_frames(aio->handle, aio->buffer_size, &frames);
+	rc = cras_alsa_get_avail_frames(aio->handle,
+					aio->base.buffer_size,
+					&frames);
 	if (rc < 0)
 		return rc;
 
-	num_to_read = aio->cb_threshold;
-	if (frames < aio->cb_threshold)
+	num_to_read = aio->base.cb_threshold;
+	if (frames < aio->base.cb_threshold)
 		num_to_read = 0;
 
 	while (num_to_read > 0) {
@@ -725,12 +723,12 @@ static int possibly_read_audio(struct alsa_io *aio,
 	}
 
 	/* Adjust sleep time to target our callback threshold. */
-	remainder = frames - aio->cb_threshold;
-	if (frames < aio->cb_threshold)
+	remainder = frames - aio->base.cb_threshold;
+	if (frames < aio->base.cb_threshold)
 		remainder = 0;
 
-	to_sleep = (aio->cb_threshold - remainder);
-	if (aio->cb_threshold < remainder)
+	to_sleep = (aio->base.cb_threshold - remainder);
+	if (aio->base.cb_threshold < remainder)
 		to_sleep = 0;
 	ts->tv_nsec = to_sleep * 1000000 / aio->base.format->frame_rate;
 	ts->tv_nsec *= 1000;
@@ -753,14 +751,14 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 	int err;
 
 	/* Get the length of the message first */
-	nread = read(aio->to_thread_fds[0], buf, sizeof(msg->length));
+	nread = read(aio->base.to_thread_fds[0], buf, sizeof(msg->length));
 	if (nread < 0)
 		return nread;
 	if (msg->length > 256)
 		return -ENOMEM;
 
 	to_read = msg->length - nread;
-	err = read(aio->to_thread_fds[0], &buf[0] + nread, to_read);
+	err = read(aio->base.to_thread_fds[0], &buf[0] + nread, to_read);
 	if (err < 0)
 		return err;
 
@@ -790,7 +788,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 	}
 	case CRAS_IODEV_STOP:
 		ret = 0;
-		err = write(aio->to_main_fds[1], &ret, sizeof(ret));
+		err = write(aio->base.to_main_fds[1], &ret, sizeof(ret));
 		if (err < 0)
 			return err;
 		terminate_pb_thread(aio);
@@ -800,7 +798,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 		break;
 	}
 
-	err = write(aio->to_main_fds[1], &ret, sizeof(ret));
+	err = write(aio->base.to_main_fds[1], &ret, sizeof(ret));
 	if (err < 0)
 		return err;
 	return ret;
@@ -818,7 +816,7 @@ static void *alsa_io_thread(void *arg)
 	struct alsa_io *aio = (struct alsa_io *)arg;
 	struct timespec ts;
 	fd_set poll_set;
-	int msg_fd = aio->to_thread_fds[0];
+	int msg_fd = aio->base.to_thread_fds[0];
 	int err;
 
 	/* Attempt to get realtime scheduling */
@@ -866,12 +864,12 @@ static int post_message_to_playback_thread(struct alsa_io *aio,
 {
 	int rc, err;
 
-	err = write(aio->to_thread_fds[1], msg, msg->length);
+	err = write(aio->base.to_thread_fds[1], msg, msg->length);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to post message to playback thread.");
 		return err;
 	}
-	err = read(aio->to_main_fds[0], &rc, sizeof(rc));
+	err = read(aio->base.to_main_fds[0], &rc, sizeof(rc));
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to read reply from playback thread.");
 		return err;
@@ -930,17 +928,17 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
 	struct alsa_output_node *output, *tmp;
 
-	if (aio->to_thread_fds[0] != -1) {
-		close(aio->to_thread_fds[0]);
-		close(aio->to_thread_fds[1]);
-		aio->to_thread_fds[0] = -1;
-		aio->to_thread_fds[1] = -1;
+	if (aio->base.to_thread_fds[0] != -1) {
+		close(aio->base.to_thread_fds[0]);
+		close(aio->base.to_thread_fds[1]);
+		aio->base.to_thread_fds[0] = -1;
+		aio->base.to_thread_fds[1] = -1;
 	}
-	if (aio->to_main_fds[0] != -1) {
-		close(aio->to_main_fds[0]);
-		close(aio->to_main_fds[1]);
-		aio->to_main_fds[0] = -1;
-		aio->to_main_fds[1] = -1;
+	if (aio->base.to_main_fds[0] != -1) {
+		close(aio->base.to_main_fds[0]);
+		close(aio->base.to_main_fds[1]);
+		aio->base.to_main_fds[0] = -1;
+		aio->base.to_main_fds[1] = -1;
 	}
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
@@ -1002,10 +1000,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		 "hw:%zu,%zu",
 		 card_index,
 		 device_index);
-	aio->to_thread_fds[0] = -1;
-	aio->to_thread_fds[1] = -1;
-	aio->to_main_fds[0] = -1;
-	aio->to_main_fds[1] = -1;
+	aio->base.to_thread_fds[0] = -1;
+	aio->base.to_thread_fds[1] = -1;
+	aio->base.to_main_fds[0] = -1;
+	aio->base.to_main_fds[1] = -1;
 	iodev->direction = direction;
 	iodev->rm_stream = rm_stream;
 	iodev->add_stream = add_stream;
@@ -1019,12 +1017,12 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	/* Two way pipes for communication with the device's audio thread. */
-	err = pipe(aio->to_thread_fds);
+	err = pipe(aio->base.to_thread_fds);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to pipe");
 		goto cleanup_iodev;
 	}
-	err = pipe(aio->to_main_fds);
+	err = pipe(aio->base.to_main_fds);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to pipe");
 		goto cleanup_iodev;

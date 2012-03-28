@@ -38,6 +38,12 @@ struct cras_io_stream {
  * direction - Input or Output.
  * supported_rates - Array of sample rates supported by device 0-terminated.
  * supported_channel_counts - List of number of channels supported by device.
+ * buffer_size - Size of the ALSA buffer in frames.
+ * used_size - Number of frames that are used for audio.
+ * cb_threshold - Level below which to call back to the client (in frames).
+ * min_cb_level - Minimum amount of free frames to tell the client about.
+ * to_thread_fds - Send a message from main to running thread.
+ * to_main_fds - Send a message to main from running thread.
  */
 struct cras_iodev {
 	int (*add_stream)(struct cras_iodev *iodev,
@@ -50,6 +56,12 @@ struct cras_iodev {
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates;
 	size_t *supported_channel_counts;
+	snd_pcm_uframes_t buffer_size;
+	snd_pcm_uframes_t used_size;
+	snd_pcm_uframes_t cb_threshold;
+	snd_pcm_sframes_t min_cb_level;
+	int to_thread_fds[2];
+	int to_main_fds[2];
 	struct cras_iodev *prev, *next;
 };
 

@@ -338,8 +338,8 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(55, aio_output_->base.streams->stream->fd);
   EXPECT_EQ(1, cras_alsa_open_called);
   //  Test that config_alsa_iodev_params was run.
-  EXPECT_EQ(65, aio_output_->used_size);
-  EXPECT_EQ(80, aio_output_->cb_threshold);
+  EXPECT_EQ(65, aio_output_->base.used_size);
+  EXPECT_EQ(80, aio_output_->base.cb_threshold);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, aio_output_->base.format->format);
   //  open_alsa should configure the following.
   EXPECT_EQ(0, aio_output_->num_underruns);
@@ -384,8 +384,8 @@ TEST_F(AlsaAddStreamSuite, AddRmTwoOutputStreams) {
   memcpy(&second_stream->format, fmt, sizeof(*fmt));
   rc = thread_add_stream(aio_output_, second_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(25, aio_output_->used_size);
-  EXPECT_EQ(12, aio_output_->cb_threshold);
+  EXPECT_EQ(25, aio_output_->base.used_size);
+  EXPECT_EQ(12, aio_output_->base.cb_threshold);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, aio_output_->base.format->format);
 
   //  remove the stream.
@@ -393,8 +393,8 @@ TEST_F(AlsaAddStreamSuite, AddRmTwoOutputStreams) {
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, aio_output_->handle);
   //  Params should be back to first stream.
-  EXPECT_EQ(65, aio_output_->used_size);
-  EXPECT_EQ(80, aio_output_->cb_threshold);
+  EXPECT_EQ(65, aio_output_->base.used_size);
+  EXPECT_EQ(80, aio_output_->base.cb_threshold);
   rc = thread_remove_stream(aio_output_, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
@@ -514,13 +514,13 @@ class AlsaCaptureStreamSuite : public testing::Test {
       fmt_.num_channels = 2;
       fmt_.format = SND_PCM_FORMAT_S16_LE;
       aio_->base.format = &fmt_;
-      aio_->buffer_size = 16384;
-      aio_->cb_threshold = 480;
+      aio_->base.buffer_size = 16384;
+      aio_->base.cb_threshold = 480;
 
       shm_ = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm_) + aio_->cb_threshold * 8);
+          sizeof(*shm_) + aio_->base.cb_threshold * 8);
       shm_->frame_bytes = 4;
-      shm_->used_size = aio_->cb_threshold * 4; // channels * bytes/sample
+      shm_->used_size = aio_->base.cb_threshold * 4; // channels * bytes/sample
       shm_->size = shm_->used_size * 2;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
@@ -530,7 +530,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
       cras_iodev_append_stream(&aio_->base, rstream_);
 
       cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(shm_->used_size);
-      cras_alsa_mmap_begin_frames = aio_->cb_threshold;
+      cras_alsa_mmap_begin_frames = aio_->base.cb_threshold;
 
       ResetStubData();
     }
@@ -568,7 +568,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadEmpty) {
   //  If no samples are present, it should sleep for cb_threshold frames.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = 0;
-  nsec_expected = aio_->cb_threshold * 1000000000 / fmt_.frame_rate;
+  nsec_expected = aio_->base.cb_threshold * 1000000000 / fmt_.frame_rate;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -584,8 +584,8 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
   //  A full block plus 4 frames.  No streams attached so samples are dropped.
   aio_->base.streams = NULL;
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->cb_threshold + 4;
-  nsec_expected = (aio_->cb_threshold - 4) * 1000000000 / fmt_.frame_rate;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
+  nsec_expected = (aio_->base.cb_threshold - 4) * 1000000000 / fmt_.frame_rate;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -600,8 +600,8 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
 
   //  A full block plus 4 frames.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->cb_threshold + 4;
-  nsec_expected = (aio_->cb_threshold - 4) * 1000000000 / fmt_.frame_rate;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
+  nsec_expected = (aio_->base.cb_threshold - 4) * 1000000000 / fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
   rc = possibly_read_audio(aio_, &ts);
@@ -609,8 +609,8 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(aio_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < aio_->cb_threshold; i++)
+  EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->samples[i]);
 }
 
@@ -620,22 +620,22 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteTwoBuffers) {
 
   //  A full block plus 4 frames.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->cb_threshold + 4;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, shm_->num_overruns);
-  EXPECT_EQ(aio_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < aio_->cb_threshold; i++)
+  EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->samples[i]);
 
   cras_rstream_audio_ready_count = 999;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, shm_->num_overruns);
-  EXPECT_EQ(aio_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < aio_->cb_threshold; i++)
+  EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i],
         shm_->samples[i + shm_->used_size]);
 }
@@ -646,21 +646,21 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
 
   //  A full block plus 4 frames.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->cb_threshold + 4;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
   //  Give it some samples to copy.
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, shm_->num_overruns);
-  EXPECT_EQ(aio_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < aio_->cb_threshold; i++)
+  EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->samples[i]);
 
   cras_rstream_audio_ready_count = 999;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, shm_->num_overruns);
-  EXPECT_EQ(aio_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < aio_->cb_threshold; i++)
+  EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i],
         shm_->samples[i + shm_->used_size]);
 
@@ -668,8 +668,8 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, shm_->num_overruns);  //  Should have overrun.
-  EXPECT_EQ(aio_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < aio_->cb_threshold; i++)
+  EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->samples[i]);
 }
 
@@ -683,10 +683,10 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       fmt_.num_channels = 2;
       fmt_.format = SND_PCM_FORMAT_S16_LE;
       aio_->base.format = &fmt_;
-      aio_->buffer_size = 16384;
-      aio_->used_size = 480;
-      aio_->cb_threshold = 96;
-      aio_->min_cb_level = 240;
+      aio_->base.buffer_size = 16384;
+      aio_->base.used_size = 480;
+      aio_->base.cb_threshold = 96;
+      aio_->base.min_cb_level = 240;
 
       SetupShm(&shm_);
       SetupShm(&shm2_);
@@ -696,7 +696,8 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       cras_iodev_append_stream(&aio_->base, rstream_);
 
       cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(shm_->used_size);
-      cras_alsa_mmap_begin_frames = aio_->used_size - aio_->cb_threshold;
+      cras_alsa_mmap_begin_frames =
+          aio_->base.used_size - aio_->base.cb_threshold;
 
       ResetStubData();
     }
@@ -711,9 +712,9 @@ class AlsaPlaybackStreamSuite : public testing::Test {
 
     void SetupShm(struct cras_audio_shm_area **shm) {
       *shm = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(**shm) + aio_->used_size * 8);
+          sizeof(**shm) + aio_->base.used_size * 8);
       (*shm)->frame_bytes = 4;
-      (*shm)->used_size = aio_->used_size * 4; //  channels * bytes/sample
+      (*shm)->used_size = aio_->base.used_size * 4; //  channels * bytes/sample
       (*shm)->size = (*shm)->used_size * 2;
     }
 
@@ -752,8 +753,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillEarlyWake) {
 
   //  If woken and still have tons of data to play, go back to sleep.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold * 2;
-  nsec_expected = (aio_->cb_threshold) * 1000000000 / fmt_.frame_rate;
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold * 2;
+  nsec_expected = (aio_->base.cb_threshold) * 1000000000 / fmt_.frame_rate;
   rc = possibly_fill_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -768,8 +770,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
       1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
@@ -784,7 +787,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_mix_add_stream_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
 }
@@ -796,8 +800,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
       1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
@@ -827,8 +832,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamNeedFill) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
       1000000000 / fmt_.frame_rate;
 
   //  shm is out of data.
@@ -843,7 +849,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -858,8 +865,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
       1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
@@ -873,7 +881,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_mix_add_stream_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
 }
@@ -886,8 +895,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  written_expected = (aio_->used_size - aio_->cb_threshold);
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  written_expected = (aio_->base.used_size - aio_->base.cb_threshold);
   nsec_expected = written_expected *
       1000000000 / fmt_.frame_rate;
 
@@ -914,8 +924,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
       1000000000 / fmt_.frame_rate;
 
   //  shm has nothing left.
@@ -934,7 +945,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_mix_add_stream_count);
   EXPECT_EQ(2, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
@@ -946,8 +958,9 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->buffer_size - aio_->cb_threshold;
-  nsec_expected = (aio_->used_size - aio_->cb_threshold) *
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
       1000000000 / fmt_.frame_rate;
 
   //  One has too little the other is full.
@@ -967,7 +980,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(aio_->used_size - aio_->cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
