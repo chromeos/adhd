@@ -927,18 +927,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
 	struct alsa_output_node *output, *tmp;
 
-	if (aio->base.to_thread_fds[0] != -1) {
-		close(aio->base.to_thread_fds[0]);
-		close(aio->base.to_thread_fds[1]);
-		aio->base.to_thread_fds[0] = -1;
-		aio->base.to_thread_fds[1] = -1;
-	}
-	if (aio->base.to_main_fds[0] != -1) {
-		close(aio->base.to_main_fds[0]);
-		close(aio->base.to_main_fds[1]);
-		aio->base.to_main_fds[0] = -1;
-		aio->base.to_main_fds[1] = -1;
-	}
+	cras_iodev_deinit(&aio->base);
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
 	DL_FOREACH_SAFE(aio->output_nodes, output, tmp) {
@@ -999,13 +988,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		 "hw:%zu,%zu",
 		 card_index,
 		 device_index);
-	aio->base.to_thread_fds[0] = -1;
-	aio->base.to_thread_fds[1] = -1;
-	aio->base.to_main_fds[0] = -1;
-	aio->base.to_main_fds[1] = -1;
-	iodev->direction = direction;
-	iodev->rm_stream = rm_stream;
-	iodev->add_stream = add_stream;
+
+	if (cras_iodev_init(iodev, direction, add_stream, rm_stream))
+		goto cleanup_iodev;
+
 	if (direction == CRAS_STREAM_INPUT) {
 		aio->alsa_stream = SND_PCM_STREAM_CAPTURE;
 		aio->alsa_cb = possibly_read_audio;
@@ -1013,18 +999,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		assert(direction == CRAS_STREAM_OUTPUT);
 		aio->alsa_stream = SND_PCM_STREAM_PLAYBACK;
 		aio->alsa_cb = possibly_fill_audio;
-	}
-
-	/* Two way pipes for communication with the device's audio thread. */
-	err = pipe(aio->base.to_thread_fds);
-	if (err < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		goto cleanup_iodev;
-	}
-	err = pipe(aio->base.to_main_fds);
-	if (err < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		goto cleanup_iodev;
 	}
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,

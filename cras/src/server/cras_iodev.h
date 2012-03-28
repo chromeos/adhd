@@ -81,12 +81,58 @@ struct cras_iodev_add_rm_stream_msg {
 	struct cras_rstream *stream;
 };
 
-/* Utility functions to be used by iodev implementations. */
+/*
+ * Utility functions to be used by iodev implementations.
+ */
+
+/* Initializes the cras_iodev structure.
+ * Args:
+ *    dev - The device to initialize.
+ *    direction - input or output.
+ *    add_stream - Function to call when adding a stream.
+ *    rm_stream - Function to call when removing a stream.
+ * Returns:
+ *    0 on success or negative error on failure.
+ */
+int cras_iodev_init(struct cras_iodev *dev,
+		    enum CRAS_STREAM_DIRECTION direction,
+		    int (*add_stream)(struct cras_iodev *iodev,
+				      struct cras_rstream *stream),
+		    int (*rm_stream)(struct cras_iodev *iodev,
+				     struct cras_rstream *stream));
+
+/* Un-initializes a cras_iodev structure that was setup by cras_iodev_init().
+ * Args:
+ *    dev - The device to initialize.
+ */
+void cras_iodev_deinit(struct cras_iodev *dev);
+
+/* Adds a stream to the iodev.
+ * Args:
+ *    dev - The device to add the stream to.
+ *    stream - The stream to add.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
 int cras_iodev_append_stream(struct cras_iodev *dev,
 			     struct cras_rstream *stream);
+
+/* Removes a stream from the iodev.
+ * Args:
+ *    dev - The device to remove the stream from.
+ *    stream - The stream previously added with cras_iodev_append_stream().
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
 int cras_iodev_delete_stream(struct cras_iodev *dev,
 			     struct cras_rstream *stream);
-/* Check if there are any streams playing on this device. */
+
+/* Checks if there are any streams playing on this device.
+ * Args:
+ *    dev - iodev to check for active streams.
+ * Returns:
+ *    non-zero if the device has streams attached.
+ */
 static inline int cras_iodev_streams_attached(struct cras_iodev *dev)
 {
 	return dev->streams != NULL;
