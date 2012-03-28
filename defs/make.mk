@@ -17,6 +17,7 @@ endif
 GAVD_ARCHIVE	= $(ADHD_BUILD_DIR)/lib/gavd.a
 
 LIBS		=							\
+		-L$(ADHD_DIR)/cras/src/.libs				\
 		$(GAVD_ARCHIVE)						\
 		$(foreach lib,$(MY_LIBS),-l$(lib))
 

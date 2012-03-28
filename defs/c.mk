@@ -107,7 +107,9 @@ BOARD_INCLUDE	= -DADHD_BOARD_INCLUDE='"board-$(BOARD).h"'
 
 INCLUDES	=				\
 		-I$(ADHD_DIR)/include		\
-		-I$(ADHD_SOURCE_DIR)
+		-I$(ADHD_SOURCE_DIR)		\
+		-I$(ADHD_DIR)/cras/src/common	\
+		-I$(ADHD_DIR)/cras/src/libcras
 
 CFLAGS		=				\
 	-std=gnu99				\
