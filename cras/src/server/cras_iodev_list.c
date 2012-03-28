@@ -330,3 +330,14 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 
 	return 0;
 }
+
+void cras_iodev_remove_all_streams(struct cras_iodev *dev)
+{
+	struct cras_io_stream *iostream, *tmp;
+
+	DL_FOREACH_SAFE(dev->streams, iostream, tmp) {
+		struct cras_rstream *stream = iostream->stream;
+		cras_iodev_detach_stream(dev, stream);
+		cras_rstream_send_client_reattach(stream);
+	}
+}

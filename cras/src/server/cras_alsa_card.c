@@ -9,6 +9,7 @@
 
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
+#include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "utlist.h"
 
@@ -196,13 +197,13 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 	if (alsa_card == NULL)
 		return;
 
-	cras_alsa_mixer_destroy(alsa_card->mixer);
-
 	DL_FOREACH_SAFE(alsa_card->iodevs, curr, tmp) {
+		cras_iodev_remove_all_streams(curr->iodev);
 		alsa_iodev_destroy(curr->iodev);
 		DL_DELETE(alsa_card->iodevs, curr);
 		free(curr);
 	}
+	cras_alsa_mixer_destroy(alsa_card->mixer);
 	if (alsa_card->ini)
 		iniparser_freedict(alsa_card->ini);
 	free(alsa_card);

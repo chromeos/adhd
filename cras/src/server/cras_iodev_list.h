@@ -114,4 +114,10 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
  */
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
 
+/* For each stream playing on dev, detach and tell client to reconfigure.
+ * Args:
+ *    iodev - the iodev you want the format for.
+ */
+void cras_iodev_remove_all_streams(struct cras_iodev *dev);
+
 #endif /* CRAS_IODEV_LIST_H_ */

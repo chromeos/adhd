@@ -39,6 +39,7 @@ static size_t snd_ctl_card_info_called;
 static int snd_ctl_card_info_ret;
 static size_t iniparser_freedict_called;
 static size_t iniparser_load_called;
+static size_t cras_iodev_remove_all_streams_called;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -61,6 +62,7 @@ static void ResetStubData() {
   snd_ctl_card_info_ret = 0;
   iniparser_freedict_called = 0;
   iniparser_load_called = 0;
+  cras_iodev_remove_all_streams_called = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -146,6 +148,7 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(1, snd_ctl_card_info_called);
 
   cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, cras_iodev_remove_all_streams_called);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
@@ -242,6 +245,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 void alsa_iodev_destroy(struct cras_iodev *iodev) {
   cras_alsa_iodev_destroy_called++;
   cras_alsa_iodev_destroy_arg = iodev;
+}
+void cras_iodev_remove_all_streams(struct cras_iodev *dev) {
+  cras_iodev_remove_all_streams_called++;
 }
 
 size_t snd_pcm_info_sizeof() {
