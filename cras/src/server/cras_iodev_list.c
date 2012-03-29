@@ -222,6 +222,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 		else
 			default_output = outputs.iodevs;
 	}
+	cras_iodev_remove_all_streams(dev);
 	return rm_dev_from_list(&outputs, dev);
 }
 
@@ -229,6 +230,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	if (default_input == dev)
 		default_input = inputs.iodevs->next;
+	cras_iodev_remove_all_streams(dev);
 	return rm_dev_from_list(&inputs, dev);
 }
 

@@ -113,10 +113,6 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   if (rc > 0)
     free(dev_info);
 
-  // Test error if has stream attached.
-  d1_.streams = (struct cras_io_stream *)0xf00;
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_NE(0, rc);
   // Test that it is removed if no attached streams.
   d1_.streams = (struct cras_io_stream *)NULL;
   d2_.streams = (struct cras_io_stream *)NULL;
@@ -168,10 +164,6 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   if (rc > 0)
     free(dev_info);
 
-  // Test error if has stream attached.
-  d1_.streams = (struct cras_io_stream *)0xf00;
-  rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_NE(0, rc);
   // Test that it is removed if no attached streams.
   d1_.streams = (struct cras_io_stream *)NULL;
   d2_.streams = (struct cras_io_stream *)NULL;

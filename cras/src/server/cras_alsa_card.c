@@ -65,7 +65,7 @@ static struct iodev_list_node *create_iodev_for_device(
 /* Read the config file for this card.  The config file will specify any special
  * volume curves needed for the device. */
 static int read_card_config(dictionary **ini, const char *ini_dir,
-			   const char *card_name)
+			    const char *card_name)
 {
 	char ini_name[MAX_INI_NAME_LENGTH + 1];
 
@@ -198,7 +198,6 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 		return;
 
 	DL_FOREACH_SAFE(alsa_card->iodevs, curr, tmp) {
-		cras_iodev_remove_all_streams(curr->iodev);
 		alsa_iodev_destroy(curr->iodev);
 		DL_DELETE(alsa_card->iodevs, curr);
 		free(curr);

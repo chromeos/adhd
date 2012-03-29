@@ -888,14 +888,13 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
 
-	free_alsa_iodev_resources(aio);
-
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		rc = cras_iodev_list_rm_input(iodev);
 	else {
 		assert(iodev->direction == CRAS_STREAM_OUTPUT);
 		rc = cras_iodev_list_rm_output(iodev);
 	}
+	free_alsa_iodev_resources(aio);
 	if (rc == 0)
 		free(iodev);
 }
