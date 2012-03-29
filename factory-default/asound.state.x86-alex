@@ -1,7 +1,7 @@
 state.Intel {
 	control.1 {
 		iface MIXER
-		name 'Speaker Playback Volume'
+		name 'Headphone Playback Volume'
 		value.0 60
 		value.1 60
 		comment {
@@ -17,7 +17,7 @@ state.Intel {
 	}
 	control.2 {
 		iface MIXER
-		name 'Speaker Playback Switch'
+		name 'Headphone Playback Switch'
 		value.0 true
 		value.1 true
 		comment {
@@ -28,7 +28,7 @@ state.Intel {
 	}
 	control.3 {
 		iface MIXER
-		name 'Headphone Playback Volume'
+		name 'Speaker Playback Volume'
 		value.0 64
 		value.1 64
 		comment {
@@ -44,7 +44,7 @@ state.Intel {
 	}
 	control.4 {
 		iface MIXER
-		name 'Headphone Playback Switch'
+		name 'Speaker Playback Switch'
 		value.0 true
 		value.1 true
 		comment {
@@ -56,8 +56,8 @@ state.Intel {
 	control.5 {
 		iface MIXER
 		name 'Mic Playback Volume'
-		value.0 23
-		value.1 23
+		value.0 0
+		value.1 0
 		comment {
 			access 'read write'
 			type INTEGER
@@ -65,8 +65,8 @@ state.Intel {
 			range '0 - 31'
 			dbmin -3450
 			dbmax 1200
-			dbvalue.0 0
-			dbvalue.1 0
+			dbvalue.0 -3450
+			dbvalue.1 -3450
 		}
 	}
 	control.6 {
@@ -82,6 +82,18 @@ state.Intel {
 	}
 	control.7 {
 		iface MIXER
+		name 'Auto-Mute Mode'
+		value Enabled
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Disabled
+			item.1 Enabled
+		}
+	}
+	control.8 {
+		iface MIXER
 		name 'Mic Boost Volume'
 		value.0 0
 		value.1 0
@@ -94,18 +106,6 @@ state.Intel {
 			dbmax 3000
 			dbvalue.0 0
 			dbvalue.1 0
-		}
-	}
-	control.8 {
-		iface MIXER
-		name 'Auto-Mute Mode'
-		value Enabled
-		comment {
-			access 'read write'
-			type ENUMERATED
-			count 1
-			item.0 Disabled
-			item.1 Enabled
 		}
 	}
 	control.9 {
@@ -121,64 +121,35 @@ state.Intel {
 	}
 	control.10 {
 		iface MIXER
-		name 'Capture Switch'
-		index 1
-		value.0 false
-		value.1 false
+		name 'Capture Volume'
+		value.0 19
+		value.1 19
 		comment {
 			access 'read write'
-			type BOOLEAN
+			type INTEGER
 			count 2
+			range '0 - 31'
+			dbmin -1650
+			dbmax 3000
+			dbvalue.0 1200
+			dbvalue.1 1200
 		}
 	}
 	control.11 {
 		iface MIXER
-		name 'Capture Volume'
-		value.0 25
-		value.1 25
-		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 31'
-			dbmin -1650
-			dbmax 3000
-			dbvalue.0 2100
-			dbvalue.1 2100
-		}
-	}
-	control.12 {
-		iface MIXER
-		name 'Capture Volume'
-		index 1
-		value.0 11
-		value.1 11
-		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 31'
-			dbmin -1650
-			dbmax 3000
-			dbvalue.0 0
-			dbvalue.1 0
-		}
-	}
-	control.13 {
-		iface MIXER
 		name 'Master Playback Volume'
-		value 40
+		value 46
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
-			range '0 - 64'
+			range '0 - 60'
 			dbmin -6000
-			dbmax 400
-			dbvalue.0 -2000
+			dbmax 0
+			dbvalue.0 -1400
 		}
 	}
-	control.14 {
+	control.12 {
 		iface MIXER
 		name 'Master Playback Switch'
 		value true
@@ -188,11 +159,11 @@ state.Intel {
 			count 1
 		}
 	}
-	control.15 {
+	control.13 {
 		iface MIXER
 		name 'PCM Playback Volume'
-		value.0 255
-		value.1 255
+		value.0 251
+		value.1 251
 		comment {
 			access 'read write user'
 			type INTEGER
@@ -201,8 +172,8 @@ state.Intel {
 			tlv '0000000100000008ffffec1400000014'
 			dbmin -5100
 			dbmax 0
-			dbvalue.0 0
-			dbvalue.1 0
+			dbvalue.0 -80
+			dbvalue.1 -80
 		}
 	}
 }
