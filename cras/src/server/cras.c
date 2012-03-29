@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #include "cras_config.h"
+#include "cras_empty_iodev.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_system_state.h"
@@ -235,6 +236,11 @@ int main(int argc, char **argv)
 
 	/* Initialize system. */
 	cras_system_state_init();
+
+	/* Add an empty device so there is always something to play to or
+	 * capture from. */
+	empty_iodev_create(CRAS_STREAM_OUTPUT);
+	empty_iodev_create(CRAS_STREAM_INPUT);
 
 	/* Start the server. */
 	run_server();

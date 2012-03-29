@@ -9,7 +9,8 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_mix.c common/cras_util.c common/cras_config.c \
 	server/cras_alsa_helpers.c common/cras_audio_format.c \
 	server/cras_system_state.c  server/cras_volume_curve.c \
-	server/cras_alsa_mixer.c server/cras_alsa_card.c
+	server/cras_alsa_mixer.c server/cras_alsa_card.c \
+	server/cras_empty_iodev.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common
 cras_LDADD = -lpthread -lasound -lrt -liniparser
 
