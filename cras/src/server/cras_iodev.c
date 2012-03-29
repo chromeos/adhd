@@ -160,13 +160,17 @@ int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
 
 	err = write(iodev->to_thread_fds[1], msg, msg->length);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to post message to playback thread.");
+		syslog(LOG_ERR,
+		       "Failed to post message to thread for iodev %zu.",
+		       iodev->info.idx);
 		return err;
 	}
 	/* Synchronous action, wait for response. */
 	err = read(iodev->to_main_fds[0], &rc, sizeof(rc));
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to read reply from playback thread.");
+		syslog(LOG_ERR,
+		       "Failed to read reply from thread for iodev %zu.",
+		       iodev->info.idx);
 		return err;
 	}
 
