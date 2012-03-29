@@ -380,10 +380,10 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 
 	/* Finally add it to the appropriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT)
-		cras_iodev_list_add_input(iodev);
+		cras_iodev_list_add_input(iodev, 0);
 	else {
 		assert(direction == CRAS_STREAM_OUTPUT);
-		cras_iodev_list_add_output(iodev);
+		cras_iodev_list_add_output(iodev, 0);
 	}
 
 	iodev->supported_rates = empty_supported_rates;

@@ -87,14 +87,14 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   int rc;
   uint32_t found_mask;
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, d1_.info.idx);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_NE(0, rc);
   // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add_output(&d2_, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, d2_.info.idx);
 
@@ -132,20 +132,57 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   EXPECT_EQ(0, rc);
 }
 
+// Test auto routing for outputs.
+TEST_F(IoDevTestSuite, AutoRouteOutputs) {
+  int rc;
+  struct cras_iodev *ret_dev;
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  // Test can't insert same iodev twice.
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_NE(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+  // Test insert a second output.
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d2_, ret_dev);
+
+  // Test that it is removed if no attached streams.
+  d1_.streams = (struct cras_io_stream *)NULL;
+  d2_.streams = (struct cras_io_stream *)NULL;
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+  // Test that we can't remove a dev twice.
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_NE(0, rc);
+  // Default should fall back to d1.
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+  // Remove other dev.
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+}
+
 // Test adding/removing an input dev to the list.
 TEST_F(IoDevTestSuite, AddRemoveInput) {
   struct cras_iodev_info *dev_info;
   int rc, i;
   uint32_t found_mask;
 
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add_input(&d1_, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, d1_.info.idx);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add_input(&d1_, 1);
   EXPECT_NE(0, rc);
   // Test insert a second input.
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add_input(&d2_, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, d2_.info.idx);
 
@@ -189,12 +226,12 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   struct cras_rstream s1, s2;
   int rc;
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add_output(&d2_, 0);
   EXPECT_EQ(0, rc);
 
-  // Default should be most recently added.
+  // Default should 1, because 2 specified not to auto-route.
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d1_, ret_dev);

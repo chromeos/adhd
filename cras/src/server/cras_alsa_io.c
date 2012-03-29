@@ -817,6 +817,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
+				     int auto_route,
 				     enum CRAS_STREAM_DIRECTION direction)
 {
 	struct alsa_io *aio;
@@ -869,10 +870,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Finally add it to the approriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT)
-		cras_iodev_list_add_input(&aio->base);
+		cras_iodev_list_add_input(&aio->base, auto_route);
 	else {
 		assert(direction == CRAS_STREAM_OUTPUT);
-		cras_iodev_list_add_output(&aio->base);
+		cras_iodev_list_add_output(&aio->base, auto_route);
 	}
 
 	return &aio->base;

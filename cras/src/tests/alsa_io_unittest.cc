@@ -119,7 +119,7 @@ TEST(AlsaIoInit, InitializePlayback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, 0,
-                                            fake_mixer,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
@@ -136,7 +136,7 @@ TEST(AlsaIoInit, InitializeCapture) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, 0,
-                                            fake_mixer,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
@@ -168,7 +168,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, 0,
-                                            fake_mixer,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
@@ -198,10 +198,10 @@ TEST(AlsaOutputNode, TwoOutputs) {
 class AlsaAddStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_output_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
+      aio_output_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer, 0,
           CRAS_STREAM_OUTPUT);
       aio_output_->base.direction = CRAS_STREAM_OUTPUT;
-      aio_input_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
+      aio_input_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer, 0,
           CRAS_STREAM_INPUT);
       aio_input_->base.direction = CRAS_STREAM_INPUT;
       fmt_.frame_rate = 44100;
@@ -412,7 +412,7 @@ TEST_F(AlsaAddStreamSuite, OneInputStreamPerDevice) {
 class AlsaCaptureStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
+      aio_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer, 0,
           CRAS_STREAM_INPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -581,7 +581,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
 class AlsaPlaybackStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer,
+      aio_ = (struct alsa_io *)alsa_iodev_create(0, 0, fake_mixer, 0,
           CRAS_STREAM_OUTPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -901,7 +901,7 @@ int main(int argc, char **argv) {
 extern "C" {
 
 //  From iodev.
-int cras_iodev_list_add_output(struct cras_iodev *output)
+int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 {
   return 0;
 }
@@ -910,7 +910,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
   return 0;
 }
 
-int cras_iodev_list_add_input(struct cras_iodev *input)
+int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 {
   return 0;
 }

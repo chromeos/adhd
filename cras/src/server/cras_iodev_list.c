@@ -73,8 +73,6 @@ static int add_dev_to_list(struct iodev_list *list,
 	list->next_idx = new_idx + 1;
 	list->size++;
 
-	DL_APPEND(list->iodevs, dev);
-	syslog(LOG_DEBUG, "Added iodev at index %zu.\n", new_idx);
 	return 0;
 }
 
@@ -190,27 +188,55 @@ struct cras_iodev *cras_get_iodev_for_stream_type(
 	return dev;
 }
 
-int cras_iodev_list_add_output(struct cras_iodev *output)
+int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 {
 	int rc;
 
 	rc = add_dev_to_list(&outputs, output);
 	if (rc < 0)
 		return rc;
-	if (default_output == NULL)
+	if (default_output == NULL) {
+		/* First output, make it default regardless. */
 		default_output = output;
+		DL_APPEND(outputs.iodevs, output);
+		return 0;
+	}
+	syslog(LOG_DEBUG, "Adding iodev at index %zu.", output->info.idx);
+	if (auto_route) {
+		/* auto-route devices go to the front of the list. */
+		DL_PREPEND(outputs.iodevs, output);
+		struct cras_iodev *last_default = default_output;
+		default_output = output;
+		cras_iodev_remove_all_streams(last_default);
+		syslog(LOG_DEBUG, "Default output dev %zu.", output->info.idx);
+	} else
+		DL_APPEND(outputs.iodevs, output);
 	return 0;
 }
 
-int cras_iodev_list_add_input(struct cras_iodev *input)
+int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 {
 	int rc;
 
 	rc = add_dev_to_list(&inputs, input);
 	if (rc < 0)
 		return rc;
-	if (default_input == NULL)
+	if (default_input == NULL) {
+		/* First input, make it default regardless. */
 		default_input = input;
+		DL_APPEND(inputs.iodevs, input);
+		return 0;
+	}
+	syslog(LOG_DEBUG, "Adding iodev at index %zu.", input->info.idx);
+	if (auto_route) {
+		/* auto-route devices go to the front of the list. */
+		DL_PREPEND(inputs.iodevs, input);
+		struct cras_iodev *last_default = default_input;
+		default_input = input;
+		cras_iodev_remove_all_streams(last_default);
+		syslog(LOG_DEBUG, "Default input dev %zu.", input->info.idx);
+	} else
+		DL_APPEND(inputs.iodevs, input);
 	return 0;
 }
 

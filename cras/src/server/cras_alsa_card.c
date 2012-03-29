@@ -51,7 +51,11 @@ static struct iodev_list_node *create_iodev_for_device(
 	if (new_dev == NULL)
 		return NULL;
 	new_dev->iodev =
-		alsa_iodev_create(card_index, device_index, mixer, direction);
+		alsa_iodev_create(card_index,
+				  device_index,
+				  mixer,
+				  device_index == 0, /* auto route */
+				  direction);
 	if (new_dev->iodev == NULL) {
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %zu:%zu\n",
 		       card_index, device_index);

@@ -14,6 +14,7 @@ struct cras_alsa_mixer;
  * Args:
  *    dev - the path to the alsa device to use.
  *    mixer - The mixer for the alsa device.
+ *    auto_route - If non-zero make this new device the default.
  *    direciton - input or output.
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
@@ -21,6 +22,7 @@ struct cras_alsa_mixer;
 struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
+				     int auto_route,
 				     enum CRAS_STREAM_DIRECTION direction);
 
 /* Destroys an alsa_iodev created with alsa_iodev_create. */
