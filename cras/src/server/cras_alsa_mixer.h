@@ -7,6 +7,7 @@
 #define _CRAS_ALSA_MIXER_H
 
 #include <alsa/asoundlib.h>
+#include <iniparser.h>
 
 #include "cras_alsa_mixer.h"
 
@@ -30,11 +31,13 @@ struct cras_alsa_mixer_output {
  * Args:
  *    card_name - Name of the card to open a mixer for.  This is an alsa name of
  *    the form "hw:X" where X ranges from 0 to 31 inclusive.
+ *    ini - Configuraiton information for this card from libiniparser.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy.
  */
-struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name);
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
+					       dictionary *ini);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:
