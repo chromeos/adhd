@@ -2,8 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
 #include <gtest/gtest.h>
+#include <iniparser.h>
+#include <stdio.h>
 
 extern "C" {
 #include "cras_alsa_card.h"
@@ -34,6 +35,10 @@ static size_t snd_ctl_pcm_info_called;
 static int *snd_ctl_pcm_info_rets;
 static size_t snd_ctl_pcm_info_rets_size;
 static size_t snd_ctl_pcm_info_rets_index;
+static size_t snd_ctl_card_info_called;
+static int snd_ctl_card_info_ret;
+static size_t iniparser_freedict_called;
+static size_t iniparser_load_called;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -52,6 +57,10 @@ static void ResetStubData() {
   snd_ctl_pcm_info_called = 0;
   snd_ctl_pcm_info_rets_size = 0;
   snd_ctl_pcm_info_rets_index = 0;
+  snd_ctl_card_info_called = 0;
+  snd_ctl_card_info_ret = 0;
+  iniparser_freedict_called = 0;
+  iniparser_load_called = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -86,6 +95,20 @@ TEST(AlsaCard, CreateFailCtlOpen) {
   EXPECT_EQ(1, snd_ctl_open_called);
   EXPECT_EQ(0, snd_ctl_close_called);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
+TEST(AlsaCard, CreateFailCtlCardInfo) {
+  struct cras_alsa_card *c;
+
+  ResetStubData();
+  snd_ctl_card_info_ret = -1;
+  c = cras_alsa_card_create(0);
+  EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(1, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_close_called);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 TEST(AlsaCard, CreateNoDevices) {
@@ -101,6 +124,7 @@ TEST(AlsaCard, CreateNoDevices) {
   cras_alsa_card_destroy(c);
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 TEST(AlsaCard, CreateOneOutput) {
@@ -118,11 +142,13 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 TEST(AlsaCard, CreateOneInput) {
@@ -145,6 +171,7 @@ TEST(AlsaCard, CreateOneInput) {
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 TEST(AlsaCard, CreateOneInputAndOneOutput) {
@@ -167,6 +194,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutput) {
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
@@ -189,6 +217,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 /* Stubs */
@@ -217,8 +246,15 @@ void alsa_iodev_destroy(struct cras_iodev *iodev) {
 size_t snd_pcm_info_sizeof() {
   return 10;
 }
+size_t snd_ctl_card_info_sizeof() {
+  return 10;
+}
 int snd_ctl_open(snd_ctl_t **handle, const char *name, int card) {
   snd_ctl_open_called++;
+  if (snd_ctl_open_return == 0)
+    *handle = reinterpret_cast<snd_ctl_t*>(0xff);
+  else
+    *handle = NULL;
   return snd_ctl_open_return;
 }
 int snd_ctl_close(snd_ctl_t *handle) {
@@ -253,6 +289,25 @@ int snd_ctl_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t *info) {
   ret = snd_ctl_pcm_info_rets[snd_ctl_pcm_info_rets_index];
   snd_ctl_pcm_info_rets_index++;
   return ret;
+}
+int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info) {
+  snd_ctl_card_info_called++;
+  return snd_ctl_card_info_ret;
+}
+const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj) {
+	return "TestName";
+}
+const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj) {
+	return "TestId";
+}
+dictionary *iniparser_load(char *ininame)
+{
+	iniparser_load_called++;
+	return reinterpret_cast<dictionary*>(0xf0);
+}
+void iniparser_freedict(dictionary * d)
+{
+	iniparser_freedict_called++;
 }
 
 } /* extern "C" */
