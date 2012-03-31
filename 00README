@@ -10,4 +10,4 @@ o The addition of the 'asound.state' files to the 'factory-default' is
   support many boards, please consult with micahc@, tlambert@ or
   thutt@ before copying this model, as this source tree is in flux
   right now, and we are hoping to get rid of these asound.state files
-  in favor of udef rules.
+  in favor of udev rules.
