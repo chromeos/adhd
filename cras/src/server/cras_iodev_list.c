@@ -94,16 +94,28 @@ static int rm_dev_from_list(struct iodev_list *list, struct cras_iodev *dev)
 	return -EINVAL;
 }
 
+/* Fills a dev_info array from the iodev_list. */
+static void fill_dev_list(struct iodev_list *list,
+			  struct cras_iodev_info *dev_info,
+			  size_t out_size)
+{
+	int i = 0;
+	struct cras_iodev *tmp;
+	DL_FOREACH(list->iodevs, tmp) {
+		memcpy(&dev_info[i], &tmp->info, sizeof(dev_info[0]));
+		i++;
+		if (i == out_size)
+			return;
+	}
+}
+
 /* Copies the info for each device in the list to "list_out". */
 static int get_dev_list(struct iodev_list *list,
 			struct cras_iodev_info **list_out)
 {
-	int i;
 	struct cras_iodev_info *dev_info;
-	struct cras_iodev *tmp;
 
 	*list_out = NULL;
-
 	if (list->size == 0)
 		return 0;
 
@@ -111,11 +123,7 @@ static int get_dev_list(struct iodev_list *list,
 	if (dev_info == NULL)
 		return -ENOMEM;
 
-	i = 0;
-	DL_FOREACH(list->iodevs, tmp) {
-		memcpy(&dev_info[i], &tmp->info, sizeof(dev_info[0]));
-		i++;
-	}
+	fill_dev_list(list, dev_info, list->size);
 
 	*list_out = dev_info;
 	return list->size;
