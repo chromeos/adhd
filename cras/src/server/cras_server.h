@@ -16,4 +16,7 @@ struct cras_client_message;
  */
 int cras_server_run();
 
+/* Send a message to all attached clients. */
+void cras_server_send_to_all_clients(const struct cras_client_message *msg);
+
 #endif /* CRAS_SERVER_H_ */
