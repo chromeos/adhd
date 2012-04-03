@@ -53,6 +53,8 @@ enum {
 	CLIENT_ADD_STREAM,
 	CLIENT_REMOVE_STREAM,
 	CLIENT_SET_STREAM_VOLUME_SCALER,
+	CLIENT_GET_OUTPUT_DEVICE_LIST,
+	CLIENT_GET_INPUT_DEVICE_LIST,
 };
 
 struct command_msg {
@@ -69,6 +71,12 @@ struct set_stream_volume_command_message {
 struct add_stream_command_message {
 	struct command_msg header;
 	struct client_stream *stream;
+};
+
+struct get_device_list_message {
+	struct command_msg header;
+	struct cras_iodev_info *devs;
+	size_t max_devs;
 };
 
 /* Commands send from a running stream to the client. */
@@ -149,6 +157,10 @@ struct client_stream {
  * command_barrier - Used to signal the completion of a command from the user.
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
+ * num_input_devs - Number of input devices available.
+ * input_devs - List of input devices available.
+ * num_output_devs - Number of output devices available.
+ * output_devs = List of output devices available.
  */
 struct cras_client {
 	int id;
@@ -161,6 +173,10 @@ struct cras_client {
 	pthread_barrier_t command_barrier;
 	int last_command_result;
 	struct client_stream *streams;
+	size_t num_input_devs;
+	struct cras_iodev_info *input_devs;
+	size_t num_output_devs;
+	struct cras_iodev_info *output_devs;
 };
 
 /*
@@ -714,6 +730,32 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 	return 0;
 }
 
+/* Gets the list of output devices. */
+static int client_thread_output_device_list(struct cras_client *client,
+					    struct cras_iodev_info *devs,
+					    size_t max_devs)
+{
+	const size_t num_devs = min(max_devs, client->num_output_devs);
+
+	if (num_devs == 0)
+		return 0;
+	memcpy(devs, client->output_devs, num_devs * sizeof(*devs));
+	return num_devs;
+}
+
+/* Gets the list of input devices. */
+static int client_thread_input_device_list(struct cras_client *client,
+					   struct cras_iodev_info *devs,
+					   size_t max_devs)
+{
+	const size_t num_devs = min(max_devs, client->num_input_devs);
+
+	if (num_devs == 0)
+		return 0;
+	memcpy(devs, client->input_devs, num_devs * sizeof(*devs));
+	return num_devs;
+}
+
 /* Re-attaches a stream that was removed on the server side so that it could be
  * moved to a new device. To achieve this, remove the stream and send the
  * connect message again. */
@@ -761,6 +803,40 @@ static int handle_stream_reattach(struct cras_client *client,
 		return rc;
 	}
 
+	return 0;
+}
+
+/* Handles a new list of iodevs. */
+static int handle_new_iodev_list(struct cras_client *client,
+				 struct cras_client_iodev_list *msg)
+{
+	free(client->input_devs);
+	client->input_devs = NULL;
+	free(client->output_devs);
+	client->output_devs = NULL;
+
+	client->num_output_devs = msg->num_outputs;
+	if (client->num_output_devs > 0) {
+		size_t output_size = sizeof(client->output_devs[0]) *
+				client->num_output_devs;
+		client->output_devs = malloc(output_size);
+		if (client->output_devs == NULL)
+			return -ENOMEM;
+		memcpy(client->output_devs, &msg->iodevs[0], output_size);
+	}
+	client->num_input_devs = msg->num_inputs;
+	if (client->num_input_devs > 0) {
+		size_t input_size = sizeof(client->input_devs[0]) *
+				client->num_input_devs;
+		client->input_devs = malloc(input_size);
+		if (client->input_devs == NULL) {
+			free(client->output_devs);
+			return -ENOMEM;
+		}
+		memcpy(client->input_devs,
+		       &msg->iodevs[client->num_output_devs],
+		       input_size);
+	}
 	return 0;
 }
 
@@ -813,6 +889,12 @@ static int handle_message_from_server(struct cras_client *client)
 		struct cras_client_stream_reattach *cmsg =
 			(struct cras_client_stream_reattach *)msg;
 		handle_stream_reattach(client, cmsg->stream_id);
+		break;
+	}
+	case CRAS_CLIENT_IODEV_LIST: {
+		struct cras_client_iodev_list *cmsg =
+			(struct cras_client_iodev_list *)msg;
+		handle_new_iodev_list(client, cmsg);
 		break;
 	}
 	default:
@@ -892,6 +974,20 @@ static int handle_command_message(struct cras_client *client)
 		rc = client_thread_set_stream_volume(client,
 						     vol_msg->header.stream_id,
 						     vol_msg->volume_scaler);
+		break;
+	}
+	case CLIENT_GET_OUTPUT_DEVICE_LIST: {
+		struct get_device_list_message *dev_msg =
+			(struct get_device_list_message *)msg;
+		rc = client_thread_output_device_list(client, dev_msg->devs,
+						      dev_msg->max_devs);
+		break;
+	}
+	case CLIENT_GET_INPUT_DEVICE_LIST: {
+		struct get_device_list_message *dev_msg =
+			(struct get_device_list_message *)msg;
+		rc = client_thread_input_device_list(client, dev_msg->devs,
+						     dev_msg->max_devs);
 		break;
 	}
 	default:
@@ -1011,6 +1107,22 @@ static int write_message_to_server(const struct cras_client *client,
 	return 0;
 }
 
+static int get_device_list(struct cras_client *client,
+			   struct cras_iodev_info *devs,
+			   size_t max_devs,
+			   size_t msg_id)
+{
+	struct get_device_list_message msg;
+	if (client == NULL || !client->thread.running)
+		return -EINVAL;
+
+	msg.header.len = sizeof(msg);
+	msg.header.msg_id = msg_id;
+	msg.devs = devs;
+	msg.max_devs = max_devs;
+	return send_command_message(client, &msg.header);
+}
+
 /*
  * Exported Client Interface
  */
@@ -1059,6 +1171,8 @@ void cras_client_destroy(struct cras_client *client)
 	close(client->stream_fds[0]);
 	close(client->stream_fds[1]);
 	pthread_barrier_destroy(&(client->command_barrier));
+	free(client->output_devs);
+	free(client->input_devs);
 	free(client);
 }
 
@@ -1278,6 +1392,26 @@ int cras_client_stop(struct cras_client *client)
 	pthread_join(client->thread.tid, NULL);
 
 	return 0;
+}
+
+int cras_client_get_output_devices(struct cras_client *client,
+				   struct cras_iodev_info *devs,
+				   size_t max_devs)
+{
+	return get_device_list(client,
+			       devs,
+			       max_devs,
+			       CLIENT_GET_OUTPUT_DEVICE_LIST);
+}
+
+int cras_client_get_input_devices(struct cras_client *client,
+				  struct cras_iodev_info *devs,
+				  size_t max_devs)
+{
+	return get_device_list(client,
+			       devs,
+			       max_devs,
+			       CLIENT_GET_INPUT_DEVICE_LIST);
 }
 
 int cras_client_bytes_per_frame(struct cras_client *client,

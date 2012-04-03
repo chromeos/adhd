@@ -18,6 +18,8 @@
 #define PLAYBACK_CB_THRESHOLD (480)
 #define PLAYBACK_BUFFER_SIZE (4800)
 
+static const size_t MAX_IODEVS = 10; /* Max devices to print out. */
+
 static uint8_t *file_buf;
 static size_t file_buf_size;
 static size_t file_buf_read_offset;
@@ -88,6 +90,26 @@ static void print_last_latency()
 {
 	printf("%u.%09u\n", (unsigned)last_latency.tv_sec,
 	       (unsigned)last_latency.tv_nsec);
+}
+
+static void print_device_lists(struct cras_client *client)
+{
+	struct cras_iodev_info devs[MAX_IODEVS];
+	size_t i;
+	int num_devs;
+
+	num_devs = cras_client_get_output_devices(client, devs, MAX_IODEVS);
+	if (num_devs < 0)
+		return;
+	printf("Output:\n");
+	for (i = 0; i < num_devs; i++)
+		printf("  %zu %s\n", devs[i].idx, devs[i].name);
+	num_devs = cras_client_get_input_devices(client, devs, MAX_IODEVS);
+	if (num_devs < 0)
+		return;
+	printf("Input:\n");
+	for (i = 0; i < num_devs; i++)
+		printf("  %zu %s\n", devs[i].idx, devs[i].name);
 }
 
 static int run_file_io_stream(struct cras_client *client,
@@ -217,6 +239,9 @@ static int run_file_io_stream(struct cras_client *client,
 			break;
 		case '+':
 			remove = 0;
+			break;
+		case '@':
+			print_device_lists(client);
 			break;
 		case '0':
 		case '1':

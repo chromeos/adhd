@@ -13,6 +13,7 @@ extern "C" {
 #include <stdint.h>
 #include <sys/select.h>
 
+#include "cras_iodev_info.h"
 #include "cras_types.h"
 
 struct cras_client;
@@ -85,6 +86,33 @@ int cras_client_run_thread(struct cras_client *client);
  */
 int cras_client_stop(struct cras_client *client);
 
+/* Returns the current list of output devices.
+ * Args:
+ *    client - The client to stop (from cras_client_create).
+ *    devs - Array that will be filled with device info.
+ *    max_devs - Maximumnumber of devices to put in the array.
+ * Returns:
+ *    The number of devices available.  This may be more that max_devs passed
+ *    in, this indicates that all of the iodev_info wouldn't fit in the provided
+ *    array.
+ */
+int cras_client_get_output_devices(struct cras_client *client,
+				   struct cras_iodev_info *devs,
+				   size_t max_devs);
+
+/* Returns the current list of input devices.
+ * Args:
+ *    client - The client to stop (from cras_client_create).
+ *    devs - Array that will be filled with device info.
+ *    max_devs - Maximumnumber of devices to put in the array.
+ * Returns:
+ *    The number of devices available.  This may be more that max_devs passed
+ *    in, this indicates that all of the iodev_info wouldn't fit in the provided
+ *    array.
+ */
+int cras_client_get_input_devices(struct cras_client *client,
+				  struct cras_iodev_info *devs,
+				  size_t max_devs);
 
 /*
  * Stream handling.
