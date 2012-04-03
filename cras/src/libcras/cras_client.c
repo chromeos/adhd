@@ -119,7 +119,7 @@ struct cras_stream_params {
  * conv - Format converter, used if the server's audio format doesn't match.
  * aud_address - Address used to listen for server requesting audio samples.
  * prev, next - Form a linked list of streams attached to a client.
-  */
+ */
 struct client_stream {
 	cras_stream_id_t id;
 	int connection_fd; /* Listen for incoming connection from the server. */
