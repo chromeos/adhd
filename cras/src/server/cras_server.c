@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "cras_config.h"
+#include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_system_state.h"
@@ -120,6 +121,8 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	}
 
 	DL_APPEND(server_instance.clients_head, poll_client);
+	/* Send a current list of available inputs and outputs. */
+	cras_iodev_list_update_clients();
 }
 
 /*

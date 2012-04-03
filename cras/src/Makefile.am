@@ -19,7 +19,7 @@ libcras_la_SOURCES = libcras/cras_client.c common/cras_util.c \
 	common/cras_fmt_conv.c common/cras_config.c common/cras_audio_format.c
 include_HEADERS = libcras/cras_client.h common/cras_types.h \
 	common/cras_messages.h common/cras_config.h common/cras_fmt_conv.h \
-	common/cras_shm.h common/utlist.h
+	common/cras_shm.h common/cras_iodev_info.h common/utlist.h
 libcras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/libcras
 libcras_la_LIBADD = -lpthread -lasound -lrt -lspeexdsp

@@ -124,4 +124,8 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
  */
 void cras_iodev_remove_all_streams(struct cras_iodev *dev);
 
+/* Sends out the list of iodevs in the system. Returns 0 for success negative
+ * error if not enough memory. */
+int cras_iodev_list_update_clients();
+
 #endif /* CRAS_IODEV_LIST_H_ */

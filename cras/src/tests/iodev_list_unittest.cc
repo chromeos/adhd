@@ -80,6 +80,9 @@ int IoDevTestSuite::add_stream_1_called_;
 int IoDevTestSuite::rm_stream_1_called_;
 int IoDevTestSuite::add_stream_2_called_;
 int IoDevTestSuite::rm_stream_2_called_;
+size_t cras_server_send_to_all_clients_called;
+size_t cras_server_send_to_all_clients_num_outputs;
+size_t cras_server_send_to_all_clients_num_inputs;
 
 // Test adding/removing an iodev to the list.
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
@@ -175,16 +178,20 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   int rc, i;
   uint32_t found_mask;
 
+  cras_server_send_to_all_clients_called = 0;
   rc = cras_iodev_list_add_input(&d1_, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, d1_.info.idx);
+  EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test can't insert same iodev twice.
   rc = cras_iodev_list_add_input(&d1_, 1);
   EXPECT_NE(0, rc);
+  EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test insert a second input.
   rc = cras_iodev_list_add_input(&d2_, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, d2_.info.idx);
+  EXPECT_EQ(2, cras_server_send_to_all_clients_called);
 
   // List the outputs.
   rc = cras_iodev_list_get_inputs(&dev_info);
@@ -377,44 +384,48 @@ extern "C" {
 // Stubs
 
 int cras_iodev_append_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream)
-{
-	struct cras_io_stream *out;
+			     struct cras_rstream *stream) {
+  struct cras_io_stream *out;
 
-	/* Check that we don't already have this stream */
-	DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
-	if (out != NULL)
-		return -EEXIST;
+  /* Check that we don't already have this stream */
+  DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
+  if (out != NULL)
+    return -EEXIST;
 
-	/* New stream, allocate a container and add it to the list. */
-	out = static_cast<struct cras_io_stream*>(calloc(1, sizeof(*out)));
-	if (out == NULL)
-		return -ENOMEM;
-	out->stream = stream;
-	out->shm = cras_rstream_get_shm(stream);
-	out->fd = cras_rstream_get_audio_fd(stream);
-	DL_APPEND(iodev->streams, out);
+  /* New stream, allocate a container and add it to the list. */
+  out = static_cast<struct cras_io_stream*>(calloc(1, sizeof(*out)));
+  if (out == NULL)
+    return -ENOMEM;
+  out->stream = stream;
+  out->shm = cras_rstream_get_shm(stream);
+  out->fd = cras_rstream_get_audio_fd(stream);
+  DL_APPEND(iodev->streams, out);
 
-	return 0;
+  return 0;
 }
 
 int cras_iodev_delete_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream)
-{
-	struct cras_io_stream *out;
+			     struct cras_rstream *stream) {
+  struct cras_io_stream *out;
 
-	/* Find stream, and if found, delete it. */
-	DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
-	if (out == NULL)
-		return -EINVAL;
-	DL_DELETE(iodev->streams, out);
-	free(out);
+  /* Find stream, and if found, delete it. */
+  DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
+  if (out == NULL)
+    return -EINVAL;
+  DL_DELETE(iodev->streams, out);
+  free(out);
 
-	return 0;
+  return 0;
 }
 
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
-{
+void cras_rstream_send_client_reattach(const struct cras_rstream *stream) {
 }
 
+void cras_server_send_to_all_clients(struct cras_client_message *msg) {
+  cras_client_iodev_list* cmsg = reinterpret_cast<cras_client_iodev_list*>(msg);
+  cras_server_send_to_all_clients_called++;
+  cras_server_send_to_all_clients_num_outputs = cmsg->num_outputs;
+  cras_server_send_to_all_clients_num_inputs = cmsg->num_inputs;
 }
+
+}  // extern "C"

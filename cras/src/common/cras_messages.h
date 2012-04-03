@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 
+#include "cras_iodev_info.h"
 #include "cras_types.h"
 
 /* Rev when message format changes. If new messages are added, or message ID
@@ -34,6 +35,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_CONNECTED,
 	CRAS_CLIENT_STREAM_CONNECTED,
 	CRAS_CLIENT_STREAM_REATTACH,
+	CRAS_CLIENT_IODEV_LIST,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -234,6 +236,14 @@ static inline void cras_fill_client_stream_reattach(
 	m->header.id = CRAS_CLIENT_STREAM_REATTACH;
 	m->header.length = sizeof(struct cras_client_stream_reattach);
 }
+
+/* Informs clients of the currently list of input and output iodevs. */
+struct cras_client_iodev_list {
+	struct cras_client_message header;
+	size_t num_outputs;
+	size_t num_inputs;
+	struct cras_iodev_info iodevs[];
+};
 
 /*
  * Messages specific to passing audio between client and server

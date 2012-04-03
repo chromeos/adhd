@@ -9,6 +9,7 @@
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
+#include "cras_server.h"
 #include "utlist.h"
 
 /* Linked list of available devices. */
@@ -207,7 +208,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 		/* First output, make it default regardless. */
 		default_output = output;
 		DL_APPEND(outputs.iodevs, output);
-		return 0;
+		return cras_iodev_list_update_clients();
 	}
 	syslog(LOG_DEBUG, "Adding iodev at index %zu.", output->info.idx);
 	if (auto_route) {
@@ -219,7 +220,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 		syslog(LOG_DEBUG, "Default output dev %zu.", output->info.idx);
 	} else
 		DL_APPEND(outputs.iodevs, output);
-	return 0;
+	return cras_iodev_list_update_clients();
 }
 
 int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
@@ -233,7 +234,7 @@ int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 		/* First input, make it default regardless. */
 		default_input = input;
 		DL_APPEND(inputs.iodevs, input);
-		return 0;
+		return cras_iodev_list_update_clients();
 	}
 	syslog(LOG_DEBUG, "Adding iodev at index %zu.", input->info.idx);
 	if (auto_route) {
@@ -245,11 +246,13 @@ int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 		syslog(LOG_DEBUG, "Default input dev %zu.", input->info.idx);
 	} else
 		DL_APPEND(inputs.iodevs, input);
-	return 0;
+	return cras_iodev_list_update_clients();
 }
 
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
+	int res;
+
 	if (default_output == dev) {
 		if (dev == outputs.iodevs)
 			default_output = outputs.iodevs->next;
@@ -257,15 +260,23 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 			default_output = outputs.iodevs;
 	}
 	cras_iodev_remove_all_streams(dev);
-	return rm_dev_from_list(&outputs, dev);
+	res = rm_dev_from_list(&outputs, dev);
+	if (res == 0)
+		res = cras_iodev_list_update_clients();
+	return res;
 }
 
 int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
+	int res;
+
 	if (default_input == dev)
 		default_input = inputs.iodevs->next;
 	cras_iodev_remove_all_streams(dev);
-	return rm_dev_from_list(&inputs, dev);
+	res = rm_dev_from_list(&inputs, dev);
+	if (res == 0)
+		res = cras_iodev_list_update_clients();
+	return res;
 }
 
 int cras_iodev_list_get_outputs(struct cras_iodev_info **list_out)
@@ -376,4 +387,28 @@ void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 		cras_iodev_detach_stream(dev, stream);
 		cras_rstream_send_client_reattach(stream);
 	}
+}
+
+/* Sends out the list of iodevs in the system. */
+int cras_iodev_list_update_clients()
+{
+	size_t msg_size;
+	struct cras_client_iodev_list *msg;
+
+	msg_size = sizeof(*msg) +
+		sizeof(struct cras_iodev_info) * (outputs.size + inputs.size);
+	msg = malloc(msg_size);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	msg->num_outputs = outputs.size;
+	msg->num_inputs = inputs.size;
+	fill_dev_list(&outputs, &msg->iodevs[0], outputs.size);
+	fill_dev_list(&inputs, &msg->iodevs[outputs.size], inputs.size);
+	msg->header.length = msg_size;
+	msg->header.id = CRAS_CLIENT_IODEV_LIST;
+
+	cras_server_send_to_all_clients(&msg->header);
+	free(msg);
+	return 0;
 }
