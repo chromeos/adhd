@@ -767,17 +767,26 @@ static int handle_stream_reattach(struct cras_client *client,
 /* Handles messages from the cras server. */
 static int handle_message_from_server(struct cras_client *client)
 {
-	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
+	uint8_t *buf = NULL;
+	size_t msg_length;
 	struct cras_client_message *msg;
 	int rc = 0;
+	int nread;
 
-	if (read(client->server_fd, buf, sizeof(buf)) <= 0) {
-		syslog(LOG_ERR, "Can't read from server\n");
-		client->thread.running = 0;
-		return -EIO;
-	}
+	nread = read(client->server_fd, &msg_length, sizeof(msg_length));
+	if (nread <= 0)
+		goto read_error;
 
+	buf = malloc(msg_length);
+	if (buf == NULL)
+		goto read_error;
 	msg = (struct cras_client_message *)buf;
+
+	msg->length = msg_length;
+	nread = read(client->server_fd, buf + nread, msg->length - nread);
+	if (nread <= 0)
+		goto read_error;
+
 	switch (msg->id) {
 	case CRAS_CLIENT_CONNECTED: {
 		struct cras_client_connected *cmsg =
@@ -791,7 +800,7 @@ static int handle_message_from_server(struct cras_client *client)
 		struct client_stream *stream =
 			stream_from_id(client, cmsg->stream_id);
 		if (stream == NULL)
-			return 0;
+			break;
 		rc = stream_connected(stream, cmsg);
 		if (rc < 0)
 			stream->config->err_cb(stream->client,
@@ -811,7 +820,13 @@ static int handle_message_from_server(struct cras_client *client)
 		break;
 	}
 
+	free(buf);
 	return 0;
+read_error:
+	syslog(LOG_ERR, "Can't read from server\n");
+	free(buf);
+	client->thread.running = 0;
+	return -EIO;
 }
 
 /* Handles messages from streams to this client. */
