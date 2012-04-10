@@ -13,11 +13,36 @@ AC_PROG_CXX
 AC_LANG_C
 AM_PROG_CC_C_O
 PKG_PROG_PKG_CONFIG
-AC_CONFIG_FILES([Makefile src/Makefile libcras.pc])
-AC_OUTPUT
+#AC_CONFIG_FILES([Makefile src/Makefile libcras.pc])
 
-PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.23 ])
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
+PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.23 ])
+AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
+	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)
+
+AC_ARG_ENABLE([alsa-plugin], AS_HELP_STRING([--disable-alsa-plugin],
+                                            [Disable building of ALSA plugin]))
+
+# Determine ALSA plugin directory.
+test "x$prefix" = xNONE && prefix=$ac_default_prefix
+test "x$exec_prefix" = xNONE && exec_prefix=$prefix
+
+AC_ARG_WITH(plugindir,
+    AS_HELP_STRING([--with-plugindir=dir],
+	[path where ALSA plugin files are stored]),
+    plugindir="$withval", plugindir="")
+if test -z "$plugindir"; then
+    eval dir="$libdir"
+    case "$dir" in
+    /*) ;;
+    *) dir="$dir"
+    esac
+    plugindir="$dir/alsa-lib"
+fi
+AC_DEFINE_UNQUOTED(ALSA_PLUGIN_DIR, "$plugindir",
+                   [directory containing ALSA add-on modules])
+ALSA_PLUGIN_DIR="$plugindir"
+AC_SUBST(ALSA_PLUGIN_DIR)
 
 # Get iniparser library and include locations
 AC_ARG_WITH([iniparser-include-path],
@@ -33,3 +58,9 @@ AC_ARG_WITH([iniparser-lib-path],
         [INIPARSER_LIBS="-L$withval -liniparser"],
           [INIPARSER_LIBS='-liniparser'])
 AC_SUBST([INIPARSER_LIBS])
+
+AC_OUTPUT([
+	Makefile
+	src/Makefile
+	libcras.pc
+])
