@@ -26,13 +26,21 @@ libcras_la_LIBADD = -lpthread -lasound -lrt -lspeexdsp
 libcras_la_LDFLAGS = -version-info 0:0:0
 
 asound_module_pcm_cras_LTLIBRARIES = libasound_module_pcm_cras.la
+asound_module_ctl_cras_LTLIBRARIES = libasound_module_ctl_cras.la
 asound_module_pcm_crasdir = @ALSA_PLUGIN_DIR@
+asound_module_ctl_crasdir = @ALSA_PLUGIN_DIR@
 libasound_module_pcm_cras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/libcras
 libasound_module_pcm_cras_la_LDFLAGS = -module -avoid-version -export-dynamic -no-undefined \
 	$(LDFLAGS_NOUNDEFINED)
+libasound_module_ctl_cras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
+	-I$(top_builddir)/src/libcras
+libasound_module_ctl_cras_la_LDFLAGS = -module -avoid-version -export-dynamic -no-undefined \
+	$(LDFLAGS_NOUNDEFINED)
 libasound_module_pcm_cras_la_SOURCES = alsa_plugin/pcm_cras.c
 libasound_module_pcm_cras_la_LIBADD = -lasound libcras.la
+libasound_module_ctl_cras_la_SOURCES = alsa_plugin/ctl_cras.c
+libasound_module_ctl_cras_la_LIBADD = -lasound libcras.la
 
 check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	fmt_conv_unittest shm_unittest mix_unittest alsa_io_unittest \
