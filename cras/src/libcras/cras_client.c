@@ -1089,6 +1089,9 @@ static int send_command_message(struct cras_client *client,
 				struct command_msg *msg)
 {
 	int rc;
+	if (client == NULL || !client->thread.running)
+		return -EINVAL;
+
 	rc = write(client->command_fds[1], msg, msg->len);
 	if (rc != msg->len)
 		return -EPIPE;
