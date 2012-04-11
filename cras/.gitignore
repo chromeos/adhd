@@ -37,5 +37,7 @@ src/server/.deps/
 src/server/.dirstamp
 src/tests/.deps/
 src/tests/.dirstamp
-
-
+src/alsa_plugin/.deps/
+src/alsa_plugin/.dirstamp
+src/libasound_module_ctl_cras.la
+src/libasound_module_pcm_cras.la
