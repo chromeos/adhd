@@ -36,6 +36,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_STREAM_CONNECTED,
 	CRAS_CLIENT_STREAM_REATTACH,
 	CRAS_CLIENT_IODEV_LIST,
+	CRAS_CLIENT_VOLUME_UPDATE,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -244,6 +245,23 @@ struct cras_client_iodev_list {
 	size_t num_inputs;
 	struct cras_iodev_info iodevs[];
 };
+
+/* Informs the clients of the system volume and mute states. */
+struct cras_client_volume_status {
+	struct cras_client_message header;
+	size_t volume;
+	int muted;
+};
+static inline void cras_fill_client_volume_status(
+		struct cras_client_volume_status *m,
+		size_t volume,
+		int muted)
+{
+	m->volume = volume;
+	m->muted = !!muted;
+	m->header.id = CRAS_CLIENT_VOLUME_UPDATE;
+	m->header.length = sizeof(*m);
+}
 
 /*
  * Messages specific to passing audio between client and server

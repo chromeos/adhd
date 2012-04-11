@@ -10,6 +10,7 @@ extern "C" {
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
+#include "cras_system_state.h"
 }
 
 //  Stub data.
@@ -23,6 +24,18 @@ static size_t cras_system_set_volume_value;
 static int cras_system_set_volume_called;
 static size_t cras_system_set_mute_value;
 static int cras_system_set_mute_called;
+static cras_system_volume_changed_cb cras_system_register_volume_cb_value;
+static void * cras_system_register_volume_cb_arg;
+static size_t cras_system_register_volume_cb_called;
+static size_t cras_system_remove_volume_cb_called;
+static size_t cras_system_get_volume_called;
+static size_t cras_system_get_volume_return_value;
+static cras_system_volume_changed_cb cras_system_register_mute_cb_value;
+static void * cras_system_register_mute_cb_arg;
+static size_t cras_system_register_mute_cb_called;
+static size_t cras_system_remove_mute_cb_called;
+static size_t cras_system_get_mute_called;
+static int cras_system_get_mute_return_value;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -34,6 +47,12 @@ void ResetStubData() {
   cras_system_set_volume_called = 0;
   cras_system_set_mute_value = 0;
   cras_system_set_mute_called = 0;
+  cras_system_register_volume_cb_called = 0;
+  cras_system_remove_volume_cb_called = 0;
+  cras_system_get_volume_called = 0;
+  cras_system_register_mute_cb_called = 0;
+  cras_system_remove_mute_cb_called = 0;
+  cras_system_get_mute_called = 0;
 }
 
 namespace {
@@ -42,20 +61,31 @@ TEST(RClientSuite, CreateSendMessage) {
   struct cras_rclient *rclient;
   int rc;
   struct cras_client_connected msg;
+  struct cras_client_volume_status vol_msg;
   int pipe_fds[2];
+
+  ResetStubData();
 
   rc = pipe(pipe_fds);
   ASSERT_EQ(0, rc);
 
   rclient = cras_rclient_create(pipe_fds[1], 800);
   ASSERT_NE((void *)NULL, rclient);
+  EXPECT_EQ(1, cras_system_register_volume_cb_called);
+  EXPECT_EQ(1, cras_system_register_mute_cb_called);
 
   rc = read(pipe_fds[0], &msg, sizeof(msg));
   EXPECT_EQ(sizeof(msg), rc);
   EXPECT_EQ(CRAS_CLIENT_CONNECTED, msg.header.id);
   EXPECT_EQ(CRAS_CLIENT_CONNECTED, msg.header.id);
 
+  rc = read(pipe_fds[0], &vol_msg, sizeof(vol_msg));
+  if (rc < 0)
+	  return;
+
   cras_rclient_destroy(rclient);
+  EXPECT_EQ(1, cras_system_remove_volume_cb_called);
+  EXPECT_EQ(1, cras_system_remove_mute_cb_called);
   close(pipe_fds[0]);
   close(pipe_fds[1]);
 }
@@ -65,12 +95,16 @@ class RClientMessagesSuite : public testing::Test {
     virtual void SetUp() {
       int rc;
       struct cras_client_connected msg;
+      struct cras_client_volume_status vol_msg;
 
       rc = pipe(pipe_fds_);
       if (rc < 0)
         return;
       rclient_ = cras_rclient_create(pipe_fds_[1], 800);
       rc = read(pipe_fds_[0], &msg, sizeof(msg));
+      if (rc < 0)
+        return;
+      rc = read(pipe_fds_[0], &vol_msg, sizeof(vol_msg));
       if (rc < 0)
         return;
 
@@ -296,6 +330,7 @@ void cras_system_set_volume(size_t volume)
   cras_system_set_volume_called++;
 }
 
+//  From system_state.
 void cras_system_set_mute(int mute)
 {
   cras_system_set_mute_value = mute;
@@ -309,5 +344,48 @@ int cras_system_add_alsa_card(size_t alsa_card_index)
 int cras_system_remove_alsa_card(size_t alsa_card_index)
 {
 	return -1;
+}
+size_t cras_system_get_volume()
+{
+  cras_system_get_volume_called++;
+  return cras_system_get_volume_return_value;
+}
+
+int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
+					   void *arg)
+{
+  cras_system_register_volume_cb_called++;
+  cras_system_register_volume_cb_value = cb;
+  cras_system_register_volume_cb_arg = arg;
+  return 0;
+}
+
+int cras_system_remove_volume_changed_cb(cras_system_volume_changed_cb cb,
+					 void *arg)
+{
+  cras_system_remove_volume_cb_called++;
+  return 0;
+}
+
+int cras_system_get_mute()
+{
+  cras_system_get_mute_called++;
+  return cras_system_get_mute_return_value;
+}
+
+int cras_system_register_mute_changed_cb(cras_system_volume_changed_cb cb,
+					 void *arg)
+{
+  cras_system_register_mute_cb_called++;
+  cras_system_register_mute_cb_value = cb;
+  cras_system_register_mute_cb_arg = arg;
+  return 0;
+}
+
+int cras_system_remove_mute_changed_cb(cras_system_volume_changed_cb cb,
+				       void *arg)
+{
+  cras_system_remove_mute_cb_called++;
+  return 0;
 }
 }  // extern "C"

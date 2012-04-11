@@ -178,6 +178,21 @@ static void handle_notify_device_info(const struct cras_notify_device_info *msg)
 	}
 }
 
+/* Sends the volume/mute status to the client when the volume or mute state
+ * changes. Called when the device is attached, and whenever informed of a state
+ * change by the system_state callback. */
+static void send_volume_update(void *arg)
+{
+	struct cras_client_volume_status msg;
+	struct cras_rclient *client;
+
+	client = (struct cras_rclient *)arg;
+	cras_fill_client_volume_status(&msg,
+				       cras_system_get_volume(),
+				       cras_system_get_mute());
+	cras_rclient_send_message(client, &msg.header);
+}
+
 /*
  * Exported Functions.
  */
@@ -199,6 +214,10 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 	cras_fill_client_connected(&msg, client->id);
 	cras_rclient_send_message(client, &msg.header);
 
+	cras_system_register_volume_changed_cb(send_volume_update, client);
+	cras_system_register_mute_changed_cb(send_volume_update, client);
+	send_volume_update(client);
+
 	return client;
 }
 
@@ -206,6 +225,8 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 void cras_rclient_destroy(struct cras_rclient *client)
 {
 	struct cras_rstream *stream, *tmp;
+	cras_system_remove_volume_changed_cb(send_volume_update, client);
+	cras_system_remove_mute_changed_cb(send_volume_update, client);
 	DL_FOREACH_SAFE(client->streams, stream, tmp) {
 		disconnect_client_stream(client, stream);
 	}
