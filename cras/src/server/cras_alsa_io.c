@@ -122,33 +122,28 @@ static int open_alsa(struct alsa_io *aio)
 
 /* Sets the volume of the playback device to the specified level. Receives a
  * volume index from the system settings, ranging from 0 to 100, converts it to
- * dB using the volume curve, and sends the dB value to alsa. */
-static void set_alsa_volume(size_t volume, void *arg)
+ * dB using the volume curve, and sends the dB value to alsa. Handles mute and
+ * unmute, including muting when volume is zero. */
+static void set_alsa_volume(void *arg)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)arg;
 	const struct cras_volume_curve *curve;
+	size_t volume;
+	int mute;
 
 	assert(aio);
 	if (aio->mixer == NULL)
 		return;
+
+	volume = cras_system_get_volume();
+	mute = cras_system_get_mute();
 	if (aio->active_output && aio->active_output->mixer_output)
 		curve = aio->active_output->mixer_output->volume_curve;
 	else
 		curve = cras_alsa_mixer_default_volume_curve(aio->mixer);
 	cras_alsa_mixer_set_dBFS(aio->mixer, curve->get_dBFS(curve, volume));
 	/* Mute for zero. */
-	cras_alsa_mixer_set_mute(aio->mixer,
-				 cras_system_get_mute() || volume == 0);
-}
-
-/* Sets or unsets mute on the playback device. */
-static void set_alsa_mute(int mute, void *arg)
-{
-	const struct alsa_io *aio = (const struct alsa_io *)arg;
-	assert(aio);
-	if (aio->mixer == NULL)
-		return;
-	cras_alsa_mixer_set_mute(aio->mixer, mute);
+	cras_alsa_mixer_set_mute(aio->mixer, mute || (volume == 0));
 }
 
 /* Initializes the device settings and registers for callbacks when system
@@ -159,9 +154,8 @@ static void init_device_settings(struct alsa_io *aio)
 	/* Register for volume/mute callback and set initial volume/mute for
 	 * the device. */
 	cras_system_register_volume_changed_cb(set_alsa_volume, aio);
-	cras_system_register_mute_changed_cb(set_alsa_mute, aio);
-	set_alsa_mute(cras_system_get_mute(), aio);
-	set_alsa_volume(cras_system_get_volume(), aio);
+	cras_system_register_mute_changed_cb(set_alsa_volume, aio);
+	set_alsa_volume(aio);
 }
 
 /*
@@ -183,6 +177,8 @@ static int thread_remove_stream(struct alsa_io *aio,
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
 		/* No more streams, close alsa dev. */
+		cras_system_remove_volume_changed_cb(set_alsa_volume, aio);
+		cras_system_remove_mute_changed_cb(set_alsa_volume, aio);
 		cras_alsa_pcm_drain(aio->handle);
 		cras_alsa_pcm_close(aio->handle);
 		aio->handle = NULL;
@@ -907,7 +903,7 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 	struct alsa_output_node *output;
 	int found_output = 0;
 
-	set_alsa_mute(1, aio);
+	cras_alsa_mixer_set_mute(aio->mixer, 1);
 	/* Unmute the acrtive input, mute all others. */
 	DL_FOREACH(aio->output_nodes, output) {
 		if (output->mixer_output == NULL)
@@ -925,6 +921,6 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 		return -EINVAL;
 	}
 	/* Setting the volume will also unmute if the system isn't muted. */
-	set_alsa_volume(cras_system_get_volume(), aio);
+	set_alsa_volume(aio);
 	return 0;
 }
