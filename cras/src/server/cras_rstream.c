@@ -53,6 +53,48 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	return 0;
 }
 
+/* Verifies that the given stream parameters are valid. */
+static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
+				     const struct cras_audio_format *format,
+				     size_t buffer_frames,
+				     size_t cb_threshold,
+				     size_t min_cb_level,
+				     struct cras_rclient *client,
+				     struct cras_rstream **stream_out)
+{
+	if (buffer_frames < CRAS_MIN_BUFFER_SIZE_FRAMES) {
+		syslog(LOG_ERR, "rstream: invalid buffer_frames %zu\n",
+		       buffer_frames);
+		return -EINVAL;
+	}
+	if (stream_out == NULL) {
+		syslog(LOG_ERR, "rstream: stream_out can't be NULL\n");
+		return -EINVAL;
+	}
+	if (format == NULL) {
+		syslog(LOG_ERR, "rstream: format can't be NULL\n");
+		return -EINVAL;
+	}
+	if (format->format != SND_PCM_FORMAT_S16_LE) {
+		syslog(LOG_ERR, "rstream: format %d not supported\n",
+		       format->format);
+		return -EINVAL;
+	}
+	if (direction != CRAS_STREAM_OUTPUT && direction != CRAS_STREAM_INPUT) {
+		syslog(LOG_ERR, "rstream: Invalid direction.\n");
+		return -EINVAL;
+	}
+	if (cb_threshold < CRAS_MIN_BUFFER_SIZE_FRAMES) {
+		syslog(LOG_ERR, "rstream: cb_threshold too low\n");
+		return -EINVAL;
+	}
+	if (min_cb_level < CRAS_MIN_BUFFER_SIZE_FRAMES) {
+		syslog(LOG_ERR, "rstream: min_cb_level too low\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+
 /* Exported functions */
 
 int cras_rstream_create(cras_stream_id_t stream_id,
@@ -69,14 +111,11 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	struct cras_rstream *stream;
 	int rc;
 
-	/* Check params. */
-	if (buffer_frames < CRAS_MIN_BUFFER_SIZE_FRAMES ||
-	    stream_out == NULL || format == NULL ||
-	    format->format != SND_PCM_FORMAT_S16_LE ||
-	    (direction != CRAS_STREAM_OUTPUT &&
-	     direction != CRAS_STREAM_INPUT) ||
-	    cb_threshold < CRAS_MIN_BUFFER_SIZE_FRAMES)
-		return -EINVAL;
+	rc = verify_rstream_parameters(direction, format, buffer_frames,
+				       cb_threshold, min_cb_level, client,
+				       stream_out);
+	if (rc < 0)
+		return rc;
 
 	stream = calloc(1, sizeof(*stream));
 	if (stream == NULL)

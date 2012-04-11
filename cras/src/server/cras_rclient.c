@@ -41,6 +41,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	iodev = cras_get_iodev_for_stream_type(msg->stream_type,
 					       msg->direction);
 	if (!iodev) {
+		syslog(LOG_ERR, "No iodev available.\n");
 		rc = -ENODEV;
 		goto reply_err;
 	}
@@ -71,12 +72,15 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 				 msg->flags,
 				 client,
 				 &stream);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to create rstream.\n");
 		goto reply_err;
+	}
 
 	/* Connect to client's audio socket. */
 	aud_fd = cras_server_connect_to_client_socket(msg->stream_id);
 	if (aud_fd < 0) {
+		syslog(LOG_ERR, "Connect to client socket.\n");
 		rc = aud_fd;
 		goto reply_err;
 	}
@@ -86,6 +90,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	DL_APPEND(client->streams, stream);
 	rc = cras_iodev_attach_stream(iodev, stream);
 	if (rc < 0) {
+		syslog(LOG_ERR, "Attach stream failed.\n");
 		DL_DELETE(client->streams, stream);
 		goto reply_err;
 	}
