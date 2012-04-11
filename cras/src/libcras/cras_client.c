@@ -55,6 +55,8 @@ enum {
 	CLIENT_SET_STREAM_VOLUME_SCALER,
 	CLIENT_GET_OUTPUT_DEVICE_LIST,
 	CLIENT_GET_INPUT_DEVICE_LIST,
+	CLIENT_GET_SYSTEM_VOLUME,
+	CLIENT_GET_SYSTEM_MUTED,
 };
 
 struct command_msg {
@@ -161,6 +163,8 @@ struct client_stream {
  * input_devs - List of input devices available.
  * num_output_devs - Number of output devices available.
  * output_devs = List of output devices available.
+ * system_volume - System playback volume level.
+ * system_muted - True if the system is muted.
  */
 struct cras_client {
 	int id;
@@ -177,6 +181,8 @@ struct cras_client {
 	struct cras_iodev_info *input_devs;
 	size_t num_output_devs;
 	struct cras_iodev_info *output_devs;
+	size_t system_volume;
+	int system_muted;
 };
 
 /*
@@ -840,6 +846,15 @@ static int handle_new_iodev_list(struct cras_client *client,
 	return 0;
 }
 
+/* Handles new volume state. */
+static int handle_system_volume(struct cras_client *client,
+				struct cras_client_volume_status *msg)
+{
+	client->system_volume = msg->volume;
+	client->system_muted = !!msg->muted;
+	return 0;
+}
+
 /* Handles messages from the cras server. */
 static int handle_message_from_server(struct cras_client *client)
 {
@@ -895,6 +910,12 @@ static int handle_message_from_server(struct cras_client *client)
 		struct cras_client_iodev_list *cmsg =
 			(struct cras_client_iodev_list *)msg;
 		handle_new_iodev_list(client, cmsg);
+		break;
+	}
+	case CRAS_CLIENT_VOLUME_UPDATE: {
+		struct cras_client_volume_status *vmsg =
+			(struct cras_client_volume_status *)msg;
+		handle_system_volume(client, vmsg);
 		break;
 	}
 	default:
@@ -988,6 +1009,14 @@ static int handle_command_message(struct cras_client *client)
 			(struct get_device_list_message *)msg;
 		rc = client_thread_input_device_list(client, dev_msg->devs,
 						     dev_msg->max_devs);
+		break;
+	}
+	case CLIENT_GET_SYSTEM_VOLUME: {
+		rc = client->system_volume;
+		break;
+	}
+	case CLIENT_GET_SYSTEM_MUTED: {
+		rc = client->system_muted;
 		break;
 	}
 	default:
@@ -1351,6 +1380,18 @@ int cras_client_set_system_mute(struct cras_client *client, int mute)
 
 	cras_fill_set_system_mute(&msg, mute);
 	return write_message_to_server(client, &msg.header);
+}
+
+size_t cras_client_get_system_volume(struct cras_client *client)
+{
+	/* Send message to client thread to ensure data is synchronized. */
+	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_VOLUME);
+}
+
+int cras_client_get_system_muted(struct cras_client *client)
+{
+	/* Send message to client thread to ensure data is synchronized. */
+	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MUTED);
 }
 
 int cras_client_notify_device(struct cras_client *client,

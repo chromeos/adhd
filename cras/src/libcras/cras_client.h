@@ -224,6 +224,22 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume);
  */
 int cras_client_set_system_mute(struct cras_client *client, int mute);
 
+/* Gets the current system volume.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The current system volume between 0 and 100.
+ */
+size_t cras_client_get_system_volume(struct cras_client *client);
+
+/* Gets the current system mute state.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    0 if not muted, 1 if it is.
+ */
+int cras_client_get_system_muted(struct cras_client *client);
+
 int cras_client_notify_device(struct cras_client *client,
                               unsigned action,
                               unsigned card_number,
@@ -231,6 +247,7 @@ int cras_client_notify_device(struct cras_client *client,
                               unsigned active,
                               unsigned internal,
                               unsigned primary);
+
 /*
  * Utility functions.
  */

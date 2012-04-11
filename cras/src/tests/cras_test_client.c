@@ -243,6 +243,12 @@ static int run_file_io_stream(struct cras_client *client,
 		case '@':
 			print_device_lists(client);
 			break;
+		case 'v':
+			printf("Volume: %zu%s\n",
+			       cras_client_get_system_volume(client),
+			       cras_client_get_system_muted(client) ? "(Muted)"
+								    : "");
+			break;
 		case '0':
 		case '1':
 		case '2': {
