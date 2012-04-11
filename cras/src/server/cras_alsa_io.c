@@ -402,7 +402,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 }
 
 /* Ask any clients that have room for more data in the buffer to send some. */
-void get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
+static int get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
 {
 	struct cras_io_stream *curr, *tmp;
 	size_t frames;
@@ -422,11 +422,13 @@ void get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
 				/* If this failed and was the last stream,
 				 * return, otherwise, on to the next one */
 				if (!cras_iodev_streams_attached(&aio->base))
-					return;
+					return -EIO;
 			} else
 				curr->shm->callback_pending = 1;
 		}
 	}
+
+	return 0;
 }
 
 /* Check if we should get more samples for playback from the source streams. If
@@ -527,7 +529,9 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	}
 
 	/* Ask any clients that have room to fill up. */
-	get_data_from_other_streams(aio, total_written + used);
+	rc = get_data_from_other_streams(aio, total_written + used);
+	if (rc < 0)
+		return rc;
 
 	/* Set the sleep time based on how much is left to play */
 	cras_iodev_fill_time_from_frames(total_written + used,
