@@ -56,7 +56,9 @@ enum {
 	CLIENT_GET_OUTPUT_DEVICE_LIST,
 	CLIENT_GET_INPUT_DEVICE_LIST,
 	CLIENT_GET_SYSTEM_VOLUME,
+	CLIENT_GET_SYSTEM_CAPTURE_GAIN,
 	CLIENT_GET_SYSTEM_MUTED,
+	CLIENT_GET_SYSTEM_CAPTURE_MUTED,
 };
 
 struct command_msg {
@@ -164,7 +166,9 @@ struct client_stream {
  * num_output_devs - Number of output devices available.
  * output_devs = List of output devices available.
  * system_volume - System playback volume level.
- * system_muted - True if the system is muted.
+ * system_capture_gain - System capture gain level.
+ * system_muted - True if the system playback path is muted.
+ * system_capture_muted - True if the system capture path is muted.
  */
 struct cras_client {
 	int id;
@@ -182,7 +186,9 @@ struct cras_client {
 	size_t num_output_devs;
 	struct cras_iodev_info *output_devs;
 	size_t system_volume;
+	long system_capture_gain;
 	int system_muted;
+	int system_capture_muted;
 };
 
 /*
@@ -852,6 +858,8 @@ static int handle_system_volume(struct cras_client *client,
 {
 	client->system_volume = msg->volume;
 	client->system_muted = !!msg->muted;
+	client->system_capture_gain = msg->capture_gain;
+	client->system_capture_muted = !!msg->capture_muted;
 	return 0;
 }
 
@@ -1015,8 +1023,16 @@ static int handle_command_message(struct cras_client *client)
 		rc = client->system_volume;
 		break;
 	}
+	case CLIENT_GET_SYSTEM_CAPTURE_GAIN: {
+		rc = client->system_capture_gain;
+		break;
+	}
 	case CLIENT_GET_SYSTEM_MUTED: {
 		rc = client->system_muted;
+		break;
+	}
+	case CLIENT_GET_SYSTEM_CAPTURE_MUTED: {
+		rc = client->system_capture_muted;
 		break;
 	}
 	default:
@@ -1374,6 +1390,17 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_set_system_capture_gain(struct cras_client *client, long gain)
+{
+	struct cras_set_system_capture_gain msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_system_capture_gain(&msg, gain);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_set_system_mute(struct cras_client *client, int mute)
 {
 	struct cras_set_system_mute msg;
@@ -1385,16 +1412,39 @@ int cras_client_set_system_mute(struct cras_client *client, int mute)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_set_system_capture_mute(struct cras_client *client, int mute)
+{
+	struct cras_set_system_mute msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_system_capture_mute(&msg, mute);
+	return write_message_to_server(client, &msg.header);
+}
+
 size_t cras_client_get_system_volume(struct cras_client *client)
 {
 	/* Send message to client thread to ensure data is synchronized. */
 	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_VOLUME);
 }
 
+long cras_client_get_system_capture_gain(struct cras_client *client)
+{
+	/* Send message to client thread to ensure data is synchronized. */
+	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_CAPTURE_GAIN);
+}
+
 int cras_client_get_system_muted(struct cras_client *client)
 {
 	/* Send message to client thread to ensure data is synchronized. */
 	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MUTED);
+}
+
+int cras_client_get_system_capture_muted(struct cras_client *client)
+{
+	/* Send message to client thread to ensure data is synchronized. */
+	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_CAPTURE_MUTED);
 }
 
 int cras_client_notify_device(struct cras_client *client,

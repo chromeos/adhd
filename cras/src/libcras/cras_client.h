@@ -215,6 +215,18 @@ int cras_client_switch_iodev(struct cras_client *client,
  */
 int cras_client_set_system_volume(struct cras_client *client, size_t volume);
 
+/* Sets the capture gain of the system. Gain is specified in dBFS * 100.  For
+ * example 5dB of gain would be specified with an argument of 500, while -10
+ * would be specified with -1000.
+ * Args:
+ *    client - Client owning the stream.
+ *    gain - The gain in dBFS * 100.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
+
 /* Sets the mute state of the system.
  * Args:
  *    client - Client owning the stream.
@@ -225,6 +237,17 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume);
  */
 int cras_client_set_system_mute(struct cras_client *client, int mute);
 
+/* Sets the capture mute state of the system.  Recordings will be muted when
+ * this is set.
+ * Args:
+ *    client - Client owning the stream.
+ *    mute - 0 is un-mute, 1 is muted.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_system_capture_mute(struct cras_client *client, int mute);
+
 /* Gets the current system volume.
  * Args:
  *    client - The client from cras_client_create.
@@ -233,6 +256,14 @@ int cras_client_set_system_mute(struct cras_client *client, int mute);
  */
 size_t cras_client_get_system_volume(struct cras_client *client);
 
+/* Gets the current system capture gain.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The current system capture volume in dB * 100.
+ */
+long cras_client_get_system_capture_gain(struct cras_client *client);
+
 /* Gets the current system mute state.
  * Args:
  *    client - The client from cras_client_create.
@@ -240,6 +271,14 @@ size_t cras_client_get_system_volume(struct cras_client *client);
  *    0 if not muted, 1 if it is.
  */
 int cras_client_get_system_muted(struct cras_client *client);
+
+/* Gets the current system captue mute state.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    0 if capture is not muted, 1 if it is.
+ */
+int cras_client_get_system_capture_muted(struct cras_client *client);
 
 /* Tells the CRAS server about a new device.  This is called when a device
  * is plugged or unplugged.
