@@ -36,6 +36,7 @@ static size_t cras_system_register_mute_cb_called;
 static size_t cras_system_remove_mute_cb_called;
 static size_t cras_system_get_mute_called;
 static int cras_system_get_mute_return_value;
+static size_t cras_make_fd_nonblocking_called;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -53,6 +54,7 @@ void ResetStubData() {
   cras_system_register_mute_cb_called = 0;
   cras_system_remove_mute_cb_called = 0;
   cras_system_get_mute_called = 0;
+  cras_make_fd_nonblocking_called = 0;
 }
 
 namespace {
@@ -219,6 +221,7 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_make_fd_nonblocking_called);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
   EXPECT_EQ(sizeof(out_msg), rc);
@@ -322,6 +325,11 @@ int cras_iodev_move_stream_type(uint32_t type, uint32_t index)
 int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
 {
   return cras_server_connect_retval;
+}
+int cras_make_fd_nonblocking(int fd)
+{
+  cras_make_fd_nonblocking_called++;
+  return 0;
 }
 
 void cras_system_set_volume(size_t volume)

@@ -109,6 +109,9 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 			break;
 	}
 
+	/* When full, getting an error is preferable to blocking. */
+	cras_make_fd_nonblocking(connection_fd);
+
 	poll_client->fd = connection_fd;
 	poll_client->next = NULL;
 	poll_client->client = cras_rclient_create(connection_fd,

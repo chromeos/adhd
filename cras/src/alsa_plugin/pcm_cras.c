@@ -8,8 +8,6 @@
 #include <cras_client.h>
 #include <sys/socket.h>
 
-#define ARRAY_SIZE(ary)	(sizeof(ary)/sizeof(ary[0]))
-
 /* Holds configuration for the alsa plugin.
  *  io - ALSA ioplug object.
  *  fg - Wakes users with polled io.
@@ -324,19 +322,6 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 	return rc;
 }
 
-/* Don't want to block on the poll FDs. */
-static int make_nonblock(int fd)
-{
-	int fl;
-
-	fl = fcntl(fd, F_GETFL);
-	if (fl < 0)
-		return fl;
-	if (fl & O_NONBLOCK)
-		return 0;
-	return fcntl(fd, F_SETFL, fl | O_NONBLOCK);
-}
-
 /* Called by snd_pcm_open().  Creates a CRAS client and an ioplug plugin. */
 static int snd_pcm_cras_open(snd_pcm_t **pcmp, const char *name,
 			     snd_pcm_stream_t stream, int mode)
@@ -372,8 +357,8 @@ static int snd_pcm_cras_open(snd_pcm_t **pcmp, const char *name,
 
 	socketpair(AF_LOCAL, SOCK_STREAM, 0, fd);
 
-	make_nonblock(fd[0]);
-	make_nonblock(fd[1]);
+	cras_make_fd_nonblocking(fd[0]);
+	cras_make_fd_nonblocking(fd[1]);
 
 	pcm_cras->fd = fd[0];
 

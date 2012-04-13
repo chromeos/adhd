@@ -15,6 +15,7 @@ extern "C" {
 
 #include "cras_iodev_info.h"
 #include "cras_types.h"
+#include "cras_util.h"
 
 struct cras_client;
 struct cras_stream_params;

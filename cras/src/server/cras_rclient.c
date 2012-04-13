@@ -84,6 +84,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		rc = aud_fd;
 		goto reply_err;
 	}
+	/* When full, getting an error is preferable to blocking. */
+	cras_make_fd_nonblocking(aud_fd);
 	cras_rstream_set_audio_fd(stream, aud_fd);
 
 	/* Now can pass the stream to the device. */

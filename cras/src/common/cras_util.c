@@ -79,3 +79,15 @@ int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
 
 	return fd;
 }
+
+int cras_make_fd_nonblocking(int fd)
+{
+	int fl;
+
+	fl = fcntl(fd, F_GETFL);
+	if (fl < 0)
+		return fl;
+	if (fl & O_NONBLOCK)
+		return 0;
+	return fcntl(fd, F_SETFL, fl | O_NONBLOCK);
+}

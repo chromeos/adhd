@@ -35,4 +35,7 @@ static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
 	return (orig_frames * act_rate + orig_rate - 1) / orig_rate;
 }
 
+/* Makes a file descriptor non blocking. */
+int cras_make_fd_nonblocking(int fd);
+
 #endif /* CRAS_UTIL_H_ */
