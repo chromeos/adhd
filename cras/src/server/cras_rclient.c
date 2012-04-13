@@ -273,6 +273,16 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		handle_notify_device_info(m);
 		break;
         }
+	case CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN: {
+		const struct cras_set_system_capture_gain *m =
+			(const struct cras_set_system_capture_gain *)msg;
+		cras_system_set_capture_gain(m->gain);
+		break;
+	}
+	case CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE:
+		cras_system_set_capture_mute(
+			((const struct cras_set_system_mute *)msg)->mute);
+		break;
 	default:
 		break;
 	}

@@ -22,8 +22,12 @@ static int cras_server_connect_retval;
 static int cras_iodev_attach_stream_retval;
 static size_t cras_system_set_volume_value;
 static int cras_system_set_volume_called;
+static size_t cras_system_set_capture_gain_value;
+static int cras_system_set_capture_gain_called;
 static size_t cras_system_set_mute_value;
 static int cras_system_set_mute_called;
+static size_t cras_system_set_capture_mute_value;
+static int cras_system_set_capture_mute_called;
 static cras_system_volume_changed_cb cras_system_register_volume_cb_value;
 static void * cras_system_register_volume_cb_arg;
 static size_t cras_system_register_volume_cb_called;
@@ -46,8 +50,12 @@ void ResetStubData() {
   cras_iodev_attach_stream_retval = 0;
   cras_system_set_volume_value = 0;
   cras_system_set_volume_called = 0;
+  cras_system_set_capture_gain_value = 0;
+  cras_system_set_capture_gain_called = 0;
   cras_system_set_mute_value = 0;
   cras_system_set_mute_called = 0;
+  cras_system_set_capture_mute_value = 0;
+  cras_system_set_capture_mute_called = 0;
   cras_system_register_volume_cb_called = 0;
   cras_system_remove_volume_cb_called = 0;
   cras_system_get_volume_called = 0;
@@ -244,6 +252,20 @@ TEST_F(RClientMessagesSuite, SetVolume) {
   EXPECT_EQ(66, cras_system_set_volume_value);
 }
 
+TEST_F(RClientMessagesSuite, SetCaptureVolume) {
+  struct cras_set_system_volume msg;
+  int rc;
+
+  msg.header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN;
+  msg.header.length = sizeof(msg);
+  msg.volume = 66;
+
+  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_system_set_capture_gain_called);
+  EXPECT_EQ(66, cras_system_set_capture_gain_value);
+}
+
 TEST_F(RClientMessagesSuite, SetMute) {
   struct cras_set_system_mute msg;
   int rc;
@@ -256,6 +278,20 @@ TEST_F(RClientMessagesSuite, SetMute) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_mute_called);
   EXPECT_EQ(1, cras_system_set_mute_value);
+}
+
+TEST_F(RClientMessagesSuite, SetCaptureMute) {
+  struct cras_set_system_mute msg;
+  int rc;
+
+  msg.header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE;
+  msg.header.length = sizeof(msg);
+  msg.mute = 1;
+
+  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_system_set_capture_mute_called);
+  EXPECT_EQ(1, cras_system_set_capture_mute_value);
 }
 
 }  //  namespace
@@ -338,11 +374,22 @@ void cras_system_set_volume(size_t volume)
   cras_system_set_volume_called++;
 }
 
+void cras_system_set_capture_gain(long gain)
+{
+  cras_system_set_capture_gain_value = gain;
+  cras_system_set_capture_gain_called++;
+}
+
 //  From system_state.
 void cras_system_set_mute(int mute)
 {
   cras_system_set_mute_value = mute;
   cras_system_set_mute_called++;
+}
+void cras_system_set_capture_mute(int mute)
+{
+  cras_system_set_capture_mute_value = mute;
+  cras_system_set_capture_mute_called++;
 }
 int cras_system_add_alsa_card(size_t alsa_card_index)
 {

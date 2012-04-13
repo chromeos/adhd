@@ -28,6 +28,8 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_SYSTEM_VOLUME,
 	CRAS_SERVER_SET_SYSTEM_MUTE,
 	CRAS_SERVER_NOTIFY_DEVICE_INFO,
+	CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN,
+	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -137,6 +139,20 @@ static inline void cras_fill_set_system_volume(
 	m->header.length = sizeof(*m);
 }
 
+/* Sets the capture gain. */
+struct cras_set_system_capture_gain {
+	struct cras_server_message header;
+	long gain;
+};
+static inline void cras_fill_set_system_capture_gain(
+		struct cras_set_system_capture_gain *m,
+		long gain)
+{
+	m->gain = gain;
+	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN;
+	m->header.length = sizeof(*m);
+}
+
 /* Set the system mute state. */
 struct cras_set_system_mute {
 	struct cras_server_message header;
@@ -148,6 +164,14 @@ static inline void cras_fill_set_system_mute(
 {
 	m->mute = mute;
 	m->header.id = CRAS_SERVER_SET_SYSTEM_MUTE;
+	m->header.length = sizeof(*m);
+}
+static inline void cras_fill_set_system_capture_mute(
+		struct cras_set_system_mute *m,
+		int mute)
+{
+	m->mute = mute;
+	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE;
 	m->header.length = sizeof(*m);
 }
 
