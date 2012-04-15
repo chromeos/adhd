@@ -46,6 +46,28 @@ int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
 int cras_system_remove_volume_changed_cb(cras_system_volume_changed_cb cb,
 					 void *arg);
 
+/* Sets the system capture volume.  Will be applied by the active device. */
+void cras_system_set_capture_gain(long gain);
+/* Gets the current system capture volume. */
+long cras_system_get_capture_gain();
+
+/* Adds a callback to call when the capture volume changes.
+ * Args:
+ *    cb - Function to call when capture volume changes.
+ *    arg - Value to pass back to callback.
+ */
+int cras_system_register_capture_gain_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg);
+
+/* Removes a callback to call when the capture volume changes.  Only removes the
+ * entry if both cb and arg match the values passed to the register function.
+ * Args:
+ *    cb - Function to call when capture volume changes.
+ *    arg - Value to passed back to callback.
+ */
+int cras_system_remove_capture_gain_changed_cb(cras_system_volume_changed_cb cb,
+					       void *arg);
+
 /* Sets if the system is muted or not. */
 void cras_system_set_mute(int muted);
 /* Gets the current mute state of the system. */
@@ -67,6 +89,29 @@ int cras_system_register_mute_changed_cb(cras_system_volume_changed_cb cb,
  */
 int cras_system_remove_mute_changed_cb(cras_system_volume_changed_cb cb,
 				       void *arg);
+
+/* Sets if the system capture path is muted or not. */
+void cras_system_set_capture_mute(int muted);
+/* Gets the current mute state of the system capture path. */
+int cras_system_get_capture_mute();
+
+/* Adds a callback to call when the capture mute state changes.
+ * Args:
+ *    cb - Function to call when the capture mute state changes.
+ *    arg - Value to pass back to callback.
+ */
+int cras_system_register_capture_mute_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg);
+
+/* Removes a callback to call when the capture mute state changes.  Only removes
+ * the entry if both cb and arg match the values passed to the register
+ * function.
+ * Args:
+ *    cb - Function to call when volume changes.
+ *    arg - Value to passed back to callback.
+ */
+int cras_system_remove_capture_mute_changed_cb(cras_system_volume_changed_cb cb,
+					       void *arg);
 
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,

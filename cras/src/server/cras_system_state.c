@@ -28,15 +28,23 @@ struct volume_callback_list {
  * Members:
  *    volume - index from 0-100.
  *    mute - 0 = unmuted, 1 = muted.
+ *    capture_gain - Capture gain in dBFS * 100.
+ *    capture_mute - 0 = unmuted, 1 = muted.
  *    volume_callbacks - Called when the system volume changes.
  *    mute_callbacks - Called when the system mute state changes.
+ *    capture_gain_callbacks - Called when the capture gain changes.
+ *    capture_mute_callbacks - Called when the capture mute changes.
  *    cards - A list of active sound cards in the system.
  */
 static struct {
 	size_t volume;
 	int mute;
+	long capture_gain;
+	int capture_mute;
 	struct volume_callback_list *volume_callbacks;
 	struct volume_callback_list *mute_callbacks;
+	struct volume_callback_list *capture_gain_callbacks;
+	struct volume_callback_list *capture_mute_callbacks;
 	struct card_list *cards;
 } state;
 
@@ -90,6 +98,8 @@ void cras_system_state_init()
 
 	state.volume = CRAS_MAX_SYSTEM_VOLUME;
 	state.mute = 0;
+	state.capture_gain = 0;
+	state.capture_mute = 0;
 
 	DL_FOREACH_SAFE(state.volume_callbacks, cb, tmp) {
 		DL_DELETE(state.volume_callbacks, cb);
@@ -102,6 +112,18 @@ void cras_system_state_init()
 		free(cb);
 	}
 	state.mute_callbacks = NULL;
+
+	DL_FOREACH_SAFE(state.capture_gain_callbacks, cb, tmp) {
+		DL_DELETE(state.capture_gain_callbacks, cb);
+		free(cb);
+	}
+	state.capture_gain_callbacks = NULL;
+
+	DL_FOREACH_SAFE(state.capture_mute_callbacks, cb, tmp) {
+		DL_DELETE(state.capture_mute_callbacks, cb);
+		free(cb);
+	}
+	state.capture_mute_callbacks = NULL;
 }
 
 void cras_system_set_volume(size_t volume)
@@ -133,6 +155,33 @@ int cras_system_remove_volume_changed_cb(cras_system_volume_changed_cb cb,
 	return remove_callback(&state.volume_callbacks, cb, arg);
 }
 
+void cras_system_set_capture_gain(long gain)
+{
+	struct volume_callback_list *capture_cb;
+
+	state.capture_gain = gain;
+	DL_FOREACH(state.capture_gain_callbacks, capture_cb)
+		capture_cb->callback(capture_cb->data);
+}
+
+long cras_system_get_capture_gain()
+{
+	return state.capture_gain;
+}
+
+int cras_system_register_capture_gain_changed_cb(
+		cras_system_volume_changed_cb cb,
+		void *arg)
+{
+	return register_callback(&state.capture_gain_callbacks, cb, arg);
+}
+
+int cras_system_remove_capture_gain_changed_cb(cras_system_volume_changed_cb cb,
+					       void *arg)
+{
+	return remove_callback(&state.capture_gain_callbacks, cb, arg);
+}
+
 void cras_system_set_mute(int mute)
 {
 	struct volume_callback_list *mute_cb;
@@ -157,6 +206,32 @@ int cras_system_remove_mute_changed_cb(cras_system_volume_changed_cb cb,
 				       void *arg)
 {
 	return remove_callback(&state.mute_callbacks, cb, arg);
+}
+
+void cras_system_set_capture_mute(int mute)
+{
+	struct volume_callback_list *mute_cb;
+
+	state.capture_mute = !!mute;
+	DL_FOREACH(state.capture_mute_callbacks, mute_cb)
+		mute_cb->callback(mute_cb->data);
+}
+
+int cras_system_get_capture_mute()
+{
+	return state.capture_mute;
+}
+
+int cras_system_register_capture_mute_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg)
+{
+	return register_callback(&state.capture_mute_callbacks, cb, arg);
+}
+
+int cras_system_remove_capture_mute_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg)
+{
+	return remove_callback(&state.capture_mute_callbacks, cb, arg);
 }
 
 int cras_system_add_alsa_card(size_t alsa_card_index)
