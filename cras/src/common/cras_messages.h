@@ -275,14 +275,20 @@ struct cras_client_volume_status {
 	struct cras_client_message header;
 	size_t volume;
 	int muted;
+	long capture_gain;
+	int capture_muted;
 };
 static inline void cras_fill_client_volume_status(
 		struct cras_client_volume_status *m,
 		size_t volume,
-		int muted)
+		int muted,
+		long capture_gain,
+		int capture_muted)
 {
 	m->volume = volume;
 	m->muted = !!muted;
+	m->capture_gain = capture_gain;
+	m->capture_muted = capture_muted;
 	m->header.id = CRAS_CLIENT_VOLUME_UPDATE;
 	m->header.length = sizeof(*m);
 }

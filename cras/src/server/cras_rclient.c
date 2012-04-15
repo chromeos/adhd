@@ -196,7 +196,9 @@ static void send_volume_update(void *arg)
 	client = (struct cras_rclient *)arg;
 	cras_fill_client_volume_status(&msg,
 				       cras_system_get_volume(),
-				       cras_system_get_mute());
+				       cras_system_get_mute(),
+				       cras_system_get_capture_gain(),
+				       cras_system_get_capture_mute());
 	cras_rclient_send_message(client, &msg.header);
 }
 
@@ -223,6 +225,10 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 
 	cras_system_register_volume_changed_cb(send_volume_update, client);
 	cras_system_register_mute_changed_cb(send_volume_update, client);
+	cras_system_register_capture_gain_changed_cb(send_volume_update,
+						     client);
+	cras_system_register_capture_mute_changed_cb(send_volume_update,
+						     client);
 	send_volume_update(client);
 
 	return client;
@@ -234,6 +240,8 @@ void cras_rclient_destroy(struct cras_rclient *client)
 	struct cras_rstream *stream, *tmp;
 	cras_system_remove_volume_changed_cb(send_volume_update, client);
 	cras_system_remove_mute_changed_cb(send_volume_update, client);
+	cras_system_remove_capture_gain_changed_cb(send_volume_update, client);
+	cras_system_remove_capture_mute_changed_cb(send_volume_update, client);
 	DL_FOREACH_SAFE(client->streams, stream, tmp) {
 		disconnect_client_stream(client, stream);
 	}
