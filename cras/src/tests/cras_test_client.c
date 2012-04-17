@@ -167,6 +167,7 @@ static int run_file_io_stream(struct cras_client *client,
 	struct timespec sleep_ts;
 	float volume_scaler = 1.0;
 	size_t sys_volume = 100;
+	long cap_gain = 0;
 	int mute = 0;
 	int remove = 0;
 
@@ -264,6 +265,14 @@ static int run_file_io_stream(struct cras_client *client,
 		case 'j':
 			sys_volume = sys_volume == 0 ? 0 : sys_volume - 1;
 			cras_client_set_system_volume(client, sys_volume);
+			break;
+		case 'K':
+			cap_gain = min(cap_gain + 100, 5000);
+			cras_client_set_system_capture_gain(client, cap_gain);
+			break;
+		case 'J':
+			cap_gain = cap_gain == -5000 ? -5000 : cap_gain - 100;
+			cras_client_set_system_capture_gain(client, cap_gain);
 			break;
 		case 'm':
 			mute = !mute;
