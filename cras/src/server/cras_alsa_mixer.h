@@ -61,12 +61,29 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 			      long dBFS);
 
+/* Sets the capture gain for the device associated with this mixer.
+ * Args:
+ *    cras_mixer - The mixer to set the volume on.
+ *    dBFS - The capture gain level as dB * 100.  dB can be a positive or a
+ *    negative quantity specifying how much gain or attenuation to apply.
+ */
+void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
+				      long dBFS);
+
 /* Sets the playback switch for the device.
  * Args:
  *    cras_mixer - Mixer to set the volume in.
  *    muted - 1 if muted, 0 if not.
  */
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted);
+
+/* Sets the capture switch for the device.
+ * Args:
+ *    cras_mixer - Mixer to set the volume in.
+ *    muted - 1 if muted, 0 if not.
+ */
+void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
+				      int muted);
 
 /* Invokes the provided callback once for each output associated with the given
  * device number.  The callback will be provided with a reference to the control

@@ -45,6 +45,20 @@ static int snd_mixer_selem_has_playback_switch_called;
 static int *snd_mixer_selem_has_playback_switch_return_values;
 static int snd_mixer_selem_has_playback_switch_return_values_index;
 static int snd_mixer_selem_has_playback_switch_return_values_length;
+static int snd_mixer_selem_set_capture_dB_all_called;
+static long *snd_mixer_selem_set_capture_dB_all_values;
+static int snd_mixer_selem_set_capture_dB_all_values_index;
+static int snd_mixer_selem_set_capture_dB_all_values_length;
+static int snd_mixer_selem_set_capture_switch_all_called;
+static int snd_mixer_selem_set_capture_switch_all_value;
+static int snd_mixer_selem_has_capture_volume_called;
+static int *snd_mixer_selem_has_capture_volume_return_values;
+static int snd_mixer_selem_has_capture_volume_return_values_index;
+static int snd_mixer_selem_has_capture_volume_return_values_length;
+static int snd_mixer_selem_has_capture_switch_called;
+static int *snd_mixer_selem_has_capture_switch_return_values;
+static int snd_mixer_selem_has_capture_switch_return_values_index;
+static int snd_mixer_selem_has_capture_switch_return_values_length;
 static int snd_mixer_selem_get_name_called;
 static const char **snd_mixer_selem_get_name_return_values;
 static int snd_mixer_selem_get_name_return_values_index;
@@ -53,6 +67,10 @@ static int snd_mixer_selem_get_playback_dB_called;
 static long *snd_mixer_selem_get_playback_dB_return_values;
 static int snd_mixer_selem_get_playback_dB_return_values_index;
 static int snd_mixer_selem_get_playback_dB_return_values_length;
+static int snd_mixer_selem_get_capture_dB_called;
+static long *snd_mixer_selem_get_capture_dB_return_values;
+static int snd_mixer_selem_get_capture_dB_return_values_index;
+static int snd_mixer_selem_get_capture_dB_return_values_length;
 static size_t cras_volume_curve_create_default_called;
 static size_t cras_volume_curve_create_simple_step_called;
 static size_t cras_volume_curve_destroy_called;
@@ -86,6 +104,19 @@ static void ResetStubData() {
   snd_mixer_selem_has_playback_switch_return_values = static_cast<int *>(NULL);
   snd_mixer_selem_has_playback_switch_return_values_index = 0;
   snd_mixer_selem_has_playback_switch_return_values_length = 0;
+  snd_mixer_selem_set_capture_dB_all_called = 0;
+  snd_mixer_selem_set_capture_dB_all_values = static_cast<long *>(NULL);
+  snd_mixer_selem_set_capture_dB_all_values_index = 0;
+  snd_mixer_selem_set_capture_dB_all_values_length = 0;
+  snd_mixer_selem_set_capture_switch_all_called = 0;
+  snd_mixer_selem_has_capture_volume_called = 0;
+  snd_mixer_selem_has_capture_volume_return_values = static_cast<int *>(NULL);
+  snd_mixer_selem_has_capture_volume_return_values_index = 0;
+  snd_mixer_selem_has_capture_volume_return_values_length = 0;
+  snd_mixer_selem_has_capture_switch_called = 0;
+  snd_mixer_selem_has_capture_switch_return_values = static_cast<int *>(NULL);
+  snd_mixer_selem_has_capture_switch_return_values_index = 0;
+  snd_mixer_selem_has_capture_switch_return_values_length = 0;
   snd_mixer_selem_get_name_called = 0;
   snd_mixer_selem_get_name_return_values = static_cast<const char **>(NULL);
   snd_mixer_selem_get_name_return_values_index = 0;
@@ -94,6 +125,10 @@ static void ResetStubData() {
   snd_mixer_selem_get_playback_dB_return_values = static_cast<long *>(NULL);
   snd_mixer_selem_get_playback_dB_return_values_index = 0;
   snd_mixer_selem_get_playback_dB_return_values_length = 0;
+  snd_mixer_selem_get_capture_dB_called = 0;
+  snd_mixer_selem_get_capture_dB_return_values = static_cast<long *>(NULL);
+  snd_mixer_selem_get_capture_dB_return_values_index = 0;
+  snd_mixer_selem_get_capture_dB_return_values_length = 0;
   cras_volume_curve_create_default_called = 0;
   cras_volume_curve_create_simple_step_called = 0;
   cras_volume_curve_destroy_called = 0;
@@ -317,7 +352,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   EXPECT_EQ(-50, set_dB_values[0]);
   EXPECT_EQ(-50, set_dB_values[1]);
   /* Set volume should be called for Master and PCM. PCM should get the volume
-   * remaining after Master is set, in this cast -50 - -25 = -25. */
+   * remaining after Master is set, in this case -50 - -25 = -25. */
   long get_dB_returns2[] = {
     -25,
     -25,
@@ -342,15 +377,108 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   EXPECT_EQ(1, snd_mixer_close_called);
 }
 
+TEST(AlsaMixer, CreateTwoMainCaptureElements) {
+  struct cras_alsa_mixer *c;
+  snd_mixer_elem_t *elements[] = {
+    reinterpret_cast<snd_mixer_elem_t *>(1),
+  };
+  int element_capture_volume[] = {
+    1,
+    1,
+  };
+  int element_capture_switches[] = {
+    1,
+    1,
+  };
+  const char *element_names[] = {
+    "Mic Boost", /* Called twice pere element (one for logging). */
+    "Mic Boost",
+    "Capture",
+    "Capture",
+  };
+
+  ResetStubData();
+  snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
+  snd_mixer_elem_next_return_values = elements;
+  snd_mixer_elem_next_return_values_length = ARRAY_SIZE(elements);
+  snd_mixer_selem_has_capture_volume_return_values = element_capture_volume;
+  snd_mixer_selem_has_capture_volume_return_values_length =
+      ARRAY_SIZE(element_capture_volume);
+  snd_mixer_selem_has_capture_switch_return_values = element_capture_switches;
+  snd_mixer_selem_has_capture_switch_return_values_length =
+      ARRAY_SIZE(element_capture_switches);
+  snd_mixer_selem_get_name_return_values = element_names;
+  snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  c = cras_alsa_mixer_create("hw:0", NULL);
+  ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_EQ(1, snd_mixer_open_called);
+  EXPECT_EQ(1, snd_mixer_attach_called);
+  EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
+  EXPECT_EQ(1, snd_mixer_selem_register_called);
+  EXPECT_EQ(1, snd_mixer_load_called);
+  EXPECT_EQ(0, snd_mixer_close_called);
+  EXPECT_EQ(2, snd_mixer_elem_next_called);
+  EXPECT_EQ(4, snd_mixer_selem_get_name_called);
+  EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
+
+  /* Set mute should be called for Master only. */
+  cras_alsa_mixer_set_capture_mute(c, 0);
+  EXPECT_EQ(1, snd_mixer_selem_set_capture_switch_all_called);
+  /* Set volume should be called for Mic Boost and Capture. If Mic Boost doesn't
+   * set to anything but zero then the entire volume should be passed to the
+   * Capture control. */
+  long get_dB_returns[] = {
+    0,
+    0,
+  };
+  long set_dB_values[2];
+  snd_mixer_selem_get_capture_dB_return_values = get_dB_returns;
+  snd_mixer_selem_get_capture_dB_return_values_length =
+      ARRAY_SIZE(get_dB_returns);
+  snd_mixer_selem_set_capture_dB_all_values = set_dB_values;
+  snd_mixer_selem_set_capture_dB_all_values_length =
+      ARRAY_SIZE(set_dB_values);
+  cras_alsa_mixer_set_capture_dBFS(c, -10);
+  EXPECT_EQ(2, snd_mixer_selem_set_capture_dB_all_called);
+  EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_called);
+  EXPECT_EQ(-10, set_dB_values[0]);
+  EXPECT_EQ(-10, set_dB_values[1]);
+  /* Set volume should be called for Mic Boost and Capture. Capture should get
+   * the gain remaining after Mic Boos is set, in this case 20 - 25 = -5. */
+  long get_dB_returns2[] = {
+    25,
+    -5,
+  };
+  snd_mixer_selem_get_capture_dB_return_values = get_dB_returns2;
+  snd_mixer_selem_get_capture_dB_return_values_length =
+      ARRAY_SIZE(get_dB_returns2);
+  snd_mixer_selem_get_capture_dB_return_values_index = 0;
+  snd_mixer_selem_set_capture_dB_all_values = set_dB_values;
+  snd_mixer_selem_set_capture_dB_all_values_length =
+      ARRAY_SIZE(set_dB_values);
+  snd_mixer_selem_set_capture_dB_all_values_index = 0;
+  snd_mixer_selem_set_capture_dB_all_called = 0;
+  snd_mixer_selem_get_capture_dB_called = 0;
+  cras_alsa_mixer_set_capture_dBFS(c, 20);
+  EXPECT_EQ(2, snd_mixer_selem_set_capture_dB_all_called);
+  EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_called);
+  EXPECT_EQ(20, set_dB_values[0]);
+  EXPECT_EQ(-5, set_dB_values[1]);
+
+  cras_alsa_mixer_destroy(c);
+  EXPECT_EQ(1, snd_mixer_close_called);
+}
+
 class AlsaMixerOutputs : public testing::Test {
   protected:
     virtual void SetUp() {
       output_called_values_.clear();
       output_callback_called_ = 0;
       snd_mixer_elem_t *elements[] = {
-        reinterpret_cast<snd_mixer_elem_t *>(1),
-        reinterpret_cast<snd_mixer_elem_t *>(2),
-        reinterpret_cast<snd_mixer_elem_t *>(3),
+        reinterpret_cast<snd_mixer_elem_t *>(2),  // PCM
+        reinterpret_cast<snd_mixer_elem_t *>(3),  // Headphone
+        reinterpret_cast<snd_mixer_elem_t *>(4),  // Speaker
+        reinterpret_cast<snd_mixer_elem_t *>(5),  // Capture
       };
       int element_playback_volume[] = {
         1,
@@ -364,6 +492,12 @@ class AlsaMixerOutputs : public testing::Test {
         1,
         1,
       };
+      int element_capture_volume[] = {
+        1,
+      };
+      int element_capture_switches[] = {
+        1,
+      };
       const char *element_names[] = {
         "Master",
         "PCM",
@@ -373,11 +507,12 @@ class AlsaMixerOutputs : public testing::Test {
         "Speaker",
         "Speaker",
         "Speaker",
+	"Capture",
       };
 
       ResetStubData();
       snd_mixer_first_elem_return_value =
-          reinterpret_cast<snd_mixer_elem_t *>(1);
+          reinterpret_cast<snd_mixer_elem_t *>(1);  // Master
       snd_mixer_elem_next_return_values = elements;
       snd_mixer_elem_next_return_values_length = ARRAY_SIZE(elements);
       snd_mixer_selem_has_playback_volume_return_values =
@@ -388,6 +523,14 @@ class AlsaMixerOutputs : public testing::Test {
           element_playback_switches;
       snd_mixer_selem_has_playback_switch_return_values_length =
         ARRAY_SIZE(element_playback_switches);
+      snd_mixer_selem_has_capture_volume_return_values =
+          element_capture_volume;
+      snd_mixer_selem_has_capture_volume_return_values_length =
+        ARRAY_SIZE(element_capture_volume);
+      snd_mixer_selem_has_capture_switch_return_values =
+          element_capture_switches;
+      snd_mixer_selem_has_capture_switch_return_values_length =
+        ARRAY_SIZE(element_capture_switches);
       snd_mixer_selem_get_name_return_values = element_names;
       snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
       cras_mixer_ = cras_alsa_mixer_create("hw:0",
@@ -399,9 +542,11 @@ class AlsaMixerOutputs : public testing::Test {
       EXPECT_EQ(1, snd_mixer_selem_register_called);
       EXPECT_EQ(1, snd_mixer_load_called);
       EXPECT_EQ(0, snd_mixer_close_called);
-      EXPECT_EQ(4, snd_mixer_elem_next_called);
+      EXPECT_EQ(ARRAY_SIZE(elements) + 1, snd_mixer_elem_next_called);
       EXPECT_EQ(4, snd_mixer_selem_has_playback_volume_called);
       EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
+      EXPECT_EQ(1, snd_mixer_selem_has_capture_volume_called);
+      EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
       EXPECT_EQ(1, cras_volume_curve_create_default_called);
       EXPECT_EQ(2, cras_volume_curve_create_simple_step_called);
     }
@@ -511,6 +656,24 @@ int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem) {
   return snd_mixer_selem_has_playback_switch_return_values[
       snd_mixer_selem_has_playback_switch_return_values_index++];
 }
+int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem) {
+  snd_mixer_selem_has_capture_volume_called++;
+  if (snd_mixer_selem_has_capture_volume_return_values_index >=
+      snd_mixer_selem_has_capture_volume_return_values_length)
+    return -1;
+
+  return snd_mixer_selem_has_capture_volume_return_values[
+      snd_mixer_selem_has_capture_volume_return_values_index++];
+}
+int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem) {
+  snd_mixer_selem_has_capture_switch_called++;
+  if (snd_mixer_selem_has_capture_switch_return_values_index >=
+      snd_mixer_selem_has_capture_switch_return_values_length)
+    return -1;
+
+  return snd_mixer_selem_has_capture_switch_return_values[
+      snd_mixer_selem_has_capture_switch_return_values_index++];
+}
 snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer) {
   snd_mixer_first_elem_called++;
   return snd_mixer_first_elem_return_value;
@@ -553,6 +716,33 @@ int snd_mixer_selem_get_playback_dB(snd_mixer_elem_t *elem,
 int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value) {
   snd_mixer_selem_set_playback_switch_all_called++;
   snd_mixer_selem_set_playback_switch_all_value = value;
+  return 0;
+}
+int snd_mixer_selem_set_capture_dB_all(snd_mixer_elem_t *elem,
+                                       long value,
+                                       int dir) {
+  snd_mixer_selem_set_capture_dB_all_called++;
+  if (snd_mixer_selem_set_capture_dB_all_values_index <
+      snd_mixer_selem_set_capture_dB_all_values_length)
+    snd_mixer_selem_set_capture_dB_all_values[
+        snd_mixer_selem_set_capture_dB_all_values_index++] = value;
+  return 0;
+}
+int snd_mixer_selem_get_capture_dB(snd_mixer_elem_t *elem,
+                                   snd_mixer_selem_channel_id_t channel,
+                                   long *value) {
+  snd_mixer_selem_get_capture_dB_called++;
+  if (snd_mixer_selem_get_capture_dB_return_values_index >=
+      snd_mixer_selem_get_capture_dB_return_values_length)
+    *value = 0;
+  else
+    *value = snd_mixer_selem_get_capture_dB_return_values[
+        snd_mixer_selem_get_capture_dB_return_values_index++];
+  return 0;
+}
+int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value) {
+  snd_mixer_selem_set_capture_switch_all_called++;
+  snd_mixer_selem_set_capture_switch_all_value = value;
   return 0;
 }
 //  From cras_volume_curve.

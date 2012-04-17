@@ -33,6 +33,8 @@ struct mixer_output_control {
  * mixer - Pointer to the opened alsa mixer.
  * main_volume_controls - List of volume controls (normally 'Master' and 'PCM').
  * playback_switch - Switch used to mute the device.
+ * main_capture_controls - List of capture gain controls (normally 'Capture').
+ * capture_switch - Switch used to mute the capture stream.
  * volume_curve - Default volume curve that converts from an index to dBFS.
  * ini - Configuration dictionary from libiniparser.
  */
@@ -41,6 +43,8 @@ struct cras_alsa_mixer {
 	struct mixer_volume_control *main_volume_controls;
 	struct mixer_output_control *output_controls;
 	snd_mixer_elem_t *playback_switch;
+	struct mixer_volume_control *main_capture_controls;
+	snd_mixer_elem_t *capture_switch;
 	struct cras_volume_curve *volume_curve;
 	dictionary *ini;
 };
@@ -111,6 +115,41 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 	if (cmix->playback_switch == NULL &&
 			snd_mixer_selem_has_playback_switch(elem))
 		cmix->playback_switch = elem;
+
+	return 0;
+}
+
+/* Adds the main capture control to the list and grabs the first seen capture
+ * switch to mute input. */
+static int add_main_capture_control(struct cras_alsa_mixer *cmix,
+				    snd_mixer_elem_t *elem)
+{
+	/* TODO(dgreid) handle index != 0, map to correct input. */
+	if (snd_mixer_selem_get_index(elem) > 0)
+		return 0;
+
+	if (snd_mixer_selem_has_capture_volume(elem)) {
+		struct mixer_volume_control *c;
+
+		c = calloc(1, sizeof(*c));
+		if (c == NULL) {
+			syslog(LOG_ERR, "No memory for control.");
+			return -ENOMEM;
+		}
+
+		c->elem = elem;
+
+		syslog(LOG_DEBUG,
+		       "Add capture control %s\n",
+		       snd_mixer_selem_get_name(elem));
+		DL_APPEND(cmix->main_capture_controls, c);
+	}
+
+	/* If cmix doesn't yet have a capture switch and this is a capture
+	 * switch, use it. */
+	if (cmix->capture_switch == NULL &&
+	    snd_mixer_selem_has_capture_switch(elem))
+		cmix->capture_switch = elem;
 
 	return 0;
 }
@@ -200,6 +239,12 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
 		"Headphone",
 		"Speaker",
 	};
+	/* Names of controls for capture gain/attenuation and mute. */
+	static const char * const main_capture_names[] = {
+		"Mic Boost",
+		"Capture",
+		"Digital Capture",
+	};
 	snd_mixer_elem_t *elem;
 	struct cras_alsa_mixer *cmix;
 
@@ -233,10 +278,14 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
 				cras_alsa_mixer_destroy(cmix);
 				return NULL;
 			}
-		}
-
-		if (name_in_list(name, output_names,
-				 ARRAY_SIZE(output_names))) {
+		} else if (name_in_list(name, main_capture_names,
+					ARRAY_SIZE(main_capture_names))) {
+			if (add_main_capture_control(cmix, elem) != 0) {
+				cras_alsa_mixer_destroy(cmix);
+				return NULL;
+			}
+		} else if (name_in_list(name, output_names,
+					ARRAY_SIZE(output_names))) {
 			/* TODO(dgreid) - determine device index. */
 			if (add_output_control(cmix, elem, 0) != 0) {
 				cras_alsa_mixer_destroy(cmix);
@@ -257,6 +306,10 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 
 	DL_FOREACH_SAFE(cras_mixer->main_volume_controls, c, tmp) {
 		DL_DELETE(cras_mixer->main_volume_controls, c);
+		free(c);
+	}
+	DL_FOREACH_SAFE(cras_mixer->main_capture_controls, c, tmp) {
+		DL_DELETE(cras_mixer->main_capture_controls, c);
 		free(c);
 	}
 	DL_FOREACH_SAFE(cras_mixer->output_controls, output, output_tmp) {
@@ -301,6 +354,30 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 	}
 }
 
+void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
+				      long dBFS)
+{
+	struct mixer_volume_control *c;
+	long to_set;
+
+	assert(cras_mixer);
+	to_set = dBFS;
+	/* Go through all the controls, set the gain for each, taking the value
+	 * closest but greater than the desired gain.  If the entire gain can't
+	 * be set on the current control, move on to the next one until we have
+	 * the exact gain, or gotten as close as we can. Once all of the gain is
+	 * set the rest of the controls should be set to 0dB. */
+	DL_FOREACH(cras_mixer->main_capture_controls, c) {
+		long actual_dB;
+		snd_mixer_selem_set_capture_dB_all(c->elem, to_set, 1);
+		snd_mixer_selem_get_capture_dB(c->elem,
+					       SND_MIXER_SCHN_FRONT_LEFT,
+					       &actual_dB);
+		to_set -= actual_dB;
+	}
+	assert(cras_mixer);
+}
+
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
 {
 	assert(cras_mixer);
@@ -308,6 +385,16 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
 		return;
 	snd_mixer_selem_set_playback_switch_all(cras_mixer->playback_switch,
 						!muted);
+}
+
+void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
+				      int muted)
+{
+	assert(cras_mixer);
+	if (cras_mixer->capture_switch == NULL)
+		return;
+	snd_mixer_selem_set_capture_switch_all(cras_mixer->capture_switch,
+					       !muted);
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
