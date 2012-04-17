@@ -146,6 +146,22 @@ static void set_alsa_volume(void *arg)
 	cras_alsa_mixer_set_mute(aio->mixer, mute || (volume == 0));
 }
 
+/* Sets the capture gain to the current system input gain level, given in dBFS.
+ * Set mute based on the system mute state.  This gain can be positive or
+ * negative and might be adjusted often if and app is running an AGC. */
+static void set_alsa_capture_gain(void *arg)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)arg;
+
+	assert(aio);
+	if (aio->mixer == NULL)
+		return;
+
+	cras_alsa_mixer_set_capture_dBFS(aio->mixer,
+					 cras_system_get_capture_gain());
+	cras_alsa_mixer_set_mute(aio->mixer, cras_system_get_capture_mute());
+}
+
 /* Initializes the device settings and registers for callbacks when system
  * settings have been changed.
  */
@@ -153,9 +169,17 @@ static void init_device_settings(struct alsa_io *aio)
 {
 	/* Register for volume/mute callback and set initial volume/mute for
 	 * the device. */
-	cras_system_register_volume_changed_cb(set_alsa_volume, aio);
-	cras_system_register_mute_changed_cb(set_alsa_volume, aio);
-	set_alsa_volume(aio);
+	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+		cras_system_register_volume_changed_cb(set_alsa_volume, aio);
+		cras_system_register_mute_changed_cb(set_alsa_volume, aio);
+		set_alsa_volume(aio);
+	} else {
+		cras_system_register_capture_gain_changed_cb(
+			set_alsa_capture_gain, aio);
+		cras_system_register_capture_mute_changed_cb(
+			set_alsa_capture_gain, aio);
+		set_alsa_capture_gain(aio);
+	}
 }
 
 /*
@@ -177,8 +201,17 @@ static int thread_remove_stream(struct alsa_io *aio,
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
 		/* No more streams, close alsa dev. */
-		cras_system_remove_volume_changed_cb(set_alsa_volume, aio);
-		cras_system_remove_mute_changed_cb(set_alsa_volume, aio);
+		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+			cras_system_remove_volume_changed_cb(set_alsa_volume,
+							     aio);
+			cras_system_remove_mute_changed_cb(set_alsa_volume,
+							   aio);
+		} else {
+			cras_system_remove_capture_gain_changed_cb(
+					set_alsa_capture_gain, aio);
+			cras_system_remove_capture_mute_changed_cb(
+					set_alsa_capture_gain, aio);
+		}
 		cras_alsa_pcm_drain(aio->handle);
 		cras_alsa_pcm_close(aio->handle);
 		aio->handle = NULL;
