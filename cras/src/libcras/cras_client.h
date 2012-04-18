@@ -294,6 +294,24 @@ int cras_client_get_system_muted(struct cras_client *client);
  */
 int cras_client_get_system_capture_muted(struct cras_client *client);
 
+/* Gets the current minimum system volume.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The minimum value for the current output device in dBFS * 100.  This is
+ *    the level of attenuation at volume == 1.
+ */
+long cras_client_get_system_min_volume(struct cras_client *client);
+
+/* Gets the current maximum system volume.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The maximum value for the current output device in dBFS * 100.  This is
+ *    the level of attenuation at volume == 100.
+ */
+long cras_client_get_system_max_volume(struct cras_client *client);
+
 /* Tells the CRAS server about a new device.  This is called when a device
  * is plugged or unplugged.
  * Args:

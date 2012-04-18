@@ -53,6 +53,10 @@ static size_t cras_system_register_capture_mute_cb_called;
 static size_t cras_system_remove_capture_mute_cb_called;
 static size_t cras_system_get_capture_mute_called;
 static size_t cras_system_get_capture_mute_return_value;
+static size_t cras_system_get_min_volume_called;
+static size_t cras_system_get_max_volume_called;
+static size_t cras_system_register_volume_limits_changed_cb_called;
+static size_t cras_system_remove_volume_limits_changed_cb_called;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -81,6 +85,10 @@ void ResetStubData() {
   cras_system_register_capture_mute_cb_called = 0;
   cras_system_remove_capture_mute_cb_called = 0;
   cras_system_get_capture_mute_called = 0;
+  cras_system_get_min_volume_called = 0;
+  cras_system_get_max_volume_called = 0;
+  cras_system_register_volume_limits_changed_cb_called = 0;
+  cras_system_remove_volume_limits_changed_cb_called = 0;
 }
 
 namespace {
@@ -103,6 +111,9 @@ TEST(RClientSuite, CreateSendMessage) {
   EXPECT_EQ(1, cras_system_register_capture_gain_cb_called);
   EXPECT_EQ(1, cras_system_register_capture_mute_cb_called);
   EXPECT_EQ(1, cras_system_register_mute_cb_called);
+  EXPECT_EQ(1, cras_system_register_volume_limits_changed_cb_called);
+  EXPECT_EQ(1, cras_system_get_min_volume_called);
+  EXPECT_EQ(1, cras_system_get_max_volume_called);
 
   rc = read(pipe_fds[0], &msg, sizeof(msg));
   EXPECT_EQ(sizeof(msg), rc);
@@ -118,6 +129,7 @@ TEST(RClientSuite, CreateSendMessage) {
   EXPECT_EQ(1, cras_system_remove_mute_cb_called);
   EXPECT_EQ(1, cras_system_remove_capture_gain_cb_called);
   EXPECT_EQ(1, cras_system_remove_capture_mute_cb_called);
+  EXPECT_EQ(1, cras_system_remove_volume_limits_changed_cb_called);
   close(pipe_fds[0]);
   close(pipe_fds[1]);
 }
@@ -437,6 +449,16 @@ int cras_system_get_capture_mute()
   cras_system_get_capture_mute_called++;
   return cras_system_get_capture_mute_return_value;
 }
+long cras_system_get_min_volume()
+{
+  cras_system_get_min_volume_called++;
+  return 0;
+}
+long cras_system_get_max_volume()
+{
+  cras_system_get_max_volume_called++;
+  return 0;
+}
 
 int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
                                            void *arg)
@@ -451,6 +473,20 @@ int cras_system_remove_volume_changed_cb(cras_system_volume_changed_cb cb,
                                          void *arg)
 {
   cras_system_remove_volume_cb_called++;
+  return 0;
+}
+
+int cras_system_register_volume_limits_changed_cb(
+    cras_system_volume_changed_cb cb, void *arg)
+{
+  cras_system_register_volume_limits_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_remove_volume_limits_changed_cb(
+    cras_system_volume_changed_cb cb, void *arg)
+{
+  cras_system_remove_volume_limits_changed_cb_called++;
   return 0;
 }
 

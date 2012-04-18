@@ -291,7 +291,16 @@ static int run_file_io_stream(struct cras_client *client,
 			print_attached_client_list(client);
 			break;
 		case 'v':
-			print_system_volumes(client);
+			printf("Volume: %zu%s Min dB: %ld Max dB: %ld\n"
+			       "Capture: %ld%s\n",
+			       cras_client_get_system_volume(client),
+			       cras_client_get_system_muted(client) ? "(Muted)"
+								    : "",
+			       cras_client_get_system_min_volume(client),
+			       cras_client_get_system_max_volume(client),
+			       cras_client_get_system_capture_gain(client),
+			       cras_client_get_system_capture_muted(client) ?
+						"(Muted)" : "");
 			break;
 		case '0':
 		case '1':

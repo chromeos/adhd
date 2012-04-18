@@ -60,6 +60,8 @@ enum {
 	CLIENT_GET_SYSTEM_MUTED,
 	CLIENT_GET_SYSTEM_CAPTURE_MUTED,
 	CLIENT_GET_ATTACHED_CLIENT_LIST,
+	CLIENT_GET_SYSTEM_MIN_VOLUME,
+	CLIENT_GET_SYSTEM_MAX_VOLUME,
 };
 
 struct command_msg {
@@ -176,6 +178,8 @@ struct client_stream {
  * system_capture_gain - System capture gain level.
  * system_muted - True if the system playback path is muted.
  * system_capture_muted - True if the system capture path is muted.
+ * system_min_volume - In dBFS * 100, minimum system volume.
+ * system_max_volume - In dBFS * 100, maximum system volume.
  */
 struct cras_client {
 	int id;
@@ -198,6 +202,8 @@ struct cras_client {
 	long system_capture_gain;
 	int system_muted;
 	int system_capture_muted;
+	long system_min_volume;
+	long system_max_volume;
 };
 
 /*
@@ -904,6 +910,8 @@ static int handle_system_volume(struct cras_client *client,
 	client->system_muted = !!msg->muted;
 	client->system_capture_gain = msg->capture_gain;
 	client->system_capture_muted = !!msg->capture_muted;
+	client->system_min_volume = msg->volume_min_dBFS;
+	client->system_max_volume = msg->volume_max_dBFS;
 	return 0;
 }
 
@@ -1092,6 +1100,14 @@ static int handle_command_message(struct cras_client *client)
 				client,
 				client_msg->clients,
 				client_msg->max_clients);
+		break;
+	}
+	case CLIENT_GET_SYSTEM_MIN_VOLUME: {
+		rc = client->system_min_volume;
+		break;
+	}
+	case CLIENT_GET_SYSTEM_MAX_VOLUME: {
+		rc = client->system_max_volume;
 		break;
 	}
 	default:
@@ -1505,6 +1521,16 @@ int cras_client_get_system_capture_muted(struct cras_client *client)
 {
 	/* Send message to client thread to ensure data is synchronized. */
 	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_CAPTURE_MUTED);
+}
+
+long cras_client_get_system_min_volume(struct cras_client *client)
+{
+	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MIN_VOLUME);
+}
+
+long cras_client_get_system_max_volume(struct cras_client *client)
+{
+	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MAX_VOLUME);
 }
 
 int cras_client_notify_device(struct cras_client *client,
