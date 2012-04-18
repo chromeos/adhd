@@ -17,6 +17,8 @@ void *volume_changed_arg_value;
 size_t volume_changed_2_called;
 size_t volume_changed_2_value;
 void *volume_changed_2_arg_value;
+size_t volume_limits_changed_called;
+size_t volume_limits_changed_2_called;
 size_t capture_gain_changed_called;
 long capture_gain_changed_value;
 void *capture_gain_changed_arg_value;
@@ -40,6 +42,8 @@ static void ResetStubData() {
   volume_changed_value = 0;
   volume_changed_2_called = 0;
   volume_changed_2_value = 0;
+  volume_limits_changed_called = 0;
+  volume_limits_changed_2_called = 0;
   capture_gain_changed_called = 0;
   capture_gain_changed_value = 0;
   capture_gain_changed_2_called = 0;
@@ -65,6 +69,14 @@ static void volume_changed_2(void *arg) {
   volume_changed_2_called++;
   volume_changed_2_value = cras_system_get_volume();
   volume_changed_2_arg_value = arg;
+}
+
+static void volume_limits_changed(void *arg) {
+  volume_limits_changed_called++;
+}
+
+static void volume_limits_changed_2(void *arg) {
+  volume_limits_changed_2_called++;
 }
 
 static void capture_gain_changed(void *arg) {
@@ -117,6 +129,13 @@ TEST(SystemStateSuite, SetVolume) {
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
   cras_system_set_volume(CRAS_MAX_SYSTEM_VOLUME + 1);
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
+}
+
+TEST(SystemStateSuite, SetMinMaxVolume) {
+  cras_system_state_init();
+  cras_system_set_volume_limits(-10000, -600);
+  EXPECT_EQ(-10000, cras_system_get_min_volume());
+  EXPECT_EQ(-600, cras_system_get_max_volume());
 }
 
 TEST(SystemStateSuite, SetCaptureVolume) {
@@ -198,6 +217,61 @@ TEST(SystemStateSuite, VolumeChangedCallbackMultiple) {
   EXPECT_EQ(0, volume_changed_2_called);
 
   rc = cras_system_remove_volume_changed_cb(volume_changed_2, fake_user_arg_2);
+  EXPECT_EQ(-ENOENT, rc);
+}
+
+TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
+  void * const fake_user_arg = (void *)1;
+  void * const fake_user_arg_2 = (void *)2;
+  const size_t fake_min = -10000;
+  const size_t fake_max = 800;
+  const size_t fake_min_2 = -8000;
+  const size_t fake_max_2 = -600;
+  int rc;
+
+  cras_system_state_init();
+  rc = cras_system_register_volume_limits_changed_cb(volume_limits_changed,
+                                                     fake_user_arg);
+  EXPECT_EQ(0, rc);
+  rc = cras_system_register_volume_limits_changed_cb(volume_limits_changed,
+                                                     fake_user_arg);
+  EXPECT_EQ(-EEXIST, rc);
+  cras_system_register_volume_limits_changed_cb(volume_limits_changed_2,
+                                                fake_user_arg_2);
+  volume_limits_changed_called = 0;
+  volume_limits_changed_2_called = 0;
+  cras_system_set_volume_limits(fake_min, fake_max);
+  EXPECT_EQ(fake_min, cras_system_get_min_volume());
+  EXPECT_EQ(fake_max, cras_system_get_max_volume());
+  EXPECT_EQ(1, volume_limits_changed_called);
+  EXPECT_EQ(1, volume_limits_changed_2_called);
+
+  rc = cras_system_remove_volume_limits_changed_cb(volume_limits_changed,
+                                                   fake_user_arg_2);
+  EXPECT_EQ(-ENOENT, rc);
+
+  cras_system_remove_volume_limits_changed_cb(volume_limits_changed,
+                                              fake_user_arg);
+  volume_limits_changed_called = 0;
+  volume_limits_changed_2_called = 0;
+  cras_system_set_volume_limits(fake_min_2, fake_max_2);
+  EXPECT_EQ(fake_min_2, cras_system_get_min_volume());
+  EXPECT_EQ(fake_max_2, cras_system_get_max_volume());
+  EXPECT_EQ(0, volume_limits_changed_called);
+  EXPECT_EQ(1, volume_limits_changed_2_called);
+
+  cras_system_remove_volume_limits_changed_cb(volume_limits_changed_2,
+                                              fake_user_arg_2);
+  volume_limits_changed_called = 0;
+  volume_limits_changed_2_called = 0;
+  cras_system_set_volume_limits(fake_min, fake_max);
+  EXPECT_EQ(fake_min, cras_system_get_min_volume());
+  EXPECT_EQ(fake_max, cras_system_get_max_volume());
+  EXPECT_EQ(0, volume_limits_changed_called);
+  EXPECT_EQ(0, volume_limits_changed_2_called);
+
+  rc = cras_system_remove_volume_limits_changed_cb(volume_limits_changed_2,
+                                                   fake_user_arg_2);
   EXPECT_EQ(-ENOENT, rc);
 }
 

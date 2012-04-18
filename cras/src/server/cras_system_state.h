@@ -113,6 +113,37 @@ int cras_system_register_capture_mute_changed_cb(
 int cras_system_remove_capture_mute_changed_cb(cras_system_volume_changed_cb cb,
 					       void *arg);
 
+/* Sets the value in dB of the MAX and MIN volume settings.  This will allow
+ * clients to query what range of control is available.  Both arguments are
+ * specified as dB * 100.
+ * Args:
+ *     min - dB value when volume = 1 (0 mutes).
+ *     max - dB value when volume = CRAS_MAX_SYSTEM_VOLUME
+ */
+void cras_system_set_volume_limits(long min, long max);
+/* Returns the dB value when volume = 1, in dB * 100. */
+long cras_system_get_min_volume();
+/* Returns the dB value when volume = CRAS_MAX_SYSTEM_VOLUME, in dB * 100. */
+long cras_system_get_max_volume();
+
+/* Adds a callback to call when the volume limits change.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to pass back to callback.
+ */
+int cras_system_register_volume_limits_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg);
+
+/* Removes a callback to call when the volume limits change.  Only removes
+ * the entry if both cb and arg match the values passed to the register
+ * function.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to passed back to callback.
+ */
+int cras_system_remove_volume_limits_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg);
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.

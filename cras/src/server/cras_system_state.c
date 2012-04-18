@@ -27,6 +27,8 @@ struct volume_callback_list {
 /* The system state.
  * Members:
  *    volume - index from 0-100.
+ *    min_volume_dBFS - volume in dB * 100 when volume = 1.
+ *    max_volume_dBFS - volume in dB * 100 when volume = max.
  *    mute - 0 = unmuted, 1 = muted.
  *    capture_gain - Capture gain in dBFS * 100.
  *    capture_mute - 0 = unmuted, 1 = muted.
@@ -34,10 +36,13 @@ struct volume_callback_list {
  *    mute_callbacks - Called when the system mute state changes.
  *    capture_gain_callbacks - Called when the capture gain changes.
  *    capture_mute_callbacks - Called when the capture mute changes.
+ *    volume_limits_callbacks - Called when the volume limits are changed.
  *    cards - A list of active sound cards in the system.
  */
 static struct {
 	size_t volume;
+	long min_volume_dBFS;
+	long max_volume_dBFS;
 	int mute;
 	long capture_gain;
 	int capture_mute;
@@ -45,6 +50,7 @@ static struct {
 	struct volume_callback_list *mute_callbacks;
 	struct volume_callback_list *capture_gain_callbacks;
 	struct volume_callback_list *capture_mute_callbacks;
+	struct volume_callback_list *volume_limits_callbacks;
 	struct card_list *cards;
 } state;
 
@@ -101,6 +107,8 @@ void cras_system_state_init()
 	state.capture_gain = 0;
 	state.capture_mute = 0;
 
+	/* Free any registered callbacks.  This prevents unit tests from
+	 * leaking. */
 	DL_FOREACH_SAFE(state.volume_callbacks, cb, tmp) {
 		DL_DELETE(state.volume_callbacks, cb);
 		free(cb);
@@ -124,6 +132,12 @@ void cras_system_state_init()
 		free(cb);
 	}
 	state.capture_mute_callbacks = NULL;
+
+	DL_FOREACH_SAFE(state.volume_limits_callbacks, cb, tmp) {
+		DL_DELETE(state.volume_limits_callbacks, cb);
+		free(cb);
+	}
+	state.volume_limits_callbacks = NULL;
 }
 
 void cras_system_set_volume(size_t volume)
@@ -232,6 +246,38 @@ int cras_system_remove_capture_mute_changed_cb(
 		cras_system_volume_changed_cb cb, void *arg)
 {
 	return remove_callback(&state.capture_mute_callbacks, cb, arg);
+}
+
+void cras_system_set_volume_limits(long min, long max)
+{
+	struct volume_callback_list *limit_cb;
+
+	state.min_volume_dBFS = min;
+	state.max_volume_dBFS = max;
+	DL_FOREACH(state.volume_limits_callbacks, limit_cb)
+		limit_cb->callback(limit_cb->data);
+}
+
+long cras_system_get_min_volume()
+{
+	return state.min_volume_dBFS;
+}
+
+long cras_system_get_max_volume()
+{
+	return state.max_volume_dBFS;
+}
+
+int cras_system_register_volume_limits_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg)
+{
+	return register_callback(&state.volume_limits_callbacks, cb, arg);
+}
+
+int cras_system_remove_volume_limits_changed_cb(
+		cras_system_volume_changed_cb cb, void *arg)
+{
+	return remove_callback(&state.volume_limits_callbacks, cb, arg);
 }
 
 int cras_system_add_alsa_card(size_t alsa_card_index)
