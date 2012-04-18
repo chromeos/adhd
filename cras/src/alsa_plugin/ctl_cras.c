@@ -116,6 +116,46 @@ static int ctl_cras_get_integer_info(snd_ctl_ext_t *ext_ctl,
 	return 0;
 }
 
+static long capture_index_to_gain(struct cras_client *client, long index)
+{
+	long min;
+	long max;
+	long dB_step;
+
+	min = cras_client_get_system_min_capture_gain(client);
+	max = cras_client_get_system_max_capture_gain(client);
+	if (min >= max)
+		return min;
+
+	dB_step = (max - min) / 100;
+
+	if (index <= 0)
+		return min;
+	if (index >= 100)
+		return max;
+	return index * dB_step + min;
+}
+
+static long capture_gain_to_index(struct cras_client *client, long gain)
+{
+	long min;
+	long max;
+	long dB_step;
+
+	min = cras_client_get_system_min_capture_gain(client);
+	max = cras_client_get_system_max_capture_gain(client);
+	if (min >= max)
+		return 0;
+
+	dB_step = (max - min) / 100;
+
+	if (gain <= min)
+		return 0;
+	if (gain >= max)
+		return 100;
+	return (gain - min) / dB_step;
+}
+
 /* Gets the value of the given control from CRAS and puts it in value. */
 static int ctl_cras_read_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 				 long *value)
@@ -130,12 +170,12 @@ static int ctl_cras_read_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 		*value = cras_client_get_system_volume(cras->client);
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_SWITCH:
-		/* TODO(dgreid) handle capture. */
-		*value = 0;
+		*value = !cras_client_get_system_capture_muted(cras->client);
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_VOLUME:
-		/* TODO(dgreid) handle capture. */
-		*value = 0;
+		*value = capture_gain_to_index(
+			cras->client,
+			cras_client_get_system_capture_gain(cras->client));
 		break;
 	default:
 		return -EINVAL;
@@ -158,8 +198,12 @@ static int ctl_cras_write_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 		cras_client_set_system_volume(cras->client, *value);
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_SWITCH:
+		cras_client_set_system_capture_mute(cras->client, !(*value));
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_VOLUME:
+		cras_client_set_system_capture_gain(
+				cras->client,
+				capture_index_to_gain(cras->client, *value));
 		break;
 	default:
 		return -EINVAL;
