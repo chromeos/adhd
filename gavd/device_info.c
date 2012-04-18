@@ -505,6 +505,7 @@ static void initialize(void)
     device_t            *head = calloc(1, sizeof(device_t));
     pthread_mutexattr_t  attr;
 
+    pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     pthread_mutex_init(&devices.device_mutex, &attr);
 
