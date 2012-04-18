@@ -95,6 +95,7 @@ static cras_volume_curve *fake_curve;
 static size_t cras_iodev_post_message_to_playback_thread_called;
 static size_t cras_iodev_init_called;
 static size_t cras_iodev_deinit_called;
+static size_t sys_set_volume_limits_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -132,6 +133,7 @@ void ResetStubData() {
   cras_iodev_post_message_to_playback_thread_called = 0;
   cras_iodev_init_called = 0;
   cras_iodev_deinit_called = 0;
+  sys_set_volume_limits_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -284,6 +286,7 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_NE((void *)NULL, aio_output_->handle);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
+  EXPECT_EQ(1, sys_set_volume_limits_called);
   EXPECT_EQ(1, sys_register_volume_cb_called);
   EXPECT_EQ(1, sys_register_mute_cb_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
@@ -1285,6 +1288,11 @@ int cras_system_remove_capture_mute_changed_cb(cras_system_volume_changed_cb cb,
 {
   sys_remove_capture_mute_cb_called++;
   return 0;
+}
+
+void cras_system_set_volume_limits(long min, long max)
+{
+  sys_set_volume_limits_called++;
 }
 
 //  From cras_alsa_mixer.

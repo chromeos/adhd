@@ -120,6 +120,19 @@ static int open_alsa(struct alsa_io *aio)
 	return 0;
 }
 
+/* Informs the system of the volume limits for this device. */
+static void set_alsa_volume_limits(struct alsa_io *aio)
+{
+	const struct cras_volume_curve *curve;
+	if (aio->active_output && aio->active_output->mixer_output)
+		curve = aio->active_output->mixer_output->volume_curve;
+	else
+		curve = cras_alsa_mixer_default_volume_curve(aio->mixer);
+	cras_system_set_volume_limits(
+			curve->get_dBFS(curve, 1), /* min */
+			curve->get_dBFS(curve, CRAS_MAX_SYSTEM_VOLUME));
+}
+
 /* Sets the volume of the playback device to the specified level. Receives a
  * volume index from the system settings, ranging from 0 to 100, converts it to
  * dB using the volume curve, and sends the dB value to alsa. Handles mute and
@@ -172,6 +185,7 @@ static void init_device_settings(struct alsa_io *aio)
 	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 		cras_system_register_volume_changed_cb(set_alsa_volume, aio);
 		cras_system_register_mute_changed_cb(set_alsa_volume, aio);
+		set_alsa_volume_limits(aio);
 		set_alsa_volume(aio);
 	} else {
 		cras_system_register_capture_gain_changed_cb(
