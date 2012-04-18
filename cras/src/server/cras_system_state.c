@@ -56,6 +56,11 @@ static struct {
 	struct volume_callback_list *capture_mute_callbacks;
 	struct volume_callback_list *volume_limits_callbacks;
 	struct card_list *cards;
+	/* Select loop callback registration. */
+	int (*fd_add)(int fd, void (*cb)(void *data),
+		      void *cb_data, void *select_data);
+	void (*fd_rm)(int fd, void *select_data);
+	void *select_data;
 } state;
 
 /* Adds the callback, cb, to the list.  arg will be passed to the callback when
@@ -339,4 +344,35 @@ int cras_system_remove_alsa_card(size_t alsa_card_index)
 	cras_alsa_card_destroy(card->card);
 	free(card);
 	return 0;
+}
+
+int cras_system_set_select_handler(int (*add)(int fd,
+					      void (*callback)(void *data),
+					      void *callback_data,
+					      void *select_data),
+				   void (*rm)(int fd, void *select_data),
+				   void *select_data)
+{
+	if (state.fd_add != NULL || state.fd_rm != NULL)
+		return -EEXIST;
+	state.fd_add = add;
+	state.fd_rm = rm;
+	state.select_data = select_data;
+	return 0;
+}
+
+int cras_system_add_select_fd(int fd,
+			      void (*callback)(void *data),
+			      void *callback_data)
+{
+	if (state.fd_add == NULL)
+		return -EINVAL;
+	return state.fd_add(fd, callback, callback_data,
+			    state.select_data);
+}
+
+void cras_system_rm_select_fd(int fd)
+{
+	if (state.fd_rm != NULL)
+		state.fd_rm(fd, state.select_data);
 }
