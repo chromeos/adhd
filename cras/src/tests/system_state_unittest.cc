@@ -241,10 +241,13 @@ TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
   volume_limits_changed_called = 0;
   volume_limits_changed_2_called = 0;
   cras_system_set_volume_limits(fake_min, fake_max);
+  cras_system_set_capture_gain_limits(fake_min_2, fake_max_2);
   EXPECT_EQ(fake_min, cras_system_get_min_volume());
   EXPECT_EQ(fake_max, cras_system_get_max_volume());
-  EXPECT_EQ(1, volume_limits_changed_called);
-  EXPECT_EQ(1, volume_limits_changed_2_called);
+  EXPECT_EQ(fake_min_2, cras_system_get_min_capture_gain());
+  EXPECT_EQ(fake_max_2, cras_system_get_max_capture_gain());
+  EXPECT_EQ(2, volume_limits_changed_called);
+  EXPECT_EQ(2, volume_limits_changed_2_called);
 
   rc = cras_system_remove_volume_limits_changed_cb(volume_limits_changed,
                                                    fake_user_arg_2);

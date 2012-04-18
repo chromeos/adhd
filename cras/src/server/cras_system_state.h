@@ -144,6 +144,19 @@ int cras_system_register_volume_limits_changed_cb(
 int cras_system_remove_volume_limits_changed_cb(
 		cras_system_volume_changed_cb cb, void *arg);
 
+/* Sets the limits in dB * 100 of the MAX and MIN capture gain.  This will allow
+ * clients to query what range of control is available.  Both arguments are
+ * specified as dB * 100.
+ * Args:
+ *     min - minimum allowed capture gain.
+ *     max - maximum allowed capture gaax.
+ */
+void cras_system_set_capture_gain_limits(long min, long max);
+/* Returns the max value allowed for capture gain in dB * 100. */
+long cras_system_get_min_capture_gain();
+/* Returns the min value allowed for capture gain in dB * 100. */
+long cras_system_get_max_capture_gain();
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.
