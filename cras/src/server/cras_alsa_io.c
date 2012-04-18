@@ -192,6 +192,9 @@ static void init_device_settings(struct alsa_io *aio)
 			set_alsa_capture_gain, aio);
 		cras_system_register_capture_mute_changed_cb(
 			set_alsa_capture_gain, aio);
+		cras_system_set_capture_gain_limits(
+			cras_alsa_mixer_get_minimum_capture_gain(aio->mixer),
+			cras_alsa_mixer_get_maximum_capture_gain(aio->mixer));
 		set_alsa_capture_gain(aio);
 	}
 }

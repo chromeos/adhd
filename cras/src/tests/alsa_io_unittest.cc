@@ -96,6 +96,9 @@ static size_t cras_iodev_post_message_to_playback_thread_called;
 static size_t cras_iodev_init_called;
 static size_t cras_iodev_deinit_called;
 static size_t sys_set_volume_limits_called;
+static size_t sys_set_capture_gain_limits_called;
+static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
+static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -134,6 +137,9 @@ void ResetStubData() {
   cras_iodev_init_called = 0;
   cras_iodev_deinit_called = 0;
   sys_set_volume_limits_called = 0;
+  sys_set_capture_gain_limits_called = 0;
+  cras_alsa_mixer_get_minimum_capture_gain_called = 0;
+  cras_alsa_mixer_get_maximum_capture_gain_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -425,6 +431,7 @@ TEST_F(AlsaAddStreamSuite, SimpleAddInputStream) {
   EXPECT_EQ(55, aio_input_->base.streams->stream->fd);
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, cras_alsa_start_called); //  Shouldn start capture.
+  EXPECT_EQ(1, sys_set_capture_gain_limits_called);
   EXPECT_EQ(1, sys_register_capture_gain_cb_called);
   EXPECT_EQ(1, sys_register_capture_mute_cb_called);
   rc = thread_remove_stream(aio_input_, new_stream);
@@ -1295,6 +1302,11 @@ void cras_system_set_volume_limits(long min, long max)
   sys_set_volume_limits_called++;
 }
 
+void cras_system_set_capture_gain_limits(long min, long max)
+{
+  sys_set_capture_gain_limits_called++;
+}
+
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *m, long dB_level)
 {
@@ -1348,4 +1360,15 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
   return fake_curve;
 }
 
+long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix)
+{
+	cras_alsa_mixer_get_minimum_capture_gain_called++;
+	return 0;
+}
+
+long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
+{
+	cras_alsa_mixer_get_maximum_capture_gain_called++;
+	return 0;
+}
 }

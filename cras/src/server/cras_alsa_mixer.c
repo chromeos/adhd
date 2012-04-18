@@ -378,6 +378,36 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 	assert(cras_mixer);
 }
 
+long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix)
+{
+	struct mixer_volume_control *c;
+	long min, max, total_min;
+
+	assert(cmix);
+	total_min = 0;
+	DL_FOREACH(cmix->main_capture_controls, c)
+		if (snd_mixer_selem_get_capture_dB_range(c->elem,
+							 &min, &max) == 0)
+			total_min += min;
+
+	return total_min;
+}
+
+long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
+{
+	struct mixer_volume_control *c;
+	long min, max, total_max;
+
+	assert(cmix);
+	total_max = 0;
+	DL_FOREACH(cmix->main_capture_controls, c)
+		if (snd_mixer_selem_get_capture_dB_range(c->elem,
+							 &min, &max) == 0)
+			total_max += max;
+
+	return total_max;
+}
+
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
 {
 	assert(cras_mixer);

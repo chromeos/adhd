@@ -70,6 +70,22 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 				      long dBFS);
 
+/* Gets the minimum allowed setting for capture gain.
+ * Args:
+ *    cmix - The mixer to set the capture gain on.
+ * Returns:
+ *    The minimum allowed capture gain in dBFS * 100.
+ */
+long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix);
+
+/* Gets the maximum allowed setting for capture gain.
+ * Args:
+ *    cmix - The mixer to set the capture gain on.
+ * Returns:
+ *    The maximum allowed capture gain in dBFS * 100.
+ */
+long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix);
+
 /* Sets the playback switch for the device.
  * Args:
  *    cras_mixer - Mixer to set the volume in.

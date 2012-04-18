@@ -74,6 +74,11 @@ static int snd_mixer_selem_get_capture_dB_return_values_length;
 static size_t cras_volume_curve_create_default_called;
 static size_t cras_volume_curve_create_simple_step_called;
 static size_t cras_volume_curve_destroy_called;
+static size_t snd_mixer_selem_get_capture_dB_range_called;
+static size_t snd_mixer_selem_get_capture_dB_range_values_index;
+static size_t snd_mixer_selem_get_capture_dB_range_values_length;
+static const long *snd_mixer_selem_get_capture_dB_range_min_values;
+static const long *snd_mixer_selem_get_capture_dB_range_max_values;
 
 static void ResetStubData() {
   snd_mixer_open_called = 0;
@@ -132,6 +137,11 @@ static void ResetStubData() {
   cras_volume_curve_create_default_called = 0;
   cras_volume_curve_create_simple_step_called = 0;
   cras_volume_curve_destroy_called = 0;
+  snd_mixer_selem_get_capture_dB_range_called = 0;
+  snd_mixer_selem_get_capture_dB_range_values_index = 0;
+  snd_mixer_selem_get_capture_dB_range_values_length = 0;
+  snd_mixer_selem_get_capture_dB_range_min_values = static_cast<long *>(NULL);
+  snd_mixer_selem_get_capture_dB_range_max_values = static_cast<long *>(NULL);
 }
 
 TEST(AlsaMixer, CreateFailOpen) {
@@ -478,7 +488,8 @@ class AlsaMixerOutputs : public testing::Test {
         reinterpret_cast<snd_mixer_elem_t *>(2),  // PCM
         reinterpret_cast<snd_mixer_elem_t *>(3),  // Headphone
         reinterpret_cast<snd_mixer_elem_t *>(4),  // Speaker
-        reinterpret_cast<snd_mixer_elem_t *>(5),  // Capture
+        reinterpret_cast<snd_mixer_elem_t *>(5),  // Mic Boost
+        reinterpret_cast<snd_mixer_elem_t *>(6),  // Capture
       };
       int element_playback_volume[] = {
         1,
@@ -494,8 +505,10 @@ class AlsaMixerOutputs : public testing::Test {
       };
       int element_capture_volume[] = {
         1,
+        1,
       };
       int element_capture_switches[] = {
+        1,
         1,
       };
       const char *element_names[] = {
@@ -507,6 +520,9 @@ class AlsaMixerOutputs : public testing::Test {
         "Speaker",
         "Speaker",
         "Speaker",
+	"Mic Boost",
+	"Mic Boost",
+	"Capture",
 	"Capture",
       };
 
@@ -545,7 +561,7 @@ class AlsaMixerOutputs : public testing::Test {
       EXPECT_EQ(ARRAY_SIZE(elements) + 1, snd_mixer_elem_next_called);
       EXPECT_EQ(4, snd_mixer_selem_has_playback_volume_called);
       EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
-      EXPECT_EQ(1, snd_mixer_selem_has_capture_volume_called);
+      EXPECT_EQ(2, snd_mixer_selem_has_capture_volume_called);
       EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
       EXPECT_EQ(1, cras_volume_curve_create_default_called);
       EXPECT_EQ(2, cras_volume_curve_create_simple_step_called);
@@ -601,6 +617,22 @@ TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   cras_alsa_mixer_set_output_active_state(output_called_values_[0], 1);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
+}
+
+TEST_F(AlsaMixerOutputs, MinMaxCaptureGain) {
+  long min, max;
+  static const long min_volumes[] = {500, -1250, -40, -40};
+  static const long max_volumes[] = {-40, -40, 3000, 400};
+
+  snd_mixer_selem_get_capture_dB_range_called = 0;
+  snd_mixer_selem_get_capture_dB_range_values_index = 0;
+  snd_mixer_selem_get_capture_dB_range_min_values = min_volumes;
+  snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
+  snd_mixer_selem_get_capture_dB_range_values_length = ARRAY_SIZE(min_volumes);
+  min = cras_alsa_mixer_get_minimum_capture_gain(cras_mixer_);
+  EXPECT_EQ(-750, min);
+  max = cras_alsa_mixer_get_maximum_capture_gain(cras_mixer_);
+  EXPECT_EQ(3400, max);
 }
 
 /* Stubs */
@@ -745,6 +777,22 @@ int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value) {
   snd_mixer_selem_set_capture_switch_all_value = value;
   return 0;
 }
+int snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem, long *min,
+                                         long *max) {
+  snd_mixer_selem_get_capture_dB_range_called++;
+  if (snd_mixer_selem_get_capture_dB_range_values_index >=
+      snd_mixer_selem_get_capture_dB_range_values_length) {
+    *min = 0;
+    *max = 0;
+  } else {
+    *min = snd_mixer_selem_get_capture_dB_range_min_values[
+        snd_mixer_selem_get_capture_dB_range_values_index];
+    *max = snd_mixer_selem_get_capture_dB_range_max_values[
+        snd_mixer_selem_get_capture_dB_range_values_index++];
+  }
+  return 0;
+}
+
 //  From cras_volume_curve.
 static long get_dBFS_default(const struct cras_volume_curve *curve,
 			     size_t volume)
