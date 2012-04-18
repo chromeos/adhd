@@ -42,10 +42,28 @@ struct attached_client {
 	struct attached_client *next, *prev;
 };
 
+/* Stores file descriptors to callback mappings for clients. Callback/fd/data
+ * args are registered by clients.  When fd is ready, the callback will be
+ * called on the main server thread and the callback data will be passed back to
+ * it.  This allows the use of the main server loop instead of spawning a thread
+ * to watch file descriptors.  The client can then read or write the fd.
+ * Members:
+ *    fd - The file descriptor passed to select.
+ *    callack - The funciton to call when fd is ready.
+ *    callback_data - Pointer passed to the callback.
+ */
+struct client_callback {
+	int select_fd;
+	void (*callback)(void *);
+	void *callback_data;
+	struct client_callback *prev, *next;
+};
+
 /* Local server data. */
 struct server_data {
 	struct attached_client *clients_head;
 	size_t num_clients;
+	struct client_callback *client_callbacks;
 	size_t next_client_id;
 } server_instance;
 
@@ -185,6 +203,57 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	send_client_list_to_clients(&server_instance);
 }
 
+/* Add a file descriptor to be passed to select in the main loop. This is
+ * registered with system state so that it is called when any client asks to
+ * have a callback triggered based on an fd being readable. */
+static int add_select_fd(int fd, void (*cb)(void *data),
+			 void *callback_data, void *server_data)
+{
+	struct client_callback *new_cb;
+	struct client_callback *client_cb;
+	struct server_data *serv;
+
+	serv = (struct server_data *)server_data;
+	if (serv == NULL)
+		return -EINVAL;
+
+	/* Check if fd already exists. */
+	DL_FOREACH(serv->client_callbacks, client_cb)
+		if (client_cb->select_fd == fd)
+			return -EEXIST;
+
+	new_cb = (struct  client_callback *)calloc(1, sizeof(*new_cb));
+	if (new_cb == NULL)
+		return -ENOMEM;
+
+	new_cb->select_fd = fd;
+	new_cb->callback = cb;
+	new_cb->callback_data = callback_data;
+
+	DL_APPEND(serv->client_callbacks, new_cb);
+	return 0;
+}
+
+/* Removes a file descriptor to be passed to select in the main loop. This is
+ * registered with system state so that it is called when any client asks to
+ * remove a callback added with add_select_fd. */
+static void rm_select_fd(int fd, void *server_data)
+{
+	struct server_data *serv;
+	struct client_callback *client_cb, *temp_callback;
+
+	serv = (struct server_data *)server_data;
+	if (serv == NULL)
+		return;
+
+	DL_FOREACH_SAFE(serv->client_callbacks, client_cb, temp_callback)
+		if (client_cb->select_fd == fd) {
+			DL_DELETE(serv->client_callbacks, client_cb);
+			free(client_cb);
+			return;
+		}
+}
+
 /*
  * Exported Interface.
  */
@@ -198,10 +267,16 @@ int cras_server_run()
 	const char *sockdir;
 	struct sockaddr_un addr;
 	struct attached_client *elm, *tmp;
-
+	struct client_callback *client_cb, *tmp_callback;
 
 	/* Log to syslog. */
 	openlog("cras_server", LOG_PID, LOG_USER);
+
+	/* Allow clients to register callbacks for file descriptors.
+	 * add_select_fd and rm_select_fd will add and remove file descriptors
+	 * from the list that are passed to select in the main loop below. */
+	cras_system_set_select_handler(add_select_fd, rm_select_fd,
+				       &server_instance);
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {
@@ -257,16 +332,29 @@ int cras_server_run()
 				max_poll_fd = elm->fd;
 			FD_SET(elm->fd, &poll_set);
 		}
+		DL_FOREACH(server_instance.client_callbacks, client_cb) {
+			if (client_cb->select_fd > max_poll_fd)
+				max_poll_fd = client_cb->select_fd;
+			FD_SET(client_cb->select_fd, &poll_set);
+		}
 
 		rc = select(max_poll_fd + 1, &poll_set, NULL, NULL, NULL);
 		if  (rc < 0)
 			continue;
 
+		/* Check for new connections. */
 		if (FD_ISSET(socket_fd, &poll_set))
 			handle_new_connection(&addr, socket_fd);
+		/* Check if there are messages pending for any clients. */
 		DL_FOREACH_SAFE(server_instance.clients_head, elm, tmp)
 			if (FD_ISSET(elm->fd, &poll_set))
 				handle_message_from_client(elm);
+		/* Check any client-registered fd/callback pairs. */
+		DL_FOREACH_SAFE(server_instance.client_callbacks,
+				client_cb,
+				tmp_callback)
+			if (FD_ISSET(client_cb->select_fd, &poll_set))
+				client_cb->callback(client_cb->callback_data);
 	}
 
 bail:
