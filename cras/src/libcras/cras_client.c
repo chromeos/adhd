@@ -62,6 +62,8 @@ enum {
 	CLIENT_GET_ATTACHED_CLIENT_LIST,
 	CLIENT_GET_SYSTEM_MIN_VOLUME,
 	CLIENT_GET_SYSTEM_MAX_VOLUME,
+	CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN,
+	CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN,
 };
 
 struct command_msg {
@@ -180,6 +182,8 @@ struct client_stream {
  * system_capture_muted - True if the system capture path is muted.
  * system_min_volume - In dBFS * 100, minimum system volume.
  * system_max_volume - In dBFS * 100, maximum system volume.
+ * system_min_capture_gain - In dBFS * 100, minimum system capture gain.
+ * system_max_capture_gain - In dBFS * 100, maximum system capture gain.
  */
 struct cras_client {
 	int id;
@@ -204,6 +208,8 @@ struct cras_client {
 	int system_capture_muted;
 	long system_min_volume;
 	long system_max_volume;
+	long system_min_capture_gain;
+	long system_max_capture_gain;
 };
 
 /*
@@ -912,6 +918,8 @@ static int handle_system_volume(struct cras_client *client,
 	client->system_capture_muted = !!msg->capture_muted;
 	client->system_min_volume = msg->volume_min_dBFS;
 	client->system_max_volume = msg->volume_max_dBFS;
+	client->system_min_capture_gain = msg->capture_gain_min_dBFS;
+	client->system_max_capture_gain = msg->capture_gain_max_dBFS;
 	return 0;
 }
 
@@ -1110,6 +1118,12 @@ static int handle_command_message(struct cras_client *client)
 		rc = client->system_max_volume;
 		break;
 	}
+	case CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN:
+		rc = client->system_min_capture_gain;
+		break;
+	case CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN:
+		rc = client->system_max_capture_gain;
+		break;
 	default:
 		assert(0);
 		break;
@@ -1531,6 +1545,18 @@ long cras_client_get_system_min_volume(struct cras_client *client)
 long cras_client_get_system_max_volume(struct cras_client *client)
 {
 	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MAX_VOLUME);
+}
+
+long cras_client_get_system_min_capture_gain(struct cras_client *client)
+{
+	return send_simple_cmd_msg(client, 0,
+				   CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN);
+}
+
+long cras_client_get_system_max_capture_gain(struct cras_client *client)
+{
+	return send_simple_cmd_msg(client, 0,
+				   CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN);
 }
 
 int cras_client_notify_device(struct cras_client *client,

@@ -459,6 +459,14 @@ long cras_system_get_max_volume()
   cras_system_get_max_volume_called++;
   return 0;
 }
+long cras_system_get_min_capture_gain()
+{
+  return 0;
+}
+long cras_system_get_max_capture_gain()
+{
+  return 0;
+}
 
 int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
                                            void *arg)

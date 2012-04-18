@@ -280,6 +280,8 @@ struct cras_client_volume_status {
 	int capture_muted;
 	long volume_min_dBFS;
 	long volume_max_dBFS;
+	long capture_gain_min_dBFS;
+	long capture_gain_max_dBFS;
 };
 static inline void cras_fill_client_volume_status(
 		struct cras_client_volume_status *m,
@@ -288,7 +290,9 @@ static inline void cras_fill_client_volume_status(
 		long capture_gain,
 		int capture_muted,
 		long volume_min_dBFS,
-		long volume_max_dBFS)
+		long volume_max_dBFS,
+		long capture_gain_min_dBFS,
+		long capture_gain_max_dBFS)
 {
 	m->volume = volume;
 	m->muted = !!muted;
@@ -296,6 +300,8 @@ static inline void cras_fill_client_volume_status(
 	m->capture_muted = capture_muted;
 	m->volume_min_dBFS = volume_min_dBFS;
 	m->volume_max_dBFS = volume_max_dBFS;
+	m->capture_gain_min_dBFS = capture_gain_min_dBFS;
+	m->capture_gain_max_dBFS = capture_gain_max_dBFS;
 	m->header.id = CRAS_CLIENT_VOLUME_UPDATE;
 	m->header.length = sizeof(*m);
 }

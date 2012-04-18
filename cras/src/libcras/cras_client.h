@@ -312,6 +312,22 @@ long cras_client_get_system_min_volume(struct cras_client *client);
  */
 long cras_client_get_system_max_volume(struct cras_client *client);
 
+/* Gets the current minimum system capture gain.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The minimum capture gain for the current input device in dBFS * 100.
+ */
+long cras_client_get_system_min_capture_gain(struct cras_client *client);
+
+/* Gets the current maximum system capture gain.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The maximum capture gain for the current input device in dBFS * 100.
+ */
+long cras_client_get_system_max_capture_gain(struct cras_client *client);
+
 /* Tells the CRAS server about a new device.  This is called when a device
  * is plugged or unplugged.
  * Args:

@@ -200,7 +200,9 @@ static void send_volume_update(void *arg)
 				       cras_system_get_capture_gain(),
 				       cras_system_get_capture_mute(),
 				       cras_system_get_min_volume(),
-				       cras_system_get_max_volume());
+				       cras_system_get_max_volume(),
+				       cras_system_get_min_capture_gain(),
+				       cras_system_get_max_capture_gain());
 	cras_rclient_send_message(client, &msg.header);
 }
 

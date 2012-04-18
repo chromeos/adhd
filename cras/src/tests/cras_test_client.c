@@ -292,7 +292,7 @@ static int run_file_io_stream(struct cras_client *client,
 			break;
 		case 'v':
 			printf("Volume: %zu%s Min dB: %ld Max dB: %ld\n"
-			       "Capture: %ld%s\n",
+			       "Capture: %ld%s Min dB: %ld Max dB: %ld\n",
 			       cras_client_get_system_volume(client),
 			       cras_client_get_system_muted(client) ? "(Muted)"
 								    : "",
@@ -300,7 +300,9 @@ static int run_file_io_stream(struct cras_client *client,
 			       cras_client_get_system_max_volume(client),
 			       cras_client_get_system_capture_gain(client),
 			       cras_client_get_system_capture_muted(client) ?
-						"(Muted)" : "");
+						"(Muted)" : "",
+			       cras_client_get_system_min_capture_gain(client),
+			       cras_client_get_system_max_capture_gain(client));
 			break;
 		case '0':
 		case '1':
