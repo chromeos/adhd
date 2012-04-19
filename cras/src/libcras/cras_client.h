@@ -91,7 +91,7 @@ int cras_client_stop(struct cras_client *client);
  * Args:
  *    client - The client to stop (from cras_client_create).
  *    devs - Array that will be filled with device info.
- *    max_devs - Maximumnumber of devices to put in the array.
+ *    max_devs - Maximum number of devices to put in the array.
  * Returns:
  *    The number of devices available.  This may be more that max_devs passed
  *    in, this indicates that all of the iodev_info wouldn't fit in the provided
@@ -105,7 +105,7 @@ int cras_client_get_output_devices(struct cras_client *client,
  * Args:
  *    client - The client to stop (from cras_client_create).
  *    devs - Array that will be filled with device info.
- *    max_devs - Maximumnumber of devices to put in the array.
+ *    max_devs - Maximum number of devices to put in the array.
  * Returns:
  *    The number of devices available.  This may be more that max_devs passed
  *    in, this indicates that all of the iodev_info wouldn't fit in the provided
