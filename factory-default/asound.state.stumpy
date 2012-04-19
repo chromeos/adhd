@@ -246,17 +246,17 @@ state.PCH {
 	}
 	control.22 {
 		iface MIXER
-		name 'PCM Playback Volume'
-		value.0 255
-		value.1 255
+		name 'Digital Capture Volume'
+		value.0 60
+		value.1 60
 		comment {
 			access 'read write user'
 			type INTEGER
 			count 2
-			range '0 - 255'
-			tlv '0000000100000008ffffec1400000014'
-			dbmin -5100
-			dbmax 0
+			range '0 - 120'
+			tlv '0000000100000008fffff44800000032'
+			dbmin -3000
+			dbmax 3000
 			dbvalue.0 0
 			dbvalue.1 0
 		}
