@@ -19,6 +19,7 @@
 #define PLAYBACK_BUFFER_SIZE (4800)
 
 static const size_t MAX_IODEVS = 10; /* Max devices to print out. */
+static const size_t MAX_ATTACHED_CLIENTS = 10; /* Max clients to print out. */
 
 static uint8_t *file_buf;
 static size_t file_buf_size;
@@ -110,6 +111,27 @@ static void print_device_lists(struct cras_client *client)
 	printf("Input:\n");
 	for (i = 0; i < num_devs; i++)
 		printf("  %zu %s\n", devs[i].idx, devs[i].name);
+}
+
+static void print_attached_client_list(struct cras_client *client)
+{
+	struct cras_attached_client_info clients[MAX_ATTACHED_CLIENTS];
+	size_t i;
+	int num_clients;
+
+	num_clients = cras_client_get_attached_clients(client,
+						       clients,
+						       MAX_ATTACHED_CLIENTS);
+	if (num_clients < 0)
+		return;
+	num_clients = min(num_clients, MAX_ATTACHED_CLIENTS);
+	printf("Attached clients:\n");
+	printf("ID\tpid\tuid\n");
+	for (i = 0; i < num_clients; i++)
+		printf("%zu\t%d\t%d\n",
+		       clients[i].id,
+		       clients[i].pid,
+		       clients[i].gid);
 }
 
 static int run_file_io_stream(struct cras_client *client,
@@ -242,6 +264,9 @@ static int run_file_io_stream(struct cras_client *client,
 			break;
 		case '@':
 			print_device_lists(client);
+			break;
+		case '#':
+			print_attached_client_list(client);
 			break;
 		case 'v':
 			printf("Volume: %zu%s\n"

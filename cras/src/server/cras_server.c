@@ -22,6 +22,7 @@
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
+#include "cras_server.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -44,6 +45,7 @@ struct attached_client {
 /* Local server data. */
 struct server_data {
 	struct attached_client *clients_head;
+	size_t num_clients;
 	size_t next_client_id;
 } server_instance;
 
@@ -53,6 +55,7 @@ static void remove_client(struct attached_client *client)
 {
 	close(client->fd);
 	DL_DELETE(server_instance.clients_head, client);
+	server_instance.num_clients--;
 	cras_rclient_destroy(client->client);
 	free(client);
 }
@@ -93,6 +96,37 @@ static void fill_client_info(struct attached_client *client)
 	if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED,
 		       &client->ucred, &ucred_length))
 		syslog(LOG_ERR, "Failed to get client socket info\n");
+}
+
+/* Sends the current list of clients to all other attached clients. */
+static int send_client_list_to_clients(struct server_data *serv)
+{
+	size_t msg_size;
+	struct cras_client_client_list *msg;
+	struct attached_client *c;
+	struct cras_attached_client_info *info;
+
+	msg_size = sizeof(*msg) +
+			sizeof(msg->client_info[0]) * serv->num_clients;
+	msg = malloc(msg_size);
+	if (msg == NULL)
+		return -ENOMEM;
+
+	msg->num_attached_clients = serv->num_clients;
+	msg->header.length = msg_size;
+	msg->header.id = CRAS_CLIENT_CLIENT_LIST_UPDATE;
+	info = msg->client_info;
+	DL_FOREACH(serv->clients_head, c) {
+		info->id = c->id;
+		info->pid = c->ucred.pid;
+		info->uid = c->ucred.uid;
+		info->gid = c->ucred.gid;
+		info++;
+	}
+
+	cras_server_send_to_all_clients(&msg->header);
+	free(msg);
+	return 0;
 }
 
 /* Handles requests from a client to attach to the server.  Create a local
@@ -145,8 +179,10 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	}
 
 	DL_APPEND(server_instance.clients_head, poll_client);
+	server_instance.num_clients++;
 	/* Send a current list of available inputs and outputs. */
 	cras_iodev_list_update_clients();
+	send_client_list_to_clients(&server_instance);
 }
 
 /*
@@ -241,7 +277,7 @@ bail:
 	return rc;
 }
 
-void cras_server_send_to_all_clients(struct cras_client_message *msg)
+void cras_server_send_to_all_clients(const struct cras_client_message *msg)
 {
 	struct attached_client *client;
 

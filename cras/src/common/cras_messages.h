@@ -39,6 +39,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_STREAM_REATTACH,
 	CRAS_CLIENT_IODEV_LIST,
 	CRAS_CLIENT_VOLUME_UPDATE,
+	CRAS_CLIENT_CLIENT_LIST_UPDATE,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -292,6 +293,14 @@ static inline void cras_fill_client_volume_status(
 	m->header.id = CRAS_CLIENT_VOLUME_UPDATE;
 	m->header.length = sizeof(*m);
 }
+
+/* Informs a client of the list of clients attached to the server.  Used only
+ * for getting information to log. */
+struct cras_client_client_list {
+	struct cras_client_message header;
+	size_t num_attached_clients;
+	struct cras_attached_client_info client_info[];
+};
 
 /*
  * Messages specific to passing audio between client and server
