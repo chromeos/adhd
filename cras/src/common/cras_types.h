@@ -31,6 +31,14 @@ struct cras_audio_format {
 	size_t num_channels;
 };
 
+/* Information about a client attached to the server. */
+struct cras_attached_client_info {
+	size_t id;
+	pid_t pid;
+	uid_t uid;
+	gid_t gid;
+};
+
 /* Actions for card add/remove/change. */
 enum cras_notify_device_action { /* Must match gavd action definitions.  */
 	CRAS_DEVICE_ACTION_ADD    = 0,

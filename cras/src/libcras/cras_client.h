@@ -115,6 +115,20 @@ int cras_client_get_input_devices(struct cras_client *client,
 				  struct cras_iodev_info *devs,
 				  size_t max_devs);
 
+/* Returns the current list of clients attached to the server.
+ * Args:
+ *    client - This client (from cras_client_create).
+ *    clients - Array that will be filled with a list of attached clients.
+ *    max_clients - Maximum number of clients to put in the array.
+ * Returns:
+ *    The number of attached clients.  This may be more that max_clients passed
+ *    in, this indicates that all of the clients wouldn't fit in the provided
+ *    array.
+ */
+int cras_client_get_attached_clients(struct cras_client *client,
+				     struct cras_attached_client_info *clients,
+				     size_t max_clients);
+
 /*
  * Stream handling.
  */
