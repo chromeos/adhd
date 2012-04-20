@@ -26,6 +26,7 @@ static size_t file_buf_size;
 static size_t file_buf_read_offset;
 static struct timespec last_latency;
 static int show_latency;
+static int dump_server_info;
 static int keep_looping = 1;
 static int full_frames;
 uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
@@ -102,15 +103,17 @@ static void print_device_lists(struct cras_client *client)
 	num_devs = cras_client_get_output_devices(client, devs, MAX_IODEVS);
 	if (num_devs < 0)
 		return;
-	printf("Output:\n");
+	printf("Output Devices:\n");
+	printf("\tID\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("  %zu %s\n", devs[i].idx, devs[i].name);
+		printf("\t%zu\t%s\n", devs[i].idx, devs[i].name);
 	num_devs = cras_client_get_input_devices(client, devs, MAX_IODEVS);
 	if (num_devs < 0)
 		return;
-	printf("Input:\n");
+	printf("Input Devices:\n");
+	printf("\tID\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("  %zu %s\n", devs[i].idx, devs[i].name);
+		printf("\t%zu\t%s\n", devs[i].idx, devs[i].name);
 }
 
 static void print_attached_client_list(struct cras_client *client)
@@ -126,12 +129,22 @@ static void print_attached_client_list(struct cras_client *client)
 		return;
 	num_clients = min(num_clients, MAX_ATTACHED_CLIENTS);
 	printf("Attached clients:\n");
-	printf("ID\tpid\tuid\n");
+	printf("\tID\tpid\tuid\n");
 	for (i = 0; i < num_clients; i++)
-		printf("%zu\t%d\t%d\n",
+		printf("\t%zu\t%d\t%d\n",
 		       clients[i].id,
 		       clients[i].pid,
 		       clients[i].gid);
+}
+
+static void print_system_volumes(struct cras_client *client)
+{
+	printf("System Volume (0-100): %zu %s\n"
+	       "Capture Gain: %lddB %s\n",
+	       cras_client_get_system_volume(client),
+	       cras_client_get_system_muted(client) ? "(Muted)" : "",
+	       cras_client_get_system_capture_gain(client),
+	       cras_client_get_system_capture_muted(client) ? "(Muted)" : "");
 }
 
 static int run_file_io_stream(struct cras_client *client,
@@ -269,14 +282,7 @@ static int run_file_io_stream(struct cras_client *client,
 			print_attached_client_list(client);
 			break;
 		case 'v':
-			printf("Volume: %zu%s\n"
-			       "Capture: %ld%s\n",
-			       cras_client_get_system_volume(client),
-			       cras_client_get_system_muted(client) ? "(Muted)"
-								    : "",
-			       cras_client_get_system_capture_gain(client),
-			       cras_client_get_system_capture_muted(client) ?
-						"(Muted)" : "");
+			print_system_volumes(client);
 			break;
 		case '0':
 		case '1':
@@ -352,6 +358,14 @@ static int run_playback(struct cras_client *client,
 	return 0;
 }
 
+static void print_server_info(struct cras_client *client)
+{
+	cras_client_run_thread(client);
+	print_system_volumes(client);
+	print_device_lists(client);
+	print_attached_client_list(client);
+}
+
 static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"write_full_frames",	no_argument, &full_frames, 1},
@@ -364,6 +378,7 @@ static struct option long_options[] = {
 	{"callback_threshold",	required_argument,	0, 't'},
 	{"min_cb_level",	required_argument,	0, 'm'},
 	{"buffer_frames",	required_argument,	0, 'b'},
+	{"dump_server_info",    no_argument, &dump_server_info, 1},
 	{0, 0, 0, 0}
 };
 
@@ -431,6 +446,9 @@ int main(int argc, char **argv)
 	err = cras_client_connect(client);
 	if (err)
 		return err;
+
+	if (dump_server_info)
+		print_server_info(client);
 
 	if (set_iodev)
 		cras_client_switch_iodev(client, stream_type, iodev_index);
