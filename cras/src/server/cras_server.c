@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#define _GNU_SOURCE /* Needed for Linux socket credential passing. */
+
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,10 +26,17 @@
 #include "cras_util.h"
 #include "utlist.h"
 
-/* Store a list of clients that are attached to the server.  */
+/* Store a list of clients that are attached to the server.
+ * Members:
+ *    id - Unique identifier for this client.
+ *    fd - socket file descriptor used to communicate with client.
+ *    ucred - Process, user, and group ID of the client.
+ *    client - rclient to handle messages from this client.
+ */
 struct attached_client {
 	size_t id;
 	int fd;
+	struct ucred ucred;
 	struct cras_rclient *client;
 	struct attached_client *next, *prev;
 };
@@ -75,6 +84,17 @@ read_error:
 	remove_client(client);
 }
 
+/* Discovers and fills in info about the client that can be obtained from the
+ * socket. The pid of the attaching client identifies it in logs. */
+static void fill_client_info(struct attached_client *client)
+{
+	socklen_t ucred_length = sizeof(client->ucred);
+
+	if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED,
+		       &client->ucred, &ucred_length))
+		syslog(LOG_ERR, "Failed to get client socket info\n");
+}
+
 /* Handles requests from a client to attach to the server.  Create a local
  * structure to track the client, assign it a unique id and let it attach */
 static void handle_new_connection(struct sockaddr_un *address, int fd)
@@ -114,6 +134,7 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 
 	poll_client->fd = connection_fd;
 	poll_client->next = NULL;
+	fill_client_info(poll_client);
 	poll_client->client = cras_rclient_create(connection_fd,
 						  poll_client->id);
 	if (poll_client->client == NULL) {
