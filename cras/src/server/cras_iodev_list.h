@@ -114,7 +114,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 /* Moves all streams of type to a new device.
  * Args:
  *    type - The stream type to move.
- *    index - The index of the otuput to move to.
+ *    index - The index of the output to move to.
  */
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
 
