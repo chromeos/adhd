@@ -99,6 +99,12 @@ static size_t sys_set_volume_limits_called;
 static size_t sys_set_capture_gain_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
 static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
+static size_t cras_alsa_jack_list_create_called;
+static size_t cras_alsa_jack_list_destroy_called;
+static jack_state_change_callback *cras_alsa_jack_list_create_cb;
+static void *cras_alsa_jack_list_create_cb_data;
+static size_t cras_iodev_move_stream_type_called;
+static size_t cras_iodev_move_stream_type_default_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -140,6 +146,10 @@ void ResetStubData() {
   sys_set_capture_gain_limits_called = 0;
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
+  cras_alsa_jack_list_create_called = 0;
+  cras_alsa_jack_list_destroy_called = 0;
+  cras_iodev_move_stream_type_called = 0;
+  cras_iodev_move_stream_type_default_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -165,6 +175,31 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
+TEST(AlsaIoInit, RouteBasedOnJackCallback) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+
+  ResetStubData();
+  aio = (struct alsa_io *)alsa_iodev_create(0, 0,
+                                            fake_mixer, 0,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
+  EXPECT_EQ(1, cras_alsa_jack_list_create_called);
+
+  cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
+  EXPECT_EQ(1, cras_iodev_move_stream_type_called);
+  cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
+  EXPECT_EQ(1, cras_iodev_move_stream_type_default_called);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+  EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
 }
 
 TEST(AlsaIoInit, InitializeCapture) {
@@ -966,6 +1001,17 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
   return 0;
 }
+int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
+{
+  cras_iodev_move_stream_type_called++;
+  return 0;
+}
+int cras_iodev_move_stream_type_default(enum CRAS_STREAM_TYPE type,
+					enum CRAS_STREAM_DIRECTION direction)
+{
+  cras_iodev_move_stream_type_default_called++;
+  return 0;
+}
 
 int cras_iodev_init(struct cras_iodev *iodev,
 		    enum CRAS_STREAM_DIRECTION direction,
@@ -1371,4 +1417,24 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
 	cras_alsa_mixer_get_maximum_capture_gain_called++;
 	return 0;
 }
+
+// From cras_alsa_jack
+struct cras_alsa_jack_list *cras_alsa_jack_list_create(
+		unsigned int card_index,
+		unsigned int device_index,
+		enum CRAS_STREAM_DIRECTION direction,
+		jack_state_change_callback *cb,
+		void *cb_data)
+{
+  cras_alsa_jack_list_create_called++;
+  cras_alsa_jack_list_create_cb = cb;
+  cras_alsa_jack_list_create_cb_data = cb_data;
+  return (struct cras_alsa_jack_list *)0xfee;
+}
+
+void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
+{
+  cras_alsa_jack_list_destroy_called++;
+}
+
 }

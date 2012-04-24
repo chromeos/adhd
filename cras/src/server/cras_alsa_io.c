@@ -15,6 +15,7 @@
 #include <time.h>
 
 #include "cras_alsa_helpers.h"
+#include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
@@ -53,6 +54,7 @@ struct alsa_output_node {
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * output_nodes - Alsa mixer outputs (Only used for output devices).
+ * jack_list - List of alsa jack controls for this device.
  * alsa_cb - Callback to fill or read samples (depends on direction).
  */
 struct alsa_io {
@@ -66,6 +68,7 @@ struct alsa_io {
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
 	struct alsa_output_node *active_output;
+	struct cras_alsa_jack_list *jack_list;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
 
@@ -862,6 +865,25 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	DL_APPEND(aio->output_nodes, output);
 }
 
+/* Callback that is called when a jack is plugged or unplugged. */
+static void jack_plug_event_callback(const struct cras_alsa_jack *jack,
+				    int plugged,
+				    void *arg)
+{
+	struct alsa_io *aio;
+
+	if (arg == NULL)
+		return;
+
+	aio = (struct alsa_io *)arg;
+	if (plugged)
+		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+					    aio->base.info.idx);
+	else
+		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
+						    aio->base.direction);
+}
+
 /*
  * Exported Interface.
  */
@@ -928,6 +950,17 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		cras_iodev_list_add_output(&aio->base, auto_route);
 	}
 
+	/* Find any jack controls for this device. */
+	/* TODO(dgreid) - handle non-zero devices once it is possible to
+	 * determine the device a jack is associated with. */
+	if (device_index == 0)
+		aio->jack_list = cras_alsa_jack_list_create(
+				card_index,
+				device_index,
+				direction,
+				jack_plug_event_callback,
+				aio);
+
 	return &aio->base;
 
 cleanup_iodev:
@@ -941,6 +974,7 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
 
+	cras_alsa_jack_list_destroy(aio->jack_list);
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		rc = cras_iodev_list_rm_input(iodev);
 	else {
