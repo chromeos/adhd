@@ -118,6 +118,17 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
  */
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
 
+/* Moves all streams of type to the default device.  The default device is the
+ * device last attached to the system.
+ * Args:
+ *    type - The stream type to move.
+ *    direction - Playback or capture.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int cras_iodev_move_stream_type_default(enum CRAS_STREAM_TYPE type,
+					enum CRAS_STREAM_DIRECTION direction);
+
 /* For each stream playing on dev, detach and tell client to reconfigure.
  * Args:
  *    iodev - the iodev you want the format for.

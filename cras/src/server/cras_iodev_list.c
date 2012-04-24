@@ -378,6 +378,30 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 	return 0;
 }
 
+int cras_iodev_move_stream_type_default(enum CRAS_STREAM_TYPE type,
+					enum CRAS_STREAM_DIRECTION direction)
+{
+	struct iodev_list *list;
+	struct cras_iodev *curr_default;
+
+	if (direction == CRAS_STREAM_OUTPUT) {
+		list = &outputs;
+		curr_default = default_output;
+	} else {
+		assert(direction == CRAS_STREAM_INPUT);
+		list = &outputs;
+		list = &inputs;
+		curr_default = default_input;
+	}
+
+	/* If there is no iodev to switch to, or if we are already using the
+	 * default, then there is nothing else to do. */
+	if (list->iodevs == NULL || list->iodevs == curr_default)
+		return 0;
+	/* There is an iodev and it isn't the default, switch to it. */
+	return cras_iodev_move_stream_type(type, list->iodevs->info.idx);
+}
+
 void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 {
 	struct cras_io_stream *iostream, *tmp;

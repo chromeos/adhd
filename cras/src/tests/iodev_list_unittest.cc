@@ -280,7 +280,29 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   ret_dev = cras_get_iodev_for_stream_type(s1.stream_type, s1.direction);
   EXPECT_EQ(&d2_, ret_dev);
 
+  // Attaching a stream.
+  add_stream_2_called_ = rm_stream_2_called_ = 0;
+  rc = cras_iodev_attach_stream(&d2_, &s1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, add_stream_2_called_);
+  EXPECT_EQ(&d2_, s1.iodev);
+  EXPECT_NE((void *)NULL, d2_.streams);
+  if (d2_.streams != NULL)
+    EXPECT_EQ(&s1, d2_.streams->stream);
+
+  // Test switching back to the original default stream.
+  rc = cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
+                                           s1.direction);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, rm_stream_2_called_);
+  EXPECT_EQ(NULL, d1_.streams);
+
+  // Test that streams now go back tot default.
+  ret_dev = cras_get_iodev_for_stream_type(s1.stream_type, s1.direction);
+  EXPECT_EQ(&d1_, ret_dev);
+
   // Test detaching non-existent stream.
+  add_stream_2_called_ = rm_stream_2_called_ = 0;
   rc = cras_iodev_detach_stream(&d2_, &s2);
   EXPECT_EQ(1, rm_stream_2_called_);
   EXPECT_NE(0, rc);
