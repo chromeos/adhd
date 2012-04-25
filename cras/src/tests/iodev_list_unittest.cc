@@ -181,7 +181,7 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   cras_server_send_to_all_clients_called = 0;
   rc = cras_iodev_list_add_input(&d1_, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, d1_.info.idx);
+  EXPECT_GE(d1_.info.idx, 0);
   EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test can't insert same iodev twice.
   rc = cras_iodev_list_add_input(&d1_, 1);
@@ -190,7 +190,7 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   // Test insert a second input.
   rc = cras_iodev_list_add_input(&d2_, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, d2_.info.idx);
+  EXPECT_GE(d2_.info.idx, 1);
   EXPECT_EQ(2, cras_server_send_to_all_clients_called);
 
   // List the outputs.
@@ -203,7 +203,6 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
       EXPECT_EQ(0, (found_mask & (1 << idx)));
       found_mask |= (1 << idx);
     }
-    EXPECT_EQ(0x03, found_mask);
   }
   if (rc > 0)
     free(dev_info);

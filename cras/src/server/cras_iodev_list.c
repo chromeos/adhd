@@ -15,7 +15,6 @@
 /* Linked list of available devices. */
 struct iodev_list {
 	struct cras_iodev *iodevs;
-	size_t next_idx;
 	size_t size;
 };
 
@@ -25,6 +24,8 @@ static struct iodev_list inputs;
 /* Keep a default input and output. */
 static struct cras_iodev *default_output;
 static struct cras_iodev *default_input;
+/* Keep a constantly increasing index for iodevs. */
+static size_t next_iodev_idx;
 
 /* Finds a device that is currently playing a stream of "type".  If none is
  * found, then return NULL. */
@@ -63,7 +64,7 @@ static int add_dev_to_list(struct iodev_list *list,
 	dev->prev = dev->next = NULL;
 
 	/* Move to the next index and make sure it isn't taken. */
-	new_idx = list->next_idx;
+	new_idx = next_iodev_idx;
 	while (1) {
 		DL_SEARCH_SCALAR(list->iodevs, tmp, info.idx, new_idx);
 		if (tmp == NULL)
@@ -71,7 +72,7 @@ static int add_dev_to_list(struct iodev_list *list,
 		new_idx++;
 	}
 	dev->info.idx = new_idx;
-	list->next_idx = new_idx + 1;
+	next_iodev_idx = new_idx + 1;
 	list->size++;
 
 	return 0;
@@ -344,29 +345,26 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 {
 	struct cras_iodev *curr_dev, *new_dev;
-	struct iodev_list *list;
 	struct cras_io_stream *iostream, *tmp;
 
-	/* Find the stream type's current io device. */
-	list = &outputs;
-	curr_dev = get_curr_iodev_for_stream_type(list, type);
-	if (curr_dev == NULL) {
-		list = &inputs;
-		curr_dev = get_curr_iodev_for_stream_type(list, type);
+	/* Find new dev */
+	DL_SEARCH_SCALAR(outputs.iodevs, new_dev, info.idx, index);
+	if (new_dev == NULL) {
+		DL_SEARCH_SCALAR(inputs.iodevs, new_dev, info.idx, index);
+		if (new_dev == NULL)
+			return -EINVAL;
+	}
+
+	/* Set default to the newly requested device. */
+	if (new_dev->direction == CRAS_STREAM_OUTPUT) {
+		curr_dev = default_output;
+		default_output = new_dev;
+	} else {
+		curr_dev = default_input;
+		default_input = new_dev;
 	}
 	if (curr_dev == NULL)
 		return 0; /* No streams to move. */
-
-	/* Find new dev */
-	DL_SEARCH_SCALAR(list->iodevs, new_dev, info.idx, index);
-	if (!new_dev)
-		return -EINVAL;
-
-	/* Set default to the newly requested device. */
-	if (list == &outputs)
-		default_output = new_dev;
-	else
-		default_input = new_dev;
 
 	/* For each stream on curr, detach and tell client to reconfig. */
 	DL_FOREACH_SAFE(curr_dev->streams, iostream, tmp) {
