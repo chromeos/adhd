@@ -876,12 +876,17 @@ static void jack_plug_event_callback(const struct cras_alsa_jack *jack,
 		return;
 
 	aio = (struct alsa_io *)arg;
-	if (plugged)
+	if (plugged) {
+		syslog(LOG_DEBUG, "Move streams to %zu due to plug event.",
+		       aio->base.info.idx);
 		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
 					    aio->base.info.idx);
-	else
+	} else {
+		syslog(LOG_DEBUG, "Move streams from %zu due to unplug event.",
+		       aio->base.info.idx);
 		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
 						    aio->base.direction);
+	}
 }
 
 /*
