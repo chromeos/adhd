@@ -523,8 +523,10 @@ static int config_format_converter(struct client_stream *stream,
 			&stream->config->format,
 			fmt,
 			stream->config->buffer_frames);
-		if (stream->conv == NULL)
+		if (stream->conv == NULL) {
+			syslog(LOG_ERR, "Failed to create format converter");
 			return -ENOMEM;
+		}
 	}
 
 	return 0;
