@@ -27,6 +27,17 @@ struct cras_fmt_conv {
 	uint8_t *input_buf;
 };
 
+/* Add and clip two s16 samples. */
+static int16_t s16_add_and_clip(int16_t a, int16_t b)
+{
+	int32_t sum;
+
+	sum = a + b;
+	sum = max(sum, -0x8000);
+	sum = min(sum, 0x7fff);
+	return (int16_t)sum;
+}
+
 /*
  * Convert between different channel numbers.
  */
@@ -41,6 +52,32 @@ static size_t s16_mono_to_stereo(const int16_t *in, size_t in_frames,
 	for (i = 0; i < in_frames; i++) {
 		out[2 * i] = in[i];
 		out[2 * i + 1] = in[i];
+	}
+	return in_frames;
+}
+
+/* Converts S16 5.1 to S16 stereo. The out buffer can have room for just
+ * stereo samples. */
+static size_t s16_51_to_stereo(const int16_t *in, size_t in_frames,
+				 int16_t *out)
+{
+	static const unsigned int left_idx = 0;
+	static const unsigned int right_idx = 1;
+	/* static const unsigned int left_surround_idx = 2; */
+	/* static const unsigned int right_surround_idx = 3; */
+	static const unsigned int center_idx = 4;
+	/* static const unsigned int lfe_idx = 5; */
+	size_t i;
+
+	for (i = 0; i < in_frames; i++) {
+		unsigned int half_center;
+
+		/* TODO(dgreid) - Dont' drop surrounds and LFE! */
+		half_center = in[6 * i + center_idx] / 2;
+		out[2 * i + left_idx] = s16_add_and_clip(in[6 * i + left_idx],
+							 half_center);
+		out[2 * i + right_idx] = s16_add_and_clip(in[6 * i + right_idx],
+							 half_center);
 	}
 	return in_frames;
 }
@@ -68,6 +105,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	if (in->num_channels != out->num_channels) {
 		if (in->num_channels == 1 && out->num_channels == 2) {
 			channel_converter = s16_mono_to_stereo;
+		} else if (in->num_channels == 6 && out->num_channels == 2) {
+			channel_converter = s16_51_to_stereo;
 		} else {
 			syslog(LOG_ERR, "Invalid channel conversion %zu to %zu",
 			       in->num_channels, out->num_channels);
