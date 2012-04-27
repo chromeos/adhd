@@ -2,14 +2,14 @@ state.Intel {
 	control.1 {
 		iface MIXER
 		name 'Headphone Playback Volume'
-		value.0 60
-		value.1 60
+		value.0 64
+		value.1 64
 		comment {
 			access 'read write'
 			type INTEGER
 			count 2
-			range '0 - 60'
-			dbmin -6000
+			range '0 - 64'
+			dbmin -6400
 			dbmax 0
 			dbvalue.0 0
 			dbvalue.1 0
@@ -138,15 +138,15 @@ state.Intel {
 	control.11 {
 		iface MIXER
 		name 'Master Playback Volume'
-		value 46
+		value 58
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
-			range '0 - 60'
-			dbmin -6000
+			range '0 - 64'
+			dbmin -6400
 			dbmax 0
-			dbvalue.0 -1400
+			dbvalue.0 -600
 		}
 	}
 	control.12 {
@@ -157,23 +157,6 @@ state.Intel {
 			access 'read write'
 			type BOOLEAN
 			count 1
-		}
-	}
-	control.13 {
-		iface MIXER
-		name 'PCM Playback Volume'
-		value.0 251
-		value.1 251
-		comment {
-			access 'read write user'
-			type INTEGER
-			count 2
-			range '0 - 255'
-			tlv '0000000100000008ffffec1400000014'
-			dbmin -5100
-			dbmax 0
-			dbvalue.0 -80
-			dbvalue.1 -80
 		}
 	}
 }
