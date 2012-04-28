@@ -14,7 +14,7 @@
  *  stream_playing - Indicates if the stream is playing/capturing.
  *  hw_ptr - Current read or write position.
  *  sample_bits - Number of bits in one sample.
- *  channels - Number of channels (Currently only supports two).
+ *  channels - Number of channels.
  *  stream_id - CRAS ID of the playing/capturing stream.
  *  direction - input or output.
  *  areas - ALSA areas used to read from/write to.
@@ -212,7 +212,7 @@ static int snd_pcm_cras_start(snd_pcm_ioplug_t *io)
 	int rc;
 
 	audio_format = cras_audio_format_create(io->format, io->rate,
-					      pcm_cras->channels);
+						io->channels);
 	if (audio_format == NULL)
 		return -ENOMEM;
 
@@ -295,7 +295,7 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 		return rc;
 	rc = snd_pcm_ioplug_set_param_minmax(&pcm_cras->io,
 					     SND_PCM_IOPLUG_HW_CHANNELS,
-					     pcm_cras->channels,
+					     1,
 					     pcm_cras->channels);
 	if (rc < 0)
 		return rc;
