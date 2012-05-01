@@ -15,6 +15,7 @@
 #include <time.h>
 
 #include "cras_alsa_helpers.h"
+#include "cras_alsa_io.h"
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
 #include "cras_config.h"
@@ -38,7 +39,10 @@
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 
 /* Holds an output for this device.  An output is a control that can be switched
- * on and off such as headphones or speakers. */
+ * on and off such as headphones or speakers.
+ * Members:
+ *    mixer_output - From cras_alsa_mixer.
+ */
 struct alsa_output_node {
 	struct cras_alsa_mixer_output *mixer_output;
 	struct alsa_output_node *prev, *next;
@@ -54,6 +58,8 @@ struct alsa_output_node {
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * output_nodes - Alsa mixer outputs (Only used for output devices).
+ * active_output - The current node being used for playback.
+ * default_output - The default node to use for playback.
  * jack_list - List of alsa jack controls for this device.
  * alsa_cb - Callback to fill or read samples (depends on direction).
  */
@@ -68,6 +74,7 @@ struct alsa_io {
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
 	struct alsa_output_node *active_output;
+	struct alsa_output_node *default_output;
 	struct cras_alsa_jack_list *jack_list;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
@@ -867,9 +874,34 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 		syslog(LOG_ERR, "Out of memory when listing outputs.");
 		return;
 	}
-
 	output->mixer_output = cras_output;
+
+	/* Set this to the default device if it is the first found, or if it is
+	 * the "Speaker" device. */
+	if (aio->default_output == NULL ||
+	    (output->mixer_output != NULL &&
+	     strcmp(cras_alsa_mixer_get_output_name(output->mixer_output),
+						    "Speaker") == 0))
+		aio->default_output = output;
+
 	DL_APPEND(aio->output_nodes, output);
+}
+
+/* Finds the output node associated with the jack. Returns NULL if not found. */
+static struct alsa_output_node *get_output_node_from_jack(
+		struct alsa_io *aio, const struct cras_alsa_jack *jack)
+{
+	struct cras_alsa_mixer_output *mixer_output;
+	struct alsa_output_node *node = NULL;
+
+	/* If this jack maps to an output node then set that output node as
+	 * active. */
+	mixer_output = cras_alsa_jack_get_mixer_output(jack);
+	if (mixer_output == NULL)
+		return NULL;
+
+	DL_SEARCH_SCALAR(aio->output_nodes, node, mixer_output, mixer_output);
+	return node;
 }
 
 /* Callback that is called when a jack is plugged or unplugged. */
@@ -878,19 +910,30 @@ static void jack_plug_event_callback(const struct cras_alsa_jack *jack,
 				    void *arg)
 {
 	struct alsa_io *aio;
+	struct alsa_output_node *node;
 
 	if (arg == NULL)
 		return;
 
 	aio = (struct alsa_io *)arg;
+	node = get_output_node_from_jack(aio, jack);
+
 	if (plugged) {
 		syslog(LOG_DEBUG, "Move streams to %zu due to plug event.",
 		       aio->base.info.idx);
+		if (node != NULL)
+			alsa_iodev_set_active_output(&aio->base,
+						     node->mixer_output);
 		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
 					    aio->base.info.idx);
 	} else {
 		syslog(LOG_DEBUG, "Move streams from %zu due to unplug event.",
 		       aio->base.info.idx);
+		if (aio->default_output != NULL &&
+		    aio->default_output->mixer_output != NULL)
+			alsa_iodev_set_active_output(
+					&aio->base,
+					aio->default_output->mixer_output);
 		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
 						    aio->base.direction);
 	}
@@ -946,19 +989,24 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	aio->mixer = mixer;
-	cras_alsa_mixer_list_outputs(mixer, device_index, new_output, aio);
 
-	/* If we don't have separate outputs just make a default one. */
-	if (aio->output_nodes == NULL) {
-		new_output(NULL, aio);
-		aio->active_output = aio->output_nodes;
-	}
-
-	/* Finally add it to the approriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base, auto_route);
 	else {
 		assert(direction == CRAS_STREAM_OUTPUT);
+
+		/* Check for outputs, sudh as Headphone and Speaker. */
+		cras_alsa_mixer_list_outputs(mixer, device_index,
+					     new_output, aio);
+		/* If we don't have separate outputs just make a default one. */
+		if (aio->output_nodes == NULL) {
+			new_output(NULL, aio);
+			aio->default_output = aio->output_nodes;
+		}
+		alsa_iodev_set_active_output(&aio->base,
+					     aio->default_output->mixer_output);
+
+		/* Add to the output list. */
 		cras_iodev_list_add_output(&aio->base, auto_route);
 	}
 

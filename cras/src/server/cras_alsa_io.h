@@ -9,6 +9,7 @@
 #include "cras_types.h"
 
 struct cras_alsa_mixer;
+struct cras_alsa_mixer_output;
 
 /* Initializes an alsa iodev.
  * Args:
@@ -27,5 +28,14 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 /* Destroys an alsa_iodev created with alsa_iodev_create. */
 void alsa_iodev_destroy(struct cras_iodev *iodev);
+
+/* Sets the active output of an alsa mixer.  Used to switch form Speaker to
+ * Headphones or vice-versa.
+ * Args:
+ *    iodev - An iodev created with alsa_iodev_create.
+ *    active - The output to activate.
+ */
+int alsa_iodev_set_active_output(struct cras_iodev *iodev,
+				 struct cras_alsa_mixer_output *active);
 
 #endif /* CRAS_ALSA_IO_H_ */

@@ -441,6 +441,12 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 			cb(&output->properties, cb_arg);
 }
 
+const char *cras_alsa_mixer_get_output_name(
+		const struct cras_alsa_mixer_output *output)
+{
+	return snd_mixer_selem_get_name(output->elem);
+}
+
 struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 		const struct cras_alsa_mixer *cras_mixer,
 		size_t device_index,

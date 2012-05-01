@@ -1254,6 +1254,12 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
   return *count;
 }
 
+const char *cras_alsa_mixer_get_output_name(
+		const struct cras_alsa_mixer_output *output)
+{
+  return "";
+}
+
 //  From system_state.
 size_t cras_system_get_volume()
 {
@@ -1436,6 +1442,12 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 {
   cras_alsa_jack_list_destroy_called++;
+}
+
+struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
+    const struct cras_alsa_jack *jack)
+{
+  return NULL;
 }
 
 }

@@ -117,6 +117,10 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 				  cras_alsa_mixer_output_callback cb,
 				  void *cb_arg);
 
+/* Gets the name of a given output. */
+const char *cras_alsa_mixer_get_output_name(
+		const struct cras_alsa_mixer_output *output);
+
 /* Finds the output that matches the given string.  Used to match Jacks to Mixer
  * elements.
  * Args:
