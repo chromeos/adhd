@@ -319,3 +319,14 @@ struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
 		return NULL;
 	return jack->mixer_output;
 }
+
+void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list)
+{
+	struct cras_alsa_jack *jack;
+
+	if (jack_list == NULL)
+		return;
+
+	DL_FOREACH(jack_list->jacks, jack)
+		hctl_jack_cb(jack->elem, 0);
+}

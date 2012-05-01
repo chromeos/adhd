@@ -171,6 +171,10 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   return jack_list;
 }
 
+TEST(AlsaJacks, ReportNull) {
+  cras_alsa_jack_list_report(NULL);
+}
+
 TEST(AlsaJacks, CreateNoJacks) {
   static std::string elem_names[] = {
     "Mic Jack",
@@ -221,6 +225,11 @@ TEST(AlsaJacks, CreateOneHpJack) {
   EXPECT_EQ(1, fake_jack_cb_plugged);
   EXPECT_EQ(1, fake_jack_cb_called);
   EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
+
+  fake_jack_cb_called = 0;
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_rm_select_fd_called);

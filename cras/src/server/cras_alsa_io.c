@@ -1021,6 +1021,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				direction,
 				jack_plug_event_callback,
 				aio);
+	/* Get an initial read of the jacks for this device. */
+	cras_alsa_jack_list_report(aio->jack_list);
 
 	return &aio->base;
 

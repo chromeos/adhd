@@ -1444,6 +1444,10 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
   cras_alsa_jack_list_destroy_called++;
 }
 
+void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list)
+{
+}
+
 struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
     const struct cras_alsa_jack *jack)
 {
