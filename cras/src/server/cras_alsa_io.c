@@ -969,6 +969,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->jack_list = cras_alsa_jack_list_create(
 				card_index,
 				device_index,
+				mixer,
 				direction,
 				jack_plug_event_callback,
 				aio);

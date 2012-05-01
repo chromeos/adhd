@@ -1422,6 +1422,7 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		unsigned int device_index,
+		struct cras_alsa_mixer *mixer,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
 		void *cb_data)

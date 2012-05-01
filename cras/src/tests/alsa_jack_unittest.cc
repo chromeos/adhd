@@ -48,6 +48,8 @@ static size_t snd_ctl_elem_value_get_boolean_called;
 static int snd_ctl_elem_value_get_boolean_return_value;
 static void *fake_jack_cb_arg;
 static size_t snd_hctl_nonblock_called;
+static struct cras_alsa_mixer *fake_mixer;
+static size_t cras_alsa_mixer_get_output_matching_name_called;
 
 static void ResetStubData() {
   snd_hctl_open_called = 0;
@@ -75,6 +77,8 @@ static void ResetStubData() {
   fake_jack_cb_called = 0;
   fake_jack_cb_arg = reinterpret_cast<void *>(0x987);
   snd_hctl_nonblock_called = 0;
+  fake_mixer = reinterpret_cast<struct cras_alsa_mixer *>(0x789);
+  cras_alsa_mixer_get_output_matching_name_called = 0;
 }
 
 static void fake_jack_cb(const struct cras_alsa_jack *jack,
@@ -91,6 +95,7 @@ TEST(AlsaJacks, CreateFailOpen) {
   snd_hctl_open_return_value = -1;
   snd_hctl_open_pointer_val = NULL;
   EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
+                                             fake_mixer,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
@@ -101,6 +106,7 @@ TEST(AlsaJacks, CreateFailLoad) {
   ResetStubData();
   snd_hctl_load_return_value = -1;
   EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
+                                             fake_mixer,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
@@ -115,6 +121,7 @@ TEST(AlsaJacks, CreateNoElements) {
   ResetStubData();
   snd_hctl_first_elem_return_val = NULL;
   jack_list = cras_alsa_jack_list_create(0, 0,
+                                         fake_mixer,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
@@ -142,6 +149,7 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
         reinterpret_cast<snd_hctl_elem_t *>(&elems[i]));
 
   jack_list = cras_alsa_jack_list_create(0, 0,
+                                         fake_mixer,
                                          direction,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
@@ -153,6 +161,8 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   EXPECT_EQ(nelems, snd_hctl_elem_next_called);
   EXPECT_EQ(nelems, snd_hctl_elem_get_name_called);
   EXPECT_EQ(njacks, snd_hctl_elem_set_callback_called);
+  if (direction == CRAS_STREAM_OUTPUT)
+    EXPECT_EQ(njacks, cras_alsa_mixer_get_output_matching_name_called);
 
   return jack_list;
 }
@@ -326,6 +336,16 @@ int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj,
                                    unsigned int idx) {
   snd_ctl_elem_value_get_boolean_called++;
   return snd_ctl_elem_value_get_boolean_return_value;
+}
+
+// From cras_alsa_mixer
+struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
+    const struct cras_alsa_mixer *cras_mixer,
+    size_t device_index,
+    const char * const name)
+{
+  cras_alsa_mixer_get_output_matching_name_called++;
+  return NULL;
 }
 
 } /* extern "C" */

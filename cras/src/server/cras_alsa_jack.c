@@ -7,6 +7,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_jack.h"
+#include "cras_alsa_mixer.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -21,15 +22,20 @@ struct jack_poll_fd {
 /* Represents a single alsa Jack, e.g. "Headphone Jack" or "Mic Jack".
  *    elem - alsa hcontrol element for this jack.
  *    jack_list - list of jacks this belongs to.
+ *    mixer_output - mixer output control used to control audio to this jack.
+ *        This will be null for input jacks.
  */
 struct cras_alsa_jack {
 	snd_hctl_elem_t *elem;
 	struct cras_alsa_jack_list *jack_list;
+	struct cras_alsa_mixer_output *mixer_output;
 	struct cras_alsa_jack *prev, *next;
 };
 
 /* Contains all Jacks for a given device.
  *    hctl - alsa hcontrol for this device.
+ *    mixer - cras mixer for the card providing this device.
+ *    device_index - Index ALSA uses to refer to the device.  The Y in "hw:X,Y".
  *    registered_fds - list of fds registered with system, to be removed upon
  *        destruction.
  *    change_callback - function to call when the state of a jack changes.
@@ -38,6 +44,8 @@ struct cras_alsa_jack {
  */
 struct cras_alsa_jack_list {
 	snd_hctl_t *hctl;
+	struct cras_alsa_mixer *mixer;
+	size_t device_index;
 	struct jack_poll_fd *registered_fds;
 	jack_state_change_callback *change_callback;
 	void *callback_data;
@@ -230,6 +238,13 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 		syslog(LOG_DEBUG, "Found Jack: %s for %s", name, device_name);
 		snd_hctl_elem_set_callback(elem, hctl_jack_cb);
 		snd_hctl_elem_set_callback_private(elem, jack);
+
+		if (direction == CRAS_STREAM_OUTPUT)
+			jack->mixer_output =
+				cras_alsa_mixer_get_output_matching_name(
+					jack_list->mixer,
+					jack_list->device_index,
+					name);
 	}
 
 	/* If we have found jacks, have the poll fds passed to select in the
@@ -250,6 +265,7 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		unsigned int device_index,
+		struct cras_alsa_mixer *mixer,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
 		void *cb_data)
@@ -267,6 +283,8 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 
 	jack_list->change_callback = cb;
 	jack_list->callback_data = cb_data;
+	jack_list->mixer = mixer;
+	jack_list->device_index = device_index;
 
 	snprintf(device_name, sizeof(device_name), "hw:%d", card_index);
 

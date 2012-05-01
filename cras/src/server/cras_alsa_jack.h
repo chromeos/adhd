@@ -13,6 +13,7 @@
 
 struct cras_alsa_jack;
 struct cras_alsa_jack_list;
+struct cras_alsa_mixer;
 
 /* Callback type for users of jack_list to define, it will be called when the
  * jack state changes.
@@ -30,6 +31,9 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
  * Args:
  *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
  *    device_index - Index ALSA uses to refer to the device.  The Y in "hw:X".
+ *    mixer - The mixer associated with this card, used to find controls that
+ *      correspond to jacks.  For instance "Headphone switch" for "Headphone
+ *      Jack".
  *    direction - Input or output, look for mic or headphone jacks.
  *    cb - Function to call when a jack state changes.
  *    cb_data - Passed to the callback when called.
@@ -39,6 +43,7 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		unsigned int device_index,
+		struct cras_alsa_mixer *mixer,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
 		void *cb_data);
