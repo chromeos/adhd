@@ -311,3 +311,11 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 		snd_hctl_close(jack_list->hctl);
 	free(jack_list);
 }
+
+struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
+		const struct cras_alsa_jack *jack)
+{
+	if (jack == NULL)
+		return NULL;
+	return jack->mixer_output;
+}

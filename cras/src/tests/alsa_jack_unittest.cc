@@ -50,6 +50,8 @@ static void *fake_jack_cb_arg;
 static size_t snd_hctl_nonblock_called;
 static struct cras_alsa_mixer *fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
+static struct cras_alsa_mixer_output *
+    cras_alsa_mixer_get_output_matching_name_return_value;
 
 static void ResetStubData() {
   snd_hctl_open_called = 0;
@@ -79,6 +81,8 @@ static void ResetStubData() {
   snd_hctl_nonblock_called = 0;
   fake_mixer = reinterpret_cast<struct cras_alsa_mixer *>(0x789);
   cras_alsa_mixer_get_output_matching_name_called = 0;
+  cras_alsa_mixer_get_output_matching_name_return_value =
+      reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
 }
 
 static void fake_jack_cb(const struct cras_alsa_jack *jack,
@@ -345,7 +349,7 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
     const char * const name)
 {
   cras_alsa_mixer_get_output_matching_name_called++;
-  return NULL;
+  return cras_alsa_mixer_get_output_matching_name_return_value;
 }
 
 } /* extern "C" */

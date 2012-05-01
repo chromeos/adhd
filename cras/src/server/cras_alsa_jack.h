@@ -54,4 +54,13 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
  */
 void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list);
 
+/* Gets the mixer output associated with the given jack.
+ * Args:
+ *    jack - The jack to query for a mixer output.
+ * Returns:
+ *    A pointer to the mixer output if it exisits, otherwise NULL.
+ */
+struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
+		const struct cras_alsa_jack *jack);
+
 #endif /* CRAS_ALSA_JACK_H_ */
