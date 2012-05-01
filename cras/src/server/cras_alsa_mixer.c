@@ -441,6 +441,29 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 			cb(&output->properties, cb_arg);
 }
 
+struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
+		const struct cras_alsa_mixer *cras_mixer,
+		size_t device_index,
+		const char * const name)
+{
+	struct mixer_output_control *output;
+
+	assert(cras_mixer);
+	DL_FOREACH(cras_mixer->output_controls, output) {
+		const char *elem_name;
+
+		if (output->properties.device_index != device_index)
+			continue;
+
+		elem_name = snd_mixer_selem_get_name(output->properties.elem);
+		if (elem_name == NULL)
+			continue;
+		if (strncmp(elem_name, name, strlen(elem_name)) == 0)
+			return &output->properties;
+	}
+	return NULL;
+}
+
 int cras_alsa_mixer_set_output_active_state(
 		struct cras_alsa_mixer_output *output,
 		int active)

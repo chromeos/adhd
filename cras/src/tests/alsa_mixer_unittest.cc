@@ -602,6 +602,35 @@ TEST_F(AlsaMixerOutputs, CheckTwoOutputsForDeviceZero) {
   EXPECT_EQ(2, output_callback_called_);
 }
 
+TEST_F(AlsaMixerOutputs, CheckFindOutputByNameNoMatch) {
+  struct cras_alsa_mixer_output *out;
+
+  snd_mixer_selem_get_name_called = 0;
+  out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
+                                                 0,  // device_index
+                                                 "Headphone Jack");
+  EXPECT_EQ(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
+  EXPECT_EQ(2, snd_mixer_selem_get_name_called);
+}
+
+TEST_F(AlsaMixerOutputs, CheckFindOutputByName) {
+  struct cras_alsa_mixer_output *out;
+  const char *element_names[] = {
+    "Speaker",
+    "Headphone",
+  };
+
+  snd_mixer_selem_get_name_called = 0;
+  snd_mixer_selem_get_name_return_values = element_names;
+  snd_mixer_selem_get_name_return_values_index = 0;
+  snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
+                                                 0,  // device_index
+                                                 "Headphone Jack");
+  EXPECT_NE(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
+  EXPECT_EQ(2, snd_mixer_selem_get_name_called);
+}
+
 TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
   int rc;
 

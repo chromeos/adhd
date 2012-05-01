@@ -117,6 +117,20 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 				  cras_alsa_mixer_output_callback cb,
 				  void *cb_arg);
 
+/* Finds the output that matches the given string.  Used to match Jacks to Mixer
+ * elements.
+ * Args:
+ *    cras_mixer - Mixer to search for a control.
+ *    device_index - Y in hw:X,Y.
+ *    name - The name to match against the controls.
+ * Returns:
+ *    A pointer to the output with a mixer control that matches "name".
+ */
+struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
+		const struct cras_alsa_mixer *cras_mixer,
+		size_t device_index,
+		const char *name);
+
 /* Sets the given output active or inactive. */
 int cras_alsa_mixer_set_output_active_state(
 		struct cras_alsa_mixer_output *output,
