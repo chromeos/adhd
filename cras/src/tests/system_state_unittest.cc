@@ -36,6 +36,10 @@ void *capture_mute_changed_arg_value;
 static struct cras_alsa_card* kFakeAlsaCard;
 size_t cras_alsa_card_create_called;
 size_t cras_alsa_card_destroy_called;
+static size_t add_stub_called;
+static size_t rm_stub_called;
+static size_t callback_stub_called;
+static void *select_data_value;
 
 static void ResetStubData() {
   volume_changed_called = 0;
@@ -57,6 +61,9 @@ static void ResetStubData() {
   cras_alsa_card_create_called = 0;
   cras_alsa_card_destroy_called = 0;
   kFakeAlsaCard = reinterpret_cast<struct cras_alsa_card*>(0x33);
+  add_stub_called = 0;
+  rm_stub_called = 0;
+  callback_stub_called = 0;
 }
 
 static void volume_changed(void *arg) {
@@ -109,6 +116,22 @@ static void capture_mute_changed(void *arg) {
 
 static void capture_mute_changed_2(void *arg) {
   capture_mute_changed_2_called++;
+}
+
+static int add_stub(int fd, void (*cb)(void *data),
+                    void *callback_data, void *select_data) {
+  add_stub_called++;
+  select_data_value = select_data;
+  return 0;
+}
+
+static void rm_stub(int fd, void *select_data) {
+  rm_stub_called++;
+  select_data_value = select_data;
+}
+
+static void callback_stub(void *data) {
+  callback_stub_called++;
 }
 
 TEST(SystemStateSuite, DefaultVolume) {
@@ -503,6 +526,35 @@ TEST(SystemStateSuite, AddCard) {
   // Removing card should destroy it.
   cras_system_remove_alsa_card(0);
   EXPECT_EQ(1, cras_alsa_card_destroy_called);
+}
+
+TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
+  void *stub_data = reinterpret_cast<void *>(44);
+  void *select_data = reinterpret_cast<void *>(33);
+  int rc;
+
+  ResetStubData();
+  cras_system_state_init();
+  rc = cras_system_add_select_fd(7, callback_stub, stub_data);
+  EXPECT_NE(0, rc);
+  EXPECT_EQ(0, add_stub_called);
+  EXPECT_EQ(0, rm_stub_called);
+  rc = cras_system_set_select_handler(add_stub, rm_stub, select_data);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, add_stub_called);
+  EXPECT_EQ(0, rm_stub_called);
+  rc = cras_system_set_select_handler(add_stub, rm_stub, select_data);
+  EXPECT_EQ(-EEXIST, rc);
+  EXPECT_EQ(0, add_stub_called);
+  EXPECT_EQ(0, rm_stub_called);
+  rc = cras_system_add_select_fd(7, callback_stub, stub_data);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, add_stub_called);
+  EXPECT_EQ(select_data, select_data_value);
+  cras_system_rm_select_fd(7);
+  EXPECT_EQ(1, rm_stub_called);
+  EXPECT_EQ(0, callback_stub_called);
+  EXPECT_EQ(select_data, select_data_value);
 }
 
 extern "C" {

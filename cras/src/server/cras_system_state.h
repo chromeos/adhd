@@ -178,4 +178,43 @@ int cras_system_add_alsa_card(size_t alsa_card_index);
  */
 int cras_system_remove_alsa_card(size_t alsa_card_index);
 
+/* Poll interface provides a way of getting a callback when 'select'
+ * returns for a given file descriptor.
+ */
+
+/* Register the function to use to inform the select loop about new
+ * file descriptors and callbacks.
+ * Args:
+ *    add - The function to call when a new fd is added.
+ *    rm - The function to call when a new fd is removed.
+ *    select_data - Additional value passed back to add and remove.
+ * Returns:
+ *    0 on success, or -EBUSY if there is already a registered handler.
+ */
+int cras_system_set_select_handler(int (*add)(int fd,
+					      void (*callback)(void *data),
+					      void *callback_data,
+					      void *select_data),
+				  void (*rm)(int fd, void *select_data),
+				  void *select_data);
+
+/* Adds the fd and callback pair.  When select indicates that fd is readable,
+ * the callback will be called.
+ * Args:
+ *    fd - The file descriptor to pass to select(2).
+ *    callback - The callback to call when fd is ready.
+ *    callback_data - Value passed back to the callback.
+ * Returns:
+ *    0 on success or a negative error code on failure.
+ */
+int cras_system_add_select_fd(int fd,
+			      void (*callback)(void *data),
+			      void *callback_data);
+
+/* Removes the fd from the list of fds that are passed to select.
+ * Args:
+ *    fd - The file descriptor to remove from the list.
+ */
+void cras_system_rm_select_fd(int fd);
+
 #endif /* CRAS_SYSTEM_STATE_H_ */
