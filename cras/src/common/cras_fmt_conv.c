@@ -13,18 +13,26 @@
 
 /* Want the fastest conversion we can get. */
 #define SPEEX_QUALITY_LEVEL 0
+/* Max number of converters, src, down/up mix, and format. */
+#define MAX_NUM_CONVERTERS 4
 
-typedef size_t (*channel_converter_t)(const int16_t *in, size_t in_frames,
+typedef void (*sample_format_converter_t)(const uint8_t *in,
+					  size_t in_samples,
+					  int16_t *out);
+typedef size_t (*channel_converter_t)(const int16_t *in,
+				      size_t in_frames,
 				      int16_t *out);
 
 /* Member data for the resampler. */
 struct cras_fmt_conv {
 	SpeexResamplerState *speex_state;
 	channel_converter_t channel_converter;
+	sample_format_converter_t sample_format_converter;
 	struct cras_audio_format in_fmt;
 	struct cras_audio_format out_fmt;
-	uint8_t *tmp_buf; /* Only needed if changing channels and doing SRC. */
-	uint8_t *input_buf;
+	uint8_t *input_buf; /* Input buffer, samples to start conversion. */
+	uint8_t *tmp_buf; /* Buffer for holding samples between converters. */
+	size_t num_converters; /* Incremented once for SRC, channel, format. */
 };
 
 /* Add and clip two s16 samples. */
@@ -36,6 +44,42 @@ static int16_t s16_add_and_clip(int16_t a, int16_t b)
 	sum = max(sum, -0x8000);
 	sum = min(sum, 0x7fff);
 	return (int16_t)sum;
+}
+
+/*
+ * Convert between different sample formats.
+ */
+
+/* Converts from U8 to S16. */
+static void convert_u8_to_s16le(const uint8_t *in, size_t in_samples,
+				int16_t *out)
+{
+	size_t i;
+
+	for (i = 0; i < in_samples; i++, in++, out++)
+		*out = ((int16_t)*in - 0x80) << 8;
+}
+
+/* Converts from S24 to S16. */
+static void convert_s24le_to_s16le(const uint8_t *in, size_t in_samples,
+				   int16_t *out)
+{
+	size_t i;
+	int32_t *_in = (int32_t *)in;
+
+	for (i = 0; i < in_samples; i++, _in++, out++)
+		*out = (int16_t)((*_in & 0x00ffffff) >> 8);
+}
+
+/* Converts from S32 to S16. */
+static void convert_s32le_to_s16le(const uint8_t *in, size_t in_samples,
+				   int16_t *out)
+{
+	size_t i;
+	int32_t *_in = (int32_t *)in;
+
+	for (i = 0; i < in_samples; i++, _in++, out++)
+		*out = (int16_t)(*_in >> 16);
 }
 
 /*
@@ -91,32 +135,19 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   size_t max_frames)
 {
 	struct cras_fmt_conv *conv;
-	channel_converter_t channel_converter = NULL;
 	int rc;
 
-	/* Don't support format conversion(yet).
-	 * Only support S16 samples. */
-	if (in->format != out->format ||
-	    in->format != SND_PCM_FORMAT_S16_LE) {
-		syslog(LOG_ERR, "Invalid format %d", in->format);
+	/* Only support S16LE output samples. */
+	if (out->format != SND_PCM_FORMAT_S16_LE) {
+		syslog(LOG_ERR, "Invalid output format %d", in->format);
 		return NULL;
-	}
-	/* Only support Stero to Mono Conversion. */
-	if (in->num_channels != out->num_channels) {
-		if (in->num_channels == 1 && out->num_channels == 2) {
-			channel_converter = s16_mono_to_stereo;
-		} else if (in->num_channels == 6 && out->num_channels == 2) {
-			channel_converter = s16_51_to_stereo;
-		} else {
-			syslog(LOG_ERR, "Invalid channel conversion %zu to %zu",
-			       in->num_channels, out->num_channels);
-			return NULL;
-		}
 	}
 
 	conv = calloc(1, sizeof(*conv));
 	if (conv == NULL)
 		return NULL;
+	conv->in_fmt = *in;
+	conv->out_fmt = *out;
 
 	conv->input_buf = malloc(max_frames * cras_get_format_bytes(in));
 	if (conv->input_buf == NULL) {
@@ -124,11 +155,42 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		return NULL;
 	}
 
-	conv->in_fmt = *in;
-	conv->out_fmt = *out;
-	conv->channel_converter = channel_converter;
-
+	/* Set up sample format conversion. */
+	if (out->format != in->format) {
+		conv->num_converters++;
+		switch(in->format) {
+		case SND_PCM_FORMAT_U8:
+			conv->sample_format_converter = convert_u8_to_s16le;
+			break;
+		case SND_PCM_FORMAT_S24_LE:
+			conv->sample_format_converter = convert_s24le_to_s16le;
+			break;
+		case SND_PCM_FORMAT_S32_LE:
+			conv->sample_format_converter = convert_s32le_to_s16le;
+			break;
+		default:
+			syslog(LOG_ERR, "Invalid sample format %d", in->format);
+			cras_fmt_conv_destroy(conv);
+			return NULL;
+		}
+	}
+	/* Set up channel number conversion. */
+	if (in->num_channels != out->num_channels) {
+		conv->num_converters++;
+		if (in->num_channels == 1 && out->num_channels == 2) {
+			conv->channel_converter = s16_mono_to_stereo;
+		} else if (in->num_channels == 6 && out->num_channels == 2) {
+			conv->channel_converter = s16_51_to_stereo;
+		} else {
+			syslog(LOG_ERR, "Invalid channel conversion %zu to %zu",
+			       in->num_channels, out->num_channels);
+			cras_fmt_conv_destroy(conv);
+			return NULL;
+		}
+	}
+	/* Set up sample rate conversion. */
 	if (in->frame_rate != out->frame_rate) {
+		conv->num_converters++;
 		conv->speex_state = speex_resampler_init(in->num_channels,
 							 in->frame_rate,
 							 out->frame_rate,
@@ -143,17 +205,22 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			cras_fmt_conv_destroy(conv);
 			return NULL;
 		}
+	}
 
-		if (conv->channel_converter) {
-			/* Will need a temporary area to stage before SRC. */
-			conv->tmp_buf =
-				malloc(max_frames * cras_get_format_bytes(out));
-			if (conv->tmp_buf == NULL) {
-				cras_fmt_conv_destroy(conv);
-				return NULL;
-			}
+	if (conv->num_converters > 1) {
+		/* Need a temporary area before channel conversion. */
+		conv->tmp_buf = malloc(
+			max_frames *
+			4 * /* width in bytes largest format. */
+			max(in->num_channels, out->num_channels));
+		if (conv->tmp_buf == NULL) {
+			cras_fmt_conv_destroy(conv);
+			return NULL;
 		}
 	}
+
+	assert(conv->num_converters < MAX_NUM_CONVERTERS);
+
 	return conv;
 }
 
@@ -190,23 +257,40 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 size_t cras_fmt_conv_convert_to(struct cras_fmt_conv *conv, uint8_t *out_buf,
 				size_t in_frames)
 {
-	/* Enforced 16bit samples in create, when other formats are supported,
-	 * expand this to call the correct function and cast appropriately based
-	 * on the format. */
 	uint32_t fr_in, fr_out;
-	uint8_t *src_in_buf = conv->input_buf;
+	uint8_t *buffers[MAX_NUM_CONVERTERS];
+	size_t buf_idx = 0;
+
+	assert(conv);
 
 	fr_in = in_frames;
 	fr_out = fr_in;
 
-	/* Start with channel conversion. */
+	/* Set up a chain of buffers.  The output buffer of the first conversion
+	 * is used as input to the second and so forth, ending in the output
+	 * buffer. */
+	buffers[0] = (uint8_t *)conv->input_buf;
+	if (conv->num_converters == 2) {
+		buffers[1] = (uint8_t *)conv->tmp_buf;
+	} else if (conv->num_converters == 3) {
+		buffers[1] = (uint8_t *)out_buf;
+		buffers[2] = (uint8_t *)conv->tmp_buf;
+	}
+	buffers[conv->num_converters] = out_buf;
+
+	/* Start with format conversion. */
+	if (conv->sample_format_converter != NULL) {
+		conv->sample_format_converter(buffers[buf_idx],
+					      fr_in * conv->in_fmt.num_channels,
+					      (int16_t *)buffers[buf_idx + 1]);
+		buf_idx++;
+	}
+
+	/* Then channel conversion. */
 	if (conv->channel_converter != NULL) {
-		uint8_t *chan_out_buf = out_buf;
-		if (conv->tmp_buf != NULL)
-			chan_out_buf = conv->tmp_buf;
-		conv->channel_converter((int16_t *)conv->input_buf, fr_in,
-					(int16_t *)chan_out_buf);
-		src_in_buf = conv->tmp_buf;
+		conv->channel_converter((int16_t *)buffers[buf_idx], fr_in,
+					(int16_t *)buffers[buf_idx + 1]);
+		buf_idx++;
 	}
 
 	/* Then SRC. */
@@ -214,11 +298,12 @@ size_t cras_fmt_conv_convert_to(struct cras_fmt_conv *conv, uint8_t *out_buf,
 		fr_out = cras_frames_at_rate(conv->in_fmt.frame_rate,
 					     fr_in,
 					     conv->out_fmt.frame_rate);
-		speex_resampler_process_interleaved_int(conv->speex_state,
-							(int16_t *)src_in_buf,
-							&fr_in,
-							(int16_t *)out_buf,
-							&fr_out);
+		speex_resampler_process_interleaved_int(
+				conv->speex_state,
+				(int16_t *)buffers[buf_idx],
+				&fr_in,
+				(int16_t *)out_buf,
+				&fr_out);
 	}
 	return fr_out;
 }
