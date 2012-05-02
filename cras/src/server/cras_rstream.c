@@ -75,7 +75,10 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		syslog(LOG_ERR, "rstream: format can't be NULL\n");
 		return -EINVAL;
 	}
-	if (format->format != SND_PCM_FORMAT_S16_LE) {
+	if ((format->format != SND_PCM_FORMAT_S16_LE) &&
+	    (format->format != SND_PCM_FORMAT_S32_LE) &&
+	    (format->format != SND_PCM_FORMAT_U8) &&
+	    (format->format != SND_PCM_FORMAT_S24_LE)) {
 		syslog(LOG_ERR, "rstream: format %d not supported\n",
 		       format->format);
 		return -EINVAL;

@@ -81,6 +81,8 @@ static int open_alsa(struct alsa_io *aio)
 	if (aio->base.format == NULL)
 		return -EINVAL;
 	cras_rstream_get_format(stream, aio->base.format);
+	/* TODO(dgreid) - allow more formats here. */
+	aio->base.format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",

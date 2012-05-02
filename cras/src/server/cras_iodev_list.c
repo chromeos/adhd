@@ -333,6 +333,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		}
 		iodev->format->frame_rate = actual_rate;
 		iodev->format->num_channels = actual_num_channels;
+		/* TODO(dgreid) - allow other formats. */
+		iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	}
 
 	*fmt = *(iodev->format);
