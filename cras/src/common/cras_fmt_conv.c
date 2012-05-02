@@ -5,6 +5,7 @@
 
 /* For now just use speex, can add more resamplers later. */
 #include <speex/speex_resampler.h>
+#include <syslog.h>
 
 #include "cras_fmt_conv.h"
 #include "cras_types.h"
@@ -59,14 +60,19 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	/* Don't support format conversion(yet).
 	 * Only support S16 samples. */
 	if (in->format != out->format ||
-	    in->format != SND_PCM_FORMAT_S16_LE)
+	    in->format != SND_PCM_FORMAT_S16_LE) {
+		syslog(LOG_ERR, "Invalid format %d", in->format);
 		return NULL;
+	}
 	/* Only support Stero to Mono Conversion. */
 	if (in->num_channels != out->num_channels) {
-		if (in->num_channels == 1 && out->num_channels == 2)
+		if (in->num_channels == 1 && out->num_channels == 2) {
 			channel_converter = s16_mono_to_stereo;
-		else
+		} else {
+			syslog(LOG_ERR, "Invalid channel conversion %zu to %zu",
+			       in->num_channels, out->num_channels);
 			return NULL;
+		}
 	}
 
 	conv = calloc(1, sizeof(*conv));
@@ -90,6 +96,11 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 							 SPEEX_QUALITY_LEVEL,
 							 &rc);
 		if (conv->speex_state == NULL) {
+			syslog(LOG_ERR, "Fail to create speex:%zu %zu %zu %d",
+			       in->num_channels,
+			       in->frame_rate,
+			       out->frame_rate,
+			       rc);
 			cras_fmt_conv_destroy(conv);
 			return NULL;
 		}
