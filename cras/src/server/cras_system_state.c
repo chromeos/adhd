@@ -113,7 +113,7 @@ void cras_system_state_init()
 
 	state.volume = CRAS_MAX_SYSTEM_VOLUME;
 	state.mute = 0;
-	state.capture_gain = 0;
+	state.capture_gain = DEFAULT_CAPTURE_GAIN;
 	state.capture_mute = 0;
 
 	/* Free any registered callbacks.  This prevents unit tests from

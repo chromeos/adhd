@@ -16,6 +16,7 @@
 #include <stddef.h>
 
 #define CRAS_MAX_SYSTEM_VOLUME 100
+#define DEFAULT_CAPTURE_GAIN 2000 /* 20dB of gain. */
 
 /* Callback functions to be notified when settings change. data is a user
  * provided argument that will be passed back. */
