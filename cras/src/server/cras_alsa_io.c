@@ -680,6 +680,9 @@ static int possibly_read_audio(struct alsa_io *aio,
 	if (frames < aio->base.cb_threshold)
 		num_to_read = 0;
 
+	if (aio->base.streams)
+		cras_shm_check_write_overrun(aio->base.streams->shm);
+
 	while (num_to_read > 0) {
 		nread = num_to_read;
 		rc = cras_alsa_mmap_begin(aio->handle, fr_bytes, &src, &offset,
@@ -697,6 +700,9 @@ static int possibly_read_audio(struct alsa_io *aio,
 			return rc;
 		num_to_read -= nread;
 	}
+
+	if(aio->base.streams)
+		cras_shm_buffer_write_complete(aio->base.streams->shm);
 
 	/* Adjust sleep time to target our callback threshold. */
 	remainder = frames - aio->base.cb_threshold;

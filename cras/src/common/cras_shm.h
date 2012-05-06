@@ -154,17 +154,32 @@ static inline int cras_shm_is_buffer_available(struct cras_audio_shm_area *shm)
 	return (shm->write_offset[buf_idx] == 0);
 }
 
+/* Flags an overrun if writing would cause one. */
+static inline void cras_shm_check_write_overrun(struct cras_audio_shm_area *shm)
+{
+	size_t buf_idx = shm->write_buf_idx;
+
+	if (shm->write_offset[buf_idx])
+		shm->num_overruns++; /* Should only write to empty buffers */
+	shm->write_offset[buf_idx] = 0;
+}
+
 /* Increment the write pointer for the current buffer. */
 static inline void cras_shm_buffer_written(struct cras_audio_shm_area *shm,
 					   size_t frames)
 {
 	size_t buf_idx = shm->write_buf_idx;
 
-	if (shm->write_offset[buf_idx])
-		shm->num_overruns++; /* Should only write to empty buffers */
-	shm->write_offset[buf_idx] = frames * shm->frame_bytes;
+	shm->write_offset[buf_idx] += frames * shm->frame_bytes;
 	shm->read_offset[buf_idx] = 0;
-	/* And move on to the next buffer. */
+}
+
+/* Signals the writing to this buffer is complete and moves to the next one. */
+static inline void cras_shm_buffer_write_complete(
+		struct cras_audio_shm_area *shm)
+{
+	size_t buf_idx = shm->write_buf_idx;
+
 	assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 	buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
 	shm->write_buf_idx = buf_idx;

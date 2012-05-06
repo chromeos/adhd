@@ -130,7 +130,9 @@ static void fill_capture(struct cras_iodev *iodev, struct timespec *ts)
 	dst = cras_shm_get_curr_write_buffer(iodev->streams->shm);
 	count = iodev->cb_threshold;
 	memset(dst, 0, count * iodev->streams->shm->frame_bytes);
+	cras_shm_check_write_overrun(iodev->streams->shm);
 	cras_shm_buffer_written(iodev->streams->shm, count);
+	cras_shm_buffer_write_complete(iodev->streams->shm);
 
 	cras_iodev_set_capture_timestamp(iodev->format->frame_rate,
 					 count,

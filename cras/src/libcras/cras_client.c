@@ -407,7 +407,9 @@ static int handle_playback_request(struct client_stream *stream,
 					frames);
 		}
 		/* And move the write pointer to indicate samples written. */
+		cras_shm_check_write_overrun(stream->shm);
 		cras_shm_buffer_written(stream->shm, frames);
+		cras_shm_buffer_write_complete(stream->shm);
 	}
 
 	/* Signal server that data is ready, or that an error has occurred. */
