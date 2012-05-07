@@ -170,6 +170,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	/* Set up sample format conversion. */
 	if (out->format != in->format) {
 		conv->num_converters++;
+		syslog(LOG_DEBUG, "Convert from format %d to %d.",
+		       in->format, out->format);
 		switch(in->format) {
 		case SND_PCM_FORMAT_U8:
 			conv->sample_format_converter = convert_u8_to_s16le;
@@ -189,6 +191,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	/* Set up channel number conversion. */
 	if (in->num_channels != out->num_channels) {
 		conv->num_converters++;
+		syslog(LOG_DEBUG, "Convert from %zu to %zu channels.",
+		       in->num_channels, out->num_channels);
 		if (in->num_channels == 1 && out->num_channels == 2) {
 			conv->channel_converter = s16_mono_to_stereo;
 		} else if (in->num_channels == 2 && out->num_channels == 1) {
@@ -205,14 +209,16 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	/* Set up sample rate conversion. */
 	if (in->frame_rate != out->frame_rate) {
 		conv->num_converters++;
-		conv->speex_state = speex_resampler_init(in->num_channels,
+		syslog(LOG_DEBUG, "Convert from %zu to %zu Hz.",
+		       in->frame_rate, out->frame_rate);
+		conv->speex_state = speex_resampler_init(out->num_channels,
 							 in->frame_rate,
 							 out->frame_rate,
 							 SPEEX_QUALITY_LEVEL,
 							 &rc);
 		if (conv->speex_state == NULL) {
 			syslog(LOG_ERR, "Fail to create speex:%zu %zu %zu %d",
-			       in->num_channels,
+			       out->num_channels,
 			       in->frame_rate,
 			       out->frame_rate,
 			       rc);
