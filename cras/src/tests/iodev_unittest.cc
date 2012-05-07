@@ -122,10 +122,30 @@ TEST(IoDevTestSuite, TestConfigParamsOneStream) {
 
   iostream1.stream = &stream1;
   DL_APPEND(iodev.streams, &iostream1);
+  iodev.buffer_size = 1024;
 
   cras_iodev_config_params_for_streams(&iodev);
   EXPECT_EQ(iodev.used_size, 10);
   EXPECT_EQ(iodev.cb_threshold, 3);
+}
+
+TEST(IoDevTestSuite, TestConfigParamsOneStreamUsedGreaterBuffer) {
+  struct cras_iodev iodev;
+  struct cras_rstream stream1;
+  struct cras_io_stream iostream1;
+
+  memset(&iodev, 0, sizeof(iodev));
+
+  stream1.buffer_frames = 1280;
+  stream1.cb_threshold = 1400;
+
+  iostream1.stream = &stream1;
+  DL_APPEND(iodev.streams, &iostream1);
+  iodev.buffer_size = 1024;
+
+  cras_iodev_config_params_for_streams(&iodev);
+  EXPECT_EQ(iodev.used_size, 1024);
+  EXPECT_EQ(iodev.cb_threshold, 512);
 }
 
 TEST(IoDevTestSuite, TestConfigParamsTwoStreamsFirstLonger) {
@@ -146,10 +166,11 @@ TEST(IoDevTestSuite, TestConfigParamsTwoStreamsFirstLonger) {
   iostream2.stream = &stream2;
   DL_APPEND(iodev.streams, &iostream1);
   DL_APPEND(iodev.streams, &iostream2);
+  iodev.buffer_size = 1024;
 
   cras_iodev_config_params_for_streams(&iodev);
   EXPECT_EQ(iodev.used_size, 8);
-  EXPECT_EQ(iodev.cb_threshold, 5);
+  EXPECT_EQ(iodev.cb_threshold, 4);
 }
 
 TEST(IoDevTestSuite, TestConfigParamsTwoStreamsSecondLonger) {
@@ -170,6 +191,7 @@ TEST(IoDevTestSuite, TestConfigParamsTwoStreamsSecondLonger) {
   iostream2.stream = &stream2;
   DL_APPEND(iodev.streams, &iostream1);
   DL_APPEND(iodev.streams, &iostream2);
+  iodev.buffer_size = 1024;
 
   cras_iodev_config_params_for_streams(&iodev);
   EXPECT_EQ(iodev.used_size, 10);
