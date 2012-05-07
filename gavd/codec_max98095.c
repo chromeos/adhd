@@ -5,6 +5,18 @@
 #include "codec.h"
 #include "linkerset.h"
 
+static char const *initialize_daisy[] = {
+    "set 'Left Headphone Mixer Left DAC1' on,on",
+    "set 'Right Headphone Mixer Right DAC1' on,on",
+    "set 'Left Speaker Mixer Left DAC1' on,on",
+    "set 'Right Speaker Mixer Right DAC1' on,on",
+    "set 'Headphone' 40%",
+    "set 'Speaker' 40%",
+    NULL
+};
+
+#define initialize_waluigi NULL
+
 static char const *headphone_insert[] = {
     "set 'Speaker' off",
     "set 'Int Spk' off",
@@ -23,7 +35,7 @@ static char const *headphone_remove[] = {
     static codec_desc_t _board##_codec_desc = {                 \
         .codec             = "max98095",                        \
         .board             = #_board,                           \
-        .initialize        = NULL,                              \
+        .initialize        = initialize_##_board,               \
         .headphone_insert  = headphone_insert,                  \
         .headphone_remove  = headphone_remove,                  \
         .microphone_insert = NULL,                              \
@@ -32,3 +44,4 @@ static char const *headphone_remove[] = {
     LINKERSET_ADD_ITEM(codec_desc, _board##_codec_desc);
 
 DECLARE_BOARD(waluigi)
+DECLARE_BOARD(daisy)
