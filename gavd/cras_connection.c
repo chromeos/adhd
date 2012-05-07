@@ -43,7 +43,7 @@ static void initialize_cras(void)
     } else {
         int err;
 
-        err = cras_client_connect(cras_client);
+        err = cras_client_connect_wait(cras_client);
         if (err) {
             cras_client = NULL;
             verbose_log(0, LOG_ERR, "%s: could not open cras socket: %d",
