@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -262,6 +263,96 @@ static int set_socket_perms(const char *socket_path)
 			syslog(LOG_ERR, "Couldn't set group of audio socket.");
 
 	return chmod(socket_path, 0770);
+}
+
+/* Waits until we have heard back from the server so that we know we are
+ * connected.  The connected success/failure message is always the first message
+ * the server sends. Return non zero if client is connected to the server. A
+ * return code of zero means that the client is not connected to the server. */
+static int check_server_connected_wait(struct cras_client *client)
+{
+	fd_set poll_set;
+	int rc;
+	int fd = client->server_fd;
+	struct timeval timeout;
+
+	timeout.tv_sec = 0;
+	timeout.tv_usec = SERVER_CONNECT_TIMEOUT_US;
+
+	while (timeout.tv_usec > 0 && client->id < 0) {
+		FD_ZERO(&poll_set);
+		FD_SET(fd, &poll_set);
+		rc = select(fd + 1, &poll_set, NULL, NULL, &timeout);
+		if (rc <= 0)
+			return 0; /* Timeout or error. */
+		if (FD_ISSET(fd, &poll_set)) {
+			rc = handle_message_from_server(client);
+			if (rc < 0)
+				return 0;
+		}
+	}
+
+	return client->id >= 0;
+}
+
+/* Opens the server socket and connects to it. */
+static int connect_to_server(struct cras_client *client)
+{
+	int rc;
+	struct sockaddr_un address;
+
+	if (client->server_fd >= 0)
+		close(client->server_fd);
+	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	if (client->server_fd < 0) {
+		syslog(LOG_ERR, "%s: Socket failed.", __func__);
+		return client->server_fd;
+	}
+
+	memset(&address, 0, sizeof(struct sockaddr_un));
+
+	address.sun_family = AF_UNIX;
+	client->sock_dir = cras_config_get_system_socket_file_dir();
+	assert(client->sock_dir);
+	snprintf(address.sun_path, sizeof(address.sun_path),
+		 "%s/%s", client->sock_dir, CRAS_SOCKET_FILE);
+
+	rc = connect(client->server_fd, (struct sockaddr *)&address,
+			sizeof(struct sockaddr_un));
+	if (rc != 0) {
+		close(client->server_fd);
+		client->server_fd = -1;
+		syslog(LOG_ERR, "%s: Connect server failed.", __func__);
+	}
+
+	return rc;
+}
+
+/* Tries to connect to the server.  Waits for the initial message from the
+ * server.  This will happen near instantaneously if the server is already
+ * running.*/
+static int connect_to_server_wait(struct cras_client *client)
+{
+	unsigned int retries = 4;
+	const unsigned int retry_delay_ms = 200;
+
+	assert(client);
+
+	/* Ignore sig pipe as it will be handled when we write to the socket. */
+	signal(SIGPIPE, SIG_IGN);
+
+	while (--retries) {
+		/* If connected, wait for the first message from the server
+		 * indicating it's ready. */
+		if (connect_to_server(client) == 0 &&
+		    check_server_connected_wait(client))
+				return 0;
+
+		/* If we didn't succeed, wait and try again. */
+		usleep(retry_delay_ms * 1000);
+	}
+
+	return -EIO;
 }
 
 /*
@@ -579,36 +670,6 @@ err_ret:
 	if (stream->shm)
 		shmdt(stream->shm);
 	return rc;
-}
-
-/* Waits until we have heard back from the server so that we know we are
- * connected.  The connected success/failure message is always the first message
- * the server sends. Return non zero if client is connected to the server. A
- * return code of zero means that the client are not connected to the server. */
-static int check_server_connected_wait(struct cras_client *client)
-{
-	fd_set poll_set;
-	int rc;
-	int fd = client->server_fd;
-	struct timeval timeout;
-
-	timeout.tv_sec = 0;
-	timeout.tv_usec = SERVER_CONNECT_TIMEOUT_US;
-
-	while(timeout.tv_usec > 0 && client->id < 0) {
-		FD_ZERO(&poll_set);
-		FD_SET(fd, &poll_set);
-		rc = select(fd + 1, &poll_set, NULL, NULL, &timeout);
-		if (rc <= 0)
-			return 0; /* Timeout or error. */
-		if (FD_ISSET(fd, &poll_set)) {
-			rc = handle_message_from_server(client);
-			if (rc < 0)
-				return 0;
-		}
-	}
-
-	return client->id >= 0;
 }
 
 /* Adds a stream to a running client.  Checks to make sure that the client is
@@ -1305,7 +1366,7 @@ void cras_client_destroy(struct cras_client *client)
 {
 	if (client == NULL)
 		return;
-	if (client->server_fd >= -1)
+	if (client->server_fd >= 0)
 		close(client->server_fd);
 	close(client->command_fds[0]);
 	close(client->command_fds[1]);
@@ -1320,32 +1381,12 @@ void cras_client_destroy(struct cras_client *client)
 
 int cras_client_connect(struct cras_client *client)
 {
-	struct sockaddr_un address;
-	int rc;
+	return connect_to_server(client);
+}
 
-	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (client->server_fd < 0) {
-		syslog(LOG_ERR, "%s: Socket failed.", __FUNCTION__);
-		return client->server_fd;
-	}
-
-	memset(&address, 0, sizeof(struct sockaddr_un));
-
-	address.sun_family = AF_UNIX;
-	client->sock_dir = cras_config_get_system_socket_file_dir();
-	assert(client->sock_dir);
-	snprintf(address.sun_path, sizeof(address.sun_path),
-		 "%s/%s", client->sock_dir, CRAS_SOCKET_FILE);
-
-	rc = connect(client->server_fd, (struct sockaddr *)&address,
-		      sizeof(struct sockaddr_un));
-	if (rc != 0) {
-		close(client->server_fd);
-		syslog(LOG_ERR, "%s: Connect to server failed.", __FUNCTION__);
-		return rc;
-	}
-
-	return rc;
+int cras_client_connect_wait(struct cras_client *client)
+{
+	return connect_to_server_wait(client);
 }
 
 struct cras_stream_params *cras_client_stream_params_create(
