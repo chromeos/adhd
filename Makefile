@@ -25,16 +25,16 @@ cras_install:
 
 $(DESTDIR)/etc/init/adhd.conf:	$(ADHD_DIR)/upstart/adhd.conf
 	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) -D $< $@
+	$(INSTALL) --mode 644 -D $< $@
 
 $(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules:	\
 	$(ADHD_DIR)/udev/99-dev-input-group.rules
 	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) -D $< $@
+	$(INSTALL) --mode 644 -D $< $@
 
 $(DESTDIR)/etc/init/cras.conf:	$(ADHD_DIR)/upstart/cras.conf
 	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) -D $< $@
+	$(INSTALL) --mode 644 -D $< $@
 
 $(DESTDIR)/usr/bin/gavd:	$(ADHD_BUILD_DIR)/gavd/gavd
 	$(ECHO) "Installing '$<' to '$@'"
@@ -42,7 +42,7 @@ $(DESTDIR)/usr/bin/gavd:	$(ADHD_BUILD_DIR)/gavd/gavd
 
 $(DESTDIR)/etc/asound.state:	$(ADHD_DIR)/factory-default/asound.state.$(BOARD)
 	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) -D $< $@
+	$(INSTALL) --mode 644 -D $< $@
 
 install:	$(DESTDIR)/etc/init/adhd.conf				\
 		$(DESTDIR)/etc/init/cras.conf				\
