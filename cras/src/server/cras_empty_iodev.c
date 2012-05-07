@@ -39,8 +39,10 @@ static int thread_add_stream(struct cras_iodev *iodev,
 	cras_iodev_config_params_for_streams(iodev);
 
 	if (first_stream) {
-		if (iodev->format == NULL)
+		if (iodev->format == NULL) {
+			cras_iodev_delete_stream(iodev, stream);
 			return -EINVAL;
+		}
 		cras_rstream_get_format(stream, iodev->format);
 	}
 	return 0;
