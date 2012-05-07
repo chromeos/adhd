@@ -137,7 +137,7 @@ static void callback_stub(void *data) {
 TEST(SystemStateSuite, DefaultVolume) {
   cras_system_state_init();
   EXPECT_EQ(100, cras_system_get_volume());
-  EXPECT_EQ(0, cras_system_get_capture_gain());
+  EXPECT_EQ(2000, cras_system_get_capture_gain());
   EXPECT_EQ(0, cras_system_get_mute());
   EXPECT_EQ(0, cras_system_get_capture_mute());
 }
