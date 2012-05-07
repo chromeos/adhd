@@ -100,6 +100,18 @@ static size_t s16_mono_to_stereo(const int16_t *in, size_t in_frames,
 	return in_frames;
 }
 
+/* Converts S16 Stereo to S16 mono.  The output buffer only need be big enough
+ * for mono samples. */
+static size_t s16_stereo_to_mono(const int16_t *in, size_t in_frames,
+				 int16_t *out)
+{
+	size_t i;
+
+	for (i = 0; i < in_frames; i++)
+		out[i] = s16_add_and_clip(in[2 * i], in[2 * i + 1]);
+	return in_frames;
+}
+
 /* Converts S16 5.1 to S16 stereo. The out buffer can have room for just
  * stereo samples. */
 static size_t s16_51_to_stereo(const int16_t *in, size_t in_frames,
@@ -179,6 +191,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		conv->num_converters++;
 		if (in->num_channels == 1 && out->num_channels == 2) {
 			conv->channel_converter = s16_mono_to_stereo;
+		} else if (in->num_channels == 2 && out->num_channels == 1) {
+			conv->channel_converter = s16_stereo_to_mono;
 		} else if (in->num_channels == 6 && out->num_channels == 2) {
 			conv->channel_converter = s16_51_to_stereo;
 		} else {
