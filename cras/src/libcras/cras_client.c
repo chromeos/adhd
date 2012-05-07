@@ -65,6 +65,7 @@ enum {
 	CLIENT_GET_SYSTEM_MAX_VOLUME,
 	CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN,
 	CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN,
+	CLIENT_SERVER_CONNECT,
 };
 
 struct command_msg {
@@ -1065,10 +1066,14 @@ static int handle_message_from_server(struct cras_client *client)
 	free(buf);
 	return 0;
 read_error:
-	syslog(LOG_ERR, "Can't read from server\n");
-	free(buf);
-	client->thread.running = 0;
-	return -EIO;
+	rc = connect_to_server_wait(client);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Can't read from server\n");
+		free(buf);
+		client->thread.running = 0;
+		return -EIO;
+	}
+	return 0;
 }
 
 /* Handles messages from streams to this client. */
@@ -1093,6 +1098,13 @@ static int handle_command_message(struct cras_client *client)
 	uint8_t buf[MAX_CMD_MSG_LEN];
 	struct command_msg *msg = (struct command_msg *)buf;
 	int rc, to_read;
+
+	if (!check_server_connected_wait(client))
+		if (connect_to_server_wait(client) < 0) {
+			syslog(LOG_ERR, "Lost server connection.");
+			rc = -EIO;
+			goto cmd_msg_complete;
+		}
 
 	rc = read(client->command_fds[0], buf, sizeof(msg->len));
 	if (rc != sizeof(msg->len) || msg->len > MAX_CMD_MSG_LEN) {
@@ -1189,6 +1201,9 @@ static int handle_command_message(struct cras_client *client)
 	case CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN:
 		rc = client->system_max_capture_gain;
 		break;
+	case CLIENT_SERVER_CONNECT:
+		rc = connect_to_server_wait(client);
+		break;
 	default:
 		assert(0);
 		break;
@@ -1218,21 +1233,22 @@ static void *client_thread(void *arg)
 	if (arg == NULL)
 		return (void *)-EINVAL;
 
-	server_input.fd = client->server_fd;
-	server_input.cb = handle_message_from_server;
-	LL_APPEND(inputs, &server_input);
-	command_input.fd = client->command_fds[0];
-	command_input.cb = handle_command_message;
-	LL_APPEND(inputs, &command_input);
-	stream_input.fd = client->stream_fds[0];
-	stream_input.cb = handle_stream_message;
-	LL_APPEND(inputs, &stream_input);
-
 	while (client->thread.running) {
 		fd_set poll_set;
 		struct client_input *curr_input;
 		int max_fd;
 		int rc;
+
+		inputs = NULL;
+		server_input.fd = client->server_fd;
+		server_input.cb = handle_message_from_server;
+		LL_APPEND(inputs, &server_input);
+		command_input.fd = client->command_fds[0];
+		command_input.cb = handle_command_message;
+		LL_APPEND(inputs, &command_input);
+		stream_input.fd = client->stream_fds[0];
+		stream_input.cb = handle_stream_message;
+		LL_APPEND(inputs, &stream_input);
 
 		FD_ZERO(&poll_set);
 		max_fd = 0;
@@ -1301,11 +1317,24 @@ static int send_stream_volume_command_msg(struct cras_client *client,
 }
 
 /* Sends a message back to the client and returns the error code. */
-static int write_message_to_server(const struct cras_client *client,
+static int write_message_to_server(struct cras_client *client,
 				   const struct cras_server_message *msg)
 {
-	if (write(client->server_fd, msg, msg->length) != msg->length)
-		return -EPIPE;
+	if (write(client->server_fd, msg, msg->length) != msg->length) {
+		int rc = 0;
+
+		/* Write to server failed, try to re-connect. */
+		syslog(LOG_DEBUG, "Server write failed, re-attach.");
+		if (client->thread.running)
+			rc = send_simple_cmd_msg(client, 0,
+						 CLIENT_SERVER_CONNECT);
+		else
+			rc = connect_to_server_wait(client);
+		if (rc < 0)
+			return rc;
+		if (write(client->server_fd, msg, msg->length) != msg->length)
+			return -EINVAL;
+	}
 	return 0;
 }
 
