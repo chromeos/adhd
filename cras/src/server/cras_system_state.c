@@ -115,6 +115,10 @@ void cras_system_state_init()
 	state.mute = 0;
 	state.capture_gain = DEFAULT_CAPTURE_GAIN;
 	state.capture_mute = 0;
+	state.min_volume_dBFS = DEFAULT_MIN_VOLUME_DBFS;
+	state.max_volume_dBFS = DEFAULT_MAX_VOLUME_DBFS;
+	state.min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
+	state.max_capture_gain = DEFAULT_MAX_CAPTURE_GAIN;
 
 	/* Free any registered callbacks.  This prevents unit tests from
 	 * leaking. */

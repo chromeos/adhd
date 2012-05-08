@@ -17,6 +17,12 @@
 
 #define CRAS_MAX_SYSTEM_VOLUME 100
 #define DEFAULT_CAPTURE_GAIN 2000 /* 20dB of gain. */
+/* Default to 1--dB of range for palyback and capture. */
+#define DEFAULT_MIN_VOLUME_DBFS -10000
+#define DEFAULT_MAX_VOLUME_DBFS 0
+#define DEFAULT_MIN_CAPTURE_GAIN -5000
+#define DEFAULT_MAX_CAPTURE_GAIN 5000
+
 
 /* Callback functions to be notified when settings change. data is a user
  * provided argument that will be passed back. */
