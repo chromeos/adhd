@@ -11,7 +11,7 @@
  * that string literal containing the command line parameters has a
  * space at the beginning.
  */
-#define ADHD_AMIXER_COMMAND                "/usr/bin/amixer"
+#define ADHD_AMIXER_COMMAND                "/usr/bin/amixer -c 0"
 #define ADHD_ALSACTL_COMMAND               "/usr/sbin/alsactl"
 
 #endif
