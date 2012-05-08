@@ -33,7 +33,7 @@ state.tegrawm8903 {
 	control.4 {
 		iface MIXER
 		name 'Right Input PGA Switch'
-		value false
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -514,8 +514,8 @@ state.tegrawm8903 {
 	control.42 {
 		iface MIXER
 		name 'Headphone Volume'
-		value.0 63
-		value.1 63
+		value.0 47
+		value.1 47
 		comment {
 			access 'read write'
 			type INTEGER
@@ -523,8 +523,8 @@ state.tegrawm8903 {
 			range '0 - 63'
 			dbmin -5700
 			dbmax 600
-			dbvalue.0 600
-			dbvalue.1 600
+			dbvalue.0 -1000
+			dbvalue.1 -1000
 		}
 	}
 	control.43 {
@@ -590,8 +590,8 @@ state.tegrawm8903 {
 	control.48 {
 		iface MIXER
 		name 'Speaker Volume'
-		value.0 63
-		value.1 63
+		value.0 47
+		value.1 47
 		comment {
 			access 'read write'
 			type INTEGER
@@ -599,8 +599,8 @@ state.tegrawm8903 {
 			range '0 - 63'
 			dbmin -5700
 			dbmax 600
-			dbvalue.0 600
-			dbvalue.1 600
+			dbvalue.0 -1000
+			dbvalue.1 -1000
 		}
 	}
 	control.49 {
@@ -828,7 +828,7 @@ state.tegrawm8903 {
 	control.70 {
 		iface MIXER
 		name 'Left Capture Mux'
-		value Left
+		value Right
 		comment {
 			access 'read write'
 			type ENUMERATED
@@ -852,7 +852,7 @@ state.tegrawm8903 {
 	control.72 {
 		iface MIXER
 		name 'Right Input Mode Mux'
-		value Single-Ended
+		value 'Differential Mic'
 		comment {
 			access 'read write'
 			type ENUMERATED
@@ -865,7 +865,7 @@ state.tegrawm8903 {
 	control.73 {
 		iface MIXER
 		name 'Right Input Inverting Mux'
-		value IN1R
+		value IN2R
 		comment {
 			access 'read write'
 			type ENUMERATED
@@ -878,7 +878,7 @@ state.tegrawm8903 {
 	control.74 {
 		iface MIXER
 		name 'Right Input Mux'
-		value IN2R
+		value IN1R
 		comment {
 			access 'read write'
 			type ENUMERATED
