@@ -5,5 +5,5 @@
 #if !defined(_FACTORY_DEFAULT_H_)
 #define _FACTORY_DEFAULT_H_
 
-void factory_default_add_event(void);
+void factory_default_add_event(size_t card_number);
 #endif

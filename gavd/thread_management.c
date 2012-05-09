@@ -9,7 +9,6 @@
 #include <sys/time.h>
 
 #include "board.h"
-#include "set_factory_default.h"
 #include "initialization.h"
 #include "verbose.h"
 #include "linkerset.h"
@@ -103,17 +102,6 @@ void threads_start(void)
                 __FUNCTION__, n_threads,
                 (unsigned)(end.tv_sec - beg.tv_sec),
                 (unsigned)(end.tv_usec - beg.tv_usec));
-
-    /* All threads are waiting at the 'tm_start_barrier' barrier.
-     *
-     * Before reaching the barrier here, we can dope data structures
-     * which will be used by the threads to affect actions which must
-     * be done on startup.
-     *
-     * For example, adding an element to a worklist to reset the
-     * internal hardware to the 'factory default' values.
-     */
-    factory_default_add_event();
 
     pthread_barrier_wait(&thread_management.tm_start_barrier);
     verbose_log(5, LOG_INFO, "%s: start barrier passed.\n", __FUNCTION__);

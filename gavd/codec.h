@@ -16,9 +16,6 @@
  *   board            : A compile-time name for the board.
  *                      May not be NULL.
  *
- *   initialize       : Set of 'amixer' commands used to initialize the codec.
- *                      NULL or a NULL-terminated array of strings.
- *
  *   headphone_insert : Set of 'amixer' commands used to enable
  *                      external headphones.
  *                      NULL or a NULL-terminated array of strings.
@@ -39,7 +36,6 @@
 typedef struct codec_desc_t {
     const char  *codec;
     const char  *board;
-    const char **initialize;        /* NULL or NULL terminated array */
     const char **headphone_insert;  /* NULL or NULL terminated array */
     const char **headphone_remove;  /* NULL or NULL terminated array */
     const char **microphone_insert; /* NULL or NULL terminated array */
@@ -58,9 +54,6 @@ typedef struct codec_desc_t {
  *    o One of the 'amixer' commands associated with the action failed.
  */
 
-unsigned codec_initialize_hardware(void);    /* 0: failure
-                                              * 1: success
-                                              */
 unsigned codec_headphone_insert(void);       /* 0: failure
                                               * 1: success
                                               */

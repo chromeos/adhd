@@ -5,21 +5,10 @@
 #include "codec.h"
 #include "linkerset.h"
 
-static char const *initialize[] = {
-    "set 'Master'         80%",
-    "set 'Speaker Boost'  80%",
-    "set 'PCM'            90%",
-    "set 'HP/Speakers'    90%",
-    "set 'Master'         on",
-    "set 'HP/Speakers'    on",
-    NULL
-};
-
 #define DECLARE_BOARD(_board)                                   \
     static codec_desc_t _board##_codec_desc = {                 \
         .codec             = "cirrus-cougarpoint",              \
         .board             = #_board,                           \
-        .initialize        = initialize,                        \
         .headphone_insert  = NULL,                              \
         .headphone_remove  = NULL,                              \
         .microphone_insert = NULL,                              \

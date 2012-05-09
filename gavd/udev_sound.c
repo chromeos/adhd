@@ -17,8 +17,9 @@
 #include "thread_management.h"
 #include "initialization.h"
 #include "verbose.h"
-#include "udev_sound.h"
 #include "device_info.h"
+#include "set_factory_default.h"
+#include "udev_sound.h"
 
 static unsigned is_action(const char *desired,
                           const char *actual) __attribute__((nonnull(1)));
@@ -201,6 +202,9 @@ static void add_udev_device_if_alsa_device(struct udev_device *dev)
 
     if (is_alsa_device(dev, &internal, &card_number,
                        &device_number, &speed, &direction, &sysname)) {
+        if (internal) {
+            factory_default_add_event(card_number);
+        }
         device_add_alsa(sysname, internal, card_number,
                         device_number, speed, direction);
     }

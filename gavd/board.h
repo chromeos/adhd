@@ -8,16 +8,4 @@
 
 #define ADHD_TARGET_MACHINE BOARD
 
-/* When ADHD_SET_FACTORY_DEFAULT is defined, 'alsactl restore' will be
- * used when to set all the Alsa controls of the internal devices to
- * their 'factory default values.
- *
- * The setting will occur when the deamon is loaded, exited (for
- * accessibility on the login screen), and when SIGHUP is received.
- *
- * This cannot be enabled until defect 'chromium:97144' is addressed.
- */
-#undef ADHD_SET_FACTORY_DEFAULT
-#define adhd_set_factory_default 0
-
 #endif

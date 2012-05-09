@@ -64,13 +64,6 @@ static unsigned execute_commands(const char **c)
     return 1;
 }
 
-unsigned codec_initialize_hardware(void)
-{
-    return (codec             == NULL ||
-            codec->initialize == NULL ||
-            execute_commands(codec->initialize));
-}
-
 unsigned codec_headphone_insert(void)
 {
     return (codec                   == NULL ||
