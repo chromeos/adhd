@@ -16,7 +16,7 @@ struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 {
 	struct cras_audio_format *fmt;
 
-	fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
+	fmt = (struct cras_audio_format *)calloc(1, sizeof(*fmt));
 	if (fmt == NULL)
 		return fmt;
 
