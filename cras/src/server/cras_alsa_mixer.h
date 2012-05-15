@@ -140,4 +140,12 @@ int cras_alsa_mixer_set_output_active_state(
 		struct cras_alsa_mixer_output *output,
 		int active);
 
+/* Returns a volume curve for the given output node name.  The name can be that
+ * of a control or of a Jack.  Looks for an entry in the ini file (See README
+ * for format), or falls back to the default volume curve if the ini file
+ * doesn't specify a curve for this output. */
+struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
+		const struct cras_alsa_mixer *cmix,
+		const char *name);
+
 #endif /* _CRAS_ALSA_MIXER_H */
