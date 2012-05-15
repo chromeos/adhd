@@ -103,6 +103,7 @@ TEST(FormatConverterTest, StereoToMono) {
   size_t out_frames;
   int16_t *in_buff;
   int16_t *out_buff;
+  unsigned int i;
   const size_t buf_size = 4096;
 
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
@@ -123,11 +124,19 @@ TEST(FormatConverterTest, StereoToMono) {
 
   in_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
   out_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  for (i = 0; i < buf_size; i++) {
+    in_buff[i * 2] = 13450;
+    in_buff[i * 2 + 1] = -13449;
+  }
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
+  for (i = 0; i < buf_size; i++) {
+    EXPECT_EQ(1, out_buff[i]);
+  }
+
   cras_fmt_conv_destroy(c);
 }
 

@@ -38,11 +38,13 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 {
 	int *fd = (int *)arg;
 	int ret;
+	int write_size;
 
 	cras_client_calc_latency(client, stream_id, sample_time, &last_latency);
 
-	ret = write(*fd, samples, frames * 4);
-	if (ret != frames * 4)
+	write_size = frames * cras_client_bytes_per_frame(client, stream_id);
+	ret = write(*fd, samples, write_size);
+	if (ret != write_size)
 		printf("Error writing file\n");
 	return frames;
 }

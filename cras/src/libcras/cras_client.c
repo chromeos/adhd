@@ -427,6 +427,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 {
 	int frames;
 	struct cras_stream_params *config;
+	uint8_t *captured_frames;
 
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
@@ -435,15 +436,31 @@ static int handle_capture_data_ready(struct client_stream *stream,
 		return 0;
 	}
 
+	captured_frames = cras_shm_get_curr_read_buffer(stream->shm);
+
+	/* If we need to do format conversion convert to the temporary buffer
+	 * and pass the converted samples to the client. */
+	if (stream->conv) {
+		num_frames = cras_fmt_conv_convert_frames(
+				stream->conv,
+				captured_frames,
+				stream->fmt_conv_buffer,
+				num_frames);
+		captured_frames = stream->fmt_conv_buffer;
+	}
+
 	frames = config->aud_cb(stream->client,
 				stream->id,
-				cras_shm_get_curr_read_buffer(stream->shm),
+				captured_frames,
 				num_frames,
 				&stream->shm->ts,
 				config->user_data);
-	if (frames > 0)
+	if (frames > 0) {
+		if (stream->conv)
+			frames = cras_fmt_conv_out_frames_to_in(
+					stream->conv, frames);
 		cras_shm_buffer_read(stream->shm, frames);
-	else if (frames == EOF) {
+	} else if (frames == EOF) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		return EOF;
 	}
@@ -614,19 +631,31 @@ static int config_shm(struct client_stream *stream, int key, size_t size)
  * converter that handles transforming the input format to the format used by
  * the server. */
 static int config_format_converter(struct client_stream *stream,
-				   const struct cras_audio_format *fmt)
+				   const struct cras_audio_format *hwfmt)
 {
 	struct cras_audio_format *sfmt = &stream->config->format;
 
-	if (memcmp(sfmt, fmt, sizeof(*fmt)) != 0) {
-		syslog(LOG_DEBUG, "format convert %s: %d %zu %zu => %d %zu %zu",
+	if (memcmp(sfmt, hwfmt, sizeof(*hwfmt)) != 0) {
+		syslog(LOG_DEBUG,
+		       "format convert %s: stream:%d %zu %zu hw: %d %zu %zu",
 		       stream->direction ? "input" : "output",
 		       sfmt->format, sfmt->frame_rate, sfmt->num_channels,
-		       fmt->format, fmt->frame_rate, fmt->num_channels);
-		stream->conv = cras_fmt_conv_create(
-			sfmt,
-			fmt,
-			stream->config->buffer_frames);
+		       hwfmt->format, hwfmt->frame_rate, hwfmt->num_channels);
+
+		/* Convert from the stream format to the h/w format for output,
+		 * from h/w format to stream format for input. */
+		if (stream->direction == CRAS_STREAM_OUTPUT) {
+			stream->conv = cras_fmt_conv_create(
+					sfmt,
+					hwfmt,
+					stream->config->buffer_frames);
+		} else {
+			assert(stream->direction == CRAS_STREAM_INPUT);
+			stream->conv = cras_fmt_conv_create(
+					hwfmt,
+					sfmt,
+					stream->config->buffer_frames);
+		}
 		if (stream->conv == NULL) {
 			syslog(LOG_ERR, "Failed to create format converter");
 			return -ENOMEM;
