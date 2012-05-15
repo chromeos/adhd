@@ -142,6 +142,8 @@ struct cras_stream_params {
  * config - Audio stream configuration.
  * shm - Shared memory used to exchange audio samples with the server.
  * conv - Format converter, used if the server's audio format doesn't match.
+ * fmt_conv_buffer - Buffer used to store samples before sending for format
+ *     conversion.
  * aud_address - Address used to listen for server requesting audio samples.
  * prev, next - Form a linked list of streams attached to a client.
  */
@@ -158,6 +160,7 @@ struct client_stream {
 	struct cras_stream_params *config;
 	struct cras_audio_shm_area *shm;
 	struct cras_fmt_conv *conv;
+	uint8_t *fmt_conv_buffer;
 	struct sockaddr_un aud_address;
 	struct client_stream *prev, *next;
 };
@@ -472,7 +475,7 @@ static int handle_playback_request(struct client_stream *stream,
 	/* If we need to do format conversion on this stream, use an
 	 * intermediate buffer to store the samples so they can be converted. */
 	if (stream->conv) {
-		buf = cras_fmt_conv_get_buffer(stream->conv);
+		buf = stream->fmt_conv_buffer;
 		num_frames = cras_fmt_conv_out_frames_to_in(stream->conv,
 							    num_frames);
 	} else
@@ -493,8 +496,9 @@ static int handle_playback_request(struct client_stream *stream,
 		if (stream->conv) {
 			uint8_t *final_buf;
 			final_buf = cras_shm_get_curr_write_buffer(stream->shm);
-			frames = cras_fmt_conv_convert_to(
+			frames = cras_fmt_conv_convert_frames(
 					stream->conv,
+					stream->fmt_conv_buffer,
 					final_buf,
 					frames);
 		}
@@ -625,6 +629,14 @@ static int config_format_converter(struct client_stream *stream,
 			stream->config->buffer_frames);
 		if (stream->conv == NULL) {
 			syslog(LOG_ERR, "Failed to create format converter");
+			return -ENOMEM;
+		}
+
+		/* Need a buffer to keep pre-converted samples. */
+		stream->fmt_conv_buffer = malloc(stream->config->buffer_frames *
+						 cras_get_format_bytes(sfmt));
+		if (stream->fmt_conv_buffer == NULL) {
+			cras_fmt_conv_destroy(stream->conv);
 			return -ENOMEM;
 		}
 	}
@@ -809,8 +821,10 @@ static int client_thread_rm_stream(struct cras_client *client,
 			syslog(LOG_ERR, "Couldn't close audio socket");
 	if(close(stream->connection_fd))
 		syslog(LOG_ERR, "Couldn't close connection socket");
-	if (stream->conv)
+	if (stream->conv) {
 		cras_fmt_conv_destroy(stream->conv);
+		free(stream->fmt_conv_buffer);
+	}
 	free(stream->config);
 	free(stream);
 
@@ -896,8 +910,10 @@ static int handle_stream_reattach(struct cras_client *client,
 		pthread_join(stream->thread.tid, NULL);
 	}
 
-	if (stream->conv != NULL)
+	if (stream->conv != NULL) {
 		cras_fmt_conv_destroy(stream->conv);
+		free(stream->fmt_conv_buffer);
+	}
 	stream->conv = NULL;
 	if (stream->aud_fd >= 0)
 		close(stream->aud_fd);

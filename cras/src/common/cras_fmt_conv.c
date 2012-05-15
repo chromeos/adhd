@@ -30,7 +30,6 @@ struct cras_fmt_conv {
 	sample_format_converter_t sample_format_converter;
 	struct cras_audio_format in_fmt;
 	struct cras_audio_format out_fmt;
-	uint8_t *input_buf; /* Input buffer, samples to start conversion. */
 	uint8_t *tmp_buf; /* Buffer for holding samples between converters. */
 	size_t num_converters; /* Incremented once for SRC, channel, format. */
 };
@@ -139,7 +138,7 @@ static size_t s16_51_to_stereo(const int16_t *in, size_t in_frames,
 }
 
 /*
- * External interface
+ * Exported interface
  */
 
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
@@ -160,12 +159,6 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		return NULL;
 	conv->in_fmt = *in;
 	conv->out_fmt = *out;
-
-	conv->input_buf = malloc(max_frames * cras_get_format_bytes(in));
-	if (conv->input_buf == NULL) {
-		free(conv);
-		return NULL;
-	}
 
 	/* Set up sample format conversion. */
 	if (out->format != in->format) {
@@ -249,13 +242,7 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 	if (conv->speex_state)
 		speex_resampler_destroy(conv->speex_state);
 	free(conv->tmp_buf);
-	free(conv->input_buf);
 	free(conv);
-}
-
-uint8_t *cras_fmt_conv_get_buffer(struct cras_fmt_conv *conv)
-{
-	return conv->input_buf;
 }
 
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
@@ -274,8 +261,9 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 				   conv->in_fmt.frame_rate);
 }
 
-size_t cras_fmt_conv_convert_to(struct cras_fmt_conv *conv, uint8_t *out_buf,
-				size_t in_frames)
+/* Converts in_frames samples from in_buf, storing the results in out_buf. */
+size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv, uint8_t *in_buf,
+				    uint8_t *out_buf, size_t in_frames)
 {
 	uint32_t fr_in, fr_out;
 	uint8_t *buffers[MAX_NUM_CONVERTERS];
@@ -289,7 +277,7 @@ size_t cras_fmt_conv_convert_to(struct cras_fmt_conv *conv, uint8_t *out_buf,
 	/* Set up a chain of buffers.  The output buffer of the first conversion
 	 * is used as input to the second and so forth, ending in the output
 	 * buffer. */
-	buffers[0] = (uint8_t *)conv->input_buf;
+	buffers[0] = (uint8_t *)in_buf;
 	if (conv->num_converters == 2) {
 		buffers[1] = (uint8_t *)conv->tmp_buf;
 	} else if (conv->num_converters == 3) {
