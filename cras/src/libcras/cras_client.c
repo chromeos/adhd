@@ -612,9 +612,15 @@ static int config_shm(struct client_stream *stream, int key, size_t size)
 static int config_format_converter(struct client_stream *stream,
 				   const struct cras_audio_format *fmt)
 {
-	if (memcmp(&stream->config->format, fmt, sizeof(*fmt)) != 0) {
+	struct cras_audio_format *sfmt = &stream->config->format;
+
+	if (memcmp(sfmt, fmt, sizeof(*fmt)) != 0) {
+		syslog(LOG_DEBUG, "format convert %s: %d %zu %zu => %d %zu %zu",
+		       stream->direction ? "input" : "output",
+		       sfmt->format, sfmt->frame_rate, sfmt->num_channels,
+		       fmt->format, fmt->frame_rate, fmt->num_channels);
 		stream->conv = cras_fmt_conv_create(
-			&stream->config->format,
+			sfmt,
 			fmt,
 			stream->config->buffer_frames);
 		if (stream->conv == NULL) {
