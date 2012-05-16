@@ -69,4 +69,10 @@ struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
  */
 void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list);
 
+/* Gets the name of a jack.
+ * Args:
+ *    jack_list - The jack list to query.
+ */
+const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack);
+
 #endif /* CRAS_ALSA_JACK_H_ */

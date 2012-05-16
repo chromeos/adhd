@@ -330,3 +330,10 @@ void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list)
 	DL_FOREACH(jack_list->jacks, jack)
 		hctl_jack_cb(jack->elem, 0);
 }
+
+const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
+{
+	if (jack == NULL)
+		return NULL;
+	return snd_hctl_elem_get_name(jack->elem);
+}
