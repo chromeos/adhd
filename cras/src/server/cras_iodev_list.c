@@ -363,8 +363,8 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 		curr_dev = default_input;
 		default_input = new_dev;
 	}
-	if (curr_dev == NULL)
-		return 0; /* No streams to move. */
+	if (curr_dev == NULL || curr_dev == new_dev)
+		return 0; /* No change or no streams to move. */
 
 	/* For each stream on curr, detach and tell client to reconfig. */
 	DL_FOREACH_SAFE(curr_dev->streams, iostream, tmp) {

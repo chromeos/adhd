@@ -268,6 +268,11 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, 949);
   EXPECT_NE(0, rc);
 
+  // Test that routing to the already default device is a nop.
+  rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, rm_stream_1_called_);
+
   // Move the stream. Should just remove and wait for add from client.
   rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d2_.info.idx);
   EXPECT_EQ(0, rc);
