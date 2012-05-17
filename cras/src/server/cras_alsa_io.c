@@ -181,7 +181,11 @@ static void set_alsa_volume(void *arg)
 	curve = get_curve_for_active_output(aio);
 	if (curve == NULL)
 		return;
-	cras_alsa_mixer_set_dBFS(aio->mixer, curve->get_dBFS(curve, volume));
+	cras_alsa_mixer_set_dBFS(
+		aio->mixer,
+		curve->get_dBFS(curve, volume),
+		aio->active_output ?
+			aio->active_output->mixer_output : NULL);
 	/* Mute for zero. */
 	cras_alsa_mixer_set_mute(aio->mixer, mute || (volume == 0));
 }

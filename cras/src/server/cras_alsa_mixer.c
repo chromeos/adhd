@@ -303,7 +303,8 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 }
 
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
-			      long dBFS)
+			      long dBFS,
+			      struct cras_alsa_mixer_output *mixer_output)
 {
 	struct mixer_volume_control *c;
 	long to_set;
@@ -326,6 +327,11 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 						&actual_dB);
 		to_set -= actual_dB;
 	}
+	/* Apply the rest to the output-specific control. */
+	if (mixer_output && mixer_output->elem && mixer_output->has_volume)
+		snd_mixer_selem_set_playback_dB_all(mixer_output->elem,
+						    to_set,
+						    1);
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,

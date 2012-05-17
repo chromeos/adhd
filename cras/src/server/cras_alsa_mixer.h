@@ -57,9 +57,12 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
  *    cras_mixer - The mixer to set the volume on.
  *    dBFS - The volume level as dB * 100.  dB is a normally a negative quantity
  *      specifying how much to attenuate.
+ *    mixer_output - The mixer output to set if not all attenuation can be
+ *      obtained from the main controls.  Can be null.
  */
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
-			      long dBFS);
+			      long dBFS,
+			      struct cras_alsa_mixer_output *mixer_output);
 
 /* Sets the capture gain for the device associated with this mixer.
  * Args:

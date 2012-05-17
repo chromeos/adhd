@@ -214,7 +214,7 @@ TEST(AlsaMixer, CreateNoElements) {
   cras_alsa_mixer_set_mute(c, 0);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume shouldn't call anything. */
-  cras_alsa_mixer_set_dBFS(c, 0);
+  cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_dB_all_called);
 
   cras_alsa_mixer_destroy(c);
@@ -246,7 +246,7 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
   cras_alsa_mixer_set_mute(c, 0);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume shouldn't call anything. */
-  cras_alsa_mixer_set_dBFS(c, 0);
+  cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_dB_all_called);
 
   cras_alsa_mixer_destroy(c);
@@ -290,7 +290,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   cras_alsa_mixer_set_mute(c, 0);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume should be called for Master. */
-  cras_alsa_mixer_set_dBFS(c, 0);
+  cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_dB_all_called);
 
   cras_alsa_mixer_destroy(c);
@@ -314,6 +314,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
     "Master",
     "PCM",
   };
+  struct cras_alsa_mixer_output mixer_output;
+  long set_dB_values[3];
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
@@ -349,23 +351,47 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
     0,
     0,
   };
-  long set_dB_values[2];
   snd_mixer_selem_get_playback_dB_return_values = get_dB_returns;
   snd_mixer_selem_get_playback_dB_return_values_length =
       ARRAY_SIZE(get_dB_returns);
   snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
   snd_mixer_selem_set_playback_dB_all_values_length =
       ARRAY_SIZE(set_dB_values);
-  cras_alsa_mixer_set_dBFS(c, -50);
+  cras_alsa_mixer_set_dBFS(c, -50, NULL);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
   EXPECT_EQ(-50, set_dB_values[0]);
   EXPECT_EQ(-50, set_dB_values[1]);
+  /* Set volume should be called for Master, PCM, and the mixer_output passed
+   * in. If Master doesn't set to anything but zero then the entire volume
+   * should be passed to the PCM control.*/
+  long get_dB_returns_output[] = {
+    0,
+    0,
+  };
+  snd_mixer_selem_get_playback_dB_return_values_index = 0;
+  snd_mixer_selem_get_playback_dB_return_values = get_dB_returns_output;
+  snd_mixer_selem_get_playback_dB_return_values_length =
+      ARRAY_SIZE(get_dB_returns_output);
+  snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
+  snd_mixer_selem_set_playback_dB_all_values_length =
+      ARRAY_SIZE(set_dB_values);
+  snd_mixer_selem_set_playback_dB_all_values_index = 0;
+  snd_mixer_selem_set_playback_dB_all_called = 0;
+  snd_mixer_selem_get_playback_dB_called = 0;
+  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
+  mixer_output.has_volume = 1;
+  cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
+  EXPECT_EQ(3, snd_mixer_selem_set_playback_dB_all_called);
+  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
+  EXPECT_EQ(-50, set_dB_values[0]);
+  EXPECT_EQ(-50, set_dB_values[1]);
+  EXPECT_EQ(-50, set_dB_values[2]);
   /* Set volume should be called for Master and PCM. PCM should get the volume
    * remaining after Master is set, in this case -50 - -25 = -25. */
   long get_dB_returns2[] = {
     -25,
-    -25,
+    -24,
   };
   snd_mixer_selem_get_playback_dB_return_values = get_dB_returns2;
   snd_mixer_selem_get_playback_dB_return_values_length =
@@ -377,7 +403,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   snd_mixer_selem_set_playback_dB_all_values_index = 0;
   snd_mixer_selem_set_playback_dB_all_called = 0;
   snd_mixer_selem_get_playback_dB_called = 0;
-  cras_alsa_mixer_set_dBFS(c, -50);
+  mixer_output.has_volume = 0;
+  cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
   EXPECT_EQ(-50, set_dB_values[0]);
