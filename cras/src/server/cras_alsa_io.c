@@ -177,7 +177,8 @@ static void set_alsa_capture_gain(void *arg)
 
 	cras_alsa_mixer_set_capture_dBFS(aio->mixer,
 					 cras_system_get_capture_gain());
-	cras_alsa_mixer_set_mute(aio->mixer, cras_system_get_capture_mute());
+	cras_alsa_mixer_set_capture_mute(aio->mixer,
+					 cras_system_get_capture_mute());
 }
 
 /* Initializes the device settings and registers for callbacks when system
