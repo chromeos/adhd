@@ -18,11 +18,11 @@ Configuration:
 
 There can be a config file for each sound alsa card on the system.  This file
 lives in /etc/cras/.  The file should be named with the card name returned by
-ALSA, the string in the first set of '[]' in the aplay -l output.  The ini file
+ALSA, the string in the second set of '[]' in the aplay -l output.  The ini file
 has the following format.
 
 [<output-node-name>] ; Name of the mixer control for this output.
-  "<config-option>":"<config-value>"
+  <config-option> = <config-value>
 
 output-node-name is the mixer control name, e.g. "Headphone" or "Speaker".
 config-option can be the following:
@@ -36,10 +36,10 @@ size of 0.75dB and the speakers to have a max volume of 6dB with a step of
 1dB.
 
 [Headphone]
-  "volume_curve":"simple_step"
-  "volume_step":"75"
-  "max_volume":"-300"
+  volume_curve = simple_step
+  volume_step = 75
+  max_volume = -300
 [Speaker]
-  "volume_curve":"simple_step"
-  "volume_step":"100"
-  "max_volume":"-600"
+  volume_curve = simple_step
+  volume_step = 100
+  max_volume = -600
