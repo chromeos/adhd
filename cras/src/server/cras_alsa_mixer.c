@@ -494,6 +494,7 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 		snprintf(ini_key, INI_KEY_LEN, "%s:volume_step", name);
 		ini_key[INI_KEY_LEN] = 0;
 		volume_step = iniparser_getint(cmix->ini, ini_key, 300);
+		syslog(LOG_ERR, "Configure curve found for %s.", name);
 		return cras_volume_curve_create_simple_step(max_volume,
 							    volume_step);
 	} else {

@@ -76,8 +76,11 @@ static int read_card_config(dictionary **ini, const char *ini_dir,
 	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", ini_dir, card_name);
 	ini_name[MAX_INI_NAME_LENGTH] = '\0';
 	*ini = iniparser_load(ini_name);
-	if (*ini == NULL)
+	if (*ini == NULL) {
+		syslog(LOG_DEBUG, "No ini file %s", ini_name);
 		return -EINVAL;
+	}
+	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
 	return 0;
 }
 
