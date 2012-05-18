@@ -193,6 +193,10 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
 
+  fake_curve =
+    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+  fake_curve->get_dBFS = fake_get_dBFS;
+
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_iodev_move_stream_type_called);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
@@ -200,6 +204,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
+  free(fake_curve);
 }
 
 TEST(AlsaIoInit, InitializeCapture) {
@@ -1395,6 +1400,14 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
     cb(cras_alsa_mixer_list_outputs_outputs[i], callback_arg);
   }
 }
+
+struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
+		const struct cras_alsa_mixer *cmix,
+		const char *name)
+{
+	return NULL;
+}
+
 int cras_alsa_mixer_set_output_active_state(
 		struct cras_alsa_mixer_output *output,
 		int active)
@@ -1410,6 +1423,10 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 {
   cras_alsa_mixer_default_volume_curve_called++;
   return fake_curve;
+}
+
+void cras_volume_curve_destroy(struct cras_volume_curve *curve)
+{
 }
 
 long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix)
@@ -1446,6 +1463,11 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 
 void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list)
 {
+}
+
+const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
+{
+	return NULL;
 }
 
 struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(

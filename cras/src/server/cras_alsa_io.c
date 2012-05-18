@@ -42,9 +42,14 @@
  * on and off such as headphones or speakers.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
+ *    jack_curve - In absense of a mixer output, holds a volume curve to use
+ *        when this jack is plugged.
+ *    jack - The jack associated with the jack_curve (if it exists).
  */
 struct alsa_output_node {
 	struct cras_alsa_mixer_output *mixer_output;
+	struct cras_volume_curve *jack_curve;
+	const struct cras_alsa_jack *jack;
 	struct alsa_output_node *prev, *next;
 };
 
@@ -132,14 +137,25 @@ static int open_alsa(struct alsa_io *aio)
 	return 0;
 }
 
+/* Gets the curve for the active output. */
+static const struct cras_volume_curve *get_curve_for_active_output(
+		const struct alsa_io *aio)
+{
+	if (aio->active_output &&
+	    aio->active_output->mixer_output &&
+	    aio->active_output->mixer_output->volume_curve)
+		return aio->active_output->mixer_output->volume_curve;
+	else if (aio->active_output && aio->active_output->jack_curve)
+		return aio->active_output->jack_curve;
+	return cras_alsa_mixer_default_volume_curve(aio->mixer);
+}
+
 /* Informs the system of the volume limits for this device. */
 static void set_alsa_volume_limits(struct alsa_io *aio)
 {
 	const struct cras_volume_curve *curve;
-	if (aio->active_output && aio->active_output->mixer_output)
-		curve = aio->active_output->mixer_output->volume_curve;
-	else
-		curve = cras_alsa_mixer_default_volume_curve(aio->mixer);
+
+	curve = get_curve_for_active_output(aio);
 	cras_system_set_volume_limits(
 			curve->get_dBFS(curve, 1), /* min */
 			curve->get_dBFS(curve, CRAS_MAX_SYSTEM_VOLUME));
@@ -162,10 +178,9 @@ static void set_alsa_volume(void *arg)
 
 	volume = cras_system_get_volume();
 	mute = cras_system_get_mute();
-	if (aio->active_output && aio->active_output->mixer_output)
-		curve = aio->active_output->mixer_output->volume_curve;
-	else
-		curve = cras_alsa_mixer_default_volume_curve(aio->mixer);
+	curve = get_curve_for_active_output(aio);
+	if (curve == NULL)
+		return;
 	cras_alsa_mixer_set_dBFS(aio->mixer, curve->get_dBFS(curve, volume));
 	/* Mute for zero. */
 	cras_alsa_mixer_set_mute(aio->mixer, mute || (volume == 0));
@@ -850,6 +865,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	free(aio->base.supported_channel_counts);
 	DL_FOREACH_SAFE(aio->output_nodes, output, tmp) {
 		DL_DELETE(aio->output_nodes, output);
+		cras_volume_curve_destroy(output->jack_curve);
 		free(output);
 	}
 	free(aio->dev);
@@ -894,18 +910,19 @@ static struct alsa_output_node *get_output_node_from_jack(
 	struct cras_alsa_mixer_output *mixer_output;
 	struct alsa_output_node *node = NULL;
 
-	/* If this jack maps to an output node then set that output node as
-	 * active. */
 	mixer_output = cras_alsa_jack_get_mixer_output(jack);
-	if (mixer_output == NULL)
-		return NULL;
+	if (mixer_output == NULL) {
+		/* no mixer output, search by node. */
+		DL_SEARCH_SCALAR(aio->output_nodes, node, jack, jack);
+		return node;
+	}
 
 	DL_SEARCH_SCALAR(aio->output_nodes, node, mixer_output, mixer_output);
 	return node;
 }
 
-/* Callback that is called when a jack is plugged or unplugged. */
-static void jack_plug_event_callback(const struct cras_alsa_jack *jack,
+/* Callback that is called when an output jack is plugged or unplugged. */
+static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 				    int plugged,
 				    void *arg)
 {
@@ -918,22 +935,71 @@ static void jack_plug_event_callback(const struct cras_alsa_jack *jack,
 	aio = (struct alsa_io *)arg;
 	node = get_output_node_from_jack(aio, jack);
 
+	/* If there isn't a node for this jack, create one. */
+	if (node == NULL) {
+		node = (struct alsa_output_node *)calloc(1, sizeof(*node));
+		if (node == NULL) {
+			syslog(LOG_ERR, "Out of memory creating jack node.");
+			return;
+		}
+		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
+				aio->mixer, cras_alsa_jack_get_name(jack));
+		node->jack = jack;
+		DL_APPEND(aio->output_nodes, node);
+	}
+
 	if (plugged) {
 		syslog(LOG_DEBUG, "Move streams to %zu due to plug event.",
 		       aio->base.info.idx);
-		if (node != NULL)
+		/* If thie node is associated with mixer output, set that output
+		 * as active and set up the mixer, otherwise just set the node
+		 * as active and set the volume curve. */
+		if (node->mixer_output != NULL) {
 			alsa_iodev_set_active_output(&aio->base,
 						     node->mixer_output);
+		} else {
+			aio->active_output = node;
+			set_alsa_volume_limits(aio);
+			set_alsa_volume(aio);
+		}
 		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
 					    aio->base.info.idx);
 	} else {
 		syslog(LOG_DEBUG, "Move streams from %zu due to unplug event.",
 		       aio->base.info.idx);
-		if (aio->default_output != NULL &&
-		    aio->default_output->mixer_output != NULL)
-			alsa_iodev_set_active_output(
+		if (aio->default_output != NULL) {
+			if (aio->default_output->mixer_output != NULL)
+				alsa_iodev_set_active_output(
 					&aio->base,
 					aio->default_output->mixer_output);
+			aio->active_output = aio->default_output;
+			set_alsa_volume_limits(aio);
+			set_alsa_volume(aio);
+		}
+
+		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
+						    aio->base.direction);
+	}
+}
+
+/* Callback that is called when an input jack is plugged or unplugged. */
+static void jack_input_plug_event(const struct cras_alsa_jack *jack,
+				  int plugged,
+				  void *arg)
+{
+	struct alsa_io *aio;
+
+	if (arg == NULL)
+		return;
+	aio = (struct alsa_io *)arg;
+	if (plugged) {
+		syslog(LOG_DEBUG, "Move input streams to %zu due to plug.",
+		       aio->base.info.idx);
+		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+					    aio->base.info.idx);
+	} else {
+		syslog(LOG_DEBUG, "Move input streams from %zu due to unplug.",
+		       aio->base.info.idx);
 		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
 						    aio->base.direction);
 	}
@@ -1019,9 +1085,12 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				device_index,
 				mixer,
 				direction,
-				jack_plug_event_callback,
+				direction == CRAS_STREAM_OUTPUT ?
+					jack_output_plug_event :
+					jack_input_plug_event,
 				aio);
-	/* Get an initial read of the jacks for this device. */
+	/* Create output nodes for jacks that aren't associated with an already
+	 * existing node.  Get an initial read of the jacks for this device. */
 	cras_alsa_jack_list_report(aio->jack_list);
 
 	return &aio->base;
