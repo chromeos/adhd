@@ -235,7 +235,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
 	}
 
 	cmix->ini = ini;
-	cmix->volume_curve = cras_volume_curve_create_default();
+	cmix->volume_curve =
+		cras_alsa_mixer_create_volume_curve_for_name(cmix, "Default");
 
 	/* Find volume and mute controls. */
 	for(elem = snd_mixer_first_elem(cmix->mixer);
@@ -496,7 +497,7 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 		return cras_volume_curve_create_simple_step(max_volume,
 							    volume_step);
 	} else {
-		syslog(LOG_ERR, "Invalid volume curve type %s.", curve_type);
+		syslog(LOG_ERR, "No configure curve found for %s.", name);
 		return cras_volume_curve_create_default();
 	}
 }

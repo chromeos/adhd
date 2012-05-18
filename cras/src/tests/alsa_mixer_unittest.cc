@@ -79,8 +79,13 @@ static size_t snd_mixer_selem_get_capture_dB_range_values_index;
 static size_t snd_mixer_selem_get_capture_dB_range_values_length;
 static const long *snd_mixer_selem_get_capture_dB_range_min_values;
 static const long *snd_mixer_selem_get_capture_dB_range_max_values;
+static size_t iniparser_getstring_return_index;
+static size_t iniparser_getstring_return_length;
+static char **iniparser_getstring_returns;
 
 static void ResetStubData() {
+  iniparser_getstring_return_index = 0;
+  iniparser_getstring_return_length = 0;
   snd_mixer_open_called = 0;
   snd_mixer_open_return_value = 0;
   snd_mixer_close_called = 0;
@@ -558,6 +563,9 @@ class AlsaMixerOutputs : public testing::Test {
 	"Capture",
 	"Capture",
       };
+      char *iniparser_returns[] = {
+	      NULL,
+      };
 
       ResetStubData();
       snd_mixer_first_elem_return_value =
@@ -582,6 +590,8 @@ class AlsaMixerOutputs : public testing::Test {
         ARRAY_SIZE(element_capture_switches);
       snd_mixer_selem_get_name_return_values = element_names;
       snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+      iniparser_getstring_returns = iniparser_returns;
+      iniparser_getstring_return_length = ARRAY_SIZE(iniparser_returns);
       cras_mixer_ = cras_alsa_mixer_create("hw:0",
           reinterpret_cast<dictionary*>(5));
       ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), cras_mixer_);
@@ -891,10 +901,13 @@ void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 }
 
 // From libiniparser.
-static char fake_return_string[] = "simple_step";
+static char iniparser_default_return_value[] = "simple_step";
 char *iniparser_getstring(dictionary * d, char * key, char * def)
 {
-	return fake_return_string;
+  if (iniparser_getstring_return_index < iniparser_getstring_return_length)
+    return iniparser_getstring_returns[iniparser_getstring_return_index++];
+  else
+    return iniparser_default_return_value;
 }
 
 int iniparser_getint(dictionary * d, char * key, int notfound)
