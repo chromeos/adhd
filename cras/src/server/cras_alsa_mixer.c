@@ -388,13 +388,19 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
 	return total_max;
 }
 
-void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted)
+void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
+			      int muted,
+			      struct cras_alsa_mixer_output *mixer_output)
 {
 	assert(cras_mixer);
-	if (cras_mixer->playback_switch == NULL)
+	if (cras_mixer->playback_switch) {
+		snd_mixer_selem_set_playback_switch_all(
+				cras_mixer->playback_switch, !muted);
 		return;
-	snd_mixer_selem_set_playback_switch_all(cras_mixer->playback_switch,
-						!muted);
+	}
+	if (mixer_output && mixer_output->has_mute)
+		snd_mixer_selem_set_playback_switch_all(
+				mixer_output->elem, !muted);
 }
 
 void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,

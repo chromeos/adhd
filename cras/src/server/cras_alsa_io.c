@@ -161,6 +161,16 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 			curve->get_dBFS(curve, CRAS_MAX_SYSTEM_VOLUME));
 }
 
+/* Sets the alsa mute state for this iodev. */
+static void set_alsa_mute(const struct alsa_io *aio, int muted)
+{
+	cras_alsa_mixer_set_mute(
+		aio->mixer,
+		muted,
+		aio->active_output ?
+			aio->active_output->mixer_output : NULL);
+}
+
 /* Sets the volume of the playback device to the specified level. Receives a
  * volume index from the system settings, ranging from 0 to 100, converts it to
  * dB using the volume curve, and sends the dB value to alsa. Handles mute and
@@ -187,7 +197,7 @@ static void set_alsa_volume(void *arg)
 		aio->active_output ?
 			aio->active_output->mixer_output : NULL);
 	/* Mute for zero. */
-	cras_alsa_mixer_set_mute(aio->mixer, mute || (volume == 0));
+	set_alsa_mute(aio, mute || (volume == 0));
 }
 
 /* Sets the capture gain to the current system input gain level, given in dBFS.
@@ -1129,7 +1139,7 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 	struct alsa_output_node *output;
 	int found_output = 0;
 
-	cras_alsa_mixer_set_mute(aio->mixer, 1);
+	set_alsa_mute(aio, 1);
 	/* Unmute the acrtive input, mute all others. */
 	DL_FOREACH(aio->output_nodes, output) {
 		if (output->mixer_output == NULL)

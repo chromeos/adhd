@@ -93,8 +93,11 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix);
  * Args:
  *    cras_mixer - Mixer to set the volume in.
  *    muted - 1 if muted, 0 if not.
+ *    mixer_output - The mixer output to mute if no master mute.
  */
-void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted);
+void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
+			      int muted,
+			      struct cras_alsa_mixer_output *mixer_output);
 
 /* Sets the capture switch for the device.
  * Args:

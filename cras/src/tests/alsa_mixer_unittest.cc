@@ -211,7 +211,7 @@ TEST(AlsaMixer, CreateNoElements) {
   EXPECT_EQ(0, snd_mixer_close_called);
 
   /* set mute shouldn't call anything. */
-  cras_alsa_mixer_set_mute(c, 0);
+  cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume shouldn't call anything. */
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
@@ -226,6 +226,7 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
   const char *element_names[] = {
     "Unknown",
   };
+  struct cras_alsa_mixer_output mixer_output;
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
@@ -243,8 +244,13 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
   EXPECT_EQ(1, snd_mixer_selem_get_name_called);
 
   /* set mute shouldn't call anything. */
-  cras_alsa_mixer_set_mute(c, 0);
+  cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
+  /* if passed a mixer output then it should mute that. */
+  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
+  mixer_output.has_mute = 1;
+  cras_alsa_mixer_set_mute(c, 0, &mixer_output);
+  EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume shouldn't call anything. */
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_dB_all_called);
@@ -287,7 +293,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   EXPECT_EQ(1, snd_mixer_elem_next_called);
 
   /* set mute should be called for Master. */
-  cras_alsa_mixer_set_mute(c, 0);
+  cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume should be called for Master. */
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
@@ -342,7 +348,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   EXPECT_EQ(1, snd_mixer_selem_has_playback_switch_called);
 
   /* Set mute should be called for Master only. */
-  cras_alsa_mixer_set_mute(c, 0);
+  cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   /* Set volume should be called for Master and PCM. If Master doesn't set to
    * anything but zero then the entire volume should be passed to the PCM
