@@ -1435,22 +1435,16 @@ int cras_client_create(struct cras_client **client)
 	rc = pipe((*client)->command_fds);
 	if (rc < 0)
 		goto free_error;
-	rc = pipe((*client)->command_reply_fds);
-	if (rc < 0) {
-		close((*client)->command_fds[0]);
-		close((*client)->command_fds[1]);
-		goto free_error;
-	}
 	/* Pipe used to communicate between the client thread and the audio
 	 * thread. */
 	rc = pipe((*client)->stream_fds);
 	if (rc < 0) {
 		close((*client)->command_fds[0]);
 		close((*client)->command_fds[1]);
-		close((*client)->command_reply_fds[0]);
-		close((*client)->command_reply_fds[1]);
 		goto free_error;
 	}
+	(*client)->command_reply_fds[0] = -1;
+	(*client)->command_reply_fds[1] = -1;
 
 	openlog("cras_client", LOG_PID, LOG_USER);
 
@@ -1469,10 +1463,6 @@ void cras_client_destroy(struct cras_client *client)
 		close(client->server_fd);
 	close(client->command_fds[0]);
 	close(client->command_fds[1]);
-	close(client->command_reply_fds[0]);
-	/* The other end of the reply pipe can be closed by the client thread */
-	if (client->command_reply_fds[1] != -1)
-		close(client->command_reply_fds[1]);
 	close(client->stream_fds[0]);
 	close(client->stream_fds[1]);
 	free(client->output_devs);
@@ -1726,10 +1716,15 @@ int cras_client_notify_device(struct cras_client *client,
 
 int cras_client_run_thread(struct cras_client *client)
 {
-	if (client == NULL)
+	if (client == NULL || client->thread.running)
 		return -EINVAL;
 
+	assert(client->command_reply_fds[0] == -1 &&
+	       client->command_reply_fds[1] == -1);
+
 	client->thread.running = 1;
+	if (pipe(client->command_reply_fds) < 0)
+		return -EIO;
 	if (pthread_create(&client->thread.tid, NULL, client_thread, client))
 		return -ENOMEM;
 
@@ -1743,6 +1738,11 @@ int cras_client_stop(struct cras_client *client)
 
 	send_simple_cmd_msg(client, 0, CLIENT_STOP);
 	pthread_join(client->thread.tid, NULL);
+
+	/* The other end of the reply pipe is closed by the client thread, just
+	 * clost the read end here. */
+	close(client->command_reply_fds[0]);
+	client->command_reply_fds[0] = -1;
 
 	return 0;
 }
