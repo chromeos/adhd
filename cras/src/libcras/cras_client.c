@@ -1285,6 +1285,10 @@ static void *client_thread(void *arg)
 	if (arg == NULL)
 		return (void *)-EINVAL;
 
+	memset(&server_input, 0, sizeof(server_input));
+	memset(&command_input, 0, sizeof(command_input));
+	memset(&stream_input, 0, sizeof(stream_input));
+
 	while (client->thread.running) {
 		fd_set poll_set;
 		struct client_input *curr_input;
