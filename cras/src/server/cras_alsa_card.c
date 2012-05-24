@@ -38,11 +38,19 @@ struct cras_alsa_card {
 	dictionary *ini;
 };
 
-/* Creates an iodev for the given device. */
+/* Creates an iodev for the given device.
+ * Args:
+ *    card_index - 0 based index, value of "XX" in "hw:XX,YY".
+ *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
+ *    mixer - Controls the mixer controls for this card.
+ *    auto_route - If true immediately switch to using this device.
+ *    direction - Input or output.
+ */
 static struct iodev_list_node *create_iodev_for_device(
 		size_t card_index,
 		size_t device_index,
 		struct cras_alsa_mixer *mixer,
+		int auto_route,
 		enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list_node *new_dev;
@@ -54,7 +62,7 @@ static struct iodev_list_node *create_iodev_for_device(
 		alsa_iodev_create(card_index,
 				  device_index,
 				  mixer,
-				  device_index == 0, /* auto route */
+				  auto_route,
 				  direction);
 	if (new_dev->iodev == NULL) {
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %zu:%zu\n",
@@ -95,6 +103,8 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 	snd_ctl_card_info_t *card_info;
 	snd_pcm_info_t *dev_info;
 	struct cras_alsa_card *alsa_card;
+	int first_playback = 1; /* True if it's the first playback dev. */
+	int first_capture = 1; /* True if it's the first capture dev. */
 
 	if (card_idx >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR, "Invalid alsa card index %zu", card_idx);
@@ -154,14 +164,17 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		if (rc == 0) {
 			struct iodev_list_node *new_dev;
 
-			new_dev = create_iodev_for_device(card_idx,
-							  dev_idx,
-							  alsa_card->mixer,
-							  CRAS_STREAM_OUTPUT);
+			new_dev = create_iodev_for_device(
+					card_idx,
+					dev_idx,
+					alsa_card->mixer,
+					first_playback, /*auto-route*/
+					CRAS_STREAM_OUTPUT);
 			if (new_dev != NULL) {
 				syslog(LOG_DEBUG, "New playback device %zu:%d",
 						card_idx, dev_idx);
 				DL_APPEND(alsa_card->iodevs, new_dev);
+				first_playback = 0;
 			}
 		}
 
@@ -171,14 +184,17 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		if (rc == 0) {
 			struct iodev_list_node *new_dev;
 
-			new_dev = create_iodev_for_device(card_idx,
-							  dev_idx,
-							  alsa_card->mixer,
-							  CRAS_STREAM_INPUT);
+			new_dev = create_iodev_for_device(
+					card_idx,
+					dev_idx,
+					alsa_card->mixer,
+					first_capture,
+					CRAS_STREAM_INPUT);
 			if (new_dev != NULL) {
 				syslog(LOG_DEBUG, "New capture device %zu:%d",
 						card_idx, dev_idx);
 				DL_APPEND(alsa_card->iodevs, new_dev);
+				first_capture = 0;
 			}
 		}
 	}

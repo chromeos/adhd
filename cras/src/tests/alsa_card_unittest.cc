@@ -21,6 +21,9 @@ static struct cras_alsa_mixer *cras_alsa_mixer_create_return;
 static size_t cras_alsa_mixer_destroy_called;
 static size_t cras_alsa_iodev_create_called;
 static struct cras_iodev *cras_alsa_iodev_create_return;
+static size_t iodev_create_auto_route_index;
+static size_t iodev_create_auto_route_size;
+static int *iodev_create_auto_route;
 static size_t cras_alsa_iodev_destroy_called;
 static struct cras_iodev *cras_alsa_iodev_destroy_arg;
 static size_t snd_ctl_open_called;
@@ -45,6 +48,7 @@ static void ResetStubData() {
   cras_alsa_mixer_create_return = reinterpret_cast<struct cras_alsa_mixer *>(1);
   cras_alsa_mixer_destroy_called = 0;
   cras_alsa_iodev_create_called = 0;
+  iodev_create_auto_route_index = 0;
   cras_alsa_iodev_create_return = reinterpret_cast<struct cras_iodev *>(2);
   cras_alsa_iodev_destroy_called = 0;
   snd_ctl_open_called = 0;
@@ -200,19 +204,24 @@ TEST(AlsaCard, CreateOneInputAndOneOutput) {
 
 TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   struct cras_alsa_card *c;
-  int dev_nums[] = {0, 0};
+  int dev_nums[] = {0, 3};
   int info_rets[] = {0, -1, -1, 0};
+  int auto_route_vals[2];
 
   ResetStubData();
   snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
   snd_ctl_pcm_next_device_set_devs = dev_nums;
   snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
   snd_ctl_pcm_info_rets = info_rets;
+  iodev_create_auto_route = auto_route_vals;
+  iodev_create_auto_route_size = ARRAY_SIZE(auto_route_vals);
   c = cras_alsa_card_create(0);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(2, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, auto_route_vals[0]);
+  EXPECT_EQ(1, auto_route_vals[1]);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
@@ -235,8 +244,11 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer) {
 struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
+				     int auto_route,
 				     enum CRAS_STREAM_DIRECTION direction) {
   cras_alsa_iodev_create_called++;
+  if (iodev_create_auto_route_index < iodev_create_auto_route_size)
+    iodev_create_auto_route[iodev_create_auto_route_index++] = auto_route;
   return cras_alsa_iodev_create_return;
 }
 void alsa_iodev_destroy(struct cras_iodev *iodev) {
