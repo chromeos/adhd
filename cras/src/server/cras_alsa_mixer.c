@@ -214,8 +214,6 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
 	};
 	/* Names of controls for capture gain/attenuation and mute. */
 	static const char * const main_capture_names[] = {
-		"Mic Boost",
-		"Mic",
 		"Capture",
 		"Digital Capture",
 	};

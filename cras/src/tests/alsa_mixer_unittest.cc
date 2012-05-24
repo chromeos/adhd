@@ -439,10 +439,10 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
     1,
   };
   const char *element_names[] = {
-    "Mic Boost", /* Called twice pere element (one for logging). */
-    "Mic Boost",
+    "Capture", /* Called twice pere element (one for logging). */
     "Capture",
-    "Capture",
+    "Digital Capture",
+    "Digital Capture",
   };
 
   ResetStubData();
@@ -472,9 +472,9 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   /* Set mute should be called for Master only. */
   cras_alsa_mixer_set_capture_mute(c, 0);
   EXPECT_EQ(1, snd_mixer_selem_set_capture_switch_all_called);
-  /* Set volume should be called for Mic Boost and Capture. If Mic Boost doesn't
-   * set to anything but zero then the entire volume should be passed to the
-   * Capture control. */
+  /* Set volume should be called for Capture and Digital Capture. If Capture
+   * doesn't set to anything but zero then the entire volume should be passed to
+   * the Digital Capture control. */
   long get_dB_returns[] = {
     0,
     0,
@@ -491,8 +491,8 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_called);
   EXPECT_EQ(-10, set_dB_values[0]);
   EXPECT_EQ(-10, set_dB_values[1]);
-  /* Set volume should be called for Mic Boost and Capture. Capture should get
-   * the gain remaining after Mic Boos is set, in this case 20 - 25 = -5. */
+  /* Set volume should be called for Capture and Digital Capture. Capture should
+   * get the gain remaining after Mic Boos is set, in this case 20 - 25 = -5. */
   long get_dB_returns2[] = {
     25,
     -5,
@@ -558,10 +558,10 @@ class AlsaMixerOutputs : public testing::Test {
         "Speaker",
         "Speaker",
         "Speaker",
-	"Mic Boost",
-	"Mic Boost",
 	"Capture",
 	"Capture",
+	"Digital Capture",
+	"Digital Capture",
       };
       char *iniparser_returns[] = {
 	      NULL,
