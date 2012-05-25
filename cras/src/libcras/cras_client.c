@@ -79,9 +79,14 @@ struct set_stream_volume_command_message {
 	float volume_scaler;
 };
 
+/* Adds a stream to the client.
+ *  stream - The stream to add.
+ *  stream_id_out - Filled with the stream id of the new stream.
+ */
 struct add_stream_command_message {
 	struct command_msg header;
 	struct client_stream *stream;
+	cras_stream_id_t *stream_id_out;
 };
 
 struct get_device_list_message {
@@ -728,7 +733,8 @@ err_ret:
  * attached, waits if it isn't.  The stream is prepared on the  main thread and
  * passed here. */
 static int client_thread_add_stream(struct cras_client *client,
-				    struct client_stream *stream)
+				    struct client_stream *stream,
+				    cras_stream_id_t *stream_id_out)
 {
 	int rc;
 	struct cras_connect_message serv_msg;
@@ -748,6 +754,7 @@ static int client_thread_add_stream(struct cras_client *client,
 	} while (out != NULL);
 
 	stream->id = new_id;
+	*stream_id_out = new_id;
 	stream->client = client;
 
 	/* Create a socket for the server to notify of audio events. */
@@ -1189,7 +1196,9 @@ static int handle_command_message(struct cras_client *client)
 	case CLIENT_ADD_STREAM: {
 		struct add_stream_command_message *add_msg =
 			(struct add_stream_command_message *)msg;
-		rc = client_thread_add_stream(client, add_msg->stream);
+		rc = client_thread_add_stream(client,
+					      add_msg->stream,
+					      add_msg->stream_id_out);
 		break;
 	}
 	case CLIENT_REMOVE_STREAM:
@@ -1529,7 +1538,7 @@ int cras_client_add_stream(struct cras_client *client,
 	struct client_stream *stream;
 	int rc = 0;
 
-	if (client == NULL || config == NULL)
+	if (client == NULL || config == NULL || stream_id_out == NULL)
 		return -EINVAL;
 
 	if (config->aud_cb == NULL || config->err_cb == NULL)
@@ -1560,13 +1569,13 @@ int cras_client_add_stream(struct cras_client *client,
 	cmd_msg.header.msg_id = CLIENT_ADD_STREAM;
 	cmd_msg.header.stream_id = stream->id;
 	cmd_msg.stream = stream;
+	cmd_msg.stream_id_out = stream_id_out;
 	rc = send_command_message(client, &cmd_msg.header);
 	if (rc < 0) {
 		syslog(LOG_ERR, "adding stream failed in thread %d", rc);
 		goto add_failed;
 	}
 
-	*stream_id_out = stream->id;
 	return 0;
 
 add_failed:

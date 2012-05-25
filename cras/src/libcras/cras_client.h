@@ -181,6 +181,7 @@ void cras_client_stream_params_destroy(struct cras_stream_params *params);
  * Args:
  *    client - The client to add the stream to (from cras_client_create).
  *    stream_id_out - On success will be filled with the new stream id.
+ *        Guaranteed to be set before any callbacks are made.
  *    config - The cras_stream_params struct specifying the parameters for the
  *        stream.
  * Returns:
