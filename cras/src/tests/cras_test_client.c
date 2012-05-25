@@ -42,7 +42,7 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	int ret;
 	int write_size;
 
-	cras_client_calc_latency(client, stream_id, sample_time, &last_latency);
+	cras_client_calc_capture_latency(sample_time, &last_latency);
 
 	write_size = frames * cras_client_format_bytes_per_frame(aud_format);
 	ret = write(*fd, samples, write_size);
@@ -74,7 +74,7 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	if (full_frames && this_size > min_cb_level * frame_bytes)
 		this_size = min_cb_level * frame_bytes;
 
-	cras_client_calc_latency(client, stream_id, sample_time, &last_latency);
+	cras_client_calc_playback_latency(sample_time, &last_latency);
 
 	memcpy(samples, file_buf + file_buf_read_offset, this_size);
 	file_buf_read_offset += this_size;

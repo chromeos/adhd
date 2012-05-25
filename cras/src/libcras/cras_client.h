@@ -377,18 +377,33 @@ int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt);
 int cras_client_bytes_per_frame(struct cras_client *client,
 				cras_stream_id_t stream_id);
 
-/* For playback streams, calculates the latency of the next sample written.  For
- * capture returns the latency of the next frame to be read from the buffer
- * (based on when it was captured).  Only valid when called from the audio
- * callback function for the stream (aud_cb).
+/* For playback streams, calculates the latency of the next sample written.
+ * Only valid when called from the audio callback function for the stream
+ * (aud_cb).
  * Args:
  *    client - The client the stream is attached to(from cras_client_create).
  *    stream_id - Returned from add_stream to identify which stream.
  *    sample_time - The sample time stamp passed in to aud_cb.
  *    delay - Out parameter will be filled with the latency.
  * Returns:
- *    0 on success, -EINVAL if client or stream_id isn't valid.
+ *    0 on success, -EINVAL if delay is NULL.
  */
+int cras_client_calc_playback_latency(const struct timespec *sample_time,
+				      struct timespec *delay);
+
+/* For capture returns the latency of the next frame to be read from the buffer
+ * (based on when it was captured).  Only valid when called from the audio
+ * callback function for the stream (aud_cb).
+ * Args:
+ *    sample_time - The sample time stamp passed in to aud_cb.
+ *    delay - Out parameter will be filled with the latency.
+ * Returns:
+ *    0 on success, -EINVAL if delay is NULL.
+ */
+int cras_client_calc_capture_latency(const struct timespec *sample_time,
+				     struct timespec *delay);
+
+/* Deprecated TODO(dgreid) remove. */
 int cras_client_calc_latency(const struct cras_client *client,
 			     cras_stream_id_t stream_id,
 			     const struct timespec *sample_time,

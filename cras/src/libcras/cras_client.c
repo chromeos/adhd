@@ -1818,6 +1818,37 @@ int cras_client_bytes_per_frame(struct cras_client *client,
 	return cras_get_format_bytes(&stream->config->format);
 }
 
+int cras_client_calc_playback_latency(const struct timespec *sample_time,
+				      struct timespec *delay)
+{
+	struct timespec now;
+
+	if (delay == NULL)
+		return -EINVAL;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	/* for output return time until sample is played (t - now) */
+	subtract_timespecs(sample_time, &now, delay);
+	return 0;
+}
+
+int cras_client_calc_capture_latency(const struct timespec *sample_time,
+				     struct timespec *delay)
+{
+	struct timespec now;
+
+	if (delay == NULL)
+		return -EINVAL;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	/* For input want time since sample read (now - t) */
+	subtract_timespecs(&now, sample_time, delay);
+	return 0;
+}
+
+/* TODO(dgreid) delete this function. */
 int cras_client_calc_latency(const struct cras_client *client,
 			     cras_stream_id_t stream_id,
 			     const struct timespec *sample_time,
