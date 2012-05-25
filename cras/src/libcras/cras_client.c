@@ -498,6 +498,10 @@ static int handle_playback_request(struct client_stream *stream,
 	} else
 		buf = cras_shm_get_curr_write_buffer(stream->shm);
 
+	/* Make sure not to ask for more frames than the buffer can hold. */
+	if (num_frames > config->buffer_frames)
+		num_frames = config->buffer_frames;
+
 	/* Get samples from the user */
 	frames = config->aud_cb(stream->client,
 			stream->id,
