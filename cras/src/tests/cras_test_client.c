@@ -31,6 +31,8 @@ static int keep_looping = 1;
 static int full_frames;
 uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
 
+struct cras_audio_format *aud_format;
+
 /* Run from callback thread. */
 static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 		       uint8_t *samples, size_t frames,
@@ -42,7 +44,7 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 
 	cras_client_calc_latency(client, stream_id, sample_time, &last_latency);
 
-	write_size = frames * cras_client_bytes_per_frame(client, stream_id);
+	write_size = frames * cras_client_format_bytes_per_frame(aud_format);
 	ret = write(*fd, samples, write_size);
 	if (ret != write_size)
 		printf("Error writing file\n");
@@ -56,7 +58,7 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 {
 	size_t this_size;
 	snd_pcm_uframes_t avail;
-	uint32_t frame_bytes = cras_client_bytes_per_frame(client, stream_id);
+	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 
 	if (file_buf_read_offset >= file_buf_size)
 		return EOF;
@@ -159,7 +161,6 @@ static int run_file_io_stream(struct cras_client *client,
 			      int flags)
 {
 	struct cras_stream_params *params;
-	struct cras_audio_format *aud_format;
 	cras_playback_cb_t aud_cb;
 	cras_stream_id_t stream_id = 0;
 	int stream_playing = 0;

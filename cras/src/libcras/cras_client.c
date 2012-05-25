@@ -1795,6 +1795,15 @@ int cras_client_get_attached_clients(struct cras_client *client,
 	return send_command_message(client, &msg.header);
 }
 
+int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)
+{
+	if (fmt == NULL)
+		return -EINVAL;
+
+	return cras_get_format_bytes(fmt);
+}
+
+/* Deprecated, TODO(dgreid) delete me */
 int cras_client_bytes_per_frame(struct cras_client *client,
 				cras_stream_id_t stream_id)
 {

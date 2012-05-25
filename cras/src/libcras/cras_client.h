@@ -365,12 +365,15 @@ int cras_client_notify_device(struct cras_client *client,
 
 /* Returns the number of bytes in an audio frame for a stream.
  * Args:
- *    client - The client the stream is attached to(from cras_client_create).
- *    stream_id - Returned from add_stream to identify which stream.
+ *    format - The format of the audio stream.  Specifies bits per sample,
+ *        number of channels, and sample rate.
  * Returns:
- *   Positive number of bytes in a frame, or a negative error code if client is
- *   NULL or the stream is not found (from errno.h).
+ *   Positive number of bytes in a frame, or a negative error code if fmt is
+ *   NULL.
  */
+int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt);
+
+/* Deprecated. */
 int cras_client_bytes_per_frame(struct cras_client *client,
 				cras_stream_id_t stream_id);
 
