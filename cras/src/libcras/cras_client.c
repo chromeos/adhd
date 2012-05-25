@@ -665,7 +665,7 @@ static int config_format_converter(struct client_stream *stream,
 			return -ENOMEM;
 		}
 
-		/* Need a buffer to keep pre-converted samples. */
+		/* Need a buffer to keep samples before converting them. */
 		stream->fmt_conv_buffer = malloc(stream->config->buffer_frames *
 						 cras_get_format_bytes(sfmt));
 		if (stream->fmt_conv_buffer == NULL) {
