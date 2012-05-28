@@ -27,13 +27,17 @@ class IoDevTestSuite : public testing::Test {
       d1_.add_stream = add_stream_1;
       d1_.rm_stream = rm_stream_1;
       d1_.format = NULL;
+      d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
+      strcpy(d1_.info.name, "d1");
       d1_.supported_rates = sample_rates_;
       d1_.supported_channel_counts = channel_counts_;
       d2_.add_stream = add_stream_2;
       d2_.rm_stream = rm_stream_2;
       d2_.format = NULL;
+      d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
+      strcpy(d2_.info.name, "d2");
       d2_.supported_rates = sample_rates_;
       d2_.supported_channel_counts = channel_counts_;
     }
@@ -83,6 +87,17 @@ int IoDevTestSuite::rm_stream_2_called_;
 size_t cras_server_send_to_all_clients_called;
 size_t cras_server_send_to_all_clients_num_outputs;
 size_t cras_server_send_to_all_clients_num_inputs;
+
+// Devices with the wrong direction should be rejected.
+TEST_F(IoDevTestSuite, AddWrongDirection) {
+  int rc;
+
+  rc = cras_iodev_list_add_input(&d1_, 1);
+  EXPECT_EQ(-EINVAL, rc);
+  d1_.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(-EINVAL, rc);
+}
 
 // Test adding/removing an iodev to the list.
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
@@ -177,6 +192,9 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   struct cras_iodev_info *dev_info;
   int rc, i;
   uint32_t found_mask;
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  d2_.direction = CRAS_STREAM_INPUT;
 
   cras_server_send_to_all_clients_called = 0;
   rc = cras_iodev_list_add_input(&d1_, 1);

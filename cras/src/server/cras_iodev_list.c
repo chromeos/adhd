@@ -202,6 +202,9 @@ int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 {
 	int rc;
 
+	if (output->direction != CRAS_STREAM_OUTPUT)
+		return -EINVAL;
+
 	rc = add_dev_to_list(&outputs, output);
 	if (rc < 0)
 		return rc;
@@ -227,6 +230,9 @@ int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 {
 	int rc;
+
+	if (input->direction != CRAS_STREAM_INPUT)
+		return -EINVAL;
 
 	rc = add_dev_to_list(&inputs, input);
 	if (rc < 0)
