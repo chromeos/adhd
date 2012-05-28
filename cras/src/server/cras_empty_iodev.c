@@ -385,10 +385,18 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	}
 
 	/* Finally add it to the appropriate iodev list. */
-	if (direction == CRAS_STREAM_INPUT)
+	if (direction == CRAS_STREAM_INPUT) {
+		snprintf(iodev->info.name,
+			 ARRAY_SIZE(iodev->info.name),
+			 "Silent record device.");
+		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 		cras_iodev_list_add_input(iodev, 0);
-	else {
+	} else {
 		assert(direction == CRAS_STREAM_OUTPUT);
+		snprintf(iodev->info.name,
+			 ARRAY_SIZE(iodev->info.name),
+			 "Silent playback device.");
+		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 		cras_iodev_list_add_output(iodev, 0);
 	}
 
