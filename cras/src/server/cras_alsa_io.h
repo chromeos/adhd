@@ -13,7 +13,9 @@ struct cras_alsa_mixer_output;
 
 /* Initializes an alsa iodev.
  * Args:
- *    dev - the path to the alsa device to use.
+ *    card_index - 0 based index, value of "XX" in "hw:XX,YY".
+ *    card_name - The name of the card.
+ *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    mixer - The mixer for the alsa device.
  *    auto_route - If non-zero make this new device the default.
  *    direciton - input or output.
@@ -21,6 +23,7 @@ struct cras_alsa_mixer_output;
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
 struct cras_iodev *alsa_iodev_create(size_t card_index,
+				     const char *card_name,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     int auto_route,

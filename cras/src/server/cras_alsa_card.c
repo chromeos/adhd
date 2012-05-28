@@ -41,6 +41,7 @@ struct cras_alsa_card {
 /* Creates an iodev for the given device.
  * Args:
  *    card_index - 0 based index, value of "XX" in "hw:XX,YY".
+ *    card_name - The name of the card.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    mixer - Controls the mixer controls for this card.
  *    auto_route - If true immediately switch to using this device.
@@ -48,6 +49,7 @@ struct cras_alsa_card {
  */
 static struct iodev_list_node *create_iodev_for_device(
 		size_t card_index,
+		const char *card_name,
 		size_t device_index,
 		struct cras_alsa_mixer *mixer,
 		int auto_route,
@@ -60,6 +62,7 @@ static struct iodev_list_node *create_iodev_for_device(
 		return NULL;
 	new_dev->iodev =
 		alsa_iodev_create(card_index,
+				  card_name,
 				  device_index,
 				  mixer,
 				  auto_route,
@@ -101,6 +104,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 	snd_ctl_t *handle = NULL;
 	int rc, dev_idx;
 	snd_ctl_card_info_t *card_info;
+	const char *card_name;
 	snd_pcm_info_t *dev_info;
 	struct cras_alsa_card *alsa_card;
 	int first_playback = 1; /* True if it's the first playback dev. */
@@ -136,9 +140,16 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 		goto error_bail;
 	}
 
+	card_name = snd_ctl_card_info_get_name(card_info);
+	if (card_name == NULL) {
+		syslog(LOG_ERR, "Error getting card name.");
+		goto error_bail;
+	}
+
 	/* Read config file for this card if it exists. */
-	if (read_card_config(&alsa_card->ini, CARD_CONFIG_FILE_DIR,
-			     snd_ctl_card_info_get_name(card_info)) < 0)
+	if (read_card_config(&alsa_card->ini,
+			     CARD_CONFIG_FILE_DIR,
+			     card_name) < 0)
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
 
 	/* Create one mixer per card. */
@@ -166,6 +177,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 
 			new_dev = create_iodev_for_device(
 					card_idx,
+					card_name,
 					dev_idx,
 					alsa_card->mixer,
 					first_playback, /*auto-route*/
@@ -186,6 +198,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 
 			new_dev = create_iodev_for_device(
 					card_idx,
+					card_name,
 					dev_idx,
 					alsa_card->mixer,
 					first_capture,

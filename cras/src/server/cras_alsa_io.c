@@ -1030,11 +1030,30 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	}
 }
 
+/* Sets the name of the given iodev, using the name and index of the card
+ * combined with the device index and direction */
+static void set_iodev_name(struct cras_iodev *dev,
+			   const char *card_name,
+			   size_t card_index,
+			   size_t device_index)
+{
+	snprintf(dev->info.name,
+		 sizeof(dev->info.name),
+		 "%s: Alsa %s:%zu,%zu",
+		 card_name,
+		 (dev->direction == CRAS_STREAM_OUTPUT) ? "playback" : "record",
+		 card_index,
+		 device_index);
+	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
+	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
+}
+
 /*
  * Exported Interface.
  */
 
 struct cras_iodev *alsa_iodev_create(size_t card_index,
+				     const char *card_name,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     int auto_route,
@@ -1080,6 +1099,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	aio->mixer = mixer;
+	set_iodev_name(iodev, card_name, card_index, device_index);
 
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base, auto_route);

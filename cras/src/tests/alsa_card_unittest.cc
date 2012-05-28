@@ -242,6 +242,7 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer) {
 }
 
 struct cras_iodev *alsa_iodev_create(size_t card_index,
+				     const char *card_name,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     int auto_route,
