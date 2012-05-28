@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 
-#define CRAS_IODEV_NAME_BUFFER_SIZE 32
+#define CRAS_IODEV_NAME_BUFFER_SIZE 64
 
 /* Identifying information about an IO device. */
 struct cras_iodev_info {
