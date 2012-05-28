@@ -314,7 +314,7 @@ long cras_system_get_max_capture_gain()
 }
 
 
-int cras_system_add_alsa_card(size_t alsa_card_index)
+int cras_system_add_alsa_card(size_t alsa_card_index, size_t priority)
 {
 	struct card_list *card;
 	struct cras_alsa_card *alsa_card;
@@ -323,7 +323,7 @@ int cras_system_add_alsa_card(size_t alsa_card_index)
 		if (alsa_card_index == cras_alsa_card_get_index(card->card))
 			return -EINVAL;
 	}
-	alsa_card = cras_alsa_card_create(alsa_card_index);
+	alsa_card = cras_alsa_card_create(alsa_card_index, priority);
 	if (alsa_card == NULL)
 		return -ENOMEM;
 	card = calloc(1, sizeof(*card));

@@ -169,11 +169,14 @@ long cras_system_get_max_capture_gain();
  * causing its devices to become available for playback/capture.
  * Args:
  *    alsa_card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ *    priority - Base priority to give devices found on this card. Zero is the
+ *      lowest priority.  Non-primary devices on the card will be given a
+ *      lowered priority.
  * Returns:
  *    0 on success, negative error on failure (Can't create or card already
  *    exists).
  */
-int cras_system_add_alsa_card(size_t alsa_card_index);
+int cras_system_add_alsa_card(size_t alsa_card_index, size_t priority);
 
 /* Removes a card.  When a device is removed this will do the cleanup.  Device
  * at index must have been added using cras_system_add_alsa_card().

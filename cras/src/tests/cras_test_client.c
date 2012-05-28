@@ -108,16 +108,18 @@ static void print_device_lists(struct cras_client *client)
 	if (num_devs < 0)
 		return;
 	printf("Output Devices:\n");
-	printf("\tID\tName\n");
+	printf("\tID\tPriority\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("\t%zu\t%s\n", devs[i].idx, devs[i].name);
+		printf("\t%zu\t%zu\t\t%s\n", devs[i].idx,
+		       devs[i].priority, devs[i].name);
 	num_devs = cras_client_get_input_devices(client, devs, MAX_IODEVS);
 	if (num_devs < 0)
 		return;
 	printf("Input Devices:\n");
-	printf("\tID\tName\n");
+	printf("\tID\tPriority\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("\t%zu\t%s\n", devs[i].idx, devs[i].name);
+		printf("\t%zu\t%zu\t\t%s\n", devs[i].idx,
+		       devs[i].priority, devs[i].name);
 }
 
 static void print_attached_client_list(struct cras_client *client)

@@ -35,6 +35,7 @@ size_t capture_mute_changed_value;
 void *capture_mute_changed_arg_value;
 static struct cras_alsa_card* kFakeAlsaCard;
 size_t cras_alsa_card_create_called;
+size_t cras_alsa_card_create_prio;
 size_t cras_alsa_card_destroy_called;
 static size_t add_stub_called;
 static size_t rm_stub_called;
@@ -511,18 +512,21 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
 TEST(SystemStateSuite, AddCardFailCreate) {
   ResetStubData();
   kFakeAlsaCard = NULL;
-  EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(0));
+  EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(0, 44));
   EXPECT_EQ(1, cras_alsa_card_create_called);
+  EXPECT_EQ(44, cras_alsa_card_create_prio);
 }
 
 TEST(SystemStateSuite, AddCard) {
   ResetStubData();
-  EXPECT_EQ(0, cras_system_add_alsa_card(0));
+  EXPECT_EQ(0, cras_system_add_alsa_card(0, 44));
   EXPECT_EQ(1, cras_alsa_card_create_called);
+  EXPECT_EQ(44, cras_alsa_card_create_prio);
   // Adding the same card again should fail.
   ResetStubData();
-  EXPECT_NE(0, cras_system_add_alsa_card(0));
+  EXPECT_NE(0, cras_system_add_alsa_card(0, 44));
   EXPECT_EQ(0, cras_alsa_card_create_called);
+  EXPECT_EQ(44, cras_alsa_card_create_prio);
   // Removing card should destroy it.
   cras_system_remove_alsa_card(0);
   EXPECT_EQ(1, cras_alsa_card_destroy_called);
@@ -559,8 +563,9 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
 
 extern "C" {
 
-struct cras_alsa_card *cras_alsa_card_create(size_t card_index) {
+struct cras_alsa_card *cras_alsa_card_create(size_t card_index, size_t prio) {
   cras_alsa_card_create_called++;
+  cras_alsa_card_create_prio = prio;
   return kFakeAlsaCard;
 }
 

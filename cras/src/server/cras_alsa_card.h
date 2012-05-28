@@ -18,12 +18,14 @@ struct cras_alsa_card;
  * devices for the card and adds them to the system as possible playback or
  * capture endpoints.
  * Args:
- *    card_index - Index of the card for alsa, the X in "hw:X". Range: 0 to 31.
+ *    card_idx - Index of the card for alsa, the X in "hw:X". Range: 0 to 31.
+ *    priority - Priority used to choose which card to play to/capture from.
+ *      Higher priority is better zero is the lowest.
  * Returns:
  *    A pointer to the newly created cras_alsa_card which must later be freed
  *    by calling cras_alsa_card_destroy or NULL on error.
  */
-struct cras_alsa_card *cras_alsa_card_create(size_t card_index);
+struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority);
 
 /* Destroys a cras_alsa_card that was returned from cras_alsa_card_create.
  * Args:

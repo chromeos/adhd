@@ -45,6 +45,7 @@ struct cras_alsa_card {
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    mixer - Controls the mixer controls for this card.
  *    auto_route - If true immediately switch to using this device.
+ *    priority - Priority to give the device.
  *    direction - Input or output.
  */
 static struct iodev_list_node *create_iodev_for_device(
@@ -53,9 +54,17 @@ static struct iodev_list_node *create_iodev_for_device(
 		size_t device_index,
 		struct cras_alsa_mixer *mixer,
 		int auto_route,
+		size_t priority,
 		enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list_node *new_dev;
+
+	/* Dropping the prioity of non-auto routed devices ensures that the
+	 * auto-route devs are still selected first after the list is re-sorted.
+	 * Without this the order of devices within a card can't be determined
+	 * when the list is resorted. */
+	if (!auto_route && priority > 0)
+		priority--;
 
 	new_dev = calloc(1, sizeof(*calloc));
 	if (new_dev == NULL)
@@ -66,6 +75,7 @@ static struct iodev_list_node *create_iodev_for_device(
 				  device_index,
 				  mixer,
 				  auto_route,
+				  priority,
 				  direction);
 	if (new_dev->iodev == NULL) {
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %zu:%zu\n",
@@ -99,7 +109,7 @@ static int read_card_config(dictionary **ini, const char *ini_dir,
  * Exported Interface.
  */
 
-struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
+struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 {
 	snd_ctl_t *handle = NULL;
 	int rc, dev_idx;
@@ -181,6 +191,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 					dev_idx,
 					alsa_card->mixer,
 					first_playback, /*auto-route*/
+					priority,
 					CRAS_STREAM_OUTPUT);
 			if (new_dev != NULL) {
 				syslog(LOG_DEBUG, "New playback device %zu:%d",
@@ -202,6 +213,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx)
 					dev_idx,
 					alsa_card->mixer,
 					first_capture,
+					priority,
 					CRAS_STREAM_INPUT);
 			if (new_dev != NULL) {
 				syslog(LOG_DEBUG, "New capture device %zu:%d",

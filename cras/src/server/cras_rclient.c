@@ -169,13 +169,26 @@ static int handle_switch_stream_type_iodev(
 
 static void handle_notify_device_info(const struct cras_notify_device_info *msg)
 {
+	/* Prefer external cards to internal ones, assuming the user plugged the
+	 * external device in for a reason. */
+	static const size_t INTERNAL_CARD_PRIORITY = 50;
+	static const size_t EXTERNAL_CARD_PRIORITY = 80;
+
+	size_t card_priority;
+
 	syslog(LOG_DEBUG,
 	       "action: %u  card: %u  device: %u  act: %u  int: %u  pri: %u",
 	       msg->action, msg->card_number, msg->device_number,
 	       msg->active, msg->internal, msg->primary);
+
+	if (msg->internal)
+		card_priority = INTERNAL_CARD_PRIORITY;
+	else
+		card_priority = EXTERNAL_CARD_PRIORITY;
+
 	switch (msg->action) {
 	case CRAS_DEVICE_ACTION_ADD:
-		cras_system_add_alsa_card(msg->card_number);
+		cras_system_add_alsa_card(msg->card_number, card_priority);
 		break;
 	case CRAS_DEVICE_ACTION_REMOVE:
 		cras_system_remove_alsa_card(msg->card_number);

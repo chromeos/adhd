@@ -10,9 +10,15 @@
 
 #define CRAS_IODEV_NAME_BUFFER_SIZE 64
 
-/* Identifying information about an IO device. */
+/* Identifying information about an IO device.
+ *    idx - iodev index.
+ *    priority - Used when deciding what device to play to/capture from.  Higher
+ *      is better.
+ *    name - Name displayed to the user.
+ */
 struct cras_iodev_info {
 	size_t idx;
+	size_t priority;
 	char name[CRAS_IODEV_NAME_BUFFER_SIZE];
 };
 

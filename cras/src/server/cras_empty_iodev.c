@@ -13,6 +13,7 @@
 #include "cras_types.h"
 #include "utlist.h"
 
+static const size_t EMPTY_IODEV_PRIORITY = 0; /* lowest possible */
 static const unsigned int EMPTY_BUFFER_SIZE  = 48 * 1024;
 
 static size_t empty_supported_rates[] = {
@@ -383,6 +384,8 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 		free(iodev);
 		return NULL;
 	}
+
+	iodev->info.priority = EMPTY_IODEV_PRIORITY;
 
 	/* Finally add it to the appropriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT) {

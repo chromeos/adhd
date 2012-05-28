@@ -1057,6 +1057,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
 				     int auto_route,
+				     size_t prio,
 				     enum CRAS_STREAM_DIRECTION direction)
 {
 	struct alsa_io *aio;
@@ -1100,6 +1101,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	aio->mixer = mixer;
 	set_iodev_name(iodev, card_name, card_index, device_index);
+	iodev->info.priority = prio;
 
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base, auto_route);
