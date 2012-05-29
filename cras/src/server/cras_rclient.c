@@ -37,6 +37,10 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	int aud_fd = 0;
 	size_t buffer_frames, cb_threshold, min_cb_level;
 
+	/* If this is the first stream added to the system, sort the iodevs
+	 * based on priority. This is done to handle boot time priority. */
+	if (!cras_system_has_played_streams())
+		cras_iodev_sort_device_lists();
 	/* Increment the number of streams that have attached to the system. */
 	cras_system_increment_streams_played();
 

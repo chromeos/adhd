@@ -58,6 +58,8 @@ static size_t cras_system_get_max_volume_called;
 static size_t cras_system_register_volume_limits_changed_cb_called;
 static size_t cras_system_remove_volume_limits_changed_cb_called;
 static size_t cras_system_increment_streams_played_called;
+static size_t cras_iodev_sort_device_lists_called;
+static int cras_system_has_played_streams_return;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -91,6 +93,8 @@ void ResetStubData() {
   cras_system_register_volume_limits_changed_cb_called = 0;
   cras_system_remove_volume_limits_changed_cb_called = 0;
   cras_system_increment_streams_played_called = 0;
+  cras_iodev_sort_device_lists_called = 0;
+  cras_system_has_played_streams_return = 0;
 }
 
 namespace {
@@ -203,6 +207,41 @@ TEST_F(RClientMessagesSuite, NoDevErrorReply) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(1, cras_system_increment_streams_played_called);
+}
+
+TEST_F(RClientMessagesSuite, SortListFirstStream) {
+  struct cras_client_stream_connected out_msg;
+  int rc;
+
+  get_iodev_return = (struct cras_iodev *)NULL;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  EXPECT_EQ(0, rc);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_, out_msg.stream_id);
+  EXPECT_NE(0, out_msg.err);
+  EXPECT_EQ(1, cras_system_increment_streams_played_called);
+  EXPECT_EQ(1, cras_iodev_sort_device_lists_called);
+}
+
+TEST_F(RClientMessagesSuite, DontSortListSecondStream) {
+  struct cras_client_stream_connected out_msg;
+  int rc;
+
+  get_iodev_return = (struct cras_iodev *)NULL;
+  cras_system_has_played_streams_return = 1;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  EXPECT_EQ(0, rc);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_, out_msg.stream_id);
+  EXPECT_NE(0, out_msg.err);
+  EXPECT_EQ(1, cras_system_increment_streams_played_called);
+  EXPECT_EQ(0, cras_iodev_sort_device_lists_called);
 }
 
 TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
@@ -358,6 +397,11 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
   return 0;
+}
+
+void cras_iodev_sort_device_lists()
+{
+  cras_iodev_sort_device_lists_called++;
 }
 
 int cras_rstream_create(cras_stream_id_t stream_id,
@@ -561,6 +605,11 @@ unsigned int cras_system_increment_streams_played()
 {
   cras_system_increment_streams_played_called++;
   return cras_system_increment_streams_played_called;
+}
+
+int cras_system_has_played_streams()
+{
+  return cras_system_has_played_streams_return;
 }
 
 }  // extern "C"
