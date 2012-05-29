@@ -171,6 +171,59 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 	return iodev->supported_channel_counts[0];
 }
 
+/* Re-orders the list of devices based on the priority of each device.  Places
+ * the devices with higher priority at the beginning of the list.  It is
+ * important that the relative order of devices with the same priority is
+ * preserved (Within a priority the most recent devices will be chosen).
+ */
+static void sort_iodev_list(struct cras_iodev **list)
+{
+	struct cras_iodev *dev, *tmp;
+	struct cras_iodev *old_list = *list;
+	struct cras_iodev *new_list = NULL;
+
+	dev = old_list;
+	if (dev == NULL)
+		return; /* Nothing to sort. */
+
+	/* Move the first device. */
+	DL_DELETE(old_list, dev);
+	DL_APPEND(new_list, dev);
+
+	/* Then the insert the rest in the correct order. */
+	DL_FOREACH_SAFE(old_list, dev, tmp) {
+		struct cras_iodev *curr;
+
+		/* Remove from the old list before adding to the new list. */
+		DL_DELETE(old_list, dev);
+
+		/* Check if higher priority than head. */
+		if (dev->info.priority > new_list->info.priority) {
+			DL_PREPEND(new_list, dev);
+			continue;
+		}
+
+		/* Check if lower priority than the tail. */
+		if (dev->info.priority <= new_list->prev->info.priority) {
+			DL_APPEND(new_list, dev);
+			continue;
+		}
+
+		/* Not highest or lowest, insert in the list. */
+		DL_FOREACH(new_list, curr) {
+			if (dev->info.priority > curr->info.priority) {
+				dev->prev = curr->prev;
+				dev->next = curr;
+				dev->prev->next = dev;
+				curr->prev = dev;
+				break;
+			}
+		}
+	}
+
+	*list = new_list;
+}
+
 /*
  * Exported Functions.
  */
@@ -417,6 +470,14 @@ void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 		cras_iodev_detach_stream(dev, stream);
 		cras_rstream_send_client_reattach(stream);
 	}
+}
+
+void cras_iodev_sort_device_lists()
+{
+	sort_iodev_list(&inputs.iodevs);
+	default_input = inputs.iodevs;
+	sort_iodev_list(&outputs.iodevs);
+	default_output = outputs.iodevs;
 }
 
 /* Sends out the list of iodevs in the system. */

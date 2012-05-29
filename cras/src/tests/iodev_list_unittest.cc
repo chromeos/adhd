@@ -40,6 +40,14 @@ class IoDevTestSuite : public testing::Test {
       strcpy(d2_.info.name, "d2");
       d2_.supported_rates = sample_rates_;
       d2_.supported_channel_counts = channel_counts_;
+      d3_.add_stream = add_stream_2;
+      d3_.rm_stream = rm_stream_2;
+      d3_.format = NULL;
+      d3_.direction = CRAS_STREAM_OUTPUT;
+      d3_.info.idx = -999;
+      strcpy(d3_.info.name, "d3");
+      d3_.supported_rates = sample_rates_;
+      d3_.supported_channel_counts = channel_counts_;
     }
 
     static int add_stream_1(struct cras_iodev *iodev,
@@ -72,6 +80,7 @@ class IoDevTestSuite : public testing::Test {
 
     struct cras_iodev d1_;
     struct cras_iodev d2_;
+    struct cras_iodev d3_;
     size_t sample_rates_[3];
     size_t channel_counts_[2];
     static int add_stream_1_called_;
@@ -103,7 +112,10 @@ TEST_F(IoDevTestSuite, AddWrongDirection) {
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
   struct cras_iodev_info *dev_info;
   int rc;
-  uint32_t found_mask;
+
+  // First dev has higher priority.
+  d1_.info.priority = 100;
+  d2_.info.priority = 10;
 
   rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
@@ -116,18 +128,20 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, d2_.info.idx);
 
-  // List the outputs.
+  // List the outputs.  Most recently added(d2) should be first.
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(2, rc);
-  if (rc == 2) {
-    found_mask = 0;
-    for (int i = 0; i < rc; i++) {
-      size_t idx = dev_info[i].idx;
-      EXPECT_EQ(0, (found_mask & (1 << idx)));
-      found_mask |= (1 << idx);
-    }
-    EXPECT_EQ(0x03, found_mask);
-  }
+  EXPECT_EQ(d2_.info.idx, dev_info[0].idx);
+  EXPECT_EQ(d1_.info.idx, dev_info[1].idx);
+  if (rc > 0)
+    free(dev_info);
+
+  // Sort the list and check that the higher priority dev is first.
+  cras_iodev_sort_device_lists();
+  rc = cras_iodev_list_get_outputs(&dev_info);
+  EXPECT_EQ(2, rc);
+  EXPECT_EQ(d1_.info.idx, dev_info[0].idx);
+  EXPECT_EQ(d2_.info.idx, dev_info[1].idx);
   if (rc > 0)
     free(dev_info);
 
@@ -154,6 +168,12 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
 TEST_F(IoDevTestSuite, AutoRouteOutputs) {
   int rc;
   struct cras_iodev *ret_dev;
+  struct cras_iodev_info *dev_info;
+
+  // First dev has higher priority.
+  d1_.info.priority = 2;
+  d2_.info.priority = 1;
+  d3_.info.priority = 3;
 
   rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
@@ -169,15 +189,35 @@ TEST_F(IoDevTestSuite, AutoRouteOutputs) {
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d2_, ret_dev);
+  // Test insert a third output.
+  rc = cras_iodev_list_add_output(&d3_, 1);
+  EXPECT_EQ(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d3_, ret_dev);
+
+  // Sorting the devices should cause the default to be set.
+  cras_iodev_sort_device_lists();
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d3_, ret_dev);
+
+  rc = cras_iodev_list_get_outputs(&dev_info);
+  EXPECT_EQ(3, rc);
+  EXPECT_EQ(d1_.info.idx, dev_info[1].idx);
+  EXPECT_EQ(d2_.info.idx, dev_info[2].idx);
+  EXPECT_EQ(d3_.info.idx, dev_info[0].idx);
+  if (rc > 0)
+    free(dev_info);
 
   // Test that it is removed if no attached streams.
   d1_.streams = (struct cras_io_stream *)NULL;
   d2_.streams = (struct cras_io_stream *)NULL;
+  d3_.streams = (struct cras_io_stream *)NULL;
+  rc = cras_iodev_list_rm_output(&d3_);
+  EXPECT_EQ(0, rc);
   rc = cras_iodev_list_rm_output(&d2_);
   EXPECT_EQ(0, rc);
-  // Test that we can't remove a dev twice.
-  rc = cras_iodev_list_rm_output(&d2_);
-  EXPECT_NE(0, rc);
   // Default should fall back to d1.
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
