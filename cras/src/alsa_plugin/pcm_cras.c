@@ -15,6 +15,7 @@
  *  hw_ptr - Current read or write position.
  *  channels - Number of channels.
  *  stream_id - CRAS ID of the playing/capturing stream.
+ *  bytes_per_frame - number of bytes in an audio frame.
  *  direction - input or output.
  *  areas - ALSA areas used to read from/write to.
  *  client - CRAS client object.
@@ -30,6 +31,7 @@ struct snd_pcm_cras {
 	unsigned int hw_ptr;
 	unsigned int channels;
 	cras_stream_id_t stream_id;
+	size_t bytes_per_frame;
 	enum CRAS_STREAM_DIRECTION direction;
 	snd_pcm_channel_area_t *areas;
 	struct cras_client *client;
@@ -130,8 +132,7 @@ static int pcm_cras_process_cb(struct cras_client *client,
 
 	io = (snd_pcm_ioplug_t *)arg;
 	pcm_cras = (struct snd_pcm_cras *)io->private_data;
-	frame_bytes = cras_client_bytes_per_frame(pcm_cras->client,
-						  pcm_cras->stream_id);
+	frame_bytes = pcm_cras->bytes_per_frame;
 	sample_bytes = snd_pcm_format_physical_width(io->format) / 8;
 
 	if (io->stream == SND_PCM_STREAM_PLAYBACK) {
@@ -276,6 +277,9 @@ static int snd_pcm_cras_start(snd_pcm_ioplug_t *io)
 	rc = cras_client_run_thread(pcm_cras->client);
 	if (rc < 0)
 		goto error_out;
+
+	pcm_cras->bytes_per_frame =
+		cras_client_format_bytes_per_frame(audio_format);
 
 	rc = cras_client_add_stream(pcm_cras->client,
 				    &pcm_cras->stream_id,

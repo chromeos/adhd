@@ -402,10 +402,6 @@ unsigned cras_client_get_num_active_streams(struct cras_client *client,
  */
 int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt);
 
-/* Deprecated. */
-int cras_client_bytes_per_frame(struct cras_client *client,
-				cras_stream_id_t stream_id);
-
 /* For playback streams, calculates the latency of the next sample written.
  * Only valid when called from the audio callback function for the stream
  * (aud_cb).
@@ -431,13 +427,6 @@ int cras_client_calc_playback_latency(const struct timespec *sample_time,
  */
 int cras_client_calc_capture_latency(const struct timespec *sample_time,
 				     struct timespec *delay);
-
-/* Deprecated TODO(dgreid) remove. */
-int cras_client_calc_latency(const struct cras_client *client,
-			     cras_stream_id_t stream_id,
-			     const struct timespec *sample_time,
-			     struct timespec *delay);
-
 
 #ifdef __cplusplus
 }

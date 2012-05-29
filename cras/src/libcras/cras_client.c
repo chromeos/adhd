@@ -1747,21 +1747,6 @@ int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)
 	return cras_get_format_bytes(fmt);
 }
 
-/* Deprecated, TODO(dgreid) delete me */
-int cras_client_bytes_per_frame(struct cras_client *client,
-				cras_stream_id_t stream_id)
-{
-	struct client_stream *stream;
-
-	if (client == NULL)
-		return -EINVAL;
-
-	stream = stream_from_id(client, stream_id);
-	if (stream == NULL || stream->config == NULL)
-		return 0;
-	return cras_get_format_bytes(&stream->config->format);
-}
-
 int cras_client_calc_playback_latency(const struct timespec *sample_time,
 				      struct timespec *delay)
 {
@@ -1789,33 +1774,5 @@ int cras_client_calc_capture_latency(const struct timespec *sample_time,
 
 	/* For input want time since sample read (now - t) */
 	subtract_timespecs(&now, sample_time, delay);
-	return 0;
-}
-
-/* TODO(dgreid) delete this function. */
-int cras_client_calc_latency(const struct cras_client *client,
-			     cras_stream_id_t stream_id,
-			     const struct timespec *sample_time,
-			     struct timespec *delay)
-{
-	struct timespec now;
-	struct client_stream *stream;
-
-	if (client == NULL)
-		return -EINVAL;
-
-	stream = stream_from_id(client, stream_id);
-	if (stream == NULL)
-		return -EINVAL;
-
-	clock_gettime(CLOCK_MONOTONIC, &now);
-
-	/* for input want time since sample read (now - t),
-	 * for output time until sample played (t - now) */
-	if (stream->direction == CRAS_STREAM_INPUT)
-		subtract_timespecs(&now, sample_time, delay);
-	else
-		subtract_timespecs(sample_time, &now, delay);
-
 	return 0;
 }
