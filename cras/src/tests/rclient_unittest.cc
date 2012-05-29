@@ -57,6 +57,7 @@ static size_t cras_system_get_min_volume_called;
 static size_t cras_system_get_max_volume_called;
 static size_t cras_system_register_volume_limits_changed_cb_called;
 static size_t cras_system_remove_volume_limits_changed_cb_called;
+static size_t cras_system_increment_streams_played_called;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -89,6 +90,7 @@ void ResetStubData() {
   cras_system_get_max_volume_called = 0;
   cras_system_register_volume_limits_changed_cb_called = 0;
   cras_system_remove_volume_limits_changed_cb_called = 0;
+  cras_system_increment_streams_played_called = 0;
 }
 
 namespace {
@@ -200,6 +202,7 @@ TEST_F(RClientMessagesSuite, NoDevErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
+  EXPECT_EQ(1, cras_system_increment_streams_played_called);
 }
 
 TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
@@ -216,6 +219,7 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
+  EXPECT_EQ(1, cras_system_increment_streams_played_called);
 }
 
 TEST_F(RClientMessagesSuite, AudSockConnectErrorReply) {
@@ -270,6 +274,7 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
+  EXPECT_EQ(1, cras_system_increment_streams_played_called);
 }
 
 TEST_F(RClientMessagesSuite, SetVolume) {
@@ -551,4 +556,11 @@ int cras_system_remove_mute_changed_cb(cras_system_volume_changed_cb cb,
   cras_system_remove_mute_cb_called++;
   return 0;
 }
+
+unsigned int cras_system_increment_streams_played()
+{
+  cras_system_increment_streams_played_called++;
+  return cras_system_increment_streams_played_called;
+}
+
 }  // extern "C"
