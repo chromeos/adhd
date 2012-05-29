@@ -561,6 +561,16 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   EXPECT_EQ(select_data, select_data_value);
 }
 
+TEST(SystemSettingsStreamCount, FirstStreamCheck) {
+  ResetStubData();
+  cras_system_state_init();
+  EXPECT_EQ(0, cras_system_has_played_streams());
+  EXPECT_EQ(1, cras_system_increment_streams_played());
+  EXPECT_EQ(1, cras_system_has_played_streams());
+  EXPECT_EQ(2, cras_system_increment_streams_played());
+  EXPECT_EQ(1, cras_system_has_played_streams());
+}
+
 extern "C" {
 
 struct cras_alsa_card *cras_alsa_card_create(size_t card_index, size_t prio) {

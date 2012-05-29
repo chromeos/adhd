@@ -34,6 +34,7 @@ struct volume_callback_list {
  *    capture_mute - 0 = unmuted, 1 = muted.
  *    min_capture_gain - Min allowed capture gain in dBFS * 100.
  *    max_capture_gain - Max allowed capture gain in dBFS * 100.
+ *    num_streams_attached - Total number of streams since server started.
  *    volume_callbacks - Called when the system volume changes.
  *    mute_callbacks - Called when the system mute state changes.
  *    capture_gain_callbacks - Called when the capture gain changes.
@@ -50,6 +51,7 @@ static struct {
 	int capture_mute;
 	long min_capture_gain;
 	long max_capture_gain;
+	size_t num_streams_attached;
 	struct volume_callback_list *volume_callbacks;
 	struct volume_callback_list *mute_callbacks;
 	struct volume_callback_list *capture_gain_callbacks;
@@ -119,6 +121,7 @@ void cras_system_state_init()
 	state.max_volume_dBFS = DEFAULT_MAX_VOLUME_DBFS;
 	state.min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	state.max_capture_gain = DEFAULT_MAX_CAPTURE_GAIN;
+	state.num_streams_attached = 0;
 
 	/* Free any registered callbacks.  This prevents unit tests from
 	 * leaking. */
@@ -313,6 +316,15 @@ long cras_system_get_max_capture_gain()
 	return state.max_capture_gain;
 }
 
+int cras_system_has_played_streams()
+{
+	return state.num_streams_attached != 0;
+}
+
+unsigned int cras_system_increment_streams_played()
+{
+	return ++state.num_streams_attached;
+}
 
 int cras_system_add_alsa_card(size_t alsa_card_index, size_t priority)
 {

@@ -164,6 +164,21 @@ long cras_system_get_min_capture_gain();
 /* Returns the min value allowed for capture gain in dB * 100. */
 long cras_system_get_max_capture_gain();
 
+/* Checks if any streams have been played.  Can be used to check if the first
+ * stream is attaching.
+ * Returns:
+ *    0 if no streams have been attached, 1 otherwise.
+ */
+int cras_system_has_played_streams();
+
+/* Increments the counter for number of streams that have been attached to the
+ * system.  This must be called everytime a stream is added.
+ * Returns:
+ *    The total number of streams that have been attached to the system,
+ *    including the current stream.
+ */
+unsigned int cras_system_increment_streams_played();
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.
