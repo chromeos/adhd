@@ -265,17 +265,32 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 				   conv->in_fmt.frame_rate);
 }
 
-/* Converts in_frames samples from in_buf, storing the results in out_buf. */
-size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv, uint8_t *in_buf,
-				    uint8_t *out_buf, size_t in_frames)
+size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
+				    uint8_t *in_buf,
+				    uint8_t *out_buf,
+				    size_t in_frames,
+				    size_t out_frames)
 {
 	uint32_t fr_in, fr_out;
 	uint8_t *buffers[MAX_NUM_CONVERTERS + 1]; /* converters + out buffer. */
 	size_t buf_idx = 0;
+	static int logged_frames_dont_fit;
 
 	assert(conv);
 
-	fr_in = in_frames;
+	/* If no SRC, then in_frames should = out_frames. */
+	if (conv->speex_state == NULL) {
+		fr_in = min(in_frames, out_frames);
+		if (out_frames != in_frames && !logged_frames_dont_fit) {
+			syslog(LOG_ERR,
+			       "fmt_conv: %zu to %zu no converter.",
+			       in_frames,
+			       out_frames);
+			logged_frames_dont_fit = 1;
+		}
+	} else {
+		fr_in = in_frames;
+	}
 	fr_out = fr_in;
 
 	/* Set up a chain of buffers.  The output buffer of the first conversion
@@ -310,6 +325,15 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv, uint8_t *in_buf,
 		fr_out = cras_frames_at_rate(conv->in_fmt.frame_rate,
 					     fr_in,
 					     conv->out_fmt.frame_rate);
+		if (fr_out > out_frames + 1 && !logged_frames_dont_fit) {
+			syslog(LOG_ERR,
+			       "fmt_conv: put %u frames in %zu sized buffer",
+			       fr_out,
+			       out_frames);
+			logged_frames_dont_fit = 1;
+		}
+		/* limit frames to the output size. */
+		fr_out = min(fr_out, out_frames);
 		speex_resampler_process_interleaved_int(
 				conv->speex_state,
 				(int16_t *)buffers[buf_idx],

@@ -450,7 +450,8 @@ static int handle_capture_data_ready(struct client_stream *stream,
 				stream->conv,
 				captured_frames,
 				stream->fmt_conv_buffer,
-				num_frames);
+				num_frames,
+				stream->config->buffer_frames);
 		captured_frames = stream->fmt_conv_buffer;
 	}
 
@@ -518,20 +519,24 @@ static int handle_playback_request(struct client_stream *stream,
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		aud_msg.error = frames;
 	} else {
+		struct cras_audio_shm_area *shm = stream->shm;
+
 		/* Possibly convert to the correct format. */
 		if (stream->conv) {
 			uint8_t *final_buf;
-			final_buf = cras_shm_get_curr_write_buffer(stream->shm);
+
+			final_buf = cras_shm_get_curr_write_buffer(shm);
 			frames = cras_fmt_conv_convert_frames(
 					stream->conv,
 					stream->fmt_conv_buffer,
 					final_buf,
-					frames);
+					frames,
+					cras_shm_get_avail_curr_buffer(shm));
 		}
 		/* And move the write pointer to indicate samples written. */
-		cras_shm_check_write_overrun(stream->shm);
-		cras_shm_buffer_written(stream->shm, frames);
-		cras_shm_buffer_write_complete(stream->shm);
+		cras_shm_check_write_overrun(shm);
+		cras_shm_buffer_written(shm, frames);
+		cras_shm_buffer_write_complete(shm);
 	}
 
 	/* Signal server that data is ready, or that an error has occurred. */

@@ -81,6 +81,7 @@ TEST(FormatConverterTest, MonoToStereo) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (size_t i = 0; i < buf_size; i++) {
@@ -131,6 +132,7 @@ TEST(FormatConverterTest, StereoToMono) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (i = 0; i < buf_size; i++) {
@@ -181,6 +183,7 @@ TEST(FormatConverterTest, SurroundToStereo) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
@@ -218,7 +221,8 @@ TEST(FormatConverterTest,  Convert2To1) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
-                                            buf_size);
+                                            buf_size,
+                                            buf_size / 2);
   cras_fmt_conv_destroy(c);
 }
 
@@ -248,7 +252,8 @@ TEST(FormatConverterTest,  Convert1To2) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
-                                            buf_size);
+                                            buf_size,
+                                            buf_size * 2);
   cras_fmt_conv_destroy(c);
 }
 
@@ -282,7 +287,8 @@ TEST(FormatConverterTest,  Convert1To2MonoToStereo) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
-                                            buf_size);
+                                            buf_size,
+                                            buf_size * 2);
   cras_fmt_conv_destroy(c);
 }
 
@@ -314,6 +320,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LE) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
@@ -350,6 +357,7 @@ TEST(FormatConverterTest, ConvertS24LEToS16LE) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
@@ -387,6 +395,7 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
@@ -424,6 +433,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
+                                            buf_size,
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
@@ -459,7 +469,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To96) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
-                                            buf_size);
+                                            buf_size,
+                                            buf_size * 2);
   EXPECT_EQ(buf_size * 2, out_frames);
 
   cras_fmt_conv_destroy(c);
@@ -494,8 +505,122 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48) {
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
-                                            buf_size);
+                                            buf_size,
+                                            buf_size / 2);
   EXPECT_EQ(buf_size / 2, out_frames);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test 32 bit 5.1 to 16 bit stereo conversion with SRC 48 to 44.1.
+TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To441) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  size_t ret_frames;
+  int32_t *in_buff;
+  int16_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S32_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 6;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 44100;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_LT(out_frames, buf_size);
+
+  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)malloc(out_frames * cras_get_format_bytes(&out_fmt));
+  ret_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            buf_size,
+                                            out_frames);
+  EXPECT_EQ(out_frames, ret_frames);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test 32 bit 5.1 to 16 bit stereo conversion with SRC 441 to 48.
+TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo441To48) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  size_t ret_frames;
+  int32_t *in_buff;
+  int16_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S32_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 6;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 44100;
+  out_fmt.frame_rate = 48000;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_GT(out_frames, buf_size);
+
+  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)malloc((out_frames - 1) *
+                               cras_get_format_bytes(&out_fmt));
+  ret_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            buf_size,
+                                            out_frames - 1);
+  EXPECT_EQ(out_frames - 1, ret_frames);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test Invalid buffer length just truncates.
+TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48Short) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  size_t ret_frames;
+  int32_t *in_buff;
+  int16_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S32_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 6;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 96000;
+  out_fmt.frame_rate = 48000;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size / 2, out_frames);
+
+  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)malloc((out_frames - 2) *
+                               cras_get_format_bytes(&out_fmt));
+  ret_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            buf_size,
+                                            out_frames - 2);
+  EXPECT_EQ(out_frames - 2, ret_frames);
 
   cras_fmt_conv_destroy(c);
 }
