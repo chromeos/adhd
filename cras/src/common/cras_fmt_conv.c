@@ -14,7 +14,7 @@
 /* Want the fastest conversion we can get. */
 #define SPEEX_QUALITY_LEVEL 0
 /* Max number of converters, src, down/up mix, and format. */
-#define MAX_NUM_CONVERTERS 4
+#define MAX_NUM_CONVERTERS 3
 
 typedef void (*sample_format_converter_t)(const uint8_t *in,
 					  size_t in_samples,
@@ -30,7 +30,7 @@ struct cras_fmt_conv {
 	sample_format_converter_t sample_format_converter;
 	struct cras_audio_format in_fmt;
 	struct cras_audio_format out_fmt;
-	uint8_t *tmp_buf; /* Buffer for holding samples between converters. */
+	uint8_t *tmp_bufs[MAX_NUM_CONVERTERS - 1];
 	size_t num_converters; /* Incremented once for SRC, channel, format. */
 };
 
@@ -147,6 +147,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 {
 	struct cras_fmt_conv *conv;
 	int rc;
+	unsigned i;
 
 	/* Only support S16LE output samples. */
 	if (out->format != SND_PCM_FORMAT_S16_LE) {
@@ -220,28 +221,31 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		}
 	}
 
-	if (conv->num_converters > 1) {
-		/* Need a temporary area before channel conversion. */
-		conv->tmp_buf = malloc(
+	/* Need num_converters-1 temp buffers, the final converter renders
+	 * directly into the output. */
+	for (i = 0; i < conv->num_converters - 1; i++) {
+		conv->tmp_bufs[i] = malloc(
 			max_frames *
 			4 * /* width in bytes largest format. */
 			max(in->num_channels, out->num_channels));
-		if (conv->tmp_buf == NULL) {
+		if (conv->tmp_bufs[i] == NULL) {
 			cras_fmt_conv_destroy(conv);
 			return NULL;
 		}
 	}
 
-	assert(conv->num_converters < MAX_NUM_CONVERTERS);
+	assert(conv->num_converters <= MAX_NUM_CONVERTERS);
 
 	return conv;
 }
 
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 {
+	unsigned i;
 	if (conv->speex_state)
 		speex_resampler_destroy(conv->speex_state);
-	free(conv->tmp_buf);
+	for (i = 0; i < MAX_NUM_CONVERTERS - 1; i++)
+		free(conv->tmp_bufs[i]);
 	free(conv);
 }
 
@@ -266,7 +270,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv, uint8_t *in_buf,
 				    uint8_t *out_buf, size_t in_frames)
 {
 	uint32_t fr_in, fr_out;
-	uint8_t *buffers[MAX_NUM_CONVERTERS];
+	uint8_t *buffers[MAX_NUM_CONVERTERS + 1]; /* converters + out buffer. */
 	size_t buf_idx = 0;
 
 	assert(conv);
@@ -279,10 +283,10 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv, uint8_t *in_buf,
 	 * buffer. */
 	buffers[0] = (uint8_t *)in_buf;
 	if (conv->num_converters == 2) {
-		buffers[1] = (uint8_t *)conv->tmp_buf;
+		buffers[1] = (uint8_t *)conv->tmp_bufs[0];
 	} else if (conv->num_converters == 3) {
-		buffers[1] = (uint8_t *)out_buf;
-		buffers[2] = (uint8_t *)conv->tmp_buf;
+		buffers[1] = (uint8_t *)conv->tmp_bufs[0];
+		buffers[2] = (uint8_t *)conv->tmp_bufs[1];
 	}
 	buffers[conv->num_converters] = out_buf;
 
