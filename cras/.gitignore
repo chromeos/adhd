@@ -35,6 +35,8 @@ src/libcras/.deps/
 src/libcras/.dirstamp
 src/server/.deps/
 src/server/.dirstamp
+src/server/config/.deps/
+src/server/config/.dirstamp
 src/tests/.deps/
 src/tests/.dirstamp
 src/alsa_plugin/.deps/

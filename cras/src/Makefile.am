@@ -48,7 +48,7 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	fmt_conv_unittest shm_unittest mix_unittest alsa_io_unittest \
 	rclient_unittest system_state_unittest volume_curve_unittest \
 	alsa_card_unittest alsa_mixer_unittest iodev_unittest \
-	alsa_jack_unittest
+	alsa_jack_unittest card_config_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -57,6 +57,13 @@ cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/libcras \
 	-I$(top_builddir)/src/common
 
 # unit tests
+card_config_unittest_SOURCES = tests/card_config_unittest.cc \
+	server/config/cras_card_config.c
+card_config_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_builddir)/src/common -I$(top_builddir)/src/server \
+	-I$(top_builddir)/src/server/config
+card_config_unittest_LDADD = -lgtest -liniparser
+
 mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
 mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
