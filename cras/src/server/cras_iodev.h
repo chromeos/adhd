@@ -133,7 +133,7 @@ int cras_iodev_delete_stream(struct cras_iodev *iodev,
  * Returns:
  *    non-zero if the device has streams attached.
  */
-static inline int cras_iodev_streams_attached(struct cras_iodev *iodev)
+static inline int cras_iodev_streams_attached(const struct cras_iodev *iodev)
 {
 	return iodev->streams != NULL;
 }
