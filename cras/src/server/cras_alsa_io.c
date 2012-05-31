@@ -155,6 +155,10 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 {
 	const struct cras_volume_curve *curve;
 
+	/* Only set the limits if the dev is active. */
+	if (!cras_iodev_streams_attached(&aio->base))
+		return;
+
 	curve = get_curve_for_active_output(aio);
 	cras_system_set_volume_limits(
 			curve->get_dBFS(curve, 1), /* min */
@@ -164,6 +168,9 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 /* Sets the alsa mute state for this iodev. */
 static void set_alsa_mute(const struct alsa_io *aio, int muted)
 {
+	if (!cras_iodev_streams_attached(&aio->base))
+		return;
+
 	cras_alsa_mixer_set_mute(
 		aio->mixer,
 		muted,
@@ -184,6 +191,10 @@ static void set_alsa_volume(void *arg)
 
 	assert(aio);
 	if (aio->mixer == NULL)
+		return;
+
+	/* Only set the volume if the dev is active. */
+	if (!cras_iodev_streams_attached(&aio->base))
 		return;
 
 	volume = cras_system_get_volume();

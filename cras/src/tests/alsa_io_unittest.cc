@@ -224,6 +224,56 @@ TEST(AlsaIoInit, InitializeCapture) {
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
+// Test that system settins aren't touched if no streams active.
+TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
+  int rc;
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  struct cras_alsa_mixer_output *outputs[2];
+  struct cras_alsa_mixer_output *fake_output =
+      reinterpret_cast<struct cras_alsa_mixer_output *>(7);
+
+  ResetStubData();
+  outputs[0] =
+    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
+  outputs[1] =
+    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
+  fake_curve =
+    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+  fake_curve->get_dBFS = fake_get_dBFS;
+  outputs[0]->volume_curve = fake_curve;
+  outputs[1]->volume_curve = fake_curve;
+  cras_alsa_mixer_list_outputs_outputs = outputs;
+  cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
+  aio = (struct alsa_io *)alsa_iodev_create(0, 0,
+                                            fake_mixer, 0,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
+
+  aio->base.streams = reinterpret_cast<struct cras_io_stream*>(NULL);
+
+  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
+  EXPECT_EQ(-EINVAL, rc);
+  ResetStubData();
+  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, outputs[0]);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, alsa_mixer_set_mute_called);
+  EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
+  ASSERT_EQ(2, cras_alsa_mixer_set_output_active_state_called);
+  EXPECT_EQ(outputs[0], cras_alsa_mixer_set_output_active_state_outputs[0]);
+  EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[0]);
+  EXPECT_EQ(outputs[1], cras_alsa_mixer_set_output_active_state_outputs[1]);
+  EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+  free(outputs[0]);
+  free(outputs[1]);
+  free(fake_curve);
+}
+
 //  Test handling of different amounts of outputs.
 TEST(AlsaOutputNode, TwoOutputs) {
   int rc;
@@ -252,6 +302,8 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
+
+  aio->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
 
   rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
   EXPECT_EQ(-EINVAL, rc);
