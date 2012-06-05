@@ -300,8 +300,8 @@ TEST(AlsaOutputNode, TwoOutputs) {
   outputs[1]->volume_curve = fake_curve;
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
-  aio = (struct alsa_io *)alsa_iodev_create(0, 0,
-                                            fake_mixer, 0,
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
+                                            fake_mixer, 0, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
