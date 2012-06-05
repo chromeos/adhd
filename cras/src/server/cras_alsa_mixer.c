@@ -4,11 +4,11 @@
  */
 
 #include <alsa/asoundlib.h>
-#include <iniparser.h>
 #include <stdio.h>
 #include <syslog.h>
 
 #include "cras_alsa_mixer.h"
+#include "cras_card_config.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
 #include "utlist.h"
@@ -38,7 +38,7 @@ struct mixer_output_control {
  * volume_curve - Default volume curve that converts from an index to dBFS.
  * max_volume_dB - Maximum volume available in main volume controls.  The dBFS
  *   value setting will be applied relative to this.
- * ini - Configuration dictionary from libiniparser.
+ * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
@@ -49,7 +49,7 @@ struct cras_alsa_mixer {
 	snd_mixer_elem_t *capture_switch;
 	struct cras_volume_curve *volume_curve;
 	long max_volume_dB;
-	dictionary *ini;
+	const struct cras_card_config *config;
 };
 
 /* Wrapper for snd_mixer_open and helpers.
@@ -171,7 +171,8 @@ static struct cras_volume_curve *create_volume_curve_for_output(
 	const char *output_name;
 
 	output_name = snd_mixer_selem_get_name(output->elem);
-	return cras_alsa_mixer_create_volume_curve_for_name(cmix, output_name);
+	return cras_card_config_get_volume_curve_for_control(cmix->config,
+							     output_name);
 }
 
 /* Adds an output control to the list for the specified device. */
@@ -207,8 +208,9 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
  * Exported interface.
  */
 
-struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
-					       dictionary *ini)
+struct cras_alsa_mixer *cras_alsa_mixer_create(
+		const char *card_name,
+		const struct cras_card_config *config)
 {
 	/* Names of controls for main system volume. */
 	static const char * const main_volume_names[] = {
@@ -241,9 +243,10 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
 		return NULL;
 	}
 
-	cmix->ini = ini;
+	cmix->config = config;
 	cmix->volume_curve =
-		cras_alsa_mixer_create_volume_curve_for_name(cmix, "Default");
+		cras_card_config_get_volume_curve_for_control(cmix->config,
+							      "Default");
 
 	/* Find volume and mute controls. */
 	for(elem = snd_mixer_first_elem(cmix->mixer);
@@ -473,39 +476,14 @@ int cras_alsa_mixer_set_output_active_state(
 	return snd_mixer_selem_set_playback_switch_all(output->elem, active);
 }
 
-/* Creates a volume curve for a given name. Consulting the config file for
- * configuration first, and falling back to the system default curve. See README
- * for a description of the ini file format. */
 struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 		const struct cras_alsa_mixer *cmix,
 		const char *name)
 {
-#define INI_KEY_LEN 63 /* 63 chars + 1 in declaration for null. */
-	const char *curve_type;
-	char ini_key[INI_KEY_LEN + 1];
-
-	if (cmix == NULL || cmix->ini == NULL || name == NULL)
-		return cras_volume_curve_create_default();
-
-	snprintf(ini_key, INI_KEY_LEN, "%s:volume_curve", name);
-	ini_key[INI_KEY_LEN] = 0;
-	curve_type = iniparser_getstring(cmix->ini, ini_key, NULL);
-
-	if (curve_type && strcmp(curve_type, "simple_step") == 0) {
-		int max_volume;
-		int volume_step;
-
-		snprintf(ini_key, INI_KEY_LEN, "%s:max_volume", name);
-		ini_key[INI_KEY_LEN] = 0;
-		max_volume = iniparser_getint(cmix->ini, ini_key, 0);
-		snprintf(ini_key, INI_KEY_LEN, "%s:volume_step", name);
-		ini_key[INI_KEY_LEN] = 0;
-		volume_step = iniparser_getint(cmix->ini, ini_key, 300);
-		syslog(LOG_ERR, "Configure curve found for %s.", name);
-		return cras_volume_curve_create_simple_step(max_volume,
-							    volume_step);
-	} else {
-		syslog(LOG_ERR, "No configure curve found for %s.", name);
-		return cras_volume_curve_create_default();
-	}
+	if (cmix != NULL)
+		return cras_card_config_get_volume_curve_for_control(
+				cmix->config, name);
+	else
+		return cras_card_config_get_volume_curve_for_control(NULL,
+								     name);
 }

@@ -4,11 +4,11 @@
  */
 
 #include <alsa/asoundlib.h>
-#include <iniparser.h>
 #include <syslog.h>
 
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
+#include "cras_card_config.h"
 #include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "utlist.h"
@@ -28,14 +28,14 @@ struct iodev_list_node {
  * card_index - 0 based index, value of "XX" in the name.
  * iodevs - Input and output devices for this card.
  * mixer - Controls the mixer controls for this card.
- * ini - Dictionary from libiniparser containing the config file info.
+ * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_card {
 	char name[MAX_ALSA_PCM_NAME_LENGTH];
 	size_t card_index;
 	struct iodev_list_node *iodevs;
 	struct cras_alsa_mixer *mixer;
-	dictionary *ini;
+	struct cras_card_config *config;
 };
 
 /* Creates an iodev for the given device.
@@ -86,24 +86,6 @@ static struct iodev_list_node *create_iodev_for_device(
 	}
 
 	return new_dev;
-}
-
-/* Read the config file for this card.  The config file will specify any special
- * volume curves needed for the device. */
-static int read_card_config(dictionary **ini, const char *ini_dir,
-			    const char *card_name)
-{
-	char ini_name[MAX_INI_NAME_LENGTH + 1];
-
-	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", ini_dir, card_name);
-	ini_name[MAX_INI_NAME_LENGTH] = '\0';
-	*ini = iniparser_load(ini_name);
-	if (*ini == NULL) {
-		syslog(LOG_DEBUG, "No ini file %s", ini_name);
-		return -EINVAL;
-	}
-	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
-	return 0;
 }
 
 /*
@@ -158,14 +140,14 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 	}
 
 	/* Read config file for this card if it exists. */
-	if (read_card_config(&alsa_card->ini,
-			     CARD_CONFIG_FILE_DIR,
-			     card_name) < 0)
+	alsa_card->config = cras_card_config_create(CARD_CONFIG_FILE_DIR,
+						    card_name);
+	if (alsa_card->config == NULL)
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
 
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
-						  alsa_card->ini);
+						  alsa_card->config);
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
 		goto error_bail;
@@ -233,8 +215,8 @@ error_bail:
 		snd_ctl_close(handle);
 	if (alsa_card->mixer)
 		cras_alsa_mixer_destroy(alsa_card->mixer);
-	if (alsa_card->ini)
-		iniparser_freedict(alsa_card->ini);
+	if (alsa_card->config)
+		cras_card_config_destroy(alsa_card->config);
 	free(alsa_card);
 	return NULL;
 }
@@ -252,8 +234,8 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 		free(curr);
 	}
 	cras_alsa_mixer_destroy(alsa_card->mixer);
-	if (alsa_card->ini)
-		iniparser_freedict(alsa_card->ini);
+	if (alsa_card->config)
+		cras_card_config_destroy(alsa_card->config);
 	free(alsa_card);
 }
 

@@ -11,8 +11,10 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_system_state.c  server/cras_volume_curve.c \
 	server/cras_alsa_mixer.c server/cras_alsa_card.c \
 	server/cras_empty_iodev.c server/cras_server.c \
-	server/cras_alsa_jack.c server/cras_udev.c
-cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common
+	server/cras_alsa_jack.c server/cras_udev.c \
+	server/config/cras_card_config.c
+cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
+	-I$(top_builddir)/src/server -I$(top_builddir)/src/server/config
 cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev
 
 lib_LTLIBRARIES = libcras.la
@@ -114,13 +116,17 @@ volume_curve_unittest_LDADD = -lgtest
 alsa_card_unittest_SOURCES = tests/alsa_card_unittest.cc \
 	server/cras_alsa_card.c
 alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
+	-I$(top_builddir)/src/common \
+	-I$(top_builddir)/src/server \
+	-I$(top_builddir)/src/server/config
 alsa_card_unittest_LDADD = -lgtest
 
 alsa_mixer_unittest_SOURCES = tests/alsa_mixer_unittest.cc \
 	server/cras_alsa_mixer.c
 alsa_mixer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
+	-I$(top_builddir)/src/common \
+	-I$(top_builddir)/src/server \
+	-I$(top_builddir)/src/server/config
 alsa_mixer_unittest_LDADD = -lgtest
 
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \

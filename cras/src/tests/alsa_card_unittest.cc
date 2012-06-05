@@ -357,19 +357,27 @@ int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info) {
   return snd_ctl_card_info_ret;
 }
 const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj) {
-	return "TestName";
+  return "TestName";
 }
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj) {
-	return "TestId";
+  return "TestId";
 }
-dictionary *iniparser_load(char *ininame)
+
+struct cras_card_config *cras_card_config_create(const char *config_path,
+						 const char *card_name)
 {
-	iniparser_load_called++;
-	return reinterpret_cast<dictionary*>(0xf0);
+  return NULL;
 }
-void iniparser_freedict(dictionary * d)
+
+void cras_card_config_destroy(struct cras_card_config *card_config)
 {
-	iniparser_freedict_called++;
+}
+
+struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
+		const struct cras_card_config *card_config,
+		const char *control_name)
+{
+  return NULL;
 }
 
 } /* extern "C" */

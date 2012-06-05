@@ -18,6 +18,7 @@
 
 struct cras_alsa_mixer;
 struct cras_volume_curve;
+struct cras_card_config;
 
 struct cras_alsa_mixer_output {
 	snd_mixer_elem_t *elem; /* ALSA mixer element. */
@@ -30,14 +31,15 @@ struct cras_alsa_mixer_output {
 /* Creates a cras_alsa_mixer instance for the given alsa device.
  * Args:
  *    card_name - Name of the card to open a mixer for.  This is an alsa name of
- *    the form "hw:X" where X ranges from 0 to 31 inclusive.
- *    ini - Configuraiton information for this card from libiniparser.
+ *      the form "hw:X" where X ranges from 0 to 31 inclusive.
+ *    config - Config info for this card, can be NULL if none found.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy.
  */
-struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name,
-					       dictionary *ini);
+struct cras_alsa_mixer *cras_alsa_mixer_create(
+		const char *card_name,
+		const struct cras_card_config *config);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

@@ -71,8 +71,7 @@ static int snd_mixer_selem_get_capture_dB_called;
 static long *snd_mixer_selem_get_capture_dB_return_values;
 static int snd_mixer_selem_get_capture_dB_return_values_index;
 static int snd_mixer_selem_get_capture_dB_return_values_length;
-static size_t cras_volume_curve_create_default_called;
-static size_t cras_volume_curve_create_simple_step_called;
+static size_t cras_card_config_get_volume_curve_for_control_called;
 static size_t cras_volume_curve_destroy_called;
 static size_t snd_mixer_selem_get_playback_dB_range_called;
 static size_t snd_mixer_selem_get_playback_dB_range_values_index;
@@ -144,8 +143,7 @@ static void ResetStubData() {
   snd_mixer_selem_get_capture_dB_return_values = static_cast<long *>(NULL);
   snd_mixer_selem_get_capture_dB_return_values_index = 0;
   snd_mixer_selem_get_capture_dB_return_values_length = 0;
-  cras_volume_curve_create_default_called = 0;
-  cras_volume_curve_create_simple_step_called = 0;
+  cras_card_config_get_volume_curve_for_control_called = 0;
   cras_volume_curve_destroy_called = 0;
   snd_mixer_selem_get_playback_dB_range_called = 0;
   snd_mixer_selem_get_playback_dB_range_values_index = 0;
@@ -612,7 +610,7 @@ class AlsaMixerOutputs : public testing::Test {
       iniparser_getstring_returns = iniparser_returns;
       iniparser_getstring_return_length = ARRAY_SIZE(iniparser_returns);
       cras_mixer_ = cras_alsa_mixer_create("hw:0",
-          reinterpret_cast<dictionary*>(5));
+          reinterpret_cast<struct cras_card_config*>(5));
       ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), cras_mixer_);
       EXPECT_EQ(1, snd_mixer_open_called);
       EXPECT_EQ(1, snd_mixer_attach_called);
@@ -625,8 +623,7 @@ class AlsaMixerOutputs : public testing::Test {
       EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
       EXPECT_EQ(2, snd_mixer_selem_has_capture_volume_called);
       EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
-      EXPECT_EQ(1, cras_volume_curve_create_default_called);
-      EXPECT_EQ(2, cras_volume_curve_create_simple_step_called);
+      EXPECT_EQ(3, cras_card_config_get_volume_curve_for_control_called);
     }
 
     virtual void TearDown() {
@@ -907,28 +904,6 @@ static long get_dBFS_default(const struct cras_volume_curve *curve,
   return 100 * (volume - 100);
 }
 
-struct cras_volume_curve *cras_volume_curve_create_default()
-{
-  struct cras_volume_curve *curve;
-  curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
-  cras_volume_curve_create_default_called++;
-  if (curve != NULL)
-    curve->get_dBFS = get_dBFS_default;
-  return curve;
-}
-
-struct cras_volume_curve *cras_volume_curve_create_simple_step(
-		long max_volume,
-		long volume_step)
-{
-  struct cras_volume_curve *curve;
-  curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
-  cras_volume_curve_create_simple_step_called++;
-  if (curve != NULL)
-    curve->get_dBFS = get_dBFS_default;
-  return curve;
-}
-
 void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 {
   cras_volume_curve_destroy_called++;
@@ -936,18 +911,16 @@ void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 }
 
 // From libiniparser.
-static char iniparser_default_return_value[] = "simple_step";
-char *iniparser_getstring(dictionary * d, char * key, char * def)
+struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
+		const struct cras_card_config *card_config,
+		const char *control_name)
 {
-  if (iniparser_getstring_return_index < iniparser_getstring_return_length)
-    return iniparser_getstring_returns[iniparser_getstring_return_index++];
-  else
-    return iniparser_default_return_value;
-}
-
-int iniparser_getint(dictionary * d, char * key, int notfound)
-{
-	return 1;
+  struct cras_volume_curve *curve;
+  curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
+  cras_card_config_get_volume_curve_for_control_called++;
+  if (curve != NULL)
+    curve->get_dBFS = get_dBFS_default;
+  return curve;
 }
 
 } /* extern "C" */
