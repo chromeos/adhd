@@ -338,27 +338,6 @@ long cras_client_get_system_min_capture_gain(struct cras_client *client);
  */
 long cras_client_get_system_max_capture_gain(struct cras_client *client);
 
-/* Tells the CRAS server about a new device.  This is called when a device
- * is plugged or unplugged.
- * Args:
- *    client - Client owning the stream.
- *    action - Add or remove.
- *    card_number - ALSA card number, X in "hw:X,Y"
- *    device_number - ALSA device number, Y in "hw:X,Y"
- *    active - Is this device active.
- *    internal - True if the device is built-in. (Non-USB).
- *    primary - Should this be used as the primary device.
- * Returns:
- *    0 for success, negative error code otherwise.
- */
-int cras_client_notify_device(struct cras_client *client,
-			      unsigned action,
-			      unsigned card_number,
-			      unsigned device_number,
-			      unsigned active,
-			      unsigned internal,
-			      unsigned primary);
-
 /*
  * Utility functions.
  */

@@ -174,37 +174,6 @@ static int handle_switch_stream_type_iodev(
 	return cras_iodev_move_stream_type(msg->stream_type, msg->iodev_idx);
 }
 
-static void handle_notify_device_info(const struct cras_notify_device_info *msg)
-{
-	/* Prefer external cards to internal ones, assuming the user plugged the
-	 * external device in for a reason. */
-	static const size_t INTERNAL_CARD_PRIORITY = 50;
-	static const size_t EXTERNAL_CARD_PRIORITY = 80;
-
-	size_t card_priority;
-
-	syslog(LOG_DEBUG,
-	       "action: %u  card: %u  device: %u  act: %u  int: %u  pri: %u",
-	       msg->action, msg->card_number, msg->device_number,
-	       msg->active, msg->internal, msg->primary);
-
-	if (msg->internal)
-		card_priority = INTERNAL_CARD_PRIORITY;
-	else
-		card_priority = EXTERNAL_CARD_PRIORITY;
-
-	switch (msg->action) {
-	case CRAS_DEVICE_ACTION_ADD:
-		cras_system_add_alsa_card(msg->card_number, card_priority);
-		break;
-	case CRAS_DEVICE_ACTION_REMOVE:
-		cras_system_remove_alsa_card(msg->card_number);
-		break;
-	case CRAS_DEVICE_ACTION_CHANGE:
-		break;
-	}
-}
-
 /* Sends the volume/mute status to the client when the volume or mute state
  * changes. Called when the device is attached, and whenever informed of a state
  * change by the system_state callback. */
@@ -302,12 +271,6 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_system_set_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
-	case CRAS_SERVER_NOTIFY_DEVICE_INFO: {
-		const struct cras_notify_device_info *m =
-			(const struct cras_notify_device_info *)msg;
-		handle_notify_device_info(m);
-		break;
-        }
 	case CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN: {
 		const struct cras_set_system_capture_gain *m =
 			(const struct cras_set_system_capture_gain *)msg;

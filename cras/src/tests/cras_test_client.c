@@ -174,7 +174,6 @@ static int run_file_io_stream(struct cras_client *client,
 	size_t sys_volume = 100;
 	long cap_gain = 0;
 	int mute = 0;
-	int remove = 0;
 
 	sleep_ts.tv_sec = 0;
 	sleep_ts.tv_nsec = 250 * 1000000;
@@ -283,12 +282,6 @@ static int run_file_io_stream(struct cras_client *client,
 			mute = !mute;
 			cras_client_set_system_mute(client, mute);
 			break;
-		case '-':
-			remove = 1;
-			break;
-		case '+':
-			remove = 0;
-			break;
 		case '@':
 			print_device_lists(client);
 			break;
@@ -309,21 +302,6 @@ static int run_file_io_stream(struct cras_client *client,
 			       cras_client_get_system_min_capture_gain(client),
 			       cras_client_get_system_max_capture_gain(client));
 			break;
-		case '0':
-		case '1':
-		case '2': {
-			int card_number = input - '0';
-			cras_client_notify_device(
-				client,
-				remove ? CRAS_DEVICE_ACTION_REMOVE :
-						CRAS_DEVICE_ACTION_ADD,
-				card_number,
-				0,
-				0,
-				0,
-				0);
-			break;
-		}
 		case '\n':
 			break;
 		default:
