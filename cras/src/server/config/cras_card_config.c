@@ -12,10 +12,29 @@
 
 /* Allocate 63 chars + 1 for null where declared. */
 static const unsigned int MAX_INI_NAME_LEN = 63;
+static const unsigned int MAX_KEY_LEN = 63;
 
 struct cras_card_config {
 	dictionary *ini;
 };
+
+static struct cras_volume_curve *create_simple_step_curve(
+		const struct cras_card_config *card_config,
+		const char *control_name)
+{
+	char ini_key[MAX_KEY_LEN + 1];
+	int max_volume;
+	int volume_step;
+
+	snprintf(ini_key, MAX_KEY_LEN, "%s:max_volume", control_name);
+	ini_key[MAX_KEY_LEN] = 0;
+	max_volume = iniparser_getint(card_config->ini, ini_key, 0);
+	snprintf(ini_key, MAX_KEY_LEN, "%s:volume_step", control_name);
+	ini_key[MAX_KEY_LEN] = 0;
+	volume_step = iniparser_getint(card_config->ini, ini_key, 300);
+	syslog(LOG_ERR, "Configure curve found for %s.", control_name);
+	return cras_volume_curve_create_simple_step(max_volume, volume_step);
+}
 
 /*
  * Exported interface.
@@ -58,32 +77,18 @@ struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
 		const struct cras_card_config *card_config,
 		const char *control_name)
 {
-	/* 63 chars + 1 in declaration for null. */
-	static const unsigned int INI_KEY_LEN = 63;
-	char ini_key[INI_KEY_LEN + 1];
+	char ini_key[MAX_KEY_LEN + 1];
 	const char *curve_type;
 
 	if (card_config == NULL || control_name == NULL)
 		return cras_volume_curve_create_default();
 
-	snprintf(ini_key, INI_KEY_LEN, "%s:volume_curve", control_name);
-	ini_key[INI_KEY_LEN] = 0;
+	snprintf(ini_key, MAX_KEY_LEN, "%s:volume_curve", control_name);
+	ini_key[MAX_KEY_LEN] = 0;
 	curve_type = iniparser_getstring(card_config->ini, ini_key, NULL);
 
-	if (curve_type && strcmp(curve_type, "simple_step") == 0) {
-		int max_volume;
-		int volume_step;
-
-		snprintf(ini_key, INI_KEY_LEN, "%s:max_volume", control_name);
-		ini_key[INI_KEY_LEN] = 0;
-		max_volume = iniparser_getint(card_config->ini, ini_key, 0);
-		snprintf(ini_key, INI_KEY_LEN, "%s:volume_step", control_name);
-		ini_key[INI_KEY_LEN] = 0;
-		volume_step = iniparser_getint(card_config->ini, ini_key, 300);
-		syslog(LOG_ERR, "Configure curve found for %s.", control_name);
-		return cras_volume_curve_create_simple_step(max_volume,
-							    volume_step);
-	}
+	if (curve_type && strcmp(curve_type, "simple_step") == 0)
+		return create_simple_step_curve(card_config, control_name);
 	syslog(LOG_ERR, "No configure curve found for %s.", control_name);
 	return cras_volume_curve_create_default();
 }
