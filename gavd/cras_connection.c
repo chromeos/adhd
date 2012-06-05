@@ -23,6 +23,7 @@ void notify_cras(unsigned action,
                  unsigned internal,
                  unsigned primary)
 {
+    return;                     /* XXX remove */
     if (cras_client != NULL) {
         int res = cras_client_notify_device(cras_client,
                                             action, card_number,
