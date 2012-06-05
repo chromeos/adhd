@@ -34,6 +34,18 @@ struct cras_volume_curve *cras_volume_curve_create_simple_step(
 		long max_volume,
 		long volume_step);
 
+/* Creates a volume curve with each step's dB value called out.
+ * Args:
+ *    dB_values - Each element specifies what the volume should be set to (in
+ *      dB) for the volume at that index.
+ * Returns:
+ *    A volume curve pointer that should  be passed to
+ *    cras_volume_curve_destroy() when it is no longer needed. If there is an
+ *    error NULL will be returned.
+ */
+struct cras_volume_curve *cras_volume_curve_create_explicit(
+		long dB_values[101]);
+
 /* Destroys a curve created with cras_volume_curve_create_*.
  * Args:
  *    curve - The curve to destroy.
