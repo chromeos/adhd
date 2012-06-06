@@ -650,11 +650,17 @@ static int config_format_converter(struct client_stream *stream,
 	struct cras_audio_format *sfmt = &stream->config->format;
 
 	if (memcmp(sfmt, hwfmt, sizeof(*hwfmt)) != 0) {
+		size_t max_frames =
+			max(stream->shm->used_size / stream->shm->frame_bytes,
+			    stream->config->buffer_frames);
+
 		syslog(LOG_DEBUG,
-		       "format convert %s: stream:%d %zu %zu hw: %d %zu %zu",
+		       "format convert %s: stream:%d %zu %zu hw: %d %zu %zu "
+		       "max_frames = %zu",
 		       stream->direction ? "input" : "output",
 		       sfmt->format, sfmt->frame_rate, sfmt->num_channels,
-		       hwfmt->format, hwfmt->frame_rate, hwfmt->num_channels);
+		       hwfmt->format, hwfmt->frame_rate, hwfmt->num_channels,
+		       max_frames);
 
 		/* Convert from the stream format to the h/w format for output,
 		 * from h/w format to stream format for input. */
@@ -662,13 +668,13 @@ static int config_format_converter(struct client_stream *stream,
 			stream->conv = cras_fmt_conv_create(
 					sfmt,
 					hwfmt,
-					stream->config->buffer_frames);
+					max_frames);
 		} else {
 			assert(stream->direction == CRAS_STREAM_INPUT);
 			stream->conv = cras_fmt_conv_create(
 					hwfmt,
 					sfmt,
-					stream->config->buffer_frames);
+					max_frames);
 		}
 		if (stream->conv == NULL) {
 			syslog(LOG_ERR, "Failed to create format converter");
@@ -700,17 +706,18 @@ static int stream_connected(struct client_stream *stream,
 		return msg->err;
 	}
 
+	rc = config_shm(stream, msg->shm_key, msg->shm_max_size);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Error configuring shared memory");
+		goto err_ret;
+	}
+
 	rc = config_format_converter(stream, &msg->format);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Error setting up format conversion");
 		return rc;
 	}
 
-	rc = config_shm(stream, msg->shm_key, msg->shm_max_size);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Error configuring shared memory");
-		goto err_ret;
-	}
 	cras_shm_set_volume_scaler(stream->shm, stream->volume_scaler);
 
 	rc = pipe(stream->wake_fds);
