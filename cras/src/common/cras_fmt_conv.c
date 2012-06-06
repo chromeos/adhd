@@ -281,9 +281,9 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	/* If no SRC, then in_frames should = out_frames. */
 	if (conv->speex_state == NULL) {
 		fr_in = min(in_frames, out_frames);
-		if (out_frames != in_frames && !logged_frames_dont_fit) {
+		if (out_frames < in_frames && !logged_frames_dont_fit) {
 			syslog(LOG_ERR,
-			       "fmt_conv: %zu to %zu no converter.",
+			       "fmt_conv: %zu to %zu no SRC.",
 			       in_frames,
 			       out_frames);
 			logged_frames_dont_fit = 1;
