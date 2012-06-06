@@ -106,6 +106,27 @@ TEST_F(ShmTestSuite, WrapFromFinalBuffer) {
   EXPECT_EQ(230 * shm_.frame_bytes, shm_.read_offset[0]);
 }
 
+// Test Check available to write returns 0 if not free buffer.
+TEST_F(ShmTestSuite, WriteAvailNotFree) {
+  size_t ret;
+  shm_.write_buf_idx = 0;
+  shm_.write_offset[0] = 100 * shm_.frame_bytes;
+  shm_.read_offset[0] = 50 * shm_.frame_bytes;
+  ret = cras_shm_get_num_writeable(&shm_);
+  EXPECT_EQ(0, ret);
+}
+
+// Test Check available to write returns num_frames if free buffer.
+TEST_F(ShmTestSuite, WriteAvailValid) {
+  size_t ret;
+  shm_.write_buf_idx = 0;
+  shm_.used_size = 480 * shm_.frame_bytes;
+  shm_.write_offset[0] = 0;
+  shm_.read_offset[0] = 0;
+  ret = cras_shm_get_num_writeable(&shm_);
+  EXPECT_EQ(480, ret);
+}
+
 TEST_F(ShmTestSuite, SetVolume) {
   cras_shm_set_volume_scaler(&shm_, 1.0);
   EXPECT_EQ(shm_.volume_scaler, 1.0);

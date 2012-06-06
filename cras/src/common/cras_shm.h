@@ -134,24 +134,23 @@ static inline size_t cras_shm_get_frames_in_curr_buffer(
 	return bytes / shm->frame_bytes;
 }
 
-/* How many are available to be written? */
-static inline size_t cras_shm_get_avail_curr_buffer(
-		struct cras_audio_shm_area *shm)
-{
-	size_t buf_idx = shm->read_buf_idx;
-	size_t bytes;
-
-	bytes = shm->write_offset[buf_idx] - shm->read_offset[buf_idx];
-	assert(bytes % shm->frame_bytes == 0);
-	return (shm->used_size - bytes) / shm->frame_bytes;
-}
-
 /* Return 1 if there is an empty buffer in the list. */
 static inline int cras_shm_is_buffer_available(struct cras_audio_shm_area *shm)
 {
 	size_t buf_idx = shm->write_buf_idx;
 
 	return (shm->write_offset[buf_idx] == 0);
+}
+
+/* How many are available to be written? */
+static inline size_t cras_shm_get_num_writeable(
+		struct cras_audio_shm_area *shm)
+{
+	/* Not allowed to write to a buffer twice. */
+	if (!cras_shm_is_buffer_available(shm))
+		return 0;
+
+	return shm->used_size / shm->frame_bytes;
 }
 
 /* Flags an overrun if writing would cause one. */

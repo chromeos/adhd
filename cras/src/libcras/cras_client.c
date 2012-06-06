@@ -531,7 +531,7 @@ static int handle_playback_request(struct client_stream *stream,
 					stream->fmt_conv_buffer,
 					final_buf,
 					frames,
-					cras_shm_get_avail_curr_buffer(shm));
+					cras_shm_get_num_writeable(shm));
 		}
 		/* And move the write pointer to indicate samples written. */
 		cras_shm_check_write_overrun(shm);
