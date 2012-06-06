@@ -55,6 +55,7 @@ static unsigned execute_commands(const char **c)
             if (result == 0) {
                 verbose_log(0, LOG_WARNING, "%s: '%s': failure",
                             __FUNCTION__, cmd);
+                free(cmd);
                 return 0;
             }
             free(cmd);
