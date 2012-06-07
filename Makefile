@@ -44,6 +44,18 @@ $(DESTDIR)/etc/asound.state:	$(ADHD_DIR)/factory-default/asound.state.$(BOARD)
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
 
+optional_alsa_conf := $(wildcard $(ADHD_DIR)/alsa-module-config/alsa-$(BOARD).conf)
+
+ifneq ($(strip $(optional_alsa_conf)),)
+
+$(DESTDIR)/etc/modprobe.d/alsa-$(BOARD).conf:	$(optional_alsa_conf)
+	$(ECHO) "Installing '$<' to '$@'"
+	$(INSTALL) --mode 644 -D $< $@
+
+install:	$(DESTDIR)/etc/modprobe.d/alsa-$(BOARD).conf
+
+endif
+
 install:	$(DESTDIR)/etc/init/adhd.conf				\
 		$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
