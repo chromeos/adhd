@@ -17,7 +17,6 @@
 #include "verbose.h"
 #include "thread_management.h"
 #include "initialization.h"
-#include "cras_connection.h"
 #include "dbus_connection.h"
 
 static DBusConnection *dbus_bus_connection;
@@ -79,7 +78,6 @@ void dbus_connection_device_state(unsigned    action,
     default: mode = "<invalid>"; break;
     }
 
-    notify_cras(action, card_number, device_number, active, internal, primary);
     msg = dbus_message_new_signal("/gavd/alsa", "gavd.alsa.card", mode);
     if (msg != NULL) {
         dbus_uint32_t   serial = 0;

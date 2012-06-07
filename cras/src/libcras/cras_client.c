@@ -1714,24 +1714,6 @@ long cras_client_get_system_max_capture_gain(struct cras_client *client)
 				   CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN);
 }
 
-int cras_client_notify_device(struct cras_client *client,
-			      unsigned action,
-			      unsigned card_number,
-			      unsigned device_number,
-			      unsigned active,
-			      unsigned internal,
-			      unsigned primary)
-{
-	struct cras_notify_device_info msg;
-
-	if (client == NULL)
-		return -EINVAL;
-
-	cras_set_device_info(&msg, action, card_number, device_number,
-			     active, internal, primary);
-	return write_message_to_server(client, &msg.header);
-}
-
 int cras_client_run_thread(struct cras_client *client)
 {
 	if (client == NULL || client->thread.running)
