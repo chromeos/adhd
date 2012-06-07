@@ -1503,11 +1503,6 @@ int cras_client_connect(struct cras_client *client)
 	return connect_to_server(client);
 }
 
-int cras_client_connect_wait(struct cras_client *client)
-{
-	return connect_to_server_wait(client);
-}
-
 struct cras_stream_params *cras_client_stream_params_create(
 		enum CRAS_STREAM_DIRECTION direction,
 		size_t buffer_frames,
