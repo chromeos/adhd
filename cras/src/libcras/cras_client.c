@@ -757,11 +757,6 @@ static int client_thread_add_stream(struct cras_client *client,
 	cras_stream_id_t new_id;
 	struct client_stream *out;
 
-	if (!check_server_connected_wait(client)) {
-		syslog(LOG_ERR, "Add stream failed to connect to server.");
-		return -EIO;
-	}
-
 	/* Find an available stream id. */
 	do {
 		new_id = cras_get_stream_id(client->id, client->next_stream_id);
