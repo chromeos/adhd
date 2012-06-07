@@ -24,6 +24,7 @@
 #include "cras_rclient.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
+#include "cras_udev.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -277,6 +278,8 @@ int cras_server_run()
 	 * from the list that are passed to select in the main loop below. */
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
+
+        cras_udev_start_sound_subsystem_monitor();
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {

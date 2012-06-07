@@ -11,9 +11,9 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_system_state.c  server/cras_volume_curve.c \
 	server/cras_alsa_mixer.c server/cras_alsa_card.c \
 	server/cras_empty_iodev.c server/cras_server.c \
-	server/cras_alsa_jack.c
+	server/cras_alsa_jack.c server/cras_udev.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common
-cras_LDADD = -lpthread -lasound -lrt -liniparser
+cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev
 
 lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = libcras/cras_client.c common/cras_util.c \
