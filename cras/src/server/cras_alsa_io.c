@@ -60,6 +60,9 @@ struct alsa_output_node {
  * handle - Handle to the opened ALSA device.
  * stream_started - Has the ALSA device been started.
  * num_underruns - Number of times we have run out of data (playback only).
+ * audio_sleep_correction_frames - Number of frames to adjust sleep time by.
+ *    This is adjusted based on sleeping too long or short so that the sleep
+ *    interval tracks toward the targeted number of frames.
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * output_nodes - Alsa mixer outputs (Only used for output devices).
@@ -75,6 +78,7 @@ struct alsa_io {
 	snd_pcm_t *handle;
 	int stream_started;
 	size_t num_underruns;
+	int audio_sleep_correction_frames;
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
@@ -99,6 +103,7 @@ static int open_alsa(struct alsa_io *aio)
 	/* TODO(dgreid) - allow more formats here. */
 	aio->base.format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;
+	aio->audio_sleep_correction_frames = 0;
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
 	       aio->dev, aio->base.format->frame_rate,
@@ -701,6 +706,9 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 static int possibly_read_audio(struct alsa_io *aio,
 			       struct timespec *ts)
 {
+	/* Sleep a few extra frames to make sure that the samples are ready. */
+	static const size_t CAPTURE_REMAINING_FRAMES_TARGET = 16;
+
 	snd_pcm_uframes_t frames, nread, num_to_read, remainder;
 	snd_pcm_uframes_t offset = 0;
 	int rc;
@@ -720,6 +728,8 @@ static int possibly_read_audio(struct alsa_io *aio,
 
 	if (frames < num_to_read) {
 		to_sleep = num_to_read - frames;
+		/* Increase sleep correction factor when waking up too early. */
+		aio->audio_sleep_correction_frames++;
 		goto dont_read;
 	}
 
@@ -761,8 +771,15 @@ static int possibly_read_audio(struct alsa_io *aio,
 	/* Adjust sleep time to target our callback threshold. */
 	remainder = frames - num_to_read;
 	to_sleep = num_to_read - remainder;
+	/* If there are more remaining frames than targeted, decrease the sleep
+	 * time.  If less, increase. */
+	if (remainder != CAPTURE_REMAINING_FRAMES_TARGET)
+		aio->audio_sleep_correction_frames +=
+			(remainder > CAPTURE_REMAINING_FRAMES_TARGET) ? -1 : 1;
 
 dont_read:
+	to_sleep += CAPTURE_REMAINING_FRAMES_TARGET +
+		    aio->audio_sleep_correction_frames;
 	ts->tv_nsec = to_sleep * 1000000 / aio->base.format->frame_rate;
 	ts->tv_nsec *= 1000;
 	return 0;
