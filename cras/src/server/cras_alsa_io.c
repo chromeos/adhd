@@ -710,6 +710,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 
 	ts->tv_sec = ts->tv_nsec = 0;
 	fr_bytes = cras_get_format_bytes(aio->base.format);
+	num_to_read = aio->base.cb_threshold;
 
 	rc = cras_alsa_get_avail_frames(aio->handle,
 					aio->base.buffer_size,
@@ -717,9 +718,10 @@ static int possibly_read_audio(struct alsa_io *aio,
 	if (rc < 0)
 		return rc;
 
-	num_to_read = aio->base.cb_threshold;
-	if (frames < aio->base.cb_threshold)
+	if (frames < num_to_read) {
+		to_sleep = num_to_read - frames;
 		goto dont_read;
+	}
 
 	if (aio->base.streams)
 		cras_shm_check_write_overrun(aio->base.streams->shm);
@@ -749,22 +751,18 @@ static int possibly_read_audio(struct alsa_io *aio,
 		/* Tell the client that samples are ready.  This assumes only
 		 * one capture client at a time. */
 		rc = cras_rstream_audio_ready(aio->base.streams->stream,
-					      aio->base.cb_threshold);
+					      num_to_read);
 		if (rc < 0) {
 			thread_remove_stream(aio, aio->base.streams->stream);
 			return rc;
 		}
 	}
 
-dont_read:
 	/* Adjust sleep time to target our callback threshold. */
-	remainder = frames - aio->base.cb_threshold;
-	if (frames < aio->base.cb_threshold)
-		remainder = 0;
+	remainder = frames - num_to_read;
+	to_sleep = num_to_read - remainder;
 
-	to_sleep = (aio->base.cb_threshold - remainder);
-	if (aio->base.cb_threshold < remainder)
-		to_sleep = 0;
+dont_read:
 	ts->tv_nsec = to_sleep * 1000000 / aio->base.format->frame_rate;
 	ts->tv_nsec *= 1000;
 	return 0;
