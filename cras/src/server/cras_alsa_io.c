@@ -648,7 +648,6 @@ static int possibly_fill_audio(struct alsa_io *aio,
 /* Pass captured samples to the client.
  * Args:
  *    src - the memory area containing the captured samples.
- *    offset - offset into buffer (from mmap_begin).
  *    count - the number of frames captured = buffer_frames.
  *
  * Returns:
@@ -657,7 +656,6 @@ static int possibly_fill_audio(struct alsa_io *aio,
  */
 static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 				      const uint8_t *src,
-				      snd_pcm_uframes_t offset,
 				      snd_pcm_uframes_t count)
 {
 	struct cras_io_stream *streams, *curr;
@@ -689,11 +687,6 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 	if (shm->write_offset == shm->read_offset)
 		shm->num_overruns++;
 
-	rc = cras_rstream_audio_ready(curr->stream, count);
-	if (rc < 0) {
-		thread_remove_stream(aio, curr->stream);
-		return rc;
-	}
 	return count;
 }
 
@@ -726,19 +719,20 @@ static int possibly_read_audio(struct alsa_io *aio,
 
 	num_to_read = aio->base.cb_threshold;
 	if (frames < aio->base.cb_threshold)
-		num_to_read = 0;
+		goto dont_read;
 
 	if (aio->base.streams)
 		cras_shm_check_write_overrun(aio->base.streams->shm);
 
-	while (num_to_read > 0) {
-		nread = num_to_read;
+	remainder = num_to_read;
+	while (remainder > 0) {
+		nread = remainder;
 		rc = cras_alsa_mmap_begin(aio->handle, fr_bytes, &src, &offset,
 					  &nread, &aio->num_underruns);
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		rc = read_streams(aio, src, offset, nread);
+		rc = read_streams(aio, src, nread);
 		if (rc < 0)
 			return rc;
 
@@ -746,12 +740,23 @@ static int possibly_read_audio(struct alsa_io *aio,
 					   &aio->num_underruns);
 		if (rc < 0)
 			return rc;
-		num_to_read -= nread;
+		remainder -= nread;
 	}
 
-	if(aio->base.streams)
+	if (aio->base.streams) {
 		cras_shm_buffer_write_complete(aio->base.streams->shm);
 
+		/* Tell the client that samples are ready.  This assumes only
+		 * one capture client at a time. */
+		rc = cras_rstream_audio_ready(aio->base.streams->stream,
+					      aio->base.cb_threshold);
+		if (rc < 0) {
+			thread_remove_stream(aio, aio->base.streams->stream);
+			return rc;
+		}
+	}
+
+dont_read:
 	/* Adjust sleep time to target our callback threshold. */
 	remainder = frames - aio->base.cb_threshold;
 	if (frames < aio->base.cb_threshold)

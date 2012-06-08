@@ -108,6 +108,7 @@ static void *cras_alsa_jack_list_create_cb_data;
 static size_t cras_iodev_move_stream_type_called;
 static size_t cras_iodev_move_stream_type_default_called;
 static char test_card_name[] = "TestCard";
+static size_t cras_rstream_audio_ready_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -153,6 +154,7 @@ void ResetStubData() {
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_move_stream_type_called = 0;
   cras_iodev_move_stream_type_default_called = 0;
+  cras_rstream_audio_ready_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -626,6 +628,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadEmpty) {
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_EQ(0, shm_->write_offset[0]);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 }
@@ -645,6 +648,21 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+}
+
+TEST_F(AlsaCaptureStreamSuite, PossiblyReadTooLittleData) {
+  struct timespec ts;
+  int rc;
+
+  //  A full block plus 4 frames.
+  cras_alsa_get_avail_frames_ret = 0;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold - 4;
+
+  rc = possibly_read_audio(aio_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, shm_->write_offset[0]);
+  EXPECT_EQ(0, shm_->write_buf_idx);
 }
 
 TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
@@ -1285,6 +1303,7 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream)
 }
 int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count)
 {
+  cras_rstream_audio_ready_called++;
   cras_rstream_audio_ready_count = count;
   return 0;
 }
