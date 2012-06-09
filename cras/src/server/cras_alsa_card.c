@@ -66,7 +66,7 @@ static struct iodev_list_node *create_iodev_for_device(
 	if (!auto_route && priority > 0)
 		priority--;
 
-	new_dev = calloc(1, sizeof(*calloc));
+	new_dev = calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL)
 		return NULL;
 	new_dev->iodev =
