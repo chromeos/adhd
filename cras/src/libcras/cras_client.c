@@ -969,8 +969,10 @@ static int handle_stream_reattach(struct cras_client *client,
 	stream->conv = NULL;
 	if (stream->aud_fd >= 0)
 		close(stream->aud_fd);
-	if (stream->shm)
+	if (stream->shm) {
 		shmdt(stream->shm);
+		stream->shm = NULL;
+	}
 
 	/* Now re-connect the stream and wait for a connected message. */
 	cras_fill_connect_message(&serv_msg,
@@ -984,11 +986,8 @@ static int handle_stream_reattach(struct cras_client *client,
 				  stream->config->format);
 	rc = write(client->server_fd, &serv_msg, sizeof(serv_msg));
 	if (rc != sizeof(serv_msg)) {
-		if (stream->connection_fd < 0)
-			close(stream->connection_fd);
-		free(stream->config);
-		free(stream);
-		return rc;
+		client_thread_rm_stream(client, stream_id);
+		return -EIO;
 	}
 
 	return 0;
