@@ -42,3 +42,4 @@ static char const *microphone_remove[] = {
 
 DECLARE_BOARD(tegra2_kaen)
 DECLARE_BOARD(tegra2_seaboard)
+DECLARE_BOARD(cardhu)
