@@ -28,6 +28,7 @@ static struct timespec last_latency;
 static int show_latency;
 static int dump_server_info;
 static int keep_looping = 1;
+static int exit_after_done_playing = 1;
 static int full_frames;
 uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
 
@@ -60,8 +61,11 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	snd_pcm_uframes_t avail;
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 
-	if (file_buf_read_offset >= file_buf_size)
+	if (file_buf_read_offset >= file_buf_size) {
+		if (exit_after_done_playing)
+			keep_looping = 0;
 		return EOF;
+	}
 
 	if (frames < min_cb_level)
 		printf("req for only %zu - %d min\n", frames, min_cb_level);
@@ -153,6 +157,23 @@ static void print_system_volumes(struct cras_client *client)
 	       cras_client_get_system_capture_muted(client) ? "(Muted)" : "");
 }
 
+static int start_stream(struct cras_client *client,
+			cras_stream_id_t *stream_id,
+			struct cras_stream_params *params,
+			float stream_volume)
+{
+	int rc;
+
+	file_buf_read_offset = 0;
+
+	rc = cras_client_add_stream(client, stream_id, params);
+	if (rc < 0) {
+		fprintf(stderr, "adding a stream\n");
+		return rc;
+	}
+	return cras_client_set_stream_volume(client, *stream_id, stream_volume);
+}
+
 static int run_file_io_stream(struct cras_client *client,
 			      int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
@@ -203,9 +224,12 @@ static int run_file_io_stream(struct cras_client *client,
 
 	cras_client_run_thread(client);
 
+	stream_playing =
+		start_stream(client, &stream_id, params, volume_scaler);
+
 	while (keep_looping) {
 		char input;
-		int nread, err;
+		int nread;
 
 		FD_ZERO(&poll_set);
 		FD_SET(1, &poll_set);
@@ -229,26 +253,22 @@ static int run_file_io_stream(struct cras_client *client,
 			keep_looping = 0;
 			break;
 		case 's':
-			if (!stream_playing) {
-				file_buf_read_offset = 0;
-				err = cras_client_add_stream(client,
-							     &stream_id,
-							     params);
-				if (err < 0) {
-					fprintf(stderr, "adding a stream\n");
-					break;
-				}
-				cras_client_set_stream_volume(client,
-							      stream_id,
-							      volume_scaler);
-				stream_playing = 1;
-			}
+			if (stream_playing)
+				break;
+
+			/* If started by hand keep running after it finishes. */
+			exit_after_done_playing = 0;
+
+			stream_playing = start_stream(client,
+						      &stream_id,
+						      params,
+						      volume_scaler);
 			break;
 		case 'r':
-			if (stream_playing) {
-				cras_client_rm_stream(client, stream_id);
-				stream_playing = 0;
-			}
+			if (!stream_playing)
+				break;
+			cras_client_rm_stream(client, stream_id);
+			stream_playing = 0;
 			break;
 		case 'u':
 			volume_scaler = min(volume_scaler + 0.1, 1.0);
