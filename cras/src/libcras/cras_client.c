@@ -736,6 +736,10 @@ static int stream_connected(struct client_stream *stream,
 
 	return 0;
 err_ret:
+	if (stream->wake_fds[0] >= 0) {
+		close(stream->wake_fds[0]);
+		close(stream->wake_fds[1]);
+	}
 	if (stream->shm)
 		shmdt(stream->shm);
 	return rc;
@@ -876,6 +880,10 @@ static int client_thread_rm_stream(struct cras_client *client,
 	if (stream->conv) {
 		cras_fmt_conv_destroy(stream->conv);
 		free(stream->fmt_conv_buffer);
+	}
+	if (stream->wake_fds[0] >= 0) {
+		close(stream->wake_fds[0]);
+		close(stream->wake_fds[1]);
 	}
 	free(stream->config);
 	free(stream);
@@ -1572,6 +1580,8 @@ int cras_client_add_stream(struct cras_client *client,
 	memcpy(stream->config, config, sizeof(*config));
 	stream->aud_fd = -1;
 	stream->connection_fd = -1;
+	stream->wake_fds[0] = -1;
+	stream->wake_fds[1] = -1;
 	stream->direction = config->direction;
 	stream->volume_scaler = 1.0;
 
