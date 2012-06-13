@@ -572,6 +572,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
       aio_->base.format = &fmt_;
       aio_->base.buffer_size = 16384;
       aio_->base.cb_threshold = 480;
+      aio_->audio_sleep_correction_frames = 0;
 
       shm_ = (struct cras_audio_shm_area *)calloc(1,
           sizeof(*shm_) + aio_->base.cb_threshold * 8);
@@ -599,6 +600,12 @@ class AlsaCaptureStreamSuite : public testing::Test {
       free(shm_);
     }
 
+    size_t GetCaptureSleepFrames() {
+      // Account for padding the sleep interval to ensure the wake up happens
+      // after the last desired frame is received.
+      return aio_->base.cb_threshold + 16;
+    }
+
   struct alsa_io *aio_;
   struct cras_rstream *rstream_;
   struct cras_audio_format fmt_;
@@ -624,13 +631,14 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadEmpty) {
   //  If no samples are present, it should sleep for cb_threshold frames.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = 0;
-  nsec_expected = aio_->base.cb_threshold * 1000000000 / fmt_.frame_rate;
+  nsec_expected = (GetCaptureSleepFrames() + 1) * 1000000000 / fmt_.frame_rate;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, shm_->write_offset[0]);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(1, aio_->audio_sleep_correction_frames);
 }
 
 TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
@@ -642,7 +650,10 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
   aio_->base.streams = NULL;
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
-  nsec_expected = (aio_->base.cb_threshold - 4) * 1000000000 / fmt_.frame_rate;
+
+  // +1 for correction factor.
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  nsec_expected = (sleep_frames) * 1000000000 / fmt_.frame_rate;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -659,7 +670,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadTooLittleData) {
   //  A full block plus 4 frames.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold - num_frames_short;
-  nsec_expected = num_frames_short * 1000000000 / fmt_.frame_rate;
+  nsec_expected = (num_frames_short + 16 + 1) * 1000000000 / fmt_.frame_rate;
 
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
@@ -679,7 +690,10 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
   //  A full block plus 4 frames.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
-  nsec_expected = (aio_->base.cb_threshold - 4) * 1000000000 / fmt_.frame_rate;
+
+  // +1 for correction factor.
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  nsec_expected = (sleep_frames) * 1000000000 / fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
   rc = possibly_read_audio(aio_, &ts);
