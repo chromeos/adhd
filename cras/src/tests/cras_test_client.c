@@ -29,10 +29,21 @@ static int show_latency;
 static int dump_server_info;
 static int keep_looping = 1;
 static int exit_after_done_playing = 1;
+static size_t duration_frames;
 static int full_frames;
 uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
 
 struct cras_audio_format *aud_format;
+
+static void check_stream_terminate(size_t frames)
+{
+	if (duration_frames) {
+		if (duration_frames <= frames)
+			keep_looping = 0;
+		else
+			duration_frames -= frames;
+	}
+}
 
 /* Run from callback thread. */
 static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
@@ -42,6 +53,8 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	int *fd = (int *)arg;
 	int ret;
 	int write_size;
+
+	check_stream_terminate(frames);
 
 	cras_client_calc_capture_latency(sample_time, &last_latency);
 
@@ -66,6 +79,8 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 			keep_looping = 0;
 		return EOF;
 	}
+
+	check_stream_terminate(frames);
 
 	if (frames < min_cb_level)
 		printf("req for only %zu - %d min\n", frames, min_cb_level);
@@ -401,6 +416,7 @@ static struct option long_options[] = {
 	{"callback_threshold",	required_argument,	0, 't'},
 	{"min_cb_level",	required_argument,	0, 'm'},
 	{"buffer_frames",	required_argument,	0, 'b'},
+	{"duration_seconds",	required_argument,	0, 'd'},
 	{"dump_server_info",    no_argument, &dump_server_info, 1},
 	{0, 0, 0, 0}
 };
@@ -415,6 +431,7 @@ int main(int argc, char **argv)
 	size_t iodev_index = 0;
 	int set_iodev = 0;
 	size_t num_channels = 2;
+	size_t duration_seconds = 0;
 	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
@@ -455,6 +472,9 @@ int main(int argc, char **argv)
 		case 's':
 			stream_type = (enum CRAS_STREAM_TYPE)atoi(optarg);
 			break;
+		case 'd':
+			duration_seconds = atoi(optarg);
+			break;
 		default:
 			break;
 		}
@@ -475,6 +495,8 @@ int main(int argc, char **argv)
 
 	if (set_iodev)
 		cras_client_switch_iodev(client, stream_type, iodev_index);
+
+	duration_frames = duration_seconds * rate;
 
 	if (capture_file != NULL) {
 		run_capture(client, capture_file, buffer_size, 0, rate,
