@@ -653,16 +653,22 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
 TEST_F(AlsaCaptureStreamSuite, PossiblyReadTooLittleData) {
   struct timespec ts;
   int rc;
+  uint64_t nsec_expected;
+  static const uint64_t num_frames_short = 40;
 
   //  A full block plus 4 frames.
   cras_alsa_get_avail_frames_ret = 0;
-  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold - 4;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold - num_frames_short;
+  nsec_expected = num_frames_short * 1000000000 / fmt_.frame_rate;
 
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
   EXPECT_EQ(0, shm_->write_offset[0]);
   EXPECT_EQ(0, shm_->write_buf_idx);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 }
 
 TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
