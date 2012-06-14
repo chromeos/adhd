@@ -59,10 +59,11 @@ static struct iodev_list_node *create_iodev_for_device(
 {
 	struct iodev_list_node *new_dev;
 
-	/* Dropping the prioity of non-auto routed devices ensures that the
-	 * auto-route devs are still selected first after the list is re-sorted.
-	 * Without this the order of devices within a card can't be determined
-	 * when the list is resorted. */
+	/* Dropping the priority of non-auto routed devices ensures
+	 * that the auto-route devs are still selected first after the
+	 * list is re-sorted.  Without this the order of devices
+	 * within a card can't be determined when the list is
+	 * resorted. */
 	if (!auto_route && priority > 0)
 		priority--;
 
