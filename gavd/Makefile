@@ -11,23 +11,17 @@ DBUS_INCLUDES	=					\
 		$(foreach v,$(__dbus_includes),-I$(v))
 
 CFILES	=					\
-	chrome_card_info_fifo.c			\
 	codec.c					\
 	codec_cirrus_cougarpoint.c		\
 	codec_max98095.c			\
 	codec_wm8903.c				\
-	device_info.c				\
-	dbus_connection.c                       \
-	dbus_to_chrome_fifo.c                   \
 	fifo.c                                  \
 	gpio_switch_monitor.c                   \
 	initialization.c                        \
-	set_factory_default.c                   \
 	signal_handling.c                       \
 	sys_input.c                             \
 	thread_gpio_switch_monitor.c            \
 	thread_management.c                     \
-	udev_sound.c                            \
 	utils.c                                 \
 	workfifo.c                              \
 	main.c
