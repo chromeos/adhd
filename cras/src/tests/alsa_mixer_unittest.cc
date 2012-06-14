@@ -74,6 +74,11 @@ static int snd_mixer_selem_get_capture_dB_return_values_length;
 static size_t cras_volume_curve_create_default_called;
 static size_t cras_volume_curve_create_simple_step_called;
 static size_t cras_volume_curve_destroy_called;
+static size_t snd_mixer_selem_get_playback_dB_range_called;
+static size_t snd_mixer_selem_get_playback_dB_range_values_index;
+static size_t snd_mixer_selem_get_playback_dB_range_values_length;
+static const long *snd_mixer_selem_get_playback_dB_range_min_values;
+static const long *snd_mixer_selem_get_playback_dB_range_max_values;
 static size_t snd_mixer_selem_get_capture_dB_range_called;
 static size_t snd_mixer_selem_get_capture_dB_range_values_index;
 static size_t snd_mixer_selem_get_capture_dB_range_values_length;
@@ -142,6 +147,11 @@ static void ResetStubData() {
   cras_volume_curve_create_default_called = 0;
   cras_volume_curve_create_simple_step_called = 0;
   cras_volume_curve_destroy_called = 0;
+  snd_mixer_selem_get_playback_dB_range_called = 0;
+  snd_mixer_selem_get_playback_dB_range_values_index = 0;
+  snd_mixer_selem_get_playback_dB_range_values_length = 0;
+  snd_mixer_selem_get_playback_dB_range_min_values = static_cast<long *>(NULL);
+  snd_mixer_selem_get_playback_dB_range_max_values = static_cast<long *>(NULL);
   snd_mixer_selem_get_capture_dB_range_called = 0;
   snd_mixer_selem_get_capture_dB_range_values_index = 0;
   snd_mixer_selem_get_capture_dB_range_values_length = 0;
@@ -340,8 +350,16 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  static const long min_volumes[] = {-500, -1250};
+  static const long max_volumes[] = {40, 40};
+  snd_mixer_selem_get_playback_dB_range_called = 0;
+  snd_mixer_selem_get_playback_dB_range_values_index = 0;
+  snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
+  snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
+  snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
   c = cras_alsa_mixer_create("hw:0", NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_range_called);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
   EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
@@ -371,8 +389,9 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   cras_alsa_mixer_set_dBFS(c, -50, NULL);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  EXPECT_EQ(-50, set_dB_values[0]);
-  EXPECT_EQ(-50, set_dB_values[1]);
+  // volume set should be relative to max volume (40 + 40).
+  EXPECT_EQ(30, set_dB_values[0]);
+  EXPECT_EQ(30, set_dB_values[1]);
   /* Set volume should be called for Master, PCM, and the mixer_output passed
    * in. If Master doesn't set to anything but zero then the entire volume
    * should be passed to the PCM control.*/
@@ -395,9 +414,9 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
   EXPECT_EQ(3, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  EXPECT_EQ(-50, set_dB_values[0]);
-  EXPECT_EQ(-50, set_dB_values[1]);
-  EXPECT_EQ(-50, set_dB_values[2]);
+  EXPECT_EQ(30, set_dB_values[0]);
+  EXPECT_EQ(30, set_dB_values[1]);
+  EXPECT_EQ(30, set_dB_values[2]);
   /* Set volume should be called for Master and PCM. PCM should get the volume
    * remaining after Master is set, in this case -50 - -25 = -25. */
   long get_dB_returns2[] = {
@@ -418,8 +437,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  EXPECT_EQ(-50, set_dB_values[0]);
-  EXPECT_EQ(-25, set_dB_values[1]);
+  EXPECT_EQ(30, set_dB_values[0]);
+  EXPECT_EQ(55, set_dB_values[1]);
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);
@@ -861,6 +880,22 @@ int snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem, long *min,
         snd_mixer_selem_get_capture_dB_range_values_index];
     *max = snd_mixer_selem_get_capture_dB_range_max_values[
         snd_mixer_selem_get_capture_dB_range_values_index++];
+  }
+  return 0;
+}
+int snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t *elem,
+                                          long *min,
+                                          long *max) {
+  snd_mixer_selem_get_playback_dB_range_called++;
+  if (snd_mixer_selem_get_playback_dB_range_values_index >=
+      snd_mixer_selem_get_playback_dB_range_values_length) {
+    *min = 0;
+    *max = 0;
+  } else {
+    *min = snd_mixer_selem_get_playback_dB_range_min_values[
+        snd_mixer_selem_get_playback_dB_range_values_index];
+    *max = snd_mixer_selem_get_playback_dB_range_max_values[
+        snd_mixer_selem_get_playback_dB_range_values_index++];
   }
   return 0;
 }

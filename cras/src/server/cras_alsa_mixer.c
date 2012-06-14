@@ -36,6 +36,8 @@ struct mixer_output_control {
  * main_capture_controls - List of capture gain controls (normally 'Capture').
  * capture_switch - Switch used to mute the capture stream.
  * volume_curve - Default volume curve that converts from an index to dBFS.
+ * max_volume_dB - Maximum volume available in main volume controls.  The dBFS
+ *   value setting will be applied relative to this.
  * ini - Configuration dictionary from libiniparser.
  */
 struct cras_alsa_mixer {
@@ -46,6 +48,7 @@ struct cras_alsa_mixer {
 	struct mixer_volume_control *main_capture_controls;
 	snd_mixer_elem_t *capture_switch;
 	struct cras_volume_curve *volume_curve;
+	long max_volume_dB;
 	dictionary *ini;
 };
 
@@ -98,6 +101,7 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 {
 	if (snd_mixer_selem_has_playback_volume(elem)) {
 		struct mixer_volume_control *c;
+		long min, max;
 
 		c = calloc(1, sizeof(*c));
 		if (c == NULL) {
@@ -108,6 +112,11 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 		c->elem = elem;
 
 		DL_APPEND(cmix->main_volume_controls, c);
+
+		if (snd_mixer_selem_get_playback_dB_range(elem,
+							  &min,
+							  &max) == 0)
+			cmix->max_volume_dB += max;
 	}
 
 	/* If cmix doesn't yet have a playback switch and this is a playback
@@ -310,8 +319,8 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 
 	assert(cras_mixer);
 
-	/* dBFS is normally < 0 to specify the attenuation. */
-	to_set = dBFS;
+	/* dBFS is normally < 0 to specify the attenuation from max. */
+	to_set = dBFS + cras_mixer->max_volume_dB;
 	/* Go through all the controls, set the volume level for each,
 	 * taking the value closest but greater than the desired volume.  If the
 	 * entire volume can't be set on the current control, move on to the
