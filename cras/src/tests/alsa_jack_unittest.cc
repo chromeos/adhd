@@ -197,7 +197,7 @@ TEST(AlsaJacks, CreateNoJacks) {
 TEST(AlsaJacks, CreateOneHpJack) {
   std::string elem_names[] = {
     "asdf",
-    "Headphone Jack",
+    "Headphone Jack, klasdjf",
     "Mic Jack",
   };
   struct pollfd poll_fds[] = {

@@ -424,7 +424,7 @@ static void alsa_control_event_pending(void *arg)
 }
 
 /* Checks if the given control name is in the supplied list of possible jack
- * control names. */
+ * control base names. */
 static int is_jack_control_in_list(const char * const *list,
 				   unsigned int list_length,
 				   const char *control_name)
@@ -432,7 +432,7 @@ static int is_jack_control_in_list(const char * const *list,
 	unsigned int i;
 
 	for (i = 0; i < list_length; i++)
-		if (strcmp(control_name, list[i]) == 0)
+		if (strncmp(control_name, list[i], strlen(list[i])) == 0)
 			return 1;
 	return 0;
 }
@@ -495,23 +495,23 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 {
 	int rc;
 	snd_hctl_elem_t *elem;
-	static const char * const output_jack_names[] = {
+	static const char * const output_jack_base_names[] = {
 		"Headphone Jack",
 		"Front Headphone Jack",
 	};
-	static const char * const input_jack_names[] = {
+	static const char * const input_jack_base_names[] = {
 		"Mic Jack",
 	};
 	const char * const *jack_names;
 	unsigned int num_jack_names;
 
 	if (direction == CRAS_STREAM_OUTPUT) {
-		jack_names = output_jack_names;
-		num_jack_names = ARRAY_SIZE(output_jack_names);
+		jack_names = output_jack_base_names;
+		num_jack_names = ARRAY_SIZE(output_jack_base_names);
 	} else {
 		assert(direction == CRAS_STREAM_INPUT);
-		jack_names = input_jack_names;
-		num_jack_names = ARRAY_SIZE(input_jack_names);
+		jack_names = input_jack_base_names;
+		num_jack_names = ARRAY_SIZE(input_jack_base_names);
 	}
 
 	rc = snd_hctl_open(&jack_list->hctl, device_name, SND_CTL_NONBLOCK);
