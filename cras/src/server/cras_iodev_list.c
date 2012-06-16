@@ -474,10 +474,17 @@ void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 
 void cras_iodev_sort_device_lists()
 {
+	int auto_route;
+
 	sort_iodev_list(&inputs.iodevs);
 	default_input = inputs.iodevs;
+
+	/* If playing to default then switch to
+	 * new if it changes. */
+	auto_route = default_output == outputs.iodevs;
 	sort_iodev_list(&outputs.iodevs);
-	default_output = outputs.iodevs;
+	if (auto_route)
+		default_output = outputs.iodevs;
 }
 
 /* Sends out the list of iodevs in the system. */

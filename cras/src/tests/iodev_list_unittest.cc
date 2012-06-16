@@ -337,6 +337,13 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   EXPECT_EQ(1, rm_stream_1_called_);
   EXPECT_EQ(NULL, d1_.streams);
 
+  // Sorting the devices when not playing to default shouldn't move the current
+  // streams.
+  cras_iodev_sort_device_lists();
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d2_, ret_dev);
+
   // Test that new streams of the same type will get assigned to the same
   // output device.
   ret_dev = cras_get_iodev_for_stream_type(s1.stream_type, s1.direction);
