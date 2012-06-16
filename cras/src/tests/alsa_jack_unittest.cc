@@ -266,6 +266,54 @@ TEST(AlsaJacks, CreateOneMicJack) {
   EXPECT_EQ(1, snd_hctl_close_called);
 }
 
+TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
+  std::string elem_names[] = {
+    "asdf",
+    "Headphone Jack, klasdjf",
+    "HDMI/DP,pcm=5 Jack",
+    "HDMI/DP,pcm=6 Jack",
+    "Mic Jack",
+  };
+  struct pollfd poll_fds[] = {
+    {5, 0, 0},
+  };
+  struct cras_alsa_jack_list *jack_list;
+
+  ResetStubData();
+  snd_hctl_poll_descriptors_fds = poll_fds;
+  snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
+  jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
+                                      elem_names,
+                                      5,
+                                      ARRAY_SIZE(elem_names),
+                                      1);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_add_select_fd_called);
+  EXPECT_EQ(5, cras_system_add_select_fd_values[0]);
+
+  snd_hctl_elem_get_hctl_return_value = reinterpret_cast<snd_hctl_t *>(0x33);
+  snd_hctl_elem_get_name_called = 0;
+  snd_ctl_elem_value_get_boolean_return_value = 1;
+  snd_hctl_elem_set_callback_value(
+      reinterpret_cast<snd_hctl_elem_t *>(&elem_names[2]), 0);
+  EXPECT_EQ(1, snd_hctl_elem_get_name_called);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
+  EXPECT_EQ(reinterpret_cast<snd_hctl_elem_t *>(&elem_names[2]),
+            snd_hctl_elem_set_callback_obj);
+
+  fake_jack_cb_called = 0;
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
+
+  cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_rm_select_fd_called);
+  EXPECT_EQ(5, cras_system_rm_select_fd_values[0]);
+  EXPECT_EQ(1, snd_hctl_close_called);
+}
+
 /* Stubs */
 
 extern "C" {
