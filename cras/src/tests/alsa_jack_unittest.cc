@@ -31,6 +31,7 @@ static size_t snd_hctl_elem_next_called;
 std::deque<snd_hctl_elem_t *> snd_hctl_elem_next_ret_vals;
 static size_t snd_hctl_elem_get_name_called;
 static size_t snd_hctl_elem_set_callback_called;
+static snd_hctl_elem_t *snd_hctl_elem_set_callback_obj;
 static snd_hctl_elem_callback_t snd_hctl_elem_set_callback_value;
 static struct pollfd *snd_hctl_poll_descriptors_fds;
 static size_t snd_hctl_poll_descriptors_num_fds;
@@ -142,6 +143,7 @@ TEST(AlsaJacks, CreateNoElements) {
 static struct cras_alsa_jack_list *run_test_with_elem_list(
     CRAS_STREAM_DIRECTION direction,
     std::string *elems,
+    unsigned int device_index,
     size_t nelems,
     size_t njacks) {
   struct cras_alsa_jack_list *jack_list;
@@ -152,7 +154,8 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
     snd_hctl_elem_next_ret_vals.push_front(
         reinterpret_cast<snd_hctl_elem_t *>(&elems[i]));
 
-  jack_list = cras_alsa_jack_list_create(0, 0,
+  jack_list = cras_alsa_jack_list_create(0,
+                                         device_index,
                                          fake_mixer,
                                          direction,
                                          fake_jack_cb,
@@ -186,6 +189,7 @@ TEST(AlsaJacks, CreateNoJacks) {
   ResetStubData();
   jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
                                       elem_names,
+                                      0,
                                       ARRAY_SIZE(elem_names),
                                       0);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -210,6 +214,7 @@ TEST(AlsaJacks, CreateOneHpJack) {
   snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
   jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
                                       elem_names,
+                                      0,
                                       ARRAY_SIZE(elem_names),
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -225,6 +230,8 @@ TEST(AlsaJacks, CreateOneHpJack) {
   EXPECT_EQ(1, fake_jack_cb_plugged);
   EXPECT_EQ(1, fake_jack_cb_called);
   EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
+  EXPECT_EQ(reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]),
+            snd_hctl_elem_set_callback_obj);
 
   fake_jack_cb_called = 0;
   cras_alsa_jack_list_report(jack_list);
@@ -241,6 +248,8 @@ TEST(AlsaJacks, CreateOneMicJack) {
   static std::string elem_names[] = {
     "asdf",
     "Headphone Jack",
+    "HDMI/DP,pcm=5 Jack",
+    "HDMI/DP,pcm=6 Jack",
     "Mic Jack",
   };
   struct cras_alsa_jack_list *jack_list;
@@ -248,6 +257,7 @@ TEST(AlsaJacks, CreateOneMicJack) {
   ResetStubData();
   jack_list = run_test_with_elem_list(CRAS_STREAM_INPUT,
                                       elem_names,
+                                      0,
                                       ARRAY_SIZE(elem_names),
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -309,6 +319,7 @@ const char *snd_hctl_elem_get_name(const snd_hctl_elem_t *obj) {
 void snd_hctl_elem_set_callback(snd_hctl_elem_t *obj,
                                 snd_hctl_elem_callback_t val) {
   snd_hctl_elem_set_callback_called++;
+  snd_hctl_elem_set_callback_obj = obj;
   snd_hctl_elem_set_callback_value = val;
 }
 int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl) {

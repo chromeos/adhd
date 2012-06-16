@@ -423,6 +423,27 @@ static void alsa_control_event_pending(void *arg)
 	snd_hctl_handle_events(jack_list->hctl);
 }
 
+/* Determines the device associated with this jack if any.  If the device cannot
+ * be determined (common case), assume device 0. */
+static unsigned int jack_device_index(const char *name)
+{
+	/* Look for the substring 'pcm=<device number>' in the element name. */
+	static const char pcm_search[] = "pcm=";
+	const char *substr;
+	int device_index;
+
+	substr = strstr(name, pcm_search);
+	if (substr == NULL)
+		return 0;
+	substr += ARRAY_SIZE(pcm_search);
+	if (*substr == '\0')
+		return 0;
+	device_index = atoi(substr);
+	if (device_index < 0)
+		return 0;
+	return (unsigned int)device_index;
+}
+
 /* Checks if the given control name is in the supplied list of possible jack
  * control base names. */
 static int is_jack_control_in_list(const char * const *list,
@@ -540,6 +561,8 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 			continue;
 		name = snd_hctl_elem_get_name(elem);
 		if (!is_jack_control_in_list(jack_names, num_jack_names, name))
+			continue;
+		if (jack_device_index(name) != jack_list->device_index)
 			continue;
 
 		jack = cras_alloc_jack(0);
