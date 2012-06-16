@@ -1144,18 +1144,16 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	/* Find any jack controls for this device. */
-	/* TODO(dgreid) - handle non-zero devices once it is possible to
-	 * determine the device a jack is associated with. */
-	if (device_index == 0)
-		aio->jack_list = cras_alsa_jack_list_create(
-				card_index,
-				device_index,
-				mixer,
-				direction,
-				direction == CRAS_STREAM_OUTPUT ?
-					jack_output_plug_event :
-					jack_input_plug_event,
-				aio);
+	aio->jack_list = cras_alsa_jack_list_create(
+			card_index,
+			device_index,
+			mixer,
+			direction,
+			direction == CRAS_STREAM_OUTPUT ?
+				     jack_output_plug_event :
+				     jack_input_plug_event,
+			aio);
+
 	/* Create output nodes for jacks that aren't associated with an already
 	 * existing node.  Get an initial read of the jacks for this device. */
 	cras_alsa_jack_list_report(aio->jack_list);
