@@ -7,7 +7,7 @@
 #define _CRAS_MIX_H
 
 /* Renders count frames from shm into dst.  Updates count if anything is
- * written.
+ * written.  If the system is muted, this will render zeros to the output.
  * Args:
  *    shm - Area to mix samples from.
  *    num_channel - Number of channels in data.

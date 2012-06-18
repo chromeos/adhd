@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "cras_shm.h"
+#include "cras_system_state.h"
 
 #define MAX_VOLUME_TO_SCALE 0.9999999
 #define MIN_VOLUME_TO_SCALE 0.0000001
@@ -68,7 +69,9 @@ size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
 	if (fr_in_buf < *count)
 		*count = fr_in_buf;
 
-	if (shm->mute || shm->volume_scaler < MIN_VOLUME_TO_SCALE) {
+	if (cras_system_get_mute() ||
+	    shm->mute ||
+	    shm->volume_scaler < MIN_VOLUME_TO_SCALE) {
 		/* Muted, if first then zero fill, otherwise, nop. */
 		if (*index == 0)
 			memset(dst, 0, *count * num_channels * sizeof(*src));
