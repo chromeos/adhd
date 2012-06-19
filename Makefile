@@ -52,6 +52,20 @@ install:	$(DESTDIR)/etc/modprobe.d/alsa-$(BOARD).conf
 
 endif
 
+optional_cras_conf := $(wildcard $(ADHD_DIR)/cras-config/$(BOARD)/*)
+
+ifneq ($(strip $(optional_cras_conf)),)
+
+.PHONY: cras-config-files
+cras-config-files:
+	$(ECHO) "Installing cras config files"
+	$(INSTALL) --mode 755 -d $(DESTDIR)etc/cras/
+	$(INSTALL) --mode 644 -D "$(optional_cras_conf)" $(DESTDIR)etc/cras/
+
+install:	cras-config-files
+
+endif
+
 install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
 		$(DESTDIR)/usr/bin/gavd					\
