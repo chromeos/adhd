@@ -285,6 +285,9 @@ void cras_iodev_config_params_for_streams(struct cras_iodev *iodev)
 	if (iodev->used_size > iodev->buffer_size)
 		iodev->used_size = iodev->buffer_size;
 	iodev->cb_threshold = cras_rstream_get_cb_threshold(lowest->stream);
-	if (iodev->cb_threshold > iodev->used_size / 2)
+
+	/* For output streams, callback when at most half way full. */
+	if (iodev->direction == CRAS_STREAM_OUTPUT &&
+	    iodev->cb_threshold > iodev->used_size / 2)
 		iodev->cb_threshold = iodev->used_size / 2;
 }
