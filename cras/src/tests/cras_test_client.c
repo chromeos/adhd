@@ -438,6 +438,18 @@ int main(int argc, char **argv)
 
 	option_index = 0;
 
+	err = cras_client_create(&client);
+	if (err < 0) {
+		fprintf(stderr, "Couldn't create client.\n");
+		return err;
+	}
+
+	err = cras_client_connect(client);
+	if (err) {
+		fprintf(stderr, "Couldn't connect to server.\n");
+		return err;
+	}
+
 	while (1) {
 		c = getopt_long(argc, argv, "o:s:",
 				long_options, &option_index);
@@ -479,16 +491,6 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-
-	err = cras_client_create(&client);
-	if (err < 0) {
-		fprintf(stderr, "Couldn't create client.\n");
-		return err;
-	}
-
-	err = cras_client_connect(client);
-	if (err)
-		return err;
 
 	if (dump_server_info)
 		print_server_info(client);
