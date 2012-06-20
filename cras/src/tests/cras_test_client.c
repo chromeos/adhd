@@ -415,8 +415,10 @@ static struct option long_options[] = {
 	{"playback_file",	required_argument,	0, 'p'},
 	{"callback_threshold",	required_argument,	0, 't'},
 	{"min_cb_level",	required_argument,	0, 'm'},
+	{"mute",                required_argument,      0, 'u'},
 	{"buffer_frames",	required_argument,	0, 'b'},
 	{"duration_seconds",	required_argument,	0, 'd'},
+	{"volume",              required_argument,      0, 'v'},
 	{"dump_server_info",    no_argument, &dump_server_info, 1},
 	{0, 0, 0, 0}
 };
@@ -487,6 +489,17 @@ int main(int argc, char **argv)
 		case 'd':
 			duration_seconds = atoi(optarg);
 			break;
+		case 'u': {
+			int mute = atoi(optarg);
+			cras_client_set_system_mute(client, mute);
+			break;
+		}
+		case 'v': {
+			int volume = atoi(optarg);
+			volume = min(100, max(0, volume));
+			cras_client_set_system_volume(client, volume);
+			break;
+		}
 		default:
 			break;
 		}
