@@ -26,7 +26,6 @@ static size_t file_buf_size;
 static size_t file_buf_read_offset;
 static struct timespec last_latency;
 static int show_latency;
-static int dump_server_info;
 static int keep_looping = 1;
 static int exit_after_done_playing = 1;
 static size_t duration_frames;
@@ -419,7 +418,7 @@ static struct option long_options[] = {
 	{"buffer_frames",	required_argument,	0, 'b'},
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"volume",              required_argument,      0, 'v'},
-	{"dump_server_info",    no_argument, &dump_server_info, 1},
+	{"dump_server_info",    no_argument,            0, 'i'},
 	{0, 0, 0, 0}
 };
 
@@ -500,13 +499,13 @@ int main(int argc, char **argv)
 			cras_client_set_system_volume(client, volume);
 			break;
 		}
+		case 'i':
+			print_server_info(client);
+			break;
 		default:
 			break;
 		}
 	}
-
-	if (dump_server_info)
-		print_server_info(client);
 
 	if (set_iodev)
 		cras_client_switch_iodev(client, stream_type, iodev_index);
