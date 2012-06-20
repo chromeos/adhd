@@ -139,4 +139,5 @@ alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
 	server/cras_alsa_jack.c
 alsa_jack_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server
-alsa_jack_unittest_LDADD = -lgtest
+# TODO(thutt): Remove dependency on udev when gpio switch test is stubbed out.
+alsa_jack_unittest_LDADD = -lgtest -ludev

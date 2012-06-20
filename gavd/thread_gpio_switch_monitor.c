@@ -194,6 +194,9 @@ static void initialize(void)
 {
     microphone_jack_device = NULL;
     headphone_jack_device  = NULL;
+
+    return;                     /* Disable automatic switching */
+
     wait_for_dev_input_access();
     enumerate_input();
 }
