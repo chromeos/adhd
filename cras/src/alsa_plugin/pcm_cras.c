@@ -310,9 +310,11 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 					   ARRAY_SIZE(bytes_list), bytes_list);
 	if (rc < 0)
 		return rc;
-	rc = snd_pcm_ioplug_set_param_list(&pcm_cras->io,
-					   SND_PCM_IOPLUG_HW_PERIOD_BYTES,
-					   ARRAY_SIZE(bytes_list), bytes_list);
+	rc = snd_pcm_ioplug_set_param_minmax(
+			&pcm_cras->io,
+			SND_PCM_IOPLUG_HW_PERIOD_BYTES,
+			bytes_list[0] / 2,
+			bytes_list[ARRAY_SIZE(bytes_list) - 1] / 2);
 	if (rc < 0)
 		return rc;
 	rc = snd_pcm_ioplug_set_param_minmax(&pcm_cras->io,
