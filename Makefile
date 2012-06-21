@@ -23,10 +23,6 @@ cras:
 cras_install:
 	@$(call remake,Building,cras,cras.mk,$@)
 
-$(DESTDIR)/etc/init/adhd.conf:	$(ADHD_DIR)/upstart/adhd.conf
-	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) --mode 644 -D $< $@
-
 $(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules:	\
 	$(ADHD_DIR)/udev/99-dev-input-group.rules
 	$(ECHO) "Installing '$<' to '$@'"
@@ -56,8 +52,7 @@ install:	$(DESTDIR)/etc/modprobe.d/alsa-$(BOARD).conf
 
 endif
 
-install:	$(DESTDIR)/etc/init/adhd.conf				\
-		$(DESTDIR)/etc/init/cras.conf				\
+install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
 		$(DESTDIR)/usr/bin/gavd					\
 		$(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules	\
