@@ -5,14 +5,14 @@
 
 #include <assert.h>
 #include <alsa/asoundlib.h>
-#include <regex.h>
+#include <linux/input.h>
 #include <syslog.h>
 #include <libudev.h>
-#include <linux/input.h>
 
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
 #include "cras_system_state.h"
+#include "cras_gpio_jack.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -103,71 +103,21 @@ struct cras_alsa_jack_list {
 #define LONG(x)			((x) / BITS_PER_LONG)
 #define IS_BIT_SET(bit, array)	!!((array[LONG(bit)]) & (1UL << OFF(bit)))
 
-static unsigned sys_input_get_switch_state(
-	int	  fd,	 /* Open file descriptor. */
-	unsigned  sw,	 /* SW_xxx identifier */
-	unsigned *state) /* out: 0 -> off, 1 -> on */
+static unsigned sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
 {
-	unsigned long	    bits[NBITS(SW_CNT)];
+	unsigned long bits[NBITS(SW_CNT)];
 	const unsigned long switch_no = sw;
 
 	memset(bits, '\0', sizeof(bits));
 	/* If switch event present & supported, get current state. */
-	if (ioctl(fd, EVIOCGBIT(EV_SW, switch_no + 1), bits) >= 0) {
+	if (gpio_switch_eviocgbit(fd, switch_no, bits) >= 0) {
 		if (IS_BIT_SET(switch_no, bits)) {
-			ioctl(fd, EVIOCGSW(sizeof(bits)), bits);
+			gpio_switch_eviocgsw(fd, bits, sizeof(bits));
 			*state = IS_BIT_SET(switch_no, bits);
 			return 0;
 		}
 	}
 	return -1;
-}
-
-static char *sys_input_get_device_name(const char *path)
-{
-	char name[256];
-	int  fd = open(path, O_RDONLY);
-
-	if (fd >= 0) {
-		ioctl(fd, EVIOCGNAME(sizeof(name)), name);
-		close(fd);
-		return strdup(name);
-	} else
-		return NULL;
-}
-
-
-static void compile_regex(regex_t *regex, const char *str)
-{
-	int r;
-	r = regcomp(regex, str, REG_EXTENDED);
-	assert(r == 0);
-}
-
-static unsigned is_microphone_jack(const char *name)
-{
-	regmatch_t m[1];
-	regex_t regex;
-	unsigned success;
-	const char *re = "^.*(Mic|Headphone) Jack$";
-
-	compile_regex(&regex, re);
-	success = regexec(&regex, name, ARRAY_SIZE(m), m, 0) == 0;
-	regfree(&regex);
-	return success;
-}
-
-static unsigned is_headphone_jack(const char *name)
-{
-	regmatch_t  m[1];
-	regex_t	    regex;
-	unsigned    success;
-	const char *re = "^.*Headphone Jack$";
-
-	compile_regex(&regex, re);
-	success = regexec(&regex, name, ARRAY_SIZE(m), m, 0) == 0;
-	regfree(&regex);
-	return success;
 }
 
 static inline struct cras_alsa_jack *cras_alloc_jack(int is_gpio)
@@ -212,8 +162,8 @@ static void gpio_switch_callback(void *arg)
 	int r;
 	struct input_event ev[64];
 
-	r = read(jack->gpio.fd, ev,
-		 ARRAY_SIZE(ev) * sizeof(struct input_event));
+	r = gpio_switch_read(jack->gpio.fd, ev,
+			     ARRAY_SIZE(ev) * sizeof(struct input_event));
 
 	for (i = 0; i < r / sizeof(struct input_event); ++i) {
 		if (ev[i].type == EV_SW && ev[i].code == SW_HEADPHONE_INSERT) {
@@ -242,9 +192,9 @@ static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 
 	jack->jack_list = jack_list;
 	DL_APPEND(jack_list->jacks, jack);
-	jack->gpio.fd = open(pathname, O_RDONLY);
+	jack->gpio.fd = gpio_switch_open(pathname);
 	jack->gpio.switch_event = switch_event;
-        jack->gpio.device_name = sys_input_get_device_name(pathname);
+	jack->gpio.device_name = sys_input_get_device_name(pathname);
 
 	if (jack->gpio.fd == -1 || jack->gpio.device_name == NULL) {
 		free(jack->gpio.device_name);
@@ -263,58 +213,6 @@ static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	r = cras_system_add_select_fd(jack->gpio.fd,
 				      gpio_switch_callback, jack);
 	assert(r == 0);
-}
-
-/* gpio_enumerate_dev_input:
- *
- *   Finds /dev/input/event files which correspond to headphones &
- *   microphone switches.  If found, they are opened, associated with
- *   an Alsa control and monitored for activity.
- */
-static void gpio_enumerate_dev_input(struct cras_alsa_jack_list *jack_list,
-				     unsigned int card_index,
-				     enum CRAS_STREAM_DIRECTION direction)
-{
-	struct udev *udev;
-	struct udev_enumerate *enumerate;
-	struct udev_list_entry *dl;
-	struct udev_list_entry *dev_list_entry;
-
-	udev = udev_new();
-	assert(udev != NULL);
-	enumerate = udev_enumerate_new(udev);
-	udev_enumerate_add_match_subsystem(enumerate, "input");
-	udev_enumerate_scan_devices(enumerate);
-	dl = udev_enumerate_get_list_entry(enumerate);
-
-	udev_list_entry_foreach(dev_list_entry, dl) {
-		const char *path = udev_list_entry_get_name(dev_list_entry);
-		struct udev_device *dev = udev_device_new_from_syspath(udev,
-                                                                       path);
-		const char *devnode = udev_device_get_devnode(dev);
-		char *ioctl_name;
-
-		if (devnode == NULL)
-			continue;
-
-		ioctl_name = sys_input_get_device_name(devnode);
-		if (ioctl_name == NULL)
-			continue;
-
-		if (direction == CRAS_STREAM_INPUT &&
-		    is_microphone_jack(ioctl_name))
-			open_and_monitor_gpio(jack_list, direction,
-					      devnode, SW_MICROPHONE_INSERT);
-
-		if (direction == CRAS_STREAM_OUTPUT &&
-		    is_headphone_jack(ioctl_name))
-			open_and_monitor_gpio(jack_list, direction,
-					      devnode, SW_HEADPHONE_INSERT);
-
-		free(ioctl_name);
-	}
-	udev_enumerate_unref(enumerate);
-	udev_unref(udev);
 }
 
 static void wait_for_dev_input_access(void)
@@ -366,8 +264,23 @@ static void find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 	/* GPIO switches are on Arm-based machines, and are
 	 * only associated with on-board devices.
 	 */
+	char *devices[32];
+	unsigned n_devices;
+	unsigned i;
+
 	wait_for_dev_input_access();
-	gpio_enumerate_dev_input(jack_list, card_index, direction);
+	n_devices = gpio_get_switch_names(direction, devices,
+					  ARRAY_SIZE(devices));
+	for (i = 0; i < n_devices; ++i) {
+		int sw;
+
+		sw = SW_HEADPHONE_INSERT;
+		if (direction == CRAS_STREAM_INPUT)
+			sw = SW_MICROPHONE_INSERT;
+
+		open_and_monitor_gpio(jack_list, direction, devices[i], sw);
+		free(devices[i]);
+	}
 }
 
 /* Callback from alsa when a jack control changes.  This is registered with

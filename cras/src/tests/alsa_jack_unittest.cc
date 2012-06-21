@@ -420,6 +420,42 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
   return cras_alsa_mixer_get_output_matching_name_return_value;
 }
 
+char *sys_input_get_device_name(const char *path)
+{
+    assert(0);
+}
+
+unsigned sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
+{
+    assert(0);
+}
+
+int gpio_switch_eviocgbit(int fd, unsigned long sw, void *buf)
+{
+    assert(0);
+}
+
+int gpio_switch_eviocgsw(int fd, void *bits, size_t n_bytes)
+{
+    assert(0);
+}
+
+int gpio_switch_read(int fd, void *buf, size_t n_bytes)
+{
+    assert(0);
+}
+
+int gpio_switch_open(const char *pathname)
+{
+    assert(0);
+}
+
+unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
+                               char **names, size_t n_names)
+{
+    return 0;
+}
+
 } /* extern "C" */
 
 }  //  namespace
