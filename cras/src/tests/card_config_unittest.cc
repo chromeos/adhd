@@ -42,7 +42,12 @@ class CardConfigTestSuite : public testing::Test{
   protected:
     virtual void SetUp() {
       cras_volume_curve_create_default_called = 0;
-      cras_volume_curve_create_default_return = NULL;
+      cras_volume_curve_create_default_return =
+          reinterpret_cast<struct cras_volume_curve*>(0x55);
+      cras_volume_curve_create_simple_step_return =
+          reinterpret_cast<struct cras_volume_curve*>(0x56);
+      cras_volume_curve_create_explicit_return =
+          reinterpret_cast<struct cras_volume_curve*>(0x57);
       cras_volume_curve_create_simple_step_called = 0;
       cras_volume_curve_create_simple_step_return = NULL;
       cras_volume_curve_create_explicit_called = 0;
@@ -73,6 +78,7 @@ TEST_F(CardConfigTestSuite, EmptyConfigFileReturnsValidConfigDefaultCurves) {
 
   curve = cras_card_config_get_volume_curve_for_control(config, "asdf");
   EXPECT_EQ(1, cras_volume_curve_create_default_called);
+  EXPECT_NE(static_cast<struct cras_volume_curve*>(NULL), curve);
 
   cras_card_config_destroy(config);
 }
@@ -83,6 +89,7 @@ TEST_F(CardConfigTestSuite, NullConfigGivesDefaultVolumeCurve) {
 
   curve = cras_card_config_get_volume_curve_for_control(NULL, "asdf");
   EXPECT_EQ(1, cras_volume_curve_create_default_called);
+  EXPECT_NE(static_cast<struct cras_volume_curve*>(NULL), curve);
 }
 
 // Test getting a curve from a simple_step configuration.
@@ -104,10 +111,12 @@ TEST_F(CardConfigTestSuite, SimpleStepConfig) {
   // Unknown config should return default curve.
   curve = cras_card_config_get_volume_curve_for_control(NULL, "asdf");
   EXPECT_EQ(1, cras_volume_curve_create_default_called);
+  EXPECT_EQ(cras_volume_curve_create_default_return, curve);
   cras_volume_curve_create_default_called = 0;
 
   // Test a config that specifies simple_step.
   curve = cras_card_config_get_volume_curve_for_control(config, "Card1");
+  EXPECT_EQ(cras_volume_curve_create_simple_step_return, curve);
   EXPECT_EQ(0, cras_volume_curve_create_default_called);
   EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
   EXPECT_EQ(-600, cras_volume_curve_create_simple_step_max_volume);
@@ -236,6 +245,7 @@ TEST_F(CardConfigTestSuite, ExplicitCurveConfig) {
   EXPECT_EQ(0, cras_volume_curve_create_default_called);
   EXPECT_EQ(0, cras_volume_curve_create_simple_step_called);
   EXPECT_EQ(1, cras_volume_curve_create_explicit_called);
+  EXPECT_EQ(cras_volume_curve_create_explicit_return, curve);
   for (unsigned int i = 0; i < 101; i++) {
     EXPECT_EQ((static_cast<long>(i) - 100) * 100 + 50, cras_explicit_curve[i]);
   }

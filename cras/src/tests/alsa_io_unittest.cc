@@ -887,14 +887,11 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
 TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
   struct timespec ts;
   int rc;
-  uint64_t nsec_expected;
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
-  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
-      1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
   shm_->write_offset[0] = shm_->used_size;
@@ -981,7 +978,6 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
 TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   struct timespec ts;
   int rc;
-  uint64_t nsec_expected;
   size_t written_expected;
 
   //  Have cb_threshold samples left.
@@ -989,8 +985,6 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
   written_expected = (aio_->base.used_size - aio_->base.cb_threshold);
-  nsec_expected = written_expected *
-      1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
   shm_->write_offset[0] = shm_->used_size;

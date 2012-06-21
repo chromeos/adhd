@@ -278,7 +278,8 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
 /* Stubs */
 
 extern "C" {
-struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name) {
+struct cras_alsa_mixer *cras_alsa_mixer_create(
+    const char *card_name, const struct cras_card_config *config) {
   cras_alsa_mixer_create_called++;
   return cras_alsa_mixer_create_return;
 }
