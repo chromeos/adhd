@@ -53,8 +53,21 @@ static struct cras_alsa_mixer *fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
 static struct cras_alsa_mixer_output *
     cras_alsa_mixer_get_output_matching_name_return_value;
+static size_t gpio_get_switch_names_called;
+static size_t gpio_get_switch_names_count;
+static size_t gpio_switch_open_called;
+static size_t gpio_switch_eviocgsw_called;
+static size_t gpio_switch_eviocgbit_called;
+static size_t sys_input_get_device_name_called;
+
 
 static void ResetStubData() {
+  gpio_get_switch_names_called = 0;
+  gpio_get_switch_names_count = 0;
+  gpio_switch_open_called = 0;
+  gpio_switch_eviocgsw_called = 0;
+  gpio_switch_eviocgbit_called = 0;
+  sys_input_get_device_name_called = 0;
   snd_hctl_open_called = 0;
   snd_hctl_open_return_value = 0;
   snd_hctl_open_pointer_val = reinterpret_cast<snd_hctl_t *>(0x4323);
@@ -110,11 +123,17 @@ TEST(AlsaJacks, CreateFailOpen) {
 TEST(AlsaJacks, CreateFailLoad) {
   ResetStubData();
   snd_hctl_load_return_value = -1;
+  gpio_get_switch_names_count = ~0;
   EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
                                              fake_mixer,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
+  EXPECT_EQ(0, gpio_get_switch_names_called);
+  EXPECT_EQ(0, gpio_switch_open_called);
+  EXPECT_EQ(0, gpio_switch_eviocgsw_called);
+  EXPECT_EQ(0, gpio_switch_eviocgbit_called);
+  EXPECT_EQ(0, sys_input_get_device_name_called);
   EXPECT_EQ(1, snd_hctl_open_called);
   EXPECT_EQ(1, snd_hctl_load_called);
   EXPECT_EQ(1, snd_hctl_close_called);
@@ -125,12 +144,18 @@ TEST(AlsaJacks, CreateNoElements) {
 
   ResetStubData();
   snd_hctl_first_elem_return_val = NULL;
+  gpio_get_switch_names_count = 0;
   jack_list = cras_alsa_jack_list_create(0, 0,
                                          fake_mixer,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(0, gpio_switch_open_called);
+  EXPECT_EQ(0, gpio_switch_eviocgsw_called);
+  EXPECT_EQ(0, gpio_switch_eviocgbit_called);
+  EXPECT_EQ(0, sys_input_get_device_name_called);
   EXPECT_EQ(1, snd_hctl_open_called);
   EXPECT_EQ(1, snd_hctl_load_called);
   EXPECT_EQ(1, snd_hctl_first_elem_called);
@@ -195,6 +220,50 @@ TEST(AlsaJacks, CreateNoJacks) {
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
 
   cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(1, snd_hctl_close_called);
+}
+
+TEST(AlsaJacks, CreateGPIOHp) {
+  struct cras_alsa_jack_list *jack_list;
+
+  ResetStubData();
+  gpio_get_switch_names_count = ~0;
+  snd_hctl_first_elem_return_val = NULL;
+  jack_list = cras_alsa_jack_list_create(0, 0,
+                                         fake_mixer,
+                                         CRAS_STREAM_OUTPUT,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(2, gpio_switch_open_called);
+  EXPECT_EQ(2, gpio_switch_eviocgsw_called);
+  EXPECT_EQ(2, gpio_switch_eviocgbit_called);
+  EXPECT_EQ(2, sys_input_get_device_name_called);
+  EXPECT_EQ(1, snd_hctl_close_called);
+}
+
+TEST(AlsaJacks, CreateGPIOMic) {
+  struct cras_alsa_jack_list *jack_list;
+
+  ResetStubData();
+  gpio_get_switch_names_count = ~0;
+  snd_hctl_first_elem_return_val = NULL;
+  jack_list = cras_alsa_jack_list_create(0, 0,
+                                         fake_mixer,
+                                         CRAS_STREAM_INPUT,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(2, gpio_switch_open_called);
+  EXPECT_EQ(2, gpio_switch_eviocgsw_called);
+  EXPECT_EQ(2, gpio_switch_eviocgbit_called);
+  EXPECT_EQ(2, sys_input_get_device_name_called);
   EXPECT_EQ(1, snd_hctl_close_called);
 }
 
@@ -422,38 +491,68 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 
 char *sys_input_get_device_name(const char *path)
 {
-    assert(0);
-}
-
-unsigned sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
-{
-    assert(0);
+  sys_input_get_device_name_called++;
+  return strdup(path);
 }
 
 int gpio_switch_eviocgbit(int fd, unsigned long sw, void *buf)
 {
-    assert(0);
+  unsigned char *p = (unsigned char *)buf;
+  unsigned off = sw / 8;
+  /* Returns >= 0 if 'sw' is supported, negative if not.
+   *
+   *  Set the bit corresponding to 'sw' in 'buf'.  'buf' must have
+   *  been allocated by the caller to accommodate this.
+   */
+  p[off] = 0xff;
+  gpio_switch_eviocgbit_called++;
+  return 1;
 }
 
 int gpio_switch_eviocgsw(int fd, void *bits, size_t n_bytes)
 {
-    assert(0);
+  /* Bits set to '1' indicate a switch is enabled.
+   * Bits set to '0' indicate a switch is disabled
+   */
+  gpio_switch_eviocgsw_called++;
+  memset(bits, 0xff, n_bytes);
+  return 1;
 }
 
 int gpio_switch_read(int fd, void *buf, size_t n_bytes)
 {
-    assert(0);
+  /* This function is only invoked when the 'switch has changed'
+   * callback is invoked.  That code is not exercised by this
+   * unittest.
+   */
+  assert(0);
 }
 
 int gpio_switch_open(const char *pathname)
 {
-    assert(0);
+  ++gpio_switch_open_called;
+  return 14;
 }
 
 unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
                                char **names, size_t n_names)
 {
-    return 0;
+  unsigned i, ub;
+  static const char *dummy[] = {
+      "/dev/input/event3",
+      "/dev/input/event2",
+  };
+
+  ++gpio_get_switch_names_called;
+
+  ub = gpio_get_switch_names_count;
+  if (ub > ARRAY_SIZE(dummy))
+    ub = ARRAY_SIZE(dummy);
+
+  for (i = 0; i < ub; ++i) {
+    names[i] = strdup(dummy[i]);
+  }
+  return ub;
 }
 
 } /* extern "C" */
