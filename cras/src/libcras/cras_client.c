@@ -1563,9 +1563,11 @@ int cras_client_add_stream(struct cras_client *client,
 	if (config->aud_cb == NULL || config->err_cb == NULL)
 		return -EINVAL;
 
-	/* For input cb_threshold is buffer size. */
+	/* For input cb_thresh is buffer size. For output the callback level. */
 	if (config->direction == CRAS_STREAM_INPUT)
 		config->cb_threshold = config->buffer_frames;
+	else
+		config->cb_threshold = config->min_cb_level;
 
 	stream = calloc(1, sizeof(*stream));
 	if (stream == NULL) {
