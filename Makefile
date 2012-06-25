@@ -2,20 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 ifndef BOARD
-$(error 'BOARD' is not defined.  Unable to build gavd.)
+$(error 'BOARD' is not defined.  Unable to build ADHD.)
 endif
 
 export ADHD_DIR = $(shell pwd)
 include $(ADHD_DIR)/defs/definitions.mk
 
-all:	gavd adhdinfo cras
-
-adhdinfo gavd::	lib
-
-gavd::		cras
-
-lib gavd adhdinfo::
-	@$(call remake,Building,$@,Makefile,$@)
+all:	cras
 
 cras:
 	@$(call remake,Building,$@,cras.mk,$@)
@@ -31,10 +24,6 @@ $(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules:	\
 $(DESTDIR)/etc/init/cras.conf:	$(ADHD_DIR)/upstart/cras.conf
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
-
-$(DESTDIR)/usr/bin/gavd:	$(ADHD_BUILD_DIR)/gavd/gavd
-	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) -D $< $@
 
 $(DESTDIR)/etc/asound.state:	$(ADHD_DIR)/factory-default/asound.state.$(BOARD)
 	$(ECHO) "Installing '$<' to '$@'"
@@ -68,10 +57,9 @@ endif
 
 install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
-		$(DESTDIR)/usr/bin/gavd					\
 		$(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules	\
 		cras_install
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
 
-.PHONY:	gavd clean adhdinfo lib cras cras_install
+.PHONY:	clean cras cras_install
