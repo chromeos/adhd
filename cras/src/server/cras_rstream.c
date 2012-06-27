@@ -142,7 +142,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 		return rc;
 	}
 
-	syslog(LOG_DEBUG, "stream %hx frames %zu, cb_thresh %zu, shm_size %zu",
+	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu, shm_size %zu",
 	       stream_id, buffer_frames, cb_threshold, stream->shm->size);
 	*stream_out = stream;
 	return 0;
