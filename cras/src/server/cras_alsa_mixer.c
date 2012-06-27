@@ -460,7 +460,7 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 		elem_name = snd_mixer_selem_get_name(output->properties.elem);
 		if (elem_name == NULL)
 			continue;
-		if (strncmp(elem_name, name, strlen(elem_name)) == 0)
+		if (strstr(name, elem_name))
 			return &output->properties;
 	}
 	return NULL;
