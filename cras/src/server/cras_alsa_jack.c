@@ -348,7 +348,7 @@ static unsigned int jack_device_index(const char *name)
 	substr = strstr(name, pcm_search);
 	if (substr == NULL)
 		return 0;
-	substr += ARRAY_SIZE(pcm_search);
+	substr += ARRAY_SIZE(pcm_search) - 1;
 	if (*substr == '\0')
 		return 0;
 	device_index = atoi(substr);
