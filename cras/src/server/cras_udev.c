@@ -16,12 +16,6 @@
 #include "cras_util.h"
 #include "cras_system_state.h"
 
-typedef enum device_speed_t {
-	DS_SLOW,
-	DS_FAST,
-	DS_NUM_SPEED
-} device_speed_t;
-
 typedef enum direction_t {
 	D_PLAYBACK,
 	D_CAPTURE,
@@ -74,6 +68,19 @@ static unsigned is_action(const char *desired,
 static const char pcm_regex_string[] = "^.*pcm(C[0-9]+)(D[0-9]+)([pc])";
 static regex_t pcm_regex;
 
+/* Control regex is similar to above, but only has one field -- the
+ * card that is controlled. The format is the same with the exception of
+ * the leaf node being of the form:
+ *
+ *  /devices/...../card0/controlC0
+ *
+ * Where C0 is the card number and the only thing we care about in
+ * this case.
+ */
+
+static const char control_regex_string[] = "^.*/controlC([0-9]+)";
+static regex_t control_regex;
+
 static char const * const  subsystem = "sound";
 
 static unsigned is_action(const char *desired, const char *actual)
@@ -84,6 +91,11 @@ static unsigned is_action(const char *desired, const char *actual)
 static unsigned is_action_add(const char *action)
 {
 	return is_action("add", action);
+}
+
+static unsigned is_action_change(const char *action)
+{
+	return is_action("change", action);
 }
 
 static unsigned is_action_remove(const char *action)
@@ -120,81 +132,22 @@ static unsigned is_internal_device(struct udev_device *dev)
 	return 0;
 }
 
-/* get_usb_device_speed: Determine if a usb device is fast or slow.
- *
- *   Return: 0: device speed could not be determined.
- *   Return: 1: device speed determined
- *
- *   When the speed cannot be determined, '*speed' is not updated.
- *   When the speed can be determined, '*speed' is updated.
- */
-static unsigned get_usb_device_speed(struct udev_device *dev,
-				     device_speed_t	*speed)
+static unsigned is_control_device(struct udev_device  *dev,
+				  unsigned	      *internal,
+				  unsigned	      *card_number,
+				  const char	     **sysname)
 {
-	unsigned	    result = 0;
-	struct udev_device *parent;
-
-	parent = udev_device_get_parent_with_subsystem_devtype(dev, "usb",
-							       "usb_device");
-	/* If the speed cannot be determined to be either '12' or '480',
-	 * then we consider that we don't know the speed of the specific
-	 * device.
-	 */
-	if (parent != NULL) {
-		const char *attr  = udev_device_get_sysattr_value(parent,
-								  "speed");
-
-		if (attr != NULL) {
-			if (strcmp(attr, "12") == 0) {
-				*speed = DS_SLOW;
-				result = 1;
-			} else if (strcmp(attr, "480") == 0) {
-				*speed = DS_FAST;
-				result = 1;
-			}
-		}
-	}
-	return result;
-}
-
-
-/* is_alsa_device: Determine if a device is an alsa device.
- */
-static unsigned is_alsa_device(struct udev_device  *dev,
-			       unsigned		   *internal,
-			       unsigned		   *card_number,
-			       unsigned		   *device_number,
-			       device_speed_t	   *speed,
-			       direction_t	   *direction,
-			       const char	  **sysname)
-{
-	regmatch_t  m[4];
+	regmatch_t m[2];
 	const char *devpath = udev_device_get_devpath(dev);
 
-	/* Upon successful regex match:
-	 *
-	 *  m[0]: full match
-	 *  m[1]: card number
-	 *  m[2]: device number
-	 *  m[3]: playback / capture
-	 *
-	 *  Refer to 'pcm_regex_string'.
-	 */
-
 	if (devpath != NULL &&
-	    regexec(&pcm_regex, devpath, ARRAY_SIZE(m), m, 0) == 0) {
-
-		*internal      = is_internal_device(dev);
-		*card_number   = (unsigned)atoi(&devpath[m[1].rm_so + 1]);
-		*device_number = (unsigned)atoi(&devpath[m[2].rm_so + 1]);
+	    regexec(&control_regex, devpath, ARRAY_SIZE(m), m, 0) == 0) {
 		*sysname       = udev_device_get_sysname(dev);
-		*direction     = devpath[m[3].rm_so] == 'p' ? D_PLAYBACK
-							    : D_CAPTURE;
-
-		if (!get_usb_device_speed(dev, speed))
-			*speed = DS_FAST;
+		*internal      = is_internal_device(dev);
+		*card_number   = (unsigned)atoi(&devpath[m[1].rm_so]);
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -254,6 +207,22 @@ void device_remove_alsa(const char *sysname, unsigned card)
 	cras_system_remove_alsa_card(card);
 }
 
+static int udev_sound_initialized(struct udev_device *dev)
+{
+	/* udev will set SOUND_INITALIZED=1 for the main card node when the
+	 * system has already been initialized, i.e. when cras is restarted
+	 * on an already running system.
+	 */
+	const char *s;
+
+	s = udev_device_get_property_value(udev_device_get_parent(dev),
+					   "SOUND_INITIALIZED");
+	if (s)
+		return 1;
+
+	return 0;
+}
+
 static void add_udev_device_if_alsa_device(struct udev_device *dev)
 {
 	/* If the device, 'dev' is an alsa device, add it to the set of
@@ -261,14 +230,26 @@ static void add_udev_device_if_alsa_device(struct udev_device *dev)
 	 */
 	unsigned	internal;
 	unsigned	card_number;
-	unsigned	device_number;
-	direction_t	direction;
-	device_speed_t	speed;
 	const char     *sysname;
 
-	if (is_alsa_device(dev, &internal, &card_number,
-			   &device_number, &speed, &direction, &sysname)) {
+	if (is_control_device(dev, &internal, &card_number, &sysname) &&
+	    udev_sound_initialized(dev)) {
+		if (internal)
+			set_factory_default(card_number);
+		device_add_alsa(sysname, card_number, internal);
+	}
+}
 
+static void change_udev_device_if_alsa_device(struct udev_device *dev)
+{
+	/* If the device, 'dev' is an alsa device, add it to the set of
+	 * devices available for I/O.  Mark it as the active device.
+	 */
+	unsigned	internal;
+	unsigned	card_number;
+	const char     *sysname;
+
+	if (is_control_device(dev, &internal, &card_number, &sysname)) {
 		if (internal)
 			set_factory_default(card_number);
 		device_add_alsa(sysname, card_number, internal);
@@ -279,13 +260,9 @@ static void remove_device_if_card(struct udev_device *dev)
 {
 	unsigned	internal;
 	unsigned	card_number;
-	unsigned	device_number;
-	direction_t	direction;
-	device_speed_t	speed;
 	const char     *sysname;
 
-	if (is_alsa_device(dev, &internal, &card_number,
-			   &device_number, &speed, &direction, &sysname))
+	if (is_control_device(dev, &internal, &card_number, &sysname))
 		device_remove_alsa(sysname, card_number);
 }
 
@@ -320,6 +297,8 @@ static void udev_sound_subsystem_callback(void *arg)
 
 		if (is_action_add(action))
 			add_udev_device_if_alsa_device(dev);
+		else if (is_action_change(action))
+			change_udev_device_if_alsa_device(dev);
 		else if (is_action_remove(action))
 			remove_device_if_card(dev);
 		udev_device_unref(dev);
@@ -354,6 +333,7 @@ void cras_udev_start_sound_subsystem_monitor(void)
 				      &udev_data);
 	assert(r == 0);
 	compile_regex(&pcm_regex, pcm_regex_string);
+	compile_regex(&control_regex, control_regex_string);
 
 	enumerate_devices(&udev_data);
 }
@@ -362,4 +342,5 @@ void cras_udev_stop_sound_subsystem_monitor(void)
 {
 	udev_unref(udev_data.udev);
 	regfree(&pcm_regex);
+	regfree(&control_regex);
 }
