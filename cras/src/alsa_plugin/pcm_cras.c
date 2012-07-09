@@ -13,7 +13,6 @@
  *  fg - Wakes users with polled io.
  *  stream_playing - Indicates if the stream is playing/capturing.
  *  hw_ptr - Current read or write position.
- *  sample_bits - Number of bits in one sample.
  *  channels - Number of channels.
  *  stream_id - CRAS ID of the playing/capturing stream.
  *  direction - input or output.
@@ -25,7 +24,6 @@ struct snd_pcm_cras {
 	int fd;
 	int stream_playing;
 	unsigned int hw_ptr;
-	unsigned int sample_bits;
 	unsigned int channels;
 	cras_stream_id_t stream_id;
 	enum CRAS_STREAM_DIRECTION direction;
@@ -126,7 +124,7 @@ static int pcm_cras_process_cb(struct cras_client *client,
 	pcm_cras = (struct snd_pcm_cras *)io->private_data;
 	frame_bytes = cras_client_bytes_per_frame(pcm_cras->client,
 						  pcm_cras->stream_id);
-	sample_bytes = pcm_cras->sample_bits / 8;
+	sample_bytes = snd_pcm_format_physical_width(io->format) / 8;
 
 	if (io->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (io->state != SND_PCM_STATE_RUNNING) {
@@ -143,7 +141,8 @@ static int pcm_cras_process_cb(struct cras_client *client,
 		pcm_cras->areas[chan].addr = samples + chan * sample_bytes;
 		pcm_cras->areas[chan].first = 0;
 		pcm_cras->areas[chan].step =
-			pcm_cras->sample_bits * io->channels;
+			snd_pcm_format_physical_width(io->format) *
+			io->channels;
 	}
 
 	areas = snd_pcm_ioplug_mmap_areas(io);
@@ -277,10 +276,13 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 		SND_PCM_ACCESS_RW_INTERLEAVED,
 		SND_PCM_ACCESS_RW_NONINTERLEAVED
 	};
-	static const unsigned int format = SND_PCM_FORMAT_S16_LE;
+	static const unsigned int format_list[] = {
+		SND_PCM_FORMAT_S16_LE,
+		SND_PCM_FORMAT_S24_LE,
+		SND_PCM_FORMAT_S32_LE,
+	};
 	int rc;
 
-	pcm_cras->sample_bits = snd_pcm_format_physical_width(format);
 	rc = snd_pcm_ioplug_set_param_list(&pcm_cras->io,
 					   SND_PCM_IOPLUG_HW_ACCESS,
 					   ARRAY_SIZE(access_list),
@@ -289,8 +291,8 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 		return rc;
 	rc = snd_pcm_ioplug_set_param_list(&pcm_cras->io,
 					   SND_PCM_IOPLUG_HW_FORMAT,
-					   1,
-					   &format);
+					   ARRAY_SIZE(format_list),
+					   format_list);
 	if (rc < 0)
 		return rc;
 	rc = snd_pcm_ioplug_set_param_minmax(&pcm_cras->io,
