@@ -265,11 +265,6 @@ static snd_pcm_ioplug_callback_t cras_pcm_callback = {
  * snd_pcm_set_params(). */
 static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 {
-	/* period and buffer bytes must be power of two */
-	static const unsigned int bytes_list[] = {
-		1U<<6, 1U<<7, 1U<<8, 1U<<9, 1U<<10, 1U<<11, 1U<<12, 1U<<13,
-		1U<<14, 1U<<15, 1U<<16
-	};
 	static const unsigned int access_list[] = {
 		SND_PCM_ACCESS_MMAP_INTERLEAVED,
 		SND_PCM_ACCESS_MMAP_NONINTERLEAVED,
@@ -277,6 +272,7 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 		SND_PCM_ACCESS_RW_NONINTERLEAVED
 	};
 	static const unsigned int format_list[] = {
+		SND_PCM_FORMAT_U8,
 		SND_PCM_FORMAT_S16_LE,
 		SND_PCM_FORMAT_S24_LE,
 		SND_PCM_FORMAT_S32_LE,
@@ -307,22 +303,22 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 					    48000);
 	if (rc < 0)
 		return rc;
-	rc = snd_pcm_ioplug_set_param_list(&pcm_cras->io,
-					   SND_PCM_IOPLUG_HW_BUFFER_BYTES,
-					   ARRAY_SIZE(bytes_list), bytes_list);
+	rc = snd_pcm_ioplug_set_param_minmax(&pcm_cras->io,
+					     SND_PCM_IOPLUG_HW_BUFFER_BYTES,
+					     64,
+					     2 * 1024 * 1024);
 	if (rc < 0)
 		return rc;
-	rc = snd_pcm_ioplug_set_param_minmax(
-			&pcm_cras->io,
-			SND_PCM_IOPLUG_HW_PERIOD_BYTES,
-			bytes_list[0] / 2,
-			bytes_list[ARRAY_SIZE(bytes_list) - 1] / 2);
+	rc = snd_pcm_ioplug_set_param_minmax(&pcm_cras->io,
+					     SND_PCM_IOPLUG_HW_PERIOD_BYTES,
+					     64,
+					     2 * 1024 * 1024);
 	if (rc < 0)
 		return rc;
 	rc = snd_pcm_ioplug_set_param_minmax(&pcm_cras->io,
 					     SND_PCM_IOPLUG_HW_PERIODS,
-					     2,
-					     64);
+					     1,
+					     2048);
 	return rc;
 }
 
