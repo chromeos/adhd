@@ -409,7 +409,6 @@ static struct option long_options[] = {
 	{"rate",		required_argument,	0, 'r'},
 	{"num_channels",        required_argument,      0, 'n'},
 	{"iodev_index",		required_argument,	0, 'o'},
-	{"stream_type",		required_argument,	0, 's'},
 	{"capture_file",	required_argument,	0, 'c'},
 	{"playback_file",	required_argument,	0, 'p'},
 	{"callback_threshold",	required_argument,	0, 't'},
@@ -433,7 +432,6 @@ int main(int argc, char **argv)
 	int set_iodev = 0;
 	size_t num_channels = 2;
 	size_t duration_seconds = 0;
-	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
 
@@ -482,9 +480,6 @@ int main(int argc, char **argv)
 			set_iodev = 1;
 			iodev_index = atoi(optarg);
 			break;
-		case 's':
-			stream_type = (enum CRAS_STREAM_TYPE)atoi(optarg);
-			break;
 		case 'd':
 			duration_seconds = atoi(optarg);
 			break;
@@ -508,7 +503,9 @@ int main(int argc, char **argv)
 	}
 
 	if (set_iodev)
-		cras_client_switch_iodev(client, stream_type, iodev_index);
+		cras_client_switch_iodev(client,
+					 CRAS_STREAM_TYPE_DEFAULT,
+					 iodev_index);
 
 	duration_frames = duration_seconds * rate;
 
