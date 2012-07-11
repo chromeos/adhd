@@ -418,8 +418,28 @@ static struct option long_options[] = {
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"volume",              required_argument,      0, 'v'},
 	{"dump_server_info",    no_argument,            0, 'i'},
+	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
 };
+
+static void show_usage()
+{
+	printf("--show_latency - Display latency while playing or recording.\n");
+	printf("--write_full_frames - Write data in blocks of min_cb_level.\n");
+	printf("--rate <N> - Specifies the sample rate in Hz.\n");
+	printf("--num_channels <N> - Two for stereo.\n");
+	printf("--iodev_index <N> - Set active iodev to N.\n");
+	printf("--capture_file <name> - Name of file to record to.\n");
+	printf("--playback_file <name> - Name of file to play.\n");
+	printf("--callback_threshold <N> - Number of samples remaining when callback in invoked.\n");
+	printf("--min_cb_level <N> - Minimum # of samples writeable when playback callback is called.\n");
+	printf("--mute <0|1> - Set system mute state.\n");
+	printf("--buffer_frames <N> - Total number of frames to buffer.\n");
+	printf("--duration_seconds <N> - Seconds to record or playback.\n");
+	printf("--volume <0-100> - Set system output volume.\n");
+	printf("--dump_server_info - Print status of the server.\n");
+	printf("--help - Print this message.\n");
+}
 
 int main(int argc, char **argv)
 {
@@ -496,6 +516,9 @@ int main(int argc, char **argv)
 		}
 		case 'i':
 			print_server_info(client);
+			break;
+		case 'h':
+			show_usage();
 			break;
 		default:
 			break;
