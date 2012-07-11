@@ -417,6 +417,7 @@ static struct option long_options[] = {
 	{"buffer_frames",	required_argument,	0, 'b'},
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"volume",              required_argument,      0, 'v'},
+	{"capture_gain",        required_argument,      0, 'g'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
@@ -437,6 +438,7 @@ static void show_usage()
 	printf("--buffer_frames <N> - Total number of frames to buffer.\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
 	printf("--volume <0-100> - Set system output volume.\n");
+	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--help - Print this message.\n");
 }
@@ -512,6 +514,11 @@ int main(int argc, char **argv)
 			int volume = atoi(optarg);
 			volume = min(100, max(0, volume));
 			cras_client_set_system_volume(client, volume);
+			break;
+		}
+		case 'g': {
+			long gain = atol(optarg);
+			cras_client_set_system_capture_gain(client, gain);
 			break;
 		}
 		case 'i':
