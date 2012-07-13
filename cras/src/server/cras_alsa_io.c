@@ -227,6 +227,10 @@ static void set_alsa_capture_gain(void *arg)
 	if (aio->mixer == NULL)
 		return;
 
+	/* Only set the volume if the dev is active. */
+	if (!cras_iodev_streams_attached(&aio->base))
+		return;
+
 	cras_alsa_mixer_set_capture_dBFS(aio->mixer,
 					 cras_system_get_capture_gain());
 	cras_alsa_mixer_set_capture_mute(aio->mixer,
