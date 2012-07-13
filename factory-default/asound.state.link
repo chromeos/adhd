@@ -1,9 +1,9 @@
 state.PCH {
 	control.1 {
 		iface MIXER
-		name 'Headphone Playback Volume'
-		value.0 70
-		value.1 70
+		name 'Master Playback Volume'
+		value.0 79
+		value.1 79
 		comment {
 			access 'read write'
 			type INTEGER
@@ -11,13 +11,13 @@ state.PCH {
 			range '0 - 99'
 			dbmin -9000
 			dbmax 900
-			dbvalue.0 -2000
-			dbvalue.1 -2000
+			dbvalue.0 -1100
+			dbvalue.1 -1100
 		}
 	}
 	control.2 {
 		iface MIXER
-		name 'Headphone Playback Switch'
+		name 'Master Playback Switch'
 		value.0 true
 		value.1 true
 		comment {
@@ -28,9 +28,9 @@ state.PCH {
 	}
 	control.3 {
 		iface MIXER
-		name 'Speaker Playback Volume'
-		value.0 70
-		value.1 70
+		name 'Capture Volume'
+		value.0 99
+		value.1 99
 		comment {
 			access 'read write'
 			type INTEGER
@@ -38,13 +38,13 @@ state.PCH {
 			range '0 - 99'
 			dbmin -9000
 			dbmax 900
-			dbvalue.0 -2000
-			dbvalue.1 -2000
+			dbvalue.0 900
+			dbvalue.1 900
 		}
 	}
 	control.4 {
 		iface MIXER
-		name 'Speaker Playback Switch'
+		name 'Capture Switch'
 		value.0 true
 		value.1 true
 		comment {
@@ -54,60 +54,6 @@ state.PCH {
 		}
 	}
 	control.5 {
-		iface MIXER
-		name 'Digital-Mic Capture Volume'
-		value.0 90
-		value.1 90
-		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 99'
-			dbmin -9000
-			dbmax 900
-			dbvalue.0 0
-			dbvalue.1 0
-		}
-	}
-	control.6 {
-		iface MIXER
-		name 'Digital-Mic Capture Switch'
-		value.0 true
-		value.1 true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 2
-		}
-	}
-	control.7 {
-		iface MIXER
-		name 'Analog-Mic1 Capture Volume'
-		value.0 90
-		value.1 90
-		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 99'
-			dbmin -9000
-			dbmax 900
-			dbvalue.0 0
-			dbvalue.1 0
-		}
-	}
-	control.8 {
-		iface MIXER
-		name 'Analog-Mic1 Capture Switch'
-		value.0 true
-		value.1 true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 2
-		}
-	}
-	control.9 {
 		iface MIXER
 		name 'Analog-Mic2 Capture Volume'
 		value.0 90
@@ -123,7 +69,7 @@ state.PCH {
 			dbvalue.1 0
 		}
 	}
-	control.10 {
+	control.6 {
 		iface MIXER
 		name 'Analog-Mic2 Capture Switch'
 		value.0 true
@@ -134,7 +80,7 @@ state.PCH {
 			count 2
 		}
 	}
-	control.11 {
+	control.7 {
 		iface MIXER
 		name 'What U Hear Capture Volume'
 		value.0 90
@@ -150,7 +96,7 @@ state.PCH {
 			dbvalue.1 0
 		}
 	}
-	control.12 {
+	control.8 {
 		iface MIXER
 		name 'What U Hear Capture Switch'
 		value.0 true
@@ -161,7 +107,7 @@ state.PCH {
 			count 2
 		}
 	}
-	control.13 {
+	control.9 {
 		iface MIXER
 		name 'Mic1-Boost (30dB) Capture Switch'
 		value false
@@ -171,7 +117,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.14 {
+	control.10 {
 		iface MIXER
 		name 'HP/Speaker Playback Switch'
 		value false
@@ -181,7 +127,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.15 {
+	control.11 {
 		iface MIXER
 		name 'AMic1/DMic Capture Switch'
 		value false
@@ -191,7 +137,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.16 {
+	control.12 {
 		iface MIXER
 		name 'HP/Speaker Auto Detect Playback Switch'
 		value true
@@ -201,7 +147,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.17 {
+	control.13 {
 		iface MIXER
 		name 'AMic1/DMic Auto Detect Capture Switch'
 		value true
@@ -211,10 +157,50 @@ state.PCH {
 			count 1
 		}
 	}
-	control.18 {
+	control.14 {
 		iface MIXER
 		name 'Surround Playback Switch'
-		value true
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.15 {
+		iface MIXER
+		name 'Crystalizer Playback Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.16 {
+		iface MIXER
+		name 'Dialog Plus Playback Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.17 {
+		iface MIXER
+		name 'Smart Volume Playback Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.18 {
+		iface MIXER
+		name 'X-Bass Playback Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -223,8 +209,8 @@ state.PCH {
 	}
 	control.19 {
 		iface MIXER
-		name 'Crystalizer Playback Switch'
-		value true
+		name 'Equalizer Playback Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -232,46 +218,6 @@ state.PCH {
 		}
 	}
 	control.20 {
-		iface MIXER
-		name 'Dialog Plus Playback Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.21 {
-		iface MIXER
-		name 'Smart Volume Playback Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.22 {
-		iface MIXER
-		name 'X-Bass Playback Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.23 {
-		iface MIXER
-		name 'Equalizer Playback Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.24 {
 		iface MIXER
 		name 'Echo Cancellation Capture Switch'
 		value false
@@ -281,17 +227,17 @@ state.PCH {
 			count 1
 		}
 	}
-	control.25 {
+	control.21 {
 		iface MIXER
 		name 'Voice Focus Capture Switch'
-		value true
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
 			count 1
 		}
 	}
-	control.26 {
+	control.22 {
 		iface MIXER
 		name 'Mic SVM Capture Switch'
 		value true
@@ -301,17 +247,17 @@ state.PCH {
 			count 1
 		}
 	}
-	control.27 {
+	control.23 {
 		iface MIXER
 		name 'PlayEnhancement Playback Switch'
-		value true
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
 			count 1
 		}
 	}
-	control.28 {
+	control.24 {
 		iface MIXER
 		name 'CrystalVoice Capture Switch'
 		value false
@@ -321,7 +267,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.29 {
+	control.25 {
 		iface MIXER
 		name 'VoiceFX Capture Switch'
 		value Neutral
@@ -345,29 +291,9 @@ state.PCH {
 			item.13 Munchkin
 		}
 	}
-	control.30 {
+	control.26 {
 		iface CARD
-		name 'Line Out Jack'
-		value true
-		comment {
-			access read
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.31 {
-		iface CARD
-		name 'Front Headphone Jack'
-		value true
-		comment {
-			access read
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.32 {
-		iface CARD
-		name 'Line Jack'
+		name 'Headphone Jack'
 		value false
 		comment {
 			access read
@@ -375,7 +301,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.33 {
+	control.27 {
 		iface CARD
 		name 'HDMI/DP,pcm=3 Jack'
 		value false
@@ -385,7 +311,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.34 {
+	control.28 {
 		iface MIXER
 		name 'IEC958 Playback Con Mask'
 		value '0fff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
@@ -395,7 +321,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.35 {
+	control.29 {
 		iface MIXER
 		name 'IEC958 Playback Pro Mask'
 		value '0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
@@ -405,7 +331,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.36 {
+	control.30 {
 		iface MIXER
 		name 'IEC958 Playback Default'
 		value '0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
@@ -415,7 +341,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.37 {
+	control.31 {
 		iface MIXER
 		name 'IEC958 Playback Switch'
 		value true
@@ -425,7 +351,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.38 {
+	control.32 {
 		iface PCM
 		device 3
 		name ELD
@@ -436,7 +362,7 @@ state.PCH {
 			count 0
 		}
 	}
-	control.39 {
+	control.33 {
 		iface CARD
 		name 'HDMI/DP,pcm=7 Jack'
 		value false
@@ -446,7 +372,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.40 {
+	control.34 {
 		iface MIXER
 		name 'IEC958 Playback Con Mask'
 		index 1
@@ -457,7 +383,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.41 {
+	control.35 {
 		iface MIXER
 		name 'IEC958 Playback Pro Mask'
 		index 1
@@ -468,7 +394,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.42 {
+	control.36 {
 		iface MIXER
 		name 'IEC958 Playback Default'
 		index 1
@@ -479,7 +405,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.43 {
+	control.37 {
 		iface MIXER
 		name 'IEC958 Playback Switch'
 		index 1
@@ -490,7 +416,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.44 {
+	control.38 {
 		iface PCM
 		device 7
 		name ELD
@@ -501,7 +427,7 @@ state.PCH {
 			count 0
 		}
 	}
-	control.45 {
+	control.39 {
 		iface CARD
 		name 'HDMI/DP,pcm=8 Jack'
 		value false
@@ -511,7 +437,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.46 {
+	control.40 {
 		iface MIXER
 		name 'IEC958 Playback Con Mask'
 		index 2
@@ -522,7 +448,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.47 {
+	control.41 {
 		iface MIXER
 		name 'IEC958 Playback Pro Mask'
 		index 2
@@ -533,7 +459,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.48 {
+	control.42 {
 		iface MIXER
 		name 'IEC958 Playback Default'
 		index 2
@@ -544,7 +470,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.49 {
+	control.43 {
 		iface MIXER
 		name 'IEC958 Playback Switch'
 		index 2
@@ -555,7 +481,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.50 {
+	control.44 {
 		iface PCM
 		device 8
 		name ELD
@@ -564,6 +490,23 @@ state.PCH {
 			access read
 			type BYTES
 			count 0
+		}
+	}
+	control.45 {
+		iface MIXER
+		name 'Digital Capture Volume'
+		value.0 60
+		value.1 60
+		comment {
+			access 'read write user'
+			type INTEGER
+			count 2
+			range '0 - 120'
+			tlv '0000000100000008fffff44800000032'
+			dbmin -3000
+			dbmax 3000
+			dbvalue.0 0
+			dbvalue.1 0
 		}
 	}
 }
