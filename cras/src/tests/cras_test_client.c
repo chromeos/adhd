@@ -361,6 +361,10 @@ static int run_capture(struct cras_client *client,
 		       int flags)
 {
 	int fd = open(file, O_CREAT | O_RDWR, 0666);
+	if (fd == -1) {
+		perror("failed to open file");
+		return -errno;
+	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, buffer_frames,
 			   cb_threshold, rate, num_channels, flags);
@@ -386,6 +390,10 @@ static int run_playback(struct cras_client *client,
 	}
 
 	fd = open(file, O_RDONLY);
+	if (fd == -1) {
+		perror("failed to open file");
+		return -errno;
+	}
 	file_buf_size = read(fd, file_buf, 1024*1024*4);
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, buffer_frames,
