@@ -454,7 +454,7 @@ static void show_usage()
 int main(int argc, char **argv)
 {
 	struct cras_client *client;
-	int c, err, option_index;
+	int c, option_index;
 	size_t buffer_size = PLAYBACK_BUFFER_SIZE;
 	size_t cb_threshold = PLAYBACK_CB_THRESHOLD;
 	size_t rate = 48000;
@@ -464,19 +464,20 @@ int main(int argc, char **argv)
 	size_t duration_seconds = 0;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
+	int rc = 0;
 
 	option_index = 0;
 
-	err = cras_client_create(&client);
-	if (err < 0) {
+	rc = cras_client_create(&client);
+	if (rc < 0) {
 		fprintf(stderr, "Couldn't create client.\n");
-		return err;
+		return rc;
 	}
 
-	err = cras_client_connect(client);
-	if (err) {
+	rc = cras_client_connect(client);
+	if (rc) {
 		fprintf(stderr, "Couldn't connect to server.\n");
-		return err;
+		return rc;
 	}
 
 	while (1) {
