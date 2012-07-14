@@ -47,8 +47,8 @@ static long get_dBFS_explicit(const struct cras_volume_curve *curve,
 
 struct cras_volume_curve *cras_volume_curve_create_default()
 {
-	/* Default to max volume of 0dBFS, and a step of 0.75dBFS. */
-	return cras_volume_curve_create_simple_step(0, 75);
+	/* Default to max volume of 0dBFS, and a step of 0.5dBFS. */
+	return cras_volume_curve_create_simple_step(0, 50);
 }
 
 struct cras_volume_curve *cras_volume_curve_create_simple_step(
