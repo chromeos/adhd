@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#ifndef CRAS_CARD_CONFIG_H_
+#define CRAS_CARD_CONFIG_H_
+
 struct cras_card_config;
 struct cras_volume_curve;
 
@@ -32,3 +35,5 @@ void cras_card_config_destroy(struct cras_card_config *card_config);
 struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
 		const struct cras_card_config *card_config,
 		const char *control_name);
+
+#endif /* CRAS_CARD_CONFIG_H_ */
