@@ -583,9 +583,9 @@ TEST(SystemSettingsStreamCount, FirstStreamCheck) {
 
 extern "C" {
 
-struct cras_alsa_card *cras_alsa_card_create(size_t card_index, size_t prio) {
+struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info) {
   cras_alsa_card_create_called++;
-  cras_alsa_card_create_prio = prio;
+  cras_alsa_card_create_prio = info->priority;
   return kFakeAlsaCard;
 }
 

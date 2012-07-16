@@ -342,8 +342,7 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 		if (card_index == cras_alsa_card_get_index(card->card))
 			return -EINVAL;
 	}
-	alsa_card = cras_alsa_card_create(card_index,
-					  alsa_card_info->priority);
+	alsa_card = cras_alsa_card_create(alsa_card_info);
 	if (alsa_card == NULL)
 		return -ENOMEM;
 	card = calloc(1, sizeof(*card));

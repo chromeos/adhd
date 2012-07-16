@@ -75,9 +75,13 @@ static void ResetStubData() {
 
 TEST(AlsaCard, CreateFailInvalidCard) {
   struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
 
   ResetStubData();
-  c = cras_alsa_card_create(55, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 55;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
@@ -85,10 +89,14 @@ TEST(AlsaCard, CreateFailInvalidCard) {
 
 TEST(AlsaCard, CreateFailMixerInit) {
   struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
 
   ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
   cras_alsa_mixer_create_return = static_cast<struct cras_alsa_mixer *>(NULL);
-  c = cras_alsa_card_create(0, fake_priority);
+  c = cras_alsa_card_create(&card_info);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(1, cras_alsa_mixer_create_called);
@@ -97,10 +105,14 @@ TEST(AlsaCard, CreateFailMixerInit) {
 
 TEST(AlsaCard, CreateFailCtlOpen) {
   struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
 
   ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
   snd_ctl_open_return = -1;
-  c = cras_alsa_card_create(0, fake_priority);
+  c = cras_alsa_card_create(&card_info);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(1, snd_ctl_open_called);
   EXPECT_EQ(0, snd_ctl_close_called);
@@ -110,10 +122,14 @@ TEST(AlsaCard, CreateFailCtlOpen) {
 
 TEST(AlsaCard, CreateFailCtlCardInfo) {
   struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
 
   ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
   snd_ctl_card_info_ret = -1;
-  c = cras_alsa_card_create(0, fake_priority);
+  c = cras_alsa_card_create(&card_info);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(1, snd_ctl_open_called);
   EXPECT_EQ(1, snd_ctl_close_called);
@@ -123,9 +139,13 @@ TEST(AlsaCard, CreateFailCtlCardInfo) {
 
 TEST(AlsaCard, CreateNoDevices) {
   struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
 
   ResetStubData();
-  c = cras_alsa_card_create(1, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 1;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(1, snd_ctl_pcm_next_device_called);
@@ -142,13 +162,17 @@ TEST(AlsaCard, CreateOneOutput) {
   struct cras_alsa_card *c;
   int dev_nums[] = {0};
   int info_rets[] = {0, -1};
+  cras_alsa_card_info card_info;
 
   ResetStubData();
   snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
   snd_ctl_pcm_next_device_set_devs = dev_nums;
   snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
   snd_ctl_pcm_info_rets = info_rets;
-  c = cras_alsa_card_create(0, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
@@ -168,6 +192,7 @@ TEST(AlsaCard, CreateTwoOutputs) {
   int info_rets[] = {0, -1, 0};
   int auto_route_vals[2];
   int priority_vals[2];
+  cras_alsa_card_info card_info;
 
   ResetStubData();
   snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
@@ -178,7 +203,10 @@ TEST(AlsaCard, CreateTwoOutputs) {
   iodev_create_auto_route_size = ARRAY_SIZE(auto_route_vals);
   iodev_create_priority = priority_vals;
   iodev_create_priority_size = ARRAY_SIZE(priority_vals);
-  c = cras_alsa_card_create(0, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
@@ -200,13 +228,17 @@ TEST(AlsaCard, CreateOneInput) {
   struct cras_alsa_card *c;
   int dev_nums[] = {0};
   int info_rets[] = {-1, 0};
+  cras_alsa_card_info card_info;
 
   ResetStubData();
   snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
   snd_ctl_pcm_next_device_set_devs = dev_nums;
   snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
   snd_ctl_pcm_info_rets = info_rets;
-  c = cras_alsa_card_create(0, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
@@ -223,13 +255,17 @@ TEST(AlsaCard, CreateOneInputAndOneOutput) {
   struct cras_alsa_card *c;
   int dev_nums[] = {0};
   int info_rets[] = {0, 0};
+  cras_alsa_card_info card_info;
 
   ResetStubData();
   snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
   snd_ctl_pcm_next_device_set_devs = dev_nums;
   snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
   snd_ctl_pcm_info_rets = info_rets;
-  c = cras_alsa_card_create(0, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
@@ -248,6 +284,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   int info_rets[] = {0, -1, -1, 0};
   int auto_route_vals[2];
   int priority_vals[2];
+  cras_alsa_card_info card_info;
 
   ResetStubData();
   snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
@@ -258,7 +295,10 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   iodev_create_auto_route_size = ARRAY_SIZE(auto_route_vals);
   iodev_create_priority = priority_vals;
   iodev_create_priority_size = ARRAY_SIZE(priority_vals);
-  c = cras_alsa_card_create(0, fake_priority);
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);

@@ -6,6 +6,8 @@
 #ifndef _CRAS_ALSA_CARD_H
 #define _CRAS_ALSA_CARD_H
 
+#include "cras_types.h"
+
 /* cras_alsa_card represents an alsa sound card.  It adds all the devices for
  * this card to the system when it is created, and removes them when it is
  * destroyed.  It will create an alsa_mixer object that can control the volume
@@ -18,14 +20,12 @@ struct cras_alsa_card;
  * devices for the card and adds them to the system as possible playback or
  * capture endpoints.
  * Args:
- *    card_idx - Index of the card for alsa, the X in "hw:X". Range: 0 to 31.
- *    priority - Priority used to choose which card to play to/capture from.
- *      Higher priority is better zero is the lowest.
+ *    card_info - Contains the card index, type, and priority.
  * Returns:
  *    A pointer to the newly created cras_alsa_card which must later be freed
  *    by calling cras_alsa_card_destroy or NULL on error.
  */
-struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority);
+struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info);
 
 /* Destroys a cras_alsa_card that was returned from cras_alsa_card_create.
  * Args:

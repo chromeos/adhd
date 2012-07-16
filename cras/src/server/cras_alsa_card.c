@@ -92,7 +92,7 @@ static struct iodev_list_node *create_iodev_for_device(
  * Exported Interface.
  */
 
-struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
+struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info)
 {
 	snd_ctl_t *handle = NULL;
 	int rc, dev_idx;
@@ -103,8 +103,10 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 	int first_playback = 1; /* True if it's the first playback dev. */
 	int first_capture = 1; /* True if it's the first capture dev. */
 
-	if (card_idx >= MAX_ALSA_CARDS) {
-		syslog(LOG_ERR, "Invalid alsa card index %zu", card_idx);
+	if (info->card_index >= MAX_ALSA_CARDS) {
+		syslog(LOG_ERR,
+		       "Invalid alsa card index %u",
+		       info->card_index);
 		return NULL;
 	}
 
@@ -114,12 +116,12 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 	alsa_card = calloc(1, sizeof(*alsa_card));
 	if (alsa_card == NULL)
 		return NULL;
-	alsa_card->card_index = card_idx;
+	alsa_card->card_index = info->card_index;
 
 	snprintf(alsa_card->name,
 		 MAX_ALSA_PCM_NAME_LENGTH,
-		 "hw:%zu",
-		 card_idx);
+		 "hw:%u",
+		 info->card_index);
 
 	rc = snd_ctl_open(&handle, alsa_card->name, 0);
 	if (rc < 0) {
@@ -169,16 +171,16 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 			struct iodev_list_node *new_dev;
 
 			new_dev = create_iodev_for_device(
-					card_idx,
+					info->card_index,
 					card_name,
 					dev_idx,
 					alsa_card->mixer,
 					first_playback, /*auto-route*/
-					priority,
+					info->priority,
 					CRAS_STREAM_OUTPUT);
 			if (new_dev != NULL) {
-				syslog(LOG_DEBUG, "New playback device %zu:%d",
-						card_idx, dev_idx);
+				syslog(LOG_DEBUG, "New playback device %u:%d",
+				       info->card_index, dev_idx);
 				DL_APPEND(alsa_card->iodevs, new_dev);
 				first_playback = 0;
 			}
@@ -191,16 +193,16 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 			struct iodev_list_node *new_dev;
 
 			new_dev = create_iodev_for_device(
-					card_idx,
+					info->card_index,
 					card_name,
 					dev_idx,
 					alsa_card->mixer,
 					first_capture,
-					priority,
+					info->priority,
 					CRAS_STREAM_INPUT);
 			if (new_dev != NULL) {
-				syslog(LOG_DEBUG, "New capture device %zu:%d",
-						card_idx, dev_idx);
+				syslog(LOG_DEBUG, "New capture device %u:%d",
+				       info->card_index, dev_idx);
 				DL_APPEND(alsa_card->iodevs, new_dev);
 				first_capture = 0;
 			}
