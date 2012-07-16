@@ -13,8 +13,9 @@
 #include <regex.h>
 #include <syslog.h>
 
-#include "cras_util.h"
 #include "cras_system_state.h"
+#include "cras_types.h"
+#include "cras_util.h"
 
 typedef enum direction_t {
 	D_PLAYBACK,
@@ -183,16 +184,45 @@ static inline void udev_delay_for_alsa(void)
 	usleep(125000);		/* 0.125 second */
 }
 
-static void device_add_alsa(const char *sysname,
+static void fill_usb_card_info(struct cras_alsa_card_info *card_info,
+			       struct udev_device *dev)
+{
+	const char *sysattr;
+	dev = udev_device_get_parent_with_subsystem_devtype(dev,
+							    "usb",
+							    "usb_device");
+	if (!dev)
+		return;
+
+	sysattr = udev_device_get_sysattr_value(dev, "idVendor");
+	if (sysattr)
+		card_info->usb_vendor_id = strtol(sysattr, NULL, 16);
+	sysattr = udev_device_get_sysattr_value(dev, "idProduct");
+	if (sysattr)
+		card_info->usb_product_id = strtol(sysattr, NULL, 16);
+}
+
+static void device_add_alsa(struct udev_device *dev,
+			    const char *sysname,
 			    unsigned card,
 			    unsigned internal)
 {
 	const size_t INTERNAL_CARD_PRIORITY = 50;
 	const size_t EXTERNAL_CARD_PRIORITY = 80;
+	struct cras_alsa_card_info card_info;
 
 	udev_delay_for_alsa();
-	cras_system_add_alsa_card(card, internal ? INTERNAL_CARD_PRIORITY
-						 : EXTERNAL_CARD_PRIORITY);
+	card_info.card_index = card;
+	if (internal) {
+		card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+		card_info.priority = INTERNAL_CARD_PRIORITY;
+	} else {
+		card_info.card_type = ALSA_CARD_TYPE_USB;
+		card_info.priority = EXTERNAL_CARD_PRIORITY;
+		fill_usb_card_info(&card_info, dev);
+	}
+
+	cras_system_add_alsa_card(&card_info);
 }
 
 void device_remove_alsa(const char *sysname, unsigned card)
@@ -229,7 +259,7 @@ static void change_udev_device_if_alsa_device(struct udev_device *dev)
 	    udev_sound_initialized(dev)) {
 		if (internal)
 			set_factory_default(card_number);
-		device_add_alsa(sysname, card_number, internal);
+		device_add_alsa(dev, sysname, card_number, internal);
 	}
 }
 

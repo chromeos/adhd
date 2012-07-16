@@ -46,6 +46,27 @@ enum cras_notify_device_action { /* Must match gavd action definitions.  */
 	CRAS_DEVICE_ACTION_CHANGE = 2,
 };
 
+/* Information about an ALSA card to be added to the system.
+ *    card_type - Either internal card or a USB sound card.
+ *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ *    priority - Base priority to give devices found on this card. Zero is the
+ *      lowest priority.  Non-primary devices on the card will be given a
+ *      lowered priority.
+ *    usb_vendor_id - vendor ID if the device is on the USB bus.
+ *    usb_product_id - product ID if the device is on the USB bus.
+ */
+enum CRAS_ALSA_CARD_TYPE {
+	ALSA_CARD_TYPE_INTERNAL,
+	ALSA_CARD_TYPE_USB,
+};
+struct cras_alsa_card_info {
+	enum CRAS_ALSA_CARD_TYPE card_type;
+	unsigned card_index;
+	unsigned priority;
+	unsigned usb_vendor_id;
+	unsigned usb_product_id;
+};
+
 /* Create an audio format structure. */
 struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 						   size_t frame_rate,

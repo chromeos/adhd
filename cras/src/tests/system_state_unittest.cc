@@ -512,19 +512,29 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
 TEST(SystemStateSuite, AddCardFailCreate) {
   ResetStubData();
   kFakeAlsaCard = NULL;
-  EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(0, 44));
+  cras_alsa_card_info info;
+
+  info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  info.card_index = 0;
+  info.priority = 44;
+  EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(&info));
   EXPECT_EQ(1, cras_alsa_card_create_called);
   EXPECT_EQ(44, cras_alsa_card_create_prio);
 }
 
 TEST(SystemStateSuite, AddCard) {
   ResetStubData();
-  EXPECT_EQ(0, cras_system_add_alsa_card(0, 44));
+  cras_alsa_card_info info;
+
+  info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  info.card_index = 0;
+  info.priority = 44;
+  EXPECT_EQ(0, cras_system_add_alsa_card(&info));
   EXPECT_EQ(1, cras_alsa_card_create_called);
   EXPECT_EQ(44, cras_alsa_card_create_prio);
   // Adding the same card again should fail.
   ResetStubData();
-  EXPECT_NE(0, cras_system_add_alsa_card(0, 44));
+  EXPECT_NE(0, cras_system_add_alsa_card(&info));
   EXPECT_EQ(0, cras_alsa_card_create_called);
   EXPECT_EQ(44, cras_alsa_card_create_prio);
   // Removing card should destroy it.

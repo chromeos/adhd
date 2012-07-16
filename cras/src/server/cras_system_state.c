@@ -7,6 +7,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_card.h"
+#include "cras_config.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -326,16 +327,23 @@ unsigned int cras_system_increment_streams_played()
 	return ++state.num_streams_attached;
 }
 
-int cras_system_add_alsa_card(size_t alsa_card_index, size_t priority)
+int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 {
 	struct card_list *card;
 	struct cras_alsa_card *alsa_card;
+	unsigned card_index;
+
+	if (alsa_card_info == NULL)
+		return -EINVAL;
+
+	card_index = alsa_card_info->card_index;
 
 	DL_FOREACH(state.cards, card) {
-		if (alsa_card_index == cras_alsa_card_get_index(card->card))
+		if (card_index == cras_alsa_card_get_index(card->card))
 			return -EINVAL;
 	}
-	alsa_card = cras_alsa_card_create(alsa_card_index, priority);
+	alsa_card = cras_alsa_card_create(card_index,
+					  alsa_card_info->priority);
 	if (alsa_card == NULL)
 		return -ENOMEM;
 	card = calloc(1, sizeof(*card));
