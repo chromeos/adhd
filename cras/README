@@ -16,6 +16,28 @@ sudo make install
 Configuration:
 ---------------------
 
+Device Blacklisting:
+--------------------
+Blacklist of certain USB output device(s) is possible by modifying the config
+file /etc/cras/device_blacklist.
+
+The format of this file is as follows:
+
+[USB_Outputs]
+  <vendor_id>_<product_id>_<device_index> = 1
+
+Where vendor_id and product id are the USB identifiers for the card to
+blacklist.  The device index specifies the index of the output device in the
+card to blacklist.  This is a bool parameter, so '= 1' enables the option.
+
+Example, blacklisting the non-functional output device reported by the C-Media
+based CAD-u1 mic:
+
+[USB_Outputs]
+  0d8c_0008_0 = 1
+
+Card Configuration:
+-------------------
 There can be a config file for each sound alsa card on the system.  This file
 lives in /etc/cras/.  The file should be named with the card name returned by
 ALSA, the string in the second set of '[]' in the aplay -l output.  The ini file
