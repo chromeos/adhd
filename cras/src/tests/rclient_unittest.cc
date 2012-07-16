@@ -474,10 +474,6 @@ void cras_system_set_capture_mute(int mute)
   cras_system_set_capture_mute_value = mute;
   cras_system_set_capture_mute_called++;
 }
-int cras_system_add_alsa_card(size_t alsa_card_index, size_t priority)
-{
-	return -1;
-}
 
 int cras_system_remove_alsa_card(size_t alsa_card_index)
 {
