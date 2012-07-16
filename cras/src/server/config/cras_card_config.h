@@ -3,8 +3,6 @@
  * found in the LICENSE file.
  */
 
-#define CRAS_CARD_CONFIG_FILE_DIR "/etc/cras"
-
 struct cras_card_config;
 struct cras_volume_curve;
 
