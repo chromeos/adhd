@@ -9,13 +9,13 @@
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
 #include "cras_card_config.h"
+#include "cras_config.h"
 #include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "utlist.h"
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
 #define MAX_ALSA_PCM_NAME_LENGTH 6 /* Alsa names "hw:XX" + 1 for null. */
-#define CARD_CONFIG_FILE_DIR "/etc/cras"
 #define MAX_INI_NAME_LENGTH 63 /* 63 chars + 1 for null where declared. */
 
 struct iodev_list_node {
@@ -140,7 +140,7 @@ struct cras_alsa_card *cras_alsa_card_create(size_t card_idx, size_t priority)
 	}
 
 	/* Read config file for this card if it exists. */
-	alsa_card->config = cras_card_config_create(CARD_CONFIG_FILE_DIR,
+	alsa_card->config = cras_card_config_create(CRAS_CONFIG_FILE_DIR,
 						    card_name);
 	if (alsa_card->config == NULL)
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
