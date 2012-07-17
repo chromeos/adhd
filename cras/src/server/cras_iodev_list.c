@@ -448,7 +448,6 @@ int cras_iodev_move_stream_type_default(enum CRAS_STREAM_TYPE type,
 		curr_default = default_output;
 	} else {
 		assert(direction == CRAS_STREAM_INPUT);
-		list = &outputs;
 		list = &inputs;
 		curr_default = default_input;
 	}
