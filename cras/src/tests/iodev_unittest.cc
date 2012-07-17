@@ -222,6 +222,30 @@ TEST(IoDevTestSuite, TestConfigParamsTwoStreamsSecondLonger) {
   EXPECT_EQ(iodev.cb_threshold, 3);
 }
 
+TEST(IoDevTestSuite, TestPluggedTiming) {
+  struct cras_iodev iodev;
+  struct timeval tv;
+  struct timeval tv2;
+
+  memset(&iodev, 0, sizeof(iodev));
+
+  cras_iodev_plug_event(&iodev, 1);
+  EXPECT_EQ(1, cras_iodev_is_plugged_in(&iodev));
+  tv = cras_iodev_last_plugged_time(&iodev);
+  EXPECT_GT(tv.tv_sec, 1);
+
+  cras_iodev_plug_event(&iodev, 0);
+  EXPECT_EQ(0, cras_iodev_is_plugged_in(&iodev));
+
+  usleep(1000); // insure different times for plug events.
+
+  cras_iodev_plug_event(&iodev, 1);
+  EXPECT_EQ(1, cras_iodev_is_plugged_in(&iodev));
+  tv2 = cras_iodev_last_plugged_time(&iodev);
+  EXPECT_TRUE(tv2.tv_sec > tv.tv_sec ||
+              (tv2.tv_sec == tv.tv_sec && tv2.tv_usec > tv.tv_usec));
+}
+
 extern "C" {
 
 //  From libpthread.

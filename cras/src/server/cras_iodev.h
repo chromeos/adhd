@@ -44,6 +44,8 @@ struct cras_io_stream {
  * to_thread_fds - Send a message from main to running thread.
  * to_main_fds - Send a message to main from running thread.
  * tid - Thread ID of the running playback/capture thread.
+ * plugged - Set true if this device is known to be plugged in.
+ * plugged_time - If plugged is true, this is the time it was attached.
  */
 struct cras_iodev {
 	int (*add_stream)(struct cras_iodev *iodev,
@@ -62,6 +64,8 @@ struct cras_iodev {
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	pthread_t tid;
+	int plugged;
+	struct timeval plugged_time;
 	struct cras_iodev *prev, *next;
 };
 
@@ -225,4 +229,25 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
  * other params that are independent of alsa configuration. */
 void cras_iodev_config_params_for_streams(struct cras_iodev *iodev);
 
+/* Handles a plug event happening on this iodev.
+ * Args:
+ *    iodev - device on which a plug event was detected.
+ *    plugged - true if the device was plugged, false for unplugged.
+ */
+void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged);
+
+/* Checks if the device is known to be plugged.  This is set when a jack event
+ * is received from an ALSA jack or a GPIO.
+ */
+static inline int cras_iodev_is_plugged_in(struct cras_iodev *iodev)
+{
+	return iodev->plugged;
+}
+
+/* Returns the last time that an iodev had a plug attached event. */
+static inline struct timeval cras_iodev_last_plugged_time(
+		struct cras_iodev *iodev)
+{
+	return iodev->plugged_time;
+}
 #endif /* CRAS_IODEV_H_ */

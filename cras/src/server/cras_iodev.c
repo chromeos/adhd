@@ -5,6 +5,7 @@
 
 #include <pthread.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <syslog.h>
 #include <time.h>
 
@@ -290,4 +291,11 @@ void cras_iodev_config_params_for_streams(struct cras_iodev *iodev)
 	if (iodev->direction == CRAS_STREAM_OUTPUT &&
 	    iodev->cb_threshold > iodev->used_size / 2)
 		iodev->cb_threshold = iodev->used_size / 2;
+}
+
+void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged)
+{
+	if (plugged)
+		gettimeofday(&iodev->plugged_time, NULL);
+	iodev->plugged = plugged;
 }
