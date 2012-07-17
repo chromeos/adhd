@@ -29,6 +29,10 @@ $(DESTDIR)/etc/asound.state:	$(ADHD_DIR)/factory-default/asound.state.$(BOARD)
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
 
+$(DESTDIR)/etc/cras/device_blacklist:	$(ADHD_DIR)/cras-config/device_blacklist
+	$(ECHO) "Installing '$<' to '$@'"
+	$(INSTALL) --mode 644 -D $< $@
+
 optional_alsa_conf := $(wildcard $(ADHD_DIR)/alsa-module-config/alsa-$(BOARD).conf)
 
 ifneq ($(strip $(optional_alsa_conf)),)
@@ -57,6 +61,7 @@ endif
 
 install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
+		$(DESTDIR)/etc/cras/device_blacklist			\
 		$(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules	\
 		cras_install
 clean:
