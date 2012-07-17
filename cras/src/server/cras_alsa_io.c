@@ -1028,8 +1028,8 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			set_alsa_volume(aio);
 		}
 
-		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
-						    aio->base.direction);
+		cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+						     aio->base.direction);
 	}
 }
 
@@ -1051,8 +1051,8 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	} else {
 		syslog(LOG_DEBUG, "Move input streams from %zu due to unplug.",
 		       aio->base.info.idx);
-		cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
-						    aio->base.direction);
+		cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+						     aio->base.direction);
 	}
 }
 

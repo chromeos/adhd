@@ -224,6 +224,23 @@ static void sort_iodev_list(struct cras_iodev **list)
 	*list = new_list;
 }
 
+/* Finds the iodev in the given list that was most recently plugged.  If no
+ * iodev has its plugged status set, then return NULL.
+ */
+static struct cras_iodev *get_most_recently_plugged(struct cras_iodev *list)
+{
+	struct cras_iodev *curr;
+	struct cras_iodev *most_recent = NULL;
+
+	DL_FOREACH(list, curr)
+		if (cras_iodev_is_plugged_in(curr) &&
+		    (!most_recent ||
+		     cras_iodev_plugged_more_recently(curr, most_recent)))
+			most_recent = curr;
+
+	return most_recent;
+}
+
 /*
  * Exported Functions.
  */
@@ -437,11 +454,11 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 	return 0;
 }
 
-int cras_iodev_move_stream_type_default(enum CRAS_STREAM_TYPE type,
-					enum CRAS_STREAM_DIRECTION direction)
+int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
+					 enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list *list;
-	struct cras_iodev *curr_default;
+	struct cras_iodev *to_switch, *curr_default;
 
 	if (direction == CRAS_STREAM_OUTPUT) {
 		list = &outputs;
@@ -452,12 +469,18 @@ int cras_iodev_move_stream_type_default(enum CRAS_STREAM_TYPE type,
 		curr_default = default_input;
 	}
 
+	/* Switch to the most recently plugged device, or if none plugged, then
+	 * the top priority device at the head of the list. */
+	to_switch = get_most_recently_plugged(list->iodevs);
+	if (!to_switch)
+		to_switch = list->iodevs;
+
 	/* If there is no iodev to switch to, or if we are already using the
 	 * default, then there is nothing else to do. */
-	if (list->iodevs == NULL || list->iodevs == curr_default)
+	if (!to_switch || to_switch == curr_default)
 		return 0;
 	/* There is an iodev and it isn't the default, switch to it. */
-	return cras_iodev_move_stream_type(type, list->iodevs->info.idx);
+	return cras_iodev_move_stream_type(type, to_switch->info.idx);
 }
 
 void cras_iodev_remove_all_streams(struct cras_iodev *dev)

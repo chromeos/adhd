@@ -250,4 +250,17 @@ static inline struct timeval cras_iodev_last_plugged_time(
 {
 	return iodev->plugged_time;
 }
+
+/* Returns true if a was plugged more recently than b. */
+static inline int cras_iodev_plugged_more_recently(struct cras_iodev *a,
+						   struct cras_iodev *b)
+{
+	if (!a->plugged)
+		return 0;
+	if (!b->plugged)
+		return 1;
+	return (a->plugged_time.tv_sec > b->plugged_time.tv_sec ||
+		(a->plugged_time.tv_sec == b->plugged_time.tv_sec &&
+		 a->plugged_time.tv_usec > b->plugged_time.tv_usec));
+}
 #endif /* CRAS_IODEV_H_ */

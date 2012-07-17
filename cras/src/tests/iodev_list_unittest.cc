@@ -29,6 +29,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
+      d1_.plugged = 0;
       strcpy(d1_.info.name, "d1");
       d1_.supported_rates = sample_rates_;
       d1_.supported_channel_counts = channel_counts_;
@@ -37,6 +38,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
+      d2_.plugged = 0;
       strcpy(d2_.info.name, "d2");
       d2_.supported_rates = sample_rates_;
       d2_.supported_channel_counts = channel_counts_;
@@ -45,6 +47,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
+      d3_.plugged = 0;
       strcpy(d3_.info.name, "d3");
       d3_.supported_rates = sample_rates_;
       d3_.supported_channel_counts = channel_counts_;
@@ -284,6 +287,55 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   EXPECT_EQ(0, rc);
 }
 
+// Test picking plugged devices first.
+TEST_F(IoDevTestSuite, PluggedOutputPriority) {
+  struct cras_iodev *ret_dev;
+  int rc;
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+
+  // Neither is plugged should go to most recently added.
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                           CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d2_, ret_dev);
+
+  // Set device 1 as plugged more recently than device 2, should route to d1.
+  d1_.plugged = 1;
+  d1_.plugged_time.tv_sec = 500;
+  d1_.plugged_time.tv_usec = 540;
+  d2_.plugged = 1;
+  d2_.plugged_time.tv_sec = 500;
+  d2_.plugged_time.tv_usec = 500;
+  rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+                                            CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                           CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+
+  // Set device 2 as plugged more recently than device 1, should route to d2.
+  d1_.plugged = 1;
+  d1_.plugged_time.tv_sec = 500;
+  d1_.plugged_time.tv_usec = 500;
+  d2_.plugged = 1;
+  d2_.plugged_time.tv_sec = 550;
+  d2_.plugged_time.tv_usec = 400;
+  rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+                                            CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                           CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d2_, ret_dev);
+
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+}
+
 // Test stream attach/detach.
 TEST_F(IoDevTestSuite, AttachDetachStream) {
   struct cras_iodev *ret_dev;
@@ -360,13 +412,13 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
     EXPECT_EQ(&s1, d2_.streams->stream);
 
   // Test switching back to the original default stream.
-  rc = cras_iodev_move_stream_type_default(CRAS_STREAM_TYPE_DEFAULT,
-                                           s1.direction);
+  rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+                                            s1.direction);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, rm_stream_2_called_);
   EXPECT_EQ(NULL, d1_.streams);
 
-  // Test that streams now go back tot default.
+  // Test that streams now go back to default.
   ret_dev = cras_get_iodev_for_stream_type(s1.stream_type, s1.direction);
   EXPECT_EQ(&d1_, ret_dev);
 
