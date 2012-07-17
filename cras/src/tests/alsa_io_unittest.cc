@@ -109,6 +109,8 @@ static size_t cras_iodev_move_stream_type_called;
 static size_t cras_iodev_move_stream_type_default_called;
 static char test_card_name[] = "TestCard";
 static size_t cras_rstream_audio_ready_called;
+static size_t cras_iodev_plug_event_called;
+static int cras_iodev_plug_event_value;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -155,6 +157,7 @@ void ResetStubData() {
   cras_iodev_move_stream_type_called = 0;
   cras_iodev_move_stream_type_default_called = 0;
   cras_rstream_audio_ready_called = 0;
+  cras_iodev_plug_event_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -208,8 +211,12 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
 
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_iodev_move_stream_type_called);
+  EXPECT_EQ(1, cras_iodev_plug_event_called);
+  EXPECT_EQ(1, cras_iodev_plug_event_value);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_iodev_move_stream_type_default_called);
+  EXPECT_EQ(2, cras_iodev_plug_event_called);
+  EXPECT_EQ(0, cras_iodev_plug_event_value);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
@@ -1213,6 +1220,11 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
 }
 void cras_iodev_config_params_for_streams(struct cras_iodev *iodev)
 {
+}
+void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged)
+{
+	cras_iodev_plug_event_called++;
+	cras_iodev_plug_event_value = plugged;
 }
 
 //  From alsa helper.

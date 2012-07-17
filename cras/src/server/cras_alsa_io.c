@@ -993,6 +993,8 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->output_nodes, node);
 	}
 
+	cras_iodev_plug_event(&aio->base, plugged);
+
 	if (plugged) {
 		syslog(LOG_DEBUG, "Move streams to %zu due to plug event.",
 		       aio->base.info.idx);
