@@ -32,6 +32,7 @@ typedef void (*cras_system_volume_changed_cb)(void *data);
 
 /* Initialize system settings. */
 void cras_system_state_init();
+void cras_system_state_deinit();
 
 /* Sets the system volume.  Will be applied by the active device. */
 void cras_system_set_volume(size_t volume);

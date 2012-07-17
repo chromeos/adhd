@@ -136,6 +136,7 @@ static void callback_stub(void *data) {
 }
 
 TEST(SystemStateSuite, DefaultVolume) {
+  cras_system_state_deinit();
   cras_system_state_init();
   EXPECT_EQ(100, cras_system_get_volume());
   EXPECT_EQ(2000, cras_system_get_capture_gain());
@@ -144,6 +145,7 @@ TEST(SystemStateSuite, DefaultVolume) {
 }
 
 TEST(SystemStateSuite, SetVolume) {
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_set_volume(0);
   EXPECT_EQ(0, cras_system_get_volume());
@@ -156,6 +158,7 @@ TEST(SystemStateSuite, SetVolume) {
 }
 
 TEST(SystemStateSuite, SetMinMaxVolume) {
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_set_volume_limits(-10000, -600);
   EXPECT_EQ(-10000, cras_system_get_min_volume());
@@ -163,6 +166,7 @@ TEST(SystemStateSuite, SetMinMaxVolume) {
 }
 
 TEST(SystemStateSuite, SetCaptureVolume) {
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_set_capture_gain(0);
   EXPECT_EQ(0, cras_system_get_capture_gain());
@@ -176,6 +180,7 @@ TEST(SystemStateSuite, VolumeChangedCallback) {
   const size_t fake_volume_2 = 44;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   volume_changed_called = 0;
@@ -202,6 +207,7 @@ TEST(SystemStateSuite, VolumeChangedCallbackMultiple) {
   const size_t fake_volume_2 = 44;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   rc = cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   EXPECT_EQ(0, rc);
@@ -253,6 +259,7 @@ TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
   const size_t fake_max_2 = -600;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   rc = cras_system_register_volume_limits_changed_cb(volume_limits_changed,
                                                      fake_user_arg);
@@ -308,6 +315,7 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallback) {
   const long fake_capture_gain_2 = -1600;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_register_capture_gain_changed_cb(capture_gain_changed,
                                                  fake_user_arg);
@@ -336,6 +344,7 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallbackMultiple) {
   const size_t fake_capture_gain_2 = 400;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   rc = cras_system_register_capture_gain_changed_cb(capture_gain_changed,
                                                     fake_user_arg);
@@ -386,6 +395,7 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallbackMultiple) {
 }
 
 TEST(SystemStateSuite, SetMute) {
+  cras_system_state_deinit();
   cras_system_state_init();
   EXPECT_EQ(0, cras_system_get_mute());
   cras_system_set_mute(0);
@@ -400,6 +410,7 @@ TEST(SystemStateSuite, MuteChangedCallback) {
   void * const fake_user_arg = (void *)1;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
@@ -426,6 +437,7 @@ TEST(SystemStateSuite, MuteChangedCallbackMultiple) {
   void * const fake_user_arg_2 = (void *)2;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   rc = cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
@@ -466,6 +478,7 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
   void * const fake_arg_2 = (void *)2;
   int rc;
 
+  cras_system_state_deinit();
   cras_system_state_init();
   rc = cras_system_register_capture_mute_changed_cb(capture_mute_changed,
                                                     fake_arg);
@@ -548,6 +561,7 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   int rc;
 
   ResetStubData();
+  cras_system_state_deinit();
   cras_system_state_init();
   rc = cras_system_add_select_fd(7, callback_stub, stub_data);
   EXPECT_NE(0, rc);
@@ -573,6 +587,7 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
 
 TEST(SystemSettingsStreamCount, FirstStreamCheck) {
   ResetStubData();
+  cras_system_state_deinit();
   cras_system_state_init();
   EXPECT_EQ(0, cras_system_has_played_streams());
   EXPECT_EQ(1, cras_system_increment_streams_played());

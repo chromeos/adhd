@@ -112,8 +112,6 @@ static int remove_callback(struct volume_callback_list **list,
 
 void cras_system_state_init()
 {
-	struct volume_callback_list *cb, *tmp;
-
 	state.volume = CRAS_MAX_SYSTEM_VOLUME;
 	state.mute = 0;
 	state.capture_gain = DEFAULT_CAPTURE_GAIN;
@@ -123,6 +121,11 @@ void cras_system_state_init()
 	state.min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	state.max_capture_gain = DEFAULT_MAX_CAPTURE_GAIN;
 	state.num_streams_attached = 0;
+}
+
+void cras_system_state_deinit()
+{
+	struct volume_callback_list *cb, *tmp;
 
 	/* Free any registered callbacks.  This prevents unit tests from
 	 * leaking. */
