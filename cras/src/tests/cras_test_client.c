@@ -477,7 +477,7 @@ int main(int argc, char **argv)
 	rc = cras_client_connect(client);
 	if (rc) {
 		fprintf(stderr, "Couldn't connect to server.\n");
-		return rc;
+		goto destroy_exit;
 	}
 
 	while (1) {
@@ -516,18 +516,30 @@ int main(int argc, char **argv)
 			break;
 		case 'u': {
 			int mute = atoi(optarg);
-			cras_client_set_system_mute(client, mute);
+			rc = cras_client_set_system_mute(client, mute);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting mute\n");
+				goto destroy_exit;
+			}
 			break;
 		}
 		case 'v': {
 			int volume = atoi(optarg);
 			volume = min(100, max(0, volume));
-			cras_client_set_system_volume(client, volume);
+			rc = cras_client_set_system_volume(client, volume);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting volume\n");
+				goto destroy_exit;
+			}
 			break;
 		}
 		case 'g': {
 			long gain = atol(optarg);
-			cras_client_set_system_capture_gain(client, gain);
+			rc = cras_client_set_system_capture_gain(client, gain);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting capture\n");
+				goto destroy_exit;
+			}
 			break;
 		}
 		case 'i':
@@ -541,24 +553,29 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (set_iodev)
-		cras_client_switch_iodev(client,
-					 CRAS_STREAM_TYPE_DEFAULT,
-					 iodev_index);
+	if (set_iodev) {
+		rc = cras_client_switch_iodev(client,
+					      CRAS_STREAM_TYPE_DEFAULT,
+					      iodev_index);
+		if (rc < 0)
+			goto destroy_exit;
+	}
 
 	duration_frames = duration_seconds * rate;
 
 	if (capture_file != NULL) {
-		run_capture(client, capture_file, buffer_size, 0, rate,
-			    num_channels, 0);
+		rc = run_capture(client, capture_file, buffer_size, 0, rate,
+				 num_channels, 0);
+		if (rc < 0)
+			goto destroy_exit;
 	}
 
 	if (playback_file != NULL) {
-		run_playback(client, playback_file, buffer_size, cb_threshold,
-			     rate, num_channels, 0);
+		rc = run_playback(client, playback_file, buffer_size,
+				  cb_threshold, rate, num_channels, 0);
 	}
 
+destroy_exit:
 	cras_client_destroy(client);
-
-	return 0;
+	return rc;
 }
