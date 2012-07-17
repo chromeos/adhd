@@ -12,7 +12,8 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_alsa_mixer.c server/cras_alsa_card.c \
 	server/cras_empty_iodev.c server/cras_server.c \
 	server/cras_alsa_jack.c server/cras_udev.c \
-	server/config/cras_card_config.c server/cras_gpio_jack.c
+	server/config/cras_card_config.c server/cras_gpio_jack.c \
+	server/config/cras_device_blacklist.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server -I$(top_builddir)/src/server/config
 cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev
@@ -111,7 +112,8 @@ alsa_io_unittest_LDADD = -lgtest -lpthread
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 	server/cras_system_state.c
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
+	-I$(top_builddir)/src/common -I$(top_builddir)/src/server \
+	-I$(top_builddir)/src/server/config
 system_state_unittest_LDADD = -lgtest
 
 volume_curve_unittest_SOURCES = tests/volume_curve_unittest.cc \

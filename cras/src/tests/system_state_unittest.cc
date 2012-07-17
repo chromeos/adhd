@@ -612,6 +612,16 @@ size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card) {
   return 0;
 }
 
+struct cras_device_blacklist *cras_device_blacklist_create(
+		const char *config_path)
+{
+	return NULL;
+}
+
+void cras_device_blacklist_destroy(struct cras_device_blacklist *blacklist)
+{
+}
+
 }  // extern "C"
 }  // namespace
 

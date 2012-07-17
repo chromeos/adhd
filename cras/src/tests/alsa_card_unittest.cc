@@ -46,6 +46,8 @@ static int snd_ctl_card_info_ret;
 static size_t iniparser_freedict_called;
 static size_t iniparser_load_called;
 static size_t fake_priority;
+static struct cras_device_blacklist *fake_blacklist;
+static int cras_device_blacklist_check_retval;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -71,6 +73,8 @@ static void ResetStubData() {
   iniparser_freedict_called = 0;
   iniparser_load_called = 0;
   fake_priority = 200;
+  fake_blacklist = reinterpret_cast<struct cras_device_blacklist *>(3);
+  cras_device_blacklist_check_retval = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -81,7 +85,7 @@ TEST(AlsaCard, CreateFailInvalidCard) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 55;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
@@ -96,7 +100,7 @@ TEST(AlsaCard, CreateFailMixerInit) {
   card_info.card_index = 0;
   card_info.priority = fake_priority;
   cras_alsa_mixer_create_return = static_cast<struct cras_alsa_mixer *>(NULL);
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(1, cras_alsa_mixer_create_called);
@@ -112,7 +116,7 @@ TEST(AlsaCard, CreateFailCtlOpen) {
   card_info.card_index = 0;
   card_info.priority = fake_priority;
   snd_ctl_open_return = -1;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(1, snd_ctl_open_called);
   EXPECT_EQ(0, snd_ctl_close_called);
@@ -129,7 +133,7 @@ TEST(AlsaCard, CreateFailCtlCardInfo) {
   card_info.card_index = 0;
   card_info.priority = fake_priority;
   snd_ctl_card_info_ret = -1;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(1, snd_ctl_open_called);
   EXPECT_EQ(1, snd_ctl_close_called);
@@ -145,7 +149,7 @@ TEST(AlsaCard, CreateNoDevices) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 1;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(1, snd_ctl_pcm_next_device_called);
@@ -172,7 +176,7 @@ TEST(AlsaCard, CreateOneOutput) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 0;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
@@ -181,6 +185,35 @@ TEST(AlsaCard, CreateOneOutput) {
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
+TEST(AlsaCard, CreateOneOutputBlacklisted) {
+  struct cras_alsa_card *c;
+  int dev_nums[] = {0};
+  int info_rets[] = {0, -1};
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
+  snd_ctl_pcm_next_device_set_devs = dev_nums;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  cras_device_blacklist_check_retval = 1;
+  card_info.card_type = ALSA_CARD_TYPE_USB;
+  card_info.card_index = 0;
+  card_info.priority = fake_priority;
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(0, cras_alsa_iodev_create_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
@@ -206,7 +239,7 @@ TEST(AlsaCard, CreateTwoOutputs) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 0;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
@@ -238,7 +271,7 @@ TEST(AlsaCard, CreateOneInput) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 0;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
@@ -265,7 +298,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutput) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 0;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
@@ -298,7 +331,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
   card_info.card_index = 0;
   card_info.priority = fake_priority;
-  c = cras_alsa_card_create(&card_info);
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
   EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
@@ -419,6 +452,16 @@ struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
 		const char *control_name)
 {
   return NULL;
+}
+
+int cras_device_blacklist_check(
+    struct cras_device_blacklist *blacklist,
+    unsigned vendor_id,
+    unsigned product_id,
+    unsigned device_index) {
+  EXPECT_EQ(fake_blacklist, blacklist);
+
+  return cras_device_blacklist_check_retval;
 }
 
 } /* extern "C" */

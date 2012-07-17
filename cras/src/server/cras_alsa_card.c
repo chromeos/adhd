@@ -8,6 +8,7 @@
 
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
+#include "cras_device_blacklist.h"
 #include "cras_card_config.h"
 #include "cras_config.h"
 #include "cras_iodev_list.h"
@@ -88,11 +89,28 @@ static struct iodev_list_node *create_iodev_for_device(
 	return new_dev;
 }
 
+/* Check if a device should be ignored for this card. Returns non-zero if the
+ * device is in the blacklist and should be ignored.
+ */
+static int should_ignore_dev(struct cras_alsa_card_info *info,
+			     struct cras_device_blacklist *blacklist,
+			     size_t device_index)
+{
+	if (info->card_type == ALSA_CARD_TYPE_USB)
+		return cras_device_blacklist_check(blacklist,
+						   info->usb_vendor_id,
+						   info->usb_product_id,
+						   device_index);
+	return 0;
+}
+
 /*
  * Exported Interface.
  */
 
-struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info)
+struct cras_alsa_card *cras_alsa_card_create(
+		struct cras_alsa_card_info *info,
+		struct cras_device_blacklist *blacklist)
 {
 	snd_ctl_t *handle = NULL;
 	int rc, dev_idx;
@@ -167,7 +185,7 @@ struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info)
 		/* Check for playback devices. */
 		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
 		rc = snd_ctl_pcm_info(handle, dev_info);
-		if (rc == 0) {
+		if (rc == 0 && !should_ignore_dev(info, blacklist, dev_idx)) {
 			struct iodev_list_node *new_dev;
 
 			new_dev = create_iodev_for_device(

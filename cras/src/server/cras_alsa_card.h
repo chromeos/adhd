@@ -15,17 +15,21 @@
  */
 
 struct cras_alsa_card;
+struct cras_device_blacklist;
 
 /* Creates a cras_alsa_card instance for the given alsa device.  Enumerates the
  * devices for the card and adds them to the system as possible playback or
  * capture endpoints.
  * Args:
  *    card_info - Contains the card index, type, and priority.
+ *    blacklist - List of devices that should be ignored.
  * Returns:
  *    A pointer to the newly created cras_alsa_card which must later be freed
  *    by calling cras_alsa_card_destroy or NULL on error.
  */
-struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info);
+struct cras_alsa_card *cras_alsa_card_create(
+		struct cras_alsa_card_info *info,
+		struct cras_device_blacklist *blacklist);
 
 /* Destroys a cras_alsa_card that was returned from cras_alsa_card_create.
  * Args:

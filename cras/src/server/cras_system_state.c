@@ -8,6 +8,7 @@
 
 #include "cras_alsa_card.h"
 #include "cras_config.h"
+#include "cras_device_blacklist.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -36,6 +37,7 @@ struct volume_callback_list {
  *    min_capture_gain - Min allowed capture gain in dBFS * 100.
  *    max_capture_gain - Max allowed capture gain in dBFS * 100.
  *    num_streams_attached - Total number of streams since server started.
+ *    device_blacklist - Blacklist of device the server will ignore.
  *    volume_callbacks - Called when the system volume changes.
  *    mute_callbacks - Called when the system mute state changes.
  *    capture_gain_callbacks - Called when the capture gain changes.
@@ -53,6 +55,7 @@ static struct {
 	long min_capture_gain;
 	long max_capture_gain;
 	size_t num_streams_attached;
+	struct cras_device_blacklist *device_blacklist;
 	struct volume_callback_list *volume_callbacks;
 	struct volume_callback_list *mute_callbacks;
 	struct volume_callback_list *capture_gain_callbacks;
@@ -121,14 +124,20 @@ void cras_system_state_init()
 	state.min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	state.max_capture_gain = DEFAULT_MAX_CAPTURE_GAIN;
 	state.num_streams_attached = 0;
+
+	/* Read config file for blacklisted devices. */
+	state.device_blacklist =
+		cras_device_blacklist_create(CRAS_CONFIG_FILE_DIR);
 }
 
 void cras_system_state_deinit()
 {
 	struct volume_callback_list *cb, *tmp;
 
-	/* Free any registered callbacks.  This prevents unit tests from
-	 * leaking. */
+	/* Free any resources used.  This prevents unit tests from leaking. */
+
+	cras_device_blacklist_destroy(state.device_blacklist);
+
 	DL_FOREACH_SAFE(state.volume_callbacks, cb, tmp) {
 		DL_DELETE(state.volume_callbacks, cb);
 		free(cb);
@@ -345,7 +354,8 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 		if (card_index == cras_alsa_card_get_index(card->card))
 			return -EINVAL;
 	}
-	alsa_card = cras_alsa_card_create(alsa_card_info);
+	alsa_card = cras_alsa_card_create(alsa_card_info,
+					  state.device_blacklist);
 	if (alsa_card == NULL)
 		return -ENOMEM;
 	card = calloc(1, sizeof(*card));
