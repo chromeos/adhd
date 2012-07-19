@@ -34,22 +34,18 @@ struct cras_iodev *cras_get_iodev_for_stream_type(
 /* Adds an output to the output list.
  * Args:
  *    output - the output to add.
- *    auto_route - Set non-zero to automatically route streams to this device.
- *      (Make it the default)
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route);
+int cras_iodev_list_add_output(struct cras_iodev *output);
 
 /* Adds an input to the input list.
  * Args:
  *    input - the input to add.
- *    auto_route - Set non-zero to automatically route streams to this device.
- *      (Make it the default)
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route);
+int cras_iodev_list_add_input(struct cras_iodev *input);
 
 /* Removes an output from the output list.
  * Args:

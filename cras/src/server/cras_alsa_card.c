@@ -91,7 +91,6 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 					   card_name,
 					   device_index,
 					   alsa_card->mixer,
-					   first, /* auto route to dev */
 					   priority,
 					   direction);
 	if (new_dev->iodev == NULL) {

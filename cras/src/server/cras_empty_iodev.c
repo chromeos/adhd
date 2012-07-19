@@ -393,14 +393,14 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 			 ARRAY_SIZE(iodev->info.name),
 			 "Silent record device.");
 		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-		cras_iodev_list_add_input(iodev, 0);
+		cras_iodev_list_add_input(iodev);
 	} else {
 		assert(direction == CRAS_STREAM_OUTPUT);
 		snprintf(iodev->info.name,
 			 ARRAY_SIZE(iodev->info.name),
 			 "Silent playback device.");
 		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-		cras_iodev_list_add_output(iodev, 0);
+		cras_iodev_list_add_output(iodev);
 	}
 
 	iodev->supported_rates = empty_supported_rates;

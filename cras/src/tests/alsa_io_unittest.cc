@@ -171,7 +171,7 @@ TEST(AlsaIoInit, InitializePlayback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-                                            fake_mixer, 0, 7,
+                                            fake_mixer, 7,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
@@ -193,7 +193,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-                                            fake_mixer, 0, 0,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
@@ -226,7 +226,7 @@ TEST(AlsaIoInit, InitializeCapture) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-                                            fake_mixer, 0, 0,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
@@ -258,7 +258,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-                                            fake_mixer, 0, 0,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
@@ -308,7 +308,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-                                            fake_mixer, 0, 0,
+                                            fake_mixer, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
@@ -343,10 +343,10 @@ class AlsaAddStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       aio_output_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-          fake_mixer, 0, 0, CRAS_STREAM_OUTPUT);
+          fake_mixer, 0, CRAS_STREAM_OUTPUT);
       aio_output_->base.direction = CRAS_STREAM_OUTPUT;
       aio_input_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-          fake_mixer, 0, 0, CRAS_STREAM_INPUT);
+          fake_mixer, 0, CRAS_STREAM_INPUT);
       aio_input_->base.direction = CRAS_STREAM_INPUT;
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
@@ -570,7 +570,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       aio_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-          fake_mixer, 0, 0, CRAS_STREAM_INPUT);
+          fake_mixer, 0, CRAS_STREAM_INPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
       fmt_.format = SND_PCM_FORMAT_S16_LE;
@@ -775,7 +775,7 @@ class AlsaPlaybackStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       aio_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-          fake_mixer, 0, 0, CRAS_STREAM_OUTPUT);
+          fake_mixer, 0, CRAS_STREAM_OUTPUT);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
       fmt_.format = SND_PCM_FORMAT_S16_LE;
@@ -1088,7 +1088,7 @@ int main(int argc, char **argv) {
 extern "C" {
 
 //  From iodev.
-int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
+int cras_iodev_list_add_output(struct cras_iodev *output)
 {
   return 0;
 }
@@ -1097,7 +1097,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
   return 0;
 }
 
-int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
+int cras_iodev_list_add_input(struct cras_iodev *input)
 {
   return 0;
 }

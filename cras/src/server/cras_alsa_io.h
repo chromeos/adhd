@@ -17,7 +17,6 @@ struct cras_alsa_mixer_output;
  *    card_name - The name of the card.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    mixer - The mixer for the alsa device.
- *    auto_route - If non-zero make this new device the default.
  *    priority - The priority to give this device when choose a playback or
  *      capture device.  Zero is the lowest priority.
  *    direciton - input or output.
@@ -28,7 +27,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
-				     int auto_route,
 				     size_t priority,
 				     enum CRAS_STREAM_DIRECTION direction);
 

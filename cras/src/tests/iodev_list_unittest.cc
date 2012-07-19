@@ -104,10 +104,10 @@ size_t cras_server_send_to_all_clients_num_inputs;
 TEST_F(IoDevTestSuite, AddWrongDirection) {
   int rc;
 
-  rc = cras_iodev_list_add_input(&d1_, 1);
+  rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(-EINVAL, rc);
   d1_.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(-EINVAL, rc);
 }
 
@@ -120,10 +120,10 @@ TEST_F(IoDevTestSuite, RouteMostrecentIfSamePrio) {
   d1_.info.priority = 100;
   d2_.info.priority = 100;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
   EXPECT_NE(-999, d1_.info.idx);
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(d1_.info.idx + 1, d2_.info.idx);
 
@@ -152,13 +152,13 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   d1_.info.priority = 100;
   d2_.info.priority = 10;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_NE(0, rc);
   // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
 
   // Check default device.  Higher priority(d1) should be default.
@@ -196,22 +196,22 @@ TEST_F(IoDevTestSuite, AutoRouteOutputs) {
   d2_.info.priority = 1;
   d3_.info.priority = 3;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_NE(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d1_, ret_dev);
   // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d1_, ret_dev);
   // Test insert a third output.
-  rc = cras_iodev_list_add_output(&d3_, 1);
+  rc = cras_iodev_list_add_output(&d3_);
   EXPECT_EQ(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
@@ -253,22 +253,22 @@ TEST_F(IoDevTestSuite, AutoRouteOutputsSamePrio) {
   d2_.info.priority = 0;
   d3_.info.priority = 0;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_NE(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d1_, ret_dev);
   // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d2_, ret_dev);
   // Test insert a third output.
-  rc = cras_iodev_list_add_output(&d3_, 1);
+  rc = cras_iodev_list_add_output(&d3_);
   EXPECT_EQ(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
@@ -309,16 +309,16 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   d2_.direction = CRAS_STREAM_INPUT;
 
   cras_server_send_to_all_clients_called = 0;
-  rc = cras_iodev_list_add_input(&d1_, 1);
+  rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
   EXPECT_GE(d1_.info.idx, 0);
   EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_input(&d1_, 1);
+  rc = cras_iodev_list_add_input(&d1_);
   EXPECT_NE(0, rc);
   EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test insert a second input.
-  rc = cras_iodev_list_add_input(&d2_, 1);
+  rc = cras_iodev_list_add_input(&d2_);
   EXPECT_EQ(0, rc);
   EXPECT_GE(d2_.info.idx, 1);
   EXPECT_EQ(2, cras_server_send_to_all_clients_called);
@@ -367,9 +367,9 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.priority = 40;
 
-  rc = cras_iodev_list_add_input(&d1_, 1);
+  rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_input(&d2_, 1);
+  rc = cras_iodev_list_add_input(&d2_);
   EXPECT_EQ(0, rc);
 
   // Default should fall back to d1.
@@ -383,19 +383,19 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
   // Add it back.
-  rc = cras_iodev_list_add_input(&d1_, 1);
+  rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
   // And again.
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
   // Add it back.
-  rc = cras_iodev_list_add_input(&d1_, 1);
+  rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
   // Remove other dev.
   rc = cras_iodev_list_rm_input(&d2_);
   EXPECT_EQ(0, rc);
   // Add it back.
-  rc = cras_iodev_list_add_input(&d2_, 1);
+  rc = cras_iodev_list_add_input(&d2_);
   EXPECT_EQ(0, rc);
   // Remove both.
   rc = cras_iodev_list_rm_input(&d2_);
@@ -415,9 +415,9 @@ TEST_F(IoDevTestSuite, UnPluggedOutputPriority) {
   d1_.info.priority = 100;
   d2_.info.priority = 10;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
 
   // Neither is plugged should go to highest priority.
@@ -440,9 +440,9 @@ TEST_F(IoDevTestSuite, OnePluggedOutputPriority) {
   d2_.info.priority = 10;
   d2_.plugged = 1;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
 
   // Neither is plugged should go to highest priority.
@@ -472,9 +472,9 @@ TEST_F(IoDevTestSuite, PluggedOutputPriority) {
   d2_.plugged_time.tv_sec = 500;
   d2_.plugged_time.tv_usec = 500;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
 
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
@@ -516,9 +516,9 @@ TEST_F(IoDevTestSuite, PluggedOutputPriorityDifferentPrioAndTimes) {
   d2_.plugged_time.tv_sec = 500;
   d2_.plugged_time.tv_usec = 500;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d2_, 1);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
 
   /* Priority should over-ride plug time. */
@@ -541,9 +541,9 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   d1_.info.priority = 100;
   d2_.info.priority = 100;
 
-  rc = cras_iodev_list_add_output(&d2_, 0);
+  rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d1_, 1);
+  rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
 
   s1.stream_id = 555;

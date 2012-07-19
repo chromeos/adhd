@@ -1072,7 +1072,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
-				     int auto_route,
 				     size_t prio,
 				     enum CRAS_STREAM_DIRECTION direction)
 {
@@ -1120,7 +1119,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->info.priority = prio;
 
 	if (direction == CRAS_STREAM_INPUT)
-		cras_iodev_list_add_input(&aio->base, auto_route);
+		cras_iodev_list_add_input(&aio->base);
 	else {
 		assert(direction == CRAS_STREAM_OUTPUT);
 
@@ -1136,7 +1135,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 					     aio->default_output->mixer_output);
 
 		/* Add to the output list. */
-		cras_iodev_list_add_output(&aio->base, auto_route);
+		cras_iodev_list_add_output(&aio->base);
 	}
 
 	/* Find any jack controls for this device. */

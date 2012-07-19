@@ -221,7 +221,7 @@ struct cras_iodev *cras_get_iodev_for_stream_type(
 		return default_input;
 }
 
-int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
+int cras_iodev_list_add_output(struct cras_iodev *output)
 {
 	if (output->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
@@ -229,7 +229,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 	return add_dev_to_list(&outputs, &default_output, output);
 }
 
-int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
+int cras_iodev_list_add_input(struct cras_iodev *input)
 {
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
