@@ -105,7 +105,6 @@ static size_t cras_alsa_jack_list_create_called;
 static size_t cras_alsa_jack_list_destroy_called;
 static jack_state_change_callback *cras_alsa_jack_list_create_cb;
 static void *cras_alsa_jack_list_create_cb_data;
-static size_t cras_iodev_move_stream_type_called;
 static size_t cras_iodev_move_stream_type_top_prio_called;
 static char test_card_name[] = "TestCard";
 static size_t cras_rstream_audio_ready_called;
@@ -154,7 +153,6 @@ void ResetStubData() {
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
-  cras_iodev_move_stream_type_called = 0;
   cras_iodev_move_stream_type_top_prio_called = 0;
   cras_rstream_audio_ready_called = 0;
   cras_iodev_plug_event_called = 0;
@@ -210,11 +208,11 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   fake_curve->get_dBFS = fake_get_dBFS;
 
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
-  EXPECT_EQ(1, cras_iodev_move_stream_type_called);
+  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
   EXPECT_EQ(1, cras_iodev_plug_event_called);
   EXPECT_EQ(1, cras_iodev_plug_event_value);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
-  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
+  EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
   EXPECT_EQ(2, cras_iodev_plug_event_called);
   EXPECT_EQ(0, cras_iodev_plug_event_value);
 
@@ -1105,11 +1103,6 @@ int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 }
 int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
-  return 0;
-}
-int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
-{
-  cras_iodev_move_stream_type_called++;
   return 0;
 }
 int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,

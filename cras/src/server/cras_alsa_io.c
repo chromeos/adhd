@@ -1013,8 +1013,6 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			set_alsa_volume_limits(aio);
 			set_alsa_volume(aio);
 		}
-		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-					    aio->base.info.idx);
 	} else {
 		syslog(LOG_DEBUG, "Move streams from %zu due to unplug event.",
 		       aio->base.info.idx);
@@ -1027,10 +1025,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			set_alsa_volume_limits(aio);
 			set_alsa_volume(aio);
 		}
-
-		cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-						     aio->base.direction);
 	}
+	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+					     aio->base.direction);
 }
 
 /* Callback that is called when an input jack is plugged or unplugged. */
@@ -1043,17 +1040,10 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	if (arg == NULL)
 		return;
 	aio = (struct alsa_io *)arg;
-	if (plugged) {
-		syslog(LOG_DEBUG, "Move input streams to %zu due to plug.",
-		       aio->base.info.idx);
-		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-					    aio->base.info.idx);
-	} else {
-		syslog(LOG_DEBUG, "Move input streams from %zu due to unplug.",
-		       aio->base.info.idx);
-		cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-						     aio->base.direction);
-	}
+
+	syslog(LOG_DEBUG, "Move input streams due to plug event.");
+	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+					     aio->base.direction);
 }
 
 /* Sets the name of the given iodev, using the name and index of the card
