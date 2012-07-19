@@ -107,8 +107,11 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 	       device_index);
 
 	/* Set plugged for the first USB device per card when it appears. */
-	if (info->card_type == ALSA_CARD_TYPE_USB && first)
+	if (info->card_type == ALSA_CARD_TYPE_USB && first) {
 		cras_iodev_plug_event(new_dev->iodev, 1);
+		cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+						     direction);
+	}
 
 	DL_APPEND(alsa_card->iodevs, new_dev);
 }

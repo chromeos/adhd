@@ -137,13 +137,6 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
  */
 void cras_iodev_remove_all_streams(struct cras_iodev *dev);
 
-/* Re-orders the list of devices based on the priority of each device.  Places
- * the devices with higher priority at the beginning of the list.  This also
- * sets the default device to that with the highest priority.  It does not move
- * already playing streams to the new default device.
- */
-void cras_iodev_sort_device_lists();
-
 /* Sends out the list of iodevs in the system. Returns 0 for success negative
  * error if not enough memory. */
 int cras_iodev_list_update_clients();

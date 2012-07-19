@@ -475,6 +475,10 @@ void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged) {
   cras_iodev_plug_event_called++;
   cras_iodev_plug_event_plugged_value = plugged;
 }
+int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
+                                         enum CRAS_STREAM_DIRECTION direction) {
+	return 0;
+}
 
 } /* extern "C" */
 

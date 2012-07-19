@@ -27,11 +27,53 @@ static struct cras_iodev *default_input;
 /* Keep a constantly increasing index for iodevs. */
 static size_t next_iodev_idx;
 
+/* Checks if device a is higher priority than b. */
+static int dev_is_higher_prio(const struct cras_iodev *a,
+			      const struct cras_iodev *b)
+{
+	/* check if one device is plugged in. */
+	if (cras_iodev_is_plugged_in(a) && !cras_iodev_is_plugged_in(b))
+		return 1;
+	if (!cras_iodev_is_plugged_in(a) && cras_iodev_is_plugged_in(b))
+		return 0;
+
+	/* Both plugged or unplugged, check priority. */
+	if (a->info.priority > b->info.priority)
+		return 1;
+	if (a->info.priority < b->info.priority)
+		return 0;
+
+	/* Finally check plugged time to break tie. */
+	if (cras_iodev_plugged_more_recently(a, b))
+		return 1;
+
+	return 0;
+}
+
+/* Finds the iodev in the given list that should be used as default.
+ * If any devices are "plugged in" (USB, Headphones), route to highest
+ * priority plugged device. Break ties with Most recently plugged.  Otherwise
+ * route to the highest priority devices, breaking ties with most recently
+ * added.
+ */
+static struct cras_iodev *top_prio_dev(struct cras_iodev *list)
+{
+	struct cras_iodev *curr;
+	struct cras_iodev *ret_dev = NULL;
+
+	DL_FOREACH(list, curr)
+		if (!ret_dev || dev_is_higher_prio(curr, ret_dev))
+			ret_dev = curr;
+
+	return ret_dev;
+}
+
 /* Adds a device to the list.  Used from add_input and add_output. */
 static int add_dev_to_list(struct iodev_list *list,
+			   struct cras_iodev **default_dev,
 			   struct cras_iodev *dev)
 {
-	struct cras_iodev *tmp;
+	struct cras_iodev *tmp, *new_default;
 	size_t new_idx;
 
 	DL_FOREACH(list->iodevs, tmp)
@@ -54,7 +96,19 @@ static int add_dev_to_list(struct iodev_list *list,
 	next_iodev_idx = new_idx + 1;
 	list->size++;
 
-	return 0;
+	syslog(LOG_DEBUG, "Adding %s dev at index %zu.",
+	       dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
+	       dev->info.idx);
+	DL_PREPEND(list->iodevs, dev);
+	new_default = top_prio_dev(list->iodevs);
+	if (new_default != *default_dev) {
+		struct cras_iodev *last_default = *default_dev;
+		*default_dev = new_default;
+		if (last_default)
+			cras_iodev_remove_all_streams(last_default);
+	}
+
+	return cras_iodev_list_update_clients();
 }
 
 /* Removes a device to the list.  Used from rm_input and rm_output. */
@@ -150,76 +204,6 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 	return iodev->supported_channel_counts[0];
 }
 
-/* Re-orders the list of devices based on the priority of each device.  Places
- * the devices with higher priority at the beginning of the list.  It is
- * important that the relative order of devices with the same priority is
- * preserved (Within a priority the most recent devices will be chosen).
- */
-static void sort_iodev_list(struct cras_iodev **list)
-{
-	struct cras_iodev *dev, *tmp;
-	struct cras_iodev *old_list = *list;
-	struct cras_iodev *new_list = NULL;
-
-	dev = old_list;
-	if (dev == NULL)
-		return; /* Nothing to sort. */
-
-	/* Move the first device. */
-	DL_DELETE(old_list, dev);
-	DL_APPEND(new_list, dev);
-
-	/* Then the insert the rest in the correct order. */
-	DL_FOREACH_SAFE(old_list, dev, tmp) {
-		struct cras_iodev *curr;
-
-		/* Remove from the old list before adding to the new list. */
-		DL_DELETE(old_list, dev);
-
-		/* Check if higher priority than head. */
-		if (dev->info.priority > new_list->info.priority) {
-			DL_PREPEND(new_list, dev);
-			continue;
-		}
-
-		/* Check if lower priority than the tail. */
-		if (dev->info.priority <= new_list->prev->info.priority) {
-			DL_APPEND(new_list, dev);
-			continue;
-		}
-
-		/* Not highest or lowest, insert in the list. */
-		DL_FOREACH(new_list, curr) {
-			if (dev->info.priority > curr->info.priority) {
-				dev->prev = curr->prev;
-				dev->next = curr;
-				dev->prev->next = dev;
-				curr->prev = dev;
-				break;
-			}
-		}
-	}
-
-	*list = new_list;
-}
-
-/* Finds the iodev in the given list that was most recently plugged.  If no
- * iodev has its plugged status set, then return NULL.
- */
-static struct cras_iodev *get_most_recently_plugged(struct cras_iodev *list)
-{
-	struct cras_iodev *curr;
-	struct cras_iodev *most_recent = NULL;
-
-	DL_FOREACH(list, curr)
-		if (cras_iodev_is_plugged_in(curr) &&
-		    (!most_recent ||
-		     cras_iodev_plugged_more_recently(curr, most_recent)))
-			most_recent = curr;
-
-	return most_recent;
-}
-
 /*
  * Exported Functions.
  */
@@ -239,74 +223,28 @@ struct cras_iodev *cras_get_iodev_for_stream_type(
 
 int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
 {
-	int rc;
-
 	if (output->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	rc = add_dev_to_list(&outputs, output);
-	if (rc < 0)
-		return rc;
-	if (default_output == NULL) {
-		/* First output, make it default regardless. */
-		default_output = output;
-		DL_APPEND(outputs.iodevs, output);
-		return cras_iodev_list_update_clients();
-	}
-	syslog(LOG_DEBUG, "Adding iodev at index %zu.", output->info.idx);
-	if (auto_route) {
-		/* auto-route devices go to the front of the list. */
-		DL_PREPEND(outputs.iodevs, output);
-		struct cras_iodev *last_default = default_output;
-		default_output = output;
-		cras_iodev_remove_all_streams(last_default);
-		syslog(LOG_DEBUG, "Default output dev %zu.", output->info.idx);
-	} else
-		DL_APPEND(outputs.iodevs, output);
-	return cras_iodev_list_update_clients();
+	return add_dev_to_list(&outputs, &default_output, output);
 }
 
 int cras_iodev_list_add_input(struct cras_iodev *input, int auto_route)
 {
-	int rc;
-
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
 
-	rc = add_dev_to_list(&inputs, input);
-	if (rc < 0)
-		return rc;
-	if (default_input == NULL) {
-		/* First input, make it default regardless. */
-		default_input = input;
-		DL_APPEND(inputs.iodevs, input);
-		return cras_iodev_list_update_clients();
-	}
-	syslog(LOG_DEBUG, "Adding iodev at index %zu.", input->info.idx);
-	if (auto_route) {
-		/* auto-route devices go to the front of the list. */
-		DL_PREPEND(inputs.iodevs, input);
-		struct cras_iodev *last_default = default_input;
-		default_input = input;
-		cras_iodev_remove_all_streams(last_default);
-		syslog(LOG_DEBUG, "Default input dev %zu.", input->info.idx);
-	} else
-		DL_APPEND(inputs.iodevs, input);
-	return cras_iodev_list_update_clients();
+	return add_dev_to_list(&inputs, &default_input, input);
 }
 
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
 	int res;
 
-	if (default_output == dev) {
-		if (dev == outputs.iodevs)
-			default_output = outputs.iodevs->next;
-		else
-			default_output = outputs.iodevs;
-	}
 	cras_iodev_remove_all_streams(dev);
 	res = rm_dev_from_list(&outputs, dev);
+	if (default_output == dev)
+		default_output = top_prio_dev(outputs.iodevs);
 	if (res == 0)
 		res = cras_iodev_list_update_clients();
 	return res;
@@ -316,10 +254,10 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	int res;
 
-	if (default_input == dev)
-		default_input = inputs.iodevs->next;
 	cras_iodev_remove_all_streams(dev);
 	res = rm_dev_from_list(&inputs, dev);
+	if (default_input == dev)
+		default_input = top_prio_dev(inputs.iodevs);
 	if (res == 0)
 		res = cras_iodev_list_update_clients();
 	return res;
@@ -438,16 +376,15 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 		curr_default = default_input;
 	}
 
-	/* Switch to the most recently plugged device, or if none plugged, then
-	 * the top priority device at the head of the list. */
-	to_switch = get_most_recently_plugged(list->iodevs);
-	if (!to_switch)
-		to_switch = list->iodevs;
+	to_switch = top_prio_dev(list->iodevs);
 
 	/* If there is no iodev to switch to, or if we are already using the
 	 * default, then there is nothing else to do. */
 	if (!to_switch || to_switch == curr_default)
 		return 0;
+
+	syslog(LOG_DEBUG, "Route to %zu by default", to_switch->info.idx);
+
 	/* There is an iodev and it isn't the default, switch to it. */
 	return cras_iodev_move_stream_type(type, to_switch->info.idx);
 }
@@ -461,21 +398,6 @@ void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 		cras_iodev_detach_stream(dev, stream);
 		cras_rstream_send_client_reattach(stream);
 	}
-}
-
-void cras_iodev_sort_device_lists()
-{
-	int auto_route;
-
-	sort_iodev_list(&inputs.iodevs);
-	default_input = inputs.iodevs;
-
-	/* If playing to default then switch to
-	 * new if it changes. */
-	auto_route = default_output == outputs.iodevs;
-	sort_iodev_list(&outputs.iodevs);
-	if (auto_route)
-		default_output = outputs.iodevs;
 }
 
 /* Sends out the list of iodevs in the system. */

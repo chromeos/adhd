@@ -111,8 +111,40 @@ TEST_F(IoDevTestSuite, AddWrongDirection) {
   EXPECT_EQ(-EINVAL, rc);
 }
 
+// Two iodevs of the same priority, tie should be broken by most recently added.
+TEST_F(IoDevTestSuite, RouteMostrecentIfSamePrio) {
+  struct cras_iodev *default_dev;
+  int rc;
+
+  // same priority.
+  d1_.info.priority = 100;
+  d2_.info.priority = 100;
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  EXPECT_NE(-999, d1_.info.idx);
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(d1_.info.idx + 1, d2_.info.idx);
+
+  // Same priority, should give most recently added (v2).
+  default_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                               CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(d2_.info.idx, default_dev->info.idx);
+
+  // Test that it is removed if no attached streams.
+  d1_.streams = (struct cras_io_stream *)NULL;
+  d2_.streams = (struct cras_io_stream *)NULL;
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+  // Remove other dev.
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+}
+
 // Test adding/removing an iodev to the list.
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
+  struct cras_iodev *default_dev;
   struct cras_iodev_info *dev_info;
   int rc;
 
@@ -122,31 +154,17 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
 
   rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, d1_.info.idx);
   // Test can't insert same iodev twice.
   rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_NE(0, rc);
   // Test insert a second output.
   rc = cras_iodev_list_add_output(&d2_, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, d2_.info.idx);
 
-  // List the outputs.  Most recently added(d2) should be first.
-  rc = cras_iodev_list_get_outputs(&dev_info);
-  EXPECT_EQ(2, rc);
-  EXPECT_EQ(d2_.info.idx, dev_info[0].idx);
-  EXPECT_EQ(d1_.info.idx, dev_info[1].idx);
-  if (rc > 0)
-    free(dev_info);
-
-  // Sort the list and check that the higher priority dev is first.
-  cras_iodev_sort_device_lists();
-  rc = cras_iodev_list_get_outputs(&dev_info);
-  EXPECT_EQ(2, rc);
-  EXPECT_EQ(d1_.info.idx, dev_info[0].idx);
-  EXPECT_EQ(d2_.info.idx, dev_info[1].idx);
-  if (rc > 0)
-    free(dev_info);
+  // Check default device.  Higher priority(d1) should be default.
+  default_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                               CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(d1_.info.idx, default_dev->info.idx);
 
   // Test that it is removed if no attached streams.
   d1_.streams = (struct cras_io_stream *)NULL;
@@ -167,7 +185,7 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   EXPECT_EQ(0, rc);
 }
 
-// Test auto routing for outputs.
+// Test auto routing for outputs of different priority.
 TEST_F(IoDevTestSuite, AutoRouteOutputs) {
   int rc;
   struct cras_iodev *ret_dev;
@@ -191,6 +209,63 @@ TEST_F(IoDevTestSuite, AutoRouteOutputs) {
   EXPECT_EQ(0, rc);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
       CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+  // Test insert a third output.
+  rc = cras_iodev_list_add_output(&d3_, 1);
+  EXPECT_EQ(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d3_, ret_dev);
+
+  rc = cras_iodev_list_get_outputs(&dev_info);
+  EXPECT_EQ(3, rc);
+  EXPECT_EQ(d1_.info.idx, dev_info[2].idx);
+  EXPECT_EQ(d2_.info.idx, dev_info[1].idx);
+  EXPECT_EQ(d3_.info.idx, dev_info[0].idx);
+  if (rc > 0)
+    free(dev_info);
+
+  // Test that it is removed if no attached streams.
+  d1_.streams = (struct cras_io_stream *)NULL;
+  d2_.streams = (struct cras_io_stream *)NULL;
+  d3_.streams = (struct cras_io_stream *)NULL;
+  rc = cras_iodev_list_rm_output(&d3_);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+  // Default should fall back to d1.
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+  // Remove other dev.
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test auto routing for outputs of same priority.
+TEST_F(IoDevTestSuite, AutoRouteOutputsSamePrio) {
+  int rc;
+  struct cras_iodev *ret_dev;
+  struct cras_iodev_info *dev_info;
+
+  // First dev has higher priority.
+  d1_.info.priority = 0;
+  d2_.info.priority = 0;
+  d3_.info.priority = 0;
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  // Test can't insert same iodev twice.
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_NE(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+  // Test insert a second output.
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+      CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d2_, ret_dev);
   // Test insert a third output.
   rc = cras_iodev_list_add_output(&d3_, 1);
@@ -199,16 +274,10 @@ TEST_F(IoDevTestSuite, AutoRouteOutputs) {
       CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d3_, ret_dev);
 
-  // Sorting the devices should cause the default to be set.
-  cras_iodev_sort_device_lists();
-  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT);
-  EXPECT_EQ(&d3_, ret_dev);
-
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(3, rc);
-  EXPECT_EQ(d1_.info.idx, dev_info[1].idx);
-  EXPECT_EQ(d2_.info.idx, dev_info[2].idx);
+  EXPECT_EQ(d1_.info.idx, dev_info[2].idx);
+  EXPECT_EQ(d2_.info.idx, dev_info[1].idx);
   EXPECT_EQ(d3_.info.idx, dev_info[0].idx);
   if (rc > 0)
     free(dev_info);
@@ -287,20 +356,113 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   EXPECT_EQ(0, rc);
 }
 
-// Test picking plugged devices first.
-TEST_F(IoDevTestSuite, PluggedOutputPriority) {
+// Test removing the last input.
+TEST_F(IoDevTestSuite, RemoveLastInput) {
+  struct cras_iodev_info *dev_info;
   struct cras_iodev *ret_dev;
   int rc;
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  d1_.info.priority = 50;
+  d2_.direction = CRAS_STREAM_INPUT;
+  d2_.info.priority = 40;
+
+  rc = cras_iodev_list_add_input(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_input(&d2_, 1);
+  EXPECT_EQ(0, rc);
+
+  // Default should fall back to d1.
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                           CRAS_STREAM_INPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+
+  // Test that it is removed if no attached streams.
+  d1_.streams = (struct cras_io_stream *)NULL;
+  d2_.streams = (struct cras_io_stream *)NULL;
+  rc = cras_iodev_list_rm_input(&d1_);
+  EXPECT_EQ(0, rc);
+  // Add it back.
+  rc = cras_iodev_list_add_input(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  // And again.
+  rc = cras_iodev_list_rm_input(&d1_);
+  EXPECT_EQ(0, rc);
+  // Add it back.
+  rc = cras_iodev_list_add_input(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  // Remove other dev.
+  rc = cras_iodev_list_rm_input(&d2_);
+  EXPECT_EQ(0, rc);
+  // Add it back.
+  rc = cras_iodev_list_add_input(&d2_, 1);
+  EXPECT_EQ(0, rc);
+  // Remove both.
+  rc = cras_iodev_list_rm_input(&d2_);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_input(&d1_);
+  EXPECT_EQ(0, rc);
+  // Should be 0 devs now.
+  rc = cras_iodev_list_get_inputs(&dev_info);
+  EXPECT_EQ(0, rc);
+}
+
+// Test unplugged devices go to highest priority.
+TEST_F(IoDevTestSuite, UnPluggedOutputPriority) {
+  struct cras_iodev *ret_dev;
+  int rc;
+
+  d1_.info.priority = 100;
+  d2_.info.priority = 10;
 
   rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
   rc = cras_iodev_list_add_output(&d2_, 1);
   EXPECT_EQ(0, rc);
 
-  // Neither is plugged should go to most recently added.
+  // Neither is plugged should go to highest priority.
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                           CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d1_, ret_dev);
+
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test picking plugged devices first.
+TEST_F(IoDevTestSuite, OnePluggedOutputPriority) {
+  struct cras_iodev *ret_dev;
+  int rc;
+
+  d1_.info.priority = 100;
+  d2_.info.priority = 10;
+  d2_.plugged = 1;
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+
+  // Neither is plugged should go to highest priority.
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
                                            CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d2_, ret_dev);
+
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test picking plugged devices first.
+TEST_F(IoDevTestSuite, PluggedOutputPriority) {
+  struct cras_iodev *ret_dev;
+  int rc;
+
+  d1_.info.priority = 100;
+  d2_.info.priority = 100;
 
   // Set device 1 as plugged more recently than device 2, should route to d1.
   d1_.plugged = 1;
@@ -309,9 +471,12 @@ TEST_F(IoDevTestSuite, PluggedOutputPriority) {
   d2_.plugged = 1;
   d2_.plugged_time.tv_sec = 500;
   d2_.plugged_time.tv_usec = 500;
-  rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-                                            CRAS_STREAM_OUTPUT);
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
   EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
                                            CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d1_, ret_dev);
@@ -323,9 +488,40 @@ TEST_F(IoDevTestSuite, PluggedOutputPriority) {
   d2_.plugged = 1;
   d2_.plugged_time.tv_sec = 550;
   d2_.plugged_time.tv_usec = 400;
-  rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-                                            CRAS_STREAM_OUTPUT);
+  cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+                                       CRAS_STREAM_OUTPUT);
+  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
+                                           CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(&d2_, ret_dev);
+
+  rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test picking plugged devices with different prio and plug times.
+TEST_F(IoDevTestSuite, PluggedOutputPriorityDifferentPrioAndTimes) {
+  struct cras_iodev *ret_dev;
+  int rc;
+
+  d1_.info.priority = 99;
+  d2_.info.priority = 100;
+
+  // Set device 1 as plugged more recently than device 2.
+  d1_.plugged = 1;
+  d1_.plugged_time.tv_sec = 500;
+  d1_.plugged_time.tv_usec = 540;
+  d2_.plugged = 1;
+  d2_.plugged_time.tv_sec = 500;
+  d2_.plugged_time.tv_usec = 500;
+
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d2_, 1);
+  EXPECT_EQ(0, rc);
+
+  /* Priority should over-ride plug time. */
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
                                            CRAS_STREAM_OUTPUT);
   EXPECT_EQ(&d2_, ret_dev);
@@ -342,15 +538,13 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   struct cras_rstream s1, s2;
   int rc;
 
-  rc = cras_iodev_list_add_output(&d1_, 1);
-  EXPECT_EQ(0, rc);
+  d1_.info.priority = 100;
+  d2_.info.priority = 100;
+
   rc = cras_iodev_list_add_output(&d2_, 0);
   EXPECT_EQ(0, rc);
-
-  // Default should 1, because 2 specified not to auto-route.
-  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT);
-  EXPECT_EQ(&d1_, ret_dev);
+  rc = cras_iodev_list_add_output(&d1_, 1);
+  EXPECT_EQ(0, rc);
 
   s1.stream_id = 555;
   s1.stream_type = CRAS_STREAM_TYPE_DEFAULT;
@@ -388,13 +582,6 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, rm_stream_1_called_);
   EXPECT_EQ(NULL, d1_.streams);
-
-  // Sorting the devices when not playing to default shouldn't move the current
-  // streams.
-  cras_iodev_sort_device_lists();
-  ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT);
-  EXPECT_EQ(&d2_, ret_dev);
 
   // Test that new streams of the same type will get assigned to the same
   // output device.

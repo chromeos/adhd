@@ -239,7 +239,7 @@ void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged);
 /* Checks if the device is known to be plugged.  This is set when a jack event
  * is received from an ALSA jack or a GPIO.
  */
-static inline int cras_iodev_is_plugged_in(struct cras_iodev *iodev)
+static inline int cras_iodev_is_plugged_in(const struct cras_iodev *iodev)
 {
 	return iodev->plugged;
 }
@@ -252,8 +252,8 @@ static inline struct timeval cras_iodev_last_plugged_time(
 }
 
 /* Returns true if a was plugged more recently than b. */
-static inline int cras_iodev_plugged_more_recently(struct cras_iodev *a,
-						   struct cras_iodev *b)
+static inline int cras_iodev_plugged_more_recently(const struct cras_iodev *a,
+						   const struct cras_iodev *b)
 {
 	if (!a->plugged)
 		return 0;
