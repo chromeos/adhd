@@ -207,18 +207,14 @@ static void device_add_alsa(struct udev_device *dev,
 			    unsigned card,
 			    unsigned internal)
 {
-	const size_t INTERNAL_CARD_PRIORITY = 50;
-	const size_t EXTERNAL_CARD_PRIORITY = 80;
 	struct cras_alsa_card_info card_info;
 
 	udev_delay_for_alsa();
 	card_info.card_index = card;
 	if (internal) {
 		card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
-		card_info.priority = INTERNAL_CARD_PRIORITY;
 	} else {
 		card_info.card_type = ALSA_CARD_TYPE_USB;
-		card_info.priority = EXTERNAL_CARD_PRIORITY;
 		fill_usb_card_info(&card_info, dev);
 	}
 

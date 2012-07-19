@@ -68,8 +68,10 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 			     unsigned device_index,
 			     enum CRAS_STREAM_DIRECTION direction)
 {
+	static const unsigned DEFAULT_ALSA_CARD_PRIORITY = 50;
+
 	struct iodev_list_node *new_dev;
-	unsigned priority = info->priority;
+	unsigned priority = DEFAULT_ALSA_CARD_PRIORITY;
 	int first;
 
 	first = is_first_dev(alsa_card, direction);

@@ -62,7 +62,6 @@ enum CRAS_ALSA_CARD_TYPE {
 struct cras_alsa_card_info {
 	enum CRAS_ALSA_CARD_TYPE card_type;
 	unsigned card_index;
-	unsigned priority;
 	unsigned usb_vendor_id;
 	unsigned usb_product_id;
 };
