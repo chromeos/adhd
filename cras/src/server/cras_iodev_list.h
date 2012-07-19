@@ -24,7 +24,8 @@ struct cras_audio_format;
  *    type - The type of stream to find the output for. (media, voice).
  *    direction - Playback or capture.
  * Returns:
- *    A pointer to the device to use, or NULL if none found.
+ *    A pointer to the device to use, or NULL if none found.  Only default
+ *    streams are supported.
  */
 struct cras_iodev *cras_get_iodev_for_stream_type(
 		enum CRAS_STREAM_TYPE type,

@@ -27,27 +27,6 @@ static struct cras_iodev *default_input;
 /* Keep a constantly increasing index for iodevs. */
 static size_t next_iodev_idx;
 
-/* Finds a device that is currently playing a stream of "type".  If none is
- * found, then return NULL. */
-static struct cras_iodev *get_curr_iodev_for_stream_type(
-		struct iodev_list *list,
-		enum CRAS_STREAM_TYPE type)
-{
-	struct cras_iodev *dev;
-	struct cras_io_stream *iostream;
-
-	DL_FOREACH(list->iodevs, dev) {
-		if (!dev->streams)
-			continue;
-		DL_FOREACH(dev->streams, iostream) {
-			struct cras_rstream *stream = iostream->stream;
-			if (stream && cras_rstream_get_type(stream) == type)
-				return dev;
-		}
-	}
-	return NULL;
-}
-
 /* Adds a device to the list.  Used from add_input and add_output. */
 static int add_dev_to_list(struct iodev_list *list,
 			   struct cras_iodev *dev)
@@ -245,27 +224,17 @@ static struct cras_iodev *get_most_recently_plugged(struct cras_iodev *list)
  * Exported Functions.
  */
 
-/* Finds the current device for a stream of "type", if there isn't one fall
- * back to the default input or output device depending on "direction" */
+/* Finds the current device for a stream of "type", only default streams are
+ * currently supported so return the default device fot the given direction.
+ */
 struct cras_iodev *cras_get_iodev_for_stream_type(
 		enum CRAS_STREAM_TYPE type,
 		enum CRAS_STREAM_DIRECTION direction)
 {
-	struct cras_iodev *dev, *def;
-	struct iodev_list *list;
-
-	if (direction == CRAS_STREAM_OUTPUT) {
-		list = &outputs;
-		def = default_output;
-	} else {
-		list = &inputs;
-		def = default_input;
-	}
-
-	dev = get_curr_iodev_for_stream_type(list, type);
-	if (dev == NULL)
-		return def;
-	return dev;
+	if (direction == CRAS_STREAM_OUTPUT)
+		return default_output;
+	else
+		return default_input;
 }
 
 int cras_iodev_list_add_output(struct cras_iodev *output, int auto_route)
