@@ -11,6 +11,7 @@
 #include "cras_device_blacklist.h"
 #include "cras_card_config.h"
 #include "cras_config.h"
+#include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "utlist.h"
@@ -104,6 +105,10 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 	       direction == CRAS_STREAM_OUTPUT ? "playback" : "capture",
 	       info->card_index,
 	       device_index);
+
+	/* Set plugged for the first USB device per card when it appears. */
+	if (info->card_type == ALSA_CARD_TYPE_USB && first)
+		cras_iodev_plug_event(new_dev->iodev, 1);
 
 	DL_APPEND(alsa_card->iodevs, new_dev);
 }

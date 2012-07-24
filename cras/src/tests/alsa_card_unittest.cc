@@ -48,6 +48,8 @@ static size_t iniparser_load_called;
 static size_t fake_priority;
 static struct cras_device_blacklist *fake_blacklist;
 static int cras_device_blacklist_check_retval;
+static unsigned cras_iodev_plug_event_called;
+static unsigned cras_iodev_plug_event_plugged_value;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -75,6 +77,7 @@ static void ResetStubData() {
   fake_priority = 200;
   fake_blacklist = reinterpret_cast<struct cras_device_blacklist *>(3);
   cras_device_blacklist_check_retval = 0;
+  cras_iodev_plug_event_called = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -173,7 +176,7 @@ TEST(AlsaCard, CreateOneOutput) {
   snd_ctl_pcm_next_device_set_devs = dev_nums;
   snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
   snd_ctl_pcm_info_rets = info_rets;
-  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_type = ALSA_CARD_TYPE_USB;
   card_info.card_index = 0;
   card_info.priority = fake_priority;
   c = cras_alsa_card_create(&card_info, fake_blacklist);
@@ -182,6 +185,9 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, cras_alsa_iodev_create_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
+  // Should assume USB devs are plugged when they appear.
+  EXPECT_EQ(1, cras_iodev_plug_event_called);
+  EXPECT_EQ(1, cras_iodev_plug_event_plugged_value);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
@@ -249,6 +255,7 @@ TEST(AlsaCard, CreateTwoOutputs) {
   EXPECT_EQ(0, auto_route_vals[1]);
   EXPECT_EQ(fake_priority, priority_vals[0]);
   EXPECT_EQ(fake_priority - 1, priority_vals[1]);
+  EXPECT_EQ(0, cras_iodev_plug_event_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
@@ -462,6 +469,11 @@ int cras_device_blacklist_check(
   EXPECT_EQ(fake_blacklist, blacklist);
 
   return cras_device_blacklist_check_retval;
+}
+
+void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged) {
+  cras_iodev_plug_event_called++;
+  cras_iodev_plug_event_plugged_value = plugged;
 }
 
 } /* extern "C" */
