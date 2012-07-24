@@ -263,4 +263,5 @@ static inline int cras_iodev_plugged_more_recently(struct cras_iodev *a,
 		(a->plugged_time.tv_sec == b->plugged_time.tv_sec &&
 		 a->plugged_time.tv_usec > b->plugged_time.tv_usec));
 }
+
 #endif /* CRAS_IODEV_H_ */

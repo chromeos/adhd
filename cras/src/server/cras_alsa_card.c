@@ -21,6 +21,7 @@
 
 struct iodev_list_node {
 	struct cras_iodev *iodev;
+	enum CRAS_STREAM_DIRECTION direction;
 	struct iodev_list_node *prev, *next;
 };
 
@@ -39,54 +40,72 @@ struct cras_alsa_card {
 	struct cras_card_config *config;
 };
 
+/* Checks if there are any devices with direction already in the card.
+ */
+int is_first_dev(struct cras_alsa_card *alsa_card,
+		 enum CRAS_STREAM_DIRECTION direction)
+{
+	struct iodev_list_node *node;
+
+	DL_FOREACH(alsa_card->iodevs, node)
+		if (node->direction == direction)
+			return 0;
+	return 1;
+}
+
 /* Creates an iodev for the given device.
  * Args:
- *    card_index - 0 based index, value of "XX" in "hw:XX,YY".
+ *    alsa_card - the alsa_card the device will be added to.
+ *    info - Information about the card type and priority.
  *    card_name - The name of the card.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
- *    mixer - Controls the mixer controls for this card.
- *    auto_route - If true immediately switch to using this device.
- *    priority - Priority to give the device.
  *    direction - Input or output.
  */
-static struct iodev_list_node *create_iodev_for_device(
-		size_t card_index,
-		const char *card_name,
-		size_t device_index,
-		struct cras_alsa_mixer *mixer,
-		int auto_route,
-		size_t priority,
-		enum CRAS_STREAM_DIRECTION direction)
+void create_iodev_for_device(struct cras_alsa_card *alsa_card,
+			     struct cras_alsa_card_info *info,
+			     const char *card_name,
+			     unsigned device_index,
+			     enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list_node *new_dev;
+	unsigned priority = info->priority;
+	int first;
+
+	first = is_first_dev(alsa_card, direction);
 
 	/* Dropping the priority of non-auto routed devices ensures
 	 * that the auto-route devs are still selected first after the
 	 * list is re-sorted.  Without this the order of devices
 	 * within a card can't be determined when the list is
 	 * resorted. */
-	if (!auto_route && priority > 0)
+	if (!first && priority > 0)
 		priority--;
 
 	new_dev = calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL)
-		return NULL;
-	new_dev->iodev =
-		alsa_iodev_create(card_index,
-				  card_name,
-				  device_index,
-				  mixer,
-				  auto_route,
-				  priority,
-				  direction);
+		return;
+
+	new_dev->direction = direction;
+	new_dev->iodev = alsa_iodev_create(info->card_index,
+					   card_name,
+					   device_index,
+					   alsa_card->mixer,
+					   first, /* auto route to dev */
+					   priority,
+					   direction);
 	if (new_dev->iodev == NULL) {
-		syslog(LOG_ERR, "Couldn't create alsa_iodev for %zu:%zu\n",
-		       card_index, device_index);
+		syslog(LOG_ERR, "Couldn't create alsa_iodev for %u:%u\n",
+		       info->card_index, device_index);
 		free(new_dev);
-		return NULL;
+		return;
 	}
 
-	return new_dev;
+	syslog(LOG_DEBUG, "New %s device %u:%d",
+	       direction == CRAS_STREAM_OUTPUT ? "playback" : "capture",
+	       info->card_index,
+	       device_index);
+
+	DL_APPEND(alsa_card->iodevs, new_dev);
 }
 
 /* Check if a device should be ignored for this card. Returns non-zero if the
@@ -118,8 +137,6 @@ struct cras_alsa_card *cras_alsa_card_create(
 	const char *card_name;
 	snd_pcm_info_t *dev_info;
 	struct cras_alsa_card *alsa_card;
-	int first_playback = 1; /* True if it's the first playback dev. */
-	int first_capture = 1; /* True if it's the first capture dev. */
 
 	if (info->card_index >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR,
@@ -184,47 +201,22 @@ struct cras_alsa_card *cras_alsa_card_create(
 
 		/* Check for playback devices. */
 		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
-		rc = snd_ctl_pcm_info(handle, dev_info);
-		if (rc == 0 && !should_ignore_dev(info, blacklist, dev_idx)) {
-			struct iodev_list_node *new_dev;
-
-			new_dev = create_iodev_for_device(
-					info->card_index,
-					card_name,
-					dev_idx,
-					alsa_card->mixer,
-					first_playback, /*auto-route*/
-					info->priority,
-					CRAS_STREAM_OUTPUT);
-			if (new_dev != NULL) {
-				syslog(LOG_DEBUG, "New playback device %u:%d",
-				       info->card_index, dev_idx);
-				DL_APPEND(alsa_card->iodevs, new_dev);
-				first_playback = 0;
-			}
-		}
+		if (snd_ctl_pcm_info(handle, dev_info) == 0 &&
+		    !should_ignore_dev(info, blacklist, dev_idx))
+			create_iodev_for_device(alsa_card,
+						info,
+						card_name,
+						dev_idx,
+						CRAS_STREAM_OUTPUT);
 
 		/* Check for capture devices. */
 		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_CAPTURE);
-		rc = snd_ctl_pcm_info(handle, dev_info);
-		if (rc == 0) {
-			struct iodev_list_node *new_dev;
-
-			new_dev = create_iodev_for_device(
-					info->card_index,
-					card_name,
-					dev_idx,
-					alsa_card->mixer,
-					first_capture,
-					info->priority,
-					CRAS_STREAM_INPUT);
-			if (new_dev != NULL) {
-				syslog(LOG_DEBUG, "New capture device %u:%d",
-				       info->card_index, dev_idx);
-				DL_APPEND(alsa_card->iodevs, new_dev);
-				first_capture = 0;
-			}
-		}
+		if (snd_ctl_pcm_info(handle, dev_info) == 0)
+			create_iodev_for_device(alsa_card,
+						info,
+						card_name,
+						dev_idx,
+						CRAS_STREAM_INPUT);
 	}
 
 	snd_ctl_close(handle);
