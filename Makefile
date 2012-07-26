@@ -25,7 +25,15 @@ $(DESTDIR)/etc/init/cras.conf:	$(ADHD_DIR)/upstart/cras.conf
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
 
-$(DESTDIR)/etc/asound.state:	$(ADHD_DIR)/factory-default/asound.state.$(BOARD)
+optional_asound_state := $(wildcard $(ADHD_DIR)/factory-default/asound.state.$(BOARD))
+
+ifneq ($(strip $(optional_asound_state)),)
+asound_state := $(ADHD_DIR)/factory-default/asound.state.$(BOARD)
+else
+asound_state := $(ADHD_DIR)/factory-default/asound.state.empty
+endif
+
+$(DESTDIR)/etc/asound.state: $(asound_state)
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
 
