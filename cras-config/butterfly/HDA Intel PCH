@@ -102,7 +102,6 @@
   db_at_1 = -4500
   db_at_0 = -4800
 [Headphone]
-  ; Headphones allowed full range, 0.48dB per step, 48dB total range.
   volume_curve = simple_step
   volume_step = 48
   max_volume = 0
