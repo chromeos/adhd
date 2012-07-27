@@ -18,6 +18,7 @@
  *  direction - input or output.
  *  areas - ALSA areas used to read from/write to.
  *  client - CRAS client object.
+ *  pcm_boundary - Value where the hw and appl pointers will wrap.
  */
 struct snd_pcm_cras {
 	snd_pcm_ioplug_t io;
@@ -29,6 +30,7 @@ struct snd_pcm_cras {
 	enum CRAS_STREAM_DIRECTION direction;
 	snd_pcm_channel_area_t *areas;
 	struct cras_client *client;
+	snd_pcm_uframes_t pcm_boundary;
 };
 
 /* Frees all resources allocated during use. */
@@ -202,6 +204,29 @@ static int snd_pcm_cras_prepare(snd_pcm_ioplug_t *io)
 	return cras_client_connect(pcm_cras->client);
 }
 
+/* Get the pcm boundary value. */
+static int get_boundary(snd_pcm_t *pcm, snd_pcm_uframes_t *boundary)
+{
+	snd_pcm_sw_params_t *sw_params;
+	int rc;
+
+	snd_pcm_sw_params_alloca(&sw_params);
+
+	rc = snd_pcm_sw_params_current(pcm, sw_params);
+	if (rc < 0) {
+		fprintf(stderr, "sw_params_current: %s\n", snd_strerror(rc));
+		return rc;
+	}
+
+	rc = snd_pcm_sw_params_get_boundary(sw_params, boundary);
+	if (rc < 0) {
+		fprintf(stderr, "get_boundary: %s\n", snd_strerror(rc));
+		return rc;
+	}
+
+	return 0;
+}
+
 /* Called when an ALSA stream is started. */
 static int snd_pcm_cras_start(snd_pcm_ioplug_t *io)
 {
@@ -209,6 +234,10 @@ static int snd_pcm_cras_start(snd_pcm_ioplug_t *io)
 	struct cras_stream_params *params;
 	struct cras_audio_format *audio_format;
 	int rc;
+
+	rc = get_boundary(io->pcm, &pcm_cras->pcm_boundary);
+	if (rc < 0)
+		return rc;
 
 	audio_format = cras_audio_format_create(io->format, io->rate,
 						io->channels);
@@ -251,8 +280,29 @@ error_out:
 	return rc;
 }
 
+static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
+{
+	struct snd_pcm_cras *pcm_cras = io->private_data;
+	const snd_pcm_sframes_t limit = pcm_cras->pcm_boundary;
+
+	/* For playback, the latency in frames is the amount the software write
+	 * pointer is ahead of the hw read pointer.  For capture samples are
+	 * written to hw_ptr and read from appl_ptr by the app.
+	 */
+	if (io->stream == SND_PCM_STREAM_PLAYBACK)
+		*delayp = limit + io->appl_ptr - io->hw_ptr;
+	else
+		*delayp = limit + io->hw_ptr - io->appl_ptr;
+
+	/* Both appl and hw pointers wrap at the pcm boundary. */
+	*delayp %= limit;
+
+	return 0;
+}
+
 static snd_pcm_ioplug_callback_t cras_pcm_callback = {
 	.close = snd_pcm_cras_close,
+	.delay = snd_pcm_cras_delay,
 	.start = snd_pcm_cras_start,
 	.stop = snd_pcm_cras_stop,
 	.pointer = snd_pcm_cras_pointer,
