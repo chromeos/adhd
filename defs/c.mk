@@ -103,8 +103,6 @@ CWARN	=					\
 	-Wwrite-strings				\
 	-pedantic-errors
 
-BOARD_INCLUDE	= -DADHD_BOARD_INCLUDE='"board-$(BOARD).h"'
-
 INCLUDES	=				\
 		-I$(ADHD_DIR)/include		\
 		-I$(ADHD_SOURCE_DIR)		\
@@ -116,6 +114,4 @@ CFLAGS		=				\
 	-MD 					\
 	$(INCLUDES)				\
 	$(PTHREADS)				\
-	$(BOARD_INCLUDE)			\
-	-DBOARD='"$(BOARD)"'			\
 	$(CWARN) $(COPTIONS) $(CGC) $(LDGC)
