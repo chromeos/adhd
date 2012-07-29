@@ -518,8 +518,10 @@ static void *audio_thread(void *arg)
 	if (arg == NULL)
 		return (void *)-EIO;
 
-	if (cras_set_rt_scheduling(CRAS_CLIENT_RT_THREAD_PRIORITY) == 0)
-		cras_set_thread_priority(CRAS_CLIENT_RT_THREAD_PRIORITY);
+	/* Try to get RT scheduling, if that fails try to set the nice value. */
+	if (cras_set_rt_scheduling(CRAS_CLIENT_RT_THREAD_PRIORITY) ||
+	    cras_set_thread_priority(CRAS_CLIENT_RT_THREAD_PRIORITY))
+		cras_set_nice_level(CRAS_CLIENT_NICENESS_LEVEL);
 
 	syslog(LOG_DEBUG, "accept on socket");
 	stream->aud_fd = accept(stream->connection_fd,

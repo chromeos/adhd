@@ -24,6 +24,9 @@
 int cras_set_rt_scheduling(int rt_lim);
 /* Sets the priority. */
 int cras_set_thread_priority(int priority);
+/* Sets the niceness level of the current thread. */
+int cras_set_nice_level(int nice);
+
 /* Connects to the socket opened by the client for audio messages. One of these
  * is created per stream.  It is only used for high-priority, low-latency audio
  * messages (Get/Put samples). */

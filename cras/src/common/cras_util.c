@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -46,6 +47,21 @@ int cras_set_thread_priority(int priority)
 		syslog(LOG_ERR, "Set sched params for thread\n");
 
 	return err;
+}
+
+int cras_set_nice_level(int nice)
+{
+	int rc;
+
+	/* Linux isn't posix compliant with setpriority(2), it will set a thread
+	 * priority if it is passed a tid, not affecting the rest of the threads
+	 * in the process.  Setting this priority will only succeed if the user
+	 * has been granted permission to adjust nice values on the system.
+	 */
+	rc = setpriority(PRIO_PROCESS, syscall(__NR_gettid), nice);
+	syslog(LOG_DEBUG, "Set nice to %d %s.", nice, rc ? "Fail" : "Success");
+
+	return rc;
 }
 
 int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
