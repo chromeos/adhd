@@ -581,9 +581,10 @@ class AlsaCaptureStreamSuite : public testing::Test {
 
       shm_ = (struct cras_audio_shm_area *)calloc(1,
           sizeof(*shm_) + aio_->base.cb_threshold * 8);
-      cras_shm_set_frame_bytes(shm_, 4);
-      shm_->used_size = aio_->base.cb_threshold * 4; // channels * bytes/sample
-      shm_->size = shm_->used_size * 2;
+      cras_shm_set_frame_bytes(shm_, 4); // channels * bytes/sample
+      cras_shm_set_used_size(
+          shm_, aio_->base.cb_threshold * cras_shm_frame_bytes(shm_));
+      shm_->size = cras_shm_used_size(shm_) * 2;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
       rstream_->shm = shm_;
@@ -591,7 +592,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
 
       cras_iodev_append_stream(&aio_->base, rstream_);
 
-      cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(shm_->used_size);
+      cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(cras_shm_used_size(shm_));
       cras_alsa_mmap_begin_frames = aio_->base.cb_threshold;
 
       ResetStubData();
@@ -734,7 +735,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteTwoBuffers) {
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i],
-        shm_->samples[i + shm_->used_size]);
+        shm_->samples[i + cras_shm_used_size(shm_)]);
 }
 
 TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
@@ -759,7 +760,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < aio_->base.cb_threshold; i++)
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i],
-        shm_->samples[i + shm_->used_size]);
+        shm_->samples[i + cras_shm_used_size(shm_)]);
 
   cras_rstream_audio_ready_count = 999;
   rc = possibly_read_audio(aio_, &ts);
@@ -791,7 +792,7 @@ class AlsaPlaybackStreamSuite : public testing::Test {
 
       cras_iodev_append_stream(&aio_->base, rstream_);
 
-      cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(shm_->used_size);
+      cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(cras_shm_used_size(shm_));
       cras_alsa_mmap_begin_frames =
           aio_->base.used_size - aio_->base.cb_threshold;
 
@@ -810,7 +811,8 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       *shm = (struct cras_audio_shm_area *)calloc(1,
           sizeof(**shm) + aio_->base.used_size * 8);
       cras_shm_set_frame_bytes(*shm, 4);
-      (*shm)->used_size = aio_->base.used_size * 4; //  channels * bytes/sample
+      cras_shm_set_used_size(
+          *shm, aio_->base.used_size * cras_shm_frame_bytes(*shm));
       (*shm)->size = (*shm)->used_size * 2;
     }
 
@@ -872,7 +874,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
       1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
-  shm_->write_offset[0] = shm_->used_size;
+  shm_->write_offset[0] = cras_shm_used_size(shm_);
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
@@ -899,7 +901,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
       aio_->base.buffer_size - aio_->base.cb_threshold;
 
   //  shm has plenty of data in it.
-  shm_->write_offset[0] = shm_->used_size;
+  shm_->write_offset[0] = cras_shm_used_size(shm_);
 
   //  Test that nothing breaks if there is an empty stream.
   cras_mix_add_stream_dont_fill_next = 1;
@@ -914,7 +916,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
   EXPECT_EQ(-1, select_max_fd);
   EXPECT_EQ(0, shm_->read_offset[0]);
   EXPECT_EQ(0, shm_->read_offset[1]);
-  EXPECT_EQ(shm_->used_size, shm_->write_offset[0]);
+  EXPECT_EQ(cras_shm_used_size(shm_), shm_->write_offset[0]);
   EXPECT_EQ(0, shm_->write_offset[1]);
 }
 
@@ -964,8 +966,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
       1000000000 / fmt_.frame_rate;
 
   //  shm has plenty of data in it.
-  shm_->write_offset[0] = shm_->used_size;
-  shm2_->write_offset[0] = shm2_->used_size;
+  shm_->write_offset[0] = cras_shm_used_size(shm_);
+  shm2_->write_offset[0] = cras_shm_used_size(shm2_);
 
   cras_iodev_append_stream(&aio_->base, rstream2_);
 
@@ -992,8 +994,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   written_expected = (aio_->base.used_size - aio_->base.cb_threshold);
 
   //  shm has plenty of data in it.
-  shm_->write_offset[0] = shm_->used_size;
-  shm2_->write_offset[0] = shm2_->used_size;
+  shm_->write_offset[0] = cras_shm_used_size(shm_);
+  shm2_->write_offset[0] = cras_shm_used_size(shm2_);
 
   cras_iodev_append_stream(&aio_->base, rstream2_);
 
@@ -1056,7 +1058,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
   //  One has too little the other is full.
   shm_->write_offset[0] = 40;
   shm_->write_buf_idx = 1;
-  shm2_->write_offset[0] = shm2_->used_size;
+  shm2_->write_offset[0] = cras_shm_used_size(shm2_);
   shm2_->write_buf_idx = 1;
 
   cras_iodev_append_stream(&aio_->base, rstream2_);

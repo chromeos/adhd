@@ -48,7 +48,7 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	memset(stream->shm, 0, total_size);
 	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
 	stream->shm->size = samples_size;
-	stream->shm->used_size = used_size;
+	cras_shm_set_used_size(stream->shm, used_size);
 	stream->shm->volume_scaler = 1.0;
 	return 0;
 }

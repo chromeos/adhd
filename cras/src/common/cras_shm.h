@@ -267,4 +267,26 @@ int cras_shm_callback_pending(const struct cras_audio_shm_area *shm)
 	return shm->callback_pending;
 }
 
+/* Sets the used_size of the shm region.  This is the maximum number of bytes
+ * that is exchanged each time a buffer is passed from client to server.
+ */
+static inline
+void cras_shm_set_used_size(struct cras_audio_shm_area *shm, unsigned used_size)
+{
+	shm->used_size = used_size;
+}
+
+/* Returns the used size of the shm region in bytes. */
+static inline unsigned cras_shm_used_size(const struct cras_audio_shm_area *shm)
+{
+	return shm->used_size;
+}
+
+/* Returns the used size of the shm region in frames. */
+static inline
+unsigned cras_shm_used_frames(const struct cras_audio_shm_area *shm)
+{
+	return shm->used_size / shm->frame_bytes;
+}
+
 #endif /* CRAS_SHM_H_ */
