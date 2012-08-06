@@ -29,7 +29,7 @@ class MixTestSuite : public testing::Test{
 
       shm_ = (struct cras_audio_shm_area *)calloc(1,
           sizeof(struct cras_audio_shm_area) + kBufferFrames * 4);
-      shm_->frame_bytes = 4;
+      cras_shm_set_frame_bytes(shm_, 4);
 
       buf = (int16_t *)shm_->samples;
       for (size_t i = 0; i < kBufferFrames * 2; i++) {

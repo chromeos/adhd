@@ -650,9 +650,9 @@ static int config_format_converter(struct client_stream *stream,
 	struct cras_audio_format *sfmt = &stream->config->format;
 
 	if (memcmp(sfmt, hwfmt, sizeof(*hwfmt)) != 0) {
-		size_t max_frames =
-			max(stream->shm->used_size / stream->shm->frame_bytes,
-			    stream->config->buffer_frames);
+		size_t max_frames = max(stream->shm->used_size /
+					cras_shm_frame_bytes(stream->shm),
+					stream->config->buffer_frames);
 
 		syslog(LOG_DEBUG,
 		       "format convert %s: stream:%d %zu %zu hw: %d %zu %zu "

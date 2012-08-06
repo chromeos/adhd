@@ -581,7 +581,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
 
       shm_ = (struct cras_audio_shm_area *)calloc(1,
           sizeof(*shm_) + aio_->base.cb_threshold * 8);
-      shm_->frame_bytes = 4;
+      cras_shm_set_frame_bytes(shm_, 4);
       shm_->used_size = aio_->base.cb_threshold * 4; // channels * bytes/sample
       shm_->size = shm_->used_size * 2;
 
@@ -809,7 +809,7 @@ class AlsaPlaybackStreamSuite : public testing::Test {
     void SetupShm(struct cras_audio_shm_area **shm) {
       *shm = (struct cras_audio_shm_area *)calloc(1,
           sizeof(**shm) + aio_->base.used_size * 8);
-      (*shm)->frame_bytes = 4;
+      cras_shm_set_frame_bytes(*shm, 4);
       (*shm)->used_size = aio_->base.used_size * 4; //  channels * bytes/sample
       (*shm)->size = (*shm)->used_size * 2;
     }

@@ -239,4 +239,32 @@ static inline size_t cras_shm_get_mute(struct cras_audio_shm_area *shm)
 	return shm->mute;
 }
 
+/* Sets the size of a frame in bytes. */
+static inline void cras_shm_set_frame_bytes(struct cras_audio_shm_area *shm,
+					    unsigned frame_bytes)
+{
+	shm->frame_bytes = frame_bytes;
+}
+
+/* Returns the size of a frame in bytes. */
+static inline
+unsigned cras_shm_frame_bytes(const struct cras_audio_shm_area *shm)
+{
+	return shm->frame_bytes;
+}
+
+/* Sets if a callback is pending with the client. */
+static inline
+void cras_shm_set_callback_pending(struct cras_audio_shm_area *shm, int pending)
+{
+	shm->callback_pending = !!pending;
+}
+
+/* Returns non-zero if a callback is pending for this shm region. */
+static inline
+int cras_shm_callback_pending(const struct cras_audio_shm_area *shm)
+{
+	return shm->callback_pending;
+}
+
 #endif /* CRAS_SHM_H_ */

@@ -134,7 +134,7 @@ static void fill_capture(struct cras_iodev *iodev, struct timespec *ts)
 
 	dst = cras_shm_get_curr_write_buffer(iodev->streams->shm);
 	count = iodev->cb_threshold;
-	memset(dst, 0, count * iodev->streams->shm->frame_bytes);
+	memset(dst, 0, count * cras_shm_frame_bytes(iodev->streams->shm));
 	cras_shm_check_write_overrun(iodev->streams->shm);
 	cras_shm_buffer_written(iodev->streams->shm, count);
 	cras_shm_buffer_write_complete(iodev->streams->shm);
@@ -167,7 +167,7 @@ static void flush_old_aud_messages(struct cras_audio_shm_area *shm, int fd)
 		err = pselect(fd + 1, &poll_set, NULL, NULL, &ts, NULL);
 		if (err > 0 && FD_ISSET(fd, &poll_set)) {
 			err = read(fd, &msg, sizeof(msg));
-			shm->callback_pending = 0;
+			cras_shm_set_callback_pending(shm, 0);
 		}
 	} while (err > 0);
 }
@@ -194,7 +194,7 @@ static int fetch_and_set_timestamp(struct cras_iodev *iodev, size_t fetch_size)
 	fr_rate = iodev->format->frame_rate;
 
 	DL_FOREACH_SAFE(iodev->streams, curr, tmp) {
-		if (curr->shm->callback_pending)
+		if (cras_shm_callback_pending(curr->shm))
 			flush_old_aud_messages(curr->shm, curr->fd);
 
 		frames_in_buff = cras_shm_get_frames(curr->shm);
@@ -207,7 +207,7 @@ static int fetch_and_set_timestamp(struct cras_iodev *iodev, size_t fetch_size)
 		if (frames_in_buff >= fetch_size)
 			continue;
 
-		if (!curr->shm->callback_pending &&
+		if (!cras_shm_callback_pending(curr->shm) &&
 		    cras_shm_is_buffer_available(curr->shm)) {
 			rc = cras_rstream_request_audio(curr->stream,
 							fetch_size);
@@ -219,7 +219,7 @@ static int fetch_and_set_timestamp(struct cras_iodev *iodev, size_t fetch_size)
 					return -EIO;
 				continue;
 			}
-			curr->shm->callback_pending = 1;
+			cras_shm_set_callback_pending(curr->shm, 1);
 		}
 	}
 
@@ -257,7 +257,7 @@ static void dump_playback(struct cras_iodev *iodev, struct timespec *ts)
 	DL_FOREACH(iodev->streams, curr) {
 		curr->mixed = 0;
 		if (cras_shm_get_frames(curr->shm) < write_limit &&
-		    curr->shm->callback_pending) {
+		    cras_shm_callback_pending(curr->shm)) {
 			/* Not enough to mix this call, wait for a response. */
 			streams_wait++;
 			FD_SET(curr->fd, &poll_set);
@@ -279,7 +279,7 @@ static void dump_playback(struct cras_iodev *iodev, struct timespec *ts)
 		if (rc <= 0) {
 			/* Timeout */
 			DL_FOREACH(iodev->streams, curr) {
-				if (curr->shm->callback_pending &&
+				if (cras_shm_callback_pending(curr->shm) &&
 				    FD_ISSET(curr->fd, &poll_set))
 					curr->shm->num_cb_timeouts++;
 			}
@@ -291,7 +291,7 @@ static void dump_playback(struct cras_iodev *iodev, struct timespec *ts)
 
 			FD_CLR(curr->fd, &poll_set);
 			streams_wait--;
-			curr->shm->callback_pending = 0;
+			cras_shm_set_callback_pending(curr->shm, 0);
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
 				thread_remove_stream(iodev, curr->stream);

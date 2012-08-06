@@ -355,7 +355,7 @@ static void flush_old_aud_messages(struct cras_audio_shm_area *shm, int fd)
 		err = pselect(fd + 1, &poll_set, NULL, NULL, &ts, NULL);
 		if (err > 0 && FD_ISSET(fd, &poll_set)) {
 			err = read(fd, &msg, sizeof(msg));
-			shm->callback_pending = 0;
+			cras_shm_set_callback_pending(shm, 0);
 		}
 	} while (err > 0);
 }
@@ -379,7 +379,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 	fr_rate = aio->base.format->frame_rate;
 
 	DL_FOREACH_SAFE(aio->base.streams, curr, tmp) {
-		if (curr->shm->callback_pending)
+		if (cras_shm_callback_pending(curr->shm))
 			flush_old_aud_messages(curr->shm, curr->fd);
 
 		frames_in_buff = cras_shm_get_frames(curr->shm);
@@ -392,7 +392,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 		if (frames_in_buff >= fetch_size)
 			continue;
 
-		if (!curr->shm->callback_pending &&
+		if (!cras_shm_callback_pending(curr->shm) &&
 		    cras_shm_is_buffer_available(curr->shm)) {
 			rc = cras_rstream_request_audio(curr->stream,
 							fetch_size);
@@ -404,7 +404,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 					return -EIO;
 				continue;
 			}
-			curr->shm->callback_pending = 1;
+			cras_shm_set_callback_pending(curr->shm, 1);
 		}
 	}
 
@@ -452,7 +452,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 	DL_FOREACH(aio->base.streams, curr) {
 		curr->mixed = 0;
 		if (cras_shm_get_frames(curr->shm) < write_limit &&
-		    curr->shm->callback_pending) {
+		    cras_shm_callback_pending(curr->shm)) {
 			/* Not enough to mix this call, wait for a response. */
 			streams_wait++;
 			FD_SET(curr->fd, &poll_set);
@@ -473,7 +473,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 		if (rc <= 0) {
 			/* Timeout */
 			DL_FOREACH(aio->base.streams, curr) {
-				if (curr->shm->callback_pending &&
+				if (cras_shm_callback_pending(curr->shm) &&
 				    FD_ISSET(curr->fd, &poll_set))
 					curr->shm->num_cb_timeouts++;
 			}
@@ -485,7 +485,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 
 			FD_CLR(curr->fd, &poll_set);
 			streams_wait--;
-			curr->shm->callback_pending = 0;
+			cras_shm_set_callback_pending(curr->shm, 0);
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
 				thread_remove_stream(aio, curr->stream);
@@ -521,7 +521,7 @@ static int get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
 	int rc;
 
 	DL_FOREACH_SAFE(aio->base.streams, curr, tmp) {
-		if (curr->shm->callback_pending)
+		if (cras_shm_callback_pending(curr->shm))
 			continue;
 
 		frames = cras_shm_get_frames(curr->shm) + alsa_used;
@@ -536,7 +536,7 @@ static int get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
 				if (!cras_iodev_streams_attached(&aio->base))
 					return -EIO;
 			} else
-				curr->shm->callback_pending = 1;
+				cras_shm_set_callback_pending(curr->shm, 1);
 		}
 	}
 
@@ -691,7 +691,7 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 					 &shm->ts);
 
 	dst = cras_shm_get_curr_write_buffer(shm);
-	memcpy(dst, src, count * shm->frame_bytes);
+	memcpy(dst, src, count * cras_shm_frame_bytes(shm));
 	cras_shm_buffer_written(shm, count);
 	if (shm->write_offset == shm->read_offset)
 		shm->num_overruns++;
