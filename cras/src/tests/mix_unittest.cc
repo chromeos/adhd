@@ -27,18 +27,20 @@ class MixTestSuite : public testing::Test{
       mix_buffer_ = (int16_t *)malloc(kBufferFrames * 4);
       mix_index_ = 0;
 
-      shm_ = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(struct cras_audio_shm_area) + kBufferFrames * 4);
-      cras_shm_set_frame_bytes(shm_, 4);
+      shm_.area = static_cast<struct cras_audio_shm_area *>(
+          calloc(1, kBufferFrames * 4 + sizeof(cras_audio_shm_area)));
+      cras_shm_set_frame_bytes(&shm_, 4);
+      cras_shm_set_used_size(&shm_,
+                             kBufferFrames * cras_shm_frame_bytes(&shm_));
 
-      buf = (int16_t *)shm_->samples;
+      buf = (int16_t *)shm_.area->samples;
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         buf[i] = i;
         mix_buffer_[i] = -i;
       }
-      shm_->write_offset[0] = kBufferFrames * 4;
-      shm_->mute = 0;
-      shm_->volume_scaler = 1.0;
+      shm_.area->write_offset[0] = kBufferFrames * 4;
+      cras_shm_set_mute(&shm_, 0);
+      cras_shm_set_volume_scaler(&shm_, 1.0);
 
       compare_buffer_ = (int16_t *)malloc(kBufferFrames * 4);
     }
@@ -46,30 +48,30 @@ class MixTestSuite : public testing::Test{
     virtual void TearDown() {
       free(mix_buffer_);
       free(compare_buffer_);
-      free(shm_);
+      free(shm_.area);
     }
 
   int16_t *mix_buffer_;
   size_t mix_index_;
   int16_t *compare_buffer_;
-  struct cras_audio_shm_area *shm_;
+  struct cras_audio_shm shm_;
 };
 
 TEST_F(MixTestSuite, MixFirst) {
   size_t count = kBufferFrames;
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
-  EXPECT_EQ(0, memcmp(mix_buffer_, shm_->samples, kBufferFrames*4));
+  EXPECT_EQ(0, memcmp(mix_buffer_, shm_.area->samples, kBufferFrames*4));
 }
 
 TEST_F(MixTestSuite, MixFirstSystemMuted) {
   size_t count = kBufferFrames;
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
   memset(compare_buffer_, 0, kBufferFrames * 4);
@@ -82,13 +84,13 @@ TEST_F(MixTestSuite, MixTwo) {
 
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 
-  buf = (int16_t *)shm_->samples;
+  buf = (int16_t *)shm_.area->samples;
   for (size_t i = 0; i < kBufferFrames * 2; i++)
     compare_buffer_[i] = buf[i] * 2;
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames*4));
@@ -99,9 +101,9 @@ TEST_F(MixTestSuite, MixTwoSystemMuted) {
 
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 
@@ -112,10 +114,10 @@ TEST_F(MixTestSuite, MixTwoSystemMuted) {
 TEST_F(MixTestSuite, MixFirstMuted) {
   size_t count = kBufferFrames;
 
-  shm_->mute = 1;
+  shm_.area->mute = 1;
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -127,10 +129,10 @@ TEST_F(MixTestSuite, MixFirstMuted) {
 TEST_F(MixTestSuite, MixFirstMutedSystemMuted) {
   size_t count = kBufferFrames;
 
-  shm_->mute = 1;
+  shm_.area->mute = 1;
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -141,10 +143,10 @@ TEST_F(MixTestSuite, MixFirstMutedSystemMuted) {
 TEST_F(MixTestSuite, MixFirstZeroVolume) {
   size_t count = kBufferFrames;
 
-  shm_->volume_scaler = 0.0;
+  cras_shm_set_volume_scaler(&shm_, 0.0);
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -157,14 +159,14 @@ TEST_F(MixTestSuite, MixFirstHalfVolume) {
   size_t count = kBufferFrames;
   int16_t *buf;
 
-  shm_->volume_scaler = 0.5;
+  cras_shm_set_volume_scaler(&shm_, 0.5);
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
-  buf = (int16_t *)shm_->samples;
+  buf = (int16_t *)shm_.area->samples;
   for (size_t i = 0; i < kBufferFrames * 2; i++)
     compare_buffer_[i] = buf[i] * 0.5;
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames*4));
@@ -174,19 +176,19 @@ TEST_F(MixTestSuite, MixTwoSecondHalfVolume) {
   size_t count = kBufferFrames;
   int16_t *buf;
 
-  shm_->volume_scaler = 1.0;
+  cras_shm_set_volume_scaler(&shm_, 1.0);
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
-  shm_->volume_scaler = 0.5;
+  cras_shm_set_volume_scaler(&shm_, 0.5);
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 
-  buf = (int16_t *)shm_->samples;
+  buf = (int16_t *)shm_.area->samples;
   for (size_t i = 0; i < kBufferFrames * 2; i++)
     compare_buffer_[i] = buf[i] + (int16_t)(buf[i] * 0.5);
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames*4));
@@ -195,15 +197,15 @@ TEST_F(MixTestSuite, MixTwoSecondHalfVolume) {
 TEST_F(MixTestSuite, MixTwoSecondHalfVolumeSystemMuted) {
   size_t count = kBufferFrames;
 
-  shm_->volume_scaler = 1.0;
+  cras_shm_set_volume_scaler(&shm_, 1.0);
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
-  shm_->volume_scaler = 0.5;
+  cras_shm_set_volume_scaler(&shm_, 0.5);
   cras_mix_add_stream(
-      shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 

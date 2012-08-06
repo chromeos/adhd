@@ -20,8 +20,9 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	size_t used_size, samples_size, total_size, frame_bytes;
 	int loops = 0;
 	const struct cras_audio_format *fmt = &stream->format;
+	struct cras_audio_shm *shm;
 
-	if (stream->shm != NULL) /* already setup */
+	if (stream->shm.area != NULL) /* already setup */
 		return -EEXIST;
 
 	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
@@ -42,13 +43,17 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	}
 
 	/* Attach to shm and clear it. */
-	stream->shm = shmat(stream->shm_id, NULL, 0);
-	if (stream->shm == (void *) -1)
+	shm = &stream->shm;
+	shm->area = shmat(stream->shm_id, NULL, 0);
+	if (shm->area == (void *)-1)
 		return -ENOMEM;
-	memset(stream->shm, 0, total_size);
-	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
-	cras_shm_set_used_size(stream->shm, used_size);
-	stream->shm->volume_scaler = 1.0;
+	memset(shm->area, 0, total_size);
+	cras_shm_set_volume_scaler(&stream->shm, 1.0);
+	/* Set up config and copy to shared area. */
+	cras_shm_set_frame_bytes(shm, frame_bytes);
+	shm->config.frame_bytes = frame_bytes;
+	cras_shm_set_used_size(&stream->shm, used_size);
+	memcpy(&shm->area->config, &shm->config, sizeof(shm->config));
 	return 0;
 }
 
@@ -132,7 +137,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->min_cb_level = min_cb_level;
 	stream->flags = flags;
 	stream->client = client;
-	stream->shm = NULL;
+	stream->shm.area = NULL;
 
 	rc = cras_rstream_setup_shm(stream);
 	if (rc < 0) {
@@ -143,16 +148,16 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu, used_size %u",
 	       stream_id, buffer_frames, cb_threshold,
-	       cras_shm_used_size(stream->shm));
+	       cras_shm_used_size(&stream->shm));
 	*stream_out = stream;
 	return 0;
 }
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
-	if (stream->shm != NULL) {
-		shmdt(stream->shm);
-		shmctl(stream->shm_id, IPC_RMID, (void *)stream->shm);
+	if (stream->shm.area != NULL) {
+		shmdt(stream->shm.area);
+		shmctl(stream->shm_id, IPC_RMID, (void *)stream->shm.area);
 	}
 	free(stream);
 }

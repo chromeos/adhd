@@ -342,7 +342,7 @@ static int thread_add_stream(struct alsa_io *aio,
 }
 
 /* Reads any pending audio message from the socket. */
-static void flush_old_aud_messages(struct cras_audio_shm_area *shm, int fd)
+static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 {
 	struct audio_message msg;
 	struct timespec ts = {0, 0};
@@ -386,7 +386,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 
 		cras_iodev_set_playback_timestamp(fr_rate,
 						  frames_in_buff + alsa_delay,
-						  &curr->shm->ts);
+						  &curr->shm->area->ts);
 
 		/* If we already have enough data, don't poll this stream. */
 		if (frames_in_buff >= fetch_size)
@@ -668,7 +668,7 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 				      snd_pcm_uframes_t count)
 {
 	struct cras_io_stream *streams, *curr;
-	struct cras_audio_shm_area *shm;
+	struct cras_audio_shm *shm;
 	snd_pcm_sframes_t delay;
 	uint8_t *dst;
 	int rc;
@@ -688,7 +688,7 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 
 	cras_iodev_set_capture_timestamp(aio->base.format->frame_rate,
 					 delay,
-					 &shm->ts);
+					 &shm->area->ts);
 
 	dst = cras_shm_get_curr_write_buffer(shm);
 	memcpy(dst, src, count * cras_shm_frame_bytes(shm));
@@ -814,7 +814,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 	}
 	case CRAS_IODEV_RM_STREAM: {
 		struct cras_iodev_add_rm_stream_msg *rmsg;
-		const struct cras_audio_shm_area *shm;
+		const struct cras_audio_shm *shm;
 
 		rmsg = (struct cras_iodev_add_rm_stream_msg *)msg;
 		shm = cras_rstream_get_shm(rmsg->stream);

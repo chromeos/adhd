@@ -95,7 +95,8 @@ TEST_F(RstreamTestSuite, InvalidStreamPointer) {
 TEST_F(RstreamTestSuite, Create) {
   struct cras_rstream *s;
   struct cras_audio_format fmt_ret;
-  struct cras_audio_shm_area *shm_ret, *shm_mapped;
+  struct cras_audio_shm *shm_ret;
+  struct cras_audio_shm shm_mapped;
   int rc, key_ret, shmid;
   size_t shm_size;
 
@@ -129,10 +130,11 @@ TEST_F(RstreamTestSuite, Create) {
   EXPECT_GT(shm_size, 4096);
   shmid = shmget(key_ret, shm_size, 0600);
   EXPECT_GE(shmid, 0);
-  shm_mapped = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
-  EXPECT_NE((void *)NULL, shm_mapped);
-  EXPECT_EQ(cras_shm_used_size(shm_mapped), cras_shm_used_size(shm_ret));
-  shmdt(shm_mapped);
+  shm_mapped.area = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
+  EXPECT_NE((void *)NULL, shm_mapped.area);
+  cras_shm_copy_shared_config(&shm_mapped);
+  EXPECT_EQ(cras_shm_used_size(&shm_mapped), cras_shm_used_size(shm_ret));
+  shmdt(shm_mapped.area);
 
   cras_rstream_destroy(s);
 }

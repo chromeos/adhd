@@ -141,7 +141,7 @@ static void fill_capture(struct cras_iodev *iodev, struct timespec *ts)
 
 	cras_iodev_set_capture_timestamp(iodev->format->frame_rate,
 					 count,
-					 &iodev->streams->shm->ts);
+					 &iodev->streams->shm->area->ts);
 
 	rc = cras_rstream_audio_ready(iodev->streams->stream, count);
 	if (rc < 0) {
@@ -154,7 +154,7 @@ static void fill_capture(struct cras_iodev *iodev, struct timespec *ts)
 }
 
 /* Reads any pending audio message from the socket and throws them away. */
-static void flush_old_aud_messages(struct cras_audio_shm_area *shm, int fd)
+static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 {
 	struct audio_message msg;
 	struct timespec ts = {0, 0};
@@ -201,7 +201,7 @@ static int fetch_and_set_timestamp(struct cras_iodev *iodev, size_t fetch_size)
 
 		cras_iodev_set_playback_timestamp(fr_rate,
 						  frames_in_buff,
-						  &curr->shm->ts);
+						  &curr->shm->area->ts);
 
 		/* If we already have enough data, don't poll this stream. */
 		if (frames_in_buff >= fetch_size)

@@ -32,7 +32,7 @@ struct cras_rstream {
 	size_t min_cb_level; /* Don't callback unless this much is avail. */
 	uint32_t flags;
 	struct cras_rclient *client;
-	struct cras_audio_shm_area *shm;
+	struct cras_audio_shm shm;
 	struct cras_iodev *iodev;
 	struct cras_rstream *prev, *next;
 	struct cras_audio_format format;
@@ -139,14 +139,14 @@ static inline int cras_rstream_get_shm_key(const struct cras_rstream *stream)
 static inline size_t cras_rstream_get_total_shm_size(
 		const struct cras_rstream *stream)
 {
-	return cras_shm_total_size(stream->shm);
+	return cras_shm_total_size(&stream->shm);
 }
 
 /* Gets shared memory region for this stream. */
-static inline struct cras_audio_shm_area *cras_rstream_get_shm(
-		const struct cras_rstream *stream)
+static inline
+struct cras_audio_shm *cras_rstream_get_shm(struct cras_rstream *stream)
 {
-	return stream->shm;
+	return &stream->shm;
 }
 
 /* Gets the input/output device for a stream. */

@@ -157,7 +157,7 @@ class RClientMessagesSuite : public testing::Test {
         return;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
-      rstream_->shm = &shm_;
+      rstream_->shm.area = &shm_;
 
       stream_id_ = 0x10002;
       connect_msg_.header.id = CRAS_SERVER_CONNECT_STREAM;

@@ -16,7 +16,7 @@
  *        actually mixed.
  *    index - The index of the stream.  This will be incremented after mixing.
  */
-size_t cras_mix_add_stream(struct cras_audio_shm_area *shm,
+size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 			   size_t num_channels,
 			   uint8_t *dst,
 			   size_t *count,
