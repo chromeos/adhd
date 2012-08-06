@@ -20,12 +20,19 @@ struct cras_alsa_mixer;
 struct cras_volume_curve;
 struct cras_card_config;
 
+/* A mixer output, such as 'Headphone' or 'Speaker'.
+ *  elem - ALSA mixer element.
+ *  has_volume - non-zero indicates there is a volume control.
+ *  has_mute - non-zero indicates there is a mute switch.
+ *  device_index - ALSA device index for this control.
+ *  volume_curve - Curve for this output.
+ */
 struct cras_alsa_mixer_output {
-	snd_mixer_elem_t *elem; /* ALSA mixer element. */
-	int has_volume; /* non-zero indicates there is a volume control. */
-	int has_mute; /* non-zero indicates there is a mute switch. */
-	size_t device_index; /* ALSA device index for this control. */
-	struct cras_volume_curve *volume_curve; /* Curve for this output. */
+	snd_mixer_elem_t *elem;
+	int has_volume;
+	int has_mute;
+	size_t device_index;
+	struct cras_volume_curve *volume_curve;
 };
 
 /* Creates a cras_alsa_mixer instance for the given alsa device.
