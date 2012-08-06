@@ -475,7 +475,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 			DL_FOREACH(aio->base.streams, curr) {
 				if (cras_shm_callback_pending(curr->shm) &&
 				    FD_ISSET(curr->fd, &poll_set))
-					curr->shm->num_cb_timeouts++;
+					cras_shm_inc_cb_timeouts(curr->shm);
 			}
 			break;
 		}
@@ -819,9 +819,10 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 		rmsg = (struct cras_iodev_add_rm_stream_msg *)msg;
 		shm = cras_rstream_get_shm(rmsg->stream);
 		if (shm != NULL) {
-			syslog(LOG_DEBUG, "cb_timeouts:%zu",
-			       shm->num_cb_timeouts);
-			syslog(LOG_DEBUG, "overruns:%zu", shm->num_overruns);
+			syslog(LOG_DEBUG, "cb_timeouts:%u",
+			       cras_shm_num_cb_timeouts(shm));
+			syslog(LOG_DEBUG, "overruns:%u",
+			       cras_shm_num_overruns(shm));
 		}
 		ret = thread_remove_stream(aio, rmsg->stream);
 		if (ret < 0)

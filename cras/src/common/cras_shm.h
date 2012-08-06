@@ -293,4 +293,24 @@ static inline unsigned cras_shm_total_size(struct cras_audio_shm_area *shm)
 	return cras_shm_used_size(shm) * CRAS_NUM_SHM_BUFFERS + sizeof(*shm);
 }
 
+/* Gets the counter of over-runs. */
+static inline
+unsigned cras_shm_num_overruns(const struct cras_audio_shm_area *shm)
+{
+	return shm->num_overruns;
+}
+
+/* Increments the counter of callback timeouts. */
+static inline void cras_shm_inc_cb_timeouts(struct cras_audio_shm_area *shm)
+{
+	shm->num_cb_timeouts++;
+}
+
+/* Gets the counter of callback timeouts. */
+static inline
+unsigned cras_shm_num_cb_timeouts(const struct cras_audio_shm_area *shm)
+{
+	return shm->num_cb_timeouts;
+}
+
 #endif /* CRAS_SHM_H_ */

@@ -281,7 +281,7 @@ static void dump_playback(struct cras_iodev *iodev, struct timespec *ts)
 			DL_FOREACH(iodev->streams, curr) {
 				if (cras_shm_callback_pending(curr->shm) &&
 				    FD_ISSET(curr->fd, &poll_set))
-					curr->shm->num_cb_timeouts++;
+					cras_shm_inc_cb_timeouts(curr->shm);
 			}
 			break;
 		}
