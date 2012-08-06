@@ -126,14 +126,14 @@ static int handle_playback_thread_message(struct cras_iodev *iodev)
 static void fill_capture(struct cras_iodev *iodev, struct timespec *ts)
 {
 	uint8_t *dst;
-	size_t count;
+	unsigned count;
 	int rc;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
 
-	dst = cras_shm_get_curr_write_buffer(iodev->streams->shm);
-	count = iodev->cb_threshold;
+	dst = cras_shm_get_writeable_frames(iodev->streams->shm, &count);
+	count = min(count, iodev->cb_threshold);
 	memset(dst, 0, count * cras_shm_frame_bytes(iodev->streams->shm));
 	cras_shm_check_write_overrun(iodev->streams->shm);
 	cras_shm_buffer_written(iodev->streams->shm, count);

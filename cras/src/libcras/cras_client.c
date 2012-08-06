@@ -501,8 +501,11 @@ static int handle_playback_request(struct client_stream *stream,
 		buf = stream->fmt_conv_buffer;
 		num_frames = cras_fmt_conv_out_frames_to_in(stream->conv,
 							    num_frames);
-	} else
-		buf = cras_shm_get_curr_write_buffer(&stream->shm);
+	} else {
+		unsigned limit;
+		buf = cras_shm_get_writeable_frames(&stream->shm, &limit);
+		num_frames = min(num_frames, limit);
+	}
 
 	/* Make sure not to ask for more frames than the buffer can hold. */
 	if (num_frames > config->buffer_frames)
@@ -524,8 +527,10 @@ static int handle_playback_request(struct client_stream *stream,
 		/* Possibly convert to the correct format. */
 		if (stream->conv) {
 			uint8_t *final_buf;
+			unsigned limit;
 
-			final_buf = cras_shm_get_curr_write_buffer(shm);
+			final_buf = cras_shm_get_writeable_frames(shm, &limit);
+			frames = min(frames, limit);
 			frames = cras_fmt_conv_convert_frames(
 					stream->conv,
 					stream->fmt_conv_buffer,

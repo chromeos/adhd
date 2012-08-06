@@ -102,12 +102,17 @@ static inline uint8_t *cras_shm_get_curr_read_buffer(struct cras_audio_shm *shm)
 
 /* Get a pointer to the next buffer to write */
 static inline
-uint8_t *cras_shm_get_curr_write_buffer(struct cras_audio_shm *shm)
+uint8_t *cras_shm_get_writeable_frames(struct cras_audio_shm *shm,
+				       unsigned *frames)
 {
 	unsigned i = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	unsigned write_offset;
+	const unsigned frame_bytes = shm->config.frame_bytes;
 
-	return cras_shm_buff_for_idx(shm, i) +
-		cras_shm_check_offset(shm, shm->area->write_offset[i]);
+	write_offset = cras_shm_check_offset(shm, shm->area->write_offset[i]);
+	if (frames)
+		*frames = (shm->config.used_size - write_offset) / frame_bytes;
+	return cras_shm_buff_for_idx(shm, i) + write_offset;
 }
 
 /* Get a pointer to the current read buffer plus an offset.  The offset might be
