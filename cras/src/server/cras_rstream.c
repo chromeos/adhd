@@ -47,7 +47,6 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 		return -ENOMEM;
 	memset(stream->shm, 0, total_size);
 	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
-	stream->shm->size = samples_size;
 	cras_shm_set_used_size(stream->shm, used_size);
 	stream->shm->volume_scaler = 1.0;
 	return 0;
@@ -142,8 +141,9 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 		return rc;
 	}
 
-	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu, shm_size %zu",
-	       stream_id, buffer_frames, cb_threshold, stream->shm->size);
+	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu, used_size %u",
+	       stream_id, buffer_frames, cb_threshold,
+	       cras_shm_used_size(stream->shm));
 	*stream_out = stream;
 	return 0;
 }

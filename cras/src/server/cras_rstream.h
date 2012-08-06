@@ -139,7 +139,7 @@ static inline int cras_rstream_get_shm_key(const struct cras_rstream *stream)
 static inline size_t cras_rstream_get_total_shm_size(
 		const struct cras_rstream *stream)
 {
-	return stream->shm->size + sizeof(struct cras_audio_shm_area);
+	return cras_shm_total_size(stream->shm);
 }
 
 /* Gets shared memory region for this stream. */
@@ -147,13 +147,6 @@ static inline struct cras_audio_shm_area *cras_rstream_get_shm(
 		const struct cras_rstream *stream)
 {
 	return stream->shm;
-}
-
-/* Gets the size of the shared memory region for this stream. */
-static inline size_t cras_rstream_get_shm_size(
-		const struct cras_rstream *stream)
-{
-	return stream->shm->size;
 }
 
 /* Gets the input/output device for a stream. */

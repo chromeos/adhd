@@ -584,7 +584,6 @@ class AlsaCaptureStreamSuite : public testing::Test {
       cras_shm_set_frame_bytes(shm_, 4); // channels * bytes/sample
       cras_shm_set_used_size(
           shm_, aio_->base.cb_threshold * cras_shm_frame_bytes(shm_));
-      shm_->size = cras_shm_used_size(shm_) * 2;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
       rstream_->shm = shm_;
@@ -813,7 +812,6 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       cras_shm_set_frame_bytes(*shm, 4);
       cras_shm_set_used_size(
           *shm, aio_->base.used_size * cras_shm_frame_bytes(*shm));
-      (*shm)->size = (*shm)->used_size * 2;
     }
 
     void SetupRstream(struct cras_rstream **rstream,

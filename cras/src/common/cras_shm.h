@@ -23,7 +23,6 @@
  *    buffered).
  *  read_offset - offset of the next sample to read (one per buffer).
  *  write_offset - offset of the next sample to write (one per buffer).
- *  size - The size of the samples area in bytes.
  *  used_size - The size in bytes of the sample area being actively used.
  *  volume_scaler - volume scaling factor (0.0-1.0).
  *  muted - bool, true if stream should be muted.
@@ -43,7 +42,6 @@ struct cras_audio_shm_area {
 	size_t read_offset[CRAS_NUM_SHM_BUFFERS];
 	size_t write_offset[CRAS_NUM_SHM_BUFFERS];
 	size_t frame_bytes;
-	size_t size;
 	size_t used_size;
 	float volume_scaler;
 	size_t mute;
@@ -287,6 +285,12 @@ static inline
 unsigned cras_shm_used_frames(const struct cras_audio_shm_area *shm)
 {
 	return shm->used_size / shm->frame_bytes;
+}
+
+/* Returns the total size of the shared memory region. */
+static inline unsigned cras_shm_total_size(struct cras_audio_shm_area *shm)
+{
+	return cras_shm_used_size(shm) * CRAS_NUM_SHM_BUFFERS + sizeof(*shm);
 }
 
 #endif /* CRAS_SHM_H_ */
