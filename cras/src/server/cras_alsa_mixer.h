@@ -25,6 +25,7 @@ struct cras_card_config;
  *  has_volume - non-zero indicates there is a volume control.
  *  has_mute - non-zero indicates there is a mute switch.
  *  device_index - ALSA device index for this control.
+ *  max_volume_dB - Maximum volume available in the volume control.
  *  volume_curve - Curve for this output.
  */
 struct cras_alsa_mixer_output {
@@ -32,6 +33,7 @@ struct cras_alsa_mixer_output {
 	int has_volume;
 	int has_mute;
 	size_t device_index;
+	long max_volume_dB;
 	struct cras_volume_curve *volume_curve;
 };
 

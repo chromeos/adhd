@@ -182,6 +182,7 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 {
 	int index; /* Index part of mixer simple element */
 	struct mixer_output_control *c;
+	long min, max;
 
 	index = snd_mixer_selem_get_index(elem);
 	syslog(LOG_DEBUG, "Add output control for dev %zu: %s,%d\n",
@@ -192,6 +193,9 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 		syslog(LOG_ERR, "No memory for output control.");
 		return -ENOMEM;
 	}
+
+	if (snd_mixer_selem_get_playback_dB_range(elem, &min, &max) == 0)
+		c->properties.max_volume_dB = max;
 
 	c->properties.elem = elem;
 	c->properties.has_volume = snd_mixer_selem_has_playback_volume(elem);
@@ -322,8 +326,12 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 
 	assert(cras_mixer);
 
-	/* dBFS is normally < 0 to specify the attenuation from max. */
+	/* dBFS is normally < 0 to specify the attenuation from max. max is the
+	 * combined max of the master controls and the current output.
+	 */
 	to_set = dBFS + cras_mixer->max_volume_dB;
+	if (mixer_output)
+		to_set += mixer_output->max_volume_dB;
 	/* Go through all the controls, set the volume level for each,
 	 * taking the value closest but greater than the desired volume.  If the
 	 * entire volume can't be set on the current control, move on to the

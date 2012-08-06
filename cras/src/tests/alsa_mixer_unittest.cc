@@ -274,6 +274,7 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
 
 TEST(AlsaMixer, CreateOneMasterElement) {
   struct cras_alsa_mixer *c;
+  struct cras_alsa_mixer_output mixer_output;
   int element_playback_volume[] = {
     1,
   };
@@ -283,6 +284,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   const char *element_names[] = {
     "Master",
   };
+  long set_dB_values[3];
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
@@ -311,6 +313,21 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   /* set volume should be called for Master. */
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_dB_all_called);
+
+  /* if passed a mixer output then it should set the volume for that too. */
+  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
+  mixer_output.has_mute = 1;
+  mixer_output.max_volume_dB = 950;
+  snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
+  snd_mixer_selem_set_playback_dB_all_values_length =
+      ARRAY_SIZE(set_dB_values);
+  snd_mixer_selem_set_playback_dB_all_values_index = 0;
+  snd_mixer_selem_set_playback_dB_all_called = 0;
+  snd_mixer_selem_get_playback_dB_called = 0;
+  cras_alsa_mixer_set_dBFS(c, 0, &mixer_output);
+  EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
+  EXPECT_EQ(950, set_dB_values[0]);
+  EXPECT_EQ(950, set_dB_values[1]);
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);
@@ -409,6 +426,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   snd_mixer_selem_get_playback_dB_called = 0;
   mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
   mixer_output.has_volume = 1;
+  mixer_output.max_volume_dB = 0;
   cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
   EXPECT_EQ(3, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
