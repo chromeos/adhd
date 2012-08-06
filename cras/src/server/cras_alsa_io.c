@@ -693,8 +693,6 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 	dst = cras_shm_get_curr_write_buffer(shm);
 	memcpy(dst, src, count * cras_shm_frame_bytes(shm));
 	cras_shm_buffer_written(shm, count);
-	if (shm->write_offset == shm->read_offset)
-		shm->num_overruns++;
 
 	return count;
 }
