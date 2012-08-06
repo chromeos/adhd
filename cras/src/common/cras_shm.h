@@ -80,11 +80,24 @@ static inline uint8_t *cras_shm_buff_for_idx(struct cras_audio_shm *shm,
 	return shm->area->samples + shm->config.used_size * idx;
 }
 
+/* Limit an offset to within the buffer size. */
+static inline unsigned cras_shm_check_offset(struct cras_audio_shm *shm,
+					     unsigned offset)
+{
+	/* The offset is allowed to be the total size, indicating that the
+	 * buffer is full. */
+	if (offset > shm->config.used_size)
+		return 0;
+	return offset;
+}
+
 /* Get a pointer to the current read buffer */
 static inline uint8_t *cras_shm_get_curr_read_buffer(struct cras_audio_shm *shm)
 {
 	unsigned i = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
-	return cras_shm_buff_for_idx(shm, i) + shm->area->read_offset[i];
+
+	return cras_shm_buff_for_idx(shm, i) +
+		cras_shm_check_offset(shm, shm->area->read_offset[i]);
 }
 
 /* Get a pointer to the next buffer to write */
@@ -92,31 +105,43 @@ static inline
 uint8_t *cras_shm_get_curr_write_buffer(struct cras_audio_shm *shm)
 {
 	unsigned i = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
-	return cras_shm_buff_for_idx(shm, i) + shm->area->write_offset[i];
+
+	return cras_shm_buff_for_idx(shm, i) +
+		cras_shm_check_offset(shm, shm->area->write_offset[i]);
 }
 
 /* Get a pointer to the current read buffer plus an offset.  The offset might be
- * in the next buffer. This returns the number of frames you can memcpy out of
- * shm. */
+ * in the next buffer. 'frames' is filled with the number of frames that can be
+ * copied from the returned buffer.
+ */
 static inline int16_t *cras_shm_get_readable_frames(struct cras_audio_shm *shm,
 						    size_t offset,
 						    size_t *frames)
 {
 	unsigned buf_idx = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
-	size_t final_offset;
+	unsigned read_offset, write_offset, final_offset;
 
 	assert(frames != NULL);
-	final_offset = shm->area->read_offset[buf_idx] + offset *
-		       shm->config.frame_bytes;
-	if (final_offset >= shm->area->write_offset[buf_idx]) {
-		final_offset -= shm->area->write_offset[buf_idx];
+
+	read_offset =
+		cras_shm_check_offset(shm, shm->area->read_offset[buf_idx]);
+	write_offset =
+		cras_shm_check_offset(shm, shm->area->write_offset[buf_idx]);
+	final_offset = read_offset + offset * shm->config.frame_bytes;
+	if (final_offset >= write_offset) {
+		final_offset -= write_offset;
 		assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 		buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
+		write_offset =
+			cras_shm_check_offset(shm,
+					      shm->area->write_offset[buf_idx]);
 	}
-	if (final_offset >= shm->area->write_offset[buf_idx])
-		return 0;
-	*frames = (shm->area->write_offset[buf_idx] - final_offset) /
-			shm->config.frame_bytes;
+	if (final_offset >= write_offset) {
+		/* Past end of samples. */
+		*frames = 0;
+		return NULL;
+	}
+	*frames = (write_offset - final_offset) / shm->config.frame_bytes;
 	return (int16_t *)(cras_shm_buff_for_idx(shm, buf_idx) + final_offset);
 }
 
@@ -124,10 +149,18 @@ static inline int16_t *cras_shm_get_readable_frames(struct cras_audio_shm *shm,
 static inline size_t cras_shm_get_bytes_queued(struct cras_audio_shm *shm)
 {
 	size_t total, i;
+	const unsigned used_size = shm->config.used_size;
 
 	total = 0;
-	for (i = 0; i < CRAS_NUM_SHM_BUFFERS; i++)
-		total += shm->area->write_offset[i] - shm->area->read_offset[i];
+	for (i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+		unsigned read_offset, write_offset;
+
+		read_offset = min(shm->area->read_offset[i], used_size);
+		write_offset = min(shm->area->write_offset[i], used_size);
+
+		if (write_offset > read_offset)
+			total += write_offset - read_offset;
+	}
 	return total;
 }
 
@@ -146,11 +179,16 @@ static inline
 size_t cras_shm_get_frames_in_curr_buffer(struct cras_audio_shm *shm)
 {
 	size_t buf_idx = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
-	size_t bytes;
-	struct cras_audio_shm_area *area = shm->area;
+	unsigned read_offset, write_offset;
+	const unsigned used_size = shm->config.used_size;
 
-	bytes = area->write_offset[buf_idx] - area->read_offset[buf_idx];
-	return bytes / shm->config.frame_bytes;
+	read_offset = min(shm->area->read_offset[buf_idx], used_size);
+	write_offset = min(shm->area->write_offset[buf_idx], used_size);
+
+	if (write_offset <= read_offset)
+		return 0;
+
+	return (write_offset - read_offset) / shm->config.frame_bytes;
 }
 
 /* Return 1 if there is an empty buffer in the list. */

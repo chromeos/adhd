@@ -151,6 +151,33 @@ TEST_F(ShmTestSuite, SetVolume) {
   EXPECT_EQ(shm_.area->volume_scaler, 0.5);
 }
 
+// Test that invalid read/write offsets are detected.
+
+TEST_F(ShmTestSuite, InvalidWriteOffset) {
+  shm_.area->write_offset[0] = shm_.config.used_size + 50;
+  shm_.area->read_offset[0] = 0;
+  buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
+  EXPECT_EQ(0, frames_);
+  EXPECT_EQ(NULL, (uint8_t *)buf_);
+}
+
+TEST_F(ShmTestSuite, InvalidReadOffset) {
+  // Should ignore read+_offset and assume 0.
+  shm_.area->write_offset[0] = 44;
+  shm_.area->read_offset[0] = shm_.config.used_size + 25;
+  buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
+  EXPECT_EQ(shm_.area->write_offset[0] / shm_.config.frame_bytes, frames_);
+  EXPECT_EQ(shm_.area->samples, (uint8_t *)buf_);
+}
+
+TEST_F(ShmTestSuite, InvalidReadAndWriteOffset) {
+  shm_.area->write_offset[0] = shm_.config.used_size + 50;
+  shm_.area->read_offset[0] = shm_.config.used_size + 25;
+  buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
+  EXPECT_EQ(0, frames_);
+  EXPECT_EQ(NULL, (uint8_t *)buf_);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
