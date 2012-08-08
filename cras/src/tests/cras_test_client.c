@@ -245,7 +245,7 @@ static int run_file_io_stream(struct cras_client *client,
 	cras_client_run_thread(client);
 
 	stream_playing =
-		start_stream(client, &stream_id, params, volume_scaler);
+		start_stream(client, &stream_id, params, volume_scaler) == 0;
 
 	while (keep_looping) {
 		char input;
@@ -282,7 +282,7 @@ static int run_file_io_stream(struct cras_client *client,
 			stream_playing = start_stream(client,
 						      &stream_id,
 						      params,
-						      volume_scaler);
+						      volume_scaler) == 0;
 			break;
 		case 'r':
 			if (!stream_playing)
