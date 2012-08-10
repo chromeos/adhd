@@ -54,17 +54,6 @@ enum {
 	CLIENT_ADD_STREAM,
 	CLIENT_REMOVE_STREAM,
 	CLIENT_SET_STREAM_VOLUME_SCALER,
-	CLIENT_GET_OUTPUT_DEVICE_LIST,
-	CLIENT_GET_INPUT_DEVICE_LIST,
-	CLIENT_GET_SYSTEM_VOLUME,
-	CLIENT_GET_SYSTEM_CAPTURE_GAIN,
-	CLIENT_GET_SYSTEM_MUTED,
-	CLIENT_GET_SYSTEM_CAPTURE_MUTED,
-	CLIENT_GET_ATTACHED_CLIENT_LIST,
-	CLIENT_GET_SYSTEM_MIN_VOLUME,
-	CLIENT_GET_SYSTEM_MAX_VOLUME,
-	CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN,
-	CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN,
 	CLIENT_SERVER_CONNECT,
 };
 
@@ -87,18 +76,6 @@ struct add_stream_command_message {
 	struct command_msg header;
 	struct client_stream *stream;
 	cras_stream_id_t *stream_id_out;
-};
-
-struct get_device_list_message {
-	struct command_msg header;
-	struct cras_iodev_info *devs;
-	size_t max_devs;
-};
-
-struct get_attached_client_list_message {
-	struct command_msg header;
-	struct cras_attached_client_info *clients;
-	size_t max_clients;
 };
 
 /* Commands send from a running stream to the client. */
@@ -182,18 +159,7 @@ struct client_stream {
  * tid - Thread ID of the client thread started by "cras_client_run_thread".
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
- * num_input_devs - Number of input devices available.
- * input_devs - List of input devices available.
- * num_output_devs - Number of output devices available.
- * output_devs = List of output devices available.
- * system_volume - System playback volume level.
- * system_capture_gain - System capture gain level.
- * system_muted - True if the system playback path is muted.
- * system_capture_muted - True if the system capture path is muted.
- * system_min_volume - In dBFS * 100, minimum system volume.
- * system_max_volume - In dBFS * 100, maximum system volume.
- * system_min_capture_gain - In dBFS * 100, minimum system capture gain.
- * system_max_capture_gain - In dBFS * 100, maximum system capture gain.
+ * server_state - RO shared memory region holding server state.
  */
 struct cras_client {
 	int id;
@@ -206,20 +172,7 @@ struct cras_client {
 	cras_stream_id_t next_stream_id;
 	int last_command_result;
 	struct client_stream *streams;
-	size_t num_input_devs;
-	struct cras_iodev_info *input_devs;
-	size_t num_output_devs;
-	struct cras_iodev_info *output_devs;
-	size_t num_attached_clients;
-	struct cras_attached_client_info *attached_clients;
-	size_t system_volume;
-	long system_capture_gain;
-	int system_muted;
-	int system_capture_muted;
-	long system_min_volume;
-	long system_max_volume;
-	long system_min_capture_gain;
-	long system_max_capture_gain;
+	const struct cras_server_state *server_state;
 };
 
 /*
@@ -911,47 +864,6 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 	return 0;
 }
 
-/* Gets the list of output devices. */
-static int client_thread_output_device_list(struct cras_client *client,
-					    struct cras_iodev_info *devs,
-					    size_t max_devs)
-{
-	const size_t num_devs = min(max_devs, client->num_output_devs);
-
-	if (num_devs == 0)
-		return 0;
-	memcpy(devs, client->output_devs, num_devs * sizeof(*devs));
-	return num_devs;
-}
-
-/* Gets the list of input devices. */
-static int client_thread_input_device_list(struct cras_client *client,
-					   struct cras_iodev_info *devs,
-					   size_t max_devs)
-{
-	const size_t num_devs = min(max_devs, client->num_input_devs);
-
-	if (num_devs == 0)
-		return 0;
-	memcpy(devs, client->input_devs, num_devs * sizeof(*devs));
-	return num_devs;
-}
-
-/* Gets the list of clients attached to the server. */
-static int client_thread_attached_client_device_list(
-		struct cras_client *client,
-		struct cras_attached_client_info *attached_clients,
-		size_t max_clients)
-{
-	const size_t num_clients = min(max_clients,
-				       client->num_attached_clients);
-
-	if (num_clients > 0)
-		memcpy(attached_clients, client->attached_clients,
-		       num_clients * sizeof(*attached_clients));
-	return num_clients;
-}
-
 /* Re-attaches a stream that was removed on the server side so that it could be
  * moved to a new device. To achieve this, remove the stream and send the
  * connect message again. */
@@ -1003,72 +915,34 @@ static int handle_stream_reattach(struct cras_client *client,
 	return 0;
 }
 
-/* Handles a new list of iodevs. */
-static int handle_new_iodev_list(struct cras_client *client,
-				 struct cras_client_iodev_list *msg)
+/* Attach to the shm region containing the server state. */
+static int client_attach_shm(struct cras_client *client, key_t shm_key)
 {
-	free(client->input_devs);
-	client->input_devs = NULL;
-	free(client->output_devs);
-	client->output_devs = NULL;
+	int shmid;
 
-	client->num_output_devs = msg->num_outputs;
-	if (client->num_output_devs > 0) {
-		size_t output_size = sizeof(client->output_devs[0]) *
-				client->num_output_devs;
-		client->output_devs = malloc(output_size);
-		if (client->output_devs == NULL)
-			return -ENOMEM;
-		memcpy(client->output_devs, &msg->iodevs[0], output_size);
+	/* Should only happen once per client lifetime. */
+	if (client->server_state)
+		return -EBUSY;
+
+	shmid = shmget(shm_key, sizeof(*(client->server_state)), 0400);
+	if (shmid < 0) {
+		syslog(LOG_ERR, "shmget failed to get shm for cliend.");
+		return shmid;
 	}
-	client->num_input_devs = msg->num_inputs;
-	if (client->num_input_devs > 0) {
-		size_t input_size = sizeof(client->input_devs[0]) *
-				client->num_input_devs;
-		client->input_devs = malloc(input_size);
-		if (client->input_devs == NULL) {
-			free(client->output_devs);
-			return -ENOMEM;
-		}
-		memcpy(client->input_devs,
-		       &msg->iodevs[client->num_output_devs],
-		       input_size);
+	client->server_state = shmat(shmid, NULL, SHM_RDONLY);
+	if (client->server_state == (void *)-1) {
+		client->server_state = NULL;
+		syslog(LOG_ERR, "shmat failed to attach shm for client.");
+		return errno;
 	}
-	return 0;
-}
 
-/* Handles a new list of attached clients. */
-static int handle_new_attached_clients_list(
-		struct cras_client *client,
-		struct cras_client_client_list *msg)
-{
-	free(client->attached_clients);
-	client->attached_clients = NULL;
-
-	client->num_attached_clients = msg->num_attached_clients;
-	if (client->num_attached_clients > 0) {
-		size_t size = sizeof(client->attached_clients[0]) *
-				client->num_attached_clients;
-		client->attached_clients = malloc(size);
-		if (client->attached_clients == NULL)
-			return -ENOMEM;
-		memcpy(client->attached_clients, &msg->client_info[0], size);
+	if (client->server_state->state_version != CRAS_SERVER_STATE_VERSION) {
+		shmdt(client->server_state);
+		client->server_state = NULL;
+		syslog(LOG_ERR, "Unknown server_state version.");
+		return -EINVAL;
 	}
-	return 0;
-}
 
-/* Handles new volume state. */
-static int handle_system_volume(struct cras_client *client,
-				struct cras_client_volume_status *msg)
-{
-	client->system_volume = msg->volume;
-	client->system_muted = !!msg->muted;
-	client->system_capture_gain = msg->capture_gain;
-	client->system_capture_muted = !!msg->capture_muted;
-	client->system_min_volume = msg->volume_min_dBFS;
-	client->system_max_volume = msg->volume_max_dBFS;
-	client->system_min_capture_gain = msg->capture_gain_min_dBFS;
-	client->system_max_capture_gain = msg->capture_gain_max_dBFS;
 	return 0;
 }
 
@@ -1099,7 +973,11 @@ static int handle_message_from_server(struct cras_client *client)
 	case CRAS_CLIENT_CONNECTED: {
 		struct cras_client_connected *cmsg =
 			(struct cras_client_connected *)msg;
+		rc = client_attach_shm(client, cmsg->shm_key);
+		if (rc)
+			return rc;
 		client->id = cmsg->client_id;
+
 		break;
 	}
 	case CRAS_CLIENT_STREAM_CONNECTED: {
@@ -1121,24 +999,6 @@ static int handle_message_from_server(struct cras_client *client)
 		struct cras_client_stream_reattach *cmsg =
 			(struct cras_client_stream_reattach *)msg;
 		handle_stream_reattach(client, cmsg->stream_id);
-		break;
-	}
-	case CRAS_CLIENT_IODEV_LIST: {
-		struct cras_client_iodev_list *cmsg =
-			(struct cras_client_iodev_list *)msg;
-		handle_new_iodev_list(client, cmsg);
-		break;
-	}
-	case CRAS_CLIENT_VOLUME_UPDATE: {
-		struct cras_client_volume_status *vmsg =
-			(struct cras_client_volume_status *)msg;
-		handle_system_volume(client, vmsg);
-		break;
-	}
-	case CRAS_CLIENT_CLIENT_LIST_UPDATE:{
-		struct cras_client_client_list *cmsg =
-			(struct cras_client_client_list *)msg;
-		handle_new_attached_clients_list(client, cmsg);
 		break;
 	}
 	default:
@@ -1233,59 +1093,6 @@ static int handle_command_message(struct cras_client *client)
 						     vol_msg->volume_scaler);
 		break;
 	}
-	case CLIENT_GET_OUTPUT_DEVICE_LIST: {
-		struct get_device_list_message *dev_msg =
-			(struct get_device_list_message *)msg;
-		rc = client_thread_output_device_list(client, dev_msg->devs,
-						      dev_msg->max_devs);
-		break;
-	}
-	case CLIENT_GET_INPUT_DEVICE_LIST: {
-		struct get_device_list_message *dev_msg =
-			(struct get_device_list_message *)msg;
-		rc = client_thread_input_device_list(client, dev_msg->devs,
-						     dev_msg->max_devs);
-		break;
-	}
-	case CLIENT_GET_SYSTEM_VOLUME: {
-		rc = client->system_volume;
-		break;
-	}
-	case CLIENT_GET_SYSTEM_CAPTURE_GAIN: {
-		rc = client->system_capture_gain;
-		break;
-	}
-	case CLIENT_GET_SYSTEM_MUTED: {
-		rc = client->system_muted;
-		break;
-	}
-	case CLIENT_GET_SYSTEM_CAPTURE_MUTED: {
-		rc = client->system_capture_muted;
-		break;
-	}
-	case CLIENT_GET_ATTACHED_CLIENT_LIST: {
-		struct get_attached_client_list_message *client_msg =
-			(struct get_attached_client_list_message *)msg;
-		rc = client_thread_attached_client_device_list(
-				client,
-				client_msg->clients,
-				client_msg->max_clients);
-		break;
-	}
-	case CLIENT_GET_SYSTEM_MIN_VOLUME: {
-		rc = client->system_min_volume;
-		break;
-	}
-	case CLIENT_GET_SYSTEM_MAX_VOLUME: {
-		rc = client->system_max_volume;
-		break;
-	}
-	case CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN:
-		rc = client->system_min_capture_gain;
-		break;
-	case CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN:
-		rc = client->system_max_capture_gain;
-		break;
 	case CLIENT_SERVER_CONNECT:
 		rc = connect_to_server_wait(client);
 		break;
@@ -1434,20 +1241,30 @@ static int write_message_to_server(struct cras_client *client,
 	return 0;
 }
 
-static int get_device_list(struct cras_client *client,
-			   struct cras_iodev_info *devs,
-			   size_t max_devs,
-			   size_t msg_id)
+/* Gets the update_count of the server state shm region. */
+static inline
+unsigned begin_server_state_read(const struct cras_server_state *state)
 {
-	struct get_device_list_message msg;
-	if (client == NULL || !client->thread.running)
-		return -EINVAL;
+	unsigned count;
 
-	msg.header.len = sizeof(msg);
-	msg.header.msg_id = msg_id;
-	msg.devs = devs;
-	msg.max_devs = max_devs;
-	return send_command_message(client, &msg.header);
+	/* Version will be odd when the server is writing. */
+	while ((count = *(volatile unsigned *)&state->update_count) & 1)
+		sched_yield();
+	__sync_synchronize();
+	return count;
+}
+
+/* Checks if the update count of the server state shm region has changed from
+ * count.  Returns 0 if the count still matches.
+ */
+static inline
+int end_server_state_read(const struct cras_server_state *state, unsigned count)
+{
+	__sync_synchronize();
+	if (count != *(volatile unsigned *)&state->update_count)
+		return -EAGAIN;
+	return 0;
+
 }
 
 /*
@@ -1493,21 +1310,26 @@ void cras_client_destroy(struct cras_client *client)
 {
 	if (client == NULL)
 		return;
+	if (client->server_state) {
+		shmdt(client->server_state);
+	}
 	if (client->server_fd >= 0)
 		close(client->server_fd);
 	close(client->command_fds[0]);
 	close(client->command_fds[1]);
 	close(client->stream_fds[0]);
 	close(client->stream_fds[1]);
-	free(client->output_devs);
-	free(client->input_devs);
-	free(client->attached_clients);
 	free(client);
 }
 
 int cras_client_connect(struct cras_client *client)
 {
 	return connect_to_server(client);
+}
+
+int cras_client_connected_wait(struct cras_client *client)
+{
+	return send_simple_cmd_msg(client, 0, CLIENT_SERVER_CONNECT);
 }
 
 struct cras_stream_params *cras_client_stream_params_create(
@@ -1685,48 +1507,58 @@ int cras_client_set_system_capture_mute(struct cras_client *client, int mute)
 
 size_t cras_client_get_system_volume(struct cras_client *client)
 {
-	/* Send message to client thread to ensure data is synchronized. */
-	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_VOLUME);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->volume;
 }
 
 long cras_client_get_system_capture_gain(struct cras_client *client)
 {
-	/* Send message to client thread to ensure data is synchronized. */
-	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_CAPTURE_GAIN);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->capture_gain;
 }
 
 int cras_client_get_system_muted(struct cras_client *client)
 {
-	/* Send message to client thread to ensure data is synchronized. */
-	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MUTED);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->mute;
 }
 
 int cras_client_get_system_capture_muted(struct cras_client *client)
 {
-	/* Send message to client thread to ensure data is synchronized. */
-	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_CAPTURE_MUTED);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->capture_mute;
 }
 
 long cras_client_get_system_min_volume(struct cras_client *client)
 {
-	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MIN_VOLUME);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->min_volume_dBFS;
 }
 
 long cras_client_get_system_max_volume(struct cras_client *client)
 {
-	return send_simple_cmd_msg(client, 0, CLIENT_GET_SYSTEM_MAX_VOLUME);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->max_volume_dBFS;
 }
 
 long cras_client_get_system_min_capture_gain(struct cras_client *client)
 {
-	return send_simple_cmd_msg(client, 0,
-				   CLIENT_GET_SYSTEM_MIN_CAPTURE_GAIN);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->min_capture_gain;
 }
 
 long cras_client_get_system_max_capture_gain(struct cras_client *client)
 {
-	return send_simple_cmd_msg(client, 0,
-				   CLIENT_GET_SYSTEM_MAX_CAPTURE_GAIN);
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->max_capture_gain;
 }
 
 int cras_client_run_thread(struct cras_client *client)
@@ -1766,35 +1598,69 @@ int cras_client_get_output_devices(struct cras_client *client,
 				   struct cras_iodev_info *devs,
 				   size_t max_devs)
 {
-	return get_device_list(client,
-			       devs,
-			       max_devs,
-			       CLIENT_GET_OUTPUT_DEVICE_LIST);
+	const struct cras_server_state *state;
+	unsigned num_devs, version;
+
+	if (!client)
+		return -EINVAL;
+	state = client->server_state;
+	if (!state)
+		return 0;
+
+read_outputs_again:
+	version = begin_server_state_read(state);
+	num_devs = min(max_devs, state->num_output_devs);
+	memcpy(devs, state->output_devs, num_devs * sizeof(*devs));
+	if (end_server_state_read(state, version))
+		goto read_outputs_again;
+
+	return num_devs;
 }
 
 int cras_client_get_input_devices(struct cras_client *client,
 				  struct cras_iodev_info *devs,
 				  size_t max_devs)
 {
-	return get_device_list(client,
-			       devs,
-			       max_devs,
-			       CLIENT_GET_INPUT_DEVICE_LIST);
+	const struct cras_server_state *state;
+	unsigned num_devs, version;
+
+	if (!client)
+		return -EINVAL;
+	state = client->server_state;
+	if (!state)
+		return 0;
+
+read_inputs_again:
+	version = begin_server_state_read(state);
+	num_devs = min(max_devs, state->num_input_devs);
+	memcpy(devs, state->input_devs, num_devs * sizeof(*devs));
+	if (end_server_state_read(state, version))
+		goto read_inputs_again;
+
+	return num_devs;
 }
 
 int cras_client_get_attached_clients(struct cras_client *client,
 				     struct cras_attached_client_info *clients,
 				     size_t max_clients)
 {
-	struct get_attached_client_list_message msg;
-	if (client == NULL || !client->thread.running)
-		return -EINVAL;
+	const struct cras_server_state *state;
+	unsigned num, version;
 
-	msg.header.len = sizeof(msg);
-	msg.header.msg_id = CLIENT_GET_ATTACHED_CLIENT_LIST;
-	msg.clients = clients;
-	msg.max_clients = max_clients;
-	return send_command_message(client, &msg.header);
+	if (!client)
+		return -EINVAL;
+	state = client->server_state;
+	if (!state)
+		return 0;
+
+read_clients_again:
+	version = begin_server_state_read(state);
+	num = min(max_clients, state->num_attached_clients);
+	memcpy(clients, state->client_info, num * sizeof(*clients));
+	if (end_server_state_read(state, version))
+		goto read_clients_again;
+
+	return num;
 }
 
 int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)

@@ -406,6 +406,7 @@ static int run_playback(struct cras_client *client,
 static void print_server_info(struct cras_client *client)
 {
 	cras_client_run_thread(client);
+	cras_client_connected_wait(client); /* To synchronize data. */
 	print_system_volumes(client);
 	print_device_lists(client);
 	print_attached_client_list(client);

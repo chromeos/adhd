@@ -256,6 +256,15 @@ SND_CTL_PLUGIN_DEFINE_FUNC(cras)
 		return rc;
 	}
 
+	rc = cras_client_connected_wait(cras->client);
+	if (rc < 0) {
+		fprintf(stderr, "CRAS client wouldn't connect.\n");
+		cras_client_stop(cras->client);
+		cras_client_destroy(cras->client);
+		free(cras);
+		return rc;
+	}
+
 	cras->ext_ctl.version = SND_CTL_EXT_VERSION;
 	cras->ext_ctl.card_idx = 0;
 	strncpy(cras->ext_ctl.id, "cras", sizeof(cras->ext_ctl.id) - 1);

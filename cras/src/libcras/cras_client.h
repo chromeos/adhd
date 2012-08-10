@@ -70,6 +70,15 @@ void cras_client_destroy(struct cras_client *client);
  */
 int cras_client_connect(struct cras_client *client);
 
+/* Waits for the server to indicate that the client is connected.  Useful to
+ * ensure that any information about the server is up to date.
+ * Args:
+ *    client - pointer returned from "cras_client_create".
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+int cras_client_connected_wait(struct cras_client *client);
+
 /* Begins running a client.
  * Args:
  *    client - the client to start (from cras_client_create).
