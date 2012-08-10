@@ -242,4 +242,15 @@ int cras_system_add_select_fd(int fd,
  */
 void cras_system_rm_select_fd(int fd);
 
+/* Returns a pointer to the current system state that is shared with clients.
+ * This also 'locks' the structure by incrementing the update count to an odd
+ * value.
+ */
+struct cras_server_state *cras_system_state_update_begin();
+
+/* Unlocks the system state structure that was updated after calling
+ * cras_system_state_update_begin by again incrementing the update count.
+ */
+void cras_system_state_update_complete();
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

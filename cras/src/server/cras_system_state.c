@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 #include <syslog.h>
 
 #include "cras_alsa_card.h"
@@ -44,7 +45,7 @@ struct volume_callback_list {
  */
 static struct {
 	struct cras_server_state *exp_state;
-	int shm_key;
+	key_t shm_key;
 	int shm_id;
 	struct cras_device_blacklist *device_blacklist;
 	struct volume_callback_list *volume_callbacks;
@@ -431,4 +432,15 @@ void cras_system_rm_select_fd(int fd)
 {
 	if (state.fd_rm != NULL)
 		state.fd_rm(fd, state.select_data);
+}
+
+struct cras_server_state *cras_system_state_update_begin()
+{
+	__sync_fetch_and_add(&state.exp_state->update_count, 1);
+	return state.exp_state;
+}
+
+void cras_system_state_update_complete()
+{
+	__sync_fetch_and_add(&state.exp_state->update_count, 1);
 }

@@ -115,7 +115,7 @@ system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common -I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
-system_state_unittest_LDADD = -lgtest
+system_state_unittest_LDADD = -lgtest -lrt -lpthread
 
 volume_curve_unittest_SOURCES = tests/volume_curve_unittest.cc \
 	server/cras_volume_curve.c
