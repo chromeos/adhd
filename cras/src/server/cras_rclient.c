@@ -209,7 +209,7 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 	client->fd = fd;
 	client->id = id;
 
-	cras_fill_client_connected(&msg, client->id);
+	cras_fill_client_connected(&msg, client->id, cras_sys_state_shm_key());
 	cras_rclient_send_message(client, &msg.header);
 
 	cras_system_register_volume_changed_cb(send_volume_update, client);

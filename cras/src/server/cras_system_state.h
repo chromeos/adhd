@@ -253,4 +253,7 @@ struct cras_server_state *cras_system_state_update_begin();
  */
 void cras_system_state_update_complete();
 
+/* Returns the shm key for the server_state structure. */
+key_t cras_sys_state_shm_key();
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

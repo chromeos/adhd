@@ -444,3 +444,8 @@ void cras_system_state_update_complete()
 {
 	__sync_fetch_and_add(&state.exp_state->update_count, 1);
 }
+
+key_t cras_sys_state_shm_key()
+{
+	return state.shm_key;
+}

@@ -566,4 +566,8 @@ int cras_system_has_played_streams()
   return cras_system_has_played_streams_return;
 }
 
+key_t cras_sys_state_shm_key()
+{
+  return 1;
+}
 }  // extern "C"

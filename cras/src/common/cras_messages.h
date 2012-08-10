@@ -183,12 +183,15 @@ static inline void cras_fill_set_system_capture_mute(
 struct cras_client_connected {
 	struct cras_client_message header;
 	size_t client_id;
+	key_t shm_key;
 };
 static inline void cras_fill_client_connected(
 		struct cras_client_connected *m,
-		size_t client_id)
+		size_t client_id,
+		key_t shm_key)
 {
 	m->client_id = client_id;
+	m->shm_key = shm_key;
 	m->header.id = CRAS_CLIENT_CONNECTED;
 	m->header.length = sizeof(struct cras_client_connected);
 }
