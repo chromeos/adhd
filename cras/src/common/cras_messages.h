@@ -36,9 +36,6 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_CONNECTED,
 	CRAS_CLIENT_STREAM_CONNECTED,
 	CRAS_CLIENT_STREAM_REATTACH,
-	CRAS_CLIENT_IODEV_LIST,
-	CRAS_CLIENT_VOLUME_UPDATE,
-	CRAS_CLIENT_CLIENT_LIST_UPDATE,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -237,57 +234,6 @@ static inline void cras_fill_client_stream_reattach(
 	m->header.id = CRAS_CLIENT_STREAM_REATTACH;
 	m->header.length = sizeof(struct cras_client_stream_reattach);
 }
-
-/* Informs clients of the currently list of input and output iodevs. */
-struct cras_client_iodev_list {
-	struct cras_client_message header;
-	size_t num_outputs;
-	size_t num_inputs;
-	struct cras_iodev_info iodevs[];
-};
-
-/* Informs the clients of the system volume and mute states. */
-struct cras_client_volume_status {
-	struct cras_client_message header;
-	size_t volume;
-	int muted;
-	long capture_gain;
-	int capture_muted;
-	long volume_min_dBFS;
-	long volume_max_dBFS;
-	long capture_gain_min_dBFS;
-	long capture_gain_max_dBFS;
-};
-static inline void cras_fill_client_volume_status(
-		struct cras_client_volume_status *m,
-		size_t volume,
-		int muted,
-		long capture_gain,
-		int capture_muted,
-		long volume_min_dBFS,
-		long volume_max_dBFS,
-		long capture_gain_min_dBFS,
-		long capture_gain_max_dBFS)
-{
-	m->volume = volume;
-	m->muted = !!muted;
-	m->capture_gain = capture_gain;
-	m->capture_muted = capture_muted;
-	m->volume_min_dBFS = volume_min_dBFS;
-	m->volume_max_dBFS = volume_max_dBFS;
-	m->capture_gain_min_dBFS = capture_gain_min_dBFS;
-	m->capture_gain_max_dBFS = capture_gain_max_dBFS;
-	m->header.id = CRAS_CLIENT_VOLUME_UPDATE;
-	m->header.length = sizeof(*m);
-}
-
-/* Informs a client of the list of clients attached to the server.  Used only
- * for getting information to log. */
-struct cras_client_client_list {
-	struct cras_client_message header;
-	size_t num_attached_clients;
-	struct cras_attached_client_info client_info[];
-};
 
 /*
  * Messages specific to passing audio between client and server

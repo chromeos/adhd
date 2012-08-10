@@ -403,29 +403,9 @@ void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 	}
 }
 
-/* Sends out the list of iodevs in the system and stores the list in the shared
- * memory server state region. */
 void cras_iodev_list_update_clients()
 {
-	size_t msg_size;
-	struct cras_client_iodev_list *msg;
 	struct cras_server_state *state;
-
-	msg_size = sizeof(*msg) +
-		sizeof(struct cras_iodev_info) * (outputs.size + inputs.size);
-	msg = malloc(msg_size);
-	if (msg == NULL)
-		return;
-
-	msg->num_outputs = outputs.size;
-	msg->num_inputs = inputs.size;
-	fill_dev_list(&outputs, &msg->iodevs[0], outputs.size);
-	fill_dev_list(&inputs, &msg->iodevs[outputs.size], inputs.size);
-	msg->header.length = msg_size;
-	msg->header.id = CRAS_CLIENT_IODEV_LIST;
-
-	cras_server_send_to_all_clients(&msg->header);
-	free(msg);
 
 	state = cras_system_state_update_begin();
 	if (!state)

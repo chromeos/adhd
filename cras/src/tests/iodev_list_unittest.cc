@@ -101,9 +101,6 @@ int IoDevTestSuite::add_stream_1_called_;
 int IoDevTestSuite::rm_stream_1_called_;
 int IoDevTestSuite::add_stream_2_called_;
 int IoDevTestSuite::rm_stream_2_called_;
-size_t cras_server_send_to_all_clients_called;
-size_t cras_server_send_to_all_clients_num_outputs;
-size_t cras_server_send_to_all_clients_num_inputs;
 
 // Devices with the wrong direction should be rejected.
 TEST_F(IoDevTestSuite, AddWrongDirection) {
@@ -781,13 +778,6 @@ int cras_iodev_delete_stream(struct cras_iodev *iodev,
 }
 
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream) {
-}
-
-void cras_server_send_to_all_clients(struct cras_client_message *msg) {
-  cras_client_iodev_list* cmsg = reinterpret_cast<cras_client_iodev_list*>(msg);
-  cras_server_send_to_all_clients_called++;
-  cras_server_send_to_all_clients_num_outputs = cmsg->num_outputs;
-  cras_server_send_to_all_clients_num_inputs = cmsg->num_inputs;
 }
 
 struct cras_server_state *cras_system_state_update_begin() {
