@@ -39,6 +39,32 @@ struct cras_attached_client_info {
 	gid_t gid;
 };
 
+/* The server state that is shared with clients.
+ *    state_version - Version of this structure.
+ *    volume - index from 0-100.
+ *    min_volume_dBFS - volume in dB * 100 when volume = 1.
+ *    max_volume_dBFS - volume in dB * 100 when volume = max.
+ *    mute - 0 = unmuted, 1 = muted.
+ *    capture_gain - Capture gain in dBFS * 100.
+ *    capture_mute - 0 = unmuted, 1 = muted.
+ *    min_capture_gain - Min allowed capture gain in dBFS * 100.
+ *    max_capture_gain - Max allowed capture gain in dBFS * 100.
+ *    num_streams_attached - Total number of streams since server started.
+ */
+#define CRAS_SERVER_STATE_VERSION 0
+struct cras_server_state {
+	unsigned state_version;
+	size_t volume;
+	long min_volume_dBFS;
+	long max_volume_dBFS;
+	int mute;
+	long capture_gain;
+	int capture_mute;
+	long min_capture_gain;
+	long max_capture_gain;
+	unsigned num_streams_attached;
+};
+
 /* Actions for card add/remove/change. */
 enum cras_notify_device_action { /* Must match gavd action definitions.  */
 	CRAS_DEVICE_ACTION_ADD    = 0,
