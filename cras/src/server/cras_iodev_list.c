@@ -10,6 +10,8 @@
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
+#include "cras_types.h"
+#include "cras_system_state.h"
 #include "utlist.h"
 
 /* Linked list of available devices. */
@@ -108,7 +110,8 @@ static int add_dev_to_list(struct iodev_list *list,
 			cras_iodev_remove_all_streams(last_default);
 	}
 
-	return cras_iodev_list_update_clients();
+	cras_iodev_list_update_clients();
+	return 0;
 }
 
 /* Removes a device to the list.  Used from rm_input and rm_output. */
@@ -246,7 +249,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	if (default_output == dev)
 		default_output = top_prio_dev(outputs.iodevs);
 	if (res == 0)
-		res = cras_iodev_list_update_clients();
+		cras_iodev_list_update_clients();
 	return res;
 }
 
@@ -259,7 +262,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	if (default_input == dev)
 		default_input = top_prio_dev(inputs.iodevs);
 	if (res == 0)
-		res = cras_iodev_list_update_clients();
+		cras_iodev_list_update_clients();
 	return res;
 }
 
@@ -400,17 +403,19 @@ void cras_iodev_remove_all_streams(struct cras_iodev *dev)
 	}
 }
 
-/* Sends out the list of iodevs in the system. */
-int cras_iodev_list_update_clients()
+/* Sends out the list of iodevs in the system and stores the list in the shared
+ * memory server state region. */
+void cras_iodev_list_update_clients()
 {
 	size_t msg_size;
 	struct cras_client_iodev_list *msg;
+	struct cras_server_state *state;
 
 	msg_size = sizeof(*msg) +
 		sizeof(struct cras_iodev_info) * (outputs.size + inputs.size);
 	msg = malloc(msg_size);
 	if (msg == NULL)
-		return -ENOMEM;
+		return;
 
 	msg->num_outputs = outputs.size;
 	msg->num_inputs = inputs.size;
@@ -421,5 +426,15 @@ int cras_iodev_list_update_clients()
 
 	cras_server_send_to_all_clients(&msg->header);
 	free(msg);
-	return 0;
+
+	state = cras_system_state_update_begin();
+	if (!state)
+		return;
+
+	state->num_output_devs = outputs.size;
+	state->num_input_devs = inputs.size;
+	fill_dev_list(&outputs, &state->output_devs[0], CRAS_MAX_IODEVS);
+	fill_dev_list(&inputs, &state->input_devs[0], CRAS_MAX_IODEVS);
+
+	cras_system_state_update_complete();
 }

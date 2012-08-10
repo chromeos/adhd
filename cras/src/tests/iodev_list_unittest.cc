@@ -14,6 +14,9 @@ extern "C" {
 
 namespace {
 
+struct cras_server_state server_state_stub;
+struct cras_server_state *server_state_update_begin_return;
+
 class IoDevTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
@@ -51,6 +54,8 @@ class IoDevTestSuite : public testing::Test {
       strcpy(d3_.info.name, "d3");
       d3_.supported_rates = sample_rates_;
       d3_.supported_channel_counts = channel_counts_;
+
+      server_state_update_begin_return = &server_state_stub;
     }
 
     static int add_stream_1(struct cras_iodev *iodev,
@@ -112,7 +117,7 @@ TEST_F(IoDevTestSuite, AddWrongDirection) {
 }
 
 // Two iodevs of the same priority, tie should be broken by most recently added.
-TEST_F(IoDevTestSuite, RouteMostrecentIfSamePrio) {
+TEST_F(IoDevTestSuite, RouteMostRecentIfSamePrio) {
   struct cras_iodev *default_dev;
   int rc;
 
@@ -126,6 +131,10 @@ TEST_F(IoDevTestSuite, RouteMostrecentIfSamePrio) {
   rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(d1_.info.idx + 1, d2_.info.idx);
+
+  EXPECT_EQ(2, server_state_stub.num_output_devs);
+  EXPECT_EQ(d2_.info.idx, server_state_stub.output_devs[0].idx);
+  EXPECT_EQ(d1_.info.idx, server_state_stub.output_devs[1].idx);
 
   // Same priority, should give most recently added (v2).
   default_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
@@ -308,20 +317,20 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   d1_.direction = CRAS_STREAM_INPUT;
   d2_.direction = CRAS_STREAM_INPUT;
 
-  cras_server_send_to_all_clients_called = 0;
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
   EXPECT_GE(d1_.info.idx, 0);
-  EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test can't insert same iodev twice.
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_NE(0, rc);
-  EXPECT_EQ(1, cras_server_send_to_all_clients_called);
   // Test insert a second input.
   rc = cras_iodev_list_add_input(&d2_);
   EXPECT_EQ(0, rc);
   EXPECT_GE(d2_.info.idx, 1);
-  EXPECT_EQ(2, cras_server_send_to_all_clients_called);
+  // make sure shared state was updated.
+  EXPECT_EQ(2, server_state_stub.num_input_devs);
+  EXPECT_EQ(d2_.info.idx, server_state_stub.input_devs[0].idx);
+  EXPECT_EQ(d1_.info.idx, server_state_stub.input_devs[1].idx);
 
   // List the outputs.
   rc = cras_iodev_list_get_inputs(&dev_info);
@@ -354,6 +363,29 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   // Should be 0 devs now.
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(0, rc);
+}
+
+// Test adding/removing an input dev to the list without updating the server
+// state.
+TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
+  int rc;
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  d2_.direction = CRAS_STREAM_INPUT;
+
+  server_state_update_begin_return = NULL;
+
+  rc = cras_iodev_list_add_input(&d1_);
+  EXPECT_EQ(0, rc);
+  EXPECT_GE(d1_.info.idx, 0);
+  rc = cras_iodev_list_add_input(&d2_);
+  EXPECT_EQ(0, rc);
+  EXPECT_GE(d2_.info.idx, 1);
+
+  d1_.streams = (struct cras_io_stream *)NULL;
+  d2_.streams = (struct cras_io_stream *)NULL;
+  EXPECT_EQ(0, cras_iodev_list_rm_input(&d1_));
+  EXPECT_EQ(0, cras_iodev_list_rm_input(&d2_));
 }
 
 // Test removing the last input.
@@ -756,6 +788,13 @@ void cras_server_send_to_all_clients(struct cras_client_message *msg) {
   cras_server_send_to_all_clients_called++;
   cras_server_send_to_all_clients_num_outputs = cmsg->num_outputs;
   cras_server_send_to_all_clients_num_inputs = cmsg->num_inputs;
+}
+
+struct cras_server_state *cras_system_state_update_begin() {
+  return server_state_update_begin_return;
+}
+
+void cras_system_state_update_complete() {
 }
 
 }  // extern "C"
