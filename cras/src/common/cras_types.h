@@ -42,6 +42,7 @@ struct cras_attached_client_info {
 };
 
 #define CRAS_MAX_IODEVS 20
+#define CRAS_MAX_ATTACHED_CLIENTS 20
 
 /* The server state that is shared with clients.
  *    state_version - Version of this structure.
@@ -58,6 +59,8 @@ struct cras_attached_client_info {
  *    num_input_devs - Number of available input devices.
  *    output_devs - Output audio devices currently attached.
  *    input_devs - Input audio devices currently attached.
+ *    num_attached_clients - Number of clients attached to server.
+ *    client_info - List of first 20 attached clients.
  *    update_count - Incremented twice each time the struct is updated.  Odd
  *        during updates.
  */
@@ -77,6 +80,8 @@ struct cras_server_state {
 	unsigned num_input_devs;
 	struct cras_iodev_info output_devs[CRAS_MAX_IODEVS];
 	struct cras_iodev_info input_devs[CRAS_MAX_IODEVS];
+	unsigned num_attached_clients;
+	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
 	unsigned update_count;
 };
 

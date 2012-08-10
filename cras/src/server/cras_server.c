@@ -117,35 +117,34 @@ static void fill_client_info(struct attached_client *client)
 		syslog(LOG_ERR, "Failed to get client socket info\n");
 }
 
-/* Sends the current list of clients to all other attached clients. */
-static int send_client_list_to_clients(struct server_data *serv)
+/* Fills the server_state with the current list of attached clients. */
+static void send_client_list_to_clients(struct server_data *serv)
 {
-	size_t msg_size;
-	struct cras_client_client_list *msg;
 	struct attached_client *c;
 	struct cras_attached_client_info *info;
+	struct cras_server_state *state;
+	unsigned i;
 
-	msg_size = sizeof(*msg) +
-			sizeof(msg->client_info[0]) * serv->num_clients;
-	msg = malloc(msg_size);
-	if (msg == NULL)
-		return -ENOMEM;
+	state = cras_system_state_update_begin();
+	if (!state)
+		return;
 
-	msg->num_attached_clients = serv->num_clients;
-	msg->header.length = msg_size;
-	msg->header.id = CRAS_CLIENT_CLIENT_LIST_UPDATE;
-	info = msg->client_info;
+	state->num_attached_clients =
+		min(CRAS_MAX_ATTACHED_CLIENTS, serv->num_clients);
+
+	info = state->client_info;
+	i = 0;
 	DL_FOREACH(serv->clients_head, c) {
 		info->id = c->id;
 		info->pid = c->ucred.pid;
 		info->uid = c->ucred.uid;
 		info->gid = c->ucred.gid;
 		info++;
+		if (++i == CRAS_MAX_ATTACHED_CLIENTS)
+			break;
 	}
 
-	cras_server_send_to_all_clients(&msg->header);
-	free(msg);
-	return 0;
+	cras_system_state_update_complete();
 }
 
 /* Handles requests from a client to attach to the server.  Create a local
