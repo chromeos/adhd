@@ -1584,4 +1584,8 @@ struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
   return NULL;
 }
 
+int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
+  return 0;
+}
+
 }

@@ -19,6 +19,7 @@
 #include "cras_alsa_io.h"
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
+#include "cras_alsa_ucm.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -1044,6 +1045,13 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	if (arg == NULL)
 		return;
 	aio = (struct alsa_io *)arg;
+
+	/* TODO - This assumes that all input jacks mean a headset is attached.
+	 * While currently true, moving forward there needs to be a better way
+	 * to map a jack to a ucm device.
+	 */
+	if (aio->ucm)
+		ucm_set_enabled(aio->ucm, "Headset", plugged);
 
 	syslog(LOG_DEBUG, "Move input streams due to plug event.");
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
