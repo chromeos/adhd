@@ -19,6 +19,9 @@ static unsigned snd_use_case_mgr_open_called;
 static unsigned snd_use_case_mgr_close_called;
 static int snd_use_case_set_return;
 static unsigned snd_use_case_set_called;
+static const char **fake_list;
+static unsigned fake_list_size;
+static unsigned snd_use_case_free_list_called;
 
 static void ResetStubData() {
   snd_use_case_mgr_open_called = 0;
@@ -26,6 +29,7 @@ static void ResetStubData() {
   snd_use_case_mgr_close_called = 0;
   snd_use_case_set_return = 0;
   snd_use_case_set_called = 0;
+  snd_use_case_free_list_called = 0;
 }
 
 TEST(AlsaUcm, CreateFailInvalidCard) {
@@ -66,6 +70,39 @@ TEST(AlsaUcm, CreateSuccess) {
   EXPECT_EQ(1, snd_use_case_mgr_close_called);
 }
 
+TEST(AlsaUcm, CheckEnabledEmptyList) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  fake_list = NULL;
+  fake_list_size = 0;
+
+  ResetStubData();
+
+  EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 0));
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 1));
+  EXPECT_EQ(1, snd_use_case_set_called);
+
+  EXPECT_EQ(0, snd_use_case_free_list_called);
+}
+
+TEST(AlsaUcm, CheckEnabledAlready) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *enabled[] = { "Dev2", "Dev1" };
+  fake_list = enabled;
+  fake_list_size = 2;
+
+  ResetStubData();
+
+  EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 1));
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 0));
+  EXPECT_EQ(1, snd_use_case_set_called);
+
+  EXPECT_EQ(2, snd_use_case_free_list_called);
+}
+
 /* Stubs */
 
 extern "C" {
@@ -86,6 +123,18 @@ int snd_use_case_set(snd_use_case_mgr_t* uc_mgr,
                      const char *value) {
   snd_use_case_set_called++;
   return snd_use_case_set_return;;
+}
+
+int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
+                          const char *identifier,
+                          const char **list[]) {
+  *list = fake_list;
+  return fake_list_size;
+}
+
+int snd_use_case_free_list(const char *list[], int items) {
+  snd_use_case_free_list_called++;
+  return 0;
 }
 
 } /* extern "C" */

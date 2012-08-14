@@ -34,4 +34,15 @@ snd_use_case_mgr_t *ucm_create(const char *name);
  */
 void ucm_destroy(snd_use_case_mgr_t *mgr);
 
+/* Enables or disables a UCM device.  First checks if the device is already
+ * enabled or disabled.
+ * Args:
+ *    alsa_ucm - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The ucm device to enable of disable.
+ *    enable - Enable device if non-zero.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable);
+
 #endif /* _CRAS_ALSA_UCM_H */
