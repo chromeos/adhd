@@ -51,7 +51,8 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	fmt_conv_unittest shm_unittest mix_unittest alsa_io_unittest \
 	rclient_unittest system_state_unittest volume_curve_unittest \
 	alsa_card_unittest alsa_mixer_unittest iodev_unittest \
-	alsa_jack_unittest card_config_unittest device_blacklist_unittest
+	alsa_jack_unittest card_config_unittest device_blacklist_unittest \
+	alsa_ucm_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -138,6 +139,13 @@ alsa_mixer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/server/config
 alsa_mixer_unittest_LDADD = -lgtest
 
+alsa_ucm_unittest_SOURCES = tests/alsa_ucm_unittest.cc \
+	server/cras_alsa_ucm.c
+alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_builddir)/src/common \
+	-I$(top_builddir)/src/server \
+	-I$(top_builddir)/src/server/config
+alsa_ucm_unittest_LDADD = -lgtest
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
 	server/cras_iodev.c
 iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
