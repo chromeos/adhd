@@ -4,10 +4,12 @@
  */
 
 #include <alsa/asoundlib.h>
+#include <alsa/use-case.h>
 #include <syslog.h>
 
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
+#include "cras_alsa_ucm.h"
 #include "cras_device_blacklist.h"
 #include "cras_card_config.h"
 #include "cras_config.h"
@@ -31,6 +33,7 @@ struct iodev_list_node {
  * card_index - 0 based index, value of "XX" in the name.
  * iodevs - Input and output devices for this card.
  * mixer - Controls the mixer controls for this card.
+ * ucm - ALSA use case manager if available.
  * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_card {
@@ -38,6 +41,7 @@ struct cras_alsa_card {
 	size_t card_index;
 	struct iodev_list_node *iodevs;
 	struct cras_alsa_mixer *mixer;
+	snd_use_case_mgr_t *ucm;
 	struct cras_card_config *config;
 };
 
@@ -93,6 +97,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 					   card_name,
 					   device_index,
 					   alsa_card->mixer,
+					   alsa_card->ucm,
 					   priority,
 					   direction);
 	if (new_dev->iodev == NULL) {
@@ -199,6 +204,9 @@ struct cras_alsa_card *cras_alsa_card_create(
 		goto error_bail;
 	}
 
+	/* Create a use case manager if a configuration is available. */
+	alsa_card->ucm = ucm_create(card_name);
+
 	dev_idx = -1;
 	while (1) {
 		snd_ctl_pcm_next_device(handle, &dev_idx);
@@ -234,6 +242,8 @@ struct cras_alsa_card *cras_alsa_card_create(
 error_bail:
 	if (handle != NULL)
 		snd_ctl_close(handle);
+	if (alsa_card->ucm)
+		ucm_destroy(alsa_card->ucm);
 	if (alsa_card->mixer)
 		cras_alsa_mixer_destroy(alsa_card->mixer);
 	if (alsa_card->config)
@@ -254,6 +264,8 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 		DL_DELETE(alsa_card->iodevs, curr);
 		free(curr);
 	}
+	if (alsa_card->ucm)
+		ucm_destroy(alsa_card->ucm);
 	cras_alsa_mixer_destroy(alsa_card->mixer);
 	if (alsa_card->config)
 		cras_card_config_destroy(alsa_card->config);

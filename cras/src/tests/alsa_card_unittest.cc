@@ -48,6 +48,8 @@ static struct cras_device_blacklist *fake_blacklist;
 static int cras_device_blacklist_check_retval;
 static unsigned cras_iodev_plug_event_called;
 static unsigned cras_iodev_plug_event_plugged_value;
+static unsigned ucm_create_called;
+static unsigned ucm_destroy_called;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -74,6 +76,8 @@ static void ResetStubData() {
   fake_blacklist = reinterpret_cast<struct cras_device_blacklist *>(3);
   cras_device_blacklist_check_retval = 0;
   cras_iodev_plug_event_called = 0;
+  ucm_create_called = 0;
+  ucm_destroy_called = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -178,8 +182,10 @@ TEST(AlsaCard, CreateOneOutput) {
   // Should assume USB devs are plugged when they appear.
   EXPECT_EQ(1, cras_iodev_plug_event_called);
   EXPECT_EQ(1, cras_iodev_plug_event_plugged_value);
+  EXPECT_EQ(1, ucm_create_called);
 
   cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, ucm_destroy_called);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
@@ -346,6 +352,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
 				     struct cras_alsa_mixer *mixer,
+				     snd_use_case_mgr_t *ucm,
 				     size_t priority,
 				     enum CRAS_STREAM_DIRECTION direction) {
   cras_alsa_iodev_create_called++;
@@ -450,6 +457,15 @@ void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged) {
 int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
                                          enum CRAS_STREAM_DIRECTION direction) {
 	return 0;
+}
+
+snd_use_case_mgr_t* ucm_create(const char* name) {
+  ucm_create_called++;
+  return reinterpret_cast<snd_use_case_mgr_t*>(0x44);
+}
+
+void ucm_destroy(snd_use_case_mgr_t* mgr) {
+  ucm_destroy_called++;
 }
 
 } /* extern "C" */
