@@ -1594,7 +1594,7 @@ int cras_client_stop(struct cras_client *client)
 	return 0;
 }
 
-int cras_client_get_output_devices(struct cras_client *client,
+int cras_client_get_output_devices(const struct cras_client *client,
 				   struct cras_iodev_info *devs,
 				   size_t max_devs)
 {
@@ -1617,7 +1617,7 @@ read_outputs_again:
 	return num_devs;
 }
 
-int cras_client_get_input_devices(struct cras_client *client,
+int cras_client_get_input_devices(const struct cras_client *client,
 				  struct cras_iodev_info *devs,
 				  size_t max_devs)
 {
@@ -1640,7 +1640,7 @@ read_inputs_again:
 	return num_devs;
 }
 
-int cras_client_get_attached_clients(struct cras_client *client,
+int cras_client_get_attached_clients(const struct cras_client *client,
 				     struct cras_attached_client_info *clients,
 				     size_t max_clients)
 {

@@ -106,7 +106,7 @@ int cras_client_stop(struct cras_client *client);
  *    in, this indicates that all of the iodev_info wouldn't fit in the provided
  *    array.
  */
-int cras_client_get_output_devices(struct cras_client *client,
+int cras_client_get_output_devices(const struct cras_client *client,
 				   struct cras_iodev_info *devs,
 				   size_t max_devs);
 
@@ -120,7 +120,7 @@ int cras_client_get_output_devices(struct cras_client *client,
  *    in, this indicates that all of the iodev_info wouldn't fit in the provided
  *    array.
  */
-int cras_client_get_input_devices(struct cras_client *client,
+int cras_client_get_input_devices(const struct cras_client *client,
 				  struct cras_iodev_info *devs,
 				  size_t max_devs);
 
@@ -134,7 +134,7 @@ int cras_client_get_input_devices(struct cras_client *client,
  *    in, this indicates that all of the clients wouldn't fit in the provided
  *    array.
  */
-int cras_client_get_attached_clients(struct cras_client *client,
+int cras_client_get_attached_clients(const struct cras_client *client,
 				     struct cras_attached_client_info *clients,
 				     size_t max_clients);
 
