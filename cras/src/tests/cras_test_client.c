@@ -120,12 +120,13 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 {
 	unsigned i;
 
-	printf("\tID\tPriority\tName\n");
-	for (i = 0; i < num_devs; i++, devs++)
-		printf("\t%zu\t%zu\t\t%s\n",
-		       devs->idx,
-		       devs->priority,
-		       devs->name);
+	printf("\tID\tPriority\tPlugged\t\tName\n");
+	for (i = 0; i < num_devs; i++)
+		printf("\t%zu\t%zu\t\t%s\t\t%s\n",
+		       devs[i].idx,
+		       devs[i].priority,
+		       devs[i].plugged ? "yes" : "no",
+		       devs[i].name);
 }
 
 static void print_device_lists(struct cras_client *client)
