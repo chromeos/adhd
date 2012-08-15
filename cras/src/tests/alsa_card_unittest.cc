@@ -351,6 +351,7 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer) {
 struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
+				     const char *dev_name,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
 				     size_t priority,

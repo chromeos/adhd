@@ -1062,14 +1062,15 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
  * combined with the device index and direction */
 static void set_iodev_name(struct cras_iodev *dev,
 			   const char *card_name,
+			   const char *dev_name,
 			   size_t card_index,
 			   size_t device_index)
 {
 	snprintf(dev->info.name,
 		 sizeof(dev->info.name),
-		 "%s: Alsa %s:%zu,%zu",
+		 "%s: %s:%zu,%zu",
 		 card_name,
-		 (dev->direction == CRAS_STREAM_OUTPUT) ? "playback" : "record",
+		 dev_name,
 		 card_index,
 		 device_index);
 	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
@@ -1083,6 +1084,7 @@ static void set_iodev_name(struct cras_iodev *dev,
 struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
+				     const char *dev_name,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
 				     size_t prio,
@@ -1129,7 +1131,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	aio->mixer = mixer;
 	aio->ucm = ucm;
-	set_iodev_name(iodev, card_name, card_index, device_index);
+	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
 	iodev->info.priority = prio;
 
 	if (direction == CRAS_STREAM_INPUT)

@@ -19,6 +19,7 @@ struct cras_alsa_mixer_output;
  *    card_index - 0 based index, value of "XX" in "hw:XX,YY".
  *    card_name - The name of the card.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
+ *    dev_name - The name of the device.
  *    mixer - The mixer for the alsa device.
  *    ucm - ALSA use case manager if available.
  *    priority - The priority to give this device when choose a playback or
@@ -30,6 +31,7 @@ struct cras_alsa_mixer_output;
 struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
+				     const char *dev_name,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
 				     size_t priority,

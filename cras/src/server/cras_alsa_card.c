@@ -63,12 +63,14 @@ int is_first_dev(struct cras_alsa_card *alsa_card,
  *    alsa_card - the alsa_card the device will be added to.
  *    info - Information about the card type and priority.
  *    card_name - The name of the card.
+ *    dev_name - The name of the device.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    direction - Input or output.
  */
 void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 			     struct cras_alsa_card_info *info,
 			     const char *card_name,
+			     const char *dev_name,
 			     unsigned device_index,
 			     enum CRAS_STREAM_DIRECTION direction)
 {
@@ -96,6 +98,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 	new_dev->iodev = alsa_iodev_create(info->card_index,
 					   card_name,
 					   device_index,
+					   dev_name,
 					   alsa_card->mixer,
 					   alsa_card->ucm,
 					   priority,
@@ -223,6 +226,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 			create_iodev_for_device(alsa_card,
 						info,
 						card_name,
+						snd_pcm_info_get_name(dev_info),
 						dev_idx,
 						CRAS_STREAM_OUTPUT);
 
@@ -232,6 +236,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 			create_iodev_for_device(alsa_card,
 						info,
 						card_name,
+						snd_pcm_info_get_name(dev_info),
 						dev_idx,
 						CRAS_STREAM_INPUT);
 	}
