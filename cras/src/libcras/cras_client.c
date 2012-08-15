@@ -1663,6 +1663,37 @@ read_clients_again:
 	return num;
 }
 
+int cras_client_output_dev_plugged(const struct cras_client *client,
+				   const char *name)
+{
+	int ndevs;
+	struct cras_iodev_info *devs, *curr_dev;
+	int plugged = 0;
+	unsigned i;
+
+	if (!client || !name)
+		return 0;
+
+	devs = malloc(CRAS_MAX_IODEVS * sizeof(*devs));
+	if (!devs)
+		return 0;
+
+	ndevs = cras_client_get_output_devices(client, devs, CRAS_MAX_IODEVS);
+	if (ndevs < 0)
+		goto free_devs;
+
+	curr_dev = devs;
+	for (i = 0; i < ndevs; i++, curr_dev++)
+		if (!strncmp(name, curr_dev->name, strlen(name))) {
+			plugged = curr_dev->plugged;
+			break;
+		}
+
+free_devs:
+	free(devs);
+	return plugged;
+}
+
 int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)
 {
 	if (fmt == NULL)

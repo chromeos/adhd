@@ -418,6 +418,14 @@ static void print_server_info(struct cras_client *client)
 	print_attached_client_list(client);
 }
 
+static void check_output_plugged(struct cras_client *client, const char *name)
+{
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client); /* To synchronize data. */
+	printf("%s\n",
+	       cras_client_output_dev_plugged(client, name) ? "Yes" : "No");
+}
+
 static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"write_full_frames",	no_argument, &full_frames, 1},
@@ -433,6 +441,7 @@ static struct option long_options[] = {
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"volume",              required_argument,      0, 'v'},
 	{"capture_gain",        required_argument,      0, 'g'},
+	{"check_output_plugged",required_argument,      0, 'j'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
@@ -454,6 +463,7 @@ static void show_usage()
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
 	printf("--volume <0-100> - Set system output volume.\n");
 	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
+	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--help - Print this message.\n");
 }
@@ -549,6 +559,9 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
+		case 'j':
+			check_output_plugged(client, optarg);
+			break;
 		case 'i':
 			print_server_info(client);
 			break;

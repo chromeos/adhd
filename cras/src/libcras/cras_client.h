@@ -138,6 +138,20 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 				     struct cras_attached_client_info *clients,
 				     size_t max_clients);
 
+/* Checks if the output device with the given name is currently plugged in.  For
+ * internal devices this checks that jack state, for USB devices this will
+ * always be true if they are present.  The name parameter can be the
+ * complete name or any unique prefix of the name.  If the name is not unique
+ * the first matching name will be checked.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    name - Name of the device to check.
+ * Returns:
+ *    1 if the device exists and is plugged, 0 otherwise.
+ */
+int cras_client_output_dev_plugged(const struct cras_client *client,
+				   const char *name);
+
 /*
  * Stream handling.
  */
