@@ -116,28 +116,33 @@ static void print_last_latency()
 	       (unsigned)last_latency.tv_nsec);
 }
 
+static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
+{
+	unsigned i;
+
+	printf("\tID\tPriority\tName\n");
+	for (i = 0; i < num_devs; i++, devs++)
+		printf("\t%zu\t%zu\t\t%s\n",
+		       devs->idx,
+		       devs->priority,
+		       devs->name);
+}
+
 static void print_device_lists(struct cras_client *client)
 {
 	struct cras_iodev_info devs[MAX_IODEVS];
-	size_t i;
 	int num_devs;
 
 	num_devs = cras_client_get_output_devices(client, devs, MAX_IODEVS);
 	if (num_devs < 0)
 		return;
 	printf("Output Devices:\n");
-	printf("\tID\tPriority\tName\n");
-	for (i = 0; i < num_devs; i++)
-		printf("\t%zu\t%zu\t\t%s\n", devs[i].idx,
-		       devs[i].priority, devs[i].name);
+	print_dev_info(devs, num_devs);
 	num_devs = cras_client_get_input_devices(client, devs, MAX_IODEVS);
 	if (num_devs < 0)
 		return;
 	printf("Input Devices:\n");
-	printf("\tID\tPriority\tName\n");
-	for (i = 0; i < num_devs; i++)
-		printf("\t%zu\t%zu\t\t%s\n", devs[i].idx,
-		       devs[i].priority, devs[i].name);
+	print_dev_info(devs, num_devs);
 }
 
 static void print_attached_client_list(struct cras_client *client)
