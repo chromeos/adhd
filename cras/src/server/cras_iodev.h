@@ -44,8 +44,6 @@ struct cras_io_stream {
  * to_thread_fds - Send a message from main to running thread.
  * to_main_fds - Send a message to main from running thread.
  * tid - Thread ID of the running playback/capture thread.
- * plugged - Set true if this device is known to be plugged in.
- * plugged_time - If plugged is true, this is the time it was attached.
  */
 struct cras_iodev {
 	int (*add_stream)(struct cras_iodev *iodev,
@@ -64,8 +62,6 @@ struct cras_iodev {
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	pthread_t tid;
-	int plugged;
-	struct timeval plugged_time;
 	struct cras_iodev *prev, *next;
 };
 
@@ -241,27 +237,27 @@ void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged);
  */
 static inline int cras_iodev_is_plugged_in(const struct cras_iodev *iodev)
 {
-	return iodev->plugged;
+	return iodev->info.plugged;
 }
 
 /* Returns the last time that an iodev had a plug attached event. */
 static inline struct timeval cras_iodev_last_plugged_time(
 		struct cras_iodev *iodev)
 {
-	return iodev->plugged_time;
+	return iodev->info.plugged_time;
 }
 
 /* Returns true if a was plugged more recently than b. */
 static inline int cras_iodev_plugged_more_recently(const struct cras_iodev *a,
 						   const struct cras_iodev *b)
 {
-	if (!a->plugged)
+	if (!a->info.plugged)
 		return 0;
-	if (!b->plugged)
+	if (!b->info.plugged)
 		return 1;
-	return (a->plugged_time.tv_sec > b->plugged_time.tv_sec ||
-		(a->plugged_time.tv_sec == b->plugged_time.tv_sec &&
-		 a->plugged_time.tv_usec > b->plugged_time.tv_usec));
+	return (a->info.plugged_time.tv_sec > b->info.plugged_time.tv_sec ||
+		(a->info.plugged_time.tv_sec == b->info.plugged_time.tv_sec &&
+		 a->info.plugged_time.tv_usec > b->info.plugged_time.tv_usec));
 }
 
 #endif /* CRAS_IODEV_H_ */

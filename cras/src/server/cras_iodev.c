@@ -296,6 +296,6 @@ void cras_iodev_config_params_for_streams(struct cras_iodev *iodev)
 void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged)
 {
 	if (plugged)
-		gettimeofday(&iodev->plugged_time, NULL);
-	iodev->plugged = plugged;
+		gettimeofday(&iodev->info.plugged_time, NULL);
+	iodev->info.plugged = plugged;
 }

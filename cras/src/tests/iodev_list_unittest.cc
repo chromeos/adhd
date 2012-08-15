@@ -32,7 +32,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
-      d1_.plugged = 0;
+      d1_.info.plugged = 0;
       strcpy(d1_.info.name, "d1");
       d1_.supported_rates = sample_rates_;
       d1_.supported_channel_counts = channel_counts_;
@@ -41,7 +41,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
-      d2_.plugged = 0;
+      d2_.info.plugged = 0;
       strcpy(d2_.info.name, "d2");
       d2_.supported_rates = sample_rates_;
       d2_.supported_channel_counts = channel_counts_;
@@ -50,7 +50,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
-      d3_.plugged = 0;
+      d3_.info.plugged = 0;
       strcpy(d3_.info.name, "d3");
       d3_.supported_rates = sample_rates_;
       d3_.supported_channel_counts = channel_counts_;
@@ -467,7 +467,7 @@ TEST_F(IoDevTestSuite, OnePluggedOutputPriority) {
 
   d1_.info.priority = 100;
   d2_.info.priority = 10;
-  d2_.plugged = 1;
+  d2_.info.plugged = 1;
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
@@ -494,12 +494,12 @@ TEST_F(IoDevTestSuite, PluggedOutputPriority) {
   d2_.info.priority = 100;
 
   // Set device 1 as plugged more recently than device 2, should route to d1.
-  d1_.plugged = 1;
-  d1_.plugged_time.tv_sec = 500;
-  d1_.plugged_time.tv_usec = 540;
-  d2_.plugged = 1;
-  d2_.plugged_time.tv_sec = 500;
-  d2_.plugged_time.tv_usec = 500;
+  d1_.info.plugged = 1;
+  d1_.info.plugged_time.tv_sec = 500;
+  d1_.info.plugged_time.tv_usec = 540;
+  d2_.info.plugged = 1;
+  d2_.info.plugged_time.tv_sec = 500;
+  d2_.info.plugged_time.tv_usec = 500;
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
@@ -511,12 +511,12 @@ TEST_F(IoDevTestSuite, PluggedOutputPriority) {
   EXPECT_EQ(&d1_, ret_dev);
 
   // Set device 2 as plugged more recently than device 1, should route to d2.
-  d1_.plugged = 1;
-  d1_.plugged_time.tv_sec = 500;
-  d1_.plugged_time.tv_usec = 500;
-  d2_.plugged = 1;
-  d2_.plugged_time.tv_sec = 550;
-  d2_.plugged_time.tv_usec = 400;
+  d1_.info.plugged = 1;
+  d1_.info.plugged_time.tv_sec = 500;
+  d1_.info.plugged_time.tv_usec = 500;
+  d2_.info.plugged = 1;
+  d2_.info.plugged_time.tv_sec = 550;
+  d2_.info.plugged_time.tv_usec = 400;
   cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
                                        CRAS_STREAM_OUTPUT);
   ret_dev = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
@@ -538,12 +538,12 @@ TEST_F(IoDevTestSuite, PluggedOutputPriorityDifferentPrioAndTimes) {
   d2_.info.priority = 100;
 
   // Set device 1 as plugged more recently than device 2.
-  d1_.plugged = 1;
-  d1_.plugged_time.tv_sec = 500;
-  d1_.plugged_time.tv_usec = 540;
-  d2_.plugged = 1;
-  d2_.plugged_time.tv_sec = 500;
-  d2_.plugged_time.tv_usec = 500;
+  d1_.info.plugged = 1;
+  d1_.info.plugged_time.tv_sec = 500;
+  d1_.info.plugged_time.tv_usec = 540;
+  d2_.info.plugged = 1;
+  d2_.info.plugged_time.tv_sec = 500;
+  d2_.info.plugged_time.tv_usec = 500;
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
