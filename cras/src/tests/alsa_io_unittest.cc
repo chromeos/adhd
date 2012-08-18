@@ -56,13 +56,13 @@ static size_t alsa_mixer_set_capture_dBFS_called;
 static int alsa_mixer_set_capture_dBFS_value;
 static size_t cras_alsa_mixer_list_outputs_called;
 static size_t cras_alsa_mixer_list_outputs_device_value;
-static cras_system_volume_changed_cb sys_register_volume_cb_value;
+static cras_system_state_changed_cb sys_register_volume_cb_value;
 static void * sys_register_volume_cb_arg;
 static size_t sys_register_volume_cb_called;
 static size_t sys_remove_volume_cb_called;
 static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
-static cras_system_volume_changed_cb sys_register_capture_gain_cb_value;
+static cras_system_state_changed_cb sys_register_capture_gain_cb_value;
 static void * sys_register_capture_gain_cb_arg;
 static size_t sys_register_capture_gain_cb_called;
 static size_t sys_remove_capture_gain_cb_called;
@@ -71,10 +71,10 @@ static long sys_get_capture_gain_return_value;
 static size_t alsa_mixer_set_mute_called;
 static int alsa_mixer_set_mute_value;
 static const struct cras_alsa_mixer_output *alsa_mixer_set_mute_output;
-static cras_system_volume_changed_cb sys_register_mute_cb_value;
+static cras_system_state_changed_cb sys_register_mute_cb_value;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
-static cras_system_volume_changed_cb sys_register_capture_mute_cb_value;
+static cras_system_state_changed_cb sys_register_capture_mute_cb_value;
 static void * sys_register_mute_cb_arg;
 static size_t sys_register_mute_cb_called;
 static size_t sys_remove_mute_cb_called;
@@ -1375,7 +1375,7 @@ size_t cras_system_get_volume()
   return sys_get_volume_return_value;
 }
 
-int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_register_volume_changed_cb(cras_system_state_changed_cb cb,
 					   void *arg)
 {
   sys_register_volume_cb_called++;
@@ -1384,7 +1384,7 @@ int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
   return 0;
 }
 
-int cras_system_remove_volume_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_volume_changed_cb(cras_system_state_changed_cb cb,
 					 void *arg)
 {
   sys_remove_volume_cb_called++;
@@ -1398,7 +1398,7 @@ long cras_system_get_capture_gain()
 }
 
 int cras_system_register_capture_gain_changed_cb(
-    cras_system_volume_changed_cb cb, void *arg)
+    cras_system_state_changed_cb cb, void *arg)
 {
   sys_register_capture_gain_cb_called++;
   sys_register_capture_gain_cb_value = cb;
@@ -1407,7 +1407,7 @@ int cras_system_register_capture_gain_changed_cb(
 }
 
 int cras_system_remove_capture_gain_changed_cb(
-    cras_system_volume_changed_cb cb, void *arg)
+    cras_system_state_changed_cb cb, void *arg)
 {
   sys_remove_capture_gain_cb_called++;
   return 0;
@@ -1419,7 +1419,7 @@ int cras_system_get_mute()
   return sys_get_mute_return_value;
 }
 
-int cras_system_register_mute_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
 					 void *arg)
 {
   sys_register_mute_cb_called++;
@@ -1428,7 +1428,7 @@ int cras_system_register_mute_changed_cb(cras_system_volume_changed_cb cb,
   return 0;
 }
 
-int cras_system_remove_mute_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
 				       void *arg)
 {
   sys_remove_mute_cb_called++;
@@ -1442,7 +1442,7 @@ int cras_system_get_capture_mute()
 }
 
 int cras_system_register_capture_mute_changed_cb(
-    cras_system_volume_changed_cb cb, void *arg)
+    cras_system_state_changed_cb cb, void *arg)
 {
   sys_register_capture_mute_cb_called++;
   sys_register_capture_mute_cb_value = cb;
@@ -1450,7 +1450,7 @@ int cras_system_register_capture_mute_changed_cb(
   return 0;
 }
 
-int cras_system_remove_capture_mute_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
                                                void *arg)
 {
   sys_remove_capture_mute_cb_called++;

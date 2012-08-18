@@ -28,7 +28,7 @@
 
 /* Callback functions to be notified when settings change. data is a user
  * provided argument that will be passed back. */
-typedef void (*cras_system_volume_changed_cb)(void *data);
+typedef void (*cras_system_state_changed_cb)(void *data);
 
 /* Initialize system settings. */
 void cras_system_state_init();
@@ -44,7 +44,7 @@ size_t cras_system_get_volume();
  *    cb - Function to call when volume changes.
  *    arg - Value to pass back to callback.
  */
-int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_register_volume_changed_cb(cras_system_state_changed_cb cb,
 					   void *arg);
 
 /* Removes a callback to call when the volume changes.  Only removes the entry
@@ -53,7 +53,7 @@ int cras_system_register_volume_changed_cb(cras_system_volume_changed_cb cb,
  *    cb - Function to call when volume changes.
  *    arg - Value to passed back to callback.
  */
-int cras_system_remove_volume_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_volume_changed_cb(cras_system_state_changed_cb cb,
 					 void *arg);
 
 /* Sets the system capture volume.  Will be applied by the active device. */
@@ -67,7 +67,7 @@ long cras_system_get_capture_gain();
  *    arg - Value to pass back to callback.
  */
 int cras_system_register_capture_gain_changed_cb(
-		cras_system_volume_changed_cb cb, void *arg);
+		cras_system_state_changed_cb cb, void *arg);
 
 /* Removes a callback to call when the capture volume changes.  Only removes the
  * entry if both cb and arg match the values passed to the register function.
@@ -75,7 +75,7 @@ int cras_system_register_capture_gain_changed_cb(
  *    cb - Function to call when capture volume changes.
  *    arg - Value to passed back to callback.
  */
-int cras_system_remove_capture_gain_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_capture_gain_changed_cb(cras_system_state_changed_cb cb,
 					       void *arg);
 
 /* Sets if the system is muted or not. */
@@ -88,7 +88,7 @@ int cras_system_get_mute();
  *    cb - Function to call when mute state changes.
  *    arg - Value to pass back to callback.
  */
-int cras_system_register_mute_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
 					 void *arg);
 
 /* Removes a callback to call when the mute state changes.  Only removes the
@@ -97,7 +97,7 @@ int cras_system_register_mute_changed_cb(cras_system_volume_changed_cb cb,
  *    cb - Function to call when volume changes.
  *    arg - Value to passed back to callback.
  */
-int cras_system_remove_mute_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
 				       void *arg);
 
 /* Sets if the system capture path is muted or not. */
@@ -111,7 +111,7 @@ int cras_system_get_capture_mute();
  *    arg - Value to pass back to callback.
  */
 int cras_system_register_capture_mute_changed_cb(
-		cras_system_volume_changed_cb cb, void *arg);
+		cras_system_state_changed_cb cb, void *arg);
 
 /* Removes a callback to call when the capture mute state changes.  Only removes
  * the entry if both cb and arg match the values passed to the register
@@ -120,7 +120,7 @@ int cras_system_register_capture_mute_changed_cb(
  *    cb - Function to call when volume changes.
  *    arg - Value to passed back to callback.
  */
-int cras_system_remove_capture_mute_changed_cb(cras_system_volume_changed_cb cb,
+int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
 					       void *arg);
 
 /* Sets the value in dB of the MAX and MIN volume settings.  This will allow
@@ -142,7 +142,7 @@ long cras_system_get_max_volume();
  *    arg - Value to pass back to callback.
  */
 int cras_system_register_volume_limits_changed_cb(
-		cras_system_volume_changed_cb cb, void *arg);
+		cras_system_state_changed_cb cb, void *arg);
 
 /* Removes a callback to call when the volume limits change.  Only removes
  * the entry if both cb and arg match the values passed to the register
@@ -152,7 +152,7 @@ int cras_system_register_volume_limits_changed_cb(
  *    arg - Value to passed back to callback.
  */
 int cras_system_remove_volume_limits_changed_cb(
-		cras_system_volume_changed_cb cb, void *arg);
+		cras_system_state_changed_cb cb, void *arg);
 
 /* Sets the limits in dB * 100 of the MAX and MIN capture gain.  This will allow
  * clients to query what range of control is available.  Both arguments are
