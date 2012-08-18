@@ -142,6 +142,18 @@ static int open_alsa(struct alsa_io *aio)
 	return 0;
 }
 
+/* Close down alsa. This happens when all threads are removed or when there is
+ * an error with the device.
+ */
+static void close_alsa(struct alsa_io *aio)
+{
+	cras_alsa_pcm_drain(aio->handle);
+	cras_alsa_pcm_close(aio->handle);
+	aio->handle = NULL;
+	free(aio->base.format);
+	aio->base.format = NULL;
+}
+
 /* Gets the curve for the active output. */
 static const struct cras_volume_curve *get_curve_for_active_output(
 		const struct alsa_io *aio)
@@ -291,11 +303,7 @@ static int thread_remove_stream(struct alsa_io *aio,
 			cras_system_remove_capture_mute_changed_cb(
 					set_alsa_capture_gain, aio);
 		}
-		cras_alsa_pcm_drain(aio->handle);
-		cras_alsa_pcm_close(aio->handle);
-		aio->handle = NULL;
-		free(aio->base.format);
-		aio->base.format = NULL;
+		close_alsa(aio);
 	} else {
 		cras_iodev_config_params_for_streams(&aio->base);
 		syslog(LOG_DEBUG,
