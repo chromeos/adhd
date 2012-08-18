@@ -66,44 +66,44 @@ card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 card_config_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common -I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
-card_config_unittest_LDADD = -lgtest -liniparser
+card_config_unittest_LDADD = -lgtest -liniparser -lpthread
 
 device_blacklist_unittest_SOURCES = tests/device_blacklist_unittest.cc \
 	server/config/cras_device_blacklist.c
 device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common -I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
-device_blacklist_unittest_LDADD = -lgtest -liniparser
+device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
 mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
 mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
-mix_unittest_LDADD = -lgtest
+mix_unittest_LDADD = -lgtest -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c
 iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
-iodev_list_unittest_LDADD = -lgtest
+iodev_list_unittest_LDADD = -lgtest -lpthread
 
 rclient_unittest_SOURCES = tests/rclient_unittest.cc server/cras_rclient.c
 rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
-rclient_unittest_LDADD = -lgtest
+rclient_unittest_LDADD = -lgtest -lpthread
 
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
-rstream_unittest_LDADD = -lasound -lgtest
+rstream_unittest_LDADD = -lasound -lgtest -lpthread
 
 fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc common/cras_fmt_conv.c
 fmt_conv_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
-fmt_conv_unittest_LDADD = -lasound -lspeexdsp -lgtest
+fmt_conv_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
 
 shm_unittest_SOURCES = tests/shm_unittest.cc
 shm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common
-shm_unittest_LDADD = -lgtest
+shm_unittest_LDADD = -lgtest -lpthread
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/server \
@@ -121,7 +121,7 @@ volume_curve_unittest_SOURCES = tests/volume_curve_unittest.cc \
 	server/cras_volume_curve.c
 volume_curve_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common -I$(top_builddir)/src/server
-volume_curve_unittest_LDADD = -lgtest
+volume_curve_unittest_LDADD = -lgtest -lpthread
 
 alsa_card_unittest_SOURCES = tests/alsa_card_unittest.cc \
 	server/cras_alsa_card.c
@@ -129,7 +129,7 @@ alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
-alsa_card_unittest_LDADD = -lgtest
+alsa_card_unittest_LDADD = -lgtest -lpthread
 
 alsa_mixer_unittest_SOURCES = tests/alsa_mixer_unittest.cc \
 	server/cras_alsa_mixer.c
@@ -137,7 +137,7 @@ alsa_mixer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
-alsa_mixer_unittest_LDADD = -lgtest
+alsa_mixer_unittest_LDADD = -lgtest -lpthread
 
 alsa_ucm_unittest_SOURCES = tests/alsa_ucm_unittest.cc \
 	server/cras_alsa_ucm.c
@@ -145,15 +145,15 @@ alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
-alsa_ucm_unittest_LDADD = -lgtest
+alsa_ucm_unittest_LDADD = -lgtest -lpthread
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
 	server/cras_iodev.c
 iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	 -I$(top_builddir)/src/server
-iodev_unittest_LDADD = -lgtest
+iodev_unittest_LDADD = -lgtest -lpthread
 
 alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
 	server/cras_alsa_jack.c
 alsa_jack_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server
-alsa_jack_unittest_LDADD = -lgtest
+alsa_jack_unittest_LDADD = -lgtest -lpthread
