@@ -303,7 +303,8 @@ static int thread_remove_stream(struct alsa_io *aio,
 			cras_system_remove_capture_mute_changed_cb(
 					set_alsa_capture_gain, aio);
 		}
-		close_alsa(aio);
+		if (aio->handle)
+			close_alsa(aio);
 	} else {
 		cras_iodev_config_params_for_streams(&aio->base);
 		syslog(LOG_DEBUG,
@@ -892,8 +893,10 @@ static void *alsa_io_thread(void *arg)
 		if (aio->handle) {
 			/* alsa opened */
 			err = aio->alsa_cb(aio, &ts);
-			if (err < 0)
+			if (err < 0) {
 				syslog(LOG_ERR, "alsa cb error %d", err);
+				close_alsa(aio);
+			}
 			wait_ts = &ts;
 		}
 
