@@ -110,13 +110,15 @@ static unsigned sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
 
 	memset(bits, '\0', sizeof(bits));
 	/* If switch event present & supported, get current state. */
-	if (gpio_switch_eviocgbit(fd, switch_no, bits) >= 0) {
-		if (IS_BIT_SET(switch_no, bits)) {
-			gpio_switch_eviocgsw(fd, bits, sizeof(bits));
+	if (gpio_switch_eviocgbit(fd, switch_no, bits) < 0)
+		return -EIO;
+
+	if (IS_BIT_SET(switch_no, bits))
+		if (gpio_switch_eviocgsw(fd, bits, sizeof(bits)) >= 0) {
 			*state = IS_BIT_SET(switch_no, bits);
 			return 0;
 		}
-	}
+
 	return -1;
 }
 
@@ -164,6 +166,8 @@ static void gpio_switch_callback(void *arg)
 
 	r = gpio_switch_read(jack->gpio.fd, ev,
 			     ARRAY_SIZE(ev) * sizeof(struct input_event));
+	if (r < 0)
+		return;
 
 	for (i = 0; i < r / sizeof(struct input_event); ++i) {
 		if (ev[i].type == EV_SW && ev[i].code == SW_HEADPHONE_INSERT) {
