@@ -6,9 +6,9 @@
 #include <signal.h>
 
 #include "cras_empty_iodev.h"
+#include "cras_iodev_list.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
-
 
 /* Ignores sigpipe, we'll notice when a read/write fails. */
 static void set_signals()
@@ -23,6 +23,7 @@ int main(int argc, char **argv)
 
 	/* Initialize system. */
 	cras_system_state_init();
+	cras_iodev_list_init();
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */
