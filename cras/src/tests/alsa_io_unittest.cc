@@ -56,33 +56,17 @@ static size_t alsa_mixer_set_capture_dBFS_called;
 static int alsa_mixer_set_capture_dBFS_value;
 static size_t cras_alsa_mixer_list_outputs_called;
 static size_t cras_alsa_mixer_list_outputs_device_value;
-static cras_system_state_changed_cb sys_register_volume_cb_value;
-static void * sys_register_volume_cb_arg;
-static size_t sys_register_volume_cb_called;
-static size_t sys_remove_volume_cb_called;
 static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
-static cras_system_state_changed_cb sys_register_capture_gain_cb_value;
-static void * sys_register_capture_gain_cb_arg;
-static size_t sys_register_capture_gain_cb_called;
-static size_t sys_remove_capture_gain_cb_called;
 static size_t sys_get_capture_gain_called;
 static long sys_get_capture_gain_return_value;
 static size_t alsa_mixer_set_mute_called;
 static int alsa_mixer_set_mute_value;
 static const struct cras_alsa_mixer_output *alsa_mixer_set_mute_output;
-static cras_system_state_changed_cb sys_register_mute_cb_value;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
-static cras_system_state_changed_cb sys_register_capture_mute_cb_value;
-static void * sys_register_mute_cb_arg;
-static size_t sys_register_mute_cb_called;
-static size_t sys_remove_mute_cb_called;
 static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
-static void * sys_register_capture_mute_cb_arg;
-static size_t sys_register_capture_mute_cb_called;
-static size_t sys_remove_capture_mute_cb_called;
 static size_t sys_get_capture_mute_called;
 static int sys_get_capture_mute_return_value;
 static struct cras_alsa_mixer *fake_mixer = (struct cras_alsa_mixer *)1;
@@ -123,19 +107,11 @@ void ResetStubData() {
   select_max_fd = -1;
   cras_mix_add_stream_dont_fill_next = 0;
   cras_alsa_fill_properties_called = 0;
-  sys_register_volume_cb_called = 0;
-  sys_remove_volume_cb_called = 0;
   sys_get_volume_called = 0;
-  sys_register_capture_gain_cb_called = 0;
-  sys_remove_capture_gain_cb_called = 0;
   sys_get_capture_gain_called = 0;
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_capture_dBFS_called = 0;
-  sys_register_mute_cb_called = 0;
-  sys_remove_mute_cb_called = 0;
   sys_get_mute_called = 0;
-  sys_register_capture_mute_cb_called = 0;
-  sys_remove_capture_mute_cb_called = 0;
   sys_get_capture_mute_called = 0;
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_capture_mute_called = 0;
@@ -402,8 +378,6 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
   EXPECT_EQ(1, sys_set_volume_limits_called);
-  EXPECT_EQ(1, sys_register_volume_cb_called);
-  EXPECT_EQ(1, sys_register_mute_cb_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
@@ -411,8 +385,6 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   rc = thread_remove_stream(aio_output_, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
-  EXPECT_EQ(1, sys_remove_volume_cb_called);
-  EXPECT_EQ(1, sys_remove_mute_cb_called);
 
   free(new_stream);
 }
@@ -476,17 +448,18 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
-  EXPECT_EQ(1, sys_register_volume_cb_called);
-  EXPECT_EQ(1, sys_register_mute_cb_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
+  aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_dBFS_value = 0;
   sys_get_volume_return_value = 50;
-  sys_register_volume_cb_value(sys_register_volume_cb_arg);
+  sys_get_volume_called = 0;
+  aio_output_->base.set_volume(&aio_output_->base);
+  EXPECT_EQ(1, sys_get_volume_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
@@ -498,18 +471,19 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_dBFS_value = 0;
   sys_get_volume_return_value = 0;
-  sys_register_volume_cb_value(sys_register_volume_cb_arg);
+  sys_get_volume_called = 0;
+  aio_output_->base.set_volume(&aio_output_->base);
+  EXPECT_EQ(1, sys_get_volume_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 
   //  remove the stream.
+  aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(NULL);
   rc = thread_remove_stream(aio_output_, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
-  EXPECT_EQ(1, sys_remove_volume_cb_called);
-  EXPECT_EQ(1, sys_remove_mute_cb_called);
 
   free(new_stream);
 }
@@ -542,12 +516,8 @@ TEST_F(AlsaAddStreamSuite, SimpleAddInputStream) {
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, cras_alsa_start_called); //  Shouldn start capture.
   EXPECT_EQ(1, sys_set_capture_gain_limits_called);
-  EXPECT_EQ(1, sys_register_capture_gain_cb_called);
-  EXPECT_EQ(1, sys_register_capture_mute_cb_called);
   rc = thread_remove_stream(aio_input_, new_stream);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, sys_remove_capture_gain_cb_called);
-  EXPECT_EQ(1, sys_remove_capture_mute_cb_called);
   free(new_stream);
 }
 
@@ -1375,42 +1345,10 @@ size_t cras_system_get_volume()
   return sys_get_volume_return_value;
 }
 
-int cras_system_register_volume_changed_cb(cras_system_state_changed_cb cb,
-					   void *arg)
-{
-  sys_register_volume_cb_called++;
-  sys_register_volume_cb_value = cb;
-  sys_register_volume_cb_arg = arg;
-  return 0;
-}
-
-int cras_system_remove_volume_changed_cb(cras_system_state_changed_cb cb,
-					 void *arg)
-{
-  sys_remove_volume_cb_called++;
-  return 0;
-}
-
 long cras_system_get_capture_gain()
 {
   sys_get_capture_gain_called++;
   return sys_get_capture_gain_return_value;
-}
-
-int cras_system_register_capture_gain_changed_cb(
-    cras_system_state_changed_cb cb, void *arg)
-{
-  sys_register_capture_gain_cb_called++;
-  sys_register_capture_gain_cb_value = cb;
-  sys_register_capture_gain_cb_arg = arg;
-  return 0;
-}
-
-int cras_system_remove_capture_gain_changed_cb(
-    cras_system_state_changed_cb cb, void *arg)
-{
-  sys_remove_capture_gain_cb_called++;
-  return 0;
 }
 
 int cras_system_get_mute()
@@ -1419,42 +1357,10 @@ int cras_system_get_mute()
   return sys_get_mute_return_value;
 }
 
-int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
-					 void *arg)
-{
-  sys_register_mute_cb_called++;
-  sys_register_mute_cb_value = cb;
-  sys_register_mute_cb_arg = arg;
-  return 0;
-}
-
-int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
-				       void *arg)
-{
-  sys_remove_mute_cb_called++;
-  return 0;
-}
-
 int cras_system_get_capture_mute()
 {
   sys_get_capture_mute_called++;
   return sys_get_capture_mute_return_value;
-}
-
-int cras_system_register_capture_mute_changed_cb(
-    cras_system_state_changed_cb cb, void *arg)
-{
-  sys_register_capture_mute_cb_called++;
-  sys_register_capture_mute_cb_value = cb;
-  sys_register_capture_mute_cb_arg = arg;
-  return 0;
-}
-
-int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
-                                               void *arg)
-{
-  sys_remove_capture_mute_cb_called++;
-  return 0;
 }
 
 void cras_system_set_volume_limits(long min, long max)

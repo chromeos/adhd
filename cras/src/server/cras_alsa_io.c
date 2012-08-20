@@ -199,9 +199,9 @@ static void set_alsa_mute(const struct alsa_io *aio, int muted)
  * volume index from the system settings, ranging from 0 to 100, converts it to
  * dB using the volume curve, and sends the dB value to alsa. Handles mute and
  * unmute, including muting when volume is zero. */
-static void set_alsa_volume(void *arg)
+static void set_alsa_volume(struct cras_iodev *iodev)
 {
-	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	const struct alsa_io *aio = (const struct alsa_io *)iodev;
 	const struct cras_volume_curve *curve;
 	size_t volume;
 	int mute;
@@ -231,9 +231,9 @@ static void set_alsa_volume(void *arg)
 /* Sets the capture gain to the current system input gain level, given in dBFS.
  * Set mute based on the system mute state.  This gain can be positive or
  * negative and might be adjusted often if and app is running an AGC. */
-static void set_alsa_capture_gain(void *arg)
+static void set_alsa_capture_gain(struct cras_iodev *iodev)
 {
-	const struct alsa_io *aio = (const struct alsa_io *)arg;
+	const struct alsa_io *aio = (const struct alsa_io *)iodev;
 
 	assert(aio);
 	if (aio->mixer == NULL)
@@ -257,19 +257,13 @@ static void init_device_settings(struct alsa_io *aio)
 	/* Register for volume/mute callback and set initial volume/mute for
 	 * the device. */
 	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
-		cras_system_register_volume_changed_cb(set_alsa_volume, aio);
-		cras_system_register_mute_changed_cb(set_alsa_volume, aio);
 		set_alsa_volume_limits(aio);
-		set_alsa_volume(aio);
+		set_alsa_volume(&aio->base);
 	} else {
-		cras_system_register_capture_gain_changed_cb(
-			set_alsa_capture_gain, aio);
-		cras_system_register_capture_mute_changed_cb(
-			set_alsa_capture_gain, aio);
 		cras_system_set_capture_gain_limits(
 			cras_alsa_mixer_get_minimum_capture_gain(aio->mixer),
 			cras_alsa_mixer_get_maximum_capture_gain(aio->mixer));
-		set_alsa_capture_gain(aio);
+		set_alsa_capture_gain(&aio->base);
 	}
 }
 
@@ -292,17 +286,6 @@ static int thread_remove_stream(struct alsa_io *aio,
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
 		/* No more streams, close alsa dev. */
-		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
-			cras_system_remove_volume_changed_cb(set_alsa_volume,
-							     aio);
-			cras_system_remove_mute_changed_cb(set_alsa_volume,
-							   aio);
-		} else {
-			cras_system_remove_capture_gain_changed_cb(
-					set_alsa_capture_gain, aio);
-			cras_system_remove_capture_mute_changed_cb(
-					set_alsa_capture_gain, aio);
-		}
 		if (aio->handle)
 			close_alsa(aio);
 	} else {
@@ -1024,7 +1007,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		} else {
 			aio->active_output = node;
 			set_alsa_volume_limits(aio);
-			set_alsa_volume(aio);
+			set_alsa_volume(&aio->base);
 		}
 	} else {
 		syslog(LOG_DEBUG, "Move streams from %zu due to unplug event.",
@@ -1036,7 +1019,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 					aio->default_output->mixer_output);
 			aio->active_output = aio->default_output;
 			set_alsa_volume_limits(aio);
-			set_alsa_volume(aio);
+			set_alsa_volume(&aio->base);
 		}
 	}
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
@@ -1123,10 +1106,14 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	if (direction == CRAS_STREAM_INPUT) {
 		aio->alsa_stream = SND_PCM_STREAM_CAPTURE;
 		aio->alsa_cb = possibly_read_audio;
+		aio->base.set_capture_gain = set_alsa_capture_gain;
+		aio->base.set_capture_mute = set_alsa_capture_gain;
 	} else {
 		assert(direction == CRAS_STREAM_OUTPUT);
 		aio->alsa_stream = SND_PCM_STREAM_PLAYBACK;
 		aio->alsa_cb = possibly_fill_audio;
+		aio->base.set_volume = set_alsa_volume;
+		aio->base.set_mute = set_alsa_volume;
 	}
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
@@ -1228,6 +1215,6 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 		return -EINVAL;
 	}
 	/* Setting the volume will also unmute if the system isn't muted. */
-	set_alsa_volume(aio);
+	set_alsa_volume(&aio->base);
 	return 0;
 }
