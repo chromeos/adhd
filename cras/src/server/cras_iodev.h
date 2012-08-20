@@ -32,6 +32,10 @@ struct cras_io_stream {
 /* An input or output device, that can have audio routed to/from it.
  * add_stream - Function to call when adding a stream.
  * rm_stream - Function to call when removing a stream.
+ * set_volume - Function to call if the system volume changes.
+ * set_mute - Function to call if the system mute state changes.
+ * set_capture_gain - Function to call if the system capture_gain changes.
+ * set_capture_mute - Function to call if the system capture mute state changes.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * streams - List of streams attached to device.
@@ -50,6 +54,10 @@ struct cras_iodev {
 			  struct cras_rstream *stream);
 	int (*rm_stream)(struct cras_iodev *iodev,
 			 struct cras_rstream *stream);
+	void (*set_volume)(struct cras_iodev *iodev);
+	void (*set_mute)(struct cras_iodev *iodev);
+	void (*set_capture_gain)(struct cras_iodev *iodev);
+	void (*set_capture_mute)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_io_stream *streams;
 	struct cras_iodev_info info;

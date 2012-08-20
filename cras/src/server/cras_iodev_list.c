@@ -207,9 +207,65 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 	return iodev->supported_channel_counts[0];
 }
 
+/* Called when the system volume changes.  Pass the current volume setting to
+ * the default output if it is active. */
+void sys_vol_change(void *data)
+{
+	if (default_output &&
+	    default_output->set_volume &&
+	    cras_iodev_streams_attached(default_output))
+		default_output->set_volume(default_output);
+}
+
+/* Called when the system mute state changes.  Pass the current mute setting
+ * to the default output if it is active. */
+void sys_mute_change(void *data)
+{
+	if (default_output &&
+	    default_output->set_mute &&
+	    cras_iodev_streams_attached(default_output))
+		default_output->set_mute(default_output);
+}
+
+/* Called when the system capture gain changes.  Pass the current capture_gain
+ * setting to the default input if it is active. */
+void sys_cap_gain_change(void *data)
+{
+	if (default_input &&
+	    default_input->set_capture_gain &&
+	    cras_iodev_streams_attached(default_input))
+		default_input->set_capture_gain(default_input);
+}
+
+/* Called when the system capture mute state changes.  Pass the current capture
+ * mute setting to the default input if it is active. */
+void sys_cap_mute_change(void *data)
+{
+	if (default_input &&
+	    default_input->set_capture_mute &&
+	    cras_iodev_streams_attached(default_input))
+		default_input->set_capture_mute(default_input);
+}
+
 /*
  * Exported Functions.
  */
+
+void cras_iodev_list_init()
+{
+	cras_system_register_volume_changed_cb(sys_vol_change, NULL);
+	cras_system_register_mute_changed_cb(sys_mute_change, NULL);
+	cras_system_register_capture_gain_changed_cb(sys_cap_gain_change, NULL);
+	cras_system_register_capture_mute_changed_cb(sys_cap_mute_change, NULL);
+}
+
+void cras_iodev_list_deinit()
+{
+	cras_system_remove_volume_changed_cb(sys_vol_change, NULL);
+	cras_system_remove_mute_changed_cb(sys_vol_change, NULL);
+	cras_system_remove_capture_gain_changed_cb(sys_cap_gain_change, NULL);
+	cras_system_remove_capture_mute_changed_cb(sys_cap_mute_change, NULL);
+}
 
 /* Finds the current device for a stream of "type", only default streams are
  * currently supported so return the default device fot the given direction.

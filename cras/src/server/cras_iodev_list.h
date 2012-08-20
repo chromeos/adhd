@@ -19,6 +19,12 @@ struct cras_rclient;
 struct cras_rstream;
 struct cras_audio_format;
 
+/* Initialize the list of iodevs. */
+void cras_iodev_list_init();
+
+/* Clean up any resources used by iodev. */
+void cras_iodev_list_deinit();
+
 /* Gets the iodev that should be used for a stream of given type.
  * Args:
  *    type - The type of stream to find the output for. (media, voice).

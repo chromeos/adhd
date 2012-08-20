@@ -9,6 +9,7 @@ extern "C" {
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
+#include "cras_system_state.h"
 #include "utlist.h"
 }
 
@@ -16,6 +17,24 @@ namespace {
 
 struct cras_server_state server_state_stub;
 struct cras_server_state *server_state_update_begin_return;
+
+/* Data for stubs. */
+static cras_system_state_changed_cb volume_changed_cb;
+static void* volume_changed_arg;
+static unsigned int register_volume_changed_cb_called;
+static unsigned int remove_volume_changed_cb_called;
+static cras_system_state_changed_cb mute_changed_cb;
+static void* mute_changed_arg;
+static unsigned int register_mute_changed_cb_called;
+static unsigned int remove_mute_changed_cb_called;
+static cras_system_state_changed_cb capture_gain_changed_cb;
+static void* capture_gain_changed_arg;
+static unsigned int register_capture_gain_changed_cb_called;
+static unsigned int remove_capture_gain_changed_cb_called;
+static cras_system_state_changed_cb capture_mute_changed_cb;
+static void* capture_mute_changed_arg;
+static unsigned int register_capture_mute_changed_cb_called;
+static unsigned int remove_capture_mute_changed_cb_called;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -29,6 +48,10 @@ class IoDevTestSuite : public testing::Test {
 
       d1_.add_stream = add_stream_1;
       d1_.rm_stream = rm_stream_1;
+      d1_.set_volume = NULL;
+      d1_.set_mute = NULL;
+      d1_.set_capture_gain = NULL;
+      d1_.set_capture_mute = NULL;
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
@@ -38,6 +61,10 @@ class IoDevTestSuite : public testing::Test {
       d1_.supported_channel_counts = channel_counts_;
       d2_.add_stream = add_stream_2;
       d2_.rm_stream = rm_stream_2;
+      d2_.set_volume = NULL;
+      d2_.set_mute = NULL;
+      d2_.set_capture_gain = NULL;
+      d2_.set_capture_mute = NULL;
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
@@ -47,6 +74,10 @@ class IoDevTestSuite : public testing::Test {
       d2_.supported_channel_counts = channel_counts_;
       d3_.add_stream = add_stream_2;
       d3_.rm_stream = rm_stream_2;
+      d3_.set_volume = NULL;
+      d3_.set_mute = NULL;
+      d3_.set_capture_gain = NULL;
+      d3_.set_capture_mute = NULL;
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
@@ -56,6 +87,16 @@ class IoDevTestSuite : public testing::Test {
       d3_.supported_channel_counts = channel_counts_;
 
       server_state_update_begin_return = &server_state_stub;
+
+      /* Reset stub data. */
+      register_volume_changed_cb_called = 0;
+      remove_volume_changed_cb_called = 0;
+      register_capture_gain_changed_cb_called = 0;
+      remove_capture_gain_changed_cb_called = 0;
+      register_mute_changed_cb_called = 0;
+      remove_mute_changed_cb_called = 0;
+      register_capture_mute_changed_cb_called = 0;
+      remove_capture_mute_changed_cb_called = 0;
     }
 
     static int add_stream_1(struct cras_iodev *iodev,
@@ -86,6 +127,26 @@ class IoDevTestSuite : public testing::Test {
       return cras_iodev_delete_stream(iodev, stream);
     }
 
+    static void set_volume_1(struct cras_iodev *iodev)
+    {
+      set_volume_1_called_++;
+    }
+
+    static void set_mute_1(struct cras_iodev *iodev)
+    {
+      set_mute_1_called_++;
+    }
+
+    static void set_capture_gain_1(struct cras_iodev *iodev)
+    {
+      set_capture_gain_1_called_++;
+    }
+
+    static void set_capture_mute_1(struct cras_iodev *iodev)
+    {
+      set_capture_mute_1_called_++;
+    }
+
     struct cras_iodev d1_;
     struct cras_iodev d2_;
     struct cras_iodev d3_;
@@ -95,12 +156,34 @@ class IoDevTestSuite : public testing::Test {
     static int rm_stream_1_called_;
     static int add_stream_2_called_;
     static int rm_stream_2_called_;
+    static int set_volume_1_called_;
+    static int set_mute_1_called_;
+    static int set_capture_gain_1_called_;
+    static int set_capture_mute_1_called_;
 };
 
 int IoDevTestSuite::add_stream_1_called_;
 int IoDevTestSuite::rm_stream_1_called_;
 int IoDevTestSuite::add_stream_2_called_;
 int IoDevTestSuite::rm_stream_2_called_;
+int IoDevTestSuite::set_volume_1_called_;
+int IoDevTestSuite::set_mute_1_called_;
+int IoDevTestSuite::set_capture_gain_1_called_;
+int IoDevTestSuite::set_capture_mute_1_called_;
+
+// Check that Init registers a volume changed callback. */
+TEST_F(IoDevTestSuite, InitSetup) {
+  cras_iodev_list_init();
+  EXPECT_EQ(1, register_volume_changed_cb_called);
+  EXPECT_EQ(1, register_mute_changed_cb_called);
+  EXPECT_EQ(1, register_capture_gain_changed_cb_called);
+  EXPECT_EQ(1, register_capture_mute_changed_cb_called);
+  cras_iodev_list_deinit();
+  EXPECT_EQ(1, remove_volume_changed_cb_called);
+  EXPECT_EQ(1, remove_mute_changed_cb_called);
+  EXPECT_EQ(1, remove_capture_gain_changed_cb_called);
+  EXPECT_EQ(1, remove_capture_mute_changed_cb_called);
+}
 
 // Devices with the wrong direction should be rejected.
 TEST_F(IoDevTestSuite, AddWrongDirection) {
@@ -731,6 +814,160 @@ TEST_F(IoDevTestSuite, SupportedFormatFallbackDefault) {
   EXPECT_EQ(2, fmt.num_channels);
 }
 
+// Test volume callbacks for default output.
+TEST_F(IoDevTestSuite, VolumeCallbacks) {
+  int rc;
+
+  cras_iodev_list_init();
+  ASSERT_EQ(1, register_volume_changed_cb_called);
+  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
+            volume_changed_cb);
+
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(0, rc);
+
+  // Check that callback isn't called on inactive iodev.
+  set_volume_1_called_ = 0;
+  d1_.set_volume = set_volume_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  volume_changed_cb(volume_changed_arg);
+  EXPECT_EQ(0, set_volume_1_called_);
+
+  // Check that callback isn't called if no callback is set.
+  set_volume_1_called_ = 0;
+  d1_.set_volume = NULL;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  volume_changed_cb(volume_changed_arg);
+  EXPECT_EQ(0, set_volume_1_called_);
+
+  // Check that it is called if there is a callback and iodev is active.
+  set_volume_1_called_ = 0;
+  d1_.set_volume = set_volume_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  volume_changed_cb(volume_changed_arg);
+  EXPECT_EQ(1, set_volume_1_called_);
+
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test mute callbacks for default output.
+TEST_F(IoDevTestSuite, MuteCallbacks) {
+  int rc;
+
+  cras_iodev_list_init();
+  ASSERT_EQ(1, register_mute_changed_cb_called);
+  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
+            mute_changed_cb);
+
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(0, rc);
+
+  // Check that callback isn't called on inactive iodev.
+  set_mute_1_called_ = 0;
+  d1_.set_mute = set_mute_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  mute_changed_cb(mute_changed_arg);
+  EXPECT_EQ(0, set_mute_1_called_);
+
+  // Check that callback isn't called if no callback is set.
+  set_mute_1_called_ = 0;
+  d1_.set_mute = NULL;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  mute_changed_cb(mute_changed_arg);
+  EXPECT_EQ(0, set_mute_1_called_);
+
+  // Check that it is called if there is a callback and iodev is active.
+  set_mute_1_called_ = 0;
+  d1_.set_mute = set_mute_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  mute_changed_cb(mute_changed_arg);
+  EXPECT_EQ(1, set_mute_1_called_);
+
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test capture gain callbacks for default output.
+TEST_F(IoDevTestSuite, CaptureGainCallbacks) {
+  int rc;
+
+  cras_iodev_list_init();
+  ASSERT_EQ(1, register_capture_gain_changed_cb_called);
+  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
+            capture_gain_changed_cb);
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_list_add_input(&d1_);
+  EXPECT_EQ(0, rc);
+
+  // Check that callback isn't called on inactive iodev.
+  set_capture_gain_1_called_ = 0;
+  d1_.set_capture_gain = set_capture_gain_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  capture_gain_changed_cb(capture_gain_changed_arg);
+  EXPECT_EQ(0, set_capture_gain_1_called_);
+
+  // Check that callback isn't called if no callback is set.
+  set_capture_gain_1_called_ = 0;
+  d1_.set_capture_gain = NULL;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  capture_gain_changed_cb(capture_gain_changed_arg);
+  EXPECT_EQ(0, set_capture_gain_1_called_);
+
+  // Check that it is called if there is a callback and iodev is active.
+  set_capture_gain_1_called_ = 0;
+  d1_.set_capture_gain = set_capture_gain_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  capture_gain_changed_cb(capture_gain_changed_arg);
+  EXPECT_EQ(1, set_capture_gain_1_called_);
+
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  rc = cras_iodev_list_rm_input(&d1_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test capture mute callbacks for default output.
+TEST_F(IoDevTestSuite, CapturemuteCallbacks) {
+  int rc;
+
+  cras_iodev_list_init();
+  ASSERT_EQ(1, register_capture_mute_changed_cb_called);
+  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
+            capture_mute_changed_cb);
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_list_add_input(&d1_);
+  EXPECT_EQ(0, rc);
+
+  // Check that callback isn't called on inactive iodev.
+  set_capture_mute_1_called_ = 0;
+  d1_.set_capture_mute = set_capture_mute_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  capture_mute_changed_cb(capture_mute_changed_arg);
+  EXPECT_EQ(0, set_capture_mute_1_called_);
+
+  // Check that callback isn't called if no callback is set.
+  set_capture_mute_1_called_ = 0;
+  d1_.set_capture_mute = NULL;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  capture_mute_changed_cb(capture_mute_changed_arg);
+  EXPECT_EQ(0, set_capture_mute_1_called_);
+
+  // Check that it is called if there is a callback and iodev is active.
+  set_capture_mute_1_called_ = 0;
+  d1_.set_capture_mute = set_capture_mute_1;
+  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
+  capture_mute_changed_cb(capture_mute_changed_arg);
+  EXPECT_EQ(1, set_capture_mute_1_called_);
+
+  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  rc = cras_iodev_list_rm_input(&d1_);
+  EXPECT_EQ(0, rc);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -785,6 +1022,62 @@ struct cras_server_state *cras_system_state_update_begin() {
 }
 
 void cras_system_state_update_complete() {
+}
+
+int cras_system_register_volume_changed_cb(cras_system_state_changed_cb cb,
+                                           void *arg) {
+  volume_changed_cb = cb;
+  volume_changed_arg = arg;
+  register_volume_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_remove_volume_changed_cb(cras_system_state_changed_cb cb,
+                                         void *arg) {
+  remove_volume_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
+                                         void *arg) {
+  mute_changed_cb = cb;
+  mute_changed_arg = arg;
+  register_mute_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
+                                       void *arg) {
+  remove_mute_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_register_capture_gain_changed_cb(
+    cras_system_state_changed_cb cb, void *arg) {
+  capture_gain_changed_cb = cb;
+  capture_gain_changed_arg = arg;
+  register_capture_gain_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_remove_capture_gain_changed_cb(cras_system_state_changed_cb cb,
+					 void *arg) {
+  remove_capture_gain_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_register_capture_mute_changed_cb(
+    cras_system_state_changed_cb cb, void *arg) {
+  capture_mute_changed_cb = cb;
+  capture_mute_changed_arg = arg;
+  register_capture_mute_changed_cb_called++;
+  return 0;
+}
+
+int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
+					 void *arg) {
+  remove_capture_mute_changed_cb_called++;
+  return 0;
 }
 
 }  // extern "C"
