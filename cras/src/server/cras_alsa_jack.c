@@ -548,7 +548,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		return NULL;
 	}
 
-	if (jack_list->jacks == NULL)
+	if (device_index == 0 && jack_list->jacks == NULL)
 		find_gpio_jacks(jack_list, card_index, direction);
 	return jack_list;
 }
