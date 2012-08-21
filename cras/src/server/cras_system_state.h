@@ -203,6 +203,14 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info);
  */
 int cras_system_remove_alsa_card(size_t alsa_card_index);
 
+/* Checks if an alsa card has been added to the system.
+ * Args:
+ *    alsa_card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ * Returns:
+ *    1 if the card has already been added, 0 if not.
+ */
+int cras_system_alsa_card_exists(unsigned alsa_card_index);
+
 /* Poll interface provides a way of getting a callback when 'select'
  * returns for a given file descriptor.
  */

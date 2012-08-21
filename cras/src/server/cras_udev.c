@@ -252,7 +252,8 @@ static void change_udev_device_if_alsa_device(struct udev_device *dev)
 	const char     *sysname;
 
 	if (is_card_device(dev, &internal, &card_number, &sysname) &&
-	    udev_sound_initialized(dev)) {
+	    udev_sound_initialized(dev) &&
+	    !cras_system_alsa_card_exists(card_number)) {
 		if (internal)
 			set_factory_default(card_number);
 		device_add_alsa(dev, sysname, card_number, internal);

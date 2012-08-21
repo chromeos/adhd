@@ -403,6 +403,16 @@ int cras_system_remove_alsa_card(size_t alsa_card_index)
 	return 0;
 }
 
+int cras_system_alsa_card_exists(unsigned alsa_card_index)
+{
+	struct card_list *card;
+
+	DL_FOREACH(state.cards, card)
+		if (alsa_card_index == cras_alsa_card_get_index(card->card))
+			return 1;
+	return 0;
+}
+
 int cras_system_set_select_handler(int (*add)(int fd,
 					      void (*callback)(void *data),
 					      void *callback_data,
