@@ -60,7 +60,6 @@ struct alsa_output_node {
  * dev - String that names this device (e.g. "hw:0,0").
  * device_index - ALSA index of device, Y in "hw:X:Y".
  * handle - Handle to the opened ALSA device.
- * stream_started - Has the ALSA device been started.
  * num_underruns - Number of times we have run out of data (playback only).
  * audio_sleep_correction_frames - Number of frames to adjust sleep time by.
  *    This is adjusted based on sleeping too long or short so that the sleep
@@ -79,7 +78,6 @@ struct alsa_io {
 	char *dev;
 	size_t device_index;
 	snd_pcm_t *handle;
-	int stream_started;
 	size_t num_underruns;
 	int audio_sleep_correction_frames;
 	snd_pcm_stream_t alsa_stream;
@@ -138,10 +136,8 @@ static int open_alsa(struct alsa_io *aio)
 	aio->handle = handle;
 
 	/* Capture starts right away, playback will wait for samples. */
-	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE) {
+	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE)
 		cras_alsa_pcm_start(aio->handle);
-		aio->stream_started = 1;
-	}
 
 	return 0;
 }
@@ -298,7 +294,6 @@ static int thread_remove_stream(struct alsa_io *aio,
 		cras_alsa_pcm_drain(aio->handle);
 		cras_alsa_pcm_close(aio->handle);
 		aio->handle = NULL;
-		aio->stream_started = 0;
 		free(aio->base.format);
 		aio->base.format = NULL;
 	} else {
@@ -582,7 +577,6 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	if (used > aio->base.cb_threshold + SLEEP_FUZZ_FRAMES) {
 		/* Check if the pcm is still running. */
 		if (snd_pcm_state(aio->handle) == SND_PCM_STATE_SUSPENDED) {
-			aio->stream_started = 0;
 			rc = cras_alsa_attempt_resume(aio->handle);
 			if (rc < 0)
 				return rc;
@@ -635,13 +629,19 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	}
 
 	/* If we haven't started alsa and we wrote samples, then start it up. */
-	if (!aio->stream_started && total_written > 0) {
-		rc = cras_alsa_pcm_start(handle);
-		if (rc < 0) {
-			syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));
-			return rc;
+	if ((snd_pcm_state(handle) != SND_PCM_STATE_RUNNING) &&
+	    total_written > 0) {
+		if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
+			rc = cras_alsa_attempt_resume(handle);
+			if (rc < 0)
+				return rc;
+		} else {
+			rc = cras_alsa_pcm_start(handle);
+			if (rc < 0) {
+				syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));
+				return rc;
+			}
 		}
-		aio->stream_started = 1;
 	}
 
 	/* Ask any clients that have room to fill up. */
