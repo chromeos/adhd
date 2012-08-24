@@ -170,7 +170,9 @@ static void gpio_switch_callback(void *arg)
 		return;
 
 	for (i = 0; i < r / sizeof(struct input_event); ++i) {
-		if (ev[i].type == EV_SW && ev[i].code == SW_HEADPHONE_INSERT) {
+		if (ev[i].type == EV_SW &&
+		    (ev[i].code == SW_HEADPHONE_INSERT ||
+		     ev[i].code == SW_MICROPHONE_INSERT)) {
 			jack->gpio.current_state = ev[i].value;
 			gpio_change_callback(jack);
 		}
