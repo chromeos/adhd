@@ -338,11 +338,8 @@ static int thread_add_stream(struct alsa_io *aio,
 		init_device_settings(aio);
 
 		rc = open_alsa(aio);
-		if (rc < 0) {
+		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", aio->dev);
-			cras_iodev_delete_stream(&aio->base, stream);
-			return rc;
-		}
 	}
 
 	cras_iodev_config_params_for_streams(&aio->base);
@@ -1110,6 +1107,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		return NULL;
 	iodev = &aio->base;
 	aio->device_index = device_index;
+	aio->handle = NULL;
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
 	if (aio->dev == NULL)
 		goto cleanup_iodev;
