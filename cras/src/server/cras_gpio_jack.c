@@ -53,7 +53,7 @@ static unsigned is_microphone_jack(const char *name)
 	regmatch_t m[1];
 	regex_t regex;
 	unsigned success;
-	const char *re = "^.*(Mic|Headphone) Jack$";
+	const char *re = "^.*Mic Jack$";
 
 	compile_regex(&regex, re);
 	success = regexec(&regex, name, ARRAY_SIZE(m), m, 0) == 0;
