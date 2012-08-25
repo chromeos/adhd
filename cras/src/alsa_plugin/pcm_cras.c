@@ -10,7 +10,7 @@
 
 /* Holds configuration for the alsa plugin.
  *  io - ALSA ioplug object.
- *  fg - Wakes users with polled io.
+ *  fd - Wakes users with polled io.
  *  stream_playing - Indicates if the stream is playing/capturing.
  *  hw_ptr - Current read or write position.
  *  channels - Number of channels.
@@ -19,6 +19,8 @@
  *  areas - ALSA areas used to read from/write to.
  *  client - CRAS client object.
  *  pcm_boundary - Value where the hw and appl pointers will wrap.
+ *  last_capture_latency_frames - Capture latency of CRAS.
+ *  last_playback_latency_frames - Playback latency of CRAS.
  */
 struct snd_pcm_cras {
 	snd_pcm_ioplug_t io;
@@ -31,6 +33,8 @@ struct snd_pcm_cras {
 	snd_pcm_channel_area_t *areas;
 	struct cras_client *client;
 	snd_pcm_uframes_t pcm_boundary;
+	snd_pcm_sframes_t last_capture_latency_frames;
+	snd_pcm_sframes_t last_playback_latency_frames;
 };
 
 /* Frees all resources allocated during use. */
@@ -117,10 +121,11 @@ static int pcm_cras_process_cb(struct cras_client *client,
 	snd_pcm_ioplug_t *io;
 	struct snd_pcm_cras *pcm_cras;
 	const snd_pcm_channel_area_t *areas;
-	snd_pcm_uframes_t count;
+	snd_pcm_uframes_t copied_frames;
 	char dummy_byte;
 	size_t chan, frame_bytes, sample_bytes;
 	int rc;
+	struct timespec latency;
 
 	io = (snd_pcm_ioplug_t *)arg;
 	pcm_cras = (struct snd_pcm_cras *)io->private_data;
@@ -136,6 +141,13 @@ static int pcm_cras_process_cb(struct cras_client *client,
 		/* Only take one period of data at a time. */
 		if (nframes > io->period_size)
 			nframes = io->period_size;
+	} else {
+		/* Update capture latency based on the time stamp of the next
+		 * sample written to the alsa plugin */
+		cras_client_calc_capture_latency(sample_time, &latency);
+		pcm_cras->last_capture_latency_frames =
+				latency.tv_sec * io->rate +
+				latency.tv_nsec / (1000000000L / io->rate);
 	}
 
 	/* CRAS always takes interleaved samples. */
@@ -149,9 +161,9 @@ static int pcm_cras_process_cb(struct cras_client *client,
 
 	areas = snd_pcm_ioplug_mmap_areas(io);
 
-	count = 0;
-	while (count < nframes) {
-		snd_pcm_uframes_t frames = nframes - count;
+	copied_frames = 0;
+	while (copied_frames < nframes) {
+		snd_pcm_uframes_t frames = nframes - copied_frames;
 		snd_pcm_uframes_t remain = io->buffer_size - pcm_cras->hw_ptr;
 
 		if (frames > remain)
@@ -160,7 +172,7 @@ static int pcm_cras_process_cb(struct cras_client *client,
 		for (chan = 0; chan < io->channels; chan++)
 			if (io->stream == SND_PCM_STREAM_PLAYBACK)
 				snd_pcm_area_copy(&pcm_cras->areas[chan],
-						  count,
+						  copied_frames,
 						  &areas[chan],
 						  pcm_cras->hw_ptr,
 						  frames,
@@ -169,13 +181,23 @@ static int pcm_cras_process_cb(struct cras_client *client,
 				snd_pcm_area_copy(&areas[chan],
 						  pcm_cras->hw_ptr,
 						  &pcm_cras->areas[chan],
-						  count,
+						  copied_frames,
 						  frames,
 						  io->format);
 
 		pcm_cras->hw_ptr += frames;
 		pcm_cras->hw_ptr %= io->buffer_size;
-		count += frames;
+		copied_frames += frames;
+	}
+
+	if (io->stream == SND_PCM_STREAM_PLAYBACK) {
+		/* Update playback delay based on the time stamp of the sample
+		 * just written to cras and the additional delay introduced by
+		 * copied frames */
+		cras_client_calc_playback_latency(sample_time, &latency);
+		pcm_cras->last_playback_latency_frames = copied_frames +
+				latency.tv_sec * io->rate +
+				latency.tv_nsec / (1000000000L / io->rate);
 	}
 
 	rc = write(pcm_cras->fd, &dummy_byte, 1); /* Wake up polling clients. */
@@ -285,14 +307,18 @@ static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
 	struct snd_pcm_cras *pcm_cras = io->private_data;
 	const snd_pcm_sframes_t limit = pcm_cras->pcm_boundary;
 
-	/* For playback, the latency in frames is the amount the software write
-	 * pointer is ahead of the hw read pointer.  For capture samples are
-	 * written to hw_ptr and read from appl_ptr by the app.
+	/* The latency here should be added up by the latency from CRAS and the
+	 * latency to the caller application. For playback, the latency in
+	 * frames is the amount the software write pointer is ahead of the hw
+	 * read pointer.  For capture, samples are written to hw_ptr and read
+	 * from appl_ptr by the app.
 	 */
 	if (io->stream == SND_PCM_STREAM_PLAYBACK)
-		*delayp = limit + io->appl_ptr - io->hw_ptr;
+		*delayp = limit + io->appl_ptr - io->hw_ptr +
+			  pcm_cras->last_playback_latency_frames;
 	else
-		*delayp = limit + io->hw_ptr - io->appl_ptr;
+		*delayp = limit + io->hw_ptr - io->appl_ptr +
+			  pcm_cras->last_capture_latency_frames;
 
 	/* Both appl and hw pointers wrap at the pcm boundary. */
 	*delayp %= limit;

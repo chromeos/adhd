@@ -654,36 +654,22 @@ static int possibly_fill_audio(struct alsa_io *aio,
  *    count - the number of frames captured = buffer_frames.
  *
  * Returns:
- *    The number of frames passed to the client on success, a negative error
- *      code otherwise.
+ *    The number of frames passed to the client.
  */
 static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 				      const uint8_t *src,
 				      snd_pcm_uframes_t count)
 {
-	struct cras_io_stream *streams, *curr;
+	struct cras_io_stream *streams;
 	struct cras_audio_shm *shm;
-	snd_pcm_sframes_t delay;
 	unsigned write_limit;
 	uint8_t *dst;
-	int rc;
 
 	streams = aio->base.streams;
 	if (!streams)
 		return 0; /* Nowhere to put samples. */
 
-	curr = streams;
-	shm = curr->shm;
-
-	rc = cras_alsa_get_delay_frames(aio->handle,
-					aio->base.buffer_size,
-					&delay);
-	if (rc < 0)
-		return rc;
-
-	cras_iodev_set_capture_timestamp(aio->base.format->frame_rate,
-					 delay,
-					 &shm->area->ts);
+	shm = streams->shm;
 
 	dst = cras_shm_get_writeable_frames(shm, &write_limit);
 	count = min(count, write_limit);
@@ -709,6 +695,8 @@ static int possibly_read_audio(struct alsa_io *aio,
 
 	snd_pcm_uframes_t frames, nread, num_to_read, remainder;
 	snd_pcm_uframes_t offset = 0;
+	snd_pcm_sframes_t delay;
+	struct cras_audio_shm *shm;
 	int rc;
 	uint64_t to_sleep;
 	size_t fr_bytes;
@@ -731,8 +719,19 @@ static int possibly_read_audio(struct alsa_io *aio,
 		goto dont_read;
 	}
 
-	if (aio->base.streams)
+	rc = cras_alsa_get_delay_frames(aio->handle,
+					aio->base.buffer_size,
+					&delay);
+	if (rc < 0)
+		return rc;
+
+	if (aio->base.streams) {
 		cras_shm_check_write_overrun(aio->base.streams->shm);
+		shm = aio->base.streams->shm;
+		cras_iodev_set_capture_timestamp(aio->base.format->frame_rate,
+						 delay,
+						 &shm->area->ts);
+	}
 
 	remainder = num_to_read;
 	while (remainder > 0) {
@@ -742,10 +741,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		rc = read_streams(aio, src, nread);
-		if (rc < 0)
-			return rc;
-
+		nread = read_streams(aio, src, nread);
 		rc = cras_alsa_mmap_commit(aio->handle, offset, nread,
 					   &aio->num_underruns);
 		if (rc < 0)
