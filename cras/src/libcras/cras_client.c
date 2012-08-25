@@ -426,9 +426,9 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	return 0;
 }
 
-/* For playback streams, this handles the request for more samples by calling
- * the audio callback for the thread, and signalling the server that the samples
- * have been written. */
+/* For playback streams when current buffer is empty, this handles the request
+ * for more samples by calling the audio callback for the thread, and signaling
+ * the server that the samples have been written. */
 static int handle_playback_request(struct client_stream *stream,
 				   size_t num_frames)
 {
@@ -492,7 +492,6 @@ static int handle_playback_request(struct client_stream *stream,
 					cras_shm_get_num_writeable(shm));
 		}
 		/* And move the write pointer to indicate samples written. */
-		cras_shm_check_write_overrun(shm);
 		cras_shm_buffer_written(shm, frames);
 		cras_shm_buffer_write_complete(shm);
 	}
