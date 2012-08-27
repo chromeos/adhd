@@ -147,6 +147,8 @@ static int open_alsa(struct alsa_io *aio)
  */
 static void close_alsa(struct alsa_io *aio)
 {
+	if (!aio->handle)
+		return;
 	cras_alsa_pcm_drain(aio->handle);
 	cras_alsa_pcm_close(aio->handle);
 	aio->handle = NULL;
@@ -286,8 +288,7 @@ static int thread_remove_stream(struct alsa_io *aio,
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
 		/* No more streams, close alsa dev. */
-		if (aio->handle)
-			close_alsa(aio);
+		close_alsa(aio);
 	} else {
 		cras_iodev_config_params_for_streams(&aio->base);
 		syslog(LOG_DEBUG,
