@@ -820,8 +820,7 @@ TEST_F(IoDevTestSuite, VolumeCallbacks) {
 
   cras_iodev_list_init();
   ASSERT_EQ(1, register_volume_changed_cb_called);
-  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
-            volume_changed_cb);
+  ASSERT_TRUE(volume_changed_cb);
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
@@ -858,8 +857,7 @@ TEST_F(IoDevTestSuite, MuteCallbacks) {
 
   cras_iodev_list_init();
   ASSERT_EQ(1, register_mute_changed_cb_called);
-  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
-            mute_changed_cb);
+  ASSERT_TRUE(mute_changed_cb);
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
@@ -896,8 +894,7 @@ TEST_F(IoDevTestSuite, CaptureGainCallbacks) {
 
   cras_iodev_list_init();
   ASSERT_EQ(1, register_capture_gain_changed_cb_called);
-  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
-            capture_gain_changed_cb);
+  ASSERT_TRUE(capture_gain_changed_cb);
 
   d1_.direction = CRAS_STREAM_INPUT;
   rc = cras_iodev_list_add_input(&d1_);
@@ -935,8 +932,7 @@ TEST_F(IoDevTestSuite, CapturemuteCallbacks) {
 
   cras_iodev_list_init();
   ASSERT_EQ(1, register_capture_mute_changed_cb_called);
-  ASSERT_NE(reinterpret_cast<cras_system_state_changed_cb>(NULL),
-            capture_mute_changed_cb);
+  ASSERT_TRUE(capture_mute_changed_cb);
 
   d1_.direction = CRAS_STREAM_INPUT;
   rc = cras_iodev_list_add_input(&d1_);
