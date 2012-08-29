@@ -652,13 +652,10 @@ static int possibly_fill_audio(struct alsa_io *aio,
  * Args:
  *    src - the memory area containing the captured samples.
  *    count - the number of frames captured = buffer_frames.
- *
- * Returns:
- *    The number of frames passed to the client.
  */
-static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
-				      const uint8_t *src,
-				      snd_pcm_uframes_t count)
+static void read_streams(struct alsa_io *aio,
+			 const uint8_t *src,
+			 snd_pcm_uframes_t count)
 {
 	struct cras_io_stream *streams;
 	struct cras_audio_shm *shm;
@@ -667,7 +664,7 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 
 	streams = aio->base.streams;
 	if (!streams)
-		return 0; /* Nowhere to put samples. */
+		return; /* Nowhere to put samples. */
 
 	shm = streams->shm;
 
@@ -675,8 +672,6 @@ static snd_pcm_sframes_t read_streams(struct alsa_io *aio,
 	count = min(count, write_limit);
 	memcpy(dst, src, count * cras_shm_frame_bytes(shm));
 	cras_shm_buffer_written(shm, count);
-
-	return count;
 }
 
 /* The capture path equivalent of possibly_fill_audio
@@ -741,7 +736,8 @@ static int possibly_read_audio(struct alsa_io *aio,
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		nread = read_streams(aio, src, nread);
+		read_streams(aio, src, nread);
+
 		rc = cras_alsa_mmap_commit(aio->handle, offset, nread,
 					   &aio->num_underruns);
 		if (rc < 0)
