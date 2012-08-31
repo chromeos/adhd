@@ -27,8 +27,10 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV,
 	CRAS_SERVER_SET_SYSTEM_VOLUME,
 	CRAS_SERVER_SET_SYSTEM_MUTE,
+	CRAS_SERVER_SET_SYSTEM_MUTE_LOCKED,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE,
+	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -163,12 +165,28 @@ static inline void cras_fill_set_system_mute(
 	m->header.id = CRAS_SERVER_SET_SYSTEM_MUTE;
 	m->header.length = sizeof(*m);
 }
+static inline void cras_fill_set_system_mute_locked(
+		struct cras_set_system_mute *m,
+		int locked)
+{
+	m->mute = locked;
+	m->header.id = CRAS_SERVER_SET_SYSTEM_MUTE_LOCKED;
+	m->header.length = sizeof(*m);
+}
 static inline void cras_fill_set_system_capture_mute(
 		struct cras_set_system_mute *m,
 		int mute)
 {
 	m->mute = mute;
 	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE;
+	m->header.length = sizeof(*m);
+}
+static inline void cras_fill_set_system_capture_mute_locked(
+		struct cras_set_system_mute *m,
+		int locked)
+{
+	m->mute = locked;
+	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED;
 	m->header.length = sizeof(*m);
 }
 

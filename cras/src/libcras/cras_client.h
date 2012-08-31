@@ -275,6 +275,17 @@ int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
  */
 int cras_client_set_system_mute(struct cras_client *client, int mute);
 
+/* Sets the mute locked state of the system. Changing mute state is impossible
+ * when this flag is set to locked.
+ * Args:
+ *    client - Client owning the stream.
+ *    locked - 0 is un-locked, 1 is locked.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_system_mute_locked(struct cras_client *client, int locked);
+
 /* Sets the capture mute state of the system.  Recordings will be muted when
  * this is set.
  * Args:
@@ -285,6 +296,18 @@ int cras_client_set_system_mute(struct cras_client *client, int mute);
  *    -EINVAL if 'client' is invalid.
  */
 int cras_client_set_system_capture_mute(struct cras_client *client, int mute);
+
+/* Sets the capture mute locked state of the system. Changing mute state is
+ * impossible when this flag is set to locked.
+ * Args:
+ *    client - Client owning the stream.
+ *    locked - 0 is un-locked, 1 is locked.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_system_capture_mute_locked(struct cras_client *client,
+					       int locked);
 
 /* Gets the current system volume.
  * Args:

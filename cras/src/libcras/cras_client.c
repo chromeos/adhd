@@ -1493,6 +1493,17 @@ int cras_client_set_system_mute(struct cras_client *client, int mute)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_set_system_mute_locked(struct cras_client *client, int locked)
+{
+	struct cras_set_system_mute msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_system_mute_locked(&msg, locked);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_set_system_capture_mute(struct cras_client *client, int mute)
 {
 	struct cras_set_system_mute msg;
@@ -1501,6 +1512,18 @@ int cras_client_set_system_capture_mute(struct cras_client *client, int mute)
 		return -EINVAL;
 
 	cras_fill_set_system_capture_mute(&msg, mute);
+	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_set_system_capture_mute_locked(struct cras_client *client,
+					       int locked)
+{
+	struct cras_set_system_mute msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_system_capture_mute_locked(&msg, locked);
 	return write_message_to_server(client, &msg.header);
 }
 

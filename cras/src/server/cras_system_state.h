@@ -80,8 +80,12 @@ int cras_system_remove_capture_gain_changed_cb(cras_system_state_changed_cb cb,
 
 /* Sets if the system is muted or not. */
 void cras_system_set_mute(int muted);
+/* Sets if the system muting is locked or not. */
+void cras_system_set_mute_locked(int locked);
 /* Gets the current mute state of the system. */
 int cras_system_get_mute();
+/* Gets if the system muting is locked or not. */
+int cras_system_get_mute_locked();
 
 /* Adds a callback to call when the mute state changes.
  * Args:
@@ -102,8 +106,12 @@ int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
 
 /* Sets if the system capture path is muted or not. */
 void cras_system_set_capture_mute(int muted);
+/* Sets if the system capture path muting is locked or not. */
+void cras_system_set_capture_mute_locked(int locked);
 /* Gets the current mute state of the system capture path. */
 int cras_system_get_capture_mute();
+/* Gets if the system capture path muting is locked or not. */
+int cras_system_get_capture_mute_locked();
 
 /* Adds a callback to call when the capture mute state changes.
  * Args:

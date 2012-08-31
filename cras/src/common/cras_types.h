@@ -50,8 +50,10 @@ struct cras_attached_client_info {
  *    min_volume_dBFS - volume in dB * 100 when volume = 1.
  *    max_volume_dBFS - volume in dB * 100 when volume = max.
  *    mute - 0 = unmuted, 1 = muted.
+ *    mute_locked - 0 = unlocked, 1 = locked.
  *    capture_gain - Capture gain in dBFS * 100.
  *    capture_mute - 0 = unmuted, 1 = muted.
+ *    capture_mute_locked - 0 = unlocked, 1 = locked.
  *    min_capture_gain - Min allowed capture gain in dBFS * 100.
  *    max_capture_gain - Max allowed capture gain in dBFS * 100.
  *    num_streams_attached - Total number of streams since server started.
@@ -71,8 +73,10 @@ struct cras_server_state {
 	long min_volume_dBFS;
 	long max_volume_dBFS;
 	int mute;
+	int mute_locked;
 	long capture_gain;
 	int capture_mute;
+	int capture_mute_locked;
 	long min_capture_gain;
 	long max_capture_gain;
 	unsigned num_streams_attached;

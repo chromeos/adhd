@@ -131,8 +131,10 @@ void cras_system_state_init()
 	exp_state->state_version = CRAS_SERVER_STATE_VERSION;
 	exp_state->volume = CRAS_MAX_SYSTEM_VOLUME;
 	exp_state->mute = 0;
+	exp_state->mute_locked = 0;
 	exp_state->capture_gain = DEFAULT_CAPTURE_GAIN;
 	exp_state->capture_mute = 0;
+	exp_state->capture_mute_locked = 0;
 	exp_state->min_volume_dBFS = DEFAULT_MIN_VOLUME_DBFS;
 	exp_state->max_volume_dBFS = DEFAULT_MAX_VOLUME_DBFS;
 	exp_state->min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
@@ -250,14 +252,34 @@ void cras_system_set_mute(int mute)
 {
 	struct state_callback_list *mute_cb;
 
+	if (state.exp_state->mute_locked)
+		return;
+
 	state.exp_state->mute = !!mute;
 	DL_FOREACH(state.mute_callbacks, mute_cb)
 		mute_cb->callback(mute_cb->data);
 }
 
+void cras_system_set_mute_locked(int locked)
+{
+	struct state_callback_list *mute_cb;
+
+	state.exp_state->mute_locked = !!locked;
+
+	if (!state.exp_state->mute_locked) {
+		DL_FOREACH(state.mute_callbacks, mute_cb)
+			mute_cb->callback(mute_cb->data);
+	}
+}
+
 int cras_system_get_mute()
 {
 	return state.exp_state->mute;
+}
+
+int cras_system_get_mute_locked()
+{
+	return state.exp_state->mute_locked;
 }
 
 int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
@@ -276,14 +298,34 @@ void cras_system_set_capture_mute(int mute)
 {
 	struct state_callback_list *mute_cb;
 
+	if (state.exp_state->capture_mute_locked)
+		return;
+
 	state.exp_state->capture_mute = !!mute;
 	DL_FOREACH(state.capture_mute_callbacks, mute_cb)
 		mute_cb->callback(mute_cb->data);
 }
 
+void cras_system_set_capture_mute_locked(int locked)
+{
+	struct state_callback_list *mute_cb;
+
+	state.exp_state->capture_mute_locked = !!locked;
+
+	if (!state.exp_state->capture_mute_locked) {
+		DL_FOREACH(state.capture_mute_callbacks, mute_cb)
+			mute_cb->callback(mute_cb->data);
+	}
+}
+
 int cras_system_get_capture_mute()
 {
 	return state.exp_state->capture_mute;
+}
+
+int cras_system_get_capture_mute_locked()
+{
+	return state.exp_state->capture_mute_locked;
 }
 
 int cras_system_register_capture_mute_changed_cb(
