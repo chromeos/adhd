@@ -105,4 +105,4 @@
   ; Headphones allowed full range, 0.5dB per step, 50dB total range.
   volume_curve = simple_step
   volume_step = 50
-  max_volume = 900
+  max_volume = -200
