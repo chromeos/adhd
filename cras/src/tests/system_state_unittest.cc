@@ -546,6 +546,7 @@ TEST(SystemStateSuite, MuteLocked) {
   EXPECT_EQ(fake_user_arg, mute_changed_arg_value);
   EXPECT_EQ(0, volume_changed_called);
   rc = cras_system_remove_mute_changed_cb(mute_changed, fake_user_arg);
+  EXPECT_EQ(0, rc);
 
   cras_system_register_capture_mute_changed_cb(capture_mute_changed,
                                                fake_user_arg);
