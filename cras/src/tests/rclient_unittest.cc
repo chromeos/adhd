@@ -33,8 +33,6 @@ static int cras_system_set_capture_mute_called;
 static size_t cras_system_set_capture_mute_locked_value;
 static int cras_system_set_capture_mute_locked_called;
 static size_t cras_make_fd_nonblocking_called;
-static size_t cras_system_increment_streams_played_called;
-static int cras_system_has_played_streams_return;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -55,8 +53,6 @@ void ResetStubData() {
   cras_system_set_capture_mute_locked_value = 0;
   cras_system_set_capture_mute_locked_called = 0;
   cras_make_fd_nonblocking_called = 0;
-  cras_system_increment_streams_played_called = 0;
-  cras_system_has_played_streams_return = 0;
 }
 
 namespace {
@@ -147,7 +143,6 @@ TEST_F(RClientMessagesSuite, NoDevErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(1, cras_system_increment_streams_played_called);
 }
 
 TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
@@ -164,7 +159,6 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(1, cras_system_increment_streams_played_called);
 }
 
 TEST_F(RClientMessagesSuite, AudSockConnectErrorReply) {
@@ -219,7 +213,6 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
-  EXPECT_EQ(1, cras_system_increment_streams_played_called);
 }
 
 TEST_F(RClientMessagesSuite, SetVolume) {
@@ -401,17 +394,6 @@ void cras_system_set_capture_mute_locked(int mute)
 int cras_system_remove_alsa_card(size_t alsa_card_index)
 {
 	return -1;
-}
-
-unsigned int cras_system_increment_streams_played()
-{
-  cras_system_increment_streams_played_called++;
-  return cras_system_increment_streams_played_called;
-}
-
-int cras_system_has_played_streams()
-{
-  return cras_system_has_played_streams_return;
 }
 
 key_t cras_sys_state_shm_key()

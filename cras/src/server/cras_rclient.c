@@ -37,9 +37,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	int aud_fd = 0;
 	size_t buffer_frames, cb_threshold, min_cb_level;
 
-	/* Increment the number of streams that have attached to the system. */
-	cras_system_increment_streams_played();
-
 	/* Find the iodev for this new connection and connect to it. */
 	iodev = cras_get_iodev_for_stream_type(msg->stream_type,
 					       msg->direction);

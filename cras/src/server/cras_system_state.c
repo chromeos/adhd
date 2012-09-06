@@ -404,16 +404,6 @@ long cras_system_get_max_capture_gain()
 	return state.exp_state->max_capture_gain;
 }
 
-int cras_system_has_played_streams()
-{
-	return state.exp_state->num_streams_attached != 0;
-}
-
-unsigned int cras_system_increment_streams_played()
-{
-	return ++state.exp_state->num_streams_attached;
-}
-
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 {
 	struct card_list *card;
@@ -507,6 +497,7 @@ void cras_system_state_stream_added()
 		return;
 
 	s->num_active_streams++;
+	s->num_streams_attached++;
 
 	cras_system_state_update_complete();
 }

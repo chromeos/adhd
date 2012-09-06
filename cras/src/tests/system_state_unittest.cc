@@ -624,17 +624,6 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   EXPECT_EQ(select_data, select_data_value);
 }
 
-TEST(SystemSettingsStreamCount, FirstStreamCheck) {
-  ResetStubData();
-  cras_system_state_deinit();
-  cras_system_state_init();
-  EXPECT_EQ(0, cras_system_has_played_streams());
-  EXPECT_EQ(1, cras_system_increment_streams_played());
-  EXPECT_EQ(1, cras_system_has_played_streams());
-  EXPECT_EQ(2, cras_system_increment_streams_played());
-  EXPECT_EQ(1, cras_system_has_played_streams());
-}
-
 TEST(SystemSettingsStreamCount, StreamCount) {
   ResetStubData();
   cras_system_state_deinit();
