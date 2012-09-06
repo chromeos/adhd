@@ -375,6 +375,19 @@ long cras_client_get_system_min_capture_gain(struct cras_client *client);
  */
 long cras_client_get_system_max_capture_gain(struct cras_client *client);
 
+/* Gets the number of streams currently attached to the server.  This is the
+ * total number of capture and playback streams.  If the ts argument is
+ * not null, then it will be filled with the last time audio was played or
+ * recorded.  ts will be set to the current time is streams are currently
+ * active.
+ * Args:
+ *    ts - Filled with the timestamp of the last stream.
+ * Returns:
+ *    The number of active streams.
+ */
+unsigned cras_client_get_num_active_streams(struct cras_client *client,
+					    struct timespec *ts);
+
 /*
  * Utility functions.
  */

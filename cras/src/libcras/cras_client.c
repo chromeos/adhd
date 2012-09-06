@@ -1583,6 +1583,29 @@ long cras_client_get_system_max_capture_gain(struct cras_client *client)
 	return client->server_state->max_capture_gain;
 }
 
+unsigned cras_client_get_num_active_streams(struct cras_client *client,
+					    struct timespec *ts)
+{
+	unsigned num_streams, version;
+
+	if (!client || !client->server_state)
+		return 0;
+
+read_active_streams_again:
+	version = begin_server_state_read(client->server_state);
+	num_streams = client->server_state->num_active_streams;
+	if (ts) {
+		if (num_streams)
+			clock_gettime(CLOCK_MONOTONIC, ts);
+		else
+			*ts = client->server_state->last_active_stream_time;
+	}
+	if (end_server_state_read(client->server_state, version))
+		goto read_active_streams_again;
+
+	return num_streams;
+}
+
 int cras_client_run_thread(struct cras_client *client)
 {
 	if (client == NULL || client->thread.running)

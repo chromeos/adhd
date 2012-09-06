@@ -167,6 +167,16 @@ static void print_attached_client_list(struct cras_client *client)
 		       clients[i].gid);
 }
 
+static void print_active_stream_info(struct cras_client *client)
+{
+	struct timespec ts;
+	unsigned num_streams;
+
+	num_streams = cras_client_get_num_active_streams(client, &ts);
+	printf("Num active streams: %u\n", num_streams);
+	printf("Last audio active time: %lu, %lu\n", ts.tv_sec, ts.tv_nsec);
+}
+
 static void print_system_volumes(struct cras_client *client)
 {
 	printf("System Volume (0-100): %zu %s\n"
@@ -416,6 +426,7 @@ static void print_server_info(struct cras_client *client)
 	print_system_volumes(client);
 	print_device_lists(client);
 	print_attached_client_list(client);
+	print_active_stream_info(client);
 }
 
 static void check_output_plugged(struct cras_client *client, const char *name)
