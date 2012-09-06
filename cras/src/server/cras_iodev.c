@@ -11,6 +11,7 @@
 
 #include "cras_iodev.h"
 #include "cras_rstream.h"
+#include "cras_system_state.h"
 #include "utlist.h"
 
 /* Add a stream to the output (called by iodev_list).
@@ -136,6 +137,8 @@ int cras_iodev_append_stream(struct cras_iodev *iodev,
 	out->fd = cras_rstream_get_audio_fd(stream);
 	DL_APPEND(iodev->streams, out);
 
+	cras_system_state_stream_added();
+
 	return 0;
 }
 
@@ -150,6 +153,8 @@ int cras_iodev_delete_stream(struct cras_iodev *iodev,
 		return -EINVAL;
 	DL_DELETE(iodev->streams, out);
 	free(out);
+
+	cras_system_state_stream_removed();
 
 	return 0;
 }

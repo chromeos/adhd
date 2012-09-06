@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/shm.h>
@@ -42,6 +43,8 @@ struct state_callback_list {
  *    capture_mute_callbacks - Called when the capture mute changes.
  *    volume_limits_callbacks - Called when the volume limits are changed.
  *    cards - A list of active sound cards in the system.
+ *    update_lock - Protects the update_count, as audio threads can update the
+ *      stream count.
  */
 static struct {
 	struct cras_server_state *exp_state;
@@ -54,6 +57,7 @@ static struct {
 	struct state_callback_list *capture_mute_callbacks;
 	struct state_callback_list *volume_limits_callbacks;
 	struct card_list *cards;
+	pthread_mutex_t update_lock;
 	/* Select loop callback registration. */
 	int (*fd_add)(int fd, void (*cb)(void *data),
 		      void *cb_data, void *select_data);
@@ -109,6 +113,7 @@ void cras_system_state_init()
 {
 	struct cras_server_state *exp_state;
 	unsigned loops = 0;
+	int rc;
 
 	/* Find an available shm key. */
 	do {
@@ -140,6 +145,11 @@ void cras_system_state_init()
 	exp_state->min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	exp_state->max_capture_gain = DEFAULT_MAX_CAPTURE_GAIN;
 	exp_state->num_streams_attached = 0;
+
+	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
+		syslog(LOG_ERR, "Fatal: system state mutex init");
+		exit(rc);
+	}
 
 	state.exp_state = exp_state;
 
@@ -190,6 +200,8 @@ void cras_system_state_deinit()
 		free(cb);
 	}
 	state.volume_limits_callbacks = NULL;
+
+	pthread_mutex_destroy(&state.update_lock);
 }
 
 void cras_system_set_volume(size_t volume)
@@ -486,8 +498,52 @@ void cras_system_rm_select_fd(int fd)
 		state.fd_rm(fd, state.select_data);
 }
 
+void cras_system_state_stream_added()
+{
+	struct cras_server_state *s;
+
+	s = cras_system_state_update_begin();
+	if (!s)
+		return;
+
+	s->num_active_streams++;
+
+	cras_system_state_update_complete();
+}
+
+void cras_system_state_stream_removed()
+{
+	struct cras_server_state *s;
+
+	s = cras_system_state_update_begin();
+	if (!s)
+		return;
+
+	/* Set the last active time when removing the final stream. */
+	if (s->num_active_streams == 1)
+		clock_gettime(CLOCK_MONOTONIC, &s->last_active_stream_time);
+	s->num_active_streams--;
+
+	cras_system_state_update_complete();
+}
+
+unsigned cras_system_state_get_active_streams()
+{
+	return state.exp_state->num_active_streams;
+}
+
+void cras_system_state_get_last_stream_active_time(struct timespec *ts)
+{
+	*ts = state.exp_state->last_active_stream_time;
+}
+
 struct cras_server_state *cras_system_state_update_begin()
 {
+	if (pthread_mutex_lock(&state.update_lock)) {
+		syslog(LOG_ERR, "Failed to lock stream mutex");
+		return NULL;
+	}
+
 	__sync_fetch_and_add(&state.exp_state->update_count, 1);
 	return state.exp_state;
 }
@@ -495,6 +551,7 @@ struct cras_server_state *cras_system_state_update_begin()
 void cras_system_state_update_complete()
 {
 	__sync_fetch_and_add(&state.exp_state->update_count, 1);
+	pthread_mutex_unlock(&state.update_lock);
 }
 
 key_t cras_sys_state_shm_key()

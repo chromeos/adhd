@@ -258,6 +258,26 @@ int cras_system_add_select_fd(int fd,
  */
 void cras_system_rm_select_fd(int fd);
 
+/* Signals that an audio input or output stream has been added to the system.
+ * This allows the count of active streams can be used to notice when the audio
+ * subsystem is idle.
+ */
+void cras_system_state_stream_added();
+
+/* Signals that an audio input or output stream has been removed from the
+ * system.  This allows the count of active streams can be used to notice when
+ * the audio subsystem is idle.
+ */
+void cras_system_state_stream_removed();
+
+/* Returns the number of active playback and capture streams. */
+unsigned cras_system_state_get_active_streams();
+
+/* Fills ts with the time the last stream was removed from the system, the time
+ * the stream count went to zero.
+ */
+void cras_system_state_get_last_stream_active_time(struct timespec *ts);
+
 /* Returns a pointer to the current system state that is shared with clients.
  * This also 'locks' the structure by incrementing the update count to an odd
  * value.

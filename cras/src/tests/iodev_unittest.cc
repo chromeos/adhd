@@ -265,6 +265,13 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   return 0;
 }
 
+// From cras_system_state.
+void cras_system_state_stream_added() {
+}
+
+void cras_system_state_stream_removed() {
+}
+
 }  // extern "C"
 }  //  namespace
 

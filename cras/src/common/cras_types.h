@@ -65,6 +65,10 @@ struct cras_attached_client_info {
  *    client_info - List of first 20 attached clients.
  *    update_count - Incremented twice each time the struct is updated.  Odd
  *        during updates.
+ *    num_active_streams - Number of streams currently playing or recording
+ *        audio.
+ *    last_active_stream_time - Time the last stream was removed.  Can be used
+ *        to determine how long audio has been idle.
  */
 #define CRAS_SERVER_STATE_VERSION 0
 struct cras_server_state {
@@ -87,6 +91,8 @@ struct cras_server_state {
 	unsigned num_attached_clients;
 	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
 	unsigned update_count;
+	unsigned num_active_streams;
+	struct timespec last_active_stream_time;
 };
 
 /* Actions for card add/remove/change. */
