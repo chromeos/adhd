@@ -292,9 +292,8 @@ static int thread_remove_stream(struct alsa_io *aio,
 	} else {
 		cras_iodev_config_params_for_streams(&aio->base);
 		syslog(LOG_DEBUG,
-		       "used_size %u format %u cb_threshold %u",
+		       "used_size %u cb_threshold %u",
 		       (unsigned)aio->base.used_size,
-		       aio->base.format->format,
 		       (unsigned)aio->base.cb_threshold);
 	}
 
