@@ -987,6 +987,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 
 	cras_iodev_plug_event(&aio->base, plugged);
 
+	/* If the jack has a ucm device, set that. */
+	cras_alsa_jack_enable_ucm(jack, plugged);
+
 	if (plugged) {
 		syslog(LOG_DEBUG, "Move streams to %zu due to plug event.",
 		       aio->base.info.idx);
@@ -1029,12 +1032,8 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		return;
 	aio = (struct alsa_io *)arg;
 
-	/* TODO - This assumes that all input jacks mean a headset is attached.
-	 * While currently true, moving forward there needs to be a better way
-	 * to map a jack to a ucm device.
-	 */
-	if (aio->ucm)
-		ucm_set_enabled(aio->ucm, "Headset", plugged);
+	/* If the jack has a ucm device, set that. */
+	cras_alsa_jack_enable_ucm(jack, plugged);
 
 	syslog(LOG_DEBUG, "Move input streams due to plug event.");
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,

@@ -95,6 +95,7 @@ static char test_dev_name[] = "TestDev";
 static size_t cras_rstream_audio_ready_called;
 static size_t cras_iodev_plug_event_called;
 static int cras_iodev_plug_event_value;
+static unsigned cras_alsa_jack_enable_ucm_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -133,6 +134,7 @@ void ResetStubData() {
   cras_iodev_move_stream_type_top_prio_called = 0;
   cras_rstream_audio_ready_called = 0;
   cras_iodev_plug_event_called = 0;
+  cras_alsa_jack_enable_ucm_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -188,6 +190,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
   EXPECT_EQ(1, cras_iodev_plug_event_called);
   EXPECT_EQ(1, cras_iodev_plug_event_value);
+  EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
   EXPECT_EQ(2, cras_iodev_plug_event_called);
@@ -1479,6 +1482,10 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 
 void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list)
 {
+}
+
+void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable) {
+  cras_alsa_jack_enable_ucm_called++;
 }
 
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
