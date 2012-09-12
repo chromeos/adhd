@@ -31,6 +31,7 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
  * device.  These jacks will be for headphones, speakers, HDMI, etc.
  * Args:
  *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ *    card_name - The name of the card (used to find gpio jacks).
  *    device_index - Index ALSA uses to refer to the device.  The Y in "hw:X".
  *    mixer - The mixer associated with this card, used to find controls that
  *      correspond to jacks.  For instance "Headphone switch" for "Headphone
@@ -44,6 +45,7 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
  */
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
+		const char *card_name,
 		unsigned int device_index,
 		struct cras_alsa_mixer *mixer,
 		snd_use_case_mgr_t *ucm,

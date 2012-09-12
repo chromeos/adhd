@@ -190,6 +190,7 @@ static void gpio_switch_callback(void *arg)
  */
 static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 				  enum CRAS_STREAM_DIRECTION direction,
+				  const char *card_name,
 				  const char *pathname,
 				  unsigned switch_event)
 {
@@ -200,17 +201,25 @@ static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	if (jack == NULL)
 		return;
 
-	jack->jack_list = jack_list;
-	DL_APPEND(jack_list->jacks, jack);
 	jack->gpio.fd = gpio_switch_open(pathname);
+	if (jack->gpio.fd == -1) {
+		free(jack);
+		return;
+	}
+
 	jack->gpio.switch_event = switch_event;
+	jack->jack_list = jack_list;
 	jack->gpio.device_name = sys_input_get_device_name(pathname);
 
-	if (jack->gpio.fd == -1 || jack->gpio.device_name == NULL) {
+	if (!jack->gpio.device_name ||
+	    !strstr(jack->gpio.device_name, card_name)) {
+		close(jack->gpio.fd);
 		free(jack->gpio.device_name);
 		free(jack);
 		return;
 	}
+
+	DL_APPEND(jack_list->jacks, jack);
 
 	if (direction == CRAS_STREAM_OUTPUT)
 		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
@@ -274,6 +283,7 @@ static void wait_for_dev_input_access(void)
 
 static void find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 			    unsigned int card_index,
+			    const char *card_name,
 			    enum CRAS_STREAM_DIRECTION direction)
 {
 	/* GPIO switches are on Arm-based machines, and are
@@ -293,7 +303,8 @@ static void find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 		if (direction == CRAS_STREAM_INPUT)
 			sw = SW_MICROPHONE_INSERT;
 
-		open_and_monitor_gpio(jack_list, direction, devices[i], sw);
+		open_and_monitor_gpio(jack_list, direction, card_name,
+				      devices[i], sw);
 		free(devices[i]);
 	}
 }
@@ -533,6 +544,7 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
+		const char *card_name,
 		unsigned int device_index,
 		struct cras_alsa_mixer *mixer,
 		snd_use_case_mgr_t *ucm,
@@ -565,7 +577,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 	}
 
 	if (device_index == 0 && jack_list->jacks == NULL)
-		find_gpio_jacks(jack_list, card_index, direction);
+		find_gpio_jacks(jack_list, card_index, card_name, direction);
 	return jack_list;
 }
 
@@ -581,6 +593,7 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 		free(jack->ucm_device);
 		if (jack->is_gpio) {
 		    free(jack->gpio.device_name);
+		    close(jack->gpio.fd);
 		}
 		free(jack);
 	}

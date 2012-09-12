@@ -122,7 +122,7 @@ TEST(AlsaJacks, CreateFailOpen) {
   ResetStubData();
   snd_hctl_open_return_value = -1;
   snd_hctl_open_pointer_val = NULL;
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0,
                                              fake_mixer,
 					     NULL,
                                              CRAS_STREAM_OUTPUT,
@@ -135,7 +135,7 @@ TEST(AlsaJacks, CreateFailLoad) {
   ResetStubData();
   snd_hctl_load_return_value = -1;
   gpio_get_switch_names_count = ~0;
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0,
                                              fake_mixer,
 					     NULL,
                                              CRAS_STREAM_OUTPUT,
@@ -157,7 +157,7 @@ TEST(AlsaJacks, CreateNoElements) {
   ResetStubData();
   snd_hctl_first_elem_return_val = NULL;
   gpio_get_switch_names_count = 0;
-  jack_list = cras_alsa_jack_list_create(0, 0,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0,
                                          fake_mixer,
 					 NULL,
                                          CRAS_STREAM_OUTPUT,
@@ -194,6 +194,7 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
         reinterpret_cast<snd_hctl_elem_t *>(&elems[i]));
 
   jack_list = cras_alsa_jack_list_create(0,
+                                         "card_name",
                                          device_index,
                                          fake_mixer,
 					 ucm,
@@ -246,7 +247,7 @@ TEST(AlsaJacks, CreateGPIOHp) {
   ResetStubData();
   gpio_get_switch_names_count = ~0;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_list_create(0, 0,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0,
                                          fake_mixer,
 					 NULL,
                                          CRAS_STREAM_OUTPUT,
@@ -260,19 +261,20 @@ TEST(AlsaJacks, CreateGPIOHp) {
   EXPECT_EQ(2, gpio_switch_eviocgsw_called);
   EXPECT_EQ(2, gpio_switch_eviocgbit_called);
   EXPECT_EQ(2, sys_input_get_device_name_called);
+  EXPECT_EQ(2, cras_system_add_select_fd_called);
   EXPECT_EQ(1, snd_hctl_close_called);
 }
 
-TEST(AlsaJacks, CreateGPIOMic) {
+TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
   gpio_get_switch_names_count = ~0;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_list_create(0, 0,
+  jack_list = cras_alsa_jack_list_create(0, "c2", 0,
                                          fake_mixer,
 					 NULL,
-                                         CRAS_STREAM_INPUT,
+                                         CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -280,9 +282,8 @@ TEST(AlsaJacks, CreateGPIOMic) {
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_get_switch_names_called);
   EXPECT_EQ(2, gpio_switch_open_called);
-  EXPECT_EQ(2, gpio_switch_eviocgsw_called);
-  EXPECT_EQ(2, gpio_switch_eviocgbit_called);
   EXPECT_EQ(2, sys_input_get_device_name_called);
+  EXPECT_EQ(0, cras_system_add_select_fd_called);
   EXPECT_EQ(1, snd_hctl_close_called);
 }
 
@@ -516,7 +517,7 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 char *sys_input_get_device_name(const char *path)
 {
   sys_input_get_device_name_called++;
-  return strdup(path);
+  return strdup("c1 Headphone Jack");
 }
 
 int gpio_switch_eviocgbit(int fd, unsigned long sw, void *buf)
