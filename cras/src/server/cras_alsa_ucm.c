@@ -10,6 +10,7 @@
 #include "cras_alsa_ucm.h"
 
 static const char default_verb[] = "HiFi";
+static const char jack_var[] = "JackName";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -66,4 +67,48 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable)
 		return 0;
 
 	return snd_use_case_set(mgr, enable ? "_enadev" : "_disdev", dev);
+}
+
+char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)
+{
+	const char **list;
+	char *dev_name = NULL;
+	unsigned int i;
+	int num_devs;
+	int rc;
+
+	num_devs = snd_use_case_get_list(mgr, "_devices/HiFi", &list);
+	if (num_devs <= 0)
+		return NULL;
+
+	for (i = 0; i < num_devs; i++) {
+		char *id;
+		const char *this_jack;
+
+		if (!list[i])
+			continue;
+
+		id = malloc(strlen(jack_var) +
+			    strlen(list[i]) +
+			    strlen(default_verb) + 4);
+		if (!id)
+			goto return_name;
+
+		sprintf(id, "=%s/%s/%s", jack_var, list[i], default_verb);
+		rc = snd_use_case_get(mgr, id, &this_jack);
+		free(id);
+		if (rc)
+			continue;
+
+		if (!strcmp(jack, this_jack)) {
+			dev_name = strdup(list[i]);
+			free((void *)this_jack);
+			break;
+		}
+		free((void *)this_jack);
+	}
+
+return_name:
+	snd_use_case_free_list(list, num_devs);
+	return dev_name;
 }

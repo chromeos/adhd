@@ -11,6 +11,7 @@
 
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
+#include "cras_alsa_ucm.h"
 #include "cras_system_state.h"
 #include "cras_gpio_jack.h"
 #include "cras_util.h"
@@ -56,6 +57,7 @@ struct cras_gpio_jack {
  *    jack_list - list of jacks this belongs to.
  *    mixer_output - mixer output control used to control audio to this jack.
  *        This will be null for input jacks.
+ *    ucm_device - Name of the ucm device if found, otherwise, NULL.
  */
 struct cras_alsa_jack {
 	unsigned is_gpio;	/* !0 -> 'gpio' valid
@@ -68,6 +70,7 @@ struct cras_alsa_jack {
 
 	struct cras_alsa_jack_list *jack_list;
 	struct cras_alsa_mixer_output *mixer_output;
+	char *ucm_device;
 	struct cras_alsa_jack *prev, *next;
 };
 
@@ -84,6 +87,7 @@ struct cras_alsa_jack {
 struct cras_alsa_jack_list {
 	snd_hctl_t *hctl;
 	struct cras_alsa_mixer *mixer;
+	snd_use_case_mgr_t *ucm;
 	size_t device_index;
 	struct jack_poll_fd *registered_fds;
 	jack_state_change_callback *change_callback;
@@ -213,6 +217,11 @@ static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 			jack_list->mixer,
 			jack_list->device_index,
 			"Headphone");
+
+	if (jack_list->ucm)
+		jack->ucm_device =
+			ucm_get_dev_for_jack(jack_list->ucm,
+					     jack->gpio.device_name);
 
 	sys_input_get_switch_state(jack->gpio.fd, switch_event,
 				   &jack->gpio.current_state);
@@ -502,6 +511,9 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 					jack_list->mixer,
 					jack_list->device_index,
 					name);
+		if (jack_list->ucm)
+			jack->ucm_device =
+				ucm_get_dev_for_jack(jack_list->ucm, name);
 	}
 
 	/* If we have found jacks, have the poll fds passed to select in the
@@ -523,6 +535,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		unsigned int device_index,
 		struct cras_alsa_mixer *mixer,
+		snd_use_case_mgr_t *ucm,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
 		void *cb_data)
@@ -541,6 +554,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 	jack_list->change_callback = cb;
 	jack_list->callback_data = cb_data;
 	jack_list->mixer = mixer;
+	jack_list->ucm = ucm;
 	jack_list->device_index = device_index;
 
 	snprintf(device_name, sizeof(device_name), "hw:%d", card_index);
@@ -564,6 +578,7 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 	remove_jack_poll_fds(jack_list);
 	DL_FOREACH_SAFE(jack_list->jacks, jack, tmp) {
 		DL_DELETE(jack_list->jacks, jack);
+		free(jack->ucm_device);
 		if (jack->is_gpio) {
 		    free(jack->gpio.device_name);
 		}

@@ -59,7 +59,7 @@ static size_t gpio_switch_open_called;
 static size_t gpio_switch_eviocgsw_called;
 static size_t gpio_switch_eviocgbit_called;
 static size_t sys_input_get_device_name_called;
-
+static unsigned ucm_get_dev_for_jack_called;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -97,6 +97,7 @@ static void ResetStubData() {
   cras_alsa_mixer_get_output_matching_name_called = 0;
   cras_alsa_mixer_get_output_matching_name_return_value =
       reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
+  ucm_get_dev_for_jack_called = 0;
 }
 
 static void fake_jack_cb(const struct cras_alsa_jack *jack,
@@ -114,6 +115,7 @@ TEST(AlsaJacks, CreateFailOpen) {
   snd_hctl_open_pointer_val = NULL;
   EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
                                              fake_mixer,
+					     NULL,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
@@ -126,6 +128,7 @@ TEST(AlsaJacks, CreateFailLoad) {
   gpio_get_switch_names_count = ~0;
   EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, 0,
                                              fake_mixer,
+					     NULL,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
@@ -147,6 +150,7 @@ TEST(AlsaJacks, CreateNoElements) {
   gpio_get_switch_names_count = 0;
   jack_list = cras_alsa_jack_list_create(0, 0,
                                          fake_mixer,
+					 NULL,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
@@ -169,6 +173,7 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
     CRAS_STREAM_DIRECTION direction,
     std::string *elems,
     unsigned int device_index,
+    snd_use_case_mgr_t *ucm,
     size_t nelems,
     size_t njacks) {
   struct cras_alsa_jack_list *jack_list;
@@ -182,11 +187,13 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   jack_list = cras_alsa_jack_list_create(0,
                                          device_index,
                                          fake_mixer,
+					 ucm,
                                          direction,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   if (jack_list == NULL)
     return jack_list;
+  EXPECT_EQ(ucm ? njacks : 0, ucm_get_dev_for_jack_called);
   EXPECT_EQ(1, snd_hctl_open_called);
   EXPECT_EQ(1, snd_hctl_load_called);
   EXPECT_EQ(1, snd_hctl_first_elem_called);
@@ -215,6 +222,7 @@ TEST(AlsaJacks, CreateNoJacks) {
   jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
                                       elem_names,
                                       0,
+				      NULL,
                                       ARRAY_SIZE(elem_names),
                                       0);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -231,6 +239,7 @@ TEST(AlsaJacks, CreateGPIOHp) {
   snd_hctl_first_elem_return_val = NULL;
   jack_list = cras_alsa_jack_list_create(0, 0,
                                          fake_mixer,
+					 NULL,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
@@ -253,6 +262,7 @@ TEST(AlsaJacks, CreateGPIOMic) {
   snd_hctl_first_elem_return_val = NULL;
   jack_list = cras_alsa_jack_list_create(0, 0,
                                          fake_mixer,
+					 NULL,
                                          CRAS_STREAM_INPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
@@ -284,6 +294,7 @@ TEST(AlsaJacks, CreateOneHpJack) {
   jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
                                       elem_names,
                                       0,
+				      NULL,
                                       ARRAY_SIZE(elem_names),
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -327,6 +338,7 @@ TEST(AlsaJacks, CreateOneMicJack) {
   jack_list = run_test_with_elem_list(CRAS_STREAM_INPUT,
                                       elem_names,
                                       0,
+				      NULL,
                                       ARRAY_SIZE(elem_names),
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
@@ -351,11 +363,13 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
   ResetStubData();
   snd_hctl_poll_descriptors_fds = poll_fds;
   snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
-  jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
-                                      elem_names,
-                                      5,
-                                      ARRAY_SIZE(elem_names),
-                                      1);
+  jack_list = run_test_with_elem_list(
+      CRAS_STREAM_OUTPUT,
+      elem_names,
+      5,
+      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      ARRAY_SIZE(elem_names),
+      1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
   EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_add_select_fd_called);
   EXPECT_EQ(5, cras_system_add_select_fd_values[0]);
@@ -553,6 +567,11 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
     names[i] = strdup(dummy[i]);
   }
   return ub;
+}
+
+char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {
+  ++ucm_get_dev_for_jack_called;
+  return NULL;
 }
 
 } /* extern "C" */

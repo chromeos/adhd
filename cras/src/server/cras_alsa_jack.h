@@ -10,6 +10,7 @@
 #define CRAS_ALSA_JACK_H_
 
 #include "cras_types.h"
+#include "cras_alsa_ucm.h"
 
 struct cras_alsa_jack;
 struct cras_alsa_jack_list;
@@ -34,6 +35,7 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
  *    mixer - The mixer associated with this card, used to find controls that
  *      correspond to jacks.  For instance "Headphone switch" for "Headphone
  *      Jack".
+ *    ucm - ALSA use case manager if available.
  *    direction - Input or output, look for mic or headphone jacks.
  *    cb - Function to call when a jack state changes.
  *    cb_data - Passed to the callback when called.
@@ -44,6 +46,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		unsigned int device_index,
 		struct cras_alsa_mixer *mixer,
+		snd_use_case_mgr_t *ucm,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
 		void *cb_data);

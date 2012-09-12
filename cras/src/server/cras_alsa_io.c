@@ -1147,6 +1147,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			card_index,
 			device_index,
 			mixer,
+			ucm,
 			direction,
 			direction == CRAS_STREAM_OUTPUT ?
 				     jack_output_plug_event :

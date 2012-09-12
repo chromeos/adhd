@@ -45,4 +45,14 @@ void ucm_destroy(snd_use_case_mgr_t *mgr);
  */
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable);
 
+/* Gets the name of the ucm device for the given jack name.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    jack - The name of the jack to search for.
+ * Rreturns:
+ *    A pointer to the allocated string containing the name of the device, or
+ *    NULL if no device is found.
+ */
+char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack);
+
 #endif /* _CRAS_ALSA_UCM_H */
