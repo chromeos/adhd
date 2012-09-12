@@ -619,3 +619,9 @@ const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 		return jack->gpio.device_name;
 	return snd_hctl_elem_get_name(jack->elem);
 }
+
+void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable)
+{
+	if (jack && jack->ucm_device)
+		ucm_set_enabled(jack->jack_list->ucm, jack->ucm_device, enable);
+}

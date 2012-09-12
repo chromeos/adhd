@@ -60,6 +60,8 @@ static size_t gpio_switch_eviocgsw_called;
 static size_t gpio_switch_eviocgbit_called;
 static size_t sys_input_get_device_name_called;
 static unsigned ucm_get_dev_for_jack_called;
+static bool ucm_get_dev_for_jack_return;
+static int ucm_set_enabled_value;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -98,6 +100,7 @@ static void ResetStubData() {
   cras_alsa_mixer_get_output_matching_name_return_value =
       reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
   ucm_get_dev_for_jack_called = 0;
+  ucm_get_dev_for_jack_return = false;
 }
 
 static void fake_jack_cb(const struct cras_alsa_jack *jack,
@@ -107,6 +110,12 @@ static void fake_jack_cb(const struct cras_alsa_jack *jack,
   fake_jack_cb_called++;
   fake_jack_cb_plugged = plugged;
   fake_jack_cb_data = data;
+
+  // Check that jack enable callback is called if there is a ucm device.
+  ucm_set_enabled_value = !plugged;
+  cras_alsa_jack_enable_ucm(jack, plugged);
+  EXPECT_EQ(ucm_get_dev_for_jack_return ? plugged : !plugged,
+            ucm_set_enabled_value);
 }
 
 TEST(AlsaJacks, CreateFailOpen) {
@@ -363,6 +372,7 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
   ResetStubData();
   snd_hctl_poll_descriptors_fds = poll_fds;
   snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
+  ucm_get_dev_for_jack_return = true;
   jack_list = run_test_with_elem_list(
       CRAS_STREAM_OUTPUT,
       elem_names,
@@ -569,8 +579,15 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
   return ub;
 }
 
+int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable) {
+  ucm_set_enabled_value = enable;
+  return 0;
+}
+
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {
   ++ucm_get_dev_for_jack_called;
+  if (ucm_get_dev_for_jack_return)
+    return static_cast<char*>(malloc(1)); // Will be freed in jack_list_destroy.
   return NULL;
 }
 
