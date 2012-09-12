@@ -7,6 +7,7 @@
 #include <alsa/use-case.h>
 #include <syslog.h>
 
+#include "cras_alsa_card.h"
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
@@ -212,7 +213,12 @@ struct cras_alsa_card *cras_alsa_card_create(
 
 	dev_idx = -1;
 	while (1) {
-		snd_ctl_pcm_next_device(handle, &dev_idx);
+		rc = snd_ctl_pcm_next_device(handle, &dev_idx);
+		if (rc < 0) {
+			cras_alsa_card_destroy(alsa_card);
+			snd_ctl_close(handle);
+			return NULL;
+		}
 		if (dev_idx < 0)
 			break;
 

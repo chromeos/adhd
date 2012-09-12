@@ -33,6 +33,7 @@ static size_t snd_ctl_open_return;
 static size_t snd_ctl_close_called;
 static size_t snd_ctl_close_return;
 static size_t snd_ctl_pcm_next_device_called;
+static bool snd_ctl_pcm_next_device_return_error;
 static int *snd_ctl_pcm_next_device_set_devs;
 static size_t snd_ctl_pcm_next_device_set_devs_size;
 static size_t snd_ctl_pcm_next_device_set_devs_index;
@@ -64,6 +65,7 @@ static void ResetStubData() {
   snd_ctl_close_called = 0;
   snd_ctl_close_return = 0;
   snd_ctl_pcm_next_device_called = 0;
+  snd_ctl_pcm_next_device_return_error = false;
   snd_ctl_pcm_next_device_set_devs_size = 0;
   snd_ctl_pcm_next_device_set_devs_index = 0;
   snd_ctl_pcm_info_called = 0;
@@ -157,6 +159,21 @@ TEST(AlsaCard, CreateNoDevices) {
   cras_alsa_card_destroy(c);
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
+TEST(AlsaCard, CreateOneOutputNextDevError) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  snd_ctl_pcm_next_device_return_error = true;
+  card_info.card_type = ALSA_CARD_TYPE_USB;
+  card_info.card_index = 0;
+  c = cras_alsa_card_create(&card_info, fake_blacklist);
+  EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(snd_ctl_open_called, snd_ctl_close_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
@@ -385,11 +402,15 @@ int snd_ctl_close(snd_ctl_t *handle) {
   return snd_ctl_close_return;
 }
 int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int *device) {
+  if (snd_ctl_pcm_next_device_return_error) {
+    *device = 10;
+    return -1;
+  }
   snd_ctl_pcm_next_device_called++;
   if (snd_ctl_pcm_next_device_set_devs_index >=
       snd_ctl_pcm_next_device_set_devs_size) {
     *device = -1;
-    return -1;
+    return 0;
   }
   *device =
       snd_ctl_pcm_next_device_set_devs[snd_ctl_pcm_next_device_set_devs_index];
