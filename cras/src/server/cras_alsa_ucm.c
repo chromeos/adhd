@@ -9,7 +9,7 @@
 
 #include "cras_alsa_ucm.h"
 
-const char DefaultVerb[] = "HiFi";
+static const char default_verb[] = "HiFi";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -46,7 +46,7 @@ snd_use_case_mgr_t *ucm_create(const char *name)
 	if (rc)
 		return NULL;
 
-	rc = snd_use_case_set(mgr, "_verb", DefaultVerb);
+	rc = snd_use_case_set(mgr, "_verb", default_verb);
 	if (rc) {
 		ucm_destroy(mgr);
 		return NULL;
