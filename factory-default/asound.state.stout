@@ -18,8 +18,8 @@ state.PCH {
 	control.2 {
 		iface MIXER
 		name 'Headphone Playback Switch'
-		value.0 true
-		value.1 true
+		value.0 false
+		value.1 false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -238,7 +238,7 @@ state.PCH {
 	control.20 {
 		iface MIXER
 		name 'IEC958 Playback Switch'
-		value false
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
