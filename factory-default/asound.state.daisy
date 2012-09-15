@@ -1,6 +1,28 @@
 state.DAISYI2S {
 	control.1 {
 		iface MIXER
+		name 'EQ1 Mode'
+		value Default
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Default
+		}
+	}
+	control.2 {
+		iface MIXER
+		name 'EQ2 Mode'
+		value Default
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Default
+		}
+	}
+	control.3 {
+		iface MIXER
 		name 'Headphone Volume'
 		value.0 13
 		value.1 13
@@ -15,7 +37,7 @@ state.DAISYI2S {
 			dbvalue.1 -2200
 		}
 	}
-	control.2 {
+	control.4 {
 		iface MIXER
 		name 'Speaker Volume'
 		value.0 16
@@ -31,7 +53,7 @@ state.DAISYI2S {
 			dbvalue.1 -700
 		}
 	}
-	control.3 {
+	control.5 {
 		iface MIXER
 		name 'Receiver Volume'
 		value 0
@@ -45,7 +67,7 @@ state.DAISYI2S {
 			dbvalue.0 -6200
 		}
 	}
-	control.4 {
+	control.6 {
 		iface MIXER
 		name 'Lineout Volume'
 		value.0 0
@@ -61,7 +83,7 @@ state.DAISYI2S {
 			dbvalue.1 -6200
 		}
 	}
-	control.5 {
+	control.7 {
 		iface MIXER
 		name 'Headphone Switch'
 		value.0 false
@@ -72,7 +94,7 @@ state.DAISYI2S {
 			count 2
 		}
 	}
-	control.6 {
+	control.8 {
 		iface MIXER
 		name 'Speaker Switch'
 		value.0 true
@@ -83,7 +105,7 @@ state.DAISYI2S {
 			count 2
 		}
 	}
-	control.7 {
+	control.9 {
 		iface MIXER
 		name 'Receiver Switch'
 		value true
@@ -93,7 +115,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.8 {
+	control.10 {
 		iface MIXER
 		name 'Lineout Switch'
 		value.0 true
@@ -104,7 +126,7 @@ state.DAISYI2S {
 			count 2
 		}
 	}
-	control.9 {
+	control.11 {
 		iface MIXER
 		name 'MIC1 Volume'
 		value 20
@@ -118,7 +140,7 @@ state.DAISYI2S {
 			dbvalue.0 2000
 		}
 	}
-	control.10 {
+	control.12 {
 		iface MIXER
 		name 'MIC2 Volume'
 		value 20
@@ -132,7 +154,7 @@ state.DAISYI2S {
 			dbvalue.0 2000
 		}
 	}
-	control.11 {
+	control.13 {
 		iface MIXER
 		name 'MIC1 Boost Volume'
 		value 0
@@ -146,7 +168,7 @@ state.DAISYI2S {
 			dbvalue.0 0
 		}
 	}
-	control.12 {
+	control.14 {
 		iface MIXER
 		name 'MIC2 Boost Volume'
 		value 0
@@ -160,7 +182,7 @@ state.DAISYI2S {
 			dbvalue.0 0
 		}
 	}
-	control.13 {
+	control.15 {
 		iface MIXER
 		name 'Linein Volume'
 		value 5
@@ -174,7 +196,7 @@ state.DAISYI2S {
 			dbvalue.0 2000
 		}
 	}
-	control.14 {
+	control.16 {
 		iface MIXER
 		name 'ADCL Volume'
 		value 15
@@ -188,7 +210,7 @@ state.DAISYI2S {
 			dbvalue.0 300
 		}
 	}
-	control.15 {
+	control.17 {
 		iface MIXER
 		name 'ADCR Volume'
 		value 15
@@ -202,7 +224,7 @@ state.DAISYI2S {
 			dbvalue.0 300
 		}
 	}
-	control.16 {
+	control.18 {
 		iface MIXER
 		name 'ADCL Boost Volume'
 		value 0
@@ -216,7 +238,7 @@ state.DAISYI2S {
 			dbvalue.0 0
 		}
 	}
-	control.17 {
+	control.19 {
 		iface MIXER
 		name 'ADCR Boost Volume'
 		value 0
@@ -230,17 +252,17 @@ state.DAISYI2S {
 			dbvalue.0 0
 		}
 	}
-	control.18 {
+	control.20 {
 		iface MIXER
 		name 'EQ1 Switch'
-		value false
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
 			count 1
 		}
 	}
-	control.19 {
+	control.21 {
 		iface MIXER
 		name 'EQ2 Switch'
 		value false
@@ -250,7 +272,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.20 {
+	control.22 {
 		iface MIXER
 		name 'Biquad1 Switch'
 		value false
@@ -260,7 +282,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.21 {
+	control.23 {
 		iface MIXER
 		name 'Biquad2 Switch'
 		value false
@@ -270,7 +292,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.22 {
+	control.24 {
 		iface MIXER
 		name 'DMIC1 Left Capture Switch'
 		value true
@@ -280,7 +302,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.23 {
+	control.25 {
 		iface MIXER
 		name 'DMIC1 Right Capture Switch'
 		value true
@@ -290,7 +312,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.24 {
+	control.26 {
 		iface MIXER
 		name 'MIC1 External Mic Switch'
 		value false
@@ -300,7 +322,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.25 {
+	control.27 {
 		iface MIXER
 		name 'MIC2 External Mic Switch'
 		value true
@@ -310,7 +332,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.26 {
+	control.28 {
 		iface MIXER
 		name 'DAI1 Filter Mode'
 		value Voice
@@ -322,7 +344,7 @@ state.DAISYI2S {
 			item.1 Music
 		}
 	}
-	control.27 {
+	control.29 {
 		iface MIXER
 		name 'DAI2 Filter Mode'
 		value Voice
@@ -334,7 +356,7 @@ state.DAISYI2S {
 			item.1 Music
 		}
 	}
-	control.28 {
+	control.30 {
 		iface MIXER
 		name 'DAI1 DAC Filter'
 		value Off
@@ -350,7 +372,7 @@ state.DAISYI2S {
 			item.5 Butterworth-HPF-Fs/240
 		}
 	}
-	control.29 {
+	control.31 {
 		iface MIXER
 		name 'DAI2 DAC Filter'
 		value Off
@@ -366,7 +388,7 @@ state.DAISYI2S {
 			item.5 Butterworth-HPF-Fs/240
 		}
 	}
-	control.30 {
+	control.32 {
 		iface MIXER
 		name 'DAI3 DAC Filter'
 		value Off
@@ -382,7 +404,7 @@ state.DAISYI2S {
 			item.5 Butterworth-HPF-Fs/240
 		}
 	}
-	control.31 {
+	control.33 {
 		iface MIXER
 		name 'Linein Mode'
 		value Stereo
@@ -394,7 +416,7 @@ state.DAISYI2S {
 			item.1 Differential
 		}
 	}
-	control.32 {
+	control.34 {
 		iface MIXER
 		name 'Lineout Mode'
 		value Stereo
@@ -406,7 +428,7 @@ state.DAISYI2S {
 			item.1 Differential
 		}
 	}
-	control.33 {
+	control.35 {
 		iface MIXER
 		name 'Right ADC Mixer MIC1 Switch'
 		value false
@@ -416,7 +438,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.34 {
+	control.36 {
 		iface MIXER
 		name 'Right ADC Mixer MIC2 Switch'
 		value true
@@ -426,7 +448,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.35 {
+	control.37 {
 		iface MIXER
 		name 'Right ADC Mixer IN1 Switch'
 		value false
@@ -436,7 +458,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.36 {
+	control.38 {
 		iface MIXER
 		name 'Right ADC Mixer IN2 Switch'
 		value false
@@ -446,7 +468,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.37 {
+	control.39 {
 		iface MIXER
 		name 'Left ADC Mixer MIC1 Switch'
 		value false
@@ -456,7 +478,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.38 {
+	control.40 {
 		iface MIXER
 		name 'Left ADC Mixer MIC2 Switch'
 		value true
@@ -466,7 +488,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.39 {
+	control.41 {
 		iface MIXER
 		name 'Left ADC Mixer IN1 Switch'
 		value false
@@ -476,7 +498,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.40 {
+	control.42 {
 		iface MIXER
 		name 'Left ADC Mixer IN2 Switch'
 		value false
@@ -486,7 +508,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.41 {
+	control.43 {
 		iface MIXER
 		name 'Right Lineout Mixer Left DAC1 Switch'
 		value false
@@ -496,7 +518,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.42 {
+	control.44 {
 		iface MIXER
 		name 'Right Lineout Mixer Right DAC1 Switch'
 		value false
@@ -506,7 +528,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.43 {
+	control.45 {
 		iface MIXER
 		name 'Right Lineout Mixer MIC1 Switch'
 		value false
@@ -516,7 +538,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.44 {
+	control.46 {
 		iface MIXER
 		name 'Right Lineout Mixer MIC2 Switch'
 		value false
@@ -526,7 +548,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.45 {
+	control.47 {
 		iface MIXER
 		name 'Right Lineout Mixer IN1 Switch'
 		value false
@@ -536,7 +558,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.46 {
+	control.48 {
 		iface MIXER
 		name 'Right Lineout Mixer IN2 Switch'
 		value false
@@ -546,7 +568,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.47 {
+	control.49 {
 		iface MIXER
 		name 'Left Lineout Mixer Left DAC1 Switch'
 		value false
@@ -556,7 +578,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.48 {
+	control.50 {
 		iface MIXER
 		name 'Left Lineout Mixer Right DAC1 Switch'
 		value false
@@ -566,7 +588,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.49 {
+	control.51 {
 		iface MIXER
 		name 'Left Lineout Mixer MIC1 Switch'
 		value false
@@ -576,7 +598,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.50 {
+	control.52 {
 		iface MIXER
 		name 'Left Lineout Mixer MIC2 Switch'
 		value false
@@ -586,7 +608,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.51 {
+	control.53 {
 		iface MIXER
 		name 'Left Lineout Mixer IN1 Switch'
 		value false
@@ -596,7 +618,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.52 {
+	control.54 {
 		iface MIXER
 		name 'Left Lineout Mixer IN2 Switch'
 		value false
@@ -606,7 +628,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.53 {
+	control.55 {
 		iface MIXER
 		name 'Receiver Mixer Left DAC1 Switch'
 		value false
@@ -616,7 +638,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.54 {
+	control.56 {
 		iface MIXER
 		name 'Receiver Mixer Right DAC1 Switch'
 		value false
@@ -626,7 +648,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.55 {
+	control.57 {
 		iface MIXER
 		name 'Receiver Mixer MIC1 Switch'
 		value false
@@ -636,7 +658,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.56 {
+	control.58 {
 		iface MIXER
 		name 'Receiver Mixer MIC2 Switch'
 		value false
@@ -646,7 +668,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.57 {
+	control.59 {
 		iface MIXER
 		name 'Receiver Mixer IN1 Switch'
 		value false
@@ -656,7 +678,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.58 {
+	control.60 {
 		iface MIXER
 		name 'Receiver Mixer IN2 Switch'
 		value false
@@ -666,7 +688,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.59 {
+	control.61 {
 		iface MIXER
 		name 'Right Speaker Mixer Left DAC1 Switch'
 		value false
@@ -676,7 +698,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.60 {
+	control.62 {
 		iface MIXER
 		name 'Right Speaker Mixer Right DAC1 Switch'
 		value true
@@ -686,7 +708,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.61 {
+	control.63 {
 		iface MIXER
 		name 'Right Speaker Mixer Mono DAC2 Switch'
 		value false
@@ -696,7 +718,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.62 {
+	control.64 {
 		iface MIXER
 		name 'Right Speaker Mixer Mono DAC3 Switch'
 		value false
@@ -706,7 +728,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.63 {
+	control.65 {
 		iface MIXER
 		name 'Right Speaker Mixer MIC1 Switch'
 		value false
@@ -716,7 +738,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.64 {
+	control.66 {
 		iface MIXER
 		name 'Right Speaker Mixer MIC2 Switch'
 		value false
@@ -726,7 +748,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.65 {
+	control.67 {
 		iface MIXER
 		name 'Right Speaker Mixer IN1 Switch'
 		value false
@@ -736,7 +758,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.66 {
+	control.68 {
 		iface MIXER
 		name 'Right Speaker Mixer IN2 Switch'
 		value false
@@ -746,7 +768,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.67 {
+	control.69 {
 		iface MIXER
 		name 'Left Speaker Mixer Left DAC1 Switch'
 		value true
@@ -756,7 +778,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.68 {
+	control.70 {
 		iface MIXER
 		name 'Left Speaker Mixer Right DAC1 Switch'
 		value false
@@ -766,7 +788,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.69 {
+	control.71 {
 		iface MIXER
 		name 'Left Speaker Mixer Mono DAC2 Switch'
 		value false
@@ -776,7 +798,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.70 {
+	control.72 {
 		iface MIXER
 		name 'Left Speaker Mixer Mono DAC3 Switch'
 		value false
@@ -786,7 +808,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.71 {
+	control.73 {
 		iface MIXER
 		name 'Left Speaker Mixer MIC1 Switch'
 		value false
@@ -796,7 +818,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.72 {
+	control.74 {
 		iface MIXER
 		name 'Left Speaker Mixer MIC2 Switch'
 		value false
@@ -806,7 +828,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.73 {
+	control.75 {
 		iface MIXER
 		name 'Left Speaker Mixer IN1 Switch'
 		value false
@@ -816,7 +838,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.74 {
+	control.76 {
 		iface MIXER
 		name 'Left Speaker Mixer IN2 Switch'
 		value false
@@ -826,7 +848,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.75 {
+	control.77 {
 		iface MIXER
 		name 'Right Headphone Mixer Left DAC1 Switch'
 		value false
@@ -836,7 +858,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.76 {
+	control.78 {
 		iface MIXER
 		name 'Right Headphone Mixer Right DAC1 Switch'
 		value true
@@ -846,7 +868,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.77 {
+	control.79 {
 		iface MIXER
 		name 'Right Headphone Mixer MIC1 Switch'
 		value false
@@ -856,7 +878,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.78 {
+	control.80 {
 		iface MIXER
 		name 'Right Headphone Mixer MIC2 Switch'
 		value false
@@ -866,7 +888,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.79 {
+	control.81 {
 		iface MIXER
 		name 'Right Headphone Mixer IN1 Switch'
 		value false
@@ -876,7 +898,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.80 {
+	control.82 {
 		iface MIXER
 		name 'Right Headphone Mixer IN2 Switch'
 		value false
@@ -886,7 +908,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.81 {
+	control.83 {
 		iface MIXER
 		name 'Left Headphone Mixer Left DAC1 Switch'
 		value true
@@ -896,7 +918,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.82 {
+	control.84 {
 		iface MIXER
 		name 'Left Headphone Mixer Right DAC1 Switch'
 		value false
@@ -906,7 +928,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.83 {
+	control.85 {
 		iface MIXER
 		name 'Left Headphone Mixer MIC1 Switch'
 		value false
@@ -916,7 +938,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.84 {
+	control.86 {
 		iface MIXER
 		name 'Left Headphone Mixer MIC2 Switch'
 		value false
@@ -926,7 +948,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.85 {
+	control.87 {
 		iface MIXER
 		name 'Left Headphone Mixer IN1 Switch'
 		value false
@@ -936,7 +958,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.86 {
+	control.88 {
 		iface MIXER
 		name 'Left Headphone Mixer IN2 Switch'
 		value false
@@ -946,7 +968,7 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.87 {
+	control.89 {
 		iface MIXER
 		name 'Linein Mux'
 		value INA
@@ -958,7 +980,7 @@ state.DAISYI2S {
 			item.1 INB
 		}
 	}
-	control.88 {
+	control.90 {
 		iface MIXER
 		name 'External MIC'
 		value MIC2
