@@ -298,7 +298,6 @@ error_out:
 
 static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
 {
-	struct snd_pcm_cras *pcm_cras = io->private_data;
 	snd_pcm_uframes_t limit;
 	int rc;
 
@@ -315,11 +314,9 @@ static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
 	 * from appl_ptr by the app.
 	 */
 	if (io->stream == SND_PCM_STREAM_PLAYBACK)
-		*delayp = limit + io->appl_ptr - io->hw_ptr +
-			  pcm_cras->last_playback_latency_frames;
+		*delayp = limit + io->appl_ptr - io->hw_ptr;
 	else
-		*delayp = limit + io->hw_ptr - io->appl_ptr +
-			  pcm_cras->last_capture_latency_frames;
+		*delayp = limit + io->hw_ptr - io->appl_ptr;
 
 	/* Both appl and hw pointers wrap at the pcm boundary. */
 	*delayp %= limit;
