@@ -101,8 +101,7 @@
   db_at_2 = -5400
   db_at_1 = -5700
   db_at_0 = -6000
-[Front Headphone Jack]
-  ; Headphones allowed full range, 0.5dB per step, 50dB total range.
+[Headphone Jack]
   volume_curve = simple_step
-  volume_step = 50
-  max_volume = 900
+  volume_step = 100
+  max_volume = 0
