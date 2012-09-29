@@ -102,7 +102,7 @@ static void handle_message_from_client(struct attached_client *client)
 	return;
 
 read_error:
-	syslog(LOG_ERR, "read err, removing client %zu", client->id);
+	syslog(LOG_DEBUG, "read err, removing client %zu", client->id);
 	remove_client(client);
 }
 
@@ -114,7 +114,7 @@ static void fill_client_info(struct attached_client *client)
 
 	if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED,
 		       &client->ucred, &ucred_length))
-		syslog(LOG_ERR, "Failed to get client socket info\n");
+		syslog(LOG_INFO, "Failed to get client socket info\n");
 }
 
 /* Fills the server_state with the current list of attached clients. */

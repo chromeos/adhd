@@ -163,7 +163,7 @@ static void set_factory_default(unsigned card_number)
 		cmd_buf[ARRAY_SIZE(cmd_buf) - 1] = '\0';
 		r = system(cmd_buf);
 		if (r != 0)
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "%s: failed to init card '%d' "
 			       "to factory default.  Failure: %d.  Command: %s",
 			       __FUNCTION__, card_number, r, cmd_buf);
@@ -305,7 +305,7 @@ static void udev_sound_subsystem_callback(void *arg)
 			remove_device_if_card(dev);
 		udev_device_unref(dev);
 	} else
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "%s (internal error): "
 		       "No device obtained", __FUNCTION__);
 }

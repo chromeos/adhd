@@ -111,7 +111,7 @@ static int handle_playback_thread_message(struct cras_iodev *iodev)
 		pthread_exit(0);
 		break;
 	default:
-		syslog(LOG_ERR, "Unknown command %d %d.", err, msg->id);
+		syslog(LOG_WARNING, "Unknown command %d %d.", err, msg->id);
 		ret = -EINVAL;
 		break;
 	}
@@ -361,7 +361,7 @@ static void *empty_io_thread(void *arg)
 		if (err > 0 && FD_ISSET(msg_fd, &poll_set)) {
 			err = handle_playback_thread_message(iodev);
 			if (err < 0)
-				syslog(LOG_ERR, "handle message %d", err);
+				syslog(LOG_INFO, "handle message %d", err);
 		}
 	}
 

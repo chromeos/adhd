@@ -162,7 +162,7 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 	if (snd_pcm_hw_params_can_disable_period_wakeup(hwparams)) {
 		err = snd_pcm_hw_params_set_period_wakeup(handle, hwparams, 0);
 		if (err < 0)
-			syslog(LOG_ERR, "disabling wakeups %s\n",
+			syslog(LOG_WARNING, "disabling wakeups %s\n",
 			       snd_strerror(err));
 	}
 	/* Set the sample format. */
@@ -196,7 +196,7 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 	err = snd_pcm_hw_params_get_buffer_size_max(hwparams,
 						    buffer_frames);
 	if (err < 0)
-		syslog(LOG_ERR, "get_buffer_size_max %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "get buffer max %s\n", snd_strerror(err));
 
 	err = snd_pcm_hw_params_set_buffer_size_near(handle, hwparams,
 						     buffer_frames);
@@ -280,7 +280,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		cras_alsa_attempt_resume(handle);
 		frames = 0;
 	} else if (frames < 0) {
-		syslog(LOG_ERR, "pcm_avail error %s\n", snd_strerror(frames));
+		syslog(LOG_INFO, "pcm_avail error %s\n", snd_strerror(frames));
 		rc = frames;
 		frames = 0;
 	} else if (frames > buf_size)
@@ -308,15 +308,15 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 {
 	int rc;
 
-	syslog(LOG_DEBUG, "System suspended.");
+	syslog(LOG_INFO, "System suspended.");
 	while ((rc = snd_pcm_resume(handle)) == -EAGAIN)
 		usleep(ALSA_SUSPENDED_SLEEP_TIME_US);
 	if (rc < 0) {
-		syslog(LOG_ERR, "System suspended, failed to resume %s.",
+		syslog(LOG_INFO, "System suspended, failed to resume %s.",
 		       snd_strerror(rc));
 		rc = snd_pcm_prepare(handle);
 		if (rc < 0)
-			syslog(LOG_ERR, "Suspended, failed to prepare: %s.",
+			syslog(LOG_INFO, "Suspended, failed to prepare: %s.",
 			       snd_strerror(rc));
 	}
 	return rc;
@@ -342,12 +342,12 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
 			/* If we can recover, continue and try again. */
 			if (snd_pcm_recover(handle, rc, 0) == 0)
 				continue;
-			syslog(LOG_ERR, "recover failed begin: %s\n",
+			syslog(LOG_INFO, "recover failed begin: %s\n",
 			       snd_strerror(rc));
 			return rc;
 		}
 		if (*frames == 0) {
-			syslog(LOG_ERR, "mmap_begin set frames to 0.");
+			syslog(LOG_INFO, "mmap_begin set frames to 0.");
 			return -EIO;
 		}
 		*dst = (uint8_t *)my_areas[0].addr + (*offset) * format_bytes;

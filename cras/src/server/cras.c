@@ -4,6 +4,7 @@
  */
 
 #include <signal.h>
+#include <syslog.h>
 
 #include "cras_empty_iodev.h"
 #include "cras_iodev_list.h"
@@ -19,6 +20,8 @@ static void set_signals()
 /* Entry point for the server. */
 int main(int argc, char **argv)
 {
+	setlogmask(LOG_MASK(LOG_ERR));
+
 	set_signals();
 
 	/* Initialize system. */

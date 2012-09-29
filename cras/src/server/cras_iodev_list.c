@@ -98,7 +98,7 @@ static int add_dev_to_list(struct iodev_list *list,
 	next_iodev_idx = new_idx + 1;
 	list->size++;
 
-	syslog(LOG_DEBUG, "Adding %s dev at index %zu.",
+	syslog(LOG_INFO, "Adding %s dev at index %zu.",
 	       dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
 	       dev->info.idx);
 	DL_PREPEND(list->iodevs, dev);

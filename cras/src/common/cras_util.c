@@ -25,12 +25,12 @@ int cras_set_rt_scheduling(int rt_lim)
 	rl.rlim_cur = rl.rlim_max = rt_lim;
 
 	if (setrlimit(RLIMIT_RTPRIO, &rl) < 0) {
-		syslog(LOG_ERR, "setrlimit %u failed: %d\n",
-			(unsigned) rt_lim, errno);
+		syslog(LOG_WARNING, "setrlimit %u failed: %d\n",
+		       (unsigned) rt_lim, errno);
 		return -EACCES;
 	}
 
-	syslog(LOG_DEBUG, "set rlimit success\n");
+	syslog(LOG_INFO, "set rlimit success\n");
 	return 0;
 }
 
@@ -44,7 +44,7 @@ int cras_set_thread_priority(int priority)
 
 	err = pthread_setschedparam(pthread_self(), SCHED_RR, &sched_param);
 	if (err < 0)
-		syslog(LOG_ERR, "Set sched params for thread\n");
+		syslog(LOG_WARNING, "Set sched params for thread\n");
 
 	return err;
 }

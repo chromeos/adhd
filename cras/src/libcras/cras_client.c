@@ -556,7 +556,7 @@ static void *audio_thread(void *arg)
 					aud_msg.frames);
 			break;
 		default:
-			syslog(LOG_ERR, "Unknown aud message %d\n", aud_msg.id);
+			syslog(LOG_WARNING, "Unknown aud msg %d\n", aud_msg.id);
 			break;
 		}
 	}
@@ -812,7 +812,7 @@ static int client_thread_rm_stream(struct cras_client *client,
 	cras_fill_disconnect_stream_message(&msg, stream_id);
 	rc = write(client->server_fd, &msg, sizeof(msg));
 	if (rc < 0)
-		syslog(LOG_ERR, "error removing stream from server\n");
+		syslog(LOG_WARNING, "error removing stream from server\n");
 
 	/* And shut down locally. */
 	if (stream->thread.running) {
@@ -830,9 +830,9 @@ static int client_thread_rm_stream(struct cras_client *client,
 	DL_DELETE(client->streams, stream);
 	if (stream->aud_fd >= 0)
 		if (close(stream->aud_fd))
-			syslog(LOG_ERR, "Couldn't close audio socket");
+			syslog(LOG_WARNING, "Couldn't close audio socket");
 	if(close(stream->connection_fd))
-		syslog(LOG_ERR, "Couldn't close connection socket");
+		syslog(LOG_WARNING, "Couldn't close connection socket");
 	if (stream->conv) {
 		cras_fmt_conv_destroy(stream->conv);
 		free(stream->fmt_conv_buffer);
@@ -927,7 +927,7 @@ static int client_attach_shm(struct cras_client *client, key_t shm_key)
 
 	shmid = shmget(shm_key, sizeof(*(client->server_state)), 0400);
 	if (shmid < 0) {
-		syslog(LOG_ERR, "shmget failed to get shm for cliend.");
+		syslog(LOG_ERR, "shmget failed to get shm for client.");
 		return shmid;
 	}
 	client->server_state = shmat(shmid, NULL, SHM_RDONLY);
@@ -1003,7 +1003,7 @@ static int handle_message_from_server(struct cras_client *client)
 		break;
 	}
 	default:
-		syslog(LOG_ERR, "Receive unknown command %d", msg->id);
+		syslog(LOG_WARNING, "Receive unknown command %d", msg->id);
 		break;
 	}
 
@@ -1012,7 +1012,7 @@ static int handle_message_from_server(struct cras_client *client)
 read_error:
 	rc = connect_to_server_wait(client);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Can't read from server\n");
+		syslog(LOG_WARNING, "Can't read from server\n");
 		free(buf);
 		client->thread.running = 0;
 		return -EIO;
@@ -1299,6 +1299,7 @@ int cras_client_create(struct cras_client **client)
 	(*client)->command_reply_fds[1] = -1;
 
 	openlog("cras_client", LOG_PID, LOG_USER);
+	setlogmask(LOG_MASK(LOG_ERR));
 
 	return 0;
 free_error:

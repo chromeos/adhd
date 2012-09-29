@@ -151,7 +151,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 
 	/* Only support S16LE output samples. */
 	if (out->format != SND_PCM_FORMAT_S16_LE) {
-		syslog(LOG_ERR, "Invalid output format %d", in->format);
+		syslog(LOG_WARNING, "Invalid output format %d", in->format);
 		return NULL;
 	}
 
@@ -177,7 +177,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			conv->sample_format_converter = convert_s32le_to_s16le;
 			break;
 		default:
-			syslog(LOG_ERR, "Invalid sample format %d", in->format);
+			syslog(LOG_WARNING, "Invalid format %d", in->format);
 			cras_fmt_conv_destroy(conv);
 			return NULL;
 		}
@@ -194,7 +194,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		} else if (in->num_channels == 6 && out->num_channels == 2) {
 			conv->channel_converter = s16_51_to_stereo;
 		} else {
-			syslog(LOG_ERR, "Invalid channel conversion %zu to %zu",
+			syslog(LOG_WARNING,
+			       "Invalid channel conversion %zu to %zu",
 			       in->num_channels, out->num_channels);
 			cras_fmt_conv_destroy(conv);
 			return NULL;
@@ -282,7 +283,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	if (conv->speex_state == NULL) {
 		fr_in = min(in_frames, out_frames);
 		if (out_frames < in_frames && !logged_frames_dont_fit) {
-			syslog(LOG_ERR,
+			syslog(LOG_INFO,
 			       "fmt_conv: %zu to %zu no SRC.",
 			       in_frames,
 			       out_frames);
@@ -326,7 +327,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 					     fr_in,
 					     conv->out_fmt.frame_rate);
 		if (fr_out > out_frames + 1 && !logged_frames_dont_fit) {
-			syslog(LOG_ERR,
+			syslog(LOG_INFO,
 			       "fmt_conv: put %u frames in %zu sized buffer",
 			       fr_out,
 			       out_frames);

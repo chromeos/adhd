@@ -813,7 +813,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 		}
 		ret = thread_remove_stream(aio, rmsg->stream);
 		if (ret < 0)
-			syslog(LOG_ERR, "Failed to remove the stream");
+			syslog(LOG_INFO, "Failed to remove the stream");
 		syslog(LOG_DEBUG, "underruns:%zu", aio->num_underruns);
 		break;
 	}
@@ -866,7 +866,7 @@ static void *alsa_io_thread(void *arg)
 			/* alsa opened */
 			err = aio->alsa_cb(aio, &ts);
 			if (err < 0) {
-				syslog(LOG_ERR, "alsa cb error %d", err);
+				syslog(LOG_INFO, "alsa cb error %d", err);
 				close_alsa(aio);
 			}
 			wait_ts = &ts;
@@ -878,7 +878,7 @@ static void *alsa_io_thread(void *arg)
 		if (err > 0 && FD_ISSET(msg_fd, &poll_set)) {
 			err = handle_playback_thread_message(aio);
 			if (err < 0)
-				syslog(LOG_ERR, "handle message %d", err);
+				syslog(LOG_INFO, "handle message %d", err);
 		}
 	}
 
@@ -1204,7 +1204,7 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 				output->mixer_output == active);
 	}
 	if (!found_output) {
-		syslog(LOG_ERR, "Attempt to switch to non-existant output.");
+		syslog(LOG_WARNING, "Trying to switch to non-existant output.");
 		return -EINVAL;
 	}
 	/* Setting the volume will also unmute if the system isn't muted. */
