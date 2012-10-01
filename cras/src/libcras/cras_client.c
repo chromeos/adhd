@@ -196,19 +196,16 @@ static void subtract_timespecs(const struct timespec *end,
 			       const struct timespec *beg,
 			       struct timespec *diff)
 {
-	/* If end is before geb, return 0. */
-	if ((end->tv_sec < beg->tv_sec) ||
-	    ((end->tv_sec == beg->tv_sec) && (end->tv_nsec <= beg->tv_nsec)))
-		diff->tv_sec = diff->tv_nsec = 0;
-	else {
-		if (end->tv_nsec < beg->tv_nsec) {
-			diff->tv_sec = end->tv_sec - beg->tv_sec - 1;
-			diff->tv_nsec =
-				end->tv_nsec + 1000000000L - beg->tv_nsec;
-		} else {
-			diff->tv_sec = end->tv_sec - beg->tv_sec;
-			diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
-		}
+	diff->tv_sec = end->tv_sec - beg->tv_sec;
+	diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
+
+	/* Adjust tv_sec and tv_nsec to the same sign. */
+	if (diff->tv_sec > 0 && diff->tv_nsec < 0) {
+		diff->tv_sec--;
+		diff->tv_nsec += 1000000000L;
+	} else if (diff->tv_sec < 0 && diff->tv_nsec > 0) {
+		diff->tv_sec++;
+		diff->tv_nsec -= 1000000000L;
 	}
 }
 

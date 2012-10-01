@@ -112,8 +112,13 @@ static int stream_error(struct cras_client *client,
 
 static void print_last_latency()
 {
-	printf("%u.%09u\n", (unsigned)last_latency.tv_sec,
-	       (unsigned)last_latency.tv_nsec);
+	if (last_latency.tv_sec > 0 || last_latency.tv_nsec > 0)
+		printf("%u.%09u\n", (unsigned)last_latency.tv_sec,
+		       (unsigned)last_latency.tv_nsec);
+	else {
+		printf("-%ld.%09ld\n", -last_latency.tv_sec,
+		       -last_latency.tv_nsec);
+	}
 }
 
 static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
