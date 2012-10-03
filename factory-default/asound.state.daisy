@@ -993,4 +993,14 @@ state.DAISYI2S {
 			item.2 MIC2
 		}
 	}
+	control.91 {
+		iface MIXER
+		name 'HDMI Playback Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
 }
