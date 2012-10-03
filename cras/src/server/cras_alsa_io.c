@@ -47,11 +47,15 @@
  *    jack_curve - In absense of a mixer output, holds a volume curve to use
  *        when this jack is plugged.
  *    jack - The jack associated with the jack_curve (if it exists).
+ *    plugged - true if the device is plugged.
+ *    priority - higher is better.
  */
 struct alsa_output_node {
 	struct cras_alsa_mixer_output *mixer_output;
 	struct cras_volume_curve *jack_curve;
 	const struct cras_alsa_jack *jack;
+	int plugged;
+	unsigned priority;
 	struct alsa_output_node *prev, *next;
 };
 
@@ -68,7 +72,6 @@ struct alsa_output_node {
  * mixer - Alsa mixer used to control volume and mute of the device.
  * output_nodes - Alsa mixer outputs (Only used for output devices).
  * active_output - The current node being used for playback.
- * default_output - The default node to use for playback.
  * jack_list - List of alsa jack controls for this device.
  * ucm - ALSA use case manager, if configuration is found.
  * alsa_cb - Callback to fill or read samples (depends on direction).
@@ -84,7 +87,6 @@ struct alsa_io {
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
 	struct alsa_output_node *active_output;
-	struct alsa_output_node *default_output;
 	struct cras_alsa_jack_list *jack_list;
 	snd_use_case_mgr_t *ucm;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
@@ -908,6 +910,30 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	free(aio->dev);
 }
 
+/* Sets the initial plugged state and priority of an output node based on its
+ * name.
+ */
+static void set_output_prio(struct alsa_output_node *node, const char *name)
+{
+	static const struct {
+		const char *name;
+		int priority;
+		int initial_plugged;
+	} prios[] = {
+		{ "Speaker", 1, 1 },
+		{ "Headphone", 3, 0 },
+		{ "HDMI", 2, 0 },
+	};
+	unsigned i;
+
+	for (i = 0; i < ARRAY_SIZE(prios); i++)
+		if (!strcmp(name, prios[i].name)) {
+			node->priority = prios[i].priority;
+			node->plugged = prios[i].initial_plugged;
+			break;
+		}
+}
+
 /* Callback for listing mixer outputs.  The mixer will call this once for each
  * output associated with this device.  Most commonly this is used to tell the
  * device it has Headphones and Speakers. */
@@ -929,13 +955,10 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	}
 	output->mixer_output = cras_output;
 
-	/* Set this to the default device if it is the first found, or if it is
-	 * the "Speaker" device. */
-	if (aio->default_output == NULL ||
-	    (output->mixer_output != NULL &&
-	     strcmp(cras_alsa_mixer_get_output_name(output->mixer_output),
-						    "Speaker") == 0))
-		aio->default_output = output;
+	if (output->mixer_output)
+		set_output_prio(
+			output,
+			cras_alsa_mixer_get_output_name(output->mixer_output));
 
 	DL_APPEND(aio->output_nodes, output);
 }
@@ -958,13 +981,31 @@ static struct alsa_output_node *get_output_node_from_jack(
 	return node;
 }
 
+/* Find the node with highest priority that is plugged in. */
+static struct alsa_output_node *get_best_output_node(const struct alsa_io *aio)
+{
+	struct alsa_output_node *output;
+	struct alsa_output_node *best = NULL;
+
+	DL_FOREACH(aio->output_nodes, output)
+		if (output->plugged &&
+		    (!best || (output->priority > best->priority)))
+			best = output;
+
+	/* If nothing is plugged, take the first entry. */
+	if (!best)
+		return aio->output_nodes;
+
+	return best;
+}
+
 /* Callback that is called when an output jack is plugged or unplugged. */
 static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 				    int plugged,
 				    void *arg)
 {
 	struct alsa_io *aio;
-	struct alsa_output_node *node;
+	struct alsa_output_node *node, *best_node;
 
 	if (arg == NULL)
 		return;
@@ -990,33 +1031,22 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
 
-	if (plugged) {
-		syslog(LOG_DEBUG, "Move streams to %zu due to plug event.",
-		       aio->base.info.idx);
-		/* If thie node is associated with mixer output, set that output
-		 * as active and set up the mixer, otherwise just set the node
-		 * as active and set the volume curve. */
-		if (node->mixer_output != NULL) {
-			alsa_iodev_set_active_output(&aio->base,
-						     node->mixer_output);
-		} else {
-			aio->active_output = node;
-			set_alsa_volume_limits(aio);
-			set_alsa_volume(&aio->base);
-		}
+	node->plugged = plugged;
+
+	best_node = get_best_output_node(aio);
+
+	/* If thie node is associated with mixer output, set that output
+	 * as active and set up the mixer, otherwise just set the node
+	 * as active and set the volume curve. */
+	if (best_node->mixer_output != NULL) {
+		alsa_iodev_set_active_output(&aio->base,
+					     best_node->mixer_output);
 	} else {
-		syslog(LOG_DEBUG, "Move streams from %zu due to unplug event.",
-		       aio->base.info.idx);
-		if (aio->default_output != NULL) {
-			if (aio->default_output->mixer_output != NULL)
-				alsa_iodev_set_active_output(
-					&aio->base,
-					aio->default_output->mixer_output);
-			aio->active_output = aio->default_output;
-			set_alsa_volume_limits(aio);
-			set_alsa_volume(&aio->base);
-		}
+		aio->active_output = best_node;
+		set_alsa_volume_limits(aio);
+		set_alsa_volume(&aio->base);
 	}
+
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
 }
@@ -1130,12 +1160,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		cras_alsa_mixer_list_outputs(mixer, device_index,
 					     new_output, aio);
 		/* If we don't have separate outputs just make a default one. */
-		if (aio->output_nodes == NULL) {
+		if (aio->output_nodes == NULL)
 			new_output(NULL, aio);
-			aio->default_output = aio->output_nodes;
-		}
 		alsa_iodev_set_active_output(&aio->base,
-					     aio->default_output->mixer_output);
+					     aio->output_nodes->mixer_output);
 
 		/* Add to the output list. */
 		cras_iodev_list_add_output(&aio->base);
