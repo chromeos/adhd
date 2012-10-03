@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <deque>
+#include <linux/input.h>
 #include <poll.h>
 #include <stdio.h>
 #include <gtest/gtest.h>
@@ -15,6 +16,14 @@ extern "C" {
 }
 
 namespace {
+
+#define BITS_PER_BYTE		(8)
+#define BITS_PER_LONG		(sizeof(long) * BITS_PER_BYTE)
+#define NBITS(x)		((((x) - 1) / BITS_PER_LONG) + 1)
+#define OFF(x)			((x) % BITS_PER_LONG)
+#define BIT(x)			(1UL << OFF(x))
+#define LONG(x)			((x) / BITS_PER_LONG)
+#define IS_BIT_SET(bit, array)	!!((array[LONG(bit)]) & (1UL << OFF(bit)))
 
 static size_t snd_hctl_open_called;
 static int snd_hctl_open_return_value;
@@ -62,6 +71,8 @@ static size_t sys_input_get_device_name_called;
 static unsigned ucm_get_dev_for_jack_called;
 static bool ucm_get_dev_for_jack_return;
 static int ucm_set_enabled_value;
+static unsigned long eviocbit_ret[NBITS(SW_CNT)];
+static int gpio_switch_eviocgbit_fd;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -101,6 +112,8 @@ static void ResetStubData() {
       reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
   ucm_get_dev_for_jack_called = 0;
   ucm_get_dev_for_jack_return = false;
+
+  memset(eviocbit_ret, 0, sizeof(eviocbit_ret));
 }
 
 static void fake_jack_cb(const struct cras_alsa_jack *jack,
@@ -246,6 +259,8 @@ TEST(AlsaJacks, CreateGPIOHp) {
 
   ResetStubData();
   gpio_get_switch_names_count = ~0;
+  eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
+  gpio_switch_eviocgbit_fd = 2;
   snd_hctl_first_elem_return_val = NULL;
   jack_list = cras_alsa_jack_list_create(0, "c1", 0,
                                          fake_mixer,
@@ -257,11 +272,37 @@ TEST(AlsaJacks, CreateGPIOHp) {
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_get_switch_names_called);
-  EXPECT_EQ(2, gpio_switch_open_called);
-  EXPECT_EQ(2, gpio_switch_eviocgsw_called);
-  EXPECT_EQ(2, gpio_switch_eviocgbit_called);
-  EXPECT_EQ(2, sys_input_get_device_name_called);
-  EXPECT_EQ(2, cras_system_add_select_fd_called);
+  EXPECT_GT(gpio_switch_open_called, 1);
+  EXPECT_EQ(1, gpio_switch_eviocgsw_called);
+  EXPECT_GT(gpio_switch_eviocgbit_called, 1);
+  EXPECT_GT(sys_input_get_device_name_called, 1);
+  EXPECT_EQ(1, cras_system_add_select_fd_called);
+  EXPECT_EQ(1, snd_hctl_close_called);
+}
+
+TEST(AlsaJacks, CreateGPIOHdmi) {
+  struct cras_alsa_jack_list *jack_list;
+
+  ResetStubData();
+  gpio_get_switch_names_count = ~0;
+  eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
+  gpio_switch_eviocgbit_fd = 3;
+  snd_hctl_first_elem_return_val = NULL;
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0,
+                                         fake_mixer,
+					 NULL,
+                                         CRAS_STREAM_OUTPUT,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_GT(gpio_switch_open_called, 1);
+  EXPECT_EQ(1, gpio_switch_eviocgsw_called);
+  EXPECT_GT(gpio_switch_eviocgbit_called, 1);
+  EXPECT_GT(sys_input_get_device_name_called, 1);
+  EXPECT_EQ(1, cras_system_add_select_fd_called);
   EXPECT_EQ(1, snd_hctl_close_called);
 }
 
@@ -281,8 +322,8 @@ TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_get_switch_names_called);
-  EXPECT_EQ(2, gpio_switch_open_called);
-  EXPECT_EQ(2, sys_input_get_device_name_called);
+  EXPECT_GT(gpio_switch_open_called, 1);
+  EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(0, cras_system_add_select_fd_called);
   EXPECT_EQ(1, snd_hctl_close_called);
 }
@@ -520,16 +561,20 @@ char *sys_input_get_device_name(const char *path)
   return strdup("c1 Headphone Jack");
 }
 
-int gpio_switch_eviocgbit(int fd, unsigned long sw, void *buf)
+int gpio_switch_eviocgbit(int fd, void *buf, size_t n_bytes)
 {
   unsigned char *p = (unsigned char *)buf;
-  unsigned off = sw / 8;
+
   /* Returns >= 0 if 'sw' is supported, negative if not.
    *
    *  Set the bit corresponding to 'sw' in 'buf'.  'buf' must have
    *  been allocated by the caller to accommodate this.
    */
-  p[off] = 0xff;
+  if (fd  == gpio_switch_eviocgbit_fd)
+    memcpy(p, eviocbit_ret, n_bytes);
+  else
+    memset(p, 0, n_bytes);
+
   gpio_switch_eviocgbit_called++;
   return 1;
 }
@@ -556,7 +601,11 @@ int gpio_switch_read(int fd, void *buf, size_t n_bytes)
 int gpio_switch_open(const char *pathname)
 {
   ++gpio_switch_open_called;
-  return 14;
+  if (strstr(pathname, "event2"))
+	  return 2;
+  if (strstr(pathname, "event3"))
+	  return 3;
+  return 0;
 }
 
 unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,

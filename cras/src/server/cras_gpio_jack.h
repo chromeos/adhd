@@ -11,7 +11,7 @@
 int gpio_switch_open(const char *pathname);
 int gpio_switch_read(int fd, void *buf, size_t n_bytes);
 
-int gpio_switch_eviocgbit(int fd, unsigned long sw, void *buf);
+int gpio_switch_eviocgbit(int fd, void *buf, size_t n_bytes);
 int gpio_switch_eviocgsw(int fd, void *bits, size_t n_bytes);
 
 unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,

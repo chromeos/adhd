@@ -114,7 +114,7 @@ static unsigned sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
 
 	memset(bits, '\0', sizeof(bits));
 	/* If switch event present & supported, get current state. */
-	if (gpio_switch_eviocgbit(fd, switch_no, bits) < 0)
+	if (gpio_switch_eviocgbit(fd, bits, sizeof(bits)) < 0)
 		return -EIO;
 
 	if (IS_BIT_SET(switch_no, bits))
@@ -176,6 +176,7 @@ static void gpio_switch_callback(void *arg)
 	for (i = 0; i < r / sizeof(struct input_event); ++i) {
 		if (ev[i].type == EV_SW &&
 		    (ev[i].code == SW_HEADPHONE_INSERT ||
+		     ev[i].code == SW_LINEOUT_INSERT ||
 		     ev[i].code == SW_MICROPHONE_INSERT)) {
 			jack->gpio.current_state = ev[i].value;
 			gpio_change_callback(jack);
@@ -187,24 +188,26 @@ static void gpio_switch_callback(void *arg)
  *
  *   Opens a /dev/input/event file associated with a headphone /
  *   microphone jack and watches it for activity.
+ *   Returns 0 when a jack has been successfully added.
  */
-static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
-				  enum CRAS_STREAM_DIRECTION direction,
-				  const char *card_name,
-				  const char *pathname,
-				  unsigned switch_event)
+static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
+				 enum CRAS_STREAM_DIRECTION direction,
+				 const char *card_name,
+				 const char *pathname,
+				 unsigned switch_event)
 {
 	struct cras_alsa_jack *jack;
+	unsigned long bits[NBITS(SW_CNT)];
 	int r;
 
 	jack = cras_alloc_jack(1);
 	if (jack == NULL)
-		return;
+		return -ENOMEM;
 
 	jack->gpio.fd = gpio_switch_open(pathname);
 	if (jack->gpio.fd == -1) {
 		free(jack);
-		return;
+		return -EIO;
 	}
 
 	jack->gpio.switch_event = switch_event;
@@ -212,20 +215,29 @@ static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	jack->gpio.device_name = sys_input_get_device_name(pathname);
 
 	if (!jack->gpio.device_name ||
-	    !strstr(jack->gpio.device_name, card_name)) {
+	    !strstr(jack->gpio.device_name, card_name) ||
+	    (gpio_switch_eviocgbit(jack->gpio.fd, bits, sizeof(bits)) < 0) ||
+	    !IS_BIT_SET(switch_event, bits)) {
 		close(jack->gpio.fd);
 		free(jack->gpio.device_name);
 		free(jack);
-		return;
+		return -EIO;
 	}
 
 	DL_APPEND(jack_list->jacks, jack);
 
-	if (direction == CRAS_STREAM_OUTPUT)
+	if (direction == CRAS_STREAM_OUTPUT &&
+	    strstr(jack->gpio.device_name, "Headphone"))
 		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
 			jack_list->mixer,
 			jack_list->device_index,
 			"Headphone");
+	else if (direction == CRAS_STREAM_OUTPUT &&
+		 strstr(jack->gpio.device_name, "HDMI"))
+		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
+			jack_list->mixer,
+			jack_list->device_index,
+			"HDMI");
 
 	if (jack_list->ucm)
 		jack->ucm_device =
@@ -236,7 +248,7 @@ static void open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 				   &jack->gpio.current_state);
 	r = cras_system_add_select_fd(jack->gpio.fd,
 				      gpio_switch_callback, jack);
-	assert(r == 0);
+	return r;
 }
 
 static void wait_for_dev_input_access(void)
@@ -292,19 +304,26 @@ static void find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 	char *devices[32];
 	unsigned n_devices;
 	unsigned i;
+	static const int out_switches[] = {SW_HEADPHONE_INSERT,
+					   SW_LINEOUT_INSERT};
+	static const int in_switches[] = {SW_MICROPHONE_INSERT};
 
 	wait_for_dev_input_access();
 	n_devices = gpio_get_switch_names(direction, devices,
 					  ARRAY_SIZE(devices));
 	for (i = 0; i < n_devices; ++i) {
 		int sw;
+		const int *switches = out_switches;
+		int num_switches = ARRAY_SIZE(out_switches);
 
-		sw = SW_HEADPHONE_INSERT;
-		if (direction == CRAS_STREAM_INPUT)
-			sw = SW_MICROPHONE_INSERT;
+		if (direction == CRAS_STREAM_INPUT) {
+			switches = in_switches;
+			num_switches = ARRAY_SIZE(in_switches);
+		}
 
-		open_and_monitor_gpio(jack_list, direction, card_name,
-				      devices[i], sw);
+		for (sw = 0; sw < num_switches; sw++)
+			open_and_monitor_gpio(jack_list, direction, card_name,
+					      devices[i], switches[sw]);
 		free(devices[i]);
 	}
 }

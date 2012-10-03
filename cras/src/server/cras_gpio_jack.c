@@ -31,9 +31,9 @@ int gpio_switch_eviocgname(int fd, char *name, size_t n_bytes)
 	return ioctl(fd, EVIOCGNAME(n_bytes), name);
 }
 
-int gpio_switch_eviocgbit(int fd, unsigned long sw, void *buf)
+int gpio_switch_eviocgbit(int fd, void *buf, size_t n_bytes)
 {
-	return ioctl(fd, EVIOCGBIT(EV_SW, sw + 1), buf);
+	return ioctl(fd, EVIOCGBIT(EV_SW, n_bytes), buf);
 }
 
 int gpio_switch_eviocgsw(int fd, void *bits, size_t n_bytes)
@@ -48,28 +48,14 @@ static void compile_regex(regex_t *regex, const char *str)
 	assert(r == 0);
 }
 
-static unsigned is_microphone_jack(const char *name)
+static int jack_matches_string(const char *jack, const char *re)
 {
 	regmatch_t m[1];
 	regex_t regex;
 	unsigned success;
-	const char *re = "^.*Mic Jack$";
 
 	compile_regex(&regex, re);
-	success = regexec(&regex, name, ARRAY_SIZE(m), m, 0) == 0;
-	regfree(&regex);
-	return success;
-}
-
-static unsigned is_headphone_jack(const char *name)
-{
-	regmatch_t  m[1];
-	regex_t	    regex;
-	unsigned    success;
-	const char *re = "^.*Headphone Jack$";
-
-	compile_regex(&regex, re);
-	success = regexec(&regex, name, ARRAY_SIZE(m), m, 0) == 0;
+	success = regexec(&regex, jack, ARRAY_SIZE(m), m, 0) == 0;
 	regfree(&regex);
 	return success;
 }
@@ -134,9 +120,12 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
 			continue;
 
 		save = ((direction == CRAS_STREAM_INPUT &&
-			 is_microphone_jack(ioctl_name)) ||
+			 jack_matches_string(ioctl_name, "^.*Mic Jack$"))) ||
 			(direction == CRAS_STREAM_OUTPUT &&
-			 is_headphone_jack(ioctl_name)));
+			 jack_matches_string(ioctl_name,
+					     "^.*Headphone Jack$")) ||
+			(direction == CRAS_STREAM_OUTPUT &&
+			 jack_matches_string(ioctl_name, "^.*HDMI Jack$"));
 
 		if (save && n < n_names)
 			names[n++] = strdup(devnode);
