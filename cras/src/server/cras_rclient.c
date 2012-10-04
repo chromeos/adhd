@@ -80,7 +80,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	/* Connect to client's audio socket. */
 	aud_fd = cras_server_connect_to_client_socket(msg->stream_id);
 	if (aud_fd < 0) {
-		syslog(LOG_ERR, "Connect to client socket.\n");
 		rc = aud_fd;
 		goto reply_err;
 	}
