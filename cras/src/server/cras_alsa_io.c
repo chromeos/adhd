@@ -1062,6 +1062,8 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		return;
 	aio = (struct alsa_io *)arg;
 
+	cras_iodev_plug_event(&aio->base, plugged);
+
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
 

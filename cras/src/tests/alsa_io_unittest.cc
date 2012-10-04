@@ -201,6 +201,39 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   free(fake_curve);
 }
 
+TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+
+  ResetStubData();
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            fake_mixer, NULL, 0,
+                                            CRAS_STREAM_INPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  EXPECT_EQ((void *)possibly_read_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(1, cras_alsa_jack_list_create_called);
+
+  fake_curve =
+    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+  fake_curve->get_dBFS = fake_get_dBFS;
+
+  cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
+  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
+  EXPECT_EQ(1, cras_iodev_plug_event_called);
+  EXPECT_EQ(1, cras_iodev_plug_event_value);
+  EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
+  cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
+  EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
+  EXPECT_EQ(2, cras_iodev_plug_event_called);
+  EXPECT_EQ(0, cras_iodev_plug_event_value);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+  EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
+  free(fake_curve);
+}
+
 TEST(AlsaIoInit, InitializeCapture) {
   struct alsa_io *aio;
 
