@@ -407,7 +407,6 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
  *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
  *    level - The number of frames still in alsa buffer.
  *    write_limit - The maximum number of frames to write to dst.
- *    fetch_limit - The maximum number of frames to fetch from client.
  *
  * Returns:
  *    The number of frames rendered on success, a negative error code otherwise.
@@ -415,7 +414,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
  *    could provide which is the maximum that can currently be rendered.
  */
 static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
-			 size_t write_limit, size_t fetch_limit)
+			 size_t write_limit)
 {
 	struct cras_io_stream *curr, *tmp;
 	struct timeval to;
@@ -603,7 +602,7 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			return rc;
 
 		written = write_streams(aio, dst, used + total_written,
-					frames, fr_to_req);
+					frames);
 		if (written < 0) /* pcm has been closed */
 			return (int)written;
 
