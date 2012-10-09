@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include "cras_config.h"
+#include "cras_dbus.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
@@ -278,7 +279,8 @@ int cras_server_run()
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
 
-        cras_udev_start_sound_subsystem_monitor();
+	cras_dbus_connect_system_bus();
+	cras_udev_start_sound_subsystem_monitor();
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {

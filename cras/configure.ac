@@ -17,6 +17,7 @@ PKG_PROG_PKG_CONFIG
 
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
 PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.23 ])
+PKG_CHECK_MODULES([DBUS], [ dbus-1 >= 1.4.12 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)
 
