@@ -164,7 +164,7 @@ static void set_factory_default(unsigned card_number)
 	}
 }
 
-static inline void udev_delay_for_alsa(void)
+static inline void udev_delay_for_alsa()
 {
 	/* Provide a small delay so that the udev message can
 	 * propogate throughout the whole system, and Alsa can set up
@@ -311,7 +311,7 @@ static void compile_regex(regex_t *regex, const char *str)
 }
 
 static struct udev_callback_data udev_data;
-void cras_udev_start_sound_subsystem_monitor(void)
+void cras_udev_start_sound_subsystem_monitor()
 {
 	int r;
 
@@ -334,7 +334,7 @@ void cras_udev_start_sound_subsystem_monitor(void)
 	enumerate_devices(&udev_data);
 }
 
-void cras_udev_stop_sound_subsystem_monitor(void)
+void cras_udev_stop_sound_subsystem_monitor()
 {
 	udev_unref(udev_data.udev);
 	regfree(&pcm_regex);

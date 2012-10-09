@@ -9,7 +9,7 @@
 //#define __USE_UNIX98		/* For pthread_mutexattr_settype et al. */
 #include <pthread.h>
 
-void cras_udev_start_sound_subsystem_monitor(void);
-void cras_udev_stop_sound_subsystem_monitor(void);
+void cras_udev_start_sound_subsystem_monitor();
+void cras_udev_stop_sound_subsystem_monitor();
 
 #endif /* CRAS_UDEV_H_ */

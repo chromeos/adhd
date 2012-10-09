@@ -251,7 +251,7 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	return r;
 }
 
-static void wait_for_dev_input_access(void)
+static void wait_for_dev_input_access()
 {
 	/* Wait for /dev/input/event* files to become accessible by
 	 * having group 'input'.  Setting these files to have 'rw'
