@@ -17,17 +17,11 @@
 #include "cras_types.h"
 #include "cras_util.h"
 
-typedef enum direction_t {
-	D_PLAYBACK,
-	D_CAPTURE,
-	D_NUM_DIRECTION
-} direction_t;
-
-typedef struct udev_callback_data_t {
+struct udev_callback_data {
 	struct udev_monitor *mon;
 	struct udev *udev;
 	int fd;
-} udev_callback_data_t;
+};
 
 static unsigned is_action(const char *desired,
 			  const char *actual) __attribute__((nonnull(1)));
@@ -270,7 +264,7 @@ static void remove_device_if_card(struct udev_device *dev)
 		device_remove_alsa(sysname, card_number);
 }
 
-static void enumerate_devices(udev_callback_data_t *data)
+static void enumerate_devices(struct udev_callback_data *data)
 {
 	struct udev_enumerate  *enumerate = udev_enumerate_new(data->udev);
 	struct udev_list_entry *dl;
@@ -282,8 +276,8 @@ static void enumerate_devices(udev_callback_data_t *data)
 
 	udev_list_entry_foreach(dev_list_entry, dl) {
 		const char *path = udev_list_entry_get_name(dev_list_entry);
-		struct udev_device *dev	 = udev_device_new_from_syspath(data->udev,
-									path);
+		struct udev_device *dev =
+			udev_device_new_from_syspath(data->udev, path);
 
 		change_udev_device_if_alsa_device(dev);
 	}
@@ -292,7 +286,7 @@ static void enumerate_devices(udev_callback_data_t *data)
 
 static void udev_sound_subsystem_callback(void *arg)
 {
-	udev_callback_data_t *data = (udev_callback_data_t *)arg;
+	struct udev_callback_data *data = (struct udev_callback_data *)arg;
 	struct udev_device *dev;
 
 	dev = udev_monitor_receive_device(data->mon);
@@ -316,7 +310,7 @@ static void compile_regex(regex_t *regex, const char *str)
 	assert(r == 0);
 }
 
-static struct udev_callback_data_t udev_data;
+static struct udev_callback_data udev_data;
 void cras_udev_start_sound_subsystem_monitor(void)
 {
 	int r;
