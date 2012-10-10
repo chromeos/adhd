@@ -279,7 +279,7 @@ int cras_server_run()
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
 
-	cras_dbus_connect_system_bus();
+/*	cras_dbus_connect_system_bus();*/
 	cras_udev_start_sound_subsystem_monitor();
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
