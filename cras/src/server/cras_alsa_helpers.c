@@ -323,12 +323,12 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 	return rc;
 }
 
-int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
+int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
-			 snd_pcm_uframes_t *frames, size_t *underruns)
+			 snd_pcm_uframes_t *frames, unsigned int *underruns)
 {
 	int rc;
-	size_t attempts = 0;
+	unsigned int attempts = 0;
 	const snd_pcm_channel_area_t *my_areas;
 
 	while (attempts++ < MAX_MMAP_BEGIN_ATTEMPTS) {
@@ -358,7 +358,7 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
 }
 
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
-			  snd_pcm_uframes_t frames, size_t *underruns)
+			  snd_pcm_uframes_t frames, unsigned int *underruns)
 {
 	int rc;
 	snd_pcm_sframes_t res;

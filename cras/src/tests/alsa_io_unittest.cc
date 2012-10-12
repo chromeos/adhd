@@ -1421,16 +1421,16 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
   *delay = 0;
   return 0;
 }
-int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
+int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
-			 snd_pcm_uframes_t *frames, size_t *underruns)
+			 snd_pcm_uframes_t *frames, unsigned int *underruns)
 {
   *dst = cras_alsa_mmap_begin_buffer;
   *frames = cras_alsa_mmap_begin_frames;
   return 0;
 }
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
-			  snd_pcm_uframes_t frames, size_t *underruns)
+			  snd_pcm_uframes_t frames, unsigned int *underruns)
 {
   return 0;
 }

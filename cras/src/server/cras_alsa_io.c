@@ -81,13 +81,14 @@ struct alsa_input_node {
  * jack_list - List of alsa jack controls for this device.
  * ucm - ALSA use case manager, if configuration is found.
  * alsa_cb - Callback to fill or read samples (depends on direction).
+ * mmap_offset - offset returned from mmap_begin.
  */
 struct alsa_io {
 	struct cras_iodev base;
 	char *dev;
 	size_t device_index;
 	snd_pcm_t *handle;
-	size_t num_underruns;
+	unsigned int num_underruns;
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
@@ -96,6 +97,7 @@ struct alsa_io {
 	struct alsa_input_node *active_input;
 	struct cras_alsa_jack_list *jack_list;
 	snd_use_case_mgr_t *ucm;
+	snd_pcm_uframes_t mmap_offset;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
 
@@ -165,6 +167,36 @@ static int open_dev(struct cras_iodev *iodev)
 		cras_alsa_pcm_start(aio->handle);
 
 	return 0;
+}
+
+static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	snd_pcm_uframes_t nframes = *frames;
+	int rc;
+
+	aio->mmap_offset = 0;
+
+	rc = cras_alsa_mmap_begin(aio->handle,
+				  cras_get_format_bytes(iodev->format),
+				  dst,
+				  &aio->mmap_offset,
+				  &nframes,
+				  &aio->num_underruns);
+
+	*frames = nframes;
+
+	return rc;
+}
+
+static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
+	return cras_alsa_mmap_commit(aio->handle,
+				     aio->mmap_offset,
+				     nwritten,
+				     &aio->num_underruns);
 }
 
 /* Gets the curve for the active output. */
@@ -637,24 +669,23 @@ static void apply_dsp(struct alsa_io *aio, uint8_t *buf, size_t frames)
 static int possibly_fill_audio(struct alsa_io *aio,
 			       struct timespec *ts)
 {
-	snd_pcm_uframes_t frames, used, fr_to_req;
+	snd_pcm_uframes_t used, alsa_frames, fr_to_req;
 	snd_pcm_sframes_t written, delay;
 	snd_pcm_uframes_t total_written = 0;
-	snd_pcm_uframes_t offset = 0;
 	snd_pcm_t *handle = aio->handle;
 	int rc;
-	size_t fr_bytes;
 	uint8_t *dst = NULL;
+	unsigned int frames;
 
 	ts->tv_sec = ts->tv_nsec = 0;
-	fr_bytes = cras_get_format_bytes(aio->base.format);
 
-	frames = 0;
+	alsa_frames = 0;
 	rc = cras_alsa_get_avail_frames(aio->handle,
 					aio->base.buffer_size,
-					&frames);
+					&alsa_frames);
 	if (rc < 0)
 		return rc;
+	frames = alsa_frames;
 	used = aio->base.buffer_size - frames;
 
 	/* Make sure we should actually be awake right now (or close enough) */
@@ -690,8 +721,7 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	 * partial area to write to from mmap_begin */
 	while (total_written < fr_to_req) {
 		frames = fr_to_req - total_written;
-		rc = cras_alsa_mmap_begin(aio->handle, fr_bytes, &dst, &offset,
-					  &frames, &aio->num_underruns);
+		rc = get_buffer(&aio->base, &dst, &frames);
 		if (rc < 0)
 			return rc;
 
@@ -700,14 +730,13 @@ static int possibly_fill_audio(struct alsa_io *aio,
 		if (written < 0) /* pcm has been closed */
 			return (int)written;
 
-		if (written < (snd_pcm_sframes_t)frames)
+		if ((unsigned)written < frames)
 			/* Got all the samples from client that we can, but it
 			 * won't fill the request. */
 			fr_to_req = 0; /* break out after committing samples */
 
 		apply_dsp(aio, dst, written);
-		rc = cras_alsa_mmap_commit(aio->handle, offset, written,
-					   &aio->num_underruns);
+		rc = put_buffer(&aio->base, written);
 		if (rc < 0)
 			return rc;
 		total_written += written;
@@ -750,7 +779,7 @@ static int possibly_fill_audio(struct alsa_io *aio,
  */
 static void read_streams(struct alsa_io *aio,
 			 const uint8_t *src,
-			 snd_pcm_uframes_t count)
+			 size_t count)
 {
 	struct cras_io_stream *streams;
 	struct cras_audio_shm *shm;
@@ -783,19 +812,17 @@ static int possibly_read_audio(struct alsa_io *aio,
 	/* Sleep a few extra frames to make sure that the samples are ready. */
 	static const size_t CAPTURE_REMAINING_FRAMES_TARGET = 16;
 
-	snd_pcm_uframes_t frames, nread, num_to_read, remainder;
-	snd_pcm_uframes_t offset = 0;
+	snd_pcm_uframes_t frames, num_to_read, remainder;
 	snd_pcm_sframes_t delay;
 	struct cras_audio_shm *shm;
 	int rc;
 	uint64_t to_sleep;
-	size_t fr_bytes;
 	uint8_t *src;
 	uint8_t *dst = NULL;
-	unsigned write_limit = 0;
+	unsigned int write_limit = 0;
+	unsigned int nread;
 
 	ts->tv_sec = ts->tv_nsec = 0;
-	fr_bytes = cras_get_format_bytes(aio->base.format);
 	num_to_read = aio->base.cb_threshold;
 
 	rc = cras_alsa_get_avail_frames(aio->handle,
@@ -829,15 +856,13 @@ static int possibly_read_audio(struct alsa_io *aio,
 	remainder = num_to_read;
 	while (remainder > 0) {
 		nread = remainder;
-		rc = cras_alsa_mmap_begin(aio->handle, fr_bytes, &src, &offset,
-					  &nread, &aio->num_underruns);
+		rc = get_buffer(&aio->base, &src, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 
 		read_streams(aio, src, nread);
 
-		rc = cras_alsa_mmap_commit(aio->handle, offset, nread,
-					   &aio->num_underruns);
+		rc = put_buffer(&aio->base, nread);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;
@@ -914,7 +939,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 		ret = thread_remove_stream(aio, rmsg->stream);
 		if (ret < 0)
 			syslog(LOG_INFO, "Failed to remove the stream");
-		syslog(LOG_DEBUG, "underruns:%zu", aio->num_underruns);
+		syslog(LOG_DEBUG, "underruns:%u", aio->num_underruns);
 		break;
 	}
 	case CRAS_IODEV_STOP:

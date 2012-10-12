@@ -119,9 +119,9 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
  *    zero on success, negative error code for fatal
  *    errors.
  */
-int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
+int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
-			 snd_pcm_uframes_t *frames, size_t *underruns);
+			 snd_pcm_uframes_t *frames, unsigned int *underruns);
 
 /* Wrapper for snd_pcm_mmap_commit
  * Args:
@@ -134,7 +134,7 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, size_t format_bytes,
  *    errors.
  */
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
-			  snd_pcm_uframes_t frames, size_t *underruns);
+			  snd_pcm_uframes_t frames, unsigned int *underruns);
 
 /* When the stream is suspended, due to a system suspend, loop until we can
  * resume it. Won't actually loop very much because the system will be
