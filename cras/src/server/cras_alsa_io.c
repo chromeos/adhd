@@ -99,41 +99,57 @@ struct alsa_io {
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
 
-/* Configure the alsa device we will use. */
-static int open_alsa(struct alsa_io *aio)
+/* Close down alsa. This happens when all threads are removed or when there is
+ * an error with the device.
+ */
+static int close_dev(struct cras_iodev *iodev)
 {
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	if (!aio->handle)
+		return 0;
+	cras_alsa_pcm_drain(aio->handle);
+	cras_alsa_pcm_close(aio->handle);
+	aio->handle = NULL;
+	cras_iodev_free_format(&aio->base);
+	return 0;
+}
+
+/* Configure the alsa device we will use. */
+static int open_dev(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle;
 	int rc;
 	struct cras_rstream *stream;
 
 	/* This is called after the first stream added so configure for it. */
-	stream = aio->base.streams->stream;
-	if (aio->base.format == NULL)
+	stream = iodev->streams->stream;
+	if (iodev->format == NULL)
 		return -EINVAL;
-	cras_rstream_get_format(stream, aio->base.format);
+	cras_rstream_get_format(stream, iodev->format);
 	/* TODO(dgreid) - allow more formats here. */
-	aio->base.format->format = SND_PCM_FORMAT_S16_LE;
+	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;
 	aio->base.sleep_correction_frames = 0;
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
-	       aio->dev, aio->base.format->frame_rate,
-	       aio->base.format->num_channels);
+	       aio->dev, iodev->format->frame_rate,
+	       iodev->format->num_channels);
 	handle = 0; /* Avoid unused warning. */
 	rc = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
 	if (rc < 0)
 		return rc;
 
-	rc = cras_alsa_set_hwparams(handle, aio->base.format,
-				    &aio->base.buffer_size);
+	rc = cras_alsa_set_hwparams(handle, iodev->format,
+				    &iodev->buffer_size);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
 		return rc;
 	}
 
 	/* Set minimum number of available frames. */
-	if (aio->base.used_size > aio->base.buffer_size)
-		aio->base.used_size = aio->base.buffer_size;
+	if (iodev->used_size > iodev->buffer_size)
+		iodev->used_size = iodev->buffer_size;
 
 	/* Configure software params. */
 	rc = cras_alsa_set_swparams(handle);
@@ -149,19 +165,6 @@ static int open_alsa(struct alsa_io *aio)
 		cras_alsa_pcm_start(aio->handle);
 
 	return 0;
-}
-
-/* Close down alsa. This happens when all threads are removed or when there is
- * an error with the device.
- */
-static void close_alsa(struct alsa_io *aio)
-{
-	if (!aio->handle)
-		return;
-	cras_alsa_pcm_drain(aio->handle);
-	cras_alsa_pcm_close(aio->handle);
-	aio->handle = NULL;
-	cras_iodev_free_format(&aio->base);
 }
 
 /* Gets the curve for the active output. */
@@ -304,7 +307,7 @@ static int thread_remove_stream(struct alsa_io *aio,
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
 		/* No more streams, close alsa dev. */
-		close_alsa(aio);
+		close_dev(&aio->base);
 	} else {
 		cras_iodev_config_params_for_streams(&aio->base);
 		syslog(LOG_DEBUG,
@@ -336,7 +339,7 @@ static int thread_add_stream(struct alsa_io *aio,
 	if (aio->handle == NULL) {
 		init_device_settings(aio);
 
-		rc = open_alsa(aio);
+		rc = open_dev(&aio->base);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", aio->dev);
 	}
@@ -964,7 +967,7 @@ static void *alsa_io_thread(void *arg)
 			err = aio->alsa_cb(aio, &ts);
 			if (err < 0) {
 				syslog(LOG_INFO, "alsa cb error %d", err);
-				close_alsa(aio);
+				close_dev(&aio->base);
 			}
 			wait_ts = &ts;
 		}
