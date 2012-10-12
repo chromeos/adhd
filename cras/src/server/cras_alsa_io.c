@@ -1091,6 +1091,21 @@ static void set_iodev_name(struct cras_iodev *dev,
 	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
 }
 
+/* Updates the supported sample rates and channel counts. */
+static int update_supported_formats(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int err;
+
+	free(iodev->supported_rates);
+	free(iodev->supported_channel_counts);
+
+	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
+					&iodev->supported_rates,
+					&iodev->supported_channel_counts);
+	return err;
+}
+
 /*
  * Exported Interface.
  */
@@ -1138,6 +1153,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
 	}
+	aio->base.update_supported_formats = update_supported_formats;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,

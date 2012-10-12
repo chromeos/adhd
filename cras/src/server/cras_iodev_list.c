@@ -365,6 +365,10 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		if (!iodev->format)
 			return -ENOMEM;
 		*iodev->format = *fmt;
+
+		if (iodev->update_supported_formats)
+			iodev->update_supported_formats(iodev);
+
 		actual_rate = get_best_rate(iodev, fmt->frame_rate);
 		actual_num_channels = get_best_channel_count(iodev,
 							     fmt->num_channels);

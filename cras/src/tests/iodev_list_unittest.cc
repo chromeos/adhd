@@ -52,6 +52,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.set_mute = NULL;
       d1_.set_capture_gain = NULL;
       d1_.set_capture_mute = NULL;
+      d1_.update_supported_formats = NULL;
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
@@ -65,6 +66,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.set_mute = NULL;
       d2_.set_capture_gain = NULL;
       d2_.set_capture_mute = NULL;
+      d2_.update_supported_formats = NULL;
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
@@ -78,6 +80,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.set_mute = NULL;
       d3_.set_capture_gain = NULL;
       d3_.set_capture_mute = NULL;
+      d3_.update_supported_formats = NULL;
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
