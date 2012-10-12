@@ -74,9 +74,6 @@ struct alsa_input_node {
  * device_index - ALSA index of device, Y in "hw:X:Y".
  * handle - Handle to the opened ALSA device.
  * num_underruns - Number of times we have run out of data (playback only).
- * audio_sleep_correction_frames - Number of frames to adjust sleep time by.
- *    This is adjusted based on sleeping too long or short so that the sleep
- *    interval tracks toward the targeted number of frames.
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * output_nodes - Alsa mixer outputs (Only used for output devices).
@@ -91,7 +88,6 @@ struct alsa_io {
 	size_t device_index;
 	snd_pcm_t *handle;
 	size_t num_underruns;
-	int audio_sleep_correction_frames;
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
@@ -118,7 +114,7 @@ static int open_alsa(struct alsa_io *aio)
 	/* TODO(dgreid) - allow more formats here. */
 	aio->base.format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;
-	aio->audio_sleep_correction_frames = 0;
+	aio->base.sleep_correction_frames = 0;
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
 	       aio->dev, aio->base.format->frame_rate,
@@ -808,7 +804,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 	if (frames < num_to_read) {
 		to_sleep = num_to_read - frames;
 		/* Increase sleep correction factor when waking up too early. */
-		aio->audio_sleep_correction_frames++;
+		aio->base.sleep_correction_frames++;
 		goto dont_read;
 	}
 
@@ -864,12 +860,12 @@ static int possibly_read_audio(struct alsa_io *aio,
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
 	if (remainder != CAPTURE_REMAINING_FRAMES_TARGET)
-		aio->audio_sleep_correction_frames +=
+		aio->base.sleep_correction_frames +=
 			(remainder > CAPTURE_REMAINING_FRAMES_TARGET) ? -1 : 1;
 
 dont_read:
 	to_sleep += CAPTURE_REMAINING_FRAMES_TARGET +
-		    aio->audio_sleep_correction_frames;
+		    aio->base.sleep_correction_frames;
 	ts->tv_nsec = to_sleep * 1000000 / aio->base.format->frame_rate;
 	ts->tv_nsec *= 1000;
 	return 0;

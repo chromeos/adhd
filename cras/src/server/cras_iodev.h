@@ -50,6 +50,9 @@ struct cras_io_stream {
  * to_main_fds - Send a message to main from running thread.
  * tid - Thread ID of the running playback/capture thread.
  * dsp_context - The context used for dsp processing on the audio data.
+ * sleep_correction_frames - Number of frames to adjust sleep time by.
+ *    This is adjusted based on sleeping too long or short so that the sleep
+ *    interval tracks toward the targeted number of frames.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -71,6 +74,7 @@ struct cras_iodev {
 	int to_main_fds[2];
 	pthread_t tid;
 	struct cras_dsp_context *dsp_context;
+	int sleep_correction_frames;
 	struct cras_iodev *prev, *next;
 };
 

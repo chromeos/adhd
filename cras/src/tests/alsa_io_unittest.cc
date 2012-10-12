@@ -650,7 +650,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
       aio_->base.format = &fmt_;
       aio_->base.buffer_size = 16384;
       aio_->base.cb_threshold = 480;
-      aio_->audio_sleep_correction_frames = 0;
+      aio_->base.sleep_correction_frames = 0;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
       memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
@@ -720,7 +720,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadEmpty) {
   EXPECT_EQ(0, shm_->area->write_offset[0]);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(1, aio_->audio_sleep_correction_frames);
+  EXPECT_EQ(1, aio_->base.sleep_correction_frames);
 }
 
 TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
