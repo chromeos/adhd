@@ -551,36 +551,6 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 	return write_limit;
 }
 
-/* Ask any clients that have room for more data in the buffer to send some. */
-static int get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
-{
-	struct cras_io_stream *curr, *tmp;
-	size_t frames;
-	int rc;
-
-	DL_FOREACH_SAFE(aio->base.streams, curr, tmp) {
-		if (cras_shm_callback_pending(curr->shm))
-			continue;
-
-		frames = cras_shm_get_frames(curr->shm) + alsa_used;
-
-		if (frames <= cras_rstream_get_cb_threshold(curr->stream) &&
-		    cras_shm_is_buffer_available(curr->shm)) {
-			rc = cras_rstream_request_audio_buffer(curr->stream);
-			if (rc < 0) {
-				thread_remove_stream(aio, curr->stream);
-				/* If this failed and was the last stream,
-				 * return, otherwise, on to the next one */
-				if (!cras_iodev_streams_attached(&aio->base))
-					return -EIO;
-			} else
-				cras_shm_set_callback_pending(curr->shm, 1);
-		}
-	}
-
-	return 0;
-}
-
 static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 			       uint8_t *buf, size_t frames)
 {
@@ -757,11 +727,6 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			}
 		}
 	}
-
-	/* Ask any clients that have room to fill up. */
-	rc = get_data_from_other_streams(aio, total_written + used);
-	if (rc < 0)
-		return rc;
 
 	/* Set the sleep time based on how much is left to play */
 	cras_iodev_fill_time_from_frames(total_written + used,
