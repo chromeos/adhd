@@ -101,6 +101,40 @@ struct alsa_io {
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
 };
 
+static int get_frames_queued(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int rc;
+	snd_pcm_uframes_t frames;
+
+	rc = cras_alsa_get_avail_frames(aio->handle,
+					aio->base.buffer_size,
+					&frames);
+	if (rc < 0)
+		return rc;
+
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		return (int)frames;
+
+	/* For output, return number of frames that are used. */
+	return iodev->buffer_size - frames;
+}
+
+static int get_delay_frames(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	snd_pcm_sframes_t delay;
+	int rc;
+
+	rc = cras_alsa_get_delay_frames(aio->handle,
+					iodev->buffer_size,
+					&delay);
+	if (rc < 0)
+		return rc;
+
+	return (int)delay;
+}
+
 /* Close down alsa. This happens when all threads are removed or when there is
  * an error with the device.
  */
@@ -628,6 +662,40 @@ static void apply_dsp(struct alsa_io *aio, uint8_t *buf, size_t frames)
 	cras_dsp_put_pipeline(ctx);
 }
 
+static inline int have_enough_frames(struct cras_iodev *iodev,
+				     unsigned int frames)
+{
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		return frames <= (iodev->cb_threshold + SLEEP_FUZZ_FRAMES);
+
+	/* Input or unified. */
+	return frames >= iodev->cb_threshold;
+}
+
+static int dev_running(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	snd_pcm_t *handle = aio->handle;
+	int rc;
+
+	if (snd_pcm_state(handle) == SND_PCM_STATE_RUNNING)
+		return 0;
+
+	if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
+		rc = cras_alsa_attempt_resume(handle);
+		if (rc < 0)
+			return rc;
+	} else {
+		rc = cras_alsa_pcm_start(handle);
+		if (rc < 0) {
+			syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
 /* Check if we should get more samples for playback from the source streams. If
  * more data is needed by the output, fetch and render it.
  * Args:
@@ -639,33 +707,25 @@ static void apply_dsp(struct alsa_io *aio, uint8_t *buf, size_t frames)
 static int possibly_fill_audio(struct alsa_io *aio,
 			       struct timespec *ts)
 {
-	snd_pcm_uframes_t used, alsa_frames, fr_to_req;
+	unsigned int frames, used, fr_to_req;
 	snd_pcm_sframes_t written, delay;
 	snd_pcm_uframes_t total_written = 0;
-	snd_pcm_t *handle = aio->handle;
 	int rc;
 	uint8_t *dst = NULL;
-	unsigned int frames;
 
 	ts->tv_sec = ts->tv_nsec = 0;
 
-	alsa_frames = 0;
-	rc = cras_alsa_get_avail_frames(aio->handle,
-					aio->base.buffer_size,
-					&alsa_frames);
+	rc = get_frames_queued(&aio->base);
 	if (rc < 0)
 		return rc;
-	frames = alsa_frames;
-	used = aio->base.buffer_size - frames;
+	used = rc;
 
 	/* Make sure we should actually be awake right now (or close enough) */
-	if (used > aio->base.cb_threshold + SLEEP_FUZZ_FRAMES) {
+	if (!have_enough_frames(&aio->base, used)) {
 		/* Check if the pcm is still running. */
-		if (snd_pcm_state(aio->handle) == SND_PCM_STATE_SUSPENDED) {
-			rc = cras_alsa_attempt_resume(aio->handle);
-			if (rc < 0)
-				return rc;
-		}
+		rc = dev_running(&aio->base);
+		if (rc < 0)
+			return rc;
 		cras_iodev_fill_time_from_frames(used,
 						 aio->base.cb_threshold,
 						 aio->base.format->frame_rate,
@@ -674,11 +734,10 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	}
 
 	/* check the current delay through alsa */
-	rc = cras_alsa_get_delay_frames(aio->handle,
-					aio->base.buffer_size,
-					&delay);
+	rc = get_delay_frames(&aio->base);
 	if (rc < 0)
 		return rc;
+	delay = rc;
 
 	/* Request data from streams that need more */
 	fr_to_req = aio->base.used_size - used;
@@ -713,19 +772,10 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	}
 
 	/* If we haven't started alsa and we wrote samples, then start it up. */
-	if ((snd_pcm_state(handle) != SND_PCM_STATE_RUNNING) &&
-	    total_written > 0) {
-		if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
-			rc = cras_alsa_attempt_resume(handle);
-			if (rc < 0)
-				return rc;
-		} else {
-			rc = cras_alsa_pcm_start(handle);
-			if (rc < 0) {
-				syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));
-				return rc;
-			}
-		}
+	if (total_written) {
+		rc = dev_running(&aio->base);
+		if (rc < 0)
+			return rc;
 	}
 
 	/* Set the sleep time based on how much is left to play */
@@ -777,7 +827,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 	/* Sleep a few extra frames to make sure that the samples are ready. */
 	static const size_t CAPTURE_REMAINING_FRAMES_TARGET = 16;
 
-	snd_pcm_uframes_t frames, num_to_read, remainder;
+	snd_pcm_uframes_t used, num_to_read, remainder;
 	snd_pcm_sframes_t delay;
 	struct cras_audio_shm *shm;
 	int rc;
@@ -790,24 +840,22 @@ static int possibly_read_audio(struct alsa_io *aio,
 	ts->tv_sec = ts->tv_nsec = 0;
 	num_to_read = aio->base.cb_threshold;
 
-	rc = cras_alsa_get_avail_frames(aio->handle,
-					aio->base.buffer_size,
-					&frames);
+	rc = get_frames_queued(&aio->base);
 	if (rc < 0)
 		return rc;
+	used = rc;
 
-	if (frames < num_to_read) {
-		to_sleep = num_to_read - frames;
+	if (!have_enough_frames(&aio->base, used)) {
+		to_sleep = num_to_read - used;
 		/* Increase sleep correction factor when waking up too early. */
 		aio->base.sleep_correction_frames++;
 		goto dont_read;
 	}
 
-	rc = cras_alsa_get_delay_frames(aio->handle,
-					aio->base.buffer_size,
-					&delay);
+	rc = get_delay_frames(&aio->base);
 	if (rc < 0)
 		return rc;
+	delay = rc;
 
 	if (aio->base.streams) {
 		cras_shm_check_write_overrun(aio->base.streams->shm);
@@ -848,7 +896,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 	}
 
 	/* Adjust sleep time to target our callback threshold. */
-	remainder = frames - num_to_read;
+	remainder = used - num_to_read;
 	to_sleep = num_to_read - remainder;
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */

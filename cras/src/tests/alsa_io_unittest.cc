@@ -651,6 +651,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
       aio_->base.buffer_size = 16384;
       aio_->base.cb_threshold = 480;
       aio_->base.sleep_correction_frames = 0;
+      aio_->base.direction = CRAS_STREAM_INPUT;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
       memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
