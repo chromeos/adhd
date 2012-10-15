@@ -279,7 +279,7 @@ int cras_server_run()
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
 
-/*	cras_dbus_connect_system_bus();*/
+	cras_dbus_connect_system_bus();
 	cras_udev_start_sound_subsystem_monitor();
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -359,6 +359,8 @@ int cras_server_run()
 				tmp_callback)
 			if (FD_ISSET(client_cb->select_fd, &poll_set))
 				client_cb->callback(client_cb->callback_data);
+
+		cras_dbus_dispatch();
 	}
 
 bail:
