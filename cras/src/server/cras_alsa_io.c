@@ -101,7 +101,7 @@ struct alsa_io {
 	int (*alsa_cb)(struct cras_iodev *iodev, struct timespec *ts);
 };
 
-static int get_frames_queued(struct cras_iodev *iodev)
+static int get_frames_queued(const struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
@@ -120,7 +120,7 @@ static int get_frames_queued(struct cras_iodev *iodev)
 	return iodev->buffer_size - frames;
 }
 
-static int get_delay_frames(struct cras_iodev *iodev)
+static int get_delay_frames(const struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_sframes_t delay;
@@ -664,7 +664,7 @@ static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 	cras_dsp_put_pipeline(ctx);
 }
 
-static inline int have_enough_frames(struct cras_iodev *iodev,
+static inline int have_enough_frames(const struct cras_iodev *iodev,
 				     unsigned int frames)
 {
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
@@ -674,7 +674,7 @@ static inline int have_enough_frames(struct cras_iodev *iodev,
 	return frames >= iodev->cb_threshold;
 }
 
-static int dev_running(struct cras_iodev *iodev)
+static int dev_running(const struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle = aio->handle;
@@ -718,7 +718,7 @@ static int possibly_fill_audio(struct cras_iodev *iodev,
 
 	ts->tv_sec = ts->tv_nsec = 0;
 
-	rc = get_frames_queued(iodev);
+	rc = iodev->frames_queued(iodev);
 	if (rc < 0)
 		return rc;
 	used = rc;
@@ -735,7 +735,7 @@ static int possibly_fill_audio(struct cras_iodev *iodev,
 	}
 
 	/* check the current delay through alsa */
-	rc = get_delay_frames(iodev);
+	rc = iodev->delay_frames(iodev);
 	if (rc < 0)
 		return rc;
 	delay = rc;
@@ -751,7 +751,7 @@ static int possibly_fill_audio(struct cras_iodev *iodev,
 	 * partial area to write to from mmap_begin */
 	while (total_written < fr_to_req) {
 		frames = fr_to_req - total_written;
-		rc = get_buffer(iodev, &dst, &frames);
+		rc = iodev->get_buffer(iodev, &dst, &frames);
 		if (rc < 0)
 			return rc;
 
@@ -766,7 +766,7 @@ static int possibly_fill_audio(struct cras_iodev *iodev,
 			fr_to_req = 0; /* break out after committing samples */
 
 		apply_dsp(iodev, dst, written);
-		rc = put_buffer(iodev, written);
+		rc = iodev->put_buffer(iodev, written);
 		if (rc < 0)
 			return rc;
 		total_written += written;
@@ -774,7 +774,7 @@ static int possibly_fill_audio(struct cras_iodev *iodev,
 
 	/* If we haven't started alsa and we wrote samples, then start it up. */
 	if (total_written) {
-		rc = dev_running(iodev);
+		rc = iodev->dev_running(iodev);
 		if (rc < 0)
 			return rc;
 	}
@@ -843,7 +843,7 @@ static int possibly_read_audio(struct cras_iodev *iodev,
 	ts->tv_sec = ts->tv_nsec = 0;
 	num_to_read = iodev->cb_threshold;
 
-	rc = get_frames_queued(iodev);
+	rc = iodev->frames_queued(iodev);
 	if (rc < 0)
 		return rc;
 	used = rc;
@@ -855,7 +855,7 @@ static int possibly_read_audio(struct cras_iodev *iodev,
 		goto dont_read;
 	}
 
-	rc = get_delay_frames(iodev);
+	rc = iodev->delay_frames(iodev);
 	if (rc < 0)
 		return rc;
 	delay = rc;
@@ -872,13 +872,13 @@ static int possibly_read_audio(struct cras_iodev *iodev,
 	remainder = num_to_read;
 	while (remainder > 0) {
 		nread = remainder;
-		rc = get_buffer(iodev, &src, &nread);
+		rc = iodev->get_buffer(iodev, &src, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 
 		read_streams(iodev, src, nread);
 
-		rc = put_buffer(iodev, nread);
+		rc = iodev->put_buffer(iodev, nread);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;
@@ -1342,8 +1342,13 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
 	}
-	aio->base.update_supported_formats = update_supported_formats;
-	aio->base.set_as_default = set_as_default;
+	iodev->update_supported_formats = update_supported_formats;
+	iodev->set_as_default = set_as_default;
+	iodev->frames_queued = get_frames_queued;
+	iodev->delay_frames = get_delay_frames;
+	iodev->get_buffer = get_buffer;
+	iodev->put_buffer = put_buffer;
+	iodev->dev_running = dev_running;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,

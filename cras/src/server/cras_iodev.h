@@ -37,6 +37,11 @@ struct cras_io_stream {
  * set_capture_mute - Function to call if the system capture mute state changes.
  * update_supported_formats - Refresh supported frame rates and channel counts.
  * set_as_default - Function to call when this device is set as system default.
+ * frames_queued - The number of frames in the audio buffer.
+ * delay_frames - The delay of the next sample in frames.
+ * get_buffer - Returns a buffer to read/write to/from.
+ * put_buffer - Marks a buffer from get_buffer as read/written.
+ * dev_running - Checks if the device is playing or recording.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * streams - List of streams attached to device.
@@ -61,6 +66,13 @@ struct cras_iodev {
 	void (*set_capture_mute)(struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
 	void (*set_as_default)(struct cras_iodev *iodev);
+	int (*frames_queued)(const struct cras_iodev *iodev);
+	int (*delay_frames)(const struct cras_iodev *iodev);
+	int (*get_buffer)(struct cras_iodev *iodev,
+			  uint8_t **dst,
+			  unsigned *frames);
+	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
+	int (*dev_running)(const struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_io_stream *streams;
 	struct cras_iodev_info info;
