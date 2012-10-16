@@ -314,8 +314,7 @@ static void dump_playback(struct cras_iodev *iodev, struct timespec *ts)
 			cras_shm_buffer_read(curr->shm, write_limit);
 
 	/* Set the sleep time based on how much is left to play */
-	cras_iodev_fill_time_from_frames(iodev->cb_threshold + write_limit,
-					 iodev->cb_threshold,
+	cras_iodev_fill_time_from_frames(write_limit,
 					 iodev->format->frame_rate,
 					 ts);
 }

@@ -205,16 +205,13 @@ int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
 					       struct cras_iodev_msg *msg);
 
 /* Fill timespec ts with the time to sleep based on the number of frames and
- * frame rate.  Threshold is how many frames should be left when the timer
- * expires.
+ * frame rate.
  * Args:
  *    frames - Number of frames in buffer..
- *    cb_threshold - Number of frames that should be left when time expires.
  *    frame_rate - 44100, 48000, etc.
  *    ts - Filled with the time to sleep for.
  */
 void cras_iodev_fill_time_from_frames(size_t frames,
-				      size_t cb_threshold,
 				      size_t frame_rate,
 				      struct timespec *ts);
 
@@ -310,6 +307,30 @@ static inline int cras_iodev_plugged_more_recently(const struct cras_iodev *a,
 	return (a->info.plugged_time.tv_sec > b->info.plugged_time.tv_sec ||
 		(a->info.plugged_time.tv_sec == b->info.plugged_time.tv_sec &&
 		 a->info.plugged_time.tv_usec > b->info.plugged_time.tv_usec));
+}
+
+/* Gets a count of how many frames until the next time the thread should wake
+ * up to service the buffer.
+ * Args:
+ *    dev - device to calculate sleep frames for.
+ *    curr_level - current buffer level.
+ * Returns:
+ *    A positive number of frames to wait until waking up.
+ */
+static inline unsigned int cras_iodev_sleep_frames(const struct cras_iodev *dev,
+						   unsigned int curr_level)
+{
+	int to_sleep;
+
+	if (dev->direction == CRAS_STREAM_OUTPUT)
+		to_sleep = curr_level - dev->cb_threshold;
+	else
+		to_sleep = dev->cb_threshold - curr_level;
+
+	if (to_sleep < 0)
+		return 0;
+
+	return to_sleep;
 }
 
 #endif /* CRAS_IODEV_H_ */

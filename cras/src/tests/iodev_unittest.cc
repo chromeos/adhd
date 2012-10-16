@@ -19,7 +19,7 @@ static struct timespec clock_gettime_retspec;
 TEST(IoDevTestSuite, FillTimeFromFramesNormal) {
   struct timespec ts;
 
-  cras_iodev_fill_time_from_frames(24000, 12000, 48000, &ts);
+  cras_iodev_fill_time_from_frames(12000, 48000, &ts);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, 249900000);
   EXPECT_LE(ts.tv_nsec, 250100000);
@@ -28,7 +28,7 @@ TEST(IoDevTestSuite, FillTimeFromFramesNormal) {
 TEST(IoDevTestSuite, FillTimeFromFramesLong) {
   struct timespec ts;
 
-  cras_iodev_fill_time_from_frames(120000, 12000, 48000, &ts);
+  cras_iodev_fill_time_from_frames(120000 - 12000, 48000, &ts);
   EXPECT_EQ(2, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, 249900000);
   EXPECT_LE(ts.tv_nsec, 250100000);
@@ -37,7 +37,7 @@ TEST(IoDevTestSuite, FillTimeFromFramesLong) {
 TEST(IoDevTestSuite, FillTimeFromFramesShort) {
   struct timespec ts;
 
-  cras_iodev_fill_time_from_frames(12000, 12000, 48000, &ts);
+  cras_iodev_fill_time_from_frames(12000 - 12000, 48000, &ts);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
 }

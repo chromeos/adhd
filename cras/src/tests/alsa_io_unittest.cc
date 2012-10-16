@@ -974,8 +974,10 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillEarlyWake) {
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold * 2;
-  nsec_expected = aio_->base.cb_threshold * 1000000000ULL /
+  // Add one to threshold due to correction_frames being incremented.
+  nsec_expected = (aio_->base.cb_threshold + 1) * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
+  aio_->base.direction = CRAS_STREAM_OUTPUT;
   rc = possibly_fill_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -1325,25 +1327,20 @@ int cras_iodev_delete_stream(struct cras_iodev *dev,
   return 0;
 }
 void cras_iodev_fill_time_from_frames(size_t frames,
-				      size_t cb_threshold,
 				      size_t frame_rate,
 				      struct timespec *ts)
 {
-	uint64_t to_play_usec;
+  uint64_t to_play_usec;
 
-	ts->tv_sec = 0;
-	/* adjust sleep time to target our callback threshold */
-	if (frames > cb_threshold)
-		to_play_usec = ((uint64_t)frames - (uint64_t)cb_threshold) *
-			1000000L / (uint64_t)frame_rate;
-	else
-		to_play_usec = 0;
+  ts->tv_sec = 0;
+  /* adjust sleep time to target our callback threshold */
+  to_play_usec = (uint64_t)frames * 1000000L / (uint64_t)frame_rate;
 
-	while (to_play_usec > 1000000) {
-		ts->tv_sec++;
-		to_play_usec -= 1000000;
-	}
-	ts->tv_nsec = to_play_usec * 1000;
+  while (to_play_usec > 1000000) {
+    ts->tv_sec++;
+    to_play_usec -= 1000000;
+  }
+  ts->tv_nsec = to_play_usec * 1000;
 }
 void cras_iodev_set_playback_timestamp(size_t frame_rate,
 				       size_t frames,

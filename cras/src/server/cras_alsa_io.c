@@ -712,6 +712,7 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	snd_pcm_uframes_t total_written = 0;
 	int rc;
 	uint8_t *dst = NULL;
+	uint64_t to_sleep;
 
 	ts->tv_sec = ts->tv_nsec = 0;
 
@@ -726,11 +727,9 @@ static int possibly_fill_audio(struct alsa_io *aio,
 		rc = dev_running(&aio->base);
 		if (rc < 0)
 			return rc;
-		cras_iodev_fill_time_from_frames(used,
-						 aio->base.cb_threshold,
-						 aio->base.format->frame_rate,
-						 ts);
-		return 0;
+		/* Increase sleep correction factor when waking up too early. */
+		aio->base.sleep_correction_frames++;
+		goto not_enough;
 	}
 
 	/* check the current delay through alsa */
@@ -778,9 +777,11 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			return rc;
 	}
 
+not_enough:
 	/* Set the sleep time based on how much is left to play */
-	cras_iodev_fill_time_from_frames(total_written + used,
-					 aio->base.cb_threshold,
+	to_sleep = cras_iodev_sleep_frames(&aio->base, total_written + used) +
+		   aio->base.sleep_correction_frames;
+	cras_iodev_fill_time_from_frames(to_sleep,
 					 aio->base.format->frame_rate,
 					 ts);
 
@@ -825,7 +826,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 			       struct timespec *ts)
 {
 	/* Sleep a few extra frames to make sure that the samples are ready. */
-	static const size_t CAPTURE_REMAINING_FRAMES_TARGET = 16;
+	static const size_t REMAINING_FRAMES_TARGET = 16;
 
 	snd_pcm_uframes_t used, num_to_read, remainder;
 	snd_pcm_sframes_t delay;
@@ -900,15 +901,16 @@ static int possibly_read_audio(struct alsa_io *aio,
 	to_sleep = num_to_read - remainder;
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
-	if (remainder != CAPTURE_REMAINING_FRAMES_TARGET)
+	if (remainder != REMAINING_FRAMES_TARGET)
 		aio->base.sleep_correction_frames +=
-			(remainder > CAPTURE_REMAINING_FRAMES_TARGET) ? -1 : 1;
+			(remainder > REMAINING_FRAMES_TARGET) ? -1 : 1;
 
 dont_read:
-	to_sleep += CAPTURE_REMAINING_FRAMES_TARGET +
-		    aio->base.sleep_correction_frames;
-	ts->tv_nsec = to_sleep * 1000000 / aio->base.format->frame_rate;
-	ts->tv_nsec *= 1000;
+	to_sleep += REMAINING_FRAMES_TARGET + aio->base.sleep_correction_frames;
+	cras_iodev_fill_time_from_frames(to_sleep,
+					 aio->base.format->frame_rate,
+					 ts);
+
 	return 0;
 }
 

@@ -273,7 +273,6 @@ int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
 }
 
 void cras_iodev_fill_time_from_frames(size_t frames,
-				      size_t cb_threshold,
 				      size_t frame_rate,
 				      struct timespec *ts)
 {
@@ -281,11 +280,7 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 
 	ts->tv_sec = 0;
 	/* adjust sleep time to target our callback threshold */
-	if (frames > cb_threshold)
-		to_play_usec = ((uint64_t)frames - (uint64_t)cb_threshold) *
-			1000000L / (uint64_t)frame_rate;
-	else
-		to_play_usec = 0;
+	to_play_usec = (uint64_t)frames * 1000000L / (uint64_t)frame_rate;
 
 	while (to_play_usec > 1000000) {
 		ts->tv_sec++;
