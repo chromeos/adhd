@@ -6,18 +6,10 @@
 #ifndef CRAS_DBUS_H_
 #define CRAS_DBUS_H_
 
-#include <dbus/dbus.h>
+typedef struct DBusConnection DBusConnection;
 
 /* Establish connection to the D-Bus System Bus. */
-void cras_dbus_connect_system_bus();
-
-/* Return the connection to the D-Bus System Bus.
- *
- * This returns NULL until cras_dbus_connect_system_bus() is called,
- * after which it returns a valid DBusConnection object that may be
- * passed to libdbus functions.
- */
-DBusConnection *cras_dbus_system_bus();
+DBusConnection *cras_dbus_connect_system_bus();
 
 /* Dispatch pending incoming and outgoing messages.
  *
@@ -28,7 +20,7 @@ DBusConnection *cras_dbus_system_bus();
  *
  * It does nothing if there are no pending messages.
  */
-void cras_dbus_dispatch();
+void cras_dbus_dispatch(DBusConnection *);
 
 /* Disconnect from the D-Bus System Bus. */
 void cras_dbus_disconnect_system_bus();

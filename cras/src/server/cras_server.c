@@ -18,6 +18,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras_bluetooth.h"
 #include "cras_config.h"
 #include "cras_dbus.h"
 #include "cras_iodev_list.h"
@@ -262,6 +263,7 @@ static void rm_select_fd(int fd, void *server_data)
 
 int cras_server_run()
 {
+	DBusConnection *dbus_conn;
 	int socket_fd = -1;
 	int max_poll_fd;
 	fd_set poll_set;
@@ -283,8 +285,9 @@ int cras_server_run()
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
 
-	cras_dbus_connect_system_bus();
 	cras_udev_start_sound_subsystem_monitor();
+	dbus_conn = cras_dbus_connect_system_bus();
+	cras_bluetooth_start(dbus_conn);
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {
@@ -376,7 +379,7 @@ int cras_server_run()
 			if (FD_ISSET(client_cb->select_fd, &poll_set))
 				client_cb->callback(client_cb->callback_data);
 
-		cras_dbus_dispatch();
+		cras_dbus_dispatch(dbus_conn);
 	}
 
 bail:

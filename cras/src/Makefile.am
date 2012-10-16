@@ -12,6 +12,7 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_alsa_mixer.c server/cras_alsa_card.c \
 	server/cras_empty_iodev.c server/cras_server.c \
 	server/cras_alsa_jack.c server/cras_dbus.c server/cras_udev.c \
+	server/cras_bluetooth.c \
 	server/config/cras_card_config.c server/cras_gpio_jack.c \
 	server/config/cras_device_blacklist.c server/cras_alsa_ucm.c \
 	server/cras_tm.c common/edid_utils.c common/cras_checksum.c
@@ -55,7 +56,8 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	rclient_unittest system_state_unittest volume_curve_unittest \
 	alsa_card_unittest alsa_mixer_unittest iodev_unittest \
 	alsa_jack_unittest card_config_unittest device_blacklist_unittest \
-	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest checksum_unittest
+	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest \
+	checksum_unittest bluetooth_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -173,3 +175,9 @@ alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
 alsa_jack_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 alsa_jack_unittest_LDADD = -lgtest -lpthread
+
+bluetooth_unittest_SOURCES = tests/bluetooth_unittest.cc tests/dbus_test.cc \
+	server/cras_bluetooth.c
+bluetooth_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+bluetooth_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
