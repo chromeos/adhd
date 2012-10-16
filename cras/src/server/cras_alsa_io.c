@@ -98,7 +98,7 @@ struct alsa_io {
 	struct cras_alsa_jack_list *jack_list;
 	snd_use_case_mgr_t *ucm;
 	snd_pcm_uframes_t mmap_offset;
-	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
+	int (*alsa_cb)(struct cras_iodev *iodev, struct timespec *ts);
 };
 
 static int get_frames_queued(struct cras_iodev *iodev)
@@ -362,9 +362,10 @@ static void init_device_settings(struct alsa_io *aio)
 /* Handles the rm_stream message from the main thread.
  * If this is the last stream to be removed then stop the
  * audio thread and free the resources. */
-static int thread_remove_stream(struct alsa_io *aio,
+static int thread_remove_stream(struct cras_iodev *iodev,
 				struct cras_rstream *stream)
 {
+	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
 
 	rc = cras_iodev_delete_stream(&aio->base, stream);
@@ -387,17 +388,18 @@ static int thread_remove_stream(struct alsa_io *aio,
 }
 
 /* Handles the add_stream message from the main thread. */
-static int thread_add_stream(struct alsa_io *aio,
+static int thread_add_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream)
 {
+	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
 
 	/* Only allow one capture stream to attach. */
-	if (aio->base.direction == CRAS_STREAM_INPUT &&
-	    aio->base.streams != NULL)
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    iodev->streams != NULL)
 		return -EBUSY;
 
-	rc = cras_iodev_append_stream(&aio->base, stream);
+	rc = cras_iodev_append_stream(iodev, stream);
 	if (rc < 0)
 		return rc;
 
@@ -405,12 +407,12 @@ static int thread_add_stream(struct alsa_io *aio,
 	if (aio->handle == NULL) {
 		init_device_settings(aio);
 
-		rc = open_dev(&aio->base);
+		rc = open_dev(iodev);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", aio->dev);
 	}
 
-	cras_iodev_config_params_for_streams(&aio->base);
+	cras_iodev_config_params_for_streams(iodev);
 	return 0;
 }
 
@@ -435,23 +437,23 @@ static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 
 /* Asks any streams with room for more data. Sets the timestamp for all streams.
  * Args:
- *    aio - The iodev containing the streams to fetch from.
+ *    iodev - The iodev containing the streams to fetch from.
  *    fetch_size - How much to fetch.
  *    alsa_delay - How much latency is queued to alsa(frames)
  * Returns:
  *    0 on success, negative error on failure. If failed, can assume that all
  *    streams have been removed from the device.
  */
-static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
+static int fetch_and_set_timestamp(struct cras_iodev *iodev, size_t fetch_size,
 				   size_t alsa_delay)
 {
 	size_t fr_rate, frames_in_buff;
 	struct cras_io_stream *curr, *tmp;
 	int rc;
 
-	fr_rate = aio->base.format->frame_rate;
+	fr_rate = iodev->format->frame_rate;
 
-	DL_FOREACH_SAFE(aio->base.streams, curr, tmp) {
+	DL_FOREACH_SAFE(iodev->streams, curr, tmp) {
 		if (cras_shm_callback_pending(curr->shm))
 			flush_old_aud_messages(curr->shm, curr->fd);
 
@@ -470,10 +472,10 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 			rc = cras_rstream_request_audio(curr->stream,
 							fetch_size);
 			if (rc < 0) {
-				thread_remove_stream(aio, curr->stream);
+				thread_remove_stream(iodev, curr->stream);
 				/* If this failed and was the last stream,
 				 * return, otherwise, on to the next one */
-				if (!cras_iodev_streams_attached(&aio->base))
+				if (!cras_iodev_streams_attached(iodev))
 					return -EIO;
 				continue;
 			}
@@ -486,7 +488,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
 
 /* Fill the buffer with samples from the attached streams.
  * Args:
- *    aio - The device to write new samples to.
+ *    iodev - The device to write new samples to.
  *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
  *    level - The number of frames still in alsa buffer.
  *    write_limit - The maximum number of frames to write to dst.
@@ -496,7 +498,7 @@ static int fetch_and_set_timestamp(struct alsa_io *aio, size_t fetch_size,
  *    This number of frames is the minimum of the amount of frames each stream
  *    could provide which is the maximum that can currently be rendered.
  */
-static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
+static int write_streams(struct cras_iodev *iodev, uint8_t *dst, size_t level,
 			 size_t write_limit)
 {
 	struct cras_io_stream *curr, *tmp;
@@ -508,7 +510,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 
 	/* Timeout on reading before we under-run. Leaving time to mix. */
 	to.tv_sec = 0;
-	to.tv_usec = (level * 1000000 / aio->base.format->frame_rate);
+	to.tv_usec = (level * 1000000 / iodev->format->frame_rate);
 	if (to.tv_usec > MIN_PROCESS_TIME_US)
 		to.tv_usec -= MIN_PROCESS_TIME_US;
 	if (to.tv_usec < MIN_READ_WAIT_US)
@@ -521,7 +523,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 
 	/* Check if streams have enough data to fill this request,
 	 * if not, wait for them. Mix all streams we have enough data for. */
-	DL_FOREACH(aio->base.streams, curr) {
+	DL_FOREACH(iodev->streams, curr) {
 		curr->mixed = 0;
 		if (cras_shm_get_frames(curr->shm) < write_limit &&
 		    cras_shm_callback_pending(curr->shm)) {
@@ -533,7 +535,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 		} else {
 			curr->mixed = cras_mix_add_stream(
 				curr->shm,
-				aio->base.format->num_channels,
+				iodev->format->num_channels,
 				dst, &write_limit, &num_mixed);
 		}
 	}
@@ -544,14 +546,14 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 		rc = select(max_fd + 1, &this_set, NULL, NULL, &to);
 		if (rc <= 0) {
 			/* Timeout */
-			DL_FOREACH(aio->base.streams, curr) {
+			DL_FOREACH(iodev->streams, curr) {
 				if (cras_shm_callback_pending(curr->shm) &&
 				    FD_ISSET(curr->fd, &poll_set))
 					cras_shm_inc_cb_timeouts(curr->shm);
 			}
 			break;
 		}
-		DL_FOREACH_SAFE(aio->base.streams, curr, tmp) {
+		DL_FOREACH_SAFE(iodev->streams, curr, tmp) {
 			if (!FD_ISSET(curr->fd, &this_set))
 				continue;
 
@@ -560,8 +562,8 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 			cras_shm_set_callback_pending(curr->shm, 0);
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
-				thread_remove_stream(aio, curr->stream);
-				if (!cras_iodev_streams_attached(&aio->base))
+				thread_remove_stream(iodev, curr->stream);
+				if (!cras_iodev_streams_attached(iodev))
 					return -EIO;
 				continue;
 			}
@@ -569,7 +571,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 				continue;
 			curr->mixed = cras_mix_add_stream(
 				curr->shm,
-				aio->base.format->num_channels,
+				iodev->format->num_channels,
 				dst, &write_limit, &num_mixed);
 		}
 	}
@@ -578,7 +580,7 @@ static int write_streams(struct alsa_io *aio, uint8_t *dst, size_t level,
 		return num_mixed;
 
 	/* For all streams rendered, mark the data used as read. */
-	DL_FOREACH(aio->base.streams, curr)
+	DL_FOREACH(iodev->streams, curr)
 		if (curr->mixed)
 			cras_shm_buffer_read(curr->shm, write_limit);
 
@@ -643,12 +645,12 @@ static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 	}
 }
 
-static void apply_dsp(struct alsa_io *aio, uint8_t *buf, size_t frames)
+static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 {
 	struct cras_dsp_context *ctx;
 	struct pipeline *pipeline;
 
-	ctx = aio->base.dsp_context;
+	ctx = iodev->dsp_context;
 	if (!ctx)
 		return;
 
@@ -656,7 +658,7 @@ static void apply_dsp(struct alsa_io *aio, uint8_t *buf, size_t frames)
 	if (!pipeline)
 		return;
 
-	apply_dsp_pipeline(pipeline, aio->base.format->num_channels, buf,
+	apply_dsp_pipeline(pipeline, iodev->format->num_channels, buf,
 			   frames);
 
 	cras_dsp_put_pipeline(ctx);
@@ -704,7 +706,7 @@ static int dev_running(struct cras_iodev *iodev)
  *    0 if successful, otherwise a negative error.  If an error occurs you can
  *    assume that the pcm is no longer functional.
  */
-static int possibly_fill_audio(struct alsa_io *aio,
+static int possibly_fill_audio(struct cras_iodev *iodev,
 			       struct timespec *ts)
 {
 	unsigned int frames, used, fr_to_req;
@@ -716,31 +718,31 @@ static int possibly_fill_audio(struct alsa_io *aio,
 
 	ts->tv_sec = ts->tv_nsec = 0;
 
-	rc = get_frames_queued(&aio->base);
+	rc = get_frames_queued(iodev);
 	if (rc < 0)
 		return rc;
 	used = rc;
 
 	/* Make sure we should actually be awake right now (or close enough) */
-	if (!have_enough_frames(&aio->base, used)) {
+	if (!have_enough_frames(iodev, used)) {
 		/* Check if the pcm is still running. */
-		rc = dev_running(&aio->base);
+		rc = dev_running(iodev);
 		if (rc < 0)
 			return rc;
 		/* Increase sleep correction factor when waking up too early. */
-		aio->base.sleep_correction_frames++;
+		iodev->sleep_correction_frames++;
 		goto not_enough;
 	}
 
 	/* check the current delay through alsa */
-	rc = get_delay_frames(&aio->base);
+	rc = get_delay_frames(iodev);
 	if (rc < 0)
 		return rc;
 	delay = rc;
 
 	/* Request data from streams that need more */
-	fr_to_req = aio->base.used_size - used;
-	rc = fetch_and_set_timestamp(aio, fr_to_req, delay);
+	fr_to_req = iodev->used_size - used;
+	rc = fetch_and_set_timestamp(iodev, fr_to_req, delay);
 	if (rc < 0)
 		return rc;
 
@@ -749,11 +751,11 @@ static int possibly_fill_audio(struct alsa_io *aio,
 	 * partial area to write to from mmap_begin */
 	while (total_written < fr_to_req) {
 		frames = fr_to_req - total_written;
-		rc = get_buffer(&aio->base, &dst, &frames);
+		rc = get_buffer(iodev, &dst, &frames);
 		if (rc < 0)
 			return rc;
 
-		written = write_streams(aio, dst, used + total_written,
+		written = write_streams(iodev, dst, used + total_written,
 					frames);
 		if (written < 0) /* pcm has been closed */
 			return (int)written;
@@ -763,8 +765,8 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			 * won't fill the request. */
 			fr_to_req = 0; /* break out after committing samples */
 
-		apply_dsp(aio, dst, written);
-		rc = put_buffer(&aio->base, written);
+		apply_dsp(iodev, dst, written);
+		rc = put_buffer(iodev, written);
 		if (rc < 0)
 			return rc;
 		total_written += written;
@@ -772,17 +774,17 @@ static int possibly_fill_audio(struct alsa_io *aio,
 
 	/* If we haven't started alsa and we wrote samples, then start it up. */
 	if (total_written) {
-		rc = dev_running(&aio->base);
+		rc = dev_running(iodev);
 		if (rc < 0)
 			return rc;
 	}
 
 not_enough:
 	/* Set the sleep time based on how much is left to play */
-	to_sleep = cras_iodev_sleep_frames(&aio->base, total_written + used) +
-		   aio->base.sleep_correction_frames;
+	to_sleep = cras_iodev_sleep_frames(iodev, total_written + used) +
+		   iodev->sleep_correction_frames;
 	cras_iodev_fill_time_from_frames(to_sleep,
-					 aio->base.format->frame_rate,
+					 iodev->format->frame_rate,
 					 ts);
 
 	return 0;
@@ -793,7 +795,7 @@ not_enough:
  *    src - the memory area containing the captured samples.
  *    count - the number of frames captured = buffer_frames.
  */
-static void read_streams(struct alsa_io *aio,
+static void read_streams(struct cras_iodev *iodev,
 			 const uint8_t *src,
 			 size_t count)
 {
@@ -802,7 +804,7 @@ static void read_streams(struct alsa_io *aio,
 	unsigned write_limit;
 	uint8_t *dst;
 
-	streams = aio->base.streams;
+	streams = iodev->streams;
 	if (!streams)
 		return; /* Nowhere to put samples. */
 
@@ -822,7 +824,7 @@ static void read_streams(struct alsa_io *aio,
  * Returns:
  *    0 unless there is an error talking to alsa or the client.
  */
-static int possibly_read_audio(struct alsa_io *aio,
+static int possibly_read_audio(struct cras_iodev *iodev,
 			       struct timespec *ts)
 {
 	/* Sleep a few extra frames to make sure that the samples are ready. */
@@ -839,29 +841,29 @@ static int possibly_read_audio(struct alsa_io *aio,
 	unsigned int nread;
 
 	ts->tv_sec = ts->tv_nsec = 0;
-	num_to_read = aio->base.cb_threshold;
+	num_to_read = iodev->cb_threshold;
 
-	rc = get_frames_queued(&aio->base);
+	rc = get_frames_queued(iodev);
 	if (rc < 0)
 		return rc;
 	used = rc;
 
-	if (!have_enough_frames(&aio->base, used)) {
+	if (!have_enough_frames(iodev, used)) {
 		to_sleep = num_to_read - used;
 		/* Increase sleep correction factor when waking up too early. */
-		aio->base.sleep_correction_frames++;
+		iodev->sleep_correction_frames++;
 		goto dont_read;
 	}
 
-	rc = get_delay_frames(&aio->base);
+	rc = get_delay_frames(iodev);
 	if (rc < 0)
 		return rc;
 	delay = rc;
 
-	if (aio->base.streams) {
-		cras_shm_check_write_overrun(aio->base.streams->shm);
-		shm = aio->base.streams->shm;
-		cras_iodev_set_capture_timestamp(aio->base.format->frame_rate,
+	if (iodev->streams) {
+		cras_shm_check_write_overrun(iodev->streams->shm);
+		shm = iodev->streams->shm;
+		cras_iodev_set_capture_timestamp(iodev->format->frame_rate,
 						 delay,
 						 &shm->area->ts);
 		dst = cras_shm_get_writeable_frames(shm, &write_limit);
@@ -870,28 +872,29 @@ static int possibly_read_audio(struct alsa_io *aio,
 	remainder = num_to_read;
 	while (remainder > 0) {
 		nread = remainder;
-		rc = get_buffer(&aio->base, &src, &nread);
+		rc = get_buffer(iodev, &src, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		read_streams(aio, src, nread);
+		read_streams(iodev, src, nread);
 
-		rc = put_buffer(&aio->base, nread);
+		rc = put_buffer(iodev, nread);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;
 	}
 
-	if (aio->base.streams) {
-		apply_dsp(aio, dst, min(num_to_read, write_limit));
-		cras_shm_buffer_write_complete(aio->base.streams->shm);
+	if (iodev->streams) {
+		apply_dsp(iodev, dst, min(num_to_read, write_limit));
+		cras_shm_buffer_write_complete(iodev->streams->shm);
 
 		/* Tell the client that samples are ready.  This assumes only
 		 * one capture client at a time. */
-		rc = cras_rstream_audio_ready(aio->base.streams->stream,
+		rc = cras_rstream_audio_ready(iodev->streams->stream,
 					      num_to_read);
 		if (rc < 0) {
-			thread_remove_stream(aio, aio->base.streams->stream);
+			thread_remove_stream(iodev,
+					     iodev->streams->stream);
 			return rc;
 		}
 	}
@@ -902,13 +905,13 @@ static int possibly_read_audio(struct alsa_io *aio,
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
 	if (remainder != REMAINING_FRAMES_TARGET)
-		aio->base.sleep_correction_frames +=
+		iodev->sleep_correction_frames +=
 			(remainder > REMAINING_FRAMES_TARGET) ? -1 : 1;
 
 dont_read:
-	to_sleep += REMAINING_FRAMES_TARGET + aio->base.sleep_correction_frames;
+	to_sleep += REMAINING_FRAMES_TARGET + iodev->sleep_correction_frames;
 	cras_iodev_fill_time_from_frames(to_sleep,
-					 aio->base.format->frame_rate,
+					 iodev->format->frame_rate,
 					 ts);
 
 	return 0;
@@ -936,7 +939,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 	case CRAS_IODEV_ADD_STREAM: {
 		struct cras_iodev_add_rm_stream_msg *amsg;
 		amsg = (struct cras_iodev_add_rm_stream_msg *)msg;
-		ret = thread_add_stream(aio, amsg->stream);
+		ret = thread_add_stream(&aio->base, amsg->stream);
 		break;
 	}
 	case CRAS_IODEV_RM_STREAM: {
@@ -951,7 +954,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 			syslog(LOG_DEBUG, "overruns:%u",
 			       cras_shm_num_overruns(shm));
 		}
-		ret = thread_remove_stream(aio, rmsg->stream);
+		ret = thread_remove_stream(&aio->base, rmsg->stream);
 		if (ret < 0)
 			syslog(LOG_INFO, "Failed to remove the stream");
 		syslog(LOG_DEBUG, "underruns:%u", aio->num_underruns);
@@ -1004,7 +1007,7 @@ static void *alsa_io_thread(void *arg)
 
 		if (aio->handle) {
 			/* alsa opened */
-			err = aio->alsa_cb(aio, &ts);
+			err = aio->alsa_cb(&aio->base, &ts);
 			if (err < 0) {
 				syslog(LOG_INFO, "alsa cb error %d", err);
 				close_dev(&aio->base);

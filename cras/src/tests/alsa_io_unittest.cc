@@ -427,7 +427,7 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   memcpy(&new_stream->format, fmt, sizeof(*fmt));
   aio_output_->num_underruns = 3; //  Something non-zero.
   sys_get_volume_return_value = fake_system_volume;
-  rc = thread_add_stream(aio_output_, new_stream);
+  rc = thread_add_stream(&aio_output_->base, new_stream);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(55, aio_output_->base.streams->stream->fd);
   EXPECT_EQ(1, cras_alsa_open_called);
@@ -443,7 +443,7 @@ TEST_F(AlsaAddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
   //  remove the stream.
-  rc = thread_remove_stream(aio_output_, new_stream);
+  rc = thread_remove_stream(&aio_output_->base, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
 
@@ -463,7 +463,7 @@ TEST_F(AlsaAddStreamSuite, AddRmTwoOutputStreams) {
   new_stream->buffer_frames = 65;
   new_stream->cb_threshold = 80;
   memcpy(&new_stream->format, fmt, sizeof(*fmt));
-  rc = thread_add_stream(aio_output_, new_stream);
+  rc = thread_add_stream(&aio_output_->base, new_stream);
   ASSERT_EQ(0, rc);
 
   //  Second stream has lower latency(config_alsa_iodev_params should re-config)
@@ -472,15 +472,15 @@ TEST_F(AlsaAddStreamSuite, AddRmTwoOutputStreams) {
   second_stream->buffer_frames = 25;
   second_stream->cb_threshold = 12;
   memcpy(&second_stream->format, fmt, sizeof(*fmt));
-  rc = thread_add_stream(aio_output_, second_stream);
+  rc = thread_add_stream(&aio_output_->base, second_stream);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, aio_output_->base.format->format);
 
   //  remove the stream.
-  rc = thread_remove_stream(aio_output_, second_stream);
+  rc = thread_remove_stream(&aio_output_->base, second_stream);
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, aio_output_->handle);
-  rc = thread_remove_stream(aio_output_, new_stream);
+  rc = thread_remove_stream(&aio_output_->base, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
 
@@ -505,7 +505,7 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   memcpy(&new_stream->format, fmt, sizeof(*fmt));
   aio_output_->num_underruns = 3; //  Something non-zero.
   sys_get_volume_return_value = fake_system_volume;
-  rc = thread_add_stream(aio_output_, new_stream);
+  rc = thread_add_stream(&aio_output_->base, new_stream);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
@@ -542,7 +542,7 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
 
   //  remove the stream.
   aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(NULL);
-  rc = thread_remove_stream(aio_output_, new_stream);
+  rc = thread_remove_stream(&aio_output_->base, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
 
@@ -554,7 +554,7 @@ TEST_F(AlsaAddStreamSuite, AppendStreamErrorPropogated) {
   struct cras_rstream *new_stream;
   cras_iodev_append_stream_ret = -10;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
-  rc = thread_add_stream(aio_output_, new_stream);
+  rc = thread_add_stream(&aio_output_->base, new_stream);
   EXPECT_EQ(-10, rc);
   free(new_stream);
 }
@@ -571,13 +571,13 @@ TEST_F(AlsaAddStreamSuite, SimpleAddInputStream) {
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   new_stream->fd = 55;
   memcpy(&new_stream->format, fmt, sizeof(*fmt));
-  rc = thread_add_stream(aio_input_, new_stream);
+  rc = thread_add_stream(&aio_input_->base, new_stream);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(55, aio_input_->base.streams->stream->fd);
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, cras_alsa_start_called); //  Shouldn start capture.
   EXPECT_EQ(1, sys_set_capture_gain_limits_called);
-  rc = thread_remove_stream(aio_input_, new_stream);
+  rc = thread_remove_stream(&aio_input_->base, new_stream);
   EXPECT_EQ(0, rc);
   free(new_stream);
 }
@@ -589,7 +589,7 @@ TEST_F(AlsaAddStreamSuite, OneInputStreamPerDevice) {
   cras_alsa_open_called = 0;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
-  rc = thread_add_stream(aio_input_, new_stream);
+  rc = thread_add_stream(&aio_input_->base, new_stream);
   EXPECT_NE(0, rc);
   EXPECT_EQ(0, cras_alsa_open_called);
   free(new_stream);
@@ -610,7 +610,7 @@ TEST_F(AlsaAddStreamSuite, OneActiveInput) {
   input->mixer_input = mixer_input;
   aio_input_->active_input = input;
 
-  rc = thread_add_stream(aio_input_, new_stream);
+  rc = thread_add_stream(&aio_input_->base, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
@@ -699,7 +699,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadGetAvailError) {
   int rc;
 
   cras_alsa_get_avail_frames_ret = -4;
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(-4, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -715,7 +715,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadEmpty) {
   cras_alsa_get_avail_frames_avail = 0;
   nsec_expected = (GetCaptureSleepFrames() + 1) *
                   1000000000ULL / (uint64_t)fmt_.frame_rate;
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, shm_->area->write_offset[0]);
@@ -737,7 +737,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
   // +1 for correction factor.
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
   nsec_expected = sleep_frames * 1000000000ULL / (uint64_t)fmt_.frame_rate;
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -755,7 +755,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadTooLittleData) {
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold - num_frames_short;
   nsec_expected = (num_frames_short + 16 + 1) * 1000000000 / fmt_.frame_rate;
 
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
   EXPECT_EQ(0, shm_->area->write_offset[0]);
@@ -779,7 +779,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
   nsec_expected = sleep_frames * 1000000000ULL / (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -798,7 +798,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteTwoBuffers) {
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
@@ -806,7 +806,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteTwoBuffers) {
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->area->samples[i]);
 
   cras_rstream_audio_ready_count = 999;
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
@@ -823,7 +823,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
   //  Give it some samples to copy.
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
@@ -831,7 +831,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->area->samples[i]);
 
   cras_rstream_audio_ready_count = 999;
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
@@ -840,7 +840,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
   cras_rstream_audio_ready_count = 999;
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_shm_num_overruns(shm_));  //  Should have overrun.
   EXPECT_EQ(aio_->base.cb_threshold, cras_rstream_audio_ready_count);
@@ -857,7 +857,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWithoutPipeline) {
   cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
   aio_->base.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
 
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
@@ -876,7 +876,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWithPipeline) {
   aio_->base.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
   cras_dsp_get_pipeline_ret = 0x6;
 
-  rc = possibly_read_audio(aio_, &ts);
+  rc = possibly_read_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_dsp_get_pipeline_called);
   EXPECT_EQ(1, cras_dsp_put_pipeline_called);
@@ -959,7 +959,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetAvailError) {
   int rc;
 
   cras_alsa_get_avail_frames_ret = -4;
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(-4, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -978,7 +978,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillEarlyWake) {
   nsec_expected = (aio_->base.cb_threshold + 1) * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   aio_->base.direction = CRAS_STREAM_OUTPUT;
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -1004,7 +1004,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -1034,7 +1034,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
@@ -1060,7 +1060,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -1091,7 +1091,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
 
   cras_iodev_append_stream(&aio_->base, rstream2_);
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -1122,7 +1122,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   //  Test that nothing breaks if one stream doesn't fill.
   cras_mix_add_stream_dont_fill_next = 1;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(0, shm_->area->read_offset[0]);  //  No write from first stream.
@@ -1149,7 +1149,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   FD_SET(rstream2_->fd, &select_out_fds);
   select_return_value = 2;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -1176,7 +1176,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillWithoutPipeline) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
             cras_mix_add_stream_count);
@@ -1205,7 +1205,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillWithPipeline) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(aio_, &ts);
+  rc = possibly_fill_audio(&aio_->base, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
             cras_mix_add_stream_count);
