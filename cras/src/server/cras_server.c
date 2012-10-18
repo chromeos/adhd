@@ -25,6 +25,7 @@
 #include "cras_rclient.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
+#include "cras_tm.h"
 #include "cras_udev.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -269,6 +270,9 @@ int cras_server_run()
 	struct sockaddr_un addr;
 	struct attached_client *elm, *tmp;
 	struct client_callback *client_cb, *tmp_callback;
+	struct cras_tm *tm;
+	struct timespec ts;
+	int timers_active;
 
 	/* Log to syslog. */
 	openlog("cras_server", LOG_PID, LOG_USER);
@@ -326,6 +330,13 @@ int cras_server_run()
 		goto bail;
 	}
 
+	tm = cras_system_state_get_tm();
+	if (!tm) {
+		syslog(LOG_ERR, "Getting timer manager.");
+		rc = -ENOMEM;
+		goto bail;
+	}
+
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {
 		FD_ZERO(&poll_set);
@@ -342,9 +353,14 @@ int cras_server_run()
 			FD_SET(client_cb->select_fd, &poll_set);
 		}
 
-		rc = select(max_poll_fd + 1, &poll_set, NULL, NULL, NULL);
+		timers_active = cras_tm_get_next_timeout(tm, &ts);
+
+		rc = pselect(max_poll_fd + 1, &poll_set, NULL, NULL,
+			     timers_active ? &ts : NULL, NULL);
 		if  (rc < 0)
 			continue;
+
+		cras_tm_call_callbacks(tm);
 
 		/* Check for new connections. */
 		if (FD_ISSET(socket_fd, &poll_set))

@@ -14,6 +14,7 @@
 #include "cras_config.h"
 #include "cras_device_blacklist.h"
 #include "cras_system_state.h"
+#include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -45,6 +46,7 @@ struct state_callback_list {
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
+ *    tm - The system-wide timer manager.
  */
 static struct {
 	struct cras_server_state *exp_state;
@@ -58,6 +60,7 @@ static struct {
 	struct state_callback_list *volume_limits_callbacks;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
+	struct cras_tm *tm;
 	/* Select loop callback registration. */
 	int (*fd_add)(int fd, void (*cb)(void *data),
 		      void *cb_data, void *select_data);
@@ -153,6 +156,12 @@ void cras_system_state_init()
 
 	state.exp_state = exp_state;
 
+	state.tm = cras_tm_init();
+	if (!state.tm) {
+		syslog(LOG_ERR, "Fatal: system state timer init");
+		exit(-ENOMEM);
+	}
+
 	/* Read config file for blacklisted devices. */
 	state.device_blacklist =
 		cras_device_blacklist_create(CRAS_CONFIG_FILE_DIR);
@@ -165,6 +174,8 @@ void cras_system_state_deinit()
 	/* Free any resources used.  This prevents unit tests from leaking. */
 
 	cras_device_blacklist_destroy(state.device_blacklist);
+
+	cras_tm_deinit(state.tm);
 
 	if (state.exp_state) {
 		shmdt(state.exp_state);
@@ -548,4 +559,9 @@ void cras_system_state_update_complete()
 key_t cras_sys_state_shm_key()
 {
 	return state.shm_key;
+}
+
+struct cras_tm *cras_system_state_get_tm()
+{
+	return state.tm;
 }

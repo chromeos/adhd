@@ -25,6 +25,7 @@
 #define DEFAULT_MIN_CAPTURE_GAIN -5000
 #define DEFAULT_MAX_CAPTURE_GAIN 5000
 
+struct cras_tm;
 
 /* Callback functions to be notified when settings change. data is a user
  * provided argument that will be passed back. */
@@ -276,5 +277,8 @@ void cras_system_state_update_complete();
 
 /* Returns the shm key for the server_state structure. */
 key_t cras_sys_state_shm_key();
+
+/* Returns the timer manager. */
+struct cras_tm *cras_system_state_get_tm();
 
 #endif /* CRAS_SYSTEM_STATE_H_ */

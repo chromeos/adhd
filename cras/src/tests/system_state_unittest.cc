@@ -666,6 +666,15 @@ void cras_device_blacklist_destroy(struct cras_device_blacklist *blacklist)
 {
 }
 
+
+cras_tm *cras_tm_init() {
+  return static_cast<cras_tm*>(malloc(sizeof(unsigned int)));
+}
+
+void cras_tm_deinit(cras_tm *tm) {
+  free(tm);
+}
+
 }  // extern "C"
 }  // namespace
 
