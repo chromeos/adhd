@@ -191,24 +191,6 @@ static struct client_stream *stream_from_id(const struct cras_client *client,
 	return out;
 }
 
-/* This must be written a million times... */
-static void subtract_timespecs(const struct timespec *end,
-			       const struct timespec *beg,
-			       struct timespec *diff)
-{
-	diff->tv_sec = end->tv_sec - beg->tv_sec;
-	diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
-
-	/* Adjust tv_sec and tv_nsec to the same sign. */
-	if (diff->tv_sec > 0 && diff->tv_nsec < 0) {
-		diff->tv_sec--;
-		diff->tv_nsec += 1000000000L;
-	} else if (diff->tv_sec < 0 && diff->tv_nsec > 0) {
-		diff->tv_sec++;
-		diff->tv_nsec -= 1000000000L;
-	}
-}
-
 /* Attempts to set the group of the socket file to "cras" if that group exists,
  * then makes the socket readable and writable by that group, so the server can
  * have access to this socket file. */

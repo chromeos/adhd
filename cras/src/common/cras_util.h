@@ -41,4 +41,22 @@ static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
 /* Makes a file descriptor non blocking. */
 int cras_make_fd_nonblocking(int fd);
 
+/* This must be written a million times... */
+static inline void subtract_timespecs(const struct timespec *end,
+				      const struct timespec *beg,
+				      struct timespec *diff)
+{
+	diff->tv_sec = end->tv_sec - beg->tv_sec;
+	diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
+
+	/* Adjust tv_sec and tv_nsec to the same sign. */
+	if (diff->tv_sec > 0 && diff->tv_nsec < 0) {
+		diff->tv_sec--;
+		diff->tv_nsec += 1000000000L;
+	} else if (diff->tv_sec < 0 && diff->tv_nsec > 0) {
+		diff->tv_sec++;
+		diff->tv_nsec -= 1000000000L;
+	}
+}
+
 #endif /* CRAS_UTIL_H_ */
