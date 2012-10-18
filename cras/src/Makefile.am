@@ -54,7 +54,7 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	rclient_unittest system_state_unittest volume_curve_unittest \
 	alsa_card_unittest alsa_mixer_unittest iodev_unittest \
 	alsa_jack_unittest card_config_unittest device_blacklist_unittest \
-	alsa_ucm_unittest edid_utils_unittest
+	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -69,6 +69,11 @@ card_config_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_builddir)/src/common -I$(top_builddir)/src/server \
 	-I$(top_builddir)/src/server/config
 card_config_unittest_LDADD = -lgtest -liniparser -lpthread
+
+cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
+cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
+	 -I$(top_builddir)/src/server
+cras_tm_unittest_LDADD = -lgtest -lpthread
 
 device_blacklist_unittest_SOURCES = tests/device_blacklist_unittest.cc \
 	server/config/cras_device_blacklist.c
