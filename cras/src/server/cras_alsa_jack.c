@@ -155,6 +155,15 @@ static void gpio_switch_initial_state(struct cras_alsa_jack *jack)
 	gpio_change_callback(jack);
 }
 
+/* Check if the input event is an audio switch event. */
+static inline int is_audio_switch_event(const struct input_event *ev)
+{
+	return (ev->type == EV_SW &&
+		(ev->code == SW_HEADPHONE_INSERT ||
+		 ev->code == SW_LINEOUT_INSERT ||
+		 ev->code == SW_MICROPHONE_INSERT));
+}
+
 /* gpio_switch_callback
  *
  *   This callback is invoked whenever the associated /dev/input/event
@@ -173,15 +182,11 @@ static void gpio_switch_callback(void *arg)
 	if (r < 0)
 		return;
 
-	for (i = 0; i < r / sizeof(struct input_event); ++i) {
-		if (ev[i].type == EV_SW &&
-		    (ev[i].code == SW_HEADPHONE_INSERT ||
-		     ev[i].code == SW_LINEOUT_INSERT ||
-		     ev[i].code == SW_MICROPHONE_INSERT)) {
+	for (i = 0; i < r / sizeof(struct input_event); ++i)
+		if (is_audio_switch_event(&ev[i])) {
 			jack->gpio.current_state = ev[i].value;
 			gpio_change_callback(jack);
 		}
-	}
 }
 
 /* open_and_monitor_gpio:
