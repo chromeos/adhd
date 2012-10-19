@@ -55,4 +55,15 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable);
  */
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack);
 
+/* If there is an EDID file variable specified for dev, return it.  The EDID
+ * file will be used for HDMI devices so supported audio formats can be checked.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for an EDID file.
+ * Returns:
+ *    A string containing the name of the edid file on Success (Must be freed
+ *    later).  NULL if none found.
+ */
+const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
+
 #endif /* _CRAS_ALSA_UCM_H */

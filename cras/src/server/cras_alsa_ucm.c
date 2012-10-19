@@ -11,6 +11,7 @@
 
 static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
+static const char edid_var[] = "EDIDFile";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -111,4 +112,25 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)
 return_name:
 	snd_use_case_free_list(list, num_devs);
 	return dev_name;
+}
+
+const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+{
+	const char *file_name;
+	char *id;
+	int rc;
+
+	id = malloc(strlen(edid_var) +
+			strlen(dev) +
+			strlen(default_verb) + 4);
+	if (!id)
+		return NULL;
+
+	sprintf(id, "=%s/%s/%s", edid_var, dev, default_verb);
+	rc = snd_use_case_get(mgr, id, &file_name);
+	free(id);
+	if (rc)
+		return NULL;
+
+	return file_name;
 }
