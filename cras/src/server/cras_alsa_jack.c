@@ -14,7 +14,9 @@
 #include "cras_alsa_ucm.h"
 #include "cras_system_state.h"
 #include "cras_gpio_jack.h"
+#include "cras_tm.h"
 #include "cras_util.h"
+#include "edid_utils.h"
 #include "utlist.h"
 
 /* Keeps an fd that is registered with system settings.  A list of fds must be
@@ -58,6 +60,8 @@ struct cras_gpio_jack {
  *    mixer_output - mixer output control used to control audio to this jack.
  *        This will be null for input jacks.
  *    ucm_device - Name of the ucm device if found, otherwise, NULL.
+ *    edid_file - File to read the EDID from (if available, HDMI only).
+ *    edid_timer - Timer used to poll the EDID for HDMI jacks.
  */
 struct cras_alsa_jack {
 	unsigned is_gpio;	/* !0 -> 'gpio' valid
@@ -71,6 +75,8 @@ struct cras_alsa_jack {
 	struct cras_alsa_jack_list *jack_list;
 	struct cras_alsa_mixer_output *mixer_output;
 	char *ucm_device;
+	const char *edid_file;
+	struct cras_timer *edid_timer;
 	struct cras_alsa_jack *prev, *next;
 };
 
@@ -164,6 +170,61 @@ static inline int is_audio_switch_event(const struct input_event *ev)
 		 ev->code == SW_MICROPHONE_INSERT));
 }
 
+static int check_jack_edid(struct cras_alsa_jack *jack, int retry);
+
+/* Timer callback to read EDID after a hotplug event for an HDMI jack. */
+static void edid_delay_cb(struct cras_timer *timer, void *arg)
+{
+	struct cras_alsa_jack *jack = (struct cras_alsa_jack *)arg;
+
+	jack->edid_timer = NULL;
+	check_jack_edid(jack, 0);
+	gpio_change_callback(jack);
+}
+
+/* If the jack supports EDID, check that it supports audio, clearing the plugged
+ * state if it doesn't.  If the EDID isn't ready, try again later.
+ */
+static int check_jack_edid(struct cras_alsa_jack *jack, int retry)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	static const unsigned int EDID_RETRY_DELAY_MS = 100;
+	int fd, nread;
+	uint8_t edid[EEDID_SIZE];
+
+	if (jack->edid_timer) {
+		cras_tm_cancel_timer(tm, jack->edid_timer);
+		jack->edid_timer = NULL;
+	}
+
+	if (!jack->gpio.current_state)
+		return 0;
+
+	fd = open(jack->edid_file, O_RDONLY);
+	if (fd < 0)
+		goto no_edid_retry;
+
+	nread = read(fd, edid, EEDID_SIZE);
+	close(fd);
+
+	if (nread < EDID_SIZE || !edid_valid(edid))
+		goto no_edid_retry;
+
+	/* Valid EDID */
+	if (!edid_lpcm_support(edid, edid[EDID_EXT_FLAG]))
+		jack->gpio.current_state = 0;
+	return 0;
+
+no_edid_retry:
+	if (!retry)
+		return 0;
+
+	jack->edid_timer = cras_tm_create_timer(tm,
+						EDID_RETRY_DELAY_MS,
+						edid_delay_cb, jack);
+	return -EAGAIN;
+}
+
 /* gpio_switch_callback
  *
  *   This callback is invoked whenever the associated /dev/input/event
@@ -185,6 +246,18 @@ static void gpio_switch_callback(void *arg)
 	for (i = 0; i < r / sizeof(struct input_event); ++i)
 		if (is_audio_switch_event(&ev[i])) {
 			jack->gpio.current_state = ev[i].value;
+
+			/* If there is an edid file, check it.  If it is ready
+			 * continue, if we need to try again later, return here
+			 * as the timer has been armed and will check again
+			 * later.
+			 */
+			if (jack->edid_file) {
+				int rc = check_jack_edid(jack, 1);
+				if (rc)
+					return;
+			}
+
 			gpio_change_callback(jack);
 		}
 }
@@ -248,6 +321,10 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 		jack->ucm_device =
 			ucm_get_dev_for_jack(jack_list->ucm,
 					     jack->gpio.device_name);
+
+	if (jack->ucm_device)
+		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
+							    jack->ucm_device);
 
 	sys_input_get_switch_state(jack->gpio.fd, switch_event,
 				   &jack->gpio.current_state);
@@ -615,6 +692,12 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 	DL_FOREACH_SAFE(jack_list->jacks, jack, tmp) {
 		DL_DELETE(jack_list->jacks, jack);
 		free(jack->ucm_device);
+
+		free((void *)jack->edid_file);
+		if (jack->edid_timer)
+			cras_tm_cancel_timer(cras_system_state_get_tm(),
+					     jack->edid_timer);
+
 		if (jack->is_gpio) {
 		    free(jack->gpio.device_name);
 		    close(jack->gpio.fd);

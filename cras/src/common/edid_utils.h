@@ -52,6 +52,8 @@ extern "C" {
 #define EEXT_REV 1
 #define EEXT_SIZE 0x80
 
+#define EEDID_SIZE (EDID_SIZE + EEXT_SIZE)
+
 /* 2 byte standard timing structure */
 #define STDTIME_HBASE 248
 #define STDTIME_HMULT 8

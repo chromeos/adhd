@@ -11,6 +11,7 @@
 
 extern "C" {
 #include "cras_alsa_jack.h"
+#include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
 }
@@ -639,6 +640,34 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {
   if (ucm_get_dev_for_jack_return)
     return static_cast<char*>(malloc(1)); // Will be freed in jack_list_destroy.
   return NULL;
+}
+
+const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr,
+				      const char *dev) {
+  return NULL;
+}
+
+cras_timer *cras_tm_create_timer(
+    cras_tm *tm,
+    unsigned int ms,
+    void (*cb)(cras_timer *t, void *data),
+    void *cb_data) {
+  return reinterpret_cast<cras_timer*>(0x55);
+}
+
+void cras_tm_cancel_timer(cras_tm *tm, cras_timer *t) {
+}
+
+cras_tm *cras_system_state_get_tm() {
+  return reinterpret_cast<cras_tm*>(0x66);
+}
+
+int edid_valid(const unsigned char *edid_data) {
+  return 0;
+}
+
+int edid_lpcm_support(const unsigned char *edid_data, int ext) {
+  return 0;
 }
 
 } /* extern "C" */

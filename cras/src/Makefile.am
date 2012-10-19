@@ -14,7 +14,7 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_alsa_jack.c server/cras_dbus.c server/cras_udev.c \
 	server/config/cras_card_config.c server/cras_gpio_jack.c \
 	server/config/cras_device_blacklist.c server/cras_alsa_ucm.c \
-	server/cras_tm.c
+	server/cras_tm.c common/edid_utils.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/server -I$(top_builddir)/src/server/config \
 	$(DBUS_CFLAGS)
@@ -27,7 +27,7 @@ libcras_la_SOURCES = libcras/cras_client.c common/cras_util.c \
 include_HEADERS = libcras/cras_client.h common/cras_types.h \
 	common/cras_messages.h common/cras_config.h common/cras_fmt_conv.h \
 	common/cras_shm.h common/cras_iodev_info.h common/utlist.h \
-	common/cras_util.h
+	common/cras_util.h common/edid_utils.h
 libcras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_builddir)/src/common \
 	-I$(top_builddir)/src/libcras
 libcras_la_LIBADD = -lpthread -lasound -lrt -lspeexdsp
