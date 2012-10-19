@@ -5,6 +5,10 @@
 #ifndef __EDID_UTILS_H__
 #define __EDID_UTILS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* These match the EDID encoding for Standard Timing block */
 #define ASPECT_16_10 0
 #define ASPECT_4_3   1
@@ -169,9 +173,9 @@
 /* Number of test EDID arrays available to get/show_test_edid */
 #define N_TEST_EDIDS 6
 
-int edid_valid(unsigned char *edid_data);
-int edid_has_hdmi_info(unsigned char *edid_data, int ext);
-int edid_lpcm_support(unsigned char *edid_data, int ext);
+int edid_valid(const unsigned char *edid_data);
+int edid_has_hdmi_info(const unsigned char *edid_data, int ext);
+int edid_lpcm_support(const unsigned char *edid_data, int ext);
 void show_edid_data(FILE *outfile, unsigned char *edid_data,
                     int items, int base);
 void show_edid(FILE *outfile, unsigned char *edid_data, int ext);
@@ -180,4 +184,9 @@ int find_aspect_fromisize(unsigned char *edid_data);
 extern char *aspect_to_str[];
 int get_test_edid(int n, unsigned char *dst);
 int show_test_edid(FILE *outfile, int n);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
 #endif

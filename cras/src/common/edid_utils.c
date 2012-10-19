@@ -460,7 +460,7 @@ void show_cea_timing(FILE* outfile, unsigned char* edid_ext)
 }
 
 
-int edid_valid(unsigned char *edid_data)
+int edid_valid(const unsigned char *edid_data)
 {
   return ((edid_data[EDID_HDR+0]==0x00) && (edid_data[EDID_HDR+1]==0xff) &&
           (edid_data[EDID_HDR+2]==0xff) && (edid_data[EDID_HDR+3]==0xff) &&
@@ -468,9 +468,9 @@ int edid_valid(unsigned char *edid_data)
           (edid_data[EDID_HDR+6]==0xff) && (edid_data[EDID_HDR+7]==0x00));
 }
 
-int edid_lpcm_support(unsigned char *edid_data, int ext)
+int edid_lpcm_support(const unsigned char *edid_data, int ext)
 {
-  unsigned char* edid_ext = edid_data + EDID_SIZE;
+  const unsigned char* edid_ext = edid_data + EDID_SIZE;
   int dbc;
   int off_dtd = edid_ext[CEA_DTD_OFFSET];
 
@@ -511,9 +511,9 @@ int edid_lpcm_support(unsigned char *edid_data, int ext)
 }
 
 
-int edid_has_hdmi_info(unsigned char *edid_data, int ext)
+int edid_has_hdmi_info(const unsigned char *edid_data, int ext)
 {
-  unsigned char* edid_ext = edid_data + EDID_SIZE;
+  const unsigned char* edid_ext = edid_data + EDID_SIZE;
   int dbc;
   int off_dtd = edid_ext[CEA_DTD_OFFSET];
 
