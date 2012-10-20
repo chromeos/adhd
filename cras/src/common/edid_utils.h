@@ -177,7 +177,7 @@ int edid_valid(const unsigned char *edid_data);
 int edid_has_hdmi_info(const unsigned char *edid_data, int ext);
 int edid_lpcm_support(const unsigned char *edid_data, int ext);
 void show_edid_data(FILE *outfile, unsigned char *edid_data,
-                    int items, int base);
+		    int items, int base);
 void show_edid(FILE *outfile, unsigned char *edid_data, int ext);
 int find_aspect(int h, int v);
 int find_aspect_fromisize(unsigned char *edid_data);
