@@ -21,7 +21,8 @@ cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev $(DBUS_LIBS)
 
 lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = libcras/cras_client.c common/cras_util.c \
-	common/cras_fmt_conv.c common/cras_config.c common/cras_audio_format.c
+	common/cras_fmt_conv.c common/cras_config.c common/cras_audio_format.c \
+	common/edid_utils.c
 include_HEADERS = libcras/cras_client.h common/cras_types.h \
 	common/cras_messages.h common/cras_config.h common/cras_fmt_conv.h \
 	common/cras_shm.h common/cras_iodev_info.h common/utlist.h \
