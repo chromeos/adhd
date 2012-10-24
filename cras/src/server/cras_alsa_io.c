@@ -1098,7 +1098,9 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	int err;
 
 	free(iodev->supported_rates);
+	iodev->supported_rates = NULL;
 	free(iodev->supported_channel_counts);
+	iodev->supported_channel_counts = NULL;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
