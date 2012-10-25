@@ -35,6 +35,8 @@ struct cras_io_stream {
  * set_mute - Function to call if the system mute state changes.
  * set_capture_gain - Function to call if the system capture_gain changes.
  * set_capture_mute - Function to call if the system capture mute state changes.
+ * open_dev - Opens the device.
+ * close_dev - Closes the device if it is open.
  * update_supported_formats - Refresh supported frame rates and channel counts.
  * set_as_default - Function to call when this device is set as system default.
  * frames_queued - The number of frames in the audio buffer.
@@ -64,6 +66,8 @@ struct cras_iodev {
 	void (*set_mute)(struct cras_iodev *iodev);
 	void (*set_capture_gain)(struct cras_iodev *iodev);
 	void (*set_capture_mute)(struct cras_iodev *iodev);
+	int (*open_dev)(struct cras_iodev *iodev);
+	int (*close_dev)(struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
 	void (*set_as_default)(struct cras_iodev *iodev);
 	int (*frames_queued)(const struct cras_iodev *iodev);

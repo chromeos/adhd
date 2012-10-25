@@ -141,6 +141,7 @@ static int get_delay_frames(const struct cras_iodev *iodev)
 static int close_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
+
 	if (!aio->handle)
 		return 0;
 	cras_alsa_pcm_drain(aio->handle);
@@ -374,7 +375,7 @@ static int thread_remove_stream(struct cras_iodev *iodev,
 
 	if (!cras_iodev_streams_attached(&aio->base)) {
 		/* No more streams, close alsa dev. */
-		close_dev(&aio->base);
+		iodev->close_dev(iodev);
 	} else {
 		cras_iodev_config_params_for_streams(&aio->base);
 		syslog(LOG_DEBUG,
@@ -407,7 +408,7 @@ static int thread_add_stream(struct cras_iodev *iodev,
 	if (aio->handle == NULL) {
 		init_device_settings(aio);
 
-		rc = open_dev(iodev);
+		rc = iodev->open_dev(iodev);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", aio->dev);
 	}
@@ -1010,7 +1011,7 @@ static void *alsa_io_thread(void *arg)
 			err = aio->alsa_cb(&aio->base, &ts);
 			if (err < 0) {
 				syslog(LOG_INFO, "alsa cb error %d", err);
-				close_dev(&aio->base);
+				aio->base.close_dev(&aio->base);
 			}
 			wait_ts = &ts;
 		}
@@ -1342,6 +1343,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
 	}
+	iodev->open_dev = open_dev;
+	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->set_as_default = set_as_default;
 	iodev->frames_queued = get_frames_queued;
