@@ -986,20 +986,20 @@ static int handle_playback_thread_message(struct cras_iodev *iodev)
 /* For playback, fill the audio buffer when needed, for capture, pull out
  * samples when they are ready.
  * This thread will attempt to run at a high priority to allow for low latency
- * streams.  This thread sleeps while alsa plays back or captures audio, it
- * will wake up as little as it can while avoiding xruns.  It can also be woken
- * by sending it a message using the
+ * streams.  This thread sleeps while the device plays back or captures audio,
+ * it will wake up as little as it can while avoiding xruns.  It can also be
+ * woken by sending it a message using the
  * "cras_iodev_post_message_to_playback_thread" function.
  */
 static void *alsa_io_thread(void *arg)
 {
-	struct alsa_io *aio = (struct alsa_io *)arg;
+	struct cras_iodev *iodev = (struct cras_iodev *)arg;
 	struct timespec ts;
 	fd_set poll_set;
 	int msg_fd;
 	int err;
 
-	msg_fd = cras_iodev_get_thread_poll_fd(&aio->base);
+	msg_fd = cras_iodev_get_thread_poll_fd(iodev);
 
 	/* Attempt to get realtime scheduling */
 	if (cras_set_rt_scheduling(CRAS_SERVER_RT_THREAD_PRIORITY) == 0)
@@ -1010,12 +1010,12 @@ static void *alsa_io_thread(void *arg)
 
 		wait_ts = NULL;
 
-		if (aio->base.is_open(&aio->base)) {
+		if (iodev->is_open(iodev)) {
 			/* alsa opened */
-			err = aio->base.audio_cb(&aio->base, &ts);
+			err = iodev->audio_cb(iodev, &ts);
 			if (err < 0) {
 				syslog(LOG_INFO, "alsa cb error %d", err);
-				aio->base.close_dev(&aio->base);
+				iodev->close_dev(iodev);
 			}
 			wait_ts = &ts;
 		}
@@ -1024,7 +1024,7 @@ static void *alsa_io_thread(void *arg)
 		FD_SET(msg_fd, &poll_set);
 		err = pselect(msg_fd + 1, &poll_set, NULL, NULL, wait_ts, NULL);
 		if (err > 0 && FD_ISSET(msg_fd, &poll_set)) {
-			err = handle_playback_thread_message(&aio->base);
+			err = handle_playback_thread_message(iodev);
 			if (err < 0)
 				syslog(LOG_INFO, "handle message %d", err);
 		}
@@ -1332,7 +1332,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		 card_index,
 		 device_index);
 
-	if (cras_iodev_init(iodev, direction, alsa_io_thread, aio))
+	if (cras_iodev_init(iodev, direction, alsa_io_thread, iodev))
 		goto cleanup_iodev;
 
 	if (direction == CRAS_STREAM_INPUT) {
