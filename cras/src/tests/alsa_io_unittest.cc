@@ -179,7 +179,7 @@ TEST(AlsaIoInit, InitializePlayback) {
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->base.audio_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
@@ -201,7 +201,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ((void *)possibly_fill_audio, (void *)aio->base.audio_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
@@ -236,7 +236,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ((void *)possibly_read_audio, (void *)aio->base.audio_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
 
@@ -268,7 +268,7 @@ TEST(AlsaIoInit, InitializeCapture) {
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)aio->alsa_cb);
+  EXPECT_EQ((void *)possibly_read_audio, (void *)aio->base.audio_cb);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);

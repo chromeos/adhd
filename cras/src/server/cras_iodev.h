@@ -45,6 +45,7 @@ struct cras_io_stream {
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
  * dev_running - Checks if the device is playing or recording.
+ * audio_cb - Callback to fill or read samples (depends on direction).
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * streams - List of streams attached to device.
@@ -79,6 +80,7 @@ struct cras_iodev {
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);
+	int (*audio_cb)(struct cras_iodev *iodev, struct timespec *ts);
 	struct cras_audio_format *format;
 	struct cras_io_stream *streams;
 	struct cras_iodev_info info;

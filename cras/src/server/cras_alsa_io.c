@@ -80,7 +80,6 @@ struct alsa_input_node {
  * active_output - The current node being used for playback.
  * jack_list - List of alsa jack controls for this device.
  * ucm - ALSA use case manager, if configuration is found.
- * alsa_cb - Callback to fill or read samples (depends on direction).
  * mmap_offset - offset returned from mmap_begin.
  */
 struct alsa_io {
@@ -98,7 +97,6 @@ struct alsa_io {
 	struct cras_alsa_jack_list *jack_list;
 	snd_use_case_mgr_t *ucm;
 	snd_pcm_uframes_t mmap_offset;
-	int (*alsa_cb)(struct cras_iodev *iodev, struct timespec *ts);
 };
 
 static int get_frames_queued(const struct cras_iodev *iodev)
@@ -1014,7 +1012,7 @@ static void *alsa_io_thread(void *arg)
 
 		if (aio->base.is_open(&aio->base)) {
 			/* alsa opened */
-			err = aio->alsa_cb(&aio->base, &ts);
+			err = aio->base.audio_cb(&aio->base, &ts);
 			if (err < 0) {
 				syslog(LOG_INFO, "alsa cb error %d", err);
 				aio->base.close_dev(&aio->base);
@@ -1339,13 +1337,13 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	if (direction == CRAS_STREAM_INPUT) {
 		aio->alsa_stream = SND_PCM_STREAM_CAPTURE;
-		aio->alsa_cb = possibly_read_audio;
+		iodev->audio_cb = possibly_read_audio;
 		aio->base.set_capture_gain = set_alsa_capture_gain;
 		aio->base.set_capture_mute = set_alsa_capture_gain;
 	} else {
 		assert(direction == CRAS_STREAM_OUTPUT);
 		aio->alsa_stream = SND_PCM_STREAM_PLAYBACK;
-		aio->alsa_cb = possibly_fill_audio;
+		iodev->audio_cb = possibly_fill_audio;
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
 	}
