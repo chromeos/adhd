@@ -91,6 +91,7 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 	rc = snd_pcm_hw_params_any(handle, params);
 	if (rc < 0) {
 		snd_pcm_close(handle);
+		syslog(LOG_ERR, "snd_pcm_hw_params_any: %s", snd_strerror(rc));
 		return rc;
 	}
 
