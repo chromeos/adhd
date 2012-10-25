@@ -675,6 +675,13 @@ static inline int have_enough_frames(const struct cras_iodev *iodev,
 	return frames >= iodev->cb_threshold;
 }
 
+static int is_open(const struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
+	return !!aio->handle;
+}
+
 static int dev_running(const struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
@@ -1005,7 +1012,7 @@ static void *alsa_io_thread(void *arg)
 
 		wait_ts = NULL;
 
-		if (aio->handle) {
+		if (aio->base.is_open(&aio->base)) {
 			/* alsa opened */
 			err = aio->alsa_cb(&aio->base, &ts);
 			if (err < 0) {
@@ -1344,6 +1351,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;
+	iodev->is_open = is_open;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->set_as_default = set_as_default;
 	iodev->frames_queued = get_frames_queued;
