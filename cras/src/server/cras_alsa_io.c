@@ -148,6 +148,8 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
+static void init_device_settings(struct alsa_io *aio);
+
 /* Configure the alsa device we will use. */
 static int open_dev(struct cras_iodev *iodev)
 {
@@ -155,6 +157,8 @@ static int open_dev(struct cras_iodev *iodev)
 	snd_pcm_t *handle;
 	int rc;
 	struct cras_rstream *stream;
+
+	init_device_settings(aio);
 
 	/* This is called after the first stream added so configure for it. */
 	stream = iodev->streams->stream;
@@ -403,8 +407,6 @@ static int thread_add_stream(struct cras_iodev *iodev,
 
 	/* If not already, open alsa. */
 	if (aio->handle == NULL) {
-		init_device_settings(aio);
-
 		rc = iodev->open_dev(iodev);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", aio->dev);
