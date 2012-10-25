@@ -919,20 +919,20 @@ dont_read:
 }
 
 /* Stop the playback thread */
-static int terminate_pb_thread(struct alsa_io *aio)
+static int terminate_pb_thread(struct cras_iodev *iodev)
 {
 	pthread_exit(0);
 }
 
 /* Handle a message sent to the playback thread */
-static int handle_playback_thread_message(struct alsa_io *aio)
+static int handle_playback_thread_message(struct cras_iodev *iodev)
 {
 	uint8_t buf[256];
 	struct cras_iodev_msg *msg = (struct cras_iodev_msg *)buf;
 	int ret = 0;
 	int err;
 
-	err = cras_iodev_read_thread_command(&aio->base, buf, 256);
+	err = cras_iodev_read_thread_command(iodev, buf, 256);
 	if (err < 0)
 		return err;
 
@@ -940,7 +940,7 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 	case CRAS_IODEV_ADD_STREAM: {
 		struct cras_iodev_add_rm_stream_msg *amsg;
 		amsg = (struct cras_iodev_add_rm_stream_msg *)msg;
-		ret = thread_add_stream(&aio->base, amsg->stream);
+		ret = thread_add_stream(iodev, amsg->stream);
 		break;
 	}
 	case CRAS_IODEV_RM_STREAM: {
@@ -955,25 +955,24 @@ static int handle_playback_thread_message(struct alsa_io *aio)
 			syslog(LOG_DEBUG, "overruns:%u",
 			       cras_shm_num_overruns(shm));
 		}
-		ret = thread_remove_stream(&aio->base, rmsg->stream);
+		ret = thread_remove_stream(iodev, rmsg->stream);
 		if (ret < 0)
 			syslog(LOG_INFO, "Failed to remove the stream");
-		syslog(LOG_DEBUG, "underruns:%u", aio->num_underruns);
 		break;
 	}
 	case CRAS_IODEV_STOP:
 		ret = 0;
-		err = cras_iodev_send_command_response(&aio->base, ret);
+		err = cras_iodev_send_command_response(iodev, ret);
 		if (err < 0)
 			return err;
-		terminate_pb_thread(aio);
+		terminate_pb_thread(iodev);
 		break;
 	default:
 		ret = -EINVAL;
 		break;
 	}
 
-	err = cras_iodev_send_command_response(&aio->base, ret);
+	err = cras_iodev_send_command_response(iodev, ret);
 	if (err < 0)
 		return err;
 	return ret;
@@ -1020,7 +1019,7 @@ static void *alsa_io_thread(void *arg)
 		FD_SET(msg_fd, &poll_set);
 		err = pselect(msg_fd + 1, &poll_set, NULL, NULL, wait_ts, NULL);
 		if (err > 0 && FD_ISSET(msg_fd, &poll_set)) {
-			err = handle_playback_thread_message(aio);
+			err = handle_playback_thread_message(&aio->base);
 			if (err < 0)
 				syslog(LOG_INFO, "handle message %d", err);
 		}
