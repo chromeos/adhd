@@ -335,7 +335,7 @@ state.DAISYI2S {
 	control.28 {
 		iface MIXER
 		name 'DAI1 Filter Mode'
-		value Voice
+		value Music
 		comment {
 			access 'read write'
 			type ENUMERATED
