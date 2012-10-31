@@ -338,7 +338,7 @@ int cras_iodev_attach_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream)
 {
 	cras_rstream_set_iodev(stream, iodev);
-	return iodev->add_stream(iodev, stream);
+	return cras_iodev_add_stream(iodev, stream);
 }
 
 /* Removes the stream from the device and tells the stream structure that it is
@@ -348,7 +348,7 @@ int cras_iodev_detach_stream(struct cras_iodev *iodev,
 {
 	int rc;
 
-	rc = iodev->rm_stream(iodev, stream);
+	rc = cras_iodev_rm_stream(iodev, stream);
 	cras_rstream_set_iodev(stream, NULL);
 	return rc;
 }

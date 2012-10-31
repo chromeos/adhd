@@ -14,15 +14,12 @@
 #include "cras_system_state.h"
 #include "utlist.h"
 
-/* Add a stream to the output (called by iodev_list).
- * Args:
- *    iodev - a pointer to the alsa_io device.
- *    stream - the new stream to add.
- * Returns:
- *    zero on success negative error otherwise.
+/*
+ * Exported Interface.
  */
-static int add_stream(struct cras_iodev *iodev,
-		      struct cras_rstream *stream)
+
+int cras_iodev_add_stream(struct cras_iodev *iodev,
+			  struct cras_rstream *stream)
 {
 	struct cras_iodev_add_rm_stream_msg msg;
 
@@ -34,15 +31,8 @@ static int add_stream(struct cras_iodev *iodev,
 	return cras_iodev_post_message_to_playback_thread(iodev, &msg.header);
 }
 
-/* Remove a stream from the output (called by iodev_list).
- * Args:
- *    iodev - a pointer to the alsa_io device.
- *    stream - the new stream to add.
- * Returns:
- *    zero on success negative error otherwise.
- */
-static int rm_stream(struct cras_iodev *iodev,
-		     struct cras_rstream *stream)
+int cras_iodev_rm_stream(struct cras_iodev *iodev,
+			 struct cras_rstream *stream)
 {
 	struct cras_iodev_add_rm_stream_msg msg;
 
@@ -53,10 +43,6 @@ static int rm_stream(struct cras_iodev *iodev,
 	msg.stream = stream;
 	return cras_iodev_post_message_to_playback_thread(iodev, &msg.header);
 }
-
-/*
- * Exported Interface.
- */
 
 int cras_iodev_init(struct cras_iodev *iodev,
 		    enum CRAS_STREAM_DIRECTION direction,
@@ -70,8 +56,6 @@ int cras_iodev_init(struct cras_iodev *iodev,
 	iodev->to_main_fds[0] = -1;
 	iodev->to_main_fds[1] = -1;
 	iodev->direction = direction;
-	iodev->rm_stream = rm_stream;
-	iodev->add_stream = add_stream;
 
 	/* Two way pipes for communication with the device's audio thread. */
 	rc = pipe(iodev->to_thread_fds);

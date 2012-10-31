@@ -30,8 +30,6 @@ struct cras_io_stream {
 };
 
 /* An input or output device, that can have audio routed to/from it.
- * add_stream - Function to call when adding a stream.
- * rm_stream - Function to call when removing a stream.
  * set_volume - Function to call if the system volume changes.
  * set_mute - Function to call if the system mute state changes.
  * set_capture_gain - Function to call if the system capture_gain changes.
@@ -51,10 +49,6 @@ struct cras_io_stream {
  * tid - Thread ID of the running playback/capture thread.
  */
 struct cras_iodev {
-	int (*add_stream)(struct cras_iodev *iodev,
-			  struct cras_rstream *stream);
-	int (*rm_stream)(struct cras_iodev *iodev,
-			 struct cras_rstream *stream);
 	void (*set_volume)(struct cras_iodev *iodev);
 	void (*set_mute)(struct cras_iodev *iodev);
 	void (*set_capture_gain)(struct cras_iodev *iodev);
@@ -92,6 +86,26 @@ struct cras_iodev_add_rm_stream_msg {
 	struct cras_iodev_msg header;
 	struct cras_rstream *stream;
 };
+
+/* Add a stream to the output (called by iodev_list).
+ * Args:
+ *    iodev - a pointer to the alsa_io device.
+ *    stream - the new stream to add.
+ * Returns:
+ *    zero on success negative error otherwise.
+ */
+int cras_iodev_add_stream(struct cras_iodev *iodev,
+			  struct cras_rstream *stream);
+
+/* Remove a stream from the output (called by iodev_list).
+ * Args:
+ *    iodev - a pointer to the alsa_io device.
+ *    stream - the new stream to add.
+ * Returns:
+ *    zero on success negative error otherwise.
+ */
+int cras_iodev_rm_stream(struct cras_iodev *iodev,
+			 struct cras_rstream *stream);
 
 /*
  * Utility functions to be used by iodev implementations.

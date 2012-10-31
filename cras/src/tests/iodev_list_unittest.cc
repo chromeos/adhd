@@ -35,6 +35,8 @@ static cras_system_state_changed_cb capture_mute_changed_cb;
 static void* capture_mute_changed_arg;
 static unsigned int register_capture_mute_changed_cb_called;
 static unsigned int remove_capture_mute_changed_cb_called;
+static int add_stream_called;
+static int rm_stream_called;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -46,8 +48,6 @@ class IoDevTestSuite : public testing::Test {
       channel_counts_[0] = 2;
       channel_counts_[1] = 0;
 
-      d1_.add_stream = add_stream_1;
-      d1_.rm_stream = rm_stream_1;
       d1_.set_volume = NULL;
       d1_.set_mute = NULL;
       d1_.set_capture_gain = NULL;
@@ -60,8 +60,6 @@ class IoDevTestSuite : public testing::Test {
       strcpy(d1_.info.name, "d1");
       d1_.supported_rates = sample_rates_;
       d1_.supported_channel_counts = channel_counts_;
-      d2_.add_stream = add_stream_2;
-      d2_.rm_stream = rm_stream_2;
       d2_.set_volume = NULL;
       d2_.set_mute = NULL;
       d2_.set_capture_gain = NULL;
@@ -74,8 +72,6 @@ class IoDevTestSuite : public testing::Test {
       strcpy(d2_.info.name, "d2");
       d2_.supported_rates = sample_rates_;
       d2_.supported_channel_counts = channel_counts_;
-      d3_.add_stream = add_stream_2;
-      d3_.rm_stream = rm_stream_2;
       d3_.set_volume = NULL;
       d3_.set_mute = NULL;
       d3_.set_capture_gain = NULL;
@@ -100,34 +96,8 @@ class IoDevTestSuite : public testing::Test {
       remove_mute_changed_cb_called = 0;
       register_capture_mute_changed_cb_called = 0;
       remove_capture_mute_changed_cb_called = 0;
-    }
-
-    static int add_stream_1(struct cras_iodev *iodev,
-        struct cras_rstream *stream)
-    {
-      add_stream_1_called_++;
-      return cras_iodev_append_stream(iodev, stream);
-    }
-
-    static int rm_stream_1(struct cras_iodev *iodev,
-        struct cras_rstream *stream)
-    {
-      rm_stream_1_called_++;
-      return cras_iodev_delete_stream(iodev, stream);
-    }
-
-    static int add_stream_2(struct cras_iodev *iodev,
-        struct cras_rstream *stream)
-    {
-      add_stream_2_called_++;
-      return cras_iodev_append_stream(iodev, stream);
-    }
-
-    static int rm_stream_2(struct cras_iodev *iodev,
-        struct cras_rstream *stream)
-    {
-      rm_stream_2_called_++;
-      return cras_iodev_delete_stream(iodev, stream);
+      add_stream_called = 0;
+      rm_stream_called = 0;
     }
 
     static void set_volume_1(struct cras_iodev *iodev)
@@ -155,20 +125,12 @@ class IoDevTestSuite : public testing::Test {
     struct cras_iodev d3_;
     size_t sample_rates_[3];
     size_t channel_counts_[2];
-    static int add_stream_1_called_;
-    static int rm_stream_1_called_;
-    static int add_stream_2_called_;
-    static int rm_stream_2_called_;
     static int set_volume_1_called_;
     static int set_mute_1_called_;
     static int set_capture_gain_1_called_;
     static int set_capture_mute_1_called_;
 };
 
-int IoDevTestSuite::add_stream_1_called_;
-int IoDevTestSuite::rm_stream_1_called_;
-int IoDevTestSuite::add_stream_2_called_;
-int IoDevTestSuite::rm_stream_2_called_;
 int IoDevTestSuite::set_volume_1_called_;
 int IoDevTestSuite::set_mute_1_called_;
 int IoDevTestSuite::set_capture_gain_1_called_;
@@ -670,10 +632,10 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   s1.format.num_channels = 2;
 
   // Attaching a stream.
-  add_stream_1_called_ = rm_stream_1_called_ = 0;
+  add_stream_called = rm_stream_called = 0;
   rc = cras_iodev_attach_stream(&d1_, &s1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, add_stream_1_called_);
+  EXPECT_EQ(1, add_stream_called);
   EXPECT_EQ(&d1_, s1.iodev);
   EXPECT_NE((void *)NULL, d1_.streams);
   if (d1_.streams != NULL)
@@ -690,12 +652,12 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   // Test that routing to the already default device is a nop.
   rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, rm_stream_1_called_);
+  EXPECT_EQ(0, rm_stream_called);
 
   // Move the stream. Should just remove and wait for add from client.
   rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d2_.info.idx);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, rm_stream_1_called_);
+  EXPECT_EQ(1, rm_stream_called);
   EXPECT_EQ(NULL, d1_.streams);
 
   // Test that new streams of the same type will get assigned to the same
@@ -704,10 +666,10 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   EXPECT_EQ(&d2_, ret_dev);
 
   // Attaching a stream.
-  add_stream_2_called_ = rm_stream_2_called_ = 0;
+  add_stream_called = rm_stream_called = 0;
   rc = cras_iodev_attach_stream(&d2_, &s1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, add_stream_2_called_);
+  EXPECT_EQ(1, add_stream_called);
   EXPECT_EQ(&d2_, s1.iodev);
   EXPECT_NE((void *)NULL, d2_.streams);
   if (d2_.streams != NULL)
@@ -717,7 +679,7 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
                                             s1.direction);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, rm_stream_2_called_);
+  EXPECT_EQ(1, rm_stream_called);
   EXPECT_EQ(NULL, d1_.streams);
 
   // Test that streams now go back to default.
@@ -725,17 +687,17 @@ TEST_F(IoDevTestSuite, AttachDetachStream) {
   EXPECT_EQ(&d1_, ret_dev);
 
   // Test detaching non-existent stream.
-  add_stream_2_called_ = rm_stream_2_called_ = 0;
+  add_stream_called = rm_stream_called = 0;
   rc = cras_iodev_detach_stream(&d2_, &s2);
-  EXPECT_EQ(1, rm_stream_2_called_);
+  EXPECT_EQ(1, rm_stream_called);
   EXPECT_NE(0, rc);
 
   // Detaching a stream.
   rc = cras_iodev_attach_stream(&d2_, &s1);
-  rm_stream_2_called_  = 0;
+  rm_stream_called  = 0;
   rc = cras_iodev_detach_stream(&d2_, &s1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, rm_stream_2_called_);
+  EXPECT_EQ(1, rm_stream_called);
   EXPECT_EQ(NULL, s1.iodev);
 
   rc = cras_iodev_list_rm_output(&d1_);
@@ -1077,6 +1039,20 @@ int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
 					 void *arg) {
   remove_capture_mute_changed_cb_called++;
   return 0;
+}
+
+int cras_iodev_add_stream(struct cras_iodev *iodev,
+                          struct cras_rstream *stream)
+{
+	add_stream_called++;
+	return cras_iodev_append_stream(iodev, stream);
+}
+
+int cras_iodev_rm_stream(struct cras_iodev *iodev,
+                         struct cras_rstream *stream)
+{
+	rm_stream_called++;
+	return cras_iodev_delete_stream(iodev, stream);
 }
 
 }  // extern "C"
