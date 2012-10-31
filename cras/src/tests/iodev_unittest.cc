@@ -381,6 +381,12 @@ void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
 {
 }
 
+// From audio thread
+int audio_thread_post_message(struct audio_thread *thread,
+                              struct audio_thread_msg *msg) {
+  return 0;
+}
+
 }  // extern "C"
 }  //  namespace
 

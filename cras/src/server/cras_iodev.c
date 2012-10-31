@@ -12,6 +12,7 @@
 #include "cras_iodev.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
+#include "audio_thread.h"
 #include "utlist.h"
 
 /*
@@ -21,60 +22,27 @@
 int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct cras_rstream *stream)
 {
-	struct cras_iodev_add_rm_stream_msg msg;
+	struct audio_thread_add_rm_stream_msg msg;
 
 	assert(iodev && stream);
 
-	msg.header.id = CRAS_IODEV_ADD_STREAM;
-	msg.header.length = sizeof(struct cras_iodev_add_rm_stream_msg);
+	msg.header.id = AUDIO_THREAD_ADD_STREAM;
+	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
-	return cras_iodev_post_message_to_playback_thread(iodev, &msg.header);
+	return audio_thread_post_message(iodev->thread, &msg.header);
 }
 
 int cras_iodev_rm_stream(struct cras_iodev *iodev,
 			 struct cras_rstream *stream)
 {
-	struct cras_iodev_add_rm_stream_msg msg;
+	struct audio_thread_add_rm_stream_msg msg;
 
 	assert(iodev && stream);
 
-	msg.header.id = CRAS_IODEV_RM_STREAM;
-	msg.header.length = sizeof(struct cras_iodev_add_rm_stream_msg);
+	msg.header.id = AUDIO_THREAD_RM_STREAM;
+	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
-	return cras_iodev_post_message_to_playback_thread(iodev, &msg.header);
-}
-
-int cras_iodev_init(struct cras_iodev *iodev,
-		    void *(*thread_function)(void *arg),
-		    void *thread_data)
-{
-	int rc;
-
-	iodev->to_thread_fds[0] = -1;
-	iodev->to_thread_fds[1] = -1;
-	iodev->to_main_fds[0] = -1;
-	iodev->to_main_fds[1] = -1;
-
-	/* Two way pipes for communication with the device's audio thread. */
-	rc = pipe(iodev->to_thread_fds);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		return rc;
-	}
-	rc = pipe(iodev->to_main_fds);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		return rc;
-	}
-
-	/* Start the device thread, it will block until a stream is added. */
-	rc = pthread_create(&iodev->tid, NULL, thread_function, thread_data);
-	if (rc != 0) {
-		syslog(LOG_ERR, "Failed pthread_create");
-		return rc;
-	}
-
-	return 0;
+	return audio_thread_post_message(iodev->thread, &msg.header);
 }
 
 /* Finds the supported sample rate that best suits the requested rate, "rrate".
@@ -115,31 +83,6 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 			return count;
 	}
 	return iodev->supported_channel_counts[0];
-}
-
-void cras_iodev_deinit(struct cras_iodev *iodev)
-{
-	struct cras_iodev_msg msg;
-
-	msg.id = CRAS_IODEV_STOP;
-	msg.length = sizeof(msg);
-	cras_iodev_post_message_to_playback_thread(iodev, &msg);
-	pthread_join(iodev->tid, NULL);
-
-	if (iodev->to_thread_fds[0] != -1) {
-		close(iodev->to_thread_fds[0]);
-		close(iodev->to_thread_fds[1]);
-		iodev->to_thread_fds[0] = -1;
-		iodev->to_thread_fds[1] = -1;
-	}
-	if (iodev->to_main_fds[0] != -1) {
-		close(iodev->to_main_fds[0]);
-		close(iodev->to_main_fds[1]);
-		iodev->to_main_fds[0] = -1;
-		iodev->to_main_fds[1] = -1;
-	}
-
-	cras_iodev_free_format(iodev);
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
@@ -246,30 +189,6 @@ int cras_iodev_delete_stream(struct cras_iodev *iodev,
 	return 0;
 }
 
-int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
-					       struct cras_iodev_msg *msg)
-{
-	int rc, err;
-
-	err = write(iodev->to_thread_fds[1], msg, msg->length);
-	if (err < 0) {
-		syslog(LOG_ERR,
-		       "Failed to post message to thread for iodev %zu.",
-		       iodev->info.idx);
-		return err;
-	}
-	/* Synchronous action, wait for response. */
-	err = read(iodev->to_main_fds[0], &rc, sizeof(rc));
-	if (err < 0) {
-		syslog(LOG_ERR,
-		       "Failed to read reply from thread for iodev %zu.",
-		       iodev->info.idx);
-		return err;
-	}
-
-	return rc;
-}
-
 void cras_iodev_fill_time_from_frames(size_t frames,
 				      size_t frame_rate,
 				      struct timespec *ts)
@@ -285,37 +204,6 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 		to_play_usec -= 1000000;
 	}
 	ts->tv_nsec = to_play_usec * 1000;
-}
-
-int cras_iodev_send_command_response(struct cras_iodev *iodev, int rc)
-{
-	return write(iodev->to_main_fds[1], &rc, sizeof(rc));
-}
-
-int cras_iodev_read_thread_command(struct cras_iodev *iodev,
-				   uint8_t *buf,
-				   size_t max_len)
-{
-	int to_read, nread, rc;
-	struct cras_iodev_msg *msg = (struct cras_iodev_msg *)buf;
-
-	/* Get the length of the message first */
-	nread = read(iodev->to_thread_fds[0], buf, sizeof(msg->length));
-	if (nread < 0)
-		return nread;
-	if (msg->length > max_len)
-		return -ENOMEM;
-
-	to_read = msg->length - nread;
-	rc = read(iodev->to_thread_fds[0], &buf[0] + nread, to_read);
-	if (rc < 0)
-		return rc;
-	return 0;
-}
-
-int cras_iodev_get_thread_poll_fd(const struct cras_iodev *iodev)
-{
-	return iodev->to_thread_fds[0];
 }
 
 void cras_iodev_set_playback_timestamp(size_t frame_rate,
