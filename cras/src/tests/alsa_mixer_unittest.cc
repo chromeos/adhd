@@ -317,6 +317,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   /* if passed a mixer output then it should set the volume for that too. */
   mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
   mixer_output.has_mute = 1;
+  mixer_output.has_volume = 1;
   mixer_output.max_volume_dB = 950;
   snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
   snd_mixer_selem_set_playback_dB_all_values_length =
