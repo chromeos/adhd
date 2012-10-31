@@ -1259,7 +1259,6 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 }
 
 int cras_iodev_init(struct cras_iodev *iodev,
-		    enum CRAS_STREAM_DIRECTION direction,
 		    void *(*thread_function)(void *arg),
 		    void *thread_data)
 {

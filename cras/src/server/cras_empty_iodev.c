@@ -376,7 +376,9 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev = calloc(1, sizeof(*iodev));
 	if (iodev == NULL)
 		return NULL;
-	if (cras_iodev_init(iodev, direction, empty_io_thread, iodev)) {
+	iodev->direction = direction;
+
+	if (cras_iodev_init(iodev, empty_io_thread, iodev)) {
 		syslog(LOG_ERR, "Failed to create empty iodev.");
 		cras_iodev_deinit(iodev);
 		free(iodev);

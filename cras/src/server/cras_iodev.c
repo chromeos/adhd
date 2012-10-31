@@ -45,7 +45,6 @@ int cras_iodev_rm_stream(struct cras_iodev *iodev,
 }
 
 int cras_iodev_init(struct cras_iodev *iodev,
-		    enum CRAS_STREAM_DIRECTION direction,
 		    void *(*thread_function)(void *arg),
 		    void *thread_data)
 {
@@ -55,7 +54,6 @@ int cras_iodev_init(struct cras_iodev *iodev,
 	iodev->to_thread_fds[1] = -1;
 	iodev->to_main_fds[0] = -1;
 	iodev->to_main_fds[1] = -1;
-	iodev->direction = direction;
 
 	/* Two way pipes for communication with the device's audio thread. */
 	rc = pipe(iodev->to_thread_fds);

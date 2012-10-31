@@ -1322,6 +1322,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	if (!aio)
 		return NULL;
 	iodev = &aio->base;
+	iodev->direction = direction;
+
 	aio->device_index = device_index;
 	aio->handle = NULL;
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
@@ -1333,7 +1335,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		 card_index,
 		 device_index);
 
-	if (cras_iodev_init(iodev, direction, alsa_io_thread, iodev))
+	if (cras_iodev_init(iodev, alsa_io_thread, iodev))
 		goto cleanup_iodev;
 
 	if (direction == CRAS_STREAM_INPUT) {

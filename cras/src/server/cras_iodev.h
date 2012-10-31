@@ -143,14 +143,12 @@ int cras_iodev_rm_stream(struct cras_iodev *iodev,
 /* Initializes the cras_iodev structure.
  * Args:
  *    iodev - The device to initialize.
- *    direction - input or output.
  *    thread_function - The function to run for playback/capture threads.
  *    thread_arg - Passed to thread_function when it is run.
  * Returns:
  *    0 on success or negative error on failure.
  */
 int cras_iodev_init(struct cras_iodev *iodev,
-		    enum CRAS_STREAM_DIRECTION direction,
 		    void *(*thread_function)(void *arg),
 		    void *thread_data);
 
