@@ -44,6 +44,7 @@ void cras_device_blacklist_destroy(struct cras_device_blacklist *blacklist);
 int cras_device_blacklist_check(struct cras_device_blacklist *blacklist,
 				unsigned vendor_id,
 				unsigned product_id,
+				unsigned desc_checksum,
 				unsigned device_index);
 
 #endif /* CRAS_CARD_DEVICE_BLACKLIST_H_ */

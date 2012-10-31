@@ -110,6 +110,8 @@ enum cras_notify_device_action { /* Must match gavd action definitions.  */
  *      lowered priority.
  *    usb_vendor_id - vendor ID if the device is on the USB bus.
  *    usb_product_id - product ID if the device is on the USB bus.
+ *    usb_desc_checksum - the checksum of the USB descriptors if the device
+ *      is on the USB bus.
  */
 enum CRAS_ALSA_CARD_TYPE {
 	ALSA_CARD_TYPE_INTERNAL,
@@ -120,6 +122,7 @@ struct cras_alsa_card_info {
 	unsigned card_index;
 	unsigned usb_vendor_id;
 	unsigned usb_product_id;
+	unsigned usb_desc_checksum;
 };
 
 /* Create an audio format structure. */

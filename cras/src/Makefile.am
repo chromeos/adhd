@@ -14,7 +14,7 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_alsa_jack.c server/cras_dbus.c server/cras_udev.c \
 	server/config/cras_card_config.c server/cras_gpio_jack.c \
 	server/config/cras_device_blacklist.c server/cras_alsa_ucm.c \
-	server/cras_tm.c common/edid_utils.c
+	server/cras_tm.c common/edid_utils.c common/cras_checksum.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS)

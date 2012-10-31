@@ -48,6 +48,7 @@ void cras_device_blacklist_destroy(struct cras_device_blacklist *blacklist)
 int cras_device_blacklist_check(struct cras_device_blacklist *blacklist,
 				unsigned vendor_id,
 				unsigned product_id,
+				unsigned desc_checksum,
 				unsigned device_index)
 {
 	char ini_key[MAX_KEY_LEN + 1];
@@ -55,8 +56,8 @@ int cras_device_blacklist_check(struct cras_device_blacklist *blacklist,
 	if (!blacklist)
 		return 0;
 
-	snprintf(ini_key, MAX_KEY_LEN, "USB_Outputs:%04x_%04x_%u",
-		 vendor_id, product_id, device_index);
+	snprintf(ini_key, MAX_KEY_LEN, "USB_Outputs:%04x_%04x_%08x_%u",
+		 vendor_id, product_id, desc_checksum, device_index);
 	ini_key[MAX_KEY_LEN] = 0;
 	return iniparser_getboolean(blacklist->ini, ini_key, 0);
 }

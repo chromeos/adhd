@@ -137,6 +137,7 @@ static int should_ignore_dev(struct cras_alsa_card_info *info,
 		return cras_device_blacklist_check(blacklist,
 						   info->usb_vendor_id,
 						   info->usb_product_id,
+						   info->usb_desc_checksum,
 						   device_index);
 	return 0;
 }

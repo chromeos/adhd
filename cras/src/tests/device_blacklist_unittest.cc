@@ -36,7 +36,7 @@ TEST(Blacklist, EmptyBlacklist) {
 
   blacklist = cras_device_blacklist_create(CONFIG_PATH);
   ASSERT_NE(static_cast<cras_device_blacklist*>(NULL), blacklist);
-  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0));
+  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0, 0));
 
   cras_device_blacklist_destroy(blacklist);
 }
@@ -44,7 +44,7 @@ TEST(Blacklist, EmptyBlacklist) {
 TEST(Blacklist, BlackListOneUsbOutput) {
   static const char usb_output_config_text[] =
       "[USB_Outputs]\n"
-      "0d8c_0008_0 = 1\n";
+      "0d8c_0008_00000012_0 = 1\n";
   struct cras_device_blacklist *blacklist;
 
   CreateConfigFile(usb_output_config_text);
@@ -52,10 +52,11 @@ TEST(Blacklist, BlackListOneUsbOutput) {
   blacklist = cras_device_blacklist_create(CONFIG_PATH);
   ASSERT_NE(static_cast<cras_device_blacklist*>(NULL), blacklist);
 
-  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8d, 0x0008, 0));
-  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0009, 0));
-  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 1));
-  EXPECT_EQ(1, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0));
+  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8d, 0x0008, 0x12, 0));
+  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0009, 0x12, 0));
+  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0x13, 0));
+  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0x12, 1));
+  EXPECT_EQ(1, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0x12, 0));
 
   cras_device_blacklist_destroy(blacklist);
 }
@@ -63,8 +64,8 @@ TEST(Blacklist, BlackListOneUsbOutput) {
 TEST(Blacklist, BlackListTwoUsbOutput) {
   static const char usb_output_config_text[] =
       "[USB_Outputs]\n"
-      "0d8c_0008_0 = 1\n"
-      "0d8c_0009_0 = 1\n";
+      "0d8c_0008_00000000_0 = 1\n"
+      "0d8c_0009_00000000_0 = 1\n";
   struct cras_device_blacklist *blacklist;
 
   CreateConfigFile(usb_output_config_text);
@@ -72,9 +73,9 @@ TEST(Blacklist, BlackListTwoUsbOutput) {
   blacklist = cras_device_blacklist_create(CONFIG_PATH);
   ASSERT_NE(static_cast<cras_device_blacklist*>(NULL), blacklist);
 
-  EXPECT_EQ(1, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0009, 0));
-  EXPECT_EQ(1, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0));
-  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 1));
+  EXPECT_EQ(1, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0009, 0, 0));
+  EXPECT_EQ(1, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0, 0));
+  EXPECT_EQ(0, cras_device_blacklist_check(blacklist, 0x0d8c, 0x0008, 0, 1));
 
   cras_device_blacklist_destroy(blacklist);
 }

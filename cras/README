@@ -24,17 +24,19 @@ file /etc/cras/device_blacklist.
 The format of this file is as follows:
 
 [USB_Outputs]
-  <vendor_id>_<product_id>_<device_index> = 1
+  <vendor_id>_<product_id>_<checksum>_<device_index> = 1
 
 Where vendor_id and product id are the USB identifiers for the card to
-blacklist.  The device index specifies the index of the output device in the
-card to blacklist.  This is a bool parameter, so '= 1' enables the option.
+blacklist. The checksum is the output of "cksum" command applied to the
+sysfs "descriptors" file of the device. The device index specifies the
+index of the output device in the card to blacklist.  This is a bool
+parameter, so '= 1' enables the option.
 
 Example, blacklisting the non-functional output device reported by the C-Media
 based CAD-u1 mic:
 
 [USB_Outputs]
-  0d8c_0008_0 = 1
+  0d8c_0008_00000000_0 = 1
 
 Card Configuration:
 -------------------

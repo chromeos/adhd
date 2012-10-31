@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <regex.h>
 #include <syslog.h>
@@ -16,6 +17,7 @@
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "cras_checksum.h"
 
 struct udev_callback_data {
 	struct udev_monitor *mon;
@@ -76,6 +78,7 @@ static const char card_regex_string[] = "^.*/card([0-9]+)";
 static regex_t card_regex;
 
 static char const * const  subsystem = "sound";
+static const unsigned int MAX_DESC_NAME_LEN = 256;
 
 static unsigned is_action(const char *desired, const char *actual)
 {
@@ -178,6 +181,73 @@ static inline void udev_delay_for_alsa()
 	usleep(125000);		/* 0.125 second */
 }
 
+/* Reads the "descriptors" file of the usb device and returns the
+ * checksum of the contents. Returns 0 if the file can not be read */
+static uint32_t calculate_desc_checksum(struct udev_device *dev)
+{
+	char path[MAX_DESC_NAME_LEN];
+	struct stat stat_buf;
+	int fd;
+	unsigned char *buf = NULL;
+	int buf_size = 0;
+	int read_size;
+	ssize_t n;
+	uint32_t result;
+
+	if (snprintf(path, sizeof(path), "%s/descriptors",
+		     udev_device_get_syspath(dev)) >= sizeof(path)) {
+		syslog(LOG_ERR, "failed to build path");
+		return 0;
+	}
+
+	if (stat(path, &stat_buf) < 0) {
+		syslog(LOG_ERR, "failed to stat file %s: %s",
+		       path, strerror(errno));
+		return 0;
+	}
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		syslog(LOG_ERR, "failed to open file %s: %s",
+		       path, strerror(errno));
+		return 0;
+	}
+
+	read_size = 0;
+	while (read_size < stat_buf.st_size) {
+		if (read_size == buf_size) {
+			if (buf_size == 0)
+				buf_size = 256;
+			else
+				buf_size *= 2;
+			uint8_t *new_buf = realloc(buf, buf_size);
+			if (new_buf == NULL) {
+				syslog(LOG_ERR,
+				       "no memory to read file %s", path);
+				goto bail;
+			}
+			buf = new_buf;
+		}
+		n = read(fd, buf + read_size, buf_size - read_size);
+		if (n == 0)
+			break;
+		if (n < 0) {
+			syslog(LOG_ERR, "failed to read file %s", path);
+			goto bail;
+		}
+		read_size += n;
+	}
+
+	close(fd);
+	result = crc32_checksum(buf, read_size);
+	free(buf);
+	return result;
+bail:
+	close(fd);
+	free(buf);
+	return 0;
+}
+
 static void fill_usb_card_info(struct cras_alsa_card_info *card_info,
 			       struct udev_device *dev)
 {
@@ -194,6 +264,12 @@ static void fill_usb_card_info(struct cras_alsa_card_info *card_info,
 	sysattr = udev_device_get_sysattr_value(dev, "idProduct");
 	if (sysattr)
 		card_info->usb_product_id = strtol(sysattr, NULL, 16);
+
+	card_info->usb_desc_checksum = calculate_desc_checksum(dev);
+
+	syslog(LOG_DEBUG, "USB card: vendor:%04x, product:%04x, checksum:%08x",
+		card_info->usb_vendor_id, card_info->usb_product_id,
+		card_info->usb_desc_checksum);
 }
 
 static void device_add_alsa(struct udev_device *dev,
