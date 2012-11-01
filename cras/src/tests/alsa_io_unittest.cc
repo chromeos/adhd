@@ -278,6 +278,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
   EXPECT_EQ(-EINVAL, rc);
   ResetStubData();
+
   rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, outputs[0]);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
@@ -323,6 +324,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
+  aio->handle = (snd_pcm_t *)0x24;
   aio->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
 
   rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
@@ -390,6 +392,8 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));
   aio_output_->base.format = fmt;
+  aio_output_->handle = (snd_pcm_t *)0x24;
+
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   new_stream->fd = 55;
   new_stream->buffer_frames = 65;

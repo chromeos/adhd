@@ -175,7 +175,7 @@ void sys_vol_change(void *data)
 {
 	if (default_output &&
 	    default_output->set_volume &&
-	    cras_iodev_streams_attached(default_output))
+	    default_output->is_open(default_output))
 		default_output->set_volume(default_output);
 }
 
@@ -185,7 +185,7 @@ void sys_mute_change(void *data)
 {
 	if (default_output &&
 	    default_output->set_mute &&
-	    cras_iodev_streams_attached(default_output))
+	    default_output->is_open(default_output))
 		default_output->set_mute(default_output);
 }
 
@@ -195,7 +195,7 @@ void sys_cap_gain_change(void *data)
 {
 	if (default_input &&
 	    default_input->set_capture_gain &&
-	    cras_iodev_streams_attached(default_input))
+	    default_input->is_open(default_input))
 		default_input->set_capture_gain(default_input);
 }
 
@@ -205,7 +205,7 @@ void sys_cap_mute_change(void *data)
 {
 	if (default_input &&
 	    default_input->set_capture_mute &&
-	    cras_iodev_streams_attached(default_input))
+	    default_input->is_open(default_input))
 		default_input->set_capture_mute(default_input);
 }
 

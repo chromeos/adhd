@@ -150,8 +150,6 @@ static int open_dev(struct cras_iodev *iodev)
 	snd_pcm_t *handle;
 	int rc;
 
-	init_device_settings(aio);
-
 	/* This is called after the first stream added so configure for it.
 	 * format must be set before opening the device.
 	 */
@@ -168,6 +166,8 @@ static int open_dev(struct cras_iodev *iodev)
 	rc = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
 	if (rc < 0)
 		return rc;
+
+	init_device_settings(aio);
 
 	rc = cras_alsa_set_hwparams(handle, iodev->format,
 				    &iodev->buffer_size);
@@ -280,7 +280,7 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 	const struct cras_volume_curve *curve;
 
 	/* Only set the limits if the dev is active. */
-	if (!cras_iodev_streams_attached(&aio->base))
+	if (!is_open(&aio->base))
 		return;
 
 	curve = get_curve_for_active_output(aio);
@@ -292,7 +292,7 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 /* Sets the alsa mute state for this iodev. */
 static void set_alsa_mute(const struct alsa_io *aio, int muted)
 {
-	if (!cras_iodev_streams_attached(&aio->base))
+	if (!is_open(&aio->base))
 		return;
 
 	cras_alsa_mixer_set_mute(
@@ -318,7 +318,7 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 		return;
 
 	/* Only set the volume if the dev is active. */
-	if (!cras_iodev_streams_attached(&aio->base))
+	if (!is_open(&aio->base))
 		return;
 
 	volume = cras_system_get_volume();
@@ -347,7 +347,7 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 		return;
 
 	/* Only set the volume if the dev is active. */
-	if (!cras_iodev_streams_attached(&aio->base))
+	if (!is_open(&aio->base))
 		return;
 
 	cras_alsa_mixer_set_capture_dBFS(

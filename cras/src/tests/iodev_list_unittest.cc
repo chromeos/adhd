@@ -52,6 +52,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.set_mute = NULL;
       d1_.set_capture_gain = NULL;
       d1_.set_capture_mute = NULL;
+      d1_.is_open = is_open;
       d1_.update_supported_formats = NULL;
       d1_.set_as_default = NULL;
       d1_.format = NULL;
@@ -101,31 +102,32 @@ class IoDevTestSuite : public testing::Test {
       remove_capture_mute_changed_cb_called = 0;
       add_stream_called = 0;
       rm_stream_called = 0;
+      is_open_ = 0;
     }
 
-    static void set_volume_1(struct cras_iodev *iodev)
-    {
+    static void set_volume_1(struct cras_iodev* iodev) {
       set_volume_1_called_++;
     }
 
-    static void set_mute_1(struct cras_iodev *iodev)
-    {
+    static void set_mute_1(struct cras_iodev* iodev) {
       set_mute_1_called_++;
     }
 
-    static void set_capture_gain_1(struct cras_iodev *iodev)
-    {
+    static void set_capture_gain_1(struct cras_iodev* iodev) {
       set_capture_gain_1_called_++;
     }
 
-    static void set_capture_mute_1(struct cras_iodev *iodev)
-    {
+    static void set_capture_mute_1(struct cras_iodev* iodev) {
       set_capture_mute_1_called_++;
     }
 
     static void set_as_default(struct cras_iodev *iodev)
     {
       default_dev_to_set_ = iodev;
+    }
+
+    static int is_open(const cras_iodev* iodev) {
+      return is_open_;
     }
 
     struct cras_iodev d1_;
@@ -138,6 +140,7 @@ class IoDevTestSuite : public testing::Test {
     static int set_capture_gain_1_called_;
     static int set_capture_mute_1_called_;
     static cras_iodev *default_dev_to_set_;
+    static int is_open_;
 };
 
 int IoDevTestSuite::set_volume_1_called_;
@@ -145,6 +148,7 @@ int IoDevTestSuite::set_mute_1_called_;
 int IoDevTestSuite::set_capture_gain_1_called_;
 int IoDevTestSuite::set_capture_mute_1_called_;
 cras_iodev *IoDevTestSuite::default_dev_to_set_;
+int IoDevTestSuite::is_open_;
 
 // Check that Init registers a volume changed callback. */
 TEST_F(IoDevTestSuite, InitSetup) {
@@ -762,28 +766,28 @@ TEST_F(IoDevTestSuite, VolumeCallbacks) {
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
 
-  // Check that callback isn't called on inactive iodev.
+  // Check that callback isn't called if not open and no callback set.
+  is_open_ = 0;
   set_volume_1_called_ = 0;
-  d1_.set_volume = set_volume_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  d1_.set_volume = NULL;
   volume_changed_cb(volume_changed_arg);
   EXPECT_EQ(0, set_volume_1_called_);
 
-  // Check that callback isn't called if no callback is set.
+  // Check that callback isn't called if open and no callback is set.
+  is_open_ = 1;
   set_volume_1_called_ = 0;
   d1_.set_volume = NULL;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   volume_changed_cb(volume_changed_arg);
   EXPECT_EQ(0, set_volume_1_called_);
 
   // Check that it is called if there is a callback and iodev is active.
+  is_open_ = 1;
   set_volume_1_called_ = 0;
   d1_.set_volume = set_volume_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   volume_changed_cb(volume_changed_arg);
   EXPECT_EQ(1, set_volume_1_called_);
 
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  is_open_ = 0;
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
 }
@@ -799,27 +803,29 @@ TEST_F(IoDevTestSuite, MuteCallbacks) {
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
 
-  // Check that callback isn't called on inactive iodev.
+  // Check that callback isn't called if not open.
+  is_open_ = 0;
   set_mute_1_called_ = 0;
   d1_.set_mute = set_mute_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
   mute_changed_cb(mute_changed_arg);
   EXPECT_EQ(0, set_mute_1_called_);
 
   // Check that callback isn't called if no callback is set.
+  is_open_ = 1;
   set_mute_1_called_ = 0;
   d1_.set_mute = NULL;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   mute_changed_cb(mute_changed_arg);
   EXPECT_EQ(0, set_mute_1_called_);
 
   // Check that it is called if there is a callback and iodev is active.
+  is_open_ = 1;
   set_mute_1_called_ = 0;
   d1_.set_mute = set_mute_1;
   d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   mute_changed_cb(mute_changed_arg);
   EXPECT_EQ(1, set_mute_1_called_);
 
+  is_open_ = 0;
   d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
@@ -837,34 +843,34 @@ TEST_F(IoDevTestSuite, CaptureGainCallbacks) {
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
 
-  // Check that callback isn't called on inactive iodev.
+  // Check that callback isn't called if not open.
+  is_open_ = 0;
   set_capture_gain_1_called_ = 0;
   d1_.set_capture_gain = set_capture_gain_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
   capture_gain_changed_cb(capture_gain_changed_arg);
   EXPECT_EQ(0, set_capture_gain_1_called_);
 
   // Check that callback isn't called if no callback is set.
+  is_open_ = 1;
   set_capture_gain_1_called_ = 0;
   d1_.set_capture_gain = NULL;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   capture_gain_changed_cb(capture_gain_changed_arg);
   EXPECT_EQ(0, set_capture_gain_1_called_);
 
   // Check that it is called if there is a callback and iodev is active.
+  is_open_ = 1;
   set_capture_gain_1_called_ = 0;
   d1_.set_capture_gain = set_capture_gain_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   capture_gain_changed_cb(capture_gain_changed_arg);
   EXPECT_EQ(1, set_capture_gain_1_called_);
 
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  is_open_ = 0;
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
 }
 
 // Test capture mute callbacks for default output.
-TEST_F(IoDevTestSuite, CapturemuteCallbacks) {
+TEST_F(IoDevTestSuite, CaptureMuteCallbacks) {
   int rc;
 
   cras_iodev_list_init();
@@ -875,28 +881,28 @@ TEST_F(IoDevTestSuite, CapturemuteCallbacks) {
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
 
-  // Check that callback isn't called on inactive iodev.
+  // Check that callback isn't called if not open.
+  is_open_ = 0;
   set_capture_mute_1_called_ = 0;
   d1_.set_capture_mute = set_capture_mute_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
   capture_mute_changed_cb(capture_mute_changed_arg);
   EXPECT_EQ(0, set_capture_mute_1_called_);
 
   // Check that callback isn't called if no callback is set.
+  is_open_ = 1;
   set_capture_mute_1_called_ = 0;
   d1_.set_capture_mute = NULL;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   capture_mute_changed_cb(capture_mute_changed_arg);
   EXPECT_EQ(0, set_capture_mute_1_called_);
 
   // Check that it is called if there is a callback and iodev is active.
+  is_open_ = 1;
   set_capture_mute_1_called_ = 0;
   d1_.set_capture_mute = set_capture_mute_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   capture_mute_changed_cb(capture_mute_changed_arg);
   EXPECT_EQ(1, set_capture_mute_1_called_);
 
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
+  is_open_ = 0;
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
 }
