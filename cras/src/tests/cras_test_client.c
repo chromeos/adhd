@@ -11,12 +11,15 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+#include "cras_sbc_codec.h"
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
 
 #define PLAYBACK_CB_THRESHOLD (480)
 #define PLAYBACK_BUFFER_SIZE (4800)
+
+#define BUF_SIZE 32768
 
 static const size_t MAX_IODEVS = 10; /* Max devices to print out. */
 static const size_t MAX_IONODES = 20; /* Max ionodes to print out. */
@@ -32,6 +35,10 @@ static int exit_after_done_playing = 1;
 static size_t duration_frames;
 static int full_frames;
 uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
+
+static struct cras_audio_codec *capture_codec;
+static struct cras_audio_codec *playback_codec;
+static unsigned char cap_buf[BUF_SIZE];
 
 struct cras_audio_format *aud_format;
 
@@ -53,16 +60,36 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	int *fd = (int *)arg;
 	int ret;
 	int write_size;
+	int processed_bytes, frame_bytes;
+	size_t encoded;
 
 	check_stream_terminate(frames);
 
 	cras_client_calc_capture_latency(sample_time, &last_latency);
 
-	write_size = frames * cras_client_format_bytes_per_frame(aud_format);
-	ret = write(*fd, samples, write_size);
-	if (ret != write_size)
-		printf("Error writing file\n");
-	return frames;
+	frame_bytes = cras_client_format_bytes_per_frame(aud_format);
+	write_size = frames * frame_bytes;
+
+	if (capture_codec) {
+		processed_bytes = capture_codec->encode(capture_codec, samples,
+					       write_size, cap_buf, BUF_SIZE,
+					       &encoded);
+		if (processed_bytes <= 0 || processed_bytes > write_size) {
+			keep_looping = 0;
+			return EOF;
+		}
+
+		ret = write(*fd, cap_buf, encoded);
+		if (ret != encoded)
+			printf("Error writing file\n");
+
+		return processed_bytes / frame_bytes;
+	} else {
+		ret = write(*fd, samples, write_size);
+		if (ret != write_size)
+			printf("Error writing file\n");
+		return frames;
+	}
 }
 
 /* Run from callback thread. */
@@ -70,7 +97,7 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 		       uint8_t *samples, size_t frames,
 		       const struct timespec *sample_time, void *arg)
 {
-	size_t this_size;
+	size_t this_size, decoded;
 	snd_pcm_uframes_t avail;
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 
@@ -95,10 +122,24 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 
 	cras_client_calc_playback_latency(sample_time, &last_latency);
 
-	memcpy(samples, file_buf + file_buf_read_offset, this_size);
-	file_buf_read_offset += this_size;
+	if (playback_codec) {
+		this_size = playback_codec->decode(playback_codec,
+				       file_buf + file_buf_read_offset,
+				       file_buf_size - file_buf_read_offset,
+				       samples, this_size, &decoded);
 
-	return this_size / frame_bytes;
+		file_buf_read_offset += this_size;
+		if (this_size == 0) {
+			printf("stop looping\n");
+			keep_looping = 0;
+			return EOF;
+		}
+		return decoded / frame_bytes;
+	} else {
+		memcpy(samples, file_buf + file_buf_read_offset, this_size);
+		file_buf_read_offset += this_size;
+		return this_size / frame_bytes;
+	}
 }
 
 /* Run from callback thread. */
@@ -538,9 +579,26 @@ static void check_output_plugged(struct cras_client *client, const char *name)
 	       cras_client_output_dev_plugged(client, name) ? "Yes" : "No");
 }
 
+static void init_sbc_codec()
+{
+	capture_codec = cras_sbc_codec_create(SBC_FREQ_16000,
+					      SBC_MODE_DUAL_CHANNEL,
+					      SBC_SB_4,
+					      SBC_AM_LOUDNESS,
+					      SBC_BLK_8,
+					      53);
+	playback_codec = cras_sbc_codec_create(SBC_FREQ_16000,
+					       SBC_MODE_DUAL_CHANNEL,
+					       SBC_SB_4,
+					       SBC_AM_LOUDNESS,
+					       SBC_BLK_8,
+					       53);
+}
+
 static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"write_full_frames",	no_argument, &full_frames, 1},
+	{"sbc",                 no_argument,            0, 'e'},
 	{"rate",		required_argument,	0, 'r'},
 	{"num_channels",        required_argument,      0, 'n'},
 	{"iodev_index",		required_argument,	0, 'o'},
@@ -567,6 +625,7 @@ static struct option long_options[] = {
 
 static void show_usage()
 {
+	printf("--sbc - Use sbc codec for playback/capture.\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
 	printf("--write_full_frames - Write data in blocks of min_cb_level.\n");
 	printf("--rate <N> - Specifies the sample rate in Hz.\n");
@@ -631,6 +690,9 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'c':
 			capture_file = optarg;
+			break;
+		case 'e':
+			init_sbc_codec();
 			break;
 		case 'p':
 			playback_file = optarg;
@@ -751,5 +813,9 @@ int main(int argc, char **argv)
 
 destroy_exit:
 	cras_client_destroy(client);
+	if (capture_codec)
+		cras_sbc_codec_destroy(capture_codec);
+	if (playback_codec)
+		cras_sbc_codec_destroy(playback_codec);
 	return rc;
 }
