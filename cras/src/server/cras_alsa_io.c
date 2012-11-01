@@ -24,7 +24,6 @@
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
-#include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
@@ -150,15 +149,14 @@ static int open_dev(struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle;
 	int rc;
-	struct cras_rstream *stream;
 
 	init_device_settings(aio);
 
-	/* This is called after the first stream added so configure for it. */
-	stream = iodev->streams->stream;
+	/* This is called after the first stream added so configure for it.
+	 * format must be set before opening the device.
+	 */
 	if (iodev->format == NULL)
 		return -EINVAL;
-	cras_rstream_get_format(stream, iodev->format);
 	/* TODO(dgreid) - allow more formats here. */
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;

@@ -28,6 +28,7 @@ int ut_select(int nfds,
 #define select ut_select
 
 #include "cras_iodev.h"
+#include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
