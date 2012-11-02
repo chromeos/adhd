@@ -96,6 +96,11 @@ int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
 	return fd;
 }
 
+int cras_server_disconnect_from_client_socket(int socket_fd)
+{
+	return close(socket_fd);
+}
+
 int cras_make_fd_nonblocking(int fd)
 {
 	int fl;

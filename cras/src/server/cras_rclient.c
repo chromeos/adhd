@@ -36,7 +36,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format fmt;
 	int rc;
-	int aud_fd = 0;
+	int aud_fd = -1;
 	size_t buffer_frames, cb_threshold, min_cb_level;
 
 	/* Find the iodev for this new connection and connect to it. */
@@ -130,7 +130,7 @@ reply_err:
 
 	if (rc && stream) {
 		if (aud_fd >= 0)
-			close(aud_fd);
+			cras_server_disconnect_from_client_socket(aud_fd);
 		cras_rstream_destroy(stream);
 	}
 	return rc;
@@ -143,7 +143,9 @@ static int disconnect_client_stream(struct cras_rclient *client,
 {
 	if (stream->iodev != NULL)
 		cras_iodev_detach_stream(stream->iodev, stream);
-	close(cras_rstream_get_audio_fd(stream));
+
+	cras_server_disconnect_from_client_socket(
+			cras_rstream_get_audio_fd(stream));
 	DL_DELETE(client->streams, stream);
 	cras_rstream_destroy(stream);
 	return 0;

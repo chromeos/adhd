@@ -31,6 +31,13 @@ int cras_set_nice_level(int nice);
  * is created per stream.  It is only used for high-priority, low-latency audio
  * messages (Get/Put samples). */
 int cras_server_connect_to_client_socket(cras_stream_id_t stream_id);
+
+/* Disconnects from the socket opened by the client for audio messages.
+ * Args:
+ *    socket_fd - fd returned from cras_server_connect_to_client_socket.
+ */
+int cras_server_disconnect_from_client_socket(int socket_fd);
+
 /* Converts a buffer level from one sample rate to another. */
 static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
 					 size_t act_rate)

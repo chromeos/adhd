@@ -370,6 +370,11 @@ int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
 {
   return cras_server_connect_retval;
 }
+
+int cras_server_disconnect_from_client_socket(int socket_fd) {
+  return 0;
+}
+
 int cras_make_fd_nonblocking(int fd)
 {
   cras_make_fd_nonblocking_called++;
