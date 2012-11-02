@@ -73,7 +73,7 @@ card_config_unittest_LDADD = -lgtest -liniparser -lpthread
 
 checksum_unittest_SOURCES = tests/checksum_unittest.cc common/cras_checksum.c
 checksum_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-checksum_unittest_LDADD = -lgtest
+checksum_unittest_LDADD = -lgtest -lpthread
 
 cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
