@@ -6,6 +6,8 @@
 #ifndef _CRAS_MIX_H
 #define _CRAS_MIX_H
 
+struct cras_audio_shm;
+
 /* Renders count frames from shm into dst.  Updates count if anything is
  * written.  If the system is muted, this will render zeros to the output.
  * Args:
