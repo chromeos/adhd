@@ -11,7 +11,6 @@
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
 #include "cras_types.h"
-#include "audio_thread.h"
 #include "utlist.h"
 
 static const size_t EMPTY_IODEV_PRIORITY = 0; /* lowest possible */
@@ -142,13 +141,6 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
 
-	iodev->thread = audio_thread_create(iodev);
-	if (!iodev->thread) {
-		syslog(LOG_ERR, "Failed to create empty iodev.");
-		free(iodev);
-		return NULL;
-	}
-
 	return iodev;
 }
 
@@ -156,7 +148,6 @@ void empty_iodev_destroy(struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 
-	audio_thread_destroy(iodev->thread);
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_rm_input(iodev);
 	else {

@@ -6,7 +6,19 @@
 #ifndef AUDIO_THREAD_H_
 #define AUDIO_THREAD_H_
 
+#include <pthread.h>
+#include <stdint.h>
+
 struct cras_iodev;
+
+/* Linked list of streams of audio from/to a client. */
+struct cras_io_stream {
+	struct cras_rstream *stream;
+	int fd; /* cached here due to frequent access */
+	struct cras_audio_shm *shm; /* ditto on caching */
+	int mixed; /* Was this stream mixed already? */
+	struct cras_io_stream *prev, *next;
+};
 
 /* Hold communication pipes and pthread info for a thread used to play or record
  * audio.  This maps 1 to 1 with IO devices.
@@ -20,6 +32,7 @@ struct cras_iodev;
  *    audio_cb - Callback to fill or read samples (depends on direction).
  *      ts will be filled with the time the system can sleep before again
  *      servicing the callback.
+ *    streams - List of audio streams serviced by this thread.
  */
 struct audio_thread {
 	struct cras_iodev *iodev;
@@ -28,6 +41,7 @@ struct audio_thread {
 	pthread_t tid;
 	int sleep_correction_frames;
 	int (*audio_cb)(struct audio_thread *thread, struct timespec *ts);
+	struct cras_io_stream *streams;
 };
 
 /* Messages that can be sent from the main context to the audio thread. */
@@ -59,6 +73,32 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev);
 
 /* Frees an audio thread created with audio_thread_create(). */
 void audio_thread_destroy(struct audio_thread *thread);
+
+/* Add a stream to the thread.
+ * Args:
+ *    thread - a pointer to the audio thread.
+ *    stream - the new stream to add.
+ * Returns:
+ *    zero on success, negative error otherwise.
+ */
+int audio_thread_add_stream(struct audio_thread *thread,
+			    struct cras_rstream *stream);
+
+/* Remove a stream from the thread.
+ * Args:
+ *    thread - a pointer to the audio thread.
+ *    stream - the new stream to remove.
+ * Returns:
+ *    The number of streams remaining if successful, negative if error.
+ */
+int audio_thread_rm_stream(struct audio_thread *thread,
+			   struct cras_rstream *stream);
+
+/* Remove all streams from the thread.
+ * Args:
+ *    thread - a pointer to the audio thread.
+ */
+void audio_thread_rm_all_streams(struct audio_thread *thread);
 
 /* Write a message to the playback thread and wait for an ack, This keeps these
  * operations synchronous for the main server thread.  For instance when the

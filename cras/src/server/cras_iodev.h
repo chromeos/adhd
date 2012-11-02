@@ -5,11 +5,11 @@
 
 /*
  * cras_iodev represents playback or capture devices on the system.  Each iodev
- * will spawn a thread it will use to render or capture audio.  For playback,
- * this thread will gather audio from the streams that are attached to the
- * device and render the samples it gets to the hardware device.  For capture
- * the process is reversed, the samples are pulled from hardware and passed on
- * to the attached streams.
+ * will attach to a thread to render or capture audio.  For playback, this
+ * thread will gather audio from the streams that are attached to the device and
+ * render the samples it gets to the iodev.  For capture the process is
+ * reversed, the samples are pulled from the device and passed on to the
+ * attached streams.
  */
 #ifndef CRAS_IODEV_H_
 #define CRAS_IODEV_H_
@@ -21,15 +21,6 @@
 struct cras_rstream;
 struct cras_audio_format;
 struct audio_thread;
-
-/* Linked list of streams of audio from/to a client. */
-struct cras_io_stream {
-	struct cras_rstream *stream;
-	int fd; /* cached here to to frequent access */
-	struct cras_audio_shm *shm; /* ditto on caching */
-	int mixed; /* Was this stream mixed already? */
-	struct cras_io_stream *prev, *next;
-};
 
 /* An input or output device, that can have audio routed to/from it.
  * set_volume - Function to call if the system volume changes.
@@ -48,11 +39,10 @@ struct cras_io_stream {
  * dev_running - Checks if the device is playing or recording.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
- * streams - List of streams attached to device.
  * direction - Input or Output.
  * supported_rates - Array of sample rates supported by device 0-terminated.
  * supported_channel_counts - List of number of channels supported by device.
- * buffer_size - Size of the ALSA buffer in frames.
+ * buffer_size - Size of the audio buffer in frames.
  * used_size - Number of frames that are used for audio.
  * cb_threshold - Level below which to call back to the client (in frames).
  * dsp_context - The context used for dsp processing on the audio data.
@@ -76,7 +66,6 @@ struct cras_iodev {
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);
 	struct cras_audio_format *format;
-	struct cras_io_stream *streams;
 	struct cras_iodev_info info;
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates;
@@ -88,26 +77,6 @@ struct cras_iodev {
 	struct audio_thread *thread;
 	struct cras_iodev *prev, *next;
 };
-
-/* Add a stream to the output (called by iodev_list).
- * Args:
- *    iodev - a pointer to the alsa_io device.
- *    stream - the new stream to add.
- * Returns:
- *    zero on success negative error otherwise.
- */
-int cras_iodev_add_stream(struct cras_iodev *iodev,
-			  struct cras_rstream *stream);
-
-/* Remove a stream from the output (called by iodev_list).
- * Args:
- *    iodev - a pointer to the alsa_io device.
- *    stream - the new stream to add.
- * Returns:
- *    zero on success negative error otherwise.
- */
-int cras_iodev_rm_stream(struct cras_iodev *iodev,
-			 struct cras_rstream *stream);
 
 /*
  * Utility functions to be used by iodev implementations.
@@ -170,17 +139,6 @@ int cras_iodev_append_stream(struct cras_iodev *iodev,
 int cras_iodev_delete_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream);
 
-/* Checks if there are any streams playing on this device.
- * Args:
- *    iodev - iodev to check for active streams.
- * Returns:
- *    non-zero if the device has streams attached.
- */
-static inline int cras_iodev_streams_attached(const struct cras_iodev *iodev)
-{
-	return iodev->streams != NULL;
-}
-
 /* Fill timespec ts with the time to sleep based on the number of frames and
  * frame rate.
  * Args:
@@ -214,8 +172,14 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
 				      struct timespec *ts);
 
 /* Configures when to wake up, the minimum amount free before refilling, and
- * other params that are independent of alsa configuration. */
-void cras_iodev_config_params_for_streams(struct cras_iodev *iodev);
+ * other params that are independent of the hw configuration.
+ * Args:
+ *    buffer_size - Size of the audio buffer in frames.
+ *    cb_threshold - Level below which to call back to the client (in frames).
+ */
+void cras_iodev_config_params(struct cras_iodev *iodev,
+			      unsigned int buffer_size,
+			      unsigned int cb_threshold);
 
 /* Handles a plug event happening on this iodev.
  * Args:

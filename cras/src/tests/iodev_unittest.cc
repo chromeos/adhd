@@ -112,114 +112,43 @@ TEST(IoDevTestSuite, SetCaptureTimeStampWrapPartial) {
 
 TEST(IoDevTestSuite, TestConfigParamsOneStream) {
   struct cras_iodev iodev;
-  struct cras_rstream stream1;
-  struct cras_io_stream iostream1;
 
   memset(&iodev, 0, sizeof(iodev));
 
-  stream1.buffer_frames = 10;
-  stream1.cb_threshold = 3;
-
-  iostream1.stream = &stream1;
-  DL_APPEND(iodev.streams, &iostream1);
   iodev.buffer_size = 1024;
 
-  cras_iodev_config_params_for_streams(&iodev);
+  cras_iodev_config_params(&iodev, 10, 3);
   EXPECT_EQ(iodev.used_size, 10);
   EXPECT_EQ(iodev.cb_threshold, 3);
 }
 
 TEST(IoDevTestSuite, TestConfigParamsOneStreamLimitThreshold) {
   struct cras_iodev iodev;
-  struct cras_rstream stream1;
-  struct cras_io_stream iostream1;
 
   memset(&iodev, 0, sizeof(iodev));
 
-  stream1.buffer_frames = 10;
-  stream1.cb_threshold = 10;
-
-  iostream1.stream = &stream1;
-  DL_APPEND(iodev.streams, &iostream1);
   iodev.buffer_size = 1024;
 
-  cras_iodev_config_params_for_streams(&iodev);
+  cras_iodev_config_params(&iodev, 10, 10);
   EXPECT_EQ(iodev.used_size, 10);
   EXPECT_EQ(iodev.cb_threshold, 5);
 
   iodev.direction = CRAS_STREAM_INPUT;
-  cras_iodev_config_params_for_streams(&iodev);
+  cras_iodev_config_params(&iodev, 10, 10);
   EXPECT_EQ(iodev.used_size, 10);
   EXPECT_EQ(iodev.cb_threshold, 10);
 }
 
 TEST(IoDevTestSuite, TestConfigParamsOneStreamUsedGreaterBuffer) {
   struct cras_iodev iodev;
-  struct cras_rstream stream1;
-  struct cras_io_stream iostream1;
 
   memset(&iodev, 0, sizeof(iodev));
 
-  stream1.buffer_frames = 1280;
-  stream1.cb_threshold = 1400;
-
-  iostream1.stream = &stream1;
-  DL_APPEND(iodev.streams, &iostream1);
   iodev.buffer_size = 1024;
 
-  cras_iodev_config_params_for_streams(&iodev);
+  cras_iodev_config_params(&iodev, 1280, 1400);
   EXPECT_EQ(iodev.used_size, 1024);
   EXPECT_EQ(iodev.cb_threshold, 512);
-}
-
-TEST(IoDevTestSuite, TestConfigParamsTwoStreamsFirstLonger) {
-  struct cras_iodev iodev;
-  struct cras_rstream stream1;
-  struct cras_io_stream iostream1;
-  struct cras_rstream stream2;
-  struct cras_io_stream iostream2;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  stream1.buffer_frames = 10;
-  stream1.cb_threshold = 3;
-  stream2.buffer_frames = 8;
-  stream2.cb_threshold = 5;
-
-  iostream1.stream = &stream1;
-  iostream2.stream = &stream2;
-  DL_APPEND(iodev.streams, &iostream1);
-  DL_APPEND(iodev.streams, &iostream2);
-  iodev.buffer_size = 1024;
-
-  cras_iodev_config_params_for_streams(&iodev);
-  EXPECT_EQ(iodev.used_size, 8);
-  EXPECT_EQ(iodev.cb_threshold, 4);
-}
-
-TEST(IoDevTestSuite, TestConfigParamsTwoStreamsSecondLonger) {
-  struct cras_iodev iodev;
-  struct cras_rstream stream1;
-  struct cras_io_stream iostream1;
-  struct cras_rstream stream2;
-  struct cras_io_stream iostream2;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  stream1.buffer_frames = 10;
-  stream1.cb_threshold = 3;
-  stream2.buffer_frames = 80;
-  stream2.cb_threshold = 5;
-
-  iostream1.stream = &stream1;
-  iostream2.stream = &stream2;
-  DL_APPEND(iodev.streams, &iostream1);
-  DL_APPEND(iodev.streams, &iostream2);
-  iodev.buffer_size = 1024;
-
-  cras_iodev_config_params_for_streams(&iodev);
-  EXPECT_EQ(iodev.used_size, 10);
-  EXPECT_EQ(iodev.cb_threshold, 3);
 }
 
 TEST(IoDevTestSuite, TestPluggedTiming) {

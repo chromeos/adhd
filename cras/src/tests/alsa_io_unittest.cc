@@ -28,7 +28,6 @@ int ut_select(int nfds,
 #define select ut_select
 
 #include "cras_iodev.h"
-#include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
@@ -273,8 +272,6 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
-  aio->base.streams = reinterpret_cast<struct cras_io_stream*>(NULL);
-
   rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
   EXPECT_EQ(-EINVAL, rc);
   ResetStubData();
@@ -325,7 +322,6 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
   aio->handle = (snd_pcm_t *)0x24;
-  aio->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
 
   rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
   EXPECT_EQ(-EINVAL, rc);
@@ -349,7 +345,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
 }
 
 //  Test thread add/rm stream, open_alsa, and iodev config.
-class AlsaAddStreamSuite : public testing::Test {
+class AlsaVolumeMuteSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       aio_output_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
@@ -382,9 +378,8 @@ class AlsaAddStreamSuite : public testing::Test {
   struct cras_audio_format fmt_;
 };
 
-TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
+TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   int rc;
-  struct cras_rstream *new_stream;
   struct cras_audio_format *fmt;
   const size_t fake_system_volume = 55;
   const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
@@ -393,13 +388,6 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   memcpy(fmt, &fmt_, sizeof(fmt_));
   aio_output_->base.format = fmt;
   aio_output_->handle = (snd_pcm_t *)0x24;
-
-  new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
-  new_stream->fd = 55;
-  new_stream->buffer_frames = 65;
-  new_stream->cb_threshold = 80;
-  memcpy(&new_stream->format, fmt, sizeof(*fmt));
-  cras_iodev_append_stream(&aio_output_->base, new_stream);
 
   aio_output_->num_underruns = 3; //  Something non-zero.
   sys_get_volume_return_value = fake_system_volume;
@@ -410,7 +398,6 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
-  aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(0x01);
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;
   alsa_mixer_set_dBFS_called = 0;
@@ -438,13 +425,10 @@ TEST_F(AlsaAddStreamSuite, SetVolumeAndMute) {
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 
-  //  remove the stream.
-  aio_input_->base.streams = reinterpret_cast<struct cras_io_stream*>(NULL);
+  // close the dev.
   rc = aio_output_->base.close_dev(&aio_output_->base);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
-
-  free(new_stream);
 }
 
 }  //  namespace
@@ -782,23 +766,6 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
-}
-
-int cras_iodev_append_stream(struct cras_iodev *dev,
-			     struct cras_rstream *stream)
-{
-  struct cras_io_stream* out;
-
-  /* New stream, allocate a container and add it to the list. */
-  out = (struct cras_io_stream* )calloc(1, sizeof(*out));
-  if (out == NULL)
-    return -ENOMEM;
-  out->stream = stream;
-  out->shm = cras_rstream_get_shm(stream);
-  out->fd = cras_rstream_get_audio_fd(stream);
-  DL_APPEND(dev->streams, out);
-
-  return 0;
 }
 
 audio_thread* audio_thread_create(cras_iodev* iodev) {

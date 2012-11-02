@@ -98,22 +98,6 @@ int cras_iodev_list_get_outputs(struct cras_iodev_info **list_out);
  */
 int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out);
 
-/* Attaches a stream from a device.
- * Args:
- *    iodev - The device to add the stream to.
- *    stream - The stream to add.
- */
-int cras_iodev_attach_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream);
-
-/* Detaches a stream from a device.
- * Args:
- *    iodev - The device to remove the stream from.
- *    stream - The stream to remove.
- */
-int cras_iodev_detach_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream);
-
 /* Moves all streams of type to a new device.
  * Args:
  *    type - The stream type to move.
@@ -133,13 +117,24 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
 int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 					 enum CRAS_STREAM_DIRECTION direction);
 
-/* For each stream playing on dev, detach and tell client to reconfigure.
- * Args:
- *    iodev - the iodev you want the format for.
- */
-void cras_iodev_remove_all_streams(struct cras_iodev *dev);
-
 /* Stores the list of iodevs in the shared memory server state region. */
 void cras_iodev_list_update_clients();
+
+/* Gets the audio thread associated with an iodev.
+ * Args:
+ *    iodev - The iodev to check.
+ * Returns:
+ *    A pointer to the thread for this device or NULL if no thread is set.
+ */
+struct audio_thread *
+cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
+
+/* Sets the audio thread associated with an iodev.
+ * Args:
+ *    iodev - The iodev to set the thread in.
+ *    thread - The thread to use.
+ */
+void cras_iodev_list_set_audio_thread(struct cras_iodev *iodev,
+				      struct audio_thread *thread);
 
 #endif /* CRAS_IODEV_LIST_H_ */

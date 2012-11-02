@@ -29,7 +29,6 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
-#include "audio_thread.h"
 #include "utlist.h"
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
@@ -395,7 +394,6 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	struct alsa_output_node *output, *tmp;
 	struct alsa_input_node *input, *tmp_input;
 
-	audio_thread_destroy(aio->base.thread);
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
 	DL_FOREACH_SAFE(aio->output_nodes, output, tmp) {
@@ -717,10 +715,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->ucm = ucm;
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
 	iodev->info.priority = prio;
-
-	iodev->thread = audio_thread_create(iodev);
-	if (!iodev->thread)
-		goto cleanup_iodev;
 
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base);

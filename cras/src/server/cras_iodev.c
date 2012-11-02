@@ -19,32 +19,6 @@
  * Exported Interface.
  */
 
-int cras_iodev_add_stream(struct cras_iodev *iodev,
-			  struct cras_rstream *stream)
-{
-	struct audio_thread_add_rm_stream_msg msg;
-
-	assert(iodev && stream);
-
-	msg.header.id = AUDIO_THREAD_ADD_STREAM;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
-	msg.stream = stream;
-	return audio_thread_post_message(iodev->thread, &msg.header);
-}
-
-int cras_iodev_rm_stream(struct cras_iodev *iodev,
-			 struct cras_rstream *stream)
-{
-	struct audio_thread_add_rm_stream_msg msg;
-
-	assert(iodev && stream);
-
-	msg.header.id = AUDIO_THREAD_RM_STREAM;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
-	msg.stream = stream;
-	return audio_thread_post_message(iodev->thread, &msg.header);
-}
-
 /* Finds the supported sample rate that best suits the requested rate, "rrate".
  * Exact matches have highest priority, then integer multiples, then the default
  * rate for the device. */
@@ -148,47 +122,6 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 	}
 }
 
-int cras_iodev_append_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream)
-{
-	struct cras_io_stream *out;
-
-	/* Check that we don't already have this stream */
-	DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
-	if (out != NULL)
-		return -EEXIST;
-
-	/* New stream, allocate a container and add it to the list. */
-	out = calloc(1, sizeof(*out));
-	if (out == NULL)
-		return -ENOMEM;
-	out->stream = stream;
-	out->shm = cras_rstream_get_shm(stream);
-	out->fd = cras_rstream_get_audio_fd(stream);
-	DL_APPEND(iodev->streams, out);
-
-	cras_system_state_stream_added();
-
-	return 0;
-}
-
-int cras_iodev_delete_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream)
-{
-	struct cras_io_stream *out;
-
-	/* Find stream, and if found, delete it. */
-	DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
-	if (out == NULL)
-		return -EINVAL;
-	DL_DELETE(iodev->streams, out);
-	free(out);
-
-	cras_system_state_stream_removed();
-
-	return 0;
-}
-
 void cras_iodev_fill_time_from_frames(size_t frames,
 				      size_t frame_rate,
 				      struct timespec *ts)
@@ -247,25 +180,24 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
 	}
 }
 
-void cras_iodev_config_params_for_streams(struct cras_iodev *iodev)
+void cras_iodev_config_params(struct cras_iodev *iodev,
+			      unsigned int buffer_size,
+			      unsigned int cb_threshold)
 {
-	const struct cras_io_stream *lowest, *curr;
-	/* Base settings on the lowest-latency stream. */
-	lowest = iodev->streams;
-	DL_FOREACH(iodev->streams, curr)
-		if (cras_rstream_get_buffer_size(curr->stream) <
-		    cras_rstream_get_buffer_size(lowest->stream))
-			lowest = curr;
-
-	iodev->used_size = cras_rstream_get_buffer_size(lowest->stream);
+	iodev->used_size = buffer_size;
 	if (iodev->used_size > iodev->buffer_size)
 		iodev->used_size = iodev->buffer_size;
-	iodev->cb_threshold = cras_rstream_get_cb_threshold(lowest->stream);
+	iodev->cb_threshold = cb_threshold;
 
 	/* For output streams, callback when at most half way full. */
 	if (iodev->direction == CRAS_STREAM_OUTPUT &&
 	    iodev->cb_threshold > iodev->used_size / 2)
 		iodev->cb_threshold = iodev->used_size / 2;
+
+	syslog(LOG_DEBUG,
+	       "used_size %u cb_threshold %u",
+	       (unsigned)iodev->used_size,
+	       (unsigned)iodev->cb_threshold);
 }
 
 void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged)

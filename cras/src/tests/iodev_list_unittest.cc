@@ -66,6 +66,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.set_mute = NULL;
       d2_.set_capture_gain = NULL;
       d2_.set_capture_mute = NULL;
+      d2_.is_open = is_open;
       d2_.update_supported_formats = NULL;
       d2_.set_as_default = NULL;
       d2_.format = NULL;
@@ -79,6 +80,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.set_mute = NULL;
       d3_.set_capture_gain = NULL;
       d3_.set_capture_mute = NULL;
+      d3_.is_open = is_open;
       d3_.update_supported_formats = NULL;
       d3_.set_as_default = NULL;
       d3_.format = NULL;
@@ -200,9 +202,7 @@ TEST_F(IoDevTestSuite, RouteMostRecentIfSamePrio) {
                                                CRAS_STREAM_OUTPUT);
   EXPECT_EQ(d2_.info.idx, default_dev->info.idx);
 
-  // Test that it is removed if no attached streams.
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
+  // Test that it is removed.
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
   // Remove other dev.
@@ -234,9 +234,7 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
                                                CRAS_STREAM_OUTPUT);
   EXPECT_EQ(d1_.info.idx, default_dev->info.idx);
 
-  // Test that it is removed if no attached streams.
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
+  // Test that it is removed.
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
   // Test that we can't remove a dev twice.
@@ -293,10 +291,7 @@ TEST_F(IoDevTestSuite, AutoRouteOutputs) {
   if (rc > 0)
     free(dev_info);
 
-  // Test that it is removed if no attached streams.
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
-  d3_.streams = (struct cras_io_stream *)NULL;
+  // Test that it is removed.
   rc = cras_iodev_list_rm_output(&d3_);
   EXPECT_EQ(0, rc);
   rc = cras_iodev_list_rm_output(&d2_);
@@ -350,10 +345,7 @@ TEST_F(IoDevTestSuite, AutoRouteOutputsSamePrio) {
   if (rc > 0)
     free(dev_info);
 
-  // Test that it is removed if no attached streams.
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
-  d3_.streams = (struct cras_io_stream *)NULL;
+  // Test that it is removed.
   rc = cras_iodev_list_rm_output(&d3_);
   EXPECT_EQ(0, rc);
   rc = cras_iodev_list_rm_output(&d2_);
@@ -405,9 +397,7 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   if (rc > 0)
     free(dev_info);
 
-  // Test that it is removed if no attached streams.
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
+  // Test that it is removed.
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
   // Test that we can't remove a dev twice.
@@ -441,8 +431,6 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
   EXPECT_EQ(0, rc);
   EXPECT_GE(d2_.info.idx, 1);
 
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
   EXPECT_EQ(0, cras_iodev_list_rm_input(&d1_));
   EXPECT_EQ(0, cras_iodev_list_rm_input(&d2_));
 }
@@ -468,9 +456,7 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
                                            CRAS_STREAM_INPUT);
   EXPECT_EQ(&d1_, ret_dev);
 
-  // Test that it is removed if no attached streams.
-  d1_.streams = (struct cras_io_stream *)NULL;
-  d2_.streams = (struct cras_io_stream *)NULL;
+  // Test that it is removed.
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
   // Add it back.
@@ -658,103 +644,6 @@ TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
   EXPECT_EQ(0, rc);
 }
 
-// Test stream attach/detach.
-TEST_F(IoDevTestSuite, AttachDetachStream) {
-  struct cras_iodev *ret_dev;
-  struct cras_rstream s1, s2;
-  int rc;
-
-  d1_.info.priority = 100;
-  d2_.info.priority = 100;
-
-  rc = cras_iodev_list_add_output(&d2_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-
-  s1.stream_id = 555;
-  s1.stream_type = CRAS_STREAM_TYPE_DEFAULT;
-  s1.direction = CRAS_STREAM_OUTPUT;
-  s1.flags = 0;
-  s1.format.format = SND_PCM_FORMAT_S16_LE;
-  s1.format.frame_rate = 48000;
-  s1.format.num_channels = 2;
-
-  // Attaching a stream.
-  add_stream_called = rm_stream_called = 0;
-  rc = cras_iodev_attach_stream(&d1_, &s1);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, add_stream_called);
-  EXPECT_EQ(&d1_, s1.iodev);
-  EXPECT_NE((void *)NULL, d1_.streams);
-  if (d1_.streams != NULL)
-    EXPECT_EQ(&s1, d1_.streams->stream);
-
-  // Can't add same stream twice.
-  rc = cras_iodev_attach_stream(&d1_, &s1);
-  EXPECT_NE(0, rc);
-
-  // Test moving to invalid device.
-  rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, 949);
-  EXPECT_NE(0, rc);
-
-  // Test that routing to the already default device is a nop.
-  rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, rm_stream_called);
-
-  // Move the stream. Should just remove and wait for add from client.
-  rc = cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d2_.info.idx);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, rm_stream_called);
-  EXPECT_EQ(NULL, d1_.streams);
-
-  // Test that new streams of the same type will get assigned to the same
-  // output device.
-  ret_dev = cras_get_iodev_for_stream_type(s1.stream_type, s1.direction);
-  EXPECT_EQ(&d2_, ret_dev);
-
-  // Attaching a stream.
-  add_stream_called = rm_stream_called = 0;
-  rc = cras_iodev_attach_stream(&d2_, &s1);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, add_stream_called);
-  EXPECT_EQ(&d2_, s1.iodev);
-  EXPECT_NE((void *)NULL, d2_.streams);
-  if (d2_.streams != NULL)
-    EXPECT_EQ(&s1, d2_.streams->stream);
-
-  // Test switching back to the original default stream.
-  rc = cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-                                            s1.direction);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, rm_stream_called);
-  EXPECT_EQ(NULL, d1_.streams);
-
-  // Test that streams now go back to default.
-  ret_dev = cras_get_iodev_for_stream_type(s1.stream_type, s1.direction);
-  EXPECT_EQ(&d1_, ret_dev);
-
-  // Test detaching non-existent stream.
-  add_stream_called = rm_stream_called = 0;
-  rc = cras_iodev_detach_stream(&d2_, &s2);
-  EXPECT_EQ(1, rm_stream_called);
-  EXPECT_NE(0, rc);
-
-  // Detaching a stream.
-  rc = cras_iodev_attach_stream(&d2_, &s1);
-  rm_stream_called  = 0;
-  rc = cras_iodev_detach_stream(&d2_, &s1);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, rm_stream_called);
-  EXPECT_EQ(NULL, s1.iodev);
-
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_rm_output(&d2_);
-  EXPECT_EQ(0, rc);
-}
-
 // Test volume callbacks for default output.
 TEST_F(IoDevTestSuite, VolumeCallbacks) {
   int rc;
@@ -821,12 +710,10 @@ TEST_F(IoDevTestSuite, MuteCallbacks) {
   is_open_ = 1;
   set_mute_1_called_ = 0;
   d1_.set_mute = set_mute_1;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(0x44);;
   mute_changed_cb(mute_changed_arg);
   EXPECT_EQ(1, set_mute_1_called_);
 
   is_open_ = 0;
-  d1_.streams = reinterpret_cast<cras_io_stream*>(NULL);;
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
 }
@@ -918,41 +805,6 @@ extern "C" {
 
 // Stubs
 
-int cras_iodev_append_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream) {
-  struct cras_io_stream *out;
-
-  /* Check that we don't already have this stream */
-  DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
-  if (out != NULL)
-    return -EEXIST;
-
-  /* New stream, allocate a container and add it to the list. */
-  out = static_cast<struct cras_io_stream*>(calloc(1, sizeof(*out)));
-  if (out == NULL)
-    return -ENOMEM;
-  out->stream = stream;
-  out->shm = cras_rstream_get_shm(stream);
-  out->fd = cras_rstream_get_audio_fd(stream);
-  DL_APPEND(iodev->streams, out);
-
-  return 0;
-}
-
-int cras_iodev_delete_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream) {
-  struct cras_io_stream *out;
-
-  /* Find stream, and if found, delete it. */
-  DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
-  if (out == NULL)
-    return -EINVAL;
-  DL_DELETE(iodev->streams, out);
-  free(out);
-
-  return 0;
-}
-
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream) {
 }
 
@@ -1019,18 +871,7 @@ int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
   return 0;
 }
 
-int cras_iodev_add_stream(struct cras_iodev *iodev,
-                          struct cras_rstream *stream)
-{
-	add_stream_called++;
-	return cras_iodev_append_stream(iodev, stream);
-}
-
-int cras_iodev_rm_stream(struct cras_iodev *iodev,
-                         struct cras_rstream *stream)
-{
-	rm_stream_called++;
-	return cras_iodev_delete_stream(iodev, stream);
+void audio_thread_rm_all_streams(struct audio_thread *thread) {
 }
 
 }  // extern "C"

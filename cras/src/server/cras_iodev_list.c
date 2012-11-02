@@ -5,6 +5,7 @@
 
 #include <syslog.h>
 
+#include "audio_thread.h"
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
@@ -83,7 +84,6 @@ static int add_dev_to_list(struct iodev_list *list,
 			return -EEXIST;
 
 	dev->format = NULL;
-	dev->streams = NULL;
 	dev->prev = dev->next = NULL;
 
 	/* Move to the next index and make sure it isn't taken. */
@@ -108,8 +108,8 @@ static int add_dev_to_list(struct iodev_list *list,
 		last = cras_iodev_set_as_default(new_default->direction,
 						 new_default);
 
-		if (last)
-			cras_iodev_remove_all_streams(last);
+		if (last && last->thread)
+			audio_thread_rm_all_streams(last->thread);
 	}
 
 	cras_iodev_list_update_clients();
@@ -123,7 +123,7 @@ static int rm_dev_from_list(struct iodev_list *list, struct cras_iodev *dev)
 
 	DL_FOREACH(list->iodevs, tmp)
 		if (tmp == dev) {
-			if (cras_iodev_streams_attached(dev))
+			if (dev->is_open(dev))
 				return -EBUSY;
 			DL_DELETE(list->iodevs, dev);
 			list->size--;
@@ -210,7 +210,7 @@ void sys_cap_mute_change(void *data)
 }
 
 /*
- * Exported Functions.
+ * Exported Interface.
  */
 
 void cras_iodev_list_init()
@@ -281,7 +281,8 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
 	int res;
 
-	cras_iodev_remove_all_streams(dev);
+	if (dev->thread)
+		audio_thread_rm_all_streams(dev->thread);
 	res = rm_dev_from_list(&outputs, dev);
 	if (default_output == dev)
 		cras_iodev_set_as_default(CRAS_STREAM_OUTPUT,
@@ -295,7 +296,8 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	int res;
 
-	cras_iodev_remove_all_streams(dev);
+	if (dev->thread)
+		audio_thread_rm_all_streams(dev->thread);
 	res = rm_dev_from_list(&inputs, dev);
 	if (default_input == dev)
 		cras_iodev_set_as_default(CRAS_STREAM_INPUT,
@@ -315,31 +317,9 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out)
 	return get_dev_list(&inputs, list_out);
 }
 
-/* Informs the rstream who belongs to it, and then tell the device that it
- * now owns the stream. */
-int cras_iodev_attach_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream)
-{
-	cras_rstream_set_iodev(stream, iodev);
-	return cras_iodev_add_stream(iodev, stream);
-}
-
-/* Removes the stream from the device and tells the stream structure that it is
- * no longer owned. */
-int cras_iodev_detach_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream)
-{
-	int rc;
-
-	rc = cras_iodev_rm_stream(iodev, stream);
-	cras_rstream_set_iodev(stream, NULL);
-	return rc;
-}
-
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 {
 	struct cras_iodev *curr_dev, *new_dev;
-	struct cras_io_stream *iostream, *tmp;
 
 	/* Find new dev */
 	DL_SEARCH_SCALAR(outputs.iodevs, new_dev, info.idx, index);
@@ -355,14 +335,8 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 	if (curr_dev == NULL || curr_dev == new_dev)
 		return 0; /* No change or no streams to move. */
 
-	/* For each stream on curr, detach and tell client to reconfig. */
-	DL_FOREACH_SAFE(curr_dev->streams, iostream, tmp) {
-		struct cras_rstream *stream = iostream->stream;
-		if (cras_rstream_get_type(stream) == type) {
-			cras_iodev_detach_stream(curr_dev, stream);
-			cras_rstream_send_client_reattach(stream);
-		}
-	}
+	if (curr_dev->thread)
+		audio_thread_rm_all_streams(curr_dev->thread);
 
 	return 0;
 }
@@ -395,17 +369,6 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 	return cras_iodev_move_stream_type(type, to_switch->info.idx);
 }
 
-void cras_iodev_remove_all_streams(struct cras_iodev *dev)
-{
-	struct cras_io_stream *iostream, *tmp;
-
-	DL_FOREACH_SAFE(dev->streams, iostream, tmp) {
-		struct cras_rstream *stream = iostream->stream;
-		cras_iodev_detach_stream(dev, stream);
-		cras_rstream_send_client_reattach(stream);
-	}
-}
-
 void cras_iodev_list_update_clients()
 {
 	struct cras_server_state *state;
@@ -420,4 +383,16 @@ void cras_iodev_list_update_clients()
 	fill_dev_list(&inputs, &state->input_devs[0], CRAS_MAX_IODEVS);
 
 	cras_system_state_update_complete();
+}
+
+struct audio_thread *
+cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
+{
+	return iodev->thread;
+}
+
+void cras_iodev_list_set_audio_thread(struct cras_iodev *iodev,
+				      struct audio_thread *thread)
+{
+	iodev->thread = thread;
 }
