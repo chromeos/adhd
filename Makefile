@@ -56,7 +56,7 @@ ifneq ($(strip $(optional_cras_conf)),)
 cras-config-files:
 	$(ECHO) "Installing cras config files"
 	$(INSTALL) --mode 755 -d $(DESTDIR)etc/cras/
-	$(INSTALL) --mode 644 -D "$(optional_cras_conf)" $(DESTDIR)etc/cras/
+	$(INSTALL) --mode 644 -D $(ADHD_DIR)/cras-config/$(BOARD)/* $(DESTDIR)etc/cras/
 
 install:	cras-config-files
 

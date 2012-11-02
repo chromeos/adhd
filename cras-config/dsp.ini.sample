@@ -1,0 +1,56 @@
+[output_source]
+library=builtin
+label=source
+purpose=playback
+disable=(equal? output_jack "HDMI")
+output_0={src:0}
+output_1={src:1}
+
+[output_sink]
+library=builtin
+label=sink
+purpose=playback
+disable=(equal? output_jack "HDMI")
+input_0={dst:0}
+input_1={dst:1}
+
+[eq]
+library=caps.so
+label=Eq2x2
+disable=disable_eq
+input_0={src:0}
+input_1={src:1}
+input_2=0    ; 31 Hz (the value is gain in db, same for following entries)
+input_3=5    ; 63 Hz
+input_4=5    ; 125 Hz
+input_5=5    ; 250 Hz
+input_6=5    ; 500 Hz
+input_7=0    ; 1 kHz
+input_8=0    ; 2 kHz
+input_9=-5   ; 4 KHz
+input_10=-5  ; 8 kHz
+input_11=-5  ; 16 kHz
+output_12={intermediate:0}
+output_13={intermediate:1}
+
+[drc-left]
+library=dyson_compress_1403.so
+label=dysonCompress
+disable=disable_drc
+input_0=0    ; peak limit (db)
+input_1=1    ; release time (s)
+input_2=.5    ; fast ratio
+input_3=.99    ; ratio
+input_4={intermediate:0}
+output_5={dst:0}
+
+[drc-right]
+library=dyson_compress_1403.so
+label=dysonCompress
+disable=disable_drc
+input_0=0    ; peak limit (db)
+input_1=1    ; release time (s)
+input_2=.5    ; fast ratio
+input_3=.99    ; ratio
+input_4={intermediate:1}
+output_5={dst:1}
