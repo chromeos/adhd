@@ -57,7 +57,7 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	alsa_card_unittest alsa_mixer_unittest iodev_unittest \
 	alsa_jack_unittest card_config_unittest device_blacklist_unittest \
 	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest \
-	checksum_unittest bluetooth_unittest
+	checksum_unittest bluetooth_unittest array_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -66,6 +66,10 @@ cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common
 
 # unit tests
+array_unittest_SOURCES = tests/array_unittest.cc
+array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
+array_unittest_LDADD = -lgtest -lpthread
+
 card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c
 card_config_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
