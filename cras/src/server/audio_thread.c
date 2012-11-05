@@ -61,6 +61,8 @@ static int append_stream(struct audio_thread *thread,
 	out->fd = cras_rstream_get_audio_fd(stream);
 	DL_APPEND(thread->streams, out);
 
+	cras_rstream_set_thread(stream, thread);
+
 	return 0;
 }
 
@@ -73,6 +75,9 @@ static int delete_stream(struct audio_thread *thread,
 	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
 	if (out == NULL)
 		return -EINVAL;
+
+	cras_rstream_set_thread(stream, NULL);
+
 	DL_DELETE(thread->streams, out);
 	free(out);
 
@@ -104,8 +109,6 @@ int thread_remove_stream(struct audio_thread *thread,
 			cras_rstream_get_buffer_size(min_latency->stream),
 			cras_rstream_get_cb_threshold(min_latency->stream));
 	}
-
-	cras_rstream_set_iodev(stream, NULL);
 
 	return streams_attached(thread);
 }

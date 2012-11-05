@@ -128,7 +128,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	cras_iodev_list_set_audio_thread(iodev, thread);
 
 	DL_APPEND(client->streams, stream);
-	cras_rstream_set_iodev(stream, iodev);
 	rc = audio_thread_add_stream(thread, stream);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Attach stream failed.\n");
@@ -148,6 +147,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	rc = cras_rclient_send_message(client, &reply.header);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
+		if (audio_thread_rm_stream(thread, stream) == 0)
+			audio_thread_destroy(thread);
 		return rc;
 	}
 
@@ -174,18 +175,10 @@ reply_err:
 static int disconnect_client_stream(struct cras_rclient *client,
 				    struct cras_rstream *stream)
 {
-	if (stream->iodev != NULL) {
-		struct audio_thread *thread =
-			cras_iodev_list_get_audio_thread(stream->iodev);
-
-		if (thread) {
-			int num_active = audio_thread_rm_stream(thread, stream);
-			if (num_active == 0)
-				audio_thread_destroy(thread);
-		}
-
-		cras_rstream_set_iodev(stream, NULL);
-	}
+	struct audio_thread *thread = cras_rstream_get_thread(stream);
+	if (thread)
+		if (audio_thread_rm_stream(thread, stream) == 0)
+			audio_thread_destroy(thread);
 
 	cras_server_disconnect_from_client_socket(
 			cras_rstream_get_audio_fd(stream));

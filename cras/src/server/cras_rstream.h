@@ -12,7 +12,7 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 
-struct cras_iodev;
+struct audio_thread;
 struct cras_rclient;
 
 /* cras_rstream is used to manage an active audio stream from
@@ -33,7 +33,7 @@ struct cras_rstream {
 	uint32_t flags;
 	struct cras_rclient *client;
 	struct cras_audio_shm shm;
-	struct cras_iodev *iodev;
+	struct audio_thread *thread;
 	struct cras_rstream *prev, *next;
 	struct cras_audio_format format;
 };
@@ -149,18 +149,18 @@ struct cras_audio_shm *cras_rstream_get_shm(struct cras_rstream *stream)
 	return &stream->shm;
 }
 
-/* Gets the input/output device for a stream. */
-static inline struct cras_iodev *cras_rstream_get_iodev(
+/* Gets the audio thread for a stream. */
+static inline struct audio_thread *cras_rstream_get_thread(
 		const struct cras_rstream *s)
 {
-	return s->iodev;
+	return s->thread;
 }
 
-/* Sets the input/output device for a stream. */
-static inline void cras_rstream_set_iodev(struct cras_rstream *s,
-					  struct cras_iodev *o)
+/* Sets the audio thread for a stream. */
+static inline void cras_rstream_set_thread(struct cras_rstream *s,
+					   struct audio_thread *o)
 {
-	s->iodev = o;
+	s->thread = o;
 }
 
 /* Requests data from the stream will request at least min_req frames. */
