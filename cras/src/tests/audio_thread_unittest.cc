@@ -508,7 +508,8 @@ class WriteStreamSuite : public testing::Test {
       EXPECT_EQ((void*)possibly_fill_audio, (void*)thread_->audio_cb);
 
       iodev_.thread = thread_;
-      thread_->iodev = &iodev_;
+      thread_->output_dev = &iodev_;
+      thread_->input_dev = NULL;
 
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
@@ -996,7 +997,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   new_stream->cb_threshold = 80;
   memcpy(&new_stream->format, &fmt_, sizeof(fmt_));
 
-  thread.iodev = &iodev_;
+  thread.output_dev = &iodev_;
   iodev_.thread = &thread;
 
   rc = thread_add_stream(&thread, new_stream);
@@ -1033,7 +1034,7 @@ TEST_F(AddStreamSuite, AddRmTwoOutputStreams) {
   new_stream->cb_threshold = 80;
   memcpy(&new_stream->format, fmt, sizeof(*fmt));
 
-  thread.iodev = &iodev_;
+  thread.output_dev = &iodev_;
   iodev_.thread = &thread;
 
   rc = thread_add_stream(&thread, new_stream);
@@ -1076,14 +1077,13 @@ TEST_F(AddStreamSuite, AddRmTwoOutputStreams) {
 TEST_F(AddStreamSuite, OneInputStreamPerDevice) {
   int rc;
   struct audio_thread thread;
+  struct cras_rstream new_stream;
 
   memset(&thread, 0, sizeof(thread));
 
-  iodev_.direction = CRAS_STREAM_INPUT;
-  thread.iodev = &iodev_;
-  iodev_.thread = &thread;
+  new_stream.direction = CRAS_STREAM_INPUT;
   thread.streams = reinterpret_cast<cras_io_stream*>(0x01);
-  rc = thread_add_stream(&thread, reinterpret_cast<cras_rstream*>(0x44));
+  rc = thread_add_stream(&thread, &new_stream);
   EXPECT_EQ(-EBUSY, rc);
 }
 

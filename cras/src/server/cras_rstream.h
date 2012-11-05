@@ -163,6 +163,18 @@ static inline void cras_rstream_set_thread(struct cras_rstream *s,
 	s->thread = o;
 }
 
+/* Checks if the stream uses output. */
+static inline int stream_has_output(const struct cras_rstream *s)
+{
+	return (s->direction == CRAS_STREAM_OUTPUT);
+}
+
+/* Checks if the stream uses input. */
+static inline int stream_has_input(const struct cras_rstream *s)
+{
+	return (s->direction == CRAS_STREAM_INPUT);
+}
+
 /* Requests data from the stream will request at least min_req frames. */
 int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count);
 /* Requests a complete buffer worth of audio. */

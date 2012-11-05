@@ -22,7 +22,8 @@ struct cras_io_stream {
 
 /* Hold communication pipes and pthread info for a thread used to play or record
  * audio.  This maps 1 to 1 with IO devices.
- *    iodev - The iodev to attach this thread to.
+ *    odev - The output device to attach this thread to, NULL if none.
+ *    idev - The input device to attach this thread to, NULL if none.
  *    to_thread_fds - Send a message from main to running thread.
  *    to_main_fds - Send a message to main from running thread.
  *    tid - Thread ID of the running playback/capture thread.
@@ -36,7 +37,8 @@ struct cras_io_stream {
  *    streams - List of audio streams serviced by this thread.
  */
 struct audio_thread {
-	struct cras_iodev *iodev;
+	struct cras_iodev *output_dev;
+	struct cras_iodev *input_dev;
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	pthread_t tid;
