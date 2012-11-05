@@ -846,25 +846,34 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 		return NULL;
 	}
 
-	/* Start the device thread, it will block until a stream is added. */
+	return thread;
+}
+
+int audio_thread_start(struct audio_thread *thread)
+{
+	int rc;
+
 	rc = pthread_create(&thread->tid, NULL, audio_io_thread, thread);
-	if (rc != 0) {
+	if (rc) {
 		syslog(LOG_ERR, "Failed pthread_create");
-		free(thread);
-		return NULL;
+		return rc;
 	}
 
-	return thread;
+	thread->started = 1;
+
+	return 0;
 }
 
 void audio_thread_destroy(struct audio_thread *thread)
 {
-	struct audio_thread_msg msg;
+	if (thread->started) {
+		struct audio_thread_msg msg;
 
-	msg.id = AUDIO_THREAD_STOP;
-	msg.length = sizeof(msg);
-	audio_thread_post_message(thread, &msg);
-	pthread_join(thread->tid, NULL);
+		msg.id = AUDIO_THREAD_STOP;
+		msg.length = sizeof(msg);
+		audio_thread_post_message(thread, &msg);
+		pthread_join(thread->tid, NULL);
+	}
 
 	if (thread->to_thread_fds[0] != -1) {
 		close(thread->to_thread_fds[0]);

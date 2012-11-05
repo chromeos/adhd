@@ -45,6 +45,14 @@ static struct audio_thread *get_audio_thread_for_iodev(struct cras_iodev *iodev)
 
 	thread = audio_thread_create(iodev);
 
+	if (thread) {
+		int rc = audio_thread_start(thread);
+		if (rc) {
+			audio_thread_destroy(thread);
+			return NULL;
+		}
+	}
+
 	return thread;
 }
 

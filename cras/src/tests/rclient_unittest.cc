@@ -412,6 +412,10 @@ audio_thread* audio_thread_create(cras_iodev* iodev) {
   return audio_thread_create_return;
 }
 
+int audio_thread_start(audio_thread* thread) {
+  return 0;
+}
+
 void audio_thread_destroy(audio_thread* thread) {
   audio_thread_destroy_called++;
 }

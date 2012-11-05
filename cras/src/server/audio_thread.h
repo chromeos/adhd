@@ -26,6 +26,7 @@ struct cras_io_stream {
  *    to_thread_fds - Send a message from main to running thread.
  *    to_main_fds - Send a message to main from running thread.
  *    tid - Thread ID of the running playback/capture thread.
+ *    started - Non-zero if the thread has started successfully.
  *    sleep_correction_frames - Number of frames to adjust sleep time by.  This
  *      is adjusted based on sleeping too long or short so that the sleep
  *      interval tracks toward the targeted number of frames.
@@ -39,6 +40,7 @@ struct audio_thread {
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	pthread_t tid;
+	int started;
 	int sleep_correction_frames;
 	int (*audio_cb)(struct audio_thread *thread, struct timespec *ts);
 	struct cras_io_stream *streams;
@@ -70,6 +72,14 @@ struct audio_thread_add_rm_stream_msg {
  *    error.
  */
 struct audio_thread *audio_thread_create(struct cras_iodev *iodev);
+
+/* Starts a thread created with audio_thread_create.
+ * Args:
+ *    thread - The thread to start.
+ * Returns:
+ *    0 on success, return code from pthread_crate on failure.
+ */
+int audio_thread_start(struct audio_thread *thread);
 
 /* Frees an audio thread created with audio_thread_create(). */
 void audio_thread_destroy(struct audio_thread *thread);

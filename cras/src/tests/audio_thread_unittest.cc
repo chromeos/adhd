@@ -89,6 +89,7 @@ class ReadStreamSuite : public testing::Test {
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
       memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
+      rstream_->direction = CRAS_STREAM_INPUT;
 
       shm_ = &rstream_->shm;
 
@@ -186,7 +187,7 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
 
   iodev_.thread = thread;
 
-  audio_thread_add_stream(thread, rstream_);
+  thread_add_stream(thread, rstream_);
 
   frames_queued_ = -4;
   rc = possibly_read_audio(thread, &ts);
@@ -209,7 +210,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
 
   iodev_.thread = thread;
 
-  audio_thread_add_stream(thread, rstream_);
+  thread_add_stream(thread, rstream_);
 
   //  If no samples are present, it should sleep for cb_threshold frames.
   frames_queued_ = 0;
@@ -237,8 +238,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataDrop) {
   EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
-
-  audio_thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.  No streams attached so samples are dropped.
   frames_queued_ = iodev_.cb_threshold + 4;
@@ -270,7 +269,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
 
   iodev_.thread = thread;
 
-  audio_thread_add_stream(thread, rstream_);
+  thread_add_stream(thread, rstream_);
 
   frames_queued_ = iodev_.cb_threshold - num_frames_short;
   audio_buffer_size_ = frames_queued_;
@@ -301,7 +300,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
 
   iodev_.thread = thread;
 
-  audio_thread_add_stream(thread, rstream_);
+  thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
   frames_queued_ = iodev_.cb_threshold + 4;
@@ -339,7 +338,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
 
   iodev_.thread = thread;
 
-  audio_thread_add_stream(thread, rstream_);
+  thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
   frames_queued_ = iodev_.cb_threshold + 4;
@@ -377,7 +376,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
-  audio_thread_add_stream(thread, rstream_);
+
+  thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
   frames_queued_ = iodev_.cb_threshold + 4;
@@ -421,7 +421,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
-  audio_thread_add_stream(thread, rstream_);
+
+  thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
   frames_queued_ = iodev_.cb_threshold + 4;
@@ -449,7 +450,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
-  audio_thread_add_stream(thread, rstream_);
+  thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
   frames_queued_ = iodev_.cb_threshold + 4;
@@ -526,7 +527,7 @@ class WriteStreamSuite : public testing::Test {
       cras_dsp_pipeline_run_called = 0;
       cras_dsp_pipeline_run_sample_count = 0;
 
-      audio_thread_add_stream(thread_, rstream_);
+      thread_add_stream(thread_, rstream_);
     }
 
     virtual void TearDown() {
@@ -748,7 +749,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
   shm2_->area->write_offset[0] = cras_shm_used_size(shm2_);
 
-  audio_thread_add_stream(thread_, rstream2_);
+  thread_add_stream(thread_, rstream2_);
 
   rc = possibly_fill_audio(thread_, &ts);
   EXPECT_EQ(0, rc);
@@ -775,7 +776,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
   shm2_->area->write_offset[0] = cras_shm_used_size(shm2_);
 
-  audio_thread_add_stream(thread_, rstream2_);
+  thread_add_stream(thread_, rstream2_);
 
   //  Test that nothing breaks if one stream doesn't fill.
   cras_mix_add_stream_dont_fill_next = 1;
@@ -799,7 +800,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   shm_->area->write_offset[0] = 0;
   shm2_->area->write_offset[0] = 0;
 
-  audio_thread_add_stream(thread_, rstream2_);
+  thread_add_stream(thread_, rstream2_);
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
@@ -834,7 +835,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
   shm2_->area->write_offset[0] = cras_shm_used_size(shm2_);
   shm2_->area->write_buf_idx = 1;
 
-  audio_thread_add_stream(thread_, rstream2_);
+  thread_add_stream(thread_, rstream2_);
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
