@@ -230,7 +230,7 @@ state.PCH {
 	control.21 {
 		iface MIXER
 		name 'Voice Focus Capture Switch'
-		value true
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
