@@ -261,6 +261,10 @@ class IoDevSetFormatTestSuite : public testing::Test {
       iodev_.supported_channel_counts = channel_counts_;
     }
 
+    virtual void TearDown() {
+      cras_iodev_free_format(&iodev_);
+    }
+
     struct cras_iodev iodev_;
     size_t sample_rates_[3];
     size_t channel_counts_[2];
@@ -360,6 +364,21 @@ void cras_system_state_stream_added() {
 }
 
 void cras_system_state_stream_removed() {
+}
+
+// From cras_dsp
+struct cras_dsp_context *cras_dsp_context_new(int channels, int sample_rate,
+                                              const char *purpose)
+{
+  return NULL;
+}
+
+void cras_dsp_context_free(struct cras_dsp_context *ctx)
+{
+}
+
+void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
+{
 }
 
 }  // extern "C"

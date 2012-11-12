@@ -140,12 +140,15 @@ void cras_iodev_deinit(struct cras_iodev *iodev)
 		iodev->to_main_fds[0] = -1;
 		iodev->to_main_fds[1] = -1;
 	}
+
+	cras_iodev_free_format(iodev);
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
 	size_t actual_rate, actual_num_channels;
+	const char *purpose;
 
 	/* If this device isn't already using a format, try to match the one
 	 * requested in "fmt". */
@@ -177,10 +180,31 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		iodev->format->num_channels = actual_num_channels;
 		/* TODO(dgreid) - allow other formats. */
 		iodev->format->format = SND_PCM_FORMAT_S16_LE;
+
+		if (iodev->direction == CRAS_STREAM_OUTPUT)
+			purpose = "playback";
+		else
+			purpose = "capture";
+		iodev->dsp_context = cras_dsp_context_new(actual_num_channels,
+							  actual_rate, purpose);
+		if (iodev->dsp_context)
+			cras_dsp_load_pipeline(iodev->dsp_context);
 	}
 
 	*fmt = *(iodev->format);
 	return 0;
+}
+
+void cras_iodev_free_format(struct cras_iodev *iodev)
+{
+	if (iodev->format) {
+		free(iodev->format);
+		iodev->format = NULL;
+	}
+	if (iodev->dsp_context) {
+		cras_dsp_context_free(iodev->dsp_context);
+		iodev->dsp_context = NULL;
+	}
 }
 
 int cras_iodev_append_stream(struct cras_iodev *iodev,

@@ -64,8 +64,7 @@ static int thread_remove_stream(struct cras_iodev *iodev,
 		return rc;
 
 	if (!cras_iodev_streams_attached(iodev)) {
-		free(iodev->format);
-		iodev->format = NULL;
+		cras_iodev_free_format(iodev);
 	} else {
 		cras_iodev_config_params_for_streams(iodev);
 		syslog(LOG_DEBUG,

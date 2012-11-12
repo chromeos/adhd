@@ -21,6 +21,8 @@
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
 #include "cras_config.h"
+#include "cras_dsp.h"
+#include "cras_dsp_pipeline.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
@@ -163,8 +165,7 @@ static void close_alsa(struct alsa_io *aio)
 	cras_alsa_pcm_drain(aio->handle);
 	cras_alsa_pcm_close(aio->handle);
 	aio->handle = NULL;
-	free(aio->base.format);
-	aio->base.format = NULL;
+	cras_iodev_free_format(&aio->base);
 }
 
 /* Gets the curve for the active output. */
@@ -549,6 +550,83 @@ static int get_data_from_other_streams(struct alsa_io *aio, size_t alsa_used)
 	return 0;
 }
 
+static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
+			       uint8_t *buf, size_t frames)
+{
+	size_t chunk;
+	size_t i, j;
+	int16_t *target, *target_ptr;
+	float *source[channels], *sink[channels];
+	float *source_ptr[channels], *sink_ptr[channels];
+
+	if (!pipeline || frames == 0)
+		return;
+
+	target = (int16_t *)buf;
+
+	/* get pointers to source and sink buffers */
+	for (i = 0; i < channels; i++) {
+		source[i] = cras_dsp_pipeline_get_source_buffer(pipeline, i);
+		sink[i] = cras_dsp_pipeline_get_sink_buffer(pipeline, i);
+	}
+
+	/* process at most DSP_BUFFER_SIZE frames each loop */
+	while (frames > 0) {
+		chunk = min(frames, (size_t)DSP_BUFFER_SIZE);
+
+		/* deinterleave and convert to float */
+		target_ptr = target;
+		for (i = 0; i < channels; i++)
+			source_ptr[i] = source[i];
+		for (i = 0; i < chunk; i++) {
+			for (j = 0; j < channels; j++)
+				*(source_ptr[j]++) = *target_ptr++ / 32767.5f;
+		}
+
+		cras_dsp_pipeline_run(pipeline, chunk);
+
+		/* interleave and convert back to int16_t */
+		target_ptr = target;
+		for (i = 0; i < channels; i++)
+			sink_ptr[i] = sink[i];
+		for (i = 0; i < chunk; i++) {
+			for (j = 0; j < channels; j++) {
+				float f = *(sink_ptr[j]++) * 32767.5f;
+				int16_t i16;
+				if (f > 32767)
+					i16 = 32767;
+				else if (f < -32768)
+					i16 = -32768;
+				else
+					i16 = (int16_t) f;
+				*target_ptr++ = i16;
+			}
+		}
+
+		target += chunk * channels;
+		frames -= chunk;
+	}
+}
+
+static void apply_dsp(struct alsa_io *aio, uint8_t *buf, size_t frames)
+{
+	struct cras_dsp_context *ctx;
+	struct pipeline *pipeline;
+
+	ctx = aio->base.dsp_context;
+	if (!ctx)
+		return;
+
+	pipeline = cras_dsp_get_pipeline(ctx);
+	if (!pipeline)
+		return;
+
+	apply_dsp_pipeline(pipeline, aio->base.format->num_channels, buf,
+			   frames);
+
+	cras_dsp_put_pipeline(ctx);
+}
+
 /* Check if we should get more samples for playback from the source streams. If
  * more data is needed by the output, fetch and render it.
  * Args:
@@ -628,6 +706,7 @@ static int possibly_fill_audio(struct alsa_io *aio,
 			 * won't fill the request. */
 			fr_to_req = 0; /* break out after committing samples */
 
+		apply_dsp(aio, dst, written);
 		rc = cras_alsa_mmap_commit(aio->handle, offset, written,
 					   &aio->num_underruns);
 		if (rc < 0)
@@ -713,6 +792,8 @@ static int possibly_read_audio(struct alsa_io *aio,
 	uint64_t to_sleep;
 	size_t fr_bytes;
 	uint8_t *src;
+	uint8_t *dst = NULL;
+	unsigned write_limit = 0;
 
 	ts->tv_sec = ts->tv_nsec = 0;
 	fr_bytes = cras_get_format_bytes(aio->base.format);
@@ -743,6 +824,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 		cras_iodev_set_capture_timestamp(aio->base.format->frame_rate,
 						 delay,
 						 &shm->area->ts);
+		dst = cras_shm_get_writeable_frames(shm, &write_limit);
 	}
 
 	remainder = num_to_read;
@@ -763,6 +845,7 @@ static int possibly_read_audio(struct alsa_io *aio,
 	}
 
 	if (aio->base.streams) {
+		apply_dsp(aio, dst, min(num_to_read, write_limit));
 		cras_shm_buffer_write_complete(aio->base.streams->shm);
 
 		/* Tell the client that samples are ready.  This assumes only

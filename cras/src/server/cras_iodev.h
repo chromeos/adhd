@@ -14,6 +14,7 @@
 #ifndef CRAS_IODEV_H_
 #define CRAS_IODEV_H_
 
+#include "cras_dsp.h"
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
 
@@ -48,6 +49,7 @@ struct cras_io_stream {
  * to_thread_fds - Send a message from main to running thread.
  * to_main_fds - Send a message to main from running thread.
  * tid - Thread ID of the running playback/capture thread.
+ * dsp_context - The context used for dsp processing on the audio data.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -68,6 +70,7 @@ struct cras_iodev {
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	pthread_t tid;
+	struct cras_dsp_context *dsp_context;
 	struct cras_iodev *prev, *next;
 };
 
@@ -135,7 +138,7 @@ void cras_iodev_deinit(struct cras_iodev *iodev);
 
 /* Sets up the iodev for the given format if possible.  If the iodev can't
  * handle the requested format, it will modify the fmt parameter to inform the
- * caller of the actual format.
+ * caller of the actual format. It also allocates a dsp context for the iodev.
  * Args:
  *    iodev - the iodev you want the format for.
  *    fmt - pass in the desired format, is filled with the actual
@@ -143,6 +146,14 @@ void cras_iodev_deinit(struct cras_iodev *iodev);
  */
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt);
+
+/* Clear the format previously set for this iodev. It also release the
+ * dsp context for this iodev.
+ *
+ * Args:
+ *    iodev - the iodev you want to free the format.
+ */
+void cras_iodev_free_format(struct cras_iodev *iodev);
 
 /* Adds a stream to the iodev.
  * Args:

@@ -101,6 +101,15 @@ static size_t cras_rstream_audio_ready_called;
 static size_t cras_iodev_plug_event_called;
 static int cras_iodev_plug_event_value;
 static unsigned cras_alsa_jack_enable_ucm_called;
+static int cras_dsp_get_pipeline_called;
+static int cras_dsp_get_pipeline_ret;
+static int cras_dsp_put_pipeline_called;
+static int cras_dsp_pipeline_get_source_buffer_called;
+static int cras_dsp_pipeline_get_sink_buffer_called;
+static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
+static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
+static int cras_dsp_pipeline_run_called;
+static int cras_dsp_pipeline_run_sample_count;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -140,6 +149,17 @@ void ResetStubData() {
   cras_rstream_audio_ready_called = 0;
   cras_iodev_plug_event_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
+  cras_dsp_get_pipeline_called = 0;
+  cras_dsp_get_pipeline_ret = 0;
+  cras_dsp_put_pipeline_called = 0;
+  cras_dsp_pipeline_get_source_buffer_called = 0;
+  cras_dsp_pipeline_get_sink_buffer_called = 0;
+  memset(&cras_dsp_pipeline_source_buffer, 0,
+         sizeof(cras_dsp_pipeline_source_buffer));
+  memset(&cras_dsp_pipeline_sink_buffer, 0,
+         sizeof(cras_dsp_pipeline_sink_buffer));
+  cras_dsp_pipeline_run_called = 0;
+  cras_dsp_pipeline_run_sample_count = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -604,6 +624,18 @@ TEST_F(AlsaAddStreamSuite, OneActiveInput) {
   free(new_stream);
 }
 
+static void fill_test_data(int16_t *data, size_t size)
+{
+  for (size_t i = 0; i < size; i++)
+    data[i] = i;
+}
+
+static void verify_processed_data(int16_t *data, size_t size)
+{
+  for (size_t i = 0; i < size; i++)
+    EXPECT_EQ(i * 2, data[i]);  // multiplied by 2 in cras_dsp_pipeline_run()
+}
+
 //  Test the audio capture path, this involves a lot of setup before calling the
 //  funcitons we want to test.  Will need to setup the device, a fake stream,
 //  and a fake shm area to put samples in.
@@ -635,6 +667,8 @@ class AlsaCaptureStreamSuite : public testing::Test {
 
       cras_alsa_mmap_begin_buffer = (uint8_t *)malloc(cras_shm_used_size(shm_));
       cras_alsa_mmap_begin_frames = aio_->base.cb_threshold;
+      fill_test_data((int16_t *)cras_alsa_mmap_begin_buffer,
+                     cras_shm_used_size(shm_) / 2);
 
       ResetStubData();
     }
@@ -812,6 +846,48 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadWriteThreeBuffers) {
     EXPECT_EQ(cras_alsa_mmap_begin_buffer[i], shm_->area->samples[i]);
 }
 
+TEST_F(AlsaCaptureStreamSuite, PossiblyReadWithoutPipeline) {
+  struct timespec ts;
+  int rc;
+
+  //  A full block plus 4 frames.
+  cras_alsa_get_avail_frames_ret = 0;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
+  aio_->base.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
+
+  rc = possibly_read_audio(aio_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(0, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_run_called);
+}
+
+TEST_F(AlsaCaptureStreamSuite, PossiblyReadWithPipeline) {
+  struct timespec ts;
+  int rc;
+
+  //  A full block plus 4 frames.
+  cras_alsa_get_avail_frames_ret = 0;
+  cras_alsa_get_avail_frames_avail = aio_->base.cb_threshold + 4;
+  aio_->base.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
+  cras_dsp_get_pipeline_ret = 0x6;
+
+  rc = possibly_read_audio(aio_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_get_source_buffer_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_get_sink_buffer_called);
+  EXPECT_EQ(1, cras_dsp_pipeline_run_called);
+  EXPECT_EQ(aio_->base.cb_threshold, cras_dsp_pipeline_run_sample_count);
+
+  /* The data move from mmap buffer to source buffer to sink buffer to shm. */
+  verify_processed_data((int16_t *)shm_->area->samples,
+                        cras_dsp_pipeline_run_sample_count);
+}
+
 //  Test the audio playback path.
 class AlsaPlaybackStreamSuite : public testing::Test {
   protected:
@@ -864,6 +940,8 @@ class AlsaPlaybackStreamSuite : public testing::Test {
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
           shm, aio_->base.used_size * cras_shm_frame_bytes(shm));
+      fill_test_data((int16_t *)shm->area->samples,
+                     cras_shm_used_size(shm) / 2);
     }
 
   struct alsa_io *aio_;
@@ -964,14 +1042,11 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
 TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   struct timespec ts;
   int rc;
-  uint64_t nsec_expected;
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
-  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
-      1000000000 / fmt_.frame_rate;
 
   //  shm is out of data.
   shm_->area->write_offset[0] = 0;
@@ -983,8 +1058,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   rc = possibly_fill_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(0, ts.tv_nsec);
   EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
             cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
@@ -1053,14 +1127,11 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
 TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   struct timespec ts;
   int rc;
-  uint64_t nsec_expected;
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
-  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
-      1000000000 / fmt_.frame_rate;
 
   //  shm has nothing left.
   shm_->area->write_offset[0] = 0;
@@ -1076,33 +1147,25 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   rc = possibly_fill_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(0, ts.tv_nsec);
   EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
             cras_mix_add_stream_count);
   EXPECT_EQ(2, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
 
-TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
+TEST_F(AlsaPlaybackStreamSuite, PossiblyFillWithoutPipeline) {
   struct timespec ts;
   int rc;
-  uint64_t nsec_expected;
 
   //  Have cb_threshold samples left.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
-  nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
-      1000000000 / fmt_.frame_rate;
+  aio_->base.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
 
-  //  One has too little the other is full.
-  shm_->area->write_offset[0] = 40;
-  shm_->area->write_buf_idx = 1;
-  shm2_->area->write_offset[0] = cras_shm_used_size(shm2_);
-  shm2_->area->write_buf_idx = 1;
-
-  cras_iodev_append_stream(&aio_->base, rstream2_);
+  //  shm has plenty of data in it.
+  shm_->area->write_offset[0] = cras_shm_used_size(shm_);
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
@@ -1110,13 +1173,48 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
 
   rc = possibly_fill_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
             cras_mix_add_stream_count);
-  EXPECT_EQ(1, cras_rstream_request_audio_called);
-  EXPECT_NE(-1, select_max_fd);
+  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(0, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_run_called);
+}
+
+TEST_F(AlsaPlaybackStreamSuite, PossiblyFillWithPipeline) {
+  struct timespec ts;
+  int rc;
+
+  //  Have cb_threshold samples left.
+  cras_alsa_get_avail_frames_ret = 0;
+  cras_alsa_get_avail_frames_avail =
+      aio_->base.buffer_size - aio_->base.cb_threshold;
+  aio_->base.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
+  cras_dsp_get_pipeline_ret = 0x6;
+
+  //  shm has plenty of data in it.
+  shm_->area->write_offset[0] = cras_shm_used_size(shm_);
+
+  FD_ZERO(&select_out_fds);
+  FD_SET(rstream_->fd, &select_out_fds);
+  select_return_value = 1;
+
+  rc = possibly_fill_audio(aio_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_mix_add_stream_count);
+  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_get_source_buffer_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_get_sink_buffer_called);
+  EXPECT_EQ(1, cras_dsp_pipeline_run_called);
+  EXPECT_EQ(aio_->base.used_size - aio_->base.cb_threshold,
+            cras_dsp_pipeline_run_sample_count);
+
+  /* The data move from shm to source buffer to sink buffer to mmap buffer. */
+  verify_processed_data((int16_t *)cras_alsa_mmap_begin_buffer,
+                        cras_dsp_pipeline_run_sample_count);
 }
 
 }  //  namespace
@@ -1393,11 +1491,37 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 			   size_t *count,
 			   size_t *index)
 {
+  int16_t *src;
+  int16_t *target = (int16_t *)dst;
+  size_t fr_written, fr_in_buf;
+  size_t num_samples;
+  size_t frames = 0;
+
   if (cras_mix_add_stream_dont_fill_next) {
     cras_mix_add_stream_dont_fill_next = 0;
     return 0;
   }
   cras_mix_add_stream_count = *count;
+
+  /* We only copy the data from shm to dst, not actually mix them. */
+  fr_in_buf = cras_shm_get_frames(shm);
+  if (fr_in_buf == 0)
+    return 0;
+  if (fr_in_buf < *count)
+    *count = fr_in_buf;
+
+  fr_written = 0;
+  while (fr_written < *count) {
+    src = cras_shm_get_readable_frames(shm, fr_written,
+                                       &frames);
+    if (frames > *count - fr_written)
+      frames = *count - fr_written;
+    num_samples = frames * num_channels;
+    memcpy(target, src, num_samples * 2);
+    fr_written += frames;
+    target += num_samples;
+  }
+
   *index = *index + 1;
   return *count;
 }
@@ -1581,6 +1705,46 @@ struct mixer_volume_control *cras_alsa_jack_get_mixer_input(
 
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
   return 0;
+}
+
+struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)
+{
+  cras_dsp_get_pipeline_called++;
+  return reinterpret_cast<struct pipeline *>(cras_dsp_get_pipeline_ret);
+}
+
+void cras_dsp_put_pipeline(struct cras_dsp_context *ctx)
+{
+  cras_dsp_put_pipeline_called++;
+}
+
+float *cras_dsp_pipeline_get_source_buffer(struct pipeline *pipeline,
+					   int index)
+{
+  cras_dsp_pipeline_get_source_buffer_called++;
+  return cras_dsp_pipeline_source_buffer[index];
+}
+
+float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index)
+{
+  cras_dsp_pipeline_get_sink_buffer_called++;
+  return cras_dsp_pipeline_sink_buffer[index];
+}
+
+void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
+{
+  cras_dsp_pipeline_run_called++;
+  cras_dsp_pipeline_run_sample_count = sample_count;
+
+  /* sink = source * 2 */
+  for (int i = 0; i < 2; i++)
+    for (int j = 0; j < sample_count; j++)
+      cras_dsp_pipeline_sink_buffer[i][j] =
+          cras_dsp_pipeline_source_buffer[i][j] * 2;
+}
+
+void cras_iodev_free_format(struct cras_iodev *iodev)
+{
 }
 
 }
