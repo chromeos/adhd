@@ -6,10 +6,12 @@
 #include <signal.h>
 #include <syslog.h>
 
+#include "cras_config.h"
 #include "cras_empty_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
+#include "cras_dsp.h"
 
 /* Ignores sigpipe, we'll notice when a read/write fails. */
 static void set_signals()
@@ -26,6 +28,7 @@ int main(int argc, char **argv)
 
 	/* Initialize system. */
 	cras_system_state_init();
+	cras_dsp_init(CRAS_CONFIG_FILE_DIR "/dsp.ini");
 	cras_iodev_list_init();
 
 	/* Add an empty device so there is always something to play to or

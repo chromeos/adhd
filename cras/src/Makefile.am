@@ -18,7 +18,7 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_tm.c common/edid_utils.c common/cras_checksum.c \
 	common/dumper.c server/cras_expr.c server/cras_dsp_ini.c \
 	server/cras_dsp_mod_ladspa.c server/cras_dsp_mod_builtin.c \
-	server/cras_dsp_pipeline.c
+	server/cras_dsp_pipeline.c server/cras_dsp.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS)
@@ -61,7 +61,7 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	alsa_jack_unittest card_config_unittest device_blacklist_unittest \
 	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest \
 	checksum_unittest bluetooth_unittest array_unittest dumper_unittest \
-	expr_unittest dsp_ini_unittest dsp_pipeline_unittest
+	expr_unittest dsp_ini_unittest dsp_pipeline_unittest dsp_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -100,6 +100,14 @@ device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 dumper_unittest_SOURCES = tests/dumper_unittest.cc common/dumper.c
 dumper_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 dumper_unittest_LDADD = -lgtest -lpthread
+
+dsp_unittest_SOURCES = tests/dsp_unittest.cc \
+	server/cras_dsp.c server/cras_dsp_ini.c server/cras_dsp_pipeline.c \
+	server/cras_expr.c ../src/server/cras_dsp_mod_builtin.c \
+	common/dumper.c
+dsp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+dsp_unittest_LDADD = -lgtest -liniparser -lpthread
 
 dsp_ini_unittest_SOURCES = tests/dsp_ini_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c common/dumper.c
