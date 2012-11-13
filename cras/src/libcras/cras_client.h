@@ -152,6 +152,14 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 int cras_client_output_dev_plugged(const struct cras_client *client,
 				   const char *name);
 
+/* Asks the server to reload dsp plugin configuration from the ini file.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ */
+int cras_client_reload_dsp(struct cras_client *client);
+
 /*
  * Stream handling.
  */

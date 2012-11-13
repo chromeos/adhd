@@ -400,4 +400,9 @@ key_t cras_sys_state_shm_key()
 {
   return 1;
 }
+
+void cras_dsp_reload_ini()
+{
+}
+
 }  // extern "C"

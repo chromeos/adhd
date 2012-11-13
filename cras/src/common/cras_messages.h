@@ -31,6 +31,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED,
+	CRAS_SERVER_RELOAD_DSP,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -187,6 +188,17 @@ static inline void cras_fill_set_system_capture_mute_locked(
 {
 	m->mute = locked;
 	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED;
+	m->header.length = sizeof(*m);
+}
+
+/* Reload the dsp configuration. */
+struct cras_reload_dsp {
+	struct cras_server_message header;
+};
+static inline void cras_fill_reload_dsp(
+		struct cras_reload_dsp *m)
+{
+	m->header.id = CRAS_SERVER_RELOAD_DSP;
 	m->header.length = sizeof(*m);
 }
 

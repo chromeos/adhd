@@ -460,6 +460,7 @@ static struct option long_options[] = {
 	{"volume",              required_argument,      0, 'v'},
 	{"capture_gain",        required_argument,      0, 'g'},
 	{"check_output_plugged",required_argument,      0, 'j'},
+	{"reload_dsp",          no_argument,            0, 's'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
@@ -482,6 +483,7 @@ static void show_usage()
 	printf("--volume <0-100> - Set system output volume.\n");
 	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
 	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
+	printf("--reload_dsp - Reload dsp configuration from the ini file");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--help - Print this message.\n");
 }
@@ -579,6 +581,9 @@ int main(int argc, char **argv)
 		}
 		case 'j':
 			check_output_plugged(client, optarg);
+			break;
+		case 's':
+			cras_client_reload_dsp(client);
 			break;
 		case 'i':
 			print_server_info(client);

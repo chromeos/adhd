@@ -8,6 +8,7 @@
 #include <syslog.h>
 
 #include "cras_config.h"
+#include "cras_dsp.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
@@ -245,6 +246,9 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED:
 		cras_system_set_capture_mute_locked(
 			((const struct cras_set_system_mute *)msg)->mute);
+		break;
+	case CRAS_SERVER_RELOAD_DSP:
+		cras_dsp_reload_ini();
 		break;
 	default:
 		break;

@@ -1758,3 +1758,14 @@ int cras_client_calc_capture_latency(const struct timespec *sample_time,
 	subtract_timespecs(&now, sample_time, delay);
 	return 0;
 }
+
+int cras_client_reload_dsp(struct cras_client *client)
+{
+	struct cras_reload_dsp msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_reload_dsp(&msg);
+	return write_message_to_server(client, &msg.header);
+}
