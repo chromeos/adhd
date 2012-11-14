@@ -53,6 +53,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.set_capture_gain = NULL;
       d1_.set_capture_mute = NULL;
       d1_.update_supported_formats = NULL;
+      d1_.set_as_default = NULL;
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
@@ -65,6 +66,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.set_capture_gain = NULL;
       d2_.set_capture_mute = NULL;
       d2_.update_supported_formats = NULL;
+      d2_.set_as_default = NULL;
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
@@ -77,6 +79,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.set_capture_gain = NULL;
       d3_.set_capture_mute = NULL;
       d3_.update_supported_formats = NULL;
+      d3_.set_as_default = NULL;
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
@@ -120,6 +123,11 @@ class IoDevTestSuite : public testing::Test {
       set_capture_mute_1_called_++;
     }
 
+    static void set_as_default(struct cras_iodev *iodev)
+    {
+      default_dev_to_set_ = iodev;
+    }
+
     struct cras_iodev d1_;
     struct cras_iodev d2_;
     struct cras_iodev d3_;
@@ -129,12 +137,14 @@ class IoDevTestSuite : public testing::Test {
     static int set_mute_1_called_;
     static int set_capture_gain_1_called_;
     static int set_capture_mute_1_called_;
+    static cras_iodev *default_dev_to_set_;
 };
 
 int IoDevTestSuite::set_volume_1_called_;
 int IoDevTestSuite::set_mute_1_called_;
 int IoDevTestSuite::set_capture_gain_1_called_;
 int IoDevTestSuite::set_capture_mute_1_called_;
+cras_iodev *IoDevTestSuite::default_dev_to_set_;
 
 // Check that Init registers a volume changed callback. */
 TEST_F(IoDevTestSuite, InitSetup) {
@@ -605,6 +615,41 @@ TEST_F(IoDevTestSuite, PluggedOutputPriorityDifferentPrioAndTimes) {
 
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_rm_output(&d2_);
+  EXPECT_EQ(0, rc);
+}
+
+// Test default device behavior when add/remove devices.
+TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
+  int rc;
+
+  d1_.info.priority = 100;
+  d2_.info.priority = 100;
+  d1_.set_as_default = set_as_default;
+  d2_.set_as_default = set_as_default;
+
+  rc = cras_iodev_list_add_output(&d1_);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(default_dev_to_set_, &d1_);
+
+  rc = cras_iodev_list_add_output(&d2_);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(default_dev_to_set_, &d2_);
+
+  // Remove then add a non-default device, should be set to default.
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(default_dev_to_set_, &d1_);
+
+  // Second device in queue should become default when default removed.
+  rc = cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(default_dev_to_set_, &d2_);
+
   rc = cras_iodev_list_rm_output(&d2_);
   EXPECT_EQ(0, rc);
 }

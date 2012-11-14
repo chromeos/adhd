@@ -35,6 +35,7 @@ struct cras_io_stream {
  * set_capture_gain - Function to call if the system capture_gain changes.
  * set_capture_mute - Function to call if the system capture mute state changes.
  * update_supported_formats - Refresh supported frame rates and channel counts.
+ * set_as_default - Function to call when this device is set as system default.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * streams - List of streams attached to device.
@@ -54,6 +55,7 @@ struct cras_iodev {
 	void (*set_capture_gain)(struct cras_iodev *iodev);
 	void (*set_capture_mute)(struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
+	void (*set_as_default)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_io_stream *streams;
 	struct cras_iodev_info info;

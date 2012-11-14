@@ -104,10 +104,12 @@ static int add_dev_to_list(struct iodev_list *list,
 	DL_PREPEND(list->iodevs, dev);
 	new_default = top_prio_dev(list->iodevs);
 	if (new_default != *default_dev) {
-		struct cras_iodev *last_default = *default_dev;
-		*default_dev = new_default;
-		if (last_default)
-			cras_iodev_remove_all_streams(last_default);
+		struct cras_iodev *last;
+		last = cras_iodev_set_as_default(new_default->direction,
+						 new_default);
+
+		if (last)
+			cras_iodev_remove_all_streams(last);
 	}
 
 	cras_iodev_list_update_clients();
@@ -280,6 +282,25 @@ struct cras_iodev *cras_get_iodev_for_stream_type(
 		return default_input;
 }
 
+struct cras_iodev *cras_iodev_set_as_default(
+		enum CRAS_STREAM_DIRECTION dir,
+		struct cras_iodev *new_default)
+{
+	struct cras_iodev *old_default;
+	struct cras_iodev **curr;
+
+	curr = (dir == CRAS_STREAM_OUTPUT) ? &default_output : &default_input;
+
+	/* Set current default to the newly requested device. */
+	old_default = *curr;
+	*curr = new_default;
+
+	if (new_default && new_default->set_as_default)
+		new_default->set_as_default(new_default);
+
+	return old_default;
+}
+
 int cras_iodev_list_add_output(struct cras_iodev *output)
 {
 	if (output->direction != CRAS_STREAM_OUTPUT)
@@ -303,7 +324,8 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	cras_iodev_remove_all_streams(dev);
 	res = rm_dev_from_list(&outputs, dev);
 	if (default_output == dev)
-		default_output = top_prio_dev(outputs.iodevs);
+		cras_iodev_set_as_default(CRAS_STREAM_OUTPUT,
+					  top_prio_dev(outputs.iodevs));
 	if (res == 0)
 		cras_iodev_list_update_clients();
 	return res;
@@ -316,7 +338,8 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	cras_iodev_remove_all_streams(dev);
 	res = rm_dev_from_list(&inputs, dev);
 	if (default_input == dev)
-		default_input = top_prio_dev(inputs.iodevs);
+		cras_iodev_set_as_default(CRAS_STREAM_INPUT,
+					  top_prio_dev(inputs.iodevs));
 	if (res == 0)
 		cras_iodev_list_update_clients();
 	return res;
@@ -408,13 +431,8 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 	}
 
 	/* Set default to the newly requested device. */
-	if (new_dev->direction == CRAS_STREAM_OUTPUT) {
-		curr_dev = default_output;
-		default_output = new_dev;
-	} else {
-		curr_dev = default_input;
-		default_input = new_dev;
-	}
+	curr_dev = cras_iodev_set_as_default(new_dev->direction, new_dev);
+
 	if (curr_dev == NULL || curr_dev == new_dev)
 		return 0; /* No change or no streams to move. */
 
