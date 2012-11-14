@@ -185,9 +185,11 @@ static void print_active_stream_info(struct cras_client *client)
 static void print_system_volumes(struct cras_client *client)
 {
 	printf("System Volume (0-100): %zu %s\n"
-	       "Capture Gain: %.2fdB %s\n",
+	       "Capture Gain (%.2f - %.2f): %.2fdB %s\n",
 	       cras_client_get_system_volume(client),
 	       cras_client_get_system_muted(client) ? "(Muted)" : "",
+	       cras_client_get_system_min_capture_gain(client) / 100.0,
+	       cras_client_get_system_max_capture_gain(client) / 100.0,
 	       cras_client_get_system_capture_gain(client) / 100.0,
 	       cras_client_get_system_capture_muted(client) ? "(Muted)" : "");
 }
