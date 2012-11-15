@@ -1107,6 +1107,11 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return err;
 }
 
+static void set_as_default(struct cras_iodev *iodev) {
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	init_device_settings(aio);
+}
+
 /*
  * Exported Interface.
  */
@@ -1155,6 +1160,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.set_mute = set_alsa_volume;
 	}
 	aio->base.update_supported_formats = update_supported_formats;
+	aio->base.set_as_default = set_as_default;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
