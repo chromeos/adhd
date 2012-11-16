@@ -95,8 +95,8 @@ state.Intel {
 	control.8 {
 		iface MIXER
 		name 'Mic Boost Volume'
-		value.0 0
-		value.1 0
+		value.0 1
+		value.1 1
 		comment {
 			access 'read write'
 			type INTEGER
