@@ -15,7 +15,8 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/cras_bluetooth.c \
 	server/config/cras_card_config.c server/cras_gpio_jack.c \
 	server/config/cras_device_blacklist.c server/cras_alsa_ucm.c \
-	server/cras_tm.c common/edid_utils.c common/cras_checksum.c
+	server/cras_tm.c common/edid_utils.c common/cras_checksum.c \
+	common/dumper.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS)
@@ -57,7 +58,7 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	alsa_card_unittest alsa_mixer_unittest iodev_unittest \
 	alsa_jack_unittest card_config_unittest device_blacklist_unittest \
 	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest \
-	checksum_unittest bluetooth_unittest array_unittest
+	checksum_unittest bluetooth_unittest array_unittest dumper_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -92,6 +93,10 @@ device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
+
+dumper_unittest_SOURCES = tests/dumper_unittest.cc common/dumper.c
+dumper_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
+dumper_unittest_LDADD = -lgtest -lpthread
 
 edid_utils_unittest_SOURCES = tests/edid_utils_unittest.cc common/edid_utils.c
 edid_utils_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
