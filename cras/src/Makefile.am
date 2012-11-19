@@ -16,11 +16,12 @@ cras_SOURCES = server/cras.c server/cras_iodev.c server/cras_iodev_list.c \
 	server/config/cras_card_config.c server/cras_gpio_jack.c \
 	server/config/cras_device_blacklist.c server/cras_alsa_ucm.c \
 	server/cras_tm.c common/edid_utils.c common/cras_checksum.c \
-	common/dumper.c server/cras_expr.c server/cras_dsp_ini.c
+	common/dumper.c server/cras_expr.c server/cras_dsp_ini.c \
+	server/cras_dsp_mod_ladspa.c server/cras_dsp_mod_builtin.c
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS)
-cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev $(DBUS_LIBS)
+cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl $(DBUS_LIBS)
 
 lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = libcras/cras_client.c common/cras_util.c \
