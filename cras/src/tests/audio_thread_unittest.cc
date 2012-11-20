@@ -19,10 +19,7 @@ int thread_add_stream(audio_thread* thread,
                       cras_rstream* stream);
 int thread_remove_stream(audio_thread* thread,
                          cras_rstream* stream);
-int possibly_fill_audio(audio_thread* thread,
-                        timespec* ts);
-int possibly_read_audio(audio_thread* thread,
-                        timespec* ts);
+int unified_io(audio_thread* thread, timespec* ts);
 
 static int cras_mix_add_stream_dont_fill_next;
 static unsigned int cras_mix_add_stream_count;
@@ -193,14 +190,13 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
   thread_add_stream(thread, rstream_);
 
   frames_queued_ = -4;
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(-4, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -216,7 +212,6 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -226,7 +221,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   frames_queued_ = 0;
   nsec_expected = (GetCaptureSleepFrames() + 1) * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, shm_->area->write_offset[0]);
@@ -246,7 +241,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataDrop) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -258,7 +252,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataDrop) {
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -276,7 +270,6 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -287,7 +280,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES + 1) *
                   1000000000ULL / (uint64_t)fmt_.frame_rate;
 
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
   EXPECT_EQ(0, shm_->area->write_offset[0]);
@@ -307,7 +300,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -326,7 +318,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
                   (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -345,7 +337,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -358,7 +349,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   cras_rstream_audio_ready_count = 999;
 
   //  Give it some samples to copy.
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
@@ -366,7 +357,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
   cras_rstream_audio_ready_count = 999;
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
@@ -384,7 +375,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -395,7 +385,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   audio_buffer_size_ = frames_queued_;
 
   //  Give it some samples to copy.
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
@@ -403,7 +393,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
   cras_rstream_audio_ready_count = 999;
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
@@ -412,7 +402,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
   cras_rstream_audio_ready_count = 999;
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_shm_num_overruns(shm_));  //  Should have overrun.
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
@@ -429,7 +419,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
 
@@ -440,7 +429,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   audio_buffer_size_ = frames_queued_;
   iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
 
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
@@ -458,7 +447,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
 
   thread = audio_thread_create(&iodev_);
   ASSERT_TRUE(thread);
-  EXPECT_EQ((void *)possibly_read_audio, (void *)thread->audio_cb);
 
   iodev_.thread = thread;
   thread_add_stream(thread, rstream_);
@@ -469,7 +457,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
   cras_dsp_get_pipeline_ret = 0x6;
 
-  rc = possibly_read_audio(thread, &ts);
+  rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_dsp_get_pipeline_called);
   EXPECT_EQ(1, cras_dsp_put_pipeline_called);
@@ -516,7 +504,6 @@ class WriteStreamSuite : public testing::Test {
 
       thread_ = audio_thread_create(&iodev_);
       ASSERT_TRUE(thread_);
-      EXPECT_EQ((void*)possibly_fill_audio, (void*)thread_->audio_cb);
 
       iodev_.thread = thread_;
       thread_->output_dev = &iodev_;
@@ -634,7 +621,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetAvailError) {
   int rc;
 
   frames_queued_ = -4;
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(-4, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -654,7 +641,7 @@ TEST_F(WriteStreamSuite, PossiblyFillEarlyWake) {
                   (uint64_t)fmt_.frame_rate;
   iodev_.direction = CRAS_STREAM_OUTPUT;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -679,7 +666,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -708,7 +695,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
   select_return_value = 1;
 
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
@@ -733,7 +720,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -763,7 +750,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
 
   thread_add_stream(thread_, rstream2_);
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -793,7 +780,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   //  Test that nothing breaks if one stream doesn't fill.
   cras_mix_add_stream_dont_fill_next = 1;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(0, shm_->area->read_offset[0]);  //  No write from first stream.
@@ -819,7 +806,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   FD_SET(rstream2_->fd, &select_out_fds);
   select_return_value = 2;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
@@ -853,7 +840,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
@@ -879,7 +866,7 @@ TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_mix_add_stream_count);
@@ -907,7 +894,7 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
-  rc = possibly_fill_audio(thread_, &ts);
+  rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_mix_add_stream_count);

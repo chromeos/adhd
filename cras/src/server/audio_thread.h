@@ -35,9 +35,6 @@ struct cras_io_stream {
  *        after a read is performed. Sleep this many frames past the buffer
  *        size to be sure at least the buffer size is captured when the audio
  *        thread wakes up.
- *    audio_cb - Callback to fill or read samples (depends on direction).
- *      ts will be filled with the time the system can sleep before again
- *      servicing the callback.
  *    streams - List of audio streams serviced by this thread.
  */
 struct audio_thread {
@@ -49,7 +46,6 @@ struct audio_thread {
 	int started;
 	int sleep_correction_frames;
 	unsigned int remaining_target;
-	int (*audio_cb)(struct audio_thread *thread, struct timespec *ts);
 	struct cras_io_stream *streams;
 };
 

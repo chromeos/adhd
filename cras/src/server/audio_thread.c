@@ -600,41 +600,22 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	return ret;
 }
 
+/* Transfer samples from clients to the audio device.
+ * Return the number of samples written to the device.
+ */
 int possibly_fill_audio(struct audio_thread *thread,
-			struct timespec *ts)
+			unsigned int delay,
+			unsigned int hw_level)
 {
-	unsigned int frames, hw_level, fr_to_req;
-	snd_pcm_sframes_t written, delay;
+	unsigned int frames, fr_to_req;
+	snd_pcm_sframes_t written;
 	snd_pcm_uframes_t total_written = 0;
 	int rc;
 	uint8_t *dst = NULL;
-	uint64_t to_sleep;
 	struct cras_iodev *odev = thread->output_dev;
 
-	ts->tv_sec = 0;
-	ts->tv_nsec = 0;
-
-	rc = odev->frames_queued(odev);
-	if (rc < 0)
-		return rc;
-	hw_level = rc;
-
-	/* Make sure we should actually be awake right now (or close enough) */
-	if (!have_enough_frames(odev, hw_level)) {
-		/* Check if the pcm is still running. */
-		rc = odev->dev_running(odev);
-		if (rc < 0)
-			return rc;
-		/* Increase sleep correction factor when waking up too early. */
-		thread->sleep_correction_frames++;
-		goto not_enough;
-	}
-
-	/* check the current delay through device */
-	rc = odev->delay_frames(odev);
-	if (rc < 0)
-		return rc;
-	delay = rc;
+	if (!odev)
+		return 0;
 
 	/* Request data from streams that need more */
 	fr_to_req = odev->used_size - hw_level;
@@ -675,57 +656,27 @@ int possibly_fill_audio(struct audio_thread *thread,
 			return rc;
 	}
 
-	hw_level += total_written;
-
-not_enough:
-	/* Set the sleep time based on how much is left to play */
-	to_sleep = cras_iodev_sleep_frames(odev, hw_level) +
-		   thread->remaining_target +
-		   thread->sleep_correction_frames;
-
-	cras_iodev_fill_time_from_frames(to_sleep,
-					 odev->format->frame_rate,
-					 ts);
-
-	return 0;
+	return total_written;
 }
 
+/* Transfer samples to clients from the audio device.
+ * Return the number of samples read from the device.
+ */
 int possibly_read_audio(struct audio_thread *thread,
-			struct timespec *ts)
+			unsigned int delay,
+			unsigned int hw_level)
 {
-	snd_pcm_uframes_t hw_level, remainder;
-	snd_pcm_sframes_t delay;
+	snd_pcm_uframes_t remainder;
 	struct cras_audio_shm *shm;
 	int rc;
-	uint64_t to_sleep;
 	uint8_t *src;
 	uint8_t *dst = NULL;
 	unsigned int write_limit = 0;
-	unsigned int nread;
+	unsigned int nread, level_target;
 	struct cras_iodev *idev = thread->input_dev;
 
-	ts->tv_sec = 0;
-	ts->tv_nsec = 0;
-
-	rc = idev->frames_queued(idev);
-	if (rc < 0)
-		return rc;
-	hw_level = rc;
-
-	if (!have_enough_frames(idev, hw_level)) {
-		/* Check if the pcm is still running. */
-		rc = idev->dev_running(idev);
-		if (rc < 0)
-			return rc;
-		/* Increase sleep correction factor when waking up too early. */
-		thread->sleep_correction_frames++;
-		goto dont_read;
-	}
-
-	rc = idev->delay_frames(idev);
-	if (rc < 0)
-		return rc;
-	delay = rc;
+	if (!idev)
+		return 0;
 
 	if (thread->streams) {
 		cras_shm_check_write_overrun(thread->streams->shm);
@@ -765,22 +716,78 @@ int possibly_read_audio(struct audio_thread *thread,
 		}
 	}
 
-	/* Subtract the number read. */
-	hw_level -= idev->cb_threshold;
-
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
-	if (hw_level != thread->remaining_target)
-		thread->sleep_correction_frames +=
-			(hw_level > thread->remaining_target) ? -1 : 1;
+	level_target = thread->remaining_target + idev->cb_threshold;
+	if (hw_level > level_target && thread->sleep_correction_frames)
+		thread->sleep_correction_frames--;
+	if (hw_level < level_target)
+		thread->sleep_correction_frames++;
 
-dont_read:
-	to_sleep = cras_iodev_sleep_frames(idev, hw_level) +
+	return idev->cb_threshold;
+}
+
+/* Reads and/or writes audio sampels from/to the devices. */
+int unified_io(struct audio_thread *thread, struct timespec *ts)
+{
+	struct cras_iodev *idev = thread->input_dev;
+	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *master_dev = idev ? : odev;
+	int rc, delay;
+	unsigned int hw_level, to_sleep;
+
+	ts->tv_sec = 0;
+	ts->tv_nsec = 0;
+
+	rc = master_dev->frames_queued(master_dev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
+
+	if (!have_enough_frames(master_dev, hw_level)) {
+		/* Check if the pcm is still running. */
+		rc = master_dev->dev_running(master_dev);
+		if (rc < 0)
+			return rc;
+		/* Increase sleep correction factor when waking up too early. */
+		thread->sleep_correction_frames++;
+		goto not_enough;
+	}
+
+	rc = master_dev->delay_frames(master_dev);
+	if (rc < 0)
+		return rc;
+	delay = rc;
+
+	rc = possibly_read_audio(thread, delay, hw_level);
+	if (rc < 0) {
+		syslog(LOG_ERR, "read audio failed from audio thread");
+		return rc;
+	}
+	hw_level -= rc;
+
+	if (!odev)
+		goto not_enough;
+
+	rc = odev->frames_queued(odev);
+	if (rc < 0)
+		return rc;
+
+	rc = possibly_fill_audio(thread, delay, rc);
+	if (rc < 0) {
+		syslog(LOG_ERR, "write audio failed from audio thread");
+		return rc;
+	}
+	if (!idev)
+		hw_level += rc;
+
+not_enough:
+	to_sleep = cras_iodev_sleep_frames(master_dev, hw_level) +
 		   thread->remaining_target +
 		   thread->sleep_correction_frames;
 
 	cras_iodev_fill_time_from_frames(to_sleep,
-					 idev->format->frame_rate,
+					 master_dev->format->frame_rate,
 					 ts);
 
 	return 0;
@@ -814,7 +821,7 @@ static void *audio_io_thread(void *arg)
 
 		if (streams_attached(thread)) {
 			/* device opened */
-			err = thread->audio_cb(thread, &ts);
+			err = unified_io(thread, &ts);
 			if (err < 0)
 				syslog(LOG_INFO, "audio cb error %d", err);
 			wait_ts = &ts;
@@ -918,12 +925,10 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 	thread->to_main_fds[1] = -1;
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
-		thread->audio_cb = possibly_read_audio;
 		thread->input_dev = iodev;
 		thread->remaining_target = CAP_REMAINING_FRAMES_TARGET;
 	} else {
 		assert(iodev->direction == CRAS_STREAM_OUTPUT);
-		thread->audio_cb = possibly_fill_audio;
 		thread->output_dev = iodev;
 		thread->remaining_target = 0;
 	}
