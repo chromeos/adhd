@@ -46,6 +46,51 @@ get_min_latency_stream(const struct audio_thread *thread)
 	return lowest;
 }
 
+/* Sends a response (error code) from the audio thread to the main thread.
+ * Indicates that the last message sent to the audio thread has been handled
+ * with an error code of rc.
+ * Args:
+ *    thread - thread responding to command.
+ *    rc - Result code to send back to the main thread.
+ * Returns:
+ *    The number of bytes written to the main thread.
+ */
+static int audio_thread_send_response(struct audio_thread *thread, int rc)
+{
+	return write(thread->to_main_fds[1], &rc, sizeof(rc));
+}
+
+/* Reads a command from the main thread.  Called from the playback/capture
+ * thread.  This will read the next available command from the main thread and
+ * put it in buf.
+ * Args:
+ *    thread - thread reading the command.
+ *    buf - Message is stored here on return.
+ *    max_len - maximum length of message to put into buf.
+ * Returns:
+ *    0 on success, negative error code on failure.
+ */
+static int audio_thread_read_command(struct audio_thread *thread,
+				     uint8_t *buf,
+				     size_t max_len)
+{
+	int to_read, nread, rc;
+	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
+
+	/* Get the length of the message first */
+	nread = read(thread->to_thread_fds[0], buf, sizeof(msg->length));
+	if (nread < 0)
+		return nread;
+	if (msg->length > max_len)
+		return -ENOMEM;
+
+	to_read = msg->length - nread;
+	rc = read(thread->to_thread_fds[0], &buf[0] + nread, to_read);
+	if (rc < 0)
+		return rc;
+	return 0;
+}
+
 /* Checks if there are any active streams.
  * Args:
  *    thread - The thread to check.
@@ -741,9 +786,14 @@ dont_read:
 	return 0;
 }
 
-/* Exported Interface */
-
-void *audio_io_thread(void *arg)
+/* For playback, fill the audio buffer when needed, for capture, pull out
+ * samples when they are ready.
+ * This thread will attempt to run at a high priority to allow for low latency
+ * streams.  This thread sleeps while the device plays back or captures audio,
+ * it will wake up as little as it can while avoiding xruns.  It can also be
+ * woken by sending it a message using the "audio_thread_post_message" function.
+ */
+static void *audio_io_thread(void *arg)
 {
 	struct audio_thread *thread = (struct audio_thread *)arg;
 	struct timespec ts;
@@ -783,8 +833,19 @@ void *audio_io_thread(void *arg)
 	return NULL;
 }
 
-int audio_thread_post_message(struct audio_thread *thread,
-			      struct audio_thread_msg *msg)
+/* Write a message to the playback thread and wait for an ack, This keeps these
+ * operations synchronous for the main server thread.  For instance when the
+ * RM_STREAM message is sent, the stream can be deleted after the function
+ * returns.  Making this synchronous also allows the thread to return an error
+ * code that can be handled by the caller.
+ * Args:
+ *    thread - thread to receive message.
+ *    msg - The message to send.
+ * Returns:
+ *    A return code from the message handler in the thread.
+ */
+static int audio_thread_post_message(struct audio_thread *thread,
+				     struct audio_thread_msg *msg)
 {
 	int rc, err;
 
@@ -803,31 +864,7 @@ int audio_thread_post_message(struct audio_thread *thread,
 	return rc;
 }
 
-int audio_thread_send_response(struct audio_thread *thread, int rc)
-{
-	return write(thread->to_main_fds[1], &rc, sizeof(rc));
-}
-
-int audio_thread_read_command(struct audio_thread *thread,
-			      uint8_t *buf,
-			      size_t max_len)
-{
-	int to_read, nread, rc;
-	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
-
-	/* Get the length of the message first */
-	nread = read(thread->to_thread_fds[0], buf, sizeof(msg->length));
-	if (nread < 0)
-		return nread;
-	if (msg->length > max_len)
-		return -ENOMEM;
-
-	to_read = msg->length - nread;
-	rc = read(thread->to_thread_fds[0], &buf[0] + nread, to_read);
-	if (rc < 0)
-		return rc;
-	return 0;
-}
+/* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream)
