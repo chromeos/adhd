@@ -648,7 +648,7 @@ not_enough:
 int possibly_read_audio(struct audio_thread *thread,
 			struct timespec *ts)
 {
-	snd_pcm_uframes_t hw_level, num_to_read, remainder;
+	snd_pcm_uframes_t hw_level, remainder;
 	snd_pcm_sframes_t delay;
 	struct cras_audio_shm *shm;
 	int rc;
@@ -661,8 +661,6 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
-
-	num_to_read = idev->cb_threshold;
 
 	rc = idev->frames_queued(idev);
 	if (rc < 0)
@@ -693,7 +691,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		dst = cras_shm_get_writeable_frames(shm, &write_limit);
 	}
 
-	remainder = num_to_read;
+	remainder = idev->cb_threshold;
 	while (remainder > 0) {
 		nread = remainder;
 		rc = idev->get_buffer(idev, &src, &nread);
@@ -709,13 +707,13 @@ int possibly_read_audio(struct audio_thread *thread,
 	}
 
 	if (thread->streams) {
-		apply_dsp(idev, dst, min(num_to_read, write_limit));
+		apply_dsp(idev, dst, min(idev->cb_threshold, write_limit));
 		cras_shm_buffer_write_complete(thread->streams->shm);
 
 		/* Tell the client that samples are ready.  This assumes only
 		 * one capture client at a time. */
 		rc = cras_rstream_audio_ready(thread->streams->stream,
-					      num_to_read);
+					      idev->cb_threshold);
 		if (rc < 0) {
 			thread_remove_stream(thread, thread->streams->stream);
 			return rc;
@@ -723,7 +721,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	}
 
 	/* Subtract the number read. */
-	hw_level -= num_to_read;
+	hw_level -= idev->cb_threshold;
 
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
