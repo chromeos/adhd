@@ -21,6 +21,10 @@
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MIN_READ_WAIT_US 2000 /* 2ms */
 
+/* Sleep a few extra frames to make sure that the samples are ready. */
+static const unsigned int CAP_REMAINING_FRAMES_TARGET = 16;
+
+
 /* Returns true if there are streams attached to the thread. */
 static inline int streams_attached(const struct audio_thread *thread)
 {
@@ -554,7 +558,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 int possibly_fill_audio(struct audio_thread *thread,
 			struct timespec *ts)
 {
-	unsigned int frames, used, fr_to_req;
+	unsigned int frames, hw_level, fr_to_req;
 	snd_pcm_sframes_t written, delay;
 	snd_pcm_uframes_t total_written = 0;
 	int rc;
@@ -568,10 +572,10 @@ int possibly_fill_audio(struct audio_thread *thread,
 	rc = odev->frames_queued(odev);
 	if (rc < 0)
 		return rc;
-	used = rc;
+	hw_level = rc;
 
 	/* Make sure we should actually be awake right now (or close enough) */
-	if (!have_enough_frames(odev, used)) {
+	if (!have_enough_frames(odev, hw_level)) {
 		/* Check if the pcm is still running. */
 		rc = odev->dev_running(odev);
 		if (rc < 0)
@@ -588,7 +592,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	delay = rc;
 
 	/* Request data from streams that need more */
-	fr_to_req = odev->used_size - used;
+	fr_to_req = odev->used_size - hw_level;
 	rc = fetch_and_set_timestamp(thread, fr_to_req, delay);
 	if (rc < 0)
 		return rc;
@@ -602,7 +606,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 		if (rc < 0)
 			return rc;
 
-		written = write_streams(thread, dst, used + total_written,
+		written = write_streams(thread, dst, hw_level + total_written,
 					frames);
 		if (written < 0) /* pcm has been closed */
 			return (int)written;
@@ -626,10 +630,14 @@ int possibly_fill_audio(struct audio_thread *thread,
 			return rc;
 	}
 
+	hw_level += total_written;
+
 not_enough:
 	/* Set the sleep time based on how much is left to play */
-	to_sleep = cras_iodev_sleep_frames(odev, total_written + used) +
+	to_sleep = cras_iodev_sleep_frames(odev, hw_level) +
+		   thread->remaining_target +
 		   thread->sleep_correction_frames;
+
 	cras_iodev_fill_time_from_frames(to_sleep,
 					 odev->format->frame_rate,
 					 ts);
@@ -640,10 +648,7 @@ not_enough:
 int possibly_read_audio(struct audio_thread *thread,
 			struct timespec *ts)
 {
-	/* Sleep a few extra frames to make sure that the samples are ready. */
-	static const size_t REMAINING_FRAMES_TARGET = 16;
-
-	snd_pcm_uframes_t used, num_to_read, remainder;
+	snd_pcm_uframes_t hw_level, num_to_read, remainder;
 	snd_pcm_sframes_t delay;
 	struct cras_audio_shm *shm;
 	int rc;
@@ -662,10 +667,9 @@ int possibly_read_audio(struct audio_thread *thread,
 	rc = idev->frames_queued(idev);
 	if (rc < 0)
 		return rc;
-	used = rc;
+	hw_level = rc;
 
-	if (!have_enough_frames(idev, used)) {
-		to_sleep = cras_iodev_sleep_frames(idev, used);
+	if (!have_enough_frames(idev, hw_level)) {
 		/* Increase sleep correction factor when waking up too early. */
 		thread->sleep_correction_frames++;
 		goto dont_read;
@@ -714,17 +718,20 @@ int possibly_read_audio(struct audio_thread *thread,
 		}
 	}
 
-	/* Adjust sleep time to target our callback threshold. */
-	remainder = used - num_to_read;
-	to_sleep = cras_iodev_sleep_frames(idev, remainder);
+	/* Subtract the number read. */
+	hw_level -= num_to_read;
+
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
-	if (remainder != REMAINING_FRAMES_TARGET)
+	if (hw_level != thread->remaining_target)
 		thread->sleep_correction_frames +=
-			(remainder > REMAINING_FRAMES_TARGET) ? -1 : 1;
+			(hw_level > thread->remaining_target) ? -1 : 1;
 
 dont_read:
-	to_sleep += REMAINING_FRAMES_TARGET + thread->sleep_correction_frames;
+	to_sleep = cras_iodev_sleep_frames(idev, hw_level) +
+		   thread->remaining_target +
+		   thread->sleep_correction_frames;
+
 	cras_iodev_fill_time_from_frames(to_sleep,
 					 idev->format->frame_rate,
 					 ts);
@@ -874,10 +881,12 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 	if (iodev->direction == CRAS_STREAM_INPUT) {
 		thread->audio_cb = possibly_read_audio;
 		thread->input_dev = iodev;
+		thread->remaining_target = CAP_REMAINING_FRAMES_TARGET;
 	} else {
 		assert(iodev->direction == CRAS_STREAM_OUTPUT);
 		thread->audio_cb = possibly_fill_audio;
 		thread->output_dev = iodev;
+		thread->remaining_target = 0;
 	}
 
 	/* Two way pipes for communication with the device's audio thread. */
