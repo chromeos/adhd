@@ -665,7 +665,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	used = rc;
 
 	if (!have_enough_frames(idev, used)) {
-		to_sleep = num_to_read - used;
+		to_sleep = cras_iodev_sleep_frames(idev, used);
 		/* Increase sleep correction factor when waking up too early. */
 		thread->sleep_correction_frames++;
 		goto dont_read;
@@ -716,7 +716,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	/* Adjust sleep time to target our callback threshold. */
 	remainder = used - num_to_read;
-	to_sleep = num_to_read - remainder;
+	to_sleep = cras_iodev_sleep_frames(idev, remainder);
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
 	if (remainder != REMAINING_FRAMES_TARGET)
