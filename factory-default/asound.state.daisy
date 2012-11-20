@@ -171,7 +171,7 @@ state.DAISYI2S {
 	control.14 {
 		iface MIXER
 		name 'MIC2 Boost Volume'
-		value 0
+		value 1
 		comment {
 			access 'read write'
 			type INTEGER
