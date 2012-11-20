@@ -670,6 +670,10 @@ int possibly_read_audio(struct audio_thread *thread,
 	hw_level = rc;
 
 	if (!have_enough_frames(idev, hw_level)) {
+		/* Check if the pcm is still running. */
+		rc = idev->dev_running(idev);
+		if (rc < 0)
+			return rc;
 		/* Increase sleep correction factor when waking up too early. */
 		thread->sleep_correction_frames++;
 		goto dont_read;

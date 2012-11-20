@@ -86,6 +86,7 @@ class ReadStreamSuite : public testing::Test {
       iodev_.put_buffer = put_buffer;
       iodev_.is_open = is_open;
       iodev_.open_dev = open_dev;
+      iodev_.dev_running = dev_running;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
       memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
@@ -102,6 +103,7 @@ class ReadStreamSuite : public testing::Test {
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
       cras_rstream_audio_ready_called = 0;
+      dev_running_called_ = 0;
 
       fill_test_data((int16_t *)audio_buffer_,
                      cras_shm_used_size(shm_) / 2);
@@ -161,11 +163,18 @@ class ReadStreamSuite : public testing::Test {
       return 0;
     }
 
+    static int dev_running(const cras_iodev* iodev) {
+      dev_running_called_++;
+      return 0;
+    }
+
+
   struct cras_iodev iodev_;
   static int frames_queued_;
   static int delay_frames_;
   static uint8_t audio_buffer_[8192];
   static unsigned int audio_buffer_size_;
+  static unsigned int dev_running_called_;
   struct cras_rstream *rstream_;
   struct cras_audio_format fmt_;
   struct cras_audio_shm *shm_;
@@ -175,6 +184,7 @@ int ReadStreamSuite::frames_queued_ = 0;
 int ReadStreamSuite::delay_frames_ = 0;
 uint8_t ReadStreamSuite::audio_buffer_[8192];
 unsigned int ReadStreamSuite::audio_buffer_size_ = 0;
+unsigned int ReadStreamSuite::dev_running_called_ = 0;
 
 TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   struct timespec ts;
@@ -223,6 +233,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(1, thread->sleep_correction_frames);
+  EXPECT_EQ(1, dev_running_called_);
 
   audio_thread_destroy(thread);
 }
