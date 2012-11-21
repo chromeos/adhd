@@ -122,8 +122,8 @@ state.PCH {
 	control.10 {
 		iface MIXER
 		name 'Mic Boost Volume'
-		value.0 0
-		value.1 0
+		value.0 2
+		value.1 2
 		comment {
 			access 'read write'
 			type INTEGER
@@ -138,8 +138,8 @@ state.PCH {
 	control.11 {
 		iface MIXER
 		name 'Internal Mic Boost Volume'
-		value.0 0
-		value.1 0
+		value.0 2
+		value.1 2
 		comment {
 			access 'read write'
 			type INTEGER
