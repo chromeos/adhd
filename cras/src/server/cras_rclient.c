@@ -132,7 +132,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		rc = -ENOMEM;
 		goto reply_err;
 	}
-	cras_iodev_list_set_audio_thread(iodev, thread);
 
 	DL_APPEND(client->streams, stream);
 	rc = audio_thread_add_stream(thread, stream);

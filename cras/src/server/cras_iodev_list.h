@@ -129,12 +129,4 @@ void cras_iodev_list_update_clients();
 struct audio_thread *
 cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
 
-/* Sets the audio thread associated with an iodev.
- * Args:
- *    iodev - The iodev to set the thread in.
- *    thread - The thread to use.
- */
-void cras_iodev_list_set_audio_thread(struct cras_iodev *iodev,
-				      struct audio_thread *thread);
-
 #endif /* CRAS_IODEV_LIST_H_ */

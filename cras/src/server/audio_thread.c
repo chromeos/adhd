@@ -947,6 +947,8 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 		return NULL;
 	}
 
+	iodev->thread = thread;
+
 	return thread;
 }
 
@@ -975,6 +977,11 @@ void audio_thread_destroy(struct audio_thread *thread)
 		audio_thread_post_message(thread, &msg);
 		pthread_join(thread->tid, NULL);
 	}
+
+	if (thread->input_dev)
+		thread->input_dev->thread = NULL;
+	if (thread->output_dev)
+		thread->output_dev->thread = NULL;
 
 	if (thread->to_thread_fds[0] != -1) {
 		close(thread->to_thread_fds[0]);

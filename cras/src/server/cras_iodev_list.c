@@ -390,9 +390,3 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
 {
 	return iodev->thread;
 }
-
-void cras_iodev_list_set_audio_thread(struct cras_iodev *iodev,
-				      struct audio_thread *thread)
-{
-	iodev->thread = thread;
-}

@@ -33,7 +33,6 @@ static int cras_system_set_capture_mute_called;
 static size_t cras_system_set_capture_mute_locked_value;
 static int cras_system_set_capture_mute_locked_called;
 static size_t cras_make_fd_nonblocking_called;
-static unsigned int iodev_set_thread_called;
 static audio_thread* iodev_get_thread_return;
 static audio_thread* audio_thread_create_return;
 static unsigned int audio_thread_create_called;
@@ -60,7 +59,6 @@ void ResetStubData() {
   cras_system_set_capture_mute_locked_value = 0;
   cras_system_set_capture_mute_locked_called = 0;
   cras_make_fd_nonblocking_called = 0;
-  iodev_set_thread_called = 0;
   iodev_get_thread_return = reinterpret_cast<audio_thread*>(0xad);
   audio_thread_create_return = reinterpret_cast<audio_thread*>(0xda);
   audio_thread_create_called = 0;
@@ -279,7 +277,6 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
-  EXPECT_EQ(1, iodev_set_thread_called);
   EXPECT_EQ(audio_thread_create_called, audio_thread_destroy_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(0, audio_thread_rm_stream_called);
@@ -391,11 +388,6 @@ extern "C" {
 struct audio_thread *
 cras_iodev_list_get_audio_thread(const cras_iodev* iodev) {
   return iodev_get_thread_return;
-}
-
-void cras_iodev_list_set_audio_thread(cras_iodev* iodev,
-                                      audio_thread* thread) {
-  iodev_set_thread_called++;
 }
 
 audio_thread* audio_thread_create(cras_iodev* iodev) {
