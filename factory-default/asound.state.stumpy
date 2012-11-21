@@ -69,7 +69,7 @@ state.PCH {
 	}
 	control.6 {
 		iface MIXER
-		name 'Internal Mic Capture Volume'
+		name 'Mic Capture Volume'
 		value.0 2
 		value.1 2
 		comment {
@@ -84,48 +84,33 @@ state.PCH {
 		}
 	}
 	control.7 {
-		iface MIXER
-		name 'Internal Mic 1 Capture Volume'
-		value.0 2
-		value.1 2
+		iface CARD
+		name 'Front Headphone Jack'
+		value false
 		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 2'
-			dbmin 0
-			dbmax 2000
-			dbvalue.0 0
-			dbvalue.1 0
+			access read
+			type BOOLEAN
+			count 1
 		}
 	}
 	control.8 {
-		iface MIXER
-		name 'Line Capture Volume'
-		value.0 0
-		value.1 0
+		iface CARD
+		name 'Mic Jack'
+		value false
 		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 3'
-			dbmin 0
-			dbmax 3000
-			dbvalue.0 0
-			dbvalue.1 0
+			access read
+			type BOOLEAN
+			count 1
 		}
 	}
 	control.9 {
-		iface MIXER
-		name 'Capture Source'
-		value 'Internal Mic'
+		iface CARD
+		name 'HDMI/DP,pcm=3 Jack'
+		value false
 		comment {
-			access 'read write'
-			type ENUMERATED
+			access read
+			type BOOLEAN
 			count 1
-			item.0 'Internal Mic'
-			item.1 'Internal Mic 1'
-			item.2 Line
 		}
 	}
 	control.10 {
@@ -169,90 +154,6 @@ state.PCH {
 		}
 	}
 	control.14 {
-		iface MIXER
-		name 'IEC958 Default PCM Playback Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.15 {
-		iface CARD
-		name 'Headphone Jack'
-		value false
-		comment {
-			access read
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.16 {
-		iface CARD
-		name 'Line Jack'
-		value false
-		comment {
-			access read
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.17 {
-		iface CARD
-		name 'SPDIF Jack'
-		value false
-		comment {
-			access read
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.18 {
-		iface MIXER
-		name 'IEC958 Playback Con Mask'
-		index 1
-		value '0fff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-		comment {
-			access read
-			type IEC958
-			count 1
-		}
-	}
-	control.19 {
-		iface MIXER
-		name 'IEC958 Playback Pro Mask'
-		index 1
-		value '0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-		comment {
-			access read
-			type IEC958
-			count 1
-		}
-	}
-	control.20 {
-		iface MIXER
-		name 'IEC958 Playback Default'
-		index 1
-		value '0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
-		comment {
-			access 'read write'
-			type IEC958
-			count 1
-		}
-	}
-	control.21 {
-		iface MIXER
-		name 'IEC958 Playback Switch'
-		index 1
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.22 {
 		iface PCM
 		device 3
 		name ELD
@@ -263,9 +164,9 @@ state.PCH {
 			count 0
 		}
 	}
-	control.23 {
+	control.15 {
 		iface CARD
-		name 'HDMI Jack'
+		name 'HDMI/DP,pcm=7 Jack'
 		value false
 		comment {
 			access read
@@ -273,10 +174,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.24 {
+	control.16 {
 		iface MIXER
 		name 'IEC958 Playback Con Mask'
-		index 2
+		index 1
 		value '0fff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 		comment {
 			access read
@@ -284,10 +185,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.25 {
+	control.17 {
 		iface MIXER
 		name 'IEC958 Playback Pro Mask'
-		index 2
+		index 1
 		value '0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 		comment {
 			access read
@@ -295,10 +196,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.26 {
+	control.18 {
 		iface MIXER
 		name 'IEC958 Playback Default'
-		index 2
+		index 1
 		value '0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 		comment {
 			access 'read write'
@@ -306,10 +207,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.27 {
+	control.19 {
 		iface MIXER
 		name 'IEC958 Playback Switch'
-		index 2
+		index 1
 		value true
 		comment {
 			access 'read write'
@@ -317,7 +218,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.28 {
+	control.20 {
 		iface PCM
 		device 7
 		name ELD
@@ -328,10 +229,9 @@ state.PCH {
 			count 0
 		}
 	}
-	control.29 {
+	control.21 {
 		iface CARD
-		name 'HDMI Jack'
-		index 1
+		name 'HDMI/DP,pcm=8 Jack'
 		value false
 		comment {
 			access read
@@ -339,10 +239,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.30 {
+	control.22 {
 		iface MIXER
 		name 'IEC958 Playback Con Mask'
-		index 3
+		index 2
 		value '0fff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 		comment {
 			access read
@@ -350,10 +250,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.31 {
+	control.23 {
 		iface MIXER
 		name 'IEC958 Playback Pro Mask'
-		index 3
+		index 2
 		value '0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 		comment {
 			access read
@@ -361,10 +261,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.32 {
+	control.24 {
 		iface MIXER
 		name 'IEC958 Playback Default'
-		index 3
+		index 2
 		value '0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 		comment {
 			access 'read write'
@@ -372,10 +272,10 @@ state.PCH {
 			count 1
 		}
 	}
-	control.33 {
+	control.25 {
 		iface MIXER
 		name 'IEC958 Playback Switch'
-		index 3
+		index 2
 		value true
 		comment {
 			access 'read write'
@@ -383,7 +283,7 @@ state.PCH {
 			count 1
 		}
 	}
-	control.34 {
+	control.26 {
 		iface PCM
 		device 8
 		name ELD
@@ -394,18 +294,7 @@ state.PCH {
 			count 0
 		}
 	}
-	control.35 {
-		iface CARD
-		name 'HDMI Jack'
-		index 2
-		value false
-		comment {
-			access read
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.36 {
+	control.27 {
 		iface MIXER
 		name 'Digital Capture Volume'
 		value.0 60
