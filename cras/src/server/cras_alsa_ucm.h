@@ -45,6 +45,16 @@ void ucm_destroy(snd_use_case_mgr_t *mgr);
  */
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable);
 
+/* Gets the capture control name which associated with given ucm device.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    ucm_dev - The ucm device to get capture control for.
+ * Returns:
+ *    A pointer to the allocated string containing the name of the capture
+ *    control, or NULL if no capture control is found.
+ */
+char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev);
+
 /* Gets the name of the ucm device for the given jack name.
  * Args:
  *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.

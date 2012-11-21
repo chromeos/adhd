@@ -127,6 +127,25 @@ TEST(AlsaUcm, GetEdidForDev) {
   free(snd_use_case_get_id);
 }
 
+TEST(AlsaUcm, GetCapControlForDev) {
+	snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+	char *cap_control;
+
+	ResetStubData();
+
+	snd_use_case_get_value = "MIC";
+
+	cap_control = ucm_get_cap_control(mgr, "Dev1");
+	ASSERT_TRUE(cap_control);
+	EXPECT_EQ(0, strcmp(cap_control, snd_use_case_get_value));
+	free(cap_control);
+
+	ASSERT_EQ(1, snd_use_case_get_called);
+	ASSERT_TRUE(snd_use_case_get_id);
+	EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=CaptureControl/Dev1/HiFi"));
+	free(snd_use_case_get_id);
+}
+
 /* Stubs */
 
 extern "C" {

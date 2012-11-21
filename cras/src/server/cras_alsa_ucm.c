@@ -12,6 +12,7 @@
 static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
 static const char edid_var[] = "EDIDFile";
+static const char cap_var[] = "CaptureControl";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -32,6 +33,22 @@ static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 
 	snd_use_case_free_list(list, num_devs);
 	return enabled;
+}
+
+static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
+		   const char *verb, const char **value)
+{
+	char *id;
+	int rc;
+
+	id = malloc(strlen(var) + strlen(dev) + strlen(verb) + 4);
+	if (!id)
+		return -ENOMEM;
+	sprintf(id, "=%s/%s/%s", var, dev, verb);
+	rc = snd_use_case_get(mgr, id, value);
+
+	free((void *)id);
+	return rc;
 }
 
 /* Exported Interface */
@@ -70,6 +87,21 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable)
 	return snd_use_case_set(mgr, enable ? "_enadev" : "_disdev", dev);
 }
 
+char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev)
+{
+	char *control_name = NULL;
+	const char *value;
+	int rc;
+
+	rc = get_var(mgr, cap_var, ucm_dev, default_verb, &value);
+	if (!rc) {
+		control_name = strdup(value);
+		free((void *)value);
+	}
+
+	return control_name;
+}
+
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)
 {
 	const char **list;
@@ -83,25 +115,13 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)
 		return NULL;
 
 	for (i = 0; i < num_devs; i++) {
-		char *id;
 		const char *this_jack;
 
 		if (!list[i])
 			continue;
 
-		id = malloc(strlen(jack_var) +
-			    strlen(list[i]) +
-			    strlen(default_verb) + 4);
-		if (!id)
-			goto return_name;
-
-		sprintf(id, "=%s/%s/%s", jack_var, list[i], default_verb);
-		rc = snd_use_case_get(mgr, id, &this_jack);
-		free(id);
-		if (rc)
-			continue;
-
-		if (!strcmp(jack, this_jack)) {
+		rc = get_var(mgr, jack_var, list[i], default_verb, &this_jack);
+		if (!rc && !strcmp(jack, this_jack)) {
 			dev_name = strdup(list[i]);
 			free((void *)this_jack);
 			break;
@@ -109,7 +129,6 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)
 		free((void *)this_jack);
 	}
 
-return_name:
 	snd_use_case_free_list(list, num_devs);
 	return dev_name;
 }
@@ -117,18 +136,9 @@ return_name:
 const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 {
 	const char *file_name;
-	char *id;
 	int rc;
 
-	id = malloc(strlen(edid_var) +
-			strlen(dev) +
-			strlen(default_verb) + 4);
-	if (!id)
-		return NULL;
-
-	sprintf(id, "=%s/%s/%s", edid_var, dev, default_verb);
-	rc = snd_use_case_get(mgr, id, &file_name);
-	free(id);
+	rc = get_var(mgr, edid_var, dev, default_verb, &file_name);
 	if (rc)
 		return NULL;
 
