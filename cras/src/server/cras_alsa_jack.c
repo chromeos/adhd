@@ -74,6 +74,7 @@ struct cras_alsa_jack {
 
 	struct cras_alsa_jack_list *jack_list;
 	struct cras_alsa_mixer_output *mixer_output;
+	struct mixer_volume_control *mixer_input;
 	char *ucm_device;
 	const char *edid_file;
 	struct cras_timer *edid_timer;
@@ -325,6 +326,17 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	if (jack->ucm_device)
 		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
 							    jack->ucm_device);
+
+	if (jack->ucm_device && direction == CRAS_STREAM_INPUT) {
+		char *control_name;
+		control_name = ucm_get_cap_control(jack->jack_list->ucm,
+						   jack->ucm_device);
+		if (control_name)
+			jack->mixer_input =
+				cras_alsa_mixer_get_input_matching_name(
+					jack_list->mixer,
+					control_name);
+	}
 
 	sys_input_get_switch_state(jack->gpio.fd, switch_event,
 				   &jack->gpio.current_state);
@@ -626,6 +638,17 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 		if (jack_list->ucm)
 			jack->ucm_device =
 				ucm_get_dev_for_jack(jack_list->ucm, name);
+
+		if (jack->ucm_device && direction == CRAS_STREAM_INPUT) {
+			char *control_name;
+			control_name = ucm_get_cap_control(jack->jack_list->ucm,
+						       jack->ucm_device);
+			if (control_name)
+				jack->mixer_input =
+					cras_alsa_mixer_get_input_matching_name(
+						jack_list->mixer,
+						control_name);
+		}
 	}
 
 	/* If we have found jacks, have the poll fds passed to select in the
@@ -699,9 +722,12 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 					     jack->edid_timer);
 
 		if (jack->is_gpio) {
-		    free(jack->gpio.device_name);
-		    close(jack->gpio.fd);
+			free(jack->gpio.device_name);
+			close(jack->gpio.fd);
 		}
+
+		if (jack->mixer_input)
+			free(jack->mixer_input);
 		free(jack);
 	}
 	if (jack_list->hctl)
@@ -715,6 +741,12 @@ struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
 	if (jack == NULL)
 		return NULL;
 	return jack->mixer_output;
+}
+
+struct mixer_volume_control *cras_alsa_jack_get_mixer_input(
+		const struct cras_alsa_jack *jack)
+{
+	return jack ? jack->mixer_input : NULL;
 }
 
 void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list)

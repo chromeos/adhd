@@ -13,14 +13,6 @@
 #include "cras_volume_curve.h"
 #include "utlist.h"
 
-/* Represents an ALSA volume control element. Each device can have several
- * volume controls in the path to the output, a list of these will be used to
- * represent that so we can used each volume control in sequence. */
-struct mixer_volume_control {
-	snd_mixer_elem_t *elem;
-	struct mixer_volume_control *prev, *next;
-};
-
 /* Represents an ALSA control element related to a specific output such as
  * speakers or headphones.  A device can have several of these, each potentially
  * having independent volume and mute controls. */
@@ -308,6 +300,34 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 	}
 	snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
+}
+
+struct mixer_volume_control *cras_alsa_mixer_get_input_matching_name(
+		struct cras_alsa_mixer *cras_mixer,
+		const char *control_name)
+{
+	snd_mixer_elem_t *elem;
+	for (elem = snd_mixer_first_elem(cras_mixer->mixer);
+			elem != NULL; elem = snd_mixer_elem_next(elem)) {
+		const char *name;
+		name = snd_mixer_selem_get_name(elem);
+
+		if (name == NULL)
+			continue;
+		if (strcmp(control_name, name) == 0) {
+			struct mixer_volume_control *c;
+
+			c = calloc(1, sizeof(*c));
+			if (c == NULL) {
+				syslog(LOG_ERR, "No memory for control.");
+				return NULL;
+			}
+
+			c->elem = elem;
+			return c;
+		}
+	}
+	return NULL;
 }
 
 const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(

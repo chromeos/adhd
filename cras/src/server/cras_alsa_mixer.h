@@ -9,8 +9,6 @@
 #include <alsa/asoundlib.h>
 #include <iniparser.h>
 
-#include "cras_alsa_mixer.h"
-
 /* cras_alsa_mixer represents the alsa mixer interface for an alsa card.  It
  * houses the volume and mute controls as well as playback switches for
  * headphones and mic.
@@ -19,6 +17,14 @@
 struct cras_alsa_mixer;
 struct cras_volume_curve;
 struct cras_card_config;
+
+/* Represents an ALSA volume control element. Each device can have several
+ * volume controls in the path to the output, a list of these will be used to
+ * represent that so we can apply each volume control in sequence. */
+struct mixer_volume_control {
+	snd_mixer_elem_t *elem;
+	struct mixer_volume_control *prev, *next;
+};
 
 /* A mixer output, such as 'Headphone' or 'Speaker'.
  *  elem - ALSA mixer element.
@@ -151,6 +157,18 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 		const struct cras_alsa_mixer *cras_mixer,
 		size_t device_index,
 		const char *name);
+
+/* Finds the mixer control for that matches the control name of input control
+ * name specified in ucm config.
+ * Args:
+ *    cras_mixer - Mixer to search for a control.
+ *    control_name - Name of the control to search for.
+ * Returns:
+ *    A pointer the input mixer control that matches control_name.
+ */
+struct mixer_volume_control *cras_alsa_mixer_get_input_matching_name(
+		struct cras_alsa_mixer *cras_mixer,
+		const char *control_name);
 
 /* Sets the given output active or inactive. */
 int cras_alsa_mixer_set_output_active_state(

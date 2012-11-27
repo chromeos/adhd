@@ -61,8 +61,11 @@ static void *fake_jack_cb_arg;
 static size_t snd_hctl_nonblock_called;
 static struct cras_alsa_mixer *fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
+static size_t cras_alsa_mixer_get_input_matching_name_called;
 static struct cras_alsa_mixer_output *
     cras_alsa_mixer_get_output_matching_name_return_value;
+struct mixer_volume_control *
+    cras_alsa_mixer_get_input_matching_name_return_value;
 static size_t gpio_get_switch_names_called;
 static size_t gpio_get_switch_names_count;
 static size_t gpio_switch_open_called;
@@ -70,6 +73,8 @@ static size_t gpio_switch_eviocgsw_called;
 static size_t gpio_switch_eviocgbit_called;
 static size_t sys_input_get_device_name_called;
 static unsigned ucm_get_dev_for_jack_called;
+static unsigned ucm_get_cap_control_called;
+static char *ucm_get_cap_control_value;
 static bool ucm_get_dev_for_jack_return;
 static int ucm_set_enabled_value;
 static unsigned long eviocbit_ret[NBITS(SW_CNT)];
@@ -109,9 +114,14 @@ static void ResetStubData() {
   snd_hctl_nonblock_called = 0;
   fake_mixer = reinterpret_cast<struct cras_alsa_mixer *>(0x789);
   cras_alsa_mixer_get_output_matching_name_called = 0;
+  cras_alsa_mixer_get_input_matching_name_called = 0;
   cras_alsa_mixer_get_output_matching_name_return_value =
       reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
+  cras_alsa_mixer_get_input_matching_name_return_value =
+      reinterpret_cast<struct mixer_volume_control *>(0x654);
   ucm_get_dev_for_jack_called = 0;
+  ucm_get_cap_control_called = 0;
+  ucm_get_cap_control_value = NULL;
   ucm_get_dev_for_jack_return = false;
 
   memset(eviocbit_ret, 0, sizeof(eviocbit_ret));
@@ -226,6 +236,8 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   EXPECT_EQ(njacks, snd_hctl_elem_set_callback_called);
   if (direction == CRAS_STREAM_OUTPUT)
     EXPECT_EQ(njacks, cras_alsa_mixer_get_output_matching_name_called);
+  if (direction == CRAS_STREAM_INPUT && ucm_get_dev_for_jack_return)
+    EXPECT_EQ(njacks, ucm_get_cap_control_called);
 
   return jack_list;
 }
@@ -279,6 +291,30 @@ TEST(AlsaJacks, CreateGPIOHp) {
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
   EXPECT_EQ(1, snd_hctl_close_called);
+}
+
+TEST(AlsaJacks, CreateGPIOMic) {
+  struct cras_alsa_jack_list *jack_list;
+  ResetStubData();
+  ucm_get_dev_for_jack_return = true;
+  gpio_get_switch_names_count = ~0;
+  eviocbit_ret[LONG(SW_MICROPHONE_INSERT)] |= 1 << OFF(SW_MICROPHONE_INSERT);
+  gpio_switch_eviocgbit_fd = 3;
+  snd_hctl_first_elem_return_val = NULL;
+  ucm_get_cap_control_value = reinterpret_cast<char *>(0x1);
+
+  jack_list = cras_alsa_jack_list_create(
+      0,
+      "c1",
+      0,
+      fake_mixer,
+      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      CRAS_STREAM_INPUT,
+      fake_jack_cb,
+      fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(ucm_get_cap_control_called, 1);
+  EXPECT_EQ(cras_alsa_mixer_get_input_matching_name_called, 1);
 }
 
 TEST(AlsaJacks, CreateGPIOHdmi) {
@@ -556,6 +592,14 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
   return cras_alsa_mixer_get_output_matching_name_return_value;
 }
 
+struct mixer_volume_control *cras_alsa_mixer_get_input_matching_name(
+    struct cras_alsa_mixer *cras_mixer,
+    const char *control_name)
+{
+  cras_alsa_mixer_get_input_matching_name_called++;
+  return cras_alsa_mixer_get_input_matching_name_return_value;
+}
+
 char *sys_input_get_device_name(const char *path)
 {
   sys_input_get_device_name_called++;
@@ -633,6 +677,11 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable) {
   ucm_set_enabled_value = enable;
   return 0;
+}
+
+char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev) {
+  ++ucm_get_cap_control_called;
+  return ucm_get_cap_control_value;
 }
 
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {

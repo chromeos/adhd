@@ -736,6 +736,33 @@ TEST_F(AlsaMixerOutputs, CheckFindOutputHDMIByName) {
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
 }
 
+TEST_F(AlsaMixerOutputs, CheckFindInputName) {
+  struct mixer_volume_control *control;
+  snd_mixer_elem_t *elements[] = {
+    reinterpret_cast<snd_mixer_elem_t *>(2),  // Headphone
+    reinterpret_cast<snd_mixer_elem_t *>(3),  // MIC
+  };
+  const char *element_names[] = {
+    "Speaker",
+    "Headphone",
+    "MIC",
+  };
+
+  snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
+  snd_mixer_elem_next_return_values = elements;
+  snd_mixer_elem_next_return_values_index = 0;
+  snd_mixer_elem_next_return_values_length = ARRAY_SIZE(elements);
+
+  snd_mixer_selem_get_name_called = 0;
+  snd_mixer_selem_get_name_return_values = element_names;
+  snd_mixer_selem_get_name_return_values_index = 0;
+  snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  control = cras_alsa_mixer_get_input_matching_name(cras_mixer_,
+                                                    "MIC");
+  EXPECT_NE(static_cast<struct mixer_volume_control *>(NULL), control);
+  EXPECT_EQ(3, snd_mixer_selem_get_name_called);
+}
+
 TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
   int rc;
 

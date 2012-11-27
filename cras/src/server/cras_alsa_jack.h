@@ -63,9 +63,18 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list);
  * Args:
  *    jack - The jack to query for a mixer output.
  * Returns:
- *    A pointer to the mixer output if it exisits, otherwise NULL.
+ *    A pointer to the mixer output if it exists, otherwise NULL.
  */
 struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
+		const struct cras_alsa_jack *jack);
+
+/* Gets the mixer input associated with given jack.
+ * Args:
+ *    jack - The jack to query for a mixer input.
+ * Returns:
+ *    A pointer to the mixer input if it exists, otherwise NULL.
+ */
+struct mixer_volume_control *cras_alsa_jack_get_mixer_input(
 		const struct cras_alsa_jack *jack);
 
 /* Query all jacks in the list and report the state to the callback.
