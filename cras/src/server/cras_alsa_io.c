@@ -1042,8 +1042,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 					     best_node->mixer_output);
 	} else {
 		aio->active_output = best_node;
-		set_alsa_volume_limits(aio);
-		set_alsa_volume(&aio->base);
+		init_device_settings(aio);
 	}
 
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
@@ -1065,6 +1064,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
+	init_device_settings(aio);
 
 	syslog(LOG_DEBUG, "Move input streams due to plug event.");
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
@@ -1244,7 +1244,7 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 	int found_output = 0;
 
 	set_alsa_mute(aio, 1);
-	/* Unmute the acrtive input, mute all others. */
+	/* Unmute the active input, mute all others. */
 	DL_FOREACH(aio->output_nodes, output) {
 		if (output->mixer_output == NULL)
 			continue;
@@ -1261,6 +1261,6 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 		return -EINVAL;
 	}
 	/* Setting the volume will also unmute if the system isn't muted. */
-	set_alsa_volume(&aio->base);
+	init_device_settings(aio);
 	return 0;
 }
