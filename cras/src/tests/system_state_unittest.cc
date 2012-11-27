@@ -171,6 +171,9 @@ TEST(SystemStateSuite, SetCaptureVolume) {
   EXPECT_EQ(0, cras_system_get_capture_gain());
   cras_system_set_capture_gain(3000);
   EXPECT_EQ(3000, cras_system_get_capture_gain());
+  // Check that it is limited to the minimum allowed gain.
+  cras_system_set_capture_gain(-10000);
+  EXPECT_EQ(-5000, cras_system_get_capture_gain());
 }
 
 TEST(SystemStateSuite, VolumeChangedCallback) {
@@ -254,7 +257,7 @@ TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
   void * const fake_user_arg_2 = (void *)2;
   const size_t fake_min = -10000;
   const size_t fake_max = 800;
-  const size_t fake_min_2 = -8000;
+  const size_t fake_min_2 = -4500;
   const size_t fake_max_2 = -600;
   int rc;
 

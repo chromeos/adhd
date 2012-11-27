@@ -248,7 +248,8 @@ void cras_system_set_capture_gain(long gain)
 {
 	struct state_callback_list *capture_cb;
 
-	state.exp_state->capture_gain = gain;
+	state.exp_state->capture_gain =
+		max(gain, state.exp_state->min_capture_gain);
 	DL_FOREACH(state.capture_gain_callbacks, capture_cb)
 		capture_cb->callback(capture_cb->data);
 }
@@ -399,7 +400,7 @@ void cras_system_set_capture_gain_limits(long min, long max)
 {
 	struct state_callback_list *limit_cb;
 
-	state.exp_state->min_capture_gain = min;
+	state.exp_state->min_capture_gain = max(min, DEFAULT_MIN_CAPTURE_GAIN);
 	state.exp_state->max_capture_gain = max;
 	DL_FOREACH(state.volume_limits_callbacks, limit_cb)
 		limit_cb->callback(limit_cb->data);
