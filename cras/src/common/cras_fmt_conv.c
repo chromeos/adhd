@@ -344,3 +344,11 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	}
 	return fr_out;
 }
+
+int cras_fmt_conversion_needed(const struct cras_audio_format *a,
+			       const struct cras_audio_format *b)
+{
+	return (a->format != b->format ||
+		a->num_channels != b->num_channels ||
+		a->frame_rate != b->frame_rate);
+}

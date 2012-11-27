@@ -45,4 +45,14 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				    size_t in_frames,
 				    size_t out_frames);
 
+/* Checks if format conversion is needed between two formats.
+ * Args:
+ *    a - First format to compare.
+ *    b - Second format to compare.
+ *  Returns:
+ *    Non-zero if a format conversion is needed between the two formats.
+ */
+int cras_fmt_conversion_needed(const struct cras_audio_format *a,
+			       const struct cras_audio_format *b);
+
 #endif /* CRAS_FMT_CONV_H_ */

@@ -590,7 +590,7 @@ static int config_format_converter(struct client_stream *stream,
 {
 	struct cras_audio_format *sfmt = &stream->config->format;
 
-	if (memcmp(sfmt, hwfmt, sizeof(*hwfmt)) != 0) {
+	if (cras_fmt_conversion_needed(sfmt, hwfmt)) {
 		size_t max_frames = max(cras_shm_used_frames(&stream->shm),
 					stream->config->buffer_frames);
 
