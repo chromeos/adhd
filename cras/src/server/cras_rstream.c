@@ -14,15 +14,14 @@
 #include "cras_types.h"
 
 
-/* Setup the shared memory area used to pass audio samples. */
-static int cras_rstream_setup_shm(struct cras_rstream *stream)
+/* Configure the shm area for the stream. */
+static int setup_shm(struct cras_rstream *stream, struct cras_audio_shm *shm)
 {
 	size_t used_size, samples_size, total_size, frame_bytes;
 	int loops = 0;
 	const struct cras_audio_format *fmt = &stream->format;
-	struct cras_audio_shm *shm;
 
-	if (stream->shm.area != NULL) /* already setup */
+	if (shm->area != NULL) /* already setup */
 		return -EEXIST;
 
 	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
@@ -43,7 +42,6 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	}
 
 	/* Attach to shm and clear it. */
-	shm = &stream->shm;
 	shm->area = shmat(stream->shm_id, NULL, 0);
 	if (shm->area == (void *)-1)
 		return -ENOMEM;
@@ -55,6 +53,12 @@ static int cras_rstream_setup_shm(struct cras_rstream *stream)
 	cras_shm_set_used_size(&stream->shm, used_size);
 	memcpy(&shm->area->config, &shm->config, sizeof(shm->config));
 	return 0;
+}
+
+/* Setup the shared memory area used to pass audio samples. */
+static inline int setup_shm_area(struct cras_rstream *stream)
+{
+	return setup_shm(stream, &stream->shm);
 }
 
 /* Verifies that the given stream parameters are valid. */
@@ -139,7 +143,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->client = client;
 	stream->shm.area = NULL;
 
-	rc = cras_rstream_setup_shm(stream);
+	rc = setup_shm_area(stream);
 	if (rc < 0) {
 		syslog(LOG_ERR, "failed to setup shm %d\n", rc);
 		free(stream);
