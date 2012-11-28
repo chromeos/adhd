@@ -16,11 +16,6 @@ cras:
 cras_install:
 	@$(call remake,Building,cras,cras.mk,$@)
 
-$(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules:	\
-	$(ADHD_DIR)/udev/99-dev-input-group.rules
-	$(ECHO) "Installing '$<' to '$@'"
-	$(INSTALL) --mode 644 -D $< $@
-
 $(DESTDIR)/etc/init/cras.conf:	$(ADHD_DIR)/upstart/cras.conf
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
@@ -70,7 +65,6 @@ endif
 install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
 		$(DESTDIR)/etc/cras/device_blacklist			\
-		$(DESTDIR)/lib/udev/rules.d/99-dev-input-group.rules	\
 		cras_install
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
