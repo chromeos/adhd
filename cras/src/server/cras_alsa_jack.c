@@ -3,7 +3,6 @@
  * found in the LICENSE file.
  */
 
-#include <assert.h>
 #include <alsa/asoundlib.h>
 #include <linux/input.h>
 #include <syslog.h>
@@ -345,7 +344,7 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	return r;
 }
 
-static void wait_for_dev_input_access()
+static int wait_for_dev_input_access()
 {
 	/* Wait for /dev/input/event* files to become accessible by
 	 * having group 'input'.  Setting these files to have 'rw'
@@ -381,10 +380,15 @@ static void wait_for_dev_input_access()
 			/* Access allowed, or file does not exist. */
 			break;
 		}
-		assert(readable == -1 && errno == EACCES);
+		if (readable != -1 || errno != EACCES) {
+			syslog(LOG_ERR, "Bad access for input devs.");
+			return errno;
+		}
 		select(1, NULL, NULL, NULL, &timeout);
 		++i;
 	}
+
+	return 0;
 }
 
 static void find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
@@ -402,7 +406,9 @@ static void find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 					   SW_LINEOUT_INSERT};
 	static const int in_switches[] = {SW_MICROPHONE_INSERT};
 
-	wait_for_dev_input_access();
+	if (wait_for_dev_input_access())
+		return;
+
 	n_devices = gpio_get_switch_names(direction, devices,
 					  ARRAY_SIZE(devices));
 	for (i = 0; i < n_devices; ++i) {
@@ -583,7 +589,6 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 		jack_names = output_jack_base_names;
 		num_jack_names = ARRAY_SIZE(output_jack_base_names);
 	} else {
-		assert(direction == CRAS_STREAM_INPUT);
 		jack_names = input_jack_base_names;
 		num_jack_names = ARRAY_SIZE(input_jack_base_names);
 	}
@@ -680,8 +685,11 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 	char device_name[6];
 
 	/* Enforce alsa limits. */
-	assert(card_index < 32);
-	assert(device_index < 32);
+	if (card_index >= 32 || device_index >= 32) {
+		syslog(LOG_ERR, "Jack List: Invalid card/dev %u/%u",
+		       card_index, device_index);
+		return NULL;
+	}
 
 	jack_list = (struct cras_alsa_jack_list *)calloc(1, sizeof(*jack_list));
 	if (jack_list == NULL)
