@@ -243,7 +243,8 @@ struct cras_client_stream_connected {
 	int err;
 	cras_stream_id_t stream_id;
 	struct cras_audio_format format;
-	int shm_key;
+	int input_shm_key;
+	int output_shm_key;
 	size_t shm_max_size;
 };
 static inline void cras_fill_client_stream_connected(
@@ -251,13 +252,15 @@ static inline void cras_fill_client_stream_connected(
 		int err,
 		cras_stream_id_t stream_id,
 		struct cras_audio_format format,
-		int shm_key,
+		int input_shm_key,
+		int output_shm_key,
 		size_t shm_max_size)
 {
 	m->err = err;
 	m->stream_id = stream_id;
 	m->format = format;
-	m->shm_key = shm_key;
+	m->input_shm_key = input_shm_key;
+	m->output_shm_key = output_shm_key;
 	m->shm_max_size = shm_max_size;
 	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
 	m->header.length = sizeof(struct cras_client_stream_connected);

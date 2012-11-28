@@ -613,7 +613,11 @@ static int stream_connected(struct client_stream *stream,
 		return msg->err;
 	}
 
-	rc = config_shm(stream, msg->shm_key, msg->shm_max_size);
+	rc = config_shm(stream,
+			stream->direction == CRAS_STREAM_OUTPUT ?
+						msg->output_shm_key :
+						msg->input_shm_key,
+			msg->shm_max_size);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Error configuring shared memory");
 		goto err_ret;

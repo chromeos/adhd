@@ -15,7 +15,6 @@ struct cras_iodev;
 struct cras_io_stream {
 	struct cras_rstream *stream;
 	int fd; /* cached here due to frequent access */
-	struct cras_audio_shm *shm; /* ditto on caching */
 	int mixed; /* Was this stream mixed already? */
 	struct cras_io_stream *prev, *next;
 };

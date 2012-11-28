@@ -15,7 +15,9 @@
 
 
 /* Configure the shm area for the stream. */
-static int setup_shm(struct cras_rstream *stream, struct cras_audio_shm *shm)
+static int setup_shm(struct cras_rstream *stream,
+		     struct cras_audio_shm *shm,
+		     struct rstream_shm_info *shm_info)
 {
 	size_t used_size, samples_size, total_size, frame_bytes;
 	int loops = 0;
@@ -32,33 +34,38 @@ static int setup_shm(struct cras_rstream *stream, struct cras_audio_shm *shm)
 
 	/* Find an available shm key. */
 	do {
-		stream->shm_key = getpid() + stream->stream_id + loops;
-		stream->shm_id = shmget(stream->shm_key, total_size,
-					IPC_CREAT | IPC_EXCL | 0660);
-	} while (stream->shm_id < 0 && loops++ < 100);
-	if (stream->shm_id < 0) {
+		shm_info->shm_key = getpid() + stream->stream_id + loops;
+		shm_info->shm_id = shmget(shm_info->shm_key,
+					  total_size,
+					  IPC_CREAT | IPC_EXCL | 0660);
+	} while (shm_info->shm_id < 0 && loops++ < 100);
+	if (shm_info->shm_id < 0) {
 		syslog(LOG_ERR, "shmget");
-		return stream->shm_id;
+		return shm_info->shm_id;
 	}
 
 	/* Attach to shm and clear it. */
-	shm->area = shmat(stream->shm_id, NULL, 0);
+	shm->area = shmat(shm_info->shm_id, NULL, 0);
 	if (shm->area == (void *)-1)
 		return -ENOMEM;
 	memset(shm->area, 0, total_size);
-	cras_shm_set_volume_scaler(&stream->shm, 1.0);
+	cras_shm_set_volume_scaler(shm, 1.0);
 	/* Set up config and copy to shared area. */
 	cras_shm_set_frame_bytes(shm, frame_bytes);
 	shm->config.frame_bytes = frame_bytes;
-	cras_shm_set_used_size(&stream->shm, used_size);
+	cras_shm_set_used_size(shm, used_size);
 	memcpy(&shm->area->config, &shm->config, sizeof(shm->config));
 	return 0;
 }
 
-/* Setup the shared memory area used to pass audio samples. */
+/* Setup the shared memory area used for audio samples. */
 static inline int setup_shm_area(struct cras_rstream *stream)
 {
-	return setup_shm(stream, &stream->shm);
+	if (stream->direction == CRAS_STREAM_OUTPUT)
+		return setup_shm(stream, &stream->output_shm,
+				 &stream->output_shm_info);
+
+	return setup_shm(stream, &stream->input_shm, &stream->input_shm_info);
 }
 
 /* Verifies that the given stream parameters are valid. */
@@ -141,7 +148,8 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->min_cb_level = min_cb_level;
 	stream->flags = flags;
 	stream->client = client;
-	stream->shm.area = NULL;
+	stream->output_shm.area = NULL;
+	stream->input_shm.area = NULL;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {
@@ -150,18 +158,23 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 		return rc;
 	}
 
-	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu, used_size %u",
-	       stream_id, buffer_frames, cb_threshold,
-	       cras_shm_used_size(&stream->shm));
+	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
+	       stream_id, buffer_frames, cb_threshold);
 	*stream_out = stream;
 	return 0;
 }
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
-	if (stream->shm.area != NULL) {
-		shmdt(stream->shm.area);
-		shmctl(stream->shm_id, IPC_RMID, (void *)stream->shm.area);
+	if (stream->input_shm.area != NULL) {
+		shmdt(stream->input_shm.area);
+		shmctl(stream->input_shm_info.shm_id, IPC_RMID,
+		       (void *)stream->input_shm.area);
+	}
+	if (stream->output_shm.area != NULL) {
+		shmdt(stream->output_shm.area);
+		shmctl(stream->output_shm_info.shm_id, IPC_RMID,
+		       (void *)stream->output_shm.area);
 	}
 	free(stream);
 }
@@ -211,4 +224,15 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 	struct cras_client_stream_reattach msg;
 	cras_fill_client_stream_reattach(&msg, stream->stream_id);
 	cras_rclient_send_message(stream->client, &msg.header);
+}
+
+void cras_rstream_log_overrun(const struct cras_rstream *stream)
+{
+	if (stream->input_shm.area != NULL)
+		syslog(LOG_DEBUG, "overruns:%u",
+		       cras_shm_num_overruns(&stream->input_shm));
+
+	if (stream->output_shm.area != NULL)
+		syslog(LOG_DEBUG, "cb_timeouts:%u",
+		       cras_shm_num_cb_timeouts(&stream->output_shm));
 }

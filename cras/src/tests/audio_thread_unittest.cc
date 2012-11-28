@@ -89,7 +89,7 @@ class ReadStreamSuite : public testing::Test {
       memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
       rstream_->direction = CRAS_STREAM_INPUT;
 
-      shm_ = &rstream_->shm;
+      shm_ = &rstream_->input_shm;
 
       shm_->area = (struct cras_audio_shm_area *)calloc(1,
           sizeof(*shm_->area) + iodev_.cb_threshold * 8);
@@ -498,9 +498,9 @@ class WriteStreamSuite : public testing::Test {
       iodev_.open_dev = open_dev;
 
       SetupRstream(&rstream_, 1);
-      shm_ = &rstream_->shm;
+      shm_ = cras_rstream_output_shm(rstream_);
       SetupRstream(&rstream2_, 2);
-      shm2_ = &rstream2_->shm;
+      shm2_ = cras_rstream_output_shm(rstream2_);
 
       thread_ = audio_thread_create(&iodev_);
       ASSERT_TRUE(thread_);
@@ -537,15 +537,14 @@ class WriteStreamSuite : public testing::Test {
       audio_thread_destroy(thread_);
     }
 
-    void SetupRstream(struct cras_rstream **rstream,
-                      int fd) {
+    void SetupRstream(struct cras_rstream **rstream, int fd) {
       struct cras_audio_shm *shm;
 
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->fd = fd;
 
-      shm = &(*rstream)->shm;
+      shm = cras_rstream_output_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
           sizeof(*shm->area) + iodev_.used_size * 8);
       cras_shm_set_frame_bytes(shm, 4);
@@ -1245,6 +1244,9 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
                                      const struct timespec *time_delta,
                                      int samples)
 {
+}
+
+void cras_rstream_log_overrun(const struct cras_rstream *stream) {
 }
 
 //  Override select so it can be stubbed.

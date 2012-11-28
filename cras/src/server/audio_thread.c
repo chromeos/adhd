@@ -133,7 +133,6 @@ static int append_stream(struct audio_thread *thread,
 	if (out == NULL)
 		return -ENOMEM;
 	out->stream = stream;
-	out->shm = cras_rstream_get_shm(stream);
 	out->fd = cras_rstream_get_audio_fd(stream);
 	DL_APPEND(thread->streams, out);
 
@@ -379,21 +378,24 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 	fr_rate = odev->format->frame_rate;
 
 	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
-		if (cras_shm_callback_pending(curr->shm))
-			flush_old_aud_messages(curr->shm, curr->fd);
+		struct cras_audio_shm *shm =
+			cras_rstream_output_shm(curr->stream);
 
-		frames_in_buff = cras_shm_get_frames(curr->shm);
+		if (cras_shm_callback_pending(shm))
+			flush_old_aud_messages(shm, curr->fd);
+
+		frames_in_buff = cras_shm_get_frames(shm);
 
 		cras_iodev_set_playback_timestamp(fr_rate,
 						  frames_in_buff + delay,
-						  &curr->shm->area->ts);
+						  &shm->area->ts);
 
 		/* If we already have enough data, don't poll this stream. */
 		if (frames_in_buff >= fetch_size)
 			continue;
 
-		if (!cras_shm_callback_pending(curr->shm) &&
-		    cras_shm_is_buffer_available(curr->shm)) {
+		if (!cras_shm_callback_pending(shm) &&
+		    cras_shm_is_buffer_available(shm)) {
 			rc = cras_rstream_request_audio(curr->stream,
 							fetch_size);
 			if (rc < 0) {
@@ -404,7 +406,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 					return -EIO;
 				continue;
 			}
-			cras_shm_set_callback_pending(curr->shm, 1);
+			cras_shm_set_callback_pending(shm, 1);
 		}
 	}
 
@@ -452,9 +454,13 @@ static int write_streams(struct audio_thread *thread,
 	/* Check if streams have enough data to fill this request,
 	 * if not, wait for them. Mix all streams we have enough data for. */
 	DL_FOREACH(thread->streams, curr) {
+		struct cras_audio_shm *shm;
+
+		shm = cras_rstream_output_shm(curr->stream);
+
 		curr->mixed = 0;
-		if (cras_shm_get_frames(curr->shm) < write_limit &&
-		    cras_shm_callback_pending(curr->shm)) {
+		if (cras_shm_get_frames(shm) < write_limit &&
+		    cras_shm_callback_pending(shm)) {
 			/* Not enough to mix this call, wait for a response. */
 			streams_wait++;
 			FD_SET(curr->fd, &poll_set);
@@ -462,7 +468,7 @@ static int write_streams(struct audio_thread *thread,
 				max_fd = curr->fd;
 		} else {
 			curr->mixed = cras_mix_add_stream(
-				curr->shm,
+				shm,
 				odev->format->num_channels,
 				dst, &write_limit, &num_mixed);
 		}
@@ -475,19 +481,27 @@ static int write_streams(struct audio_thread *thread,
 		if (rc <= 0) {
 			/* Timeout */
 			DL_FOREACH(thread->streams, curr) {
-				if (cras_shm_callback_pending(curr->shm) &&
+				struct cras_audio_shm *shm;
+
+				shm = cras_rstream_output_shm(curr->stream);
+
+				if (cras_shm_callback_pending(shm) &&
 				    FD_ISSET(curr->fd, &poll_set))
-					cras_shm_inc_cb_timeouts(curr->shm);
+					cras_shm_inc_cb_timeouts(shm);
 			}
 			break;
 		}
 		DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+			struct cras_audio_shm *shm;
+
 			if (!FD_ISSET(curr->fd, &this_set))
 				continue;
 
+			shm = cras_rstream_output_shm(curr->stream);
+
 			FD_CLR(curr->fd, &poll_set);
 			streams_wait--;
-			cras_shm_set_callback_pending(curr->shm, 0);
+			cras_shm_set_callback_pending(shm, 0);
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
 				thread_remove_stream(thread, curr->stream);
@@ -498,7 +512,7 @@ static int write_streams(struct audio_thread *thread,
 			if (curr->mixed)
 				continue;
 			curr->mixed = cras_mix_add_stream(
-				curr->shm,
+				shm,
 				odev->format->num_channels,
 				dst, &write_limit, &num_mixed);
 		}
@@ -508,9 +522,13 @@ static int write_streams(struct audio_thread *thread,
 		return num_mixed;
 
 	/* For all streams rendered, mark the data used as read. */
-	DL_FOREACH(thread->streams, curr)
+	DL_FOREACH(thread->streams, curr) {
+		struct cras_audio_shm *shm;
+
+		shm = cras_rstream_output_shm(curr->stream);
 		if (curr->mixed)
-			cras_shm_buffer_read(curr->shm, write_limit);
+			cras_shm_buffer_read(shm, write_limit);
+	}
 
 	return write_limit;
 }
@@ -544,7 +562,7 @@ static void read_streams(struct audio_thread *thread,
 	if (!streams)
 		return; /* Nowhere to put samples. */
 
-	shm = streams->shm;
+	shm = cras_rstream_input_shm(streams->stream);
 
 	dst = cras_shm_get_writeable_frames(shm, &write_limit);
 	count = min(count, write_limit);
@@ -579,16 +597,11 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	}
 	case AUDIO_THREAD_RM_STREAM: {
 		struct audio_thread_add_rm_stream_msg *rmsg;
-		const struct cras_audio_shm *shm;
 
 		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
-		shm = cras_rstream_get_shm(rmsg->stream);
-		if (shm != NULL) {
-			syslog(LOG_DEBUG, "cb_timeouts:%u",
-			       cras_shm_num_cb_timeouts(shm));
-			syslog(LOG_DEBUG, "overruns:%u",
-			       cras_shm_num_overruns(shm));
-		}
+
+		cras_rstream_log_overrun(rmsg->stream);
+
 		ret = thread_remove_stream(thread, rmsg->stream);
 		break;
 	}
@@ -689,8 +702,8 @@ int possibly_read_audio(struct audio_thread *thread,
 		return 0;
 
 	if (thread->streams) {
-		cras_shm_check_write_overrun(thread->streams->shm);
-		shm = thread->streams->shm;
+		shm = cras_rstream_input_shm(thread->streams->stream);
+		cras_shm_check_write_overrun(shm);
 		cras_iodev_set_capture_timestamp(idev->format->frame_rate,
 						 delay,
 						 &shm->area->ts);
@@ -714,7 +727,8 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	if (thread->streams) {
 		apply_dsp(idev, dst, min(idev->cb_threshold, write_limit));
-		cras_shm_buffer_write_complete(thread->streams->shm);
+		shm = cras_rstream_input_shm(thread->streams->stream);
+		cras_shm_buffer_write_complete(shm);
 
 		/* Tell the client that samples are ready.  This assumes only
 		 * one capture client at a time. */

@@ -117,15 +117,15 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   EXPECT_EQ(2048, cras_rstream_get_min_cb_level(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_OUTPUT, cras_rstream_get_direction(s));
-  EXPECT_NE((void *)NULL, cras_rstream_get_shm(s));
+  EXPECT_NE((void *)NULL, cras_rstream_output_shm(s));
   rc = cras_rstream_get_format(s, &fmt_ret);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, memcmp(&fmt_ret, &fmt_, sizeof(fmt_)));
 
   // Check if shm is really set up.
-  shm_ret = cras_rstream_get_shm(s);
+  shm_ret = cras_rstream_output_shm(s);
   ASSERT_NE((void *)NULL, shm_ret);
-  key_ret = cras_rstream_get_shm_key(s);
+  key_ret = cras_rstream_output_shm_key(s);
   shm_size = cras_rstream_get_total_shm_size(s);
   EXPECT_GT(shm_size, 4096);
   shmid = shmget(key_ret, shm_size, 0600);
@@ -164,15 +164,15 @@ TEST_F(RstreamTestSuite, CreateInput) {
   EXPECT_EQ(2048, cras_rstream_get_min_cb_level(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_INPUT, cras_rstream_get_direction(s));
-  EXPECT_NE((void *)NULL, cras_rstream_get_shm(s));
+  EXPECT_NE((void *)NULL, cras_rstream_input_shm(s));
   rc = cras_rstream_get_format(s, &fmt_ret);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, memcmp(&fmt_ret, &fmt_, sizeof(fmt_)));
 
   // Check if shm is really set up.
-  shm_ret = cras_rstream_get_shm(s);
+  shm_ret = cras_rstream_input_shm(s);
   ASSERT_NE((void *)NULL, shm_ret);
-  key_ret = cras_rstream_get_shm_key(s);
+  key_ret = cras_rstream_input_shm_key(s);
   shm_size = cras_rstream_get_total_shm_size(s);
   EXPECT_GT(shm_size, 4096);
   shmid = shmget(key_ret, shm_size, 0600);

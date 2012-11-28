@@ -15,6 +15,15 @@
 struct audio_thread;
 struct cras_rclient;
 
+/* Holds identifiers for an shm segment.
+ *  shm_key - Key shared with client to access shm.
+ *  shm_id - Returned from shmget.
+ */
+struct rstream_shm_info {
+	int shm_key;
+	int shm_id;
+};
+
 /* cras_rstream is used to manage an active audio stream from
  * a client.  Each client can have any number of open streams for
  * playing or recording.
@@ -24,15 +33,15 @@ struct cras_rstream {
 	enum CRAS_STREAM_TYPE stream_type;
 	enum CRAS_STREAM_DIRECTION direction;
 	int fd; /* Socket for requesting and sending audio buffer events. */
-	int shm_key;
-	int shm_id;
-	size_t shm_size;
 	size_t buffer_frames; /* Buffer size in frames. */
 	size_t cb_threshold; /* Callback client when this much is left. */
 	size_t min_cb_level; /* Don't callback unless this much is avail. */
 	uint32_t flags;
 	struct cras_rclient *client;
-	struct cras_audio_shm shm;
+	struct rstream_shm_info input_shm_info;
+	struct rstream_shm_info output_shm_info;
+	struct cras_audio_shm output_shm;
+	struct cras_audio_shm input_shm;
 	struct audio_thread *thread;
 	struct cras_rstream *prev, *next;
 	struct cras_audio_format format;
@@ -129,24 +138,39 @@ static inline int cras_rstream_get_audio_fd(const struct cras_rstream *stream)
 	return stream->fd;
 }
 
-/* Gets the shm key used to find the shm region. */
-static inline int cras_rstream_get_shm_key(const struct cras_rstream *stream)
+/* Gets the shm key used to find the outputshm region. */
+static inline int cras_rstream_output_shm_key(const struct cras_rstream *stream)
 {
-	return stream->shm_key;
+	return stream->output_shm_info.shm_key;
+}
+
+/* Gets the shm key used to find the input shm region. */
+static inline int cras_rstream_input_shm_key(const struct cras_rstream *stream)
+{
+	return stream->input_shm_info.shm_key;
 }
 
 /* Gets the total size of shm memory allocated. */
 static inline size_t cras_rstream_get_total_shm_size(
 		const struct cras_rstream *stream)
 {
-	return cras_shm_total_size(&stream->shm);
+	if (stream->direction == CRAS_STREAM_OUTPUT)
+		return cras_shm_total_size(&stream->output_shm);
+	return cras_shm_total_size(&stream->input_shm);
 }
 
 /* Gets shared memory region for this stream. */
 static inline
-struct cras_audio_shm *cras_rstream_get_shm(struct cras_rstream *stream)
+struct cras_audio_shm *cras_rstream_output_shm(struct cras_rstream *stream)
 {
-	return &stream->shm;
+	return &stream->output_shm;
+}
+
+/* Gets shared memory region for this stream. */
+static inline
+struct cras_audio_shm *cras_rstream_input_shm(struct cras_rstream *stream)
+{
+	return &stream->input_shm;
 }
 
 /* Gets the audio thread for a stream. */
@@ -186,5 +210,8 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream);
 /* Sends a message to the client telling him to re-attach the stream. Used when
  * moving a stream between io devices. */
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream);
+
+/* Logs any callback timeouts or overruns for the stream. */
+void cras_rstream_log_overrun(const struct cras_rstream *stream);
 
 #endif /* CRAS_RSTREAM_H_ */
