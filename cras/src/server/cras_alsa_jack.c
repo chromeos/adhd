@@ -684,6 +684,9 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 	struct cras_alsa_jack_list *jack_list;
 	char device_name[6];
 
+	if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT)
+		return NULL;
+
 	/* Enforce alsa limits. */
 	if (card_index >= 32 || device_index >= 32) {
 		syslog(LOG_ERR, "Jack List: Invalid card/dev %u/%u",

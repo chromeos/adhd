@@ -664,6 +664,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	struct cras_iodev *iodev;
 	int err;
 
+	if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT)
+		return NULL;
+
 	aio = (struct alsa_io *)calloc(1, sizeof(*aio));
 	if (!aio)
 		return NULL;
@@ -686,7 +689,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.set_capture_gain = set_alsa_capture_gain;
 		aio->base.set_capture_mute = set_alsa_capture_gain;
 	} else {
-		assert(direction == CRAS_STREAM_OUTPUT);
 		aio->alsa_stream = SND_PCM_STREAM_PLAYBACK;
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
@@ -719,8 +721,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base);
 	else {
-		assert(direction == CRAS_STREAM_OUTPUT);
-
 		/* Check for outputs, sudh as Headphone and Speaker. */
 		cras_alsa_mixer_list_outputs(mixer, device_index,
 					     new_output, aio);
@@ -768,7 +768,6 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		rc = cras_iodev_list_rm_input(iodev);
 	else {
-		assert(iodev->direction == CRAS_STREAM_OUTPUT);
 		rc = cras_iodev_list_rm_output(iodev);
 	}
 	free_alsa_iodev_resources(aio);

@@ -104,6 +104,9 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	struct empty_iodev *empty_iodev;
 	struct cras_iodev *iodev;
 
+	if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT)
+		return NULL;
+
 	empty_iodev = calloc(1, sizeof(*empty_iodev));
 	if (empty_iodev == NULL)
 		return NULL;
@@ -120,7 +123,6 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 		cras_iodev_list_add_input(iodev);
 	} else {
-		assert(direction == CRAS_STREAM_OUTPUT);
 		snprintf(iodev->info.name,
 			 ARRAY_SIZE(iodev->info.name),
 			 "Silent playback device.");
@@ -151,7 +153,6 @@ void empty_iodev_destroy(struct cras_iodev *iodev)
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_rm_input(iodev);
 	else {
-		assert(iodev->direction == CRAS_STREAM_OUTPUT);
 		cras_iodev_list_rm_output(iodev);
 	}
 	free(empty_iodev);

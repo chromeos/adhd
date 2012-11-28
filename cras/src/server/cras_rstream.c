@@ -61,11 +61,20 @@ static int setup_shm(struct cras_rstream *stream,
 /* Setup the shared memory area used for audio samples. */
 static inline int setup_shm_area(struct cras_rstream *stream)
 {
-	if (stream->direction == CRAS_STREAM_OUTPUT)
-		return setup_shm(stream, &stream->output_shm,
-				 &stream->output_shm_info);
+	int rc = 0;
 
-	return setup_shm(stream, &stream->input_shm, &stream->input_shm_info);
+	if (stream->direction != CRAS_STREAM_INPUT) {
+		rc = setup_shm(stream, &stream->output_shm,
+			       &stream->output_shm_info);
+		if (rc)
+			return rc;
+	}
+
+	if (stream->direction != CRAS_STREAM_OUTPUT)
+		rc = setup_shm(stream, &stream->input_shm,
+			       &stream->input_shm_info);
+
+	return rc;
 }
 
 /* Verifies that the given stream parameters are valid. */
@@ -98,7 +107,9 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		       format->format);
 		return -EINVAL;
 	}
-	if (direction != CRAS_STREAM_OUTPUT && direction != CRAS_STREAM_INPUT) {
+	if (direction != CRAS_STREAM_OUTPUT &&
+	    direction != CRAS_STREAM_INPUT &&
+	    direction != CRAS_STREAM_UNIFIED) {
 		syslog(LOG_ERR, "rstream: Invalid direction.\n");
 		return -EINVAL;
 	}

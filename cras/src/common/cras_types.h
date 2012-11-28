@@ -15,10 +15,13 @@
 
 #include "cras_iodev_info.h"
 
-/* Directions of audio streams. */
+/* Directions of audio streams.
+ * Input, Output, or Unified (Both input and output synchronously).
+ */
 enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_OUTPUT,
 	CRAS_STREAM_INPUT,
+	CRAS_STREAM_UNIFIED,
 };
 
 /* Types of audio streams. */

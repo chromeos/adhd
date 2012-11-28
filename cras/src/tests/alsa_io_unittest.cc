@@ -142,6 +142,15 @@ static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
 
 namespace {
 
+TEST(AlsaIoInit, InitializeInvalidDirection) {
+  struct alsa_io *aio;
+
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            fake_mixer, NULL, 7,
+                                            CRAS_STREAM_UNIFIED);
+  ASSERT_EQ(aio, (void *)NULL);
+}
+
 TEST(AlsaIoInit, InitializePlayback) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;

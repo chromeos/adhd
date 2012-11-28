@@ -109,9 +109,11 @@ static int active_streams(const struct audio_thread *thread,
 	*out_active = 0;
 
 	DL_FOREACH(thread->streams, curr) {
-		if (curr->stream->direction == CRAS_STREAM_INPUT)
+		enum CRAS_STREAM_DIRECTION dir = curr->stream->direction;
+
+		if (dir != CRAS_STREAM_OUTPUT)
 			*in_active = *in_active + 1;
-		if (curr->stream->direction == CRAS_STREAM_OUTPUT)
+		if (dir != CRAS_STREAM_INPUT)
 			*out_active = *out_active + 1;
 	}
 
@@ -211,9 +213,13 @@ int thread_add_stream(struct audio_thread *thread,
 	struct cras_iodev *idev = thread->input_dev;
 	struct cras_io_stream *min_latency;
 	int rc;
+	int in_active, out_active;
+
+	active_streams(thread, &in_active, &out_active);
 
 	/* Only allow one capture stream to attach. */
-	if (stream->direction == CRAS_STREAM_INPUT && thread->streams != NULL)
+	if (in_active && (stream->direction == CRAS_STREAM_INPUT ||
+			  stream->direction == CRAS_STREAM_UNIFIED))
 		return -EBUSY;
 
 	rc = append_stream(thread, stream);
@@ -952,7 +958,6 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 		thread->input_dev = iodev;
 		thread->remaining_target = CAP_REMAINING_FRAMES_TARGET;
 	} else {
-		assert(iodev->direction == CRAS_STREAM_OUTPUT);
 		thread->output_dev = iodev;
 		thread->remaining_target = 0;
 	}

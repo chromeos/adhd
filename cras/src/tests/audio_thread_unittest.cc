@@ -1079,9 +1079,18 @@ TEST_F(AddStreamSuite, OneInputStreamPerDevice) {
   memset(&thread, 0, sizeof(thread));
 
   new_stream.direction = CRAS_STREAM_INPUT;
-  thread.streams = reinterpret_cast<cras_io_stream*>(0x01);
+
+  thread.streams = new cras_io_stream;
+  thread.streams->next = 0;
+  thread.streams->prev = 0;
+  thread.streams->stream = new cras_rstream;
+  thread.streams->stream->direction = CRAS_STREAM_INPUT;
+
   rc = thread_add_stream(&thread, &new_stream);
   EXPECT_EQ(-EBUSY, rc);
+
+  delete thread.streams->stream;
+  delete thread.streams;
 }
 
 extern "C" {

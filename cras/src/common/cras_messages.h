@@ -65,7 +65,7 @@ struct cras_client_message {
 struct cras_connect_message {
 	struct cras_server_message header;
 	size_t proto_version;
-	enum CRAS_STREAM_DIRECTION direction; /* input or output */
+	enum CRAS_STREAM_DIRECTION direction; /* input/output/unified */
 	cras_stream_id_t stream_id; /* unique id for this stream */
 	enum CRAS_STREAM_TYPE stream_type; /* media, or call, etc. */
 	size_t buffer_frames; /* Buffer size in frames. */

@@ -236,6 +236,9 @@ struct cras_iodev *cras_get_iodev_for_stream_type(
 		enum CRAS_STREAM_TYPE type,
 		enum CRAS_STREAM_DIRECTION direction)
 {
+	/* If output only, use that, for input and unified, use the default
+	 * input.
+	 */
 	if (direction == CRAS_STREAM_OUTPUT)
 		return default_output;
 	else
