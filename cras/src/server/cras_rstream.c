@@ -195,6 +195,11 @@ int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count)
 	struct audio_message msg;
 	int rc;
 
+	/* Don't request audio from unified streams, they fill when they are
+	 * given samples. */
+	if (stream->direction == CRAS_STREAM_UNIFIED)
+		return 0;
+
 	if (count < stream->min_cb_level)
 		count = stream->min_cb_level;
 	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
@@ -208,7 +213,8 @@ int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count)
 	struct audio_message msg;
 	int rc;
 
-	msg.id = AUDIO_MESSAGE_DATA_READY;
+	msg.id = (stream->direction == CRAS_STREAM_UNIFIED) ?
+		AUDIO_MESSAGE_UNIFIED : AUDIO_MESSAGE_DATA_READY;
 	msg.frames = count;
 	rc = write(stream->fd, &msg, sizeof(msg));
 	return rc;
