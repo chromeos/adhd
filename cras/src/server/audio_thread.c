@@ -688,6 +688,17 @@ int possibly_fill_audio(struct audio_thread *thread,
 	return total_written;
 }
 
+static struct cras_rstream *find_capture_stream(struct audio_thread *thread)
+{
+	struct cras_io_stream *curr;
+
+	DL_FOREACH(thread->streams, curr)
+		if (curr->stream->direction == CRAS_STREAM_INPUT ||
+		    curr->stream->direction == CRAS_STREAM_UNIFIED)
+			return curr->stream;
+	return NULL;
+}
+
 /* Transfer samples to clients from the audio device.
  * Return the number of samples read from the device.
  */
@@ -697,6 +708,7 @@ int possibly_read_audio(struct audio_thread *thread,
 {
 	snd_pcm_uframes_t remainder;
 	struct cras_audio_shm *shm;
+	struct cras_rstream *rstream;
 	int rc;
 	uint8_t *src;
 	uint8_t *dst = NULL;
@@ -707,8 +719,9 @@ int possibly_read_audio(struct audio_thread *thread,
 	if (!idev)
 		return 0;
 
-	if (thread->streams) {
-		shm = cras_rstream_input_shm(thread->streams->stream);
+	rstream = find_capture_stream(thread);
+	if (rstream) {
+		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
 		cras_iodev_set_capture_timestamp(idev->format->frame_rate,
 						 delay,
@@ -731,19 +744,24 @@ int possibly_read_audio(struct audio_thread *thread,
 		remainder -= nread;
 	}
 
-	if (thread->streams) {
+	if (find_capture_stream(thread)) {
 		apply_dsp(idev, dst, min(idev->cb_threshold, write_limit));
-		shm = cras_rstream_input_shm(thread->streams->stream);
+		shm = cras_rstream_input_shm(rstream);
 		cras_shm_buffer_write_complete(shm);
 
 		/* Tell the client that samples are ready.  This assumes only
 		 * one capture client at a time. */
-		rc = cras_rstream_audio_ready(thread->streams->stream,
+		rc = cras_rstream_audio_ready(rstream,
 					      idev->cb_threshold);
 		if (rc < 0) {
-			thread_remove_stream(thread, thread->streams->stream);
+			thread_remove_stream(thread, rstream);
 			return rc;
 		}
+
+		/* Unified streams will write audio while handling the captured
+		 * samples, make them as pending. */
+		if (rstream->direction == CRAS_STREAM_UNIFIED)
+			cras_shm_set_callback_pending(shm, 1);
 	}
 
 	/* If there are more remaining frames than targeted, decrease the sleep
