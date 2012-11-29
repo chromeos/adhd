@@ -335,6 +335,69 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 	return nread;
 }
 
+/* Check if doing format conversion and configure a caprute buffer appropriately
+ * before passing to the client. */
+static unsigned int config_capture_buf(struct client_stream *stream,
+				       uint8_t **captured_frames,
+				       unsigned int num_frames)
+{
+	*captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm);
+
+	/* If we need to do format conversion convert to the temporary
+	 * buffer and pass the converted samples to the client. */
+	if (stream->capture_conv) {
+		num_frames = cras_fmt_conv_convert_frames(
+				stream->capture_conv,
+				*captured_frames,
+				stream->capture_conv_buffer,
+				num_frames,
+				stream->config->buffer_frames);
+		*captured_frames = stream->capture_conv_buffer;
+	}
+
+	return num_frames;
+}
+
+/* If doing format conversion, configure that, and configure a buffer to write
+ * audio into. */
+static unsigned int config_playback_buf(struct client_stream *stream,
+					uint8_t **playback_frames,
+					unsigned int num_frames)
+{
+	/* If we need to do format conversion on this stream, use an
+	 * intermediate buffer to store the samples so they can be
+	 * converted. */
+	if (stream->play_conv) {
+		*playback_frames = stream->play_conv_buffer;
+		num_frames = cras_fmt_conv_out_frames_to_in(
+				stream->play_conv,
+				num_frames);
+	} else {
+		unsigned int limit;
+		*playback_frames = cras_shm_get_writeable_frames(
+				&stream->play_shm, &limit);
+		num_frames = min(num_frames, limit);
+	}
+
+	/* Don't ask for more frames than the buffer can hold. */
+	if (num_frames > stream->config->buffer_frames)
+		num_frames = stream->config->buffer_frames;
+
+	return num_frames;
+}
+
+/* Marks 'num_frames' samples read in the shm are for capture. */
+static void complete_capture_read(struct client_stream *stream,
+				  unsigned int num_frames)
+{
+	unsigned int frames = num_frames;
+
+	if (stream->capture_conv)
+		frames = cras_fmt_conv_out_frames_to_in(stream->capture_conv,
+							num_frames);
+	cras_shm_buffer_read(&stream->capture_shm, frames);
+}
+
 /* For capture streams this handles the message signalling that data is ready to
  * be passed to the user of this stream.  Calls the audio callback with the new
  * samples, and mark them as read.
@@ -345,7 +408,7 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
  *    0, unless there is a fatal error or the client declares enod of file.
  */
 static int handle_capture_data_ready(struct client_stream *stream,
-				     size_t num_frames)
+				     unsigned int num_frames)
 {
 	int frames;
 	struct cras_stream_params *config;
@@ -358,19 +421,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 		return 0;
 	}
 
-	captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm);
-
-	/* If we need to do format conversion convert to the temporary buffer
-	 * and pass the converted samples to the client. */
-	if (stream->capture_conv) {
-		num_frames = cras_fmt_conv_convert_frames(
-				stream->capture_conv,
-				captured_frames,
-				stream->capture_conv_buffer,
-				num_frames,
-				stream->config->buffer_frames);
-		captured_frames = stream->capture_conv_buffer;
-	}
+	num_frames = config_capture_buf(stream, &captured_frames, num_frames);
 
 	frames = config->aud_cb(stream->client,
 				stream->id,
@@ -378,15 +429,59 @@ static int handle_capture_data_ready(struct client_stream *stream,
 				num_frames,
 				&stream->capture_shm.area->ts,
 				config->user_data);
-	if (frames > 0) {
-		if (stream->capture_conv)
-			frames = cras_fmt_conv_out_frames_to_in(
-					stream->capture_conv, frames);
-		cras_shm_buffer_read(&stream->capture_shm, frames);
-	} else if (frames == EOF) {
+	if (frames == EOF) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		return EOF;
 	}
+	if (frames == 0)
+		return 0;
+
+	complete_capture_read(stream, frames);
+	return 0;
+}
+
+/* Handles any format conversion that is necessary for newly written samples and
+ * marks them as written to shm. */
+static void complete_playback_write(struct client_stream *stream,
+				    unsigned int frames)
+{
+	struct cras_audio_shm *shm = &stream->play_shm;
+
+	/* Possibly convert to the correct format. */
+	if (stream->play_conv) {
+		uint8_t *final_buf;
+		unsigned limit;
+
+		final_buf = cras_shm_get_writeable_frames(shm, &limit);
+		frames = min(frames, limit);
+		frames = cras_fmt_conv_convert_frames(
+				stream->play_conv,
+				stream->play_conv_buffer,
+				final_buf,
+				frames,
+				cras_shm_get_num_writeable(shm));
+	}
+	/* And move the write pointer to indicate samples written. */
+	cras_shm_buffer_written(shm, frames);
+	cras_shm_buffer_write_complete(shm);
+}
+
+/* Notifies the server that "frames" samples have been written. */
+static int send_playback_reply(struct client_stream *stream,
+			       unsigned int frames,
+			       int error)
+{
+	struct audio_message aud_msg;
+	int rc;
+
+	aud_msg.id = AUDIO_MESSAGE_DATA_READY;
+	aud_msg.frames = frames;
+	aud_msg.error = error;
+
+	rc = write(stream->aud_fd, &aud_msg, sizeof(aud_msg));
+	if (rc != sizeof(aud_msg))
+		return -EPIPE;
+
 	return 0;
 }
 
@@ -394,13 +489,13 @@ static int handle_capture_data_ready(struct client_stream *stream,
  * for more samples by calling the audio callback for the thread, and signaling
  * the server that the samples have been written. */
 static int handle_playback_request(struct client_stream *stream,
-				   size_t num_frames)
+				   unsigned int num_frames)
 {
 	uint8_t *buf;
 	int frames;
-	int rc;
+	int rc = 0;
 	struct cras_stream_params *config;
-	struct audio_message aud_msg;
+	struct cras_audio_shm *shm = &stream->play_shm;
 
 	config = stream->config;
 
@@ -410,63 +505,27 @@ static int handle_playback_request(struct client_stream *stream,
 		return 0;
 	}
 
-	aud_msg.error = 0;
-
-	/* If we need to do format conversion on this stream, use an
-	 * intermediate buffer to store the samples so they can be converted. */
-	if (stream->play_conv) {
-		buf = stream->play_conv_buffer;
-		num_frames = cras_fmt_conv_out_frames_to_in(stream->play_conv,
-							    num_frames);
-	} else {
-		unsigned limit;
-		buf = cras_shm_get_writeable_frames(&stream->play_shm, &limit);
-		num_frames = min(num_frames, limit);
-	}
-
-	/* Make sure not to ask for more frames than the buffer can hold. */
-	if (num_frames > config->buffer_frames)
-		num_frames = config->buffer_frames;
+	num_frames = config_playback_buf(stream, &buf, num_frames);
 
 	/* Get samples from the user */
 	frames = config->aud_cb(stream->client,
-			stream->id,
-			buf,
-			num_frames,
-			&stream->play_shm.area->ts,
-			config->user_data);
+				stream->id,
+				buf,
+				num_frames,
+				&shm->area->ts,
+				config->user_data);
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
-		aud_msg.error = frames;
-	} else {
-		struct cras_audio_shm *shm = &stream->play_shm;
-
-		/* Possibly convert to the correct format. */
-		if (stream->play_conv) {
-			uint8_t *final_buf;
-			unsigned limit;
-
-			final_buf = cras_shm_get_writeable_frames(shm, &limit);
-			frames = min(frames, limit);
-			frames = cras_fmt_conv_convert_frames(
-					stream->play_conv,
-					stream->play_conv_buffer,
-					final_buf,
-					frames,
-					cras_shm_get_num_writeable(shm));
-		}
-		/* And move the write pointer to indicate samples written. */
-		cras_shm_buffer_written(shm, frames);
-		cras_shm_buffer_write_complete(shm);
+		rc = frames;
+		goto reply_written;
 	}
 
+	complete_playback_write(stream, frames);
+
+reply_written:
 	/* Signal server that data is ready, or that an error has occurred. */
-	aud_msg.id = AUDIO_MESSAGE_DATA_READY;
-	aud_msg.frames = frames;
-	rc = write(stream->aud_fd, &aud_msg, sizeof(aud_msg));
-	if (rc != sizeof(aud_msg))
-		return -EPIPE;
-	return aud_msg.error;
+	rc = send_playback_reply(stream, frames, rc);
+	return rc;
 }
 
 /* Listens to the audio socket for messages from the server indicating that
