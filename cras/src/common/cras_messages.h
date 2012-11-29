@@ -288,6 +288,7 @@ static inline void cras_fill_client_stream_reattach(
 enum CRAS_AUDIO_MESSAGE_ID {
 	AUDIO_MESSAGE_REQUEST_DATA,
 	AUDIO_MESSAGE_DATA_READY,
+	AUDIO_MESSAGE_UNIFIED,
 	NUM_AUDIO_MESSAGES
 };
 
