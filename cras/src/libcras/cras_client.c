@@ -108,9 +108,9 @@ struct cras_stream_params {
 
 /* Represents an attached audio stream.
  * id - Unique stream identifier.
- * aud_fd - audio messages from server come in here. It is only used for
- *          high-priority, low-latency audio messages (Get/Put samples).
- * direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ * aud_fd - After server connects audio messages come in here.
+ * direction - playback(CRAS_STREAM_OUTPUT), capture(CRAS_STREAM_INPUT), or
+ *     both(CRAS_STREAM_UNIFIED).
  * flags - Currently not used.
  * volume_scaler - Amount to scale the stream by, 0.0 to 1.0.
  * tid - Thread id of the audio thread spawned for this stream.
@@ -118,10 +118,14 @@ struct cras_stream_params {
  * wake_fds - Pipe to wake the audio thread.
  * client - The client this stream is attached to.
  * config - Audio stream configuration.
- * shm - Shared memory used to exchange audio samples with the server.
- * conv - Format converter, used if the server's audio format doesn't match.
- * fmt_conv_buffer - Buffer used to store samples before sending for format
+ * capture_shm - Shared memory used to exchange audio samples with the server.
+ * play_shm - Shared memory used to exchange audio samples with the server.
+ * play_conv - Format converter, if the server's audio format doesn't match.
+ * play_conv_buffer - Buffer used to store samples before sending for format
  *     conversion.
+ * capture_conv - Format converter for capture stream.
+ * capture_conv_buffer - Buffer used to store captured samples before sending
+ *     for format conversion.
  * prev, next - Form a linked list of streams attached to a client.
  */
 struct client_stream {
@@ -134,9 +138,12 @@ struct client_stream {
 	int wake_fds[2]; /* Pipe to wake the thread */
 	struct cras_client *client;
 	struct cras_stream_params *config;
-	struct cras_audio_shm shm;
-	struct cras_fmt_conv *conv;
-	uint8_t *fmt_conv_buffer;
+	struct cras_audio_shm capture_shm;
+	struct cras_audio_shm play_shm;
+	struct cras_fmt_conv *play_conv;
+	uint8_t *play_conv_buffer;
+	struct cras_fmt_conv *capture_conv;
+	uint8_t *capture_conv_buffer;
 	struct client_stream *prev, *next;
 };
 
@@ -351,31 +358,31 @@ static int handle_capture_data_ready(struct client_stream *stream,
 		return 0;
 	}
 
-	captured_frames = cras_shm_get_curr_read_buffer(&stream->shm);
+	captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm);
 
 	/* If we need to do format conversion convert to the temporary buffer
 	 * and pass the converted samples to the client. */
-	if (stream->conv) {
+	if (stream->capture_conv) {
 		num_frames = cras_fmt_conv_convert_frames(
-				stream->conv,
+				stream->capture_conv,
 				captured_frames,
-				stream->fmt_conv_buffer,
+				stream->capture_conv_buffer,
 				num_frames,
 				stream->config->buffer_frames);
-		captured_frames = stream->fmt_conv_buffer;
+		captured_frames = stream->capture_conv_buffer;
 	}
 
 	frames = config->aud_cb(stream->client,
 				stream->id,
 				captured_frames,
 				num_frames,
-				&stream->shm.area->ts,
+				&stream->capture_shm.area->ts,
 				config->user_data);
 	if (frames > 0) {
-		if (stream->conv)
+		if (stream->capture_conv)
 			frames = cras_fmt_conv_out_frames_to_in(
-					stream->conv, frames);
-		cras_shm_buffer_read(&stream->shm, frames);
+					stream->capture_conv, frames);
+		cras_shm_buffer_read(&stream->capture_shm, frames);
 	} else if (frames == EOF) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		return EOF;
@@ -407,13 +414,13 @@ static int handle_playback_request(struct client_stream *stream,
 
 	/* If we need to do format conversion on this stream, use an
 	 * intermediate buffer to store the samples so they can be converted. */
-	if (stream->conv) {
-		buf = stream->fmt_conv_buffer;
-		num_frames = cras_fmt_conv_out_frames_to_in(stream->conv,
+	if (stream->play_conv) {
+		buf = stream->play_conv_buffer;
+		num_frames = cras_fmt_conv_out_frames_to_in(stream->play_conv,
 							    num_frames);
 	} else {
 		unsigned limit;
-		buf = cras_shm_get_writeable_frames(&stream->shm, &limit);
+		buf = cras_shm_get_writeable_frames(&stream->play_shm, &limit);
 		num_frames = min(num_frames, limit);
 	}
 
@@ -426,24 +433,24 @@ static int handle_playback_request(struct client_stream *stream,
 			stream->id,
 			buf,
 			num_frames,
-			&stream->shm.area->ts,
+			&stream->play_shm.area->ts,
 			config->user_data);
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		aud_msg.error = frames;
 	} else {
-		struct cras_audio_shm *shm = &stream->shm;
+		struct cras_audio_shm *shm = &stream->play_shm;
 
 		/* Possibly convert to the correct format. */
-		if (stream->conv) {
+		if (stream->play_conv) {
 			uint8_t *final_buf;
 			unsigned limit;
 
 			final_buf = cras_shm_get_writeable_frames(shm, &limit);
 			frames = min(frames, limit);
 			frames = cras_fmt_conv_convert_frames(
-					stream->conv,
-					stream->fmt_conv_buffer,
+					stream->play_conv,
+					stream->play_conv_buffer,
 					final_buf,
 					frames,
 					cras_shm_get_num_writeable(shm));
@@ -526,21 +533,18 @@ static int wake_aud_thread(struct client_stream *stream)
  */
 
 /* Gets the shared memory region used to share audio data with the server. */
-static int config_shm(struct client_stream *stream, int key, size_t size)
+static int config_shm(struct cras_audio_shm *shm, int key, size_t size)
 {
 	int shmid;
-	struct cras_audio_shm *shm = &stream->shm;
 
 	shmid = shmget(key, size, 0600);
 	if (shmid < 0) {
-		syslog(LOG_ERR, "shmget failed to get shm for stream %x.",
-		       stream->id);
+		syslog(LOG_ERR, "shmget failed to get shm for stream.");
 		return shmid;
 	}
 	shm->area = shmat(shmid, NULL, 0);
 	if (shm->area == (struct cras_audio_shm_area *)-1) {
-		syslog(LOG_ERR, "shmat failed to attach shm for stream %x.",
-		       stream->id);
+		syslog(LOG_ERR, "shmat failed to attach shm for stream.");
 		return errno;
 	}
 	/* Copy server shm config locally. */
@@ -549,55 +553,64 @@ static int config_shm(struct client_stream *stream, int key, size_t size)
 	return 0;
 }
 
+/* Release shm areas if references to them are held. */
+static void free_shm(struct client_stream *stream)
+{
+	if (stream->capture_shm.area)
+		shmdt(stream->capture_shm.area);
+	if (stream->play_shm.area)
+		shmdt(stream->play_shm.area);
+	stream->capture_shm.area = NULL;
+	stream->play_shm.area = NULL;
+}
+
 /* If the server cannot provide the requested format, configures an audio format
  * converter that handles transforming the input format to the format used by
  * the server. */
-static int config_format_converter(struct client_stream *stream,
-				   const struct cras_audio_format *hwfmt)
+static int config_format_converter(struct cras_fmt_conv **conv,
+				   uint8_t **conv_buf,
+				   const struct cras_audio_format *from,
+				   const struct cras_audio_format *to,
+				   unsigned int frames)
 {
-	struct cras_audio_format *sfmt = &stream->config->format;
-
-	if (cras_fmt_conversion_needed(sfmt, hwfmt)) {
-		size_t max_frames = max(cras_shm_used_frames(&stream->shm),
-					stream->config->buffer_frames);
-
+	if (cras_fmt_conversion_needed(from, to)) {
 		syslog(LOG_DEBUG,
-		       "format convert %s: stream:%d %zu %zu hw: %d %zu %zu "
-		       "max_frames = %zu",
-		       stream->direction ? "input" : "output",
-		       sfmt->format, sfmt->frame_rate, sfmt->num_channels,
-		       hwfmt->format, hwfmt->frame_rate, hwfmt->num_channels,
-		       max_frames);
+		       "format convert: from:%d %zu %zu to: %d %zu %zu "
+		       "frames = %u",
+		       from->format, from->frame_rate, from->num_channels,
+		       to->format, to->frame_rate, to->num_channels,
+		       frames);
 
-		/* Convert from the stream format to the h/w format for output,
-		 * from h/w format to stream format for input. */
-		if (stream->direction == CRAS_STREAM_OUTPUT) {
-			stream->conv = cras_fmt_conv_create(
-					sfmt,
-					hwfmt,
-					max_frames);
-		} else {
-			assert(stream->direction == CRAS_STREAM_INPUT);
-			stream->conv = cras_fmt_conv_create(
-					hwfmt,
-					sfmt,
-					max_frames);
-		}
-		if (stream->conv == NULL) {
+		*conv = cras_fmt_conv_create(from, to, frames);
+		if (!*conv) {
 			syslog(LOG_ERR, "Failed to create format converter");
 			return -ENOMEM;
 		}
 
 		/* Need a buffer to keep samples before converting them. */
-		stream->fmt_conv_buffer = malloc(stream->config->buffer_frames *
-						 cras_get_format_bytes(sfmt));
-		if (stream->fmt_conv_buffer == NULL) {
-			cras_fmt_conv_destroy(stream->conv);
+		*conv_buf = malloc(frames * cras_get_format_bytes(from));
+		if (!*conv_buf) {
+			cras_fmt_conv_destroy(*conv);
 			return -ENOMEM;
 		}
 	}
 
 	return 0;
+}
+
+/* Free format converters if they exist. */
+static void free_fmt_conv(struct client_stream *stream)
+{
+	if (stream->play_conv) {
+		cras_fmt_conv_destroy(stream->play_conv);
+		free(stream->play_conv_buffer);
+	}
+	if (stream->capture_conv) {
+		cras_fmt_conv_destroy(stream->capture_conv);
+		free(stream->capture_conv_buffer);
+	}
+	stream->play_conv = NULL;
+	stream->capture_conv = NULL;
 }
 
 /* Handles the stream connected message from the server.  Check if we need a
@@ -613,23 +626,52 @@ static int stream_connected(struct client_stream *stream,
 		return msg->err;
 	}
 
-	rc = config_shm(stream,
-			stream->direction == CRAS_STREAM_OUTPUT ?
-						msg->output_shm_key :
-						msg->input_shm_key,
-			msg->shm_max_size);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Error configuring shared memory");
-		goto err_ret;
+	if (stream->direction != CRAS_STREAM_OUTPUT) {
+		rc = config_shm(&stream->capture_shm,
+				msg->input_shm_key,
+				msg->shm_max_size);
+		if (rc < 0) {
+			syslog(LOG_ERR, "Error configuring capture shm");
+			goto err_ret;
+		}
+		/* Convert from h/w format to stream format for input. */
+		rc = config_format_converter(
+				&stream->capture_conv,
+				&stream->capture_conv_buffer,
+				&msg->format,
+				&stream->config->format,
+				max(cras_shm_used_frames(&stream->capture_shm),
+				    stream->config->buffer_frames));
+		if (rc < 0) {
+			syslog(LOG_ERR, "Error setting up capture conversion");
+			goto err_ret;
+		}
 	}
 
-	rc = config_format_converter(stream, &msg->format);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Error setting up format conversion");
-		return rc;
-	}
+	if (stream->direction != CRAS_STREAM_INPUT) {
+		rc = config_shm(&stream->play_shm,
+				msg->output_shm_key,
+				msg->shm_max_size);
+		if (rc < 0) {
+			syslog(LOG_ERR, "Error configuring playback shm");
+			goto err_ret;
+		}
+		/* Convert the stream format to the h/w format for output */
+		rc = config_format_converter(
+				&stream->play_conv,
+				&stream->play_conv_buffer,
+				&stream->config->format,
+				&msg->format,
+				max(cras_shm_used_frames(&stream->play_shm),
+				    stream->config->buffer_frames));
+		if (rc < 0) {
+			syslog(LOG_ERR, "Error setting up playback conversion");
+			goto err_ret;
+		}
 
-	cras_shm_set_volume_scaler(&stream->shm, stream->volume_scaler);
+		cras_shm_set_volume_scaler(&stream->play_shm,
+					   stream->volume_scaler);
+	}
 
 	rc = pipe(stream->wake_fds);
 	if (rc < 0) {
@@ -647,12 +689,12 @@ static int stream_connected(struct client_stream *stream,
 
 	return 0;
 err_ret:
+	free_fmt_conv(stream);
 	if (stream->wake_fds[0] >= 0) {
 		close(stream->wake_fds[0]);
 		close(stream->wake_fds[1]);
 	}
-	if (stream->shm.area)
-		shmdt(stream->shm.area);
+	free_shm(stream);
 	return rc;
 }
 
@@ -758,17 +800,16 @@ static int client_thread_rm_stream(struct cras_client *client,
 		pthread_join(stream->thread.tid, NULL);
 	}
 
-	if (stream->shm.area)
-		shmdt(stream->shm.area);
+
+	free_shm(stream);
 
 	DL_DELETE(client->streams, stream);
 	if (stream->aud_fd >= 0)
 		if (close(stream->aud_fd))
 			syslog(LOG_WARNING, "Couldn't close audio socket");
-	if (stream->conv) {
-		cras_fmt_conv_destroy(stream->conv);
-		free(stream->fmt_conv_buffer);
-	}
+
+	free_fmt_conv(stream);
+
 	if (stream->wake_fds[0] >= 0) {
 		close(stream->wake_fds[0]);
 		close(stream->wake_fds[1]);
@@ -791,8 +832,8 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 		return -EINVAL;
 
 	stream->volume_scaler = volume_scaler;
-	if (stream->shm.area != NULL)
-		cras_shm_set_volume_scaler(&stream->shm, volume_scaler);
+	if (stream->play_shm.area != NULL)
+		cras_shm_set_volume_scaler(&stream->play_shm, volume_scaler);
 
 	return 0;
 }
@@ -816,19 +857,13 @@ static int handle_stream_reattach(struct cras_client *client,
 		pthread_join(stream->thread.tid, NULL);
 	}
 
-	if (stream->conv != NULL) {
-		cras_fmt_conv_destroy(stream->conv);
-		free(stream->fmt_conv_buffer);
-	}
-	stream->conv = NULL;
+	free_fmt_conv(stream);
+
 	if (stream->aud_fd >= 0) {
 		close(stream->aud_fd);
 		stream->aud_fd = -1;
 	}
-	if (stream->shm.area) {
-		shmdt(stream->shm.area);
-		stream->shm.area = NULL;
-	}
+	free_shm(stream);
 
 	/* send a message to the server asking that the stream be started. */
 	rc = send_connect_message(client, stream);
