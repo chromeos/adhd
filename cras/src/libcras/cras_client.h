@@ -37,6 +37,29 @@ typedef int (*cras_playback_cb_t)(struct cras_client *client,
 				  size_t frames,
 				  const struct timespec *sample_time,
 				  void *user_arg);
+
+/* Callback for audio received and/or transmitted.
+ * Args (All pointer will be validi - except user_arg, that's up to the user):
+ *    client: The client requesting service.
+ *    stream_id - Unique identifier for the stream needing data read/written.
+ *    captured_samples - Read samples form here.
+ *    playback_samples - Read or write samples to here.
+ *    frames - Maximum number of frames to read or write.
+ *    captured_time - Time the first sample was read.
+ *    playback_time - Playback time for the first sample written.
+ *    user_arg - Value passed to add_stream;
+ * Return:
+ *    0 on success, or a negative number if there is a stream-fatal error.
+ */
+typedef int (*cras_unified_cb_t)(struct cras_client *client,
+				 cras_stream_id_t stream_id,
+				 uint8_t *captured_samples,
+				 uint8_t *playback_samples,
+				 unsigned int frames,
+				 const struct timespec *captured_time,
+				 const struct timespec *playback_time,
+				 void *user_arg);
+
 /* Callback for handling errors. */
 typedef int (*cras_error_cb_t)(struct cras_client *client,
 			       cras_stream_id_t stream_id,
@@ -201,6 +224,37 @@ struct cras_stream_params *cras_client_stream_params_create(
 		uint32_t flags,
 		void *user_data,
 		cras_playback_cb_t aud_cb,
+		cras_error_cb_t err_cb,
+		struct cras_audio_format *format);
+
+/* Setup stream configuration parameters.
+ * Args:
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ *    buffer_frames - total number of audio frames to buffer (dictates latency).
+ *    cb_threshold - For playback, call back for more data when the buffer
+ *        reaches this level. For capture, this is ignored (Audio callback will
+ *        be called when buffer_frames have been captured).
+ *    min_cb_level - For playback, the minimum amout of frames that must be able
+ *        to be written before calling back for more data (useful if you are
+ *        processing audio in blocks of a certain size(e.g. 512 or 1024 frames).
+ *        Ignored for capture streams.
+ *    stream_type - media or talk (currently only support "default").
+ *    flags - None currently used.
+ *    user_data - Pointer that will be passed to the callback.
+ *    unified_cd - Called for streams that do simultaneous input/output.
+ *    err_cb - Called when there is an error with the stream.
+ *    format - The format of the audio stream.  Specifies bits per sample,
+ *        number of channels, and sample rate.
+ */
+struct cras_stream_params *cras_client_unified_params_create(
+		enum CRAS_STREAM_DIRECTION direction,
+		size_t buffer_frames,
+		size_t cb_threshold,
+		size_t min_cb_level,
+		enum CRAS_STREAM_TYPE stream_type,
+		uint32_t flags,
+		void *user_data,
+		cras_unified_cb_t unified_cb,
 		cras_error_cb_t err_cb,
 		struct cras_audio_format *format);
 

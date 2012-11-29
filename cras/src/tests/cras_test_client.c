@@ -100,6 +100,23 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	return this_size / frame_bytes;
 }
 
+/* Run from callback thread. */
+static int unified_samples(struct cras_client *client,
+			   cras_stream_id_t stream_id,
+			   uint8_t *captured_samples,
+			   uint8_t *playback_samples,
+			   unsigned int frames,
+			   const struct timespec *captured_time,
+			   const struct timespec *playback_time,
+			   void *user_arg)
+{
+	unsigned int frame_bytes;
+
+	frame_bytes = cras_client_format_bytes_per_frame(aud_format);
+	memcpy(playback_samples, captured_samples, frames * frame_bytes);
+	return frames;
+}
+
 static int stream_error(struct cras_client *client,
 			cras_stream_id_t stream_id,
 			int err,
@@ -206,10 +223,48 @@ static int start_stream(struct cras_client *client,
 
 	rc = cras_client_add_stream(client, stream_id, params);
 	if (rc < 0) {
-		fprintf(stderr, "adding a stream\n");
+		fprintf(stderr, "adding a stream %d\n", rc);
 		return rc;
 	}
 	return cras_client_set_stream_volume(client, *stream_id, stream_volume);
+}
+
+static int run_unified_io_stream(struct cras_client *client,
+				 size_t buffer_frames,
+				 size_t cb_threshold,
+				 size_t rate,
+				 size_t num_channels)
+{
+	struct cras_stream_params *params;
+	cras_stream_id_t stream_id = 0;
+
+	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
+					      num_channels);
+	if (aud_format == NULL)
+		return -ENOMEM;
+
+	params = cras_client_unified_params_create(CRAS_STREAM_UNIFIED,
+						   buffer_frames,
+						   cb_threshold,
+						   min_cb_level,
+						   0,
+						   0,
+						   0,
+						   unified_samples,
+						   stream_error,
+						   aud_format);
+	if (params == NULL)
+		return -ENOMEM;
+
+	cras_client_run_thread(client);
+
+	keep_looping = start_stream(client, &stream_id, params, 1.0) == 0;
+
+	while (keep_looping) {
+		sleep(1);
+	}
+
+	return 0;
 }
 
 static int run_file_io_stream(struct cras_client *client,
@@ -464,6 +519,7 @@ static struct option long_options[] = {
 	{"reload_dsp",          no_argument,            0, 's'},
 	{"dump_dsp",            no_argument,            0, 'f'},
 	{"dump_server_info",    no_argument,            0, 'i'},
+	{"unified_audio",	no_argument,		0, 'z'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -487,6 +543,7 @@ static void show_usage()
 	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
 	printf("--reload_dsp - Reload dsp configuration from the ini file");
 	printf("--dump_server_info - Print status of the server.\n");
+	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -504,6 +561,7 @@ int main(int argc, char **argv)
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
 	int rc = 0;
+	int run_unified = 0;
 
 	option_index = 0;
 
@@ -596,6 +654,9 @@ int main(int argc, char **argv)
 		case 'h':
 			show_usage();
 			break;
+		case 'z':
+			run_unified = 1;
+			break;
 		default:
 			break;
 		}
@@ -611,17 +672,15 @@ int main(int argc, char **argv)
 
 	duration_frames = duration_seconds * rate;
 
-	if (capture_file != NULL) {
+	if (run_unified)
+		rc = run_unified_io_stream(client, buffer_size, 0,
+					   rate, num_channels);
+	else if (capture_file != NULL)
 		rc = run_capture(client, capture_file, buffer_size, 0, rate,
 				 num_channels, 0);
-		if (rc < 0)
-			goto destroy_exit;
-	}
-
-	if (playback_file != NULL) {
+	else if (playback_file != NULL)
 		rc = run_playback(client, playback_file, buffer_size,
 				  cb_threshold, rate, num_channels, 0);
-	}
 
 destroy_exit:
 	cras_client_destroy(client);

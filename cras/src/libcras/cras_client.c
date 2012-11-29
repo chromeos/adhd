@@ -102,6 +102,7 @@ struct cras_stream_params {
 	uint32_t flags;
 	void *user_data;
 	cras_playback_cb_t aud_cb;
+	cras_unified_cb_t unified_cb;
 	cras_error_cb_t err_cb;
 	struct cras_audio_format format;
 };
@@ -528,6 +529,50 @@ reply_written:
 	return rc;
 }
 
+/* Unified streams read audio and write back samples in the same callback. */
+static int handle_unified_request(struct client_stream *stream,
+				  unsigned int num_frames)
+{
+	struct cras_stream_params *config;
+	uint8_t *captured_frames;
+	uint8_t *playback_frames;
+	int frames;
+	int rc = 0;
+
+	config = stream->config;
+
+	/* If this message is for an input stream, log error and drop it. */
+	if (stream->direction != CRAS_STREAM_UNIFIED) {
+		syslog(LOG_ERR, "Wrong stream type in unified callback\n");
+		return 0;
+	}
+
+	num_frames = config_capture_buf(stream, &captured_frames, num_frames);
+	num_frames = config_playback_buf(stream, &playback_frames, num_frames);
+
+	/* Get samples from the user */
+	frames = config->unified_cb(stream->client,
+				    stream->id,
+				    captured_frames,
+				    playback_frames,
+				    num_frames,
+				    &stream->capture_shm.area->ts,
+				    &stream->play_shm.area->ts,
+				    config->user_data);
+	if (frames < 0) {
+		send_stream_message(stream, CLIENT_STREAM_EOF);
+		rc = frames;
+		goto reply_written;
+	}
+
+	complete_capture_read(stream, frames);
+	complete_playback_write(stream, frames);
+
+reply_written:
+	/* Signal server that data is ready, or that an error has occurred. */
+	return send_playback_reply(stream, frames, rc);
+}
+
 /* Listens to the audio socket for messages from the server indicating that
  * the stream needs to be serviced.  One of these runs per stream. */
 static void *audio_thread(void *arg)
@@ -564,6 +609,11 @@ static void *audio_thread(void *arg)
 			break;
 		case AUDIO_MESSAGE_REQUEST_DATA:
 			thread_terminated = handle_playback_request(
+					stream,
+					aud_msg.frames);
+			break;
+		case AUDIO_MESSAGE_UNIFIED:
+			thread_terminated = handle_unified_request(
 					stream,
 					aud_msg.frames);
 			break;
@@ -1368,6 +1418,39 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->flags = flags;
 	params->user_data = user_data;
 	params->aud_cb = aud_cb;
+	params->unified_cb = 0;
+	params->err_cb = err_cb;
+	memcpy(&(params->format), format, sizeof(*format));
+	return params;
+}
+
+struct cras_stream_params *cras_client_unified_params_create(
+		enum CRAS_STREAM_DIRECTION direction,
+		size_t buffer_frames,
+		size_t cb_threshold,
+		size_t min_cb_level,
+		enum CRAS_STREAM_TYPE stream_type,
+		uint32_t flags,
+		void *user_data,
+		cras_unified_cb_t unified_cb,
+		cras_error_cb_t err_cb,
+		struct cras_audio_format *format)
+{
+	struct cras_stream_params *params;
+
+	params = malloc(sizeof(*params));
+	if (params == NULL)
+		return NULL;
+
+	params->direction = direction;
+	params->buffer_frames = buffer_frames;
+	params->cb_threshold = cb_threshold;
+	params->min_cb_level = min_cb_level;
+	params->stream_type = stream_type;
+	params->flags = flags;
+	params->user_data = user_data;
+	params->aud_cb = 0;
+	params->unified_cb = unified_cb;
 	params->err_cb = err_cb;
 	memcpy(&(params->format), format, sizeof(*format));
 	return params;
@@ -1389,7 +1472,10 @@ int cras_client_add_stream(struct cras_client *client,
 	if (client == NULL || config == NULL || stream_id_out == NULL)
 		return -EINVAL;
 
-	if (config->aud_cb == NULL || config->err_cb == NULL)
+	if (config->aud_cb == NULL && config->unified_cb == NULL)
+		return -EINVAL;
+
+	if (config->err_cb == NULL)
 		return -EINVAL;
 
 	/* For input cb_thresh is buffer size. For output the callback level. */
