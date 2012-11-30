@@ -30,28 +30,33 @@ struct cras_rclient {
 
 /* Gets the thread that should be used for the iodev.
  * Args:
- *    iodev - The device to find or create a thread for.
+ *    idev - The input device to find or create a thread for.
+ *    odev - The output device to find or create a thread for.
  * Returns:
  *    A pointer to the thread to use, or NULL on error.  The thread must be
  *    destroyed when finished.
  */
-static struct audio_thread *get_audio_thread_for_iodev(struct cras_iodev *iodev)
+static struct audio_thread *get_audio_thread_for_iodev(struct cras_iodev *idev,
+						       struct cras_iodev *odev)
 {
 	struct audio_thread *thread;
 
-	thread = cras_iodev_list_get_audio_thread(iodev);
+	thread = cras_iodev_list_get_audio_thread(idev ? : odev);
 	if (thread)
-		return thread;
+		goto add_output;
 
-	thread = audio_thread_create(iodev);
+	thread = audio_thread_create(idev ? : odev);
+	if (!thread)
+		return NULL;
 
-	if (thread) {
-		int rc = audio_thread_start(thread);
-		if (rc) {
-			audio_thread_destroy(thread);
-			return NULL;
-		}
+	if (audio_thread_start(thread)) {
+		audio_thread_destroy(thread);
+		return NULL;
 	}
+
+add_output:
+	if (odev && idev)
+		audio_thread_add_output_dev(thread, odev);
 
 	return thread;
 }
@@ -62,7 +67,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 					int aud_fd)
 {
 	struct cras_rstream *stream = NULL;
-	struct cras_iodev *iodev;
+	struct cras_iodev *idev, *odev;
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format fmt;
 	struct audio_thread *thread;
@@ -70,18 +75,22 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	size_t buffer_frames, cb_threshold, min_cb_level;
 
 	/* Find the iodev for this new connection and connect to it. */
-	iodev = cras_get_iodev_for_stream_type(msg->stream_type,
-					       msg->direction);
-	if (!iodev) {
+	rc = cras_get_iodev_for_stream_type(msg->stream_type,
+					    msg->direction,
+					    &idev,
+					    &odev);
+	if (rc) {
 		syslog(LOG_ERR, "No iodev available.\n");
-		rc = -ENODEV;
 		goto reply_err;
 	}
 
 	/* Tell the iodev about the format we want.  fmt will contain the actual
 	 * format used after return. */
 	fmt = msg->format;
-	cras_iodev_set_format(iodev, &fmt);
+	if (idev)
+		cras_iodev_set_format(idev, &fmt);
+	if (odev)
+		cras_iodev_set_format(odev, &fmt);
 
 	if (fmt.frame_rate == 0) {
 		syslog(LOG_ERR, "frame_rate is zero.");
@@ -126,7 +135,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	cras_rstream_set_audio_fd(stream, aud_fd);
 
 	/* Now can pass the stream to the thread. */
-	thread = get_audio_thread_for_iodev(iodev);
+	thread = get_audio_thread_for_iodev(idev, odev);
 	if (thread == NULL) {
 		syslog(LOG_ERR, "No thread for device.\n");
 		rc = -ENOMEM;

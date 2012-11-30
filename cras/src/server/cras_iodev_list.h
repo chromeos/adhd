@@ -29,13 +29,15 @@ void cras_iodev_list_deinit();
  * Args:
  *    type - The type of stream to find the output for. (media, voice).
  *    direction - Playback or capture.
+ *    idev - Filled with a pointer to the input device.
+ *    odev - Filled with a pointer to the output device.
  * Returns:
- *    A pointer to the device to use, or NULL if none found.  Only default
- *    streams are supported.
+ *    0 on success or a negative error on failure.
  */
-struct cras_iodev *cras_get_iodev_for_stream_type(
-		enum CRAS_STREAM_TYPE type,
-		enum CRAS_STREAM_DIRECTION direction);
+int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
+				   enum CRAS_STREAM_DIRECTION direction,
+				   struct cras_iodev **idev,
+				   struct cras_iodev **odev);
 
 /* Sets the device to default of its stream type.
  * Args:

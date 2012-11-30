@@ -232,17 +232,28 @@ void cras_iodev_list_deinit()
 /* Finds the current device for a stream of "type", only default streams are
  * currently supported so return the default device fot the given direction.
  */
-struct cras_iodev *cras_get_iodev_for_stream_type(
-		enum CRAS_STREAM_TYPE type,
-		enum CRAS_STREAM_DIRECTION direction)
+int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
+				   enum CRAS_STREAM_DIRECTION direction,
+				   struct cras_iodev **idev,
+				   struct cras_iodev **odev)
 {
-	/* If output only, use that, for input and unified, use the default
-	 * input.
-	 */
-	if (direction == CRAS_STREAM_OUTPUT)
-		return default_output;
-	else
-		return default_input;
+	switch (direction) {
+	case CRAS_STREAM_OUTPUT:
+		*idev = NULL;
+		*odev = default_output;
+		break;
+	case CRAS_STREAM_INPUT:
+		*idev = default_input;
+		*odev = NULL;
+		break;
+	case CRAS_STREAM_UNIFIED:
+		*idev = default_input;
+		*odev = default_output;
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
 }
 
 struct cras_iodev *cras_iodev_set_as_default(

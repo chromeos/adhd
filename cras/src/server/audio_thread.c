@@ -1025,6 +1025,13 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 	return thread;
 }
 
+void audio_thread_add_output_dev(struct audio_thread *thread,
+				 struct cras_iodev *odev)
+{
+	thread->output_dev = odev;
+	odev->thread = thread;
+}
+
 int audio_thread_start(struct audio_thread *thread)
 {
 	int rc;

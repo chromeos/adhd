@@ -75,6 +75,16 @@ struct audio_thread_add_rm_stream_msg {
  */
 struct audio_thread *audio_thread_create(struct cras_iodev *iodev);
 
+/* Adds an output device to an existing thread.  Used to add an output device to
+ * a thread created with an input device.  This happens when a unified audio
+ * stream is added.
+ * Args:
+ *    thread - The thread to add the device to.
+ *    odev - The output device to add.
+ */
+void audio_thread_add_output_dev(struct audio_thread *thread,
+				 struct cras_iodev *odev);
+
 /* Starts a thread created with audio_thread_create.
  * Args:
  *    thread - The thread to start.
