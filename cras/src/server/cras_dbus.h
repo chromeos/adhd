@@ -20,9 +20,9 @@ DBusConnection *cras_dbus_connect_system_bus();
  *
  * It does nothing if there are no pending messages.
  */
-void cras_dbus_dispatch(DBusConnection *);
+void cras_dbus_dispatch(DBusConnection *conn);
 
 /* Disconnect from the D-Bus System Bus. */
-void cras_dbus_disconnect_system_bus();
+void cras_dbus_disconnect_system_bus(DBusConnection *conn);
 
 #endif /* CRAS_DBUS_H_ */

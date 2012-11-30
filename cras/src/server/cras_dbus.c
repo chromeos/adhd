@@ -198,29 +198,29 @@ static void dbus_timeout_toggled(DBusTimeout *timeout, void *arg)
 }
 
 
-static DBusConnection *dbus_conn;
-void cras_dbus_connect_system_bus()
+DBusConnection *cras_dbus_connect_system_bus()
 {
 	DBusError dbus_error;
+	DBusConnection *conn;
 
 	dbus_error_init(&dbus_error);
 
-	dbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
-	if (!dbus_conn) {
+	conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
+	if (!conn) {
 		syslog(LOG_WARNING, "Failed to connect to D-Bus: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
-		return;
+		return NULL;
 	}
 
-	if (!dbus_connection_set_watch_functions(dbus_conn,
+	if (!dbus_connection_set_watch_functions(conn,
 						 dbus_watch_add,
 						 dbus_watch_remove,
 						 dbus_watch_toggled,
 						 NULL,
 						 NULL))
 		goto error;
-	if (!dbus_connection_set_timeout_functions(dbus_conn,
+	if (!dbus_connection_set_timeout_functions(conn,
 						   dbus_timeout_add,
 						   dbus_timeout_remove,
 						   dbus_timeout_toggled,
@@ -228,28 +228,22 @@ void cras_dbus_connect_system_bus()
 						   NULL))
 		goto error;
 
-	return;
+	return conn;
 
 error:
 	syslog(LOG_WARNING, "Failed to setup D-Bus connection.");
-	dbus_connection_unref(dbus_conn);
-	dbus_conn = NULL;
+	dbus_connection_unref(conn);
+	return NULL;
 }
 
-DBusConnection *cras_dbus_system_bus(void)
+void cras_dbus_dispatch(DBusConnection *conn)
 {
-	return dbus_conn;
-}
-
-void cras_dbus_dispatch(void)
-{
-	while (dbus_connection_dispatch(dbus_conn)
+	while (dbus_connection_dispatch(conn)
 		== DBUS_DISPATCH_DATA_REMAINS)
 		;
 }
 
-void cras_dbus_disconnect_system_bus(void)
+void cras_dbus_disconnect_system_bus(DBusConnection *conn)
 {
-	dbus_connection_unref(dbus_conn);
-	dbus_conn = NULL;
+	dbus_connection_unref(conn);
 }
