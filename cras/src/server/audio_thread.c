@@ -205,6 +205,25 @@ int thread_remove_stream(struct audio_thread *thread,
 	return streams_attached(thread);
 }
 
+/* Put 'frames' worth of zero samples into odev.  Used to build an initial
+ * buffer to avoid an underrun. Adds 'frames' latency.
+ */
+void fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+{
+	uint8_t *dst;
+	unsigned int frame_bytes;
+	int rc;
+
+	frame_bytes = cras_get_format_bytes(odev->format);
+
+	rc = odev->get_buffer(odev, &dst, &frames);
+	if (rc < 0)
+		return;
+
+	memset(dst, 0, frames * frame_bytes);
+	odev->put_buffer(odev, frames);
+}
+
 /* Handles the add_stream message from the main thread. */
 int thread_add_stream(struct audio_thread *thread,
 		      struct cras_rstream *stream)
@@ -232,6 +251,13 @@ int thread_add_stream(struct audio_thread *thread,
 		rc = odev->open_dev(odev);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
+
+		/* Give some buffer for the output for unified IO, need time to
+		 * read samples and fill playback buffer before hitting
+		 * underflow.
+		 */
+		if (odev && idev)
+			fill_odev_zeros(odev, odev->cb_threshold);
 	}
 	if (stream_has_input(stream) && !idev->is_open(idev)) {
 		thread->sleep_correction_frames = 0;
@@ -679,7 +705,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	}
 
 	/* If we haven't started the device and wrote samples, then start it. */
-	if (total_written) {
+	if (total_written || hw_level) {
 		rc = odev->dev_running(odev);
 		if (rc < 0)
 			return rc;

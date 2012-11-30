@@ -526,6 +526,8 @@ class WriteStreamSuite : public testing::Test {
       cras_dsp_pipeline_run_called = 0;
       cras_dsp_pipeline_run_sample_count = 0;
 
+      dev_running_called_ = 0;
+
       thread_add_stream(thread_, rstream_);
     }
 
@@ -584,6 +586,7 @@ class WriteStreamSuite : public testing::Test {
     }
 
     static int dev_running(const cras_iodev* iodev) {
+      dev_running_called_++;
       return dev_running_;
     }
 
@@ -601,6 +604,7 @@ class WriteStreamSuite : public testing::Test {
   static uint8_t audio_buffer_[8192];
   static unsigned int audio_buffer_size_;
   static int dev_running_;
+  static unsigned int dev_running_called_;
   struct cras_audio_format fmt_;
   struct cras_rstream* rstream_;
   struct cras_rstream* rstream2_;
@@ -614,6 +618,7 @@ int WriteStreamSuite::delay_frames_ = 0;
 uint8_t WriteStreamSuite::audio_buffer_[8192];
 unsigned int WriteStreamSuite::audio_buffer_size_ = 0;
 int WriteStreamSuite::dev_running_ = 0;
+unsigned int WriteStreamSuite::dev_running_called_ = 0;
 
 TEST_F(WriteStreamSuite, PossiblyFillGetAvailError) {
   struct timespec ts;
@@ -673,6 +678,22 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold, cras_mix_add_stream_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
+}
+
+TEST_F(WriteStreamSuite, PossiblyFillFramesQueued) {
+  struct timespec ts;
+  int rc;
+
+  // Have cb_threshold samples left.
+  frames_queued_ = iodev_.cb_threshold;
+  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+
+  // shm has plenty of data in it.
+  shm_->area->write_offset[0] = cras_shm_used_size(shm_);
+
+  rc = unified_io(thread_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, dev_running_called_);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
