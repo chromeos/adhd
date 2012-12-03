@@ -522,7 +522,7 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   snd_mixer_selem_set_capture_dB_all_values = set_dB_values;
   snd_mixer_selem_set_capture_dB_all_values_length =
       ARRAY_SIZE(set_dB_values);
-  cras_alsa_mixer_set_capture_dBFS(c, -10);
+  cras_alsa_mixer_set_capture_dBFS(c, -10, NULL);
   EXPECT_EQ(2, snd_mixer_selem_set_capture_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_called);
   EXPECT_EQ(-10, set_dB_values[0]);
@@ -543,14 +543,45 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   snd_mixer_selem_set_capture_dB_all_values_index = 0;
   snd_mixer_selem_set_capture_dB_all_called = 0;
   snd_mixer_selem_get_capture_dB_called = 0;
-  cras_alsa_mixer_set_capture_dBFS(c, 20);
+  cras_alsa_mixer_set_capture_dBFS(c, 20, NULL);
   EXPECT_EQ(2, snd_mixer_selem_set_capture_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_called);
   EXPECT_EQ(20, set_dB_values[0]);
   EXPECT_EQ(-5, set_dB_values[1]);
 
+  /* Set volume to the two main controls plus additional specific input
+   * volume control */
+  struct mixer_volume_control *mixer_input;
+  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
+  mixer_input->elem = reinterpret_cast<snd_mixer_elem_t *>(1);
+
+  long get_dB_returns3[] = {
+    0,
+    0,
+  };
+  long set_dB_values3[3];
+  snd_mixer_selem_get_capture_dB_return_values = get_dB_returns3;
+  snd_mixer_selem_get_capture_dB_return_values_length =
+      ARRAY_SIZE(get_dB_returns3);
+  snd_mixer_selem_get_capture_dB_return_values_index = 0;
+  snd_mixer_selem_set_capture_dB_all_values = set_dB_values3;
+  snd_mixer_selem_set_capture_dB_all_values_length =
+      ARRAY_SIZE(set_dB_values3);
+  snd_mixer_selem_set_capture_dB_all_values_index = 0;
+  snd_mixer_selem_set_capture_dB_all_called = 0;
+  snd_mixer_selem_get_capture_dB_called = 0;
+
+  cras_alsa_mixer_set_capture_dBFS(c, 20, mixer_input);
+
+  EXPECT_EQ(3, snd_mixer_selem_set_capture_dB_all_called);
+  EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_called);
+  EXPECT_EQ(20, set_dB_values3[0]);
+  EXPECT_EQ(20, set_dB_values3[1]);
+  EXPECT_EQ(20, set_dB_values3[2]);
+
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);
+  free(mixer_input);
 }
 
 class AlsaMixerOutputs : public testing::Test {

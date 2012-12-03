@@ -375,7 +375,8 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
-				      long dBFS)
+				      long dBFS,
+				      struct mixer_volume_control *mixer_input)
 {
 	struct mixer_volume_control *c;
 	long to_set;
@@ -395,6 +396,11 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 					       &actual_dB);
 		to_set -= actual_dB;
 	}
+
+	/* Apply the reset to input specific control */
+	if (mixer_input)
+		snd_mixer_selem_set_capture_dB_all(mixer_input->elem,
+						   to_set, 1);
 	assert(cras_mixer);
 }
 

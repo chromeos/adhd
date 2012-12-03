@@ -54,6 +54,7 @@ static int alsa_mixer_set_dBFS_value;
 static const struct cras_alsa_mixer_output *alsa_mixer_set_dBFS_output;
 static size_t alsa_mixer_set_capture_dBFS_called;
 static int alsa_mixer_set_capture_dBFS_value;
+static const struct mixer_volume_control *alsa_mixer_set_capture_dBFS_input;
 static size_t cras_alsa_mixer_list_outputs_called;
 static size_t cras_alsa_mixer_list_outputs_device_value;
 static size_t sys_get_volume_called;
@@ -567,6 +568,33 @@ TEST_F(AlsaAddStreamSuite, OneInputStreamPerDevice) {
   rc = thread_add_stream(aio_input_, new_stream);
   EXPECT_NE(0, rc);
   EXPECT_EQ(0, cras_alsa_open_called);
+  free(new_stream);
+}
+
+TEST_F(AlsaAddStreamSuite, OneActiveInput) {
+  int rc;
+  struct cras_rstream *new_stream;
+  struct alsa_input_node *input;
+  struct mixer_volume_control *mixer_input;
+
+  cras_alsa_open_called = 0;
+  sys_get_capture_gain_return_value = 10;
+  new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
+
+  input = (struct alsa_input_node *)calloc(1, sizeof(*input));
+  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
+  input->mixer_input = mixer_input;
+  aio_input_->active_input = input;
+
+  rc = thread_add_stream(aio_input_, new_stream);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_open_called);
+  EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
+  EXPECT_EQ(10, alsa_mixer_set_capture_dBFS_value);
+  ASSERT_NE(alsa_mixer_set_capture_dBFS_input, (void *)NULL);
+
+  free(mixer_input);
+  free(input);
   free(new_stream);
 }
 
@@ -1428,10 +1456,12 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
   alsa_mixer_set_mute_output = mixer_output;
 }
 
-void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *m, long dB_level)
+void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *m, long dB_level,
+		                      struct mixer_volume_control *mixer_input)
 {
   alsa_mixer_set_capture_dBFS_called++;
   alsa_mixer_set_capture_dBFS_value = dB_level;
+  alsa_mixer_set_capture_dBFS_input = mixer_input;
 }
 
 void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *m, int mute)

@@ -86,9 +86,11 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
  *    cras_mixer - The mixer to set the volume on.
  *    dBFS - The capture gain level as dB * 100.  dB can be a positive or a
  *    negative quantity specifying how much gain or attenuation to apply.
+ *    mixer_input - The specific mixer control for input node, can be null.
  */
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
-				      long dBFS);
+				      long dBFS,
+				      struct mixer_volume_control* mixer_input);
 
 /* Gets the minimum allowed setting for capture gain.
  * Args:
