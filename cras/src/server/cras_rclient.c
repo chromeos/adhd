@@ -98,7 +98,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	fmt = msg->format;
 	if (idev)
 		cras_iodev_set_format(idev, &fmt);
-	if (odev)
+	else if (odev)
 		cras_iodev_set_format(odev, &fmt);
 
 	if (fmt.frame_rate == 0) {
@@ -150,6 +150,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		rc = -ENOMEM;
 		goto reply_err;
 	}
+
+	if (odev && idev)
+		cras_iodev_set_format(odev, &fmt);
 
 	DL_APPEND(client->streams, stream);
 	rc = audio_thread_add_stream(thread, stream);
