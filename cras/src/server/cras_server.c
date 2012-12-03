@@ -287,7 +287,8 @@ int cras_server_run()
 
 	cras_udev_start_sound_subsystem_monitor();
 	dbus_conn = cras_dbus_connect_system_bus();
-	cras_bluetooth_start(dbus_conn);
+	if (dbus_conn)
+		cras_bluetooth_start(dbus_conn);
 
 	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd < 0) {
@@ -379,7 +380,8 @@ int cras_server_run()
 			if (FD_ISSET(client_cb->select_fd, &poll_set))
 				client_cb->callback(client_cb->callback_data);
 
-		cras_dbus_dispatch(dbus_conn);
+		if (dbus_conn)
+			cras_dbus_dispatch(dbus_conn);
 	}
 
 bail:
