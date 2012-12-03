@@ -59,6 +59,13 @@ struct alsa_output_node {
 	struct alsa_output_node *prev, *next;
 };
 
+struct alsa_input_node {
+	struct mixer_volume_control* mixer_input;
+	const struct cras_alsa_jack *jack;
+	int plugged;
+	struct alsa_input_node *prev, *next;
+};
+
 /* Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
  * base - The cras_iodev structure "base class".
  * dev - String that names this device (e.g. "hw:0,0").
@@ -87,6 +94,8 @@ struct alsa_io {
 	struct cras_alsa_mixer *mixer;
 	struct alsa_output_node *output_nodes;
 	struct alsa_output_node *active_output;
+	struct alsa_input_node *input_nodes;
+	struct alsa_input_node *active_input;
 	struct cras_alsa_jack_list *jack_list;
 	snd_use_case_mgr_t *ucm;
 	int (*alsa_cb)(struct alsa_io *aio, struct timespec *ts);
@@ -897,6 +906,7 @@ static void *alsa_io_thread(void *arg)
 static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
 	struct alsa_output_node *output, *tmp;
+	struct alsa_input_node *input, *tmp_input;
 
 	cras_iodev_deinit(&aio->base);
 	free(aio->base.supported_rates);
@@ -905,6 +915,10 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		DL_DELETE(aio->output_nodes, output);
 		cras_volume_curve_destroy(output->jack_curve);
 		free(output);
+	}
+	DL_FOREACH_SAFE(aio->input_nodes, input, tmp_input) {
+		DL_DELETE(aio->input_nodes, input);
+		free(input);
 	}
 	free(aio->dev);
 }
@@ -977,6 +991,22 @@ static struct alsa_output_node *get_output_node_from_jack(
 	}
 
 	DL_SEARCH_SCALAR(aio->output_nodes, node, mixer_output, mixer_output);
+	return node;
+}
+
+static struct alsa_input_node *get_input_node_from_jack(
+		struct alsa_io *aio, const struct cras_alsa_jack *jack)
+{
+	struct mixer_volume_control *mixer_input =
+			cras_alsa_jack_get_mixer_input(jack);
+	struct alsa_input_node *node = NULL;
+
+	if (mixer_input == NULL) {
+		DL_SEARCH_SCALAR(aio->input_nodes, node, jack, jack);
+		return node;
+	}
+
+	DL_SEARCH_SCALAR(aio->input_nodes, node, mixer_input, mixer_input);
 	return node;
 }
 
@@ -1055,15 +1085,35 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 				  void *arg)
 {
 	struct alsa_io *aio;
+	struct alsa_input_node *node;
 
 	if (arg == NULL)
 		return;
 	aio = (struct alsa_io *)arg;
+	node = get_input_node_from_jack(aio, jack);
+	if (node == NULL) {
+		node = (struct alsa_input_node *)calloc(1, sizeof(*node));
+		if (node == NULL) {
+			syslog(LOG_ERR, "Out of memory creating jack node.");
+			return;
+		}
+		node->jack = jack;
+		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
+
+		DL_APPEND(aio->input_nodes, node);
+	}
 
 	cras_iodev_plug_event(&aio->base, plugged);
 
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
+
+	node->plugged = plugged;
+
+	/* Choose the first plugged node. */
+	DL_SEARCH_SCALAR(aio->input_nodes, node, plugged, 1);
+	aio->active_input = node;
+
 	init_device_settings(aio);
 
 	syslog(LOG_DEBUG, "Move input streams due to plug event.");
