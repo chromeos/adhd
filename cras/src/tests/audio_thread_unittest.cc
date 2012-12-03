@@ -204,6 +204,7 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -234,6 +235,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_EQ(1, thread->sleep_correction_frames);
   EXPECT_EQ(1, dev_running_called_);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -262,6 +264,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataDrop) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -293,6 +296,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -331,6 +335,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -369,6 +374,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
     EXPECT_EQ(audio_buffer_[i],
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -413,6 +419,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -441,6 +448,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
   EXPECT_EQ(0, cras_dsp_pipeline_run_called);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -474,6 +482,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   verify_processed_data((int16_t *)shm_->area->samples,
                         cras_dsp_pipeline_run_sample_count);
 
+  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -540,6 +549,7 @@ class WriteStreamSuite : public testing::Test {
       free(rstream_);
       free(shm2_->area);
       free(rstream2_);
+      thread_->streams = 0;
       audio_thread_destroy(thread_);
     }
 

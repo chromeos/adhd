@@ -55,8 +55,17 @@ static struct audio_thread *get_audio_thread_for_iodev(struct cras_iodev *idev,
 	}
 
 add_output:
-	if (odev && idev)
+	if (odev && idev) {
+		struct audio_thread *out_thread;
+
+		/* If there is alread a thread using this iodev, destroy it.
+		 * All the streams will be re-attached to the new thread. */
+		out_thread = cras_iodev_list_get_audio_thread(odev);
+		if (out_thread)
+			audio_thread_destroy(out_thread);
+
 		audio_thread_add_output_dev(thread, odev);
+	}
 
 	return thread;
 }

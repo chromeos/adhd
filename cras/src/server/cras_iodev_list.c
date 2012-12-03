@@ -109,7 +109,7 @@ static int add_dev_to_list(struct iodev_list *list,
 						 new_default);
 
 		if (last && last->thread)
-			audio_thread_rm_all_streams(last->thread);
+			audio_thread_destroy(last->thread);
 	}
 
 	cras_iodev_list_update_clients();
@@ -296,7 +296,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	int res;
 
 	if (dev->thread)
-		audio_thread_rm_all_streams(dev->thread);
+		audio_thread_destroy(dev->thread);
 	res = rm_dev_from_list(&outputs, dev);
 	if (default_output == dev)
 		cras_iodev_set_as_default(CRAS_STREAM_OUTPUT,
@@ -311,7 +311,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	int res;
 
 	if (dev->thread)
-		audio_thread_rm_all_streams(dev->thread);
+		audio_thread_destroy(dev->thread);
 	res = rm_dev_from_list(&inputs, dev);
 	if (default_input == dev)
 		cras_iodev_set_as_default(CRAS_STREAM_INPUT,
@@ -350,7 +350,7 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
 		return 0; /* No change or no streams to move. */
 
 	if (curr_dev->thread)
-		audio_thread_rm_all_streams(curr_dev->thread);
+		audio_thread_destroy(curr_dev->thread);
 
 	return 0;
 }

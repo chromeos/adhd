@@ -952,7 +952,7 @@ int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
   return 0;
 }
 
-void audio_thread_rm_all_streams(struct audio_thread *thread) {
+void audio_thread_destroy(struct audio_thread *thread) {
 }
 
 }  // extern "C"

@@ -968,6 +968,21 @@ static int audio_thread_post_message(struct audio_thread *thread,
 	return rc;
 }
 
+/* Remove all streams from the thread.
+ * Args:
+ *    thread - a pointer to the audio thread.
+ */
+static void audio_thread_rm_all_streams(struct audio_thread *thread)
+{
+	struct cras_io_stream *iostream, *tmp;
+
+	/* For each stream; detach and tell client to reconfig. */
+	DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
+		cras_rstream_send_client_reattach(iostream->stream);
+		audio_thread_rm_stream(thread, iostream->stream);
+	}
+}
+
 /* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
@@ -994,17 +1009,6 @@ int audio_thread_rm_stream(struct audio_thread *thread,
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
 	return audio_thread_post_message(thread, &msg.header);
-}
-
-void audio_thread_rm_all_streams(struct audio_thread *thread)
-{
-	struct cras_io_stream *iostream, *tmp;
-
-	/* For each stream; detach and tell client to reconfig. */
-	DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
-		cras_rstream_send_client_reattach(iostream->stream);
-		audio_thread_rm_stream(thread, iostream->stream);
-	}
 }
 
 struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
@@ -1072,6 +1076,7 @@ int audio_thread_start(struct audio_thread *thread)
 
 void audio_thread_destroy(struct audio_thread *thread)
 {
+	audio_thread_rm_all_streams(thread);
 	if (thread->started) {
 		struct audio_thread_msg msg;
 
