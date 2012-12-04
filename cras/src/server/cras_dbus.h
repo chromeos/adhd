@@ -6,7 +6,7 @@
 #ifndef CRAS_DBUS_H_
 #define CRAS_DBUS_H_
 
-typedef struct DBusConnection DBusConnection;
+#include <dbus/dbus.h>
 
 /* Establish connection to the D-Bus System Bus. */
 DBusConnection *cras_dbus_connect_system_bus();

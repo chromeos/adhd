@@ -6,7 +6,7 @@
 #ifndef CRAS_BLUETOOTH_H_
 #define CRAS_BLUETOOTH_H_
 
-typedef struct DBusConnection DBusConnection;
+#include <dbus/dbus.h>
 
 /* Return the D-Bus object path of the Bluetooth adapter. Primarily intended
  * for testing or logging.
