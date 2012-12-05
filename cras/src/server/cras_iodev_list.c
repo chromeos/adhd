@@ -169,46 +169,6 @@ static int get_dev_list(struct iodev_list *list,
 	return list->size;
 }
 
-/* Finds the supported sample rate that best suits the requested rate, "rrate".
- * Exact matches have highest priority, then integer multiples, then the default
- * rate for the device. */
-static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
-{
-	size_t i;
-	size_t best;
-
-	if (iodev->supported_rates[0] == 0) /* No rates supported */
-		return 0;
-
-	for (i = 0, best = 0; iodev->supported_rates[i] != 0; i++) {
-		if (rrate == iodev->supported_rates[i])
-			return rrate;
-		if (best == 0 && (rrate % iodev->supported_rates[i] == 0 ||
-				  iodev->supported_rates[i] % rrate == 0))
-			best = iodev->supported_rates[i];
-	}
-
-	if (best)
-		return best;
-	return iodev->supported_rates[0];
-}
-
-/* Finds the best match for the channel count.  This will return an exact match
- * only, if there is no exact match, it falls back to the default channel count
- * for the device (The first in the list). */
-static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
-{
-	size_t i;
-
-	assert(iodev->supported_channel_counts[0] != 0);
-
-	for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
-		if (iodev->supported_channel_counts[i] == count)
-			return count;
-	}
-	return iodev->supported_channel_counts[0];
-}
-
 /* Called when the system volume changes.  Pass the current volume setting to
  * the default output if it is active. */
 void sys_vol_change(void *data)
@@ -374,47 +334,6 @@ int cras_iodev_detach_stream(struct cras_iodev *iodev,
 	rc = cras_iodev_rm_stream(iodev, stream);
 	cras_rstream_set_iodev(stream, NULL);
 	return rc;
-}
-
-int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt)
-{
-	size_t actual_rate, actual_num_channels;
-
-	/* If this device isn't already using a format, try to match the one
-	 * requested in "fmt". */
-	if (iodev->format == NULL) {
-		iodev->format = malloc(sizeof(struct cras_audio_format));
-		if (!iodev->format)
-			return -ENOMEM;
-		*iodev->format = *fmt;
-
-		if (iodev->update_supported_formats) {
-			int rc = iodev->update_supported_formats(iodev);
-			if (rc) {
-				syslog(LOG_ERR, "Failed to update formats");
-				return rc;
-			}
-		}
-
-
-		actual_rate = get_best_rate(iodev, fmt->frame_rate);
-		actual_num_channels = get_best_channel_count(iodev,
-							     fmt->num_channels);
-		if (actual_rate == 0 || actual_num_channels == 0) {
-			/* No compatible frame rate found. */
-			free(iodev->format);
-			iodev->format = NULL;
-			return -EINVAL;
-		}
-		iodev->format->frame_rate = actual_rate;
-		iodev->format->num_channels = actual_num_channels;
-		/* TODO(dgreid) - allow other formats. */
-		iodev->format->format = SND_PCM_FORMAT_S16_LE;
-	}
-
-	*fmt = *(iodev->format);
-	return 0;
 }
 
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)

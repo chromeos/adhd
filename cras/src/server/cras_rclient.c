@@ -8,6 +8,7 @@
 #include <syslog.h>
 
 #include "cras_config.h"
+#include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"

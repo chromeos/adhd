@@ -133,6 +133,17 @@ int cras_iodev_init(struct cras_iodev *iodev,
  */
 void cras_iodev_deinit(struct cras_iodev *iodev);
 
+/* Sets up the iodev for the given format if possible.  If the iodev can't
+ * handle the requested format, it will modify the fmt parameter to inform the
+ * caller of the actual format.
+ * Args:
+ *    iodev - the iodev you want the format for.
+ *    fmt - pass in the desired format, is filled with the actual
+ *      format on return.
+ */
+int cras_iodev_set_format(struct cras_iodev *iodev,
+			  struct cras_audio_format *fmt);
+
 /* Adds a stream to the iodev.
  * Args:
  *    iodev - The device to add the stream to.

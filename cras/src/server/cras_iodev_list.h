@@ -114,17 +114,6 @@ int cras_iodev_attach_stream(struct cras_iodev *iodev,
 int cras_iodev_detach_stream(struct cras_iodev *iodev,
 			     struct cras_rstream *stream);
 
-/* Sets up the iodev for the given format if possible.  If the iodev can't
- * handle the requested format, it will modify the fmt parameter to inform the
- * caller of the actual format.
- * Args:
- *    iodev - the iodev you want the format for.
- *    fmt - pass in the desired format, is filled with the actual
- *      format on return.
- */
-int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt);
-
 /* Moves all streams of type to a new device.
  * Args:
  *    type - The stream type to move.

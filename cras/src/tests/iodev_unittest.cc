@@ -246,6 +246,96 @@ TEST(IoDevTestSuite, TestPluggedTiming) {
               (tv2.tv_sec == tv.tv_sec && tv2.tv_usec > tv.tv_usec));
 }
 
+class IoDevSetFormatTestSuite : public testing::Test {
+  protected:
+    virtual void SetUp() {
+      sample_rates_[0] = 44100;
+      sample_rates_[1] = 48000;
+      sample_rates_[2] = 0;
+
+      channel_counts_[0] = 2;
+      channel_counts_[1] = 0;
+
+      memset(&iodev_, 0, sizeof(iodev_));
+      iodev_.supported_rates = sample_rates_;
+      iodev_.supported_channel_counts = channel_counts_;
+    }
+
+    struct cras_iodev iodev_;
+    size_t sample_rates_[3];
+    size_t channel_counts_[2];
+};
+
+TEST_F(IoDevSetFormatTestSuite, SupportedFormatSecondary) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, SupportedFormatPrimary) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 44100;
+  fmt.num_channels = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(44100, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, SupportedFormatDivisor) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 96000;
+  fmt.num_channels = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, UnsupportedChannelCount) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 96000;
+  fmt.num_channels = 1;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, SupportedFormatFallbackDefault) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 96008;
+  fmt.num_channels = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(44100, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
 extern "C" {
 
 //  From libpthread.
