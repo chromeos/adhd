@@ -821,10 +821,35 @@ TEST_F(AlsaMixerOutputs, MinMaxCaptureGain) {
   snd_mixer_selem_get_capture_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_capture_dB_range_values_length = ARRAY_SIZE(min_volumes);
-  min = cras_alsa_mixer_get_minimum_capture_gain(cras_mixer_);
+  min = cras_alsa_mixer_get_minimum_capture_gain(cras_mixer_,
+		  NULL);
   EXPECT_EQ(-750, min);
-  max = cras_alsa_mixer_get_maximum_capture_gain(cras_mixer_);
+  max = cras_alsa_mixer_get_maximum_capture_gain(cras_mixer_,
+		  NULL);
   EXPECT_EQ(3400, max);
+}
+
+TEST_F(AlsaMixerOutputs, MinMaxCaptureGainWithActiveInput) {
+  struct mixer_volume_control *mixer_input;
+  long min, max;
+
+  static const long min_volumes[] = {500, -1250, 50, -40, -40, -40};
+  static const long max_volumes[] = {-40, -40, -40, 3000, 400, 60};
+
+  snd_mixer_selem_get_capture_dB_range_called = 0;
+  snd_mixer_selem_get_capture_dB_range_values_index = 0;
+  snd_mixer_selem_get_capture_dB_range_min_values = min_volumes;
+  snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
+  snd_mixer_selem_get_capture_dB_range_values_length = ARRAY_SIZE(min_volumes);
+
+  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
+  mixer_input->elem = reinterpret_cast<snd_mixer_elem_t *>(2);
+  min = cras_alsa_mixer_get_minimum_capture_gain(cras_mixer_, mixer_input);
+  max = cras_alsa_mixer_get_maximum_capture_gain(cras_mixer_, mixer_input);
+  EXPECT_EQ(-700, min);
+  EXPECT_EQ(3460, max);
+
+  free((void *)mixer_input);
 }
 
 /* Stubs */

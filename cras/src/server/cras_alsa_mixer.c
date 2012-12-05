@@ -404,7 +404,9 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 	assert(cras_mixer);
 }
 
-long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix)
+long cras_alsa_mixer_get_minimum_capture_gain(
+                struct cras_alsa_mixer *cmix,
+		struct mixer_volume_control *mixer_input)
 {
 	struct mixer_volume_control *c;
 	long min, max, total_min;
@@ -416,10 +418,15 @@ long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix)
 							 &min, &max) == 0)
 			total_min += min;
 
+	if (mixer_input && snd_mixer_selem_get_capture_dB_range(
+			mixer_input->elem, &min, &max) == 0)
+		total_min += min;
+
 	return total_min;
 }
 
-long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
+long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
+		struct mixer_volume_control *mixer_input)
 {
 	struct mixer_volume_control *c;
 	long min, max, total_max;
@@ -430,6 +437,10 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
 		if (snd_mixer_selem_get_capture_dB_range(c->elem,
 							 &min, &max) == 0)
 			total_max += max;
+
+	if (mixer_input && snd_mixer_selem_get_capture_dB_range(
+			mixer_input->elem, &min, &max) == 0)
+		total_max += max;
 
 	return total_max;
 }

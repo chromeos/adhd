@@ -55,6 +55,10 @@ static const struct cras_alsa_mixer_output *alsa_mixer_set_dBFS_output;
 static size_t alsa_mixer_set_capture_dBFS_called;
 static int alsa_mixer_set_capture_dBFS_value;
 static const struct mixer_volume_control *alsa_mixer_set_capture_dBFS_input;
+static const struct mixer_volume_control
+    *cras_alsa_mixer_get_minimum_capture_gain_mixer_input;
+static const struct mixer_volume_control
+    *cras_alsa_mixer_get_maximum_capture_gain_mixer_input;
 static size_t cras_alsa_mixer_list_outputs_called;
 static size_t cras_alsa_mixer_list_outputs_device_value;
 static size_t sys_get_volume_called;
@@ -592,6 +596,8 @@ TEST_F(AlsaAddStreamSuite, OneActiveInput) {
   EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
   EXPECT_EQ(10, alsa_mixer_set_capture_dBFS_value);
   ASSERT_NE(alsa_mixer_set_capture_dBFS_input, (void *)NULL);
+  ASSERT_NE(cras_alsa_mixer_get_minimum_capture_gain_mixer_input, (void *)NULL);
+  ASSERT_NE(cras_alsa_mixer_get_maximum_capture_gain_mixer_input, (void *)NULL);
 
   free(mixer_input);
   free(input);
@@ -1510,15 +1516,19 @@ void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 {
 }
 
-long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix)
+long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix,
+		struct mixer_volume_control *mixer_input)
 {
 	cras_alsa_mixer_get_minimum_capture_gain_called++;
+	cras_alsa_mixer_get_minimum_capture_gain_mixer_input = mixer_input;
 	return 0;
 }
 
-long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix)
+long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
+		struct mixer_volume_control *mixer_input)
 {
 	cras_alsa_mixer_get_maximum_capture_gain_called++;
+	cras_alsa_mixer_get_maximum_capture_gain_mixer_input = mixer_input;
 	return 0;
 }
 

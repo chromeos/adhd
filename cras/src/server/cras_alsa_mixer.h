@@ -95,18 +95,25 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 /* Gets the minimum allowed setting for capture gain.
  * Args:
  *    cmix - The mixer to set the capture gain on.
+ *    mixer_input - The additional input mixer control, mainly specified
+ *      in ucm config. Can be null.
  * Returns:
  *    The minimum allowed capture gain in dBFS * 100.
  */
-long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix);
+long cras_alsa_mixer_get_minimum_capture_gain(
+                struct cras_alsa_mixer *cmix,
+		struct mixer_volume_control *mixer_input);
 
 /* Gets the maximum allowed setting for capture gain.
  * Args:
  *    cmix - The mixer to set the capture gain on.
+ *    mixer_input - The additional input mixer control, mainly specified
+ *      in ucm config. Can be null.
  * Returns:
  *    The maximum allowed capture gain in dBFS * 100.
  */
-long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix);
+long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
+		struct mixer_volume_control *mixer_input);
 
 /* Sets the playback switch for the device.
  * Args:

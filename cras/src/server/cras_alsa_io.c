@@ -276,9 +276,14 @@ static void init_device_settings(struct alsa_io *aio)
 		set_alsa_volume_limits(aio);
 		set_alsa_volume(&aio->base);
 	} else {
+		struct mixer_volume_control *mixer_input = NULL;
+		if (aio->active_input)
+			mixer_input = aio->active_input->mixer_input;
 		cras_system_set_capture_gain_limits(
-			cras_alsa_mixer_get_minimum_capture_gain(aio->mixer),
-			cras_alsa_mixer_get_maximum_capture_gain(aio->mixer));
+			cras_alsa_mixer_get_minimum_capture_gain(aio->mixer,
+								 mixer_input),
+			cras_alsa_mixer_get_maximum_capture_gain(aio->mixer,
+								 mixer_input));
 		set_alsa_capture_gain(&aio->base);
 	}
 }
