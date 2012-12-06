@@ -13,11 +13,7 @@
 #include <unistd.h>
 
 #include "cras_system_state.h"
-
-struct dbus_timeout_callback_data_t {
-	DBusTimeout *timeout;
-	int fd;
-};
+#include "cras_tm.h"
 
 static void dbus_watch_callback(void *arg)
 {
@@ -81,120 +77,44 @@ static void dbus_watch_toggled(DBusWatch *watch, void *data)
 }
 
 
-static void dbus_timeout_callback(void *arg)
+static void dbus_timeout_callback(struct cras_timer *t, void *data)
 {
-	struct dbus_timeout_callback_data_t *data
-			= (struct dbus_timeout_callback_data_t *)arg;
-	int r;
-	uint64_t expirations;
+	struct DBusTimeout *timeout = data;
 
-	r = read(data->fd, &expirations, sizeof(expirations));
-	if (r < 0)
-		syslog(LOG_WARNING, "Failed to read from D-Bus timer: %m");
-	else if (r < sizeof(expirations))
-		syslog(LOG_WARNING, "Short read from D-Bus timer.");
-
-	if (!dbus_timeout_handle(data->timeout))
+	if (!dbus_timeout_handle(timeout))
 		syslog(LOG_WARNING, "Failed to handle D-Bus timeout.");
 }
 
 static dbus_bool_t dbus_timeout_add(DBusTimeout *timeout, void *arg)
 {
-	struct dbus_timeout_callback_data_t *data;
-	int r;
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct cras_timer *t;
 
-	data = calloc(1, sizeof(*data));
-	if (data == NULL)
-		return FALSE;
+	if (dbus_timeout_get_enabled(timeout)) {
+		t = cras_tm_create_timer(tm,
+					 dbus_timeout_get_interval(timeout),
+					 dbus_timeout_callback, timeout);
+		if (t == NULL)
+			return FALSE;
 
-	data->timeout = timeout;
-	data->fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
-	if (data->fd < 0)
-		goto error;
-
-	r = cras_system_add_select_fd(data->fd,
-				      dbus_timeout_callback,
-				      data);
-	if (r != 0)
-		goto error;
-
-	if (dbus_timeout_get_enabled(data->timeout)) {
-		struct itimerspec value;
-		int interval;
-
-		interval = dbus_timeout_get_interval(timeout);
-
-		value.it_value.tv_sec = interval / 1000;
-		value.it_value.tv_nsec = (interval % 1000) * 1000;
-
-		value.it_interval.tv_sec = 0;
-		value.it_interval.tv_nsec = 0;
-
-		r = timerfd_settime(data->fd, 0, &value, NULL);
-		if (r < 0)
-			goto error;
+		dbus_timeout_set_data(timeout, t, NULL);
 	}
-
-	dbus_timeout_set_data(timeout, data, free);
 
 	return TRUE;
-
-error:
-	{
-		int saved_errno = errno;
-		if (data->fd >= 0) {
-			cras_system_rm_select_fd(data->fd);
-			close(data->fd);
-		}
-		free(data);
-		errno = saved_errno;
-		return FALSE;
-	}
 }
 
 static void dbus_timeout_remove(DBusTimeout *timeout, void *arg)
 {
-	struct dbus_timeout_callback_data_t *data;
-	int r;
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct cras_timer *t = dbus_timeout_get_data(timeout);
 
-	data = dbus_timeout_get_data(timeout);
-
-	cras_system_rm_select_fd(data->fd);
-
-	r = close(data->fd);
-	if (r < 0)
-		syslog(LOG_WARNING, "Failed to close D-Bus timer: %m");
+	cras_tm_cancel_timer(tm, t);
 }
 
 static void dbus_timeout_toggled(DBusTimeout *timeout, void *arg)
 {
-	struct dbus_timeout_callback_data_t *data;
-	struct itimerspec value;
-	int r;
-
-	data = dbus_timeout_get_data(timeout);
-
-	if (dbus_timeout_get_enabled(data->timeout)) {
-		int interval;
-
-		interval = dbus_timeout_get_interval(timeout);
-
-		value.it_value.tv_sec = interval / 1000;
-		value.it_value.tv_nsec = (interval % 1000) * 1000;
-
-		value.it_interval.tv_sec = 0;
-		value.it_interval.tv_nsec = 0;
-	} else {
-		value.it_value.tv_sec = 0;
-		value.it_value.tv_nsec = 0;
-
-		value.it_interval.tv_sec = 0;
-		value.it_interval.tv_nsec = 0;
-	}
-
-	r = timerfd_settime(data->fd, 0, &value, NULL);
-	if (r < 0)
-		syslog(LOG_WARNING, "Failed to toggle D-Bus timer: %m");
+	dbus_timeout_remove(timeout, NULL);
+	dbus_timeout_add(timeout, NULL);
 }
 
 
