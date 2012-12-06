@@ -60,6 +60,7 @@ struct client_callback {
 	int select_fd;
 	void (*callback)(void *);
 	void *callback_data;
+	int deleted;
 	struct client_callback *prev, *next;
 };
 
@@ -222,7 +223,7 @@ static int add_select_fd(int fd, void (*cb)(void *data),
 
 	/* Check if fd already exists. */
 	DL_FOREACH(serv->client_callbacks, client_cb)
-		if (client_cb->select_fd == fd)
+		if (client_cb->select_fd == fd && !client_cb->deleted)
 			return -EEXIST;
 
 	new_cb = (struct  client_callback *)calloc(1, sizeof(*new_cb));
@@ -232,6 +233,7 @@ static int add_select_fd(int fd, void (*cb)(void *data),
 	new_cb->select_fd = fd;
 	new_cb->callback = cb;
 	new_cb->callback_data = callback_data;
+	new_cb->deleted = 0;
 
 	DL_APPEND(serv->client_callbacks, new_cb);
 	return 0;
@@ -250,10 +252,25 @@ static void rm_select_fd(int fd, void *server_data)
 		return;
 
 	DL_FOREACH_SAFE(serv->client_callbacks, client_cb, temp_callback)
-		if (client_cb->select_fd == fd) {
+		if (client_cb->select_fd == fd)
+			client_cb->deleted = 1;
+}
+
+/* Cleans up the file descriptor list removing items deleted during the main
+ * loop iteration. */
+static void cleanup_select_fds(void *server_data)
+{
+	struct server_data *serv;
+	struct client_callback *client_cb, *temp_callback;
+
+	serv = (struct server_data *)server_data;
+	if (serv == NULL)
+		return;
+
+	DL_FOREACH_SAFE(serv->client_callbacks, client_cb, temp_callback)
+		if (client_cb->deleted) {
 			DL_DELETE(serv->client_callbacks, client_cb);
 			free(client_cb);
-			return;
 		}
 }
 
@@ -271,7 +288,7 @@ int cras_server_run()
 	const char *sockdir;
 	struct sockaddr_un addr;
 	struct attached_client *elm, *tmp;
-	struct client_callback *client_cb, *tmp_callback;
+	struct client_callback *client_cb;
 	struct cras_tm *tm;
 	struct timespec ts;
 	int timers_active;
@@ -352,6 +369,8 @@ int cras_server_run()
 			FD_SET(elm->fd, &poll_set);
 		}
 		DL_FOREACH(server_instance.client_callbacks, client_cb) {
+			if (client_cb->deleted)
+				continue;
 			if (client_cb->select_fd > max_poll_fd)
 				max_poll_fd = client_cb->select_fd;
 			FD_SET(client_cb->select_fd, &poll_set);
@@ -374,11 +393,12 @@ int cras_server_run()
 			if (FD_ISSET(elm->fd, &poll_set))
 				handle_message_from_client(elm);
 		/* Check any client-registered fd/callback pairs. */
-		DL_FOREACH_SAFE(server_instance.client_callbacks,
-				client_cb,
-				tmp_callback)
-			if (FD_ISSET(client_cb->select_fd, &poll_set))
+		DL_FOREACH(server_instance.client_callbacks, client_cb)
+			if (FD_ISSET(client_cb->select_fd, &poll_set) &&
+			    !client_cb->deleted)
 				client_cb->callback(client_cb->callback_data);
+
+		cleanup_select_fds(&server_instance);
 
 		if (dbus_conn)
 			cras_dbus_dispatch(dbus_conn);
