@@ -319,6 +319,8 @@ void DBusTest::WaitForMatches() {
 
 
 void DBusTest::SetUp() {
+  dbus_threads_init_default();
+
   // Create the D-Bus server that will accept a connection for us, since
   // there's no "just give me a socketpair" option in libdbus.
   server_ = dbus_server_listen(kServerAddress, NULL);
@@ -369,6 +371,7 @@ void DBusTest::TearDown() {
   // Close the client end of the connection, this will result in a signal
   // within the dispatch loop of the server.
   if (conn_) {
+    dbus_connection_flush(conn_);
     dbus_connection_close(conn_);
     dbus_connection_unref(conn_);
     conn_ = NULL;
@@ -381,6 +384,7 @@ void DBusTest::TearDown() {
 
   // Clean up the server end of the connection and the server itself.
   if (server_conn_) {
+    dbus_connection_flush(server_conn_);
     dbus_connection_close(server_conn_);
     dbus_connection_unref(server_conn_);
     server_conn_ = NULL;
@@ -389,6 +393,8 @@ void DBusTest::TearDown() {
   dbus_server_disconnect(server_);
   dbus_server_unref(server_);
   server_ = NULL;
+
+  dbus_shutdown();
 }
 
 void DBusTest::NewConnectionThunk(DBusServer *server,
