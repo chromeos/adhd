@@ -536,6 +536,9 @@ const char *snd_hctl_elem_get_name(const snd_hctl_elem_t *obj) {
   const std::string *name = reinterpret_cast<const std::string *>(obj);
   return name->c_str();
 }
+snd_ctl_elem_iface_t snd_hctl_elem_get_interface(const snd_hctl_elem_t *obj) {
+  return SND_CTL_ELEM_IFACE_CARD;
+}
 void snd_hctl_elem_set_callback(snd_hctl_elem_t *obj,
                                 snd_hctl_elem_callback_t val) {
   snd_hctl_elem_set_callback_called++;
