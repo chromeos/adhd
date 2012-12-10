@@ -43,25 +43,14 @@ static int cras_dsp_pipeline_get_source_buffer_called;
 static int cras_dsp_pipeline_get_sink_buffer_called;
 static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
 static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
-static int cras_dsp_pipeline_run_called;
-static int cras_dsp_pipeline_run_sample_count;
+static int cras_dsp_pipeline_apply_called;
+static int cras_dsp_pipeline_apply_sample_count;
+
 }
 
 // Number of frames past target that will be added to sleep times to insure that
 // all frames are ready.
 static const int CAP_EXTRA_SLEEP_FRAMES = 16;
-
-static void fill_test_data(int16_t *data, size_t size)
-{
-  for (size_t i = 0; i < size; i++)
-    data[i] = i;
-}
-
-static void verify_processed_data(int16_t *data, size_t size)
-{
-  for (size_t i = 0; i < size; i++)
-    EXPECT_EQ(i * 2, data[i]);  // multiplied by 2 in cras_dsp_pipeline_run()
-}
 
 //  Test the audio capture path.
 class ReadStreamSuite : public testing::Test {
@@ -103,9 +92,6 @@ class ReadStreamSuite : public testing::Test {
       cras_rstream_audio_ready_called = 0;
       dev_running_called_ = 0;
 
-      fill_test_data((int16_t *)audio_buffer_,
-                     cras_shm_used_size(shm_) / 2);
-
       cras_dsp_get_pipeline_called = 0;
       cras_dsp_get_pipeline_ret = 0;
       cras_dsp_put_pipeline_called = 0;
@@ -115,8 +101,8 @@ class ReadStreamSuite : public testing::Test {
              sizeof(cras_dsp_pipeline_source_buffer));
       memset(&cras_dsp_pipeline_sink_buffer, 0,
              sizeof(cras_dsp_pipeline_sink_buffer));
-      cras_dsp_pipeline_run_called = 0;
-      cras_dsp_pipeline_run_sample_count = 0;
+      cras_dsp_pipeline_apply_called = 0;
+      cras_dsp_pipeline_apply_sample_count = 0;
       cras_iodev_set_format_called = 0;
     }
 
@@ -446,7 +432,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_run_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -473,14 +459,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_dsp_get_pipeline_called);
   EXPECT_EQ(1, cras_dsp_put_pipeline_called);
-  EXPECT_EQ(2, cras_dsp_pipeline_get_source_buffer_called);
-  EXPECT_EQ(2, cras_dsp_pipeline_get_sink_buffer_called);
-  EXPECT_EQ(1, cras_dsp_pipeline_run_called);
-  EXPECT_EQ(iodev_.cb_threshold, cras_dsp_pipeline_run_sample_count);
-
-  /* The data move from the buffer to source buffer to sink buffer to shm. */
-  verify_processed_data((int16_t *)shm_->area->samples,
-                        cras_dsp_pipeline_run_sample_count);
+  EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
+  EXPECT_EQ(iodev_.cb_threshold, cras_dsp_pipeline_apply_sample_count);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -536,8 +516,8 @@ class WriteStreamSuite : public testing::Test {
              sizeof(cras_dsp_pipeline_source_buffer));
       memset(&cras_dsp_pipeline_sink_buffer, 0,
              sizeof(cras_dsp_pipeline_sink_buffer));
-      cras_dsp_pipeline_run_called = 0;
-      cras_dsp_pipeline_run_sample_count = 0;
+      cras_dsp_pipeline_apply_called = 0;
+      cras_dsp_pipeline_apply_sample_count = 0;
 
       dev_running_called_ = 0;
 
@@ -566,8 +546,6 @@ class WriteStreamSuite : public testing::Test {
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
           shm, iodev_.used_size * cras_shm_frame_bytes(shm));
-      fill_test_data((int16_t *)shm->area->samples,
-                     cras_shm_used_size(shm) / 2);
     }
 
     uint64_t GetCaptureSleepFrames() {
@@ -908,7 +886,7 @@ TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_run_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
@@ -934,15 +912,9 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
             cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_dsp_get_pipeline_called);
   EXPECT_EQ(1, cras_dsp_put_pipeline_called);
-  EXPECT_EQ(2, cras_dsp_pipeline_get_source_buffer_called);
-  EXPECT_EQ(2, cras_dsp_pipeline_get_sink_buffer_called);
-  EXPECT_EQ(1, cras_dsp_pipeline_run_called);
+  EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
-            cras_dsp_pipeline_run_sample_count);
-
-  /* The data move from shm to source buffer to sink buffer to mmap buffer. */
-  verify_processed_data((int16_t *)audio_buffer_,
-                        cras_dsp_pipeline_run_sample_count);
+            cras_dsp_pipeline_apply_sample_count);
 }
 
 
@@ -1275,16 +1247,11 @@ float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index)
   return cras_dsp_pipeline_sink_buffer[index];
 }
 
-void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
+void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
+			     uint8_t *buf, unsigned int frames)
 {
-  cras_dsp_pipeline_run_called++;
-  cras_dsp_pipeline_run_sample_count = sample_count;
-
-  /* sink = source * 2 */
-  for (int i = 0; i < 2; i++)
-    for (int j = 0; j < sample_count; j++)
-      cras_dsp_pipeline_sink_buffer[i][j] =
-          cras_dsp_pipeline_source_buffer[i][j] * 2;
+  cras_dsp_pipeline_apply_called++;
+  cras_dsp_pipeline_apply_sample_count = frames;
 }
 
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream)

@@ -109,7 +109,7 @@ dsp_unittest_SOURCES = tests/dsp_unittest.cc \
 	common/dumper.c
 dsp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-dsp_unittest_LDADD = -lgtest -liniparser -lpthread
+dsp_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 dsp_ini_unittest_SOURCES = tests/dsp_ini_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c common/dumper.c
@@ -122,7 +122,7 @@ dsp_pipeline_unittest_SOURCES = tests/cras_dsp_pipeline_unittest.cc \
 	common/dumper.c
 dsp_pipeline_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-dsp_pipeline_unittest_LDADD = -lgtest -liniparser -lpthread
+dsp_pipeline_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 expr_unittest_SOURCES = tests/expr_unittest.cc server/cras_expr.c common/dumper.c
 expr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
@@ -142,7 +142,7 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 	server/audio_thread.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-audio_thread_unittest_LDADD = -lgtest -lrt -lpthread
+audio_thread_unittest_LDADD = -lgtest -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c

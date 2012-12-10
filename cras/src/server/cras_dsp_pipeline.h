@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #include "dumper.h"
 #include "cras_dsp_ini.h"
 
@@ -112,6 +114,16 @@ void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count);
 void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 				     const struct timespec *time_delta,
 				     int samples);
+
+/* Runs the specified pipeline across the given interleaved buffer in place.
+ * Args:
+ *    pipeline - The pipeline to run.
+ *    channels - Number of audio channels in the buffer. (e.g. stereo = 2)
+ *    buf - The samples to be processed, interleaved.
+ *    frames - the numver of samples in the buffer.
+ */
+void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
+			     uint8_t *buf, unsigned int frames);
 
 /* Dumps the current state of the pipeline. For debugging only */
 void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline);
