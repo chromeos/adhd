@@ -681,7 +681,7 @@ class AlsaCaptureStreamSuite : public testing::Test {
       free(rstream_);
     }
 
-    size_t GetCaptureSleepFrames() {
+    uint64_t GetCaptureSleepFrames() {
       // Account for padding the sleep interval to ensure the wake up happens
       // after the last desired frame is received.
       return aio_->base.cb_threshold + 16;
@@ -712,7 +712,8 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadEmpty) {
   //  If no samples are present, it should sleep for cb_threshold frames.
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = 0;
-  nsec_expected = (GetCaptureSleepFrames() + 1) * 1000000000 / fmt_.frame_rate;
+  nsec_expected = (GetCaptureSleepFrames() + 1) *
+                  1000000000ULL / (uint64_t)fmt_.frame_rate;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -734,7 +735,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataDrop) {
 
   // +1 for correction factor.
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
-  nsec_expected = (sleep_frames) * 1000000000 / fmt_.frame_rate;
+  nsec_expected = sleep_frames * 1000000000ULL / (uint64_t)fmt_.frame_rate;
   rc = possibly_read_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -774,7 +775,7 @@ TEST_F(AlsaCaptureStreamSuite, PossiblyReadHasDataWriteStream) {
 
   // +1 for correction factor.
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
-  nsec_expected = (sleep_frames) * 1000000000 / fmt_.frame_rate;
+  nsec_expected = sleep_frames * 1000000000ULL / (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
   //  Give it some samples to copy.
   rc = possibly_read_audio(aio_, &ts);
@@ -972,7 +973,8 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillEarlyWake) {
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold * 2;
-  nsec_expected = (aio_->base.cb_threshold) * 1000000000 / fmt_.frame_rate;
+  nsec_expected = aio_->base.cb_threshold * 1000000000ULL /
+                  (uint64_t)fmt_.frame_rate;
   rc = possibly_fill_audio(aio_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -990,7 +992,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromStreamFull) {
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
   nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
-      1000000000 / fmt_.frame_rate;
+      1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   //  shm has plenty of data in it.
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
@@ -1078,7 +1080,7 @@ TEST_F(AlsaPlaybackStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
   cras_alsa_get_avail_frames_avail =
       aio_->base.buffer_size - aio_->base.cb_threshold;
   nsec_expected = (aio_->base.used_size - aio_->base.cb_threshold) *
-      1000000000 / fmt_.frame_rate;
+      1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   //  shm has plenty of data in it.
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
@@ -1326,21 +1328,21 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 				      size_t frame_rate,
 				      struct timespec *ts)
 {
-	size_t to_play_usec;
+	uint64_t to_play_usec;
 
-        ts->tv_sec = 0;
+	ts->tv_sec = 0;
 	/* adjust sleep time to target our callback threshold */
 	if (frames > cb_threshold)
-		to_play_usec = (frames - cb_threshold) *
-			1000000 / frame_rate;
+		to_play_usec = ((uint64_t)frames - (uint64_t)cb_threshold) *
+			1000000L / (uint64_t)frame_rate;
 	else
 		to_play_usec = 0;
-	ts->tv_nsec = to_play_usec * 1000;
 
-	while (ts->tv_nsec > 1000000000L) {
+	while (to_play_usec > 1000000) {
 		ts->tv_sec++;
-		ts->tv_nsec -= 1000000000L;
+		to_play_usec -= 1000000;
 	}
+	ts->tv_nsec = to_play_usec * 1000;
 }
 void cras_iodev_set_playback_timestamp(size_t frame_rate,
 				       size_t frames,

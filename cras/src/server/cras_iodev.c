@@ -277,21 +277,21 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 				      size_t frame_rate,
 				      struct timespec *ts)
 {
-	size_t to_play_usec;
+	uint64_t to_play_usec;
 
 	ts->tv_sec = 0;
 	/* adjust sleep time to target our callback threshold */
 	if (frames > cb_threshold)
-		to_play_usec = (frames - cb_threshold) *
-			1000000 / frame_rate;
+		to_play_usec = ((uint64_t)frames - (uint64_t)cb_threshold) *
+			1000000L / (uint64_t)frame_rate;
 	else
 		to_play_usec = 0;
-	ts->tv_nsec = to_play_usec * 1000;
 
-	while (ts->tv_nsec > 1000000000L) {
+	while (to_play_usec > 1000000) {
 		ts->tv_sec++;
-		ts->tv_nsec -= 1000000000L;
+		to_play_usec -= 1000000;
 	}
+	ts->tv_nsec = to_play_usec * 1000;
 }
 
 int cras_iodev_send_command_response(struct cras_iodev *iodev, int rc)
@@ -334,10 +334,10 @@ void cras_iodev_set_playback_timestamp(size_t frame_rate,
 	/* For playback, want now + samples left to be played.
 	 * ts = time next written sample will be played to DAC,
 	 */
-	ts->tv_nsec += frames * (1000000000L / frame_rate);
-	while (ts->tv_nsec > 1000000000) {
+	ts->tv_nsec += frames * 1000000000ULL / frame_rate;
+	while (ts->tv_nsec > 1000000000ULL) {
 		ts->tv_sec++;
-		ts->tv_nsec -= 1000000000L;
+		ts->tv_nsec -= 1000000000ULL;
 	}
 }
 

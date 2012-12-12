@@ -17,9 +17,9 @@ struct TestCase {
 static TestCase test_case[] =
 {
   /* The answers can be obtained by a command like "echo -n a | cksum" */
-  { "", 4294967295 },
-  { "a", 1220704766 },
-  { "12345678901234567890", 970143720 },
+  { "", 4294967295U },
+  { "a", 1220704766U },
+  { "12345678901234567890", 970143720U },
 };
 
 TEST(ChecksumTest, All) {
