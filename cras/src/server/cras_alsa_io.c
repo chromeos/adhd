@@ -580,7 +580,7 @@ static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 			source_ptr[i] = source[i];
 		for (i = 0; i < chunk; i++) {
 			for (j = 0; j < channels; j++)
-				*(source_ptr[j]++) = *target_ptr++ / 32767.5f;
+				*(source_ptr[j]++) = *target_ptr++ / 32768.0f;
 		}
 
 		cras_dsp_pipeline_run(pipeline, chunk);
@@ -591,14 +591,14 @@ static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 			sink_ptr[i] = sink[i];
 		for (i = 0; i < chunk; i++) {
 			for (j = 0; j < channels; j++) {
-				float f = *(sink_ptr[j]++) * 32767.5f;
+				float f = *(sink_ptr[j]++) * 32768.0f;
 				int16_t i16;
 				if (f > 32767)
 					i16 = 32767;
 				else if (f < -32768)
 					i16 = -32768;
 				else
-					i16 = (int16_t) f;
+					i16 = (int16_t) (f + 0.5f);
 				*target_ptr++ = i16;
 			}
 		}
