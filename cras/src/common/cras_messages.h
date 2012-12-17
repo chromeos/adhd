@@ -18,6 +18,7 @@
  * values change. */
 #define CRAS_PROTO_VER 0
 #define CRAS_SERV_MAX_MSG_SIZE 256
+#define CRAS_CLIENT_MAX_MSG_SIZE 256
 
 /* Message IDs. */
 enum CRAS_SERVER_MESSAGE_ID {

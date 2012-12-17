@@ -93,13 +93,10 @@ static void handle_message_from_client(struct attached_client *client)
 	int nread;
 
 	msg = (struct cras_server_message *)buf;
-	nread = read(client->fd, buf, sizeof(msg->length));
-	if (nread <= 0)
+	nread = recv(client->fd, buf, sizeof(msg->length), 0);
+	if (nread < sizeof(msg->length))
 		goto read_error;
-	if (msg->length > sizeof(buf))
-		goto read_error;
-	nread = read(client->fd, buf + nread, msg->length - nread);
-	if (nread <= 0)
+	if (msg->length != nread)
 		goto read_error;
 	cras_rclient_message_from_client(client->client, msg);
 
@@ -307,7 +304,7 @@ int cras_server_run()
 	if (dbus_conn)
 		cras_bluetooth_start(dbus_conn);
 
-	socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (socket_fd < 0) {
 		syslog(LOG_ERR, "Main server socket failed.");
 		rc = socket_fd;

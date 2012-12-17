@@ -244,7 +244,7 @@ static int connect_to_server(struct cras_client *client)
 
 	if (client->server_fd >= 0)
 		close(client->server_fd);
-	client->server_fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	client->server_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (client->server_fd < 0) {
 		syslog(LOG_ERR, "%s: Socket failed.", __func__);
 		return client->server_fd;
@@ -929,24 +929,16 @@ static int client_attach_shm(struct cras_client *client, key_t shm_key)
 /* Handles messages from the cras server. */
 static int handle_message_from_server(struct cras_client *client)
 {
-	uint8_t *buf = NULL;
-	size_t msg_length;
+	uint8_t buf[CRAS_CLIENT_MAX_MSG_SIZE];
 	struct cras_client_message *msg;
 	int rc = 0;
 	int nread;
 
-	nread = read(client->server_fd, &msg_length, sizeof(msg_length));
-	if (nread <= 0)
-		goto read_error;
-
-	buf = malloc(msg_length);
-	if (buf == NULL)
-		goto read_error;
 	msg = (struct cras_client_message *)buf;
-
-	msg->length = msg_length;
-	nread = read(client->server_fd, buf + nread, msg->length - nread);
-	if (nread <= 0)
+	nread = recv(client->server_fd, buf, sizeof(buf), 0);
+	if (nread < sizeof(msg->length))
+		goto read_error;
+	if (msg->length != nread)
 		goto read_error;
 
 	switch (msg->id) {
@@ -986,13 +978,11 @@ static int handle_message_from_server(struct cras_client *client)
 		break;
 	}
 
-	free(buf);
 	return 0;
 read_error:
 	rc = connect_to_server_wait(client);
 	if (rc < 0) {
 		syslog(LOG_WARNING, "Can't read from server\n");
-		free(buf);
 		client->thread.running = 0;
 		return -EIO;
 	}
