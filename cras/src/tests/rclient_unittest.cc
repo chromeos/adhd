@@ -130,6 +130,25 @@ class RClientMessagesSuite : public testing::Test {
     int pipe_fds_[2];
 };
 
+TEST_F(RClientMessagesSuite, FrameRateError) {
+  struct cras_client_stream_connected out_msg;
+  int rc;
+
+  get_iodev_return = (struct cras_iodev *)0xbaba;
+  cras_rstream_create_stream_out = rstream_;
+  cras_iodev_attach_stream_retval = 0;
+
+  connect_msg_.format.frame_rate = 0;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  EXPECT_EQ(0, rc);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_, out_msg.stream_id);
+  EXPECT_NE(0, out_msg.err);
+}
+
 TEST_F(RClientMessagesSuite, NoDevErrorReply) {
   struct cras_client_stream_connected out_msg;
   int rc;

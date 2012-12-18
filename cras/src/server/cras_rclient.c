@@ -47,10 +47,17 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		rc = -ENODEV;
 		goto reply_err;
 	}
-	fmt = msg->format;
+
 	/* Tell the iodev about the format we want.  fmt will contain the actual
 	 * format used after return. */
+	fmt = msg->format;
 	cras_iodev_set_format(iodev, &fmt);
+
+	if (fmt.frame_rate == 0) {
+		syslog(LOG_ERR, "frame_rate is zero.");
+		rc = -EINVAL;
+		goto reply_err;
+	}
 
 	/* Scale parameters to the frame rate of the device. */
 	buffer_frames = cras_frames_at_rate(msg->format.frame_rate,
