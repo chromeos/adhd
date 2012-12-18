@@ -27,7 +27,7 @@ class BluetoothTestSuite : public DBusTest {
     ExpectMethodCall("", DBUS_INTERFACE_DBUS, "RemoveMatch")
         .SendReplyNoWait();
 
-    cras_bluetooth_stop(conn_);
+    cras_bluetooth_stop();
 
     DBusTest::TearDown();
   }
@@ -225,6 +225,281 @@ TEST_F(BluetoothTestSuite, BluezStops) {
 
   adapter_path = cras_bluetooth_adapter_object_path();
   EXPECT_TRUE(adapter_path == NULL);
+}
+
+
+/* Verify that we fetch the list of devices from the default adapter. */
+TEST_F(BluetoothTestSuite, AdapterWithDevices) {
+  const char fake_adapter_path[] = "/org/fake/hci0";
+  const char fake_device_path[] = "/org/fake/hci0/dev_04_08_15_16_23_42";
+
+  ExpectMethodCall("/", "org.bluez.Manager", "DefaultAdapter")
+      .SendReply()
+      .WithObjectPath(fake_adapter_path);
+
+  std::vector<std::string> devices;
+  devices.push_back(fake_device_path);
+
+  ExpectMethodCall(fake_adapter_path, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  cras_bluetooth_start(conn_);
+
+  WaitForMatches();
+
+  const struct cras_bluetooth_device *device =
+      cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(device == NULL);
+
+  const char *device_path = cras_bluetooth_device_object_path(device);
+  EXPECT_STREQ(fake_device_path, device_path);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_TRUE(device == NULL);
+}
+
+/* Verify that an adapter with multiple devices fetches all of them. */
+TEST_F(BluetoothTestSuite, AdapterWithMultipleDevices) {
+  const char fake_adapter_path[] = "/org/fake/hci0";
+  const char fake_device_path1[] = "/org/fake/hci0/dev_04_08_15_16_23_42";
+  const char fake_device_path2[] = "/org/fake/hci0/dev_01_1A_2B_1B_2B_03";
+
+  ExpectMethodCall("/", "org.bluez.Manager", "DefaultAdapter")
+      .SendReply()
+      .WithObjectPath(fake_adapter_path);
+
+  std::vector<std::string> devices;
+  devices.push_back(fake_device_path1);
+  devices.push_back(fake_device_path2);
+
+  ExpectMethodCall(fake_adapter_path, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  cras_bluetooth_start(conn_);
+
+  WaitForMatches();
+
+  int found1 = 0, found2 = 0, found_other = 0;
+  for (const struct cras_bluetooth_device *device =
+           cras_bluetooth_adapter_first_device(); device != NULL;
+       device = cras_bluetooth_adapter_next_device(device)) {
+    const char *device_path = cras_bluetooth_device_object_path(device);
+    if (strcmp(fake_device_path1, device_path) == 0)
+      ++found1;
+    else if (strcmp(fake_device_path2, device_path) == 0)
+      ++found2;
+    else
+      ++found_other;
+  }
+
+  EXPECT_EQ(1, found1);
+  EXPECT_EQ(1, found2);
+  EXPECT_EQ(0, found_other);
+}
+
+/* Verify that the list of device is cleared when the adapter is removed. */
+TEST_F(BluetoothTestSuite, AdapterWithDevicesRemoved) {
+  const char fake_adapter_path[] = "/org/fake/hci0";
+  const char fake_device_path[] = "/org/fake/hci0/dev_04_08_15_16_23_42";
+
+  ExpectMethodCall("/", "org.bluez.Manager", "DefaultAdapter")
+      .SendReply()
+      .WithObjectPath(fake_adapter_path);
+
+  std::vector<std::string> devices;
+  devices.push_back(fake_device_path);
+
+  ExpectMethodCall(fake_adapter_path, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  cras_bluetooth_start(conn_);
+
+  WaitForMatches();
+
+  const struct cras_bluetooth_device *device =
+      cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(device == NULL);
+
+  CreateSignal("/", "org.bluez.Manager", "AdapterRemoved")
+      .WithObjectPath(fake_adapter_path)
+      .Send();
+
+  WaitForMatches();
+
+  device = cras_bluetooth_adapter_first_device();
+  EXPECT_TRUE(device == NULL);
+}
+
+/* Verify that when the default adapter changes, the list of devices is
+ * changed too.
+ */
+TEST_F(BluetoothTestSuite, AdapterWithDevicesChanged) {
+  const char fake_adapter_path1[] = "/org/fake/hci0";
+  const char fake_adapter_path2[] = "/org/fake/hci1";
+  const char fake_device_path1[] = "/org/fake/hci0/dev_04_08_15_16_23_42";
+  const char fake_device_path2[] = "/org/fake/hci1/dev_01_1A_2B_1B_2B_03";
+
+  ExpectMethodCall("/", "org.bluez.Manager", "DefaultAdapter")
+      .SendReply()
+      .WithObjectPath(fake_adapter_path1);
+
+  std::vector<std::string> devices;
+  devices.push_back(fake_device_path1);
+
+  ExpectMethodCall(fake_adapter_path1, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  cras_bluetooth_start(conn_);
+
+  WaitForMatches();
+
+  const struct cras_bluetooth_device *device =
+      cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(device == NULL);
+
+  const char *device_path = cras_bluetooth_device_object_path(device);
+  EXPECT_STREQ(fake_device_path1, device_path);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_TRUE(device == NULL);
+
+  devices.clear();
+  devices.push_back(fake_device_path2);
+
+  ExpectMethodCall(fake_adapter_path2, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  CreateSignal("/", "org.bluez.Manager", "DefaultAdapterChanged")
+      .WithObjectPath(fake_adapter_path2)
+      .Send();
+
+  WaitForMatches();
+
+  device = cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(device == NULL);
+
+  device_path = cras_bluetooth_device_object_path(device);
+  EXPECT_STREQ(fake_device_path2, device_path);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_TRUE(device == NULL);
+}
+
+/* Verify that we respond to the DeviceCreated signal and add the new
+ * object path to the list of devices.
+ */
+TEST_F(BluetoothTestSuite, DeviceCreated) {
+  const char fake_adapter_path[] = "/org/fake/hci0";
+  const char fake_device_path1[] = "/org/fake/hci0/dev_04_08_15_16_23_42";
+  const char fake_device_path2[] = "/org/fake/hci0/dev_01_1A_2B_1B_2B_03";
+
+  ExpectMethodCall("/", "org.bluez.Manager", "DefaultAdapter")
+      .SendReply()
+      .WithObjectPath(fake_adapter_path);
+
+  std::vector<std::string> devices;
+  devices.push_back(fake_device_path1);
+
+  ExpectMethodCall(fake_adapter_path, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  cras_bluetooth_start(conn_);
+
+  WaitForMatches();
+
+  const struct cras_bluetooth_device *first_device =
+      cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(first_device == NULL);
+
+  CreateSignal(fake_adapter_path, "org.bluez.Adapter", "DeviceCreated")
+      .WithObjectPath(fake_device_path2)
+      .Send();
+
+  WaitForMatches();
+
+  const struct cras_bluetooth_device *device =
+      cras_bluetooth_adapter_first_device();
+  if (device == first_device)
+    device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_FALSE(device == NULL);
+
+  const char *device_path = cras_bluetooth_device_object_path(device);
+  EXPECT_STREQ(fake_device_path2, device_path);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  if (device == first_device)
+    device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_TRUE(device == NULL);
+}
+
+/* Verify that we respond to the DeviceRemoved signal and remove the given
+ * object path from the list of devices.
+ */
+TEST_F(BluetoothTestSuite, DeviceRemoved) {
+  const char fake_adapter_path[] = "/org/fake/hci0";
+  const char fake_device_path1[] = "/org/fake/hci0/dev_04_08_15_16_23_42";
+  const char fake_device_path2[] = "/org/fake/hci0/dev_01_1A_2B_1B_2B_03";
+
+  ExpectMethodCall("/", "org.bluez.Manager", "DefaultAdapter")
+      .SendReply()
+      .WithObjectPath(fake_adapter_path);
+
+  std::vector<std::string> devices;
+  devices.push_back(fake_device_path1);
+  devices.push_back(fake_device_path2);
+
+  ExpectMethodCall(fake_adapter_path, "org.bluez.Adapter", "GetProperties")
+      .SendReply()
+      .AsPropertyDictionary()
+      .WithString("Devices")
+      .WithArrayOfObjectPaths(devices);
+
+  cras_bluetooth_start(conn_);
+
+  WaitForMatches();
+
+  const struct cras_bluetooth_device *device =
+      cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(device == NULL);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_FALSE(device == NULL);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_TRUE(device == NULL);
+
+  CreateSignal(fake_adapter_path, "org.bluez.Adapter", "DeviceRemoved")
+      .WithObjectPath(fake_device_path1)
+      .Send();
+
+  WaitForMatches();
+
+  device = cras_bluetooth_adapter_first_device();
+  EXPECT_FALSE(device == NULL);
+
+  const char *device_path = cras_bluetooth_device_object_path(device);
+  EXPECT_STREQ(fake_device_path2, device_path);
+
+  device = cras_bluetooth_adapter_next_device(device);
+  EXPECT_TRUE(device == NULL);
 }
 
 }  //  namespace

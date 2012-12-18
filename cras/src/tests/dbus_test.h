@@ -89,13 +89,24 @@
  *       .WithNoMoreArgs()
  *       .SendReply();
  *
- * To append argument to the reply, place .With*() calls after the
+ * To append arguments to the reply, place .With*() calls after the
  * instruction to send the reply:
  *
  *   ExpectMethodCall("/object/path", "object.Interface", "MethodName")
  *       .SendReply()
  *       .WithString("arg0")
  *       .WithObjectPath("/arg1/object/path");
+ *
+ * Property dictionaries are sufficiently difficult to deal with that
+ * there is special handling for them; to append one to the reply use
+ * .AsPropertyDictionary() and follow with alternate .WithString() and
+ * other .With*() calls for each property:
+ *
+ *  ExpectMethodCall("/object/path", "object.Interface", "GetProperties")
+ *       .SendReply()
+ *       .AsPropertyDictionary()
+ *       .WithString("Keyword")
+ *       .WithObjectPath("/value/of/keyword");
  *
  * To reply with an error use .SendError() instead of .SendReply(),
  * passing the error name and message
@@ -131,13 +142,22 @@ class DBusMatch {
 
   struct Arg {
     int type;
+    bool array;
     std::string string_value;
+    std::vector<std::string> string_values;
   };
 
   // Append arguments to a match.
   DBusMatch& WithString(std::string value);
   DBusMatch& WithObjectPath(std::string value);
+  DBusMatch& WithArrayOfStrings(std::vector<std::string> values);
+  DBusMatch& WithArrayOfObjectPaths(std::vector<std::string> values);
   DBusMatch& WithNoMoreArgs();
+
+  // Indicates that all arguments in either the method call or reply
+  // should be wrapped into a property dictionary with a string for keys
+  // and a variant for the data.
+  DBusMatch& AsPropertyDictionary();
 
   // Send a reply to a method call and wait for it to be received by the
   // client; may be followed by methods to append arguments.
@@ -189,6 +209,7 @@ class DBusMatch {
   std::string interface_;
   std::string member_;
 
+  bool as_property_dictionary_;
   std::vector<Arg> args_;
 
   DBusConnection *conn_;

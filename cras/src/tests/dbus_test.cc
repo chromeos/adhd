@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include <sys/select.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "dbus_test.h"
@@ -17,6 +18,7 @@ const char kServerAddress[] = "unix:abstract=/org/chromium/DBusTest";
 
 DBusMatch::DBusMatch()
     : message_type_(DBUS_MESSAGE_TYPE_INVALID),
+      as_property_dictionary_(false),
       send_reply_(false),
       send_error_(false),
       expect_serial_(false),
@@ -27,6 +29,7 @@ DBusMatch::DBusMatch()
 DBusMatch& DBusMatch::WithString(std::string value) {
   Arg arg;
   arg.type = DBUS_TYPE_STRING;
+  arg.array = false;
   arg.string_value = value;
 
   if (send_reply_)
@@ -39,7 +42,34 @@ DBusMatch& DBusMatch::WithString(std::string value) {
 DBusMatch& DBusMatch::WithObjectPath(std::string value) {
   Arg arg;
   arg.type = DBUS_TYPE_OBJECT_PATH;
+  arg.array = false;
   arg.string_value = value;
+
+  if (send_reply_)
+    reply_args_.push_back(arg);
+  else
+    args_.push_back(arg);
+  return *this;
+}
+
+DBusMatch& DBusMatch::WithArrayOfStrings(std::vector<std::string> values) {
+  Arg arg;
+  arg.type = DBUS_TYPE_STRING;
+  arg.array = true;
+  arg.string_values = values;
+
+  if (send_reply_)
+    reply_args_.push_back(arg);
+  else
+    args_.push_back(arg);
+  return *this;
+}
+
+DBusMatch& DBusMatch::WithArrayOfObjectPaths(std::vector<std::string> values) {
+  Arg arg;
+  arg.type = DBUS_TYPE_OBJECT_PATH;
+  arg.array = true;
+  arg.string_values = values;
 
   if (send_reply_)
     reply_args_.push_back(arg);
@@ -53,6 +83,11 @@ DBusMatch& DBusMatch::WithNoMoreArgs() {
   arg.type = DBUS_TYPE_INVALID;
 
   args_.push_back(arg);
+  return *this;
+}
+
+DBusMatch& DBusMatch::AsPropertyDictionary() {
+  as_property_dictionary_ = true;
   return *this;
 }
 
@@ -141,7 +176,7 @@ bool DBusMatch::MatchMessageArgs(DBusMessage *message,
       if (strcmp(str_value, arg.string_value.c_str()) != 0)
         return false;
     }
-    // huh
+    // TODO(keybuk): additional argument types
 
     dbus_message_iter_next(&iter);
   }
@@ -152,18 +187,91 @@ bool DBusMatch::MatchMessageArgs(DBusMessage *message,
 void DBusMatch::AppendArgsToMessage(DBusMessage *message,
                                     std::vector<Arg> *args)
 {
+  DBusMessageIter message_iter;
+  DBusMessageIter dict_array_iter;
+  DBusMessageIter struct_iter;
   DBusMessageIter iter;
-  dbus_message_iter_init_append(message, &iter);
+
+  if (as_property_dictionary_) {
+    dbus_message_iter_init_append(message, &message_iter);
+    dbus_message_iter_open_container(&message_iter,
+                                     DBUS_TYPE_ARRAY, "{sv}",
+                                     &dict_array_iter);
+  } else {
+    dbus_message_iter_init_append(message, &iter);
+  }
+
   for (std::vector<Arg>::iterator it = args->begin(); it != args->end(); ++it) {
     Arg &arg = *it;
 
-    if (arg.type == DBUS_TYPE_STRING
-        || arg.type == DBUS_TYPE_OBJECT_PATH) {
+    if (as_property_dictionary_) {
+      dbus_message_iter_open_container(&dict_array_iter,
+                                       DBUS_TYPE_DICT_ENTRY, NULL,
+                                       &struct_iter);
+
       const char *str_value = arg.string_value.c_str();
-      dbus_message_iter_append_basic(&iter, arg.type, &str_value);
+      dbus_message_iter_append_basic(&struct_iter, arg.type, &str_value);
+
+      arg = *(++it);
     }
-    // huh
+
+    const char *array_type, *element_type;
+    switch (arg.type) {
+      case DBUS_TYPE_STRING:
+        array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_STRING_AS_STRING;
+        element_type = DBUS_TYPE_STRING_AS_STRING;
+        break;
+      case DBUS_TYPE_OBJECT_PATH:
+        array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_OBJECT_PATH_AS_STRING;
+        element_type = DBUS_TYPE_OBJECT_PATH_AS_STRING;
+        break;
+      default:
+        abort();
+        // TODO(keybuk): additional argument types
+    }
+
+    if (as_property_dictionary_) {
+      dbus_message_iter_open_container(&struct_iter,
+                                       DBUS_TYPE_VARIANT,
+                                       arg.array ? array_type : element_type,
+                                       &iter);
+    }
+
+    DBusMessageIter array_iter;
+    if (arg.array) {
+      dbus_message_iter_open_container(&iter,
+                                       DBUS_TYPE_ARRAY, element_type,
+                                       &array_iter);
+
+      if (arg.type == DBUS_TYPE_STRING
+          || arg.type == DBUS_TYPE_OBJECT_PATH) {
+        for (std::vector<std::string>::const_iterator vit =
+                 arg.string_values.begin(); vit != arg.string_values.end();
+             ++vit) {
+          const char *str_value = vit->c_str();
+          dbus_message_iter_append_basic(&array_iter, arg.type, &str_value);
+        }
+      }
+      // TODO(keybuk): additional element types
+
+      dbus_message_iter_close_container(&iter, &array_iter);
+    } else {
+      if (arg.type == DBUS_TYPE_STRING
+          || arg.type == DBUS_TYPE_OBJECT_PATH) {
+        const char *str_value = arg.string_value.c_str();
+        dbus_message_iter_append_basic(&iter, arg.type, &str_value);
+      }
+      // TODO(keybuk): additional argument types
+    }
+
+    if (as_property_dictionary_) {
+      dbus_message_iter_close_container(&struct_iter, &iter);
+      dbus_message_iter_close_container(&dict_array_iter, &struct_iter);
+    }
   }
+
+  if (as_property_dictionary_)
+    dbus_message_iter_close_container(&message_iter, &dict_array_iter);
 }
 
 void DBusMatch::SendMessage(DBusConnection *conn, DBusMessage *message) {
