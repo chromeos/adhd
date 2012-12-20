@@ -1022,13 +1022,6 @@ static int handle_command_message(struct cras_client *client)
 	struct command_msg *msg = (struct command_msg *)buf;
 	int rc, to_read;
 
-	if (!check_server_connected_wait(client))
-		if (connect_to_server_wait(client) < 0) {
-			syslog(LOG_ERR, "Lost server connection.");
-			rc = -EIO;
-			goto cmd_msg_complete;
-		}
-
 	rc = read(client->command_fds[0], buf, sizeof(msg->len));
 	if (rc != sizeof(msg->len) || msg->len > MAX_CMD_MSG_LEN) {
 		rc = -EIO;
@@ -1040,6 +1033,13 @@ static int handle_command_message(struct cras_client *client)
 		rc = -EIO;
 		goto cmd_msg_complete;
 	}
+
+	if (!check_server_connected_wait(client))
+		if (connect_to_server_wait(client) < 0) {
+			syslog(LOG_ERR, "Lost server connection.");
+			rc = -EIO;
+			goto cmd_msg_complete;
+		}
 
 	switch (msg->msg_id) {
 	case CLIENT_STOP: {
