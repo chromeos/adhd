@@ -229,15 +229,9 @@ struct cras_stream_params *cras_client_stream_params_create(
 
 /* Setup stream configuration parameters.
  * Args:
- *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
- *    buffer_frames - total number of audio frames to buffer (dictates latency).
- *    cb_threshold - For playback, call back for more data when the buffer
- *        reaches this level. For capture, this is ignored (Audio callback will
- *        be called when buffer_frames have been captured).
- *    min_cb_level - For playback, the minimum amout of frames that must be able
- *        to be written before calling back for more data (useful if you are
- *        processing audio in blocks of a certain size(e.g. 512 or 1024 frames).
- *        Ignored for capture streams.
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT) or
+ *        both(CRAS_STREAM_UNIFIED).
+ *    block_size - The number of frames per callback(dictates latency).
  *    stream_type - media or talk (currently only support "default").
  *    flags - None currently used.
  *    user_data - Pointer that will be passed to the callback.
@@ -248,9 +242,7 @@ struct cras_stream_params *cras_client_stream_params_create(
  */
 struct cras_stream_params *cras_client_unified_params_create(
 		enum CRAS_STREAM_DIRECTION direction,
-		size_t buffer_frames,
-		size_t cb_threshold,
-		size_t min_cb_level,
+		unsigned int block_size,
 		enum CRAS_STREAM_TYPE stream_type,
 		uint32_t flags,
 		void *user_data,

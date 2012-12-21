@@ -1426,9 +1426,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 
 struct cras_stream_params *cras_client_unified_params_create(
 		enum CRAS_STREAM_DIRECTION direction,
-		size_t buffer_frames,
-		size_t cb_threshold,
-		size_t min_cb_level,
+		unsigned int block_size,
 		enum CRAS_STREAM_TYPE stream_type,
 		uint32_t flags,
 		void *user_data,
@@ -1443,9 +1441,9 @@ struct cras_stream_params *cras_client_unified_params_create(
 		return NULL;
 
 	params->direction = direction;
-	params->buffer_frames = buffer_frames;
-	params->cb_threshold = cb_threshold;
-	params->min_cb_level = min_cb_level;
+	params->buffer_frames = block_size * 2;
+	params->cb_threshold = block_size;
+	params->min_cb_level = block_size;
 	params->stream_type = stream_type;
 	params->flags = flags;
 	params->user_data = user_data;

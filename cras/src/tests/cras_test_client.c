@@ -230,8 +230,7 @@ static int start_stream(struct cras_client *client,
 }
 
 static int run_unified_io_stream(struct cras_client *client,
-				 size_t buffer_frames,
-				 size_t cb_threshold,
+				 size_t block_size,
 				 size_t rate,
 				 size_t num_channels)
 {
@@ -244,9 +243,7 @@ static int run_unified_io_stream(struct cras_client *client,
 		return -ENOMEM;
 
 	params = cras_client_unified_params_create(CRAS_STREAM_UNIFIED,
-						   buffer_frames,
-						   cb_threshold,
-						   min_cb_level,
+						   block_size,
 						   0,
 						   0,
 						   0,
@@ -673,7 +670,7 @@ int main(int argc, char **argv)
 	duration_frames = duration_seconds * rate;
 
 	if (run_unified)
-		rc = run_unified_io_stream(client, buffer_size, 0,
+		rc = run_unified_io_stream(client, buffer_size,
 					   rate, num_channels);
 	else if (capture_file != NULL)
 		rc = run_capture(client, capture_file, buffer_size, 0, rate,
