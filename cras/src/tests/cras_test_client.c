@@ -116,8 +116,8 @@ static void print_last_latency()
 		printf("%u.%09u\n", (unsigned)last_latency.tv_sec,
 		       (unsigned)last_latency.tv_nsec);
 	else {
-		printf("-%ld.%09ld\n", -last_latency.tv_sec,
-		       -last_latency.tv_nsec);
+		printf("-%lld.%09lld\n", (long long)-last_latency.tv_sec,
+		       (long long)-last_latency.tv_nsec);
 	}
 }
 
@@ -179,7 +179,8 @@ static void print_active_stream_info(struct cras_client *client)
 
 	num_streams = cras_client_get_num_active_streams(client, &ts);
 	printf("Num active streams: %u\n", num_streams);
-	printf("Last audio active time: %lu, %lu\n", ts.tv_sec, ts.tv_nsec);
+	printf("Last audio active time: %llu, %llu\n",
+	       (long long)ts.tv_sec, (long long)ts.tv_nsec);
 }
 
 static void print_system_volumes(struct cras_client *client)
