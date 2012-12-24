@@ -112,3 +112,59 @@ int cras_make_fd_nonblocking(int fd)
 		return 0;
 	return fcntl(fd, F_SETFL, fl | O_NONBLOCK);
 }
+
+int cras_send_with_fd(int sockfd, void *buf, size_t len, int fd)
+{
+	struct msghdr msg = {0};
+	struct iovec iov;
+	struct cmsghdr *cmsg;
+	char control[CMSG_SPACE(sizeof(int))];
+
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	iov.iov_base = buf;
+	iov.iov_len = len;
+
+	msg.msg_control = control;
+	msg.msg_controllen = sizeof(control);
+	cmsg = CMSG_FIRSTHDR(&msg);
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+	memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
+	msg.msg_controllen = cmsg->cmsg_len;
+
+	return sendmsg(sockfd, &msg, 0);
+}
+
+int cras_recv_with_fd(int sockfd, void *buf, size_t len, int *fd)
+{
+	struct msghdr msg = {0};
+	struct iovec iov;
+	struct cmsghdr *cmsg;
+	char control[CMSG_SPACE(sizeof(int))];
+	int rc;
+
+	*fd = -1;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	iov.iov_base = buf;
+	iov.iov_len = len;
+	msg.msg_control = control;
+	msg.msg_controllen = sizeof(control);
+
+	rc = recvmsg(sockfd, &msg, 0);
+	if (rc < 0)
+		return rc;
+
+	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+	     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+		if (cmsg->cmsg_level == SOL_SOCKET
+		    && cmsg->cmsg_type == SCM_RIGHTS) {
+			memcpy(fd, CMSG_DATA(cmsg), sizeof(*fd));
+			break;
+		}
+	}
+
+	return rc;
+}

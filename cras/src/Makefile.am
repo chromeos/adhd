@@ -63,7 +63,7 @@ check_PROGRAMS = iodev_list_unittest rstream_unittest \
 	alsa_ucm_unittest edid_utils_unittest cras_tm_unittest \
 	checksum_unittest bluetooth_unittest array_unittest dumper_unittest \
 	expr_unittest dsp_ini_unittest dsp_pipeline_unittest dsp_unittest \
-	audio_thread_unittest
+	audio_thread_unittest util_unittest
 TESTS = $(check_PROGRAMS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
@@ -173,6 +173,11 @@ alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
 alsa_io_unittest_LDADD = -lgtest -lpthread
+
+util_unittest_SOURCES = tests/util_unittest.cc common/cras_util.c \
+	common/cras_config.c
+util_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
+util_unittest_LDADD = -lgtest -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 	server/cras_system_state.c

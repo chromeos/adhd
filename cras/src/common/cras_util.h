@@ -6,6 +6,10 @@
 #ifndef CRAS_UTIL_H_
 #define CRAS_UTIL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "cras_types.h"
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
@@ -48,6 +52,13 @@ static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
 /* Makes a file descriptor non blocking. */
 int cras_make_fd_nonblocking(int fd);
 
+/* Send data in buf to the socket with an extra file descriptor. */
+int cras_send_with_fd(int sockfd, const void *buf, size_t len, int fd);
+
+/* Receive data in buf from the socket. If we also receive a file
+descriptor, put it in *fd, otherwise set *fd to -1. */
+int cras_recv_with_fd(int sockfd, const void *buf, size_t len, int *fd);
+
 /* This must be written a million times... */
 static inline void subtract_timespecs(const struct timespec *end,
 				      const struct timespec *beg,
@@ -65,5 +76,9 @@ static inline void subtract_timespecs(const struct timespec *end,
 		diff->tv_nsec -= 1000000000L;
 	}
 }
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* CRAS_UTIL_H_ */
