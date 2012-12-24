@@ -102,6 +102,17 @@ int cras_dsp_pipeline_get_sample_rate(struct pipeline *pipeline);
  * than DSP_BUFFER_SIZE */
 void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count);
 
+/* Add a statistic of running time for the pipeline.
+ *
+ * Args:
+ *    time_delta - The time it takes to run the pipeline and any other
+ *                 preprocessing and postprocessing.
+ *    samples - The number of audio sample frames processed.
+ */
+void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
+				     const struct timespec *time_delta,
+				     int samples);
+
 /* Dumps the current state of the pipeline. For debugging only */
 void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline);
 

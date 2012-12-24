@@ -142,7 +142,7 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 	server/audio_thread.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-audio_thread_unittest_LDADD = -lgtest -lpthread
+audio_thread_unittest_LDADD = -lgtest -lrt -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c

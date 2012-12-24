@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <inttypes.h>
 #include <syslog.h>
 
 #include "cras_util.h"
@@ -121,6 +122,19 @@ struct pipeline {
 	/* The audio sampling rate for this pipleine. It is zero if
 	 * cras_dsp_pipeline_instantiate() has not been called. */
 	int sample_rate;
+
+	/* The total time it takes to run the pipeline, in nanoseconds. */
+	int64_t total_time;
+
+	/* The max/min time it takes to run the pipeline, in nanoseconds. */
+	int64_t max_time;
+	int64_t min_time;
+
+	/* The number of blocks the pipeline. */
+	int64_t total_blocks;
+
+	/* The total number of sample frames the pipeline processed */
+	int64_t total_samples;
 };
 
 static struct instance *find_instance_by_plugin(instance_array *instances,
@@ -726,6 +740,29 @@ void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
 	}
 }
 
+void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
+				     const struct timespec *time_delta,
+				     int samples)
+{
+	int64_t t;
+	if (samples <= 0)
+		return;
+
+	t = time_delta->tv_sec * 1000000000LL + time_delta->tv_nsec;
+
+	if (pipeline->total_blocks == 0) {
+		pipeline->max_time = t;
+		pipeline->min_time = t;
+	} else {
+		pipeline->max_time = max(pipeline->max_time, t);
+		pipeline->min_time = min(pipeline->min_time, t);
+	}
+
+	pipeline->total_blocks++;
+	pipeline->total_samples += samples;
+	pipeline->total_time += t;
+}
+
 void cras_dsp_pipeline_free(struct pipeline *pipeline)
 {
 	int i;
@@ -803,6 +840,22 @@ void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline)
 	dumpf(d, "pipeline (%s):\n", pipeline->purpose);
 	dumpf(d, " channels: %d\n", pipeline->channels);
 	dumpf(d, " sample_rate: %d\n", pipeline->sample_rate);
+	dumpf(d, " processed samples: %" PRId64 "\n", pipeline->total_samples);
+	dumpf(d, " processed blocks: %" PRId64 "\n", pipeline->total_blocks);
+	dumpf(d, " total processing time: %" PRId64 "ns\n",
+	      pipeline->total_time);
+	if (pipeline->total_blocks) {
+		dumpf(d, " average block size: %" PRId64 "\n",
+		      pipeline->total_samples / pipeline->total_blocks);
+		dumpf(d, " avg processing time per block: %" PRId64 "ns\n",
+		      pipeline->total_time / pipeline->total_blocks);
+	}
+	dumpf(d, " min processing time per block: %" PRId64 "ns\n",
+	      pipeline->min_time);
+	dumpf(d, " max processing time per block: %" PRId64 "ns\n",
+	      pipeline->max_time);
+	dumpf(d, " cpu load: %g%%\n", pipeline->total_time * 1e-9
+	      / pipeline->total_samples * pipeline->sample_rate * 100);
 	dumpf(d, " instances (%d):\n",
 	      ARRAY_COUNT(&pipeline->instances));
 	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {

@@ -1237,7 +1237,14 @@ void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
           cras_dsp_pipeline_source_buffer[i][j] * 2;
 }
 
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream) {
+void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
+{
+}
+
+void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
+                                     const struct timespec *time_delta,
+                                     int samples)
+{
 }
 
 //  Override select so it can be stubbed.

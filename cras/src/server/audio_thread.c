@@ -255,14 +255,18 @@ int thread_add_stream(struct audio_thread *thread,
 static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 			       uint8_t *buf, size_t frames)
 {
+	size_t remaining;
 	size_t chunk;
 	size_t i, j;
 	int16_t *target, *target_ptr;
 	float *source[channels], *sink[channels];
 	float *source_ptr[channels], *sink_ptr[channels];
+	struct timespec begin, end, delta;
 
 	if (!pipeline || frames == 0)
 		return;
+
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &begin);
 
 	target = (int16_t *)buf;
 
@@ -272,9 +276,11 @@ static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 		sink[i] = cras_dsp_pipeline_get_sink_buffer(pipeline, i);
 	}
 
+	remaining = frames;
+
 	/* process at most DSP_BUFFER_SIZE frames each loop */
-	while (frames > 0) {
-		chunk = min(frames, (size_t)DSP_BUFFER_SIZE);
+	while (remaining > 0) {
+		chunk = min(remaining, (size_t)DSP_BUFFER_SIZE);
 
 		/* deinterleave and convert to float */
 		target_ptr = target;
@@ -306,8 +312,12 @@ static void apply_dsp_pipeline(struct pipeline *pipeline, size_t channels,
 		}
 
 		target += chunk * channels;
-		frames -= chunk;
+		remaining -= chunk;
 	}
+
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+	subtract_timespecs(&end, &begin, &delta);
+	cras_dsp_pipeline_add_statistic(pipeline, &delta, frames);
 }
 
 static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
