@@ -267,7 +267,7 @@ static void fill_usb_card_info(struct cras_alsa_card_info *card_info,
 
 	card_info->usb_desc_checksum = calculate_desc_checksum(dev);
 
-	syslog(LOG_DEBUG, "USB card: vendor:%04x, product:%04x, checksum:%08x",
+	syslog(LOG_ERR, "USB card: vendor:%04x, product:%04x, checksum:%08x",
 		card_info->usb_vendor_id, card_info->usb_product_id,
 		card_info->usb_desc_checksum);
 }
