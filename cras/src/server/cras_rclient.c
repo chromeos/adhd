@@ -320,6 +320,9 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_RELOAD_DSP:
 		cras_dsp_reload_ini();
 		break;
+	case CRAS_SERVER_DUMP_DSP_INFO:
+		cras_dsp_dump_info();
+		break;
 	default:
 		break;
 	}

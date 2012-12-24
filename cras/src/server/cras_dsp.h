@@ -64,6 +64,9 @@ void cras_dsp_put_pipeline(struct cras_dsp_context *ctx);
 /* Re-reads the ini file and reloads all pipelines in the system. */
 void cras_dsp_reload_ini();
 
+/* Dump current dsp information to syslog. */
+void cras_dsp_dump_info();
+
 /* Wait for the previous asynchronous requests to finish. The
  * asynchronous requests include:
  *
@@ -71,6 +74,7 @@ void cras_dsp_reload_ini();
  * cras_dsp_set_variable()
  * cras_dsp_load_pipeline()
  * cras_dsp_reload_ini()
+ * cras_dsp_dump_info()
  *
  * This is mainly used for testing.
  */

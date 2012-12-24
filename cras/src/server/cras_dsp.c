@@ -40,6 +40,7 @@ enum dsp_command {
 	DSP_CMD_LOAD_PIPELINE,
 	DSP_CMD_FREE_CONTEXT,
 	DSP_CMD_RELOAD_INI,
+	DSP_CMD_DUMP_INFO,
 	DSP_CMD_SYNC,
 	DSP_CMD_QUIT,
 };
@@ -110,7 +111,6 @@ static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx)
 		goto bail;
 	}
 
-	cras_dsp_pipeline_dump(syslog_dumper, pipeline);
 	return pipeline;
 
 bail:
@@ -168,8 +168,6 @@ static void cmd_reload_ini()
 	ini = cras_dsp_ini_create(ini_filename);
 	if (!ini)
 		syslog(LOG_ERR, "cannot create dsp ini");
-	else
-		cras_dsp_ini_dump(syslog_dumper, ini);
 
 	DL_FOREACH(context_list, ctx) {
 		cmd_load_pipeline(ctx);
@@ -177,6 +175,20 @@ static void cmd_reload_ini()
 
 	if (old_ini)
 		cras_dsp_ini_free(old_ini);
+}
+
+static void cmd_dump_info()
+{
+	struct pipeline *pipeline;
+	struct cras_dsp_context *ctx;
+
+	if (ini)
+		cras_dsp_ini_dump(syslog_dumper, ini);
+	DL_FOREACH(context_list, ctx) {
+		pipeline = ctx->pipeline;
+		if (pipeline)
+			cras_dsp_pipeline_dump(syslog_dumper, pipeline);
+	}
 }
 
 static void send_dsp_request(enum dsp_command code,
@@ -233,6 +245,9 @@ static void *dsp_thread_function(void *arg)
 		case DSP_CMD_SYNC:
 			cmd_sync(req);
 			break;
+		case DSP_CMD_DUMP_INFO:
+			cmd_dump_info();
+			break;
 		case DSP_CMD_QUIT:
 			quit = 1;
 			break;
@@ -250,7 +265,7 @@ static void *dsp_thread_function(void *arg)
 void cras_dsp_init(const char *filename)
 {
 	ini_filename = strdup(filename);
-	syslog_dumper = syslog_dumper_create(LOG_DEBUG);
+	syslog_dumper = syslog_dumper_create(LOG_ERR);
 	pthread_create(&dsp_thread, NULL, dsp_thread_function, NULL);
 	send_dsp_request_simple(DSP_CMD_RELOAD_INI, NULL);
 }
@@ -316,6 +331,11 @@ void cras_dsp_put_pipeline(struct cras_dsp_context *ctx)
 void cras_dsp_reload_ini()
 {
 	send_dsp_request_simple(DSP_CMD_RELOAD_INI, NULL);
+}
+
+void cras_dsp_dump_info()
+{
+	send_dsp_request_simple(DSP_CMD_DUMP_INFO, NULL);
 }
 
 void cras_dsp_sync()

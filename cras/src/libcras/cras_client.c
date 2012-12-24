@@ -1699,3 +1699,14 @@ int cras_client_reload_dsp(struct cras_client *client)
 	cras_fill_reload_dsp(&msg);
 	return write_message_to_server(client, &msg.header);
 }
+
+int cras_client_dump_dsp_info(struct cras_client *client)
+{
+	struct cras_dump_dsp_info msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_dump_dsp_info(&msg);
+	return write_message_to_server(client, &msg.header);
+}

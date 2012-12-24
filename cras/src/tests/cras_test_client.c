@@ -462,6 +462,7 @@ static struct option long_options[] = {
 	{"capture_gain",        required_argument,      0, 'g'},
 	{"check_output_plugged",required_argument,      0, 'j'},
 	{"reload_dsp",          no_argument,            0, 's'},
+	{"dump_dsp",            no_argument,            0, 'f'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
@@ -585,6 +586,9 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			cras_client_reload_dsp(client);
+			break;
+		case 'f':
+			cras_client_dump_dsp_info(client);
 			break;
 		case 'i':
 			print_server_info(client);

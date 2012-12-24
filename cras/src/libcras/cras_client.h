@@ -160,6 +160,14 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
  */
 int cras_client_reload_dsp(struct cras_client *client);
 
+/* Asks the server to dump current dsp information to syslog.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ */
+int cras_client_dump_dsp_info(struct cras_client *client);
+
 /*
  * Stream handling.
  */

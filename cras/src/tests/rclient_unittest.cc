@@ -521,4 +521,8 @@ void cras_dsp_reload_ini()
 {
 }
 
+void cras_dsp_dump_info()
+{
+}
+
 }  // extern "C"
