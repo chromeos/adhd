@@ -47,6 +47,10 @@ static int cras_dsp_pipeline_run_called;
 static int cras_dsp_pipeline_run_sample_count;
 }
 
+// Number of frames past target that will be added to sleep times to insure that
+// all frames are ready.
+static const int CAP_EXTRA_SLEEP_FRAMES = 16;
+
 static void fill_test_data(int16_t *data, size_t size)
 {
   for (size_t i = 0; i < size; i++)
@@ -249,8 +253,8 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
 
   frames_queued_ = iodev_.cb_threshold - num_frames_short;
   audio_buffer_size_ = frames_queued_;
-  nsec_expected = ((uint64_t)num_frames_short + 16 + 1) * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
+  nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES + 1) *
+                  1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   rc = possibly_read_audio(thread, &ts);
   EXPECT_EQ(0, rc);
@@ -507,7 +511,7 @@ class WriteStreamSuite : public testing::Test {
     uint64_t GetCaptureSleepFrames() {
       // Account for padding the sleep interval to ensure the wake up happens
       // after the last desired frame is received.
-      return iodev_.cb_threshold + 16;
+      return iodev_.cb_threshold + CAP_EXTRA_SLEEP_FRAMES;
     }
 
     // Stub functions for the iodev structure.
