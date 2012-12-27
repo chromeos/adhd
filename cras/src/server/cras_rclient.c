@@ -58,7 +58,8 @@ static struct audio_thread *get_audio_thread_for_iodev(struct cras_iodev *iodev)
 
 /* Handles a message from the client to connect a new stream */
 static int handle_client_stream_connect(struct cras_rclient *client,
-					const struct cras_connect_message *msg)
+					const struct cras_connect_message *msg,
+					int aud_fd)
 {
 	struct cras_rstream *stream = NULL;
 	struct cras_iodev *iodev;
@@ -66,7 +67,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_audio_format fmt;
 	struct audio_thread *thread;
 	int rc;
-	int aud_fd = -1;
 	size_t buffer_frames, cb_threshold, min_cb_level;
 
 	/* Find the iodev for this new connection and connect to it. */
@@ -116,10 +116,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		goto reply_err;
 	}
 
-	/* Connect to client's audio socket. */
-	aud_fd = cras_server_connect_to_client_socket(msg->stream_id);
 	if (aud_fd < 0) {
-		rc = aud_fd;
+		syslog(LOG_ERR, "Invalid fd in stream connect.\n");
+		rc = -EINVAL;
 		goto reply_err;
 	}
 	/* When full, getting an error is preferable to blocking. */
@@ -170,11 +169,12 @@ reply_err:
 					  msg->format, 0, 0);
 	cras_rclient_send_message(client, &reply.header);
 
-	if (rc && stream) {
-		if (aud_fd >= 0)
-			cras_server_disconnect_from_client_socket(aud_fd);
+	if (aud_fd >= 0)
+		close(aud_fd);
+
+	if (stream)
 		cras_rstream_destroy(stream);
-	}
+
 	return rc;
 }
 
@@ -188,8 +188,7 @@ static int disconnect_client_stream(struct cras_rclient *client,
 		if (audio_thread_rm_stream(thread, stream) == 0)
 			audio_thread_destroy(thread);
 
-	cras_server_disconnect_from_client_socket(
-			cras_rstream_get_audio_fd(stream));
+	close(cras_rstream_get_audio_fd(stream));
 	DL_DELETE(client->streams, stream);
 	cras_rstream_destroy(stream);
 
@@ -267,6 +266,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 
 	/* Most messages should not have a file descriptor. */
 	switch (msg->id) {
+	case CRAS_SERVER_CONNECT_STREAM:
+		break;
 	default:
 		if (fd != -1) {
 			syslog(LOG_ERR,
@@ -281,7 +282,7 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM:
 		handle_client_stream_connect(client,
-			(const struct cras_connect_message *)msg);
+			(const struct cras_connect_message *)msg, fd);
 		break;
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		handle_client_stream_disconnect(client,

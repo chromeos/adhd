@@ -4,6 +4,7 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <sched.h>
 #include <string.h>
@@ -12,11 +13,7 @@
 #include <sys/syscall.h>
 #include <syslog.h>
 #include <sys/types.h>
-#include <sys/un.h>
 #include <unistd.h>
-
-#include "cras_config.h"
-#include "cras_types.h"
 
 int cras_set_rt_scheduling(int rt_lim)
 {
@@ -62,43 +59,6 @@ int cras_set_nice_level(int nice)
 	syslog(LOG_DEBUG, "Set nice to %d %s.", nice, rc ? "Fail" : "Success");
 
 	return rc;
-}
-
-int cras_server_connect_to_client_socket(cras_stream_id_t stream_id)
-{
-	struct sockaddr_un addr;
-	int  fd;
-	int err;
-	const char *sockdir;
-
-	/* Build the name of the socket from the path and stream id. */
-	sockdir = cras_config_get_system_socket_file_dir();
-	assert(sockdir);
-
-	memset(&addr, 0, sizeof(struct sockaddr_un));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, 50, "%s/%s-%x", sockdir, CRAS_AUD_FILE_PATTERN,
-		 stream_id);
-	syslog(LOG_DEBUG, "Connect to %s\n", addr.sun_path);
-
-	fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (fd < 0) {
-		syslog(LOG_ERR, "socket failed");
-		return fd;
-	}
-
-	err = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
-	if (err != 0) {
-		syslog(LOG_ERR, "connect to client socket %x", stream_id);
-		return err;
-	}
-
-	return fd;
-}
-
-int cras_server_disconnect_from_client_socket(int socket_fd)
-{
-	return close(socket_fd);
 }
 
 int cras_make_fd_nonblocking(int fd)

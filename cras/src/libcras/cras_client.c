@@ -10,19 +10,17 @@
  *    communicate with the audio server.  After the client connects, the server
  *    will send back a message containing the client id.
  *  cras_client_add_stream - Add a playback or capture stream. Creates a
- *    client_stream struct and sets connection_fd to listen for audio
- *    requests from the server after the conncetion completes.
+ *    client_stream struct and send a file descriptor to server. That file
+ *    descriptor and aud_fd are a pair created from socketpair().
  *  client_connected - The server will send a connected message to indicate that
- *    the client should start listening for an audio connection on
- *    connection_fd.  This message also specifies the shared memory region to
- *    use to share audio samples.  This region will be shmat'd and a new
- *    aud_fd will be set up for the next connection to connection_fd.
+ *    the client should start receving audio events from aud_fd. This message
+ *    also specifies the shared memory region to use to share audio samples.
+ *    This region will be shmat'd.
  *  running - Once the connections are established, the client will listen for
  *    requests on aud_fd and fill the shm region with the requested number of
  *    samples. This happens in the aud_cb specified in the stream parameters.
  */
 
-#include <grp.h>
 #include <limits.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -30,7 +28,6 @@
 #include <sys/shm.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <syslog.h>
@@ -81,7 +78,6 @@ struct add_stream_command_message {
 /* Commands send from a running stream to the client. */
 enum {
 	CLIENT_STREAM_EOF,
-	CLIENT_STREAM_SOCKET_ERROR,
 };
 
 struct stream_msg {
@@ -112,8 +108,8 @@ struct cras_stream_params {
 
 /* Represents an attached audio stream.
  * id - Unique stream identifier.
- * connection_fd - Listen for incoming connection from the server.
- * aud_fd - After server connects audio messages come in here.
+ * aud_fd - audio messages from server come in here. It is only used for
+ *          high-priority, low-latency audio messages (Get/Put samples).
  * direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
  * flags - Currently not used.
  * volume_scaler - Amount to scale the stream by, 0.0 to 1.0.
@@ -126,13 +122,11 @@ struct cras_stream_params {
  * conv - Format converter, used if the server's audio format doesn't match.
  * fmt_conv_buffer - Buffer used to store samples before sending for format
  *     conversion.
- * aud_address - Address used to listen for server requesting audio samples.
  * prev, next - Form a linked list of streams attached to a client.
  */
 struct client_stream {
 	cras_stream_id_t id;
-	int connection_fd; /* Listen for incoming connection from the server. */
-	int aud_fd; /* After server connects audio messages come in here. */
+	int aud_fd; /* audio messages from server come in here. */
 	enum CRAS_STREAM_DIRECTION direction; /* playback or capture. */
 	uint32_t flags;
 	float volume_scaler;
@@ -143,7 +137,6 @@ struct client_stream {
 	struct cras_audio_shm shm;
 	struct cras_fmt_conv *conv;
 	uint8_t *fmt_conv_buffer;
-	struct sockaddr_un aud_address;
 	struct client_stream *prev, *next;
 };
 
@@ -189,21 +182,6 @@ static struct client_stream *stream_from_id(const struct cras_client *client,
 
 	DL_SEARCH_SCALAR(client->streams, out, id, id);
 	return out;
-}
-
-/* Attempts to set the group of the socket file to "cras" if that group exists,
- * then makes the socket readable and writable by that group, so the server can
- * have access to this socket file. */
-static int set_socket_perms(const char *socket_path)
-{
-	const struct group *group_info;
-
-	group_info = getgrnam(CRAS_DEFAULT_GROUP_NAME);
-	if (group_info != NULL)
-		if (chown(socket_path, -1, group_info->gr_gid) != 0)
-			syslog(LOG_ERR, "Couldn't set group of audio socket.");
-
-	return chmod(socket_path, 0770);
 }
 
 /* Waits until we have heard back from the server so that we know we are
@@ -489,7 +467,6 @@ static int handle_playback_request(struct client_stream *stream,
 static void *audio_thread(void *arg)
 {
 	struct client_stream *stream = (struct client_stream *)arg;
-	socklen_t address_length = 0;
 	int thread_terminated = 0;
 	struct audio_message aud_msg;
 	int num_read;
@@ -501,16 +478,6 @@ static void *audio_thread(void *arg)
 	if (cras_set_rt_scheduling(CRAS_CLIENT_RT_THREAD_PRIORITY) ||
 	    cras_set_thread_priority(CRAS_CLIENT_RT_THREAD_PRIORITY))
 		cras_set_nice_level(CRAS_CLIENT_NICENESS_LEVEL);
-
-	syslog(LOG_DEBUG, "accept on socket");
-	stream->aud_fd = accept(stream->connection_fd,
-				  (struct sockaddr *)&stream->aud_address,
-				   &address_length);
-	if (stream->aud_fd < 0) {
-		syslog(LOG_ERR, "Connecting audio socket.");
-		send_stream_message(stream, CLIENT_STREAM_SOCKET_ERROR);
-		return NULL;
-	}
 
 	syslog(LOG_DEBUG, "audio thread started");
 	while (stream->thread.running && !thread_terminated) {
@@ -685,6 +652,49 @@ err_ret:
 	return rc;
 }
 
+static int send_connect_message(struct cras_client *client,
+				struct client_stream *stream)
+{
+	int rc;
+	struct cras_connect_message serv_msg;
+	int sock[2] = {-1, -1};
+
+	/* Create a socket pair for the server to notify of audio events. */
+	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
+	if (rc != 0) {
+		syslog(LOG_ERR, "socketpair fails.");
+		goto fail;
+	}
+
+	cras_fill_connect_message(&serv_msg,
+				  stream->config->direction,
+				  stream->id,
+				  stream->config->stream_type,
+				  stream->config->buffer_frames,
+				  stream->config->cb_threshold,
+				  stream->config->min_cb_level,
+				  stream->flags,
+				  stream->config->format);
+	rc = cras_send_with_fd(client->server_fd, &serv_msg, sizeof(serv_msg),
+			       sock[1]);
+	if (rc != sizeof(serv_msg)) {
+		rc = EIO;
+		syslog(LOG_ERR, "add_stream: Send server message failed.");
+		goto fail;
+	}
+
+	stream->aud_fd = sock[0];
+	close(sock[1]);
+	return 0;
+
+fail:
+	if (sock[0] != -1)
+		close(sock[0]);
+	if (sock[1] != -1)
+		close(sock[1]);
+	return rc;
+}
+
 /* Adds a stream to a running client.  Checks to make sure that the client is
  * attached, waits if it isn't.  The stream is prepared on the  main thread and
  * passed here. */
@@ -693,7 +703,6 @@ static int client_thread_add_stream(struct cras_client *client,
 				    cras_stream_id_t *stream_id_out)
 {
 	int rc;
-	struct cras_connect_message serv_msg;
 	cras_stream_id_t new_id;
 	struct client_stream *out;
 
@@ -708,70 +717,15 @@ static int client_thread_add_stream(struct cras_client *client,
 	*stream_id_out = new_id;
 	stream->client = client;
 
-	/* Create a socket for the server to notify of audio events. */
-	stream->aud_address.sun_family = AF_UNIX;
-	snprintf(stream->aud_address.sun_path,
-		 sizeof(stream->aud_address.sun_path), "%s/%s-%x",
-		 client->sock_dir, CRAS_AUD_FILE_PATTERN, stream->id);
-	unlink(stream->aud_address.sun_path);
+	/* send a message to the server asking that the stream be started. */
+	rc = send_connect_message(client, stream);
+	if (rc != 0)
+		return rc;
 
-	stream->connection_fd = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (stream->connection_fd < 0) {
-		syslog(LOG_ERR, "add_stream failed to socket.");
-		return stream->connection_fd;
-	}
-
-	rc = fchmod(stream->connection_fd, 0700);
-	if (rc < 0) {
-		syslog(LOG_ERR, "add_stream failed to fchmod socket.");
-		goto add_stream_failed;
-	}
-
-	rc = bind(stream->connection_fd,
-		   (struct sockaddr *)&stream->aud_address,
-		   sizeof(struct sockaddr_un));
-	if (rc != 0) {
-		syslog(LOG_ERR, "add_stream failed to bind.");
-		goto add_stream_failed;
-	}
-
-	rc = set_socket_perms(stream->aud_address.sun_path);
-	if (rc < 0) {
-		syslog(LOG_ERR, "add_stream failed to set socket params.");
-		goto add_stream_failed;
-	}
-
-	rc = listen(stream->connection_fd, 1);
-	if (rc != 0) {
-		syslog(LOG_ERR, "add_stream: Listen failed.");
-		goto add_stream_failed;
-	}
-
-	/* Add the stream to the linked list and send a message to the server
-	 * requesting that the stream be started. */
+	/* Add the stream to the linked list */
 	DL_APPEND(client->streams, stream);
 
-	cras_fill_connect_message(&serv_msg,
-				  stream->config->direction,
-				  stream->id,
-				  stream->config->stream_type,
-				  stream->config->buffer_frames,
-				  stream->config->cb_threshold,
-				  stream->config->min_cb_level,
-				  stream->flags,
-				  stream->config->format);
-	rc = write(client->server_fd, &serv_msg, sizeof(serv_msg));
-	if (rc != sizeof(serv_msg)) {
-		syslog(LOG_ERR, "add_stream: Send server message failed.");
-		DL_DELETE(client->streams, stream);
-		goto add_stream_failed;
-	}
-
 	return 0;
-
-add_stream_failed:
-	close(stream->connection_fd);
-	return rc;
 }
 
 /* Removes a stream from a running client from within the running client's
@@ -800,9 +754,6 @@ static int client_thread_rm_stream(struct cras_client *client,
 		pthread_join(stream->thread.tid, NULL);
 	}
 
-	if(unlink(stream->aud_address.sun_path))
-		syslog(LOG_ERR, "unlink failed for stream %x", stream->id);
-
 	if (stream->shm.area)
 		shmdt(stream->shm.area);
 
@@ -810,8 +761,6 @@ static int client_thread_rm_stream(struct cras_client *client,
 	if (stream->aud_fd >= 0)
 		if (close(stream->aud_fd))
 			syslog(LOG_WARNING, "Couldn't close audio socket");
-	if(close(stream->connection_fd))
-		syslog(LOG_WARNING, "Couldn't close connection socket");
 	if (stream->conv) {
 		cras_fmt_conv_destroy(stream->conv);
 		free(stream->fmt_conv_buffer);
@@ -850,7 +799,6 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 static int handle_stream_reattach(struct cras_client *client,
 				  cras_stream_id_t stream_id)
 {
-	struct cras_connect_message serv_msg;
 	struct client_stream *stream = stream_from_id(client, stream_id);
 	int rc;
 
@@ -869,27 +817,20 @@ static int handle_stream_reattach(struct cras_client *client,
 		free(stream->fmt_conv_buffer);
 	}
 	stream->conv = NULL;
-	if (stream->aud_fd >= 0)
+	if (stream->aud_fd >= 0) {
 		close(stream->aud_fd);
+		stream->aud_fd = -1;
+	}
 	if (stream->shm.area) {
 		shmdt(stream->shm.area);
 		stream->shm.area = NULL;
 	}
 
-	/* Now re-connect the stream and wait for a connected message. */
-	cras_fill_connect_message(&serv_msg,
-				  stream->config->direction,
-				  stream->id,
-				  stream->config->stream_type,
-				  stream->config->buffer_frames,
-				  stream->config->cb_threshold,
-				  stream->config->min_cb_level,
-				  stream->flags,
-				  stream->config->format);
-	rc = write(client->server_fd, &serv_msg, sizeof(serv_msg));
-	if (rc != sizeof(serv_msg)) {
+	/* send a message to the server asking that the stream be started. */
+	rc = send_connect_message(client, stream);
+	if (rc != 0) {
 		client_thread_rm_stream(client, stream_id);
-		return -EIO;
+		return rc;
 	}
 
 	return 0;
@@ -1371,7 +1312,6 @@ int cras_client_add_stream(struct cras_client *client,
 	}
 	memcpy(stream->config, config, sizeof(*config));
 	stream->aud_fd = -1;
-	stream->connection_fd = -1;
 	stream->wake_fds[0] = -1;
 	stream->wake_fds[1] = -1;
 	stream->direction = config->direction;
