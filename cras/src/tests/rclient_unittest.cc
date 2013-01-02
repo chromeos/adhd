@@ -285,6 +285,47 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(0, audio_thread_rm_stream_called);
 }
 
+TEST_F(RClientMessagesSuite, AddTwoUnified) {
+  struct cras_client_stream_connected out_msg;
+  int rc;
+
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
+  get_iodev_idev = (struct cras_iodev *)0xbabb;
+  cras_rstream_create_stream_out = rstream_;
+  cras_iodev_attach_stream_retval = 0;
+  iodev_get_thread_return = 0;
+
+  connect_msg_.direction = CRAS_STREAM_UNIFIED;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
+  EXPECT_EQ(0, rc);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_, out_msg.stream_id);
+  EXPECT_EQ(0, out_msg.err);
+  EXPECT_EQ(0, cras_rstream_destroy_called);
+  EXPECT_EQ(1, audio_thread_create_called);
+  EXPECT_EQ(0, audio_thread_destroy_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_stream_called);
+
+  connect_msg_.stream_id = stream_id_ + 1;
+  iodev_get_thread_return = audio_thread_create_return;
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 101);
+  EXPECT_EQ(0, rc);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_ + 1, out_msg.stream_id);
+  EXPECT_EQ(0, out_msg.err);
+  EXPECT_EQ(0, cras_rstream_destroy_called);
+  EXPECT_EQ(1, audio_thread_create_called);
+  EXPECT_EQ(0, audio_thread_destroy_called);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_stream_called);
+}
+
 TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   struct cras_client_stream_connected out_msg;
   int rc;

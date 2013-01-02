@@ -61,6 +61,10 @@ add_output:
 		/* If there is alread a thread using this iodev, destroy it.
 		 * All the streams will be re-attached to the new thread. */
 		out_thread = cras_iodev_list_get_audio_thread(odev);
+		if (out_thread == thread)
+			return thread;
+
+		/* Need to switch the output thread. */
 		if (out_thread)
 			audio_thread_destroy(out_thread);
 
