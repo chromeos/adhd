@@ -514,7 +514,15 @@ static int write_streams(struct audio_thread *thread,
 	return write_limit;
 }
 
-static inline int have_enough_frames(const struct cras_iodev *iodev,
+/* Checks if the device buffer level is past the wake up threshold.  For input
+ * or unified streams, checks that enough samples have been captured to process.
+ * For output streams, checks if enough samples have been played so there is
+ * room to refill.
+ * Args:
+ *    iodev - The device to check.
+ *    frames - Number of frames in the device buffer.
+ */
+static inline int wake_threshold_met(const struct cras_iodev *iodev,
 				     unsigned int frames)
 {
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
@@ -767,7 +775,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		return rc;
 	hw_level = rc;
 
-	if (!have_enough_frames(master_dev, hw_level)) {
+	if (!wake_threshold_met(master_dev, hw_level)) {
 		/* Check if the pcm is still running. */
 		rc = master_dev->dev_running(master_dev);
 		if (rc < 0)
