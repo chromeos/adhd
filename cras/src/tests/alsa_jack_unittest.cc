@@ -79,6 +79,7 @@ static bool ucm_get_dev_for_jack_return;
 static int ucm_set_enabled_value;
 static unsigned long eviocbit_ret[NBITS(SW_CNT)];
 static int gpio_switch_eviocgbit_fd;
+static const char *edid_file_ret;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -123,6 +124,7 @@ static void ResetStubData() {
   ucm_get_cap_control_called = 0;
   ucm_get_cap_control_value = NULL;
   ucm_get_dev_for_jack_return = false;
+  edid_file_ret = NULL;
 
   memset(eviocbit_ret, 0, sizeof(eviocbit_ret));
 }
@@ -332,11 +334,52 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(1, gpio_switch_eviocgsw_called);
+
+  fake_jack_cb_called = 0;
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_get_switch_names_called);
   EXPECT_GT(gpio_switch_open_called, 1);
+  EXPECT_GT(gpio_switch_eviocgbit_called, 1);
+  EXPECT_GT(sys_input_get_device_name_called, 1);
+  EXPECT_EQ(1, cras_system_add_select_fd_called);
+  EXPECT_EQ(1, snd_hctl_close_called);
+}
+
+TEST(AlsaJacks, GPIOHdmiWithEdid) {
+  cras_alsa_jack_list* jack_list;
+
+  ResetStubData();
+  ucm_get_dev_for_jack_return = 1;
+  edid_file_ret = static_cast<char*>(malloc(1));  // Freed in destroy.
+  gpio_get_switch_names_count = ~0;
+  eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
+  gpio_switch_eviocgbit_fd = 3;
+  snd_hctl_first_elem_return_val = NULL;
+  jack_list = cras_alsa_jack_list_create(
+      0,
+      "c1",
+      0,
+      fake_mixer,
+      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      CRAS_STREAM_OUTPUT,
+      fake_jack_cb,
+      fake_jack_cb_arg);
+  ASSERT_NE(static_cast<cras_alsa_jack_list*>(NULL), jack_list);
   EXPECT_EQ(1, gpio_switch_eviocgsw_called);
+
+  // EDID shouldn't open, callback should be skipped until re-try.
+  fake_jack_cb_called = 0;
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(0, fake_jack_cb_called);
+
+  cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_GT(gpio_switch_open_called, 1);
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
@@ -696,7 +739,7 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {
 
 const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr,
 				      const char *dev) {
-  return NULL;
+  return edid_file_ret;
 }
 
 cras_timer *cras_tm_create_timer(

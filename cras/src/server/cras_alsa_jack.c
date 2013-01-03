@@ -142,8 +142,20 @@ static inline struct cras_alsa_jack *cras_alloc_jack(int is_gpio)
 	return jack;
 }
 
-static inline void gpio_change_callback(struct cras_alsa_jack *jack)
+static int check_jack_edid(struct cras_alsa_jack *jack, int retry);
+
+static inline void gpio_change_callback(struct cras_alsa_jack *jack, int retry)
 {
+	/* If there is an edid file, check it.  If it is ready continue, if we
+	 * need to try again later, return here as the timer has been armed and
+	 * will check again later.
+	 */
+	if (jack->edid_file) {
+		int rc = check_jack_edid(jack, retry);
+		if (rc)
+			return;
+	}
+
 	jack->jack_list->change_callback(jack,
 					 jack->gpio.current_state,
 					 jack->jack_list->callback_data);
@@ -159,7 +171,7 @@ static void gpio_switch_initial_state(struct cras_alsa_jack *jack)
 	unsigned r = sys_input_get_switch_state(jack->gpio.fd,
 						jack->gpio.switch_event, &v);
 	jack->gpio.current_state = r == 0 ? v : 0;
-	gpio_change_callback(jack);
+	gpio_change_callback(jack, 1);
 }
 
 /* Check if the input event is an audio switch event. */
@@ -171,16 +183,13 @@ static inline int is_audio_switch_event(const struct input_event *ev)
 		 ev->code == SW_MICROPHONE_INSERT));
 }
 
-static int check_jack_edid(struct cras_alsa_jack *jack, int retry);
-
 /* Timer callback to read EDID after a hotplug event for an HDMI jack. */
 static void edid_delay_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_alsa_jack *jack = (struct cras_alsa_jack *)arg;
 
 	jack->edid_timer = NULL;
-	check_jack_edid(jack, 0);
-	gpio_change_callback(jack);
+	gpio_change_callback(jack, 0);
 }
 
 /* If the jack supports EDID, check that it supports audio, clearing the plugged
@@ -217,8 +226,10 @@ static int check_jack_edid(struct cras_alsa_jack *jack, int retry)
 	return 0;
 
 no_edid_retry:
-	if (!retry)
+	if (!retry) {
+		jack->gpio.current_state = 0;
 		return 0;
+	}
 
 	jack->edid_timer = cras_tm_create_timer(tm,
 						EDID_RETRY_DELAY_MS,
@@ -248,18 +259,7 @@ static void gpio_switch_callback(void *arg)
 		if (is_audio_switch_event(&ev[i])) {
 			jack->gpio.current_state = ev[i].value;
 
-			/* If there is an edid file, check it.  If it is ready
-			 * continue, if we need to try again later, return here
-			 * as the timer has been armed and will check again
-			 * later.
-			 */
-			if (jack->edid_file) {
-				int rc = check_jack_edid(jack, 1);
-				if (rc)
-					return;
-			}
-
-			gpio_change_callback(jack);
+			gpio_change_callback(jack, 1);
 		}
 }
 
