@@ -140,6 +140,17 @@ TEST_F(ShmTestSuite, WriteAvailValid) {
   EXPECT_EQ(480, ret);
 }
 
+// Test get frames_written returns the number of frames written.
+TEST_F(ShmTestSuite, GetNumWritten) {
+  size_t ret;
+  shm_.area->write_buf_idx = 0;
+  shm_.config.used_size = 480 * shm_.config.frame_bytes;
+  shm_.area->write_offset[0] = 200 * shm_.config.frame_bytes;
+  shm_.area->read_offset[0] = 0;
+  ret = cras_shm_frames_written(&shm_);
+  EXPECT_EQ(200, ret);
+}
+
 TEST_F(ShmTestSuite, SetVolume) {
   cras_shm_set_volume_scaler(&shm_, 1.0);
   EXPECT_EQ(shm_.area->volume_scaler, 1.0);
