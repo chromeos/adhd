@@ -251,11 +251,6 @@ int thread_add_stream(struct audio_thread *thread,
 
 	active_streams(thread, &in_active, &out_active);
 
-	/* Only allow one capture stream to attach. */
-	if (in_active && (stream->direction == CRAS_STREAM_INPUT ||
-			  stream->direction == CRAS_STREAM_UNIFIED))
-		return -EBUSY;
-
 	rc = append_stream(thread, stream);
 	if (rc < 0)
 		return rc;
@@ -364,6 +359,9 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 
 		if (cras_shm_callback_pending(shm))
 			flush_old_aud_messages(shm, curr->fd);
+
+		if (curr->stream->direction != CRAS_STREAM_OUTPUT)
+			continue;
 
 		frames_in_buff = cras_shm_get_frames(shm);
 
@@ -542,21 +540,24 @@ static void read_streams(struct audio_thread *thread,
 			 const uint8_t *src,
 			 snd_pcm_uframes_t count)
 {
-	struct cras_io_stream *streams;
+	struct cras_io_stream *stream;
 	struct cras_audio_shm *shm;
 	unsigned write_limit;
 	uint8_t *dst;
 
-	streams = thread->streams;
-	if (!streams)
-		return; /* Nowhere to put samples. */
+	DL_FOREACH(thread->streams, stream) {
+		struct cras_rstream *rstream = stream->stream;
 
-	shm = cras_rstream_input_shm(streams->stream);
+		if (rstream->direction == CRAS_STREAM_OUTPUT)
+			continue;
 
-	dst = cras_shm_get_writeable_frames(shm, &write_limit);
-	count = min(count, write_limit);
-	memcpy(dst, src, count * cras_shm_frame_bytes(shm));
-	cras_shm_buffer_written(shm, count);
+		shm = cras_rstream_input_shm(rstream);
+
+		dst = cras_shm_get_writeable_frames(shm, &write_limit);
+		count = min(count, write_limit);
+		memcpy(dst, src, count * cras_shm_frame_bytes(shm));
+		cras_shm_buffer_written(shm, count);
+	}
 }
 
 /* Stop the playback thread */
@@ -671,17 +672,6 @@ int possibly_fill_audio(struct audio_thread *thread,
 	return total_written;
 }
 
-static struct cras_rstream *find_capture_stream(struct audio_thread *thread)
-{
-	struct cras_io_stream *curr;
-
-	DL_FOREACH(thread->streams, curr)
-		if (curr->stream->direction == CRAS_STREAM_INPUT ||
-		    curr->stream->direction == CRAS_STREAM_UNIFIED)
-			return curr->stream;
-	return NULL;
-}
-
 /* Transfer samples to clients from the audio device.
  * Return the number of samples read from the device.
  */
@@ -691,10 +681,9 @@ int possibly_read_audio(struct audio_thread *thread,
 {
 	snd_pcm_uframes_t remainder;
 	struct cras_audio_shm *shm;
-	struct cras_rstream *rstream;
+	struct cras_io_stream *stream, *tmp;
 	int rc;
 	uint8_t *src;
-	uint8_t *dst = NULL;
 	unsigned int write_limit = 0;
 	unsigned int nread, level_target;
 	struct cras_iodev *idev = thread->input_dev;
@@ -702,14 +691,28 @@ int possibly_read_audio(struct audio_thread *thread,
 	if (!idev)
 		return 0;
 
-	rstream = find_capture_stream(thread);
-	if (rstream) {
+	DL_FOREACH(thread->streams, stream) {
+		struct cras_rstream *rstream;
+		struct cras_audio_shm *output_shm;
+
+		rstream = stream->stream;
+
+		if (rstream->direction == CRAS_STREAM_OUTPUT)
+			continue;
+
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
 		cras_iodev_set_capture_timestamp(idev->format->frame_rate,
 						 delay,
 						 &shm->area->ts);
-		dst = cras_shm_get_writeable_frames(shm, &write_limit);
+		cras_shm_get_writeable_frames(shm, &write_limit);
+
+		output_shm = cras_rstream_output_shm(rstream);
+		if (output_shm)
+			cras_iodev_set_playback_timestamp(
+					idev->format->frame_rate,
+					delay,
+					&output_shm->area->ts);
 	}
 
 	remainder = idev->cb_threshold;
@@ -727,13 +730,28 @@ int possibly_read_audio(struct audio_thread *thread,
 		remainder -= nread;
 	}
 
-	if (find_capture_stream(thread)) {
-		apply_dsp(idev, dst, min(idev->cb_threshold, write_limit));
+	DL_FOREACH_SAFE(thread->streams, stream, tmp) {
+		struct cras_rstream *rstream;
+		uint8_t *dst;
+
+		rstream = stream->stream;
+
+		if (rstream->direction == CRAS_STREAM_OUTPUT)
+			continue;
+
 		shm = cras_rstream_input_shm(rstream);
+
+		/* If this stream doesn't have enough data yet, skip it. */
+		if (cras_shm_frames_written(shm) <
+		    cras_rstream_get_cb_threshold(rstream))
+			continue;
+
+		dst = cras_shm_get_write_buffer_base(shm);
+		apply_dsp(idev, dst, min(idev->cb_threshold, write_limit));
+
 		cras_shm_buffer_write_complete(shm);
 
-		/* Tell the client that samples are ready.  This assumes only
-		 * one capture client at a time. */
+		/* Tell the client that samples are ready. */
 		rc = cras_rstream_audio_ready(rstream,
 					      idev->cb_threshold);
 		if (rc < 0) {
@@ -742,9 +760,10 @@ int possibly_read_audio(struct audio_thread *thread,
 		}
 
 		/* Unified streams will write audio while handling the captured
-		 * samples, make them as pending. */
+		 * samples, mark them as pending. */
 		if (rstream->direction == CRAS_STREAM_UNIFIED)
-			cras_shm_set_callback_pending(shm, 1);
+			cras_shm_set_callback_pending(
+				cras_rstream_output_shm(rstream), 1);
 	}
 
 	/* If there are more remaining frames than targeted, decrease the sleep

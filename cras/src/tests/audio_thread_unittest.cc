@@ -77,6 +77,8 @@ class ReadStreamSuite : public testing::Test {
 
       SetupRstream(&rstream_, 1);
       shm_ = cras_rstream_input_shm(rstream_);
+      SetupRstream(&rstream2_, 2);
+      shm2_ = cras_rstream_input_shm(rstream2_);
 
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
@@ -100,6 +102,8 @@ class ReadStreamSuite : public testing::Test {
     virtual void TearDown() {
       free(shm_->area);
       free(rstream_);
+      free(shm2_->area);
+      free(rstream2_);
     }
 
     void SetupRstream(struct cras_rstream **rstream, int fd) {
@@ -108,6 +112,7 @@ class ReadStreamSuite : public testing::Test {
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->direction = CRAS_STREAM_INPUT;
+      (*rstream)->cb_threshold = iodev_.cb_threshold;
 
       shm = cras_rstream_input_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
@@ -167,8 +172,10 @@ class ReadStreamSuite : public testing::Test {
   static unsigned int audio_buffer_size_;
   static unsigned int dev_running_called_;
   struct cras_rstream *rstream_;
+  struct cras_rstream *rstream2_;
   struct cras_audio_format fmt_;
   struct cras_audio_shm *shm_;
+  struct cras_audio_shm *shm2_;
 };
 
 int ReadStreamSuite::frames_queued_ = 0;
@@ -324,8 +331,104 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+
+  thread->streams = 0;
+  audio_thread_destroy(thread);
+}
+
+TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
+  struct timespec ts;
+  int rc;
+  uint64_t nsec_expected;
+  struct audio_thread *thread;
+
+  thread = audio_thread_create(&iodev_);
+  ASSERT_TRUE(thread);
+
+  iodev_.thread = thread;
+
+  rc = thread_add_stream(thread, rstream_);
+  EXPECT_EQ(0, rc);
+  rc = thread_add_stream(thread, rstream2_);
+  EXPECT_EQ(0, rc);
+
+  //  A full block plus 4 frames.
+  frames_queued_ = iodev_.cb_threshold + 4;
+  audio_buffer_size_ = frames_queued_;
+
+  for (unsigned int i = 0; i < sizeof(audio_buffer_); i++)
+	  audio_buffer_[i] = i;
+
+  // +1 for correction factor.
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
+                  (uint64_t)fmt_.frame_rate;
+  cras_rstream_audio_ready_count = 999;
+  //  Give it some samples to copy.
+  rc = unified_io(thread, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(2, cras_rstream_audio_ready_called);
+  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+    EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+
+  thread->streams = 0;
+  audio_thread_destroy(thread);
+}
+
+TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
+  struct timespec ts;
+  int rc;
+  uint64_t nsec_expected;
+  struct audio_thread *thread;
+
+  thread = audio_thread_create(&iodev_);
+  ASSERT_TRUE(thread);
+
+  iodev_.thread = thread;
+
+  iodev_.cb_threshold /= 2;
+  rstream_->cb_threshold = iodev_.cb_threshold;
+
+  rc = thread_add_stream(thread, rstream_);
+  EXPECT_EQ(0, rc);
+  rc = thread_add_stream(thread, rstream2_);
+  EXPECT_EQ(0, rc);
+
+  //  A full block plus 4 frames.
+  frames_queued_ = iodev_.cb_threshold + 4;
+  audio_buffer_size_ = frames_queued_;
+
+  // +1 for correction factor.
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
+                  (uint64_t)fmt_.frame_rate;
+  cras_rstream_audio_ready_count = 999;
+  //  Give it some samples to copy.
+  rc = unified_io(thread, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+
+  frames_queued_ = iodev_.cb_threshold + 5;
+  audio_buffer_size_ = frames_queued_;
+  cras_rstream_audio_ready_count = 999;
+  //  Give it some samples to copy.
+  rc = unified_io(thread, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(3, cras_rstream_audio_ready_called);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -356,6 +459,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+  cras_shm_buffer_read(shm_, frames_queued_);
 
   cras_rstream_audio_ready_count = 999;
   rc = unified_io(thread, &ts);
@@ -393,6 +497,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+  cras_shm_buffer_read(shm_, frames_queued_);
 
   cras_rstream_audio_ready_count = 999;
   rc = unified_io(thread, &ts);
@@ -979,6 +1084,71 @@ class AddStreamSuite : public testing::Test {
       return 0;
     }
 
+    void add_rm_two_streams(CRAS_STREAM_DIRECTION direction) {
+      int rc;
+      struct cras_rstream *new_stream, *second_stream;
+      struct cras_audio_format *fmt;
+      struct audio_thread thread;
+
+      memset(&thread, 0, sizeof(thread));
+
+      fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
+      memcpy(fmt, &fmt_, sizeof(fmt_));
+      iodev_.format = fmt;
+      iodev_.thread = &thread;
+      iodev_.direction = direction;
+      new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
+      new_stream->fd = 55;
+      new_stream->buffer_frames = 65;
+      new_stream->cb_threshold = 80;
+      new_stream->direction = direction;
+      memcpy(&new_stream->format, fmt, sizeof(*fmt));
+
+      if (direction == CRAS_STREAM_INPUT) {
+        thread.output_dev = NULL;
+        thread.input_dev = &iodev_;
+      } else {
+        thread.output_dev = &iodev_;
+        thread.input_dev = NULL;
+      }
+      iodev_.thread = &thread;
+
+      thread_add_stream(&thread, new_stream);
+      EXPECT_EQ(1, is_open_called_);
+      EXPECT_EQ(1, open_dev_called_);
+      EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+
+      is_open_ = 1;
+
+      second_stream = (struct cras_rstream *)calloc(1, sizeof(*second_stream));
+      second_stream->fd = 56;
+      second_stream->buffer_frames = 25;
+      second_stream->cb_threshold = 12;
+      second_stream->direction = direction;
+      memcpy(&second_stream->format, fmt, sizeof(*fmt));
+      thread_add_stream(&thread, second_stream);
+      EXPECT_EQ(2, is_open_called_);
+      EXPECT_EQ(1, open_dev_called_);
+      EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
+      EXPECT_EQ(25, cras_iodev_config_params_for_streams_buffer_size);
+      EXPECT_EQ(12, cras_iodev_config_params_for_streams_threshold);
+
+      //  Remove the streams.
+      rc = thread_remove_stream(&thread, second_stream);
+      EXPECT_EQ(1, rc);
+      EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
+      EXPECT_EQ(0, close_dev_called_);
+
+      rc = thread_remove_stream(&thread, new_stream);
+      EXPECT_EQ(0, rc);
+      EXPECT_EQ(1, close_dev_called_);
+      EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
+
+      free(fmt);
+      free(new_stream);
+      free(second_stream);
+    }
+
   struct cras_iodev iodev_;
   static int is_open_;
   static int is_open_called_;
@@ -1027,83 +1197,11 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
 }
 
 TEST_F(AddStreamSuite, AddRmTwoOutputStreams) {
-  int rc;
-  struct cras_rstream *new_stream, *second_stream;
-  struct cras_audio_format *fmt;
-  struct audio_thread thread;
-
-  memset(&thread, 0, sizeof(thread));
-
-  fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
-  memcpy(fmt, &fmt_, sizeof(fmt_));
-  iodev_.format = fmt;
-  iodev_.thread = &thread;
-  new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
-  new_stream->fd = 55;
-  new_stream->buffer_frames = 65;
-  new_stream->cb_threshold = 80;
-  memcpy(&new_stream->format, fmt, sizeof(*fmt));
-
-  thread.output_dev = &iodev_;
-  iodev_.thread = &thread;
-
-  rc = thread_add_stream(&thread, new_stream);
-  ASSERT_EQ(0, rc);
-  EXPECT_EQ(1, is_open_called_);
-  EXPECT_EQ(1, open_dev_called_);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
-
-  is_open_ = 1;
-
-  second_stream = (struct cras_rstream *)calloc(1, sizeof(*second_stream));
-  second_stream->fd = 56;
-  second_stream->buffer_frames = 25;
-  second_stream->cb_threshold = 12;
-  memcpy(&second_stream->format, fmt, sizeof(*fmt));
-  rc = thread_add_stream(&thread, second_stream);
-  ASSERT_EQ(0, rc);
-  EXPECT_EQ(2, is_open_called_);
-  EXPECT_EQ(1, open_dev_called_);
-  EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
-  EXPECT_EQ(25, cras_iodev_config_params_for_streams_buffer_size);
-  EXPECT_EQ(12, cras_iodev_config_params_for_streams_threshold);
-
-  //  Remove the streams.
-  rc = thread_remove_stream(&thread, second_stream);
-  EXPECT_EQ(1, rc);
-  EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
-  EXPECT_EQ(0, close_dev_called_);
-
-  rc = thread_remove_stream(&thread, new_stream);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, close_dev_called_);
-  EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
-
-  free(fmt);
-  free(new_stream);
-  free(second_stream);
+  add_rm_two_streams(CRAS_STREAM_OUTPUT);
 }
 
-TEST_F(AddStreamSuite, OneInputStreamPerDevice) {
-  int rc;
-  struct audio_thread thread;
-  struct cras_rstream new_stream;
-
-  memset(&thread, 0, sizeof(thread));
-
-  new_stream.direction = CRAS_STREAM_INPUT;
-
-  thread.streams = new cras_io_stream;
-  thread.streams->next = 0;
-  thread.streams->prev = 0;
-  thread.streams->stream = new cras_rstream;
-  thread.streams->stream->direction = CRAS_STREAM_INPUT;
-
-  rc = thread_add_stream(&thread, &new_stream);
-  EXPECT_EQ(-EBUSY, rc);
-
-  delete thread.streams->stream;
-  delete thread.streams;
+TEST_F(AddStreamSuite, AddRmTwoInputStreams) {
+  add_rm_two_streams(CRAS_STREAM_INPUT);
 }
 
 extern "C" {

@@ -34,6 +34,7 @@ struct cras_audio_shm_config {
  *    buffered).
  *  read_offset - offset of the next sample to read (one per buffer).
  *  write_offset - offset of the next sample to write (one per buffer).
+ *  write_in_progress - non-zero when a write is in progress.
  *  volume_scaler - volume scaling factor (0.0-1.0).
  *  muted - bool, true if stream should be muted.
  *  num_overruns - Starting at 0 this is incremented very time data is over
@@ -52,6 +53,7 @@ struct cras_audio_shm_area {
 	size_t write_buf_idx;
 	size_t read_offset[CRAS_NUM_SHM_BUFFERS];
 	size_t write_offset[CRAS_NUM_SHM_BUFFERS];
+	int write_in_progress[CRAS_NUM_SHM_BUFFERS];
 	float volume_scaler;
 	size_t mute;
 	size_t callback_pending;
@@ -226,11 +228,16 @@ static inline size_t cras_shm_get_num_writeable(struct cras_audio_shm *shm)
 /* Flags an overrun if writing would cause one. */
 static inline void cras_shm_check_write_overrun(struct cras_audio_shm *shm)
 {
-	size_t buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	size_t write_buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	size_t read_buf_idx = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
 
-	if (shm->area->write_offset[buf_idx])
-		shm->area->num_overruns++; /* Only write to empty buffers */
-	shm->area->write_offset[buf_idx] = 0;
+	if (!shm->area->write_in_progress[write_buf_idx]) {
+		if (write_buf_idx != read_buf_idx)
+			shm->area->num_overruns++; /* Will over-write unread */
+
+		shm->area->write_in_progress[write_buf_idx] = 1;
+		shm->area->write_offset[write_buf_idx] = 0;
+	}
 }
 
 /* Increment the write pointer for the current buffer. */
@@ -255,6 +262,8 @@ static inline unsigned int cras_shm_frames_written(struct cras_audio_shm *shm)
 static inline void cras_shm_buffer_write_complete(struct cras_audio_shm *shm)
 {
 	size_t buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+
+	shm->area->write_in_progress[buf_idx] = 0;
 
 	assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 	buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
