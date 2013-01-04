@@ -151,6 +151,24 @@ TEST_F(ShmTestSuite, GetNumWritten) {
   EXPECT_EQ(200, ret);
 }
 
+// Test that getting the base of the write buffer returns the correct pointer.
+TEST_F(ShmTestSuite, GetWriteBufferBase) {
+  uint8_t* ret;
+
+  shm_.area->write_buf_idx = 0;
+  shm_.config.used_size = 480 * shm_.config.frame_bytes;
+  shm_.area->write_offset[0] = 200 * shm_.config.frame_bytes;
+  shm_.area->write_offset[1] = 200 * shm_.config.frame_bytes;
+  shm_.area->read_offset[0] = 0;
+  shm_.area->read_offset[1] = 0;
+  ret = cras_shm_get_write_buffer_base(&shm_);
+  EXPECT_EQ(shm_.area->samples, ret);
+
+  shm_.area->write_buf_idx = 1;
+  ret = cras_shm_get_write_buffer_base(&shm_);
+  EXPECT_EQ(shm_.area->samples + shm_.config.used_size, ret);
+}
+
 TEST_F(ShmTestSuite, SetVolume) {
   cras_shm_set_volume_scaler(&shm_, 1.0);
   EXPECT_EQ(shm_.area->volume_scaler, 1.0);

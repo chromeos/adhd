@@ -100,6 +100,15 @@ static inline uint8_t *cras_shm_get_curr_read_buffer(struct cras_audio_shm *shm)
 		cras_shm_check_offset(shm, shm->area->read_offset[i]);
 }
 
+/* Get the base of the current write buffer. */
+static inline
+uint8_t *cras_shm_get_write_buffer_base(struct cras_audio_shm *shm)
+{
+	unsigned i = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+
+	return cras_shm_buff_for_idx(shm, i);
+}
+
 /* Get a pointer to the next buffer to write */
 static inline
 uint8_t *cras_shm_get_writeable_frames(struct cras_audio_shm *shm,
