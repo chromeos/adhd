@@ -75,17 +75,8 @@ class ReadStreamSuite : public testing::Test {
       iodev_.open_dev = open_dev;
       iodev_.dev_running = dev_running;
 
-      rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
-      memcpy(&rstream_->format, &fmt_, sizeof(fmt_));
-      rstream_->direction = CRAS_STREAM_INPUT;
-
-      shm_ = &rstream_->input_shm;
-
-      shm_->area = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm_->area) + iodev_.cb_threshold * 8);
-      cras_shm_set_frame_bytes(shm_, 4); // channels * bytes/sample
-      cras_shm_set_used_size(
-          shm_, iodev_.cb_threshold * cras_shm_frame_bytes(shm_));
+      SetupRstream(&rstream_, 1);
+      shm_ = cras_rstream_input_shm(rstream_);
 
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
@@ -109,6 +100,21 @@ class ReadStreamSuite : public testing::Test {
     virtual void TearDown() {
       free(shm_->area);
       free(rstream_);
+    }
+
+    void SetupRstream(struct cras_rstream **rstream, int fd) {
+      struct cras_audio_shm *shm;
+
+      *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
+      memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
+      (*rstream)->direction = CRAS_STREAM_INPUT;
+
+      shm = cras_rstream_input_shm(*rstream);
+      shm->area = (struct cras_audio_shm_area *)calloc(1,
+          sizeof(*shm->area) + iodev_.cb_threshold * 8);
+      cras_shm_set_frame_bytes(shm, 4);
+      cras_shm_set_used_size(
+          shm, iodev_.cb_threshold * cras_shm_frame_bytes(shm));
     }
 
     unsigned int GetCaptureSleepFrames() {
