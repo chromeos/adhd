@@ -261,8 +261,22 @@ void cras_rclient_destroy(struct cras_rclient *client)
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
 int cras_rclient_message_from_client(struct cras_rclient *client,
-				     const struct cras_server_message *msg) {
+				     const struct cras_server_message *msg,
+				     int fd) {
 	assert(client && msg);
+
+	/* Most messages should not have a file descriptor. */
+	switch (msg->id) {
+	default:
+		if (fd != -1) {
+			syslog(LOG_ERR,
+			       "Message %d should not have fd attached.",
+			       msg->id);
+			close(fd);
+			return -1;
+		}
+		break;
+	}
 
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM:

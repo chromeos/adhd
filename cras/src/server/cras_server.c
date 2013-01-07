@@ -91,18 +91,20 @@ static void handle_message_from_client(struct attached_client *client)
 	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
 	struct cras_server_message *msg;
 	int nread;
+	int fd;
 
 	msg = (struct cras_server_message *)buf;
-	nread = recv(client->fd, buf, sizeof(msg->length), 0);
+	nread = cras_recv_with_fd(client->fd, buf, sizeof(buf), &fd);
 	if (nread < sizeof(msg->length))
 		goto read_error;
 	if (msg->length != nread)
 		goto read_error;
-	cras_rclient_message_from_client(client->client, msg);
-
+	cras_rclient_message_from_client(client->client, msg, fd);
 	return;
 
 read_error:
+	if (fd != -1)
+		close(fd);
 	syslog(LOG_DEBUG, "read err, removing client %zu", client->id);
 	remove_client(client);
 }

@@ -32,11 +32,14 @@ void cras_rclient_destroy(struct cras_rclient *client);
  * Args:
  *    client - The client that received this message.
  *    msg - The message that was sent by the remote client.
+ *    fd - The file descriptor that was sent by the remote client (or -1 if no
+ *         file descriptor was sent).
  * Returns:
  *    0 on success, otherwise a negative error code.
  */
 int cras_rclient_message_from_client(struct cras_rclient *client,
-				     const struct cras_server_message *msg);
+				     const struct cras_server_message *msg,
+				     int fd);
 
 /* Sends a message to the client.
  * Args:

@@ -164,7 +164,7 @@ TEST_F(RClientMessagesSuite, FrameRateError) {
 
   connect_msg_.format.frame_rate = 0;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -182,7 +182,7 @@ TEST_F(RClientMessagesSuite, IoDevGetThreadError) {
   iodev_get_thread_return = NULL;
   audio_thread_create_return = NULL;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, audio_thread_create_called);
 
@@ -204,7 +204,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   cras_rstream_create_stream_out = rstream_;
   audio_thread_add_stream_return = -1;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -223,7 +223,7 @@ TEST_F(RClientMessagesSuite, NoDevErrorReply) {
 
   get_iodev_return = (struct cras_iodev *)NULL;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -241,7 +241,7 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   get_iodev_return = (struct cras_iodev *)0xbaba;
   cras_rstream_create_return = -1;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -259,7 +259,7 @@ TEST_F(RClientMessagesSuite, AudSockConnectErrorReply) {
   get_iodev_return = (struct cras_iodev *)0xbaba;
   cras_server_connect_retval = -1;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -279,7 +279,7 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_make_fd_nonblocking_called);
 
@@ -303,7 +303,7 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   cras_iodev_attach_stream_retval = 0;
   iodev_get_thread_return = NULL;
 
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header);
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_make_fd_nonblocking_called);
   EXPECT_EQ(1, audio_thread_create_called);
@@ -327,7 +327,7 @@ TEST_F(RClientMessagesSuite, SetVolume) {
   msg.header.length = sizeof(msg);
   msg.volume = 66;
 
-  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_volume_called);
   EXPECT_EQ(66, cras_system_set_volume_value);
@@ -341,7 +341,7 @@ TEST_F(RClientMessagesSuite, SetCaptureVolume) {
   msg.header.length = sizeof(msg);
   msg.volume = 66;
 
-  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_capture_gain_called);
   EXPECT_EQ(66, cras_system_set_capture_gain_value);
@@ -355,13 +355,13 @@ TEST_F(RClientMessagesSuite, SetMute) {
   msg.header.length = sizeof(msg);
   msg.mute = 1;
 
-  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_mute_called);
   EXPECT_EQ(1, cras_system_set_mute_value);
 
   msg.header.id = CRAS_SERVER_SET_SYSTEM_MUTE_LOCKED;
-  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_mute_locked_called);
   EXPECT_EQ(1, cras_system_set_mute_locked_value);
@@ -375,13 +375,13 @@ TEST_F(RClientMessagesSuite, SetCaptureMute) {
   msg.header.length = sizeof(msg);
   msg.mute = 1;
 
-  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_capture_mute_called);
   EXPECT_EQ(1, cras_system_set_capture_mute_value);
 
   msg.header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED;
-  rc = cras_rclient_message_from_client(rclient_, &msg.header);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_capture_mute_locked_called);
   EXPECT_EQ(1, cras_system_set_capture_mute_locked_value);
