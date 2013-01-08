@@ -8,6 +8,7 @@
 
 extern "C" {
 
+#include "a2dp-codecs.h"
 #include "cras_bt_transport.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -20,12 +21,18 @@ static cras_audio_format *fake_format;
 static size_t cras_iodev_list_add_output_called;
 static size_t cras_iodev_list_rm_output_called;
 static size_t cras_bt_transport_acquire_called;
+static size_t cras_bt_transport_configuration_called;
+static size_t init_a2dp_called;
+static size_t destroy_a2dp_called;
 static size_t cras_iodev_free_format_called;
 
 void ResetStubData() {
   cras_iodev_list_add_output_called = 0;
   cras_iodev_list_rm_output_called = 0;
   cras_bt_transport_acquire_called = 0;
+  cras_bt_transport_configuration_called = 0;
+  init_a2dp_called = 0;
+  destroy_a2dp_called = 0;
   cras_iodev_free_format_called = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
@@ -42,11 +49,14 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   ASSERT_NE(iodev, (void *)NULL);
   ASSERT_EQ(iodev->direction, CRAS_STREAM_OUTPUT);
+  ASSERT_EQ(1, cras_bt_transport_configuration_called);
+  ASSERT_EQ(1, init_a2dp_called);
   ASSERT_EQ(1, cras_iodev_list_add_output_called);
 
   a2dp_iodev_destroy(iodev);
 
   ASSERT_EQ(1, cras_iodev_list_rm_output_called);
+  ASSERT_EQ(1, destroy_a2dp_called);
 }
 
 TEST(A2dpIoInit, OpenIodev) {
@@ -80,7 +90,8 @@ extern "C" {
 int cras_bt_transport_configuration(const struct cras_bt_transport *transport,
                                     void *configuration, int len)
 {
-	return 0;
+  cras_bt_transport_configuration_called++;
+  return 0;
 }
 
 int cras_bt_transport_acquire(struct cras_bt_transport *transport)
@@ -91,18 +102,18 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 
 int cras_bt_transport_release(struct cras_bt_transport *transport)
 {
-	return 0;
+  return 0;
 }
 
 int cras_bt_transport_fd(const struct cras_bt_transport *transport)
 {
-	return 0;
+  return 0;
 }
 
 const char *cras_bt_transport_object_path(
 		const struct cras_bt_transport *transport)
 {
-	return NULL;
+  return NULL;
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
@@ -130,6 +141,16 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
   cras_iodev_list_rm_output_called++;
   return 0;
+}
+
+void init_a2dp(struct cras_audio_codec *codec, a2dp_sbc_t *sbc)
+{
+  init_a2dp_called++;
+}
+
+void destroy_a2dp(struct cras_audio_codec *codec)
+{
+  destroy_a2dp_called++;
 }
 
 }

@@ -7,10 +7,11 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
-#include "a2dp-codecs.h"
+#include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_sbc_codec.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -18,6 +19,7 @@
 
 struct a2dp_io {
 	struct cras_iodev base;
+	struct cras_audio_codec *codec;
 	struct cras_bt_transport *transport;
 
 	uint8_t pcm_buf[PCM_BUF_SIZE_BYTES];
@@ -151,6 +153,7 @@ void free_resources(struct a2dp_io *a2dpio)
 {
 	free(a2dpio->base.supported_channel_counts);
 	free(a2dpio->base.supported_rates);
+	destroy_a2dp(a2dpio->codec);
 }
 
 struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
@@ -159,16 +162,21 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	struct a2dp_io *a2dpio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
+	a2dp_sbc_t a2dp;
 
 	a2dpio = (struct a2dp_io *)calloc(1, sizeof(*a2dpio));
 	if (!a2dpio)
 		goto error;
 
+	a2dpio->transport = transport;
+	cras_bt_transport_configuration(a2dpio->transport, &a2dp,
+					sizeof(a2dp));
+	init_a2dp(a2dpio->codec, &a2dp);
+
 	iodev = &a2dpio->base;
 
 	/* A2DP only does output now */
 	iodev->direction = CRAS_STREAM_OUTPUT;
-	a2dpio->transport = transport;
 
 	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
 		 cras_bt_transport_object_path(a2dpio->transport));
