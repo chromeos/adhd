@@ -18,7 +18,7 @@
 
 typedef void (*sample_format_converter_t)(const uint8_t *in,
 					  size_t in_samples,
-					  int16_t *out);
+					  uint8_t *out);
 typedef size_t (*channel_converter_t)(const int16_t *in,
 				      size_t in_frames,
 				      int16_t *out);
@@ -51,34 +51,72 @@ static int16_t s16_add_and_clip(int16_t a, int16_t b)
 
 /* Converts from U8 to S16. */
 static void convert_u8_to_s16le(const uint8_t *in, size_t in_samples,
-				int16_t *out)
+				uint8_t *out)
 {
 	size_t i;
+	uint16_t *_out = (uint16_t *)out;
 
-	for (i = 0; i < in_samples; i++, in++, out++)
-		*out = ((int16_t)*in - 0x80) << 8;
+	for (i = 0; i < in_samples; i++, in++, _out++)
+		*_out = ((int16_t)*in - 0x80) << 8;
 }
 
 /* Converts from S24 to S16. */
 static void convert_s24le_to_s16le(const uint8_t *in, size_t in_samples,
-				   int16_t *out)
+				   uint8_t *out)
 {
 	size_t i;
 	int32_t *_in = (int32_t *)in;
+	uint16_t *_out = (uint16_t *)out;
 
-	for (i = 0; i < in_samples; i++, _in++, out++)
-		*out = (int16_t)((*_in & 0x00ffffff) >> 8);
+	for (i = 0; i < in_samples; i++, _in++, _out++)
+		*_out = (int16_t)((*_in & 0x00ffffff) >> 8);
 }
 
 /* Converts from S32 to S16. */
 static void convert_s32le_to_s16le(const uint8_t *in, size_t in_samples,
-				   int16_t *out)
+				   uint8_t *out)
 {
 	size_t i;
 	int32_t *_in = (int32_t *)in;
+	uint16_t *_out = (uint16_t *)out;
+
+	for (i = 0; i < in_samples; i++, _in++, _out++)
+		*_out = (int16_t)(*_in >> 16);
+}
+
+/* Converts from S16 to U8. */
+static void convert_s16le_to_u8(const uint8_t *in, size_t in_samples,
+				uint8_t *out)
+{
+	size_t i;
+	int16_t *_in = (int16_t *)in;
 
 	for (i = 0; i < in_samples; i++, _in++, out++)
-		*out = (int16_t)(*_in >> 16);
+		*out = (uint8_t)(*_in >> 8) + 128;
+}
+
+/* Converts from S16 to S24. */
+static void convert_s16le_to_s24le(const uint8_t *in, size_t in_samples,
+				   uint8_t *out)
+{
+	size_t i;
+	int16_t *_in = (int16_t *)in;
+	uint32_t *_out = (uint32_t *)out;
+
+	for (i = 0; i < in_samples; i++, _in++, _out++)
+		*_out = ((int32_t)*_in << 8);
+}
+
+/* Converts from S16 to S32. */
+static void convert_s16le_to_s32le(const uint8_t *in, size_t in_samples,
+				   uint8_t *out)
+{
+	size_t i;
+	int16_t *_in = (int16_t *)in;
+	uint32_t *_out = (uint32_t *)out;
+
+	for (i = 0; i < in_samples; i++, _in++, _out++)
+		*_out = ((int32_t)*_in << 16);
 }
 
 /*
@@ -149,9 +187,11 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	int rc;
 	unsigned i;
 
-	/* Only support S16LE output samples. */
-	if (out->format != SND_PCM_FORMAT_S16_LE) {
-		syslog(LOG_WARNING, "Invalid output format %d", in->format);
+	/* Only support conversion to/from S16LE samples. */
+	if (out->format != SND_PCM_FORMAT_S16_LE &&
+	    in->format != SND_PCM_FORMAT_S16_LE) {
+		syslog(LOG_WARNING, "Invalid conversion %d %d",
+		       in->format, out->format);
 		return NULL;
 	}
 
@@ -162,7 +202,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	conv->out_fmt = *out;
 
 	/* Set up sample format conversion. */
-	if (out->format != in->format) {
+	if (in->format != SND_PCM_FORMAT_S16_LE) {
 		conv->num_converters++;
 		syslog(LOG_DEBUG, "Convert from format %d to %d.",
 		       in->format, out->format);
@@ -181,7 +221,27 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			cras_fmt_conv_destroy(conv);
 			return NULL;
 		}
+	} else if (out->format != SND_PCM_FORMAT_S16_LE) {
+		conv->num_converters++;
+		syslog(LOG_DEBUG, "Convert from format %d to %d.",
+		       in->format, out->format);
+		switch (out->format) {
+		case SND_PCM_FORMAT_U8:
+			conv->sample_format_converter = convert_s16le_to_u8;
+			break;
+		case SND_PCM_FORMAT_S24_LE:
+			conv->sample_format_converter = convert_s16le_to_s24le;
+			break;
+		case SND_PCM_FORMAT_S32_LE:
+			conv->sample_format_converter = convert_s16le_to_s32le;
+			break;
+		default:
+			syslog(LOG_WARNING, "Invalid format %d", out->format);
+			cras_fmt_conv_destroy(conv);
+			return NULL;
+		}
 	}
+
 	/* Set up channel number conversion. */
 	if (in->num_channels != out->num_channels) {
 		conv->num_converters++;
@@ -306,11 +366,11 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	}
 	buffers[conv->num_converters] = out_buf;
 
-	/* Start with format conversion. */
-	if (conv->sample_format_converter != NULL) {
+	/* If the input format isn't S16_LE convert to it. */
+	if (conv->in_fmt.format != SND_PCM_FORMAT_S16_LE) {
 		conv->sample_format_converter(buffers[buf_idx],
 					      fr_in * conv->in_fmt.num_channels,
-					      (int16_t *)buffers[buf_idx + 1]);
+					      (uint8_t *)buffers[buf_idx + 1]);
 		buf_idx++;
 	}
 
@@ -342,6 +402,16 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				(int16_t *)out_buf,
 				&fr_out);
 	}
+
+	/* If the output format isn't S16_LE convert to it. */
+	if (conv->out_fmt.format != SND_PCM_FORMAT_S16_LE) {
+		conv->sample_format_converter(
+				buffers[buf_idx],
+				fr_in * conv->out_fmt.num_channels,
+				(uint8_t *)buffers[buf_idx + 1]);
+		buf_idx++;
+	}
+
 	return fr_out;
 }
 

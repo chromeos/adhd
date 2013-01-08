@@ -9,21 +9,6 @@ extern "C" {
 #include "cras_types.h"
 }
 
-// Don't yet support format conversion to anything but S16LE.
-TEST(FormatConverterTest,  InvalidParamsDifferentFormats) {
-  struct cras_audio_format in_fmt;
-  struct cras_audio_format out_fmt;
-  struct cras_fmt_conv *c;
-
-  in_fmt.format = SND_PCM_FORMAT_S16_LE;
-  out_fmt.format = SND_PCM_FORMAT_S32_LE;
-  in_fmt.num_channels = out_fmt.num_channels = 2;
-  in_fmt.frame_rate = 96000;
-  out_fmt.frame_rate = 48000;
-  c = cras_fmt_conv_create(&in_fmt, &out_fmt, 4096);
-  EXPECT_EQ(NULL, c);
-}
-
 // Don't yet support up/down mix.
 TEST(FormatConverterTest,  InvalidParamsUpDownMix) {
   struct cras_audio_format in_fmt;
@@ -400,6 +385,118 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
 	  EXPECT_EQ(((int16_t)(in_buff[i] - 128) << 8), out_buff[i]);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test 16 to 32 bit conversion.
+TEST(FormatConverterTest, ConvertS16LEToS32LE) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  int16_t *in_buff;
+  int32_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S32_LE;
+  in_fmt.num_channels = out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (unsigned int i = 0; i < buf_size; i++)
+    EXPECT_EQ(((int32_t)in_buff[i] << 16), out_buff[i]);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test 16 to 24 bit conversion.
+TEST(FormatConverterTest, ConvertS16LEToS24LE) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  int16_t *in_buff;
+  int32_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S24_LE;
+  in_fmt.num_channels = out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int32_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (unsigned int i = 0; i < buf_size; i++)
+	  EXPECT_EQ(((int32_t)in_buff[i] << 8), out_buff[i]);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test 16 to 8 bit conversion.
+TEST(FormatConverterTest, ConvertS16LEToU8) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  int16_t *in_buff;
+  uint8_t *out_buff;
+  const size_t buf_size = 4096;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_U8;
+  in_fmt.num_channels = 2;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (uint8_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (unsigned int i = 0; i < buf_size; i++)
+	  EXPECT_EQ((in_buff[i] >> 8) + 128, out_buff[i]);
 
   cras_fmt_conv_destroy(c);
 }
