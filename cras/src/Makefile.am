@@ -16,6 +16,7 @@ cras_SOURCES = \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
 	server/cras.c \
+	server/cras_a2dp_iodev.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -104,6 +105,7 @@ libasound_module_ctl_cras_la_SOURCES = alsa_plugin/ctl_cras.c
 libasound_module_ctl_cras_la_LIBADD = -lasound libcras.la
 
 check_PROGRAMS = \
+	a2dp_iodev_unittest \
 	alert_unittest \
 	alsa_io_unittest \
 	array_unittest \
@@ -155,6 +157,12 @@ alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 alsa_card_unittest_LDADD = -lgtest -lpthread
+
+a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc \
+	server/cras_a2dp_iodev.c
+a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
+a2dp_iodev_unittest_LDADD = -lgtest $(DBUS_LIBS)
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
