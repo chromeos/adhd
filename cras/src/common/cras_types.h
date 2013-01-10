@@ -24,6 +24,16 @@ enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_UNIFIED,
 };
 
+static inline int cras_stream_has_output(enum CRAS_STREAM_DIRECTION dir)
+{
+	return dir != CRAS_STREAM_INPUT;
+}
+
+static inline int cras_stream_has_input(enum CRAS_STREAM_DIRECTION dir)
+{
+	return dir != CRAS_STREAM_OUTPUT;
+}
+
 /* Types of audio streams. */
 enum CRAS_STREAM_TYPE {
 	CRAS_STREAM_TYPE_DEFAULT,

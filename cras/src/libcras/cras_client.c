@@ -417,7 +417,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
-	if (stream->direction != CRAS_STREAM_INPUT) {
+	if (cras_stream_has_output(stream->direction)) {
 		syslog(LOG_ERR, "Play data to input\n");
 		return 0;
 	}
@@ -735,7 +735,7 @@ static int stream_connected(struct client_stream *stream,
 		return msg->err;
 	}
 
-	if (stream->direction != CRAS_STREAM_OUTPUT) {
+	if (cras_stream_has_input(stream->direction)) {
 		rc = config_shm(&stream->capture_shm,
 				msg->input_shm_key,
 				msg->shm_max_size);
@@ -757,7 +757,7 @@ static int stream_connected(struct client_stream *stream,
 		}
 	}
 
-	if (stream->direction != CRAS_STREAM_INPUT) {
+	if (cras_stream_has_output(stream->direction)) {
 		rc = config_shm(&stream->play_shm,
 				msg->output_shm_key,
 				msg->shm_max_size);

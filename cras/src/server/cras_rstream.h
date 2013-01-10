@@ -192,13 +192,13 @@ static inline void cras_rstream_set_thread(struct cras_rstream *s,
 /* Checks if the stream uses output. */
 static inline int stream_has_output(const struct cras_rstream *s)
 {
-	return (s->direction != CRAS_STREAM_INPUT);
+	return cras_stream_has_output(s->direction);
 }
 
 /* Checks if the stream uses input. */
 static inline int stream_has_input(const struct cras_rstream *s)
 {
-	return (s->direction != CRAS_STREAM_OUTPUT);
+	return cras_stream_has_input(s->direction);
 }
 
 /* Requests data from the stream will request at least min_req frames. */

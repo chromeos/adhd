@@ -111,9 +111,9 @@ static int active_streams(const struct audio_thread *thread,
 	DL_FOREACH(thread->streams, curr) {
 		enum CRAS_STREAM_DIRECTION dir = curr->stream->direction;
 
-		if (dir != CRAS_STREAM_OUTPUT)
+		if (cras_stream_has_input(dir))
 			*in_active = *in_active + 1;
-		if (dir != CRAS_STREAM_INPUT)
+		if (cras_stream_has_output(dir))
 			*out_active = *out_active + 1;
 	}
 
