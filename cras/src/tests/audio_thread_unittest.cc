@@ -34,6 +34,7 @@ static fd_set select_out_fds;
 static unsigned int cras_iodev_config_params_for_streams_called;
 static unsigned int cras_iodev_config_params_for_streams_buffer_size;
 static unsigned int cras_iodev_config_params_for_streams_threshold;
+static unsigned int cras_iodev_set_format_called;
 
 static int cras_dsp_get_pipeline_called;
 static int cras_dsp_get_pipeline_ret;
@@ -116,6 +117,7 @@ class ReadStreamSuite : public testing::Test {
              sizeof(cras_dsp_pipeline_sink_buffer));
       cras_dsp_pipeline_run_called = 0;
       cras_dsp_pipeline_run_sample_count = 0;
+      cras_iodev_set_format_called = 0;
     }
 
     virtual void TearDown() {
@@ -194,6 +196,7 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   iodev_.thread = thread;
 
   thread_add_stream(thread, rstream_);
+  EXPECT_EQ(1, cras_iodev_set_format_called);
 
   frames_queued_ = -4;
   rc = unified_io(thread, &ts);
@@ -216,6 +219,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   iodev_.thread = thread;
 
   thread_add_stream(thread, rstream_);
+  EXPECT_EQ(1, cras_iodev_set_format_called);
 
   //  If no samples are present, it should sleep for cb_threshold frames.
   frames_queued_ = 0;
@@ -1161,6 +1165,13 @@ void cras_iodev_config_params(struct cras_iodev *iodev,
   cras_iodev_config_params_for_streams_called++;
   cras_iodev_config_params_for_streams_buffer_size = buffer_size;
   cras_iodev_config_params_for_streams_threshold = cb_threshold;
+}
+
+int cras_iodev_set_format(struct cras_iodev *iodev,
+                          struct cras_audio_format *fmt)
+{
+  cras_iodev_set_format_called++;
+  return 0;
 }
 
 //  From mixer.

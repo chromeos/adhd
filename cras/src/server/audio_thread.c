@@ -161,6 +161,15 @@ static int delete_stream(struct audio_thread *thread,
 	return 0;
 }
 
+/* open the device configured to play the format of the given stream. */
+static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
+{
+	struct cras_audio_format fmt;
+	cras_rstream_get_format(stream, &fmt);
+	cras_iodev_set_format(dev, &fmt);
+	return dev->open_dev(dev);
+}
+
 /* Handles the rm_stream message from the main thread.
  * If this is the last stream to be removed close the device.
  * Returns the number of streams still attached to the thread.
@@ -248,7 +257,7 @@ int thread_add_stream(struct audio_thread *thread,
 	/* If not already, open the device(s). */
 	if (stream_has_output(stream) && !odev->is_open(odev)) {
 		thread->sleep_correction_frames = 0;
-		rc = odev->open_dev(odev);
+		rc = init_device(odev, stream);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
 
@@ -261,7 +270,7 @@ int thread_add_stream(struct audio_thread *thread,
 	}
 	if (stream_has_input(stream) && !idev->is_open(idev)) {
 		thread->sleep_correction_frames = 0;
-		rc = idev->open_dev(idev);
+		rc = init_device(idev, stream);
 		if (rc < 0)
 			syslog(LOG_ERR, "Failed to open %s", idev->info.name);
 	}
@@ -836,6 +845,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	rc = possibly_read_audio(thread, delay, hw_level);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
+		idev->close_dev(idev);
 		return rc;
 	}
 	hw_level -= rc;
@@ -850,6 +860,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	rc = possibly_fill_audio(thread, delay, rc);
 	if (rc < 0) {
 		syslog(LOG_ERR, "write audio failed from audio thread");
+		odev->close_dev(odev);
 		return rc;
 	}
 	if (!idev)
