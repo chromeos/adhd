@@ -87,6 +87,15 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	int rc;
 	size_t buffer_frames, cb_threshold, min_cb_level;
 
+	/* check the aud_fd is valid. */
+	if (aud_fd < 0) {
+		syslog(LOG_ERR, "Invalid fd in stream connect.\n");
+		rc = -EINVAL;
+		goto reply_err;
+	}
+	/* When full, getting an error is preferable to blocking. */
+	cras_make_fd_nonblocking(aud_fd);
+
 	/* Find the iodev for this new connection and connect to it. */
 	rc = cras_get_iodev_for_stream_type(msg->stream_type,
 					    msg->direction,
@@ -138,13 +147,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		goto reply_err;
 	}
 
-	if (aud_fd < 0) {
-		syslog(LOG_ERR, "Invalid fd in stream connect.\n");
-		rc = -EINVAL;
-		goto reply_err;
-	}
-	/* When full, getting an error is preferable to blocking. */
-	cras_make_fd_nonblocking(aud_fd);
 	cras_rstream_set_audio_fd(stream, aud_fd);
 
 	/* Now can pass the stream to the thread. */
