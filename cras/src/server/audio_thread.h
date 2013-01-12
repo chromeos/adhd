@@ -11,6 +11,13 @@
 
 struct cras_iodev;
 
+/* Errors that can be returned from add_stream. */
+enum {
+	AUDIO_THREAD_ERROR_OTHER = -1,
+	AUDIO_THREAD_OUTPUT_DEV_ERROR = -2,
+	AUDIO_THREAD_INPUT_DEV_ERROR = -3,
+};
+
 /* Linked list of streams of audio from/to a client. */
 struct cras_io_stream {
 	struct cras_rstream *stream;
@@ -101,7 +108,8 @@ void audio_thread_destroy(struct audio_thread *thread);
  *    thread - a pointer to the audio thread.
  *    stream - the new stream to add.
  * Returns:
- *    zero on success, negative error otherwise.
+ *    zero on success, negative error from the AUDIO_THREAD enum above when an
+ *    the thread can't be added.
  */
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream);

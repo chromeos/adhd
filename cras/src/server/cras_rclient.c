@@ -96,6 +96,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
 
+try_again:
 	/* Find the iodev for this new connection and connect to it. */
 	rc = cras_get_iodev_for_stream_type(msg->stream_type,
 					    msg->direction,
@@ -165,7 +166,15 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	if (rc < 0) {
 		syslog(LOG_ERR, "Attach stream failed.\n");
 		DL_DELETE(client->streams, stream);
-		goto reply_err;
+		if (rc == AUDIO_THREAD_OUTPUT_DEV_ERROR) {
+			cras_iodev_list_rm_output(odev);
+			goto try_again;
+		} else if (rc == AUDIO_THREAD_INPUT_DEV_ERROR) {
+			cras_iodev_list_rm_input(idev);
+			goto try_again;
+		} else {
+			goto reply_err;
+		}
 	}
 
 	/* Tell client about the stream setup. */

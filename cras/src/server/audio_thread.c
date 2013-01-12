@@ -31,6 +31,22 @@ static inline int streams_attached(const struct audio_thread *thread)
 	return thread->streams != NULL;
 }
 
+static inline int device_active(const struct audio_thread *thread)
+{
+	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *idev = thread->input_dev;
+
+	if (!odev && !idev)
+		return 0;
+
+	if (odev && !odev->is_open(odev))
+		return 0;
+	if (idev && !idev->is_open(idev))
+		return 0;
+
+	return 1;
+}
+
 /* Finds the lowest latency stream attached to the thread. */
 static struct cras_io_stream *
 get_min_latency_stream(const struct audio_thread *thread)
@@ -253,14 +269,16 @@ int thread_add_stream(struct audio_thread *thread,
 
 	rc = append_stream(thread, stream);
 	if (rc < 0)
-		return rc;
+		return AUDIO_THREAD_ERROR_OTHER;
 
 	/* If not already, open the device(s). */
 	if (stream_has_output(stream) && !odev->is_open(odev)) {
 		thread->sleep_correction_frames = 0;
 		rc = init_device(odev, stream);
-		if (rc < 0)
+		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
+			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
+		}
 
 		/* Give some buffer for the output for unified IO, need time to
 		 * read samples and fill playback buffer before hitting
@@ -272,8 +290,10 @@ int thread_add_stream(struct audio_thread *thread,
 	if (stream_has_input(stream) && !idev->is_open(idev)) {
 		thread->sleep_correction_frames = 0;
 		rc = init_device(idev, stream);
-		if (rc < 0)
+		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", idev->info.name);
+			return AUDIO_THREAD_INPUT_DEV_ERROR;
+		}
 	}
 
 	min_latency = get_min_latency_stream(thread);
@@ -877,7 +897,7 @@ static void *audio_io_thread(void *arg)
 
 		wait_ts = NULL;
 
-		if (streams_attached(thread)) {
+		if (streams_attached(thread) && device_active(thread)) {
 			/* device opened */
 			err = unified_io(thread, &ts);
 			if (err < 0)

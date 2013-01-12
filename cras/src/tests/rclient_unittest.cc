@@ -42,6 +42,8 @@ static unsigned int audio_thread_destroy_called;
 static int audio_thread_add_stream_return;
 static unsigned int audio_thread_add_stream_called;
 static unsigned int audio_thread_rm_stream_called;
+static unsigned int cras_iodev_list_rm_input_called;
+static unsigned int cras_iodev_list_rm_output_called;
 
 void ResetStubData() {
   get_iodev_retval = 0;
@@ -69,6 +71,8 @@ void ResetStubData() {
   audio_thread_add_stream_return = 0;
   audio_thread_add_stream_called = 0;
   audio_thread_rm_stream_called = 0;
+  cras_iodev_list_rm_output_called = 0;
+  cras_iodev_list_rm_input_called = 0;
 }
 
 namespace {
@@ -188,13 +192,13 @@ TEST_F(RClientMessagesSuite, IoDevGetThreadError) {
   EXPECT_EQ(audio_thread_add_stream_called, audio_thread_rm_stream_called);
 }
 
-TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
+TEST_F(RClientMessagesSuite, AudThreadAttachFailRetry) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
   get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
-  audio_thread_add_stream_return = -1;
+  audio_thread_add_stream_return = AUDIO_THREAD_OUTPUT_DEV_ERROR;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
   EXPECT_EQ(0, rc);
@@ -204,6 +208,29 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(1, cras_rstream_destroy_called);
+  EXPECT_EQ(1, cras_iodev_list_rm_output_called);
+  EXPECT_EQ(audio_thread_create_called, audio_thread_destroy_called);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_stream_called);
+}
+
+TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
+  struct cras_client_stream_connected out_msg;
+  int rc;
+
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
+  cras_rstream_create_stream_out = rstream_;
+  audio_thread_add_stream_return = AUDIO_THREAD_ERROR_OTHER;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
+  EXPECT_EQ(0, rc);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_, out_msg.stream_id);
+  EXPECT_NE(0, out_msg.err);
+  EXPECT_EQ(1, cras_rstream_destroy_called);
+  EXPECT_EQ(0, cras_iodev_list_rm_output_called);
   EXPECT_EQ(audio_thread_create_called, audio_thread_destroy_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(0, audio_thread_rm_stream_called);
@@ -449,8 +476,13 @@ void audio_thread_destroy(audio_thread* thread) {
 
 int audio_thread_add_stream(audio_thread* thread,
                             cras_rstream* stream) {
+  int ret;
+
   audio_thread_add_stream_called++;
-  return audio_thread_add_stream_return;
+  ret = audio_thread_add_stream_return;
+  if (ret)
+    audio_thread_add_stream_return = AUDIO_THREAD_ERROR_OTHER;
+  return ret;
 }
 
 int audio_thread_rm_stream(audio_thread* thread,
@@ -507,6 +539,16 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 
 int cras_iodev_move_stream_type(uint32_t type, uint32_t index)
 {
+  return 0;
+}
+
+int cras_iodev_list_rm_output(struct cras_iodev *output) {
+  cras_iodev_list_rm_output_called++;
+  return 0;
+}
+
+int cras_iodev_list_rm_input(struct cras_iodev *input) {
+  cras_iodev_list_rm_input_called++;
   return 0;
 }
 

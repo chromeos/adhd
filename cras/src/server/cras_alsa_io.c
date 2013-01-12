@@ -767,11 +767,11 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	cras_alsa_jack_list_destroy(aio->jack_list);
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		rc = cras_iodev_list_rm_input(iodev);
-	else {
+	else
 		rc = cras_iodev_list_rm_output(iodev);
-	}
+
 	free_alsa_iodev_resources(aio);
-	if (rc == 0)
+	if (rc != -EBUSY)
 		free(iodev);
 }
 
