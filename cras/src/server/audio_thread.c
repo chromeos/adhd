@@ -722,7 +722,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		cras_shm_get_writeable_frames(shm, &write_limit);
 
 		output_shm = cras_rstream_output_shm(rstream);
-		if (output_shm)
+		if (output_shm->area)
 			cras_iodev_set_playback_timestamp(
 					idev->format->frame_rate,
 					delay,

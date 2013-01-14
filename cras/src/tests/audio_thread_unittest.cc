@@ -35,6 +35,7 @@ static unsigned int cras_iodev_config_params_for_streams_called;
 static unsigned int cras_iodev_config_params_for_streams_buffer_size;
 static unsigned int cras_iodev_config_params_for_streams_threshold;
 static unsigned int cras_iodev_set_format_called;
+static unsigned int cras_iodev_set_playback_timestamp_called;
 
 static int cras_dsp_get_pipeline_called;
 static int cras_dsp_get_pipeline_ret;
@@ -98,6 +99,7 @@ class ReadStreamSuite : public testing::Test {
       cras_dsp_pipeline_apply_called = 0;
       cras_dsp_pipeline_apply_sample_count = 0;
       cras_iodev_set_format_called = 0;
+      cras_iodev_set_playback_timestamp_called = 0;
     }
 
     virtual void TearDown() {
@@ -206,6 +208,7 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   EXPECT_EQ(-4, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
+  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -238,6 +241,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(1, thread->sleep_correction_frames);
   EXPECT_EQ(1, dev_running_called_);
+  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -268,6 +272,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataDrop) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -340,6 +345,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
@@ -1270,6 +1276,7 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 void cras_iodev_set_playback_timestamp(size_t frame_rate,
                                        size_t frames,
                                        struct timespec *ts) {
+  cras_iodev_set_playback_timestamp_called++;
 }
 
 void cras_iodev_set_capture_timestamp(size_t frame_rate,
