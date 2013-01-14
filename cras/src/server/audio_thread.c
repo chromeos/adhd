@@ -204,11 +204,8 @@ int thread_remove_stream(struct audio_thread *thread,
 
 	if (!in_active) {
 		/* No more streams, close the dev. */
-		if (idev && idev->is_open(idev)) {
+		if (idev && idev->is_open(idev))
 			idev->close_dev(idev);
-			thread->input_dev = NULL;
-			idev->thread = NULL;
-		}
 	} else {
 		struct cras_io_stream *min_latency;
 		min_latency = get_min_latency_stream(thread);
@@ -219,11 +216,8 @@ int thread_remove_stream(struct audio_thread *thread,
 	}
 	if (!out_active) {
 		/* No more streams, close the dev. */
-		if (odev && odev->is_open(odev)) {
+		if (odev && odev->is_open(odev))
 			odev->close_dev(odev);
-			thread->output_dev = NULL;
-			odev->thread = NULL;
-		}
 	} else {
 		struct cras_io_stream *min_latency;
 		min_latency = get_min_latency_stream(thread);
@@ -854,11 +848,11 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		hw_level += rc;
 
 not_enough:
+	if (!device_active(thread))
+		return -EIO;
+
 	 /* idev could have been closed for error. */
 	master_dev = thread->input_dev ? : thread->output_dev;
-
-	if (!master_dev)
-		return -EIO;
 
 	to_sleep = cras_iodev_sleep_frames(master_dev, hw_level) +
 		   thread->remaining_target +
