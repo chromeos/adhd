@@ -80,6 +80,7 @@ static std::vector<struct cras_alsa_mixer_output *>
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static size_t cras_alsa_mixer_default_volume_curve_called;
 static cras_volume_curve *fake_curve;
+static cras_audio_format *fake_format;
 static size_t cras_iodev_post_message_to_playback_thread_called;
 static size_t cras_iodev_init_called;
 static size_t cras_iodev_deinit_called;
@@ -172,6 +173,31 @@ TEST(AlsaIoInit, InitializePlayback) {
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
+TEST(AlsaIoInit, OpenPlayback) {
+  struct cras_iodev *iodev;
+  struct cras_audio_format *format = NULL;
+
+  ResetStubData();
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            fake_mixer, NULL, 7,
+                                            CRAS_STREAM_OUTPUT);
+
+  cras_iodev_set_format(iodev, format);
+  fake_curve =
+      static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+  fake_curve->get_dBFS = fake_get_dBFS;
+
+  iodev->open_dev(iodev);
+  EXPECT_EQ(1, cras_alsa_open_called);
+  EXPECT_EQ(1, sys_set_volume_limits_called);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(0, cras_alsa_start_called);
+
+  alsa_iodev_destroy(iodev);
+  free(fake_curve);
+  free(fake_format);
+}
+
 TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
@@ -250,6 +276,32 @@ TEST(AlsaIoInit, InitializeCapture) {
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
+TEST(AlsaIoInit, OpenCapture) {
+  struct cras_iodev *iodev;
+  struct cras_audio_format *format = NULL;
+
+  ResetStubData();
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+					    fake_mixer, NULL, 0,
+					    CRAS_STREAM_INPUT);
+
+  cras_iodev_set_format(iodev, format);
+
+  iodev->open_dev(iodev);
+  EXPECT_EQ(1, cras_alsa_open_called);
+  EXPECT_EQ(1, cras_alsa_mixer_get_minimum_capture_gain_called);
+  EXPECT_EQ(1, cras_alsa_mixer_get_maximum_capture_gain_called);
+  EXPECT_EQ(1, sys_set_capture_gain_limits_called);
+  EXPECT_EQ(1, sys_get_capture_gain_called);
+  EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
+  EXPECT_EQ(1, sys_get_capture_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
+  EXPECT_EQ(1, cras_alsa_start_called);
+
+  alsa_iodev_destroy(iodev);
+  free(fake_format);
 }
 
 // Test that system settins aren't touched if no streams active.
@@ -775,6 +827,14 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
+}
+
+int cras_iodev_set_format(struct cras_iodev *iodev,
+			  struct cras_audio_format *fmt)
+{
+  fake_format = (struct cras_audio_format *)malloc(sizeof(*fake_format));
+  iodev->format = fake_format;
+  return 0;
 }
 
 audio_thread* audio_thread_create(cras_iodev* iodev) {
