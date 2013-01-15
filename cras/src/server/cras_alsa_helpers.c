@@ -25,6 +25,7 @@ static const size_t test_sample_rates[] = {
 	32000,
 	96000,
 	22050,
+	16000,
 	8000,
 	4000,
 	192000,
