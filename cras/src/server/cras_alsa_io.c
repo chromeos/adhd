@@ -166,8 +166,6 @@ static int open_dev(struct cras_iodev *iodev)
 	if (rc < 0)
 		return rc;
 
-	init_device_settings(aio);
-
 	rc = cras_alsa_set_hwparams(handle, iodev->format,
 				    &iodev->buffer_size);
 	if (rc < 0) {
@@ -186,7 +184,9 @@ static int open_dev(struct cras_iodev *iodev)
 		return rc;
 	}
 
+	/* Assign pcm handle then initialize device settings. */
 	aio->handle = handle;
+	init_device_settings(aio);
 
 	/* Capture starts right away, playback will wait for samples. */
 	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE)
