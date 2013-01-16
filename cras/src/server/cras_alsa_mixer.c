@@ -218,6 +218,7 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	static const char * const output_names[] = {
 		"Headphone",
 		"HDMI",
+		"IEC958",
 		"Speaker",
 	};
 	/* Names of controls for capture gain/attenuation and mute. */

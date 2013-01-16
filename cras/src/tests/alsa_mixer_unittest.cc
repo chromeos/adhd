@@ -594,13 +594,15 @@ class AlsaMixerOutputs : public testing::Test {
         reinterpret_cast<snd_mixer_elem_t *>(3),  // Headphone
         reinterpret_cast<snd_mixer_elem_t *>(4),  // Speaker
         reinterpret_cast<snd_mixer_elem_t *>(5),  // HDMI
-        reinterpret_cast<snd_mixer_elem_t *>(6),  // Mic Boost
-        reinterpret_cast<snd_mixer_elem_t *>(7),  // Capture
+        reinterpret_cast<snd_mixer_elem_t *>(6),  // IEC958
+        reinterpret_cast<snd_mixer_elem_t *>(7),  // Mic Boost
+        reinterpret_cast<snd_mixer_elem_t *>(8),  // Capture
       };
       int element_playback_volume[] = {
         1,
         1,
         1,
+        0,
         0,
         1,
         1,
@@ -610,6 +612,7 @@ class AlsaMixerOutputs : public testing::Test {
         1,
         1,
         0,
+        1,
         1,
         1,
       };
@@ -633,6 +636,9 @@ class AlsaMixerOutputs : public testing::Test {
         "HDMI",
         "HDMI",
         "HDMI",
+        "IEC958",
+        "IEC958",
+        "IEC958",
 	"Capture",
 	"Capture",
 	"Digital Capture",
@@ -677,11 +683,11 @@ class AlsaMixerOutputs : public testing::Test {
       EXPECT_EQ(1, snd_mixer_load_called);
       EXPECT_EQ(0, snd_mixer_close_called);
       EXPECT_EQ(ARRAY_SIZE(elements) + 1, snd_mixer_elem_next_called);
-      EXPECT_EQ(5, snd_mixer_selem_has_playback_volume_called);
-      EXPECT_EQ(4, snd_mixer_selem_has_playback_switch_called);
+      EXPECT_EQ(6, snd_mixer_selem_has_playback_volume_called);
+      EXPECT_EQ(5, snd_mixer_selem_has_playback_switch_called);
       EXPECT_EQ(2, snd_mixer_selem_has_capture_volume_called);
       EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
-      EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
+      EXPECT_EQ(5, cras_card_config_get_volume_curve_for_control_called);
     }
 
     virtual void TearDown() {
@@ -711,12 +717,12 @@ TEST_F(AlsaMixerOutputs, CheckNoOutputsForDeviceOne) {
   EXPECT_EQ(0, output_callback_called_);
 }
 
-TEST_F(AlsaMixerOutputs, CheckThreeOutputsForDeviceZero) {
+TEST_F(AlsaMixerOutputs, CheckFourOutputsForDeviceZero) {
   cras_alsa_mixer_list_outputs(cras_mixer_,
                                0,
                                AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
-  EXPECT_EQ(3, output_callback_called_);
+  EXPECT_EQ(4, output_callback_called_);
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindOutputByNameNoMatch) {
@@ -727,7 +733,7 @@ TEST_F(AlsaMixerOutputs, CheckFindOutputByNameNoMatch) {
                                                  0,  // device_index
                                                  "Headphone Jack");
   EXPECT_EQ(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
-  EXPECT_EQ(3, snd_mixer_selem_get_name_called);
+  EXPECT_EQ(4, snd_mixer_selem_get_name_called);
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindOutputByName) {
@@ -801,8 +807,8 @@ TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
                                0,
                                AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
-  EXPECT_EQ(3, output_callback_called_);
-  EXPECT_EQ(3, output_called_values_.size());
+  EXPECT_EQ(4, output_callback_called_);
+  EXPECT_EQ(4, output_called_values_.size());
 
   rc = cras_alsa_mixer_set_output_active_state(output_called_values_[0], 0);
   ASSERT_EQ(0, rc);

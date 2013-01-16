@@ -421,6 +421,7 @@ static void set_output_prio(struct alsa_output_node *node, const char *name)
 		{ "Speaker", 1, 1 },
 		{ "Headphone", 3, 0 },
 		{ "HDMI", 2, 0 },
+		{ "IEC958", 2, 0},
 	};
 	unsigned i;
 
