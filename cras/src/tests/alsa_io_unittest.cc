@@ -806,7 +806,7 @@ void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable) {
 
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 {
-  return NULL;
+  return "";
 }
 
 struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(

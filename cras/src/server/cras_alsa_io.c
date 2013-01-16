@@ -427,6 +427,7 @@ static void set_output_prio(struct alsa_output_node *node, const char *name)
 		{ "Headphone", 3, 0 },
 		{ "HDMI", 2, 0 },
 		{ "IEC958", 2, 0},
+		{ "(default)", 0, 1},
 	};
 	unsigned i;
 
@@ -446,6 +447,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 {
 	struct alsa_io *aio;
 	struct alsa_output_node *output;
+	const char *name;
 
 	aio = (struct alsa_io *)callback_arg;
 	if (aio == NULL) {
@@ -460,9 +462,11 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	output->mixer_output = cras_output;
 
 	if (output->mixer_output)
-		set_output_prio(
-			output,
-			cras_alsa_mixer_get_output_name(output->mixer_output));
+		name = cras_alsa_mixer_get_output_name(output->mixer_output);
+	else
+		name = "(default)";
+	set_output_prio(output, name);
+	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 
 	DL_APPEND(aio->base.output_nodes, &output->base);
 }
@@ -532,6 +536,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 {
 	struct alsa_io *aio;
 	struct alsa_output_node *node, *best_node;
+	const char *jack_name;
 
 	if (arg == NULL)
 		return;
@@ -546,9 +551,12 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
-				aio->mixer, cras_alsa_jack_get_name(jack));
+				aio->mixer, jack_name);
 		node->jack = jack;
+		strncpy(node->base.name, jack_name,
+			sizeof(node->base.name) - 1);
 		DL_APPEND(aio->base.output_nodes, &node->base);
 	}
 
@@ -584,6 +592,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	struct alsa_io *aio;
 	struct alsa_input_node *node;
 	struct cras_ionode *plugged_node;
+	const char *jack_name;
 
 	if (arg == NULL)
 		return;
@@ -595,9 +604,11 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack = jack;
 		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
-
+		strncpy(node->base.name, jack_name,
+			sizeof(node->base.name) - 1);
 		DL_APPEND(aio->base.input_nodes, &node->base);
 	}
 

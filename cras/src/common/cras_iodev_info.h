@@ -10,6 +10,7 @@
 #include <sys/time.h>
 
 #define CRAS_IODEV_NAME_BUFFER_SIZE 64
+#define CRAS_NODE_NAME_BUFFER_SIZE 64
 
 /* Identifying information about an IO device.
  *    idx - iodev index.

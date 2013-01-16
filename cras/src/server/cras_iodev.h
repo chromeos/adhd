@@ -31,6 +31,7 @@ struct audio_thread;
 struct cras_ionode {
 	int plugged;
 	unsigned priority;
+	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	struct cras_ionode *prev, *next;
 };
 
