@@ -22,6 +22,18 @@ struct cras_rstream;
 struct cras_audio_format;
 struct audio_thread;
 
+/* Holds an output/input node for this device.  An ionode is a control that
+ * can be switched on and off such as headphones or speakers.
+ * Members:
+ *    plugged - true if the device is plugged.
+ *    priority - higher is better.
+ */
+struct cras_ionode {
+	int plugged;
+	unsigned priority;
+	struct cras_ionode *prev, *next;
+};
+
 /* An input or output device, that can have audio routed to/from it.
  * set_volume - Function to call if the system volume changes.
  * set_mute - Function to call if the system mute state changes.
@@ -39,6 +51,10 @@ struct audio_thread;
  * dev_running - Checks if the device is playing or recording.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
+ * output_nodes - The output nodes available for this device.
+ * active_output - The current node being used for playback.
+ * input_nodes - The input nodes available for this device.
+ * active_input - The current node being used for capture.
  * direction - Input or Output.
  * supported_rates - Array of sample rates supported by device 0-terminated.
  * supported_channel_counts - List of number of channels supported by device.
@@ -67,6 +83,10 @@ struct cras_iodev {
 	int (*dev_running)(const struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_iodev_info info;
+	struct cras_ionode *output_nodes;
+	struct cras_ionode *active_output;
+	struct cras_ionode *input_nodes;
+	struct cras_ionode *active_input;
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates;
 	size_t *supported_channel_counts;

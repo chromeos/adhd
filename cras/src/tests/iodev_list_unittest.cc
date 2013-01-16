@@ -59,6 +59,10 @@ class IoDevTestSuite : public testing::Test {
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
       d1_.info.plugged = 0;
+      d1_.output_nodes = NULL;
+      d1_.active_output = NULL;
+      d1_.input_nodes = NULL;
+      d1_.active_input = NULL;
       strcpy(d1_.info.name, "d1");
       d1_.supported_rates = sample_rates_;
       d1_.supported_channel_counts = channel_counts_;
@@ -73,6 +77,10 @@ class IoDevTestSuite : public testing::Test {
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
       d2_.info.plugged = 0;
+      d2_.output_nodes = NULL;
+      d2_.active_output = NULL;
+      d2_.input_nodes = NULL;
+      d2_.active_input = NULL;
       strcpy(d2_.info.name, "d2");
       d2_.supported_rates = sample_rates_;
       d2_.supported_channel_counts = channel_counts_;
@@ -87,6 +95,10 @@ class IoDevTestSuite : public testing::Test {
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
       d3_.info.plugged = 0;
+      d3_.output_nodes = NULL;
+      d3_.active_output = NULL;
+      d3_.input_nodes = NULL;
+      d3_.active_input = NULL;
       strcpy(d3_.info.name, "d3");
       d3_.supported_rates = sample_rates_;
       d3_.supported_channel_counts = channel_counts_;

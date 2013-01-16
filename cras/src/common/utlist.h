@@ -120,6 +120,16 @@ do {                                                                           \
 				break;                                         \
 	} while (0)
 
+#define LL_SEARCH_SCALAR_WITH_CAST(head, out, nout, field, val)	               \
+	do {                                                                   \
+		LL_FOREACH(head, out) {                                        \
+			(nout) = (__typeof(nout))out;                          \
+			if ((nout)->field == (val))                            \
+				break;                                         \
+			(nout) = 0;					       \
+		}                                                              \
+	} while (0)
+
 #define LL_SEARCH(head, out, elt, cmp)                                         \
 	do {                                                                   \
 		LL_FOREACH(head, out)                                          \
@@ -196,6 +206,7 @@ do {                                                                           \
 
 /* These are identical to their singly-linked list counterparts. */
 #define DL_SEARCH_SCALAR LL_SEARCH_SCALAR
+#define DL_SEARCH_SCALAR_WITH_CAST LL_SEARCH_SCALAR_WITH_CAST
 #define DL_SEARCH LL_SEARCH
 
 #endif /* UTLIST_H */
