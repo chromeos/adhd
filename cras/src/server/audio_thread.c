@@ -273,13 +273,6 @@ int thread_add_stream(struct audio_thread *thread,
 			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
-
-		/* Give some buffer for the output for unified IO, need time to
-		 * read samples and fill playback buffer before hitting
-		 * underflow.
-		 */
-		if (odev && idev)
-			fill_odev_zeros(odev, odev->cb_threshold);
 	}
 	if (stream_has_input(stream) && !idev->is_open(idev)) {
 		thread->sleep_correction_frames = 0;
@@ -837,6 +830,18 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	rc = odev->frames_queued(odev);
 	if (rc < 0)
 		return rc;
+
+	if (rc == 0) {
+		/* No samples.
+		 * Give some buffer for the output for unified IO, need time to
+		 * read samples and fill playback buffer before hitting
+		 * underflow.
+		 */
+		if (odev && idev) {
+			fill_odev_zeros(odev, odev->cb_threshold);
+			rc += odev->cb_threshold;
+		}
+	}
 
 	rc = possibly_fill_audio(thread, delay, rc);
 	if (rc < 0) {
