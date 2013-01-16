@@ -55,6 +55,7 @@ struct cras_attached_client_info {
 };
 
 #define CRAS_MAX_IODEVS 20
+#define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
 
 /* The server state that is shared with clients.
@@ -74,6 +75,10 @@ struct cras_attached_client_info {
  *    num_input_devs - Number of available input devices.
  *    output_devs - Output audio devices currently attached.
  *    input_devs - Input audio devices currently attached.
+ *    num_output_nodes - Number of available output nodes.
+ *    num_input_nodes - Number of available input nodes.
+ *    output_nodes - Output nodes currently attached.
+ *    input_nodes - Input nodes currently attached.
  *    num_attached_clients - Number of clients attached to server.
  *    client_info - List of first 20 attached clients.
  *    update_count - Incremented twice each time the struct is updated.  Odd
@@ -83,7 +88,7 @@ struct cras_attached_client_info {
  *    last_active_stream_time - Time the last stream was removed.  Can be used
  *        to determine how long audio has been idle.
  */
-#define CRAS_SERVER_STATE_VERSION 0
+#define CRAS_SERVER_STATE_VERSION 1
 struct cras_server_state {
 	unsigned state_version;
 	size_t volume;
@@ -101,6 +106,10 @@ struct cras_server_state {
 	unsigned num_input_devs;
 	struct cras_iodev_info output_devs[CRAS_MAX_IODEVS];
 	struct cras_iodev_info input_devs[CRAS_MAX_IODEVS];
+	unsigned num_output_nodes;
+	unsigned num_input_nodes;
+	struct cras_ionode_info output_nodes[CRAS_MAX_IONODES];
+	struct cras_ionode_info input_nodes[CRAS_MAX_IONODES];
 	unsigned num_attached_clients;
 	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
 	unsigned update_count;

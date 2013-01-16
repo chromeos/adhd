@@ -149,6 +149,53 @@ static void fill_dev_list(struct iodev_list *list,
 	}
 }
 
+/* Fills an ionode_info array from the iodev_list. */
+static int fill_output_node_list(struct iodev_list *list,
+				 struct cras_ionode_info *node_info,
+				 size_t out_size)
+{
+	int i = 0;
+	struct cras_iodev *dev;
+	struct cras_ionode *node;
+	DL_FOREACH(list->iodevs, dev) {
+		DL_FOREACH(dev->output_nodes, node) {
+			node_info->iodev_idx = dev->info.idx;
+			node_info->ionode_idx = node->idx;
+			node_info->priority = node->priority;
+			node_info->plugged = node->plugged;
+			strcpy(node_info->name, node->name);
+			node_info++;
+			i++;
+			if (i == out_size)
+				return i;
+		}
+	}
+	return i;
+}
+
+static int fill_input_node_list(struct iodev_list *list,
+				struct cras_ionode_info *node_info,
+				size_t out_size)
+{
+	int i = 0;
+	struct cras_iodev *dev;
+	struct cras_ionode *node;
+	DL_FOREACH(list->iodevs, dev) {
+		DL_FOREACH(dev->input_nodes, node) {
+			node_info->iodev_idx = dev->info.idx;
+			node_info->ionode_idx = node->idx;
+			node_info->priority = node->priority;
+			node_info->plugged = node->plugged;
+			strcpy(node_info->name, node->name);
+			node_info++;
+			i++;
+			if (i == out_size)
+				return i;
+		}
+	}
+	return i;
+}
+
 /* Copies the info for each device in the list to "list_out". */
 static int get_dev_list(struct iodev_list *list,
 			struct cras_iodev_info **list_out)
@@ -395,6 +442,13 @@ void cras_iodev_list_update_clients()
 	state->num_input_devs = inputs.size;
 	fill_dev_list(&outputs, &state->output_devs[0], CRAS_MAX_IODEVS);
 	fill_dev_list(&inputs, &state->input_devs[0], CRAS_MAX_IODEVS);
+
+	state->num_output_nodes = fill_output_node_list(&outputs,
+							&state->output_nodes[0],
+							CRAS_MAX_IONODES);
+	state->num_input_nodes = fill_input_node_list(&inputs,
+						      &state->input_nodes[0],
+						      CRAS_MAX_IONODES);
 
 	cras_system_state_update_complete();
 }

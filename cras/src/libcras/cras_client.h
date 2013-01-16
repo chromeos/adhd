@@ -123,29 +123,35 @@ int cras_client_stop(struct cras_client *client);
  * Args:
  *    client - The client to stop (from cras_client_create).
  *    devs - Array that will be filled with device info.
- *    max_devs - Maximum number of devices to put in the array.
+ *    nodes - Array that will be filled with node info.
+ *    *num_devs - Maximum number of devices to put in the array.
+ *    *num_nodes - Maximum number of nodes to put in the array.
  * Returns:
- *    The number of devices available.  This may be more that max_devs passed
- *    in, this indicates that all of the iodev_info wouldn't fit in the provided
- *    array.
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ *    *num_devs is set to the actual number of devices info filled.
+ *    *num_nodes is set to the actual number of nodes info filled.
  */
 int cras_client_get_output_devices(const struct cras_client *client,
 				   struct cras_iodev_info *devs,
-				   size_t max_devs);
+				   struct cras_ionode_info *nodes,
+				   size_t *num_devs, size_t *num_nodes);
 
 /* Returns the current list of input devices.
  * Args:
  *    client - The client to stop (from cras_client_create).
  *    devs - Array that will be filled with device info.
- *    max_devs - Maximum number of devices to put in the array.
+ *    nodes - Array that will be filled with node info.
+ *    *num_devs - Maximum number of devices to put in the array.
+ *    *num_nodes - Maximum number of nodes to put in the array.
  * Returns:
- *    The number of devices available.  This may be more that max_devs passed
- *    in, this indicates that all of the iodev_info wouldn't fit in the provided
- *    array.
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ *    *num_devs is set to the actual number of devices info filled.
+ *    *num_nodes is set to the actual number of nodes info filled.
  */
 int cras_client_get_input_devices(const struct cras_client *client,
 				  struct cras_iodev_info *devs,
-				  size_t max_devs);
+				  struct cras_ionode_info *nodes,
+				  size_t *num_devs, size_t *num_nodes);
 
 /* Returns the current list of clients attached to the server.
  * Args:

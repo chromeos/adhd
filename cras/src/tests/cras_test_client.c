@@ -19,6 +19,7 @@
 #define PLAYBACK_BUFFER_SIZE (4800)
 
 static const size_t MAX_IODEVS = 10; /* Max devices to print out. */
+static const size_t MAX_IONODES = 20; /* Max ionodes to print out. */
 static const size_t MAX_ATTACHED_CLIENTS = 10; /* Max clients to print out. */
 
 static uint8_t *file_buf;
@@ -151,21 +152,48 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 		       devs[i].name);
 }
 
+static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)
+{
+	unsigned i;
+
+	printf("\tID\tPriority\tPlugged\t\tName\n");
+	for (i = 0; i < num_nodes; i++)
+		printf("\t%zu:%zu\t%zu\t\t%s\t\t%s\n",
+		       nodes[i].iodev_idx,
+		       nodes[i].ionode_idx,
+		       nodes[i].priority,
+		       nodes[i].plugged ? "yes" : "no",
+		       nodes[i].name);
+}
+
 static void print_device_lists(struct cras_client *client)
 {
 	struct cras_iodev_info devs[MAX_IODEVS];
-	int num_devs;
+	struct cras_ionode_info nodes[MAX_IONODES];
+	size_t num_devs, num_nodes;
+	int rc;
 
-	num_devs = cras_client_get_output_devices(client, devs, MAX_IODEVS);
-	if (num_devs < 0)
+	num_devs = MAX_IODEVS;
+	num_nodes = MAX_IONODES;
+	rc = cras_client_get_output_devices(client, devs, nodes, &num_devs,
+					    &num_nodes);
+	if (rc < 0)
 		return;
 	printf("Output Devices:\n");
 	print_dev_info(devs, num_devs);
-	num_devs = cras_client_get_input_devices(client, devs, MAX_IODEVS);
+	printf("Output Nodes:\n");
+	print_node_info(nodes, num_nodes);
+
+	num_devs = MAX_IODEVS;
+	num_nodes = MAX_IONODES;
+	rc = cras_client_get_input_devices(client, devs, nodes, &num_devs,
+					   &num_nodes);
 	if (num_devs < 0)
 		return;
 	printf("Input Devices:\n");
 	print_dev_info(devs, num_devs);
+	printf("Input Nodes:\n");
+	print_node_info(nodes, num_nodes);
 }
 
 static void print_attached_client_list(struct cras_client *client)

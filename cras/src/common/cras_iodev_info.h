@@ -28,4 +28,19 @@ struct cras_iodev_info {
 	char name[CRAS_IODEV_NAME_BUFFER_SIZE];
 };
 
+/* Identifying information about an ionode on an iodev.
+ *    iodev_idx - Index of the device this node belongs.
+ *    ionode_idx - Index of this node on the device.
+ *    priority - Priority of this node. Higher is better.
+ *    plugged - Set true if this node is known to be plugged in.
+ *    name - Name displayed to the user.
+ */
+struct cras_ionode_info {
+	size_t iodev_idx;
+	size_t ionode_idx;
+	size_t priority;
+	int plugged;
+	char name[CRAS_NODE_NAME_BUFFER_SIZE];
+};
+
 #endif /* CRAS_IODEV_INFO_H_ */

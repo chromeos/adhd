@@ -1735,48 +1735,60 @@ int cras_client_stop(struct cras_client *client)
 
 int cras_client_get_output_devices(const struct cras_client *client,
 				   struct cras_iodev_info *devs,
-				   size_t max_devs)
+				   struct cras_ionode_info *nodes,
+				   size_t *num_devs, size_t *num_nodes)
 {
 	const struct cras_server_state *state;
-	unsigned num_devs, version;
+	unsigned avail_devs, avail_nodes, version;
 
 	if (!client)
 		return -EINVAL;
 	state = client->server_state;
 	if (!state)
-		return 0;
+		return -EINVAL;
 
 read_outputs_again:
 	version = begin_server_state_read(state);
-	num_devs = min(max_devs, state->num_output_devs);
-	memcpy(devs, state->output_devs, num_devs * sizeof(*devs));
+	avail_devs = min(*num_devs, state->num_output_devs);
+	memcpy(devs, state->output_devs, avail_devs * sizeof(*devs));
+	avail_nodes = min(*num_nodes, state->num_output_nodes);
+	memcpy(nodes, state->output_nodes, avail_nodes * sizeof(*nodes));
 	if (end_server_state_read(state, version))
 		goto read_outputs_again;
 
-	return num_devs;
+	*num_devs = avail_devs;
+	*num_nodes = avail_nodes;
+
+	return 0;
 }
 
 int cras_client_get_input_devices(const struct cras_client *client,
 				  struct cras_iodev_info *devs,
-				  size_t max_devs)
+				  struct cras_ionode_info *nodes,
+				  size_t *num_devs, size_t *num_nodes)
 {
 	const struct cras_server_state *state;
-	unsigned num_devs, version;
+	unsigned avail_devs, avail_nodes, version;
 
 	if (!client)
 		return -EINVAL;
 	state = client->server_state;
 	if (!state)
-		return 0;
+		return -EINVAL;
 
 read_inputs_again:
 	version = begin_server_state_read(state);
-	num_devs = min(max_devs, state->num_input_devs);
-	memcpy(devs, state->input_devs, num_devs * sizeof(*devs));
+	avail_devs = min(*num_devs, state->num_input_devs);
+	memcpy(devs, state->input_devs, avail_devs * sizeof(*devs));
+	avail_nodes = min(*num_nodes, state->num_input_nodes);
+	memcpy(nodes, state->input_nodes, avail_nodes * sizeof(*nodes));
 	if (end_server_state_read(state, version))
 		goto read_inputs_again;
 
-	return num_devs;
+	*num_devs = avail_devs;
+	*num_nodes = avail_nodes;
+
+	return 0;
 }
 
 int cras_client_get_attached_clients(const struct cras_client *client,
@@ -1805,10 +1817,11 @@ read_clients_again:
 int cras_client_output_dev_plugged(const struct cras_client *client,
 				   const char *name)
 {
-	int ndevs;
+	size_t ndevs, nnodes;
 	struct cras_iodev_info *devs, *curr_dev;
 	int plugged = 0;
 	unsigned i;
+	int rc;
 
 	if (!client || !name)
 		return 0;
@@ -1817,8 +1830,11 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
 	if (!devs)
 		return 0;
 
-	ndevs = cras_client_get_output_devices(client, devs, CRAS_MAX_IODEVS);
-	if (ndevs < 0)
+	ndevs = CRAS_MAX_IODEVS;
+	nnodes = 0;
+	rc = cras_client_get_output_devices(client, devs, NULL, &ndevs,
+					    &nnodes);
+	if (rc < 0)
 		goto free_devs;
 
 	curr_dev = devs;
