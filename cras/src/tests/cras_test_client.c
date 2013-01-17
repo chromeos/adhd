@@ -538,7 +538,7 @@ static void show_usage()
 	printf("--volume <0-100> - Set system output volume.\n");
 	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
 	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
-	printf("--reload_dsp - Reload dsp configuration from the ini file");
+	printf("--reload_dsp - Reload dsp configuration from the ini file\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
 	printf("--help - Print this message.\n");
