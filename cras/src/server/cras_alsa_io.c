@@ -85,6 +85,10 @@ struct alsa_io {
 };
 
 static void init_device_settings(struct alsa_io *aio);
+static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
+			     int plugged);
+static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
+			    int plugged);
 
 /*
  * iodev callbacks.
@@ -254,6 +258,13 @@ static int set_plug(struct cras_iodev *iodev, struct cras_ionode *ionode,
 		    int plugged)
 
 {
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		plug_output_node(aio, ionode, plugged);
+	else
+		plug_input_node(aio, ionode, plugged);
+
 	return 0;
 }
 
