@@ -533,13 +533,58 @@ static struct alsa_output_node *get_best_output_node(const struct alsa_io *aio)
 	return (struct alsa_output_node *)best;
 }
 
+/* This is called when an output node is plugged/unplugged */
+static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
+			    int plugged)
+{
+	struct alsa_output_node *best_node;
+
+	cras_iodev_plug_event(&aio->base, plugged);
+	node->plugged = plugged;
+	best_node = get_best_output_node(aio);
+
+	/* If this node is associated with mixer output, set that output
+	 * as active and set up the mixer, otherwise just set the node
+	 * as active and set the volume curve. */
+	if (best_node->mixer_output != NULL) {
+		alsa_iodev_set_active_output(&aio->base,
+					     best_node->mixer_output);
+	} else {
+		aio->base.active_output = &best_node->base;
+		init_device_settings(aio);
+	}
+
+	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+					     aio->base.direction);
+}
+
+/* This is called when an input node is plugged/unplugged */
+static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
+			    int plugged)
+{
+	struct cras_ionode *plugged_node;
+
+	cras_iodev_plug_event(&aio->base, plugged);
+	node->plugged = plugged;
+
+	/* Choose the first plugged node. */
+	DL_SEARCH_SCALAR(aio->base.input_nodes, plugged_node, plugged, 1);
+	aio->base.active_input = plugged_node;
+
+	init_device_settings(aio);
+
+	syslog(LOG_DEBUG, "Move input streams due to plug event.");
+	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
+					     aio->base.direction);
+}
+
 /* Callback that is called when an output jack is plugged or unplugged. */
 static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 				    int plugged,
 				    void *arg)
 {
 	struct alsa_io *aio;
-	struct alsa_output_node *node, *best_node;
+	struct alsa_output_node *node;
 	const char *jack_name;
 
 	if (arg == NULL)
@@ -565,28 +610,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->base.output_nodes, &node->base);
 	}
 
-	cras_iodev_plug_event(&aio->base, plugged);
-
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
-
-	node->base.plugged = plugged;
-
-	best_node = get_best_output_node(aio);
-
-	/* If thie node is associated with mixer output, set that output
-	 * as active and set up the mixer, otherwise just set the node
-	 * as active and set the volume curve. */
-	if (best_node->mixer_output != NULL) {
-		alsa_iodev_set_active_output(&aio->base,
-					     best_node->mixer_output);
-	} else {
-		aio->base.active_output = &best_node->base;
-		init_device_settings(aio);
-	}
-
-	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-					     aio->base.direction);
+	plug_output_node(aio, &node->base, plugged);
 }
 
 /* Callback that is called when an input jack is plugged or unplugged. */
@@ -596,7 +622,6 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 {
 	struct alsa_io *aio;
 	struct alsa_input_node *node;
-	struct cras_ionode *plugged_node;
 	const char *jack_name;
 
 	if (arg == NULL)
@@ -618,22 +643,9 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->base.input_nodes, &node->base);
 	}
 
-	cras_iodev_plug_event(&aio->base, plugged);
-
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
-
-	node->base.plugged = plugged;
-
-	/* Choose the first plugged node. */
-	DL_SEARCH_SCALAR(aio->base.input_nodes, plugged_node, plugged, 1);
-	aio->base.active_input = plugged_node;
-
-	init_device_settings(aio);
-
-	syslog(LOG_DEBUG, "Move input streams due to plug event.");
-	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-					     aio->base.direction);
+	plug_input_node(aio, &node->base, plugged);
 }
 
 /* Sets the name of the given iodev, using the name and index of the card
