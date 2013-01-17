@@ -354,6 +354,13 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_system_set_capture_mute_locked(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
+	case CRAS_SERVER_SET_PLUG: {
+		const struct cras_set_plug *m =
+			(const struct cras_set_plug *)msg;
+		cras_iodev_list_set_plug(m->dev_index, m->node_index,
+					 m->plugged);
+		break;
+	}
 	case CRAS_SERVER_RELOAD_DSP:
 		cras_dsp_reload_ini();
 		break;

@@ -250,6 +250,13 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 				     &aio->num_underruns);
 }
 
+static int set_plug(struct cras_iodev *iodev, struct cras_ionode *ionode,
+		    int plugged)
+
+{
+	return 0;
+}
+
 /*
  * Alsa helper functions.
  */
@@ -772,6 +779,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
+	iodev->set_plug = set_plug;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,

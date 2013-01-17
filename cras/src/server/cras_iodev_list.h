@@ -131,4 +131,14 @@ void cras_iodev_list_update_clients();
 struct audio_thread *
 cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
 
+
+/* Sets the plug state of an ionode of a device.
+ * Args:
+ *    dev_index - Index of the device. It is the idx field in
+ *        struct cras_iodev_info.
+ *    node_index - Index of the ionode on the device.
+ *    plugged - the plug state, 0 or 1.
+ */
+int cras_iodev_list_set_plug(int dev_index, int node_index, int plugged);
+
 #endif /* CRAS_IODEV_LIST_H_ */

@@ -435,3 +435,29 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
 {
 	return iodev->thread;
 }
+
+int cras_iodev_list_set_plug(int dev_index, int node_index, int plugged)
+{
+	struct cras_iodev *dev;
+	struct cras_ionode *node;
+
+	DL_FOREACH(outputs.iodevs, dev)
+		if (dev->info.idx == dev_index)
+			goto found_dev;
+
+	DL_FOREACH(inputs.iodevs, dev)
+		if (dev->info.idx == dev_index)
+			goto found_dev;
+
+	return -EINVAL;
+
+found_dev:
+	DL_FOREACH(dev->nodes, node)
+		if (node->idx == node_index)
+			goto found_node;
+
+	return -EINVAL;
+
+found_node:
+	return dev->set_plug(dev, node, plugged);
+}

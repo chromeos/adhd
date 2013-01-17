@@ -1849,6 +1849,19 @@ free_devs:
 	return plugged;
 }
 
+
+int cras_client_set_plug(struct cras_client *client, int dev_index,
+			 int node_index, int plugged)
+{
+	struct cras_set_plug msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_plug(&msg, dev_index, node_index, plugged);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)
 {
 	if (fmt == NULL)

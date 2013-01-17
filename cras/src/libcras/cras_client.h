@@ -181,6 +181,21 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 int cras_client_output_dev_plugged(const struct cras_client *client,
 				   const char *name);
 
+/* Sets the plug state of an ionode on a device.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    dev_index - Index of the device. It is the iodev_idx field in
+ *        struct cras_ionode_info. (Also the idx field in the corresponding
+ *        struct cras_iodev_info.)
+ *    node_index - Index of the node. It is the inode_idx field in
+ *        struct cras_ionode_info.
+ *    plugged - the plug state, 0 or 1.
+ */
+int cras_client_set_plug(struct cras_client *client,
+			 int dev_index,
+			 int node_index,
+			 int plugged);
+
 /* Asks the server to reload dsp plugin configuration from the ini file.
  * Args:
  *    client - The client from cras_client_create.

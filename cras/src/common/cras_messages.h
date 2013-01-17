@@ -32,6 +32,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED,
+	CRAS_SERVER_SET_PLUG,
 	CRAS_SERVER_RELOAD_DSP,
 	CRAS_SERVER_DUMP_DSP_INFO,
 };
@@ -190,6 +191,26 @@ static inline void cras_fill_set_system_capture_mute_locked(
 {
 	m->mute = locked;
 	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED;
+	m->header.length = sizeof(*m);
+}
+
+/* Set the plug state of an ionode. */
+struct cras_set_plug {
+	struct cras_server_message header;
+	int dev_index;
+	int node_index;
+	int plugged;
+};
+static inline void cras_fill_set_plug(
+		struct cras_set_plug *m,
+		int dev_index,
+		int node_index,
+		int plugged)
+{
+	m->header.id = CRAS_SERVER_SET_PLUG;
+	m->dev_index = dev_index;
+	m->node_index = node_index;
+	m->plugged = plugged;
 	m->header.length = sizeof(*m);
 }
 

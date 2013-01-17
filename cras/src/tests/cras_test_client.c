@@ -545,6 +545,7 @@ static struct option long_options[] = {
 	{"dump_dsp",            no_argument,            0, 'f'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"unified_audio",	no_argument,		0, 'z'},
+	{"plug",                required_argument,      0, 'x'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -568,7 +569,10 @@ static void show_usage()
 	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
 	printf("--reload_dsp - Reload dsp configuration from the ini file\n");
 	printf("--dump_server_info - Print status of the server.\n");
+	printf("--dump_dsp - Print status of dsp to syslog.\n");
 	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
+	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
+	       " ionode with the given index M on the device with index N\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -682,6 +686,14 @@ int main(int argc, char **argv)
 		case 'z':
 			run_unified = 1;
 			break;
+		case 'x': {
+			int dev_index = atoi(strtok(optarg, ":"));
+			int node_index = atoi(strtok(NULL, ":"));
+			int plugged = atoi(strtok(NULL, ":")) ;
+			cras_client_set_plug(client, dev_index, node_index,
+					     plugged);
+			break;
+		}
 		default:
 			break;
 		}

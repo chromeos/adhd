@@ -644,4 +644,9 @@ void cras_dsp_dump_info()
 {
 }
 
+int cras_iodev_list_set_plug(int dev_index, int node_index, int plugged)
+{
+  return 0;
+}
+
 }  // extern "C"
