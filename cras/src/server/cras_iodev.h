@@ -54,10 +54,8 @@ struct cras_ionode {
  * dev_running - Checks if the device is playing or recording.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
- * output_nodes - The output nodes available for this device.
- * active_output - The current node being used for playback.
- * input_nodes - The input nodes available for this device.
- * active_input - The current node being used for capture.
+ * nodes - The output or input nodes available for this device.
+ * active_node - The current node being used for playback or capture.
  * direction - Input or Output.
  * supported_rates - Array of sample rates supported by device 0-terminated.
  * supported_channel_counts - List of number of channels supported by device.
@@ -86,10 +84,8 @@ struct cras_iodev {
 	int (*dev_running)(const struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_iodev_info info;
-	struct cras_ionode *output_nodes;
-	struct cras_ionode *active_output;
-	struct cras_ionode *input_nodes;
-	struct cras_ionode *active_input;
+	struct cras_ionode *nodes;
+	struct cras_ionode *active_node;
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates;
 	size_t *supported_channel_counts;

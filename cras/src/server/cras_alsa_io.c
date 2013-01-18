@@ -253,12 +253,12 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 
 static struct alsa_output_node *get_active_output(const struct alsa_io *aio)
 {
-	return (struct alsa_output_node *)aio->base.active_output;
+	return (struct alsa_output_node *)aio->base.active_node;
 }
 
 static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
 {
-	return (struct alsa_input_node *)aio->base.active_input;
+	return (struct alsa_input_node *)aio->base.active_node;
 }
 
 /* Gets the curve for the active output. */
@@ -397,22 +397,21 @@ static void init_device_settings(struct alsa_io *aio)
  */
 static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
-	struct cras_ionode *output, *tmp;
-	struct cras_ionode *input, *tmp_input;
+	struct cras_ionode *node, *tmp;
 	struct alsa_output_node *aout;
 
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
-	DL_FOREACH_SAFE(aio->base.output_nodes, output, tmp) {
-		DL_DELETE(aio->base.output_nodes, output);
-		aout = (struct alsa_output_node *)output;
-		cras_volume_curve_destroy(aout->jack_curve);
-		free(output);
+
+	DL_FOREACH_SAFE(aio->base.nodes, node, tmp) {
+		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+			aout = (struct alsa_output_node *)node;
+			cras_volume_curve_destroy(aout->jack_curve);
+		}
+		DL_DELETE(aio->base.nodes, node);
+		free(node);
 	}
-	DL_FOREACH_SAFE(aio->base.input_nodes, input, tmp_input) {
-		DL_DELETE(aio->base.input_nodes, input);
-		free(input);
-	}
+
 	free(aio->dev);
 }
 
@@ -472,7 +471,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	set_output_prio(output, name);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 
-	DL_APPEND(aio->base.output_nodes, &output->base);
+	DL_APPEND(aio->base.nodes, &output->base);
 }
 
 /* Finds the output node associated with the jack. Returns NULL if not found. */
@@ -486,12 +485,12 @@ static struct alsa_output_node *get_output_node_from_jack(
 	mixer_output = cras_alsa_jack_get_mixer_output(jack);
 	if (mixer_output == NULL) {
 		/* no mixer output, search by node. */
-		DL_SEARCH_SCALAR_WITH_CAST(aio->base.output_nodes, node, aout,
+		DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
 					   jack, jack);
 		return aout;
 	}
 
-	DL_SEARCH_SCALAR_WITH_CAST(aio->base.output_nodes, node, aout,
+	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
 				   mixer_output, mixer_output);
 	return aout;
 }
@@ -505,12 +504,12 @@ static struct alsa_input_node *get_input_node_from_jack(
 
 	mixer_input = cras_alsa_jack_get_mixer_input(jack);
 	if (mixer_input == NULL) {
-		DL_SEARCH_SCALAR_WITH_CAST(aio->base.input_nodes, node, ain,
+		DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, ain,
 					   jack, jack);
 		return ain;
 	}
 
-	DL_SEARCH_SCALAR_WITH_CAST(aio->base.input_nodes, node, ain,
+	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, ain,
 				   mixer_input, mixer_input);
 	return ain;
 }
@@ -521,14 +520,14 @@ static struct alsa_output_node *get_best_output_node(const struct alsa_io *aio)
 	struct cras_ionode *output;
 	struct cras_ionode *best = NULL;
 
-	DL_FOREACH(aio->base.output_nodes, output)
+	DL_FOREACH(aio->base.nodes, output)
 		if (output->plugged &&
 		    (!best || (output->priority > best->priority)))
 			best = output;
 
 	/* If nothing is plugged, take the first entry. */
 	if (!best)
-		best = aio->base.output_nodes;
+		best = aio->base.nodes;
 
 	return (struct alsa_output_node *)best;
 }
@@ -550,7 +549,7 @@ static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
 		alsa_iodev_set_active_output(&aio->base,
 					     best_node->mixer_output);
 	} else {
-		aio->base.active_output = &best_node->base;
+		aio->base.active_node = &best_node->base;
 		init_device_settings(aio);
 	}
 
@@ -568,8 +567,8 @@ static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
 	node->plugged = plugged;
 
 	/* Choose the first plugged node. */
-	DL_SEARCH_SCALAR(aio->base.input_nodes, plugged_node, plugged, 1);
-	aio->base.active_input = plugged_node;
+	DL_SEARCH_SCALAR(aio->base.nodes, plugged_node, plugged, 1);
+	aio->base.active_node = plugged_node;
 
 	init_device_settings(aio);
 
@@ -607,7 +606,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		node->jack = jack;
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
-		DL_APPEND(aio->base.output_nodes, &node->base);
+		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
 	/* If the jack has a ucm device, set that. */
@@ -640,7 +639,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
-		DL_APPEND(aio->base.input_nodes, &node->base);
+		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
 	/* If the jack has a ucm device, set that. */
@@ -768,9 +767,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		cras_alsa_mixer_list_outputs(mixer, device_index,
 					     new_output, aio);
 		/* If we don't have separate outputs just make a default one. */
-		if (aio->base.output_nodes == NULL)
+		if (aio->base.nodes == NULL)
 			new_output(NULL, aio);
-		aout = (struct alsa_output_node *)aio->base.output_nodes;
+		aout = (struct alsa_output_node *)aio->base.nodes;
 		alsa_iodev_set_active_output(&aio->base, aout->mixer_output);
 
 		/* Add to the output list. */
@@ -828,12 +827,12 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 
 	set_alsa_mute(aio, 1);
 	/* Unmute the active input, mute all others. */
-	DL_FOREACH(aio->base.output_nodes, node) {
+	DL_FOREACH(aio->base.nodes, node) {
 		output = (struct alsa_output_node *)node;
 		if (output->mixer_output == NULL)
 			continue;
 		if (output->mixer_output == active) {
-			aio->base.active_output = &output->base;
+			aio->base.active_node = &output->base;
 			found_output = 1;
 		}
 		cras_alsa_mixer_set_output_active_state(
