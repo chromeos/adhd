@@ -25,10 +25,12 @@ struct audio_thread;
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
  * Members:
+ *    idx - ionode index.
  *    plugged - true if the device is plugged.
  *    priority - higher is better.
  */
 struct cras_ionode {
+	int idx;
 	int plugged;
 	unsigned priority;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];

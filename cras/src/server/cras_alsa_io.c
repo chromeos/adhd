@@ -57,6 +57,8 @@ struct alsa_input_node {
  * base - The cras_iodev structure "base class".
  * dev - String that names this device (e.g. "hw:0,0").
  * device_index - ALSA index of device, Y in "hw:X:Y".
+ * next_ionode_index - The index we will give to the next ionode. Each ionode
+ *     have a unique index within the iodev.
  * handle - Handle to the opened ALSA device.
  * num_underruns - Number of times we have run out of data (playback only).
  * alsa_stream - Playback or capture type.
@@ -69,6 +71,7 @@ struct alsa_io {
 	struct cras_iodev base;
 	char *dev;
 	size_t device_index;
+	size_t next_ionode_index;
 	snd_pcm_t *handle;
 	unsigned int num_underruns;
 	snd_pcm_stream_t alsa_stream;
@@ -459,6 +462,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 		syslog(LOG_ERR, "Out of memory when listing outputs.");
 		return;
 	}
+	output->base.idx = aio->next_ionode_index++;
 	output->mixer_output = cras_output;
 
 	if (output->mixer_output)
@@ -551,6 +555,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
 				aio->mixer, jack_name);
@@ -604,6 +609,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack = jack;
 		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
