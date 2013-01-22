@@ -13,6 +13,7 @@
 
 struct cras_alsa_mixer;
 struct cras_alsa_mixer_output;
+struct cras_ionode;
 
 /* Initializes an alsa iodev.
  * Args:
@@ -44,9 +45,9 @@ void alsa_iodev_destroy(struct cras_iodev *iodev);
  * Headphones or vice-versa.
  * Args:
  *    iodev - An iodev created with alsa_iodev_create.
- *    active - The output to activate.
+ *    ionode - The output to activate.
  */
 int alsa_iodev_set_active_output(struct cras_iodev *iodev,
-				 struct cras_alsa_mixer_output *active);
+				 struct cras_ionode *ionode);
 
 #endif /* CRAS_ALSA_IO_H_ */

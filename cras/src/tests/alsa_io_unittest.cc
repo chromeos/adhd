@@ -310,8 +310,6 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
   struct cras_alsa_mixer_output *outputs[2];
-  struct cras_alsa_mixer_output *fake_output =
-      reinterpret_cast<struct cras_alsa_mixer_output *>(7);
 
   ResetStubData();
   outputs[0] =
@@ -333,11 +331,8 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
-  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
-  EXPECT_EQ(-EINVAL, rc);
   ResetStubData();
-
-  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, outputs[0]);
+  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, aio->base.nodes);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
@@ -359,8 +354,6 @@ TEST(AlsaOutputNode, TwoOutputs) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
   struct cras_alsa_mixer_output *outputs[2];
-  struct cras_alsa_mixer_output *fake_output =
-      reinterpret_cast<struct cras_alsa_mixer_output *>(7);
 
   ResetStubData();
   outputs[0] =
@@ -384,10 +377,8 @@ TEST(AlsaOutputNode, TwoOutputs) {
 
   aio->handle = (snd_pcm_t *)0x24;
 
-  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, fake_output);
-  EXPECT_EQ(-EINVAL, rc);
   ResetStubData();
-  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, outputs[0]);
+  rc = alsa_iodev_set_active_output((struct cras_iodev *)aio, aio->base.nodes);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2, alsa_mixer_set_mute_called);
   EXPECT_EQ(outputs[0], alsa_mixer_set_mute_output);

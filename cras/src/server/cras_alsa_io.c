@@ -515,7 +515,7 @@ static struct alsa_input_node *get_input_node_from_jack(
 }
 
 /* Find the node with highest priority that is plugged in. */
-static struct alsa_output_node *get_best_output_node(const struct alsa_io *aio)
+static struct cras_ionode *get_best_output_node(const struct alsa_io *aio)
 {
 	struct cras_ionode *output;
 	struct cras_ionode *best = NULL;
@@ -529,30 +529,19 @@ static struct alsa_output_node *get_best_output_node(const struct alsa_io *aio)
 	if (!best)
 		best = aio->base.nodes;
 
-	return (struct alsa_output_node *)best;
+	return best;
 }
 
 /* This is called when an output node is plugged/unplugged */
 static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
 			    int plugged)
 {
-	struct alsa_output_node *best_node;
+	struct cras_ionode *best_node;
 
 	cras_iodev_plug_event(&aio->base, plugged);
 	node->plugged = plugged;
 	best_node = get_best_output_node(aio);
-
-	/* If this node is associated with mixer output, set that output
-	 * as active and set up the mixer, otherwise just set the node
-	 * as active and set the volume curve. */
-	if (best_node->mixer_output != NULL) {
-		alsa_iodev_set_active_output(&aio->base,
-					     best_node->mixer_output);
-	} else {
-		aio->base.active_node = &best_node->base;
-		init_device_settings(aio);
-	}
-
+	alsa_iodev_set_active_output(&aio->base, best_node);
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
 }
@@ -703,7 +692,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
-	struct alsa_output_node *aout;
 	int err;
 
 	if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT)
@@ -769,8 +757,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		/* If we don't have separate outputs just make a default one. */
 		if (aio->base.nodes == NULL)
 			new_output(NULL, aio);
-		aout = (struct alsa_output_node *)aio->base.nodes;
-		alsa_iodev_set_active_output(&aio->base, aout->mixer_output);
+		alsa_iodev_set_active_output(&aio->base, aio->base.nodes);
 
 		/* Add to the output list. */
 		cras_iodev_list_add_output(&aio->base);
@@ -818,31 +805,30 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 }
 
 int alsa_iodev_set_active_output(struct cras_iodev *iodev,
-				 struct cras_alsa_mixer_output *active)
+				 struct cras_ionode *ionode)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
-	struct cras_ionode *node;
+	struct alsa_output_node *active = (struct alsa_output_node *)ionode;
 	struct alsa_output_node *output;
-	int found_output = 0;
+	struct cras_alsa_mixer_output *mixer = active->mixer_output;
+	struct cras_ionode *node;
 
-	set_alsa_mute(aio, 1);
-	/* Unmute the active input, mute all others. */
-	DL_FOREACH(aio->base.nodes, node) {
-		output = (struct alsa_output_node *)node;
-		if (output->mixer_output == NULL)
-			continue;
-		if (output->mixer_output == active) {
-			aio->base.active_node = &output->base;
-			found_output = 1;
+	/* If this node is associated with mixer output, unmute the
+	 * active mixer output and mute all others, otherwise just set
+	 * the node as active and set the volume curve. */
+	if (mixer) {
+		set_alsa_mute(aio, 1);
+		/* Unmute the active mixer output, mute all others. */
+		DL_FOREACH(aio->base.nodes, node) {
+			output = (struct alsa_output_node *)node;
+			if (output->mixer_output)
+				cras_alsa_mixer_set_output_active_state(
+					output->mixer_output, node == ionode);
 		}
-		cras_alsa_mixer_set_output_active_state(
-				output->mixer_output,
-				output->mixer_output == active);
 	}
-	if (!found_output) {
-		syslog(LOG_WARNING, "Trying to switch to non-existant output.");
-		return -EINVAL;
-	}
+
+	aio->base.active_node = &active->base;
+
 	/* Setting the volume will also unmute if the system isn't muted. */
 	init_device_settings(aio);
 	return 0;
