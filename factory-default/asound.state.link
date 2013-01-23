@@ -110,7 +110,7 @@ state.PCH {
 	control.9 {
 		iface MIXER
 		name 'Mic1-Boost (30dB) Capture Switch'
-		value false
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
