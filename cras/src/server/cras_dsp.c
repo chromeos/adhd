@@ -185,6 +185,7 @@ static void cmd_dump_info()
 	if (ini)
 		cras_dsp_ini_dump(syslog_dumper, ini);
 	DL_FOREACH(context_list, ctx) {
+		cras_expr_env_dump(syslog_dumper, &ctx->env);
 		pipeline = ctx->pipeline;
 		if (pipeline)
 			cras_dsp_pipeline_dump(syslog_dumper, pipeline);
