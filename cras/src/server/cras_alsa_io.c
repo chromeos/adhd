@@ -425,11 +425,12 @@ static void set_output_prio(struct alsa_output_node *node, const char *name)
 		int priority;
 		int initial_plugged;
 	} prios[] = {
-		{ "Speaker", 1, 1 },
-		{ "Headphone", 3, 0 },
-		{ "HDMI", 2, 0 },
-		{ "IEC958", 2, 0},
 		{ "(default)", 0, 1},
+		/* Priority 1 is reserved for jack-created nodes */
+		{ "Speaker", 2, 1 },
+		{ "HDMI", 3, 0 },
+		{ "IEC958", 3, 0},
+		{ "Headphone", 4, 0 },
 	};
 	unsigned i;
 
@@ -588,6 +589,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		node->base.priority = 1;
 		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
@@ -622,6 +624,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		node->base.priority = 1;
 		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack = jack;
@@ -751,12 +754,14 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	if (direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_add_input(&aio->base);
 	else {
-		/* Check for outputs, sudh as Headphone and Speaker. */
+		/* Check for outputs, such as Headphone and Speaker. */
 		cras_alsa_mixer_list_outputs(mixer, device_index,
 					     new_output, aio);
-		/* If we don't have separate outputs just make a default one. */
-		if (aio->base.nodes == NULL)
-			new_output(NULL, aio);
+
+		/* Make a default output node. This is needed if there
+		 * is no mixer control for the default output */
+		new_output(NULL, aio);
+
 		alsa_iodev_set_active_output(&aio->base, aio->base.nodes);
 
 		/* Add to the output list. */
