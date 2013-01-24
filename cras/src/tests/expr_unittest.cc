@@ -213,6 +213,8 @@ TEST(ExprTest, Builtin) {
 
   /* test builtin functions */
   expect_boolean(1, "(and)", &env);
+  expect_boolean(1, "(and #t)", &env);
+  expect_boolean(1, "(and #t #t)", &env);
   expect_int(3, "(and 1 2 3)", &env);
   expect_boolean(0, "(and #f 4)", &env);
   expect_boolean(0, "(or)", &env);

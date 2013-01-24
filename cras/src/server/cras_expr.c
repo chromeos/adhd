@@ -181,7 +181,7 @@ static void function_and(cras_expr_value_array *operands,
 	FOR_ARRAY_ELEMENT(operands, i, value) {
 		if (i == 0)
 			continue;  /* ignore "and" itself */
-		if (value->type == CRAS_EXPR_VALUE_TYPE_BOOLEAN ||
+		if (value->type == CRAS_EXPR_VALUE_TYPE_BOOLEAN &&
 		    !value->u.boolean) {
 			value_set_boolean(result, 0);
 			return;
