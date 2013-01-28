@@ -80,6 +80,7 @@ static int ucm_set_enabled_value;
 static unsigned long eviocbit_ret[NBITS(SW_CNT)];
 static int gpio_switch_eviocgbit_fd;
 static const char *edid_file_ret;
+static size_t ucm_get_dsp_name_called;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -125,6 +126,7 @@ static void ResetStubData() {
   ucm_get_cap_control_value = NULL;
   ucm_get_dev_for_jack_return = false;
   edid_file_ret = NULL;
+  ucm_get_dsp_name_called = 0;
 
   memset(eviocbit_ret, 0, sizeof(eviocbit_ret));
 }
@@ -758,6 +760,12 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {
   ++ucm_get_dev_for_jack_called;
   if (ucm_get_dev_for_jack_return)
     return static_cast<char*>(malloc(1)); // Will be freed in jack_list_destroy.
+  return NULL;
+}
+
+const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
+                       int direction) {
+  ++ucm_get_dsp_name_called;
   return NULL;
 }
 

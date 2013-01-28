@@ -89,6 +89,12 @@ void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list);
  */
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack);
 
+/* Gets the dsp name of a jack.
+ * Args:
+ *    jack_list - The jack list to query.
+ */
+const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack);
+
 /* Enables the ucm device for this jack if any.
  * Args:
  *    jack - The jack to query for a mixer output.

@@ -103,11 +103,21 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		iodev->dsp_context = cras_dsp_context_new(actual_num_channels,
 							  actual_rate, purpose);
 		if (iodev->dsp_context)
-			cras_dsp_load_pipeline(iodev->dsp_context);
+			cras_iodev_update_dsp(iodev);
 	}
 
 	*fmt = *(iodev->format);
 	return 0;
+}
+
+void cras_iodev_update_dsp(struct cras_iodev *iodev)
+{
+	if (!iodev->dsp_context)
+		return;
+
+	cras_dsp_set_variable(iodev->dsp_context, "dsp_name",
+			      iodev->dsp_name ? : "");
+	cras_dsp_load_pipeline(iodev->dsp_context);
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)

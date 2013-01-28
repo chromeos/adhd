@@ -76,4 +76,26 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack);
  */
 const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
 
+/* Gets the dsp name which is associated with the given ucm device.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    ucm_dev - The ucm device to get dsp name for.
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ * Returns:
+ *    A pointer to the allocated string containing the dsp name, or NULL if no
+ *    dsp name is found.
+ */
+const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
+			      int direction);
+
+/* Gets the default dsp name.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ * Returns:
+ *    A pointer to the allocated string containing the default dsp name, or
+ *    NULL if no default dsp name is found.
+ */
+const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction);
+
 #endif /* _CRAS_ALSA_UCM_H */

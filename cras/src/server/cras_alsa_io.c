@@ -66,6 +66,8 @@ struct alsa_input_node {
  * jack_list - List of alsa jack controls for this device.
  * ucm - ALSA use case manager, if configuration is found.
  * mmap_offset - offset returned from mmap_begin.
+ * dsp_name_default - the default dsp name for the device. It can be overridden
+ *     by the jack specific dsp name.
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -79,6 +81,7 @@ struct alsa_io {
 	struct cras_alsa_jack_list *jack_list;
 	snd_use_case_mgr_t *ucm;
 	snd_pcm_uframes_t mmap_offset;
+	const char *dsp_name_default;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -412,6 +415,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		free(node);
 	}
 
+	free((void *)aio->dsp_name_default);
 	free(aio->dev);
 }
 
@@ -550,6 +554,25 @@ static struct cras_ionode *get_best_input_node(const struct alsa_io *aio)
 		best = aio->base.nodes;
 
 	return best;
+}
+
+/* Returns the dsp name specified in the ucm config. If there is a dsp
+ * name specified for the jack of the active node, use that. Otherwise
+ * use the default dsp name for the alsa_io device. */
+static const char *get_active_dsp_name(struct alsa_io *aio)
+{
+	struct cras_ionode *node = aio->base.active_node;
+	const struct cras_alsa_jack *jack;
+
+	if (node == NULL)
+		return NULL;
+
+	if (aio->base.direction == CRAS_STREAM_OUTPUT)
+		jack = ((struct alsa_output_node *) node)->jack;
+	else
+		jack = ((struct alsa_input_node *) node)->jack;
+
+	return cras_alsa_jack_get_dsp_name(jack) ? : aio->dsp_name_default;
 }
 
 /* This is called when an output node is plugged/unplugged */
@@ -761,6 +784,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	aio->mixer = mixer;
 	aio->ucm = ucm;
+	if (ucm)
+		aio->dsp_name_default = ucm_get_dsp_name_default(ucm,
+								 direction);
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
 	iodev->info.priority = prio;
 
@@ -846,6 +872,8 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 	}
 
 	iodev->active_node = ionode;
+	aio->base.dsp_name = get_active_dsp_name(aio);
+	cras_iodev_update_dsp(iodev);
 
 	/* Setting the volume will also unmute if the system isn't muted. */
 	init_device_settings(aio);
@@ -858,6 +886,8 @@ int alsa_iodev_set_active_input(struct cras_iodev *iodev,
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
 	iodev->active_node = ionode;
+	aio->base.dsp_name = get_active_dsp_name(aio);
+	cras_iodev_update_dsp(iodev);
 	init_device_settings(aio);
 	return 0;
 }

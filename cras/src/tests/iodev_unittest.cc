@@ -310,6 +310,11 @@ void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
 {
 }
 
+void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
+                           const char *value)
+{
+}
+
 // From audio thread
 int audio_thread_post_message(struct audio_thread *thread,
                               struct audio_thread_msg *msg) {

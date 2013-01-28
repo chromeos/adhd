@@ -98,6 +98,12 @@ static char test_dev_name[] = "TestDev";
 static size_t cras_iodev_plug_event_called;
 static int cras_iodev_plug_event_value;
 static unsigned cras_alsa_jack_enable_ucm_called;
+static size_t cras_iodev_update_dsp_called;
+static const char *cras_iodev_update_dsp_name;
+static size_t ucm_get_dsp_name_default_called;
+static const char *ucm_get_dsp_name_default_value;
+static size_t cras_alsa_jack_get_dsp_name_called;
+static const char *cras_alsa_jack_get_dsp_name_value;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -134,6 +140,12 @@ void ResetStubData() {
   cras_iodev_move_stream_type_top_prio_called = 0;
   cras_iodev_plug_event_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
+  cras_iodev_update_dsp_called = 0;
+  cras_iodev_update_dsp_name = 0;
+  ucm_get_dsp_name_default_called = 0;
+  ucm_get_dsp_name_default_value = NULL;
+  cras_alsa_jack_get_dsp_name_called = 0;
+  cras_alsa_jack_get_dsp_name_value = NULL;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -169,6 +181,8 @@ TEST(AlsaIoInit, InitializePlayback) {
                        aio->base.info.name,
 		       strlen(test_card_name)));
   EXPECT_EQ(7, aio->base.info.priority);
+  EXPECT_EQ(0, ucm_get_dsp_name_default_called);
+  EXPECT_EQ(NULL, cras_iodev_update_dsp_name);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
@@ -304,6 +318,61 @@ TEST(AlsaIoInit, OpenCapture) {
   free(fake_format);
 }
 
+TEST(AlsaIoInit, DspNameDefault) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+
+  ResetStubData();
+  ucm_get_dsp_name_default_value = "hello";
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            fake_mixer, fake_ucm, 7,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(1, ucm_get_dsp_name_default_called);
+  EXPECT_EQ(1, cras_alsa_jack_get_dsp_name_called);
+  EXPECT_STREQ("hello", cras_iodev_update_dsp_name);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
+TEST(AlsaIoInit, DspNameJackOverride) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
+
+  ResetStubData();
+  ucm_get_dsp_name_default_value = "default_dsp";
+  cras_alsa_jack_get_dsp_name_value = "override_dsp";
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            fake_mixer, fake_ucm, 7,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(1, ucm_get_dsp_name_default_called);
+  EXPECT_EQ(1, cras_alsa_jack_get_dsp_name_called);
+  EXPECT_EQ(1, cras_iodev_update_dsp_called);
+  EXPECT_STREQ("default_dsp", cras_iodev_update_dsp_name);
+
+  // Plug the jack and dsp_name should be overridden.
+  cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
+  EXPECT_EQ(1, ucm_get_dsp_name_default_called);
+  EXPECT_EQ(2, cras_alsa_jack_get_dsp_name_called);
+  EXPECT_EQ(2, cras_iodev_update_dsp_called);
+  EXPECT_STREQ("override_dsp", cras_iodev_update_dsp_name);
+
+  // Unplug the jack and dsp_name should come back.
+  cras_alsa_jack_list_create_cb(jack, 0, cras_alsa_jack_list_create_cb_data);
+  EXPECT_EQ(1, ucm_get_dsp_name_default_called);
+  EXPECT_EQ(3, cras_alsa_jack_get_dsp_name_called);
+  EXPECT_EQ(3, cras_iodev_update_dsp_called);
+  EXPECT_STREQ("default_dsp", cras_iodev_update_dsp_name);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
 // Test that system settins aren't touched if no streams active.
 TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   int rc;
@@ -341,6 +410,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[0]);
   EXPECT_EQ(outputs[1], cras_alsa_mixer_set_output_active_state_outputs[1]);
   EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
+  EXPECT_EQ(1, cras_iodev_update_dsp_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   free(outputs[0]);
@@ -389,6 +459,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[0]);
   EXPECT_EQ(outputs[1], cras_alsa_mixer_set_output_active_state_outputs[1]);
   EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
+  EXPECT_EQ(1, cras_iodev_update_dsp_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   free(outputs[0]);
@@ -800,6 +871,21 @@ const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
   return "";
 }
 
+const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack)
+{
+  cras_alsa_jack_get_dsp_name_called++;
+  return jack ? cras_alsa_jack_get_dsp_name_value : NULL;
+}
+
+const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
+{
+  ucm_get_dsp_name_default_called++;
+  if (ucm_get_dsp_name_default_value)
+    return strdup(ucm_get_dsp_name_default_value);
+  else
+    return NULL;
+}
+
 struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
     const struct cras_alsa_jack *jack)
 {
@@ -833,4 +919,10 @@ audio_thread* audio_thread_create(cras_iodev* iodev) {
 }
 
 void audio_thread_destroy(audio_thread* thread) {
+}
+
+void cras_iodev_update_dsp(struct cras_iodev *iodev)
+{
+  cras_iodev_update_dsp_called++;
+  cras_iodev_update_dsp_name = iodev->dsp_name;
 }

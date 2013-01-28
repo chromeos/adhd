@@ -63,6 +63,7 @@ struct cras_ionode {
  * used_size - Number of frames that are used for audio.
  * cb_threshold - Level below which to call back to the client (in frames).
  * dsp_context - The context used for dsp processing on the audio data.
+ * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
  * thread - The audio thread using this device, NULL if none.
  */
 struct cras_iodev {
@@ -93,6 +94,7 @@ struct cras_iodev {
 	snd_pcm_uframes_t used_size;
 	snd_pcm_uframes_t cb_threshold;
 	struct cras_dsp_context *dsp_context;
+	const char *dsp_name;
 	struct audio_thread *thread;
 	struct cras_iodev *prev, *next;
 };
@@ -199,6 +201,13 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
 void cras_iodev_config_params(struct cras_iodev *iodev,
 			      unsigned int buffer_size,
 			      unsigned int cb_threshold);
+
+/* Update the "dsp_name" dsp variable. This may cause the dsp pipeline to be
+ * reloaded.
+ * Args:
+ *    iodev - device which the state changes.
+ */
+void cras_iodev_update_dsp(struct cras_iodev *iodev);
 
 /* Handles a plug event happening on this iodev.
  * Args:

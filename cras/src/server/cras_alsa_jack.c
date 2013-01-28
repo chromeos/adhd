@@ -75,6 +75,7 @@ struct cras_alsa_jack {
 	struct cras_alsa_mixer_output *mixer_output;
 	struct mixer_volume_control *mixer_input;
 	char *ucm_device;
+	const char *dsp_name;
 	const char *edid_file;
 	struct cras_timer *edid_timer;
 	struct cras_alsa_jack *prev, *next;
@@ -654,6 +655,11 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 						jack_list->mixer,
 						control_name);
 		}
+
+		if (jack->ucm_device)
+			jack->dsp_name = ucm_get_dsp_name(
+				jack->jack_list->ucm, jack->ucm_device,
+				direction);
 	}
 
 	/* If we have found jacks, have the poll fds passed to select in the
@@ -739,6 +745,8 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 
 		if (jack->mixer_input)
 			free(jack->mixer_input);
+
+		free((void *)jack->dsp_name);
 		free(jack);
 	}
 	if (jack_list->hctl)
@@ -781,6 +789,13 @@ const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 	if (jack->is_gpio)
 		return jack->gpio.device_name;
 	return snd_hctl_elem_get_name(jack->elem);
+}
+
+const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack)
+{
+	if (jack == NULL)
+		return NULL;
+	return jack->dsp_name;
 }
 
 void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable)

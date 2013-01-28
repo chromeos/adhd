@@ -13,6 +13,8 @@ static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
 static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
+static const char output_dsp_name_var[] = "OutputDspName";
+static const char input_dsp_name_var[] = "InputDspName";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -143,4 +145,25 @@ const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 		return NULL;
 
 	return file_name;
+}
+
+const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
+			     int direction)
+{
+	const char *var = (direction == CRAS_STREAM_OUTPUT)
+		? output_dsp_name_var
+		: input_dsp_name_var;
+	const char *dsp_name = NULL;
+	int rc;
+
+	rc = get_var(mgr, var, ucm_dev, default_verb, &dsp_name);
+	if (rc)
+		return NULL;
+
+	return dsp_name;
+}
+
+const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
+{
+	return ucm_get_dsp_name(mgr, "", direction);
 }
