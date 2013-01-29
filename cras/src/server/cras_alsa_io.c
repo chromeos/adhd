@@ -533,6 +533,25 @@ static struct cras_ionode *get_best_output_node(const struct alsa_io *aio)
 	return best;
 }
 
+/* Choose the first plugged node. */
+static struct cras_ionode *get_best_input_node(const struct alsa_io *aio)
+{
+	struct cras_ionode *input;
+	struct cras_ionode *best = NULL;
+
+	DL_FOREACH(aio->base.nodes, input)
+		if (input->plugged) {
+			best = input;
+			break;
+		}
+
+	/* If nothing is plugged, take the first entry. */
+	if (!best)
+		best = aio->base.nodes;
+
+	return best;
+}
+
 /* This is called when an output node is plugged/unplugged */
 static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
 			    int plugged)
@@ -551,18 +570,12 @@ static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
 static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
 			    int plugged)
 {
-	struct cras_ionode *plugged_node;
+	struct cras_ionode *best_node;
 
 	cras_iodev_plug_event(&aio->base, plugged);
 	node->plugged = plugged;
-
-	/* Choose the first plugged node. */
-	DL_SEARCH_SCALAR(aio->base.nodes, plugged_node, plugged, 1);
-	aio->base.active_node = plugged_node;
-
-	init_device_settings(aio);
-
-	syslog(LOG_DEBUG, "Move input streams due to plug event.");
+	best_node = get_best_input_node(aio);
+	alsa_iodev_set_active_input(&aio->base, best_node);
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
 }
@@ -832,9 +845,19 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 		}
 	}
 
-	aio->base.active_node = &active->base;
+	iodev->active_node = ionode;
 
 	/* Setting the volume will also unmute if the system isn't muted. */
+	init_device_settings(aio);
+	return 0;
+}
+
+int alsa_iodev_set_active_input(struct cras_iodev *iodev,
+				struct cras_ionode *ionode)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
+	iodev->active_node = ionode;
 	init_device_settings(aio);
 	return 0;
 }

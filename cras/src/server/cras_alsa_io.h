@@ -50,4 +50,13 @@ void alsa_iodev_destroy(struct cras_iodev *iodev);
 int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 				 struct cras_ionode *ionode);
 
+/* Sets the active input of an alsa mixer.  Used to switch between different
+ * Microphones.
+ * Args:
+ *    iodev - An iodev created with alsa_iodev_create.
+ *    ionode - The input to activate.
+ */
+int alsa_iodev_set_active_input(struct cras_iodev *iodev,
+				struct cras_ionode *ionode);
+
 #endif /* CRAS_ALSA_IO_H_ */
