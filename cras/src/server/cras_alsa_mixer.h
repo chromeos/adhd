@@ -48,13 +48,18 @@ struct cras_alsa_mixer_output {
  *    card_name - Name of the card to open a mixer for.  This is an alsa name of
  *      the form "hw:X" where X ranges from 0 to 31 inclusive.
  *    config - Config info for this card, can be NULL if none found.
+ *    output_names_extra - An array of extra output mixer control names. The
+ *      array may contain NULL entries which should be ignored.
+ *    output_names_extra_size - The length of the output_names_extra array.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy.
  */
 struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const char *card_name,
-		const struct cras_card_config *config);
+		const struct cras_card_config *config,
+		const char *output_names_extra[],
+		size_t output_names_extra_size);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

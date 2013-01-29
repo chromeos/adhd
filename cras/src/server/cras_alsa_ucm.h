@@ -65,6 +65,16 @@ char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev);
  */
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack);
 
+/* Gets the name of the ucm device for the given mixer name.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    mixer - The name of the mixer control to search for.
+ * Rreturns:
+ *    A pointer to the allocated string containing the name of the device, or
+ *    NULL if no device is found.
+ */
+char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer);
+
 /* If there is an EDID file variable specified for dev, return it.  The EDID
  * file will be used for HDMI devices so supported audio formats can be checked.
  * Args:

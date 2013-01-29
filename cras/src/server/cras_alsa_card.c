@@ -17,6 +17,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_types.h"
+#include "cras_util.h"
 #include "utlist.h"
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
@@ -142,6 +143,22 @@ static int should_ignore_dev(struct cras_alsa_card_info *info,
 	return 0;
 }
 
+/* Filters an array of mixer control names. Keep a name if it is
+ * specified in the ucm config, otherwise set it to NULL */
+static void filter_mixer_names(snd_use_case_mgr_t *ucm,
+			       const char *names[],
+			       size_t names_len)
+{
+	size_t i;
+	for (i = 0; i < names_len; i++) {
+		char *dev = ucm_get_dev_for_mixer(ucm, names[i]);
+		if (dev)
+			free(dev);
+		else
+			names[i] = NULL;
+	}
+}
+
 /*
  * Exported Interface.
  */
@@ -156,6 +173,10 @@ struct cras_alsa_card *cras_alsa_card_create(
 	const char *card_name;
 	snd_pcm_info_t *dev_info;
 	struct cras_alsa_card *alsa_card;
+	const char *output_names_extra[] = {
+		"IEC958",
+	};
+	size_t output_names_extra_size = ARRAY_SIZE(output_names_extra);
 
 	if (info->card_index >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR,
@@ -201,16 +222,25 @@ struct cras_alsa_card *cras_alsa_card_create(
 	if (alsa_card->config == NULL)
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
 
+	/* Create a use case manager if a configuration is available. */
+	alsa_card->ucm = ucm_create(card_name);
+
+	/* Filter the extra output mixer names */
+	if (alsa_card->ucm)
+		filter_mixer_names(alsa_card->ucm, output_names_extra,
+				   output_names_extra_size);
+	else
+		output_names_extra_size = 0;
+
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
-						  alsa_card->config);
+						  alsa_card->config,
+						  output_names_extra,
+						  output_names_extra_size);
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
 		goto error_bail;
 	}
-
-	/* Create a use case manager if a configuration is available. */
-	alsa_card->ucm = ucm_create(card_name);
 
 	dev_idx = -1;
 	while (1) {

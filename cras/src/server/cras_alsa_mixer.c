@@ -81,7 +81,7 @@ static int name_in_list(const char *name,
 	size_t i;
 
 	for (i = 0; i < len; i++)
-		if (strcmp(list[i], name) == 0)
+		if (list[i] && strcmp(list[i], name) == 0)
 			return 1;
 	return 0;
 }
@@ -206,7 +206,9 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 
 struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const char *card_name,
-		const struct cras_card_config *config)
+		const struct cras_card_config *config,
+		const char *output_names_extra[],
+		size_t output_names_extra_size)
 {
 	/* Names of controls for main system volume. */
 	static const char * const main_volume_names[] = {
@@ -218,7 +220,6 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	static const char * const output_names[] = {
 		"Headphone",
 		"HDMI",
-		"IEC958",
 		"Speaker",
 	};
 	/* Names of controls for capture gain/attenuation and mute. */
@@ -268,7 +269,9 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 				return NULL;
 			}
 		} else if (name_in_list(name, output_names,
-					ARRAY_SIZE(output_names))) {
+					ARRAY_SIZE(output_names))
+			   || name_in_list(name, output_names_extra,
+					   output_names_extra_size)) {
 			/* TODO(dgreid) - determine device index. */
 			if (add_output_control(cmix, elem, 0) != 0) {
 				cras_alsa_mixer_destroy(cmix);

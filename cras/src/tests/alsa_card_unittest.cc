@@ -51,6 +51,7 @@ static unsigned cras_iodev_plug_event_called;
 static unsigned cras_iodev_plug_event_plugged_value;
 static unsigned ucm_create_called;
 static unsigned ucm_destroy_called;
+static size_t ucm_get_dev_for_mixer_called;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -80,6 +81,7 @@ static void ResetStubData() {
   cras_iodev_plug_event_called = 0;
   ucm_create_called = 0;
   ucm_destroy_called = 0;
+  ucm_get_dev_for_mixer_called = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -200,6 +202,7 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(1, cras_iodev_plug_event_called);
   EXPECT_EQ(1, cras_iodev_plug_event_plugged_value);
   EXPECT_EQ(1, ucm_create_called);
+  EXPECT_EQ(1, ucm_get_dev_for_mixer_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, ucm_destroy_called);
@@ -357,7 +360,8 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
 
 extern "C" {
 struct cras_alsa_mixer *cras_alsa_mixer_create(
-    const char *card_name, const struct cras_card_config *config) {
+    const char *card_name, const struct cras_card_config *config,
+    const char *output_names_extra[], size_t output_names_extra_size) {
   cras_alsa_mixer_create_called++;
   return cras_alsa_mixer_create_return;
 }
@@ -490,6 +494,12 @@ void ucm_destroy(snd_use_case_mgr_t* mgr) {
   ucm_destroy_called++;
 }
 
+char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer)
+{
+  ucm_get_dev_for_mixer_called++;
+  return strdup("device");
+}
+
 } /* extern "C" */
 
 }  //  namespace
@@ -498,4 +508,3 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
