@@ -677,7 +677,6 @@ static void free_shm(struct client_stream *stream)
  * converter that handles transforming the input format to the format used by
  * the server. */
 static int config_format_converter(struct cras_fmt_conv **conv,
-				   uint8_t **conv_buf,
 				   const struct cras_audio_format *from,
 				   const struct cras_audio_format *to,
 				   unsigned int frames)
@@ -693,13 +692,6 @@ static int config_format_converter(struct cras_fmt_conv **conv,
 		*conv = cras_fmt_conv_create(from, to, frames);
 		if (!*conv) {
 			syslog(LOG_ERR, "Failed to create format converter");
-			return -ENOMEM;
-		}
-
-		/* Need a buffer to keep samples before converting them. */
-		*conv_buf = malloc(frames * cras_get_format_bytes(from));
-		if (!*conv_buf) {
-			cras_fmt_conv_destroy(*conv);
 			return -ENOMEM;
 		}
 	}
@@ -729,6 +721,7 @@ static int stream_connected(struct client_stream *stream,
 			    const struct cras_client_stream_connected *msg)
 {
 	int rc;
+	struct cras_audio_format *sfmt = &stream->config->format;
 
 	if (msg->err) {
 		syslog(LOG_ERR, "Error Setting up stream %d\n", msg->err);
@@ -736,6 +729,8 @@ static int stream_connected(struct client_stream *stream,
 	}
 
 	if (cras_stream_has_input(stream->direction)) {
+		unsigned int max_frames;
+
 		rc = config_shm(&stream->capture_shm,
 				msg->input_shm_key,
 				msg->shm_max_size);
@@ -743,21 +738,32 @@ static int stream_connected(struct client_stream *stream,
 			syslog(LOG_ERR, "Error configuring capture shm");
 			goto err_ret;
 		}
+
+		max_frames = max(cras_shm_used_frames(&stream->capture_shm),
+				 stream->config->buffer_frames);
+
 		/* Convert from h/w format to stream format for input. */
-		rc = config_format_converter(
-				&stream->capture_conv,
-				&stream->capture_conv_buffer,
-				&msg->format,
-				&stream->config->format,
-				max(cras_shm_used_frames(&stream->capture_shm),
-				    stream->config->buffer_frames));
+		rc = config_format_converter(&stream->capture_conv,
+					     &msg->format,
+					     &stream->config->format,
+					     max_frames);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Error setting up capture conversion");
+			goto err_ret;
+		}
+
+		/* If a converted is needed, allocate a buffer for it. */
+		stream->capture_conv_buffer =
+			malloc(max_frames * cras_get_format_bytes(sfmt));
+		if (!stream->capture_conv_buffer) {
+			rc = -ENOMEM;
 			goto err_ret;
 		}
 	}
 
 	if (cras_stream_has_output(stream->direction)) {
+		unsigned int max_frames;
+
 		rc = config_shm(&stream->play_shm,
 				msg->output_shm_key,
 				msg->shm_max_size);
@@ -765,16 +771,25 @@ static int stream_connected(struct client_stream *stream,
 			syslog(LOG_ERR, "Error configuring playback shm");
 			goto err_ret;
 		}
+
+		max_frames = max(cras_shm_used_frames(&stream->play_shm),
+				 stream->config->buffer_frames);
+
 		/* Convert the stream format to the h/w format for output */
-		rc = config_format_converter(
-				&stream->play_conv,
-				&stream->play_conv_buffer,
-				&stream->config->format,
-				&msg->format,
-				max(cras_shm_used_frames(&stream->play_shm),
-				    stream->config->buffer_frames));
+		rc = config_format_converter(&stream->play_conv,
+					     &stream->config->format,
+					     &msg->format,
+					     max_frames);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Error setting up playback conversion");
+			goto err_ret;
+		}
+
+		/* If a converted is needed, allocate a buffer for it. */
+		stream->play_conv_buffer =
+			malloc(max_frames * cras_get_format_bytes(sfmt));
+		if (!stream->play_conv_buffer) {
+			rc = -ENOMEM;
 			goto err_ret;
 		}
 
