@@ -3,11 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include <netinet/in.h>
 #include <sbc/sbc.h>
 #include <syslog.h>
 
 #include "cras_a2dp_info.h"
 #include "cras_sbc_codec.h"
+#include "cras_types.h"
 #include "rtp.h"
 
 int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
@@ -104,4 +106,69 @@ void a2dp_drain(struct a2dp_info *a2dp)
 	a2dp->samples = 0;
 	a2dp->seq_num = 0;
 	a2dp->frame_count = 0;
+}
+
+int avdtp_write(int stream_fd, struct a2dp_info *a2dp)
+{
+	int err;
+	struct rtp_header *header;
+	struct rtp_payload *payload;
+
+	header = (struct rtp_header *)a2dp->a2dp_buf;
+	payload = (struct rtp_payload *)(a2dp->a2dp_buf + sizeof(*header));
+	memset(a2dp->a2dp_buf, 0, sizeof(*header) + sizeof(*payload));
+
+	payload->frame_count = a2dp->frame_count;
+	header->v = 2;
+	header->pt = 1;
+	header->sequence_number = htons(a2dp->seq_num);
+	header->timestamp = htonl(a2dp->nsamples);
+	header->ssrc = htonl(1);
+
+	err = send(stream_fd, a2dp->a2dp_buf, a2dp->a2dp_buf_used,
+		   MSG_DONTWAIT);
+	if (err < 0)
+		return -errno;
+
+	/* Reset some data */
+	a2dp->a2dp_buf_used = sizeof(*header) + sizeof(*payload);
+	a2dp->frame_count = 0;
+	a2dp->samples = 0;
+	a2dp->seq_num++;
+
+	return err;
+}
+
+unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
+			struct a2dp_info *a2dp, int format_bytes, int stream_fd,
+			size_t link_mtu, int *written_bytes)
+{
+	int processed;
+	size_t out_encoded;
+
+	if (link_mtu > A2DP_BUF_SIZE_BYTES)
+		link_mtu = A2DP_BUF_SIZE_BYTES;
+
+	*written_bytes = 0;
+	processed = a2dp->codec->encode(a2dp->codec, pcm_buf, pcm_buf_size,
+					a2dp->a2dp_buf + a2dp->a2dp_buf_used,
+					link_mtu - a2dp->a2dp_buf_used,
+					&out_encoded);
+
+	if (a2dp->codesize > 0)
+		a2dp->frame_count += processed / a2dp->codesize;
+	a2dp->a2dp_buf_used += out_encoded;
+
+	if (processed) {
+		a2dp->samples += processed / format_bytes;
+		a2dp->nsamples += processed / format_bytes;
+	}
+
+	/* Do avdtp write once no more pcm buffer processed to a2dp buffer,
+	 * or a2dp buffer already accumulated to half the mtu.
+	 */
+	if (processed == 0 || a2dp->a2dp_buf_used > link_mtu / 2)
+		*written_bytes = avdtp_write(stream_fd, a2dp);
+
+	return processed;
 }

@@ -14,14 +14,16 @@
 #include "cras_util.h"
 #include "utlist.h"
 
-#define PCM_BUF_SIZE_BYTES 1024
+#define PCM_BUF_MAX_SIZE_BYTES 1024
 
 struct a2dp_io {
 	struct cras_iodev base;
 	struct a2dp_info a2dp;
 	struct cras_bt_transport *transport;
 
-	uint8_t pcm_buf[PCM_BUF_SIZE_BYTES];
+	uint8_t pcm_buf[PCM_BUF_MAX_SIZE_BYTES];
+	int pcm_buf_offset;
+	int pcm_buf_size;
 	int pcm_buf_used;
 };
 
@@ -80,7 +82,8 @@ static int open_dev(struct cras_iodev *iodev)
 		return -EINVAL;
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 
-	iodev->buffer_size = PCM_BUF_SIZE_BYTES;
+	a2dpio->pcm_buf_size = PCM_BUF_MAX_SIZE_BYTES;
+	iodev->buffer_size = a2dpio->pcm_buf_size;
 	if (iodev->used_size > iodev->buffer_size)
 		iodev->used_size = iodev->buffer_size;
 	return 0;
@@ -130,9 +133,10 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 	format_bytes = cras_get_format_bytes(iodev->format);
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
-		*dst = a2dpio->pcm_buf + a2dpio->pcm_buf_used;
-		*frames = (PCM_BUF_SIZE_BYTES - a2dpio->pcm_buf_used)
-				/ format_bytes;
+		*dst = a2dpio->pcm_buf + a2dpio->pcm_buf_offset
+				+ a2dpio->pcm_buf_used;
+		*frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
+				a2dpio->pcm_buf_used) / format_bytes;
 	}
 	return 0;
 }
@@ -140,12 +144,34 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	size_t format_bytes;
+	int written = 0;
+	int processed;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	if (a2dpio->pcm_buf_used + nwritten * format_bytes > PCM_BUF_SIZE_BYTES)
+	if (a2dpio->pcm_buf_used + a2dpio->pcm_buf_offset +
+			nwritten * format_bytes > a2dpio->pcm_buf_size)
 		return -1;
 	a2dpio->pcm_buf_used += nwritten * format_bytes;
+
+	processed = a2dp_write(a2dpio->pcm_buf + a2dpio->pcm_buf_offset,
+			       a2dpio->pcm_buf_used,
+			       &a2dpio->a2dp,
+			       format_bytes,
+			       cras_bt_transport_fd(a2dpio->transport),
+			       cras_bt_transport_write_mtu(a2dpio->transport),
+			       &written);
+
+	if (a2dpio->pcm_buf_used == processed) {
+		a2dpio->pcm_buf_offset = 0;
+		a2dpio->pcm_buf_used = 0;
+	} else {
+		a2dpio->pcm_buf_offset += processed;
+		a2dpio->pcm_buf_used -= processed;
+	}
+
+	if (written == -EAGAIN)
+		syslog(LOG_ERR, "Write error");
 
 	return 0;
 }
