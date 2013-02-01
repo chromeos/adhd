@@ -43,13 +43,24 @@ static const size_t test_channel_counts[] = {
 int cras_alsa_pcm_open(snd_pcm_t **handle, const char *dev,
 		       snd_pcm_stream_t stream)
 {
-	return snd_pcm_open(handle,
-			    dev,
-			    stream,
-			    SND_PCM_NONBLOCK |
-			    SND_PCM_NO_AUTO_RESAMPLE |
-			    SND_PCM_NO_AUTO_CHANNELS |
-			    SND_PCM_NO_AUTO_FORMAT);
+	int rc;
+	int retries = 3;
+	static const unsigned int OPEN_RETRY_DELAY_US = 100000;
+
+retry_open:
+	rc = snd_pcm_open(handle,
+			  dev,
+			  stream,
+			  SND_PCM_NONBLOCK |
+			  SND_PCM_NO_AUTO_RESAMPLE |
+			  SND_PCM_NO_AUTO_CHANNELS |
+			  SND_PCM_NO_AUTO_FORMAT);
+	if (rc == -EBUSY && --retries) {
+		usleep(OPEN_RETRY_DELAY_US);
+		goto retry_open;
+	}
+
+	return rc;
 }
 
 int cras_alsa_pcm_close(snd_pcm_t *handle)
@@ -77,13 +88,9 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 
 	snd_pcm_hw_params_alloca(&params);
 
-	rc = snd_pcm_open(&handle,
-			  dev,
-			  stream,
-			  SND_PCM_NONBLOCK |
-			  SND_PCM_NO_AUTO_RESAMPLE |
-			  SND_PCM_NO_AUTO_CHANNELS |
-			  SND_PCM_NO_AUTO_FORMAT);
+	rc = cras_alsa_pcm_open(&handle,
+				dev,
+				stream);
 	if (rc < 0) {
 		syslog(LOG_ERR, "snd_pcm_open_failed: %s", snd_strerror(rc));
 		return rc;
