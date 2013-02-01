@@ -190,7 +190,7 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	free(stream);
 }
 
-int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count)
+int cras_rstream_request_audio(const struct cras_rstream *stream)
 {
 	struct audio_message msg;
 	int rc;
@@ -200,10 +200,8 @@ int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count)
 	if (stream->direction == CRAS_STREAM_UNIFIED)
 		return 0;
 
-	if (count < stream->min_cb_level)
-		count = stream->min_cb_level;
 	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
-	msg.frames = count;
+	msg.frames = stream->min_cb_level;
 	rc = write(stream->fd, &msg, sizeof(msg));
 	return rc;
 }
@@ -229,11 +227,6 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream)
 	if (rc < 0 || msg.error < 0)
 		return -EIO;
 	return 0;
-}
-
-int cras_rstream_request_audio_buffer(const struct cras_rstream *stream)
-{
-	return cras_rstream_request_audio(stream, stream->buffer_frames);
 }
 
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream)

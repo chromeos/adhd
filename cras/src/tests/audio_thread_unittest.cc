@@ -1350,7 +1350,7 @@ int cras_set_thread_priority(int priority) {
 }
 
 //  From rstream.
-int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count)
+int cras_rstream_request_audio(const struct cras_rstream *stream)
 {
   cras_rstream_request_audio_called++;
   return 0;

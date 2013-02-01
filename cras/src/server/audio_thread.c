@@ -382,8 +382,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 
 		if (!cras_shm_callback_pending(shm) &&
 		    cras_shm_is_buffer_available(shm)) {
-			rc = cras_rstream_request_audio(curr->stream,
-							fetch_size);
+			rc = cras_rstream_request_audio(curr->stream);
 			if (rc < 0) {
 				thread_remove_stream(thread, curr->stream);
 				/* If this failed and was the last stream,

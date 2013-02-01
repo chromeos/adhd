@@ -201,10 +201,9 @@ static inline int stream_has_input(const struct cras_rstream *s)
 	return cras_stream_has_input(s->direction);
 }
 
-/* Requests data from the stream will request at least min_req frames. */
-int cras_rstream_request_audio(const struct cras_rstream *stream, size_t count);
-/* Requests a complete buffer worth of audio. */
-int cras_rstream_request_audio_buffer(const struct cras_rstream *stream);
+/* Requests min_req frames from the client. */
+int cras_rstream_request_audio(const struct cras_rstream *stream);
+
 /* Tells a capture client that count frames are ready. */
 int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count);
 /* Waits for the response to a request for audio. */
