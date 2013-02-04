@@ -89,6 +89,11 @@ void destroy_a2dp(struct a2dp_info *a2dp)
 	cras_sbc_codec_destroy(a2dp->codec);
 }
 
+int a2dp_codesize(struct a2dp_info *a2dp)
+{
+	return a2dp->codesize;
+}
+
 int a2dp_block_size(struct a2dp_info *a2dp, int a2dp_bytes)
 {
 	return a2dp_bytes / a2dp->frame_length * a2dp->codesize;

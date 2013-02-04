@@ -27,6 +27,9 @@ static size_t init_a2dp_called;
 static int init_a2dp_return_val;
 static size_t destroy_a2dp_called;
 static size_t drain_a2dp_called;
+static size_t a2dp_block_size_called;
+static size_t a2dp_queued_frames_val;
+static size_t a2dp_written_bytes_val;
 static size_t cras_iodev_free_format_called;
 static int pcm_buf_size_val;
 static unsigned int a2dp_write_processed_bytes_val;
@@ -41,6 +44,9 @@ void ResetStubData() {
   init_a2dp_return_val = 0;
   destroy_a2dp_called = 0;
   drain_a2dp_called = 0;
+  a2dp_block_size_called = 0;
+  a2dp_queued_frames_val = 0;
+  a2dp_written_bytes_val = 0;
   cras_iodev_free_format_called = 0;
   a2dp_write_processed_bytes_val = 0;
 
@@ -48,6 +54,8 @@ void ResetStubData() {
 }
 
 namespace {
+
+static struct timespec time_now;
 
 TEST(A2dpIoInit, InitializeA2dpIodev) {
   struct cras_iodev *iodev;
@@ -93,6 +101,7 @@ TEST(A2dpIoInit, OpenIodev) {
   iodev->open_dev(iodev);
 
   ASSERT_EQ(1, cras_bt_transport_acquire_called);
+  ASSERT_EQ(1, a2dp_block_size_called);
 
   iodev->close_dev(iodev);
   ASSERT_EQ(1, cras_bt_transport_release_called);
@@ -113,6 +122,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
 
   cras_iodev_set_format(iodev, format);
   iodev->open_dev(iodev);
+  ASSERT_EQ(1, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &buf1, &frames);
   ASSERT_EQ(256, frames);
@@ -121,6 +131,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_processed_bytes_val = 400;
   iodev->put_buffer(iodev, 100);
   ASSERT_EQ(400, pcm_buf_size_val);
+  ASSERT_EQ(2, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &buf2, &frames);
   ASSERT_EQ(256, frames);
@@ -134,6 +145,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_processed_bytes_val = 360;
   iodev->put_buffer(iodev, 100);
   ASSERT_EQ(400, pcm_buf_size_val);
+  ASSERT_EQ(3, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &buf3, &frames);
 
@@ -144,6 +156,55 @@ TEST(A2dpIoInit, GetPutBuffer) {
   ASSERT_EQ(400, buf3 - buf1);
 
   a2dp_iodev_destroy(iodev);
+}
+
+TEST(A2dpIoInif, FramesQueued) {
+  struct cras_iodev *iodev;
+  struct cras_audio_format *format = NULL;
+  uint8_t *buf;
+  unsigned frames;
+
+  ResetStubData();
+  iodev = a2dp_iodev_create(fake_transport);
+
+  cras_iodev_set_format(iodev, format);
+  iodev->open_dev(iodev);
+  ASSERT_EQ(1, a2dp_block_size_called);
+
+  iodev->get_buffer(iodev, &buf, &frames);
+  ASSERT_EQ(256, frames);
+
+  /* Put 100 frames, proccessed 400 bytes to a2dp buffer.
+   * Assume 200 bytes written out, queued 50 frames in a2dp buffer.
+   */
+  a2dp_write_processed_bytes_val = 400;
+  a2dp_queued_frames_val = 50;
+  a2dp_written_bytes_val = 200;
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->put_buffer(iodev, 100);
+  ASSERT_EQ(2, a2dp_block_size_called);
+  ASSERT_EQ(100, iodev->frames_queued(iodev));
+
+  /* After 1ms, 44 more frames consumed.
+   */
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 1000000;
+  ASSERT_EQ(56, iodev->frames_queued(iodev));
+
+  a2dp_write_processed_bytes_val = 200;
+  a2dp_queued_frames_val = 50;
+  a2dp_written_bytes_val = 200;
+
+  /* After 1 more ms, expect 44 more frames consumed, cause
+   * the virtual bt queued frames decrease to 0 before more frames
+   * put.
+   */
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 2000000;
+  iodev->put_buffer(iodev, 100);
+  ASSERT_EQ(400, pcm_buf_size_val);
+  ASSERT_EQ(150, iodev->frames_queued(iodev));
 }
 
 } // namespace
@@ -201,6 +262,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 {
   format.format = SND_PCM_FORMAT_S16_LE;
   format.num_channels = 2;
+  format.frame_rate = 44100;
   iodev->format = &format;
   return 0;
 }
@@ -229,6 +291,24 @@ void destroy_a2dp(struct a2dp_info *a2dp)
   destroy_a2dp_called++;
 }
 
+int a2dp_codesize(struct a2dp_info *a2dp)
+{
+  return 512;
+}
+
+int a2dp_block_size(struct a2dp_info *a2dp, int encoded_bytes)
+{
+  a2dp_block_size_called++;
+
+  // Assumes a2dp block size is 1:1 before/after encode.
+  return encoded_bytes;
+}
+
+int a2dp_queued_frames(struct a2dp_info *a2dp)
+{
+  return a2dp_queued_frames_val;
+}
+
 void a2dp_drain(struct a2dp_info *a2dp)
 {
   drain_a2dp_called++;
@@ -239,7 +319,12 @@ unsigned int a2dp_write(void *pcm_buf, int pcm_buf_size, struct a2dp_info *a2dp,
 			int *written_bytes)
 {
   pcm_buf_size_val = pcm_buf_size;
+  *written_bytes = a2dp_written_bytes_val;
   return a2dp_write_processed_bytes_val;
 }
 
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+  *tp = time_now;
+  return 0;
+}
 }

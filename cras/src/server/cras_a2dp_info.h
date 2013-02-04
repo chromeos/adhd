@@ -45,6 +45,11 @@ int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc);
 void destroy_a2dp(struct a2dp_info *a2dp);
 
 /*
+ * Gets the codesize of the SBC codec.
+ */
+int a2dp_codesize(struct a2dp_info *a2dp);
+
+/*
  * Gets original size of a2dp encoded bytes.
  */
 int a2dp_block_size(struct a2dp_info *a2dp, int encoded_bytes);

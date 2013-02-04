@@ -6,12 +6,14 @@
 #include <stdint.h>
 #include <sys/socket.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_util.h"
+#include "rtp.h"
 #include "utlist.h"
 
 #define PCM_BUF_MAX_SIZE_BYTES 1024
@@ -25,6 +27,9 @@ struct a2dp_io {
 	int pcm_buf_offset;
 	int pcm_buf_size;
 	int pcm_buf_used;
+
+	int bt_queued_frames;
+	struct timespec bt_queued_fr_last_update;
 };
 
 static int update_supported_formats(struct cras_iodev *iodev)
@@ -60,15 +65,65 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
+/* Calculates the amount of consumed frames since given time.
+ */
+static unsigned long frames_since(struct timespec ts, size_t rate)
+{
+	struct timespec te, diff;
+
+	clock_gettime(CLOCK_MONOTONIC, &te);
+	subtract_timespecs(&te, &ts, &diff);
+	return diff.tv_sec * rate + diff.tv_nsec / (1000000000L / rate);
+}
+
+/* Maintains a virtual buffer for transmitted frames, assume this buffer is
+ * consumed at the same frame rate at bluetooth device side.
+ * Args:
+ *    iodev: The a2dp iodev to estimate the queued frames for.
+ *    fr: The amount of frames just transmitted.
+ */
+static int get_bt_queued_frames(const struct cras_iodev *iodev, int fr)
+{
+	unsigned long consumed;
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+
+	/* Calculate consumed frames since last update time, also update
+	 * the last update time.
+	 */
+	consumed = frames_since(a2dpio->bt_queued_fr_last_update,
+				iodev->format->frame_rate);
+	clock_gettime(CLOCK_MONOTONIC, &a2dpio->bt_queued_fr_last_update);
+
+	if (a2dpio->bt_queued_frames > consumed)
+		a2dpio->bt_queued_frames -= consumed;
+	else
+		a2dpio->bt_queued_frames = 0;
+
+	a2dpio->bt_queued_frames += fr;
+
+	return a2dpio->bt_queued_frames;
+}
+
 static int frames_queued(const struct cras_iodev *iodev)
 {
-	// TODO(hychao): implement this function after a2dp write is ready.
-	return 0;
+	size_t format_bytes;
+	int frames;
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+
+	format_bytes = cras_get_format_bytes(iodev->format);
+
+	frames = a2dpio->pcm_buf_used / format_bytes
+			+ a2dp_queued_frames(&a2dpio->a2dp)
+			+ get_bt_queued_frames(iodev, 0);
+
+	return frames;
 }
+
 
 static int open_dev(struct cras_iodev *iodev)
 {
-	int err = 0;
+	int err = 0, block_size;
+	size_t format_bytes;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
 	err = cras_bt_transport_acquire(a2dpio->transport);
@@ -81,11 +136,26 @@ static int open_dev(struct cras_iodev *iodev)
 	if (iodev->format == NULL)
 		return -EINVAL;
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
+	format_bytes = cras_get_format_bytes(iodev->format);
 
-	a2dpio->pcm_buf_size = PCM_BUF_MAX_SIZE_BYTES;
-	iodev->buffer_size = a2dpio->pcm_buf_size;
+	/* Back calculate the max size of a2dp block before encode. */
+	block_size = a2dp_block_size(
+			&a2dpio->a2dp,
+			cras_bt_transport_write_mtu(a2dpio->transport) -
+					sizeof(struct rtp_header) -
+					sizeof(struct rtp_payload));
+
+	/* Assert pcm_buf_size be multiple of codesize */
+	a2dpio->pcm_buf_size = PCM_BUF_MAX_SIZE_BYTES
+			/ a2dp_codesize(&a2dpio->a2dp)
+			* a2dp_codesize(&a2dpio->a2dp);
+	iodev->buffer_size = (a2dpio->pcm_buf_size + block_size) / format_bytes;
 	if (iodev->used_size > iodev->buffer_size)
 		iodev->used_size = iodev->buffer_size;
+
+	syslog(LOG_DEBUG, "a2dp iodev buf size %lu, used size %lu",
+	       iodev->buffer_size, iodev->used_size);
+
 	return 0;
 }
 
@@ -121,7 +191,7 @@ static int dev_running(const struct cras_iodev *iodev)
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	return 0;
+	return frames_queued(iodev);
 }
 
 static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
@@ -147,6 +217,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	int written = 0;
 	int processed;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+
 	format_bytes = cras_get_format_bytes(iodev->format);
 
 	if (a2dpio->pcm_buf_used + a2dpio->pcm_buf_offset +
@@ -170,9 +241,14 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		a2dpio->pcm_buf_used -= processed;
 	}
 
-	if (written == -EAGAIN)
-		syslog(LOG_ERR, "Write error");
+	if (written == -EAGAIN) {
+		syslog(LOG_ERR, "a2dp_write error");
+		return 0;
+	}
 
+	get_bt_queued_frames(iodev,
+			     a2dp_block_size(&a2dpio->a2dp, written)
+				     / format_bytes);
 	return 0;
 }
 
