@@ -424,12 +424,22 @@ static int handle_capture_data_ready(struct client_stream *stream,
 
 	num_frames = config_capture_buf(stream, &captured_frames, num_frames);
 
-	frames = config->aud_cb(stream->client,
-				stream->id,
-				captured_frames,
-				num_frames,
-				&stream->capture_shm.area->ts,
-				config->user_data);
+	if (config->unified_cb)
+		frames = config->unified_cb(stream->client,
+					    stream->id,
+					    captured_frames,
+					    NULL,
+					    num_frames,
+					    &stream->capture_shm.area->ts,
+					    NULL,
+					    config->user_data);
+	else
+		frames = config->aud_cb(stream->client,
+					stream->id,
+					captured_frames,
+					num_frames,
+					&stream->capture_shm.area->ts,
+					config->user_data);
 	if (frames == EOF) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		return EOF;
@@ -475,6 +485,9 @@ static int send_playback_reply(struct client_stream *stream,
 	struct audio_message aud_msg;
 	int rc;
 
+	if (!cras_stream_has_output(stream->direction))
+		return 0;
+
 	aud_msg.id = AUDIO_MESSAGE_DATA_READY;
 	aud_msg.frames = frames;
 	aud_msg.error = error;
@@ -508,8 +521,21 @@ static int handle_playback_request(struct client_stream *stream,
 
 	num_frames = config_playback_buf(stream, &buf, num_frames);
 
+	/* Limit the amount of frames to the configured amount. */
+	num_frames = min(num_frames, config->min_cb_level);
+
 	/* Get samples from the user */
-	frames = config->aud_cb(stream->client,
+	if (config->unified_cb)
+		frames = config->unified_cb(stream->client,
+				stream->id,
+				NULL,
+				buf,
+				num_frames,
+				NULL,
+				&shm->area->ts,
+				config->user_data);
+	else
+		frames = config->aud_cb(stream->client,
 				stream->id,
 				buf,
 				num_frames,
@@ -534,21 +560,28 @@ static int handle_unified_request(struct client_stream *stream,
 				  unsigned int num_frames)
 {
 	struct cras_stream_params *config;
-	uint8_t *captured_frames;
-	uint8_t *playback_frames;
+	uint8_t *captured_frames = NULL;
+	uint8_t *playback_frames = NULL;
+	struct timespec *capture_ts = NULL;
+	struct timespec *playback_ts = NULL;
 	int frames;
 	int rc = 0;
 
 	config = stream->config;
 
-	/* If this message is for an input stream, log error and drop it. */
-	if (stream->direction != CRAS_STREAM_UNIFIED) {
-		syslog(LOG_ERR, "Wrong stream type in unified callback\n");
-		return 0;
+	if (cras_stream_has_input(stream->direction)) {
+		num_frames = config_capture_buf(stream,
+						&captured_frames,
+						num_frames);
+		capture_ts = &stream->capture_shm.area->ts;
 	}
 
-	num_frames = config_capture_buf(stream, &captured_frames, num_frames);
-	num_frames = config_playback_buf(stream, &playback_frames, num_frames);
+	if (cras_stream_has_output(stream->direction)) {
+		num_frames = config_playback_buf(stream,
+						 &playback_frames,
+						 num_frames);
+		playback_ts = &stream->play_shm.area->ts;
+	}
 
 	/* Get samples from the user */
 	frames = config->unified_cb(stream->client,
@@ -556,19 +589,20 @@ static int handle_unified_request(struct client_stream *stream,
 				    captured_frames,
 				    playback_frames,
 				    num_frames,
-				    &stream->capture_shm.area->ts,
-				    &stream->play_shm.area->ts,
+				    capture_ts,
+				    playback_ts,
 				    config->user_data);
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
-		rc = frames;
-		goto reply_written;
+		return send_playback_reply(stream, frames, frames);
 	}
 
-	complete_capture_read(stream, frames);
-	complete_playback_write(stream, frames);
+	if (cras_stream_has_input(stream->direction))
+		complete_capture_read(stream, frames);
 
-reply_written:
+	if (cras_stream_has_output(stream->direction))
+		complete_playback_write(stream, frames);
+
 	/* Signal server that data is ready, or that an error has occurred. */
 	return send_playback_reply(stream, frames, rc);
 }

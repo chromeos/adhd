@@ -117,9 +117,11 @@ static snd_pcm_sframes_t snd_pcm_cras_pointer(snd_pcm_ioplug_t *io)
  * buffers. */
 static int pcm_cras_process_cb(struct cras_client *client,
 			       cras_stream_id_t stream_id,
-			       uint8_t *samples,
-			       size_t nframes,
-			       const struct timespec *sample_time,
+			       uint8_t *capture_samples,
+			       uint8_t *playback_samples,
+			       unsigned int nframes,
+			       const struct timespec *capture_ts,
+			       const struct timespec *playback_ts,
 			       void *arg)
 {
 	snd_pcm_ioplug_t *io;
@@ -129,6 +131,11 @@ static int pcm_cras_process_cb(struct cras_client *client,
 	char dummy_byte;
 	size_t chan, frame_bytes, sample_bytes;
 	int rc;
+	uint8_t *samples;
+	const struct timespec *sample_time;
+
+	samples = capture_samples ? : playback_samples;
+	sample_time = capture_ts ? : playback_ts;
 
 	io = (snd_pcm_ioplug_t *)arg;
 	pcm_cras = (struct snd_pcm_cras *)io->private_data;
@@ -257,11 +264,8 @@ static int snd_pcm_cras_start(snd_pcm_ioplug_t *io)
 	if (audio_format == NULL)
 		return -ENOMEM;
 
-	params = cras_client_stream_params_create(
+	params = cras_client_unified_params_create(
 			pcm_cras->direction,
-			(io->stream == SND_PCM_STREAM_PLAYBACK) ?
-				io->buffer_size : io->period_size,
-			io->period_size,
 			io->period_size,
 			0,
 			0,

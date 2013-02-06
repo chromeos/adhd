@@ -39,12 +39,12 @@ static inline int device_active(const struct audio_thread *thread)
 	if (!odev && !idev)
 		return 0;
 
-	if (odev && !odev->is_open(odev))
-		return 0;
-	if (idev && !idev->is_open(idev))
-		return 0;
+	if (odev && odev->is_open(odev))
+		return 1;
+	if (idev && idev->is_open(idev))
+		return 1;
 
-	return 1;
+	return 0;
 }
 
 /* Finds the lowest latency stream attached to the thread. */
@@ -633,7 +633,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	uint8_t *dst = NULL;
 	struct cras_iodev *odev = thread->output_dev;
 
-	if (!odev)
+	if (!odev || !odev->is_open(odev))
 		return 0;
 
 	/* Request data from streams that need more */
@@ -694,7 +694,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	unsigned int nread, level_target;
 	struct cras_iodev *idev = thread->input_dev;
 
-	if (!idev)
+	if (!idev || !idev->is_open(idev))
 		return 0;
 
 	DL_FOREACH(thread->streams, stream) {
@@ -788,12 +788,14 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 {
 	struct cras_iodev *idev = thread->input_dev;
 	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *master_dev = idev ? : odev;
+	struct cras_iodev *master_dev;
 	int rc, delay;
 	unsigned int hw_level, to_sleep;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
+
+	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
 
 	rc = master_dev->frames_queued(master_dev);
 	if (rc < 0)
@@ -823,7 +825,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	}
 	hw_level -= rc;
 
-	if (!odev)
+	if (!odev || !odev->is_open(odev))
 		goto not_enough;
 
 	rc = odev->frames_queued(odev);
@@ -856,7 +858,8 @@ not_enough:
 		return -EIO;
 
 	 /* idev could have been closed for error. */
-	master_dev = thread->input_dev ? : thread->output_dev;
+	idev = thread->input_dev;
+	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
 
 	to_sleep = cras_iodev_sleep_frames(master_dev, hw_level) +
 		   thread->remaining_target +
