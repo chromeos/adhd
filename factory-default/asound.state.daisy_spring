@@ -1,75 +1,31 @@
-state.DAISYI2S {
+state.SPRINGI2S {
 	control.1 {
 		iface MIXER
-		name 'EQ1 Mode'
-		value Default
+		name 'Headphone Volume'
+		value.0 20
+		value.1 20
 		comment {
 			access 'read write'
-			type ENUMERATED
-			count 1
-			item.0 Default
+			type INTEGER
+			count 2
+			range '0 - 31'
 		}
 	}
 	control.2 {
 		iface MIXER
-		name 'EQ2 Mode'
-		value Default
+		name 'Speaker Volume'
+		value.0 20
+		value.1 20
 		comment {
 			access 'read write'
-			type ENUMERATED
-			count 1
-			item.0 Default
+			type INTEGER
+			count 2
+			range '0 - 31'
 		}
 	}
 	control.3 {
 		iface MIXER
-		name 'Headphone Volume'
-		value.0 13
-		value.1 13
-		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 31'
-			dbmin -6700
-			dbmax 300
-			dbvalue.0 -2200
-			dbvalue.1 -2200
-		}
-	}
-	control.4 {
-		iface MIXER
-		name 'Speaker Volume'
-		value.0 16
-		value.1 16
-		comment {
-			access 'read write'
-			type INTEGER
-			count 2
-			range '0 - 39'
-			dbmin -5900
-			dbmax 1200
-			dbvalue.0 -700
-			dbvalue.1 -700
-		}
-	}
-	control.5 {
-		iface MIXER
 		name 'Receiver Volume'
-		value 0
-		comment {
-			access 'read write'
-			type INTEGER
-			count 1
-			range '0 - 31'
-			dbmin -6200
-			dbmax 800
-			dbvalue.0 -6200
-		}
-	}
-	control.6 {
-		iface MIXER
-		name 'Lineout Volume'
 		value.0 0
 		value.1 0
 		comment {
@@ -77,13 +33,9 @@ state.DAISYI2S {
 			type INTEGER
 			count 2
 			range '0 - 31'
-			dbmin -6200
-			dbmax 800
-			dbvalue.0 -6200
-			dbvalue.1 -6200
 		}
 	}
-	control.7 {
+	control.4 {
 		iface MIXER
 		name 'Headphone Switch'
 		value.0 false
@@ -94,7 +46,7 @@ state.DAISYI2S {
 			count 2
 		}
 	}
-	control.8 {
+	control.5 {
 		iface MIXER
 		name 'Speaker Switch'
 		value.0 true
@@ -105,98 +57,90 @@ state.DAISYI2S {
 			count 2
 		}
 	}
-	control.9 {
+	control.6 {
 		iface MIXER
 		name 'Receiver Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.10 {
-		iface MIXER
-		name 'Lineout Switch'
-		value.0 true
-		value.1 true
+		value.0 false
+		value.1 false
 		comment {
 			access 'read write'
 			type BOOLEAN
 			count 2
 		}
 	}
-	control.11 {
+	control.7 {
 		iface MIXER
 		name 'MIC1 Volume'
-		value 20
+		value 31
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
-			range '0 - 20'
-			dbmin 0
-			dbmax 2000
-			dbvalue.0 2000
+			range '0 - 31'
 		}
 	}
-	control.12 {
+	control.8 {
 		iface MIXER
 		name 'MIC2 Volume'
-		value 20
+		value 31
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
-			range '0 - 20'
-			dbmin 0
-			dbmax 2000
-			dbvalue.0 2000
+			range '0 - 31'
 		}
 	}
-	control.13 {
+	control.9 {
 		iface MIXER
 		name 'MIC1 Boost Volume'
 		value 0
 		comment {
 			access 'read write'
 			type INTEGER
-			count 1
+			count 2
 			range '0 - 2'
 			dbmin 0
 			dbmax 3000
 			dbvalue.0 0
 		}
 	}
-	control.14 {
+	control.10 {
 		iface MIXER
 		name 'MIC2 Boost Volume'
-		value 1
+		value 0
 		comment {
 			access 'read write'
 			type INTEGER
-			count 1
+			count 2
 			range '0 - 2'
 			dbmin 0
 			dbmax 3000
 			dbvalue.0 0
 		}
 	}
-	control.15 {
+	control.11 {
 		iface MIXER
-		name 'Linein Volume'
-		value 5
+		name 'INA Volume'
+		value 7
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
-			range '0 - 5'
-			dbmin -600
-			dbmax 2000
-			dbvalue.0 2000
+			range '0 - 7'
 		}
 	}
-	control.16 {
+	control.12 {
+		iface MIXER
+		name 'INB Volume'
+		value 7
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 7'
+		}
+	}
+	control.13 {
 		iface MIXER
 		name 'ADCL Volume'
 		value 15
@@ -205,12 +149,9 @@ state.DAISYI2S {
 			type INTEGER
 			count 1
 			range '0 - 15'
-			dbmin -1200
-			dbmax 300
-			dbvalue.0 300
 		}
 	}
-	control.17 {
+	control.14 {
 		iface MIXER
 		name 'ADCR Volume'
 		value 15
@@ -219,50 +160,41 @@ state.DAISYI2S {
 			type INTEGER
 			count 1
 			range '0 - 15'
-			dbmin -1200
-			dbmax 300
-			dbvalue.0 300
 		}
 	}
-	control.18 {
+	control.15 {
 		iface MIXER
 		name 'ADCL Boost Volume'
-		value 0
+		value 3
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
 			range '0 - 3'
-			dbmin 0
-			dbmax 1800
-			dbvalue.0 0
 		}
 	}
-	control.19 {
+	control.16 {
 		iface MIXER
 		name 'ADCR Boost Volume'
-		value 0
+		value 3
 		comment {
 			access 'read write'
 			type INTEGER
 			count 1
 			range '0 - 3'
-			dbmin 0
-			dbmax 1800
-			dbvalue.0 0
 		}
 	}
-	control.20 {
+	control.17 {
 		iface MIXER
 		name 'EQ1 Switch'
-		value true
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
 			count 1
 		}
 	}
-	control.21 {
+	control.18 {
 		iface MIXER
 		name 'EQ2 Switch'
 		value false
@@ -272,67 +204,44 @@ state.DAISYI2S {
 			count 1
 		}
 	}
-	control.22 {
+	control.19 {
 		iface MIXER
-		name 'Biquad1 Switch'
-		value false
+		name 'EX Limiter Mode'
+		value Off
 		comment {
 			access 'read write'
-			type BOOLEAN
+			type ENUMERATED
 			count 1
+			item.0 Off
+			item.1 '100Hz'
+			item.2 '400Hz'
+			item.3 '600Hz'
+			item.4 '800Hz'
+			item.5 '1000Hz'
+			item.6 '200-400Hz'
+			item.7 '400-600Hz'
+			item.8 '400-800Hz'
 		}
 	}
-	control.23 {
+	control.20 {
 		iface MIXER
-		name 'Biquad2 Switch'
-		value false
+		name 'EX Limiter Threshold'
+		value '0.6'
 		comment {
 			access 'read write'
-			type BOOLEAN
+			type ENUMERATED
 			count 1
+			item.0 '0.6'
+			item.1 '1.2'
+			item.2 '1.8'
+			item.3 '2.4'
+			item.4 '3.0'
+			item.5 '3.6'
+			item.6 '4.2'
+			item.7 '4.8'
 		}
 	}
-	control.24 {
-		iface MIXER
-		name 'DMIC1 Left Capture Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.25 {
-		iface MIXER
-		name 'DMIC1 Right Capture Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.26 {
-		iface MIXER
-		name 'MIC1 External Mic Switch'
-		value false
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.27 {
-		iface MIXER
-		name 'MIC2 External Mic Switch'
-		value true
-		comment {
-			access 'read write'
-			type BOOLEAN
-			count 1
-		}
-	}
-	control.28 {
+	control.21 {
 		iface MIXER
 		name 'DAI1 Filter Mode'
 		value Music
@@ -344,19 +253,7 @@ state.DAISYI2S {
 			item.1 Music
 		}
 	}
-	control.29 {
-		iface MIXER
-		name 'DAI2 Filter Mode'
-		value Voice
-		comment {
-			access 'read write'
-			type ENUMERATED
-			count 1
-			item.0 Voice
-			item.1 Music
-		}
-	}
-	control.30 {
+	control.22 {
 		iface MIXER
 		name 'DAI1 DAC Filter'
 		value Off
@@ -365,67 +262,145 @@ state.DAISYI2S {
 			type ENUMERATED
 			count 1
 			item.0 Off
-			item.1 Elliptical-HPF-16k
-			item.2 Butterworth-HPF-16k
-			item.3 Elliptical-HPF-8k
-			item.4 Butterworth-HPF-8k
-			item.5 Butterworth-HPF-Fs/240
+			item.1 'fc=258/fs=16k'
+			item.2 'fc=500/fs=16k'
+			item.3 'fc=258/fs=8k'
+			item.4 'fc=500/fs=8k'
+			item.5 'fc=200'
+		}
+	}
+	control.23 {
+		iface MIXER
+		name 'DAI1 ADC Filter'
+		value Off
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 Off
+			item.1 'fc=258/fs=16k'
+			item.2 'fc=500/fs=16k'
+			item.3 'fc=258/fs=8k'
+			item.4 'fc=500/fs=8k'
+			item.5 'fc=200'
+		}
+	}
+	control.24 {
+		iface MIXER
+		name 'DAI2 DC Block Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.25 {
+		iface MIXER
+		name 'ALC Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.26 {
+		iface MIXER
+		name 'ALC Threshold'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 7'
+		}
+	}
+	control.27 {
+		iface MIXER
+		name 'ALC Multiband'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.28 {
+		iface MIXER
+		name 'ALC Release Time'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 7'
+		}
+	}
+	control.29 {
+		iface MIXER
+		name 'PWR Limiter Threshold'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 15'
+		}
+	}
+	control.30 {
+		iface MIXER
+		name 'PWR Limiter Weight'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 7'
 		}
 	}
 	control.31 {
 		iface MIXER
-		name 'DAI2 DAC Filter'
-		value Off
+		name 'PWR Limiter Time1'
+		value 0
 		comment {
 			access 'read write'
-			type ENUMERATED
+			type INTEGER
 			count 1
-			item.0 Off
-			item.1 Elliptical-HPF-16k
-			item.2 Butterworth-HPF-16k
-			item.3 Elliptical-HPF-8k
-			item.4 Butterworth-HPF-8k
-			item.5 Butterworth-HPF-Fs/240
+			range '0 - 15'
 		}
 	}
 	control.32 {
 		iface MIXER
-		name 'DAI3 DAC Filter'
-		value Off
+		name 'PWR Limiter Time2'
+		value 0
 		comment {
 			access 'read write'
-			type ENUMERATED
+			type INTEGER
 			count 1
-			item.0 Off
-			item.1 Elliptical-HPF-16k
-			item.2 Butterworth-HPF-16k
-			item.3 Elliptical-HPF-8k
-			item.4 Butterworth-HPF-8k
-			item.5 Butterworth-HPF-Fs/240
+			range '0 - 15'
 		}
 	}
 	control.33 {
 		iface MIXER
-		name 'Linein Mode'
-		value Stereo
+		name 'THD Limiter Threshold'
+		value 0
 		comment {
 			access 'read write'
-			type ENUMERATED
+			type INTEGER
 			count 1
-			item.0 Stereo
-			item.1 Differential
+			range '0 - 15'
 		}
 	}
 	control.34 {
 		iface MIXER
-		name 'Lineout Mode'
-		value Stereo
+		name 'THD Limiter Time'
+		value 0
 		comment {
 			access 'read write'
-			type ENUMERATED
+			type INTEGER
 			count 1
-			item.0 Stereo
-			item.1 Differential
+			range '0 - 7'
 		}
 	}
 	control.35 {
@@ -441,7 +416,7 @@ state.DAISYI2S {
 	control.36 {
 		iface MIXER
 		name 'Right ADC Mixer MIC2 Switch'
-		value true
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -450,7 +425,7 @@ state.DAISYI2S {
 	}
 	control.37 {
 		iface MIXER
-		name 'Right ADC Mixer IN1 Switch'
+		name 'Right ADC Mixer INA1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -460,7 +435,7 @@ state.DAISYI2S {
 	}
 	control.38 {
 		iface MIXER
-		name 'Right ADC Mixer IN2 Switch'
+		name 'Right ADC Mixer INA2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -470,7 +445,7 @@ state.DAISYI2S {
 	}
 	control.39 {
 		iface MIXER
-		name 'Left ADC Mixer MIC1 Switch'
+		name 'Right ADC Mixer INB1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -480,8 +455,8 @@ state.DAISYI2S {
 	}
 	control.40 {
 		iface MIXER
-		name 'Left ADC Mixer MIC2 Switch'
-		value true
+		name 'Right ADC Mixer INB2 Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -490,7 +465,7 @@ state.DAISYI2S {
 	}
 	control.41 {
 		iface MIXER
-		name 'Left ADC Mixer IN1 Switch'
+		name 'Left ADC Mixer MIC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -500,7 +475,7 @@ state.DAISYI2S {
 	}
 	control.42 {
 		iface MIXER
-		name 'Left ADC Mixer IN2 Switch'
+		name 'Left ADC Mixer MIC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -510,7 +485,7 @@ state.DAISYI2S {
 	}
 	control.43 {
 		iface MIXER
-		name 'Right Lineout Mixer Left DAC1 Switch'
+		name 'Left ADC Mixer INA1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -520,7 +495,7 @@ state.DAISYI2S {
 	}
 	control.44 {
 		iface MIXER
-		name 'Right Lineout Mixer Right DAC1 Switch'
+		name 'Left ADC Mixer INA2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -530,7 +505,7 @@ state.DAISYI2S {
 	}
 	control.45 {
 		iface MIXER
-		name 'Right Lineout Mixer MIC1 Switch'
+		name 'Left ADC Mixer INB1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -540,7 +515,7 @@ state.DAISYI2S {
 	}
 	control.46 {
 		iface MIXER
-		name 'Right Lineout Mixer MIC2 Switch'
+		name 'Left ADC Mixer INB2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -550,7 +525,7 @@ state.DAISYI2S {
 	}
 	control.47 {
 		iface MIXER
-		name 'Right Lineout Mixer IN1 Switch'
+		name 'Right REC Mixer Left DAC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -560,7 +535,7 @@ state.DAISYI2S {
 	}
 	control.48 {
 		iface MIXER
-		name 'Right Lineout Mixer IN2 Switch'
+		name 'Right REC Mixer Right DAC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -570,7 +545,7 @@ state.DAISYI2S {
 	}
 	control.49 {
 		iface MIXER
-		name 'Left Lineout Mixer Left DAC1 Switch'
+		name 'Right REC Mixer Left DAC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -580,7 +555,7 @@ state.DAISYI2S {
 	}
 	control.50 {
 		iface MIXER
-		name 'Left Lineout Mixer Right DAC1 Switch'
+		name 'Right REC Mixer Right DAC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -590,7 +565,7 @@ state.DAISYI2S {
 	}
 	control.51 {
 		iface MIXER
-		name 'Left Lineout Mixer MIC1 Switch'
+		name 'Right REC Mixer MIC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -600,7 +575,7 @@ state.DAISYI2S {
 	}
 	control.52 {
 		iface MIXER
-		name 'Left Lineout Mixer MIC2 Switch'
+		name 'Right REC Mixer MIC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -610,7 +585,7 @@ state.DAISYI2S {
 	}
 	control.53 {
 		iface MIXER
-		name 'Left Lineout Mixer IN1 Switch'
+		name 'Right REC Mixer INA1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -620,7 +595,7 @@ state.DAISYI2S {
 	}
 	control.54 {
 		iface MIXER
-		name 'Left Lineout Mixer IN2 Switch'
+		name 'Right REC Mixer INA2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -630,7 +605,7 @@ state.DAISYI2S {
 	}
 	control.55 {
 		iface MIXER
-		name 'Receiver Mixer Left DAC1 Switch'
+		name 'Right REC Mixer INB1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -640,7 +615,7 @@ state.DAISYI2S {
 	}
 	control.56 {
 		iface MIXER
-		name 'Receiver Mixer Right DAC1 Switch'
+		name 'Right REC Mixer INB2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -650,8 +625,8 @@ state.DAISYI2S {
 	}
 	control.57 {
 		iface MIXER
-		name 'Receiver Mixer MIC1 Switch'
-		value false
+		name 'Left REC Mixer Left DAC1 Switch'
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -660,7 +635,7 @@ state.DAISYI2S {
 	}
 	control.58 {
 		iface MIXER
-		name 'Receiver Mixer MIC2 Switch'
+		name 'Left REC Mixer Right DAC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -670,8 +645,8 @@ state.DAISYI2S {
 	}
 	control.59 {
 		iface MIXER
-		name 'Receiver Mixer IN1 Switch'
-		value false
+		name 'Left REC Mixer Left DAC2 Switch'
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -680,7 +655,7 @@ state.DAISYI2S {
 	}
 	control.60 {
 		iface MIXER
-		name 'Receiver Mixer IN2 Switch'
+		name 'Left REC Mixer Right DAC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -690,7 +665,7 @@ state.DAISYI2S {
 	}
 	control.61 {
 		iface MIXER
-		name 'Right Speaker Mixer Left DAC1 Switch'
+		name 'Left REC Mixer MIC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -700,8 +675,8 @@ state.DAISYI2S {
 	}
 	control.62 {
 		iface MIXER
-		name 'Right Speaker Mixer Right DAC1 Switch'
-		value true
+		name 'Left REC Mixer MIC2 Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -710,7 +685,7 @@ state.DAISYI2S {
 	}
 	control.63 {
 		iface MIXER
-		name 'Right Speaker Mixer Mono DAC2 Switch'
+		name 'Left REC Mixer INA1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -720,7 +695,7 @@ state.DAISYI2S {
 	}
 	control.64 {
 		iface MIXER
-		name 'Right Speaker Mixer Mono DAC3 Switch'
+		name 'Left REC Mixer INA2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -730,7 +705,7 @@ state.DAISYI2S {
 	}
 	control.65 {
 		iface MIXER
-		name 'Right Speaker Mixer MIC1 Switch'
+		name 'Left REC Mixer INB1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -740,7 +715,7 @@ state.DAISYI2S {
 	}
 	control.66 {
 		iface MIXER
-		name 'Right Speaker Mixer MIC2 Switch'
+		name 'Left REC Mixer INB2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -750,7 +725,7 @@ state.DAISYI2S {
 	}
 	control.67 {
 		iface MIXER
-		name 'Right Speaker Mixer IN1 Switch'
+		name 'Right SPK Mixer Left DAC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -760,8 +735,8 @@ state.DAISYI2S {
 	}
 	control.68 {
 		iface MIXER
-		name 'Right Speaker Mixer IN2 Switch'
-		value false
+		name 'Right SPK Mixer Right DAC1 Switch'
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -770,8 +745,8 @@ state.DAISYI2S {
 	}
 	control.69 {
 		iface MIXER
-		name 'Left Speaker Mixer Left DAC1 Switch'
-		value true
+		name 'Right SPK Mixer Left DAC2 Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -780,7 +755,7 @@ state.DAISYI2S {
 	}
 	control.70 {
 		iface MIXER
-		name 'Left Speaker Mixer Right DAC1 Switch'
+		name 'Right SPK Mixer Right DAC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -790,7 +765,7 @@ state.DAISYI2S {
 	}
 	control.71 {
 		iface MIXER
-		name 'Left Speaker Mixer Mono DAC2 Switch'
+		name 'Right SPK Mixer MIC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -800,7 +775,7 @@ state.DAISYI2S {
 	}
 	control.72 {
 		iface MIXER
-		name 'Left Speaker Mixer Mono DAC3 Switch'
+		name 'Right SPK Mixer MIC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -810,7 +785,7 @@ state.DAISYI2S {
 	}
 	control.73 {
 		iface MIXER
-		name 'Left Speaker Mixer MIC1 Switch'
+		name 'Right SPK Mixer INA1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -820,7 +795,7 @@ state.DAISYI2S {
 	}
 	control.74 {
 		iface MIXER
-		name 'Left Speaker Mixer MIC2 Switch'
+		name 'Right SPK Mixer INA2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -830,7 +805,7 @@ state.DAISYI2S {
 	}
 	control.75 {
 		iface MIXER
-		name 'Left Speaker Mixer IN1 Switch'
+		name 'Right SPK Mixer INB1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -840,7 +815,7 @@ state.DAISYI2S {
 	}
 	control.76 {
 		iface MIXER
-		name 'Left Speaker Mixer IN2 Switch'
+		name 'Right SPK Mixer INB2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -850,8 +825,8 @@ state.DAISYI2S {
 	}
 	control.77 {
 		iface MIXER
-		name 'Right Headphone Mixer Left DAC1 Switch'
-		value false
+		name 'Left SPK Mixer Left DAC1 Switch'
+		value true
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -860,8 +835,8 @@ state.DAISYI2S {
 	}
 	control.78 {
 		iface MIXER
-		name 'Right Headphone Mixer Right DAC1 Switch'
-		value true
+		name 'Left SPK Mixer Right DAC1 Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -870,7 +845,7 @@ state.DAISYI2S {
 	}
 	control.79 {
 		iface MIXER
-		name 'Right Headphone Mixer MIC1 Switch'
+		name 'Left SPK Mixer Left DAC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -880,7 +855,7 @@ state.DAISYI2S {
 	}
 	control.80 {
 		iface MIXER
-		name 'Right Headphone Mixer MIC2 Switch'
+		name 'Left SPK Mixer Right DAC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -890,7 +865,7 @@ state.DAISYI2S {
 	}
 	control.81 {
 		iface MIXER
-		name 'Right Headphone Mixer IN1 Switch'
+		name 'Left SPK Mixer MIC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -900,7 +875,7 @@ state.DAISYI2S {
 	}
 	control.82 {
 		iface MIXER
-		name 'Right Headphone Mixer IN2 Switch'
+		name 'Left SPK Mixer MIC2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -910,8 +885,8 @@ state.DAISYI2S {
 	}
 	control.83 {
 		iface MIXER
-		name 'Left Headphone Mixer Left DAC1 Switch'
-		value true
+		name 'Left SPK Mixer INA1 Switch'
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
@@ -920,7 +895,7 @@ state.DAISYI2S {
 	}
 	control.84 {
 		iface MIXER
-		name 'Left Headphone Mixer Right DAC1 Switch'
+		name 'Left SPK Mixer INA2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -930,7 +905,7 @@ state.DAISYI2S {
 	}
 	control.85 {
 		iface MIXER
-		name 'Left Headphone Mixer MIC1 Switch'
+		name 'Left SPK Mixer INB1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -940,7 +915,7 @@ state.DAISYI2S {
 	}
 	control.86 {
 		iface MIXER
-		name 'Left Headphone Mixer MIC2 Switch'
+		name 'Left SPK Mixer INB2 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -950,7 +925,7 @@ state.DAISYI2S {
 	}
 	control.87 {
 		iface MIXER
-		name 'Left Headphone Mixer IN1 Switch'
+		name 'Right HP Mixer Left DAC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -960,7 +935,7 @@ state.DAISYI2S {
 	}
 	control.88 {
 		iface MIXER
-		name 'Left Headphone Mixer IN2 Switch'
+		name 'Right HP Mixer Right DAC1 Switch'
 		value false
 		comment {
 			access 'read write'
@@ -970,17 +945,185 @@ state.DAISYI2S {
 	}
 	control.89 {
 		iface MIXER
-		name 'Linein Mux'
-		value INA
+		name 'Right HP Mixer Left DAC2 Switch'
+		value false
 		comment {
 			access 'read write'
-			type ENUMERATED
+			type BOOLEAN
 			count 1
-			item.0 INA
-			item.1 INB
 		}
 	}
 	control.90 {
+		iface MIXER
+		name 'Right HP Mixer Right DAC2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.91 {
+		iface MIXER
+		name 'Right HP Mixer MIC1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.92 {
+		iface MIXER
+		name 'Right HP Mixer MIC2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.93 {
+		iface MIXER
+		name 'Right HP Mixer INA1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.94 {
+		iface MIXER
+		name 'Right HP Mixer INA2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.95 {
+		iface MIXER
+		name 'Right HP Mixer INB1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.96 {
+		iface MIXER
+		name 'Right HP Mixer INB2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.97 {
+		iface MIXER
+		name 'Left HP Mixer Left DAC1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.98 {
+		iface MIXER
+		name 'Left HP Mixer Right DAC1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.99 {
+		iface MIXER
+		name 'Left HP Mixer Left DAC2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.100 {
+		iface MIXER
+		name 'Left HP Mixer Right DAC2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.101 {
+		iface MIXER
+		name 'Left HP Mixer MIC1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.102 {
+		iface MIXER
+		name 'Left HP Mixer MIC2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.103 {
+		iface MIXER
+		name 'Left HP Mixer INA1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.104 {
+		iface MIXER
+		name 'Left HP Mixer INA2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.105 {
+		iface MIXER
+		name 'Left HP Mixer INB1 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.106 {
+		iface MIXER
+		name 'Left HP Mixer INB2 Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.107 {
 		iface MIXER
 		name 'External MIC'
 		value MIC2
@@ -993,7 +1136,7 @@ state.DAISYI2S {
 			item.2 MIC2
 		}
 	}
-	control.91 {
+	control.108 {
 		iface MIXER
 		name 'HDMI Playback Switch'
 		value false
