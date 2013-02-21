@@ -59,6 +59,8 @@ struct alsa_input_node {
  * device_index - ALSA index of device, Y in "hw:X:Y".
  * next_ionode_index - The index we will give to the next ionode. Each ionode
  *     have a unique index within the iodev.
+ * card_type - the type of the card this iodev belongs.
+ * is_first - true if this is the first iodev on the card.
  * handle - Handle to the opened ALSA device.
  * num_underruns - Number of times we have run out of data (playback only).
  * alsa_stream - Playback or capture type.
@@ -74,6 +76,8 @@ struct alsa_io {
 	char *dev;
 	size_t device_index;
 	size_t next_ionode_index;
+	enum CRAS_ALSA_CARD_TYPE card_type;
+	int is_first;
 	snd_pcm_t *handle;
 	unsigned int num_underruns;
 	snd_pcm_stream_t alsa_stream;
@@ -742,6 +746,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
 				     const char *dev_name,
+				     enum CRAS_ALSA_CARD_TYPE card_type,
+				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
 				     size_t prio,
@@ -761,6 +767,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->direction = direction;
 
 	aio->device_index = device_index;
+	aio->card_type = card_type;
+	aio->is_first = is_first;
 	aio->handle = NULL;
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
 	if (aio->dev == NULL)

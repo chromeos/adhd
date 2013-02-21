@@ -159,6 +159,7 @@ TEST(AlsaIoInit, InitializeInvalidDirection) {
   struct alsa_io *aio;
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 7,
                                             CRAS_STREAM_UNIFIED);
   ASSERT_EQ(aio, (void *)NULL);
@@ -170,6 +171,7 @@ TEST(AlsaIoInit, InitializePlayback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 7,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -193,8 +195,9 @@ TEST(AlsaIoInit, OpenPlayback) {
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            fake_mixer, NULL, 7,
-                                            CRAS_STREAM_OUTPUT);
+                            ALSA_CARD_TYPE_INTERNAL, 0,
+                            fake_mixer, NULL, 7,
+                            CRAS_STREAM_OUTPUT);
 
   cras_iodev_set_format(iodev, format);
   fake_curve =
@@ -218,6 +221,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -252,6 +256,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 0,
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -283,6 +288,7 @@ TEST(AlsaIoInit, InitializeCapture) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 0,
                                             CRAS_STREAM_INPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -298,8 +304,9 @@ TEST(AlsaIoInit, OpenCapture) {
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-					    fake_mixer, NULL, 0,
-					    CRAS_STREAM_INPUT);
+                            ALSA_CARD_TYPE_INTERNAL, 0,
+                            fake_mixer, NULL, 0,
+                            CRAS_STREAM_INPUT);
 
   cras_iodev_set_format(iodev, format);
 
@@ -326,6 +333,7 @@ TEST(AlsaIoInit, DspNameDefault) {
   ResetStubData();
   ucm_get_dsp_name_default_value = "hello";
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, fake_ucm, 7,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -347,6 +355,7 @@ TEST(AlsaIoInit, DspNameJackOverride) {
   ucm_get_dsp_name_default_value = "default_dsp";
   cras_alsa_jack_get_dsp_name_value = "override_dsp";
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, fake_ucm, 7,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -393,6 +402,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -438,6 +448,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL, 0,
                                             CRAS_STREAM_OUTPUT);
   ASSERT_NE(aio, (void *)NULL);
@@ -471,11 +482,17 @@ TEST(AlsaOutputNode, TwoOutputs) {
 class AlsaVolumeMuteSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      aio_output_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-          test_dev_name, fake_mixer, NULL, 0, CRAS_STREAM_OUTPUT);
+      aio_output_ = (struct alsa_io *)alsa_iodev_create(
+          0, test_card_name, 0, test_dev_name,
+          ALSA_CARD_TYPE_INTERNAL, 0,
+          fake_mixer, NULL, 0,
+          CRAS_STREAM_OUTPUT);
       aio_output_->base.direction = CRAS_STREAM_OUTPUT;
-      aio_input_ = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0,
-          test_dev_name, fake_mixer, NULL, 0, CRAS_STREAM_INPUT);
+      aio_input_ = (struct alsa_io *)alsa_iodev_create(
+          0, test_card_name, 0, test_dev_name,
+          ALSA_CARD_TYPE_INTERNAL, 0,
+          fake_mixer, NULL, 0,
+          CRAS_STREAM_INPUT);
       aio_input_->base.direction = CRAS_STREAM_INPUT;
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
