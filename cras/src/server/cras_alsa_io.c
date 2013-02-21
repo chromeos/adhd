@@ -32,6 +32,7 @@
 #include "utlist.h"
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
+#define INTERNAL_SPEAKER "Speaker"
 
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
@@ -441,6 +442,24 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	free(aio->dev);
 }
 
+/* Returns true if this is the first internal device */
+static int first_internal_device(struct alsa_io *aio)
+{
+	return aio->is_first && aio->card_type == ALSA_CARD_TYPE_INTERNAL;
+}
+
+/* Returns true if there is already a node created with the given name */
+static int has_node(struct alsa_io *aio, const char *name)
+{
+	struct cras_ionode *node;
+
+	DL_FOREACH(aio->base.nodes, node)
+		if (!strcmp(node->name, name))
+			return 1;
+
+	return 0;
+}
+
 /* Sets the initial plugged state and priority of an output node based on its
  * name.
  */
@@ -453,7 +472,7 @@ static void set_output_prio(struct alsa_output_node *node, const char *name)
 	} prios[] = {
 		{ "(default)", 0, 1},
 		/* Priority 1 is reserved for jack-created nodes */
-		{ "Speaker", 2, 1 },
+		{ INTERNAL_SPEAKER, 2, 1 },
 		{ "HDMI", 3, 0 },
 		{ "IEC958", 3, 0},
 		{ "Headphone", 4, 0 },
@@ -466,6 +485,18 @@ static void set_output_prio(struct alsa_output_node *node, const char *name)
 			node->base.plugged = prios[i].initial_plugged;
 			break;
 		}
+}
+
+static const char *get_output_node_name(struct alsa_io *aio,
+	struct cras_alsa_mixer_output *cras_output)
+{
+	if (cras_output)
+		return cras_alsa_mixer_get_output_name(cras_output);
+
+	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER))
+		return INTERNAL_SPEAKER;
+	else
+		return "(default)";
 }
 
 /* Callback for listing mixer outputs.  The mixer will call this once for each
@@ -490,11 +521,8 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	}
 	output->base.idx = aio->next_ionode_index++;
 	output->mixer_output = cras_output;
+	name = get_output_node_name(aio, cras_output);
 
-	if (output->mixer_output)
-		name = cras_alsa_mixer_get_output_name(output->mixer_output);
-	else
-		name = "(default)";
 	set_output_prio(output, name);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 
