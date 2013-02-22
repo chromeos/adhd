@@ -54,7 +54,7 @@ struct cras_ionode {
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
  * dev_running - Checks if the device is playing or recording.
- * set_plug - Sets the plugged state of a ionode of this device.
+ * set_node_attr - Sets an attribute of an ionode of this device.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * nodes - The output or input nodes available for this device.
@@ -86,8 +86,9 @@ struct cras_iodev {
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);
-	int (*set_plug)(struct cras_iodev *iodev, struct cras_ionode *ionode,
-			int plugged);
+	int (*set_node_attr)(struct cras_iodev *iodev,
+			     struct cras_ionode *ionode,
+			     enum ionode_attr attr, int value);
 	struct cras_audio_format *format;
 	struct cras_iodev_info info;
 	struct cras_ionode *nodes;

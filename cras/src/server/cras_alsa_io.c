@@ -260,18 +260,20 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 				     &aio->num_underruns);
 }
 
-static int set_plug(struct cras_iodev *iodev, struct cras_ionode *ionode,
-		    int plugged)
-
+static int set_node_attr(struct cras_iodev *iodev, struct cras_ionode *ionode,
+			 enum ionode_attr attr, int value)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
-	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		plug_output_node(aio, ionode, plugged);
-	else
-		plug_input_node(aio, ionode, plugged);
+	if (attr == IONODE_ATTR_PLUGGED) {
+		if (iodev->direction == CRAS_STREAM_OUTPUT)
+			plug_output_node(aio, ionode, value);
+		else
+			plug_input_node(aio, ionode, value);
+		return 0;
+	}
 
-	return 0;
+	return -EINVAL;
 }
 
 /*
@@ -828,7 +830,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
-	iodev->set_plug = set_plug;
+	iodev->set_node_attr = set_node_attr;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
@@ -894,7 +896,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Set plugged for the first USB device per card when it appears. */
 	if (card_type == ALSA_CARD_TYPE_USB && is_first)
-		iodev->set_plug(iodev, iodev->active_node, 1);
+		iodev->set_node_attr(iodev, iodev->active_node,
+				     IONODE_ATTR_PLUGGED, 1);
 
 	return &aio->base;
 

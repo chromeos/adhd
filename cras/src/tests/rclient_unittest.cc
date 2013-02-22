@@ -644,7 +644,8 @@ void cras_dsp_dump_info()
 {
 }
 
-int cras_iodev_list_set_plug(int dev_index, int node_index, int plugged)
+int cras_iodev_list_set_node_attr(int dev_index, int node_index,
+                                  enum ionode_attr attr, int value)
 {
   return 0;
 }

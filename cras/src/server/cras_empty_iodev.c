@@ -94,8 +94,8 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return 0;
 }
 
-static int set_plug(struct cras_iodev *iodev, struct cras_ionode *ionode,
-		    int plugged)
+static int set_node_attr(struct cras_iodev *iodev, struct cras_ionode *ionode,
+			 enum ionode_attr attr, int value)
 {
 	return 0;
 }
@@ -146,7 +146,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
-	iodev->set_plug = set_plug;
+	iodev->set_node_attr = set_node_attr;
 
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));

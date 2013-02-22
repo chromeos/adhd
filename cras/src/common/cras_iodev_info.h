@@ -40,4 +40,11 @@ struct cras_ionode_info {
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };
 
+/* This is used in the cras_client_set_node_attr API.
+ *    IONODE_ATTR_PLUGGED - set the node as plugged/unplugged.
+ */
+enum ionode_attr {
+	IONODE_ATTR_PLUGGED,
+};
+
 #endif /* CRAS_IODEV_INFO_H_ */

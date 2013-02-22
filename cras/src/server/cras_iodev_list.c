@@ -427,7 +427,8 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
 	return iodev->thread;
 }
 
-int cras_iodev_list_set_plug(int dev_index, int node_index, int plugged)
+int cras_iodev_list_set_node_attr(int dev_index, int node_index,
+				  enum ionode_attr attr, int value)
 {
 	struct cras_iodev *dev;
 	struct cras_ionode *node;
@@ -450,5 +451,5 @@ found_dev:
 	return -EINVAL;
 
 found_node:
-	return dev->set_plug(dev, node, plugged);
+	return dev->set_node_attr(dev, node, attr, value);
 }

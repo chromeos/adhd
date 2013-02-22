@@ -132,13 +132,15 @@ struct audio_thread *
 cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
 
 
-/* Sets the plug state of an ionode of a device.
+/* Sets an attribute of an ionode on a device.
  * Args:
  *    dev_index - Index of the device. It is the idx field in
  *        struct cras_iodev_info.
  *    node_index - Index of the ionode on the device.
- *    plugged - the plug state, 0 or 1.
+ *    attr - the attribute we want to change.
+ *    value - the value we want to set.
  */
-int cras_iodev_list_set_plug(int dev_index, int node_index, int plugged);
+int cras_iodev_list_set_node_attr(int dev_index, int node_index,
+				  enum ionode_attr attr, int value);
 
 #endif /* CRAS_IODEV_LIST_H_ */

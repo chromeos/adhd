@@ -688,8 +688,8 @@ int main(int argc, char **argv)
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
 			int plugged = atoi(strtok(NULL, ":")) ;
-			cras_client_set_plug(client, dev_index, node_index,
-					     plugged);
+			cras_client_set_node_attr(client, dev_index, node_index,
+						  IONODE_ATTR_PLUGGED, plugged);
 			break;
 		}
 		default:
