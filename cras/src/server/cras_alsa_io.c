@@ -91,10 +91,8 @@ struct alsa_io {
 };
 
 static void init_device_settings(struct alsa_io *aio);
-static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
-			     int plugged);
-static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
-			    int plugged);
+static void plug_node(struct alsa_io *aio, struct cras_ionode *node,
+		      int plugged);
 
 /*
  * iodev callbacks.
@@ -266,10 +264,7 @@ static int set_node_attr(struct cras_iodev *iodev, struct cras_ionode *ionode,
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
 	if (attr == IONODE_ATTR_PLUGGED) {
-		if (iodev->direction == CRAS_STREAM_OUTPUT)
-			plug_output_node(aio, ionode, value);
-		else
-			plug_input_node(aio, ionode, value);
+		plug_node(aio, ionode, value);
 		return 0;
 	}
 
@@ -632,30 +627,25 @@ static const char *get_active_dsp_name(struct alsa_io *aio)
 	return cras_alsa_jack_get_dsp_name(jack) ? : aio->dsp_name_default;
 }
 
-/* This is called when an output node is plugged/unplugged */
-static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
-			    int plugged)
+static void update_active_node(struct alsa_io *aio, struct cras_ionode *node)
 {
 	struct cras_ionode *best_node;
 
-	cras_ionode_plug_event(node, plugged);
 	best_node = get_best_node(aio);
-	alsa_iodev_set_active_output(&aio->base, best_node);
+	if (aio->base.direction == CRAS_STREAM_OUTPUT)
+		alsa_iodev_set_active_output(&aio->base, best_node);
+	else
+		alsa_iodev_set_active_input(&aio->base, best_node);
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
 }
 
-/* This is called when an input node is plugged/unplugged */
-static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
-			    int plugged)
+/* This is called when a node is plugged/unplugged */
+static void plug_node(struct alsa_io *aio, struct cras_ionode *node,
+		      int plugged)
 {
-	struct cras_ionode *best_node;
-
 	cras_ionode_plug_event(node, plugged);
-	best_node = get_best_node(aio);
-	alsa_iodev_set_active_input(&aio->base, best_node);
-	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-					     aio->base.direction);
+	update_active_node(aio, node);
 }
 
 /* Callback that is called when an output jack is plugged or unplugged. */
@@ -693,7 +683,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
-	plug_output_node(aio, &node->base, plugged);
+	plug_node(aio, &node->base, plugged);
 }
 
 /* Callback that is called when an input jack is plugged or unplugged. */
@@ -727,7 +717,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 
 	/* If the jack has a ucm device, set that. */
 	cras_alsa_jack_enable_ucm(jack, plugged);
-	plug_input_node(aio, &node->base, plugged);
+	plug_node(aio, &node->base, plugged);
 }
 
 /* Sets the name of the given iodev, using the name and index of the card
