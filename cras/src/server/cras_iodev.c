@@ -12,6 +12,7 @@
 #include "cras_iodev.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
+#include "cras_util.h"
 #include "audio_thread.h"
 #include "utlist.h"
 
@@ -210,9 +211,41 @@ void cras_iodev_config_params(struct cras_iodev *iodev,
 	       (unsigned)iodev->cb_threshold);
 }
 
-void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged)
+void cras_ionode_plug_event(struct cras_ionode *node, int plugged)
 {
 	if (plugged)
-		gettimeofday(&iodev->info.plugged_time, NULL);
-	iodev->info.plugged = plugged;
+		gettimeofday(&node->plugged_time, NULL);
+	node->plugged = plugged;
+}
+
+/*
+ * The rules are (in decision order):
+ * - A non-null node is better than a null node.
+ * - A plugged node is better than an unplugged node.
+ * - A node with high priority is better.
+ * - A more recently plugged node is better.
+ */
+int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
+{
+	if (a && !b)
+		return 1;
+	if (!a && b)
+		return 0;
+
+	if (a->plugged > b->plugged)
+		return 1;
+	if (a->plugged < b->plugged)
+		return 0;
+
+	if (a->priority > b->priority)
+		return 1;
+	if (a->priority < b->priority)
+		return 0;
+
+	if (timeval_after(&a->plugged_time, &b->plugged_time))
+		return 1;
+	if (timeval_after(&b->plugged_time, &a->plugged_time))
+		return 0;
+
+	return 0;
 }

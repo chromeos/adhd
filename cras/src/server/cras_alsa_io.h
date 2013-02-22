@@ -25,8 +25,6 @@ struct cras_ionode;
  *    is_first - if this is the first iodev on the card.
  *    mixer - The mixer for the alsa device.
  *    ucm - ALSA use case manager if available.
- *    priority - The priority to give this device when choose a playback or
- *      capture device.  Zero is the lowest priority.
  *    direciton - input or output.
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
@@ -39,7 +37,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
-				     size_t priority,
 				     enum CRAS_STREAM_DIRECTION direction);
 
 /* Destroys an alsa_iodev created with alsa_iodev_create. */

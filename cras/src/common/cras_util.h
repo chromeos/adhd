@@ -66,6 +66,15 @@ static inline void subtract_timespecs(const struct timespec *end,
 	}
 }
 
+/* Returns true if timeval a is after timeval b */
+static inline int timeval_after(const struct timeval *a,
+				const struct timeval *b)
+{
+	return (a->tv_sec > b->tv_sec) ||
+		(a->tv_sec == b->tv_sec && a->tv_usec > b->tv_usec);
+}
+
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

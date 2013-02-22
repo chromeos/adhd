@@ -33,6 +33,7 @@
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 #define INTERNAL_SPEAKER "Speaker"
+#define INTERNAL_MICROPHONE "Internal Mic"
 
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
@@ -460,10 +461,8 @@ static int has_node(struct alsa_io *aio, const char *name)
 	return 0;
 }
 
-/* Sets the initial plugged state and priority of an output node based on its
- * name.
- */
-static void set_output_prio(struct alsa_output_node *node, const char *name)
+/* Sets the initial plugged state and priority of a node based on its name */
+static void set_node_initial_state(struct cras_ionode *node)
 {
 	static const struct {
 		const char *name;
@@ -471,18 +470,21 @@ static void set_output_prio(struct alsa_output_node *node, const char *name)
 		int initial_plugged;
 	} prios[] = {
 		{ "(default)", 0, 1},
-		/* Priority 1 is reserved for jack-created nodes */
-		{ INTERNAL_SPEAKER, 2, 1 },
-		{ "HDMI", 3, 0 },
-		{ "IEC958", 3, 0},
-		{ "Headphone", 4, 0 },
+		{ INTERNAL_SPEAKER, 1, 1 },
+		{ INTERNAL_MICROPHONE, 1, 1 },
+		{ "HDMI", 2, 0 },
+		{ "IEC958", 2, 0},
+		{ "Headphone", 3, 0 },
+		{ "Front Headphone", 3, 0},
+		{ "Mic", 3, 0},
 	};
 	unsigned i;
 
 	for (i = 0; i < ARRAY_SIZE(prios); i++)
-		if (!strcmp(name, prios[i].name)) {
-			node->base.priority = prios[i].priority;
-			node->base.plugged = prios[i].initial_plugged;
+		if (!strncmp(node->name, prios[i].name,
+			     strlen(prios[i].name))) {
+			node->priority = prios[i].priority;
+			node->plugged = prios[i].initial_plugged;
 			break;
 		}
 }
@@ -495,6 +497,14 @@ static const char *get_output_node_name(struct alsa_io *aio,
 
 	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER))
 		return INTERNAL_SPEAKER;
+	else
+		return "(default)";
+}
+
+static const char *get_input_node_name(struct alsa_io *aio)
+{
+	if (first_internal_device(aio) && !has_node(aio, INTERNAL_MICROPHONE))
+		return INTERNAL_MICROPHONE;
 	else
 		return "(default)";
 }
@@ -522,11 +532,28 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	output->base.idx = aio->next_ionode_index++;
 	output->mixer_output = cras_output;
 	name = get_output_node_name(aio, cras_output);
-
-	set_output_prio(output, name);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
+	set_node_initial_state(&output->base);
 
 	DL_APPEND(aio->base.nodes, &output->base);
+}
+
+static void new_input(struct alsa_io *aio)
+{
+	struct alsa_input_node *input;
+	const char *name;
+
+	input = (struct alsa_input_node *)calloc(1, sizeof(*input));
+	if (input == NULL) {
+		syslog(LOG_ERR, "Out of memory when listing inputs.");
+		return;
+	}
+	input->base.idx = aio->next_ionode_index++;
+	name = get_input_node_name(aio);
+	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
+	set_node_initial_state(&input->base);
+
+	DL_APPEND(aio->base.nodes, &input->base);
 }
 
 /* Finds the output node associated with the jack. Returns NULL if not found. */
@@ -570,39 +597,17 @@ static struct alsa_input_node *get_input_node_from_jack(
 }
 
 /* Find the node with highest priority that is plugged in. */
-static struct cras_ionode *get_best_output_node(const struct alsa_io *aio)
+static struct cras_ionode *get_best_node(const struct alsa_io *aio)
 {
 	struct cras_ionode *output;
-	struct cras_ionode *best = NULL;
+	struct cras_ionode *best;
+
+	/* Take the first entry as a starting point. */
+	best = aio->base.nodes;
 
 	DL_FOREACH(aio->base.nodes, output)
-		if (output->plugged &&
-		    (!best || (output->priority > best->priority)))
+		if (cras_ionode_better(output, best))
 			best = output;
-
-	/* If nothing is plugged, take the first entry. */
-	if (!best)
-		best = aio->base.nodes;
-
-	return best;
-}
-
-/* Choose the first plugged node. */
-static struct cras_ionode *get_best_input_node(const struct alsa_io *aio)
-{
-	struct cras_ionode *input;
-	struct cras_ionode *best = NULL;
-
-	DL_FOREACH(aio->base.nodes, input)
-		if (input->plugged) {
-			best = input;
-			break;
-		}
-
-	/* If nothing is plugged, take the first entry. */
-	if (!best)
-		best = aio->base.nodes;
-
 	return best;
 }
 
@@ -631,9 +636,8 @@ static void plug_output_node(struct alsa_io *aio, struct cras_ionode *node,
 {
 	struct cras_ionode *best_node;
 
-	cras_iodev_plug_event(&aio->base, plugged);
-	node->plugged = plugged;
-	best_node = get_best_output_node(aio);
+	cras_ionode_plug_event(node, plugged);
+	best_node = get_best_node(aio);
 	alsa_iodev_set_active_output(&aio->base, best_node);
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
@@ -645,9 +649,8 @@ static void plug_input_node(struct alsa_io *aio, struct cras_ionode *node,
 {
 	struct cras_ionode *best_node;
 
-	cras_iodev_plug_event(&aio->base, plugged);
-	node->plugged = plugged;
-	best_node = get_best_input_node(aio);
+	cras_ionode_plug_event(node, plugged);
+	best_node = get_best_node(aio);
 	alsa_iodev_set_active_input(&aio->base, best_node);
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
@@ -675,7 +678,6 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
-		node->base.priority = 1;
 		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
@@ -683,6 +685,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		node->jack = jack;
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
+		set_node_initial_state(&node->base);
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
@@ -710,13 +713,13 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
-		node->base.priority = 1;
 		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack = jack;
 		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
+		set_node_initial_state(&node->base);
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
@@ -778,7 +781,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
-				     size_t prio,
 				     enum CRAS_STREAM_DIRECTION direction)
 {
 	struct alsa_io *aio;
@@ -843,24 +845,12 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->dsp_name_default = ucm_get_dsp_name_default(ucm,
 								 direction);
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
-	iodev->info.priority = prio;
 
-	if (direction == CRAS_STREAM_INPUT)
-		cras_iodev_list_add_input(&aio->base);
-	else {
-		/* Check for outputs, such as Headphone and Speaker. */
-		cras_alsa_mixer_list_outputs(mixer, device_index,
-					     new_output, aio);
-
-		/* Make a default output node. This is needed if there
-		 * is no mixer control for the default output */
-		new_output(NULL, aio);
-
-		alsa_iodev_set_active_output(&aio->base, aio->base.nodes);
-
-		/* Add to the output list. */
-		cras_iodev_list_add_output(&aio->base);
-	}
+	/* Create output nodes for mixer controls, such as Headphone
+	 * and Speaker. */
+	if (direction == CRAS_STREAM_OUTPUT)
+		cras_alsa_mixer_list_outputs(mixer, device_index, new_output,
+					     aio);
 
 	/* Find any jack controls for this device. */
 	aio->jack_list = cras_alsa_jack_list_create(
@@ -875,9 +865,36 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     jack_input_plug_event,
 			aio);
 
-	/* Create output nodes for jacks that aren't associated with an already
-	 * existing node.  Get an initial read of the jacks for this device. */
+	/* Create nodes for jacks that aren't associated with an
+	 * already existing node. Get an initial read of the jacks for
+	 * this device. */
 	cras_alsa_jack_list_report(aio->jack_list);
+
+	/* Make a default node if there is still no node for this
+	 * device, or we still don't have the "Speaker"/"Internal Mic"
+	 * node for the first internal device. */
+	if (direction == CRAS_STREAM_OUTPUT) {
+		if (!aio->base.nodes || (first_internal_device(aio) &&
+					 !has_node(aio, INTERNAL_SPEAKER)))
+			new_output(NULL, aio);
+	} else {
+		if (!aio->base.nodes || (first_internal_device(aio) &&
+					 !has_node(aio, INTERNAL_MICROPHONE)))
+			new_input(aio);
+	}
+
+	/* Set the active node as the best node we have now. */
+	if (direction == CRAS_STREAM_OUTPUT) {
+		alsa_iodev_set_active_output(&aio->base, get_best_node(aio));
+		cras_iodev_list_add_output(&aio->base);
+	} else {
+		alsa_iodev_set_active_input(&aio->base, get_best_node(aio));
+		cras_iodev_list_add_input(&aio->base);
+	}
+
+	/* Set plugged for the first USB device per card when it appears. */
+	if (card_type == ALSA_CARD_TYPE_USB && is_first)
+		iodev->set_plug(iodev, iodev->active_node, 1);
 
 	return &aio->base;
 

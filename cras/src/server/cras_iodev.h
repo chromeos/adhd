@@ -27,11 +27,13 @@ struct audio_thread;
  * Members:
  *    idx - ionode index.
  *    plugged - true if the device is plugged.
+ *    plugged_time - If plugged is true, this is the time it was attached.
  *    priority - higher is better.
  */
 struct cras_ionode {
 	int idx;
 	int plugged;
+	struct timeval plugged_time;
 	unsigned priority;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	struct cras_ionode *prev, *next;
@@ -212,40 +214,15 @@ void cras_iodev_config_params(struct cras_iodev *iodev,
  */
 void cras_iodev_update_dsp(struct cras_iodev *iodev);
 
-/* Handles a plug event happening on this iodev.
+/* Handles a plug event happening on this node.
  * Args:
- *    iodev - device on which a plug event was detected.
+ *    node - ionode on which a plug event was detected.
  *    plugged - true if the device was plugged, false for unplugged.
  */
-void cras_iodev_plug_event(struct cras_iodev *iodev, int plugged);
+void cras_ionode_plug_event(struct cras_ionode *node, int plugged);
 
-/* Checks if the device is known to be plugged.  This is set when a jack event
- * is received from an ALSA jack or a GPIO.
- */
-static inline int cras_iodev_is_plugged_in(const struct cras_iodev *iodev)
-{
-	return iodev->info.plugged;
-}
-
-/* Returns the last time that an iodev had a plug attached event. */
-static inline struct timeval cras_iodev_last_plugged_time(
-		struct cras_iodev *iodev)
-{
-	return iodev->info.plugged_time;
-}
-
-/* Returns true if a was plugged more recently than b. */
-static inline int cras_iodev_plugged_more_recently(const struct cras_iodev *a,
-						   const struct cras_iodev *b)
-{
-	if (!a->info.plugged)
-		return 0;
-	if (!b->info.plugged)
-		return 1;
-	return (a->info.plugged_time.tv_sec > b->info.plugged_time.tv_sec ||
-		(a->info.plugged_time.tv_sec == b->info.plugged_time.tv_sec &&
-		 a->info.plugged_time.tv_usec > b->info.plugged_time.tv_usec));
-}
+/* Returns true if node a is preferred over node b. */
+int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b);
 
 /* Gets a count of how many frames until the next time the thread should wake
  * up to service the buffer.

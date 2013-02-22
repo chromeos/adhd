@@ -143,13 +143,9 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 {
 	unsigned i;
 
-	printf("\tID\tPriority\tPlugged\t\tName\n");
+	printf("\tID\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("\t%zu\t%zu\t\t%s\t\t%s\n",
-		       devs[i].idx,
-		       devs[i].priority,
-		       devs[i].plugged ? "yes" : "no",
-		       devs[i].name);
+		printf("\t%zu\t%s\n", devs[i].idx, devs[i].name);
 }
 
 static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)

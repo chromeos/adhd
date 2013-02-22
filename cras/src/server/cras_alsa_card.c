@@ -76,21 +76,10 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 			     unsigned device_index,
 			     enum CRAS_STREAM_DIRECTION direction)
 {
-	static const unsigned DEFAULT_ALSA_CARD_PRIORITY = 50;
-
 	struct iodev_list_node *new_dev;
-	unsigned priority = DEFAULT_ALSA_CARD_PRIORITY;
 	int first;
 
 	first = is_first_dev(alsa_card, direction);
-
-	/* Dropping the priority of non-auto routed devices ensures
-	 * that the auto-route devs are still selected first after the
-	 * list is re-sorted.  Without this the order of devices
-	 * within a card can't be determined when the list is
-	 * resorted. */
-	if (!first && priority > 0)
-		priority--;
 
 	new_dev = calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL)
@@ -105,7 +94,6 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 					   first,
 					   alsa_card->mixer,
 					   alsa_card->ucm,
-					   priority,
 					   direction);
 	if (new_dev->iodev == NULL) {
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %u:%u\n",
@@ -118,13 +106,6 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 	       direction == CRAS_STREAM_OUTPUT ? "playback" : "capture",
 	       info->card_index,
 	       device_index);
-
-	/* Set plugged for the first USB device per card when it appears. */
-	if (info->card_type == ALSA_CARD_TYPE_USB && first) {
-		cras_iodev_plug_event(new_dev->iodev, 1);
-		cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-						     direction);
-	}
 
 	DL_APPEND(alsa_card->iodevs, new_dev);
 }

@@ -13,7 +13,6 @@
 #include "cras_types.h"
 #include "utlist.h"
 
-static const size_t EMPTY_IODEV_PRIORITY = 0; /* lowest possible */
 #define EMPTY_BUFFER_SIZE (48 * 1024)
 #define EMPTY_FRAME_SIZE 4
 #define EMPTY_FRAMES (EMPTY_BUFFER_SIZE / EMPTY_FRAME_SIZE)
@@ -109,6 +108,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 {
 	struct empty_iodev *empty_iodev;
 	struct cras_iodev *iodev;
+	struct cras_ionode *node;
 
 	if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT)
 		return NULL;
@@ -117,8 +117,6 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	if (empty_iodev == NULL)
 		return NULL;
 	iodev = &empty_iodev->base;
-
-	iodev->info.priority = EMPTY_IODEV_PRIORITY;
 	iodev->direction = direction;
 
 	/* Finally add it to the appropriate iodev list. */
@@ -150,6 +148,12 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->dev_running = dev_running;
 	iodev->set_plug = set_plug;
 
+	/* Create a dummy ionode */
+	node = (struct cras_ionode *)calloc(1, sizeof(*node));
+	strcpy(node->name, "(default)");
+	DL_APPEND(iodev->nodes, node);
+	iodev->active_node = node;
+
 	return iodev;
 }
 
@@ -162,5 +166,6 @@ void empty_iodev_destroy(struct cras_iodev *iodev)
 	else {
 		cras_iodev_list_rm_output(iodev);
 	}
+	free(iodev->active_node);
 	free(empty_iodev);
 }

@@ -34,20 +34,7 @@ static size_t next_iodev_idx;
 static int dev_is_higher_prio(const struct cras_iodev *a,
 			      const struct cras_iodev *b)
 {
-	/* check if one device is plugged in. */
-	if (cras_iodev_is_plugged_in(a) && !cras_iodev_is_plugged_in(b))
-		return 1;
-	if (!cras_iodev_is_plugged_in(a) && cras_iodev_is_plugged_in(b))
-		return 0;
-
-	/* Both plugged or unplugged, check priority. */
-	if (a->info.priority > b->info.priority)
-		return 1;
-	if (a->info.priority < b->info.priority)
-		return 0;
-
-	/* Finally check plugged time to break tie. */
-	if (cras_iodev_plugged_more_recently(a, b))
+	if (cras_ionode_better(a->active_node, b->active_node))
 		return 1;
 
 	return 0;
@@ -163,6 +150,7 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->ionode_idx = node->idx;
 			node_info->priority = node->priority;
 			node_info->plugged = node->plugged;
+			node_info->plugged_time = node->plugged_time;
 			strcpy(node_info->name, node->name);
 			node_info++;
 			i++;

@@ -41,6 +41,22 @@ TEST(Util, SendRecvFileDescriptor) {
   close(new_fd);
 }
 
+TEST(Util, TimevalAfter) {
+  struct timeval t0, t1;
+  t0.tv_sec = 0;
+  t0.tv_usec = 0;
+  t1.tv_sec = 0;
+  t1.tv_usec = 0;
+  ASSERT_FALSE(timeval_after(&t0, &t1));
+  ASSERT_FALSE(timeval_after(&t1, &t0));
+  t0.tv_usec = 1;
+  ASSERT_TRUE(timeval_after(&t0, &t1));
+  ASSERT_FALSE(timeval_after(&t1, &t0));
+  t1.tv_sec = 1;
+  ASSERT_FALSE(timeval_after(&t0, &t1));
+  ASSERT_TRUE(timeval_after(&t1, &t0));
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {

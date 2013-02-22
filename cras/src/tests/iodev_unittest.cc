@@ -151,30 +151,6 @@ TEST(IoDevTestSuite, TestConfigParamsOneStreamUsedGreaterBuffer) {
   EXPECT_EQ(iodev.cb_threshold, 512);
 }
 
-TEST(IoDevTestSuite, TestPluggedTiming) {
-  struct cras_iodev iodev;
-  struct timeval tv;
-  struct timeval tv2;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  cras_iodev_plug_event(&iodev, 1);
-  EXPECT_EQ(1, cras_iodev_is_plugged_in(&iodev));
-  tv = cras_iodev_last_plugged_time(&iodev);
-  EXPECT_GT(tv.tv_sec, 1);
-
-  cras_iodev_plug_event(&iodev, 0);
-  EXPECT_EQ(0, cras_iodev_is_plugged_in(&iodev));
-
-  usleep(1000); // insure different times for plug events.
-
-  cras_iodev_plug_event(&iodev, 1);
-  EXPECT_EQ(1, cras_iodev_is_plugged_in(&iodev));
-  tv2 = cras_iodev_last_plugged_time(&iodev);
-  EXPECT_TRUE(tv2.tv_sec > tv.tv_sec ||
-              (tv2.tv_sec == tv.tv_sec && tv2.tv_usec > tv.tv_usec));
-}
-
 class IoDevSetFormatTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
@@ -267,6 +243,65 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatFallbackDefault) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(44100, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
+}
+
+// The ionode that is plugged should be chosen over unplugged.
+TEST(IoNodeBetter, Plugged) {
+  cras_ionode a, b;
+
+  a.plugged = 0;
+  b.plugged = 1;
+
+  a.plugged_time.tv_sec = 0;
+  a.plugged_time.tv_usec = 1;
+  b.plugged_time.tv_sec = 0;
+  b.plugged_time.tv_usec = 0;
+
+  a.priority = 1;
+  b.priority = 0;
+
+  EXPECT_FALSE(cras_ionode_better(&a, &b));
+  EXPECT_TRUE(cras_ionode_better(&b, &a));
+}
+
+// Two ionode both plugged, tie should be broken by most recently priority
+// rather than plugged time.
+TEST(IoNodeBetter, RecentlyPlugged) {
+  cras_ionode a, b;
+
+  a.plugged = 1;
+  b.plugged = 1;
+
+  a.priority = 0;
+  b.priority = 1;
+
+  a.plugged_time.tv_sec = 0;
+  a.plugged_time.tv_usec = 1;
+  b.plugged_time.tv_sec = 0;
+  b.plugged_time.tv_usec = 0;
+
+  EXPECT_FALSE(cras_ionode_better(&a, &b));
+  EXPECT_TRUE(cras_ionode_better(&b, &a));
+}
+
+// Two ionode both plugged and have the same priority, tie should be broken
+// by plugged time.
+TEST(IoNodeBetter, Priority) {
+  cras_ionode a, b;
+
+  a.plugged = 1;
+  b.plugged = 1;
+
+  a.priority = 1;
+  b.priority = 1;
+
+  a.plugged_time.tv_sec = 0;
+  a.plugged_time.tv_usec = 0;
+  b.plugged_time.tv_sec = 0;
+  b.plugged_time.tv_usec = 1;
+
+  EXPECT_FALSE(cras_ionode_better(&a, &b));
+  EXPECT_TRUE(cras_ionode_better(&b, &a));
 }
 
 extern "C" {
