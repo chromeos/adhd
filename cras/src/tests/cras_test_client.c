@@ -152,13 +152,15 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)
 {
 	unsigned i;
 
-	printf("\tID\tPriority\tPlugged\t\tName\n");
+	printf("\tID\tPriority\tPlugged\t\tTime\t\t Name\n");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%zu:%zu\t%zu\t\t%s\t\t%s\n",
+		printf("\t%zu:%zu\t%zu\t\t%s\t%12ld\t\t%s%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       nodes[i].priority,
 		       nodes[i].plugged ? "yes" : "no",
+		       (long) nodes[i].plugged_time.tv_sec,
+		       nodes[i].active ? "*" : " ",
 		       nodes[i].name);
 }
 

@@ -27,6 +27,7 @@ struct cras_iodev_info {
  *    priority - Priority of this node. Higher is better.
  *    plugged - Set true if this node is known to be plugged in.
  *    plugged_time - If plugged is true, this is the time it was attached.
+ *    active - If this is the node currently being used.
  *    name - Name displayed to the user.
  */
 struct cras_ionode_info {
@@ -35,6 +36,7 @@ struct cras_ionode_info {
 	size_t priority;
 	int plugged;
 	struct timeval plugged_time;
+	int active;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };
 
