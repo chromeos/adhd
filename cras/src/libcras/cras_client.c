@@ -1863,41 +1863,83 @@ read_clients_again:
 	return num;
 }
 
-int cras_client_output_dev_plugged(const struct cras_client *client,
-				   const char *name)
+/* Find an output ionode on an iodev with the matching name.
+ *
+ * Args:
+ *    dev_name - The prefix of the iodev name.
+ *    node_name - The prefix of the ionode name.
+ *    dev_info - The information about the iodev will be returned here.
+ *    node_info - The information about the ionode will be returned here.
+ * Returns:
+ *    0 if successful, -1 if the node cannot be found.
+ */
+static int cras_client_find_output_node(const struct cras_client *client,
+					const char *dev_name,
+					const char *node_name,
+					struct cras_iodev_info *dev_info,
+					struct cras_ionode_info *node_info)
 {
 	size_t ndevs, nnodes;
-	struct cras_iodev_info *devs, *curr_dev;
-	int plugged = 0;
-	unsigned i;
-	int rc;
+	struct cras_iodev_info *devs = NULL;
+	struct cras_ionode_info *nodes = NULL;
+	int rc = -1;
+	unsigned i, j;
 
-	if (!client || !name)
-		return 0;
+	if (!client || !dev_name || !node_name)
+		goto quit;
 
 	devs = malloc(CRAS_MAX_IODEVS * sizeof(*devs));
 	if (!devs)
-		return 0;
+		goto quit;
+
+	nodes = malloc(CRAS_MAX_IONODES * sizeof(*nodes));
+	if (!nodes)
+		goto quit;
 
 	ndevs = CRAS_MAX_IODEVS;
-	nnodes = 0;
-	rc = cras_client_get_output_devices(client, devs, NULL, &ndevs,
+	nnodes = CRAS_MAX_IONODES;
+	rc = cras_client_get_output_devices(client, devs, nodes, &ndevs,
 					    &nnodes);
 	if (rc < 0)
-		goto free_devs;
+		goto quit;
 
-	curr_dev = devs;
-	for (i = 0; i < ndevs; i++, curr_dev++)
-		if (!strncmp(name, curr_dev->name, strlen(name))) {
-			plugged = curr_dev->plugged;
-			break;
-		}
+	for (i = 0; i < ndevs; i++)
+		if (!strncmp(dev_name, devs[i].name, strlen(dev_name)))
+			goto found_dev;
+	rc = -1;
+	goto quit;
 
-free_devs:
+found_dev:
+	for (j = 0; j < nnodes; j++)
+		if (nodes[j].iodev_idx == devs[i].idx &&
+		    !strncmp(node_name, nodes[j].name, strlen(node_name)))
+			goto found_node;
+	rc = -1;
+	goto quit;
+
+found_node:
+	*dev_info = devs[i];
+	*node_info = nodes[j];
+	rc = 0;
+
+quit:
 	free(devs);
-	return plugged;
+	free(nodes);
+	return rc;
 }
 
+int cras_client_output_dev_plugged(const struct cras_client *client,
+				   const char *name)
+{
+	struct cras_iodev_info dev_info;
+	struct cras_ionode_info node_info;
+
+	if (cras_client_find_output_node(client, name, "Headphone",
+					 &dev_info, &node_info) < 0)
+		return 0;
+
+	return node_info.plugged;
+}
 
 int cras_client_set_plug(struct cras_client *client, int dev_index,
 			 int node_index, int plugged)
