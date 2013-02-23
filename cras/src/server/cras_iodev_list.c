@@ -151,6 +151,7 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->priority = node->priority;
 			node_info->plugged = node->plugged;
 			node_info->plugged_time = node->plugged_time;
+			node_info->selected = node->selected;
 			node_info->active =
 				(dev == default_input || dev == default_output)
 				&& (dev->active_node == node);

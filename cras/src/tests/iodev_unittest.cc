@@ -252,6 +252,9 @@ TEST(IoNodeBetter, Plugged) {
   a.plugged = 0;
   b.plugged = 1;
 
+  a.selected = 1;
+  b.selected = 0;
+
   a.plugged_time.tv_sec = 0;
   a.plugged_time.tv_usec = 1;
   b.plugged_time.tv_sec = 0;
@@ -264,13 +267,37 @@ TEST(IoNodeBetter, Plugged) {
   EXPECT_TRUE(cras_ionode_better(&b, &a));
 }
 
-// Two ionode both plugged, tie should be broken by most recently priority
-// rather than plugged time.
-TEST(IoNodeBetter, RecentlyPlugged) {
+// The ionode both plugged, tie should be broken by selected.
+TEST(IoNodeBetter, Selected) {
   cras_ionode a, b;
 
   a.plugged = 1;
   b.plugged = 1;
+
+  a.selected = 0;
+  b.selected = 1;
+
+  a.priority = 1;
+  b.priority = 0;
+
+  a.plugged_time.tv_sec = 0;
+  a.plugged_time.tv_usec = 1;
+  b.plugged_time.tv_sec = 0;
+  b.plugged_time.tv_usec = 0;
+
+  EXPECT_FALSE(cras_ionode_better(&a, &b));
+  EXPECT_TRUE(cras_ionode_better(&b, &a));
+}
+
+// Two ionode both plugged and selected, tie should be broken by priority.
+TEST(IoNodeBetter, Priority) {
+  cras_ionode a, b;
+
+  a.plugged = 1;
+  b.plugged = 1;
+
+  a.selected = 1;
+  b.selected = 1;
 
   a.priority = 0;
   b.priority = 1;
@@ -286,11 +313,14 @@ TEST(IoNodeBetter, RecentlyPlugged) {
 
 // Two ionode both plugged and have the same priority, tie should be broken
 // by plugged time.
-TEST(IoNodeBetter, Priority) {
+TEST(IoNodeBetter, RecentlyPlugged) {
   cras_ionode a, b;
 
   a.plugged = 1;
   b.plugged = 1;
+
+  a.selected = 0;
+  b.selected = 0;
 
   a.priority = 1;
   b.priority = 1;

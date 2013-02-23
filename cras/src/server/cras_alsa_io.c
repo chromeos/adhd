@@ -93,6 +93,8 @@ struct alsa_io {
 static void init_device_settings(struct alsa_io *aio);
 static void plug_node(struct alsa_io *aio, struct cras_ionode *node,
 		      int plugged);
+static void select_node(struct alsa_io *aio, struct cras_ionode *node,
+			int selected);
 
 /*
  * iodev callbacks.
@@ -265,6 +267,9 @@ static int set_node_attr(struct cras_iodev *iodev, struct cras_ionode *ionode,
 
 	if (attr == IONODE_ATTR_PLUGGED) {
 		plug_node(aio, ionode, value);
+		return 0;
+	} else if (attr == IONODE_ATTR_SELECTED) {
+		select_node(aio, ionode, value);
 		return 0;
 	}
 
@@ -645,6 +650,16 @@ static void plug_node(struct alsa_io *aio, struct cras_ionode *node,
 		      int plugged)
 {
 	cras_ionode_plug_event(node, plugged);
+	update_active_node(aio, node);
+}
+
+/* This is called when a node is selected/unselected */
+static void select_node(struct alsa_io *aio, struct cras_ionode *node,
+			int selected)
+{
+	if (node->selected == selected)
+		return;
+	node->selected = selected;
 	update_active_node(aio, node);
 }
 

@@ -27,6 +27,7 @@ struct cras_iodev_info {
  *    priority - Priority of this node. Higher is better.
  *    plugged - Set true if this node is known to be plugged in.
  *    plugged_time - If plugged is true, this is the time it was attached.
+ *    selected - Set true if this node is selected by a client.
  *    active - If this is the node currently being used.
  *    name - Name displayed to the user.
  */
@@ -36,15 +37,18 @@ struct cras_ionode_info {
 	size_t priority;
 	int plugged;
 	struct timeval plugged_time;
+	int selected;
 	int active;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };
 
 /* This is used in the cras_client_set_node_attr API.
  *    IONODE_ATTR_PLUGGED - set the node as plugged/unplugged.
+ *    IONODE_ATTR_SELECTED - set the node as selected/unselected.
  */
 enum ionode_attr {
 	IONODE_ATTR_PLUGGED,
+	IONODE_ATTR_SELECTED,
 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

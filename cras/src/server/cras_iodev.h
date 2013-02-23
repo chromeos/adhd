@@ -28,12 +28,15 @@ struct audio_thread;
  *    idx - ionode index.
  *    plugged - true if the device is plugged.
  *    plugged_time - If plugged is true, this is the time it was attached.
+ *    selected - Set true if this node is selected by a client. A selected node
+ *        is preferred over other nodes.
  *    priority - higher is better.
  */
 struct cras_ionode {
 	int idx;
 	int plugged;
 	struct timeval plugged_time;
+	int selected;
 	unsigned priority;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	struct cras_ionode *prev, *next;

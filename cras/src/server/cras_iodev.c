@@ -222,6 +222,7 @@ void cras_ionode_plug_event(struct cras_ionode *node, int plugged)
  * The rules are (in decision order):
  * - A non-null node is better than a null node.
  * - A plugged node is better than an unplugged node.
+ * - A selected node is better than an unselected node.
  * - A node with high priority is better.
  * - A more recently plugged node is better.
  */
@@ -235,6 +236,11 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 	if (a->plugged > b->plugged)
 		return 1;
 	if (a->plugged < b->plugged)
+		return 0;
+
+	if (a->selected > b->selected)
+		return 1;
+	if (a->selected < b->selected)
 		return 0;
 
 	if (a->priority > b->priority)

@@ -152,15 +152,16 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)
 {
 	unsigned i;
 
-	printf("\tID\tPriority\tPlugged\t\tTime\t\t Name\n");
+	printf("\tID\tPriority\tPlugged\t\tTime\t\t  Name\n");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%zu:%zu\t%zu\t\t%s\t%12ld\t\t%s%s\n",
+		printf("\t%zu:%zu\t%zu\t\t%s\t%12ld\t\t%c%c%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       nodes[i].priority,
 		       nodes[i].plugged ? "yes" : "no",
 		       (long) nodes[i].plugged_time.tv_sec,
-		       nodes[i].active ? "*" : " ",
+		       nodes[i].selected ? '!' : ' ',
+		       nodes[i].active ? '*' : ' ',
 		       nodes[i].name);
 }
 
@@ -544,6 +545,7 @@ static struct option long_options[] = {
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"unified_audio",	no_argument,		0, 'z'},
 	{"plug",                required_argument,      0, 'x'},
+	{"select",              required_argument,      0, 'y'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -684,12 +686,15 @@ int main(int argc, char **argv)
 		case 'z':
 			run_unified = 1;
 			break;
-		case 'x': {
+		case 'x':
+		case 'y': {
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
-			int plugged = atoi(strtok(NULL, ":")) ;
+			int value = atoi(strtok(NULL, ":")) ;
+			enum ionode_attr attr = (c == 'x') ?
+				IONODE_ATTR_PLUGGED : IONODE_ATTR_SELECTED;
 			cras_client_set_node_attr(client, dev_index, node_index,
-						  IONODE_ATTR_PLUGGED, plugged);
+						  attr, value);
 			break;
 		}
 		default:
