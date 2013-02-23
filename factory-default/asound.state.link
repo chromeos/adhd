@@ -140,7 +140,7 @@ state.PCH {
 	control.12 {
 		iface MIXER
 		name 'HP/Speaker Auto Detect Playback Switch'
-		value true
+		value false
 		comment {
 			access 'read write'
 			type BOOLEAN
