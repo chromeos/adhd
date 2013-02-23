@@ -7,13 +7,47 @@
 #define CRAS_A2DP_INFO_H_
 
 #include "a2dp-codecs.h"
-#include "cras_audio_codec.h"
+
+#define A2DP_BUF_SIZE_BYTES 1024
+
+/* Represents the codec and encoded state of a2dp iodev.
+ * Members:
+ *    codec - The codec used to encode PCM buffer to a2dp buffer.
+ *    a2dp_buf - The buffer to hold encoded frames.
+ *    frame_count - Queued SBC frame count currently in a2dp buffer.
+ *    seq_num - Sequence number in rtp header.
+ *    samples - Queued PCM frame count currently in a2dp buffer.
+ *    nsamples - Cumulative number of encoded PCM frames.
+ *    a2dp_buf_used - Used a2dp buffer counter in bytes.
+ */
+struct a2dp_info {
+	struct cras_audio_codec *codec;
+	uint8_t a2dp_buf[A2DP_BUF_SIZE_BYTES];
+	int frame_count;
+	uint16_t seq_num;
+	int samples;
+	int nsamples;
+	size_t a2dp_buf_used;
+};
 
 /*
  * Set up codec for given sbc capability.
  */
-void init_a2dp(struct cras_audio_codec *codec, a2dp_sbc_t *sbc);
+int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc);
 
-void destroy_a2dp(struct cras_audio_codec *codec);
+/*
+ * Destroys an a2dp_info.
+ */
+void destroy_a2dp(struct a2dp_info *a2dp);
+
+/*
+ * Gets the number of queued frames in a2dp_info.
+ */
+int a2dp_queued_frames(struct a2dp_info *a2dp);
+
+/*
+ * Drains queued samples in a2dp_info.
+ */
+void a2dp_drain(struct a2dp_info *a2dp);
 
 #endif /* CRAS_A2DP_INFO_H_ */

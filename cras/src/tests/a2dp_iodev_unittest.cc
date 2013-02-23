@@ -22,8 +22,11 @@ static size_t cras_iodev_list_add_output_called;
 static size_t cras_iodev_list_rm_output_called;
 static size_t cras_bt_transport_acquire_called;
 static size_t cras_bt_transport_configuration_called;
+static size_t cras_bt_transport_release_called;
 static size_t init_a2dp_called;
+static int init_a2dp_return_val;
 static size_t destroy_a2dp_called;
+static size_t drain_a2dp_called;
 static size_t cras_iodev_free_format_called;
 
 void ResetStubData() {
@@ -31,8 +34,11 @@ void ResetStubData() {
   cras_iodev_list_rm_output_called = 0;
   cras_bt_transport_acquire_called = 0;
   cras_bt_transport_configuration_called = 0;
+  cras_bt_transport_release_called = 0;
   init_a2dp_called = 0;
+  init_a2dp_return_val = 0;
   destroy_a2dp_called = 0;
+  drain_a2dp_called = 0;
   cras_iodev_free_format_called = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
@@ -59,6 +65,20 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(1, destroy_a2dp_called);
 }
 
+TEST(A2dpIoInit, InitializeFail) {
+  struct cras_iodev *iodev;
+
+  ResetStubData();
+
+  init_a2dp_return_val = -1;
+  iodev = a2dp_iodev_create(fake_transport);
+
+  ASSERT_EQ(iodev, (void *)NULL);
+  ASSERT_EQ(1, cras_bt_transport_configuration_called);
+  ASSERT_EQ(1, init_a2dp_called);
+  ASSERT_EQ(0, cras_iodev_list_add_output_called);
+}
+
 TEST(A2dpIoInit, OpenIodev) {
   struct cras_iodev *iodev;
   struct cras_audio_format *format = NULL;
@@ -72,6 +92,8 @@ TEST(A2dpIoInit, OpenIodev) {
   ASSERT_EQ(1, cras_bt_transport_acquire_called);
 
   iodev->close_dev(iodev);
+  ASSERT_EQ(1, cras_bt_transport_release_called);
+  ASSERT_EQ(1, drain_a2dp_called);
   ASSERT_EQ(1, cras_iodev_free_format_called);
 
   a2dp_iodev_destroy(iodev);
@@ -102,6 +124,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 
 int cras_bt_transport_release(struct cras_bt_transport *transport)
 {
+  cras_bt_transport_release_called++;
   return 0;
 }
 
@@ -143,14 +166,20 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
   return 0;
 }
 
-void init_a2dp(struct cras_audio_codec *codec, a2dp_sbc_t *sbc)
+int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 {
   init_a2dp_called++;
+  return init_a2dp_return_val;
 }
 
-void destroy_a2dp(struct cras_audio_codec *codec)
+void destroy_a2dp(struct a2dp_info *a2dp)
 {
   destroy_a2dp_called++;
+}
+
+void a2dp_drain(struct a2dp_info *a2dp)
+{
+  drain_a2dp_called++;
 }
 
 }

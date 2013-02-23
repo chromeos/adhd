@@ -8,8 +8,9 @@
 
 #include "cras_a2dp_info.h"
 #include "cras_sbc_codec.h"
+#include "rtp.h"
 
-void init_a2dp(struct cras_audio_codec *codec, a2dp_sbc_t *sbc)
+int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 {
 	uint8_t frequency = 0, mode = 0, subbands = 0, allocation, blocks = 0,
 		bitpool;
@@ -63,11 +64,35 @@ void init_a2dp(struct cras_audio_codec *codec, a2dp_sbc_t *sbc)
 
 	bitpool = sbc->max_bitpool;
 
-	codec = cras_sbc_codec_create(frequency, mode, subbands, allocation,
-				      blocks, bitpool);
+	a2dp->codec = cras_sbc_codec_create(frequency, mode, subbands,
+					    allocation, blocks, bitpool);
+	if (!a2dp->codec)
+		return -1;
+
+	a2dp->a2dp_buf_used = sizeof(struct rtp_header)
+			+ sizeof(struct rtp_payload);
+	a2dp->frame_count = 0;
+	a2dp->seq_num = 0;
+	a2dp->samples = 0;
+
+	return 0;
 }
 
-void destroy_a2dp(struct cras_audio_codec *codec)
+void destroy_a2dp(struct a2dp_info *a2dp)
 {
-	cras_sbc_codec_destroy(codec);
+	cras_sbc_codec_destroy(a2dp->codec);
+}
+
+int a2dp_queued_frames(struct a2dp_info *a2dp)
+{
+	return a2dp->samples;
+}
+
+void a2dp_drain(struct a2dp_info *a2dp)
+{
+	a2dp->a2dp_buf_used = sizeof(struct rtp_header)
+			+ sizeof(struct rtp_payload);
+	a2dp->samples = 0;
+	a2dp->seq_num = 0;
+	a2dp->frame_count = 0;
 }
