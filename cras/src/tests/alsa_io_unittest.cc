@@ -338,7 +338,6 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(1, cras_ionode_plug_event_called);
   EXPECT_EQ(1, cras_ionode_plug_event_value);
   EXPECT_EQ(2, cras_ionode_better_called);
-  EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
   EXPECT_EQ(2, cras_ionode_plug_event_called);
@@ -373,7 +372,6 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   EXPECT_EQ(1, cras_ionode_plug_event_called);
   EXPECT_EQ(1, cras_ionode_plug_event_value);
   EXPECT_EQ(2, cras_ionode_better_called);
-  EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
   EXPECT_EQ(2, cras_ionode_plug_event_called);
@@ -513,16 +511,18 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
   ResetStubData();
-  rc = alsa_iodev_set_active_node((struct cras_iodev *)aio, aio->base.nodes);
+  rc = alsa_iodev_set_active_node((struct cras_iodev *)aio,
+                                  aio->base.nodes->next);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
   ASSERT_EQ(2, cras_alsa_mixer_set_output_active_state_called);
   EXPECT_EQ(outputs[0], cras_alsa_mixer_set_output_active_state_outputs[0]);
-  EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[0]);
+  EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[0]);
   EXPECT_EQ(outputs[1], cras_alsa_mixer_set_output_active_state_outputs[1]);
-  EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
+  EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[1]);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
+  EXPECT_EQ(2, cras_alsa_jack_enable_ucm_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   free(outputs[0]);
@@ -561,18 +561,20 @@ TEST(AlsaOutputNode, TwoOutputs) {
   aio->handle = (snd_pcm_t *)0x24;
 
   ResetStubData();
-  rc = alsa_iodev_set_active_node((struct cras_iodev *)aio, aio->base.nodes);
+  rc = alsa_iodev_set_active_node((struct cras_iodev *)aio,
+                                  aio->base.nodes->next);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2, alsa_mixer_set_mute_called);
-  EXPECT_EQ(outputs[0], alsa_mixer_set_mute_output);
+  EXPECT_EQ(outputs[1], alsa_mixer_set_mute_output);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
-  EXPECT_EQ(outputs[0], alsa_mixer_set_dBFS_output);
+  EXPECT_EQ(outputs[1], alsa_mixer_set_dBFS_output);
   ASSERT_EQ(2, cras_alsa_mixer_set_output_active_state_called);
   EXPECT_EQ(outputs[0], cras_alsa_mixer_set_output_active_state_outputs[0]);
-  EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[0]);
+  EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[0]);
   EXPECT_EQ(outputs[1], cras_alsa_mixer_set_output_active_state_outputs[1]);
-  EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[1]);
+  EXPECT_EQ(1, cras_alsa_mixer_set_output_active_state_values[1]);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
+  EXPECT_EQ(2, cras_alsa_jack_enable_ucm_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   free(outputs[0]);

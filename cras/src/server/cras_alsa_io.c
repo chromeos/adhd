@@ -693,8 +693,6 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
-	/* If the jack has a ucm device, set that. */
-	cras_alsa_jack_enable_ucm(jack, plugged);
 	plug_node(aio, &node->base, plugged);
 }
 
@@ -727,8 +725,6 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
-	/* If the jack has a ucm device, set that. */
-	cras_alsa_jack_enable_ucm(jack, plugged);
 	plug_node(aio, &node->base, plugged);
 }
 
@@ -946,17 +942,29 @@ static void alsa_iodev_unmute_node(struct alsa_io *aio,
 	}
 }
 
+static void enable_jack_ucm(struct alsa_io *aio, int plugged)
+{
+	struct alsa_output_node *active = get_active_output(aio);
+	if (active)
+		cras_alsa_jack_enable_ucm(active->jack, plugged);
+}
+
 int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 			       struct cras_ionode *ionode)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
+	if (iodev->active_node == ionode)
+		return 0;
+
+	enable_jack_ucm(aio, 0);
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		alsa_iodev_unmute_node(aio, ionode);
 
 	iodev->active_node = ionode;
 	aio->base.dsp_name = get_active_dsp_name(aio);
 	cras_iodev_update_dsp(iodev);
+	enable_jack_ucm(aio, 1);
 	/* Setting the volume will also unmute if the system isn't muted. */
 	init_device_settings(aio);
 	return 0;
