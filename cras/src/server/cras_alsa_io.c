@@ -637,10 +637,7 @@ static void update_active_node(struct alsa_io *aio, struct cras_ionode *node)
 	struct cras_ionode *best_node;
 
 	best_node = get_best_node(aio);
-	if (aio->base.direction == CRAS_STREAM_OUTPUT)
-		alsa_iodev_set_active_output(&aio->base, best_node);
-	else
-		alsa_iodev_set_active_input(&aio->base, best_node);
+	alsa_iodev_set_active_node(&aio->base, best_node);
 	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
 					     aio->base.direction);
 }
@@ -891,13 +888,11 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	/* Set the active node as the best node we have now. */
-	if (direction == CRAS_STREAM_OUTPUT) {
-		alsa_iodev_set_active_output(&aio->base, get_best_node(aio));
+	alsa_iodev_set_active_node(&aio->base, get_best_node(aio));
+	if (direction == CRAS_STREAM_OUTPUT)
 		cras_iodev_list_add_output(&aio->base);
-	} else {
-		alsa_iodev_set_active_input(&aio->base, get_best_node(aio));
+	else
 		cras_iodev_list_add_input(&aio->base);
-	}
 
 	/* Set plugged for the first USB device per card when it appears. */
 	if (card_type == ALSA_CARD_TYPE_USB && is_first)
@@ -928,13 +923,12 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 		free(iodev);
 }
 
-int alsa_iodev_set_active_output(struct cras_iodev *iodev,
-				 struct cras_ionode *ionode)
+static void alsa_iodev_unmute_node(struct alsa_io *aio,
+				   struct cras_ionode *ionode)
 {
-	struct alsa_io *aio = (struct alsa_io *)iodev;
 	struct alsa_output_node *active = (struct alsa_output_node *)ionode;
-	struct alsa_output_node *output;
 	struct cras_alsa_mixer_output *mixer = active->mixer_output;
+	struct alsa_output_node *output;
 	struct cras_ionode *node;
 
 	/* If this node is associated with mixer output, unmute the
@@ -950,24 +944,20 @@ int alsa_iodev_set_active_output(struct cras_iodev *iodev,
 					output->mixer_output, node == ionode);
 		}
 	}
-
-	iodev->active_node = ionode;
-	aio->base.dsp_name = get_active_dsp_name(aio);
-	cras_iodev_update_dsp(iodev);
-
-	/* Setting the volume will also unmute if the system isn't muted. */
-	init_device_settings(aio);
-	return 0;
 }
 
-int alsa_iodev_set_active_input(struct cras_iodev *iodev,
-				struct cras_ionode *ionode)
+int alsa_iodev_set_active_node(struct cras_iodev *iodev,
+			       struct cras_ionode *ionode)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		alsa_iodev_unmute_node(aio, ionode);
+
 	iodev->active_node = ionode;
 	aio->base.dsp_name = get_active_dsp_name(aio);
 	cras_iodev_update_dsp(iodev);
+	/* Setting the volume will also unmute if the system isn't muted. */
 	init_device_settings(aio);
 	return 0;
 }
