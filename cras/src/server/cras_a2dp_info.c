@@ -69,6 +69,10 @@ int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 	if (!a2dp->codec)
 		return -1;
 
+	/* SBC info */
+	a2dp->codesize = cras_sbc_get_codesize(a2dp->codec);
+	a2dp->frame_length = cras_sbc_get_frame_length(a2dp->codec);
+
 	a2dp->a2dp_buf_used = sizeof(struct rtp_header)
 			+ sizeof(struct rtp_payload);
 	a2dp->frame_count = 0;
@@ -81,6 +85,11 @@ int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 void destroy_a2dp(struct a2dp_info *a2dp)
 {
 	cras_sbc_codec_destroy(a2dp->codec);
+}
+
+int a2dp_block_size(struct a2dp_info *a2dp, int a2dp_bytes)
+{
+	return a2dp_bytes / a2dp->frame_length * a2dp->codesize;
 }
 
 int a2dp_queued_frames(struct a2dp_info *a2dp)

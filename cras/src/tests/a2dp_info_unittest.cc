@@ -137,3 +137,13 @@ void cras_sbc_codec_destroy(struct cras_audio_codec *codec)
   cras_sbc_codec_destroy_called++;
   free(codec);
 }
+
+int cras_sbc_get_codesize(struct cras_audio_codec *codec)
+{
+  return 1;
+}
+
+int cras_sbc_get_frame_length(struct cras_audio_codec *codec)
+{
+  return 1;
+}

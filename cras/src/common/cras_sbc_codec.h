@@ -29,4 +29,12 @@ struct cras_audio_codec *cras_sbc_codec_create(uint8_t freq,
  */
 void cras_sbc_codec_destroy(struct cras_audio_codec *codec);
 
+/* Gets codesize, the input block size of sbc codec in bytes.
+ */
+int cras_sbc_get_codesize(struct cras_audio_codec *codec);
+
+/* Gets frame_length, the output block size of sbc codec in bytes.
+ */
+int cras_sbc_get_frame_length(struct cras_audio_codec *codec);
+
 #endif /* COMMON_CRAS_SBC_CODEC_H_ */

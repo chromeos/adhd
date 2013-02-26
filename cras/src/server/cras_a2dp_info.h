@@ -14,6 +14,8 @@
  * Members:
  *    codec - The codec used to encode PCM buffer to a2dp buffer.
  *    a2dp_buf - The buffer to hold encoded frames.
+ *    codesize - Size of a SBC frame in bytes.
+ *    frame_length - Size of an encoded SBC frame in bytes.
  *    frame_count - Queued SBC frame count currently in a2dp buffer.
  *    seq_num - Sequence number in rtp header.
  *    samples - Queued PCM frame count currently in a2dp buffer.
@@ -23,6 +25,8 @@
 struct a2dp_info {
 	struct cras_audio_codec *codec;
 	uint8_t a2dp_buf[A2DP_BUF_SIZE_BYTES];
+	int codesize;
+	int frame_length;
 	int frame_count;
 	uint16_t seq_num;
 	int samples;
@@ -39,6 +43,11 @@ int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc);
  * Destroys an a2dp_info.
  */
 void destroy_a2dp(struct a2dp_info *a2dp);
+
+/*
+ * Gets original size of a2dp encoded bytes.
+ */
+int a2dp_block_size(struct a2dp_info *a2dp, int encoded_bytes);
 
 /*
  * Gets the number of queued frames in a2dp_info.

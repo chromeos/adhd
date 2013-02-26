@@ -13,10 +13,12 @@
  * Members:
  *    sbc - The main structure for SBC codec.
  *    codesize - The size of one PCM input block in bytes.
+ *    frame_length - The size of one SBC output block in bytes.
  */
 struct cras_sbc_data {
 	sbc_t sbc;
 	unsigned int codesize;
+	unsigned int frame_length;
 };
 
 int cras_sbc_decode(struct cras_audio_codec *codec, const void *input,
@@ -79,6 +81,18 @@ int cras_sbc_encode(struct cras_audio_codec *codec, const void *input,
 	return processed;
 }
 
+int cras_sbc_get_codesize(struct cras_audio_codec *codec)
+{
+	struct cras_sbc_data *data = (struct cras_sbc_data *)codec->priv_data;
+	return data->codesize;
+}
+
+int cras_sbc_get_frame_length(struct cras_audio_codec *codec)
+{
+	struct cras_sbc_data *data = (struct cras_sbc_data *)codec->priv_data;
+	return data->frame_length;
+}
+
 struct cras_audio_codec *cras_sbc_codec_create(uint8_t freq,
 		   uint8_t mode, uint8_t subbands, uint8_t alloc,
 		   uint8_t blocks, uint8_t bitpool) {
@@ -104,6 +118,7 @@ struct cras_audio_codec *cras_sbc_codec_create(uint8_t freq,
 	data->sbc.blocks = blocks;
 	data->sbc.bitpool = bitpool;
 	data->codesize = sbc_get_codesize(&data->sbc);
+	data->frame_length = sbc_get_frame_length(&data->sbc);
 
 	codec->decode = cras_sbc_decode;
 	codec->encode = cras_sbc_encode;
