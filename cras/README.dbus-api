@@ -1,0 +1,51 @@
+CRAS dbus methods and signals.
+==============================
+
+Service		org.chromium.cras
+
+Methods		void SetSystemVolume(byte volume)
+
+			Sets the volume of the system.  Volume ranges from
+			0 to 100, and will be translated to dB based on the
+			output-specific volume curve.
+
+		void SetSystemMute(boolean mute_on)
+
+			Sets the system output mute.
+
+		void SetSystemCaptureGain(int32 gain)
+
+			Sets the capture gain of the system. Gain is specified
+			in dBFS * 100.  For example 5dB of gain would be
+			specified with an argument of 500, while -10 would be
+			specified with -1000, and 11.5 maps to 1150.
+
+		void SetSystemCaptureMute(boolean mute_on)
+
+			Sets the capture mute state of the system.  Recordings
+			will be muted when this is set.
+
+		void GetSystemVolumeState()
+
+			Returns the volume and capture gain as follows:
+				byte volume (0-100)
+				boolean mute
+				int32 capture_gain (in dBFS * 100)
+				boolean capture_mute
+
+Signals		SystemVolumeChanged(byte volume)
+
+			Indicates that the output volume level has changed.
+
+		SystemMuteChanged(boolean muted)
+
+			Indicates that the output mute state has changed.
+
+		SystemCaptureGainChanged(int32 gain)
+
+			Indicates that the system capture gain is now gain
+			expressed in dBFS*100.
+
+		SystemCaptureMuteChanged(boolean muted)
+
+			Indicates that the input mute state has changed.
