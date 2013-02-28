@@ -21,6 +21,7 @@
 #include "cras_bluetooth.h"
 #include "cras_config.h"
 #include "cras_dbus.h"
+#include "cras_dbus_control.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
@@ -303,8 +304,10 @@ int cras_server_run()
 
 	cras_udev_start_sound_subsystem_monitor();
 	dbus_conn = cras_dbus_connect_system_bus();
-	if (dbus_conn)
+	if (dbus_conn) {
 		cras_bluetooth_start(dbus_conn);
+		cras_dbus_control_start(dbus_conn);
+	}
 
 	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (socket_fd < 0) {

@@ -23,6 +23,7 @@ cras_SOURCES = \
 	server/cras_alsa_ucm.c \
 	server/cras_bluetooth.c \
 	server/cras_dbus.c \
+	server/cras_dbus_control.c \
 	server/cras_dsp.c \
 	server/cras_dsp_ini.c \
 	server/cras_dsp_mod_builtin.c \
