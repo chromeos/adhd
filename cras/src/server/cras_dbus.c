@@ -117,11 +117,11 @@ static void dbus_timeout_toggled(DBusTimeout *timeout, void *arg)
 	dbus_timeout_add(timeout, NULL);
 }
 
-
 DBusConnection *cras_dbus_connect_system_bus()
 {
 	DBusError dbus_error;
 	DBusConnection *conn;
+	int rc;
 
 	dbus_error_init(&dbus_error);
 
@@ -132,6 +132,17 @@ DBusConnection *cras_dbus_connect_system_bus()
 		dbus_error_free(&dbus_error);
 		return NULL;
 	}
+
+	/* Request a name on the bus. */
+	rc = dbus_bus_request_name(conn, "org.chromium.cras",
+				   DBUS_NAME_FLAG_REPLACE_EXISTING,
+				   &dbus_error);
+	if (dbus_error_is_set(&dbus_error)) {
+		syslog(LOG_ERR, "Requesting dbus name %s", dbus_error.message);
+		dbus_error_free(&dbus_error);
+	}
+	if (rc != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+		syslog(LOG_ERR, "Not primary owner of dbus name.");
 
 	if (!dbus_connection_set_watch_functions(conn,
 						 dbus_watch_add,
