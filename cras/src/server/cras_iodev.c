@@ -211,13 +211,6 @@ void cras_iodev_config_params(struct cras_iodev *iodev,
 	       (unsigned)iodev->cb_threshold);
 }
 
-void cras_ionode_plug_event(struct cras_ionode *node, int plugged)
-{
-	if (plugged)
-		gettimeofday(&node->plugged_time, NULL);
-	node->plugged = plugged;
-}
-
 /*
  * The rules are (in decision order):
  * - A non-null node is better than a null node.
@@ -254,4 +247,55 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 		return 0;
 
 	return 0;
+}
+
+/* This is called when a node is plugged/unplugged */
+static void plug_node(struct cras_iodev *iodev, struct cras_ionode *node,
+		      int plugged)
+{
+	if (node->plugged == plugged)
+		return;
+	node->plugged = plugged;
+	if (plugged)
+		gettimeofday(&node->plugged_time, NULL);
+	iodev->update_active_node(iodev);
+}
+
+/* This is called when a node is selected/unselected */
+static void select_node(struct cras_iodev *iodev, struct cras_ionode *node,
+			int selected)
+{
+	if (node->selected == selected)
+		return;
+	node->selected = selected;
+	iodev->update_active_node(iodev);
+}
+
+int cras_iodev_set_node_attr(struct cras_iodev *iodev,
+			     struct cras_ionode *ionode,
+			     enum ionode_attr attr, int value)
+{
+	if (attr == IONODE_ATTR_PLUGGED) {
+		plug_node(iodev, ionode, value);
+		return 0;
+	} else if (attr == IONODE_ATTR_SELECTED) {
+		select_node(iodev, ionode, value);
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
+struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)
+{
+	struct cras_ionode *output;
+	struct cras_ionode *best;
+
+	/* Take the first entry as a starting point. */
+	best = iodev->nodes;
+
+	DL_FOREACH(iodev->nodes, output)
+		if (cras_ionode_better(output, best))
+			best = output;
+	return best;
 }

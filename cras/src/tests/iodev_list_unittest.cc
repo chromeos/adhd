@@ -37,6 +37,7 @@ static unsigned int register_capture_mute_changed_cb_called;
 static unsigned int remove_capture_mute_changed_cb_called;
 static int add_stream_called;
 static int rm_stream_called;
+static unsigned int set_node_attr_called;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -111,6 +112,7 @@ class IoDevTestSuite : public testing::Test {
       remove_capture_mute_changed_cb_called = 0;
       add_stream_called = 0;
       rm_stream_called = 0;
+      set_node_attr_called = 0;
       is_open_ = 0;
     }
 
@@ -699,6 +701,39 @@ TEST_F(IoDevTestSuite, CaptureMuteCallbacks) {
   EXPECT_EQ(0, rc);
 }
 
+TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
+  int rc;
+
+  cras_iodev_list_init();
+
+  // The list is empty now.
+  rc = cras_iodev_list_set_node_attr(0, 0, IONODE_ATTR_PLUGGED, 1);
+  EXPECT_LE(rc, 0);
+  EXPECT_EQ(0, set_node_attr_called);
+
+  // Add two device, each with one node.
+  d1_.direction = CRAS_STREAM_INPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+  node1.idx = 1;
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+  node2.idx = 2;
+
+  // Mismatch id
+  rc = cras_iodev_list_set_node_attr(d2_.info.idx, 1, IONODE_ATTR_PLUGGED, 1);
+  EXPECT_LT(rc, 0);
+  EXPECT_EQ(0, set_node_attr_called);
+
+  // Mismatch id
+  rc = cras_iodev_list_set_node_attr(d1_.info.idx, 2, IONODE_ATTR_PLUGGED, 1);
+  EXPECT_LT(rc, 0);
+  EXPECT_EQ(0, set_node_attr_called);
+
+  // Correct device id and node id
+  rc = cras_iodev_list_set_node_attr(d1_.info.idx, 1, IONODE_ATTR_PLUGGED, 1);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(1, set_node_attr_called);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -781,12 +816,20 @@ void audio_thread_destroy(struct audio_thread *thread) {
 
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 {
-	if (a->priority > b->priority)
-		return 1;
-	if (a->priority < b->priority)
-		return 0;
+  if (a->priority > b->priority)
+    return 1;
+  if (a->priority < b->priority)
+    return 0;
 
-	return 0;
+  return 0;
+}
+
+int cras_iodev_set_node_attr(struct cras_iodev *iodev,
+			     struct cras_ionode *ionode,
+			     enum ionode_attr attr, int value)
+{
+  set_node_attr_called++;
+  return 0;
 }
 
 }  // extern "C"

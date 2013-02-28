@@ -57,7 +57,7 @@ struct cras_ionode {
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
  * dev_running - Checks if the device is playing or recording.
- * set_node_attr - Sets an attribute of an ionode of this device.
+ * update_active_node - Update the active node using the selected/plugged state.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * nodes - The output or input nodes available for this device.
@@ -89,9 +89,7 @@ struct cras_iodev {
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);
-	int (*set_node_attr)(struct cras_iodev *iodev,
-			     struct cras_ionode *ionode,
-			     enum ionode_attr attr, int value);
+	void (*update_active_node)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_iodev_info info;
 	struct cras_ionode *nodes;
@@ -227,6 +225,20 @@ void cras_ionode_plug_event(struct cras_ionode *node, int plugged);
 
 /* Returns true if node a is preferred over node b. */
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b);
+
+/* Sets an attribute of an ionode on a device.
+ * Args:
+ *    iodev - device which the ionode is on.
+ *    ionode - ionode whose attribute we want to change.
+ *    attr - the attribute we want to change.
+ *    value - the value we want to set.
+ */
+int cras_iodev_set_node_attr(struct cras_iodev *iodev,
+			     struct cras_ionode *ionode,
+			     enum ionode_attr attr, int value);
+
+/* Find the node with highest priority that is plugged in. */
+struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev);
 
 /* Gets a count of how many frames until the next time the thread should wake
  * up to service the buffer.

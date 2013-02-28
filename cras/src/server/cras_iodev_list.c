@@ -452,5 +452,5 @@ found_dev:
 	return -EINVAL;
 
 found_node:
-	return dev->set_node_attr(dev, node, attr, value);
+	return cras_iodev_set_node_attr(dev, node, attr, value);
 }

@@ -95,9 +95,10 @@ static void *cras_alsa_jack_list_create_cb_data;
 static size_t cras_iodev_move_stream_type_top_prio_called;
 static char test_card_name[] = "TestCard";
 static char test_dev_name[] = "TestDev";
-static size_t cras_ionode_plug_event_called;
-static int cras_ionode_plug_event_value;
-static size_t cras_ionode_better_called;
+static size_t cras_iodev_set_node_attr_called;
+static enum ionode_attr cras_iodev_set_node_attr_attr;
+static int cras_iodev_set_node_attr_value;
+static size_t cras_ionode_get_best_node_called;
 static unsigned cras_alsa_jack_enable_ucm_called;
 static size_t cras_iodev_update_dsp_called;
 static const char *cras_iodev_update_dsp_name;
@@ -139,8 +140,8 @@ void ResetStubData() {
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_move_stream_type_top_prio_called = 0;
-  cras_ionode_plug_event_called = 0;
-  cras_ionode_better_called = 0;
+  cras_iodev_set_node_attr_called = 0;
+  cras_ionode_get_best_node_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
   cras_iodev_update_dsp_called = 0;
   cras_iodev_update_dsp_name = 0;
@@ -244,7 +245,9 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
 
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_NE(0, aio->base.active_node->plugged_time.tv_sec);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_value);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -254,7 +257,9 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
 
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_NE(0, aio->base.active_node->plugged_time.tv_sec);
+  EXPECT_EQ(2, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_value);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
@@ -278,7 +283,8 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(1, sys_set_volume_limits_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
-  EXPECT_EQ(0, cras_ionode_plug_event_called);
+  EXPECT_EQ(1, cras_ionode_get_best_node_called);
+  EXPECT_EQ(0, cras_iodev_set_node_attr_called);
 
   alsa_iodev_destroy(iodev);
   free(fake_curve);
@@ -293,14 +299,14 @@ TEST(AlsaIoInit, UsbCardAutoPlug) {
                             ALSA_CARD_TYPE_INTERNAL, 1,
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
-  EXPECT_EQ(0, cras_ionode_plug_event_called);
+  EXPECT_EQ(0, cras_iodev_set_node_attr_called);
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
                             ALSA_CARD_TYPE_USB, 0,
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
-  EXPECT_EQ(0, cras_ionode_plug_event_called);
+  EXPECT_EQ(0, cras_iodev_set_node_attr_called);
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -308,8 +314,9 @@ TEST(AlsaIoInit, UsbCardAutoPlug) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
   // Should assume USB devs are plugged when they appear.
-  EXPECT_EQ(1, cras_ionode_plug_event_called);
-  EXPECT_EQ(1, cras_ionode_plug_event_value);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_value);
   alsa_iodev_destroy(iodev);
 }
 
@@ -328,21 +335,20 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
+  EXPECT_EQ(1, cras_ionode_get_best_node_called);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
 
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
-  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
-  EXPECT_EQ(1, cras_ionode_plug_event_called);
-  EXPECT_EQ(1, cras_ionode_plug_event_value);
-  EXPECT_EQ(2, cras_ionode_better_called);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_value);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
-  EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
-  EXPECT_EQ(2, cras_ionode_plug_event_called);
-  EXPECT_EQ(0, cras_ionode_plug_event_value);
-  EXPECT_EQ(3, cras_ionode_better_called);
+  EXPECT_EQ(2, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(0, cras_iodev_set_node_attr_value);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
@@ -362,21 +368,20 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
+  EXPECT_EQ(1, cras_ionode_get_best_node_called);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
 
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
-  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
-  EXPECT_EQ(1, cras_ionode_plug_event_called);
-  EXPECT_EQ(1, cras_ionode_plug_event_value);
-  EXPECT_EQ(2, cras_ionode_better_called);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_value);
   cras_alsa_jack_list_create_cb(NULL, 0, cras_alsa_jack_list_create_cb_data);
-  EXPECT_EQ(2, cras_iodev_move_stream_type_top_prio_called);
-  EXPECT_EQ(2, cras_ionode_plug_event_called);
-  EXPECT_EQ(0, cras_ionode_plug_event_value);
-  EXPECT_EQ(3, cras_ionode_better_called);
+  EXPECT_EQ(2, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(0, cras_iodev_set_node_attr_value);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
@@ -425,6 +430,24 @@ TEST(AlsaIoInit, OpenCapture) {
   free(fake_format);
 }
 
+TEST(AlsaIoInit, UpdateActiveNode) {
+  struct cras_iodev *iodev;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+
+  ResetStubData();
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            ALSA_CARD_TYPE_INTERNAL, 0,
+                            fake_mixer, NULL,
+                            CRAS_STREAM_OUTPUT);
+
+  EXPECT_EQ(1, cras_ionode_get_best_node_called);
+  iodev->update_active_node(iodev);
+  EXPECT_EQ(2, cras_ionode_get_best_node_called);
+  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
+
+  alsa_iodev_destroy(iodev);
+}
+
 TEST(AlsaIoInit, DspNameDefault) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
@@ -465,15 +488,18 @@ TEST(AlsaIoInit, DspNameJackOverride) {
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_STREQ("default_dsp", cras_iodev_update_dsp_name);
 
-  // Plug the jack and dsp_name should be overridden.
+  // Add the jack node.
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, ucm_get_dsp_name_default_called);
+
+  // Mark the jack node as active.
+  alsa_iodev_set_active_node(&aio->base, aio->base.nodes->next);
   EXPECT_EQ(2, cras_alsa_jack_get_dsp_name_called);
   EXPECT_EQ(2, cras_iodev_update_dsp_called);
   EXPECT_STREQ("override_dsp", cras_iodev_update_dsp_name);
 
-  // Unplug the jack and dsp_name should come back.
-  cras_alsa_jack_list_create_cb(jack, 0, cras_alsa_jack_list_create_cb_data);
+  // Mark the default node as active.
+  alsa_iodev_set_active_node(&aio->base, aio->base.nodes);
   EXPECT_EQ(1, ucm_get_dsp_name_default_called);
   EXPECT_EQ(3, cras_alsa_jack_get_dsp_name_called);
   EXPECT_EQ(3, cras_iodev_update_dsp_called);
@@ -728,14 +754,6 @@ int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
   cras_iodev_post_message_to_playback_thread_called++;
   return 0;
 }
-}
-void cras_ionode_plug_event(struct cras_ionode *node, int plugged)
-{
-	cras_ionode_plug_event_called++;
-	cras_ionode_plug_event_value = plugged;
-	if (plugged)
-		gettimeofday(&node->plugged_time, NULL);
-	node->plugged = plugged;
 }
 
 //  From alsa helper.
@@ -1051,24 +1069,18 @@ void cras_iodev_update_dsp(struct cras_iodev *iodev)
   cras_iodev_update_dsp_name = iodev->dsp_name;
 }
 
-int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
+int cras_iodev_set_node_attr(struct cras_iodev *iodev,
+			     struct cras_ionode *ionode,
+			     enum ionode_attr attr, int value)
 {
-  cras_ionode_better_called++;
-
-  if (a->plugged > b->plugged)
-    return 1;
-  if (a->plugged < b->plugged)
-    return 0;
-
-  if (a->priority > b->priority)
-    return 1;
-  if (a->priority < b->priority)
-    return 0;
-
-  if (timeval_after(&a->plugged_time, &b->plugged_time))
-    return 1;
-  if (timeval_after(&b->plugged_time, &a->plugged_time))
-    return 0;
-
+  cras_iodev_set_node_attr_called++;
+  cras_iodev_set_node_attr_attr = attr;
+  cras_iodev_set_node_attr_value = value;
   return 0;
+}
+
+struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)
+{
+  cras_ionode_get_best_node_called++;
+  return iodev->nodes;
 }
