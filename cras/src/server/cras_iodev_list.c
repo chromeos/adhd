@@ -454,3 +454,18 @@ found_dev:
 found_node:
 	return cras_iodev_set_node_attr(dev, node, attr, value);
 }
+
+void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
+{
+	struct iodev_list *list;
+	struct cras_iodev *dev;
+	struct cras_ionode *node;
+
+	list = (direction == CRAS_STREAM_OUTPUT) ? &outputs : &inputs;
+	DL_FOREACH(list->iodevs, dev)
+		DL_FOREACH(dev->nodes, node)
+			if (node->selected)
+				cras_iodev_set_node_attr(dev, node,
+							 IONODE_ATTR_SELECTED,
+							 0);
+}

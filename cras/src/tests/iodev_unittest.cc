@@ -11,6 +11,13 @@ extern "C" {
 #include "utlist.h"
 }
 
+static int clear_selection_called;
+static enum CRAS_STREAM_DIRECTION clear_selection_direction;
+
+void ResetStubData() {
+  clear_selection_called = 0;
+}
+
 namespace {
 
 static struct timespec clock_gettime_retspec;
@@ -334,6 +341,23 @@ TEST(IoNodeBetter, RecentlyPlugged) {
   EXPECT_TRUE(cras_ionode_better(&b, &a));
 }
 
+static void update_active_node(struct cras_iodev *iodev)
+{
+}
+
+TEST(IoNodePlug, ClearSelection) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  iodev.direction = CRAS_STREAM_INPUT;
+  iodev.update_active_node = update_active_node;
+  ResetStubData();
+  cras_iodev_set_node_attr(&iodev, &ionode, IONODE_ATTR_PLUGGED, 1);
+
+  EXPECT_EQ(1, clear_selection_called);
+  EXPECT_EQ(CRAS_STREAM_INPUT, clear_selection_direction);
+}
+
 extern "C" {
 
 //  From libpthread.
@@ -384,6 +408,12 @@ void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
 int audio_thread_post_message(struct audio_thread *thread,
                               struct audio_thread_msg *msg) {
   return 0;
+}
+
+void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
+{
+  clear_selection_called++;
+  clear_selection_direction = direction;
 }
 
 }  // extern "C"

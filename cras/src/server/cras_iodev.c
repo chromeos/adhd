@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "cras_iodev.h"
+#include "cras_iodev_list.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
@@ -256,8 +257,10 @@ static void plug_node(struct cras_iodev *iodev, struct cras_ionode *node,
 	if (node->plugged == plugged)
 		return;
 	node->plugged = plugged;
-	if (plugged)
+	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
+		cras_iodev_list_clear_selection(iodev->direction);
+	}
 	iodev->update_active_node(iodev);
 }
 
