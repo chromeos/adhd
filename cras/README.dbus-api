@@ -33,6 +33,36 @@ Methods		void SetSystemVolume(byte volume)
 				int32 capture_gain (in dBFS * 100)
 				boolean capture_mute
 
+		array{dict} GetOutputNodes()
+
+			Returns information about output nodes. A node is
+			something like a speaker or a headphone. The return
+			value is an array of dicts. Each dict contains
+			information about a node.
+
+			Each dict contains the following properties:
+				uint64 Id
+					The id of this node. It should be
+					unique among all nodes.
+				string Name
+					The name of this node.
+				string DeviceName
+					The name of the device that this node
+					belongs to.
+				boolean Active
+					Whether this node is currently used for
+					output.
+
+		array{dict} GetInputNodes()
+
+			Similar to GetOuputNodes, but returns information for
+			input nodes like microphones.
+
+		void SetActiveNode(uint64 id);
+
+			Requests the active node to be changed to the
+			specified node.
+
 Signals		SystemVolumeChanged(byte volume)
 
 			Indicates that the output volume level has changed.
@@ -49,3 +79,15 @@ Signals		SystemVolumeChanged(byte volume)
 		SystemCaptureMuteChanged(boolean muted)
 
 			Indicates that the input mute state has changed.
+
+		OutputNodesChanged()
+
+			Indicates that output nodes are added/removed.
+
+		InputNodesChanged()
+
+			Indicates that input nodes are added/removed.
+
+		ActiveNodeChanged(uint64 id)
+
+			Indicates that the active node has changed.
