@@ -134,9 +134,7 @@ DBusConnection *cras_dbus_connect_system_bus()
 	}
 
 	/* Request a name on the bus. */
-	rc = dbus_bus_request_name(conn, "org.chromium.cras",
-				   DBUS_NAME_FLAG_REPLACE_EXISTING,
-				   &dbus_error);
+	rc = dbus_bus_request_name(conn, "org.chromium.cras", 0, &dbus_error);
 	if (dbus_error_is_set(&dbus_error)) {
 		syslog(LOG_ERR, "Requesting dbus name %s", dbus_error.message);
 		dbus_error_free(&dbus_error);
