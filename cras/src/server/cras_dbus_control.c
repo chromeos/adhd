@@ -233,6 +233,93 @@ static void remove_dbus_match(const char *match,
 	dbus_connection_remove_filter(dbus_control.conn, handler, NULL);
 }
 
+/* Creates a new DBus message, must be freed with dbus_message_unref. */
+static DBusMessage *create_dbus_message(const char *name)
+{
+	DBusMessage *msg;
+	msg = dbus_message_new_signal("/org/chromium/cras",
+				       "org.chromium.cras",
+				       name);
+	if (!msg)
+		syslog(LOG_ERR, "Failed to create signal");
+
+	return msg;
+}
+
+/* Handlers for system updates that generate DBus signals. */
+
+static void signal_volume(void *arg)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	uint8_t volume;
+
+	msg = create_dbus_message("SystemVolumeChanged");
+	if (!msg)
+		return;
+
+	volume = cras_system_get_volume();
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_BYTE, &volume,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
+static void signal_mute(void *arg)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_bool_t muted;
+
+	msg = create_dbus_message("SystemMuteChanged");
+	if (!msg)
+		return;
+
+	muted = cras_system_get_mute();
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_BOOLEAN, &muted,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
+static void signal_capture_gain(void *arg)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_int32_t gain;
+
+	msg = create_dbus_message("SystemCaptureGainChanged");
+	if (!msg)
+		return;
+
+	gain = cras_system_get_capture_gain();
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_INT32, &gain,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
+static void signal_capture_mute(void *arg)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_bool_t muted;
+
+	msg = create_dbus_message("SystemCaptureMuteChanged");
+	if (!msg)
+		return;
+
+	muted = cras_system_get_capture_mute();
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_BOOLEAN, &muted,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 #define MAX_MEMBER_LEN 64
@@ -272,6 +359,11 @@ void cras_dbus_control_start(DBusConnection *conn)
 	}
 
 	free(match_str);
+
+	cras_system_register_volume_changed_cb(signal_volume, 0);
+	cras_system_register_mute_changed_cb(signal_mute, 0);
+	cras_system_register_capture_gain_changed_cb(signal_capture_gain, 0);
+	cras_system_register_capture_mute_changed_cb(signal_capture_mute, 0);
 }
 
 void cras_dbus_control_stop()
@@ -281,6 +373,11 @@ void cras_dbus_control_stop()
 
 	if (!dbus_control.conn)
 		return;
+
+	cras_system_remove_volume_changed_cb(signal_volume, 0);
+	cras_system_remove_mute_changed_cb(signal_mute, 0);
+	cras_system_remove_capture_gain_changed_cb(signal_capture_gain, 0);
+	cras_system_remove_capture_mute_changed_cb(signal_capture_mute, 0);
 
 	match_str = malloc(MAX_MATCH_LEN);
 
