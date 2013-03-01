@@ -16,6 +16,7 @@ cras_SOURCES = \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
 	server/cras.c \
+	server/cras_a2dp_endpoint.c \
 	server/cras_a2dp_info.c \
 	server/cras_a2dp_iodev.c \
 	server/cras_alert.c \

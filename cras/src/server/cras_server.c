@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include "cras_bt_manager.h"
+#include "cras_a2dp_endpoint.h"
 #include "cras_config.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
@@ -318,6 +319,7 @@ int cras_server_run()
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
 		cras_bt_start(dbus_conn);
+		cras_a2dp_endpoint_create(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
 
