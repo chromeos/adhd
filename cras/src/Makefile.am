@@ -23,7 +23,11 @@ cras_SOURCES = \
 	server/cras_alsa_jack.c \
 	server/cras_alsa_mixer.c \
 	server/cras_alsa_ucm.c \
-	server/cras_bluetooth.c \
+	server/cras_bt_manager.c \
+	server/cras_bt_adapter.c \
+	server/cras_bt_device.c \
+	server/cras_bt_transport.c \
+	server/cras_bt_endpoint.c \
 	server/cras_dbus.c \
 	server/cras_dbus_control.c \
 	server/cras_dsp.c \
@@ -104,7 +108,6 @@ check_PROGRAMS = \
 	card_config_unittest \
 	checksum_unittest \
 	cras_tm_unittest \
-	bluetooth_unittest \
 	device_blacklist_unittest \
 	dumper_unittest \
 	rstream_unittest \
@@ -186,12 +189,6 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread
-
-bluetooth_unittest_SOURCES = tests/bluetooth_unittest.cc tests/dbus_test.cc \
-	server/cras_bluetooth.c
-bluetooth_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-bluetooth_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c

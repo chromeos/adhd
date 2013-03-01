@@ -18,8 +18,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_alert.h"
-#include "cras_bluetooth.h"
+#include "cras_bt_manager.h"
 #include "cras_config.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
@@ -318,7 +317,7 @@ int cras_server_run()
 	cras_udev_start_sound_subsystem_monitor();
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
-		cras_bluetooth_start(dbus_conn);
+		cras_bt_start(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
 
