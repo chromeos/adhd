@@ -149,6 +149,43 @@ static DBusHandlerResult handle_set_system_capture_mute(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_system_volume_state(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	uint8_t volume;
+	dbus_bool_t muted;
+	dbus_int32_t capture_gain;
+	dbus_bool_t capture_muted;
+
+	if (!dbus_message_is_method_call(message, "org.chromium.cras",
+					 "GetSystemVolumeState"))
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+	reply = dbus_message_new_method_return(message);
+
+	volume = cras_system_get_volume();
+	muted = cras_system_get_mute();
+	capture_gain = cras_system_get_capture_gain();
+	capture_muted = cras_system_get_capture_mute();
+
+	dbus_message_append_args(reply,
+				 DBUS_TYPE_BYTE, &volume,
+				 DBUS_TYPE_BOOLEAN, &muted,
+				 DBUS_TYPE_INT32, &capture_gain,
+				 DBUS_TYPE_BOOLEAN, &capture_muted,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(dbus_control.conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Adds a dbus match. */
 static void add_dbus_match(const char *match,
 			   DBusHandlerResult (*handler)(DBusConnection *,
@@ -214,6 +251,7 @@ static struct match_method match_methods[] = {
 	{"SetSystemMute", handle_set_system_mute},
 	{"SetSystemCaptureGain", handle_set_system_capture_gain},
 	{"SetSystemCaptureMute", handle_set_system_capture_mute},
+	{"GetSystemVolumeState", handle_get_system_volume_state},
 };
 
 void cras_dbus_control_start(DBusConnection *conn)
