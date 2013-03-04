@@ -540,6 +540,30 @@ void cras_system_state_get_last_stream_active_time(struct timespec *ts)
 	*ts = state.exp_state->last_active_stream_time;
 }
 
+int cras_system_state_get_output_devs(const struct cras_iodev_info **devs)
+{
+	*devs = state.exp_state->output_devs;
+	return state.exp_state->num_output_devs;
+}
+
+int cras_system_state_get_input_devs(const struct cras_iodev_info **devs)
+{
+	*devs = state.exp_state->input_devs;
+	return state.exp_state->num_input_devs;
+}
+
+int cras_system_state_get_output_nodes(const struct cras_ionode_info **nodes)
+{
+	*nodes = state.exp_state->output_nodes;
+	return state.exp_state->num_output_nodes;
+}
+
+int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes)
+{
+	*nodes = state.exp_state->input_nodes;
+	return state.exp_state->num_input_nodes;
+}
+
 struct cras_server_state *cras_system_state_update_begin()
 {
 	if (pthread_mutex_lock(&state.update_lock)) {

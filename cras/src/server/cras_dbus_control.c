@@ -40,6 +40,10 @@
     "      <arg name=\"capture_gain\" type=\"i\" direction=\"out\"/>\n"   \
     "      <arg name=\"capture_mute\" type=\"b\" direction=\"out\"/>\n"   \
     "    </method>\n"                                                       \
+    "    <method name=\"GetNodes\">\n"                                  \
+    "      <arg name=\"direction\" type=\"y\" direction=\"in\"/>\n"     \
+    "      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"    \
+    "    </method>\n"                                                   \
     "  </interface>\n"                                                      \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"          \
     "    <method name=\"Introspect\">\n"                                    \
@@ -198,6 +202,126 @@ static DBusHandlerResult handle_get_system_volume_state(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+/* Appends a key-value pair to the dbus message.
+ * Args:
+ *    key - the key (a string)
+ *    type - the type of the value (for example, 'y')
+ *    type_string - the type of the value in string form (for example, "y")
+ *    value - a pointer to the value to be appended.
+ * Returns:
+ *    false if not enough memory.
+*/
+static dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key,
+				    int type, const char *type_string,
+				    void *value)
+{
+	DBusMessageIter entry, variant;
+
+	if (!dbus_message_iter_open_container(iter, DBUS_TYPE_DICT_ENTRY, NULL,
+					      &entry))
+		return FALSE;
+	if (!dbus_message_iter_append_basic(&entry, DBUS_TYPE_STRING, &key))
+		return FALSE;
+	if (!dbus_message_iter_open_container(&entry, DBUS_TYPE_VARIANT,
+					      type_string, &variant))
+		return FALSE;
+	if (!dbus_message_iter_append_basic(&variant, type, value))
+		return FALSE;
+	if (!dbus_message_iter_close_container(&entry, &variant))
+		return FALSE;
+	if (!dbus_message_iter_close_container(iter, &entry))
+		return FALSE;
+
+	return TRUE;
+}
+
+/* Appends the information about a node to the dbus message. Returns
+ * false if not enough memory. */
+static dbus_bool_t append_node_dict(DBusMessageIter *iter,
+				    const struct cras_iodev_info *dev,
+				    const struct cras_ionode_info *node)
+{
+	DBusMessageIter dict;
+	dbus_uint64_t id;
+	const char *dev_name = dev->name;
+	const char *node_name = node->name;
+	dbus_bool_t active;
+
+	id = node->iodev_idx;
+	id = (id << 32) | node->ionode_idx;
+	active = !!node->active;
+
+	if (!dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "{sv}",
+					      &dict))
+		return FALSE;
+	if (!append_key_value(&dict, "Id", DBUS_TYPE_UINT64,
+			      DBUS_TYPE_UINT64_AS_STRING, &id))
+		return FALSE;
+	if (!append_key_value(&dict, "DeviceName", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &dev_name))
+		return FALSE;
+	if (!append_key_value(&dict, "Name", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &node_name))
+		return FALSE;
+	if (!append_key_value(&dict, "Active", DBUS_TYPE_BOOLEAN,
+			      DBUS_TYPE_BOOLEAN_AS_STRING, &active))
+		return FALSE;
+	if (!dbus_message_iter_close_container(iter, &dict))
+		return FALSE;
+
+	return TRUE;
+}
+
+static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
+					  DBusMessage *message,
+					  void *arg)
+{
+	int rc;
+	uint8_t direction;
+	const struct cras_iodev_info *devs;
+	const struct cras_ionode_info *nodes;
+	int ndevs, nnodes;
+	DBusMessage *reply;
+	DBusMessageIter array;
+	dbus_uint32_t serial = 0;
+	int i, j;
+
+	rc = get_single_arg(message, DBUS_TYPE_BYTE, &direction);
+	if (rc)
+		return rc;
+
+	if (direction) {
+		ndevs = cras_system_state_get_input_devs(&devs);
+		nnodes = cras_system_state_get_input_nodes(&nodes);
+	} else {
+		ndevs = cras_system_state_get_output_devs(&devs);
+		nnodes = cras_system_state_get_output_nodes(&nodes);
+	}
+
+	reply = dbus_message_new_method_return(message);
+
+	dbus_message_iter_init_append(reply, &array);
+	for (i = 0; i < nnodes; i++) {
+		/* Don't reply unplugged nodes. */
+		if (!nodes[i].plugged)
+			continue;
+		/* Find the device for this node. */
+		for (j = 0; j < ndevs; j++)
+			if (devs[j].idx == nodes[i].iodev_idx)
+				break;
+		if (j == ndevs)
+			continue;
+		/* Send information about this node. */
+		if (!append_node_dict(&array, &devs[j], &nodes[i]))
+			return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	}
+	dbus_connection_send(dbus_control.conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message,
@@ -247,6 +371,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_NAME,
 					       "GetSystemVolumeState")) {
 		return handle_get_system_volume_state(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_NAME,
+					       "GetNodes")) {
+		return handle_get_nodes(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

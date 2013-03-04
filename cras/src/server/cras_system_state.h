@@ -264,6 +264,38 @@ unsigned cras_system_state_get_active_streams();
  */
 void cras_system_state_get_last_stream_active_time(struct timespec *ts);
 
+/* Returns output devices information.
+ * Args:
+ *    devs - returns the array of output devices information.
+ * Returns:
+ *    number of output devices.
+ */
+int cras_system_state_get_output_devs(const struct cras_iodev_info **devs);
+
+/* Returns input devices information.
+ * Args:
+ *    devs - returns the array of input devices information.
+ * Returns:
+ *    number of input devices.
+ */
+int cras_system_state_get_input_devs(const struct cras_iodev_info **devs);
+
+/* Returns output nodes information.
+ * Args:
+ *    nodes - returns the array of output nodes information.
+ * Returns:
+ *    number of output nodes.
+ */
+int cras_system_state_get_output_nodes(const struct cras_ionode_info **nodes);
+
+/* Returns input nodes information.
+ * Args:
+ *    nodes - returns the array of input nodes information.
+ * Returns:
+ *    number of input nodes.
+ */
+int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes);
+
 /* Returns a pointer to the current system state that is shared with clients.
  * This also 'locks' the structure by incrementing the update count to an odd
  * value.
