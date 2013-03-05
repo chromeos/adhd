@@ -30,6 +30,32 @@ static struct cras_iodev *default_input;
 /* Keep a constantly increasing index for iodevs. */
 static uint32_t next_iodev_idx;
 
+static struct cras_iodev *find_dev(size_t dev_index)
+{
+	struct cras_iodev *dev;
+
+	DL_FOREACH(outputs.iodevs, dev)
+		if (dev->info.idx == dev_index)
+			return dev;
+
+	DL_FOREACH(inputs.iodevs, dev)
+		if (dev->info.idx == dev_index)
+			return dev;
+
+	return NULL;
+}
+
+static struct cras_ionode *find_node(struct cras_iodev *dev, size_t node_index)
+{
+	struct cras_ionode *node;
+
+	DL_FOREACH(dev->nodes, node)
+		if (node->idx == node_index)
+			return node;
+
+	return NULL;
+}
+
 /* Checks if device a is higher priority than b. */
 static int dev_is_higher_prio(const struct cras_iodev *a,
 			      const struct cras_iodev *b)
@@ -437,24 +463,14 @@ int cras_iodev_list_set_node_attr(uint32_t dev_index, uint32_t node_index,
 	struct cras_iodev *dev;
 	struct cras_ionode *node;
 
-	DL_FOREACH(outputs.iodevs, dev)
-		if (dev->info.idx == dev_index)
-			goto found_dev;
+	dev = find_dev(dev_index);
+	if (!dev)
+		return -EINVAL;
 
-	DL_FOREACH(inputs.iodevs, dev)
-		if (dev->info.idx == dev_index)
-			goto found_dev;
+	node = find_node(dev, node_index);
+	if (!node)
+		return -EINVAL;
 
-	return -EINVAL;
-
-found_dev:
-	DL_FOREACH(dev->nodes, node)
-		if (node->idx == node_index)
-			goto found_node;
-
-	return -EINVAL;
-
-found_node:
 	return cras_iodev_set_node_attr(node, attr, value);
 }
 
