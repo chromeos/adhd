@@ -222,6 +222,8 @@ void cras_iodev_config_params(struct cras_iodev *iodev,
  */
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 {
+	int select_a, select_b;
+
 	if (a && !b)
 		return 1;
 	if (!a && b)
@@ -232,9 +234,12 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 	if (a->plugged < b->plugged)
 		return 0;
 
-	if (a->selected > b->selected)
+	select_a = cras_iodev_list_node_selected(a);
+	select_b = cras_iodev_list_node_selected(b);
+
+	if (select_a > select_b)
 		return 1;
-	if (a->selected < b->selected)
+	if (select_a < select_b)
 		return 0;
 
 	if (a->priority > b->priority)
@@ -265,25 +270,11 @@ static void plug_node(struct cras_ionode *node, int plugged)
 	iodev->update_active_node(iodev);
 }
 
-/* This is called when a node is selected/unselected */
-static void select_node(struct cras_ionode *node, int selected)
-{
-	struct cras_iodev *iodev = node->dev;
-
-	if (node->selected == selected)
-		return;
-	node->selected = selected;
-	iodev->update_active_node(iodev);
-}
-
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
 	if (attr == IONODE_ATTR_PLUGGED) {
 		plug_node(ionode, value);
-		return 0;
-	} else if (attr == IONODE_ATTR_SELECTED) {
-		select_node(ionode, value);
 		return 0;
 	}
 

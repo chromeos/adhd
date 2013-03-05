@@ -15,6 +15,7 @@
 
 struct cras_iodev;
 struct cras_iodev_info;
+struct cras_ionode;
 struct cras_rclient;
 struct cras_rstream;
 struct cras_audio_format;
@@ -144,8 +145,11 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
 int cras_iodev_list_set_node_attr(cras_node_id_t id,
 				  enum ionode_attr attr, int value);
 
-/* Clear the selected flag for all nodes of the given direction. This
- * should be called whenever a node is plugged in.
+/* Returns 1 if the node is selected, 0 otherwise. */
+int cras_iodev_list_node_selected(struct cras_ionode *node);
+
+/* Clear the selection for the given direction. This should be called whenever
+ * a node is plugged in.
  * Args:
  *    direction - Playback or capture.
  */

@@ -13,6 +13,7 @@ extern "C" {
 
 static int clear_selection_called;
 static enum CRAS_STREAM_DIRECTION clear_selection_direction;
+static struct cras_ionode *node_selected;
 
 void ResetStubData() {
   clear_selection_called = 0;
@@ -259,8 +260,7 @@ TEST(IoNodeBetter, Plugged) {
   a.plugged = 0;
   b.plugged = 1;
 
-  a.selected = 1;
-  b.selected = 0;
+  node_selected = &a;
 
   a.plugged_time.tv_sec = 0;
   a.plugged_time.tv_usec = 1;
@@ -281,8 +281,7 @@ TEST(IoNodeBetter, Selected) {
   a.plugged = 1;
   b.plugged = 1;
 
-  a.selected = 0;
-  b.selected = 1;
+  node_selected = &b;
 
   a.priority = 1;
   b.priority = 0;
@@ -303,8 +302,7 @@ TEST(IoNodeBetter, Priority) {
   a.plugged = 1;
   b.plugged = 1;
 
-  a.selected = 1;
-  b.selected = 1;
+  node_selected = NULL;
 
   a.priority = 0;
   b.priority = 1;
@@ -326,8 +324,7 @@ TEST(IoNodeBetter, RecentlyPlugged) {
   a.plugged = 1;
   b.plugged = 1;
 
-  a.selected = 0;
-  b.selected = 0;
+  node_selected = NULL;
 
   a.priority = 1;
   b.priority = 1;
@@ -409,6 +406,11 @@ void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
 int audio_thread_post_message(struct audio_thread *thread,
                               struct audio_thread_msg *msg) {
   return 0;
+}
+
+int cras_iodev_list_node_selected(struct cras_ionode *node)
+{
+  return node == node_selected;
 }
 
 void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
