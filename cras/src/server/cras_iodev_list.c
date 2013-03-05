@@ -28,7 +28,7 @@ static struct iodev_list inputs;
 static struct cras_iodev *default_output;
 static struct cras_iodev *default_input;
 /* Keep a constantly increasing index for iodevs. */
-static size_t next_iodev_idx;
+static uint32_t next_iodev_idx;
 
 /* Checks if device a is higher priority than b. */
 static int dev_is_higher_prio(const struct cras_iodev *a,
@@ -64,7 +64,7 @@ static int add_dev_to_list(struct iodev_list *list,
 			   struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp, *new_default;
-	size_t new_idx;
+	uint32_t new_idx;
 
 	DL_FOREACH(list->iodevs, tmp)
 		if (tmp == dev)
@@ -85,7 +85,7 @@ static int add_dev_to_list(struct iodev_list *list,
 	next_iodev_idx = new_idx + 1;
 	list->size++;
 
-	syslog(LOG_INFO, "Adding %s dev at index %zu.",
+	syslog(LOG_INFO, "Adding %s dev at index %u.",
 	       dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
 	       dev->info.idx);
 	DL_PREPEND(list->iodevs, dev);
@@ -350,7 +350,7 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out)
 	return get_dev_list(&inputs, list_out);
 }
 
-int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index)
+int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index)
 {
 	struct cras_iodev *curr_dev, *new_dev;
 
@@ -396,7 +396,7 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 	if (!to_switch || to_switch == curr_default)
 		return 0;
 
-	syslog(LOG_DEBUG, "Route to %zu by default", to_switch->info.idx);
+	syslog(LOG_DEBUG, "Route to %u by default", to_switch->info.idx);
 
 	/* There is an iodev and it isn't the default, switch to it. */
 	return cras_iodev_move_stream_type(type, to_switch->info.idx);
@@ -431,7 +431,7 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
 	return iodev->thread;
 }
 
-int cras_iodev_list_set_node_attr(int dev_index, int node_index,
+int cras_iodev_list_set_node_attr(uint32_t dev_index, uint32_t node_index,
 				  enum ionode_attr attr, int value)
 {
 	struct cras_iodev *dev;

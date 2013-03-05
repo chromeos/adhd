@@ -36,7 +36,7 @@ struct cras_iodev;
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
-	int idx;
+	uint32_t idx;
 	int plugged;
 	struct timeval plugged_time;
 	int selected;

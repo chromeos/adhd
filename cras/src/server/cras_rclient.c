@@ -254,7 +254,7 @@ static int handle_switch_stream_type_iodev(
 		struct cras_rclient *client,
 		const struct cras_switch_stream_type_iodev *msg)
 {
-	syslog(LOG_DEBUG, "move stream type %d to iodev %zu\n",
+	syslog(LOG_DEBUG, "move stream type %d to iodev %u\n",
 	       msg->stream_type, msg->iodev_idx);
 	return cras_iodev_move_stream_type(msg->stream_type, msg->iodev_idx);
 }

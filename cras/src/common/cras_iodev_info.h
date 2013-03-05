@@ -17,7 +17,7 @@
  *    name - Name displayed to the user.
  */
 struct cras_iodev_info {
-	size_t idx;
+	uint32_t idx;
 	char name[CRAS_IODEV_NAME_BUFFER_SIZE];
 };
 
@@ -32,8 +32,8 @@ struct cras_iodev_info {
  *    name - Name displayed to the user.
  */
 struct cras_ionode_info {
-	size_t iodev_idx;
-	size_t ionode_idx;
+	uint32_t iodev_idx;
+	uint32_t ionode_idx;
 	size_t priority;
 	int plugged;
 	struct timeval plugged_time;

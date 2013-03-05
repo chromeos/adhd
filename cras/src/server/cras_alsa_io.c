@@ -76,8 +76,8 @@ struct alsa_input_node {
 struct alsa_io {
 	struct cras_iodev base;
 	char *dev;
-	size_t device_index;
-	size_t next_ionode_index;
+	uint32_t device_index;
+	uint32_t next_ionode_index;
 	enum CRAS_ALSA_CARD_TYPE card_type;
 	int is_first;
 	snd_pcm_t *handle;

@@ -54,6 +54,27 @@ struct cras_attached_client_info {
 	gid_t gid;
 };
 
+/* Each ionode has a unique id. The top 32 bits are the device index, lower 32
+ * are the node index. */
+typedef uint64_t cras_node_id_t;
+
+static inline cras_node_id_t cras_make_node_id(uint32_t dev_index,
+					       uint32_t node_index)
+{
+	cras_node_id_t id = dev_index;
+	return (id << 32) | node_index;
+}
+
+static inline uint32_t dev_index_of(cras_node_id_t id)
+{
+	return (uint32_t) (id >> 32);
+}
+
+static inline uint32_t node_index_of(cras_node_id_t id)
+{
+	return (uint32_t) id;
+}
+
 #define CRAS_MAX_IODEVS 20
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20

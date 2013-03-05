@@ -116,11 +116,11 @@ static inline void cras_fill_disconnect_stream_message(
 struct cras_switch_stream_type_iodev {
 	struct cras_server_message header;
 	enum CRAS_STREAM_TYPE stream_type;
-	size_t iodev_idx;
+	uint32_t iodev_idx;
 };
 static inline void fill_cras_switch_stream_type_iodev(
 		struct cras_switch_stream_type_iodev *m,
-		enum CRAS_STREAM_TYPE stream_type, size_t iodev_idx)
+		enum CRAS_STREAM_TYPE stream_type, uint32_t iodev_idx)
 {
 	m->stream_type = stream_type;
 	m->iodev_idx = iodev_idx;

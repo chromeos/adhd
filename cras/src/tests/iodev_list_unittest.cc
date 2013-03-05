@@ -401,7 +401,7 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   if (rc == 2) {
     found_mask = 0;
     for (i = 0; i < rc; i++) {
-      size_t idx = dev_info[i].idx;
+      uint32_t idx = dev_info[i].idx;
       EXPECT_EQ(0, (found_mask & (1 << idx)));
       found_mask |= (1 << idx);
     }

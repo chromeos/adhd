@@ -145,7 +145,7 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 
 	printf("\tID\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("\t%zu\t%s\n", devs[i].idx, devs[i].name);
+		printf("\t%u\t%s\n", devs[i].idx, devs[i].name);
 }
 
 static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)
@@ -154,7 +154,7 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)
 
 	printf("\tID\tPriority\tPlugged\t\tTime\t\t  Name\n");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%zu:%zu\t%zu\t\t%s\t%12ld\t\t%c%c%s\n",
+		printf("\t%u:%u\t%zu\t\t%s\t%12ld\t\t%c%c%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       nodes[i].priority,
@@ -583,7 +583,7 @@ int main(int argc, char **argv)
 	size_t buffer_size = PLAYBACK_BUFFER_SIZE;
 	size_t cb_threshold = PLAYBACK_CB_THRESHOLD;
 	size_t rate = 48000;
-	size_t iodev_index = 0;
+	uint32_t iodev_index = 0;
 	int set_iodev = 0;
 	size_t num_channels = 2;
 	size_t duration_seconds = 0;

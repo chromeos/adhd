@@ -321,7 +321,7 @@ int cras_client_set_stream_volume(struct cras_client *client,
  */
 int cras_client_switch_iodev(struct cras_client *client,
 			     enum CRAS_STREAM_TYPE stream_type,
-			     int iodev);
+			     uint32_t iodev);
 
 /*
  * System level functions.

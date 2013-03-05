@@ -107,7 +107,7 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out);
  *    type - The stream type to move.
  *    index - The index of the output to move to.
  */
-int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, size_t index);
+int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index);
 
 /* Moves all streams of type to the top priority device.  The top priority
  * device is the device that has had a jack plugged more recently or is last
@@ -142,7 +142,7 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
  *    attr - the attribute we want to change.
  *    value - the value we want to set.
  */
-int cras_iodev_list_set_node_attr(int dev_index, int node_index,
+int cras_iodev_list_set_node_attr(uint32_t dev_index, uint32_t node_index,
 				  enum ionode_attr attr, int value);
 
 /* Clear the selected flag for all nodes of the given direction. This
