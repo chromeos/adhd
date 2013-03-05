@@ -561,6 +561,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 		syslog(LOG_ERR, "Out of memory when listing outputs.");
 		return;
 	}
+	output->base.dev = &aio->base;
 	output->base.idx = aio->next_ionode_index++;
 	output->mixer_output = cras_output;
 	name = get_output_node_name(aio, cras_output);
@@ -580,6 +581,7 @@ static void new_input(struct alsa_io *aio)
 		syslog(LOG_ERR, "Out of memory when listing inputs.");
 		return;
 	}
+	input->base.dev = &aio->base;
 	input->base.idx = aio->next_ionode_index++;
 	name = get_input_node_name(aio);
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
@@ -669,6 +671,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		node->base.dev = &aio->base;
 		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
@@ -703,6 +706,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR, "Out of memory creating jack node.");
 			return;
 		}
+		node->base.dev = &aio->base;
 		node->base.idx = aio->next_ionode_index++;
 		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack = jack;
