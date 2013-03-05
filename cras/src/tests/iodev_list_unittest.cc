@@ -830,8 +830,7 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
   return 0;
 }
 
-int cras_iodev_set_node_attr(struct cras_iodev *iodev,
-			     struct cras_ionode *ionode,
+int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
   set_node_attr_called++;

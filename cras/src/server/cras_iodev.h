@@ -231,13 +231,11 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b);
 
 /* Sets an attribute of an ionode on a device.
  * Args:
- *    iodev - device which the ionode is on.
  *    ionode - ionode whose attribute we want to change.
  *    attr - the attribute we want to change.
  *    value - the value we want to set.
  */
-int cras_iodev_set_node_attr(struct cras_iodev *iodev,
-			     struct cras_ionode *ionode,
+int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value);
 
 /* Find the node with highest priority that is plugged in. */

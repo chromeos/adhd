@@ -683,8 +683,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
-	cras_iodev_set_node_attr(&aio->base, &node->base,
-				 IONODE_ATTR_PLUGGED, plugged);
+	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
 }
 
 /* Callback that is called when an input jack is plugged or unplugged. */
@@ -717,8 +716,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
-	cras_iodev_set_node_attr(&aio->base, &node->base,
-				 IONODE_ATTR_PLUGGED, plugged);
+	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
 }
 
 /* Sets the name of the given iodev, using the name and index of the card
@@ -886,7 +884,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Set plugged for the first USB device per card when it appears. */
 	if (card_type == ALSA_CARD_TYPE_USB && is_first)
-		cras_iodev_set_node_attr(iodev, iodev->active_node,
+		cras_iodev_set_node_attr(iodev->active_node,
 					 IONODE_ATTR_PLUGGED, 1);
 
 	return &aio->base;

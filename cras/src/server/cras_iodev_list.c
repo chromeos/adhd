@@ -455,7 +455,7 @@ found_dev:
 	return -EINVAL;
 
 found_node:
-	return cras_iodev_set_node_attr(dev, node, attr, value);
+	return cras_iodev_set_node_attr(node, attr, value);
 }
 
 void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
@@ -468,7 +468,7 @@ void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
 	DL_FOREACH(list->iodevs, dev)
 		DL_FOREACH(dev->nodes, node)
 			if (node->selected)
-				cras_iodev_set_node_attr(dev, node,
+				cras_iodev_set_node_attr(node,
 							 IONODE_ATTR_SELECTED,
 							 0);
 }

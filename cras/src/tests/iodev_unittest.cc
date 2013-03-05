@@ -349,10 +349,11 @@ TEST(IoNodePlug, ClearSelection) {
   struct cras_iodev iodev;
   struct cras_ionode ionode;
 
+  ionode.dev = &iodev;
   iodev.direction = CRAS_STREAM_INPUT;
   iodev.update_active_node = update_active_node;
   ResetStubData();
-  cras_iodev_set_node_attr(&iodev, &ionode, IONODE_ATTR_PLUGGED, 1);
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 1);
 
   EXPECT_EQ(1, clear_selection_called);
   EXPECT_EQ(CRAS_STREAM_INPUT, clear_selection_direction);

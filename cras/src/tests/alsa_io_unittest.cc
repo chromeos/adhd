@@ -1156,8 +1156,7 @@ void cras_iodev_update_dsp(struct cras_iodev *iodev)
   cras_iodev_update_dsp_name = iodev->dsp_name;
 }
 
-int cras_iodev_set_node_attr(struct cras_iodev *iodev,
-			     struct cras_ionode *ionode,
+int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
   cras_iodev_set_node_attr_called++;
