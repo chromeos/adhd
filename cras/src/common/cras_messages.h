@@ -197,21 +197,18 @@ static inline void cras_fill_set_system_capture_mute_locked(
 /* Set an attribute of an ionode. */
 struct cras_set_node_attr {
 	struct cras_server_message header;
-	int dev_index;
-	int node_index;
+	cras_node_id_t node_id;
 	enum ionode_attr attr;
 	int value;
 };
 static inline void cras_fill_set_node_attr(
 		struct cras_set_node_attr *m,
-		int dev_index,
-		int node_index,
+		cras_node_id_t node_id,
 		enum ionode_attr attr,
 		int value)
 {
 	m->header.id = CRAS_SERVER_SET_NODE_ATTR;
-	m->dev_index = dev_index;
-	m->node_index = node_index;
+	m->node_id = node_id;
 	m->attr = attr;
 	m->value = value;
 	m->header.length = sizeof(*m);

@@ -713,7 +713,8 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
   cras_iodev_list_init();
 
   // The list is empty now.
-  rc = cras_iodev_list_set_node_attr(0, 0, IONODE_ATTR_PLUGGED, 1);
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(0, 0),
+                                     IONODE_ATTR_PLUGGED, 1);
   EXPECT_LE(rc, 0);
   EXPECT_EQ(0, set_node_attr_called);
 
@@ -725,17 +726,20 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
   node2.idx = 2;
 
   // Mismatch id
-  rc = cras_iodev_list_set_node_attr(d2_.info.idx, 1, IONODE_ATTR_PLUGGED, 1);
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d2_.info.idx, 1),
+                                     IONODE_ATTR_PLUGGED, 1);
   EXPECT_LT(rc, 0);
   EXPECT_EQ(0, set_node_attr_called);
 
   // Mismatch id
-  rc = cras_iodev_list_set_node_attr(d1_.info.idx, 2, IONODE_ATTR_PLUGGED, 1);
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 2),
+                                     IONODE_ATTR_PLUGGED, 1);
   EXPECT_LT(rc, 0);
   EXPECT_EQ(0, set_node_attr_called);
 
   // Correct device id and node id
-  rc = cras_iodev_list_set_node_attr(d1_.info.idx, 1, IONODE_ATTR_PLUGGED, 1);
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                     IONODE_ATTR_PLUGGED, 1);
   EXPECT_EQ(rc, 0);
   EXPECT_EQ(1, set_node_attr_called);
 }

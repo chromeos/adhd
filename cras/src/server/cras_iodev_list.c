@@ -45,9 +45,18 @@ static struct cras_iodev *find_dev(size_t dev_index)
 	return NULL;
 }
 
-static struct cras_ionode *find_node(struct cras_iodev *dev, size_t node_index)
+static struct cras_ionode *find_node(cras_node_id_t id)
 {
+	struct cras_iodev *dev;
 	struct cras_ionode *node;
+	uint32_t dev_index, node_index;
+
+	dev_index = dev_index_of(id);
+	node_index = node_index_of(id);
+
+	dev = find_dev(dev_index);
+	if (!dev)
+		return NULL;
 
 	DL_FOREACH(dev->nodes, node)
 		if (node->idx == node_index)
@@ -457,17 +466,12 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
 	return iodev->thread;
 }
 
-int cras_iodev_list_set_node_attr(uint32_t dev_index, uint32_t node_index,
+int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
 				  enum ionode_attr attr, int value)
 {
-	struct cras_iodev *dev;
 	struct cras_ionode *node;
 
-	dev = find_dev(dev_index);
-	if (!dev)
-		return -EINVAL;
-
-	node = find_node(dev, node_index);
+	node = find_node(node_id);
 	if (!node)
 		return -EINVAL;
 

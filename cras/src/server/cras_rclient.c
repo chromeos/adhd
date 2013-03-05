@@ -357,8 +357,7 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_SET_NODE_ATTR: {
 		const struct cras_set_node_attr *m =
 			(const struct cras_set_node_attr *)msg;
-		cras_iodev_list_set_node_attr(m->dev_index, m->node_index,
-					      m->attr, m->value);
+		cras_iodev_list_set_node_attr(m->node_id, m->attr, m->value);
 		break;
 	}
 	case CRAS_SERVER_RELOAD_DSP:

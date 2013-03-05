@@ -691,10 +691,11 @@ int main(int argc, char **argv)
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
 			int value = atoi(strtok(NULL, ":")) ;
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
 			enum ionode_attr attr = (c == 'x') ?
 				IONODE_ATTR_PLUGGED : IONODE_ATTR_SELECTED;
-			cras_client_set_node_attr(client, dev_index, node_index,
-						  attr, value);
+			cras_client_set_node_attr(client, id, attr, value);
 			break;
 		}
 		default:

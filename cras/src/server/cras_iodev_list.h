@@ -136,13 +136,12 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
 
 /* Sets an attribute of an ionode on a device.
  * Args:
- *    dev_index - Index of the device. It is the idx field in
- *        struct cras_iodev_info.
+ *    id - the id of the ionode.
  *    node_index - Index of the ionode on the device.
  *    attr - the attribute we want to change.
  *    value - the value we want to set.
  */
-int cras_iodev_list_set_node_attr(uint32_t dev_index, uint32_t node_index,
+int cras_iodev_list_set_node_attr(cras_node_id_t id,
 				  enum ionode_attr attr, int value);
 
 /* Clear the selected flag for all nodes of the given direction. This

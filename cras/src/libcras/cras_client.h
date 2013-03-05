@@ -184,17 +184,12 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
 /* Sets an attribute of an ionode on a device.
  * Args:
  *    client - The client from cras_client_create.
- *    dev_index - Index of the device. It is the iodev_idx field in
- *        struct cras_ionode_info. (Also the idx field in the corresponding
- *        struct cras_iodev_info.)
- *    node_index - Index of the node. It is the inode_idx field in
- *        struct cras_ionode_info.
+ *    node_id - The id of the ionode.
  *    attr - the attribute we want to change.
  *    value - the value we want to set.
  */
 int cras_client_set_node_attr(struct cras_client *client,
-			      int dev_index,
-			      int node_index,
+			      cras_node_id_t node_id,
 			      enum ionode_attr attr,
 			      int value);
 

@@ -1942,15 +1942,16 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
 	return node_info.plugged;
 }
 
-int cras_client_set_node_attr(struct cras_client *client, int dev_index,
-			      int node_index, enum ionode_attr attr, int value)
+int cras_client_set_node_attr(struct cras_client *client,
+			      cras_node_id_t node_id,
+			      enum ionode_attr attr, int value)
 {
 	struct cras_set_node_attr msg;
 
 	if (client == NULL)
 		return -EINVAL;
 
-	cras_fill_set_node_attr(&msg, dev_index, node_index, attr, value);
+	cras_fill_set_node_attr(&msg, node_id, attr, value);
 	return write_message_to_server(client, &msg.header);
 }
 
