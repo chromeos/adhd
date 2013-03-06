@@ -24,6 +24,15 @@ AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 AC_ARG_ENABLE([alsa-plugin], AS_HELP_STRING([--disable-alsa-plugin],
                                             [Disable building of ALSA plugin]))
 
+AC_ARG_ENABLE(chromeos-metrics,
+	AC_HELP_STRING([--enable-chromeos-metrics], [Use ChromeOS metrics lib]),
+	[if test "${enable_chromeos_metrics}" = "yes" ; then
+		AC_DEFINE(_WITH_CHROMEOS_METRICS)
+		METRICS_LIB="-lmetrics"
+		AC_SUBST(METRICS_LIB)
+	fi],
+	)
+
 # Determine ALSA plugin directory.
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 test "x$exec_prefix" = xNONE && exec_prefix=$prefix

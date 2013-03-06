@@ -24,8 +24,10 @@
 #include "cras_dbus_control.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
+#include "cras_metrics.h"
 #include "cras_rclient.h"
 #include "cras_server.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_udev.h"
@@ -279,7 +281,7 @@ static void cleanup_select_fds(void *server_data)
 void check_output_exists(struct cras_timer *t, void *data)
 {
 	if (cras_iodev_list_get_outputs(NULL) < 2)
-		syslog(LOG_ERR, "Only empty output device present.");
+		cras_metrics_log_action(kNoCodecsFoundMetric);
 }
 
 /*
