@@ -100,6 +100,8 @@ static inline uint32_t node_index_of(cras_node_id_t id)
  *    num_input_nodes - Number of available input nodes.
  *    output_nodes - Output nodes currently attached.
  *    input_nodes - Input nodes currently attached.
+ *    selected_input - The input node currently selected. 0 if none selected.
+ *    selected_output - The output node currently selected. 0 if none selected.
  *    num_attached_clients - Number of clients attached to server.
  *    client_info - List of first 20 attached clients.
  *    update_count - Incremented twice each time the struct is updated.  Odd
@@ -131,6 +133,8 @@ struct cras_server_state {
 	unsigned num_input_nodes;
 	struct cras_ionode_info output_nodes[CRAS_MAX_IONODES];
 	struct cras_ionode_info input_nodes[CRAS_MAX_IONODES];
+	cras_node_id_t selected_input;
+	cras_node_id_t selected_output;
 	unsigned num_attached_clients;
 	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
 	unsigned update_count;

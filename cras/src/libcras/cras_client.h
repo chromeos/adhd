@@ -468,6 +468,25 @@ long cras_client_get_system_max_capture_gain(struct cras_client *client);
 unsigned cras_client_get_num_active_streams(struct cras_client *client,
 					    struct timespec *ts);
 
+/* Gets the id of the output node currently selected
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The id of the output node currently selected. It is 0 if no output node
+ *    is selected.
+ */
+cras_node_id_t cras_client_get_selected_output(struct cras_client *client);
+
+/* Gets the id of the input node currently selected
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    The id of the input node currently selected. It is 0 if no input node
+ *    is selected.
+ */
+cras_node_id_t cras_client_get_selected_input(struct cras_client *client);
+
+
 /*
  * Utility functions.
  */

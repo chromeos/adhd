@@ -461,6 +461,8 @@ void cras_iodev_list_update_clients()
 	state->num_input_nodes = fill_node_list(&inputs,
 						&state->input_nodes[0],
 						CRAS_MAX_IONODES);
+	state->selected_output = selected_output;
+	state->selected_input = selected_input;
 
 	cras_system_state_update_complete();
 }
