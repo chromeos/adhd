@@ -934,9 +934,15 @@ static void alsa_iodev_unmute_node(struct alsa_io *aio,
 
 static void enable_jack_ucm(struct alsa_io *aio, int plugged)
 {
-	struct alsa_output_node *active = get_active_output(aio);
-	if (active)
-		cras_alsa_jack_enable_ucm(active->jack, plugged);
+	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+		struct alsa_output_node *active = get_active_output(aio);
+		if (active)
+			cras_alsa_jack_enable_ucm(active->jack, plugged);
+	} else {
+		struct alsa_input_node *active = get_active_input(aio);
+		if (active)
+			cras_alsa_jack_enable_ucm(active->jack, plugged);
+	}
 }
 
 int alsa_iodev_set_active_node(struct cras_iodev *iodev,
