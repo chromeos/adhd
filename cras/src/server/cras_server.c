@@ -274,12 +274,22 @@ static void cleanup_select_fds(void *server_data)
 		}
 }
 
+/* Checks that at least two outputs are present (one will be the "empty"
+ * default device. */
+void check_output_exists(struct cras_timer *t, void *data)
+{
+	if (cras_iodev_list_get_outputs(NULL) < 2)
+		syslog(LOG_ERR, "Only empty output device present.");
+}
+
 /*
  * Exported Interface.
  */
 
 int cras_server_run()
 {
+	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
+
 	DBusConnection *dbus_conn;
 	int socket_fd = -1;
 	int max_poll_fd;
@@ -359,6 +369,9 @@ int cras_server_run()
 		rc = -ENOMEM;
 		goto bail;
 	}
+
+	/* After a delay, make sure there is at least one real output device. */
+	cras_tm_create_timer(tm, OUTPUT_CHECK_MS, check_output_exists, 0);
 
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {
