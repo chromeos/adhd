@@ -453,8 +453,31 @@ static int has_node(struct alsa_io *aio, const char *name)
 	return 0;
 }
 
-/* Sets the initial plugged state and priority of a node based on its name */
-static void set_node_initial_state(struct cras_ionode *node)
+/* Returns true if string s ends with the given suffix */
+int endswith(const char *s, const char *suffix)
+{
+	size_t n = strlen(s);
+	size_t m = strlen(suffix);
+	return n >= m && !strcmp(s + (n - m), suffix);
+}
+
+/* Sets the initial plugged state and priority of a node based on its
+ * name. From the highest priority to the lowest priority:
+ *
+ * Priority 3 -- USB headset, external headphone, external microphone. This has
+ * the highest priority because it must be plugged intentionally by the user.
+ *
+ * Priority 2 -- HDMI/Display Port. This has lower priority because the user may
+ * just want to output the video through the HDMI/DP connection.
+ *
+ * Priority 1 -- Internal speaker and microphone. This is used whenever there
+ * are no external nodes plugged.
+ *
+ * Priority 0 -- This is added only when there are no other nodes found for a
+ * device.
+ */
+static void set_node_initial_state(struct cras_ionode *node,
+				   enum CRAS_ALSA_CARD_TYPE card_type)
 {
 	static const struct {
 		const char *name;
@@ -472,13 +495,30 @@ static void set_node_initial_state(struct cras_ionode *node)
 	};
 	unsigned i;
 
+	/* Go through the known names */
 	for (i = 0; i < ARRAY_SIZE(prios); i++)
 		if (!strncmp(node->name, prios[i].name,
 			     strlen(prios[i].name))) {
 			node->priority = prios[i].priority;
 			node->plugged = prios[i].initial_plugged;
+			if (node->plugged)
+				gettimeofday(&node->plugged_time, NULL);
 			break;
 		}
+
+	/* If we didn't find a matching name above, but the node is a jack node,
+	 * give it a high priority. This matches node names like "DAISY-I2S Mic
+	 * Jack" */
+	if (i == ARRAY_SIZE(prios)) {
+		if (endswith(node->name, "Jack"))
+			node->priority = 3;
+	}
+
+	/* Regardless of the node name of a USB headset (it can be "Speaker"),
+	 * we want to give it a high priority, the same as external 3.5mm
+	 * Headphone/Mic. */
+	if (card_type == ALSA_CARD_TYPE_USB)
+		node->priority = 3;
 }
 
 static const char *get_output_node_name(struct alsa_io *aio,
@@ -525,7 +565,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	output->mixer_output = cras_output;
 	name = get_output_node_name(aio, cras_output);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
-	set_node_initial_state(&output->base);
+	set_node_initial_state(&output->base, aio->card_type);
 
 	DL_APPEND(aio->base.nodes, &output->base);
 }
@@ -543,7 +583,7 @@ static void new_input(struct alsa_io *aio)
 	input->base.idx = aio->next_ionode_index++;
 	name = get_input_node_name(aio);
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
-	set_node_initial_state(&input->base);
+	set_node_initial_state(&input->base, aio->card_type);
 
 	DL_APPEND(aio->base.nodes, &input->base);
 }
@@ -636,7 +676,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		node->jack = jack;
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
-		set_node_initial_state(&node->base);
+		set_node_initial_state(&node->base, aio->card_type);
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 
@@ -669,7 +709,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
-		set_node_initial_state(&node->base);
+		set_node_initial_state(&node->base, aio->card_type);
 		DL_APPEND(aio->base.nodes, &node->base);
 	}
 

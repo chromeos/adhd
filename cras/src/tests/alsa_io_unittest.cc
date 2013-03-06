@@ -608,6 +608,93 @@ TEST(AlsaOutputNode, TwoOutputs) {
   free(fake_curve);
 }
 
+TEST(AlsaInitNode, SetNodeInitialState) {
+  struct cras_ionode node;
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Unknown");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(0, node.priority);
+  ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(0, node.plugged_time.tv_sec);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Speaker");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(1, node.priority);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_GT(node.plugged_time.tv_sec, 0);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Internal Mic");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(1, node.priority);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_GT(node.plugged_time.tv_sec, 0);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "HDMI");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(2, node.priority);
+  ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(0, node.plugged_time.tv_sec);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "IEC958");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(2, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "HDMI Jack");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(2, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Headphone");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Headphone Jack");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Mic");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Mic Jack");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Unknown");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "DAISY-I2S Mic Jack");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(0, node.plugged);
+
+  memset(&node, 0, sizeof(node));
+  strcpy(node.name, "Speaker");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
+  ASSERT_EQ(3, node.priority);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_GT(node.plugged_time.tv_sec, 0);
+}
+
 //  Test thread add/rm stream, open_alsa, and iodev config.
 class AlsaVolumeMuteSuite : public testing::Test {
   protected:
