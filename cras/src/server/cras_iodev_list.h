@@ -82,19 +82,21 @@ int cras_iodev_list_rm_output(struct cras_iodev *output);
  */
 int cras_iodev_list_rm_input(struct cras_iodev *input);
 
-/* Gets a list of outputs. Callee must free the list when finished.
+/* Gets a list of outputs. Callee must free the list when finished.  If list_out
+ * is NULL, this function can be used to return the number of outputs.
  * Args:
  *    list_out - This will be set to the malloc'd area containing the list of
- *        devices.
+ *        devices.  Ignored if NULL.
  * Returns:
  *    The number of devices on the list.
  */
 int cras_iodev_list_get_outputs(struct cras_iodev_info **list_out);
 
-/* Gets a list of inputs. Callee must free the list when finished.
+/* Gets a list of inputs. Callee must free the list when finished.  If list_out
+ * is NULL, this function can be used to return the number of inputs.
  * Args:
  *    list_out - This will be set to the malloc'd area containing the list of
- *        devices.
+ *        devices.  Ignored if NULL.
  * Returns:
  *    The number of devices on the list.
  */

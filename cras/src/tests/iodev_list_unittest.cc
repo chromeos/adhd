@@ -225,6 +225,9 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   // Should be 1 dev now.
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(1, rc);
+  // Passing null should return the number of outputs.
+  rc = cras_iodev_list_get_outputs(NULL);
+  EXPECT_EQ(1, rc);
   // Remove other dev.
   rc = cras_iodev_list_rm_output(&d2_);
   EXPECT_EQ(0, rc);
@@ -389,6 +392,9 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   EXPECT_EQ(d2_.info.idx, server_state_stub.input_devs[0].idx);
   EXPECT_EQ(d1_.info.idx, server_state_stub.input_devs[1].idx);
 
+  // Passing null should return the number of outputs.
+  rc = cras_iodev_list_get_inputs(NULL);
+  EXPECT_EQ(2, rc);
   // List the outputs.
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(2, rc);

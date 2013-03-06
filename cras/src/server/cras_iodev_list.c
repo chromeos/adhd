@@ -171,6 +171,9 @@ static int get_dev_list(struct iodev_list *list,
 {
 	struct cras_iodev_info *dev_info;
 
+	if (!list_out)
+		return list->size;
+
 	*list_out = NULL;
 	if (list->size == 0)
 		return 0;
