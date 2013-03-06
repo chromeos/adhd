@@ -33,6 +33,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED,
 	CRAS_SERVER_SET_NODE_ATTR,
+	CRAS_SERVER_SELECT_NODE,
 	CRAS_SERVER_RELOAD_DSP,
 	CRAS_SERVER_DUMP_DSP_INFO,
 };
@@ -211,6 +212,23 @@ static inline void cras_fill_set_node_attr(
 	m->node_id = node_id;
 	m->attr = attr;
 	m->value = value;
+	m->header.length = sizeof(*m);
+}
+
+/* Set an attribute of an ionode. */
+struct cras_select_node {
+	struct cras_server_message header;
+	enum CRAS_STREAM_DIRECTION direction;
+	cras_node_id_t node_id;
+};
+static inline void cras_fill_select_node(
+		struct cras_select_node *m,
+		enum CRAS_STREAM_DIRECTION direction,
+		cras_node_id_t node_id)
+{
+	m->header.id = CRAS_SERVER_SELECT_NODE;
+	m->direction = direction;
+	m->node_id = node_id;
 	m->header.length = sizeof(*m);
 }
 

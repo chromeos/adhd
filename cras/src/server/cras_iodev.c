@@ -265,7 +265,8 @@ static void plug_node(struct cras_ionode *node, int plugged)
 	node->plugged = plugged;
 	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
-		cras_iodev_list_clear_selection(iodev->direction);
+		/* clear selection if a node is plugged */
+		cras_iodev_list_select_node(iodev->direction, 0);
 	}
 	iodev->update_active_node(iodev);
 }

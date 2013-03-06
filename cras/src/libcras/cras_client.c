@@ -1983,6 +1983,19 @@ int cras_client_set_node_attr(struct cras_client *client,
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_select_node(struct cras_client *client,
+			    enum CRAS_STREAM_DIRECTION direction,
+			    cras_node_id_t node_id)
+{
+	struct cras_select_node msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_select_node(&msg, direction, node_id);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)
 {
 	if (fmt == NULL)

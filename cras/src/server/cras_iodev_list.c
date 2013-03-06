@@ -27,7 +27,8 @@ static struct iodev_list inputs;
 /* Keep a default input and output. */
 static struct cras_iodev *default_output;
 static struct cras_iodev *default_input;
-/* Keep a constantly increasing index for iodevs. Index 0 is unused. */
+/* Keep a constantly increasing index for iodevs. Index 0 is reserved
+ * to mean "no device". */
 static uint32_t next_iodev_idx = 1;
 /* Selected node for input and output. 0 if there is no node selected. */
 static cras_node_id_t selected_input;
@@ -473,30 +474,41 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
 	return iodev->thread;
 }
 
-static void select_node(cras_node_id_t node_id, struct cras_ionode *ionode,
-			enum ionode_attr attr, int value)
+void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
+				 cras_node_id_t node_id)
 {
-	struct cras_iodev *iodev = ionode->dev;
-	struct cras_iodev *old_dev = NULL;
+	struct cras_iodev *old_dev = NULL, *new_dev = NULL;
 	cras_node_id_t *selected;
 
-	selected = (iodev->direction == CRAS_STREAM_OUTPUT) ? &selected_output :
+	selected = (direction == CRAS_STREAM_OUTPUT) ? &selected_output :
 		&selected_input;
 
-	if (value) {
-		if (node_id == *selected) /* already selected, return */
-			return;
-		old_dev = find_dev(dev_index_of(*selected));
-		*selected = node_id;
-		iodev->update_active_node(iodev);
-		if (old_dev && old_dev != iodev)
-			old_dev->update_active_node(iodev);
-	} else {
-		if (node_id != *selected) /* not selected, return */
-			return;
-		*selected = 0;
-		iodev->update_active_node(iodev);
-	}
+	/* return if no change */
+	if (node_id == *selected)
+		return;
+
+	/* find the devices for the id. */
+	old_dev = find_dev(dev_index_of(*selected));
+	new_dev = find_dev(dev_index_of(node_id));
+
+	/* Fail if the direction is mismatched. We don't fail for the new_dev ==
+	   NULL case. That can happen if node_id is 0 (no selection), or the
+	   client tries to select a non-existing node (maybe it's unplugged just
+	   before the client selects it). We will just behave like there is no
+	   selected node. */
+	if (new_dev && new_dev->direction != direction)
+		return;
+
+	/* change to new selection */
+	*selected = node_id;
+
+	/* update new device */
+	if (new_dev)
+		new_dev->update_active_node(new_dev);
+
+	/* update old device if it is not the same device */
+	if (old_dev && old_dev != new_dev)
+		old_dev->update_active_node(old_dev);
 }
 
 int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
@@ -508,33 +520,11 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
 	if (!node)
 		return -EINVAL;
 
-	if (attr == IONODE_ATTR_SELECTED) {
-		select_node(node_id, node, attr, value);
-		return 0;
-	} else {
-		return cras_iodev_set_node_attr(node, attr, value);
-	}
+	return cras_iodev_set_node_attr(node, attr, value);
 }
 
 int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	return (id == selected_input || id == selected_output);
-}
-
-void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
-{
-	cras_node_id_t *selected;
-	struct cras_iodev *iodev;
-
-	selected = (direction == CRAS_STREAM_OUTPUT) ? &selected_output :
-		&selected_input;
-
-	if (!*selected)
-		return;
-
-	iodev = find_dev(dev_index_of(*selected));
-	*selected = 0;
-	if (iodev)
-		iodev->update_active_node(iodev);
 }

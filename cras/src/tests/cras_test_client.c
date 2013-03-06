@@ -558,7 +558,8 @@ static struct option long_options[] = {
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"unified_audio",	no_argument,		0, 'z'},
 	{"plug",                required_argument,      0, 'x'},
-	{"select",              required_argument,      0, 'y'},
+	{"select_output",       required_argument,      0, 'y'},
+	{"select_input",        required_argument,      0, 'a'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -586,6 +587,8 @@ static void show_usage()
 	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
 	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
 	       " ionode with the given index M on the device with index N\n");
+	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output");
+	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input");
 	printf("--help - Print this message.\n");
 }
 
@@ -699,17 +702,26 @@ int main(int argc, char **argv)
 		case 'z':
 			run_unified = 1;
 			break;
-		case 'x':
-		case 'y': {
+		case 'x': {
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
 			int value = atoi(strtok(NULL, ":")) ;
 			cras_node_id_t id = cras_make_node_id(dev_index,
 							      node_index);
-			enum ionode_attr attr = (c == 'x') ?
-				IONODE_ATTR_PLUGGED : IONODE_ATTR_SELECTED;
+			enum ionode_attr attr = IONODE_ATTR_PLUGGED;
 			cras_client_set_node_attr(client, id, attr, value);
 			break;
+		}
+		case 'y':
+		case 'a': {
+			int dev_index = atoi(strtok(optarg, ":"));
+			int node_index = atoi(strtok(NULL, ":"));
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
+
+			enum CRAS_STREAM_DIRECTION direction = (c == 'y') ?
+				CRAS_STREAM_OUTPUT : CRAS_STREAM_INPUT;
+			cras_client_select_node(client, direction, id);
 		}
 		default:
 			break;

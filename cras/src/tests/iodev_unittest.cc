@@ -11,12 +11,13 @@ extern "C" {
 #include "utlist.h"
 }
 
-static int clear_selection_called;
-static enum CRAS_STREAM_DIRECTION clear_selection_direction;
+static int select_node_called;
+static enum CRAS_STREAM_DIRECTION select_node_direction;
+static cras_node_id_t select_node_id;
 static struct cras_ionode *node_selected;
 
 void ResetStubData() {
-  clear_selection_called = 0;
+  select_node_called = 0;
 }
 
 namespace {
@@ -352,8 +353,9 @@ TEST(IoNodePlug, ClearSelection) {
   ResetStubData();
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 1);
 
-  EXPECT_EQ(1, clear_selection_called);
-  EXPECT_EQ(CRAS_STREAM_INPUT, clear_selection_direction);
+  EXPECT_EQ(1, select_node_called);
+  EXPECT_EQ(CRAS_STREAM_INPUT, select_node_direction);
+  EXPECT_EQ(0, select_node_id);
 }
 
 extern "C" {
@@ -408,15 +410,17 @@ int audio_thread_post_message(struct audio_thread *thread,
   return 0;
 }
 
+void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
+                                 cras_node_id_t node_id)
+{
+  select_node_called++;
+  select_node_direction = direction;
+  select_node_id = node_id;
+}
+
 int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
   return node == node_selected;
-}
-
-void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction)
-{
-  clear_selection_called++;
-  clear_selection_direction = direction;
 }
 
 }  // extern "C"

@@ -360,6 +360,12 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_iodev_list_set_node_attr(m->node_id, m->attr, m->value);
 		break;
 	}
+	case CRAS_SERVER_SELECT_NODE: {
+		const struct cras_select_node *m =
+			(const struct cras_select_node *)msg;
+		cras_iodev_list_select_node(m->direction, m->node_id);
+		break;
+	}
 	case CRAS_SERVER_RELOAD_DSP:
 		cras_dsp_reload_ini();
 		break;

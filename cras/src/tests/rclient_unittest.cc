@@ -650,4 +650,9 @@ int cras_iodev_list_set_node_attr(int dev_index, int node_index,
   return 0;
 }
 
+void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
+				 cras_node_id_t node_id)
+{
+}
+
 }  // extern "C"

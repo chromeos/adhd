@@ -193,6 +193,17 @@ int cras_client_set_node_attr(struct cras_client *client,
 			      enum ionode_attr attr,
 			      int value);
 
+/* Select the preferred node for playback/capture.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    direction - The direction of the ionode.
+ *    node_id - The id of the ionode. If node_id is the special value 0, the
+ *        the preference is cleared and cras will choose automatically.
+ */
+int cras_client_select_node(struct cras_client *client,
+			    enum CRAS_STREAM_DIRECTION direction,
+			    cras_node_id_t node_id);
+
 /* Asks the server to reload dsp plugin configuration from the ini file.
  * Args:
  *    client - The client from cras_client_create.

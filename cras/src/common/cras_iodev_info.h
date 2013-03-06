@@ -42,11 +42,9 @@ struct cras_ionode_info {
 
 /* This is used in the cras_client_set_node_attr API.
  *    IONODE_ATTR_PLUGGED - set the node as plugged/unplugged.
- *    IONODE_ATTR_SELECTED - set the node as selected/unselected.
  */
 enum ionode_attr {
 	IONODE_ATTR_PLUGGED,
-	IONODE_ATTR_SELECTED,
 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

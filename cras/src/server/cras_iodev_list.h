@@ -145,14 +145,16 @@ cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
 int cras_iodev_list_set_node_attr(cras_node_id_t id,
 				  enum ionode_attr attr, int value);
 
-/* Returns 1 if the node is selected, 0 otherwise. */
-int cras_iodev_list_node_selected(struct cras_ionode *node);
-
-/* Clear the selection for the given direction. This should be called whenever
- * a node is plugged in.
+/* Select a node as the preferred node.
  * Args:
  *    direction - Playback or capture.
+ *    node_id - the id of the ionode to be selected. As a special case, if
+ *        node_id is 0, don't select any node in this direction.
  */
-void cras_iodev_list_clear_selection(enum CRAS_STREAM_DIRECTION direction);
+void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
+				 cras_node_id_t node_id);
+
+/* Returns 1 if the node is selected, 0 otherwise. */
+int cras_iodev_list_node_selected(struct cras_ionode *node);
 
 #endif /* CRAS_IODEV_LIST_H_ */
