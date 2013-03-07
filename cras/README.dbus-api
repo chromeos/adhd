@@ -35,28 +35,43 @@ Methods		void SetSystemVolume(byte volume)
 
 		array{dict} GetNodes(byte direction)
 
-			Returns information about nodes. direction is 0
-			for output nodes, 1 for input nodes. An output node is
+			Returns information about nodes. direction is 0 for
+			output nodes, 1 for input nodes. An output node is
 			something like a speaker or a headphone, and an input
-			node is like a microphone. The return value is an array
-			of dicts. Each dict contains information about a node.
+			node is like a microphone. A node can be either output
+			or input but not both.  The return value is an array of
+			dicts. Each dict contains information about a node.
 
 			Each dict contains the following properties:
 				uint64 Id
-					The id of this node. It should be
-					unique among all nodes.
+					The id of this node. It is unique among
+					all nodes including both output and
+					input nodes.
 				string Name
 					The name of this node.
 				string DeviceName
 					The name of the device that this node
 					belongs to.
 				boolean Active
-					Whether this node is currently used.
+					Whether this node is currently used
+					for output/input. There is one active
+					node for output and one active node for
+					input.
 
-		void SetActiveNode(uint64 id, byte direction);
+		void SetActiveOutputNode(uint64 node_id);
 
-			Requests the active node to be changed to the
-			specified node. direction is 0 for output, 1 for input.
+			Requests the specified node to be used for
+			output. If node_id is 0 (which is not a valid
+			node id), cras will choose the active node
+			automatically.
+
+		void SetActiveInputNode(uint64 node_id);
+
+			Requests the specified node to be used for
+			input. If node_id is 0 (which is not a valid
+			node id), cras will choose the active node
+			automatically.
+
 
 Signals		SystemVolumeChanged(byte volume)
 

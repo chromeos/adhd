@@ -12,6 +12,7 @@
 
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
+#include "cras_iodev_list.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -43,6 +44,12 @@
     "    <method name=\"GetNodes\">\n"                                  \
     "      <arg name=\"direction\" type=\"y\" direction=\"in\"/>\n"     \
     "      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"    \
+    "    </method>\n"                                                   \
+    "    <method name=\"SetActiveOutputNode\">\n"                       \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
+    "    <method name=\"SetActiveInputNode\">\n"                        \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "    </method>\n"                                                   \
     "  </interface>\n"                                                      \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"          \
@@ -322,6 +329,26 @@ static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult
+handle_set_active_node(DBusConnection *conn,
+		       DBusMessage *message,
+		       void *arg,
+		       enum CRAS_STREAM_DIRECTION direction)
+{
+	int rc;
+	cras_node_id_t id;
+
+	rc = get_single_arg(message, DBUS_TYPE_UINT64, &id);
+	if (rc)
+		return rc;
+
+	cras_iodev_list_select_node(direction, id);
+
+	send_empty_reply(message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message,
@@ -375,6 +402,16 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_NAME,
 					       "GetNodes")) {
 		return handle_get_nodes(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_NAME,
+					       "SetActiveOutputNode")) {
+		return handle_set_active_node(conn, message, arg,
+					      CRAS_STREAM_OUTPUT);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_NAME,
+					       "SetActiveInputNode")) {
+		return handle_set_active_node(conn, message, arg,
+					      CRAS_STREAM_INPUT);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
