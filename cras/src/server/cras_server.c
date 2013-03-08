@@ -205,7 +205,7 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	DL_APPEND(server_instance.clients_head, poll_client);
 	server_instance.num_clients++;
 	/* Send a current list of available inputs and outputs. */
-	cras_iodev_list_update_clients();
+	cras_iodev_list_update_device_list();
 	send_client_list_to_clients(&server_instance);
 }
 

@@ -141,7 +141,7 @@ static int add_dev_to_list(struct iodev_list *list,
 			audio_thread_destroy(last->thread);
 	}
 
-	cras_iodev_list_update_clients();
+	cras_iodev_list_update_device_list();
 	return 0;
 }
 
@@ -362,7 +362,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 		cras_iodev_set_as_default(CRAS_STREAM_OUTPUT,
 					  top_prio_dev(outputs.iodevs));
 	if (res == 0)
-		cras_iodev_list_update_clients();
+		cras_iodev_list_update_device_list();
 	return res;
 }
 
@@ -377,7 +377,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 		cras_iodev_set_as_default(CRAS_STREAM_INPUT,
 					  top_prio_dev(inputs.iodevs));
 	if (res == 0)
-		cras_iodev_list_update_clients();
+		cras_iodev_list_update_device_list();
 	return res;
 }
 
@@ -443,7 +443,7 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 	return cras_iodev_move_stream_type(type, to_switch->info.idx);
 }
 
-void cras_iodev_list_update_clients()
+void cras_iodev_list_update_device_list()
 {
 	struct cras_server_state *state;
 

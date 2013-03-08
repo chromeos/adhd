@@ -123,7 +123,7 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 					 enum CRAS_STREAM_DIRECTION direction);
 
 /* Stores the list of iodevs in the shared memory server state region. */
-void cras_iodev_list_update_clients();
+void cras_iodev_list_update_device_list();
 
 /* Gets the audio thread associated with an iodev.
  * Args:
