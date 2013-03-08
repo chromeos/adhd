@@ -1170,3 +1170,13 @@ struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)
   cras_ionode_get_best_node_called++;
   return iodev->nodes;
 }
+
+void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
+{
+  DL_APPEND(iodev->nodes, node);
+}
+
+void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
+{
+  DL_DELETE(iodev->nodes, node);
+}

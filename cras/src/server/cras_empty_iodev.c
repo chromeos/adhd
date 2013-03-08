@@ -150,7 +150,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
 	strcpy(node->name, "(default)");
-	DL_APPEND(iodev->nodes, node);
+	cras_iodev_add_node(iodev, node);
 	iodev->active_node = node;
 
 	return iodev;

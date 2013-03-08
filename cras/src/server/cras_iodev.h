@@ -238,6 +238,12 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 /* Find the node with highest priority that is plugged in. */
 struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev);
 
+/* Adds a node to the iodev's node list. */
+void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node);
+
+/* Removes a node from iodev's node list. */
+void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node);
+
 /* Gets a count of how many frames until the next time the thread should wake
  * up to service the buffer.
  * Args:

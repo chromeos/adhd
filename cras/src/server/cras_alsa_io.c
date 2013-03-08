@@ -427,7 +427,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 			aout = (struct alsa_output_node *)node;
 			cras_volume_curve_destroy(aout->jack_curve);
 		}
-		DL_DELETE(aio->base.nodes, node);
+		cras_iodev_rm_node(&aio->base, node);
 		free(node);
 	}
 
@@ -567,8 +567,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	name = get_output_node_name(aio, cras_output);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
-
-	DL_APPEND(aio->base.nodes, &output->base);
+	cras_iodev_add_node(&aio->base, &output->base);
 }
 
 static void new_input(struct alsa_io *aio)
@@ -586,8 +585,7 @@ static void new_input(struct alsa_io *aio)
 	name = get_input_node_name(aio);
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
-
-	DL_APPEND(aio->base.nodes, &input->base);
+	cras_iodev_add_node(&aio->base, &input->base);
 }
 
 /* Finds the output node associated with the jack. Returns NULL if not found. */
@@ -680,7 +678,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
-		DL_APPEND(aio->base.nodes, &node->base);
+		cras_iodev_add_node(&aio->base, &node->base);
 	}
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
@@ -713,7 +711,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
-		DL_APPEND(aio->base.nodes, &node->base);
+		cras_iodev_add_node(&aio->base, &node->base);
 	}
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
