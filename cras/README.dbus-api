@@ -2,56 +2,68 @@ CRAS dbus methods and signals.
 ==============================
 
 Service		org.chromium.cras
+Interface	org.chromium.cras.Control
+Object Path	/org/chromium/cras/Control
 
-Methods		void SetSystemVolume(byte volume)
+Methods		void SetOutputVolume(int32 volume)
 
 			Sets the volume of the system.  Volume ranges from
 			0 to 100, and will be translated to dB based on the
 			output-specific volume curve.
 
-		void SetSystemMute(boolean mute_on)
-
-			Sets the system output mute.
-
-		void SetSystemCaptureGain(int32 gain)
+		void SetInputGain(int32 gain)
 
 			Sets the capture gain of the system. Gain is specified
 			in dBFS * 100.  For example 5dB of gain would be
 			specified with an argument of 500, while -10 would be
 			specified with -1000, and 11.5 maps to 1150.
 
-		void SetSystemCaptureMute(boolean mute_on)
+		void SetOutputMute(boolean mute_on)
+
+			Sets the system output mute.
+
+		void SetInputMute(boolean mute_on)
 
 			Sets the capture mute state of the system.  Recordings
 			will be muted when this is set.
 
-		void GetSystemVolumeState()
+		void GetVolumeState()
 
 			Returns the volume and capture gain as follows:
-				byte volume (0-100)
-				boolean mute
-				int32 capture_gain (in dBFS * 100)
-				boolean capture_mute
+				int32 output_volume (0-100)
+				int32 input_gain (in dBFS * 100)
+				boolean output_mute
+				boolean input_mute
 
-		array{dict} GetNodes(byte direction)
+		array{dict} GetNodes()
 
-			Returns information about nodes. direction is 0 for
-			output nodes, 1 for input nodes. An output node is
+			Returns information about nodes. A node can be either
+			output or input but not both. An output node is
 			something like a speaker or a headphone, and an input
-			node is like a microphone. A node can be either output
-			or input but not both.  The return value is an array of
-			dicts. Each dict contains information about a node.
+			node is like a microphone.  The return value is an array
+			of dicts. Each dict contains information about a node.
 
 			Each dict contains the following properties:
+				boolean IsInput
+					false for output nodes, true for input
+					nodes.
 				uint64 Id
 					The id of this node. It is unique among
 					all nodes including both output and
 					input nodes.
 				string Name
-					The name of this node.
+					The name of this node. For example,
+					"Speaker" or "Internal Mic".
 				string DeviceName
 					The name of the device that this node
-					belongs to.
+					belongs to. For example,
+					"HDA Intel PCH: CA0132 Analog:0,0" or
+					"Creative SB Arena Headset".
+				string DeviceType
+				        The device type of this node. It can
+					have one of the following values:
+					"internal", "usb", "bluetooth", and
+					"unknown".
 				boolean Active
 					Whether this node is currently used
 					for output/input. There is one active
@@ -73,29 +85,31 @@ Methods		void SetSystemVolume(byte volume)
 			automatically.
 
 
-Signals		SystemVolumeChanged(byte volume)
+Signals		OutputVolumeChanged(int32 volume)
 
 			Indicates that the output volume level has changed.
 
-		SystemMuteChanged(boolean muted)
-
-			Indicates that the output mute state has changed.
-
-		SystemCaptureGainChanged(int32 gain)
+		InputGainChanged(int32 gain)
 
 			Indicates that the system capture gain is now gain
 			expressed in dBFS*100.
 
-		SystemCaptureMuteChanged(boolean muted)
+		OutputMuteChanged(boolean muted)
+
+			Indicates that the output mute state has changed.
+
+		InputMuteChanged(boolean muted)
 
 			Indicates that the input mute state has changed.
 
-		NodesChanged(byte direction)
+		NodesChanged()
 
-			Indicates that nodes are added/removed. direction is 0
-			for output, 1 for input.
+			Indicates that nodes are added/removed.
 
-		ActiveNodeChanged(uint64 id, byte direction)
+		ActiveOutputNodeChanged(uint64 node_id)
 
-			Indicates that the active node has changed. direction is
-			0 for output, 1 for input.
+			Indicates that the active output node has changed.
+
+		ActiveInputNodeChanged(uint64 node_id)
+
+			Indicates that the active input node has changed.
