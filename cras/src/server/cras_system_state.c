@@ -24,25 +24,17 @@ struct card_list {
 	struct card_list *prev, *next;
 };
 
-/* Holds a callback to notify when a setting such as volume or mute is changed.
- * When called, data will be passed back to the callback. */
-struct state_callback_list {
-	cras_system_state_changed_cb callback;
-	void *data;
-	struct state_callback_list *prev, *next;
-};
-
 /* The system state.
  * Members:
  *    exp_state - The exported system state shared with clients.
  *    shm_key - Key for shm area of system_state struct.
  *    shm_id - Id for shm area of system_state struct.
  *    device_blacklist - Blacklist of device the server will ignore.
- *    volume_callbacks - Called when the system volume changes.
- *    mute_callbacks - Called when the system mute state changes.
- *    capture_gain_callbacks - Called when the capture gain changes.
- *    capture_mute_callbacks - Called when the capture mute changes.
- *    volume_limits_callbacks - Called when the volume limits are changed.
+ *    volume_alert - Called when the system volume changes.
+ *    mute_alert - Called when the system mute state changes.
+ *    capture_gain_alert - Called when the capture gain changes.
+ *    capture_mute_alert - Called when the capture mute changes.
+ *    volume_limits_alert - Called when the volume limits are changed.
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
@@ -53,11 +45,11 @@ static struct {
 	key_t shm_key;
 	int shm_id;
 	struct cras_device_blacklist *device_blacklist;
-	struct state_callback_list *volume_callbacks;
-	struct state_callback_list *mute_callbacks;
-	struct state_callback_list *capture_gain_callbacks;
-	struct state_callback_list *capture_mute_callbacks;
-	struct state_callback_list *volume_limits_callbacks;
+	struct cras_alert *volume_alert;
+	struct cras_alert *mute_alert;
+	struct cras_alert *capture_gain_alert;
+	struct cras_alert *capture_mute_alert;
+	struct cras_alert *volume_limits_alert;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
 	struct cras_tm *tm;
@@ -67,46 +59,6 @@ static struct {
 	void (*fd_rm)(int fd, void *select_data);
 	void *select_data;
 } state;
-
-/* Adds the callback, cb, to the list.  arg will be passed to the callback when
- * it is called. */
-static int register_callback(struct state_callback_list **list,
-			     cras_system_state_changed_cb cb,
-			     void *arg)
-{
-	struct state_callback_list *state_cb;
-
-	if (cb == NULL)
-		return -EINVAL;
-
-	DL_FOREACH(*list, state_cb)
-		if (state_cb->callback == cb && state_cb->data == arg)
-			return -EEXIST;
-
-	state_cb = calloc(1, sizeof(*state_cb));
-	if (state_cb == NULL)
-		return -ENOMEM;
-	state_cb->callback = cb;
-	state_cb->data = arg;
-	DL_APPEND(*list, state_cb);
-	return 0;
-}
-
-/* Removes cb from list, iff both cb and arg match an entry. */
-static int remove_callback(struct state_callback_list **list,
-			   cras_system_state_changed_cb cb,
-			   void *arg)
-{
-	struct state_callback_list *state_cb, *tmp;
-
-	DL_FOREACH_SAFE(*list, state_cb, tmp)
-		if (state_cb->callback == cb && state_cb->data == arg) {
-			DL_DELETE(*list, state_cb);
-			free(state_cb);
-			return 0;
-		}
-	return -ENOENT;
-}
 
 /*
  * Exported Interface.
@@ -156,6 +108,13 @@ void cras_system_state_init()
 
 	state.exp_state = exp_state;
 
+	/* Initialize alerts. */
+	state.volume_alert = cras_alert_create(NULL);
+	state.mute_alert = cras_alert_create(NULL);
+	state.capture_gain_alert = cras_alert_create(NULL);
+	state.capture_mute_alert = cras_alert_create(NULL);
+	state.volume_limits_alert = cras_alert_create(NULL);
+
 	state.tm = cras_tm_init();
 	if (!state.tm) {
 		syslog(LOG_ERR, "Fatal: system state timer init");
@@ -169,8 +128,6 @@ void cras_system_state_init()
 
 void cras_system_state_deinit()
 {
-	struct state_callback_list *cb, *tmp;
-
 	/* Free any resources used.  This prevents unit tests from leaking. */
 
 	cras_device_blacklist_destroy(state.device_blacklist);
@@ -182,49 +139,28 @@ void cras_system_state_deinit()
 		shmctl(state.shm_id, IPC_RMID, (void *)state.exp_state);
 	}
 
-	DL_FOREACH_SAFE(state.volume_callbacks, cb, tmp) {
-		DL_DELETE(state.volume_callbacks, cb);
-		free(cb);
-	}
-	state.volume_callbacks = NULL;
+	cras_alert_destroy(state.volume_alert);
+	cras_alert_destroy(state.mute_alert);
+	cras_alert_destroy(state.capture_gain_alert);
+	cras_alert_destroy(state.capture_mute_alert);
+	cras_alert_destroy(state.volume_limits_alert);
 
-	DL_FOREACH_SAFE(state.mute_callbacks, cb, tmp) {
-		DL_DELETE(state.mute_callbacks, cb);
-		free(cb);
-	}
-	state.mute_callbacks = NULL;
-
-	DL_FOREACH_SAFE(state.capture_gain_callbacks, cb, tmp) {
-		DL_DELETE(state.capture_gain_callbacks, cb);
-		free(cb);
-	}
-	state.capture_gain_callbacks = NULL;
-
-	DL_FOREACH_SAFE(state.capture_mute_callbacks, cb, tmp) {
-		DL_DELETE(state.capture_mute_callbacks, cb);
-		free(cb);
-	}
-	state.capture_mute_callbacks = NULL;
-
-	DL_FOREACH_SAFE(state.volume_limits_callbacks, cb, tmp) {
-		DL_DELETE(state.volume_limits_callbacks, cb);
-		free(cb);
-	}
-	state.volume_limits_callbacks = NULL;
+	state.volume_alert = NULL;
+	state.mute_alert = NULL;
+	state.capture_gain_alert = NULL;
+	state.capture_mute_alert = NULL;
+	state.volume_limits_alert = NULL;
 
 	pthread_mutex_destroy(&state.update_lock);
 }
 
 void cras_system_set_volume(size_t volume)
 {
-	struct state_callback_list *vol_cb;
-
 	if (volume > CRAS_MAX_SYSTEM_VOLUME)
 		syslog(LOG_DEBUG, "system volume set out of range %zu", volume);
 
 	state.exp_state->volume = min(volume, CRAS_MAX_SYSTEM_VOLUME);
-	DL_FOREACH(state.volume_callbacks, vol_cb)
-		vol_cb->callback(vol_cb->data);
+	cras_alert_pending(state.volume_alert);
 }
 
 size_t cras_system_get_volume()
@@ -232,26 +168,21 @@ size_t cras_system_get_volume()
 	return state.exp_state->volume;
 }
 
-int cras_system_register_volume_changed_cb(cras_system_state_changed_cb cb,
-					   void *arg)
+int cras_system_register_volume_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return register_callback(&state.volume_callbacks, cb, arg);
+	return cras_alert_add_callback(state.volume_alert, cb, arg);
 }
 
-int cras_system_remove_volume_changed_cb(cras_system_state_changed_cb cb,
-					 void *arg)
+int cras_system_remove_volume_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return remove_callback(&state.volume_callbacks, cb, arg);
+	return cras_alert_rm_callback(state.volume_alert, cb, arg);
 }
 
 void cras_system_set_capture_gain(long gain)
 {
-	struct state_callback_list *capture_cb;
-
 	state.exp_state->capture_gain =
 		max(gain, state.exp_state->min_capture_gain);
-	DL_FOREACH(state.capture_gain_callbacks, capture_cb)
-		capture_cb->callback(capture_cb->data);
+	cras_alert_pending(state.capture_gain_alert);
 }
 
 long cras_system_get_capture_gain()
@@ -259,41 +190,31 @@ long cras_system_get_capture_gain()
 	return state.exp_state->capture_gain;
 }
 
-int cras_system_register_capture_gain_changed_cb(
-		cras_system_state_changed_cb cb,
-		void *arg)
+int cras_system_register_capture_gain_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return register_callback(&state.capture_gain_callbacks, cb, arg);
+	return cras_alert_add_callback(state.capture_gain_alert, cb, arg);
 }
 
-int cras_system_remove_capture_gain_changed_cb(cras_system_state_changed_cb cb,
-					       void *arg)
+int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return remove_callback(&state.capture_gain_callbacks, cb, arg);
+	return cras_alert_rm_callback(state.capture_gain_alert, cb, arg);
 }
 
 void cras_system_set_mute(int mute)
 {
-	struct state_callback_list *mute_cb;
-
 	if (state.exp_state->mute_locked)
 		return;
 
 	state.exp_state->mute = !!mute;
-	DL_FOREACH(state.mute_callbacks, mute_cb)
-		mute_cb->callback(mute_cb->data);
+	cras_alert_pending(state.mute_alert);
 }
 
 void cras_system_set_mute_locked(int locked)
 {
-	struct state_callback_list *mute_cb;
-
 	state.exp_state->mute_locked = !!locked;
 
-	if (!state.exp_state->mute_locked) {
-		DL_FOREACH(state.mute_callbacks, mute_cb)
-			mute_cb->callback(mute_cb->data);
-	}
+	if (!state.exp_state->mute_locked)
+		cras_alert_pending(state.mute_alert);
 }
 
 int cras_system_get_mute()
@@ -306,40 +227,31 @@ int cras_system_get_mute_locked()
 	return state.exp_state->mute_locked;
 }
 
-int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
-					 void *arg)
+int cras_system_register_mute_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return register_callback(&state.mute_callbacks, cb, arg);
+	return cras_alert_add_callback(state.mute_alert, cb, arg);
 }
 
-int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
-				       void *arg)
+int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return remove_callback(&state.mute_callbacks, cb, arg);
+	return cras_alert_rm_callback(state.mute_alert, cb, arg);
 }
 
 void cras_system_set_capture_mute(int mute)
 {
-	struct state_callback_list *mute_cb;
-
 	if (state.exp_state->capture_mute_locked)
 		return;
 
 	state.exp_state->capture_mute = !!mute;
-	DL_FOREACH(state.capture_mute_callbacks, mute_cb)
-		mute_cb->callback(mute_cb->data);
+	cras_alert_pending(state.capture_mute_alert);
 }
 
 void cras_system_set_capture_mute_locked(int locked)
 {
-	struct state_callback_list *mute_cb;
-
 	state.exp_state->capture_mute_locked = !!locked;
 
-	if (!state.exp_state->capture_mute_locked) {
-		DL_FOREACH(state.capture_mute_callbacks, mute_cb)
-			mute_cb->callback(mute_cb->data);
-	}
+	if (!state.exp_state->capture_mute_locked)
+		cras_alert_pending(state.capture_mute_alert);
 }
 
 int cras_system_get_capture_mute()
@@ -352,26 +264,21 @@ int cras_system_get_capture_mute_locked()
 	return state.exp_state->capture_mute_locked;
 }
 
-int cras_system_register_capture_mute_changed_cb(
-		cras_system_state_changed_cb cb, void *arg)
+int cras_system_register_capture_mute_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return register_callback(&state.capture_mute_callbacks, cb, arg);
+	return cras_alert_add_callback(state.capture_mute_alert, cb, arg);
 }
 
-int cras_system_remove_capture_mute_changed_cb(
-		cras_system_state_changed_cb cb, void *arg)
+int cras_system_remove_capture_mute_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return remove_callback(&state.capture_mute_callbacks, cb, arg);
+	return cras_alert_rm_callback(state.capture_mute_alert, cb, arg);
 }
 
 void cras_system_set_volume_limits(long min, long max)
 {
-	struct state_callback_list *limit_cb;
-
 	state.exp_state->min_volume_dBFS = min;
 	state.exp_state->max_volume_dBFS = max;
-	DL_FOREACH(state.volume_limits_callbacks, limit_cb)
-		limit_cb->callback(limit_cb->data);
+	cras_alert_pending(state.volume_limits_alert);
 }
 
 long cras_system_get_min_volume()
@@ -384,26 +291,21 @@ long cras_system_get_max_volume()
 	return state.exp_state->max_volume_dBFS;
 }
 
-int cras_system_register_volume_limits_changed_cb(
-		cras_system_state_changed_cb cb, void *arg)
+int cras_system_register_volume_limits_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return register_callback(&state.volume_limits_callbacks, cb, arg);
+	return cras_alert_add_callback(state.volume_limits_alert, cb, arg);
 }
 
-int cras_system_remove_volume_limits_changed_cb(
-		cras_system_state_changed_cb cb, void *arg)
+int cras_system_remove_volume_limits_changed_cb(cras_alert_cb cb, void *arg)
 {
-	return remove_callback(&state.volume_limits_callbacks, cb, arg);
+	return cras_alert_rm_callback(state.volume_limits_alert, cb, arg);
 }
 
 void cras_system_set_capture_gain_limits(long min, long max)
 {
-	struct state_callback_list *limit_cb;
-
 	state.exp_state->min_capture_gain = max(min, DEFAULT_MIN_CAPTURE_GAIN);
 	state.exp_state->max_capture_gain = max;
-	DL_FOREACH(state.volume_limits_callbacks, limit_cb)
-		limit_cb->callback(limit_cb->data);
+	cras_alert_pending(state.volume_limits_alert);
 }
 
 long cras_system_get_min_capture_gain()

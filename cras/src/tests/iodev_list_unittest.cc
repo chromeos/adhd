@@ -19,19 +19,19 @@ struct cras_server_state server_state_stub;
 struct cras_server_state *server_state_update_begin_return;
 
 /* Data for stubs. */
-static cras_system_state_changed_cb volume_changed_cb;
+static cras_alert_cb volume_changed_cb;
 static void* volume_changed_arg;
 static unsigned int register_volume_changed_cb_called;
 static unsigned int remove_volume_changed_cb_called;
-static cras_system_state_changed_cb mute_changed_cb;
+static cras_alert_cb mute_changed_cb;
 static void* mute_changed_arg;
 static unsigned int register_mute_changed_cb_called;
 static unsigned int remove_mute_changed_cb_called;
-static cras_system_state_changed_cb capture_gain_changed_cb;
+static cras_alert_cb capture_gain_changed_cb;
 static void* capture_gain_changed_arg;
 static unsigned int register_capture_gain_changed_cb_called;
 static unsigned int remove_capture_gain_changed_cb_called;
-static cras_system_state_changed_cb capture_mute_changed_cb;
+static cras_alert_cb capture_mute_changed_cb;
 static void* capture_mute_changed_arg;
 static unsigned int register_capture_mute_changed_cb_called;
 static unsigned int remove_capture_mute_changed_cb_called;
@@ -765,58 +765,50 @@ struct cras_server_state *cras_system_state_update_begin() {
 void cras_system_state_update_complete() {
 }
 
-int cras_system_register_volume_changed_cb(cras_system_state_changed_cb cb,
-                                           void *arg) {
+int cras_system_register_volume_changed_cb(cras_alert_cb cb, void *arg) {
   volume_changed_cb = cb;
   volume_changed_arg = arg;
   register_volume_changed_cb_called++;
   return 0;
 }
 
-int cras_system_remove_volume_changed_cb(cras_system_state_changed_cb cb,
-                                         void *arg) {
+int cras_system_remove_volume_changed_cb(cras_alert_cb cb, void *arg) {
   remove_volume_changed_cb_called++;
   return 0;
 }
 
-int cras_system_register_mute_changed_cb(cras_system_state_changed_cb cb,
-                                         void *arg) {
+int cras_system_register_mute_changed_cb(cras_alert_cb cb, void *arg) {
   mute_changed_cb = cb;
   mute_changed_arg = arg;
   register_mute_changed_cb_called++;
   return 0;
 }
 
-int cras_system_remove_mute_changed_cb(cras_system_state_changed_cb cb,
-                                       void *arg) {
+int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg) {
   remove_mute_changed_cb_called++;
   return 0;
 }
 
-int cras_system_register_capture_gain_changed_cb(
-    cras_system_state_changed_cb cb, void *arg) {
+int cras_system_register_capture_gain_changed_cb(cras_alert_cb cb, void *arg) {
   capture_gain_changed_cb = cb;
   capture_gain_changed_arg = arg;
   register_capture_gain_changed_cb_called++;
   return 0;
 }
 
-int cras_system_remove_capture_gain_changed_cb(cras_system_state_changed_cb cb,
-					 void *arg) {
+int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg) {
   remove_capture_gain_changed_cb_called++;
   return 0;
 }
 
-int cras_system_register_capture_mute_changed_cb(
-    cras_system_state_changed_cb cb, void *arg) {
+int cras_system_register_capture_mute_changed_cb(cras_alert_cb cb, void *arg) {
   capture_mute_changed_cb = cb;
   capture_mute_changed_arg = arg;
   register_capture_mute_changed_cb_called++;
   return 0;
 }
 
-int cras_system_remove_capture_mute_changed_cb(cras_system_state_changed_cb cb,
-					 void *arg) {
+int cras_system_remove_capture_mute_changed_cb(cras_alert_cb cb, void *arg) {
   remove_capture_mute_changed_cb_called++;
   return 0;
 }
