@@ -18,6 +18,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras_alert.h"
 #include "cras_bluetooth.h"
 #include "cras_config.h"
 #include "cras_dbus.h"
@@ -419,6 +420,8 @@ int cras_server_run()
 
 		if (dbus_conn)
 			cras_dbus_dispatch(dbus_conn);
+
+		cras_alert_process_all_pending_alerts();
 	}
 
 bail:

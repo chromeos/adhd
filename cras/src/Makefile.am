@@ -16,6 +16,7 @@ cras_SOURCES = \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
 	server/cras.c \
+	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
 	server/cras_alsa_io.c \
@@ -96,6 +97,7 @@ libasound_module_ctl_cras_la_SOURCES = alsa_plugin/ctl_cras.c
 libasound_module_ctl_cras_la_LIBADD = -lasound libcras.la
 
 check_PROGRAMS = \
+	alert_unittest \
 	alsa_io_unittest \
 	array_unittest \
 	audio_thread_unittest \
@@ -133,6 +135,13 @@ cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common
 
 # unit tests
+alert_unittest_SOURCES = tests/alert_unittest.cc \
+	server/cras_alert.c
+alert_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+alert_unittest_LDADD = -lgtest -lpthread
+
 alsa_card_unittest_SOURCES = tests/alsa_card_unittest.cc \
 	server/cras_alsa_card.c
 alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
