@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 
+#include "cras_alert.h"
 #include "cras_types.h"
 
 struct cras_iodev;
@@ -122,8 +123,32 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index);
 int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 					 enum CRAS_STREAM_DIRECTION direction);
 
-/* Stores the list of iodevs in the shared memory server state region. */
+/* Stores the following data to the shared memory server state region:
+ * (1) device list
+ * (2) node list
+ * (3) selected nodes
+ */
 void cras_iodev_list_update_device_list();
+
+/* Stores the node list in the shared memory server state region. */
+void cras_iodev_list_update_node_list();
+
+/* Adds a callback to call when the nodes are added/removed.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to pass back to callback.
+ */
+int cras_iodev_list_register_nodes_changed_cb(cras_alert_cb cb, void *arg);
+
+/* Removes a callback to call when the nodes are added/removed.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to pass back to callback.
+ */
+int cras_iodev_list_remove_nodes_changed_cb(cras_alert_cb cb, void *arg);
+
+/* Notify that nodes are added/removed. */
+void cras_iodev_list_notify_nodes_changed();
 
 /* Gets the audio thread associated with an iodev.
  * Args:

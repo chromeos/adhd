@@ -33,6 +33,10 @@ static uint32_t next_iodev_idx = 1;
 /* Selected node for input and output. 0 if there is no node selected. */
 static cras_node_id_t selected_input;
 static cras_node_id_t selected_output;
+/* Called when the nodes are added/removed. */
+static struct cras_alert *nodes_changed_alert;
+
+static void nodes_changed_prepare(struct cras_alert *alert);
 
 static struct cras_iodev *find_dev(size_t dev_index)
 {
@@ -279,6 +283,8 @@ void cras_iodev_list_init()
 	cras_system_register_mute_changed_cb(sys_mute_change, NULL);
 	cras_system_register_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_register_capture_mute_changed_cb(sys_cap_mute_change, NULL);
+	nodes_changed_alert = cras_alert_create(nodes_changed_prepare);
+
 }
 
 void cras_iodev_list_deinit()
@@ -287,6 +293,8 @@ void cras_iodev_list_deinit()
 	cras_system_remove_mute_changed_cb(sys_vol_change, NULL);
 	cras_system_remove_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_remove_capture_mute_changed_cb(sys_cap_mute_change, NULL);
+	cras_alert_destroy(nodes_changed_alert);
+	nodes_changed_alert = NULL;
 }
 
 /* Finds the current device for a stream of "type", only default streams are
@@ -466,6 +474,26 @@ void cras_iodev_list_update_device_list()
 	state->selected_input = selected_input;
 
 	cras_system_state_update_complete();
+}
+
+int cras_iodev_list_register_nodes_changed_cb(cras_alert_cb cb, void *arg)
+{
+	return cras_alert_add_callback(nodes_changed_alert, cb, arg);
+}
+
+int cras_iodev_list_remove_nodes_changed_cb(cras_alert_cb cb, void *arg)
+{
+	return cras_alert_rm_callback(nodes_changed_alert, cb, arg);
+}
+
+void cras_iodev_list_notify_nodes_changed()
+{
+	cras_alert_pending(nodes_changed_alert);
+}
+
+static void nodes_changed_prepare(struct cras_alert *alert)
+{
+	cras_iodev_list_update_device_list();
 }
 
 struct audio_thread *

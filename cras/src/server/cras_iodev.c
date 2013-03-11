@@ -299,9 +299,11 @@ struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
 	DL_APPEND(iodev->nodes, node);
+	cras_iodev_list_notify_nodes_changed();
 }
 
 void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
 	DL_DELETE(iodev->nodes, node);
+	cras_iodev_list_notify_nodes_changed();
 }

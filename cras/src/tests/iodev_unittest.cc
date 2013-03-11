@@ -15,9 +15,11 @@ static int select_node_called;
 static enum CRAS_STREAM_DIRECTION select_node_direction;
 static cras_node_id_t select_node_id;
 static struct cras_ionode *node_selected;
+static size_t notify_nodes_changed_called;
 
 void ResetStubData() {
   select_node_called = 0;
+  notify_nodes_changed_called = 0;
 }
 
 namespace {
@@ -347,6 +349,8 @@ TEST(IoNodePlug, ClearSelection) {
   struct cras_iodev iodev;
   struct cras_ionode ionode;
 
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
   ionode.dev = &iodev;
   iodev.direction = CRAS_STREAM_INPUT;
   iodev.update_active_node = update_active_node;
@@ -356,6 +360,20 @@ TEST(IoNodePlug, ClearSelection) {
   EXPECT_EQ(1, select_node_called);
   EXPECT_EQ(CRAS_STREAM_INPUT, select_node_direction);
   EXPECT_EQ(0, select_node_id);
+}
+
+TEST(IoDev, AddRemoveNode) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  ResetStubData();
+  EXPECT_EQ(0, notify_nodes_changed_called);
+  cras_iodev_add_node(&iodev, &ionode);
+  EXPECT_EQ(1, notify_nodes_changed_called);
+  cras_iodev_rm_node(&iodev, &ionode);
+  EXPECT_EQ(2, notify_nodes_changed_called);
 }
 
 extern "C" {
@@ -421,6 +439,11 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
   return node == node_selected;
+}
+
+void cras_iodev_list_notify_nodes_changed()
+{
+  notify_nodes_changed_called++;
 }
 
 }  // extern "C"

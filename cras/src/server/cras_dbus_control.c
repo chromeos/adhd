@@ -504,6 +504,19 @@ static void signal_capture_mute(void *arg)
 	dbus_message_unref(msg);
 }
 
+static void signal_nodes_changed(void *arg)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+
+	msg = create_dbus_message("NodesChanged");
+	if (!msg)
+		return;
+
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -532,6 +545,7 @@ void cras_dbus_control_start(DBusConnection *conn)
 	cras_system_register_mute_changed_cb(signal_mute, 0);
 	cras_system_register_capture_gain_changed_cb(signal_capture_gain, 0);
 	cras_system_register_capture_mute_changed_cb(signal_capture_mute, 0);
+	cras_iodev_list_register_nodes_changed_cb(signal_nodes_changed, 0);
 }
 
 void cras_dbus_control_stop()
@@ -543,6 +557,7 @@ void cras_dbus_control_stop()
 	cras_system_remove_mute_changed_cb(signal_mute, 0);
 	cras_system_remove_capture_gain_changed_cb(signal_capture_gain, 0);
 	cras_system_remove_capture_mute_changed_cb(signal_capture_mute, 0);
+	cras_iodev_list_remove_nodes_changed_cb(signal_nodes_changed, 0);
 
 	dbus_connection_unregister_object_path(dbus_control.conn,
 					       CRAS_CONTROL_PATH);

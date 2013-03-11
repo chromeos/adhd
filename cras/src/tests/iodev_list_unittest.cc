@@ -38,6 +38,9 @@ static unsigned int remove_capture_mute_changed_cb_called;
 static int add_stream_called;
 static int rm_stream_called;
 static unsigned int set_node_attr_called;
+static int cras_alert_create_called;
+static int cras_alert_destroy_called;
+static int cras_alert_pending_called;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -113,6 +116,9 @@ class IoDevTestSuite : public testing::Test {
       add_stream_called = 0;
       rm_stream_called = 0;
       set_node_attr_called = 0;
+      cras_alert_create_called = 0;
+      cras_alert_destroy_called = 0;
+      cras_alert_pending_called = 0;
       is_open_ = 0;
     }
 
@@ -707,6 +713,21 @@ TEST_F(IoDevTestSuite, CaptureMuteCallbacks) {
   EXPECT_EQ(0, rc);
 }
 
+// Test nodes changed notification is sent.
+TEST_F(IoDevTestSuite, NodesChangedNotification) {
+  EXPECT_EQ(0, cras_alert_create_called);
+  cras_iodev_list_init();
+  EXPECT_EQ(1, cras_alert_create_called);
+
+  EXPECT_EQ(0, cras_alert_pending_called);
+  cras_iodev_list_notify_nodes_changed();
+  EXPECT_EQ(1, cras_alert_pending_called);
+
+  EXPECT_EQ(0, cras_alert_destroy_called);
+  cras_iodev_list_deinit();
+  EXPECT_EQ(1, cras_alert_destroy_called);
+}
+
 TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
   int rc;
 
@@ -811,6 +832,29 @@ int cras_system_register_capture_mute_changed_cb(cras_alert_cb cb, void *arg) {
 int cras_system_remove_capture_mute_changed_cb(cras_alert_cb cb, void *arg) {
   remove_capture_mute_changed_cb_called++;
   return 0;
+}
+
+struct cras_alert *cras_alert_create(cras_alert_prepare prepare) {
+  cras_alert_create_called++;
+  return NULL;
+}
+
+int cras_alert_add_callback(struct cras_alert *alert, cras_alert_cb cb,
+                            void *arg) {
+  return 0;
+}
+
+int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
+                           void *arg) {
+  return 0;
+}
+
+void cras_alert_pending(struct cras_alert *alert) {
+  cras_alert_pending_called++;
+}
+
+void cras_alert_destroy(struct cras_alert *alert) {
+  cras_alert_destroy_called++;
 }
 
 void audio_thread_destroy(struct audio_thread *thread) {
