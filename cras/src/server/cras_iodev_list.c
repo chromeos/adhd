@@ -399,6 +399,18 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out)
 	return get_dev_list(&inputs, list_out);
 }
 
+cras_node_id_t cras_iodev_list_get_active_node_id(
+	enum CRAS_STREAM_DIRECTION direction)
+{
+	struct cras_iodev *dev = (direction == CRAS_STREAM_OUTPUT) ?
+		default_output : default_input;
+
+	if (!dev || !dev->active_node)
+		return 0;
+
+	return cras_make_node_id(dev->info.idx, dev->active_node->idx);
+}
+
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index)
 {
 	struct cras_iodev *curr_dev, *new_dev;

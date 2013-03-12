@@ -104,6 +104,15 @@ int cras_iodev_list_get_outputs(struct cras_iodev_info **list_out);
  */
 int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out);
 
+/* Returns the active node id.
+ * Args:
+ *    direction - Playback or capture.
+ * Returns:
+ *    The id of the active node.
+ */
+cras_node_id_t cras_iodev_list_get_active_node_id(
+	enum CRAS_STREAM_DIRECTION direction);
+
 /* Moves all streams of type to a new device.
  * Args:
  *    type - The stream type to move.
