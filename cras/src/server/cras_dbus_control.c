@@ -42,7 +42,6 @@
     "      <arg name=\"capture_mute\" type=\"b\" direction=\"out\"/>\n"   \
     "    </method>\n"                                                       \
     "    <method name=\"GetNodes\">\n"                                  \
-    "      <arg name=\"direction\" type=\"y\" direction=\"in\"/>\n"     \
     "      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"    \
     "    </method>\n"                                                   \
     "    <method name=\"SetActiveOutputNode\">\n"                       \
@@ -247,20 +246,26 @@ static dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key,
  * false if not enough memory. */
 static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 				    const struct cras_iodev_info *dev,
-				    const struct cras_ionode_info *node)
+				    const struct cras_ionode_info *node,
+				    enum CRAS_STREAM_DIRECTION direction)
 {
 	DBusMessageIter dict;
+	dbus_bool_t is_input;
 	dbus_uint64_t id;
 	const char *dev_name = dev->name;
 	const char *node_name = node->name;
 	dbus_bool_t active;
 
+	is_input = (direction == CRAS_STREAM_INPUT);
 	id = node->iodev_idx;
 	id = (id << 32) | node->ionode_idx;
 	active = !!node->active;
 
 	if (!dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "{sv}",
 					      &dict))
+		return FALSE;
+	if (!append_key_value(&dict, "IsInput", DBUS_TYPE_BOOLEAN,
+			      DBUS_TYPE_BOOLEAN_AS_STRING, &is_input))
 		return FALSE;
 	if (!append_key_value(&dict, "Id", DBUS_TYPE_UINT64,
 			      DBUS_TYPE_UINT64_AS_STRING, &id))
@@ -280,35 +285,24 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	return TRUE;
 }
 
-static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
-					  DBusMessage *message,
-					  void *arg)
+/* Appends the information about all nodes in a given direction. Returns false
+ * if not enough memory. */
+static dbus_bool_t append_nodes(enum CRAS_STREAM_DIRECTION direction,
+				DBusMessageIter *array)
 {
-	int rc;
-	uint8_t direction;
 	const struct cras_iodev_info *devs;
 	const struct cras_ionode_info *nodes;
 	int ndevs, nnodes;
-	DBusMessage *reply;
-	DBusMessageIter array;
-	dbus_uint32_t serial = 0;
 	int i, j;
 
-	rc = get_single_arg(message, DBUS_TYPE_BYTE, &direction);
-	if (rc)
-		return rc;
-
-	if (direction) {
-		ndevs = cras_system_state_get_input_devs(&devs);
-		nnodes = cras_system_state_get_input_nodes(&nodes);
-	} else {
+	if (direction == CRAS_STREAM_OUTPUT) {
 		ndevs = cras_system_state_get_output_devs(&devs);
 		nnodes = cras_system_state_get_output_nodes(&nodes);
+	} else {
+		ndevs = cras_system_state_get_input_devs(&devs);
+		nnodes = cras_system_state_get_input_nodes(&nodes);
 	}
 
-	reply = dbus_message_new_method_return(message);
-
-	dbus_message_iter_init_append(reply, &array);
 	for (i = 0; i < nnodes; i++) {
 		/* Don't reply unplugged nodes. */
 		if (!nodes[i].plugged)
@@ -320,11 +314,28 @@ static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
 		if (j == ndevs)
 			continue;
 		/* Send information about this node. */
-		if (!append_node_dict(&array, &devs[j], &nodes[i]))
-			return DBUS_HANDLER_RESULT_NEED_MEMORY;
+		if (!append_node_dict(array, &devs[j], &nodes[i], direction))
+			return FALSE;
 	}
-	dbus_connection_send(dbus_control.conn, reply, &serial);
 
+	return TRUE;
+}
+
+static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
+					  DBusMessage *message,
+					  void *arg)
+{
+	DBusMessage *reply;
+	DBusMessageIter array;
+	dbus_uint32_t serial = 0;
+
+	reply = dbus_message_new_method_return(message);
+	dbus_message_iter_init_append(reply, &array);
+	if (!append_nodes(CRAS_STREAM_OUTPUT, &array))
+		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	if (!append_nodes(CRAS_STREAM_INPUT, &array))
+		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	dbus_connection_send(dbus_control.conn, reply, &serial);
 	dbus_message_unref(reply);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
