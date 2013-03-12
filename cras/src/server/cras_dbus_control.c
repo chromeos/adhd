@@ -63,6 +63,7 @@ struct cras_dbus_control {
 	DBusConnection *conn;
 };
 static struct cras_dbus_control dbus_control;
+static cras_node_id_t last_output, last_input;
 
 /* helper to extract a single argument from a DBus message. */
 static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
@@ -517,6 +518,39 @@ static void signal_nodes_changed(void *arg)
 	dbus_message_unref(msg);
 }
 
+static void signal_with_node_id(const char *name, cras_node_id_t id)
+{
+	DBusMessage *msg;
+	dbus_uint32_t serial = 0;
+
+	msg = create_dbus_message(name);
+	if (!msg)
+		return;
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_UINT64, &id,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
+static void signal_active_node_changed(void *arg)
+{
+	cras_node_id_t output, input;
+
+	output = cras_iodev_list_get_active_node_id(CRAS_STREAM_OUTPUT);
+	input = cras_iodev_list_get_active_node_id(CRAS_STREAM_INPUT);
+
+	if (last_output != output) {
+		last_output = output;
+		signal_with_node_id("ActiveOutputNodeChanged", output);
+	}
+
+	if (last_input != input) {
+		last_input = input;
+		signal_with_node_id("ActiveInputNodeChanged", input);
+	}
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -546,6 +580,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	cras_system_register_capture_gain_changed_cb(signal_capture_gain, 0);
 	cras_system_register_capture_mute_changed_cb(signal_capture_mute, 0);
 	cras_iodev_list_register_nodes_changed_cb(signal_nodes_changed, 0);
+	cras_iodev_list_register_active_node_changed_cb(
+		signal_active_node_changed, 0);
 }
 
 void cras_dbus_control_stop()
@@ -558,6 +594,8 @@ void cras_dbus_control_stop()
 	cras_system_remove_capture_gain_changed_cb(signal_capture_gain, 0);
 	cras_system_remove_capture_mute_changed_cb(signal_capture_mute, 0);
 	cras_iodev_list_remove_nodes_changed_cb(signal_nodes_changed, 0);
+	cras_iodev_list_remove_active_node_changed_cb(
+		signal_active_node_changed, 0);
 
 	dbus_connection_unregister_object_path(dbus_control.conn,
 					       CRAS_CONTROL_PATH);

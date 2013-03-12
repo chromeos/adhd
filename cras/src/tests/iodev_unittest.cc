@@ -16,10 +16,12 @@ static enum CRAS_STREAM_DIRECTION select_node_direction;
 static cras_node_id_t select_node_id;
 static struct cras_ionode *node_selected;
 static size_t notify_nodes_changed_called;
+static size_t notify_active_node_changed_called;
 
 void ResetStubData() {
   select_node_called = 0;
   notify_nodes_changed_called = 0;
+  notify_active_node_changed_called = 0;
 }
 
 namespace {
@@ -376,6 +378,18 @@ TEST(IoDev, AddRemoveNode) {
   EXPECT_EQ(2, notify_nodes_changed_called);
 }
 
+TEST(IoDev, SetActiveNode) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  ResetStubData();
+  EXPECT_EQ(0, notify_active_node_changed_called);
+  cras_iodev_set_active_node(&iodev, &ionode);
+  EXPECT_EQ(1, notify_active_node_changed_called);
+}
+
 extern "C" {
 
 //  From libpthread.
@@ -444,6 +458,11 @@ int cras_iodev_list_node_selected(struct cras_ionode *node)
 void cras_iodev_list_notify_nodes_changed()
 {
   notify_nodes_changed_called++;
+}
+
+void cras_iodev_list_notify_active_node_changed()
+{
+  notify_active_node_changed_called++;
 }
 
 }  // extern "C"

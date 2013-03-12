@@ -312,4 +312,5 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 				struct cras_ionode *node)
 {
 	iodev->active_node = node;
+	cras_iodev_list_notify_active_node_changed();
 }

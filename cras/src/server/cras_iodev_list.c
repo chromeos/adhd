@@ -35,8 +35,11 @@ static cras_node_id_t selected_input;
 static cras_node_id_t selected_output;
 /* Called when the nodes are added/removed. */
 static struct cras_alert *nodes_changed_alert;
+/* Called when the active output/input is changed */
+static struct cras_alert *active_node_changed_alert;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
+static void active_node_changed_prepare(struct cras_alert *alert);
 
 static struct cras_iodev *find_dev(size_t dev_index)
 {
@@ -284,7 +287,8 @@ void cras_iodev_list_init()
 	cras_system_register_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_register_capture_mute_changed_cb(sys_cap_mute_change, NULL);
 	nodes_changed_alert = cras_alert_create(nodes_changed_prepare);
-
+	active_node_changed_alert = cras_alert_create(
+		active_node_changed_prepare);
 }
 
 void cras_iodev_list_deinit()
@@ -294,7 +298,9 @@ void cras_iodev_list_deinit()
 	cras_system_remove_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_remove_capture_mute_changed_cb(sys_cap_mute_change, NULL);
 	cras_alert_destroy(nodes_changed_alert);
+	cras_alert_destroy(active_node_changed_alert);
 	nodes_changed_alert = NULL;
+	active_node_changed_alert = NULL;
 }
 
 /* Finds the current device for a stream of "type", only default streams are
@@ -339,6 +345,8 @@ struct cras_iodev *cras_iodev_set_as_default(
 
 	if (new_default && new_default->set_as_default)
 		new_default->set_as_default(new_default);
+
+	cras_iodev_list_notify_active_node_changed();
 
 	return old_default;
 }
@@ -504,6 +512,28 @@ void cras_iodev_list_notify_nodes_changed()
 }
 
 static void nodes_changed_prepare(struct cras_alert *alert)
+{
+	cras_iodev_list_update_device_list();
+}
+
+int cras_iodev_list_register_active_node_changed_cb(cras_alert_cb cb,
+						    void *arg)
+{
+	return cras_alert_add_callback(active_node_changed_alert, cb, arg);
+}
+
+int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
+						  void *arg)
+{
+	return cras_alert_rm_callback(active_node_changed_alert, cb, arg);
+}
+
+void cras_iodev_list_notify_active_node_changed()
+{
+	cras_alert_pending(active_node_changed_alert);
+}
+
+static void active_node_changed_prepare(struct cras_alert *alert)
 {
 	cras_iodev_list_update_device_list();
 }

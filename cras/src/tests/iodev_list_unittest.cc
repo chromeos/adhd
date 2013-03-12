@@ -717,7 +717,8 @@ TEST_F(IoDevTestSuite, CaptureMuteCallbacks) {
 TEST_F(IoDevTestSuite, NodesChangedNotification) {
   EXPECT_EQ(0, cras_alert_create_called);
   cras_iodev_list_init();
-  EXPECT_EQ(1, cras_alert_create_called);
+  /* One for nodes changed and one for active node changed */
+  EXPECT_EQ(2, cras_alert_create_called);
 
   EXPECT_EQ(0, cras_alert_pending_called);
   cras_iodev_list_notify_nodes_changed();
@@ -725,7 +726,7 @@ TEST_F(IoDevTestSuite, NodesChangedNotification) {
 
   EXPECT_EQ(0, cras_alert_destroy_called);
   cras_iodev_list_deinit();
-  EXPECT_EQ(1, cras_alert_destroy_called);
+  EXPECT_EQ(2, cras_alert_destroy_called);
 }
 
 TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {

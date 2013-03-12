@@ -159,6 +159,25 @@ int cras_iodev_list_remove_nodes_changed_cb(cras_alert_cb cb, void *arg);
 /* Notify that nodes are added/removed. */
 void cras_iodev_list_notify_nodes_changed();
 
+/* Adds a callback to call when the active output/input node changes.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to pass back to callback.
+ */
+int cras_iodev_list_register_active_node_changed_cb(cras_alert_cb cb,
+						    void *arg);
+
+/* Removes a callback to call when the active output/input node changes.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to pass back to callback.
+ */
+int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
+						  void *arg);
+
+/* Notify that active output/input node is changed. */
+void cras_iodev_list_notify_active_node_changed();
+
 /* Gets the audio thread associated with an iodev.
  * Args:
  *    iodev - The iodev to check.
