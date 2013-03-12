@@ -610,89 +610,118 @@ TEST(AlsaOutputNode, TwoOutputs) {
 
 TEST(AlsaInitNode, SetNodeInitialState) {
   struct cras_ionode node;
+  struct cras_iodev dev;
 
+  memset(&dev, 0, sizeof(dev));
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Unknown");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
+  ASSERT_EQ(CRAS_NODE_TYPE_UNKNOWN, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Speaker");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.priority);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
+  ASSERT_EQ(CRAS_NODE_TYPE_INTERNAL_SPEAKER, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Internal Mic");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.priority);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
+  ASSERT_EQ(CRAS_NODE_TYPE_INTERNAL_MIC, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "HDMI");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(2, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "IEC958");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(2, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "HDMI Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(2, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Headphone");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Headphone Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Mic");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Mic Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Unknown");
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  dev.direction = CRAS_STREAM_INPUT;
   strcpy(node.name, "DAISY-I2S Mic Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
 
   memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Speaker");
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(3, node.priority);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
+  ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
 }
 
 //  Test thread add/rm stream, open_alsa, and iodev config.

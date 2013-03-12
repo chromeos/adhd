@@ -31,6 +31,8 @@ struct cras_iodev;
  *    plugged - true if the device is plugged.
  *    plugged_time - If plugged is true, this is the time it was attached.
  *    priority - higher is better.
+ *    type - Type displayed to the user.
+ *    name - Name displayed to the user.
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -38,6 +40,7 @@ struct cras_ionode {
 	int plugged;
 	struct timeval plugged_time;
 	unsigned priority;
+	enum CRAS_NODE_TYPE type;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	struct cras_ionode *prev, *next;
 };

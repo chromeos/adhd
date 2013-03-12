@@ -201,4 +201,18 @@ static inline cras_stream_id_t cras_get_stream_id(uint16_t client_id,
 				  (stream_id & 0x0000ffff));
 }
 
+enum CRAS_NODE_TYPE {
+	/* These value can be used for output nodes. */
+	CRAS_NODE_TYPE_INTERNAL_SPEAKER,
+	CRAS_NODE_TYPE_HEADPHONE,
+	CRAS_NODE_TYPE_HDMI,
+	/* These value can be used for input nodes. */
+	CRAS_NODE_TYPE_INTERNAL_MIC,
+	CRAS_NODE_TYPE_MIC,
+	/* These value can be used for both output and input nodes. */
+	CRAS_NODE_TYPE_USB,
+	CRAS_NODE_TYPE_BLUETOOTH,
+	CRAS_NODE_TYPE_UNKNOWN,
+};
+
 #endif /* CRAS_TYPES_H_ */

@@ -51,6 +51,15 @@ Methods		void SetOutputVolume(int32 volume)
 					The id of this node. It is unique among
 					all nodes including both output and
 					input nodes.
+				string Type
+				        The type of this node. It can be one of
+				        following values:
+					/* for output nodes. */
+					"INTERNAL_SPEAKER","HEADPHONE", "HDMI",
+					/* for input nodes. */
+					"INTERNAL_MIC", "MIC",
+					/* for both output and input nodes. */
+					"USB", "BLUETOOTH", "UNKNOWN",
 				string Name
 					The name of this node. For example,
 					"Speaker" or "Internal Mic".
@@ -59,11 +68,6 @@ Methods		void SetOutputVolume(int32 volume)
 					belongs to. For example,
 					"HDA Intel PCH: CA0132 Analog:0,0" or
 					"Creative SB Arena Headset".
-				string DeviceType
-				        The device type of this node. It can
-					have one of the following values:
-					"internal", "usb", "bluetooth", and
-					"unknown".
 				boolean Active
 					Whether this node is currently used
 					for output/input. There is one active

@@ -10,6 +10,7 @@
 #include <sys/time.h>
 
 #define CRAS_IODEV_NAME_BUFFER_SIZE 64
+#define CRAS_NODE_TYPE_BUFFER_SIZE 32
 #define CRAS_NODE_NAME_BUFFER_SIZE 64
 
 /* Identifying information about an IO device.
@@ -28,6 +29,7 @@ struct cras_iodev_info {
  *    plugged - Set true if this node is known to be plugged in.
  *    plugged_time - If plugged is true, this is the time it was attached.
  *    active - If this is the node currently being used.
+ *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  */
 struct cras_ionode_info {
@@ -37,6 +39,7 @@ struct cras_ionode_info {
 	int plugged;
 	struct timeval plugged_time;
 	int active;
+	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };
 

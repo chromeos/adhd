@@ -483,24 +483,27 @@ static void set_node_initial_state(struct cras_ionode *node,
 		const char *name;
 		int priority;
 		int initial_plugged;
+		enum CRAS_NODE_TYPE type;
 	} prios[] = {
-		{ "(default)", 0, 1},
-		{ INTERNAL_SPEAKER, 1, 1 },
-		{ INTERNAL_MICROPHONE, 1, 1 },
-		{ "HDMI", 2, 0 },
-		{ "IEC958", 2, 0},
-		{ "Headphone", 3, 0 },
-		{ "Front Headphone", 3, 0},
-		{ "Mic", 3, 0},
+		{ "(default)", 0, 1, CRAS_NODE_TYPE_UNKNOWN},
+		{ INTERNAL_SPEAKER, 1, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
+		{ INTERNAL_MICROPHONE, 1, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
+		{ "HDMI", 2, 0, CRAS_NODE_TYPE_HDMI },
+		{ "IEC958", 2, 0, CRAS_NODE_TYPE_HDMI },
+		{ "Headphone", 3, 0, CRAS_NODE_TYPE_HEADPHONE },
+		{ "Front Headphone", 3, 0, CRAS_NODE_TYPE_HEADPHONE },
+		{ "Mic", 3, 0, CRAS_NODE_TYPE_MIC },
 	};
 	unsigned i;
 
+	node->type = CRAS_NODE_TYPE_UNKNOWN;
 	/* Go through the known names */
 	for (i = 0; i < ARRAY_SIZE(prios); i++)
 		if (!strncmp(node->name, prios[i].name,
 			     strlen(prios[i].name))) {
 			node->priority = prios[i].priority;
 			node->plugged = prios[i].initial_plugged;
+			node->type = prios[i].type;
 			if (node->plugged)
 				gettimeofday(&node->plugged_time, NULL);
 			break;
@@ -510,15 +513,22 @@ static void set_node_initial_state(struct cras_ionode *node,
 	 * give it a high priority. This matches node names like "DAISY-I2S Mic
 	 * Jack" */
 	if (i == ARRAY_SIZE(prios)) {
-		if (endswith(node->name, "Jack"))
+		if (endswith(node->name, "Jack")) {
 			node->priority = 3;
+			if (node->dev->direction == CRAS_STREAM_OUTPUT)
+				node->type = CRAS_NODE_TYPE_HEADPHONE;
+			else
+				node->type = CRAS_NODE_TYPE_MIC;
+		}
 	}
 
 	/* Regardless of the node name of a USB headset (it can be "Speaker"),
 	 * we want to give it a high priority, the same as external 3.5mm
 	 * Headphone/Mic. */
-	if (card_type == ALSA_CARD_TYPE_USB)
+	if (card_type == ALSA_CARD_TYPE_USB) {
 		node->priority = 3;
+		node->type = CRAS_NODE_TYPE_USB;
+	}
 }
 
 static const char *get_output_node_name(struct alsa_io *aio,

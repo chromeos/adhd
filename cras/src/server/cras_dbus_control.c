@@ -253,6 +253,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_bool_t is_input;
 	dbus_uint64_t id;
 	const char *dev_name = dev->name;
+	const char *node_type = node->type;
 	const char *node_name = node->name;
 	dbus_bool_t active;
 
@@ -272,6 +273,9 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		return FALSE;
 	if (!append_key_value(&dict, "DeviceName", DBUS_TYPE_STRING,
 			      DBUS_TYPE_STRING_AS_STRING, &dev_name))
+		return FALSE;
+	if (!append_key_value(&dict, "Type", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &node_type))
 		return FALSE;
 	if (!append_key_value(&dict, "Name", DBUS_TYPE_STRING,
 			      DBUS_TYPE_STRING_AS_STRING, &node_name))

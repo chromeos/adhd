@@ -185,6 +185,29 @@ static void fill_dev_list(struct iodev_list *list,
 	}
 }
 
+static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
+{
+	switch (type) {
+	case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
+		return "INTERNAL_SPEAKER";
+	case CRAS_NODE_TYPE_HEADPHONE:
+		return "HEADPHONE";
+	case CRAS_NODE_TYPE_HDMI:
+		return "HDMI";
+	case CRAS_NODE_TYPE_INTERNAL_MIC:
+		return "INTERNAL_MIC";
+	case CRAS_NODE_TYPE_MIC:
+		return "MIC";
+	case CRAS_NODE_TYPE_USB:
+		return "USB";
+	case CRAS_NODE_TYPE_BLUETOOTH:
+		return "BLUETOOTH";
+	case CRAS_NODE_TYPE_UNKNOWN:
+	default:
+		return "UNKNOWN";
+	}
+}
+
 /* Fills an ionode_info array from the iodev_list. */
 static int fill_node_list(struct iodev_list *list,
 			  struct cras_ionode_info *node_info,
@@ -204,6 +227,8 @@ static int fill_node_list(struct iodev_list *list,
 				(dev == default_input || dev == default_output)
 				&& (dev->active_node == node);
 			strcpy(node_info->name, node->name);
+			snprintf(node_info->type, sizeof(node_info->type), "%s",
+				node_type_to_str(node->type));
 			node_info++;
 			i++;
 			if (i == out_size)
