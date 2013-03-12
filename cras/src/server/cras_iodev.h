@@ -244,6 +244,10 @@ void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node);
 /* Removes a node from iodev's node list. */
 void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node);
 
+/* Assign a node to be the active node of the device */
+void cras_iodev_set_active_node(struct cras_iodev *iodev,
+				struct cras_ionode *node);
+
 /* Gets a count of how many frames until the next time the thread should wake
  * up to service the buffer.
  * Args:

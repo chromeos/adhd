@@ -307,3 +307,9 @@ void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
 	DL_DELETE(iodev->nodes, node);
 	cras_iodev_list_notify_nodes_changed();
 }
+
+void cras_iodev_set_active_node(struct cras_iodev *iodev,
+				struct cras_ionode *node)
+{
+	iodev->active_node = node;
+}

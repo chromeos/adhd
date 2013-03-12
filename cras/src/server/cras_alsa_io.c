@@ -957,7 +957,7 @@ int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		alsa_iodev_unmute_node(aio, ionode);
 
-	iodev->active_node = ionode;
+	cras_iodev_set_active_node(iodev, ionode);
 	aio->base.dsp_name = get_active_dsp_name(aio);
 	cras_iodev_update_dsp(iodev);
 	enable_jack_ucm(aio, 1);
