@@ -23,19 +23,19 @@
     DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                               \
     "<node>\n"                                                              \
     "  <interface name=\""CRAS_CONTROL_NAME"\">\n"                      \
-    "    <method name=\"SetSystemVolume\">\n"                              \
+    "    <method name=\"SetOutputVolume\">\n"                              \
     "      <arg name=\"volume\" type=\"y\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
-    "    <method name=\"SetSystemMute\">\n"                              \
+    "    <method name=\"SetOutputMute\">\n"                              \
     "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
-    "    <method name=\"SetSystemCaptureGain\">\n"                              \
+    "    <method name=\"SetInputGain\">\n"                              \
     "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
-    "    <method name=\"SetSystemCaptureMute\">\n"                              \
+    "    <method name=\"SetInputMute\">\n"                              \
     "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
-    "    <method name=\"GetSystemVolumeState\">\n"                           \
+    "    <method name=\"GetVolumeState\">\n"                           \
     "      <arg name=\"volume\" type=\"y\" direction=\"out\"/>\n"   \
     "      <arg name=\"muted\" type=\"b\" direction=\"out\"/>\n"   \
     "      <arg name=\"capture_gain\" type=\"i\" direction=\"out\"/>\n"   \
@@ -101,15 +101,15 @@ static void send_empty_reply(DBusMessage *message)
 }
 
 /* Handlers for exported DBus method calls. */
-static DBusHandlerResult handle_set_system_volume(
+static DBusHandlerResult handle_set_output_volume(
 	DBusConnection *conn,
 	DBusMessage *message,
 	void *arg)
 {
 	int rc;
-	uint8_t new_vol;
+	dbus_int32_t new_vol;
 
-	rc = get_single_arg(message, DBUS_TYPE_BYTE, &new_vol);
+	rc = get_single_arg(message, DBUS_TYPE_INT32, &new_vol);
 	if (rc)
 		return rc;
 
@@ -120,7 +120,7 @@ static DBusHandlerResult handle_set_system_volume(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_set_system_mute(
+static DBusHandlerResult handle_set_output_mute(
 	DBusConnection *conn,
 	DBusMessage *message,
 	void *arg)
@@ -139,13 +139,13 @@ static DBusHandlerResult handle_set_system_mute(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_set_system_capture_gain(
+static DBusHandlerResult handle_set_input_gain(
 	DBusConnection *conn,
 	DBusMessage *message,
 	void *arg)
 {
 	int rc;
-	int32_t new_gain;
+	dbus_int32_t new_gain;
 
 	rc = get_single_arg(message, DBUS_TYPE_INT32, &new_gain);
 	if (rc)
@@ -158,7 +158,7 @@ static DBusHandlerResult handle_set_system_capture_gain(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_set_system_capture_mute(
+static DBusHandlerResult handle_set_input_mute(
 	DBusConnection *conn,
 	DBusMessage *message,
 	void *arg)
@@ -177,14 +177,14 @@ static DBusHandlerResult handle_set_system_capture_mute(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_get_system_volume_state(
+static DBusHandlerResult handle_get_volume_state(
 	DBusConnection *conn,
 	DBusMessage *message,
 	void *arg)
 {
 	DBusMessage *reply;
 	dbus_uint32_t serial = 0;
-	uint8_t volume;
+	dbus_int32_t volume;
 	dbus_bool_t muted;
 	dbus_int32_t capture_gain;
 	dbus_bool_t capture_muted;
@@ -197,7 +197,7 @@ static DBusHandlerResult handle_get_system_volume_state(
 	capture_muted = cras_system_get_capture_mute();
 
 	dbus_message_append_args(reply,
-				 DBUS_TYPE_BYTE, &volume,
+				 DBUS_TYPE_INT32, &volume,
 				 DBUS_TYPE_BOOLEAN, &muted,
 				 DBUS_TYPE_INT32, &capture_gain,
 				 DBUS_TYPE_BOOLEAN, &capture_muted,
@@ -381,24 +381,24 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_NAME,
-					       "SetSystemVolume")) {
-		return handle_set_system_volume(conn, message, arg);
+					       "SetOutputVolume")) {
+		return handle_set_output_volume(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_NAME,
-					       "SetSystemMute")) {
-		return handle_set_system_mute(conn, message, arg);
+					       "SetOutputMute")) {
+		return handle_set_output_mute(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_NAME,
-					       "SetSystemCaptureGain")) {
-		return handle_set_system_capture_gain(conn, message, arg);
+					       "SetInputGain")) {
+		return handle_set_input_gain(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_NAME,
-					       "SetSystemCaptureMute")) {
-		return handle_set_system_capture_mute(conn, message, arg);
+					       "SetInputMute")) {
+		return handle_set_input_mute(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_NAME,
-					       "GetSystemVolumeState")) {
-		return handle_get_system_volume_state(conn, message, arg);
+					       "GetVolumeState")) {
+		return handle_get_volume_state(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_NAME,
 					       "GetNodes")) {
@@ -437,15 +437,15 @@ static void signal_volume(void *arg)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
-	uint8_t volume;
+	dbus_int32_t volume;
 
-	msg = create_dbus_message("SystemVolumeChanged");
+	msg = create_dbus_message("OutputVolumeChanged");
 	if (!msg)
 		return;
 
 	volume = cras_system_get_volume();
 	dbus_message_append_args(msg,
-				 DBUS_TYPE_BYTE, &volume,
+				 DBUS_TYPE_INT32, &volume,
 				 DBUS_TYPE_INVALID);
 	dbus_connection_send(dbus_control.conn, msg, &serial);
 	dbus_message_unref(msg);
@@ -457,7 +457,7 @@ static void signal_mute(void *arg)
 	DBusMessage *msg;
 	dbus_bool_t muted;
 
-	msg = create_dbus_message("SystemMuteChanged");
+	msg = create_dbus_message("OutputMuteChanged");
 	if (!msg)
 		return;
 
@@ -475,7 +475,7 @@ static void signal_capture_gain(void *arg)
 	DBusMessage *msg;
 	dbus_int32_t gain;
 
-	msg = create_dbus_message("SystemCaptureGainChanged");
+	msg = create_dbus_message("InputGainChanged");
 	if (!msg)
 		return;
 
@@ -493,7 +493,7 @@ static void signal_capture_mute(void *arg)
 	DBusMessage *msg;
 	dbus_bool_t muted;
 
-	msg = create_dbus_message("SystemCaptureMuteChanged");
+	msg = create_dbus_message("InputMuteChanged");
 	if (!msg)
 		return;
 
