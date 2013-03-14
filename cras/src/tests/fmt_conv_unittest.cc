@@ -9,6 +9,14 @@ extern "C" {
 #include "cras_types.h"
 }
 
+// Like malloc or calloc, but fill the memory with random bytes.
+static void *ralloc(size_t size) {
+  unsigned char *buf = (unsigned char *)malloc(size);
+  while (size--)
+    buf[size] = rand() & 0xff;
+  return buf;
+}
+
 // Don't yet support up/down mix.
 TEST(FormatConverterTest,  InvalidParamsUpDownMix) {
   struct cras_audio_format in_fmt;
@@ -61,8 +69,8 @@ TEST(FormatConverterTest, MonoToStereo) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -78,6 +86,8 @@ TEST(FormatConverterTest, MonoToStereo) {
   }
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test Stereo to Mono mix.
@@ -125,6 +135,8 @@ TEST(FormatConverterTest, StereoToMono) {
   }
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 5.1 to Stereo mix.
@@ -177,6 +189,8 @@ TEST(FormatConverterTest, SurroundToStereo) {
     EXPECT_EQ(-13400, out_buff[i * 2 + 1]);
   }
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 2 to 1 SRC.
@@ -201,14 +215,16 @@ TEST(FormatConverterTest,  Convert2To1) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size/2, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size/2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size/2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
                                             buf_size,
                                             buf_size / 2);
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 1 to 2 SRC.
@@ -232,14 +248,16 @@ TEST(FormatConverterTest,  Convert1To2) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size*2, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size*2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size*2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
                                             buf_size,
                                             buf_size * 2);
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 1 to 2 SRC with mono to stereo conversion.
@@ -267,14 +285,16 @@ TEST(FormatConverterTest,  Convert1To2MonoToStereo) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size * 2, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
                                             buf_size,
                                             buf_size * 2);
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 32 to 16 bit conversion.
@@ -300,8 +320,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LE) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int32_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  in_buff = (int32_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -312,6 +332,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LE) {
     EXPECT_EQ((int16_t)(in_buff[i] >> 16), out_buff[i]);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 24 to 16 bit conversion.
@@ -337,8 +359,8 @@ TEST(FormatConverterTest, ConvertS24LEToS16LE) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int32_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  in_buff = (int32_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -349,6 +371,8 @@ TEST(FormatConverterTest, ConvertS24LEToS16LE) {
 	  EXPECT_EQ((int16_t)(in_buff[i] >> 8), out_buff[i]);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 8 to 16 bit conversion.
@@ -375,8 +399,8 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (uint8_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  in_buff = (uint8_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -387,6 +411,8 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
 	  EXPECT_EQ(((int16_t)(in_buff[i] - 128) << 8), out_buff[i]);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 16 to 32 bit conversion.
@@ -412,8 +438,8 @@ TEST(FormatConverterTest, ConvertS16LEToS32LE) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int32_t *)ralloc(buf_size * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -424,6 +450,8 @@ TEST(FormatConverterTest, ConvertS16LEToS32LE) {
     EXPECT_EQ(((int32_t)in_buff[i] << 16), out_buff[i]);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 16 to 24 bit conversion.
@@ -449,8 +477,8 @@ TEST(FormatConverterTest, ConvertS16LEToS24LE) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int32_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int32_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -461,6 +489,8 @@ TEST(FormatConverterTest, ConvertS16LEToS24LE) {
 	  EXPECT_EQ(((int32_t)in_buff[i] << 8), out_buff[i]);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 16 to 8 bit conversion.
@@ -487,8 +517,8 @@ TEST(FormatConverterTest, ConvertS16LEToU8) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (uint8_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  in_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (uint8_t *)ralloc(buf_size * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -499,6 +529,8 @@ TEST(FormatConverterTest, ConvertS16LEToU8) {
 	  EXPECT_EQ((in_buff[i] >> 8) + 128, out_buff[i]);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 32 bit 5.1 to 16 bit stereo conversion.
@@ -525,8 +557,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  in_buff = (int32_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  in_buff = (int32_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -535,6 +567,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo) {
   EXPECT_EQ(buf_size, out_frames);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 32 bit 5.1 to 16 bit stereo conversion with SRC 1 to 2.
@@ -561,8 +595,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To96) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size * 2, out_frames);
 
-  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int32_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -571,6 +605,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To96) {
   EXPECT_EQ(buf_size * 2, out_frames);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 32 bit 5.1 to 16 bit stereo conversion with SRC 2 to 1.
@@ -597,8 +633,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size / 2, out_frames);
 
-  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(buf_size / 2 * cras_get_format_bytes(&out_fmt));
+  in_buff = (int32_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(buf_size / 2 * cras_get_format_bytes(&out_fmt));
   out_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -607,6 +643,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48) {
   EXPECT_EQ(buf_size / 2, out_frames);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 32 bit 5.1 to 16 bit stereo conversion with SRC 48 to 44.1.
@@ -634,8 +672,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To441) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_LT(out_frames, buf_size);
 
-  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc(out_frames * cras_get_format_bytes(&out_fmt));
+  in_buff = (int32_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc(out_frames * cras_get_format_bytes(&out_fmt));
   ret_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
                                             (uint8_t *)out_buff,
@@ -644,6 +682,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To441) {
   EXPECT_EQ(out_frames, ret_frames);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test 32 bit 5.1 to 16 bit stereo conversion with SRC 441 to 48.
@@ -671,8 +711,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo441To48) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_GT(out_frames, buf_size);
 
-  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc((out_frames - 1) *
+  in_buff = (int32_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc((out_frames - 1) *
                                cras_get_format_bytes(&out_fmt));
   ret_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
@@ -682,6 +722,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo441To48) {
   EXPECT_EQ(out_frames - 1, ret_frames);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 // Test Invalid buffer length just truncates.
@@ -709,8 +751,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48Short) {
   out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
   EXPECT_EQ(buf_size / 2, out_frames);
 
-  in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  out_buff = (int16_t *)malloc((out_frames - 2) *
+  in_buff = (int32_t *)ralloc(buf_size * cras_get_format_bytes(&in_fmt));
+  out_buff = (int16_t *)ralloc((out_frames - 2) *
                                cras_get_format_bytes(&out_fmt));
   ret_frames = cras_fmt_conv_convert_frames(c,
                                             (uint8_t *)in_buff,
@@ -720,6 +762,8 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48Short) {
   EXPECT_EQ(out_frames - 2, ret_frames);
 
   cras_fmt_conv_destroy(c);
+  free(in_buff);
+  free(out_buff);
 }
 
 int main(int argc, char **argv) {

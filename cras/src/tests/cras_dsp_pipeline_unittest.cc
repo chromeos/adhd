@@ -452,7 +452,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   cras_dsp_pipeline_apply(p, 2, (uint8_t*)samples, 100);
   /* the data flow through 2 plugins because m4 is disabled. */
   verify_processed_data(samples, 100, 2);
-  delete samples;
+  delete[] samples;
 
   ASSERT_EQ(1, d1->run_called);
   ASSERT_EQ(1, d3->run_called);

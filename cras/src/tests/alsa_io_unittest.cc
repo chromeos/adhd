@@ -300,6 +300,7 @@ TEST(AlsaIoInit, UsbCardAutoPlug) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
+  alsa_iodev_destroy(iodev);
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -307,6 +308,7 @@ TEST(AlsaIoInit, UsbCardAutoPlug) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
+  alsa_iodev_destroy(iodev);
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -815,6 +817,8 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   rc = aio_output_->base.close_dev(&aio_output_->base);
   EXPECT_EQ(0, rc);
   EXPECT_EQ((void *)NULL, aio_output_->handle);
+
+  free(fmt);
 }
 
 }  //  namespace
@@ -1167,7 +1171,7 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
-  fake_format = (struct cras_audio_format *)malloc(sizeof(*fake_format));
+  fake_format = (struct cras_audio_format *)calloc(1, sizeof(*fake_format));
   iodev->format = fake_format;
   return 0;
 }

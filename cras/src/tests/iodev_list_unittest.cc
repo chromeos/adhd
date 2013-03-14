@@ -52,6 +52,10 @@ class IoDevTestSuite : public testing::Test {
       channel_counts_[0] = 2;
       channel_counts_[1] = 0;
 
+      memset(&d1_, 0, sizeof(d1_));
+      memset(&d2_, 0, sizeof(d2_));
+      memset(&d3_, 0, sizeof(d3_));
+
       memset(&node1, 0, sizeof(node1));
       memset(&node2, 0, sizeof(node2));
       memset(&node3, 0, sizeof(node3));
@@ -231,6 +235,7 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   // Should be 1 dev now.
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(1, rc);
+  free(dev_info);
   // Passing null should return the number of outputs.
   rc = cras_iodev_list_get_outputs(NULL);
   EXPECT_EQ(1, rc);
@@ -240,6 +245,7 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   // Should be 0 devs now.
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(0, rc);
+  free(dev_info);
 }
 
 // Test auto routing for outputs of different priority.
@@ -424,12 +430,14 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   // Should be 1 dev now.
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(1, rc);
+  free(dev_info);
   // Remove other dev.
   rc = cras_iodev_list_rm_input(&d2_);
   EXPECT_EQ(0, rc);
   // Should be 0 devs now.
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(0, rc);
+  free(dev_info);
 }
 
 // Test adding/removing an input dev to the list without updating the server

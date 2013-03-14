@@ -239,6 +239,7 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	cmix->mixer = alsa_mixer_open(card_name);
 	if (cmix->mixer == NULL) {
 		syslog(LOG_DEBUG, "Couldn't open mixer.");
+		free(cmix);
 		return NULL;
 	}
 
@@ -299,9 +300,11 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 		free(c);
 	}
 	DL_FOREACH_SAFE(cras_mixer->output_controls, output, output_tmp) {
+		cras_volume_curve_destroy(output->properties.volume_curve);
 		DL_DELETE(cras_mixer->output_controls, output);
 		free(output);
 	}
+	cras_volume_curve_destroy(cras_mixer->volume_curve);
 	snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
 }

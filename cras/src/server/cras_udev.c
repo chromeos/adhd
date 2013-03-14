@@ -356,6 +356,7 @@ static void enumerate_devices(struct udev_callback_data *data)
 			udev_device_new_from_syspath(data->udev, path);
 
 		change_udev_device_if_alsa_device(dev);
+		udev_device_unref(dev);
 	}
 	udev_enumerate_unref(enumerate);
 }

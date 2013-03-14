@@ -119,8 +119,7 @@ static void ResetStubData() {
   cras_alsa_mixer_get_input_matching_name_called = 0;
   cras_alsa_mixer_get_output_matching_name_return_value =
       reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
-  cras_alsa_mixer_get_input_matching_name_return_value =
-      reinterpret_cast<struct mixer_volume_control *>(0x654);
+  cras_alsa_mixer_get_input_matching_name_return_value = NULL;
   ucm_get_dev_for_jack_called = 0;
   ucm_get_cap_control_called = 0;
   ucm_get_cap_control_value = NULL;
@@ -331,6 +330,10 @@ TEST(AlsaJacks, CreateGPIOMic) {
   snd_hctl_first_elem_return_val = NULL;
   ucm_get_cap_control_value = reinterpret_cast<char *>(0x1);
 
+  // Freed in destroy.
+  cras_alsa_mixer_get_input_matching_name_return_value =
+      reinterpret_cast<struct mixer_volume_control *>(malloc(1));
+
   jack_list = cras_alsa_jack_list_create(
       0,
       "c1",
@@ -343,6 +346,7 @@ TEST(AlsaJacks, CreateGPIOMic) {
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
   EXPECT_EQ(ucm_get_cap_control_called, 1);
   EXPECT_EQ(cras_alsa_mixer_get_input_matching_name_called, 1);
+  cras_alsa_jack_list_destroy(jack_list);
 }
 
 TEST(AlsaJacks, CreateGPIOHdmi) {
@@ -381,7 +385,7 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
 
   ResetStubData();
   ucm_get_dev_for_jack_return = 1;
-  edid_file_ret = static_cast<char*>(malloc(1));  // Freed in destroy.
+  edid_file_ret = static_cast<char*>(calloc(1, 1));  // Freed in destroy.
   gpio_get_switch_names_count = ~0;
   eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
   gpio_switch_eviocgbit_fd = 3;

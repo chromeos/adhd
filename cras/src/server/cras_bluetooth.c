@@ -77,8 +77,16 @@ static void default_adapter_remove_device(const char *device_path)
 static void default_adapter_set_devices(DBusMessageIter *iter)
 {
 	DBusMessageIter array_iter;
+	char *signature;
+	int match;
 
-	if (strcmp("ao", dbus_message_iter_get_signature(iter)) != 0)
+	/* Check if the signature is "ao" */
+	signature = dbus_message_iter_get_signature(iter);
+	if (!signature)
+		return;
+	match = (strcmp("ao", signature) == 0);
+	dbus_free(signature);
+	if (!match)
 		return;
 
 	dbus_message_iter_recurse(iter, &array_iter);

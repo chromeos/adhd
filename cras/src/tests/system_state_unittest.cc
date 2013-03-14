@@ -76,16 +76,15 @@ static void callback_stub(void *data) {
 }
 
 TEST(SystemStateSuite, DefaultVolume) {
-  cras_system_state_deinit();
   cras_system_state_init();
   EXPECT_EQ(100, cras_system_get_volume());
   EXPECT_EQ(2000, cras_system_get_capture_gain());
   EXPECT_EQ(0, cras_system_get_mute());
   EXPECT_EQ(0, cras_system_get_capture_mute());
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, SetVolume) {
-  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_set_volume(0);
   EXPECT_EQ(0, cras_system_get_volume());
@@ -95,18 +94,18 @@ TEST(SystemStateSuite, SetVolume) {
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
   cras_system_set_volume(CRAS_MAX_SYSTEM_VOLUME + 1);
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, SetMinMaxVolume) {
-  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_set_volume_limits(-10000, -600);
   EXPECT_EQ(-10000, cras_system_get_min_volume());
   EXPECT_EQ(-600, cras_system_get_max_volume());
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, SetCaptureVolume) {
-  cras_system_state_deinit();
   cras_system_state_init();
   cras_system_set_capture_gain(0);
   EXPECT_EQ(0, cras_system_get_capture_gain());
@@ -115,6 +114,7 @@ TEST(SystemStateSuite, SetCaptureVolume) {
   // Check that it is limited to the minimum allowed gain.
   cras_system_set_capture_gain(-10000);
   EXPECT_EQ(-5000, cras_system_get_capture_gain());
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, VolumeChangedCallback) {
@@ -123,7 +123,6 @@ TEST(SystemStateSuite, VolumeChangedCallback) {
   const size_t fake_volume_2 = 44;
   int rc;
 
-  cras_system_state_deinit();
   cras_system_state_init();
   ResetStubData();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
@@ -144,6 +143,7 @@ TEST(SystemStateSuite, VolumeChangedCallback) {
   cras_system_set_volume(fake_volume_2);
   EXPECT_EQ(fake_volume_2, cras_system_get_volume());
   EXPECT_EQ(2, alert_pending_called);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
@@ -155,7 +155,6 @@ TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
   const size_t fake_max_2 = -600;
   int rc;
 
-  cras_system_state_deinit();
   cras_system_state_init();
   ResetStubData();
   rc = cras_system_register_volume_limits_changed_cb(volume_limits_changed,
@@ -195,6 +194,7 @@ TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
   EXPECT_EQ(fake_min, cras_system_get_min_volume());
   EXPECT_EQ(fake_max, cras_system_get_max_volume());
   EXPECT_EQ(4, alert_pending_called);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, CaptureVolumeChangedCallback) {
@@ -203,7 +203,6 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallback) {
   const long fake_capture_gain_2 = -1600;
   int rc;
 
-  cras_system_state_deinit();
   cras_system_state_init();
   ResetStubData();
   cras_system_register_capture_gain_changed_cb(capture_gain_changed,
@@ -226,10 +225,10 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallback) {
   cras_system_set_capture_gain(fake_capture_gain_2);
   EXPECT_EQ(fake_capture_gain_2, cras_system_get_capture_gain());
   EXPECT_EQ(2, alert_pending_called);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, SetMute) {
-  cras_system_state_deinit();
   cras_system_state_init();
   EXPECT_EQ(0, cras_system_get_mute());
   cras_system_set_mute(0);
@@ -238,13 +237,13 @@ TEST(SystemStateSuite, SetMute) {
   EXPECT_EQ(1, cras_system_get_mute());
   cras_system_set_mute(22);
   EXPECT_EQ(1, cras_system_get_mute());
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, MuteChangedCallback) {
   void * const fake_user_arg = (void *)1;
   int rc;
 
-  cras_system_state_deinit();
   cras_system_state_init();
   ResetStubData();
   cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
@@ -265,6 +264,7 @@ TEST(SystemStateSuite, MuteChangedCallback) {
   cras_system_set_mute(0);
   EXPECT_EQ(0, cras_system_get_mute());
   EXPECT_EQ(2, alert_pending_called);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
@@ -272,7 +272,6 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
   void * const fake_arg_2 = (void *)2;
   int rc;
 
-  cras_system_state_deinit();
   cras_system_state_init();
   ResetStubData();
   rc = cras_system_register_capture_mute_changed_cb(capture_mute_changed,
@@ -307,13 +306,13 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
   rc = cras_system_remove_capture_mute_changed_cb(capture_mute_changed_2,
                                                   fake_arg_2);
   EXPECT_EQ(0, rc);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, MuteLocked) {
   void * const fake_user_arg = (void *)1;
   int rc;
 
-  cras_system_state_deinit();
   cras_system_state_init();
   ResetStubData();
 
@@ -351,6 +350,7 @@ TEST(SystemStateSuite, MuteLocked) {
   EXPECT_EQ(1, cras_system_get_capture_mute());
   EXPECT_EQ(1, cras_system_get_capture_mute_locked());
   EXPECT_EQ(2, alert_pending_called);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, AddCardFailCreate) {
@@ -387,7 +387,6 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   int rc;
 
   ResetStubData();
-  cras_system_state_deinit();
   cras_system_state_init();
   rc = cras_system_add_select_fd(7, callback_stub, stub_data);
   EXPECT_NE(0, rc);
@@ -409,11 +408,11 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   EXPECT_EQ(1, rm_stub_called);
   EXPECT_EQ(0, callback_stub_called);
   EXPECT_EQ(select_data, select_data_value);
+  cras_system_state_deinit();
 }
 
 TEST(SystemSettingsStreamCount, StreamCount) {
   ResetStubData();
-  cras_system_state_deinit();
   cras_system_state_init();
 
   EXPECT_EQ(0, cras_system_state_get_active_streams());
@@ -426,6 +425,7 @@ TEST(SystemSettingsStreamCount, StreamCount) {
   struct timespec ts2;
   cras_system_state_get_last_stream_active_time(&ts2);
   EXPECT_NE(0, memcmp(&ts1, &ts2, sizeof(ts1)));
+  cras_system_state_deinit();
 }
 
 extern "C" {

@@ -22,6 +22,12 @@ class RstreamTestSuite : public testing::Test {
       fmt_.num_channels = 2;
     }
 
+    static bool format_equal(cras_audio_format *fmt1, cras_audio_format *fmt2) {
+      return fmt1->format == fmt2->format &&
+          fmt1->frame_rate == fmt2->frame_rate &&
+          fmt1->num_channels == fmt2->num_channels;
+    }
+
     struct cras_audio_format fmt_;
 };
 
@@ -120,7 +126,7 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   EXPECT_NE((void *)NULL, cras_rstream_output_shm(s));
   rc = cras_rstream_get_format(s, &fmt_ret);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, memcmp(&fmt_ret, &fmt_, sizeof(fmt_)));
+  EXPECT_TRUE(format_equal(&fmt_ret, &fmt_));
 
   // Check if shm is really set up.
   shm_ret = cras_rstream_output_shm(s);
@@ -167,7 +173,7 @@ TEST_F(RstreamTestSuite, CreateInput) {
   EXPECT_NE((void *)NULL, cras_rstream_input_shm(s));
   rc = cras_rstream_get_format(s, &fmt_ret);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, memcmp(&fmt_ret, &fmt_, sizeof(fmt_)));
+  EXPECT_TRUE(format_equal(&fmt_ret, &fmt_));
 
   // Check if shm is really set up.
   shm_ret = cras_rstream_input_shm(s);
