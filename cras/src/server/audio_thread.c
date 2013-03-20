@@ -771,8 +771,8 @@ int possibly_read_audio(struct audio_thread *thread,
 		cras_shm_buffer_write_complete(shm);
 
 		/* Tell the client that samples are ready. */
-		rc = cras_rstream_audio_ready(rstream,
-					      idev->cb_threshold);
+		rc = cras_rstream_audio_ready(
+			rstream, cras_rstream_get_cb_threshold(rstream));
 		if (rc < 0) {
 			thread_remove_stream(thread, rstream);
 			return rc;

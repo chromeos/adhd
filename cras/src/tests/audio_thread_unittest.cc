@@ -502,7 +502,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
 
   frames_queued_ = iodev_.cb_threshold + 5;
   audio_buffer_size_ = frames_queued_;
@@ -545,7 +545,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
   cras_shm_buffer_read(shm_, frames_queued_);
@@ -555,7 +555,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i],
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
