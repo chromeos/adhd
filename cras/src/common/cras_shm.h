@@ -82,14 +82,27 @@ static inline uint8_t *cras_shm_buff_for_idx(struct cras_audio_shm *shm,
 	return shm->area->samples + shm->config.used_size * idx;
 }
 
-/* Limit an offset to within the buffer size. */
-static inline unsigned cras_shm_check_offset(struct cras_audio_shm *shm,
-					     unsigned offset)
+/* Limit a read offset to within the buffer size. */
+static inline unsigned cras_shm_check_read_offset(struct cras_audio_shm *shm,
+						  unsigned offset)
 {
 	/* The offset is allowed to be the total size, indicating that the
-	 * buffer is full. */
+	 * buffer is full. If read pointer is invalid assume it is at the
+	 * beginning. */
 	if (offset > shm->config.used_size)
 		return 0;
+	return offset;
+}
+
+/* Limit a write offset to within the buffer size. */
+static inline unsigned cras_shm_check_write_offset(struct cras_audio_shm *shm,
+						   unsigned offset)
+{
+	/* The offset is allowed to be the total size, indicating that the
+	 * buffer is full. If write pointer is invalid assume it is at the
+	 * end. */
+	if (offset > shm->config.used_size)
+		return shm->config.used_size;
 	return offset;
 }
 
@@ -99,7 +112,7 @@ static inline uint8_t *cras_shm_get_curr_read_buffer(struct cras_audio_shm *shm)
 	unsigned i = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
 
 	return cras_shm_buff_for_idx(shm, i) +
-		cras_shm_check_offset(shm, shm->area->read_offset[i]);
+		cras_shm_check_read_offset(shm, shm->area->read_offset[i]);
 }
 
 /* Get the base of the current write buffer. */
@@ -120,7 +133,8 @@ uint8_t *cras_shm_get_writeable_frames(struct cras_audio_shm *shm,
 	unsigned write_offset;
 	const unsigned frame_bytes = shm->config.frame_bytes;
 
-	write_offset = cras_shm_check_offset(shm, shm->area->write_offset[i]);
+	write_offset = cras_shm_check_write_offset(shm,
+						   shm->area->write_offset[i]);
 	if (frames)
 		*frames = (shm->config.used_size - write_offset) / frame_bytes;
 	return cras_shm_buff_for_idx(shm, i) + write_offset;
@@ -140,17 +154,18 @@ static inline int16_t *cras_shm_get_readable_frames(struct cras_audio_shm *shm,
 	assert(frames != NULL);
 
 	read_offset =
-		cras_shm_check_offset(shm, shm->area->read_offset[buf_idx]);
+		cras_shm_check_read_offset(shm,
+					   shm->area->read_offset[buf_idx]);
 	write_offset =
-		cras_shm_check_offset(shm, shm->area->write_offset[buf_idx]);
+		cras_shm_check_write_offset(shm,
+					    shm->area->write_offset[buf_idx]);
 	final_offset = read_offset + offset * shm->config.frame_bytes;
 	if (final_offset >= write_offset) {
 		final_offset -= write_offset;
 		assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 		buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
-		write_offset =
-			cras_shm_check_offset(shm,
-					      shm->area->write_offset[buf_idx]);
+		write_offset = cras_shm_check_write_offset(
+				shm, shm->area->write_offset[buf_idx]);
 	}
 	if (final_offset >= write_offset) {
 		/* Past end of samples. */

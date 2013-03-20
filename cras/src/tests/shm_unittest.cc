@@ -186,8 +186,7 @@ TEST_F(ShmTestSuite, InvalidWriteOffset) {
   shm_.area->write_offset[0] = shm_.config.used_size + 50;
   shm_.area->read_offset[0] = 0;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
-  EXPECT_EQ(0, frames_);
-  EXPECT_EQ(NULL, (uint8_t *)buf_);
+  EXPECT_EQ(shm_.config.used_size / 4, frames_);
 }
 
 TEST_F(ShmTestSuite, InvalidReadOffset) {
@@ -203,8 +202,7 @@ TEST_F(ShmTestSuite, InvalidReadAndWriteOffset) {
   shm_.area->write_offset[0] = shm_.config.used_size + 50;
   shm_.area->read_offset[0] = shm_.config.used_size + 25;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
-  EXPECT_EQ(0, frames_);
-  EXPECT_EQ(NULL, (uint8_t *)buf_);
+  EXPECT_EQ(shm_.config.used_size / 4, frames_);
 }
 
 }  //  namespace
