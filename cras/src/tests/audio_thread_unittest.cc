@@ -76,6 +76,9 @@ class ReadStreamSuite : public testing::Test {
       iodev_.open_dev = open_dev;
       iodev_.dev_running = dev_running;
 
+      memcpy(&output_dev_, &iodev_, sizeof(output_dev_));
+      output_dev_.direction = CRAS_STREAM_OUTPUT;
+
       SetupRstream(&rstream_, 1);
       shm_ = cras_rstream_input_shm(rstream_);
       SetupRstream(&rstream2_, 2);
@@ -169,6 +172,7 @@ class ReadStreamSuite : public testing::Test {
 
 
   struct cras_iodev iodev_;
+  struct cras_iodev output_dev_;
   static int is_open_;
   static int frames_queued_;
   static int delay_frames_;
@@ -449,6 +453,73 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
 
   thread->streams = 0;
   audio_thread_destroy(thread);
+}
+
+TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
+  struct timespec ts;
+  int rc;
+  uint64_t nsec_expected;
+  struct audio_thread *thread;
+  struct cras_audio_shm *shm;
+
+  thread = audio_thread_create(&iodev_);
+  ASSERT_TRUE(thread);
+  audio_thread_add_output_dev(thread, &output_dev_);
+
+  iodev_.thread = thread;
+
+  iodev_.cb_threshold /= 2;
+  rstream_->cb_threshold = iodev_.cb_threshold;
+
+  rc = thread_add_stream(thread, rstream_);
+  EXPECT_EQ(0, rc);
+  rstream2_->direction = CRAS_STREAM_UNIFIED;
+
+  shm = cras_rstream_output_shm(rstream2_);
+  shm->area = (struct cras_audio_shm_area *)calloc(1,
+		  sizeof(*shm->area) + iodev_.cb_threshold * 8);
+  cras_shm_set_frame_bytes(shm, 4);
+  cras_shm_set_used_size(
+		  shm, iodev_.cb_threshold * cras_shm_frame_bytes(shm));
+
+  rc = thread_add_stream(thread, rstream2_);
+  EXPECT_EQ(0, rc);
+
+  //  A full block plus 4 frames.
+  frames_queued_ = iodev_.cb_threshold + 4;
+  audio_buffer_size_ = frames_queued_;
+
+  // +1 for correction factor.
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
+                  (uint64_t)fmt_.frame_rate;
+  cras_rstream_audio_ready_count = 999;
+  is_open_ = 1;
+  //  Give it some samples to copy.
+  rc = unified_io(thread, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+
+  frames_queued_ = iodev_.cb_threshold + 5;
+  audio_buffer_size_ = frames_queued_;
+  cras_rstream_audio_ready_count = 999;
+  is_open_ = 1;
+  //  Give it some samples to copy.
+  rc = unified_io(thread, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(3, cras_rstream_audio_ready_called);
+
+  thread->streams = 0;
+  audio_thread_destroy(thread);
+
+  free(shm->area);
 }
 
 TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {

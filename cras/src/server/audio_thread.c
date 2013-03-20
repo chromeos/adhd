@@ -364,6 +364,9 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
 
+		if (!cras_stream_has_output(curr->stream->direction))
+			continue;
+
 		if (cras_shm_callback_pending(shm))
 			flush_old_aud_messages(shm, curr->fd);
 
@@ -441,6 +444,9 @@ static int write_streams(struct audio_thread *thread,
 	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm;
 
+		if (!cras_stream_has_output(curr->stream->direction))
+			continue;
+
 		shm = cras_rstream_output_shm(curr->stream);
 
 		curr->mixed = 0;
@@ -468,6 +474,10 @@ static int write_streams(struct audio_thread *thread,
 			DL_FOREACH(thread->streams, curr) {
 				struct cras_audio_shm *shm;
 
+				if (!cras_stream_has_output(
+						curr->stream->direction))
+					continue;
+
 				shm = cras_rstream_output_shm(curr->stream);
 
 				if (cras_shm_callback_pending(shm) &&
@@ -478,6 +488,9 @@ static int write_streams(struct audio_thread *thread,
 		}
 		DL_FOREACH_SAFE(thread->streams, curr, tmp) {
 			struct cras_audio_shm *shm;
+
+			if (!cras_stream_has_output(curr->stream->direction))
+				continue;
 
 			if (!FD_ISSET(curr->fd, &this_set))
 				continue;
