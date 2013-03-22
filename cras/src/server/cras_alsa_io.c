@@ -35,6 +35,13 @@
 #define INTERNAL_SPEAKER "Speaker"
 #define INTERNAL_MICROPHONE "Internal Mic"
 
+/* For USB, pad the output buffer.  This avoids a situation where there isn't a
+ * complete URB's worth of audio ready to be transmitted when it is requested.
+ * The URB interval does track directly to the audio clock, making it hard to
+ * predict the exact interval. */
+#define USB_EXTRA_BUFFER_FRAMES 768
+
+
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
@@ -828,6 +835,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
+	if (card_type == ALSA_CARD_TYPE_USB)
+		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
