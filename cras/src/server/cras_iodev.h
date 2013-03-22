@@ -71,6 +71,7 @@ struct cras_ionode {
  * buffer_size - Size of the audio buffer in frames.
  * used_size - Number of frames that are used for audio.
  * cb_threshold - Level below which to call back to the client (in frames).
+ * min_buffer_level - Extra frames to keep queued in addition to requested.
  * dsp_context - The context used for dsp processing on the audio data.
  * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
  * thread - The audio thread using this device, NULL if none.
@@ -103,6 +104,7 @@ struct cras_iodev {
 	snd_pcm_uframes_t buffer_size;
 	snd_pcm_uframes_t used_size;
 	snd_pcm_uframes_t cb_threshold;
+	unsigned int min_buffer_level;
 	struct cras_dsp_context *dsp_context;
 	const char *dsp_name;
 	struct audio_thread *thread;
