@@ -891,6 +891,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			new_input(aio);
 	}
 
+	/* HDMI outputs don't have volume adjustment, do it in software. */
+	if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, "HDMI"))
+		iodev->software_volume_needed = 1;
+
 	/* Set the active node as the best node we have now. */
 	alsa_iodev_set_active_node(&aio->base,
 				   cras_iodev_get_best_node(&aio->base));

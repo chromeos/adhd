@@ -75,6 +75,7 @@ struct cras_ionode {
  * dsp_context - The context used for dsp processing on the audio data.
  * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
  * thread - The audio thread using this device, NULL if none.
+ * software_volume_needed - True if volume control is not supported by hardware.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -108,6 +109,7 @@ struct cras_iodev {
 	struct cras_dsp_context *dsp_context;
 	const char *dsp_name;
 	struct audio_thread *thread;
+	int software_volume_needed;
 	struct cras_iodev *prev, *next;
 };
 
