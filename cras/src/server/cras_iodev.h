@@ -115,24 +115,6 @@ struct cras_iodev {
  * Utility functions to be used by iodev implementations.
  */
 
-/* Initializes the cras_iodev structure.
- * Args:
- *    iodev - The device to initialize.
- *    thread_function - The function to run for playback/capture threads.
- *    thread_arg - Passed to thread_function when it is run.
- * Returns:
- *    0 on success or negative error on failure.
- */
-int cras_iodev_init(struct cras_iodev *iodev,
-		    void *(*thread_function)(void *arg),
-		    void *thread_data);
-
-/* Un-initializes a cras_iodev structure that was setup by cras_iodev_init().
- * Args:
- *    iodev - The device to initialize.
- */
-void cras_iodev_deinit(struct cras_iodev *iodev);
-
 /* Sets up the iodev for the given format if possible.  If the iodev can't
  * handle the requested format, it will modify the fmt parameter to inform the
  * caller of the actual format. It also allocates a dsp context for the iodev.
