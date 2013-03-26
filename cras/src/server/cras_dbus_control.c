@@ -17,12 +17,12 @@
 #include "cras_util.h"
 #include "utlist.h"
 
-#define CRAS_CONTROL_NAME "org.chromium.cras.Control"
-#define CRAS_CONTROL_PATH "/org/chromium/cras/Control"
+#define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
+#define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"
 #define CONTROL_INTROSPECT_XML                                             \
     DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                               \
     "<node>\n"                                                              \
-    "  <interface name=\""CRAS_CONTROL_NAME"\">\n"                      \
+    "  <interface name=\""CRAS_CONTROL_INTERFACE"\">\n"                      \
     "    <method name=\"SetOutputVolume\">\n"                              \
     "      <arg name=\"volume\" type=\"y\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
@@ -395,36 +395,36 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 		return DBUS_HANDLER_RESULT_HANDLED;
 
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetOutputVolume")) {
 		return handle_set_output_volume(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetOutputMute")) {
 		return handle_set_output_mute(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetInputGain")) {
 		return handle_set_input_gain(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetInputMute")) {
 		return handle_set_input_mute(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "GetVolumeState")) {
 		return handle_get_volume_state(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "GetNodes")) {
 		return handle_get_nodes(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetActiveOutputNode")) {
 		return handle_set_active_node(conn, message, arg,
 					      CRAS_STREAM_OUTPUT);
 	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_NAME,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetActiveInputNode")) {
 		return handle_set_active_node(conn, message, arg,
 					      CRAS_STREAM_INPUT);
@@ -437,8 +437,8 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 static DBusMessage *create_dbus_message(const char *name)
 {
 	DBusMessage *msg;
-	msg = dbus_message_new_signal(CRAS_CONTROL_PATH,
-				      CRAS_CONTROL_NAME,
+	msg = dbus_message_new_signal(CRAS_ROOT_OBJECT_PATH,
+				      CRAS_CONTROL_INTERFACE,
 				      name);
 	if (!msg)
 		syslog(LOG_ERR, "Failed to create signal");
@@ -580,12 +580,12 @@ void cras_dbus_control_start(DBusConnection *conn)
 	dbus_connection_ref(dbus_control.conn);
 
 	if (!dbus_connection_register_object_path(conn,
-						  CRAS_CONTROL_PATH,
+						  CRAS_ROOT_OBJECT_PATH,
 						  &control_vtable,
 						  &dbus_error)) {
 		syslog(LOG_WARNING,
 		       "Couldn't register CRAS control: %s: %s",
-		       CRAS_CONTROL_PATH, dbus_error.message);
+		       CRAS_ROOT_OBJECT_PATH, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		return;
 	}
@@ -613,7 +613,7 @@ void cras_dbus_control_stop()
 		signal_active_node_changed, 0);
 
 	dbus_connection_unregister_object_path(dbus_control.conn,
-					       CRAS_CONTROL_PATH);
+					       CRAS_ROOT_OBJECT_PATH);
 
 	dbus_connection_unref(dbus_control.conn);
 	dbus_control.conn = NULL;

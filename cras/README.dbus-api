@@ -3,7 +3,7 @@ CRAS dbus methods and signals.
 
 Service		org.chromium.cras
 Interface	org.chromium.cras.Control
-Object Path	/org/chromium/cras/Control
+Object Path	/org/chromium/cras
 
 Methods		void SetOutputVolume(int32 volume)
 
