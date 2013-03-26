@@ -61,7 +61,7 @@ TEST_F(MixTestSuite, MixFirst) {
   size_t count = kBufferFrames;
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
   EXPECT_EQ(0, memcmp(mix_buffer_, shm_.area->samples, kBufferFrames*4));
@@ -71,7 +71,7 @@ TEST_F(MixTestSuite, MixFirstSystemMuted) {
   size_t count = kBufferFrames;
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
   memset(compare_buffer_, 0, kBufferFrames * 4);
@@ -84,9 +84,9 @@ TEST_F(MixTestSuite, MixTwo) {
 
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 
@@ -101,9 +101,9 @@ TEST_F(MixTestSuite, MixTwoSystemMuted) {
 
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 
@@ -117,7 +117,7 @@ TEST_F(MixTestSuite, MixFirstMuted) {
   shm_.area->mute = 1;
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -132,7 +132,7 @@ TEST_F(MixTestSuite, MixFirstMutedSystemMuted) {
   shm_.area->mute = 1;
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -146,7 +146,7 @@ TEST_F(MixTestSuite, MixFirstZeroVolume) {
   cras_shm_set_volume_scaler(&shm_, 0.0);
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -162,7 +162,7 @@ TEST_F(MixTestSuite, MixFirstHalfVolume) {
   cras_shm_set_volume_scaler(&shm_, 0.5);
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
 
@@ -172,6 +172,41 @@ TEST_F(MixTestSuite, MixFirstHalfVolume) {
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames*4));
 }
 
+TEST_F(MixTestSuite, MixFirstHalfSystemVolume) {
+  size_t count = kBufferFrames;
+  int16_t *buf;
+
+  cras_shm_set_volume_scaler(&shm_, 1.0);
+  cras_system_get_mute_return = 0;
+  cras_mix_add_stream(
+      &shm_, kNumChannels, 0.5, (uint8_t *)mix_buffer_, &count, &mix_index_);
+  EXPECT_EQ(kBufferFrames, count);
+  EXPECT_EQ(1, mix_index_);
+
+  buf = (int16_t *)shm_.area->samples;
+  for (size_t i = 0; i < kBufferFrames * 2; i++)
+    compare_buffer_[i] = buf[i] * 0.5;
+  EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames*4));
+}
+
+TEST_F(MixTestSuite, MixFirstHalfStreamHalfSystemVolume) {
+  size_t count = kBufferFrames;
+  int16_t *buf;
+
+  cras_shm_set_volume_scaler(&shm_, 0.15);
+  cras_system_get_mute_return = 0;
+  cras_mix_add_stream(
+      &shm_, kNumChannels, 0.5, (uint8_t *)mix_buffer_, &count, &mix_index_);
+  EXPECT_EQ(kBufferFrames, count);
+  EXPECT_EQ(1, mix_index_);
+
+  buf = (int16_t *)shm_.area->samples;
+  for (size_t i = 0; i < kBufferFrames * 2; i++) {
+    EXPECT_GE((int16_t)(buf[i] * 0.17 * 0.5), mix_buffer_[i]);
+    EXPECT_LE((int16_t)(buf[i] * 0.13 * 0.5), mix_buffer_[i]);
+  }
+}
+
 TEST_F(MixTestSuite, MixTwoSecondHalfVolume) {
   size_t count = kBufferFrames;
   int16_t *buf;
@@ -179,12 +214,12 @@ TEST_F(MixTestSuite, MixTwoSecondHalfVolume) {
   cras_shm_set_volume_scaler(&shm_, 1.0);
   cras_system_get_mute_return = 0;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
   cras_shm_set_volume_scaler(&shm_, 0.5);
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 
@@ -200,12 +235,12 @@ TEST_F(MixTestSuite, MixTwoSecondHalfVolumeSystemMuted) {
   cras_shm_set_volume_scaler(&shm_, 1.0);
   cras_system_get_mute_return = 1;
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(1, mix_index_);
   cras_shm_set_volume_scaler(&shm_, 0.5);
   cras_mix_add_stream(
-      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+      &shm_, kNumChannels, 1.0, (uint8_t *)mix_buffer_, &count, &mix_index_);
   EXPECT_EQ(kBufferFrames, count);
   EXPECT_EQ(2, mix_index_);
 

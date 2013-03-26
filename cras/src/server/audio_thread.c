@@ -460,7 +460,7 @@ static int write_streams(struct audio_thread *thread,
 		} else {
 			curr->mixed = cras_mix_add_stream(
 				shm,
-				odev->format->num_channels,
+				odev->format->num_channels, 1.0,
 				dst, &write_limit, &num_mixed);
 		}
 	}
@@ -511,7 +511,7 @@ static int write_streams(struct audio_thread *thread,
 				continue;
 			curr->mixed = cras_mix_add_stream(
 				shm,
-				odev->format->num_channels,
+				odev->format->num_channels, 1.0,
 				dst, &write_limit, &num_mixed);
 		}
 	}

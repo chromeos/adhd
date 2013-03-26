@@ -53,6 +53,7 @@ static void copy_scaled(int16_t *dst,
  * written. If it's muted and the only stream zero memory. */
 size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 			   size_t num_channels,
+			   float scaler,
 			   uint8_t *dst,
 			   size_t *count,
 			   size_t *index)
@@ -62,6 +63,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 	size_t fr_written, fr_in_buf;
 	size_t num_samples;
 	size_t frames = 0;
+	float mix_vol;
 
 	fr_in_buf = cras_shm_get_frames(shm);
 	if (fr_in_buf == 0)
@@ -69,9 +71,12 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 	if (fr_in_buf < *count)
 		*count = fr_in_buf;
 
+	/* Stream and system scaler combined. */
+	mix_vol = cras_shm_get_volume_scaler(shm) * scaler;
+
 	if (cras_system_get_mute() ||
 	    cras_shm_get_mute(shm) ||
-	    cras_shm_get_volume_scaler(shm) < MIN_VOLUME_TO_SCALE) {
+	    mix_vol < MIN_VOLUME_TO_SCALE) {
 		/* Muted, if first then zero fill, otherwise, nop. */
 		if (*index == 0)
 			memset(dst, 0, *count * num_channels * sizeof(*src));
@@ -84,13 +89,11 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 				frames = *count - fr_written;
 			num_samples = frames * num_channels;
 			if (*index == 0)
-				copy_scaled(target, src,
-					    num_samples,
-					    cras_shm_get_volume_scaler(shm));
+				copy_scaled(target, src, num_samples, mix_vol);
 			else
 				scale_add_clip(target, src,
 					       num_samples,
-					       cras_shm_get_volume_scaler(shm));
+					       mix_vol);
 			fr_written += frames;
 			target += num_samples;
 		}

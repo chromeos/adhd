@@ -23,6 +23,7 @@ int unified_io(audio_thread* thread, timespec* ts);
 
 static int cras_mix_add_stream_dont_fill_next;
 static unsigned int cras_mix_add_stream_count;
+static float cras_mix_add_stream_scaler;
 static int cras_rstream_audio_ready_count;
 static unsigned int cras_rstream_request_audio_called;
 static unsigned int cras_rstream_audio_ready_called;
@@ -880,6 +881,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(1.0, cras_mix_add_stream_scaler);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
 }
@@ -1373,6 +1375,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 //  From mixer.
 size_t cras_mix_add_stream(struct cras_audio_shm *shm,
                            size_t num_channels,
+                           float scaler,
                            uint8_t *dst,
                            size_t *count,
                            size_t *index) {
@@ -1387,6 +1390,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
     return 0;
   }
   cras_mix_add_stream_count = *count;
+  cras_mix_add_stream_scaler = scaler;
 
   /* We only copy the data from shm to dst, not actually mix them. */
   fr_in_buf = cras_shm_get_frames(shm);
