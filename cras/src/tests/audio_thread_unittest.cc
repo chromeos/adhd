@@ -37,6 +37,7 @@ static unsigned int cras_iodev_config_params_for_streams_buffer_size;
 static unsigned int cras_iodev_config_params_for_streams_threshold;
 static unsigned int cras_iodev_set_format_called;
 static unsigned int cras_iodev_set_playback_timestamp_called;
+static unsigned int cras_system_get_volume_return;
 
 static int cras_dsp_get_pipeline_called;
 static int cras_dsp_get_pipeline_ret;
@@ -47,6 +48,9 @@ static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
 static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
 static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
+
+// Stub volume scalers.
+float softvol_scalers[101];
 
 }
 
@@ -954,6 +958,42 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   EXPECT_EQ(0, ts.tv_nsec);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_mix_add_stream_count);
+  EXPECT_EQ(1.0, cras_mix_add_stream_scaler);
+  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_NE(-1, select_max_fd);
+  EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
+  EXPECT_EQ(0, shm_->area->read_offset[0]);
+  EXPECT_EQ(0, shm_->area->write_offset[0]);
+}
+
+TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
+  struct timespec ts;
+  int rc;
+
+  //  Have cb_threshold samples left.
+  frames_queued_ = iodev_.cb_threshold;
+  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+
+  //  Software volume config.
+  iodev_.software_volume_needed = 1;
+  cras_system_get_volume_return = 88;
+  softvol_scalers[88] = 0.5;
+
+  //  shm is out of data.
+  shm_->area->write_offset[0] = 0;
+
+  FD_ZERO(&select_out_fds);
+  FD_SET(rstream_->fd, &select_out_fds);
+  select_return_value = 1;
+
+  is_open_ = 1;
+  rc = unified_io(thread_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_EQ(0, ts.tv_nsec);
+  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
+            cras_mix_add_stream_count);
+  EXPECT_EQ(0.5, cras_mix_add_stream_scaler);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -1483,6 +1523,10 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 }
 
 void cras_rstream_log_overrun(const struct cras_rstream *stream) {
+}
+
+size_t cras_system_get_volume() {
+  return cras_system_get_volume_return;
 }
 
 //  Override select so it can be stubbed.

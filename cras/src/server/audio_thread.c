@@ -12,9 +12,11 @@
 #include "cras_iodev.h"
 #include "cras_mix.h"
 #include "cras_rstream.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "audio_thread.h"
+#include "softvol_curve.h"
 #include "utlist.h"
 
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
@@ -425,6 +427,7 @@ static int write_streams(struct audio_thread *thread,
 	size_t streams_wait, num_mixed;
 	int max_fd;
 	int rc;
+	float volume_scaler = 1.0;
 
 	/* Timeout on reading before we under-run. Leaving time to mix. */
 	to.tv_sec = 0;
@@ -438,6 +441,9 @@ static int write_streams(struct audio_thread *thread,
 	max_fd = -1;
 	streams_wait = 0;
 	num_mixed = 0;
+
+	if (odev->software_volume_needed)
+		volume_scaler = softvol_get_scaler(cras_system_get_volume());
 
 	/* Check if streams have enough data to fill this request,
 	 * if not, wait for them. Mix all streams we have enough data for. */
@@ -460,7 +466,8 @@ static int write_streams(struct audio_thread *thread,
 		} else {
 			curr->mixed = cras_mix_add_stream(
 				shm,
-				odev->format->num_channels, 1.0,
+				odev->format->num_channels,
+				volume_scaler,
 				dst, &write_limit, &num_mixed);
 		}
 	}
@@ -511,7 +518,8 @@ static int write_streams(struct audio_thread *thread,
 				continue;
 			curr->mixed = cras_mix_add_stream(
 				shm,
-				odev->format->num_channels, 1.0,
+				odev->format->num_channels,
+				volume_scaler,
 				dst, &write_limit, &num_mixed);
 		}
 	}
