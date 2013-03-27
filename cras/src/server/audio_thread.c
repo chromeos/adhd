@@ -653,12 +653,16 @@ int possibly_fill_audio(struct audio_thread *thread,
 	int rc;
 	uint8_t *dst = NULL;
 	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *idev = thread->input_dev;
 
 	if (!odev || !odev->is_open(odev))
 		return 0;
 
 	/* Request data from streams that need more */
-	fr_to_req = odev->used_size - hw_level;
+	if (idev)
+		fr_to_req = idev->cb_threshold;
+	else
+		fr_to_req = odev->used_size - hw_level;
 	rc = fetch_and_set_timestamp(thread, fr_to_req, delay);
 	if (rc < 0)
 		return rc;
