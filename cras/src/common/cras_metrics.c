@@ -3,43 +3,15 @@
  * found in the LICENSE file.
  */
 
-#include <errno.h>
 #include <syslog.h>
+#include <unistd.h>
 
-#ifdef _WITH_CHROMEOS_METRICS
-#include <metrics/c_metrics_library.h>
-
-CMetricsLibrary metrics_lib;
-#endif
-
-int cras_metrics_init()
+void cras_metrics_log_event(const char *event)
 {
-#ifdef _WITH_CHROMEOS_METRICS
-	metrics_lib = CMetricsLibraryNew();
-	if (!metrics_lib) {
-		syslog(LOG_ERR, "Failed to create ChromeOS metrics library.");
-		return -ENOMEM;
+	syslog(LOG_DEBUG, "Log event: %s", event);
+	if (!fork()) {
+		const char *argv[] = {"metrics_client", "-v", event, NULL} ;
+		execvp(argv[0], (char * const *)argv);
+		_exit(1);
 	}
-
-	CMetricsLibraryInit(metrics_lib);
-#endif
-	return 0;
-}
-
-void cras_metrics_deinit()
-{
-#ifdef _WITH_CHROMEOS_METRICS
-	if (metrics_lib)
-		CMetricsLibraryDelete(metrics_lib);
-#endif
-}
-
-void cras_metrics_log_action(const char *action)
-{
-	syslog(LOG_DEBUG, "Metric: %s", action);
-
-#ifdef _WITH_CHROMEOS_METRICS
-	if (metrics_lib)
-		CMetricsLibrarySendUserActionToUMA(metrics_lib, action);
-#endif
 }

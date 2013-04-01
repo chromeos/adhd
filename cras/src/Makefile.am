@@ -60,8 +60,7 @@ cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
 cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl \
 	$(SBC_LIBS) \
-	$(DBUS_LIBS) \
-	$(METRICS_LIB)
+	$(DBUS_LIBS)
 
 lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = \

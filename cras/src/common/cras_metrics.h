@@ -6,13 +6,7 @@
 #ifndef CRAS_METRICS_H_
 #define CRAS_METRICS_H_
 
-/* Initializes the metrics facility. */
-int cras_metrics_init();
-
-/* Deinitialize the metrics facility. */
-void cras_metrics_deinit();
-
-/* Logs the specified action. */
-void cras_metrics_log_action(const char *action);
+/* Log the specified event. */
+void cras_metrics_log_event(const char *event);
 
 #endif /* CRAS_METRICS_H_ */

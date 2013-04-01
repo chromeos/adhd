@@ -282,7 +282,7 @@ static void cleanup_select_fds(void *server_data)
 void check_output_exists(struct cras_timer *t, void *data)
 {
 	if (cras_iodev_list_get_outputs(NULL) < 2)
-		cras_metrics_log_action(kNoCodecsFoundMetric);
+		cras_metrics_log_event(kNoCodecsFoundMetric);
 }
 
 /*
