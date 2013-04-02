@@ -17,6 +17,8 @@
 #include "audio_thread.h"
 #include "utlist.h"
 
+static void cras_iodev_alloc_dsp(struct cras_iodev *iodev);
+
 /*
  * Exported Interface.
  */
@@ -65,7 +67,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
 	size_t actual_rate, actual_num_channels;
-	const char *purpose;
 
 	/* If this device isn't already using a format, try to match the one
 	 * requested in "fmt". */
@@ -97,15 +98,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		iodev->format->num_channels = actual_num_channels;
 		/* TODO(dgreid) - allow other formats. */
 		iodev->format->format = SND_PCM_FORMAT_S16_LE;
-
-		if (iodev->direction == CRAS_STREAM_OUTPUT)
-			purpose = "playback";
-		else
-			purpose = "capture";
-		iodev->dsp_context = cras_dsp_context_new(actual_num_channels,
-							  actual_rate, purpose);
-		if (iodev->dsp_context)
-			cras_iodev_update_dsp(iodev);
+		cras_iodev_alloc_dsp(iodev);
 	}
 
 	*fmt = *(iodev->format);
@@ -128,6 +121,26 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 		free(iodev->format);
 		iodev->format = NULL;
 	}
+}
+
+static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
+{
+	const char *purpose;
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		purpose = "playback";
+	else
+		purpose = "capture";
+
+	cras_iodev_free_dsp(iodev);
+	iodev->dsp_context = cras_dsp_context_new(iodev->format->frame_rate,
+						  iodev->format->num_channels,
+						  purpose);
+	cras_iodev_update_dsp(iodev);
+}
+
+void cras_iodev_free_dsp(struct cras_iodev *iodev)
+{
 	if (iodev->dsp_context) {
 		cras_dsp_context_free(iodev->dsp_context);
 		iodev->dsp_context = NULL;

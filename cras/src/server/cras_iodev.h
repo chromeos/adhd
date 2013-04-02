@@ -128,13 +128,19 @@ struct cras_iodev {
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt);
 
-/* Clear the format previously set for this iodev. It also release the
- * dsp context for this iodev.
+/* Clear the format previously set for this iodev.
  *
  * Args:
  *    iodev - the iodev you want to free the format.
  */
 void cras_iodev_free_format(struct cras_iodev *iodev);
+
+/* Free the dsp context for this iodev
+ *
+ * Args:
+ *    iodev - the iodev you want to free the dsp context.
+ */
+void cras_iodev_free_dsp(struct cras_iodev *iodev);
 
 /* Adds a stream to the iodev.
  * Args:

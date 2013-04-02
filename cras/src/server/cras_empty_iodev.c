@@ -167,5 +167,6 @@ void empty_iodev_destroy(struct cras_iodev *iodev)
 		cras_iodev_list_rm_output(iodev);
 	}
 	free(iodev->active_node);
+	cras_iodev_free_dsp(iodev);
 	free(empty_iodev);
 }

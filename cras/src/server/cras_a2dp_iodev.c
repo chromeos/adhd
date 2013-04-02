@@ -346,6 +346,7 @@ void a2dp_iodev_destroy(struct cras_iodev *iodev)
 	rc = cras_iodev_list_rm_output(iodev);
 	if (rc != -EBUSY) {
 		free_resources(a2dpio);
+		cras_iodev_free_dsp(iodev);
 		free(a2dpio);
 	}
 }

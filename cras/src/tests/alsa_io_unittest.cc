@@ -106,6 +106,7 @@ static size_t ucm_get_dsp_name_default_called;
 static const char *ucm_get_dsp_name_default_value;
 static size_t cras_alsa_jack_get_dsp_name_called;
 static const char *cras_alsa_jack_get_dsp_name_value;
+static size_t cras_iodev_free_dsp_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -149,6 +150,7 @@ void ResetStubData() {
   ucm_get_dsp_name_default_value = NULL;
   cras_alsa_jack_get_dsp_name_called = 0;
   cras_alsa_jack_get_dsp_name_value = NULL;
+  cras_iodev_free_dsp_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -189,6 +191,7 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(NULL, cras_iodev_update_dsp_name);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
+  EXPECT_EQ(1, cras_iodev_free_dsp_called);
 }
 
 TEST(AlsaIoInit, DefaultNodeInternalCard) {
@@ -1218,4 +1221,9 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
                                 struct cras_ionode *node)
 {
   iodev->active_node = node;
+}
+
+void cras_iodev_free_dsp(struct cras_iodev *iodev)
+{
+  cras_iodev_free_dsp_called++;
 }

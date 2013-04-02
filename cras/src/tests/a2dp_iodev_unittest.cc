@@ -31,6 +31,7 @@ static size_t a2dp_block_size_called;
 static size_t a2dp_queued_frames_val;
 static size_t a2dp_written_bytes_val;
 static size_t cras_iodev_free_format_called;
+static size_t cras_iodev_free_dsp_called;
 static int pcm_buf_size_val;
 static unsigned int a2dp_write_processed_bytes_val;
 
@@ -48,6 +49,7 @@ void ResetStubData() {
   a2dp_queued_frames_val = 0;
   a2dp_written_bytes_val = 0;
   cras_iodev_free_format_called = 0;
+  cras_iodev_free_dsp_called = 0;
   a2dp_write_processed_bytes_val = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
@@ -74,6 +76,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   ASSERT_EQ(1, cras_iodev_list_rm_output_called);
   ASSERT_EQ(1, destroy_a2dp_called);
+  ASSERT_EQ(1, cras_iodev_free_dsp_called);
 }
 
 TEST(A2dpIoInit, InitializeFail) {
@@ -254,6 +257,11 @@ uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
   cras_iodev_free_format_called++;
+}
+
+void cras_iodev_free_dsp(struct cras_iodev *iodev)
+{
+  cras_iodev_free_dsp_called++;
 }
 
 // Cras iodev
