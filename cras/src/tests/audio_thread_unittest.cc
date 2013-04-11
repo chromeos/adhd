@@ -1204,10 +1204,12 @@ class AddStreamSuite : public testing::Test {
       is_open_called_ = 0;
       open_dev_called_ = 0;
       close_dev_called_ = 0;
+      open_dev_return_val_ = 0;
 
       cras_iodev_config_params_for_streams_called = 0;
       cras_iodev_config_params_for_streams_buffer_size = 0;
       cras_iodev_config_params_for_streams_threshold = 0;
+      cras_iodev_set_format_called = 0;
     }
 
     virtual void TearDown() {
@@ -1227,7 +1229,7 @@ class AddStreamSuite : public testing::Test {
 
     static int open_dev(cras_iodev* iodev) {
       open_dev_called_++;
-      return 0;
+      return open_dev_return_val_;
     }
 
     static int close_dev(cras_iodev* iodev) {
@@ -1304,6 +1306,7 @@ class AddStreamSuite : public testing::Test {
   static int is_open_;
   static int is_open_called_;
   static int open_dev_called_;
+  static int open_dev_return_val_;
   static int close_dev_called_;
   struct cras_audio_format fmt_;
 };
@@ -1311,6 +1314,7 @@ class AddStreamSuite : public testing::Test {
 int AddStreamSuite::is_open_ = 0;
 int AddStreamSuite::is_open_called_ = 0;
 int AddStreamSuite::open_dev_called_ = 0;
+int AddStreamSuite::open_dev_return_val_ = 0;
 int AddStreamSuite::close_dev_called_ = 0;
 
 TEST_F(AddStreamSuite, SimpleAddOutputStream) {
@@ -1345,6 +1349,25 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(1, close_dev_called_);
 
   free(new_stream);
+}
+
+TEST_F(AddStreamSuite, AddStreamOpenFail) {
+  struct audio_thread *thread;
+  cras_rstream new_stream;
+
+  thread = audio_thread_create(&iodev_);
+  ASSERT_TRUE(thread);
+
+  iodev_.thread = thread;
+
+  open_dev_return_val_ = -1;
+  new_stream.direction = CRAS_STREAM_OUTPUT;
+  EXPECT_EQ(AUDIO_THREAD_OUTPUT_DEV_ERROR,
+            thread_add_stream(thread, &new_stream));
+  EXPECT_EQ(1, open_dev_called_);
+  EXPECT_EQ(1, cras_iodev_set_format_called);
+  EXPECT_EQ(0, thread->streams);
+  audio_thread_destroy(thread);
 }
 
 TEST_F(AddStreamSuite, AddRmTwoOutputStreams) {
