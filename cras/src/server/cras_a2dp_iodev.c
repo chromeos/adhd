@@ -54,10 +54,12 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	else if (a2dp.frequency & SBC_SAMPLING_FREQ_16000)
 		rate = 16000;
 
+	free(iodev->supported_rates);
 	iodev->supported_rates = (size_t *)malloc(2 * sizeof(rate));
 	iodev->supported_rates[0] = rate;
 	iodev->supported_rates[1] = 0;
 
+	free(iodev->supported_channel_counts);
 	iodev->supported_channel_counts = (size_t *)malloc(2 * sizeof(channel));
 	iodev->supported_channel_counts[0] = channel;
 	iodev->supported_channel_counts[1] = 0;
@@ -289,19 +291,6 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 		 cras_bt_transport_object_path(a2dpio->transport));
 
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-
-	iodev->supported_rates =
-			(size_t *)malloc(sizeof(*iodev->supported_rates));
-	if (iodev->supported_rates == NULL)
-		goto error;
-	*iodev->supported_rates = 44100;
-
-	iodev->supported_channel_counts =
-			(size_t *)malloc(sizeof(
-					*iodev->supported_channel_counts));
-	if (iodev->supported_channel_counts == NULL)
-		goto error;
-	*iodev->supported_channel_counts = 2;
 
 	iodev->open_dev = open_dev;
 	iodev->is_open = is_open; /* Needed by thread_add_stream */
