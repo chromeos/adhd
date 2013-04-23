@@ -148,9 +148,9 @@ class RClientMessagesSuite : public testing::Test {
     struct cras_connect_message connect_msg_;
     struct cras_rclient *rclient_;
     struct cras_rstream *rstream_;
-    struct cras_audio_shm_area shm_;
     size_t stream_id_;
     int pipe_fds_[2];
+    struct cras_audio_shm_area shm_;
 };
 
 TEST_F(RClientMessagesSuite, FrameRateError) {

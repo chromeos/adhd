@@ -12,7 +12,7 @@
 struct cras_iodev;
 
 /* Errors that can be returned from add_stream. */
-enum {
+enum error_type_from_audio_thread_h {
 	AUDIO_THREAD_ERROR_OTHER = -1,
 	AUDIO_THREAD_OUTPUT_DEV_ERROR = -2,
 	AUDIO_THREAD_INPUT_DEV_ERROR = -3,

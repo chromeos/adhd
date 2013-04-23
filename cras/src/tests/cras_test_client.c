@@ -228,8 +228,6 @@ static void print_device_lists(struct cras_client *client)
 	num_nodes = MAX_IONODES;
 	rc = cras_client_get_input_devices(client, devs, nodes, &num_devs,
 					   &num_nodes);
-	if (num_devs < 0)
-		return;
 	printf("Input Devices:\n");
 	print_dev_info(devs, num_devs);
 	printf("Input Nodes:\n");
