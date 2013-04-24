@@ -1963,7 +1963,7 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
 	struct cras_iodev_info dev_info;
 	struct cras_ionode_info node_info;
 
-	if (cras_client_find_output_node(client, name, "Headphone",
+	if (cras_client_find_output_node(client, name, "Front Headphone Jack",
 					 &dev_info, &node_info) < 0)
 		return 0;
 
