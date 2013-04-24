@@ -333,9 +333,13 @@ void a2dp_iodev_destroy(struct cras_iodev *iodev)
 
 	/* A2DP does output only */
 	rc = cras_iodev_list_rm_output(iodev);
-	if (rc != -EBUSY) {
-		free_resources(a2dpio);
-		cras_iodev_free_dsp(iodev);
-		free(a2dpio);
+	if (rc == -EBUSY) {
+		syslog(LOG_ERR, "Failed to remove iodev %s", iodev->info.name);
+		return;
 	}
+
+	/* Free resources when device successfully removed. */
+	free_resources(a2dpio);
+	cras_iodev_free_dsp(iodev);
+	free(a2dpio);
 }

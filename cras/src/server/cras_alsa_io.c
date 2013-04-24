@@ -928,9 +928,14 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	else
 		rc = cras_iodev_list_rm_output(iodev);
 
+	if (rc == -EBUSY) {
+		syslog(LOG_ERR, "Failed to remove iodev %s", iodev->info.name);
+		return;
+	}
+
+	/* Free resources when device successfully removed. */
 	free_alsa_iodev_resources(aio);
-	if (rc != -EBUSY)
-		free(iodev);
+	free(iodev);
 }
 
 static void alsa_iodev_unmute_node(struct alsa_io *aio,
