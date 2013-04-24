@@ -256,6 +256,8 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	const char *node_type = node->type;
 	const char *node_name = node->name;
 	dbus_bool_t active;
+        dbus_uint64_t plugged_time = node->plugged_time.tv_sec * 1000000 +
+            node->plugged_time.tv_usec;
 
 	is_input = (direction == CRAS_STREAM_INPUT);
 	id = node->iodev_idx;
@@ -283,6 +285,9 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	if (!append_key_value(&dict, "Active", DBUS_TYPE_BOOLEAN,
 			      DBUS_TYPE_BOOLEAN_AS_STRING, &active))
 		return FALSE;
+        if (!append_key_value(&dict, "PluggedTime", DBUS_TYPE_UINT64,
+                              DBUS_TYPE_UINT64_AS_STRING, &plugged_time))
+                return FALSE;
 	if (!dbus_message_iter_close_container(iter, &dict))
 		return FALSE;
 
