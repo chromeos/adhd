@@ -38,6 +38,7 @@ struct cras_dsp_context {
 enum dsp_command {
 	DSP_CMD_SET_VARIABLE,
 	DSP_CMD_LOAD_PIPELINE,
+	DSP_CMD_ADD_CONTEXT,
 	DSP_CMD_FREE_CONTEXT,
 	DSP_CMD_RELOAD_INI,
 	DSP_CMD_DUMP_INFO,
@@ -140,6 +141,11 @@ static void cmd_load_pipeline(struct cras_dsp_context *ctx)
 		cras_dsp_pipeline_free(old_pipeline);
 }
 
+static void cmd_add_context(struct cras_dsp_context *ctx)
+{
+	DL_APPEND(context_list, ctx);
+}
+
 static void cmd_free_context(struct cras_dsp_context *ctx)
 {
 	DL_DELETE(context_list, ctx);
@@ -236,6 +242,9 @@ static void *dsp_thread_function(void *arg)
 		case DSP_CMD_LOAD_PIPELINE:
 			cmd_load_pipeline(req->ctx);
 			break;
+		case DSP_CMD_ADD_CONTEXT:
+			cmd_add_context(req->ctx);
+			break;
 		case DSP_CMD_FREE_CONTEXT:
 			cmd_free_context(req->ctx);
 			break;
@@ -293,7 +302,7 @@ struct cras_dsp_context *cras_dsp_context_new(int channels, int sample_rate,
 	ctx->sample_rate = sample_rate;
 	ctx->purpose = strdup(purpose);
 
-	DL_APPEND(context_list, ctx);
+	send_dsp_request_simple(DSP_CMD_ADD_CONTEXT, ctx);
 	return ctx;
 }
 
