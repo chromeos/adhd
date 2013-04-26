@@ -301,6 +301,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->put_buffer = put_buffer;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
+	iodev->software_volume_needed = 1;
 
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
