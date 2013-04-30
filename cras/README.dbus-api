@@ -75,7 +75,7 @@ Methods		void SetOutputVolume(int32 volume)
 					input.
 				uint64 PluggedTime
 					The time that this device was plugged
-                                        in. This value is in microseconds.
+					in. This value is in microseconds.
 
 		void SetActiveOutputNode(uint64 node_id);
 
