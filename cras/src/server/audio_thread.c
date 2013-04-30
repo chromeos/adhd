@@ -839,7 +839,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *master_dev;
 	int rc, delay;
-	int original_level = 0;
 	unsigned int hw_level, to_sleep;
 
 	ts->tv_sec = 0;
@@ -851,7 +850,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	if (rc < 0)
 		return rc;
 	hw_level = adjust_level(thread, rc);
-	original_level = hw_level;
 
 	if (!wake_threshold_met(master_dev, hw_level)) {
 		/* Check if the pcm is still running. */
@@ -893,7 +891,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	}
 
 	if (!idev) {
-		original_level = rc;
 		rc = adjust_level(thread, rc);
 		hw_level = rc;
 	}
@@ -918,19 +915,6 @@ not_enough:
 	to_sleep = cras_iodev_sleep_frames(master_dev, hw_level) +
 		   thread->remaining_target +
 		   thread->sleep_correction_frames;
-
-	if (!idev && odev->min_buffer_level) {
-		/* Output only: Try to buffer 25% more than min level. */
-		unsigned int desired_level =
-		     (odev->min_buffer_level + (odev->min_buffer_level >> 2));
-		rc = original_level - desired_level;
-		if (rc > 0) {
-			if (to_sleep > rc)
-				to_sleep -= rc;
-			else
-				to_sleep = 0;
-		}
-	}
 
 	cras_iodev_fill_time_from_frames(to_sleep,
 					 master_dev->format->frame_rate,
