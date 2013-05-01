@@ -271,17 +271,13 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 /* This is called when a node is plugged/unplugged */
 static void plug_node(struct cras_ionode *node, int plugged)
 {
-	struct cras_iodev *iodev = node->dev;
-
 	if (node->plugged == plugged)
 		return;
 	node->plugged = plugged;
 	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
-		/* clear selection if a node is plugged */
-		cras_iodev_list_select_node(iodev->direction, 0);
 	}
-	iodev->update_active_node(iodev);
+	cras_iodev_list_notify_nodes_changed();
 }
 
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,

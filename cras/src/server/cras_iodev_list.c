@@ -27,6 +27,9 @@ static struct iodev_list inputs;
 /* Keep an active input and output. */
 static struct cras_iodev *active_output;
 static struct cras_iodev *active_input;
+/* Keep a default input and output. For use when there is nothing else. */
+static struct cras_iodev *default_output;
+static struct cras_iodev *default_input;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = 1;
@@ -79,40 +82,11 @@ static struct cras_ionode *find_node(cras_node_id_t id)
 	return NULL;
 }
 
-/* Checks if device a is higher priority than b. */
-static int dev_is_higher_prio(const struct cras_iodev *a,
-			      const struct cras_iodev *b)
-{
-	if (cras_ionode_better(a->active_node, b->active_node))
-		return 1;
-
-	return 0;
-}
-
-/* Finds the iodev in the given list that should be used as default.
- * If any devices are "plugged in" (USB, Headphones), route to highest
- * priority plugged device. Break ties with Most recently plugged.  Otherwise
- * route to the highest priority devices, breaking ties with most recently
- * added.
- */
-static struct cras_iodev *top_prio_dev(struct cras_iodev *list)
-{
-	struct cras_iodev *curr;
-	struct cras_iodev *ret_dev = NULL;
-
-	DL_FOREACH(list, curr)
-		if (!ret_dev || dev_is_higher_prio(curr, ret_dev))
-			ret_dev = curr;
-
-	return ret_dev;
-}
-
 /* Adds a device to the list.  Used from add_input and add_output. */
 static int add_dev_to_list(struct iodev_list *list,
-			   struct cras_iodev **active_dev,
 			   struct cras_iodev *dev)
 {
-	struct cras_iodev *tmp, *new_active;
+	struct cras_iodev *tmp;
 	uint32_t new_idx;
 
 	DL_FOREACH(list->iodevs, tmp)
@@ -141,15 +115,6 @@ static int add_dev_to_list(struct iodev_list *list,
 	       dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
 	       dev->info.idx);
 	DL_PREPEND(list->iodevs, dev);
-	new_active = top_prio_dev(list->iodevs);
-	if (new_active != *active_dev) {
-		struct cras_iodev *last;
-		last = cras_iodev_set_active(new_active->direction,
-						 new_active);
-
-		if (last && last->thread)
-			audio_thread_destroy(last->thread);
-	}
 
 	cras_iodev_list_update_device_list();
 	return 0;
@@ -381,18 +346,40 @@ static struct cras_iodev *cras_iodev_set_active(
 
 int cras_iodev_list_add_output(struct cras_iodev *output)
 {
+	int rc;
+
 	if (output->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	return add_dev_to_list(&outputs, &active_output, output);
+	rc = add_dev_to_list(&outputs, output);
+	if (rc)
+		return rc;
+
+	if (!active_output)
+		active_output = output;
+	if (!default_output)
+		default_output = output;
+
+	return 0;
 }
 
 int cras_iodev_list_add_input(struct cras_iodev *input)
 {
+	int rc;
+
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
 
-	return add_dev_to_list(&inputs, &active_input, input);
+	rc = add_dev_to_list(&inputs, input);
+	if (rc)
+		return rc;
+
+	if (!active_input)
+		active_input = input;
+	if (!default_input)
+		default_input = input;
+
+	return 0;
 }
 
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
@@ -404,7 +391,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	res = rm_dev_from_list(&outputs, dev);
 	if (active_output == dev)
 		cras_iodev_set_active(CRAS_STREAM_OUTPUT,
-					  top_prio_dev(outputs.iodevs));
+				      default_output);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -419,7 +406,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	res = rm_dev_from_list(&inputs, dev);
 	if (active_input == dev)
 		cras_iodev_set_active(CRAS_STREAM_INPUT,
-				      top_prio_dev(inputs.iodevs));
+				      default_input);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -469,34 +456,6 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index)
 		audio_thread_destroy(curr_dev->thread);
 
 	return 0;
-}
-
-int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
-					 enum CRAS_STREAM_DIRECTION direction)
-{
-	struct iodev_list *list;
-	struct cras_iodev *to_switch, *curr_active;
-
-	if (direction == CRAS_STREAM_OUTPUT) {
-		list = &outputs;
-		curr_active = active_output;
-	} else {
-		assert(direction == CRAS_STREAM_INPUT);
-		list = &inputs;
-		curr_active = active_input;
-	}
-
-	to_switch = top_prio_dev(list->iodevs);
-
-	/* If there is no iodev to switch to, or if we are already using the
-	 * active device, then there is nothing else to do. */
-	if (!to_switch || to_switch == curr_active)
-		return 0;
-
-	syslog(LOG_DEBUG, "Route to %u", to_switch->info.idx);
-
-	/* There is an iodev and it isn't active, switch to it. */
-	return cras_iodev_move_stream_type(type, to_switch->info.idx);
 }
 
 void cras_iodev_list_update_device_list()
@@ -601,8 +560,11 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	*selected = node_id;
 
 	/* update new device */
-	if (new_dev)
+	if (new_dev) {
 		new_dev->update_active_node(new_dev);
+		/* There is an iodev and it isn't the default, switch to it. */
+		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, new_dev->info.idx);
+	}
 
 	/* update old device if it is not the same device */
 	if (old_dev && old_dev != new_dev)
@@ -625,4 +587,12 @@ int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	return (id == selected_input || id == selected_output);
+}
+
+void cras_iodev_list_reset()
+{
+	active_output = NULL;
+	active_input = NULL;
+	default_output = NULL;
+	default_input = NULL;
 }

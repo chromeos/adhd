@@ -269,8 +269,6 @@ static void update_active_node(struct cras_iodev *iodev)
 
 	best_node = cras_iodev_get_best_node(iodev);
 	alsa_iodev_set_active_node(iodev, best_node);
-	cras_iodev_move_stream_type_top_prio(CRAS_STREAM_TYPE_DEFAULT,
-					     iodev->direction);
 }
 
 /*

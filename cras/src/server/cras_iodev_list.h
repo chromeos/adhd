@@ -109,18 +109,6 @@ cras_node_id_t cras_iodev_list_get_active_node_id(
  */
 int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index);
 
-/* Moves all streams of type to the top priority device.  The top priority
- * device is the device that has had a jack plugged more recently or is last
- * attached to the system.
- * Args:
- *    type - The stream type to move.
- *    direction - Playback or capture.
- * Returns:
- *    0 on success or negative error code on failure.
- */
-int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
-					 enum CRAS_STREAM_DIRECTION direction);
-
 /* Stores the following data to the shared memory server state region:
  * (1) device list
  * (2) node list
@@ -198,5 +186,8 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 
 /* Returns 1 if the node is selected, 0 otherwise. */
 int cras_iodev_list_node_selected(struct cras_ionode *node);
+
+/* For unit test only. */
+void cras_iodev_list_reset();
 
 #endif /* CRAS_IODEV_LIST_H_ */

@@ -92,7 +92,6 @@ static size_t cras_alsa_jack_list_create_called;
 static size_t cras_alsa_jack_list_destroy_called;
 static jack_state_change_callback *cras_alsa_jack_list_create_cb;
 static void *cras_alsa_jack_list_create_cb_data;
-static size_t cras_iodev_move_stream_type_top_prio_called;
 static char test_card_name[] = "TestCard";
 static char test_dev_name[] = "TestDev";
 static size_t cras_iodev_set_node_attr_called;
@@ -140,7 +139,6 @@ void ResetStubData() {
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
-  cras_iodev_move_stream_type_top_prio_called = 0;
   cras_iodev_set_node_attr_called = 0;
   cras_ionode_get_best_node_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
@@ -448,7 +446,6 @@ TEST(AlsaIoInit, UpdateActiveNode) {
   EXPECT_EQ(1, cras_ionode_get_best_node_called);
   iodev->update_active_node(iodev);
   EXPECT_EQ(2, cras_ionode_get_best_node_called);
-  EXPECT_EQ(1, cras_iodev_move_stream_type_top_prio_called);
 
   alsa_iodev_destroy(iodev);
 }
@@ -851,12 +848,6 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 }
 int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
-  return 0;
-}
-int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
-                                         enum CRAS_STREAM_DIRECTION direction)
-{
-  cras_iodev_move_stream_type_top_prio_called++;
   return 0;
 }
 

@@ -454,11 +454,6 @@ int cras_device_blacklist_check(
   return cras_device_blacklist_check_retval;
 }
 
-int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
-                                         enum CRAS_STREAM_DIRECTION direction) {
-	return 0;
-}
-
 snd_use_case_mgr_t* ucm_create(const char* name) {
   ucm_create_called++;
   return reinterpret_cast<snd_use_case_mgr_t*>(0x44);

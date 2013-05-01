@@ -45,6 +45,8 @@ static int cras_alert_pending_called;
 class IoDevTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
+      cras_iodev_list_reset();
+
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
       sample_rates_[2] = 0;
@@ -203,10 +205,6 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   struct cras_iodev_info *dev_info;
   int rc;
 
-  // First dev has higher priority.
-  node1.priority = 100;
-  node2.priority = 10;
-
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
   // Test can't insert same iodev twice.
@@ -216,7 +214,6 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
 
-  // Check default device.  Higher priority(d1) should be default.
   rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
                                       CRAS_STREAM_OUTPUT,
                                       &idev,
@@ -246,138 +243,6 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(0, rc);
   free(dev_info);
-}
-
-// Test auto routing for outputs of different priority.
-TEST_F(IoDevTestSuite, AutoRouteOutputs) {
-  int rc;
-  struct cras_iodev *idev, *odev;
-  struct cras_iodev_info *dev_info;
-
-  // First dev has higher priority.
-  node1.priority = 2;
-  node2.priority = 1;
-  node3.priority = 3;
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-  // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_NE(0, rc);
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, odev);
-  // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_);
-  EXPECT_EQ(0, rc);
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, odev);
-  // Test insert a third output.
-  rc = cras_iodev_list_add_output(&d3_);
-  EXPECT_EQ(0, rc);
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d3_, odev);
-
-  rc = cras_iodev_list_get_outputs(&dev_info);
-  EXPECT_EQ(3, rc);
-  EXPECT_EQ(d1_.info.idx, dev_info[2].idx);
-  EXPECT_EQ(d2_.info.idx, dev_info[1].idx);
-  EXPECT_EQ(d3_.info.idx, dev_info[0].idx);
-  if (rc > 0)
-    free(dev_info);
-
-  // Test that it is removed.
-  rc = cras_iodev_list_rm_output(&d3_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_rm_output(&d2_);
-  EXPECT_EQ(0, rc);
-  // Default should fall back to d1.
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, odev);
-  // Remove other dev.
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-}
-
-// Test auto routing for outputs of same priority.
-TEST_F(IoDevTestSuite, AutoRouteOutputsSamePrio) {
-  int rc;
-  struct cras_iodev *idev, *odev;
-  struct cras_iodev_info *dev_info;
-
-  // First dev has higher priority.
-  node1.priority = 0;
-  node2.priority = 0;
-  node3.priority = 0;
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-  // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_NE(0, rc);
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, odev);
-  // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_);
-  EXPECT_EQ(0, rc);
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d2_, odev);
-  // Test insert a third output.
-  rc = cras_iodev_list_add_output(&d3_);
-  EXPECT_EQ(0, rc);
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d3_, odev);
-
-  rc = cras_iodev_list_get_outputs(&dev_info);
-  EXPECT_EQ(3, rc);
-  EXPECT_EQ(d1_.info.idx, dev_info[2].idx);
-  EXPECT_EQ(d2_.info.idx, dev_info[1].idx);
-  EXPECT_EQ(d3_.info.idx, dev_info[0].idx);
-  if (rc > 0)
-    free(dev_info);
-
-  // Test that it is removed.
-  rc = cras_iodev_list_rm_output(&d3_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_rm_output(&d2_);
-  EXPECT_EQ(0, rc);
-  // Default should fall back to d1.
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, odev);
-  // Remove other dev.
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
 }
 
 // Test adding/removing an input dev to the list.
@@ -508,7 +373,7 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
                                       &idev,
                                       &odev);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d2_, idev);
+  EXPECT_EQ(&d1_, idev);
 
   // Test that it is removed.
   rc = cras_iodev_list_rm_input(&d1_);
@@ -546,12 +411,14 @@ TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
   d2_.set_as_default = set_as_default;
 
   rc = cras_iodev_list_add_output(&d1_);
-
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(default_dev_to_set_, &d1_);
-
   rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
+
+  cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
+  EXPECT_EQ(default_dev_to_set_, &d1_);
+
+  cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d2_.info.idx);
   EXPECT_EQ(default_dev_to_set_, &d2_);
 
   // Remove then add a non-default device, should be set to default.
@@ -560,13 +427,12 @@ TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
+  cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
   EXPECT_EQ(default_dev_to_set_, &d1_);
 
   // Second device in queue should become default when default removed.
   rc = cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(default_dev_to_set_, &d2_);
-
   rc = cras_iodev_list_rm_output(&d2_);
   EXPECT_EQ(0, rc);
 }

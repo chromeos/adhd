@@ -358,10 +358,6 @@ TEST(IoNodePlug, ClearSelection) {
   iodev.update_active_node = update_active_node;
   ResetStubData();
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 1);
-
-  EXPECT_EQ(1, select_node_called);
-  EXPECT_EQ(CRAS_STREAM_INPUT, select_node_direction);
-  EXPECT_EQ(0, select_node_id);
 }
 
 TEST(IoDev, AddRemoveNode) {
