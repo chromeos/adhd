@@ -24,9 +24,9 @@ struct iodev_list {
 /* Separate list for inputs and outputs. */
 static struct iodev_list outputs;
 static struct iodev_list inputs;
-/* Keep a default input and output. */
-static struct cras_iodev *default_output;
-static struct cras_iodev *default_input;
+/* Keep an active input and output. */
+static struct cras_iodev *active_output;
+static struct cras_iodev *active_input;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = 1;
@@ -40,6 +40,9 @@ static struct cras_alert *active_node_changed_alert;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
 static void active_node_changed_prepare(struct cras_alert *alert);
+static struct cras_iodev *cras_iodev_set_active(
+		enum CRAS_STREAM_DIRECTION dir,
+		struct cras_iodev *new_active);
 
 static struct cras_iodev *find_dev(size_t dev_index)
 {
@@ -106,10 +109,10 @@ static struct cras_iodev *top_prio_dev(struct cras_iodev *list)
 
 /* Adds a device to the list.  Used from add_input and add_output. */
 static int add_dev_to_list(struct iodev_list *list,
-			   struct cras_iodev **default_dev,
+			   struct cras_iodev **active_dev,
 			   struct cras_iodev *dev)
 {
-	struct cras_iodev *tmp, *new_default;
+	struct cras_iodev *tmp, *new_active;
 	uint32_t new_idx;
 
 	DL_FOREACH(list->iodevs, tmp)
@@ -138,11 +141,11 @@ static int add_dev_to_list(struct iodev_list *list,
 	       dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
 	       dev->info.idx);
 	DL_PREPEND(list->iodevs, dev);
-	new_default = top_prio_dev(list->iodevs);
-	if (new_default != *default_dev) {
+	new_active = top_prio_dev(list->iodevs);
+	if (new_active != *active_dev) {
 		struct cras_iodev *last;
-		last = cras_iodev_set_as_default(new_default->direction,
-						 new_default);
+		last = cras_iodev_set_active(new_active->direction,
+						 new_active);
 
 		if (last && last->thread)
 			audio_thread_destroy(last->thread);
@@ -224,7 +227,7 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->plugged = node->plugged;
 			node_info->plugged_time = node->plugged_time;
 			node_info->active =
-				(dev == default_input || dev == default_output)
+				(dev == active_input || dev == active_output)
 				&& (dev->active_node == node);
 			strcpy(node_info->name, node->name);
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
@@ -265,40 +268,40 @@ static int get_dev_list(struct iodev_list *list,
  * the default output if it is active. */
 void sys_vol_change(void *data)
 {
-	if (default_output &&
-	    default_output->set_volume &&
-	    default_output->is_open(default_output))
-		default_output->set_volume(default_output);
+	if (active_output &&
+	    active_output->set_volume &&
+	    active_output->is_open(active_output))
+		active_output->set_volume(active_output);
 }
 
 /* Called when the system mute state changes.  Pass the current mute setting
  * to the default output if it is active. */
 void sys_mute_change(void *data)
 {
-	if (default_output &&
-	    default_output->set_mute &&
-	    default_output->is_open(default_output))
-		default_output->set_mute(default_output);
+	if (active_output &&
+	    active_output->set_mute &&
+	    active_output->is_open(active_output))
+		active_output->set_mute(active_output);
 }
 
 /* Called when the system capture gain changes.  Pass the current capture_gain
  * setting to the default input if it is active. */
 void sys_cap_gain_change(void *data)
 {
-	if (default_input &&
-	    default_input->set_capture_gain &&
-	    default_input->is_open(default_input))
-		default_input->set_capture_gain(default_input);
+	if (active_input &&
+	    active_input->set_capture_gain &&
+	    active_input->is_open(active_input))
+		active_input->set_capture_gain(active_input);
 }
 
 /* Called when the system capture mute state changes.  Pass the current capture
  * mute setting to the default input if it is active. */
 void sys_cap_mute_change(void *data)
 {
-	if (default_input &&
-	    default_input->set_capture_mute &&
-	    default_input->is_open(default_input))
-		default_input->set_capture_mute(default_input);
+	if (active_input &&
+	    active_input->set_capture_mute &&
+	    active_input->is_open(active_input))
+		active_input->set_capture_mute(active_input);
 }
 
 /*
@@ -339,15 +342,15 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 	switch (direction) {
 	case CRAS_STREAM_OUTPUT:
 		*idev = NULL;
-		*odev = default_output;
+		*odev = active_output;
 		break;
 	case CRAS_STREAM_INPUT:
-		*idev = default_input;
+		*idev = active_input;
 		*odev = NULL;
 		break;
 	case CRAS_STREAM_UNIFIED:
-		*idev = default_input;
-		*odev = default_output;
+		*idev = active_input;
+		*odev = active_output;
 		break;
 	default:
 		return -EINVAL;
@@ -355,25 +358,25 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 	return 0;
 }
 
-struct cras_iodev *cras_iodev_set_as_default(
+static struct cras_iodev *cras_iodev_set_active(
 		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_iodev *new_default)
+		struct cras_iodev *new_active)
 {
-	struct cras_iodev *old_default;
+	struct cras_iodev *old_active;
 	struct cras_iodev **curr;
 
-	curr = (dir == CRAS_STREAM_OUTPUT) ? &default_output : &default_input;
+	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
 
-	/* Set current default to the newly requested device. */
-	old_default = *curr;
-	*curr = new_default;
+	/* Set current active to the newly requested device. */
+	old_active = *curr;
+	*curr = new_active;
 
-	if (new_default && new_default->set_as_default)
-		new_default->set_as_default(new_default);
+	if (new_active && new_active->set_as_default)
+		new_active->set_as_default(new_active);
 
 	cras_iodev_list_notify_active_node_changed();
 
-	return old_default;
+	return old_active;
 }
 
 int cras_iodev_list_add_output(struct cras_iodev *output)
@@ -381,7 +384,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 	if (output->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	return add_dev_to_list(&outputs, &default_output, output);
+	return add_dev_to_list(&outputs, &active_output, output);
 }
 
 int cras_iodev_list_add_input(struct cras_iodev *input)
@@ -389,7 +392,7 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
 
-	return add_dev_to_list(&inputs, &default_input, input);
+	return add_dev_to_list(&inputs, &active_input, input);
 }
 
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
@@ -399,8 +402,8 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	if (dev->thread)
 		audio_thread_destroy(dev->thread);
 	res = rm_dev_from_list(&outputs, dev);
-	if (default_output == dev)
-		cras_iodev_set_as_default(CRAS_STREAM_OUTPUT,
+	if (active_output == dev)
+		cras_iodev_set_active(CRAS_STREAM_OUTPUT,
 					  top_prio_dev(outputs.iodevs));
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -414,9 +417,9 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	if (dev->thread)
 		audio_thread_destroy(dev->thread);
 	res = rm_dev_from_list(&inputs, dev);
-	if (default_input == dev)
-		cras_iodev_set_as_default(CRAS_STREAM_INPUT,
-					  top_prio_dev(inputs.iodevs));
+	if (active_input == dev)
+		cras_iodev_set_active(CRAS_STREAM_INPUT,
+				      top_prio_dev(inputs.iodevs));
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -436,7 +439,7 @@ cras_node_id_t cras_iodev_list_get_active_node_id(
 	enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_iodev *dev = (direction == CRAS_STREAM_OUTPUT) ?
-		default_output : default_input;
+		active_output : active_input;
 
 	if (!dev || !dev->active_node)
 		return 0;
@@ -457,7 +460,7 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index)
 	}
 
 	/* Set default to the newly requested device. */
-	curr_dev = cras_iodev_set_as_default(new_dev->direction, new_dev);
+	curr_dev = cras_iodev_set_active(new_dev->direction, new_dev);
 
 	if (curr_dev == NULL || curr_dev == new_dev)
 		return 0; /* No change or no streams to move. */
@@ -472,27 +475,27 @@ int cras_iodev_move_stream_type_top_prio(enum CRAS_STREAM_TYPE type,
 					 enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list *list;
-	struct cras_iodev *to_switch, *curr_default;
+	struct cras_iodev *to_switch, *curr_active;
 
 	if (direction == CRAS_STREAM_OUTPUT) {
 		list = &outputs;
-		curr_default = default_output;
+		curr_active = active_output;
 	} else {
 		assert(direction == CRAS_STREAM_INPUT);
 		list = &inputs;
-		curr_default = default_input;
+		curr_active = active_input;
 	}
 
 	to_switch = top_prio_dev(list->iodevs);
 
 	/* If there is no iodev to switch to, or if we are already using the
-	 * default, then there is nothing else to do. */
-	if (!to_switch || to_switch == curr_default)
+	 * active device, then there is nothing else to do. */
+	if (!to_switch || to_switch == curr_active)
 		return 0;
 
-	syslog(LOG_DEBUG, "Route to %u by default", to_switch->info.idx);
+	syslog(LOG_DEBUG, "Route to %u", to_switch->info.idx);
 
-	/* There is an iodev and it isn't the default, switch to it. */
+	/* There is an iodev and it isn't active, switch to it. */
 	return cras_iodev_move_stream_type(type, to_switch->info.idx);
 }
 

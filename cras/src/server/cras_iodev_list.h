@@ -41,17 +41,6 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 				   struct cras_iodev **idev,
 				   struct cras_iodev **odev);
 
-/* Sets the device to default of its stream type.
- * Args:
- *     dir - The stream direction of default device.
- *     new_default - The device to set as default.
- * Returns:
- *     The pointer to previous default device, NULL if there was none.
- */
-struct cras_iodev *cras_iodev_set_as_default(
-		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_iodev *new_default);
-
 /* Adds an output to the output list.
  * Args:
  *    output - the output to add.
