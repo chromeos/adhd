@@ -185,10 +185,49 @@ static int is_open(const struct cras_iodev *iodev)
 	return cras_bt_transport_fd(a2dpio->transport) > 0;
 }
 
+/* Flushes queued buffer, including pcm and a2dp buffer.
+ */
+static void flush_data(const struct cras_iodev *iodev)
+{
+	int processed;
+	size_t format_bytes;
+	int written = 0;
+	struct a2dp_io *a2dpio;
+
+	a2dpio = (struct a2dp_io *)iodev;
+	format_bytes = cras_get_format_bytes(iodev->format);
+
+	processed = a2dp_write(a2dpio->pcm_buf + a2dpio->pcm_buf_offset,
+		       a2dpio->pcm_buf_used,
+		       &a2dpio->a2dp,
+		       format_bytes,
+		       cras_bt_transport_fd(a2dpio->transport),
+		       cras_bt_transport_write_mtu(a2dpio->transport),
+		       &written);
+
+	if (a2dpio->pcm_buf_used == processed) {
+		a2dpio->pcm_buf_offset = 0;
+		a2dpio->pcm_buf_used = 0;
+	} else {
+		a2dpio->pcm_buf_offset += processed;
+		a2dpio->pcm_buf_used -= processed;
+	}
+
+	if (written == -EAGAIN) {
+		syslog(LOG_ERR, "a2dp_write error");
+		return;
+	}
+	get_bt_queued_frames(iodev,
+			     a2dp_block_size(&a2dpio->a2dp, written)
+				     / format_bytes);
+}
+
 static int dev_running(const struct cras_iodev *iodev)
 {
-	// TODO(hychao): Track if a2dp iodev is actually playing.
-	return is_open(iodev);
+	// Flush queued buffer when dev is open.
+	if (is_open(iodev))
+		flush_data(iodev);
+	return 0;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
@@ -216,8 +255,6 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	size_t format_bytes;
-	int written = 0;
-	int processed;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
@@ -227,30 +264,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		return -1;
 	a2dpio->pcm_buf_used += nwritten * format_bytes;
 
-	processed = a2dp_write(a2dpio->pcm_buf + a2dpio->pcm_buf_offset,
-			       a2dpio->pcm_buf_used,
-			       &a2dpio->a2dp,
-			       format_bytes,
-			       cras_bt_transport_fd(a2dpio->transport),
-			       cras_bt_transport_write_mtu(a2dpio->transport),
-			       &written);
-
-	if (a2dpio->pcm_buf_used == processed) {
-		a2dpio->pcm_buf_offset = 0;
-		a2dpio->pcm_buf_used = 0;
-	} else {
-		a2dpio->pcm_buf_offset += processed;
-		a2dpio->pcm_buf_used -= processed;
-	}
-
-	if (written == -EAGAIN) {
-		syslog(LOG_ERR, "a2dp_write error");
-		return 0;
-	}
-
-	get_bt_queued_frames(iodev,
-			     a2dp_block_size(&a2dpio->a2dp, written)
-				     / format_bytes);
+	flush_data(iodev);
 	return 0;
 }
 
