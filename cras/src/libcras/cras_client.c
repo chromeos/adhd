@@ -324,7 +324,7 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 		return rc;
 	if (FD_ISSET(read_fd, &poll_set)) {
 		nread = read(read_fd, buf, len);
-		if (nread != len)
+		if (nread != (int)len)
 			return -EIO;
 	}
 	if (FD_ISSET(wake_fd, &poll_set)) {
@@ -691,7 +691,7 @@ static int config_shm(struct cras_audio_shm *shm, int key, size_t size)
 		syslog(LOG_ERR, "shmget failed to get shm for stream.");
 		return shmid;
 	}
-	shm->area = shmat(shmid, NULL, 0);
+	shm->area = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
 	if (shm->area == (struct cras_audio_shm_area *)-1) {
 		syslog(LOG_ERR, "shmat failed to attach shm for stream.");
 		return errno;
@@ -794,7 +794,7 @@ static int stream_connected(struct client_stream *stream,
 
 		/* If a converted is needed, allocate a buffer for it. */
 		stream->capture_conv_buffer =
-			malloc(max_frames * cras_get_format_bytes(sfmt));
+			(uint8_t *)malloc(max_frames * cras_get_format_bytes(sfmt));
 		if (!stream->capture_conv_buffer) {
 			rc = -ENOMEM;
 			goto err_ret;
@@ -827,7 +827,8 @@ static int stream_connected(struct client_stream *stream,
 
 		/* If a converted is needed, allocate a buffer for it. */
 		stream->play_conv_buffer =
-			malloc(max_frames * cras_get_format_bytes(sfmt));
+				(uint8_t *)malloc(max_frames *
+						  cras_get_format_bytes(sfmt));
 		if (!stream->play_conv_buffer) {
 			rc = -ENOMEM;
 			goto err_ret;
@@ -1053,7 +1054,8 @@ static int client_attach_shm(struct cras_client *client, key_t shm_key)
 		syslog(LOG_ERR, "shmget failed to get shm for client.");
 		return shmid;
 	}
-	client->server_state = shmat(shmid, NULL, SHM_RDONLY);
+	client->server_state = (struct cras_server_state *)
+			shmat(shmid, NULL, SHM_RDONLY);
 	if (client->server_state == (void *)-1) {
 		client->server_state = NULL;
 		syslog(LOG_ERR, "shmat failed to attach shm for client.");
@@ -1080,9 +1082,9 @@ static int handle_message_from_server(struct cras_client *client)
 
 	msg = (struct cras_client_message *)buf;
 	nread = recv(client->server_fd, buf, sizeof(buf), 0);
-	if (nread < sizeof(msg->length))
+	if (nread < (int)sizeof(msg->length))
 		goto read_error;
-	if (msg->length != nread)
+	if ((int)msg->length != nread)
 		goto read_error;
 
 	switch (msg->id) {
@@ -1294,7 +1296,7 @@ static int send_command_message(struct cras_client *client,
 		return -EINVAL;
 
 	rc = write(client->command_fds[1], msg, msg->len);
-	if (rc != msg->len)
+	if (rc != (int)msg->len)
 		return -EPIPE;
 
 	/* Wait for command to complete. */
@@ -1337,7 +1339,8 @@ static int send_stream_volume_command_msg(struct cras_client *client,
 static int write_message_to_server(struct cras_client *client,
 				   const struct cras_server_message *msg)
 {
-	if (write(client->server_fd, msg, msg->length) != msg->length) {
+	if (write(client->server_fd, msg, msg->length) !=
+			(ssize_t)msg->length) {
 		int rc = 0;
 
 		/* Write to server failed, try to re-connect. */
@@ -1349,7 +1352,8 @@ static int write_message_to_server(struct cras_client *client,
 			rc = connect_to_server_wait(client);
 		if (rc < 0)
 			return rc;
-		if (write(client->server_fd, msg, msg->length) != msg->length)
+		if (write(client->server_fd, msg, msg->length) !=
+				(ssize_t)msg->length)
 			return -EINVAL;
 	}
 	return 0;
@@ -1389,7 +1393,7 @@ int cras_client_create(struct cras_client **client)
 {
 	int rc;
 
-	*client = calloc(1, sizeof(struct cras_client));
+	*client = (struct cras_client *)calloc(1, sizeof(struct cras_client));
 	if (*client == NULL)
 		return -ENOMEM;
 	(*client)->server_fd = -1;
@@ -1461,7 +1465,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 {
 	struct cras_stream_params *params;
 
-	params = malloc(sizeof(*params));
+	params = (struct cras_stream_params *)malloc(sizeof(*params));
 	if (params == NULL)
 		return NULL;
 
@@ -1498,7 +1502,7 @@ struct cras_stream_params *cras_client_unified_params_create(
 {
 	struct cras_stream_params *params;
 
-	params = malloc(sizeof(*params));
+	params = (struct cras_stream_params *)malloc(sizeof(*params));
 	if (params == NULL)
 		return NULL;
 
@@ -1539,12 +1543,13 @@ int cras_client_add_stream(struct cras_client *client,
 	if (config->err_cb == NULL)
 		return -EINVAL;
 
-	stream = calloc(1, sizeof(*stream));
+	stream = (struct client_stream *)calloc(1, sizeof(*stream));
 	if (stream == NULL) {
 		rc = -ENOMEM;
 		goto add_failed;
 	}
-	stream->config = malloc(sizeof(*(stream->config)));
+	stream->config = (struct cras_stream_params *)
+			malloc(sizeof(*(stream->config)));
 	if (stream->config == NULL) {
 		rc = -ENOMEM;
 		goto add_failed;
@@ -1924,11 +1929,13 @@ static int cras_client_find_output_node(const struct cras_client *client,
 	if (!client || !dev_name || !node_name)
 		goto quit;
 
-	devs = malloc(CRAS_MAX_IODEVS * sizeof(*devs));
+	devs = (struct cras_iodev_info *)
+			malloc(CRAS_MAX_IODEVS * sizeof(*devs));
 	if (!devs)
 		goto quit;
 
-	nodes = malloc(CRAS_MAX_IONODES * sizeof(*nodes));
+	nodes = (struct cras_ionode_info *)
+			malloc(CRAS_MAX_IONODES * sizeof(*nodes));
 	if (!nodes)
 		goto quit;
 
