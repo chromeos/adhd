@@ -365,19 +365,25 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 					uint8_t **playback_frames,
 					unsigned int num_frames)
 {
-	/* If we need to do format conversion on this stream, use an
-	 * intermediate buffer to store the samples so they can be
+	unsigned int limit;
+
+	/* Assert num_frames doesn't exceed shm limit, no matter
+	 * format conversion is needed of not. */
+	*playback_frames = cras_shm_get_writeable_frames(
+			&stream->play_shm, &limit);
+	num_frames = min(num_frames, limit);
+
+	/* If we need to do format conversion on this stream, change to
+	 * use an intermediate buffer to store the samples so they can be
 	 * converted. */
 	if (stream->play_conv) {
 		*playback_frames = stream->play_conv_buffer;
+
+		/* Recalculate the frames we'd want to request from client
+		 * according to sample rate change. */
 		num_frames = cras_fmt_conv_out_frames_to_in(
 				stream->play_conv,
 				num_frames);
-	} else {
-		unsigned int limit;
-		*playback_frames = cras_shm_get_writeable_frames(
-				&stream->play_shm, &limit);
-		num_frames = min(num_frames, limit);
 	}
 
 	/* Don't ask for more frames than the buffer can hold. */
@@ -464,13 +470,13 @@ static void complete_playback_write(struct client_stream *stream,
 		unsigned limit;
 
 		final_buf = cras_shm_get_writeable_frames(shm, &limit);
-		frames = min(frames, limit);
+
 		frames = cras_fmt_conv_convert_frames(
 				stream->play_conv,
 				stream->play_conv_buffer,
 				final_buf,
 				frames,
-				cras_shm_get_num_writeable(shm));
+				limit);
 	}
 	/* And move the write pointer to indicate samples written. */
 	cras_shm_buffer_written(shm, frames);
@@ -1507,6 +1513,7 @@ struct cras_stream_params *cras_client_unified_params_create(
 	params->unified_cb = unified_cb;
 	params->err_cb = err_cb;
 	memcpy(&(params->format), format, sizeof(*format));
+
 	return params;
 }
 
