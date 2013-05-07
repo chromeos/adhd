@@ -117,6 +117,7 @@ check_PROGRAMS = \
 	audio_thread_unittest \
 	card_config_unittest \
 	checksum_unittest \
+	cras_client_unittest \
 	cras_tm_unittest \
 	device_blacklist_unittest \
 	dumper_unittest \
@@ -222,6 +223,12 @@ card_config_unittest_LDADD = -lgtest -liniparser -lpthread
 checksum_unittest_SOURCES = tests/checksum_unittest.cc common/cras_checksum.c
 checksum_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 checksum_unittest_LDADD = -lgtest -lpthread
+
+cras_client_unittest_SOURCES = tests/cras_client_unittest.cc \
+	common/cras_config.c common/cras_util.c
+cras_client_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/libcras
+cras_client_unittest_LDADD = -lgtest -lpthread -lspeexdsp
 
 cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
