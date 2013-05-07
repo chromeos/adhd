@@ -356,6 +356,9 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 		*captured_frames = stream->capture_conv_buffer;
 	}
 
+	/* Don't ask for more frames than the client desires. */
+	num_frames = min(num_frames, stream->config->min_cb_level);
+
 	return num_frames;
 }
 
@@ -386,9 +389,8 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 				num_frames);
 	}
 
-	/* Don't ask for more frames than the buffer can hold. */
-	if (num_frames > stream->config->buffer_frames)
-		num_frames = stream->config->buffer_frames;
+	/* Don't ask for more frames than the client desires. */
+	num_frames = min(num_frames, stream->config->min_cb_level);
 
 	return num_frames;
 }
@@ -572,6 +574,7 @@ static int handle_unified_request(struct client_stream *stream,
 	struct timespec *playback_ts = NULL;
 	int frames;
 	int rc = 0;
+	unsigned int server_frames = num_frames;
 
 	config = stream->config;
 
@@ -583,9 +586,11 @@ static int handle_unified_request(struct client_stream *stream,
 	}
 
 	if (cras_stream_has_output(stream->direction)) {
-		num_frames = config_playback_buf(stream,
-						 &playback_frames,
-						 num_frames);
+		unsigned int pb_frames = config_playback_buf(stream,
+							     &playback_frames,
+							     server_frames);
+		if (!cras_stream_has_input(stream->direction))
+			num_frames = pb_frames;
 		playback_ts = &stream->play_shm.area->ts;
 	}
 

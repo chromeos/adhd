@@ -28,7 +28,7 @@ class CrasClientTestSuite : public testing::Test {
       struct cras_audio_shm *shm;
       struct cras_stream_params **config;
 
-      shm_writable_frames_ = 256;
+      shm_writable_frames_ = 100;
 
       /* config */
       memset(&stream_, 0, sizeof(stream_));
@@ -71,12 +71,18 @@ TEST_F(CrasClientTestSuite, ConfigPlaybackBuf) {
   conv_out_frames_to_in_ratio = 3.0f;
 
   /* Expect configured frames not limited by shm */
-  fr = config_playback_buf(&stream_, &playback_frames, 200);
-  ASSERT_EQ(fr, 600);
+  fr = config_playback_buf(&stream_, &playback_frames, 100);
+  ASSERT_EQ(fr, 300);
 
   /* Expect configured frames limited by shm limit */
   fr = config_playback_buf(&stream_, &playback_frames, 300);
   ASSERT_EQ(fr, shm_writable_frames_ * conv_out_frames_to_in_ratio);
+
+  /* Expect configured frames limited by shm min_cb_level as well */
+  shm_writable_frames_ = 300;
+  cras_shm_set_used_size(&stream_.play_shm, shm_writable_frames_ * 4);
+  fr = config_playback_buf(&stream_, &playback_frames, 300);
+  ASSERT_EQ(fr, stream_.config->min_cb_level);
 }
 
 TEST_F(CrasClientTestSuite, CompletePlaybackWrite) {
