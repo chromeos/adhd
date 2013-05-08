@@ -571,7 +571,6 @@ static void read_streams(struct audio_thread *thread,
 {
 	struct cras_io_stream *stream;
 	struct cras_audio_shm *shm;
-	unsigned write_limit;
 	uint8_t *dst;
 
 	DL_FOREACH(thread->streams, stream) {
@@ -582,8 +581,7 @@ static void read_streams(struct audio_thread *thread,
 
 		shm = cras_rstream_input_shm(rstream);
 
-		dst = cras_shm_get_writeable_frames(shm, &write_limit);
-		count = min(count, write_limit);
+		dst = cras_shm_get_writeable_frames(shm, NULL);
 		memcpy(dst, src, count * cras_shm_frame_bytes(shm));
 		cras_shm_buffer_written(shm, count);
 	}
@@ -717,16 +715,19 @@ int possibly_read_audio(struct audio_thread *thread,
 	struct cras_io_stream *stream, *tmp;
 	int rc;
 	uint8_t *src;
-	unsigned int write_limit = 0;
+	unsigned int write_limit;
 	unsigned int nread, level_target;
 	struct cras_iodev *idev = thread->input_dev;
 
 	if (!idev || !idev->is_open(idev))
 		return 0;
 
+	write_limit = idev->cb_threshold;
+
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
 		struct cras_audio_shm *output_shm;
+		unsigned int avail_frames;
 
 		rstream = stream->stream;
 
@@ -738,7 +739,8 @@ int possibly_read_audio(struct audio_thread *thread,
 		cras_iodev_set_capture_timestamp(idev->format->frame_rate,
 						 delay,
 						 &shm->area->ts);
-		cras_shm_get_writeable_frames(shm, &write_limit);
+		cras_shm_get_writeable_frames(shm, &avail_frames);
+		write_limit = min(write_limit, avail_frames);
 
 		output_shm = cras_rstream_output_shm(rstream);
 		if (output_shm->area)
@@ -748,7 +750,7 @@ int possibly_read_audio(struct audio_thread *thread,
 					&output_shm->area->ts);
 	}
 
-	remainder = idev->cb_threshold;
+	remainder = write_limit;
 	while (remainder > 0) {
 		nread = remainder;
 		rc = idev->get_buffer(idev, &src, &nread);
@@ -807,7 +809,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	if (hw_level < level_target)
 		thread->sleep_correction_frames++;
 
-	return idev->cb_threshold;
+	return write_limit;
 }
 
 /* Adjusts the hw_level for output only streams.  Account for any extra
