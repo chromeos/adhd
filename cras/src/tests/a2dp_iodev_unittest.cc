@@ -20,6 +20,9 @@ static struct cras_bt_transport *fake_transport;
 static cras_audio_format format;
 static size_t cras_iodev_list_add_output_called;
 static size_t cras_iodev_list_rm_output_called;
+static size_t cras_iodev_add_node_called;
+static size_t cras_iodev_rm_node_called;
+static size_t cras_iodev_set_active_node_called;
 static size_t cras_bt_transport_acquire_called;
 static size_t cras_bt_transport_configuration_called;
 static size_t cras_bt_transport_release_called;
@@ -38,6 +41,9 @@ static unsigned int a2dp_write_processed_bytes_val;
 void ResetStubData() {
   cras_iodev_list_add_output_called = 0;
   cras_iodev_list_rm_output_called = 0;
+  cras_iodev_add_node_called = 0;
+  cras_iodev_rm_node_called = 0;
+  cras_iodev_set_active_node_called = 0;
   cras_bt_transport_acquire_called = 0;
   cras_bt_transport_configuration_called = 0;
   cras_bt_transport_release_called = 0;
@@ -71,10 +77,13 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(1, cras_bt_transport_configuration_called);
   ASSERT_EQ(1, init_a2dp_called);
   ASSERT_EQ(1, cras_iodev_list_add_output_called);
+  ASSERT_EQ(1, cras_iodev_add_node_called);
+  ASSERT_EQ(1, cras_iodev_set_active_node_called);
 
   a2dp_iodev_destroy(iodev);
 
   ASSERT_EQ(1, cras_iodev_list_rm_output_called);
+  ASSERT_EQ(1, cras_iodev_rm_node_called);
   ASSERT_EQ(1, destroy_a2dp_called);
   ASSERT_EQ(1, cras_iodev_free_dsp_called);
 }
@@ -91,6 +100,9 @@ TEST(A2dpIoInit, InitializeFail) {
   ASSERT_EQ(1, cras_bt_transport_configuration_called);
   ASSERT_EQ(1, init_a2dp_called);
   ASSERT_EQ(0, cras_iodev_list_add_output_called);
+  ASSERT_EQ(0, cras_iodev_add_node_called);
+  ASSERT_EQ(0, cras_iodev_set_active_node_called);
+  ASSERT_EQ(0, cras_iodev_rm_node_called);
 }
 
 TEST(A2dpIoInit, OpenIodev) {
@@ -273,6 +285,25 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
   format.frame_rate = 44100;
   iodev->format = &format;
   return 0;
+}
+
+void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
+{
+  cras_iodev_add_node_called++;
+  iodev->nodes = node;
+}
+
+void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
+{
+  cras_iodev_rm_node_called++;
+  iodev->nodes = NULL;
+}
+
+void cras_iodev_set_active_node(struct cras_iodev *iodev,
+				struct cras_ionode *node)
+{
+  cras_iodev_set_active_node_called++;
+  iodev->active_node = node;
 }
 
 //  From iodev list.

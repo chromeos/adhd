@@ -268,8 +268,19 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return 0;
 }
 
+static void update_active_node(struct cras_iodev *iodev)
+{
+}
+
 void free_resources(struct a2dp_io *a2dpio)
 {
+	struct cras_ionode *node;
+
+	node = a2dpio->base.active_node;
+	if (node) {
+		cras_iodev_rm_node(&a2dpio->base, node);
+		free(node);
+	}
 	free(a2dpio->base.supported_channel_counts);
 	free(a2dpio->base.supported_rates);
 	destroy_a2dp(&a2dpio->a2dp);
@@ -315,22 +326,25 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->put_buffer = put_buffer;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
+	iodev->update_active_node = update_active_node;
 	iodev->software_volume_needed = 1;
 
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
 	strcpy(node->name, iodev->info.name);
-	DL_APPEND(iodev->nodes, node);
-	iodev->active_node = node;
 	node->plugged = 1;
 	node->priority = 3;
+	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	gettimeofday(&node->plugged_time, NULL);
 
 	/* A2DP does output only */
 	err = cras_iodev_list_add_output(iodev);
 	if (err)
 		goto error;
+
+	cras_iodev_add_node(iodev, node);
+	cras_iodev_set_active_node(iodev, node);
 
 	return iodev;
 error:
