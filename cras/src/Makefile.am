@@ -168,13 +168,13 @@ a2dp_info_unittest_SOURCES = tests/a2dp_info_unittest.cc \
 	server/cras_a2dp_info.c
 a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
-a2dp_info_unittest_LDADD = -lgtest
+a2dp_info_unittest_LDADD = -lgtest -lpthread
 
 a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc \
 	server/cras_a2dp_iodev.c
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-a2dp_iodev_unittest_LDADD = -lgtest $(DBUS_LIBS)
+a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
