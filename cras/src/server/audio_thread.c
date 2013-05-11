@@ -786,7 +786,7 @@ int possibly_read_audio(struct audio_thread *thread,
 			continue;
 
 		dst = cras_shm_get_write_buffer_base(shm);
-		apply_dsp(idev, dst, min(idev->cb_threshold, write_limit));
+		apply_dsp(idev, dst, cras_shm_frames_written(shm));
 
 		cras_shm_buffer_write_complete(shm);
 
