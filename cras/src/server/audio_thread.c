@@ -914,9 +914,11 @@ not_enough:
 	idev = thread->input_dev;
 	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
 
-	to_sleep = cras_iodev_sleep_frames(master_dev, hw_level) +
-		   thread->remaining_target +
-		   thread->sleep_correction_frames;
+	to_sleep = cras_iodev_sleep_frames(master_dev,
+					   master_dev->cb_threshold,
+					   hw_level) +
+				thread->remaining_target +
+				thread->sleep_correction_frames;
 
 	cras_iodev_fill_time_from_frames(to_sleep,
 					 master_dev->format->frame_rate,

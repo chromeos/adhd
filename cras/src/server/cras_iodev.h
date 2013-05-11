@@ -247,19 +247,21 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
  * up to service the buffer.
  * Args:
  *    dev - device to calculate sleep frames for.
+ *    sleep_level - level when device should be polled.
  *    curr_level - current buffer level.
  * Returns:
  *    A positive number of frames to wait until waking up.
  */
 static inline unsigned int cras_iodev_sleep_frames(const struct cras_iodev *dev,
+						   unsigned int sleep_level,
 						   unsigned int curr_level)
 {
 	int to_sleep;
 
 	if (dev->direction == CRAS_STREAM_OUTPUT)
-		to_sleep = curr_level - dev->cb_threshold;
+		to_sleep = curr_level - sleep_level;
 	else
-		to_sleep = dev->cb_threshold - curr_level;
+		to_sleep = sleep_level - curr_level;
 
 	if (to_sleep < 0)
 		return 0;
