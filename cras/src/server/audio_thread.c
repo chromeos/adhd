@@ -706,10 +706,17 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 /* Transfer samples to clients from the audio device.
  * Return the number of samples read from the device.
+ * Args:
+ *    thread - the audio thread this is running for.
+ *    delay - delay through the hardware in frames.
+ *    hw_level - buffer level of the device.
+ *    min_sleep - Will be filled with the minimum amount of frames needed to
+ *      fill the next lowest latency stream's buffer.
  */
 int possibly_read_audio(struct audio_thread *thread,
 			unsigned int delay,
-			unsigned int hw_level)
+			unsigned int hw_level,
+			unsigned int *min_sleep)
 {
 	snd_pcm_uframes_t remainder;
 	struct cras_audio_shm *shm;
@@ -723,7 +730,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	if (!idev || !idev->is_open(idev))
 		return 0;
 
-	write_limit = idev->cb_threshold;
+	write_limit = hw_level;
 
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
@@ -742,7 +749,7 @@ int possibly_read_audio(struct audio_thread *thread,
 						 &shm->area->ts);
 		cras_shm_get_writeable_frames(
 				shm,
-				cras_shm_used_frames(shm),
+				cras_rstream_get_cb_threshold(rstream),
 				&avail_frames);
 		write_limit = min(write_limit, avail_frames);
 
@@ -772,6 +779,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	DL_FOREACH_SAFE(thread->streams, stream, tmp) {
 		struct cras_rstream *rstream;
 		uint8_t *dst;
+		unsigned int cb_threshold;
 
 		rstream = stream->stream;
 
@@ -779,11 +787,18 @@ int possibly_read_audio(struct audio_thread *thread,
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
+		cb_threshold = cras_rstream_get_cb_threshold(rstream);
 
 		/* If this stream doesn't have enough data yet, skip it. */
-		if (cras_shm_frames_written(shm) <
-		    cras_rstream_get_cb_threshold(rstream))
+		if (cras_shm_frames_written(shm) < cb_threshold) {
+			unsigned int needed =
+				cb_threshold - cras_shm_frames_written(shm);
+			*min_sleep = min(*min_sleep, needed);
 			continue;
+		}
+
+		/* Enough data for this stream, sleep until ready again. */
+		*min_sleep = min(*min_sleep, cb_threshold);
 
 		dst = cras_shm_get_write_buffer_base(shm);
 		apply_dsp(idev, dst, cras_shm_frames_written(shm));
@@ -846,11 +861,13 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *master_dev;
 	int rc, delay;
 	unsigned int hw_level, to_sleep;
+	unsigned int next_target_frames;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
 
 	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
+	next_target_frames = master_dev->buffer_size;
 
 	rc = master_dev->frames_queued(master_dev);
 	if (rc < 0)
@@ -862,9 +879,12 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		rc = master_dev->dev_running(master_dev);
 		if (rc < 0)
 			return rc;
-		/* Increase sleep correction factor when waking up too early. */
-		thread->sleep_correction_frames++;
-		goto not_enough;
+		if (!idev) {
+			/* Increase sleep correction if waking up too early. */
+			thread->sleep_correction_frames++;
+			next_target_frames = odev->cb_threshold;
+			goto not_enough;
+		}
 	}
 
 	rc = master_dev->delay_frames(master_dev);
@@ -872,7 +892,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		return rc;
 	delay = rc;
 
-	rc = possibly_read_audio(thread, delay, hw_level);
+	rc = possibly_read_audio(thread, delay, hw_level, &next_target_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		idev->close_dev(idev);
@@ -907,8 +927,10 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		odev->close_dev(odev);
 		return rc;
 	}
-	if (!idev)
+	if (!idev) {
+		next_target_frames = odev->cb_threshold;
 		hw_level += rc;
+	}
 
 not_enough:
 	if (!device_active(thread))
@@ -919,7 +941,7 @@ not_enough:
 	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
 
 	to_sleep = cras_iodev_sleep_frames(master_dev,
-					   master_dev->cb_threshold,
+					   next_target_frames,
 					   hw_level) +
 				thread->remaining_target +
 				thread->sleep_correction_frames;

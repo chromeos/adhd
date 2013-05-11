@@ -256,37 +256,6 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   audio_thread_destroy(thread);
 }
 
-TEST_F(ReadStreamSuite, PossiblyReadHasDataDrop) {
-  struct timespec ts;
-  int rc;
-  uint64_t nsec_expected;
-  struct audio_thread *thread;
-
-  thread = audio_thread_create(&iodev_);
-  ASSERT_TRUE(thread);
-
-  iodev_.thread = thread;
-
-  //  A full block plus 4 frames.  No streams attached so samples are dropped.
-  frames_queued_ = iodev_.cb_threshold + 4;
-  audio_buffer_size_ = frames_queued_;
-
-  // +1 for correction factor.
-  is_open_ = 1;
-  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
-  nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
-  rc = unified_io(thread, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
-
-  thread->streams = 0;
-  audio_thread_destroy(thread);
-}
-
 TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   struct timespec ts;
   int rc;
@@ -310,7 +279,9 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
-  EXPECT_EQ(0, shm_->area->write_offset[0]);
+  /* As much data as can be, should be read. */
+  EXPECT_EQ(iodev_.cb_threshold - num_frames_short,
+            shm_->area->write_offset[0] / 4);
   EXPECT_EQ(0, shm_->area->write_buf_idx);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
