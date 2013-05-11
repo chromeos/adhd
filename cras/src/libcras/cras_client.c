@@ -369,11 +369,12 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 					unsigned int num_frames)
 {
 	unsigned int limit;
+	struct cras_audio_shm *shm = &stream->play_shm;
 
 	/* Assert num_frames doesn't exceed shm limit, no matter
 	 * format conversion is needed of not. */
 	*playback_frames = cras_shm_get_writeable_frames(
-			&stream->play_shm, &limit);
+			shm, cras_shm_used_frames(shm), &limit);
 	num_frames = min(num_frames, limit);
 
 	/* If we need to do format conversion on this stream, change to
@@ -471,7 +472,8 @@ static void complete_playback_write(struct client_stream *stream,
 		uint8_t *final_buf;
 		unsigned limit;
 
-		final_buf = cras_shm_get_writeable_frames(shm, &limit);
+		final_buf = cras_shm_get_writeable_frames(
+				shm, cras_shm_used_frames(shm), &limit);
 
 		frames = cras_fmt_conv_convert_frames(
 				stream->play_conv,

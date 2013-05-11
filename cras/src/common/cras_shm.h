@@ -127,6 +127,7 @@ uint8_t *cras_shm_get_write_buffer_base(struct cras_audio_shm *shm)
 /* Get a pointer to the next buffer to write */
 static inline
 uint8_t *cras_shm_get_writeable_frames(struct cras_audio_shm *shm,
+				       unsigned limit_frames,
 				       unsigned *frames)
 {
 	unsigned i = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
@@ -136,7 +137,8 @@ uint8_t *cras_shm_get_writeable_frames(struct cras_audio_shm *shm,
 	write_offset = cras_shm_check_write_offset(shm,
 						   shm->area->write_offset[i]);
 	if (frames)
-		*frames = (shm->config.used_size - write_offset) / frame_bytes;
+		*frames = limit_frames - (write_offset / frame_bytes);
+
 	return cras_shm_buff_for_idx(shm, i) + write_offset;
 }
 
