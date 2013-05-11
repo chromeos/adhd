@@ -643,9 +643,15 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 /* Transfer samples from clients to the audio device.
  * Return the number of samples written to the device.
+ * Args:
+ *    thread - the audio thread this is running for.
+ *    delay - delay through the hardware in frames.
+ *    captured_frames - if doing unified io, number of frames received.
+ *    hw_level - buffer level of the device.
  */
 int possibly_fill_audio(struct audio_thread *thread,
 			unsigned int delay,
+			unsigned int captured_frames,
 			unsigned int hw_level)
 {
 	unsigned int frames, fr_to_req;
@@ -661,7 +667,8 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 	/* Request data from streams that need more */
 	if (idev)
-		fr_to_req = idev->cb_threshold;
+		/* If unified, get same number of frames that were read. */
+		fr_to_req = captured_frames;
 	else
 		fr_to_req = odev->used_size - hw_level;
 	rc = fetch_and_set_timestamp(thread, fr_to_req, delay);
@@ -862,6 +869,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	int rc, delay;
 	unsigned int hw_level, to_sleep;
 	unsigned int next_target_frames;
+	unsigned int captured_frames;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
@@ -898,6 +906,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		idev->close_dev(idev);
 		return rc;
 	}
+	captured_frames = rc;
 	hw_level -= rc;
 
 	if (!odev || !odev->is_open(odev))
@@ -921,7 +930,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		hw_level = rc;
 	}
 
-	rc = possibly_fill_audio(thread, delay, rc);
+	rc = possibly_fill_audio(thread, delay, captured_frames, rc);
 	if (rc < 0) {
 		syslog(LOG_ERR, "write audio failed from audio thread");
 		odev->close_dev(odev);
