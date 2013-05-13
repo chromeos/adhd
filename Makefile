@@ -52,13 +52,19 @@ optional_cras_conf := $(wildcard $(ADHD_DIR)/cras-config/$(BOARD)/*)
 
 ifneq ($(strip $(optional_cras_conf)),)
 
-.PHONY: cras-config-files
+.PHONY: cras-config-files cras-scripts
 cras-config-files:
 	$(ECHO) "Installing cras config files"
 	$(INSTALL) --mode 755 -d $(DESTDIR)etc/cras/
 	$(INSTALL) --mode 644 -D $(ADHD_DIR)/cras-config/$(BOARD)/* $(DESTDIR)etc/cras/
 
-install:	cras-config-files
+cras-scripts:
+	$(ECHO) "Installing cras scripts"
+	$(INSTALL) --mode 755 -d $(DESTDIR)usr/bin/
+	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/audio_diagnostics \
+		$(DESTDIR)usr/bin/
+
+install:	cras-config-files cras-scripts
 
 endif
 
