@@ -44,7 +44,9 @@ cras_SOURCES = \
 	server/cras_bt_device.c \
 	server/cras_bt_transport.c \
 	server/cras_bt_endpoint.c \
+	server/cras_bt_profile.c \
 	server/cras_dbus.c \
+	server/cras_dbus_util.c \
 	server/cras_dbus_control.c \
 	server/cras_dsp.c \
 	server/cras_dsp_ini.c \
@@ -141,6 +143,7 @@ TESTS = \
 	alsa_io_unittest \
 	array_unittest \
 	audio_thread_unittest \
+	bt_profile_unittest \
 	card_config_unittest \
 	checksum_unittest \
 	cras_client_unittest \
@@ -279,6 +282,12 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread
+
+bt_profile_unittest_SOURCES = tests/bt_profile_unittest.cc tests/dbus_test.cc \
+	server/cras_bt_profile.c
+bt_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+bt_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c

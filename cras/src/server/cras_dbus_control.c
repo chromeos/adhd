@@ -12,6 +12,7 @@
 
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
+#include "cras_dbus_util.h"
 #include "cras_iodev_list.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
@@ -299,39 +300,6 @@ static DBusHandlerResult handle_get_volume_state(
 	dbus_message_unref(reply);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
-}
-
-/* Appends a key-value pair to the dbus message.
- * Args:
- *    key - the key (a string)
- *    type - the type of the value (for example, 'y')
- *    type_string - the type of the value in string form (for example, "y")
- *    value - a pointer to the value to be appended.
- * Returns:
- *    false if not enough memory.
-*/
-static dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key,
-				    int type, const char *type_string,
-				    void *value)
-{
-	DBusMessageIter entry, variant;
-
-	if (!dbus_message_iter_open_container(iter, DBUS_TYPE_DICT_ENTRY, NULL,
-					      &entry))
-		return FALSE;
-	if (!dbus_message_iter_append_basic(&entry, DBUS_TYPE_STRING, &key))
-		return FALSE;
-	if (!dbus_message_iter_open_container(&entry, DBUS_TYPE_VARIANT,
-					      type_string, &variant))
-		return FALSE;
-	if (!dbus_message_iter_append_basic(&variant, type, value))
-		return FALSE;
-	if (!dbus_message_iter_close_container(&entry, &variant))
-		return FALSE;
-	if (!dbus_message_iter_close_container(iter, &entry))
-		return FALSE;
-
-	return TRUE;
 }
 
 /* Appends the information about a node to the dbus message. Returns
