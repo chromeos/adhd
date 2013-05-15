@@ -10,7 +10,8 @@
 #include <stdint.h>
 
 #include "cras_bt_adapter.h"
-#include "cras_bt_transport.h"
+
+struct cras_bt_transport;
 
 struct cras_bt_endpoint {
 	const char *object_path;
@@ -22,12 +23,13 @@ struct cras_bt_endpoint {
 	int (*select_configuration)(struct cras_bt_endpoint *endpoint,
 				    void *capabilities, int len,
 				    void *configuration);
-	void (*set_configuration)(struct cras_bt_endpoint *endpoint,
-				  struct cras_bt_transport *transport);
-	void (*clear_configuration)(struct cras_bt_endpoint *endpoint,
-				    struct cras_bt_transport *transport);
-	void (*release)(struct cras_bt_endpoint *endpoint);
 
+	void (*start)(struct cras_bt_endpoint *endpoint,
+		      struct cras_bt_transport *transport);
+	void (*suspend)(struct cras_bt_endpoint *endpoint,
+			struct cras_bt_transport *transport);
+
+	struct cras_bt_transport *transport;
 	struct cras_bt_endpoint *prev, *next;
 };
 

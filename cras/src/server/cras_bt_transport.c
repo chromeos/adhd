@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "cras_bt_device.h"
+#include "cras_bt_endpoint.h"
 #include "cras_bt_transport.h"
 #include "cras_bt_constants.h"
 #include "utlist.h"
@@ -30,6 +31,7 @@ struct cras_bt_transport {
 	uint16_t read_mtu;
 	uint16_t write_mtu;
 
+	struct cras_bt_endpoint *endpoint;
 	struct cras_bt_transport *prev, *next;
 };
 
@@ -58,6 +60,11 @@ struct cras_bt_transport *cras_bt_transport_create(DBusConnection *conn,
 	DL_APPEND(transports, transport);
 
 	return transport;
+}
+
+void cras_bt_transport_set_endpoint(struct cras_bt_transport *transport,
+				    struct cras_bt_endpoint *endpoint) {
+	transport->endpoint = endpoint;
 }
 
 void cras_bt_transport_destroy(struct cras_bt_transport *transport)
@@ -162,6 +169,12 @@ enum cras_bt_transport_state cras_bt_transport_state(
 	return transport->state;
 }
 
+struct cras_bt_endpoint *cras_bt_transport_endpoint(
+	const struct cras_bt_transport *transport)
+{
+	return transport->endpoint;
+}
+
 int cras_bt_transport_fd(const struct cras_bt_transport *transport)
 {
 	return transport->fd;
@@ -177,6 +190,42 @@ uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
 	return transport->write_mtu;
 }
 
+static enum cras_bt_transport_state cras_bt_transport_state_from_string(
+	const char *value)
+{
+	if (strcmp("idle", value) == 0)
+		return CRAS_BT_TRANSPORT_STATE_IDLE;
+	else if (strcmp("pending", value) == 0)
+		return CRAS_BT_TRANSPORT_STATE_PENDING;
+	else if (strcmp("active", value) == 0)
+		return CRAS_BT_TRANSPORT_STATE_ACTIVE;
+	else
+		return CRAS_BT_TRANSPORT_STATE_IDLE;
+}
+
+static void cras_bt_transport_state_changed(struct cras_bt_transport *transport)
+{
+	if (!transport->endpoint)
+		return;
+
+	/* An acquired transport transitioning to idle state indicates a
+	   suspend request from the device, we must release the transport
+	   stream. */
+	if (transport->state == CRAS_BT_TRANSPORT_STATE_IDLE &&
+	    transport->fd != -1) {
+		syslog(LOG_INFO, "Suspend received from device");
+		transport->endpoint->suspend(transport->endpoint, transport);
+	}
+
+	/* A non-acquired transport transitioning to pending state indicates
+	   a resume request from the device, we must acquire the transport
+	   stream again. */
+	if (transport->state == CRAS_BT_TRANSPORT_STATE_PENDING &&
+	    transport->fd == -1) {
+		syslog(LOG_INFO, "Start received from device");
+		transport->endpoint->start(transport->endpoint, transport);
+	}
+}
 
 void cras_bt_transport_update_properties(
 	struct cras_bt_transport *transport,
@@ -211,22 +260,15 @@ void cras_bt_transport_update_properties(
 					cras_bt_device_profile_from_uuid(value);
 
 			} else if (strcmp(key, "State") == 0) {
-				if (strcmp("disconnected", value) == 0)
-					transport->state
-					 = CRAS_BT_TRANSPORT_STATE_DISCONNECTED;
-				else if (strcmp("connecting", value) == 0)
-					transport->state
-					   = CRAS_BT_TRANSPORT_STATE_CONNECTING;
-				else if (strcmp("connected", value) == 0)
-					transport->state
-					    = CRAS_BT_TRANSPORT_STATE_CONNECTED;
-				else if (strcmp("playing", value) == 0)
-					transport->state
-					      = CRAS_BT_TRANSPORT_STATE_PLAYING;
-				else
-					transport->state = 0;
-
-				}
+				enum cras_bt_transport_state old_state =
+					transport->state;
+				transport->state =
+					cras_bt_transport_state_from_string(
+						value);
+				if (transport->state != old_state)
+					cras_bt_transport_state_changed(
+						transport);
+			}
 
 		} else if (type == DBUS_TYPE_BYTE) {
 			int value;
@@ -274,7 +316,7 @@ void cras_bt_transport_update_properties(
 		} else if (strcmp(key, "UUID") == 0) {
 			transport->profile = 0;
 		} else if (strcmp(key, "State") == 0) {
-			transport->state = 0;
+			transport->state = CRAS_BT_TRANSPORT_STATE_IDLE;
 		} else if (strcmp(key, "Codec") == 0) {
 			transport->codec = 0;
 		} else if (strcmp(key, "Configuration") == 0) {
@@ -294,6 +336,8 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 
 	if (transport->fd >= 0)
 		return 0;
+
+	syslog(LOG_INFO, "Acquiring A2DP transport stream");
 
 	method_call = dbus_message_new_method_call(
 		BLUEZ_SERVICE,
@@ -343,7 +387,6 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 	return 0;
 }
 
-
 int cras_bt_transport_release(struct cras_bt_transport *transport)
 {
 	DBusMessage *method_call, *reply;
@@ -351,6 +394,8 @@ int cras_bt_transport_release(struct cras_bt_transport *transport)
 
 	if (transport->fd < 0)
 		return 0;
+
+	syslog(LOG_INFO, "Releasing A2DP transport stream");
 
 	/* Close the transport on our end no matter whether or not the server
 	 * gives us an error.

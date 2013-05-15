@@ -124,9 +124,11 @@ static int cras_a2dp_select_configuration(struct cras_bt_endpoint *endpoint,
 	return 0;
 }
 
-static void cras_a2dp_set_configuration(struct cras_bt_endpoint *endpoint,
-					struct cras_bt_transport *transport)
+static void cras_a2dp_start(struct cras_bt_endpoint *endpoint,
+			    struct cras_bt_transport *transport)
 {
+	syslog(LOG_INFO, "Creating iodev for A2DP device");
+
 	if (iodev) {
 		syslog(LOG_WARNING,
 		       "Replacing existing endpoint configuration");
@@ -138,16 +140,11 @@ static void cras_a2dp_set_configuration(struct cras_bt_endpoint *endpoint,
 		syslog(LOG_WARNING, "Failed to create a2dp iodev");
 }
 
-static void cras_a2dp_clear_configuration(struct cras_bt_endpoint *endpoint,
-					  struct cras_bt_transport *transport)
-{
-	a2dp_iodev_destroy(iodev);
-	iodev = NULL;
-}
-
-static void cras_a2dp_release(struct cras_bt_endpoint *endpoint)
+static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
+			      struct cras_bt_transport *transport)
 {
 	if (iodev) {
+		syslog(LOG_INFO, "Destroying iodev for A2DP device");
 		a2dp_iodev_destroy(iodev);
 		iodev = NULL;
 	}
@@ -164,9 +161,8 @@ static struct cras_bt_endpoint cras_a2dp_endpoint = {
 
 	.get_capabilities = cras_a2dp_get_capabilities,
 	.select_configuration = cras_a2dp_select_configuration,
-	.set_configuration = cras_a2dp_set_configuration,
-	.clear_configuration = cras_a2dp_clear_configuration,
-	.release = cras_a2dp_release
+	.start = cras_a2dp_start,
+	.suspend = cras_a2dp_suspend
 };
 
 int cras_a2dp_endpoint_create(DBusConnection *conn)

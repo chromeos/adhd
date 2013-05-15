@@ -41,6 +41,26 @@
 	"</node>\n"
 
 
+static void cras_bt_endpoint_start(struct cras_bt_endpoint *endpoint,
+				   struct cras_bt_transport *transport)
+{
+	cras_bt_transport_set_endpoint(transport, endpoint);
+	endpoint->transport = transport;
+
+	endpoint->start(endpoint, transport);
+}
+
+static void cras_bt_endpoint_suspend(struct cras_bt_endpoint *endpoint)
+{
+	if (!endpoint->transport)
+		return;
+
+	endpoint->suspend(endpoint, endpoint->transport);
+
+	cras_bt_transport_set_endpoint(endpoint->transport, NULL);
+	endpoint->transport = NULL;
+}
+
 static DBusHandlerResult cras_bt_endpoint_set_configuration(
 	DBusConnection *conn,
 	DBusMessage *message,
@@ -89,7 +109,7 @@ static DBusHandlerResult cras_bt_endpoint_set_configuration(
 		}
 	}
 
-	endpoint->set_configuration(endpoint, transport);
+	cras_bt_endpoint_start(endpoint, transport);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
@@ -196,7 +216,8 @@ static DBusHandlerResult cras_bt_endpoint_clear_configuration(
 
 	transport = cras_bt_transport_get(transport_path);
 
-	endpoint->clear_configuration(endpoint, transport);
+	if (transport == endpoint->transport)
+		cras_bt_endpoint_suspend(endpoint);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
@@ -224,7 +245,7 @@ static DBusHandlerResult cras_bt_endpoint_release(DBusConnection *conn,
 	if (!endpoint)
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-	endpoint->release(endpoint);
+	cras_bt_endpoint_suspend(endpoint);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
@@ -563,7 +584,7 @@ void cras_bt_endpoint_reset()
 	struct cras_bt_endpoint *endpoint;
 
 	DL_FOREACH(endpoints, endpoint)
-		endpoint->release(endpoint);
+		cras_bt_endpoint_suspend(endpoint);
 }
 
 struct cras_bt_endpoint *cras_bt_endpoint_get(const char *object_path)

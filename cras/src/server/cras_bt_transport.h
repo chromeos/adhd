@@ -11,18 +11,20 @@
 
 #include "cras_bt_device.h"
 
+struct cras_bt_endpoint;
 struct cras_bt_transport;
 
 enum cras_bt_transport_state {
-	CRAS_BT_TRANSPORT_STATE_DISCONNECTED,
-	CRAS_BT_TRANSPORT_STATE_CONNECTING,
-	CRAS_BT_TRANSPORT_STATE_CONNECTED,
-	CRAS_BT_TRANSPORT_STATE_PLAYING
+	CRAS_BT_TRANSPORT_STATE_IDLE,
+	CRAS_BT_TRANSPORT_STATE_PENDING,
+	CRAS_BT_TRANSPORT_STATE_ACTIVE
 };
 
 
 struct cras_bt_transport *cras_bt_transport_create(DBusConnection *conn,
 						   const char *object_path);
+void cras_bt_transport_set_endpoint(struct cras_bt_transport *transport,
+				    struct cras_bt_endpoint *endpoint);
 void cras_bt_transport_destroy(struct cras_bt_transport *transport);
 void cras_bt_transport_reset();
 
@@ -40,6 +42,8 @@ int cras_bt_transport_codec(const struct cras_bt_transport *transport);
 int cras_bt_transport_configuration(const struct cras_bt_transport *transport,
 				    void *configuration, int len);
 enum cras_bt_transport_state cras_bt_transport_state(
+	const struct cras_bt_transport *transport);
+struct cras_bt_endpoint *cras_bt_transport_endpoint(
 	const struct cras_bt_transport *transport);
 
 int cras_bt_transport_fd(const struct cras_bt_transport *transport);
