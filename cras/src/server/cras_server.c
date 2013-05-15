@@ -5,6 +5,7 @@
 
 #define _GNU_SOURCE /* Needed for Linux socket credential passing. */
 
+#include <dbus/dbus.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -316,6 +317,8 @@ int cras_server_run()
 				       &server_instance);
 
 	cras_udev_start_sound_subsystem_monitor();
+
+	dbus_threads_init_default();
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
 		cras_bt_start(dbus_conn);
