@@ -56,6 +56,7 @@ cras_SOURCES = \
 	server/cras_empty_iodev.c \
 	server/cras_expr.c \
 	server/cras_gpio_jack.c \
+	server/cras_hfp_ag_profile.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
