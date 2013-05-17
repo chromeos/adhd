@@ -623,6 +623,18 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		ret = thread_remove_stream(thread, rmsg->stream);
 		break;
 	}
+	case AUDIO_THREAD_RM_ALL_STREAMS: {
+		struct cras_io_stream *iostream, *tmp;
+
+		/* For each stream; detach and tell client to reconfig. */
+		DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
+			cras_rstream_send_client_reattach(iostream->stream);
+			ret = thread_remove_stream(thread, iostream->stream);
+			if (ret)
+				break;
+		}
+		break;
+	}
 	case AUDIO_THREAD_STOP:
 		ret = 0;
 		err = audio_thread_send_response(thread, ret);
@@ -1046,13 +1058,13 @@ static int audio_thread_post_message(struct audio_thread *thread,
  */
 static void audio_thread_rm_all_streams(struct audio_thread *thread)
 {
-	struct cras_io_stream *iostream, *tmp;
+	struct audio_thread_add_rm_stream_msg msg;
 
-	/* For each stream; detach and tell client to reconfig. */
-	DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
-		cras_rstream_send_client_reattach(iostream->stream);
-		audio_thread_rm_stream(thread, iostream->stream);
-	}
+	assert(thread);
+
+	msg.header.id = AUDIO_THREAD_RM_ALL_STREAMS;
+	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
+	audio_thread_post_message(thread, &msg.header);
 }
 
 /* Exported Interface */
@@ -1063,6 +1075,9 @@ int audio_thread_add_stream(struct audio_thread *thread,
 	struct audio_thread_add_rm_stream_msg msg;
 
 	assert(thread && stream);
+
+	if (!thread->started)
+		return -EINVAL;
 
 	msg.header.id = AUDIO_THREAD_ADD_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
@@ -1148,9 +1163,10 @@ int audio_thread_start(struct audio_thread *thread)
 
 void audio_thread_destroy(struct audio_thread *thread)
 {
-	audio_thread_rm_all_streams(thread);
 	if (thread->started) {
 		struct audio_thread_msg msg;
+
+		audio_thread_rm_all_streams(thread);
 
 		msg.id = AUDIO_THREAD_STOP;
 		msg.length = sizeof(msg);
