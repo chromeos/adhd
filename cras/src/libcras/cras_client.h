@@ -549,6 +549,24 @@ int cras_client_calc_playback_latency(const struct timespec *sample_time,
 int cras_client_calc_capture_latency(const struct timespec *sample_time,
 				     struct timespec *delay);
 
+/* Set the volume of the given output node. Only for output nodes.
+ * Args:
+ *    node_id - ID of the node.
+ *    volume - New value for node volume.
+ */
+int cras_client_set_node_volume(struct cras_client *client,
+				cras_node_id_t node_id,
+				uint8_t volume);
+
+/* Set the volume of the given input node.  Only for input nodes.
+ * Args:
+ *    node_id - ID of the node.
+ *    gain - New capture gain for the node.
+ */
+int cras_client_set_node_capture_gain(struct cras_client *client,
+				      cras_node_id_t node_id,
+				      long gain);
+
 #ifdef __cplusplus
 }
 #endif

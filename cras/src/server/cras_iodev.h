@@ -31,6 +31,8 @@ struct cras_iodev;
  *    plugged - true if the device is plugged.
  *    plugged_time - If plugged is true, this is the time it was attached.
  *    priority - higher is better.
+ *    volume - per-node volume (0-100)
+ *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  */
@@ -40,6 +42,8 @@ struct cras_ionode {
 	int plugged;
 	struct timeval plugged_time;
 	unsigned priority;
+	unsigned int volume;
+	long capture_gain;
 	enum CRAS_NODE_TYPE type;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	struct cras_ionode *prev, *next;
@@ -267,6 +271,29 @@ static inline unsigned int cras_iodev_sleep_frames(const struct cras_iodev *dev,
 		return 0;
 
 	return to_sleep;
+}
+
+/* Adjust the system volume based on the volume of the given node. */
+static inline unsigned int cras_iodev_adjust_node_volume(
+		const struct cras_ionode *node,
+		unsigned int system_volume)
+{
+	unsigned int node_vol_offset = 100 - node->volume;
+
+	if (system_volume > node_vol_offset)
+		return system_volume - node_vol_offset;
+	else
+		return 0;
+}
+
+/* Get the volume scaler for the active node. */
+static inline unsigned int cras_iodev_adjust_active_node_volume(
+		struct cras_iodev *iodev, unsigned int system_volume)
+{
+	if (!iodev->active_node)
+		return system_volume;
+
+	return cras_iodev_adjust_node_volume(iodev->active_node, system_volume);
 }
 
 #endif /* CRAS_IODEV_H_ */

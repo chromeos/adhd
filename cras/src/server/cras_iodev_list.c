@@ -194,6 +194,8 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->active =
 				(dev == active_input || dev == active_output)
 				&& (dev->active_node == node);
+			node_info->volume = node->volume;
+			node_info->capture_gain = node->capture_gain;
 			strcpy(node_info->name, node->name);
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
 				node_type_to_str(node->type));

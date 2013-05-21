@@ -354,6 +354,8 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 	if (curve == NULL)
 		return;
 	aout = get_active_output(aio);
+	if (aout)
+		volume = cras_iodev_adjust_node_volume(&aout->base, volume);
 	cras_alsa_mixer_set_dBFS(
 		aio->mixer,
 		curve->get_dBFS(curve, volume),
@@ -369,6 +371,7 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)iodev;
 	struct alsa_input_node *ain;
+	long gain;
 
 	assert(aio);
 	if (aio->mixer == NULL)
@@ -378,10 +381,13 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	if (!is_open(&aio->base))
 		return;
 
+	gain = cras_system_get_capture_gain();
 	ain = get_active_input(aio);
+	if (ain)
+		gain += ain->base.capture_gain;
 	cras_alsa_mixer_set_capture_dBFS(
 			aio->mixer,
-			cras_system_get_capture_gain(),
+			gain,
 			ain ? ain->mixer_input : NULL);
 	cras_alsa_mixer_set_capture_mute(aio->mixer,
 					 cras_system_get_capture_mute());
@@ -502,6 +508,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 	};
 	unsigned i;
 
+	node->volume = 100;
 	node->type = CRAS_NODE_TYPE_UNKNOWN;
 	/* Go through the known names */
 	for (i = 0; i < ARRAY_SIZE(prios); i++)

@@ -284,6 +284,8 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_bool_t active;
 	dbus_uint64_t plugged_time = node->plugged_time.tv_sec * 1000000ULL +
 		node->plugged_time.tv_usec;
+	dbus_uint64_t node_volume = node->volume;
+	dbus_int64_t node_capture_gain = node->capture_gain;
 
 	is_input = (direction == CRAS_STREAM_INPUT);
 	id = node->iodev_idx;
@@ -313,6 +315,12 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		return FALSE;
 	if (!append_key_value(&dict, "PluggedTime", DBUS_TYPE_UINT64,
 			      DBUS_TYPE_UINT64_AS_STRING, &plugged_time))
+		return FALSE;
+	if (!append_key_value(&dict, "NodeVolume", DBUS_TYPE_UINT64,
+			      DBUS_TYPE_UINT64_AS_STRING, &node_volume))
+		return FALSE;
+	if (!append_key_value(&dict, "NodeCaptureGain", DBUS_TYPE_INT64,
+			      DBUS_TYPE_INT64_AS_STRING, &node_capture_gain))
 		return FALSE;
 	if (!dbus_message_iter_close_container(iter, &dict))
 		return FALSE;

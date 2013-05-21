@@ -336,6 +336,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	node->plugged = 1;
 	node->priority = 3;
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
+	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
 
 	/* A2DP does output only */

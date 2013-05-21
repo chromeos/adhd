@@ -280,15 +280,48 @@ static void plug_node(struct cras_ionode *node, int plugged)
 	cras_iodev_list_notify_nodes_changed();
 }
 
+static void set_node_volume(struct cras_ionode *node, int value)
+{
+	struct cras_iodev *dev = node->dev;
+	unsigned int volume;
+
+	if (dev->direction != CRAS_STREAM_OUTPUT)
+		return;
+
+	volume = (unsigned int)min(value, 100);
+	node->volume = volume;
+	dev->set_volume(dev);
+}
+
+static void set_node_capture_gain(struct cras_ionode *node, int value)
+{
+	struct cras_iodev *dev = node->dev;
+
+	if (dev->direction != CRAS_STREAM_INPUT)
+		return;
+
+	node->capture_gain = (long)value;
+	dev->set_capture_gain(dev);
+}
+
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
-	if (attr == IONODE_ATTR_PLUGGED) {
+	switch (attr) {
+	case IONODE_ATTR_PLUGGED:
 		plug_node(ionode, value);
-		return 0;
+		break;
+	case IONODE_ATTR_VOLUME:
+		set_node_volume(ionode, value);
+		break;
+	case IONODE_ATTR_CAPTURE_GAIN:
+		set_node_capture_gain(ionode, value);
+		break;
+	default:
+		return -EINVAL;
 	}
 
-	return -EINVAL;
+	return 0;
 }
 
 struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)

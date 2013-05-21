@@ -813,6 +813,11 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 
+  sys_get_volume_return_value = 80;
+  aio_output_->base.active_node->volume = 90;
+  aio_output_->base.set_volume(&aio_output_->base);
+  EXPECT_EQ(-3000, alsa_mixer_set_dBFS_value);
+
   // close the dev.
   rc = aio_output_->base.close_dev(&aio_output_->base);
   EXPECT_EQ(0, rc);

@@ -29,6 +29,8 @@ struct cras_iodev_info {
  *    plugged - Set true if this node is known to be plugged in.
  *    plugged_time - If plugged is true, this is the time it was attached.
  *    active - If this is the node currently being used.
+ *    volume - per-node volume (0-100)
+ *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  */
@@ -37,17 +39,23 @@ struct cras_ionode_info {
 	uint32_t ionode_idx;
 	size_t priority;
 	int plugged;
-	struct timeval plugged_time;
 	int active;
+	struct timeval plugged_time;
+	unsigned int volume;
+	long capture_gain;
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };
 
 /* This is used in the cras_client_set_node_attr API.
  *    IONODE_ATTR_PLUGGED - set the node as plugged/unplugged.
+ *    IONODE_ATTR_VOLUME - set the node's output volume.
+ *    IONODE_ATTR_CAPTURE_GAIN - set the node's capture gain.
  */
 enum ionode_attr {
 	IONODE_ATTR_PLUGGED,
+	IONODE_ATTR_VOLUME,
+	IONODE_ATTR_CAPTURE_GAIN,
 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

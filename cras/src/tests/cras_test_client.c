@@ -618,6 +618,7 @@ static struct option long_options[] = {
 	{"plug",                required_argument,      0, 'x'},
 	{"select_output",       required_argument,      0, 'y'},
 	{"select_input",        required_argument,      0, 'a'},
+	{"set_node_volume",	required_argument,      0, 'w'},
 	{"help",                no_argument,            0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -649,6 +650,7 @@ static void show_usage()
 	       " ionode with the given index M on the device with index N\n");
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input");
+	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id");
 	printf("--help - Print this message.\n");
 }
 
@@ -794,6 +796,40 @@ int main(int argc, char **argv)
 			enum CRAS_STREAM_DIRECTION direction = (c == 'y') ?
 				CRAS_STREAM_OUTPUT : CRAS_STREAM_INPUT;
 			cras_client_select_node(client, direction, id);
+			break;
+		}
+		case 'w': {
+			const char *s;
+			int dev_index;
+			int node_index;
+			int value;
+
+			s = strtok(optarg, ":");
+			if (!s) {
+				show_usage();
+				return -EINVAL;
+			}
+			dev_index = atoi(s);
+
+			s = strtok(NULL, ":");
+			if (!s) {
+				show_usage();
+				return -EINVAL;
+			}
+			node_index = atoi(s);
+
+			s = strtok(NULL, ":");
+			if (!s) {
+				show_usage();
+				return -EINVAL;
+			}
+			value = atoi(s) ;
+
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
+
+			cras_client_set_node_volume(client, id, value);
+			break;
 		}
 		default:
 			break;
