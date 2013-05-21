@@ -291,6 +291,8 @@ static void set_node_volume(struct cras_ionode *node, int value)
 	volume = (unsigned int)min(value, 100);
 	node->volume = volume;
 	dev->set_volume(dev);
+
+	cras_iodev_list_notify_node_volume(node);
 }
 
 static void set_node_capture_gain(struct cras_ionode *node, int value)
@@ -302,6 +304,8 @@ static void set_node_capture_gain(struct cras_ionode *node, int value)
 
 	node->capture_gain = (long)value;
 	dev->set_capture_gain(dev);
+
+	cras_iodev_list_notify_node_capture_gain(node);
 }
 
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,

@@ -17,11 +17,15 @@ static cras_node_id_t select_node_id;
 static struct cras_ionode *node_selected;
 static size_t notify_nodes_changed_called;
 static size_t notify_active_node_changed_called;
+static size_t notify_node_volume_called;
+static size_t notify_node_capture_gain_called;
 
 void ResetStubData() {
   select_node_called = 0;
   notify_nodes_changed_called = 0;
   notify_active_node_changed_called = 0;
+  notify_node_volume_called = 0;
+  notify_node_capture_gain_called = 0;
 }
 
 namespace {
@@ -347,6 +351,14 @@ static void update_active_node(struct cras_iodev *iodev)
 {
 }
 
+static void dev_set_volume(struct cras_iodev *iodev)
+{
+}
+
+static void dev_set_capture_gain(struct cras_iodev *iodev)
+{
+}
+
 TEST(IoNodePlug, ClearSelection) {
   struct cras_iodev iodev;
   struct cras_ionode ionode;
@@ -384,6 +396,23 @@ TEST(IoDev, SetActiveNode) {
   EXPECT_EQ(0, notify_active_node_changed_called);
   cras_iodev_set_active_node(&iodev, &ionode);
   EXPECT_EQ(1, notify_active_node_changed_called);
+}
+
+TEST(IoDev, SetNodeVolume) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  iodev.set_volume = dev_set_volume;
+  iodev.set_capture_gain = dev_set_capture_gain;
+  ionode.dev = &iodev;
+  ResetStubData();
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 10);
+  EXPECT_EQ(1, notify_node_volume_called);
+  iodev.direction = CRAS_STREAM_INPUT;
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_CAPTURE_GAIN, 10);
+  EXPECT_EQ(1, notify_node_capture_gain_called);
 }
 
 extern "C" {
@@ -459,6 +488,16 @@ void cras_iodev_list_notify_nodes_changed()
 void cras_iodev_list_notify_active_node_changed()
 {
   notify_active_node_changed_called++;
+}
+
+void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
+{
+	notify_node_volume_called++;
+}
+
+void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
+{
+	notify_node_capture_gain_called++;
 }
 
 }  // extern "C"

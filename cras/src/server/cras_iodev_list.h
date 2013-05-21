@@ -21,6 +21,8 @@ struct cras_rclient;
 struct cras_rstream;
 struct cras_audio_format;
 
+typedef void (*node_volume_callback_t)(cras_node_id_t, int);
+
 /* Initialize the list of iodevs. */
 void cras_iodev_list_init();
 
@@ -186,6 +188,16 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 
 /* Returns 1 if the node is selected, 0 otherwise. */
 int cras_iodev_list_node_selected(struct cras_ionode *node);
+
+/* Sets the function to call when a node volume changes. */
+void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
+					       node_volume_callback_t gain_cb);
+
+/* Notify the current volume of the given node. */
+void cras_iodev_list_notify_node_volume(struct cras_ionode *node);
+
+/* Notify the current capture gain of the given node. */
+void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node);
 
 /* For unit test only. */
 void cras_iodev_list_reset();

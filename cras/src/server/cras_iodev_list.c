@@ -40,6 +40,9 @@ static cras_node_id_t selected_output;
 static struct cras_alert *nodes_changed_alert;
 /* Called when the active output/input is changed */
 static struct cras_alert *active_node_changed_alert;
+/* Call when the volume of a node changes. */
+static node_volume_callback_t node_volume_callback;
+static node_volume_callback_t node_input_gain_callback;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
 static void active_node_changed_prepare(struct cras_alert *alert);
@@ -589,6 +592,29 @@ int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	return (id == selected_input || id == selected_output);
+}
+
+void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
+					       node_volume_callback_t gain_cb)
+{
+	node_volume_callback = volume_cb;
+	node_input_gain_callback = gain_cb;
+}
+
+void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
+{
+	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
+
+	if (node_volume_callback)
+		node_volume_callback(id, node->volume);
+}
+
+void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
+{
+	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
+
+	if (node_input_gain_callback)
+		node_input_gain_callback(id, node->capture_gain);
 }
 
 void cras_iodev_list_reset()

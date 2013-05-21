@@ -26,6 +26,10 @@
     "    <method name=\"SetOutputVolume\">\n"                              \
     "      <arg name=\"volume\" type=\"y\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
+    "    <method name=\"SetOutputNodeVolume\">\n"                       \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "      <arg name=\"volume\" type=\"i\" direction=\"in\"/>\n"        \
+    "    </method>\n"                                                   \
     "    <method name=\"SetOutputMute\">\n"                              \
     "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
@@ -35,6 +39,10 @@
     "    <method name=\"SetInputGain\">\n"                              \
     "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
+    "    <method name=\"SetInputNodeGain\">\n"                          \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"          \
+    "    </method>\n"                                                   \
     "    <method name=\"SetInputMute\">\n"                              \
     "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
@@ -123,6 +131,35 @@ static DBusHandlerResult handle_set_output_volume(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_output_node_volume(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	dbus_int32_t new_vol;
+	cras_node_id_t id;
+	DBusError dbus_error;
+
+	dbus_error_init(&dbus_error);
+
+	if (!dbus_message_get_args(message, &dbus_error,
+				   DBUS_TYPE_UINT64, &id,
+				   DBUS_TYPE_INT32, &new_vol,
+				   DBUS_TYPE_INVALID)) {
+		syslog(LOG_WARNING,
+		       "Bad method received: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	cras_iodev_list_set_node_attr(id, IONODE_ATTR_VOLUME, new_vol);
+
+	send_empty_reply(message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult handle_set_output_mute(
 	DBusConnection *conn,
 	DBusMessage *message,
@@ -174,6 +211,35 @@ static DBusHandlerResult handle_set_input_gain(
 		return rc;
 
 	cras_system_set_capture_gain(new_gain);
+
+	send_empty_reply(message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_set_input_node_gain(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	dbus_int32_t new_gain;
+	cras_node_id_t id;
+	DBusError dbus_error;
+
+	dbus_error_init(&dbus_error);
+
+	if (!dbus_message_get_args(message, &dbus_error,
+				   DBUS_TYPE_UINT64, &id,
+				   DBUS_TYPE_INT32, &new_gain,
+				   DBUS_TYPE_INVALID)) {
+		syslog(LOG_WARNING,
+		       "Bad method received: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	cras_iodev_list_set_node_attr(id, IONODE_ATTR_CAPTURE_GAIN, new_gain);
 
 	send_empty_reply(message);
 
@@ -439,6 +505,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 		return handle_set_output_volume(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
+					       "SetOutputNodeVolume")) {
+		return handle_set_output_node_volume(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetOutputMute")) {
 		return handle_set_output_mute(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
@@ -449,6 +519,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetInputGain")) {
 		return handle_set_input_gain(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "SetInputNodeGain")) {
+		return handle_set_input_node_gain(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetInputMute")) {
@@ -612,6 +686,51 @@ static void signal_active_node_changed(void *arg)
 	}
 }
 
+/* Called by iodev_list when a node volume changes. */
+static void signal_node_volume_changed(cras_node_id_t id,
+				       int volume)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_uint64_t node_id;
+	dbus_int32_t node_volume;
+
+	msg = create_dbus_message("OutputNodeVolumeChanged");
+	if (!msg)
+		return;
+
+	node_id = id;
+	node_volume = volume;
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_UINT64, &node_id,
+				 DBUS_TYPE_INT32, &node_volume,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
+static void signal_node_capture_gain_changed(cras_node_id_t id,
+					     int capture_gain)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_uint64_t node_id;
+	dbus_int32_t node_capture_gain;
+
+	msg = create_dbus_message("InputNodeGainChanged");
+	if (!msg)
+		return;
+
+	node_id = id;
+	node_capture_gain = capture_gain;
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_UINT64, &node_id,
+				 DBUS_TYPE_INT32, &node_capture_gain,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -643,6 +762,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	cras_iodev_list_register_nodes_changed_cb(signal_nodes_changed, 0);
 	cras_iodev_list_register_active_node_changed_cb(
 		signal_active_node_changed, 0);
+	cras_iodev_list_set_node_volume_callbacks(
+		signal_node_volume_changed, signal_node_capture_gain_changed);
 }
 
 void cras_dbus_control_stop()
