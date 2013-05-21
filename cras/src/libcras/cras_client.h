@@ -366,6 +366,17 @@ int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
  */
 int cras_client_set_system_mute(struct cras_client *client, int mute);
 
+/* Sets the user mute state of the system.  This is used for mutes caused by
+ * user interaction.  Like the mute key.
+ * Args:
+ *    client - Client owning the stream.
+ *    mute - 0 is un-mute, 1 is muted.
+ * Returns:
+ *    0 for success, -EPIPE if there is an I/O error talking to the server, or
+ *    -EINVAL if 'client' is invalid.
+ */
+int cras_client_set_user_mute(struct cras_client *client, int mute);
+
 /* Sets the mute locked state of the system. Changing mute state is impossible
  * when this flag is set to locked.
  * Args:

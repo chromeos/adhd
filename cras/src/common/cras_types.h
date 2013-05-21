@@ -84,7 +84,8 @@ static inline uint32_t node_index_of(cras_node_id_t id)
  *    volume - index from 0-100.
  *    min_volume_dBFS - volume in dB * 100 when volume = 1.
  *    max_volume_dBFS - volume in dB * 100 when volume = max.
- *    mute - 0 = unmuted, 1 = muted.
+ *    mute - 0 = unmuted, 1 = muted by system (device switch, suspend, etc).
+ *    user_mute - 0 = unmuted, 1 = muted by user.
  *    mute_locked - 0 = unlocked, 1 = locked.
  *    capture_gain - Capture gain in dBFS * 100.
  *    capture_mute - 0 = unmuted, 1 = muted.
@@ -118,6 +119,7 @@ struct cras_server_state {
 	long min_volume_dBFS;
 	long max_volume_dBFS;
 	int mute;
+	int user_mute;
 	int mute_locked;
 	long capture_gain;
 	int capture_mute;

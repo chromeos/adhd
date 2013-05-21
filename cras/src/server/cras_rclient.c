@@ -336,6 +336,10 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_system_set_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
+	case CRAS_SERVER_SET_USER_MUTE:
+		cras_system_set_user_mute(
+			((const struct cras_set_system_mute *)msg)->mute);
+		break;
 	case CRAS_SERVER_SET_SYSTEM_MUTE_LOCKED:
 		cras_system_set_mute_locked(
 			((const struct cras_set_system_mute *)msg)->mute);

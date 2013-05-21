@@ -605,6 +605,7 @@ static struct option long_options[] = {
 	{"callback_threshold",	required_argument,	0, 't'},
 	{"min_cb_level",	required_argument,	0, 'm'},
 	{"mute",                required_argument,      0, 'u'},
+	{"user_mute",           required_argument,      0, 'q'},
 	{"buffer_frames",	required_argument,	0, 'b'},
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"volume",              required_argument,      0, 'v'},
@@ -634,6 +635,7 @@ static void show_usage()
 	printf("--callback_threshold <N> - Number of samples remaining when callback in invoked.\n");
 	printf("--min_cb_level <N> - Minimum # of samples writeable when playback callback is called.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
+	printf("--user_mute <0|1> - Set user mute state.\n");
 	printf("--buffer_frames <N> - Total number of frames to buffer.\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
 	printf("--volume <0-100> - Set system output volume.\n");
@@ -720,6 +722,15 @@ int main(int argc, char **argv)
 		case 'u': {
 			int mute = atoi(optarg);
 			rc = cras_client_set_system_mute(client, mute);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting mute\n");
+				goto destroy_exit;
+			}
+			break;
+		}
+		case 'q': {
+			int mute = atoi(optarg);
+			rc = cras_client_set_user_mute(client, mute);
 			if (rc < 0) {
 				fprintf(stderr, "problem setting mute\n");
 				goto destroy_exit;

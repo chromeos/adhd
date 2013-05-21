@@ -1656,6 +1656,17 @@ int cras_client_set_system_mute(struct cras_client *client, int mute)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_set_user_mute(struct cras_client *client, int mute)
+{
+	struct cras_set_system_mute msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_user_mute(&msg, mute);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_set_system_mute_locked(struct cras_client *client, int locked)
 {
 	struct cras_set_system_mute msg;

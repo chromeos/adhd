@@ -28,6 +28,8 @@ static size_t cras_system_set_capture_gain_value;
 static int cras_system_set_capture_gain_called;
 static size_t cras_system_set_mute_value;
 static int cras_system_set_mute_called;
+static size_t cras_system_set_user_mute_value;
+static int cras_system_set_user_mute_called;
 static size_t cras_system_set_mute_locked_value;
 static int cras_system_set_mute_locked_called;
 static size_t cras_system_set_capture_mute_value;
@@ -58,6 +60,8 @@ void ResetStubData() {
   cras_system_set_capture_gain_called = 0;
   cras_system_set_mute_value = 0;
   cras_system_set_mute_called = 0;
+  cras_system_set_user_mute_value = 0;
+  cras_system_set_user_mute_called = 0;
   cras_system_set_mute_locked_value = 0;
   cras_system_set_mute_locked_called = 0;
   cras_system_set_capture_mute_value = 0;
@@ -448,6 +452,20 @@ TEST_F(RClientMessagesSuite, SetMute) {
   EXPECT_EQ(1, cras_system_set_mute_locked_value);
 }
 
+TEST_F(RClientMessagesSuite, SetUserMute) {
+  struct cras_set_system_mute msg;
+  int rc;
+
+  msg.header.id = CRAS_SERVER_SET_USER_MUTE;
+  msg.header.length = sizeof(msg);
+  msg.mute = 1;
+
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_system_set_user_mute_called);
+  EXPECT_EQ(1, cras_system_set_user_mute_value);
+}
+
 TEST_F(RClientMessagesSuite, SetCaptureMute) {
   struct cras_set_system_mute msg;
   int rc;
@@ -603,6 +621,11 @@ void cras_system_set_mute(int mute)
 {
   cras_system_set_mute_value = mute;
   cras_system_set_mute_called++;
+}
+void cras_system_set_user_mute(int mute)
+{
+  cras_system_set_user_mute_value = mute;
+  cras_system_set_user_mute_called++;
 }
 void cras_system_set_mute_locked(int mute)
 {

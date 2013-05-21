@@ -29,6 +29,9 @@
     "    <method name=\"SetOutputMute\">\n"                              \
     "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
+    "    <method name=\"SetOutputUserMute\">\n"                              \
+    "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
+    "    </method>\n"                                                       \
     "    <method name=\"SetInputGain\">\n"                              \
     "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"         \
     "    </method>\n"                                                       \
@@ -40,6 +43,7 @@
     "      <arg name=\"muted\" type=\"b\" direction=\"out\"/>\n"   \
     "      <arg name=\"capture_gain\" type=\"i\" direction=\"out\"/>\n"   \
     "      <arg name=\"capture_mute\" type=\"b\" direction=\"out\"/>\n"   \
+    "      <arg name=\"user_muted\" type=\"b\" direction=\"out\"/>\n"   \
     "    </method>\n"                                                       \
     "    <method name=\"GetNodes\">\n"                                  \
     "      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"    \
@@ -138,6 +142,25 @@ static DBusHandlerResult handle_set_output_mute(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_output_user_mute(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	int rc;
+	dbus_bool_t new_mute;
+
+	rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &new_mute);
+	if (rc)
+		return rc;
+
+	cras_system_set_user_mute(new_mute);
+
+	send_empty_reply(message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult handle_set_input_gain(
 	DBusConnection *conn,
 	DBusMessage *message,
@@ -184,22 +207,25 @@ static DBusHandlerResult handle_get_volume_state(
 	DBusMessage *reply;
 	dbus_uint32_t serial = 0;
 	dbus_int32_t volume;
-	dbus_bool_t muted;
+	dbus_bool_t system_muted;
+	dbus_bool_t user_muted;
 	dbus_int32_t capture_gain;
 	dbus_bool_t capture_muted;
 
 	reply = dbus_message_new_method_return(message);
 
 	volume = cras_system_get_volume();
-	muted = cras_system_get_mute();
+	system_muted = cras_system_get_system_mute();
+	user_muted = cras_system_get_user_mute();
 	capture_gain = cras_system_get_capture_gain();
 	capture_muted = cras_system_get_capture_mute();
 
 	dbus_message_append_args(reply,
 				 DBUS_TYPE_INT32, &volume,
-				 DBUS_TYPE_BOOLEAN, &muted,
+				 DBUS_TYPE_BOOLEAN, &system_muted,
 				 DBUS_TYPE_INT32, &capture_gain,
 				 DBUS_TYPE_BOOLEAN, &capture_muted,
+				 DBUS_TYPE_BOOLEAN, &user_muted,
 				 DBUS_TYPE_INVALID);
 
 	dbus_connection_send(dbus_control.conn, reply, &serial);
@@ -409,6 +435,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 		return handle_set_output_mute(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
+					       "SetOutputUserMute")) {
+		return handle_set_output_user_mute(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
 					       "SetInputGain")) {
 		return handle_set_input_gain(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
@@ -476,14 +506,17 @@ static void signal_mute(void *arg)
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
 	dbus_bool_t muted;
+	dbus_bool_t user_muted;
 
 	msg = create_dbus_message("OutputMuteChanged");
 	if (!msg)
 		return;
 
-	muted = cras_system_get_mute();
+	muted = cras_system_get_system_mute();
+	user_muted = cras_system_get_user_mute();
 	dbus_message_append_args(msg,
 				 DBUS_TYPE_BOOLEAN, &muted,
+				 DBUS_TYPE_BOOLEAN, &user_muted,
 				 DBUS_TYPE_INVALID);
 	dbus_connection_send(dbus_control.conn, msg, &serial);
 	dbus_message_unref(msg);

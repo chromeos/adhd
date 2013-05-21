@@ -22,6 +22,10 @@ Methods		void SetOutputVolume(int32 volume)
 
 			Sets the system output mute.
 
+		void SetOutputUserMute(boolean mute_on)
+
+			Sets the system output mute from user action.
+
 		void SetInputMute(boolean mute_on)
 
 			Sets the capture mute state of the system.  Recordings
@@ -34,6 +38,7 @@ Methods		void SetOutputVolume(int32 volume)
 				int32 input_gain (in dBFS * 100)
 				boolean output_mute
 				boolean input_mute
+				boolean output_user_mute
 
 		array{dict} GetNodes()
 
@@ -98,12 +103,16 @@ Signals		OutputVolumeChanged(int32 volume)
 
 		InputGainChanged(int32 gain)
 
-			Indicates that the system capture gain is now gain
+			Indicates what the system capture gain is now. gain
 			expressed in dBFS*100.
 
-		OutputMuteChanged(boolean muted)
+		OutputMuteChanged(boolean muted, boolean user_muted)
 
-			Indicates that the output mute state has changed.
+			Indicates that the output mute state has changed.  muted
+			is true if the system is muted by a system process, such
+			as suspend or device switch.  user_muted is set if the
+			system has been muted by user action such as the mute
+			key.
 
 		InputMuteChanged(boolean muted)
 

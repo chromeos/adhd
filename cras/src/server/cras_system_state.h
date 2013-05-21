@@ -72,12 +72,18 @@ int cras_system_register_capture_gain_changed_cb(cras_alert_cb cb, void *arg);
  */
 int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg);
 
-/* Sets if the system is muted or not. */
+/* Sets if the system is muted by the user. */
+void cras_system_set_user_mute(int muted);
+/* Sets if the system is muted for . */
 void cras_system_set_mute(int muted);
 /* Sets if the system muting is locked or not. */
 void cras_system_set_mute_locked(int locked);
 /* Gets the current mute state of the system. */
 int cras_system_get_mute();
+/* Gets the current user mute state. */
+int cras_system_get_user_mute();
+/* Gets the current system mute state. */
+int cras_system_get_system_mute();
 /* Gets if the system muting is locked or not. */
 int cras_system_get_mute_locked();
 

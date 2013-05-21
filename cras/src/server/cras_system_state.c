@@ -200,6 +200,12 @@ int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg)
 	return cras_alert_rm_callback(state.capture_gain_alert, cb, arg);
 }
 
+void cras_system_set_user_mute(int mute)
+{
+	state.exp_state->user_mute = !!mute;
+	cras_alert_pending(state.mute_alert);
+}
+
 void cras_system_set_mute(int mute)
 {
 	if (state.exp_state->mute_locked)
@@ -218,6 +224,16 @@ void cras_system_set_mute_locked(int locked)
 }
 
 int cras_system_get_mute()
+{
+	return state.exp_state->mute || state.exp_state->user_mute;
+}
+
+int cras_system_get_user_mute()
+{
+	return state.exp_state->user_mute;
+}
+
+int cras_system_get_system_mute()
 {
 	return state.exp_state->mute;
 }
