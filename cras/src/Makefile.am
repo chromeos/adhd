@@ -58,6 +58,7 @@ cras_SOURCES = \
 	server/cras_gpio_jack.c \
 	server/cras_hfp_ag_profile.c \
 	server/cras_hfp_info.c \
+	server/cras_hfp_iodev.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
@@ -163,6 +164,7 @@ TESTS = \
 	expr_unittest \
 	fmt_conv_unittest \
 	hfp_info_unittest \
+	hfp_iodev_unittest \
 	iodev_list_unittest \
 	iodev_unittest \
 	loopback_iodev_unittest \
@@ -369,6 +371,12 @@ hfp_info_unittest_SOURCES = tests/hfp_info_unittest.cc
 hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 hfp_info_unittest_LDADD = -lgtest -lpthread
+
+hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
+	server/cras_hfp_iodev.c
+hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c
