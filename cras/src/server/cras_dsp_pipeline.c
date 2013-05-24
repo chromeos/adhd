@@ -309,7 +309,7 @@ static int topological_sort(struct pipeline *pipeline,
 	FOR_ARRAY_ELEMENT(&plugin->ports, i, port) {
 		int need_connect = (port->flow_id != INVALID_FLOW_ID &&
 				    port->direction == PORT_INPUT);
-		struct plugin *origin;
+                struct plugin *origin = NULL;
 		int origin_index = 0;
 
 		if (need_connect) {
