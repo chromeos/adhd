@@ -14,6 +14,7 @@
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_info.h"
 #include "cras_hfp_iodev.h"
+#include "cras_hfp_slc.h"
 
 #define HFP_AG_PROFILE_NAME "Headset Gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
@@ -23,6 +24,7 @@
 static struct cras_iodev *idev;
 static struct cras_iodev *odev;
 static struct hfp_info *info;
+static struct hfp_slc_handle *slc_handle;
 
 static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 {
@@ -38,16 +40,16 @@ static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 		hfp_iodev_destroy(odev);
 		odev = NULL;
 	}
+	if (slc_handle) {
+		hfp_slc_destroy(slc_handle);
+		slc_handle = NULL;
+	}
 }
 
-static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
-				       struct cras_bt_transport *transport)
+int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
 {
 	int fd;
-	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
-
-	/* Destroy all existing devices and replace with new ones */
-	cras_hfp_ag_release(profile);
+	struct cras_bt_transport *transport = (struct cras_bt_transport *)data;
 
 	info = hfp_info_create();
 	idev = hfp_iodev_create(CRAS_STREAM_INPUT, transport, info);
@@ -59,6 +61,20 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 		cras_bt_transport_configuration(transport, &fd, sizeof(fd));
 		close(fd);
         }
+
+	return 0;
+}
+
+static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
+				       struct cras_bt_transport *transport)
+{
+	int fd;
+	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
+
+	/* Destroy all existing devices and replace with new ones */
+	cras_hfp_ag_release(profile);
+
+	slc_handle = hfp_slc_create(fd, cras_hfp_ag_slc_initialized, transport);
 }
 
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
