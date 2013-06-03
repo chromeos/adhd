@@ -19,6 +19,9 @@ static size_t notify_nodes_changed_called;
 static size_t notify_active_node_changed_called;
 static size_t notify_node_volume_called;
 static size_t notify_node_capture_gain_called;
+static int dsp_context_new_channels;
+static int dsp_context_new_sample_rate;
+static const char *dsp_context_new_purpose;
 
 void ResetStubData() {
   select_node_called = 0;
@@ -26,6 +29,9 @@ void ResetStubData() {
   notify_active_node_changed_called = 0;
   notify_node_volume_called = 0;
   notify_node_capture_gain_called = 0;
+  dsp_context_new_channels = 0;
+  dsp_context_new_sample_rate = 0;
+  dsp_context_new_purpose = NULL;
 }
 
 namespace {
@@ -199,11 +205,16 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatSecondary) {
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 48000;
   fmt.num_channels = 2;
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  ResetStubData();
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(48000, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(dsp_context_new_channels, 2);
+  EXPECT_EQ(dsp_context_new_sample_rate, 48000);
+  EXPECT_EQ(dsp_context_new_purpose, "playback");
 }
 
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatPrimary) {
@@ -213,11 +224,16 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatPrimary) {
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 44100;
   fmt.num_channels = 2;
+  iodev_.direction = CRAS_STREAM_INPUT;
+  ResetStubData();
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(44100, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(dsp_context_new_channels, 2);
+  EXPECT_EQ(dsp_context_new_sample_rate, 44100);
+  EXPECT_EQ(dsp_context_new_purpose, "capture");
 }
 
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatDivisor) {
@@ -445,6 +461,9 @@ void cras_system_state_stream_removed() {
 struct cras_dsp_context *cras_dsp_context_new(int channels, int sample_rate,
                                               const char *purpose)
 {
+  dsp_context_new_channels = channels;
+  dsp_context_new_sample_rate = sample_rate;
+  dsp_context_new_purpose = purpose;
   return NULL;
 }
 

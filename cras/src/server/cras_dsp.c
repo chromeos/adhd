@@ -102,12 +102,16 @@ static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx)
 	}
 
 	if (cras_dsp_pipeline_get_num_channels(pipeline) != ctx->channels) {
-		syslog(LOG_ERR, "pipeline channel count mismatch");
+		syslog(LOG_ERR, "pipeline channel count mismatch (%d vs %d)",
+		       cras_dsp_pipeline_get_num_channels(pipeline),
+		       ctx->channels);
 		goto bail;
 	}
 
 	if (cras_dsp_pipeline_get_sample_rate(pipeline) != ctx->sample_rate) {
-		syslog(LOG_ERR, "pipeline sample rate mismatch");
+		syslog(LOG_ERR, "pipeline sample rate mismatch (%d vs %d)",
+		       cras_dsp_pipeline_get_sample_rate(pipeline),
+		       ctx->sample_rate);
 		goto bail;
 	}
 
