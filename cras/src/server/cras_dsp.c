@@ -10,6 +10,7 @@
 #include "cras_expr.h"
 #include "cras_dsp_ini.h"
 #include "cras_dsp_pipeline.h"
+#include "dsp_util.h"
 #include "utlist.h"
 
 /* We have a dsp_context for each pipeline. The context records the
@@ -277,6 +278,7 @@ static void *dsp_thread_function(void *arg)
 
 void cras_dsp_init(const char *filename)
 {
+	dsp_enable_flush_denormal_to_zero();
 	ini_filename = strdup(filename);
 	syslog_dumper = syslog_dumper_create(LOG_ERR);
 	pthread_create(&dsp_thread, NULL, dsp_thread_function, NULL);

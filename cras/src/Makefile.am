@@ -1,3 +1,7 @@
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
@@ -12,6 +16,9 @@ cras_SOURCES = \
 	common/cras_util.c \
 	common/dumper.c \
 	common/edid_utils.c \
+	dsp/biquad.c \
+	dsp/dsp_util.c \
+	dsp/eq.c \
 	server/audio_thread.c \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
@@ -56,9 +63,10 @@ cras_SOURCES = \
 	server/softvol_curve.c
 
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
-cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl \
+cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl -lm \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS)
 
@@ -108,7 +116,7 @@ libasound_module_pcm_cras_la_LIBADD = -lasound libcras.la
 libasound_module_ctl_cras_la_SOURCES = alsa_plugin/ctl_cras.c
 libasound_module_ctl_cras_la_LIBADD = -lasound libcras.la
 
-check_PROGRAMS = \
+TESTS = \
 	a2dp_info_unittest \
 	a2dp_iodev_unittest \
 	alert_unittest \
@@ -136,17 +144,32 @@ check_PROGRAMS = \
 	alsa_ucm_unittest \
 	edid_utils_unittest \
 	expr_unittest \
+	dsp_core_unittest \
 	dsp_ini_unittest \
 	dsp_pipeline_unittest \
 	dsp_unittest \
 	util_unittest
 
-TESTS = $(check_PROGRAMS)
+check_PROGRAMS = $(TESTS)
 
 cras_test_client_SOURCES = tests/cras_test_client.c
 cras_test_client_LDADD = libcras.la
 cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common
+
+# dsp test programs (not run automatically)
+check_PROGRAMS += \
+	eq_test \
+	cmpraw
+
+eq_test_SOURCES = dsp/biquad.c dsp/eq.c dsp/dsp_util.c dsp/tests/eq_test.c \
+	dsp/tests/dsp_test_util.c dsp/tests/raw.c
+eq_test_LDADD = -lrt -lm
+eq_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+
+cmpraw_SOURCES = dsp/tests/cmpraw.c dsp/tests/raw.c
+cmpraw_LDADD = -lm
+cmpraw_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 
 # unit tests
 alert_unittest_SOURCES = tests/alert_unittest.cc \
@@ -242,6 +265,11 @@ device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server/config
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
+dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c \
+	dsp/biquad.c dsp/dsp_util.c
+dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+dsp_core_unittest_LDADD = -lgtest -lpthread
+
 dsp_ini_unittest_SOURCES = tests/dsp_ini_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c common/dumper.c
 dsp_ini_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
@@ -257,10 +285,10 @@ dsp_pipeline_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 dsp_unittest_SOURCES = tests/dsp_unittest.cc \
 	server/cras_dsp.c server/cras_dsp_ini.c server/cras_dsp_pipeline.c \
-	server/cras_expr.c ../src/server/cras_dsp_mod_builtin.c \
-	common/dumper.c
+	server/cras_expr.c common/dumper.c dsp/dsp_util.c \
+	dsp/tests/dsp_test_util.c
 dsp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/dsp
 dsp_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 dumper_unittest_SOURCES = tests/dumper_unittest.cc common/dumper.c

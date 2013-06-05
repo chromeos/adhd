@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "cras_dsp.h"
+#include "cras_dsp_module.h"
 
 #define FILENAME_TEMPLATE "DspTest.XXXXXX"
 
@@ -104,7 +105,54 @@ TEST_F(DspTestSuite, Simple) {
   cras_dsp_stop();
 }
 
+static int empty_instantiate(struct dsp_module *module,
+                             unsigned long sample_rate)
+{
+  return 0;
+}
+
+static void empty_connect_port(struct dsp_module *module, unsigned long port,
+                               float *data_location) {}
+
+static void empty_run(struct dsp_module *module, unsigned long sample_count) {}
+
+static void empty_deinstantiate(struct dsp_module *module) {}
+
+static void empty_free_module(struct dsp_module *module)
+{
+  free(module);
+}
+
+static int empty_get_properties(struct dsp_module *module) { return 0; }
+
+static void empty_dump(struct dsp_module *module, struct dumper *d)
+{
+  dumpf(d, "built-in module\n");
+}
+
+static void empty_init_module(struct dsp_module *module)
+{
+  module->instantiate = &empty_instantiate;
+  module->connect_port = &empty_connect_port;
+  module->run = &empty_run;
+  module->deinstantiate = &empty_deinstantiate;
+  module->free_module = &empty_free_module;
+  module->get_properties = &empty_get_properties;
+  module->dump = &empty_dump;
+}
+
 }  //  namespace
+
+extern "C"
+{
+struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
+{
+  struct dsp_module *module;
+  module = (struct dsp_module *)calloc(1, sizeof(struct dsp_module));
+  empty_init_module(module);
+  return module;
+}
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
