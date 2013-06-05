@@ -9,6 +9,7 @@
 #include "cras_util.h"
 #include "cras_dsp_module.h"
 #include "cras_dsp_pipeline.h"
+#include "dsp_util.h"
 
 /* We have a static representation of the dsp graph in a "struct ini",
  * and here we will construct a dynamic representation of it in a
@@ -768,10 +769,9 @@ void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
 {
 	size_t remaining;
 	size_t chunk;
-	size_t i, j;
-	int16_t *target, *target_ptr;
+	size_t i;
+	int16_t *target;
 	float *source[channels], *sink[channels];
-	float *source_ptr[channels], *sink_ptr[channels];
 	struct timespec begin, end, delta;
 
 	if (!pipeline || frames == 0)
@@ -794,31 +794,13 @@ void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
 		chunk = min(remaining, (size_t)DSP_BUFFER_SIZE);
 
 		/* deinterleave and convert to float */
-		target_ptr = target;
-		for (i = 0; i < channels; i++)
-			source_ptr[i] = source[i];
-		for (i = 0; i < chunk; i++)
-			for (j = 0; j < channels; j++)
-				*(source_ptr[j]++) = *target_ptr++ / 32768.0f;
+		dsp_util_deinterleave(target, source, channels, chunk);
 
+		/* Run the pipeline */
 		cras_dsp_pipeline_run(pipeline, chunk);
 
 		/* interleave and convert back to int16_t */
-		target_ptr = target;
-		for (i = 0; i < channels; i++)
-			sink_ptr[i] = sink[i];
-		for (i = 0; i < chunk; i++)
-			for (j = 0; j < channels; j++) {
-				float f = *(sink_ptr[j]++) * 32768.0f;
-				int16_t i16;
-				if (f > 32767)
-					i16 = 32767;
-				else if (f < -32768)
-					i16 = -32768;
-				else
-					i16 = (int16_t) (f + 0.5f);
-				*target_ptr++ = i16;
-			}
+		dsp_util_interleave(sink, target, channels, chunk);
 
 		target += chunk * channels;
 		remaining -= chunk;

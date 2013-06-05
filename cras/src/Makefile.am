@@ -278,9 +278,9 @@ dsp_ini_unittest_LDADD = -lgtest -liniparser -lpthread
 
 dsp_pipeline_unittest_SOURCES = tests/cras_dsp_pipeline_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c server/cras_dsp_pipeline.c \
-	common/dumper.c
+	common/dumper.c dsp/dsp_util.c
 dsp_pipeline_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/dsp
 dsp_pipeline_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 dsp_unittest_SOURCES = tests/dsp_unittest.cc \
