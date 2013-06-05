@@ -17,6 +17,7 @@ cras_SOURCES = \
 	common/dumper.c \
 	common/edid_utils.c \
 	dsp/biquad.c \
+	dsp/crossover.c \
 	dsp/dsp_util.c \
 	dsp/eq.c \
 	server/audio_thread.c \
@@ -159,8 +160,14 @@ cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 
 # dsp test programs (not run automatically)
 check_PROGRAMS += \
+	crossover_test \
 	eq_test \
 	cmpraw
+
+crossover_test_SOURCES = dsp/crossover.c dsp/biquad.c dsp/dsp_util.c \
+	dsp/tests/crossover_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
+crossover_test_LDADD = -lrt -lm
+crossover_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 
 eq_test_SOURCES = dsp/biquad.c dsp/eq.c dsp/dsp_util.c dsp/tests/eq_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
@@ -266,7 +273,7 @@ device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c \
-	dsp/biquad.c dsp/dsp_util.c
+	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c
 dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 dsp_core_unittest_LDADD = -lgtest -lpthread
 

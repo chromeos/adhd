@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+#include "crossover.h"
 #include "dsp_util.h"
 #include "eq.h"
 
@@ -120,6 +121,48 @@ TEST(EqTest, All) {
   }
   EXPECT_EQ(-1, eq_append_biquad(eq, BQ_PEAKING, f_high, 5, 6));
   eq_free(eq);
+}
+
+TEST(CrossoverTest, All) {
+  struct crossover xo;
+  size_t len = 44100;
+  float NQ = len / 2;
+  float f0 = 62.5 / NQ;
+  float f1 = 250 / NQ;
+  float f2 = 1000 / NQ;
+  float f3 = 4000 / NQ;
+  float f4 = 16000 / NQ;
+  float *data = (float *)malloc(sizeof(float) * len);
+  float *data1 = (float *)malloc(sizeof(float) * len);
+  float *data2 = (float *)malloc(sizeof(float) * len);
+
+  dsp_enable_flush_denormal_to_zero();
+  crossover_init(&xo, f1, f3);
+  memset(data, 0, sizeof(float) * len);
+  add_sine(data, len, f0, 0, 1);
+  add_sine(data, len, f2, 0, 1);
+  add_sine(data, len, f4, 0, 1);
+
+  crossover_process(&xo, len, data, data1, data2);
+
+  // low band
+  EXPECT_NEAR(1, magnitude_at(data, len, f0), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data, len, f2), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data, len, f4), 0.01);
+
+  // mid band
+  EXPECT_NEAR(0, magnitude_at(data1, len, f0), 0.01);
+  EXPECT_NEAR(1, magnitude_at(data1, len, f2), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data1, len, f4), 0.01);
+
+  // high band
+  EXPECT_NEAR(0, magnitude_at(data2, len, f0), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data2, len, f2), 0.01);
+  EXPECT_NEAR(1, magnitude_at(data2, len, f4), 0.01);
+
+  free(data);
+  free(data1);
+  free(data2);
 }
 
 }  //  namespace
