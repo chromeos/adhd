@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include "cras_dsp_module.h"
+#include "drc.h"
 #include "dsp_util.h"
 #include "eq.h"
 
@@ -168,6 +169,94 @@ static void eq_init_module(struct dsp_module *module)
 }
 
 /*
+ *  drc module functions
+ */
+struct drc_data {
+	int sample_rate;
+	struct drc *drc;  /* Initialized in the first call of drc_run() */
+
+	/* Two ports for input, two for output, and 8 parameters each band */
+	float *ports[4 + 8 * 3];
+};
+
+static int drc_instantiate(struct dsp_module *module, unsigned long sample_rate)
+{
+	struct drc_data *data;
+
+	module->data = calloc(1, sizeof(struct drc_data));
+	data = (struct drc_data *) module->data;
+	data->sample_rate = (int) sample_rate;
+	return 0;
+}
+
+static void drc_connect_port(struct dsp_module *module,
+			    unsigned long port, float *data_location)
+{
+	struct drc_data *data = (struct drc_data *) module->data;
+	data->ports[port] = data_location;
+}
+
+static void drc_run(struct dsp_module *module, unsigned long sample_count)
+{
+	struct drc_data *data = (struct drc_data *) module->data;
+	if (!data->drc) {
+		int i;
+		float nyquist = data->sample_rate / 2;
+		struct drc *drc = drc_new(data->sample_rate);
+
+		data->drc = drc;
+		for (i = 0; i < 3; i++) {
+			int k = 4 + i * 8;
+			float f = *data->ports[k];
+			float enable = *data->ports[k+1];
+			float threshold = *data->ports[k+2];
+			float knee = *data->ports[k+3];
+			float ratio = *data->ports[k+4];
+			float attack = *data->ports[k+5];
+			float release = *data->ports[k+6];
+			float boost = *data->ports[k+7];
+			drc_set_param(drc, i, PARAM_CROSSOVER_LOWER_FREQ,
+				      f / nyquist);
+			drc_set_param(drc, i, PARAM_ENABLED, enable);
+			drc_set_param(drc, i, PARAM_THRESHOLD, threshold);
+			drc_set_param(drc, i, PARAM_KNEE, knee);
+			drc_set_param(drc, i, PARAM_RATIO, ratio);
+			drc_set_param(drc, i, PARAM_ATTACK, attack);
+			drc_set_param(drc, i, PARAM_RELEASE, release);
+			drc_set_param(drc, i, PARAM_POST_GAIN, boost);
+		}
+		drc_init(drc);
+	}
+	if (data->ports[0] != data->ports[2])
+		memcpy(data->ports[2], data->ports[0],
+		       sizeof(float) * sample_count);
+	if (data->ports[1] != data->ports[3])
+		memcpy(data->ports[3], data->ports[1],
+		       sizeof(float) * sample_count);
+
+	drc_process(data->drc, &data->ports[2], (int) sample_count);
+}
+
+static void drc_deinstantiate(struct dsp_module *module)
+{
+	struct drc_data *data = (struct drc_data *) module->data;
+	if (data->drc)
+		drc_free(data->drc);
+	free(data);
+}
+
+static void drc_init_module(struct dsp_module *module)
+{
+	module->instantiate = &drc_instantiate;
+	module->connect_port = &drc_connect_port;
+	module->run = &drc_run;
+	module->deinstantiate = &drc_deinstantiate;
+	module->free_module = &empty_free_module;
+	module->get_properties = &empty_get_properties;
+	module->dump = &empty_dump;
+}
+
+/*
  *  builtin module dispatcher
  */
 struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
@@ -182,6 +271,8 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
 		mix_stereo_init_module(module);
 	} else if (strcmp(plugin->label, "eq") == 0) {
 		eq_init_module(module);
+	} else if (strcmp(plugin->label, "drc") == 0) {
+		drc_init_module(module);
 	} else {
 		empty_init_module(module);
 	}

@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include "crossover.h"
+#include "drc.h"
 #include "dsp_util.h"
 #include "eq.h"
 
@@ -163,6 +164,81 @@ TEST(CrossoverTest, All) {
   free(data);
   free(data1);
   free(data2);
+}
+
+TEST(DrcTest, All) {
+  size_t len = 44100;
+  float NQ = len / 2;
+  float f0 = 62.5 / NQ;
+  float f1 = 250 / NQ;
+  float f2 = 1000 / NQ;
+  float f3 = 4000 / NQ;
+  float f4 = 16000 / NQ;
+  float *data_left = (float *)malloc(sizeof(float) * len);
+  float *data_right = (float *)malloc(sizeof(float) * len);
+  float *data[] = {data_left, data_right};
+  struct drc *drc;
+
+  dsp_enable_flush_denormal_to_zero();
+  drc = drc_new(44100);
+
+  drc_set_param(drc, 0, PARAM_CROSSOVER_LOWER_FREQ, 0);
+  drc_set_param(drc, 0, PARAM_ENABLED, 1);
+  drc_set_param(drc, 0, PARAM_THRESHOLD, -30);
+  drc_set_param(drc, 0, PARAM_KNEE, 0);
+  drc_set_param(drc, 0, PARAM_RATIO, 3);
+  drc_set_param(drc, 0, PARAM_ATTACK, 0.02);
+  drc_set_param(drc, 0, PARAM_RELEASE, 0.2);
+  drc_set_param(drc, 0, PARAM_POST_GAIN, 0);
+
+  drc_set_param(drc, 1, PARAM_CROSSOVER_LOWER_FREQ, f1);
+  drc_set_param(drc, 1, PARAM_ENABLED, 0);
+  drc_set_param(drc, 1, PARAM_THRESHOLD, -30);
+  drc_set_param(drc, 1, PARAM_KNEE, 0);
+  drc_set_param(drc, 1, PARAM_RATIO, 3);
+  drc_set_param(drc, 1, PARAM_ATTACK, 0.02);
+  drc_set_param(drc, 1, PARAM_RELEASE, 0.2);
+  drc_set_param(drc, 1, PARAM_POST_GAIN, 0);
+
+  drc_set_param(drc, 2, PARAM_CROSSOVER_LOWER_FREQ, f3);
+  drc_set_param(drc, 2, PARAM_ENABLED, 1);
+  drc_set_param(drc, 2, PARAM_THRESHOLD, -30);
+  drc_set_param(drc, 2, PARAM_KNEE, 0);
+  drc_set_param(drc, 2, PARAM_RATIO, 1);
+  drc_set_param(drc, 2, PARAM_ATTACK, 0.02);
+  drc_set_param(drc, 2, PARAM_RELEASE, 0.2);
+  drc_set_param(drc, 2, PARAM_POST_GAIN, 20);
+
+  drc_init(drc);
+
+  memset(data_left, 0, sizeof(float) * len);
+  memset(data_right, 0, sizeof(float) * len);
+  add_sine(data_left, len, f0, 0, 1);
+  add_sine(data_left, len, f2, 0, 1);
+  add_sine(data_left, len, f4, 0, 1);
+  add_sine(data_right, len, f0, 0, 1);
+  add_sine(data_right, len, f2, 0, 1);
+  add_sine(data_right, len, f4, 0, 1);
+
+  for (size_t start = 0; start < len; start += DRC_PROCESS_MAX_FRAMES) {
+    int chunk = std::min(len - start, (size_t)DRC_PROCESS_MAX_FRAMES);
+    drc_process(drc, data, chunk);
+    data[0] += chunk;
+    data[1] += chunk;
+  }
+
+  /* This is -8dB because there is a 12dB makeup (20dB^0.6) inside the DRC */
+  EXPECT_NEAR(0.4, magnitude_at(data_right, len, f0), 0.1);
+
+  /* This is 0dB because the DRC is disabled */
+  EXPECT_NEAR(1, magnitude_at(data_right, len, f2), 0.1);
+
+  /* This is 20dB because of the post gain */
+  EXPECT_NEAR(10, magnitude_at(data_right, len, f4), 1);
+
+  drc_free(drc);
+  free(data_left);
+  free(data_right);
 }
 
 }  //  namespace
