@@ -21,6 +21,36 @@ struct hfp_info *hfp_info_create();
 /* Destroys given hfp_info instance. */
 void hfp_info_destroy(struct hfp_info *info);
 
+/* Queries how many frames of data are queued.
+ * Args:
+ *    info - The hfp_info holding the buffer to query.
+ *    dev - The iodev to indicate which buffer to query, playback
+ *    or capture, depend on its direction.
+ */
+int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev);
+
+/* Acquire buffer of count frames for dev to write(or read,
+ * depend on dev's direction).
+ * Args:
+ *    info - The hfp_info holding buffer.
+ *    dev - The iodev to acquire buffer for.
+ *    buf - To hold the returned pointer of acquired buffer.
+ *    count - Number of bytes of buffer to acquire, will be filled with the
+ *    actual acquired buffer size in bytes.
+ */
+void hfp_buf_acquire(struct hfp_info *info,  struct cras_iodev *dev,
+		     uint8_t **buf, unsigned *count);
+
+/* Releases the previously acquired buffer.
+ * Args:
+ *    info - The hfp_info holding the buffer.
+ *    dev - The iodev who releases buffer.
+ *    written_frames - The size of the previously acquired buffer in frames
+ *    which's been used.
+ */
+void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
+		     unsigned written_frames);
+
 /* Adds cras_iodev to given hfp_info.  Only when an output iodev is added,
  * hfp_info starts sending samples to the SCO socket. Similarly, only when an
  * input iodev is added, it starts to read samples from SCO socket.
