@@ -46,9 +46,6 @@ static node_volume_callback_t node_input_gain_callback;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
 static void active_node_changed_prepare(struct cras_alert *alert);
-static struct cras_iodev *cras_iodev_set_active(
-		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_iodev *new_active);
 
 static struct cras_iodev *find_dev(size_t dev_index)
 {
