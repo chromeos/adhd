@@ -632,9 +632,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		/* For each stream; detach and tell client to reconfig. */
 		DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
 			cras_rstream_send_client_reattach(iostream->stream);
-			ret = thread_remove_stream(thread, iostream->stream);
-			if (ret)
-				break;
+			thread_remove_stream(thread, iostream->stream);
 		}
 		break;
 	}
