@@ -110,8 +110,7 @@ struct cras_stream_params {
 /* Represents an attached audio stream.
  * id - Unique stream identifier.
  * aud_fd - After server connects audio messages come in here.
- * direction - playback(CRAS_STREAM_OUTPUT), capture(CRAS_STREAM_INPUT), or
- *     both(CRAS_STREAM_UNIFIED).
+ * direction - playback, capture, both, or loopback (see CRAS_STREAM_DIRECTION).
  * flags - Currently not used.
  * volume_scaler - Amount to scale the stream by, 0.0 to 1.0.
  * tid - Thread id of the audio thread spawned for this stream.
@@ -132,7 +131,7 @@ struct cras_stream_params {
 struct client_stream {
 	cras_stream_id_t id;
 	int aud_fd; /* audio messages from server come in here. */
-	enum CRAS_STREAM_DIRECTION direction; /* playback or capture. */
+	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t flags;
 	float volume_scaler;
 	struct thread_state thread;
@@ -426,7 +425,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
-	if (cras_stream_has_output(stream->direction)) {
+	if (!cras_stream_has_input(stream->direction)) {
 		syslog(LOG_ERR, "Play data to input\n");
 		return 0;
 	}

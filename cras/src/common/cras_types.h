@@ -22,11 +22,12 @@ enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_OUTPUT,
 	CRAS_STREAM_INPUT,
 	CRAS_STREAM_UNIFIED,
+	CRAS_STREAM_POST_MIX_PRE_DSP,
 };
 
 static inline int cras_stream_has_output(enum CRAS_STREAM_DIRECTION dir)
 {
-	return dir != CRAS_STREAM_INPUT;
+	return dir != CRAS_STREAM_INPUT && dir != CRAS_STREAM_POST_MIX_PRE_DSP;
 }
 
 static inline int cras_stream_has_input(enum CRAS_STREAM_DIRECTION dir)

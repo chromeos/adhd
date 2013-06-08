@@ -109,7 +109,8 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 	}
 	if (direction != CRAS_STREAM_OUTPUT &&
 	    direction != CRAS_STREAM_INPUT &&
-	    direction != CRAS_STREAM_UNIFIED) {
+	    direction != CRAS_STREAM_UNIFIED &&
+	    direction != CRAS_STREAM_POST_MIX_PRE_DSP) {
 		syslog(LOG_ERR, "rstream: Invalid direction.\n");
 		return -EINVAL;
 	}
@@ -195,9 +196,9 @@ int cras_rstream_request_audio(const struct cras_rstream *stream)
 	struct audio_message msg;
 	int rc;
 
-	/* Don't request audio from unified streams, they fill when they are
-	 * given samples. */
-	if (stream->direction == CRAS_STREAM_UNIFIED)
+	/* Only request samples from output streams.  Unified streams fill when
+	 * they are given samples. */
+	if (stream->direction != CRAS_STREAM_OUTPUT)
 		return 0;
 
 	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
