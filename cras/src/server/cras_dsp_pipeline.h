@@ -68,6 +68,13 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate);
  * cras_dsp_pipeline_instantiate(). */
 void cras_dsp_pipeline_deinstantiate(struct pipeline *pipeline);
 
+/* Returns the buffering delay of the pipeline. This should only be called
+ * after a pipeline has been instantiated.
+ * Returns:
+ *    The buffering delay in frames.
+ */
+int cras_dsp_pipeline_get_delay(struct pipeline *pipeline);
+
 /* Returns the number of input/output audio channels this pipeline expects */
 int cras_dsp_pipeline_get_num_channels(struct pipeline *pipeline);
 

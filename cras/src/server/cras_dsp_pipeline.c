@@ -87,6 +87,10 @@ struct instance {
 
 	/* This caches the value returned from get_properties() of a module */
 	int properties;
+
+	/* This is the total buffering delay from source to this instance. It is
+	 * in number of frames. */
+	int total_delay;
 };
 
 DECLARE_ARRAY_TYPE(struct instance, instance_array)
@@ -596,6 +600,31 @@ int cras_dsp_pipeline_load(struct pipeline *pipeline)
 	return 0;
 }
 
+/* Calculates the total buffering delay of each instance from the source */
+static void calculate_audio_delay(struct pipeline *pipeline)
+{
+	int i;
+	struct instance *instance;
+
+	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+		struct dsp_module *module = instance->module;
+		audio_port_array *audio_in = &instance->input_audio_ports;
+		struct audio_port *audio_port;
+		int delay = 0;
+		int j;
+
+		/* Finds the max delay of all modules that provide input to this
+		 * instance. */
+		FOR_ARRAY_ELEMENT(audio_in, j, audio_port) {
+			struct instance *upstream = find_instance_by_plugin(
+				&pipeline->instances, audio_port->peer->plugin);
+			delay = max(upstream->total_delay, delay);
+		}
+
+		instance->total_delay = delay + module->get_delay(module);
+	}
+}
+
 int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 {
 	int i;
@@ -669,6 +698,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 		}
 	}
 
+	calculate_audio_delay(pipeline);
 	return 0;
 }
 
@@ -685,6 +715,11 @@ void cras_dsp_pipeline_deinstantiate(struct pipeline *pipeline)
 		}
 	}
 	pipeline->sample_rate = 0;
+}
+
+int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
+{
+	return pipeline->sink_instance->total_delay;
 }
 
 int cras_dsp_pipeline_get_sample_rate(struct pipeline *pipeline)
@@ -908,8 +943,9 @@ void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline)
 	      ARRAY_COUNT(&pipeline->instances));
 	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
-		dumpf(d, "  [%d]%s mod=%p\n",
-		      i, instance->plugin->title, module);
+		dumpf(d, "  [%d]%s mod=%p, total delay=%d\n",
+		      i, instance->plugin->title, module,
+		      instance->total_delay);
 		if (module)
 			module->dump(module, d);
 		dump_audio_ports(d, "input_audio_ports",

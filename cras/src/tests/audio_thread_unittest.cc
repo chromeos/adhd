@@ -46,6 +46,7 @@ static int cras_dsp_pipeline_get_source_buffer_called;
 static int cras_dsp_pipeline_get_sink_buffer_called;
 static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
 static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
+static int cras_dsp_pipeline_get_delay_called;
 static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
 
@@ -104,6 +105,7 @@ class ReadStreamSuite : public testing::Test {
              sizeof(cras_dsp_pipeline_source_buffer));
       memset(&cras_dsp_pipeline_sink_buffer, 0,
              sizeof(cras_dsp_pipeline_sink_buffer));
+      cras_dsp_pipeline_get_delay_called = 0;
       cras_dsp_pipeline_apply_called = 0;
       cras_dsp_pipeline_apply_sample_count = 0;
       cras_iodev_set_format_called = 0;
@@ -609,10 +611,11 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
 
   thread->streams = 0;
@@ -639,8 +642,9 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(1, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
   EXPECT_EQ(iodev_.cb_threshold, cras_dsp_pipeline_apply_sample_count);
 
@@ -699,6 +703,7 @@ class WriteStreamSuite : public testing::Test {
              sizeof(cras_dsp_pipeline_source_buffer));
       memset(&cras_dsp_pipeline_sink_buffer, 0,
              sizeof(cras_dsp_pipeline_sink_buffer));
+      cras_dsp_pipeline_get_delay_called = 0;
       cras_dsp_pipeline_apply_called = 0;
       cras_dsp_pipeline_apply_sample_count = 0;
 
@@ -1114,10 +1119,11 @@ TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_mix_add_stream_count);
-  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
 }
 
@@ -1143,8 +1149,9 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_mix_add_stream_count);
-  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(1, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_dsp_pipeline_apply_sample_count);
@@ -1497,6 +1504,12 @@ float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index)
 {
   cras_dsp_pipeline_get_sink_buffer_called++;
   return cras_dsp_pipeline_sink_buffer[index];
+}
+
+int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
+{
+  cras_dsp_pipeline_get_delay_called++;
+  return 0;
 }
 
 void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,

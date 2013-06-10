@@ -103,6 +103,9 @@ enum {
 /* The maximum number of frames can be passed to drc_process() call. */
 #define DRC_PROCESS_MAX_FRAMES 2048
 
+/* The default value of PARAM_PRE_DELAY in seconds. */
+#define DRC_DEFAULT_PRE_DELAY 0.006f
+
 struct drc {
 	/* sample rate in Hz */
 	float sample_rate;

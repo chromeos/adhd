@@ -35,6 +35,15 @@ struct dsp_module {
 	void (*connect_port)(struct dsp_module *mod, unsigned long port,
 			     float *data_location);
 
+	/* Returns the buffering delay of this module. This should be called
+	 * only after all input control ports have been connected.
+	 * Returns:
+	 *     The buffering delay in frames. The value returned should only be
+	 * based on the sampling rate and the input control ports values and not
+	 * the audio data itself.
+	 */
+	int (*get_delay)(struct dsp_module *mod);
+
 	/* Processes a block of samples using this module. The memory
 	 * location for the input and output data are assigned by the
 	 * connect_port() call.

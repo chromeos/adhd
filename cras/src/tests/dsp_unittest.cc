@@ -114,6 +114,11 @@ static int empty_instantiate(struct dsp_module *module,
 static void empty_connect_port(struct dsp_module *module, unsigned long port,
                                float *data_location) {}
 
+static int empty_get_delay(struct dsp_module *module)
+{
+	return 0;
+}
+
 static void empty_run(struct dsp_module *module, unsigned long sample_count) {}
 
 static void empty_deinstantiate(struct dsp_module *module) {}
@@ -134,6 +139,7 @@ static void empty_init_module(struct dsp_module *module)
 {
   module->instantiate = &empty_instantiate;
   module->connect_port = &empty_connect_port;
+  module->get_delay = &empty_get_delay;
   module->run = &empty_run;
   module->deinstantiate = &empty_deinstantiate;
   module->free_module = &empty_free_module;

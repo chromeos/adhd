@@ -21,6 +21,11 @@ static int empty_instantiate(struct dsp_module *module,
 static void empty_connect_port(struct dsp_module *module, unsigned long port,
 			       float *data_location) {}
 
+static int empty_get_delay(struct dsp_module *module)
+{
+	return 0;
+}
+
 static void empty_run(struct dsp_module *module, unsigned long sample_count) {}
 
 static void empty_deinstantiate(struct dsp_module *module) {}
@@ -41,6 +46,7 @@ static void empty_init_module(struct dsp_module *module)
 {
 	module->instantiate = &empty_instantiate;
 	module->connect_port = &empty_connect_port;
+	module->get_delay = &empty_get_delay;
 	module->run = &empty_run;
 	module->deinstantiate = &empty_deinstantiate;
 	module->free_module = &empty_free_module;
@@ -89,6 +95,7 @@ static void mix_stereo_init_module(struct dsp_module *module)
 {
 	module->instantiate = &mix_stereo_instantiate;
 	module->connect_port = &mix_stereo_connect_port;
+	module->get_delay = &empty_get_delay;
 	module->run = &mix_stereo_run;
 	module->deinstantiate = &mix_stereo_deinstantiate;
 	module->free_module = &empty_free_module;
@@ -161,6 +168,7 @@ static void eq_init_module(struct dsp_module *module)
 {
 	module->instantiate = &eq_instantiate;
 	module->connect_port = &eq_connect_port;
+	module->get_delay = &empty_get_delay;
 	module->run = &eq_run;
 	module->deinstantiate = &eq_deinstantiate;
 	module->free_module = &empty_free_module;
@@ -194,6 +202,12 @@ static void drc_connect_port(struct dsp_module *module,
 {
 	struct drc_data *data = (struct drc_data *) module->data;
 	data->ports[port] = data_location;
+}
+
+static int drc_get_delay(struct dsp_module *module)
+{
+	struct drc_data *data = (struct drc_data *) module->data;
+	return DRC_DEFAULT_PRE_DELAY * data->sample_rate;
 }
 
 static void drc_run(struct dsp_module *module, unsigned long sample_count)
@@ -249,6 +263,7 @@ static void drc_init_module(struct dsp_module *module)
 {
 	module->instantiate = &drc_instantiate;
 	module->connect_port = &drc_connect_port;
+	module->get_delay = &drc_get_delay;
 	module->run = &drc_run;
 	module->deinstantiate = &drc_deinstantiate;
 	module->free_module = &empty_free_module;

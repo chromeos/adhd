@@ -72,6 +72,11 @@ static void connect_port(struct dsp_module *module, unsigned long port,
 	desc->connect_port(data->handle, port, data_location);
 }
 
+static int get_delay(struct dsp_module *module)
+{
+	return 0;
+}
+
 static void run(struct dsp_module *module, unsigned long sample_count)
 {
 	struct ladspa_data *data = module->data;
@@ -197,6 +202,7 @@ struct dsp_module *cras_dsp_module_load_ladspa(struct plugin *plugin)
 	module->data = data;
 	module->instantiate = &instantiate;
 	module->connect_port = &connect_port;
+	module->get_delay = &get_delay;
 	module->run = &run;
 	module->deinstantiate = &deinstantiate;
 	module->get_properties = &get_properties;

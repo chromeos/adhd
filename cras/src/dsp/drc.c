@@ -96,7 +96,7 @@ static void set_default_parameters(struct drc *drc)
 		param[PARAM_RATIO] = 12; /* unit-less */
 		param[PARAM_ATTACK] = 0.003f; /* seconds */
 		param[PARAM_RELEASE] = 0.250f; /* seconds */
-		param[PARAM_PRE_DELAY] = 0.006f; /* seconds */
+		param[PARAM_PRE_DELAY] = DRC_DEFAULT_PRE_DELAY; /* seconds */
 
 		/* Release zone values 0 -> 1. */
 		param[PARAM_RELEASE_ZONE1] = 0.09f;

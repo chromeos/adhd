@@ -325,6 +325,26 @@ static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 	cras_dsp_put_pipeline(ctx);
 }
 
+static int get_dsp_delay(struct cras_iodev *iodev)
+{
+	struct cras_dsp_context *ctx;
+	struct pipeline *pipeline;
+	int delay;
+
+	ctx = iodev->dsp_context;
+	if (!ctx)
+		return 0;
+
+	pipeline = cras_dsp_get_pipeline(ctx);
+	if (!pipeline)
+		return 0;
+
+	delay = cras_dsp_pipeline_get_delay(pipeline);
+
+	cras_dsp_put_pipeline(ctx);
+	return delay;
+}
+
 /* Reads any pending audio message from the socket. */
 static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 {
@@ -678,6 +698,9 @@ int possibly_fill_audio(struct audio_thread *thread,
 	if (!odev || !odev->is_open(odev))
 		return 0;
 
+	/* Account for the dsp delay in addition to the hardware delay. */
+	delay += get_dsp_delay(odev);
+
 	/* Request data from streams that need more */
 	if (idev)
 		/* If unified, get same number of frames that were read. */
@@ -749,6 +772,9 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	if (!idev || !idev->is_open(idev))
 		return 0;
+
+	/* Account for the dsp delay in addition to the hardware delay. */
+	delay += get_dsp_delay(idev);
 
 	write_limit = hw_level;
 
