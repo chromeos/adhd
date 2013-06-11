@@ -23,7 +23,10 @@
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MIN_READ_WAIT_US 2000 /* 2ms */
 
-/* Sleep a few extra frames to make sure that the samples are ready. */
+/* For capture, the amount of frames that will be left after a read is
+ * performed.  Sleep this many frames past the buffer size to be sure at least
+ * the buffer size is captured when the audio thread wakes up.
+ */
 static const unsigned int CAP_REMAINING_FRAMES_TARGET = 16;
 
 
@@ -868,11 +871,14 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
-	level_target = thread->remaining_target + idev->cb_threshold;
+	level_target = CAP_REMAINING_FRAMES_TARGET + idev->cb_threshold;
 	if (hw_level > level_target && thread->sleep_correction_frames)
 		thread->sleep_correction_frames--;
 	if (hw_level < level_target)
 		thread->sleep_correction_frames++;
+
+	/* Sleep until enough frames are captured, plus the padding. */
+	*min_sleep += CAP_REMAINING_FRAMES_TARGET;
 
 	return write_limit;
 }
@@ -991,7 +997,6 @@ not_enough:
 	to_sleep = cras_iodev_sleep_frames(master_dev,
 					   next_target_frames,
 					   hw_level) +
-				thread->remaining_target +
 				thread->sleep_correction_frames;
 
 	cras_iodev_fill_time_from_frames(to_sleep,
@@ -1141,10 +1146,8 @@ struct audio_thread *audio_thread_create(struct cras_iodev *iodev)
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
 		thread->input_dev = iodev;
-		thread->remaining_target = CAP_REMAINING_FRAMES_TARGET;
 	} else {
 		thread->output_dev = iodev;
-		thread->remaining_target = 0;
 	}
 
 	/* Two way pipes for communication with the device's audio thread. */

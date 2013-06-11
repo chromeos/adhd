@@ -37,10 +37,6 @@ struct cras_io_stream {
  *    sleep_correction_frames - Number of frames to adjust sleep time by.  This
  *      is adjusted based on sleeping too long or short so that the sleep
  *      interval tracks toward the targeted number of frames.
- *    remaining_target - For capture the amount of frames that will be left
- *        after a read is performed. Sleep this many frames past the buffer
- *        size to be sure at least the buffer size is captured when the audio
- *        thread wakes up.
  *    streams - List of audio streams serviced by this thread.
  */
 struct audio_thread {
@@ -51,7 +47,6 @@ struct audio_thread {
 	pthread_t tid;
 	int started;
 	int sleep_correction_frames;
-	unsigned int remaining_target;
 	struct cras_io_stream *streams;
 };
 
