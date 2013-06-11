@@ -702,6 +702,12 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
 		cras_iodev_add_node(&aio->base, &node->base);
+	} else if (!node->jack) {
+		/* If we already have the node, associate with the jack. */
+		jack_name = cras_alsa_jack_get_name(jack);
+		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
+				aio->mixer, jack_name);
+		node->jack = jack;
 	}
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
@@ -720,6 +726,8 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		return;
 	aio = (struct alsa_io *)arg;
 	node = get_input_node_from_jack(aio, jack);
+
+	/* If there isn't a node for this jack, create one. */
 	if (node == NULL) {
 		node = (struct alsa_input_node *)calloc(1, sizeof(*node));
 		if (node == NULL) {
@@ -735,6 +743,9 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
 		cras_iodev_add_node(&aio->base, &node->base);
+	} else if (!node->jack) {
+		/* If we already have the node, associate with the jack. */
+		node->jack = jack;
 	}
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);

@@ -338,6 +338,11 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 					control_name);
 	}
 
+        if (jack->ucm_device) {
+                jack->dsp_name = ucm_get_dsp_name(
+                        jack->jack_list->ucm, jack->ucm_device, direction);
+        }
+
 	sys_input_get_switch_state(jack->gpio.fd, switch_event,
 				   &jack->gpio.current_state);
 	r = cras_system_add_select_fd(jack->gpio.fd,
