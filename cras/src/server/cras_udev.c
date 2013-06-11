@@ -160,7 +160,7 @@ static void set_factory_default(unsigned card_number)
 		cmd_buf[ARRAY_SIZE(cmd_buf) - 1] = '\0';
 		r = system(cmd_buf);
 		if (r != 0)
-			syslog(LOG_WARNING,
+			syslog(LOG_ERR,
 			       "%s: failed to init card '%d' "
 			       "to factory default.  Failure: %d.  Command: %s",
 			       __FUNCTION__, card_number, r, cmd_buf);
