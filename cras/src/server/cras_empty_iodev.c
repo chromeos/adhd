@@ -94,7 +94,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return 0;
 }
 
-void update_active_node(struct cras_iodev *iodev)
+static void update_active_node(struct cras_iodev *iodev)
 {
 }
 
