@@ -684,11 +684,14 @@ static int handle_playback_thread_message(struct audio_thread *thread)
  *    delay - delay through the hardware in frames.
  *    captured_frames - if doing unified io, number of frames received.
  *    hw_level - buffer level of the device.
+ *    next_sleep_frames - filled with the minimum number of frames needed before
+ *        the next wake up.
  */
 int possibly_fill_audio(struct audio_thread *thread,
 			unsigned int delay,
 			unsigned int captured_frames,
-			unsigned int hw_level)
+			unsigned int hw_level,
+			unsigned int *next_sleep_frames)
 {
 	unsigned int frames, fr_to_req;
 	snd_pcm_sframes_t written;
@@ -746,6 +749,11 @@ int possibly_fill_audio(struct audio_thread *thread,
 		if (rc < 0)
 			return rc;
 	}
+
+	*next_sleep_frames = cras_iodev_sleep_frames(odev,
+						     odev->cb_threshold,
+						     hw_level + total_written) +
+			     thread->sleep_correction_frames;
 
 	return total_written;
 }
@@ -916,13 +924,14 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *master_dev;
 	int rc, delay;
 	unsigned int hw_level, to_sleep;
+	unsigned int cap_sleep_frames, pb_sleep_frames;
 	unsigned int captured_frames;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
 
 	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
-	to_sleep = master_dev->buffer_size;
+	cap_sleep_frames = master_dev->buffer_size;
 
 	rc = master_dev->frames_queued(master_dev);
 	if (rc < 0)
@@ -937,6 +946,8 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		if (!idev) {
 			/* Increase sleep correction if waking up too early. */
 			thread->sleep_correction_frames++;
+			pb_sleep_frames = hw_level - odev->cb_threshold +
+				thread->sleep_correction_frames;
 			goto not_enough;
 		}
 	}
@@ -946,7 +957,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		return rc;
 	delay = rc;
 
-	rc = possibly_read_audio(thread, delay, hw_level, &to_sleep);
+	rc = possibly_read_audio(thread, delay, hw_level, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		idev->close_dev(idev);
@@ -976,13 +987,13 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		hw_level = rc;
 	}
 
-	rc = possibly_fill_audio(thread, delay, captured_frames, rc);
+	rc = possibly_fill_audio(thread, delay, captured_frames,
+				 rc, &pb_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "write audio failed from audio thread");
 		odev->close_dev(odev);
 		return rc;
 	}
-	hw_level += rc;
 
 not_enough:
 	if (!device_active(thread))
@@ -990,12 +1001,10 @@ not_enough:
 
 	 /* idev could have been closed for error. */
 	idev = thread->input_dev;
-	if (!idev) {
-		to_sleep = cras_iodev_sleep_frames(odev,
-						   odev->cb_threshold,
-						   hw_level) +
-				thread->sleep_correction_frames;
-	}
+	if (idev)
+		to_sleep = cap_sleep_frames;
+	else
+		to_sleep = pb_sleep_frames;
 
 	cras_iodev_fill_time_from_frames(to_sleep,
 					 master_dev->format->frame_rate,
