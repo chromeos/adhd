@@ -877,8 +877,11 @@ int possibly_read_audio(struct audio_thread *thread,
 	if (hw_level < level_target)
 		thread->sleep_correction_frames++;
 
-	/* Sleep until enough frames are captured, plus the padding. */
-	*min_sleep += CAP_REMAINING_FRAMES_TARGET;
+	*min_sleep = cras_iodev_sleep_frames(idev,
+					     *min_sleep,
+					     hw_level - write_limit) +
+				CAP_REMAINING_FRAMES_TARGET +
+				thread->sleep_correction_frames;
 
 	return write_limit;
 }
@@ -913,14 +916,13 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *master_dev;
 	int rc, delay;
 	unsigned int hw_level, to_sleep;
-	unsigned int next_target_frames;
 	unsigned int captured_frames;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
 
 	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
-	next_target_frames = master_dev->buffer_size;
+	to_sleep = master_dev->buffer_size;
 
 	rc = master_dev->frames_queued(master_dev);
 	if (rc < 0)
@@ -935,7 +937,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		if (!idev) {
 			/* Increase sleep correction if waking up too early. */
 			thread->sleep_correction_frames++;
-			next_target_frames = odev->cb_threshold;
 			goto not_enough;
 		}
 	}
@@ -945,7 +946,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		return rc;
 	delay = rc;
 
-	rc = possibly_read_audio(thread, delay, hw_level, &next_target_frames);
+	rc = possibly_read_audio(thread, delay, hw_level, &to_sleep);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		idev->close_dev(idev);
@@ -981,10 +982,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		odev->close_dev(odev);
 		return rc;
 	}
-	if (!idev) {
-		next_target_frames = odev->cb_threshold;
-		hw_level += rc;
-	}
+	hw_level += rc;
 
 not_enough:
 	if (!device_active(thread))
@@ -992,12 +990,12 @@ not_enough:
 
 	 /* idev could have been closed for error. */
 	idev = thread->input_dev;
-	master_dev = (idev && idev->is_open(idev)) ? idev : odev;
-
-	to_sleep = cras_iodev_sleep_frames(master_dev,
-					   next_target_frames,
-					   hw_level) +
+	if (!idev) {
+		to_sleep = cras_iodev_sleep_frames(odev,
+						   odev->cb_threshold,
+						   hw_level) +
 				thread->sleep_correction_frames;
+	}
 
 	cras_iodev_fill_time_from_frames(to_sleep,
 					 master_dev->format->frame_rate,
