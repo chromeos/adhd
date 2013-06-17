@@ -602,7 +602,7 @@ static void read_streams(struct audio_thread *thread,
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream = stream->stream;
 
-		if (rstream->direction == CRAS_STREAM_OUTPUT)
+		if (!cras_stream_has_input(rstream->direction))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -796,7 +796,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (rstream->direction == CRAS_STREAM_OUTPUT)
+		if (!cras_stream_has_input(rstream->direction))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -840,7 +840,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (rstream->direction == CRAS_STREAM_OUTPUT)
+		if (!cras_stream_has_input(rstream->direction))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
