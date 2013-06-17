@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 		maxdiff = max(fabs(data1[i] - data2[i]), maxdiff);
 	}
 	printf("avg diff = %g, max diff = %g/65536.0\n",
-	       diff / n / 65536.0, maxdiff);
+	       diff / n, maxdiff * 65536);
 
 	free(data1);
 	free(data2);

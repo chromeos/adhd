@@ -57,8 +57,8 @@ void eq_process1(struct eq *eq, float *data, int count)
 		for (j = 0; j < count; j++) {
 			float x = data[j];
 			float y = b0*x
-				+ (b1*x1 + b2*x2)
-				- (a1*y1 + a2*y2);
+				+ b1*x1 + b2*x2
+				- a1*y1 - a2*y2;
 			data[j] = y;
 			x2 = x1;
 			x1 = x;
@@ -92,8 +92,8 @@ void eq_process(struct eq *eq, float *data, int count)
 			for (j = 0; j < count; j++) {
 				float x = data[j];
 				float y = b0*x
-					+ (b1*x1 + b2*x2)
-					- (a1*y1 + a2*y2);
+					+ b1*x1 + b2*x2
+					- a1*y1 - a2*y2;
 				data[j] = y;
 				x2 = x1;
 				x1 = x;
@@ -128,11 +128,11 @@ void eq_process(struct eq *eq, float *data, int count)
 			for (j = 0; j < count; j++) {
 				float x = data[j];
 				float y = qb0*x
-					+ (qb1*x1 + qb2*x2)
-					- (qa1*y1 + qa2*y2);
+					+ qb1*x1 + qb2*x2
+					- qa1*y1 - qa2*y2;
 				float z = rb0*y
-					+ (rb1*y1 + rb2*y2)
-					- (ra1*z1 + ra2*z2);
+					+ rb1*y1 + rb2*y2
+					- ra1*z1 - ra2*z2;
 				data[j] = z;
 				x2 = x1;
 				x1 = x;

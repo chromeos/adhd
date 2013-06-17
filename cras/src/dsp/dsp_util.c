@@ -24,21 +24,35 @@
 static void deinterleave_stereo_neon(int16_t *input, float *output1,
 				     float *output2, int frames)
 {
-	/* Process 4 frames (8 samples) each loop. */
-	/* L0 R0 L1 R1, L2 R2 L3 R3 -> L0 L1 L2 L3, R0 R1 R2 R3 */
-	int chunk = frames >> 2;
-	frames &= 3;
-	while (chunk--) {
-		int32x4_t c = vmovl_s16(*(int16x4_t *)input);
-		int32x4_t d = vmovl_s16(*(int16x4_t *)(input + 4));
-		float32x4_t e = vcvtq_n_f32_s32(c, 15);
-		float32x4_t f = vcvtq_n_f32_s32(d, 15);
-		float32x4x2_t g = vuzpq_f32(e, f);
-		*(float32x4_t *)output1 = g.val[0];
-		*(float32x4_t *)output2 = g.val[1];
-		input += 8;
-		output1 += 4;
-		output2 += 4;
+	/* Process 8 frames (16 samples) each loop. */
+	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
+	int chunk = frames >> 3;
+	frames &= 7;
+	if (chunk) {
+		__asm__ __volatile__ (
+			"1:					    \n"
+			"vld2.16 {d0-d3}, [%[input]]!		    \n"
+			"subs %[chunk], #1			    \n"
+			"vmovl.s16 q3, d3			    \n"
+			"vmovl.s16 q2, d2			    \n"
+			"vmovl.s16 q1, d1			    \n"
+			"vmovl.s16 q0, d0			    \n"
+			"vcvt.f32.s32 q3, q3, #15		    \n"
+			"vcvt.f32.s32 q2, q2, #15		    \n"
+			"vcvt.f32.s32 q1, q1, #15		    \n"
+			"vcvt.f32.s32 q0, q0, #15		    \n"
+			"vst1.32 {d4-d7}, [%[output2]]!		    \n"
+			"vst1.32 {d0-d3}, [%[output1]]!		    \n"
+			"bne 1b					    \n"
+			: /* output */
+			  [chunk]"+r"(chunk),
+			  [input]"+r"(input),
+			  [output1]"+r"(output1),
+			  [output2]"+r"(output2)
+			: /* input */
+			: /* clobber */
+			  "q0", "q1", "q2", "q3", "memory", "cc"
+			);
 	}
 
 	/* The remaining samples. */
@@ -53,30 +67,49 @@ static void interleave_stereo_neon(float *input1, float *input2,
 {
 	/* Process 4 frames (8 samples) each loop. */
 	/* L0 L1 L2 L3, R0 R1 R2 R3 -> L0 R0 L1 R1, L2 R2 L3 R3 */
-	float32x4_t zero = vdupq_n_f32(0.0f);
 	float32x4_t pos = vdupq_n_f32(0.5f / 32768.0f);
 	float32x4_t neg = vdupq_n_f32(-0.5f / 32768.0f);
-	int32x4_t k = vdupq_n_s32(-32768);
-	int32x4_t l = vdupq_n_s32(32767);
 	int chunk = frames >> 2;
 	frames &= 3;
-	while (chunk--) {
-		float32x4_t a = *(float32x4_t *)input1;
-		float32x4_t b = *(float32x4_t *)input2;
-		/* We try to round to the nearest number by adding 0.5
-		 * to positive input, and adding -0.5 to the negative
-		 * input, then truncate.
-		 */
-		a += vbslq_f32(vcgtq_f32(a, zero), pos, neg);
-		b += vbslq_f32(vcgtq_f32(b, zero), pos, neg);
-		int32x4_t q = vcvtq_n_s32_f32(a, 15);
-		int32x4_t r = vcvtq_n_s32_f32(b, 15);
-		int16x4_t m = vqmovn_s32(vminq_s32(vmaxq_s32(q, k), l));
-		int16x4_t n = vqmovn_s32(vminq_s32(vmaxq_s32(r, k), l));
-		*(int16x4x2_t *)output = vzip_s16(m, n);
-		input1 += 4;
-		input2 += 4;
-		output += 8;
+
+	if (chunk) {
+		__asm__ __volatile__ (
+			"veor q0, q0, q0			    \n"
+			"1:					    \n"
+			"vld1.32 {d2-d3}, [%[input1]]!		    \n"
+			"vld1.32 {d4-d5}, [%[input2]]!		    \n"
+			"subs %[chunk], #1			    \n"
+			/* We try to round to the nearest number by adding 0.5
+			 * to positive input, and adding -0.5 to the negative
+			 * input, then truncate.
+			 */
+			"vcgt.f32 q3, q1, q0			    \n"
+			"vcgt.f32 q4, q2, q0			    \n"
+			"vbsl q3, %q[pos], %q[neg]		    \n"
+			"vbsl q4, %q[pos], %q[neg]		    \n"
+			"vadd.f32 q1, q1, q3			    \n"
+			"vadd.f32 q2, q2, q4			    \n"
+			"vcvt.s32.f32 q1, q1, #15		    \n"
+			"vcvt.s32.f32 q2, q2, #15		    \n"
+			"vqmovn.s32 d2, q1			    \n"
+			"vqmovn.s32 d3, q2			    \n"
+			"vst2.16 {d2-d3}, [%[output]]!		    \n"
+			"bne 1b					    \n"
+			: /* output */
+			  "=r"(chunk),
+			  "=r"(input1),
+			  "=r"(input2),
+			  "=r"(output)
+			: /* input */
+			  [chunk]"0"(chunk),
+			  [input1]"1"(input1),
+			  [input2]"2"(input2),
+			  [output]"3"(output),
+			  [pos]"w"(pos),
+			  [neg]"w"(neg)
+			: /* clobber */
+			  "q0", "q1", "q2", "q3", "q4", "memory", "cc"
+			);
 	}
 
 	/* The remaining samples */
