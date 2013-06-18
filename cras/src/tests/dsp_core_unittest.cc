@@ -8,6 +8,7 @@
 #include "drc.h"
 #include "dsp_util.h"
 #include "eq.h"
+#include "eq2.h"
 
 namespace {
 
@@ -122,6 +123,72 @@ TEST(EqTest, All) {
   }
   EXPECT_EQ(-1, eq_append_biquad(eq, BQ_PEAKING, f_high, 5, 6));
   eq_free(eq);
+}
+
+TEST(Eq2Test, All) {
+  struct eq2 *eq2;
+  size_t len = 44100;
+  float NQ = len / 2;
+  float f_low = 10 / NQ;
+  float f_mid = 100 / NQ;
+  float f_high = 1000 / NQ;
+  float *data0 = (float *)malloc(sizeof(float) * len);
+  float *data1 = (float *)malloc(sizeof(float) * len);
+
+  dsp_enable_flush_denormal_to_zero();
+
+  /* a mixture of 10Hz an 1000Hz sine */
+  memset(data0, 0, sizeof(float) * len);
+  memset(data1, 0, sizeof(float) * len);
+  add_sine(data0, len, f_low, 0, 1);  // 10Hz sine, magnitude = 1
+  add_sine(data0, len, f_high, 0, 1);  // 1000Hz sine, magnitude = 1
+  add_sine(data1, len, f_low, 0, 1);  // 10Hz sine, magnitude = 1
+  add_sine(data1, len, f_high, 0, 1);  // 1000Hz sine, magnitude = 1
+
+  /* low pass at left and high pass at right */
+  eq2 = eq2_new();
+  EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_LOWPASS, f_mid, 0, 0));
+  EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_HIGHPASS, f_mid, 0, 0));
+  eq2_process(eq2, data0, data1, len);
+  EXPECT_NEAR(1, magnitude_at(data0, len, f_low), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data0, len, f_high), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data1, len, f_low), 0.01);
+  EXPECT_NEAR(1, magnitude_at(data1, len, f_high), 0.01);
+  eq2_free(eq2);
+
+  /* a mixture of 10Hz and 1000Hz sine */
+  memset(data0, 0, sizeof(float) * len);
+  memset(data1, 0, sizeof(float) * len);
+  add_sine(data0, len, f_low, 0, 1);
+  add_sine(data0, len, f_high, 0, 1);
+  add_sine(data1, len, f_low, 0, 1);
+  add_sine(data1, len, f_high, 0, 1);
+
+  /* one high-shelving biquad at left and two low-shelving biquads at right */
+  eq2 = eq2_new();
+  EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_HIGHSHELF, f_mid, 5, 6));
+  EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_LOWSHELF, f_mid, 0, -6));
+  EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_LOWSHELF, f_mid, 0, -6));
+
+  eq2_process(eq2, data0, data1, len);
+  EXPECT_NEAR(1, magnitude_at(data0, len, f_low), 0.01);
+  EXPECT_NEAR(2, magnitude_at(data0, len, f_high), 0.01);
+  EXPECT_NEAR(0.25, magnitude_at(data1, len, f_low), 0.01);
+  EXPECT_NEAR(1, magnitude_at(data1, len, f_high), 0.01);
+  eq2_free(eq2);
+
+  free(data0);
+  free(data1);
+
+  /* Too many biquads */
+  eq2 = eq2_new();
+  for (int i = 0; i < MAX_BIQUADS_PER_EQ2; i++) {
+    EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_PEAKING, f_high, 5, 6));
+    EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_PEAKING, f_high, 5, 6));
+  }
+  EXPECT_EQ(-1, eq2_append_biquad(eq2, 0, BQ_PEAKING, f_high, 5, 6));
+  EXPECT_EQ(-1, eq2_append_biquad(eq2, 1, BQ_PEAKING, f_high, 5, 6));
+  eq2_free(eq2);
 }
 
 TEST(CrossoverTest, All) {

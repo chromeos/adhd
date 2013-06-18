@@ -23,6 +23,7 @@ cras_SOURCES = \
 	dsp/drc_math.c \
 	dsp/dsp_util.c \
 	dsp/eq.c \
+	dsp/eq2.c \
 	server/audio_thread.c \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
@@ -166,6 +167,7 @@ check_PROGRAMS += \
 	crossover_test \
 	drc_test \
 	eq_test \
+	eq2_test \
 	cmpraw
 
 crossover_test_SOURCES = dsp/crossover.c dsp/biquad.c dsp/dsp_util.c \
@@ -183,6 +185,11 @@ eq_test_SOURCES = dsp/biquad.c dsp/eq.c dsp/dsp_util.c dsp/tests/eq_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
 eq_test_LDADD = -lrt -lm
 eq_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+
+eq2_test_SOURCES = dsp/biquad.c dsp/eq2.c dsp/dsp_util.c dsp/tests/eq2_test.c \
+	dsp/tests/dsp_test_util.c dsp/tests/raw.c
+eq2_test_LDADD = -lrt -lm
+eq2_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 
 cmpraw_SOURCES = dsp/tests/cmpraw.c dsp/tests/raw.c
 cmpraw_LDADD = -lm
@@ -282,7 +289,7 @@ device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server/config
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
-dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c \
+dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
 	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/drc.c dsp/drc_kernel.c \
 	dsp/drc_math.c
 dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
