@@ -8,6 +8,7 @@
 #include "drc.h"
 #include "dsp_util.h"
 #include "eq.h"
+#include "eq2.h"
 
 /*
  *  empty module functions (for source and sink)
@@ -177,6 +178,89 @@ static void eq_init_module(struct dsp_module *module)
 }
 
 /*
+ *  eq2 module functions
+ */
+struct eq2_data {
+	int sample_rate;
+	struct eq2 *eq2;  /* Initialized in the first call of eq2_run() */
+
+	/* Two ports for input, two for output, and 8 parameters per eq pair */
+	float *ports[4 + MAX_BIQUADS_PER_EQ2 * 8];
+};
+
+static int eq2_instantiate(struct dsp_module *module, unsigned long sample_rate)
+{
+	struct eq2_data *data;
+
+	module->data = calloc(1, sizeof(struct eq2_data));
+	data = (struct eq2_data *) module->data;
+	data->sample_rate = (int) sample_rate;
+	return 0;
+}
+
+static void eq2_connect_port(struct dsp_module *module,
+			     unsigned long port, float *data_location)
+{
+	struct eq2_data *data = (struct eq2_data *) module->data;
+	data->ports[port] = data_location;
+}
+
+static void eq2_run(struct dsp_module *module, unsigned long sample_count)
+{
+	struct eq2_data *data = (struct eq2_data *) module->data;
+	if (!data->eq2) {
+		float nyquist = data->sample_rate / 2;
+		int i, channel;
+
+		data->eq2 = eq2_new();
+		for (i = 4; i < 4 + MAX_BIQUADS_PER_EQ2 * 8; i += 8) {
+			if (!data->ports[i])
+				break;
+			for (channel = 0; channel < 2; channel++) {
+				int k = i + channel * 4;
+				int type = (int) *data->ports[k];
+				float freq = *data->ports[k+1];
+				float Q = *data->ports[k+2];
+				float gain = *data->ports[k+3];
+				eq2_append_biquad(data->eq2, channel, type,
+						  freq / nyquist, Q, gain);
+			}
+		}
+	}
+
+
+	if (data->ports[0] != data->ports[2])
+		memcpy(data->ports[2], data->ports[0],
+		       sizeof(float) * sample_count);
+	if (data->ports[3] != data->ports[1])
+		memcpy(data->ports[3], data->ports[1],
+		       sizeof(float) * sample_count);
+
+	eq2_process(data->eq2, data->ports[2], data->ports[3],
+		    (int) sample_count);
+}
+
+static void eq2_deinstantiate(struct dsp_module *module)
+{
+	struct eq2_data *data = (struct eq2_data *) module->data;
+	if (data->eq2)
+		eq2_free(data->eq2);
+	free(data);
+}
+
+static void eq2_init_module(struct dsp_module *module)
+{
+	module->instantiate = &eq2_instantiate;
+	module->connect_port = &eq2_connect_port;
+	module->get_delay = &empty_get_delay;
+	module->run = &eq2_run;
+	module->deinstantiate = &eq2_deinstantiate;
+	module->free_module = &empty_free_module;
+	module->get_properties = &empty_get_properties;
+	module->dump = &empty_dump;
+}
+
+/*
  *  drc module functions
  */
 struct drc_data {
@@ -286,6 +370,8 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
 		mix_stereo_init_module(module);
 	} else if (strcmp(plugin->label, "eq") == 0) {
 		eq_init_module(module);
+	} else if (strcmp(plugin->label, "eq2") == 0) {
+		eq2_init_module(module);
 	} else if (strcmp(plugin->label, "drc") == 0) {
 		drc_init_module(module);
 	} else {
