@@ -178,18 +178,16 @@ static void init_emphasis_eq(struct drc *drc)
 	float stage_ratio = drc_get_param(drc, 0, PARAM_FILTER_STAGE_RATIO);
 	float anchor_freq = drc_get_param(drc, 0,  PARAM_FILTER_ANCHOR);
 
-	drc->emphasis_eq[0] = eq_new();
-	drc->emphasis_eq[1] = eq_new();
-	drc->deemphasis_eq[0] = eq_new();
-	drc->deemphasis_eq[1] = eq_new();
+	drc->emphasis_eq = eq2_new();
+	drc->deemphasis_eq = eq2_new();
 
 	for (i = 0; i < 2; i++) {
 		emphasis_stage_pair_biquads(stage_gain, anchor_freq,
 					    anchor_freq / stage_ratio,
 					    &e, &d);
 		for (j = 0; j < 2; j++) {
-			eq_append_biquad_direct(drc->emphasis_eq[j], &e);
-			eq_append_biquad_direct(drc->deemphasis_eq[j], &d);
+			eq2_append_biquad_direct(drc->emphasis_eq, j, &e);
+			eq2_append_biquad_direct(drc->deemphasis_eq, j, &d);
 		}
 		anchor_freq /= (stage_ratio * stage_ratio);
 	}
@@ -198,10 +196,8 @@ static void init_emphasis_eq(struct drc *drc)
 /* Frees the emphasis and deemphasis filter */
 static void free_emphasis_eq(struct drc *drc)
 {
-	eq_free(drc->emphasis_eq[0]);
-	eq_free(drc->emphasis_eq[1]);
-	eq_free(drc->deemphasis_eq[0]);
-	eq_free(drc->deemphasis_eq[1]);
+	eq2_free(drc->emphasis_eq);
+	eq2_free(drc->deemphasis_eq);
 }
 
 /* Initializes the crossover filter */
@@ -269,8 +265,7 @@ void drc_process(struct drc *drc, float **data, int frames)
 	float **data2 = drc->data2;
 
 	/* Apply pre-emphasis filter. */
-	for (i = 0; i < DRC_NUM_CHANNELS; i++)
-		eq_process(drc->emphasis_eq[i], data[i], frames);
+	eq2_process(drc->emphasis_eq, data[0], data[1], frames);
 
 	/* Crossover */
 	for (i = 0; i < DRC_NUM_CHANNELS; i++)
@@ -290,6 +285,5 @@ void drc_process(struct drc *drc, float **data, int frames)
 			data[i][j] += data1[i][j] + data2[i][j];
 
 	/* Apply de-emphasis filter. */
-	for (i = 0; i < DRC_NUM_CHANNELS; ++i)
-		eq_process(drc->deemphasis_eq[i], data[i], frames);
+	eq2_process(drc->deemphasis_eq, data[0], data[1], frames);
 }

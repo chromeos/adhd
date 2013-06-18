@@ -17,7 +17,7 @@ extern "C" {
 
 #include "crossover.h"
 #include "drc_kernel.h"
-#include "eq.h"
+#include "eq2.h"
 
 /* DRC implements a flexible audio dynamics compression effect such as is
  * commonly used in musical production and game audio. It lowers the volume of
@@ -114,8 +114,8 @@ struct drc {
 	float parameters[DRC_NUM_KERNELS][PARAM_LAST];
 
 	/* The emphasis filter and deemphasis filter */
-	struct eq *emphasis_eq[DRC_NUM_CHANNELS];
-	struct eq *deemphasis_eq[DRC_NUM_CHANNELS];
+	struct eq2 *emphasis_eq;
+	struct eq2 *deemphasis_eq;
 
 	/* The crossover filter */
 	struct crossover xo[DRC_NUM_CHANNELS];

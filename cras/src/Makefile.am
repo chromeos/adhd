@@ -176,7 +176,7 @@ crossover_test_LDADD = -lrt -lm
 crossover_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 
 drc_test_SOURCES = dsp/drc.c dsp/drc_kernel.c dsp/drc_math.c \
-	dsp/crossover.c dsp/eq.c dsp/biquad.c dsp/dsp_util.c \
+	dsp/crossover.c dsp/eq2.c dsp/biquad.c dsp/dsp_util.c \
 	dsp/tests/drc_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 drc_test_LDADD = -lrt -lm
 drc_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
