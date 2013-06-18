@@ -732,7 +732,26 @@ void cras_alert_destroy(struct cras_alert *alert) {
   cras_alert_destroy_called++;
 }
 
+struct audio_thread *audio_thread_create() {
+  return NULL;
+}
+
+int audio_thread_start(struct audio_thread *thread) {
+  return 0;
+}
+
 void audio_thread_destroy(struct audio_thread *thread) {
+}
+
+void audio_thread_set_output_dev(struct audio_thread *thread,
+                                 struct cras_iodev *odev) {
+}
+
+void audio_thread_set_input_dev(struct audio_thread *thread,
+                                struct cras_iodev *idev) {
+}
+
+void audio_thread_remove_streams(struct audio_thread *thread) {
 }
 
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)

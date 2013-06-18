@@ -76,17 +76,23 @@ struct audio_thread_add_rm_stream_msg {
  *    the heap and must be freed by calling audio_thread_destroy().  NULL on
  *    error.
  */
-struct audio_thread *audio_thread_create(struct cras_iodev *iodev);
+struct audio_thread *audio_thread_create();
 
-/* Adds an output device to an existing thread.  Used to add an output device to
- * a thread created with an input device.  This happens when a unified audio
- * stream is added.
+/* Sets the device to be used for output.
  * Args:
  *    thread - The thread to add the device to.
- *    odev - The output device to add.
+ *    odev - The output device to use.
  */
-void audio_thread_add_output_dev(struct audio_thread *thread,
+void audio_thread_set_output_dev(struct audio_thread *thread,
 				 struct cras_iodev *odev);
+
+/* Sets the device to be used for input.
+ * Args:
+ *    thread - The thread to add the device to.
+ *    idev - The input device to use.
+ */
+void audio_thread_set_input_dev(struct audio_thread *thread,
+				struct cras_iodev *idev);
 
 /* Starts a thread created with audio_thread_create.
  * Args:
@@ -119,5 +125,12 @@ int audio_thread_add_stream(struct audio_thread *thread,
  */
 int audio_thread_rm_stream(struct audio_thread *thread,
 			   struct cras_rstream *stream);
+
+/* Remove all streams from a thread.  Used when streams should be re-attached
+ * after a device switch.
+ * Args:
+ *    thread - a pointer to the audio thread.
+ */
+void audio_thread_remove_streams(struct audio_thread *thread);
 
 #endif /* AUDIO_THREAD_H_ */

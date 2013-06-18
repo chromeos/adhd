@@ -157,16 +157,6 @@ int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
 /* Notify that active output/input node is changed. */
 void cras_iodev_list_notify_active_node_changed();
 
-/* Gets the audio thread associated with an iodev.
- * Args:
- *    iodev - The iodev to check.
- * Returns:
- *    A pointer to the thread for this device or NULL if no thread is set.
- */
-struct audio_thread *
-cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev);
-
-
 /* Sets an attribute of an ionode on a device.
  * Args:
  *    id - the id of the ionode.
@@ -198,6 +188,9 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node);
 
 /* Notify the current capture gain of the given node. */
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node);
+
+/* Gets the audio thread used by the devices. */
+struct audio_thread *cras_iodev_list_get_audio_thread();
 
 /* For unit test only. */
 void cras_iodev_list_reset();

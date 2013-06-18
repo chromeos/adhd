@@ -43,6 +43,8 @@ static struct cras_alert *active_node_changed_alert;
 /* Call when the volume of a node changes. */
 static node_volume_callback_t node_volume_callback;
 static node_volume_callback_t node_input_gain_callback;
+/* Thread that handles audio input and output. */
+static struct audio_thread *audio_thread;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
 static void active_node_changed_prepare(struct cras_alert *alert);
@@ -284,6 +286,8 @@ void cras_iodev_list_init()
 	nodes_changed_alert = cras_alert_create(nodes_changed_prepare);
 	active_node_changed_alert = cras_alert_create(
 		active_node_changed_prepare);
+	audio_thread = audio_thread_create();
+	audio_thread_start(audio_thread);
 }
 
 void cras_iodev_list_deinit()
@@ -296,6 +300,7 @@ void cras_iodev_list_deinit()
 	cras_alert_destroy(active_node_changed_alert);
 	nodes_changed_alert = NULL;
 	active_node_changed_alert = NULL;
+	audio_thread_destroy(audio_thread);
 }
 
 /* Finds the current device for a stream of "type", only default streams are
@@ -332,7 +337,13 @@ static struct cras_iodev *cras_iodev_set_active(
 	struct cras_iodev *old_active;
 	struct cras_iodev **curr;
 
-	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
+	if (dir == CRAS_STREAM_OUTPUT) {
+		curr = &active_output;
+		audio_thread_set_output_dev(audio_thread, new_active);
+	} else {
+		curr = &active_input;
+		audio_thread_set_input_dev(audio_thread, new_active);
+	}
 
 	/* Set current active to the newly requested device. */
 	old_active = *curr;
@@ -342,6 +353,8 @@ static struct cras_iodev *cras_iodev_set_active(
 		new_active->set_as_default(new_active);
 
 	cras_iodev_list_notify_active_node_changed();
+
+	audio_thread_remove_streams(audio_thread);
 
 	return old_active;
 }
@@ -357,8 +370,10 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 	if (rc)
 		return rc;
 
-	if (!active_output)
+	if (!active_output) {
 		active_output = output;
+		audio_thread_set_output_dev(audio_thread, output);
+	}
 	if (!default_output)
 		default_output = output;
 
@@ -376,8 +391,10 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 	if (rc)
 		return rc;
 
-	if (!active_input)
+	if (!active_input) {
 		active_input = input;
+		audio_thread_set_input_dev(audio_thread, input);
+	}
 	if (!default_input)
 		default_input = input;
 
@@ -388,12 +405,9 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
 	int res;
 
-	if (dev->thread)
-		audio_thread_destroy(dev->thread);
 	res = rm_dev_from_list(&outputs, dev);
 	if (active_output == dev)
-		cras_iodev_set_active(CRAS_STREAM_OUTPUT,
-				      default_output);
+		cras_iodev_set_active(CRAS_STREAM_OUTPUT, default_output);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -403,12 +417,9 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	int res;
 
-	if (dev->thread)
-		audio_thread_destroy(dev->thread);
 	res = rm_dev_from_list(&inputs, dev);
 	if (active_input == dev)
-		cras_iodev_set_active(CRAS_STREAM_INPUT,
-				      default_input);
+		cras_iodev_set_active(CRAS_STREAM_INPUT, default_input);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -453,9 +464,6 @@ int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index)
 
 	if (curr_dev == NULL || curr_dev == new_dev)
 		return 0; /* No change or no streams to move. */
-
-	if (curr_dev->thread)
-		audio_thread_destroy(curr_dev->thread);
 
 	return 0;
 }
@@ -525,12 +533,6 @@ void cras_iodev_list_notify_active_node_changed()
 static void active_node_changed_prepare(struct cras_alert *alert)
 {
 	cras_iodev_list_update_device_list();
-}
-
-struct audio_thread *
-cras_iodev_list_get_audio_thread(const struct cras_iodev *iodev)
-{
-	return iodev->thread;
 }
 
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
@@ -612,6 +614,11 @@ void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
 
 	if (node_input_gain_callback)
 		node_input_gain_callback(id, node->capture_gain);
+}
+
+struct audio_thread *cras_iodev_list_get_audio_thread()
+{
+	return audio_thread;
 }
 
 void cras_iodev_list_reset()

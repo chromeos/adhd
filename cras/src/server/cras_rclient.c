@@ -28,52 +28,6 @@ struct cras_rclient {
 	struct cras_rstream *streams;
 };
 
-/* Gets the thread that should be used for the iodev.
- * Args:
- *    idev - The input device to find or create a thread for.
- *    odev - The output device to find or create a thread for.
- * Returns:
- *    A pointer to the thread to use, or NULL on error.  The thread must be
- *    destroyed when finished.
- */
-static struct audio_thread *get_audio_thread_for_iodev(struct cras_iodev *idev,
-						       struct cras_iodev *odev)
-{
-	struct audio_thread *thread;
-
-	thread = cras_iodev_list_get_audio_thread(idev ? : odev);
-	if (thread)
-		goto add_output;
-
-	thread = audio_thread_create(idev ? : odev);
-	if (!thread)
-		return NULL;
-
-	if (audio_thread_start(thread)) {
-		audio_thread_destroy(thread);
-		return NULL;
-	}
-
-add_output:
-	if (odev && idev) {
-		struct audio_thread *out_thread;
-
-		/* If there is alread a thread using this iodev, destroy it.
-		 * All the streams will be re-attached to the new thread. */
-		out_thread = cras_iodev_list_get_audio_thread(odev);
-		if (out_thread == thread)
-			return thread;
-
-		/* Need to switch the output thread. */
-		if (out_thread)
-			audio_thread_destroy(out_thread);
-
-		audio_thread_add_output_dev(thread, odev);
-	}
-
-	return thread;
-}
-
 /* Handles a message from the client to connect a new stream */
 static int handle_client_stream_connect(struct cras_rclient *client,
 					const struct cras_connect_message *msg,
@@ -151,9 +105,8 @@ try_again:
 	cras_rstream_set_audio_fd(stream, aud_fd);
 
 	/* Now can pass the stream to the thread. */
-	thread = get_audio_thread_for_iodev(idev, odev);
+	thread = cras_iodev_list_get_audio_thread();
 	if (thread == NULL) {
-		syslog(LOG_ERR, "No thread for device.\n");
 		rc = -ENOMEM;
 		goto reply_err;
 	}
@@ -190,8 +143,7 @@ try_again:
 	rc = cras_rclient_send_message(client, &reply.header);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
-		if (audio_thread_rm_stream(thread, stream) == 0)
-			audio_thread_destroy(thread);
+		audio_thread_rm_stream(thread, stream);
 		return rc;
 	}
 
@@ -220,9 +172,9 @@ static int disconnect_client_stream(struct cras_rclient *client,
 				    struct cras_rstream *stream)
 {
 	struct audio_thread *thread = cras_rstream_get_thread(stream);
+
 	if (thread)
-		if (audio_thread_rm_stream(thread, stream) == 0)
-			audio_thread_destroy(thread);
+		audio_thread_rm_stream(thread, stream);
 
 	close(cras_rstream_get_audio_fd(stream));
 	DL_DELETE(client->streams, stream);
