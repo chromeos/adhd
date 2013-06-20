@@ -269,9 +269,6 @@ int thread_add_stream(struct audio_thread *thread,
 	struct cras_iodev *idev = thread->input_dev;
 	struct cras_io_stream *min_latency;
 	int rc;
-	int in_active, out_active;
-
-	active_streams(thread, &in_active, &out_active);
 
 	rc = append_stream(thread, stream);
 	if (rc < 0)
