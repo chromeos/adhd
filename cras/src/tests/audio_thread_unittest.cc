@@ -454,7 +454,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   int rc;
   uint64_t nsec_expected;
   struct audio_thread *thread;
-  struct cras_audio_shm *shm;
+  struct cras_audio_shm *shm1, *shm2;
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
@@ -464,18 +464,28 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   iodev_.thread = thread;
 
   iodev_.cb_threshold /= 2;
+  output_dev_.cb_threshold /= 2;
   rstream_->cb_threshold = iodev_.cb_threshold;
 
   rc = thread_add_stream(thread, rstream_);
   EXPECT_EQ(0, rc);
   rstream2_->direction = CRAS_STREAM_UNIFIED;
 
-  shm = cras_rstream_output_shm(rstream2_);
-  shm->area = (struct cras_audio_shm_area *)calloc(1,
-		  sizeof(*shm->area) + iodev_.cb_threshold * 8);
-  cras_shm_set_frame_bytes(shm, 4);
+  shm1 = cras_rstream_output_shm(rstream_);
+  shm1->area = (struct cras_audio_shm_area *)calloc(1,
+		  sizeof(*shm1->area) + iodev_.cb_threshold * 8);
+  cras_shm_set_frame_bytes(shm1, 4);
   cras_shm_set_used_size(
-		  shm, iodev_.cb_threshold * cras_shm_frame_bytes(shm));
+		  shm1, iodev_.cb_threshold * cras_shm_frame_bytes(shm1));
+  shm1->area->write_offset[0] = cras_shm_used_size(shm1);
+
+  shm2 = cras_rstream_output_shm(rstream2_);
+  shm2->area = (struct cras_audio_shm_area *)calloc(1,
+		  sizeof(*shm2->area) + iodev_.cb_threshold * 8);
+  cras_shm_set_frame_bytes(shm2, 4);
+  cras_shm_set_used_size(
+		  shm2, iodev_.cb_threshold * cras_shm_frame_bytes(shm2));
+  shm2->area->write_offset[0] = cras_shm_used_size(shm2);
 
   rc = thread_add_stream(thread, rstream2_);
   EXPECT_EQ(0, rc);
@@ -514,7 +524,8 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   thread->streams = 0;
   audio_thread_destroy(thread);
 
-  free(shm->area);
+  free(shm1->area);
+  free(shm2->area);
 }
 
 TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
@@ -1569,6 +1580,17 @@ void cras_rstream_log_overrun(const struct cras_rstream *stream) {
 
 size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
+}
+
+void loopback_iodev_set_format(struct loopback_iodev *loopback_dev,
+                               const struct cras_audio_format *fmt) {
+}
+
+int loopback_iodev_add_audio(struct loopback_iodev *loopback_dev,
+                             const uint8_t *audio,
+                             unsigned int count,
+                             struct cras_rstream *stream) {
+  return 0;
 }
 
 //  Override select so it can be stubbed.

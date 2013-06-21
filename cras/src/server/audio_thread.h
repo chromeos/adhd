@@ -16,6 +16,7 @@ enum error_type_from_audio_thread_h {
 	AUDIO_THREAD_ERROR_OTHER = -1,
 	AUDIO_THREAD_OUTPUT_DEV_ERROR = -2,
 	AUDIO_THREAD_INPUT_DEV_ERROR = -3,
+	AUDIO_THREAD_LOOPBACK_DEV_ERROR = -3,
 };
 
 /* Linked list of streams of audio from/to a client. */
@@ -30,6 +31,7 @@ struct cras_io_stream {
  * audio.  This maps 1 to 1 with IO devices.
  *    odev - The output device to attach this thread to, NULL if none.
  *    idev - The input device to attach this thread to, NULL if none.
+ *    post_mix_loopback_dev - Loopback device for post mix feedback.
  *    to_thread_fds - Send a message from main to running thread.
  *    to_main_fds - Send a message to main from running thread.
  *    tid - Thread ID of the running playback/capture thread.
@@ -42,6 +44,7 @@ struct cras_io_stream {
 struct audio_thread {
 	struct cras_iodev *output_dev;
 	struct cras_iodev *input_dev;
+	struct cras_iodev *post_mix_loopback_dev;
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	pthread_t tid;
@@ -132,5 +135,13 @@ int audio_thread_rm_stream(struct audio_thread *thread,
  *    thread - a pointer to the audio thread.
  */
 void audio_thread_remove_streams(struct audio_thread *thread);
+
+/* Add a loopback device to the audio thread.
+ * Args:
+ *    thread - The thread to add the device to.
+ *    loop_dev - The loopback device to add.
+ */
+void audio_thread_add_loopback_device(struct audio_thread *thread,
+				      struct cras_iodev *loop_dev);
 
 #endif /* AUDIO_THREAD_H_ */

@@ -10,6 +10,7 @@
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
 #include "cras_iodev.h"
+#include "cras_loopback_iodev.h"
 #include "cras_mix.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
@@ -143,21 +144,25 @@ static int audio_thread_read_command(struct audio_thread *thread,
  */
 static int active_streams(const struct audio_thread *thread,
 			  int *in_active,
-			  int *out_active)
+			  int *out_active,
+			  int *loop_active)
 {
 	struct cras_io_stream *curr;
 
 	*in_active = 0;
 	*out_active = 0;
+	*loop_active = 0;
 
 	DL_FOREACH(thread->streams, curr) {
 		if (stream_uses_input(curr->stream))
 			*in_active = *in_active + 1;
 		if (stream_uses_output(curr->stream))
 			*out_active = *out_active + 1;
+		if (stream_uses_loopback(curr->stream))
+			*loop_active = *loop_active + 1;
 	}
 
-	return *in_active || *out_active;
+	return *in_active || *out_active || *loop_active;
 }
 
 static int append_stream(struct audio_thread *thread,
@@ -219,12 +224,13 @@ int thread_remove_stream(struct audio_thread *thread,
 {
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *idev = thread->input_dev;
-	int in_active, out_active;
+	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
+	int in_active, out_active, loop_active;
 
 	if (delete_stream(thread, stream))
 		syslog(LOG_ERR, "Stream to remove not found.");
 
-	active_streams(thread, &in_active, &out_active);
+	active_streams(thread, &in_active, &out_active, &loop_active);
 
 	if (!in_active) {
 		/* No more streams, close the dev. */
@@ -249,6 +255,11 @@ int thread_remove_stream(struct audio_thread *thread,
 			odev,
 			cras_rstream_get_buffer_size(min_latency->stream),
 			cras_rstream_get_cb_threshold(min_latency->stream));
+	}
+	if (!loop_active) {
+		/* No more streams, close the dev. */
+		if (loop_dev && loop_dev->is_open(loop_dev))
+			loop_dev->close_dev(loop_dev);
 	}
 
 	return streams_attached(thread);
@@ -279,6 +290,7 @@ int thread_add_stream(struct audio_thread *thread,
 {
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *idev = thread->input_dev;
+	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
 	struct cras_io_stream *min_latency;
 	int rc;
 
@@ -295,6 +307,8 @@ int thread_add_stream(struct audio_thread *thread,
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
+		if (loop_dev)
+			loopback_iodev_set_format(loop_dev, odev->format);
 	}
 	if (stream_uses_input(stream) && !idev->is_open(idev)) {
 		thread->sleep_correction_frames = 0;
@@ -303,6 +317,15 @@ int thread_add_stream(struct audio_thread *thread,
 			syslog(LOG_ERR, "Failed to open %s", idev->info.name);
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_INPUT_DEV_ERROR;
+		}
+	}
+	if (stream_uses_loopback(stream)) {
+		if (!loop_dev ||
+		    (!loop_dev->is_open(loop_dev) &&
+		    loop_dev->open_dev(loop_dev))) {
+			syslog(LOG_ERR, "Failed open %s", loop_dev->info.name);
+			delete_stream(thread, stream);
+			return AUDIO_THREAD_LOOPBACK_DEV_ERROR;
 		}
 	}
 
@@ -692,6 +715,37 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	return ret;
 }
 
+/* Send data that is about to be played to attached loopback streams. */
+static int push_loopback_data(struct audio_thread *thread,
+			      struct cras_iodev *dev,
+			      const uint8_t *data,
+			      unsigned int count)
+{
+	struct cras_io_stream *stream;
+	int rc;
+
+	if (!dev || !dev->is_open(dev))
+		return 0;
+
+	DL_FOREACH(thread->streams, stream) {
+		struct cras_rstream *rstream = stream->stream;
+
+		if (!cras_stream_is_loopback(rstream->direction))
+			continue;
+
+		rc = loopback_iodev_add_audio(dev,
+					      data,
+					      count,
+					      rstream);
+		if (rc < 0) {
+			thread_remove_stream(thread, rstream);
+			return rc;
+		}
+	}
+
+	return 0;
+}
+
 /* Transfer samples from clients to the audio device.
  * Return the number of samples written to the device.
  * Args:
@@ -715,6 +769,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	uint8_t *dst = NULL;
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *idev = thread->input_dev;
+	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
 
 	if (!device_open(odev))
 		return 0;
@@ -751,7 +806,10 @@ int possibly_fill_audio(struct audio_thread *thread,
 			 * won't fill the request. */
 			fr_to_req = 0; /* break out after committing samples */
 
+		push_loopback_data(thread, loop_dev, dst, written);
+
 		apply_dsp(odev, dst, written);
+
 		rc = odev->put_buffer(odev, written);
 		if (rc < 0)
 			return rc;
@@ -1250,4 +1308,16 @@ void audio_thread_destroy(struct audio_thread *thread)
 	}
 
 	free(thread);
+}
+
+void audio_thread_add_loopback_device(struct audio_thread *thread,
+				      struct cras_iodev *loop_dev)
+{
+	switch (loop_dev->direction) {
+	case CRAS_STREAM_POST_MIX_PRE_DSP:
+		thread->post_mix_loopback_dev = loop_dev;
+		break;
+	default:
+		return;
+	}
 }

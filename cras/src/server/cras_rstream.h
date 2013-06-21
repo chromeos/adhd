@@ -201,6 +201,12 @@ static inline int stream_uses_input(const struct cras_rstream *s)
 	return cras_stream_uses_input_hw(s->direction);
 }
 
+/* Checks if the stream uses a loopback device. */
+static inline int stream_uses_loopback(const struct cras_rstream *s)
+{
+	return cras_stream_is_loopback(s->direction);
+}
+
 /* Requests min_req frames from the client. */
 int cras_rstream_request_audio(const struct cras_rstream *stream);
 
