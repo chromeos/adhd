@@ -55,6 +55,7 @@ cras_SOURCES = \
 	server/cras_gpio_jack.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
+	server/cras_loopback_iodev.c \
 	server/cras_mix.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
@@ -137,6 +138,7 @@ TESTS = \
 	rstream_unittest \
 	fmt_conv_unittest \
 	iodev_list_unittest \
+	loopback_iodev_unittest \
 	mix_unittest \
 	shm_unittest \
 	rclient_unittest \
@@ -339,6 +341,13 @@ iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 iodev_list_unittest_LDADD = -lgtest -lpthread
+
+loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
+	server/cras_loopback_iodev.c
+loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+loopback_iodev_unittest_LDADD = -lgtest -lpthread
 
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
 	server/cras_iodev.c
