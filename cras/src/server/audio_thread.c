@@ -36,6 +36,20 @@ static inline int streams_attached(const struct audio_thread *thread)
 	return thread->streams != NULL;
 }
 
+static inline int output_streams_attached(const struct audio_thread *thread)
+{
+	if (thread->streams == NULL)
+		return 0;
+
+	struct cras_io_stream *curr;
+
+	DL_FOREACH(thread->streams, curr)
+		if (cras_stream_uses_output_hw(curr->stream->direction))
+			return 1;
+
+	return 0;
+}
+
 static inline int device_active(const struct audio_thread *thread)
 {
 	struct cras_iodev *odev = thread->output_dev;
@@ -419,7 +433,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 				thread_remove_stream(thread, curr->stream);
 				/* If this failed and was the last stream,
 				 * return, otherwise, on to the next one */
-				if (!streams_attached(thread))
+				if (!output_streams_attached(thread))
 					return -EIO;
 				continue;
 			}
@@ -539,7 +553,7 @@ static int write_streams(struct audio_thread *thread,
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
 				thread_remove_stream(thread, curr->stream);
-				if (!streams_attached(thread))
+				if (!output_streams_attached(thread))
 					return -EIO;
 				continue;
 			}
