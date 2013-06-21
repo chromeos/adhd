@@ -754,6 +754,10 @@ void audio_thread_set_input_dev(struct audio_thread *thread,
 void audio_thread_remove_streams(struct audio_thread *thread) {
 }
 
+void audio_thread_add_loopback_device(struct audio_thread *thread,
+				      struct cras_iodev *loop_dev) {
+}
+
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
 {
   if (a->priority > b->priority)

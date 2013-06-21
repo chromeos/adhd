@@ -30,6 +30,8 @@ static struct cras_iodev *active_input;
 /* Keep a default input and output. For use when there is nothing else. */
 static struct cras_iodev *default_output;
 static struct cras_iodev *default_input;
+/* device used for loopback. */
+static struct cras_iodev *loopback_dev;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = 1;
@@ -324,6 +326,10 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 		*idev = active_input;
 		*odev = active_output;
 		break;
+	case CRAS_STREAM_POST_MIX_PRE_DSP:
+		*idev = (struct cras_iodev *)loopback_dev;
+		*odev = NULL;
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -383,6 +389,12 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 int cras_iodev_list_add_input(struct cras_iodev *input)
 {
 	int rc;
+
+	if (input->direction == CRAS_STREAM_POST_MIX_PRE_DSP) {
+		loopback_dev = input;
+		audio_thread_add_loopback_device(audio_thread, input);
+		return 0;
+	}
 
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
