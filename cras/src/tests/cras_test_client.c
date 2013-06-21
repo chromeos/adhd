@@ -368,7 +368,8 @@ static int run_file_io_stream(struct cras_client *client,
 	sleep_ts.tv_sec = 0;
 	sleep_ts.tv_nsec = 250 * 1000000;
 
-	if (direction == CRAS_STREAM_INPUT)
+	if (direction == CRAS_STREAM_INPUT ||
+	    direction == CRAS_STREAM_POST_MIX_PRE_DSP)
 		aud_cb = got_samples;
 	else
 		aud_cb = put_samples;
@@ -513,6 +514,7 @@ static int run_capture(struct cras_client *client,
 		       size_t cb_threshold,
 		       size_t rate,
 		       size_t num_channels,
+		       int loopback,
 		       int flags)
 {
 	int fd = open(file, O_CREAT | O_RDWR, 0666);
@@ -521,8 +523,10 @@ static int run_capture(struct cras_client *client,
 		return -errno;
 	}
 
-	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, buffer_frames,
-			   cb_threshold, rate, num_channels, flags);
+	run_file_io_stream(
+		client, fd,
+		loopback ? CRAS_STREAM_POST_MIX_PRE_DSP : CRAS_STREAM_INPUT,
+		buffer_frames, cb_threshold, rate, num_channels, flags);
 
 	close(fd);
 	return 0;
@@ -602,6 +606,7 @@ static struct option long_options[] = {
 	{"iodev_index",		required_argument,	0, 'o'},
 	{"capture_file",	required_argument,	0, 'c'},
 	{"playback_file",	required_argument,	0, 'p'},
+	{"loopback_file",	required_argument,	0, 'k'},
 	{"callback_threshold",	required_argument,	0, 't'},
 	{"min_cb_level",	required_argument,	0, 'm'},
 	{"mute",                required_argument,      0, 'u'},
@@ -633,6 +638,7 @@ static void show_usage()
 	printf("--iodev_index <N> - Set active iodev to N.\n");
 	printf("--capture_file <name> - Name of file to record to.\n");
 	printf("--playback_file <name> - Name of file to play.\n");
+	printf("--loopback_file <name> - Name of file to record loopback to.\n");
 	printf("--callback_threshold <N> - Number of samples remaining when callback in invoked.\n");
 	printf("--min_cb_level <N> - Minimum # of samples writeable when playback callback is called.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
@@ -667,6 +673,7 @@ int main(int argc, char **argv)
 	size_t duration_seconds = 0;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
+	const char *loopback_file = NULL;
 	int rc = 0;
 	int run_unified = 0;
 
@@ -698,6 +705,9 @@ int main(int argc, char **argv)
 			break;
 		case 'p':
 			playback_file = optarg;
+			break;
+		case 'k':
+			loopback_file = optarg;
 			break;
 		case 't':
 			cb_threshold = atoi(optarg);
@@ -851,10 +861,13 @@ int main(int argc, char **argv)
 					   rate, num_channels);
 	else if (capture_file != NULL)
 		rc = run_capture(client, capture_file, buffer_size, 0, rate,
-				 num_channels, 0);
+				 num_channels, 0, 0);
 	else if (playback_file != NULL)
 		rc = run_playback(client, playback_file, buffer_size,
 				  cb_threshold, rate, num_channels, 0);
+	else if (loopback_file != NULL)
+		rc = run_capture(client, loopback_file, buffer_size,
+				  cb_threshold, rate, num_channels, 1, 0);
 
 destroy_exit:
 	cras_client_destroy(client);
