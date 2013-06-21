@@ -63,7 +63,7 @@ static inline int setup_shm_area(struct cras_rstream *stream)
 {
 	int rc = 0;
 
-	if (cras_stream_has_output(stream->direction)) {
+	if (stream_uses_output(stream)) {
 		rc = setup_shm(stream, &stream->output_shm,
 			       &stream->output_shm_info);
 		if (rc)

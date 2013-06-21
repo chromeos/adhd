@@ -189,16 +189,16 @@ static inline void cras_rstream_set_thread(struct cras_rstream *s,
 	s->thread = o;
 }
 
-/* Checks if the stream uses output. */
-static inline int stream_has_output(const struct cras_rstream *s)
+/* Checks if the stream uses an output device. */
+static inline int stream_uses_output(const struct cras_rstream *s)
 {
-	return cras_stream_has_output(s->direction);
+	return cras_stream_uses_output_hw(s->direction);
 }
 
-/* Checks if the stream uses input. */
-static inline int stream_has_input(const struct cras_rstream *s)
+/* Checks if the stream uses an input device. */
+static inline int stream_uses_input(const struct cras_rstream *s)
 {
-	return cras_stream_has_input(s->direction);
+	return cras_stream_uses_input_hw(s->direction);
 }
 
 /* Requests min_req frames from the client. */

@@ -25,14 +25,24 @@ enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_POST_MIX_PRE_DSP,
 };
 
-static inline int cras_stream_has_output(enum CRAS_STREAM_DIRECTION dir)
+static inline int cras_stream_uses_output_hw(enum CRAS_STREAM_DIRECTION dir)
 {
-	return dir != CRAS_STREAM_INPUT && dir != CRAS_STREAM_POST_MIX_PRE_DSP;
+	return dir == CRAS_STREAM_OUTPUT || dir == CRAS_STREAM_UNIFIED;
+}
+
+static inline int cras_stream_uses_input_hw(enum CRAS_STREAM_DIRECTION dir)
+{
+	return dir == CRAS_STREAM_INPUT || dir == CRAS_STREAM_UNIFIED;
 }
 
 static inline int cras_stream_has_input(enum CRAS_STREAM_DIRECTION dir)
 {
 	return dir != CRAS_STREAM_OUTPUT;
+}
+
+static inline int cras_stream_is_loopback(enum CRAS_STREAM_DIRECTION dir)
+{
+	return dir == CRAS_STREAM_POST_MIX_PRE_DSP;
 }
 
 /* Types of audio streams. */

@@ -494,7 +494,7 @@ static int send_playback_reply(struct client_stream *stream,
 	struct audio_message aud_msg;
 	int rc;
 
-	if (!cras_stream_has_output(stream->direction))
+	if (!cras_stream_uses_output_hw(stream->direction))
 		return 0;
 
 	aud_msg.id = AUDIO_MESSAGE_DATA_READY;
@@ -586,7 +586,7 @@ static int handle_unified_request(struct client_stream *stream,
 		capture_ts = &stream->capture_shm.area->ts;
 	}
 
-	if (cras_stream_has_output(stream->direction)) {
+	if (cras_stream_uses_output_hw(stream->direction)) {
 		unsigned int pb_frames = config_playback_buf(stream,
 							     &playback_frames,
 							     server_frames);
@@ -612,7 +612,7 @@ static int handle_unified_request(struct client_stream *stream,
 	if (cras_stream_has_input(stream->direction))
 		complete_capture_read(stream, frames);
 
-	if (cras_stream_has_output(stream->direction))
+	if (cras_stream_uses_output_hw(stream->direction))
 		complete_playback_write(stream, frames);
 
 	/* Signal server that data is ready, or that an error has occurred. */
@@ -807,7 +807,7 @@ static int stream_connected(struct client_stream *stream,
 		}
 	}
 
-	if (cras_stream_has_output(stream->direction)) {
+	if (cras_stream_uses_output_hw(stream->direction)) {
 		unsigned int max_frames;
 
 		rc = config_shm(&stream->play_shm,
