@@ -9,6 +9,7 @@
 #include "cras_config.h"
 #include "cras_empty_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_loopback_iodev.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
 #include "cras_dsp.h"
@@ -35,6 +36,9 @@ int main(int argc, char **argv)
 	 * capture from. */
 	empty_iodev_create(CRAS_STREAM_OUTPUT);
 	empty_iodev_create(CRAS_STREAM_INPUT);
+
+	/* Add loopback device for capturing the post-mix system output. */
+	loopback_iodev_create(CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	/* Start the server. */
 	cras_server_run();
