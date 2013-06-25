@@ -522,7 +522,6 @@ static int write_streams(struct audio_thread *thread,
 
 		shm = cras_rstream_output_shm(curr->stream);
 
-		curr->mixed = 0;
 		if (cras_shm_get_frames(shm) < write_limit &&
 		    cras_shm_callback_pending(shm)) {
 			/* Not enough to mix this call, wait for a response. */
@@ -530,12 +529,6 @@ static int write_streams(struct audio_thread *thread,
 			FD_SET(curr->fd, &poll_set);
 			if (curr->fd > max_fd)
 				max_fd = curr->fd;
-		} else {
-			curr->mixed = cras_mix_add_stream(
-				shm,
-				odev->format->num_channels,
-				volume_scaler,
-				dst, &write_limit, &num_mixed);
 		}
 	}
 
@@ -580,27 +573,34 @@ static int write_streams(struct audio_thread *thread,
 					return -EIO;
 				continue;
 			}
-			if (curr->mixed)
-				continue;
-			curr->mixed = cras_mix_add_stream(
-				shm,
-				odev->format->num_channels,
-				volume_scaler,
-				dst, &write_limit, &num_mixed);
 		}
+	}
+
+	/* Mix as much as we can, the minimum fill level of any stream. */
+	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+		struct cras_audio_shm *shm;
+		if (!cras_stream_uses_output_hw(curr->stream->direction))
+			continue;
+		shm = cras_rstream_output_shm(curr->stream);
+		if (cras_shm_get_frames(shm) > 0)
+			write_limit = min(cras_shm_get_frames(shm),
+					  write_limit);
+	}
+
+	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+		struct cras_audio_shm *shm;
+		if (!cras_stream_uses_output_hw(curr->stream->direction))
+			continue;
+		shm = cras_rstream_output_shm(curr->stream);
+		if (cras_mix_add_stream(shm,
+					odev->format->num_channels,
+					volume_scaler,
+					dst, &write_limit, &num_mixed))
+			cras_shm_buffer_read(shm, write_limit);
 	}
 
 	if (num_mixed == 0)
 		return num_mixed;
-
-	/* For all streams rendered, mark the data used as read. */
-	DL_FOREACH(thread->streams, curr) {
-		struct cras_audio_shm *shm;
-
-		shm = cras_rstream_output_shm(curr->stream);
-		if (curr->mixed)
-			cras_shm_buffer_read(shm, write_limit);
-	}
 
 	return write_limit;
 }

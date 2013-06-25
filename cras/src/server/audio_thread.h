@@ -23,7 +23,6 @@ enum error_type_from_audio_thread_h {
 struct cras_io_stream {
 	struct cras_rstream *stream;
 	int fd; /* cached here due to frequent access */
-	int mixed; /* Was this stream mixed already? */
 	struct cras_io_stream *prev, *next;
 };
 

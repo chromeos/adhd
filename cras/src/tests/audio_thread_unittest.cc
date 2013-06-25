@@ -32,6 +32,8 @@ static struct timeval select_timeval;
 static int select_max_fd;
 static fd_set select_in_fds;
 static fd_set select_out_fds;
+static size_t *select_write_ptr;
+static size_t select_write_value;
 static unsigned int cras_iodev_config_params_for_streams_called;
 static unsigned int cras_iodev_config_params_for_streams_buffer_size;
 static unsigned int cras_iodev_config_params_for_streams_threshold;
@@ -725,6 +727,7 @@ class WriteStreamSuite : public testing::Test {
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
       select_max_fd = -1;
+      select_write_ptr = NULL;
       cras_rstream_request_audio_called = 0;
       cras_dsp_get_pipeline_called = 0;
       is_open_ = 0;
@@ -926,7 +929,7 @@ TEST_F(WriteStreamSuite, PossiblyFillFramesQueued) {
   EXPECT_EQ(1, dev_running_called_);
 }
 
-TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
+TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamOneEmpty) {
   struct timespec ts;
   int rc;
 
@@ -957,6 +960,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFullDoesntMix) {
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   struct timespec ts;
+  uint64_t nsec_expected;
   int rc;
 
   //  Have cb_threshold samples left.
@@ -969,24 +973,30 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
+  // Set write offset after call to select.
+  select_write_ptr = &shm_->area->write_offset[0];
+  select_write_value = (iodev_.used_size - iodev_.cb_threshold) * 4;
+
+  nsec_expected = (iodev_.used_size - iodev_.cb_threshold) *
+      1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_EQ(0, ts.tv_nsec);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
-            cras_mix_add_stream_count);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold, cras_mix_add_stream_count);
   EXPECT_EQ(1.0, cras_mix_add_stream_scaler);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
   EXPECT_EQ(0, shm_->area->read_offset[0]);
-  EXPECT_EQ(0, shm_->area->write_offset[0]);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   struct timespec ts;
+  uint64_t nsec_expected;
   int rc;
 
   //  Have cb_threshold samples left.
@@ -1005,11 +1015,19 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   FD_SET(rstream_->fd, &select_out_fds);
   select_return_value = 1;
 
+  // Set write offset after call to select.
+  select_write_ptr = &shm_->area->write_offset[0];
+  select_write_value = (iodev_.used_size - iodev_.cb_threshold) * 4;
+
+  nsec_expected = (iodev_.used_size - iodev_.cb_threshold) *
+      1000000000ULL / (uint64_t)fmt_.frame_rate;
+
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_EQ(0, ts.tv_nsec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
             cras_mix_add_stream_count);
   EXPECT_EQ(0.5, cras_mix_add_stream_scaler);
@@ -1017,7 +1035,6 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
   EXPECT_EQ(0, shm_->area->read_offset[0]);
-  EXPECT_EQ(0, shm_->area->write_offset[0]);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
@@ -1106,20 +1123,20 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   EXPECT_NE(-1, select_max_fd);
 }
 
-TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
+TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
   struct timespec ts;
   int rc;
   uint64_t nsec_expected;
-  static const unsigned int smaller_frames = 40;
+  static const unsigned int smaller_frames = 10;
 
   //  Have cb_threshold samples left.
   frames_queued_ = iodev_.cb_threshold;
   audio_buffer_size_ = iodev_.used_size - frames_queued_;
-  nsec_expected = (uint64_t)smaller_frames / 4 *
+  nsec_expected = (uint64_t)smaller_frames *
                   (1000000000ULL / (uint64_t)fmt_.frame_rate);
 
   //  One has too little the other is full.
-  shm_->area->write_offset[0] = smaller_frames;
+  shm_->area->write_offset[0] = smaller_frames * 4;
   shm_->area->write_buf_idx = 1;
   shm2_->area->write_offset[0] = cras_shm_used_size(shm2_);
   shm2_->area->write_buf_idx = 1;
@@ -1136,8 +1153,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFillOne) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
-            cras_mix_add_stream_count);
+  EXPECT_EQ(smaller_frames, cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
@@ -1604,6 +1620,8 @@ int select(int nfds,
   select_timeval.tv_usec = timeout->tv_usec;
   select_in_fds = *readfds;
   *readfds = select_out_fds;
+  if (select_write_ptr)
+	  *select_write_ptr = select_write_value;
   return select_return_value;
 }
 
