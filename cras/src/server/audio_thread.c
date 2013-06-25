@@ -464,7 +464,7 @@ static int write_streams(struct audio_thread *thread,
 	streams_wait = 0;
 	num_mixed = 0;
 
-	if (odev->software_volume_needed) {
+	if (cras_iodev_software_volume_needed(odev)) {
 		unsigned int volume = cras_system_get_volume();
 		volume_scaler = softvol_get_scaler(
 			cras_iodev_adjust_active_node_volume(odev, volume));

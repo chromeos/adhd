@@ -296,4 +296,17 @@ static inline unsigned int cras_iodev_adjust_active_node_volume(
 	return cras_iodev_adjust_node_volume(iodev->active_node, system_volume);
 }
 
+/* Returns true if the active node of the iodev needs software volume. */
+static inline int cras_iodev_software_volume_needed(
+		const struct cras_iodev *iodev)
+{
+	if (iodev->software_volume_needed)
+		return 1;
+
+	if (!iodev->active_node)
+		return 0;
+
+	return iodev->active_node->type == CRAS_NODE_TYPE_HDMI;
+}
+
 #endif /* CRAS_IODEV_H_ */
