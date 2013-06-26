@@ -488,6 +488,8 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   cras_shm_set_used_size(
 		  shm2, iodev_.cb_threshold * cras_shm_frame_bytes(shm2));
   shm2->area->write_offset[0] = cras_shm_used_size(shm2);
+  shm2->area->write_offset[1] = cras_shm_used_size(shm2);
+
 
   rc = thread_add_stream(thread, rstream2_);
   EXPECT_EQ(0, rc);

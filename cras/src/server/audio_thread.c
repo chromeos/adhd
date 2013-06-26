@@ -989,6 +989,42 @@ static unsigned int adjust_level(const struct audio_thread *thread, int level)
 	}
 }
 
+/* When no output devices are open, feed loopback streams zeros. */
+static int send_loopback_zeros(struct audio_thread *thread)
+{
+	struct cras_io_stream *curr;
+	struct cras_audio_shm *shm;
+	uint8_t *dst;
+	int rc;
+
+	DL_FOREACH(thread->streams, curr) {
+		struct cras_rstream *rstream = curr->stream;
+		unsigned int count = cras_rstream_get_cb_threshold(rstream);
+
+		if (!cras_stream_is_loopback(rstream->direction))
+			continue;
+
+		shm = cras_rstream_input_shm(rstream);
+		cras_shm_check_write_overrun(shm);
+
+		dst = cras_shm_get_writeable_frames(shm, count, NULL);
+		memset(dst, 0, count * cras_shm_frame_bytes(shm));
+		cras_shm_buffer_written(shm, count);
+		cras_shm_buffer_write_complete(shm);
+		rc = cras_rstream_audio_ready(
+			rstream, cras_rstream_get_cb_threshold(rstream));
+		if (rc < 0) {
+			thread_remove_stream(thread, rstream);
+			return 0;
+		}
+
+		/* Only support one loopback stream. */
+		return count;
+	}
+
+	return 0;
+}
+
 /* Reads and/or writes audio sampels from/to the devices. */
 int unified_io(struct audio_thread *thread, struct timespec *ts)
 {
@@ -997,7 +1033,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *master_dev;
 	int rc, delay;
 	unsigned int hw_level;
-	unsigned int cap_sleep_frames, pb_sleep_frames;
+	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
 	unsigned int captured_frames;
 
 	ts->tv_sec = 0;
@@ -1007,6 +1043,16 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 
 	cap_sleep_frames = master_dev->buffer_size;
 	pb_sleep_frames = master_dev->buffer_size;
+	loop_sleep_frames = master_dev->buffer_size;
+
+	/* If there isn't an output device then check loopback streams and fill
+	 * with zeros if needed.
+	 */
+	if (!device_open(odev)) {
+		loop_sleep_frames = send_loopback_zeros(thread);
+		if (!device_open(idev))
+			goto not_enough;
+	}
 
 	rc = master_dev->frames_queued(master_dev);
 	if (rc < 0) {
@@ -1073,8 +1119,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	}
 
 not_enough:
-	if (!device_active(thread))
-		return -EIO;
 
 	 /* idev could have been closed for error. */
 	idev = thread->input_dev;
@@ -1086,6 +1130,14 @@ not_enough:
 		cras_iodev_fill_time_from_frames(pb_sleep_frames,
 						 odev->format->frame_rate,
 						 ts);
+	} else if (thread->post_mix_loopback_dev->format) {
+		/* Loopback is the only stream that is open. */
+		cras_iodev_fill_time_from_frames(
+			loop_sleep_frames,
+			thread->post_mix_loopback_dev->format->frame_rate,
+			ts);
+	} else {
+		return -EIO;
 	}
 
 
@@ -1118,7 +1170,7 @@ static void *audio_io_thread(void *arg)
 
 		wait_ts = NULL;
 
-		if (streams_attached(thread) && device_active(thread)) {
+		if (streams_attached(thread)) {
 			/* device opened */
 			err = unified_io(thread, &ts);
 			if (err < 0)
