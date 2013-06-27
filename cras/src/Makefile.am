@@ -57,6 +57,7 @@ cras_SOURCES = \
 	server/cras_expr.c \
 	server/cras_gpio_jack.c \
 	server/cras_hfp_ag_profile.c \
+	server/cras_hfp_info.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
@@ -141,7 +142,11 @@ TESTS = \
 	a2dp_info_unittest \
 	a2dp_iodev_unittest \
 	alert_unittest \
+	alsa_card_unittest \
 	alsa_io_unittest \
+	alsa_jack_unittest \
+	alsa_mixer_unittest \
+	alsa_ucm_unittest \
 	array_unittest \
 	audio_thread_unittest \
 	bt_profile_unittest \
@@ -150,28 +155,25 @@ TESTS = \
 	cras_client_unittest \
 	cras_tm_unittest \
 	device_blacklist_unittest \
-	dumper_unittest \
-	rstream_unittest \
-	fmt_conv_unittest \
-	iodev_list_unittest \
-	loopback_iodev_unittest \
-	mix_unittest \
-	shm_unittest \
-	rclient_unittest \
-	system_state_unittest \
-	volume_curve_unittest \
-	alsa_card_unittest \
-	alsa_mixer_unittest \
-	iodev_unittest \
-	alsa_jack_unittest \
-	alsa_ucm_unittest \
-	edid_utils_unittest \
-	expr_unittest \
 	dsp_core_unittest \
 	dsp_ini_unittest \
 	dsp_pipeline_unittest \
 	dsp_unittest \
-	util_unittest
+	dumper_unittest \
+	edid_utils_unittest \
+	expr_unittest \
+	fmt_conv_unittest \
+	hfp_info_unittest \
+	iodev_list_unittest \
+	iodev_unittest \
+	loopback_iodev_unittest \
+	mix_unittest \
+	rclient_unittest \
+	rstream_unittest \
+	shm_unittest \
+	system_state_unittest \
+	util_unittest \
+	volume_curve_unittest
 
 check_PROGRAMS = $(TESTS)
 
@@ -363,6 +365,12 @@ fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc common/cras_fmt_conv.c
 fmt_conv_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 fmt_conv_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
+
+hfp_info_unittest_SOURCES = tests/hfp_info_unittest.cc \
+	server/cras_hfp_info.c
+hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+hfp_info_unittest_LDADD = -lgtest -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c
