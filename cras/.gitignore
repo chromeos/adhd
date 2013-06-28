@@ -43,3 +43,12 @@ src/alsa_plugin/.deps/
 src/alsa_plugin/.dirstamp
 src/libasound_module_ctl_cras.la
 src/libasound_module_pcm_cras.la
+src/cmpraw
+src/crossover_test
+src/drc_test
+src/dsp/.deps/
+src/dsp/.dirstamp
+src/dsp/tests/.deps/
+src/dsp/tests/.dirstamp
+src/eq2_test
+src/eq_test
