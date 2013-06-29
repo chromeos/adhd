@@ -87,6 +87,8 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 					&frames);
 			if (frames > *count - fr_written)
 				frames = *count - fr_written;
+			if (frames == 0)
+				break;
 			num_samples = frames * num_channels;
 			if (*index == 0)
 				copy_scaled(target, src, num_samples, mix_vol);
@@ -97,6 +99,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 			fr_written += frames;
 			target += num_samples;
 		}
+		*count = fr_written;
 	}
 
 	*index = *index + 1;
