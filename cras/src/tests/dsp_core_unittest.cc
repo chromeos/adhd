@@ -34,33 +34,41 @@ static float magnitude_at(float *data, size_t len, float f)
 }
 
 TEST(InterleaveTest, All) {
-  int16_t input[12] = {
+  const int FRAMES = 12;
+  const int SAMPLES = FRAMES * 2;
+
+  /* Repeat the same data twice, so it will exercise neon/sse
+   * optimized functions. */
+  int16_t input[SAMPLES] = {
+    -32768, -32767, -32766, -2, -1, 0, 1, 2, 3, 32765, 32766, 32767,
     -32768, -32767, -32766, -2, -1, 0, 1, 2, 3, 32765, 32766, 32767
   };
 
-  float answer[12] = {
+  float answer[SAMPLES] = {
     -1, -32766/32768.0f, -1/32768.0f, 1/32768.0f, 3/32768.0f, 32766/32768.0f,
+    -1, -32766/32768.0f, -1/32768.0f, 1/32768.0f, 3/32768.0f, 32766/32768.0f,
+    -32767/32768.0f, -2/32768.0f, 0, 2/32768.0f, 32765/32768.0f, 32767/32768.0f,
     -32767/32768.0f, -2/32768.0f, 0, 2/32768.0f, 32765/32768.0f, 32767/32768.0f
   };
 
-  float output[12];
-  float *out_ptr[] = {output, output + 6};
+  float output[SAMPLES];
+  float *out_ptr[] = {output, output + FRAMES};
 
-  dsp_util_deinterleave(input, out_ptr, 2, 6);
+  dsp_util_deinterleave(input, out_ptr, 2, FRAMES);
 
-  for (int i = 0 ; i < 12; i++) {
+  for (int i = 0 ; i < SAMPLES; i++) {
     EXPECT_EQ(answer[i], output[i]);
   }
 
   /* dsp_util_interleave() should round to nearest number. */
-  for (int i = 0 ; i < 12; i += 2) {
+  for (int i = 0 ; i < SAMPLES; i += 2) {
     output[i] += 0.499 / 32768.0f;
     output[i + 1] -= 0.499 / 32768.0f;
   }
 
-  int16_t output2[12];
-  dsp_util_interleave(out_ptr, output2, 2, 6);
-  for (int i = 0 ; i < 12; i++) {
+  int16_t output2[SAMPLES];
+  dsp_util_interleave(out_ptr, output2, 2, FRAMES);
+  for (int i = 0 ; i < SAMPLES; i++) {
     EXPECT_EQ(input[i], output2[i]);
   }
 }

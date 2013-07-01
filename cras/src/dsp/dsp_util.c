@@ -126,6 +126,121 @@ static void interleave_stereo_neon(float *input1, float *input2,
 
 #endif
 
+#ifdef __SSE3__
+#include <emmintrin.h>
+
+static void deinterleave_stereo_sse3(int16_t *input, float *output1,
+				     float *output2, int frames)
+{
+	/* Process 8 frames (16 samples) each loop. */
+	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
+	int chunk = frames >> 3;
+	frames &= 7;
+	if (chunk) {
+		__asm__ __volatile__ (
+			"1:                                         \n"
+			"lddqu (%[input]), %%xmm0                   \n"
+			"lddqu 16(%[input]), %%xmm1                 \n"
+			"add $32, %[input]                          \n"
+			"movdqa %%xmm0, %%xmm2                      \n"
+			"movdqa %%xmm1, %%xmm3                      \n"
+			"pslld $16, %%xmm0                          \n"
+			"pslld $16, %%xmm1                          \n"
+			"psrad $16, %%xmm2                          \n"
+			"psrad $16, %%xmm3                          \n"
+			"cvtdq2ps %%xmm0, %%xmm0                    \n"
+			"cvtdq2ps %%xmm1, %%xmm1                    \n"
+			"cvtdq2ps %%xmm2, %%xmm2                    \n"
+			"cvtdq2ps %%xmm3, %%xmm3                    \n"
+			"mulps %[scale_2_n31], %%xmm0               \n"
+			"mulps %[scale_2_n31], %%xmm1               \n"
+			"mulps %[scale_2_n15], %%xmm2               \n"
+			"mulps %[scale_2_n15], %%xmm3               \n"
+			"movdqu %%xmm0, (%[output1])                \n"
+			"movdqu %%xmm1, 16(%[output1])              \n"
+			"movdqu %%xmm2, (%[output2])                \n"
+			"movdqu %%xmm3, 16(%[output2])              \n"
+			"add $32, %[output1]                        \n"
+			"add $32, %[output2]                        \n"
+			"sub $1, %[chunk]                           \n"
+			"jnz 1b                                     \n"
+			: /* output */
+			  [chunk]"+r"(chunk),
+			  [input]"+r"(input),
+			  [output1]"+r"(output1),
+			  [output2]"+r"(output2)
+			: /* input */
+			  [scale_2_n31]"x"(_mm_set1_ps(1.0f/(1<<15)/(1<<16))),
+			  [scale_2_n15]"x"(_mm_set1_ps(1.0f/(1<<15)))
+			: /* clobber */
+			  "xmm0", "xmm1", "xmm2", "xmm3", "memory", "cc"
+			);
+	}
+
+	/* The remaining samples. */
+	while (frames--) {
+		*output1++ = *input++ / 32768.0f;
+		*output2++ = *input++ / 32768.0f;
+	}
+}
+
+static void interleave_stereo_sse3(float *input1, float *input2,
+				   int16_t *output, int frames)
+{
+	/* Process 4 frames (8 samples) each loop. */
+	/* L0 L1 L2 L3, R0 R1 R2 R3 -> L0 R0 L1 R1, L2 R2 L3 R3 */
+	int chunk = frames >> 2;
+	frames &= 3;
+
+	if (chunk) {
+		__asm__ __volatile__ (
+			"1:                                         \n"
+			"lddqu (%[input1]), %%xmm0                  \n"
+			"lddqu (%[input2]), %%xmm2                  \n"
+			"movaps %%xmm0, %%xmm1                      \n"
+			"unpcklps %%xmm2, %%xmm0                    \n"
+			"unpckhps %%xmm2, %%xmm1                    \n"
+			"add $16, %[input1]                         \n"
+			"add $16, %[input2]                         \n"
+			"mulps %[scale_2_15], %%xmm0                \n"
+			"mulps %[scale_2_15], %%xmm1                \n"
+			"cvtps2dq %%xmm0, %%xmm0                    \n"
+			"cvtps2dq %%xmm1, %%xmm1                    \n"
+			"packssdw %%xmm1, %%xmm0                    \n"
+			"movdqu %%xmm0, (%[output])                 \n"
+			"add $16, %[output]                         \n"
+			"sub $1, %[chunk]                           \n"
+			"jnz 1b                                     \n"
+			: /* output */
+			  "=r"(chunk),
+			  "=r"(input1),
+			  "=r"(input2),
+			  "=r"(output)
+			: /* input */
+			  [chunk]"0"(chunk),
+			  [input1]"1"(input1),
+			  [input2]"2"(input2),
+			  [output]"3"(output),
+			  [scale_2_15]"x"(_mm_set1_ps(1.0f*(1<<15)))
+			: /* clobber */
+			  "xmm0", "xmm1", "xmm2", "memory", "cc"
+			);
+	}
+
+	/* The remaining samples */
+	while (frames--) {
+		float f;
+		f = *input1++;
+		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
+		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+		f = *input2++;
+		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
+		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+	}
+}
+
+#endif
+
 void dsp_util_deinterleave(int16_t *input, float *const *output, int channels,
 			   int frames)
 {
@@ -135,6 +250,13 @@ void dsp_util_deinterleave(int16_t *input, float *const *output, int channels,
 #ifdef __ARM_NEON__
 	if (channels == 2) {
 		deinterleave_stereo_neon(input, output[0], output[1], frames);
+		return;
+	}
+#endif
+
+#ifdef __SSE3__
+	if (channels == 2) {
+		deinterleave_stereo_sse3(input, output[0], output[1], frames);
 		return;
 	}
 #endif
@@ -156,6 +278,13 @@ void dsp_util_interleave(float *const *input, int16_t *output, int channels,
 #ifdef __ARM_NEON__
 	if (channels == 2) {
 		interleave_stereo_neon(input[0], input[1], output, frames);
+		return;
+	}
+#endif
+
+#ifdef __SSE3__
+	if (channels == 2) {
+		interleave_stereo_sse3(input[0], input[1], output, frames);
 		return;
 	}
 #endif
