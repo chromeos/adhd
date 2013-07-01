@@ -21,6 +21,19 @@ struct hfp_info *hfp_info_create();
 /* Destroys given hfp_info instance. */
 void hfp_info_destroy(struct hfp_info *info);
 
+/* Checks if given hfp_info is running. */
+int hfp_info_running(struct hfp_info *info);
+
+/* Starts the hfp_info to transmit and reveice samples to and from the file
+ * descriptor of a SCO socket.
+ */
+int hfp_info_start(int fd, struct hfp_info *info);
+
+/* Stops given hfp_info. This implies sample transmission will
+ * stop and socket be closed.
+ */
+int hfp_info_stop(struct hfp_info *info);
+
 /* Queries how many frames of data are queued.
  * Args:
  *    info - The hfp_info holding the buffer to query.

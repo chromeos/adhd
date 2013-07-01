@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
+#include "audio_thread.h"
 #include "cras_hfp_info.h"
 
 /* Make buffer size of multiple MTUs (= 48 bytes * 21) */
@@ -112,6 +113,7 @@ static void put_write_buf_bytes(struct pcm_buf *pb, unsigned nwrite)
  */
 struct hfp_info {
 	int fd;
+	int started;
 
 	struct pcm_buf *capture_buf;
 	struct pcm_buf *playback_buf;
@@ -267,6 +269,12 @@ recv_sample:
 	return err;
 }
 
+static int hfp_info_callback(void *arg, struct timespec *ts, int polled)
+{
+	// TODO
+	return 0;
+}
+
 struct hfp_info *hfp_info_create()
 {
 	struct hfp_info *info;
@@ -296,6 +304,35 @@ error:
 		free(info);
 	}
 	return NULL;
+}
+
+int hfp_info_running(struct hfp_info *info)
+{
+	return info->started;
+}
+
+int hfp_info_start(int fd, struct hfp_info *info)
+{
+	info->fd = fd;
+	init_buf(info->playback_buf);
+	init_buf(info->capture_buf);
+
+	audio_thread_add_callback(info->fd, hfp_info_callback, info);
+
+	info->started = 1;
+
+	return 0;
+}
+
+int hfp_info_stop(struct hfp_info *info)
+{
+	audio_thread_rm_callback(info->fd);
+
+	close(info->fd);
+	info->fd = 0;
+	info->started = 0;
+
+	return 0;
 }
 
 void hfp_info_destroy(struct hfp_info *info)

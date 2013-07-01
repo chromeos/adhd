@@ -22,6 +22,9 @@ void ResetStubData() {
   dev.format = &format;
 }
 
+static thread_callback thread_cb;
+static void *cb_data;
+
 namespace {
 
 TEST(HfpInfo, AddRmDev) {
@@ -144,7 +147,7 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   hfp_info_destroy(info);
 }
 
-TEST(HfpIoThread, HfpReadWriteFD) {
+TEST(HfpInfo, HfpReadWriteFD) {
   int rc;
   int sock[2];
   uint8_t sample[480];
@@ -198,7 +201,44 @@ TEST(HfpIoThread, HfpReadWriteFD) {
   hfp_info_destroy(info);
 }
 
+TEST(HfpInfo, StartHfpInfo) {
+  int sock[2];
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  info = hfp_info_create();
+  ASSERT_NE(info, (void *)NULL);
+
+  hfp_info_start(sock[0], info);
+  ASSERT_EQ(1, hfp_info_running(info));
+  ASSERT_EQ(cb_data, (void *)info);
+
+  hfp_info_stop(info);
+  ASSERT_EQ(0, hfp_info_running(info));
+  ASSERT_EQ(NULL, cb_data);
+
+  hfp_info_destroy(info);
+}
+
 } // namespace
+
+extern "C" {
+
+void audio_thread_add_callback(int fd, thread_callback cb,
+                               void *data)
+{
+  thread_cb = cb;
+  cb_data = data;
+  return;
+}
+
+void audio_thread_rm_callback(int fd)
+{
+  thread_cb = NULL;
+  cb_data = NULL;
+  return;
+}
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
