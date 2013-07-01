@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <syslog.h>
 
 #include "cras_hfp_info.h"
 
@@ -109,6 +111,8 @@ static void put_write_buf_bytes(struct pcm_buf *pb, unsigned nwrite)
  * represent two directions of the same HFP headset
  */
 struct hfp_info {
+	int fd;
+
 	struct pcm_buf *capture_buf;
 	struct pcm_buf *playback_buf;
 
@@ -195,6 +199,72 @@ int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
 		return queued_bytes(info->playback_buf) / format_bytes;
 	else
 		return queued_bytes(info->capture_buf) / format_bytes;
+}
+
+int hfp_write(struct hfp_info *info)
+{
+	int err = 0;
+	unsigned to_send;
+	uint8_t *samples;
+
+	/* Write something */
+	to_send = HFP_MTU_BYTES;
+	get_read_buf_bytes(info->playback_buf, &samples, &to_send);
+	if (to_send != HFP_MTU_BYTES) {
+		syslog(LOG_ERR, "Buffer not enough for write.");
+		return 0;
+	}
+
+send_sample:
+	err = send(info->fd, samples, to_send, 0);
+	if (err < 0) {
+		if (errno == EINTR)
+			goto send_sample;
+
+		return err;
+	}
+
+	if (err != HFP_MTU_BYTES) {
+		syslog(LOG_ERR, "Partially write %d bytes", err);
+		return -1;
+	}
+
+	put_read_buf_bytes(info->playback_buf, to_send);
+
+	return err;
+}
+
+int hfp_read(struct hfp_info *info)
+{
+	int err = 0;
+	unsigned to_read;
+	uint8_t *capture_buf;
+
+	to_read = HFP_MTU_BYTES;
+	get_write_buf_bytes(info->capture_buf, &capture_buf, &to_read);
+	if (to_read != HFP_MTU_BYTES) {
+		syslog(LOG_ERR, "Buffer not enough for read.");
+		return 0;
+	}
+
+recv_sample:
+	err = recv(info->fd, capture_buf, to_read, 0);
+	if (err < 0) {
+		syslog(LOG_ERR, "Read error %s", strerror(errno));
+		if (errno == EINTR)
+			goto recv_sample;
+
+		return err;
+	}
+
+	if (err != HFP_MTU_BYTES) {
+		syslog(LOG_ERR, "Partially read %d bytes", err);
+		return -1;
+	}
+
+	put_write_buf_bytes(info->capture_buf, err);
+
+	return err;
 }
 
 struct hfp_info *hfp_info_create()

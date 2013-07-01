@@ -144,6 +144,60 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   hfp_info_destroy(info);
 }
 
+TEST(HfpIoThread, HfpReadWriteFD) {
+  int rc;
+  int sock[2];
+  uint8_t sample[480];
+  uint8_t *buf;
+  unsigned buffer_count;
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  info = hfp_info_create();
+  ASSERT_NE(info, (void *)NULL);
+
+  dev.direction = CRAS_STREAM_INPUT;
+  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+
+  /* Mock the sco fd and send some fake data */
+  info->fd = sock[1];
+  send(sock[0], sample, 48, 0);
+
+  rc = hfp_read(info);
+  ASSERT_EQ(48, rc);
+
+  rc = hfp_buf_queued(info, &dev);
+  ASSERT_EQ(48 / 2, rc);
+
+  /* Fill the write buffer*/
+  buffer_count = 1024;
+  get_write_buf_bytes(info->capture_buf, &buf, &buffer_count);
+  put_write_buf_bytes(info->capture_buf, buffer_count);
+
+  rc = hfp_read(info);
+  ASSERT_EQ(0, rc);
+
+  ASSERT_EQ(0, hfp_info_rm_iodev(info, &dev));
+  dev.direction = CRAS_STREAM_OUTPUT;
+  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+
+  /* Initial buffer is empty */
+  rc = hfp_write(info);
+  ASSERT_EQ(0, rc);
+
+  buffer_count = 1024;
+  get_write_buf_bytes(info->playback_buf, &buf, &buffer_count);
+  put_write_buf_bytes(info->playback_buf, buffer_count);
+
+  rc = hfp_write(info);
+  ASSERT_EQ(48, rc);
+
+  rc = recv(sock[0], sample, 48, 0);
+  ASSERT_EQ(48, rc);
+
+  hfp_info_destroy(info);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
