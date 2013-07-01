@@ -34,7 +34,7 @@ class LoopBackTestSuite : public testing::Test{
       cras_shm_set_used_size(shm_, kBufferSize);
       cras_shm_set_volume_scaler(shm_, 1.0);
 
-      rstream_.direction = CRAS_STREAM_POST_MIX_PRE_DSP;
+      rstream_.direction = (CRAS_STREAM_DIRECTION)CRAS_STREAM_POST_MIX_PRE_DSP;
       rstream_.cb_threshold = 200;
 
       cras_rstream_audio_ready_called = 0;
