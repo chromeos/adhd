@@ -79,7 +79,16 @@ static void dbus_watch_toggled(DBusWatch *watch, void *data)
 
 static void dbus_timeout_callback(struct cras_timer *t, void *data)
 {
+	struct cras_tm *tm = cras_system_state_get_tm();
 	struct DBusTimeout *timeout = data;
+
+
+	/* Timer is automatically removed after it fires.  Add a new one so this
+	 * fires until it is removed by dbus. */
+	t = cras_tm_create_timer(tm,
+				 dbus_timeout_get_interval(timeout),
+				 dbus_timeout_callback, timeout);
+	dbus_timeout_set_data(timeout, t, NULL);
 
 	if (!dbus_timeout_handle(timeout))
 		syslog(LOG_WARNING, "Failed to handle D-Bus timeout.");
@@ -88,16 +97,21 @@ static void dbus_timeout_callback(struct cras_timer *t, void *data)
 static dbus_bool_t dbus_timeout_add(DBusTimeout *timeout, void *arg)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
-	struct cras_timer *t;
+	struct cras_timer *t = dbus_timeout_get_data(timeout);
+
+	if (t) {
+		dbus_timeout_set_data(timeout, NULL, NULL);
+		cras_tm_cancel_timer(tm, t);
+	}
 
 	if (dbus_timeout_get_enabled(timeout)) {
 		t = cras_tm_create_timer(tm,
 					 dbus_timeout_get_interval(timeout),
 					 dbus_timeout_callback, timeout);
+		dbus_timeout_set_data(timeout, t, NULL);
 		if (t == NULL)
 			return FALSE;
 
-		dbus_timeout_set_data(timeout, t, NULL);
 	}
 
 	return TRUE;
@@ -108,13 +122,18 @@ static void dbus_timeout_remove(DBusTimeout *timeout, void *arg)
 	struct cras_tm *tm = cras_system_state_get_tm();
 	struct cras_timer *t = dbus_timeout_get_data(timeout);
 
-	cras_tm_cancel_timer(tm, t);
+	if (t) {
+		dbus_timeout_set_data(timeout, NULL, NULL);
+		cras_tm_cancel_timer(tm, t);
+	}
 }
 
 static void dbus_timeout_toggled(DBusTimeout *timeout, void *arg)
 {
-	dbus_timeout_remove(timeout, NULL);
-	dbus_timeout_add(timeout, NULL);
+	if (dbus_timeout_get_enabled(timeout))
+		dbus_timeout_add(timeout, NULL);
+	else
+		dbus_timeout_remove(timeout, NULL);
 }
 
 DBusConnection *cras_dbus_connect_system_bus()
