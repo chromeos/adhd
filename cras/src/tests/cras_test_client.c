@@ -5,6 +5,7 @@
 
 #include <alsa/asoundlib.h>
 #include <getopt.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -30,6 +31,12 @@ static size_t file_buf_size;
 static size_t file_buf_read_offset;
 static struct timespec last_latency;
 static int show_latency;
+static float last_rms_sqr_sum;
+static int last_rms_size;
+static float total_rms_sqr_sum;
+static int total_rms_size;
+static int show_rms;
+static int show_total_rms;
 static int keep_looping = 1;
 static int exit_after_done_playing = 1;
 static size_t duration_frames;
@@ -52,6 +59,37 @@ static void check_stream_terminate(size_t frames)
 	}
 }
 
+/* Compute square sum of samples (for calculation of RMS value). */
+float compute_sqr_sum_16(const int16_t *samples, int size)
+{
+	unsigned i;
+	float sqr_sum = 0;
+
+	for (i = 0; i < size; i++)
+		sqr_sum += samples[i] * samples[i];
+
+	return sqr_sum;
+}
+
+/* Update the RMS values with the given samples. */
+int update_rms(const uint8_t *samples, int size)
+{
+	switch (aud_format->format) {
+	case SND_PCM_FORMAT_S16_LE: {
+		last_rms_sqr_sum = compute_sqr_sum_16((int16_t *)samples, size / 2);
+		last_rms_size = size / 2;
+		break;
+	}
+	default:
+		return -EINVAL;
+	}
+
+	total_rms_sqr_sum += last_rms_sqr_sum;
+	total_rms_size += last_rms_size;
+
+	return 0;
+}
+
 /* Run from callback thread. */
 static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 		       uint8_t *samples, size_t frames,
@@ -63,12 +101,16 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	int processed_bytes, frame_bytes;
 	size_t encoded;
 
-	check_stream_terminate(frames);
-
 	cras_client_calc_capture_latency(sample_time, &last_latency);
 
 	frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 	write_size = frames * frame_bytes;
+
+	/* Update RMS values with all available frames. */
+	if (keep_looping)
+		update_rms(samples, min(write_size, duration_frames * frame_bytes));
+
+	check_stream_terminate(frames);
 
 	if (capture_codec) {
 		processed_bytes = capture_codec->encode(capture_codec, samples,
@@ -178,6 +220,18 @@ static void print_last_latency()
 		printf("-%lld.%09lld\n", (long long)-last_latency.tv_sec,
 		       (long long)-last_latency.tv_nsec);
 	}
+}
+
+static void print_last_rms()
+{
+	if (last_rms_size != 0)
+		printf("%.9f\n", sqrt(last_rms_sqr_sum / last_rms_size));
+}
+
+static void print_total_rms()
+{
+	if (total_rms_size != 0)
+		printf("%.9f\n", sqrt(total_rms_sqr_sum / total_rms_size));
 }
 
 static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
@@ -368,6 +422,10 @@ static int run_file_io_stream(struct cras_client *client,
 	sleep_ts.tv_sec = 0;
 	sleep_ts.tv_nsec = 250 * 1000000;
 
+	/* Reset the total RMS value. */
+	total_rms_sqr_sum = 0;
+	total_rms_size = 0;
+
 	if (direction == CRAS_STREAM_INPUT ||
 	    direction == CRAS_STREAM_POST_MIX_PRE_DSP)
 		aud_cb = got_samples;
@@ -409,6 +467,9 @@ static int run_file_io_stream(struct cras_client *client,
 
 		if (stream_playing && show_latency)
 			print_last_latency();
+
+		if (stream_playing && show_rms)
+			print_last_rms();
 
 		if (!FD_ISSET(1, &poll_set))
 			continue;
@@ -499,6 +560,10 @@ static int run_file_io_stream(struct cras_client *client,
 			break;
 		}
 	}
+
+	if (show_total_rms)
+		print_total_rms();
+
 	cras_client_stop(client);
 
 	cras_audio_format_destroy(aud_format);
@@ -599,6 +664,8 @@ static void init_sbc_codec()
 
 static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
+	{"show_rms",            no_argument, &show_rms, 1},
+	{"show_total_rms",      no_argument, &show_total_rms, 1},
 	{"write_full_frames",	no_argument, &full_frames, 1},
 	{"sbc",                 no_argument,            0, 'e'},
 	{"rate",		required_argument,	0, 'r'},
@@ -632,6 +699,8 @@ static void show_usage()
 {
 	printf("--sbc - Use sbc codec for playback/capture.\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
+	printf("--show_rms - Display RMS value of loopback stream.\n");
+	printf("--show_total_rms - Display total RMS value of loopback stream at the end.\n");
 	printf("--write_full_frames - Write data in blocks of min_cb_level.\n");
 	printf("--rate <N> - Specifies the sample rate in Hz.\n");
 	printf("--num_channels <N> - Two for stereo.\n");
