@@ -15,15 +15,16 @@ static struct hfp_info *info;
 static struct cras_iodev dev;
 static cras_audio_format format;
 
+static thread_callback thread_cb;
+static void *cb_data;
+static timespec ts;
+
 void ResetStubData() {
   format.format = SND_PCM_FORMAT_S16_LE;
   format.num_channels = 1;
   format.frame_rate = 8000;
   dev.format = &format;
 }
-
-static thread_callback thread_cb;
-static void *cb_data;
 
 namespace {
 
@@ -238,7 +239,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   send(sock[0], sample ,48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info *)cb_data, NULL, 1);
+  thread_cb((struct hfp_info *)cb_data, &ts, 1);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
@@ -248,10 +249,54 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   ASSERT_EQ(0, rc);
 
   /* Trigger thread callback after idev added. */
-  thread_cb((struct hfp_info *)cb_data, NULL, 1);
+  ts.tv_sec = 0;
+  ts.tv_nsec = 5000000;
+  thread_cb((struct hfp_info *)cb_data, &ts, 1);
 
   rc = hfp_buf_queued(info, &dev);
   ASSERT_EQ(48 / 2, rc);
+
+  /* Assert wait time is unchanged. */
+  ASSERT_EQ(0, ts.tv_sec);
+  ASSERT_EQ(5000000, ts.tv_nsec);
+
+  hfp_info_stop(info);
+  ASSERT_EQ(0, hfp_info_running(info));
+
+  hfp_info_destroy(info);
+}
+
+TEST(HfpInfo, StartHfpInfoAndWrite) {
+  int rc;
+  int sock[2];
+  uint8_t sample[480];
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  info = hfp_info_create();
+  ASSERT_NE(info, (void *)NULL);
+
+  hfp_info_start(sock[1], info);
+  send(sock[0], sample ,48, 0);
+  send(sock[0], sample ,48, 0);
+
+  /* Trigger thread callback */
+  thread_cb((struct hfp_info *)cb_data, &ts, 1);
+
+  dev.direction = CRAS_STREAM_OUTPUT;
+  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+
+  /* Assert queued samples unchanged before output device added */
+  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+
+  /* Put some fake data and trigger thread callback again */
+  put_write_buf_bytes(info->playback_buf, 1008);
+  thread_cb((struct hfp_info *)cb_data, &ts, 1);
+
+  /* Assert some samples written */
+  rc = recv(sock[0], sample ,48, 0);
+  ASSERT_EQ(48, rc);
+  ASSERT_EQ(480, hfp_buf_queued(info, &dev));
 
   hfp_info_stop(info);
   hfp_info_destroy(info);

@@ -269,10 +269,22 @@ recv_sample:
 	return err;
 }
 
+/* Callback function to handle sample read and write.
+ * Note that we poll the SCO socket for read sample, since it reflects
+ * there is actual some sample to read while the socket always reports
+ * writable even when device buffer is full.
+ * The strategy is to synchronize read & write operations:
+ * 1. Read one chunk of MTU bytes of data.
+ * 2. When input device not attached, ignore the data just read.
+ * 3. When output device attached, write one chunk of MTU bytes of data.
+ */
 static int hfp_info_callback(void *arg, struct timespec *ts, int polled)
 {
 	struct hfp_info *info = (struct hfp_info *)arg;
 	int err;
+
+	if (!polled)
+		return 0;
 
 	err = hfp_read(info);
 	if (err < 0) {
@@ -284,7 +296,14 @@ static int hfp_info_callback(void *arg, struct timespec *ts, int polled)
 	if (!info->idev)
 		put_read_buf_bytes(info->capture_buf, HFP_MTU_BYTES);
 
-	// TODO: Add HFP write
+	if (info->odev) {
+		err = hfp_write(info);
+		if (err < 0) {
+			syslog(LOG_ERR, "Write error");
+			goto read_write_error;
+		}
+	}
+
 	return 0;
 
 read_write_error:
