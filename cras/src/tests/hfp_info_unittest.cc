@@ -220,6 +220,43 @@ TEST(HfpInfo, StartHfpInfo) {
   hfp_info_destroy(info);
 }
 
+TEST(HfpInfo, StartHfpInfoAndRead) {
+  int rc;
+  int sock[2];
+  uint8_t sample[480];
+
+  ResetStubData();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  info = hfp_info_create();
+  ASSERT_NE(info, (void *)NULL);
+
+  /* Start and send two chunk of fake data */
+  hfp_info_start(sock[1], info);
+  send(sock[0], sample ,48, 0);
+  send(sock[0], sample ,48, 0);
+
+  /* Trigger thread callback */
+  thread_cb((struct hfp_info *)cb_data, NULL, 1);
+
+  dev.direction = CRAS_STREAM_INPUT;
+  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+
+  /* Expect no data read, since no idev present at previous thread callback */
+  rc = hfp_buf_queued(info, &dev);
+  ASSERT_EQ(0, rc);
+
+  /* Trigger thread callback after idev added. */
+  thread_cb((struct hfp_info *)cb_data, NULL, 1);
+
+  rc = hfp_buf_queued(info, &dev);
+  ASSERT_EQ(48 / 2, rc);
+
+  hfp_info_stop(info);
+  hfp_info_destroy(info);
+}
+
 } // namespace
 
 extern "C" {

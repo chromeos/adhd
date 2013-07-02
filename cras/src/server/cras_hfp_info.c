@@ -271,7 +271,25 @@ recv_sample:
 
 static int hfp_info_callback(void *arg, struct timespec *ts, int polled)
 {
-	// TODO
+	struct hfp_info *info = (struct hfp_info *)arg;
+	int err;
+
+	err = hfp_read(info);
+	if (err < 0) {
+		syslog(LOG_ERR, "Read error");
+		goto read_write_error;
+	}
+
+	/* Ignore the MTU bytes just read if input dev not in present */
+	if (!info->idev)
+		put_read_buf_bytes(info->capture_buf, HFP_MTU_BYTES);
+
+	// TODO: Add HFP write
+	return 0;
+
+read_write_error:
+	hfp_info_stop(info);
+
 	return 0;
 }
 
