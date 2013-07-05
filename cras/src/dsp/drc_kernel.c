@@ -315,7 +315,7 @@ void dk_set_enabled(struct drc_kernel *dk, int enabled)
 }
 
 /* Updates the envelope_rate used for the next division */
-static void dk_process_update_envelope(struct drc_kernel *dk)
+static void dk_update_envelope(struct drc_kernel *dk)
 {
 	const float kA = dk->kA;
 	const float kB = dk->kB;
@@ -400,25 +400,21 @@ static void dk_process_update_envelope(struct drc_kernel *dk)
 	dk->scaled_desired_gain = scaled_desired_gain;
 }
 
-/* The actual compression happens here. */
-static void dk_process_division(struct drc_kernel *dk,
-				float *data_channels[],
-				unsigned frame_index,
-				int frames_to_process)
+/* Update detector_average from the last input division. */
+static void dk_update_detector_average(struct drc_kernel *dk)
 {
 	const float sat_release_frames_inv_neg = dk->sat_release_frames_inv_neg;
-	const float master_linear_gain = dk->master_linear_gain;
-	const float envelope_rate = dk->envelope_rate;
-	const float scaled_desired_gain = dk->scaled_desired_gain;
-
-	/* Inner loop - calculate shaped power average - apply compression. */
-
-	int pre_delay_read_index = dk->pre_delay_read_index;
-	int pre_delay_write_index = dk->pre_delay_write_index;
 	float detector_average = dk->detector_average;
-	float compressor_gain = dk->compressor_gain;
+	int div_start, i;
 
-	while (frames_to_process--) {
+	/* Calculate the start index of the last input division */
+	if (dk->pre_delay_write_index == 0) {
+		div_start = MAX_PRE_DELAY_FRAMES - DIVISION_FRAMES;
+	} else {
+		div_start = dk->pre_delay_write_index - DIVISION_FRAMES;
+	}
+
+	for (i = 0; i < DIVISION_FRAMES; i++) {
 		/* the max abs value across all channels for this frame */
 		float abs_input = 0;
 		int j;
@@ -426,10 +422,8 @@ static void dk_process_division(struct drc_kernel *dk,
 		 * version.
 		 */
 		for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
-			float undelayed_source = data_channels[j][frame_index];
-			dk->pre_delay_buffers[j][pre_delay_write_index] =
-				undelayed_source;
-
+			float undelayed_source =
+				dk->pre_delay_buffers[j][div_start + i];
 			float abs_undelayed_source = fabsf(undelayed_source);
 			if (abs_input < abs_undelayed_source)
 				abs_input = abs_undelayed_source;
@@ -455,6 +449,28 @@ static void dk_process_division(struct drc_kernel *dk,
 			detector_average = gain;
 		}
 
+		/* Fix gremlins. */
+		if (isbadf(detector_average))
+			detector_average = 1.0f;
+		else
+			detector_average = min(detector_average, 1.0f);
+	}
+
+	dk->detector_average = detector_average;
+}
+
+/* Calculate compress_gain from the envelope and apply total_gain to compress
+ * the next output division. */
+static void dk_compress_output(struct drc_kernel *dk)
+{
+	const float master_linear_gain = dk->master_linear_gain;
+	const float envelope_rate = dk->envelope_rate;
+	const float scaled_desired_gain = dk->scaled_desired_gain;
+	float compressor_gain = dk->compressor_gain;
+	int div_start = dk->pre_delay_read_index;
+	int i, j;
+
+	for (i = 0; i < DIVISION_FRAMES; i++) {
 		/* Exponential approach to desired gain. */
 		if (envelope_rate < 1) {
 			/* Attack - reduce gain to desired. */
@@ -466,12 +482,6 @@ static void dk_process_division(struct drc_kernel *dk,
 			compressor_gain = min(1.0f, compressor_gain);
 		}
 
-		/* Fix gremlins. */
-		if (isbadf(detector_average))
-			detector_average = 1.0f;
-		else
-			detector_average = min(detector_average, 1.0f);
-
 		/* Warp pre-compression gain to smooth out sharp exponential
 		 * transition points.
 		 */
@@ -482,24 +492,48 @@ static void dk_process_division(struct drc_kernel *dk,
 			post_warp_compressor_gain;
 
 		/* Apply final gain. */
-		for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
-			float *delay_buffer = dk->pre_delay_buffers[j];
-			data_channels[j][frame_index] =
-				delay_buffer[pre_delay_read_index] * total_gain;
-		}
-
-		frame_index++;
-		pre_delay_read_index  = (pre_delay_read_index + 1) &
-			MAX_PRE_DELAY_FRAMES_MASK;
-		pre_delay_write_index = (pre_delay_write_index + 1) &
-			MAX_PRE_DELAY_FRAMES_MASK;
+		for (j = 0; j < DRC_NUM_CHANNELS; ++j)
+			dk->pre_delay_buffers[j][div_start + i] *= total_gain;
 	}
 
-	/* Locals back to member variables. */
-	dk->pre_delay_read_index = pre_delay_read_index;
-	dk->pre_delay_write_index = pre_delay_write_index;
-	dk->detector_average = detector_average;
 	dk->compressor_gain = compressor_gain;
+}
+
+/* After one complete divison of samples have been received (and one divison of
+ * samples have been output), we calculate shaped power average
+ * (detector_average) from the input division, update envelope parameters from
+ * detector_average, then prepare the next output division by applying the
+ * envelope to compress the samples.
+ */
+static void dk_process_one_division(struct drc_kernel *dk)
+{
+	dk_update_detector_average(dk);
+	dk_update_envelope(dk);
+	dk_compress_output(dk);
+}
+
+/* Copy the input data to the pre-delay buffer, and copy the output data back to
+ * the input buffer */
+static void dk_copy_fragment(struct drc_kernel *dk, float *data_channels[],
+			     unsigned frame_index, int frames_to_process)
+{
+	int write_index = dk->pre_delay_write_index;
+	int read_index = dk->pre_delay_read_index;
+	int j;
+
+	for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
+		memcpy(&dk->pre_delay_buffers[j][write_index],
+		       &data_channels[j][frame_index],
+		       frames_to_process * sizeof(float));
+		memcpy(&data_channels[j][frame_index],
+		       &dk->pre_delay_buffers[j][read_index],
+		       frames_to_process * sizeof(float));
+	}
+
+	dk->pre_delay_write_index = (write_index + frames_to_process) &
+		MAX_PRE_DELAY_FRAMES_MASK;
+	dk->pre_delay_read_index = (read_index + frames_to_process) &
+		MAX_PRE_DELAY_FRAMES_MASK;
 }
 
 /* Delay the input sample only and don't do other processing. This is used when
@@ -530,7 +564,6 @@ static void dk_process_delay_only(struct drc_kernel *dk, float *data_channels[],
 void dk_process(struct drc_kernel *dk, float *data_channels[], unsigned count)
 {
 	int i = 0;
-	int processed;
 	int fragment;
 
 	if (!dk->enabled) {
@@ -538,18 +571,21 @@ void dk_process(struct drc_kernel *dk, float *data_channels[], unsigned count)
 		return;
 	}
 
-	processed = dk->processed;
-
-	while (i < count) {
-		/* Update envelope once per division (32 frames) */
-		int offset = processed & DIVISION_FRAMES_MASK;
-		if (offset == 0)
-			dk_process_update_envelope(dk);
-		fragment = min(DIVISION_FRAMES - offset, count - i);
-		dk_process_division(dk, data_channels, i, fragment);
-		i += fragment;
-		processed += fragment;
+	if (!dk->processed) {
+		dk_update_envelope(dk);
+		dk_compress_output(dk);
+		dk->processed = 1;
 	}
 
-	dk->processed = processed;
+	int offset = dk->pre_delay_write_index & DIVISION_FRAMES_MASK;
+	while (i < count) {
+		fragment = min(DIVISION_FRAMES - offset, count - i);
+		dk_copy_fragment(dk, data_channels, i, fragment);
+		i += fragment;
+		offset = (offset + fragment) & DIVISION_FRAMES_MASK;
+
+		/* Process the input division (32 frames). */
+		if (offset == 0)
+			dk_process_one_division(dk);
+	}
 }
