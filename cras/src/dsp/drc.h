@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-#include "crossover.h"
+#include "crossover2.h"
 #include "drc_kernel.h"
 #include "eq2.h"
 
@@ -118,7 +118,7 @@ struct drc {
 	struct eq2 *deemphasis_eq;
 
 	/* The crossover filter */
-	struct crossover xo[DRC_NUM_CHANNELS];
+	struct crossover2 xo2;
 
 	/* The compressor kernels */
 	struct drc_kernel kernel[DRC_NUM_KERNELS];

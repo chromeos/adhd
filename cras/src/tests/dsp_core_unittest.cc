@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include "crossover.h"
+#include "crossover2.h"
 #include "drc.h"
 #include "dsp_util.h"
 #include "eq.h"
@@ -239,6 +240,75 @@ TEST(CrossoverTest, All) {
   free(data);
   free(data1);
   free(data2);
+}
+
+TEST(Crossover2Test, All) {
+  struct crossover2 xo2;
+  size_t len = 44100;
+  float NQ = len / 2;
+  float f0 = 62.5 / NQ;
+  float f1 = 250 / NQ;
+  float f2 = 1000 / NQ;
+  float f3 = 4000 / NQ;
+  float f4 = 16000 / NQ;
+  float *data0L = (float *)malloc(sizeof(float) * len);
+  float *data1L = (float *)malloc(sizeof(float) * len);
+  float *data2L = (float *)malloc(sizeof(float) * len);
+  float *data0R = (float *)malloc(sizeof(float) * len);
+  float *data1R = (float *)malloc(sizeof(float) * len);
+  float *data2R = (float *)malloc(sizeof(float) * len);
+
+  dsp_enable_flush_denormal_to_zero();
+  crossover2_init(&xo2, f1, f3);
+  memset(data0L, 0, sizeof(float) * len);
+  memset(data0R, 0, sizeof(float) * len);
+
+  add_sine(data0L, len, f0, 0, 1);
+  add_sine(data0L, len, f2, 0, 1);
+  add_sine(data0L, len, f4, 0, 1);
+
+  add_sine(data0R, len, f0, 0, 0.5);
+  add_sine(data0R, len, f2, 0, 0.5);
+  add_sine(data0R, len, f4, 0, 0.5);
+
+  crossover2_process(&xo2, len, data0L, data0R, data1L, data1R, data2L, data2R);
+
+  // left low band
+  EXPECT_NEAR(1, magnitude_at(data0L, len, f0), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data0L, len, f2), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data0L, len, f4), 0.01);
+
+  // left mid band
+  EXPECT_NEAR(0, magnitude_at(data1L, len, f0), 0.01);
+  EXPECT_NEAR(1, magnitude_at(data1L, len, f2), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data1L, len, f4), 0.01);
+
+  // left high band
+  EXPECT_NEAR(0, magnitude_at(data2L, len, f0), 0.01);
+  EXPECT_NEAR(0, magnitude_at(data2L, len, f2), 0.01);
+  EXPECT_NEAR(1, magnitude_at(data2L, len, f4), 0.01);
+
+  // right low band
+  EXPECT_NEAR(0.5, magnitude_at(data0R, len, f0), 0.005);
+  EXPECT_NEAR(0, magnitude_at(data0R, len, f2), 0.005);
+  EXPECT_NEAR(0, magnitude_at(data0R, len, f4), 0.005);
+
+  // right mid band
+  EXPECT_NEAR(0, magnitude_at(data1R, len, f0), 0.005);
+  EXPECT_NEAR(0.5, magnitude_at(data1R, len, f2), 0.005);
+  EXPECT_NEAR(0, magnitude_at(data1R, len, f4), 0.005);
+
+  // right high band
+  EXPECT_NEAR(0, magnitude_at(data2R, len, f0), 0.005);
+  EXPECT_NEAR(0, magnitude_at(data2R, len, f2), 0.005);
+  EXPECT_NEAR(0.5, magnitude_at(data2R, len, f4), 0.005);
+
+  free(data0L);
+  free(data1L);
+  free(data2L);
+  free(data0R);
+  free(data1R);
+  free(data2R);
 }
 
 TEST(DrcTest, All) {

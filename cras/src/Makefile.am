@@ -18,6 +18,7 @@ cras_SOURCES = \
 	common/edid_utils.c \
 	dsp/biquad.c \
 	dsp/crossover.c \
+	dsp/crossover2.c \
 	dsp/drc.c \
 	dsp/drc_kernel.c \
 	dsp/drc_math.c \
@@ -178,6 +179,7 @@ cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 # dsp test programs (not run automatically)
 check_PROGRAMS += \
 	crossover_test \
+	crossover2_test \
 	drc_test \
 	eq_test \
 	eq2_test \
@@ -188,8 +190,13 @@ crossover_test_SOURCES = dsp/crossover.c dsp/biquad.c dsp/dsp_util.c \
 crossover_test_LDADD = -lrt -lm
 crossover_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 
+crossover2_test_SOURCES = dsp/crossover2.c dsp/biquad.c dsp/dsp_util.c \
+	dsp/tests/crossover2_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
+crossover2_test_LDADD = -lrt -lm
+crossover2_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+
 drc_test_SOURCES = dsp/drc.c dsp/drc_kernel.c dsp/drc_math.c \
-	dsp/crossover.c dsp/eq2.c dsp/biquad.c dsp/dsp_util.c \
+	dsp/crossover2.c dsp/eq2.c dsp/biquad.c dsp/dsp_util.c \
 	dsp/tests/drc_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 drc_test_LDADD = -lrt -lm
 drc_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
@@ -303,8 +310,8 @@ device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
-	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/drc.c dsp/drc_kernel.c \
-	dsp/drc_math.c
+	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/crossover2.c dsp/drc.c \
+	dsp/drc_kernel.c dsp/drc_math.c
 dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 dsp_core_unittest_LDADD = -lgtest -lpthread
 

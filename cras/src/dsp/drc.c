@@ -205,10 +205,8 @@ static void init_crossover(struct drc *drc)
 {
 	float freq1 = drc->parameters[1][PARAM_CROSSOVER_LOWER_FREQ];
 	float freq2 = drc->parameters[2][PARAM_CROSSOVER_LOWER_FREQ];
-	int i;
 
-	for (i = 0; i < DRC_NUM_CHANNELS; i++)
-		crossover_init(&drc->xo[i], freq1, freq2);
+	crossover2_init(&drc->xo2, freq1, freq2);
 }
 
 /* Initializes the compressor kernels */
@@ -268,9 +266,8 @@ void drc_process(struct drc *drc, float **data, int frames)
 	eq2_process(drc->emphasis_eq, data[0], data[1], frames);
 
 	/* Crossover */
-	for (i = 0; i < DRC_NUM_CHANNELS; i++)
-		crossover_process(&drc->xo[i], frames, data[i], data1[i],
-				  data2[i]);
+	crossover2_process(&drc->xo2, frames, data[0], data[1],
+			   data1[0], data1[1], data2[0], data2[1]);
 
 	/* Apply compression to each band of the signal. The processing is
 	 * performed in place.
