@@ -122,6 +122,17 @@ libasound_module_pcm_cras_la_LIBADD = -lasound libcras.la
 libasound_module_ctl_cras_la_SOURCES = alsa_plugin/ctl_cras.c
 libasound_module_ctl_cras_la_LIBADD = -lasound libcras.la
 
+# Inject a dependency between the installation rules of libcras and its modules.
+# This avoids a race when the modules are relinked before libcras is actually
+# installed.
+#
+# Automake will refuse to generate a rule that collides with a user-specified
+# one. The hide_install variable prevents automake from noticing these rules,
+# so everything else will behave as usual.
+hide_install=install
+$(hide_install)-asound_module_pcm_crasLTLIBRARIES: install-libLTLIBRARIES
+$(hide_install)-asound_module_ctl_crasLTLIBRARIES: install-libLTLIBRARIES
+
 TESTS = \
 	a2dp_info_unittest \
 	a2dp_iodev_unittest \
