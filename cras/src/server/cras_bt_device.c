@@ -220,7 +220,7 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 		dbus_message_iter_recurse(&properties_dict_iter, &variant_iter);
 		type = dbus_message_iter_get_arg_type(&variant_iter);
 
-		if (type == DBUS_TYPE_STRING) {
+		if (type == DBUS_TYPE_STRING || type == DBUS_TYPE_OBJECT_PATH) {
 			const char *value;
 
 			dbus_message_iter_get_basic(&variant_iter, &value);
