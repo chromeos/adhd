@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_IODEV_H_
-#define CRAS_BT_IODEV_H_
+#ifndef CRAS_A2DP_IODEV_H_
+#define CRAS_A2DP_IODEV_H_
 
 #include "cras_bt_transport.h"
 
@@ -19,4 +19,4 @@ struct cras_iodev *a2dp_iodev_create(
  */
 void a2dp_iodev_destroy(struct cras_iodev *iodev);
 
-#endif /* CRS_BT_IODEV_H_ */
+#endif /* CRS_A2DP_IODEV_H_ */
