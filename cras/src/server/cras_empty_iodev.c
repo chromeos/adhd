@@ -49,11 +49,7 @@ static int dev_running(const struct cras_iodev *iodev)
 
 static int frames_queued(const struct cras_iodev *iodev)
 {
-	if (iodev->direction == CRAS_STREAM_INPUT)
-		return (int)iodev->cb_threshold;
-
-	/* For output, return number of frames that are used. */
-	return iodev->buffer_size - iodev->cb_threshold;
+	return (int)iodev->cb_threshold;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
