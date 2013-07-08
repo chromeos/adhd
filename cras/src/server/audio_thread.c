@@ -1365,7 +1365,11 @@ void audio_thread_destroy(struct audio_thread *thread)
 void audio_thread_add_loopback_device(struct audio_thread *thread,
 				      struct cras_iodev *loop_dev)
 {
-	if (loop_dev->direction == CRAS_STREAM_POST_MIX_PRE_DSP) {
+	switch (loop_dev->direction) {
+	case CRAS_STREAM_POST_MIX_PRE_DSP:
 		thread->post_mix_loopback_dev = loop_dev;
+		break;
+	default:
+		return;
 	}
 }

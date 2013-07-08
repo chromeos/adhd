@@ -326,12 +326,10 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 		*idev = active_input;
 		*odev = active_output;
 		break;
-#if 0
 	case CRAS_STREAM_POST_MIX_PRE_DSP:
 		*idev = (struct cras_iodev *)loopback_dev;
 		*odev = NULL;
 		break;
-#endif
 	default:
 		return -EINVAL;
 	}
