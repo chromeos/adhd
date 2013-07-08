@@ -670,7 +670,7 @@ int main(int argc, char **argv)
 	uint32_t iodev_index = 0;
 	int set_iodev = 0;
 	size_t num_channels = 2;
-	size_t duration_seconds = 0;
+	float duration_seconds = 0;
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
 	const char *loopback_file = NULL;
@@ -729,7 +729,7 @@ int main(int argc, char **argv)
 			iodev_index = atoi(optarg);
 			break;
 		case 'd':
-			duration_seconds = atoi(optarg);
+			duration_seconds = atof(optarg);
 			break;
 		case 'u': {
 			int mute = atoi(optarg);
