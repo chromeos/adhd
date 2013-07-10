@@ -54,6 +54,16 @@ extern float exp_to_linear[101]; /* from exp(-100) to exp(0) */
 
 void drc_math_init();
 
+/* Rounds the input number to the nearest integer */
+#ifdef __arm__
+static inline float round_int(float x)
+{
+	return x < 0 ? (int)(x - 0.5f) : (int)(x + 0.5f);
+}
+#else
+#define round_int rintf /* glibc will use roundss if SSE4.1 is available */
+#endif
+
 static inline float decibels_to_linear(float decibels)
 {
 #ifdef SLOW_DB_TO_LINEAR
@@ -64,7 +74,7 @@ static inline float decibels_to_linear(float decibels)
 	float fi;
 	int i;
 
-	fi = rintf(decibels);
+	fi = round_int(decibels);
 	x = decibels - fi;
 	i = (int)fi;
 	i = max(min(i, 100), -100);
@@ -171,7 +181,7 @@ static inline float knee_expf(float input)
 	float fi;
 	int i;
 
-	fi = rintf(input);
+	fi = round_int(input);
 	x = input - fi;
 	i = (int)fi;
 	i = max(min(i, 0), -100);
