@@ -3,19 +3,41 @@
  * found in the LICENSE file.
  */
 
+#include <stdint.h>
+#include <syslog.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
+#include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_profile.h"
 #include "cras_hfp_ag_profile.h"
+#include "cras_hfp_info.h"
+#include "cras_hfp_iodev.h"
 
 #define HFP_AG_PROFILE_NAME "Headset Gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
 #define HFP_VERSION_1_5 0x0105
 
 
+static struct cras_iodev *idev;
+static struct cras_iodev *odev;
+static struct hfp_info *info;
+
 static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 {
+	if (info) {
+		hfp_info_destroy(info);
+		info = NULL;
+	}
+	if (idev) {
+		hfp_iodev_destroy(idev);
+		idev = NULL;
+	}
+	if (odev) {
+		hfp_iodev_destroy(odev);
+		odev = NULL;
+	}
 }
 
 static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
@@ -23,12 +45,31 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 {
 	int fd;
 	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
-	close(fd);
+
+	/* Destroy all existing devices and replace with new ones */
+	cras_hfp_ag_release(profile);
+
+	info = hfp_info_create();
+	idev = hfp_iodev_create(CRAS_STREAM_INPUT, transport, info);
+	odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, transport, info);
+
+	if (!idev && !odev) {
+		if (info)
+			hfp_info_destroy(info);
+		cras_bt_transport_configuration(transport, &fd, sizeof(fd));
+		close(fd);
+        }
 }
 
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 		struct cras_bt_transport *transport)
 {
+	int fd;
+
+	/* There is at most one device connected, just release it. */
+	cras_hfp_ag_release(profile);
+	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
+	close(fd);
 }
 
 static void cras_hfp_ag_cancel(struct cras_bt_profile *profile)
