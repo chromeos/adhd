@@ -41,6 +41,8 @@ static unsigned int set_node_attr_called;
 static int cras_alert_create_called;
 static int cras_alert_destroy_called;
 static int cras_alert_pending_called;
+static cras_iodev *audio_thread_remove_streams_odev;
+static cras_iodev *audio_thread_last_output_dev;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -417,9 +419,11 @@ TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
 
   cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
   EXPECT_EQ(default_dev_to_set_, &d1_);
+  EXPECT_EQ(audio_thread_remove_streams_odev, &d1_);
 
   cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d2_.info.idx);
   EXPECT_EQ(default_dev_to_set_, &d2_);
+  EXPECT_EQ(audio_thread_remove_streams_odev, &d1_);
 
   // Remove then add a non-default device, should be set to default.
   rc = cras_iodev_list_rm_output(&d1_);
@@ -429,6 +433,7 @@ TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
   EXPECT_EQ(0, rc);
   cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
   EXPECT_EQ(default_dev_to_set_, &d1_);
+  EXPECT_EQ(audio_thread_remove_streams_odev, &d2_);
 
   // Second device in queue should become default when default removed.
   rc = cras_iodev_list_rm_output(&d1_);
@@ -745,6 +750,7 @@ void audio_thread_destroy(struct audio_thread *thread) {
 
 void audio_thread_set_output_dev(struct audio_thread *thread,
                                  struct cras_iodev *odev) {
+  audio_thread_last_output_dev = odev;
 }
 
 void audio_thread_set_input_dev(struct audio_thread *thread,
@@ -752,6 +758,7 @@ void audio_thread_set_input_dev(struct audio_thread *thread,
 }
 
 void audio_thread_remove_streams(struct audio_thread *thread) {
+  audio_thread_remove_streams_odev = audio_thread_last_output_dev;
 }
 
 void audio_thread_add_loopback_device(struct audio_thread *thread,
