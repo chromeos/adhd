@@ -214,7 +214,7 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatSecondary) {
   EXPECT_EQ(2, fmt.num_channels);
   EXPECT_EQ(dsp_context_new_channels, 2);
   EXPECT_EQ(dsp_context_new_sample_rate, 48000);
-  EXPECT_EQ(dsp_context_new_purpose, "playback");
+  EXPECT_STREQ(dsp_context_new_purpose, "playback");
 }
 
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatPrimary) {
@@ -233,7 +233,7 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatPrimary) {
   EXPECT_EQ(2, fmt.num_channels);
   EXPECT_EQ(dsp_context_new_channels, 2);
   EXPECT_EQ(dsp_context_new_sample_rate, 44100);
-  EXPECT_EQ(dsp_context_new_purpose, "capture");
+  EXPECT_STREQ(dsp_context_new_purpose, "capture");
 }
 
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatDivisor) {
