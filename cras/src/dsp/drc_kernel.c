@@ -78,8 +78,17 @@ static void set_pre_delay_time(struct drc_kernel *dk, float pre_delay_time)
 	/* Re-configure look-ahead section pre-delay if delay time has
 	 * changed. */
 	unsigned pre_delay_frames = pre_delay_time * dk->sample_rate;
-	if (pre_delay_frames > MAX_PRE_DELAY_FRAMES - 1)
-		pre_delay_frames = MAX_PRE_DELAY_FRAMES - 1;
+	pre_delay_frames = min(pre_delay_frames, MAX_PRE_DELAY_FRAMES - 1);
+
+	/* Make pre_delay_frames multiplies of DIVISION_FRAMES. This way we
+	 * won't split a division of samples into two blocks of memory, so it is
+	 * easier to process. This may make the actual delay time slightly less
+	 * than the specified value, but the difference is less than 1ms. */
+	pre_delay_frames &= ~DIVISION_FRAMES_MASK;
+
+	/* We need at least one division buffer, so the incoming data won't
+	 * overwrite the output data */
+	pre_delay_frames = max(pre_delay_frames, DIVISION_FRAMES);
 
 	if (dk->last_pre_delay_frames != pre_delay_frames) {
 		dk->last_pre_delay_frames = pre_delay_frames;
