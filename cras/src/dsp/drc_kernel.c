@@ -55,9 +55,10 @@ void dk_init(struct drc_kernel *dk, float sample_rate)
 	dk->ratio_base = uninitialized_value;
 	dk->K = uninitialized_value;
 
+	assert_on_compile_is_power_of_2(DIVISION_FRAMES);
+	assert_on_compile(DIVISION_FRAMES % 4 == 0);
 	/* Allocate predelay buffers */
 	assert_on_compile_is_power_of_2(MAX_PRE_DELAY_FRAMES);
-	assert_on_compile_is_power_of_2(DIVISION_FRAMES);
 	for (i = 0; i < DRC_NUM_CHANNELS; i++) {
 		size_t size = sizeof(float) * MAX_PRE_DELAY_FRAMES;
 		dk->pre_delay_buffers[i] = (float *)calloc(1, size);
@@ -466,37 +467,83 @@ static void dk_compress_output(struct drc_kernel *dk)
 	const float master_linear_gain = dk->master_linear_gain;
 	const float envelope_rate = dk->envelope_rate;
 	const float scaled_desired_gain = dk->scaled_desired_gain;
-	float compressor_gain = dk->compressor_gain;
-	int div_start = dk->pre_delay_read_index;
+	const float compressor_gain = dk->compressor_gain;
+	const int div_start = dk->pre_delay_read_index;
+	float *ptr_left = &dk->pre_delay_buffers[0][div_start];
+	float *ptr_right = &dk->pre_delay_buffers[1][div_start];
+	int count = DIVISION_FRAMES / 4;
+
 	int i, j;
 
-	for (i = 0; i < DIVISION_FRAMES; i++) {
-		/* Exponential approach to desired gain. */
-		if (envelope_rate < 1) {
-			/* Attack - reduce gain to desired. */
-			compressor_gain += (scaled_desired_gain -
-					    compressor_gain) * envelope_rate;
-		} else {
-			/* Release - exponentially increase gain to 1.0 */
-			compressor_gain *= envelope_rate;
-			compressor_gain = min(1.0f, compressor_gain);
+	/* Exponential approach to desired gain. */
+	if (envelope_rate < 1) {
+		/* Attack - reduce gain to desired. */
+		float c = compressor_gain - scaled_desired_gain;
+		float base = scaled_desired_gain;
+		float r = 1 - envelope_rate;
+		float x[4] = {c*r, c*r*r, c*r*r*r, c*r*r*r*r};
+		float r4 = r*r*r*r;
+
+		i = 0;
+		while (1) {
+			for (j = 0; j < 4; j++) {
+				/* Warp pre-compression gain to smooth out sharp
+				 * exponential transition points.
+				 */
+				float post_warp_compressor_gain =
+					warp_sinf(x[j] + base);
+
+				/* Calculate total gain using master gain. */
+				float total_gain = master_linear_gain *
+					post_warp_compressor_gain;
+
+				/* Apply final gain. */
+				*ptr_left++ *= total_gain;
+				*ptr_right++ *= total_gain;
+			}
+
+			if (++i == count)
+				break;
+
+			for (j = 0; j < 4; j++)
+				x[j] = x[j] * r4;
 		}
 
-		/* Warp pre-compression gain to smooth out sharp exponential
-		 * transition points.
-		 */
-		float post_warp_compressor_gain = warp_sinf(compressor_gain);
+		dk->compressor_gain = x[3] + base;
+	} else {
+		/* Release - exponentially increase gain to 1.0 */
+		float c = compressor_gain;
+		float r = envelope_rate;
+		float x[4] = {c*r, c*r*r, c*r*r*r, c*r*r*r*r};
+		float r4 = r*r*r*r;
 
-		/* Calculate total gain using master gain. */
-		float total_gain = master_linear_gain *
-			post_warp_compressor_gain;
+		i = 0;
+		while (1) {
+			for (j = 0; j < 4; j++) {
+				/* Warp pre-compression gain to smooth out sharp
+				 * exponential transition points.
+				 */
+				float post_warp_compressor_gain =
+					warp_sinf(x[j]);
 
-		/* Apply final gain. */
-		for (j = 0; j < DRC_NUM_CHANNELS; ++j)
-			dk->pre_delay_buffers[j][div_start + i] *= total_gain;
+				/* Calculate total gain using master gain. */
+				float total_gain = master_linear_gain *
+					post_warp_compressor_gain;
+
+				/* Apply final gain. */
+				*ptr_left++ *= total_gain;
+				*ptr_right++ *= total_gain;
+			}
+
+			if (++i == count)
+				break;
+
+			for (j = 0; j < 4; j++)
+				x[j] = min(1.0f, x[j] * r4);
+		}
+
+		dk->compressor_gain = x[3];
 	}
-
-	dk->compressor_gain = compressor_gain;
 }
 
 /* After one complete divison of samples have been received (and one divison of
