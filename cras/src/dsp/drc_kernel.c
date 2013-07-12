@@ -545,16 +545,28 @@ static void dk_process_delay_only(struct drc_kernel *dk, float *data_channels[],
 {
 	int read_index = dk->pre_delay_read_index;
 	int write_index = dk->pre_delay_write_index;
-	int i, j;
+	int i = 0;
 
-	for (i = 0; i < count; i++) {
-		for (j = 0; j < DRC_NUM_CHANNELS; j++) {
-			float *delay_buffer = dk->pre_delay_buffers[j];
-			delay_buffer[write_index] = data_channels[j][i];
-			data_channels[j][i] = delay_buffer[read_index];
+	while (i < count) {
+		int j;
+		int small = min(read_index, write_index);
+		int large = max(read_index, write_index);
+		/* chunk is the minimum of readable samples in contiguous
+		 * buffer, writable samples in contiguous buffer, and the
+		 * available input samples. */
+		int chunk = min(large - small, MAX_PRE_DELAY_FRAMES - large);
+		chunk = min(chunk, count - i);
+		for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
+			memcpy(&dk->pre_delay_buffers[j][write_index],
+			       &data_channels[j][i],
+			       chunk * sizeof(float));
+			memcpy(&data_channels[j][i],
+			       &dk->pre_delay_buffers[j][read_index],
+			       chunk * sizeof(float));
 		}
-		read_index  = (read_index + 1) & MAX_PRE_DELAY_FRAMES_MASK;
-		write_index = (write_index + 1) & MAX_PRE_DELAY_FRAMES_MASK;
+		read_index = (read_index + chunk) & MAX_PRE_DELAY_FRAMES_MASK;
+		write_index = (write_index + chunk) & MAX_PRE_DELAY_FRAMES_MASK;
+		i += chunk;
 	}
 
 	dk->pre_delay_read_index = read_index;
