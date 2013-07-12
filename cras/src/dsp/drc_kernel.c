@@ -462,6 +462,306 @@ static void dk_update_detector_average(struct drc_kernel *dk)
 
 /* Calculate compress_gain from the envelope and apply total_gain to compress
  * the next output division. */
+#if defined(__ARM_NEON__)
+#include <arm_neon.h>
+static void dk_compress_output(struct drc_kernel *dk)
+{
+	const float master_linear_gain = dk->master_linear_gain;
+	const float envelope_rate = dk->envelope_rate;
+	const float scaled_desired_gain = dk->scaled_desired_gain;
+	const float compressor_gain = dk->compressor_gain;
+	const int div_start = dk->pre_delay_read_index;
+	float *ptr_left = &dk->pre_delay_buffers[0][div_start];
+	float *ptr_right = &dk->pre_delay_buffers[1][div_start];
+	int count = DIVISION_FRAMES / 4;
+
+	/* See warp_sinf() for the details for the constants. */
+	const float32x4_t A7 = vdupq_n_f32(-4.3330336920917034149169921875e-3f);
+	const float32x4_t A5 = vdupq_n_f32(7.9434238374233245849609375e-2f);
+	const float32x4_t A3 = vdupq_n_f32(-0.645892798900604248046875f);
+	const float32x4_t A1 = vdupq_n_f32(1.5707910060882568359375f);
+
+	/* Exponential approach to desired gain. */
+	if (envelope_rate < 1) {
+		float c = compressor_gain - scaled_desired_gain;
+		float r = 1 - envelope_rate;
+		float32x4_t x0 = {c*r, c*r*r, c*r*r*r, c*r*r*r*r};
+		float32x4_t x, x2, x4, left, right, tmp1, tmp2;
+
+		__asm__ __volatile(
+			"b 2f                                               \n"
+			"1:                                                 \n"
+			"vmul.f32 %q[x0], %q[r4]                            \n"
+			"2:                                                 \n"
+			"vld1.32 {%e[left],%f[left]}, [%[ptr_left]]         \n"
+			"vld1.32 {%e[right],%f[right]}, [%[ptr_right]]      \n"
+			"vadd.f32 %q[x], %q[x0], %q[base]                   \n"
+			/* Calculate warp_sin() for four values in x. */
+			"vmul.f32 %q[x2], %q[x], %q[x]                      \n"
+			"vmov.f32 %q[tmp1], %q[A5]                          \n"
+			"vmov.f32 %q[tmp2], %q[A1]                          \n"
+			"vmul.f32 %q[x4], %q[x2], %q[x2]                    \n"
+			"vmla.f32 %q[tmp1], %q[A7], %q[x2]                  \n"
+			"vmla.f32 %q[tmp2], %q[A3], %q[x2]                  \n"
+			"vmla.f32 %q[tmp2], %q[tmp1], %q[x4]                \n"
+			"vmul.f32 %q[tmp2], %q[tmp2], %q[x]                 \n"
+			/* Now tmp2 contains the result of warp_sin(). */
+			"vmul.f32 %q[tmp2], %q[tmp2], %q[g]                 \n"
+			"vmul.f32 %q[left], %q[tmp2]                        \n"
+			"vmul.f32 %q[right], %q[tmp2]                       \n"
+			"vst1.32 {%e[left],%f[left]}, [%[ptr_left]]!        \n"
+			"vst1.32 {%e[right],%f[right]}, [%[ptr_right]]!     \n"
+			"subs %[count], #1                                  \n"
+			"bne 1b                                             \n"
+			: /* output */
+			  "=r"(count),
+			  "=r"(ptr_left),
+			  "=r"(ptr_right),
+			  "=w"(x0),
+			  [x]"=&w"(x),
+			  [x2]"=&w"(x2),
+			  [x4]"=&w"(x4),
+			  [left]"=&w"(left),
+			  [right]"=&w"(right),
+			  [tmp1]"=&w"(tmp1),
+			  [tmp2]"=&w"(tmp2)
+			: /* input */
+			  [count]"0"(count),
+			  [ptr_left]"1"(ptr_left),
+			  [ptr_right]"2"(ptr_right),
+			  [x0]"3"(x0),
+			  [A1]"w"(A1),
+			  [A3]"w"(A3),
+			  [A5]"w"(A5),
+			  [A7]"w"(A7),
+			  [base]"w"(vdupq_n_f32(scaled_desired_gain)),
+			  [r4]"w"(vdupq_n_f32(r*r*r*r)),
+			  [g]"w"(vdupq_n_f32(master_linear_gain))
+			: /* clobber */
+			  "memory", "cc"
+			);
+		dk->compressor_gain = x[3];
+	} else {
+		float c = compressor_gain;
+		float r = envelope_rate;
+		float32x4_t x = {c*r, c*r*r, c*r*r*r, c*r*r*r*r};
+		float32x4_t x2, x4, left, right, tmp1, tmp2;
+
+		__asm__ __volatile(
+			"b 2f                                               \n"
+			"1:                                                 \n"
+			"vmul.f32 %q[x], %q[r4]                             \n"
+			"2:                                                 \n"
+			"vld1.32 {%e[left],%f[left]}, [%[ptr_left]]         \n"
+			"vld1.32 {%e[right],%f[right]}, [%[ptr_right]]      \n"
+			"vmin.f32 %q[x], %q[one]                            \n"
+			/* Calculate warp_sin() for four values in x. */
+			"vmul.f32 %q[x2], %q[x], %q[x]                      \n"
+			"vmov.f32 %q[tmp1], %q[A5]                          \n"
+			"vmov.f32 %q[tmp2], %q[A1]                          \n"
+			"vmul.f32 %q[x4], %q[x2], %q[x2]                    \n"
+			"vmla.f32 %q[tmp1], %q[A7], %q[x2]                  \n"
+			"vmla.f32 %q[tmp2], %q[A3], %q[x2]                  \n"
+			"vmla.f32 %q[tmp2], %q[tmp1], %q[x4]                \n"
+			"vmul.f32 %q[tmp2], %q[tmp2], %q[x]                 \n"
+			/* Now tmp2 contains the result of warp_sin(). */
+			"vmul.f32 %q[tmp2], %q[tmp2], %q[g]                 \n"
+			"vmul.f32 %q[left], %q[tmp2]                        \n"
+			"vmul.f32 %q[right], %q[tmp2]                       \n"
+			"vst1.32 {%e[left],%f[left]}, [%[ptr_left]]!        \n"
+			"vst1.32 {%e[right],%f[right]}, [%[ptr_right]]!     \n"
+			"subs %[count], #1                                  \n"
+			"bne 1b                                             \n"
+			: /* output */
+			  "=r"(count),
+			  "=r"(ptr_left),
+			  "=r"(ptr_right),
+			  "=w"(x),
+			  [x2]"=&w"(x2),
+			  [x4]"=&w"(x4),
+			  [left]"=&w"(left),
+			  [right]"=&w"(right),
+			  [tmp1]"=&w"(tmp1),
+			  [tmp2]"=&w"(tmp2)
+			: /* input */
+			  [count]"0"(count),
+			  [ptr_left]"1"(ptr_left),
+			  [ptr_right]"2"(ptr_right),
+			  [x]"3"(x),
+			  [A1]"w"(A1),
+			  [A3]"w"(A3),
+			  [A5]"w"(A5),
+			  [A7]"w"(A7),
+			  [one]"w"(vdupq_n_f32(1)),
+			  [r4]"w"(vdupq_n_f32(r*r*r*r)),
+			  [g]"w"(vdupq_n_f32(master_linear_gain))
+			: /* clobber */
+			  "memory", "cc"
+			);
+		dk->compressor_gain = x[3];
+	}
+}
+#elif defined(__SSE3__) && defined(__x86_64__)
+#include <emmintrin.h>
+static void dk_compress_output(struct drc_kernel *dk)
+{
+	const float master_linear_gain = dk->master_linear_gain;
+	const float envelope_rate = dk->envelope_rate;
+	const float scaled_desired_gain = dk->scaled_desired_gain;
+	const float compressor_gain = dk->compressor_gain;
+	const int div_start = dk->pre_delay_read_index;
+	float *ptr_left = &dk->pre_delay_buffers[0][div_start];
+	float *ptr_right = &dk->pre_delay_buffers[1][div_start];
+	int count = DIVISION_FRAMES / 4;
+
+	/* See warp_sinf() for the details for the constants. */
+	const __m128 A7 = _mm_set1_ps(-4.3330336920917034149169921875e-3f);
+	const __m128 A5 = _mm_set1_ps(7.9434238374233245849609375e-2f);
+	const __m128 A3 = _mm_set1_ps(-0.645892798900604248046875f);
+	const __m128 A1 = _mm_set1_ps(1.5707910060882568359375f);
+
+	/* Exponential approach to desired gain. */
+	if (envelope_rate < 1) {
+		float c = compressor_gain - scaled_desired_gain;
+		float r = 1 - envelope_rate;
+		__m128 x0 = {c*r, c*r*r, c*r*r*r, c*r*r*r*r};
+		__m128 x, x2, x4, left, right, tmp1, tmp2;
+
+		__asm__ __volatile(
+			"jmp 2f                                     \n"
+			"1:                                         \n"
+			"mulps %[r4], %[x0]                         \n"
+			"2:                                         \n"
+			"lddqu (%[ptr_left]), %[left]               \n"
+			"lddqu (%[ptr_right]), %[right]             \n"
+			"movaps %[x0], %[x]                         \n"
+			"addps %[base], %[x]                        \n"
+			/* Calculate warp_sin() for four values in x. */
+			"movaps %[x], %[x2]                         \n"
+			"mulps %[x], %[x2]                          \n"
+			"movaps %[x2], %[x4]                        \n"
+			"movaps %[x2], %[tmp1]                      \n"
+			"movaps %[x2], %[tmp2]                      \n"
+			"mulps %[x2], %[x4]                         \n"
+			"mulps %[A7], %[tmp1]                       \n"
+			"mulps %[A3], %[tmp2]                       \n"
+			"addps %[A5], %[tmp1]                       \n"
+			"addps %[A1], %[tmp2]                       \n"
+			"mulps %[x4], %[tmp1]                       \n"
+			"addps %[tmp1], %[tmp2]                     \n"
+			"mulps %[x], %[tmp2]                        \n"
+			/* Now tmp2 contains the result of warp_sin(). */
+			"mulps %[g], %[tmp2]                        \n"
+			"mulps %[tmp2], %[left]                     \n"
+			"mulps %[tmp2], %[right]                    \n"
+			"movdqu %[left], (%[ptr_left])              \n"
+			"movdqu %[right], (%[ptr_right])            \n"
+			"add $16, %[ptr_left]                       \n"
+			"add $16, %[ptr_right]                      \n"
+			"sub $1, %[count]                           \n"
+			"jne 1b                                     \n"
+			: /* output */
+			  "=r"(count),
+			  "=r"(ptr_left),
+			  "=r"(ptr_right),
+			  "=x"(x0),
+			  [x]"=&x"(x),
+			  [x2]"=&x"(x2),
+			  [x4]"=&x"(x4),
+			  [left]"=&x"(left),
+			  [right]"=&x"(right),
+			  [tmp1]"=&x"(tmp1),
+			  [tmp2]"=&x"(tmp2)
+			: /* input */
+			  [count]"0"(count),
+			  [ptr_left]"1"(ptr_left),
+			  [ptr_right]"2"(ptr_right),
+			  [x0]"3"(x0),
+			  [A1]"x"(A1),
+			  [A3]"x"(A3),
+			  [A5]"x"(A5),
+			  [A7]"x"(A7),
+			  [base]"x"(_mm_set1_ps(scaled_desired_gain)),
+			  [r4]"x"(_mm_set1_ps(r*r*r*r)),
+			  [g]"x"(_mm_set1_ps(master_linear_gain))
+			: /* clobber */
+			  "memory", "cc"
+			);
+		dk->compressor_gain = x[3];
+	} else {
+		/* See warp_sinf() for the details for the constants. */
+		__m128 A7 = _mm_set1_ps(-4.3330336920917034149169921875e-3f);
+		__m128 A5 = _mm_set1_ps(7.9434238374233245849609375e-2f);
+		__m128 A3 = _mm_set1_ps(-0.645892798900604248046875f);
+		__m128 A1 = _mm_set1_ps(1.5707910060882568359375f);
+
+		float c = compressor_gain;
+		float r = envelope_rate;
+		__m128 x = {c*r, c*r*r, c*r*r*r, c*r*r*r*r};
+		__m128 x2, x4, left, right, tmp1, tmp2;
+
+		__asm__ __volatile(
+			"jmp 2f                                     \n"
+			"1:                                         \n"
+			"mulps %[r4], %[x]                          \n"
+			"2:                                         \n"
+			"lddqu (%[ptr_left]), %[left]               \n"
+			"lddqu (%[ptr_right]), %[right]             \n"
+			"minps %[one], %[x]                         \n"
+			/* Calculate warp_sin() for four values in x. */
+			"movaps %[x], %[x2]                         \n"
+			"mulps %[x], %[x2]                          \n"
+			"movaps %[x2], %[x4]                        \n"
+			"movaps %[x2], %[tmp1]                      \n"
+			"movaps %[x2], %[tmp2]                      \n"
+			"mulps %[x2], %[x4]                         \n"
+			"mulps %[A7], %[tmp1]                       \n"
+			"mulps %[A3], %[tmp2]                       \n"
+			"addps %[A5], %[tmp1]                       \n"
+			"addps %[A1], %[tmp2]                       \n"
+			"mulps %[x4], %[tmp1]                       \n"
+			"addps %[tmp1], %[tmp2]                     \n"
+			"mulps %[x], %[tmp2]                        \n"
+			/* Now tmp2 contains the result of warp_sin(). */
+			"mulps %[g], %[tmp2]                        \n"
+			"mulps %[tmp2], %[left]                     \n"
+			"mulps %[tmp2], %[right]                    \n"
+			"movdqu %[left], (%[ptr_left])              \n"
+			"movdqu %[right], (%[ptr_right])            \n"
+			"add $16, %[ptr_left]                       \n"
+			"add $16, %[ptr_right]                      \n"
+			"sub $1, %[count]                           \n"
+			"jne 1b                                     \n"
+			: /* output */
+			  "=r"(count),
+			  "=r"(ptr_left),
+			  "=r"(ptr_right),
+			  "=x"(x),
+			  [x2]"=&x"(x2),
+			  [x4]"=&x"(x4),
+			  [left]"=&x"(left),
+			  [right]"=&x"(right),
+			  [tmp1]"=&x"(tmp1),
+			  [tmp2]"=&x"(tmp2)
+			: /* input */
+			  [count]"0"(count),
+			  [ptr_left]"1"(ptr_left),
+			  [ptr_right]"2"(ptr_right),
+			  [x]"3"(x),
+			  [A1]"x"(A1),
+			  [A3]"x"(A3),
+			  [A5]"x"(A5),
+			  [A7]"x"(A7),
+			  [one]"x"(_mm_set1_ps(1)),
+			  [r4]"x"(_mm_set1_ps(r*r*r*r)),
+			  [g]"x"(_mm_set1_ps(master_linear_gain))
+			: /* clobber */
+			  "memory", "cc"
+			);
+		dk->compressor_gain = x[3];
+	}
+}
+#else
 static void dk_compress_output(struct drc_kernel *dk)
 {
 	const float master_linear_gain = dk->master_linear_gain;
@@ -545,6 +845,7 @@ static void dk_compress_output(struct drc_kernel *dk)
 		dk->compressor_gain = x[3];
 	}
 }
+#endif
 
 /* After one complete divison of samples have been received (and one divison of
  * samples have been output), we calculate shaped power average
