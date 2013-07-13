@@ -75,6 +75,17 @@ struct audio_thread_add_rm_stream_msg {
 	enum CRAS_STREAM_DIRECTION dir;
 };
 
+/* Callback function to be handled in main loop in audio thread.
+ * Args:
+ *    data - The data for callback function.
+ *    wait_ts - The wait time before next callback. Its value is expected
+ *    to be modified when we want this timeout be shorter.
+ *    polled - Flag to indicate the callback is called because the fd
+ *    is polled
+ */
+typedef int (*thread_callback)(void *data, struct timespec *wait_ts,
+			       int polled);
+
 /* Creates an audio thread.
  * Args:
  *    iodev - The iodev to attach this thread to.
@@ -100,6 +111,21 @@ void audio_thread_set_output_dev(struct audio_thread *thread,
  */
 void audio_thread_set_input_dev(struct audio_thread *thread,
 				struct cras_iodev *idev);
+
+/* Adds an thread_callback to audio thread.
+ * Args:
+ *    fd - The file descriptor to be polled for the callback.
+ *    cb - The callback function.
+ *    data - The data for the callback function.
+ */
+void audio_thread_add_callback(int fd, thread_callback cb,
+                               void *data);
+
+/* Removes an thread_callback from audio thread.
+ * Args:
+ *    fd - The file descriptor of the previous added callback.
+ */
+void audio_thread_rm_callback(int fd);
 
 /* Starts a thread created with audio_thread_create.
  * Args:

@@ -30,6 +30,45 @@
  */
 static const unsigned int CAP_REMAINING_FRAMES_TARGET = 16;
 
+static struct iodev_callback_list *iodev_callbacks;
+
+struct iodev_callback_list {
+	int fd;
+	thread_callback cb;
+	void *cb_data;
+	struct iodev_callback_list *prev, *next;
+};
+
+void audio_thread_add_callback(int fd, thread_callback cb,
+                               void *data)
+{
+	struct iodev_callback_list *iodev_cb;
+
+	/* Don't add iodev_cb twice */
+	DL_FOREACH(iodev_callbacks, iodev_cb)
+		if (iodev_cb->fd == fd && iodev_cb->cb_data == data)
+			return;
+
+	iodev_cb = (struct iodev_callback_list *)calloc(1, sizeof(*iodev_cb));
+	iodev_cb->fd = fd;
+	iodev_cb->cb = cb;
+	iodev_cb->cb_data = data;
+
+	DL_APPEND(iodev_callbacks, iodev_cb);
+}
+
+void audio_thread_rm_callback(int fd)
+{
+	struct iodev_callback_list *iodev_cb, *tmp;
+
+	DL_FOREACH_SAFE(iodev_callbacks, iodev_cb, tmp) {
+		if (iodev_cb->fd == fd) {
+			DL_DELETE(iodev_callbacks, iodev_cb);
+			free(iodev_cb);
+			return;
+		}
+	}
+}
 
 /* Returns true if there are streams attached to the thread. */
 static inline int streams_attached(const struct audio_thread *thread)
@@ -1210,6 +1249,8 @@ static void *audio_io_thread(void *arg)
 
 	while (1) {
 		struct timespec *wait_ts;
+		struct iodev_callback_list *iodev_cb, *tmp;
+		int max_fd = msg_fd;
 
 		wait_ts = NULL;
 
@@ -1223,12 +1264,26 @@ static void *audio_io_thread(void *arg)
 
 		FD_ZERO(&poll_set);
 		FD_SET(msg_fd, &poll_set);
-		err = pselect(msg_fd + 1, &poll_set, NULL, NULL, wait_ts, NULL);
-		if (err > 0 && FD_ISSET(msg_fd, &poll_set)) {
+
+		DL_FOREACH(iodev_callbacks, iodev_cb) {
+			FD_SET(iodev_cb->fd, &poll_set);
+			if (iodev_cb->fd > max_fd)
+				max_fd = iodev_cb->fd;
+		}
+
+		err = pselect(max_fd + 1, &poll_set, NULL, NULL, wait_ts, NULL);
+		if (err <= 0)
+			continue;
+
+		if (FD_ISSET(msg_fd, &poll_set)) {
 			err = handle_playback_thread_message(thread);
 			if (err < 0)
 				syslog(LOG_INFO, "handle message %d", err);
 		}
+
+		DL_FOREACH_SAFE(iodev_callbacks, iodev_cb, tmp)
+			iodev_cb->cb(iodev_cb->cb_data, &ts,
+				     FD_ISSET(iodev_cb->fd, &poll_set));
 	}
 
 	return NULL;
