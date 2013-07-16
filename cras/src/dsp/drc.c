@@ -256,9 +256,99 @@ static void free_kernel(struct drc *drc)
 		dk_free(&drc->kernel[i]);
 }
 
+#if defined(__ARM_NEON__)
+#include <arm_neon.h>
+static void sum3(float *data, float *data1, float *data2, int n)
+{
+	float32x4_t x, y, z;
+	int count = n / 4;
+	int i;
+
+	__asm__ __volatile(
+		"1:                                         \n"
+		"vld1.32 {%e[x],%f[x]}, [%[data1]]!         \n"
+		"vld1.32 {%e[y],%f[y]}, [%[data2]]!         \n"
+		"vld1.32 {%e[z],%f[z]}, [%[data]]           \n"
+		"vadd.f32 %q[y], %q[x]                      \n"
+		"vadd.f32 %q[z], %q[y]                      \n"
+		"vst1.32 {%e[z],%f[z]}, [%[data]]!          \n"
+		"subs %[count], #1                          \n"
+		"bne 1b                                     \n"
+		: /* output */
+		  "=r"(data),
+		  "=r"(data1),
+		  "=r"(data2),
+		  "=r"(count),
+		  [x]"=&w"(x),
+		  [y]"=&w"(y),
+		  [z]"=&w"(z)
+		: /* input */
+		  [data]"0"(data),
+		  [data1]"1"(data1),
+		  [data2]"2"(data2),
+		  [count]"3"(count)
+		: /* clobber */
+		  "memory", "cc"
+		);
+
+	n &= 3;
+	for (i = 0; i < n; i++)
+		data[i] += data1[i] + data2[i];
+}
+#elif defined(__SSE3__)
+#include <emmintrin.h>
+static void sum3(float *data, float *data1, float *data2, int n)
+{
+	__m128 x, y, z;
+	int count = n / 4;
+	int i;
+
+	__asm__ __volatile(
+		"1:                                         \n"
+		"lddqu (%[data1]), %[x]                     \n"
+		"lddqu (%[data2]), %[y]                     \n"
+		"lddqu (%[data]), %[z]                      \n"
+		"addps %[x], %[y]                           \n"
+		"addps %[y], %[z]                           \n"
+		"movdqu %[z], (%[data])                     \n"
+		"add $16, %[data1]                          \n"
+		"add $16, %[data2]                          \n"
+		"add $16, %[data]                           \n"
+		"sub $1, %[count]                           \n"
+		"jne 1b                                     \n"
+		: /* output */
+		  "=r"(data),
+		  "=r"(data1),
+		  "=r"(data2),
+		  "=r"(count),
+		  [x]"=&x"(x),
+		  [y]"=&x"(y),
+		  [z]"=&x"(z)
+		: /* input */
+		  [data]"0"(data),
+		  [data1]"1"(data1),
+		  [data2]"2"(data2),
+		  [count]"3"(count)
+		: /* clobber */
+		  "memory", "cc"
+		);
+
+	n &= 3;
+	for (i = 0; i < n; i++)
+		data[i] += data1[i] + data2[i];
+}
+#else
+static void sum3(float *data, float *data1, float *data2, int n)
+{
+	int i;
+	for (i = 0; i < n; i++)
+		data[i] += data1[i] + data2[i];
+}
+#endif
+
 void drc_process(struct drc *drc, float **data, int frames)
 {
-	int i, j;
+	int i;
 	float **data1 = drc->data1;
 	float **data2 = drc->data2;
 
@@ -278,8 +368,7 @@ void drc_process(struct drc *drc, float **data, int frames)
 
 	/* Sum the three bands of signal */
 	for (i = 0; i < DRC_NUM_CHANNELS; i++)
-		for (j = 0; j < frames; j++)
-			data[i][j] += data1[i][j] + data2[i][j];
+		sum3(data[i], data1[i], data2[i], frames);
 
 	/* Apply de-emphasis filter. */
 	eq2_process(drc->deemphasis_eq, data[0], data[1], frames);
