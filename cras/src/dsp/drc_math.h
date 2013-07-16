@@ -50,7 +50,6 @@ static inline float warp_asinf(float x) PURE;
 static inline float knee_expf(float input) PURE;
 
 extern float db_to_linear[201]; /* from -100dB to 100dB */
-extern float exp_to_linear[101]; /* from exp(-100) to exp(0) */
 
 void drc_math_init();
 
@@ -177,28 +176,8 @@ static inline float knee_expf(float input)
 #ifdef SLOW_KNEE_EXP
 	return expf(input);
 #else
-	float x;
-	float fi;
-	int i;
-
-	fi = round_int(input);
-	x = input - fi;
-	i = (int)fi;
-	i = max(min(i, 0), -100);
-
-	/* Coefficients obtained from:
-	 * fpminimax(exp(x), [|2,3,4,5|], [|SG...|], [-0.5;0.5], 1+x, absolute);
-	 * max err ~= 8.694e-7
-	 */
-	const float A5 = 8.419446647167205810546875e-3f;
-	const float A4 = 4.21488769352436065673828125e-2f;
-	const float A3 = 0.16665758192539215087890625f;
-	const float A2 = 0.49996316432952880859375f;
-
-	float x2 = x * x;
-	float x4 = x2 * x2;
-	return ((A5 * x + A4) * x4 + (A3 * x + A2) * x2 + x + 1)
-		* exp_to_linear[i+100];
+	/* exp(x) = decibels_to_linear(20*log10(e)*x) */
+	return decibels_to_linear(8.685889638065044f * input);
 #endif
 }
 
