@@ -232,8 +232,9 @@ static float volume_gain(struct drc_kernel *dk, float x)
 		 * => y = [y0 * (1/x0)^s] * x^s
 		 * => y = dk->ratio_base * x^s
 		 * => y/x = dk->ratio_base * x^(s - 1)
+		 * => y/x = dk->ratio_base * e^(log(x) * (s - 1))
 		 */
-		y = dk->ratio_base * powf(x, dk->slope - 1);
+		y = dk->ratio_base * knee_expf(logf(x) * (dk->slope - 1));
 	}
 
 	return y;
