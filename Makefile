@@ -48,6 +48,18 @@ install:	$(DESTDIR)/etc/modprobe.d/alsa-$(BOARD).conf
 
 endif
 
+optional_alsa_patch := $(wildcard $(ADHD_DIR)/alsa-module-config/$(BOARD)_alsa.fw)
+
+ifneq ($(strip $(optional_alsa_patch)),)
+
+$(DESTDIR)/lib/firmware/$(BOARD)_alsa.fw:	$(optional_alsa_patch)
+	$(ECHO) "Installing '$<' to '$@'"
+	$(INSTALL) --mode 644 -D $< $@
+
+install:	$(DESTDIR)/lib/firmware/$(BOARD)_alsa.fw
+
+endif
+
 optional_cras_conf := $(wildcard $(ADHD_DIR)/cras-config/$(BOARD)/*)
 
 ifneq ($(strip $(optional_cras_conf)),)
