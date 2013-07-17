@@ -550,10 +550,13 @@ static const char *get_output_node_name(struct alsa_io *aio,
 	if (cras_output)
 		return cras_alsa_mixer_get_output_name(cras_output);
 
-	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER))
+	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER)) {
+		if (strstr(aio->base.info.name, "HDMI"))
+			return "HDMI";
 		return INTERNAL_SPEAKER;
-	else
+	} else {
 		return "(default)";
+	}
 }
 
 static const char *get_input_node_name(struct alsa_io *aio)
