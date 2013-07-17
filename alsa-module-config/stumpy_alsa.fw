@@ -1,0 +1,9 @@
+[codec]
+0x10134210 0x80860101 0
+
+[model]
+stumpy
+
+[hint]
+auto_mute = no
+auto_mic = no
