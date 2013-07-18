@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 {
 	size_t frame1, frame2;
 	float *data1, *data2;
-	size_t i, n;
+	size_t i, n, changed;
 	double diff = 0;
 	double maxdiff = 0;
 
@@ -40,13 +40,17 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	n = frame1;
+	n = frame1 * 2;
+	changed = 0;
 	for (i = 0; i < n; i++) {
-		diff += fabs(data1[i] - data2[i]);
-		maxdiff = max(fabs(data1[i] - data2[i]), maxdiff);
+		if (data1[i] != data2[i]) {
+			changed++;
+			diff += fabs(data1[i] - data2[i]);
+			maxdiff = max(fabs(data1[i] - data2[i]), maxdiff);
+		}
 	}
-	printf("avg diff = %g, max diff = %g/65536.0\n",
-	       diff / n, maxdiff * 65536);
+	printf("avg diff = %g, max diff = %g, changed = %.3f%%\n",
+	       diff / n, maxdiff * 32768, changed*100.0f/n);
 
 	free(data1);
 	free(data2);
