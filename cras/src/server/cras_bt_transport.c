@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -17,6 +18,9 @@
 #include "cras_bt_transport.h"
 #include "cras_bt_constants.h"
 #include "utlist.h"
+
+#define BTPROTO_SCO 2
+
 
 struct cras_bt_transport {
 	DBusConnection *conn;
@@ -250,6 +254,74 @@ void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
 	transport->configuration = (int *)malloc(sizeof(fd));
 	memcpy(transport->configuration, &fd, sizeof(fd));
 	transport->configuration_len = sizeof(fd);
+}
+
+/* Converts bluetooth address string into sockaddr structure. The address
+ * string is expected of the form 1A:2B:3C:4D:5E:6F, and each of the six
+ * hex values will be parsed into sockaddr in inverse order.
+ * Args:
+ *    str - The string version of bluetooth address
+ *    addr - The struct to be filled with converted address
+ */
+static int bt_address(const char *str, struct sockaddr *addr)
+{
+	int i;
+
+	if (strlen(str) != 17) {
+		syslog(LOG_ERR, "Invalid bluetooth address %s", str);
+		return -1;
+	}
+
+	memset(addr, 0, sizeof(*addr));
+	addr->sa_family = AF_BLUETOOTH;
+	for (i = 5; i >= 0; i--) {
+		addr->sa_data[i] = (unsigned char)strtol(str, NULL, 16);
+		str += 3;
+	}
+
+	return 0;
+}
+
+int cras_bt_transport_sco_connect(struct cras_bt_transport *transport)
+{
+	int sk, err;
+	struct sockaddr addr;
+
+	struct cras_bt_device *device = transport->device;
+	struct cras_bt_adapter *adapter;
+
+	adapter = cras_bt_device_adapter(device);
+
+	sk = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_SCO);
+	if (sk < 0) {
+		syslog(LOG_ERR, "Failed to create socket: %s (%d)",
+				strerror(errno), errno);
+		return -errno;
+	}
+
+	/* Bind to local address */
+	if (bt_address(cras_bt_adapter_address(adapter), &addr))
+		goto error;
+	if (bind(sk, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		syslog(LOG_ERR, "Failed to bind socket: %s (%d)",
+				strerror(errno), errno);
+		goto error;
+	}
+
+	/* Connect to remote */
+	if (bt_address(cras_bt_device_address(device), &addr))
+		goto error;
+	err = connect(sk, (struct sockaddr *) &addr, sizeof(addr));
+	if (err < 0 && !(errno == EAGAIN || errno == EINPROGRESS)) {
+		syslog(LOG_ERR, "Failed to connect: %s (%d)",
+				strerror(errno), errno);
+		goto error;
+	}
+
+	return sk;
+
+error:
+	return -1;
 }
 
 void cras_bt_transport_update_properties(

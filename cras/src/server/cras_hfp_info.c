@@ -178,6 +178,11 @@ void hfp_buf_acquire(struct hfp_info *info, struct cras_iodev *dev,
 	*count /= format_bytes;
 }
 
+int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev)
+{
+	return HFP_BUF_SIZE_BYTES / cras_get_format_bytes(dev->format);
+}
+
 void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
 		     unsigned written_frames)
 {

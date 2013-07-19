@@ -7,16 +7,17 @@
 #include <syslog.h>
 
 #include "cras_hfp_iodev.h"
+#include "cras_hfp_info.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_util.h"
 #include "utlist.h"
 
-#define HFP_BUF_SIZE_BYTES 1024
 
 struct hfp_io {
 	struct cras_iodev base;
 	struct cras_bt_transport *transport;
+	struct hfp_info *info;
 	int opened;
 };
 
@@ -40,27 +41,49 @@ static int update_supported_formats(struct cras_iodev *iodev)
 
 static int frames_queued(const struct cras_iodev *iodev)
 {
-	// TODO: Implement this function.
-	return 0;
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+
+	if (!hfp_info_running(hfpio->info))
+		return -1;
+
+	return hfp_buf_queued(hfpio->info, iodev);
 }
 
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	size_t format_bytes;
+	int sk, err;
 
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
 		return -EINVAL;
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 
-	format_bytes = cras_get_format_bytes(iodev->format);
-	iodev->buffer_size = HFP_BUF_SIZE_BYTES / format_bytes;
+	if (hfp_info_running(hfpio->info))
+		goto add_dev;
+
+	sk = cras_bt_transport_sco_connect(hfpio->transport);
+	if (sk < 0)
+		goto error;
+
+	/* Start hfp_info */
+	err = hfp_info_start(sk, hfpio->info);
+	if (err)
+		goto error;
+
+add_dev:
+	hfp_info_add_iodev(hfpio->info, iodev);
+
+	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev);
 	if (iodev->used_size > iodev->buffer_size)
 		iodev->used_size = iodev->buffer_size;
 
 	hfpio->opened = 1;
+
 	return 0;
+error:
+	syslog(LOG_ERR, "Failed to open HFP iodev");
+	return -1;
 }
 
 static int close_dev(struct cras_iodev *iodev)
@@ -68,6 +91,9 @@ static int close_dev(struct cras_iodev *iodev)
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	hfpio->opened = 0;
+	hfp_info_rm_iodev(hfpio->info, iodev);
+	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info))
+		hfp_info_stop(hfpio->info);
 
 	cras_iodev_free_format(iodev);
 	return 0;
@@ -76,7 +102,7 @@ static int close_dev(struct cras_iodev *iodev)
 static int is_open(const struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	return hfpio->opened;
+	return hfpio->opened && hfp_info_running(hfpio->info);
 }
 
 static int dev_running(const struct cras_iodev *iodev)
@@ -91,16 +117,23 @@ static int delay_frames(const struct cras_iodev *iodev)
 
 static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 {
-	// TODO: Implement this function.
-	*dst = NULL;
-	*frames = 0;
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
+	if (!hfp_info_running(hfpio->info))
+		return -1;
+
+	hfp_buf_acquire(hfpio->info, iodev, dst, frames);
 	return 0;
 }
 
 static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
-	// TODO: Implement this function.
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+
+	if (!hfp_info_running(hfpio->info))
+		return -1;
+
+	hfp_buf_release(hfpio->info, iodev, nwritten);
 	return 0;
 }
 
@@ -122,7 +155,8 @@ void hfp_free_resources(struct hfp_io *hfpio)
 
 struct cras_iodev *hfp_iodev_create(
 		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_bt_transport *transport)
+		struct cras_bt_transport *transport,
+		struct hfp_info *info)
 {
 	int err;
 	struct hfp_io *hfpio;
@@ -174,6 +208,8 @@ struct cras_iodev *hfp_iodev_create(
 
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
+
+	hfpio->info = info;
 
 	return iodev;
 

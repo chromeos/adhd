@@ -42,6 +42,13 @@ int hfp_info_stop(struct hfp_info *info);
  */
 int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev);
 
+/* Gets how many bytes of the buffer are used.
+ * Args:
+ *    info - The hfp_info holding buffer.
+ *    dev - The iodev which uses the buffer.
+ */
+int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev);
+
 /* Acquire buffer of count frames for dev to write(or read,
  * depend on dev's direction).
  * Args:
