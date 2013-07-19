@@ -404,9 +404,87 @@ static void dk_update_envelope(struct drc_kernel *dk)
 	dk->scaled_desired_gain = scaled_desired_gain;
 }
 
+/* For a division of frames, take the absolute values of left channel and right
+ * channel, store the maximum of them in output. */
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+static inline void max_abs_division(float *output, float *data0, float *data1)
+{
+	float32x4_t x, y;
+	int count = DIVISION_FRAMES / 4;
+
+	__asm__ __volatile__(
+		"1:                                     \n"
+		"vld1.32 {%e[x],%f[x]}, [%[data0]]!     \n"
+		"vld1.32 {%e[y],%f[y]}, [%[data1]]!     \n"
+		"vabs.f32 %q[x], %q[x]                  \n"
+		"vabs.f32 %q[y], %q[y]                  \n"
+		"vmax.f32 %q[x], %q[y]                  \n"
+		"vst1.32 {%e[x],%f[x]}, [%[output]]!    \n"
+		"subs %[count], #1                      \n"
+		"bne 1b                                 \n"
+		: /* output */
+		  "=r"(data0),
+		  "=r"(data1),
+		  "=r"(output),
+		  "=r"(count),
+		  [x]"=&w"(x),
+		  [y]"=&w"(y)
+		: /* input */
+		  [data0]"0"(data0),
+		  [data1]"1"(data1),
+		  [output]"2"(output),
+		  [count]"3"(count)
+		: /* clobber */
+		  "memory", "cc"
+		);
+}
+#elif defined(__SSE3__)
+#include <emmintrin.h>
+static inline void max_abs_division(float *output, float *data0, float *data1)
+{
+	__m128 x, y;
+	int count = DIVISION_FRAMES / 4;
+
+	__asm__ __volatile__(
+		"1:                                     \n"
+		"lddqu (%[data0]), %[x]                 \n"
+		"lddqu (%[data1]), %[y]                 \n"
+		"andps %[mask], %[x]                    \n"
+		"andps %[mask], %[y]                    \n"
+		"maxps %[y], %[x]                       \n"
+		"movdqu %[x], (%[output])               \n"
+		"add $16, %[data0]                      \n"
+		"add $16, %[data1]                      \n"
+		"add $16, %[output]                     \n"
+		"sub $1, %[count]                       \n"
+		"jnz 1b                                 \n"
+		: /* output */
+		  [data0]"+r"(data0),
+		  [data1]"+r"(data1),
+		  [output]"+r"(output),
+		  [count]"+r"(count),
+		  [x]"=&x"(x),
+		  [y]"=&x"(y)
+		: /* input */
+		  [mask]"x"(_mm_set1_epi32(0x7fffffff))
+		: /* clobber */
+		  "memory", "cc"
+		);
+}
+#else
+static inline void max_abs_division(float *output, float *data0, float *data1)
+{
+	int i;
+	for (i = 0; i < DIVISION_FRAMES; i++)
+		output[i] = fmaxf(fabsf(data0[i]), fabsf(data1[i]));
+}
+#endif
+
 /* Update detector_average from the last input division. */
 static void dk_update_detector_average(struct drc_kernel *dk)
 {
+	float abs_input_array[DIVISION_FRAMES];
 	const float sat_release_frames_inv_neg = dk->sat_release_frames_inv_neg;
 	const float sat_release_rate_at_neg_two_db =
 		dk->sat_release_rate_at_neg_two_db;
@@ -420,20 +498,14 @@ static void dk_update_detector_average(struct drc_kernel *dk)
 		div_start = dk->pre_delay_write_index - DIVISION_FRAMES;
 	}
 
+	/* The max abs value across all channels for this frame */
+	max_abs_division(abs_input_array,
+			 &dk->pre_delay_buffers[0][div_start],
+			 &dk->pre_delay_buffers[1][div_start]);
+
 	for (i = 0; i < DIVISION_FRAMES; i++) {
-		/* the max abs value across all channels for this frame */
-		float abs_input = 0;
-		int j;
-		/* Predelay signal, computing compression amount from un-delayed
-		 * version.
-		 */
-		for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
-			float undelayed_source =
-				dk->pre_delay_buffers[j][div_start + i];
-			float abs_undelayed_source = fabsf(undelayed_source);
-			if (abs_input < abs_undelayed_source)
-				abs_input = abs_undelayed_source;
-		}
+		/* Compute compression amount from un-delayed signal */
+		float abs_input = abs_input_array[i];
 
 		/* Calculate shaped power on undelayed input.  Put through
 		 * shaping curve. This is linear up to the threshold, then
