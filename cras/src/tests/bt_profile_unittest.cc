@@ -18,22 +18,24 @@ extern "C" {
 namespace {
 
 static struct cras_bt_profile fake_profile;
+static struct cras_bt_transport *fake_transport;
 static int profile_release_called;
 static struct cras_bt_profile *profile_release_arg_value;
 static int profile_new_connection_called;
-static const char *profile_new_connection_arg_value;
+static struct cras_bt_transport *profile_new_connection_arg_value;
 static int profile_request_disconnection_called;
-static const char *profile_request_disconnection_arg_value;
+static struct cras_bt_transport *profile_request_disconnection_arg_value;
 static int profile_cancel_called;
 static struct cras_bt_profile *profile_cancel_arg_value;
+static int cras_bt_transport_get_called;
+static const char *cras_bt_transport_get_arg_value;
+static int cras_bt_transport_fill_properties_called;
 
 void fake_profile_release(struct cras_bt_profile *profile);
 void fake_profile_new_connection(struct cras_bt_profile *profile,
-				 const char *device,
-				 int fd,
-				 int fd_properties);
+				 struct cras_bt_transport *transport);
 void fake_profile_request_disconnection(struct cras_bt_profile *profile,
-					const char *device);
+					struct cras_bt_transport *transport);
 void fake_profile_cancel(struct cras_bt_profile *profile);
 
 class BtProfileTestSuite : public DBusTest {
@@ -55,6 +57,10 @@ class BtProfileTestSuite : public DBusTest {
     fake_profile.new_connection = fake_profile_new_connection;
     fake_profile.request_disconnection = fake_profile_request_disconnection;
     fake_profile.cancel = fake_profile_cancel;
+
+    fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x321);
+    cras_bt_transport_fill_properties_called = 0;
+    cras_bt_transport_get_called = 0;
   }
 };
 
@@ -101,14 +107,18 @@ TEST_F(BtProfileTestSuite, HandleMessage) {
 
   WaitForMatches();
   ASSERT_EQ(1, profile_new_connection_called);
-  ASSERT_STREQ("device", profile_new_connection_arg_value);
+  ASSERT_STREQ("device", cras_bt_transport_get_arg_value);
+  ASSERT_EQ(1, cras_bt_transport_get_called);
+  ASSERT_EQ(1, cras_bt_transport_fill_properties_called);
+  ASSERT_EQ(fake_transport, profile_new_connection_arg_value);
 
   CreateMessageCall("/fake", "org.bluez.Profile1", "RequestDisconnection")
       .WithString("device")
       .Send();
   WaitForMatches();
+  ASSERT_EQ(2, cras_bt_transport_get_called);
   ASSERT_EQ(1, profile_request_disconnection_called);
-  ASSERT_STREQ("device", profile_request_disconnection_arg_value);
+  ASSERT_EQ(fake_transport, profile_request_disconnection_arg_value);
 
   CreateMessageCall("/fake", "org.bluez.Profile1", "Release")
       .Send();
@@ -130,21 +140,16 @@ void fake_profile_release(struct cras_bt_profile *profile)
 }
 
 void fake_profile_new_connection(struct cras_bt_profile *profile,
-				 const char *device,
-				 int fd,
-				 int fd_properties)
+				 struct cras_bt_transport *transport)
 {
-  profile_new_connection_arg_value = device;
+  profile_new_connection_arg_value = transport;
   profile_new_connection_called++;
-
-  /* Close the duplicated fd */
-  close(fd);
 }
 
 void fake_profile_request_disconnection(struct cras_bt_profile *profile,
-					const char *device)
+					struct cras_bt_transport *transport)
 {
-  profile_request_disconnection_arg_value = device;
+  profile_request_disconnection_arg_value = transport;
   profile_request_disconnection_called++;
 }
 
@@ -162,6 +167,31 @@ dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key,
                              void *value)
 {
   return TRUE;
+}
+
+struct cras_bt_transport *cras_bt_transport_get(const char *object_path)
+{
+  cras_bt_transport_get_called++;
+  cras_bt_transport_get_arg_value = object_path;
+  return fake_transport;
+}
+
+void cras_bt_transport_destroy(struct cras_bt_transport *transport)
+{
+}
+
+struct cras_bt_transport *cras_bt_transport_create(DBusConnection *conn,
+						   const char *object_path)
+{
+  return fake_transport;
+}
+
+void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
+		int fd, const char *uuid)
+{
+  cras_bt_transport_fill_properties_called++;
+  /* Close the duplicated fd */
+  close(fd);
 }
 } // extern "C"
 

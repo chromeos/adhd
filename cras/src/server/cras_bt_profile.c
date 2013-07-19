@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "cras_bt_constants.h"
+#include "cras_bt_device.h"
 #include "cras_bt_profile.h"
 #include "cras_dbus_util.h"
 #include "utlist.h"
@@ -82,6 +83,7 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 	const char *path, *device;
 	int fd = -1;
 	struct cras_bt_profile *profile;
+	struct cras_bt_transport *transport = NULL;
 
 	path = dbus_message_get_path(message);
 
@@ -104,7 +106,12 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 	if (!profile)
 		goto invalid;
 
-	profile->new_connection(profile, device, fd, 0);
+	transport = cras_bt_transport_get(device);
+	if (!transport)
+		transport = cras_bt_transport_create(conn, device);
+	cras_bt_transport_fill_properties(transport, fd, profile->uuid);
+
+	profile->new_connection(profile, transport);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
@@ -132,6 +139,7 @@ static DBusHandlerResult cras_bt_profile_handle_request_disconnection(
 	DBusMessage *reply;
 	const char *path, *device;
 	struct cras_bt_profile *profile;
+	struct cras_bt_transport *transport;
 
 	path = dbus_message_get_path(message);
 
@@ -143,7 +151,10 @@ static DBusHandlerResult cras_bt_profile_handle_request_disconnection(
 	if (!profile)
 		goto invalid;
 
-	profile->request_disconnection(profile, device);
+	transport = cras_bt_transport_get(device);
+	profile->request_disconnection(profile, transport);
+	if (transport)
+		cras_bt_transport_destroy(transport);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)

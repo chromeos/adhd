@@ -227,6 +227,20 @@ static void cras_bt_transport_state_changed(struct cras_bt_transport *transport)
 	}
 }
 
+void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
+				       int fd, const char *uuid)
+{
+	transport->device = cras_bt_device_get(transport->object_path);
+	transport->profile = cras_bt_device_profile_from_uuid(uuid);
+	free(transport->configuration);
+
+	/* For HFP, the configuration is just the file descriptor of
+	 * the rfcomm socket */
+	transport->configuration = (int *)malloc(sizeof(fd));
+	memcpy(transport->configuration, &fd, sizeof(fd));
+	transport->configuration_len = sizeof(fd);
+}
+
 void cras_bt_transport_update_properties(
 	struct cras_bt_transport *transport,
 	DBusMessageIter *properties_array_iter,
