@@ -278,6 +278,8 @@ void dk_set_parameters(struct drc_kernel *dk,
 	float sat_release_time = 0.0025f;
 	float sat_release_frames = sat_release_time * sample_rate;
 	dk->sat_release_frames_inv_neg = -1 / sat_release_frames;
+	dk->sat_release_rate_at_neg_two_db =
+		decibels_to_linear(-2 * dk->sat_release_frames_inv_neg) - 1;
 
 	/* Create a smooth function which passes through four points.
 	 * Polynomial of the form y = a + b*x + c*x^2 + d*x^3 + e*x^4
@@ -406,6 +408,8 @@ static void dk_update_envelope(struct drc_kernel *dk)
 static void dk_update_detector_average(struct drc_kernel *dk)
 {
 	const float sat_release_frames_inv_neg = dk->sat_release_frames_inv_neg;
+	const float sat_release_rate_at_neg_two_db =
+		dk->sat_release_rate_at_neg_two_db;
 	float detector_average = dk->detector_average;
 	int div_start, i;
 
@@ -441,12 +445,18 @@ static void dk_update_detector_average(struct drc_kernel *dk)
 		float gain = volume_gain(dk, abs_input);
 		int is_release = (gain > detector_average);
 		if (is_release) {
-			float gain_db, db_per_frame, sat_release_rate;
-			gain_db = linear_to_decibels(min(gain, NEG_TWO_DB));
-			db_per_frame = gain_db * sat_release_frames_inv_neg;
-			sat_release_rate = decibels_to_linear(db_per_frame) - 1;
-			detector_average += (gain - detector_average) *
-				sat_release_rate;
+			if (gain > NEG_TWO_DB) {
+				detector_average += (gain - detector_average) *
+					sat_release_rate_at_neg_two_db;
+			} else {
+				float gain_db = linear_to_decibels(gain);
+				float db_per_frame = gain_db *
+					sat_release_frames_inv_neg;
+				float sat_release_rate =
+					decibels_to_linear(db_per_frame) - 1;
+				detector_average += (gain - detector_average) *
+					sat_release_rate;
+			}
 		} else {
 			detector_average = gain;
 		}

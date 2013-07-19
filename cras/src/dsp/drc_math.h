@@ -24,7 +24,7 @@ extern "C" {
 #define PI_FLOAT 3.141592653589793f
 #define PI_OVER_TWO_FLOAT 1.57079632679489661923f
 #define TWO_OVER_PI_FLOAT 0.63661977236758134f
-#define NEG_TWO_DB 0.7943282347242815f
+#define NEG_TWO_DB 0.7943282347242815f /* -2dB = 10^(-2/20) */
 
 #ifndef max
 #define max(a, b) ({ __typeof__(a) _a = (a);	\

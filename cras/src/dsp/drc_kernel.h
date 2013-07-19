@@ -70,6 +70,7 @@ struct drc_kernel {
 	float master_linear_gain;
 	float attack_frames;
 	float sat_release_frames_inv_neg;
+	float sat_release_rate_at_neg_two_db;
 	float knee_alpha, knee_beta;
 
 	/* envelope for the current division */
