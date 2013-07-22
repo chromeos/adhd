@@ -129,6 +129,12 @@
  *        .WithObjectPat("/arg1/object/path")
  *        .Send();
  *
+ * Create messages from server side:
+ *    CreateMessageCall("/object/path". "object.Interface", "MethodName")
+ *        .WithString("arg0")
+ *        .WithUnixFd(arg1)
+ *        .Send();
+ *
  * The TearDown() method will verify that it is received by the client,
  * use WaitForMatches() to force verification earlier in order to check
  * state.
@@ -144,11 +150,13 @@ class DBusMatch {
     int type;
     bool array;
     std::string string_value;
+    int int_value;
     std::vector<std::string> string_values;
   };
 
   // Append arguments to a match.
   DBusMatch& WithString(std::string value);
+  DBusMatch& WithUnixFd(int value);
   DBusMatch& WithObjectPath(std::string value);
   DBusMatch& WithArrayOfStrings(std::vector<std::string> values);
   DBusMatch& WithArrayOfObjectPaths(std::vector<std::string> values);
@@ -185,6 +193,10 @@ class DBusMatch {
   void CreateSignal(DBusConnection *conn,
                     std::string path, std::string interface,
                     std::string signal_name);
+
+  void CreateMessageCall(DBusConnection *conn,
+                         std::string path, std::string interface,
+                         std::string signal_name);
 
   // Determine whether a message matches a set of arguments.
   bool MatchMessageArgs(DBusMessage *message, std::vector<Arg> *args);
@@ -244,6 +256,10 @@ class DBusTest : public ::testing::Test {
   // Send a signal from the client to the server.
   DBusMatch& CreateSignal(std::string path, std::string interface,
                           std::string signal_name);
+
+  // Send a message from the client to the server.
+  DBusMatch& CreateMessageCall(std::string path, std::string interface,
+                               std::string signal_name);
 
   // Wait for all matches created by Expect*() or Create*() methods to
   // be complete.

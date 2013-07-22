@@ -39,6 +39,19 @@ DBusMatch& DBusMatch::WithString(std::string value) {
   return *this;
 }
 
+DBusMatch& DBusMatch::WithUnixFd(int value) {
+  Arg arg;
+  arg.type = DBUS_TYPE_UNIX_FD;
+  arg.array = false;
+  arg.int_value = value;
+
+  if (send_reply_)
+    reply_args_.push_back(arg);
+  else
+    args_.push_back(arg);
+  return *this;
+}
+
 DBusMatch& DBusMatch::WithObjectPath(std::string value) {
   Arg arg;
   arg.type = DBUS_TYPE_OBJECT_PATH;
@@ -120,6 +133,11 @@ DBusMatch& DBusMatch::Send() {
     message = dbus_message_new_signal(path_.c_str(),
                                       interface_.c_str(),
                                       member_.c_str());
+  else if (message_type_ == DBUS_MESSAGE_TYPE_METHOD_CALL)
+    message = dbus_message_new_method_call(NULL,
+                                           path_.c_str(),
+                                           interface_.c_str(),
+                                           member_.c_str());
   else
     return *this;
 
@@ -150,6 +168,20 @@ void DBusMatch::CreateSignal(DBusConnection *conn,
   path_ = path;
   interface_ = interface;
   member_ = signal_name;
+
+  conn_ = conn;
+  expect_serial_ = true;
+  matched_ = true;
+}
+
+void DBusMatch::CreateMessageCall(DBusConnection *conn,
+                                  std::string path,
+                                  std::string interface,
+                                  std::string method_name) {
+  message_type_ = DBUS_MESSAGE_TYPE_METHOD_CALL;
+  path_ = path;
+  interface_ = interface;
+  member_ = method_name;
 
   conn_ = conn;
   expect_serial_ = true;
@@ -225,6 +257,10 @@ void DBusMatch::AppendArgsToMessage(DBusMessage *message,
         array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_OBJECT_PATH_AS_STRING;
         element_type = DBUS_TYPE_OBJECT_PATH_AS_STRING;
         break;
+      case DBUS_TYPE_UNIX_FD:
+        array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_UNIX_FD_AS_STRING;
+        element_type = DBUS_TYPE_UNIX_FD_AS_STRING;
+        break;
       default:
         abort();
         // TODO(keybuk): additional argument types
@@ -260,6 +296,8 @@ void DBusMatch::AppendArgsToMessage(DBusMessage *message,
           || arg.type == DBUS_TYPE_OBJECT_PATH) {
         const char *str_value = arg.string_value.c_str();
         dbus_message_iter_append_basic(&iter, arg.type, &str_value);
+      } else if (arg.type == DBUS_TYPE_UNIX_FD) {
+        dbus_message_iter_append_basic(&iter, arg.type, &arg.int_value);
       }
       // TODO(keybuk): additional argument types
     }
@@ -376,6 +414,18 @@ DBusMatch& DBusTest::CreateSignal(std::string path,
                                   std::string signal_name) {
   DBusMatch match;
   match.CreateSignal(server_conn_, path, interface, signal_name);
+  pthread_mutex_lock(&mutex_);
+  matches_.push_back(match);
+  DBusMatch &ref = matches_.back();
+  pthread_mutex_unlock(&mutex_);
+  return ref;
+}
+
+DBusMatch& DBusTest::CreateMessageCall(std::string path,
+                                       std::string interface,
+                                       std::string signal_name) {
+  DBusMatch match;
+  match.CreateMessageCall(server_conn_, path, interface, signal_name);
   pthread_mutex_lock(&mutex_);
   matches_.push_back(match);
   DBusMatch &ref = matches_.back();
