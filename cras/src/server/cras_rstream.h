@@ -218,7 +218,4 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream);
  * moving a stream between io devices. */
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream);
 
-/* Logs any callback timeouts or overruns for the stream. */
-void cras_rstream_log_overrun(const struct cras_rstream *stream);
-
 #endif /* CRAS_RSTREAM_H_ */

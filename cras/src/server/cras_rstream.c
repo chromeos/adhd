@@ -236,14 +236,3 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 	cras_fill_client_stream_reattach(&msg, stream->stream_id);
 	cras_rclient_send_message(stream->client, &msg.header);
 }
-
-void cras_rstream_log_overrun(const struct cras_rstream *stream)
-{
-	if (stream->input_shm.area != NULL)
-		syslog(LOG_DEBUG, "overruns:%u",
-		       cras_shm_num_overruns(&stream->input_shm));
-
-	if (stream->output_shm.area != NULL)
-		syslog(LOG_DEBUG, "cb_timeouts:%u",
-		       cras_shm_num_cb_timeouts(&stream->output_shm));
-}

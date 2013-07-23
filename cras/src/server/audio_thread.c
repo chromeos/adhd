@@ -682,8 +682,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
 
-		cras_rstream_log_overrun(rmsg->stream);
-
 		ret = thread_remove_stream(thread, rmsg->stream);
 		break;
 	}
