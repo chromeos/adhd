@@ -409,14 +409,12 @@ static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
  *    thread - The thread to fetch samples for.
- *    fetch_size - How much to fetch.
  *    delay - How much latency is queued to the device (frames).
  * Returns:
  *    0 on success, negative error on failure. If failed, can assume that all
  *    streams have been removed from the device.
  */
 static int fetch_and_set_timestamp(struct audio_thread *thread,
-				   size_t fetch_size,
 				   size_t delay)
 {
 	struct cras_iodev *odev = thread->output_dev;
@@ -446,7 +444,8 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 						  &shm->area->ts);
 
 		/* If we already have enough data, don't poll this stream. */
-		if (frames_in_buff >= fetch_size)
+		if (frames_in_buff >=
+		    cras_rstream_get_cb_threshold(curr->stream))
 			continue;
 
 		if (!cras_shm_callback_pending(shm) &&
@@ -781,7 +780,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 		fr_to_req = captured_frames;
 	else
 		fr_to_req = odev->used_size - hw_level;
-	rc = fetch_and_set_timestamp(thread, fr_to_req, delay);
+	rc = fetch_and_set_timestamp(thread, delay);
 	if (rc < 0)
 		return rc;
 

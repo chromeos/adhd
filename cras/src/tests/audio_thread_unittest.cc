@@ -767,6 +767,7 @@ class WriteStreamSuite : public testing::Test {
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->fd = fd;
+      (*rstream)->cb_threshold = 96;
 
       shm = cras_rstream_output_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
