@@ -40,6 +40,11 @@ static inline int cras_stream_has_input(enum CRAS_STREAM_DIRECTION dir)
 	return dir != CRAS_STREAM_OUTPUT;
 }
 
+static inline int cras_stream_is_unified(enum CRAS_STREAM_DIRECTION dir)
+{
+	return dir == CRAS_STREAM_UNIFIED;
+}
+
 static inline int cras_stream_is_loopback(enum CRAS_STREAM_DIRECTION dir)
 {
 	return dir == CRAS_STREAM_POST_MIX_PRE_DSP;

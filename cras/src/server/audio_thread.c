@@ -51,6 +51,17 @@ static inline int output_streams_attached(const struct audio_thread *thread)
 	return 0;
 }
 
+static inline int unified_streams_attached(const struct audio_thread *thread)
+{
+	struct cras_io_stream *curr;
+
+	DL_FOREACH(thread->streams, curr)
+		if (cras_stream_is_unified(curr->stream->direction))
+			return 1;
+
+	return 0;
+}
+
 static inline int device_active(const struct audio_thread *thread)
 {
 	struct cras_iodev *odev = thread->output_dev;
@@ -1086,7 +1097,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	if (rc < 0)
 		return rc;
 
-	if (odev && device_open(idev) && rc == 0) {
+	if (odev && rc == 0 && unified_streams_attached(thread)) {
 		/* No samples.  Give some buffer for the output for unified IO,
 		 * need time to read samples and fill playback buffer before
 		 * hitting underflow.
