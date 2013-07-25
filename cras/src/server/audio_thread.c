@@ -300,7 +300,7 @@ int thread_add_stream(struct audio_thread *thread,
 
 	/* If not already, open the device(s). */
 	if (stream_uses_output(stream) && !odev->is_open(odev)) {
-		thread->sleep_correction_frames = 0;
+		thread->out_sleep_correction_frames = 0;
 		rc = init_device(odev, stream);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
@@ -311,7 +311,7 @@ int thread_add_stream(struct audio_thread *thread,
 			loopback_iodev_set_format(loop_dev, odev->format);
 	}
 	if (stream_uses_input(stream) && !idev->is_open(idev)) {
-		thread->sleep_correction_frames = 0;
+		thread->in_sleep_correction_frames = 0;
 		rc = init_device(idev, stream);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", idev->info.name);
@@ -823,7 +823,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	*next_sleep_frames = cras_iodev_sleep_frames(odev,
 						     odev->cb_threshold,
 						     hw_level + total_written) +
-			     thread->sleep_correction_frames;
+			     thread->out_sleep_correction_frames;
 
 	return total_written;
 }
@@ -950,16 +950,16 @@ int possibly_read_audio(struct audio_thread *thread,
 	/* If there are more remaining frames than targeted, decrease the sleep
 	 * time.  If less, increase. */
 	level_target = CAP_REMAINING_FRAMES_TARGET + idev->cb_threshold;
-	if (hw_level > level_target && thread->sleep_correction_frames)
-		thread->sleep_correction_frames--;
+	if (hw_level > level_target && thread->in_sleep_correction_frames)
+		thread->in_sleep_correction_frames--;
 	if (hw_level < level_target)
-		thread->sleep_correction_frames++;
+		thread->in_sleep_correction_frames++;
 
 	*min_sleep = cras_iodev_sleep_frames(idev,
 					     *min_sleep,
 					     hw_level - write_limit) +
 				CAP_REMAINING_FRAMES_TARGET +
-				thread->sleep_correction_frames;
+				thread->in_sleep_correction_frames;
 
 	return write_limit;
 }
@@ -1066,9 +1066,9 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			return rc;
 		if (!device_open(idev)) {
 			/* Increase sleep correction if waking up too early. */
-			thread->sleep_correction_frames++;
+			thread->out_sleep_correction_frames++;
 			pb_sleep_frames = hw_level - odev->cb_threshold +
-				thread->sleep_correction_frames;
+				thread->out_sleep_correction_frames;
 			goto not_enough;
 		}
 	}

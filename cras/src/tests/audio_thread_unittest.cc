@@ -264,7 +264,8 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_EQ(0, shm_->area->write_offset[0]);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(1, thread->sleep_correction_frames);
+  EXPECT_EQ(1, thread->in_sleep_correction_frames);
+  EXPECT_EQ(0, thread->out_sleep_correction_frames);
   EXPECT_EQ(1, dev_running_called_);
   EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
 
