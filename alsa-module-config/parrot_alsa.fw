@@ -1,0 +1,9 @@
+[codec]
+0x10ec0269 0x10250742 0
+
+[model]
+parrot
+
+[hint]
+auto_mute = no
+auto_mic = no
