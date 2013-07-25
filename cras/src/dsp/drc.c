@@ -264,32 +264,34 @@ static void sum3(float *data, float *data1, float *data2, int n)
 	int count = n / 4;
 	int i;
 
-	__asm__ __volatile(
-		"1:                                         \n"
-		"vld1.32 {%e[x],%f[x]}, [%[data1]]!         \n"
-		"vld1.32 {%e[y],%f[y]}, [%[data2]]!         \n"
-		"vld1.32 {%e[z],%f[z]}, [%[data]]           \n"
-		"vadd.f32 %q[y], %q[x]                      \n"
-		"vadd.f32 %q[z], %q[y]                      \n"
-		"vst1.32 {%e[z],%f[z]}, [%[data]]!          \n"
-		"subs %[count], #1                          \n"
-		"bne 1b                                     \n"
-		: /* output */
-		  "=r"(data),
-		  "=r"(data1),
-		  "=r"(data2),
-		  "=r"(count),
-		  [x]"=&w"(x),
-		  [y]"=&w"(y),
-		  [z]"=&w"(z)
-		: /* input */
-		  [data]"0"(data),
-		  [data1]"1"(data1),
-		  [data2]"2"(data2),
-		  [count]"3"(count)
-		: /* clobber */
-		  "memory", "cc"
-		);
+	if (count) {
+		__asm__ __volatile(
+			"1:                                         \n"
+			"vld1.32 {%e[x],%f[x]}, [%[data1]]!         \n"
+			"vld1.32 {%e[y],%f[y]}, [%[data2]]!         \n"
+			"vld1.32 {%e[z],%f[z]}, [%[data]]           \n"
+			"vadd.f32 %q[y], %q[x]                      \n"
+			"vadd.f32 %q[z], %q[y]                      \n"
+			"vst1.32 {%e[z],%f[z]}, [%[data]]!          \n"
+			"subs %[count], #1                          \n"
+			"bne 1b                                     \n"
+			: /* output */
+			  "=r"(data),
+			  "=r"(data1),
+			  "=r"(data2),
+			  "=r"(count),
+			  [x]"=&w"(x),
+			  [y]"=&w"(y),
+			  [z]"=&w"(z)
+			: /* input */
+			  [data]"0"(data),
+			  [data1]"1"(data1),
+			  [data2]"2"(data2),
+			  [count]"3"(count)
+			: /* clobber */
+			  "memory", "cc"
+			);
+	}
 
 	n &= 3;
 	for (i = 0; i < n; i++)
@@ -303,35 +305,37 @@ static void sum3(float *data, float *data1, float *data2, int n)
 	int count = n / 4;
 	int i;
 
-	__asm__ __volatile(
-		"1:                                         \n"
-		"lddqu (%[data1]), %[x]                     \n"
-		"lddqu (%[data2]), %[y]                     \n"
-		"lddqu (%[data]), %[z]                      \n"
-		"addps %[x], %[y]                           \n"
-		"addps %[y], %[z]                           \n"
-		"movdqu %[z], (%[data])                     \n"
-		"add $16, %[data1]                          \n"
-		"add $16, %[data2]                          \n"
-		"add $16, %[data]                           \n"
-		"sub $1, %[count]                           \n"
-		"jne 1b                                     \n"
-		: /* output */
-		  "=r"(data),
-		  "=r"(data1),
-		  "=r"(data2),
-		  "=r"(count),
-		  [x]"=&x"(x),
-		  [y]"=&x"(y),
-		  [z]"=&x"(z)
-		: /* input */
-		  [data]"0"(data),
-		  [data1]"1"(data1),
-		  [data2]"2"(data2),
-		  [count]"3"(count)
-		: /* clobber */
-		  "memory", "cc"
-		);
+	if (count) {
+		__asm__ __volatile(
+			"1:                                         \n"
+			"lddqu (%[data1]), %[x]                     \n"
+			"lddqu (%[data2]), %[y]                     \n"
+			"lddqu (%[data]), %[z]                      \n"
+			"addps %[x], %[y]                           \n"
+			"addps %[y], %[z]                           \n"
+			"movdqu %[z], (%[data])                     \n"
+			"add $16, %[data1]                          \n"
+			"add $16, %[data2]                          \n"
+			"add $16, %[data]                           \n"
+			"sub $1, %[count]                           \n"
+			"jne 1b                                     \n"
+			: /* output */
+			  "=r"(data),
+			  "=r"(data1),
+			  "=r"(data2),
+			  "=r"(count),
+			  [x]"=&x"(x),
+			  [y]"=&x"(y),
+			  [z]"=&x"(z)
+			: /* input */
+			  [data]"0"(data),
+			  [data1]"1"(data1),
+			  [data2]"2"(data2),
+			  [count]"3"(count)
+			: /* clobber */
+			  "memory", "cc"
+			);
+	}
 
 	n &= 3;
 	for (i = 0; i < n; i++)

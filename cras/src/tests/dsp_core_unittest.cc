@@ -97,6 +97,10 @@ TEST(EqTest, All) {
   eq_process(eq, data, len);
   EXPECT_NEAR(1, magnitude_at(data, len, f_low), 0.01);
   EXPECT_NEAR(0, magnitude_at(data, len, f_high), 0.01);
+
+  /* Test for empty input */
+  eq_process(eq, NULL, 0);
+
   eq_free(eq);
 
   /* high pass */
@@ -163,6 +167,9 @@ TEST(Eq2Test, All) {
   EXPECT_NEAR(0, magnitude_at(data0, len, f_high), 0.01);
   EXPECT_NEAR(0, magnitude_at(data1, len, f_low), 0.01);
   EXPECT_NEAR(1, magnitude_at(data1, len, f_high), 0.01);
+
+  /* Test for empty input */
+  eq2_process(eq2, NULL, NULL, 0);
   eq2_free(eq2);
 
   /* a mixture of 10Hz and 1000Hz sine */
@@ -237,6 +244,9 @@ TEST(CrossoverTest, All) {
   EXPECT_NEAR(0, magnitude_at(data2, len, f2), 0.01);
   EXPECT_NEAR(1, magnitude_at(data2, len, f4), 0.01);
 
+  /* Test for empty input */
+  crossover_process(&xo, 0, NULL, NULL, NULL);
+
   free(data);
   free(data1);
   free(data2);
@@ -303,6 +313,9 @@ TEST(Crossover2Test, All) {
   EXPECT_NEAR(0, magnitude_at(data2R, len, f2), 0.005);
   EXPECT_NEAR(0.5, magnitude_at(data2R, len, f4), 0.005);
 
+  /* Test for empty input */
+  crossover2_process(&xo2, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+
   free(data0L);
   free(data1L);
   free(data2L);
@@ -322,6 +335,7 @@ TEST(DrcTest, All) {
   float *data_left = (float *)malloc(sizeof(float) * len);
   float *data_right = (float *)malloc(sizeof(float) * len);
   float *data[] = {data_left, data_right};
+  float *data_empty[] = {NULL, NULL};
   struct drc *drc;
 
   dsp_enable_flush_denormal_to_zero();
@@ -380,6 +394,9 @@ TEST(DrcTest, All) {
 
   /* This is 20dB because of the post gain */
   EXPECT_NEAR(10, magnitude_at(data_right, len, f4), 1);
+
+  /* Test for empty input */
+  drc_process(drc, data_empty, 0);
 
   drc_free(drc);
   free(data_left);

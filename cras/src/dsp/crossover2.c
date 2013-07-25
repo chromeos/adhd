@@ -587,6 +587,9 @@ void crossover2_process(struct crossover2 *xo2, int count,
 			float *data1L, float *data1R,
 			float *data2L, float *data2R)
 {
+	if (!count)
+		return;
+
 	lr42_split(&xo2->lp[0], &xo2->hp[0], count, data0L, data0R,
 		   data1L, data1R);
 	lr42_merge(&xo2->lp[1], &xo2->hp[1], count, data0L, data0R);
