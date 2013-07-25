@@ -74,6 +74,14 @@ static inline int timeval_after(const struct timeval *a,
 		(a->tv_sec == b->tv_sec && a->tv_usec > b->tv_usec);
 }
 
+/* Returns true if timespec a is after timespec b */
+static inline int timespec_after(const struct timespec *a,
+				 const struct timespec *b)
+{
+	return (a->tv_sec > b->tv_sec) ||
+		(a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec);
+}
+
 
 #ifdef __cplusplus
 } /* extern "C" */

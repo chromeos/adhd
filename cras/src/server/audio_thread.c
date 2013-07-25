@@ -1035,6 +1035,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	int rc, delay;
 	unsigned int hw_level;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
+	struct timespec cap_ts, pb_ts;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
@@ -1118,26 +1119,37 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 
 not_enough:
 
-	 /* idev could have been closed for error. */
-	idev = thread->input_dev;
 	if (device_open(idev)) {
 		cras_iodev_fill_time_from_frames(cap_sleep_frames,
 						 idev->format->frame_rate,
-						 ts);
-	} else if (device_open(odev)) {
+						 &cap_ts);
+	}
+
+	if (device_open(odev)) {
 		cras_iodev_fill_time_from_frames(pb_sleep_frames,
 						 odev->format->frame_rate,
-						 ts);
-	} else if (thread->post_mix_loopback_dev->format) {
+						 &pb_ts);
+	}
+
+	if (device_open(idev) && device_open(odev)) {
+		if (timespec_after(&pb_ts, &cap_ts)) {
+			*ts = cap_ts;
+		} else {
+			*ts = pb_ts;
+		}
+	} else if (device_open(idev)) {
+		*ts = cap_ts;
+	} else if (device_open(odev)) {
+		*ts = pb_ts;
+	} else {
+		if (!thread->post_mix_loopback_dev->format)
+			return -EIO;
 		/* Loopback is the only stream that is open. */
 		cras_iodev_fill_time_from_frames(
 			loop_sleep_frames,
 			thread->post_mix_loopback_dev->format->frame_rate,
 			ts);
-	} else {
-		return -EIO;
 	}
-
 
 	return 0;
 }

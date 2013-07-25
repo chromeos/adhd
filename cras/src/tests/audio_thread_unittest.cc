@@ -522,8 +522,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(3, cras_rstream_audio_ready_called);
 
   thread->streams = 0;
