@@ -748,14 +748,12 @@ static int push_loopback_data(struct audio_thread *thread,
  * Args:
  *    thread - the audio thread this is running for.
  *    delay - delay through the hardware in frames.
- *    captured_frames - if doing unified io, number of frames received.
  *    hw_level - buffer level of the device.
  *    next_sleep_frames - filled with the minimum number of frames needed before
  *        the next wake up.
  */
 int possibly_fill_audio(struct audio_thread *thread,
 			unsigned int delay,
-			unsigned int captured_frames,
 			unsigned int hw_level,
 			unsigned int *next_sleep_frames)
 {
@@ -765,7 +763,6 @@ int possibly_fill_audio(struct audio_thread *thread,
 	int rc;
 	uint8_t *dst = NULL;
 	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *idev = thread->input_dev;
 	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
 
 	if (!device_open(odev))
@@ -775,11 +772,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	delay += get_dsp_delay(odev);
 
 	/* Request data from streams that need more */
-	if (device_open(idev))
-		/* If unified, get same number of frames that were read. */
-		fr_to_req = captured_frames;
-	else
-		fr_to_req = odev->used_size - hw_level;
+	fr_to_req = odev->used_size - hw_level;
 	rc = fetch_and_set_timestamp(thread, delay);
 	if (rc < 0)
 		return rc;
@@ -1031,7 +1024,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	int rc, delay;
 	unsigned int hw_level;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
-	unsigned int captured_frames;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
@@ -1085,7 +1077,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			idev->close_dev(idev);
 		return rc;
 	}
-	captured_frames = rc;
 	hw_level -= rc;
 
 	if (!device_open(odev))
@@ -1107,8 +1098,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	if (!device_open(idev))
 		rc = adjust_level(thread, rc);
 
-	rc = possibly_fill_audio(thread, delay, captured_frames,
-				 rc, &pb_sleep_frames);
+	rc = possibly_fill_audio(thread, delay, rc, &pb_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "write audio failed from audio thread");
 		odev->close_dev(odev);
