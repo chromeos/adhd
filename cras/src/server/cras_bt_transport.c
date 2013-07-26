@@ -252,10 +252,7 @@ void cras_bt_transport_update_properties(
 
 			dbus_message_iter_get_basic(&variant_iter, &value);
 
-			if (strcmp(key, "Device") == 0) {
-				transport->device = cras_bt_device_get(value);
-
-			} else if (strcmp(key, "UUID") == 0) {
+			if (strcmp(key, "UUID") == 0) {
 				transport->profile =
 					cras_bt_device_profile_from_uuid(value);
 
@@ -277,7 +274,14 @@ void cras_bt_transport_update_properties(
 
 			if (strcmp(key, "Codec") == 0)
 				transport->codec = value;
+		} else if (type == DBUS_TYPE_OBJECT_PATH) {
+			const char *obj_path;
 
+			dbus_message_iter_get_basic(&variant_iter, &obj_path);
+
+			if (strcmp(key, "Device") == 0)
+				transport->device =
+					cras_bt_device_get(obj_path);
 		} else if (strcmp(
 				dbus_message_iter_get_signature(&variant_iter),
 				"ay") == 0 &&

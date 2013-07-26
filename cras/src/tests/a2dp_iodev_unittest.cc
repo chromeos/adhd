@@ -16,7 +16,11 @@ extern "C" {
 #include "cras_a2dp_iodev.h"
 }
 
+#define FAKE_DEVICE_NAME "fake device name"
+#define FAKE_OBJECT_PATH "/fake/obj/path"
+
 static struct cras_bt_transport *fake_transport;
+static struct cras_bt_device *fake_device;
 static cras_audio_format format;
 static size_t cras_iodev_list_add_output_called;
 static size_t cras_iodev_list_rm_output_called;
@@ -59,6 +63,7 @@ void ResetStubData() {
   a2dp_write_processed_bytes_val = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
+  fake_device = NULL;
 }
 
 namespace {
@@ -80,12 +85,22 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
 
+  /* Assert iodev name matches the object path when bt device is NULL */
+  ASSERT_STREQ(FAKE_OBJECT_PATH, iodev->info.name);
+
   a2dp_iodev_destroy(iodev);
 
   ASSERT_EQ(1, cras_iodev_list_rm_output_called);
   ASSERT_EQ(1, cras_iodev_rm_node_called);
   ASSERT_EQ(1, destroy_a2dp_called);
   ASSERT_EQ(1, cras_iodev_free_dsp_called);
+
+  /* Assert iodev name matches the bt device's name */
+  fake_device = reinterpret_cast<struct cras_bt_device *>(0x456);
+  iodev = a2dp_iodev_create(fake_transport);
+  ASSERT_STREQ(FAKE_DEVICE_NAME, iodev->info.name);
+
+  a2dp_iodev_destroy(iodev);
 }
 
 TEST(A2dpIoInit, InitializeFail) {
@@ -258,7 +273,7 @@ int cras_bt_transport_fd(const struct cras_bt_transport *transport)
 const char *cras_bt_transport_object_path(
 		const struct cras_bt_transport *transport)
 {
-  return NULL;
+  return FAKE_OBJECT_PATH;
 }
 
 uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
@@ -317,6 +332,19 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
   cras_iodev_list_rm_output_called++;
   return 0;
+}
+
+// From cras_bt_transport
+struct cras_bt_device *cras_bt_transport_device(
+	const struct cras_bt_transport *transport)
+{
+  return fake_device;
+}
+
+// From cras_bt_device
+const char *cras_bt_device_name(const struct cras_bt_device *device)
+{
+  return FAKE_DEVICE_NAME;
 }
 
 int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)

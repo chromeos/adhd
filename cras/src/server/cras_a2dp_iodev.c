@@ -10,6 +10,7 @@
 
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
+#include "cras_bt_device.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_util.h"
@@ -293,6 +294,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
 	a2dp_sbc_t a2dp;
+	struct cras_bt_device *device;
 
 	a2dpio = (struct a2dp_io *)calloc(1, sizeof(*a2dpio));
 	if (!a2dpio)
@@ -312,8 +314,16 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	/* A2DP only does output now */
 	iodev->direction = CRAS_STREAM_OUTPUT;
 
-	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
-		 cras_bt_transport_object_path(a2dpio->transport));
+	/* Set iodev's name by bluetooth device's readable name, if
+	 * the readable name is not available, use address instead.
+	 */
+	device = cras_bt_transport_device(transport);
+	if (device)
+		snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
+				cras_bt_device_name(device));
+	else
+		snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
+			 cras_bt_transport_object_path(a2dpio->transport));
 
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 
