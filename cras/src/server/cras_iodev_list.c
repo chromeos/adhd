@@ -417,9 +417,13 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
 	int res;
 
-	res = rm_dev_from_list(&outputs, dev);
+	/* Retire the current active output device before removing it from
+	 * list, otherwise it could be busy and remain in the list.
+	 */
 	if (active_output == dev)
 		cras_iodev_set_active(CRAS_STREAM_OUTPUT, default_output);
+
+	res = rm_dev_from_list(&outputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -429,9 +433,13 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	int res;
 
-	res = rm_dev_from_list(&inputs, dev);
+	/* Retire the current active input device before removing it from
+	 * list, otherwise it could be busy and remain in the list.
+	 */
 	if (active_input == dev)
 		cras_iodev_set_active(CRAS_STREAM_INPUT, default_input);
+
+	res = rm_dev_from_list(&inputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
