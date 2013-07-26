@@ -187,8 +187,10 @@ static int is_open(const struct cras_iodev *iodev)
 }
 
 /* Flushes queued buffer, including pcm and a2dp buffer.
+ * Returns:
+ *    0 when the flush succeeded, -1 when error occurred.
  */
-static void flush_data(const struct cras_iodev *iodev)
+static int flush_data(const struct cras_iodev *iodev)
 {
 	int processed;
 	size_t format_bytes;
@@ -215,20 +217,27 @@ static void flush_data(const struct cras_iodev *iodev)
 	}
 
 	if (written == -EAGAIN) {
-		syslog(LOG_ERR, "a2dp_write error");
-		return;
+		syslog(LOG_ERR, "a2dp_write error, try again alter");
+		return 0;
+	} else if (written == -ENOTCONN) {
+		syslog(LOG_ERR, "a2dp endpoint not connected anymore");
+		return -1;
 	}
+
 	get_bt_queued_frames(iodev,
 			     a2dp_block_size(&a2dpio->a2dp, written)
 				     / format_bytes);
+
+	return 0;
 }
 
 static int dev_running(const struct cras_iodev *iodev)
 {
 	// Flush queued buffer when dev is open.
 	if (is_open(iodev))
-		flush_data(iodev);
-	return 0;
+		return flush_data(iodev);
+	else
+		return -1;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
@@ -265,8 +274,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		return -1;
 	a2dpio->pcm_buf_used += nwritten * format_bytes;
 
-	flush_data(iodev);
-	return 0;
+	return flush_data(iodev);
 }
 
 static void update_active_node(struct cras_iodev *iodev)
