@@ -233,11 +233,15 @@ static int flush_data(const struct cras_iodev *iodev)
 
 static int dev_running(const struct cras_iodev *iodev)
 {
+	int err;
+
+	if (!is_open(iodev))
+		return 0;
+
 	// Flush queued buffer when dev is open.
-	if (is_open(iodev))
-		return flush_data(iodev);
-	else
-		return -1;
+	err = flush_data(iodev);
+
+	return !err;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)

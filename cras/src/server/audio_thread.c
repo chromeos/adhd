@@ -818,11 +818,9 @@ int possibly_fill_audio(struct audio_thread *thread,
 	}
 
 	/* If we haven't started the device and wrote samples, then start it. */
-	if (total_written || hw_level) {
-		rc = odev->dev_running(odev);
-		if (rc < 0)
-			return rc;
-	}
+	if (total_written || hw_level)
+		if (!odev->dev_running(odev))
+			return -1;
 
 	*next_sleep_frames = cras_iodev_sleep_frames(odev,
 						     odev->cb_threshold,
@@ -1065,9 +1063,8 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 
 	if (!wake_threshold_met(master_dev, hw_level)) {
 		/* Check if the pcm is still running. */
-		rc = master_dev->dev_running(master_dev);
-		if (rc < 0)
-			return rc;
+		if (!master_dev->dev_running(master_dev))
+			return -1;
 		if (!device_open(idev)) {
 			/* Increase sleep correction if waking up too early. */
 			thread->out_sleep_correction_frames++;

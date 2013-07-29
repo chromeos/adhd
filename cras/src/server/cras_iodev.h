@@ -63,7 +63,8 @@ struct cras_ionode {
  * delay_frames - The delay of the next sample in frames.
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
- * dev_running - Checks if the device is playing or recording.
+ * dev_running - Checks if the device is playing or recording, return 1 if it's
+ *     running, return 0 if not.
  * update_active_node - Update the active node using the selected/plugged state.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).

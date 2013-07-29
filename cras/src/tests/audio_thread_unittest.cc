@@ -183,7 +183,7 @@ class ReadStreamSuite : public testing::Test {
 
     static int dev_running(const cras_iodev* iodev) {
       dev_running_called_++;
-      return 0;
+      return 1;
     }
 
 
@@ -845,7 +845,7 @@ int WriteStreamSuite::frames_queued_ = 0;
 int WriteStreamSuite::delay_frames_ = 0;
 uint8_t WriteStreamSuite::audio_buffer_[8192];
 unsigned int WriteStreamSuite::audio_buffer_size_ = 0;
-int WriteStreamSuite::dev_running_ = 0;
+int WriteStreamSuite::dev_running_ = 1;
 unsigned int WriteStreamSuite::dev_running_called_ = 0;
 unsigned int WriteStreamSuite::close_dev_called_ = 0;
 

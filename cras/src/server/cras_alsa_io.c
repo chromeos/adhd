@@ -216,21 +216,23 @@ static int dev_running(const struct cras_iodev *iodev)
 	int rc;
 
 	if (snd_pcm_state(handle) == SND_PCM_STATE_RUNNING)
-		return 0;
+		return 1;
 
 	if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
 		rc = cras_alsa_attempt_resume(handle);
-		if (rc < 0)
-			return rc;
+		if (rc < 0) {
+			syslog(LOG_ERR, "Resume error: %s", snd_strerror(rc));
+			return 0;
+		}
 	} else {
 		rc = cras_alsa_pcm_start(handle);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));
-			return rc;
+			return 0;
 		}
 	}
 
-	return 0;
+	return 1;
 }
 
 static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
