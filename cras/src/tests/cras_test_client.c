@@ -723,9 +723,9 @@ static void show_usage()
 	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
 	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
 	       " ionode with the given index M on the device with index N\n");
-	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output");
-	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input");
-	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id");
+	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
+	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
+	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--help - Print this message.\n");
 }
 
