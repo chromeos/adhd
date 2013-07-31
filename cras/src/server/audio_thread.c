@@ -873,9 +873,11 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
-		cras_iodev_set_capture_timestamp(idev->format->frame_rate,
-						 delay,
-						 &shm->area->ts);
+		if (cras_shm_frames_written(shm) == 0)
+			cras_iodev_set_capture_timestamp(
+					idev->format->frame_rate,
+					delay,
+					&shm->area->ts);
 		cras_shm_get_writeable_frames(
 				shm,
 				cras_rstream_get_cb_threshold(rstream),
