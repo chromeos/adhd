@@ -702,6 +702,7 @@ class WriteStreamSuite : public testing::Test {
       iodev_.used_size = 480;
       iodev_.cb_threshold = 96;
       iodev_.direction = CRAS_STREAM_OUTPUT;
+      iodev_.software_volume_scaler = 1.0;
 
       iodev_.frames_queued = frames_queued;
       iodev_.delay_frames = delay_frames;
@@ -1006,9 +1007,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   audio_buffer_size_ = iodev_.used_size - frames_queued_;
 
   //  Software volume config.
-  iodev_.software_volume_needed = 1;
-  cras_system_get_volume_return = 88;
-  softvol_scalers[88] = 0.5;
+  iodev_.software_volume_scaler = 0.5;
 
   //  shm is out of data.
   shm_->area->write_offset[0] = 0;

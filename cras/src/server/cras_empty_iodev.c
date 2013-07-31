@@ -131,6 +131,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->supported_rates = empty_supported_rates;
 	iodev->supported_channel_counts = empty_supported_channel_counts;
 	iodev->buffer_size = EMPTY_BUFFER_SIZE;
+        iodev->software_volume_scaler = 1.0;
 
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;

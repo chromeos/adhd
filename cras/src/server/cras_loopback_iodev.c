@@ -106,6 +106,7 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 		calloc(2, sizeof(*iodev->supported_channel_counts));
 	iodev->supported_channel_counts[0] = 2;
 	iodev->buffer_size = LOOPBACK_BUFFER_SIZE;
+	iodev->software_volume_scaler = 1.0;
 
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;

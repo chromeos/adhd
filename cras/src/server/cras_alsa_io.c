@@ -859,6 +859,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		syslog(LOG_ERR, "cras_alsa_fill_properties: %s", strerror(err));
 		goto cleanup_iodev;
 	}
+	iodev->software_volume_scaler = 1.0;
 
 	aio->mixer = mixer;
 	aio->ucm = ucm;

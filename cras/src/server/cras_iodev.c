@@ -362,3 +362,10 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 	iodev->active_node = node;
 	cras_iodev_list_notify_active_node_changed();
 }
+
+void cras_iodev_set_software_volume(struct cras_iodev *iodev,
+				    float volume_scaler)
+{
+	/* TODO(alhli): Also need to set volume scaler via IPC message. */
+        iodev->software_volume_scaler = volume_scaler;
+}

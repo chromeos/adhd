@@ -11,6 +11,9 @@ extern "C" {
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "utlist.h"
+
+// Stub volume scalers.
+float softvol_scalers[101];
 }
 
 namespace {
@@ -43,6 +46,9 @@ static int cras_alert_destroy_called;
 static int cras_alert_pending_called;
 static cras_iodev *audio_thread_remove_streams_odev;
 static cras_iodev *audio_thread_last_output_dev;
+static unsigned int cras_system_get_volume_return;
+static int cras_iodev_set_software_volume_called;
+static float cras_iodev_set_software_volume_value;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -128,6 +134,7 @@ class IoDevTestSuite : public testing::Test {
       cras_alert_destroy_called = 0;
       cras_alert_pending_called = 0;
       is_open_ = 0;
+      cras_iodev_set_software_volume_called = 0;
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -645,6 +652,62 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
   EXPECT_EQ(1, set_node_attr_called);
 }
 
+// Test software volume changes for default output.
+TEST_F(IoDevTestSuite, SoftwareVolume) {
+  int rc;
+
+  d1_.info.idx = 1;
+  d1_.software_volume_needed = 0;
+  d1_.software_volume_scaler = 1.0;
+  d1_.active_node->dev = &d1_;
+  d1_.active_node->volume = 100;
+
+  cras_iodev_list_init();
+  ASSERT_EQ(1, register_volume_changed_cb_called);
+  ASSERT_TRUE(volume_changed_cb);
+
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(0, rc);
+
+  // Check that software volume is initially set to 1.0.
+  EXPECT_EQ(0, cras_iodev_set_software_volume_called);
+  EXPECT_FLOAT_EQ(1.0, d1_.software_volume_scaler);
+
+  softvol_scalers[80] = 0.5;
+  softvol_scalers[70] = 0.3;
+
+  // Check that software volume is set to 1.0 if not needed during system volume
+  // change.
+  d1_.software_volume_needed = 0;
+  volume_changed_cb(volume_changed_arg);
+  EXPECT_EQ(1, cras_iodev_set_software_volume_called);
+  EXPECT_FLOAT_EQ(1.0, cras_iodev_set_software_volume_value);
+
+  // Check that system volume changes software volume if needed.
+  d1_.software_volume_needed = 1;
+  cras_system_get_volume_return = 80;
+  volume_changed_cb(volume_changed_arg);
+  EXPECT_EQ(2, cras_iodev_set_software_volume_called);
+  EXPECT_FLOAT_EQ(0.5, cras_iodev_set_software_volume_value);
+
+  // Check that node volume changes software volume if needed.
+  node1.idx = 1;
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                     IONODE_ATTR_VOLUME, 90);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(3, cras_iodev_set_software_volume_called);
+  EXPECT_FLOAT_EQ(0.3, cras_iodev_set_software_volume_value);
+
+  // Check that software volume is set to 1.0 if not needed during node volume
+  // change.
+  d1_.software_volume_needed = 0;
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                     IONODE_ATTR_VOLUME, 100);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(4, cras_iodev_set_software_volume_called);
+  EXPECT_FLOAT_EQ(1.0, cras_iodev_set_software_volume_value);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -775,10 +838,52 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
   return 0;
 }
 
+size_t cras_system_get_volume() {
+  return cras_system_get_volume_return;
+}
+
+void cras_iodev_set_software_volume(struct cras_iodev *iodev,
+                                    float volume_scaler)
+{
+  cras_iodev_set_software_volume_called++;
+  cras_iodev_set_software_volume_value = volume_scaler;
+}
+
+void set_node_volume(struct cras_ionode *node, int value)
+{
+  struct cras_iodev *dev = node->dev;
+  unsigned int volume;
+
+  if (dev->direction != CRAS_STREAM_OUTPUT)
+    return;
+
+  volume = (unsigned int)min(value, 100);
+  node->volume = volume;
+  if (dev->set_volume)
+    dev->set_volume(dev);
+
+  cras_iodev_list_notify_node_volume(node);
+}
+
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,
-			     enum ionode_attr attr, int value)
+                             enum ionode_attr attr, int value)
 {
   set_node_attr_called++;
+
+  switch (attr) {
+  case IONODE_ATTR_PLUGGED:
+    // plug_node(ionode, value);
+    break;
+  case IONODE_ATTR_VOLUME:
+    set_node_volume(ionode, value);
+    break;
+  case IONODE_ATTR_CAPTURE_GAIN:
+    // set_node_capture_gain(ionode, value);
+    break;
+  default:
+    return -EINVAL;
+  }
+
   return 0;
 }
 

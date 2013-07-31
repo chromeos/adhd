@@ -510,7 +510,6 @@ static int write_streams(struct audio_thread *thread,
 	size_t streams_wait, num_mixed;
 	int max_fd;
 	int rc;
-	float volume_scaler = 1.0;
 
 	/* Timeout on reading before we under-run. Leaving time to mix. */
 	to.tv_sec = 0;
@@ -524,12 +523,6 @@ static int write_streams(struct audio_thread *thread,
 	max_fd = -1;
 	streams_wait = 0;
 	num_mixed = 0;
-
-	if (cras_iodev_software_volume_needed(odev)) {
-		unsigned int volume = cras_system_get_volume();
-		volume_scaler = softvol_get_scaler(
-			cras_iodev_adjust_active_node_volume(odev, volume));
-	}
 
 	/* Check if streams have enough data to fill this request,
 	 * if not, wait for them. Mix all streams we have enough data for. */
@@ -613,7 +606,7 @@ static int write_streams(struct audio_thread *thread,
 		shm = cras_rstream_output_shm(curr->stream);
 		if (cras_mix_add_stream(shm,
 					odev->format->num_channels,
-					volume_scaler,
+					odev->software_volume_scaler,
 					dst, &write_limit, &num_mixed))
 			cras_shm_buffer_read(shm, write_limit);
 	}

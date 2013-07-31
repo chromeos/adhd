@@ -81,6 +81,8 @@ struct cras_ionode {
  * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
  * thread - The audio thread using this device, NULL if none.
  * software_volume_needed - True if volume control is not supported by hardware.
+ * software_volume_scaler - The scaler used for software volume mixing. Should
+ *     be 1.0 by default.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -116,6 +118,7 @@ struct cras_iodev {
 	struct audio_thread *thread;
 	int software_volume_needed;
 	struct cras_iodev *prev, *next;
+	float software_volume_scaler;
 };
 
 /*
@@ -247,6 +250,10 @@ void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node);
 /* Assign a node to be the active node of the device */
 void cras_iodev_set_active_node(struct cras_iodev *iodev,
 				struct cras_ionode *node);
+
+/* Sets the software volume scaler of the iodev. */
+void cras_iodev_set_software_volume(struct cras_iodev *iodev,
+				    float volume_scaler);
 
 /* Gets a count of how many frames until the next time the thread should wake
  * up to service the buffer.
