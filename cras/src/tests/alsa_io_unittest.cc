@@ -281,8 +281,8 @@ TEST(AlsaIoInit, OpenPlayback) {
 
   iodev->open_dev(iodev);
   EXPECT_EQ(1, cras_alsa_open_called);
-  EXPECT_EQ(1, sys_set_volume_limits_called);
-  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(0, sys_set_volume_limits_called);
+  EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
   EXPECT_EQ(1, cras_ionode_get_best_node_called);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
@@ -423,13 +423,13 @@ TEST(AlsaIoInit, OpenCapture) {
   ResetStubData();
   iodev->open_dev(iodev);
   EXPECT_EQ(1, cras_alsa_open_called);
-  EXPECT_EQ(1, cras_alsa_mixer_get_minimum_capture_gain_called);
-  EXPECT_EQ(1, cras_alsa_mixer_get_maximum_capture_gain_called);
-  EXPECT_EQ(1, sys_set_capture_gain_limits_called);
-  EXPECT_EQ(1, sys_get_capture_gain_called);
-  EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
-  EXPECT_EQ(1, sys_get_capture_mute_called);
-  EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
+  EXPECT_EQ(0, cras_alsa_mixer_get_minimum_capture_gain_called);
+  EXPECT_EQ(0, cras_alsa_mixer_get_maximum_capture_gain_called);
+  EXPECT_EQ(0, sys_set_capture_gain_limits_called);
+  EXPECT_EQ(0, sys_get_capture_gain_called);
+  EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
+  EXPECT_EQ(0, sys_get_capture_mute_called);
+  EXPECT_EQ(0, alsa_mixer_set_capture_mute_called);
   EXPECT_EQ(1, cras_alsa_start_called);
 
   alsa_iodev_destroy(iodev);
@@ -546,7 +546,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
                                   aio->base.nodes->next);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
-  EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   ASSERT_EQ(2, cras_alsa_mixer_set_output_active_state_called);
   EXPECT_EQ(outputs[0], cras_alsa_mixer_set_output_active_state_outputs[0]);
   EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[0]);
@@ -775,8 +775,6 @@ class AlsaVolumeMuteSuite : public testing::Test {
 TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   int rc;
   struct cras_audio_format *fmt;
-  const size_t fake_system_volume = 55;
-  const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
 
   fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));
@@ -784,13 +782,10 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   aio_output_->handle = (snd_pcm_t *)0x24;
 
   aio_output_->num_underruns = 3; //  Something non-zero.
-  sys_get_volume_return_value = fake_system_volume;
   rc = aio_output_->base.open_dev(&aio_output_->base);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
-  EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
-  EXPECT_EQ(1, alsa_mixer_set_mute_called);
-  EXPECT_EQ(0, alsa_mixer_set_mute_value);
+  EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(0, alsa_mixer_set_mute_called);
 
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;

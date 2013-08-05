@@ -114,6 +114,12 @@ try_again:
 	if (odev && idev)
 		cras_iodev_set_format(odev, &fmt);
 
+	/* Reset the volume and capture gain. */
+	if (idev && idev->set_capture_gain)
+		idev->set_capture_gain(idev);
+	if (odev && odev->set_volume)
+		odev->set_volume(odev);
+
 	DL_APPEND(client->streams, stream);
 	rc = audio_thread_add_stream(thread, stream);
 	if (rc < 0) {

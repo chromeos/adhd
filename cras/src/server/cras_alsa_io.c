@@ -193,7 +193,6 @@ static int open_dev(struct cras_iodev *iodev)
 
 	/* Assign pcm handle then initialize device settings. */
 	aio->handle = handle;
-	init_device_settings(aio);
 
 	/* Capture starts right away, playback will wait for samples. */
 	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE)
@@ -346,10 +345,6 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 	if (aio->mixer == NULL)
 		return;
 
-	/* Only set the volume if the dev is active. */
-	if (!is_open(&aio->base))
-		return;
-
 	volume = cras_system_get_volume();
 	mute = cras_system_get_mute();
 	curve = get_curve_for_active_output(aio);
@@ -377,10 +372,6 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 
 	assert(aio);
 	if (aio->mixer == NULL)
-		return;
-
-	/* Only set the volume if the dev is active. */
-	if (!is_open(&aio->base))
 		return;
 
 	gain = cras_system_get_capture_gain();
