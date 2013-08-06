@@ -759,13 +759,11 @@ static int push_loopback_data(struct audio_thread *thread,
  * Return the number of samples written to the device.
  * Args:
  *    thread - the audio thread this is running for.
- *    delay - delay through the hardware in frames.
  *    hw_level - buffer level of the device.
  *    next_sleep_frames - filled with the minimum number of frames needed before
  *        the next wake up.
  */
 int possibly_fill_audio(struct audio_thread *thread,
-			unsigned int delay,
 			unsigned int hw_level,
 			unsigned int *next_sleep_frames)
 {
@@ -773,6 +771,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	snd_pcm_sframes_t written;
 	snd_pcm_uframes_t total_written = 0;
 	int rc;
+	int delay;
 	uint8_t *dst = NULL;
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
@@ -780,6 +779,10 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 	if (!device_open(odev))
 		return 0;
+
+	delay = odev->delay_frames(odev);
+	if (delay < 0)
+		return delay;
 
 	/* Account for the dsp delay in addition to the hardware delay. */
 	delay += get_dsp_delay(odev);
@@ -845,13 +848,11 @@ int possibly_fill_audio(struct audio_thread *thread,
  * Return the number of samples read from the device.
  * Args:
  *    thread - the audio thread this is running for.
- *    delay - delay through the hardware in frames.
  *    hw_level - buffer level of the device.
  *    min_sleep - Will be filled with the minimum amount of frames needed to
  *      fill the next lowest latency stream's buffer.
  */
 int possibly_read_audio(struct audio_thread *thread,
-			unsigned int delay,
 			unsigned int hw_level,
 			unsigned int *min_sleep)
 {
@@ -862,13 +863,11 @@ int possibly_read_audio(struct audio_thread *thread,
 	uint8_t *src;
 	unsigned int write_limit;
 	unsigned int nread, level_target;
+	int delay;
 	struct cras_iodev *idev = thread->input_dev;
 
 	if (!device_open(idev))
 		return 0;
-
-	/* Account for the dsp delay in addition to the hardware delay. */
-	delay += get_dsp_delay(idev);
 
 	write_limit = hw_level;
 
@@ -882,12 +881,16 @@ int possibly_read_audio(struct audio_thread *thread,
 		if (!stream_uses_input(rstream))
 			continue;
 
+		delay = idev->delay_frames(idev);
+		if (delay < 0)
+			return delay;
+
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
 		if (cras_shm_frames_written(shm) == 0)
 			cras_iodev_set_capture_timestamp(
 					idev->format->frame_rate,
-					delay,
+					delay + get_dsp_delay(idev),
 					&shm->area->ts);
 		cras_shm_get_writeable_frames(
 				shm,
@@ -899,7 +902,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		if (output_shm->area)
 			cras_iodev_set_playback_timestamp(
 					idev->format->frame_rate,
-					delay,
+					delay + get_dsp_delay(idev),
 					&output_shm->area->ts);
 	}
 
@@ -1029,7 +1032,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *idev = thread->input_dev;
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *master_dev;
-	int rc, delay;
+	int rc;
 	unsigned int hw_level;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
 	struct timespec cap_ts, pb_ts;
@@ -1073,12 +1076,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		}
 	}
 
-	rc = master_dev->delay_frames(master_dev);
-	if (rc < 0)
-		return rc;
-	delay = rc;
-
-	rc = possibly_read_audio(thread, delay, hw_level, &cap_sleep_frames);
+	rc = possibly_read_audio(thread, hw_level, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		if (device_open(idev))
@@ -1106,7 +1104,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	if (!device_open(idev))
 		rc = adjust_level(thread, rc);
 
-	rc = possibly_fill_audio(thread, delay, rc, &pb_sleep_frames);
+	rc = possibly_fill_audio(thread, rc, &pb_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "write audio failed from audio thread");
 		odev->close_dev(odev);
