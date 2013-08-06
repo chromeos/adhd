@@ -289,6 +289,7 @@ TEST(AlsaIoInit, OpenPlayback) {
 
   alsa_iodev_destroy(iodev);
   free(fake_curve);
+  fake_curve = NULL;
   free(fake_format);
 }
 
@@ -356,6 +357,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
   free(fake_curve);
+  fake_curve = NULL;
 }
 
 TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
@@ -389,6 +391,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
   free(fake_curve);
+  fake_curve = NULL;
 }
 
 TEST(AlsaIoInit, InitializeCapture) {
@@ -556,6 +559,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   free(outputs[0]);
   free(outputs[1]);
   free(fake_curve);
+  fake_curve = NULL;
 }
 
 //  Test handling of different amounts of outputs.
@@ -608,6 +612,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   free(outputs[0]);
   free(outputs[1]);
   free(fake_curve);
+  fake_curve = NULL;
 }
 
 TEST(AlsaInitNode, SetNodeInitialState) {
@@ -759,6 +764,7 @@ class AlsaVolumeMuteSuite : public testing::Test {
       alsa_iodev_destroy((struct cras_iodev *)aio_input_);
       cras_alsa_get_avail_frames_ret = 0;
       free(fake_curve);
+      fake_curve = NULL;
     }
 
   struct alsa_io *aio_output_;
