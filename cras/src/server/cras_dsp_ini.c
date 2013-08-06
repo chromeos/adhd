@@ -8,7 +8,7 @@
 #include "cras_dsp_ini.h"
 
 #define MAX_INI_KEY_LENGTH 64  /* names like "output_source:output_0" */
-#define MAX_NR_PORT 64	/* the max number of ports for a plugin */
+#define MAX_NR_PORT 128	/* the max number of ports for a plugin */
 #define MAX_PORT_NAME_LENGTH 20 /* names like "output_32" */
 
 /* Format of the ini file (See dsp.ini.sample for an example).
