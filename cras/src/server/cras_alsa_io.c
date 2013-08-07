@@ -582,6 +582,24 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	cras_iodev_add_node(&aio->base, &output->base);
 }
 
+static int auto_unplug_input_node(struct alsa_io *aio)
+{
+	char *value;
+	int i;
+
+	if (!aio->ucm)
+		return 0;
+
+	value = ucm_get_flag(aio->ucm, "AutoUnplugInputNode");
+	if (!value)
+		return 0;
+
+	i = atoi(value);
+	free(value);
+
+	return i;
+}
+
 static void new_input(const char *name, struct alsa_io *aio)
 {
 	struct alsa_input_node *input;
@@ -595,6 +613,13 @@ static void new_input(const char *name, struct alsa_io *aio)
 	input->base.idx = aio->next_ionode_index++;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
+
+	/* Auto unplug internal mic if any input node has already
+	 * been created */
+	if (&aio->base.nodes && !strcmp(name, INTERNAL_MICROPHONE)
+			&& auto_unplug_input_node(aio))
+		input->base.plugged = 0;
+
 	cras_iodev_add_node(&aio->base, &input->base);
 }
 
@@ -736,6 +761,17 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	}
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
+
+	if (auto_unplug_input_node(aio)) {
+		struct cras_ionode *tmp;
+		DL_FOREACH(aio->base.nodes, tmp)
+			if (tmp != &node->base &&
+					!strcmp(node->base.name,
+						INTERNAL_MICROPHONE))
+				cras_iodev_set_node_attr(tmp,
+							 IONODE_ATTR_PLUGGED,
+							 !plugged);
+	}
 }
 
 /* Sets the name of the given iodev, using the name and index of the card
