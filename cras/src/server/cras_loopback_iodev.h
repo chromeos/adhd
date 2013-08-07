@@ -24,7 +24,13 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_STREAM_DIRECTION direction);
 /* Destroys an loopback_iodev created with loopback_iodev_create. */
 void loopback_iodev_destroy(struct cras_iodev *iodev);
 
-/* Supplies samples to be looped back. */
+/* Supplies samples to be looped back.
+ * Args:
+ *    loopback_dev - The loopback device.
+ *    audio - The samples to write, fill with zeros if NULL.
+ *    count - Number of frames to write.
+ *    stream - The stream to write to.
+ */
 int loopback_iodev_add_audio(struct cras_iodev *loopback_dev,
 			     const uint8_t *audio,
 			     unsigned int count,

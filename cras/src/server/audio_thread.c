@@ -1002,31 +1002,17 @@ static unsigned int adjust_level(const struct audio_thread *thread, int level)
 /* When no output devices are open, feed loopback streams zeros. */
 static int send_loopback_zeros(struct audio_thread *thread)
 {
+	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
 	struct cras_io_stream *curr;
-	struct cras_audio_shm *shm;
-	uint8_t *dst;
-	int rc;
 
 	DL_FOREACH(thread->streams, curr) {
 		struct cras_rstream *rstream = curr->stream;
 		unsigned int count = cras_rstream_get_cb_threshold(rstream);
 
-		if (!cras_stream_is_loopback(rstream->direction))
+		if (!stream_uses_loopback(rstream))
 			continue;
 
-		shm = cras_rstream_input_shm(rstream);
-		cras_shm_check_write_overrun(shm);
-
-		dst = cras_shm_get_writeable_frames(shm, count, NULL);
-		memset(dst, 0, count * cras_shm_frame_bytes(shm));
-		cras_shm_buffer_written(shm, count);
-		cras_shm_buffer_write_complete(shm);
-		rc = cras_rstream_audio_ready(
-			rstream, cras_rstream_get_cb_threshold(rstream));
-		if (rc < 0) {
-			thread_remove_stream(thread, rstream);
-			return 0;
-		}
+		loopback_iodev_add_audio(loop_dev, NULL, count, rstream);
 
 		/* Only support one loopback stream. */
 		return count;

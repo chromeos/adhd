@@ -143,12 +143,14 @@ int loopback_iodev_add_audio(struct cras_iodev *dev,
 	unsigned int this_count;
 	unsigned int max_loops;
 	unsigned int cb_threshold;
+	unsigned int frame_bytes;
 
 	if (!cras_stream_is_loopback(stream->direction))
 		return -EINVAL;
 
 	shm = cras_rstream_input_shm(stream);
 	cb_threshold = cras_rstream_get_cb_threshold(stream);
+	frame_bytes = cras_shm_frame_bytes(shm);
 
 	total_written = 0;
 	max_loops = 2;  /* Should never be hit, but just in case. */
@@ -163,9 +165,12 @@ int loopback_iodev_add_audio(struct cras_iodev *dev,
 				cb_threshold,
 				&this_count);
 		this_count = min(this_count, count - total_written);
-		memcpy(dst,
-		       audio + total_written * cras_shm_frame_bytes(shm),
-		       this_count * cras_shm_frame_bytes(shm));
+		if (audio)
+			memcpy(dst,
+			       audio + total_written * frame_bytes,
+			       this_count * frame_bytes);
+		else
+			memset(dst, 0, this_count * frame_bytes);
 		cras_shm_buffer_written(shm, this_count);
 		total_written += this_count;
 
