@@ -29,6 +29,7 @@ static const size_t MAX_ATTACHED_CLIENTS = 10; /* Max clients to print out. */
 static uint8_t *file_buf;
 static size_t file_buf_size;
 static size_t file_buf_read_offset;
+static int pipefd[2];
 static struct timespec last_latency;
 static int show_latency;
 static float last_rms_sqr_sum;
@@ -49,11 +50,17 @@ static unsigned char cap_buf[BUF_SIZE];
 
 struct cras_audio_format *aud_format;
 
+static int terminate_stream_loop()
+{
+	keep_looping = 0;
+	return write(pipefd[1], "1", 1);
+}
+
 static void check_stream_terminate(size_t frames)
 {
 	if (duration_frames) {
 		if (duration_frames <= frames)
-			keep_looping = 0;
+			terminate_stream_loop();
 		else
 			duration_frames -= frames;
 	}
@@ -117,7 +124,7 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 					       write_size, cap_buf, BUF_SIZE,
 					       &encoded);
 		if (processed_bytes <= 0 || processed_bytes > write_size) {
-			keep_looping = 0;
+			terminate_stream_loop();
 			return EOF;
 		}
 
@@ -145,7 +152,7 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 
 	if (file_buf_read_offset >= file_buf_size) {
 		if (exit_after_done_playing)
-			keep_looping = 0;
+			terminate_stream_loop();
 		return EOF;
 	}
 
@@ -173,7 +180,7 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 		file_buf_read_offset += this_size;
 		if (this_size == 0) {
 			printf("stop looping\n");
-			keep_looping = 0;
+			terminate_stream_loop();
 			return EOF;
 		}
 		return decoded / frame_bytes;
@@ -207,7 +214,7 @@ static int stream_error(struct cras_client *client,
 			void *arg)
 {
 	printf("Stream error %d\n", err);
-	keep_looping = 0;
+	terminate_stream_loop();
 	return 0;
 }
 
@@ -406,6 +413,7 @@ static int run_file_io_stream(struct cras_client *client,
 			      size_t num_channels,
 			      int flags)
 {
+	int rc;
 	struct cras_stream_params *params;
 	cras_playback_cb_t aud_cb;
 	cras_stream_id_t stream_id = 0;
@@ -419,8 +427,16 @@ static int run_file_io_stream(struct cras_client *client,
 	long cap_gain = 0;
 	int mute = 0;
 
-	sleep_ts.tv_sec = 0;
-	sleep_ts.tv_nsec = 250 * 1000000;
+	/* Set the sleep interval between latency/RMS prints. */
+	sleep_ts.tv_sec = 1;
+	sleep_ts.tv_nsec = 0;
+
+	/* Open the pipe file descriptor. */
+	rc = pipe(pipefd);
+	if (rc == -1) {
+		perror("failed to open pipe");
+		return -errno;
+	}
 
 	/* Reset the total RMS value. */
 	total_rms_sqr_sum = 0;
@@ -461,9 +477,13 @@ static int run_file_io_stream(struct cras_client *client,
 
 		FD_ZERO(&poll_set);
 		FD_SET(1, &poll_set);
-		sleep_ts.tv_sec = 0;
-		sleep_ts.tv_nsec = 750 * 1000000;
-		pselect(2, &poll_set, NULL, NULL, &sleep_ts, NULL);
+		FD_SET(pipefd[0], &poll_set);
+		pselect(max(1, pipefd[0]) + 1,
+			&poll_set,
+			NULL,
+			NULL,
+			show_latency || show_rms ? &sleep_ts : NULL,
+			NULL);
 
 		if (stream_playing && show_latency)
 			print_last_latency();
@@ -481,7 +501,7 @@ static int run_file_io_stream(struct cras_client *client,
 		}
 		switch (input) {
 		case 'q':
-			keep_looping = 0;
+			terminate_stream_loop();
 			break;
 		case 's':
 			if (stream_playing)
@@ -569,6 +589,9 @@ static int run_file_io_stream(struct cras_client *client,
 	cras_audio_format_destroy(aud_format);
 	cras_client_stream_params_destroy(params);
 	free(pfd);
+
+	close(pipefd[0]);
+	close(pipefd[1]);
 
 	return 0;
 }
