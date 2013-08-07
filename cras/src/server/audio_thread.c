@@ -318,8 +318,17 @@ int thread_add_stream(struct audio_thread *thread,
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
-		if (loop_dev)
+		if (loop_dev) {
+			struct cras_io_stream *iostream, *tmp;
 			loopback_iodev_set_format(loop_dev, odev->format);
+			/* For each loopback stream; detach and tell client to reconfig. */
+			DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
+				if (!stream_uses_loopback(iostream->stream))
+					continue;
+				cras_rstream_send_client_reattach(iostream->stream);
+				thread_remove_stream(thread, iostream->stream);
+			}
+		}
 	}
 	if (stream_uses_input(stream) && !idev->is_open(idev)) {
 		thread->in_sleep_correction_frames = 0;
