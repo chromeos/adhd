@@ -45,6 +45,8 @@ static unsigned int audio_thread_rm_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
 static unsigned int cras_iodev_set_format_frame_rate;
+static unsigned int cras_iodev_set_node_attr_called;
+static enum ionode_attr cras_iodev_set_node_attr_attr;
 
 void ResetStubData() {
   get_iodev_retval = 0;
@@ -74,6 +76,8 @@ void ResetStubData() {
   cras_iodev_list_rm_output_called = 0;
   cras_iodev_list_rm_input_called = 0;
   cras_iodev_set_format_frame_rate = 0;
+  cras_iodev_set_node_attr_called = 0;
+  cras_iodev_set_node_attr_attr = IONODE_ATTR_PLUGGED;
 }
 
 namespace {
@@ -135,6 +139,12 @@ class RClientMessagesSuite : public testing::Test {
 
       memset(&odev_, 0, sizeof(odev_));
       memset(&idev_, 0, sizeof(idev_));
+      memset(&inode_, 0, sizeof(inode_));
+      memset(&onode_, 0, sizeof(onode_));
+      odev_.nodes = &onode_;
+      odev_.active_node = &onode_;
+      idev_.nodes = &inode_;
+      idev_.active_node = &inode_;
 
       ResetStubData();
     }
@@ -146,8 +156,8 @@ class RClientMessagesSuite : public testing::Test {
       close(pipe_fds_[1]);
     }
 
-    struct cras_iodev odev_;
-    struct cras_iodev idev_;
+    struct cras_iodev odev_, idev_;
+    struct cras_ionode inode_, onode_;
     struct cras_connect_message connect_msg_;
     struct cras_rclient *rclient_;
     struct cras_rstream *rstream_;
@@ -465,6 +475,49 @@ TEST_F(RClientMessagesSuite, SetCaptureMute) {
   EXPECT_EQ(1, cras_system_set_capture_mute_locked_value);
 }
 
+TEST_F(RClientMessagesSuite, InitNodeVolume) {
+  int rc;
+
+  get_iodev_idev = NULL;
+  get_iodev_odev = (struct cras_iodev *)&odev_;
+  cras_rstream_create_stream_out = rstream_;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_VOLUME, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+}
+
+TEST_F(RClientMessagesSuite, InitNodeCaptureGain) {
+  int rc;
+
+  get_iodev_idev = (struct cras_iodev *)&idev_;
+  get_iodev_odev = NULL;
+  cras_rstream_create_stream_out = rstream_;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(IONODE_ATTR_CAPTURE_GAIN, cras_iodev_set_node_attr_attr);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+}
+
+TEST_F(RClientMessagesSuite, InitNodeUnified) {
+  int rc;
+
+  get_iodev_idev = (struct cras_iodev *)&idev_;
+  get_iodev_odev = (struct cras_iodev *)&odev_;
+  cras_rstream_create_stream_out = rstream_;
+
+  connect_msg_.direction = CRAS_STREAM_INPUT;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -630,6 +683,14 @@ void cras_dsp_reload_ini()
 
 void cras_dsp_dump_info()
 {
+}
+
+int cras_iodev_set_node_attr(struct cras_ionode *ionode,
+                             enum ionode_attr attr, int value)
+{
+  cras_iodev_set_node_attr_attr = attr;
+  cras_iodev_set_node_attr_called++;
+  return 0;
 }
 
 int cras_iodev_list_set_node_attr(int dev_index, int node_index,
