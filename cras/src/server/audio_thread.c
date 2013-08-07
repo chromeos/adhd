@@ -606,7 +606,6 @@ static int write_streams(struct audio_thread *thread,
 		shm = cras_rstream_output_shm(curr->stream);
 		if (cras_mix_add_stream(shm,
 					odev->format->num_channels,
-					odev->software_volume_scaler,
 					dst, &write_limit, &num_mixed))
 			cras_shm_buffer_read(shm, write_limit);
 	}
@@ -777,6 +776,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	uint8_t *dst = NULL;
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
+	unsigned int frame_bytes = cras_get_format_bytes(odev->format);
 
 	if (!device_open(odev))
 		return 0;
@@ -811,7 +811,16 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 		push_loopback_data(thread, loop_dev, dst, written);
 
-		apply_dsp(odev, dst, written);
+		if (cras_system_get_mute())
+			memset(dst, 0, written * frame_bytes);
+		else
+			apply_dsp(odev, dst, written);
+
+		if (cras_iodev_software_volume_needed(odev)) {
+			cras_scale_buffer((int16_t *)dst,
+					  written * odev->format->num_channels,
+					  odev->software_volume_scaler);
+		}
 
 		rc = odev->put_buffer(odev, written);
 		if (rc < 0)

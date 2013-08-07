@@ -13,7 +13,6 @@ struct cras_audio_shm;
  * Args:
  *    shm - Area to mix samples from.
  *    num_channel - Number of channels in data.
- *    scaler - Amount to scale samples (0.0 - 1.0).
  *    dst - Output buffer.  Add samples to this.
  *    count - The number of samples to render, on return holds the number
  *        actually mixed.
@@ -21,9 +20,17 @@ struct cras_audio_shm;
  */
 size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 			   size_t num_channels,
-			   float scaler,
 			   uint8_t *dst,
 			   size_t *count,
 			   size_t *index);
+
+/* Scale the given buffer with the provided scaler.
+ * Args:
+ *    buffer - Buffer of samples to scale.
+ *    scaler - Amount to scale samples (0.0 - 1.0).
+ *    count - The number of samples to render, on return holds the number
+ *        actually mixed.
+ */
+void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler);
 
 #endif /* _CRAS_MIX_H */
