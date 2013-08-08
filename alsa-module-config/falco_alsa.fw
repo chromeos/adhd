@@ -1,0 +1,9 @@
+[codec]
+0x10ec0283 0x10ec0283 0
+
+[model]
+falco
+
+[hint]
+auto_mute = no
+auto_mic = no
