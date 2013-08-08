@@ -81,9 +81,6 @@ static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static size_t cras_alsa_mixer_default_volume_curve_called;
 static cras_volume_curve *fake_curve;
 static cras_audio_format *fake_format;
-static size_t cras_iodev_post_message_to_playback_thread_called;
-static size_t cras_iodev_init_called;
-static size_t cras_iodev_deinit_called;
 static size_t sys_set_volume_limits_called;
 static size_t sys_set_capture_gain_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
@@ -130,9 +127,6 @@ void ResetStubData() {
   cras_alsa_mixer_set_output_active_state_outputs.clear();
   cras_alsa_mixer_set_output_active_state_values.clear();
   cras_alsa_mixer_default_volume_curve_called = 0;
-  cras_iodev_post_message_to_playback_thread_called = 0;
-  cras_iodev_init_called = 0;
-  cras_iodev_deinit_called = 0;
   sys_set_volume_limits_called = 0;
   sys_set_capture_gain_limits_called = 0;
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
@@ -857,23 +851,6 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
   return 0;
 }
 
-int cras_iodev_init(struct cras_iodev *iodev,
-		    void *(*thread_function)(void *arg),
-		    void *thread_data)
-{
-  cras_iodev_init_called++;
-  return 0;
-}
-void cras_iodev_deinit(struct cras_iodev *dev)
-{
-  cras_iodev_deinit_called++;
-}
-int cras_iodev_post_message_to_playback_thread(struct cras_iodev *iodev,
-					       struct cras_iodev_msg *msg)
-{
-  cras_iodev_post_message_to_playback_thread_called++;
-  return 0;
-}
 }
 
 //  From alsa helper.

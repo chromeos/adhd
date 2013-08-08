@@ -150,26 +150,6 @@ void cras_iodev_free_format(struct cras_iodev *iodev);
  */
 void cras_iodev_free_dsp(struct cras_iodev *iodev);
 
-/* Adds a stream to the iodev.
- * Args:
- *    iodev - The device to add the stream to.
- *    stream - The stream to add.
- * Returns:
- *    0 on success or negative error code on failure.
- */
-int cras_iodev_append_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream);
-
-/* Removes a stream from the iodev.
- * Args:
- *    iodev - The device to remove the stream from.
- *    stream - The stream previously added with cras_iodev_append_stream().
- * Returns:
- *    0 on success or negative error code on failure.
- */
-int cras_iodev_delete_stream(struct cras_iodev *iodev,
-			     struct cras_rstream *stream);
-
 /* Fill timespec ts with the time to sleep based on the number of frames and
  * frame rate.
  * Args:
