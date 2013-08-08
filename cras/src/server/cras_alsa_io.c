@@ -119,7 +119,8 @@ static int frames_queued(const struct cras_iodev *iodev)
 		return (int)frames;
 
 	/* For output, return number of frames that are used. */
-	return min(iodev->buffer_size - frames, iodev->used_size);
+	return min(iodev->buffer_size - frames,
+		   iodev->used_size + iodev->min_buffer_level);
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
