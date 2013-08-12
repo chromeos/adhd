@@ -128,22 +128,40 @@ TEST(AlsaUcm, GetEdidForDev) {
 }
 
 TEST(AlsaUcm, GetCapControlForDev) {
-	snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
-	char *cap_control;
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  char *cap_control;
 
-	ResetStubData();
+  ResetStubData();
 
-	snd_use_case_get_value = "MIC";
+  snd_use_case_get_value = "MIC";
 
-	cap_control = ucm_get_cap_control(mgr, "Dev1");
-	ASSERT_TRUE(cap_control);
-	EXPECT_EQ(0, strcmp(cap_control, snd_use_case_get_value));
-	free(cap_control);
+  cap_control = ucm_get_cap_control(mgr, "Dev1");
+  ASSERT_TRUE(cap_control);
+  EXPECT_EQ(0, strcmp(cap_control, snd_use_case_get_value));
+  free(cap_control);
 
-	ASSERT_EQ(1, snd_use_case_get_called);
-	ASSERT_TRUE(snd_use_case_get_id);
-	EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=CaptureControl/Dev1/HiFi"));
-	free(snd_use_case_get_id);
+  ASSERT_EQ(1, snd_use_case_get_called);
+  ASSERT_TRUE(snd_use_case_get_id);
+  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=CaptureControl/Dev1/HiFi"));
+  free(snd_use_case_get_id);
+}
+
+TEST(AlsaFlag, GetFlag) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  char *flag_value;
+
+  ResetStubData();
+
+  snd_use_case_get_value = "1";
+
+  flag_value = ucm_get_flag(mgr, "FlagName");
+  ASSERT_TRUE(flag_value);
+  EXPECT_EQ(0, strcmp(flag_value, snd_use_case_get_value));
+  free(flag_value);
+
+  ASSERT_EQ(1, snd_use_case_get_called);
+  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=FlagName//HiFi"));
+  free(snd_use_case_get_id);
 }
 
 /* Stubs */

@@ -90,6 +90,22 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable)
 	return snd_use_case_set(mgr, enable ? "_enadev" : "_disdev", dev);
 }
 
+char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name)
+{
+	char *flag_value = NULL;
+	const char *value;
+	int rc;
+
+	/* Set device to empty string since flag is specified in verb section */
+	rc = get_var(mgr, flag_name, "", default_verb, &value);
+	if (!rc) {
+		flag_value = strdup(value);
+		free((void *)value);
+	}
+
+	return flag_value;
+}
+
 char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev)
 {
 	char *control_name = NULL;

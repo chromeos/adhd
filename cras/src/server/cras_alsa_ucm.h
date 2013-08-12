@@ -45,6 +45,16 @@ void ucm_destroy(snd_use_case_mgr_t *mgr);
  */
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable);
 
+/* Gets the value of given flag name.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    flag_name - The name of the flag.
+ * Returns:
+ *    A pointer to the allocated string containing the flag value, or
+ *    NULL if the flag is not set.
+ */
+char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name);
+
 /* Gets the capture control name which associated with given ucm device.
  * Args:
  *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
