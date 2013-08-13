@@ -101,4 +101,12 @@ const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack);
  */
 void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable);
 
+
+/* Find out whether the specified card has a jack with the given name.
+ * Args:
+ *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
+ *    jack_name - The name of the jack (for example, "Speaker Phantom Jack").
+ */
+int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name);
+
 #endif /* CRAS_ALSA_JACK_H_ */

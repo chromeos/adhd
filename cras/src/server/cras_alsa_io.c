@@ -553,14 +553,6 @@ static const char *get_output_node_name(struct alsa_io *aio,
 	}
 }
 
-static const char *get_input_node_name(struct alsa_io *aio)
-{
-	if (first_internal_device(aio) && !has_node(aio, INTERNAL_MICROPHONE))
-		return INTERNAL_MICROPHONE;
-	else
-		return "(default)";
-}
-
 /* Callback for listing mixer outputs.  The mixer will call this once for each
  * output associated with this device.  Most commonly this is used to tell the
  * device it has Headphones and Speakers. */
@@ -590,10 +582,9 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	cras_iodev_add_node(&aio->base, &output->base);
 }
 
-static void new_input(struct alsa_io *aio)
+static void new_input(const char *name, struct alsa_io *aio)
 {
 	struct alsa_input_node *input;
-	const char *name;
 
 	input = (struct alsa_input_node *)calloc(1, sizeof(*input));
 	if (input == NULL) {
@@ -602,7 +593,6 @@ static void new_input(struct alsa_io *aio)
 	}
 	input->base.dev = &aio->base;
 	input->base.idx = aio->next_ionode_index++;
-	name = get_input_node_name(aio);
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
 	cras_iodev_add_node(&aio->base, &input->base);
@@ -789,6 +779,18 @@ static void set_as_default(struct cras_iodev *iodev) {
 	init_device_settings(aio);
 }
 
+/* On older kernels we don't know how to determine if there is an internal mic.
+ * On newer kernels there are "Phantom" Jacks that are created for internal
+ * speaker/mic. So if there is a phantom jack for speaker but not for mic, we
+ * know we are using the newer kernel and there is no internal mic. */
+static int may_have_internal_mic(size_t card_index)
+{
+	if (cras_alsa_jack_exists(card_index, "Speaker Phantom Jack") &&
+	    !cras_alsa_jack_exists(card_index, "Internal Mic Phantom Jack"))
+		return 0;
+	return 1;
+}
+
 /*
  * Exported Interface.
  */
@@ -901,9 +903,12 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 					 !has_node(aio, INTERNAL_SPEAKER)))
 			new_output(NULL, aio);
 	} else {
-		if (!aio->base.nodes || (first_internal_device(aio) &&
-					 !has_node(aio, INTERNAL_MICROPHONE)))
-			new_input(aio);
+		if (first_internal_device(aio) &&
+		    !has_node(aio, INTERNAL_MICROPHONE) &&
+		    may_have_internal_mic(card_index))
+			new_input(INTERNAL_MICROPHONE, aio);
+		else if (!aio->base.nodes)
+			new_input("(default)", aio);
 	}
 
 	/* HDMI outputs don't have volume adjustment, do it in software. */

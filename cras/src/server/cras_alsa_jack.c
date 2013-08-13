@@ -808,3 +808,50 @@ void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable)
 	if (jack && jack->ucm_device)
 		ucm_set_enabled(jack->jack_list->ucm, jack->ucm_device, enable);
 }
+
+int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name)
+{
+	char device_name[6];
+	snd_hctl_t *hctl = NULL;
+	snd_hctl_elem_t *elem;
+	int rc;
+	int result = 0;
+
+	snprintf(device_name, sizeof(device_name), "hw:%d", card_index);
+
+	rc = snd_hctl_open(&hctl, device_name, SND_CTL_NONBLOCK);
+	if (rc < 0) {
+		syslog(LOG_ERR, "failed to get hctl for %s", device_name);
+		goto out;
+	}
+	rc = snd_hctl_nonblock(hctl, 1);
+	if (rc < 0) {
+		syslog(LOG_ERR, "failed to nonblock hctl for %s", device_name);
+		goto out;
+	}
+	rc = snd_hctl_load(hctl);
+	if (rc < 0) {
+		syslog(LOG_ERR, "failed to load hctl for %s", device_name);
+		goto out;
+	}
+
+	for (elem = snd_hctl_first_elem(hctl); elem != NULL;
+			elem = snd_hctl_elem_next(elem)) {
+		snd_ctl_elem_iface_t iface;
+		const char *name;
+
+		iface = snd_hctl_elem_get_interface(elem);
+		if (iface != SND_CTL_ELEM_IFACE_CARD)
+			continue;
+		name = snd_hctl_elem_get_name(elem);
+		if (strcmp(name, jack_name) == 0) {
+			result = 1;
+			break;
+		}
+	}
+
+out:
+	if (hctl)
+		snd_hctl_close(hctl);
+	return result;
+}
