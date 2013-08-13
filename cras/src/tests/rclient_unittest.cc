@@ -376,6 +376,7 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
+  get_iodev_idev = NULL;
   get_iodev_odev = (struct cras_iodev *)&odev_;
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
