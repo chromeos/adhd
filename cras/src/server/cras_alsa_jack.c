@@ -6,7 +6,6 @@
 #include <alsa/asoundlib.h>
 #include <linux/input.h>
 #include <syslog.h>
-#include <libudev.h>
 
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
