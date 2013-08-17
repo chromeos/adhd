@@ -664,7 +664,7 @@ static void read_streams(struct audio_thread *thread,
 }
 
 /* Stop the playback thread */
-static int terminate_pb_thread()
+static void terminate_pb_thread()
 {
 	pthread_exit(0);
 }
