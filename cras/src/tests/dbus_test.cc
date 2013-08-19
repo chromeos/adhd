@@ -347,7 +347,7 @@ bool DBusMatch::HandleServerMessage(DBusConnection *conn,
   matched_ = true;
   if (send_reply_ || send_error_) {
     // Send out the reply
-    DBusMessage *reply;
+    DBusMessage *reply = NULL;
     if (send_reply_)
       reply = dbus_message_new_method_return(message);
     else if (send_error_)
