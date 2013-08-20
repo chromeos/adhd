@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The Chromium Authors. All rights reserved.
+/* Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -355,8 +355,6 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 	if (transport->fd >= 0)
 		return 0;
 
-	syslog(LOG_INFO, "Acquiring A2DP transport stream");
-
 	method_call = dbus_message_new_method_call(
 		BLUEZ_SERVICE,
 		transport->object_path,
@@ -373,7 +371,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		DBUS_TIMEOUT_USE_DEFAULT,
 		&dbus_error);
 	if (!reply) {
-		syslog(LOG_WARNING, "Failed to acquire transport %s: %s",
+		syslog(LOG_ERR, "Failed to acquire transport %s: %s",
 		       transport->object_path, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(method_call);
@@ -383,7 +381,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 	dbus_message_unref(method_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_WARNING, "Acquire returned error: %s",
+		syslog(LOG_ERR, "Acquire returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		return -EIO;
@@ -394,7 +392,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 				   DBUS_TYPE_UINT16, &(transport->read_mtu),
 				   DBUS_TYPE_UINT16, &(transport->write_mtu),
 				   DBUS_TYPE_INVALID)) {
-		syslog(LOG_WARNING, "Bad Acquire reply received: %s",
+		syslog(LOG_ERR, "Bad Acquire reply received: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(reply);
@@ -412,8 +410,6 @@ int cras_bt_transport_release(struct cras_bt_transport *transport)
 
 	if (transport->fd < 0)
 		return 0;
-
-	syslog(LOG_INFO, "Releasing A2DP transport stream");
 
 	/* Close the transport on our end no matter whether or not the server
 	 * gives us an error.
@@ -437,7 +433,7 @@ int cras_bt_transport_release(struct cras_bt_transport *transport)
 		DBUS_TIMEOUT_USE_DEFAULT,
 		&dbus_error);
 	if (!reply) {
-		syslog(LOG_WARNING, "Failed to release transport %s: %s",
+		syslog(LOG_ERR, "Failed to release transport %s: %s",
 		       transport->object_path, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(method_call);
@@ -447,7 +443,7 @@ int cras_bt_transport_release(struct cras_bt_transport *transport)
 	dbus_message_unref(method_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_WARNING, "Release returned error: %s",
+		syslog(LOG_ERR, "Release returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		return -EIO;
