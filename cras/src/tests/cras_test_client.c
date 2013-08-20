@@ -250,16 +250,20 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 		printf("\t%u\t%s\n", devs[i].idx, devs[i].name);
 }
 
-static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes)
+static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
+			    int is_input)
 {
 	unsigned i;
 
-	printf("\tID\tPriority  Plugged\tTime\tType\t\t Name\n");
+	printf("\t ID\tPrio  %4s  Plugged\t Time\tType\t\t Name\n",
+	       is_input ? "Gain" : " Vol");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%u:%u\t%zu\t    %s\t%12ld\t%-16s%c%s\n",
+		printf("\t%u:%u\t%4zu %5g  %7s %10ld\t%-16s%c%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       nodes[i].priority,
+		       is_input ? nodes[i].capture_gain / 100.0
+		       : (double) nodes[i].volume,
 		       nodes[i].plugged ? "yes" : "no",
 		       (long) nodes[i].plugged_time.tv_sec,
 		       nodes[i].type,
@@ -283,7 +287,7 @@ static void print_device_lists(struct cras_client *client)
 	printf("Output Devices:\n");
 	print_dev_info(devs, num_devs);
 	printf("Output Nodes:\n");
-	print_node_info(nodes, num_nodes);
+	print_node_info(nodes, num_nodes, 0);
 
 	num_devs = MAX_IODEVS;
 	num_nodes = MAX_IONODES;
@@ -292,7 +296,7 @@ static void print_device_lists(struct cras_client *client)
 	printf("Input Devices:\n");
 	print_dev_info(devs, num_devs);
 	printf("Input Nodes:\n");
-	print_node_info(nodes, num_nodes);
+	print_node_info(nodes, num_nodes, 1);
 }
 
 static void print_selected_nodes(struct cras_client *client)
