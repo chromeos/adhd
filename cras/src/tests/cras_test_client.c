@@ -720,6 +720,7 @@ static struct option long_options[] = {
 	{"plug",                required_argument,      0, 'x'},
 	{"select_output",       required_argument,      0, 'y'},
 	{"unified_audio",	no_argument,		0, 'z'},
+	{"capture_mute",        required_argument,      0, '0'},
 	{0, 0, 0, 0}
 };
 
@@ -740,6 +741,7 @@ static void show_usage()
 	printf("--min_cb_level <N> - Minimum # of samples writeable when playback callback is called.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
 	printf("--user_mute <0|1> - Set user mute state.\n");
+	printf("--capture_mute <0|1> - Set capture mute state.\n");
 	printf("--buffer_frames <N> - Total number of frames to buffer.\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
 	printf("--volume <0-100> - Set system output volume.\n");
@@ -946,6 +948,15 @@ int main(int argc, char **argv)
 							      node_index);
 
 			cras_client_set_node_volume(client, id, value);
+			break;
+		}
+		case '0': {
+			int mute = atoi(optarg);
+			rc = cras_client_set_system_capture_mute(client, mute);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting mute\n");
+				goto destroy_exit;
+			}
 			break;
 		}
 		default:
