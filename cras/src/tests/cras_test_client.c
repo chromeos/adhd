@@ -704,7 +704,7 @@ static struct option long_options[] = {
 	{"help",                no_argument,            0, 'h'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"check_output_plugged",required_argument,      0, 'j'},
-	{"loopback_file",	required_argument,	0, 'k'},
+	{"loopback_file",	required_argument,	0, 'l'},
 	{"min_cb_level",	required_argument,	0, 'm'},
 	{"num_channels",        required_argument,      0, 'n'},
 	{"iodev_index",		required_argument,	0, 'o'},
@@ -802,7 +802,7 @@ int main(int argc, char **argv)
 		case 'p':
 			playback_file = optarg;
 			break;
-		case 'k':
+		case 'l':
 			loopback_file = optarg;
 			break;
 		case 't':
