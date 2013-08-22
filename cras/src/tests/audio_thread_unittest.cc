@@ -1600,6 +1600,10 @@ size_t cras_system_get_mute() {
   return 0;
 }
 
+size_t cras_system_get_capture_mute() {
+  return 0;
+}
+
 void loopback_iodev_set_format(struct loopback_iodev *loopback_dev,
                                const struct cras_audio_format *fmt) {
 }

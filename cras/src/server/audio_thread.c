@@ -873,6 +873,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	uint8_t *src;
 	unsigned int write_limit;
 	unsigned int nread, level_target;
+	unsigned int frame_bytes;
 	int delay;
 	struct cras_iodev *idev = thread->input_dev;
 
@@ -956,7 +957,12 @@ int possibly_read_audio(struct audio_thread *thread,
 		*min_sleep = min(*min_sleep, cb_threshold);
 
 		dst = cras_shm_get_write_buffer_base(shm);
-		apply_dsp(idev, dst, cras_shm_frames_written(shm));
+		nread = cras_shm_frames_written(shm);
+		frame_bytes = cras_get_format_bytes(idev->format);
+		if (cras_system_get_capture_mute())
+			memset(dst, 0, nread * frame_bytes);
+		else
+			apply_dsp(idev, dst, nread);
 
 		cras_shm_buffer_write_complete(shm);
 
