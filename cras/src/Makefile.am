@@ -149,7 +149,6 @@ TESTS = \
 	alsa_ucm_unittest \
 	array_unittest \
 	audio_thread_unittest \
-	bt_profile_unittest \
 	card_config_unittest \
 	checksum_unittest \
 	cras_client_unittest \
