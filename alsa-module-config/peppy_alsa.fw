@@ -2,7 +2,7 @@
 0x10ec0283 0x10ec0283 0
 
 [model]
-peppy
+alc283-dmic-wcaps
 
 [hint]
 auto_mute = no
