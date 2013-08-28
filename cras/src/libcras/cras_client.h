@@ -21,7 +21,7 @@ struct cras_client;
 struct cras_stream_params;
 
 /* Callback for audio received or transmitted.
- * Args (All pointer will be validi - except user_arg, that's up to the user):
+ * Args (All pointer will be valid - except user_arg, that's up to the user):
  *    client: The client requesting service.
  *    stream_id - Unique identifier for the stream needing data read/written.
  *    samples - Read or write samples to/form here.
