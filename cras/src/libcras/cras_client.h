@@ -39,7 +39,7 @@ typedef int (*cras_playback_cb_t)(struct cras_client *client,
 				  void *user_arg);
 
 /* Callback for audio received and/or transmitted.
- * Args (All pointer will be validi - except user_arg, that's up to the user):
+ * Args (All pointer will be valid - except user_arg, that's up to the user):
  *    client: The client requesting service.
  *    stream_id - Unique identifier for the stream needing data read/written.
  *    captured_samples - Read samples form here.
