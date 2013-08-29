@@ -17,6 +17,14 @@ Methods		void SetOutputVolume(int32 volume)
 			0 to 100, and will be translated to dB based on the
 			output-specific volume curve.
 
+		void SetOutputMute(boolean mute_on)
+
+			Sets the system output mute.
+
+		void SetOutputUserMute(boolean mute_on)
+
+			Sets the system output mute from user action.
+
 		void SetInputGain(int32 gain)
 
 			Sets the capture gain of the system. Gain is specified
@@ -31,14 +39,6 @@ Methods		void SetOutputVolume(int32 volume)
 			specified with an argument of 500, while -10 would be
 			specified with -1000, and 11.5 maps to 1150.
 
-		void SetOutputMute(boolean mute_on)
-
-			Sets the system output mute.
-
-		void SetOutputUserMute(boolean mute_on)
-
-			Sets the system output mute from user action.
-
 		void SetInputMute(boolean mute_on)
 
 			Sets the capture mute state of the system.  Recordings
@@ -48,8 +48,8 @@ Methods		void SetOutputVolume(int32 volume)
 
 			Returns the volume and capture gain as follows:
 				int32 output_volume (0-100)
-				int32 input_gain (in dBFS * 100)
 				boolean output_mute
+				int32 input_gain (in dBFS * 100)
 				boolean input_mute
 				boolean output_user_mute
 
@@ -118,20 +118,6 @@ Signals		OutputVolumeChanged(int32 volume)
 
 			Indicates that the output volume level has changed.
 
-		OutputNodeVolumeChanged(uint64 node_id, int32 volume)
-
-			Indicates the volume of the given node.
-
-		InputGainChanged(int32 gain)
-
-			Indicates what the system capture gain is now. gain
-			expressed in dBFS*100.
-
-		InputNodeGainChanged(uint64 node_id, int32 gain)
-
-			Indicates that the capture gain for the node is now gain
-			expressed in dBFS*100.
-
 		OutputMuteChanged(boolean muted, boolean user_muted)
 
 			Indicates that the output mute state has changed.  muted
@@ -139,6 +125,11 @@ Signals		OutputVolumeChanged(int32 volume)
 			as suspend or device switch.  user_muted is set if the
 			system has been muted by user action such as the mute
 			key.
+
+		InputGainChanged(int32 gain)
+
+			Indicates what the system capture gain is now. gain
+			expressed in dBFS*100.
 
 		InputMuteChanged(boolean muted)
 
@@ -155,6 +146,15 @@ Signals		OutputVolumeChanged(int32 volume)
 		ActiveInputNodeChanged(uint64 node_id)
 
 			Indicates that the active input node has changed.
+
+		OutputNodeVolumeChanged(uint64 node_id, int32 volume)
+
+			Indicates the volume of the given node.
+
+		InputNodeGainChanged(uint64 node_id, int32 gain)
+
+			Indicates that the capture gain for the node is now gain
+			expressed in dBFS*100.
 
 		NumberOfActiveStreamsChanged(int32 num_active_streams)
 

@@ -20,40 +20,40 @@
 
 #define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
 #define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"
-#define CONTROL_INTROSPECT_XML                                             \
-    DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                               \
-    "<node>\n"                                                              \
-    "  <interface name=\""CRAS_CONTROL_INTERFACE"\">\n"                      \
-    "    <method name=\"SetOutputVolume\">\n"                              \
-    "      <arg name=\"volume\" type=\"y\" direction=\"in\"/>\n"         \
-    "    </method>\n"                                                       \
+#define CONTROL_INTROSPECT_XML                                          \
+    DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                           \
+    "<node>\n"                                                          \
+    "  <interface name=\""CRAS_CONTROL_INTERFACE"\">\n"                 \
+    "    <method name=\"SetOutputVolume\">\n"                           \
+    "      <arg name=\"volume\" type=\"i\" direction=\"in\"/>\n"        \
+    "    </method>\n"                                                   \
     "    <method name=\"SetOutputNodeVolume\">\n"                       \
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "      <arg name=\"volume\" type=\"i\" direction=\"in\"/>\n"        \
     "    </method>\n"                                                   \
-    "    <method name=\"SetOutputMute\">\n"                              \
-    "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
-    "    </method>\n"                                                       \
-    "    <method name=\"SetOutputUserMute\">\n"                              \
-    "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
-    "    </method>\n"                                                       \
+    "    <method name=\"SetOutputMute\">\n"                             \
+    "      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
+    "    <method name=\"SetOutputUserMute\">\n"                         \
+    "      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
     "    <method name=\"SetInputGain\">\n"                              \
-    "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"         \
-    "    </method>\n"                                                       \
+    "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"          \
+    "    </method>\n"                                                   \
     "    <method name=\"SetInputNodeGain\">\n"                          \
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"          \
     "    </method>\n"                                                   \
     "    <method name=\"SetInputMute\">\n"                              \
-    "      <arg name=\"muted\" type=\"b\" direction=\"in\"/>\n"         \
-    "    </method>\n"                                                       \
-    "    <method name=\"GetVolumeState\">\n"                           \
-    "      <arg name=\"volume\" type=\"y\" direction=\"out\"/>\n"   \
-    "      <arg name=\"muted\" type=\"b\" direction=\"out\"/>\n"   \
-    "      <arg name=\"capture_gain\" type=\"i\" direction=\"out\"/>\n"   \
-    "      <arg name=\"capture_mute\" type=\"b\" direction=\"out\"/>\n"   \
-    "      <arg name=\"user_muted\" type=\"b\" direction=\"out\"/>\n"   \
-    "    </method>\n"                                                       \
+    "      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
+    "    <method name=\"GetVolumeState\">\n"                            \
+    "      <arg name=\"output_volume\" type=\"i\" direction=\"out\"/>\n"\
+    "      <arg name=\"output_mute\" type=\"b\" direction=\"out\"/>\n"  \
+    "      <arg name=\"input_gain\" type=\"i\" direction=\"out\"/>\n"   \
+    "      <arg name=\"input_mute\" type=\"b\" direction=\"out\"/>\n"   \
+    "      <arg name=\"output_user_mute\" type=\"b\" direction=\"out\"/>\n"\
+    "    </method>\n"                                                   \
     "    <method name=\"GetNodes\">\n"                                  \
     "      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"    \
     "    </method>\n"                                                   \
@@ -66,12 +66,12 @@
     "    <method name=\"GetNumberOfActiveStreams\">\n"                  \
     "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
     "    </method>\n"                                                   \
-    "  </interface>\n"                                                      \
-    "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"          \
-    "    <method name=\"Introspect\">\n"                                    \
-    "      <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"             \
-    "    </method>\n"                                                       \
-    "  </interface>\n"                                                      \
+    "  </interface>\n"                                                  \
+    "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"        \
+    "    <method name=\"Introspect\">\n"                                \
+    "      <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"         \
+    "    </method>\n"                                                   \
+    "  </interface>\n"                                                  \
     "</node>\n"
 
 struct cras_dbus_control {
