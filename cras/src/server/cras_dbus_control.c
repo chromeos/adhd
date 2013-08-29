@@ -63,6 +63,9 @@
     "    <method name=\"SetActiveInputNode\">\n"                        \
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "    </method>\n"                                                   \
+    "    <method name=\"GetNumberOfActiveStreams\">\n"                  \
+    "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
+    "    </method>\n"                                                   \
     "  </interface>\n"                                                      \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"          \
     "    <method name=\"Introspect\">\n"                                    \
@@ -438,6 +441,26 @@ handle_set_active_node(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_num_active_streams(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_int32_t num;
+
+	reply = dbus_message_new_method_return(message);
+	num = cras_system_state_get_active_streams();
+	dbus_message_append_args(reply,
+				 DBUS_TYPE_INT32, &num,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, reply, &serial);
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message,
@@ -513,6 +536,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       "SetActiveInputNode")) {
 		return handle_set_active_node(conn, message, arg,
 					      CRAS_STREAM_INPUT);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "GetNumberOfActiveStreams")) {
+		return handle_get_num_active_streams(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -699,6 +726,24 @@ static void signal_node_capture_gain_changed(cras_node_id_t id,
 	dbus_message_unref(msg);
 }
 
+static void signal_num_active_streams_changed(void *arg)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_int32_t num;
+
+	msg = create_dbus_message("NumberOfActiveStreamsChanged");
+	if (!msg)
+		return;
+
+	num = cras_system_state_get_active_streams();
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_INT32, &num,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -727,6 +772,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	cras_system_register_mute_changed_cb(signal_mute, 0);
 	cras_system_register_capture_gain_changed_cb(signal_capture_gain, 0);
 	cras_system_register_capture_mute_changed_cb(signal_capture_mute, 0);
+	cras_system_register_active_streams_changed_cb(
+		signal_num_active_streams_changed, 0);
 	cras_iodev_list_register_nodes_changed_cb(signal_nodes_changed, 0);
 	cras_iodev_list_register_active_node_changed_cb(
 		signal_active_node_changed, 0);
@@ -743,6 +790,8 @@ void cras_dbus_control_stop()
 	cras_system_remove_mute_changed_cb(signal_mute, 0);
 	cras_system_remove_capture_gain_changed_cb(signal_capture_gain, 0);
 	cras_system_remove_capture_mute_changed_cb(signal_capture_mute, 0);
+	cras_system_remove_active_streams_changed_cb(
+		signal_num_active_streams_changed, 0);
 	cras_iodev_list_remove_nodes_changed_cb(signal_nodes_changed, 0);
 	cras_iodev_list_remove_active_node_changed_cb(
 		signal_active_node_changed, 0);

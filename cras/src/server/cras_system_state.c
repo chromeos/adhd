@@ -35,6 +35,7 @@ struct card_list {
  *    capture_gain_alert - Called when the capture gain changes.
  *    capture_mute_alert - Called when the capture mute changes.
  *    volume_limits_alert - Called when the volume limits are changed.
+ *    active_streams_alert - Called when the number of active streams changes.
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
@@ -50,6 +51,7 @@ static struct {
 	struct cras_alert *capture_gain_alert;
 	struct cras_alert *capture_mute_alert;
 	struct cras_alert *volume_limits_alert;
+	struct cras_alert *active_streams_alert;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
 	struct cras_tm *tm;
@@ -114,6 +116,7 @@ void cras_system_state_init()
 	state.capture_gain_alert = cras_alert_create(NULL);
 	state.capture_mute_alert = cras_alert_create(NULL);
 	state.volume_limits_alert = cras_alert_create(NULL);
+	state.active_streams_alert = cras_alert_create(NULL);
 
 	state.tm = cras_tm_init();
 	if (!state.tm) {
@@ -144,12 +147,14 @@ void cras_system_state_deinit()
 	cras_alert_destroy(state.capture_gain_alert);
 	cras_alert_destroy(state.capture_mute_alert);
 	cras_alert_destroy(state.volume_limits_alert);
+	cras_alert_destroy(state.active_streams_alert);
 
 	state.volume_alert = NULL;
 	state.mute_alert = NULL;
 	state.capture_gain_alert = NULL;
 	state.capture_mute_alert = NULL;
 	state.volume_limits_alert = NULL;
+	state.active_streams_alert = NULL;
 
 	pthread_mutex_destroy(&state.update_lock);
 }
@@ -430,6 +435,7 @@ void cras_system_state_stream_added()
 	s->num_streams_attached++;
 
 	cras_system_state_update_complete();
+	cras_alert_pending(state.active_streams_alert);
 }
 
 void cras_system_state_stream_removed()
@@ -446,11 +452,22 @@ void cras_system_state_stream_removed()
 	s->num_active_streams--;
 
 	cras_system_state_update_complete();
+	cras_alert_pending(state.active_streams_alert);
 }
 
 unsigned cras_system_state_get_active_streams()
 {
 	return state.exp_state->num_active_streams;
+}
+
+int cras_system_register_active_streams_changed_cb(cras_alert_cb cb, void *arg)
+{
+	return cras_alert_add_callback(state.active_streams_alert, cb, arg);
+}
+
+int cras_system_remove_active_streams_changed_cb(cras_alert_cb cb, void *arg)
+{
+	return cras_alert_rm_callback(state.active_streams_alert, cb, arg);
 }
 
 void cras_system_state_get_last_stream_active_time(struct timespec *ts)

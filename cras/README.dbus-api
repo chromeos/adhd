@@ -109,6 +109,10 @@ Methods		void SetOutputVolume(int32 volume)
 			node id), cras will choose the active node
 			automatically.
 
+		int32 GetNumberOfActiveStreams()
+
+			Returns the number of streams currently being
+			played or recorded.
 
 Signals		OutputVolumeChanged(int32 volume)
 
@@ -151,3 +155,7 @@ Signals		OutputVolumeChanged(int32 volume)
 		ActiveInputNodeChanged(uint64 node_id)
 
 			Indicates that the active input node has changed.
+
+		NumberOfActiveStreamsChanged(int32 num_active_streams)
+
+			Indicates the number of active streams has changed.

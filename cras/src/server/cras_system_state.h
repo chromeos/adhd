@@ -252,6 +252,22 @@ void cras_system_state_stream_removed();
 /* Returns the number of active playback and capture streams. */
 unsigned cras_system_state_get_active_streams();
 
+/* Adds a callback to call when the number of active streams changes.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to pass back to callback.
+ */
+int cras_system_register_active_streams_changed_cb(cras_alert_cb cb, void *arg);
+
+/* Removes a callback to call when the number of active streams changes.
+ * Only removes the entry if both cb and arg match the values passed to the
+ * register function.
+ * Args:
+ *    cb - Function to call when there is a change.
+ *    arg - Value to passed back to callback.
+ */
+int cras_system_remove_active_streams_changed_cb(cras_alert_cb cb, void *arg);
+
 /* Fills ts with the time the last stream was removed from the system, the time
  * the stream count went to zero.
  */
