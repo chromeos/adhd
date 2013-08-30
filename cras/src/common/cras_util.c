@@ -73,6 +73,18 @@ int cras_make_fd_nonblocking(int fd)
 	return fcntl(fd, F_SETFL, fl | O_NONBLOCK);
 }
 
+int cras_make_fd_blocking(int fd)
+{
+	int fl;
+
+	fl = fcntl(fd, F_GETFL);
+	if (fl < 0)
+		return fl;
+	if ((~fl) & O_NONBLOCK)
+		return 0;
+	return fcntl(fd, F_SETFL, fl & ~O_NONBLOCK);
+}
+
 int cras_send_with_fd(int sockfd, void *buf, size_t len, int fd)
 {
 	struct msghdr msg = {0};

@@ -21,6 +21,7 @@
  *    samples. This happens in the aud_cb specified in the stream parameters.
  */
 
+#include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -44,6 +45,7 @@
 
 static const size_t MAX_CMD_MSG_LEN = 256;
 static const size_t SERVER_CONNECT_TIMEOUT_US = 500000;
+static const size_t SERVER_FIRST_MESSAGE_TIMEOUT_US = 500000;
 
 /* Commands sent from the user to the running client. */
 enum {
@@ -203,7 +205,7 @@ static int check_server_connected_wait(struct cras_client *client)
 	struct timeval timeout;
 
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SERVER_CONNECT_TIMEOUT_US;
+	timeout.tv_usec = SERVER_FIRST_MESSAGE_TIMEOUT_US;
 
 	while (timeout.tv_usec > 0 && client->id < 0) {
 		FD_ZERO(&poll_set);
@@ -219,6 +221,26 @@ static int check_server_connected_wait(struct cras_client *client)
 	}
 
 	return client->id >= 0;
+}
+
+/* Waits until the fd is writable or the specified time has passed. Returns 0 if
+ * the fd is writable, -1 for timeout or other error. */
+static int wait_until_fd_writable(int fd, int timeout_us)
+{
+	struct timeval timeout;
+	fd_set poll_set;
+	int rc;
+
+	timeout.tv_sec = 0;
+	timeout.tv_usec = timeout_us;
+
+	FD_ZERO(&poll_set);
+	FD_SET(fd, &poll_set);
+	rc = select(fd + 1, NULL, &poll_set, NULL, &timeout);
+
+	if (rc <= 0)
+		return -1;
+	return 0;
 }
 
 /* Opens the server socket and connects to it. */
@@ -243,8 +265,19 @@ static int connect_to_server(struct cras_client *client)
 	snprintf(address.sun_path, sizeof(address.sun_path),
 		 "%s/%s", client->sock_dir, CRAS_SOCKET_FILE);
 
+	/* We make the file descriptor non-blocking when we do connect(), so we
+	 * don't block indifinitely. */
+	cras_make_fd_nonblocking(client->server_fd);
 	rc = connect(client->server_fd, (struct sockaddr *)&address,
-			sizeof(struct sockaddr_un));
+		     sizeof(struct sockaddr_un));
+
+	if (rc == -1 && errno == EINPROGRESS) {
+		rc = wait_until_fd_writable(client->server_fd,
+					    SERVER_CONNECT_TIMEOUT_US);
+	}
+
+	cras_make_fd_blocking(client->server_fd);
+
 	if (rc != 0) {
 		close(client->server_fd);
 		client->server_fd = -1;

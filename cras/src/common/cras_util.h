@@ -41,6 +41,9 @@ static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
 /* Makes a file descriptor non blocking. */
 int cras_make_fd_nonblocking(int fd);
 
+/* Makes a file descriptor blocking. */
+int cras_make_fd_blocking(int fd);
+
 /* Send data in buf to the socket with an extra file descriptor. */
 int cras_send_with_fd(int sockfd, const void *buf, size_t len, int fd);
 
