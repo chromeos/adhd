@@ -655,9 +655,12 @@ static void new_input(const char *name, struct alsa_io *aio)
 
 	/* Auto unplug internal mic if any input node has already
 	 * been created */
-	if (&aio->base.nodes && !strcmp(name, INTERNAL_MICROPHONE)
-			&& auto_unplug_input_node(aio))
-		input->base.plugged = 0;
+	if (!strcmp(name, INTERNAL_MICROPHONE) && auto_unplug_input_node(aio)) {
+		struct cras_ionode *tmp;
+		DL_FOREACH(aio->base.nodes, tmp)
+			if (tmp->plugged)
+				input->base.plugged = 0;
+	}
 
 	cras_iodev_add_node(&aio->base, &input->base);
 }
@@ -804,9 +807,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	if (auto_unplug_input_node(aio)) {
 		struct cras_ionode *tmp;
 		DL_FOREACH(aio->base.nodes, tmp)
-			if (tmp != &node->base &&
-					!strcmp(node->base.name,
-						INTERNAL_MICROPHONE))
+			if (!strcmp(tmp->name, INTERNAL_MICROPHONE))
 				cras_iodev_set_node_attr(tmp,
 							 IONODE_ATTR_PLUGGED,
 							 !plugged);
