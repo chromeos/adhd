@@ -29,8 +29,12 @@ struct a2dp_io {
 	int pcm_buf_size;
 	int pcm_buf_used;
 
-	int bt_queued_frames;
-	struct timespec bt_queued_fr_last_update;
+	/* Accumulated frames written to a2dp socket. Will need this info
+	 * together with the device open time stamp to get how many virtual
+	 * buffer is queued there.
+	 */
+	uint64_t bt_written_frames;
+	struct timespec dev_open_time;
 };
 
 static int update_supported_formats(struct cras_iodev *iodev)
@@ -70,41 +74,36 @@ static int update_supported_formats(struct cras_iodev *iodev)
 
 /* Calculates the amount of consumed frames since given time.
  */
-static unsigned long frames_since(struct timespec ts, size_t rate)
+static uint64_t frames_since(struct timespec ts, size_t rate)
 {
 	struct timespec te, diff;
 
 	clock_gettime(CLOCK_MONOTONIC, &te);
 	subtract_timespecs(&te, &ts, &diff);
-	return diff.tv_sec * rate + diff.tv_nsec / (1000000000L / rate);
+	return (uint64_t)diff.tv_sec * rate +
+			diff.tv_nsec / (1000000000L / rate);
 }
 
-/* Maintains a virtual buffer for transmitted frames, assume this buffer is
- * consumed at the same frame rate at bluetooth device side.
+/* Calculates the number of virtual buffer in frames. Assuming all written
+ * buffer is consumed in a constant frame rate at bluetooth device side.
  * Args:
  *    iodev: The a2dp iodev to estimate the queued frames for.
  *    fr: The amount of frames just transmitted.
  */
-static int get_bt_queued_frames(const struct cras_iodev *iodev, int fr)
+static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
 {
-	unsigned long consumed;
+	uint64_t consumed;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
-	/* Calculate consumed frames since last update time, also update
-	 * the last update time.
-	 */
-	consumed = frames_since(a2dpio->bt_queued_fr_last_update,
+	/* Calculate consumed frames since device has opened */
+	a2dpio->bt_written_frames += fr;
+	consumed = frames_since(a2dpio->dev_open_time,
 				iodev->format->frame_rate);
-	clock_gettime(CLOCK_MONOTONIC, &a2dpio->bt_queued_fr_last_update);
 
-	if (a2dpio->bt_queued_frames > consumed)
-		a2dpio->bt_queued_frames -= consumed;
+	if (a2dpio->bt_written_frames > consumed)
+		return a2dpio->bt_written_frames - consumed;
 	else
-		a2dpio->bt_queued_frames = 0;
-
-	a2dpio->bt_queued_frames += fr;
-
-	return a2dpio->bt_queued_frames;
+		return 0;
 }
 
 static int frames_queued(const struct cras_iodev *iodev)
@@ -117,7 +116,7 @@ static int frames_queued(const struct cras_iodev *iodev)
 
 	frames = a2dpio->pcm_buf_used / format_bytes
 			+ a2dp_queued_frames(&a2dpio->a2dp)
-			+ get_bt_queued_frames(iodev, 0);
+			+ bt_queued_frames(iodev, 0);
 
 	return frames;
 }
@@ -158,6 +157,10 @@ static int open_dev(struct cras_iodev *iodev)
 
 	syslog(LOG_DEBUG, "a2dp iodev buf size %lu, used size %lu",
 	       iodev->buffer_size, iodev->used_size);
+
+	/* Initialize variables for bt_queued_frames() */
+	a2dpio->bt_written_frames = 0;
+	clock_gettime(CLOCK_MONOTONIC, &a2dpio->dev_open_time);
 
 	return 0;
 }
@@ -224,9 +227,9 @@ static int flush_data(const struct cras_iodev *iodev)
 		return -1;
 	}
 
-	get_bt_queued_frames(iodev,
-			     a2dp_block_size(&a2dpio->a2dp, written)
-				     / format_bytes);
+	bt_queued_frames(iodev,
+			 a2dp_block_size(&a2dpio->a2dp, written)
+				/ format_bytes);
 
 	return 0;
 }

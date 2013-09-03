@@ -198,6 +198,8 @@ TEST(A2dpIoInif, FramesQueued) {
   iodev = a2dp_iodev_create(fake_transport);
 
   cras_iodev_set_format(iodev, format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
   iodev->open_dev(iodev);
   ASSERT_EQ(1, a2dp_block_size_called);
 
@@ -211,30 +213,30 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_queued_frames_val = 50;
   a2dp_written_bytes_val = 200;
   time_now.tv_sec = 0;
-  time_now.tv_nsec = 0;
+  time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 100);
   ASSERT_EQ(2, a2dp_block_size_called);
-  ASSERT_EQ(100, iodev->frames_queued(iodev));
-
-  /* After 1ms, 44 more frames consumed.
-   */
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 1000000;
   ASSERT_EQ(56, iodev->frames_queued(iodev));
 
-  a2dp_write_processed_bytes_val = 200;
-  a2dp_queued_frames_val = 50;
-  a2dp_written_bytes_val = 200;
-
-  /* After 1 more ms, expect 44 more frames consumed, cause
-   * the virtual bt queued frames decrease to 0 before more frames
-   * put.
+  /* After 1ms, 44 more frames consumed but no more frames written yet.
    */
   time_now.tv_sec = 0;
   time_now.tv_nsec = 2000000;
+  ASSERT_EQ(50, iodev->frames_queued(iodev));
+
+  /* Queued frames and new put buffer are all written */
+  a2dp_write_processed_bytes_val = 400;
+  a2dp_queued_frames_val = 0;
+  a2dp_written_bytes_val = 600;
+
+  /* After 1 more ms, expect total 132 frames consumed, result 68
+   * frames of virtual buffer after total 200 frames put.
+   */
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 3000000;
   iodev->put_buffer(iodev, 100);
   ASSERT_EQ(400, pcm_buf_size_val);
-  ASSERT_EQ(150, iodev->frames_queued(iodev));
+  ASSERT_EQ(68, iodev->frames_queued(iodev));
 }
 
 } // namespace
