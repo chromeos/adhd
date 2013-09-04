@@ -87,15 +87,21 @@ static inline int device_open(const struct cras_iodev *iodev)
 
 /* Finds the lowest latency stream attached to the thread. */
 static struct cras_io_stream *
-get_min_latency_stream(const struct audio_thread *thread)
+get_min_latency_stream(const struct audio_thread *thread,
+		       enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_io_stream *lowest, *curr;
 
-	lowest = thread->streams;
-	DL_FOREACH(thread->streams, curr)
-		if (cras_rstream_get_buffer_size(curr->stream) <
-		    cras_rstream_get_buffer_size(lowest->stream))
+	lowest = NULL;
+	DL_FOREACH(thread->streams, curr) {
+		if (curr->stream->direction != direction &&
+		    curr->stream->direction != CRAS_STREAM_UNIFIED)
+			continue;
+		if (!lowest ||
+		    (cras_rstream_get_buffer_size(curr->stream) <
+		     cras_rstream_get_buffer_size(lowest->stream)))
 			lowest = curr;
+	}
 
 	return lowest;
 }
@@ -249,7 +255,7 @@ int thread_remove_stream(struct audio_thread *thread,
 			idev->close_dev(idev);
 	} else {
 		struct cras_io_stream *min_latency;
-		min_latency = get_min_latency_stream(thread);
+		min_latency = get_min_latency_stream(thread, CRAS_STREAM_INPUT);
 		cras_iodev_config_params(
 			idev,
 			cras_rstream_get_buffer_size(min_latency->stream),
@@ -261,7 +267,8 @@ int thread_remove_stream(struct audio_thread *thread,
 			odev->close_dev(odev);
 	} else {
 		struct cras_io_stream *min_latency;
-		min_latency = get_min_latency_stream(thread);
+		min_latency = get_min_latency_stream(thread,
+						     CRAS_STREAM_OUTPUT);
 		cras_iodev_config_params(
 			odev,
 			cras_rstream_get_buffer_size(min_latency->stream),
@@ -349,19 +356,22 @@ int thread_add_stream(struct audio_thread *thread,
 		}
 	}
 
-	min_latency = get_min_latency_stream(thread);
-
-	if (device_open(odev))
+	if (device_open(odev)) {
+		min_latency = get_min_latency_stream(thread,
+						     CRAS_STREAM_OUTPUT);
 		cras_iodev_config_params(
 			odev,
 			cras_rstream_get_buffer_size(min_latency->stream),
 			cras_rstream_get_cb_threshold(min_latency->stream));
+	}
 
-	if (device_open(idev))
+	if (device_open(idev)) {
+		min_latency = get_min_latency_stream(thread, CRAS_STREAM_INPUT);
 		cras_iodev_config_params(
 			idev,
 			cras_rstream_get_buffer_size(min_latency->stream),
 			cras_rstream_get_cb_threshold(min_latency->stream));
+	}
 
 	return 0;
 }
