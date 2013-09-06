@@ -53,13 +53,15 @@ Methods		void SetOutputVolume(int32 volume)
 				boolean input_mute
 				boolean output_user_mute
 
-		array{dict} GetNodes()
+		{dict},{dict},... GetNodes()
 
 			Returns information about nodes. A node can be either
 			output or input but not both. An output node is
 			something like a speaker or a headphone, and an input
-			node is like a microphone.  The return value is an array
-			of dicts. Each dict contains information about a node.
+			node is like a microphone.  The return value is a
+			sequence of dicts mapping from strings to variants
+			(e.g. signature "a{sv}a{sv}" for two nodes).  Each dict
+			contains information about a node.
 
 			Each dict contains the following properties:
 				boolean IsInput
