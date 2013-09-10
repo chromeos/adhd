@@ -1188,7 +1188,7 @@ static void *audio_io_thread(void *arg)
 			/* device opened */
 			err = unified_io(thread, &ts);
 			if (err < 0)
-				syslog(LOG_INFO, "audio cb error %d", err);
+				syslog(LOG_ERR, "audio cb error %d", err);
 			wait_ts = &ts;
 		}
 
