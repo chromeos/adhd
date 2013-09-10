@@ -115,14 +115,10 @@ try_again:
 		cras_iodev_set_format(odev, &fmt);
 
 	/* Reset the volume and capture gain. */
-	if (idev && idev->active_node)
-		cras_iodev_set_node_attr(idev->active_node,
-					 IONODE_ATTR_CAPTURE_GAIN,
-					 idev->active_node->capture_gain);
-	if (odev && odev->active_node)
-		cras_iodev_set_node_attr(odev->active_node,
-					 IONODE_ATTR_VOLUME,
-					 odev->active_node->volume);
+	if (idev && idev->set_capture_gain)
+		idev->set_capture_gain(idev);
+	if (odev && odev->set_volume)
+		odev->set_volume(odev);
 
 	DL_APPEND(client->streams, stream);
 	rc = audio_thread_add_stream(thread, stream);
