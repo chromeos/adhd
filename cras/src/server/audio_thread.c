@@ -1099,8 +1099,10 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		goto not_enough;
 
 	rc = odev->frames_queued(odev);
-	if (rc < 0)
+	if (rc < 0) {
+		odev->close_dev(odev);
 		return rc;
+	}
 
 	if (odev && rc == 0 && unified_streams_attached(thread)) {
 		/* No samples.  Give some buffer for the output for unified IO,
