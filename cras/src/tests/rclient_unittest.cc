@@ -8,7 +8,6 @@
 
 extern "C" {
 #include "audio_thread.h"
-#include "cras_iodev.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
@@ -133,9 +132,6 @@ class RClientMessagesSuite : public testing::Test {
       connect_msg_.format.frame_rate = 48000;
       connect_msg_.format.format = SND_PCM_FORMAT_S16_LE;
 
-      memset(&odev_, 0, sizeof(odev_));
-      memset(&idev_, 0, sizeof(idev_));
-
       ResetStubData();
     }
 
@@ -146,8 +142,6 @@ class RClientMessagesSuite : public testing::Test {
       close(pipe_fds_[1]);
     }
 
-    struct cras_iodev odev_;
-    struct cras_iodev idev_;
     struct cras_connect_message connect_msg_;
     struct cras_rclient *rclient_;
     struct cras_rstream *rstream_;
@@ -180,7 +174,7 @@ TEST_F(RClientMessagesSuite, FrameRateErrorSRC) {
 
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
 
   connect_msg_.format.frame_rate = 0;
   /* passed frame rate is zero, but iodev decides to do SRC. */
@@ -217,7 +211,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFailRetry) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   audio_thread_add_stream_return = AUDIO_THREAD_OUTPUT_DEV_ERROR;
 
@@ -238,7 +232,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   audio_thread_add_stream_return = AUDIO_THREAD_ERROR_OTHER;
 
@@ -276,7 +270,7 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_return = -1;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
@@ -293,7 +287,7 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
@@ -310,7 +304,7 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
@@ -331,8 +325,8 @@ TEST_F(RClientMessagesSuite, AddTwoUnified) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)&odev_;
-  get_iodev_idev = (struct cras_iodev *)&idev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
+  get_iodev_idev = (struct cras_iodev *)0xbabb;
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
@@ -367,7 +361,7 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   int rc;
 
   get_iodev_idev = NULL;
-  get_iodev_odev = (struct cras_iodev *)&odev_;
+  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
