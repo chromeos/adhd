@@ -355,7 +355,13 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			       snd_strerror(rc));
 			return rc;
 		}
-		if (*frames == 0) {
+		/* Available frames could be zero right after input pcm handle
+		 * resumed. As for output pcm handle, some error has occurred
+		 * when mmap_begin return zero frames, return -EIO for that
+		 * case.
+		 */
+		if (snd_pcm_stream(handle) == SND_PCM_STREAM_PLAYBACK &&
+				*frames == 0) {
 			syslog(LOG_INFO, "mmap_begin set frames to 0.");
 			return -EIO;
 		}
