@@ -17,7 +17,7 @@
 #include "rtp.h"
 #include "utlist.h"
 
-#define PCM_BUF_MAX_SIZE_BYTES 1024
+#define PCM_BUF_MAX_SIZE_BYTES 4096 /* 1024 frames of 16 bit stereo */
 
 struct a2dp_io {
 	struct cras_iodev base;
@@ -147,16 +147,16 @@ static int open_dev(struct cras_iodev *iodev)
 					sizeof(struct rtp_header) -
 					sizeof(struct rtp_payload));
 
-	/* Assert pcm_buf_size be multiple of codesize */
-	a2dpio->pcm_buf_size = PCM_BUF_MAX_SIZE_BYTES
-			/ a2dp_codesize(&a2dpio->a2dp)
-			* a2dp_codesize(&a2dpio->a2dp);
-	iodev->buffer_size = (a2dpio->pcm_buf_size + block_size) / format_bytes;
-	if (iodev->used_size > iodev->buffer_size)
-		iodev->used_size = iodev->buffer_size;
+	/* Set pcm buffer to a2dp block size, which corresponds to a full MTU
+	 * after encode. Since we cannot query the queued frames limit at a2dp
+	 * device side, make it just one MTU for safety to prevent us from
+	 * sending too much samples at any time. */
+	a2dpio->pcm_buf_size = PCM_BUF_MAX_SIZE_BYTES > block_size
+			? block_size
+			: PCM_BUF_MAX_SIZE_BYTES;
+	iodev->buffer_size = a2dpio->pcm_buf_size / format_bytes;
 
-	syslog(LOG_DEBUG, "a2dp iodev buf size %lu, used size %lu",
-	       iodev->buffer_size, iodev->used_size);
+	syslog(LOG_ERR, "a2dp iodev buf size %lu", iodev->buffer_size);
 
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;

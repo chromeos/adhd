@@ -280,7 +280,8 @@ const char *cras_bt_transport_object_path(
 
 uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
 {
-  return 1;
+  /* 256 frames of 16 bit stereo, plus header size */
+  return 1024 + 13;
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
