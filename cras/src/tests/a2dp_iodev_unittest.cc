@@ -154,6 +154,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   iodev->open_dev(iodev);
   ASSERT_EQ(1, a2dp_block_size_called);
 
+  frames = 256;
   iodev->get_buffer(iodev, &buf1, &frames);
   ASSERT_EQ(256, frames);
 
@@ -203,6 +204,7 @@ TEST(A2dpIoInif, FramesQueued) {
   iodev->open_dev(iodev);
   ASSERT_EQ(1, a2dp_block_size_called);
 
+  frames = 256;
   iodev->get_buffer(iodev, &buf, &frames);
   ASSERT_EQ(256, frames);
 

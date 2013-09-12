@@ -256,6 +256,8 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 {
 	size_t format_bytes;
 	struct a2dp_io *a2dpio;
+	unsigned avail_frames;
+
 	a2dpio = (struct a2dp_io *)iodev;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
@@ -263,8 +265,9 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
 		*dst = a2dpio->pcm_buf + a2dpio->pcm_buf_offset
 				+ a2dpio->pcm_buf_used;
-		*frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
+		avail_frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
 				a2dpio->pcm_buf_used) / format_bytes;
+		*frames = min(*frames, avail_frames);
 	}
 	return 0;
 }
