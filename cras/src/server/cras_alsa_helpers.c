@@ -346,6 +346,7 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			rc = cras_alsa_attempt_resume(handle);
 			if (rc < 0)
 				return rc;
+			continue; /* Recovered from suspend, try again. */
 		} else if (rc < 0) {
 			*underruns = *underruns + 1;
 			/* If we can recover, continue and try again. */
