@@ -17,6 +17,9 @@
 #include "edid_utils.h"
 #include "utlist.h"
 
+static const unsigned int EDID_RETRY_DELAY_MS = 200;
+static const unsigned int EDID_MAX_RETRIES = 10;
+
 /* Keeps an fd that is registered with system settings.  A list of fds must be
  * kept so that they can be removed when the jack list is destroyed. */
 struct jack_poll_fd {
@@ -60,6 +63,7 @@ struct cras_gpio_jack {
  *    ucm_device - Name of the ucm device if found, otherwise, NULL.
  *    edid_file - File to read the EDID from (if available, HDMI only).
  *    edid_timer - Timer used to poll the EDID for HDMI jacks.
+ *    edid_retries - Number of times to retry reading EDID.
  */
 struct cras_alsa_jack {
 	unsigned is_gpio;	/* !0 -> 'gpio' valid
@@ -77,6 +81,7 @@ struct cras_alsa_jack {
 	const char *dsp_name;
 	const char *edid_file;
 	struct cras_timer *edid_timer;
+	unsigned int edid_retries;
 	struct cras_alsa_jack *prev, *next;
 };
 
@@ -141,7 +146,7 @@ static inline struct cras_alsa_jack *cras_alloc_jack(int is_gpio)
 	return jack;
 }
 
-static int check_jack_edid(struct cras_alsa_jack *jack, int retry);
+static int check_jack_edid(struct cras_alsa_jack *jack);
 
 static inline void gpio_change_callback(struct cras_alsa_jack *jack, int retry)
 {
@@ -150,7 +155,10 @@ static inline void gpio_change_callback(struct cras_alsa_jack *jack, int retry)
 	 * will check again later.
 	 */
 	if (jack->edid_file) {
-		int rc = check_jack_edid(jack, retry);
+		if (retry)
+			jack->edid_retries = EDID_MAX_RETRIES;
+
+		int rc = check_jack_edid(jack);
 		if (rc)
 			return;
 	}
@@ -194,10 +202,9 @@ static void edid_delay_cb(struct cras_timer *timer, void *arg)
 /* If the jack supports EDID, check that it supports audio, clearing the plugged
  * state if it doesn't.  If the EDID isn't ready, try again later.
  */
-static int check_jack_edid(struct cras_alsa_jack *jack, int retry)
+static int check_jack_edid(struct cras_alsa_jack *jack)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
-	static const unsigned int EDID_RETRY_DELAY_MS = 100;
 	int fd, nread;
 	uint8_t edid[EEDID_SIZE];
 
@@ -225,7 +232,7 @@ static int check_jack_edid(struct cras_alsa_jack *jack, int retry)
 	return 0;
 
 no_edid_retry:
-	if (!retry) {
+	if (--jack->edid_retries == 0) {
 		jack->gpio.current_state = 0;
 		return 0;
 	}
