@@ -144,7 +144,8 @@ try_again:
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		audio_thread_rm_stream(thread, stream);
-		return rc;
+		DL_DELETE(client->streams, stream);
+		goto reply_err;
 	}
 
 	cras_system_state_stream_added();
