@@ -1310,6 +1310,12 @@ int main(int argc, char **argv)
 		goto destroy_exit;
 	}
 
+	if (argc == 1) {
+		/* Nothing specified, default to dump_server_info. */
+		print_server_info(client);
+		goto destroy_exit;
+	}
+
 	while (1) {
 		c = getopt_long(argc, argv, "o:s:P:C:r:c:f:h",
 				long_options, &option_index);
