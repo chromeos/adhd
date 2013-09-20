@@ -12,7 +12,6 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 
-struct audio_thread;
 struct cras_rclient;
 
 /* Holds identifiers for an shm segment.
@@ -42,7 +41,6 @@ struct cras_rstream {
 	struct rstream_shm_info output_shm_info;
 	struct cras_audio_shm output_shm;
 	struct cras_audio_shm input_shm;
-	struct audio_thread *thread;
 	struct cras_rstream *prev, *next;
 	struct cras_audio_format format;
 };
@@ -173,20 +171,6 @@ static inline
 struct cras_audio_shm *cras_rstream_input_shm(struct cras_rstream *stream)
 {
 	return &stream->input_shm;
-}
-
-/* Gets the audio thread for a stream. */
-static inline struct audio_thread *cras_rstream_get_thread(
-		const struct cras_rstream *s)
-{
-	return s->thread;
-}
-
-/* Sets the audio thread for a stream. */
-static inline void cras_rstream_set_thread(struct cras_rstream *s,
-					   struct audio_thread *o)
-{
-	s->thread = o;
 }
 
 /* Checks if the stream uses an output device. */

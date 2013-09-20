@@ -172,7 +172,7 @@ reply_err:
 static int disconnect_client_stream(struct cras_rclient *client,
 				    struct cras_rstream *stream)
 {
-	struct audio_thread *thread = cras_rstream_get_thread(stream);
+	struct audio_thread *thread = cras_iodev_list_get_audio_thread();
 
 	if (thread)
 		audio_thread_rm_stream(thread, stream);
