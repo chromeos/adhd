@@ -37,6 +37,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SELECT_NODE,
 	CRAS_SERVER_RELOAD_DSP,
 	CRAS_SERVER_DUMP_DSP_INFO,
+	CRAS_SERVER_DUMP_AUDIO_THREAD,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -261,6 +262,18 @@ static inline void cras_fill_dump_dsp_info(
 		struct cras_dump_dsp_info *m)
 {
 	m->header.id = CRAS_SERVER_DUMP_DSP_INFO;
+	m->header.length = sizeof(*m);
+}
+
+/* Dump current audio thread information to syslog. */
+struct cras_dump_audio_thread {
+	struct cras_server_message header;
+};
+
+static inline void cras_fill_dump_audio_thread(
+		struct cras_dump_audio_thread *m)
+{
+	m->header.id = CRAS_SERVER_DUMP_AUDIO_THREAD;
 	m->header.length = sizeof(*m);
 }
 

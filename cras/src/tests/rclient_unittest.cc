@@ -496,6 +496,11 @@ void audio_thread_add_output_dev(struct audio_thread *thread,
 {
 }
 
+int audio_thread_dump_thread_info(struct audio_thread *thread)
+{
+  return 0;
+}
+
 const char *cras_config_get_socket_file_dir()
 {
   return "/tmp";

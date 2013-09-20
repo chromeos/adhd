@@ -784,6 +784,43 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			return err;
 		terminate_pb_thread();
 		break;
+	case AUDIO_THREAD_DUMP_THREAD_INFO: {
+		struct cras_io_stream *curr;
+		struct cras_iodev *idev = thread->input_dev;
+		struct cras_iodev *odev = thread->output_dev;
+		ret = 0;
+		syslog(LOG_ERR, "-------------thread------------\n");
+		syslog(LOG_ERR, "%d %d %d\n",
+				thread->started,
+				thread->out_sleep_correction_frames,
+				thread->in_sleep_correction_frames);
+		syslog(LOG_ERR, "-------------devices------------\n");
+		if (odev) {
+			syslog(LOG_ERR, "output dev: %s\n", odev->info.name);
+			syslog(LOG_ERR, "%lu %lu %lu\n",    odev->buffer_size,
+							   odev->used_size,
+							   odev->cb_threshold);
+		}
+		if (idev) {
+			syslog(LOG_ERR, "input dev: %s\n", idev->info.name);
+			syslog(LOG_ERR, "%lu %lu %lu\n", idev->buffer_size,
+							idev->used_size,
+							idev->cb_threshold);
+		}
+		syslog(LOG_ERR, "-------------stream_dump------------\n");
+		DL_FOREACH(thread->streams, curr) {
+			syslog(LOG_ERR, "%x %d %zu %zu %zu %zu %zu",
+				curr->stream->stream_id,
+				curr->stream->direction,
+				curr->stream->buffer_frames,
+				curr->stream->cb_threshold,
+				curr->stream->min_cb_level,
+				curr->stream->format.frame_rate,
+				curr->stream->format.num_channels
+				);
+		}
+		break;
+	}
 	default:
 		ret = -EINVAL;
 		break;
@@ -1365,6 +1402,15 @@ int audio_thread_rm_stream(struct audio_thread *thread,
 	msg.header.id = AUDIO_THREAD_RM_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_dump_thread_info(struct audio_thread *thread)
+{
+	struct audio_thread_add_rm_stream_msg msg;
+
+	msg.header.id = AUDIO_THREAD_DUMP_THREAD_INFO;
+	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	return audio_thread_post_message(thread, &msg.header);
 }
 

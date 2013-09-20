@@ -220,6 +220,14 @@ int cras_client_reload_dsp(struct cras_client *client);
  */
 int cras_client_dump_dsp_info(struct cras_client *client);
 
+/* Asks the server to dump current audio thread information to syslog.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ */
+int cras_client_dump_audio_thread(struct cras_client *client);
+
 /* Causes the server to check the given node's volume and reset it to the
  * current value.
  * Args:

@@ -2121,6 +2121,17 @@ int cras_client_dump_dsp_info(struct cras_client *client)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_dump_audio_thread(struct cras_client *client)
+{
+	struct cras_dump_audio_thread msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_dump_audio_thread(&msg);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_check_node_volume(struct cras_client *client,
 				  cras_node_id_t node_id)
 {

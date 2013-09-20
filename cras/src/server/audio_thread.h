@@ -62,6 +62,7 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_RM_STREAM,
 	AUDIO_THREAD_RM_ALL_STREAMS,
 	AUDIO_THREAD_STOP,
+	AUDIO_THREAD_DUMP_THREAD_INFO,
 };
 
 struct audio_thread_msg {
@@ -175,5 +176,8 @@ void audio_thread_remove_streams(struct audio_thread *thread,
  */
 void audio_thread_add_loopback_device(struct audio_thread *thread,
 				      struct cras_iodev *loop_dev);
+
+/* Dumps information about all active streams to syslog. */
+int audio_thread_dump_thread_info(struct audio_thread *thread);
 
 #endif /* AUDIO_THREAD_H_ */

@@ -329,6 +329,10 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DUMP_DSP_INFO:
 		cras_dsp_dump_info();
 		break;
+	case CRAS_SERVER_DUMP_AUDIO_THREAD:
+		audio_thread_dump_thread_info(
+				cras_iodev_list_get_audio_thread());
+		break;
 	default:
 		break;
 	}

@@ -721,6 +721,7 @@ static struct option long_options[] = {
 	{"select_output",       required_argument,      0, 'y'},
 	{"unified_audio",	no_argument,		0, 'z'},
 	{"capture_mute",        required_argument,      0, '0'},
+	{"dump_audio_thread",   no_argument,            0, '1'},
 	{0, 0, 0, 0}
 };
 
@@ -757,6 +758,7 @@ static void show_usage()
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--check_volume <N>:<M>- Check the volume of the given node.\n");
+	printf("--dump_audio_thread - Dumps audio thread info to syslog.\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -959,6 +961,9 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
+		case '1':
+			cras_client_dump_audio_thread(client);
+			break;
 		default:
 			break;
 		}
