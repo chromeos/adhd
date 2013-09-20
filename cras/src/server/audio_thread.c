@@ -1081,7 +1081,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			return -1;
 		if (!device_open(idev)) {
 			/* Increase sleep correction if waking up too early. */
-			thread->out_sleep_correction_frames++;
 			pb_sleep_frames = hw_level - odev->cb_threshold +
 				thread->out_sleep_correction_frames;
 			goto not_enough;

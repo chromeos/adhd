@@ -871,8 +871,7 @@ TEST_F(WriteStreamSuite, PossiblyFillEarlyWake) {
   frames_queued_ = iodev_.cb_threshold * 2;
   audio_buffer_size_ = iodev_.used_size - frames_queued_;
 
-  // Add one to threshold due to correction_frames being incremented.
-  nsec_expected = (iodev_.cb_threshold + 1) * 1000000000ULL /
+  nsec_expected = (iodev_.cb_threshold) * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   iodev_.direction = CRAS_STREAM_OUTPUT;
   is_open_ = 1;
