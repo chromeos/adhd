@@ -444,7 +444,8 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 				   size_t delay)
 {
 	struct cras_iodev *odev = thread->output_dev;
-	size_t fr_rate, frames_in_buff;
+	size_t fr_rate;
+	int frames_in_buff;
 	struct cras_io_stream *curr, *tmp;
 	int rc;
 
@@ -464,6 +465,8 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 			continue;
 
 		frames_in_buff = cras_shm_get_frames(shm);
+		if (frames_in_buff < 0)
+			return frames_in_buff;
 
 		cras_iodev_set_playback_timestamp(fr_rate,
 						  frames_in_buff + delay,
@@ -534,14 +537,20 @@ static int write_streams(struct audio_thread *thread,
 	 * if not, wait for them. Mix all streams we have enough data for. */
 	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm;
+		int shm_frames;
 
 		if (!stream_uses_output(curr->stream))
 			continue;
 
 		shm = cras_rstream_output_shm(curr->stream);
 
-		if (cras_shm_get_frames(shm) < write_limit &&
-		    cras_shm_callback_pending(shm)) {
+		shm_frames = cras_shm_get_frames(shm);
+		if (shm_frames < 0) {
+			thread_remove_stream(thread, curr->stream);
+			if (!output_streams_attached(thread))
+				return -EIO;
+		} else if (shm_frames < write_limit &&
+			   cras_shm_callback_pending(shm)) {
 			/* Not enough to mix this call, wait for a response. */
 			streams_wait++;
 			FD_SET(curr->fd, &poll_set);
@@ -597,12 +606,15 @@ static int write_streams(struct audio_thread *thread,
 	/* Mix as much as we can, the minimum fill level of any stream. */
 	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
 		struct cras_audio_shm *shm;
+		int shm_frames;
+
 		if (!cras_stream_uses_output_hw(curr->stream->direction))
 			continue;
 		shm = cras_rstream_output_shm(curr->stream);
-		if (cras_shm_get_frames(shm) > 0)
-			write_limit = min(cras_shm_get_frames(shm),
-					  write_limit);
+
+		shm_frames = cras_shm_get_frames(shm);
+		if (shm_frames > 0)
+			write_limit = min(shm_frames, write_limit);
 	}
 
 	DL_FOREACH_SAFE(thread->streams, curr, tmp) {

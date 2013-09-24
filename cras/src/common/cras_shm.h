@@ -198,12 +198,13 @@ static inline size_t cras_shm_get_bytes_queued(struct cras_audio_shm *shm)
 }
 
 /* How many frames are queued? */
-static inline size_t cras_shm_get_frames(struct cras_audio_shm *shm)
+static inline int cras_shm_get_frames(struct cras_audio_shm *shm)
 {
 	size_t bytes;
 
 	bytes = cras_shm_get_bytes_queued(shm);
-	assert(bytes % shm->config.frame_bytes == 0);
+	if (bytes % shm->config.frame_bytes != 0)
+		return -EIO;
 	return bytes / shm->config.frame_bytes;
 }
 
