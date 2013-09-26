@@ -888,6 +888,7 @@ static int stream_connected(struct client_stream *stream,
 	rc = pthread_create(&stream->thread.tid, NULL, audio_thread, stream);
 	if (rc) {
 		syslog(LOG_ERR, "Couldn't create audio stream.");
+		stream->thread.running = 0;
 		goto err_ret;
 	}
 
