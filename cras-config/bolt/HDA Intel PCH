@@ -101,7 +101,7 @@
   db_at_2 = -5600
   db_at_1 = -5800
   db_at_0 = -6000
-[Headphone Jack]
+[Front Headphone Jack]
   volume_curve = simple_step
   volume_step = 75
   max_volume = -900
