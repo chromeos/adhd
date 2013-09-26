@@ -613,8 +613,13 @@ static int write_streams(struct audio_thread *thread,
 		shm = cras_rstream_output_shm(curr->stream);
 
 		shm_frames = cras_shm_get_frames(shm);
-		if (shm_frames > 0)
+		if (shm_frames < 0) {
+			thread_remove_stream(thread, curr->stream);
+			if (!output_streams_attached(thread))
+				return -EIO;
+		} else if (shm_frames > 0) {
 			write_limit = min(shm_frames, write_limit);
+		}
 	}
 
 	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
