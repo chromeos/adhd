@@ -203,28 +203,39 @@ static enum cras_bt_transport_state cras_bt_transport_state_from_string(
 		return CRAS_BT_TRANSPORT_STATE_IDLE;
 }
 
+static const char *cras_bt_transport_state_to_string(
+		enum cras_bt_transport_state state)
+{
+	switch (state) {
+	case CRAS_BT_TRANSPORT_STATE_IDLE:
+		return "idle";
+	case CRAS_BT_TRANSPORT_STATE_PENDING:
+		return "pending";
+	case CRAS_BT_TRANSPORT_STATE_ACTIVE:
+		return "active";
+	default:
+		return "(unknown)";
+	}
+}
+
 static void cras_bt_transport_state_changed(struct cras_bt_transport *transport)
 {
 	if (!transport->endpoint)
 		return;
 
-	/* An acquired transport transitioning to idle state indicates a
-	   suspend request from the device, we must release the transport
-	   stream. */
-	if (transport->state == CRAS_BT_TRANSPORT_STATE_IDLE &&
-	    transport->fd != -1) {
-		syslog(LOG_INFO, "Suspend received from device");
-		transport->endpoint->suspend(transport->endpoint, transport);
-	}
-
-	/* A non-acquired transport transitioning to pending state indicates
-	   a resume request from the device, we must acquire the transport
-	   stream again. */
-	if (transport->state == CRAS_BT_TRANSPORT_STATE_PENDING &&
-	    transport->fd == -1) {
-		syslog(LOG_INFO, "Start received from device");
-		transport->endpoint->start(transport->endpoint, transport);
-	}
+	/* Transport state change is an asynchronous notification while the
+	 * stream fd is updated in blocking calls (acquire and release).
+	 *
+	 * Don't modify the endpoint at here, since the transport state and
+	 * stream fd could not be synced.  The state of transport is handled in
+	 * life cycle of cras_bt_endpoint. Place transport state and fd in
+	 * debug log to monitor the state transitionfor debugging.
+	 *
+	 * TODO(hychao): remove debug log when a2dp issues are fixed.
+	 */
+	syslog(LOG_ERR, "Transport state changed to %s, while stream fd %d",
+			cras_bt_transport_state_to_string(transport->state),
+			transport->fd);
 }
 
 void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
