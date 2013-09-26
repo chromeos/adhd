@@ -895,7 +895,7 @@ const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem) {
   return snd_mixer_selem_get_name_return_values[
       snd_mixer_selem_get_name_return_values_index++];
 }
-int snd_mixer_selem_get_index(snd_mixer_elem_t *elem) {
+unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem) {
   return 0;
 }
 int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t *elem) {
