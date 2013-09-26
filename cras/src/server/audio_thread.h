@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include "cras_types.h"
+
 struct cras_iodev;
 
 /* Errors that can be returned from add_stream. */
@@ -70,6 +72,7 @@ struct audio_thread_msg {
 struct audio_thread_add_rm_stream_msg {
 	struct audio_thread_msg header;
 	struct cras_rstream *stream;
+	enum CRAS_STREAM_DIRECTION dir;
 };
 
 /* Creates an audio thread.
@@ -130,12 +133,14 @@ int audio_thread_add_stream(struct audio_thread *thread,
 int audio_thread_rm_stream(struct audio_thread *thread,
 			   struct cras_rstream *stream);
 
-/* Remove all streams from a thread.  Used when streams should be re-attached
- * after a device switch.
+/* Remove all streams of the given direction from a thread.  Used when streams
+ * should be re-attached after a device switch.
  * Args:
  *    thread - a pointer to the audio thread.
+ *    dir - the direction of streams to remove.
  */
-void audio_thread_remove_streams(struct audio_thread *thread);
+void audio_thread_remove_streams(struct audio_thread *thread,
+				 enum CRAS_STREAM_DIRECTION dir);
 
 /* Add a loopback device to the audio thread.
  * Args:

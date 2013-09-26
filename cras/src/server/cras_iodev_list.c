@@ -363,7 +363,7 @@ static struct cras_iodev *cras_iodev_set_active(
 
 	cras_iodev_list_notify_active_node_changed();
 
-	audio_thread_remove_streams(audio_thread);
+	audio_thread_remove_streams(audio_thread, dir);
 
 	if (dir == CRAS_STREAM_OUTPUT) {
 		curr = &active_output;

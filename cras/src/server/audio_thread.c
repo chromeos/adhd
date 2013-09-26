@@ -716,9 +716,18 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	}
 	case AUDIO_THREAD_RM_ALL_STREAMS: {
 		struct cras_io_stream *iostream, *tmp;
+		struct audio_thread_add_rm_stream_msg *rmsg;
+		enum CRAS_STREAM_DIRECTION dir;
+
+		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
+		dir = rmsg->dir;
 
 		/* For each stream; detach and tell client to reconfig. */
 		DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
+			if (iostream->stream->direction != dir &&
+				iostream->stream->direction
+					!= CRAS_STREAM_UNIFIED)
+				continue;
 			cras_rstream_send_client_reattach(iostream->stream);
 			thread_remove_stream(thread, iostream->stream);
 		}
@@ -1255,7 +1264,8 @@ static int audio_thread_post_message(struct audio_thread *thread,
  * Args:
  *    thread - a pointer to the audio thread.
  */
-static void audio_thread_rm_all_streams(struct audio_thread *thread)
+static void audio_thread_rm_all_streams(struct audio_thread *thread,
+					enum CRAS_STREAM_DIRECTION dir)
 {
 	struct audio_thread_add_rm_stream_msg msg;
 
@@ -1263,6 +1273,7 @@ static void audio_thread_rm_all_streams(struct audio_thread *thread)
 
 	msg.header.id = AUDIO_THREAD_RM_ALL_STREAMS;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
+	msg.dir = dir;
 	audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1357,10 +1368,11 @@ int audio_thread_start(struct audio_thread *thread)
 	return 0;
 }
 
-void audio_thread_remove_streams(struct audio_thread *thread)
+void audio_thread_remove_streams(struct audio_thread *thread,
+				 enum CRAS_STREAM_DIRECTION dir)
 {
 	if (thread->started)
-		audio_thread_rm_all_streams(thread);
+		audio_thread_rm_all_streams(thread, dir);
 }
 
 void audio_thread_destroy(struct audio_thread *thread)
