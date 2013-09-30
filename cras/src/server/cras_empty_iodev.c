@@ -13,7 +13,7 @@
 #include "cras_types.h"
 #include "utlist.h"
 
-#define EMPTY_BUFFER_SIZE (48 * 1024)
+#define EMPTY_BUFFER_SIZE (16 * 1024)
 #define EMPTY_FRAME_SIZE 4
 #define EMPTY_FRAMES (EMPTY_BUFFER_SIZE / EMPTY_FRAME_SIZE)
 
@@ -28,7 +28,7 @@ static size_t empty_supported_channel_counts[] = {
 struct empty_iodev {
 	struct cras_iodev base;
 	int open;
-	uint8_t audio_buffer[EMPTY_BUFFER_SIZE];
+	uint8_t *audio_buffer;
 };
 
 /*
@@ -62,6 +62,7 @@ static int close_dev(struct cras_iodev *iodev)
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 
 	empty_iodev->open = 0;
+	free(empty_iodev->audio_buffer);
 	return 0;
 }
 
@@ -70,6 +71,7 @@ static int open_dev(struct cras_iodev *iodev)
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 
 	empty_iodev->open = 1;
+	empty_iodev->audio_buffer = calloc(1, EMPTY_BUFFER_SIZE);
 	return 0;
 }
 
