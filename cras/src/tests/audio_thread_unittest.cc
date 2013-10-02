@@ -23,6 +23,7 @@ int unified_io(audio_thread* thread, timespec* ts);
 
 static int cras_mix_add_stream_dont_fill_next;
 static unsigned int cras_mix_add_stream_count;
+static unsigned int cras_mix_mute_count;
 static int cras_rstream_audio_ready_count;
 static unsigned int cras_rstream_request_audio_called;
 static unsigned int cras_rstream_audio_ready_called;
@@ -1111,10 +1112,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_EQ(0, ts.tv_nsec);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
-            cras_mix_add_stream_count);
+  EXPECT_EQ(iodev_.cb_threshold, cras_mix_mute_count);
   EXPECT_EQ(2, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
@@ -1513,6 +1511,13 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 }
 
 void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler) {
+}
+
+size_t cras_mix_mute_buffer(uint8_t *dst,
+                            size_t frame_bytes,
+                            size_t count) {
+  cras_mix_mute_count = count;
+  return count;
 }
 
 //  From util.
