@@ -33,4 +33,14 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
  */
 void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler);
 
+/* Mutes the given buffer.
+ * Args:
+ *    num_channel - Number of channels in data.
+ *    frame_bytes - number of bytes in a frame.
+ *    count - The number of frames to render.
+ */
+size_t cras_mix_mute_buffer(uint8_t *dst,
+			    size_t frame_bytes,
+			    size_t count);
+
 #endif /* _CRAS_MIX_H */

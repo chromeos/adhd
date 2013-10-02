@@ -115,3 +115,11 @@ void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler)
 	for (i = 0; i < count; i++)
 		buffer[i] *= scaler;
 }
+
+size_t cras_mix_mute_buffer(uint8_t *dst,
+			    size_t frame_bytes,
+			    size_t count)
+{
+	memset(dst, 0, count * frame_bytes);
+	return count;
+}

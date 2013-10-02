@@ -215,6 +215,16 @@ TEST_F(MixTestSuite, MixTwoSecondHalfVolume) {
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames*4));
 }
 
+TEST_F(MixTestSuite, MuteBufferNoStreams) {
+  size_t count;
+
+  count = cras_mix_mute_buffer((uint8_t*)mix_buffer_, 4, kBufferFrames);
+  EXPECT_EQ(kBufferFrames, count);
+
+  for (size_t i = 0; i < kBufferFrames * 2; i++)
+    EXPECT_EQ(0, mix_buffer_[i]);
+}
+
 /* Stubs */
 extern "C" {
 
