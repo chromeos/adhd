@@ -63,6 +63,7 @@ static int close_dev(struct cras_iodev *iodev)
 
 	empty_iodev->open = 0;
 	free(empty_iodev->audio_buffer);
+	empty_iodev->audio_buffer = NULL;
 	return 0;
 }
 
