@@ -197,8 +197,18 @@ do {                                                                           \
 	} while (0)
 
 
-#define DL_FOREACH(head, el)                                                   \
-	for (el = head; el; el = el->next)
+/* Create a variable name using given prefix and current line number. */
+#define MAKE_NAME(prefix) TOKEN_PASTE2(prefix, __LINE__)
+#define TOKEN_PASTE2(x, y) TOKEN_PASTE(x, y)
+#define TOKEN_PASTE(x, y) x ## y
+
+/* This version creates a temporary variable to to make it safe for deleting the
+ * elements during iteration. */
+#define DL_FOREACH(head, el)                                            \
+        DL_FOREACH_INTERNAL(head, el, MAKE_NAME(_dl_foreach_))
+#define DL_FOREACH_INTERNAL(head, el, tmp)                              \
+        __typeof__(el) tmp;                                             \
+        for ((el) = (head); (el) && (tmp = (el)->next, 1); (el) = tmp)
 
 /* This version is safe for deleting the elements during iteration. */
 #define DL_FOREACH_SAFE(head, el, tmp)                                         \
