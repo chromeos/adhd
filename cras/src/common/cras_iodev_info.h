@@ -51,13 +51,11 @@ struct cras_ionode_info {
  *    IONODE_ATTR_PLUGGED - set the node as plugged/unplugged.
  *    IONODE_ATTR_VOLUME - set the node's output volume.
  *    IONODE_ATTR_CAPTURE_GAIN - set the node's capture gain.
- *    IONODE_ATTR_CHECK_VOLUME - check and report the node's volume.
  */
 enum ionode_attr {
 	IONODE_ATTR_PLUGGED,
 	IONODE_ATTR_VOLUME,
 	IONODE_ATTR_CAPTURE_GAIN,
-	IONODE_ATTR_CHECK_VOLUME,
 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

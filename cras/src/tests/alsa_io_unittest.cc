@@ -874,8 +874,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
   return 0;
 }
-void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
-{
+
 }
 
 //  From alsa helper.
@@ -1019,12 +1018,6 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *m,
   alsa_mixer_set_dBFS_called++;
   alsa_mixer_set_dBFS_value = dB_level;
   alsa_mixer_set_dBFS_output = output;
-}
-
-long cras_alsa_mixer_get_dBFS(struct cras_alsa_mixer *cras_mixer,
-			      struct cras_alsa_mixer_output *mixer_output)
-{
-  return 0;
 }
 
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
@@ -1243,5 +1236,4 @@ int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name)
   if (cras_alsa_jack_exists_match)
     return strcmp(cras_alsa_jack_exists_match, jack_name) == 0;
   return 0;
-}
 }

@@ -310,16 +310,6 @@ static void set_node_capture_gain(struct cras_ionode *node, int value)
 	cras_iodev_list_notify_node_capture_gain(node);
 }
 
-static void check_node_volume(struct cras_ionode *node)
-{
-	struct cras_iodev *dev = node->dev;
-
-	if (dev->check_volume)
-		dev->check_volume(dev, node);
-
-	cras_iodev_list_notify_node_volume(node);
-}
-
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
@@ -332,9 +322,6 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 		break;
 	case IONODE_ATTR_CAPTURE_GAIN:
 		set_node_capture_gain(ionode, value);
-		break;
-	case IONODE_ATTR_CHECK_VOLUME:
-		check_node_volume(ionode);
 		break;
 	default:
 		return -EINVAL;

@@ -51,7 +51,6 @@ struct cras_ionode {
 
 /* An input or output device, that can have audio routed to/from it.
  * set_volume - Function to call if the system volume changes.
- * check_volume - Read and re-set device volume (optional).
  * set_mute - Function to call if the system mute state changes.
  * set_capture_gain - Function to call if the system capture_gain changes.
  * set_capture_mute - Function to call if the system capture mute state changes.
@@ -87,7 +86,6 @@ struct cras_ionode {
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
-	void (*check_volume)(struct cras_iodev *iodev, struct cras_ionode *n);
 	void (*set_mute)(struct cras_iodev *iodev);
 	void (*set_capture_gain)(struct cras_iodev *iodev);
 	void (*set_capture_mute)(struct cras_iodev *iodev);

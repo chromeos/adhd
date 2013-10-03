@@ -288,25 +288,17 @@ static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
 	return (struct alsa_input_node *)aio->base.active_node;
 }
 
-/* Gets the curve for the given output. */
-static const struct cras_volume_curve *get_curve_for_output(
-		const struct alsa_io *aio,
-		const struct alsa_output_node *aout)
-{
-	if (aout && aout->mixer_output && aout->mixer_output->volume_curve)
-		return aout->mixer_output->volume_curve;
-	else if (aout && aout->jack_curve)
-		return aout->jack_curve;
-	return cras_alsa_mixer_default_volume_curve(aio->mixer);
-}
-
 /* Gets the curve for the active output. */
 static const struct cras_volume_curve *get_curve_for_active_output(
 		const struct alsa_io *aio)
 {
 	struct alsa_output_node *aout = get_active_output(aio);
 
-	return get_curve_for_output(aio, aout);
+	if (aout && aout->mixer_output && aout->mixer_output->volume_curve)
+		return aout->mixer_output->volume_curve;
+	else if (aout && aout->jack_curve)
+		return aout->jack_curve;
+	return cras_alsa_mixer_default_volume_curve(aio->mixer);
 }
 
 /* Informs the system of the volume limits for this device. */
@@ -402,37 +394,6 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 			ain ? ain->mixer_input : NULL);
 	cras_alsa_mixer_set_capture_mute(aio->mixer,
 					 cras_system_get_capture_mute());
-}
-
-static void check_alsa_volume(struct cras_iodev *dev, struct cras_ionode *node)
-{
-	struct alsa_output_node *aout = (struct alsa_output_node *)node;
-	struct alsa_io *aio = (struct alsa_io *)dev;
-	const struct cras_volume_curve *curve;
-	struct cras_alsa_mixer_output *mixer_output;
-	long curr_level;
-	int i;
-
-	if (aio->mixer == NULL)
-		return;
-
-	mixer_output = aout ? aout->mixer_output : NULL;
-
-	curr_level = cras_alsa_mixer_get_dBFS(aio->mixer, mixer_output);
-	cras_alsa_mixer_set_dBFS(aio->mixer, curr_level, mixer_output);
-
-	if (!aout)
-		return;
-
-	curve = get_curve_for_output(aio, aout);
-	if (curve == NULL)
-		return;
-
-	for (i = 100; i > 0; i--)
-		if (curve->get_dBFS(curve, i) <= curr_level)
-			break;
-	node->volume = i;
-	cras_iodev_list_notify_node_volume(node);
 }
 
 /* Initializes the device settings and registers for callbacks when system
@@ -925,7 +886,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
 	}
-	iodev->check_volume = check_alsa_volume;
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;
 	iodev->is_open = is_open;

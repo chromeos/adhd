@@ -228,15 +228,6 @@ int cras_client_dump_dsp_info(struct cras_client *client);
  */
 int cras_client_dump_audio_thread(struct cras_client *client);
 
-/* Causes the server to check the given node's volume and reset it to the
- * current value.
- * Args:
- *    client - The client from cras_client_create.
- *    node_id - The id of the ionode.
- */
-int cras_client_check_node_volume(struct cras_client *client,
-				  cras_node_id_t node_id);
-
 /*
  * Stream handling.
  */

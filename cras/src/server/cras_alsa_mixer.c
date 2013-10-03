@@ -381,41 +381,6 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 						    1);
 }
 
-long cras_alsa_mixer_get_dBFS(struct cras_alsa_mixer *cras_mixer,
-			      struct cras_alsa_mixer_output *mixer_output)
-{
-	struct mixer_volume_control *c;
-	long total_volume = 0;
-
-	assert(cras_mixer);
-
-	/* Handle events to avoid getting cached value. */
-	snd_mixer_handle_events(cras_mixer->mixer);
-
-	/* Keep the volume as an offset from the max, even if max > 0. */
-	total_volume -= cras_mixer->max_volume_dB;
-	if (mixer_output)
-		total_volume -= mixer_output->max_volume_dB;
-
-	/* Add in offset of main and output specific controls. */
-	DL_FOREACH(cras_mixer->main_volume_controls, c) {
-		long this_dB;
-		snd_mixer_selem_get_playback_dB(c->elem,
-						SND_MIXER_SCHN_FRONT_LEFT,
-						&this_dB);
-		total_volume += this_dB;
-	}
-	if (mixer_output && mixer_output->elem && mixer_output->has_volume) {
-		long this_dB;
-		snd_mixer_selem_get_playback_dB(mixer_output->elem,
-						SND_MIXER_SCHN_FRONT_LEFT,
-						&this_dB);
-		total_volume += this_dB;
-	}
-
-	return total_volume;
-}
-
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 				      long dBFS,
 				      struct mixer_volume_control *mixer_input)

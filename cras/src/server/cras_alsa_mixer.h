@@ -86,15 +86,6 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 			      long dBFS,
 			      struct cras_alsa_mixer_output *mixer_output);
 
-/* Gets the output volume for the device associated with this mixer.
- * Args:
- *    cras_mixer - The mixer to set the volume on.
- *    mixer_output - The mixer output to set if not all attenuation can be
- *      obtained from the main controls.  Can be null.
- */
-long cras_alsa_mixer_get_dBFS(struct cras_alsa_mixer *cras_mixer,
-			      struct cras_alsa_mixer_output *mixer_output);
-
 /* Sets the capture gain for the device associated with this mixer.
  * Args:
  *    cras_mixer - The mixer to set the volume on.

@@ -2132,18 +2132,6 @@ int cras_client_dump_audio_thread(struct cras_client *client)
 	return write_message_to_server(client, &msg.header);
 }
 
-int cras_client_check_node_volume(struct cras_client *client,
-				  cras_node_id_t node_id)
-{
-	struct cras_set_node_attr msg;
-
-	if (client == NULL)
-		return -EINVAL;
-
-	cras_fill_set_node_attr(&msg, node_id, IONODE_ATTR_CHECK_VOLUME, 0);
-	return write_message_to_server(client, &msg.header);
-}
-
 int cras_client_set_node_volume(struct cras_client *client,
 				cras_node_id_t node_id,
 				uint8_t volume)
