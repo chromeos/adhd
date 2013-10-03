@@ -286,20 +286,20 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 {
-	struct mixer_volume_control *c, *tmp;
-	struct mixer_output_control *output, *output_tmp;
+	struct mixer_volume_control *c;
+	struct mixer_output_control *output;
 
 	assert(cras_mixer);
 
-	DL_FOREACH_SAFE(cras_mixer->main_volume_controls, c, tmp) {
+	DL_FOREACH(cras_mixer->main_volume_controls, c) {
 		DL_DELETE(cras_mixer->main_volume_controls, c);
 		free(c);
 	}
-	DL_FOREACH_SAFE(cras_mixer->main_capture_controls, c, tmp) {
+	DL_FOREACH(cras_mixer->main_capture_controls, c) {
 		DL_DELETE(cras_mixer->main_capture_controls, c);
 		free(c);
 	}
-	DL_FOREACH_SAFE(cras_mixer->output_controls, output, output_tmp) {
+	DL_FOREACH(cras_mixer->output_controls, output) {
 		cras_volume_curve_destroy(output->properties.volume_curve);
 		DL_DELETE(cras_mixer->output_controls, output);
 		free(output);

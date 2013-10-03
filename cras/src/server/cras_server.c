@@ -249,13 +249,13 @@ static int add_select_fd(int fd, void (*cb)(void *data),
 static void rm_select_fd(int fd, void *server_data)
 {
 	struct server_data *serv;
-	struct client_callback *client_cb, *temp_callback;
+	struct client_callback *client_cb;
 
 	serv = (struct server_data *)server_data;
 	if (serv == NULL)
 		return;
 
-	DL_FOREACH_SAFE(serv->client_callbacks, client_cb, temp_callback)
+	DL_FOREACH(serv->client_callbacks, client_cb)
 		if (client_cb->select_fd == fd)
 			client_cb->deleted = 1;
 }
@@ -265,13 +265,13 @@ static void rm_select_fd(int fd, void *server_data)
 static void cleanup_select_fds(void *server_data)
 {
 	struct server_data *serv;
-	struct client_callback *client_cb, *temp_callback;
+	struct client_callback *client_cb;
 
 	serv = (struct server_data *)server_data;
 	if (serv == NULL)
 		return;
 
-	DL_FOREACH_SAFE(serv->client_callbacks, client_cb, temp_callback)
+	DL_FOREACH(serv->client_callbacks, client_cb)
 		if (client_cb->deleted) {
 			DL_DELETE(serv->client_callbacks, client_cb);
 			free(client_cb);
@@ -301,7 +301,7 @@ int cras_server_run()
 	int rc = 0;
 	const char *sockdir;
 	struct sockaddr_un addr;
-	struct attached_client *elm, *tmp;
+	struct attached_client *elm;
 	struct client_callback *client_cb;
 	struct cras_tm *tm;
 	struct timespec ts;
@@ -411,7 +411,7 @@ int cras_server_run()
 		if (FD_ISSET(socket_fd, &poll_set))
 			handle_new_connection(&addr, socket_fd);
 		/* Check if there are messages pending for any clients. */
-		DL_FOREACH_SAFE(server_instance.clients_head, elm, tmp)
+		DL_FOREACH(server_instance.clients_head, elm)
 			if (FD_ISSET(elm->fd, &poll_set))
 				handle_message_from_client(elm);
 		/* Check any client-registered fd/callback pairs. */

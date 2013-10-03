@@ -59,9 +59,9 @@ void audio_thread_add_callback(int fd, thread_callback cb,
 
 void audio_thread_rm_callback(int fd)
 {
-	struct iodev_callback_list *iodev_cb, *tmp;
+	struct iodev_callback_list *iodev_cb;
 
-	DL_FOREACH_SAFE(iodev_callbacks, iodev_cb, tmp) {
+	DL_FOREACH(iodev_callbacks, iodev_cb) {
 		if (iodev_cb->fd == fd) {
 			DL_DELETE(iodev_callbacks, iodev_cb);
 			free(iodev_cb);
@@ -361,10 +361,10 @@ int thread_add_stream(struct audio_thread *thread,
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
 		if (loop_dev) {
-			struct cras_io_stream *iostream, *tmp;
+			struct cras_io_stream *iostream;
 			loopback_iodev_set_format(loop_dev, odev->format);
 			/* For each loopback stream; detach and tell client to reconfig. */
-			DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
+			DL_FOREACH(thread->streams, iostream) {
 				if (!stream_uses_loopback(iostream->stream))
 					continue;
 				cras_rstream_send_client_reattach(iostream->stream);
@@ -485,12 +485,12 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 	struct cras_iodev *odev = thread->output_dev;
 	size_t fr_rate;
 	int frames_in_buff;
-	struct cras_io_stream *curr, *tmp;
+	struct cras_io_stream *curr;
 	int rc;
 
 	fr_rate = odev->format->frame_rate;
 
-	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
 
@@ -552,7 +552,7 @@ static int write_streams(struct audio_thread *thread,
 			 size_t write_limit)
 {
 	struct cras_iodev *odev = thread->output_dev;
-	struct cras_io_stream *curr, *tmp;
+	struct cras_io_stream *curr;
 	struct timeval to;
 	fd_set poll_set, this_set;
 	size_t streams_wait, num_mixed;
@@ -619,7 +619,7 @@ static int write_streams(struct audio_thread *thread,
 			}
 			break;
 		}
-		DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+		DL_FOREACH(thread->streams, curr) {
 			struct cras_audio_shm *shm;
 
 			if (!stream_uses_output(curr->stream))
@@ -644,7 +644,7 @@ static int write_streams(struct audio_thread *thread,
 	}
 
 	/* Mix as much as we can, the minimum fill level of any stream. */
-	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm;
 		int shm_frames;
 
@@ -671,7 +671,7 @@ static int write_streams(struct audio_thread *thread,
 			dst, frame_bytes, min(odev->cb_threshold, write_limit));
 	}
 
-	DL_FOREACH_SAFE(thread->streams, curr, tmp) {
+	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm;
 		if (!cras_stream_uses_output_hw(curr->stream->direction))
 			continue;
@@ -769,7 +769,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		break;
 	}
 	case AUDIO_THREAD_RM_ALL_STREAMS: {
-		struct cras_io_stream *iostream, *tmp;
+		struct cras_io_stream *iostream;
 		struct audio_thread_add_rm_stream_msg *rmsg;
 		enum CRAS_STREAM_DIRECTION dir;
 
@@ -777,7 +777,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		dir = rmsg->dir;
 
 		/* For each stream; detach and tell client to reconfig. */
-		DL_FOREACH_SAFE(thread->streams, iostream, tmp) {
+		DL_FOREACH(thread->streams, iostream) {
 			if (iostream->stream->direction != dir &&
 				iostream->stream->direction
 					!= CRAS_STREAM_UNIFIED)
@@ -976,7 +976,7 @@ int possibly_read_audio(struct audio_thread *thread,
 {
 	snd_pcm_uframes_t remainder;
 	struct cras_audio_shm *shm;
-	struct cras_io_stream *stream, *tmp;
+	struct cras_io_stream *stream;
 	int rc;
 	uint8_t *src;
 	unsigned int write_limit;
@@ -1040,7 +1040,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		remainder -= nread;
 	}
 
-	DL_FOREACH_SAFE(thread->streams, stream, tmp) {
+	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
 		uint8_t *dst;
 		unsigned int cb_threshold;
@@ -1296,7 +1296,7 @@ static void *audio_io_thread(void *arg)
 
 	while (1) {
 		struct timespec *wait_ts;
-		struct iodev_callback_list *iodev_cb, *tmp;
+		struct iodev_callback_list *iodev_cb;
 		int max_fd = msg_fd;
 
 		wait_ts = NULL;
@@ -1328,7 +1328,7 @@ static void *audio_io_thread(void *arg)
 				syslog(LOG_INFO, "handle message %d", err);
 		}
 
-		DL_FOREACH_SAFE(iodev_callbacks, iodev_cb, tmp)
+		DL_FOREACH(iodev_callbacks, iodev_cb)
 			iodev_cb->cb(iodev_cb->cb_data, &ts,
 				     FD_ISSET(iodev_cb->fd, &poll_set));
 	}

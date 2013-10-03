@@ -210,10 +210,6 @@ do {                                                                           \
         __typeof__(el) tmp;                                             \
         for ((el) = (head); (el) && (tmp = (el)->next, 1); (el) = tmp)
 
-/* This version is safe for deleting the elements during iteration. */
-#define DL_FOREACH_SAFE(head, el, tmp)                                         \
-	for ((el) = (head); (el) && (tmp = (el)->next, 1); (el) = tmp)
-
 /* These are identical to their singly-linked list counterparts. */
 #define DL_SEARCH_SCALAR LL_SEARCH_SCALAR
 #define DL_SEARCH_SCALAR_WITH_CAST LL_SEARCH_SCALAR_WITH_CAST

@@ -430,13 +430,13 @@ static void init_device_settings(struct alsa_io *aio)
  */
 static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
-	struct cras_ionode *node, *tmp;
+	struct cras_ionode *node;
 	struct alsa_output_node *aout;
 
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
 
-	DL_FOREACH_SAFE(aio->base.nodes, node, tmp) {
+	DL_FOREACH(aio->base.nodes, node) {
 		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 			aout = (struct alsa_output_node *)node;
 			cras_volume_curve_destroy(aout->jack_curve);

@@ -279,12 +279,12 @@ error_bail:
 
 void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 {
-	struct iodev_list_node *curr, *tmp;
+	struct iodev_list_node *curr;
 
 	if (alsa_card == NULL)
 		return;
 
-	DL_FOREACH_SAFE(alsa_card->iodevs, curr, tmp) {
+	DL_FOREACH(alsa_card->iodevs, curr) {
 		alsa_iodev_destroy(curr->iodev);
 		DL_DELETE(alsa_card->iodevs, curr);
 		free(curr);

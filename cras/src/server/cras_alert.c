@@ -63,9 +63,9 @@ int cras_alert_add_callback(struct cras_alert *alert, cras_alert_cb cb,
 int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
 			   void *arg)
 {
-	struct cras_alert_cb_list *alert_cb, *tmp;
+	struct cras_alert_cb_list *alert_cb;
 
-	DL_FOREACH_SAFE(alert->callbacks, alert_cb, tmp)
+	DL_FOREACH(alert->callbacks, alert_cb)
 		if (alert_cb->callback == cb && alert_cb->arg == arg) {
 			DL_DELETE(alert->callbacks, alert_cb);
 			free(alert_cb);
@@ -78,13 +78,13 @@ int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
  * if so. */
 static void cras_alert_process(struct cras_alert *alert)
 {
-	struct cras_alert_cb_list *cb, *tmp;
+	struct cras_alert_cb_list *cb;
 
 	if (alert->pending) {
 		alert->pending = 0;
 		if (alert->prepare)
 			alert->prepare(alert);
-		DL_FOREACH_SAFE(alert->callbacks, cb, tmp)
+		DL_FOREACH(alert->callbacks, cb)
 			cb->callback(cb->arg);
 	}
 }
@@ -97,23 +97,23 @@ void cras_alert_pending(struct cras_alert *alert)
 
 void cras_alert_process_all_pending_alerts()
 {
-	struct cras_alert *alert, *tmp;
+	struct cras_alert *alert;
 
 	while (has_alert_pending) {
 		has_alert_pending = 0;
-		DL_FOREACH_SAFE(all_alerts, alert, tmp)
+		DL_FOREACH(all_alerts, alert)
 			cras_alert_process(alert);
 	}
 }
 
 void cras_alert_destroy(struct cras_alert *alert)
 {
-	struct cras_alert_cb_list *cb, *tmp;
+	struct cras_alert_cb_list *cb;
 
 	if (!alert)
 		return;
 
-	DL_FOREACH_SAFE(alert->callbacks, cb, tmp) {
+	DL_FOREACH(alert->callbacks, cb) {
 		DL_DELETE(alert->callbacks, cb);
 		free(cb);
 	}
@@ -125,7 +125,7 @@ void cras_alert_destroy(struct cras_alert *alert)
 
 void cras_alert_destroy_all()
 {
-	struct cras_alert *alert, *tmp;
-	DL_FOREACH_SAFE(all_alerts, alert, tmp)
+	struct cras_alert *alert;
+	DL_FOREACH(all_alerts, alert)
 		cras_alert_destroy(alert);
 }

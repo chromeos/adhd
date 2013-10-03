@@ -239,8 +239,8 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 /* Removes all streams that the client owns and destroys it. */
 void cras_rclient_destroy(struct cras_rclient *client)
 {
-	struct cras_rstream *stream, *tmp;
-	DL_FOREACH_SAFE(client->streams, stream, tmp) {
+	struct cras_rstream *stream;
+	DL_FOREACH(client->streams, stream) {
 		disconnect_client_stream(client, stream);
 	}
 	free(client);

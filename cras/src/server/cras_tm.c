@@ -89,9 +89,9 @@ struct cras_tm *cras_tm_init()
 
 void cras_tm_deinit(struct cras_tm *tm)
 {
-	struct cras_timer *t, *tmp;
+	struct cras_timer *t;
 
-	DL_FOREACH_SAFE(tm->timers, t, tmp) {
+	DL_FOREACH(tm->timers, t) {
 		DL_DELETE(tm->timers, t);
 		free(t);
 	}
@@ -127,11 +127,11 @@ int cras_tm_get_next_timeout(const struct cras_tm *tm, struct timespec *ts)
 void cras_tm_call_callbacks(struct cras_tm *tm)
 {
 	struct timespec now;
-	struct cras_timer *t, *tmp;
+	struct cras_timer *t;
 
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	DL_FOREACH_SAFE(tm->timers, t, tmp)
+	DL_FOREACH(tm->timers, t)
 		if (timespec_sooner(&t->ts, &now)) {
 			t->cb(t, t->cb_data);
 			cras_tm_cancel_timer(tm, t);

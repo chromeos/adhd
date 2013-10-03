@@ -569,9 +569,9 @@ static int add_jack_poll_fds(struct cras_alsa_jack_list *jack_list)
 /* Cancels registration of each poll fd (one per jack) with the system. */
 static void remove_jack_poll_fds(struct cras_alsa_jack_list *jack_list)
 {
-	struct jack_poll_fd *registered_fd, *tmp;
+	struct jack_poll_fd *registered_fd;
 
-	DL_FOREACH_SAFE(jack_list->registered_fds, registered_fd, tmp) {
+	DL_FOREACH(jack_list->registered_fds, registered_fd) {
 		cras_system_rm_select_fd(registered_fd->fd);
 		DL_DELETE(jack_list->registered_fds, registered_fd);
 		free(registered_fd);
@@ -735,12 +735,12 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 
 void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 {
-	struct cras_alsa_jack *jack, *tmp;
+	struct cras_alsa_jack *jack;
 
 	if (jack_list == NULL)
 		return;
 	remove_jack_poll_fds(jack_list);
-	DL_FOREACH_SAFE(jack_list->jacks, jack, tmp) {
+	DL_FOREACH(jack_list->jacks, jack) {
 		DL_DELETE(jack_list->jacks, jack);
 		free(jack->ucm_device);
 

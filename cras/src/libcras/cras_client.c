@@ -1219,10 +1219,10 @@ static int handle_command_message(struct cras_client *client)
 
 	switch (msg->msg_id) {
 	case CLIENT_STOP: {
-		struct client_stream *s, *tmp;
+		struct client_stream *s;
 
 		/* Stop all playing streams */
-		DL_FOREACH_SAFE(client->streams, s, tmp)
+		DL_FOREACH(client->streams, s)
 			client_thread_rm_stream(client, s->id);
 
 		/* And stop this client */
