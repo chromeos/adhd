@@ -1112,9 +1112,15 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(iodev_.cb_threshold, cras_mix_mute_count);
+  EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(2, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
+
+  /* should only mute buffer if underrun in imminent. */
+  frames_queued_ = 0;
+  rc = unified_io(thread_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(iodev_.cb_threshold, cras_mix_mute_count);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {

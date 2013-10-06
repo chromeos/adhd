@@ -687,7 +687,8 @@ static int write_streams(struct audio_thread *thread,
 		}
 	}
 
-	if (max_frames == 0) {
+	if (max_frames == 0 &&
+	    (odev->frames_queued(odev) <= odev->cb_threshold/4)) {
 		/* Nothing to mix from any streams. Under run. */
 		unsigned int frame_bytes = cras_get_format_bytes(odev->format);
 
