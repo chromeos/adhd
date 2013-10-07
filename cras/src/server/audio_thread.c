@@ -124,6 +124,15 @@ static inline int device_open(const struct cras_iodev *iodev)
 	return 0;
 }
 
+static inline int stream_uses_direction(struct cras_rstream *stream,
+					enum CRAS_STREAM_DIRECTION direction)
+{
+	if (direction == CRAS_STREAM_POST_MIX_PRE_DSP)
+		return stream->direction == direction;
+	return stream->direction == direction ||
+	       stream->direction == CRAS_STREAM_UNIFIED;
+}
+
 /* Finds the lowest latency stream attached to the thread. */
 static struct cras_io_stream *
 get_min_latency_stream(const struct audio_thread *thread,
@@ -133,8 +142,7 @@ get_min_latency_stream(const struct audio_thread *thread,
 
 	lowest = NULL;
 	DL_FOREACH(thread->streams, curr) {
-		if (curr->stream->direction != direction &&
-		    curr->stream->direction != CRAS_STREAM_UNIFIED)
+		if (!stream_uses_direction(curr->stream, direction))
 			continue;
 		if (!lowest ||
 		    (cras_rstream_get_buffer_size(curr->stream) <
