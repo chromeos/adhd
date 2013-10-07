@@ -714,6 +714,21 @@ static inline int wake_threshold_met(const struct cras_iodev *iodev,
 	return frames >= iodev->cb_threshold;
 }
 
+/* Checks if the stream type matches the device.  For input devices, both input
+ * and unified streams match, for loopback, each loopback type matches.
+ */
+static int input_stream_matches_dev(const struct cras_iodev *dev,
+				    struct cras_rstream *rstream)
+{
+	if (dev->direction == CRAS_STREAM_INPUT)
+		return stream_uses_input(rstream);
+
+	if (dev->direction == CRAS_STREAM_POST_MIX_PRE_DSP)
+		return rstream->direction == CRAS_STREAM_POST_MIX_PRE_DSP;
+
+	return 0;
+}
+
 /* Pass captured samples to the client.
  * Args:
  *    thread - The thread pass read samples to.
@@ -732,7 +747,7 @@ static void read_streams(struct audio_thread *thread,
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream = stream->stream;
 
-		if (!stream_uses_input(rstream))
+		if (!input_stream_matches_dev(iodev, rstream))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -1007,7 +1022,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (!stream_uses_input(rstream))
+		if (!input_stream_matches_dev(idev, rstream))
 			continue;
 
 		delay = idev->delay_frames(idev);
@@ -1057,7 +1072,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (!stream_uses_input(rstream))
+		if (!input_stream_matches_dev(idev, rstream))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
