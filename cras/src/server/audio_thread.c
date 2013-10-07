@@ -713,6 +713,7 @@ static inline int wake_threshold_met(const struct cras_iodev *iodev,
  *    count - the number of frames captured = buffer_frames.
  */
 static void read_streams(struct audio_thread *thread,
+			 const struct cras_iodev *iodev,
 			 const uint8_t *src,
 			 snd_pcm_uframes_t count)
 {
@@ -966,11 +967,13 @@ int possibly_fill_audio(struct audio_thread *thread,
  * Return the number of samples read from the device.
  * Args:
  *    thread - the audio thread this is running for.
+ *    idev - the device to read samples from..
  *    hw_level - buffer level of the device.
  *    min_sleep - Will be filled with the minimum amount of frames needed to
  *      fill the next lowest latency stream's buffer.
  */
 int possibly_read_audio(struct audio_thread *thread,
+			struct cras_iodev *idev,
 			unsigned int hw_level,
 			unsigned int *min_sleep)
 {
@@ -983,7 +986,6 @@ int possibly_read_audio(struct audio_thread *thread,
 	unsigned int nread, level_target;
 	unsigned int frame_bytes;
 	int delay;
-	struct cras_iodev *idev = thread->input_dev;
 
 	if (!device_open(idev))
 		return 0;
@@ -1032,7 +1034,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		read_streams(thread, src, nread);
+		read_streams(thread, idev, src, nread);
 
 		rc = idev->put_buffer(idev, nread);
 		if (rc < 0)
@@ -1199,7 +1201,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		}
 	}
 
-	rc = possibly_read_audio(thread, hw_level, &cap_sleep_frames);
+	rc = possibly_read_audio(thread, idev, hw_level, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		if (device_open(idev))
