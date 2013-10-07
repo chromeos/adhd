@@ -29,12 +29,18 @@ void loopback_iodev_destroy(struct cras_iodev *iodev);
  *    loopback_dev - The loopback device.
  *    audio - The samples to write, fill with zeros if NULL.
  *    count - Number of frames to write.
- *    stream - The stream to write to.
  */
-int loopback_iodev_add_audio(struct cras_iodev *loopback_dev,
+int loopback_iodev_add_audio(struct cras_iodev *dev,
 			     const uint8_t *audio,
-			     unsigned int count,
-			     struct cras_rstream *stream);
+			     unsigned int count);
+
+/* Supplies zeros to be looped back. Use when no output streams are active.
+ * Args:
+ *    loopback_dev - The loopback device.
+ *    count - Number of frames of zerosto write.
+ */
+int loopback_iodev_add_zeros(struct cras_iodev *dev,
+			     unsigned int count);
 
 /* Set the format used for the loopback device.  This is set to match the output
  * that is being looped back. */

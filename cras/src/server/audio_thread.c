@@ -321,6 +321,14 @@ int thread_remove_stream(struct audio_thread *thread,
 		/* No more streams, close the dev. */
 		if (loop_dev && loop_dev->is_open(loop_dev))
 			loop_dev->close_dev(loop_dev);
+	} else {
+		struct cras_io_stream *min_latency;
+		min_latency = get_min_latency_stream(
+			thread, CRAS_STREAM_POST_MIX_PRE_DSP);
+		cras_iodev_config_params(
+			loop_dev,
+			cras_rstream_get_buffer_size(min_latency->stream),
+			cras_rstream_get_cb_threshold(min_latency->stream));
 	}
 
 	return streams_attached(thread);
@@ -389,11 +397,10 @@ int thread_add_stream(struct audio_thread *thread,
 			return AUDIO_THREAD_INPUT_DEV_ERROR;
 		}
 	}
-	if (stream_uses_loopback(stream)) {
-		if (!loop_dev ||
-		    (!loop_dev->is_open(loop_dev) &&
-		    loop_dev->open_dev(loop_dev))) {
-			syslog(LOG_ERR, "Failed open %s", loop_dev->info.name);
+	if (stream_uses_loopback(stream) && !loop_dev->is_open(loop_dev)) {
+		rc = init_device(loop_dev, stream);
+		if (rc < 0) {
+			syslog(LOG_ERR, "Failed to open %s", loop_dev->info.name);
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_LOOPBACK_DEV_ERROR;
 		}
@@ -412,6 +419,15 @@ int thread_add_stream(struct audio_thread *thread,
 		min_latency = get_min_latency_stream(thread, CRAS_STREAM_INPUT);
 		cras_iodev_config_params(
 			idev,
+			cras_rstream_get_buffer_size(min_latency->stream),
+			cras_rstream_get_cb_threshold(min_latency->stream));
+	}
+
+	if (device_open(loop_dev)) {
+		min_latency = get_min_latency_stream(
+			thread, CRAS_STREAM_POST_MIX_PRE_DSP);
+		cras_iodev_config_params(
+			loop_dev,
 			cras_rstream_get_buffer_size(min_latency->stream),
 			cras_rstream_get_cb_threshold(min_latency->stream));
 	}
@@ -866,37 +882,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	return ret;
 }
 
-/* Send data that is about to be played to attached loopback streams. */
-static int push_loopback_data(struct audio_thread *thread,
-			      struct cras_iodev *dev,
-			      const uint8_t *data,
-			      unsigned int count)
-{
-	struct cras_io_stream *stream;
-	int rc;
-
-	if (!dev || !dev->is_open(dev))
-		return 0;
-
-	DL_FOREACH(thread->streams, stream) {
-		struct cras_rstream *rstream = stream->stream;
-
-		if (!cras_stream_is_loopback(rstream->direction))
-			continue;
-
-		rc = loopback_iodev_add_audio(dev,
-					      data,
-					      count,
-					      rstream);
-		if (rc < 0) {
-			thread_remove_stream(thread, rstream);
-			return rc;
-		}
-	}
-
-	return 0;
-}
-
 /* Transfer samples from clients to the audio device.
  * Return the number of samples written to the device.
  * Args:
@@ -954,7 +939,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 			 * won't fill the request. */
 			fr_to_req = 0; /* break out after committing samples */
 
-		push_loopback_data(thread, loop_dev, dst, written);
+		loopback_iodev_add_audio(loop_dev, dst, written);
 
 		if (cras_system_get_mute())
 			memset(dst, 0, written * frame_bytes);
@@ -1114,19 +1099,27 @@ int possibly_read_audio(struct audio_thread *thread,
 				cras_rstream_output_shm(rstream), 1);
 	}
 
-	/* If there are more remaining frames than targeted, decrease the sleep
-	 * time.  If less, increase. */
-	level_target = CAP_REMAINING_FRAMES_TARGET + idev->cb_threshold;
-	if (hw_level > level_target && thread->in_sleep_correction_frames)
-		thread->in_sleep_correction_frames--;
-	if (hw_level < level_target)
-		thread->in_sleep_correction_frames++;
+	if (idev->direction == CRAS_STREAM_POST_MIX_PRE_DSP) {
+		/* No hardware clock here to correct for, just sleep for another
+		 * period.
+		 */
+		*min_sleep = idev->cb_threshold;
+	} else {
+		/* If there are more remaining frames than targeted, decrease
+		 * the sleep time.  If less, increase. */
+		level_target = CAP_REMAINING_FRAMES_TARGET + idev->cb_threshold;
+		if (hw_level > level_target &&
+		    thread->in_sleep_correction_frames)
+			thread->in_sleep_correction_frames--;
+		if (hw_level < level_target)
+			thread->in_sleep_correction_frames++;
 
-	*min_sleep = cras_iodev_sleep_frames(idev,
-					     *min_sleep,
-					     hw_level - write_limit) +
-				CAP_REMAINING_FRAMES_TARGET +
-				thread->in_sleep_correction_frames;
+		*min_sleep = cras_iodev_sleep_frames(idev,
+				*min_sleep,
+				hw_level - write_limit) +
+			CAP_REMAINING_FRAMES_TARGET +
+			thread->in_sleep_correction_frames;
+	}
 
 	return write_limit;
 }
@@ -1153,38 +1146,17 @@ static unsigned int adjust_level(const struct audio_thread *thread, int level)
 	}
 }
 
-/* When no output devices are open, feed loopback streams zeros. */
-static int send_loopback_zeros(struct audio_thread *thread)
-{
-	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
-	struct cras_io_stream *curr;
-
-	DL_FOREACH(thread->streams, curr) {
-		struct cras_rstream *rstream = curr->stream;
-		unsigned int count = cras_rstream_get_cb_threshold(rstream);
-
-		if (!stream_uses_loopback(rstream))
-			continue;
-
-		loopback_iodev_add_audio(loop_dev, NULL, count, rstream);
-
-		/* Only support one loopback stream. */
-		return count;
-	}
-
-	return 0;
-}
-
 /* Reads and/or writes audio sampels from/to the devices. */
 int unified_io(struct audio_thread *thread, struct timespec *ts)
 {
 	struct cras_iodev *idev = thread->input_dev;
 	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *loopdev = thread->post_mix_loopback_dev;
 	struct cras_iodev *master_dev;
 	int rc;
 	unsigned int hw_level;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
-	struct timespec cap_ts, pb_ts;
+	struct timespec cap_ts, pb_ts, loop_ts;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
@@ -1198,11 +1170,24 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	/* If there isn't an output device then check loopback streams and fill
 	 * with zeros if needed.
 	 */
-	if (!device_open(odev)) {
-		loop_sleep_frames = send_loopback_zeros(thread);
-		if (!device_open(idev))
-			goto not_enough;
+	if (!device_open(odev) && device_open(loopdev)) {
+		loopback_iodev_add_zeros(loopdev, loopdev->cb_threshold);
+		loop_sleep_frames = loopdev->cb_threshold;
 	}
+
+	if (device_open(loopdev)) {
+		unsigned int loop_level = loopdev->frames_queued(loopdev);
+
+		if (wake_threshold_met(loopdev, loop_level)) {
+			possibly_read_audio(thread,
+					    loopdev,
+					    loop_level,
+					    &loop_sleep_frames);
+		}
+	}
+
+	if (!device_open(master_dev))
+		goto not_enough;
 
 	rc = master_dev->frames_queued(master_dev);
 	if (rc < 0) {
@@ -1275,6 +1260,13 @@ not_enough:
 						 &pb_ts);
 	}
 
+	if (device_open(loopdev)) {
+		cras_iodev_fill_time_from_frames(
+			loop_sleep_frames,
+			loopdev->format->frame_rate,
+			&loop_ts);
+	}
+
 	if (device_open(idev) && device_open(odev)) {
 		if (timespec_after(&pb_ts, &cap_ts)) {
 			*ts = cap_ts;
@@ -1294,6 +1286,9 @@ not_enough:
 			thread->post_mix_loopback_dev->format->frame_rate,
 			ts);
 	}
+
+	if (device_open(loopdev) && timespec_after(ts, &loop_ts))
+		*ts = loop_ts;
 
 	return 0;
 }

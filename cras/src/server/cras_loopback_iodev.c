@@ -9,15 +9,29 @@
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
-#include "cras_rstream.h"
 #include "cras_types.h"
+#include "cras_util.h"
 #include "utlist.h"
 
 #define LOOPBACK_BUFFER_SIZE 8192
 
+/* loopack iodev.  Keep state of a loopback device.
+ *    buffer - The audio samples being looped.
+ *    buffer_frames - Number of audio frames that fit in the buffer.
+ *    read_offset - Current read pointer.
+ *    write_offset - Current write pointer.
+ *    open - Is the device open.
+ *    pre_buffered - Has half of the buffer been filled once. Doesn't allow
+ *        removing samples until buffered.
+ */
 struct loopback_iodev {
 	struct cras_iodev base;
+	uint8_t *buffer;
+	unsigned int buffer_frames;
+	unsigned int read_offset;
+	unsigned int write_offset;
 	int open;
+	int pre_buffered;
 };
 
 /*
@@ -28,22 +42,32 @@ static int is_open(const struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
 
-	return loopback_iodev->open;
+	return loopback_iodev && loopback_iodev->open;
 }
 
 static int dev_running(const struct cras_iodev *iodev)
 {
-	return 1;
+	return is_open(iodev);
 }
 
 static int frames_queued(const struct cras_iodev *iodev)
 {
-	return 0;
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+
+	if (!loopdev->pre_buffered)
+		return 0;
+
+	if (loopdev->write_offset > loopdev->read_offset)
+		return loopdev->write_offset - loopdev->read_offset;
+
+	return loopdev->write_offset +
+	       (loopdev->buffer_frames - loopdev->read_offset);;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	return 0;
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	return loopdev->buffer_frames / 2;
 }
 
 static int close_dev(struct cras_iodev *iodev)
@@ -51,6 +75,10 @@ static int close_dev(struct cras_iodev *iodev)
 	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
 
 	loopback_iodev->open = 0;
+	free(loopback_iodev->buffer);
+	loopback_iodev->buffer = NULL;
+	loopback_iodev->pre_buffered = 0;
+	cras_iodev_free_format(iodev);
 	return 0;
 }
 
@@ -59,16 +87,32 @@ static int open_dev(struct cras_iodev *iodev)
 	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
 
 	loopback_iodev->open = 1;
+
+	loopback_iodev->buffer = malloc(cras_get_format_bytes(iodev->format) *
+					LOOPBACK_BUFFER_SIZE);
+	loopback_iodev->buffer_frames = LOOPBACK_BUFFER_SIZE;
+	loopback_iodev->read_offset = 0;
+	loopback_iodev->write_offset = 0;
 	return 0;
 }
 
 static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 {
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
+	*dst = loopdev->buffer + loopdev->read_offset * frame_bytes;
+
+	*frames = min(*frames, loopdev->buffer_frames - loopdev->read_offset);
+	*frames = min(*frames, frames_queued(iodev));
 	return 0;
 }
 
 static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	loopdev->read_offset += nwritten;
+	if (loopdev->read_offset >= loopdev->buffer_frames)
+		loopdev->read_offset = 0;
 	return 0;
 }
 
@@ -134,54 +178,72 @@ void loopback_iodev_destroy(struct cras_iodev *iodev)
 
 int loopback_iodev_add_audio(struct cras_iodev *dev,
 			     const uint8_t *audio,
-			     unsigned int count,
-			     struct cras_rstream *stream)
+			     unsigned int count)
 {
-	struct cras_audio_shm *shm;
-	unsigned int total_written;
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)dev;
 	uint8_t *dst;
-	int rc;
 	unsigned int this_count;
-	unsigned int max_loops;
-	unsigned int cb_threshold;
+	unsigned int frame_bytes;
+	unsigned int total_written = 0;
+
+	if (!is_open(dev))
+		return 0;
+
+	frame_bytes = cras_get_format_bytes(dev->format);
+
+	/* copy samples to buffer accounting for wrap around. */
+	dst = loopdev->buffer + loopdev->write_offset * frame_bytes;
+	this_count = min(count, loopdev->buffer_frames - loopdev->write_offset);
+	memcpy(dst, audio, this_count * frame_bytes);
+	loopdev->write_offset += this_count;
+	total_written = this_count;
+	if (loopdev->write_offset >= loopdev->buffer_frames)
+		loopdev->write_offset = 0;
+
+	/* write any remaining frames after wrapping. */
+	if (this_count < count) {
+		this_count = count - this_count;
+		memcpy(loopdev->buffer, audio + total_written * frame_bytes,
+			this_count * frame_bytes);
+		loopdev->write_offset += this_count;
+	}
+
+	if (loopdev->write_offset >= loopdev->buffer_frames / 2)
+		loopdev->pre_buffered = 1;
+
+	return 0;
+}
+
+int loopback_iodev_add_zeros(struct cras_iodev *dev,
+			     unsigned int count)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)dev;
+	uint8_t *dst;
+	unsigned int this_count;
 	unsigned int frame_bytes;
 
-	if (!cras_stream_is_loopback(stream->direction))
-		return -EINVAL;
+	if (!is_open(dev))
+		return 0;
 
-	shm = cras_rstream_input_shm(stream);
-	cb_threshold = cras_rstream_get_cb_threshold(stream);
-	frame_bytes = cras_shm_frame_bytes(shm);
+	frame_bytes = cras_get_format_bytes(dev->format);
 
-	total_written = 0;
-	max_loops = 2;  /* Should never be hit, but just in case. */
+	/* copy samples to buffer accounting for wrap around. */
+	dst = loopdev->buffer + loopdev->write_offset * frame_bytes;
+	this_count = min(count, loopdev->buffer_frames - loopdev->write_offset);
+	memset(dst, 0, this_count * frame_bytes);
+	loopdev->write_offset += this_count;
+	if (loopdev->write_offset >= loopdev->buffer_frames)
+		loopdev->write_offset = 0;
 
-	/* Fill up the stream with samples, this may only be able to
-	 * write some of the samples to the current shm region, overflow
-	 * to the next one on the subsequent loop. */
-	while (total_written < count && max_loops--) {
-		cras_shm_check_write_overrun(shm);
-		dst = cras_shm_get_writeable_frames(
-				shm,
-				cb_threshold,
-				&this_count);
-		this_count = min(this_count, count - total_written);
-		if (audio)
-			memcpy(dst,
-			       audio + total_written * frame_bytes,
-			       this_count * frame_bytes);
-		else
-			memset(dst, 0, this_count * frame_bytes);
-		cras_shm_buffer_written(shm, this_count);
-		total_written += this_count;
-
-		if (cras_shm_frames_written(shm) >= cb_threshold) {
-			cras_shm_buffer_write_complete(shm);
-			rc = cras_rstream_audio_ready(stream, cb_threshold);
-			if (rc < 0)
-				return rc;
-		}
+	/* write any remaining frames after wrapping. */
+	if (this_count < count) {
+		this_count = count - this_count;
+		memset(loopdev->buffer, 0, this_count * frame_bytes);
+		loopdev->write_offset += this_count;
 	}
+
+	if (loopdev->write_offset >= loopdev->buffer_frames / 2)
+		loopdev->pre_buffered = 1;
 
 	return 0;
 }

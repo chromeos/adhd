@@ -1619,6 +1619,11 @@ int loopback_iodev_add_audio(struct loopback_iodev *loopback_dev,
   return 0;
 }
 
+int loopback_iodev_add_zeros(struct cras_iodev *dev,
+                             unsigned int count) {
+  return 0;
+}
+
 //  Override select so it can be stubbed.
 int select(int nfds,
            fd_set *readfds,
