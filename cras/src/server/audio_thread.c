@@ -369,7 +369,6 @@ int thread_add_stream(struct audio_thread *thread,
 
 	/* If not already, open the device(s). */
 	if (stream_uses_output(stream) && !odev->is_open(odev)) {
-		thread->out_sleep_correction_frames = 0;
 		rc = init_device(odev, stream);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
@@ -389,7 +388,6 @@ int thread_add_stream(struct audio_thread *thread,
 		}
 	}
 	if (stream_uses_input(stream) && !idev->is_open(idev)) {
-		thread->in_sleep_correction_frames = 0;
 		rc = init_device(idev, stream);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Failed to open %s", idev->info.name);
@@ -841,10 +839,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		struct cras_iodev *odev = thread->output_dev;
 		ret = 0;
 		syslog(LOG_ERR, "-------------thread------------\n");
-		syslog(LOG_ERR, "%d %d %d\n",
-				thread->started,
-				thread->out_sleep_correction_frames,
-				thread->in_sleep_correction_frames);
+		syslog(LOG_ERR, "%d\n", thread->started);
 		syslog(LOG_ERR, "-------------devices------------\n");
 		if (odev) {
 			syslog(LOG_ERR, "output dev: %s\n", odev->info.name);
@@ -966,8 +961,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 	*next_sleep_frames = cras_iodev_sleep_frames(odev,
 						     odev->cb_threshold,
-						     hw_level + total_written) +
-			     thread->out_sleep_correction_frames;
+						     hw_level + total_written);
 
 	return total_written;
 }
@@ -992,7 +986,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	int rc;
 	uint8_t *src;
 	unsigned int write_limit;
-	unsigned int nread, level_target;
+	unsigned int nread;
 	unsigned int frame_bytes;
 	int delay;
 
@@ -1106,20 +1100,10 @@ int possibly_read_audio(struct audio_thread *thread,
 		 */
 		*min_sleep = idev->cb_threshold;
 	} else {
-		/* If there are more remaining frames than targeted, decrease
-		 * the sleep time.  If less, increase. */
-		level_target = CAP_REMAINING_FRAMES_TARGET + idev->cb_threshold;
-		if (hw_level > level_target &&
-		    thread->in_sleep_correction_frames)
-			thread->in_sleep_correction_frames--;
-		if (hw_level < level_target)
-			thread->in_sleep_correction_frames++;
-
 		*min_sleep = cras_iodev_sleep_frames(idev,
 				*min_sleep,
 				hw_level - write_limit) +
-			CAP_REMAINING_FRAMES_TARGET +
-			thread->in_sleep_correction_frames;
+			CAP_REMAINING_FRAMES_TARGET;
 	}
 
 	return write_limit;
@@ -1205,8 +1189,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			return -1;
 		if (!device_open(idev)) {
 			/* Increase sleep correction if waking up too early. */
-			pb_sleep_frames = hw_level - odev->cb_threshold +
-				thread->out_sleep_correction_frames;
+			pb_sleep_frames = hw_level - odev->cb_threshold;
 			goto not_enough;
 		}
 	}

@@ -256,7 +256,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   //  If no samples are present, it should sleep for cb_threshold frames.
   frames_queued_ = 0;
   is_open_ = 1;
-  nsec_expected = (GetCaptureSleepFrames() + 1) * 1000000000ULL /
+  nsec_expected = (GetCaptureSleepFrames()) * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
@@ -264,8 +264,6 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_EQ(0, shm_->area->write_offset[0]);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(1, thread->in_sleep_correction_frames);
-  EXPECT_EQ(0, thread->out_sleep_correction_frames);
   EXPECT_EQ(1, dev_running_called_);
   EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
 
@@ -291,7 +289,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   frames_queued_ = iodev_.cb_threshold - num_frames_short;
   is_open_ = 1;
   audio_buffer_size_ = frames_queued_;
-  nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES + 1) *
+  nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES) *
                   1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   rc = unified_io(thread, &ts);
@@ -330,8 +328,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   for (unsigned int i = 0; i < sizeof(audio_buffer_); i++)
 	  audio_buffer_[i] = i;
 
-  // +1 for correction factor.
-  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
@@ -376,8 +373,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   for (unsigned int i = 0; i < sizeof(audio_buffer_); i++)
 	  audio_buffer_[i] = i;
 
-  // +1 for correction factor.
-  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
@@ -421,8 +417,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   frames_queued_ = iodev_.cb_threshold + 4;
   audio_buffer_size_ = frames_queued_;
 
-  // +1 for correction factor.
-  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
@@ -437,6 +432,9 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
 
   frames_queued_ = iodev_.cb_threshold + 5;
+  sleep_frames = GetCaptureSleepFrames() - 5;
+  nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
+                  (uint64_t)fmt_.frame_rate;
   audio_buffer_size_ = frames_queued_;
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
@@ -499,8 +497,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   frames_queued_ = iodev_.cb_threshold + 4;
   audio_buffer_size_ = frames_queued_;
 
-  // +1 for correction factor.
-  uint64_t sleep_frames = GetCaptureSleepFrames() - 4 + 1;
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
