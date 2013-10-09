@@ -1218,7 +1218,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			idev->close_dev(idev);
 		return rc;
 	}
-	hw_level -= rc;
 
 	if (!device_open(odev))
 		goto not_enough;
