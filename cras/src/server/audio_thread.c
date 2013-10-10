@@ -375,6 +375,14 @@ int thread_add_stream(struct audio_thread *thread,
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
+
+		if (cras_stream_is_unified(stream->direction)) {
+			/* Start unified streams by padding the output.
+			 * This avoid underruns while processing the input data.
+			 */
+			fill_odev_zeros(odev, odev->cb_threshold);
+		}
+
 		if (loop_dev) {
 			struct cras_io_stream *iostream;
 			loopback_iodev_set_format(loop_dev, odev->format);
@@ -1191,15 +1199,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			pb_sleep_frames = rc - odev->cb_threshold;
 			goto not_enough;
 		}
-	}
-
-	if (odev && rc == 0 && unified_streams_attached(thread)) {
-		/* No samples.  Give some buffer for the output for unified IO,
-		 * need time to read samples and fill playback buffer before
-		 * hitting underflow.
-		 */
-		fill_odev_zeros(odev, odev->cb_threshold);
-		rc += odev->cb_threshold;
 	}
 
 	if (!device_open(idev))
