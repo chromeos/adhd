@@ -1164,9 +1164,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
 
-	/* If there isn't an output device then check loopback streams and fill
-	 * with zeros if needed.
-	 */
+	/* Loopback streams, filling with zeros if no output playing. */
 	if (!device_open(odev) && device_open(loopdev)) {
 		loopback_iodev_add_zeros(loopdev, loopdev->cb_threshold);
 		loop_sleep_frames = loopdev->cb_threshold;
@@ -1174,6 +1172,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 
 	possibly_read_audio(thread, loopdev, &loop_sleep_frames);
 
+	/* Capture streams. */
 	rc = possibly_read_audio(thread, idev, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
@@ -1182,6 +1181,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		return rc;
 	}
 
+	/* Output streams. */
 	if (!device_open(odev))
 		goto not_enough;
 
