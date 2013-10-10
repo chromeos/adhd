@@ -971,13 +971,11 @@ int possibly_fill_audio(struct audio_thread *thread,
  * Args:
  *    thread - the audio thread this is running for.
  *    idev - the device to read samples from..
- *    hw_level - buffer level of the device.
  *    min_sleep - Will be filled with the minimum amount of frames needed to
  *      fill the next lowest latency stream's buffer.
  */
 int possibly_read_audio(struct audio_thread *thread,
 			struct cras_iodev *idev,
-			unsigned int hw_level,
 			unsigned int *min_sleep)
 {
 	snd_pcm_uframes_t remainder;
@@ -986,6 +984,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	int rc;
 	uint8_t *src;
 	unsigned int write_limit;
+	unsigned int hw_level;
 	unsigned int nread;
 	unsigned int frame_bytes;
 	int delay;
@@ -993,7 +992,17 @@ int possibly_read_audio(struct audio_thread *thread,
 	if (!device_open(idev))
 		return 0;
 
+	rc = idev->frames_queued(idev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
 	write_limit = hw_level;
+
+	if (!wake_threshold_met(idev, hw_level)) {
+		/* Check if the pcm is still running. */
+		if (!idev->dev_running(idev))
+			return -1;
+	}
 
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
@@ -1139,7 +1148,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *loopdev = thread->post_mix_loopback_dev;
 	struct cras_iodev *master_dev;
 	int rc;
-	unsigned int hw_level;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
 	struct timespec cap_ts, pb_ts, loop_ts;
 	struct timespec *sleep_ts = NULL;
@@ -1161,40 +1169,9 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		loop_sleep_frames = loopdev->cb_threshold;
 	}
 
-	if (device_open(loopdev)) {
-		unsigned int loop_level = loopdev->frames_queued(loopdev);
+	possibly_read_audio(thread, loopdev, &loop_sleep_frames);
 
-		if (wake_threshold_met(loopdev, loop_level)) {
-			possibly_read_audio(thread,
-					    loopdev,
-					    loop_level,
-					    &loop_sleep_frames);
-		}
-	}
-
-	if (!device_open(master_dev))
-		goto not_enough;
-
-	rc = master_dev->frames_queued(master_dev);
-	if (rc < 0) {
-		if (master_dev->is_open(master_dev))
-			master_dev->close_dev(master_dev);
-		return rc;
-	}
-	hw_level = adjust_level(thread, rc);
-
-	if (!wake_threshold_met(master_dev, hw_level)) {
-		/* Check if the pcm is still running. */
-		if (!master_dev->dev_running(master_dev))
-			return -1;
-		if (!device_open(idev)) {
-			/* Increase sleep correction if waking up too early. */
-			pb_sleep_frames = hw_level - odev->cb_threshold;
-			goto not_enough;
-		}
-	}
-
-	rc = possibly_read_audio(thread, idev, hw_level, &cap_sleep_frames);
+	rc = possibly_read_audio(thread, idev, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		if (device_open(idev))
@@ -1209,6 +1186,16 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	if (rc < 0) {
 		odev->close_dev(odev);
 		return rc;
+	}
+
+	if (!wake_threshold_met(odev, rc)) {
+		/* Check if the pcm is still running. */
+		if (!odev->dev_running(odev))
+			return -1;
+		if (!device_open(idev)) {
+			pb_sleep_frames = rc - odev->cb_threshold;
+			goto not_enough;
+		}
 	}
 
 	if (odev && rc == 0 && unified_streams_attached(thread)) {
