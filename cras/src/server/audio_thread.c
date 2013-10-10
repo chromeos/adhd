@@ -1054,6 +1054,8 @@ int possibly_read_audio(struct audio_thread *thread,
 		remainder -= nread;
 	}
 
+	*min_sleep = idev->buffer_size;
+
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
 		uint8_t *dst;
@@ -1146,7 +1148,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	struct cras_iodev *idev = thread->input_dev;
 	struct cras_iodev *odev = thread->output_dev;
 	struct cras_iodev *loopdev = thread->post_mix_loopback_dev;
-	struct cras_iodev *master_dev;
 	int rc;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
 	struct timespec cap_ts, pb_ts, loop_ts;
@@ -1154,12 +1155,6 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
-
-	master_dev = (device_open(idev)) ? idev : odev;
-
-	cap_sleep_frames = master_dev->buffer_size;
-	pb_sleep_frames = master_dev->buffer_size;
-	loop_sleep_frames = master_dev->buffer_size;
 
 	/* If there isn't an output device then check loopback streams and fill
 	 * with zeros if needed.
