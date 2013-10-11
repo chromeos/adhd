@@ -558,7 +558,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
-  cras_shm_buffer_read(shm_, frames_queued_);
+  cras_shm_buffer_read(shm_, cras_rstream_audio_ready_count);
 
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
@@ -599,7 +599,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
   for (size_t i = 0; i < iodev_.cb_threshold; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
-  cras_shm_buffer_read(shm_, frames_queued_);
+  cras_shm_buffer_read(shm_, cras_rstream_audio_ready_count);
 
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;

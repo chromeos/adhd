@@ -97,6 +97,24 @@ TEST_F(ShmTestSuite, WrapToNextBuffer) {
   EXPECT_EQ(230 * shm_.config.frame_bytes, shm_.area->read_offset[1]);
 }
 
+// Test wrapping across buffers reading all samples.
+TEST_F(ShmTestSuite, WrapToNextBufferReadAll) {
+  shm_.config.used_size = 480 * shm_.config.frame_bytes;
+  shm_.area->write_offset[0] = 240 * shm_.config.frame_bytes;
+  shm_.area->read_offset[0] = 120 * shm_.config.frame_bytes;
+  shm_.area->write_offset[1] = 240 * shm_.config.frame_bytes;
+  buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
+  EXPECT_EQ(120, frames_);
+  EXPECT_EQ(shm_.area->samples + shm_.area->read_offset[0], (uint8_t *)buf_);
+  buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
+  EXPECT_EQ(240, frames_);
+  EXPECT_EQ(shm_.area->samples + shm_.config.used_size, (uint8_t *)buf_);
+  cras_shm_buffer_read(&shm_, 360); /* Mark all as read */
+  EXPECT_EQ(0, shm_.area->read_offset[0]);
+  EXPECT_EQ(0, shm_.area->read_offset[1]);
+  EXPECT_EQ(0, shm_.area->read_buf_idx);
+}
+
 // Test wrapping last buffer.
 TEST_F(ShmTestSuite, WrapFromFinalBuffer) {
   shm_.area->read_buf_idx = CRAS_NUM_SHM_BUFFERS - 1;
