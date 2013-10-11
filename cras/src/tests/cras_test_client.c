@@ -98,31 +98,42 @@ int update_rms(const uint8_t *samples, int size)
 }
 
 /* Run from callback thread. */
-static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
-		       uint8_t *samples, size_t frames,
-		       const struct timespec *sample_time, void *arg)
+static int got_samples(struct cras_client *client,
+		       cras_stream_id_t stream_id,
+		       uint8_t *captured_samples,
+		       uint8_t *playback_samples,
+		       unsigned int frames,
+		       const struct timespec *captured_time,
+		       const struct timespec *playback_time,
+		       void *user_arg)
 {
-	int *fd = (int *)arg;
+	int *fd = (int *)user_arg;
 	int ret;
 	int write_size;
 	int processed_bytes, frame_bytes;
 	size_t encoded;
 
-	cras_client_calc_capture_latency(sample_time, &last_latency);
+	cras_client_calc_capture_latency(captured_time, &last_latency);
 
 	frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 	write_size = frames * frame_bytes;
 
 	/* Update RMS values with all available frames. */
-	if (keep_looping)
-		update_rms(samples, min(write_size, duration_frames * frame_bytes));
+	if (keep_looping) {
+		update_rms(captured_samples,
+			   min(write_size, duration_frames * frame_bytes));
+	}
 
 	check_stream_terminate(frames);
 
 	if (capture_codec) {
-		processed_bytes = capture_codec->encode(capture_codec, samples,
-					       write_size, cap_buf, BUF_SIZE,
-					       &encoded);
+		processed_bytes = capture_codec->encode(
+				capture_codec,
+				captured_samples,
+				write_size,
+				cap_buf,
+				BUF_SIZE,
+				&encoded);
 		if (processed_bytes <= 0 || processed_bytes > write_size) {
 			terminate_stream_loop();
 			return EOF;
@@ -134,7 +145,7 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 
 		return processed_bytes / frame_bytes;
 	} else {
-		ret = write(*fd, samples, write_size);
+		ret = write(*fd, captured_samples, write_size);
 		if (ret != write_size)
 			printf("Error writing file\n");
 		return frames;
@@ -142,9 +153,14 @@ static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
 }
 
 /* Run from callback thread. */
-static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
-		       uint8_t *samples, size_t frames,
-		       const struct timespec *sample_time, void *arg)
+static int put_samples(struct cras_client *client,
+		       cras_stream_id_t stream_id,
+		       uint8_t *captured_samples,
+		       uint8_t *playback_samples,
+		       unsigned int frames,
+		       const struct timespec *captured_time,
+		       const struct timespec *playback_time,
+		       void *user_arg)
 {
 	size_t this_size, decoded;
 	snd_pcm_uframes_t avail;
@@ -159,7 +175,7 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	check_stream_terminate(frames);
 
 	if (frames < min_cb_level)
-		printf("req for only %zu - %d min\n", frames, min_cb_level);
+		printf("req for only %u - %d min\n", frames, min_cb_level);
 	avail = frames * frame_bytes;
 
 	this_size = file_buf_size - file_buf_read_offset;
@@ -169,13 +185,13 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	if (full_frames && this_size > min_cb_level * frame_bytes)
 		this_size = min_cb_level * frame_bytes;
 
-	cras_client_calc_playback_latency(sample_time, &last_latency);
+	cras_client_calc_playback_latency(playback_time, &last_latency);
 
 	if (playback_codec) {
 		this_size = playback_codec->decode(playback_codec,
 				       file_buf + file_buf_read_offset,
 				       file_buf_size - file_buf_read_offset,
-				       samples, this_size, &decoded);
+				       playback_samples, this_size, &decoded);
 
 		file_buf_read_offset += this_size;
 		if (this_size == 0) {
@@ -185,7 +201,9 @@ static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
 		}
 		return decoded / frame_bytes;
 	} else {
-		memcpy(samples, file_buf + file_buf_read_offset, this_size);
+		memcpy(playback_samples,
+		       file_buf + file_buf_read_offset,
+		       this_size);
 		file_buf_read_offset += this_size;
 		return this_size / frame_bytes;
 	}
@@ -419,7 +437,7 @@ static int run_file_io_stream(struct cras_client *client,
 {
 	int rc;
 	struct cras_stream_params *params;
-	cras_playback_cb_t aud_cb;
+	cras_unified_cb_t aud_cb;
 	cras_stream_id_t stream_id = 0;
 	int stream_playing = 0;
 	int *pfd = malloc(sizeof(*pfd));
@@ -457,16 +475,14 @@ static int run_file_io_stream(struct cras_client *client,
 	if (aud_format == NULL)
 		return -ENOMEM;
 
-	params = cras_client_stream_params_create(direction,
-						  buffer_frames,
-						  cb_threshold,
-						  min_cb_level,
-						  0,
-						  0,
-						  pfd,
-						  aud_cb,
-						  stream_error,
-						  aud_format);
+	params = cras_client_unified_params_create(direction,
+						   cb_threshold,
+						   0,
+						   0,
+						   pfd,
+						   aud_cb,
+						   stream_error,
+						   aud_format);
 	if (params == NULL)
 		return -ENOMEM;
 
@@ -972,8 +988,8 @@ int main(int argc, char **argv)
 		rc = run_unified_io_stream(client, buffer_size,
 					   rate, num_channels);
 	else if (capture_file != NULL)
-		rc = run_capture(client, capture_file, buffer_size, 0, rate,
-				 num_channels, 0, 0);
+		rc = run_capture(client, capture_file, buffer_size,
+				cb_threshold, rate, num_channels, 0, 0);
 	else if (playback_file != NULL)
 		rc = run_playback(client, playback_file, buffer_size,
 				  cb_threshold, rate, num_channels, 0);
