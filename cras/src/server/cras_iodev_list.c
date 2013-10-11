@@ -236,7 +236,7 @@ static int get_dev_list(struct iodev_list *list,
 	return list->size;
 }
 
-void update_software_volume(struct cras_iodev *iodev)
+static void update_software_volume(struct cras_iodev *iodev)
 {
 	if (cras_iodev_software_volume_needed(iodev)) {
 		unsigned int volume = cras_system_get_volume();
@@ -563,6 +563,8 @@ int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
 void cras_iodev_list_notify_active_node_changed()
 {
 	cras_alert_pending(active_node_changed_alert);
+	if (active_output)
+		update_software_volume(active_output);
 }
 
 static void active_node_changed_prepare(struct cras_alert *alert)
