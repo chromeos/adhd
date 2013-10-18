@@ -16,11 +16,15 @@
 #define SPEEX_QUALITY_LEVEL 4
 /* Max number of converters, src, down/up mix, and format. */
 #define MAX_NUM_CONVERTERS 3
+/* Channel index for stereo. */
+#define STEREO_L 0
+#define STEREO_R 1
 
 typedef void (*sample_format_converter_t)(const uint8_t *in,
 					  size_t in_samples,
 					  uint8_t *out);
-typedef size_t (*channel_converter_t)(const int16_t *in,
+typedef size_t (*channel_converter_t)(struct cras_fmt_conv *conv,
+				      const int16_t *in,
 				      size_t in_frames,
 				      int16_t *out);
 
@@ -28,6 +32,7 @@ typedef size_t (*channel_converter_t)(const int16_t *in,
 struct cras_fmt_conv {
 	SpeexResamplerState *speex_state;
 	channel_converter_t channel_converter;
+	float **ch_conv_mtx; /* Coefficient matrix for mixing channels. */
 	sample_format_converter_t sample_format_converter;
 	struct cras_audio_format in_fmt;
 	struct cras_audio_format out_fmt;
@@ -126,8 +131,9 @@ static void convert_s16le_to_s32le(const uint8_t *in, size_t in_samples,
 
 /* Converts S16 mono to S16 stereo. The out buffer must be double the size of
  * the input buffer. */
-static size_t s16_mono_to_stereo(const int16_t *in, size_t in_frames,
-				 int16_t *out)
+static size_t s16_mono_to_stereo(struct cras_fmt_conv *conv,
+				const int16_t *in, size_t in_frames,
+				int16_t *out)
 {
 	size_t i;
 
@@ -140,8 +146,9 @@ static size_t s16_mono_to_stereo(const int16_t *in, size_t in_frames,
 
 /* Converts S16 Stereo to S16 mono.  The output buffer only need be big enough
  * for mono samples. */
-static size_t s16_stereo_to_mono(const int16_t *in, size_t in_frames,
-				 int16_t *out)
+static size_t s16_stereo_to_mono(struct cras_fmt_conv *conv,
+				const int16_t *in, size_t in_frames,
+				int16_t *out)
 {
 	size_t i;
 
@@ -151,9 +158,11 @@ static size_t s16_stereo_to_mono(const int16_t *in, size_t in_frames,
 }
 
 /* Converts S16 5.1 to S16 stereo. The out buffer can have room for just
- * stereo samples. */
-static size_t s16_51_to_stereo(const int16_t *in, size_t in_frames,
-				 int16_t *out)
+ * stereo samples. This convert function is used as the default behavior
+ * when channel layout is not set from the client side. */
+static size_t s16_51_to_stereo(struct cras_fmt_conv *conv,
+			       const int16_t *in, size_t in_frames,
+			       int16_t *out)
 {
 	static const unsigned int left_idx = 0;
 	static const unsigned int right_idx = 1;
@@ -166,14 +175,131 @@ static size_t s16_51_to_stereo(const int16_t *in, size_t in_frames,
 	for (i = 0; i < in_frames; i++) {
 		unsigned int half_center;
 
-		/* TODO(dgreid) - Dont' drop surrounds and LFE! */
 		half_center = in[6 * i + center_idx] / 2;
 		out[2 * i + left_idx] = s16_add_and_clip(in[6 * i + left_idx],
 							 half_center);
 		out[2 * i + right_idx] = s16_add_and_clip(in[6 * i + right_idx],
-							 half_center);
+							  half_center);
 	}
 	return in_frames;
+}
+
+/* Multiplies buffer vector with coefficient vector. */
+static int16_t multiply_buf_with_coef(float *coef,
+				      const int16_t *buf,
+				      size_t size)
+{
+	int32_t sum = 0;
+	int i;
+
+	for (i = 0; i < size; i++)
+		sum += coef[i] * buf[i];
+	sum = max(sum, -0x8000);
+	sum = min(sum, 0x7fff);
+	return (int16_t)sum;
+}
+
+static void normalize_buf(float *buf, size_t size)
+{
+	int i;
+	float squre_sum = 0.0;
+	for (i = 0; i < size; i++)
+		squre_sum += buf[i] * buf[i];
+	for (i = 0; i < size; i ++)
+		buf[i] /= squre_sum;
+}
+
+/* Converts channels based on the channel conversion
+ * coefficient matrix.
+ */
+static size_t convert_channels(struct cras_fmt_conv *conv,
+			       const int16_t *in,
+			       size_t in_frames,
+			       int16_t *out)
+{
+	unsigned i, fr;
+	unsigned in_idx = 0;
+	unsigned out_idx = 0;
+
+	for (fr = 0; fr < in_frames; fr++) {
+		for (i = 0; i < conv->out_fmt.num_channels; i++)
+			out[out_idx + i] = multiply_buf_with_coef(
+					conv->ch_conv_mtx[i],
+					&in[in_idx],
+					conv->in_fmt.num_channels);
+		in_idx += conv->in_fmt.num_channels;
+		out_idx += conv->out_fmt.num_channels;
+	}
+
+	return in_frames;
+}
+
+static void free_channel_conv_matrix(float **p, size_t out_ch)
+{
+	int i;
+	for (i = 0; i < out_ch; i ++)
+		free(p[i]);
+	free(p);
+}
+
+
+static float** alloc_channel_conv_matrix(size_t in_ch, size_t out_ch)
+{
+	int i;
+	float **p;
+	p = (float **)calloc(out_ch, sizeof(*p));
+	if (p == NULL)
+		return NULL;
+	for (i = 0; i < out_ch; i++) {
+		p[i] = (float *)calloc(in_ch, sizeof(*p[i]));
+		if (p[i] == NULL)
+			goto alloc_err;
+	}
+	return p;
+
+alloc_err:
+	if (p)
+		free_channel_conv_matrix(p, out_ch);
+	return NULL;
+}
+
+/* Populates the down mix matrix by rules:
+ * 1. Front/side left(right) channel will mix to left(right) of
+ *    full scale.
+ * 2. Center and LFE will be split equally to left and right.
+ *    Rear
+ * 3. Rear left/right will split 1/4 of the power to opposite
+ *    channel.
+ */
+static void surround51_to_stereo_downmix_mtx(float **mtx,
+					     int8_t layout[CRAS_CH_MAX])
+{
+	if (layout[CRAS_CH_FC] != -1) {
+		mtx[STEREO_L][layout[CRAS_CH_FC]] = 0.707;
+		mtx[STEREO_R][layout[CRAS_CH_FC]] = 0.707;
+	}
+	if (layout[CRAS_CH_FL] != -1 && layout[CRAS_CH_FR] != -1) {
+		mtx[STEREO_L][layout[CRAS_CH_FL]] = 1.0;
+		mtx[STEREO_R][layout[CRAS_CH_FR]] = 1.0;
+	}
+	if (layout[CRAS_CH_SL] != -1 && layout[CRAS_CH_SR] != -1) {
+		mtx[STEREO_L][layout[CRAS_CH_SL]] = 1.0;
+		mtx[STEREO_R][layout[CRAS_CH_SR]] = 1.0;
+	}
+	if (layout[CRAS_CH_RL] != -1 && layout[CRAS_CH_RR] != -1) {
+		/* Split 1/4 power to the other side */
+		mtx[STEREO_L][layout[CRAS_CH_RL]] = 0.866;
+		mtx[STEREO_R][layout[CRAS_CH_RL]] = 0.5;
+		mtx[STEREO_R][layout[CRAS_CH_RR]] = 0.866;
+		mtx[STEREO_L][layout[CRAS_CH_RR]] = 0.5;
+	}
+	if (layout[CRAS_CH_LFE] != -1) {
+		mtx[STEREO_L][layout[CRAS_CH_LFE]] = 0.707;
+		mtx[STEREO_R][layout[CRAS_CH_LFE]] = 0.707;
+	}
+
+	normalize_buf(mtx[STEREO_L], 6);
+	normalize_buf(mtx[STEREO_R], 6);
 }
 
 /*
@@ -248,12 +374,39 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		conv->num_converters++;
 		syslog(LOG_DEBUG, "Convert from %zu to %zu channels.",
 		       in->num_channels, out->num_channels);
+
+		/* Populate the conversion matrix base on in/out channel count
+		 * and layout. */
 		if (in->num_channels == 1 && out->num_channels == 2) {
 			conv->channel_converter = s16_mono_to_stereo;
 		} else if (in->num_channels == 2 && out->num_channels == 1) {
 			conv->channel_converter = s16_stereo_to_mono;
 		} else if (in->num_channels == 6 && out->num_channels == 2) {
-			conv->channel_converter = s16_51_to_stereo;
+			int in_channel_layout_set = 0;
+
+			/* Checks if channel_layout is set in the incoming format */
+			for (i = 0; i < CRAS_CH_MAX; i++)
+				if (in->channel_layout[i] != -1)
+					in_channel_layout_set = 1;
+
+			/* Use the conversion matrix based converter when a
+			 * channel layout is set, or default to use existing
+			 * converter to downmix to stereo */
+			if (in_channel_layout_set) {
+				conv->ch_conv_mtx = alloc_channel_conv_matrix(
+						in->num_channels,
+						out->num_channels);
+				if (conv->ch_conv_mtx == NULL) {
+					cras_fmt_conv_destroy(conv);
+					return NULL;
+				}
+				conv->channel_converter = convert_channels;
+				surround51_to_stereo_downmix_mtx(
+						conv->ch_conv_mtx,
+						conv->in_fmt.channel_layout);
+			} else {
+				conv->channel_converter = s16_51_to_stereo;
+			}
 		} else {
 			syslog(LOG_WARNING,
 			       "Invalid channel conversion %zu to %zu",
@@ -304,6 +457,9 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 {
 	unsigned i;
+	if (conv->ch_conv_mtx)
+		free_channel_conv_matrix(conv->ch_conv_mtx,
+					 conv->out_fmt.num_channels);
 	if (conv->speex_state)
 		speex_resampler_destroy(conv->speex_state);
 	for (i = 0; i < MAX_NUM_CONVERTERS - 1; i++)
@@ -377,7 +533,9 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 
 	/* Then channel conversion. */
 	if (conv->channel_converter != NULL) {
-		conv->channel_converter((int16_t *)buffers[buf_idx], fr_in,
+		conv->channel_converter(conv,
+					(int16_t *)buffers[buf_idx],
+					fr_in,
 					(int16_t *)buffers[buf_idx + 1]);
 		buf_idx++;
 	}
