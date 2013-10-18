@@ -11,8 +11,9 @@
 #include "cras_types.h"
 #include "cras_util.h"
 
-/* Want the fastest conversion we can get. */
-#define SPEEX_QUALITY_LEVEL 0
+/* The quality level is a value between 0 and 10. This is a tradeoff between
+ * performance, latency, and quality. */
+#define SPEEX_QUALITY_LEVEL 4
 /* Max number of converters, src, down/up mix, and format. */
 #define MAX_NUM_CONVERTERS 3
 
