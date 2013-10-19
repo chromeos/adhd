@@ -18,11 +18,14 @@
 			_a < _b ? _a : _b; })
 #endif
 
+#undef deinterleave_stereo
+#undef interleave_stereo
+
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 
-static void deinterleave_stereo_neon(int16_t *input, float *output1,
-				     float *output2, int frames)
+static void deinterleave_stereo(int16_t *input, float *output1,
+				float *output2, int frames)
 {
 	/* Process 8 frames (16 samples) each loop. */
 	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
@@ -61,9 +64,10 @@ static void deinterleave_stereo_neon(int16_t *input, float *output1,
 		*output2++ = *input++ / 32768.0f;
 	}
 }
+#define deinterleave_stereo deinterleave_stereo
 
-static void interleave_stereo_neon(float *input1, float *input2,
-				   int16_t *output, int frames)
+static void interleave_stereo(float *input1, float *input2,
+			      int16_t *output, int frames)
 {
 	/* Process 4 frames (8 samples) each loop. */
 	/* L0 L1 L2 L3, R0 R1 R2 R3 -> L0 R0 L1 R1, L2 R2 L3 R3 */
@@ -123,14 +127,15 @@ static void interleave_stereo_neon(float *input1, float *input2,
 		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
 	}
 }
+#define interleave_stereo interleave_stereo
 
 #endif
 
 #ifdef __SSE3__
 #include <emmintrin.h>
 
-static void deinterleave_stereo_sse3(int16_t *input, float *output1,
-				     float *output2, int frames)
+static void deinterleave_stereo(int16_t *input, float *output1,
+				float *output2, int frames)
 {
 	/* Process 8 frames (16 samples) each loop. */
 	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
@@ -183,9 +188,10 @@ static void deinterleave_stereo_sse3(int16_t *input, float *output1,
 		*output2++ = *input++ / 32768.0f;
 	}
 }
+#define deinterleave_stereo deinterleave_stereo
 
-static void interleave_stereo_sse3(float *input1, float *input2,
-				   int16_t *output, int frames)
+static void interleave_stereo(float *input1, float *input2,
+			      int16_t *output, int frames)
 {
 	/* Process 4 frames (8 samples) each loop. */
 	/* L0 L1 L2 L3, R0 R1 R2 R3 -> L0 R0 L1 R1, L2 R2 L3 R3 */
@@ -238,6 +244,7 @@ static void interleave_stereo_sse3(float *input1, float *input2,
 		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
 	}
 }
+#define interleave_stereo interleave_stereo
 
 #endif
 
@@ -247,16 +254,9 @@ void dsp_util_deinterleave(int16_t *input, float *const *output, int channels,
 	float *output_ptr[channels];
 	int i, j;
 
-#ifdef __ARM_NEON__
+#ifdef deinterleave_stereo
 	if (channels == 2) {
-		deinterleave_stereo_neon(input, output[0], output[1], frames);
-		return;
-	}
-#endif
-
-#ifdef __SSE3__
-	if (channels == 2) {
-		deinterleave_stereo_sse3(input, output[0], output[1], frames);
+		deinterleave_stereo(input, output[0], output[1], frames);
 		return;
 	}
 #endif
@@ -275,16 +275,9 @@ void dsp_util_interleave(float *const *input, int16_t *output, int channels,
 	float *input_ptr[channels];
 	int i, j;
 
-#ifdef __ARM_NEON__
+#ifdef interleave_stereo
 	if (channels == 2) {
-		interleave_stereo_neon(input[0], input[1], output, frames);
-		return;
-	}
-#endif
-
-#ifdef __SSE3__
-	if (channels == 2) {
-		interleave_stereo_sse3(input[0], input[1], output, frames);
+		interleave_stereo(input[0], input[1], output, frames);
 		return;
 	}
 #endif

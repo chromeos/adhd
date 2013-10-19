@@ -5,7 +5,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-COMMON_CPPFLAGS = -O2 -Wall -Werror
+COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
 
 bin_PROGRAMS = cras cras_test_client
 cras_SOURCES = \
