@@ -449,7 +449,7 @@ static int run_file_io_stream(struct cras_client *client,
 			      size_t rate,
 			      size_t num_channels)
 {
-	int rc;
+	int rc, tty;
 	struct cras_stream_params *params;
 	cras_unified_cb_t aud_cb;
 	cras_stream_id_t stream_id = 0;
@@ -512,14 +512,20 @@ static int run_file_io_stream(struct cras_client *client,
 	stream_playing =
 		start_stream(client, &stream_id, params, volume_scaler) == 0;
 
+	tty = open("/dev/tty", O_RDONLY);
+	if (tty == -1) {
+		perror("failed to open /dev/tty");
+		goto error;
+	}
+
 	while (keep_looping) {
 		char input;
 		int nread;
 
 		FD_ZERO(&poll_set);
-		FD_SET(1, &poll_set);
+		FD_SET(tty, &poll_set);
 		FD_SET(pipefd[0], &poll_set);
-		pselect(max(1, pipefd[0]) + 1,
+		pselect(max(tty, pipefd[0]) + 1,
 			&poll_set,
 			NULL,
 			NULL,
@@ -532,10 +538,10 @@ static int run_file_io_stream(struct cras_client *client,
 		if (stream_playing && show_rms)
 			print_last_rms();
 
-		if (!FD_ISSET(1, &poll_set))
+		if (!FD_ISSET(tty, &poll_set))
 			continue;
 
-		nread = read(1, &input, 1);
+		nread = read(tty, &input, 1);
 		if (nread < 1) {
 			fprintf(stderr, "Error reading stdin\n");
 			return nread;
@@ -624,7 +630,7 @@ static int run_file_io_stream(struct cras_client *client,
 
 	if (show_total_rms)
 		print_total_rms();
-
+error:
 	cras_client_stop(client);
 
 	cras_audio_format_destroy(aud_format);
