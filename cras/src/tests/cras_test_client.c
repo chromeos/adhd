@@ -227,6 +227,28 @@ static int unified_samples(struct cras_client *client,
 	return frames;
 }
 
+/* Run from callback thread. */
+static int put_stdin_samples(struct cras_client *client,
+		       cras_stream_id_t stream_id,
+		       uint8_t *captured_samples,
+		       uint8_t *playback_samples,
+		       unsigned int frames,
+		       const struct timespec *captured_time,
+		       const struct timespec *playback_time,
+		       void *user_arg)
+{
+	int rc = 0;
+	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
+
+	rc = read(0, playback_samples, frames * frame_bytes);
+	if (rc < 0) {
+		keep_looping = 0;
+		return -1;
+	}
+
+	return rc / frame_bytes;
+}
+
 static int stream_error(struct cras_client *client,
 			cras_stream_id_t stream_id,
 			int err,
@@ -484,6 +506,12 @@ static int run_file_io_stream(struct cras_client *client,
 		aud_cb = got_samples;
 	else
 		aud_cb = put_samples;
+
+	if (fd == 0) {
+		if (direction != CRAS_STREAM_OUTPUT)
+			return -EINVAL;
+		aud_cb = put_stdin_samples;
+	}
 
 	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
 					      num_channels);
@@ -776,7 +804,8 @@ static void show_usage()
 	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
 	printf("--iodev_index <N> - Set active iodev to N.\n");
 	printf("--capture_file <name> - Name of file to record to.\n");
-	printf("--playback_file <name> - Name of file to play.\n");
+	printf("--playback_file <name> - Name of file to play, "
+	       "\"-\" to playback raw audio from stdin.\n");
 	printf("--loopback_file <name> - Name of file to record loopback to.\n");
 	printf("--callback_threshold <N> - Number of samples remaining when callback in invoked.\n");
 	printf("--min_cb_level <N> - Minimum # of samples writeable when playback callback is called.\n");
@@ -1019,8 +1048,12 @@ int main(int argc, char **argv)
 		rc = run_capture(client, capture_file,
 				cb_threshold, rate, num_channels, 0);
 	else if (playback_file != NULL)
-		rc = run_playback(client, playback_file,
-				  cb_threshold, rate, num_channels);
+		if (strcmp(playback_file, "-") == 0)
+			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
+					cb_threshold, rate, num_channels);
+		else
+			rc = run_playback(client, playback_file,
+					cb_threshold, rate, num_channels);
 	else if (loopback_file != NULL)
 		rc = run_capture(client, loopback_file,
 				  cb_threshold, rate, num_channels, 1);
