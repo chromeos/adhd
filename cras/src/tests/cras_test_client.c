@@ -47,6 +47,7 @@ uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
 static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
 static unsigned char cap_buf[BUF_SIZE];
+static char *channel_layout = NULL;
 
 struct cras_audio_format *aud_format;
 
@@ -426,6 +427,21 @@ static int run_unified_io_stream(struct cras_client *client,
 	return 0;
 }
 
+static int parse_channel_layout(char *channel_layout_str,
+				int8_t channel_layout[CRAS_CH_MAX])
+{
+	int i = 0;
+	char *chp;
+
+	chp = strtok(channel_layout_str, ",");
+	while (chp && i < CRAS_CH_MAX) {
+		channel_layout[i++] = atoi(chp);
+		chp = strtok(NULL, ",");
+	}
+
+	return 0;
+}
+
 static int run_file_io_stream(struct cras_client *client,
 			      int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
@@ -448,6 +464,7 @@ static int run_file_io_stream(struct cras_client *client,
 	size_t sys_volume = 100;
 	long cap_gain = 0;
 	int mute = 0;
+	int8_t layout[CRAS_CH_MAX];
 
 	/* Set the sleep interval between latency/RMS prints. */
 	sleep_ts.tv_sec = 1;
@@ -474,6 +491,12 @@ static int run_file_io_stream(struct cras_client *client,
 					      num_channels);
 	if (aud_format == NULL)
 		return -ENOMEM;
+
+	if (channel_layout) {
+		/* Set channel layout to format */
+		parse_channel_layout(channel_layout, layout);
+		cras_audio_format_set_channel_layout(aud_format, layout);
+	}
 
 	params = cras_client_unified_params_create(direction,
 						   cb_threshold,
@@ -737,6 +760,7 @@ static struct option long_options[] = {
 	{"unified_audio",	no_argument,		0, 'z'},
 	{"capture_mute",        required_argument,      0, '0'},
 	{"dump_audio_thread",   no_argument,            0, '1'},
+	{"channel_layout",      required_argument,      0, '2'},
 	{0, 0, 0, 0}
 };
 
@@ -749,6 +773,7 @@ static void show_usage()
 	printf("--write_full_frames - Write data in blocks of min_cb_level.\n");
 	printf("--rate <N> - Specifies the sample rate in Hz.\n");
 	printf("--num_channels <N> - Two for stereo.\n");
+	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
 	printf("--iodev_index <N> - Set active iodev to N.\n");
 	printf("--capture_file <name> - Name of file to record to.\n");
 	printf("--playback_file <name> - Name of file to play.\n");
@@ -968,6 +993,9 @@ int main(int argc, char **argv)
 		}
 		case '1':
 			cras_client_dump_audio_thread(client);
+			break;
+		case '2':
+			channel_layout = optarg;
 			break;
 		default:
 			break;
