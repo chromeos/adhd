@@ -445,11 +445,9 @@ static int parse_channel_layout(char *channel_layout_str,
 static int run_file_io_stream(struct cras_client *client,
 			      int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
-			      size_t buffer_frames,
 			      size_t cb_threshold,
 			      size_t rate,
-			      size_t num_channels,
-			      int flags)
+			      size_t num_channels)
 {
 	int rc;
 	struct cras_stream_params *params;
@@ -641,12 +639,10 @@ static int run_file_io_stream(struct cras_client *client,
 
 static int run_capture(struct cras_client *client,
 		       const char *file,
-		       size_t buffer_frames,
 		       size_t cb_threshold,
 		       size_t rate,
 		       size_t num_channels,
-		       int loopback,
-		       int flags)
+		       int loopback)
 {
 	int fd = open(file, O_CREAT | O_RDWR, 0666);
 	if (fd == -1) {
@@ -657,7 +653,7 @@ static int run_capture(struct cras_client *client,
 	run_file_io_stream(
 		client, fd,
 		loopback ? CRAS_STREAM_POST_MIX_PRE_DSP : CRAS_STREAM_INPUT,
-		buffer_frames, cb_threshold, rate, num_channels, flags);
+		cb_threshold, rate, num_channels);
 
 	close(fd);
 	return 0;
@@ -665,11 +661,9 @@ static int run_capture(struct cras_client *client,
 
 static int run_playback(struct cras_client *client,
 			const char *file,
-			size_t buffer_frames,
 			size_t cb_threshold,
 			size_t rate,
-			size_t num_channels,
-			int flags)
+			size_t num_channels)
 {
 	int fd;
 
@@ -686,8 +680,8 @@ static int run_playback(struct cras_client *client,
 	}
 	file_buf_size = read(fd, file_buf, 1024*1024*4);
 
-	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, buffer_frames,
-			   cb_threshold, rate, num_channels, flags);
+	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT,
+			   cb_threshold, rate, num_channels);
 
 	close(fd);
 	return 0;
@@ -1016,14 +1010,14 @@ int main(int argc, char **argv)
 		rc = run_unified_io_stream(client, buffer_size,
 					   rate, num_channels);
 	else if (capture_file != NULL)
-		rc = run_capture(client, capture_file, buffer_size,
-				cb_threshold, rate, num_channels, 0, 0);
+		rc = run_capture(client, capture_file,
+				cb_threshold, rate, num_channels, 0);
 	else if (playback_file != NULL)
-		rc = run_playback(client, playback_file, buffer_size,
-				  cb_threshold, rate, num_channels, 0);
+		rc = run_playback(client, playback_file,
+				  cb_threshold, rate, num_channels);
 	else if (loopback_file != NULL)
-		rc = run_capture(client, loopback_file, buffer_size,
-				  cb_threshold, rate, num_channels, 1, 0);
+		rc = run_capture(client, loopback_file,
+				  cb_threshold, rate, num_channels, 1);
 
 destroy_exit:
 	cras_client_destroy(client);
