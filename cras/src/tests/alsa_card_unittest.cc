@@ -16,8 +16,6 @@ extern "C" {
 
 namespace {
 
-static const unsigned DEFAULT_DEV_PRIORITY = 50;
-
 static size_t cras_alsa_mixer_create_called;
 static struct cras_alsa_mixer *cras_alsa_mixer_create_return;
 static size_t cras_alsa_mixer_destroy_called;

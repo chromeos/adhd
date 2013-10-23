@@ -90,33 +90,6 @@ static inline int output_streams_attached(const struct audio_thread *thread)
 	return 0;
 }
 
-static inline int unified_streams_attached(const struct audio_thread *thread)
-{
-	struct cras_io_stream *curr;
-
-	DL_FOREACH(thread->streams, curr)
-		if (cras_stream_is_unified(curr->stream->direction))
-			return 1;
-
-	return 0;
-}
-
-static inline int device_active(const struct audio_thread *thread)
-{
-	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *idev = thread->input_dev;
-
-	if (!odev && !idev)
-		return 0;
-
-	if (odev && odev->is_open(odev))
-		return 1;
-	if (idev && idev->is_open(idev))
-		return 1;
-
-	return 0;
-}
-
 static inline int device_open(const struct cras_iodev *iodev)
 {
 	if (iodev && iodev->is_open(iodev))
