@@ -51,7 +51,7 @@ static const size_t test_channel_counts[] = {
 /* Looks up the list of channel map for the one can exactly matches
  * the layout specified in fmt.
  */
-snd_pcm_chmap_query_t *cras_chmap_caps_match(
+static snd_pcm_chmap_query_t *cras_chmap_caps_match(
 		snd_pcm_chmap_query_t **chmaps,
 		struct cras_audio_format *fmt)
 {
@@ -164,6 +164,72 @@ int cras_alsa_pcm_start(snd_pcm_t *handle)
 int cras_alsa_pcm_drain(snd_pcm_t *handle)
 {
 	return snd_pcm_drain(handle);
+}
+
+int cras_alsa_set_channel_map(snd_pcm_t *handle,
+			      struct cras_audio_format *fmt)
+{
+	int rc = 0;
+	size_t i, ch;
+	snd_pcm_chmap_query_t **chmaps;
+	snd_pcm_chmap_query_t *match;
+
+	if (fmt->num_channels <= 2)
+		return 0;
+
+	chmaps = snd_pcm_query_chmaps(handle);
+	if (chmaps == NULL) {
+		syslog(LOG_ERR, "No chmap queried!");
+		rc = -EINVAL;
+		goto done;
+	}
+
+	match = cras_chmap_caps_match(chmaps, fmt);
+	if (match == NULL) {
+		rc = -1;
+		goto done;
+	}
+
+	/* A channel map could match the layout after channels
+	 * pair/arbitrary swapped. Modified the channel positions
+	 * before set to HW.
+	 */
+	for (i = 0; i < fmt->num_channels; i++) {
+		for (ch = 0; ch < CRAS_CH_MAX; ch++)
+			if (fmt->channel_layout[ch] == (int)i)
+				break;
+		match->map.pos[i] = CH_TO_ALSA(ch);
+	}
+	rc = snd_pcm_set_chmap(handle, &match->map);
+
+done:
+	snd_pcm_free_chmaps(chmaps);
+	return rc;
+}
+
+int cras_alsa_get_channel_map(snd_pcm_t *handle,
+			      struct cras_audio_format *fmt)
+{
+	snd_pcm_chmap_query_t **chmaps;
+	snd_pcm_chmap_query_t *match;
+	int rc = 0;
+
+	chmaps = snd_pcm_query_chmaps(handle);
+	if (chmaps == NULL) {
+		syslog(LOG_ERR, "No chmap queried!");
+		rc = -EINVAL;
+		goto done;
+	}
+
+	match = cras_chmap_caps_match(chmaps, fmt);
+	if (match == NULL) {
+		syslog(LOG_ERR, "No exact matched channel map found");
+		rc = -1;
+	}
+
+done:
+	snd_pcm_free_chmaps(chmaps);
+	return rc;
 }
 
 int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,

@@ -878,6 +878,16 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 }
 
 //  From alsa helper.
+int cras_alsa_set_channel_map(snd_pcm_t *handle,
+			      struct cras_audio_format *fmt)
+{
+  return 0;
+}
+int cras_alsa_get_channel_map(snd_pcm_t *handle,
+			      struct cras_audio_format *fmt)
+{
+  return 0;
+}
 int cras_alsa_pcm_open(snd_pcm_t **handle, const char *dev,
 		       snd_pcm_stream_t stream)
 {

@@ -16,6 +16,28 @@
 
 struct cras_audio_format;
 
+
+/* Sets the channel layout from given format to the pcm handle.
+ * Args:
+ *    handle - Pointer to the opened pcm to set channel map to.
+ *    fmt - The format containing the channel layout info.
+ * Returns:
+ *    0 if a matched channel map is set to HW, -1 otherwise.
+ */
+int cras_alsa_set_channel_map(snd_pcm_t *handle,
+			      struct cras_audio_format *fmt);
+
+/*  Gets the supported channel mapping of the pcm handle which matches
+ *  the channel layout in the format.
+ *  Args:
+ *     handle - Pointer to the opened pcm to get channel map info.
+ *     fmt - The format to fill channel layout into.
+ *  Returns:
+ *     0 if an exactly matched channel map is found, -1 otherwise.
+ */
+int cras_alsa_get_channel_map(snd_pcm_t *handle,
+			      struct cras_audio_format *fmt);
+
 /* Opens an alsa device, thin wrapper to snd_pcm_open.
  * Args:
  *    handle - Filled with a pointer to the opened pcm.
