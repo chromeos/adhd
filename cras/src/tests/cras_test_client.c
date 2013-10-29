@@ -541,17 +541,18 @@ static int run_file_io_stream(struct cras_client *client,
 		start_stream(client, &stream_id, params, volume_scaler) == 0;
 
 	tty = open("/dev/tty", O_RDONLY);
-	if (tty == -1) {
-		perror("failed to open /dev/tty");
-		goto error;
-	}
+
+	// There could be no terminal available when run in autotest.
+	if (tty == -1)
+		perror("warning: failed to open /dev/tty");
 
 	while (keep_looping) {
 		char input;
 		int nread;
 
 		FD_ZERO(&poll_set);
-		FD_SET(tty, &poll_set);
+		if (tty >= 0)
+			FD_SET(tty, &poll_set);
 		FD_SET(pipefd[0], &poll_set);
 		pselect(max(tty, pipefd[0]) + 1,
 			&poll_set,
@@ -566,7 +567,7 @@ static int run_file_io_stream(struct cras_client *client,
 		if (stream_playing && show_rms)
 			print_last_rms();
 
-		if (!FD_ISSET(tty, &poll_set))
+		if (tty < 0 || !FD_ISSET(tty, &poll_set))
 			continue;
 
 		nread = read(tty, &input, 1);
@@ -658,7 +659,7 @@ static int run_file_io_stream(struct cras_client *client,
 
 	if (show_total_rms)
 		print_total_rms();
-error:
+
 	cras_client_stop(client);
 
 	cras_audio_format_destroy(aud_format);
