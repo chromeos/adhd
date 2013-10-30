@@ -142,8 +142,7 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			   snd_pcm_uframes_t *buffer_frames)
 {
 	unsigned int rate, ret_rate;
-	int err, dir;
-	snd_pcm_uframes_t period_size;
+	int err;
 	snd_pcm_hw_params_t *hwparams;
 
 	rate = format->frame_rate;
@@ -202,27 +201,24 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 		return err;
 	}
 
+	/* Make sure buffer frames is even, or snd_pcm_hw_params will
+	 * return invalid argument error. */
 	err = snd_pcm_hw_params_get_buffer_size_max(hwparams,
 						    buffer_frames);
 	if (err < 0)
 		syslog(LOG_WARNING, "get buffer max %s\n", snd_strerror(err));
 
-	err = snd_pcm_hw_params_set_buffer_size_near(handle, hwparams,
-						     buffer_frames);
+	*buffer_frames &= ~0x01;
+	err = snd_pcm_hw_params_set_buffer_size_max(handle, hwparams,
+						    buffer_frames);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_buffer_size_near %s\n", snd_strerror(err));
+		syslog(LOG_ERR, "set_buffer_size_max %s", snd_strerror(err));
 		return err;
 	}
-	dir = 0;
-	period_size = *buffer_frames;
-	err = snd_pcm_hw_params_set_period_size_near(handle, hwparams,
-						     &period_size, &dir);
-	if (err < 0) {
-		syslog(LOG_ERR, "set_period_size_near %s\n", snd_strerror(err));
-		return err;
-	}
-	syslog(LOG_DEBUG, "period, buffer size set to %u, %u\n",
-	       (unsigned int)period_size, (unsigned int)*buffer_frames);
+
+	syslog(LOG_DEBUG, "buffer size set to %u\n",
+	       (unsigned int)*buffer_frames);
+
 	/* Finally, write the parameters to the device. */
 	err = snd_pcm_hw_params(handle, hwparams);
 	if (err < 0) {
