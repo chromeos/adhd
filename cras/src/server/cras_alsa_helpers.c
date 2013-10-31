@@ -126,8 +126,8 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 
 	num_found = 0;
 	for (i = 0; test_channel_counts[i] != 0; i++) {
-		rc = snd_pcm_hw_params_set_channels(handle, params,
-						    test_channel_counts[i]);
+		rc = snd_pcm_hw_params_test_channels(handle, params,
+						     test_channel_counts[i]);
 		if (rc == 0)
 			(*channel_counts)[num_found++] = test_channel_counts[i];
 	}

@@ -47,11 +47,15 @@ static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
 	return iodev->supported_rates[0];
 }
 
-/* Finds the best match for the channel count.  This will return an exact match
- * only, if there is no exact match, it falls back to the default channel count
- * for the device (The first in the list). */
+/* Finds the best match for the channel count.  The following match rules
+ * will apply in order and return the value once matched:
+ * 1. Match the exact given channel count.
+ * 2. Match the preferred channel count.
+ * 3. The first channel count in the list.
+ */
 static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 {
+	static const size_t preferred_channel_count = 2;
 	size_t i;
 
 	assert(iodev->supported_channel_counts[0] != 0);
@@ -60,6 +64,16 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 		if (iodev->supported_channel_counts[i] == count)
 			return count;
 	}
+
+	/* If provided count is not supported, search for preferred
+	 * channel count to which we're good at converting.
+	 */
+	for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
+		if (iodev->supported_channel_counts[i] ==
+				preferred_channel_count)
+			return preferred_channel_count;
+	}
+
 	return iodev->supported_channel_counts[0];
 }
 
