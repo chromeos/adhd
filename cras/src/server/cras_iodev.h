@@ -66,6 +66,8 @@ struct cras_ionode {
  * dev_running - Checks if the device is playing or recording, return 1 if it's
  *     running, return 0 if not.
  * update_active_node - Update the active node using the selected/plugged state.
+ * update_channel_layout - Update the channel layout base on set iodev->format,
+ *     expect the best available layout be filled to iodev->format.
  * format - The audio format being rendered or captured.
  * info - Unique identifier for this device (index and name).
  * nodes - The output or input nodes available for this device.
@@ -102,6 +104,7 @@ struct cras_iodev {
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);
 	void (*update_active_node)(struct cras_iodev *iodev);
+	int (*update_channel_layout)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_iodev_info info;
 	struct cras_ionode *nodes;

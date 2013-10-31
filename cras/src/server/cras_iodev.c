@@ -81,6 +81,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
 	size_t actual_rate, actual_num_channels;
+	int rc;
 
 	/* If this device isn't already using a format, try to match the one
 	 * requested in "fmt". */
@@ -91,10 +92,10 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		*iodev->format = *fmt;
 
 		if (iodev->update_supported_formats) {
-			int rc = iodev->update_supported_formats(iodev);
+			rc = iodev->update_supported_formats(iodev);
 			if (rc) {
 				syslog(LOG_ERR, "Failed to update formats");
-				return rc;
+				goto error;
 			}
 		}
 
@@ -104,19 +105,37 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 							     fmt->num_channels);
 		if (actual_rate == 0 || actual_num_channels == 0) {
 			/* No compatible frame rate found. */
-			free(iodev->format);
-			iodev->format = NULL;
-			return -EINVAL;
+			rc = -EINVAL;
+			goto error;
 		}
 		iodev->format->frame_rate = actual_rate;
 		iodev->format->num_channels = actual_num_channels;
 		/* TODO(dgreid) - allow other formats. */
 		iodev->format->format = SND_PCM_FORMAT_S16_LE;
+
+		if (iodev->update_channel_layout) {
+			rc = iodev->update_channel_layout(iodev);
+			if (rc < 0) {
+				/* Fall back to stereo when no matching layout
+				 * is found. */
+				actual_num_channels = get_best_channel_count(
+						iodev, 2);
+				if (actual_num_channels == 0)
+					goto error;
+				iodev->format->num_channels =
+						actual_num_channels;
+			}
+		}
 		cras_iodev_alloc_dsp(iodev);
 	}
 
 	*fmt = *(iodev->format);
 	return 0;
+
+error:
+	free(iodev->format);
+	iodev->format = NULL;
+	return rc;
 }
 
 void cras_iodev_update_dsp(struct cras_iodev *iodev)

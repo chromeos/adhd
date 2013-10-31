@@ -22,6 +22,14 @@ static size_t notify_node_capture_gain_called;
 static int dsp_context_new_channels;
 static int dsp_context_new_sample_rate;
 static const char *dsp_context_new_purpose;
+static int update_channel_layout_called;
+static int update_channel_layout_return_val;
+
+// Iodev callback
+int update_channel_layout(struct cras_iodev *iodev) {
+  update_channel_layout_called = 1;
+  return update_channel_layout_return_val;
+}
 
 void ResetStubData() {
   select_node_called = 0;
@@ -183,8 +191,13 @@ class IoDevSetFormatTestSuite : public testing::Test {
 
       channel_counts_[0] = 2;
       channel_counts_[1] = 0;
+      channel_counts_[2] = 0;
+
+      update_channel_layout_called = 0;
+      update_channel_layout_return_val = 0;
 
       memset(&iodev_, 0, sizeof(iodev_));
+      iodev_.update_channel_layout = update_channel_layout;
       iodev_.supported_rates = sample_rates_;
       iodev_.supported_channel_counts = channel_counts_;
     }
@@ -195,7 +208,7 @@ class IoDevSetFormatTestSuite : public testing::Test {
 
     struct cras_iodev iodev_;
     size_t sample_rates_[3];
-    size_t channel_counts_[2];
+    size_t channel_counts_[3];
 };
 
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatSecondary) {
@@ -275,6 +288,43 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatFallbackDefault) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(44100, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutSuccess) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 6;
+
+  iodev_.supported_channel_counts[0] = 6;
+  iodev_.supported_channel_counts[1] = 2;
+
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(6, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 6;
+
+  update_channel_layout_return_val = -1;
+  iodev_.supported_channel_counts[0] = 6;
+  iodev_.supported_channel_counts[1] = 2;
+
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
 }
 

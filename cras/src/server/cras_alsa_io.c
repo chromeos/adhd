@@ -181,6 +181,14 @@ static int open_dev(struct cras_iodev *iodev)
 		return rc;
 	}
 
+	/* Set channel map to device */
+	rc = cras_alsa_set_channel_map(handle,
+				       iodev->format);
+	if (rc < 0) {
+		cras_alsa_pcm_close(handle);
+		return rc;
+	}
+
 	/* Set minimum number of available frames. */
 	if (iodev->used_size > iodev->buffer_size)
 		iodev->used_size = iodev->buffer_size;
@@ -272,6 +280,36 @@ static void update_active_node(struct cras_iodev *iodev)
 
 	best_node = cras_iodev_get_best_node(iodev);
 	alsa_iodev_set_active_node(iodev, best_node);
+}
+
+static int update_channel_layout(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	snd_pcm_t *handle = NULL;
+	snd_pcm_uframes_t buf_size = 0;
+	int err = 0;
+
+	if (iodev->format->num_channels <= 2)
+		return 0;
+
+	err = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
+	if (err < 0) {
+		syslog(LOG_ERR, "snd_pcm_open_failed: %s", snd_strerror(err));
+		return err;
+	}
+
+	/* Sets frame rate and channel count to alsa device before
+	 * we test channel mapping. */
+	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size);
+	if (err < 0) {
+		cras_alsa_pcm_close(handle);
+		return err;
+	}
+
+	err = cras_alsa_get_channel_map(handle, iodev->format);
+
+	cras_alsa_pcm_close(handle);
+	return err;
 }
 
 /*
@@ -897,6 +935,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
+	iodev->update_channel_layout = update_channel_layout;
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
