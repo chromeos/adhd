@@ -241,8 +241,8 @@ static int put_stdin_samples(struct cras_client *client,
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 
 	rc = read(0, playback_samples, frames * frame_bytes);
-	if (rc < 0) {
-		keep_looping = 0;
+	if (rc <= 0) {
+		terminate_stream_loop();
 		return -1;
 	}
 
