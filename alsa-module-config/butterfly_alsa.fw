@@ -1,0 +1,8 @@
+[codec]
+0x111d76e5 0x103c18f9 0
+
+[model]
+butterfly
+
+[hint]
+hp_detect = no
