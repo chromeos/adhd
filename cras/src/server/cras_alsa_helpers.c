@@ -12,6 +12,14 @@
 #include "cras_types.h"
 #include "cras_util.h"
 
+/* Macro to convert between snd_pcm_chmap_position(defined in
+ * alsa-lib since 1.0.27) and CRAS_CHANNEL, values of which are
+ * of the same order but shifted by 3.
+ */
+#define CH_TO_ALSA(ch) ((ch) + 3)
+#define CH_TO_CRAS(ch) ((ch) - 3)
+
+
 /* Chances to give mmap_begin to work. */
 static const size_t MAX_MMAP_BEGIN_ATTEMPTS = 3;
 /* Time to sleep between resume attempts. */
@@ -39,6 +47,86 @@ static const size_t test_channel_counts[] = {
 	1,
 	0
 };
+
+/* Looks up the list of channel map for the one can exactly matches
+ * the layout specified in fmt.
+ */
+snd_pcm_chmap_query_t *cras_chmap_caps_match(
+		snd_pcm_chmap_query_t **chmaps,
+		struct cras_audio_format *fmt)
+{
+	size_t ch, i;
+	int idx, matches;
+	snd_pcm_chmap_query_t **chmap;
+
+	/* Search for channel map that already matches the order */
+	for (chmap = chmaps; *chmap; chmap++) {
+		if ((*chmap)->map.channels != fmt->num_channels)
+			continue;
+
+		matches = 1;
+		for (ch = 0; ch < CRAS_CH_MAX; ch++) {
+			idx = fmt->channel_layout[ch];
+			if (idx == -1)
+				continue;
+			if ((*chmap)->map.pos[idx] != CH_TO_ALSA(ch)) {
+				matches = 0;
+				break;
+			}
+		}
+		if (matches)
+			return *chmap;
+	}
+
+	/* Search for channel map that can arbitrarily swap order */
+	for (chmap = chmaps; *chmap; chmap++) {
+		if ((*chmap)->type == SND_CHMAP_TYPE_FIXED ||
+		    (*chmap)->map.channels != fmt->num_channels)
+			continue;
+
+		matches = 1;
+		for (ch = 0; ch < CRAS_CH_MAX; ch++) {
+			idx = fmt->channel_layout[ch];
+			if (idx == -1)
+				continue;
+			int found = 0;
+			for (i = 0; i < fmt->num_channels; i++) {
+				if ((*chmap)->map.pos[i] == CH_TO_ALSA(ch)) {
+					found = 1;
+					break;
+				}
+			}
+			if (found == 0) {
+				matches = 0;
+				break;
+			}
+		}
+		if (matches && (*chmap)->type == SND_CHMAP_TYPE_VAR)
+			return *chmap;
+
+		/* Check if channel map is a match by arbitrarily swap
+		 * pair order */
+		matches = 1;
+		for (i = 0; i < fmt->num_channels; i += 2) {
+			ch = CH_TO_CRAS((*chmap)->map.pos[i]);
+			if (fmt->channel_layout[ch] & 0x01) {
+				matches = 0;
+				break;
+			}
+
+			if (fmt->channel_layout[ch] + 1 !=
+			    fmt->channel_layout[CH_TO_CRAS(
+					    (*chmap)->map.pos[i + 1])]) {
+				matches = 0;
+				break;
+			}
+		}
+		if (matches)
+			return *chmap;
+	}
+
+	return NULL;
+}
 
 int cras_alsa_pcm_open(snd_pcm_t **handle, const char *dev,
 		       snd_pcm_stream_t stream)
@@ -103,12 +191,12 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 		return rc;
 	}
 
-	*rates = malloc(sizeof(test_sample_rates));
+	*rates = (size_t *)malloc(sizeof(test_sample_rates));
 	if (*rates == NULL) {
 		snd_pcm_close(handle);
 		return -ENOMEM;
 	}
-	*channel_counts = malloc(sizeof(test_channel_counts));
+	*channel_counts = (size_t *)malloc(sizeof(test_channel_counts));
 	if (*channel_counts == NULL) {
 		free(*rates);
 		snd_pcm_close(handle);
@@ -288,7 +376,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		syslog(LOG_INFO, "pcm_avail error %s\n", snd_strerror(frames));
 		rc = frames;
 		frames = 0;
-	} else if (frames > buf_size)
+	} else if (frames > (snd_pcm_sframes_t)buf_size)
 		frames = buf_size;
 	*used = frames;
 	return rc;
@@ -302,7 +390,7 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 	rc = snd_pcm_delay(handle, delay);
 	if (rc < 0)
 		return rc;
-	if (*delay > buf_size)
+	if (*delay > (snd_pcm_sframes_t)buf_size)
 		*delay = buf_size;
 	if (*delay < 0)
 		*delay = 0;
@@ -375,7 +463,7 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 	snd_pcm_sframes_t res;
 
 	res = snd_pcm_mmap_commit(handle, offset, frames);
-	if (res != frames) {
+	if (res != (snd_pcm_sframes_t)frames) {
 		res = res >= 0 ? (int)-EPIPE : res;
 		if (res == -ESTRPIPE) {
 			/* First handle suspend/resume. */

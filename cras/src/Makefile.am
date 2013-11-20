@@ -145,6 +145,7 @@ TESTS = \
 	a2dp_iodev_unittest \
 	alert_unittest \
 	alsa_card_unittest \
+	alsa_helpers_unittest \
 	alsa_io_unittest \
 	alsa_jack_unittest \
 	alsa_mixer_unittest \
@@ -239,6 +240,13 @@ alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 alsa_card_unittest_LDADD = -lgtest -lpthread
+
+alsa_helpers_unittest_SOURCES = tests/alsa_helpers_unittest.cc \
+	common/cras_audio_format.c
+alsa_helpers_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+alsa_helpers_unittest_LDADD = -lgtest -lpthread
 
 a2dp_info_unittest_SOURCES = tests/a2dp_info_unittest.cc \
 	server/cras_a2dp_info.c
