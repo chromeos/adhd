@@ -142,6 +142,7 @@ $(hide_install)-asound_module_pcm_crasLTLIBRARIES: install-libLTLIBRARIES
 $(hide_install)-asound_module_ctl_crasLTLIBRARIES: install-libLTLIBRARIES
 
 TESTS = \
+	audio_format_unittest \
 	a2dp_info_unittest \
 	a2dp_iodev_unittest \
 	alert_unittest \
@@ -248,6 +249,11 @@ alsa_helpers_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 alsa_helpers_unittest_LDADD = -lgtest -lpthread
+
+audio_format_unittest_SOURCES = tests/audio_format_unittest.cc
+audio_format_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/common
+audio_format_unittest_LDADD = -lgtest -lpthread
 
 a2dp_info_unittest_SOURCES = tests/a2dp_info_unittest.cc \
 	server/cras_a2dp_info.c

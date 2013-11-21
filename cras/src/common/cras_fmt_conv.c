@@ -184,6 +184,17 @@ static size_t s16_51_to_stereo(struct cras_fmt_conv *conv,
 	return in_frames;
 }
 
+static int is_channel_layout_equal(const struct cras_audio_format *a,
+				   const struct cras_audio_format *b)
+{
+	int ch;
+	for (ch = 0; ch < CRAS_CH_MAX; ch++)
+		if (a->channel_layout[ch] != b->channel_layout[ch])
+			return 0;
+
+	return 1;
+}
+
 /* Multiplies buffer vector with coefficient vector. */
 static int16_t multiply_buf_with_coef(float *coef,
 				      const int16_t *buf,
@@ -232,35 +243,6 @@ static size_t convert_channels(struct cras_fmt_conv *conv,
 	}
 
 	return in_frames;
-}
-
-static void free_channel_conv_matrix(float **p, size_t out_ch)
-{
-	int i;
-	for (i = 0; i < out_ch; i ++)
-		free(p[i]);
-	free(p);
-}
-
-
-static float** alloc_channel_conv_matrix(size_t in_ch, size_t out_ch)
-{
-	int i;
-	float **p;
-	p = (float **)calloc(out_ch, sizeof(*p));
-	if (p == NULL)
-		return NULL;
-	for (i = 0; i < out_ch; i++) {
-		p[i] = (float *)calloc(in_ch, sizeof(*p[i]));
-		if (p[i] == NULL)
-			goto alloc_err;
-	}
-	return p;
-
-alloc_err:
-	if (p)
-		free_channel_conv_matrix(p, out_ch);
-	return NULL;
 }
 
 /* Populates the down mix matrix by rules:
@@ -393,7 +375,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			 * channel layout is set, or default to use existing
 			 * converter to downmix to stereo */
 			if (in_channel_layout_set) {
-				conv->ch_conv_mtx = alloc_channel_conv_matrix(
+				conv->ch_conv_mtx = cras_channel_conv_matrix_alloc(
 						in->num_channels,
 						out->num_channels);
 				if (conv->ch_conv_mtx == NULL) {
@@ -414,6 +396,16 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			cras_fmt_conv_destroy(conv);
 			return NULL;
 		}
+	} else if (in->num_channels > 2 &&
+		   !is_channel_layout_equal(in, out)){
+		conv->num_converters++;
+		conv->ch_conv_mtx = cras_channel_conv_matrix_create(in, out);
+		if (conv->ch_conv_mtx == NULL) {
+			syslog(LOG_ERR, "Failed to create channel conversion matrix");
+			cras_fmt_conv_destroy(conv);
+			return NULL;
+		}
+		conv->channel_converter = convert_channels;
 	}
 	/* Set up sample rate conversion. */
 	if (in->frame_rate != out->frame_rate) {
@@ -458,8 +450,8 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 {
 	unsigned i;
 	if (conv->ch_conv_mtx)
-		free_channel_conv_matrix(conv->ch_conv_mtx,
-					 conv->out_fmt.num_channels);
+		cras_channel_conv_matrix_destroy(conv->ch_conv_mtx,
+						 conv->out_fmt.num_channels);
 	if (conv->speex_state)
 		speex_resampler_destroy(conv->speex_state);
 	for (i = 0; i < MAX_NUM_CONVERTERS - 1; i++)
@@ -579,5 +571,6 @@ int cras_fmt_conversion_needed(const struct cras_audio_format *a,
 {
 	return (a->format != b->format ||
 		a->num_channels != b->num_channels ||
-		a->frame_rate != b->frame_rate);
+		a->frame_rate != b->frame_rate ||
+		!is_channel_layout_equal(a, b));
 }
