@@ -9,10 +9,10 @@
 #ifndef CRAS_TYPES_H_
 #define CRAS_TYPES_H_
 
-#include <alsa/asoundlib.h>
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "cras_audio_format.h"
 #include "cras_iodev_info.h"
 
 /* Directions of audio streams.
@@ -23,28 +23,6 @@ enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_INPUT,
 	CRAS_STREAM_UNIFIED,
 	CRAS_STREAM_POST_MIX_PRE_DSP,
-};
-
-/* Identifiers for each channel in audio stream. */
-enum CRAS_CHANNEL {
-	/* First nine channels matches the
-	 * snd_mixer_selem_channel_id_t values.
-	 */
-	CRAS_CH_FL,
-	CRAS_CH_FR,
-	CRAS_CH_RL,
-	CRAS_CH_RR,
-	CRAS_CH_FC,
-	CRAS_CH_LFE,
-	CRAS_CH_SL,
-	CRAS_CH_SR,
-	CRAS_CH_RC,
-	/* Channels defined both in channel_layout.h and
-	 * alsa channel mapping API. */
-	CRAS_CH_FLC,
-	CRAS_CH_FRC,
-	/* Must be the last one */
-	CRAS_CH_MAX,
 };
 
 static inline int cras_stream_uses_output_hw(enum CRAS_STREAM_DIRECTION dir)
@@ -75,22 +53,6 @@ static inline int cras_stream_is_loopback(enum CRAS_STREAM_DIRECTION dir)
 /* Types of audio streams. */
 enum CRAS_STREAM_TYPE {
 	CRAS_STREAM_TYPE_DEFAULT,
-};
-
-/* Audio format. */
-struct cras_audio_format {
-	snd_pcm_format_t format;
-	size_t frame_rate; /* Hz */
-
-	// TODO(hychao): use channel_layout to replace num_channels
-	size_t num_channels;
-
-	/* Channel layout whose value represents the index of each
-	 * CRAS_CHANNEL in the layout. Value -1 means the channel is
-	 * not used. For example: 0,1,2,3,4,5,-1,-1,-1,-1,-1 means the
-	 * channel order is FL,FR,RL,RR,FC.
-	 */
-	int8_t channel_layout[CRAS_CH_MAX];
 };
 
 /* Information about a client attached to the server. */
@@ -220,31 +182,6 @@ struct cras_alsa_card_info {
 	unsigned usb_product_id;
 	unsigned usb_desc_checksum;
 };
-
-/* Create an audio format structure. */
-struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
-						   size_t frame_rate,
-						   size_t num_channels);
-
-/* Sets the channel layout for given format.
- *    format - The format structure to carry channel layout info
- *    layout - An integer array representing the position of each
- *        channel in enum CRAS_CHANNEL
- */
-int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
-					 int8_t layout[CRAS_CH_MAX]);
-
-/* Destroy an audio format struct created with cras_audio_format_crate. */
-void cras_audio_format_destroy(struct cras_audio_format *fmt);
-
-/* Returns the number of bytes per sample.
- * This is bits per smaple / 8 * num_channels.
- */
-static inline size_t cras_get_format_bytes(const struct cras_audio_format *fmt)
-{
-	const int bytes = snd_pcm_format_physical_width(fmt->format) / 8;
-	return (size_t)bytes * fmt->num_channels;
-}
 
 /* Unique identifier for each active stream.
  * The top 16 bits are the client number, lower 16 are the stream number.

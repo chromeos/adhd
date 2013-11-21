@@ -9,7 +9,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_helpers.h"
-#include "cras_types.h"
+#include "cras_audio_format.h"
 #include "cras_util.h"
 
 /* Macro to convert between snd_pcm_chmap_position(defined in

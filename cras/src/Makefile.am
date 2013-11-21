@@ -94,6 +94,7 @@ libcras_la_SOURCES = \
 	libcras/cras_client.c
 
 include_HEADERS = \
+	common/cras_audio_format.h \
 	common/cras_config.h \
 	common/cras_fmt_conv.h \
 	common/cras_iodev_info.h \

@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include "cras_types.h"
+#include "cras_audio_format.h"
 
 /* Create an audio format structure. */
 struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
