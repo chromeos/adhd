@@ -440,6 +440,17 @@ static void complete_capture_read(struct client_stream *stream,
 	cras_shm_buffer_read(&stream->capture_shm, frames);
 }
 
+static void complete_capture_read_current(struct client_stream *stream,
+					  unsigned int num_frames)
+{
+	unsigned int frames = num_frames;
+
+	if (stream->capture_conv)
+		frames = cras_fmt_conv_out_frames_to_in(stream->capture_conv,
+							num_frames);
+	cras_shm_buffer_read_current(&stream->capture_shm, frames);
+}
+
 /* For capture streams this handles the message signalling that data is ready to
  * be passed to the user of this stream.  Calls the audio callback with the new
  * samples, and mark them as read.
@@ -488,7 +499,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	if (frames == 0)
 		return 0;
 
-	complete_capture_read(stream, frames);
+	complete_capture_read_current(stream, frames);
 	return 0;
 }
 

@@ -320,6 +320,24 @@ void cras_shm_buffer_read(struct cras_audio_shm *shm, size_t frames)
 	}
 }
 
+/* Read from the current buffer. This is similar to cras_shm_buffer_read(), but
+ * it doesn't check for the case we may read from two buffers. */
+static inline
+void cras_shm_buffer_read_current(struct cras_audio_shm *shm, size_t frames)
+{
+	size_t buf_idx = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	struct cras_audio_shm_area *area = shm->area;
+	struct cras_audio_shm_config *config = &shm->config;
+
+	area->read_offset[buf_idx] += frames * config->frame_bytes;
+	if (area->read_offset[buf_idx] >= area->write_offset[buf_idx]) {
+		area->read_offset[buf_idx] = 0;
+		area->write_offset[buf_idx] = 0;
+		buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
+		area->read_buf_idx = buf_idx;
+	}
+}
+
 /* Sets the volume for the stream.  The volume level is a scaling factor that
  * will be applied to the stream before mixing. */
 static inline
