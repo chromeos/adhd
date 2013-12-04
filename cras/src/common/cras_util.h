@@ -38,6 +38,23 @@ static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
 	return (orig_frames * act_rate + orig_rate - 1) / orig_rate;
 }
 
+/* Converts a number of frames to a time in a timespec. */
+static inline void cras_frames_to_time(unsigned int frames,
+				       unsigned int rate,
+				       struct timespec *t)
+{
+	t->tv_sec = frames / rate;
+	frames = frames % rate;
+	t->tv_nsec = (uint64_t)frames * 1000000000 / rate;
+}
+
+/* Converts a timespec duration to a frame count. */
+static inline unsigned int cras_time_to_frames(const struct timespec *t,
+					       unsigned int rate)
+{
+	return t->tv_nsec * (uint64_t)rate / 1000000000 + rate * t->tv_sec;
+}
+
 /* Makes a file descriptor non blocking. */
 int cras_make_fd_nonblocking(int fd);
 

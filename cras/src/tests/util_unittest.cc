@@ -57,6 +57,46 @@ TEST(Util, TimevalAfter) {
   ASSERT_TRUE(timeval_after(&t1, &t0));
 }
 
+TEST(Util, FramesToTime) {
+  struct timespec t;
+
+  cras_frames_to_time(24000, 48000, &t);
+  EXPECT_EQ(0, t.tv_sec);
+  EXPECT_EQ(500000000, t.tv_nsec);
+
+  cras_frames_to_time(48000, 48000, &t);
+  EXPECT_EQ(1, t.tv_sec);
+  EXPECT_EQ(0, t.tv_nsec);
+
+  cras_frames_to_time(60000, 48000, &t);
+  EXPECT_EQ(1, t.tv_sec);
+  EXPECT_EQ(250000000, t.tv_nsec);
+
+  cras_frames_to_time(191999, 192000, &t);
+  EXPECT_EQ(0, t.tv_sec);
+  EXPECT_EQ(999994791, t.tv_nsec);
+}
+
+TEST(Util, TimeToFrames) {
+  struct timespec t;
+  unsigned int frames;
+
+  t.tv_sec = 0;
+  t.tv_nsec = 500000000;
+  frames = cras_time_to_frames(&t, 48000);
+  EXPECT_EQ(24000, frames);
+
+  t.tv_sec = 1;
+  t.tv_nsec = 500000000;
+  frames = cras_time_to_frames(&t, 48000);
+  EXPECT_EQ(72000, frames);
+
+  t.tv_sec = 0;
+  t.tv_nsec = 0;
+  frames = cras_time_to_frames(&t, 48000);
+  EXPECT_EQ(0, frames);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {

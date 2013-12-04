@@ -29,7 +29,37 @@ struct empty_iodev {
 	struct cras_iodev base;
 	int open;
 	uint8_t *audio_buffer;
+	unsigned int buffer_level;
+	struct timespec last_buffer_access;
 };
+
+/* Current level of the audio buffer.  This is made up based on what has been
+ * read/written and how long it has been since then.  Simulates audio hardware
+ * running at the given sample rate.
+ */
+static unsigned int current_level(const struct cras_iodev *iodev)
+{
+	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
+	unsigned int frames, frames_since_last;
+	struct timespec now, time_since;
+
+	frames = empty_iodev->buffer_level;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	subtract_timespecs(&now, &empty_iodev->last_buffer_access, &time_since);
+
+	frames_since_last = cras_time_to_frames(&time_since,
+						iodev->format->frame_rate);
+
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		return (frames + frames_since_last) % EMPTY_FRAMES;
+
+	/* output */
+	if (frames <= frames_since_last)
+		return 0;
+	return frames - frames_since_last;
+}
 
 /*
  * iodev callbacks.
@@ -49,7 +79,7 @@ static int dev_running(const struct cras_iodev *iodev)
 
 static int frames_queued(const struct cras_iodev *iodev)
 {
-	return (int)iodev->cb_threshold;
+	return current_level(iodev);
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
@@ -71,8 +101,15 @@ static int open_dev(struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 
+	if (iodev->format == NULL)
+		return -EINVAL;
+
 	empty_iodev->open = 1;
 	empty_iodev->audio_buffer = calloc(1, EMPTY_BUFFER_SIZE);
+	empty_iodev->buffer_level = 0;
+
+	clock_gettime(CLOCK_MONOTONIC, &empty_iodev->last_buffer_access);
+
 	return 0;
 }
 
@@ -82,14 +119,33 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 
 	*dst = empty_iodev->audio_buffer;
 
-	if (*frames > EMPTY_FRAMES)
-		*frames = EMPTY_FRAMES;
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		*frames = min(*frames, EMPTY_FRAMES - current_level(iodev));
+	else
+		*frames = min(*frames, current_level(iodev));
 
 	return 0;
 }
 
-static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
+static int put_buffer(struct cras_iodev *iodev, unsigned frames)
 {
+	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
+
+	empty_iodev->buffer_level = current_level(iodev);
+
+	clock_gettime(CLOCK_MONOTONIC, &empty_iodev->last_buffer_access);
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		empty_iodev->buffer_level += frames;
+		empty_iodev->buffer_level %= EMPTY_FRAMES;
+	} else {
+		/* Input */
+		if (empty_iodev->buffer_level > frames)
+			empty_iodev->buffer_level -= frames;
+		else
+			empty_iodev->buffer_level = 0;
+	}
+
 	return 0;
 }
 
