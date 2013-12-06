@@ -157,6 +157,76 @@ static size_t s16_stereo_to_mono(struct cras_fmt_conv *conv,
 	return in_frames;
 }
 
+/* Converts S16 mono to 5.1 surround. Fit mono to front center of the
+ * output, or split to front left/right if front center is missing
+ * from the output channel layout.
+ */
+static size_t s16_mono_to_51(struct cras_fmt_conv *conv,
+			     const int16_t *in, size_t in_frames,
+			     int16_t *out)
+{
+	size_t i, left, right, center;
+
+	memset(out, 0, sizeof(*out) * 6 * in_frames);
+	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
+
+	if (center != -1)
+		for (i = 0; i < in_frames; i++)
+			out[6 * i + center] = in[i];
+	else if (left != -1 && right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[6 * i + right] = in[i] / 2;
+			out[6 * 1 + left] = in[i] / 2;
+		}
+	else
+		/* Select the first channel to convert to as the
+		 * default behavior.
+		 */
+		for (i = 0; i < in_frames; i++)
+			out[6 * i] = in[i];
+
+	return in_frames;
+}
+
+/* Converts S16 stereo to 5.1 surround. Fit the left/right of input
+ * to the front left/right of output respectively and fill others
+ * with zero. If any of the front left/right is missed from the output
+ * channel layout, mix to front center.
+ */
+static size_t s16_stereo_to_51(struct cras_fmt_conv *conv,
+			       const int16_t *in, size_t in_frames,
+			       int16_t *out)
+{
+	size_t i, left, right, center;
+
+	memset(out, 0, sizeof(*out) * 6 * in_frames);
+	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
+
+	if (left != -1 && right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[6 * i + left] = in[2 * i];
+			out[6 * i + right] = in[2 * i + 1];
+		}
+	else if (center != -1)
+		for (i = 0; i < in_frames; i++)
+			out[6 * i + center] = s16_add_and_clip(
+					in[2 * i], in[2 * i + 1]);
+	else
+		/* Select the first two channels to convert to as the
+		 * default behavior.
+		 */
+		for (i = 0; i < in_frames; i++) {
+			out[6 * i] = in[2 * i];
+			out[6 * i + 1] = in[2 * i + 1];
+		}
+
+	return in_frames;
+}
+
 /* Converts S16 5.1 to S16 stereo. The out buffer can have room for just
  * stereo samples. This convert function is used as the default behavior
  * when channel layout is not set from the client side. */
@@ -361,8 +431,12 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		 * and layout. */
 		if (in->num_channels == 1 && out->num_channels == 2) {
 			conv->channel_converter = s16_mono_to_stereo;
+		} else if (in->num_channels == 1 && out->num_channels == 6) {
+			conv->channel_converter = s16_mono_to_51;
 		} else if (in->num_channels == 2 && out->num_channels == 1) {
 			conv->channel_converter = s16_stereo_to_mono;
+		} else if (in->num_channels == 2 && out->num_channels == 6) {
+			conv->channel_converter = s16_stereo_to_51;
 		} else if (in->num_channels == 6 && out->num_channels == 2) {
 			int in_channel_layout_set = 0;
 
