@@ -43,6 +43,7 @@ static const size_t test_sample_rates[] = {
 /* What channel counts shoud be checked on this dev?
  * Listed in order of preference. 0 terminalted. */
 static const size_t test_channel_counts[] = {
+	6,
 	2,
 	1,
 	0
