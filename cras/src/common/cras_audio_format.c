@@ -10,6 +10,26 @@
 
 #include "cras_audio_format.h"
 
+
+/* Table for allowed alternatives when doing channel re-mapping.
+ * When channel_alt[X][Y] is non-zero, it's allowed to map channel
+ * from X to Y. */
+static const int channel_alt[CRAS_CH_MAX][CRAS_CH_MAX] =
+{
+	/* FL FR RL RR FC LFE SL SR RC FLC FRC */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* FL */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* FR */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* RL */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* RR */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* FC */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* LFE */
+	{  0, 0, 1, 0, 0, 0,  0, 0, 0, 0,  0 }, /* SL */
+	{  0, 0, 0, 1, 0, 0,  0, 0, 0, 0,  0 }, /* SR */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* RC */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* FLC */
+	{  0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0 }, /* FRC */
+};
+
 /* Create an audio format structure. */
 struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 						   size_t frame_rate,
@@ -105,9 +125,6 @@ float **cras_channel_conv_matrix_create(const struct cras_audio_format *in,
 
 	/* For the in/out format pair which has the same set of channels
 	 * in use, create a permutation matrix for them.
-	 *
-	 * TODO(hychao): support more conversion between channel layouts. For
-	 * example allow {RL, RR} to fit to {SL, SR}.
 	 */
 	for (i = 0; i < CRAS_CH_MAX; i++) {
 		if (in->channel_layout[i] == -1 &&
@@ -116,8 +133,24 @@ float **cras_channel_conv_matrix_create(const struct cras_audio_format *in,
 		if (in->channel_layout[i] != -1 &&
 		    out->channel_layout[i] != -1)
 			mtx[out->channel_layout[i]][in->channel_layout[i]] = 1;
-		else
-			goto fail;
+		else if (in->channel_layout[i] != -1) {
+			/* When the same channel does not appear at output
+			 * channel layout. Look up for allowed channel
+			 * alternatives.
+			 */
+			int alt;
+			for (alt = 0; alt <= CRAS_CH_MAX; alt++) {
+				if (alt == CRAS_CH_MAX)
+					goto fail;
+				if (channel_alt[i][alt] &&
+				    in->channel_layout[alt] == -1 &&
+				    out->channel_layout[alt] != -1) {
+					mtx[out->channel_layout[alt]]
+					    [in->channel_layout[i]] = 1;
+					break;
+				}
+			}
+		}
 	}
 
 	return mtx;

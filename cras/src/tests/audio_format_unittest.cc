@@ -73,6 +73,27 @@ TEST_F(ChannelConvMtxTestSuite, MatrixCreateFail) {
   ASSERT_EQ(conv_mtx, (void *)NULL);
 }
 
+TEST_F(ChannelConvMtxTestSuite, SLSRToRRRL) {
+  in_fmt->channel_layout[0] = 0;
+  in_fmt->channel_layout[1] = 1;
+  in_fmt->channel_layout[4] = 2;
+  in_fmt->channel_layout[5] = 3;
+  /* Input format uses SL and SR*/
+  in_fmt->channel_layout[6] = 4;
+  in_fmt->channel_layout[7] = 5;
+
+  out_fmt->channel_layout[0] = 0;
+  out_fmt->channel_layout[1] = 1;
+  /* Output format uses RR and RR */
+  out_fmt->channel_layout[2] = 4;
+  out_fmt->channel_layout[3] = 5;
+  out_fmt->channel_layout[4] = 2;
+  out_fmt->channel_layout[5] = 3;
+
+  conv_mtx = cras_channel_conv_matrix_create(in_fmt, out_fmt);
+  ASSERT_NE(conv_mtx, (void *)NULL);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
