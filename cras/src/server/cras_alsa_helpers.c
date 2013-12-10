@@ -287,7 +287,7 @@ int cras_alsa_get_channel_map(snd_pcm_t *handle,
 	for (i = 0; i < CRAS_CH_MAX; i++)
 		fmt->channel_layout[i] = -1;
 	for (i = 0; i < fmt->num_channels; i++)
-		fmt->channel_layout[CH_TO_ALSA(match->map.pos[i])] = i;
+		fmt->channel_layout[CH_TO_CRAS(match->map.pos[i])] = i;
 
 done:
 	snd_pcm_free_chmaps(chmaps);
