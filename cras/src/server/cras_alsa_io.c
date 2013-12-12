@@ -600,6 +600,34 @@ static const char *get_output_node_name(struct alsa_io *aio,
 	}
 }
 
+static int get_ucm_flag_integer(struct alsa_io *aio, const char *flag_name)
+{
+	char *value;
+	int i;
+
+	if (!aio->ucm)
+		return 0;
+
+	value = ucm_get_flag(aio->ucm, flag_name);
+	if (!value)
+		return 0;
+
+	i = atoi(value);
+	free(value);
+
+	return i;
+}
+
+static int auto_unplug_input_node(struct alsa_io *aio)
+{
+	return get_ucm_flag_integer(aio, "AutoUnplugInputNode");
+}
+
+static int auto_unplug_output_node(struct alsa_io *aio)
+{
+	return get_ucm_flag_integer(aio, "AutoUnplugOutputNode");
+}
+
 /* Callback for listing mixer outputs.  The mixer will call this once for each
  * output associated with this device.  Most commonly this is used to tell the
  * device it has Headphones and Speakers. */
@@ -626,25 +654,16 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 	name = get_output_node_name(aio, cras_output);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
+
+	/* Auto unplug internal speaker if any output node has been created */
+	if (auto_unplug_output_node(aio) && !strcmp(name, INTERNAL_SPEAKER)) {
+		struct cras_ionode *tmp;
+		DL_FOREACH(aio->base.nodes, tmp)
+			if (tmp->plugged)
+				output->base.plugged = 0;
+	}
+
 	cras_iodev_add_node(&aio->base, &output->base);
-}
-
-static int auto_unplug_input_node(struct alsa_io *aio)
-{
-	char *value;
-	int i;
-
-	if (!aio->ucm)
-		return 0;
-
-	value = ucm_get_flag(aio->ucm, "AutoUnplugInputNode");
-	if (!value)
-		return 0;
-
-	i = atoi(value);
-	free(value);
-
-	return i;
 }
 
 static void new_input(const char *name, struct alsa_io *aio)
@@ -663,7 +682,7 @@ static void new_input(const char *name, struct alsa_io *aio)
 
 	/* Auto unplug internal mic if any input node has already
 	 * been created */
-	if (!strcmp(name, INTERNAL_MICROPHONE) && auto_unplug_input_node(aio)) {
+	if (auto_unplug_input_node(aio) && !strcmp(name, INTERNAL_MICROPHONE)) {
 		struct cras_ionode *tmp;
 		DL_FOREACH(aio->base.nodes, tmp)
 			if (tmp->plugged)
@@ -773,6 +792,16 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 	}
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
+
+	if (auto_unplug_output_node(aio)) {
+		struct cras_ionode *tmp;
+		DL_FOREACH(aio->base.nodes, tmp) {
+			if (!strcmp(tmp->name, INTERNAL_SPEAKER))
+				cras_iodev_set_node_attr(tmp,
+							 IONODE_ATTR_PLUGGED,
+							 !plugged);
+		}
+	}
 }
 
 /* Callback that is called when an input jack is plugged or unplugged. */
