@@ -17,7 +17,8 @@
 #include "cras_types.h"
 #include "cras_util.h"
 
-#define PLAYBACK_CB_THRESHOLD (480)
+#define NOT_ASSIGNED (0)
+#define PLAYBACK_BUFFERED_TIME_IN_US (5000)
 #define PLAYBACK_BUFFER_SIZE (4800)
 
 #define BUF_SIZE 32768
@@ -42,7 +43,7 @@ static int keep_looping = 1;
 static int exit_after_done_playing = 1;
 static size_t duration_frames;
 static int full_frames;
-uint32_t min_cb_level = PLAYBACK_CB_THRESHOLD;
+uint32_t min_cb_level = NOT_ASSIGNED;
 
 static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
@@ -55,6 +56,11 @@ static int terminate_stream_loop()
 {
 	keep_looping = 0;
 	return write(pipefd[1], "1", 1);
+}
+
+static size_t get_buffer_size(uint64_t buffer_time_in_us, size_t rate)
+{
+	return (size_t)(buffer_time_in_us * rate / 1000000);
 }
 
 static void check_stream_terminate(size_t frames)
@@ -836,7 +842,7 @@ int main(int argc, char **argv)
 	struct cras_client *client;
 	int c, option_index;
 	size_t buffer_size = PLAYBACK_BUFFER_SIZE;
-	size_t cb_threshold = PLAYBACK_CB_THRESHOLD;
+	size_t cb_threshold = NOT_ASSIGNED;
 	size_t rate = 48000;
 	uint32_t iodev_index = 0;
 	int set_iodev = 0;
@@ -1041,6 +1047,10 @@ int main(int argc, char **argv)
 	}
 
 	duration_frames = duration_seconds * rate;
+	if (cb_threshold == NOT_ASSIGNED)
+		cb_threshold = get_buffer_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
+	if (min_cb_level == NOT_ASSIGNED)
+		min_cb_level = get_buffer_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
 
 	if (run_unified)
 		rc = run_unified_io_stream(client, buffer_size,

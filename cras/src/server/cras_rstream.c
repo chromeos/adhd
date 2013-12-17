@@ -77,6 +77,11 @@ static inline int setup_shm_area(struct cras_rstream *stream)
 	return rc;
 }
 
+static inline int buffer_meets_size_limit(size_t buffer_size, size_t rate)
+{
+	return buffer_size > (CRAS_MIN_BUFFER_TIME_IN_US * rate) / 1000000;
+}
+
 /* Verifies that the given stream parameters are valid. */
 static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 				     const struct cras_audio_format *format,
@@ -86,7 +91,7 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 				     struct cras_rclient *client,
 				     struct cras_rstream **stream_out)
 {
-	if (buffer_frames < CRAS_MIN_BUFFER_SIZE_FRAMES) {
+	if (!buffer_meets_size_limit(buffer_frames, format->frame_rate)) {
 		syslog(LOG_ERR, "rstream: invalid buffer_frames %zu\n",
 		       buffer_frames);
 		return -EINVAL;
@@ -114,11 +119,11 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		syslog(LOG_ERR, "rstream: Invalid direction.\n");
 		return -EINVAL;
 	}
-	if (cb_threshold < CRAS_MIN_BUFFER_SIZE_FRAMES) {
+	if (!buffer_meets_size_limit(cb_threshold, format->frame_rate)) {
 		syslog(LOG_ERR, "rstream: cb_threshold too low\n");
 		return -EINVAL;
 	}
-	if (min_cb_level < CRAS_MIN_BUFFER_SIZE_FRAMES) {
+	if (!buffer_meets_size_limit(min_cb_level, format->frame_rate)) {
 		syslog(LOG_ERR, "rstream: min_cb_level too low\n");
 		return -EINVAL;
 	}
