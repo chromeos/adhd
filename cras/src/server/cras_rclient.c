@@ -79,6 +79,9 @@ try_again:
 	buffer_frames = cras_frames_at_rate(msg->format.frame_rate,
 					    msg->buffer_frames,
 					    fmt.frame_rate);
+	if (buffer_frames & 0x01) /* Ensure even buffer size. */
+		buffer_frames++;
+
 	cb_threshold = cras_frames_at_rate(msg->format.frame_rate,
 					   msg->cb_threshold,
 					   fmt.frame_rate);
