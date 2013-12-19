@@ -19,7 +19,6 @@
 
 #define NOT_ASSIGNED (0)
 #define PLAYBACK_BUFFERED_TIME_IN_US (5000)
-#define PLAYBACK_BUFFER_SIZE (4800)
 
 #define BUF_SIZE 32768
 
@@ -42,8 +41,6 @@ static int show_total_rms;
 static int keep_looping = 1;
 static int exit_after_done_playing = 1;
 static size_t duration_frames;
-static int full_frames;
-uint32_t min_cb_level = NOT_ASSIGNED;
 
 static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
@@ -58,7 +55,7 @@ static int terminate_stream_loop()
 	return write(pipefd[1], "1", 1);
 }
 
-static size_t get_buffer_size(uint64_t buffer_time_in_us, size_t rate)
+static size_t get_block_size(uint64_t buffer_time_in_us, size_t rate)
 {
 	return (size_t)(buffer_time_in_us * rate / 1000000);
 }
@@ -181,16 +178,11 @@ static int put_samples(struct cras_client *client,
 
 	check_stream_terminate(frames);
 
-	if (frames < min_cb_level)
-		printf("req for only %u - %d min\n", frames, min_cb_level);
 	avail = frames * frame_bytes;
 
 	this_size = file_buf_size - file_buf_read_offset;
 	if (this_size > avail)
 		this_size = avail;
-
-	if (full_frames && this_size > min_cb_level * frame_bytes)
-		this_size = min_cb_level * frame_bytes;
 
 	cras_client_calc_playback_latency(playback_time, &last_latency);
 
@@ -473,7 +465,7 @@ static int parse_channel_layout(char *channel_layout_str,
 static int run_file_io_stream(struct cras_client *client,
 			      int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
-			      size_t cb_threshold,
+			      size_t block_size,
 			      size_t rate,
 			      size_t num_channels)
 {
@@ -531,7 +523,7 @@ static int run_file_io_stream(struct cras_client *client,
 	}
 
 	params = cras_client_unified_params_create(direction,
-						   cb_threshold,
+						   block_size,
 						   0,
 						   0,
 						   pfd,
@@ -680,7 +672,7 @@ static int run_file_io_stream(struct cras_client *client,
 
 static int run_capture(struct cras_client *client,
 		       const char *file,
-		       size_t cb_threshold,
+		       size_t block_size,
 		       size_t rate,
 		       size_t num_channels,
 		       int loopback)
@@ -694,7 +686,7 @@ static int run_capture(struct cras_client *client,
 	run_file_io_stream(
 		client, fd,
 		loopback ? CRAS_STREAM_POST_MIX_PRE_DSP : CRAS_STREAM_INPUT,
-		cb_threshold, rate, num_channels);
+		block_size, rate, num_channels);
 
 	close(fd);
 	return 0;
@@ -702,7 +694,7 @@ static int run_capture(struct cras_client *client,
 
 static int run_playback(struct cras_client *client,
 			const char *file,
-			size_t cb_threshold,
+			size_t block_size,
 			size_t rate,
 			size_t num_channels)
 {
@@ -722,7 +714,7 @@ static int run_playback(struct cras_client *client,
 	file_buf_size = read(fd, file_buf, 1024*1024*4);
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT,
-			   cb_threshold, rate, num_channels);
+			   block_size, rate, num_channels);
 
 	close(fd);
 	return 0;
@@ -767,9 +759,8 @@ static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"show_rms",            no_argument, &show_rms, 1},
 	{"show_total_rms",      no_argument, &show_total_rms, 1},
-	{"write_full_frames",	no_argument, &full_frames, 1},
 	{"select_input",        required_argument,      0, 'a'},
-	{"buffer_frames",	required_argument,	0, 'b'},
+	{"block_size",		required_argument,	0, 'b'},
 	{"capture_file",	required_argument,	0, 'c'},
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"sbc",                 no_argument,            0, 'e'},
@@ -779,14 +770,12 @@ static struct option long_options[] = {
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"check_output_plugged",required_argument,      0, 'j'},
 	{"loopback_file",	required_argument,	0, 'l'},
-	{"min_cb_level",	required_argument,	0, 'm'},
 	{"num_channels",        required_argument,      0, 'n'},
 	{"iodev_index",		required_argument,	0, 'o'},
 	{"playback_file",	required_argument,	0, 'p'},
 	{"user_mute",           required_argument,      0, 'q'},
 	{"rate",		required_argument,	0, 'r'},
 	{"reload_dsp",          no_argument,            0, 's'},
-	{"callback_threshold",	required_argument,	0, 't'},
 	{"mute",                required_argument,      0, 'u'},
 	{"volume",              required_argument,      0, 'v'},
 	{"set_node_volume",	required_argument,      0, 'w'},
@@ -805,7 +794,6 @@ static void show_usage()
 	printf("--show_latency - Display latency while playing or recording.\n");
 	printf("--show_rms - Display RMS value of loopback stream.\n");
 	printf("--show_total_rms - Display total RMS value of loopback stream at the end.\n");
-	printf("--write_full_frames - Write data in blocks of min_cb_level.\n");
 	printf("--rate <N> - Specifies the sample rate in Hz.\n");
 	printf("--num_channels <N> - Two for stereo.\n");
 	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
@@ -814,12 +802,10 @@ static void show_usage()
 	printf("--playback_file <name> - Name of file to play, "
 	       "\"-\" to playback raw audio from stdin.\n");
 	printf("--loopback_file <name> - Name of file to record loopback to.\n");
-	printf("--callback_threshold <N> - Number of samples remaining when callback in invoked.\n");
-	printf("--min_cb_level <N> - Minimum # of samples writeable when playback callback is called.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
 	printf("--user_mute <0|1> - Set user mute state.\n");
 	printf("--capture_mute <0|1> - Set capture mute state.\n");
-	printf("--buffer_frames <N> - Total number of frames to buffer.\n");
+	printf("--block_size <N> - The number for frames per callback(dictates latency).\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
 	printf("--volume <0-100> - Set system output volume.\n");
 	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
@@ -841,8 +827,7 @@ int main(int argc, char **argv)
 {
 	struct cras_client *client;
 	int c, option_index;
-	size_t buffer_size = PLAYBACK_BUFFER_SIZE;
-	size_t cb_threshold = NOT_ASSIGNED;
+	size_t block_size = NOT_ASSIGNED;
 	size_t rate = 48000;
 	uint32_t iodev_index = 0;
 	int set_iodev = 0;
@@ -886,14 +871,8 @@ int main(int argc, char **argv)
 		case 'l':
 			loopback_file = optarg;
 			break;
-		case 't':
-			cb_threshold = atoi(optarg);
-			break;
-		case 'm':
-			min_cb_level = atoi(optarg);
-			break;
 		case 'b':
-			buffer_size = atoi(optarg);
+			block_size = atoi(optarg);
 			break;
 		case 'r':
 			rate = atoi(optarg);
@@ -1047,27 +1026,25 @@ int main(int argc, char **argv)
 	}
 
 	duration_frames = duration_seconds * rate;
-	if (cb_threshold == NOT_ASSIGNED)
-		cb_threshold = get_buffer_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
-	if (min_cb_level == NOT_ASSIGNED)
-		min_cb_level = get_buffer_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
+	if (block_size == NOT_ASSIGNED)
+		block_size = get_block_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
 
 	if (run_unified)
-		rc = run_unified_io_stream(client, buffer_size,
+		rc = run_unified_io_stream(client, block_size,
 					   rate, num_channels);
 	else if (capture_file != NULL)
 		rc = run_capture(client, capture_file,
-				cb_threshold, rate, num_channels, 0);
+				block_size, rate, num_channels, 0);
 	else if (playback_file != NULL)
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
-					cb_threshold, rate, num_channels);
+					block_size, rate, num_channels);
 		else
 			rc = run_playback(client, playback_file,
-					cb_threshold, rate, num_channels);
+					block_size, rate, num_channels);
 	else if (loopback_file != NULL)
 		rc = run_capture(client, loopback_file,
-				  cb_threshold, rate, num_channels, 1);
+				 block_size, rate, num_channels, 1);
 
 destroy_exit:
 	cras_client_destroy(client);
