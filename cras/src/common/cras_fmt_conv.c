@@ -646,5 +646,5 @@ int cras_fmt_conversion_needed(const struct cras_audio_format *a,
 	return (a->format != b->format ||
 		a->num_channels != b->num_channels ||
 		a->frame_rate != b->frame_rate ||
-		!is_channel_layout_equal(a, b));
+		(a->num_channels > 2 && !is_channel_layout_equal(a, b)));
 }
