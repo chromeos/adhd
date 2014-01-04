@@ -332,9 +332,11 @@ static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
 					&latency);
 		}
 
-		*delayp = limit + io->appl_ptr - pcm_cras->playback_sample_index +
-				latency.tv_sec * io->rate +
-				latency.tv_nsec / (1000000000L / io->rate);
+		*delayp = limit +
+			  io->appl_ptr -
+			  pcm_cras->playback_sample_index +
+			  latency.tv_sec * io->rate +
+			  latency.tv_nsec / (1000000000L / (long)io->rate);
 	} else {
 		/* Do not compute latency if capture_sample_time is not set */
 		if (pcm_cras->capture_sample_time.tv_sec == 0 &&
@@ -347,9 +349,11 @@ static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
 					&latency);
 		}
 
-		*delayp = limit + pcm_cras->capture_sample_index - io->appl_ptr +
-				latency.tv_sec * io->rate +
-				latency.tv_nsec / (1000000000L / io->rate);
+		*delayp = limit +
+			  pcm_cras->capture_sample_index -
+			  io->appl_ptr +
+			  latency.tv_sec * io->rate +
+			  latency.tv_nsec / (1000000000L / (long)io->rate);
 	}
 
 	/* Both appl and hw pointers wrap at the pcm boundary. */
