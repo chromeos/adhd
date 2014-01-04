@@ -321,14 +321,32 @@ static int snd_pcm_cras_delay(snd_pcm_ioplug_t *io, snd_pcm_sframes_t *delayp)
 	 * the difference between appl_ptr and the old hw_ptr.
 	 */
 	if (io->stream == SND_PCM_STREAM_PLAYBACK) {
-		cras_client_calc_playback_latency(&pcm_cras->playback_sample_time,
-						  &latency);
+		/* Do not compute latency if playback_sample_time is not set */
+		if (pcm_cras->playback_sample_time.tv_sec == 0 &&
+		    pcm_cras->playback_sample_time.tv_nsec == 0) {
+			latency.tv_sec = 0;
+			latency.tv_nsec = 0;
+		} else {
+			cras_client_calc_playback_latency(
+					&pcm_cras->playback_sample_time,
+					&latency);
+		}
+
 		*delayp = limit + io->appl_ptr - pcm_cras->playback_sample_index +
 				latency.tv_sec * io->rate +
 				latency.tv_nsec / (1000000000L / io->rate);
 	} else {
-		cras_client_calc_capture_latency(&pcm_cras->capture_sample_time,
-						 &latency);
+		/* Do not compute latency if capture_sample_time is not set */
+		if (pcm_cras->capture_sample_time.tv_sec == 0 &&
+		    pcm_cras->capture_sample_time.tv_nsec == 0) {
+			latency.tv_sec = 0;
+			latency.tv_nsec = 0;
+		} else {
+			cras_client_calc_capture_latency(
+					&pcm_cras->capture_sample_time,
+					&latency);
+		}
+
 		*delayp = limit + pcm_cras->capture_sample_index - io->appl_ptr +
 				latency.tv_sec * io->rate +
 				latency.tv_nsec / (1000000000L / io->rate);
