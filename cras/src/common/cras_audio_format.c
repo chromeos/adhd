@@ -36,7 +36,7 @@ struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 						   size_t num_channels)
 {
 	struct cras_audio_format *fmt;
-	int i;
+	unsigned i;
 
 	fmt = (struct cras_audio_format *)calloc(1, sizeof(*fmt));
 	if (fmt == NULL)
@@ -46,9 +46,11 @@ struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 	fmt->frame_rate = frame_rate;
 	fmt->num_channels = num_channels;
 
-	/* Initialize all channel position to -1(not set) */
+	/* Set a default working channel layout according to num_channels.
+	 * Initialize all other channel position to -1(not set)
+	 */
 	for (i = 0; i < CRAS_CH_MAX; i++)
-		fmt->channel_layout[i] = -1;
+		fmt->channel_layout[i] = (i < num_channels) ? i : -1;
 
 	return fmt;
 }
