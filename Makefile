@@ -16,6 +16,12 @@ cras:
 cras_install:
 	@$(call remake,Building,cras,cras.mk,$@)
 
+cras-scripts:
+	$(ECHO) "Installing cras scripts"
+	$(INSTALL) --mode 755 -d $(DESTDIR)usr/bin/
+	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/audio_diagnostics \
+		$(DESTDIR)usr/bin/
+
 $(DESTDIR)/etc/init/cras.conf:	$(ADHD_DIR)/upstart/cras.conf
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
@@ -64,27 +70,22 @@ optional_cras_conf := $(wildcard $(ADHD_DIR)/cras-config/$(BOARD)/*)
 
 ifneq ($(strip $(optional_cras_conf)),)
 
-.PHONY: cras-config-files cras-scripts
+.PHONY: cras-config-files
 cras-config-files:
 	$(ECHO) "Installing cras config files"
 	$(INSTALL) --mode 755 -d $(DESTDIR)etc/cras/
 	$(INSTALL) --mode 644 -D $(ADHD_DIR)/cras-config/$(BOARD)/* $(DESTDIR)etc/cras/
 
-cras-scripts:
-	$(ECHO) "Installing cras scripts"
-	$(INSTALL) --mode 755 -d $(DESTDIR)usr/bin/
-	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/audio_diagnostics \
-		$(DESTDIR)usr/bin/
-
-install:	cras-config-files cras-scripts
+install:	cras-config-files
 
 endif
 
 install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
 		$(DESTDIR)/etc/cras/device_blacklist			\
+		cras-scripts \
 		cras_install
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
 
-.PHONY:	clean cras cras_install
+.PHONY:	clean cras cras_install cras-script
