@@ -628,6 +628,16 @@ static int auto_unplug_output_node(struct alsa_io *aio)
 	return get_ucm_flag_integer(aio, "AutoUnplugOutputNode");
 }
 
+static int no_create_default_input_node(struct alsa_io *aio)
+{
+	return get_ucm_flag_integer(aio, "NoCreateDefaultInputNode");
+}
+
+static int no_create_default_output_node(struct alsa_io *aio)
+{
+	return get_ucm_flag_integer(aio, "NoCreateDefaultOutputNode");
+}
+
 /* Callback for listing mixer outputs.  The mixer will call this once for each
  * output associated with this device.  Most commonly this is used to tell the
  * device it has Headphones and Speakers. */
@@ -1011,12 +1021,16 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Make a default node if there is still no node for this
 	 * device, or we still don't have the "Speaker"/"Internal Mic"
-	 * node for the first internal device. */
-	if (direction == CRAS_STREAM_OUTPUT) {
+	 * node for the first internal device. Note that the default
+	 * node creation can be supressed by UCM flags for platforms
+	 * which really don't have an internal device. */
+	if ((direction == CRAS_STREAM_OUTPUT) &&
+			!no_create_default_output_node(aio)) {
 		if (!aio->base.nodes || (first_internal_device(aio) &&
 					 !has_node(aio, INTERNAL_SPEAKER)))
 			new_output(NULL, aio);
-	} else {
+	} else if ((direction == CRAS_STREAM_INPUT) &&
+			!no_create_default_input_node(aio)) {
 		if (first_internal_device(aio) &&
 		    !has_node(aio, INTERNAL_MICROPHONE) &&
 		    may_have_internal_mic(card_index))
