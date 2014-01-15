@@ -45,6 +45,7 @@
 
 static const size_t MAX_CMD_MSG_LEN = 256;
 static const size_t SERVER_CONNECT_TIMEOUT_US = 500000;
+static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;
 static const size_t SERVER_FIRST_MESSAGE_TIMEOUT_US = 500000;
 
 /* Commands sent from the user to the running client. */
@@ -1476,15 +1477,37 @@ free_error:
 	return rc;
 }
 
+static inline
+int shutdown_and_close_socket(int sockfd)
+{
+	int rc;
+	uint8_t buffer[CRAS_CLIENT_MAX_MSG_SIZE];
+	struct timeval tv;
+
+	tv.tv_sec = 0;
+	tv.tv_usec = SERVER_SHUTDOWN_TIMEOUT_US;
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+
+	rc = shutdown(sockfd, SHUT_WR);
+	if (rc < 0)
+		return rc;
+	/* Wait until the socket is closed by the peer. */
+	for (;;) {
+		rc = recv(sockfd, buffer, sizeof(buffer), 0);
+		if (rc <= 0)
+			break;
+	}
+	return close(sockfd);
+}
+
 void cras_client_destroy(struct cras_client *client)
 {
 	if (client == NULL)
 		return;
-	if (client->server_state) {
+	if (client->server_state)
 		shmdt(client->server_state);
-	}
 	if (client->server_fd >= 0)
-		close(client->server_fd);
+		shutdown_and_close_socket(client->server_fd);
 	close(client->command_fds[0]);
 	close(client->command_fds[1]);
 	close(client->stream_fds[0]);
