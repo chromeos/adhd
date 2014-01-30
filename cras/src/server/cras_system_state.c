@@ -516,6 +516,11 @@ void cras_system_state_update_complete()
 	pthread_mutex_unlock(&state.update_lock);
 }
 
+struct cras_server_state *cras_system_state_get_no_lock()
+{
+	return state.exp_state;
+}
+
 key_t cras_sys_state_shm_key()
 {
 	return state.shm_key;

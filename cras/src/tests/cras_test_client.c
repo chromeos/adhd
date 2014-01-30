@@ -6,6 +6,7 @@
 #include <alsa/asoundlib.h>
 #include <getopt.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -46,6 +47,10 @@ static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
 static unsigned char cap_buf[BUF_SIZE];
 static char *channel_layout = NULL;
+
+/* Conditional so the client thread can signal that main should exit. */
+static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
 
 struct cras_audio_format *aud_format;
 
@@ -395,6 +400,56 @@ static void print_system_volumes(struct cras_client *client)
 	       cras_client_get_system_capture_muted(client) ? "(Muted)" : "");
 }
 
+static void audio_debug_info(struct cras_client *client)
+{
+	const struct audio_debug_info *info;
+	int i;
+
+	info = cras_client_get_audio_debug_info(client);
+	if (!info)
+		return;
+
+	printf("Audio Debug Stats:\n");
+	printf("-------------devices------------\n");
+	printf("output dev: %s\n", info->output_dev_name);
+	printf("%u %u %u\n",
+	       (unsigned int)info->output_buffer_size,
+	       (unsigned int)info->output_used_size,
+	       (unsigned int)info->output_cb_threshold);
+	printf("input dev: %s\n", info->input_dev_name);
+	printf("%u %u %u\n",
+	       (unsigned int)info->input_buffer_size,
+	       (unsigned int)info->input_used_size,
+	       (unsigned int)info->input_cb_threshold);
+	printf("-------------stream_dump------------\n");
+	if (info->num_streams > MAX_DEBUG_STREAMS)
+		return;
+
+	for (i = 0; i < info->num_streams; i++) {
+		int channel;
+		printf("stream: %llx\n",
+		       (unsigned long long)info->streams[i].stream_id);
+		printf("%d %u %u %u %u %u %u\n",
+		       info->streams[i].direction,
+		       (unsigned int)info->streams[i].buffer_frames,
+		       (unsigned int)info->streams[i].cb_threshold,
+		       (unsigned int)info->streams[i].min_cb_level,
+		       (unsigned int)info->streams[i].frame_rate,
+		       (unsigned int)info->streams[i].num_channels,
+		       (unsigned int)info->streams[i].num_cb_timeouts);
+		for (channel = 0; channel < CRAS_CH_MAX; channel++)
+			printf("%d ", info->streams[i].channel_layout[channel]);
+		printf("\n");
+	}
+
+	printf("Audio Thread Event Log:\n");
+
+	/* Signal main thread we are done after the last chunk. */
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_signal(&done_cond);
+	pthread_mutex_unlock(&done_mutex);
+}
+
 static int start_stream(struct cras_client *client,
 			cras_stream_id_t *stream_id,
 			struct cras_stream_params *params,
@@ -731,6 +786,22 @@ static void print_server_info(struct cras_client *client)
 	print_active_stream_info(client);
 }
 
+static void print_audio_debug_info(struct cras_client *client)
+{
+	struct timespec wait_time;
+
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client); /* To synchronize data. */
+	cras_client_update_audio_debug_info(client, audio_debug_info);
+
+	clock_gettime(CLOCK_REALTIME, &wait_time);
+	wait_time.tv_sec += 2;
+
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
+	pthread_mutex_unlock(&done_mutex);
+}
+
 static void check_output_plugged(struct cras_client *client, const char *name)
 {
 	cras_client_run_thread(client);
@@ -819,7 +890,7 @@ static void show_usage()
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
-	printf("--dump_audio_thread - Dumps audio thread info to syslog.\n");
+	printf("--dump_audio_thread - Dumps audio thread info.\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -1007,7 +1078,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		case '1':
-			cras_client_dump_audio_thread(client);
+			print_audio_debug_info(client);
 			break;
 		case '2':
 			channel_layout = optarg;

@@ -87,6 +87,35 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define CRAS_MAX_IODEVS 20
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
+#define MAX_DEBUG_STREAMS 8
+
+struct audio_stream_debug_info {
+	uint64_t stream_id;
+	uint32_t direction;
+	uint32_t buffer_frames;
+	uint32_t cb_threshold;
+	uint32_t min_cb_level;
+	uint32_t flags;
+	uint32_t frame_rate;
+	uint32_t num_channels;
+	uint32_t num_cb_timeouts;
+	int8_t channel_layout[CRAS_CH_MAX];
+};
+
+/* Debug info shared from server to client. */
+struct audio_debug_info {
+	char output_dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
+	uint32_t output_buffer_size;
+	uint32_t output_used_size;
+	uint32_t output_cb_threshold;
+	char input_dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
+	uint32_t input_buffer_size;
+	uint32_t input_used_size;
+	uint32_t input_cb_threshold;
+	uint32_t num_streams;
+	struct audio_stream_debug_info streams[MAX_DEBUG_STREAMS];
+};
+
 
 /* The server state that is shared with clients.
  *    state_version - Version of this structure.
@@ -120,6 +149,9 @@ static inline uint32_t node_index_of(cras_node_id_t id)
  *        audio.
  *    last_active_stream_time - Time the last stream was removed.  Can be used
  *        to determine how long audio has been idle.
+ *    audio_debug_info - Debug data filled in when a client requests it. This
+ *        isn't protected against concurrent updating, only one client should
+ *        use it.
  */
 #define CRAS_SERVER_STATE_VERSION 1
 struct cras_server_state {
@@ -151,6 +183,7 @@ struct cras_server_state {
 	unsigned update_count;
 	unsigned num_active_streams;
 	struct timespec last_active_stream_time;
+	struct audio_debug_info audio_debug_info;
 };
 
 /* Actions for card add/remove/change. */

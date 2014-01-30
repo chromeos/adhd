@@ -44,6 +44,11 @@ struct audio_thread_add_rm_stream_msg {
 	enum CRAS_STREAM_DIRECTION dir;
 };
 
+struct audio_thread_dump_debug_info_msg {
+	struct audio_thread_msg header;
+	struct audio_debug_info *info;
+};
+
 /* For capture, the amount of frames that will be left after a read is
  * performed.  Sleep this many frames past the buffer size to be sure at least
  * the buffer size is captured when the audio thread wakes up.
@@ -832,41 +837,66 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		struct cras_io_stream *curr;
 		struct cras_iodev *idev = thread->input_dev;
 		struct cras_iodev *odev = thread->output_dev;
+		struct audio_thread_dump_debug_info_msg *dmsg;
+		struct audio_debug_info *info;
+		unsigned int i = 0;
+
 		ret = 0;
-		syslog(LOG_ERR, "-------------thread------------\n");
-		syslog(LOG_ERR, "%d\n", thread->started);
-		syslog(LOG_ERR, "-------------devices------------\n");
+		dmsg = (struct audio_thread_dump_debug_info_msg *)msg;
+		info = dmsg->info;
+
 		if (odev) {
-			syslog(LOG_ERR, "output dev: %s\n", odev->info.name);
-			syslog(LOG_ERR, "%lu %lu %lu\n",    odev->buffer_size,
-							   odev->used_size,
-							   odev->cb_threshold);
+			strncpy(info->output_dev_name, odev->info.name,
+				sizeof(info->output_dev_name));
+			info->output_buffer_size = odev->buffer_size;
+			info->output_used_size = odev->used_size;
+			info->output_cb_threshold = odev->cb_threshold;
+		} else {
+			info->output_dev_name[0] = '\0';
+			info->output_buffer_size = 0;
+			info->output_used_size = 0;
+			info->output_cb_threshold = 0;
 		}
 		if (idev) {
-			syslog(LOG_ERR, "input dev: %s\n", idev->info.name);
-			syslog(LOG_ERR, "%lu %lu %lu\n", idev->buffer_size,
-							idev->used_size,
-							idev->cb_threshold);
+			strncpy(info->input_dev_name, idev->info.name,
+				sizeof(info->input_dev_name));
+			info->input_buffer_size = idev->buffer_size;
+			info->input_used_size = idev->used_size;
+			info->input_cb_threshold = idev->cb_threshold;
+		} else {
+			info->output_dev_name[0] = '\0';
+			info->output_buffer_size = 0;
+			info->output_used_size = 0;
+			info->output_cb_threshold = 0;
 		}
-		syslog(LOG_ERR, "-------------stream_dump------------\n");
+
 		DL_FOREACH(thread->streams, curr) {
 			struct cras_audio_shm *shm;
+			struct audio_stream_debug_info *si;
 
 			shm = stream_uses_output(curr->stream) ?
 				cras_rstream_output_shm(curr->stream) :
 				cras_rstream_input_shm(curr->stream);
 
-			syslog(LOG_ERR, "%x %d %zu %zu %zu %zu %zu %u",
-				curr->stream->stream_id,
-				curr->stream->direction,
-				curr->stream->buffer_frames,
-				curr->stream->cb_threshold,
-				curr->stream->min_cb_level,
-				curr->stream->format.frame_rate,
-				curr->stream->format.num_channels,
-				cras_shm_num_cb_timeouts(shm)
-				);
+			si = &info->streams[i];
+
+			si->stream_id = curr->stream->stream_id;
+			si->direction = curr->stream->direction;
+			si->buffer_frames = curr->stream->buffer_frames;
+			si->cb_threshold = curr->stream->cb_threshold;
+			si->min_cb_level = curr->stream->min_cb_level;
+			si->frame_rate = curr->stream->format.frame_rate;
+			si->num_channels = curr->stream->format.num_channels;
+			si->num_cb_timeouts = cras_shm_num_cb_timeouts(shm);
+			memcpy(si->channel_layout,
+			       curr->stream->format.channel_layout,
+			       sizeof(si->channel_layout));
+
+			if (++i == MAX_DEBUG_STREAMS)
+				break;
 		}
+		info->num_streams = i;
+
 		break;
 	}
 	default:
@@ -1406,12 +1436,14 @@ int audio_thread_rm_stream(struct audio_thread *thread,
 	return audio_thread_post_message(thread, &msg.header);
 }
 
-int audio_thread_dump_thread_info(struct audio_thread *thread)
+int audio_thread_dump_thread_info(struct audio_thread *thread,
+				  struct audio_debug_info *info)
 {
-	struct audio_thread_add_rm_stream_msg msg;
+	struct audio_thread_dump_debug_info_msg msg;
 
 	msg.header.id = AUDIO_THREAD_DUMP_THREAD_INFO;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
+	msg.header.length = sizeof(msg);
+	msg.info = info;
 	return audio_thread_post_message(thread, &msg.header);
 }
 

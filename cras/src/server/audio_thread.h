@@ -153,6 +153,7 @@ void audio_thread_add_loopback_device(struct audio_thread *thread,
 				      struct cras_iodev *loop_dev);
 
 /* Dumps information about all active streams to syslog. */
-int audio_thread_dump_thread_info(struct audio_thread *thread);
+int audio_thread_dump_thread_info(struct audio_thread *thread,
+				  struct audio_debug_info *info);
 
 #endif /* AUDIO_THREAD_H_ */

@@ -163,6 +163,7 @@ struct client_stream {
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
  * server_state - RO shared memory region holding server state.
+ * debug_info_callback - Function to call when debug info is received.
  */
 struct cras_client {
 	int id;
@@ -176,6 +177,7 @@ struct cras_client {
 	int last_command_result;
 	struct client_stream *streams;
 	const struct cras_server_state *server_state;
+	void (*debug_info_callback)(struct cras_client *);
 };
 
 /*
@@ -1171,6 +1173,10 @@ static int handle_message_from_server(struct cras_client *client)
 		handle_stream_reattach(client, cmsg->stream_id);
 		break;
 	}
+	case CRAS_CLIENT_AUDIO_DEBUG_INFO_READY:
+		if (client->debug_info_callback)
+			client->debug_info_callback(client);
+		break;
 	default:
 		syslog(LOG_WARNING, "Receive unknown command %d", msg->id);
 		break;
@@ -1824,6 +1830,15 @@ long cras_client_get_system_max_capture_gain(struct cras_client *client)
 	return client->server_state->max_capture_gain;
 }
 
+const struct audio_debug_info *cras_client_get_audio_debug_info(
+		struct cras_client *client)
+{
+	if (!client || !client->server_state)
+		return NULL;
+
+	return &client->server_state->audio_debug_info;
+}
+
 unsigned cras_client_get_num_active_streams(struct cras_client *client,
 					    struct timespec *ts)
 {
@@ -2155,12 +2170,16 @@ int cras_client_dump_dsp_info(struct cras_client *client)
 	return write_message_to_server(client, &msg.header);
 }
 
-int cras_client_dump_audio_thread(struct cras_client *client)
+int cras_client_update_audio_debug_info(
+	struct cras_client *client,
+	void (*debug_info_cb)(struct cras_client *))
 {
 	struct cras_dump_audio_thread msg;
 
 	if (client == NULL)
 		return -EINVAL;
+
+	client->debug_info_callback = debug_info_cb;
 
 	cras_fill_dump_audio_thread(&msg);
 	return write_message_to_server(client, &msg.header);

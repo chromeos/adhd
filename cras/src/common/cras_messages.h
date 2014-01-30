@@ -45,6 +45,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_CONNECTED,
 	CRAS_CLIENT_STREAM_CONNECTED,
 	CRAS_CLIENT_STREAM_REATTACH,
+	CRAS_CLIENT_AUDIO_DEBUG_INFO_READY,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -341,6 +342,17 @@ static inline void cras_fill_client_stream_reattach(
 	m->stream_id = stream_id;
 	m->header.id = CRAS_CLIENT_STREAM_REATTACH;
 	m->header.length = sizeof(struct cras_client_stream_reattach);
+}
+
+/* Sent from server to client when audio debug information is requested. */
+struct cras_client_audio_debug_info_ready {
+	struct cras_client_message header;
+};
+static inline void cras_fill_client_audio_debug_info_ready(
+		struct cras_client_audio_debug_info_ready *m)
+{
+	m->header.id = CRAS_CLIENT_AUDIO_DEBUG_INFO_READY;
+	m->header.length = sizeof(*m);
 }
 
 /*

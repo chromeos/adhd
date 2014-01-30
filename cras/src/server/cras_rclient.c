@@ -215,6 +215,19 @@ static int handle_switch_stream_type_iodev(
 	return cras_iodev_move_stream_type(msg->stream_type, msg->iodev_idx);
 }
 
+/* Handles dumping audio thread debug info back to the client. */
+static void dump_audio_thread_info(struct cras_rclient *client)
+{
+	struct cras_client_audio_debug_info_ready msg;
+	struct cras_server_state *state;
+
+	cras_fill_client_audio_debug_info_ready(&msg);
+	state = cras_system_state_get_no_lock();
+	audio_thread_dump_thread_info(cras_iodev_list_get_audio_thread(),
+				      &state->audio_debug_info);
+	cras_rclient_send_message(client, &msg.header);
+}
+
 /*
  * Exported Functions.
  */
@@ -333,8 +346,7 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_dsp_dump_info();
 		break;
 	case CRAS_SERVER_DUMP_AUDIO_THREAD:
-		audio_thread_dump_thread_info(
-				cras_iodev_list_get_audio_thread());
+		dump_audio_thread_info(client);
 		break;
 	default:
 		break;

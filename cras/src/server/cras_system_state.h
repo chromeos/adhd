@@ -316,6 +316,10 @@ struct cras_server_state *cras_system_state_update_begin();
  */
 void cras_system_state_update_complete();
 
+/* Gets a pointer to the system state without locking it.  Only used for debug
+ * log.  Don't add calls to this function. */
+struct cras_server_state *cras_system_state_get_no_lock();
+
 /* Returns the shm key for the server_state structure. */
 key_t cras_sys_state_shm_key();
 
