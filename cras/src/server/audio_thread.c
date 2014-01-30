@@ -699,7 +699,12 @@ static int write_streams(struct audio_thread *thread,
 					     to.tv_sec,
 					     to.tv_usec);
 		rc = select(max_fd + 1, &this_set, NULL, NULL, &to);
-		if (rc <= 0) {
+		if (rc < 0) {
+			if (rc == -EINTR)
+				continue;
+			syslog(LOG_ERR, "select error %d", rc);
+			break;
+		} else if (rc == 0) {
 			audio_thread_event_log_tag(
 				atlog,
 				AUDIO_THREAD_WRITE_STREAMS_WAIT_TO);
