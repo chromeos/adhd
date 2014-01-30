@@ -302,7 +302,7 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 	server/audio_thread.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-audio_thread_unittest_LDADD = -lgtest -lpthread
+audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
 
 bt_profile_unittest_SOURCES = tests/bt_profile_unittest.cc tests/dbus_test.cc \
 	server/cras_bt_profile.c

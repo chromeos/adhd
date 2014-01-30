@@ -95,6 +95,65 @@ void audio_thread_rm_callback(int fd)
 	}
 }
 
+/* Audio thread logging. */
+static struct audio_thread_event_log *atlog;
+
+static inline
+struct audio_thread_event_log *audio_thread_event_log_init()
+{
+	return calloc(1, sizeof(struct audio_thread_event_log));
+}
+
+static inline
+void audio_thread_event_log_deinit(struct audio_thread_event_log *log)
+{
+	free(log);
+}
+
+static inline void audio_thread_write_word(
+		struct audio_thread_event_log *log,
+		uint32_t word)
+{
+	log->log[log->write_pos] = word;
+	log->write_pos++;
+	log->write_pos %= AUDIO_THREAD_EVENT_LOG_SIZE;
+}
+
+/* Log a tag and the current time, Uses two words, the first is split
+ * 8 bits for tag and 24 for seconds, second word is micro seconds.
+ */
+static inline void audio_thread_event_log_tag(
+		struct audio_thread_event_log *log,
+		enum AUDIO_THREAD_LOG_EVENTS event)
+{
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	audio_thread_write_word(log, (event << 24) | (ts.tv_sec & 0x00ffffff));
+	audio_thread_write_word(log, ts.tv_nsec);
+}
+
+static inline void audio_thread_event_log_data(
+		struct audio_thread_event_log *log,
+		enum AUDIO_THREAD_LOG_EVENTS event,
+		uint32_t data)
+{
+	audio_thread_event_log_tag(log, event);
+	audio_thread_write_word(log, data);
+}
+
+static inline void audio_thread_event_log_data2(
+		struct audio_thread_event_log *log,
+		enum AUDIO_THREAD_LOG_EVENTS event,
+		uint32_t data,
+		uint32_t data2)
+{
+	audio_thread_event_log_tag(log, event);
+	audio_thread_write_word(log, data);
+	audio_thread_write_word(log, data2);
+}
+
 /* Returns true if there are streams attached to the thread. */
 static inline int streams_attached(const struct audio_thread *thread)
 {
@@ -635,8 +694,15 @@ static int write_streams(struct audio_thread *thread,
 	/* Wait until all polled clients reply, or a timeout. */
 	while (streams_wait > 0) {
 		this_set = poll_set;
+		audio_thread_event_log_data2(atlog,
+					     AUDIO_THREAD_WRITE_STREAMS_WAIT,
+					     to.tv_sec,
+					     to.tv_usec);
 		rc = select(max_fd + 1, &this_set, NULL, NULL, &to);
 		if (rc <= 0) {
+			audio_thread_event_log_tag(
+				atlog,
+				AUDIO_THREAD_WRITE_STREAMS_WAIT_TO);
 			/* Timeout */
 			DL_FOREACH(thread->streams, curr) {
 				struct cras_audio_shm *shm;
@@ -704,6 +770,9 @@ static int write_streams(struct audio_thread *thread,
 		}
 	}
 
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
+				    write_limit);
+
 	if (max_frames == 0 &&
 	    (odev->frames_queued(odev) <= odev->cb_threshold/4)) {
 		/* Nothing to mix from any streams. Under run. */
@@ -723,6 +792,8 @@ static int write_streams(struct audio_thread *thread,
 			cras_shm_buffer_read(shm, write_limit);
 	}
 
+	audio_thread_event_log_data2(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
+				     write_limit, num_mixed);
 	if (num_mixed == 0)
 		return num_mixed;
 
@@ -796,6 +867,10 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	case AUDIO_THREAD_ADD_STREAM: {
 		struct audio_thread_add_rm_stream_msg *amsg;
 		amsg = (struct audio_thread_add_rm_stream_msg *)msg;
+		audio_thread_event_log_data(
+			atlog,
+			AUDIO_THREAD_WRITE_STREAMS_WAIT,
+			amsg->stream->stream_id);
 		ret = thread_add_stream(thread, amsg->stream);
 		break;
 	}
@@ -897,6 +972,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		}
 		info->num_streams = i;
 
+		memcpy(&info->log, atlog, sizeof(info->log));
 		break;
 	}
 	default:
@@ -1004,6 +1080,9 @@ int possibly_fill_audio(struct audio_thread *thread,
 	hw_level = rc;
 	adjusted_level = adjust_level(thread, hw_level);
 
+	audio_thread_event_log_data2(atlog, AUDIO_THREAD_FILL_AUDIO,
+				     hw_level, adjusted_level);
+
 	delay = odev->delay_frames(odev);
 	if (delay < 0)
 		return delay;
@@ -1067,6 +1146,9 @@ int possibly_fill_audio(struct audio_thread *thread,
 		return rc;
 	*next_sleep_frames = rc;
 
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
+				    total_written);
+
 	return total_written;
 }
 
@@ -1101,6 +1183,8 @@ int possibly_read_audio(struct audio_thread *thread,
 		return rc;
 	hw_level = rc;
 	write_limit = hw_level;
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO, hw_level);
 
 	/* Check if the device is still running. */
 	if (!idev->dev_running(idev))
@@ -1219,6 +1303,9 @@ int possibly_read_audio(struct audio_thread *thread,
 			CAP_REMAINING_FRAMES_TARGET;
 	}
 
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO_DONE,
+				    write_limit);
+
 	return write_limit;
 }
 
@@ -1270,6 +1357,8 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 						 idev->format->frame_rate,
 						 &cap_ts);
 		sleep_ts = &cap_ts;
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_INPUT_SLEEP,
+					    sleep_ts->tv_nsec);
 	}
 
 	if (device_open(odev)) {
@@ -1278,6 +1367,8 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 						 &pb_ts);
 		if (!sleep_ts || timespec_after(sleep_ts, &pb_ts))
 			sleep_ts = &pb_ts;
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_OUTPUT_SLEEP,
+					    sleep_ts->tv_nsec);
 	}
 
 	if (device_open(loopdev)) {
@@ -1287,6 +1378,8 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 			&loop_ts);
 		if (!sleep_ts || timespec_after(sleep_ts, &loop_ts))
 			sleep_ts = &loop_ts;
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_LOOP_SLEEP,
+					    sleep_ts->tv_nsec);
 	}
 
 	*ts = *sleep_ts;
@@ -1339,7 +1432,9 @@ static void *audio_io_thread(void *arg)
 				max_fd = iodev_cb->fd;
 		}
 
+		audio_thread_event_log_tag(atlog, AUDIO_THREAD_SLEEP);
 		err = pselect(max_fd + 1, &poll_set, NULL, NULL, wait_ts, NULL);
+		audio_thread_event_log_tag(atlog, AUDIO_THREAD_WAKE);
 		if (err <= 0)
 			continue;
 
@@ -1475,6 +1570,8 @@ struct audio_thread *audio_thread_create()
 		return NULL;
 	}
 
+	atlog = audio_thread_event_log_init();
+
 	return thread;
 }
 
@@ -1516,6 +1613,8 @@ void audio_thread_remove_streams(struct audio_thread *thread,
 
 void audio_thread_destroy(struct audio_thread *thread)
 {
+	audio_thread_event_log_deinit(atlog);
+
 	if (thread->started) {
 		struct audio_thread_msg msg;
 

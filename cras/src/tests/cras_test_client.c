@@ -403,7 +403,7 @@ static void print_system_volumes(struct cras_client *client)
 static void audio_debug_info(struct cras_client *client)
 {
 	const struct audio_debug_info *info;
-	int i;
+	int i, j;
 
 	info = cras_client_get_audio_debug_info(client);
 	if (!info)
@@ -443,6 +443,14 @@ static void audio_debug_info(struct cras_client *client)
 	}
 
 	printf("Audio Thread Event Log:\n");
+
+	j = info->log.write_pos;
+	for (i = 0; i < AUDIO_THREAD_EVENT_LOG_SIZE; i++) {
+		printf("%x ", info->log.log[j]);
+		j++;
+		j %= AUDIO_THREAD_EVENT_LOG_SIZE;
+	}
+	printf("\n");
 
 	/* Signal main thread we are done after the last chunk. */
 	pthread_mutex_lock(&done_mutex);

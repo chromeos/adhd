@@ -88,6 +88,30 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
 #define MAX_DEBUG_STREAMS 8
+#define AUDIO_THREAD_EVENT_LOG_SIZE 4096
+
+/* There are 8 bits of space for events. */
+enum AUDIO_THREAD_LOG_EVENTS {
+	AUDIO_THREAD_WAKE,
+	AUDIO_THREAD_SLEEP,
+	AUDIO_THREAD_READ_AUDIO,
+	AUDIO_THREAD_READ_AUDIO_DONE,
+	AUDIO_THREAD_FILL_AUDIO,
+	AUDIO_THREAD_FILL_AUDIO_DONE,
+	AUDIO_THREAD_WRITE_STREAMS_WAIT,
+	AUDIO_THREAD_WRITE_STREAMS_WAIT_TO,
+	AUDIO_THREAD_WRITE_STREAMS_MIX,
+	AUDIO_THREAD_WRITE_STREAMS_MIXED,
+	AUDIO_THREAD_INPUT_SLEEP,
+	AUDIO_THREAD_OUTPUT_SLEEP,
+	AUDIO_THREAD_LOOP_SLEEP,
+};
+
+/* Ring buffer of log events from the audio thread. */
+struct audio_thread_event_log {
+	uint32_t write_pos;
+	uint32_t log[AUDIO_THREAD_EVENT_LOG_SIZE];
+};
 
 struct audio_stream_debug_info {
 	uint64_t stream_id;
@@ -114,6 +138,7 @@ struct audio_debug_info {
 	uint32_t input_cb_threshold;
 	uint32_t num_streams;
 	struct audio_stream_debug_info streams[MAX_DEBUG_STREAMS];
+	struct audio_thread_event_log log;
 };
 
 
