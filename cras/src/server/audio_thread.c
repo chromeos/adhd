@@ -828,14 +828,21 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		}
 		syslog(LOG_ERR, "-------------stream_dump------------\n");
 		DL_FOREACH(thread->streams, curr) {
-			syslog(LOG_ERR, "%x %d %zu %zu %zu %zu %zu",
+			struct cras_audio_shm *shm;
+
+			shm = stream_uses_output(curr->stream) ?
+				cras_rstream_output_shm(curr->stream) :
+				cras_rstream_input_shm(curr->stream);
+
+			syslog(LOG_ERR, "%x %d %zu %zu %zu %zu %zu %u",
 				curr->stream->stream_id,
 				curr->stream->direction,
 				curr->stream->buffer_frames,
 				curr->stream->cb_threshold,
 				curr->stream->min_cb_level,
 				curr->stream->format.frame_rate,
-				curr->stream->format.num_channels
+				curr->stream->format.num_channels,
+				cras_shm_num_cb_timeouts(shm)
 				);
 		}
 		break;
