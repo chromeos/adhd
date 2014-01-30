@@ -914,6 +914,44 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_EQ(-1, select_max_fd);
 }
 
+TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamMinSet) {
+  struct timespec ts;
+  int rc;
+  uint64_t nsec_expected;
+
+  // Have cb_threshold samples left.
+  frames_queued_ = iodev_.cb_threshold * 2;
+  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  // Setting the min_buffer_level should shorten the sleep time.
+  iodev_.min_buffer_level = iodev_.cb_threshold;
+
+  // shm has is empty.
+  shm_->area->write_offset[0] = 0;
+
+  FD_ZERO(&select_out_fds);
+  FD_SET(rstream_->fd, &select_out_fds);
+  select_return_value = 1;
+  is_open_ = 1;
+  // Set write offset after call to select.
+  select_write_ptr = &shm_->area->write_offset[0];
+  select_write_value = iodev_.cb_threshold * 4;
+
+  // After the callback there will be cb_thresh of data in the buffer and
+  // cb_thresh x 2 data in the hardware (frames_queued_) = 3 cb_thresh total.
+  // It should sleep until there is a total of cb_threshold + min_buffer_level
+  // left,  or 3 - 2 = 1 cb_thresh worth of delay.
+  nsec_expected = (uint64_t)(iodev_.cb_threshold) *
+      1000000000ULL / (uint64_t)fmt_.frame_rate;
+
+  rc = unified_io(thread_, &ts);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
+  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
+  EXPECT_EQ(iodev_.cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(1, cras_rstream_request_audio_called);
+}
+
 TEST_F(WriteStreamSuite, PossiblyFillFramesQueued) {
   struct timespec ts;
   int rc;

@@ -954,7 +954,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 	/* Request data from streams that need more */
 	fr_to_req = odev->used_size - hw_level;
-	rc = fetch_and_set_timestamp(thread, hw_level, delay);
+	rc = fetch_and_set_timestamp(thread, adjusted_level, delay);
 	if (rc < 0)
 		return rc;
 
