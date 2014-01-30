@@ -621,11 +621,13 @@ static int write_streams(struct audio_thread *thread,
 
 				shm = cras_rstream_output_shm(curr->stream);
 
-				if (cras_shm_callback_pending(shm) &&
-				    FD_ISSET(curr->fd, &poll_set)) {
-					cras_shm_inc_cb_timeouts(shm);
+				if (!cras_shm_callback_pending(shm) ||
+				    !FD_ISSET(curr->fd, &poll_set))
+					continue;
+
+				cras_shm_inc_cb_timeouts(shm);
+				if (cras_shm_get_frames(shm) == 0)
 					curr->skip_mix = 1;
-				}
 			}
 			break;
 		}
