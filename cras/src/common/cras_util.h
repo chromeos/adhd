@@ -86,6 +86,25 @@ static inline void subtract_timespecs(const struct timespec *end,
 	}
 }
 
+/* Converts a fixed-size cras_timespec to a native timespec */
+static inline void cras_timespec_to_timespec(struct timespec *dest,
+					     const struct cras_timespec *src)
+{
+	dest->tv_sec = src->tv_sec;
+	dest->tv_nsec = src->tv_nsec;
+}
+
+/* Fills a fixed-size cras_timespec with the current system time */
+static inline int cras_clock_gettime(clockid_t clk_id,
+				     struct cras_timespec *ctp)
+{
+	struct timespec tp;
+	int ret = clock_gettime(clk_id, &tp);
+	ctp->tv_sec = tp.tv_sec;
+	ctp->tv_nsec = tp.tv_nsec;
+	return ret;
+}
+
 /* Returns true if timeval a is after timeval b */
 static inline int timeval_after(const struct timeval *a,
 				const struct timeval *b)

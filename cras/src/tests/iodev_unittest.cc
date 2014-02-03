@@ -75,7 +75,7 @@ TEST(IoDevTestSuite, FillTimeFromFramesShort) {
 
 //  Test set_playback_timestamp.
 TEST(IoDevTestSuite, SetPlaybackTimeStampSimple) {
-  struct timespec ts;
+  struct cras_timespec ts;
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 0;
@@ -86,7 +86,7 @@ TEST(IoDevTestSuite, SetPlaybackTimeStampSimple) {
 }
 
 TEST(IoDevTestSuite, SetPlaybackTimeStampWrap) {
-  struct timespec ts;
+  struct cras_timespec ts;
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 750000000;
@@ -97,7 +97,7 @@ TEST(IoDevTestSuite, SetPlaybackTimeStampWrap) {
 }
 
 TEST(IoDevTestSuite, SetPlaybackTimeStampWrapTwice) {
-  struct timespec ts;
+  struct cras_timespec ts;
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 750000000;
@@ -109,7 +109,7 @@ TEST(IoDevTestSuite, SetPlaybackTimeStampWrapTwice) {
 
 //  Test set_capture_timestamp.
 TEST(IoDevTestSuite, SetCaptureTimeStampSimple) {
-  struct timespec ts;
+  struct cras_timespec ts;
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 750000000;
@@ -120,7 +120,7 @@ TEST(IoDevTestSuite, SetCaptureTimeStampSimple) {
 }
 
 TEST(IoDevTestSuite, SetCaptureTimeStampWrap) {
-  struct timespec ts;
+  struct cras_timespec ts;
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 0;
@@ -131,7 +131,7 @@ TEST(IoDevTestSuite, SetCaptureTimeStampWrap) {
 }
 
 TEST(IoDevTestSuite, SetCaptureTimeStampWrapPartial) {
-  struct timespec ts;
+  struct cras_timespec ts;
 
   clock_gettime_retspec.tv_sec = 2;
   clock_gettime_retspec.tv_nsec = 750000000;

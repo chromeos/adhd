@@ -20,9 +20,9 @@
  *  used_size - The size in bytes of the sample area being actively used.
  *  frame_bytes - The size of each frame in bytes.
  */
-struct cras_audio_shm_config {
-	unsigned int used_size;
-	unsigned int frame_bytes;
+struct __attribute__ ((__packed__)) cras_audio_shm_config {
+	uint32_t used_size;
+	uint32_t frame_bytes;
 };
 
 /* Structure that is shared as shm between client and server.
@@ -47,19 +47,19 @@ struct cras_audio_shm_config {
  *  samples - Audio data - a double buffered area that is used to exchange
  *    audio samples.
  */
-struct cras_audio_shm_area {
+struct __attribute__ ((__packed__)) cras_audio_shm_area {
 	struct cras_audio_shm_config config;
-	size_t read_buf_idx; /* use buffer A or B */
-	size_t write_buf_idx;
-	size_t read_offset[CRAS_NUM_SHM_BUFFERS];
-	size_t write_offset[CRAS_NUM_SHM_BUFFERS];
-	int write_in_progress[CRAS_NUM_SHM_BUFFERS];
+	uint32_t read_buf_idx; /* use buffer A or B */
+	uint32_t write_buf_idx;
+	uint32_t read_offset[CRAS_NUM_SHM_BUFFERS];
+	uint32_t write_offset[CRAS_NUM_SHM_BUFFERS];
+	int32_t write_in_progress[CRAS_NUM_SHM_BUFFERS];
 	float volume_scaler;
-	size_t mute;
-	size_t callback_pending;
-	size_t num_overruns;
-	size_t num_cb_timeouts;
-	struct timespec ts;
+	int32_t mute;
+	int32_t callback_pending;
+	uint32_t num_overruns;
+	uint32_t num_cb_timeouts;
+	struct cras_timespec ts;
 	uint8_t samples[];
 };
 

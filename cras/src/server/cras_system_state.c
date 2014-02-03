@@ -448,7 +448,7 @@ void cras_system_state_stream_removed()
 
 	/* Set the last active time when removing the final stream. */
 	if (s->num_active_streams == 1)
-		clock_gettime(CLOCK_MONOTONIC, &s->last_active_stream_time);
+		cras_clock_gettime(CLOCK_MONOTONIC, &s->last_active_stream_time);
 	s->num_active_streams--;
 
 	cras_system_state_update_complete();
@@ -470,7 +470,7 @@ int cras_system_remove_active_streams_changed_cb(cras_alert_cb cb, void *arg)
 	return cras_alert_rm_callback(state.active_streams_alert, cb, arg);
 }
 
-void cras_system_state_get_last_stream_active_time(struct timespec *ts)
+void cras_system_state_get_last_stream_active_time(struct cras_timespec *ts)
 {
 	*ts = state.exp_state->last_active_stream_time;
 }

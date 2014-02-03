@@ -302,7 +302,7 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
 	printf("\t ID\tPrio  %4s  Plugged\t Time\tType\t\t Name\n",
 	       is_input ? "Gain" : " Vol");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%u:%u\t%4zu %5g  %7s %10ld\t%-16s%c%s\n",
+		printf("\t%u:%u\t%4d %5g  %7s %10ld\t%-16s%c%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       nodes[i].priority,
@@ -371,7 +371,7 @@ static void print_attached_client_list(struct cras_client *client)
 	printf("Attached clients:\n");
 	printf("\tID\tpid\tuid\n");
 	for (i = 0; i < num_clients; i++)
-		printf("\t%zu\t%d\t%d\n",
+		printf("\t%u\t%d\t%d\n",
 		       clients[i].id,
 		       clients[i].pid,
 		       clients[i].gid);

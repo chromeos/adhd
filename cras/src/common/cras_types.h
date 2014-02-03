@@ -15,6 +15,12 @@
 #include "cras_audio_format.h"
 #include "cras_iodev_info.h"
 
+/* Architecture independent timespec */
+struct __attribute__ ((__packed__)) cras_timespec {
+	int64_t tv_sec;
+	int64_t tv_nsec;
+};
+
 /* Directions of audio streams.
  * Input, Output, or Unified (Both input and output synchronously).
  */
@@ -56,11 +62,11 @@ enum CRAS_STREAM_TYPE {
 };
 
 /* Information about a client attached to the server. */
-struct cras_attached_client_info {
-	size_t id;
-	pid_t pid;
-	uid_t uid;
-	gid_t gid;
+struct __attribute__ ((__packed__)) cras_attached_client_info {
+	uint32_t id;
+	int32_t pid;
+	uint32_t uid;
+	uint32_t gid;
 };
 
 /* Each ionode has a unique id. The top 32 bits are the device index, lower 32
@@ -110,12 +116,12 @@ enum AUDIO_THREAD_LOG_EVENTS {
 };
 
 /* Ring buffer of log events from the audio thread. */
-struct audio_thread_event_log {
+struct __attribute__ ((__packed__)) audio_thread_event_log {
 	uint32_t write_pos;
 	uint32_t log[AUDIO_THREAD_EVENT_LOG_SIZE];
 };
 
-struct audio_stream_debug_info {
+struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint64_t stream_id;
 	uint32_t direction;
 	uint32_t buffer_frames;
@@ -129,7 +135,7 @@ struct audio_stream_debug_info {
 };
 
 /* Debug info shared from server to client. */
-struct audio_debug_info {
+struct __attribute__ ((__packed__)) audio_debug_info {
 	char output_dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
 	uint32_t output_buffer_size;
 	uint32_t output_used_size;
@@ -180,36 +186,36 @@ struct audio_debug_info {
  *        isn't protected against concurrent updating, only one client should
  *        use it.
  */
-#define CRAS_SERVER_STATE_VERSION 1
-struct cras_server_state {
-	unsigned state_version;
-	size_t volume;
-	long min_volume_dBFS;
-	long max_volume_dBFS;
-	int mute;
-	int user_mute;
-	int mute_locked;
-	long capture_gain;
-	int capture_mute;
-	int capture_mute_locked;
-	long min_capture_gain;
-	long max_capture_gain;
-	unsigned num_streams_attached;
-	unsigned num_output_devs;
-	unsigned num_input_devs;
+#define CRAS_SERVER_STATE_VERSION 2
+struct __attribute__ ((__packed__)) cras_server_state {
+	uint32_t state_version;
+	uint32_t volume;
+	int32_t min_volume_dBFS;
+	int32_t max_volume_dBFS;
+	int32_t mute;
+	int32_t user_mute;
+	int32_t mute_locked;
+	int32_t capture_gain;
+	int32_t capture_mute;
+	int32_t capture_mute_locked;
+	int32_t min_capture_gain;
+	int32_t max_capture_gain;
+	uint32_t num_streams_attached;
+	uint32_t num_output_devs;
+	uint32_t num_input_devs;
 	struct cras_iodev_info output_devs[CRAS_MAX_IODEVS];
 	struct cras_iodev_info input_devs[CRAS_MAX_IODEVS];
-	unsigned num_output_nodes;
-	unsigned num_input_nodes;
+	uint32_t num_output_nodes;
+	uint32_t num_input_nodes;
 	struct cras_ionode_info output_nodes[CRAS_MAX_IONODES];
 	struct cras_ionode_info input_nodes[CRAS_MAX_IONODES];
 	cras_node_id_t selected_input;
 	cras_node_id_t selected_output;
-	unsigned num_attached_clients;
+	uint32_t num_attached_clients;
 	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
-	unsigned update_count;
-	unsigned num_active_streams;
-	struct timespec last_active_stream_time;
+	uint32_t update_count;
+	uint32_t num_active_streams;
+	struct cras_timespec last_active_stream_time;
 	struct audio_debug_info audio_debug_info;
 };
 
@@ -235,12 +241,12 @@ enum CRAS_ALSA_CARD_TYPE {
 	ALSA_CARD_TYPE_INTERNAL,
 	ALSA_CARD_TYPE_USB,
 };
-struct cras_alsa_card_info {
+struct __attribute__ ((__packed__)) cras_alsa_card_info {
 	enum CRAS_ALSA_CARD_TYPE card_type;
-	unsigned card_index;
-	unsigned usb_vendor_id;
-	unsigned usb_product_id;
-	unsigned usb_desc_checksum;
+	uint32_t card_index;
+	uint32_t usb_vendor_id;
+	uint32_t usb_product_id;
+	uint32_t usb_desc_checksum;
 };
 
 /* Unique identifier for each active stream.

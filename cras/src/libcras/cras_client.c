@@ -469,6 +469,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	int frames;
 	struct cras_stream_params *config;
 	uint8_t *captured_frames;
+	struct timespec ts;
 
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
@@ -478,6 +479,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	}
 
 	num_frames = config_capture_buf(stream, &captured_frames, num_frames);
+	cras_timespec_to_timespec(&ts, &stream->capture_shm.area->ts);
 
 	if (config->unified_cb)
 		frames = config->unified_cb(stream->client,
@@ -485,7 +487,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 					    captured_frames,
 					    NULL,
 					    num_frames,
-					    &stream->capture_shm.area->ts,
+					    &ts,
 					    NULL,
 					    config->user_data);
 	else
@@ -493,7 +495,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 					stream->id,
 					captured_frames,
 					num_frames,
-					&stream->capture_shm.area->ts,
+					&ts,
 					config->user_data);
 	if (frames == EOF) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
@@ -566,6 +568,7 @@ static int handle_playback_request(struct client_stream *stream,
 	int rc = 0;
 	struct cras_stream_params *config;
 	struct cras_audio_shm *shm = &stream->play_shm;
+	struct timespec ts;
 
 	config = stream->config;
 
@@ -580,6 +583,8 @@ static int handle_playback_request(struct client_stream *stream,
 	/* Limit the amount of frames to the configured amount. */
 	num_frames = min(num_frames, config->min_cb_level);
 
+	cras_timespec_to_timespec(&ts, &shm->area->ts);
+
 	/* Get samples from the user */
 	if (config->unified_cb)
 		frames = config->unified_cb(stream->client,
@@ -588,14 +593,14 @@ static int handle_playback_request(struct client_stream *stream,
 				buf,
 				num_frames,
 				NULL,
-				&shm->area->ts,
+				&ts,
 				config->user_data);
 	else
 		frames = config->aud_cb(stream->client,
 				stream->id,
 				buf,
 				num_frames,
-				&shm->area->ts,
+				&ts,
 				config->user_data);
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
@@ -618,28 +623,32 @@ static int handle_unified_request(struct client_stream *stream,
 	struct cras_stream_params *config;
 	uint8_t *captured_frames = NULL;
 	uint8_t *playback_frames = NULL;
-	struct timespec *capture_ts = NULL;
-	struct timespec *playback_ts = NULL;
+	struct timespec capture_ts;
+	struct timespec playback_ts;
 	int frames;
 	int rc = 0;
 	unsigned int server_frames = num_frames;
+	const int has_input = cras_stream_has_input(stream->direction);
+	const int has_output = cras_stream_uses_output_hw(stream->direction);
 
 	config = stream->config;
 
-	if (cras_stream_has_input(stream->direction)) {
+	if (has_input) {
 		num_frames = config_capture_buf(stream,
 						&captured_frames,
 						num_frames);
-		capture_ts = &stream->capture_shm.area->ts;
+		cras_timespec_to_timespec(&capture_ts,
+					  &stream->capture_shm.area->ts);
 	}
 
-	if (cras_stream_uses_output_hw(stream->direction)) {
+	if (has_output) {
 		unsigned int pb_frames = config_playback_buf(stream,
 							     &playback_frames,
 							     server_frames);
-		if (!cras_stream_has_input(stream->direction))
+		if (!has_input)
 			num_frames = pb_frames;
-		playback_ts = &stream->play_shm.area->ts;
+		cras_timespec_to_timespec(&playback_ts,
+					  &stream->play_shm.area->ts);
 	}
 
 	/* Get samples from the user */
@@ -648,8 +657,8 @@ static int handle_unified_request(struct client_stream *stream,
 				    captured_frames,
 				    playback_frames,
 				    num_frames,
-				    capture_ts,
-				    playback_ts,
+				    has_input ? &capture_ts : NULL,
+				    has_output ? &playback_ts : NULL,
 				    config->user_data);
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
@@ -815,11 +824,14 @@ static int stream_connected(struct client_stream *stream,
 {
 	int rc;
 	struct cras_audio_format *sfmt = &stream->config->format;
+	struct cras_audio_format mfmt;
 
 	if (msg->err) {
 		syslog(LOG_ERR, "Error Setting up stream %d\n", msg->err);
 		return msg->err;
 	}
+
+	unpack_cras_audio_format(&mfmt, &msg->format);
 
 	if (cras_stream_has_input(stream->direction)) {
 		unsigned int max_frames;
@@ -837,7 +849,7 @@ static int stream_connected(struct client_stream *stream,
 
 		/* Convert from h/w format to stream format for input. */
 		rc = config_format_converter(&stream->capture_conv,
-					     &msg->format,
+					     &mfmt,
 					     &stream->config->format,
 					     max_frames);
 		if (rc < 0) {
@@ -871,7 +883,7 @@ static int stream_connected(struct client_stream *stream,
 		/* Convert the stream format to the h/w format for output */
 		rc = config_format_converter(&stream->play_conv,
 					     &stream->config->format,
-					     &msg->format,
+					     &mfmt,
 					     max_frames);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Error setting up playback conversion");
@@ -1855,7 +1867,8 @@ read_active_streams_again:
 		if (num_streams)
 			clock_gettime(CLOCK_MONOTONIC, ts);
 		else
-			*ts = client->server_state->last_active_stream_time;
+			cras_timespec_to_timespec(ts,
+				&client->server_state->last_active_stream_time);
 	}
 	if (end_server_state_read(client->server_state, version))
 		goto read_active_streams_again;

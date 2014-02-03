@@ -32,8 +32,8 @@ static struct timeval select_timeval;
 static int select_max_fd;
 static fd_set select_in_fds;
 static fd_set select_out_fds;
-static size_t *select_write_ptr;
-static size_t select_write_value;
+static uint32_t *select_write_ptr;
+static uint32_t select_write_value;
 static unsigned int cras_iodev_config_params_for_streams_called;
 static unsigned int cras_iodev_config_params_for_streams_buffer_size;
 static unsigned int cras_iodev_config_params_for_streams_threshold;
@@ -1490,13 +1490,13 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 
 void cras_iodev_set_playback_timestamp(size_t frame_rate,
                                        size_t frames,
-                                       struct timespec *ts) {
+                                       struct cras_timespec *ts) {
   cras_iodev_set_playback_timestamp_called++;
 }
 
 void cras_iodev_set_capture_timestamp(size_t frame_rate,
                                       size_t frames,
-                                      struct timespec *ts) {
+                                      struct cras_timespec *ts) {
 }
 
 void cras_iodev_config_params(struct cras_iodev *iodev,

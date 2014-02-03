@@ -173,7 +173,7 @@ void cras_iodev_fill_time_from_frames(size_t frames,
  */
 void cras_iodev_set_playback_timestamp(size_t frame_rate,
 				       size_t frames,
-				       struct timespec *ts);
+				       struct cras_timespec *ts);
 
 /* Sets the time that the first sample in the buffer was captured at the ADC.
  * Args:
@@ -183,7 +183,7 @@ void cras_iodev_set_playback_timestamp(size_t frame_rate,
  */
 void cras_iodev_set_capture_timestamp(size_t frame_rate,
 				      size_t frames,
-				      struct timespec *ts);
+				      struct cras_timespec *ts);
 
 /* Configures when to wake up, the minimum amount free before refilling, and
  * other params that are independent of the hw configuration.

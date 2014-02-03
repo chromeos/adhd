@@ -16,7 +16,7 @@
 
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
-#define CRAS_PROTO_VER 0
+#define CRAS_PROTO_VER 1
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 
@@ -50,15 +50,15 @@ enum CRAS_CLIENT_MESSAGE_ID {
 
 /* Messages that control the server. These are sent from the client to affect
  * and action on the server. */
-struct cras_server_message {
-	size_t length;
+struct __attribute__ ((__packed__)) cras_server_message {
+	uint32_t length;
 	enum CRAS_SERVER_MESSAGE_ID id;
 };
 
 /* Messages that control the client. These are sent from the server to affect
  * and action on the client. */
-struct cras_client_message {
-	size_t length;
+struct __attribute__ ((__packed__)) cras_client_message {
+	uint32_t length;
 	enum CRAS_CLIENT_MESSAGE_ID id;
 };
 
@@ -67,17 +67,17 @@ struct cras_client_message {
  */
 
 /* Sent by a client to connect a stream to the server. */
-struct cras_connect_message {
+struct __attribute__ ((__packed__)) cras_connect_message {
 	struct cras_server_message header;
-	size_t proto_version;
+	uint32_t proto_version;
 	enum CRAS_STREAM_DIRECTION direction; /* input/output/unified */
 	cras_stream_id_t stream_id; /* unique id for this stream */
 	enum CRAS_STREAM_TYPE stream_type; /* media, or call, etc. */
-	size_t buffer_frames; /* Buffer size in frames. */
-	size_t cb_threshold; /* callback client when this much is left */
-	size_t min_cb_level; /* don't callback unless this much is avail */
+	uint32_t buffer_frames; /* Buffer size in frames. */
+	uint32_t cb_threshold; /* callback client when this much is left */
+	uint32_t min_cb_level; /* don't callback unless this much is avail */
 	uint32_t flags;
-	struct cras_audio_format format; /* rate, channels, sample size */
+	struct cras_audio_format_packed format; /* rate, channel, sample size */
 };
 static inline void cras_fill_connect_message(struct cras_connect_message *m,
 					   enum CRAS_STREAM_DIRECTION direction,
@@ -97,13 +97,13 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 	m->cb_threshold = cb_threshold;
 	m->min_cb_level = min_cb_level;
 	m->flags = flags;
-	m->format = format;
+	pack_cras_audio_format(&m->format, &format);
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;
 	m->header.length = sizeof(struct cras_connect_message);
 }
 
 /* Sent by a client to remove a stream from the server. */
-struct cras_disconnect_stream_message {
+struct __attribute__ ((__packed__)) cras_disconnect_stream_message {
 	struct cras_server_message header;
 	cras_stream_id_t stream_id;
 };
@@ -117,7 +117,7 @@ static inline void cras_fill_disconnect_stream_message(
 }
 
 /* Move streams of "type" to the iodev at "iodev_idx". */
-struct cras_switch_stream_type_iodev {
+struct __attribute__ ((__packed__)) cras_switch_stream_type_iodev {
 	struct cras_server_message header;
 	enum CRAS_STREAM_TYPE stream_type;
 	uint32_t iodev_idx;
@@ -133,9 +133,9 @@ static inline void fill_cras_switch_stream_type_iodev(
 }
 
 /* Set the system volume. */
-struct cras_set_system_volume {
+struct __attribute__ ((__packed__)) cras_set_system_volume {
 	struct cras_server_message header;
-	size_t volume;
+	uint32_t volume;
 };
 static inline void cras_fill_set_system_volume(
 		struct cras_set_system_volume *m,
@@ -147,9 +147,9 @@ static inline void cras_fill_set_system_volume(
 }
 
 /* Sets the capture gain. */
-struct cras_set_system_capture_gain {
+struct __attribute__ ((__packed__)) cras_set_system_capture_gain {
 	struct cras_server_message header;
-	long gain;
+	int32_t gain;
 };
 static inline void cras_fill_set_system_capture_gain(
 		struct cras_set_system_capture_gain *m,
@@ -161,9 +161,9 @@ static inline void cras_fill_set_system_capture_gain(
 }
 
 /* Set the system mute state. */
-struct cras_set_system_mute {
+struct __attribute__ ((__packed__)) cras_set_system_mute {
 	struct cras_server_message header;
-	int mute; /* 0 = un-mute, 1 = mute. */
+	int32_t mute; /* 0 = un-mute, 1 = mute. */
 };
 static inline void cras_fill_set_system_mute(
 		struct cras_set_system_mute *m,
@@ -207,11 +207,11 @@ static inline void cras_fill_set_system_capture_mute_locked(
 }
 
 /* Set an attribute of an ionode. */
-struct cras_set_node_attr {
+struct __attribute__ ((__packed__)) cras_set_node_attr {
 	struct cras_server_message header;
 	cras_node_id_t node_id;
 	enum ionode_attr attr;
-	int value;
+	int32_t value;
 };
 static inline void cras_fill_set_node_attr(
 		struct cras_set_node_attr *m,
@@ -227,7 +227,7 @@ static inline void cras_fill_set_node_attr(
 }
 
 /* Set an attribute of an ionode. */
-struct cras_select_node {
+struct __attribute__ ((__packed__)) cras_select_node {
 	struct cras_server_message header;
 	enum CRAS_STREAM_DIRECTION direction;
 	cras_node_id_t node_id;
@@ -244,7 +244,7 @@ static inline void cras_fill_select_node(
 }
 
 /* Reload the dsp configuration. */
-struct cras_reload_dsp {
+struct __attribute__ ((__packed__)) cras_reload_dsp {
 	struct cras_server_message header;
 };
 static inline void cras_fill_reload_dsp(
@@ -255,7 +255,7 @@ static inline void cras_fill_reload_dsp(
 }
 
 /* Dump current dsp information to syslog. */
-struct cras_dump_dsp_info {
+struct __attribute__ ((__packed__)) cras_dump_dsp_info {
 	struct cras_server_message header;
 };
 
@@ -267,7 +267,7 @@ static inline void cras_fill_dump_dsp_info(
 }
 
 /* Dump current audio thread information to syslog. */
-struct cras_dump_audio_thread {
+struct __attribute__ ((__packed__)) cras_dump_audio_thread {
 	struct cras_server_message header;
 };
 
@@ -283,9 +283,9 @@ static inline void cras_fill_dump_audio_thread(
  */
 
 /* Reply from the server indicating that the client has connected. */
-struct cras_client_connected {
+struct __attribute__ ((__packed__)) cras_client_connected {
 	struct cras_client_message header;
-	size_t client_id;
+	uint32_t client_id;
 	key_t shm_key;
 };
 static inline void cras_fill_client_connected(
@@ -300,14 +300,14 @@ static inline void cras_fill_client_connected(
 }
 
 /* Reply from server that a stream has been successfully added. */
-struct cras_client_stream_connected {
+struct __attribute__ ((__packed__)) cras_client_stream_connected {
 	struct cras_client_message header;
-	int err;
+	int32_t err;
 	cras_stream_id_t stream_id;
-	struct cras_audio_format format;
-	int input_shm_key;
-	int output_shm_key;
-	size_t shm_max_size;
+	struct cras_audio_format_packed format;
+	int32_t input_shm_key;
+	int32_t output_shm_key;
+	uint32_t shm_max_size;
 };
 static inline void cras_fill_client_stream_connected(
 		struct cras_client_stream_connected *m,
@@ -320,7 +320,7 @@ static inline void cras_fill_client_stream_connected(
 {
 	m->err = err;
 	m->stream_id = stream_id;
-	m->format = format;
+	pack_cras_audio_format(&m->format, &format);
 	m->input_shm_key = input_shm_key;
 	m->output_shm_key = output_shm_key;
 	m->shm_max_size = shm_max_size;
@@ -331,7 +331,7 @@ static inline void cras_fill_client_stream_connected(
 /* Reattach a given stream.  This is used to indicate that a stream has been
  * removed from it's device and should be re-attached.  Occurs when moving
  * streams. */
-struct cras_client_stream_reattach {
+struct __attribute__ ((__packed__)) cras_client_stream_reattach {
 	struct cras_client_message header;
 	cras_stream_id_t stream_id;
 };
@@ -365,10 +365,10 @@ enum CRAS_AUDIO_MESSAGE_ID {
 	NUM_AUDIO_MESSAGES
 };
 
-struct audio_message {
+struct __attribute__ ((__packed__)) audio_message {
 	enum CRAS_AUDIO_MESSAGE_ID id;
-	int error;
-	size_t frames; /* number of samples per channel */
+	int32_t error;
+	uint32_t frames; /* number of samples per channel */
 };
 
 #endif /* CRAS_MESSAGES_H_ */

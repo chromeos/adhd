@@ -271,7 +271,7 @@ int cras_system_remove_active_streams_changed_cb(cras_alert_cb cb, void *arg);
 /* Fills ts with the time the last stream was removed from the system, the time
  * the stream count went to zero.
  */
-void cras_system_state_get_last_stream_active_time(struct timespec *ts);
+void cras_system_state_get_last_stream_active_time(struct cras_timespec *ts);
 
 /* Returns output devices information.
  * Args:

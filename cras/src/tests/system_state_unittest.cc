@@ -418,11 +418,11 @@ TEST(SystemSettingsStreamCount, StreamCount) {
   EXPECT_EQ(0, cras_system_state_get_active_streams());
   cras_system_state_stream_added();
   EXPECT_EQ(1, cras_system_state_get_active_streams());
-  struct timespec ts1;
+  struct cras_timespec ts1;
   cras_system_state_get_last_stream_active_time(&ts1);
   cras_system_state_stream_removed();
   EXPECT_EQ(0, cras_system_state_get_active_streams());
-  struct timespec ts2;
+  struct cras_timespec ts2;
   cras_system_state_get_last_stream_active_time(&ts2);
   EXPECT_NE(0, memcmp(&ts1, &ts2, sizeof(ts1)));
   cras_system_state_deinit();

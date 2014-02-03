@@ -195,7 +195,10 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->ionode_idx = node->idx;
 			node_info->priority = node->priority;
 			node_info->plugged = node->plugged;
-			node_info->plugged_time = node->plugged_time;
+			node_info->plugged_time.tv_sec =
+				node->plugged_time.tv_sec;
+			node_info->plugged_time.tv_usec =
+				node->plugged_time.tv_usec;
 			node_info->active =
 				(dev == active_input || dev == active_output)
 				&& (dev->active_node == node);

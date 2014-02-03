@@ -6,6 +6,7 @@
 #ifndef CRAS_AUDIO_FORMAT_H_
 #define CRAS_AUDIO_FORMAT_H_
 
+#include <stdint.h>
 #include <alsa/asoundlib.h>
 
 /* Identifiers for each channel in audio stream. */
@@ -45,6 +46,37 @@ struct cras_audio_format {
 	 */
 	int8_t channel_layout[CRAS_CH_MAX];
 };
+
+/* Packed version of audio format, for use in messages. We cannot modify
+ * the above structure to keep binary compatibility with Chromium.
+ * If cras_audio_format ever changes, merge the 2 structures.
+ */
+struct __attribute__ ((__packed__)) cras_audio_format_packed {
+	int32_t format;
+	uint32_t frame_rate;
+	uint32_t num_channels;
+	int8_t channel_layout[CRAS_CH_MAX];
+};
+
+static inline void pack_cras_audio_format(struct cras_audio_format_packed* dest,
+					  const struct cras_audio_format* src)
+{
+	dest->format = src->format;
+	dest->frame_rate = src->frame_rate;
+	dest->num_channels = src->num_channels;
+	memcpy(dest->channel_layout, src->channel_layout,
+		sizeof(src->channel_layout));
+}
+
+static inline void unpack_cras_audio_format(struct cras_audio_format* dest,
+				     const struct cras_audio_format_packed* src)
+{
+	dest->format = (snd_pcm_format_t)src->format;
+	dest->frame_rate = src->frame_rate;
+	dest->num_channels = src->num_channels;
+	memcpy(dest->channel_layout, src->channel_layout,
+		sizeof(src->channel_layout));
+}
 
 /* Returns the number of bytes per sample.
  * This is bits per smaple / 8 * num_channels.
