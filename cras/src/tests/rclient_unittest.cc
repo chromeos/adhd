@@ -116,7 +116,6 @@ class RClientMessagesSuite : public testing::Test {
         return;
 
       rstream_ = (struct cras_rstream *)calloc(1, sizeof(*rstream_));
-      rstream_->output_shm.area = &shm_;
 
       stream_id_ = 0x10002;
       connect_msg_.header.id = CRAS_SERVER_CONNECT_STREAM;
@@ -147,7 +146,6 @@ class RClientMessagesSuite : public testing::Test {
     struct cras_rstream *rstream_;
     size_t stream_id_;
     int pipe_fds_[2];
-    struct cras_audio_shm_area shm_;
 };
 
 TEST_F(RClientMessagesSuite, FrameRateError) {
