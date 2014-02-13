@@ -110,6 +110,9 @@ struct drc {
 	/* sample rate in Hz */
 	float sample_rate;
 
+	/* 1 to disable the emphasis and deemphasis, 0 to enable it. */
+	int emphasis_disabled;
+
 	/* parameters holds the tweakable compressor parameters. */
 	float parameters[DRC_NUM_KERNELS][PARAM_LAST];
 

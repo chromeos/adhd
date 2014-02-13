@@ -267,8 +267,9 @@ struct drc_data {
 	int sample_rate;
 	struct drc *drc;  /* Initialized in the first call of drc_run() */
 
-	/* Two ports for input, two for output, and 8 parameters each band */
-	float *ports[4 + 8 * 3];
+	/* Two ports for input, two for output, one for disable_emphasis,
+	 * and 8 parameters each band */
+	float *ports[4 + 1 + 8 * 3];
 };
 
 static int drc_instantiate(struct dsp_module *module, unsigned long sample_rate)
@@ -303,8 +304,9 @@ static void drc_run(struct dsp_module *module, unsigned long sample_count)
 		struct drc *drc = drc_new(data->sample_rate);
 
 		data->drc = drc;
+		drc->emphasis_disabled = (int) *data->ports[4];
 		for (i = 0; i < 3; i++) {
-			int k = 4 + i * 8;
+			int k = 5 + i * 8;
 			float f = *data->ports[k];
 			float enable = *data->ports[k+1];
 			float threshold = *data->ports[k+2];

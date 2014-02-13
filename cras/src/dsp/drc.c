@@ -356,8 +356,9 @@ void drc_process(struct drc *drc, float **data, int frames)
 	float **data1 = drc->data1;
 	float **data2 = drc->data2;
 
-	/* Apply pre-emphasis filter. */
-	eq2_process(drc->emphasis_eq, data[0], data[1], frames);
+	/* Apply pre-emphasis filter if it is not disabled. */
+	if (!drc->emphasis_disabled)
+		eq2_process(drc->emphasis_eq, data[0], data[1], frames);
 
 	/* Crossover */
 	crossover2_process(&drc->xo2, frames, data[0], data[1],
@@ -374,6 +375,7 @@ void drc_process(struct drc *drc, float **data, int frames)
 	for (i = 0; i < DRC_NUM_CHANNELS; i++)
 		sum3(data[i], data1[i], data2[i], frames);
 
-	/* Apply de-emphasis filter. */
-	eq2_process(drc->deemphasis_eq, data[0], data[1], frames);
+	/* Apply de-emphasis filter if emphasis is not disabled. */
+	if (!drc->emphasis_disabled)
+		eq2_process(drc->deemphasis_eq, data[0], data[1], frames);
 }
