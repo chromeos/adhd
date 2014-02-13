@@ -24,6 +24,26 @@
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MIN_READ_WAIT_US 2000 /* 2ms */
 
+/* Messages that can be sent from the main context to the audio thread. */
+enum AUDIO_THREAD_COMMAND {
+	AUDIO_THREAD_ADD_STREAM,
+	AUDIO_THREAD_RM_STREAM,
+	AUDIO_THREAD_RM_ALL_STREAMS,
+	AUDIO_THREAD_STOP,
+	AUDIO_THREAD_DUMP_THREAD_INFO,
+};
+
+struct audio_thread_msg {
+	size_t length;
+	enum AUDIO_THREAD_COMMAND id;
+};
+
+struct audio_thread_add_rm_stream_msg {
+	struct audio_thread_msg header;
+	struct cras_rstream *stream;
+	enum CRAS_STREAM_DIRECTION dir;
+};
+
 /* For capture, the amount of frames that will be left after a read is
  * performed.  Sleep this many frames past the buffer size to be sure at least
  * the buffer size is captured when the audio thread wakes up.
