@@ -544,6 +544,77 @@ function drc_3band() {
   this.input = input;
   this.output = output;
   this.config = config;
+
+  get_emphasis_disabled();
+}
+
+
+/* This snippet came from LayoutTests/webaudio/dynamicscompressor-simple.html in
+ * https://codereview.chromium.org/152333003/. It can determine if
+ * emphasis/deemphasis is disabled in the browser. Then it sets the value to
+ * drc.emphasis_disabled in the config.*/
+function get_emphasis_disabled() {
+  var context;
+  var sampleRate = 44100;
+  var lengthInSeconds = 1;
+  var renderedData;
+  // This threshold is experimentally determined. It depends on the the gain
+  // value of the gain node below and the dynamics compressor.  When the
+  // DynamicsCompressor had the pre-emphasis filters, the peak value is about
+  // 0.21.  Without it, the peak is 0.85.
+  var peakThreshold = 0.85;
+
+  function checkResult(event) {
+    var renderedBuffer = event.renderedBuffer;
+    renderedData = renderedBuffer.getChannelData(0);
+    // Search for a peak in the last part of the data.
+    var startSample = sampleRate * (lengthInSeconds - .1);
+    var endSample = renderedData.length;
+    var k;
+    var peak = -1;
+    var emphasis_disabled = 0;
+
+    for (k = startSample; k < endSample; ++k) {
+      var sample = Math.abs(renderedData[k]);
+      if (peak < sample)
+         peak = sample;
+    }
+
+    if (peak >= peakThreshold) {
+      console.log("Pre-emphasis effect not applied as expected..");
+      emphasis_disabled = 1;
+    } else {
+      console.log("Pre-emphasis caused output to be decreased to " + peak
+                 + " (expected >= " + peakThreshold + ")");
+      emphasis_disabled = 0;
+    }
+    set_config('drc', 'emphasis_disabled', emphasis_disabled);
+  }
+
+  function runTest() {
+
+    context = new webkitOfflineAudioContext(1, sampleRate * lengthInSeconds,
+                                            sampleRate);
+    // Connect an oscillator to a gain node to the compressor.  The
+    // oscillator frequency is set to a high value for the (original)
+    // emphasis to kick in. The gain is a little extra boost to get the
+    // compressor enabled.
+    //
+    var osc = context.createOscillator();
+    osc.frequency.value = 15000;
+    var gain = context.createGain();
+    gain.gain.value = 1.5;
+    var compressor = context.createDynamicsCompressor();
+    osc.connect(gain);
+    gain.connect(compressor);
+    compressor.connect(context.destination);
+    osc.start();
+    context.oncomplete = checkResult;
+    context.startRendering();
+  }
+
+  runTest();
+
 }
 
 /* Returns one DRC filter */
