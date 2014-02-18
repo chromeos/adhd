@@ -46,7 +46,8 @@ label=drc
 input_0={%s:0}
 input_1={%s:1}
 output_2={%s:0}
-output_3={%s:1}"""
+output_3={%s:1}
+input_4=%-7d   ; emphasis_disabled"""
 
 drc_param = """\
 input_%d=%-7g   ; f
@@ -106,8 +107,8 @@ def main():
     stages[i](d, src, dst)
 
 def print_drc(d, src, dst):
-  print drc_header % (src, src, dst, dst)
-  n = 4
+  print drc_header % (src, src, dst, dst, int(d['drc.emphasis_disabled']))
+  n = 5
   for i in range(3):
     prefix = 'drc.%d.' % i
     f = d[prefix + 'f']
