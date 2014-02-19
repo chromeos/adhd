@@ -57,6 +57,7 @@ struct cras_gpio_jack {
  *             0 -> Alsa 'jack' (union field: elem)
  *    elem - alsa hcontrol element for this jack, when is_gpio == 0.
  *    gpio - description of gpio-based jack, when is_gpio != 0.
+ *    eld_control - mixer control for ELD info buffer.
  *    jack_list - list of jacks this belongs to.
  *    mixer_output - mixer output control used to control audio to this jack.
  *        This will be null for input jacks.
@@ -74,6 +75,7 @@ struct cras_alsa_jack {
 		struct cras_gpio_jack gpio;
 	};
 
+	snd_hctl_elem_t *eld_control;
 	struct cras_alsa_jack_list *jack_list;
 	struct cras_alsa_mixer_output *mixer_output;
 	struct mixer_volume_control *mixer_input;
@@ -516,6 +518,14 @@ static unsigned int jack_device_index(const char *name)
 	return (unsigned int)device_index;
 }
 
+/* For non-gpio jack, check if it's of type hdmi/dp by
+ * matching jack name. */
+static int is_jack_hdmi_dp(const char *jack_name)
+{
+	static const char *hdmi_dp = "HDMI/DP";
+	return strncmp(jack_name, hdmi_dp, strlen(hdmi_dp)) == 0;
+}
+
 /* Checks if the given control name is in the supplied list of possible jack
  * control base names. */
 static int is_jack_control_in_list(const char * const *list,
@@ -588,6 +598,8 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 {
 	int rc;
 	snd_hctl_elem_t *elem;
+	struct cras_alsa_jack *jack;
+	const char *name;
 	static const char * const output_jack_base_names[] = {
 		"Headphone Jack",
 		"Front Headphone Jack",
@@ -596,6 +608,7 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 	static const char * const input_jack_base_names[] = {
 		"Mic Jack",
 	};
+	static const char eld_control_name[] = "ELD";
 	const char * const *jack_names;
 	unsigned int num_jack_names;
 
@@ -625,8 +638,6 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 	for (elem = snd_hctl_first_elem(jack_list->hctl); elem != NULL;
 			elem = snd_hctl_elem_next(elem)) {
 		snd_ctl_elem_iface_t iface;
-		const char *name;
-		struct cras_alsa_jack *jack;
 
 		iface = snd_hctl_elem_get_interface(elem);
 		if (iface != SND_CTL_ELEM_IFACE_CARD)
@@ -673,6 +684,24 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 			jack->dsp_name = ucm_get_dsp_name(
 				jack->jack_list->ucm, jack->ucm_device,
 				direction);
+	}
+
+	/* Look up ELD controls */
+	DL_FOREACH(jack_list->jacks, jack) {
+		name = snd_hctl_elem_get_name(jack->elem);
+		if (!is_jack_hdmi_dp(name))
+			continue;
+		for (elem = snd_hctl_first_elem(jack_list->hctl); elem != NULL;
+		     elem = snd_hctl_elem_next(elem)) {
+			if (strcmp(snd_hctl_elem_get_name(elem),
+				   eld_control_name))
+				continue;
+			if (snd_hctl_elem_get_device(elem)
+			    != jack_list->device_index)
+				continue;
+			jack->eld_control = elem;
+			break;
+		}
 	}
 
 	/* If we have found jacks, have the poll fds passed to select in the
