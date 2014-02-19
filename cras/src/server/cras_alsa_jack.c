@@ -148,6 +148,20 @@ static inline struct cras_alsa_jack *cras_alloc_jack(int is_gpio)
 	return jack;
 }
 
+/* Gets the current plug state of the jack */
+static int get_jack_current_state(struct cras_alsa_jack *jack)
+{
+	snd_ctl_elem_value_t *elem_value;
+
+	if (jack->is_gpio)
+		return jack->gpio.current_state;
+
+	snd_ctl_elem_value_alloca(&elem_value);
+	snd_hctl_elem_read(jack->elem, elem_value);
+
+	return snd_ctl_elem_value_get_boolean(elem_value, 0);
+}
+
 static int check_jack_edid(struct cras_alsa_jack *jack)
 {
 	int fd, nread;
@@ -173,6 +187,24 @@ static int check_jack_edid(struct cras_alsa_jack *jack)
 	return 0;
 }
 
+/* Checks the ELD control of the jack to see if the ELD buffer
+ * is ready to read and report the plug status.
+ */
+static int check_jack_eld(struct cras_alsa_jack *jack)
+{
+	snd_ctl_elem_info_t *elem_info;
+	snd_ctl_elem_info_alloca(&elem_info);
+
+	/* Poll ELD control by getting the count of ELD buffer.
+	 * When seeing zero buffer count, retry after a delay until
+	 * it's ready or reached the max number of retries. */
+	if (snd_hctl_elem_info(jack->eld_control, elem_info) != 0)
+		return -1;
+	if (snd_ctl_elem_info_get_count(elem_info) == 0)
+		return -1;
+	return 0;
+}
+
 static void display_info_delay_cb(struct cras_timer *timer, void *arg);
 
 /* Callback function doing following things:
@@ -194,20 +226,26 @@ static inline void jack_state_change_cb(struct cras_alsa_jack *jack, int retry)
 	if (retry)
 		jack->display_info_retries = DISPLAY_INFO_MAX_RETRIES;
 
-	if (jack->is_gpio && !jack->gpio.current_state)
+	if (!get_jack_current_state(jack))
 		goto report_jack_state;
 
 	/* If there is an edid file, check it.  If it is ready continue, if we
 	 * need to try again later, return here as the timer has been armed and
 	 * will check again later.
 	 */
-	if ((jack->edid_file == NULL) || (check_jack_edid(jack) == 0))
+	if (jack->edid_file == NULL && jack->eld_control == NULL)
+		goto report_jack_state;
+	if (jack->edid_file && (check_jack_edid(jack) == 0))
+		goto report_jack_state;
+	if (jack->eld_control && (check_jack_eld(jack) == 0))
 		goto report_jack_state;
 
 	if (--jack->display_info_retries == 0) {
-		jack->gpio.current_state = 0;
-		syslog(LOG_ERR, "Timeout to read EDID from %s",
-		       jack->edid_file);
+		if (jack->is_gpio)
+			jack->gpio.current_state = 0;
+		if (jack->edid_file)
+			syslog(LOG_ERR, "Timeout to read EDID from %s",
+			       jack->edid_file);
 		goto report_jack_state;
 	}
 
@@ -218,7 +256,7 @@ static inline void jack_state_change_cb(struct cras_alsa_jack *jack, int retry)
 
 report_jack_state:
 	jack->jack_list->change_callback(jack,
-					 jack->gpio.current_state,
+					 get_jack_current_state(jack),
 					 jack->jack_list->callback_data);
 }
 
@@ -479,11 +517,7 @@ static int hctl_jack_cb(snd_hctl_elem_t *elem, unsigned int mask)
 	       name,
 	       snd_ctl_elem_value_get_boolean(elem_value, 0) ? "plugged"
 							     : "unplugged");
-
-	jack->jack_list->change_callback(
-			jack,
-			snd_ctl_elem_value_get_boolean(elem_value, 0),
-			jack->jack_list->callback_data);
+	jack_state_change_cb(jack, 1);
 	return 0;
 }
 
