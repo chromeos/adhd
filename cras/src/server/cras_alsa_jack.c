@@ -20,6 +20,11 @@
 static const unsigned int DISPLAY_INFO_RETRY_DELAY_MS = 200;
 static const unsigned int DISPLAY_INFO_MAX_RETRIES = 10;
 
+/* Constants used to retrieve monitor name from ELD buffer. */
+static const unsigned int ELD_MNL_MASK = 31;
+static const unsigned int ELD_MNL_OFFSET = 4;
+static const unsigned int ELD_MONITOR_NAME_OFFSET = 20;
+
 /* Keeps an fd that is registered with system settings.  A list of fds must be
  * kept so that they can be removed when the jack list is destroyed. */
 struct jack_poll_fd {
@@ -872,6 +877,54 @@ const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 	if (jack->is_gpio)
 		return jack->gpio.device_name;
 	return snd_hctl_elem_get_name(jack->elem);
+}
+
+void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
+					char *name_buf,
+					unsigned int buf_size)
+{
+	snd_ctl_elem_value_t *elem_value;
+	snd_ctl_elem_info_t *elem_info;
+	const char *buf = NULL;
+	int count;
+	int mnl = 0;
+
+	if (!jack->eld_control)
+		return;
+
+	snd_ctl_elem_info_alloca(&elem_info);
+	if (snd_hctl_elem_info(jack->eld_control, elem_info) < 0)
+		goto fallback_jack_name;
+
+	count = snd_ctl_elem_info_get_count(elem_info);
+	if (count <= ELD_MNL_OFFSET)
+		goto fallback_jack_name;
+
+	snd_ctl_elem_value_alloca(&elem_value);
+	if (snd_hctl_elem_read(jack->eld_control, elem_value) < 0)
+		goto fallback_jack_name;
+
+	buf = (const char *)snd_ctl_elem_value_get_bytes(elem_value);
+	mnl = buf[ELD_MNL_OFFSET] & ELD_MNL_MASK;
+
+	if (count < ELD_MONITOR_NAME_OFFSET + mnl)
+		goto fallback_jack_name;
+
+	/* Note that monitor name string does not contain terminate character.
+	 * Check monitor name length with name buffer size.
+	 */
+	if (mnl >= buf_size)
+		mnl = buf_size - 1;
+	strncpy(name_buf, buf + ELD_MONITOR_NAME_OFFSET, mnl);
+	name_buf[mnl] = '\0';
+
+	return;
+
+fallback_jack_name:
+	buf = cras_alsa_jack_get_name(jack);
+	strncpy(name_buf, buf, buf_size - 1);
+
+	return;
 }
 
 const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack)

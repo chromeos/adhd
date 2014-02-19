@@ -801,6 +801,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		node->jack = jack;
 	}
 
+	cras_alsa_jack_update_monitor_name(jack, node->base.name,
+					   sizeof(node->base.name));
+
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
 
 	if (auto_unplug_output_node(aio)) {

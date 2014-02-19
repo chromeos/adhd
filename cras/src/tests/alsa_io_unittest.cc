@@ -1247,3 +1247,9 @@ int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name)
     return strcmp(cras_alsa_jack_exists_match, jack_name) == 0;
   return 0;
 }
+
+void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
+					char *name_buf,
+					unsigned int buf_size)
+{
+}

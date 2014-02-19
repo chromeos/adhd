@@ -89,6 +89,11 @@ void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list);
  */
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack);
 
+
+void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
+					char *name_buf,
+					unsigned int buf_size);
+
 /* Gets the dsp name of a jack.
  * Args:
  *    jack_list - The jack list to query.
