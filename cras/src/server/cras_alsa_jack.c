@@ -233,6 +233,8 @@ static int check_jack_edid(struct cras_alsa_jack *jack)
 
 no_edid_retry:
 	if (--jack->edid_retries == 0) {
+		syslog(LOG_ERR, "Timeout to read EDID from %s",
+		       jack->edid_file);
 		jack->gpio.current_state = 0;
 		return 0;
 	}
