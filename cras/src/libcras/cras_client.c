@@ -1510,6 +1510,7 @@ void cras_client_destroy(struct cras_client *client)
 {
 	if (client == NULL)
 		return;
+	cras_client_stop(client);
 	if (client->server_state)
 		shmdt(client->server_state);
 	if (client->server_fd >= 0)
