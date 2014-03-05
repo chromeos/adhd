@@ -154,6 +154,19 @@ static inline void audio_thread_event_log_data2(
 	audio_thread_write_word(log, data2);
 }
 
+static inline void audio_thread_event_log_data3(
+		struct audio_thread_event_log *log,
+		enum AUDIO_THREAD_LOG_EVENTS event,
+		uint32_t data,
+		uint32_t data2,
+		uint32_t data3)
+{
+	audio_thread_event_log_tag(log, event);
+	audio_thread_write_word(log, data);
+	audio_thread_write_word(log, data2);
+	audio_thread_write_word(log, data3);
+}
+
 /* Returns true if there are streams attached to the thread. */
 static inline int streams_attached(const struct audio_thread *thread)
 {
@@ -608,6 +621,11 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 
 		if (!cras_shm_callback_pending(shm) &&
 		    cras_shm_is_buffer_available(shm)) {
+			audio_thread_event_log_data2(
+				atlog,
+				AUDIO_THREAD_FETCH_STREAM,
+				curr->stream->stream_id,
+				cras_rstream_get_cb_threshold(curr->stream));
 			rc = cras_rstream_request_audio(curr->stream);
 			if (rc < 0) {
 				thread_remove_stream(thread, curr->stream);
@@ -678,6 +696,11 @@ static int write_streams(struct audio_thread *thread,
 		shm = cras_rstream_output_shm(curr->stream);
 
 		shm_frames = cras_shm_get_frames(shm);
+		audio_thread_event_log_data3(atlog,
+					     AUDIO_THREAD_WRITE_STREAMS_STREAM,
+					     curr->stream->stream_id,
+					     shm_frames,
+					     cras_shm_callback_pending(shm));
 		if (shm_frames < 0) {
 			thread_remove_stream(thread, curr->stream);
 			if (!output_streams_attached(thread))
