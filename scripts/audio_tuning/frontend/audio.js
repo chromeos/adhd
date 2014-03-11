@@ -886,6 +886,7 @@ function audio_source_set(url) {
   player.controls = true;
   player.addEventListener('canplay', audio_source_canplay);
   container.appendChild(player);
+  update_source_node(player);
 
   player.src = url;
   player.load();
@@ -896,7 +897,6 @@ function audio_source_canplay() {
   var loading = document.getElementById('audio_loading');
   loading.style.visibility = 'hidden';
   player.play();
-  update_source_node(player);
 }
 
 function update_source_node(mediaElement) {
