@@ -113,6 +113,10 @@ var audio_graph;
 var audio_ui;
 var analyzer_left;      /* The FFT analyzer for left channel */
 var analyzer_right;     /* The FFT analyzer for right channel */
+/* get_emphasis_disabled detects if pre-emphasis in drc is disabled by browser.
+ * The detection result will be stored in this value. When user saves config,
+ * This value is stored in drc.emphasis_disabled in the config. */
+var browser_emphasis_disabled_detection_result;
 
 function init_audio() {
   audioContext = new webkitAudioContext();
@@ -245,6 +249,8 @@ function time_str() {
 
 /* Downloads the current config to a file. */
 function save_config() {
+  set_config('drc', 'emphasis_disabled',
+             browser_emphasis_disabled_detection_result);
   var a = document.getElementById('save_config_anchor');
   var content = JSON.stringify(all_configs, undefined, 2);
   var uriContent = 'data:application/octet-stream,' +
@@ -544,8 +550,6 @@ function drc_3band() {
   this.input = input;
   this.output = output;
   this.config = config;
-
-  get_emphasis_disabled();
 }
 
 
@@ -588,7 +592,10 @@ function get_emphasis_disabled() {
                  + " (expected >= " + peakThreshold + ")");
       emphasis_disabled = 0;
     }
-    set_config('drc', 'emphasis_disabled', emphasis_disabled);
+    browser_emphasis_disabled_detection_result = emphasis_disabled;
+    /* save_config button will be disabled until we can decide
+       emphasis_disabled in chrome. */
+    document.getElementById('save_config').disabled = false;
   }
 
   function runTest() {
@@ -1412,6 +1419,9 @@ function global_section(parent) {
 }
 
 window.onload = function() {
+  /* Detects if emphasis is disabled and sets
+   * browser_emphasis_disabled_detection_result. */
+  get_emphasis_disabled();
   init_config();
   init_audio();
   init_ui();
