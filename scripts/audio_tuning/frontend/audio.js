@@ -541,7 +541,7 @@ function drc_3band() {
   function config(name, value) {
     if (name[1] == 'f') {
       xo.config(name, value);
-    } else {
+    } else if (name[0] != 'emphasis_disabled') {
       var n = parseInt(name[0]);
       drcs[n].config(name.slice(1), value);
     }
@@ -1455,6 +1455,9 @@ function ui() {
     if (p == 'global') {
       global.config(name.slice(1), value);
     } else if (p == 'drc') {
+      if (name[1] == 'emphasis_disabled') {
+        return;
+      }
       drc_cards[i].config(s, value);
     } else if (p == 'eq') {
       eq_sections[i].config(s, value);
