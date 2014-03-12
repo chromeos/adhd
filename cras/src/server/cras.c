@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <getopt.h>
 #include <signal.h>
 #include <syslog.h>
 
@@ -14,6 +15,13 @@
 #include "cras_system_state.h"
 #include "cras_dsp.h"
 
+static int enable_hfp;
+
+static struct option long_options[] = {
+	{"enable_hfp", no_argument, &enable_hfp, 1},
+	{0, 0, 0, 0}
+};
+
 /* Ignores sigpipe, we'll notice when a read/write fails. */
 static void set_signals()
 {
@@ -23,9 +31,17 @@ static void set_signals()
 /* Entry point for the server. */
 int main(int argc, char **argv)
 {
+	int c, option_index;
+
 	setlogmask(LOG_MASK(LOG_ERR));
 
 	set_signals();
+
+	while (1) {
+		c = getopt_long(argc, argv, "", long_options, &option_index);
+		if (c == -1)
+			break;
+	}
 
 	/* Initialize system. */
 	cras_system_state_init();
@@ -41,7 +57,7 @@ int main(int argc, char **argv)
 	loopback_iodev_create(CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	/* Start the server. */
-	cras_server_run();
+	cras_server_run(enable_hfp);
 
 	return 0;
 }

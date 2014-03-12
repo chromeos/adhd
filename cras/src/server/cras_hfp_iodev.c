@@ -192,8 +192,7 @@ struct cras_iodev *hfp_iodev_create(
 	node->dev = iodev;
 	strcpy(node->name, iodev->info.name);
 
-	/* TODO(hychao): set node plugged to 1 to enable HFP iodev */
-	node->plugged = 0;
+	node->plugged = 1;
 	node->priority = 3;
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	node->volume = 100;
