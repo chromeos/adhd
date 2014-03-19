@@ -12,25 +12,29 @@
 #define SLC_BUF_SIZE_BYTES 256
 
 
-/* Hands-free device supported features, listed in according
+/* Hands-free Audio Gateway feature bits, listed in according
  * to their order in the bitmap defined in HFP spec.
  */
-/* EC and/or NR function */
-#define HFP_EC_ANDOR_NR 0
 /* Call waiting and 3-way calling */
-#define HFP_CALL_WAITING_AND_3WAY 1
-/* CLI presentation capability */
-#define HFP_CLI_PRESENTATION 2
+#define HFP_THREE_WAY_CALLING           0x0001
+/* EC and/or NR function */
+#define HFP_EC_ANDOR_NR                 0x0002
 /* Voice recognition activation */
-#define HFP_VOICE_RECOGNITION 3
-/* Remote volume control */
-#define HFP_REMOTE_VOLUME_CONTROL 4
+#define HFP_VOICE_RECOGNITION           0x0004
+/* Inband ringtone */
+#define HFP_INBAND_RINGTONE             0x0008
+/* Attach a number to voice tag */
+#define HFP_ATTACH_NUMBER_TO_VOICETAG   0x0010
+/* Ability to reject a call */
+#define HFP_REJECT_A_CALL               0x0020
 /* Enhanced call status */
-#define HFP_ENHANCED_CALL_STATUS 5
+#define HFP_ENHANCED_CALL_STATUS        0x0040
 /* Enhanced call control */
-#define HFP_ENHANCED_CALL_CONTROL 6
+#define HFP_ENHANCED_CALL_CONTRO        0x0080
+/* Extended error result codes */
+#define HFP_EXTENDED_ERROR_RESULT_CODES 0x0100
 /* Codec negotiation */
-#define HFP_CODEC_NEGOTIATION 7
+#define HFP_CODEC_NEGOTIATION           0x0200
 
 /* Handle object to hold required info to initialize and maintain
  * an HFP service level connection.
@@ -234,6 +238,17 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 	return hfp_send(handle, "\r\nOK\r\n");
 }
 
+/* AT+BIA command to change the subset of indicators that shall be
+ * sent by the AG. It is okay to ignore this command here since we
+ * don't do event reporting(CMER).
+ */
+static int indicator_activation(struct hfp_slc_handle *handle, const char *cmd)
+{
+	/* AT+BIA=[[<indrep 1>][,[<indrep 2>][,...[,[<indrep n>]]]]] */
+	syslog(LOG_ERR, "Bluetooth indicator activation command %s", cmd);
+	return hfp_send(handle, "\r\nOK\r\n");
+}
+
 /* AT+VGM and AT+VGS command reports the current mic and speaker gain
  * level respectively. Optional support per spec 4.28.
  */
@@ -279,8 +294,7 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	 * for now. Respond with +BRSF:<feature> to notify mandatory supported
 	 * features in AG(audio gateway).
 	 */
-	ag_supported_featutres |= 1U << HFP_CLI_PRESENTATION;
-	ag_supported_featutres |= 1U << HFP_ENHANCED_CALL_STATUS;
+	ag_supported_featutres = HFP_ENHANCED_CALL_STATUS;
 
 	snprintf(response, 128, "\r\n+BRSF: %u\r\n", ag_supported_featutres);
 	err = hfp_send(handle, response);
@@ -337,6 +351,7 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 static struct at_command at_commands[] = {
 	{ "ATA", answer_call },
 	{ "ATD", dial_number },
+	{ "AT+BIA", indicator_activation },
 	{ "AT+BLDN", last_dialed_number },
 	{ "AT+BRSF", supported_features },
 	{ "AT+CCWA", call_waiting_notify },
