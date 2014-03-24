@@ -612,10 +612,10 @@ int cras_system_remove_alsa_card(size_t alsa_card_index)
 	return -1;
 }
 
-void cras_system_state_stream_added() {
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
 }
 
-void cras_system_state_stream_removed() {
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {
 }
 
 struct cras_server_state *cras_system_state_get_no_lock()

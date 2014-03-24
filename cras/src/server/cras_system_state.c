@@ -423,7 +423,7 @@ void cras_system_rm_select_fd(int fd)
 		state.fd_rm(fd, state.select_data);
 }
 
-void cras_system_state_stream_added()
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_server_state *s;
 
@@ -431,25 +431,31 @@ void cras_system_state_stream_added()
 	if (!s)
 		return;
 
-	s->num_active_streams++;
+	s->num_active_streams[direction]++;
 	s->num_streams_attached++;
 
 	cras_system_state_update_complete();
 	cras_alert_pending(state.active_streams_alert);
 }
 
-void cras_system_state_stream_removed()
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_server_state *s;
+	unsigned i, sum;
+
 
 	s = cras_system_state_update_begin();
 	if (!s)
 		return;
 
+	sum = 0;
+	for (i=0; i < CRAS_NUM_DIRECTIONS; i++)
+		sum += s->num_active_streams[i];
+
 	/* Set the last active time when removing the final stream. */
-	if (s->num_active_streams == 1)
+	if (sum == 1)
 		cras_clock_gettime(CLOCK_MONOTONIC, &s->last_active_stream_time);
-	s->num_active_streams--;
+	s->num_active_streams[direction]--;
 
 	cras_system_state_update_complete();
 	cras_alert_pending(state.active_streams_alert);
@@ -457,7 +463,17 @@ void cras_system_state_stream_removed()
 
 unsigned cras_system_state_get_active_streams()
 {
-	return state.exp_state->num_active_streams;
+	unsigned i, sum;
+	sum = 0;
+	for (i=0; i < CRAS_NUM_DIRECTIONS; i++)
+		sum += state.exp_state->num_active_streams[i];
+	return sum;
+}
+
+unsigned cras_system_state_get_active_streams_by_direction(
+	enum CRAS_STREAM_DIRECTION direction)
+{
+	return state.exp_state->num_active_streams[direction];
 }
 
 int cras_system_register_active_streams_changed_cb(cras_alert_cb cb, void *arg)

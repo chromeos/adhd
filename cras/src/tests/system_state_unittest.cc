@@ -416,15 +416,58 @@ TEST(SystemSettingsStreamCount, StreamCount) {
   cras_system_state_init();
 
   EXPECT_EQ(0, cras_system_state_get_active_streams());
-  cras_system_state_stream_added();
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT);
   EXPECT_EQ(1, cras_system_state_get_active_streams());
   struct cras_timespec ts1;
   cras_system_state_get_last_stream_active_time(&ts1);
-  cras_system_state_stream_removed();
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT);
   EXPECT_EQ(0, cras_system_state_get_active_streams());
   struct cras_timespec ts2;
   cras_system_state_get_last_stream_active_time(&ts2);
   EXPECT_NE(0, memcmp(&ts1, &ts2, sizeof(ts1)));
+  cras_system_state_deinit();
+}
+
+TEST(SystemSettingsStreamCount, StreamCountByDirection) {
+  ResetStubData();
+  cras_system_state_init();
+
+  EXPECT_EQ(0, cras_system_state_get_active_streams());
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT);
+  cras_system_state_stream_added(CRAS_STREAM_INPUT);
+  cras_system_state_stream_added(CRAS_STREAM_UNIFIED);
+  cras_system_state_stream_added(CRAS_STREAM_POST_MIX_PRE_DSP);
+  EXPECT_EQ(1,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_OUTPUT));
+  EXPECT_EQ(1,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_INPUT));
+  EXPECT_EQ(1,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_UNIFIED));
+  EXPECT_EQ(1,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_POST_MIX_PRE_DSP));
+  EXPECT_EQ(4, cras_system_state_get_active_streams());
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT);
+  cras_system_state_stream_removed(CRAS_STREAM_INPUT);
+  cras_system_state_stream_removed(CRAS_STREAM_UNIFIED);
+  cras_system_state_stream_removed(CRAS_STREAM_POST_MIX_PRE_DSP);
+  EXPECT_EQ(0,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_OUTPUT));
+  EXPECT_EQ(0,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_INPUT));
+  EXPECT_EQ(0,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_UNIFIED));
+  EXPECT_EQ(0,
+	cras_system_state_get_active_streams_by_direction(
+		CRAS_STREAM_POST_MIX_PRE_DSP));
+  EXPECT_EQ(0, cras_system_state_get_active_streams());
+
   cras_system_state_deinit();
 }
 

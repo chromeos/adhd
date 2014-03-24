@@ -22,13 +22,19 @@ struct __attribute__ ((__packed__)) cras_timespec {
 };
 
 /* Directions of audio streams.
- * Input, Output, or Unified (Both input and output synchronously).
+ * Input, Output, Unified (Both input and output synchronously), or loopback.
+ *
+ * Note that we use enum CRAS_STREAM_DIRECTION to access the elements in
+ * num_active_streams in cras_server_state. For example,
+ * num_active_streams[CRAS_STREAM_OUTPUT] is the number of active
+ * streams with direction CRAS_STREAM_OUTPUT.
  */
 enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_OUTPUT,
 	CRAS_STREAM_INPUT,
 	CRAS_STREAM_UNIFIED,
 	CRAS_STREAM_POST_MIX_PRE_DSP,
+	CRAS_NUM_DIRECTIONS
 };
 
 static inline int cras_stream_uses_output_hw(enum CRAS_STREAM_DIRECTION dir)
@@ -178,8 +184,8 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *    client_info - List of first 20 attached clients.
  *    update_count - Incremented twice each time the struct is updated.  Odd
  *        during updates.
- *    num_active_streams - Number of streams currently playing or recording
- *        audio.
+ *    num_active_streams - An array containing numbers or active
+ *        streams of different directions.
  *    last_active_stream_time - Time the last stream was removed.  Can be used
  *        to determine how long audio has been idle.
  *    audio_debug_info - Debug data filled in when a client requests it. This
@@ -214,7 +220,7 @@ struct __attribute__ ((__packed__)) cras_server_state {
 	uint32_t num_attached_clients;
 	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
 	uint32_t update_count;
-	uint32_t num_active_streams;
+	uint32_t num_active_streams[CRAS_NUM_DIRECTIONS];
 	struct cras_timespec last_active_stream_time;
 	struct audio_debug_info audio_debug_info;
 };

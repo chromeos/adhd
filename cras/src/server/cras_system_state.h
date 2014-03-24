@@ -240,17 +240,28 @@ void cras_system_rm_select_fd(int fd);
 /* Signals that an audio input or output stream has been added to the system.
  * This allows the count of active streams can be used to notice when the audio
  * subsystem is idle.
+ * Args:
+ *   direction - Directions of audio streams.
  */
-void cras_system_state_stream_added();
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction);
 
 /* Signals that an audio input or output stream has been removed from the
  * system.  This allows the count of active streams can be used to notice when
  * the audio subsystem is idle.
+ * Args:
+ *   direction - Directions of audio stream.
  */
-void cras_system_state_stream_removed();
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction);
 
 /* Returns the number of active playback and capture streams. */
 unsigned cras_system_state_get_active_streams();
+
+/* Returns the number of active streams with given direction.
+ * Args:
+ *   direction - Directions of audio stream.
+ */
+unsigned cras_system_state_get_active_streams_by_direction(
+	enum CRAS_STREAM_DIRECTION direction);
 
 /* Adds a callback to call when the number of active streams changes.
  * Args:

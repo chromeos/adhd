@@ -501,10 +501,10 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
 }
 
 // From cras_system_state.
-void cras_system_state_stream_added() {
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
 }
 
-void cras_system_state_stream_removed() {
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {
 }
 
 // From cras_dsp

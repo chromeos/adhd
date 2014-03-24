@@ -1855,14 +1855,16 @@ const struct audio_debug_info *cras_client_get_audio_debug_info(
 unsigned cras_client_get_num_active_streams(struct cras_client *client,
 					    struct timespec *ts)
 {
-	unsigned num_streams, version;
+	unsigned num_streams, version, i;
 
 	if (!client || !client->server_state)
 		return 0;
 
 read_active_streams_again:
 	version = begin_server_state_read(client->server_state);
-	num_streams = client->server_state->num_active_streams;
+	num_streams = 0;
+	for (i = 0; i < CRAS_NUM_DIRECTIONS; i++)
+		num_streams += client->server_state->num_active_streams[i];
 	if (ts) {
 		if (num_streams)
 			clock_gettime(CLOCK_MONOTONIC, ts);

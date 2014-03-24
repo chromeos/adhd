@@ -153,7 +153,7 @@ try_again:
 		goto reply_err;
 	}
 
-	cras_system_state_stream_added();
+	cras_system_state_stream_added(stream->direction);
 
 	return 0;
 
@@ -186,7 +186,7 @@ static int disconnect_client_stream(struct cras_rclient *client,
 	DL_DELETE(client->streams, stream);
 	cras_rstream_destroy(stream);
 
-	cras_system_state_stream_removed();
+	cras_system_state_stream_removed(stream->direction);
 
 	return 0;
 }
