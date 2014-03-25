@@ -66,6 +66,12 @@
     "    <method name=\"GetNumberOfActiveStreams\">\n"                  \
     "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
     "    </method>\n"                                                   \
+    "    <method name=\"GetNumberOfActiveOutputStreams\">\n"            \
+    "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
+    "    </method>\n"                                                   \
+    "    <method name=\"GetNumberOfActiveInputStreams\">\n"             \
+    "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
+    "    </method>\n"                                                   \
     "  </interface>\n"                                                  \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"        \
     "    <method name=\"Introspect\">\n"                                \
@@ -461,6 +467,58 @@ static DBusHandlerResult handle_get_num_active_streams(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_num_active_streams_use_input_hw(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_int32_t num = 0;
+	unsigned i;
+
+	reply = dbus_message_new_method_return(message);
+
+	for (i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
+		if (cras_stream_uses_input_hw(i))
+			num += cras_system_state_get_active_streams_by_direction(i);
+	}
+
+	dbus_message_append_args(reply,
+				 DBUS_TYPE_INT32, &num,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, reply, &serial);
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_get_num_active_streams_use_output_hw(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_int32_t num = 0;
+	unsigned i;
+
+	reply = dbus_message_new_method_return(message);
+
+	for (i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
+		if (cras_stream_uses_output_hw(i))
+			num += cras_system_state_get_active_streams_by_direction(i);
+	}
+
+	dbus_message_append_args(reply,
+				 DBUS_TYPE_INT32, &num,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, reply, &serial);
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message,
@@ -540,6 +598,16 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "GetNumberOfActiveStreams")) {
 		return handle_get_num_active_streams(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+						   CRAS_CONTROL_INTERFACE,
+						   "GetNumberOfActiveInputStreams")) {
+		return handle_get_num_active_streams_use_input_hw(
+				conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+						   CRAS_CONTROL_INTERFACE,
+						   "GetNumberOfActiveOutputStreams")) {
+		return handle_get_num_active_streams_use_output_hw(
+				conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

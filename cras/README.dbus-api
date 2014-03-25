@@ -116,6 +116,14 @@ Methods		void SetOutputVolume(int32 volume)
 			Returns the number of streams currently being
 			played or recorded.
 
+		int32 GetNumberOfActiveInputStreams()
+
+			Returns the number of streams currently using input hardware.
+
+		int32 GetNumberOfActiveOutputStreams()
+
+			Returns the number of streams currently using output hardware.
+
 Signals		OutputVolumeChanged(int32 volume)
 
 			Indicates that the output volume level has changed.
