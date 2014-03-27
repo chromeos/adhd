@@ -177,6 +177,7 @@ reply_err:
 static int disconnect_client_stream(struct cras_rclient *client,
 				    struct cras_rstream *stream)
 {
+	enum CRAS_STREAM_DIRECTION direction = stream->direction;
 	struct audio_thread *thread = cras_iodev_list_get_audio_thread();
 
 	if (thread)
@@ -186,7 +187,7 @@ static int disconnect_client_stream(struct cras_rclient *client,
 	DL_DELETE(client->streams, stream);
 	cras_rstream_destroy(stream);
 
-	cras_system_state_stream_removed(stream->direction);
+	cras_system_state_stream_removed(direction);
 
 	return 0;
 }
