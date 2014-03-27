@@ -57,6 +57,8 @@ struct __attribute__ ((__packed__)) cras_audio_shm_area {
 	float volume_scaler;
 	int32_t mute;
 	int32_t callback_pending;
+	uint32_t first_timeout_sec;
+	uint32_t first_timeout_nsec;
 	uint32_t num_overruns;
 	uint32_t num_cb_timeouts;
 	struct cras_timespec ts;
@@ -421,6 +423,42 @@ static inline unsigned cras_shm_total_size(const struct cras_audio_shm *shm)
 {
 	return cras_shm_used_size(shm) * CRAS_NUM_SHM_BUFFERS +
 			sizeof(*shm->area);
+}
+
+/* Gets the period of time since the first timeout. */
+static inline
+void cras_shm_since_first_timeout(const struct cras_audio_shm *shm,
+				  struct timespec *ts)
+{
+	if (shm->area->first_timeout_sec ||
+	    shm->area->first_timeout_nsec) {
+		struct timespec now, first_timeout;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		first_timeout.tv_sec = shm->area->first_timeout_sec;
+		first_timeout.tv_nsec = shm->area->first_timeout_nsec;
+		subtract_timespecs(&now, &first_timeout, ts);
+	} else {
+		ts->tv_sec = 0;
+		ts->tv_nsec = 0;
+	}
+}
+
+/* Sets the first timeout. */
+static inline
+void cras_shm_set_first_timeout(const struct cras_audio_shm *shm)
+{
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	shm->area->first_timeout_sec = now.tv_sec;
+	shm->area->first_timeout_nsec = now.tv_nsec;
+}
+
+/* Clears the first timeout. */
+static inline
+void cras_shm_clear_first_timeout(const struct cras_audio_shm *shm)
+{
+	shm->area->first_timeout_sec = 0;
+	shm->area->first_timeout_nsec = 0;
 }
 
 /* Gets the counter of over-runs. */

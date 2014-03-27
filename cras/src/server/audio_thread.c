@@ -635,11 +635,39 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 					return -EIO;
 				continue;
 			}
+			// TODO(hychao): UMA for the length of timeout periods.
+			cras_shm_clear_first_timeout(shm);
 			cras_shm_set_callback_pending(shm, 1);
 		}
 	}
 
 	return 0;
+}
+
+/* Check if the stream kept timeout for a long period.
+ * Args:
+ *    stream - The stream to check
+ *    rate - the frame rate of iodev
+ * Returns:
+ *    0 if this is a first timeout or the accumulated timeout
+ *    period is not too long, -1 otherwise.
+ */
+static int check_stream_timeout(struct cras_rstream *stream, unsigned int rate)
+{
+	static int longest_cb_timeout_sec = 10;
+
+	struct cras_audio_shm *shm;
+	struct timespec diff;
+	shm = cras_rstream_output_shm(stream);
+
+	cras_shm_since_first_timeout(shm, &diff);
+
+	if (!diff.tv_sec && !diff.tv_nsec) {
+		cras_shm_set_first_timeout(shm);
+		return 0;
+	}
+
+	return (diff.tv_sec > longest_cb_timeout_sec) ? -1 : 0;
 }
 
 /* Fill the buffer with samples from the attached streams.
@@ -745,6 +773,14 @@ static int write_streams(struct audio_thread *thread,
 					continue;
 
 				cras_shm_inc_cb_timeouts(shm);
+				if (check_stream_timeout(
+						curr->stream,
+						odev->format->frame_rate)) {
+					thread_remove_stream(thread,
+							     curr->stream);
+					if (!output_streams_attached(thread))
+						return -EIO;
+				}
 				if (cras_shm_get_frames(shm) == 0)
 					curr->skip_mix = 1;
 			}
