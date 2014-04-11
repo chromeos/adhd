@@ -6,7 +6,11 @@
 #ifndef CRAS_METRICS_H_
 #define CRAS_METRICS_H_
 
-/* Log the specified event. */
+/* Logs the specified event. */
 void cras_metrics_log_event(const char *event);
+
+/* Sends histogram data. */
+void cras_metrics_log_histogram(const char *name, int sample, int min,
+				int max, int nbuckets);
 
 #endif /* CRAS_METRICS_H_ */

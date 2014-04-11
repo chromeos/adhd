@@ -11,8 +11,10 @@
 #include "cras_dsp_pipeline.h"
 #include "cras_iodev.h"
 #include "cras_loopback_iodev.h"
+#include "cras_metrics.h"
 #include "cras_mix.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -31,6 +33,11 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_RM_ALL_STREAMS,
 	AUDIO_THREAD_STOP,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
+	AUDIO_THREAD_METRICS_LOG,
+};
+
+enum AUDIO_THREAD_METRICS_TYPE {
+	LONGEST_TIMEOUT_MSECS,
 };
 
 struct audio_thread_msg {
@@ -47,6 +54,13 @@ struct audio_thread_add_rm_stream_msg {
 struct audio_thread_dump_debug_info_msg {
 	struct audio_thread_msg header;
 	struct audio_debug_info *info;
+};
+
+struct audio_thread_metrics_log_msg {
+	struct audio_thread_msg header;
+	enum AUDIO_THREAD_METRICS_TYPE type;
+	int stream_id;
+	int arg;
 };
 
 /* For capture, the amount of frames that will be left after a read is
@@ -268,6 +282,23 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	return 0;
 }
 
+/* Posts metrics log message for the longest timeout of a stream.
+ */
+static int audio_thread_log_longest_timeout(struct audio_thread *thread,
+					    int timeout_msec)
+{
+	struct audio_thread_metrics_log_msg msg;
+	int rc;
+
+	msg.header.id = AUDIO_THREAD_METRICS_LOG;
+	msg.header.length = sizeof(msg);
+	msg.type = LONGEST_TIMEOUT_MSECS;
+	msg.arg = timeout_msec;
+
+	rc = write(thread->main_msg_fds[1], &msg, sizeof(msg));
+	return rc;
+}
+
 /* Checks if there are any active streams.
  * Args:
  *    thread - The thread to check.
@@ -324,11 +355,19 @@ static int delete_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
 	struct cras_io_stream *out;
+	int longest_timeout_msec;
+	struct cras_audio_shm *shm;
 
 	/* Find stream, and if found, delete it. */
 	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
 	if (out == NULL)
 		return -EINVAL;
+
+	/* Log the longest timeout of the stream about to be removed. */
+	shm = cras_rstream_output_shm(stream);
+	longest_timeout_msec = cras_shm_get_longest_timeout(shm);
+	if (longest_timeout_msec)
+		audio_thread_log_longest_timeout(thread, longest_timeout_msec);
 
 	DL_DELETE(thread->streams, out);
 	free(out);
@@ -571,6 +610,25 @@ static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 	} while (err > 0);
 }
 
+/* Calculates the length of timeout period and updates the longest
+ * timeout value.
+ */
+static void update_stream_timeout(struct cras_audio_shm *shm)
+{
+	struct timespec diff;
+	int timeout_msec = 0;
+	int longest_timeout_msec;
+
+	cras_shm_since_first_timeout(shm, &diff);
+	if (!diff.tv_sec && !diff.tv_nsec)
+		return;
+
+	timeout_msec = diff.tv_sec * 1000 + diff.tv_nsec / 1000000;
+	longest_timeout_msec = cras_shm_get_longest_timeout(shm);
+	if (timeout_msec > longest_timeout_msec)
+		cras_shm_set_longest_timeout(shm, timeout_msec);
+}
+
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
  *    thread - The thread to fetch samples for.
@@ -635,7 +693,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 					return -EIO;
 				continue;
 			}
-			// TODO(hychao): UMA for the length of timeout periods.
+			update_stream_timeout(shm);
 			cras_shm_clear_first_timeout(shm);
 			cras_shm_set_callback_pending(shm, 1);
 		}
@@ -776,6 +834,7 @@ static int write_streams(struct audio_thread *thread,
 				if (check_stream_timeout(
 						curr->stream,
 						odev->format->frame_rate)) {
+					update_stream_timeout(shm);
 					thread_remove_stream(thread,
 							     curr->stream);
 					if (!output_streams_attached(thread))
@@ -1564,6 +1623,34 @@ static void audio_thread_rm_all_streams(struct audio_thread *thread,
 	audio_thread_post_message(thread, &msg.header);
 }
 
+/* Handles metrics log message and send stats to UMA. */
+static int audio_thread_metrics_log(struct audio_thread_msg *msg)
+{
+	static const int timeout_min_msec = 1;
+	static const int timeout_max_msec = 10000;
+	static const int timeout_nbuckets = 10;
+
+	struct audio_thread_metrics_log_msg *amsg;
+	amsg = (struct audio_thread_metrics_log_msg *)msg;
+	switch (amsg->type) {
+	case LONGEST_TIMEOUT_MSECS:
+		/* Logs the longest timeout period of a stream
+		 * in milliseconds. */
+		syslog(LOG_INFO, "Stream longest timeout lasts %d msecs",
+		       amsg->arg);
+		cras_metrics_log_histogram(kStreamTimeoutMilliSeconds,
+					   amsg->arg,
+					   timeout_min_msec,
+					   timeout_max_msec,
+					   timeout_nbuckets);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 /* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
@@ -1648,8 +1735,10 @@ static void audio_thread_process_messages(void *arg)
 		if (err < 0)
 			return;
 
-
 		switch (msg->id) {
+		case AUDIO_THREAD_METRICS_LOG:
+			audio_thread_metrics_log(msg);
+			break;
 		default:
 			syslog(LOG_ERR, "Unexpected message id %u", msg->id);
 			break;

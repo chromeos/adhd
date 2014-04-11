@@ -59,6 +59,7 @@ struct __attribute__ ((__packed__)) cras_audio_shm_area {
 	int32_t callback_pending;
 	uint32_t first_timeout_sec;
 	uint32_t first_timeout_nsec;
+	uint32_t longest_timeout_msec;
 	uint32_t num_overruns;
 	uint32_t num_cb_timeouts;
 	struct cras_timespec ts;
@@ -459,6 +460,21 @@ void cras_shm_clear_first_timeout(const struct cras_audio_shm *shm)
 {
 	shm->area->first_timeout_sec = 0;
 	shm->area->first_timeout_nsec = 0;
+}
+
+/* Gets the longest timeout in milliseconds. */
+static inline
+int cras_shm_get_longest_timeout(const struct cras_audio_shm *shm)
+{
+	return shm->area->longest_timeout_msec;
+}
+
+/* Sets the longest timeout in milliseconds. */
+static inline
+void cras_shm_set_longest_timeout(const struct cras_audio_shm *shm,
+				  unsigned int longest_timeout)
+{
+	shm->area->longest_timeout_msec = longest_timeout;
 }
 
 /* Gets the counter of over-runs. */

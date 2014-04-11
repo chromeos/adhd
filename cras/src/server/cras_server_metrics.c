@@ -4,3 +4,4 @@
  */
 
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
+const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";

@@ -7,6 +7,7 @@
 #define CRAS_SERVER_METRICS_H_
 
 extern const char kNoCodecsFoundMetric[];
+extern const char kStreamTimeoutMilliSeconds[];
 
 #endif /* CRAS_SERVER_METRICS_H_ */
 

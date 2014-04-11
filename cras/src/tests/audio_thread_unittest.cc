@@ -9,6 +9,7 @@
 extern "C" {
 
 #include "cras_iodev.h"
+#include "cras_server_metrics.h"
 #include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
@@ -27,6 +28,14 @@ static unsigned int cras_mix_mute_count;
 static int cras_rstream_audio_ready_count;
 static unsigned int cras_rstream_request_audio_called;
 static unsigned int cras_rstream_audio_ready_called;
+static unsigned int cras_metrics_log_histogram_called;
+static const char *cras_metrics_log_histogram_name;
+static unsigned int cras_metrics_log_histogram_sample;
+static unsigned int cras_metrics_log_event_called;
+
+static void (*cras_system_add_select_fd_callback)(void *data);
+static void *cras_system_add_select_fd_callback_data;
+
 static int select_return_value;
 static struct timeval select_timeval;
 static int select_max_fd;
@@ -51,6 +60,7 @@ static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
 static int cras_dsp_pipeline_get_delay_called;
 static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
+static struct timespec time_now;
 
 // Stub volume scalers.
 float softvol_scalers[101];
@@ -727,6 +737,7 @@ class WriteStreamSuite : public testing::Test {
       cras_mix_add_stream_count = 0;
       select_max_fd = -1;
       select_write_ptr = NULL;
+      cras_metrics_log_event_called = 0;
       cras_rstream_request_audio_called = 0;
       cras_dsp_get_pipeline_called = 0;
       is_open_ = 0;
@@ -1286,6 +1297,9 @@ class AddStreamSuite : public testing::Test {
       cras_iodev_config_params_for_streams_buffer_size = 0;
       cras_iodev_config_params_for_streams_threshold = 0;
       cras_iodev_set_format_called = 0;
+      cras_metrics_log_histogram_called = 0;
+      cras_metrics_log_histogram_name = NULL;
+      cras_metrics_log_histogram_sample = 0;
     }
 
     virtual void TearDown() {
@@ -1318,6 +1332,7 @@ class AddStreamSuite : public testing::Test {
     void add_rm_two_streams(CRAS_STREAM_DIRECTION direction) {
       int rc;
       struct cras_rstream *new_stream, *second_stream;
+      cras_audio_shm *shm;
       struct cras_audio_format *fmt;
       struct audio_thread thread;
 
@@ -1334,6 +1349,8 @@ class AddStreamSuite : public testing::Test {
       new_stream->cb_threshold = 80;
       new_stream->direction = direction;
       memcpy(&new_stream->format, fmt, sizeof(*fmt));
+      shm = cras_rstream_output_shm(new_stream);
+      shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
       if (direction == CRAS_STREAM_INPUT) {
         thread.output_dev = NULL;
@@ -1357,6 +1374,9 @@ class AddStreamSuite : public testing::Test {
       second_stream->cb_threshold = 12;
       second_stream->direction = direction;
       memcpy(&second_stream->format, fmt, sizeof(*fmt));
+      shm = cras_rstream_output_shm(second_stream);
+      shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+
       thread_add_stream(&thread, second_stream);
       EXPECT_EQ(4, is_open_called_);
       EXPECT_EQ(1, open_dev_called_);
@@ -1376,7 +1396,11 @@ class AddStreamSuite : public testing::Test {
       EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
 
       free(fmt);
+      shm = cras_rstream_output_shm(new_stream);
+      free(shm->area);
       free(new_stream);
+      shm = cras_rstream_output_shm(second_stream);
+      free(shm->area);
       free(second_stream);
     }
 
@@ -1398,6 +1422,7 @@ int AddStreamSuite::close_dev_called_ = 0;
 TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   int rc;
   cras_rstream* new_stream;
+  cras_audio_shm *shm;
   struct audio_thread thread;
 
   memset(&thread, 0, sizeof(thread));
@@ -1409,6 +1434,9 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   new_stream->buffer_frames = 65;
   new_stream->cb_threshold = 80;
   memcpy(&new_stream->format, &fmt_, sizeof(fmt_));
+
+  shm = cras_rstream_output_shm(new_stream);
+  shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
   thread.output_dev = &iodev_;
   iodev_.thread = &thread;
@@ -1425,19 +1453,24 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   rc = thread_remove_stream(&thread, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ(0, cras_metrics_log_histogram_called);
 
+  free(shm->area);
   free(new_stream);
 }
 
 TEST_F(AddStreamSuite, AddStreamOpenFail) {
   struct audio_thread *thread;
   cras_rstream new_stream;
+  cras_audio_shm *shm;
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   audio_thread_set_output_dev(thread, &iodev_);
 
   iodev_.thread = thread;
+  shm = cras_rstream_output_shm(&new_stream);
+  shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
   open_dev_return_val_ = -1;
   new_stream.direction = CRAS_STREAM_OUTPUT;
@@ -1447,6 +1480,7 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
   EXPECT_EQ(1, cras_iodev_set_format_called);
   EXPECT_EQ(0, thread->streams);
   audio_thread_destroy(thread);
+  free(shm->area);
 }
 
 TEST_F(AddStreamSuite, AddRmTwoOutputStreams) {
@@ -1457,7 +1491,57 @@ TEST_F(AddStreamSuite, AddRmTwoInputStreams) {
   add_rm_two_streams(CRAS_STREAM_INPUT);
 }
 
+TEST_F(AddStreamSuite, RmStreamLogLogestTimeout) {
+  int rc;
+  cras_rstream* new_stream;
+  cras_audio_shm *shm;
+  struct audio_thread *thread;
+
+  thread = audio_thread_create();
+
+  iodev_.format = &fmt_;
+  iodev_.thread = thread;
+  new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
+  new_stream->fd = 55;
+  new_stream->buffer_frames = 65;
+  new_stream->cb_threshold = 80;
+  memcpy(&new_stream->format, &fmt_, sizeof(fmt_));
+
+  shm = cras_rstream_output_shm(new_stream);
+  shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+
+  thread->output_dev = &iodev_;
+  iodev_.thread = thread;
+  rc = thread_add_stream(thread, new_stream);
+  ASSERT_EQ(0, rc);
+  EXPECT_EQ(2, is_open_called_);
+  EXPECT_EQ(1, open_dev_called_);
+  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+
+  is_open_ = 1;
+  cras_shm_set_longest_timeout(shm, 90);
+
+  //  remove the stream.
+  rc = thread_remove_stream(thread, new_stream);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, close_dev_called_);
+
+  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+
+  EXPECT_EQ(1, cras_metrics_log_histogram_called);
+  EXPECT_STREQ(kStreamTimeoutMilliSeconds, cras_metrics_log_histogram_name);
+  EXPECT_EQ(90, cras_metrics_log_histogram_sample);
+
+  free(shm->area);
+  free(new_stream);
+  audio_thread_destroy(thread);
+}
+
 extern "C" {
+
+const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
+const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
+
 int cras_iodev_get_thread_poll_fd(const struct cras_iodev *iodev) {
   return 0;
 }
@@ -1565,6 +1649,20 @@ size_t cras_mix_mute_buffer(uint8_t *dst,
   return count;
 }
 
+// From cras_metrics.c
+void cras_metrics_log_event(const char *event)
+{
+  cras_metrics_log_event_called++;
+}
+
+void cras_metrics_log_histogram(const char *name, int sample, int min,
+				int max, int nbuckets)
+{
+  cras_metrics_log_histogram_called++;
+  cras_metrics_log_histogram_name = name;
+  cras_metrics_log_histogram_sample = sample;
+}
+
 //  From util.
 int cras_set_rt_scheduling(int rt_lim) {
   return 0;
@@ -1645,6 +1743,8 @@ int cras_system_add_select_fd(int fd,
 			      void (*callback)(void *data),
 			      void *callback_data)
 {
+  cras_system_add_select_fd_callback = callback;
+  cras_system_add_select_fd_callback_data = callback_data;
   return 0;
 }
 
@@ -1694,6 +1794,11 @@ int select(int nfds,
   if (select_write_ptr)
 	  *select_write_ptr = select_write_value;
   return select_return_value;
+}
+
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+  *tp = time_now;
+  return 0;
 }
 
 }  // extern "C"
