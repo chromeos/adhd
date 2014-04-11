@@ -35,7 +35,8 @@ struct cras_io_stream {
  *    idev - The input device to attach this thread to, NULL if none.
  *    post_mix_loopback_dev - Loopback device for post mix feedback.
  *    to_thread_fds - Send a message from main to running thread.
- *    to_main_fds - Send a message to main from running thread.
+ *    to_main_fds - Send a synchronous response to main from running thread.
+ *    main_msg_fds - Send a message from running thread to main.
  *    tid - Thread ID of the running playback/capture thread.
  *    started - Non-zero if the thread has started successfully.
  *    streams - List of audio streams serviced by this thread.
@@ -46,6 +47,7 @@ struct audio_thread {
 	struct cras_iodev *post_mix_loopback_dev;
 	int to_thread_fds[2];
 	int to_main_fds[2];
+	int main_msg_fds[2];
 	pthread_t tid;
 	int started;
 	struct cras_io_stream *streams;

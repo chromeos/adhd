@@ -44,6 +44,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Initialize system. */
+	cras_server_init();
 	cras_system_state_init();
 	cras_dsp_init(CRAS_CONFIG_FILE_DIR "/dsp.ini");
 	cras_iodev_list_init();

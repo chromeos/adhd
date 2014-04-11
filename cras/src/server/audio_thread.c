@@ -1606,6 +1606,57 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 	return audio_thread_post_message(thread, &msg.header);
 }
 
+/* Process all kinds of queued messages post from audio thread. Called by
+ * main thread.
+ * Args:
+ *    thread - pointer to the audio thread.
+ */
+static void audio_thread_process_messages(void *arg)
+{
+	static int max_len = 256;
+	uint8_t buf[256];
+	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
+	struct audio_thread *thread = arg;
+	struct timespec ts = {0, 0};
+	fd_set poll_set;
+	int to_read, nread, err;
+
+	while (1) {
+		FD_ZERO(&poll_set);
+		FD_SET(thread->main_msg_fds[0], &poll_set);
+		err = pselect(thread->main_msg_fds[0] + 1, &poll_set,
+			      NULL, NULL, &ts, NULL);
+		if (err < 0) {
+			if (err == -EINTR)
+				continue;
+			return;
+		}
+
+		if (!FD_ISSET(thread->main_msg_fds[0], &poll_set))
+			break;
+
+		/* Get the length of the message first */
+		nread = read(thread->main_msg_fds[0], buf, sizeof(msg->length));
+		if (nread < 0)
+			return;
+		if (msg->length > max_len)
+			return;
+
+		/* Read the rest of the message. */
+		to_read = msg->length - nread;
+		err = read(thread->main_msg_fds[0], &buf[0] + nread, to_read);
+		if (err < 0)
+			return;
+
+
+		switch (msg->id) {
+		default:
+			syslog(LOG_ERR, "Unexpected message id %u", msg->id);
+			break;
+		}
+	}
+}
+
 struct audio_thread *audio_thread_create()
 {
 	int rc;
@@ -1619,6 +1670,8 @@ struct audio_thread *audio_thread_create()
 	thread->to_thread_fds[1] = -1;
 	thread->to_main_fds[0] = -1;
 	thread->to_main_fds[1] = -1;
+	thread->main_msg_fds[0] = -1;
+	thread->main_msg_fds[1] = -1;
 
 	/* Two way pipes for communication with the device's audio thread. */
 	rc = pipe(thread->to_thread_fds);
@@ -1633,8 +1686,18 @@ struct audio_thread *audio_thread_create()
 		free(thread);
 		return NULL;
 	}
+	rc = pipe(thread->main_msg_fds);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to pipe");
+		free(thread);
+		return NULL;
+	}
 
 	atlog = audio_thread_event_log_init();
+
+	cras_system_add_select_fd(thread->main_msg_fds[0],
+				  audio_thread_process_messages,
+				  thread);
 
 	return thread;
 }
@@ -1700,6 +1763,12 @@ void audio_thread_destroy(struct audio_thread *thread)
 	if (thread->to_main_fds[0] != -1) {
 		close(thread->to_main_fds[0]);
 		close(thread->to_main_fds[1]);
+	}
+
+	cras_system_rm_select_fd(thread->main_msg_fds[0]);
+	if (thread->main_msg_fds[0] != -1) {
+		close(thread->main_msg_fds[0]);
+		close(thread->main_msg_fds[1]);
 	}
 
 	free(thread);

@@ -1641,6 +1641,17 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 void cras_rstream_log_overrun(const struct cras_rstream *stream) {
 }
 
+int cras_system_add_select_fd(int fd,
+			      void (*callback)(void *data),
+			      void *callback_data)
+{
+  return 0;
+}
+
+void cras_system_rm_select_fd(int fd)
+{
+}
+
 size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
 }

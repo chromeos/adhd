@@ -291,6 +291,19 @@ void check_output_exists(struct cras_timer *t, void *data)
  * Exported Interface.
  */
 
+int cras_server_init()
+{
+	/* Log to syslog. */
+	openlog("cras_server", LOG_PID, LOG_USER);
+
+	/* Allow clients to register callbacks for file descriptors.
+	 * add_select_fd and rm_select_fd will add and remove file descriptors
+	 * from the list that are passed to select in the main loop below. */
+	cras_system_set_select_handler(add_select_fd, rm_select_fd,
+				       &server_instance);
+	return 0;
+}
+
 int cras_server_run(int enable_hfp)
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
@@ -307,15 +320,6 @@ int cras_server_run(int enable_hfp)
 	struct cras_tm *tm;
 	struct timespec ts;
 	int timers_active;
-
-	/* Log to syslog. */
-	openlog("cras_server", LOG_PID, LOG_USER);
-
-	/* Allow clients to register callbacks for file descriptors.
-	 * add_select_fd and rm_select_fd will add and remove file descriptors
-	 * from the list that are passed to select in the main loop below. */
-	cras_system_set_select_handler(add_select_fd, rm_select_fd,
-				       &server_instance);
 
 	cras_udev_start_sound_subsystem_monitor();
 

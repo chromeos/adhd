@@ -11,6 +11,11 @@
 
 struct cras_client_message;
 
+/* Initialize some server setup. Mainly to add the select handler first
+ * so that client callbacks can be registered before server start running.
+ */
+int cras_server_init();
+
 /* Runs the CRAS server.  Open the main socket and begin listening for
  * connections and for messages from clients that have connected.
  */
