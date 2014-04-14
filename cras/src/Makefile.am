@@ -70,6 +70,7 @@ cras_SOURCES = \
 	server/cras_server.c \
 	server/cras_server_metrics.c \
 	server/cras_system_state.c \
+	server/cras_telephony.c \
 	server/cras_tm.c \
 	server/cras_udev.c \
 	server/cras_volume_curve.c \

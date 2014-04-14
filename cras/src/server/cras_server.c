@@ -32,6 +32,7 @@
 #include "cras_server.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
+#include "cras_telephony.h"
 #include "cras_tm.h"
 #include "cras_udev.h"
 #include "cras_util.h"
@@ -327,8 +328,10 @@ int cras_server_run(int enable_hfp)
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
 		cras_bt_start(dbus_conn);
-		if (enable_hfp)
+		if (enable_hfp) {
 			cras_hfp_ag_profile_create(dbus_conn);
+			cras_telephony_start(dbus_conn);
+		}
 		cras_a2dp_endpoint_create(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
