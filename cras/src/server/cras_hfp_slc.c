@@ -36,6 +36,22 @@
 /* Codec negotiation */
 #define HFP_CODEC_NEGOTIATION           0x0200
 
+/* Indicator update command response and indicator indices.
+ * Note that indicator index starts from '1'.
+ */
+#define CALL_IND_INDEX			4
+#define CALLSETUP_IND_INDEX		5
+#define INDICATOR_UPDATE_RSP		\
+	"\r\n+CIND: "			\
+	"(\"battchg\",(0-5),"		\
+	"(\"signal\",(0-5)),"		\
+	"(\"service\",(0,1)),"		\
+	"(\"call\",(0,1)),"		\
+	"(\"callsetup\",(0-3)),"	\
+	"(\"callheld\",(0-2)),"		\
+	"(\"roam\",(0,1))"		\
+	"\r\n"
+
 /* Handle object to hold required info to initialize and maintain
  * an HFP service level connection.
  * Args:
@@ -45,6 +61,8 @@
  *    rfcomm_fd - File descriptor for the established RFCOMM connection.
  *    init_cb - Callback to be triggered when an SLC is initialized.
  *    data - Private data to be passed to init_cb.
+ *    initialized - The service level connection is fully initilized of not
+ *    cli_active - Calling line identification notification is enabled or not
  */
 struct hfp_slc_handle {
 	char buf[SLC_BUF_SIZE_BYTES];
@@ -55,6 +73,7 @@ struct hfp_slc_handle {
 	hfp_slc_init_cb init_cb;
 	void *data;
 	int initialized;
+	int cli_active;
 };
 
 /* AT command exchanges between AG(Audio gateway) and HF(Hands-free device) */
@@ -63,8 +82,12 @@ struct at_command {
 	int (*callback) (struct hfp_slc_handle *handle, const char *cmd);
 };
 
+/* The active SLC handle, which is exposed mainly for HFP qualification. */
+static struct hfp_slc_handle *active_slc_handle;
+
 /* Sends a response or command to HF */
-static int hfp_send(struct hfp_slc_handle *handle, const char *buf) {
+static int hfp_send(struct hfp_slc_handle *handle, const char *buf)
+{
 	int written, err, len;
 
 	if (handle->rfcomm_fd < 0)
@@ -83,10 +106,39 @@ static int hfp_send(struct hfp_slc_handle *handle, const char *buf) {
 	return 0;
 }
 
+/* Sends a response for indicator event reporting. */
+static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
+				     int ind_index,
+				     int value)
+{
+	char cmd[64];
+	snprintf(cmd, 64, "\r\n+CIEV: %d,%d\r\n", ind_index, value);
+	return hfp_send(handle, cmd);
+}
+
+/* Sends calling line identification unsolicited result code. */
+static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
+						const char *number,
+						int type)
+{
+	char cmd[64];
+	snprintf(cmd, 64, "\r\n+CLIP: \"%s\",%d\r\n", number, type);
+	return hfp_send(handle, cmd);
+}
+
 /* ATA command to accept an incoming call. Mandatory support per spec 4.13. */
 static int answer_call(struct hfp_slc_handle *handle, const char *cmd)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	int rc;
+	rc = hfp_send(handle, "\r\nOK\r\n");
+	if (rc)
+		return rc;
+
+	hfp_send_ind_event_report(handle, CALL_IND_INDEX, 1);
+	if (rc)
+		return rc;
+
+	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
 }
 
 /* AT+CCWA command to enable the "Call Waiting notification" function.
@@ -101,6 +153,7 @@ static int call_waiting_notify(struct hfp_slc_handle *handle, const char *buf)
  */
 static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
 {
+	handle->cli_active = (cmd[8] == '1');
 	return hfp_send(handle, "\r\nOK\r\n");
 }
 
@@ -215,15 +268,7 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 
 	if (cmd[7] == '=')
 		/* Indicator update test command "AT+CIND=?" */
-		err = hfp_send(handle, "\r\n+CIND: "
-				       "(\"battchg\",(0-5),"
-				       "(\"signal\",(0-5)),"
-				       "(\"service\",(0,1)),"
-				       "(\"call\",(0,1)),"
-				       "(\"callsetup\",(0-3)),"
-				       "(\"callheld\",(0-2)),"
-				       "(\"roam\",(0,1))"
-				       "\r\n");
+		err = hfp_send(handle, INDICATOR_UPDATE_RSP);
 	else
 		/* Indicator update read command "AT+CIND?"
 		 * Battery charge and signal strength are full. Presence
@@ -309,7 +354,12 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
  */
 static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	int rc;
+	rc = hfp_send(handle, "\r\nOK\r\n");
+	if (rc)
+		return rc;
+
+	return hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
 }
 
 /* AT commands to support in order to conform HFP specification.
@@ -438,6 +488,8 @@ static void slc_watch_callback(void *arg)
 	return;
 }
 
+/* Exported interfaces */
+
 struct hfp_slc_handle *hfp_slc_create(int fd, hfp_slc_init_cb cb,
 				      void *cb_data)
 {
@@ -450,6 +502,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd, hfp_slc_init_cb cb,
 	handle->rfcomm_fd = fd;
 	handle->init_cb = cb;
 	handle->data = cb_data;
+	active_slc_handle = handle;
 	cras_system_add_select_fd(handle->rfcomm_fd,
 				  slc_watch_callback, handle);
 
@@ -458,6 +511,63 @@ struct hfp_slc_handle *hfp_slc_create(int fd, hfp_slc_init_cb cb,
 
 void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 {
+	active_slc_handle = NULL;
 	cras_system_rm_select_fd(slc_handle->rfcomm_fd);
 	free(slc_handle);
+}
+
+struct hfp_slc_handle *hfp_slc_get_handle()
+{
+	return active_slc_handle;
+}
+
+/* Procedure to setup a call when AG sees incoming call.
+ *
+ * HF(hands-free)                             AG(audio gateway)
+ *                                                     <-- Incoming call
+ *                 <-- +CIEV: (callsetup = 1)
+ *                 <-- RING (ALERT)
+ */
+int hfp_event_incoming_call(struct hfp_slc_handle *handle,
+			    const char *number,
+			    int type)
+{
+	int rc;
+
+	rc = hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 1);
+	if (rc)
+		return rc;
+	if (handle->cli_active) {
+		rc = hfp_send_calling_line_identification(handle, number, type);
+		if (rc)
+			return rc;
+	}
+	return hfp_send(handle, "\r\nRING\r\n");
+}
+
+/* Procedure to setup a call from AG.
+ *
+ * HF(hands-free)                             AG(audio gateway)
+ *                                                     <-- Call dropped
+ *                 <-- +CIEV: (call = 0)
+ */
+int hfp_event_terminate_call(struct hfp_slc_handle *handle)
+{
+	return hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
+}
+
+/* Procedure to answer a call from AG.
+ *
+ * HF(hands-free)                             AG(audio gateway)
+ *                                                     <-- Call answered
+ *                 <-- +CIEV: (call = 1)
+ *                 <-- +CIEV: (callsetup = 0)
+ */
+int hfp_event_answer_call(struct hfp_slc_handle *handle)
+{
+	int rc;
+	rc = hfp_send_ind_event_report(handle, CALL_IND_INDEX, 1);
+	if (rc)
+		return rc;
+	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
 }

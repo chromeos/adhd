@@ -25,4 +25,18 @@ struct hfp_slc_handle *hfp_slc_create(int fd, hfp_slc_init_cb cb,
 /* Destroys an hfp_slc_handle. */
 void hfp_slc_destroy(struct hfp_slc_handle *handle);
 
+/* Gets the active SLC handle, for qualification test. */
+struct hfp_slc_handle *hfp_slc_get_handle();
+
+/* Fakes the answer call event for qualification test. */
+int hfp_event_answer_call(struct hfp_slc_handle *handle);
+
+/* Fakes the incoming call event for qualification test. */
+int hfp_event_incoming_call(struct hfp_slc_handle *handle,
+			    const char *number,
+			    int type);
+
+/* Fakes the terminate call event for qualification test. */
+int hfp_event_terminate_call(struct hfp_slc_handle *handle);
+
 #endif /* CRAS_HFP_SLC_H_ */
