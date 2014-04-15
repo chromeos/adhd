@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The Chromium Authors. All rights reserved.
+/* Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -15,11 +15,14 @@ extern "C" {
 
 static struct hfp_slc_handle *handle;
 static int slc_initialized_cb_called;
+static int slc_disconnected_cb_called;
 static int cras_system_add_select_fd_called;
 static void(*slc_cb)(void *data);
 static void *slc_cb_data;
+static int fake_errno;
 
 int slc_initialized_cb(struct hfp_slc_handle *handle, void *data);
+int slc_disconnected_cb(struct hfp_slc_handle *handle);
 
 void ResetStubData() {
   slc_initialized_cb_called = 0;
@@ -33,7 +36,7 @@ namespace {
 TEST(HfpSlc, CreateSlcHandle) {
   ResetStubData();
 
-  handle = hfp_slc_create(0, slc_initialized_cb, handle);
+  handle = hfp_slc_create(0, slc_initialized_cb, handle, slc_disconnected_cb);
   ASSERT_EQ(1, cras_system_add_select_fd_called);
   ASSERT_EQ(handle, slc_cb_data);
 
@@ -48,7 +51,8 @@ TEST(HfpSlc, InitializeSlc) {
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-  handle = hfp_slc_create(sock[0], slc_initialized_cb, handle);
+  handle = hfp_slc_create(sock[0], slc_initialized_cb, handle,
+                          slc_disconnected_cb);
 
   err = write(sock[1], "AT+CIND=?\r", 10);
   ASSERT_EQ(10, err);
@@ -85,10 +89,33 @@ TEST(HfpSlc, InitializeSlc) {
   hfp_slc_destroy(handle);
 }
 
+TEST(HfpSlc, DisconnectSlc) {
+  int sock[2];
+  ResetStubData();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  handle = hfp_slc_create(sock[0], slc_initialized_cb, handle,
+                          slc_disconnected_cb);
+  /* Close socket right away to make read() get negative err code, and
+   * fake the errno to ECONNRESET. */
+  close(sock[0]);
+  close(sock[1]);
+  fake_errno = 104;
+  slc_cb(slc_cb_data);
+
+  ASSERT_EQ(1, slc_disconnected_cb_called);
+
+  hfp_slc_destroy(handle);
+}
 } // namespace
 
 int slc_initialized_cb(struct hfp_slc_handle *handle, void *data) {
   slc_initialized_cb_called++;
+  return 0;
+}
+
+int slc_disconnected_cb(struct hfp_slc_handle *handle) {
+  slc_disconnected_cb_called++;
   return 0;
 }
 
@@ -103,6 +130,11 @@ int cras_system_add_select_fd(int fd,
 }
 
 void cras_system_rm_select_fd(int fd) {
+}
+
+/* To return fake errno */
+int *__errno_location() {
+  return &fake_errno;
 }
 }
 

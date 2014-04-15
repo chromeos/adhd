@@ -26,7 +26,7 @@ static struct cras_iodev *odev;
 static struct hfp_info *info;
 static struct hfp_slc_handle *slc_handle;
 
-static void cras_hfp_ag_release(struct cras_bt_profile *profile)
+static void destroy_hfp_resources()
 {
 	if (info) {
 		hfp_info_destroy(info);
@@ -46,7 +46,12 @@ static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 	}
 }
 
-int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
+static void cras_hfp_ag_release(struct cras_bt_profile *profile)
+{
+	destroy_hfp_resources();
+}
+
+static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
 {
 	int fd;
 	struct cras_bt_transport *transport = (struct cras_bt_transport *)data;
@@ -65,6 +70,12 @@ int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
 	return 0;
 }
 
+static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
+{
+	destroy_hfp_resources();
+	return 0;
+}
+
 static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 				       struct cras_bt_transport *transport)
 {
@@ -72,9 +83,12 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
 
 	/* Destroy all existing devices and replace with new ones */
-	cras_hfp_ag_release(profile);
+	destroy_hfp_resources();
 
-	slc_handle = hfp_slc_create(fd, cras_hfp_ag_slc_initialized, transport);
+	slc_handle = hfp_slc_create(fd,
+				    cras_hfp_ag_slc_initialized,
+				    transport,
+				    cras_hfp_ag_slc_disconnected);
 }
 
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,

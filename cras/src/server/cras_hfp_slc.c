@@ -71,7 +71,8 @@ struct hfp_slc_handle {
 
 	int rfcomm_fd;
 	hfp_slc_init_cb init_cb;
-	void *data;
+	hfp_slc_disconnect_cb disconnect_cb;
+	void *init_cb_data;
 	int initialized;
 	int cli_active;
 };
@@ -205,7 +206,7 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 		} else {
 			err = hfp_send(handle, "\r\nOK\r\n");
 			if (err == 0) {
-				handle->init_cb(handle, handle->data);
+				handle->init_cb(handle, handle->init_cb_data);
 				handle->initialized = 1;
 			}
 		}
@@ -440,6 +441,14 @@ static void slc_watch_callback(void *arg)
 			  &handle->buf[handle->buf_write_idx],
 			  SLC_BUF_SIZE_BYTES - handle->buf_write_idx - 1);
 	if (bytes_read < 0) {
+		if (errno == ECONNRESET) {
+			syslog(LOG_ERR,
+			       "HFP service level connection disconnected "
+			       "unexpectedly.");
+			handle->disconnect_cb(handle);
+			return;
+		}
+
 		handle->buf_read_idx = 0;
 		handle->buf_write_idx = 0;
 		syslog(LOG_ERR, "Error reading slc command %s",
@@ -490,8 +499,10 @@ static void slc_watch_callback(void *arg)
 
 /* Exported interfaces */
 
-struct hfp_slc_handle *hfp_slc_create(int fd, hfp_slc_init_cb cb,
-				      void *cb_data)
+struct hfp_slc_handle *hfp_slc_create(int fd,
+				      hfp_slc_init_cb init_cb,
+				      void *init_cb_data,
+				      hfp_slc_disconnect_cb disconnect_cb)
 {
 	struct hfp_slc_handle *handle;
 
@@ -500,8 +511,9 @@ struct hfp_slc_handle *hfp_slc_create(int fd, hfp_slc_init_cb cb,
 		return NULL;
 
 	handle->rfcomm_fd = fd;
-	handle->init_cb = cb;
-	handle->data = cb_data;
+	handle->init_cb = init_cb;
+	handle->disconnect_cb = disconnect_cb;
+	handle->init_cb_data = init_cb_data;
 	active_slc_handle = handle;
 	cras_system_add_select_fd(handle->rfcomm_fd,
 				  slc_watch_callback, handle);
