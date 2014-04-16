@@ -793,6 +793,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
+		cras_alsa_jack_update_node_type(jack, &(node->base.type));
 		cras_iodev_add_node(&aio->base, &node->base);
 	} else if (!node->jack) {
 		/* If we already have the node, associate with the jack. */

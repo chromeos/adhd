@@ -94,6 +94,19 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 					char *name_buf,
 					unsigned int buf_size);
 
+/* Updates the node type according to override_type_name in jack.
+ * Currently this method only supports updating the node type to
+ * CRAS_NODE_TYPE_INTERNAL_SPEAKER when override_type_name is
+ * "Internal Speaker". This is used in All-In-One device where
+ * output is an HDMI device, but it should be internal speaker from
+ * user point of view.
+ * Args:
+ *    jack - The jack to query node type.
+ *    type - The node type to be overwritten.
+ */
+void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
+				     enum CRAS_NODE_TYPE *type);
+
 /* Gets the dsp name of a jack.
  * Args:
  *    jack_list - The jack list to query.

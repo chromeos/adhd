@@ -65,6 +65,18 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name);
  */
 char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev);
 
+/* Gets the new node type name which user wants to override the old one for
+ * given ucm device.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    ucm_dev - The ucm device to override node type.
+ * Returns:
+ *    A pointer to the allocated string containing the new type name,
+ *    or NULL if no override_type_name is found.
+ */
+const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
+					const char *ucm_dev);
+
 /* Gets the name of the ucm device for the given jack name.
  * Args:
  *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.

@@ -105,6 +105,7 @@ static const char *cras_alsa_jack_get_dsp_name_value;
 static size_t cras_iodev_free_dsp_called;
 static size_t cras_alsa_jack_exists_called;
 static const char *cras_alsa_jack_exists_match;
+static size_t cras_alsa_jack_update_node_type_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -147,6 +148,7 @@ void ResetStubData() {
   cras_iodev_free_dsp_called = 0;
   cras_alsa_jack_exists_called = 0;
   cras_alsa_jack_exists_match = NULL;
+  cras_alsa_jack_update_node_type_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -522,6 +524,27 @@ TEST(AlsaIoInit, DspNameJackOverride) {
   EXPECT_EQ(3, cras_alsa_jack_get_dsp_name_called);
   EXPECT_EQ(3, cras_iodev_update_dsp_called);
   EXPECT_STREQ("default_dsp", cras_iodev_update_dsp_name);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
+TEST(AlsaIoInit, NodeTypeOverride) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
+
+  ResetStubData();
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  // Add the jack node.
+  cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
+  // Verify that cras_alsa_jack_update_node_type is called when an output device
+  // is created.
+  EXPECT_EQ(1, cras_alsa_jack_update_node_type_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
@@ -1252,4 +1275,10 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 					char *name_buf,
 					unsigned int buf_size)
 {
+}
+
+void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
+				     enum CRAS_NODE_TYPE *type)
+{
+  cras_alsa_jack_update_node_type_called++;
 }

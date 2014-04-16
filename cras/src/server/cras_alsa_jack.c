@@ -86,6 +86,7 @@ struct cras_alsa_jack {
 	struct mixer_volume_control *mixer_input;
 	char *ucm_device;
 	const char *dsp_name;
+	const char* override_type_name;
 	const char *edid_file;
 	struct cras_timer *display_info_timer;
 	unsigned int display_info_retries;
@@ -726,10 +727,13 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 						control_name);
 		}
 
-		if (jack->ucm_device)
+		if (jack->ucm_device) {
 			jack->dsp_name = ucm_get_dsp_name(
 				jack->jack_list->ucm, jack->ucm_device,
 				direction);
+			jack->override_type_name = ucm_get_override_type_name(
+				jack->jack_list->ucm, jack->ucm_device);
+		}
 	}
 
 	/* Look up ELD controls */
@@ -834,6 +838,9 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 		if (jack->mixer_input)
 			free(jack->mixer_input);
 
+		if (jack->override_type_name)
+			free((void *)jack->override_type_name);
+
 		free((void *)jack->dsp_name);
 		free(jack);
 	}
@@ -924,6 +931,16 @@ fallback_jack_name:
 	buf = cras_alsa_jack_get_name(jack);
 	strncpy(name_buf, buf, buf_size - 1);
 
+	return;
+}
+
+void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
+				     enum CRAS_NODE_TYPE *type)
+{
+	if (!jack->override_type_name)
+		return;
+	if (!strcmp(jack->override_type_name, "Internal Speaker"))
+		*type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
 	return;
 }
 

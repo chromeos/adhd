@@ -146,6 +146,25 @@ TEST(AlsaUcm, GetCapControlForDev) {
   free(snd_use_case_get_id);
 }
 
+TEST(AlsaUcm, GetOverrideType) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *override_type_name;
+
+  ResetStubData();
+
+  snd_use_case_get_value = "HDMI";
+
+  override_type_name = ucm_get_override_type_name(mgr, "Dev1");
+  ASSERT_TRUE(override_type_name);
+  EXPECT_EQ(0, strcmp(override_type_name, snd_use_case_get_value));
+  free((void*)override_type_name);
+
+  ASSERT_EQ(1, snd_use_case_get_called);
+  ASSERT_TRUE(snd_use_case_get_id);
+  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=OverrideNodeType/Dev1/HiFi"));
+  free(snd_use_case_get_id);
+}
+
 TEST(AlsaFlag, GetFlag) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   char *flag_value;
