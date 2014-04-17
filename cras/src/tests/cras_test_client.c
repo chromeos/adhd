@@ -849,8 +849,9 @@ static struct option long_options[] = {
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"check_output_plugged",required_argument,      0, 'j'},
 	{"loopback_file",	required_argument,	0, 'l'},
+	{"dump_audio_thread",   no_argument,            0, 'm'},
 	{"num_channels",        required_argument,      0, 'n'},
-	{"iodev_index",		required_argument,	0, 'o'},
+	{"channel_layout",      required_argument,      0, 'o'},
 	{"playback_file",	required_argument,	0, 'p'},
 	{"user_mute",           required_argument,      0, 'q'},
 	{"rate",		required_argument,	0, 'r'},
@@ -862,8 +863,6 @@ static struct option long_options[] = {
 	{"select_output",       required_argument,      0, 'y'},
 	{"unified_audio",	no_argument,		0, 'z'},
 	{"capture_mute",        required_argument,      0, '0'},
-	{"dump_audio_thread",   no_argument,            0, '1'},
-	{"channel_layout",      required_argument,      0, '2'},
 	{0, 0, 0, 0}
 };
 
@@ -876,7 +875,6 @@ static void show_usage()
 	printf("--rate <N> - Specifies the sample rate in Hz.\n");
 	printf("--num_channels <N> - Two for stereo.\n");
 	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
-	printf("--iodev_index <N> - Set active iodev to N.\n");
 	printf("--capture_file <name> - Name of file to record to.\n");
 	printf("--playback_file <name> - Name of file to play, "
 	       "\"-\" to playback raw audio from stdin.\n");
@@ -908,8 +906,6 @@ int main(int argc, char **argv)
 	int c, option_index;
 	size_t block_size = NOT_ASSIGNED;
 	size_t rate = 48000;
-	uint32_t iodev_index = 0;
-	int set_iodev = 0;
 	size_t num_channels = 2;
 	float duration_seconds = 0;
 	const char *capture_file = NULL;
@@ -958,10 +954,6 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			num_channels = atoi(optarg);
-			break;
-		case 'o':
-			set_iodev = 1;
-			iodev_index = atoi(optarg);
 			break;
 		case 'd':
 			duration_seconds = atof(optarg);
@@ -1085,23 +1077,15 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
-		case '1':
+		case 'm':
 			print_audio_debug_info(client);
 			break;
-		case '2':
+		case 'o':
 			channel_layout = optarg;
 			break;
 		default:
 			break;
 		}
-	}
-
-	if (set_iodev) {
-		rc = cras_client_switch_iodev(client,
-					      CRAS_STREAM_TYPE_DEFAULT,
-					      iodev_index);
-		if (rc < 0)
-			goto destroy_exit;
 	}
 
 	duration_frames = duration_seconds * rate;
