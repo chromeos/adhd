@@ -104,13 +104,6 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out);
 cras_node_id_t cras_iodev_list_get_active_node_id(
 	enum CRAS_STREAM_DIRECTION direction);
 
-/* Moves all streams of type to a new device.
- * Args:
- *    type - The stream type to move.
- *    index - The index of the output to move to.
- */
-int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index);
-
 /* Stores the following data to the shared memory server state region:
  * (1) device list
  * (2) node list

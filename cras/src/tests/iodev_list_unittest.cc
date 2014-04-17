@@ -412,43 +412,6 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   EXPECT_EQ(0, rc);
 }
 
-// Test default device behavior when add/remove devices.
-TEST_F(IoDevTestSuite, SetAsDefaultDevice) {
-  int rc;
-
-  d1_.set_as_default = set_as_default;
-  d2_.set_as_default = set_as_default;
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_output(&d2_);
-  EXPECT_EQ(0, rc);
-
-  cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
-  EXPECT_EQ(default_dev_to_set_, &d1_);
-  EXPECT_EQ(audio_thread_remove_streams_odev, &d1_);
-
-  cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d2_.info.idx);
-  EXPECT_EQ(default_dev_to_set_, &d2_);
-  EXPECT_EQ(audio_thread_remove_streams_odev, &d1_);
-
-  // Remove then add a non-default device, should be set to default.
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-  cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, d1_.info.idx);
-  EXPECT_EQ(default_dev_to_set_, &d1_);
-  EXPECT_EQ(audio_thread_remove_streams_odev, &d2_);
-
-  // Second device in queue should become default when default removed.
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_rm_output(&d2_);
-  EXPECT_EQ(0, rc);
-}
-
 // Test volume callbacks for default output.
 TEST_F(IoDevTestSuite, VolumeCallbacks) {
   int rc;

@@ -485,27 +485,6 @@ cras_node_id_t cras_iodev_list_get_active_node_id(
 	return cras_make_node_id(dev->info.idx, dev->active_node->idx);
 }
 
-int cras_iodev_move_stream_type(enum CRAS_STREAM_TYPE type, uint32_t index)
-{
-	struct cras_iodev *curr_dev, *new_dev;
-
-	/* Find new dev */
-	DL_SEARCH_SCALAR(outputs.iodevs, new_dev, info.idx, index);
-	if (new_dev == NULL) {
-		DL_SEARCH_SCALAR(inputs.iodevs, new_dev, info.idx, index);
-		if (new_dev == NULL)
-			return -EINVAL;
-	}
-
-	/* Set default to the newly requested device. */
-	curr_dev = cras_iodev_set_active(new_dev->direction, new_dev);
-
-	if (curr_dev == NULL || curr_dev == new_dev)
-		return 0; /* No change or no streams to move. */
-
-	return 0;
-}
-
 void cras_iodev_list_update_device_list()
 {
 	struct cras_server_state *state;
@@ -607,7 +586,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	if (new_dev) {
 		new_dev->update_active_node(new_dev);
 		/* There is an iodev and it isn't the default, switch to it. */
-		cras_iodev_move_stream_type(CRAS_STREAM_TYPE_DEFAULT, new_dev->info.idx);
+		cras_iodev_set_active(new_dev->direction, new_dev);
 	}
 
 	/* update old device if it is not the same device */
