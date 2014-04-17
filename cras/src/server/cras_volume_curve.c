@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <sys/param.h>
 
 #include "cras_util.h"
 #include "cras_volume_curve.h"
@@ -37,7 +38,7 @@ static long get_dBFS_explicit(const struct cras_volume_curve *curve,
 	const struct explicit_curve *c = (const struct explicit_curve *)curve;
 
 	/* Limit volume to (0, MAX_VOLUME). */
-	volume = min(MAX_VOLUME, max(0, volume));
+	volume = MIN(MAX_VOLUME, MAX(0, volume));
 	return c->dB_values[volume];
 }
 

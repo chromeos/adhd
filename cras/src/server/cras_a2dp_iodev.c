@@ -4,6 +4,7 @@
  */
 
 #include <stdint.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <syslog.h>
 #include <time.h>
@@ -266,7 +267,7 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 				+ a2dpio->pcm_buf_used;
 		avail_frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
 				a2dpio->pcm_buf_used) / format_bytes;
-		*frames = min(*frames, avail_frames);
+		*frames = MIN(*frames, avail_frames);
 	}
 	return 0;
 }

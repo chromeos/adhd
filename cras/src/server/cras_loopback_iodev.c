@@ -4,6 +4,7 @@
  */
 
 #include <pthread.h>
+#include <sys/param.h>
 #include <syslog.h>
 
 #include "cras_config.h"
@@ -102,8 +103,8 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 	*dst = loopdev->buffer + loopdev->read_offset * frame_bytes;
 
-	*frames = min(*frames, loopdev->buffer_frames - loopdev->read_offset);
-	*frames = min(*frames, frames_queued(iodev));
+	*frames = MIN(*frames, loopdev->buffer_frames - loopdev->read_offset);
+	*frames = MIN(*frames, frames_queued(iodev));
 	return 0;
 }
 
@@ -193,7 +194,7 @@ int loopback_iodev_add_audio(struct cras_iodev *dev,
 
 	/* copy samples to buffer accounting for wrap around. */
 	dst = loopdev->buffer + loopdev->write_offset * frame_bytes;
-	this_count = min(count, loopdev->buffer_frames - loopdev->write_offset);
+	this_count = MIN(count, loopdev->buffer_frames - loopdev->write_offset);
 	memcpy(dst, audio, this_count * frame_bytes);
 	loopdev->write_offset += this_count;
 	total_written = this_count;
@@ -229,7 +230,7 @@ int loopback_iodev_add_zeros(struct cras_iodev *dev,
 
 	/* copy samples to buffer accounting for wrap around. */
 	dst = loopdev->buffer + loopdev->write_offset * frame_bytes;
-	this_count = min(count, loopdev->buffer_frames - loopdev->write_offset);
+	this_count = MIN(count, loopdev->buffer_frames - loopdev->write_offset);
 	memset(dst, 0, this_count * frame_bytes);
 	loopdev->write_offset += this_count;
 	if (loopdev->write_offset >= loopdev->buffer_frames)

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -140,7 +141,7 @@ static void send_client_list_to_clients(struct server_data *serv)
 		return;
 
 	state->num_attached_clients =
-		min(CRAS_MAX_ATTACHED_CLIENTS, serv->num_clients);
+		MIN(CRAS_MAX_ATTACHED_CLIENTS, serv->num_clients);
 
 	info = state->client_info;
 	i = 0;

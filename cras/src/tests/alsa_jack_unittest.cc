@@ -6,6 +6,7 @@
 #include <linux/input.h>
 #include <poll.h>
 #include <stdio.h>
+#include <sys/param.h>
 #include <gtest/gtest.h>
 #include <string>
 
@@ -685,7 +686,7 @@ int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl) {
 int snd_hctl_poll_descriptors(snd_hctl_t *hctl,
                               struct pollfd *pfds,
                               unsigned int space) {
-  unsigned int num = min(space, snd_hctl_poll_descriptors_num_fds);
+  unsigned int num = MIN(space, snd_hctl_poll_descriptors_num_fds);
   memcpy(pfds, snd_hctl_poll_descriptors_fds, num * sizeof(*pfds));
   snd_hctl_poll_descriptors_called++;
   return num;

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/select.h>
 #include <unistd.h>
 
@@ -130,7 +131,7 @@ static int got_samples(struct cras_client *client,
 	/* Update RMS values with all available frames. */
 	if (keep_looping) {
 		update_rms(captured_samples,
-			   min(write_size, duration_frames * frame_bytes));
+			   MIN(write_size, duration_frames * frame_bytes));
 	}
 
 	check_stream_terminate(frames);
@@ -367,7 +368,7 @@ static void print_attached_client_list(struct cras_client *client)
 						       MAX_ATTACHED_CLIENTS);
 	if (num_clients < 0)
 		return;
-	num_clients = min(num_clients, MAX_ATTACHED_CLIENTS);
+	num_clients = MIN(num_clients, MAX_ATTACHED_CLIENTS);
 	printf("Attached clients:\n");
 	printf("\tID\tpid\tuid\n");
 	for (i = 0; i < num_clients; i++)
@@ -615,7 +616,7 @@ static int run_file_io_stream(struct cras_client *client,
 		if (tty >= 0)
 			FD_SET(tty, &poll_set);
 		FD_SET(pipefd[0], &poll_set);
-		pselect(max(tty, pipefd[0]) + 1,
+		pselect(MAX(tty, pipefd[0]) + 1,
 			&poll_set,
 			NULL,
 			NULL,
@@ -659,19 +660,19 @@ static int run_file_io_stream(struct cras_client *client,
 			stream_playing = 0;
 			break;
 		case 'u':
-			volume_scaler = min(volume_scaler + 0.1, 1.0);
+			volume_scaler = MIN(volume_scaler + 0.1, 1.0);
 			cras_client_set_stream_volume(client,
 						      stream_id,
 						      volume_scaler);
 			break;
 		case 'd':
-			volume_scaler = max(volume_scaler - 0.1, 0.0);
+			volume_scaler = MAX(volume_scaler - 0.1, 0.0);
 			cras_client_set_stream_volume(client,
 						      stream_id,
 						      volume_scaler);
 			break;
 		case 'k':
-			sys_volume = min(sys_volume + 1, 100);
+			sys_volume = MIN(sys_volume + 1, 100);
 			cras_client_set_system_volume(client, sys_volume);
 			break;
 		case 'j':
@@ -679,7 +680,7 @@ static int run_file_io_stream(struct cras_client *client,
 			cras_client_set_system_volume(client, sys_volume);
 			break;
 		case 'K':
-			cap_gain = min(cap_gain + 100, 5000);
+			cap_gain = MIN(cap_gain + 100, 5000);
 			cras_client_set_system_capture_gain(client, cap_gain);
 			break;
 		case 'J':
@@ -978,7 +979,7 @@ int main(int argc, char **argv)
 		}
 		case 'v': {
 			int volume = atoi(optarg);
-			volume = min(100, max(0, volume));
+			volume = MIN(100, MAX(0, volume));
 			rc = cras_client_set_system_volume(client, volume);
 			if (rc < 0) {
 				fprintf(stderr, "problem setting volume\n");

@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
+#include <sys/param.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -119,7 +120,7 @@ static int frames_queued(const struct cras_iodev *iodev)
 		return (int)frames;
 
 	/* For output, return number of frames that are used. */
-	return min(iodev->buffer_size - frames,
+	return MIN(iodev->buffer_size - frames,
 		   iodev->used_size + iodev->min_buffer_level);
 }
 

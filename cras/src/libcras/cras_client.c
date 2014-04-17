@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/ipc.h>
+#include <sys/param.h>
 #include <sys/shm.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
@@ -352,7 +353,7 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 	FD_ZERO(&poll_set);
 	FD_SET(read_fd, &poll_set);
 	FD_SET(wake_fd, &poll_set);
-	max_fd = max(read_fd, wake_fd);
+	max_fd = MAX(read_fd, wake_fd);
 
 	rc = pselect(max_fd + 1, &poll_set, NULL, NULL, NULL, NULL);
 	if (rc < 0)
@@ -392,7 +393,7 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 	}
 
 	/* Don't ask for more frames than the client desires. */
-	num_frames = min(num_frames, stream->config->min_cb_level);
+	num_frames = MIN(num_frames, stream->config->min_cb_level);
 
 	return num_frames;
 }
@@ -410,7 +411,7 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 	 * format conversion is needed of not. */
 	*playback_frames = cras_shm_get_writeable_frames(
 			shm, cras_shm_used_frames(shm), &limit);
-	num_frames = min(num_frames, limit);
+	num_frames = MIN(num_frames, limit);
 
 	/* If we need to do format conversion on this stream, change to
 	 * use an intermediate buffer to store the samples so they can be
@@ -426,7 +427,7 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 	}
 
 	/* Don't ask for more frames than the client desires. */
-	num_frames = min(num_frames, stream->config->min_cb_level);
+	num_frames = MIN(num_frames, stream->config->min_cb_level);
 
 	return num_frames;
 }
@@ -581,7 +582,7 @@ static int handle_playback_request(struct client_stream *stream,
 	num_frames = config_playback_buf(stream, &buf, num_frames);
 
 	/* Limit the amount of frames to the configured amount. */
-	num_frames = min(num_frames, config->min_cb_level);
+	num_frames = MIN(num_frames, config->min_cb_level);
 
 	cras_timespec_to_timespec(&ts, &shm->area->ts);
 
@@ -844,7 +845,7 @@ static int stream_connected(struct client_stream *stream,
 			goto err_ret;
 		}
 
-		max_frames = max(cras_shm_used_frames(&stream->capture_shm),
+		max_frames = MAX(cras_shm_used_frames(&stream->capture_shm),
 				 stream->config->buffer_frames);
 
 		/* Convert from h/w format to stream format for input. */
@@ -877,7 +878,7 @@ static int stream_connected(struct client_stream *stream,
 			goto err_ret;
 		}
 
-		max_frames = max(cras_shm_used_frames(&stream->play_shm),
+		max_frames = MAX(cras_shm_used_frames(&stream->play_shm),
 				 stream->config->buffer_frames);
 
 		/* Convert the stream format to the h/w format for output */
@@ -1337,7 +1338,7 @@ static void *client_thread(void *arg)
 		max_fd = 0;
 		LL_FOREACH(inputs, curr_input) {
 			FD_SET(curr_input->fd, &poll_set);
-			max_fd = max(curr_input->fd, max_fd);
+			max_fd = MAX(curr_input->fd, max_fd);
 		}
 
 		rc = select(max_fd + 1, &poll_set, NULL, NULL, NULL);
@@ -1955,9 +1956,9 @@ int cras_client_get_output_devices(const struct cras_client *client,
 
 read_outputs_again:
 	version = begin_server_state_read(state);
-	avail_devs = min(*num_devs, state->num_output_devs);
+	avail_devs = MIN(*num_devs, state->num_output_devs);
 	memcpy(devs, state->output_devs, avail_devs * sizeof(*devs));
-	avail_nodes = min(*num_nodes, state->num_output_nodes);
+	avail_nodes = MIN(*num_nodes, state->num_output_nodes);
 	memcpy(nodes, state->output_nodes, avail_nodes * sizeof(*nodes));
 	if (end_server_state_read(state, version))
 		goto read_outputs_again;
@@ -1984,9 +1985,9 @@ int cras_client_get_input_devices(const struct cras_client *client,
 
 read_inputs_again:
 	version = begin_server_state_read(state);
-	avail_devs = min(*num_devs, state->num_input_devs);
+	avail_devs = MIN(*num_devs, state->num_input_devs);
 	memcpy(devs, state->input_devs, avail_devs * sizeof(*devs));
-	avail_nodes = min(*num_nodes, state->num_input_nodes);
+	avail_nodes = MIN(*num_nodes, state->num_input_nodes);
 	memcpy(nodes, state->input_nodes, avail_nodes * sizeof(*nodes));
 	if (end_server_state_read(state, version))
 		goto read_inputs_again;
@@ -2012,7 +2013,7 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 
 read_clients_again:
 	version = begin_server_state_read(state);
-	num = min(max_clients, state->num_attached_clients);
+	num = MIN(max_clients, state->num_attached_clients);
 	memcpy(clients, state->client_info, num * sizeof(*clients));
 	if (end_server_state_read(state, version))
 		goto read_clients_again;

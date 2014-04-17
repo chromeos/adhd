@@ -5,6 +5,7 @@
 
 /* For now just use speex, can add more resamplers later. */
 #include <speex/speex_resampler.h>
+#include <sys/param.h>
 #include <syslog.h>
 
 #include "cras_fmt_conv.h"
@@ -46,8 +47,8 @@ static int16_t s16_add_and_clip(int16_t a, int16_t b)
 	int32_t sum;
 
 	sum = a + b;
-	sum = max(sum, -0x8000);
-	sum = min(sum, 0x7fff);
+	sum = MAX(sum, -0x8000);
+	sum = MIN(sum, 0x7fff);
 	return (int16_t)sum;
 }
 
@@ -275,8 +276,8 @@ static int16_t multiply_buf_with_coef(float *coef,
 
 	for (i = 0; i < size; i++)
 		sum += coef[i] * buf[i];
-	sum = max(sum, -0x8000);
-	sum = min(sum, 0x7fff);
+	sum = MAX(sum, -0x8000);
+	sum = MIN(sum, 0x7fff);
 	return (int16_t)sum;
 }
 
@@ -508,7 +509,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		conv->tmp_bufs[i] = malloc(
 			max_frames *
 			4 * /* width in bytes largest format. */
-			max(in->num_channels, out->num_channels));
+			MAX(in->num_channels, out->num_channels));
 		if (conv->tmp_bufs[i] == NULL) {
 			cras_fmt_conv_destroy(conv);
 			return NULL;
@@ -564,7 +565,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 
 	/* If no SRC, then in_frames should = out_frames. */
 	if (conv->speex_state == NULL) {
-		fr_in = min(in_frames, out_frames);
+		fr_in = MIN(in_frames, out_frames);
 		if (out_frames < in_frames && !logged_frames_dont_fit) {
 			syslog(LOG_INFO,
 			       "fmt_conv: %zu to %zu no SRC.",
@@ -619,7 +620,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 			logged_frames_dont_fit = 1;
 		}
 		/* limit frames to the output size. */
-		fr_out = min(fr_out, out_frames);
+		fr_out = MIN(fr_out, out_frames);
 		speex_resampler_process_interleaved_int(
 				conv->speex_state,
 				(int16_t *)buffers[buf_idx],

@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/param.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <syslog.h>
@@ -164,7 +165,7 @@ void cras_system_set_volume(size_t volume)
 	if (volume > CRAS_MAX_SYSTEM_VOLUME)
 		syslog(LOG_DEBUG, "system volume set out of range %zu", volume);
 
-	state.exp_state->volume = min(volume, CRAS_MAX_SYSTEM_VOLUME);
+	state.exp_state->volume = MIN(volume, CRAS_MAX_SYSTEM_VOLUME);
 	cras_alert_pending(state.volume_alert);
 }
 
@@ -186,7 +187,7 @@ int cras_system_remove_volume_changed_cb(cras_alert_cb cb, void *arg)
 void cras_system_set_capture_gain(long gain)
 {
 	state.exp_state->capture_gain =
-		max(gain, state.exp_state->min_capture_gain);
+		MAX(gain, state.exp_state->min_capture_gain);
 	cras_alert_pending(state.capture_gain_alert);
 }
 
@@ -324,7 +325,7 @@ int cras_system_remove_volume_limits_changed_cb(cras_alert_cb cb, void *arg)
 
 void cras_system_set_capture_gain_limits(long min, long max)
 {
-	state.exp_state->min_capture_gain = max(min, DEFAULT_MIN_CAPTURE_GAIN);
+	state.exp_state->min_capture_gain = MAX(min, DEFAULT_MIN_CAPTURE_GAIN);
 	state.exp_state->max_capture_gain = max;
 	cras_alert_pending(state.volume_limits_alert);
 }

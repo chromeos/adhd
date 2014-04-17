@@ -857,7 +857,7 @@ void set_node_volume(struct cras_ionode *node, int value)
   if (dev->direction != CRAS_STREAM_OUTPUT)
     return;
 
-  volume = (unsigned int)min(value, 100);
+  volume = (unsigned int)std::min(value, 100);
   node->volume = volume;
   if (dev->set_volume)
     dev->set_volume(dev);

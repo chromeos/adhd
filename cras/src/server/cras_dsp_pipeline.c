@@ -4,6 +4,7 @@
  */
 
 #include <inttypes.h>
+#include <sys/param.h>
 #include <syslog.h>
 
 #include "cras_util.h"
@@ -506,11 +507,11 @@ static int allocate_buffers(struct pipeline *pipeline)
 			/* We cannot reuse input buffer as output
 			 * buffer, so we need to use extra buffers */
 			need_buf += out;
-			peak_buf = max(peak_buf, need_buf);
+			peak_buf = MAX(peak_buf, need_buf);
 			need_buf -= in;
 		} else {
 			need_buf += out - in;
-			peak_buf = max(peak_buf, need_buf);
+			peak_buf = MAX(peak_buf, need_buf);
 		}
 	}
 
@@ -618,7 +619,7 @@ static void calculate_audio_delay(struct pipeline *pipeline)
 		FOR_ARRAY_ELEMENT(audio_in, j, audio_port) {
 			struct instance *upstream = find_instance_by_plugin(
 				&pipeline->instances, audio_port->peer->plugin);
-			delay = max(upstream->total_delay, delay);
+			delay = MAX(upstream->total_delay, delay);
 		}
 
 		instance->total_delay = delay + module->get_delay(module);
@@ -790,8 +791,8 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 		pipeline->max_time = t;
 		pipeline->min_time = t;
 	} else {
-		pipeline->max_time = max(pipeline->max_time, t);
-		pipeline->min_time = min(pipeline->min_time, t);
+		pipeline->max_time = MAX(pipeline->max_time, t);
+		pipeline->min_time = MIN(pipeline->min_time, t);
 	}
 
 	pipeline->total_blocks++;
@@ -826,7 +827,7 @@ void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
 
 	/* process at most DSP_BUFFER_SIZE frames each loop */
 	while (remaining > 0) {
-		chunk = min(remaining, (size_t)DSP_BUFFER_SIZE);
+		chunk = MIN(remaining, (size_t)DSP_BUFFER_SIZE);
 
 		/* deinterleave and convert to float */
 		dsp_util_deinterleave(target, source, channels, chunk);

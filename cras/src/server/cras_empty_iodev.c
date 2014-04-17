@@ -4,6 +4,7 @@
  */
 
 #include <pthread.h>
+#include <sys/param.h>
 #include <syslog.h>
 
 #include "cras_config.h"
@@ -120,9 +121,9 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 	*dst = empty_iodev->audio_buffer;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		*frames = min(*frames, EMPTY_FRAMES - current_level(iodev));
+		*frames = MIN(*frames, EMPTY_FRAMES - current_level(iodev));
 	else
-		*frames = min(*frames, current_level(iodev));
+		*frames = MIN(*frames, current_level(iodev));
 
 	return 0;
 }

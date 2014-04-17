@@ -4,6 +4,7 @@
  */
 
 #include <pthread.h>
+#include <sys/param.h>
 #include <syslog.h>
 
 #include "cras_config.h"
@@ -890,8 +891,8 @@ static int write_streams(struct audio_thread *thread,
 				return -EIO;
 		} else if (!cras_shm_callback_pending(shm) && !curr->skip_mix) {
 			/* If not in underrun, use this stream. */
-			write_limit = min(shm_frames, write_limit);
-			max_frames = max(max_frames, shm_frames);
+			write_limit = MIN(shm_frames, write_limit);
+			max_frames = MAX(max_frames, shm_frames);
 		}
 	}
 
@@ -902,7 +903,7 @@ static int write_streams(struct audio_thread *thread,
 	    (odev->frames_queued(odev) <= odev->cb_threshold/4)) {
 		/* Nothing to mix from any streams. Under run. */
 		unsigned int frame_bytes = cras_get_format_bytes(odev->format);
-		size_t frames = min(odev->cb_threshold, input_write_limit);
+		size_t frames = MIN(odev->cb_threshold, input_write_limit);
 		return cras_mix_mute_buffer(dst, frame_bytes, frames);
 	}
 
@@ -1166,7 +1167,7 @@ static int get_output_sleep_frames(struct audio_thread *thread)
 		if (frames_in_buff < cb_thresh)
 			sleep_frames = 0;
 		else
-			sleep_frames = min(sleep_frames,
+			sleep_frames = MIN(sleep_frames,
 						 frames_in_buff - cb_thresh);
 	}
 
@@ -1340,7 +1341,7 @@ int possibly_read_audio(struct audio_thread *thread,
 				shm,
 				cras_rstream_get_cb_threshold(rstream),
 				&avail_frames);
-		write_limit = min(write_limit, avail_frames);
+		write_limit = MIN(write_limit, avail_frames);
 
 		output_shm = cras_rstream_output_shm(rstream);
 		if (output_shm->area)
@@ -1384,12 +1385,12 @@ int possibly_read_audio(struct audio_thread *thread,
 		if (cras_shm_frames_written(shm) < cb_threshold) {
 			unsigned int needed =
 				cb_threshold - cras_shm_frames_written(shm);
-			*min_sleep = min(*min_sleep, needed);
+			*min_sleep = MIN(*min_sleep, needed);
 			continue;
 		}
 
 		/* Enough data for this stream, sleep until ready again. */
-		*min_sleep = min(*min_sleep, cb_threshold);
+		*min_sleep = MIN(*min_sleep, cb_threshold);
 
 		dst = cras_shm_get_write_buffer_base(shm);
 		nread = cras_shm_frames_written(shm);

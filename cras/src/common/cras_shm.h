@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <sys/param.h>
 
 #include "cras_types.h"
 #include "cras_util.h"
@@ -191,8 +192,8 @@ static inline size_t cras_shm_get_bytes_queued(struct cras_audio_shm *shm)
 	for (i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
 		unsigned read_offset, write_offset;
 
-		read_offset = min(shm->area->read_offset[i], used_size);
-		write_offset = min(shm->area->write_offset[i], used_size);
+		read_offset = MIN(shm->area->read_offset[i], used_size);
+		write_offset = MIN(shm->area->write_offset[i], used_size);
 
 		if (write_offset > read_offset)
 			total += write_offset - read_offset;
@@ -219,8 +220,8 @@ size_t cras_shm_get_frames_in_curr_buffer(struct cras_audio_shm *shm)
 	unsigned read_offset, write_offset;
 	const unsigned used_size = shm->config.used_size;
 
-	read_offset = min(shm->area->read_offset[buf_idx], used_size);
-	write_offset = min(shm->area->write_offset[buf_idx], used_size);
+	read_offset = MIN(shm->area->read_offset[buf_idx], used_size);
+	write_offset = MIN(shm->area->write_offset[buf_idx], used_size);
 
 	if (write_offset <= read_offset)
 		return 0;
@@ -346,8 +347,8 @@ void cras_shm_buffer_read_current(struct cras_audio_shm *shm, size_t frames)
 static inline
 void cras_shm_set_volume_scaler(struct cras_audio_shm *shm, float volume_scaler)
 {
-	volume_scaler = max(volume_scaler, 0.0);
-	shm->area->volume_scaler = min(volume_scaler, 1.0);
+	volume_scaler = MAX(volume_scaler, 0.0);
+	shm->area->volume_scaler = MIN(volume_scaler, 1.0);
 }
 
 /* Returns the volume of the stream(0.0-1.0). */
