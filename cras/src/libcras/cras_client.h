@@ -326,19 +326,6 @@ int cras_client_set_stream_volume(struct cras_client *client,
 				  cras_stream_id_t stream_id,
 				  float volume_scaler);
 
-/* Moves stream type to a different input or output.
- * Args:
- *    client - The client connected to the server with client_connect.
- *    stream_type - The type of stream to move.
- *    iodev - The index of the device to move the stream to.
- * Returns:
- *    0 if the message was sent to the server successfully.  A negative error
- *    code if there was a communication error (from errno.h).
- */
-int cras_client_switch_iodev(struct cras_client *client,
-			     enum CRAS_STREAM_TYPE stream_type,
-			     uint32_t iodev);
-
 /*
  * System level functions.
  */

@@ -1697,19 +1697,6 @@ int cras_client_set_stream_volume(struct cras_client *client,
 	return send_stream_volume_command_msg(client, stream_id, volume_scaler);
 }
 
-int cras_client_switch_iodev(struct cras_client *client,
-			     enum CRAS_STREAM_TYPE stream_type,
-			     uint32_t iodev)
-{
-	struct cras_switch_stream_type_iodev serv_msg;
-
-	if (client == NULL)
-		return -EINVAL;
-
-	fill_cras_switch_stream_type_iodev(&serv_msg, stream_type, iodev);
-	return write_message_to_server(client, &serv_msg.header);
-}
-
 int cras_client_set_system_volume(struct cras_client *client, size_t volume)
 {
 	struct cras_set_system_volume msg;

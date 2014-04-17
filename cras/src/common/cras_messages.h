@@ -25,7 +25,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	/* Client -> Server*/
 	CRAS_SERVER_CONNECT_STREAM,
 	CRAS_SERVER_DISCONNECT_STREAM,
-	CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV,
+	CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV, /* Unused */
 	CRAS_SERVER_SET_SYSTEM_VOLUME,
 	CRAS_SERVER_SET_SYSTEM_MUTE,
 	CRAS_SERVER_SET_USER_MUTE,
@@ -122,15 +122,6 @@ struct __attribute__ ((__packed__)) cras_switch_stream_type_iodev {
 	enum CRAS_STREAM_TYPE stream_type;
 	uint32_t iodev_idx;
 };
-static inline void fill_cras_switch_stream_type_iodev(
-		struct cras_switch_stream_type_iodev *m,
-		enum CRAS_STREAM_TYPE stream_type, uint32_t iodev_idx)
-{
-	m->stream_type = stream_type;
-	m->iodev_idx = iodev_idx;
-	m->header.id = CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV;
-	m->header.length = sizeof(struct cras_switch_stream_type_iodev);
-}
 
 /* Set the system volume. */
 struct __attribute__ ((__packed__)) cras_set_system_volume {

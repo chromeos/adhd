@@ -208,16 +208,6 @@ static int handle_client_stream_disconnect(
 	return disconnect_client_stream(client, to_disconnect);
 }
 
-/* Handles a request to move all streams of a type to an iodev at index */
-static int handle_switch_stream_type_iodev(
-		struct cras_rclient *client,
-		const struct cras_switch_stream_type_iodev *msg)
-{
-	syslog(LOG_DEBUG, "move stream type %d to iodev %u\n",
-	       msg->stream_type, msg->iodev_idx);
-	return cras_iodev_move_stream_type(msg->stream_type, msg->iodev_idx);
-}
-
 /* Handles dumping audio thread debug info back to the client. */
 static void dump_audio_thread_info(struct cras_rclient *client)
 {
@@ -295,10 +285,6 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		handle_client_stream_disconnect(client,
 			(const struct cras_disconnect_stream_message *)msg);
-		break;
-	case CRAS_SERVER_SWITCH_STREAM_TYPE_IODEV:
-		handle_switch_stream_type_iodev(client,
-			(const struct cras_switch_stream_type_iodev *)msg);
 		break;
 	case CRAS_SERVER_SET_SYSTEM_VOLUME:
 		cras_system_set_volume(
