@@ -220,7 +220,6 @@ static int flush_data(const struct cras_iodev *iodev)
 	}
 
 	if (written == -EAGAIN) {
-		syslog(LOG_ERR, "a2dp_write error, try again alter");
 		return 0;
 	} else if (written == -ENOTCONN) {
 		syslog(LOG_ERR, "a2dp endpoint not connected anymore");
