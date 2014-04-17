@@ -199,9 +199,8 @@ static int fill_node_list(struct iodev_list *list,
 				node->plugged_time.tv_sec;
 			node_info->plugged_time.tv_usec =
 				node->plugged_time.tv_usec;
-			node_info->active =
-				(dev == active_input || dev == active_output)
-				&& (dev->active_node == node);
+			node_info->active = dev->is_active &&
+					    (dev->active_node == node);
 			node_info->volume = node->volume;
 			node_info->capture_gain = node->capture_gain;
 			strcpy(node_info->name, node->name);
@@ -378,6 +377,42 @@ static struct cras_iodev *cras_iodev_set_active(
 	return old_active;
 }
 
+void cras_iodev_list_add_active_node(cras_node_id_t node_id)
+{
+	struct cras_iodev *new_dev;
+	new_dev = find_dev(dev_index_of(node_id));
+	if (!new_dev)
+		return;
+
+	if (new_dev && new_dev->set_as_default)
+		new_dev->set_as_default(new_dev);
+
+	/* Detach and then reattach all client streams, so that the new set
+	 * of active devices can be opened together later at the same time.
+	 * TODO(hychao): get rid of the remove streams call in the get/add/rm
+	 * active node functions.
+	 */
+	audio_thread_remove_streams(audio_thread, new_dev->direction);
+
+	audio_thread_add_active_dev(audio_thread, new_dev);
+}
+
+void cras_iodev_list_rm_active_node(cras_node_id_t node_id)
+{
+	struct cras_iodev *dev;
+	dev = find_dev(dev_index_of(node_id));
+	if (!dev)
+		return;
+
+	/* Detach and then reattach all client streams, so that the
+	 * updated set of active devices can be opened together later
+	 * at the same time.
+	 */
+	audio_thread_remove_streams(audio_thread, dev->direction);
+
+	audio_thread_rm_active_dev(audio_thread, dev);
+}
+
 int cras_iodev_list_add_output(struct cras_iodev *output)
 {
 	int rc;
@@ -435,6 +470,8 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	 */
 	if (active_output == dev)
 		cras_iodev_set_active(CRAS_STREAM_OUTPUT, default_output);
+	else
+		audio_thread_rm_active_dev(audio_thread, dev);
 
 	res = rm_dev_from_list(&outputs, dev);
 	if (res == 0)
@@ -451,6 +488,8 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	 */
 	if (active_input == dev)
 		cras_iodev_set_active(CRAS_STREAM_INPUT, default_input);
+	else
+		audio_thread_rm_active_dev(audio_thread, dev);
 
 	res = rm_dev_from_list(&inputs, dev);
 	if (res == 0)

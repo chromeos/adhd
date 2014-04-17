@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "audio_thread.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
@@ -46,9 +47,14 @@ static int cras_alert_destroy_called;
 static int cras_alert_pending_called;
 static cras_iodev *audio_thread_remove_streams_active_dev;
 static cras_iodev *audio_thread_set_active_dev_val;
+static int audio_thread_set_active_dev_called;
+static cras_iodev *audio_thread_add_active_dev_dev;
+static int audio_thread_add_active_dev_called;
+static int audio_thread_rm_active_dev_called;
 static unsigned int cras_system_get_volume_return;
 static int cras_iodev_set_software_volume_called;
 static float cras_iodev_set_software_volume_value;
+static struct audio_thread thread;
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -135,6 +141,9 @@ class IoDevTestSuite : public testing::Test {
       cras_alert_pending_called = 0;
       is_open_ = 0;
       cras_iodev_set_software_volume_called = 0;
+      audio_thread_rm_active_dev_called = 0;
+      audio_thread_add_active_dev_called = 0;
+      audio_thread_set_active_dev_called = 0;
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -671,6 +680,33 @@ TEST_F(IoDevTestSuite, SoftwareVolume) {
   EXPECT_FLOAT_EQ(1.0, cras_iodev_set_software_volume_value);
 }
 
+TEST_F(IoDevTestSuite, AddActiveNode) {
+  int rc;
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  d3_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+  ASSERT_EQ(audio_thread_set_active_dev_called, 1);
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d3_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_add_active_node(cras_make_node_id(d3_.info.idx, 1));
+  ASSERT_EQ(audio_thread_add_active_dev_called, 1);
+
+  cras_iodev_list_rm_output(&d3_);
+  ASSERT_EQ(audio_thread_rm_active_dev_called, 1);
+
+  /* Assert active devices was set to default one, when selected device
+   * removed. */
+  cras_iodev_list_rm_output(&d1_);
+  ASSERT_EQ(audio_thread_set_active_dev_called, 2);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -764,7 +800,7 @@ void cras_alert_destroy(struct cras_alert *alert) {
 }
 
 struct audio_thread *audio_thread_create() {
-  return NULL;
+  return &thread;
 }
 
 int audio_thread_start(struct audio_thread *thread) {
@@ -774,17 +810,35 @@ int audio_thread_start(struct audio_thread *thread) {
 void audio_thread_destroy(struct audio_thread *thread) {
 }
 
-void audio_thread_set_active_dev(struct audio_thread *thread,
+int audio_thread_set_active_dev(struct audio_thread *thread,
                                  struct cras_iodev *dev) {
+  audio_thread_set_active_dev_called++;
   audio_thread_set_active_dev_val = dev;
+  return 0;
 }
 
-void audio_thread_remove_streams(struct audio_thread *thread) {
+void audio_thread_remove_streams(struct audio_thread *thread,
+				 enum CRAS_STREAM_DIRECTION dir) {
   audio_thread_remove_streams_active_dev = audio_thread_set_active_dev_val;
 }
 
 void audio_thread_add_loopback_device(struct audio_thread *thread,
 				      struct cras_iodev *loop_dev) {
+}
+
+int audio_thread_add_active_dev(struct audio_thread *thread,
+				 struct cras_iodev *dev)
+{
+  audio_thread_add_active_dev_dev = dev;
+  audio_thread_add_active_dev_called++;
+  return 0;
+}
+
+int audio_thread_rm_active_dev(struct audio_thread *thread,
+				struct cras_iodev *dev)
+{
+  audio_thread_rm_active_dev_called++;
+  return 0;
 }
 
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
