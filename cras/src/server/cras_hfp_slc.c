@@ -9,8 +9,8 @@
 #include "cras_hfp_slc.h"
 #include "cras_system_state.h"
 
+#define NUMBER_BUF_SIZE_BYTES 256
 #define SLC_BUF_SIZE_BYTES 256
-
 
 /* Hands-free Audio Gateway feature bits, listed in according
  * to their order in the bitmap defined in HFP spec.
@@ -77,6 +77,7 @@ struct hfp_slc_handle {
 	int cli_active;
 	int call;
 	int callsetup;
+	char *dial_number;
 };
 
 /* AT command exchanges between AG(Audio gateway) and HF(Hands-free device) */
@@ -166,13 +167,43 @@ static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
 	return hfp_send(handle, "\r\nOK\r\n");
 }
 
+static void store_dial_number(struct hfp_slc_handle *handle,
+			      const char *number,
+			      int number_len)
+{
+	if (handle->dial_number)
+		free(handle->dial_number);
+	handle->dial_number = (char *)calloc(number_len,
+					     sizeof(*handle->dial_number));
+	strncpy(handle->dial_number, number, number_len);
+}
+
 /* ATDdd...dd command to place call with supplied number, or ATD>nnn...
  * command to dial the number stored at memory location. Mandatory per
  * spec 4.18 and 4.19.
  */
 static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 {
-	int rc;
+	int rc, cmd_len;
+	char buf[NUMBER_BUF_SIZE_BYTES];
+
+	cmd_len = strlen(cmd);
+
+	/* Handle memory dial. Extract memory location from command
+	 * ATD>nnn...; and lookup. */
+	if (cmd[3] == '>') {
+		int memory_location;
+		strncpy(buf, &cmd[4], cmd_len - 5);
+		memory_location = strtol(buf, NULL, 0);
+		if (!handle->dial_number || memory_location > 1)
+			return hfp_send(handle, "\r\nERROR\r\n");
+		goto dial_number;
+	}
+
+	/* Store dial number to the only memory slot. */
+	store_dial_number(handle, &cmd[3], strlen(cmd) - 4);
+
+dial_number:
 	rc = hfp_send(handle, "\r\nOK\r\n");
 	if (rc)
 		return rc;
@@ -247,7 +278,17 @@ static int extended_errors(struct hfp_slc_handle *handle, const char *buf)
  */
 static int last_dialed_number(struct hfp_slc_handle *handle, const char *buf)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	int rc;
+
+	if (!handle->dial_number)
+		return hfp_send(handle, "\r\nERROR\r\n");
+
+	rc = hfp_send(handle, "\r\nOK\r\n");
+	if (rc)
+		return rc;
+
+	handle->callsetup = 2;
+	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 2);
 }
 
 /* AT+CLCC command to query list of current calls. Mandatory support
@@ -608,4 +649,10 @@ int hfp_event_answer_call(struct hfp_slc_handle *handle)
 	if (rc)
 		return rc;
 	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
+}
+
+int hfp_event_store_dial_number(struct hfp_slc_handle *handle, const char *num)
+{
+	store_dial_number(handle, num, strlen(num));
+	return 0;
 }

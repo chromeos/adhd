@@ -20,6 +20,8 @@
 	"    </method>\n"						\
 	"    <method name=\"TerminateCall\">\n"				\
 	"    </method>\n"						\
+	"    <method name=\"StoreDialNumber\">\n"			\
+	"    </method>\n"						\
 	"  </interface>\n"						\
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"	\
 	"    <method name=\"Introspect\">\n"				\
@@ -101,6 +103,16 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		handle = hfp_slc_get_handle();
 		if (handle)
 			hfp_event_answer_call(handle);
+
+		send_empty_reply(conn, message);
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(message,
+			       CRAS_TELEPHONY_INTERFACE,
+			       "StoreDialNumber")) {
+
+		handle = hfp_slc_get_handle();
+		if (handle)
+			hfp_event_store_dial_number(handle, "1234567");
 
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;

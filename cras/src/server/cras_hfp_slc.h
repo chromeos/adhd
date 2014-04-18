@@ -45,4 +45,7 @@ int hfp_event_incoming_call(struct hfp_slc_handle *handle,
 /* Fakes the terminate call event for qualification test. */
 int hfp_event_terminate_call(struct hfp_slc_handle *handle);
 
+/* Mocks the state that a last dialed number stored in memory. */
+int hfp_event_store_dial_number(struct hfp_slc_handle *handle, const char *num);
+
 #endif /* CRAS_HFP_SLC_H_ */
