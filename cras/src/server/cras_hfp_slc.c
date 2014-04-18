@@ -75,6 +75,8 @@ struct hfp_slc_handle {
 	void *init_cb_data;
 	int initialized;
 	int cli_active;
+	int call;
+	int callsetup;
 };
 
 /* AT command exchanges between AG(Audio gateway) and HF(Hands-free device) */
@@ -113,6 +115,12 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 				     int value)
 {
 	char cmd[64];
+
+	if (ind_index == CALL_IND_INDEX)
+		handle->call = value;
+	if (ind_index == CALLSETUP_IND_INDEX)
+		handle->callsetup = value;
+
 	snprintf(cmd, 64, "\r\n+CIEV: %d,%d\r\n", ind_index, value);
 	return hfp_send(handle, cmd);
 }
@@ -164,7 +172,12 @@ static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
  */
 static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	int rc;
+	rc = hfp_send(handle, "\r\nOK\r\n");
+	if (rc)
+		return rc;
+
+	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 2);
 }
 
 /* AT+VTS command to generate a DTMF code. Mandatory per spec 4.27. */
@@ -208,6 +221,8 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 			if (err == 0) {
 				handle->init_cb(handle, handle->init_cb_data);
 				handle->initialized = 1;
+				handle->call = 0;
+				handle->callsetup = 0;
 			}
 		}
 	} else {
@@ -360,7 +375,18 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 	if (rc)
 		return rc;
 
-	return hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
+	if (handle->call) {
+		rc = hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
+		if (rc)
+			return rc;
+	}
+	if (handle->callsetup) {
+		rc = hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
 }
 
 /* AT commands to support in order to conform HFP specification.
