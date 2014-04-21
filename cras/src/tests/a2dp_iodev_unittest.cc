@@ -75,7 +75,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   ResetStubData();
 
-  iodev = a2dp_iodev_create(fake_transport);
+  iodev = a2dp_iodev_create(fake_transport, NULL);
 
   ASSERT_NE(iodev, (void *)NULL);
   ASSERT_EQ(iodev->direction, CRAS_STREAM_OUTPUT);
@@ -97,7 +97,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   /* Assert iodev name matches the bt device's name */
   fake_device = reinterpret_cast<struct cras_bt_device *>(0x456);
-  iodev = a2dp_iodev_create(fake_transport);
+  iodev = a2dp_iodev_create(fake_transport, NULL);
   ASSERT_STREQ(FAKE_DEVICE_NAME, iodev->info.name);
 
   a2dp_iodev_destroy(iodev);
@@ -109,7 +109,7 @@ TEST(A2dpIoInit, InitializeFail) {
   ResetStubData();
 
   init_a2dp_return_val = -1;
-  iodev = a2dp_iodev_create(fake_transport);
+  iodev = a2dp_iodev_create(fake_transport, NULL);
 
   ASSERT_EQ(iodev, (void *)NULL);
   ASSERT_EQ(1, cras_bt_transport_configuration_called);
@@ -125,7 +125,7 @@ TEST(A2dpIoInit, OpenIodev) {
   struct cras_audio_format *format = NULL;
 
   ResetStubData();
-  iodev = a2dp_iodev_create(fake_transport);
+  iodev = a2dp_iodev_create(fake_transport, NULL);
 
   cras_iodev_set_format(iodev, format);
   iodev->open_dev(iodev);
@@ -148,7 +148,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   unsigned frames;
 
   ResetStubData();
-  iodev = a2dp_iodev_create(fake_transport);
+  iodev = a2dp_iodev_create(fake_transport, NULL);
 
   cras_iodev_set_format(iodev, format);
   iodev->open_dev(iodev);
@@ -196,7 +196,7 @@ TEST(A2dpIoInif, FramesQueued) {
   unsigned frames;
 
   ResetStubData();
-  iodev = a2dp_iodev_create(fake_transport);
+  iodev = a2dp_iodev_create(fake_transport, NULL);
 
   cras_iodev_set_format(iodev, format);
   time_now.tv_sec = 0;

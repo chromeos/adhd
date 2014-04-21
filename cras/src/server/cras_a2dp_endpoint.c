@@ -13,11 +13,43 @@
 #include "cras_iodev.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_endpoint.h"
+#include "cras_system_state.h"
 
 #define A2DP_SOURCE_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSource"
 #define A2DP_SINK_ENDPOINT_PATH   "/org/chromium/Cras/Bluetooth/A2DPSink"
 
+enum A2DP_COMMAND {
+	A2DP_FORCE_SUSPEND,
+};
+
+struct a2dp_msg {
+	enum A2DP_COMMAND cmd;
+	struct cras_iodev *dev;
+};
+
 static struct cras_iodev *iodev;
+
+/* To send a message to main thread. */
+static int to_main_fds[2];
+
+/*
+ * Force suspends a cras_iodev when unexpect error occurs.
+ */
+static void cras_a2dp_force_suspend(struct cras_iodev *dev)
+{
+	int err;
+	struct a2dp_msg msg;
+
+	msg.cmd = A2DP_FORCE_SUSPEND;
+	msg.dev = dev;
+
+	err = write(to_main_fds[1], &msg, sizeof(msg));
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to post message to main thread");
+		return;
+	}
+	return;
+}
 
 static int cras_a2dp_get_capabilities(struct cras_bt_endpoint *endpoint,
 				      void *capabilities, int *len)
@@ -135,7 +167,8 @@ static void cras_a2dp_start(struct cras_bt_endpoint *endpoint,
 		a2dp_iodev_destroy(iodev);
 	}
 
-	iodev = a2dp_iodev_create(transport);
+	iodev = a2dp_iodev_create(transport,
+				  cras_a2dp_force_suspend);
 	if (!iodev)
 		syslog(LOG_WARNING, "Failed to create a2dp iodev");
 }
@@ -148,6 +181,33 @@ static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
 		a2dp_iodev_destroy(iodev);
 		iodev = NULL;
 	}
+}
+
+/* Handles a2dp messages in main thread.
+ */
+static void a2dp_handle_message(void *arg)
+{
+	int rc;
+	struct a2dp_msg msg;
+
+	rc = read(to_main_fds[0], &msg, sizeof(msg));
+	if (rc < 0)
+		return;
+
+	switch (msg.cmd) {
+	case A2DP_FORCE_SUSPEND:
+		/* If the iodev to force suspend no longer active,
+		 * ignore the message. */
+		if (iodev != msg.dev)
+			break;
+		a2dp_iodev_destroy(iodev);
+		iodev = NULL;
+		break;
+	default:
+		syslog(LOG_ERR, "Unhandled a2dp command");
+		break;
+	}
+	return;
 }
 
 static struct cras_bt_endpoint cras_a2dp_endpoint = {
@@ -167,5 +227,14 @@ static struct cras_bt_endpoint cras_a2dp_endpoint = {
 
 int cras_a2dp_endpoint_create(DBusConnection *conn)
 {
+	int err;
+	err = pipe(to_main_fds);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to create pipe for a2dp endpoint");
+		return err;
+	}
+	cras_system_add_select_fd(to_main_fds[0],
+				  a2dp_handle_message,
+				  &cras_a2dp_endpoint);
 	return cras_bt_endpoint_add(conn, &cras_a2dp_endpoint);
 }

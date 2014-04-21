@@ -24,6 +24,7 @@ struct a2dp_io {
 	struct cras_iodev base;
 	struct a2dp_info a2dp;
 	struct cras_bt_transport *transport;
+	a2dp_force_suspend_cb force_suspend_cb;
 
 	uint8_t pcm_buf[PCM_BUF_MAX_SIZE_BYTES];
 	int pcm_buf_offset;
@@ -223,7 +224,8 @@ static int flush_data(const struct cras_iodev *iodev)
 	if (written == -EAGAIN) {
 		return 0;
 	} else if (written == -ENOTCONN) {
-		syslog(LOG_ERR, "a2dp endpoint not connected anymore");
+		if (a2dpio->force_suspend_cb)
+			a2dpio->force_suspend_cb(&a2dpio->base);
 		return -1;
 	}
 
@@ -305,7 +307,8 @@ void free_resources(struct a2dp_io *a2dpio)
 	destroy_a2dp(&a2dpio->a2dp);
 }
 
-struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
+struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
+				     a2dp_force_suspend_cb force_suspend_cb)
 {
 	int err;
 	struct a2dp_io *a2dpio;
@@ -326,6 +329,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 		syslog(LOG_ERR, "Fail to init a2dp");
 		goto error;
 	}
+	a2dpio->force_suspend_cb = force_suspend_cb;
 
 	iodev = &a2dpio->base;
 
