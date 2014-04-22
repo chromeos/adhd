@@ -29,9 +29,13 @@
 
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
+	AUDIO_THREAD_ADD_ACTIVE_DEV,
 	AUDIO_THREAD_ADD_STREAM,
 	AUDIO_THREAD_DISCONNECT_STREAM,
+	AUDIO_THREAD_RM_ACTIVE_DEV,
+	AUDIO_THREAD_RM_STREAM,
 	AUDIO_THREAD_RM_ALL_STREAMS,
+	AUDIO_THREAD_SET_ACTIVE_DEV,
 	AUDIO_THREAD_STOP,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
 	AUDIO_THREAD_METRICS_LOG,
@@ -44,6 +48,11 @@ enum AUDIO_THREAD_METRICS_TYPE {
 struct audio_thread_msg {
 	size_t length;
 	enum AUDIO_THREAD_COMMAND id;
+};
+
+struct audio_thread_active_device_msg {
+	struct audio_thread_msg header;
+	struct cras_iodev *dev;
 };
 
 struct audio_thread_add_rm_stream_msg {
@@ -380,6 +389,34 @@ static int delete_stream(struct audio_thread *thread,
 	return 0;
 }
 
+/* Gets the first active device for given direction. */
+static inline
+struct cras_iodev *first_active_device(const struct audio_thread *thread,
+				       enum CRAS_STREAM_DIRECTION dir)
+{
+	return thread->active_devs[dir]
+			? thread->active_devs[dir]->dev
+			: NULL;
+}
+
+static inline
+struct cras_iodev *first_output_dev(const struct audio_thread *thread)
+{
+	return first_active_device(thread, CRAS_STREAM_OUTPUT);
+}
+
+static inline
+struct cras_iodev *first_input_dev(const struct audio_thread *thread)
+{
+	return first_active_device(thread, CRAS_STREAM_INPUT);
+}
+
+static inline
+struct cras_iodev *first_loop_dev(const struct audio_thread *thread)
+{
+	return first_active_device(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
+}
+
 /* open the device configured to play the format of the given stream. */
 static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
 {
@@ -389,6 +426,54 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
 	return dev->open_dev(dev);
 }
 
+/*
+ * Non-static functions of prefix 'thread_' runs in audio thread
+ * to manipulate iodevs and streams, visible for unittest.
+ */
+
+/* Clears all active devices for given direction, used to handle
+ * message from main thread to set a new active device.
+ */
+void thread_clear_active_devs(struct audio_thread *thread,
+			      enum CRAS_STREAM_DIRECTION dir)
+{
+	struct active_dev *adev;
+	DL_FOREACH(thread->active_devs[dir], adev) {
+		DL_DELETE(thread->active_devs[dir], adev);
+		free(adev);
+	}
+}
+
+/* Handles message from main thread to set or add a new active device. */
+void thread_add_active_dev(struct audio_thread *thread,
+			   struct cras_iodev *iodev)
+{
+	struct active_dev *adev;
+	DL_SEARCH_SCALAR(thread->active_devs[iodev->direction],
+			 adev, dev, iodev);
+	if (adev) {
+		syslog(LOG_ERR, "Device %s already active",
+		       adev->dev->info.name);
+		return;
+	}
+	adev = (struct active_dev *)calloc(1, sizeof(*adev));
+	adev->dev = iodev;
+	DL_APPEND(thread->active_devs[iodev->direction], adev);
+}
+
+/* Handles message from main thread to remove an active device. */
+void thread_rm_active_dev(struct audio_thread *thread,
+			  struct cras_iodev *iodev)
+{
+	struct active_dev *adev;
+	DL_FOREACH(thread->active_devs[iodev->direction], adev) {
+		if (adev->dev == iodev) {
+			DL_DELETE(thread->active_devs[iodev->direction], adev);
+			free(adev);
+		}
+	}
+}
+
 /* Remove stream from the audio thread. If this is the last stream to be
  * removed close the device. Returns the number of streams still attached
  * to the thread.
@@ -396,9 +481,9 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
 int thread_remove_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
-	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *idev = thread->input_dev;
-	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
+	struct cras_iodev *idev = first_input_dev(thread);
+	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	int in_active, out_active, loop_active;
 
 	if (delete_stream(thread, stream))
@@ -493,9 +578,9 @@ void fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 int thread_add_stream(struct audio_thread *thread,
 		      struct cras_rstream *stream)
 {
-	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *idev = thread->input_dev;
-	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
+	struct cras_iodev *idev = first_input_dev(thread);
+	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	struct cras_io_stream *min_latency;
 	int rc;
 
@@ -689,7 +774,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 				   unsigned int hw_level,
 				   size_t delay)
 {
-	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
 	size_t fr_rate;
 	int frames_in_buff;
 	struct cras_io_stream *curr;
@@ -792,7 +877,7 @@ static int write_streams(struct audio_thread *thread,
 			 size_t level,
 			 size_t write_limit)
 {
-	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
 	struct cras_io_stream *curr;
 	struct timeval to;
 	fd_set poll_set, this_set;
@@ -1072,6 +1157,30 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		}
 		break;
 	}
+	case AUDIO_THREAD_SET_ACTIVE_DEV: {
+		struct audio_thread_active_device_msg *rmsg;
+		struct cras_iodev *dev;
+
+		rmsg = (struct audio_thread_active_device_msg *)msg;
+		dev = rmsg->dev;
+		thread_clear_active_devs(thread, dev->direction);
+		thread_add_active_dev(thread, dev);
+		break;
+	}
+	case AUDIO_THREAD_ADD_ACTIVE_DEV: {
+		struct audio_thread_active_device_msg *rmsg;
+
+		rmsg = (struct audio_thread_active_device_msg *)msg;
+		thread_add_active_dev(thread, rmsg->dev);
+		break;
+	}
+	case AUDIO_THREAD_RM_ACTIVE_DEV: {
+		struct audio_thread_active_device_msg *rmsg;
+
+		rmsg = (struct audio_thread_active_device_msg *)msg;
+		thread_rm_active_dev(thread, rmsg->dev);
+		break;
+	}
 	case AUDIO_THREAD_STOP:
 		ret = 0;
 		err = audio_thread_send_response(thread, ret);
@@ -1081,8 +1190,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		break;
 	case AUDIO_THREAD_DUMP_THREAD_INFO: {
 		struct cras_io_stream *curr;
-		struct cras_iodev *idev = thread->input_dev;
-		struct cras_iodev *odev = thread->output_dev;
+		struct cras_iodev *idev = first_input_dev(thread);
+		struct cras_iodev *odev = first_output_dev(thread);
 		struct audio_thread_dump_debug_info_msg *dmsg;
 		struct audio_debug_info *info;
 		unsigned int i = 0;
@@ -1162,8 +1271,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
  */
 static unsigned int adjust_level(const struct audio_thread *thread, int level)
 {
-	struct cras_iodev *idev = thread->input_dev;
-	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *idev = first_input_dev(thread);
+	struct cras_iodev *odev = first_output_dev(thread);
 
 	if (device_open(idev) || !odev || odev->min_buffer_level == 0)
 		return level;
@@ -1184,7 +1293,7 @@ static unsigned int adjust_level(const struct audio_thread *thread, int level)
  */
 static int get_output_sleep_frames(struct audio_thread *thread)
 {
-	struct cras_iodev *odev = thread->output_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
 	struct cras_io_stream *curr;
 	unsigned int adjusted_level;
 	unsigned int sleep_frames;
@@ -1239,8 +1348,8 @@ int possibly_fill_audio(struct audio_thread *thread,
 	int rc;
 	int delay;
 	uint8_t *dst = NULL;
-	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *loop_dev = thread->post_mix_loopback_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
+	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	unsigned int frame_bytes;
 	unsigned int hw_level, adjusted_level;
 
@@ -1496,9 +1605,9 @@ int possibly_read_audio(struct audio_thread *thread,
 /* Reads and/or writes audio sampels from/to the devices. */
 int unified_io(struct audio_thread *thread, struct timespec *ts)
 {
-	struct cras_iodev *idev = thread->input_dev;
-	struct cras_iodev *odev = thread->output_dev;
-	struct cras_iodev *loopdev = thread->post_mix_loopback_dev;
+	struct cras_iodev *odev = first_output_dev(thread);
+	struct cras_iodev *idev = first_input_dev(thread);
+	struct cras_iodev *loopdev = first_loop_dev(thread);
 	int rc;
 	unsigned int cap_sleep_frames, pb_sleep_frames, loop_sleep_frames;
 	struct timespec cap_ts, pb_ts, loop_ts;
@@ -1852,18 +1961,50 @@ struct audio_thread *audio_thread_create()
 	return thread;
 }
 
-void audio_thread_set_output_dev(struct audio_thread *thread,
-				 struct cras_iodev *odev)
+int audio_thread_set_active_dev(struct audio_thread *thread,
+				struct cras_iodev *dev)
 {
-	thread->output_dev = odev;
-	odev->thread = thread;
+	struct audio_thread_active_device_msg msg;
+
+	assert(thread && dev);
+	if (!thread->started)
+		return -EINVAL;
+
+	msg.header.id = AUDIO_THREAD_SET_ACTIVE_DEV;
+	msg.header.length = sizeof(struct audio_thread_active_device_msg);
+	msg.dev = dev;
+	return audio_thread_post_message(thread, &msg.header);
 }
 
-void audio_thread_set_input_dev(struct audio_thread *thread,
-				struct cras_iodev *idev)
+
+int audio_thread_add_active_dev(struct audio_thread *thread,
+				struct cras_iodev *dev)
 {
-	thread->input_dev = idev;
-	idev->thread = thread;
+	struct audio_thread_active_device_msg msg;
+
+	assert(thread && dev);
+	if (!thread->started)
+		return -EINVAL;
+
+	msg.header.id = AUDIO_THREAD_ADD_ACTIVE_DEV;
+	msg.header.length = sizeof(struct audio_thread_active_device_msg);
+	msg.dev = dev;
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_rm_active_dev(struct audio_thread *thread,
+			       struct cras_iodev *dev)
+{
+	struct audio_thread_active_device_msg msg;
+
+	assert(thread && dev);
+	if (!thread->started)
+		return -EINVAL;
+
+	msg.header.id = AUDIO_THREAD_RM_ACTIVE_DEV;
+	msg.header.length = sizeof(struct audio_thread_active_device_msg);
+	msg.dev = dev;
+	return audio_thread_post_message(thread, &msg.header);
 }
 
 int audio_thread_start(struct audio_thread *thread)
@@ -1901,10 +2042,9 @@ void audio_thread_destroy(struct audio_thread *thread)
 		pthread_join(thread->tid, NULL);
 	}
 
-	if (thread->input_dev)
-		thread->input_dev->thread = NULL;
-	if (thread->output_dev)
-		thread->output_dev->thread = NULL;
+	thread_clear_active_devs(thread, CRAS_STREAM_OUTPUT);
+	thread_clear_active_devs(thread, CRAS_STREAM_INPUT);
+	thread_clear_active_devs(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	if (thread->to_thread_fds[0] != -1) {
 		close(thread->to_thread_fds[0]);
@@ -1929,7 +2069,7 @@ void audio_thread_add_loopback_device(struct audio_thread *thread,
 {
 	switch (loop_dev->direction) {
 	case CRAS_STREAM_POST_MIX_PRE_DSP:
-		thread->post_mix_loopback_dev = loop_dev;
+		audio_thread_add_active_dev(thread, loop_dev);
 		break;
 	default:
 		return;

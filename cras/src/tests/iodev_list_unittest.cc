@@ -44,8 +44,8 @@ static unsigned int set_node_attr_called;
 static int cras_alert_create_called;
 static int cras_alert_destroy_called;
 static int cras_alert_pending_called;
-static cras_iodev *audio_thread_remove_streams_odev;
-static cras_iodev *audio_thread_last_output_dev;
+static cras_iodev *audio_thread_remove_streams_active_dev;
+static cras_iodev *audio_thread_set_active_dev_val;
 static unsigned int cras_system_get_volume_return;
 static int cras_iodev_set_software_volume_called;
 static float cras_iodev_set_software_volume_value;
@@ -774,17 +774,13 @@ int audio_thread_start(struct audio_thread *thread) {
 void audio_thread_destroy(struct audio_thread *thread) {
 }
 
-void audio_thread_set_output_dev(struct audio_thread *thread,
-                                 struct cras_iodev *odev) {
-  audio_thread_last_output_dev = odev;
-}
-
-void audio_thread_set_input_dev(struct audio_thread *thread,
-                                struct cras_iodev *idev) {
+void audio_thread_set_active_dev(struct audio_thread *thread,
+                                 struct cras_iodev *dev) {
+  audio_thread_set_active_dev_val = dev;
 }
 
 void audio_thread_remove_streams(struct audio_thread *thread) {
-  audio_thread_remove_streams_odev = audio_thread_last_output_dev;
+  audio_thread_remove_streams_active_dev = audio_thread_set_active_dev_val;
 }
 
 void audio_thread_add_loopback_device(struct audio_thread *thread,

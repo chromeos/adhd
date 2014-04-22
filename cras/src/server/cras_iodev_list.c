@@ -368,13 +368,8 @@ static struct cras_iodev *cras_iodev_set_active(
 
 	audio_thread_remove_streams(audio_thread, dir);
 
-	if (dir == CRAS_STREAM_OUTPUT) {
-		curr = &active_output;
-		audio_thread_set_output_dev(audio_thread, new_active);
-	} else {
-		curr = &active_input;
-		audio_thread_set_input_dev(audio_thread, new_active);
-	}
+	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
+	audio_thread_set_active_dev(audio_thread, new_active);
 
 	/* Set current active to the newly requested device. */
 	old_active = *curr;
@@ -396,7 +391,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 
 	if (!active_output) {
 		active_output = output;
-		audio_thread_set_output_dev(audio_thread, output);
+		audio_thread_set_active_dev(audio_thread, output);
 	}
 	if (!default_output)
 		default_output = output;
@@ -423,7 +418,7 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 
 	if (!active_input) {
 		active_input = input;
-		audio_thread_set_input_dev(audio_thread, input);
+		audio_thread_set_active_dev(audio_thread, input);
 	}
 	if (!default_input)
 		default_input = input;

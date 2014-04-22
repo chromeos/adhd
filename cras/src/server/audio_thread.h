@@ -29,28 +29,31 @@ struct cras_io_stream {
 	struct cras_io_stream *prev, *next;
 };
 
+/* List of active input/output devices. */
+struct active_dev {
+	struct cras_iodev *dev;
+	struct active_dev *prev, *next;
+};
+
 /* Hold communication pipes and pthread info for a thread used to play or record
  * audio.  This maps 1 to 1 with IO devices.
- *    odev - The output device to attach this thread to, NULL if none.
- *    idev - The input device to attach this thread to, NULL if none.
- *    post_mix_loopback_dev - Loopback device for post mix feedback.
  *    to_thread_fds - Send a message from main to running thread.
  *    to_main_fds - Send a synchronous response to main from running thread.
  *    main_msg_fds - Send a message from running thread to main.
  *    tid - Thread ID of the running playback/capture thread.
  *    started - Non-zero if the thread has started successfully.
  *    streams - List of audio streams serviced by this thread.
+ *    active_dev - Lists of active devices attached running for each
+ *        CRAS_STREAM_DIRECTION.
  */
 struct audio_thread {
-	struct cras_iodev *output_dev;
-	struct cras_iodev *input_dev;
-	struct cras_iodev *post_mix_loopback_dev;
 	int to_thread_fds[2];
 	int to_main_fds[2];
 	int main_msg_fds[2];
 	pthread_t tid;
 	int started;
 	struct cras_io_stream *streams;
+	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
 };
 
 /* Callback function to be handled in main loop in audio thread.
@@ -74,21 +77,29 @@ typedef int (*thread_callback)(void *data, struct timespec *wait_ts,
  */
 struct audio_thread *audio_thread_create();
 
-/* Sets the device to be used for output.
- * Args:
- *    thread - The thread to add the device to.
- *    odev - The output device to use.
- */
-void audio_thread_set_output_dev(struct audio_thread *thread,
-				 struct cras_iodev *odev);
-
 /* Sets the device to be used for input.
  * Args:
- *    thread - The thread to add the device to.
- *    idev - The input device to use.
+ *    thread - The thread to set the active device to.
+ *    dev - The device to set as active.
  */
-void audio_thread_set_input_dev(struct audio_thread *thread,
-				struct cras_iodev *idev);
+int audio_thread_set_active_dev(struct audio_thread *thread,
+				struct cras_iodev *dev);
+
+/* Adds an active device.
+ * Args:
+ *    thread - The thread to add active device to.
+ *    dev - The active device to add.
+ */
+int audio_thread_add_active_dev(struct audio_thread *thread,
+				struct cras_iodev *dev);
+
+/* Removes an active device.
+ * Args:
+ *    thread - The thread to remove active device from.
+ *    dev - The active device to remove.
+ */
+int audio_thread_rm_active_dev(struct audio_thread *thread,
+			       struct cras_iodev *dev);
 
 /* Adds an thread_callback to audio thread.
  * Args:
