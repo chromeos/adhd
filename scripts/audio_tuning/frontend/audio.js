@@ -118,8 +118,21 @@ var analyzer_right;     /* The FFT analyzer for right channel */
  * This value is stored in drc.emphasis_disabled in the config. */
 var browser_emphasis_disabled_detection_result;
 
+/* The supported audio element names are different on browsers with different
+ * versions.*/
+function fix_audio_elements() {
+  try {
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    window.OfflineAudioContext = (window.OfflineAudioContext ||
+        window.webkitOfflineAudioContext);
+  }
+  catch(e) {
+    alert('Web Audio API is not supported in this browser');
+  }
+}
+
 function init_audio() {
-  audioContext = new webkitAudioContext();
+  audioContext = new AudioContext();
   nyquist = audioContext.sampleRate / 2;
 }
 
@@ -599,9 +612,8 @@ function get_emphasis_disabled() {
   }
 
   function runTest() {
-
-    context = new webkitOfflineAudioContext(1, sampleRate * lengthInSeconds,
-                                            sampleRate);
+    context = new OfflineAudioContext(1, sampleRate * lengthInSeconds,
+                                      sampleRate);
     // Connect an oscillator to a gain node to the compressor.  The
     // oscillator frequency is set to a high value for the (original)
     // emphasis to kick in. The gain is a little extra boost to get the
@@ -627,6 +639,11 @@ function get_emphasis_disabled() {
 /* Returns one DRC filter */
 function drc() {
   var comp = audioContext.createDynamicsCompressor();
+
+  /* The supported method names are different on browsers with different
+   * versions.*/
+  audioContext.createGainNode = (audioContext.createGainNode ||
+                                 audioContext.createGain);
   var boost = audioContext.createGainNode();
   comp.threshold.value = INIT_DRC_THRESHOLD;
   comp.knee.value = INIT_DRC_KNEE;
@@ -1419,6 +1436,7 @@ function global_section(parent) {
 }
 
 window.onload = function() {
+  fix_audio_elements();
   /* Detects if emphasis is disabled and sets
    * browser_emphasis_disabled_detection_result. */
   get_emphasis_disabled();
