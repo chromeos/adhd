@@ -1191,6 +1191,27 @@ int input_delay_frames(struct active_dev *adevs)
 	return max_delay;
 }
 
+/* Gets the min queued frames of active input devices. */
+int input_min_frames_queued(struct active_dev *adevs)
+{
+	struct active_dev *adev;
+	int min_frames_queued;
+	int fr;
+
+	min_frames_queued = adevs->dev->frames_queued(adevs->dev);
+	if (min_frames_queued < 0)
+		return min_frames_queued;
+	DL_FOREACH(adevs, adev) {
+		fr = adev->dev->frames_queued(adev->dev);
+		if (fr < 0)
+			return fr;
+		if (min_frames_queued > fr)
+			min_frames_queued = fr;
+	}
+
+	return min_frames_queued;
+}
+
 /* Stop the playback thread */
 static void terminate_pb_thread()
 {
@@ -1686,7 +1707,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	frame_bytes = cras_get_format_bytes(idev->format);
 
-	rc = idev->frames_queued(idev);
+	rc = input_min_frames_queued(thread->active_devs[idev->direction]);
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
