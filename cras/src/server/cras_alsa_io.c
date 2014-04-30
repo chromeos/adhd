@@ -604,42 +604,56 @@ static const char *get_output_node_name(struct alsa_io *aio,
 	}
 }
 
-static int get_ucm_flag_integer(struct alsa_io *aio, const char *flag_name)
+static int get_ucm_flag_integer(struct alsa_io *aio,
+				const char *flag_name,
+				int *result)
 {
 	char *value;
 	int i;
 
 	if (!aio->ucm)
-		return 0;
+		return -1;
 
 	value = ucm_get_flag(aio->ucm, flag_name);
 	if (!value)
-		return 0;
+		return -1;
 
 	i = atoi(value);
 	free(value);
-
-	return i;
+	*result = i;
+	return 0;
 }
 
 static int auto_unplug_input_node(struct alsa_io *aio)
 {
-	return get_ucm_flag_integer(aio, "AutoUnplugInputNode");
+	int result;
+	if (get_ucm_flag_integer(aio, "AutoUnplugInputNode", &result))
+		return 0;
+	return result;
 }
 
 static int auto_unplug_output_node(struct alsa_io *aio)
 {
-	return get_ucm_flag_integer(aio, "AutoUnplugOutputNode");
+	int result;
+	if (get_ucm_flag_integer(aio, "AutoUnplugOutputNode", &result))
+		return 0;
+	return result;
 }
 
 static int no_create_default_input_node(struct alsa_io *aio)
 {
-	return get_ucm_flag_integer(aio, "NoCreateDefaultInputNode");
+	int result;
+	if (get_ucm_flag_integer(aio, "NoCreateDefaultInputNode", &result))
+		return 0;
+	return result;
 }
 
 static int no_create_default_output_node(struct alsa_io *aio)
 {
-	return get_ucm_flag_integer(aio, "NoCreateDefaultOutputNode");
+	int result;
+	if (get_ucm_flag_integer(aio, "NoCreateDefaultOutputNode", &result))
+		return 0;
+	return result;
 }
 
 /* Callback for listing mixer outputs.  The mixer will call this once for each
