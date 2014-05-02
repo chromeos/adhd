@@ -12,6 +12,7 @@ cras_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
+	common/cras_fmt_conv.c \
 	common/cras_metrics.c \
 	common/cras_util.c \
 	common/dumper.c \
@@ -80,7 +81,7 @@ cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
-cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl -lm \
+cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS)
 
