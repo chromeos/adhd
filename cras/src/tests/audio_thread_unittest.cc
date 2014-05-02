@@ -1595,7 +1595,12 @@ class ActiveDevicesSuite : public testing::Test {
       thread_ = audio_thread_create();
       ASSERT_TRUE(thread_);
 
+      buffer_frames_ = 500;
+      cb_threshold_ = 250;
       SetupRstream(&rstream_);
+      SetupRstream(&rstream2_);
+      rstream2_->buffer_frames -= 50;
+      rstream2_->cb_threshold -= 50;
 
       cras_iodev_config_params_for_streams_called = 0;
       cras_iodev_set_format_called = 0;
@@ -1621,7 +1626,8 @@ class ActiveDevicesSuite : public testing::Test {
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->direction = CRAS_STREAM_OUTPUT;
-
+      (*rstream)->buffer_frames = buffer_frames_;
+      (*rstream)->cb_threshold = cb_threshold_;
       shm = cras_rstream_output_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
           sizeof(*shm->area));
@@ -1646,14 +1652,19 @@ class ActiveDevicesSuite : public testing::Test {
   static int open_dev_val_[8];
   static int open_dev_val_idx_;
   static int close_dev_called_;
+  static int buffer_frames_;
+  static int cb_threshold_;
   struct cras_iodev iodev_;
   struct cras_iodev iodev2_;
   struct cras_audio_format fmt_;
   struct cras_rstream *rstream_;
+  struct cras_rstream *rstream2_;
   struct audio_thread *thread_;
 };
 
 int ActiveDevicesSuite::is_open_ = 0;
+int ActiveDevicesSuite::buffer_frames_ = 0;
+int ActiveDevicesSuite::cb_threshold_ = 0;
 int ActiveDevicesSuite::close_dev_called_ = 0;
 int ActiveDevicesSuite::open_dev_val_[8];
 int ActiveDevicesSuite::open_dev_val_idx_ = 0;
@@ -1711,7 +1722,11 @@ TEST_F(ActiveDevicesSuite, OpenActiveDevices) {
   thread_add_stream(thread_, rstream_);
 
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(rstream_->buffer_frames,
+            cras_iodev_config_params_for_streams_buffer_size);
+  EXPECT_EQ(rstream_->cb_threshold,
+            cras_iodev_config_params_for_streams_threshold);
 }
 
 TEST_F(ActiveDevicesSuite, OpenFirstActiveDeviceFail) {
@@ -1773,7 +1788,26 @@ TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
   thread_add_stream(thread_, rstream_);
   EXPECT_EQ(1, thread_->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(rstream_->buffer_frames,
+            cras_iodev_config_params_for_streams_buffer_size);
+  EXPECT_EQ(rstream_->cb_threshold,
+            cras_iodev_config_params_for_streams_threshold);
+
+  thread_add_stream(thread_, rstream2_);
+  EXPECT_EQ(2, cras_iodev_set_format_called);
+  EXPECT_EQ(4, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(rstream2_->buffer_frames,
+            cras_iodev_config_params_for_streams_buffer_size);
+  EXPECT_EQ(rstream2_->cb_threshold,
+            cras_iodev_config_params_for_streams_threshold);
+
+  thread_remove_stream(thread_, rstream2_);
+  EXPECT_EQ(6, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(rstream_->buffer_frames,
+            cras_iodev_config_params_for_streams_buffer_size);
+  EXPECT_EQ(rstream_->cb_threshold,
+            cras_iodev_config_params_for_streams_threshold);
 
   thread_remove_stream(thread_, rstream_);
   EXPECT_EQ(0, thread_->devs_open[CRAS_STREAM_OUTPUT]);

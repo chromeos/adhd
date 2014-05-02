@@ -520,6 +520,19 @@ static int devices_running(struct audio_thread *thread,
 	return 1;
 }
 
+void config_devices_min_latency(struct audio_thread *thread,
+				enum CRAS_STREAM_DIRECTION dir)
+{
+	struct active_dev *adev;
+	struct cras_io_stream *min_latency;
+
+	min_latency = get_min_latency_stream(thread, dir);
+	DL_FOREACH(thread->active_devs[dir], adev)
+		cras_iodev_config_params(adev->dev,
+			cras_rstream_get_buffer_size(min_latency->stream),
+			cras_rstream_get_cb_threshold(min_latency->stream));
+}
+
 /*
  * Non-static functions of prefix 'thread_' runs in audio thread
  * to manipulate iodevs and streams, visible for unittest.
@@ -578,9 +591,6 @@ void thread_rm_active_dev(struct audio_thread *thread,
 int thread_remove_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
-	struct cras_iodev *odev = first_output_dev(thread);
-	struct cras_iodev *idev = first_input_dev(thread);
-	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	int in_active, out_active, loop_active;
 
 	if (delete_stream(thread, stream))
@@ -588,44 +598,29 @@ int thread_remove_stream(struct audio_thread *thread,
 
 	active_streams(thread, &in_active, &out_active, &loop_active);
 
-	if (!in_active) {
-		/* No more streams, close the dev. */
+	/* When removing the last stream of a certain direction, close
+	 * all active devices of that direction. Otherwise reconfigure
+	 * active devices for the min latency stream.
+	 */
+	if (!in_active)
 		close_devices(thread, CRAS_STREAM_INPUT);
-	} else {
-		struct cras_io_stream *min_latency;
-		min_latency = get_min_latency_stream(thread, CRAS_STREAM_INPUT);
-		cras_iodev_config_params(
-			idev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
-	}
-	if (!out_active) {
-		/* No more streams, close the dev. */
+	else
+		config_devices_min_latency(thread, CRAS_STREAM_INPUT);
+
+	if (!out_active)
 		close_devices(thread, CRAS_STREAM_OUTPUT);
-	} else {
-		struct cras_io_stream *min_latency;
-		min_latency = get_min_latency_stream(thread,
-						     CRAS_STREAM_OUTPUT);
-		cras_iodev_config_params(
-			odev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
-	}
-	if (!loop_active) {
-		/* No more streams, close the dev. */
+	else
+		config_devices_min_latency(thread, CRAS_STREAM_OUTPUT);
+
+	if (!loop_active)
 		close_devices(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
-	} else {
-		struct cras_io_stream *min_latency;
-		min_latency = get_min_latency_stream(
-			thread, CRAS_STREAM_POST_MIX_PRE_DSP);
-		cras_iodev_config_params(
-			loop_dev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
-	}
+	else
+		config_devices_min_latency(thread,
+					   CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	return streams_attached(thread);
 }
+
 
 /* Handles the disconnect_stream message from the main thread. */
 int thread_disconnect_stream(struct audio_thread* thread,
@@ -649,9 +644,7 @@ int thread_disconnect_stream(struct audio_thread* thread,
 	return streams_attached(thread);
 }
 
-/* Put 'frames' worth of zero samples into odev.  Used to build an initial
- * buffer to avoid an underrun. Adds 'frames' latency.
- */
+/* Put 'frames' worth of zero samples into odev. */
 void fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 {
 	uint8_t *dst;
@@ -668,14 +661,19 @@ void fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 	odev->put_buffer(odev, frames);
 }
 
+/* Builds an initial buffer to avoid an underrun. Adds cb_threshold latency. */
+void fill_odevs_zeros_cb_threshold(struct audio_thread *thread)
+{
+	struct active_dev *adev;
+	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
+		fill_odev_zeros(adev->dev, adev->dev->cb_threshold);
+}
+
 /* Handles the add_stream message from the main thread. */
 int thread_add_stream(struct audio_thread *thread,
 		      struct cras_rstream *stream)
 {
-	struct cras_iodev *odev = first_output_dev(thread);
-	struct cras_iodev *idev = first_input_dev(thread);
 	struct cras_iodev *loop_dev = first_loop_dev(thread);
-	struct cras_io_stream *min_latency;
 	int rc;
 
 	rc = append_stream(thread, stream);
@@ -691,16 +689,18 @@ int thread_add_stream(struct audio_thread *thread,
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
 
-		if (cras_stream_is_unified(stream->direction)) {
+		if (cras_stream_is_unified(stream->direction))
 			/* Start unified streams by padding the output.
 			 * This avoid underruns while processing the input data.
 			 */
-			fill_odev_zeros(odev, odev->cb_threshold);
-		}
+			fill_odevs_zeros_cb_threshold(thread);
 
 		if (loop_dev) {
 			struct cras_io_stream *iostream;
-			loopback_iodev_set_format(loop_dev, odev->format);
+			struct cras_audio_format fmt;
+
+			cras_rstream_get_format(stream, &fmt);
+			loopback_iodev_set_format(loop_dev, &fmt);
 			/* For each loopback stream; detach and tell client to reconfig. */
 			DL_FOREACH(thread->streams, iostream) {
 				if (!stream_uses_loopback(iostream->stream))
@@ -727,31 +727,15 @@ int thread_add_stream(struct audio_thread *thread,
 		}
 	}
 
-	if (device_open(odev)) {
-		min_latency = get_min_latency_stream(thread,
-						     CRAS_STREAM_OUTPUT);
-		cras_iodev_config_params(
-			odev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
-	}
+	if (thread->devs_open[CRAS_STREAM_OUTPUT])
+		config_devices_min_latency(thread, CRAS_STREAM_OUTPUT);
 
-	if (device_open(idev)) {
-		min_latency = get_min_latency_stream(thread, CRAS_STREAM_INPUT);
-		cras_iodev_config_params(
-			idev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
-	}
+	if (thread->devs_open[CRAS_STREAM_INPUT])
+		config_devices_min_latency(thread, CRAS_STREAM_INPUT);
 
-	if (device_open(loop_dev)) {
-		min_latency = get_min_latency_stream(
-			thread, CRAS_STREAM_POST_MIX_PRE_DSP);
-		cras_iodev_config_params(
-			loop_dev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
-	}
+	if (thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP])
+		config_devices_min_latency(thread,
+					   CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	return 0;
 }
