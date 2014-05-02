@@ -1144,16 +1144,34 @@ static int write_streams(struct audio_thread *thread,
 /* Checks if the stream type matches the device.  For input devices, both input
  * and unified streams match, for loopback, each loopback type matches.
  */
-static int input_stream_matches_dev(const struct cras_iodev *dev,
+static int input_stream_matches_dev(enum CRAS_STREAM_DIRECTION dir,
 				    struct cras_rstream *rstream)
 {
-	if (dev->direction == CRAS_STREAM_INPUT)
+	if (dir == CRAS_STREAM_INPUT)
 		return stream_uses_input(rstream);
 
-	if (dev->direction == CRAS_STREAM_POST_MIX_PRE_DSP)
+	if (dir == CRAS_STREAM_POST_MIX_PRE_DSP)
 		return rstream->direction == CRAS_STREAM_POST_MIX_PRE_DSP;
 
 	return 0;
+}
+
+/* Gets the max delay frames of active input devices. */
+int input_delay_frames(struct active_dev *adevs)
+{
+	struct active_dev *adev;
+	int delay;
+	int max_delay = 0;
+
+	DL_FOREACH(adevs, adev) {
+		delay = adev->dev->delay_frames(adev->dev) +
+				get_dsp_delay(adev->dev);
+		if (delay < 0)
+			return delay;
+		if (delay > max_delay)
+			max_delay = delay;
+	}
+	return max_delay;
 }
 
 /* Pass captured samples to the client.
@@ -1163,7 +1181,7 @@ static int input_stream_matches_dev(const struct cras_iodev *dev,
  *    count - the number of frames captured = buffer_frames.
  */
 static void read_streams(struct audio_thread *thread,
-			 const struct cras_iodev *iodev,
+			 enum CRAS_STREAM_DIRECTION dir,
 			 const uint8_t *src,
 			 snd_pcm_uframes_t count)
 {
@@ -1174,7 +1192,7 @@ static void read_streams(struct audio_thread *thread,
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream = stream->stream;
 
-		if (!input_stream_matches_dev(iodev, rstream))
+		if (!input_stream_matches_dev(dir, rstream))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -1583,19 +1601,17 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (!input_stream_matches_dev(idev, rstream))
+		if (!input_stream_matches_dev(idev->direction, rstream))
 			continue;
 
-		delay = idev->delay_frames(idev);
-		if (delay < 0)
-			return delay;
+		delay = input_delay_frames(thread->active_devs[idev->direction]);
 
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
 		if (cras_shm_frames_written(shm) == 0)
 			cras_iodev_set_capture_timestamp(
-					idev->format->frame_rate,
-					delay + get_dsp_delay(idev),
+					rstream->format.frame_rate,
+					delay,
 					&shm->area->ts);
 		cras_shm_get_writeable_frames(
 				shm,
@@ -1606,8 +1622,8 @@ int possibly_read_audio(struct audio_thread *thread,
 		output_shm = cras_rstream_output_shm(rstream);
 		if (output_shm->area)
 			cras_iodev_set_playback_timestamp(
-					idev->format->frame_rate,
-					delay + get_dsp_delay(idev),
+					rstream->format.frame_rate,
+					delay,
 					&output_shm->area->ts);
 	}
 
@@ -1618,7 +1634,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		read_streams(thread, idev, src, nread);
+		read_streams(thread, idev->direction, src, nread);
 
 		rc = idev->put_buffer(idev, nread);
 		if (rc < 0)
@@ -1638,7 +1654,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (!input_stream_matches_dev(idev, rstream))
+		if (!input_stream_matches_dev(idev->direction, rstream))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -1684,9 +1700,9 @@ int possibly_read_audio(struct audio_thread *thread,
 		/* No hardware clock here to correct for, just sleep for another
 		 * period.
 		 */
-		*min_sleep = thread->cb_threshold[CRAS_STREAM_INPUT];
+		*min_sleep = thread->cb_threshold[idev->direction];
 	} else {
-		*min_sleep = cras_iodev_sleep_frames(idev,
+		*min_sleep = cras_iodev_sleep_frames(idev->direction,
 				*min_sleep,
 				hw_level - write_limit) +
 			CAP_REMAINING_FRAMES_TARGET;

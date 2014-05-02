@@ -31,6 +31,7 @@ int thread_remove_stream(audio_thread* thread,
 int thread_disconnect_stream(audio_thread* thread,
                              cras_rstream* stream);
 int unified_io(audio_thread* thread, timespec* ts);
+int input_delay_frames(struct active_dev *adevs);
 
 static int cras_mix_add_stream_dont_fill_next;
 static unsigned int cras_mix_add_stream_count;
@@ -1604,11 +1605,13 @@ class ActiveDevicesSuite : public testing::Test {
       iodev_.close_dev = close_dev;
       iodev_.is_open = is_open;
       iodev_.open_dev = open_dev;
+      iodev_.delay_frames = delay_frames;
       iodev_.format = &fmt_;
       iodev_.buffer_size = 2048;
       iodev2_.close_dev = close_dev;
       iodev2_.is_open = is_open;
       iodev2_.open_dev = open_dev;
+      iodev2_.delay_frames = delay_frames;
       iodev2_.format = &fmt_;
       iodev2_.buffer_size = 2048;
       thread_ = audio_thread_create();
@@ -1626,8 +1629,10 @@ class ActiveDevicesSuite : public testing::Test {
       is_open_ = 0;
       cras_fmt_conversion_needed_return_val = 0;
       open_dev_val_idx_ = 0;
+      delay_frames_val_idx_ = 0;
       for (int i = 0; i < 8; i++) {
         open_dev_val_[i] = 0;
+        delay_frames_[i] = 0;
       }
     }
 
@@ -1666,6 +1671,11 @@ class ActiveDevicesSuite : public testing::Test {
       return open_dev_val_[open_dev_val_idx_++];
     }
 
+    static int delay_frames(const cras_iodev* iodev) {
+      delay_frames_val_idx_ %= 8;
+      return delay_frames_[delay_frames_val_idx_++];
+    }
+
   static int is_open_;
   static int open_dev_val_[8];
   static int open_dev_val_idx_;
@@ -1678,6 +1688,8 @@ class ActiveDevicesSuite : public testing::Test {
   struct cras_rstream *rstream_;
   struct cras_rstream *rstream2_;
   struct audio_thread *thread_;
+  static int delay_frames_val_idx_;
+  static int delay_frames_[8];
 };
 
 int ActiveDevicesSuite::is_open_ = 0;
@@ -1686,6 +1698,8 @@ int ActiveDevicesSuite::cb_threshold_ = 0;
 int ActiveDevicesSuite::close_dev_called_ = 0;
 int ActiveDevicesSuite::open_dev_val_[8];
 int ActiveDevicesSuite::open_dev_val_idx_ = 0;
+int ActiveDevicesSuite::delay_frames_val_idx_ = 0;
+int ActiveDevicesSuite::delay_frames_[8];
 
 TEST_F(ActiveDevicesSuite, AddRemoveActiveDevice) {
   struct active_dev *adevs;
@@ -1815,6 +1829,26 @@ TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
   thread_remove_stream(thread_, rstream_);
   EXPECT_EQ(0, thread_->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(2, ActiveDevicesSuite::close_dev_called_);
+}
+
+TEST_F(ActiveDevicesSuite, InputDelayFrames) {
+  int fr;
+  iodev_.direction = CRAS_STREAM_INPUT;
+  iodev2_.direction = CRAS_STREAM_INPUT;
+
+  thread_add_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+
+  thread_add_stream(thread_, rstream_);
+  delay_frames_[0] = 3;
+  delay_frames_[1] = 33;
+  fr = input_delay_frames(thread_->active_devs[CRAS_STREAM_INPUT]);
+  EXPECT_EQ(33, fr);
+
+  delay_frames_val_idx_ = 0;
+  delay_frames_[1] = -1;
+  fr = input_delay_frames(thread_->active_devs[CRAS_STREAM_INPUT]);
+  EXPECT_EQ(-1, fr);
 }
 
 extern "C" {
