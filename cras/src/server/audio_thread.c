@@ -1682,12 +1682,12 @@ static int capture_to_stream(uint8_t *stream_buffer,
  * Return the number of samples read from the device.
  * Args:
  *    thread - the audio thread this is running for.
- *    idev - the device to read samples from.
+ *    dir - the direction of device to read samples from.
  *    min_sleep - Will be filled with the minimum amount of frames needed to
  *      fill the next lowest latency stream's buffer.
  */
 int possibly_read_audio(struct audio_thread *thread,
-			struct cras_iodev *idev,
+			enum CRAS_STREAM_DIRECTION dir,
 			unsigned int *min_sleep)
 {
 	struct cras_audio_shm *shm;
@@ -1702,12 +1702,10 @@ int possibly_read_audio(struct audio_thread *thread,
 	unsigned int dev_index = 0;
 	uint8_t *dst, *first_buffer;
 
-	if (!idev || !thread->devs_open[idev->direction])
+	if (!thread->devs_open[dir])
 		return 0;
 
-	frame_bytes = cras_get_format_bytes(idev->format);
-
-	rc = input_min_frames_queued(thread->active_devs[idev->direction]);
+	rc = input_min_frames_queued(thread->active_devs[dir]);
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
@@ -1721,22 +1719,23 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	write_limit = get_write_limit_set_delay(thread,
 						write_limit,
-						idev->direction);
+						dir);
 
 	/* Read samples from this input device to the first stream. */
 	DL_FOREACH(thread->streams, stream) {
-		if (input_stream_matches_dev(idev->direction, stream->stream)) {
+		if (input_stream_matches_dev(dir, stream->stream)) {
 			first_stream = stream;
 			break;
 		}
 	}
 
 	/* Save starting write point as a bookmark to copy from later. */
+	frame_bytes = cras_get_format_bytes(&first_stream->stream->format);
 	first_shm = cras_rstream_input_shm(first_stream->stream);
 	first_buffer = cras_shm_get_writeable_frames(
 			first_shm, cras_shm_used_frames(first_shm), NULL);
 
-	DL_FOREACH(thread->active_devs[idev->direction], adev) {
+	DL_FOREACH(thread->active_devs[dir], adev) {
 		rc = capture_to_stream(first_buffer, adev->dev,
 				       cras_shm_frame_bytes(first_shm),
 				       write_limit, dev_index++);
@@ -1752,7 +1751,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		struct cras_rstream *rstream = stream->stream;
 
 		if (stream == first_stream ||
-		    !input_stream_matches_dev(idev->direction, rstream))
+		    !input_stream_matches_dev(dir, rstream))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -1765,7 +1764,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	/* Minimum sleep frames should not be larger than the used callback
 	 * threshold in frames for given direction.
 	 */
-	*min_sleep = thread->cb_threshold[idev->direction];
+	*min_sleep = thread->cb_threshold[dir];
 
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
@@ -1773,7 +1772,7 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		rstream = stream->stream;
 
-		if (!input_stream_matches_dev(idev->direction, rstream))
+		if (!input_stream_matches_dev(dir, rstream))
 			continue;
 
 		shm = cras_rstream_input_shm(rstream);
@@ -1807,13 +1806,13 @@ int possibly_read_audio(struct audio_thread *thread,
 				cras_rstream_output_shm(rstream), 1);
 	}
 
-	if (idev->direction == CRAS_STREAM_POST_MIX_PRE_DSP) {
+	if (dir == CRAS_STREAM_POST_MIX_PRE_DSP) {
 		/* No hardware clock here to correct for, just sleep for another
 		 * period.
 		 */
-		*min_sleep = thread->cb_threshold[idev->direction];
+		*min_sleep = thread->cb_threshold[dir];
 	} else {
-		*min_sleep = cras_iodev_sleep_frames(idev->direction,
+		*min_sleep = cras_iodev_sleep_frames(dir,
 				*min_sleep,
 				hw_level - write_limit) +
 			CAP_REMAINING_FRAMES_TARGET;
@@ -1847,10 +1846,13 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		loop_sleep_frames =
 			thread->cb_threshold[CRAS_STREAM_POST_MIX_PRE_DSP];
 	}
-	possibly_read_audio(thread, loopdev, &loop_sleep_frames);
+
+	possibly_read_audio(thread,
+			    CRAS_STREAM_POST_MIX_PRE_DSP,
+			    &loop_sleep_frames);
 
 	/* Capture streams. */
-	rc = possibly_read_audio(thread, idev, &cap_sleep_frames);
+	rc = possibly_read_audio(thread, CRAS_STREAM_INPUT, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
 		close_devices(thread, CRAS_STREAM_INPUT);
