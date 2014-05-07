@@ -45,6 +45,8 @@ struct active_dev {
  *    streams - List of audio streams serviced by this thread.
  *    active_dev - Lists of active devices attached running for each
  *        CRAS_STREAM_DIRECTION.
+ *    devs_open - Non-zero if the thread has stream attached and running
+ *        for each CRAS_STREAM_DIRECTION.
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -54,6 +56,7 @@ struct audio_thread {
 	int started;
 	struct cras_io_stream *streams;
 	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
+	int devs_open[CRAS_NUM_DIRECTIONS];
 };
 
 /* Callback function to be handled in main loop in audio thread.

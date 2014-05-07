@@ -72,6 +72,7 @@ static int cras_dsp_pipeline_get_delay_called;
 static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
 static struct timespec time_now;
+static int cras_fmt_conversion_needed_return_val;
 
 // Stub volume scalers.
 float softvol_scalers[101];
@@ -1393,7 +1394,7 @@ class AddStreamSuite : public testing::Test {
         thread_add_active_dev(&thread, &iodev_);
 
       thread_add_stream(&thread, new_stream);
-      EXPECT_LT(0, is_open_called_);
+      EXPECT_EQ(1, thread.devs_open[direction]);
       EXPECT_EQ(1, open_dev_called_);
       EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
 
@@ -1410,7 +1411,7 @@ class AddStreamSuite : public testing::Test {
 
       is_open_called_ = 0;
       thread_add_stream(&thread, second_stream);
-      EXPECT_LT(0, is_open_called_);
+      EXPECT_EQ(1, thread.devs_open[direction]);
       EXPECT_EQ(1, open_dev_called_);
       EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
       EXPECT_EQ(25, cras_iodev_config_params_for_streams_buffer_size);
@@ -1424,6 +1425,7 @@ class AddStreamSuite : public testing::Test {
 
       rc = thread_remove_stream(&thread, new_stream);
       EXPECT_EQ(0, rc);
+      EXPECT_EQ(0, thread.devs_open[direction]);
       EXPECT_EQ(1, close_dev_called_);
       EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
 
@@ -1474,7 +1476,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
 
   rc = thread_add_stream(&thread, new_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_LT(0, is_open_called_);
+  EXPECT_EQ(1, thread.devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, open_dev_called_);
   EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
 
@@ -1483,6 +1485,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   //  remove the stream.
   rc = thread_remove_stream(&thread, new_stream);
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, thread.devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(0, cras_metrics_log_histogram_called);
   EXPECT_EQ(0, cras_rstream_destroy_called);
@@ -1547,7 +1550,7 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   thread_add_active_dev(thread, &iodev_);
   rc = thread_add_stream(thread, new_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_LT(0, is_open_called_);
+  EXPECT_EQ(1, thread->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, open_dev_called_);
   EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
 
@@ -1556,6 +1559,7 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
 
   //  remove the stream.
   rc = thread_remove_stream(thread, new_stream);
+  EXPECT_EQ(0, thread->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, close_dev_called_);
 
@@ -1573,21 +1577,86 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
 class ActiveDevicesSuite : public testing::Test {
   protected:
     virtual void SetUp() {
+      memset(&fmt_, 0, sizeof(fmt_));
+      fmt_.frame_rate = 44100;
+      fmt_.num_channels = 2;
+      fmt_.format = SND_PCM_FORMAT_S16_LE;
+
       memset(&iodev_, 0, sizeof(iodev_));
       memset(&iodev2_, 0, sizeof(iodev2_));
-
+      iodev_.close_dev = close_dev;
+      iodev_.is_open = is_open;
+      iodev_.open_dev = open_dev;
+      iodev_.format = &fmt_;
+      iodev2_.close_dev = close_dev;
+      iodev2_.is_open = is_open;
+      iodev2_.open_dev = open_dev;
+      iodev2_.format = &fmt_;
       thread_ = audio_thread_create();
       ASSERT_TRUE(thread_);
+
+      SetupRstream(&rstream_);
+
+      cras_iodev_config_params_for_streams_called = 0;
+      cras_iodev_set_format_called = 0;
+      close_dev_called_ = 0;
+      is_open_ = 0;
+      cras_fmt_conversion_needed_return_val = 0;
+      open_dev_val_idx_ = 0;
+      for (int i = 0; i < 8; i++) {
+        open_dev_val_[i] = 0;
+      }
     }
 
     virtual void TearDown() {
+      struct cras_audio_shm *shm;
       audio_thread_destroy(thread_);
+      shm = cras_rstream_output_shm(rstream_);
+      free(shm->area);
+      free(rstream_);
     }
 
+    void SetupRstream(struct cras_rstream **rstream) {
+      struct cras_audio_shm *shm;
+      *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
+      memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
+      (*rstream)->direction = CRAS_STREAM_OUTPUT;
+
+      shm = cras_rstream_output_shm(*rstream);
+      shm->area = (struct cras_audio_shm_area *)calloc(1,
+          sizeof(*shm->area));
+    }
+
+    static int close_dev(struct cras_iodev *iodev) {
+      close_dev_called_++;
+      return 0;
+    }
+
+    static int is_open(const cras_iodev *iodev) {
+      return is_open_;
+    }
+
+    static int open_dev(struct cras_iodev *iodev) {
+      open_dev_val_idx_ %= 8;
+      is_open_ = 1;
+      return open_dev_val_[open_dev_val_idx_++];
+    }
+
+  static int is_open_;
+  static int open_dev_val_[8];
+  static int open_dev_val_idx_;
+  static int close_dev_called_;
   struct cras_iodev iodev_;
   struct cras_iodev iodev2_;
+  struct cras_audio_format fmt_;
+  struct cras_rstream *rstream_;
   struct audio_thread *thread_;
 };
+
+int ActiveDevicesSuite::is_open_ = 0;
+int ActiveDevicesSuite::close_dev_called_ = 0;
+int ActiveDevicesSuite::open_dev_val_[8];
+int ActiveDevicesSuite::open_dev_val_idx_ = 0;
 
 TEST_F(ActiveDevicesSuite, AddRemoveActiveDevice) {
   struct active_dev *adevs;
@@ -1631,6 +1700,84 @@ TEST_F(ActiveDevicesSuite, ClearActiveDevices) {
   EXPECT_EQ((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, iodev_.is_active);
   EXPECT_EQ(0, iodev2_.is_active);
+}
+
+TEST_F(ActiveDevicesSuite, OpenActiveDevices) {
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev2_.direction = CRAS_STREAM_OUTPUT;
+
+  thread_add_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+  thread_add_stream(thread_, rstream_);
+
+  EXPECT_EQ(2, cras_iodev_set_format_called);
+  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+}
+
+TEST_F(ActiveDevicesSuite, OpenFirstActiveDeviceFail) {
+  int rc;
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev2_.direction = CRAS_STREAM_OUTPUT;
+
+  thread_add_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+
+  open_dev_val_[0] = -1;
+  rc = thread_add_stream(thread_, rstream_);
+  EXPECT_EQ(rc, AUDIO_THREAD_OUTPUT_DEV_ERROR);
+  EXPECT_EQ(1, cras_iodev_set_format_called);
+  EXPECT_EQ(0, cras_iodev_config_params_for_streams_called);
+}
+
+TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFail) {
+  int rc;
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev2_.direction = CRAS_STREAM_OUTPUT;
+
+  thread_add_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+
+  open_dev_val_[1] = -1;
+  rc = thread_add_stream(thread_, rstream_);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2, cras_iodev_set_format_called);
+  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(0, close_dev_called_);
+  EXPECT_EQ((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]->next);
+}
+
+TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFormatIncompatible) {
+  int rc;
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev2_.direction = CRAS_STREAM_OUTPUT;
+
+  thread_add_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+
+  cras_fmt_conversion_needed_return_val = 1;
+  rc = thread_add_stream(thread_, rstream_);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2, cras_iodev_set_format_called);
+  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]->next);
+}
+
+TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev2_.direction = CRAS_STREAM_OUTPUT;
+
+  thread_add_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+
+  thread_add_stream(thread_, rstream_);
+  EXPECT_EQ(1, thread_->devs_open[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(2, cras_iodev_set_format_called);
+  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+
+  thread_remove_stream(thread_, rstream_);
+  EXPECT_EQ(0, thread_->devs_open[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(2, ActiveDevicesSuite::close_dev_called_);
 }
 
 extern "C" {
@@ -1878,6 +2025,12 @@ int loopback_iodev_add_audio(struct loopback_iodev *loopback_dev,
 int loopback_iodev_add_zeros(struct cras_iodev *dev,
                              unsigned int count) {
   return 0;
+}
+
+int cras_fmt_conversion_needed(const struct cras_audio_format *a,
+			       const struct cras_audio_format *b)
+{
+  return cras_fmt_conversion_needed_return_val;
 }
 
 //  Override select so it can be stubbed.

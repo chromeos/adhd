@@ -10,6 +10,7 @@
 #include "cras_config.h"
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
+#include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_loopback_iodev.h"
 #include "cras_metrics.h"
@@ -417,13 +418,106 @@ struct cras_iodev *first_loop_dev(const struct audio_thread *thread)
 	return first_active_device(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
 }
 
-/* open the device configured to play the format of the given stream. */
+/* Close a device if it's been opened. */
+static inline int close_device(struct cras_iodev *dev)
+{
+	if (!dev->is_open(dev))
+		return 0;
+	return dev->close_dev(dev);
+}
+
+/* Close active devices. */
+static int close_devices(struct audio_thread *thread,
+			 enum CRAS_STREAM_DIRECTION dir)
+{
+	struct active_dev *adev;
+	int err = 0;
+	int rc;
+
+	DL_FOREACH(thread->active_devs[dir], adev) {
+		rc = close_device(adev->dev);
+		if (rc)
+			err = rc;
+	}
+	thread->devs_open[dir] = 0;
+	return err;
+}
+
+/* Open the device configured to play the format of the given stream. */
 static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
 {
 	struct cras_audio_format fmt;
 	cras_rstream_get_format(stream, &fmt);
 	cras_iodev_set_format(dev, &fmt);
 	return dev->open_dev(dev);
+}
+
+void thread_rm_active_dev(struct audio_thread *thread,
+			  struct cras_iodev *iodev);
+
+/* Initialize active devices of given direction. */
+static int init_devices(struct audio_thread *thread,
+			enum CRAS_STREAM_DIRECTION dir,
+			struct cras_rstream *stream)
+{
+	struct active_dev *adev;
+	struct active_dev *adevs;
+	struct cras_iodev *first_dev;
+	int rc;
+
+	adevs = thread->active_devs[dir];
+	if (!adevs)
+		return -EINVAL;
+
+	/* Initialize the first active device. If it returns error,
+	 * don't bother initialize other active devices.
+	 */
+	first_dev = adevs->dev;
+	rc = init_device(first_dev, stream);
+	if (rc)
+		return rc;
+
+	/* Initialize all other active devices of the same direction.
+	 * If the supported format does not match what was used for
+	 * selected device, close and remove it from the active device
+	 * list.
+	 */
+	adevs = adevs->next;
+	DL_FOREACH(adevs, adev) {
+		rc = init_device(adev->dev, stream);
+		if (rc) {
+			syslog(LOG_ERR, "Failed to open %s",
+					adev->dev->info.name);
+			thread_rm_active_dev(thread, adev->dev);
+			continue;
+		}
+		if (cras_fmt_conversion_needed(first_dev->format,
+					       adev->dev->format)) {
+			close_device(adev->dev);
+			thread_rm_active_dev(thread, adev->dev);
+		}
+	}
+	thread->devs_open[dir] = 1;
+	return 0;
+}
+
+/* Checks all active devices are playing or recording. Return 0
+ * if there's no active device present or any active device is not
+ * running, return 1 otherwise.
+ */
+static int devices_running(struct audio_thread *thread,
+			   enum CRAS_STREAM_DIRECTION dir)
+{
+	struct active_dev *adev;
+	struct active_dev *adevs;
+
+	adevs = thread->active_devs[dir];
+	if (adevs == NULL)
+		return 0;
+	DL_FOREACH(adevs, adev)
+		if (!adev->dev->dev_running(adev->dev))
+			return 0;
+	return 1;
 }
 
 /*
@@ -496,8 +590,7 @@ int thread_remove_stream(struct audio_thread *thread,
 
 	if (!in_active) {
 		/* No more streams, close the dev. */
-		if (device_open(idev))
-			idev->close_dev(idev);
+		close_devices(thread, CRAS_STREAM_INPUT);
 	} else {
 		struct cras_io_stream *min_latency;
 		min_latency = get_min_latency_stream(thread, CRAS_STREAM_INPUT);
@@ -508,8 +601,7 @@ int thread_remove_stream(struct audio_thread *thread,
 	}
 	if (!out_active) {
 		/* No more streams, close the dev. */
-		if (odev && odev->is_open(odev))
-			odev->close_dev(odev);
+		close_devices(thread, CRAS_STREAM_OUTPUT);
 	} else {
 		struct cras_io_stream *min_latency;
 		min_latency = get_min_latency_stream(thread,
@@ -521,8 +613,7 @@ int thread_remove_stream(struct audio_thread *thread,
 	}
 	if (!loop_active) {
 		/* No more streams, close the dev. */
-		if (loop_dev && loop_dev->is_open(loop_dev))
-			loop_dev->close_dev(loop_dev);
+		close_devices(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
 	} else {
 		struct cras_io_stream *min_latency;
 		min_latency = get_min_latency_stream(
@@ -592,10 +683,10 @@ int thread_add_stream(struct audio_thread *thread,
 		return AUDIO_THREAD_ERROR_OTHER;
 
 	/* If not already, open the device(s). */
-	if (stream_uses_output(stream) && !odev->is_open(odev)) {
-		rc = init_device(odev, stream);
+	if (stream_uses_output(stream) &&
+	    !thread->devs_open[CRAS_STREAM_OUTPUT]) {
+		rc = init_devices(thread, CRAS_STREAM_OUTPUT, stream);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Failed to open %s", odev->info.name);
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
@@ -619,18 +710,18 @@ int thread_add_stream(struct audio_thread *thread,
 			}
 		}
 	}
-	if (stream_uses_input(stream) && !idev->is_open(idev)) {
-		rc = init_device(idev, stream);
+	if (stream_uses_input(stream) &&
+	    !thread->devs_open[CRAS_STREAM_INPUT]) {
+		rc = init_devices(thread, CRAS_STREAM_INPUT, stream);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Failed to open %s", idev->info.name);
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_INPUT_DEV_ERROR;
 		}
 	}
-	if (stream_uses_loopback(stream) && !loop_dev->is_open(loop_dev)) {
-		rc = init_device(loop_dev, stream);
+	if (stream_uses_loopback(stream) &&
+	    !thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP]) {
+		rc = init_devices(thread, CRAS_STREAM_POST_MIX_PRE_DSP, stream);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Failed to open %s", loop_dev->info.name);
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_LOOPBACK_DEV_ERROR;
 		}
@@ -1452,7 +1543,7 @@ int possibly_fill_audio(struct audio_thread *thread,
  * Return the number of samples read from the device.
  * Args:
  *    thread - the audio thread this is running for.
- *    idev - the device to read samples from..
+ *    idev - the device to read samples from.
  *    min_sleep - Will be filled with the minimum amount of frames needed to
  *      fill the next lowest latency stream's buffer.
  */
@@ -1471,7 +1562,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	unsigned int frame_bytes;
 	int delay;
 
-	if (!device_open(idev))
+	if (!idev || !thread->devs_open[idev->direction])
 		return 0;
 
 	rc = idev->frames_queued(idev);
@@ -1483,7 +1574,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO, hw_level);
 
 	/* Check if the device is still running. */
-	if (!idev->dev_running(idev))
+	if (!devices_running(thread, CRAS_STREAM_INPUT))
 		return -1;
 
 	DL_FOREACH(thread->streams, stream) {
@@ -1620,19 +1711,18 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	ts->tv_nsec = 0;
 
 	/* Loopback streams, filling with zeros if no output playing. */
-	if (!device_open(odev) && device_open(loopdev)) {
+	if (!thread->devs_open[CRAS_STREAM_OUTPUT] &&
+	    thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP]) {
 		loopback_iodev_add_zeros(loopdev, loopdev->cb_threshold);
 		loop_sleep_frames = loopdev->cb_threshold;
 	}
-
 	possibly_read_audio(thread, loopdev, &loop_sleep_frames);
 
 	/* Capture streams. */
 	rc = possibly_read_audio(thread, idev, &cap_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "read audio failed from audio thread");
-		if (device_open(idev))
-			idev->close_dev(idev);
+		close_devices(thread, CRAS_STREAM_INPUT);
 		return rc;
 	}
 
@@ -1640,15 +1730,18 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	rc = possibly_fill_audio(thread, &pb_sleep_frames);
 	if (rc < 0) {
 		syslog(LOG_ERR, "write audio failed from audio thread");
-		odev->close_dev(odev);
+		close_devices(thread, CRAS_STREAM_OUTPUT);
 		return rc;
 	}
 
-	if (!device_open(idev) && !device_open(odev) && !device_open(loopdev))
+	/* Determine which device, if any are open, needs to wake up next. */
+	if (!thread->devs_open[CRAS_STREAM_INPUT] &&
+	    !thread->devs_open[CRAS_STREAM_OUTPUT] &&
+	    !thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP])
 		return 0;
 
 	/* Determine which device, if any are open, needs to wake up next. */
-	if (device_open(idev)) {
+	if (thread->devs_open[CRAS_STREAM_INPUT]) {
 		cras_iodev_fill_time_from_frames(cap_sleep_frames,
 						 idev->format->frame_rate,
 						 &cap_ts);
@@ -1657,7 +1750,7 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 					    sleep_ts->tv_nsec);
 	}
 
-	if (device_open(odev)) {
+	if (thread->devs_open[CRAS_STREAM_OUTPUT]) {
 		cras_iodev_fill_time_from_frames(pb_sleep_frames,
 						 odev->format->frame_rate,
 						 &pb_ts);
@@ -1667,11 +1760,10 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 					    sleep_ts->tv_nsec);
 	}
 
-	if (device_open(loopdev)) {
-		cras_iodev_fill_time_from_frames(
-			loop_sleep_frames,
-			loopdev->format->frame_rate,
-			&loop_ts);
+	if (thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP]) {
+		cras_iodev_fill_time_from_frames(loop_sleep_frames,
+						 loopdev->format->frame_rate,
+						 &loop_ts);
 		if (!sleep_ts || timespec_after(sleep_ts, &loop_ts))
 			sleep_ts = &loop_ts;
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_LOOP_SLEEP,
