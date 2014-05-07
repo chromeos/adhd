@@ -204,6 +204,29 @@ int cras_client_select_node(struct cras_client *client,
 			    enum CRAS_STREAM_DIRECTION direction,
 			    cras_node_id_t node_id);
 
+/* Adds an active node for playback/capture.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    direction - The direction of the ionode.
+ *    node_id - The id of the ionode. If there's no node matching given
+ *        id, nothing will happen in CRAS.
+ */
+int cras_client_add_active_node(struct cras_client *client,
+				enum CRAS_STREAM_DIRECTION direction,
+				cras_node_id_t node_id);
+
+/* Removes an active node for playback/capture.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    direction - The direction of the ionode.
+ *    node_id - The id of the ionode. If there's no node matching given
+ *        id, nothing will happen in CRAS.
+ */
+int cras_client_rm_active_node(struct cras_client *client,
+			       enum CRAS_STREAM_DIRECTION direction,
+			       cras_node_id_t node_id);
+
+
 /* Asks the server to reload dsp plugin configuration from the ini file.
  * Args:
  *    client - The client from cras_client_create.

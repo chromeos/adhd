@@ -38,6 +38,8 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_RELOAD_DSP,
 	CRAS_SERVER_DUMP_DSP_INFO,
 	CRAS_SERVER_DUMP_AUDIO_THREAD,
+	CRAS_SERVER_ADD_ACTIVE_NODE,
+	CRAS_SERVER_RM_ACTIVE_NODE
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -229,6 +231,40 @@ static inline void cras_fill_select_node(
 		cras_node_id_t node_id)
 {
 	m->header.id = CRAS_SERVER_SELECT_NODE;
+	m->direction = direction;
+	m->node_id = node_id;
+	m->header.length = sizeof(*m);
+}
+
+/* Add an active ionode. */
+struct __attribute__ ((__packed__)) cras_add_active_node {
+	struct cras_server_message header;
+	enum CRAS_STREAM_DIRECTION direction;
+	cras_node_id_t node_id;
+};
+static inline void cras_fill_add_active_node(
+		struct cras_add_active_node *m,
+		enum CRAS_STREAM_DIRECTION direction,
+		cras_node_id_t node_id)
+{
+	m->header.id = CRAS_SERVER_ADD_ACTIVE_NODE;
+	m->direction = direction;
+	m->node_id = node_id;
+	m->header.length = sizeof(*m);
+}
+
+/* Remove an active ionode. */
+struct __attribute__ ((__packed__)) cras_rm_active_node {
+	struct cras_server_message header;
+	enum CRAS_STREAM_DIRECTION direction;
+	cras_node_id_t node_id;
+};
+static inline void cras_fill_rm_active_node(
+		struct cras_rm_active_node *m,
+		enum CRAS_STREAM_DIRECTION direction,
+		cras_node_id_t node_id)
+{
+	m->header.id = CRAS_SERVER_RM_ACTIVE_NODE;
 	m->direction = direction;
 	m->node_id = node_id;
 	m->header.length = sizeof(*m);

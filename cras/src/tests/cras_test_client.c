@@ -849,6 +849,8 @@ static struct option long_options[] = {
 	{"help",                no_argument,            0, 'h'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"check_output_plugged",required_argument,      0, 'j'},
+	{"add_active_input",	required_argument,	0, 'k'},
+	{"add_active_output",	required_argument,	0, 't'},
 	{"loopback_file",	required_argument,	0, 'l'},
 	{"dump_audio_thread",   no_argument,            0, 'm'},
 	{"num_channels",        required_argument,      0, 'n'},
@@ -864,6 +866,8 @@ static struct option long_options[] = {
 	{"select_output",       required_argument,      0, 'y'},
 	{"unified_audio",	no_argument,		0, 'z'},
 	{"capture_mute",        required_argument,      0, '0'},
+	{"rm_active_input",	required_argument,	0, '1'},
+	{"rm_active_output",	required_argument,	0, '2'},
 	{0, 0, 0, 0}
 };
 
@@ -896,6 +900,14 @@ static void show_usage()
 	       " ionode with the given index M on the device with index N\n");
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
+	printf("--add_active_input <N>:<M> - Add the ionode with the given id"
+	       "to active input device list\n");
+	printf("--add_active_output <N>:<M> - Add the ionode with the given id"
+	       "to active output device list\n");
+	printf("--rm_active_input <N>:<M> - Removes the ionode with the given"
+	       "id from active input device list\n");
+	printf("--rm_active_output <N>:<M> - Removes the ionode with the given"
+	       "id from active output device list\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--dump_audio_thread - Dumps audio thread info.\n");
 	printf("--help - Print this message.\n");
@@ -1034,6 +1046,22 @@ int main(int argc, char **argv)
 			enum CRAS_STREAM_DIRECTION direction = (c == 'y') ?
 				CRAS_STREAM_OUTPUT : CRAS_STREAM_INPUT;
 			cras_client_select_node(client, direction, id);
+			break;
+		}
+		case 'k':
+		case 't':
+		case '1':
+		case '2':{
+			int dev_index = atoi(strtok(optarg, ":"));
+			int node_index = atoi(strtok(NULL, ":"));
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
+			if (c == 'k' || c == 't')
+				cras_client_add_active_node(client,
+						CRAS_STREAM_INPUT, id);
+			else
+				cras_client_rm_active_node(client,
+						CRAS_STREAM_INPUT, id);
 			break;
 		}
 		case 'w': {

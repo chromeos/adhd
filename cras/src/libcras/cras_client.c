@@ -2114,6 +2114,32 @@ int cras_client_select_node(struct cras_client *client,
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_add_active_node(struct cras_client *client,
+				enum CRAS_STREAM_DIRECTION direction,
+				cras_node_id_t node_id)
+{
+	struct cras_add_active_node msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_add_active_node(&msg, direction, node_id);
+	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_rm_active_node(struct cras_client *client,
+			       enum CRAS_STREAM_DIRECTION direction,
+			       cras_node_id_t node_id)
+{
+	struct cras_rm_active_node msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_rm_active_node(&msg, direction, node_id);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt)
 {
 	if (fmt == NULL)

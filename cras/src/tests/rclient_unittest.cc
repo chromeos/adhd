@@ -468,9 +468,22 @@ int audio_thread_add_stream(audio_thread* thread,
   return ret;
 }
 
+void cras_iodev_list_add_active_node(cras_node_id_t node_id)
+{
+}
+
+void cras_iodev_list_rm_active_node(cras_node_id_t node_id)
+{
+}
+
 int audio_thread_disconnect_stream(audio_thread* thread,
 				   cras_rstream* stream) {
   audio_thread_disconnect_stream_called++;
+  return 0;
+}
+
+int audio_thread_rm_stream(audio_thread* thread,
+			   cras_rstream* stream) {
   return 0;
 }
 
