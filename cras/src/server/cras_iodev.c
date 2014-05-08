@@ -239,26 +239,6 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
 	}
 }
 
-void cras_iodev_config_params(struct cras_iodev *iodev,
-			      unsigned int buffer_size,
-			      unsigned int cb_threshold)
-{
-	iodev->used_size = buffer_size;
-	if (iodev->used_size > iodev->buffer_size)
-		iodev->used_size = iodev->buffer_size;
-	iodev->cb_threshold = cb_threshold;
-
-	/* For output streams, callback when at most half way full. */
-	if (iodev->direction == CRAS_STREAM_OUTPUT &&
-	    iodev->cb_threshold > iodev->used_size / 2)
-		iodev->cb_threshold = iodev->used_size / 2;
-
-	syslog(LOG_DEBUG,
-	       "used_size %u cb_threshold %u",
-	       (unsigned)iodev->used_size,
-	       (unsigned)iodev->cb_threshold);
-}
-
 /*
  * The rules are (in decision order):
  * - A non-null node is better than a null node.

@@ -440,6 +440,8 @@ static int close_devices(struct audio_thread *thread,
 			err = rc;
 	}
 	thread->devs_open[dir] = 0;
+	thread->buffer_frames[dir] = 0;
+	thread->cb_threshold[dir] = 0;
 	return err;
 }
 
@@ -523,14 +525,16 @@ static int devices_running(struct audio_thread *thread,
 void config_devices_min_latency(struct audio_thread *thread,
 				enum CRAS_STREAM_DIRECTION dir)
 {
-	struct active_dev *adev;
 	struct cras_io_stream *min_latency;
 
 	min_latency = get_min_latency_stream(thread, dir);
-	DL_FOREACH(thread->active_devs[dir], adev)
-		cras_iodev_config_params(adev->dev,
-			cras_rstream_get_buffer_size(min_latency->stream),
-			cras_rstream_get_cb_threshold(min_latency->stream));
+	thread->cb_threshold[dir] =
+			cras_rstream_get_cb_threshold(min_latency->stream);
+	thread->buffer_frames[dir] =
+			cras_rstream_get_buffer_size(min_latency->stream);
+	if ((dir == CRAS_STREAM_OUTPUT) &&
+	    thread->cb_threshold[dir] > thread->buffer_frames[dir] / 2)
+		thread->cb_threshold[dir] = thread->buffer_frames[dir] / 2;
 }
 
 /*
@@ -666,7 +670,8 @@ void fill_odevs_zeros_cb_threshold(struct audio_thread *thread)
 {
 	struct active_dev *adev;
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
-		fill_odev_zeros(adev->dev, adev->dev->cb_threshold);
+		fill_odev_zeros(adev->dev,
+				thread->cb_threshold[CRAS_STREAM_OUTPUT]);
 }
 
 /* Handles the add_stream message from the main thread. */
@@ -1108,10 +1113,12 @@ static int write_streams(struct audio_thread *thread,
 				    write_limit);
 
 	if (max_frames == 0 &&
-	    (odev->frames_queued(odev) <= odev->cb_threshold/4)) {
+	    (odev->frames_queued(odev) <=
+		    thread->cb_threshold[CRAS_STREAM_OUTPUT] / 4)) {
 		/* Nothing to mix from any streams. Under run. */
 		unsigned int frame_bytes = cras_get_format_bytes(odev->format);
-		size_t frames = MIN(odev->cb_threshold, input_write_limit);
+		size_t frames = MIN(thread->cb_threshold[CRAS_STREAM_OUTPUT],
+				    input_write_limit);
 		return cras_mix_mute_buffer(dst, frame_bytes, frames);
 	}
 
@@ -1282,8 +1289,10 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			strncpy(info->output_dev_name, odev->info.name,
 				sizeof(info->output_dev_name));
 			info->output_buffer_size = odev->buffer_size;
-			info->output_used_size = odev->used_size;
-			info->output_cb_threshold = odev->cb_threshold;
+			info->output_used_size =
+					thread->buffer_frames[CRAS_STREAM_OUTPUT];
+			info->output_cb_threshold =
+					thread->cb_threshold[CRAS_STREAM_OUTPUT];
 		} else {
 			info->output_dev_name[0] = '\0';
 			info->output_buffer_size = 0;
@@ -1294,8 +1303,10 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			strncpy(info->input_dev_name, idev->info.name,
 				sizeof(info->input_dev_name));
 			info->input_buffer_size = idev->buffer_size;
-			info->input_used_size = idev->used_size;
-			info->input_cb_threshold = idev->cb_threshold;
+			info->input_used_size =
+					thread->buffer_frames[CRAS_STREAM_INPUT];
+			info->input_cb_threshold =
+					thread->cb_threshold[CRAS_STREAM_INPUT];
 		} else {
 			info->output_dev_name[0] = '\0';
 			info->output_buffer_size = 0;
@@ -1382,9 +1393,9 @@ static int get_output_sleep_frames(struct audio_thread *thread)
 		return rc;
 	adjusted_level = adjust_level(thread, rc);
 
-	if (adjusted_level < odev->cb_threshold)
+	if (adjusted_level < thread->cb_threshold[CRAS_STREAM_OUTPUT])
 		return 0;
-	sleep_frames = adjusted_level - odev->cb_threshold;
+	sleep_frames = adjusted_level - thread->cb_threshold[CRAS_STREAM_OUTPUT];
 	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
@@ -1452,8 +1463,12 @@ int possibly_fill_audio(struct audio_thread *thread,
 	/* Account for the dsp delay in addition to the hardware delay. */
 	delay += get_dsp_delay(odev);
 
-	/* Request data from streams that need more */
-	fr_to_req = odev->used_size - hw_level;
+	/* Request data from streams that need more, and don't request more
+	 * then hardware can hold. */
+	fr_to_req = thread->buffer_frames[CRAS_STREAM_OUTPUT] - hw_level;
+	if (fr_to_req > odev->buffer_size - hw_level)
+			fr_to_req = odev->buffer_size - hw_level;
+
 	rc = fetch_and_set_timestamp(thread, adjusted_level, delay);
 	if (rc < 0)
 		return rc;
@@ -1666,7 +1681,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		/* No hardware clock here to correct for, just sleep for another
 		 * period.
 		 */
-		*min_sleep = idev->cb_threshold;
+		*min_sleep = thread->cb_threshold[CRAS_STREAM_INPUT];
 	} else {
 		*min_sleep = cras_iodev_sleep_frames(idev,
 				*min_sleep,
@@ -1697,8 +1712,10 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 	/* Loopback streams, filling with zeros if no output playing. */
 	if (!thread->devs_open[CRAS_STREAM_OUTPUT] &&
 	    thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP]) {
-		loopback_iodev_add_zeros(loopdev, loopdev->cb_threshold);
-		loop_sleep_frames = loopdev->cb_threshold;
+		loopback_iodev_add_zeros(loopdev,
+			thread->cb_threshold[CRAS_STREAM_POST_MIX_PRE_DSP]);
+		loop_sleep_frames =
+			thread->cb_threshold[CRAS_STREAM_POST_MIX_PRE_DSP];
 	}
 	possibly_read_audio(thread, loopdev, &loop_sleep_frames);
 

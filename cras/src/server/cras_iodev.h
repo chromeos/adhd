@@ -76,8 +76,6 @@ struct cras_ionode {
  * supported_rates - Array of sample rates supported by device 0-terminated.
  * supported_channel_counts - List of number of channels supported by device.
  * buffer_size - Size of the audio buffer in frames.
- * used_size - Number of frames that are used for audio.
- * cb_threshold - Level below which to call back to the client (in frames).
  * min_buffer_level - Extra frames to keep queued in addition to requested.
  * dsp_context - The context used for dsp processing on the audio data.
  * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
@@ -113,8 +111,6 @@ struct cras_iodev {
 	size_t *supported_rates;
 	size_t *supported_channel_counts;
 	snd_pcm_uframes_t buffer_size;
-	snd_pcm_uframes_t used_size;
-	snd_pcm_uframes_t cb_threshold;
 	unsigned int min_buffer_level;
 	struct cras_dsp_context *dsp_context;
 	const char *dsp_name;
@@ -184,16 +180,6 @@ void cras_iodev_set_playback_timestamp(size_t frame_rate,
 void cras_iodev_set_capture_timestamp(size_t frame_rate,
 				      size_t frames,
 				      struct cras_timespec *ts);
-
-/* Configures when to wake up, the minimum amount free before refilling, and
- * other params that are independent of the hw configuration.
- * Args:
- *    buffer_size - Size of the audio buffer in frames.
- *    cb_threshold - Level below which to call back to the client (in frames).
- */
-void cras_iodev_config_params(struct cras_iodev *iodev,
-			      unsigned int buffer_size,
-			      unsigned int cb_threshold);
 
 /* Update the "dsp_name" dsp variable. This may cause the dsp pipeline to be
  * reloaded.

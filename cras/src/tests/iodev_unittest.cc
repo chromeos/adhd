@@ -141,47 +141,6 @@ TEST(IoDevTestSuite, SetCaptureTimeStampWrapPartial) {
   EXPECT_LE(ts.tv_nsec, 250100000);
 }
 
-TEST(IoDevTestSuite, TestConfigParamsOneStream) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  iodev.buffer_size = 1024;
-
-  cras_iodev_config_params(&iodev, 10, 3);
-  EXPECT_EQ(iodev.used_size, 10);
-  EXPECT_EQ(iodev.cb_threshold, 3);
-}
-
-TEST(IoDevTestSuite, TestConfigParamsOneStreamLimitThreshold) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  iodev.buffer_size = 1024;
-
-  cras_iodev_config_params(&iodev, 10, 10);
-  EXPECT_EQ(iodev.used_size, 10);
-  EXPECT_EQ(iodev.cb_threshold, 5);
-
-  iodev.direction = CRAS_STREAM_INPUT;
-  cras_iodev_config_params(&iodev, 10, 10);
-  EXPECT_EQ(iodev.used_size, 10);
-  EXPECT_EQ(iodev.cb_threshold, 10);
-}
-
-TEST(IoDevTestSuite, TestConfigParamsOneStreamUsedGreaterBuffer) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  iodev.buffer_size = 1024;
-
-  cras_iodev_config_params(&iodev, 1280, 1400);
-  EXPECT_EQ(iodev.used_size, 1024);
-  EXPECT_EQ(iodev.cb_threshold, 512);
-}
-
 class IoDevSetFormatTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {

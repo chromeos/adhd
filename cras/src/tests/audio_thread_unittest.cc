@@ -54,9 +54,6 @@ static fd_set select_in_fds;
 static fd_set select_out_fds;
 static uint32_t *select_write_ptr;
 static uint32_t select_write_value;
-static unsigned int cras_iodev_config_params_for_streams_called;
-static unsigned int cras_iodev_config_params_for_streams_buffer_size;
-static unsigned int cras_iodev_config_params_for_streams_threshold;
 static unsigned int cras_iodev_set_format_called;
 static unsigned int cras_iodev_set_playback_timestamp_called;
 static unsigned int cras_system_get_volume_return;
@@ -95,7 +92,7 @@ class ReadStreamSuite : public testing::Test {
       memset(&iodev_, 0, sizeof(iodev_));
       iodev_.format = &fmt_;
       iodev_.buffer_size = 16384;
-      iodev_.cb_threshold = 480;
+      cb_threshold_ = 480;
       iodev_.direction = CRAS_STREAM_INPUT;
 
       iodev_.frames_queued = frames_queued;
@@ -151,21 +148,21 @@ class ReadStreamSuite : public testing::Test {
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->direction = CRAS_STREAM_INPUT;
-      (*rstream)->cb_threshold = iodev_.cb_threshold;
+      (*rstream)->cb_threshold = cb_threshold_;
       (*rstream)->client = (struct cras_rclient *)this;
 
       shm = cras_rstream_input_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm->area) + iodev_.cb_threshold * 8);
+          sizeof(*shm->area) + cb_threshold_ * 8);
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
-          shm, iodev_.cb_threshold * cras_shm_frame_bytes(shm));
+          shm, cb_threshold_ * cras_shm_frame_bytes(shm));
     }
 
     unsigned int GetCaptureSleepFrames() {
       // Account for padding the sleep interval to ensure the wake up happens
       // after the last desired frame is received.
-      return iodev_.cb_threshold + 16;
+      return cb_threshold_ + 16;
     }
 
     // Stub functions for the iodev structure.
@@ -215,6 +212,7 @@ class ReadStreamSuite : public testing::Test {
   static int is_open_;
   static int frames_queued_;
   static int delay_frames_;
+  static unsigned int cb_threshold_;
   static uint8_t audio_buffer_[8192];
   static unsigned int audio_buffer_size_;
   static unsigned int dev_running_called_;
@@ -233,6 +231,7 @@ unsigned int ReadStreamSuite::close_dev_called_ = 0;
 uint8_t ReadStreamSuite::audio_buffer_[8192];
 unsigned int ReadStreamSuite::audio_buffer_size_ = 0;
 unsigned int ReadStreamSuite::dev_running_called_ = 0;
+unsigned int ReadStreamSuite::cb_threshold_ = 0;
 
 TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   struct timespec ts;
@@ -303,7 +302,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
 
   thread_add_stream(thread, rstream_);
 
-  frames_queued_ = iodev_.cb_threshold - num_frames_short;
+  frames_queued_ = cb_threshold_ - num_frames_short;
   is_open_ = 1;
   audio_buffer_size_ = frames_queued_;
   nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES) *
@@ -313,7 +312,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
   /* As much data as can be, should be read. */
-  EXPECT_EQ(iodev_.cb_threshold - num_frames_short,
+  EXPECT_EQ(cb_threshold_ - num_frames_short,
             shm_->area->write_offset[0] / 4);
   EXPECT_EQ(0, shm_->area->write_buf_idx);
   EXPECT_EQ(0, ts.tv_sec);
@@ -337,7 +336,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
 
   for (unsigned int i = 0; i < sizeof(audio_buffer_); i++)
@@ -354,10 +353,10 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
   thread->streams = 0;
@@ -380,7 +379,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   EXPECT_EQ(0, rc);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
 
   for (unsigned int i = 0; i < sizeof(audio_buffer_); i++)
@@ -398,8 +397,8 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(2, cras_rstream_audio_ready_called);
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
   thread->streams = 0;
@@ -416,8 +415,8 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.cb_threshold /= 2;
-  rstream_->cb_threshold = iodev_.cb_threshold;
+  cb_threshold_ /= 2;
+  rstream_->cb_threshold = cb_threshold_;
 
   rc = thread_add_stream(thread, rstream_);
   EXPECT_EQ(0, rc);
@@ -425,7 +424,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   EXPECT_EQ(0, rc);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
 
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
@@ -440,9 +439,9 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
 
-  frames_queued_ = iodev_.cb_threshold + 5;
+  frames_queued_ = cb_threshold_ + 5;
   sleep_frames = GetCaptureSleepFrames() - 5;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
@@ -473,9 +472,8 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   thread_add_active_dev(thread, &iodev_);
   thread_add_active_dev(thread, &output_dev_);
 
-  iodev_.cb_threshold /= 2;
-  output_dev_.cb_threshold /= 2;
-  rstream_->cb_threshold = iodev_.cb_threshold;
+  cb_threshold_ /= 2;
+  rstream_->cb_threshold = cb_threshold_;
 
   rc = thread_add_stream(thread, rstream_);
   EXPECT_EQ(0, rc);
@@ -483,18 +481,18 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
 
   shm1 = cras_rstream_output_shm(rstream_);
   shm1->area = (struct cras_audio_shm_area *)calloc(1,
-		  sizeof(*shm1->area) + iodev_.cb_threshold * 8);
+		  sizeof(*shm1->area) + cb_threshold_ * 8);
   cras_shm_set_frame_bytes(shm1, 4);
   cras_shm_set_used_size(
-		  shm1, iodev_.cb_threshold * cras_shm_frame_bytes(shm1));
+		  shm1, cb_threshold_ * cras_shm_frame_bytes(shm1));
   shm1->area->write_offset[0] = cras_shm_used_size(shm1);
 
   shm2 = cras_rstream_output_shm(rstream2_);
   shm2->area = (struct cras_audio_shm_area *)calloc(1,
-		  sizeof(*shm2->area) + iodev_.cb_threshold * 8);
+		  sizeof(*shm2->area) + cb_threshold_ * 8);
   cras_shm_set_frame_bytes(shm2, 4);
   cras_shm_set_used_size(
-		  shm2, iodev_.cb_threshold * cras_shm_frame_bytes(shm2));
+		  shm2, cb_threshold_ * cras_shm_frame_bytes(shm2));
   shm2->area->write_offset[0] = cras_shm_used_size(shm2);
   shm2->area->write_offset[1] = cras_shm_used_size(shm2);
 
@@ -503,7 +501,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   EXPECT_EQ(0, rc);
 
   //  A full block plus 240 frames.
-  frames_queued_ = iodev_.cb_threshold + 240;
+  frames_queued_ = cb_threshold_ + 240;
   audio_buffer_size_ = frames_queued_;
 
   uint64_t sleep_frames = GetCaptureSleepFrames() - 240;
@@ -520,7 +518,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
 
-  frames_queued_ = iodev_.cb_threshold + 5;
+  frames_queued_ = cb_threshold_ + 5;
   audio_buffer_size_ = frames_queued_;
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
@@ -549,7 +547,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
 
   cras_rstream_audio_ready_count = 999;
@@ -560,7 +558,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
   cras_shm_buffer_read(shm_, cras_rstream_audio_ready_count);
 
@@ -570,7 +568,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
   EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i],
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
@@ -590,7 +588,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
   is_open_ = 1;
 
@@ -598,8 +596,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
   cras_shm_buffer_read(shm_, cras_rstream_audio_ready_count);
 
@@ -608,8 +606,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i],
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
@@ -618,8 +616,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_shm_num_overruns(shm_));  //  Should have overrun.
-  EXPECT_EQ(iodev_.cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < iodev_.cb_threshold; i++)
+  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
+  for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
   thread->streams = 0;
@@ -638,7 +636,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
   iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
   is_open_ = 1;
@@ -668,7 +666,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  frames_queued_ = cb_threshold_ + 4;
   audio_buffer_size_ = frames_queued_;
   iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
   cras_dsp_get_pipeline_ret = 0x6;
@@ -680,7 +678,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   EXPECT_EQ(2, cras_dsp_put_pipeline_called);
   EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
-  EXPECT_EQ(iodev_.cb_threshold, cras_dsp_pipeline_apply_sample_count);
+  EXPECT_EQ(cb_threshold_, cras_dsp_pipeline_apply_sample_count);
 
   thread->streams = 0;
   audio_thread_destroy(thread);
@@ -698,8 +696,6 @@ class WriteStreamSuite : public testing::Test {
       memset(&iodev_, 0, sizeof(iodev_));
       iodev_.format = &fmt_;
       iodev_.buffer_size = 16384;
-      iodev_.used_size = 480;
-      iodev_.cb_threshold = 96;
       iodev_.direction = CRAS_STREAM_OUTPUT;
       iodev_.software_volume_scaler = 1.0;
 
@@ -712,6 +708,8 @@ class WriteStreamSuite : public testing::Test {
       iodev_.open_dev = open_dev;
       iodev_.close_dev = close_dev;
 
+      buffer_frames_ = 480;
+      cb_threshold_ = 96;
       SetupRstream(&rstream_, 1);
       shm_ = cras_rstream_output_shm(rstream_);
       SetupRstream(&rstream2_, 2);
@@ -765,21 +763,22 @@ class WriteStreamSuite : public testing::Test {
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->fd = fd;
-      (*rstream)->cb_threshold = 96;
+      (*rstream)->buffer_frames = buffer_frames_;
+      (*rstream)->cb_threshold = cb_threshold_;
       (*rstream)->client = (struct cras_rclient *)this;
 
       shm = cras_rstream_output_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm->area) + iodev_.used_size * 8);
+          sizeof(*shm->area) + cb_threshold_ * 8);
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
-          shm, iodev_.used_size * cras_shm_frame_bytes(shm));
+          shm, buffer_frames_ * cras_shm_frame_bytes(shm));
     }
 
     uint64_t GetCaptureSleepFrames() {
       // Account for padding the sleep interval to ensure the wake up happens
       // after the last desired frame is received.
-      return iodev_.cb_threshold + CAP_EXTRA_SLEEP_FRAMES;
+      return cb_threshold_ + CAP_EXTRA_SLEEP_FRAMES;
     }
 
     // Stub functions for the iodev structure.
@@ -832,6 +831,8 @@ class WriteStreamSuite : public testing::Test {
   static int frames_queued_;
   static int frames_written_;
   static int delay_frames_;
+  static unsigned int cb_threshold_;
+  static unsigned int buffer_frames_;
   static uint8_t audio_buffer_[8192];
   static unsigned int audio_buffer_size_;
   static int dev_running_;
@@ -850,6 +851,8 @@ int WriteStreamSuite::is_open_ = 0;
 int WriteStreamSuite::frames_queued_ = 0;
 int WriteStreamSuite::frames_written_ = 0;
 int WriteStreamSuite::delay_frames_ = 0;
+unsigned int WriteStreamSuite::cb_threshold_ = 0;
+unsigned int WriteStreamSuite::buffer_frames_ = 0;
 uint8_t WriteStreamSuite::audio_buffer_[8192];
 unsigned int WriteStreamSuite::audio_buffer_size_ = 0;
 int WriteStreamSuite::dev_running_ = 1;
@@ -876,10 +879,10 @@ TEST_F(WriteStreamSuite, PossiblyFillEarlyWake) {
   uint64_t nsec_expected;
 
   //  If woken and still have tons of data to play, go back to sleep.
-  frames_queued_ = iodev_.cb_threshold * 2;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_ * 2;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
-  nsec_expected = (iodev_.cb_threshold) * 1000000000ULL /
+  nsec_expected = (cb_threshold_) * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   iodev_.direction = CRAS_STREAM_OUTPUT;
   is_open_ = 1;
@@ -897,13 +900,13 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   uint64_t nsec_expected;
 
   // Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
-  nsec_expected = (uint64_t)iodev_.cb_threshold *
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
+  nsec_expected = (uint64_t)cb_threshold_ *
       1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   // shm has plenty of data in it.
-  shm_->area->write_offset[0] = iodev_.cb_threshold * 4;
+  shm_->area->write_offset[0] = cb_threshold_ * 4;
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
@@ -915,7 +918,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(iodev_.cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(cb_threshold_, cras_mix_add_stream_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
 }
@@ -926,10 +929,10 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamMinSet) {
   uint64_t nsec_expected;
 
   // Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold * 2;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_ * 2;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
   // Setting the min_buffer_level should shorten the sleep time.
-  iodev_.min_buffer_level = iodev_.cb_threshold;
+  iodev_.min_buffer_level = cb_threshold_;
 
   // shm has is empty.
   shm_->area->write_offset[0] = 0;
@@ -940,13 +943,13 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamMinSet) {
   is_open_ = 1;
   // Set write offset after call to select.
   select_write_ptr = &shm_->area->write_offset[0];
-  select_write_value = iodev_.cb_threshold * 4;
+  select_write_value = cb_threshold_ * 4;
 
   // After the callback there will be cb_thresh of data in the buffer and
   // cb_thresh x 2 data in the hardware (frames_queued_) = 3 cb_thresh total.
   // It should sleep until there is a total of cb_threshold + min_buffer_level
   // left,  or 3 - 2 = 1 cb_thresh worth of delay.
-  nsec_expected = (uint64_t)(iodev_.cb_threshold) *
+  nsec_expected = (uint64_t)cb_threshold_ *
       1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   rc = unified_io(thread_, &ts);
@@ -954,7 +957,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamMinSet) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(iodev_.cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(cb_threshold_, cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
 }
 
@@ -963,8 +966,8 @@ TEST_F(WriteStreamSuite, PossiblyFillFramesQueued) {
   int rc;
 
   // Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   // shm has plenty of data in it.
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
@@ -980,8 +983,8 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamOneEmpty) {
   int rc;
 
   // Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   // shm has plenty of data in it.
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
@@ -1010,8 +1013,8 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   int rc;
 
   //  Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   //  shm is out of data.
   shm_->area->write_offset[0] = 0;
@@ -1021,9 +1024,9 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   select_return_value = 1;
   // Set write offset after call to select.
   select_write_ptr = &shm_->area->write_offset[0];
-  select_write_value = (iodev_.used_size - iodev_.cb_threshold) * 4;
+  select_write_value = (buffer_frames_ - cb_threshold_) * 4;
 
-  nsec_expected = (iodev_.used_size - iodev_.cb_threshold) *
+  nsec_expected = (buffer_frames_ - cb_threshold_) *
       1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   is_open_ = 1;
@@ -1032,7 +1035,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold, cras_mix_add_stream_count);
+  EXPECT_EQ(buffer_frames_ - cb_threshold_, cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -1045,8 +1048,8 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   int rc;
 
   //  Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   //  Software volume config.
   iodev_.software_volume_scaler = 0.5;
@@ -1060,9 +1063,9 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
 
   // Set write offset after call to select.
   select_write_ptr = &shm_->area->write_offset[0];
-  select_write_value = (iodev_.used_size - iodev_.cb_threshold) * 4;
+  select_write_value = (buffer_frames_ - cb_threshold_) * 4;
 
-  nsec_expected = (iodev_.used_size - iodev_.cb_threshold) *
+  nsec_expected = (buffer_frames_ - cb_threshold_) *
       1000000000ULL / (uint64_t)fmt_.frame_rate;
 
   is_open_ = 1;
@@ -1071,7 +1074,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
+  EXPECT_EQ(buffer_frames_ - cb_threshold_,
             cras_mix_add_stream_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
@@ -1086,7 +1089,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
 
   //  Have cb_threshold samples left.
   frames_queued_ = cras_rstream_get_cb_threshold(rstream_);
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
   nsec_expected = (uint64_t)cras_rstream_get_cb_threshold(rstream_) *
       1000000000ULL / (uint64_t)fmt_.frame_rate;
 
@@ -1114,9 +1117,9 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   size_t written_expected;
 
   //  Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
-  written_expected = (iodev_.used_size - iodev_.cb_threshold);
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
+  written_expected = buffer_frames_ - cb_threshold_;
 
   //  shm has plenty of data in it.
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
@@ -1140,8 +1143,8 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   int rc;
 
   //  Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   //  shm has nothing left.
   shm_->area->write_offset[0] = 0;
@@ -1165,7 +1168,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   frames_queued_ = 0;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(iodev_.cb_threshold, cras_mix_mute_count);
+  EXPECT_EQ(cb_threshold_, cras_mix_mute_count);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
@@ -1175,8 +1178,8 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
   static const unsigned int smaller_frames = 10;
 
   //  Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
   nsec_expected = (uint64_t)smaller_frames *
                   (1000000000ULL / (uint64_t)fmt_.frame_rate);
 
@@ -1207,8 +1210,8 @@ TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
   struct timespec ts;
   int rc;
 
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
   iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
 
   //  shm has plenty of data in it.
@@ -1221,7 +1224,7 @@ TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
+  EXPECT_EQ(buffer_frames_ - cb_threshold_,
             cras_mix_add_stream_count);
   EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
@@ -1236,8 +1239,8 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
   int rc;
 
   //  Have cb_threshold samples left.
-  frames_queued_ = iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  frames_queued_ = cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
   iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
   cras_dsp_get_pipeline_ret = 0x6;
 
@@ -1251,13 +1254,13 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
+  EXPECT_EQ(buffer_frames_ - cb_threshold_,
             cras_mix_add_stream_count);
   EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(2, cras_dsp_put_pipeline_called);
   EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
-  EXPECT_EQ(iodev_.used_size - iodev_.cb_threshold,
+  EXPECT_EQ(buffer_frames_ - cb_threshold_,
             cras_dsp_pipeline_apply_sample_count);
 }
 
@@ -1268,9 +1271,9 @@ TEST_F(WriteStreamSuite, DrainAudioInShareMemory) {
   // Have 3 * cb_threshold samples in the hw buffer.
   // Have 4 * cb_threshold samples in the first stream's shm
   // Note: used_size = 5 * cb_threshold.
-  frames_queued_ = 3 * iodev_.cb_threshold;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
-  shm_->area->write_offset[0] = 4 * iodev_.cb_threshold * 4;
+  frames_queued_ = 3 * cb_threshold_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
+  shm_->area->write_offset[0] = 4 * cb_threshold_ * 4;
 
   is_open_ = 1;
   close_dev_called_ = 0;
@@ -1285,20 +1288,20 @@ TEST_F(WriteStreamSuite, DrainAudioInShareMemory) {
   rc = unified_io(thread_, &ts);
 
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(2 * iodev_.cb_threshold, frames_written_);
+  EXPECT_EQ(2 * cb_threshold_, frames_written_);
   EXPECT_EQ(0, open_dev_called_);
   EXPECT_EQ(0, close_dev_called_);
 
   // Clear the hw buffer
   frames_queued_ = 0;
   frames_written_ = 0;
-  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   rc = unified_io(thread_, &ts);
 
   // Verified that all data in stream1 is written.
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(2 * iodev_.cb_threshold, frames_written_);
+  EXPECT_EQ(2 * cb_threshold_, frames_written_);
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(1, cras_rstream_destroy_called);
 }
@@ -1315,8 +1318,8 @@ class AddStreamSuite : public testing::Test {
       memset(&iodev_, 0, sizeof(iodev_));
       iodev_.format = &fmt_;
       iodev_.buffer_size = 16384;
-      iodev_.used_size = 480;
-      iodev_.cb_threshold = 96;
+      used_size_ = 480;
+      cb_threshold_ = 96;
       iodev_.direction = CRAS_STREAM_OUTPUT;
 
       iodev_.is_open = is_open;
@@ -1329,9 +1332,6 @@ class AddStreamSuite : public testing::Test {
       close_dev_called_ = 0;
       open_dev_return_val_ = 0;
 
-      cras_iodev_config_params_for_streams_called = 0;
-      cras_iodev_config_params_for_streams_buffer_size = 0;
-      cras_iodev_config_params_for_streams_threshold = 0;
       cras_iodev_set_format_called = 0;
       cras_rstream_destroy_called = 0;
       cras_metrics_log_histogram_called = 0;
@@ -1345,7 +1345,7 @@ class AddStreamSuite : public testing::Test {
     unsigned int GetCaptureSleepFrames() {
       // Account for padding the sleep interval to ensure the wake up happens
       // after the last desired frame is received.
-      return iodev_.cb_threshold + 16;
+      return cb_threshold_ + 16;
     }
 
     // Stub functions for the iodev structure.
@@ -1396,7 +1396,11 @@ class AddStreamSuite : public testing::Test {
       thread_add_stream(&thread, new_stream);
       EXPECT_EQ(1, thread.devs_open[direction]);
       EXPECT_EQ(1, open_dev_called_);
-      EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+      EXPECT_EQ(65, thread.buffer_frames[direction]);
+      if (direction == CRAS_STREAM_OUTPUT)
+          EXPECT_EQ(32, thread.cb_threshold[direction]);
+      else
+	  EXPECT_EQ(80, thread.cb_threshold[direction]);
 
       is_open_ = 1;
 
@@ -1413,21 +1417,24 @@ class AddStreamSuite : public testing::Test {
       thread_add_stream(&thread, second_stream);
       EXPECT_EQ(1, thread.devs_open[direction]);
       EXPECT_EQ(1, open_dev_called_);
-      EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
-      EXPECT_EQ(25, cras_iodev_config_params_for_streams_buffer_size);
-      EXPECT_EQ(12, cras_iodev_config_params_for_streams_threshold);
+      EXPECT_EQ(25, thread.buffer_frames[direction]);
+      EXPECT_EQ(12, thread.cb_threshold[direction]);
 
       //  Remove the streams.
       rc = thread_remove_stream(&thread, second_stream);
       EXPECT_EQ(1, rc);
-      EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
       EXPECT_EQ(0, close_dev_called_);
+      if (direction == CRAS_STREAM_OUTPUT)
+          EXPECT_EQ(32, thread.cb_threshold[direction]);
+      else
+          EXPECT_EQ(80, thread.cb_threshold[direction]);
 
       rc = thread_remove_stream(&thread, new_stream);
       EXPECT_EQ(0, rc);
       EXPECT_EQ(0, thread.devs_open[direction]);
       EXPECT_EQ(1, close_dev_called_);
-      EXPECT_EQ(3, cras_iodev_config_params_for_streams_called);
+      EXPECT_EQ(0, thread.buffer_frames[direction]);
+      EXPECT_EQ(0, thread.cb_threshold[direction]);
 
       free(fmt);
       shm = cras_rstream_output_shm(new_stream);
@@ -1444,6 +1451,8 @@ class AddStreamSuite : public testing::Test {
   static int open_dev_called_;
   static int open_dev_return_val_;
   static int close_dev_called_;
+  static int used_size_;
+  static int cb_threshold_;
   struct cras_audio_format fmt_;
 };
 
@@ -1452,6 +1461,8 @@ int AddStreamSuite::is_open_called_ = 0;
 int AddStreamSuite::open_dev_called_ = 0;
 int AddStreamSuite::open_dev_return_val_ = 0;
 int AddStreamSuite::close_dev_called_ = 0;
+int AddStreamSuite::used_size_ = 0;
+int AddStreamSuite::cb_threshold_ = 0;
 
 TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   int rc;
@@ -1478,7 +1489,8 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, thread.devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, open_dev_called_);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(65, thread.buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(32, thread.cb_threshold[CRAS_STREAM_OUTPUT]);
 
   is_open_ = 1;
 
@@ -1488,6 +1500,8 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(0, thread.devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(0, cras_metrics_log_histogram_called);
+  EXPECT_EQ(0, thread.buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(0, thread.cb_threshold[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, cras_rstream_destroy_called);
 
   rc = thread_disconnect_stream(&thread, new_stream);
@@ -1552,7 +1566,8 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, thread->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, open_dev_called_);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(65, thread->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(32, thread->cb_threshold[CRAS_STREAM_OUTPUT]);
 
   is_open_ = 1;
   cras_shm_set_longest_timeout(shm, 90);
@@ -1562,6 +1577,8 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   EXPECT_EQ(0, thread->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ(0, thread->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(0, thread->cb_threshold[CRAS_STREAM_OUTPUT]);
 
   cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
 
@@ -1588,10 +1605,12 @@ class ActiveDevicesSuite : public testing::Test {
       iodev_.is_open = is_open;
       iodev_.open_dev = open_dev;
       iodev_.format = &fmt_;
+      iodev_.buffer_size = 2048;
       iodev2_.close_dev = close_dev;
       iodev2_.is_open = is_open;
       iodev2_.open_dev = open_dev;
       iodev2_.format = &fmt_;
+      iodev2_.buffer_size = 2048;
       thread_ = audio_thread_create();
       ASSERT_TRUE(thread_);
 
@@ -1602,7 +1621,6 @@ class ActiveDevicesSuite : public testing::Test {
       rstream2_->buffer_frames -= 50;
       rstream2_->cb_threshold -= 50;
 
-      cras_iodev_config_params_for_streams_called = 0;
       cras_iodev_set_format_called = 0;
       close_dev_called_ = 0;
       is_open_ = 0;
@@ -1722,11 +1740,8 @@ TEST_F(ActiveDevicesSuite, OpenActiveDevices) {
   thread_add_stream(thread_, rstream_);
 
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
-  EXPECT_EQ(rstream_->buffer_frames,
-            cras_iodev_config_params_for_streams_buffer_size);
-  EXPECT_EQ(rstream_->cb_threshold,
-            cras_iodev_config_params_for_streams_threshold);
+  EXPECT_EQ(500, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(250, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
 }
 
 TEST_F(ActiveDevicesSuite, OpenFirstActiveDeviceFail) {
@@ -1741,7 +1756,8 @@ TEST_F(ActiveDevicesSuite, OpenFirstActiveDeviceFail) {
   rc = thread_add_stream(thread_, rstream_);
   EXPECT_EQ(rc, AUDIO_THREAD_OUTPUT_DEV_ERROR);
   EXPECT_EQ(1, cras_iodev_set_format_called);
-  EXPECT_EQ(0, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(0, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(0, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
 }
 
 TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFail) {
@@ -1756,7 +1772,8 @@ TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFail) {
   rc = thread_add_stream(thread_, rstream_);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(500, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(250, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, close_dev_called_);
   EXPECT_EQ((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]->next);
 }
@@ -1773,7 +1790,8 @@ TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFormatIncompatible) {
   rc = thread_add_stream(thread_, rstream_);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
+  EXPECT_EQ(500, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(250, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]->next);
 }
@@ -1788,26 +1806,11 @@ TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
   thread_add_stream(thread_, rstream_);
   EXPECT_EQ(1, thread_->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
-  EXPECT_EQ(rstream_->buffer_frames,
-            cras_iodev_config_params_for_streams_buffer_size);
-  EXPECT_EQ(rstream_->cb_threshold,
-            cras_iodev_config_params_for_streams_threshold);
 
   thread_add_stream(thread_, rstream2_);
   EXPECT_EQ(2, cras_iodev_set_format_called);
-  EXPECT_EQ(4, cras_iodev_config_params_for_streams_called);
-  EXPECT_EQ(rstream2_->buffer_frames,
-            cras_iodev_config_params_for_streams_buffer_size);
-  EXPECT_EQ(rstream2_->cb_threshold,
-            cras_iodev_config_params_for_streams_threshold);
 
   thread_remove_stream(thread_, rstream2_);
-  EXPECT_EQ(6, cras_iodev_config_params_for_streams_called);
-  EXPECT_EQ(rstream_->buffer_frames,
-            cras_iodev_config_params_for_streams_buffer_size);
-  EXPECT_EQ(rstream_->cb_threshold,
-            cras_iodev_config_params_for_streams_threshold);
 
   thread_remove_stream(thread_, rstream_);
   EXPECT_EQ(0, thread_->devs_open[CRAS_STREAM_OUTPUT]);
@@ -1858,14 +1861,6 @@ void cras_iodev_set_playback_timestamp(size_t frame_rate,
 void cras_iodev_set_capture_timestamp(size_t frame_rate,
                                       size_t frames,
                                       struct cras_timespec *ts) {
-}
-
-void cras_iodev_config_params(struct cras_iodev *iodev,
-                              unsigned int buffer_size,
-                              unsigned int cb_threshold) {
-  cras_iodev_config_params_for_streams_called++;
-  cras_iodev_config_params_for_streams_buffer_size = buffer_size;
-  cras_iodev_config_params_for_streams_threshold = cb_threshold;
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,

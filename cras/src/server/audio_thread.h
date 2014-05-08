@@ -47,6 +47,11 @@ struct active_dev {
  *        CRAS_STREAM_DIRECTION.
  *    devs_open - Non-zero if the thread has stream attached and running
  *        for each CRAS_STREAM_DIRECTION.
+ *    cb_threshold - List of callback threshold used for each
+ *        CRAS_STREAM_DIRECTION, 0 means there's no stream attached for
+ *        that direction.
+ *    buffer_frames - List of buffer frames used for each CRAS_STREAM_DIRECTION,
+ *        0 means there's no stream attached for that direction.
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -57,6 +62,8 @@ struct audio_thread {
 	struct cras_io_stream *streams;
 	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
 	int devs_open[CRAS_NUM_DIRECTIONS];
+	unsigned int cb_threshold[CRAS_NUM_DIRECTIONS];
+	unsigned int buffer_frames[CRAS_NUM_DIRECTIONS];
 };
 
 /* Callback function to be handled in main loop in audio thread.
