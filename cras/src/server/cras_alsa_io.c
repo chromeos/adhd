@@ -120,8 +120,7 @@ static int frames_queued(const struct cras_iodev *iodev)
 		return (int)frames;
 
 	/* For output, return number of frames that are used. */
-	return MIN(iodev->buffer_size - frames,
-		   iodev->used_size + iodev->min_buffer_level);
+	return iodev->buffer_size - frames;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
@@ -189,10 +188,6 @@ static int open_dev(struct cras_iodev *iodev)
 		cras_alsa_pcm_close(handle);
 		return rc;
 	}
-
-	/* Set minimum number of available frames. */
-	if (iodev->used_size > iodev->buffer_size)
-		iodev->used_size = iodev->buffer_size;
 
 	/* Configure software params. */
 	rc = cras_alsa_set_swparams(handle);

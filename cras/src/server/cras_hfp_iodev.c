@@ -75,9 +75,6 @@ add_dev:
 	hfp_info_add_iodev(hfpio->info, iodev);
 
 	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev);
-	if (iodev->used_size > iodev->buffer_size)
-		iodev->used_size = iodev->buffer_size;
-
 	hfpio->opened = 1;
 
 	return 0;
