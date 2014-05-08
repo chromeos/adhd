@@ -68,7 +68,7 @@ try_again:
 	fmt = mfmt;
 	if (idev)
 		cras_iodev_set_format(idev, &fmt);
-	else if (odev)
+	if (odev)
 		cras_iodev_set_format(odev, &fmt);
 
 	if (fmt.frame_rate == 0 || msg->format.frame_rate == 0) {
@@ -115,9 +115,6 @@ try_again:
 		rc = -ENOMEM;
 		goto reply_err;
 	}
-
-	if (odev && idev)
-		cras_iodev_set_format(odev, &fmt);
 
 	DL_APPEND(client->streams, stream);
 	rc = audio_thread_add_stream(thread, stream);
