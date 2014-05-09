@@ -1626,7 +1626,10 @@ int possibly_read_audio(struct audio_thread *thread,
 		remainder -= nread;
 	}
 
-	*min_sleep = idev->buffer_size;
+	/* Minimum sleep frames should not be larger than the used callback
+	 * threshold in frames for given direction.
+	 */
+	*min_sleep = thread->cb_threshold[idev->direction];
 
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
