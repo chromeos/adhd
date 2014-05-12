@@ -18,6 +18,8 @@ extern "C" {
 
 int thread_add_stream(audio_thread* thread,
                       cras_rstream* stream);
+int thread_disconnect_stream(audio_thread* thread,
+                             cras_rstream* stream);
 int thread_remove_stream(audio_thread* thread,
                          cras_rstream* stream);
 int unified_io(audio_thread* thread, timespec* ts);
@@ -28,6 +30,7 @@ static unsigned int cras_mix_mute_count;
 static int cras_rstream_audio_ready_count;
 static unsigned int cras_rstream_request_audio_called;
 static unsigned int cras_rstream_audio_ready_called;
+static unsigned int cras_rstream_destroy_called;
 static unsigned int cras_metrics_log_histogram_called;
 static const char *cras_metrics_log_histogram_name;
 static unsigned int cras_metrics_log_histogram_sample;
@@ -140,6 +143,7 @@ class ReadStreamSuite : public testing::Test {
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->direction = CRAS_STREAM_INPUT;
       (*rstream)->cb_threshold = iodev_.cb_threshold;
+      (*rstream)->client = (struct cras_rclient *)this;
 
       shm = cras_rstream_input_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
@@ -777,6 +781,7 @@ class WriteStreamSuite : public testing::Test {
       memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
       (*rstream)->fd = fd;
       (*rstream)->cb_threshold = 96;
+      (*rstream)->client = (struct cras_rclient *)this;
 
       shm = cras_rstream_output_shm(*rstream);
       shm->area = (struct cras_audio_shm_area *)calloc(1,
@@ -1297,6 +1302,7 @@ class AddStreamSuite : public testing::Test {
       cras_iodev_config_params_for_streams_buffer_size = 0;
       cras_iodev_config_params_for_streams_threshold = 0;
       cras_iodev_set_format_called = 0;
+      cras_rstream_destroy_called = 0;
       cras_metrics_log_histogram_called = 0;
       cras_metrics_log_histogram_name = NULL;
       cras_metrics_log_histogram_sample = 0;
@@ -1430,6 +1436,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   iodev_.format = &fmt_;
   iodev_.thread = &thread;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
+  new_stream->client = (struct cras_rclient* )this;
   new_stream->fd = 55;
   new_stream->buffer_frames = 65;
   new_stream->cb_threshold = 80;
@@ -1454,10 +1461,15 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(0, cras_metrics_log_histogram_called);
+  EXPECT_EQ(0, cras_rstream_destroy_called);
+
+  rc = thread_disconnect_stream(&thread, new_stream);
+  EXPECT_EQ(1, cras_rstream_destroy_called);
 
   free(shm->area);
   free(new_stream);
 }
+
 
 TEST_F(AddStreamSuite, AddStreamOpenFail) {
   struct audio_thread *thread;
@@ -1762,6 +1774,10 @@ size_t cras_system_get_mute() {
 
 size_t cras_system_get_capture_mute() {
   return 0;
+}
+
+void cras_rstream_destroy(struct cras_rstream *stream) {
+  cras_rstream_destroy_called++;
 }
 
 void loopback_iodev_set_format(struct loopback_iodev *loopback_dev,

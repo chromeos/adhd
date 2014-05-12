@@ -116,7 +116,9 @@ int audio_thread_start(struct audio_thread *thread);
 /* Frees an audio thread created with audio_thread_create(). */
 void audio_thread_destroy(struct audio_thread *thread);
 
-/* Add a stream to the thread.
+/* Add a stream to the thread. After this call, the ownership of the stream will
+ * be passed to the audio thread. Audio thread is responsible to release the
+ * stream's resources.
  * Args:
  *    thread - a pointer to the audio thread.
  *    stream - the new stream to add.
@@ -127,15 +129,15 @@ void audio_thread_destroy(struct audio_thread *thread);
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream);
 
-/* Remove a stream from the thread.
+/* Disconnect a stream from the client.
  * Args:
  *    thread - a pointer to the audio thread.
- *    stream - the new stream to remove.
+ *    stream - the stream to be disonnected.
  * Returns:
  *    The number of streams remaining if successful, negative if error.
  */
-int audio_thread_rm_stream(struct audio_thread *thread,
-			   struct cras_rstream *stream);
+int audio_thread_disconnect_stream(struct audio_thread *thread,
+			   	   struct cras_rstream *stream);
 
 /* Remove all streams of the given direction from a thread.  Used when streams
  * should be re-attached after a device switch.

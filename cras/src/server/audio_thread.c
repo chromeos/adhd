@@ -30,7 +30,7 @@
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_ADD_STREAM,
-	AUDIO_THREAD_RM_STREAM,
+	AUDIO_THREAD_DISCONNECT_STREAM,
 	AUDIO_THREAD_RM_ALL_STREAMS,
 	AUDIO_THREAD_STOP,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
@@ -373,6 +373,8 @@ static int delete_stream(struct audio_thread *thread,
 	}
 
 	DL_DELETE(thread->streams, out);
+	if (stream->client == NULL)
+		cras_rstream_destroy(stream);
 	free(out);
 
 	return 0;
@@ -444,6 +446,23 @@ int thread_remove_stream(struct audio_thread *thread,
 	}
 
 	return streams_attached(thread);
+}
+
+/* Handles the disconnect_stream message from the main thread. */
+int thread_disconnect_stream(struct audio_thread* thread,
+			     struct cras_rstream* stream) {
+	struct cras_io_stream *out;
+
+	stream->client = NULL;
+	stream->fd = -1;
+
+	/* If the stream has been removed from active streams, then destroy it. */
+	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
+	if (out == NULL) {
+		cras_rstream_destroy(stream);
+		return 0;
+	}
+	return thread_remove_stream(thread, stream);
 }
 
 /* Put 'frames' worth of zero samples into odev.  Used to build an initial
@@ -1000,12 +1019,12 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		ret = thread_add_stream(thread, amsg->stream);
 		break;
 	}
-	case AUDIO_THREAD_RM_STREAM: {
+	case AUDIO_THREAD_DISCONNECT_STREAM: {
 		struct audio_thread_add_rm_stream_msg *rmsg;
 
 		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
 
-		ret = thread_remove_stream(thread, rmsg->stream);
+		ret = thread_disconnect_stream(thread, rmsg->stream);
 		break;
 	}
 	case AUDIO_THREAD_RM_ALL_STREAMS: {
@@ -1672,14 +1691,14 @@ int audio_thread_add_stream(struct audio_thread *thread,
 	return audio_thread_post_message(thread, &msg.header);
 }
 
-int audio_thread_rm_stream(struct audio_thread *thread,
-			   struct cras_rstream *stream)
+int audio_thread_disconnect_stream(struct audio_thread *thread,
+				   struct cras_rstream *stream)
 {
 	struct audio_thread_add_rm_stream_msg msg;
 
 	assert(thread && stream);
 
-	msg.header.id = AUDIO_THREAD_RM_STREAM;
+	msg.header.id = AUDIO_THREAD_DISCONNECT_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
 	return audio_thread_post_message(thread, &msg.header);

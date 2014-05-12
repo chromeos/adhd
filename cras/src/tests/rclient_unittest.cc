@@ -40,7 +40,7 @@ static size_t cras_make_fd_nonblocking_called;
 static audio_thread* iodev_get_thread_return;
 static int audio_thread_add_stream_return;
 static unsigned int audio_thread_add_stream_called;
-static unsigned int audio_thread_rm_stream_called;
+static unsigned int audio_thread_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
 static unsigned int cras_iodev_set_format_frame_rate;
@@ -69,7 +69,7 @@ void ResetStubData() {
   iodev_get_thread_return = reinterpret_cast<audio_thread*>(0xad);
   audio_thread_add_stream_return = 0;
   audio_thread_add_stream_called = 0;
-  audio_thread_rm_stream_called = 0;
+  audio_thread_disconnect_stream_called = 0;
   cras_iodev_list_rm_output_called = 0;
   cras_iodev_list_rm_input_called = 0;
   cras_iodev_set_format_frame_rate = 0;
@@ -187,24 +187,6 @@ TEST_F(RClientMessagesSuite, FrameRateErrorSRC) {
   EXPECT_NE(0, out_msg.err);
 }
 
-TEST_F(RClientMessagesSuite, IoDevGetThreadError) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  cras_rstream_create_stream_out = rstream_;
-  iodev_get_thread_return = NULL;
-
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
-  EXPECT_EQ(0, rc);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id_, out_msg.stream_id);
-  EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(1, cras_rstream_destroy_called);
-  EXPECT_EQ(audio_thread_add_stream_called, audio_thread_rm_stream_called);
-}
-
 TEST_F(RClientMessagesSuite, AudThreadAttachFailRetry) {
   struct cras_client_stream_connected out_msg;
   int rc;
@@ -220,10 +202,10 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFailRetry) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(1, cras_rstream_destroy_called);
+  EXPECT_EQ(2, cras_rstream_destroy_called);
   EXPECT_EQ(1, cras_iodev_list_rm_output_called);
   EXPECT_EQ(2, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_rm_stream_called);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
@@ -244,7 +226,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_EQ(1, cras_rstream_destroy_called);
   EXPECT_EQ(0, cras_iodev_list_rm_output_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_rm_stream_called);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, NoDevErrorReply) {
@@ -261,7 +243,8 @@ TEST_F(RClientMessagesSuite, NoDevErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(audio_thread_add_stream_called, audio_thread_rm_stream_called);
+  EXPECT_EQ(audio_thread_add_stream_called,
+            audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
@@ -278,7 +261,8 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(audio_thread_add_stream_called, audio_thread_rm_stream_called);
+  EXPECT_EQ(audio_thread_add_stream_called,
+            audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
@@ -295,7 +279,8 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
-  EXPECT_EQ(audio_thread_add_stream_called, audio_thread_rm_stream_called);
+  EXPECT_EQ(audio_thread_add_stream_called,
+            audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SuccessReply) {
@@ -316,7 +301,7 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_rm_stream_called);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, AddTwoUnified) {
@@ -339,7 +324,7 @@ TEST_F(RClientMessagesSuite, AddTwoUnified) {
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_rm_stream_called);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
 
   connect_msg_.stream_id = stream_id_ + 1;
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 101);
@@ -351,7 +336,7 @@ TEST_F(RClientMessagesSuite, AddTwoUnified) {
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(2, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_rm_stream_called);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
@@ -373,7 +358,7 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_rm_stream_called);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SetVolume) {
@@ -483,9 +468,9 @@ int audio_thread_add_stream(audio_thread* thread,
   return ret;
 }
 
-int audio_thread_rm_stream(audio_thread* thread,
-			   cras_rstream* stream) {
-  audio_thread_rm_stream_called++;
+int audio_thread_disconnect_stream(audio_thread* thread,
+				   cras_rstream* stream) {
+  audio_thread_disconnect_stream_called++;
   return 0;
 }
 

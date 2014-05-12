@@ -33,7 +33,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 					const struct cras_connect_message *msg,
 					int aud_fd)
 {
-	struct cras_rstream *stream = NULL;
+	struct cras_rstream *stream;
 	struct cras_iodev *idev, *odev;
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format fmt, mfmt;
@@ -111,10 +111,6 @@ try_again:
 
 	/* Now can pass the stream to the thread. */
 	thread = cras_iodev_list_get_audio_thread();
-	if (thread == NULL) {
-		rc = -ENOMEM;
-		goto reply_err;
-	}
 
 	DL_APPEND(client->streams, stream);
 	rc = audio_thread_add_stream(thread, stream);
@@ -123,12 +119,14 @@ try_again:
 		DL_DELETE(client->streams, stream);
 		if (rc == AUDIO_THREAD_OUTPUT_DEV_ERROR) {
 			cras_iodev_list_rm_output(odev);
+			cras_rstream_destroy(stream);
 			goto try_again;
 		} else if (rc == AUDIO_THREAD_INPUT_DEV_ERROR) {
 			cras_iodev_list_rm_input(idev);
+			cras_rstream_destroy(stream);
 			goto try_again;
 		} else {
-			goto reply_err;
+			goto destroy_stream_and_reply_err;
 		}
 	}
 
@@ -145,7 +143,7 @@ try_again:
 	rc = cras_rclient_send_message(client, &reply.header);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
-		audio_thread_rm_stream(thread, stream);
+		audio_thread_disconnect_stream(thread, stream);
 		DL_DELETE(client->streams, stream);
 		goto reply_err;
 	}
@@ -154,6 +152,8 @@ try_again:
 
 	return 0;
 
+destroy_stream_and_reply_err:
+	cras_rstream_destroy(stream);
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
@@ -162,9 +162,6 @@ reply_err:
 
 	if (aud_fd >= 0)
 		close(aud_fd);
-
-	if (stream)
-		cras_rstream_destroy(stream);
 
 	return rc;
 }
@@ -176,14 +173,12 @@ static int disconnect_client_stream(struct cras_rclient *client,
 {
 	enum CRAS_STREAM_DIRECTION direction = stream->direction;
 	struct audio_thread *thread = cras_iodev_list_get_audio_thread();
+	int aud_fd = cras_rstream_get_audio_fd(stream);
 
-	if (thread)
-		audio_thread_rm_stream(thread, stream);
-
-	close(cras_rstream_get_audio_fd(stream));
 	DL_DELETE(client->streams, stream);
-	cras_rstream_destroy(stream);
+	audio_thread_disconnect_stream(thread, stream);
 
+	close(aud_fd);
 	cras_system_state_stream_removed(direction);
 
 	return 0;
