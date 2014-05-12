@@ -22,6 +22,8 @@ int thread_disconnect_stream(audio_thread* thread,
                              cras_rstream* stream);
 int thread_remove_stream(audio_thread* thread,
                          cras_rstream* stream);
+int thread_disconnect_stream(audio_thread* thread,
+                             cras_rstream* stream);
 int unified_io(audio_thread* thread, timespec* ts);
 
 static int cras_mix_add_stream_dont_fill_next;
@@ -507,11 +509,11 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   rc = thread_add_stream(thread, rstream2_);
   EXPECT_EQ(0, rc);
 
-  //  A full block plus 4 frames.
-  frames_queued_ = iodev_.cb_threshold + 4;
+  //  A full block plus 240 frames.
+  frames_queued_ = iodev_.cb_threshold + 240;
   audio_buffer_size_ = frames_queued_;
 
-  uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
+  uint64_t sleep_frames = GetCaptureSleepFrames() - 240;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)fmt_.frame_rate;
   cras_rstream_audio_ready_count = 999;
@@ -743,6 +745,7 @@ class WriteStreamSuite : public testing::Test {
       select_write_ptr = NULL;
       cras_metrics_log_event_called = 0;
       cras_rstream_request_audio_called = 0;
+      cras_rstream_destroy_called = 0;
       cras_dsp_get_pipeline_called = 0;
       is_open_ = 0;
       close_dev_called_ = 0;
@@ -831,11 +834,14 @@ class WriteStreamSuite : public testing::Test {
     }
 
     static int open_dev(cras_iodev* iodev) {
+      is_open_ = 1;
+      open_dev_called_++;
       return 0;
     }
 
     static int close_dev(cras_iodev* iodev) {
       close_dev_called_++;
+      is_open_ = 0;
       return 0;
     }
 
@@ -849,6 +855,7 @@ class WriteStreamSuite : public testing::Test {
   static int dev_running_;
   static unsigned int dev_running_called_;
   static unsigned int close_dev_called_;
+  static unsigned int open_dev_called_;
   struct cras_audio_format fmt_;
   struct cras_rstream* rstream_;
   struct cras_rstream* rstream2_;
@@ -866,6 +873,7 @@ unsigned int WriteStreamSuite::audio_buffer_size_ = 0;
 int WriteStreamSuite::dev_running_ = 1;
 unsigned int WriteStreamSuite::dev_running_called_ = 0;
 unsigned int WriteStreamSuite::close_dev_called_ = 0;
+unsigned int WriteStreamSuite::open_dev_called_ = 0;
 
 TEST_F(WriteStreamSuite, PossiblyFillGetAvailError) {
   struct timespec ts;
@@ -1271,6 +1279,47 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
             cras_dsp_pipeline_apply_sample_count);
 }
 
+TEST_F(WriteStreamSuite, DrainAudioInShareMemory) {
+  struct timespec ts;
+  int rc;
+
+  // Have 3 * cb_threshold samples in the hw buffer.
+  // Have 4 * cb_threshold samples in the first stream's shm
+  // Note: used_size = 5 * cb_threshold.
+  frames_queued_ = 3 * iodev_.cb_threshold;
+  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+  shm_->area->write_offset[0] = 4 * iodev_.cb_threshold * 4;
+
+  is_open_ = 1;
+  close_dev_called_ = 0;
+  open_dev_called_ = 0;
+
+  thread_disconnect_stream(thread_, rstream_);
+
+  // We should be draining the audio.
+  EXPECT_EQ(0, close_dev_called_);
+  EXPECT_EQ(0, open_dev_called_);
+
+  rc = unified_io(thread_, &ts);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2 * iodev_.cb_threshold, frames_written_);
+  EXPECT_EQ(0, open_dev_called_);
+  EXPECT_EQ(0, close_dev_called_);
+
+  // Clear the hw buffer
+  frames_queued_ = 0;
+  frames_written_ = 0;
+  audio_buffer_size_ = iodev_.used_size - frames_queued_;
+
+  rc = unified_io(thread_, &ts);
+
+  // Verified that all data in stream1 is written.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2 * iodev_.cb_threshold, frames_written_);
+  EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ(1, cras_rstream_destroy_called);
+}
 
 //  Test adding and removing streams.
 class AddStreamSuite : public testing::Test {
@@ -1368,7 +1417,7 @@ class AddStreamSuite : public testing::Test {
       iodev_.thread = &thread;
 
       thread_add_stream(&thread, new_stream);
-      EXPECT_EQ(2, is_open_called_);
+      EXPECT_LT(0, is_open_called_);
       EXPECT_EQ(1, open_dev_called_);
       EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
 
@@ -1383,8 +1432,9 @@ class AddStreamSuite : public testing::Test {
       shm = cras_rstream_output_shm(second_stream);
       shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
+      is_open_called_ = 0;
       thread_add_stream(&thread, second_stream);
-      EXPECT_EQ(4, is_open_called_);
+      EXPECT_LT(0, is_open_called_);
       EXPECT_EQ(1, open_dev_called_);
       EXPECT_EQ(2, cras_iodev_config_params_for_streams_called);
       EXPECT_EQ(25, cras_iodev_config_params_for_streams_buffer_size);
@@ -1450,7 +1500,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
 
   rc = thread_add_stream(&thread, new_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(2, is_open_called_);
+  EXPECT_LT(0, is_open_called_);
   EXPECT_EQ(1, open_dev_called_);
   EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
 
@@ -1503,7 +1553,7 @@ TEST_F(AddStreamSuite, AddRmTwoInputStreams) {
   add_rm_two_streams(CRAS_STREAM_INPUT);
 }
 
-TEST_F(AddStreamSuite, RmStreamLogLogestTimeout) {
+TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   int rc;
   cras_rstream* new_stream;
   cras_audio_shm *shm;
@@ -1526,7 +1576,7 @@ TEST_F(AddStreamSuite, RmStreamLogLogestTimeout) {
   iodev_.thread = thread;
   rc = thread_add_stream(thread, new_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(2, is_open_called_);
+  EXPECT_LT(0, is_open_called_);
   EXPECT_EQ(1, open_dev_called_);
   EXPECT_EQ(1, cras_iodev_config_params_for_streams_called);
 

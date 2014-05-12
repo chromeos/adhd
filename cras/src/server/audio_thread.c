@@ -389,9 +389,9 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
 	return dev->open_dev(dev);
 }
 
-/* Handles the rm_stream message from the main thread.
- * If this is the last stream to be removed close the device.
- * Returns the number of streams still attached to the thread.
+/* Remove stream from the audio thread. If this is the last stream to be
+ * removed close the device. Returns the number of streams still attached
+ * to the thread.
  */
 int thread_remove_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
@@ -456,13 +456,18 @@ int thread_disconnect_stream(struct audio_thread* thread,
 	stream->client = NULL;
 	stream->fd = -1;
 
-	/* If the stream has been removed from active streams, then destroy it. */
+	/* If the stream has been removed from active streams, destroy it. */
 	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
 	if (out == NULL) {
 		cras_rstream_destroy(stream);
 		return 0;
 	}
-	return thread_remove_stream(thread, stream);
+
+	/* Keep output stream alive to drain the audio in the buffer properly.
+	 * We will remove it when the audio has been consumed. */
+	if (!stream_uses_output(stream))
+		return thread_remove_stream(thread, stream);
+	return streams_attached(thread);
 }
 
 /* Put 'frames' worth of zero samples into odev.  Used to build an initial
@@ -651,6 +656,26 @@ static void update_stream_timeout(struct cras_audio_shm *shm)
 		cras_shm_set_longest_timeout(shm, timeout_msec);
 }
 
+/* Removes those streams which are both disconnected and empty. */
+static int remove_empty_streams(struct audio_thread *thread)
+{
+	struct cras_io_stream *curr;
+	struct cras_audio_shm *shm;
+	int frames_in_buff;
+	DL_FOREACH(thread->streams, curr) {
+		if (curr->stream->client != NULL ||
+		    !stream_uses_output(curr->stream))
+			continue;
+		shm = cras_rstream_output_shm(curr->stream);
+		frames_in_buff = cras_shm_get_frames(shm);
+		if (frames_in_buff < 0)
+			return frames_in_buff;
+		if (frames_in_buff == 0)
+			thread_remove_stream(thread, curr->stream);
+	}
+	return 0;
+}
+
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
  *    thread - The thread to fetch samples for.
@@ -796,7 +821,8 @@ static int write_streams(struct audio_thread *thread,
 		struct cras_audio_shm *shm;
 		int shm_frames;
 
-		if (!stream_uses_output(curr->stream))
+		if (!stream_uses_output(curr->stream) ||
+		    curr->stream->client == NULL)
 			continue;
 
 		curr->skip_mix = 0;
@@ -1164,18 +1190,22 @@ static int get_output_sleep_frames(struct audio_thread *thread)
 	unsigned int sleep_frames;
 	int rc;
 
-	sleep_frames = odev->buffer_size;
 	rc = odev->frames_queued(odev);
 	if (rc < 0)
 		return rc;
 	adjusted_level = adjust_level(thread, rc);
+
+	if (adjusted_level < odev->cb_threshold)
+		return 0;
+	sleep_frames = adjusted_level - odev->cb_threshold;
 	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
 		unsigned int cb_thresh;
 		int frames_in_buff;
 
-		if (curr->stream->direction != CRAS_STREAM_OUTPUT)
+		if (curr->stream->client == NULL ||
+		    curr->stream->direction != CRAS_STREAM_OUTPUT)
 			continue;
 
 		cb_thresh = cras_rstream_get_cb_threshold(curr->stream);
@@ -1286,10 +1316,19 @@ int possibly_fill_audio(struct audio_thread *thread,
 		if (!odev->dev_running(odev))
 			return -1;
 
-	rc = get_output_sleep_frames(thread);
+	rc = remove_empty_streams(thread);
 	if (rc < 0)
 		return rc;
-	*next_sleep_frames = rc;
+
+	/* We may close the device in remove_empty_streams() if there
+	 * is no output streams. In that case, no need to get the sleep
+	 * frames here. */
+	if (device_open(odev)) {
+		rc = get_output_sleep_frames(thread);
+		if (rc < 0)
+			return rc;
+		*next_sleep_frames = rc;
+	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 				    total_written);
@@ -1493,10 +1532,10 @@ int unified_io(struct audio_thread *thread, struct timespec *ts)
 		return rc;
 	}
 
-	/* Determine which device, if any are open, needs to wake up next. */
 	if (!device_open(idev) && !device_open(odev) && !device_open(loopdev))
-		return -EIO;
+		return 0;
 
+	/* Determine which device, if any are open, needs to wake up next. */
 	if (device_open(idev)) {
 		cras_iodev_fill_time_from_frames(cap_sleep_frames,
 						 idev->format->frame_rate,
