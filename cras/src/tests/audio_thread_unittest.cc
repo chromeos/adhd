@@ -242,8 +242,6 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.thread = thread;
-
   thread_add_stream(thread, rstream_);
   EXPECT_EQ(1, cras_iodev_set_format_called);
 
@@ -269,8 +267,6 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
-
-  iodev_.thread = thread;
 
   thread_add_stream(thread, rstream_);
   EXPECT_EQ(1, cras_iodev_set_format_called);
@@ -304,8 +300,6 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.thread = thread;
-
   thread_add_stream(thread, rstream_);
 
   frames_queued_ = iodev_.cb_threshold - num_frames_short;
@@ -338,8 +332,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
-
-  iodev_.thread = thread;
 
   thread_add_stream(thread, rstream_);
 
@@ -380,8 +372,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
-
-  iodev_.thread = thread;
 
   rc = thread_add_stream(thread, rstream_);
   EXPECT_EQ(0, rc);
@@ -424,8 +414,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
-
-  iodev_.thread = thread;
 
   iodev_.cb_threshold /= 2;
   rstream_->cb_threshold = iodev_.cb_threshold;
@@ -483,8 +471,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreamsOneUnified) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
   thread_add_active_dev(thread, &output_dev_);
-
-  iodev_.thread = thread;
 
   iodev_.cb_threshold /= 2;
   output_dev_.cb_threshold /= 2;
@@ -559,8 +545,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.thread = thread;
-
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
@@ -601,8 +585,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
-
-  iodev_.thread = thread;
 
   thread_add_stream(thread, rstream_);
 
@@ -652,8 +634,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.thread = thread;
-
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
@@ -684,7 +664,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.thread = thread;
   thread_add_stream(thread, rstream_);
 
   //  A full block plus 4 frames.
@@ -1398,7 +1377,6 @@ class AddStreamSuite : public testing::Test {
       fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
       memcpy(fmt, &fmt_, sizeof(fmt_));
       iodev_.format = fmt;
-      iodev_.thread = &thread;
       iodev_.direction = direction;
       new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
       new_stream->fd = 55;
@@ -1413,7 +1391,6 @@ class AddStreamSuite : public testing::Test {
         thread_add_active_dev(&thread, &iodev_);
       else
         thread_add_active_dev(&thread, &iodev_);
-      iodev_.thread = &thread;
 
       thread_add_stream(&thread, new_stream);
       EXPECT_LT(0, is_open_called_);
@@ -1483,7 +1460,6 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   memset(&thread, 0, sizeof(thread));
 
   iodev_.format = &fmt_;
-  iodev_.thread = &thread;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   new_stream->client = (struct cras_rclient* )this;
   new_stream->fd = 55;
@@ -1528,7 +1504,6 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
   ASSERT_TRUE(thread);
   thread_add_active_dev(thread, &iodev_);
 
-  iodev_.thread = thread;
   shm = cras_rstream_output_shm(&new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
@@ -1560,7 +1535,6 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   thread = audio_thread_create();
 
   iodev_.format = &fmt_;
-  iodev_.thread = thread;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   new_stream->fd = 55;
   new_stream->buffer_frames = 65;
@@ -1624,19 +1598,23 @@ TEST_F(ActiveDevicesSuite, AddRemoveActiveDevice) {
   adevs = thread_->active_devs[CRAS_STREAM_INPUT];
   EXPECT_NE((void *)NULL, adevs);
   EXPECT_EQ(adevs->dev, &iodev_);
+  EXPECT_EQ(1, iodev_.is_active);
 
   thread_add_active_dev(thread_, &iodev2_);
   EXPECT_NE((void *)NULL, adevs->next);
   EXPECT_EQ(adevs->next->dev, &iodev2_);
+  EXPECT_EQ(1, iodev2_.is_active);
 
   thread_rm_active_dev(thread_, &iodev_);
   adevs = thread_->active_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ((void *)NULL, adevs->next);
   EXPECT_EQ(adevs->dev, &iodev2_);
+  EXPECT_EQ(0, iodev_.is_active);
 
   iodev_.direction = CRAS_STREAM_POST_MIX_PRE_DSP;
   thread_add_active_dev(thread_, &iodev_);
   EXPECT_NE((void *)NULL, thread_->active_devs[CRAS_STREAM_POST_MIX_PRE_DSP]);
+  EXPECT_EQ(1, iodev_.is_active);
 }
 
 TEST_F(ActiveDevicesSuite, ClearActiveDevices) {
@@ -1646,10 +1624,13 @@ TEST_F(ActiveDevicesSuite, ClearActiveDevices) {
   thread_add_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
   EXPECT_NE((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(1, iodev_.is_active);
+  EXPECT_EQ(1, iodev2_.is_active);
 
   thread_clear_active_devs(thread_, CRAS_STREAM_OUTPUT);
   EXPECT_EQ((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]);
-
+  EXPECT_EQ(0, iodev_.is_active);
+  EXPECT_EQ(0, iodev2_.is_active);
 }
 
 extern "C" {

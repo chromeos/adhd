@@ -440,6 +440,7 @@ void thread_clear_active_devs(struct audio_thread *thread,
 	struct active_dev *adev;
 	DL_FOREACH(thread->active_devs[dir], adev) {
 		DL_DELETE(thread->active_devs[dir], adev);
+		adev->dev->is_active = 0;
 		free(adev);
 	}
 }
@@ -458,6 +459,7 @@ void thread_add_active_dev(struct audio_thread *thread,
 	}
 	adev = (struct active_dev *)calloc(1, sizeof(*adev));
 	adev->dev = iodev;
+	iodev->is_active = 1;
 	DL_APPEND(thread->active_devs[iodev->direction], adev);
 }
 
@@ -469,6 +471,7 @@ void thread_rm_active_dev(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[iodev->direction], adev) {
 		if (adev->dev == iodev) {
 			DL_DELETE(thread->active_devs[iodev->direction], adev);
+			iodev->is_active = 0;
 			free(adev);
 		}
 	}
