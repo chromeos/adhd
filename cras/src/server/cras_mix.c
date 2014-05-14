@@ -123,3 +123,20 @@ size_t cras_mix_mute_buffer(uint8_t *dst,
 	memset(dst, 0, count * frame_bytes);
 	return count;
 }
+
+void cras_mix_add_clip(int16_t *dst,
+		       const int16_t *src,
+		       size_t count)
+{
+	int32_t sum;
+	size_t i;
+
+	for (i = 0; i < count; i++) {
+		sum = dst[i] + src[i];
+		if (sum > 0x7fff)
+			sum = 0x7fff;
+		else if (sum < -0x8000)
+			sum = -0x8000;
+		dst[i] = sum;
+	}
+}
