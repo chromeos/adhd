@@ -1174,36 +1174,6 @@ int input_delay_frames(struct active_dev *adevs)
 	return max_delay;
 }
 
-/* Pass captured samples to the client.
- * Args:
- *    thread - The thread pass read samples to.
- *    src - the memory area containing the captured samples.
- *    count - the number of frames captured = buffer_frames.
- */
-static void read_streams(struct audio_thread *thread,
-			 enum CRAS_STREAM_DIRECTION dir,
-			 const uint8_t *src,
-			 snd_pcm_uframes_t count)
-{
-	struct cras_io_stream *stream;
-	struct cras_audio_shm *shm;
-	uint8_t *dst;
-
-	DL_FOREACH(thread->streams, stream) {
-		struct cras_rstream *rstream = stream->stream;
-
-		if (!input_stream_matches_dev(dir, rstream))
-			continue;
-
-		shm = cras_rstream_input_shm(rstream);
-
-		dst = cras_shm_get_writeable_frames(
-				shm, cras_shm_used_frames(shm), NULL);
-		memcpy(dst, src, count * cras_shm_frame_bytes(shm));
-		cras_shm_buffer_written(shm, count);
-	}
-}
-
 /* Stop the playback thread */
 static void terminate_pb_thread()
 {
@@ -1606,29 +1576,31 @@ static unsigned int get_write_limit_set_delay(struct audio_thread *thread,
 	return write_limit;
 }
 
-/* Read samples from an input device to attached streams.
+/* Read samples from an input device to the specified stream.
  * Args:
- *    thread - The audio thread this is running for.
- *    idev - The device to read samples from.
- *    count - The number of frames to read.
- * Returns the number of frames read or an error.
+ *    stream_buffer - The buffer to capture samples to.
+ *    idev - The device to capture samples from.
+ *    count - The number of frames to capture.
+ * Returns the number of frames captured or an error.
  */
-static int read_from_device(struct audio_thread *thread,
-			    struct cras_iodev *idev,
-			    unsigned int count)
+static int capture_to_stream(uint8_t *stream_buffer,
+			     struct cras_iodev *idev,
+			     unsigned int frame_bytes,
+			     unsigned int count)
 {
 	snd_pcm_uframes_t remainder = count;
 	unsigned int nread;
-	uint8_t *src;
+	uint8_t *hw_buffer;
 	int rc;
 
 	while (remainder > 0) {
 		nread = remainder;
-		rc = idev->get_buffer(idev, &src, &nread);
+		rc = idev->get_buffer(idev, &hw_buffer, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		read_streams(thread, idev->direction, src, nread);
+		memcpy(stream_buffer, hw_buffer, nread * frame_bytes);
+		stream_buffer += nread * frame_bytes;
 
 		rc = idev->put_buffer(idev, nread);
 		if (rc < 0)
@@ -1652,15 +1624,19 @@ int possibly_read_audio(struct audio_thread *thread,
 			unsigned int *min_sleep)
 {
 	struct cras_audio_shm *shm;
+	struct cras_audio_shm *first_shm;
 	struct cras_io_stream *stream;
+	struct cras_io_stream *first_stream = NULL;
 	int rc;
 	unsigned int write_limit;
 	unsigned int hw_level;
-	unsigned int nread;
 	unsigned int frame_bytes;
+	uint8_t *dst, *first_buffer;
 
 	if (!idev || !thread->devs_open[idev->direction])
 		return 0;
+
+	frame_bytes = cras_get_format_bytes(idev->format);
 
 	rc = idev->frames_queued(idev);
 	if (rc < 0)
@@ -1678,9 +1654,45 @@ int possibly_read_audio(struct audio_thread *thread,
 						write_limit,
 						idev->direction);
 
-	rc = read_from_device(thread, idev, write_limit);
+	/* Read samples from this input device to the first stream. */
+	DL_FOREACH(thread->streams, stream) {
+		if (input_stream_matches_dev(idev->direction, stream->stream)) {
+			first_stream = stream;
+			break;
+		}
+	}
+
+	/* Save starting write point as a bookmark to copy from later. */
+	first_shm = cras_rstream_input_shm(first_stream->stream);
+	first_buffer = cras_shm_get_writeable_frames(
+			first_shm, cras_shm_used_frames(first_shm), NULL);
+
+	rc = capture_to_stream(first_buffer, idev,
+			       cras_shm_frame_bytes(first_shm), write_limit);
 	if (rc != write_limit)
 		return rc;
+	cras_shm_buffer_written(first_shm, write_limit);
+
+	/* DSP the samples that were read. */
+	if (cras_system_get_capture_mute())
+		memset(first_buffer, 0, write_limit * frame_bytes);
+	else
+		apply_dsp(idev, first_buffer, write_limit);
+
+	/* Copy the samples to other streams. */
+	DL_FOREACH(thread->streams, stream) {
+		struct cras_rstream *rstream = stream->stream;
+
+		if (stream == first_stream ||
+		    !input_stream_matches_dev(idev->direction, rstream))
+			continue;
+
+		shm = cras_rstream_input_shm(rstream);
+		dst = cras_shm_get_writeable_frames(
+				shm, cras_shm_used_frames(shm), NULL);
+		memcpy(dst, first_buffer, write_limit * frame_bytes);
+		cras_shm_buffer_written(shm, write_limit);
+	}
 
 	/* Minimum sleep frames should not be larger than the used callback
 	 * threshold in frames for given direction.
@@ -1689,7 +1701,6 @@ int possibly_read_audio(struct audio_thread *thread,
 
 	DL_FOREACH(thread->streams, stream) {
 		struct cras_rstream *rstream;
-		uint8_t *dst;
 		unsigned int cb_threshold;
 
 		rstream = stream->stream;
@@ -1710,14 +1721,6 @@ int possibly_read_audio(struct audio_thread *thread,
 
 		/* Enough data for this stream, sleep until ready again. */
 		*min_sleep = MIN(*min_sleep, cb_threshold);
-
-		dst = cras_shm_get_write_buffer_base(shm);
-		nread = cras_shm_frames_written(shm);
-		frame_bytes = cras_get_format_bytes(idev->format);
-		if (cras_system_get_capture_mute())
-			memset(dst, 0, nread * frame_bytes);
-		else
-			apply_dsp(idev, dst, nread);
 
 		cras_shm_buffer_write_complete(shm);
 
