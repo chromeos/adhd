@@ -1606,6 +1606,39 @@ static unsigned int get_write_limit_set_delay(struct audio_thread *thread,
 	return write_limit;
 }
 
+/* Read samples from an input device to attached streams.
+ * Args:
+ *    thread - The audio thread this is running for.
+ *    idev - The device to read samples from.
+ *    count - The number of frames to read.
+ * Returns the number of frames read or an error.
+ */
+static int read_from_device(struct audio_thread *thread,
+			    struct cras_iodev *idev,
+			    unsigned int count)
+{
+	snd_pcm_uframes_t remainder = count;
+	unsigned int nread;
+	uint8_t *src;
+	int rc;
+
+	while (remainder > 0) {
+		nread = remainder;
+		rc = idev->get_buffer(idev, &src, &nread);
+		if (rc < 0 || nread == 0)
+			return rc;
+
+		read_streams(thread, idev->direction, src, nread);
+
+		rc = idev->put_buffer(idev, nread);
+		if (rc < 0)
+			return rc;
+		remainder -= nread;
+	}
+
+	return count;
+}
+
 /* Transfer samples to clients from the audio device.
  * Return the number of samples read from the device.
  * Args:
@@ -1618,11 +1651,9 @@ int possibly_read_audio(struct audio_thread *thread,
 			struct cras_iodev *idev,
 			unsigned int *min_sleep)
 {
-	snd_pcm_uframes_t remainder;
 	struct cras_audio_shm *shm;
 	struct cras_io_stream *stream;
 	int rc;
-	uint8_t *src;
 	unsigned int write_limit;
 	unsigned int hw_level;
 	unsigned int nread;
@@ -1647,20 +1678,9 @@ int possibly_read_audio(struct audio_thread *thread,
 						write_limit,
 						idev->direction);
 
-	remainder = write_limit;
-	while (remainder > 0) {
-		nread = remainder;
-		rc = idev->get_buffer(idev, &src, &nread);
-		if (rc < 0 || nread == 0)
-			return rc;
-
-		read_streams(thread, idev->direction, src, nread);
-
-		rc = idev->put_buffer(idev, nread);
-		if (rc < 0)
-			return rc;
-		remainder -= nread;
-	}
+	rc = read_from_device(thread, idev, write_limit);
+	if (rc != write_limit)
+		return rc;
 
 	/* Minimum sleep frames should not be larger than the used callback
 	 * threshold in frames for given direction.
