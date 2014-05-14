@@ -1556,55 +1556,31 @@ int possibly_fill_audio(struct audio_thread *thread,
 	return total_written;
 }
 
-/* Transfer samples to clients from the audio device.
- * Return the number of samples read from the device.
+/* Gets the minimum amount of space availalbe for writing across all streams of
+ * the given direction (input or loopback).
  * Args:
- *    thread - the audio thread this is running for.
- *    idev - the device to read samples from.
- *    min_sleep - Will be filled with the minimum amount of frames needed to
- *      fill the next lowest latency stream's buffer.
+ *    thread - The audio thread this is running in.
+ *    write_limit - The initial (unlimited) number of frames to write.
+ *    direction - Can be input or loopback.
  */
-int possibly_read_audio(struct audio_thread *thread,
-			struct cras_iodev *idev,
-			unsigned int *min_sleep)
+static unsigned int get_write_limit_set_delay(struct audio_thread *thread,
+					      unsigned int write_limit,
+					      int direction)
 {
-	snd_pcm_uframes_t remainder;
+	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
+	struct cras_audio_shm *output_shm;
 	struct cras_io_stream *stream;
-	int rc;
-	uint8_t *src;
-	unsigned int write_limit;
-	unsigned int hw_level;
-	unsigned int nread;
-	unsigned int frame_bytes;
+	unsigned int avail_frames;
 	int delay;
 
-	if (!idev || !thread->devs_open[idev->direction])
-		return 0;
-
-	rc = idev->frames_queued(idev);
-	if (rc < 0)
-		return rc;
-	hw_level = rc;
-	write_limit = hw_level;
-
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO, hw_level);
-
-	/* Check if the device is still running. */
-	if (!devices_running(thread, CRAS_STREAM_INPUT))
-		return -1;
-
 	DL_FOREACH(thread->streams, stream) {
-		struct cras_rstream *rstream;
-		struct cras_audio_shm *output_shm;
-		unsigned int avail_frames;
-
 		rstream = stream->stream;
 
-		if (!input_stream_matches_dev(idev->direction, rstream))
+		if (!input_stream_matches_dev(direction, rstream))
 			continue;
 
-		delay = input_delay_frames(thread->active_devs[idev->direction]);
+		delay = input_delay_frames(thread->active_devs[direction]);
 
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
@@ -1626,6 +1602,50 @@ int possibly_read_audio(struct audio_thread *thread,
 					delay,
 					&output_shm->area->ts);
 	}
+
+	return write_limit;
+}
+
+/* Transfer samples to clients from the audio device.
+ * Return the number of samples read from the device.
+ * Args:
+ *    thread - the audio thread this is running for.
+ *    idev - the device to read samples from.
+ *    min_sleep - Will be filled with the minimum amount of frames needed to
+ *      fill the next lowest latency stream's buffer.
+ */
+int possibly_read_audio(struct audio_thread *thread,
+			struct cras_iodev *idev,
+			unsigned int *min_sleep)
+{
+	snd_pcm_uframes_t remainder;
+	struct cras_audio_shm *shm;
+	struct cras_io_stream *stream;
+	int rc;
+	uint8_t *src;
+	unsigned int write_limit;
+	unsigned int hw_level;
+	unsigned int nread;
+	unsigned int frame_bytes;
+
+	if (!idev || !thread->devs_open[idev->direction])
+		return 0;
+
+	rc = idev->frames_queued(idev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
+	write_limit = hw_level;
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO, hw_level);
+
+	/* Check if the device is still running. */
+	if (!devices_running(thread, CRAS_STREAM_INPUT))
+		return -1;
+
+	write_limit = get_write_limit_set_delay(thread,
+						write_limit,
+						idev->direction);
 
 	remainder = write_limit;
 	while (remainder > 0) {
