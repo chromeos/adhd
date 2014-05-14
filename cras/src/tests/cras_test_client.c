@@ -300,16 +300,17 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
 {
 	unsigned i;
 
-	printf("\t ID\tPrio  %4s  Plugged\t Time\tType\t\t Name\n",
-	       is_input ? "Gain" : " Vol");
+	printf("\t ID\tPrio  %4s  Plugged\tL/R swapped\t      "
+	       "Time\tType\t\t Name\n", is_input ? "Gain" : " Vol");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%u:%u\t%4d %5g  %7s %10ld\t%-16s%c%s\n",
+		printf("\t%u:%u\t%4d %5g  %7s\t%14s\t%10ld\t%-16s%c%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       nodes[i].priority,
 		       is_input ? nodes[i].capture_gain / 100.0
 		       : (double) nodes[i].volume,
 		       nodes[i].plugged ? "yes" : "no",
+		       nodes[i].left_right_swapped ? "yes" : "no",
 		       (long) nodes[i].plugged_time.tv_sec,
 		       nodes[i].type,
 		       nodes[i].active ? '*' : ' ',
@@ -868,6 +869,7 @@ static struct option long_options[] = {
 	{"capture_mute",        required_argument,      0, '0'},
 	{"rm_active_input",	required_argument,	0, '1'},
 	{"rm_active_output",	required_argument,	0, '2'},
+	{"swap_left_right",     required_argument,      0, '3'},
 	{0, 0, 0, 0}
 };
 
@@ -898,6 +900,9 @@ static void show_usage()
 	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
 	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
 	       " ionode with the given index M on the device with index N\n");
+	printf("--swap_left_right <N>:<M>:<0|1> - Swap or unswap (1 or 0) the"
+	       " left and right channel for the ionode with the given index M"
+	       " on the device with index N\n");
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--add_active_input <N>:<M> - Add the ionode with the given id"
@@ -1112,6 +1117,15 @@ int main(int argc, char **argv)
 		case 'o':
 			channel_layout = optarg;
 			break;
+		case '3': {
+			int dev_index = atoi(strtok(optarg, ":"));
+			int node_index = atoi(strtok(NULL, ":"));
+			int value = atoi(strtok(NULL, ":")) ;
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
+			cras_client_swap_node_left_right(client, id, value);
+			break;
+		}
 		default:
 			break;
 		}
