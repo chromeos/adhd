@@ -1581,12 +1581,15 @@ static unsigned int get_write_limit_set_delay(struct audio_thread *thread,
  *    stream_buffer - The buffer to capture samples to.
  *    idev - The device to capture samples from.
  *    count - The number of frames to capture.
+ *    dev_index - The index of the device being read from, only used to special
+ *      case the first read.
  * Returns the number of frames captured or an error.
  */
 static int capture_to_stream(uint8_t *stream_buffer,
 			     struct cras_iodev *idev,
 			     unsigned int frame_bytes,
-			     unsigned int count)
+			     unsigned int count,
+			     unsigned int dev_index)
 {
 	snd_pcm_uframes_t remainder = count;
 	unsigned int nread;
@@ -1599,7 +1602,12 @@ static int capture_to_stream(uint8_t *stream_buffer,
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		memcpy(stream_buffer, hw_buffer, nread * frame_bytes);
+		if (dev_index == 0)
+			memcpy(stream_buffer, hw_buffer, nread * frame_bytes);
+		else
+			cras_mix_add_clip((int16_t *)stream_buffer,
+					  (int16_t *)hw_buffer,
+					  nread * idev->format->num_channels);
 		stream_buffer += nread * frame_bytes;
 
 		rc = idev->put_buffer(idev, nread);
@@ -1627,10 +1635,12 @@ int possibly_read_audio(struct audio_thread *thread,
 	struct cras_audio_shm *first_shm;
 	struct cras_io_stream *stream;
 	struct cras_io_stream *first_stream = NULL;
+	struct active_dev *adev;
 	int rc;
 	unsigned int write_limit;
 	unsigned int hw_level;
 	unsigned int frame_bytes;
+	unsigned int dev_index = 0;
 	uint8_t *dst, *first_buffer;
 
 	if (!idev || !thread->devs_open[idev->direction])
@@ -1667,10 +1677,13 @@ int possibly_read_audio(struct audio_thread *thread,
 	first_buffer = cras_shm_get_writeable_frames(
 			first_shm, cras_shm_used_frames(first_shm), NULL);
 
-	rc = capture_to_stream(first_buffer, idev,
-			       cras_shm_frame_bytes(first_shm), write_limit);
-	if (rc != write_limit)
-		return rc;
+	DL_FOREACH(thread->active_devs[idev->direction], adev) {
+		rc = capture_to_stream(first_buffer, adev->dev,
+				       cras_shm_frame_bytes(first_shm),
+				       write_limit, dev_index++);
+		if (rc != write_limit)
+			return rc;
+	}
 	cras_shm_buffer_written(first_shm, write_limit);
 
 	/* DSP the samples that were read. */

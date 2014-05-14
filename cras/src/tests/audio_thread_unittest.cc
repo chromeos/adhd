@@ -1955,6 +1955,9 @@ size_t cras_mix_mute_buffer(uint8_t *dst,
   return count;
 }
 
+void cras_mix_add_clip(int16_t *dst, const int16_t *src, size_t count) {
+}
+
 // From cras_metrics.c
 void cras_metrics_log_event(const char *event)
 {
