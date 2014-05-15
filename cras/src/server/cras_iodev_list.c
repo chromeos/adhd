@@ -643,4 +643,6 @@ void cras_iodev_list_reset()
 	active_input = NULL;
 	default_output = NULL;
 	default_input = NULL;
+	outputs.iodevs = NULL;
+	inputs.iodevs = NULL;
 }
