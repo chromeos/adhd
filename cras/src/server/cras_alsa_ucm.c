@@ -29,7 +29,7 @@ static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 	if (num_devs <= 0)
 		return 0;
 
-	for (i = 0; i < num_devs; i++)
+	for (i = 0; i < (unsigned int)num_devs; i++)
 		if (!strcmp(dev, list[i])) {
 			enabled = 1;
 			break;
@@ -45,7 +45,7 @@ static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 	char *id;
 	int rc;
 
-	id = malloc(strlen(var) + strlen(dev) + strlen(verb) + 4);
+	id = (char *)malloc(strlen(var) + strlen(dev) + strlen(verb) + 4);
 	if (!id)
 		return -ENOMEM;
 	sprintf(id, "=%s/%s/%s", var, dev, verb);
@@ -53,6 +53,48 @@ static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 
 	free((void *)id);
 	return rc;
+}
+
+static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,
+			      const char *value, const char *identifier)
+{
+	const char **list;
+	char *section_name = NULL;
+	unsigned int i;
+	int num_entries;
+	int rc;
+
+	num_entries = snd_use_case_get_list(mgr, identifier, &list);
+	if (num_entries <= 0)
+		return NULL;
+
+	/* snd_use_case_get_list fills list with pairs of device name and
+	 * comment, so device names are in even-indexed elements. */
+	for (i = 0; i < (unsigned int)num_entries; i+=2) {
+		const char *this_value;
+
+		if (!list[i])
+			continue;
+
+		rc = get_var(mgr, var, list[i], default_verb, &this_value);
+		if (rc)
+			continue;
+
+		if (!strcmp(value, this_value)) {
+			section_name = strdup(list[i]);
+			free((void *)this_value);
+			break;
+		}
+		free((void *)this_value);
+	}
+
+	snd_use_case_free_list(list, num_entries);
+	return section_name;
+}
+
+static char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
+			  const char *value) {
+	return ucm_get_section_for_var(mgr, var, value, "_devices/HiFi");
 }
 
 /* Exported Interface */
@@ -134,42 +176,6 @@ const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
 		return NULL;
 
 	return override_type_name;
-}
-
-char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
-			  const char *value)
-{
-	const char **list;
-	char *dev_name = NULL;
-	unsigned int i;
-	int num_entries;
-	int rc;
-
-	num_entries = snd_use_case_get_list(mgr, "_devices/HiFi", &list);
-	if (num_entries <= 0)
-		return NULL;
-
-	/* snd_use_case_get_list fills list with pairs of device name and
-	 * comment, so device names are in even-indexed elements. */
-	for (i = 0; i < num_entries; i+=2) {
-		const char *this_value;
-
-		if (!list[i])
-			continue;
-
-		rc = get_var(mgr, var, list[i], default_verb, &this_value);
-		if (!rc) {
-			if (!strcmp(value, this_value)) {
-				dev_name = strdup(list[i]);
-				free((void *)this_value);
-				break;
-			}
-			free((void *)this_value);
-		}
-	}
-
-	snd_use_case_free_list(list, num_entries);
-	return dev_name;
 }
 
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)

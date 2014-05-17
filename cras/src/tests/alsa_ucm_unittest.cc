@@ -5,10 +5,14 @@
 #include <gtest/gtest.h>
 #include <iniparser.h>
 #include <stdio.h>
+#include <map>
 
 extern "C" {
 #include "cras_alsa_ucm.h"
 #include "cras_types.h"
+
+//  Include C file to test static functions.
+#include "cras_alsa_ucm.c"
 }
 
 namespace {
@@ -18,9 +22,10 @@ static snd_use_case_mgr_t *snd_use_case_mgr_open_mgr_ptr;
 static unsigned snd_use_case_mgr_open_called;
 static unsigned snd_use_case_mgr_close_called;
 static unsigned snd_use_case_get_called;
-static char *snd_use_case_get_id;
+static std::vector<std::string> snd_use_case_get_id;
+static std::map<std::string, int> snd_use_case_get_ret_value;
 static int snd_use_case_set_return;
-static const char *snd_use_case_get_value;
+static std::map<std::string, std::string> snd_use_case_get_value;
 static unsigned snd_use_case_set_called;
 static const char **fake_list;
 static unsigned fake_list_size;
@@ -32,9 +37,11 @@ static void ResetStubData() {
   snd_use_case_mgr_close_called = 0;
   snd_use_case_set_return = 0;
   snd_use_case_get_called = 0;
-  snd_use_case_get_id = NULL;
   snd_use_case_set_called = 0;
   snd_use_case_free_list_called = 0;
+  snd_use_case_get_id.clear();
+  snd_use_case_get_value.clear();
+  snd_use_case_get_ret_value.clear();
 }
 
 TEST(AlsaUcm, CreateFailInvalidCard) {
@@ -110,77 +117,141 @@ TEST(AlsaUcm, CheckEnabledAlready) {
 
 TEST(AlsaUcm, GetEdidForDev) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  std::string id = "=EDIDFile/Dev1/HiFi";
+  std::string value = "EdidFileName";
   const char *file_name;
 
   ResetStubData();
 
-  snd_use_case_get_value = "EdidFileName";
+  snd_use_case_get_value[id] = value;
+  snd_use_case_get_ret_value[id] = 0;
 
   file_name = ucm_get_edid_file_for_dev(mgr, "Dev1");
   ASSERT_TRUE(file_name);
-  EXPECT_EQ(0, strcmp(file_name, snd_use_case_get_value));
+  EXPECT_EQ(0, strcmp(file_name, value.c_str()));
   free((void*)file_name);
 
   ASSERT_EQ(1, snd_use_case_get_called);
-  ASSERT_TRUE(snd_use_case_get_id);
-  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=EDIDFile/Dev1/HiFi"));
-  free(snd_use_case_get_id);
+  EXPECT_EQ(snd_use_case_get_id[0], id);
 }
 
 TEST(AlsaUcm, GetCapControlForDev) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   char *cap_control;
+  std::string id = "=CaptureControl/Dev1/HiFi";
+  std::string value = "MIC";
 
   ResetStubData();
 
-  snd_use_case_get_value = "MIC";
+  snd_use_case_get_value[id] = value;
+  snd_use_case_get_ret_value[id] = 0;
 
   cap_control = ucm_get_cap_control(mgr, "Dev1");
   ASSERT_TRUE(cap_control);
-  EXPECT_EQ(0, strcmp(cap_control, snd_use_case_get_value));
+  EXPECT_EQ(0, strcmp(cap_control, value.c_str()));
   free(cap_control);
 
   ASSERT_EQ(1, snd_use_case_get_called);
-  ASSERT_TRUE(snd_use_case_get_id);
-  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=CaptureControl/Dev1/HiFi"));
-  free(snd_use_case_get_id);
+  EXPECT_EQ(snd_use_case_get_id[0], id);
 }
 
 TEST(AlsaUcm, GetOverrideType) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   const char *override_type_name;
+  std::string id = "=OverrideNodeType/Dev1/HiFi";
+  std::string value = "HDMI";
 
   ResetStubData();
 
-  snd_use_case_get_value = "HDMI";
+  snd_use_case_get_value[id] = value;
+  snd_use_case_get_ret_value[id] = 0;
 
   override_type_name = ucm_get_override_type_name(mgr, "Dev1");
   ASSERT_TRUE(override_type_name);
-  EXPECT_EQ(0, strcmp(override_type_name, snd_use_case_get_value));
+  EXPECT_EQ(0, strcmp(override_type_name, value.c_str()));
   free((void*)override_type_name);
 
   ASSERT_EQ(1, snd_use_case_get_called);
-  ASSERT_TRUE(snd_use_case_get_id);
-  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=OverrideNodeType/Dev1/HiFi"));
-  free(snd_use_case_get_id);
+  EXPECT_EQ(snd_use_case_get_id[0], id);
+}
+
+TEST(AlsaUcm, GetSectionForVar) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *section_name;
+
+  ResetStubData();
+
+  const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
+                             "Comment for Sec2" };
+  fake_list = sections;
+  fake_list_size = 4;
+  std::string id_1 = "=Var/Sec1/HiFi";
+  std::string id_2 = "=Var/Sec2/HiFi";
+  std::string value_1 = "Value1";
+  std::string value_2 = "Value2";
+
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_ret_value[id_2] = 0;
+  snd_use_case_get_value[id_2] = value_2;
+
+  section_name = ucm_get_section_for_var(mgr, "Var", "Value2", "Identifier");
+
+  ASSERT_TRUE(section_name);
+  EXPECT_EQ(0, strcmp(section_name, "Sec2"));
+  free((void*)section_name);
+
+  ASSERT_EQ(2, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id_1);
+  EXPECT_EQ(snd_use_case_get_id[1], id_2);
+}
+
+TEST(AlsaUcm, GetDevForJack) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *dev_name;
+
+  ResetStubData();
+
+  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
+                            "Comment for Dev2" };
+  fake_list = devices;
+  fake_list_size = 4;
+  std::string id_1 = "=JackName/Dev1/HiFi";
+  std::string id_2 = "=JackName/Dev2/HiFi";
+  std::string value_1 = "Value1";
+  std::string value_2 = "Value2";
+
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_ret_value[id_2] = 0;
+  snd_use_case_get_value[id_2] = value_2;
+  dev_name = ucm_get_dev_for_jack(mgr, value_2.c_str());
+  ASSERT_TRUE(dev_name);
+  EXPECT_EQ(0, strcmp(dev_name, "Dev2"));
+  free((void*)dev_name);
+
+  ASSERT_EQ(2, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id_1);
+  EXPECT_EQ(snd_use_case_get_id[1], id_2);
 }
 
 TEST(AlsaFlag, GetFlag) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   char *flag_value;
 
+  std::string id = "=FlagName//HiFi";
+  std::string value = "1";
   ResetStubData();
 
-  snd_use_case_get_value = "1";
+  snd_use_case_get_value[id] = value;
 
   flag_value = ucm_get_flag(mgr, "FlagName");
   ASSERT_TRUE(flag_value);
-  EXPECT_EQ(0, strcmp(flag_value, snd_use_case_get_value));
+  EXPECT_EQ(0, strcmp(flag_value, value.c_str()));
   free(flag_value);
 
   ASSERT_EQ(1, snd_use_case_get_called);
-  EXPECT_EQ(0, strcmp(snd_use_case_get_id, "=FlagName//HiFi"));
-  free(snd_use_case_get_id);
+  EXPECT_EQ(snd_use_case_get_id[0], id);
 }
 
 /* Stubs */
@@ -202,9 +273,9 @@ int snd_use_case_get(snd_use_case_mgr_t* uc_mgr,
                      const char *identifier,
                      const char **value) {
   snd_use_case_get_called++;
-  *value = strdup(snd_use_case_get_value);
-  snd_use_case_get_id = strdup(identifier);
-  return 0;
+  *value = strdup(snd_use_case_get_value[identifier].c_str());
+  snd_use_case_get_id.push_back(std::string(identifier));
+  return snd_use_case_get_ret_value[identifier];
 }
 
 int snd_use_case_set(snd_use_case_mgr_t* uc_mgr,
