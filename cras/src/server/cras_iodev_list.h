@@ -22,6 +22,7 @@ struct cras_rstream;
 struct cras_audio_format;
 
 typedef void (*node_volume_callback_t)(cras_node_id_t, int);
+typedef void (*node_left_right_swapped_callback_t)(cras_node_id_t, int);
 
 /* Initialize the list of iodevs. */
 void cras_iodev_list_init();
@@ -193,6 +194,15 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node);
 
 /* Notify the current capture gain of the given node. */
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node);
+
+/* Sets the function to call when a node's left right channel swapping state
+ * is changes. */
+void cras_iodev_list_set_node_left_right_swapped_callbacks(
+				node_left_right_swapped_callback_t swapped_cb);
+
+/* Notify the current left right channel swapping state of the given node. */
+void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node);
+
 
 /* Gets the audio thread used by the devices. */
 struct audio_thread *cras_iodev_list_get_audio_thread();

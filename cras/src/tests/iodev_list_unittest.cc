@@ -55,6 +55,13 @@ static unsigned int cras_system_get_volume_return;
 static int cras_iodev_set_software_volume_called;
 static float cras_iodev_set_software_volume_value;
 static struct audio_thread thread;
+static int node_left_right_swapped_cb_called;
+
+/* Callback in iodev_list. */
+void node_left_right_swapped_cb(cras_node_id_t, int)
+{
+  node_left_right_swapped_cb_called++;
+}
 
 class IoDevTestSuite : public testing::Test {
   protected:
@@ -144,6 +151,7 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_rm_active_dev_called = 0;
       audio_thread_add_active_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
+      node_left_right_swapped_cb_called = 0;
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -585,6 +593,20 @@ TEST_F(IoDevTestSuite, NodesChangedNotification) {
   EXPECT_EQ(0, cras_alert_destroy_called);
   cras_iodev_list_deinit();
   EXPECT_EQ(2, cras_alert_destroy_called);
+}
+
+// Test callback function for left right swap mode is set and called.
+TEST_F(IoDevTestSuite, NodesLeftRightSwappedCallback) {
+
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  ionode.dev = &iodev;
+  cras_iodev_list_set_node_left_right_swapped_callbacks(
+      node_left_right_swapped_cb);
+  cras_iodev_list_notify_node_left_right_swapped(&ionode);
+  EXPECT_EQ(1, node_left_right_swapped_cb_called);
 }
 
 TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {

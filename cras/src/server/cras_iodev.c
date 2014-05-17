@@ -339,6 +339,7 @@ static void set_node_left_right_swapped(struct cras_ionode *node, int value)
 		return;
 	}
 	node->left_right_swapped = value;
+	cras_iodev_list_notify_node_left_right_swapped(node);
 	return;
 }
 

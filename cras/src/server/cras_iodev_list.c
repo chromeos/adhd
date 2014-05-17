@@ -46,6 +46,7 @@ static struct cras_alert *active_node_changed_alert;
 /* Call when the volume of a node changes. */
 static node_volume_callback_t node_volume_callback;
 static node_volume_callback_t node_input_gain_callback;
+static node_left_right_swapped_callback_t node_left_right_swapped_callback;
 /* Thread that handles audio input and output. */
 static struct audio_thread *audio_thread;
 
@@ -654,6 +655,12 @@ void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
 	node_input_gain_callback = gain_cb;
 }
 
+void cras_iodev_list_set_node_left_right_swapped_callbacks(
+					node_left_right_swapped_callback_t swapped_cb)
+{
+	node_left_right_swapped_callback = swapped_cb;
+}
+
 void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
@@ -662,6 +669,14 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 		node_volume_callback(id, node->volume);
 
 	update_software_volume(node->dev);
+}
+
+void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
+{
+	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
+
+	if (node_left_right_swapped_callback)
+		node_left_right_swapped_callback(id, node->left_right_swapped);
 }
 
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)

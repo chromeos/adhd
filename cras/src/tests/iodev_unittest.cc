@@ -26,6 +26,7 @@ static int update_channel_layout_called;
 static int update_channel_layout_return_val;
 static int  set_swap_mode_for_node_called;
 static int  set_swap_mode_for_node_enable;
+static int notify_node_left_right_swapped_called;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -53,6 +54,7 @@ void ResetStubData() {
   dsp_context_new_purpose = NULL;
   set_swap_mode_for_node_called = 0;
   set_swap_mode_for_node_enable = 0;
+  notify_node_left_right_swapped_called = 0;
 }
 
 namespace {
@@ -466,10 +468,12 @@ TEST(IoDev, SetNodeSwapLeftRight) {
   EXPECT_EQ(1, set_swap_mode_for_node_called);
   EXPECT_EQ(1, set_swap_mode_for_node_enable);
   EXPECT_EQ(1, ionode.left_right_swapped);
+  EXPECT_EQ(1, notify_node_left_right_swapped_called);
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_SWAP_LEFT_RIGHT, 0);
   EXPECT_EQ(2, set_swap_mode_for_node_called);
   EXPECT_EQ(0, set_swap_mode_for_node_enable);
   EXPECT_EQ(0, ionode.left_right_swapped);
+  EXPECT_EQ(2, notify_node_left_right_swapped_called);
 }
 
 extern "C" {
@@ -558,6 +562,11 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
 {
 	notify_node_capture_gain_called++;
+}
+
+void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
+{
+  notify_node_left_right_swapped_called++;
 }
 
 }  // extern "C"
