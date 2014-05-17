@@ -324,6 +324,24 @@ static void set_node_capture_gain(struct cras_ionode *node, int value)
 	cras_iodev_list_notify_node_capture_gain(node);
 }
 
+static void set_node_left_right_swapped(struct cras_ionode *node, int value)
+{
+	struct cras_iodev *dev = node->dev;
+	int rc;
+
+	if (!dev->set_swap_mode_for_node)
+		return;
+	rc = dev->set_swap_mode_for_node(dev, node, value);
+	if (rc) {
+		syslog(LOG_ERR,
+		       "Failed to set swap mode on node %s to %d; error %d",
+		       node->name, value, rc);
+		return;
+	}
+	node->left_right_swapped = value;
+	return;
+}
+
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
@@ -336,6 +354,9 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 		break;
 	case IONODE_ATTR_CAPTURE_GAIN:
 		set_node_capture_gain(ionode, value);
+		break;
+	case IONODE_ATTR_SWAP_LEFT_RIGHT:
+		set_node_left_right_swapped(ionode, value);
 		break;
 	default:
 		return -EINVAL;

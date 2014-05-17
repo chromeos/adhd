@@ -51,11 +51,13 @@ struct __attribute__ ((__packed__)) cras_ionode_info {
  *    IONODE_ATTR_PLUGGED - set the node as plugged/unplugged.
  *    IONODE_ATTR_VOLUME - set the node's output volume.
  *    IONODE_ATTR_CAPTURE_GAIN - set the node's capture gain.
+ *    IONODE_ATTR_SWAP_LEFT_RIGHT - Swap the node's left and right channel.
  */
 enum ionode_attr {
 	IONODE_ATTR_PLUGGED,
 	IONODE_ATTR_VOLUME,
 	IONODE_ATTR_CAPTURE_GAIN,
+	IONODE_ATTR_SWAP_LEFT_RIGHT
 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

@@ -24,11 +24,22 @@ static int dsp_context_new_sample_rate;
 static const char *dsp_context_new_purpose;
 static int update_channel_layout_called;
 static int update_channel_layout_return_val;
+static int  set_swap_mode_for_node_called;
+static int  set_swap_mode_for_node_enable;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
   update_channel_layout_called = 1;
   return update_channel_layout_return_val;
+}
+
+// Iodev callback
+int set_swap_mode_for_node(struct cras_iodev *iodev, struct cras_ionode *node,
+                           int enable)
+{
+  set_swap_mode_for_node_called++;
+  set_swap_mode_for_node_enable = enable;
+  return 0;
 }
 
 void ResetStubData() {
@@ -40,6 +51,8 @@ void ResetStubData() {
   dsp_context_new_channels = 0;
   dsp_context_new_sample_rate = 0;
   dsp_context_new_purpose = NULL;
+  set_swap_mode_for_node_called = 0;
+  set_swap_mode_for_node_enable = 0;
 }
 
 namespace {
@@ -438,6 +451,25 @@ TEST(IoDev, SetNodeVolume) {
   iodev.direction = CRAS_STREAM_INPUT;
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_CAPTURE_GAIN, 10);
   EXPECT_EQ(1, notify_node_capture_gain_called);
+}
+
+TEST(IoDev, SetNodeSwapLeftRight) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  iodev.set_swap_mode_for_node = set_swap_mode_for_node;
+  ionode.dev = &iodev;
+  ResetStubData();
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_SWAP_LEFT_RIGHT, 1);
+  EXPECT_EQ(1, set_swap_mode_for_node_called);
+  EXPECT_EQ(1, set_swap_mode_for_node_enable);
+  EXPECT_EQ(1, ionode.left_right_swapped);
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_SWAP_LEFT_RIGHT, 0);
+  EXPECT_EQ(2, set_swap_mode_for_node_called);
+  EXPECT_EQ(0, set_swap_mode_for_node_enable);
+  EXPECT_EQ(0, ionode.left_right_swapped);
 }
 
 extern "C" {
