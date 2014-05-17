@@ -142,14 +142,16 @@ char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
 	const char **list;
 	char *dev_name = NULL;
 	unsigned int i;
-	int num_devs;
+	int num_entries;
 	int rc;
 
-	num_devs = snd_use_case_get_list(mgr, "_devices/HiFi", &list);
-	if (num_devs <= 0)
+	num_entries = snd_use_case_get_list(mgr, "_devices/HiFi", &list);
+	if (num_entries <= 0)
 		return NULL;
 
-	for (i = 0; i < num_devs; i++) {
+	/* snd_use_case_get_list fills list with pairs of device name and
+	 * comment, so device names are in even-indexed elements. */
+	for (i = 0; i < num_entries; i+=2) {
 		const char *this_value;
 
 		if (!list[i])
@@ -166,7 +168,7 @@ char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
 		}
 	}
 
-	snd_use_case_free_list(list, num_devs);
+	snd_use_case_free_list(list, num_entries);
 	return dev_name;
 }
 
