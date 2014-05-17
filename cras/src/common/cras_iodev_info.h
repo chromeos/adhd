@@ -31,6 +31,7 @@ struct __attribute__ ((__packed__)) cras_iodev_info {
  *    active - If this is the node currently being used.
  *    volume - per-node volume (0-100)
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
+ *    left_right_swapped - Set true if left and right channels are swapped.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  */
@@ -43,6 +44,7 @@ struct __attribute__ ((__packed__)) cras_ionode_info {
 	struct { int64_t tv_sec; int64_t tv_usec; } plugged_time;
 	uint32_t volume;
 	int32_t capture_gain;
+	int32_t left_right_swapped;
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };
