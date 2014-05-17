@@ -17,6 +17,7 @@ static const char override_type_name_var[] = "OverrideNodeType";
 static const char output_dsp_name_var[] = "OutputDspName";
 static const char input_dsp_name_var[] = "InputDspName";
 static const char mixer_var[] = "MixerName";
+static const char swap_mode_suffix[] = "Swap Mode";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -221,6 +222,35 @@ snd_use_case_mgr_t *ucm_create(const char *name)
 void ucm_destroy(snd_use_case_mgr_t *mgr)
 {
 	snd_use_case_mgr_close(mgr);
+}
+
+int ucm_swap_mode_exists(snd_use_case_mgr_t *mgr)
+{
+	return ucm_mod_exists_with_suffix(mgr, swap_mode_suffix);
+}
+
+int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
+		       int enable)
+{
+	char *swap_mod = NULL;
+	int rc;
+	swap_mod = (char *)malloc(strlen(node_name) + 1 +
+			strlen(swap_mode_suffix) + 1);
+	if (!swap_mod)
+		return -ENOMEM;
+	sprintf(swap_mod, "%s %s", node_name, swap_mode_suffix);
+	if (!ucm_mod_exists_with_name(mgr, swap_mod)) {
+		syslog(LOG_ERR, "Can not find swap mode modifier %s.", swap_mod);
+		free((void *)swap_mod);
+		return -EPERM;
+	}
+	if (modifier_enabled(mgr, swap_mod) == !!enable) {
+		free((void *)swap_mod);
+		return 0;
+	}
+	rc = ucm_set_modifier_enabled(mgr, swap_mod, enable);
+	free((void *)swap_mod);
+	return rc;
 }
 
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable)

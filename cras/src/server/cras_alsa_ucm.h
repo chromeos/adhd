@@ -34,6 +34,26 @@ snd_use_case_mgr_t *ucm_create(const char *name);
  */
 void ucm_destroy(snd_use_case_mgr_t *mgr);
 
+/* Checks if modifier for left right swap mode exists in ucm.
+ * Args:
+ *    alsa_ucm - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    1 if it exists, 0 otherwise.
+ */
+int ucm_swap_mode_exists(snd_use_case_mgr_t *mgr);
+
+/* Enables or disables swap mode for the given node_name. First checks
+ * if the modifier is already enabled or disabled.
+ * Args:
+ *    alsa_ucm - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ *    enable - Enable device if non-zero.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
+			int enable);
+
 /* Enables or disables a UCM device.  First checks if the device is already
  * enabled or disabled.
  * Args:

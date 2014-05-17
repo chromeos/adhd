@@ -28,8 +28,8 @@ static int snd_use_case_set_return;
 static std::map<std::string, std::string> snd_use_case_get_value;
 static unsigned snd_use_case_set_called;
 static std::vector<std::pair<std::string, std::string> > snd_use_case_set_param;
-static const char **fake_list;
-static unsigned fake_list_size;
+static std::map<std::string, const char **> fake_list;
+static std::map<std::string, unsigned> fake_list_size;
 static unsigned snd_use_case_free_list_called;
 
 static void ResetStubData() {
@@ -44,6 +44,8 @@ static void ResetStubData() {
   snd_use_case_get_id.clear();
   snd_use_case_get_value.clear();
   snd_use_case_get_ret_value.clear();
+  fake_list.clear();
+  fake_list_size.clear();
 }
 
 TEST(AlsaUcm, CreateFailInvalidCard) {
@@ -86,10 +88,10 @@ TEST(AlsaUcm, CreateSuccess) {
 
 TEST(AlsaUcm, CheckEnabledEmptyList) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
-  fake_list = NULL;
-  fake_list_size = 0;
 
   ResetStubData();
+  fake_list["_enadevs"] = NULL;
+  fake_list_size["_enadevs"] = 0;
 
   EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 0));
   EXPECT_EQ(0, snd_use_case_set_called);
@@ -103,10 +105,11 @@ TEST(AlsaUcm, CheckEnabledEmptyList) {
 TEST(AlsaUcm, CheckEnabledAlready) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   const char *enabled[] = { "Dev2", "Dev1" };
-  fake_list = enabled;
-  fake_list_size = 2;
 
   ResetStubData();
+
+  fake_list["_enadevs"] = enabled;
+  fake_list_size["_enadevs"] = 2;
 
   EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 1));
   EXPECT_EQ(0, snd_use_case_set_called);
@@ -185,8 +188,8 @@ TEST(AlsaUcm, GetSectionForVar) {
 
   const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
                              "Comment for Sec2" };
-  fake_list = sections;
-  fake_list_size = 4;
+  fake_list["Identifier"] = sections;
+  fake_list_size["Identifier"] = 4;
   std::string id_1 = "=Var/Sec1/HiFi";
   std::string id_2 = "=Var/Sec2/HiFi";
   std::string value_1 = "Value1";
@@ -211,13 +214,13 @@ TEST(AlsaUcm, GetSectionForVar) {
 TEST(AlsaUcm, GetDevForJack) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   const char *dev_name;
+  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
+                            "Comment for Dev2" };
 
   ResetStubData();
 
-  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
-                            "Comment for Dev2" };
-  fake_list = devices;
-  fake_list_size = 4;
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
   std::string id_1 = "=JackName/Dev1/HiFi";
   std::string id_2 = "=JackName/Dev2/HiFi";
   std::string value_1 = "Value1";
@@ -235,6 +238,96 @@ TEST(AlsaUcm, GetDevForJack) {
   ASSERT_EQ(2, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id_1);
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
+}
+
+TEST(AlsaUcm, SwapModeExists) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  int rc;
+  const char *modifiers_1[] = { "Speaker Swap Mode",
+                                "Comment for Speaker Swap Mode",
+                                "Microphone Swap Mode",
+                                "Comment for Microphone Swap Mode" };
+  const char *modifiers_2[] = { "Speaker Some Mode",
+                                "Comment for Speaker Some Mode",
+                                "Microphone Some Mode",
+                                "Comment for Microphone Some Mode" };
+
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers_1;
+  fake_list_size["_modifiers/HiFi"] = 4;
+  rc = ucm_swap_mode_exists(mgr);
+  EXPECT_EQ(1, rc);
+
+  fake_list["_modifiers/HiFi"] = modifiers_2;
+  fake_list_size["_modifiers/HiFi"] = 4;
+  rc = ucm_swap_mode_exists(mgr);
+  EXPECT_EQ(0, rc);
+}
+
+TEST(AlsaUcm, EnableSwapMode) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  int rc;
+  const char *modifiers[] = { "Speaker Swap Mode",
+                              "Comment for Speaker Swap Mode",
+                              "Microphone Swap Mode",
+                              "Comment for Microphone Swap Mode" };
+  const char *modifiers_enabled[] = {"Speaker Swap Mode"};
+
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 4;
+
+  fake_list["_enamods"] = modifiers_enabled;
+  fake_list_size["_enamods"] = 1;
+
+  snd_use_case_set_return = 0;
+
+  rc = ucm_enable_swap_mode(mgr, "Headphone", 1);
+  EXPECT_EQ(-EPERM, rc);
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_swap_mode(mgr, "Speaker", 1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_swap_mode(mgr, "Microphone", 1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, snd_use_case_set_called);
+}
+
+TEST(AlsaUcm, DisableSwapMode) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  int rc;
+  const char *modifiers[] = { "Speaker Swap Mode",
+                              "Comment for Speaker Swap Mode",
+                              "Microphone Swap Mode",
+                              "Comment for Microphone Swap Mode" };
+  const char *modifiers_enabled[] = {"Speaker Swap Mode"};
+
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 4;
+
+  fake_list["_enamods"] = modifiers_enabled;
+  fake_list_size["_enamods"] = 1;
+
+  snd_use_case_set_return = 0;
+
+  rc = ucm_enable_swap_mode(mgr, "Headphone", 0);
+  EXPECT_EQ(-EPERM, rc);
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_swap_mode(mgr, "Microphone", 0);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_swap_mode(mgr, "Speaker", 0);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, snd_use_case_set_called);
+
 }
 
 TEST(AlsaFlag, GetFlag) {
@@ -263,8 +356,8 @@ TEST(AlsaUcm, ModifierEnabled) {
   ResetStubData();
 
   const char *mods[] = { "Mod1", "Mod2" };
-  fake_list = mods;
-  fake_list_size = 2;
+  fake_list["_enamods"] = mods;
+  fake_list_size["_enamods"] = 2;
 
   enabled = modifier_enabled(mgr, "Mod1");
   EXPECT_EQ(1, enabled);
@@ -297,13 +390,13 @@ TEST(AlsaUcm, EndWithSuffix) {
 
 TEST(AlsaUcm, SectionExistsWithName) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
+                             "Comment for Sec2" };
 
   ResetStubData();
 
-  const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
-                             "Comment for Sec2" };
-  fake_list = sections;
-  fake_list_size = 4;
+  fake_list["Identifier"] = sections;
+  fake_list_size["Identifier"] = 4;
   EXPECT_EQ(1, ucm_section_exists_with_name(mgr, "Sec1", "Identifier"));
   EXPECT_EQ(1, ucm_section_exists_with_name(mgr, "Sec2", "Identifier"));
   EXPECT_EQ(0, ucm_section_exists_with_name(mgr, "Sec3", "Identifier"));
@@ -316,8 +409,8 @@ TEST(AlsaUcm, SectionExistsWithSuffix) {
 
   const char *sections[] = { "Sec1 Suffix1", "Comment for Sec1",
                              "Sec2 Suffix2", "Comment for Sec2" };
-  fake_list = sections;
-  fake_list_size = 4;
+  fake_list["Identifier"] = sections;
+  fake_list_size["Identifier"] = 4;
   EXPECT_EQ(1, ucm_section_exists_with_suffix(mgr, "Suffix1", "Identifier"));
   EXPECT_EQ(1, ucm_section_exists_with_suffix(mgr, "Suffix2", "Identifier"));
   EXPECT_EQ(0, ucm_section_exists_with_suffix(mgr, "Suffix3", "Identifier"));
@@ -359,8 +452,8 @@ int snd_use_case_set(snd_use_case_mgr_t* uc_mgr,
 int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
                           const char *identifier,
                           const char **list[]) {
-  *list = fake_list;
-  return fake_list_size;
+  *list = fake_list[identifier];
+  return fake_list_size[identifier];
 }
 
 int snd_use_case_free_list(const char *list[], int items) {
