@@ -39,6 +39,24 @@ static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 	return enabled;
 }
 
+static int modifier_enabled(snd_use_case_mgr_t *mgr, const char *mod)
+{
+	const char **list;
+	unsigned int mod_idx;
+	int num_mods;
+
+	num_mods = snd_use_case_get_list(mgr, "_enamods", &list);
+	if (num_mods <= 0)
+		return 0;
+
+	for (mod_idx = 0; mod_idx < (unsigned int)num_mods; mod_idx++)
+		if (!strcmp(mod, list[mod_idx]))
+			break;
+
+	snd_use_case_free_list(list, num_mods);
+	return (mod_idx < (unsigned int)num_mods);
+}
+
 static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 		   const char *verb, const char **value)
 {
@@ -53,6 +71,86 @@ static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 
 	free((void *)id);
 	return rc;
+}
+
+static int ucm_set_modifier_enabled(snd_use_case_mgr_t *mgr, const char *mod,
+				    int enable)
+{
+	return snd_use_case_set(mgr, enable ? "_enamod" : "_dismod", mod);
+}
+
+static int ucm_str_ends_with_suffix(const char *str, const char *suffix)
+{
+	if (!str || !suffix)
+		return 0;
+	size_t len_str = strlen(str);
+	size_t len_suffix = strlen(suffix);
+	if (len_suffix > len_str)
+		return 0;
+	return strncmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
+}
+
+static int ucm_section_exists_with_name(snd_use_case_mgr_t *mgr,
+		const char *name, const char *identifier)
+{
+	const char **list;
+	unsigned int i;
+	int num_entries;
+	int exist = 0;
+
+	num_entries = snd_use_case_get_list(mgr, identifier, &list);
+	if (num_entries <= 0)
+		return 0;
+
+	for (i = 0; i < (unsigned int)num_entries; i+=2) {
+
+		if (!list[i])
+			continue;
+
+		if (strcmp(list[i], name) == 0) {
+			exist = 1;
+			break;
+		}
+	}
+	snd_use_case_free_list(list, num_entries);
+	return exist;
+}
+
+static int ucm_section_exists_with_suffix(snd_use_case_mgr_t *mgr,
+		const char *suffix, const char *identifier)
+{
+	const char **list;
+	unsigned int i;
+	int num_entries;
+	int exist = 0;
+
+	num_entries = snd_use_case_get_list(mgr, identifier, &list);
+	if (num_entries <= 0)
+		return 0;
+
+	for (i = 0; i < (unsigned int)num_entries; i+=2) {
+
+		if (!list[i])
+			continue;
+
+		if (ucm_str_ends_with_suffix(list[i], suffix)) {
+			exist = 1;
+			break;
+		}
+	}
+	snd_use_case_free_list(list, num_entries);
+	return exist;
+}
+
+static int ucm_mod_exists_with_suffix(snd_use_case_mgr_t *mgr,
+				const char *suffix)
+{
+	return ucm_section_exists_with_suffix(mgr, suffix, "_modifiers/HiFi");
+}
+
+static int ucm_mod_exists_with_name(snd_use_case_mgr_t *mgr, const char *name)
+{
+	return ucm_section_exists_with_name(mgr, name, "_modifiers/HiFi");
 }
 
 static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,

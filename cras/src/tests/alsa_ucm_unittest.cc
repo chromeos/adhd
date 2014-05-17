@@ -27,6 +27,7 @@ static std::map<std::string, int> snd_use_case_get_ret_value;
 static int snd_use_case_set_return;
 static std::map<std::string, std::string> snd_use_case_get_value;
 static unsigned snd_use_case_set_called;
+static std::vector<std::pair<std::string, std::string> > snd_use_case_set_param;
 static const char **fake_list;
 static unsigned fake_list_size;
 static unsigned snd_use_case_free_list_called;
@@ -38,6 +39,7 @@ static void ResetStubData() {
   snd_use_case_set_return = 0;
   snd_use_case_get_called = 0;
   snd_use_case_set_called = 0;
+  snd_use_case_set_param.clear();
   snd_use_case_free_list_called = 0;
   snd_use_case_get_id.clear();
   snd_use_case_get_value.clear();
@@ -254,6 +256,73 @@ TEST(AlsaFlag, GetFlag) {
   EXPECT_EQ(snd_use_case_get_id[0], id);
 }
 
+TEST(AlsaUcm, ModifierEnabled) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  int enabled;
+
+  ResetStubData();
+
+  const char *mods[] = { "Mod1", "Mod2" };
+  fake_list = mods;
+  fake_list_size = 2;
+
+  enabled = modifier_enabled(mgr, "Mod1");
+  EXPECT_EQ(1, enabled);
+  enabled = modifier_enabled(mgr, "Mod2");
+  EXPECT_EQ(1, enabled);
+  enabled = modifier_enabled(mgr, "Mod3");
+  EXPECT_EQ(0, enabled);
+}
+
+TEST(AlsaUcm, SetModifierEnabled) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+
+  ResetStubData();
+
+  ucm_set_modifier_enabled(mgr, "Mod1", 1);
+  EXPECT_EQ(snd_use_case_set_param[0],
+            std::make_pair(std::string("_enamod"), std::string("Mod1")));
+  EXPECT_EQ(1, snd_use_case_set_called);
+  ucm_set_modifier_enabled(mgr, "Mod1", 0);
+  EXPECT_EQ(snd_use_case_set_param[1],
+            std::make_pair(std::string("_dismod"), std::string("Mod1")));
+  EXPECT_EQ(2, snd_use_case_set_called);
+}
+
+TEST(AlsaUcm, EndWithSuffix) {
+  EXPECT_EQ(1, ucm_str_ends_with_suffix("Foo bar", "bar"));
+  EXPECT_EQ(1, ucm_str_ends_with_suffix("bar", "bar"));
+  EXPECT_EQ(0, ucm_str_ends_with_suffix("Foo car", "bar"));
+}
+
+TEST(AlsaUcm, SectionExistsWithName) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+
+  ResetStubData();
+
+  const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
+                             "Comment for Sec2" };
+  fake_list = sections;
+  fake_list_size = 4;
+  EXPECT_EQ(1, ucm_section_exists_with_name(mgr, "Sec1", "Identifier"));
+  EXPECT_EQ(1, ucm_section_exists_with_name(mgr, "Sec2", "Identifier"));
+  EXPECT_EQ(0, ucm_section_exists_with_name(mgr, "Sec3", "Identifier"));
+}
+
+TEST(AlsaUcm, SectionExistsWithSuffix) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+
+  ResetStubData();
+
+  const char *sections[] = { "Sec1 Suffix1", "Comment for Sec1",
+                             "Sec2 Suffix2", "Comment for Sec2" };
+  fake_list = sections;
+  fake_list_size = 4;
+  EXPECT_EQ(1, ucm_section_exists_with_suffix(mgr, "Suffix1", "Identifier"));
+  EXPECT_EQ(1, ucm_section_exists_with_suffix(mgr, "Suffix2", "Identifier"));
+  EXPECT_EQ(0, ucm_section_exists_with_suffix(mgr, "Suffix3", "Identifier"));
+}
+
 /* Stubs */
 
 extern "C" {
@@ -282,6 +351,8 @@ int snd_use_case_set(snd_use_case_mgr_t* uc_mgr,
                      const char *identifier,
                      const char *value) {
   snd_use_case_set_called++;
+  snd_use_case_set_param.push_back(
+      std::make_pair(std::string(identifier), std::string(value)));
   return snd_use_case_set_return;;
 }
 
