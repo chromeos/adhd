@@ -17,6 +17,11 @@ Methods		void SetOutputVolume(int32 volume)
 			0 to 100, and will be translated to dB based on the
 			output-specific volume curve.
 
+		void SwapLeftRight(uint64 node_id, boolean swap)
+
+			Swap the left and right channel of the given node.
+			Message will be dropped if this feature is not supported.
+
 		void SetOutputMute(boolean mute_on)
 
 			Sets the system output mute.

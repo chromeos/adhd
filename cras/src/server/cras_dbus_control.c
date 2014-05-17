@@ -31,6 +31,10 @@
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "      <arg name=\"volume\" type=\"i\" direction=\"in\"/>\n"        \
     "    </method>\n"                                                   \
+    "    <method name=\"SwapLeftRight\">\n"                             \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "      <arg name=\"swap\" type=\"b\" direction=\"in\"/>\n"          \
+    "    </method>\n"                                                   \
     "    <method name=\"SetOutputMute\">\n"                             \
     "      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"       \
     "    </method>\n"                                                   \
@@ -167,6 +171,36 @@ static DBusHandlerResult handle_set_output_node_volume(
 	}
 
 	cras_iodev_list_set_node_attr(id, IONODE_ATTR_VOLUME, new_vol);
+
+	send_empty_reply(message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_swap_left_right(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	cras_node_id_t id;
+	dbus_bool_t swap;
+	DBusError dbus_error;
+
+	dbus_error_init(&dbus_error);
+
+	if (!dbus_message_get_args(message, &dbus_error,
+				   DBUS_TYPE_UINT64, &id,
+				   DBUS_TYPE_BOOLEAN, &swap,
+				   DBUS_TYPE_INVALID)) {
+		syslog(LOG_WARNING,
+		       "Bad method received: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	cras_iodev_list_set_node_attr(id, IONODE_ATTR_SWAP_LEFT_RIGHT,
+				      swap);
 
 	send_empty_reply(message);
 
@@ -578,6 +612,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetOutputNodeVolume")) {
 		return handle_set_output_node_volume(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "SwapLeftRight")) {
+		return handle_swap_left_right(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetOutputMute")) {
