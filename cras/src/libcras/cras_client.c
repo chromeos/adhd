@@ -2228,6 +2228,19 @@ int cras_client_set_node_volume(struct cras_client *client,
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_swap_node_left_right(struct cras_client *client,
+					cras_node_id_t node_id, int enable)
+{
+	struct cras_set_node_attr msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	cras_fill_set_node_attr(&msg, node_id, IONODE_ATTR_SWAP_LEFT_RIGHT,
+				enable);
+	return write_message_to_server(client, &msg.header);
+}
+
 int cras_client_set_node_capture_gain(struct cras_client *client,
 				      cras_node_id_t node_id,
 				      long gain)

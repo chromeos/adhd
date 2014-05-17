@@ -588,6 +588,14 @@ int cras_client_set_node_volume(struct cras_client *client,
 				cras_node_id_t node_id,
 				uint8_t volume);
 
+/* Swap the left and right channel of the given node.
+ * Args:
+ *    node_id - ID of the node.
+ *    enable - 1 to enable swap mode, 0 to disable.
+ */
+int cras_client_swap_node_left_right(struct cras_client *client,
+					cras_node_id_t node_id, int enable);
+
 /* Set the volume of the given input node.  Only for input nodes.
  * Args:
  *    node_id - ID of the node.
