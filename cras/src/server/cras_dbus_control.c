@@ -858,6 +858,28 @@ static void signal_node_capture_gain_changed(cras_node_id_t id,
 	dbus_message_unref(msg);
 }
 
+static void signal_node_left_right_swapped_changed(cras_node_id_t id,
+				       int swapped)
+{
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	dbus_uint64_t node_id;
+	dbus_bool_t node_left_right_swapped;
+
+	msg = create_dbus_message("NodeLeftRightSwappedChanged");
+	if (!msg)
+		return;
+
+	node_id = id;
+	node_left_right_swapped = swapped;
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_UINT64, &node_id,
+				 DBUS_TYPE_BOOLEAN, &node_left_right_swapped,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(dbus_control.conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 static void signal_num_active_streams_changed(void *arg)
 {
 	dbus_uint32_t serial = 0;
@@ -911,6 +933,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 		signal_active_node_changed, 0);
 	cras_iodev_list_set_node_volume_callbacks(
 		signal_node_volume_changed, signal_node_capture_gain_changed);
+	cras_iodev_list_set_node_left_right_swapped_callbacks(
+		signal_node_left_right_swapped_changed);
 }
 
 void cras_dbus_control_stop()

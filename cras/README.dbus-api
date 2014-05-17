@@ -166,6 +166,11 @@ Signals		OutputVolumeChanged(int32 volume)
 
 			Indicates the volume of the given node.
 
+		NodeLeftRightSwappedChanged(uint64 node_id, boolean swapped)
+
+			Indicates the left and right channel swapping state of the
+			given node.
+
 		InputNodeGainChanged(uint64 node_id, int32 gain)
 
 			Indicates that the capture gain for the node is now gain
