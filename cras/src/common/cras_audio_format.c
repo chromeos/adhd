@@ -56,7 +56,7 @@ struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 }
 
 int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
-					 int8_t layout[CRAS_CH_MAX])
+					 const int8_t layout[CRAS_CH_MAX])
 {
 	int i;
 

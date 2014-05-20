@@ -101,7 +101,7 @@ void cras_audio_format_destroy(struct cras_audio_format *fmt);
  *        channel in enum CRAS_CHANNEL
  */
 int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
-					 int8_t layout[CRAS_CH_MAX]);
+					 const int8_t layout[CRAS_CH_MAX]);
 
 /* Allocates an empty channel conversion matrix of given size. */
 float** cras_channel_conv_matrix_alloc(size_t in_ch, size_t out_ch);
