@@ -36,6 +36,7 @@ struct cras_rstream {
 	size_t cb_threshold; /* Callback client when this much is left. */
 	size_t min_cb_level; /* Don't callback unless this much is avail. */
 	uint32_t flags;
+	int is_draining; /* The stream is draining and waiting to be removed. */
 	struct cras_rclient *client;
 	struct rstream_shm_info input_shm_info;
 	struct rstream_shm_info output_shm_info;
@@ -134,6 +135,19 @@ static inline void cras_rstream_set_audio_fd(struct cras_rstream *stream,
 static inline int cras_rstream_get_audio_fd(const struct cras_rstream *stream)
 {
 	return stream->fd;
+}
+
+/* Gets the is_draning flag. */
+static inline int cras_rstream_get_is_draining(struct cras_rstream *stream)
+{
+	return stream->is_draining;
+}
+
+/* Sets the is_draning flag. */
+static inline void cras_rstream_set_is_draining(struct cras_rstream *stream,
+					    int is_draining)
+{
+	stream->is_draining = is_draining;
 }
 
 /* Gets the shm key used to find the outputshm region. */

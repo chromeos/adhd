@@ -646,7 +646,8 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	struct cras_io_stream *out;
 
 	stream->client = NULL;
-	stream->fd = -1;
+	cras_rstream_set_audio_fd(stream, -1);
+	cras_rstream_set_is_draining(stream, 1);
 
 	/* If the stream has been removed from active streams, destroy it. */
 	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
@@ -930,19 +931,30 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 			continue;
 
 		if (!cras_shm_callback_pending(shm) &&
-		    cras_shm_is_buffer_available(shm)) {
+		    cras_shm_is_buffer_available(shm) &&
+		    !cras_rstream_get_is_draining(curr->stream)) {
 			audio_thread_event_log_data2(
 				atlog,
 				AUDIO_THREAD_FETCH_STREAM,
 				curr->stream->stream_id,
 				cras_rstream_get_cb_threshold(curr->stream));
 			rc = cras_rstream_request_audio(curr->stream);
-			if (rc < 0) {
+
+			/* Keep the stream for playback if the shm is not empty. */
+			if (rc < 0 && frames_in_buff == 0) {
+				syslog(LOG_ERR,
+				       "request audio fail: %d, remove stream.",
+				       rc);
 				thread_remove_stream(thread, curr->stream);
 				/* If this failed and was the last stream,
 				 * return, otherwise, on to the next one */
 				if (!output_streams_attached(thread))
 					return -EIO;
+				continue;
+			}
+			if (rc < 0) {
+				syslog(LOG_ERR, "request audio fail: %d.", rc);
+				cras_rstream_set_is_draining(curr->stream, 1);
 				continue;
 			}
 			update_stream_timeout(shm);
@@ -1117,9 +1129,9 @@ static int write_streams(struct audio_thread *thread,
 			cras_shm_set_callback_pending(shm, 0);
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
-				thread_remove_stream(thread, curr->stream);
-				if (!output_streams_attached(thread))
-					return -EIO;
+				syslog(LOG_ERR,
+				       "fail to get audio request replay: %d",
+				       rc);
 				continue;
 			}
 			/* Skip mixing if it returned zero frames. */
