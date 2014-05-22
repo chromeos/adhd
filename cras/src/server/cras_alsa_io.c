@@ -144,7 +144,6 @@ static int close_dev(struct cras_iodev *iodev)
 
 	if (!aio->handle)
 		return 0;
-	cras_alsa_pcm_drain(aio->handle);
 	cras_alsa_pcm_close(aio->handle);
 	aio->handle = NULL;
 	cras_iodev_free_format(&aio->base);

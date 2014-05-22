@@ -1242,7 +1242,43 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
             cras_dsp_pipeline_apply_sample_count);
 }
 
-TEST_F(WriteStreamSuite, DrainAudioInShareMemory) {
+TEST_F(WriteStreamSuite, DrainOutputBufferCompelete) {
+  frames_queued_ = 3 * cb_threshold_;
+  close_dev_called_ = 0;
+  // All the audio in hw buffer are extra silent frames.
+  iodev_.extra_silent_frames = frames_queued_ + 1;
+  unsigned int sleep_frames;
+  drain_output_buffer(thread_, &iodev_, &sleep_frames);
+  EXPECT_EQ(1, close_dev_called_);
+}
+
+
+TEST_F(WriteStreamSuite, DrainOutputBufferWaitForPlayback) {
+  // Hardware buffer is full.
+  frames_queued_ = buffer_frames_;
+  iodev_.extra_silent_frames = 0;
+  unsigned int sleep_frames;
+  close_dev_called_ = 0;
+  drain_output_buffer(thread_, &iodev_, &sleep_frames);
+  EXPECT_EQ(0, close_dev_called_);
+  EXPECT_EQ(buffer_frames_ - cb_threshold_, sleep_frames);
+}
+
+TEST_F(WriteStreamSuite, DrainOutputBufferWaitForAudio) {
+  // Hardware buffer is almost empty
+  frames_queued_ = 30;
+  iodev_.extra_silent_frames = 0;
+  unsigned int sleep_frames;
+  close_dev_called_ = 0;
+  drain_output_buffer(thread_, &iodev_, &sleep_frames);
+  EXPECT_LT(cb_threshold_ - frames_queued_, frames_written_);
+  EXPECT_EQ(0, close_dev_called_);
+  // We should sleep a little more than the audio data in the buffer.
+  EXPECT_GT(frames_queued_ + CAP_EXTRA_SLEEP_FRAMES, sleep_frames);
+  EXPECT_LE(frames_queued_, sleep_frames);
+}
+
+TEST_F(WriteStreamSuite, DrainOutputStream) {
   struct timespec ts;
   int rc;
 
@@ -1270,7 +1306,7 @@ TEST_F(WriteStreamSuite, DrainAudioInShareMemory) {
   EXPECT_EQ(0, open_dev_called_);
   EXPECT_EQ(0, close_dev_called_);
 
-  // Clear the hw buffer
+  // Clear the hardware buffer
   frames_queued_ = 0;
   frames_written_ = 0;
   audio_buffer_size_ = buffer_frames_ - frames_queued_;
@@ -1278,10 +1314,24 @@ TEST_F(WriteStreamSuite, DrainAudioInShareMemory) {
   rc = unified_io(thread_, &ts);
 
   // Verified that all data in stream1 is written.
+  // The device is not closed before we have played all the content.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2 * cb_threshold_, frames_written_);
-  EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(1, cras_rstream_destroy_called);
+  EXPECT_EQ(0, close_dev_called_);
+  EXPECT_EQ(1, iodev_.is_draining);
+
+  // Clear the hardware buffer again.
+  frames_queued_ = 0;
+  frames_written_ = 0;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
+
+  rc = unified_io(thread_, &ts);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ(0, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(0, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
 }
 
 //  Test adding and removing streams.
@@ -1409,10 +1459,16 @@ class AddStreamSuite : public testing::Test {
 
       rc = thread_remove_stream(&thread, new_stream);
       EXPECT_EQ(0, rc);
-      EXPECT_EQ(0, thread.devs_open[direction]);
-      EXPECT_EQ(1, close_dev_called_);
-      EXPECT_EQ(0, thread.buffer_frames[direction]);
-      EXPECT_EQ(0, thread.cb_threshold[direction]);
+
+      // For output stream, we enter the draining mode;
+      // for input stream, we close the device directly.
+      if (direction == CRAS_STREAM_INPUT) {
+        EXPECT_EQ(0, thread.devs_open[direction]);
+        EXPECT_EQ(0, thread.buffer_frames[direction]);
+        EXPECT_EQ(0, thread.cb_threshold[direction]);
+      } else {
+        EXPECT_EQ(1, iodev_.is_draining);
+      }
 
       free(fmt);
       shm = cras_rstream_output_shm(new_stream);
@@ -1475,11 +1531,8 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   //  remove the stream.
   rc = thread_remove_stream(&thread, new_stream);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, thread.devs_open[CRAS_STREAM_OUTPUT]);
-  EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ(1, iodev_.is_draining);
   EXPECT_EQ(0, cras_metrics_log_histogram_called);
-  EXPECT_EQ(0, thread.buffer_frames[CRAS_STREAM_OUTPUT]);
-  EXPECT_EQ(0, thread.cb_threshold[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, cras_rstream_destroy_called);
 
   rc = thread_disconnect_stream(&thread, new_stream);
@@ -1552,11 +1605,8 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
 
   //  remove the stream.
   rc = thread_remove_stream(thread, new_stream);
-  EXPECT_EQ(0, thread->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, close_dev_called_);
-  EXPECT_EQ(0, thread->buffer_frames[CRAS_STREAM_OUTPUT]);
-  EXPECT_EQ(0, thread->cb_threshold[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(1, iodev_.is_draining);
 
   cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
 
@@ -1872,8 +1922,8 @@ TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
   thread_remove_stream(thread_, rstream2_);
 
   thread_remove_stream(thread_, rstream_);
-  EXPECT_EQ(0, thread_->devs_open[CRAS_STREAM_OUTPUT]);
-  EXPECT_EQ(2, ActiveDevicesSuite::close_dev_called_);
+  EXPECT_EQ(1, iodev_.is_draining);
+  EXPECT_EQ(1, iodev2_.is_draining);
 }
 
 TEST_F(ActiveDevicesSuite, InputDelayFrames) {

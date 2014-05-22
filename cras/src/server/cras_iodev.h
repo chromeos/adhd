@@ -83,6 +83,10 @@ struct cras_ionode {
  * software_volume_needed - True if volume control is not supported by hardware.
  * software_volume_scaler - The scaler used for software volume mixing. Should
  *     be 1.0 by default.
+ * is_draining - Indicate the device is playing the remaining audio in the
+ *     hardware buffer.
+ * extra_silent_frames - In draining, the number of silent frames filled in to
+ *     prevent buffer underrun.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -118,6 +122,8 @@ struct cras_iodev {
 	int software_volume_needed;
 	struct cras_iodev *prev, *next;
 	float software_volume_scaler;
+	int is_draining;
+	size_t extra_silent_frames;
 };
 
 /*

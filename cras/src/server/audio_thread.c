@@ -592,6 +592,16 @@ static void thread_rm_active_dev(struct audio_thread *thread,
 	}
 }
 
+/* Mark or unmark all output devices' is_draining flags. */
+static void devices_set_output_draining(struct audio_thread *thread,
+					int is_draining) {
+	struct active_dev *adev;
+	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
+		adev->dev->is_draining = is_draining;
+		adev->dev->extra_silent_frames = 0;
+	}
+}
+
 /* Remove stream from the audio thread. If this is the last stream to be
  * removed close the device. Returns the number of streams still attached
  * to the thread.
@@ -616,7 +626,7 @@ static int thread_remove_stream(struct audio_thread *thread,
 		config_devices_min_latency(thread, CRAS_STREAM_INPUT);
 
 	if (!out_active)
-		close_devices(thread, CRAS_STREAM_OUTPUT);
+		devices_set_output_draining(thread, 1);
 	else
 		config_devices_min_latency(thread, CRAS_STREAM_OUTPUT);
 
@@ -692,6 +702,11 @@ static int thread_add_stream(struct audio_thread *thread,
 	rc = append_stream(thread, stream);
 	if (rc < 0)
 		return AUDIO_THREAD_ERROR_OTHER;
+
+	if (stream_uses_output(stream)) {
+		/* Stream added, exit draining mode. */
+		devices_set_output_draining(thread, 0);
+	}
 
 	/* If not already, open the device(s). */
 	if (stream_uses_output(stream) &&
@@ -1459,6 +1474,46 @@ static int get_output_sleep_frames(struct audio_thread *thread)
 	return sleep_frames;
 }
 
+/* Drain the hardware buffer of odev.
+ * Args:
+ *    odev - the output device to be drainned.
+ *    sleep_frames - Will be filled with the number of frames we can go sleep
+ *      before closing the device.
+ */
+int drain_output_buffer(struct audio_thread *thread,
+			struct cras_iodev *odev,
+			unsigned int *sleep_frames) {
+	int hw_level;
+	int filled_count;
+	int cb_threshold;
+	int buffer_frames;
+
+	cb_threshold = thread->cb_threshold[CRAS_STREAM_OUTPUT];
+	buffer_frames = thread->buffer_frames[CRAS_STREAM_OUTPUT];
+
+	hw_level = odev->frames_queued(odev);
+	if (hw_level < 0)
+		return hw_level;
+
+	if ((int)odev->extra_silent_frames >= hw_level) {
+		/* Remaining audio has been played out. Close the device. */
+		close_devices(thread, CRAS_STREAM_OUTPUT);
+		return 0;
+	}
+
+	filled_count = MIN(buffer_frames - hw_level,
+			   cb_threshold - (int)odev->extra_silent_frames);
+	fill_odev_zeros(odev, filled_count);
+	odev->extra_silent_frames += filled_count;
+
+	/* Sleep until 1.) There is only cb_threshold frames in buffer or
+		       2.) The audio has been consumed. */
+	*sleep_frames = MIN(hw_level + filled_count - cb_threshold,
+			    SLEEP_FUZZ_FRAMES + hw_level + filled_count -
+			    (int)odev->extra_silent_frames);
+	return 0;
+}
+
 /* Transfer samples from clients to the audio device.
  * Return the number of samples written to the device.
  * Args:
@@ -1482,6 +1537,9 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 	if (!device_open(odev))
 		return 0;
+
+	if (odev->is_draining)
+		return drain_output_buffer(thread, odev, next_sleep_frames);
 
 	frame_bytes = cras_get_format_bytes(odev->format);
 
@@ -1949,7 +2007,9 @@ static void *audio_io_thread(void *arg)
 
 		wait_ts = NULL;
 
-		if (streams_attached(thread)) {
+		if (device_open(first_output_dev(thread)) ||
+		    device_open(first_input_dev(thread)) ||
+		    device_open(first_loop_dev(thread))) {
 			/* device opened */
 			err = unified_io(thread, &ts);
 			if (err < 0)
