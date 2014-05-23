@@ -26,6 +26,7 @@ static struct option long_options[] = {
 static void set_signals()
 {
 	signal(SIGPIPE, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);
 }
 
 /* Entry point for the server. */
