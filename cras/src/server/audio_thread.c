@@ -655,17 +655,21 @@ int thread_disconnect_stream(struct audio_thread* thread,
 void fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 {
 	uint8_t *dst;
-	unsigned int frame_bytes;
+	unsigned int frame_bytes, frames_written;
 	int rc;
 
 	frame_bytes = cras_get_format_bytes(odev->format);
-
-	rc = odev->get_buffer(odev, &dst, &frames);
-	if (rc < 0)
-		return;
-
-	memset(dst, 0, frames * frame_bytes);
-	odev->put_buffer(odev, frames);
+	while (frames > 0) {
+		frames_written = frames;
+		rc = odev->get_buffer(odev, &dst, &frames_written);
+		if (rc < 0) {
+			syslog(LOG_ERR, "fill zeros fail: %d", rc);
+			return;
+		}
+		memset(dst, 0, frames_written * frame_bytes);
+		odev->put_buffer(odev, frames_written);
+		frames -= frames_written;
+	}
 }
 
 /* Builds an initial buffer to avoid an underrun. Adds cb_threshold latency. */
