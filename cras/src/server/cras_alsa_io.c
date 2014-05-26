@@ -429,6 +429,15 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 					 cras_system_get_capture_mute());
 }
 
+/* Swaps the left and right channels of the given node. */
+static int set_alsa_node_swapped(struct cras_iodev *iodev,
+				 struct cras_ionode *node, int enable)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)iodev;
+	assert(aio);
+	return ucm_enable_swap_mode(aio->ucm, node->name, enable);
+}
+
 /* Initializes the device settings and registers for callbacks when system
  * settings have been changed.
  */
@@ -989,9 +998,15 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	aio->mixer = mixer;
 	aio->ucm = ucm;
-	if (ucm)
+	if (ucm) {
 		aio->dsp_name_default = ucm_get_dsp_name_default(ucm,
 								 direction);
+		/* Set callback for swap mode if it is supported
+		 * in ucm modifier. */
+		if (ucm_swap_mode_exists(ucm))
+			aio->base.set_swap_mode_for_node =
+				set_alsa_node_swapped;
+        }
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
 
 	/* Create output nodes for mixer controls, such as Headphone

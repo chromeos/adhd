@@ -106,6 +106,9 @@ static size_t cras_iodev_free_dsp_called;
 static size_t cras_alsa_jack_exists_called;
 static const char *cras_alsa_jack_exists_match;
 static size_t cras_alsa_jack_update_node_type_called;
+static int ucm_swap_mode_exists_ret_value;
+static int ucm_enable_swap_mode_ret_value;
+static size_t ucm_enable_swap_mode_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -149,6 +152,9 @@ void ResetStubData() {
   cras_alsa_jack_exists_called = 0;
   cras_alsa_jack_exists_match = NULL;
   cras_alsa_jack_update_node_type_called = 0;
+  ucm_swap_mode_exists_ret_value = 0;
+  ucm_enable_swap_mode_ret_value = 0;
+  ucm_enable_swap_mode_called = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -545,6 +551,40 @@ TEST(AlsaIoInit, NodeTypeOverride) {
   // Verify that cras_alsa_jack_update_node_type is called when an output device
   // is created.
   EXPECT_EQ(1, cras_alsa_jack_update_node_type_called);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
+TEST(AlsaIoInit, SwapMode) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_ionode * const fake_node = (cras_ionode *)4;
+  ResetStubData();
+  // Stub replies that swap mode does not exist.
+  ucm_swap_mode_exists_ret_value = 0;
+
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(NULL, aio->base.set_swap_mode_for_node);
+
+  // Stub replies that swap mode exists.
+  ucm_swap_mode_exists_ret_value = 1;
+
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            ALSA_CARD_TYPE_INTERNAL, 0,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+  // Enable swap mode.
+  aio->base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
+
+  // Verify that ucm_enable_swap_mode is called when callback to enable
+  // swap mode is called.
+  EXPECT_EQ(1, ucm_enable_swap_mode_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
@@ -1202,6 +1242,17 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
   return NULL;
 }
 
+int ucm_swap_mode_exists(snd_use_case_mgr_t *mgr)
+{
+  return ucm_swap_mode_exists_ret_value;
+}
+
+int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
+                         int enable)
+{
+  ucm_enable_swap_mode_called++;
+  return ucm_enable_swap_mode_ret_value;
+}
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }

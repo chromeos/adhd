@@ -33,6 +33,7 @@ struct cras_iodev;
  *    priority - higher is better.
  *    volume - per-node volume (0-100)
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
+ *    left_right_swapped - If left and right output channels are swapped.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  */
@@ -44,6 +45,7 @@ struct cras_ionode {
 	unsigned priority;
 	unsigned int volume;
 	long capture_gain;
+	int left_right_swapped;
 	enum CRAS_NODE_TYPE type;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	struct cras_ionode *prev, *next;
@@ -54,6 +56,7 @@ struct cras_ionode {
  * set_mute - Function to call if the system mute state changes.
  * set_capture_gain - Function to call if the system capture_gain changes.
  * set_capture_mute - Function to call if the system capture mute state changes.
+ * set_swap_mode_for_node - Function to call to set swap mode for the node.
  * open_dev - Opens the device.
  * close_dev - Closes the device if it is open.
  * is_open - Checks if the device has been openned.
@@ -93,6 +96,9 @@ struct cras_iodev {
 	void (*set_mute)(struct cras_iodev *iodev);
 	void (*set_capture_gain)(struct cras_iodev *iodev);
 	void (*set_capture_mute)(struct cras_iodev *iodev);
+	int (*set_swap_mode_for_node)(struct cras_iodev *iodev,
+				      struct cras_ionode *node,
+				      int enable);
 	int (*open_dev)(struct cras_iodev *iodev);
 	int (*close_dev)(struct cras_iodev *iodev);
 	int (*is_open)(const struct cras_iodev *iodev);
