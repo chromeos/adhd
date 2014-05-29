@@ -1718,7 +1718,7 @@ int possibly_read_audio(struct audio_thread *thread,
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO, hw_level);
 
 	/* Check if the device is still running. */
-	if (!devices_running(thread, CRAS_STREAM_INPUT))
+	if (!devices_running(thread, dir))
 		return -1;
 
 	write_limit = get_write_limit_set_delay(thread,
