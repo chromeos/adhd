@@ -173,21 +173,6 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev = &empty_iodev->base;
 	iodev->direction = direction;
 
-	/* Finally add it to the appropriate iodev list. */
-	if (direction == CRAS_STREAM_INPUT) {
-		snprintf(iodev->info.name,
-			 ARRAY_SIZE(iodev->info.name),
-			 "Silent record device.");
-		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-		cras_iodev_list_add_input(iodev);
-	} else {
-		snprintf(iodev->info.name,
-			 ARRAY_SIZE(iodev->info.name),
-			 "Silent playback device.");
-		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-		cras_iodev_list_add_output(iodev);
-	}
-
 	iodev->supported_rates = empty_supported_rates;
 	iodev->supported_channel_counts = empty_supported_channel_counts;
 	iodev->buffer_size = EMPTY_BUFFER_SIZE;
@@ -211,6 +196,21 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	strcpy(node->name, "(default)");
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
+
+	/* Finally add it to the appropriate iodev list. */
+	if (direction == CRAS_STREAM_INPUT) {
+		snprintf(iodev->info.name,
+			 ARRAY_SIZE(iodev->info.name),
+			 "Silent record device.");
+		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+		cras_iodev_list_add_input(iodev);
+	} else {
+		snprintf(iodev->info.name,
+			 ARRAY_SIZE(iodev->info.name),
+			 "Silent playback device.");
+		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+		cras_iodev_list_add_output(iodev);
+	}
 
 	return iodev;
 }

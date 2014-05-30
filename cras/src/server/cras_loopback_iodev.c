@@ -143,7 +143,6 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 		 ARRAY_SIZE(iodev->info.name),
 		 "Loopback record device.");
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-	cras_iodev_list_add_input(iodev);
 
 	iodev->supported_rates = calloc(2, sizeof(*iodev->supported_rates));
 	iodev->supported_rates[0] = 44100;
@@ -162,6 +161,8 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
+
+	cras_iodev_list_add_input(iodev);
 
 	return iodev;
 }
