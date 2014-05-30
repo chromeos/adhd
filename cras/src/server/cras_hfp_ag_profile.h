@@ -11,4 +11,7 @@
 /* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
 int cras_hfp_ag_profile_create(DBusConnection *conn);
 
+/* Adds a profile instance for HSP AG (Headset Profile Audio Gateway). */
+int cras_hsp_ag_profile_create(DBusConnection *conn);
+
 #endif /* CRAS_HFP_AG_PROFILE_H_ */

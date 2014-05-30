@@ -19,6 +19,9 @@
 #define HFP_AG_PROFILE_NAME "Headset Gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
 #define HFP_VERSION_1_6 0x0106
+#define HSP_AG_PROFILE_NAME "Headset Gateway"
+#define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
+#define HSP_VERSION_1_2 0x0102
 
 
 static struct cras_iodev *idev;
@@ -122,4 +125,36 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 int cras_hfp_ag_profile_create(DBusConnection *conn)
 {
 	return cras_bt_add_profile(conn, &cras_hfp_ag_profile);
+}
+
+static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
+				       struct cras_bt_transport *transport)
+{
+	int fd = 0;
+	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
+
+	/* Destroy all existing devices and replace with new ones */
+	destroy_hfp_resources();
+	slc_handle = hfp_slc_create(fd, NULL, transport,
+				    cras_hfp_ag_slc_disconnected);
+
+	cras_hfp_ag_slc_initialized(slc_handle, transport);
+}
+
+static struct cras_bt_profile cras_hsp_ag_profile = {
+	.name = HSP_AG_PROFILE_NAME,
+	.object_path = HSP_AG_PROFILE_PATH,
+	.uuid = HSP_AG_UUID,
+	.version = HSP_VERSION_1_2,
+	.role = NULL,
+	.features = 0,
+	.release = cras_hfp_ag_release,
+	.new_connection = cras_hsp_ag_new_connection,
+	.request_disconnection = cras_hfp_ag_request_disconnection,
+	.cancel = cras_hfp_ag_cancel
+};
+
+int cras_hsp_ag_profile_create(DBusConnection *conn)
+{
+	return cras_bt_add_profile(conn, &cras_hsp_ag_profile);
 }

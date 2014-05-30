@@ -331,6 +331,7 @@ int cras_server_run(int enable_hfp)
 		cras_bt_start(dbus_conn);
 		if (enable_hfp) {
 			cras_hfp_ag_profile_create(dbus_conn);
+			cras_hsp_ag_profile_create(dbus_conn);
 			cras_telephony_start(dbus_conn);
 		}
 		cras_a2dp_endpoint_create(dbus_conn);
