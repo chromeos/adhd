@@ -352,33 +352,6 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
   EXPECT_EQ(0, cras_iodev_list_rm_input(&d2_));
 }
 
-TEST_F(IoDevTestSuite, UnifiedFillsBoth) {
-  struct cras_iodev *idev, *odev;
-  int rc;
-
-  d1_.direction = CRAS_STREAM_OUTPUT;
-  d2_.direction = CRAS_STREAM_INPUT;
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_add_input(&d2_);
-  EXPECT_EQ(0, rc);
-
-  // unified stream should fill both input and output devices.
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_UNIFIED,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, odev);
-  EXPECT_EQ(&d2_, idev);
-
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-  rc = cras_iodev_list_rm_input(&d2_);
-  EXPECT_EQ(0, rc);
-}
-
 // Test removing the last input.
 TEST_F(IoDevTestSuite, RemoveLastInput) {
   struct cras_iodev_info *dev_info;

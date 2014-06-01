@@ -435,7 +435,6 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
   EXPECT_EQ(0, cras_system_state_get_active_streams());
   cras_system_state_stream_added(CRAS_STREAM_OUTPUT);
   cras_system_state_stream_added(CRAS_STREAM_INPUT);
-  cras_system_state_stream_added(CRAS_STREAM_UNIFIED);
   cras_system_state_stream_added(CRAS_STREAM_POST_MIX_PRE_DSP);
   EXPECT_EQ(1,
 	cras_system_state_get_active_streams_by_direction(
@@ -445,14 +444,10 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
 		CRAS_STREAM_INPUT));
   EXPECT_EQ(1,
 	cras_system_state_get_active_streams_by_direction(
-		CRAS_STREAM_UNIFIED));
-  EXPECT_EQ(1,
-	cras_system_state_get_active_streams_by_direction(
 		CRAS_STREAM_POST_MIX_PRE_DSP));
-  EXPECT_EQ(4, cras_system_state_get_active_streams());
+  EXPECT_EQ(3, cras_system_state_get_active_streams());
   cras_system_state_stream_removed(CRAS_STREAM_OUTPUT);
   cras_system_state_stream_removed(CRAS_STREAM_INPUT);
-  cras_system_state_stream_removed(CRAS_STREAM_UNIFIED);
   cras_system_state_stream_removed(CRAS_STREAM_POST_MIX_PRE_DSP);
   EXPECT_EQ(0,
 	cras_system_state_get_active_streams_by_direction(
@@ -460,9 +455,6 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
   EXPECT_EQ(0,
 	cras_system_state_get_active_streams_by_direction(
 		CRAS_STREAM_INPUT));
-  EXPECT_EQ(0,
-	cras_system_state_get_active_streams_by_direction(
-		CRAS_STREAM_UNIFIED));
   EXPECT_EQ(0,
 	cras_system_state_get_active_streams_by_direction(
 		CRAS_STREAM_POST_MIX_PRE_DSP));

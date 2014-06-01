@@ -22,7 +22,7 @@ struct __attribute__ ((__packed__)) cras_timespec {
 };
 
 /* Directions of audio streams.
- * Input, Output, Unified (Both input and output synchronously), or loopback.
+ * Input, Output, or loopback.
  *
  * Note that we use enum CRAS_STREAM_DIRECTION to access the elements in
  * num_active_streams in cras_server_state. For example,
@@ -32,29 +32,24 @@ struct __attribute__ ((__packed__)) cras_timespec {
 enum CRAS_STREAM_DIRECTION {
 	CRAS_STREAM_OUTPUT,
 	CRAS_STREAM_INPUT,
-	CRAS_STREAM_UNIFIED,
+	CRAS_STREAM_UNIFIED, /* This has been removed, don't use it. */
 	CRAS_STREAM_POST_MIX_PRE_DSP,
 	CRAS_NUM_DIRECTIONS
 };
 
 static inline int cras_stream_uses_output_hw(enum CRAS_STREAM_DIRECTION dir)
 {
-	return dir == CRAS_STREAM_OUTPUT || dir == CRAS_STREAM_UNIFIED;
+	return dir == CRAS_STREAM_OUTPUT;
 }
 
 static inline int cras_stream_uses_input_hw(enum CRAS_STREAM_DIRECTION dir)
 {
-	return dir == CRAS_STREAM_INPUT || dir == CRAS_STREAM_UNIFIED;
+	return dir == CRAS_STREAM_INPUT;
 }
 
 static inline int cras_stream_has_input(enum CRAS_STREAM_DIRECTION dir)
 {
 	return dir != CRAS_STREAM_OUTPUT;
-}
-
-static inline int cras_stream_is_unified(enum CRAS_STREAM_DIRECTION dir)
-{
-	return dir == CRAS_STREAM_UNIFIED;
 }
 
 static inline int cras_stream_is_loopback(enum CRAS_STREAM_DIRECTION dir)

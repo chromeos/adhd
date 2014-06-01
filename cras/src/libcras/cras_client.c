@@ -432,18 +432,6 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 	return num_frames;
 }
 
-/* Marks 'num_frames' samples read in the shm are for capture. */
-static void complete_capture_read(struct client_stream *stream,
-				  unsigned int num_frames)
-{
-	unsigned int frames = num_frames;
-
-	if (stream->capture_conv)
-		frames = cras_fmt_conv_out_frames_to_in(stream->capture_conv,
-							num_frames);
-	cras_shm_buffer_read(&stream->capture_shm, frames);
-}
-
 static void complete_capture_read_current(struct client_stream *stream,
 					  unsigned int num_frames)
 {
@@ -617,65 +605,6 @@ reply_written:
 	return rc;
 }
 
-/* Unified streams read audio and write back samples in the same callback. */
-static int handle_unified_request(struct client_stream *stream,
-				  unsigned int num_frames)
-{
-	struct cras_stream_params *config;
-	uint8_t *captured_frames = NULL;
-	uint8_t *playback_frames = NULL;
-	struct timespec capture_ts;
-	struct timespec playback_ts;
-	int frames;
-	int rc = 0;
-	unsigned int server_frames = num_frames;
-	const int has_input = cras_stream_has_input(stream->direction);
-	const int has_output = cras_stream_uses_output_hw(stream->direction);
-
-	config = stream->config;
-
-	if (has_input) {
-		num_frames = config_capture_buf(stream,
-						&captured_frames,
-						num_frames);
-		cras_timespec_to_timespec(&capture_ts,
-					  &stream->capture_shm.area->ts);
-	}
-
-	if (has_output) {
-		unsigned int pb_frames = config_playback_buf(stream,
-							     &playback_frames,
-							     server_frames);
-		if (!has_input)
-			num_frames = pb_frames;
-		cras_timespec_to_timespec(&playback_ts,
-					  &stream->play_shm.area->ts);
-	}
-
-	/* Get samples from the user */
-	frames = config->unified_cb(stream->client,
-				    stream->id,
-				    captured_frames,
-				    playback_frames,
-				    num_frames,
-				    has_input ? &capture_ts : NULL,
-				    has_output ? &playback_ts : NULL,
-				    config->user_data);
-	if (frames < 0) {
-		send_stream_message(stream, CLIENT_STREAM_EOF);
-		return send_playback_reply(stream, frames, frames);
-	}
-
-	if (cras_stream_has_input(stream->direction))
-		complete_capture_read(stream, frames);
-
-	if (cras_stream_uses_output_hw(stream->direction))
-		complete_playback_write(stream, frames);
-
-	/* Signal server that data is ready, or that an error has occurred. */
-	return send_playback_reply(stream, frames, rc);
-}
-
 /* Listens to the audio socket for messages from the server indicating that
  * the stream needs to be serviced.  One of these runs per stream. */
 static void *audio_thread(void *arg)
@@ -712,11 +641,6 @@ static void *audio_thread(void *arg)
 			break;
 		case AUDIO_MESSAGE_REQUEST_DATA:
 			thread_terminated = handle_playback_request(
-					stream,
-					aud_msg.frames);
-			break;
-		case AUDIO_MESSAGE_UNIFIED:
-			thread_terminated = handle_unified_request(
 					stream,
 					aud_msg.frames);
 			break;

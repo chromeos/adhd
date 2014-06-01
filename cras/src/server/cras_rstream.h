@@ -104,7 +104,7 @@ static inline enum CRAS_STREAM_TYPE cras_rstream_get_type(
 	return stream->stream_type;
 }
 
-/* Gets the direction (input/output/unified) of the stream. */
+/* Gets the direction (input/output/loopback) of the stream. */
 static inline enum CRAS_STREAM_DIRECTION cras_rstream_get_direction(
 		const struct cras_rstream *stream)
 {
@@ -171,7 +171,7 @@ static inline size_t cras_rstream_get_total_shm_size(
 	if (stream->direction == CRAS_STREAM_OUTPUT)
 		return cras_shm_total_size(&stream->output_shm);
 
-	/* Use the input shm size for unified streams. */
+	/* Use the input shm size for loopback streams. */
 	return cras_shm_total_size(&stream->input_shm);
 }
 

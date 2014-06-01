@@ -219,23 +219,6 @@ static int put_samples(struct cras_client *client,
 }
 
 /* Run from callback thread. */
-static int unified_samples(struct cras_client *client,
-			   cras_stream_id_t stream_id,
-			   uint8_t *captured_samples,
-			   uint8_t *playback_samples,
-			   unsigned int frames,
-			   const struct timespec *captured_time,
-			   const struct timespec *playback_time,
-			   void *user_arg)
-{
-	unsigned int frame_bytes;
-
-	frame_bytes = cras_client_format_bytes_per_frame(aud_format);
-	memcpy(playback_samples, captured_samples, frames * frame_bytes);
-	return frames;
-}
-
-/* Run from callback thread. */
 static int put_stdin_samples(struct cras_client *client,
 		       cras_stream_id_t stream_id,
 		       uint8_t *captured_samples,
@@ -563,41 +546,6 @@ static int start_stream(struct cras_client *client,
 		return rc;
 	}
 	return cras_client_set_stream_volume(client, *stream_id, stream_volume);
-}
-
-static int run_unified_io_stream(struct cras_client *client,
-				 size_t block_size,
-				 size_t rate,
-				 size_t num_channels)
-{
-	struct cras_stream_params *params;
-	cras_stream_id_t stream_id = 0;
-
-	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
-					      num_channels);
-	if (aud_format == NULL)
-		return -ENOMEM;
-
-	params = cras_client_unified_params_create(CRAS_STREAM_UNIFIED,
-						   block_size,
-						   0,
-						   0,
-						   0,
-						   unified_samples,
-						   stream_error,
-						   aud_format);
-	if (params == NULL)
-		return -ENOMEM;
-
-	cras_client_run_thread(client);
-
-	keep_looping = start_stream(client, &stream_id, params, 1.0) == 0;
-
-	while (keep_looping) {
-		sleep(1);
-	}
-
-	return 0;
 }
 
 static int parse_channel_layout(char *channel_layout_str,
@@ -956,7 +904,6 @@ static struct option long_options[] = {
 	{"set_node_volume",	required_argument,      0, 'w'},
 	{"plug",                required_argument,      0, 'x'},
 	{"select_output",       required_argument,      0, 'y'},
-	{"unified_audio",	no_argument,		0, 'z'},
 	{"capture_mute",        required_argument,      0, '0'},
 	{"rm_active_input",	required_argument,	0, '1'},
 	{"rm_active_output",	required_argument,	0, '2'},
@@ -988,7 +935,6 @@ static void show_usage()
 	printf("--reload_dsp - Reload dsp configuration from the ini file\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--dump_dsp - Print status of dsp to syslog.\n");
-	printf("--unified_audio - Pass audio from input to output with unified interface.\n");
 	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
 	       " ionode with the given index M on the device with index N\n");
 	printf("--swap_left_right <N>:<M>:<0|1> - Swap or unswap (1 or 0) the"
@@ -1021,7 +967,6 @@ int main(int argc, char **argv)
 	const char *playback_file = NULL;
 	const char *loopback_file = NULL;
 	int rc = 0;
-	int run_unified = 0;
 
 	option_index = 0;
 
@@ -1118,9 +1063,6 @@ int main(int argc, char **argv)
 			break;
 		case 'h':
 			show_usage();
-			break;
-		case 'z':
-			run_unified = 1;
 			break;
 		case 'x': {
 			int dev_index = atoi(strtok(optarg, ":"));
@@ -1226,10 +1168,7 @@ int main(int argc, char **argv)
 	if (block_size == NOT_ASSIGNED)
 		block_size = get_block_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
 
-	if (run_unified)
-		rc = run_unified_io_stream(client, block_size,
-					   rate, num_channels);
-	else if (capture_file != NULL)
+	if (capture_file != NULL)
 		rc = run_capture(client, capture_file,
 				block_size, rate, num_channels, 0);
 	else if (playback_file != NULL)

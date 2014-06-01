@@ -72,7 +72,7 @@ struct __attribute__ ((__packed__)) cras_client_message {
 struct __attribute__ ((__packed__)) cras_connect_message {
 	struct cras_server_message header;
 	uint32_t proto_version;
-	enum CRAS_STREAM_DIRECTION direction; /* input/output/unified */
+	enum CRAS_STREAM_DIRECTION direction; /* input/output/loopback */
 	cras_stream_id_t stream_id; /* unique id for this stream */
 	enum CRAS_STREAM_TYPE stream_type; /* media, or call, etc. */
 	uint32_t buffer_frames; /* Buffer size in frames. */
@@ -388,7 +388,6 @@ static inline void cras_fill_client_audio_debug_info_ready(
 enum CRAS_AUDIO_MESSAGE_ID {
 	AUDIO_MESSAGE_REQUEST_DATA,
 	AUDIO_MESSAGE_DATA_READY,
-	AUDIO_MESSAGE_UNIFIED,
 	NUM_AUDIO_MESSAGES
 };
 

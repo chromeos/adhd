@@ -183,10 +183,7 @@ static inline int device_open(const struct cras_iodev *iodev)
 static inline int stream_uses_direction(struct cras_rstream *stream,
 					enum CRAS_STREAM_DIRECTION direction)
 {
-	if (direction == CRAS_STREAM_POST_MIX_PRE_DSP)
-		return stream->direction == direction;
-	return stream->direction == direction ||
-	       stream->direction == CRAS_STREAM_UNIFIED;
+	return stream->direction == direction;
 }
 
 /* Finds the lowest latency stream attached to the thread. */
@@ -701,12 +698,6 @@ static int thread_add_stream(struct audio_thread *thread,
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
 
-		if (cras_stream_is_unified(stream->direction))
-			/* Start unified streams by padding the output.
-			 * This avoid underruns while processing the input data.
-			 */
-			fill_odevs_zeros_cb_threshold(thread);
-
 		if (loop_dev) {
 			struct cras_io_stream *iostream;
 			struct cras_audio_format fmt;
@@ -1168,19 +1159,11 @@ static int write_streams(struct audio_thread *thread,
 	return write_limit;
 }
 
-/* Checks if the stream type matches the device.  For input devices, both input
- * and unified streams match, for loopback, each loopback type matches.
- */
+/* Checks if the stream type matches the device.  */
 static int input_stream_matches_dev(enum CRAS_STREAM_DIRECTION dir,
 				    struct cras_rstream *rstream)
 {
-	if (dir == CRAS_STREAM_INPUT)
-		return stream_uses_input(rstream);
-
-	if (dir == CRAS_STREAM_POST_MIX_PRE_DSP)
-		return rstream->direction == CRAS_STREAM_POST_MIX_PRE_DSP;
-
-	return 0;
+	return rstream->direction == dir;
 }
 
 /* Gets the max delay frames of active input devices. */
@@ -1269,9 +1252,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 		/* For each stream; detach and tell client to reconfig. */
 		DL_FOREACH(thread->streams, iostream) {
-			if (iostream->stream->direction != dir &&
-				iostream->stream->direction
-					!= CRAS_STREAM_UNIFIED)
+			if (iostream->stream->direction != dir)
 				continue;
 			cras_rstream_send_client_reattach(iostream->stream);
 			thread_remove_stream(thread, iostream->stream);
@@ -1816,12 +1797,6 @@ int possibly_read_audio(struct audio_thread *thread,
 			thread_remove_stream(thread, rstream);
 			return rc;
 		}
-
-		/* Unified streams will write audio while handling the captured
-		 * samples, mark them as pending. */
-		if (rstream->direction == CRAS_STREAM_UNIFIED)
-			cras_shm_set_callback_pending(
-				cras_rstream_output_shm(rstream), 1);
 	}
 
 	if (dir == CRAS_STREAM_POST_MIX_PRE_DSP) {

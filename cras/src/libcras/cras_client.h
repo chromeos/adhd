@@ -292,7 +292,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 /* Setup stream configuration parameters.
  * Args:
  *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT) or
- *        both(CRAS_STREAM_UNIFIED).
+ *        loopback(CRAS_STREAM_POST_MIX_PRE_DSP).
  *    block_size - The number of frames per callback(dictates latency).
  *    stream_type - media or talk (currently only support "default").
  *    flags - None currently used.

@@ -169,13 +169,6 @@ TEST(AlsaJacks, CreateFailInvalidParams) {
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
   EXPECT_EQ(0, snd_hctl_open_called);
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0,
-                                             fake_mixer,
-                                             NULL,
-                                             CRAS_STREAM_UNIFIED,
-                                             fake_jack_cb,
-                                             fake_jack_cb_arg));
-  EXPECT_EQ(0, snd_hctl_open_called);
 }
 
 TEST(AlsaJacks, CreateFailOpen) {

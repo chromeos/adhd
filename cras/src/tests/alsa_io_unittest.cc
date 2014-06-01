@@ -170,7 +170,7 @@ TEST(AlsaIoInit, InitializeInvalidDirection) {
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
                                             ALSA_CARD_TYPE_INTERNAL, 0,
                                             fake_mixer, NULL,
-                                            CRAS_STREAM_UNIFIED);
+                                            CRAS_NUM_DIRECTIONS);
   ASSERT_EQ(aio, (void *)NULL);
 }
 
