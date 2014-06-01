@@ -299,14 +299,23 @@ static int active_streams(const struct audio_thread *thread,
 	return *in_active || *out_active || *loop_active;
 }
 
+/* Find a given stream that is attached to the thread. */
+static struct cras_io_stream *thread_find_stream(struct audio_thread *thread,
+						 struct cras_rstream *stream)
+{
+	struct cras_io_stream *out;
+
+	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
+	return out;
+}
+
 static int append_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
 	struct cras_io_stream *out;
 
 	/* Check that we don't already have this stream */
-	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
-	if (out != NULL)
+	if (thread_find_stream(thread, stream))
 		return -EEXIST;
 
 	/* New stream, allocate a container and add it to the list. */
@@ -328,7 +337,7 @@ static int delete_stream(struct audio_thread *thread,
 	struct cras_audio_shm *shm;
 
 	/* Find stream, and if found, delete it. */
-	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
+	out = thread_find_stream(thread, stream);
 	if (out == NULL)
 		return -EINVAL;
 
@@ -672,7 +681,7 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	cras_rstream_set_is_draining(stream, 1);
 
 	/* If the stream has been removed from active streams, destroy it. */
-	DL_SEARCH_SCALAR(thread->streams, out, stream, stream);
+	out = thread_find_stream(thread, stream);
 	if (out == NULL) {
 		cras_rstream_destroy(stream);
 		return 0;
