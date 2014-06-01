@@ -337,7 +337,8 @@ static int delete_stream(struct audio_thread *thread,
 		shm = cras_rstream_output_shm(stream);
 		longest_timeout_msec = cras_shm_get_longest_timeout(shm);
 		if (longest_timeout_msec)
-			audio_thread_log_longest_timeout(thread, longest_timeout_msec);
+			audio_thread_log_longest_timeout(
+				thread, longest_timeout_msec);
 	}
 
 	DL_DELETE(thread->streams, out);
