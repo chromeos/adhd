@@ -129,7 +129,8 @@ static struct audio_thread_event_log *atlog;
 static inline
 struct audio_thread_event_log *audio_thread_event_log_init()
 {
-	return calloc(1, sizeof(struct audio_thread_event_log));
+	return (struct audio_thread_event_log *)
+			calloc(1, sizeof(struct audio_thread_event_log));
 }
 
 static inline
@@ -355,7 +356,7 @@ static int append_stream(struct audio_thread *thread,
 		return -EEXIST;
 
 	/* New stream, allocate a container and add it to the list. */
-	out = calloc(1, sizeof(*out));
+	out = (struct cras_io_stream *)calloc(1, sizeof(*out));
 	if (out == NULL)
 		return -ENOMEM;
 	out->stream = stream;
@@ -457,7 +458,7 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
 	return dev->open_dev(dev);
 }
 
-void thread_rm_active_dev(struct audio_thread *thread,
+static void thread_rm_active_dev(struct audio_thread *thread,
 			  struct cras_iodev *iodev);
 
 /* Initialize active devices of given direction. */
@@ -548,8 +549,8 @@ void config_devices_min_latency(struct audio_thread *thread,
 /* Clears all active devices for given direction, used to handle
  * message from main thread to set a new active device.
  */
-void thread_clear_active_devs(struct audio_thread *thread,
-			      enum CRAS_STREAM_DIRECTION dir)
+static void thread_clear_active_devs(struct audio_thread *thread,
+				     enum CRAS_STREAM_DIRECTION dir)
 {
 	struct active_dev *adev;
 	DL_FOREACH(thread->active_devs[dir], adev) {
@@ -560,8 +561,8 @@ void thread_clear_active_devs(struct audio_thread *thread,
 }
 
 /* Handles message from main thread to set or add a new active device. */
-void thread_add_active_dev(struct audio_thread *thread,
-			   struct cras_iodev *iodev)
+static void thread_add_active_dev(struct audio_thread *thread,
+				  struct cras_iodev *iodev)
 {
 	struct active_dev *adev;
 	DL_SEARCH_SCALAR(thread->active_devs[iodev->direction],
@@ -578,8 +579,8 @@ void thread_add_active_dev(struct audio_thread *thread,
 }
 
 /* Handles message from main thread to remove an active device. */
-void thread_rm_active_dev(struct audio_thread *thread,
-			  struct cras_iodev *iodev)
+static void thread_rm_active_dev(struct audio_thread *thread,
+				 struct cras_iodev *iodev)
 {
 	struct active_dev *adev;
 	DL_FOREACH(thread->active_devs[iodev->direction], adev) {
@@ -595,8 +596,8 @@ void thread_rm_active_dev(struct audio_thread *thread,
  * removed close the device. Returns the number of streams still attached
  * to the thread.
  */
-int thread_remove_stream(struct audio_thread *thread,
-			 struct cras_rstream *stream)
+static int thread_remove_stream(struct audio_thread *thread,
+				struct cras_rstream *stream)
 {
 	int in_active, out_active, loop_active;
 
@@ -630,8 +631,8 @@ int thread_remove_stream(struct audio_thread *thread,
 
 
 /* Handles the disconnect_stream message from the main thread. */
-int thread_disconnect_stream(struct audio_thread* thread,
-			     struct cras_rstream* stream) {
+static int thread_disconnect_stream(struct audio_thread* thread,
+				    struct cras_rstream* stream) {
 	struct cras_io_stream *out;
 
 	stream->client = NULL;
@@ -682,8 +683,8 @@ void fill_odevs_zeros_cb_threshold(struct audio_thread *thread)
 }
 
 /* Handles the add_stream message from the main thread. */
-int thread_add_stream(struct audio_thread *thread,
-		      struct cras_rstream *stream)
+static int thread_add_stream(struct audio_thread *thread,
+			     struct cras_rstream *stream)
 {
 	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	int rc;
@@ -987,9 +988,12 @@ static int write_streams(struct audio_thread *thread,
 	fd_set poll_set, this_set;
 	size_t streams_wait, num_mixed;
 	size_t input_write_limit = write_limit;
+	size_t cb_threshold;
 	int max_fd;
 	int rc;
 	int max_frames = 0;
+
+	cb_threshold = thread->cb_threshold[CRAS_STREAM_OUTPUT];
 
 	/* Timeout on reading before we under-run. Leaving time to mix. */
 	to.tv_sec = 0;
@@ -1125,7 +1129,7 @@ static int write_streams(struct audio_thread *thread,
 				return -EIO;
 		} else if (!cras_shm_callback_pending(shm) && !curr->skip_mix) {
 			/* If not in underrun, use this stream. */
-			write_limit = MIN(shm_frames, write_limit);
+			write_limit = MIN((size_t)shm_frames, write_limit);
 			max_frames = MAX(max_frames, shm_frames);
 		}
 	}
@@ -1133,14 +1137,17 @@ static int write_streams(struct audio_thread *thread,
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
 				    write_limit);
 
-	if (max_frames == 0 &&
-	    (odev->frames_queued(odev) <=
-		    thread->cb_threshold[CRAS_STREAM_OUTPUT] / 4)) {
-		/* Nothing to mix from any streams. Under run. */
-		unsigned int frame_bytes = cras_get_format_bytes(odev->format);
-		size_t frames = MIN(thread->cb_threshold[CRAS_STREAM_OUTPUT],
-				    input_write_limit);
-		return cras_mix_mute_buffer(dst, frame_bytes, frames);
+	if (max_frames == 0) {
+		rc = odev->frames_queued(odev);
+		if (rc < 0)
+			return rc;
+		if ((unsigned int)rc <= cb_threshold / 4) {
+			/* Nothing to mix from any streams. Under run. */
+			return cras_mix_mute_buffer(
+				dst,
+				cras_get_format_bytes(odev->format),
+				MIN(cb_threshold, input_write_limit));
+		}
 	}
 
 	DL_FOREACH(thread->streams, curr) {
@@ -1178,7 +1185,7 @@ static int input_stream_matches_dev(enum CRAS_STREAM_DIRECTION dir,
 }
 
 /* Gets the max delay frames of active input devices. */
-int input_delay_frames(struct active_dev *adevs)
+static int input_delay_frames(struct active_dev *adevs)
 {
 	struct active_dev *adev;
 	int delay;
@@ -1196,7 +1203,7 @@ int input_delay_frames(struct active_dev *adevs)
 }
 
 /* Gets the min queued frames of active input devices. */
-int input_min_frames_queued(struct active_dev *adevs)
+static int input_min_frames_queued(struct active_dev *adevs)
 {
 	struct active_dev *adev;
 	int min_frames_queued;
@@ -1388,7 +1395,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 /* Adjusts the hw_level for output only streams.  Account for any extra
  * buffering that is needed and indicated by the min_buffer_level member.
  */
-static unsigned int adjust_level(const struct audio_thread *thread, int level)
+static unsigned int adjust_level(const struct audio_thread *thread,
+				 unsigned int level)
 {
 	struct cras_iodev *idev = first_input_dev(thread);
 	struct cras_iodev *odev = first_output_dev(thread);
@@ -1430,22 +1438,22 @@ static int get_output_sleep_frames(struct audio_thread *thread)
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
 		unsigned int cb_thresh;
-		int frames_in_buff;
+		unsigned int frames_in_buff;
 
 		if (curr->stream->client == NULL ||
 		    curr->stream->direction != CRAS_STREAM_OUTPUT)
 			continue;
 
 		cb_thresh = cras_rstream_get_cb_threshold(curr->stream);
-		frames_in_buff = cras_shm_get_frames(shm);
-		if (frames_in_buff < 0)
-			return frames_in_buff;
-		frames_in_buff += adjusted_level;
+		rc = cras_shm_get_frames(shm);
+		if (rc < 0)
+			return rc;
+		frames_in_buff = rc + adjusted_level;
 		if (frames_in_buff < cb_thresh)
 			sleep_frames = 0;
 		else
 			sleep_frames = MIN(sleep_frames,
-						 frames_in_buff - cb_thresh);
+					   frames_in_buff - cb_thresh);
 	}
 
 	return sleep_frames;
@@ -1575,9 +1583,10 @@ int possibly_fill_audio(struct audio_thread *thread,
  *    write_limit - The initial (unlimited) number of frames to write.
  *    direction - Can be input or loopback.
  */
-static unsigned int get_write_limit_set_delay(struct audio_thread *thread,
-					      unsigned int write_limit,
-					      int direction)
+static unsigned int get_write_limit_set_delay(
+		struct audio_thread *thread,
+		unsigned int write_limit,
+		enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
@@ -1743,7 +1752,7 @@ int possibly_read_audio(struct audio_thread *thread,
 		rc = capture_to_stream(first_buffer, adev->dev,
 				       cras_shm_frame_bytes(first_shm),
 				       write_limit, dev_index++);
-		if (rc != write_limit)
+		if (rc != (int)write_limit)
 			return rc;
 	}
 	if (cras_system_get_capture_mute())
@@ -1829,7 +1838,7 @@ int possibly_read_audio(struct audio_thread *thread,
 }
 
 /* Reads and/or writes audio sampels from/to the devices. */
-int unified_io(struct audio_thread *thread, struct timespec *ts)
+static int unified_io(struct audio_thread *thread, struct timespec *ts)
 {
 	struct cras_iodev *odev = first_output_dev(thread);
 	struct cras_iodev *idev = first_input_dev(thread);
@@ -2102,10 +2111,10 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
  */
 static void audio_thread_process_messages(void *arg)
 {
-	static int max_len = 256;
+	static unsigned int max_len = 256;
 	uint8_t buf[256];
 	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
-	struct audio_thread *thread = arg;
+	struct audio_thread *thread = (struct audio_thread *)arg;
 	struct timespec ts = {0, 0};
 	fd_set poll_set;
 	int to_read, nread, err;
@@ -2153,7 +2162,7 @@ struct audio_thread *audio_thread_create()
 	int rc;
 	struct audio_thread *thread;
 
-	thread = calloc(1, sizeof(*thread));
+	thread = (struct audio_thread *)calloc(1, sizeof(*thread));
 	if (!thread)
 		return NULL;
 

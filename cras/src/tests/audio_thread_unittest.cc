@@ -2,37 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+extern "C" {
+#include "audio_thread.c"
+}
+
 #include <stdio.h>
 #include <sys/select.h>
 #include <gtest/gtest.h>
 
 extern "C" {
-
-#include "cras_iodev.h"
-#include "cras_server_metrics.h"
-#include "cras_rstream.h"
-#include "cras_shm.h"
-#include "cras_types.h"
-#include "audio_thread.h"
-#include "utlist.h"
-
-void thread_add_active_dev(struct audio_thread *thread,
-			   struct cras_iodev *iodev);
-void thread_clear_active_devs(struct audio_thread *thread,
-			      enum CRAS_STREAM_DIRECTION dir);
-void thread_rm_active_dev(struct audio_thread *thread,
-			  struct cras_iodev *iodev);
-int thread_add_stream(audio_thread* thread,
-                      cras_rstream* stream);
-int thread_disconnect_stream(audio_thread* thread,
-                             cras_rstream* stream);
-int thread_remove_stream(audio_thread* thread,
-                         cras_rstream* stream);
-int thread_disconnect_stream(audio_thread* thread,
-                             cras_rstream* stream);
-int unified_io(audio_thread* thread, timespec* ts);
-int input_delay_frames(struct active_dev *adevs);
-int input_min_frames_queued(struct active_dev *adevs);
 
 static int cras_mix_add_stream_dont_fill_next;
 static unsigned int cras_mix_add_stream_count;
@@ -73,9 +51,6 @@ static int cras_dsp_pipeline_apply_sample_count;
 static struct timespec time_now;
 static int cras_fmt_conversion_needed_return_val;
 static int16_t *cras_mix_add_clip_buf;
-
-// Stub volume scalers.
-float softvol_scalers[101];
 
 }
 
@@ -2185,11 +2160,11 @@ size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
 }
 
-size_t cras_system_get_mute() {
+int cras_system_get_mute() {
   return 0;
 }
 
-size_t cras_system_get_capture_mute() {
+int cras_system_get_capture_mute() {
   return 0;
 }
 
@@ -2197,14 +2172,13 @@ void cras_rstream_destroy(struct cras_rstream *stream) {
   cras_rstream_destroy_called++;
 }
 
-void loopback_iodev_set_format(struct loopback_iodev *loopback_dev,
+void loopback_iodev_set_format(struct cras_iodev *loopback_dev,
                                const struct cras_audio_format *fmt) {
 }
 
-int loopback_iodev_add_audio(struct loopback_iodev *loopback_dev,
+int loopback_iodev_add_audio(struct cras_iodev *loopback_dev,
                              const uint8_t *audio,
-                             unsigned int count,
-                             struct cras_rstream *stream) {
+                             unsigned int count) {
   return 0;
 }
 
