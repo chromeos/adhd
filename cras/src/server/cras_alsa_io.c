@@ -20,6 +20,7 @@
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
+#include "cras_audio_area.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -241,21 +242,30 @@ static int dev_running(const struct cras_iodev *iodev)
 	return 1;
 }
 
-static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
+static int get_buffer(struct cras_iodev *iodev,
+		      struct cras_audio_area **area,
+		      unsigned *frames)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_uframes_t nframes = *frames;
+	uint8_t *dst = NULL;
+	size_t format_bytes;
 	int rc;
 
 	aio->mmap_offset = 0;
+	format_bytes = cras_get_format_bytes(iodev->format);
 
 	rc = cras_alsa_mmap_begin(aio->handle,
-				  cras_get_format_bytes(iodev->format),
-				  dst,
+				  format_bytes,
+				  &dst,
 				  &aio->mmap_offset,
 				  &nframes,
 				  &aio->num_underruns);
 
+	iodev->area->frames = nframes;
+	cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
+
+	*area = iodev->area;
 	*frames = nframes;
 
 	return rc;

@@ -9,6 +9,7 @@
 extern "C" {
 
 #include "a2dp-codecs.h"
+#include "cras_audio_area.h"
 #include "cras_bt_transport.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -41,6 +42,7 @@ static size_t cras_iodev_free_format_called;
 static size_t cras_iodev_free_dsp_called;
 static int pcm_buf_size_val;
 static unsigned int a2dp_write_processed_bytes_val;
+static cras_audio_area *dummy_audio_area;
 
 void ResetStubData() {
   cras_iodev_list_add_output_called = 0;
@@ -64,6 +66,11 @@ void ResetStubData() {
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
   fake_device = NULL;
+
+  if (!dummy_audio_area) {
+    dummy_audio_area = (cras_audio_area*)calloc(1,
+        sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+  }
 }
 
 namespace {
@@ -144,7 +151,8 @@ TEST(A2dpIoInit, OpenIodev) {
 TEST(A2dpIoInit, GetPutBuffer) {
   struct cras_iodev *iodev;
   struct cras_audio_format *format = NULL;
-  uint8_t *buf1, *buf2, *buf3;
+  struct cras_audio_area *area1, *area2, *area3;
+  uint8_t *area1_buf;
   unsigned frames;
 
   ResetStubData();
@@ -155,8 +163,10 @@ TEST(A2dpIoInit, GetPutBuffer) {
   ASSERT_EQ(1, a2dp_block_size_called);
 
   frames = 256;
-  iodev->get_buffer(iodev, &buf1, &frames);
+  iodev->get_buffer(iodev, &area1, &frames);
   ASSERT_EQ(256, frames);
+  ASSERT_EQ(256, area1->frames);
+  area1_buf = area1->channels[0].buf;
 
   /* Test 100 frames(400 bytes) put and all processed. */
   a2dp_write_processed_bytes_val = 400;
@@ -164,11 +174,12 @@ TEST(A2dpIoInit, GetPutBuffer) {
   ASSERT_EQ(400, pcm_buf_size_val);
   ASSERT_EQ(2, a2dp_block_size_called);
 
-  iodev->get_buffer(iodev, &buf2, &frames);
+  iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
+  ASSERT_EQ(256, area2->frames);
 
   /* Assert buf2 points to the same position as buf1 */
-  ASSERT_EQ(0, buf2 - buf1);
+  ASSERT_EQ(0, area2->channels[0].buf - area1_buf);
 
   /* Test 100 frames(400 bytes) put, only 360 bytes processed,
    * 40 bytes left in pcm buffer.
@@ -178,13 +189,13 @@ TEST(A2dpIoInit, GetPutBuffer) {
   ASSERT_EQ(400, pcm_buf_size_val);
   ASSERT_EQ(3, a2dp_block_size_called);
 
-  iodev->get_buffer(iodev, &buf3, &frames);
+  iodev->get_buffer(iodev, &area3, &frames);
 
   /* Existing buffer not completed processed, assert new buffer starts from
    * current write pointer.
    */
   ASSERT_EQ(156, frames);
-  ASSERT_EQ(400, buf3 - buf1);
+  ASSERT_EQ(400, area3->channels[0].buf - area1_buf);
 
   a2dp_iodev_destroy(iodev);
 }
@@ -192,7 +203,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
 TEST(A2dpIoInif, FramesQueued) {
   struct cras_iodev *iodev;
   struct cras_audio_format *format = NULL;
-  uint8_t *buf;
+  struct cras_audio_area *area;
   unsigned frames;
 
   ResetStubData();
@@ -205,8 +216,9 @@ TEST(A2dpIoInif, FramesQueued) {
   ASSERT_EQ(1, a2dp_block_size_called);
 
   frames = 256;
-  iodev->get_buffer(iodev, &buf, &frames);
+  iodev->get_buffer(iodev, &area, &frames);
   ASSERT_EQ(256, frames);
+  ASSERT_EQ(256, area->frames);
 
   /* Put 100 frames, proccessed 400 bytes to a2dp buffer.
    * Assume 200 bytes written out, queued 50 frames in a2dp buffer.
@@ -402,9 +414,17 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
 
 void cras_iodev_init_audio_area(struct cras_iodev *iodev,
                                 int num_channels) {
+  iodev->area = dummy_audio_area;
 }
 
 void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
 }
 
+}
+
+void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
+					 const struct cras_audio_format *fmt,
+					 uint8_t *base_buffer)
+{
+  dummy_audio_area->channels[0].buf = base_buffer;
 }

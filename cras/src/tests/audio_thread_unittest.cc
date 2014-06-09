@@ -152,16 +152,30 @@ class ReadStreamSuite : public testing::Test {
     }
 
     static int get_buffer(cras_iodev* iodev,
-                          uint8_t** buf,
+                          struct cras_audio_area** area,
                           unsigned int* num) {
-      *buf = audio_buffer_;
+      size_t sz = sizeof(*area_) + sizeof(struct cras_channel_area) * 2;
+
       if (audio_buffer_size_ < *num)
 	      *num = audio_buffer_size_;
+
+      area_ = (cras_audio_area*)calloc(1, sz);
+      area_->frames = *num;
+      area_->num_channels = 2;
+      area_->channels[0].buf = audio_buffer_;
+      channel_area_set_channel(&area_->channels[0], CRAS_CH_FL);
+      area_->channels[0].step_bytes = 4;
+      area_->channels[1].buf = audio_buffer_ + 2;
+      channel_area_set_channel(&area_->channels[1], CRAS_CH_FR);
+      area_->channels[1].step_bytes = 4;
+
+      *area = area_;
       return 0;
     }
 
     static int put_buffer(cras_iodev* iodev,
                           unsigned int num) {
+      free(area_);
       return 0;
     }
 
@@ -191,6 +205,7 @@ class ReadStreamSuite : public testing::Test {
   static int delay_frames_;
   static unsigned int cb_threshold_;
   static uint8_t audio_buffer_[8192];
+  static struct cras_audio_area *area_;
   static unsigned int audio_buffer_size_;
   static unsigned int dev_running_called_;
   static unsigned int close_dev_called_;
@@ -209,6 +224,7 @@ uint8_t ReadStreamSuite::audio_buffer_[8192];
 unsigned int ReadStreamSuite::audio_buffer_size_ = 0;
 unsigned int ReadStreamSuite::dev_running_called_ = 0;
 unsigned int ReadStreamSuite::cb_threshold_ = 0;
+struct cras_audio_area *ReadStreamSuite::area_;
 
 TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   struct timespec ts;
@@ -768,16 +784,30 @@ class WriteStreamSuite : public testing::Test {
     }
 
     static int get_buffer(cras_iodev* iodev,
-                          uint8_t** buf,
+                          struct cras_audio_area** area,
                           unsigned int* num) {
-      *buf = audio_buffer_;
+      size_t sz = sizeof(*area_) + sizeof(struct cras_channel_area) * 2;
+
       if (audio_buffer_size_ < *num)
 	      *num = audio_buffer_size_;
+
+      area_ = (cras_audio_area*)calloc(1, sz);
+      area_->frames = *num;
+      area_->num_channels = 2;
+      area_->channels[0].buf = audio_buffer_;
+      channel_area_set_channel(&area_->channels[0], CRAS_CH_FL);
+      area_->channels[0].step_bytes = 4;
+      area_->channels[1].buf = audio_buffer_ + 2;
+      channel_area_set_channel(&area_->channels[1], CRAS_CH_FR);
+      area_->channels[1].step_bytes = 4;
+
+      *area = area_;
       return 0;
     }
 
     static int put_buffer(cras_iodev* iodev,
                           unsigned int num) {
+      free(area_);
       frames_written_ += num;
       return 0;
     }
@@ -816,6 +846,7 @@ class WriteStreamSuite : public testing::Test {
   static unsigned int dev_running_called_;
   static unsigned int close_dev_called_;
   static unsigned int open_dev_called_;
+  static struct cras_audio_area *area_;
   struct cras_audio_format fmt_;
   struct cras_rstream* rstream_;
   struct cras_rstream* rstream2_;
@@ -836,6 +867,7 @@ int WriteStreamSuite::dev_running_ = 1;
 unsigned int WriteStreamSuite::dev_running_called_ = 0;
 unsigned int WriteStreamSuite::close_dev_called_ = 0;
 unsigned int WriteStreamSuite::open_dev_called_ = 0;
+struct cras_audio_area *WriteStreamSuite::area_;
 
 TEST_F(WriteStreamSuite, PossiblyFillGetAvailError) {
   struct timespec ts;
@@ -1739,17 +1771,33 @@ class ActiveDevicesSuite : public testing::Test {
     }
 
     static int get_buffer(cras_iodev* iodev,
-		          uint8_t** buf,
-		          unsigned int* num) {
+                          struct cras_audio_area** area,
+                          unsigned int* num) {
+      size_t sz = sizeof(*area_) + sizeof(struct cras_channel_area) * 2;
+
       get_buffer_val_idx_ %= 8;
-      *buf = audio_buffer_[get_buffer_val_idx_];
-      if (*num > audio_buffer_size_[get_buffer_val_idx_])
+      if (audio_buffer_size_[get_buffer_val_idx_] < *num)
 	      *num = audio_buffer_size_[get_buffer_val_idx_];
-      return get_buffer_rc_[get_buffer_val_idx_++];
+
+      area_ = (cras_audio_area*)calloc(1, sz);
+      area_->frames = *num;
+      area_->num_channels = 2;
+      area_->channels[0].buf = audio_buffer_[get_buffer_val_idx_];
+      channel_area_set_channel(&area_->channels[0], CRAS_CH_FL);
+      area_->channels[0].step_bytes = 4;
+      area_->channels[1].buf = audio_buffer_[get_buffer_val_idx_] + 2;
+      channel_area_set_channel(&area_->channels[1], CRAS_CH_FR);
+      area_->channels[1].step_bytes = 4;
+
+      *area = area_;
+
+      get_buffer_val_idx_++;
+      return 0;
     }
 
     static int put_buffer(cras_iodev* iodev,
 		          unsigned int num) {
+      free(area_);
       put_buffer_val_idx_ %= 8;
       return put_buffer_rc_[put_buffer_val_idx_++];
     }
@@ -1774,6 +1822,7 @@ class ActiveDevicesSuite : public testing::Test {
   struct cras_rstream *rstream_;
   struct cras_rstream *rstream2_;
   struct audio_thread *thread_;
+  static struct cras_audio_area *area_;
   static int delay_frames_val_idx_;
   static int delay_frames_[8];
 };
@@ -1794,6 +1843,7 @@ int ActiveDevicesSuite::get_buffer_val_idx_ = 0;
 int ActiveDevicesSuite::put_buffer_val_idx_ = 0;
 int ActiveDevicesSuite::get_buffer_rc_[8];
 int ActiveDevicesSuite::put_buffer_rc_[8];
+struct cras_audio_area *ActiveDevicesSuite::area_;
 
 TEST_F(ActiveDevicesSuite, AddRemoveActiveDevice) {
   struct active_dev *adevs;

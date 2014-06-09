@@ -19,6 +19,7 @@
 #include "cras_messages.h"
 
 struct cras_rstream;
+struct cras_audio_area;
 struct cras_audio_format;
 struct audio_thread;
 struct cras_iodev;
@@ -108,7 +109,7 @@ struct cras_iodev {
 	int (*frames_queued)(const struct cras_iodev *iodev);
 	int (*delay_frames)(const struct cras_iodev *iodev);
 	int (*get_buffer)(struct cras_iodev *iodev,
-			  uint8_t **dst,
+			  struct cras_audio_area **area,
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);

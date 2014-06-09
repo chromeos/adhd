@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "cras_audio_area.h"
 #include "cras_hfp_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -38,6 +39,7 @@ static size_t hfp_buf_acquire_called;
 static unsigned hfp_buf_acquire_return_val;
 static size_t hfp_buf_release_called;
 static unsigned hfp_buf_release_nwritten_val;
+static cras_audio_area *dummy_audio_area;
 
 void ResetStubData() {
   cras_iodev_list_add_output_called = 0;
@@ -64,6 +66,11 @@ void ResetStubData() {
   hfp_buf_release_nwritten_val = 0;
 
   fake_info = reinterpret_cast<struct hfp_info *>(0x123);
+
+  if (!dummy_audio_area) {
+    dummy_audio_area = (cras_audio_area*)calloc(1,
+        sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+  }
 }
 
 namespace {
@@ -135,7 +142,7 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
 }
 
 TEST(HfpIodev, PutGetBuffer) {
-  uint8_t *buf;
+  cras_audio_area *area;
   unsigned frames;
 
   ResetStubData();
@@ -145,7 +152,7 @@ TEST(HfpIodev, PutGetBuffer) {
   iodev->open_dev(iodev);
 
   hfp_buf_acquire_return_val = 100;
-  iodev->get_buffer(iodev, &buf, &frames);
+  iodev->get_buffer(iodev, &area, &frames);
 
   ASSERT_EQ(1, hfp_buf_acquire_called);
   ASSERT_EQ(100, frames);
@@ -294,9 +301,17 @@ void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
 
 void cras_iodev_init_audio_area(struct cras_iodev *iodev,
                                 int num_channels) {
+  iodev->area = dummy_audio_area;
 }
 
 void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+}
+
+void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
+					 const struct cras_audio_format *fmt,
+					 uint8_t *base_buffer)
+{
+  dummy_audio_area->channels[0].buf = base_buffer;
 }
 
 } // extern "C"

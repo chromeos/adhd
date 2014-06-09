@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
+#include "cras_audio_area.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_info.h"
 #include "cras_iodev.h"
@@ -114,14 +115,25 @@ static int delay_frames(const struct cras_iodev *iodev)
 	return frames_queued(iodev);
 }
 
-static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
+static int get_buffer(struct cras_iodev *iodev,
+		      struct cras_audio_area **area,
+		      unsigned *frames)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+	uint8_t *dst = NULL;
 
 	if (!hfp_info_running(hfpio->info))
 		return -1;
 
-	hfp_buf_acquire(hfpio->info, iodev, dst, frames);
+	hfp_buf_acquire(hfpio->info, iodev, &dst, frames);
+
+	iodev->area->frames = *frames;
+	/* HFP is mono only. */
+	iodev->area->channels[0].step_bytes =
+		cras_get_format_bytes(iodev->format);
+	iodev->area->channels[0].buf = dst;
+
+	*area = iodev->area;
 	return 0;
 }
 

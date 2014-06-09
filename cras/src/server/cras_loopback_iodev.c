@@ -7,6 +7,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras_audio_area.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -99,14 +100,20 @@ static int open_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
+static int get_buffer(struct cras_iodev *iodev,
+		      struct cras_audio_area **area,
+		      unsigned *frames)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
-	*dst = loopdev->buffer + loopdev->read_offset * frame_bytes;
 
 	*frames = MIN(*frames, loopdev->buffer_frames - loopdev->read_offset);
 	*frames = MIN(*frames, frames_queued(iodev));
+
+	iodev->area->frames = *frames;
+	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
+			loopdev->buffer + loopdev->read_offset * frame_bytes);
+	*area = iodev->area;
 	return 0;
 }
 

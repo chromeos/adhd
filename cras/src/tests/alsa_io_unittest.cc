@@ -1340,3 +1340,9 @@ void cras_iodev_init_audio_area(struct cras_iodev *iodev,
 
 void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
 }
+
+void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
+					 const struct cras_audio_format *fmt,
+					 uint8_t *base_buffer)
+{
+}

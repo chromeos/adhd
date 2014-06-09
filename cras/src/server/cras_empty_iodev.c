@@ -7,6 +7,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras_audio_area.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -116,17 +117,21 @@ static int open_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
+static int get_buffer(struct cras_iodev *iodev,
+		      struct cras_audio_area **area,
+		      unsigned *frames)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
-
-	*dst = empty_iodev->audio_buffer;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		*frames = MIN(*frames, EMPTY_FRAMES - current_level(iodev));
 	else
 		*frames = MIN(*frames, current_level(iodev));
 
+	iodev->area->frames = *frames;
+	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
+			empty_iodev->audio_buffer);
+	*area = iodev->area;
 	return 0;
 }
 

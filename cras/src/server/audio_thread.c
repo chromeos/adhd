@@ -7,6 +7,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras_audio_area.h"
 #include "cras_config.h"
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
@@ -680,19 +681,21 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 /* Put 'frames' worth of zero samples into odev. */
 void fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 {
-	uint8_t *dst;
+	struct cras_audio_area *area;
 	unsigned int frame_bytes, frames_written;
 	int rc;
 
 	frame_bytes = cras_get_format_bytes(odev->format);
 	while (frames > 0) {
 		frames_written = frames;
-		rc = odev->get_buffer(odev, &dst, &frames_written);
+		rc = odev->get_buffer(odev, &area, &frames_written);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fill zeros fail: %d", rc);
 			return;
 		}
-		memset(dst, 0, frames_written * frame_bytes);
+		/* This assumes consecutive channel areas. */
+		memset(area->channels[0].buf, 0,
+		       frames_written * frame_bytes);
 		odev->put_buffer(odev, frames_written);
 		frames -= frames_written;
 	}
@@ -1542,6 +1545,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 	int rc;
 	int delay;
 	uint8_t *dst = NULL;
+	struct cras_audio_area *area;
 	struct cras_iodev *odev = first_output_dev(thread);
 	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	unsigned int frame_bytes;
@@ -1586,10 +1590,12 @@ int possibly_fill_audio(struct audio_thread *thread,
 	 * partial area to write to from mmap_begin */
 	while (total_written < fr_to_req) {
 		frames = fr_to_req - total_written;
-		rc = odev->get_buffer(odev, &dst, &frames);
+		rc = odev->get_buffer(odev, &area, &frames);
 		if (rc < 0)
 			return rc;
 
+		/* TODO(dgreid) - This assumes interleaved audio. */
+		dst = area->channels[0].buf;
 		written = write_streams(thread,
 					dst,
 					adjusted_level + total_written,
@@ -1735,6 +1741,7 @@ static int capture_to_streams(const struct cras_io_stream *streams,
 	snd_pcm_uframes_t remainder = count;
 	const struct cras_io_stream *stream;
 	unsigned int nread;
+	struct cras_audio_area *area;
 	uint8_t *hw_buffer;
 	int rc;
 	unsigned int offset = 0;
@@ -1743,9 +1750,11 @@ static int capture_to_streams(const struct cras_io_stream *streams,
 	while (remainder > 0) {
 		nread = remainder;
 
-		rc = idev->get_buffer(idev, &hw_buffer, &nread);
+		rc = idev->get_buffer(idev, &area, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
+		/* TODO(dgreid) - This assumes interleaved audio. */
+		hw_buffer = area->channels[0].buf;
 
 		if (cras_system_get_capture_mute())
 			memset(hw_buffer, 0, nread * frame_bytes);

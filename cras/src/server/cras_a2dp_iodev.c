@@ -11,6 +11,7 @@
 
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
+#include "cras_audio_area.h"
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -256,7 +257,9 @@ static int delay_frames(const struct cras_iodev *iodev)
 	return frames_queued(iodev);
 }
 
-static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
+static int get_buffer(struct cras_iodev *iodev,
+		      struct cras_audio_area **area,
+		      unsigned *frames)
 {
 	size_t format_bytes;
 	struct a2dp_io *a2dpio;
@@ -266,13 +269,18 @@ static int get_buffer(struct cras_iodev *iodev, uint8_t **dst, unsigned *frames)
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	if (iodev->direction == CRAS_STREAM_OUTPUT) {
-		*dst = a2dpio->pcm_buf + a2dpio->pcm_buf_offset
-				+ a2dpio->pcm_buf_used;
-		avail_frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
-				a2dpio->pcm_buf_used) / format_bytes;
-		*frames = MIN(*frames, avail_frames);
-	}
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return 0;
+
+	avail_frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
+			a2dpio->pcm_buf_used) / format_bytes;
+	*frames = MIN(*frames, avail_frames);
+	iodev->area->frames = *frames;
+	cras_audio_area_config_buf_pointers(
+			iodev->area, iodev->format,
+			a2dpio->pcm_buf + a2dpio->pcm_buf_offset +
+					a2dpio->pcm_buf_used);
+	*area = iodev->area;
 	return 0;
 }
 
