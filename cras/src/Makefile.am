@@ -40,6 +40,7 @@ cras_SOURCES = \
 	server/cras_alsa_jack.c \
 	server/cras_alsa_mixer.c \
 	server/cras_alsa_ucm.c \
+	server/cras_audio_area.c \
 	server/cras_bt_manager.c \
 	server/cras_bt_adapter.c \
 	server/cras_bt_device.c \
