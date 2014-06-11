@@ -553,6 +553,9 @@ static void thread_clear_active_devs(struct audio_thread *thread,
 				     enum CRAS_STREAM_DIRECTION dir)
 {
 	struct active_dev *adev;
+	if (thread->devs_open[dir])
+		close_devices(thread, dir);
+
 	DL_FOREACH(thread->active_devs[dir], adev) {
 		DL_DELETE(thread->active_devs[dir], adev);
 		adev->dev->is_active = 0;
