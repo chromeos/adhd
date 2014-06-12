@@ -569,6 +569,17 @@ void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
   notify_node_left_right_swapped_called++;
 }
 
+struct cras_audio_area *cras_audio_area_create(int num_channels) {
+	return NULL;
+}
+
+void cras_audio_area_destroy(struct cras_audio_area *area) {
+}
+
+void cras_audio_area_config_channels(struct cras_audio_area *area,
+                                     const struct cras_audio_format *fmt) {
+}
+
 }  // extern "C"
 }  //  namespace
 

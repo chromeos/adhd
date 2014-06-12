@@ -147,6 +147,7 @@ static int close_dev(struct cras_iodev *iodev)
 	cras_alsa_pcm_close(aio->handle);
 	aio->handle = NULL;
 	cras_iodev_free_format(&aio->base);
+	cras_iodev_free_audio_area(&aio->base);
 	return 0;
 }
 
@@ -164,6 +165,7 @@ static int open_dev(struct cras_iodev *iodev)
 	/* TODO(dgreid) - allow more formats here. */
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
 	       aio->dev, iodev->format->frame_rate,

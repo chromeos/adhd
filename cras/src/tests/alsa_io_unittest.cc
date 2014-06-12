@@ -1333,3 +1333,10 @@ void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
 {
   cras_alsa_jack_update_node_type_called++;
 }
+
+void cras_iodev_init_audio_area(struct cras_iodev *iodev,
+                                int num_channels) {
+}
+
+void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+}

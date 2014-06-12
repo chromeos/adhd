@@ -10,6 +10,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras_audio_area.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
@@ -156,6 +157,27 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 		iodev->format = NULL;
 	}
 }
+
+
+void cras_iodev_init_audio_area(struct cras_iodev *iodev,
+				int num_channels)
+{
+	if (iodev->area)
+		cras_iodev_free_audio_area(iodev);
+
+	iodev->area = cras_audio_area_create(num_channels);
+	cras_audio_area_config_channels(iodev->area, iodev->format);
+}
+
+void cras_iodev_free_audio_area(struct cras_iodev *iodev)
+{
+	if (!iodev->area)
+		return;
+
+	cras_audio_area_destroy(iodev->area);
+	iodev->area = NULL;
+}
+
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 {

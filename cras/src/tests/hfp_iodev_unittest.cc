@@ -292,6 +292,13 @@ void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
   hfp_buf_release_nwritten_val = written_bytes;
 }
 
+void cras_iodev_init_audio_area(struct cras_iodev *iodev,
+                                int num_channels) {
+}
+
+void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+}
+
 } // extern "C"
 
 int main(int argc, char **argv) {

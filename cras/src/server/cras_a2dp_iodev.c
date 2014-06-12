@@ -140,6 +140,7 @@ static int open_dev(struct cras_iodev *iodev)
 	if (iodev->format == NULL)
 		return -EINVAL;
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 	format_bytes = cras_get_format_bytes(iodev->format);
 
 	/* Back calculate the max size of a2dp block before encode. */
@@ -182,6 +183,7 @@ static int close_dev(struct cras_iodev *iodev)
 	a2dp_drain(&a2dpio->a2dp);
 	a2dpio->pcm_buf_used = 0;
 	cras_iodev_free_format(iodev);
+	cras_iodev_free_audio_area(iodev);
 	return 0;
 }
 

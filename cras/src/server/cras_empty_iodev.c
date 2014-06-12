@@ -95,6 +95,7 @@ static int close_dev(struct cras_iodev *iodev)
 	empty_iodev->open = 0;
 	free(empty_iodev->audio_buffer);
 	empty_iodev->audio_buffer = NULL;
+	cras_iodev_free_audio_area(iodev);
 	return 0;
 }
 
@@ -105,6 +106,7 @@ static int open_dev(struct cras_iodev *iodev)
 	if (iodev->format == NULL)
 		return -EINVAL;
 
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 	empty_iodev->open = 1;
 	empty_iodev->audio_buffer = calloc(1, EMPTY_BUFFER_SIZE);
 	empty_iodev->buffer_level = 0;

@@ -80,6 +80,7 @@ static int close_dev(struct cras_iodev *iodev)
 	loopback_iodev->buffer = NULL;
 	loopback_iodev->pre_buffered = 0;
 	cras_iodev_free_format(iodev);
+	cras_iodev_free_audio_area(iodev);
 	return 0;
 }
 
@@ -87,6 +88,7 @@ static int open_dev(struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
 
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 	loopback_iodev->open = 1;
 
 	loopback_iodev->buffer = malloc(cras_get_format_bytes(iodev->format) *

@@ -58,6 +58,7 @@ static int open_dev(struct cras_iodev *iodev)
 	if (iodev->format == NULL)
 		return -EINVAL;
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
 	if (hfp_info_running(hfpio->info))
 		goto add_dev;
@@ -93,6 +94,7 @@ static int close_dev(struct cras_iodev *iodev)
 		hfp_info_stop(hfpio->info);
 
 	cras_iodev_free_format(iodev);
+	cras_iodev_free_audio_area(iodev);
 	return 0;
 }
 

@@ -399,4 +399,12 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   *tp = time_now;
   return 0;
 }
+
+void cras_iodev_init_audio_area(struct cras_iodev *iodev,
+                                int num_channels) {
+}
+
+void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+}
+
 }

@@ -137,6 +137,13 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }
 
+void cras_iodev_init_audio_area(struct cras_iodev *iodev,
+                                int num_channels) {
+}
+
+void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+}
+
 }  // extern "C"
 
 }  //  namespace

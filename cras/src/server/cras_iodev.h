@@ -72,6 +72,7 @@ struct cras_ionode {
  * update_channel_layout - Update the channel layout base on set iodev->format,
  *     expect the best available layout be filled to iodev->format.
  * format - The audio format being rendered or captured.
+ * area - Information about how the samples are stored.
  * info - Unique identifier for this device (index and name).
  * nodes - The output or input nodes available for this device.
  * active_node - The current node being used for playback or capture.
@@ -114,6 +115,7 @@ struct cras_iodev {
 	void (*update_active_node)(struct cras_iodev *iodev);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
+	struct cras_audio_area *area;
 	struct cras_iodev_info info;
 	struct cras_ionode *nodes;
 	struct cras_ionode *active_node;
@@ -153,6 +155,20 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
  *    iodev - the iodev you want to free the format.
  */
 void cras_iodev_free_format(struct cras_iodev *iodev);
+
+/* Initializes the audio area for this iodev.
+ * Args:
+ *    iodev - the iodev to init audio area
+ *    num_channels - the total number of channels
+ */
+void cras_iodev_init_audio_area(struct cras_iodev *iodev,
+				int num_channels);
+
+/* Frees the audio area for this iodev.
+ * Args:
+ *    iodev - the iodev to free audio area
+ */
+void cras_iodev_free_audio_area(struct cras_iodev *iodev);
 
 /* Free the dsp context for this iodev
  *
