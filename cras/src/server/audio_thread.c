@@ -27,9 +27,6 @@
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MIN_READ_WAIT_US 2000 /* 2ms */
-#define DSP_PROCESS_BUF_BYTES 16384 /* 4k frames of stereo S16_LE */
-
-static uint8_t dsp_process_buf[DSP_PROCESS_BUF_BYTES];
 
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
@@ -784,20 +781,6 @@ static int thread_add_stream(struct audio_thread *thread,
 					   CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	return 0;
-}
-
-static int has_dsp(struct cras_iodev *iodev) {
-	struct cras_dsp_context *ctx;
-	struct pipeline *pipeline;
-
-	ctx = iodev->dsp_context;
-	if (!ctx)
-		return 0;
-	pipeline = cras_dsp_get_pipeline(ctx);
-	if (!pipeline)
-		return 0;
-	cras_dsp_put_pipeline(ctx);
-	return 1;
 }
 
 static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
@@ -1734,45 +1717,30 @@ static int capture_to_stream(uint8_t *stream_buffer,
 	uint8_t *hw_buffer;
 	int rc;
 	int offset = 0;
-	int dev_has_dsp;
 
-	dev_has_dsp = has_dsp(idev);
 	while (remainder > 0) {
 		nread = remainder;
-		if (dev_has_dsp && nread > DSP_PROCESS_BUF_BYTES / frame_bytes)
-			nread = DSP_PROCESS_BUF_BYTES / frame_bytes;
 
 		rc = idev->get_buffer(idev, &hw_buffer, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		if (dev_index == 0) {
+		apply_dsp(idev, hw_buffer, nread);
+
+		if (dev_index == 0)
 			memcpy(stream_buffer + offset, hw_buffer,
 			       nread * frame_bytes);
-		} else if (dev_has_dsp) {
-			memcpy(dsp_process_buf + offset, hw_buffer,
-			       nread * frame_bytes);
-		} else {
+		else
 			cras_mix_add_clip((int16_t *)stream_buffer + offset,
 					  (int16_t *)hw_buffer,
 					  nread * idev->format->num_channels);
-		}
+
 		offset += nread * frame_bytes;
 
 		rc = idev->put_buffer(idev, nread);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;
-	}
-
-	/* DSP the samples that were read. */
-	if (dev_index == 0) {
-		apply_dsp(idev, stream_buffer, nread);
-	} else if (dev_has_dsp) {
-		apply_dsp(idev, dsp_process_buf, nread);
-		cras_mix_add_clip((int16_t *)stream_buffer,
-				  (int16_t *)dsp_process_buf,
-				  nread * idev->format->num_channels);
 	}
 
 	return count;

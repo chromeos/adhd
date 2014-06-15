@@ -621,7 +621,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(3, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
@@ -652,8 +652,8 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(3, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(3, cras_dsp_put_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_put_pipeline_called);
   EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
   EXPECT_EQ(cb_threshold_, cras_dsp_pipeline_apply_sample_count);
