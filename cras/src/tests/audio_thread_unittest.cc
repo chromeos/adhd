@@ -50,7 +50,6 @@ static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
 static struct timespec time_now;
 static int cras_fmt_conversion_needed_return_val;
-static int16_t *cras_mix_add_clip_buf;
 
 }
 
@@ -1743,7 +1742,7 @@ class ActiveDevicesSuite : public testing::Test {
 		          uint8_t** buf,
 		          unsigned int* num) {
       get_buffer_val_idx_ %= 8;
-      *buf = audio_buffer_;
+      *buf = audio_buffer_[get_buffer_val_idx_];
       if (*num > audio_buffer_size_[get_buffer_val_idx_])
 	      *num = audio_buffer_size_[get_buffer_val_idx_];
       return get_buffer_rc_[get_buffer_val_idx_++];
@@ -1763,7 +1762,7 @@ class ActiveDevicesSuite : public testing::Test {
   static int cb_threshold_;
   static int frames_queued_[2];
   static int frames_queued_val_idx_;
-  static uint8_t audio_buffer_[8192];
+  static uint8_t audio_buffer_[8][8192];
   static unsigned int audio_buffer_size_[8];
   static int get_buffer_rc_[8];
   static int put_buffer_rc_[8];
@@ -1789,7 +1788,7 @@ int ActiveDevicesSuite::open_dev_val_[8];
 int ActiveDevicesSuite::open_dev_val_idx_ = 0;
 int ActiveDevicesSuite::delay_frames_val_idx_ = 0;
 int ActiveDevicesSuite::delay_frames_[8];
-uint8_t ActiveDevicesSuite::audio_buffer_[8192];
+uint8_t ActiveDevicesSuite::audio_buffer_[8][8192];
 unsigned int ActiveDevicesSuite::audio_buffer_size_[8];
 int ActiveDevicesSuite::get_buffer_val_idx_ = 0;
 int ActiveDevicesSuite::put_buffer_val_idx_ = 0;
@@ -1969,30 +1968,35 @@ TEST_F(ActiveDevicesSuite, InputFramesQueued) {
 TEST_F(ActiveDevicesSuite, MixMultipleInputs) {
   struct timespec ts;
   struct cras_audio_shm *shm;
-  uint8_t *buf;
+  int16_t *out_buff;
 
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev2_.direction = CRAS_STREAM_INPUT;
   rstream_->direction = CRAS_STREAM_INPUT;
   rstream2_->direction = CRAS_STREAM_INPUT;
 
+  for (unsigned int dev = 0; dev < 8; dev++) {
+    int16_t *buff = (int16_t*)audio_buffer_[dev];
+    for (unsigned int i = 0; i < 250; i++)
+      buff[i] = i;
+  }
   thread_add_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   /* Assert shm from rstream_ is used. */
   thread_add_stream(thread_, rstream_);
-  shm = cras_rstream_input_shm(rstream_);
-  buf = cras_shm_get_writeable_frames(
-		shm, cras_shm_used_frames(shm), NULL);
   unified_io(thread_, &ts);
-  EXPECT_EQ((void *)buf, (void *)cras_mix_add_clip_buf);
+  shm = cras_rstream_input_shm(rstream_);
+  out_buff = (int16_t*)shm->area->samples;
+  for (unsigned int i = 0; i < 250; i++)
+    EXPECT_EQ(i * 2, out_buff[i]);
 
   thread_add_stream(thread_, rstream2_);
-  buf = cras_shm_get_writeable_frames(
-		shm, cras_shm_used_frames(shm), NULL);
-  get_buffer_val_idx_++;
   unified_io(thread_, &ts);
-  EXPECT_EQ((void *)buf, (void *)cras_mix_add_clip_buf);
+  shm = cras_rstream_input_shm(rstream2_);
+  out_buff = (int16_t*)shm->area->samples;
+  for (unsigned int i = 0; i < 250; i++)
+    EXPECT_EQ(i * 2, out_buff[i]);
 }
 
 extern "C" {
@@ -2100,7 +2104,17 @@ size_t cras_mix_mute_buffer(uint8_t *dst,
 }
 
 void cras_mix_add_clip(int16_t *dst, const int16_t *src, size_t count) {
-  cras_mix_add_clip_buf = dst;
+  int32_t sum;
+  unsigned int i;
+
+  for (i = 0; i < count; i++) {
+    sum = dst[i] + src[i];
+    if (sum > 0x7fff)
+      sum = 0x7fff;
+    else if (sum < -0x8000)
+      sum = -0x8000;
+    dst[i] = sum;
+  }
 }
 
 // From cras_metrics.c
