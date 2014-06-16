@@ -44,6 +44,8 @@ struct cras_rstream {
 	struct cras_audio_shm input_shm;
 	struct cras_rstream *prev, *next;
 	struct cras_audio_format format;
+	struct cras_audio_area *output_audio_area;
+	struct cras_audio_area *input_audio_area;
 };
 
 /* Creates an rstream.

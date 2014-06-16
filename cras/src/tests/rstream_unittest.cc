@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "cras_audio_area.h"
 #include "cras_messages.h"
 #include "cras_rstream.h"
 #include "cras_shm.h"
@@ -206,6 +207,17 @@ int cras_rclient_send_message(const struct cras_rclient *client,
             const struct cras_message *msg)
 {
   return 0;
+}
+
+struct cras_audio_area *cras_audio_area_create(int num_channels) {
+  return NULL;
+}
+
+void cras_audio_area_destroy(struct cras_audio_area *area) {
+}
+
+void cras_audio_area_config_channels(struct cras_audio_area *area,
+                                     const struct cras_audio_format *fmt) {
 }
 
 }

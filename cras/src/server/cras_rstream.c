@@ -6,6 +6,7 @@
 #include <sys/shm.h>
 #include <syslog.h>
 
+#include "cras_audio_area.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
@@ -68,11 +69,20 @@ static inline int setup_shm_area(struct cras_rstream *stream)
 			       &stream->output_shm_info);
 		if (rc)
 			return rc;
+		stream->output_audio_area =
+			cras_audio_area_create(stream->format.num_channels);
+		cras_audio_area_config_channels(stream->output_audio_area,
+						&stream->format);
 	}
 
-	if (cras_stream_has_input(stream->direction))
+	if (cras_stream_has_input(stream->direction)) {
 		rc = setup_shm(stream, &stream->input_shm,
 			       &stream->input_shm_info);
+		stream->input_audio_area =
+			cras_audio_area_create(stream->format.num_channels);
+		cras_audio_area_config_channels(stream->input_audio_area,
+						&stream->format);
+	}
 
 	return rc;
 }
@@ -187,11 +197,13 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 		shmdt(stream->input_shm.area);
 		shmctl(stream->input_shm_info.shm_id, IPC_RMID,
 		       (void *)stream->input_shm.area);
+		cras_audio_area_destroy(stream->input_audio_area);
 	}
 	if (stream->output_shm.area != NULL) {
 		shmdt(stream->output_shm.area);
 		shmctl(stream->output_shm_info.shm_id, IPC_RMID,
 		       (void *)stream->output_shm.area);
+		cras_audio_area_destroy(stream->output_audio_area);
 	}
 	free(stream);
 }
