@@ -50,6 +50,8 @@ static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
 static struct timespec time_now;
 static int cras_fmt_conversion_needed_return_val;
+static struct cras_audio_area *dummy_audio_area1;
+static struct cras_audio_area *dummy_audio_area2;
 
 }
 
@@ -89,6 +91,19 @@ class ReadStreamSuite : public testing::Test {
       SetupRstream(&rstream2_, 2);
       shm2_ = cras_rstream_input_shm(rstream2_);
 
+      dummy_audio_area1 = (cras_audio_area*)calloc(1,
+          sizeof(cras_audio_area) + 2 * sizeof(cras_channel_area));
+      dummy_audio_area1->num_channels = 2;
+      channel_area_set_channel(&dummy_audio_area1->channels[0], CRAS_CH_FL);
+      channel_area_set_channel(&dummy_audio_area1->channels[1], CRAS_CH_FR);
+      rstream_->input_audio_area = dummy_audio_area1;
+      dummy_audio_area2 = (cras_audio_area*)calloc(1,
+          sizeof(cras_audio_area) + 2 * sizeof(cras_channel_area));
+      dummy_audio_area2->num_channels = 2;
+      channel_area_set_channel(&dummy_audio_area2->channels[0], CRAS_CH_FL);
+      channel_area_set_channel(&dummy_audio_area2->channels[1], CRAS_CH_FR);
+      rstream2_->input_audio_area = dummy_audio_area2;
+
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
       cras_rstream_audio_ready_called = 0;
@@ -117,6 +132,8 @@ class ReadStreamSuite : public testing::Test {
       free(rstream_);
       free(shm2_->area);
       free(rstream2_);
+      free(dummy_audio_area1);
+      free(dummy_audio_area2);
     }
 
     void SetupRstream(struct cras_rstream **rstream, int fd) {
@@ -1692,6 +1709,19 @@ class ActiveDevicesSuite : public testing::Test {
       rstream2_->buffer_frames -= 50;
       rstream2_->cb_threshold -= 50;
 
+      dummy_audio_area1 = (cras_audio_area*)calloc(1,
+          sizeof(cras_audio_area) + 2 * sizeof(cras_channel_area));
+      dummy_audio_area1->num_channels = 2;
+      channel_area_set_channel(&dummy_audio_area1->channels[0], CRAS_CH_FL);
+      channel_area_set_channel(&dummy_audio_area1->channels[1], CRAS_CH_FR);
+      rstream_->input_audio_area = dummy_audio_area1;
+      dummy_audio_area2 = (cras_audio_area*)calloc(1,
+          sizeof(cras_audio_area) + 2 * sizeof(cras_channel_area));
+      dummy_audio_area2->num_channels = 2;
+      channel_area_set_channel(&dummy_audio_area2->channels[0], CRAS_CH_FL);
+      channel_area_set_channel(&dummy_audio_area2->channels[1], CRAS_CH_FR);
+      rstream2_->input_audio_area = dummy_audio_area2;
+
       cras_iodev_set_format_called = 0;
       close_dev_called_ = 0;
       is_open_ = 0;
@@ -1718,6 +1748,8 @@ class ActiveDevicesSuite : public testing::Test {
       shm = cras_rstream_output_shm(rstream_);
       free(shm->area);
       free(rstream_);
+      free(dummy_audio_area1);
+      free(dummy_audio_area2);
     }
 
     void SetupRstream(struct cras_rstream **rstream) {
@@ -2305,6 +2337,19 @@ int cras_fmt_conversion_needed(const struct cras_audio_format *a,
 			       const struct cras_audio_format *b)
 {
   return cras_fmt_conversion_needed_return_val;
+}
+
+void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
+                                         const struct cras_audio_format *fmt,
+                                         uint8_t *base_buffer) {
+  unsigned int i;
+  const int sample_size = snd_pcm_format_physical_width(fmt->format) / 8;
+
+  /* TODO(dgreid) - assuming interleaved audio here for now. */
+  for (i = 0 ; i < area->num_channels; i++) {
+    area->channels[i].step_bytes = cras_get_format_bytes(fmt);
+    area->channels[i].buf = base_buffer + i * sample_size;
+  }
 }
 
 //  Override select so it can be stubbed.

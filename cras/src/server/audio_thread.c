@@ -1703,25 +1703,49 @@ static unsigned int get_write_limit_set_delay(
 	return write_limit;
 }
 
-static void copy_to_stream(const struct cras_io_stream *stream,
-			    unsigned int offset,
-			    struct cras_iodev *idev,
-			    uint8_t *src,
-			    unsigned int count,
-			    unsigned int dev_index)
+/* TODO(dgreid) - move this to the audio_area module. */
+static void copy_to_area(const struct cras_audio_area *dst_area,
+			 unsigned int offset,
+			 const struct cras_audio_format *fmt,
+			 const struct cras_audio_area *src_area,
+			 unsigned int src_index)
 {
-	unsigned int frame_bytes = cras_get_format_bytes(idev->format);
-	struct cras_audio_shm *shm = cras_rstream_input_shm(stream->stream);
-	uint8_t *dst = cras_shm_get_writeable_frames(shm,
-						     cras_shm_used_frames(shm),
-						     NULL);
+	unsigned int frame_bytes = cras_get_format_bytes(fmt);
+	unsigned int src_idx, dst_idx;
+	unsigned int i;
+	uint8_t *schan, *dchan;
 
-	if (dev_index == 0)
-		memcpy(dst + offset, src, count * frame_bytes);
-	else
-		cras_mix_add_clip((int16_t *)dst + offset,
-				  (int16_t *)src,
-				  count * idev->format->num_channels);
+	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
+	 * each channel. */
+	if (src_index == 0)
+		memset(dst_area->channels[0].buf, 0,
+		       src_area->frames * frame_bytes);
+
+	/* TODO(dgreid) - this replaces a memcpy, it needs to be way faster. */
+	for (src_idx = 0; src_idx < src_area->num_channels; src_idx++) {
+		for (dst_idx = 0; dst_idx < dst_area->num_channels; dst_idx++) {
+			if (!(src_area->channels[src_idx].ch_set &
+			      dst_area->channels[dst_idx].ch_set))
+				continue;
+
+			/* TODO(dgreid) - this assumes s16le. */
+			schan = src_area->channels[src_idx].buf;
+			dchan = dst_area->channels[dst_idx].buf +
+				offset * dst_area->channels[dst_idx].step_bytes;
+
+			for (i = 0; i < src_area->frames; i++) {
+				int32_t sum;
+				sum = *(int16_t *)dchan + *(int16_t *)schan;
+				if (sum > 0x7fff)
+					sum = 0x7fff;
+				else if (sum < -0x8000)
+					sum = -0x8000;
+				*(int16_t*)dchan = sum;
+				dchan += dst_area->channels[dst_idx].step_bytes;
+				schan += src_area->channels[src_idx].step_bytes;
+			}
+		}
+	}
 }
 
 /* Read samples from an input device to the specified stream.
@@ -1762,14 +1786,27 @@ static int capture_to_streams(const struct cras_io_stream *streams,
 			apply_dsp(idev, hw_buffer, nread);
 
 		DL_FOREACH(streams, stream) {
-			if (!input_stream_matches_dev(idev->direction,
-						      stream->stream))
+			struct cras_rstream *rstream = stream->stream;
+			struct cras_audio_shm *shm;
+			uint8_t *dst;
+
+			if (!input_stream_matches_dev(idev->direction, rstream))
 				continue;
-			copy_to_stream(stream, offset, idev, hw_buffer,
-				       nread, dev_index);
+
+			shm = cras_rstream_input_shm(rstream);
+			dst = cras_shm_get_writeable_frames(
+					shm, cras_shm_used_frames(shm), NULL);
+			cras_audio_area_config_buf_pointers(
+					rstream->input_audio_area,
+					&stream->stream->format,
+					dst);
+			rstream->input_audio_area->frames = cras_shm_used_frames(shm);
+
+			copy_to_area(rstream->input_audio_area,
+				     offset, &rstream->format, area, dev_index);
 		}
 
-		offset += nread * frame_bytes;
+		offset += nread;
 
 		rc = idev->put_buffer(idev, nread);
 		if (rc < 0)
