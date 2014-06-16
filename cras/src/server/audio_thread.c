@@ -532,6 +532,9 @@ void config_devices_min_latency(struct audio_thread *thread,
 	struct cras_io_stream *min_latency;
 
 	min_latency = get_min_latency_stream(thread, dir);
+	if (!min_latency)
+		return;
+
 	thread->cb_threshold[dir] =
 			cras_rstream_get_cb_threshold(min_latency->stream);
 	thread->buffer_frames[dir] =
