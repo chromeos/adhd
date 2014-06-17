@@ -132,9 +132,10 @@ static snd_pcm_chmap_query_t *cras_chmap_caps_match(
 }
 
 /* When the exact match does not exist, select the best valid
- * channel map to use for HW and channel converter.
+ * channel map which can be supported by means of channel conversion
+ * matrix.
  */
-static snd_pcm_chmap_query_t *cras_chmap_caps_best(
+static snd_pcm_chmap_query_t *cras_chmap_caps_conv_matrix(
 		snd_pcm_chmap_query_t **chmaps,
 		struct cras_audio_format *fmt)
 {
@@ -173,6 +174,36 @@ static snd_pcm_chmap_query_t *cras_chmap_caps_best(
 	}
 
 	cras_audio_format_destroy(conv_fmt);
+	return NULL;
+}
+
+/* Finds the best channel map for given format and list of channel
+ * map capability.
+ */
+static snd_pcm_chmap_query_t *cras_chmap_caps_best(
+		snd_pcm_t *handle,
+		snd_pcm_chmap_query_t **chmaps,
+		struct cras_audio_format *fmt)
+{
+	snd_pcm_chmap_query_t **chmap;
+	snd_pcm_chmap_query_t *match;
+
+	match = cras_chmap_caps_match(chmaps, fmt);
+	if (match)
+		return match;
+
+	match = cras_chmap_caps_conv_matrix(chmaps, fmt);
+	if (match)
+		return match;
+
+	/* For capture stream, choose the first chmap matching channel
+	 * count. Channel positions reported in this chmap will be used
+	 * to fill correspond channels into client stream.
+	 */
+	if (snd_pcm_stream(handle) == SND_PCM_STREAM_CAPTURE)
+		for (chmap = chmaps; *chmap; chmap++)
+			if ((*chmap)->map.channels == fmt->num_channels)
+				return *chmap;
 	return NULL;
 }
 
@@ -232,18 +263,13 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle,
 		goto done;
 	}
 
-	match = cras_chmap_caps_match(chmaps, fmt);
-	if (match)
-		goto set_chmap;
-
-	match = cras_chmap_caps_best(chmaps, fmt);
-	if (match == NULL) {
+	match = cras_chmap_caps_best(handle, chmaps, fmt);
+	if (!match) {
 		syslog(LOG_ERR, "Unable to find the best channel map");
 		rc = -1;
 		goto done;
 	}
 
-set_chmap:
 	/* A channel map could match the layout after channels
 	 * pair/arbitrary swapped. Modified the channel positions
 	 * before set to HW.
@@ -252,7 +278,8 @@ set_chmap:
 		for (ch = 0; ch < CRAS_CH_MAX; ch++)
 			if (fmt->channel_layout[ch] == (int)i)
 				break;
-		match->map.pos[i] = CH_TO_ALSA(ch);
+		if (ch != CRAS_CH_MAX)
+			match->map.pos[i] = CH_TO_ALSA(ch);
 	}
 	rc = snd_pcm_set_chmap(handle, &match->map);
 
@@ -276,13 +303,8 @@ int cras_alsa_get_channel_map(snd_pcm_t *handle,
 		goto done;
 	}
 
-	match = cras_chmap_caps_match(chmaps, fmt);
-	if (match)
-		goto done;
-
-	syslog(LOG_ERR, "No exact matched channel map found");
-	match = cras_chmap_caps_best(chmaps, fmt);
-	if (match == NULL) {
+	match = cras_chmap_caps_best(handle, chmaps, fmt);
+	if (!match) {
 		syslog(LOG_ERR, "Unable to find the best channel map");
 		rc = -1;
 		goto done;
