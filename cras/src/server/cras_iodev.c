@@ -131,7 +131,17 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		cras_iodev_alloc_dsp(iodev);
 	}
 
-	*fmt = *(iodev->format);
+	/* Fill the format information back to stream. For capture stream,
+	 * leave the channel count/layout as it is.
+	 */
+	fmt->format = iodev->format->format;
+	fmt->frame_rate = iodev->format->frame_rate;
+	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		fmt->num_channels = iodev->format->num_channels;
+		cras_audio_format_set_channel_layout(fmt,
+				iodev->format->channel_layout);
+	}
+
 	return 0;
 
 error:

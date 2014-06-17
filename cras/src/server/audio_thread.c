@@ -440,11 +440,7 @@ static int init_devices(struct audio_thread *thread,
 	if (rc)
 		return rc;
 
-	/* Initialize all other active devices of the same direction.
-	 * If the supported format does not match what was used for
-	 * selected device, close and remove it from the active device
-	 * list.
-	 */
+	/* Initialize all other active devices of the same direction. */
 	adevs = adevs->next;
 	DL_FOREACH(adevs, adev) {
 		rc = init_device(adev->dev, stream);
@@ -454,7 +450,14 @@ static int init_devices(struct audio_thread *thread,
 			thread_rm_active_dev(thread, adev->dev);
 			continue;
 		}
-		if (cras_fmt_conversion_needed(first_dev->format,
+		/* If the supported format does not match what was used for
+		 * selected device, close and remove it from the active device
+		 * list.
+		 * However we exclude input stream for this check to allow
+		 * capture only a subset of channels.
+		 */
+		if ((dir != CRAS_STREAM_INPUT) &&
+		    cras_fmt_conversion_needed(first_dev->format,
 					       adev->dev->format)) {
 			close_device(adev->dev);
 			thread_rm_active_dev(thread, adev->dev);

@@ -580,6 +580,13 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
                                      const struct cras_audio_format *fmt) {
 }
 
+int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
+					 const int8_t layout[CRAS_CH_MAX])
+{
+  return 0;
+}
+
+
 }  // extern "C"
 }  //  namespace
 
