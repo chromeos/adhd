@@ -19,6 +19,8 @@
 #define CH_TO_ALSA(ch) ((ch) + 3)
 #define CH_TO_CRAS(ch) ((ch) - 3)
 
+/* Assert the channel is defined in CRAS_CHANNELS. */
+#define ALSA_CH_VALID(ch) ((ch >= SND_CHMAP_FL) && (ch <= SND_CHMAP_FRC))
 
 /* Chances to give mmap_begin to work. */
 static const size_t MAX_MMAP_BEGIN_ATTEMPTS = 3;
@@ -149,9 +151,12 @@ static snd_pcm_chmap_query_t *cras_chmap_caps_best(
 			continue;
 		for (i = 0; i < CRAS_CH_MAX; i++)
 			conv_fmt->channel_layout[i] = -1;
-		for (i = 0; i < conv_fmt->num_channels; i++)
+		for (i = 0; i < conv_fmt->num_channels; i++) {
+			if (!ALSA_CH_VALID((*chmap)->map.pos[i]))
+				continue;
 			conv_fmt->channel_layout[CH_TO_CRAS(
 					(*chmap)->map.pos[i])] = i;
+		}
 
 		/* Examine channel map by test creating a conversion matrix
 		 * for each candidate. Once a non-null matrix is created,
@@ -287,8 +292,11 @@ int cras_alsa_get_channel_map(snd_pcm_t *handle,
 	 * handle it. */
 	for (i = 0; i < CRAS_CH_MAX; i++)
 		fmt->channel_layout[i] = -1;
-	for (i = 0; i < fmt->num_channels; i++)
+	for (i = 0; i < fmt->num_channels; i++) {
+		if (!ALSA_CH_VALID(match->map.pos[i]))
+			continue;
 		fmt->channel_layout[CH_TO_CRAS(match->map.pos[i])] = i;
+	}
 
 done:
 	snd_pcm_free_chmaps(chmaps);
