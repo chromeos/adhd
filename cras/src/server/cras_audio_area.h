@@ -57,6 +57,21 @@ inline void channel_area_set_channel(struct cras_channel_area *ca,
 struct cras_audio_area *cras_audio_area_create(int num_channels);
 
 /*
+ * Copies a cras_audio_area to another cras_audio_area with given offset.
+ * Args:
+ *    dst - The destination audio area.
+ *    dst_offset - The offset of dst audio area in frames.
+ *    dst_format_bytes - The format bytes of dst area.
+ *    src - The source audio area.
+ *    src_index - Index of the src areas to copy.
+ */
+void cras_audio_area_copy(const struct cras_audio_area *dst,
+			  unsigned int dst_offset,
+			  unsigned int dst_format_bytes,
+			  const struct cras_audio_area *src,
+			  unsigned int src_index);
+
+/*
  * Destroys a cras_audio_area.
  * Args:
  *    area - the audio area to destroy

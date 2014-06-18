@@ -1670,51 +1670,6 @@ static unsigned int get_write_limit_set_delay(
 	return write_limit;
 }
 
-/* TODO(dgreid) - move this to the audio_area module. */
-static void copy_to_area(const struct cras_audio_area *dst_area,
-			 unsigned int offset,
-			 const struct cras_audio_format *fmt,
-			 const struct cras_audio_area *src_area,
-			 unsigned int src_index)
-{
-	unsigned int frame_bytes = cras_get_format_bytes(fmt);
-	unsigned int src_idx, dst_idx;
-	unsigned int i;
-	uint8_t *schan, *dchan;
-
-	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
-	 * each channel. */
-	if (src_index == 0)
-		memset(dst_area->channels[0].buf, 0,
-		       src_area->frames * frame_bytes);
-
-	/* TODO(dgreid) - this replaces a memcpy, it needs to be way faster. */
-	for (src_idx = 0; src_idx < src_area->num_channels; src_idx++) {
-		for (dst_idx = 0; dst_idx < dst_area->num_channels; dst_idx++) {
-			if (!(src_area->channels[src_idx].ch_set &
-			      dst_area->channels[dst_idx].ch_set))
-				continue;
-
-			/* TODO(dgreid) - this assumes s16le. */
-			schan = src_area->channels[src_idx].buf;
-			dchan = dst_area->channels[dst_idx].buf +
-				offset * dst_area->channels[dst_idx].step_bytes;
-
-			for (i = 0; i < src_area->frames; i++) {
-				int32_t sum;
-				sum = *(int16_t *)dchan + *(int16_t *)schan;
-				if (sum > 0x7fff)
-					sum = 0x7fff;
-				else if (sum < -0x8000)
-					sum = -0x8000;
-				*(int16_t*)dchan = sum;
-				dchan += dst_area->channels[dst_idx].step_bytes;
-				schan += src_area->channels[src_idx].step_bytes;
-			}
-		}
-	}
-}
-
 /* Read samples from an input device to the specified stream.
  * Args:
  *    stream_buffer - The buffer to capture samples to.
@@ -1768,9 +1723,9 @@ static int capture_to_streams(const struct cras_io_stream *streams,
 					&stream->stream->format,
 					dst);
 			rstream->input_audio_area->frames = cras_shm_used_frames(shm);
-
-			copy_to_area(rstream->input_audio_area,
-				     offset, &rstream->format, area, dev_index);
+			cras_audio_area_copy(rstream->input_audio_area, offset,
+					     cras_get_format_bytes(&rstream->format),
+					     area, dev_index);
 		}
 
 		offset += nread;

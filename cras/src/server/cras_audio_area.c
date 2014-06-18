@@ -20,6 +20,50 @@ struct cras_audio_area *cras_audio_area_create(int num_channels)
 	return area;
 }
 
+void cras_audio_area_copy(const struct cras_audio_area *dst,
+			  unsigned int dst_offset,
+			  unsigned int dst_format_bytes,
+			  const struct cras_audio_area *src,
+			  unsigned int src_index)
+{
+	unsigned int src_idx, dst_idx;
+	unsigned int i;
+	uint8_t *schan, *dchan;
+
+	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
+	 * each channel. */
+	if (src_index == 0)
+		memset(dst->channels[0].buf, 0,
+		       src->frames * dst_format_bytes);
+
+	/* TODO(dgreid) - this replaces a memcpy, it needs to be way faster. */
+	for (src_idx = 0; src_idx < src->num_channels; src_idx++) {
+
+		for (dst_idx = 0; dst_idx < dst->num_channels; dst_idx++) {
+			if (!(src->channels[src_idx].ch_set &
+			      dst->channels[dst_idx].ch_set))
+				continue;
+
+			/* TODO(dgreid) - this assumes s16le. */
+			schan = src->channels[src_idx].buf;
+			dchan = dst->channels[dst_idx].buf +
+				dst_offset * dst->channels[dst_idx].step_bytes;
+
+			for (i = 0; i < src->frames; i++) {
+				int32_t sum;
+				sum = *(int16_t *)dchan + *(int16_t *)schan;
+				if (sum > 0x7fff)
+					sum = 0x7fff;
+				else if (sum < -0x8000)
+					sum = -0x8000;
+				*(int16_t*)dchan = sum;
+				dchan += dst->channels[dst_idx].step_bytes;
+				schan += src->channels[src_idx].step_bytes;
+			}
+		}
+	}
+}
+
 void cras_audio_area_destroy(struct cras_audio_area *area)
 {
 	free(area);

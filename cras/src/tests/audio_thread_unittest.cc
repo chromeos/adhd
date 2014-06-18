@@ -2353,6 +2353,29 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
   }
 }
 
+void cras_audio_area_copy(const struct cras_audio_area *dst,
+			  unsigned int dst_offset, unsigned int dst_format_bytes,
+			  const struct cras_audio_area *src, unsigned int src_index)
+{
+  unsigned count, i;
+  int16_t *dchan, *schan;
+  dchan = (int16_t *)(dst->channels[0].buf +
+                      dst_offset * dst->channels[0].step_bytes);
+  schan = (int16_t *)src->channels[0].buf;
+  count = src->frames * src->num_channels;
+  for (i = 0; i < count; i++) {
+    int32_t sum;
+    sum = *dchan + *schan;
+    if (sum > 0x7fff)
+        sum = 0x7fff;
+    else if (sum < -0x8000)
+        sum = -0x8000;
+    *dchan = sum;
+    dchan++;
+    schan++;
+  }
+}
+
 //  Override select so it can be stubbed.
 int select(int nfds,
            fd_set *readfds,
