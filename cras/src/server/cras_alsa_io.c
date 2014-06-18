@@ -296,9 +296,6 @@ static int update_channel_layout(struct cras_iodev *iodev)
 	snd_pcm_uframes_t buf_size = 0;
 	int err = 0;
 
-	if (iodev->format->num_channels <= 2)
-		return 0;
-
 	err = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
 	if (err < 0) {
 		syslog(LOG_ERR, "snd_pcm_open_failed: %s", snd_strerror(err));
