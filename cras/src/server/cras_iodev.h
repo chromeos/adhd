@@ -296,7 +296,8 @@ static inline int cras_iodev_software_volume_needed(
 	if (!iodev->active_node)
 		return 0;
 
-	return iodev->active_node->type == CRAS_NODE_TYPE_HDMI;
+	return iodev->active_node->type == CRAS_NODE_TYPE_HDMI ||
+	       iodev->active_node->type == CRAS_NODE_TYPE_USB;
 }
 
 #endif /* CRAS_IODEV_H_ */
