@@ -176,7 +176,7 @@ unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
 	/* Do avdtp write once no more pcm buffer processed to a2dp buffer,
 	 * or a2dp buffer already accumulated to half the mtu.
 	 */
-	if (processed == 0 || a2dp->a2dp_buf_used > link_mtu / 2)
+	if (a2dp->a2dp_buf_used > link_mtu / 2)
 		*written_bytes = avdtp_write(stream_fd, a2dp);
 
 	return processed;
