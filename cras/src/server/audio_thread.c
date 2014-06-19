@@ -89,13 +89,15 @@ static struct iodev_callback_list *iodev_callbacks;
 
 struct iodev_callback_list {
 	int fd;
+	int is_write;
+	int enabled;
 	thread_callback cb;
 	void *cb_data;
 	struct iodev_callback_list *prev, *next;
 };
 
-void audio_thread_add_callback(int fd, thread_callback cb,
-                               void *data)
+static void _audio_thread_add_callback(int fd, thread_callback cb,
+				       void *data, int is_write)
 {
 	struct iodev_callback_list *iodev_cb;
 
@@ -108,8 +110,22 @@ void audio_thread_add_callback(int fd, thread_callback cb,
 	iodev_cb->fd = fd;
 	iodev_cb->cb = cb;
 	iodev_cb->cb_data = data;
+	iodev_cb->enabled = 1;
+	iodev_cb->is_write = is_write;
 
 	DL_APPEND(iodev_callbacks, iodev_cb);
+}
+
+void audio_thread_add_callback(int fd, thread_callback cb,
+				void *data)
+{
+	_audio_thread_add_callback(fd, cb, data, 0);
+}
+
+void audio_thread_add_write_callback(int fd, thread_callback cb,
+				     void *data)
+{
+	_audio_thread_add_callback(fd, cb, data, 1);
 }
 
 void audio_thread_rm_callback(int fd)
@@ -120,6 +136,18 @@ void audio_thread_rm_callback(int fd)
 		if (iodev_cb->fd == fd) {
 			DL_DELETE(iodev_callbacks, iodev_cb);
 			free(iodev_cb);
+			return;
+		}
+	}
+}
+
+void audio_thread_enable_callback(int fd, int enabled)
+{
+	struct iodev_callback_list *iodev_cb;
+
+	DL_FOREACH(iodev_callbacks, iodev_cb) {
+		if (iodev_cb->fd == fd) {
+			iodev_cb->enabled = !!enabled;
 			return;
 		}
 	}
@@ -1959,6 +1987,7 @@ static void *audio_io_thread(void *arg)
 	struct audio_thread *thread = (struct audio_thread *)arg;
 	struct timespec ts;
 	fd_set poll_set;
+	fd_set poll_write_set;
 	int msg_fd;
 	int err;
 
@@ -1986,16 +2015,23 @@ static void *audio_io_thread(void *arg)
 		}
 
 		FD_ZERO(&poll_set);
+		FD_ZERO(&poll_write_set);
 		FD_SET(msg_fd, &poll_set);
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
-			FD_SET(iodev_cb->fd, &poll_set);
+			if (!iodev_cb->enabled)
+				continue;
+			if (iodev_cb->is_write)
+				FD_SET(iodev_cb->fd, &poll_write_set);
+			else
+				FD_SET(iodev_cb->fd, &poll_set);
 			if (iodev_cb->fd > max_fd)
 				max_fd = iodev_cb->fd;
 		}
 
 		audio_thread_event_log_tag(atlog, AUDIO_THREAD_SLEEP);
-		err = pselect(max_fd + 1, &poll_set, NULL, NULL, wait_ts, NULL);
+		err = pselect(max_fd + 1, &poll_set, &poll_write_set, NULL,
+			      wait_ts, NULL);
 		audio_thread_event_log_tag(atlog, AUDIO_THREAD_WAKE);
 		if (err <= 0)
 			continue;
@@ -2007,7 +2043,8 @@ static void *audio_io_thread(void *arg)
 		}
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
-			if (FD_ISSET(iodev_cb->fd, &poll_set))
+			if (FD_ISSET(iodev_cb->fd, &poll_set) ||
+			    FD_ISSET(iodev_cb->fd, &poll_write_set))
 				iodev_cb->cb(iodev_cb->cb_data);
 		}
 	}

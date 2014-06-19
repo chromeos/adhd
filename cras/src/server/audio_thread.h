@@ -109,17 +109,31 @@ int audio_thread_rm_active_dev(struct audio_thread *thread,
 /* Adds an thread_callback to audio thread.
  * Args:
  *    fd - The file descriptor to be polled for the callback.
+ *      The callback will be called when fd is readable.
  *    cb - The callback function.
  *    data - The data for the callback function.
  */
 void audio_thread_add_callback(int fd, thread_callback cb,
                                void *data);
 
+/* Adds an thread_callback to audio thread.
+ * Args:
+ *    fd - The file descriptor to be polled for the callback.
+ *      The callback will be called when fd is writeable.
+ *    cb - The callback function.
+ *    data - The data for the callback function.
+ */
+void audio_thread_add_write_callback(int fd, thread_callback cb,
+				     void *data);
+
 /* Removes an thread_callback from audio thread.
  * Args:
  *    fd - The file descriptor of the previous added callback.
  */
 void audio_thread_rm_callback(int fd);
+
+/* Enables or Disabled the callback associated with fd. */
+void audio_thread_enable_callback(int fd, int enabled);
 
 /* Starts a thread created with audio_thread_create.
  * Args:
