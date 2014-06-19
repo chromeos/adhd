@@ -2006,9 +2006,10 @@ static void *audio_io_thread(void *arg)
 				syslog(LOG_INFO, "handle message %d", err);
 		}
 
-		DL_FOREACH(iodev_callbacks, iodev_cb)
-			iodev_cb->cb(iodev_cb->cb_data, &ts,
-				     FD_ISSET(iodev_cb->fd, &poll_set));
+		DL_FOREACH(iodev_callbacks, iodev_cb) {
+			if (FD_ISSET(iodev_cb->fd, &poll_set))
+				iodev_cb->cb(iodev_cb->cb_data);
+		}
 	}
 
 	return NULL;

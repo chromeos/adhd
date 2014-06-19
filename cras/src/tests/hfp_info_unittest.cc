@@ -239,7 +239,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   send(sock[0], sample ,48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info *)cb_data, &ts, 1);
+  thread_cb((struct hfp_info *)cb_data);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
@@ -251,7 +251,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   /* Trigger thread callback after idev added. */
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
-  thread_cb((struct hfp_info *)cb_data, &ts, 1);
+  thread_cb((struct hfp_info *)cb_data);
 
   rc = hfp_buf_queued(info, &dev);
   ASSERT_EQ(48 / 2, rc);
@@ -281,7 +281,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   send(sock[0], sample ,48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info *)cb_data, &ts, 1);
+  thread_cb((struct hfp_info *)cb_data);
 
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
@@ -291,7 +291,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
 
   /* Put some fake data and trigger thread callback again */
   put_write_buf_bytes(info->playback_buf, 1008);
-  thread_cb((struct hfp_info *)cb_data, &ts, 1);
+  thread_cb((struct hfp_info *)cb_data);
 
   /* Assert some samples written */
   rc = recv(sock[0], sample ,48, 0);

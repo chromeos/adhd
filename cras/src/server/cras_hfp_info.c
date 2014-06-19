@@ -283,13 +283,10 @@ recv_sample:
  * 2. When input device not attached, ignore the data just read.
  * 3. When output device attached, write one chunk of MTU bytes of data.
  */
-static int hfp_info_callback(void *arg, struct timespec *ts, int polled)
+static int hfp_info_callback(void *arg)
 {
 	struct hfp_info *info = (struct hfp_info *)arg;
 	int err;
-
-	if (!polled)
-		return 0;
 
 	err = hfp_read(info);
 	if (err < 0) {

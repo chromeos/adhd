@@ -69,13 +69,8 @@ struct audio_thread {
 /* Callback function to be handled in main loop in audio thread.
  * Args:
  *    data - The data for callback function.
- *    wait_ts - The wait time before next callback. Its value is expected
- *    to be modified when we want this timeout be shorter.
- *    polled - Flag to indicate the callback is called because the fd
- *    is polled
  */
-typedef int (*thread_callback)(void *data, struct timespec *wait_ts,
-			       int polled);
+typedef int (*thread_callback)(void *data);
 
 /* Creates an audio thread.
  * Args:
