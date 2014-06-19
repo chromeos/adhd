@@ -159,6 +159,10 @@ unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
 					a2dp->a2dp_buf + a2dp->a2dp_buf_used,
 					link_mtu - a2dp->a2dp_buf_used,
 					&out_encoded);
+	if (processed < 0) {
+		syslog(LOG_ERR, "a2dp encode error %d", processed);
+		return processed;
+	}
 
 	if (a2dp->codesize > 0)
 		a2dp->frame_count += processed / a2dp->codesize;

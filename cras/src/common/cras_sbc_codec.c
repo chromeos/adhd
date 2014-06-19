@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <errno.h>
 #include <sbc/sbc.h>
 #include <stdlib.h>
 
@@ -68,11 +69,10 @@ int cras_sbc_encode(struct cras_audio_codec *codec, const void *input,
 				     output + result,
 				     output_len - result,
 				     &written);
-
-		/* Stop when sbc_encode fails to complete for given input and
-		 * output size limit. */
-		if (encoded <= 0 || encoded != data->codesize)
+		if (encoded == -ENOSPC)
 			break;
+		else if (encoded < 0)
+			return encoded;
 
 		processed += encoded;
 		result += written;
