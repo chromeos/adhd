@@ -530,6 +530,7 @@ void config_devices_min_latency(struct audio_thread *thread,
 				enum CRAS_STREAM_DIRECTION dir)
 {
 	struct cras_io_stream *min_latency;
+	struct active_dev *adev;
 
 	min_latency = get_min_latency_stream(thread, dir);
 	if (!min_latency)
@@ -539,6 +540,16 @@ void config_devices_min_latency(struct audio_thread *thread,
 			cras_rstream_get_cb_threshold(min_latency->stream);
 	thread->buffer_frames[dir] =
 			cras_rstream_get_buffer_size(min_latency->stream);
+
+	/* Check buffer frames and callback threshold do not exceed any buffer
+	 * size of an active device. This prevents problems with bluetooth
+	 * iodevs where the buffer size is smaller than the callback threshold
+	 * of client streams.
+	 */
+	DL_FOREACH(thread->active_devs[dir], adev)
+		if (thread->buffer_frames[dir] > adev->dev->buffer_size)
+			thread->buffer_frames[dir] = adev->dev->buffer_size;
+
 	if ((dir == CRAS_STREAM_OUTPUT) &&
 	    thread->cb_threshold[dir] > thread->buffer_frames[dir] / 2)
 		thread->cb_threshold[dir] = thread->buffer_frames[dir] / 2;
