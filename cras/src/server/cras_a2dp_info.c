@@ -173,10 +173,9 @@ unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
 		a2dp->nsamples += processed / format_bytes;
 	}
 
-	/* Do avdtp write once no more pcm buffer processed to a2dp buffer,
-	 * or a2dp buffer already accumulated to half the mtu.
-	 */
-	if (a2dp->a2dp_buf_used > link_mtu / 2)
+	/* Do avdtp write when the max number of SBC frames is reached. */
+	if (a2dp->a2dp_buf_used + a2dp->frame_length >
+	    link_mtu - sizeof(struct rtp_header) - sizeof(struct rtp_payload))
 		*written_bytes = avdtp_write(stream_fd, a2dp);
 
 	return processed;
