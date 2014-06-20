@@ -138,7 +138,6 @@ TEST(A2dpIoInit, OpenIodev) {
   iodev->open_dev(iodev);
 
   ASSERT_EQ(1, cras_bt_transport_acquire_called);
-  ASSERT_EQ(1, a2dp_block_size_called);
 
   iodev->close_dev(iodev);
   ASSERT_EQ(1, cras_bt_transport_release_called);
@@ -160,7 +159,6 @@ TEST(A2dpIoInit, GetPutBuffer) {
 
   cras_iodev_set_format(iodev, format);
   iodev->open_dev(iodev);
-  ASSERT_EQ(1, a2dp_block_size_called);
 
   frames = 256;
   iodev->get_buffer(iodev, &area1, &frames);
@@ -172,14 +170,14 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_processed_bytes_val = 400;
   iodev->put_buffer(iodev, 100);
   ASSERT_EQ(400, pcm_buf_size_val);
-  ASSERT_EQ(2, a2dp_block_size_called);
+  ASSERT_EQ(1, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
   ASSERT_EQ(256, area2->frames);
 
   /* Assert buf2 points to the same position as buf1 */
-  ASSERT_EQ(0, area2->channels[0].buf - area1_buf);
+  ASSERT_EQ(400, area2->channels[0].buf - area1_buf);
 
   /* Test 100 frames(400 bytes) put, only 360 bytes processed,
    * 40 bytes left in pcm buffer.
@@ -187,15 +185,15 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_processed_bytes_val = 360;
   iodev->put_buffer(iodev, 100);
   ASSERT_EQ(400, pcm_buf_size_val);
-  ASSERT_EQ(3, a2dp_block_size_called);
+  ASSERT_EQ(2, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &area3, &frames);
 
   /* Existing buffer not completed processed, assert new buffer starts from
    * current write pointer.
    */
-  ASSERT_EQ(156, frames);
-  ASSERT_EQ(400, area3->channels[0].buf - area1_buf);
+  ASSERT_EQ(256, frames);
+  ASSERT_EQ(800, area3->channels[0].buf - area1_buf);
 
   a2dp_iodev_destroy(iodev);
 }
@@ -213,7 +211,6 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
   iodev->open_dev(iodev);
-  ASSERT_EQ(1, a2dp_block_size_called);
 
   frames = 256;
   iodev->get_buffer(iodev, &area, &frames);
@@ -229,7 +226,7 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 100);
-  ASSERT_EQ(2, a2dp_block_size_called);
+  ASSERT_EQ(1, a2dp_block_size_called);
   ASSERT_EQ(56, iodev->frames_queued(iodev));
 
   /* After 1ms, 44 more frames consumed but no more frames written yet.

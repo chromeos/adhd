@@ -9,6 +9,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "byte_buffer.h"
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
 #include "cras_audio_area.h"
@@ -27,10 +28,9 @@ struct a2dp_io {
 	struct cras_bt_transport *transport;
 	a2dp_force_suspend_cb force_suspend_cb;
 
-	uint8_t pcm_buf[PCM_BUF_MAX_SIZE_BYTES];
-	int pcm_buf_offset;
-	int pcm_buf_size;
-	int pcm_buf_used;
+	/* To hold the pcm samples. */
+	struct byte_buffer *pcm_buf;
+
 
 	/* Accumulated frames written to a2dp socket. Will need this info
 	 * together with the device open time stamp to get how many virtual
@@ -109,6 +109,7 @@ static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
 		return 0;
 }
 
+
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	size_t format_bytes;
@@ -117,18 +118,16 @@ static int frames_queued(const struct cras_iodev *iodev)
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	frames = a2dpio->pcm_buf_used / format_bytes
+	frames = buf_queued_bytes(a2dpio->pcm_buf) / format_bytes
 			+ a2dp_queued_frames(&a2dpio->a2dp)
 			+ bt_queued_frames(iodev, 0);
 
 	return frames;
 }
 
-
 static int open_dev(struct cras_iodev *iodev)
 {
-	int err = 0, block_size;
-	size_t format_bytes;
+	int err = 0;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
 	err = cras_bt_transport_acquire(a2dpio->transport);
@@ -142,23 +141,13 @@ static int open_dev(struct cras_iodev *iodev)
 		return -EINVAL;
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
-	format_bytes = cras_get_format_bytes(iodev->format);
 
-	/* Back calculate the max size of a2dp block before encode. */
-	block_size = a2dp_block_size(
-			&a2dpio->a2dp,
-			cras_bt_transport_write_mtu(a2dpio->transport) -
-					sizeof(struct rtp_header) -
-					sizeof(struct rtp_payload));
+	a2dpio->pcm_buf = byte_buffer_create(PCM_BUF_MAX_SIZE_BYTES);
+	if (!a2dpio->pcm_buf)
+		return -ENOMEM;
 
-	/* Set pcm buffer to a2dp block size, which corresponds to a full MTU
-	 * after encode. Since we cannot query the queued frames limit at a2dp
-	 * device side, make it just one MTU for safety to prevent us from
-	 * sending too much samples at any time. */
-	a2dpio->pcm_buf_size = PCM_BUF_MAX_SIZE_BYTES > block_size
-			? block_size
-			: PCM_BUF_MAX_SIZE_BYTES;
-	iodev->buffer_size = a2dpio->pcm_buf_size / format_bytes;
+	iodev->buffer_size = PCM_BUF_MAX_SIZE_BYTES
+			/ cras_get_format_bytes(iodev->format);
 
 	syslog(LOG_ERR, "a2dp iodev buf size %lu", iodev->buffer_size);
 
@@ -182,7 +171,7 @@ static int close_dev(struct cras_iodev *iodev)
 		syslog(LOG_ERR, "transport_release failed");
 
 	a2dp_drain(&a2dpio->a2dp);
-	a2dpio->pcm_buf_used = 0;
+	byte_buffer_destroy(a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
 	return 0;
@@ -208,21 +197,17 @@ static int flush_data(const struct cras_iodev *iodev)
 	a2dpio = (struct a2dp_io *)iodev;
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	processed = a2dp_write(a2dpio->pcm_buf + a2dpio->pcm_buf_offset,
-		       a2dpio->pcm_buf_used,
+	processed = a2dp_write(buf_read_pointer(a2dpio->pcm_buf),
+		       buf_readable_bytes(a2dpio->pcm_buf),
 		       &a2dpio->a2dp,
 		       format_bytes,
 		       cras_bt_transport_fd(a2dpio->transport),
 		       cras_bt_transport_write_mtu(a2dpio->transport),
 		       &written);
 
-	if (a2dpio->pcm_buf_used == processed) {
-		a2dpio->pcm_buf_offset = 0;
-		a2dpio->pcm_buf_used = 0;
-	} else {
-		a2dpio->pcm_buf_offset += processed;
-		a2dpio->pcm_buf_used -= processed;
-	}
+	if (processed < 0)
+		return processed;
+	buf_increment_read(a2dpio->pcm_buf, processed);
 
 	if (written == -EAGAIN) {
 		return 0;
@@ -230,6 +215,9 @@ static int flush_data(const struct cras_iodev *iodev)
 		if (a2dpio->force_suspend_cb)
 			a2dpio->force_suspend_cb(&a2dpio->base);
 		return -1;
+	} else if (written < 0) {
+		syslog(LOG_ERR, "a2dpio write error %d", written);
+		return written;
 	}
 
 	bt_queued_frames(iodev,
@@ -263,7 +251,6 @@ static int get_buffer(struct cras_iodev *iodev,
 {
 	size_t format_bytes;
 	struct a2dp_io *a2dpio;
-	unsigned avail_frames;
 
 	a2dpio = (struct a2dp_io *)iodev;
 
@@ -272,14 +259,12 @@ static int get_buffer(struct cras_iodev *iodev,
 	if (iodev->direction != CRAS_STREAM_OUTPUT)
 		return 0;
 
-	avail_frames = (a2dpio->pcm_buf_size - a2dpio->pcm_buf_offset -
-			a2dpio->pcm_buf_used) / format_bytes;
-	*frames = MIN(*frames, avail_frames);
+	*frames = MIN(*frames, buf_writable_bytes(a2dpio->pcm_buf) /
+					format_bytes);
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(
 			iodev->area, iodev->format,
-			a2dpio->pcm_buf + a2dpio->pcm_buf_offset +
-					a2dpio->pcm_buf_used);
+			buf_write_pointer(a2dpio->pcm_buf));
 	*area = iodev->area;
 	return 0;
 }
@@ -291,10 +276,10 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	if (a2dpio->pcm_buf_used + a2dpio->pcm_buf_offset +
-			nwritten * format_bytes > a2dpio->pcm_buf_size)
-		return -1;
-	a2dpio->pcm_buf_used += nwritten * format_bytes;
+	if (nwritten * format_bytes > buf_writable_bytes(a2dpio->pcm_buf))
+		return -EINVAL;
+
+	buf_increment_write(a2dpio->pcm_buf, nwritten * format_bytes);
 
 	return flush_data(iodev);
 }
