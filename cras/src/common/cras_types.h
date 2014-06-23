@@ -100,7 +100,7 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
 #define MAX_DEBUG_STREAMS 8
-#define AUDIO_THREAD_EVENT_LOG_SIZE 4096
+#define AUDIO_THREAD_EVENT_LOG_SIZE (1024*32)
 
 /* There are 8 bits of space for events. */
 enum AUDIO_THREAD_LOG_EVENTS {
