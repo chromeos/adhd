@@ -397,6 +397,9 @@ void cras_iodev_list_add_active_node(cras_node_id_t node_id)
 void cras_iodev_list_rm_active_node(cras_node_id_t node_id)
 {
 	struct cras_iodev *dev;
+	struct cras_iodev *active_dev;
+	struct cras_iodev *default_dev;
+
 	dev = find_dev(dev_index_of(node_id));
 	if (!dev)
 		return;
@@ -406,6 +409,19 @@ void cras_iodev_list_rm_active_node(cras_node_id_t node_id)
 	 * at the same time.
 	 */
 	audio_thread_remove_streams(audio_thread, dev->direction);
+
+	/* If the device to remove matches the main active device, select
+	 * to the default one.
+	 */
+	if (dev->direction == CRAS_STREAM_OUTPUT) {
+		active_dev = active_output;
+		default_dev = default_output;
+	} else {
+		active_dev = active_input;
+		default_dev = default_input;
+	}
+	if (active_dev == dev)
+		cras_iodev_set_active(dev->direction, default_dev);
 
 	audio_thread_rm_active_dev(audio_thread, dev);
 }
@@ -469,7 +485,6 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 		cras_iodev_set_active(CRAS_STREAM_OUTPUT, default_output);
 	else
 		audio_thread_rm_active_dev(audio_thread, dev);
-
 	res = rm_dev_from_list(&outputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -487,7 +502,6 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 		cras_iodev_set_active(CRAS_STREAM_INPUT, default_input);
 	else
 		audio_thread_rm_active_dev(audio_thread, dev);
-
 	res = rm_dev_from_list(&inputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();

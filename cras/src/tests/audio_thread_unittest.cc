@@ -250,7 +250,7 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
   EXPECT_EQ(1, cras_iodev_set_format_called);
@@ -276,7 +276,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
   EXPECT_EQ(1, cras_iodev_set_format_called);
@@ -308,7 +308,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
 
@@ -341,7 +341,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
 
@@ -381,7 +381,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   rc = thread_add_stream(thread, rstream_);
   EXPECT_EQ(0, rc);
@@ -423,7 +423,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   cb_threshold_ /= 2;
   rstream_->cb_threshold = cb_threshold_;
@@ -477,7 +477,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
 
@@ -518,7 +518,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
 
@@ -566,7 +566,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
 
@@ -596,7 +596,7 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   thread_add_stream(thread, rstream_);
 
@@ -653,7 +653,7 @@ class WriteStreamSuite : public testing::Test {
 
       thread_ = audio_thread_create();
       ASSERT_TRUE(thread_);
-      thread_add_active_dev(thread_, &iodev_);
+      thread_set_active_dev(thread_, &iodev_);
 
       cras_mix_add_stream_dont_fill_next = 0;
       cras_mix_add_stream_count = 0;
@@ -1391,9 +1391,9 @@ class AddStreamSuite : public testing::Test {
       shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
       if (direction == CRAS_STREAM_INPUT)
-        thread_add_active_dev(thread, &iodev_);
+        thread_set_active_dev(thread, &iodev_);
       else
-        thread_add_active_dev(thread, &iodev_);
+        thread_set_active_dev(thread, &iodev_);
 
       thread_add_stream(thread, new_stream);
       EXPECT_EQ(1, thread->devs_open[direction]);
@@ -1492,7 +1492,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   shm = cras_rstream_output_shm(new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   rc = thread_add_stream(thread, new_stream);
   ASSERT_EQ(0, rc);
@@ -1526,7 +1526,7 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
 
   shm = cras_rstream_output_shm(&new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
@@ -1568,7 +1568,7 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   shm = cras_rstream_output_shm(new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
-  thread_add_active_dev(thread, &iodev_);
+  thread_set_active_dev(thread, &iodev_);
   rc = thread_add_stream(thread, new_stream);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, thread->devs_open[CRAS_STREAM_OUTPUT]);
@@ -1805,12 +1805,57 @@ int ActiveDevicesSuite::get_buffer_rc_[8];
 int ActiveDevicesSuite::put_buffer_rc_[8];
 struct cras_audio_area *ActiveDevicesSuite::area_;
 
+TEST_F(ActiveDevicesSuite, SetActiveDevRemoveOld) {
+  struct active_dev *adevs;
+  struct cras_iodev iodev3_;
+
+  iodev_.direction = CRAS_STREAM_INPUT;
+  iodev2_.direction = CRAS_STREAM_INPUT;
+  iodev3_.direction = CRAS_STREAM_INPUT;
+
+  thread_set_active_dev(thread_, &iodev_);
+  adevs = thread_->active_devs[CRAS_STREAM_INPUT];
+  EXPECT_NE((void *)NULL, adevs);
+  EXPECT_EQ(adevs->dev, &iodev_);
+  EXPECT_EQ(1, iodev_.is_active);
+
+  /* Assert the first active dev is still iodev. */
+  thread_add_active_dev(thread_, &iodev2_);
+  adevs = thread_->active_devs[CRAS_STREAM_INPUT];
+  EXPECT_EQ(adevs->dev, &iodev_);
+
+  thread_set_active_dev(thread_, &iodev3_);
+  adevs = thread_->active_devs[CRAS_STREAM_INPUT];
+  EXPECT_EQ(adevs->dev, &iodev3_);
+  EXPECT_EQ(iodev3_.is_active, 1);
+  EXPECT_EQ(iodev_.is_active, 0);
+}
+
+TEST_F(ActiveDevicesSuite, SetActiveDevAlreadyInList) {
+  struct active_dev *adevs;
+  iodev_.direction = CRAS_STREAM_INPUT;
+  iodev2_.direction = CRAS_STREAM_INPUT;
+
+  thread_set_active_dev(thread_, &iodev_);
+  thread_add_active_dev(thread_, &iodev2_);
+
+  adevs = thread_->active_devs[CRAS_STREAM_INPUT];
+  EXPECT_EQ(adevs->dev, &iodev_);
+  EXPECT_EQ(iodev_.is_active, 1);
+
+  thread_set_active_dev(thread_, &iodev2_);
+  adevs = thread_->active_devs[CRAS_STREAM_INPUT];
+  EXPECT_EQ(adevs->dev, &iodev2_);
+  EXPECT_EQ(iodev2_.is_active, 1);
+  EXPECT_EQ(iodev_.is_active, 0);
+}
+
 TEST_F(ActiveDevicesSuite, AddRemoveActiveDevice) {
   struct active_dev *adevs;
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev2_.direction = CRAS_STREAM_INPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   adevs = thread_->active_devs[CRAS_STREAM_INPUT];
   EXPECT_NE((void *)NULL, adevs);
   EXPECT_EQ(adevs->dev, &iodev_);
@@ -1837,7 +1882,7 @@ TEST_F(ActiveDevicesSuite, ClearActiveDevices) {
   iodev_.direction = CRAS_STREAM_OUTPUT;
   iodev2_.direction = CRAS_STREAM_OUTPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
   EXPECT_NE((void *)NULL, thread_->active_devs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, iodev_.is_active);
@@ -1853,7 +1898,7 @@ TEST_F(ActiveDevicesSuite, OpenActiveDevices) {
   iodev_.direction = CRAS_STREAM_OUTPUT;
   iodev2_.direction = CRAS_STREAM_OUTPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
   thread_add_stream(thread_, rstream_);
 
@@ -1867,7 +1912,7 @@ TEST_F(ActiveDevicesSuite, OpenFirstActiveDeviceFail) {
   iodev_.direction = CRAS_STREAM_OUTPUT;
   iodev2_.direction = CRAS_STREAM_OUTPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   open_dev_val_[0] = -1;
@@ -1883,7 +1928,7 @@ TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFail) {
   iodev_.direction = CRAS_STREAM_OUTPUT;
   iodev2_.direction = CRAS_STREAM_OUTPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   open_dev_val_[1] = -1;
@@ -1901,7 +1946,7 @@ TEST_F(ActiveDevicesSuite, OpenSecondActiveDeviceFormatIncompatible) {
   iodev_.direction = CRAS_STREAM_OUTPUT;
   iodev2_.direction = CRAS_STREAM_OUTPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   cras_fmt_conversion_needed_return_val = 1;
@@ -1918,7 +1963,7 @@ TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
   iodev_.direction = CRAS_STREAM_OUTPUT;
   iodev2_.direction = CRAS_STREAM_OUTPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   thread_add_stream(thread_, rstream_);
@@ -1940,7 +1985,7 @@ TEST_F(ActiveDevicesSuite, InputDelayFrames) {
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev2_.direction = CRAS_STREAM_INPUT;
 
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   thread_add_stream(thread_, rstream_);
@@ -1959,7 +2004,7 @@ TEST_F(ActiveDevicesSuite, InputFramesQueued) {
   int fr;
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev2_.direction = CRAS_STREAM_INPUT;
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
   frames_queued_val_idx_ = 0;
   frames_queued_[0] = 195;
@@ -1990,7 +2035,7 @@ TEST_F(ActiveDevicesSuite, MixMultipleInputs) {
     for (unsigned int i = 0; i < 250; i++)
       buff[i] = i;
   }
-  thread_add_active_dev(thread_, &iodev_);
+  thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);
 
   /* Assert shm from rstream_ is used. */
