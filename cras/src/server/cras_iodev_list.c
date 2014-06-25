@@ -356,7 +356,6 @@ static struct cras_iodev *cras_iodev_set_active(
 {
 	struct cras_iodev *old_active;
 	struct cras_iodev **curr;
-
 	if (new_active && new_active->set_as_default)
 		new_active->set_as_default(new_active);
 
@@ -374,14 +373,15 @@ static struct cras_iodev *cras_iodev_set_active(
 	return old_active;
 }
 
-void cras_iodev_list_add_active_node(cras_node_id_t node_id)
+void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
+				     cras_node_id_t node_id)
 {
 	struct cras_iodev *new_dev;
 	new_dev = find_dev(dev_index_of(node_id));
-	if (!new_dev)
+	if (!new_dev || new_dev->direction != dir)
 		return;
 
-	if (new_dev && new_dev->set_as_default)
+	if (new_dev->set_as_default)
 		new_dev->set_as_default(new_dev);
 
 	/* Detach and then reattach all client streams, so that the new set
@@ -394,7 +394,8 @@ void cras_iodev_list_add_active_node(cras_node_id_t node_id)
 	audio_thread_add_active_dev(audio_thread, new_dev);
 }
 
-void cras_iodev_list_rm_active_node(cras_node_id_t node_id)
+void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
+				    cras_node_id_t node_id)
 {
 	struct cras_iodev *dev;
 	struct cras_iodev *active_dev;

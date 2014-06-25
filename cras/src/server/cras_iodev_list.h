@@ -172,15 +172,19 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 
 /* Adds a node to the active devices list.
  * Args:
+ *    direction - Playback or capture.
  *    node_id - The id of the ionode to be added.
  */
-void cras_iodev_list_add_active_node(cras_node_id_t node_id);
+void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION direction,
+				     cras_node_id_t node_id);
 
 /* Removes a node from the active devices list.
  * Args:
+ *    direction - Playback or capture.
  *    node_id - The id of the ionode to be removed.
  */
-void cras_iodev_list_rm_active_node(cras_node_id_t node_id);
+void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION direction,
+				    cras_node_id_t node_id);
 
 /* Returns 1 if the node is selected, 0 otherwise. */
 int cras_iodev_list_node_selected(struct cras_ionode *node);

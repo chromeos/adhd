@@ -705,7 +705,8 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   rc = cras_iodev_list_add_output(&d3_);
   ASSERT_EQ(0, rc);
 
-  cras_iodev_list_add_active_node(cras_make_node_id(d3_.info.idx, 1));
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d3_.info.idx, 1));
   ASSERT_EQ(audio_thread_add_active_dev_called, 1);
 
   cras_iodev_list_rm_output(&d3_);

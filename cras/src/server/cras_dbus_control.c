@@ -70,6 +70,15 @@
     "    <method name=\"AddActiveInputNode\">\n"                        \
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "    </method>\n"                                                   \
+    "    <method name=\"AddActiveOutputNode\">\n"                       \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
+    "    <method name=\"RemoveActiveInputNode\">\n"                     \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
+    "    <method name=\"RemoveActiveOutputNode\">\n"                    \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
     "    <method name=\"GetNumberOfActiveStreams\">\n"                  \
     "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
     "    </method>\n"                                                   \
@@ -487,7 +496,8 @@ handle_set_active_node(DBusConnection *conn,
 static DBusHandlerResult
 handle_add_active_node(DBusConnection *conn,
 		       DBusMessage *message,
-		       void *arg)
+		       void *arg,
+                       enum CRAS_STREAM_DIRECTION direction)
 {
 	int rc;
 	cras_node_id_t id;
@@ -496,11 +506,31 @@ handle_add_active_node(DBusConnection *conn,
 	if (rc)
 		return rc;
 
-	cras_iodev_list_add_active_node(id);
+	cras_iodev_list_add_active_node(direction, id);
 
 	send_empty_reply(message);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult
+handle_rm_active_node(DBusConnection *conn,
+                      DBusMessage *message,
+                      void *arg,
+                      enum CRAS_STREAM_DIRECTION direction)
+{
+        int rc;
+        cras_node_id_t id;
+
+        rc = get_single_arg(message, DBUS_TYPE_UINT64, &id);
+        if (rc)
+                return rc;
+
+        cras_iodev_list_rm_active_node(direction, id);
+
+        send_empty_reply(message);
+
+        return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 static DBusHandlerResult handle_get_num_active_streams(
@@ -657,7 +687,23 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "AddActiveInputNode")) {
-		return handle_add_active_node(conn, message, arg);
+		return handle_add_active_node(conn, message, arg,
+                                              CRAS_STREAM_INPUT);
+        } else if (dbus_message_is_method_call(message,
+                                               CRAS_CONTROL_INTERFACE,
+                                               "AddActiveOutputNode")) {
+                return handle_add_active_node(conn, message, arg,
+                                              CRAS_STREAM_OUTPUT);
+        } else if (dbus_message_is_method_call(message,
+                                               CRAS_CONTROL_INTERFACE,
+                                               "RemoveActiveInputNode")) {
+                return handle_rm_active_node(conn, message, arg,
+                                             CRAS_STREAM_INPUT);
+        } else if (dbus_message_is_method_call(message,
+                                               CRAS_CONTROL_INTERFACE,
+                                               "RemoveActiveOutputNode")) {
+                return handle_rm_active_node(conn, message, arg,
+                                             CRAS_STREAM_OUTPUT);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "GetNumberOfActiveStreams")) {

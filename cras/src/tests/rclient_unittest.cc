@@ -433,11 +433,13 @@ int audio_thread_add_stream(audio_thread* thread,
   return ret;
 }
 
-void cras_iodev_list_add_active_node(cras_node_id_t node_id)
+void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
+                                     cras_node_id_t node_id)
 {
 }
 
-void cras_iodev_list_rm_active_node(cras_node_id_t node_id)
+void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
+                                    cras_node_id_t node_id)
 {
 }
 

@@ -323,13 +323,13 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_ADD_ACTIVE_NODE: {
 		const struct cras_add_active_node *m =
 			(const struct cras_add_active_node *)msg;
-		cras_iodev_list_add_active_node(m->node_id);
+		cras_iodev_list_add_active_node(m->direction, m->node_id);
 		break;
 	}
 	case CRAS_SERVER_RM_ACTIVE_NODE: {
 		const struct cras_rm_active_node *m =
 			(const struct cras_rm_active_node *)msg;
-		cras_iodev_list_rm_active_node(m->node_id);
+		cras_iodev_list_rm_active_node(m->direction, m->node_id);
 		break;
 	}
 	case CRAS_SERVER_RELOAD_DSP:
