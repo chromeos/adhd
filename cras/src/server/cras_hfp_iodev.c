@@ -204,7 +204,6 @@ struct cras_iodev *hfp_iodev_create(
 	strcpy(node->name, iodev->info.name);
 
 	node->plugged = 1;
-	node->priority = 3;
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);

@@ -271,49 +271,6 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
 	}
 }
 
-/*
- * The rules are (in decision order):
- * - A non-null node is better than a null node.
- * - A plugged node is better than an unplugged node.
- * - A selected node is better than an unselected node.
- * - A node with high priority is better.
- * - A more recently plugged node is better.
- */
-int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
-{
-	int select_a, select_b;
-
-	if (a && !b)
-		return 1;
-	if (!a && b)
-		return 0;
-
-	if (a->plugged > b->plugged)
-		return 1;
-	if (a->plugged < b->plugged)
-		return 0;
-
-	select_a = cras_iodev_list_node_selected(a);
-	select_b = cras_iodev_list_node_selected(b);
-
-	if (select_a > select_b)
-		return 1;
-	if (select_a < select_b)
-		return 0;
-
-	if (a->priority > b->priority)
-		return 1;
-	if (a->priority < b->priority)
-		return 0;
-
-	if (timeval_after(&a->plugged_time, &b->plugged_time))
-		return 1;
-	if (timeval_after(&b->plugged_time, &a->plugged_time))
-		return 0;
-
-	return 0;
-}
-
 /* This is called when a node is plugged/unplugged */
 static void plug_node(struct cras_ionode *node, int plugged)
 {
@@ -396,20 +353,6 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 	}
 
 	return 0;
-}
-
-struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)
-{
-	struct cras_ionode *output;
-	struct cras_ionode *best;
-
-	/* Take the first entry as a starting point. */
-	best = iodev->nodes;
-
-	DL_FOREACH(iodev->nodes, output)
-		if (cras_ionode_better(output, best))
-			best = output;
-	return best;
 }
 
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)

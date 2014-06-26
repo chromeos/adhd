@@ -194,7 +194,6 @@ static int fill_node_list(struct iodev_list *list,
 		DL_FOREACH(dev->nodes, node) {
 			node_info->iodev_idx = dev->info.idx;
 			node_info->ionode_idx = node->idx;
-			node_info->priority = node->priority;
 			node_info->plugged = node->plugged;
 			node_info->plugged_time.tv_sec =
 				node->plugged_time.tv_sec;

@@ -94,7 +94,7 @@ static char test_dev_name[] = "TestDev";
 static size_t cras_iodev_set_node_attr_called;
 static enum ionode_attr cras_iodev_set_node_attr_attr;
 static int cras_iodev_set_node_attr_value;
-static size_t cras_ionode_get_best_node_called;
+static size_t cras_iodev_list_node_selected_called;
 static unsigned cras_alsa_jack_enable_ucm_called;
 static size_t cras_iodev_update_dsp_called;
 static const char *cras_iodev_update_dsp_name;
@@ -140,7 +140,7 @@ void ResetStubData() {
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_set_node_attr_called = 0;
-  cras_ionode_get_best_node_called = 0;
+  cras_iodev_list_node_selected_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
   cras_iodev_update_dsp_called = 0;
   cras_iodev_update_dsp_name = 0;
@@ -305,7 +305,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(1, sys_set_volume_limits_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
-  EXPECT_EQ(1, cras_ionode_get_best_node_called);
+  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
 
   alsa_iodev_destroy(iodev);
@@ -360,7 +360,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
-  EXPECT_EQ(1, cras_ionode_get_best_node_called);
+  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -394,7 +394,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
-  EXPECT_EQ(1, cras_ionode_get_best_node_called);
+  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -467,9 +467,9 @@ TEST(AlsaIoInit, UpdateActiveNode) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
 
-  EXPECT_EQ(1, cras_ionode_get_best_node_called);
+  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
   iodev->update_active_node(iodev);
-  EXPECT_EQ(2, cras_ionode_get_best_node_called);
+  EXPECT_EQ(2, cras_iodev_list_node_selected_called);
 
   alsa_iodev_destroy(iodev);
 }
@@ -700,7 +700,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Unknown");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(0, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
   ASSERT_EQ(CRAS_NODE_TYPE_UNKNOWN, node.type);
@@ -709,7 +708,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Speaker");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(1, node.priority);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_INTERNAL_SPEAKER, node.type);
@@ -718,7 +716,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Internal Mic");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(1, node.priority);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_INTERNAL_MIC, node.type);
@@ -727,7 +724,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "HDMI");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(2, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
@@ -736,7 +732,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "IEC958");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(2, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
 
@@ -744,7 +739,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "HDMI Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(2, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
 
@@ -752,7 +746,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Headphone");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
 
@@ -760,7 +753,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Headphone Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
 
@@ -768,7 +760,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Mic");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
 
@@ -776,7 +767,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Mic Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
 
@@ -784,7 +774,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Unknown");
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
 
@@ -793,7 +782,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   dev.direction = CRAS_STREAM_INPUT;
   strcpy(node.name, "DAISY-I2S Mic Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
 
@@ -801,7 +789,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   node.dev = &dev;
   strcpy(node.name, "Speaker");
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
-  ASSERT_EQ(3, node.priority);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
@@ -1287,10 +1274,10 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
   return 0;
 }
 
-struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev)
+int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
-  cras_ionode_get_best_node_called++;
-  return iodev->nodes;
+  cras_iodev_list_node_selected_called++;
+  return 1;
 }
 
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)

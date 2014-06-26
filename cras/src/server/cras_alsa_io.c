@@ -281,11 +281,34 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 				     &aio->num_underruns);
 }
 
+/* Gets the node in the ionode list of given iodev which is the
+ * best fit to set as active node.
+ */
+static struct cras_ionode *alsa_get_best_node(struct cras_iodev *iodev)
+{
+	struct cras_ionode *n;
+
+	/* Check if any node is already selected by user. */
+	DL_FOREACH(iodev->nodes, n) {
+		if (cras_iodev_list_node_selected(n))
+			return n;
+	}
+
+	/* When this is called at iodev creation, none of the nodes
+	 * are selected. Just pick the first plugged one and let Chrome
+	 * choose it later. */
+	DL_FOREACH(iodev->nodes, n) {
+		if (n->plugged)
+			return n;
+	}
+	return iodev->nodes;
+}
+
 static void update_active_node(struct cras_iodev *iodev)
 {
 	struct cras_ionode *best_node;
 
-	best_node = cras_iodev_get_best_node(iodev);
+	best_node = alsa_get_best_node(iodev);
 	alsa_iodev_set_active_node(iodev, best_node);
 }
 
@@ -527,61 +550,46 @@ int endswith(const char *s, const char *suffix)
 	return n >= m && !strcmp(s + (n - m), suffix);
 }
 
-/* Sets the initial plugged state and priority of a node based on its
- * name. From the highest priority to the lowest priority:
- *
- * Priority 3 -- USB headset, external headphone, external microphone. This has
- * the highest priority because it must be plugged intentionally by the user.
- *
- * Priority 2 -- HDMI/Display Port. This has lower priority because the user may
- * just want to output the video through the HDMI/DP connection.
- *
- * Priority 1 -- Internal speaker and microphone. This is used whenever there
- * are no external nodes plugged.
- *
- * Priority 0 -- This is added only when there are no other nodes found for a
- * device.
+/* Sets the initial plugged state and type of a node based on its
+ * name. Chrome will assign priority to nodes base on node type.
  */
 static void set_node_initial_state(struct cras_ionode *node,
 				   enum CRAS_ALSA_CARD_TYPE card_type)
 {
 	static const struct {
 		const char *name;
-		int priority;
 		int initial_plugged;
 		enum CRAS_NODE_TYPE type;
-	} prios[] = {
-		{ "(default)", 0, 1, CRAS_NODE_TYPE_UNKNOWN},
-		{ INTERNAL_SPEAKER, 1, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
-		{ INTERNAL_MICROPHONE, 1, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
-		{ "HDMI", 2, 0, CRAS_NODE_TYPE_HDMI },
-		{ "IEC958", 2, 0, CRAS_NODE_TYPE_HDMI },
-		{ "Headphone", 3, 0, CRAS_NODE_TYPE_HEADPHONE },
-		{ "Front Headphone", 3, 0, CRAS_NODE_TYPE_HEADPHONE },
-		{ "Mic", 3, 0, CRAS_NODE_TYPE_MIC },
+	} node_defaults[] = {
+		{ "(default)", 1, CRAS_NODE_TYPE_UNKNOWN},
+		{ INTERNAL_SPEAKER, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
+		{ INTERNAL_MICROPHONE, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
+		{ "HDMI", 0, CRAS_NODE_TYPE_HDMI },
+		{ "IEC958", 0, CRAS_NODE_TYPE_HDMI },
+		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
+		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
+		{ "Mic", 0, CRAS_NODE_TYPE_MIC },
 	};
 	unsigned i;
 
 	node->volume = 100;
 	node->type = CRAS_NODE_TYPE_UNKNOWN;
 	/* Go through the known names */
-	for (i = 0; i < ARRAY_SIZE(prios); i++)
-		if (!strncmp(node->name, prios[i].name,
-			     strlen(prios[i].name))) {
-			node->priority = prios[i].priority;
-			node->plugged = prios[i].initial_plugged;
-			node->type = prios[i].type;
+	for (i = 0; i < ARRAY_SIZE(node_defaults); i++)
+		if (!strncmp(node->name, node_defaults[i].name,
+			     strlen(node_defaults[i].name))) {
+			node->plugged = node_defaults[i].initial_plugged;
+			node->type = node_defaults[i].type;
 			if (node->plugged)
 				gettimeofday(&node->plugged_time, NULL);
 			break;
 		}
 
 	/* If we didn't find a matching name above, but the node is a jack node,
-	 * give it a high priority. This matches node names like "DAISY-I2S Mic
+	 * set its type to headphone/mic. This matches node names like "DAISY-I2S Mic
 	 * Jack" */
-	if (i == ARRAY_SIZE(prios)) {
+	if (i == ARRAY_SIZE(node_defaults)) {
 		if (endswith(node->name, "Jack")) {
-			node->priority = 3;
 			if (node->dev->direction == CRAS_STREAM_OUTPUT)
 				node->type = CRAS_NODE_TYPE_HEADPHONE;
 			else
@@ -590,12 +598,10 @@ static void set_node_initial_state(struct cras_ionode *node,
 	}
 
 	/* Regardless of the node name of a USB headset (it can be "Speaker"),
-	 * we want to give it a high priority, the same as external 3.5mm
-	 * Headphone/Mic. */
-	if (card_type == ALSA_CARD_TYPE_USB) {
-		node->priority = 3;
+	 * set it's type to usb.
+	 */
+	if (card_type == ALSA_CARD_TYPE_USB)
 		node->type = CRAS_NODE_TYPE_USB;
-	}
 }
 
 static const char *get_output_node_name(struct alsa_io *aio,
@@ -1082,7 +1088,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Set the active node as the best node we have now. */
 	alsa_iodev_set_active_node(&aio->base,
-				   cras_iodev_get_best_node(&aio->base));
+				   alsa_get_best_node(&aio->base));
 	if (direction == CRAS_STREAM_OUTPUT)
 		cras_iodev_list_add_output(&aio->base);
 	else

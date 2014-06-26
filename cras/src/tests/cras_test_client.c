@@ -304,13 +304,12 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
 {
 	unsigned i;
 
-	printf("\t ID\tPrio  %4s  Plugged\tL/R swapped\t      "
+	printf("\t ID\t%4s   Plugged\tL/R swapped\t      "
 	       "Time\tType\t\t Name\n", is_input ? "Gain" : " Vol");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%u:%u\t%4d %5g  %7s\t%14s\t%10ld\t%-16s%c%s\n",
+		printf("\t%u:%u\t%5g  %7s\t%14s\t%10ld\t%-16s%c%s\n",
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
-		       nodes[i].priority,
 		       is_input ? nodes[i].capture_gain / 100.0
 		       : (double) nodes[i].volume,
 		       nodes[i].plugged ? "yes" : "no",

@@ -31,7 +31,6 @@ struct cras_iodev;
  *    idx - ionode index.
  *    plugged - true if the device is plugged.
  *    plugged_time - If plugged is true, this is the time it was attached.
- *    priority - higher is better.
  *    volume - per-node volume (0-100)
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
  *    left_right_swapped - If left and right output channels are swapped.
@@ -43,7 +42,6 @@ struct cras_ionode {
 	uint32_t idx;
 	int plugged;
 	struct timeval plugged_time;
-	unsigned priority;
 	unsigned int volume;
 	long capture_gain;
 	int left_right_swapped;
@@ -235,9 +233,6 @@ int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b);
  */
 int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value);
-
-/* Find the node with highest priority that is plugged in. */
-struct cras_ionode *cras_iodev_get_best_node(const struct cras_iodev *iodev);
 
 /* Adds a node to the iodev's node list. */
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node);

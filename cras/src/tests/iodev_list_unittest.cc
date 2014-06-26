@@ -878,16 +878,6 @@ int audio_thread_rm_active_dev(struct audio_thread *thread,
   return 0;
 }
 
-int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b)
-{
-  if (a->priority > b->priority)
-    return 1;
-  if (a->priority < b->priority)
-    return 0;
-
-  return 0;
-}
-
 size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
 }
