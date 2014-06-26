@@ -4,7 +4,9 @@
  */
 
 #include <stdint.h>
+#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <linux/sockios.h>
 #include <sys/socket.h>
 #include <syslog.h>
 #include <time.h>
@@ -125,8 +127,9 @@ static int frames_queued(const struct cras_iodev *iodev)
 
 static int open_dev(struct cras_iodev *iodev)
 {
-	int err = 0;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	int sock_depth;
+	int err;
 
 	err = cras_bt_transport_acquire(a2dpio->transport);
 	if (err < 0) {
@@ -151,6 +154,18 @@ static int open_dev(struct cras_iodev *iodev)
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;
 	clock_gettime(CLOCK_MONOTONIC, &a2dpio->dev_open_time);
+
+	/* Set up the socket to hold two MTUs full of data before returning
+	 * EAGAIN.  This will allow the write to be throttled when a reasonable
+	 * amount of data is queued. Pre fill the buffer to avoid confusing
+	 * playing apps with an initial burst of requests for audio. */
+	sock_depth = 2 * cras_bt_transport_write_mtu(a2dpio->transport);
+	setsockopt(cras_bt_transport_fd(a2dpio->transport),
+		   SOL_SOCKET, SO_SNDBUF, &sock_depth, sizeof(sock_depth));
+	err = write(cras_bt_transport_fd(a2dpio->transport),
+		    a2dpio->pcm_buf, sock_depth);
+	if (err != sock_depth)
+		syslog(LOG_WARNING, "Failed to pre-fill a2dp socket\n");
 
 	audio_thread_add_write_callback(cras_bt_transport_fd(a2dpio->transport),
 					flush_data, iodev);
@@ -254,9 +269,9 @@ static int delay_frames(const struct cras_iodev *iodev)
 {
 	const struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
-	/* The number of frames in the pcm buffer plus an mtu packet of delay */
+	/* The number of frames in the pcm buffer plus two mtu packets */
 	return frames_queued(iodev)
-		+ cras_bt_transport_write_mtu(a2dpio->transport) /
+		+ 2 * cras_bt_transport_write_mtu(a2dpio->transport) /
 			cras_get_format_bytes(iodev->format);
 }
 
