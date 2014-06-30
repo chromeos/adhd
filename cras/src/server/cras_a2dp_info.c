@@ -99,7 +99,7 @@ int a2dp_block_size(struct a2dp_info *a2dp, int a2dp_bytes)
 	return a2dp_bytes / a2dp->frame_length * a2dp->codesize;
 }
 
-int a2dp_queued_frames(struct a2dp_info *a2dp)
+int a2dp_queued_frames(const struct a2dp_info *a2dp)
 {
 	return a2dp->samples;
 }

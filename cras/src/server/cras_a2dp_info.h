@@ -57,7 +57,7 @@ int a2dp_block_size(struct a2dp_info *a2dp, int encoded_bytes);
 /*
  * Gets the number of queued frames in a2dp_info.
  */
-int a2dp_queued_frames(struct a2dp_info *a2dp);
+int a2dp_queued_frames(const struct a2dp_info *a2dp);
 
 /*
  * Drains queued samples in a2dp_info.

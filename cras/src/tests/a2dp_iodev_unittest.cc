@@ -10,6 +10,7 @@ extern "C" {
 
 #include "a2dp-codecs.h"
 #include "cras_audio_area.h"
+#include "audio_thread.h"
 #include "cras_bt_transport.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -48,6 +49,8 @@ static unsigned int a2dp_encode_index;
 static int a2dp_write_return_val[MAX_A2DP_WRITE_CALLS];
 static unsigned int a2dp_write_index;
 static cras_audio_area *dummy_audio_area;
+static thread_callback write_callback;
+static void *write_callback_data;
 
 void ResetStubData() {
   cras_iodev_list_add_output_called = 0;
@@ -78,6 +81,8 @@ void ResetStubData() {
     dummy_audio_area = (cras_audio_area*)calloc(1,
         sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
   }
+
+  write_callback = NULL;
 }
 
 int iodev_set_format(struct cras_iodev *iodev,
@@ -174,6 +179,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
 
   iodev_set_format(iodev, &format);
   iodev->open_dev(iodev);
+  ASSERT_NE(write_callback, (void *)NULL);
 
   frames = 256;
   iodev->get_buffer(iodev, &area1, &frames);
@@ -186,8 +192,8 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_index = 0;
   a2dp_write_return_val[0] = 400;
   iodev->put_buffer(iodev, 100);
+  write_callback(write_callback_data);
   ASSERT_EQ(400, pcm_buf_size_val[0]);
-  ASSERT_EQ(1, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
@@ -206,9 +212,9 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_return_val[0] = 360;
   a2dp_write_return_val[1] = 0;
   iodev->put_buffer(iodev, 100);
+  write_callback(write_callback_data);
   ASSERT_EQ(400, pcm_buf_size_val[0]);
   ASSERT_EQ(40, pcm_buf_size_val[1]);
-  ASSERT_EQ(2, a2dp_block_size_called);
 
   iodev->get_buffer(iodev, &area3, &frames);
 
@@ -233,6 +239,7 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
   iodev->open_dev(iodev);
+  ASSERT_NE(write_callback, (void *)NULL);
 
   frames = 256;
   iodev->get_buffer(iodev, &area, &frames);
@@ -250,14 +257,14 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 100);
-  ASSERT_EQ(1, a2dp_block_size_called);
+  write_callback(write_callback_data);
   ASSERT_EQ(56, iodev->frames_queued(iodev));
 
   /* After 1ms, 44 more frames consumed but no more frames written yet.
    */
   time_now.tv_sec = 0;
   time_now.tv_nsec = 2000000;
-  ASSERT_EQ(50, iodev->frames_queued(iodev));
+  ASSERT_EQ(12, iodev->frames_queued(iodev));
 
   /* Queued frames and new put buffer are all written */
   a2dp_encode_processed_bytes_val[0] = 400;
@@ -272,6 +279,7 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 3000000;
   iodev->put_buffer(iodev, 100);
+  write_callback(write_callback_data);
   ASSERT_EQ(400, pcm_buf_size_val[0]);
   ASSERT_EQ(68, iodev->frames_queued(iodev));
 }
@@ -441,11 +449,22 @@ void cras_iodev_init_audio_area(struct cras_iodev *iodev,
 void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
 }
 
-}
-
 void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 					 const struct cras_audio_format *fmt,
 					 uint8_t *base_buffer)
 {
   dummy_audio_area->channels[0].buf = base_buffer;
+}
+
+void audio_thread_add_write_callback(int fd, thread_callback cb, void *data) {
+  write_callback = cb;
+  write_callback_data = data;
+}
+
+void audio_thread_rm_callback(int fd) {
+}
+
+void audio_thread_enable_callback(int fd, int enabled) {
+}
+
 }
