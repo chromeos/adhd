@@ -124,17 +124,14 @@ TEST(A2dpInfoInit, DrainA2dp) {
   destroy_a2dp(&a2dp);
 }
 
-TEST(A2dpWrite, WriteA2dp) {
-  int written, sock[2];
+TEST(A2dpEncode, WriteA2dp) {
   unsigned int processed;
 
   ResetStubData();
   init_a2dp(&a2dp, &sbc);
 
-  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-
   encode_out_encoded_return_val = 4;
-  processed = a2dp_write(NULL, 20, &a2dp, 4, sock[0], (size_t)40, &written);
+  processed = a2dp_encode(&a2dp, NULL, 20, 4, (size_t)40);
 
   ASSERT_EQ(20, processed);
   ASSERT_EQ(4, a2dp.frame_count);
@@ -144,26 +141,14 @@ TEST(A2dpWrite, WriteA2dp) {
   ASSERT_EQ(5, a2dp.samples);
   ASSERT_EQ(5, a2dp.nsamples);
   ASSERT_EQ(0, a2dp.seq_num);
-  ASSERT_EQ(0, written);
 
   encode_out_encoded_return_val = 15;
-  processed = a2dp_write(NULL, 20, &a2dp, 4, sock[0], (size_t)40, &written);
+  processed = a2dp_encode(&a2dp, NULL, 20, 4, (size_t)40);
 
-  // Used a2dp buffer restores to header size.
-  ASSERT_EQ(13, a2dp.a2dp_buf_used);
-  ASSERT_EQ(0, a2dp.samples);
-
-  // nsamples acumulated
+  ASSERT_EQ(32, a2dp.a2dp_buf_used);
+  ASSERT_EQ(10, a2dp.samples);
   ASSERT_EQ(10, a2dp.nsamples);
-
-  // seq_num increased
-  ASSERT_EQ(1, a2dp.seq_num);
-
-  // Total 13 + 4 + 15 bytes written
-  ASSERT_EQ(32, written);
-
-  close(sock[0]);
-  close(sock[1]);
+  ASSERT_EQ(0, a2dp.seq_num);
 }
 
 } // namespace

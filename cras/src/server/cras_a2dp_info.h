@@ -65,18 +65,25 @@ int a2dp_queued_frames(struct a2dp_info *a2dp);
 void a2dp_drain(struct a2dp_info *a2dp);
 
 /*
- * Writes samples using a2dp, returns the pcm bytes processed.
+ * Encodes samples using the codec for this a2dp instance, returns the number of
+ * pcm bytes processed.
  * Args:
+ *    a2dp: The a2dp info object.
  *    pcm_buf: The buffer of pcm samples.
  *    pcm_buf_size: Size of the pcm buffer.
- *    a2dp: The a2dp info object.
  *    format_bytes: Number of bytes per sample.
+ *    link_mtu: The maximum transmit unit.
+ */
+int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,
+		int format_bytes, size_t link_mtu);
+
+/*
+ * Writes samples using a2dp, returns numbewr of bytes written.
+ * Args:
+ *    a2dp: The a2dp info object.
  *    stream_fd: The file descriptor to send stream to.
  *    link_mtu: The maximum transmit unit.
- *    written_bytes: The actual bytes written into a2dp butter.
  */
-unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
-			struct a2dp_info *a2dp, int format_bytes, int stream_fd,
-			size_t link_mtu, int *written_bytes);
+int a2dp_write(struct a2dp_info *a2dp, int stream_fd, size_t link_mtu);
 
 #endif /* CRAS_A2DP_INFO_H_ */

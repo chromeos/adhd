@@ -144,17 +144,17 @@ static int avdtp_write(int stream_fd, struct a2dp_info *a2dp)
 	return err;
 }
 
-unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
-			struct a2dp_info *a2dp, int format_bytes, int stream_fd,
-			size_t link_mtu, int *written_bytes)
+int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,
+		int format_bytes, size_t link_mtu)
 {
 	int processed;
 	size_t out_encoded;
 
 	if (link_mtu > A2DP_BUF_SIZE_BYTES)
 		link_mtu = A2DP_BUF_SIZE_BYTES;
+	if (link_mtu == a2dp->a2dp_buf_used)
+		return 0;
 
-	*written_bytes = 0;
 	processed = a2dp->codec->encode(a2dp->codec, pcm_buf, pcm_buf_size,
 					a2dp->a2dp_buf + a2dp->a2dp_buf_used,
 					link_mtu - a2dp->a2dp_buf_used,
@@ -168,15 +168,18 @@ unsigned int a2dp_write(const void *pcm_buf, int pcm_buf_size,
 		a2dp->frame_count += processed / a2dp->codesize;
 	a2dp->a2dp_buf_used += out_encoded;
 
-	if (processed) {
-		a2dp->samples += processed / format_bytes;
-		a2dp->nsamples += processed / format_bytes;
-	}
+	a2dp->samples += processed / format_bytes;
+	a2dp->nsamples += processed / format_bytes;
 
+	return processed;
+}
+
+int a2dp_write(struct a2dp_info *a2dp, int stream_fd, size_t link_mtu)
+{
 	/* Do avdtp write when the max number of SBC frames is reached. */
 	if (a2dp->a2dp_buf_used + a2dp->frame_length >
 	    link_mtu - sizeof(struct rtp_header) - sizeof(struct rtp_payload))
-		*written_bytes = avdtp_write(stream_fd, a2dp);
+		return avdtp_write(stream_fd, a2dp);
 
-	return processed;
+	return 0;
 }

@@ -198,21 +198,24 @@ static int flush_data(const struct cras_iodev *iodev)
 	format_bytes = cras_get_format_bytes(iodev->format);
 
 	while (buf_queued_bytes(a2dpio->pcm_buf)) {
-		processed = a2dp_write(
+		processed = a2dp_encode(
+				&a2dpio->a2dp,
 				buf_read_pointer(a2dpio->pcm_buf),
 				buf_readable_bytes(a2dpio->pcm_buf),
-				&a2dpio->a2dp,
 				format_bytes,
-				cras_bt_transport_fd(a2dpio->transport),
-				cras_bt_transport_write_mtu(a2dpio->transport),
-				&written);
-
-		if (processed == 0 || processed == -ENOSPC)
-			break;
-		if (processed < 0)
+				cras_bt_transport_write_mtu(a2dpio->transport));
+		if (processed == -ENOSPC) {
+			/* Continue to write */
+		} else if (processed < 0) {
 			return processed;
-		buf_increment_read(a2dpio->pcm_buf, processed);
+		} else {
+			buf_increment_read(a2dpio->pcm_buf, processed);
+		}
 
+		written = a2dp_write(
+				&a2dpio->a2dp,
+				cras_bt_transport_fd(a2dpio->transport),
+				cras_bt_transport_write_mtu(a2dpio->transport));
 		if (written == -EAGAIN) {
 			return 0;
 		} else if (written == -ENOTCONN) {
@@ -222,6 +225,8 @@ static int flush_data(const struct cras_iodev *iodev)
 		} else if (written < 0) {
 			syslog(LOG_ERR, "a2dpio write error %d", written);
 			return written;
+		} else if (written == 0) {
+			break;
 		}
 
 		bt_queued_frames(iodev,
