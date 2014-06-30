@@ -24,8 +24,12 @@ static size_t cras_fmt_conv_convert_frames_out_frames_val;
 static int shmat_called;
 static int shmdt_called;
 static int shmget_called;
+static int pthread_create_called;
+static int pthread_join_called;
 static int close_called;
 static int pipe_called;
+static int sendmsg_called;
+static int cras_fmt_conv_destroy_called;
 
 static void* shmat_returned_value;
 static int pthread_create_returned_value;
@@ -43,8 +47,12 @@ void InitStaticVariables() {
   shmat_called = 0;
   shmdt_called = 0;
   shmget_called = 0;
+  pthread_create_called = 0;
+  pthread_join_called = 0;
   close_called = 0;
   pipe_called = 0;
+  sendmsg_called = 0;
+  cras_fmt_conv_destroy_called = 0;
   shmat_returned_value = NULL;
   pthread_create_returned_value = 0;
 }
@@ -71,6 +79,7 @@ class CrasClientTestSuite : public testing::Test {
       shm_writable_frames_ = 100;
       InitStaticVariables();
 
+      memset(&client_, 0, sizeof(client_));
       memset(&stream_, 0, sizeof(stream_));
       stream_.id = FIRST_STREAM_ID;
 
@@ -94,6 +103,7 @@ class CrasClientTestSuite : public testing::Test {
     void StreamConnectedFail(CRAS_STREAM_DIRECTION direction);
 
     struct client_stream stream_;
+    struct cras_client client_;
     int shm_writable_frames_;
 };
 
@@ -285,6 +295,31 @@ TEST_F(CrasClientTestSuite, OutputStreamConnectedFail) {
   StreamConnectedFail(CRAS_STREAM_OUTPUT);
 }
 
+TEST_F(CrasClientTestSuite, HandleStreamReattach) {
+  // Setup the stream
+  DL_APPEND(client_.streams, &stream_);
+  stream_.client = &client_;
+  stream_.thread.running = 1;
+  stream_.play_conv = reinterpret_cast<cras_fmt_conv*>(&fake_conv);
+  stream_.capture_conv = NULL;
+
+  EXPECT_EQ(0, handle_stream_reattach(&client_, FIRST_STREAM_ID));
+
+  // The stream's audio thread will be stopped
+  EXPECT_EQ(1, pthread_join_called);
+  EXPECT_EQ(0, stream_.thread.running);
+
+  EXPECT_EQ(1, cras_fmt_conv_destroy_called);
+
+  // Expect the connect message will be send.
+  EXPECT_EQ(1, sendmsg_called);
+}
+
+TEST_F(CrasClientTestSuite, HandleStreamReattchInvalidStream) {
+  EXPECT_EQ(0, handle_stream_reattach(&client_, FIRST_STREAM_ID));
+  EXPECT_EQ(0, pthread_join_called);
+}
+
 } // namepsace
 
 int main(int argc, char **argv) {
@@ -310,6 +345,11 @@ int shmdt(const void *shmaddr) {
   return 0;
 }
 
+ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) {
+  ++sendmsg_called;
+  return msg->msg_iov->iov_len;
+}
+
 int pipe(int pipefd[2]) {
   pipefd[0] = 1;
   pipefd[1] = 2;
@@ -326,7 +366,13 @@ int pthread_create(pthread_t *thread,
                    const pthread_attr_t *attr,
                    void *(*start_routine)(void *),
                    void *arg) {
+  ++pthread_create_called;
   return pthread_create_returned_value;
+}
+
+int pthread_join(pthread_t thread, void **retval) {
+  ++pthread_join_called;
+  return 0;
 }
 
 size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
@@ -336,6 +382,7 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 {
+  ++cras_fmt_conv_destroy_called;
 }
 
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
