@@ -207,10 +207,10 @@ static int flush_data(const struct cras_iodev *iodev)
 				cras_bt_transport_write_mtu(a2dpio->transport),
 				&written);
 
+		if (processed == 0 || processed == -ENOSPC)
+			break;
 		if (processed < 0)
 			return processed;
-		if (processed == 0)
-			break;
 		buf_increment_read(a2dpio->pcm_buf, processed);
 
 		if (written == -EAGAIN) {
