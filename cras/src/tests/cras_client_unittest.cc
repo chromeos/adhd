@@ -29,6 +29,7 @@ static int pthread_join_called;
 static int close_called;
 static int pipe_called;
 static int sendmsg_called;
+static int write_called;
 static int cras_fmt_conv_destroy_called;
 
 static void* shmat_returned_value;
@@ -52,6 +53,7 @@ void InitStaticVariables() {
   close_called = 0;
   pipe_called = 0;
   sendmsg_called = 0;
+  write_called = 0;
   cras_fmt_conv_destroy_called = 0;
   shmat_returned_value = NULL;
   pthread_create_returned_value = 0;
@@ -320,6 +322,36 @@ TEST_F(CrasClientTestSuite, HandleStreamReattchInvalidStream) {
   EXPECT_EQ(0, pthread_join_called);
 }
 
+TEST_F(CrasClientTestSuite, AddAndRemoveStream) {
+  cras_stream_id_t stream_id;
+
+  // Dynamically allocat the stream so that it can be freed later.
+  struct client_stream* stream_ptr = (struct client_stream *)
+      malloc(sizeof(*stream_ptr));
+  memcpy(stream_ptr, &stream_, sizeof(client_stream));
+  stream_ptr->config = (struct cras_stream_params *)
+      malloc(sizeof(*(stream_ptr->config)));
+  memcpy(stream_ptr->config, stream_.config, sizeof(*(stream_.config)));
+
+  EXPECT_EQ(0, client_thread_add_stream(&client_, stream_ptr, &stream_id));
+  EXPECT_EQ(&client_, stream_ptr->client);
+  EXPECT_EQ(stream_id, stream_ptr->id);
+  EXPECT_EQ(1, sendmsg_called); // send connect message to server
+  EXPECT_EQ(stream_ptr, stream_from_id(&client_, stream_id));
+
+  stream_ptr->thread.running = 1;
+
+  EXPECT_EQ(0, client_thread_rm_stream(&client_, stream_id));
+
+  // One for the disconnect message to server,
+  // the other is to wake_up the audio thread
+  EXPECT_EQ(2, write_called);
+  EXPECT_EQ(0, stream_ptr->thread.running);
+  EXPECT_EQ(1, pthread_join_called);
+
+  EXPECT_EQ(NULL, stream_from_id(&client_, stream_id));
+}
+
 } // namepsace
 
 int main(int argc, char **argv) {
@@ -343,6 +375,11 @@ void* shmat(int shmid, const void* shmaddr, int shmflg) {
 int shmdt(const void *shmaddr) {
   ++shmdt_called;
   return 0;
+}
+
+ssize_t write(int fd, const void *buf, size_t count) {
+  ++write_called;
+  return count;
 }
 
 ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) {
