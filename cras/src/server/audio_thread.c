@@ -629,6 +629,10 @@ static int thread_remove_stream(struct audio_thread *thread,
 	if (delete_stream(thread, stream))
 		syslog(LOG_ERR, "Stream to remove not found.");
 
+	audio_thread_event_log_data(atlog,
+				    AUDIO_THREAD_STREAM_REMOVED,
+				    stream->stream_id);
+
 	active_streams(thread, &in_active, &out_active, &loop_active);
 
 	/* When removing the last stream of a certain direction, close
@@ -783,6 +787,9 @@ static int thread_add_stream(struct audio_thread *thread,
 		config_devices_min_latency(thread,
 					   CRAS_STREAM_POST_MIX_PRE_DSP);
 
+	audio_thread_event_log_data(atlog,
+				    AUDIO_THREAD_STREAM_ADDED,
+				    stream->stream_id);
 	return 0;
 }
 
