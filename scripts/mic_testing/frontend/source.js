@@ -58,13 +58,18 @@ var ToneGen = function() {
         this.sampleRate * this.duration, this.sampleRate);
     var leftChannel = this.buffer.getChannelData(0);
     var rightChannel = this.buffer.getChannelData(1);
-    var f, phi;
-    var power_start = Math.log(this.freqStart) / Math.LN2;
-    var power_end = Math.log(this.freqEnd) / Math.LN2;
+    var phi;
+    var k = this.freqEnd / this.freqStart;
+    var beta = this.duration / Math.log(k);
     for (var i = 0; i < leftChannel.length; i++) {
-      f = this.freqStart + (this.freqEnd - this.freqStart) *
-          i / leftChannel.length / 2;
-      phi = f * 2 * Math.PI * i / this.sampleRate;
+      if (this.sweepLog) {
+        phi = 2 * Math.PI * this.freqStart * beta *
+            (Math.pow(k, i / leftChannel.length) - 1.0);
+      } else {
+        var f = this.freqStart + (this.freqEnd - this.freqStart) *
+            i / leftChannel.length / 2;
+        phi = f * 2 * Math.PI * i / this.sampleRate;
+      }
       leftChannel[i] = this.leftGain * Math.sin(phi);
       rightChannel[i] = this.rightGain * Math.sin(phi);
     }
