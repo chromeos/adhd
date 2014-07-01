@@ -1528,10 +1528,9 @@ int possibly_fill_audio(struct audio_thread *thread,
 	hw_level = rc;
 	adjusted_level = adjust_level(thread, hw_level);
 
-	audio_thread_event_log_data2(atlog, AUDIO_THREAD_FILL_AUDIO,
-				     hw_level, adjusted_level);
-
 	delay = odev->delay_frames(odev);
+	audio_thread_event_log_data3(atlog, AUDIO_THREAD_FILL_AUDIO,
+				     hw_level, adjusted_level, delay);
 	if (delay < 0)
 		return delay;
 
