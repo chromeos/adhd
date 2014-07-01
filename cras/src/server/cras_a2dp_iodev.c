@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "audio_thread.h"
+#include "audio_thread_log.h"
 #include "byte_buffer.h"
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
@@ -225,6 +226,11 @@ encode_more:
 				buf_readable_bytes(a2dpio->pcm_buf),
 				format_bytes,
 				cras_bt_transport_write_mtu(a2dpio->transport));
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_A2DP_ENCODE,
+					    processed,
+					    buf_queued_bytes(a2dpio->pcm_buf),
+					    buf_readable_bytes(a2dpio->pcm_buf)
+					    );
 		if (processed == -ENOSPC || processed == 0)
 			break;
 		if (processed < 0)
@@ -237,6 +243,9 @@ encode_more:
 	written = a2dp_write(&a2dpio->a2dp,
 			     cras_bt_transport_fd(a2dpio->transport),
 			     cras_bt_transport_write_mtu(a2dpio->transport));
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_A2DP_WRITE,
+				    written,
+				    a2dp_queued_frames(&a2dpio->a2dp), 0);
 	if (written == -EAGAIN) {
 		audio_thread_enable_callback(
 				cras_bt_transport_fd(a2dpio->transport), 1);

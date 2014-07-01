@@ -11,6 +11,7 @@ extern "C" {
 #include "a2dp-codecs.h"
 #include "cras_audio_area.h"
 #include "audio_thread.h"
+#include "audio_thread_log.h"
 #include "cras_bt_transport.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -101,6 +102,8 @@ static struct timespec time_now;
 
 TEST(A2dpIoInit, InitializeA2dpIodev) {
   struct cras_iodev *iodev;
+
+  atlog = (audio_thread_event_log *)calloc(1, sizeof(audio_thread_event_log));
 
   ResetStubData();
 
@@ -455,6 +458,9 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 {
   dummy_audio_area->channels[0].buf = base_buffer;
 }
+
+// From audio_thread
+struct audio_thread_event_log *atlog;
 
 void audio_thread_add_write_callback(int fd, thread_callback cb, void *data) {
   write_callback = cb;
