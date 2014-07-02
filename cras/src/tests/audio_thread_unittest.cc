@@ -717,8 +717,9 @@ class WriteStreamSuite : public testing::Test {
       iodev_.is_open = is_open;
       iodev_.open_dev = open_dev;
       iodev_.close_dev = close_dev;
+      iodev_.buffer_size = 480;
 
-      buffer_frames_ = 480;
+      buffer_frames_ = iodev_.buffer_size;
       cb_threshold_ = 96;
       SetupRstream(&rstream_, 1);
       shm_ = cras_rstream_output_shm(rstream_);

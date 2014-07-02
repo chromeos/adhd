@@ -1577,9 +1577,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 
 	/* Request data from streams that need more, and don't request more
 	 * then hardware can hold. */
-	fr_to_req = thread->buffer_frames[CRAS_STREAM_OUTPUT] - hw_level;
-	if (fr_to_req > odev->buffer_size - hw_level)
-			fr_to_req = odev->buffer_size - hw_level;
+	fr_to_req = odev->buffer_size - hw_level;
 
 	rc = fetch_and_set_timestamp(thread, adjusted_level, delay);
 	if (rc < 0)
