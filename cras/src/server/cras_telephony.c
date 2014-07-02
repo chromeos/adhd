@@ -34,7 +34,7 @@
 	"  </interface>\n"						\
 	"</node>\n"
 
-static DBusConnection *dbus_conn;
+static struct cras_telephony_handle telephony_handle;
 
 /* Helper to send an empty reply. */
 static void send_empty_reply(DBusConnection *conn, DBusMessage *message)
@@ -89,6 +89,9 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 			/* Fake number with type NUMBER_TYPE_TELEPHONY */
 			hfp_event_incoming_call(handle, "1234567", 129);
 
+		// TODO(menghuan): provide APIs to handle
+		telephony_handle.callsetup = 1;
+
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
@@ -99,6 +102,10 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		if (handle)
 			hfp_event_terminate_call(handle);
 
+		// TODO(menghuan): provide APIs to handle
+		telephony_handle.call = 1;
+		telephony_handle.callsetup = 0;
+
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
@@ -108,6 +115,10 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		handle = hfp_slc_get_handle();
 		if (handle)
 			hfp_event_answer_call(handle);
+
+		// TODO(menghuan): provide APIs to handle
+		telephony_handle.call = 0;
+		telephony_handle.callsetup = 0;
 
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -136,8 +147,8 @@ void cras_telephony_start(DBusConnection *conn)
 
 	DBusError dbus_error;
 
-	dbus_conn = conn;
-	dbus_connection_ref(dbus_conn);
+	telephony_handle.dbus_conn = conn;
+	dbus_connection_ref(telephony_handle.dbus_conn);
 
 	if (!dbus_connection_register_object_path(conn,
 						  CRAS_TELEPHONY_OBJECT_PATH,
@@ -153,11 +164,16 @@ void cras_telephony_start(DBusConnection *conn)
 
 void cras_telephony_stop()
 {
-	if (!dbus_conn)
+	if (!telephony_handle.dbus_conn)
 		return;
 
-	dbus_connection_unregister_object_path(dbus_conn,
+	dbus_connection_unregister_object_path(telephony_handle.dbus_conn,
 					       CRAS_TELEPHONY_OBJECT_PATH);
-	dbus_connection_unref(dbus_conn);
-	dbus_conn = NULL;
+	dbus_connection_unref(telephony_handle.dbus_conn);
+	telephony_handle.dbus_conn = NULL;
+}
+
+struct cras_telephony_handle* cras_telephony_get()
+{
+	return &telephony_handle;
 }

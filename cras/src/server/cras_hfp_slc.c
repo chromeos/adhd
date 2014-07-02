@@ -64,6 +64,7 @@
  *    data - Private data to be passed to init_cb.
  *    initialized - The service level connection is fully initilized of not
  *    cli_active - Calling line identification notification is enabled or not
+ *    telephony - A reference of current telephony handle
  */
 struct hfp_slc_handle {
 	char buf[SLC_BUF_SIZE_BYTES];
@@ -76,9 +77,8 @@ struct hfp_slc_handle {
 	void *init_cb_data;
 	int initialized;
 	int cli_active;
-	int call;
-	int callsetup;
-	char *dial_number;
+
+	struct cras_telephony_handle *telephony;
 };
 
 /* AT command exchanges between AG(Audio gateway) and HF(Hands-free device) */
@@ -127,10 +127,11 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 {
 	char cmd[64];
 
+	// TODO(menghuan): provide a API to handle it
 	if (ind_index == CALL_IND_INDEX)
-		handle->call = value;
+		handle->telephony->call = value;
 	if (ind_index == CALLSETUP_IND_INDEX)
-		handle->callsetup = value;
+		handle->telephony->callsetup = value;
 
 	snprintf(cmd, 64, "+CIEV: %d,%d", ind_index, value);
 	return hfp_send(handle, cmd);
@@ -181,11 +182,14 @@ static void store_dial_number(struct hfp_slc_handle *handle,
 			      const char *number,
 			      int number_len)
 {
-	if (handle->dial_number)
-		free(handle->dial_number);
-	handle->dial_number = (char *)calloc(number_len,
-					     sizeof(*handle->dial_number));
-	strncpy(handle->dial_number, number, number_len);
+	// TODO(menghuan): move to telephony.c
+	if (handle->telephony->dial_number)
+		free(handle->telephony->dial_number);
+	handle->telephony->dial_number =
+			(char *) calloc(
+				number_len,
+				sizeof(*handle->telephony->dial_number));
+	strncpy(handle->telephony->dial_number, number, number_len);
 }
 
 /* ATDdd...dd command to place call with supplied number, or ATD>nnn...
@@ -205,7 +209,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 		int memory_location;
 		strncpy(buf, &cmd[4], cmd_len - 5);
 		memory_location = strtol(buf, NULL, 0);
-		if (!handle->dial_number || memory_location > 1)
+		if (!handle->telephony->dial_number || memory_location > 1)
 			return hfp_send(handle, "ERROR");
 		goto dial_number;
 	}
@@ -262,8 +266,6 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 			if (err == 0) {
 				handle->init_cb(handle, handle->init_cb_data);
 				handle->initialized = 1;
-				handle->call = 0;
-				handle->callsetup = 0;
 			}
 		}
 	} else {
@@ -290,14 +292,14 @@ static int last_dialed_number(struct hfp_slc_handle *handle, const char *buf)
 {
 	int rc;
 
-	if (!handle->dial_number)
+	if (!handle->telephony->dial_number)
 		return hfp_send(handle, "ERROR");
 
 	rc = hfp_send(handle, "OK");
 	if (rc)
 		return rc;
 
-	handle->callsetup = 2;
+	handle->telephony->callsetup = 2;
 	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 2);
 }
 
@@ -332,17 +334,25 @@ static int operator_selection(struct hfp_slc_handle *handle, const char *buf)
 static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 {
 	int err;
+	char buf[64];
 
-	if (cmd[7] == '=')
+	if (cmd[7] == '=') {
 		/* Indicator update test command "AT+CIND=?" */
 		err = hfp_send(handle, INDICATOR_UPDATE_RSP);
-	else
-		/* Indicator update read command "AT+CIND?"
-		 * Battery charge and signal strength are full. Presence
-		 * of service. No active call, held call, call set up and
-		 * roaming.
+	} else {
+		/* Indicator update read command "AT+CIND?".
+		 * Respond with current status of AG indicators,
+		 * the values must be listed in the indicator order declared
+		 * in INDICATOR_UPDATE_RSP.
+		 * +CIND: <signal>,<service>,<call>,
+		 *        <callsetup>,<callheld>,<roam>
 		 */
-		err = hfp_send(handle, "+CIND: 5,5,1,0,0,0,0");
+		snprintf(buf, 64, "+CIND: 5,5,1,%d,%d,0,0",
+			handle->telephony->call,
+			handle->telephony->callsetup
+			);
+		err = hfp_send(handle, buf);
+	}
 
 	if (err < 0)
 		return err;
@@ -426,12 +436,12 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 	if (rc)
 		return rc;
 
-	if (handle->call) {
+	if (handle->telephony->call) {
 		rc = hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
 		if (rc)
 			return rc;
 	}
-	if (handle->callsetup) {
+	if (handle->telephony->callsetup) {
 		rc = hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
 		if (rc)
 			return rc;
@@ -591,6 +601,9 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->init_cb = init_cb;
 	handle->disconnect_cb = disconnect_cb;
 	handle->init_cb_data = init_cb_data;
+	handle->cli_active = 0;
+	handle->telephony = cras_telephony_get();
+
 	active_slc_handle = handle;
 	cras_system_add_select_fd(handle->rfcomm_fd,
 				  slc_watch_callback, handle);
