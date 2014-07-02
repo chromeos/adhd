@@ -43,7 +43,7 @@
 #define CALL_IND_INDEX			4
 #define CALLSETUP_IND_INDEX		5
 #define INDICATOR_UPDATE_RSP		\
-	"\r\n+CIND: "			\
+	"+CIND: "			\
 	"(\"battchg\",(0-5),"		\
 	"(\"signal\",(0-5)),"		\
 	"(\"service\",(0,1)),"		\
@@ -51,7 +51,7 @@
 	"(\"callsetup\",(0-3)),"	\
 	"(\"callheld\",(0-2)),"		\
 	"(\"roam\",(0,1))"		\
-	"\r\n"
+	""
 
 /* Handle object to hold required info to initialize and maintain
  * an HFP service level connection.
@@ -98,6 +98,11 @@ static int hfp_send(struct hfp_slc_handle *handle, const char *buf)
 	if (handle->rfcomm_fd < 0)
 		return -EIO;
 
+	/* Message start and end with "\r\n". refer to spec 4.33. */
+	err = write(handle->rfcomm_fd, "\r\n", 2);
+	if (err < 0)
+		return -errno;
+
 	len = strlen(buf);
 	written = 0;
 	while (written < len) {
@@ -107,6 +112,10 @@ static int hfp_send(struct hfp_slc_handle *handle, const char *buf)
 			return -errno;
 		written += err;
 	}
+
+	err = write(handle->rfcomm_fd, "\r\n", 2);
+	if (err < 0)
+		return -errno;
 
 	return 0;
 }
@@ -123,7 +132,7 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 	if (ind_index == CALLSETUP_IND_INDEX)
 		handle->callsetup = value;
 
-	snprintf(cmd, 64, "\r\n+CIEV: %d,%d\r\n", ind_index, value);
+	snprintf(cmd, 64, "+CIEV: %d,%d", ind_index, value);
 	return hfp_send(handle, cmd);
 }
 
@@ -133,7 +142,7 @@ static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
 						int type)
 {
 	char cmd[64];
-	snprintf(cmd, 64, "\r\n+CLIP: \"%s\",%d\r\n", number, type);
+	snprintf(cmd, 64, "+CLIP: \"%s\",%d", number, type);
 	return hfp_send(handle, cmd);
 }
 
@@ -141,7 +150,7 @@ static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
 static int answer_call(struct hfp_slc_handle *handle, const char *cmd)
 {
 	int rc;
-	rc = hfp_send(handle, "\r\nOK\r\n");
+	rc = hfp_send(handle, "OK");
 	if (rc)
 		return rc;
 
@@ -156,7 +165,7 @@ static int answer_call(struct hfp_slc_handle *handle, const char *cmd)
  * Mandatory support per spec 4.21. */
 static int call_waiting_notify(struct hfp_slc_handle *handle, const char *buf)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+CLIP command to enable the "Calling Line Identification notification"
@@ -165,7 +174,7 @@ static int call_waiting_notify(struct hfp_slc_handle *handle, const char *buf)
 static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
 {
 	handle->cli_active = (cmd[8] == '1');
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 static void store_dial_number(struct hfp_slc_handle *handle,
@@ -197,7 +206,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 		strncpy(buf, &cmd[4], cmd_len - 5);
 		memory_location = strtol(buf, NULL, 0);
 		if (!handle->dial_number || memory_location > 1)
-			return hfp_send(handle, "\r\nERROR\r\n");
+			return hfp_send(handle, "ERROR");
 		goto dial_number;
 	}
 
@@ -205,7 +214,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 	store_dial_number(handle, &cmd[3], strlen(cmd) - 4);
 
 dial_number:
-	rc = hfp_send(handle, "\r\nOK\r\n");
+	rc = hfp_send(handle, "OK");
 	if (rc)
 		return rc;
 
@@ -215,7 +224,7 @@ dial_number:
 /* AT+VTS command to generate a DTMF code. Mandatory per spec 4.27. */
 static int dtmf_tone(struct hfp_slc_handle *handle, const char *buf)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+CMER command enables the registration status update function in AG.
@@ -249,7 +258,7 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 			syslog(LOG_ERR, "Service level connection has already"
 					"been initialized");
 		} else {
-			err = hfp_send(handle, "\r\nOK\r\n");
+			err = hfp_send(handle, "OK");
 			if (err == 0) {
 				handle->init_cb(handle, handle->init_cb_data);
 				handle->initialized = 1;
@@ -271,7 +280,7 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
  */
 static int extended_errors(struct hfp_slc_handle *handle, const char *buf)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+BLDN command to re-dial the last number. Mandatory support
@@ -282,9 +291,9 @@ static int last_dialed_number(struct hfp_slc_handle *handle, const char *buf)
 	int rc;
 
 	if (!handle->dial_number)
-		return hfp_send(handle, "\r\nERROR\r\n");
+		return hfp_send(handle, "ERROR");
 
-	rc = hfp_send(handle, "\r\nOK\r\n");
+	rc = hfp_send(handle, "OK");
 	if (rc)
 		return rc;
 
@@ -297,7 +306,7 @@ static int last_dialed_number(struct hfp_slc_handle *handle, const char *buf)
  */
 static int list_current_calls(struct hfp_slc_handle *handle, const char *cmd)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+COPS command to query currently selected operator or set name format.
@@ -311,9 +320,9 @@ static int operator_selection(struct hfp_slc_handle *handle, const char *buf)
 		 * the mode=0 means automatic for network selection. If no
 		 * operator is selected, <format> and <operator> are omitted.
 		 */
-		return hfp_send(handle, "\r\n+COPS: 0\r\n");
+		return hfp_send(handle, "+COPS: 0");
 	else
-		return hfp_send(handle, "\r\nOK\r\n");
+		return hfp_send(handle, "OK");
 }
 
 /* AT+CIND command retrieves the supported indicator and its corresponding
@@ -333,12 +342,12 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 		 * of service. No active call, held call, call set up and
 		 * roaming.
 		 */
-		err = hfp_send(handle, "\r\n+CIND: 5,5,1,0,0,0,0\r\n");
+		err = hfp_send(handle, "+CIND: 5,5,1,0,0,0,0");
 
 	if (err < 0)
 		return err;
 
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+BIA command to change the subset of indicators that shall be
@@ -349,7 +358,7 @@ static int indicator_activation(struct hfp_slc_handle *handle, const char *cmd)
 {
 	/* AT+BIA=[[<indrep 1>][,[<indrep 2>][,...[,[<indrep n>]]]]] */
 	syslog(LOG_ERR, "Bluetooth indicator activation command %s", cmd);
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+VGM and AT+VGS command reports the current mic and speaker gain
@@ -370,7 +379,7 @@ static int signal_gain_setting(struct hfp_slc_handle *handle,
 	syslog(LOG_ERR, "Reported gain level %d for %s", gain,
 			cmd[5] == 'S' ? "speaker" : "microphone");
 
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+CNUM command to query the subscriber number. Mandatory support
@@ -378,7 +387,7 @@ static int signal_gain_setting(struct hfp_slc_handle *handle,
  */
 static int subscriber_number(struct hfp_slc_handle *handle, const char *buf)
 {
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+BRSF command notifies the HF(Hands-free device) supported features
@@ -399,12 +408,12 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	 */
 	ag_supported_featutres = HFP_ENHANCED_CALL_STATUS;
 
-	snprintf(response, 128, "\r\n+BRSF: %u\r\n", ag_supported_featutres);
+	snprintf(response, 128, "+BRSF: %u", ag_supported_featutres);
 	err = hfp_send(handle, response);
 	if (err < 0)
 		return err;
 
-	return hfp_send(handle, "\r\nOK\r\n");
+	return hfp_send(handle, "OK");
 }
 
 /* AT+CHUP command to terminate current call. Mandatory support
@@ -413,7 +422,7 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 {
 	int rc;
-	rc = hfp_send(handle, "\r\nOK\r\n");
+	rc = hfp_send(handle, "OK");
 	if (rc)
 		return rc;
 
@@ -622,7 +631,7 @@ int hfp_event_incoming_call(struct hfp_slc_handle *handle,
 		if (rc)
 			return rc;
 	}
-	return hfp_send(handle, "\r\nRING\r\n");
+	return hfp_send(handle, "RING");
 }
 
 /* Procedure to setup a call from AG.
