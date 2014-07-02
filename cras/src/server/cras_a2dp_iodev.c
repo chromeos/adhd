@@ -24,7 +24,7 @@
 #include "rtp.h"
 #include "utlist.h"
 
-#define PCM_BUF_MAX_SIZE_FRAMES 4096
+#define PCM_BUF_MAX_SIZE_FRAMES (4096*4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
 
 struct a2dp_io {
