@@ -1145,7 +1145,8 @@ static int write_streams(struct audio_thread *thread,
 			return cras_mix_mute_buffer(
 				dst,
 				cras_get_format_bytes(odev->format),
-				MIN(cb_threshold, input_write_limit));
+				MIN(cb_threshold + odev->min_buffer_level,
+				    input_write_limit));
 		}
 	}
 
@@ -1402,15 +1403,9 @@ static unsigned int adjust_level(const struct audio_thread *thread,
 	if (!odev || odev->min_buffer_level == 0)
 		return level;
 
-	if (level > odev->min_buffer_level) {
-		return level - odev->min_buffer_level;
-	} else {
-		/* If there has been an underrun, take the opportunity to re-pad
-		 * the buffer by filling it with zeros. */
-		if (level == 0)
-			fill_odev_zeros(odev, odev->min_buffer_level);
-		return 0;
-	}
+	return (level > odev->min_buffer_level)
+			? level - odev->min_buffer_level
+			: 0;
 }
 
 /* Returns the number of frames that can be slept for before an output stream
