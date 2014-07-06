@@ -36,6 +36,8 @@ struct a2dp_io {
 	/* To hold the pcm samples. */
 	struct byte_buffer *pcm_buf;
 
+	/* Has the socket been filled once. */
+	int pre_fill_complete;
 
 	/* Accumulated frames written to a2dp socket. Will need this info
 	 * together with the device open time stamp to get how many virtual
@@ -152,6 +154,10 @@ static int open_dev(struct cras_iodev *iodev)
 	iodev->buffer_size = PCM_BUF_MAX_SIZE_FRAMES;
 	/* TODO(dgreid) - this should be 2 * (mtu size in frames) */
 	iodev->min_buffer_level = 4096;
+	a2dpio->pre_fill_complete = 0;
+	buf_increment_write(a2dpio->pcm_buf,
+			    iodev->min_buffer_level *
+				cras_get_format_bytes(iodev->format));
 
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;
@@ -159,15 +165,10 @@ static int open_dev(struct cras_iodev *iodev)
 
 	/* Set up the socket to hold two MTUs full of data before returning
 	 * EAGAIN.  This will allow the write to be throttled when a reasonable
-	 * amount of data is queued. Pre fill the buffer to avoid confusing
-	 * playing apps with an initial burst of requests for audio. */
+	 * amount of data is queued. */
 	sock_depth = 2 * cras_bt_transport_write_mtu(a2dpio->transport);
 	setsockopt(cras_bt_transport_fd(a2dpio->transport),
 		   SOL_SOCKET, SO_SNDBUF, &sock_depth, sizeof(sock_depth));
-	err = write(cras_bt_transport_fd(a2dpio->transport),
-		    a2dpio->pcm_buf, sock_depth);
-	if (err != sock_depth)
-		syslog(LOG_WARNING, "Failed to pre-fill a2dp socket\n");
 
 	audio_thread_add_write_callback(cras_bt_transport_fd(a2dpio->transport),
 					flush_data, iodev);
@@ -206,6 +207,40 @@ static int is_open(const struct cras_iodev *iodev)
 	return cras_bt_transport_fd(a2dpio->transport) > 0;
 }
 
+static int pre_fill_socket(struct a2dp_io *a2dpio)
+{
+	static const uint16_t zero_buffer[1024 * 2];
+	int processed;
+	int written = 0;
+
+	while (1) {
+		processed = a2dp_encode(
+				&a2dpio->a2dp,
+				zero_buffer,
+				sizeof(zero_buffer),
+				cras_get_format_bytes(a2dpio->base.format),
+				cras_bt_transport_write_mtu(a2dpio->transport));
+		if (processed < 0)
+			return processed;
+		if (processed == 0)
+			break;
+
+		written = a2dp_write(
+				&a2dpio->a2dp,
+				cras_bt_transport_fd(a2dpio->transport),
+				cras_bt_transport_write_mtu(a2dpio->transport));
+		/* Full when EAGAIN is returned. */
+		if (written == -EAGAIN)
+			break;
+		else if (written < 0)
+			return written;
+		else if (written == 0)
+			break;
+	};
+
+	return 0;
+}
+
 /* Flushes queued buffer, including pcm and a2dp buffer.
  * Returns:
  *    0 when the flush succeeded, -1 when error occurred.
@@ -239,7 +274,6 @@ encode_more:
 		if (processed < 0)
 			return 0;
 
-		bt_queued_frames(iodev, processed / format_bytes);
 		buf_increment_read(a2dpio->pcm_buf, processed);
 	}
 
@@ -313,15 +347,28 @@ static int get_buffer(struct cras_iodev *iodev,
 
 static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
+	size_t written_bytes;
 	size_t format_bytes;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
+	written_bytes = nwritten * format_bytes;
 
-	if (nwritten * format_bytes > buf_writable_bytes(a2dpio->pcm_buf))
+	if (written_bytes > buf_writable_bytes(a2dpio->pcm_buf))
 		return -EINVAL;
 
-	buf_increment_write(a2dpio->pcm_buf, nwritten * format_bytes);
+	buf_increment_write(a2dpio->pcm_buf, written_bytes);
+
+	bt_queued_frames(iodev, nwritten);
+
+	/* Until the minimum number of frames have been queued, don't send
+	 * anything. */
+	if (!a2dpio->pre_fill_complete) {
+		pre_fill_socket(a2dpio);
+		a2dpio->pre_fill_complete = 1;
+		/* Start measuring frames_consumed from now. */
+		clock_gettime(CLOCK_MONOTONIC, &a2dpio->dev_open_time);
+	}
 
 	flush_data(iodev);
 	return 0;

@@ -191,12 +191,16 @@ TEST(A2dpIoInit, GetPutBuffer) {
   area1_buf = area1->channels[0].buf;
 
   /* Test 100 frames(400 bytes) put and all processed. */
-  a2dp_encode_processed_bytes_val[0] = 400;
+  a2dp_encode_processed_bytes_val[0] = 4096 * 4;
+  a2dp_encode_processed_bytes_val[1] = 400;
   a2dp_write_index = 0;
-  a2dp_write_return_val[0] = 400;
+  a2dp_write_return_val[0] = -EAGAIN;
+  a2dp_write_return_val[1] = 400;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
-  ASSERT_EQ(400, pcm_buf_size_val[0]);
+  // Start with 4k frames.
+  EXPECT_EQ(4096, pcm_buf_size_val[0]);
+  EXPECT_EQ(16384 + 400, pcm_buf_size_val[1]);
 
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
@@ -216,8 +220,8 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_return_val[1] = 0;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
-  ASSERT_EQ(400, pcm_buf_size_val[0]);
-  ASSERT_EQ(40, pcm_buf_size_val[1]);
+  EXPECT_EQ(16384 + 400, pcm_buf_size_val[0]);
+  ASSERT_EQ(16384 + 40, pcm_buf_size_val[1]);
 
   iodev->get_buffer(iodev, &area3, &frames);
 
@@ -225,7 +229,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
    * current write pointer.
    */
   ASSERT_EQ(256, frames);
-  ASSERT_EQ(800, area3->channels[0].buf - area1_buf);
+  EXPECT_EQ(800, area3->channels[0].buf - area1_buf);
 
   a2dp_iodev_destroy(iodev);
 }
@@ -255,36 +259,38 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_encode_processed_bytes_val[0] = 400;
   a2dp_encode_processed_bytes_val[1] = 0;
   a2dp_write_return_val[0] = 200;
-  a2dp_write_return_val[1] = 0;
+  a2dp_write_return_val[1] = -EAGAIN;
   a2dp_queued_frames_val = 50;
   time_now.tv_sec = 0;
   time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
-  ASSERT_EQ(56, iodev->frames_queued(iodev));
+  EXPECT_EQ(4096 + 100, iodev->frames_queued(iodev));
 
-  /* After 1ms, 44 more frames consumed but no more frames written yet.
-   */
+  /* After writing another 200 frames, check for correct buffer level. */
   time_now.tv_sec = 0;
   time_now.tv_nsec = 2000000;
-  ASSERT_EQ(12, iodev->frames_queued(iodev));
+  a2dp_encode_index = 0;
+  a2dp_write_index = 0;
+  a2dp_encode_processed_bytes_val[0] = 800;
+  write_callback(write_callback_data);
+  EXPECT_EQ(4096 + 100 - 200, iodev->frames_queued(iodev));
 
   /* Queued frames and new put buffer are all written */
   a2dp_encode_processed_bytes_val[0] = 400;
+  a2dp_encode_processed_bytes_val[1] = 0;
   a2dp_queued_frames_val = 50;
   a2dp_encode_index = 0;
   a2dp_write_return_val[0] = 400;
+  a2dp_write_return_val[1] = -EAGAIN;
   a2dp_write_index = 0;
 
-  /* After 1 more ms, expect total 132 frames consumed, result 68
-   * frames of virtual buffer after total 200 frames put.
-   */
+  /* Add wnother 200 samples, get back to the original level. */
   time_now.tv_sec = 0;
   time_now.tv_nsec = 3000000;
-  iodev->put_buffer(iodev, 100);
-  write_callback(write_callback_data);
-  ASSERT_EQ(400, pcm_buf_size_val[0]);
-  ASSERT_EQ(68, iodev->frames_queued(iodev));
+  iodev->put_buffer(iodev, 200);
+  EXPECT_EQ(16784, pcm_buf_size_val[0]);
+  EXPECT_EQ(4096, iodev->frames_queued(iodev));
 }
 
 } // namespace
