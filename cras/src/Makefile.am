@@ -406,8 +406,8 @@ hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
 	server/cras_hfp_slc.c
 hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server
-hfp_slc_unittest_LDADD = -lgtest -lpthread
+	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c

@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
+#include "cras_telephony.h"
 #include "cras_hfp_slc.h"
 #include "cras_system_state.h"
 

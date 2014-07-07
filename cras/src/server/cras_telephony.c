@@ -3,9 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include <dbus/dbus.h>
+#include <string.h>
+#include <stdlib.h>
 #include <syslog.h>
 
+#include <dbus/dbus.h>
+
+#include "cras_telephony.h"
 #include "cras_hfp_slc.h"
 
 #define CRAS_TELEPHONY_INTERFACE "org.chromium.cras.Telephony"

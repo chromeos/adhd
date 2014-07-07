@@ -6,6 +6,8 @@
 #ifndef CRAS_TELEPHONY_H_
 #define CRAS_TELEPHONY_H_
 
+#include <dbus/dbus.h>
+
 void cras_telephony_start(DBusConnection *conn);
 
 void cras_telephony_stop();
