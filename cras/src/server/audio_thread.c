@@ -1504,7 +1504,7 @@ int drain_output_buffer(struct audio_thread *thread,
 	int buffer_frames;
 
 	cb_threshold = thread->cb_threshold[CRAS_STREAM_OUTPUT];
-	buffer_frames = thread->buffer_frames[CRAS_STREAM_OUTPUT];
+	buffer_frames = odev->buffer_size;
 
 	hw_level = odev->frames_queued(odev);
 	if (hw_level < 0)
