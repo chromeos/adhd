@@ -17,7 +17,7 @@
 #define TELEPHONY_INTROSPECT_XML					\
 	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE			\
 	"<node>\n"							\
-	"  <interface name=\""CRAS_TELEPHONY_INTERFACE"\">\n"		\
+	"  <interface name=\"" CRAS_TELEPHONY_INTERFACE "\">\n"		\
 	"    <method name=\"AnswerCall\">\n"				\
 	"    </method>\n"						\
 	"    <method name=\"IncomingCall\">\n"				\
@@ -61,6 +61,7 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 			dbus_message_get_path(message),
 			dbus_message_get_interface(message),
 			dbus_message_get_member(message));
+
 	if (dbus_message_is_method_call(message,
 					DBUS_INTERFACE_INTROSPECTABLE,
 					"Introspect")) {
@@ -91,8 +92,8 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
-			       CRAS_TELEPHONY_INTERFACE,
-			       "TerminateCall")) {
+					       CRAS_TELEPHONY_INTERFACE,
+					       "TerminateCall")) {
 
 		handle = hfp_slc_get_handle();
 		if (handle)
@@ -101,8 +102,8 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
-			       CRAS_TELEPHONY_INTERFACE,
-			       "AnswerCall")) {
+					       CRAS_TELEPHONY_INTERFACE,
+					       "AnswerCall")) {
 
 		handle = hfp_slc_get_handle();
 		if (handle)
@@ -111,8 +112,8 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
-			       CRAS_TELEPHONY_INTERFACE,
-			       "StoreDialNumber")) {
+					       CRAS_TELEPHONY_INTERFACE,
+					       "StoreDialNumber")) {
 
 		handle = hfp_slc_get_handle();
 		if (handle)

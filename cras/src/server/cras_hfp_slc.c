@@ -574,7 +574,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 {
 	struct hfp_slc_handle *handle;
 
-	handle = calloc(1, sizeof(*handle));
+	handle = (struct hfp_slc_handle*) calloc(1, sizeof(*handle));
 	if (!handle)
 		return NULL;
 
