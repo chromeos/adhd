@@ -43,6 +43,7 @@ static int show_total_rms;
 static int keep_looping = 1;
 static int exit_after_done_playing = 1;
 static size_t duration_frames;
+static int pause_client = 0;
 
 static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
@@ -175,6 +176,9 @@ static int put_samples(struct cras_client *client,
 	size_t this_size, decoded;
 	snd_pcm_uframes_t avail;
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
+
+	while (pause_client)
+		usleep(10000);
 
 	if (file_buf_read_offset >= file_buf_size) {
 		if (exit_after_done_playing)
@@ -639,6 +643,9 @@ static int run_file_io_stream(struct cras_client *client,
 			return nread;
 		}
 		switch (input) {
+		case 'p':
+			pause_client = !pause_client;
+			break;
 		case 'q':
 			terminate_stream_loop();
 			break;
