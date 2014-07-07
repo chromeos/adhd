@@ -1397,10 +1397,9 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 static unsigned int adjust_level(const struct audio_thread *thread,
 				 unsigned int level)
 {
-	struct cras_iodev *idev = first_input_dev(thread);
 	struct cras_iodev *odev = first_output_dev(thread);
 
-	if (device_open(idev) || !odev || odev->min_buffer_level == 0)
+	if (!odev || odev->min_buffer_level == 0)
 		return level;
 
 	if (level > odev->min_buffer_level) {
