@@ -134,13 +134,6 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 				     int value)
 {
 	char cmd[64];
-
-	// TODO(menghuan): provide a API to handle it
-	if (ind_index == CALL_IND_INDEX)
-		handle->telephony->call = value;
-	if (ind_index == CALLSETUP_IND_INDEX)
-		handle->telephony->callsetup = value;
-
 	snprintf(cmd, 64, "+CIEV: %d,%d", ind_index, value);
 	return hfp_send(handle, cmd);
 }
@@ -169,11 +162,7 @@ static int answer_call(struct hfp_slc_handle *handle, const char *cmd)
 	if (rc)
 		return rc;
 
-	hfp_send_ind_event_report(handle, CALL_IND_INDEX, 1);
-	if (rc)
-		return rc;
-
-	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
+	return cras_telephony_event_answer_call();
 }
 
 /* AT+CCWA command to enable the "Call Waiting notification" function.
@@ -440,18 +429,7 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 	if (rc)
 		return rc;
 
-	if (handle->telephony->call) {
-		rc = hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
-		if (rc)
-			return rc;
-	}
-	if (handle->telephony->callsetup) {
-		rc = hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
-		if (rc)
-			return rc;
-	}
-
-	return 0;
+	return cras_telephony_event_terminate_call();
 }
 
 /* AT commands to support in order to conform HFP specification.
@@ -643,73 +621,47 @@ int hfp_event_incoming_call(struct hfp_slc_handle *handle,
 {
 	int rc;
 
-	rc = hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 1);
-	if (rc)
-		return rc;
 	if (handle->cli_active) {
 		rc = hfp_send_calling_line_identification(handle, number, type);
 		if (rc)
 			return rc;
 	}
-	return hfp_send(handle, "RING");
+
+	if (handle->telephony->call)
+		return 0;
+	else
+		return hfp_send(handle, "RING");
 }
 
-/* Procedure to setup a call from AG.
- *
- * HF(hands-free)                             AG(audio gateway)
- *                                                     <-- Call dropped
- *                 <-- +CIEV: (call = 0)
- */
-int hfp_event_terminate_call(struct hfp_slc_handle *handle)
+int hfp_event_update_call(struct hfp_slc_handle *handle)
 {
-	return hfp_send_ind_event_report(handle, CALL_IND_INDEX, 0);
+	return hfp_send_ind_event_report(handle, CALL_IND_INDEX,
+					 handle->telephony->call);
 }
 
-/* Procedure to answer a call from AG.
- *
- * HF(hands-free)                             AG(audio gateway)
- *                                                     <-- Call answered
- *                 <-- +CIEV: (call = 1)
- *                 <-- +CIEV: (callsetup = 0)
- */
-int hfp_event_answer_call(struct hfp_slc_handle *handle)
+int hfp_event_update_callsetup(struct hfp_slc_handle *handle)
 {
-	int rc;
-	rc = hfp_send_ind_event_report(handle, CALL_IND_INDEX, 1);
-	if (rc)
-		return rc;
-	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
+	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX,
+					 handle->telephony->callsetup);
 }
 
 
 int hfp_event_set_battery(struct hfp_slc_handle *handle, int level)
 {
-	char cmd[64];
-
 	handle->battery = level;
-
-	snprintf(cmd, 64, "+CIEV: %d,%d", BATTERY_IND_INDEX, level);
-	return hfp_send(handle, cmd);
+	return hfp_send_ind_event_report(handle, BATTERY_IND_INDEX, level);
 }
 
 int hfp_event_set_signal(struct hfp_slc_handle *handle, int level)
 {
-	char cmd[64];
 	handle->signal = level;
-
-	// TODO: merge CIEV control into a API
-	snprintf(cmd, 64, "+CIEV: %d,%d", SIGNAL_IND_INDEX, level);
-	return hfp_send(handle, cmd);
+	return hfp_send_ind_event_report(handle, SIGNAL_IND_INDEX, level);
 }
 
 int hfp_event_set_service(struct hfp_slc_handle *handle, int avail)
 {
-	char cmd[64];
 	/* Convert to 0 or 1.
 	 * Since the value must be either 1 or 0. (service presence or not) */
 	handle->service = !!avail;
-
-	// TODO: merge CIEV control into a API
-	snprintf(cmd, 64, "+CIEV: %d,%d", SERVICE_IND_INDEX, avail);
-	return hfp_send(handle, cmd);
+	return hfp_send_ind_event_report(handle, SERVICE_IND_INDEX, avail);
 }

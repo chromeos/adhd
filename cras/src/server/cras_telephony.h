@@ -40,4 +40,10 @@ struct cras_telephony_handle* cras_telephony_get();
 /* Stores dial number in telephony module. */
 void cras_telephony_store_dial_number(int len, const char* num);
 
+/* Handles answer call event from dbus or HF */
+int cras_telephony_event_answer_call();
+
+/* Handles answer call event from dbus or HF */
+int cras_telephony_event_terminate_call();
+
 #endif /* CRAS_TELEPHONY_H_ */
