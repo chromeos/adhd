@@ -47,6 +47,10 @@ int hfp_event_update_call(struct hfp_slc_handle *handle);
  * AG will send notification to HF accordingly. */
 int hfp_event_update_callsetup(struct hfp_slc_handle *handle);
 
+/* Handles the call held status changed event.
+ * AG will send notification to HF accordingly. */
+int hfp_event_update_callheld(struct hfp_slc_handle *handle);
+
 /* Sets battery level which is required for qualification test. */
 int hfp_event_set_battery(struct hfp_slc_handle *handle, int value);
 

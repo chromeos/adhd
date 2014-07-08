@@ -18,6 +18,11 @@
  *        0: not currently in call set up
  *        1: an incoming call prcess ongoing
  *        2: an outgoing call set up is ongoing
+ *    callhold - call hold status indicator.
+ *        0: no call hold
+ *        1: call is placed on hold or active/held calls swapped
+ *           (The AG has both and active AND a held call)
+ *        2: call on hold, no active call
  *    dial_number - phone number, used on fake memory storage and last phone
  *    number storage.
  *    dbus_conn - dus connetion which is used in whole telephony module.
@@ -25,6 +30,7 @@
 struct cras_telephony_handle {
 	int call;
 	int callsetup;
+	int callheld;
 	char *dial_number;
 
 	DBusConnection *dbus_conn;

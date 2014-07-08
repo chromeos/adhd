@@ -37,6 +37,9 @@
 	"    <method name=\"SetDialNumber\">\n"				\
 	"      <arg name=\"value\" type=\"s\" direction=\"in\"/>\n"	\
 	"    </method>\n"						\
+	"    <method name=\"SetCallheld\">\n"				\
+	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"	\
+	"    </method>\n"						\
 	"  </interface>\n"						\
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"	\
 	"    <method name=\"Introspect\">\n"				\
@@ -205,6 +208,27 @@ static DBusHandlerResult handle_set_service(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_callheld(DBusConnection *conn,
+					     DBusMessage *message,
+					     void *arg)
+{
+	struct hfp_slc_handle *handle;
+	DBusHandlerResult rc;
+	int value;
+
+	rc = get_single_arg(message, DBUS_TYPE_INT32, &value);
+	if (rc != DBUS_HANDLER_RESULT_HANDLED)
+		return rc;
+
+	telephony_handle.callheld = value;
+	handle = hfp_slc_get_handle();
+	if (handle)
+		hfp_event_update_callheld(handle);
+
+	send_empty_reply(conn, message);
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 						  DBusMessage *message,
@@ -261,6 +285,10 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 					       CRAS_TELEPHONY_INTERFACE,
 					       "SetServiceAvailability")) {
 		return handle_set_service(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_TELEPHONY_INTERFACE,
+					       "SetCallheld")) {
+		return handle_set_callheld(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

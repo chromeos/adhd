@@ -44,6 +44,7 @@
 #define SERVICE_IND_INDEX		3
 #define CALL_IND_INDEX			4
 #define CALLSETUP_IND_INDEX		5
+#define CALLHELD_IND_INDEX		6
 #define INDICATOR_UPDATE_RSP		\
 	"+CIND: "			\
 	"(\"battchg\",(0-5),"		\
@@ -69,6 +70,7 @@
  *    battery - Current battery level of AG stored in SLC.
  *    signal - Current signal strength of AG stored in SLC.
  *    service - Current service availability of AG stored in SLC.
+ *    callheld - Current callheld status of AG stored in SLC.
  *    telephony - A reference of current telephony handle.
  */
 struct hfp_slc_handle {
@@ -85,6 +87,7 @@ struct hfp_slc_handle {
 	int battery;
 	int signal;
 	int service;
+	int callheld;
 
 	struct cras_telephony_handle *telephony;
 };
@@ -337,12 +340,13 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 		 * +CIND: <signal>,<service>,<call>,
 		 *        <callsetup>,<callheld>,<roam>
 		 */
-		snprintf(buf, 64, "+CIND: %d,%d,%d,%d,%d,0,0",
+		snprintf(buf, 64, "+CIND: %d,%d,%d,%d,%d,%d,0",
 			handle->battery,
 			handle->signal,
 			handle->service,
 			handle->telephony->call,
-			handle->telephony->callsetup
+			handle->telephony->callsetup,
+			handle->telephony->callheld
 			);
 		err = hfp_send(handle, buf);
 	}
@@ -645,6 +649,11 @@ int hfp_event_update_callsetup(struct hfp_slc_handle *handle)
 					 handle->telephony->callsetup);
 }
 
+int hfp_event_update_callheld(struct hfp_slc_handle *handle)
+{
+	return hfp_send_ind_event_report(handle, CALLHELD_IND_INDEX,
+					 handle->telephony->callheld);
+}
 
 int hfp_event_set_battery(struct hfp_slc_handle *handle, int level)
 {
