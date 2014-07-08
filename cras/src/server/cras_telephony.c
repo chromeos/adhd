@@ -21,6 +21,7 @@
 	"    <method name=\"AnswerCall\">\n"				\
 	"    </method>\n"						\
 	"    <method name=\"IncomingCall\">\n"				\
+	"      <arg name=\"value\" type=\"s\" direction=\"in\"/>\n"	\
 	"    </method>\n"						\
 	"    <method name=\"TerminateCall\">\n"				\
 	"    </method>\n"						\
@@ -87,6 +88,12 @@ static DBusHandlerResult handle_incoming_call(DBusConnection *conn,
 					      void *arg)
 {
 	struct hfp_slc_handle *handle;
+	DBusHandlerResult rc;
+	const char* number;
+
+	rc = get_single_arg(message, DBUS_TYPE_STRING, &number);
+	if (rc != DBUS_HANDLER_RESULT_HANDLED)
+		return rc;
 
 	handle = hfp_slc_get_handle();
 
@@ -94,7 +101,7 @@ static DBusHandlerResult handle_incoming_call(DBusConnection *conn,
 
 	if (handle) {
 		hfp_event_update_callsetup(handle);
-		hfp_event_incoming_call(handle, "1234567", 129);
+		hfp_event_incoming_call(handle, number, 129);
 	}
 
 	send_empty_reply(conn, message);
