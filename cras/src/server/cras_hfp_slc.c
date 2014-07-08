@@ -40,6 +40,8 @@
 /* Indicator update command response and indicator indices.
  * Note that indicator index starts from '1'.
  */
+#define BATTERY_IND_INDEX		1
+#define SIGNAL_IND_INDEX		2
 #define CALL_IND_INDEX			4
 #define CALLSETUP_IND_INDEX		5
 #define INDICATOR_UPDATE_RSP		\
@@ -62,9 +64,11 @@
  *    rfcomm_fd - File descriptor for the established RFCOMM connection.
  *    init_cb - Callback to be triggered when an SLC is initialized.
  *    data - Private data to be passed to init_cb.
- *    initialized - The service level connection is fully initilized of not
- *    cli_active - Calling line identification notification is enabled or not
- *    telephony - A reference of current telephony handle
+ *    initialized - The service level connection is fully initilized of not.
+ *    cli_active - Calling line identification notification is enabled or not.
+ *    battery - Current battery level of AG stored in SLC.
+ *    signal - Current signal strength of AG stored in SLC.
+ *    telephony - A reference of current telephony handle.
  */
 struct hfp_slc_handle {
 	char buf[SLC_BUF_SIZE_BYTES];
@@ -77,6 +81,8 @@ struct hfp_slc_handle {
 	void *init_cb_data;
 	int initialized;
 	int cli_active;
+	int battery;
+	int signal;
 
 	struct cras_telephony_handle *telephony;
 };
@@ -347,7 +353,9 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 		 * +CIND: <signal>,<service>,<call>,
 		 *        <callsetup>,<callheld>,<roam>
 		 */
-		snprintf(buf, 64, "+CIND: 5,5,1,%d,%d,0,0",
+		snprintf(buf, 64, "+CIND: %d,%d,1,%d,%d,0,0",
+			handle->battery,
+			handle->signal,
 			handle->telephony->call,
 			handle->telephony->callsetup
 			);
@@ -602,6 +610,8 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->disconnect_cb = disconnect_cb;
 	handle->init_cb_data = init_cb_data;
 	handle->cli_active = 0;
+	handle->battery = 5;
+	handle->signal = 5;
 	handle->telephony = cras_telephony_get();
 
 	active_slc_handle = handle;
@@ -678,4 +688,24 @@ int hfp_event_store_dial_number(struct hfp_slc_handle *handle, const char *num)
 {
 	store_dial_number(handle, num, strlen(num));
 	return 0;
+}
+
+int hfp_event_set_battery(struct hfp_slc_handle *handle, int level)
+{
+	char cmd[64];
+
+	handle->battery = level;
+
+	snprintf(cmd, 64, "+CIEV: %d,%d", BATTERY_IND_INDEX, level);
+	return hfp_send(handle, cmd);
+}
+
+int hfp_event_set_signal(struct hfp_slc_handle *handle, int level)
+{
+	char cmd[64];
+	handle->signal = level;
+
+	// TODO: merge CIEV control into a API
+	snprintf(cmd, 64, "+CIEV: %d,%d", SIGNAL_IND_INDEX, level);
+	return hfp_send(handle, cmd);
 }

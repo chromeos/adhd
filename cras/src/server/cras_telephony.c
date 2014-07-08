@@ -24,6 +24,12 @@
 	"    </method>\n"						\
 	"    <method name=\"TerminateCall\">\n"				\
 	"    </method>\n"						\
+	"    <method name=\"SetBatteryLevel\">\n"				\
+	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"	\
+	"    </method>\n"						\
+	"    <method name=\"SetSignalStrength\">\n"				\
+	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"	\
+	"    </method>\n"						\
 	"    <method name=\"StoreDialNumber\">\n"			\
 	"    </method>\n"						\
 	"  </interface>\n"						\
@@ -129,6 +135,52 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		handle = hfp_slc_get_handle();
 		if (handle)
 			hfp_event_store_dial_number(handle, "1234567");
+
+		send_empty_reply(conn, message);
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_TELEPHONY_INTERFACE,
+					       "SetBatteryLevel")) {
+		dbus_int32_t level;
+		DBusError dbus_error;
+
+		dbus_error_init(&dbus_error);
+
+		if (!dbus_message_get_args(message, &dbus_error,
+					   DBUS_TYPE_INT32, &level,
+					   DBUS_TYPE_INVALID)) {
+			syslog(LOG_WARNING,
+			       "Bad method received: %s",
+			       dbus_error.message);
+			dbus_error_free(&dbus_error);
+			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+		}
+		handle = hfp_slc_get_handle();
+		if (handle)
+			hfp_event_set_battery(handle, level);
+
+		send_empty_reply(conn, message);
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_TELEPHONY_INTERFACE,
+					       "SetSignalStrength")) {
+		dbus_int32_t level;
+		DBusError dbus_error;
+
+		dbus_error_init(&dbus_error);
+
+		if (!dbus_message_get_args(message, &dbus_error,
+					   DBUS_TYPE_INT32, &level,
+					   DBUS_TYPE_INVALID)) {
+			syslog(LOG_WARNING,
+			       "Bad method received: %s",
+			       dbus_error.message);
+			dbus_error_free(&dbus_error);
+			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+		}
+		handle = hfp_slc_get_handle();
+		if (handle)
+			hfp_event_set_signal(handle, level);
 
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;

@@ -48,4 +48,10 @@ int hfp_event_terminate_call(struct hfp_slc_handle *handle);
 /* Mocks the state that a last dialed number stored in memory. */
 int hfp_event_store_dial_number(struct hfp_slc_handle *handle, const char *num);
 
+/* Sets battery level which is required for qualification test. */
+int hfp_event_set_battery(struct hfp_slc_handle *handle, int value);
+
+/* Sets signal strength which is required for qualification test. */
+int hfp_event_set_signal(struct hfp_slc_handle *handle, int value);
+
 #endif /* CRAS_HFP_SLC_H_ */
