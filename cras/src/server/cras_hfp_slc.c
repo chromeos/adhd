@@ -41,6 +41,7 @@
  */
 #define BATTERY_IND_INDEX		1
 #define SIGNAL_IND_INDEX		2
+#define SERVICE_IND_INDEX		3
 #define CALL_IND_INDEX			4
 #define CALLSETUP_IND_INDEX		5
 #define INDICATOR_UPDATE_RSP		\
@@ -67,6 +68,7 @@
  *    cli_active - Calling line identification notification is enabled or not.
  *    battery - Current battery level of AG stored in SLC.
  *    signal - Current signal strength of AG stored in SLC.
+ *    service - Current service availability of AG stored in SLC.
  *    telephony - A reference of current telephony handle.
  */
 struct hfp_slc_handle {
@@ -82,6 +84,7 @@ struct hfp_slc_handle {
 	int cli_active;
 	int battery;
 	int signal;
+	int service;
 
 	struct cras_telephony_handle *telephony;
 };
@@ -353,9 +356,10 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 		 * +CIND: <signal>,<service>,<call>,
 		 *        <callsetup>,<callheld>,<roam>
 		 */
-		snprintf(buf, 64, "+CIND: %d,%d,1,%d,%d,0,0",
+		snprintf(buf, 64, "+CIND: %d,%d,%d,%d,%d,0,0",
 			handle->battery,
 			handle->signal,
+			handle->service,
 			handle->telephony->call,
 			handle->telephony->callsetup
 			);
@@ -612,6 +616,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->cli_active = 0;
 	handle->battery = 5;
 	handle->signal = 5;
+	handle->service = 1;
 	handle->telephony = cras_telephony_get();
 
 	active_slc_handle = handle;
@@ -707,5 +712,17 @@ int hfp_event_set_signal(struct hfp_slc_handle *handle, int level)
 
 	// TODO: merge CIEV control into a API
 	snprintf(cmd, 64, "+CIEV: %d,%d", SIGNAL_IND_INDEX, level);
+	return hfp_send(handle, cmd);
+}
+
+int hfp_event_set_service(struct hfp_slc_handle *handle, int avail)
+{
+	char cmd[64];
+	/* Convert to 0 or 1.
+	 * Since the value must be either 1 or 0. (service presence or not) */
+	handle->service = !!avail;
+
+	// TODO: merge CIEV control into a API
+	snprintf(cmd, 64, "+CIEV: %d,%d", SERVICE_IND_INDEX, avail);
 	return hfp_send(handle, cmd);
 }
