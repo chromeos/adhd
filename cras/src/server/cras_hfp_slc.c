@@ -10,7 +10,6 @@
 #include "cras_hfp_slc.h"
 #include "cras_system_state.h"
 
-#define NUMBER_BUF_SIZE_BYTES 256
 #define SLC_BUF_SIZE_BYTES 256
 
 /* Hands-free Audio Gateway feature bits, listed in according
@@ -205,25 +204,22 @@ static void store_dial_number(struct hfp_slc_handle *handle,
 static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 {
 	int rc, cmd_len;
-	char buf[NUMBER_BUF_SIZE_BYTES];
 
 	cmd_len = strlen(cmd);
 
-	/* Handle memory dial. Extract memory location from command
-	 * ATD>nnn...; and lookup. */
 	if (cmd[3] == '>') {
+		/* Handle memory dial. Extract memory location from command
+		 * ATD>nnn...; and lookup. */
 		int memory_location;
-		strncpy(buf, &cmd[4], cmd_len - 5);
-		memory_location = strtol(buf, NULL, 0);
+		memory_location = strtol(cmd + 4, NULL, 0);
 		if (!handle->telephony->dial_number || memory_location > 1)
 			return hfp_send(handle, "ERROR");
-		goto dial_number;
+	}
+	else {
+		/* ATDddddd; Store dial number to the only memory slot. */
+		store_dial_number(handle, cmd + 3, cmd_len - 3 - 1);
 	}
 
-	/* Store dial number to the only memory slot. */
-	store_dial_number(handle, &cmd[3], strlen(cmd) - 4);
-
-dial_number:
 	rc = hfp_send(handle, "OK");
 	if (rc)
 		return rc;
