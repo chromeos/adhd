@@ -33,7 +33,8 @@
 	"    <method name=\"SetServiceAvailability\">\n"				\
 	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"	\
 	"    </method>\n"						\
-	"    <method name=\"StoreDialNumber\">\n"			\
+	"    <method name=\"SetDialNumber\">\n"				\
+	"      <arg name=\"value\" type=\"s\" direction=\"in\"/>\n"	\
 	"    </method>\n"						\
 	"  </interface>\n"						\
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"	\
@@ -133,11 +134,10 @@ static DBusHandlerResult handle_telephony_message(DBusConnection *conn,
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_TELEPHONY_INTERFACE,
-					       "StoreDialNumber")) {
-
+					       "SetDialNumber")) {
 		handle = hfp_slc_get_handle();
 		if (handle)
-			hfp_event_store_dial_number(handle, "1234567");
+			cras_telephony_store_dial_number(7, "1234567");
 
 		send_empty_reply(conn, message);
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -254,4 +254,24 @@ void cras_telephony_stop()
 struct cras_telephony_handle* cras_telephony_get()
 {
 	return &telephony_handle;
+}
+
+void cras_telephony_store_dial_number(int len,
+				      const char *number)
+{
+	if (telephony_handle.dial_number != NULL) {
+		free(telephony_handle.dial_number);
+		telephony_handle.dial_number = NULL;
+	}
+
+	if (len == 0)
+		return ;
+
+	telephony_handle.dial_number =
+			(char *) calloc(len + 1,
+					sizeof(*telephony_handle.dial_number));
+	strncpy(telephony_handle.dial_number, number, len);
+
+	syslog(LOG_ERR,
+	       "store dial_number: \"%s\"", telephony_handle.dial_number);
 }

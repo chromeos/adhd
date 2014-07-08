@@ -186,20 +186,6 @@ static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
 	return hfp_send(handle, "OK");
 }
 
-static void store_dial_number(struct hfp_slc_handle *handle,
-			      const char *number,
-			      int number_len)
-{
-	// TODO(menghuan): move to telephony.c
-	if (handle->telephony->dial_number)
-		free(handle->telephony->dial_number);
-	handle->telephony->dial_number =
-			(char *) calloc(
-				number_len,
-				sizeof(*handle->telephony->dial_number));
-	strncpy(handle->telephony->dial_number, number, number_len);
-}
-
 /* ATDdd...dd command to place call with supplied number, or ATD>nnn...
  * command to dial the number stored at memory location. Mandatory per
  * spec 4.18 and 4.19.
@@ -220,7 +206,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 	}
 	else {
 		/* ATDddddd; Store dial number to the only memory slot. */
-		store_dial_number(handle, cmd + 3, cmd_len - 3 - 1);
+		cras_telephony_store_dial_number(cmd_len - 3 - 1, cmd + 3);
 	}
 
 	rc = hfp_send(handle, "OK");
@@ -689,11 +675,6 @@ int hfp_event_answer_call(struct hfp_slc_handle *handle)
 	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 0);
 }
 
-int hfp_event_store_dial_number(struct hfp_slc_handle *handle, const char *num)
-{
-	store_dial_number(handle, num, strlen(num));
-	return 0;
-}
 
 int hfp_event_set_battery(struct hfp_slc_handle *handle, int level)
 {

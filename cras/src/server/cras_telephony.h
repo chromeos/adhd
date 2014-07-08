@@ -37,4 +37,7 @@ void cras_telephony_stop();
 
 struct cras_telephony_handle* cras_telephony_get();
 
+/* Stores dial number in telephony module. */
+void cras_telephony_store_dial_number(int len, const char* num);
+
 #endif /* CRAS_TELEPHONY_H_ */
