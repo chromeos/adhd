@@ -322,15 +322,19 @@ static int list_current_calls(struct hfp_slc_handle *handle, const char *cmd)
  */
 static int operator_selection(struct hfp_slc_handle *handle, const char *buf)
 {
+	int rc;
 	if (buf[7] == '?')
+	{
 		/* HF sends AT+COPS? command to find current network operator.
 		 * AG responds with +COPS:<mode>,<format>,<operator>, where
 		 * the mode=0 means automatic for network selection. If no
 		 * operator is selected, <format> and <operator> are omitted.
 		 */
-		return hfp_send(handle, "+COPS: 0");
-	else
-		return hfp_send(handle, "OK");
+		rc = hfp_send(handle, "+COPS: 0");
+		if (rc)
+			return rc;
+	}
+	return hfp_send(handle, "OK");
 }
 
 /* AT+CIND command retrieves the supported indicator and its corresponding
