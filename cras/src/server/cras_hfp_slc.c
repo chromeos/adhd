@@ -145,13 +145,19 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 	return hfp_send(handle, cmd);
 }
 
-/* Sends calling line identification unsolicited result code. */
+/* Sends calling line identification unsolicited result code and
+ * standard call waiting notification. */
 static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
 						const char *number,
 						int type)
 {
 	char cmd[64];
-	snprintf(cmd, 64, "+CLIP: \"%s\",%d", number, type);
+
+	if (handle->telephony->call) {
+		snprintf(cmd, 64, "+CCWA: \"%s\",%d", number, type);
+	} else {
+		snprintf(cmd, 64, "+CLIP: \"%s\",%d", number, type);
+	}
 	return hfp_send(handle, cmd);
 }
 
