@@ -201,7 +201,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 		 * ATD>nnn...; and lookup. */
 		int memory_location;
 		memory_location = strtol(cmd + 4, NULL, 0);
-		if (!handle->telephony->dial_number || memory_location > 1)
+		if (handle->telephony->dial_number == NULL || memory_location != 1)
 			return hfp_send(handle, "ERROR");
 	}
 	else {
