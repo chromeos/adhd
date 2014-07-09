@@ -80,6 +80,18 @@ static inline void subtract_timespecs(const struct timespec *end,
 	}
 }
 
+static inline void add_timespecs(struct timespec *a,
+				 const struct timespec *b)
+{
+	a->tv_sec += b->tv_sec;
+	a->tv_nsec += b->tv_nsec;
+
+	while (a->tv_nsec >= 1000000000L) {
+		a->tv_sec++;
+		a->tv_nsec -= 1000000000L;
+	}
+}
+
 /* Converts a fixed-size cras_timespec to a native timespec */
 static inline void cras_timespec_to_timespec(struct timespec *dest,
 					     const struct cras_timespec *src)
