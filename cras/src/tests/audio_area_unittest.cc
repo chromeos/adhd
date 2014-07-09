@@ -73,7 +73,7 @@ TEST(AudioArea, CopyMonoToStereo) {
   for (i = 0; i < CRAS_CH_MAX; i++)
     fmt.channel_layout[i] = mono[i];
   a2 = cras_audio_area_create(1);
-  a2->frames = 32;
+  a2->frames = 16;
   cras_audio_area_config_channels(a2, &fmt);
   cras_audio_area_config_buf_pointers(a2, &fmt, (uint8_t *)buf2);
 
@@ -99,7 +99,7 @@ TEST(AudioArea, CopyStereoToMono) {
   for (i = 0; i < CRAS_CH_MAX; i++)
     fmt.channel_layout[i] = mono[i];
   a1 = cras_audio_area_create(1);
-  a1->frames = 32;
+  a1->frames = 16;
   cras_audio_area_config_channels(a1, &fmt);
   cras_audio_area_config_buf_pointers(a1, &fmt, (uint8_t *)buf1);
 
