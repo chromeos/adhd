@@ -641,9 +641,10 @@ class WriteStreamSuite : public testing::Test {
       cras_iodev_get_software_volume_scaler_return_value = 1.0;
 
       dev_running_called_ = 0;
-      frames_written_ = 0;
 
+      audio_buffer_size_ = 8196;
       thread_add_stream(thread_, rstream_);
+      frames_written_ = 0;
     }
 
     virtual void TearDown() {
@@ -1359,6 +1360,8 @@ class AddStreamSuite : public testing::Test {
       iodev_.is_open = is_open;
       iodev_.open_dev = open_dev;
       iodev_.close_dev = close_dev;
+      iodev_.get_buffer = get_buffer;
+      iodev_.put_buffer = put_buffer;
 
       is_open_ = 0;
       is_open_called_ = 0;
@@ -1371,6 +1374,8 @@ class AddStreamSuite : public testing::Test {
       cras_metrics_log_histogram_called = 0;
       cras_metrics_log_histogram_name = NULL;
       cras_metrics_log_histogram_sample = 0;
+
+      audio_buffer_size_ = 8196;
     }
 
     virtual void TearDown() {
@@ -1383,6 +1388,34 @@ class AddStreamSuite : public testing::Test {
     }
 
     // Stub functions for the iodev structure.
+    static int get_buffer(cras_iodev* iodev,
+                          struct cras_audio_area** area,
+                          unsigned int* num) {
+      size_t sz = sizeof(*area_) + sizeof(struct cras_channel_area) * 2;
+
+      if (audio_buffer_size_ < *num)
+	      *num = audio_buffer_size_;
+
+      area_ = (cras_audio_area*)calloc(1, sz);
+      area_->frames = *num;
+      area_->num_channels = 2;
+      area_->channels[0].buf = audio_buffer_;
+      channel_area_set_channel(&area_->channels[0], CRAS_CH_FL);
+      area_->channels[0].step_bytes = 4;
+      area_->channels[1].buf = audio_buffer_ + 2;
+      channel_area_set_channel(&area_->channels[1], CRAS_CH_FR);
+      area_->channels[1].step_bytes = 4;
+
+      *area = area_;
+      return 0;
+    }
+
+    static int put_buffer(cras_iodev* iodev,
+                          unsigned int num) {
+      free(area_);
+      return 0;
+    }
+
     static int is_open(const cras_iodev* iodev) {
       is_open_called_++;
       return is_open_;
@@ -1493,6 +1526,10 @@ class AddStreamSuite : public testing::Test {
   static int close_dev_called_;
   static int used_size_;
   static int cb_threshold_;
+  struct cras_audio_format fmt_;
+  static struct cras_audio_area *area_;
+  static uint8_t audio_buffer_[8192];
+  static unsigned int audio_buffer_size_;
 };
 
 int AddStreamSuite::is_open_ = 0;
@@ -1502,6 +1539,9 @@ int AddStreamSuite::open_dev_return_val_ = 0;
 int AddStreamSuite::close_dev_called_ = 0;
 int AddStreamSuite::used_size_ = 0;
 int AddStreamSuite::cb_threshold_ = 0;
+struct cras_audio_area *AddStreamSuite::area_;
+uint8_t AddStreamSuite::audio_buffer_[8192];
+unsigned int AddStreamSuite::audio_buffer_size_ = 0;
 
 TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   int rc;

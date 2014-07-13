@@ -820,6 +820,12 @@ static int thread_add_stream(struct audio_thread *thread,
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
 
+		/* Start streams by padding the output.
+		 * This avoids a burst of audio callbacks when the stream starts
+		 */
+		config_devices_min_latency(thread, CRAS_STREAM_OUTPUT);
+		fill_odevs_zeros_cb_threshold(thread);
+
 		if (loop_adev) {
 			struct dev_stream *iostream;
 			struct cras_audio_format fmt;
