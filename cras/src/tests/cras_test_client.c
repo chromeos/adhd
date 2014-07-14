@@ -450,10 +450,14 @@ static void audio_debug_info(struct cras_client *client)
 	printf("Audio Thread Event Log:\n");
 
 	j = info->log.write_pos;
-	for (i = 0; i < AUDIO_THREAD_EVENT_LOG_SIZE; i++) {
-		printf("%x ", info->log.log[j]);
+	for (i = 0; i < info->log.len; i++) {
+		printf("%x ", info->log.log[j].tag_sec);
+		printf("%x ", info->log.log[j].nsec);
+		printf("%x ", info->log.log[j].data1);
+		printf("%x ", info->log.log[j].data2);
+		printf("%x ", info->log.log[j].data3);
 		j++;
-		j %= AUDIO_THREAD_EVENT_LOG_SIZE;
+		j %= info->log.len;
 	}
 	printf("\n");
 

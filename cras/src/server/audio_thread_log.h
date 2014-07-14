@@ -18,8 +18,12 @@ extern struct audio_thread_event_log *atlog;
 static inline
 struct audio_thread_event_log *audio_thread_event_log_init()
 {
-	return (struct audio_thread_event_log *)
+	struct audio_thread_event_log *log;
+	log = (struct audio_thread_event_log *)
 			calloc(1, sizeof(struct audio_thread_event_log));
+	log->len = AUDIO_THREAD_EVENT_LOG_SIZE;
+
+	return log;
 }
 
 static inline
@@ -28,61 +32,28 @@ void audio_thread_event_log_deinit(struct audio_thread_event_log *log)
 	free(log);
 }
 
-static inline void audio_thread_write_word(
-		struct audio_thread_event_log *log,
-		uint32_t word)
-{
-	log->log[log->write_pos] = word;
-	log->write_pos++;
-	log->write_pos %= AUDIO_THREAD_EVENT_LOG_SIZE;
-}
-
 /* Log a tag and the current time, Uses two words, the first is split
  * 8 bits for tag and 24 for seconds, second word is micro seconds.
  */
-static inline void audio_thread_event_log_tag(
-		struct audio_thread_event_log *log,
-		enum AUDIO_THREAD_LOG_EVENTS event)
-{
-	struct timespec ts;
-
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-
-	audio_thread_write_word(log, (event << 24) | (ts.tv_sec & 0x00ffffff));
-	audio_thread_write_word(log, ts.tv_nsec);
-}
-
 static inline void audio_thread_event_log_data(
 		struct audio_thread_event_log *log,
 		enum AUDIO_THREAD_LOG_EVENTS event,
-		uint32_t data)
-{
-	audio_thread_event_log_tag(log, event);
-	audio_thread_write_word(log, data);
-}
-
-static inline void audio_thread_event_log_data2(
-		struct audio_thread_event_log *log,
-		enum AUDIO_THREAD_LOG_EVENTS event,
-		uint32_t data,
-		uint32_t data2)
-{
-	audio_thread_event_log_tag(log, event);
-	audio_thread_write_word(log, data);
-	audio_thread_write_word(log, data2);
-}
-
-static inline void audio_thread_event_log_data3(
-		struct audio_thread_event_log *log,
-		enum AUDIO_THREAD_LOG_EVENTS event,
-		uint32_t data,
+		uint32_t data1,
 		uint32_t data2,
 		uint32_t data3)
 {
-	audio_thread_event_log_tag(log, event);
-	audio_thread_write_word(log, data);
-	audio_thread_write_word(log, data2);
-	audio_thread_write_word(log, data3);
+	struct timespec now;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	log->log[log->write_pos].tag_sec =
+			(event << 24) | (now.tv_sec & 0x00ffffff);
+	log->log[log->write_pos].nsec = now.tv_nsec;
+	log->log[log->write_pos].data1 = data1;
+	log->log[log->write_pos].data2 = data2;
+	log->log[log->write_pos].data3 = data3;
+
+	log->write_pos++;
+	log->write_pos %= AUDIO_THREAD_EVENT_LOG_SIZE;
 }
 
 #endif /* AUDIO_THREAD_LOG_H_ */
