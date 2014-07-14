@@ -314,6 +314,34 @@ static void update_stream_timeout(struct cras_audio_shm *shm)
 		cras_shm_set_longest_timeout(shm, timeout_msec);
 }
 
+/* Gets the first active device for given direction. */
+static inline
+struct cras_iodev *first_active_device(const struct audio_thread *thread,
+				       enum CRAS_STREAM_DIRECTION dir)
+{
+	return thread->active_devs[dir]
+			? thread->active_devs[dir]->dev
+			: NULL;
+}
+
+static inline
+struct cras_iodev *first_output_dev(const struct audio_thread *thread)
+{
+	return first_active_device(thread, CRAS_STREAM_OUTPUT);
+}
+
+static inline
+struct cras_iodev *first_input_dev(const struct audio_thread *thread)
+{
+	return first_active_device(thread, CRAS_STREAM_INPUT);
+}
+
+static inline
+struct cras_iodev *first_loop_dev(const struct audio_thread *thread)
+{
+	return first_active_device(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
+}
+
 /* Requests audio from a stream and marks it as pending. */
 static int fetch_stream(struct audio_thread *thread,
 			struct dev_stream *curr,
@@ -426,34 +454,6 @@ static int delete_stream(struct audio_thread *thread,
 		cras_rstream_destroy(stream);
 
 	return 0;
-}
-
-/* Gets the first active device for given direction. */
-static inline
-struct cras_iodev *first_active_device(const struct audio_thread *thread,
-				       enum CRAS_STREAM_DIRECTION dir)
-{
-	return thread->active_devs[dir]
-			? thread->active_devs[dir]->dev
-			: NULL;
-}
-
-static inline
-struct cras_iodev *first_output_dev(const struct audio_thread *thread)
-{
-	return first_active_device(thread, CRAS_STREAM_OUTPUT);
-}
-
-static inline
-struct cras_iodev *first_input_dev(const struct audio_thread *thread)
-{
-	return first_active_device(thread, CRAS_STREAM_INPUT);
-}
-
-static inline
-struct cras_iodev *first_loop_dev(const struct audio_thread *thread)
-{
-	return first_active_device(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
 }
 
 /* Close a device if it's been opened. */
