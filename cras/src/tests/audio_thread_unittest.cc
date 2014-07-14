@@ -1448,9 +1448,9 @@ class AddStreamSuite : public testing::Test {
       struct cras_rstream *new_stream, *second_stream;
       cras_audio_shm *shm;
       struct cras_audio_format *fmt;
-      struct audio_thread thread;
+      struct audio_thread *thread;
 
-      memset(&thread, 0, sizeof(thread));
+      thread = audio_thread_create();
 
       fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
       memcpy(fmt, &fmt_, sizeof(fmt_));
@@ -1466,18 +1466,18 @@ class AddStreamSuite : public testing::Test {
       shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
       if (direction == CRAS_STREAM_INPUT)
-        thread_add_active_dev(&thread, &iodev_);
+        thread_add_active_dev(thread, &iodev_);
       else
-        thread_add_active_dev(&thread, &iodev_);
+        thread_add_active_dev(thread, &iodev_);
 
-      thread_add_stream(&thread, new_stream);
-      EXPECT_EQ(1, thread.devs_open[direction]);
+      thread_add_stream(thread, new_stream);
+      EXPECT_EQ(1, thread->devs_open[direction]);
       EXPECT_EQ(1, open_dev_called_);
-      EXPECT_EQ(65, thread.buffer_frames[direction]);
+      EXPECT_EQ(65, thread->buffer_frames[direction]);
       if (direction == CRAS_STREAM_OUTPUT)
-          EXPECT_EQ(32, thread.cb_threshold[direction]);
+          EXPECT_EQ(32, thread->cb_threshold[direction]);
       else
-	  EXPECT_EQ(80, thread.cb_threshold[direction]);
+	  EXPECT_EQ(80, thread->cb_threshold[direction]);
 
       is_open_ = 1;
 
@@ -1491,36 +1491,37 @@ class AddStreamSuite : public testing::Test {
       shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
       is_open_called_ = 0;
-      thread_add_stream(&thread, second_stream);
-      EXPECT_EQ(1, thread.devs_open[direction]);
+      thread_add_stream(thread, second_stream);
+      EXPECT_EQ(1, thread->devs_open[direction]);
       EXPECT_EQ(1, open_dev_called_);
-      EXPECT_EQ(25, thread.buffer_frames[direction]);
-      EXPECT_EQ(12, thread.cb_threshold[direction]);
+      EXPECT_EQ(25, thread->buffer_frames[direction]);
+      EXPECT_EQ(12, thread->cb_threshold[direction]);
 
       //  Remove the streams.
-      rc = thread_remove_stream(&thread, second_stream);
+      rc = thread_remove_stream(thread, second_stream);
       EXPECT_EQ(1, rc);
       EXPECT_EQ(0, close_dev_called_);
       if (direction == CRAS_STREAM_OUTPUT)
-          EXPECT_EQ(32, thread.cb_threshold[direction]);
+          EXPECT_EQ(32, thread->cb_threshold[direction]);
       else
-          EXPECT_EQ(80, thread.cb_threshold[direction]);
+          EXPECT_EQ(80, thread->cb_threshold[direction]);
 
-      rc = thread_remove_stream(&thread, new_stream);
+      rc = thread_remove_stream(thread, new_stream);
       EXPECT_EQ(0, rc);
 
       // For output stream, we enter the draining mode;
       // for input stream, we close the device directly.
       if (direction == CRAS_STREAM_INPUT) {
-        EXPECT_EQ(0, thread.devs_open[direction]);
-        EXPECT_EQ(0, thread.buffer_frames[direction]);
-        EXPECT_EQ(0, thread.cb_threshold[direction]);
+        EXPECT_EQ(0, thread->devs_open[direction]);
+        EXPECT_EQ(0, thread->buffer_frames[direction]);
+        EXPECT_EQ(0, thread->cb_threshold[direction]);
       } else {
         EXPECT_EQ(1, iodev_.is_draining);
       }
 
       free(fmt);
       shm = cras_rstream_output_shm(new_stream);
+      audio_thread_destroy(thread);
       free(shm->area);
       free(new_stream);
       shm = cras_rstream_output_shm(second_stream);
@@ -1551,9 +1552,9 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   int rc;
   cras_rstream* new_stream;
   cras_audio_shm *shm;
-  struct audio_thread thread;
+  struct audio_thread *thread;
 
-  memset(&thread, 0, sizeof(thread));
+  thread = audio_thread_create();
 
   iodev_.format = &fmt_;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
@@ -1566,28 +1567,29 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   shm = cras_rstream_output_shm(new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
 
-  thread_add_active_dev(&thread, &iodev_);
+  thread_add_active_dev(thread, &iodev_);
 
-  rc = thread_add_stream(&thread, new_stream);
+  rc = thread_add_stream(thread, new_stream);
   ASSERT_EQ(0, rc);
-  EXPECT_EQ(1, thread.devs_open[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(1, thread->devs_open[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, open_dev_called_);
-  EXPECT_EQ(65, thread.buffer_frames[CRAS_STREAM_OUTPUT]);
-  EXPECT_EQ(32, thread.cb_threshold[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(65, thread->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(32, thread->cb_threshold[CRAS_STREAM_OUTPUT]);
 
   is_open_ = 1;
 
   //  remove the stream.
-  rc = thread_remove_stream(&thread, new_stream);
+  rc = thread_remove_stream(thread, new_stream);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, iodev_.is_draining);
   EXPECT_EQ(0, cras_metrics_log_histogram_called);
   EXPECT_EQ(0, cras_rstream_destroy_called);
 
-  rc = thread_disconnect_stream(&thread, new_stream);
+  rc = thread_disconnect_stream(thread, new_stream);
   EXPECT_EQ(1, cras_rstream_destroy_called);
 
   free(shm->area);
+  audio_thread_destroy(thread);
   free(new_stream);
 }
 
