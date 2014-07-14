@@ -2361,6 +2361,10 @@ void cras_audio_area_copy(const struct cras_audio_area *dst,
 {
   unsigned count, i;
   int16_t *dchan, *schan;
+
+  if (src_index == 0)
+    memset(dst->channels[0].buf, 0, src->frames * dst_format_bytes);
+
   dchan = (int16_t *)(dst->channels[0].buf +
                       dst_offset * dst->channels[0].step_bytes);
   schan = (int16_t *)src->channels[0].buf;
