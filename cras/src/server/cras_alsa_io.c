@@ -36,6 +36,7 @@
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 #define INTERNAL_SPEAKER "Speaker"
 #define INTERNAL_MICROPHONE "Internal Mic"
+#define KEYBOARD_MIC "Keyboard Mic"
 
 /* For USB, pad the output buffer.  This avoids a situation where there isn't a
  * complete URB's worth of audio ready to be transmitted when it is requested.
@@ -564,6 +565,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ "(default)", 1, CRAS_NODE_TYPE_UNKNOWN},
 		{ INTERNAL_SPEAKER, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
 		{ INTERNAL_MICROPHONE, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
+		{ KEYBOARD_MIC, 1, CRAS_NODE_TYPE_KEYBOARD_MIC },
 		{ "HDMI", 0, CRAS_NODE_TYPE_HDMI },
 		{ "IEC958", 0, CRAS_NODE_TYPE_HDMI },
 		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
@@ -1078,6 +1080,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		    !has_node(aio, INTERNAL_MICROPHONE) &&
 		    may_have_internal_mic(card_index))
 			new_input(INTERNAL_MICROPHONE, aio);
+		else if (strstr(dev_name, KEYBOARD_MIC))
+			new_input("Keyboard Mic", aio);
 		else if (!aio->base.nodes)
 			new_input("(default)", aio);
 	}
