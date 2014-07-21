@@ -89,6 +89,7 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 	destroy_hfp_resources();
 
 	slc_handle = hfp_slc_create(fd,
+				    0,
 				    cras_hfp_ag_slc_initialized,
 				    transport,
 				    cras_hfp_ag_slc_disconnected);
@@ -135,7 +136,7 @@ static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
 
 	/* Destroy all existing devices and replace with new ones */
 	destroy_hfp_resources();
-	slc_handle = hfp_slc_create(fd, NULL, transport,
+	slc_handle = hfp_slc_create(fd, 1, NULL, transport,
 				    cras_hfp_ag_slc_disconnected);
 
 	cras_hfp_ag_slc_initialized(slc_handle, transport);

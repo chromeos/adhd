@@ -36,7 +36,8 @@ namespace {
 TEST(HfpSlc, CreateSlcHandle) {
   ResetStubData();
 
-  handle = hfp_slc_create(0, slc_initialized_cb, handle, slc_disconnected_cb);
+  handle = hfp_slc_create(0, 0, slc_initialized_cb, handle,
+                          slc_disconnected_cb);
   ASSERT_EQ(1, cras_system_add_select_fd_called);
   ASSERT_EQ(handle, slc_cb_data);
 
@@ -51,7 +52,7 @@ TEST(HfpSlc, InitializeSlc) {
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-  handle = hfp_slc_create(sock[0], slc_initialized_cb, handle,
+  handle = hfp_slc_create(sock[0], 0, slc_initialized_cb, handle,
                           slc_disconnected_cb);
 
   err = write(sock[1], "AT+CIND=?\r", 10);
@@ -94,7 +95,7 @@ TEST(HfpSlc, DisconnectSlc) {
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-  handle = hfp_slc_create(sock[0], slc_initialized_cb, handle,
+  handle = hfp_slc_create(sock[0], 0, slc_initialized_cb, handle,
                           slc_disconnected_cb);
   /* Close socket right away to make read() get negative err code, and
    * fake the errno to ECONNRESET. */

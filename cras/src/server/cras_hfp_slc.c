@@ -78,6 +78,7 @@ struct hfp_slc_handle {
 	int buf_read_idx;
 	int buf_write_idx;
 
+	int is_hsp;
 	int rfcomm_fd;
 	hfp_slc_init_cb init_cb;
 	hfp_slc_disconnect_cb disconnect_cb;
@@ -137,6 +138,10 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 				     int value)
 {
 	char cmd[64];
+
+	if (handle->is_hsp)
+		return 0;
+
 	snprintf(cmd, 64, "+CIEV: %d,%d", ind_index, value);
 	return hfp_send(handle, cmd);
 }
@@ -148,6 +153,9 @@ static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
 						int type)
 {
 	char cmd[64];
+
+	if (handle->is_hsp)
+		return 0;
 
 	if (handle->telephony->call) {
 		snprintf(cmd, 64, "+CCWA: \"%s\",%d", number, type);
@@ -272,6 +280,21 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 static int extended_errors(struct hfp_slc_handle *handle, const char *buf)
 {
 	return hfp_send(handle, "OK");
+}
+
+/* AT+CKPD command to handle the user initiated action from headset profile
+ * device.
+ */
+static int key_press(struct hfp_slc_handle *handle, const char *buf)
+{
+	hfp_send(handle, "OK");
+
+	/* Release the call and connection. */
+	if (handle->telephony->call || handle->telephony->callsetup) {
+		cras_telephony_event_terminate_call();
+		handle->disconnect_cb(handle);
+	}
+	return 0;
 }
 
 /* AT+BLDN command to re-dial the last number. Mandatory support
@@ -508,6 +531,7 @@ static struct at_command at_commands[] = {
 	{ "AT+CCWA", call_waiting_notify },
 	{ "AT+CHUP", terminate_call },
 	{ "AT+CIND", report_indicators },
+	{ "AT+CKPD", key_press },
 	{ "AT+CLCC", list_current_calls },
 	{ "AT+CLIP", cli_notification },
 	{ "AT+CMEE", extended_errors },
@@ -600,6 +624,7 @@ static void slc_watch_callback(void *arg)
 /* Exported interfaces */
 
 struct hfp_slc_handle *hfp_slc_create(int fd,
+				      int is_hsp,
 				      hfp_slc_init_cb init_cb,
 				      void *init_cb_data,
 				      hfp_slc_disconnect_cb disconnect_cb)
@@ -611,6 +636,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 		return NULL;
 
 	handle->rfcomm_fd = fd;
+	handle->is_hsp = is_hsp;
 	handle->init_cb = init_cb;
 	handle->disconnect_cb = disconnect_cb;
 	handle->init_cb_data = init_cb_data;
@@ -651,6 +677,9 @@ int hfp_event_incoming_call(struct hfp_slc_handle *handle,
 			    int type)
 {
 	int rc;
+
+	if (handle->is_hsp)
+		return 0;
 
 	if (handle->cli_active) {
 		rc = hfp_send_calling_line_identification(handle, number, type);
