@@ -288,6 +288,9 @@ static int hfp_info_callback(void *arg)
 	struct hfp_info *info = (struct hfp_info *)arg;
 	int err;
 
+	if (!info->started)
+		goto read_write_error;
+
 	err = hfp_read(info);
 	if (err < 0) {
 		syslog(LOG_ERR, "Read error");
@@ -365,6 +368,9 @@ int hfp_info_start(int fd, struct hfp_info *info)
 
 int hfp_info_stop(struct hfp_info *info)
 {
+	if (!info->started)
+		return 0;
+
 	audio_thread_rm_callback(info->fd);
 
 	close(info->fd);

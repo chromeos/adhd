@@ -31,10 +31,6 @@ static struct hfp_slc_handle *slc_handle;
 
 static void destroy_hfp_resources()
 {
-	if (info) {
-		hfp_info_destroy(info);
-		info = NULL;
-	}
 	if (idev) {
 		hfp_iodev_destroy(idev);
 		idev = NULL;
@@ -42,6 +38,10 @@ static void destroy_hfp_resources()
 	if (odev) {
 		hfp_iodev_destroy(odev);
 		odev = NULL;
+	}
+	if (info) {
+		hfp_info_destroy(info);
+		info = NULL;
 	}
 	if (slc_handle) {
 		hfp_slc_destroy(slc_handle);
