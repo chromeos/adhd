@@ -868,26 +868,6 @@ static void update_stream_timeout(struct cras_audio_shm *shm)
 		cras_shm_set_longest_timeout(shm, timeout_msec);
 }
 
-/* Removes those streams which are both disconnected and empty. */
-static int remove_empty_streams(struct audio_thread *thread)
-{
-	struct cras_io_stream *curr;
-	struct cras_audio_shm *shm;
-	int frames_in_buff;
-	DL_FOREACH(thread->streams, curr) {
-		if (curr->stream->client != NULL ||
-		    !stream_uses_output(curr->stream))
-			continue;
-		shm = cras_rstream_output_shm(curr->stream);
-		frames_in_buff = cras_shm_get_frames(shm);
-		if (frames_in_buff < 0)
-			return frames_in_buff;
-		if (frames_in_buff == 0)
-			thread_remove_stream(thread, curr->stream);
-	}
-	return 0;
-}
-
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
  *    thread - The thread to fetch samples for.
@@ -926,6 +906,13 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 		if (frames_in_buff < 0)
 			return frames_in_buff;
 
+		/* Remove the stream after it is fully drained. */
+		if (cras_rstream_get_is_draining(curr->stream)) {
+			if (frames_in_buff == 0)
+				thread_remove_stream(thread, curr->stream);
+			continue;
+		}
+
 		cras_iodev_set_playback_timestamp(fr_rate,
 						  frames_in_buff + delay,
 						  &shm->area->ts);
@@ -937,8 +924,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 			continue;
 
 		if (!cras_shm_callback_pending(shm) &&
-		    cras_shm_is_buffer_available(shm) &&
-		    !cras_rstream_get_is_draining(curr->stream)) {
+		    cras_shm_is_buffer_available(shm)) {
 			audio_thread_event_log_data(
 				atlog,
 				AUDIO_THREAD_FETCH_STREAM,
@@ -1613,10 +1599,6 @@ int possibly_fill_audio(struct audio_thread *thread,
 	if (total_written || hw_level)
 		if (!odev->dev_running(odev))
 			return -1;
-
-	rc = remove_empty_streams(thread);
-	if (rc < 0)
-		return rc;
 
 	/* We may close the device in remove_empty_streams() if there
 	 * is no output streams. In that case, no need to get the sleep

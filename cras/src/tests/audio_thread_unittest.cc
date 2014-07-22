@@ -1291,18 +1291,26 @@ TEST_F(WriteStreamSuite, DrainOutputStream) {
   // The device is not closed before we have played all the content.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2 * cb_threshold_, frames_written_);
-  EXPECT_EQ(1, cras_rstream_destroy_called);
   EXPECT_EQ(0, close_dev_called_);
-  EXPECT_EQ(1, iodev_.is_draining);
 
   // Clear the hardware buffer again.
   frames_queued_ = 0;
   frames_written_ = 0;
   audio_buffer_size_ = buffer_frames_ - frames_queued_;
-
   rc = unified_io(thread_, &ts);
 
+  EXPECT_EQ(1, cras_rstream_destroy_called);
+  EXPECT_EQ(1, iodev_.is_draining);
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(480, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
+  EXPECT_EQ(96, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
+
+  // Clear the hardware buffer again.
+  frames_queued_ = 0;
+  frames_written_ = 0;
+  audio_buffer_size_ = buffer_frames_ - frames_queued_;
+  rc = unified_io(thread_, &ts);
+
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(0, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
