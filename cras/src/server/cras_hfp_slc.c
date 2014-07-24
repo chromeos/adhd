@@ -219,6 +219,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 	if (rc)
 		return rc;
 
+	handle->telephony->callsetup = 2;
 	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 2);
 }
 
