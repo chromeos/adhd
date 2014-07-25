@@ -23,6 +23,46 @@
 #define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
 #define HSP_VERSION_1_2 0x0102
 
+#define HSP_AG_RECORD 							\
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"			\
+	"<record>"							\
+	"  <attribute id=\"0x0001\">"					\
+	"    <sequence>"						\
+	"      <uuid value=\"" HSP_AG_UUID "\" />"			\
+	"      <uuid value=\"" GENERIC_AUDIO_UUID "\" />"		\
+	"    </sequence>"						\
+	"  </attribute>"						\
+	"  <attribute id=\"0x0004\">"					\
+	"    <sequence>"						\
+	"      <sequence>"						\
+	"        <uuid value=\"0x0100\" />"				\
+	"      </sequence>"						\
+	"      <sequence>"						\
+	"        <uuid value=\"0x0003\" />"				\
+	"        <uint8 value=\"0x0c\" />"				\
+	"      </sequence>"						\
+	"    </sequence>"						\
+	"  </attribute>"						\
+	"  <attribute id=\"0x0005\">"					\
+	"    <sequence>"						\
+	"      <uuid value=\"0x1002\" />"				\
+	"    </sequence>"						\
+	"  </attribute>"						\
+	"  <attribute id=\"0x0009\">"					\
+	"    <sequence>"						\
+	"      <sequence>"						\
+	"        <uuid value=\"" HSP_HS_UUID "\" />"			\
+	"        <uint16 value=\"0x0102\" />"				\
+	"      </sequence>"						\
+	"    </sequence>"						\
+	"  </attribute>"						\
+	"  <attribute id=\"0x0100\">"					\
+	"    <text value=\"Voice Gateway\" />"				\
+	"  </attribute>"						\
+	"  <attribute id=\"0x0301\" >"					\
+	"    <uint8 value=\"0x01\" />"					\
+	"  </attribute>"						\
+	"</record>"
 
 static struct cras_iodev *idev;
 static struct cras_iodev *odev;
@@ -117,6 +157,7 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 	.version = HFP_VERSION_1_6,
 	.role = NULL,
 	.features = 0,
+	.record = NULL,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hfp_ag_new_connection,
 	.request_disconnection = cras_hfp_ag_request_disconnection,
@@ -148,6 +189,7 @@ static struct cras_bt_profile cras_hsp_ag_profile = {
 	.uuid = HSP_AG_UUID,
 	.version = HSP_VERSION_1_2,
 	.role = NULL,
+	.record = HSP_AG_RECORD,
 	.features = 0,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hsp_ag_new_connection,

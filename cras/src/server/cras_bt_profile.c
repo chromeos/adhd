@@ -304,6 +304,14 @@ int cras_bt_register_profile(DBusConnection *conn,
 		return -ENOMEM;
 	}
 
+	if (profile->record &&
+	    !append_key_value(&properties_array_iter, "ServiceRecord",
+			      DBUS_TYPE_STRING, DBUS_TYPE_STRING_AS_STRING,
+			      &profile->record)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
 	if (!append_key_value(&properties_array_iter, "Version",
 			      DBUS_TYPE_UINT16,
 			      DBUS_TYPE_UINT16_AS_STRING, &profile->version)) {

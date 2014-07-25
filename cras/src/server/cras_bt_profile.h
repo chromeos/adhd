@@ -21,6 +21,7 @@ struct cras_bt_profile {
 	const char *object_path;
 	const char *uuid;
 	const char *role;
+	const char *record;
 	int version;
 	int features;
 	void (*release)(struct cras_bt_profile *profile);
