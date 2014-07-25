@@ -176,8 +176,6 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:
 		return "BLUETOOTH";
-	case CRAS_NODE_TYPE_KEYBOARD_MIC:
-		return "KEYBOARD_MIC";
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
 		return "UNKNOWN";
