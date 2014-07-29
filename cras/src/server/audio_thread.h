@@ -35,8 +35,8 @@ struct active_dev {
 	struct active_dev *prev, *next;
 };
 
-/* Hold communication pipes and pthread info for a thread used to play or record
- * audio.  This maps 1 to 1 with IO devices.
+/* Hold communication pipes and pthread info for the thread used to play or
+ * record audio.
  *    to_thread_fds - Send a message from main to running thread.
  *    to_main_fds - Send a synchronous response to main from running thread.
  *    main_msg_fds - Send a message from running thread to main.
