@@ -952,9 +952,6 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 		if (cras_shm_callback_pending(shm))
 			flush_old_aud_messages(shm, curr->fd);
 
-		if (curr->stream->direction != CRAS_STREAM_OUTPUT)
-			continue;
-
 		frames_in_buff = cras_shm_get_frames(shm);
 		if (frames_in_buff < 0)
 			return frames_in_buff;
