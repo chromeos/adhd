@@ -963,10 +963,6 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 			continue;
 		}
 
-		cras_iodev_set_playback_timestamp(fr_rate,
-						  frames_in_buff + delay,
-						  &shm->area->ts);
-
 		/* If we already have enough data, don't poll this stream. */
 		if (frames_in_buff + hw_level >
 		    cras_rstream_get_cb_threshold(curr->stream) +
@@ -975,6 +971,10 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 
 		if (!cras_shm_callback_pending(shm) &&
 		    cras_shm_is_buffer_available(shm)) {
+			cras_iodev_set_playback_timestamp(
+					fr_rate, frames_in_buff + delay,
+					&shm->area->ts);
+
 			rc = fetch_stream(thread, curr, frames_in_buff,
 					  fr_rate);
 			if (rc < 0)
