@@ -1100,14 +1100,19 @@ int main(int argc, char **argv)
 		case '2':{
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
+			enum CRAS_STREAM_DIRECTION dir;
 			cras_node_id_t id = cras_make_node_id(dev_index,
 							      node_index);
-			if (c == 'k' || c == 't')
-				cras_client_add_active_node(client,
-						CRAS_STREAM_INPUT, id);
+
+			if (c == 't' || c == '2')
+				dir = CRAS_STREAM_OUTPUT;
 			else
-				cras_client_rm_active_node(client,
-						CRAS_STREAM_INPUT, id);
+				dir = CRAS_STREAM_INPUT;
+
+			if (c == 'k' || c == 't')
+				cras_client_add_active_node(client, dir, id);
+			else
+				cras_client_rm_active_node(client, dir, id);
 			break;
 		}
 		case 'w': {
