@@ -1627,15 +1627,10 @@ int possibly_fill_audio(struct audio_thread *thread,
 		if (!odev->dev_running(odev))
 			return -1;
 
-	/* We may close the device in remove_empty_streams() if there
-	 * is no output streams. In that case, no need to get the sleep
-	 * frames here. */
-	if (device_open(odev)) {
-		rc = get_output_sleep_frames(thread);
-		if (rc < 0)
-			return rc;
-		*next_sleep_frames = rc;
-	}
+	rc = get_output_sleep_frames(thread);
+	if (rc < 0)
+		return rc;
+	*next_sleep_frames = rc;
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 				    total_written, 0, 0);
