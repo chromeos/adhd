@@ -66,8 +66,10 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 	float mix_vol;
 
 	fr_in_buf = cras_shm_get_frames(shm);
-	if (fr_in_buf <= 0)
+	if (fr_in_buf <= 0) {
+		*count = 0;
 		return 0;
+	}
 	if (fr_in_buf < *count)
 		*count = fr_in_buf;
 

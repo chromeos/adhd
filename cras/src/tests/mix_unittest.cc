@@ -77,6 +77,29 @@ TEST_F(MixTestSuite, MixFirstSystemMuted) {
   EXPECT_EQ(0, memcmp(mix_buffer_, shm_.area->samples, kBufferFrames*4));
 }
 
+TEST_F(MixTestSuite, MixEmptyStream) {
+  size_t count = kBufferFrames;
+  cras_system_get_mute_return = 0;
+  /* Empty shm */
+  shm_.area->read_offset[0] = shm_.area->write_offset[0];
+  cras_mix_add_stream(
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+  EXPECT_EQ(0, count);
+  EXPECT_EQ(0, mix_index_);
+}
+
+TEST_F(MixTestSuite, MixShmGetFramesError) {
+  size_t count = kBufferFrames;
+  cras_system_get_mute_return = 0;
+  /* Get frames returns error when available number of bytes is not
+   * multiple of frame bytes. */
+  shm_.area->read_offset[0] = shm_.area->write_offset[0] - 3;
+  cras_mix_add_stream(
+      &shm_, kNumChannels, (uint8_t *)mix_buffer_, &count, &mix_index_);
+  EXPECT_EQ(0, count);
+  EXPECT_EQ(0, mix_index_);
+}
+
 TEST_F(MixTestSuite, MixTwo) {
   size_t count = kBufferFrames;
   int16_t *buf;
