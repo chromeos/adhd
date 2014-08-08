@@ -34,7 +34,6 @@ struct cras_rstream {
 	int fd; /* Socket for requesting and sending audio buffer events. */
 	size_t buffer_frames; /* Buffer size in frames. */
 	size_t cb_threshold; /* Callback client when this much is left. */
-	uint32_t flags;
 	int is_draining; /* The stream is draining and waiting to be removed. */
 	struct cras_rclient *client;
 	struct rstream_shm_info input_shm_info;
@@ -54,7 +53,6 @@ struct cras_rstream {
  *    format - The audio format the stream wishes to use.
  *    buffer_frames - Total number of audio frames to buffer.
  *    cb_threshold - # of frames when to request more from the client.
- *    flags - Unused.
  *    client - The client that owns this stream.
  *    stream_out - Filled with the newly created stream pointer.
  * Returns:
@@ -67,7 +65,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
-			uint32_t flags,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out);
 /* Destroys an rstream. */

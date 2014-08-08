@@ -95,7 +95,6 @@ try_again:
 				 &fmt,
 				 buffer_frames,
 				 cb_threshold,
-				 msg->flags,
 				 client,
 				 &stream);
 	if (rc < 0) {

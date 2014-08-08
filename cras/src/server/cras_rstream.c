@@ -142,7 +142,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
-			uint32_t flags,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out)
 {
@@ -165,7 +164,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->format = *format;
 	stream->buffer_frames = buffer_frames;
 	stream->cb_threshold = cb_threshold;
-	stream->flags = flags;
 	stream->client = client;
 	stream->output_shm.area = NULL;
 	stream->input_shm.area = NULL;

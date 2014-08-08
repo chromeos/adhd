@@ -42,7 +42,6 @@ TEST_F(RstreamTestSuite, InvalidDirection) {
       &fmt_,
       4096,
       2048,
-      0,
       NULL,
       &s);
   EXPECT_NE(0, rc);
@@ -58,7 +57,6 @@ TEST_F(RstreamTestSuite, InvalidBufferSize) {
       &fmt_,
       3,
       2048,
-      0,
       NULL,
       &s);
   EXPECT_NE(0, rc);
@@ -74,7 +72,6 @@ TEST_F(RstreamTestSuite, InvalidCallbackThreshold) {
       &fmt_,
       4096,
       3,
-      0,
       NULL,
       &s);
   EXPECT_NE(0, rc);
@@ -89,7 +86,6 @@ TEST_F(RstreamTestSuite, InvalidStreamPointer) {
       &fmt_,
       4096,
       2048,
-      0,
       NULL,
       NULL);
   EXPECT_NE(0, rc);
@@ -109,7 +105,6 @@ TEST_F(RstreamTestSuite, CreateOutput) {
       &fmt_,
       4096,
       2048,
-      0,
       NULL,
       &s);
   EXPECT_EQ(0, rc);
@@ -154,7 +149,6 @@ TEST_F(RstreamTestSuite, CreateInput) {
       &fmt_,
       4096,
       2048,
-      0,
       NULL,
       &s);
   EXPECT_EQ(0, rc);
