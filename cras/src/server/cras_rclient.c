@@ -36,12 +36,12 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_rstream *stream;
 	struct cras_iodev *idev, *odev;
 	struct cras_client_stream_connected reply;
-	struct cras_audio_format fmt, mfmt;
+	struct cras_audio_format fmt, remote_fmt;
 	struct audio_thread *thread;
 	int rc;
 	size_t buffer_frames, cb_threshold;
 
-	unpack_cras_audio_format(&mfmt, &msg->format);
+	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
 	/* check the aud_fd is valid. */
 	if (aud_fd < 0) {
@@ -65,7 +65,7 @@ try_again:
 
 	/* Tell the iodev about the format we want.  fmt will contain the actual
 	 * format used after return. */
-	fmt = mfmt;
+	fmt = remote_fmt;
 	if (idev)
 		cras_iodev_set_format(idev, &fmt);
 	if (odev)
@@ -153,7 +153,7 @@ destroy_stream_and_reply_err:
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
-					  &mfmt, 0, 0, 0);
+					  &remote_fmt, 0, 0, 0);
 	cras_rclient_send_message(client, &reply.header);
 
 	if (aud_fd >= 0)
