@@ -26,24 +26,40 @@ struct rstream_shm_info {
 /* cras_rstream is used to manage an active audio stream from
  * a client.  Each client can have any number of open streams for
  * playing or recording.
+ * Members:
+ *    stream_id - identifier for this stream.
+ *    stream_type - not used.
+ *    direction - input or output.
+ *    fd - Socket for requesting and sending audio buffer events.
+ *    buffer_frames - Buffer size in frames.
+ *    cb_threshold - Callback client when this much is left.
+ *    is_draining - The stream is draining and waiting to be removed.
+ *    client - The client who uses this stream.
+ *    input_shm_info - Configuration data for input shared memory
+ *    output_shm_info - Configuration data for output shared memory
+ *    input_shm - input shared memory
+ *    output_shm - output shared memory
+ *    input_audio_area - space for captured audio
+ *    output_audio_area - space for playback audio
+ *    format - format of the stream
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
 	enum CRAS_STREAM_TYPE stream_type;
 	enum CRAS_STREAM_DIRECTION direction;
-	int fd; /* Socket for requesting and sending audio buffer events. */
-	size_t buffer_frames; /* Buffer size in frames. */
-	size_t cb_threshold; /* Callback client when this much is left. */
-	int is_draining; /* The stream is draining and waiting to be removed. */
+	int fd;
+	size_t buffer_frames;
+	size_t cb_threshold;
+	int is_draining;
 	struct cras_rclient *client;
 	struct rstream_shm_info input_shm_info;
 	struct rstream_shm_info output_shm_info;
-	struct cras_audio_shm output_shm;
 	struct cras_audio_shm input_shm;
-	struct cras_rstream *prev, *next;
-	struct cras_audio_format format;
-	struct cras_audio_area *output_audio_area;
+	struct cras_audio_shm output_shm;
 	struct cras_audio_area *input_audio_area;
+	struct cras_audio_area *output_audio_area;
+	struct cras_audio_format format;
+	struct cras_rstream *prev, *next;
 };
 
 /* Creates an rstream.
