@@ -132,7 +132,7 @@ try_again:
 			&reply,
 			0, /* No error. */
 			msg->stream_id,
-			fmt,
+			&fmt,
 			cras_rstream_input_shm_key(stream),
 			cras_rstream_output_shm_key(stream),
 			cras_rstream_get_total_shm_size(stream));
@@ -153,7 +153,7 @@ destroy_stream_and_reply_err:
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
-					  mfmt, 0, 0, 0);
+					  &mfmt, 0, 0, 0);
 	cras_rclient_send_message(client, &reply.header);
 
 	if (aud_fd >= 0)

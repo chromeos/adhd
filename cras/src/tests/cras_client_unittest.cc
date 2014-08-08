@@ -199,7 +199,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
       &msg,
       0,
       stream_.id,
-      server_format,
+      &server_format,
       input_shm_key,
       output_shm_key,
       shm_max_size);
@@ -267,7 +267,7 @@ void CrasClientTestSuite::StreamConnectedFail(
       &msg,
       0,
       stream_.id,
-      server_format,
+      &server_format,
       input_shm_key,
       output_shm_key,
       shm_max_size);

@@ -337,14 +337,14 @@ static inline void cras_fill_client_stream_connected(
 		struct cras_client_stream_connected *m,
 		int err,
 		cras_stream_id_t stream_id,
-		struct cras_audio_format format,
+		struct cras_audio_format *format,
 		int input_shm_key,
 		int output_shm_key,
 		size_t shm_max_size)
 {
 	m->err = err;
 	m->stream_id = stream_id;
-	pack_cras_audio_format(&m->format, &format);
+	pack_cras_audio_format(&m->format, format);
 	m->input_shm_key = input_shm_key;
 	m->output_shm_key = output_shm_key;
 	m->shm_max_size = shm_max_size;
