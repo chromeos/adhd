@@ -124,8 +124,7 @@ class RClientMessagesSuite : public testing::Test {
       connect_msg_.direction = CRAS_STREAM_OUTPUT;
       connect_msg_.stream_id = stream_id_;
       connect_msg_.buffer_frames = 480;
-      connect_msg_.cb_threshold = 96;
-      connect_msg_.min_cb_level = 240;
+      connect_msg_.cb_threshold = 240;
       connect_msg_.flags = 0;
       connect_msg_.format.num_channels = 2;
       connect_msg_.format.frame_rate = 48000;
@@ -494,7 +493,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
-			size_t min_cb_level,
 			uint32_t flags,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out)

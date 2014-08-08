@@ -101,7 +101,6 @@ struct cras_stream_params {
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t buffer_frames;
 	size_t cb_threshold;
-	size_t min_cb_level;
 	enum CRAS_STREAM_TYPE stream_type;
 	uint32_t flags;
 	void *user_data;
@@ -393,7 +392,7 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 	}
 
 	/* Don't ask for more frames than the client desires. */
-	num_frames = MIN(num_frames, stream->config->min_cb_level);
+	num_frames = MIN(num_frames, stream->config->cb_threshold);
 
 	return num_frames;
 }
@@ -427,7 +426,7 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 	}
 
 	/* Don't ask for more frames than the client desires. */
-	num_frames = MIN(num_frames, stream->config->min_cb_level);
+	num_frames = MIN(num_frames, stream->config->cb_threshold);
 
 	return num_frames;
 }
@@ -570,7 +569,7 @@ static int handle_playback_request(struct client_stream *stream,
 	num_frames = config_playback_buf(stream, &buf, num_frames);
 
 	/* Limit the amount of frames to the configured amount. */
-	num_frames = MIN(num_frames, config->min_cb_level);
+	num_frames = MIN(num_frames, config->cb_threshold);
 
 	cras_timespec_to_timespec(&ts, &shm->area->ts);
 
@@ -874,7 +873,6 @@ static int send_connect_message(struct cras_client *client,
 				  stream->config->stream_type,
 				  stream->config->buffer_frames,
 				  stream->config->cb_threshold,
-				  stream->config->min_cb_level,
 				  stream->flags,
 				  stream->config->format);
 	rc = cras_send_with_fd(client->server_fd, &serv_msg, sizeof(serv_msg),
@@ -1473,7 +1471,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 		enum CRAS_STREAM_DIRECTION direction,
 		size_t buffer_frames,
 		size_t cb_threshold,
-		size_t min_cb_level,
+		size_t unused,
 		enum CRAS_STREAM_TYPE stream_type,
 		uint32_t flags,
 		void *user_data,
@@ -1490,13 +1488,6 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->direction = direction;
 	params->buffer_frames = buffer_frames;
 	params->cb_threshold = cb_threshold;
-	params->min_cb_level = min_cb_level;
-
-	/* For input cb_thresh is buffer size. For output the callback level. */
-	if (params->direction == CRAS_STREAM_OUTPUT)
-		params->cb_threshold = params->buffer_frames;
-	else
-		params->cb_threshold = params->min_cb_level;
 
 	params->stream_type = stream_type;
 	params->flags = flags;
@@ -1527,7 +1518,6 @@ struct cras_stream_params *cras_client_unified_params_create(
 	params->direction = direction;
 	params->buffer_frames = block_size * 2;
 	params->cb_threshold = block_size;
-	params->min_cb_level = block_size;
 	params->stream_type = stream_type;
 	params->flags = flags;
 	params->user_data = user_data;

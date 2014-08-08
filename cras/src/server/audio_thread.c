@@ -1400,7 +1400,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			si->direction = curr->stream->direction;
 			si->buffer_frames = curr->stream->buffer_frames;
 			si->cb_threshold = curr->stream->cb_threshold;
-			si->min_cb_level = curr->stream->min_cb_level;
 			si->frame_rate = curr->stream->format.frame_rate;
 			si->num_channels = curr->stream->format.num_channels;
 			si->num_cb_timeouts = cras_shm_num_cb_timeouts(shm);

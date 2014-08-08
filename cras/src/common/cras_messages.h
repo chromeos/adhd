@@ -77,7 +77,6 @@ struct __attribute__ ((__packed__)) cras_connect_message {
 	enum CRAS_STREAM_TYPE stream_type; /* media, or call, etc. */
 	uint32_t buffer_frames; /* Buffer size in frames. */
 	uint32_t cb_threshold; /* callback client when this much is left */
-	uint32_t min_cb_level; /* don't callback unless this much is avail */
 	uint32_t flags;
 	struct cras_audio_format_packed format; /* rate, channel, sample size */
 };
@@ -87,7 +86,6 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 					   enum CRAS_STREAM_TYPE stream_type,
 					   size_t buffer_frames,
 					   size_t cb_threshold,
-					   size_t min_cb_level,
 					   uint32_t flags,
 					   struct cras_audio_format format)
 {
@@ -97,7 +95,6 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 	m->stream_type = stream_type;
 	m->buffer_frames = buffer_frames;
 	m->cb_threshold = cb_threshold;
-	m->min_cb_level = min_cb_level;
 	m->flags = flags;
 	pack_cras_audio_format(&m->format, &format);
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;

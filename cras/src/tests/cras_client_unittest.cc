@@ -89,7 +89,6 @@ class CrasClientTestSuite : public testing::Test {
           static_cast<cras_stream_params*>(calloc(1, sizeof(*config)));
       config->buffer_frames = 1024;
       config->cb_threshold = 512;
-      config->min_cb_level = 512;
       stream_.config = config;
     }
 
@@ -126,12 +125,6 @@ TEST_F(CrasClientTestSuite, ConfigPlaybackBuf) {
   /* Expect configured frames limited by shm limit */
   fr = config_playback_buf(&stream_, &playback_frames, 300);
   ASSERT_EQ(fr, shm_writable_frames_ * conv_out_frames_to_in_ratio);
-
-  /* Expect configured frames limited by shm min_cb_level as well */
-  shm_writable_frames_ = 300;
-  cras_shm_set_used_size(&stream_.play_shm, shm_writable_frames_ * 4);
-  fr = config_playback_buf(&stream_, &playback_frames, 300);
-  ASSERT_EQ(fr, stream_.config->min_cb_level);
 
   FreeShm(&stream_.play_shm);
 }

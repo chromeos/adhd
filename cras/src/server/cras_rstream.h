@@ -34,7 +34,6 @@ struct cras_rstream {
 	int fd; /* Socket for requesting and sending audio buffer events. */
 	size_t buffer_frames; /* Buffer size in frames. */
 	size_t cb_threshold; /* Callback client when this much is left. */
-	size_t min_cb_level; /* Don't callback unless this much is avail. */
 	uint32_t flags;
 	int is_draining; /* The stream is draining and waiting to be removed. */
 	struct cras_rclient *client;
@@ -55,7 +54,6 @@ struct cras_rstream {
  *    format - The audio format the stream wishes to use.
  *    buffer_frames - Total number of audio frames to buffer.
  *    cb_threshold - # of frames when to request more from the client.
- *    min_cb_level - Minimum # of frames to request from the client.
  *    flags - Unused.
  *    client - The client that owns this stream.
  *    stream_out - Filled with the newly created stream pointer.
@@ -69,7 +67,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
-			size_t min_cb_level,
 			uint32_t flags,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out);
@@ -88,13 +85,6 @@ static inline size_t cras_rstream_get_cb_threshold(
 		const struct cras_rstream *stream)
 {
 	return stream->cb_threshold;
-}
-
-/* Gets the min cb threshold in frames for the given client stream. */
-static inline size_t cras_rstream_get_min_cb_level(
-		const struct cras_rstream *stream)
-{
-	return stream->min_cb_level;
 }
 
 /* Gets the stream type of this stream. */

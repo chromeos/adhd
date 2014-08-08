@@ -41,7 +41,6 @@ TEST_F(RstreamTestSuite, InvalidDirection) {
       (enum CRAS_STREAM_DIRECTION)66,
       &fmt_,
       4096,
-      1024,
       2048,
       0,
       NULL,
@@ -58,7 +57,6 @@ TEST_F(RstreamTestSuite, InvalidBufferSize) {
       CRAS_STREAM_OUTPUT,
       &fmt_,
       3,
-      1024,
       2048,
       0,
       NULL,
@@ -76,7 +74,6 @@ TEST_F(RstreamTestSuite, InvalidCallbackThreshold) {
       &fmt_,
       4096,
       3,
-      2048,
       0,
       NULL,
       &s);
@@ -91,7 +88,6 @@ TEST_F(RstreamTestSuite, InvalidStreamPointer) {
       CRAS_STREAM_OUTPUT,
       &fmt_,
       4096,
-      1024,
       2048,
       0,
       NULL,
@@ -112,7 +108,6 @@ TEST_F(RstreamTestSuite, CreateOutput) {
       CRAS_STREAM_OUTPUT,
       &fmt_,
       4096,
-      1024,
       2048,
       0,
       NULL,
@@ -120,8 +115,7 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, s);
   EXPECT_EQ(4096, cras_rstream_get_buffer_size(s));
-  EXPECT_EQ(1024, cras_rstream_get_cb_threshold(s));
-  EXPECT_EQ(2048, cras_rstream_get_min_cb_level(s));
+  EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_OUTPUT, cras_rstream_get_direction(s));
   EXPECT_NE((void *)NULL, cras_rstream_output_shm(s));
@@ -159,7 +153,6 @@ TEST_F(RstreamTestSuite, CreateInput) {
       CRAS_STREAM_INPUT,
       &fmt_,
       4096,
-      1024,
       2048,
       0,
       NULL,
@@ -167,8 +160,7 @@ TEST_F(RstreamTestSuite, CreateInput) {
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, s);
   EXPECT_EQ(4096, cras_rstream_get_buffer_size(s));
-  EXPECT_EQ(1024, cras_rstream_get_cb_threshold(s));
-  EXPECT_EQ(2048, cras_rstream_get_min_cb_level(s));
+  EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_INPUT, cras_rstream_get_direction(s));
   EXPECT_NE((void *)NULL, cras_rstream_input_shm(s));

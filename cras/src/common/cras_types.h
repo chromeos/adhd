@@ -140,7 +140,6 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint32_t direction;
 	uint32_t buffer_frames;
 	uint32_t cb_threshold;
-	uint32_t min_cb_level;
 	uint32_t flags;
 	uint32_t frame_rate;
 	uint32_t num_channels;

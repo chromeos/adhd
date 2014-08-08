@@ -509,11 +509,10 @@ static void audio_debug_info(struct cras_client *client)
 		int channel;
 		printf("stream: %llx\n",
 		       (unsigned long long)info->streams[i].stream_id);
-		printf("%d %u %u %u %u %u %u\n",
+		printf("%d %u %u %u %u %u\n",
 		       info->streams[i].direction,
 		       (unsigned int)info->streams[i].buffer_frames,
 		       (unsigned int)info->streams[i].cb_threshold,
-		       (unsigned int)info->streams[i].min_cb_level,
 		       (unsigned int)info->streams[i].frame_rate,
 		       (unsigned int)info->streams[i].num_channels,
 		       (unsigned int)info->streams[i].num_cb_timeouts);

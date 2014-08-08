@@ -39,7 +39,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_audio_format fmt, mfmt;
 	struct audio_thread *thread;
 	int rc;
-	size_t buffer_frames, cb_threshold, min_cb_level;
+	size_t buffer_frames, cb_threshold;
 
 	unpack_cras_audio_format(&mfmt, &msg->format);
 
@@ -87,9 +87,6 @@ try_again:
 	cb_threshold = cras_frames_at_rate(msg->format.frame_rate,
 					   msg->cb_threshold,
 					   fmt.frame_rate);
-	min_cb_level = cras_frames_at_rate(msg->format.frame_rate,
-					   msg->min_cb_level,
-					   fmt.frame_rate);
 
 	/* Create the stream with the modified parameters. */
 	rc = cras_rstream_create(msg->stream_id,
@@ -98,7 +95,6 @@ try_again:
 				 &fmt,
 				 buffer_frames,
 				 cb_threshold,
-				 min_cb_level,
 				 msg->flags,
 				 client,
 				 &stream);

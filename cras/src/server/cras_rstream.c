@@ -97,7 +97,6 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 				     const struct cras_audio_format *format,
 				     size_t buffer_frames,
 				     size_t cb_threshold,
-				     size_t min_cb_level,
 				     struct cras_rclient *client,
 				     struct cras_rstream **stream_out)
 {
@@ -132,10 +131,6 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		syslog(LOG_ERR, "rstream: cb_threshold too low\n");
 		return -EINVAL;
 	}
-	if (!buffer_meets_size_limit(min_cb_level, format->frame_rate)) {
-		syslog(LOG_ERR, "rstream: min_cb_level too low\n");
-		return -EINVAL;
-	}
 	return 0;
 }
 
@@ -147,7 +142,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
-			size_t min_cb_level,
 			uint32_t flags,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out)
@@ -156,7 +150,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	int rc;
 
 	rc = verify_rstream_parameters(direction, format, buffer_frames,
-				       cb_threshold, min_cb_level, client,
+				       cb_threshold, client,
 				       stream_out);
 	if (rc < 0)
 		return rc;
@@ -171,7 +165,6 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->format = *format;
 	stream->buffer_frames = buffer_frames;
 	stream->cb_threshold = cb_threshold;
-	stream->min_cb_level = min_cb_level;
 	stream->flags = flags;
 	stream->client = client;
 	stream->output_shm.area = NULL;
@@ -217,7 +210,7 @@ int cras_rstream_request_audio(const struct cras_rstream *stream)
 		return 0;
 
 	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
-	msg.frames = stream->min_cb_level;
+	msg.frames = stream->cb_threshold;
 	rc = write(stream->fd, &msg, sizeof(msg));
 	return rc;
 }

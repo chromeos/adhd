@@ -264,10 +264,7 @@ int cras_client_update_audio_debug_info(
  *    cb_threshold - For playback, call back for more data when the buffer
  *        reaches this level. For capture, this is ignored (Audio callback will
  *        be called when buffer_frames have been captured).
- *    min_cb_level - For playback, the minimum amout of frames that must be able
- *        to be written before calling back for more data (useful if you are
- *        processing audio in blocks of a certain size(e.g. 512 or 1024 frames).
- *        Ignored for capture streams.
+ *    unused - No longer used.
  *    stream_type - media or talk (currently only support "default").
  *    flags - None currently used.
  *    user_data - Pointer that will be passed to the callback.
@@ -281,7 +278,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 		enum CRAS_STREAM_DIRECTION direction,
 		size_t buffer_frames,
 		size_t cb_threshold,
-		size_t min_cb_level,
+		size_t unused,
 		enum CRAS_STREAM_TYPE stream_type,
 		uint32_t flags,
 		void *user_data,
