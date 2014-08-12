@@ -52,6 +52,7 @@ static struct timespec time_now;
 static int cras_fmt_conversion_needed_return_val;
 static struct cras_audio_area *dummy_audio_area1;
 static struct cras_audio_area *dummy_audio_area2;
+static float cras_iodev_get_software_volume_scaler_return_value;
 
 }
 
@@ -632,7 +633,6 @@ class WriteStreamSuite : public testing::Test {
       iodev_.format = &fmt_;
       iodev_.buffer_size = 16384;
       iodev_.direction = CRAS_STREAM_OUTPUT;
-      iodev_.software_volume_scaler = 1.0;
 
       iodev_.frames_queued = frames_queued;
       iodev_.delay_frames = delay_frames;
@@ -677,6 +677,7 @@ class WriteStreamSuite : public testing::Test {
       cras_dsp_pipeline_get_delay_called = 0;
       cras_dsp_pipeline_apply_called = 0;
       cras_dsp_pipeline_apply_sample_count = 0;
+      cras_iodev_get_software_volume_scaler_return_value = 1.0;
 
       dev_running_called_ = 0;
       frames_written_ = 0;
@@ -1004,7 +1005,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
   //  Software volume config.
-  iodev_.software_volume_scaler = 0.5;
+  cras_iodev_get_software_volume_scaler_return_value = 0.5;
 
   //  shm is out of data.
   shm_->area->write_offset[0] = 0;
@@ -2379,6 +2380,11 @@ int select(int nfds,
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   *tp = time_now;
   return 0;
+}
+
+float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
+{
+  return cras_iodev_get_software_volume_scaler_return_value;
 }
 
 }  // extern "C"

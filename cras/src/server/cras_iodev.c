@@ -18,6 +18,7 @@
 #include "cras_util.h"
 #include "audio_thread.h"
 #include "utlist.h"
+#include "softvol_curve.h"
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev);
 
@@ -374,9 +375,8 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 	cras_iodev_list_notify_active_node_changed();
 }
 
-void cras_iodev_set_software_volume(struct cras_iodev *iodev,
-				    float volume_scaler)
+float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
-	/* TODO(alhli): Also need to set volume scaler via IPC message. */
-        iodev->software_volume_scaler = volume_scaler;
+	return softvol_get_scaler(cras_iodev_adjust_active_node_volume(
+			iodev, cras_system_get_volume()));
 }

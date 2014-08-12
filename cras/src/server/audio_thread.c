@@ -23,7 +23,6 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "audio_thread.h"
-#include "softvol_curve.h"
 #include "utlist.h"
 
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
@@ -1611,7 +1610,8 @@ int possibly_fill_audio(struct audio_thread *thread,
 		if (cras_iodev_software_volume_needed(odev)) {
 			cras_scale_buffer((int16_t *)dst,
 					  written * odev->format->num_channels,
-					  odev->software_volume_scaler);
+					  cras_iodev_get_software_volume_scaler(
+							odev));
 		}
 
 		rc = odev->put_buffer(odev, written);

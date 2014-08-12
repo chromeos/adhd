@@ -9,6 +9,9 @@ extern "C" {
 #include "cras_iodev.h"
 #include "cras_rstream.h"
 #include "utlist.h"
+
+// Mock software volume scalers.
+float softvol_scalers[101];
 }
 
 static int select_node_called;
@@ -27,6 +30,7 @@ static int update_channel_layout_return_val;
 static int  set_swap_mode_for_node_called;
 static int  set_swap_mode_for_node_enable;
 static int notify_node_left_right_swapped_called;
+static unsigned int cras_system_get_volume_return;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -391,6 +395,39 @@ TEST(IoDev, SetNodeSwapLeftRight) {
   EXPECT_EQ(2, notify_node_left_right_swapped_called);
 }
 
+
+// Test software volume changes for default output.
+TEST(IoDev, SoftwareVolume) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  ResetStubData();
+
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+
+  iodev.active_node->volume = 100;
+  iodev.software_volume_needed = 0;
+
+
+  softvol_scalers[80] = 0.5;
+  softvol_scalers[70] = 0.3;
+
+  // Check that system volume changes software volume if needed.
+  cras_system_get_volume_return = 80;
+  // system_volume - 100 + node_volume = 80 - 100 + 100 = 80
+  EXPECT_FLOAT_EQ(0.5, cras_iodev_get_software_volume_scaler(&iodev));
+
+  // Check that node volume changes software volume if needed.
+  iodev.active_node->volume = 90;
+  // system_volume - 100 + node_volume = 80 - 100 + 90 = 70
+  EXPECT_FLOAT_EQ(0.3, cras_iodev_get_software_volume_scaler(&iodev));
+}
+
+
 extern "C" {
 
 //  From libpthread.
@@ -501,6 +538,14 @@ int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
   return 0;
 }
 
+float softvol_get_scaler(unsigned int volume_index)
+{
+	return softvol_scalers[volume_index];
+}
+
+size_t cras_system_get_volume() {
+  return cras_system_get_volume_return;
+}
 
 }  // extern "C"
 }  //  namespace

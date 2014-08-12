@@ -13,7 +13,6 @@
 #include "cras_server.h"
 #include "cras_types.h"
 #include "cras_system_state.h"
-#include "softvol_curve.h"
 #include "utlist.h"
 
 /* Linked list of available devices. */
@@ -241,19 +240,6 @@ static int get_dev_list(struct iodev_list *list,
 	return list->size;
 }
 
-static void update_software_volume(struct cras_iodev *iodev)
-{
-	if (cras_iodev_software_volume_needed(iodev)) {
-		unsigned int volume = cras_system_get_volume();
-		float volume_scaler = softvol_get_scaler(
-			cras_iodev_adjust_active_node_volume(iodev, volume));
-		cras_iodev_set_software_volume(iodev, volume_scaler);
-	}
-	else {
-		cras_iodev_set_software_volume(iodev, 1.0);
-	}
-}
-
 /* Called when the system volume changes.  Pass the current volume setting to
  * the default output if it is active. */
 void sys_vol_change(void *data)
@@ -262,7 +248,6 @@ void sys_vol_change(void *data)
 	    active_output->set_volume &&
 	    active_output->is_open(active_output))
 		active_output->set_volume(active_output);
-	update_software_volume(active_output);
 }
 
 /* Called when the system mute state changes.  Pass the current mute setting
@@ -593,8 +578,6 @@ int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
 void cras_iodev_list_notify_active_node_changed()
 {
 	cras_alert_pending(active_node_changed_alert);
-	if (active_output)
-		update_software_volume(active_output);
 }
 
 static void active_node_changed_prepare(struct cras_alert *alert)
@@ -679,8 +662,6 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 
 	if (node_volume_callback)
 		node_volume_callback(id, node->volume);
-
-	update_software_volume(node->dev);
 }
 
 void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
