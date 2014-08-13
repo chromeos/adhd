@@ -1064,8 +1064,6 @@ static int write_streams(struct audio_thread *thread,
 		    curr->stream->client == NULL)
 			continue;
 
-		curr->skip_mix = 0;
-
 		shm = cras_rstream_output_shm(curr->stream);
 
 		shm_frames = cras_shm_get_frames(shm);
@@ -1126,8 +1124,6 @@ static int write_streams(struct audio_thread *thread,
 					if (!output_streams_attached(thread))
 						return -EIO;
 				}
-				if (cras_shm_get_frames(shm) == 0)
-					curr->skip_mix = 1;
 			}
 			break;
 		}
@@ -1152,9 +1148,6 @@ static int write_streams(struct audio_thread *thread,
 				       rc);
 				continue;
 			}
-			/* Skip mixing if it returned zero frames. */
-			if (cras_shm_get_frames(shm) == 0)
-				curr->skip_mix = 1;
 		}
 	}
 
@@ -1172,7 +1165,7 @@ static int write_streams(struct audio_thread *thread,
 			thread_remove_stream(thread, curr->stream);
 			if (!output_streams_attached(thread))
 				return -EIO;
-		} else if (!cras_shm_callback_pending(shm) && !curr->skip_mix) {
+		} else if (!cras_shm_callback_pending(shm) && shm_frames) {
 			/* If not in underrun, use this stream. */
 			write_limit = MIN((size_t)shm_frames, write_limit);
 			max_frames = MAX(max_frames, shm_frames);
@@ -1201,6 +1194,11 @@ static int write_streams(struct audio_thread *thread,
 		if (!cras_stream_uses_output_hw(curr->stream->direction))
 			continue;
 		shm = cras_rstream_output_shm(curr->stream);
+
+		/* Skip mixing if it returned zero frames. */
+		if (cras_shm_get_frames(shm) == 0)
+			continue;
+
 		if (cras_mix_add_stream(shm,
 					odev->format->num_channels,
 					dst, &write_limit, &num_mixed))
