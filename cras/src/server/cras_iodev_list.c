@@ -387,6 +387,7 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 	struct cras_iodev *dev;
 	struct cras_iodev *active_dev;
 	struct cras_iodev *default_dev;
+	cras_node_id_t *selected;
 
 	dev = find_dev(dev_index_of(node_id));
 	if (!dev)
@@ -404,12 +405,17 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (dev->direction == CRAS_STREAM_OUTPUT) {
 		active_dev = active_output;
 		default_dev = default_output;
+		selected = &selected_output;
 	} else {
 		active_dev = active_input;
 		default_dev = default_input;
+		selected = &selected_input;
 	}
-	if (active_dev == dev)
+	if (active_dev == dev) {
+		*selected = cras_make_node_id(default_dev->info.idx,
+					      default_dev->active_node->idx);
 		cras_iodev_set_active(dev->direction, default_dev);
+	}
 
 	audio_thread_rm_active_dev(audio_thread, dev);
 }

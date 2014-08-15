@@ -85,6 +85,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.is_open = is_open;
       d1_.update_supported_formats = NULL;
       d1_.set_as_default = NULL;
+      d1_.update_active_node = update_active_node;
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.info.idx = -999;
@@ -100,6 +101,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.is_open = is_open;
       d2_.update_supported_formats = NULL;
       d2_.set_as_default = NULL;
+      d2_.update_active_node = update_active_node;
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.info.idx = -999;
@@ -115,6 +117,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.is_open = is_open;
       d3_.update_supported_formats = NULL;
       d3_.set_as_default = NULL;
+      d3_.update_active_node = update_active_node;
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
       d3_.info.idx = -999;
@@ -167,6 +170,9 @@ class IoDevTestSuite : public testing::Test {
     static void set_as_default(struct cras_iodev *iodev)
     {
       default_dev_to_set_ = iodev;
+    }
+
+    static void update_active_node(struct cras_iodev *iodev) {
     }
 
     static int is_open(const cras_iodev* iodev) {
@@ -653,6 +659,35 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
    * removed. */
   cras_iodev_list_rm_output(&d1_);
   ASSERT_EQ(audio_thread_set_active_dev_called, 2);
+}
+
+TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
+  int rc;
+  cras_node_id_t id;
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d2_.direction = CRAS_STREAM_OUTPUT;
+
+  /* d1_ will be the default_output */
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+  ASSERT_EQ(audio_thread_set_active_dev_called, 1);
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
+
+  /* Test the scenario that the selected active output removed
+   * from active dev list, should be able to select back again. */
+  id = cras_make_node_id(d2_.info.idx, 1);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT, id);
+  ASSERT_EQ(audio_thread_set_active_dev_called, 2);
+
+  cras_iodev_list_rm_active_node(CRAS_STREAM_OUTPUT, id);
+  ASSERT_EQ(audio_thread_rm_active_dev_called, 1);
+  ASSERT_EQ(audio_thread_set_active_dev_called, 3);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT, id);
+  ASSERT_EQ(audio_thread_set_active_dev_called, 4);
 }
 
 }  //  namespace
