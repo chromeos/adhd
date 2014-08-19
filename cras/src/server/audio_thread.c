@@ -1197,7 +1197,8 @@ static int write_streams(struct audio_thread *thread,
 
 	DL_FOREACH(thread->streams, curr) {
 		struct cras_audio_shm *shm;
-		if (!cras_stream_uses_output_hw(curr->stream->direction))
+		if (!cras_stream_uses_output_hw(curr->stream->direction) ||
+		    curr->skip_mix)
 			continue;
 		shm = cras_rstream_output_shm(curr->stream);
 		if (cras_mix_add_stream(shm,
