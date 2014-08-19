@@ -19,7 +19,7 @@ int cras_server_init();
 /* Runs the CRAS server.  Open the main socket and begin listening for
  * connections and for messages from clients that have connected.
  */
-int cras_server_run(int enable_hfp);
+int cras_server_run();
 
 /* Send a message to all attached clients. */
 void cras_server_send_to_all_clients(const struct cras_client_message *msg);

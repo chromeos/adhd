@@ -24,10 +24,10 @@
 #include "cras_bt_manager.h"
 #include "cras_bt_device.h"
 #include "cras_a2dp_endpoint.h"
-#include "cras_hfp_ag_profile.h"
 #include "cras_config.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
+#include "cras_hfp_ag_profile.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_metrics.h"
@@ -317,7 +317,7 @@ int cras_server_init()
 	return 0;
 }
 
-int cras_server_run(int enable_hfp)
+int cras_server_run()
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
 
@@ -344,11 +344,9 @@ int cras_server_run(int enable_hfp)
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
 		cras_bt_start(dbus_conn);
-		if (enable_hfp) {
-			cras_hfp_ag_profile_create(dbus_conn);
-			cras_hsp_ag_profile_create(dbus_conn);
-			cras_telephony_start(dbus_conn);
-		}
+		cras_hfp_ag_profile_create(dbus_conn);
+		cras_hsp_ag_profile_create(dbus_conn);
+		cras_telephony_start(dbus_conn);
 		cras_a2dp_endpoint_create(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
