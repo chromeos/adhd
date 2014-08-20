@@ -10,6 +10,7 @@
 
 struct cras_bt_adapter;
 struct cras_bt_device;
+struct cras_iodev;
 
 enum cras_bt_device_profile {
 	CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE	= (1 << 0),
@@ -52,5 +53,23 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
  *     device - The device object to get SCO socket for.
  */
 int cras_bt_device_sco_connect(struct cras_bt_device *device);
+
+/* Appends an iodev to bt device.
+ * Args:
+ *    device - The device to append iodev to.
+ *    iodev - The iodev to add.
+ *    profile - The profile of the iodev about to add.
+ */
+void cras_bt_device_append_iodev(struct cras_bt_device *device,
+				 struct cras_iodev *iodev,
+				 enum cras_bt_device_profile profile);
+
+/* Removes an iodev from bt device.
+ * Args:
+ *    device - The device to remove iodev from.
+ *    iodev - The iodev to remove.
+ */
+void cras_bt_device_rm_iodev(struct cras_bt_device *device,
+			     struct cras_iodev *iodev);
 
 #endif /* CRAS_BT_DEVICE_H_ */

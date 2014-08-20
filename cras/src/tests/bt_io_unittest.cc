@@ -10,6 +10,8 @@ extern "C" {
 #include "cras_bt_io.c"
 }
 
+static struct cras_bt_device *fake_device =
+    reinterpret_cast<struct cras_bt_device*>(0x123);
 static unsigned int cras_iodev_add_node_called;
 static unsigned int cras_iodev_rm_node_called;
 static unsigned int cras_iodev_free_format_called;
@@ -148,7 +150,8 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   struct cras_audio_area *fake_area;
   struct cras_audio_format fake_fmt;
   unsigned fr;
-  bt_iodev = cras_bt_io_create(&iodev_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+  bt_iodev = cras_bt_io_create(fake_device, &iodev_,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
   EXPECT_NE((void *)NULL, bt_iodev);
   EXPECT_EQ(&iodev_, active_profile_dev(bt_iodev));
   EXPECT_EQ(1, cras_iodev_list_add_output_called);

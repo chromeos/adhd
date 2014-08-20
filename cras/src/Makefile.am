@@ -162,6 +162,7 @@ TESTS = \
 	alsa_mixer_unittest \
 	alsa_ucm_unittest \
 	array_unittest \
+	bt_device_unittest \
 	bt_io_unittest \
 	card_config_unittest \
 	checksum_unittest \
@@ -336,6 +337,12 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
+
+bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \
+	server/cras_bt_device.c
+bt_device_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
+bt_device_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 bt_io_unittest_SOURCES = tests/bt_io_unittest.cc
 bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \

@@ -33,6 +33,7 @@ struct bt_node {
  */
 struct bt_io {
 	struct cras_iodev base;
+	struct cras_bt_device *device;
 };
 
 /* Returns the active profile specific iodev. */
@@ -201,7 +202,8 @@ static void update_active_node(struct cras_iodev *iodev)
 	dev->update_active_node(dev);
 }
 
-struct cras_iodev *cras_bt_io_create(struct cras_iodev *dev,
+struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
+				     struct cras_iodev *dev,
 				     enum cras_bt_device_profile profile)
 {
 	int err;
@@ -215,6 +217,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_iodev *dev,
 	btio = (struct bt_io *)calloc(1, sizeof(*btio));
 	if (!btio)
 		goto error;
+	btio->device = device;
 
 	iodev = &btio->base;
 	iodev->direction = dev->direction;
@@ -273,4 +276,46 @@ void cras_bt_io_destroy(struct cras_iodev *bt_iodev)
 		free(n);
 	}
 	free(btio);
+}
+
+int cras_bt_io_has_dev(struct cras_iodev *bt_iodev,
+			  struct cras_iodev *dev)
+{
+	struct cras_ionode *node;
+
+	DL_FOREACH(bt_iodev->nodes, node) {
+		struct bt_node *n = (struct bt_node *)node;
+		if (n->profile_dev == dev)
+			return 1;
+	}
+	return 0;
+}
+
+int cras_bt_io_append(struct cras_iodev *bt_iodev,
+		      struct cras_iodev *dev,
+		      enum cras_bt_device_profile profile)
+{
+	struct cras_ionode *node;
+
+	if (cras_bt_io_has_dev(bt_iodev, dev))
+		return -EEXIST;
+	node = add_profile_dev(bt_iodev, dev, profile);
+	if (!node)
+		return -ENOMEM;
+	return 0;
+}
+
+int cras_bt_io_remove(struct cras_iodev *bt_iodev,
+		      struct cras_iodev *dev)
+{
+	struct cras_ionode *node;
+	struct bt_node *btnode;
+
+	DL_SEARCH_SCALAR_WITH_CAST(bt_iodev->nodes, node, btnode,
+				   profile_dev, dev);
+	if (node) {
+		DL_DELETE(bt_iodev->nodes, node);
+		free(node);
+	}
+	return 0;
 }

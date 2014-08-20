@@ -15,7 +15,9 @@
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_constants.h"
+#include "cras_bt_io.h"
 #include "cras_bt_profile.h"
+#include "cras_iodev.h"
 #include "utlist.h"
 
 #define BTPROTO_SCO 2
@@ -31,6 +33,7 @@ struct cras_bt_device {
 	int trusted;
 	int connected;
 	enum cras_bt_device_profile profiles;
+	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 
 	struct cras_bt_device *prev, *next;
 };
@@ -177,6 +180,35 @@ int cras_bt_device_supports_profile(const struct cras_bt_device *device,
 	return device->profiles & profile;
 }
 
+void cras_bt_device_append_iodev(struct cras_bt_device *device,
+				 struct cras_iodev *iodev,
+				 enum cras_bt_device_profile profile)
+{
+	struct cras_iodev *bt_iodev;
+
+	bt_iodev = device->bt_iodevs[iodev->direction];
+
+	if (bt_iodev)
+		cras_bt_io_append(bt_iodev, iodev, profile);
+	else
+		device->bt_iodevs[iodev->direction] =
+				cras_bt_io_create(device, iodev, profile);
+}
+
+void cras_bt_device_rm_iodev(struct cras_bt_device *device,
+			     struct cras_iodev *iodev)
+{
+	struct cras_iodev *bt_iodev;
+
+	bt_iodev = device->bt_iodevs[iodev->direction];
+	if (bt_iodev) {
+		cras_bt_io_remove(bt_iodev, iodev);
+		if (bt_iodev->nodes == NULL) {
+			device->bt_iodevs[iodev->direction] = NULL;
+			cras_bt_io_destroy(bt_iodev);
+		}
+	}
+}
 
 static void cras_bt_device_log_profile(const struct cras_bt_device *device,
 				       enum cras_bt_device_profile profile)
