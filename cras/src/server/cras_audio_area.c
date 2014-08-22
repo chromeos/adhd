@@ -33,7 +33,8 @@ void cras_audio_area_copy(const struct cras_audio_area *dst,
 	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
 	 * each channel. */
 	if (src_index == 0)
-		memset(dst->channels[0].buf, 0,
+		memset(dst->channels[0].buf +
+				dst_offset * dst->channels[0].step_bytes, 0,
 		       src->frames * dst_format_bytes);
 
 	/* TODO(dgreid) - this replaces a memcpy, it needs to be way faster. */

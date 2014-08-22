@@ -56,6 +56,39 @@ TEST(AudioArea, CopyAudioArea) {
   cras_audio_area_destroy(a2);
 }
 
+TEST(AudioArea, CopyAudioAreaOffset) {
+  struct cras_audio_format fmt;
+  int i;
+
+  fmt.num_channels = 2;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    fmt.channel_layout[i] = stereo[i];
+
+  a1 = cras_audio_area_create(2);
+  a2 = cras_audio_area_create(2);
+  cras_audio_area_config_channels(a1, &fmt);
+  cras_audio_area_config_channels(a2, &fmt);
+  cras_audio_area_config_buf_pointers(a1, &fmt, (uint8_t *)buf1);
+  cras_audio_area_config_buf_pointers(a2, &fmt, (uint8_t *)buf2);
+  a1->frames = 14;
+  a2->frames = 14;
+
+  memset(buf1, 0x55, 32 * 2);
+  for (i = 0; i < 32; i++)
+    buf2[i] = rand();
+  cras_audio_area_copy(a1, 2, 4, a2, 0);
+  EXPECT_EQ(buf1[0], 0x5555);
+  EXPECT_EQ(buf1[1], 0x5555);
+  EXPECT_EQ(buf1[2], 0x5555);
+  EXPECT_EQ(buf1[3], 0x5555);
+  for (i = 4; i < 32; i++)
+    EXPECT_EQ(buf1[i], buf2[i-4]);
+
+  cras_audio_area_destroy(a1);
+  cras_audio_area_destroy(a2);
+}
+
 TEST(AudioArea, CopyMonoToStereo) {
   struct cras_audio_format fmt;
   int i;
