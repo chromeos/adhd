@@ -29,9 +29,13 @@ struct cras_io_stream {
 	struct cras_io_stream *prev, *next;
 };
 
-/* List of active input/output devices. */
+/* List of active input/output devices.
+ *    dev - The device.
+ *    streams - List of audio streams serviced by dev.
+ */
 struct active_dev {
 	struct cras_iodev *dev;
+	struct cras_io_stream *streams;
 	struct active_dev *prev, *next;
 };
 
