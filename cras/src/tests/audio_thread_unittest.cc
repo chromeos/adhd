@@ -266,7 +266,6 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
   EXPECT_EQ(1, close_dev_called_);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -297,7 +296,6 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_EQ(1, dev_running_called_);
   EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -331,7 +329,6 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -371,7 +368,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -413,7 +409,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -468,7 +463,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(3, cras_rstream_audio_ready_called);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -509,7 +503,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
     EXPECT_EQ(audio_buffer_[i],
         shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -557,7 +550,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   for (size_t i = 0; i < cb_threshold_; i++)
     EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -587,7 +579,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
   EXPECT_EQ(0, cras_dsp_pipeline_get_delay_called);
   EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -617,7 +608,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
   EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
   EXPECT_EQ(cb_threshold_, cras_dsp_pipeline_apply_sample_count);
 
-  thread->streams = 0;
   audio_thread_destroy(thread);
 }
 
@@ -692,7 +682,6 @@ class WriteStreamSuite : public testing::Test {
       free(rstream_);
       free(shm2_->area);
       free(rstream2_);
-      thread_->streams = 0;
       audio_thread_destroy(thread_);
     }
 
@@ -1612,7 +1601,6 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
             thread_add_stream(thread, &new_stream));
   EXPECT_EQ(1, open_dev_called_);
   EXPECT_EQ(1, cras_iodev_set_format_called);
-  EXPECT_EQ(0, thread->streams);
   audio_thread_destroy(thread);
   free(shm->area);
 }
@@ -2059,6 +2047,7 @@ TEST_F(ActiveDevicesSuite, InputDelayFrames) {
   int fr;
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev2_.direction = CRAS_STREAM_INPUT;
+  rstream_->direction = CRAS_STREAM_INPUT;
 
   thread_set_active_dev(thread_, &iodev_);
   thread_add_active_dev(thread_, &iodev2_);

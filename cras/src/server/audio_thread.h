@@ -46,7 +46,6 @@ struct active_dev {
  *    main_msg_fds - Send a message from running thread to main.
  *    tid - Thread ID of the running playback/capture thread.
  *    started - Non-zero if the thread has started successfully.
- *    streams - List of audio streams serviced by this thread.
  *    active_dev - Lists of active devices attached running for each
  *        CRAS_STREAM_DIRECTION.
  *    devs_open - Non-zero if the thread has stream attached and running
@@ -63,7 +62,6 @@ struct audio_thread {
 	int main_msg_fds[2];
 	pthread_t tid;
 	int started;
-	struct cras_io_stream *streams;
 	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
 	int devs_open[CRAS_NUM_DIRECTIONS];
 	unsigned int cb_threshold[CRAS_NUM_DIRECTIONS];
