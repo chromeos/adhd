@@ -2444,6 +2444,17 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
   return cras_iodev_get_software_volume_scaler_return_value;
 }
 
+struct dev_stream *dev_stream_create(struct cras_rstream *stream) {
+  struct dev_stream *out = static_cast<dev_stream*>(calloc(1, sizeof(*out)));
+  out->stream = stream;
+
+  return out;
+}
+
+void dev_stream_destroy(struct dev_stream *dev_stream) {
+  free(dev_stream);
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {

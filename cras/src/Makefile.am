@@ -76,6 +76,7 @@ cras_SOURCES = \
 	server/cras_tm.c \
 	server/cras_udev.c \
 	server/cras_volume_curve.c \
+	server/dev_stream.c \
 	server/softvol_curve.c
 
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \

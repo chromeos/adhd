@@ -22,6 +22,7 @@
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "dev_stream.h"
 #include "audio_thread.h"
 #include "utlist.h"
 
@@ -191,11 +192,11 @@ static inline int device_open(const struct cras_iodev *iodev)
 }
 
 /* Finds the lowest latency stream attached to the thread. */
-static struct cras_io_stream *
+static struct dev_stream *
 get_min_latency_stream(const struct audio_thread *thread,
 		       enum CRAS_STREAM_DIRECTION direction)
 {
-	struct cras_io_stream *lowest, *curr;
+	struct dev_stream *lowest, *curr;
 	struct active_dev *adev;
 
 	lowest = NULL;
@@ -275,10 +276,10 @@ static int audio_thread_log_longest_timeout(struct audio_thread *thread,
 }
 
 /* Find a given stream that is attached to the thread. */
-static struct cras_io_stream *thread_find_stream(struct audio_thread *thread,
+static struct dev_stream *thread_find_stream(struct audio_thread *thread,
 						 struct cras_rstream *stream)
 {
-	struct cras_io_stream *out;
+	struct dev_stream *out;
 	struct active_dev *adev_list, *adev;
 
 	adev_list = thread->active_devs[stream->direction];
@@ -314,7 +315,7 @@ static void update_stream_timeout(struct cras_audio_shm *shm)
 
 /* Requests audio from a stream and marks it as pending. */
 static int fetch_stream(struct audio_thread *thread,
-			struct cras_io_stream *curr,
+			struct dev_stream *curr,
 			unsigned int frames_in_buff,
 			unsigned int fr_rate)
 {
@@ -354,13 +355,8 @@ static int fetch_stream(struct audio_thread *thread,
 static int append_stream_to_dev(struct active_dev *adev,
 				struct cras_rstream *stream)
 {
-	struct cras_io_stream *out;
+	struct dev_stream *out = dev_stream_create(stream);
 
-	/* New stream, allocate a container and add it to the list. */
-	out = (struct cras_io_stream *)calloc(1, sizeof(*out));
-	if (out == NULL)
-		return -ENOMEM;
-	out->stream = stream;
 	DL_APPEND(adev->streams, out);
 
 	return 0;
@@ -388,7 +384,7 @@ static int append_stream(struct audio_thread *thread,
 static int delete_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
-	struct cras_io_stream *out;
+	struct dev_stream *out;
 	int longest_timeout_msec;
 	struct cras_audio_shm *shm;
 	struct active_dev *adev;
@@ -412,7 +408,7 @@ static int delete_stream(struct audio_thread *thread,
 		DL_FOREACH(adev->streams, out) {
 			if (out->stream == stream) {
 				DL_DELETE(adev->streams, out);
-				free(out);
+				dev_stream_destroy(out);
 			}
 		}
 	}
@@ -561,7 +557,7 @@ static int devices_running(struct audio_thread *thread,
 void config_devices_min_latency(struct audio_thread *thread,
 				enum CRAS_STREAM_DIRECTION dir)
 {
-	struct cras_io_stream *min_latency;
+	struct dev_stream *min_latency;
 	struct active_dev *adev;
 
 	min_latency = get_min_latency_stream(thread, dir);
@@ -736,7 +732,7 @@ static int thread_remove_stream(struct audio_thread *thread,
 /* Handles the disconnect_stream message from the main thread. */
 static int thread_disconnect_stream(struct audio_thread* thread,
 				    struct cras_rstream* stream) {
-	struct cras_io_stream *out;
+	struct dev_stream *out;
 
 	stream->client = NULL;
 	cras_rstream_set_audio_fd(stream, -1);
@@ -818,7 +814,7 @@ static int thread_add_stream(struct audio_thread *thread,
 		}
 
 		if (loop_adev) {
-			struct cras_io_stream *iostream;
+			struct dev_stream *iostream;
 			struct cras_audio_format fmt;
 
 			cras_rstream_get_format(stream, &fmt);
@@ -942,7 +938,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 	struct cras_iodev *odev = first_output_dev(thread);
 	size_t fr_rate;
 	int frames_in_buff;
-	struct cras_io_stream *curr;
+	struct dev_stream *curr;
 	int rc;
 
 	fr_rate = odev->format->frame_rate;
@@ -1033,7 +1029,7 @@ static int write_streams(struct audio_thread *thread,
 			 size_t write_limit)
 {
 	struct cras_iodev *odev = first_output_dev(thread);
-	struct cras_io_stream *curr;
+	struct dev_stream *curr;
 	struct timeval to;
 	fd_set poll_set, this_set;
 	size_t streams_wait, num_mixed;
@@ -1283,7 +1279,7 @@ static void terminate_pb_thread()
 
 /* Put stream info for the given stream into the info struct. */
 static void append_stream_dump_info(struct audio_debug_info *info,
-				    struct cras_io_stream *stream,
+				    struct dev_stream *stream,
 				    int index)
 {
 	struct cras_audio_shm *shm;
@@ -1338,7 +1334,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		break;
 	}
 	case AUDIO_THREAD_RM_ALL_STREAMS: {
-		struct cras_io_stream *iostream;
+		struct dev_stream *iostream;
 		struct audio_thread_add_rm_stream_msg *rmsg;
 		enum CRAS_STREAM_DIRECTION dir;
 
@@ -1384,7 +1380,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		terminate_pb_thread();
 		break;
 	case AUDIO_THREAD_DUMP_THREAD_INFO: {
-		struct cras_io_stream *curr;
+		struct dev_stream *curr;
 		struct cras_iodev *idev = first_input_dev(thread);
 		struct cras_iodev *odev = first_output_dev(thread);
 		struct audio_thread_dump_debug_info_msg *dmsg;
@@ -1476,7 +1472,7 @@ static unsigned int adjust_level(const struct audio_thread *thread,
 static int get_output_sleep_frames(struct audio_thread *thread)
 {
 	struct cras_iodev *odev = first_output_dev(thread);
-	struct cras_io_stream *curr;
+	struct dev_stream *curr;
 	unsigned int adjusted_level;
 	unsigned int sleep_frames;
 	int rc;
@@ -1685,7 +1681,7 @@ static unsigned int get_write_limit_set_delay(
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
 	struct cras_audio_shm *output_shm;
-	struct cras_io_stream *stream;
+	struct dev_stream *stream;
 	unsigned int avail_frames;
 	int delay;
 
@@ -1728,13 +1724,13 @@ static unsigned int get_write_limit_set_delay(
  *      case the first read.
  * Returns the number of frames captured or an error.
  */
-static int capture_to_streams(const struct cras_io_stream *streams,
+static int capture_to_streams(const struct dev_stream *streams,
 			      struct cras_iodev *idev,
 			      unsigned int count,
 			      unsigned int dev_index)
 {
 	snd_pcm_uframes_t remainder = count;
-	const struct cras_io_stream *stream;
+	const struct dev_stream *stream;
 	unsigned int nread;
 	struct cras_audio_area *area;
 	uint8_t *hw_buffer;
@@ -1801,7 +1797,7 @@ int possibly_read_audio(struct audio_thread *thread,
 			unsigned int *min_sleep)
 {
 	struct cras_audio_shm *shm;
-	struct cras_io_stream *stream;
+	struct dev_stream *stream;
 	struct active_dev *adev;
 	int rc;
 	unsigned int write_limit;

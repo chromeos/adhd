@@ -12,6 +12,8 @@
 #include "cras_types.h"
 
 struct cras_iodev;
+struct cras_rstream;
+struct dev_stream;
 
 /* Errors that can be returned from add_stream. */
 enum error_type_from_audio_thread_h {
@@ -21,20 +23,13 @@ enum error_type_from_audio_thread_h {
 	AUDIO_THREAD_LOOPBACK_DEV_ERROR = -3,
 };
 
-/* Linked list of streams of audio from/to a client. */
-struct cras_io_stream {
-	struct cras_rstream *stream;
-	unsigned int skip_mix; /* Skip this stream next mix cycle. */
-	struct cras_io_stream *prev, *next;
-};
-
 /* List of active input/output devices.
  *    dev - The device.
  *    streams - List of audio streams serviced by dev.
  */
 struct active_dev {
 	struct cras_iodev *dev;
-	struct cras_io_stream *streams;
+	struct dev_stream *streams;
 	struct active_dev *prev, *next;
 };
 
