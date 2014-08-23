@@ -1637,7 +1637,7 @@ int possibly_fill_audio(struct audio_thread *thread,
 		loopback_iodev_add_audio(loop_dev, dst, written);
 
 		if (cras_system_get_mute())
-			memset(dst, 0, written * frame_bytes);
+			cras_mix_mute_buffer(dst, frame_bytes, written);
 		else
 			apply_dsp(odev, dst, written);
 
@@ -1752,7 +1752,7 @@ static int capture_to_streams(const struct cras_io_stream *streams,
 		hw_buffer = area->channels[0].buf;
 
 		if (cras_system_get_capture_mute())
-			memset(hw_buffer, 0, nread * frame_bytes);
+			cras_mix_mute_buffer(hw_buffer, frame_bytes, nread);
 		else
 			apply_dsp(idev, hw_buffer, nread);
 
