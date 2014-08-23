@@ -63,4 +63,18 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 int cras_fmt_conversion_needed(const struct cras_audio_format *a,
 			       const struct cras_audio_format *b);
 
+/* If the server cannot provide the requested format, configures an audio format
+ * converter that handles transforming the input format to the format used by
+ * the server.
+ * Args:
+ *    conv - filled with the new converter if needed.
+ *    from - Format to convert from.
+ *    to - Format to convert to.
+ *    frames - size of buffer.
+ */
+int config_format_converter(struct cras_fmt_conv **conv,
+			    const struct cras_audio_format *from,
+			    const struct cras_audio_format *to,
+			    unsigned int frames);
+
 #endif /* CRAS_FMT_CONV_H_ */

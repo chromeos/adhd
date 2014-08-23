@@ -699,32 +699,6 @@ static void free_shm(struct client_stream *stream)
 	stream->play_shm.area = NULL;
 }
 
-/* If the server cannot provide the requested format, configures an audio format
- * converter that handles transforming the input format to the format used by
- * the server. */
-static int config_format_converter(struct cras_fmt_conv **conv,
-				   const struct cras_audio_format *from,
-				   const struct cras_audio_format *to,
-				   unsigned int frames)
-{
-	if (cras_fmt_conversion_needed(from, to)) {
-		syslog(LOG_DEBUG,
-		       "format convert: from:%d %zu %zu to: %d %zu %zu "
-		       "frames = %u",
-		       from->format, from->frame_rate, from->num_channels,
-		       to->format, to->frame_rate, to->num_channels,
-		       frames);
-
-		*conv = cras_fmt_conv_create(from, to, frames);
-		if (!*conv) {
-			syslog(LOG_ERR, "Failed to create format converter");
-			return -ENOMEM;
-		}
-	}
-
-	return 0;
-}
-
 /* Free format converters if they exist. */
 static void free_fmt_conv(struct client_stream *stream)
 {
@@ -781,12 +755,14 @@ static int stream_connected(struct client_stream *stream,
 			goto err_ret;
 		}
 
-		/* If a converted is needed, allocate a buffer for it. */
-		stream->capture_conv_buffer =
-			(uint8_t *)malloc(max_frames * cras_get_format_bytes(sfmt));
-		if (!stream->capture_conv_buffer) {
-			rc = -ENOMEM;
-			goto err_ret;
+		if (stream->capture_conv) {
+			stream->capture_conv_buffer =
+				(uint8_t *)malloc(max_frames *
+						  cras_get_format_bytes(sfmt));
+			if (!stream->capture_conv_buffer) {
+				rc = -ENOMEM;
+				goto err_ret;
+			}
 		}
 	}
 
@@ -814,13 +790,14 @@ static int stream_connected(struct client_stream *stream,
 			goto err_ret;
 		}
 
-		/* If a converted is needed, allocate a buffer for it. */
-		stream->play_conv_buffer =
+		if (stream->play_conv) {
+			stream->play_conv_buffer =
 				(uint8_t *)malloc(max_frames *
 						  cras_get_format_bytes(sfmt));
-		if (!stream->play_conv_buffer) {
-			rc = -ENOMEM;
-			goto err_ret;
+			if (!stream->play_conv_buffer) {
+				rc = -ENOMEM;
+				goto err_ret;
+			}
 		}
 
 		cras_shm_set_volume_scaler(&stream->play_shm,

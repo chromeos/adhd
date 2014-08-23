@@ -443,6 +443,15 @@ int cras_fmt_conversion_needed(const struct cras_audio_format *a,
   return 1;
 }
 
+int config_format_converter(struct cras_fmt_conv **conv,
+                            const struct cras_audio_format *from,
+                            const struct cras_audio_format *to,
+                            unsigned int frames)
+{
+  *conv = cras_fmt_conv_create(from, to, frames);
+  return 0;
+}
+
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   tp->tv_sec = 0;
   tp->tv_nsec = 0;
