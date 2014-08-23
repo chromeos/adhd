@@ -49,6 +49,12 @@ static void copy_scaled(int16_t *dst,
 		dst[i] = src[i] * volume_scaler;
 }
 
+static inline int should_mute(struct cras_audio_shm *shm)
+{
+	return cras_shm_get_mute(shm) ||
+	       (cras_shm_get_volume_scaler(shm) < MIN_VOLUME_TO_SCALE);
+}
+
 /* Renders count frames from shm into dst.  Updates count if anything is
  * written. If it's muted and the only stream zero memory. */
 size_t cras_mix_add_stream(struct cras_audio_shm *shm,
@@ -76,32 +82,27 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 	/* Stream volume scaler. */
 	mix_vol = cras_shm_get_volume_scaler(shm);
 
-	if (cras_shm_get_mute(shm) ||
-	    mix_vol < MIN_VOLUME_TO_SCALE) {
-		/* Muted, if first then zero fill, otherwise, nop. */
-		if (*index == 0)
-			memset(dst, 0, *count * num_channels * sizeof(*src));
-	} else {
-		fr_written = 0;
-		while (fr_written < *count) {
-			src = cras_shm_get_readable_frames(shm, fr_written,
-					&frames);
-			if (frames > *count - fr_written)
-				frames = *count - fr_written;
-			if (frames == 0)
-				break;
-			num_samples = frames * num_channels;
-			if (*index == 0)
-				copy_scaled(target, src, num_samples, mix_vol);
+	fr_written = 0;
+	while (fr_written < *count) {
+		src = cras_shm_get_readable_frames(shm, fr_written,
+				&frames);
+		if (frames > *count - fr_written)
+			frames = *count - fr_written;
+		if (frames == 0)
+			break;
+		num_samples = frames * num_channels;
+		if (*index == 0) {
+			if (should_mute(shm))
+				memset(dst, 0, num_samples * sizeof(*src));
 			else
-				scale_add_clip(target, src,
-					       num_samples,
-					       mix_vol);
-			fr_written += frames;
-			target += num_samples;
+				copy_scaled(target, src, num_samples, mix_vol);
+		} else if (!should_mute(shm)) {
+			scale_add_clip(target, src, num_samples, mix_vol);
 		}
-		*count = fr_written;
+		fr_written += frames;
+		target += num_samples;
 	}
+	*count = fr_written;
 
 	*index = *index + 1;
 	return *count;
