@@ -24,7 +24,6 @@ enum error_type_from_audio_thread_h {
 /* Linked list of streams of audio from/to a client. */
 struct cras_io_stream {
 	struct cras_rstream *stream;
-	int fd; /* cached here due to frequent access */
 	unsigned int skip_mix; /* Skip this stream next mix cycle. */
 	struct cras_io_stream *prev, *next;
 };

@@ -361,7 +361,6 @@ static int append_stream_to_dev(struct active_dev *adev,
 	if (out == NULL)
 		return -ENOMEM;
 	out->stream = stream;
-	out->fd = cras_rstream_get_audio_fd(stream);
 	DL_APPEND(adev->streams, out);
 
 	return 0;
@@ -952,9 +951,10 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
+		int fd = cras_rstream_get_audio_fd(curr->stream);
 
 		if (cras_shm_callback_pending(shm))
-			flush_old_aud_messages(shm, curr->fd);
+			flush_old_aud_messages(shm, fd);
 
 		frames_in_buff = cras_shm_get_frames(shm);
 		if (frames_in_buff < 0)
@@ -1064,6 +1064,7 @@ static int write_streams(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
 		struct cras_audio_shm *shm;
 		int shm_frames;
+		int fd = cras_rstream_get_audio_fd(curr->stream);
 
 		if (curr->stream->client == NULL)
 			continue;
@@ -1086,9 +1087,9 @@ static int write_streams(struct audio_thread *thread,
 		} else if (cras_shm_callback_pending(shm)) {
 			/* Callback pending, wait for a response. */
 			streams_wait++;
-			FD_SET(curr->fd, &poll_set);
-			if (curr->fd > max_fd)
-				max_fd = curr->fd;
+			FD_SET(fd, &poll_set);
+			if (fd > max_fd)
+				max_fd = fd;
 		}
 	}
 
@@ -1113,11 +1114,13 @@ static int write_streams(struct audio_thread *thread,
 			DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->
 					streams, curr) {
 				struct cras_audio_shm *shm;
+				int fd;
 
 				shm = cras_rstream_output_shm(curr->stream);
+				fd = cras_rstream_get_audio_fd(curr->stream);
 
 				if (!cras_shm_callback_pending(shm) ||
-				    !FD_ISSET(curr->fd, &poll_set))
+				    !FD_ISSET(fd, &poll_set))
 					continue;
 
 				cras_shm_inc_cb_timeouts(shm);
@@ -1141,13 +1144,14 @@ static int write_streams(struct audio_thread *thread,
 		DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams,
 			   curr) {
 			struct cras_audio_shm *shm;
+			int fd = cras_rstream_get_audio_fd(curr->stream);
 
-			if (!FD_ISSET(curr->fd, &this_set))
+			if (!FD_ISSET(fd, &this_set))
 				continue;
 
 			shm = cras_rstream_output_shm(curr->stream);
 
-			FD_CLR(curr->fd, &poll_set);
+			FD_CLR(fd, &poll_set);
 			streams_wait--;
 			cras_shm_set_callback_pending(shm, 0);
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
