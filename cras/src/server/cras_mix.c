@@ -5,7 +5,6 @@
 
 #include <stdint.h>
 
-#include "cras_shm.h"
 #include "cras_system_state.h"
 
 #define MAX_VOLUME_TO_SCALE 0.9999999
@@ -49,65 +48,6 @@ static void copy_scaled(int16_t *dst,
 		dst[i] = src[i] * volume_scaler;
 }
 
-static inline int should_mute(struct cras_audio_shm *shm)
-{
-	return cras_shm_get_mute(shm) ||
-	       (cras_shm_get_volume_scaler(shm) < MIN_VOLUME_TO_SCALE);
-}
-
-/* Renders count frames from shm into dst.  Updates count if anything is
- * written. If it's muted and the only stream zero memory. */
-size_t cras_mix_add_stream(struct cras_audio_shm *shm,
-			   size_t num_channels,
-			   uint8_t *dst,
-			   size_t *count,
-			   size_t *index)
-{
-	int16_t *src;
-	int16_t *target = (int16_t *)dst;
-	size_t fr_written;
-	int fr_in_buf;
-	size_t num_samples;
-	size_t frames = 0;
-	float mix_vol;
-
-	fr_in_buf = cras_shm_get_frames(shm);
-	if (fr_in_buf <= 0) {
-		*count = 0;
-		return 0;
-	}
-	if (fr_in_buf < *count)
-		*count = fr_in_buf;
-
-	/* Stream volume scaler. */
-	mix_vol = cras_shm_get_volume_scaler(shm);
-
-	fr_written = 0;
-	while (fr_written < *count) {
-		src = cras_shm_get_readable_frames(shm, fr_written,
-				&frames);
-		if (frames > *count - fr_written)
-			frames = *count - fr_written;
-		if (frames == 0)
-			break;
-		num_samples = frames * num_channels;
-		if (*index == 0) {
-			if (should_mute(shm))
-				memset(dst, 0, num_samples * sizeof(*src));
-			else
-				copy_scaled(target, src, num_samples, mix_vol);
-		} else if (!should_mute(shm)) {
-			scale_add_clip(target, src, num_samples, mix_vol);
-		}
-		fr_written += frames;
-		target += num_samples;
-	}
-	*count = fr_written;
-
-	*index = *index + 1;
-	return *count;
-}
-
 void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler)
 {
 	int i;
@@ -141,5 +81,19 @@ void cras_mix_add_clip(int16_t *dst,
 		else if (sum < -0x8000)
 			sum = -0x8000;
 		dst[i] = sum;
+	}
+}
+
+void cras_mix_add(int16_t *dst, int16_t *src,
+		  unsigned int count, unsigned int index,
+		  int mute, float mix_vol)
+{
+	if (index == 0) {
+		if (mute || (mix_vol < MIN_VOLUME_TO_SCALE))
+			memset(dst, 0, count * sizeof(*src));
+		else
+			copy_scaled(dst, src, count, mix_vol);
+	} else if (!mute && mix_vol > MIN_VOLUME_TO_SCALE) {
+		scale_add_clip(dst, src, count, mix_vol);
 	}
 }

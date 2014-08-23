@@ -2172,16 +2172,23 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 }
 
 //  From mixer.
-size_t cras_mix_add_stream(struct cras_audio_shm *shm,
-                           size_t num_channels,
-                           uint8_t *dst,
-                           size_t *count,
-                           size_t *index) {
+unsigned int dev_stream_mix(struct dev_stream *dev_stream,
+                            size_t num_channels,
+                            uint8_t *dst,
+                            size_t *count,
+                            size_t *index) {
   int16_t *src;
   int16_t *target = (int16_t *)dst;
   size_t fr_written, fr_in_buf;
   size_t num_samples;
   size_t frames = 0;
+  struct cras_audio_shm *shm;
+
+  if (dev_stream->stream->direction == CRAS_STREAM_OUTPUT) {
+    shm = &dev_stream->stream->output_shm;
+  } else {
+    shm = &dev_stream->stream->input_shm;
+  }
 
   cras_mix_add_stream_called++;
 
@@ -2200,8 +2207,8 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
 
   fr_written = 0;
   while (fr_written < *count) {
-    src = cras_shm_get_readable_frames(shm, fr_written,
-                                       &frames);
+    src = cras_shm_get_readable_frames(shm,
+                                       fr_written, &frames);
     if (frames > *count - fr_written)
       frames = *count - fr_written;
     num_samples = frames * num_channels;
@@ -2211,6 +2218,7 @@ size_t cras_mix_add_stream(struct cras_audio_shm *shm,
   }
 
   *index = *index + 1;
+  cras_shm_buffer_read(shm, fr_written);
   return *count;
 }
 
@@ -2453,6 +2461,29 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream) {
 
 void dev_stream_destroy(struct dev_stream *dev_stream) {
   free(dev_stream);
+}
+
+void dev_stream_capture(const struct dev_stream *dev_stream,
+      struct cras_audio_area *area,
+      unsigned int offset,
+      unsigned int count,
+      unsigned int dev_index)
+{
+  struct cras_rstream *rstream = dev_stream->stream;
+  struct cras_audio_shm *shm;
+  uint8_t *dst;
+
+  shm = cras_rstream_input_shm(rstream);
+  dst = cras_shm_get_writeable_frames(shm,
+                                      cras_shm_used_frames(shm),
+                                      NULL);
+  cras_audio_area_config_buf_pointers(rstream->input_audio_area,
+                                      &rstream->format,
+                                      dst);
+  rstream->input_audio_area->frames = cras_shm_used_frames(shm);
+  cras_audio_area_copy(rstream->input_audio_area, offset,
+                       cras_get_format_bytes(&rstream->format),
+                       area, dev_index);
 }
 
 }  // extern "C"

@@ -1207,14 +1207,10 @@ static int write_streams(struct audio_thread *thread,
 
 	/* TODO(dgreid) - handle > 1 active iodev */
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
-		struct cras_audio_shm *shm;
 		if (curr->skip_mix)
 			continue;
-		shm = cras_rstream_output_shm(curr->stream);
-		if (cras_mix_add_stream(shm,
-					odev->format->num_channels,
-					dst, &write_limit, &num_mixed))
-			cras_shm_buffer_read(shm, write_limit);
+		dev_stream_mix(curr, odev->format->num_channels, dst,
+			       &write_limit, &num_mixed);
 	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
@@ -1754,23 +1750,12 @@ static int capture_to_streams(const struct dev_stream *streams,
 
 		DL_FOREACH(streams, stream) {
 			struct cras_rstream *rstream = stream->stream;
-			struct cras_audio_shm *shm;
-			uint8_t *dst;
 
 			if (!input_stream_matches_dev(idev->direction, rstream))
 				continue;
 
-			shm = cras_rstream_input_shm(rstream);
-			dst = cras_shm_get_writeable_frames(
-					shm, cras_shm_used_frames(shm), NULL);
-			cras_audio_area_config_buf_pointers(
-					rstream->input_audio_area,
-					&stream->stream->format,
-					dst);
-			rstream->input_audio_area->frames = cras_shm_used_frames(shm);
-			cras_audio_area_copy(rstream->input_audio_area, offset,
-					     cras_get_format_bytes(&rstream->format),
-					     area, dev_index);
+			dev_stream_capture(stream, area, offset, count,
+					   dev_index);
 		}
 
 		offset += nread;

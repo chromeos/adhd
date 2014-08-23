@@ -53,4 +53,17 @@ void cras_mix_add_clip(int16_t *dst,
 		       const int16_t *src,
 		       size_t count);
 
+/* Add src buffer to dst, scaling and setting mute.
+ * Args:
+ *    dst - Buffer of samples to mix to.
+ *    src - Buffer of samples to mix from.
+ *    count - The number of samples to mix.
+ *    index - If zero this is the first buffer written to dst.
+ *    mute - Is the stream providing the buffer muted.
+ *    mix_vol - Scaler for the buffer to be mixed.
+ */
+void cras_mix_add(int16_t *dst, int16_t *src,
+		  unsigned int count, unsigned int index,
+		  int mute, float mix_vol);
+
 #endif /* _CRAS_MIX_H */
