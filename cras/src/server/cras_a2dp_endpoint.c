@@ -27,6 +27,7 @@ struct a2dp_msg {
 	struct cras_iodev *dev;
 };
 
+/* TODO(hychao): support multiple a2dp devices. */
 static struct cras_iodev *iodev;
 
 /* To send a message to main thread. */
@@ -210,6 +211,19 @@ static void a2dp_handle_message(void *arg)
 	return;
 }
 
+static void a2dp_transport_state_changed(struct cras_bt_endpoint *endpoint,
+					 struct cras_bt_transport *transport)
+{
+	if (iodev && transport) {
+		/* When pending message is received in bluez, try to aquire
+		 * the transport. */
+		if (cras_bt_transport_fd(transport) != -1 &&
+		    cras_bt_transport_state(transport) ==
+				CRAS_BT_TRANSPORT_STATE_PENDING)
+			cras_bt_transport_try_acquire(transport);
+	}
+}
+
 static struct cras_bt_endpoint cras_a2dp_endpoint = {
 	/* BlueZ connects the device A2DP Sink to our A2DP Source endpoint,
 	 * and the device A2DP Source to our A2DP Sink. It's best if you don't
@@ -222,7 +236,8 @@ static struct cras_bt_endpoint cras_a2dp_endpoint = {
 	.get_capabilities = cras_a2dp_get_capabilities,
 	.select_configuration = cras_a2dp_select_configuration,
 	.start = cras_a2dp_start,
-	.suspend = cras_a2dp_suspend
+	.suspend = cras_a2dp_suspend,
+	.transport_state_changed = a2dp_transport_state_changed
 };
 
 int cras_a2dp_endpoint_create(DBusConnection *conn)

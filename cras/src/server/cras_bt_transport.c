@@ -207,39 +207,13 @@ static enum cras_bt_transport_state cras_bt_transport_state_from_string(
 		return CRAS_BT_TRANSPORT_STATE_IDLE;
 }
 
-static const char *cras_bt_transport_state_to_string(
-		enum cras_bt_transport_state state)
-{
-	switch (state) {
-	case CRAS_BT_TRANSPORT_STATE_IDLE:
-		return "idle";
-	case CRAS_BT_TRANSPORT_STATE_PENDING:
-		return "pending";
-	case CRAS_BT_TRANSPORT_STATE_ACTIVE:
-		return "active";
-	default:
-		return "(unknown)";
-	}
-}
-
 static void cras_bt_transport_state_changed(struct cras_bt_transport *transport)
 {
-	if (!transport->endpoint)
-		return;
-
-	/* Transport state change is an asynchronous notification while the
-	 * stream fd is updated in blocking calls (acquire and release).
-	 *
-	 * Don't modify the endpoint at here, since the transport state and
-	 * stream fd could not be synced.  The state of transport is handled in
-	 * life cycle of cras_bt_endpoint. Place transport state and fd in
-	 * debug log to monitor the state transitionfor debugging.
-	 *
-	 * TODO(hychao): remove debug log when a2dp issues are fixed.
-	 */
-	syslog(LOG_ERR, "Transport state changed to %s, while stream fd %d",
-			cras_bt_transport_state_to_string(transport->state),
-			transport->fd);
+	if (transport->endpoint &&
+	    transport->endpoint->transport_state_changed)
+		transport->endpoint->transport_state_changed(
+				transport->endpoint,
+				transport);
 }
 
 void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
@@ -481,6 +455,65 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		dbus_message_unref(reply);
 		return -EINVAL;
 	}
+
+	dbus_message_unref(reply);
+	return 0;
+}
+
+int cras_bt_transport_try_acquire(struct cras_bt_transport *transport)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+	int fd, read_mtu, write_mtu;
+
+	method_call = dbus_message_new_method_call(
+			BLUEZ_SERVICE,
+			transport->object_path,
+			BLUEZ_INTERFACE_MEDIA_TRANSPORT,
+			"TryAcquire");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_error_init(&dbus_error);
+
+	reply = dbus_connection_send_with_reply_and_block(
+		transport->conn,
+		method_call,
+		DBUS_TIMEOUT_USE_DEFAULT,
+		&dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to try acquire transport %s: %s",
+		       transport->object_path, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "TryAcquire returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
+
+	if (!dbus_message_get_args(reply, &dbus_error,
+				   DBUS_TYPE_UNIX_FD, &fd,
+				   DBUS_TYPE_UINT16, &read_mtu,
+				   DBUS_TYPE_UINT16, &write_mtu,
+				   DBUS_TYPE_INVALID)) {
+		syslog(LOG_ERR, "Bad TryAcquire reply received: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(reply);
+		return -EINVAL;
+	}
+
+	/* Done TryAcquired the transport so it won't be released in bluez,
+	 * no need for the new file descriptor so close it. */
+	if (transport->fd != fd)
+		close(fd);
 
 	dbus_message_unref(reply);
 	return 0;

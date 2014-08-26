@@ -29,6 +29,9 @@ struct cras_bt_endpoint {
 	void (*suspend)(struct cras_bt_endpoint *endpoint,
 			struct cras_bt_transport *transport);
 
+	void (*transport_state_changed)(struct cras_bt_endpoint *endpoint,
+					struct cras_bt_transport *transport);
+
 	struct cras_bt_transport *transport;
 	struct cras_bt_endpoint *prev, *next;
 };

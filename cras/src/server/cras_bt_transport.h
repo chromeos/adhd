@@ -71,6 +71,7 @@ void cras_bt_transport_update_properties(
 	DBusMessageIter *properties_array_iter,
 	DBusMessageIter *invalidated_array_iter);
 
+int cras_bt_transport_try_acquire(struct cras_bt_transport *transport);
 int cras_bt_transport_acquire(struct cras_bt_transport *transport);
 int cras_bt_transport_release(struct cras_bt_transport *transport);
 
