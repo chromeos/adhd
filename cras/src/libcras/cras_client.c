@@ -386,7 +386,7 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 				stream->capture_conv,
 				*captured_frames,
 				stream->capture_conv_buffer,
-				num_frames,
+				&num_frames,
 				stream->config->buffer_frames);
 		*captured_frames = stream->capture_conv_buffer;
 	}
@@ -515,7 +515,7 @@ static void complete_playback_write(struct client_stream *stream,
 				stream->play_conv,
 				stream->play_conv_buffer,
 				final_buf,
-				frames,
+				&frames,
 				limit);
 	}
 	/* And move the write pointer to indicate samples written. */

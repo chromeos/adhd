@@ -565,7 +565,7 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				    const uint8_t *in_buf,
 				    uint8_t *out_buf,
-				    size_t in_frames,
+				    unsigned int *in_frames,
 				    size_t out_frames)
 {
 	uint32_t fr_in, fr_out;
@@ -577,16 +577,16 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 
 	/* If no SRC, then in_frames should = out_frames. */
 	if (conv->speex_state == NULL) {
-		fr_in = MIN(in_frames, out_frames);
-		if (out_frames < in_frames && !logged_frames_dont_fit) {
+		fr_in = MIN(*in_frames, out_frames);
+		if (out_frames < *in_frames && !logged_frames_dont_fit) {
 			syslog(LOG_INFO,
-			       "fmt_conv: %zu to %zu no SRC.",
-			       in_frames,
+			       "fmt_conv: %u to %zu no SRC.",
+			       *in_frames,
 			       out_frames);
 			logged_frames_dont_fit = 1;
 		}
 	} else {
-		fr_in = in_frames;
+		fr_in = *in_frames;
 	}
 	fr_out = fr_in;
 
@@ -650,6 +650,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 		buf_idx++;
 	}
 
+	*in_frames = fr_in;
 	return fr_out;
 }
 

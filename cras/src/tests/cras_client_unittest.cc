@@ -427,10 +427,10 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				    const uint8_t *in_buf,
 				    uint8_t *out_buf,
-				    size_t in_frames,
+				    unsigned int  *in_frames,
 				    size_t out_frames)
 {
-  cras_fmt_conv_convert_frames_in_frames_val = in_frames;
+  cras_fmt_conv_convert_frames_in_frames_val = *in_frames;
   cras_fmt_conv_convert_frames_out_frames_val = out_frames;
 
   /* Don't care the return value */
