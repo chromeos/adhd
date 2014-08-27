@@ -231,10 +231,21 @@ const char *cras_bt_transport_object_path(
   return NULL;
 }
 
+struct cras_bt_device *cras_bt_transport_device(
+    const struct cras_bt_transport *transport)
+{
+  return reinterpret_cast<struct cras_bt_device *>(0x55);
+}
+
 int cras_bt_transport_sco_connect(struct cras_bt_transport *transport)
 {
   cras_bt_transport_sco_connect_called++;
   return cras_bt_transport_sco_connect_return_val;
+}
+
+const char *cras_bt_device_name(const struct cras_bt_device *device)
+{
+  return "fake-device-name";
 }
 
 // From cras_hfp_info
