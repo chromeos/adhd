@@ -1701,10 +1701,7 @@ static unsigned int get_write_limit_set_delay(
 					rstream->format.frame_rate,
 					delay,
 					&shm->area->ts);
-		cras_shm_get_writeable_frames(
-				shm,
-				cras_rstream_get_cb_threshold(rstream),
-				&avail_frames);
+		avail_frames = dev_stream_capture_avail(stream);
 		write_limit = MIN(write_limit, avail_frames);
 	}
 

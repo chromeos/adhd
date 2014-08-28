@@ -78,4 +78,10 @@ void dev_stream_capture(const struct dev_stream *dev_stream,
  */
 int dev_stream_playback_frames(const struct dev_stream *dev_stream);
 
+/*
+ * Returns the number of frames free to be written to in a capture stream.  This
+ * number is also post format conversion, similar to playback_frames above.
+ */
+unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream);
+
 #endif /* DEV_STREAM_H_ */

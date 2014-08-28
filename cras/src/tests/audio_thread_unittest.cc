@@ -2503,6 +2503,20 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream) {
   return cras_fmt_conv_in_frames_to_out(dev_stream->conv, frames);
 }
 
+unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
+{
+  struct cras_audio_shm *shm;
+  struct cras_rstream *rstream = dev_stream->stream;
+  unsigned int cb_threshold = cras_rstream_get_cb_threshold(rstream);
+  unsigned int frames_avail;
+
+  shm = cras_rstream_input_shm(rstream);
+
+  cras_shm_get_writeable_frames(shm, cb_threshold, &frames_avail);
+
+  return frames_avail;
+}
+
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 				      size_t in_frames)
 {
