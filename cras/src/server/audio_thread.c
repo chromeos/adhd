@@ -1684,7 +1684,6 @@ static unsigned int get_write_limit_set_delay(
 {
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
-	struct cras_audio_shm *output_shm;
 	struct dev_stream *stream;
 	unsigned int avail_frames;
 	int delay;
@@ -1707,13 +1706,6 @@ static unsigned int get_write_limit_set_delay(
 				cras_rstream_get_cb_threshold(rstream),
 				&avail_frames);
 		write_limit = MIN(write_limit, avail_frames);
-
-		output_shm = cras_rstream_output_shm(rstream);
-		if (output_shm->area)
-			cras_iodev_set_playback_timestamp(
-					rstream->format.frame_rate,
-					delay,
-					&output_shm->area->ts);
 	}
 
 	return write_limit;
