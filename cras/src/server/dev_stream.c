@@ -161,3 +161,20 @@ void dev_stream_capture(const struct dev_stream *dev_stream,
 			     cras_get_format_bytes(&rstream->format),
 			     area, dev_index);
 }
+
+int dev_stream_playback_frames(const struct dev_stream *dev_stream)
+{
+	struct cras_audio_shm *shm;
+	int frames;
+
+	shm = cras_rstream_output_shm(dev_stream->stream);
+
+	frames = cras_shm_get_frames(shm);
+	if (frames < 0)
+		return frames;
+
+	if (!dev_stream->conv)
+		return frames;
+
+	return cras_fmt_conv_in_frames_to_out(dev_stream->conv, frames);
+}

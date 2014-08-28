@@ -203,6 +203,7 @@ get_min_latency_stream(const struct audio_thread *thread,
 
 	DL_FOREACH(thread->active_devs[direction], adev) {
 		DL_FOREACH(adev->streams, curr) {
+			/* TODO(dgreid) - need to SRC lowest ? */
 			if (!lowest ||
 			    (cras_rstream_get_buffer_size(curr->stream) <
 			     cras_rstream_get_buffer_size(lowest->stream)))
@@ -946,6 +947,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(curr->stream);
 		int fd = cras_rstream_get_audio_fd(curr->stream);
+		unsigned int stream_hw_level;
 
 		if (cras_shm_callback_pending(shm) && fd >= 0)
 			flush_old_aud_messages(shm, fd);
@@ -961,8 +963,11 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 			continue;
 		}
 
+		stream_hw_level = cras_fmt_conv_out_frames_to_in(curr->conv,
+								 hw_level);
+
 		/* If we already have enough data, don't poll this stream. */
-		if (frames_in_buff + hw_level >
+		if (frames_in_buff + stream_hw_level >
 		    cras_rstream_get_cb_threshold(curr->stream) +
 				SLEEP_FUZZ_FRAMES)
 			continue;
@@ -1036,8 +1041,10 @@ static int write_streams(struct audio_thread *thread,
 	int max_fd;
 	int rc;
 	int max_frames = 0;
+	struct active_dev *adev;
 
 	cb_threshold = thread->cb_threshold[CRAS_STREAM_OUTPUT];
+	adev = thread->active_devs[CRAS_STREAM_OUTPUT];
 
 	/* Timeout on reading before we under-run. Leaving time to mix. */
 	to.tv_sec = 0;
@@ -1055,7 +1062,7 @@ static int write_streams(struct audio_thread *thread,
 	/* Check if streams have enough data to fill this request,
 	 * if not, wait for them. Mix all streams we have enough data for. */
 	/* TODO(dgreid) - handle > 1 active iodev */
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
+	DL_FOREACH(adev->streams, curr) {
 		struct cras_audio_shm *shm;
 		int shm_frames;
 		int fd = cras_rstream_get_audio_fd(curr->stream);
@@ -1105,8 +1112,7 @@ static int write_streams(struct audio_thread *thread,
 				AUDIO_THREAD_WRITE_STREAMS_WAIT_TO, 0, 0, 0);
 			/* Timeout */
 			/* TODO(dgreid) - handle > 1 active iodev */
-			DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->
-					streams, curr) {
+			DL_FOREACH(adev->streams, curr) {
 				struct cras_audio_shm *shm;
 				int fd;
 
@@ -1136,8 +1142,7 @@ static int write_streams(struct audio_thread *thread,
 			break;
 		}
 		/* TODO(dgreid) - handle > 1 active iodev */
-		DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams,
-			   curr) {
+		DL_FOREACH(adev->streams, curr) {
 			struct cras_audio_shm *shm;
 			int fd = cras_rstream_get_audio_fd(curr->stream);
 
@@ -1168,24 +1173,28 @@ static int write_streams(struct audio_thread *thread,
 		}
 	}
 
+
 	/* Mix as much as we can, the minimum fill level of any stream. */
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
+	DL_FOREACH(adev->streams, curr) {
 		struct cras_audio_shm *shm;
 		int shm_frames;
 
 		shm = cras_rstream_output_shm(curr->stream);
+		if (cras_shm_callback_pending(shm) || curr->skip_mix)
+			continue;
+		/* It's not in underrun, use this stream. */
 
-		shm_frames = cras_shm_get_frames(shm);
+		shm_frames = dev_stream_playback_frames(curr);
 		if (shm_frames < 0) {
 			thread_remove_stream(thread, curr->stream);
 			if (!streams_attached_direction(thread,
 							CRAS_STREAM_OUTPUT))
 				return -EIO;
-		} else if (!cras_shm_callback_pending(shm) && !curr->skip_mix) {
-			/* If not in underrun, use this stream. */
-			write_limit = MIN((size_t)shm_frames, write_limit);
-			max_frames = MAX(max_frames, shm_frames);
+			continue;
 		}
+
+		write_limit = MIN((size_t)shm_frames, write_limit);
+		max_frames = MAX(max_frames, shm_frames);
 	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
@@ -1206,7 +1215,7 @@ static int write_streams(struct audio_thread *thread,
 	}
 
 	/* TODO(dgreid) - handle > 1 active iodev */
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
+	DL_FOREACH(adev->streams, curr) {
 		if (curr->skip_mix)
 			continue;
 		dev_stream_mix(curr, odev->format->num_channels, dst,
@@ -1484,16 +1493,15 @@ static int get_output_sleep_frames(struct audio_thread *thread)
 
 	/* TODO(dgreid) - handle > 1 active iodev */
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT]->streams, curr) {
-		struct cras_audio_shm *shm =
-			cras_rstream_output_shm(curr->stream);
 		unsigned int cb_thresh;
 		unsigned int frames_in_buff;
 
 		if (curr->stream->client == NULL)
 			continue;
 
-		cb_thresh = cras_rstream_get_cb_threshold(curr->stream);
-		rc = cras_shm_get_frames(shm);
+		cb_thresh = cras_fmt_conv_in_frames_to_out(curr->conv,
+				cras_rstream_get_cb_threshold(curr->stream));
+		rc = dev_stream_playback_frames(curr);
 		if (rc < 0)
 			return rc;
 		frames_in_buff = rc + adjusted_level;

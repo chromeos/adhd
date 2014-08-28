@@ -71,4 +71,11 @@ void dev_stream_capture(const struct dev_stream *dev_stream,
 			unsigned int count,
 			unsigned int dev_index);
 
+/*
+ * Returns the number of playback frames queued in shared memory.  This is a
+ * post-format-conversion number.  If the stream is 24k with 10 frames queued
+ * and the device is playing at 48k, 20 will be returned.
+ */
+int dev_stream_playback_frames(const struct dev_stream *dev_stream);
+
 #endif /* DEV_STREAM_H_ */

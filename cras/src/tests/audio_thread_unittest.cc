@@ -2487,6 +2487,34 @@ void dev_stream_capture(const struct dev_stream *dev_stream,
                        area, dev_index);
 }
 
+int dev_stream_playback_frames(const struct dev_stream *dev_stream) {
+  struct cras_audio_shm *shm;
+  int frames;
+
+  shm = cras_rstream_output_shm(dev_stream->stream);
+
+  frames = cras_shm_get_frames(shm);
+  if (frames < 0)
+    return frames;
+
+  if (!dev_stream->conv)
+    return frames;
+
+  return cras_fmt_conv_in_frames_to_out(dev_stream->conv, frames);
+}
+
+size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
+				      size_t in_frames)
+{
+	return in_frames;
+}
+
+size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
+				      size_t out_frames)
+{
+	return out_frames;
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {
