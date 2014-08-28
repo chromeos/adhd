@@ -355,7 +355,7 @@ static int fetch_stream(struct audio_thread *thread,
 static int append_stream_to_dev(struct active_dev *adev,
 				struct cras_rstream *stream)
 {
-	struct dev_stream *out = dev_stream_create(stream);
+	struct dev_stream *out = dev_stream_create(stream, adev->dev->format);
 
 	DL_APPEND(adev->streams, out);
 

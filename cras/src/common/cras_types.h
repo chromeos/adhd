@@ -118,6 +118,7 @@ enum AUDIO_THREAD_LOG_EVENTS {
 	AUDIO_THREAD_STREAM_REMOVED,
 	AUDIO_THREAD_A2DP_ENCODE,
 	AUDIO_THREAD_A2DP_WRITE,
+	AUDIO_THREAD_DEV_STREAM_MIX,
 };
 
 struct __attribute__ ((__packed__)) audio_thread_event {

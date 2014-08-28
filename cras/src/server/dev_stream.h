@@ -14,21 +14,29 @@
 #include "cras_types.h"
 
 struct cras_audio_area;
+struct cras_fmt_conv;
 struct cras_rstream;
 
 /*
  * Linked list of streams of audio from/to a client.
  * Args:
  *    stream - The rstream attached to a device.
+ *    conv - Sample rate or format converter.
+ *    conv_buffer - The buffer for converter if needed.
+ *    conv_buffer_size_frames - Size of conv_buffer in frames.
  *    skip_mix - Don't mix this next time streams are mixed.
  */
 struct dev_stream {
 	struct cras_rstream *stream;
-	unsigned int skip_mix; /* Skip this stream next mix cycle. */
+	struct cras_fmt_conv *conv;
+	uint8_t *conv_buffer;
+	unsigned int conv_buffer_size_frames;
+	unsigned int skip_mix;
 	struct dev_stream *prev, *next;
 };
 
-struct dev_stream *dev_stream_create(struct cras_rstream *stream);
+struct dev_stream *dev_stream_create(struct cras_rstream *stream,
+				     const struct cras_audio_format *dev_fmt);
 void dev_stream_destroy(struct dev_stream *dev_stream);
 
 /*

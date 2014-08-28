@@ -163,6 +163,7 @@ TESTS = \
 	checksum_unittest \
 	cras_client_unittest \
 	cras_tm_unittest \
+	dev_stream_unittest \
 	device_blacklist_unittest \
 	dsp_core_unittest \
 	dsp_ini_unittest \
@@ -340,6 +341,12 @@ cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 cras_tm_unittest_LDADD = -lgtest -lpthread
+
+dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
+	server/dev_stream.c
+dev_stream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+dev_stream_unittest_LDADD = -lgtest -liniparser -lpthread
 
 device_blacklist_unittest_SOURCES = tests/device_blacklist_unittest.cc \
 	server/config/cras_device_blacklist.c

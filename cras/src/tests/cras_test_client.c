@@ -474,6 +474,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("A2DP_WRITE: %u.%09u written %d queued %u\n",
 		       sec, nsec, data1, data2);
 		break;
+	case AUDIO_THREAD_DEV_STREAM_MIX:
+		printf("DEV_STREAM_MIX: %u.%09u written %u read %u\n",
+		       sec, nsec, data1, data2);
+		break;
 	default:
 		printf("Unknown alog tag %u\n", tag);
 		break;
