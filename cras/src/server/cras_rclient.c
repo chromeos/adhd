@@ -39,7 +39,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_audio_format fmt, remote_fmt;
 	struct audio_thread *thread;
 	int rc;
-	size_t buffer_frames, cb_threshold;
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
@@ -77,24 +76,13 @@ try_again:
 		goto reply_err;
 	}
 
-	/* Scale parameters to the frame rate of the device. */
-	buffer_frames = cras_frames_at_rate(msg->format.frame_rate,
-					    msg->buffer_frames,
-					    fmt.frame_rate);
-	if (buffer_frames & 0x01) /* Ensure even buffer size. */
-		buffer_frames++;
-
-	cb_threshold = cras_frames_at_rate(msg->format.frame_rate,
-					   msg->cb_threshold,
-					   fmt.frame_rate);
-
 	/* Create the stream with the modified parameters. */
 	rc = cras_rstream_create(msg->stream_id,
 				 msg->stream_type,
 				 msg->direction,
-				 &fmt,
-				 buffer_frames,
-				 cb_threshold,
+				 &remote_fmt,
+				 msg->buffer_frames,
+				 msg->cb_threshold,
 				 client,
 				 &stream);
 	if (rc < 0) {
@@ -131,7 +119,7 @@ try_again:
 			&reply,
 			0, /* No error. */
 			msg->stream_id,
-			&fmt,
+			&remote_fmt,
 			cras_rstream_input_shm_key(stream),
 			cras_rstream_output_shm_key(stream),
 			cras_rstream_get_total_shm_size(stream));
