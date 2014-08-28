@@ -15,6 +15,7 @@
 #include "cras_hfp_info.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_slc.h"
+#include "utlist.h"
 
 #define HFP_AG_PROFILE_NAME "Headset Gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
@@ -64,48 +65,56 @@
 	"  </attribute>"						\
 	"</record>"
 
-static struct cras_iodev *idev;
-static struct cras_iodev *odev;
-static struct hfp_info *info;
-static struct hfp_slc_handle *slc_handle;
 
-static void destroy_hfp_resources()
+struct audio_gateway {
+	struct cras_iodev *idev;
+	struct cras_iodev *odev;
+	struct hfp_info *info;
+	struct hfp_slc_handle *slc_handle;
+	struct cras_bt_device *device;
+	enum cras_bt_device_profile profile;
+	struct audio_gateway *prev, *next;
+};
+
+static struct audio_gateway *connected_ags;
+
+static void destroy_audio_gateway(struct audio_gateway *ag)
 {
-	if (idev) {
-		hfp_iodev_destroy(idev);
-		idev = NULL;
-	}
-	if (odev) {
-		hfp_iodev_destroy(odev);
-		odev = NULL;
-	}
-	if (info) {
-		hfp_info_destroy(info);
-		info = NULL;
-	}
-	if (slc_handle) {
-		hfp_slc_destroy(slc_handle);
-		slc_handle = NULL;
-	}
+	if (ag->idev)
+		hfp_iodev_destroy(ag->idev);
+	if (ag->odev)
+		hfp_iodev_destroy(ag->odev);
+	if (ag->info)
+		hfp_info_destroy(ag->info);
+	if (ag->slc_handle)
+		hfp_slc_destroy(ag->slc_handle);
+	free(ag);
 }
 
 static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 {
-	destroy_hfp_resources();
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		DL_DELETE(connected_ags, ag);
+		destroy_audio_gateway(ag);
+	}
 }
 
-static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
+static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 {
-	struct cras_bt_device *device = (struct cras_bt_device *)data;
+	struct audio_gateway *ag;
 
-	info = hfp_info_create();
-	idev = hfp_iodev_create(CRAS_STREAM_INPUT, device, info);
-	odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, device, info);
+	DL_SEARCH_SCALAR(connected_ags, ag, slc_handle, handle);
+	if (!ag)
+		return -EINVAL;
 
-	if (!idev && !odev) {
-		if (info)
-			hfp_info_destroy(info);
-		hfp_slc_destroy(handle);
+	ag->info = hfp_info_create();
+	ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device, ag->info);
+	ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device, ag->info);
+
+	if (!ag->idev && !ag->odev) {
+		destroy_audio_gateway(ag);
+		return -ENOMEM;
         }
 
 	return 0;
@@ -113,7 +122,14 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data
 
 static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 {
-	destroy_hfp_resources();
+	struct audio_gateway *ag;
+
+	DL_SEARCH_SCALAR(connected_ags, ag, slc_handle, handle);
+	if (!ag)
+		return -EINVAL;
+
+	DL_DELETE(connected_ags, ag);
+	destroy_audio_gateway(ag);
 	return 0;
 }
 
@@ -121,21 +137,38 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
-	/* Destroy all existing devices and replace with new ones */
-	destroy_hfp_resources();
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->slc_handle && ag->device == device)
+			break;
+	}
 
-	slc_handle = hfp_slc_create(rfcomm_fd,
-				    0,
-				    cras_hfp_ag_slc_initialized,
-				    device,
-				    cras_hfp_ag_slc_disconnected);
+	/* Destroy all existing devices and replace with new ones */
+	if (ag) {
+		DL_DELETE(connected_ags, ag);
+		destroy_audio_gateway(ag);
+	}
+
+	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
+	ag->device = device;
+	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
+	ag->slc_handle = hfp_slc_create(rfcomm_fd,
+					0,
+					cras_hfp_ag_slc_initialized,
+					cras_hfp_ag_slc_disconnected);
+	DL_APPEND(connected_ags, ag);
 }
 
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 					      struct cras_bt_device *device)
 {
-	/* There is at most one device connected, just release it. */
-	cras_hfp_ag_release(profile);
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->slc_handle && ag->device == device) {
+			DL_DELETE(connected_ags, ag);
+			destroy_audio_gateway(ag);
+		}
+	}
 }
 
 static void cras_hfp_ag_cancel(struct cras_bt_profile *profile)
@@ -165,12 +198,25 @@ static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
-	/* Destroy all existing devices and replace with new ones */
-	destroy_hfp_resources();
-	slc_handle = hfp_slc_create(rfcomm_fd, 1, NULL, NULL,
-				    cras_hfp_ag_slc_disconnected);
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->slc_handle && ag->device == device)
+			break;
+	}
 
-	cras_hfp_ag_slc_initialized(slc_handle, device);
+	/* Destroy all existing devices and replace with new ones */
+	if (ag)  {
+		DL_DELETE(connected_ags, ag);
+		destroy_audio_gateway(ag);
+	}
+
+	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
+	ag->device = device;
+	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
+	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, NULL,
+					cras_hfp_ag_slc_disconnected);
+	DL_APPEND(connected_ags, ag);
+	cras_hfp_ag_slc_initialized(ag->slc_handle);
 }
 
 static struct cras_bt_profile cras_hsp_ag_profile = {
@@ -186,6 +232,13 @@ static struct cras_bt_profile cras_hsp_ag_profile = {
 	.request_disconnection = cras_hfp_ag_request_disconnection,
 	.cancel = cras_hfp_ag_cancel
 };
+
+struct hfp_slc_handle *cras_hfp_ag_get_active_handle()
+{
+	/* Returns the first handle for HFP qualification. In future we
+	 * might want this to return the HFP device user is selected. */
+	return connected_ags ? connected_ags->slc_handle : NULL;
+}
 
 int cras_hsp_ag_profile_create(DBusConnection *conn)
 {

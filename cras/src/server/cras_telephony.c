@@ -10,6 +10,7 @@
 #include <dbus/dbus.h>
 
 #include "cras_telephony.h"
+#include "cras_hfp_ag_profile.h"
 #include "cras_hfp_slc.h"
 
 #define CRAS_TELEPHONY_INTERFACE "org.chromium.cras.Telephony"
@@ -98,7 +99,7 @@ static DBusHandlerResult handle_incoming_call(DBusConnection *conn,
 	if (rc != DBUS_HANDLER_RESULT_HANDLED)
 		return rc;
 
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 
 	telephony_handle.callsetup = 1;
 
@@ -160,7 +161,7 @@ static DBusHandlerResult handle_set_battery(DBusConnection *conn,
 	if (rc != DBUS_HANDLER_RESULT_HANDLED)
 		return rc;
 
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 	if (handle)
 		hfp_event_set_battery(handle, value);
 
@@ -180,7 +181,7 @@ static DBusHandlerResult handle_set_signal(DBusConnection *conn,
 	if (rc != DBUS_HANDLER_RESULT_HANDLED)
 		return rc;
 
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 	if (handle)
 		hfp_event_set_signal(handle, value);
 
@@ -200,7 +201,7 @@ static DBusHandlerResult handle_set_service(DBusConnection *conn,
 	if (rc != DBUS_HANDLER_RESULT_HANDLED)
 		return rc;
 
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 	if (handle)
 		hfp_event_set_service(handle, value);
 
@@ -221,7 +222,7 @@ static DBusHandlerResult handle_set_callheld(DBusConnection *conn,
 		return rc;
 
 	telephony_handle.callheld = value;
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 	if (handle)
 		hfp_event_update_callheld(handle);
 
@@ -348,7 +349,7 @@ int cras_telephony_event_answer_call()
 
 	struct hfp_slc_handle *handle;
 
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 
 	if (telephony_handle.call == 0) {
 		telephony_handle.call = 1;
@@ -380,7 +381,7 @@ int cras_telephony_event_terminate_call()
 	int rc;
 	struct hfp_slc_handle *handle;
 
-	handle = hfp_slc_get_handle();
+	handle = cras_hfp_ag_get_active_handle();
 
 	if (telephony_handle.call) {
 		telephony_handle.call = 0;

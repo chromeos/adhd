@@ -64,7 +64,6 @@
  *    buf_write_idx - Write index for buf.
  *    rfcomm_fd - File descriptor for the established RFCOMM connection.
  *    init_cb - Callback to be triggered when an SLC is initialized.
- *    data - Private data to be passed to init_cb.
  *    initialized - The service level connection is fully initilized of not.
  *    cli_active - Calling line identification notification is enabled or not.
  *    battery - Current battery level of AG stored in SLC.
@@ -82,7 +81,6 @@ struct hfp_slc_handle {
 	int rfcomm_fd;
 	hfp_slc_init_cb init_cb;
 	hfp_slc_disconnect_cb disconnect_cb;
-	void *init_cb_data;
 	int initialized;
 	int cli_active;
 	int battery;
@@ -98,9 +96,6 @@ struct at_command {
 	const char *cmd;
 	int (*callback) (struct hfp_slc_handle *handle, const char *cmd);
 };
-
-/* The active SLC handle, which is exposed mainly for HFP qualification. */
-static struct hfp_slc_handle *active_slc_handle;
 
 /* Sends a response or command to HF */
 static int hfp_send(struct hfp_slc_handle *handle, const char *buf)
@@ -262,7 +257,7 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 		} else {
 			err = hfp_send(handle, "OK");
 			if (err == 0) {
-				handle->init_cb(handle, handle->init_cb_data);
+				handle->init_cb(handle);
 				handle->initialized = 1;
 			}
 		}
@@ -618,7 +613,6 @@ static void slc_watch_callback(void *arg)
 struct hfp_slc_handle *hfp_slc_create(int fd,
 				      int is_hsp,
 				      hfp_slc_init_cb init_cb,
-				      void *init_cb_data,
 				      hfp_slc_disconnect_cb disconnect_cb)
 {
 	struct hfp_slc_handle *handle;
@@ -631,14 +625,12 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->is_hsp = is_hsp;
 	handle->init_cb = init_cb;
 	handle->disconnect_cb = disconnect_cb;
-	handle->init_cb_data = init_cb_data;
 	handle->cli_active = 0;
 	handle->battery = 5;
 	handle->signal = 5;
 	handle->service = 1;
 	handle->telephony = cras_telephony_get();
 
-	active_slc_handle = handle;
 	cras_system_add_select_fd(handle->rfcomm_fd,
 				  slc_watch_callback, handle);
 
@@ -647,15 +639,9 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 
 void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 {
-	active_slc_handle = NULL;
 	cras_system_rm_select_fd(slc_handle->rfcomm_fd);
 	close(slc_handle->rfcomm_fd);
 	free(slc_handle);
-}
-
-struct hfp_slc_handle *hfp_slc_get_handle()
-{
-	return active_slc_handle;
 }
 
 /* Procedure to setup a call when AG sees incoming call.

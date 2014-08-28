@@ -9,7 +9,7 @@
 struct hfp_slc_handle;
 
 /* Callback to call when service level connection initialized. */
-typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle *handle, void *cb_data);
+typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle *handle);
 
 /* Callback to call when service level connection disconnected. */
 typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
@@ -21,19 +21,14 @@ typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
  *    is_hsp - if the slc handle is created for headset profile
  *    init_cb - the callback function to be triggered when a service level
  *        connection is initialized.
- *    init_cb_data - data to be passed to the hfp_slc_init_cb function.
  *    disconnect_cb - the callback function to be triggered when the service
  *        level connection is disconnected.
  */
 struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp, hfp_slc_init_cb init_cb,
-				      void *init_cb_data,
 				      hfp_slc_disconnect_cb disconnect_cb);
 
 /* Destroys an hfp_slc_handle. */
 void hfp_slc_destroy(struct hfp_slc_handle *handle);
-
-/* Gets the active SLC handle, for qualification test. */
-struct hfp_slc_handle *hfp_slc_get_handle();
 
 /* Fakes the incoming call event for qualification test. */
 int hfp_event_incoming_call(struct hfp_slc_handle *handle,
