@@ -36,10 +36,14 @@ static struct cras_bt_device *devices;
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid)
 {
-	if (strcmp(uuid, HFP_HS_UUID) == 0)
-		return CRAS_BT_DEVICE_PROFILE_HEADSET;
+	if (strcmp(uuid, HSP_HS_UUID) == 0)
+		return CRAS_BT_DEVICE_PROFILE_HSP_HEADSET;
+	else if (strcmp(uuid, HSP_AG_UUID) == 0)
+		return CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+	else if (strcmp(uuid, HFP_HF_UUID) == 0)
+		return CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 	else if (strcmp(uuid, HFP_AG_UUID) == 0)
-		return CRAS_BT_DEVICE_PROFILE_HEADSET_GATEWAY;
+		return CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
 	else if (strcmp(uuid, A2DP_SOURCE_UUID) == 0)
 		return CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
 	else if (strcmp(uuid, A2DP_SINK_UUID) == 0)
@@ -174,12 +178,12 @@ static void cras_bt_device_log_profile(const struct cras_bt_device *device,
 				       enum cras_bt_device_profile profile)
 {
 	switch (profile) {
-	case CRAS_BT_DEVICE_PROFILE_HEADSET:
-		syslog(LOG_DEBUG, "Bluetooth Device: %s is Headset",
+	case CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE:
+		syslog(LOG_DEBUG, "Bluetooth Device: %s is HFP handsfree",
 		       device->address);
 		break;
-	case CRAS_BT_DEVICE_PROFILE_HEADSET_GATEWAY:
-		syslog(LOG_DEBUG, "Bluetooth Device: %s is Headset gateway",
+	case CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY:
+		syslog(LOG_DEBUG, "Bluetooth Device: %s is HFP audio gateway",
 		       device->address);
 		break;
 	case CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE:
@@ -196,6 +200,14 @@ static void cras_bt_device_log_profile(const struct cras_bt_device *device,
 		break;
 	case CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET:
 		syslog(LOG_DEBUG, "Bluetooth Device: %s is AVRCP target",
+		       device->address);
+		break;
+	case CRAS_BT_DEVICE_PROFILE_HSP_HEADSET:
+		syslog(LOG_DEBUG, "Bluetooth Device: %s is HSP headset",
+		       device->address);
+		break;
+	case CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY:
+		syslog(LOG_DEBUG, "Bluetooth Device: %s is HSP audio gateway",
 		       device->address);
 		break;
 	}
