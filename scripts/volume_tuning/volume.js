@@ -283,7 +283,7 @@ function drawText(ctx, s, x, y, align) {
 //   db_at_0 = -4800
 // [Headphone]
 //   volume_curve = simple_step
-//   volume_step = 50
+//   volume_step = 70
 //   max_volume = 0
 //
 function download_config() {
@@ -300,7 +300,7 @@ function download_config() {
 
   content += '[Headphone]\n';
   content += '  volume_curve = simple_step\n';
-  content += '  volume_step = 50\n';
+  content += '  volume_step = 70\n';
   content += '  max_volume = 0\n';
   save_config(content);
 }
