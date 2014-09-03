@@ -2001,7 +2001,7 @@ TEST_F(ActiveDevicesSuite, CloseActiveDevices) {
   EXPECT_EQ(2, cras_iodev_set_format_called);
 
   thread_add_stream(thread_, rstream2_);
-  EXPECT_EQ(2, cras_iodev_set_format_called);
+  EXPECT_EQ(4, cras_iodev_set_format_called);
 
   thread_remove_stream(thread_, rstream2_);
 

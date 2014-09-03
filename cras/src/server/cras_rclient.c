@@ -36,7 +36,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_rstream *stream;
 	struct cras_iodev *idev, *odev;
 	struct cras_client_stream_connected reply;
-	struct cras_audio_format fmt, remote_fmt;
+	struct cras_audio_format remote_fmt;
 	struct audio_thread *thread;
 	int rc;
 
@@ -59,20 +59,6 @@ try_again:
 					    &odev);
 	if (rc) {
 		syslog(LOG_ERR, "No iodev available.\n");
-		goto reply_err;
-	}
-
-	/* Tell the iodev about the format we want.  fmt will contain the actual
-	 * format used after return. */
-	fmt = remote_fmt;
-	if (idev)
-		cras_iodev_set_format(idev, &fmt);
-	if (odev)
-		cras_iodev_set_format(odev, &fmt);
-
-	if (fmt.frame_rate == 0 || msg->format.frame_rate == 0) {
-		syslog(LOG_ERR, "frame_rate is zero.");
-		rc = -EINVAL;
 		goto reply_err;
 	}
 

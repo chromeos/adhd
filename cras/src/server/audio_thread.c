@@ -789,7 +789,15 @@ void fill_odevs_zeros_cb_threshold(struct audio_thread *thread)
 static int thread_add_stream(struct audio_thread *thread,
 			     struct cras_rstream *stream)
 {
+	struct cras_audio_format fmt;
+	struct active_dev *adev;
 	int rc;
+
+	/* TODO(dgreid) - add to correct dev, not all. */
+	DL_FOREACH(thread->active_devs[stream->direction], adev) {
+		fmt = stream->format;
+		cras_iodev_set_format(adev->dev, &fmt);
+	}
 
 	rc = append_stream(thread, stream);
 	if (rc < 0)

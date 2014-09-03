@@ -147,45 +147,6 @@ class RClientMessagesSuite : public testing::Test {
     int pipe_fds_[2];
 };
 
-TEST_F(RClientMessagesSuite, FrameRateError) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  cras_rstream_create_stream_out = rstream_;
-  cras_iodev_attach_stream_retval = 0;
-
-  connect_msg_.format.frame_rate = 0;
-
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
-  EXPECT_EQ(0, rc);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id_, out_msg.stream_id);
-  EXPECT_NE(0, out_msg.err);
-}
-
-TEST_F(RClientMessagesSuite, FrameRateErrorSRC) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  cras_rstream_create_stream_out = rstream_;
-  cras_iodev_attach_stream_retval = 0;
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
-
-  connect_msg_.format.frame_rate = 0;
-  /* passed frame rate is zero, but iodev decides to do SRC. */
-  cras_iodev_set_format_frame_rate = 48000;
-
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
-  EXPECT_EQ(0, rc);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id_, out_msg.stream_id);
-  EXPECT_NE(0, out_msg.err);
-}
-
 TEST_F(RClientMessagesSuite, AudThreadAttachFailRetry) {
   struct cras_client_stream_connected out_msg;
   int rc;
