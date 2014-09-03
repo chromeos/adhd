@@ -566,18 +566,9 @@ static void slc_watch_callback(void *arg)
 			  &handle->buf[handle->buf_write_idx],
 			  SLC_BUF_SIZE_BYTES - handle->buf_write_idx - 1);
 	if (bytes_read < 0) {
-		if (errno == ECONNRESET) {
-			syslog(LOG_ERR,
-			       "HFP service level connection disconnected "
-			       "unexpectedly.");
-			handle->disconnect_cb(handle);
-			return;
-		}
-
-		handle->buf_read_idx = 0;
-		handle->buf_write_idx = 0;
 		syslog(LOG_ERR, "Error reading slc command %s",
-				strerror(errno));
+		       strerror(errno));
+		handle->disconnect_cb(handle);
 		return;
 	}
 	handle->buf_write_idx += bytes_read;
