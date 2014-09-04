@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/param.h>
 
 struct byte_buffer {
 	unsigned int write_idx;
@@ -26,7 +27,7 @@ static inline struct byte_buffer *byte_buffer_create(size_t buffer_size_bytes)
 }
 
 /* Destory a byte_buffer created with byte_buffer_create. */
-void byte_buffer_destroy(struct byte_buffer *buf)
+static inline void byte_buffer_destroy(struct byte_buffer *buf)
 {
 	free(buf);
 }
