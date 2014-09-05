@@ -22,6 +22,14 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   size_t max_frames);
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv);
 
+/* Get the input format of the converter. */
+const struct cras_audio_format *cras_fmt_conv_in_format(
+		const struct cras_fmt_conv *conv);
+
+/* Get the output format of the converter. */
+const struct cras_audio_format *cras_fmt_conv_out_format(
+		const struct cras_fmt_conv *conv);
+
 /* Get the number of output frames that will result from converting in_frames */
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 				      size_t in_frames);

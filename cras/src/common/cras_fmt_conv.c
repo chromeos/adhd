@@ -534,6 +534,18 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 	free(conv);
 }
 
+const struct cras_audio_format *cras_fmt_conv_in_format(
+		const struct cras_fmt_conv *conv)
+{
+	return &conv->in_fmt;
+}
+
+const struct cras_audio_format *cras_fmt_conv_out_format(
+		const struct cras_fmt_conv *conv)
+{
+	return &conv->out_fmt;
+}
+
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 				      size_t in_frames)
 {
