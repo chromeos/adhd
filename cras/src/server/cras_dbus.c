@@ -49,8 +49,12 @@ static void dbus_watch_callback(void *arg)
 static dbus_bool_t dbus_watch_add(DBusWatch *watch, void *data)
 {
 	int r;
+	unsigned int flags = dbus_watch_get_flags(watch);
 
-	if (dbus_watch_get_enabled(watch)) {
+	/* Only select the read watch.
+	 * TODO(hychao): select on write watch when we have a use case.
+	 */
+	if ((flags & DBUS_WATCH_READABLE) && dbus_watch_get_enabled(watch)) {
 		r = cras_system_add_select_fd(dbus_watch_get_unix_fd(watch),
 					      dbus_watch_callback,
 					      watch);
@@ -63,7 +67,11 @@ static dbus_bool_t dbus_watch_add(DBusWatch *watch, void *data)
 
 static void dbus_watch_remove(DBusWatch *watch, void *data)
 {
-	cras_system_rm_select_fd(dbus_watch_get_unix_fd(watch));
+	unsigned int flags = dbus_watch_get_flags(watch);
+
+	/* Only select the read watch. */
+	if (flags & DBUS_WATCH_READABLE)
+		cras_system_rm_select_fd(dbus_watch_get_unix_fd(watch));
 }
 
 static void dbus_watch_toggled(DBusWatch *watch, void *data)
