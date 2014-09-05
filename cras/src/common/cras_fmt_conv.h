@@ -40,7 +40,7 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
  *      frames, this can be checked with cras_fmt_conv_in_frames_to_out().
  * Return number of frames put in out_buf. */
 size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
-				    uint8_t *in_buf,
+				    const uint8_t *in_buf,
 				    uint8_t *out_buf,
 				    size_t in_frames,
 				    size_t out_frames);

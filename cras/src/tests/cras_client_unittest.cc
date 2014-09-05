@@ -425,7 +425,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 }
 
 size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
-				    uint8_t *in_buf,
+				    const uint8_t *in_buf,
 				    uint8_t *out_buf,
 				    size_t in_frames,
 				    size_t out_frames)
