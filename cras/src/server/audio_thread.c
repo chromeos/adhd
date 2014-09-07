@@ -1794,9 +1794,6 @@ int possibly_read_audio(struct audio_thread *thread,
 	hw_level = rc;
 	write_limit = hw_level;
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO,
-				    hw_level, 0, 0);
-
 	/* Check if the device is still running. */
 	if (!devices_running(thread, dir))
 		return -1;
@@ -1804,6 +1801,9 @@ int possibly_read_audio(struct audio_thread *thread,
 	write_limit = get_write_limit_set_delay(thread,
 						write_limit,
 						dir);
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO,
+				    hw_level, write_limit, 0);
 
 	DL_FOREACH(thread->active_devs[dir], adev) {
 		/* TODO(dgreid) - handle > 1 active input */
