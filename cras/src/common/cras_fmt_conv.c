@@ -549,6 +549,8 @@ const struct cras_audio_format *cras_fmt_conv_out_format(
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 				      size_t in_frames)
 {
+	if (!conv)
+		return in_frames;
 	return cras_frames_at_rate(conv->in_fmt.frame_rate,
 				   in_frames,
 				   conv->out_fmt.frame_rate);
@@ -557,6 +559,8 @@ size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 				      size_t out_frames)
 {
+	if (!conv)
+		return out_frames;
 	return cras_frames_at_rate(conv->out_fmt.frame_rate,
 				   out_frames,
 				   conv->in_fmt.frame_rate);
