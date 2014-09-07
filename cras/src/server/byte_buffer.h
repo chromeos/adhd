@@ -58,9 +58,21 @@ static inline unsigned int buf_queued_bytes(struct byte_buffer *buf)
 	return buf->level;
 }
 
+static inline unsigned int buf_available_bytes(const struct byte_buffer *buf)
+{
+	return buf->size - buf->level;
+}
+
 static inline uint8_t *buf_read_pointer(struct byte_buffer *buf)
 {
 	return &buf->bytes[buf->read_idx];
+}
+
+static inline uint8_t *buf_read_pointer_size(struct byte_buffer *buf,
+					     unsigned int *readable)
+{
+	*readable = buf_readable_bytes(buf);
+	return buf_read_pointer(buf);
 }
 
 static inline void buf_increment_read(struct byte_buffer *buf, size_t inc)
@@ -74,6 +86,13 @@ static inline void buf_increment_read(struct byte_buffer *buf, size_t inc)
 static inline uint8_t *buf_write_pointer(struct byte_buffer *buf)
 {
 	return &buf->bytes[buf->write_idx];
+}
+
+static inline uint8_t *buf_write_pointer_size(struct byte_buffer *buf,
+					      unsigned int *writeable)
+{
+	*writeable = buf_writable_bytes(buf);
+	return buf_write_pointer(buf);
 }
 
 static inline void buf_increment_write(struct byte_buffer *buf, size_t inc)
