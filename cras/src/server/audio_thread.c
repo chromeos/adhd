@@ -1685,7 +1685,6 @@ static unsigned int get_write_limit_set_delay(
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
 	struct dev_stream *stream;
-	unsigned int avail_frames;
 	int delay;
 
 	/* TODO(dgreid) - handle > 1 active iodev */
@@ -1701,8 +1700,8 @@ static unsigned int get_write_limit_set_delay(
 					rstream->format.frame_rate,
 					delay,
 					&shm->area->ts);
-		avail_frames = dev_stream_capture_avail(stream);
-		write_limit = MIN(write_limit, avail_frames);
+		write_limit = MIN(write_limit,
+				  dev_stream_capture_avail(stream));
 	}
 
 	return write_limit;
