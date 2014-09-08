@@ -1691,6 +1691,8 @@ static unsigned int get_write_limit_set_delay(
 	DL_FOREACH(thread->active_devs[direction]->streams, stream) {
 		rstream = stream->stream;
 
+
+		/* TODO(dgreid) - delay should go through SRC. */
 		delay = input_delay_frames(thread->active_devs[direction]);
 
 		shm = cras_rstream_input_shm(rstream);
@@ -1716,13 +1718,13 @@ static unsigned int get_write_limit_set_delay(
  *      case the first read.
  * Returns the number of frames captured or an error.
  */
-static int capture_to_streams(const struct dev_stream *streams,
+static int capture_to_streams(struct dev_stream *streams,
 			      struct cras_iodev *idev,
 			      unsigned int count,
 			      unsigned int dev_index)
 {
 	snd_pcm_uframes_t remainder = count;
-	const struct dev_stream *stream;
+	struct dev_stream *stream;
 	unsigned int nread;
 	struct cras_audio_area *area;
 	uint8_t *hw_buffer;
@@ -1750,8 +1752,7 @@ static int capture_to_streams(const struct dev_stream *streams,
 			if (!input_stream_matches_dev(idev->direction, rstream))
 				continue;
 
-			dev_stream_capture(stream, area, offset, count,
-					   dev_index);
+			dev_stream_capture(stream, area, dev_index);
 		}
 
 		offset += nread;
@@ -1777,8 +1778,7 @@ int possibly_read_audio(struct audio_thread *thread,
 			enum CRAS_STREAM_DIRECTION dir,
 			unsigned int *min_sleep)
 {
-	struct cras_audio_shm *shm;
-	struct dev_stream *stream;
+	struct dev_stream *dev_stream;
 	struct active_dev *adev;
 	int rc;
 	unsigned int write_limit;
@@ -1820,30 +1820,11 @@ int possibly_read_audio(struct audio_thread *thread,
 	*min_sleep = thread->cb_threshold[dir];
 
 	/* TODO(dgreid) - handle > 1 active iodev */
-	DL_FOREACH(thread->active_devs[dir]->streams, stream) {
-		struct cras_rstream *rstream = stream->stream;
-		unsigned int cb_threshold;
+	DL_FOREACH(thread->active_devs[dir]->streams, dev_stream) {
+		struct cras_rstream *rstream = dev_stream->stream;
 
-		shm = cras_rstream_input_shm(rstream);
-		cras_shm_buffer_written(shm, write_limit);
-		cb_threshold = cras_rstream_get_cb_threshold(rstream);
-
-		/* If this stream doesn't have enough data yet, skip it. */
-		if (cras_shm_frames_written(shm) < cb_threshold) {
-			unsigned int needed =
-				cb_threshold - cras_shm_frames_written(shm);
-			*min_sleep = MIN(*min_sleep, needed);
-			continue;
-		}
-
-		/* Enough data for this stream, sleep until ready again. */
-		*min_sleep = MIN(*min_sleep, cb_threshold);
-
-		cras_shm_buffer_write_complete(shm);
-
-		/* Tell the client that samples are ready. */
-		rc = cras_rstream_audio_ready(
-			rstream, cras_rstream_get_cb_threshold(rstream));
+		rc = dev_stream_capture_sleep_frames(dev_stream, write_limit,
+						     min_sleep);
 		if (rc < 0) {
 			thread_remove_stream(thread, rstream);
 			return rc;

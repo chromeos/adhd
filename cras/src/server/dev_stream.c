@@ -4,6 +4,7 @@
  */
 
 #include "audio_thread_log.h"
+#include "byte_buffer.h"
 #include "cras_fmt_conv.h"
 #include "cras_rstream.h"
 #include "dev_stream.h"
@@ -19,12 +20,15 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	struct cras_audio_format *stream_fmt = &stream->format;
 	int rc = 0;
 	unsigned int max_frames;
+	unsigned int fmt_conv_num_channels;
+	unsigned int fmt_conv_frame_bytes;
 
 	out = calloc(1, sizeof(*out));
 	out->stream = stream;
 
-
 	if (stream->direction == CRAS_STREAM_OUTPUT) {
+		fmt_conv_num_channels = dev_fmt->num_channels;
+		fmt_conv_frame_bytes = cras_get_format_bytes(dev_fmt);
 		max_frames = MAX(stream->buffer_frames,
 				 cras_frames_at_rate(stream_fmt->frame_rate,
 						     stream->buffer_frames,
@@ -35,6 +39,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 					     dev_fmt,
 					     max_frames);
 	} else {
+		fmt_conv_num_channels = stream->format.num_channels;
+		fmt_conv_frame_bytes = cras_get_format_bytes(&stream->format);
 		max_frames = MAX(stream->buffer_frames,
 				 cras_frames_at_rate(dev_fmt->frame_rate,
 						     stream->buffer_frames,
@@ -45,7 +51,6 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 					     stream_fmt,
 					     max_frames);
 	}
-
 	if (rc) {
 		free(out);
 		return NULL;
@@ -55,10 +60,13 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		unsigned int dev_frames =
 			cras_fmt_conv_in_frames_to_out(out->conv,
 						       stream->buffer_frames);
+		unsigned int buf_bytes;
 
-		out->conv_buffer_size_frames = dev_frames;
-		out->conv_buffer = (uint8_t *)malloc(dev_frames *
-						cras_get_format_bytes(dev_fmt));
+		out->conv_buffer_size_frames = 2 * MAX(dev_frames,
+						       stream->buffer_frames);
+		buf_bytes = out->conv_buffer_size_frames * fmt_conv_frame_bytes;
+		out->conv_buffer = byte_buffer_create(buf_bytes);
+		out->conv_area = cras_audio_area_create(fmt_conv_num_channels);
 	}
 
 	return out;
@@ -67,8 +75,9 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 void dev_stream_destroy(struct dev_stream *dev_stream)
 {
 	if (dev_stream->conv) {
+		cras_audio_area_destroy(dev_stream->conv_area);
 		cras_fmt_conv_destroy(dev_stream->conv);
-		free(dev_stream->conv_buffer);
+		byte_buffer_destroy(dev_stream->conv_buffer);
 	}
 	free(dev_stream);
 }
@@ -114,10 +123,10 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 			dev_frames = cras_fmt_conv_convert_frames(
 					dev_stream->conv,
 					(uint8_t *)src,
-					(uint8_t *)dev_stream->conv_buffer,
+					dev_stream->conv_buffer->bytes,
 					&read_frames,
 					*count - fr_written);
-			src = (int16_t *)dev_stream->conv_buffer;
+			src = (int16_t *)dev_stream->conv_buffer->bytes;
 		} else {
 			dev_frames = MIN(frames, *count - fr_written);
 			read_frames = dev_frames;
@@ -139,27 +148,150 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 	return *count;
 }
 
-void dev_stream_capture(const struct dev_stream *dev_stream,
-			struct cras_audio_area *area,
-			unsigned int offset,
-			unsigned int count,
+/* Copy from the captured buffer to the temporary format converted buffer. */
+static void capture_with_fmt_conv(struct dev_stream *dev_stream,
+				  const uint8_t *source_samples,
+				  unsigned int num_frames)
+{
+	const struct cras_audio_format *source_format;
+	const struct cras_audio_format *dst_format;
+	uint8_t *buffer;
+	unsigned int total_read = 0;
+	unsigned int write_frames;
+	unsigned int read_frames;
+	unsigned int source_frame_bytes;
+	unsigned int dst_frame_bytes;
+
+	source_format = cras_fmt_conv_in_format(dev_stream->conv);
+	source_frame_bytes = cras_get_format_bytes(source_format);
+	dst_format = cras_fmt_conv_out_format(dev_stream->conv);
+	dst_frame_bytes = cras_get_format_bytes(dst_format);
+
+	dev_stream->conv_area->num_channels = dst_format->num_channels;
+
+	while (total_read < num_frames) {
+		buffer = buf_write_pointer_size(dev_stream->conv_buffer,
+						&write_frames);
+		write_frames /= dst_frame_bytes;
+
+		read_frames = num_frames - total_read;
+		write_frames = cras_fmt_conv_convert_frames(
+				dev_stream->conv,
+				source_samples,
+				buffer,
+				&read_frames,
+				write_frames);
+		total_read += read_frames;
+		source_samples += read_frames * source_frame_bytes;
+		buf_increment_write(dev_stream->conv_buffer,
+				    write_frames * dst_frame_bytes);
+	}
+}
+
+/* Copy from the converted buffer to the stream shm.  These have the same format
+ * at this point. */
+static void capture_copy_converted_to_stream(struct dev_stream *dev_stream,
+					     struct cras_rstream *rstream,
+					     unsigned int dev_index)
+{
+	struct cras_audio_shm *shm;
+	uint8_t *stream_samples;
+	uint8_t *converted_samples;
+	unsigned int num_frames;
+	unsigned int total_written = 0;
+	unsigned int write_frames;
+	unsigned int frame_bytes;
+	const struct cras_audio_format *fmt;
+
+	shm = cras_rstream_input_shm(rstream);
+
+	fmt = cras_fmt_conv_out_format(dev_stream->conv);
+	frame_bytes = cras_get_format_bytes(fmt);
+
+	stream_samples = cras_shm_get_writeable_frames(
+				shm,
+				cras_rstream_get_cb_threshold(rstream) -
+						dev_stream->mix_offset,
+				&rstream->input_audio_area->frames);
+	num_frames = MIN(rstream->input_audio_area->frames,
+			 buf_queued_bytes(dev_stream->conv_buffer) /
+							frame_bytes);
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_CONV_COPY,
+				    cras_shm_frames_written(shm),
+				    shm->area->write_buf_idx,
+				    num_frames);
+
+	while (total_written < num_frames) {
+		converted_samples =
+			buf_read_pointer_size(dev_stream->conv_buffer,
+					      &write_frames);
+		write_frames /= frame_bytes;
+		write_frames = MIN(write_frames, num_frames);
+
+		cras_audio_area_config_buf_pointers(dev_stream->conv_area,
+						    fmt,
+						    converted_samples);
+		cras_audio_area_config_channels(dev_stream->conv_area, fmt);
+		dev_stream->conv_area->frames = write_frames;
+
+		cras_audio_area_config_buf_pointers(rstream->input_audio_area,
+						    &rstream->format,
+						    stream_samples);
+
+		cras_audio_area_copy(rstream->input_audio_area,
+				     dev_stream->mix_offset,
+				     cras_get_format_bytes(&rstream->format),
+				     dev_stream->conv_area, dev_index);
+
+		buf_increment_read(dev_stream->conv_buffer,
+				   write_frames * frame_bytes);
+		total_written += write_frames;
+		dev_stream->mix_offset += write_frames;
+	}
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
+				    rstream->stream_id,
+				    total_written,
+				    cras_shm_frames_written(shm));
+}
+
+void dev_stream_capture(struct dev_stream *dev_stream,
+			const struct cras_audio_area *area,
 			unsigned int dev_index)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm;
-	uint8_t *dst;
+	uint8_t *stream_samples;
 
-	shm = cras_rstream_input_shm(rstream);
-	dst = cras_shm_get_writeable_frames(shm,
-					    cras_shm_used_frames(shm),
-					    NULL);
-	cras_audio_area_config_buf_pointers(rstream->input_audio_area,
-					    &rstream->format,
-					    dst);
-	rstream->input_audio_area->frames = cras_shm_used_frames(shm);
-	cras_audio_area_copy(rstream->input_audio_area, offset,
-			     cras_get_format_bytes(&rstream->format),
-			     area, dev_index);
+	/* Check if format conversion is needed. */
+	if (dev_stream->conv) {
+		capture_with_fmt_conv(dev_stream,
+				      area->channels[0].buf,
+				      area->frames);
+		capture_copy_converted_to_stream(dev_stream, rstream,
+						 dev_index);
+	} else {
+		/* Set up the shm area and copy to it. */
+		shm = cras_rstream_input_shm(rstream);
+		stream_samples = cras_shm_get_writeable_frames(
+				shm,
+				cras_rstream_get_cb_threshold(rstream),
+				&rstream->input_audio_area->frames);
+		cras_audio_area_config_buf_pointers(rstream->input_audio_area,
+						    &rstream->format,
+						    stream_samples);
+
+		cras_audio_area_copy(rstream->input_audio_area,
+				     dev_stream->mix_offset,
+				     cras_get_format_bytes(&rstream->format),
+				     area, dev_index);
+		dev_stream->mix_offset += area->frames;
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
+					    rstream->stream_id,
+					    area->frames,
+					    cras_shm_frames_written(shm));
+	}
 }
 
 int dev_stream_playback_frames(const struct dev_stream *dev_stream)
@@ -190,5 +322,58 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 
 	cras_shm_get_writeable_frames(shm, cb_threshold, &frames_avail);
 
-	return frames_avail;
+	if (!dev_stream->conv)
+		return frames_avail;
+
+	return buf_available_bytes(dev_stream->conv_buffer) /
+			cras_shm_frame_bytes(shm);
+}
+
+int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
+				    unsigned int written,
+				    unsigned int *min_sleep)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
+	unsigned int dev_cb_threshold;
+	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	unsigned int str_frames, dev_frames;
+
+	if (dev_stream->conv)
+		written = cras_fmt_conv_in_frames_to_out(dev_stream->conv,
+							 written);
+	cras_shm_buffer_written(shm, dev_stream->mix_offset);
+	str_frames = cras_shm_frames_written(shm);
+
+	dev_stream->mix_offset = 0;
+
+	if (dev_stream->conv) {
+		dev_frames = cras_fmt_conv_out_frames_to_in(dev_stream->conv,
+							    str_frames);
+		dev_cb_threshold = cras_fmt_conv_out_frames_to_in(
+				dev_stream->conv, str_cb_threshold);
+	} else {
+		dev_frames = str_frames;
+		dev_cb_threshold = str_cb_threshold;
+	}
+
+	if (str_frames < str_cb_threshold) {
+		/* If this stream doesn't have enough data yet, skip it. */
+		*min_sleep = MIN(*min_sleep, dev_cb_threshold - dev_frames);
+		return 0;
+	}
+
+	/* Enough data for this stream. */
+	cras_shm_buffer_write_complete(shm);
+	*min_sleep = MIN(*min_sleep, dev_cb_threshold -
+		cras_fmt_conv_out_frames_to_in(dev_stream->conv,
+					       cras_shm_frames_written(shm)));
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_POST,
+				    rstream->stream_id,
+				    str_cb_threshold,
+				    shm->area->read_buf_idx);
+
+	/* Tell the client that samples are ready. */
+	return cras_rstream_audio_ready(rstream, str_cb_threshold);
 }

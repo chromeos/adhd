@@ -479,6 +479,18 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("DEV_STREAM_MIX: %u.%09u written %u read %u\n",
 		       sec, nsec, data1, data2);
 		break;
+	case AUDIO_THREAD_CAPTURE_POST:
+		printf("CAPTURE_POST: %u.%09u stream %x thresh %u rd_buf %u\n",
+		       sec, nsec, data1, data2, data3);
+		break;
+	case AUDIO_THREAD_CAPTURE_WRITE:
+		printf("CAPTURE_WRITE: %u.%09u stream %x write %u shm_fr %u\n",
+		       sec, nsec, data1, data2, data3);
+		break;
+	case AUDIO_THREAD_CONV_COPY:
+		printf("CONV_COPY: %u.%09u stream %x wr_buf %u num_frames %u\n",
+		       sec, nsec, data1, data2, data3);
+		break;
 	default:
 		printf("Unknown alog tag %u\n", tag);
 		break;

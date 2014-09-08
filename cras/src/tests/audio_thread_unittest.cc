@@ -12,12 +12,24 @@ extern "C" {
 
 extern "C" {
 
+struct dev_stream_capture_call {
+  struct dev_stream *dev_stream;
+  const struct cras_audio_area *area;
+  unsigned int dev_index;
+  unsigned int num_called;
+};
+
+struct cap_sleep_frames_call {
+  struct dev_stream *dev_stream;
+  unsigned int written;
+  unsigned int *min_sleep;
+  unsigned int num_called;
+};
+
 static int dev_stream_mix_dont_fill_next;
 static unsigned int dev_stream_mix_count;
 static unsigned int cras_mix_mute_count;
-static int cras_rstream_audio_ready_count;
 static unsigned int cras_rstream_request_audio_called;
-static unsigned int cras_rstream_audio_ready_called;
 static unsigned int cras_rstream_destroy_called;
 static unsigned int cras_metrics_log_histogram_called;
 static const char *cras_metrics_log_histogram_name;
@@ -56,6 +68,8 @@ static struct cras_audio_area *dummy_audio_area2;
 static struct cras_audio_format cras_iodev_set_format_val;
 static float cras_iodev_get_software_volume_scaler_return_value;
 
+static struct dev_stream_capture_call dev_stream_capture_call;
+static struct cap_sleep_frames_call cap_sleep_frames_call;
 }
 
 // Number of frames past target that will be added to sleep times to insure that
@@ -66,6 +80,7 @@ static const int CAP_EXTRA_SLEEP_FRAMES = 16;
 class ReadStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
+      cap_sleep_frames_call.min_sleep = NULL;
       memset(&cras_iodev_set_format_val, 0, sizeof(cras_iodev_set_format_val));
       cras_iodev_set_format_val.frame_rate = 44100;
       cras_iodev_set_format_val.num_channels = 2;
@@ -108,7 +123,6 @@ class ReadStreamSuite : public testing::Test {
 
       dev_stream_mix_dont_fill_next = 0;
       dev_stream_mix_count = 0;
-      cras_rstream_audio_ready_called = 0;
       dev_running_called_ = 0;
       is_open_ = 0;
       close_dev_called_ = 0;
@@ -304,6 +318,7 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   int rc;
   uint64_t nsec_expected;
   static const uint64_t num_frames_short = 40;
+  unsigned int sleep_frames;
   struct audio_thread *thread;
 
   thread = audio_thread_create();
@@ -318,14 +333,15 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES) *
                   1000000000ULL /
                   (uint64_t)cras_iodev_set_format_val.frame_rate;
+  sleep_frames = num_frames_short;
+  cap_sleep_frames_call.min_sleep = &sleep_frames;
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_rstream_audio_ready_called);
   /* As much data as can be, should be read. */
-  EXPECT_EQ(cb_threshold_ - num_frames_short,
-            shm_->area->write_offset[0] / 4);
-  EXPECT_EQ(0, shm_->area->write_buf_idx);
+  EXPECT_EQ(&audio_buffer_[0], dev_stream_capture_call.area->channels[0].buf);
+  EXPECT_EQ(rstream_, dev_stream_capture_call.dev_stream->stream);
+  EXPECT_EQ(cb_threshold_ - num_frames_short, cap_sleep_frames_call.written);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
@@ -355,7 +371,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)cras_iodev_set_format_val.frame_rate;
-  cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
   rc = unified_io(thread, &ts);
@@ -363,11 +378,11 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
-  EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+  EXPECT_EQ(&audio_buffer_[0], dev_stream_capture_call.area->channels[0].buf);
+  EXPECT_EQ(rstream_, dev_stream_capture_call.dev_stream->stream);
+  EXPECT_EQ(cb_threshold_, cap_sleep_frames_call.written);
+  EXPECT_EQ(rstream_, cap_sleep_frames_call.dev_stream->stream);
 
   audio_thread_destroy(thread);
 }
@@ -377,6 +392,9 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   int rc;
   uint64_t nsec_expected;
   struct audio_thread *thread;
+
+  dev_stream_capture_call.num_called = 0;
+  cap_sleep_frames_call.num_called = 0;
 
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
@@ -397,7 +415,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)cras_iodev_set_format_val.frame_rate;
-  cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
   rc = unified_io(thread, &ts);
@@ -405,10 +422,8 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(2, cras_rstream_audio_ready_called);
-  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+  EXPECT_EQ(2, dev_stream_capture_call.num_called);
+  EXPECT_EQ(2, cap_sleep_frames_call.num_called);
 
   audio_thread_destroy(thread);
 }
@@ -438,7 +453,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)cras_iodev_set_format_val.frame_rate;
-  cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
   rc = unified_io(thread, &ts);
@@ -446,15 +460,12 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(1, cras_rstream_audio_ready_called);
-  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
 
   frames_queued_ = cb_threshold_ + 5;
   sleep_frames = GetCaptureSleepFrames() - 5;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
                   (uint64_t)cras_iodev_set_format_val.frame_rate;
   audio_buffer_size_ = frames_queued_;
-  cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
   rc = unified_io(thread, &ts);
@@ -462,47 +473,6 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(3, cras_rstream_audio_ready_called);
-
-  audio_thread_destroy(thread);
-}
-
-TEST_F(ReadStreamSuite, PossiblyReadWriteTwoBuffers) {
-  struct timespec ts;
-  int rc;
-  struct audio_thread *thread;
-
-  thread = audio_thread_create();
-  ASSERT_TRUE(thread);
-  thread_set_active_dev(thread, &iodev_);
-
-  thread_add_stream(thread, rstream_);
-
-  //  A full block plus 4 frames.
-  frames_queued_ = cb_threshold_ + 4;
-  audio_buffer_size_ = frames_queued_;
-
-  cras_rstream_audio_ready_count = 999;
-  is_open_ = 1;
-
-  //  Give it some samples to copy.
-  rc = unified_io(thread, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
-  cras_shm_buffer_read(shm_, cras_rstream_audio_ready_count);
-
-  cras_rstream_audio_ready_count = 999;
-  is_open_ = 1;
-  rc = unified_io(thread, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(rstream_->cb_threshold, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i],
-        shm_->area->samples[i + cras_shm_used_size(shm_)]);
 
   audio_thread_destroy(thread);
 }
@@ -527,29 +497,27 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
-  cras_shm_buffer_read(shm_, cras_rstream_audio_ready_count);
+  EXPECT_EQ(&audio_buffer_[0], dev_stream_capture_call.area->channels[0].buf);
+  EXPECT_EQ(rstream_, dev_stream_capture_call.dev_stream->stream);
+  EXPECT_EQ(cb_threshold_, cap_sleep_frames_call.written);
+  EXPECT_EQ(rstream_, cap_sleep_frames_call.dev_stream->stream);
 
-  cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_shm_num_overruns(shm_));
-  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i],
-        shm_->area->samples[i + cras_shm_used_size(shm_)]);
+  EXPECT_EQ(&audio_buffer_[0], dev_stream_capture_call.area->channels[0].buf);
+  EXPECT_EQ(rstream_, dev_stream_capture_call.dev_stream->stream);
+  EXPECT_EQ(cb_threshold_, cap_sleep_frames_call.written);
+  EXPECT_EQ(rstream_, cap_sleep_frames_call.dev_stream->stream);
 
-  cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, cras_shm_num_overruns(shm_));  //  Should have overrun.
-  EXPECT_EQ(cb_threshold_, cras_rstream_audio_ready_count);
-  for (size_t i = 0; i < cb_threshold_; i++)
-    EXPECT_EQ(audio_buffer_[i], shm_->area->samples[i]);
+  EXPECT_EQ(&audio_buffer_[0], dev_stream_capture_call.area->channels[0].buf);
+  EXPECT_EQ(rstream_, dev_stream_capture_call.dev_stream->stream);
+  EXPECT_EQ(cb_threshold_, cap_sleep_frames_call.written);
+  EXPECT_EQ(rstream_, cap_sleep_frames_call.dev_stream->stream);
 
   audio_thread_destroy(thread);
 }
@@ -2085,8 +2053,6 @@ TEST_F(ActiveDevicesSuite, InputFramesQueued) {
 
 TEST_F(ActiveDevicesSuite, MixMultipleInputs) {
   struct timespec ts;
-  struct cras_audio_shm *shm;
-  int16_t *out_buff;
 
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev2_.direction = CRAS_STREAM_INPUT;
@@ -2104,17 +2070,11 @@ TEST_F(ActiveDevicesSuite, MixMultipleInputs) {
   /* Assert shm from rstream_ is used. */
   thread_add_stream(thread_, rstream_);
   unified_io(thread_, &ts);
-  shm = cras_rstream_input_shm(rstream_);
-  out_buff = (int16_t*)shm->area->samples;
-  for (unsigned int i = 0; i < 250; i++)
-    EXPECT_EQ(i * 2, out_buff[i]);
+  EXPECT_EQ(rstream_, cap_sleep_frames_call.dev_stream->stream);
 
   thread_add_stream(thread_, rstream2_);
   unified_io(thread_, &ts);
-  shm = cras_rstream_input_shm(rstream2_);
-  out_buff = (int16_t*)shm->area->samples;
-  for (unsigned int i = 0; i < 250; i++)
-    EXPECT_EQ(i * 2, out_buff[i]);
+  EXPECT_EQ(rstream2_, cap_sleep_frames_call.dev_stream->stream);
 }
 
 extern "C" {
@@ -2277,12 +2237,6 @@ int cras_rstream_request_audio(const struct cras_rstream *stream)
 }
 
 int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream) {
-  return 0;
-}
-
-int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count) {
-  cras_rstream_audio_ready_called++;
-  cras_rstream_audio_ready_count = count;
   return 0;
 }
 
@@ -2464,27 +2418,14 @@ void dev_stream_destroy(struct dev_stream *dev_stream) {
   free(dev_stream);
 }
 
-void dev_stream_capture(const struct dev_stream *dev_stream,
-      struct cras_audio_area *area,
-      unsigned int offset,
-      unsigned int count,
-      unsigned int dev_index)
+void dev_stream_capture(struct dev_stream *dev_stream,
+                        const struct cras_audio_area *area,
+                        unsigned int dev_index)
 {
-  struct cras_rstream *rstream = dev_stream->stream;
-  struct cras_audio_shm *shm;
-  uint8_t *dst;
-
-  shm = cras_rstream_input_shm(rstream);
-  dst = cras_shm_get_writeable_frames(shm,
-                                      cras_shm_used_frames(shm),
-                                      NULL);
-  cras_audio_area_config_buf_pointers(rstream->input_audio_area,
-                                      &rstream->format,
-                                      dst);
-  rstream->input_audio_area->frames = cras_shm_used_frames(shm);
-  cras_audio_area_copy(rstream->input_audio_area, offset,
-                       cras_get_format_bytes(&rstream->format),
-                       area, dev_index);
+  dev_stream_capture_call.dev_stream = dev_stream;
+  dev_stream_capture_call.area = area;
+  dev_stream_capture_call.dev_index = dev_index;
+  dev_stream_capture_call.num_called++;
 }
 
 int dev_stream_playback_frames(const struct dev_stream *dev_stream) {
@@ -2515,6 +2456,17 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
   cras_shm_get_writeable_frames(shm, cb_threshold, &frames_avail);
 
   return frames_avail;
+}
+
+int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
+                                    unsigned int written,
+                                    unsigned int *min_sleep) {
+  cap_sleep_frames_call.dev_stream = dev_stream;
+  cap_sleep_frames_call.written = written;
+  if (cap_sleep_frames_call.min_sleep)
+	  *min_sleep = *cap_sleep_frames_call.min_sleep;
+  cap_sleep_frames_call.num_called++;
+  return 0;
 }
 
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,

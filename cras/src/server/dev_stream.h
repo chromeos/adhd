@@ -25,13 +25,16 @@ struct cras_rstream;
  *    conv_buffer - The buffer for converter if needed.
  *    conv_buffer_size_frames - Size of conv_buffer in frames.
  *    skip_mix - Don't mix this next time streams are mixed.
+ *    mix_offset - Current mix progress in the buffer.
  */
 struct dev_stream {
 	struct cras_rstream *stream;
 	struct cras_fmt_conv *conv;
-	uint8_t *conv_buffer;
+	struct byte_buffer *conv_buffer;
+	struct cras_audio_area *conv_area;
 	unsigned int conv_buffer_size_frames;
 	unsigned int skip_mix;
+	unsigned int mix_offset;
 	struct dev_stream *prev, *next;
 };
 
@@ -58,17 +61,12 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 /*
  * Reads froms from the source into the dev_stream.
  * Args:
- *    dev_stream - The struct holding the stream to mix.
+ *    dev_stream - The struct holding the stream to mix to.
  *    area - The area to copy audio from.
- *    offset - How far to seek in dev_stream before starting to copy data.
- *    dst - The destination buffer for mixing.
- *    count - The number of frames to write.
  *    index - The index of the buffer to copy to the dev stream.
  */
-void dev_stream_capture(const struct dev_stream *dev_stream,
-			struct cras_audio_area *area,
-			unsigned int offset,
-			unsigned int count,
+void dev_stream_capture(struct dev_stream *dev_stream,
+			const struct cras_audio_area *area,
 			unsigned int dev_index);
 
 /*
@@ -83,5 +81,14 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream);
  * number is also post format conversion, similar to playback_frames above.
  */
 unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream);
+
+/*
+ * Returns the number of frames that still need to be captured before this
+ * capture stream is ready.  min_sleep is updated to hold the number of frames
+ * needed if it is less that the current value.
+ */
+int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
+				    unsigned int written,
+				    unsigned int *min_sleep);
 
 #endif /* DEV_STREAM_H_ */
