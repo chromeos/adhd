@@ -21,6 +21,8 @@ extern "C" {
 struct audio_thread_event_log *atlog;
 };
 
+static struct timespec clock_gettime_retspec;
+
 static const int kBufferFrames = 1024;
 static const struct cras_audio_format fmt_s16le_44_1 = {
 	SND_PCM_FORMAT_S16_LE,
@@ -316,6 +318,74 @@ TEST_F(CreateSuite, CreateSRC48to44Input) {
   dev_stream_destroy(dev_stream);
 }
 
+//  Test set_playback_timestamp.
+TEST(DevStreamTimimg, SetPlaybackTimeStampSimple) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 0;
+  cras_set_playback_timestamp(48000, 24000, &ts);
+  EXPECT_EQ(1, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, 499900000);
+  EXPECT_LE(ts.tv_nsec, 500100000);
+}
+
+TEST(DevStreamTimimg, SetPlaybackTimeStampWrap) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 750000000;
+  cras_set_playback_timestamp(48000, 24000, &ts);
+  EXPECT_EQ(2, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, 249900000);
+  EXPECT_LE(ts.tv_nsec, 250100000);
+}
+
+TEST(DevStreamTimimg, SetPlaybackTimeStampWrapTwice) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 750000000;
+  cras_set_playback_timestamp(48000, 72000, &ts);
+  EXPECT_EQ(3, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, 249900000);
+  EXPECT_LE(ts.tv_nsec, 250100000);
+}
+
+//  Test set_capture_timestamp.
+TEST(DevStreamTimimg, SetCaptureTimeStampSimple) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 750000000;
+  cras_set_capture_timestamp(48000, 24000, &ts);
+  EXPECT_EQ(1, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, 249900000);
+  EXPECT_LE(ts.tv_nsec, 250100000);
+}
+
+TEST(DevStreamTimimg, SetCaptureTimeStampWrap) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 0;
+  cras_set_capture_timestamp(48000, 24000, &ts);
+  EXPECT_EQ(0, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, 499900000);
+  EXPECT_LE(ts.tv_nsec, 500100000);
+}
+
+TEST(DevStreamTimimg, SetCaptureTimeStampWrapPartial) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 2;
+  clock_gettime_retspec.tv_nsec = 750000000;
+  cras_set_capture_timestamp(48000, 72000, &ts);
+  EXPECT_EQ(1, ts.tv_sec);
+  EXPECT_GE(ts.tv_nsec, 249900000);
+  EXPECT_LE(ts.tv_nsec, 250100000);
+}
+
 /* Stubs */
 extern "C" {
 
@@ -406,6 +476,13 @@ const struct cras_audio_format *cras_fmt_conv_in_format(
 const struct cras_audio_format *cras_fmt_conv_out_format(
     const struct cras_fmt_conv *conv) {
   return &out_fmt;
+}
+
+//  From librt.
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+  tp->tv_sec = clock_gettime_retspec.tv_sec;
+  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
+  return 0;
 }
 
 }  // extern "C"

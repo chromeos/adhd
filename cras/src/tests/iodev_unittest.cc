@@ -63,8 +63,6 @@ void ResetStubData() {
 
 namespace {
 
-static struct timespec clock_gettime_retspec;
-
 //  Test fill_time_from_frames
 TEST(IoDevTestSuite, FillTimeFromFramesNormal) {
   struct timespec ts;
@@ -90,74 +88,6 @@ TEST(IoDevTestSuite, FillTimeFromFramesShort) {
   cras_iodev_fill_time_from_frames(12000 - 12000, 48000, &ts);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
-}
-
-//  Test set_playback_timestamp.
-TEST(IoDevTestSuite, SetPlaybackTimeStampSimple) {
-  struct cras_timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 0;
-  cras_iodev_set_playback_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 499900000);
-  EXPECT_LE(ts.tv_nsec, 500100000);
-}
-
-TEST(IoDevTestSuite, SetPlaybackTimeStampWrap) {
-  struct cras_timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  cras_iodev_set_playback_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(2, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-TEST(IoDevTestSuite, SetPlaybackTimeStampWrapTwice) {
-  struct cras_timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  cras_iodev_set_playback_timestamp(48000, 72000, &ts);
-  EXPECT_EQ(3, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-//  Test set_capture_timestamp.
-TEST(IoDevTestSuite, SetCaptureTimeStampSimple) {
-  struct cras_timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  cras_iodev_set_capture_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
-}
-
-TEST(IoDevTestSuite, SetCaptureTimeStampWrap) {
-  struct cras_timespec ts;
-
-  clock_gettime_retspec.tv_sec = 1;
-  clock_gettime_retspec.tv_nsec = 0;
-  cras_iodev_set_capture_timestamp(48000, 24000, &ts);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 499900000);
-  EXPECT_LE(ts.tv_nsec, 500100000);
-}
-
-TEST(IoDevTestSuite, SetCaptureTimeStampWrapPartial) {
-  struct cras_timespec ts;
-
-  clock_gettime_retspec.tv_sec = 2;
-  clock_gettime_retspec.tv_nsec = 750000000;
-  cras_iodev_set_capture_timestamp(48000, 72000, &ts);
-  EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
 }
 
 class IoDevSetFormatTestSuite : public testing::Test {
@@ -437,13 +367,6 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 }
 
 int pthread_join(pthread_t thread, void **value_ptr) {
-  return 0;
-}
-
-//  From librt.
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
-  tp->tv_sec = clock_gettime_retspec.tv_sec;
-  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
   return 0;
 }
 

@@ -91,4 +91,14 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
 				    unsigned int written,
 				    unsigned int *min_sleep);
 
+/* Fill ts with the time the playback sample will be played. */
+void cras_set_playback_timestamp(size_t frame_rate,
+				 size_t frames,
+				 struct cras_timespec *ts);
+
+/* Fill ts with the time the capture sample was recorded. */
+void cras_set_capture_timestamp(size_t frame_rate,
+				size_t frames,
+				struct cras_timespec *ts);
+
 #endif /* DEV_STREAM_H_ */

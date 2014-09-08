@@ -377,3 +377,45 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
 	/* Tell the client that samples are ready. */
 	return cras_rstream_audio_ready(rstream, str_cb_threshold);
 }
+
+void cras_set_playback_timestamp(size_t frame_rate,
+				 size_t frames,
+				 struct cras_timespec *ts)
+{
+	cras_clock_gettime(CLOCK_MONOTONIC, ts);
+
+	/* For playback, want now + samples left to be played.
+	 * ts = time next written sample will be played to DAC,
+	 */
+	ts->tv_nsec += frames * 1000000000ULL / frame_rate;
+	while (ts->tv_nsec > 1000000000ULL) {
+		ts->tv_sec++;
+		ts->tv_nsec -= 1000000000ULL;
+	}
+}
+
+void cras_set_capture_timestamp(size_t frame_rate,
+				size_t frames,
+				struct cras_timespec *ts)
+{
+	long tmp;
+
+	cras_clock_gettime(CLOCK_MONOTONIC, ts);
+
+	/* For capture, now - samples left to be read.
+	 * ts = time next sample to be read was captured at ADC.
+	 */
+	tmp = frames * (1000000000L / frame_rate);
+	while (tmp > 1000000000L) {
+		tmp -= 1000000000L;
+		ts->tv_sec--;
+	}
+	if (ts->tv_nsec >= tmp)
+		ts->tv_nsec -= tmp;
+	else {
+		tmp -= ts->tv_nsec;
+		ts->tv_nsec = 1000000000L - tmp;
+		ts->tv_sec--;
+	}
+}
+

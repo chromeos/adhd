@@ -2112,13 +2112,13 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 	ts->tv_nsec = to_play_usec * 1000;
 }
 
-void cras_iodev_set_playback_timestamp(size_t frame_rate,
+void cras_set_playback_timestamp(size_t frame_rate,
                                        size_t frames,
                                        struct cras_timespec *ts) {
   cras_iodev_set_playback_timestamp_called++;
 }
 
-void cras_iodev_set_capture_timestamp(size_t frame_rate,
+void cras_set_capture_timestamp(size_t frame_rate,
                                       size_t frames,
                                       struct cras_timespec *ts) {
 }
