@@ -47,7 +47,7 @@ static fd_set select_out_fds;
 static uint32_t *select_write_ptr;
 static uint32_t select_write_value;
 static unsigned int cras_iodev_set_format_called;
-static unsigned int cras_iodev_set_playback_timestamp_called;
+static unsigned int dev_stream_set_delay_called;
 static unsigned int cras_system_get_volume_return;
 static unsigned int dev_stream_mix_called;
 
@@ -140,7 +140,7 @@ class ReadStreamSuite : public testing::Test {
       cras_dsp_pipeline_apply_called = 0;
       cras_dsp_pipeline_apply_sample_count = 0;
       cras_iodev_set_format_called = 0;
-      cras_iodev_set_playback_timestamp_called = 0;
+      dev_stream_set_delay_called = 0;
     }
 
     virtual void TearDown() {
@@ -277,7 +277,7 @@ TEST_F(ReadStreamSuite, PossiblyReadGetAvailError) {
   EXPECT_EQ(-4, rc);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(0, ts.tv_nsec);
-  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
+  EXPECT_EQ(0, dev_stream_set_delay_called);
   EXPECT_EQ(1, close_dev_called_);
 
   audio_thread_destroy(thread);
@@ -308,7 +308,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(1, dev_running_called_);
-  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
+  EXPECT_EQ(1, dev_stream_set_delay_called);
 
   audio_thread_destroy(thread);
 }
@@ -378,7 +378,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(0, cras_iodev_set_playback_timestamp_called);
+  EXPECT_EQ(1, dev_stream_set_delay_called);
   EXPECT_EQ(&audio_buffer_[0], dev_stream_capture_call.area->channels[0].buf);
   EXPECT_EQ(rstream_, dev_stream_capture_call.dev_stream->stream);
   EXPECT_EQ(cb_threshold_, cap_sleep_frames_call.written);
@@ -2112,10 +2112,9 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 	ts->tv_nsec = to_play_usec * 1000;
 }
 
-void cras_set_playback_timestamp(size_t frame_rate,
-                                       size_t frames,
-                                       struct cras_timespec *ts) {
-  cras_iodev_set_playback_timestamp_called++;
+void dev_stream_set_delay(const struct dev_stream *dev_stream,
+                          unsigned int delay_frames) {
+  dev_stream_set_delay_called++;
 }
 
 void cras_set_capture_timestamp(size_t frame_rate,

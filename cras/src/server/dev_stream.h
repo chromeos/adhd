@@ -101,4 +101,13 @@ void cras_set_capture_timestamp(size_t frame_rate,
 				size_t frames,
 				struct cras_timespec *ts);
 
+/* Fill shm ts with the time the playback sample will be played or the capture
+ * sample was captured depending on the direction of the stream.
+ * Args:
+ *    delay_frames - The delay reproted by the device, in frames at the device's
+ *      sample rate.
+ */
+void dev_stream_set_delay(const struct dev_stream *dev_stream,
+			  unsigned int delay_frames);
+
 #endif /* DEV_STREAM_H_ */

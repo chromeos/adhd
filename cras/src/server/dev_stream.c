@@ -419,3 +419,29 @@ void cras_set_capture_timestamp(size_t frame_rate,
 	}
 }
 
+void dev_stream_set_delay(const struct dev_stream *dev_stream,
+			  unsigned int delay_frames)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	struct cras_audio_shm *shm;
+	unsigned int stream_frames;
+
+	if (rstream->direction == CRAS_STREAM_OUTPUT) {
+		shm = cras_rstream_output_shm(rstream);
+		stream_frames = cras_fmt_conv_out_frames_to_in(dev_stream->conv,
+							       delay_frames);
+		cras_set_playback_timestamp(rstream->format.frame_rate,
+					    stream_frames +
+						cras_shm_get_frames(shm),
+					    &shm->area->ts);
+	} else {
+		shm = cras_rstream_input_shm(rstream);
+		stream_frames = cras_fmt_conv_in_frames_to_out(dev_stream->conv,
+							       delay_frames);
+		if (cras_shm_frames_written(shm) == 0)
+			cras_set_capture_timestamp(
+					rstream->format.frame_rate,
+					stream_frames,
+					&shm->area->ts);
+	}
+}

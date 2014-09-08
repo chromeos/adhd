@@ -974,9 +974,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 
 		if (!cras_shm_callback_pending(shm) &&
 		    cras_shm_is_buffer_available(shm)) {
-			cras_set_playback_timestamp(
-					fr_rate, frames_in_buff + delay,
-					&shm->area->ts);
+			dev_stream_set_delay(curr, delay);
 
 			rc = fetch_stream(thread, curr, frames_in_buff,
 					  fr_rate);
@@ -1692,16 +1690,11 @@ static unsigned int get_write_limit_set_delay(
 		rstream = stream->stream;
 
 
-		/* TODO(dgreid) - delay should go through SRC. */
 		delay = input_delay_frames(thread->active_devs[direction]);
 
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
-		if (cras_shm_frames_written(shm) == 0)
-			cras_set_capture_timestamp(
-					rstream->format.frame_rate,
-					delay,
-					&shm->area->ts);
+		dev_stream_set_delay(stream, delay);
 		write_limit = MIN(write_limit,
 				  dev_stream_capture_avail(stream));
 	}
