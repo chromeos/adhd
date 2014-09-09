@@ -1149,8 +1149,11 @@ static int write_streams(struct audio_thread *thread,
 			rc = cras_rstream_get_audio_request_reply(curr->stream);
 			if (rc < 0) {
 				syslog(LOG_ERR,
-				       "fail to get audio request replay: %d",
+				       "fail to get audio request reply: %d",
 				       rc);
+				thread_remove_stream(thread, curr->stream);
+				if (!output_streams_attached(thread))
+					return -EIO;
 				continue;
 			}
 			/* Skip mixing if it returned zero frames. */
