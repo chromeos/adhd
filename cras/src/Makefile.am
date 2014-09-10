@@ -194,6 +194,22 @@ cras_test_client_LDADD = -lm libcras.la
 cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common
 
+tests/cras_test_client.c: common/cras_version.h
+
+CLEANFILES = common/cras_version.h
+.PHONY: common/cras_version.h
+common/cras_version.h:
+	if echo "$(CPPFLAGS)" | grep -q -- '-DVCSID='; then \
+		echo > $@.tmp; \
+	else \
+		commit="outoftree-$$(git rev-parse HEAD)"; \
+		if [ -n "$$(git diff-index --name-only HEAD)" ]; then \
+			commit="$${commit}-dirty"; \
+		fi; \
+		echo "#define VCSID \"$$commit\"" > $@.tmp; \
+	fi
+	diff $@.tmp $@ && rm -f $@.tmp || mv $@.tmp $@
+
 # dsp test programs (not run automatically)
 check_PROGRAMS += \
 	crossover_test \

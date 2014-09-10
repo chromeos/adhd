@@ -29,6 +29,7 @@ src/Makefile
 src/Makefile.in
 src/common/.deps/
 src/common/.dirstamp
+src/common/cras_version.h
 src/.deps/
 src/libcras.la
 src/libcras/.deps/

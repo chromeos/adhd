@@ -18,6 +18,7 @@
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "cras_version.h"
 
 #define NOT_ASSIGNED (0)
 #define PLAYBACK_BUFFERED_TIME_IN_US (5000)
@@ -919,6 +920,7 @@ static struct option long_options[] = {
 	{"rm_active_input",	required_argument,	0, '1'},
 	{"rm_active_output",	required_argument,	0, '2'},
 	{"swap_left_right",     required_argument,      0, '3'},
+	{"version",             no_argument,            0, '4'},
 	{0, 0, 0, 0}
 };
 
@@ -963,6 +965,7 @@ static void show_usage()
 	       "id from active output device list\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--dump_audio_thread - Dumps audio thread info.\n");
+	printf("--version - Print the git commit ID that was used to build the client.\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -1175,6 +1178,9 @@ int main(int argc, char **argv)
 			cras_client_swap_node_left_right(client, id, value);
 			break;
 		}
+		case '4':
+			printf("%s\n", VCSID);
+			break;
 		default:
 			break;
 		}
