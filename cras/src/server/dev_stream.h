@@ -10,6 +10,7 @@
 #define DEV_STREAM_H_
 
 #include <stdint.h>
+#include <sys/time.h>
 
 #include "cras_types.h"
 
@@ -26,6 +27,8 @@ struct cras_rstream;
  *    conv_buffer_size_frames - Size of conv_buffer in frames.
  *    skip_mix - Don't mix this next time streams are mixed.
  *    mix_offset - Current mix progress in the buffer.
+ *    next_cb_ts - Next callback time for this stream.
+ *    sleep_interval_ts - Time between audio callbacks.
  */
 struct dev_stream {
 	struct cras_rstream *stream;
@@ -35,6 +38,8 @@ struct dev_stream {
 	unsigned int conv_buffer_size_frames;
 	unsigned int skip_mix;
 	unsigned int mix_offset;
+	struct timespec next_cb_ts;
+	struct timespec sleep_interval_ts;
 	struct dev_stream *prev, *next;
 };
 

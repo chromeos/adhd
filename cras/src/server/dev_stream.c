@@ -69,6 +69,11 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		out->conv_area = cras_audio_area_create(fmt_conv_num_channels);
 	}
 
+	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
+			    stream_fmt->frame_rate,
+			    &out->sleep_interval_ts);
+	clock_gettime(CLOCK_MONOTONIC, &out->next_cb_ts);
+
 	return out;
 }
 
@@ -374,7 +379,9 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
 				    str_cb_threshold,
 				    shm->area->read_buf_idx);
 
-	/* Tell the client that samples are ready. */
+	/* Tell the client that samples are ready and mark the next time it
+	 * should be called back. */
+	add_timespecs(&dev_stream->next_cb_ts, &dev_stream->sleep_interval_ts);
 	return cras_rstream_audio_ready(rstream, str_cb_threshold);
 }
 
@@ -455,6 +462,7 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 	if (rc < 0)
 		return rc;
 
+	add_timespecs(&dev_stream->next_cb_ts, &dev_stream->sleep_interval_ts);
 	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
 	return 0;
 }
