@@ -781,7 +781,8 @@ void fill_odevs_zeros_cb_threshold(struct audio_thread *thread)
 	struct active_dev *adev;
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
 		fill_odev_zeros(adev->dev,
-				thread->cb_threshold[CRAS_STREAM_OUTPUT]);
+				thread->cb_threshold[CRAS_STREAM_OUTPUT] +
+				adev->dev->min_buffer_level);
 }
 
 /* Handles the add_stream message from the main thread. */
