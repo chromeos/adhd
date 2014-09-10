@@ -393,6 +393,10 @@ int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count) {
   return 0;
 }
 
+int cras_rstream_request_audio(const struct cras_rstream *stream) {
+  return 0;
+}
+
 int config_format_converter(struct cras_fmt_conv **conv,
 			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,

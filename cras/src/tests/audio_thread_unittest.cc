@@ -29,7 +29,7 @@ struct cap_sleep_frames_call {
 static int dev_stream_mix_dont_fill_next;
 static unsigned int dev_stream_mix_count;
 static unsigned int cras_mix_mute_count;
-static unsigned int cras_rstream_request_audio_called;
+static unsigned int dev_stream_request_playback_samples_called;
 static unsigned int cras_rstream_destroy_called;
 static unsigned int cras_metrics_log_histogram_called;
 static const char *cras_metrics_log_histogram_name;
@@ -620,7 +620,7 @@ class WriteStreamSuite : public testing::Test {
       select_max_fd = -1;
       select_write_ptr = NULL;
       cras_metrics_log_event_called = 0;
-      cras_rstream_request_audio_called = 0;
+      dev_stream_request_playback_samples_called = 0;
       cras_rstream_destroy_called = 0;
       dev_stream_mix_called = 0;
       cras_dsp_get_pipeline_called = 0;
@@ -833,7 +833,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(cb_threshold_, dev_stream_mix_count);
-  EXPECT_EQ(0, cras_rstream_request_audio_called);
+  EXPECT_EQ(0, dev_stream_request_playback_samples_called);
   EXPECT_EQ(-1, select_max_fd);
 }
 
@@ -872,7 +872,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamMinSet) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(cb_threshold_, dev_stream_mix_count);
-  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_EQ(1, dev_stream_request_playback_samples_called);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillFramesQueued) {
@@ -913,7 +913,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamOneEmpty) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_rstream_request_audio_called);
+  EXPECT_EQ(0, dev_stream_request_playback_samples_called);
   EXPECT_EQ(-1, select_max_fd);
   EXPECT_EQ(0, shm_->area->read_offset[0]);
   EXPECT_EQ(0, shm_->area->read_offset[1]);
@@ -950,7 +950,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(buffer_frames_ - cb_threshold_, dev_stream_mix_count);
-  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_EQ(1, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
   EXPECT_EQ(0, shm_->area->read_offset[0]);
@@ -990,7 +990,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(buffer_frames_ - cb_threshold_,
             dev_stream_mix_count);
-  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_EQ(1, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
   EXPECT_EQ(0, shm_->area->read_offset[0]);
@@ -1022,7 +1022,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(cras_rstream_get_cb_threshold(rstream_),
             dev_stream_mix_count);
-  EXPECT_EQ(0, cras_rstream_request_audio_called);
+  EXPECT_EQ(0, dev_stream_request_playback_samples_called);
   EXPECT_EQ(-1, select_max_fd);
 }
 
@@ -1056,7 +1056,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoOneEmptySmallerCbThreshold) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(0, dev_stream_mix_count);
-  EXPECT_EQ(0, cras_rstream_request_audio_called);
+  EXPECT_EQ(0, dev_stream_request_playback_samples_called);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoOneEmptyAfterFetch) {
@@ -1084,7 +1084,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoOneEmptyAfterFetch) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, dev_stream_mix_called);
   EXPECT_EQ(buffer_frames_ - cb_threshold_, dev_stream_mix_count);
-  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_EQ(1, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
 }
@@ -1111,7 +1111,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_rstream_request_audio_called);
+  EXPECT_EQ(0, dev_stream_request_playback_samples_called);
   EXPECT_EQ(0, shm_->area->read_offset[0]);  //  No write from first stream.
   EXPECT_EQ(written_expected * 4, shm2_->area->read_offset[0]);
 }
@@ -1139,7 +1139,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
-  EXPECT_EQ(2, cras_rstream_request_audio_called);
+  EXPECT_EQ(2, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
 
   /* should only mute buffer if underrun in imminent. */
@@ -1180,7 +1180,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(smaller_frames, dev_stream_mix_count);
-  EXPECT_EQ(1, cras_rstream_request_audio_called);
+  EXPECT_EQ(1, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
 }
 
@@ -2269,12 +2269,6 @@ int cras_set_thread_priority(int priority) {
 }
 
 //  From rstream.
-int cras_rstream_request_audio(const struct cras_rstream *stream)
-{
-  cras_rstream_request_audio_called++;
-  return 0;
-}
-
 int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream) {
   return 0;
 }
@@ -2505,6 +2499,16 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
   if (cap_sleep_frames_call.min_sleep)
 	  *min_sleep = *cap_sleep_frames_call.min_sleep;
   cap_sleep_frames_call.num_called++;
+  return 0;
+}
+
+int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
+{
+  struct cras_rstream *rstream = dev_stream->stream;
+
+  dev_stream_request_playback_samples_called++;
+
+  cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
   return 0;
 }
 

@@ -445,3 +445,16 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 					&shm->area->ts);
 	}
 }
+
+int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	int rc;
+
+	rc = cras_rstream_request_audio(dev_stream->stream);
+	if (rc < 0)
+		return rc;
+
+	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
+	return 0;
+}

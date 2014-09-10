@@ -356,7 +356,7 @@ static int fetch_stream(struct audio_thread *thread,
 			AUDIO_THREAD_FETCH_STREAM,
 			curr->stream->stream_id,
 			cras_rstream_get_cb_threshold(curr->stream), 0);
-	rc = cras_rstream_request_audio(curr->stream);
+	rc = dev_stream_request_playback_samples(curr);
 
 	/* Keep the stream for playback if the shm is not empty. */
 	if (rc < 0 && frames_in_buff == 0) {
@@ -376,7 +376,6 @@ static int fetch_stream(struct audio_thread *thread,
 
 	update_stream_timeout(shm);
 	cras_shm_clear_first_timeout(shm);
-	cras_shm_set_callback_pending(shm, 1);
 
 	return 0;
 }
