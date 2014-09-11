@@ -414,6 +414,12 @@ static int append_stream(struct audio_thread *thread,
 			return rc;
 	}
 
+	if (stream_uses_output(stream)) {
+		struct cras_audio_shm *shm = cras_rstream_output_shm(stream);
+		cras_shm_buffer_written(shm, stream->cb_threshold);
+		cras_shm_buffer_write_complete(shm);
+	}
+
 	return 0;
 }
 
@@ -775,13 +781,12 @@ int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 	return 0;
 }
 
-/* Builds an initial buffer to avoid an underrun. Adds cb_threshold latency. */
-void fill_odevs_zeros_cb_threshold(struct audio_thread *thread)
+/* Builds an initial buffer to avoid an underrun. Adds min_level of latency. */
+void fill_odevs_zeros_min_level(struct audio_thread *thread)
 {
 	struct active_dev *adev;
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
 		fill_odev_zeros(adev->dev,
-				thread->cb_threshold[CRAS_STREAM_OUTPUT] +
 				adev->dev->min_buffer_level);
 }
 
@@ -824,7 +829,7 @@ static int thread_add_stream(struct audio_thread *thread,
 		 * This avoids a burst of audio callbacks when the stream starts
 		 */
 		config_devices_min_latency(thread, CRAS_STREAM_OUTPUT);
-		fill_odevs_zeros_cb_threshold(thread);
+		fill_odevs_zeros_min_level(thread);
 
 		if (loop_adev) {
 			struct dev_stream *iostream;

@@ -790,22 +790,17 @@ TEST_F(WriteStreamSuite, PossiblyFillGetAvailError) {
 TEST_F(WriteStreamSuite, PossiblyFillEarlyWake) {
   struct timespec ts;
   int rc;
-  uint64_t nsec_expected;
 
   //  If woken and still have tons of data to play, go back to sleep.
   frames_queued_ = cb_threshold_ * 2;
   audio_buffer_size_ = buffer_frames_ - frames_queued_;
 
-  nsec_expected = (cb_threshold_) * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
   iodev_.direction = CRAS_STREAM_OUTPUT;
   is_open_ = 1;
 
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
@@ -1114,39 +1109,6 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   EXPECT_EQ(0, dev_stream_request_playback_samples_called);
   EXPECT_EQ(0, shm_->area->read_offset[0]);  //  No write from first stream.
   EXPECT_EQ(written_expected * 4, shm2_->area->read_offset[0]);
-}
-
-TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsNeedFill) {
-  struct timespec ts;
-  int rc;
-
-  //  Have cb_threshold samples left.
-  frames_queued_ = cb_threshold_;
-  audio_buffer_size_ = buffer_frames_ - frames_queued_;
-
-  //  shm has nothing left.
-  shm_->area->write_offset[0] = 0;
-  shm2_->area->write_offset[0] = 0;
-
-  thread_add_stream(thread_, rstream2_);
-
-  FD_ZERO(&select_out_fds);
-  FD_SET(rstream_->fd, &select_out_fds);
-  FD_SET(rstream2_->fd, &select_out_fds);
-  select_return_value = 2;
-
-  is_open_ = 1;
-  rc = unified_io(thread_, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_mix_mute_count);
-  EXPECT_EQ(2, dev_stream_request_playback_samples_called);
-  EXPECT_NE(-1, select_max_fd);
-
-  /* should only mute buffer if underrun in imminent. */
-  frames_queued_ = 0;
-  rc = unified_io(thread_, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(cb_threshold_, cras_mix_mute_count);
 }
 
 TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
