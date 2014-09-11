@@ -22,7 +22,6 @@ struct dev_stream_capture_call {
 struct cap_sleep_frames_call {
   struct dev_stream *dev_stream;
   unsigned int written;
-  unsigned int *min_sleep;
   unsigned int num_called;
 };
 
@@ -80,7 +79,6 @@ static const int CAP_EXTRA_SLEEP_FRAMES = 16;
 class ReadStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      cap_sleep_frames_call.min_sleep = NULL;
       memset(&cras_iodev_set_format_val, 0, sizeof(cras_iodev_set_format_val));
       cras_iodev_set_format_val.frame_rate = 44100;
       cras_iodev_set_format_val.num_channels = 2;
@@ -318,7 +316,6 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   int rc;
   uint64_t nsec_expected;
   static const uint64_t num_frames_short = 40;
-  unsigned int sleep_frames;
   struct audio_thread *thread;
 
   thread = audio_thread_create();
@@ -333,8 +330,6 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES) *
                   1000000000ULL /
                   (uint64_t)cras_iodev_set_format_val.frame_rate;
-  sleep_frames = num_frames_short;
-  cap_sleep_frames_call.min_sleep = &sleep_frames;
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
@@ -1209,8 +1204,7 @@ TEST_F(WriteStreamSuite, DrainOutputBufferCompelete) {
   close_dev_called_ = 0;
   // All the audio in hw buffer are extra silent frames.
   iodev_.extra_silent_frames = frames_queued_ + 1;
-  unsigned int sleep_frames;
-  drain_output_buffer(thread_, &iodev_, &sleep_frames);
+  drain_output_buffer(thread_, &iodev_);
   EXPECT_EQ(1, close_dev_called_);
 }
 
@@ -1219,25 +1213,19 @@ TEST_F(WriteStreamSuite, DrainOutputBufferWaitForPlayback) {
   // Hardware buffer is full.
   frames_queued_ = buffer_frames_;
   iodev_.extra_silent_frames = 0;
-  unsigned int sleep_frames;
   close_dev_called_ = 0;
-  drain_output_buffer(thread_, &iodev_, &sleep_frames);
+  drain_output_buffer(thread_, &iodev_);
   EXPECT_EQ(0, close_dev_called_);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_, sleep_frames);
 }
 
 TEST_F(WriteStreamSuite, DrainOutputBufferWaitForAudio) {
   // Hardware buffer is almost empty
   frames_queued_ = 30;
   iodev_.extra_silent_frames = 0;
-  unsigned int sleep_frames;
   close_dev_called_ = 0;
-  drain_output_buffer(thread_, &iodev_, &sleep_frames);
+  drain_output_buffer(thread_, &iodev_);
   EXPECT_LT(cb_threshold_ - frames_queued_, frames_written_);
   EXPECT_EQ(0, close_dev_called_);
-  // We should sleep a little more than the audio data in the buffer.
-  EXPECT_GT(frames_queued_ + CAP_EXTRA_SLEEP_FRAMES, sleep_frames);
-  EXPECT_LE(frames_queued_, sleep_frames);
 }
 
 TEST_F(WriteStreamSuite, DrainOutputStream) {
@@ -2454,12 +2442,9 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 }
 
 int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
-                                    unsigned int written,
-                                    unsigned int *min_sleep) {
+                                    unsigned int written) {
   cap_sleep_frames_call.dev_stream = dev_stream;
   cap_sleep_frames_call.written = written;
-  if (cap_sleep_frames_call.min_sleep)
-	  *min_sleep = *cap_sleep_frames_call.min_sleep;
   cap_sleep_frames_call.num_called++;
   return 0;
 }

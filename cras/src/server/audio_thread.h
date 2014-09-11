@@ -30,6 +30,7 @@ enum error_type_from_audio_thread_h {
 struct active_dev {
 	struct cras_iodev *dev;
 	struct dev_stream *streams;
+	struct timespec wake_ts; /* When callback is needed to avoid xrun. */
 	struct active_dev *prev, *next;
 };
 

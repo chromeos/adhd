@@ -241,33 +241,6 @@ void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node);
 void cras_iodev_set_active_node(struct cras_iodev *iodev,
 				struct cras_ionode *node);
 
-/* Gets a count of how many frames until the next time the thread should wake
- * up to service the buffer.
- * Args:
- *    dir - direction of the device to calculate sleep frames for.
- *    sleep_level - level when device should be polled.
- *    curr_level - current buffer level.
- * Returns:
- *    A positive number of frames to wait until waking up.
- */
-static inline
-unsigned int cras_iodev_sleep_frames(enum CRAS_STREAM_DIRECTION dir,
-				     unsigned int sleep_level,
-				     unsigned int curr_level)
-{
-	int to_sleep;
-
-	if (dir == CRAS_STREAM_OUTPUT)
-		to_sleep = curr_level - sleep_level;
-	else
-		to_sleep = sleep_level - curr_level;
-
-	if (to_sleep < 0)
-		return 0;
-
-	return to_sleep;
-}
-
 /* Adjust the system volume based on the volume of the given node. */
 static inline unsigned int cras_iodev_adjust_node_volume(
 		const struct cras_ionode *node,

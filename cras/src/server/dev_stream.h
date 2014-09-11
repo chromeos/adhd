@@ -93,8 +93,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream);
  * needed if it is less that the current value.
  */
 int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
-				    unsigned int written,
-				    unsigned int *min_sleep);
+				    unsigned int written);
 
 /* Fill ts with the time the playback sample will be played. */
 void cras_set_playback_timestamp(size_t frame_rate,

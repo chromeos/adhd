@@ -13,6 +13,15 @@
 #include "cras_rstream.h"
 #include "cras_shm.h"
 
+ /*
+ * Sleep this much time past the buffer size to be sure at least
+ * the buffer size is captured when the audio thread wakes up.
+ */
+static const struct timespec capture_oversleep_time = {
+	.tv_sec = 0,
+	.tv_nsec = 250e3 /* TODO(dgreid), is this too long? */
+};
+
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     const struct cras_audio_format *dev_fmt)
 {
@@ -73,6 +82,11 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 			    stream_fmt->frame_rate,
 			    &out->sleep_interval_ts);
 	clock_gettime(CLOCK_MONOTONIC, &out->next_cb_ts);
+
+	if (stream->direction != CRAS_STREAM_OUTPUT) {
+		add_timespecs(&out->next_cb_ts, &out->sleep_interval_ts);
+		add_timespecs(&out->next_cb_ts, &capture_oversleep_time);
+	}
 
 	return out;
 }
@@ -334,15 +348,27 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 			cras_shm_frame_bytes(shm);
 }
 
+/* TODO(dgreid) remove this hack to reset the time if needed. */
+static void check_next_wake_time(struct dev_stream *dev_stream)
+{
+	struct timespec now;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	if (timespec_after(&now, &dev_stream->next_cb_ts)) {
+		dev_stream->next_cb_ts = now;
+		add_timespecs(&dev_stream->next_cb_ts,
+			      &dev_stream->sleep_interval_ts);
+		printf("behind %x\n", dev_stream->stream->stream_id);
+	}
+}
+
 int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
-				    unsigned int written,
-				    unsigned int *min_sleep)
+				    unsigned int written)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
-	unsigned int dev_cb_threshold;
 	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
-	unsigned int str_frames, dev_frames;
+	unsigned int str_frames;
 
 	if (dev_stream->conv)
 		written = cras_fmt_conv_in_frames_to_out(dev_stream->conv,
@@ -352,27 +378,12 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
 
 	dev_stream->mix_offset = 0;
 
-	if (dev_stream->conv) {
-		dev_frames = cras_fmt_conv_out_frames_to_in(dev_stream->conv,
-							    str_frames);
-		dev_cb_threshold = cras_fmt_conv_out_frames_to_in(
-				dev_stream->conv, str_cb_threshold);
-	} else {
-		dev_frames = str_frames;
-		dev_cb_threshold = str_cb_threshold;
-	}
-
-	if (str_frames < str_cb_threshold) {
-		/* If this stream doesn't have enough data yet, skip it. */
-		*min_sleep = MIN(*min_sleep, dev_cb_threshold - dev_frames);
+	/* If this stream doesn't have enough data yet, skip it. */
+	if (str_frames < str_cb_threshold)
 		return 0;
-	}
 
 	/* Enough data for this stream. */
 	cras_shm_buffer_write_complete(shm);
-	*min_sleep = MIN(*min_sleep, dev_cb_threshold -
-		cras_fmt_conv_out_frames_to_in(dev_stream->conv,
-					       cras_shm_frames_written(shm)));
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_POST,
 				    rstream->stream_id,
@@ -382,6 +393,8 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
 	/* Tell the client that samples are ready and mark the next time it
 	 * should be called back. */
 	add_timespecs(&dev_stream->next_cb_ts, &dev_stream->sleep_interval_ts);
+	check_next_wake_time(dev_stream);
+
 	return cras_rstream_audio_ready(rstream, str_cb_threshold);
 }
 
@@ -456,13 +469,26 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
+	struct cras_audio_shm *shm;
 	int rc;
 
-	rc = cras_rstream_request_audio(dev_stream->stream);
-	if (rc < 0)
-		return rc;
+	shm = cras_rstream_output_shm(rstream);
+
+	if (cras_shm_is_buffer_available(shm)) {
+		rc = cras_rstream_request_audio(dev_stream->stream);
+		if (rc < 0)
+			return rc;
+	} else {
+		audio_thread_event_log_data(
+				atlog, AUDIO_THREAD_STREAM_SKIP_CB,
+				rstream->stream_id,
+				shm->area->write_offset[0],
+				shm->area->write_offset[1]);
+	}
 
 	add_timespecs(&dev_stream->next_cb_ts, &dev_stream->sleep_interval_ts);
+	check_next_wake_time(dev_stream);
+
 	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
 	return 0;
 }
