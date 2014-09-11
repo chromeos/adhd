@@ -121,7 +121,7 @@ int cras_client_stop(struct cras_client *client);
 
 /* Returns the current list of output devices.
  * Args:
- *    client - The client to stop (from cras_client_create).
+ *    client - The client from cras_client_create.
  *    devs - Array that will be filled with device info.
  *    nodes - Array that will be filled with node info.
  *    *num_devs - Maximum number of devices to put in the array.
@@ -138,7 +138,7 @@ int cras_client_get_output_devices(const struct cras_client *client,
 
 /* Returns the current list of input devices.
  * Args:
- *    client - The client to stop (from cras_client_create).
+ *    client - The client from cras_client_create.
  *    devs - Array that will be filled with device info.
  *    nodes - Array that will be filled with node info.
  *    *num_devs - Maximum number of devices to put in the array.
@@ -197,7 +197,7 @@ int cras_client_set_node_attr(struct cras_client *client,
  * Args:
  *    client - The client from cras_client_create.
  *    direction - The direction of the ionode.
- *    node_id - The id of the ionode. If node_id is the special value 0, the
+ *    node_id - The id of the ionode. If node_id is the special value 0, then
  *        the preference is cleared and cras will choose automatically.
  */
 int cras_client_select_node(struct cras_client *client,
@@ -294,7 +294,7 @@ struct cras_stream_params *cras_client_stream_params_create(
  *    stream_type - media or talk (currently only support "default").
  *    flags - None currently used.
  *    user_data - Pointer that will be passed to the callback.
- *    unified_cd - Called for streams that do simultaneous input/output.
+ *    unified_cb - Called for streams that do simultaneous input/output.
  *    err_cb - Called when there is an error with the stream.
  *    format - The format of the audio stream.  Specifies bits per sample,
  *        number of channels, and sample rate.
@@ -329,7 +329,8 @@ int cras_client_add_stream(struct cras_client *client,
 /* Removes a currently playing/capturing stream.
  * Args:
  *    client - Client to remove the stream (returned from cras_client_create).
- *    stream_id - ID returned from add_stream to identify the stream to remove.
+ *    stream_id - ID returned from cras_client_add_stream to identify the stream
+          to remove.
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
@@ -339,7 +340,7 @@ int cras_client_rm_stream(struct cras_client *client,
 /* Sets the volume scaling factor for the given stream.
  * Args:
  *    client - Client owning the stream.
- *    stream_id - ID returned from add_stream.
+ *    stream_id - ID returned from cras_client_add_stream.
  *    volume_scaler - 0.0-1.0 the new value to scale this stream by.
  */
 int cras_client_set_stream_volume(struct cras_client *client,
@@ -353,7 +354,7 @@ int cras_client_set_stream_volume(struct cras_client *client,
 /* Sets the volume of the system.  Volume here ranges from 0 to 100, and will be
  * translated to dB based on the output-specific volume curve.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    volume - 0-100 the new volume index.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -365,7 +366,7 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume);
  * example 5dB of gain would be specified with an argument of 500, while -10
  * would be specified with -1000.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    gain - The gain in dBFS * 100.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -375,7 +376,7 @@ int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
 
 /* Sets the mute state of the system.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    mute - 0 is un-mute, 1 is muted.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -386,7 +387,7 @@ int cras_client_set_system_mute(struct cras_client *client, int mute);
 /* Sets the user mute state of the system.  This is used for mutes caused by
  * user interaction.  Like the mute key.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    mute - 0 is un-mute, 1 is muted.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -397,7 +398,7 @@ int cras_client_set_user_mute(struct cras_client *client, int mute);
 /* Sets the mute locked state of the system. Changing mute state is impossible
  * when this flag is set to locked.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    locked - 0 is un-locked, 1 is locked.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -408,7 +409,7 @@ int cras_client_set_system_mute_locked(struct cras_client *client, int locked);
 /* Sets the capture mute state of the system.  Recordings will be muted when
  * this is set.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    mute - 0 is un-mute, 1 is muted.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -419,7 +420,7 @@ int cras_client_set_system_capture_mute(struct cras_client *client, int mute);
 /* Sets the capture mute locked state of the system. Changing mute state is
  * impossible when this flag is set to locked.
  * Args:
- *    client - Client owning the stream.
+ *    client - The client from cras_client_create.
  *    locked - 0 is un-locked, 1 is locked.
  * Returns:
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
@@ -507,9 +508,10 @@ const struct audio_debug_info *cras_client_get_audio_debug_info(
 /* Gets the number of streams currently attached to the server.  This is the
  * total number of capture and playback streams.  If the ts argument is
  * not null, then it will be filled with the last time audio was played or
- * recorded.  ts will be set to the current time is streams are currently
+ * recorded.  ts will be set to the current time if streams are currently
  * active.
  * Args:
+ *    client - The client from cras_client_create.
  *    ts - Filled with the timestamp of the last stream.
  * Returns:
  *    The number of active streams.
@@ -554,8 +556,6 @@ int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt);
  * Only valid when called from the audio callback function for the stream
  * (aud_cb).
  * Args:
- *    client - The client the stream is attached to(from cras_client_create).
- *    stream_id - Returned from add_stream to identify which stream.
  *    sample_time - The sample time stamp passed in to aud_cb.
  *    delay - Out parameter will be filled with the latency.
  * Returns:
@@ -578,6 +578,7 @@ int cras_client_calc_capture_latency(const struct timespec *sample_time,
 
 /* Set the volume of the given output node. Only for output nodes.
  * Args:
+ *    client - The client from cras_client_create.
  *    node_id - ID of the node.
  *    volume - New value for node volume.
  */
@@ -587,14 +588,16 @@ int cras_client_set_node_volume(struct cras_client *client,
 
 /* Swap the left and right channel of the given node.
  * Args:
+ *    client - The client from cras_client_create.
  *    node_id - ID of the node.
  *    enable - 1 to enable swap mode, 0 to disable.
  */
 int cras_client_swap_node_left_right(struct cras_client *client,
 					cras_node_id_t node_id, int enable);
 
-/* Set the volume of the given input node.  Only for input nodes.
+/* Set the capture gain of the given input node.  Only for input nodes.
  * Args:
+ *    client - The client from cras_client_create.
  *    node_id - ID of the node.
  *    gain - New capture gain for the node.
  */
