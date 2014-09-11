@@ -75,6 +75,19 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
 {
 	unsigned int i, ch;
 
+	/* For mono, config the channel type to match both front
+	 * left and front right.
+	 * TODO(hychao): add more mapping when we have like {FL, FC}
+	 * for mono + kb mic.
+	 */
+	if ((fmt->num_channels == 1) &&
+	    ((fmt->channel_layout[CRAS_CH_FC] == 0) ||
+	     (fmt->channel_layout[CRAS_CH_FL] == 0))) {
+		channel_area_set_channel(area->channels, CRAS_CH_FL);
+		channel_area_set_channel(area->channels, CRAS_CH_FR);
+		return;
+	}
+
 	for (i = 0; i < fmt->num_channels; i++) {
 		area->channels[i].ch_set = 0;
 		for (ch = 0; ch < CRAS_CH_MAX; ch++)
@@ -82,14 +95,6 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
 				channel_area_set_channel(&area->channels[i], ch);
 	}
 
-	/* For mono, config the channel type to match both front
-	 * left and front right.
-	 * TODO(hychao): add more mapping when we have like {FL, FC}
-	 * for mono + kb mic.
-	 */
-	if ((fmt->num_channels == 1) &&
-	    (fmt->channel_layout[CRAS_CH_FL] == 0))
-		channel_area_set_channel(area->channels, CRAS_CH_FR);
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,

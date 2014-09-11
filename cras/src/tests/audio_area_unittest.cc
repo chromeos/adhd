@@ -14,7 +14,7 @@ static const int8_t stereo[CRAS_CH_MAX] = {
   0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
 static const int8_t mono[CRAS_CH_MAX] = {
-  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1,
 };
 static const int8_t kb_mic[CRAS_CH_MAX] = {
   0, 1, -1, -1, 2, -1, -1, -1, -1, -1, -1,
