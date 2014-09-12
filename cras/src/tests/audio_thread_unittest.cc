@@ -12,8 +12,8 @@ extern "C" {
 
 extern "C" {
 
-static int cras_mix_add_stream_dont_fill_next;
-static unsigned int cras_mix_add_stream_count;
+static int dev_stream_mix_dont_fill_next;
+static unsigned int dev_stream_mix_count;
 static unsigned int cras_mix_mute_count;
 static int cras_rstream_audio_ready_count;
 static unsigned int cras_rstream_request_audio_called;
@@ -37,7 +37,7 @@ static uint32_t select_write_value;
 static unsigned int cras_iodev_set_format_called;
 static unsigned int cras_iodev_set_playback_timestamp_called;
 static unsigned int cras_system_get_volume_return;
-static unsigned int cras_mix_add_stream_called;
+static unsigned int dev_stream_mix_called;
 
 static int cras_dsp_get_pipeline_called;
 static int cras_dsp_get_pipeline_ret;
@@ -106,8 +106,8 @@ class ReadStreamSuite : public testing::Test {
       channel_area_set_channel(&dummy_audio_area2->channels[1], CRAS_CH_FR);
       rstream2_->input_audio_area = dummy_audio_area2;
 
-      cras_mix_add_stream_dont_fill_next = 0;
-      cras_mix_add_stream_count = 0;
+      dev_stream_mix_dont_fill_next = 0;
+      dev_stream_mix_count = 0;
       cras_rstream_audio_ready_called = 0;
       dev_running_called_ = 0;
       is_open_ = 0;
@@ -647,14 +647,14 @@ class WriteStreamSuite : public testing::Test {
       ASSERT_TRUE(thread_);
       thread_set_active_dev(thread_, &iodev_);
 
-      cras_mix_add_stream_dont_fill_next = 0;
-      cras_mix_add_stream_count = 0;
+      dev_stream_mix_dont_fill_next = 0;
+      dev_stream_mix_count = 0;
       select_max_fd = -1;
       select_write_ptr = NULL;
       cras_metrics_log_event_called = 0;
       cras_rstream_request_audio_called = 0;
       cras_rstream_destroy_called = 0;
-      cras_mix_add_stream_called = 0;
+      dev_stream_mix_called = 0;
       cras_dsp_get_pipeline_called = 0;
       is_open_ = 0;
       close_dev_called_ = 0;
@@ -863,7 +863,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamFull) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(cb_threshold_, cras_mix_add_stream_count);
+  EXPECT_EQ(cb_threshold_, dev_stream_mix_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
 }
@@ -902,7 +902,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamMinSet) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(cb_threshold_, cras_mix_add_stream_count);
+  EXPECT_EQ(cb_threshold_, dev_stream_mix_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
 }
 
@@ -935,7 +935,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamOneEmpty) {
   shm_->area->write_offset[0] = cras_shm_used_size(shm_);
 
   // Test that nothing breaks if there is an empty stream.
-  cras_mix_add_stream_dont_fill_next = 1;
+  dev_stream_mix_dont_fill_next = 1;
 
   FD_ZERO(&select_out_fds);
   FD_SET(rstream_->fd, &select_out_fds);
@@ -980,7 +980,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_, cras_mix_add_stream_count);
+  EXPECT_EQ(buffer_frames_ - cb_threshold_, dev_stream_mix_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -1020,7 +1020,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            cras_mix_add_stream_count);
+            dev_stream_mix_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -1047,12 +1047,12 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFull) {
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(2, cras_mix_add_stream_called);
+  EXPECT_EQ(2, dev_stream_mix_called);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(cras_rstream_get_cb_threshold(rstream_),
-            cras_mix_add_stream_count);
+            dev_stream_mix_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
   EXPECT_EQ(-1, select_max_fd);
 }
@@ -1080,13 +1080,13 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoOneEmptySmallerCbThreshold) {
 
   // In this case, assert (1) we didn't request the empty stream since buffer
   // level is larger then its cb_threshold, (2) still mix both streams so
-  // cras_mix_add_stream_count is zero, and (3) the resulting sleep frames
+  // dev_stream_mix_count is zero, and (3) the resulting sleep frames
   // equals the cb_threshold difference.
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(2, cras_mix_add_stream_called);
+  EXPECT_EQ(2, dev_stream_mix_called);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(0, cras_mix_add_stream_count);
+  EXPECT_EQ(0, dev_stream_mix_count);
   EXPECT_EQ(0, cras_rstream_request_audio_called);
 }
 
@@ -1113,8 +1113,8 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoOneEmptyAfterFetch) {
 
   // Assert that the empty stream is skipped, only one stream mixed.
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, cras_mix_add_stream_called);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_, cras_mix_add_stream_count);
+  EXPECT_EQ(1, dev_stream_mix_called);
+  EXPECT_EQ(buffer_frames_ - cb_threshold_, dev_stream_mix_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -1137,7 +1137,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsFullOneMixes) {
   thread_add_stream(thread_, rstream2_);
 
   //  Test that nothing breaks if one stream doesn't fill.
-  cras_mix_add_stream_dont_fill_next = 1;
+  dev_stream_mix_dont_fill_next = 1;
 
   is_open_ = 1;
   rc = unified_io(thread_, &ts);
@@ -1210,7 +1210,7 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(smaller_frames, cras_mix_add_stream_count);
+  EXPECT_EQ(smaller_frames, dev_stream_mix_count);
   EXPECT_EQ(1, cras_rstream_request_audio_called);
   EXPECT_NE(-1, select_max_fd);
 }
@@ -1234,7 +1234,7 @@ TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            cras_mix_add_stream_count);
+            dev_stream_mix_count);
   EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(0, cras_dsp_put_pipeline_called);
   EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
@@ -1264,7 +1264,7 @@ TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
   rc = unified_io(thread_, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            cras_mix_add_stream_count);
+            dev_stream_mix_count);
   EXPECT_EQ(2, cras_dsp_get_pipeline_called);
   EXPECT_EQ(2, cras_dsp_put_pipeline_called);
   EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
@@ -2190,13 +2190,13 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
     shm = &dev_stream->stream->input_shm;
   }
 
-  cras_mix_add_stream_called++;
+  dev_stream_mix_called++;
 
-  if (cras_mix_add_stream_dont_fill_next) {
-    cras_mix_add_stream_dont_fill_next = 0;
+  if (dev_stream_mix_dont_fill_next) {
+    dev_stream_mix_dont_fill_next = 0;
     return 0;
   }
-  cras_mix_add_stream_count = *count;
+  dev_stream_mix_count = *count;
 
   /* We only copy the data from shm to dst, not actually mix them. */
   fr_in_buf = cras_shm_get_frames(shm);
