@@ -947,7 +947,7 @@ static int fetch_and_set_timestamp(struct audio_thread *thread,
 			cras_rstream_output_shm(curr->stream);
 		int fd = cras_rstream_get_audio_fd(curr->stream);
 
-		if (cras_shm_callback_pending(shm))
+		if (cras_shm_callback_pending(shm) && fd >= 0)
 			flush_old_aud_messages(shm, fd);
 
 		frames_in_buff = cras_shm_get_frames(shm);
@@ -1078,7 +1078,7 @@ static int write_streams(struct audio_thread *thread,
 			if (!streams_attached_direction(thread,
 							CRAS_STREAM_OUTPUT))
 				return -EIO;
-		} else if (cras_shm_callback_pending(shm)) {
+		} else if (cras_shm_callback_pending(shm) && fd >= 0) {
 			/* Callback pending, wait for a response. */
 			streams_wait++;
 			FD_SET(fd, &poll_set);
@@ -1114,6 +1114,7 @@ static int write_streams(struct audio_thread *thread,
 				fd = cras_rstream_get_audio_fd(curr->stream);
 
 				if (!cras_shm_callback_pending(shm) ||
+				    fd < 0 ||
 				    !FD_ISSET(fd, &poll_set))
 					continue;
 
@@ -1140,7 +1141,8 @@ static int write_streams(struct audio_thread *thread,
 			struct cras_audio_shm *shm;
 			int fd = cras_rstream_get_audio_fd(curr->stream);
 
-			if (!FD_ISSET(fd, &this_set))
+			if (fd < 0 ||
+			    !FD_ISSET(fd, &this_set))
 				continue;
 
 			shm = cras_rstream_output_shm(curr->stream);
