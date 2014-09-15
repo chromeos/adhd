@@ -355,7 +355,15 @@ static int fetch_stream(struct audio_thread *thread,
 static int append_stream_to_dev(struct active_dev *adev,
 				struct cras_rstream *stream)
 {
-	struct dev_stream *out = dev_stream_create(stream, adev->dev->format);
+	struct dev_stream *out;
+	struct cras_audio_format fmt;
+	if (adev->dev->format == NULL) {
+		fmt = stream->format;
+		cras_iodev_set_format(adev->dev, &fmt);
+	}
+	out = dev_stream_create(stream, adev->dev->format);
+	if (!out)
+		return -EINVAL;
 
 	DL_APPEND(adev->streams, out);
 
@@ -474,22 +482,12 @@ static int close_devices(struct audio_thread *thread,
 	return err;
 }
 
-/* Open the device configured to play the format of the given stream. */
-static int init_device(struct cras_iodev *dev, struct cras_rstream *stream)
-{
-	struct cras_audio_format fmt;
-	cras_rstream_get_format(stream, &fmt);
-	cras_iodev_set_format(dev, &fmt);
-	return dev->open_dev(dev);
-}
-
 static void thread_rm_active_dev(struct audio_thread *thread,
 			  struct cras_iodev *iodev);
 
 /* Initialize active devices of given direction. */
 static int init_devices(struct audio_thread *thread,
-			enum CRAS_STREAM_DIRECTION dir,
-			struct cras_rstream *stream)
+			enum CRAS_STREAM_DIRECTION dir)
 {
 	struct active_dev *adev;
 	struct active_dev *adevs;
@@ -504,14 +502,14 @@ static int init_devices(struct audio_thread *thread,
 	 * don't bother initialize other active devices.
 	 */
 	first_dev = adevs->dev;
-	rc = init_device(first_dev, stream);
+	rc = first_dev->open_dev(first_dev);
 	if (rc)
 		return rc;
 
 	/* Initialize all other active devices of the same direction. */
 	adevs = adevs->next;
 	DL_FOREACH(adevs, adev) {
-		rc = init_device(adev->dev, stream);
+		rc = adev->dev->open_dev(adev->dev);
 		if (rc) {
 			syslog(LOG_ERR, "Failed to open %s",
 					adev->dev->info.name);
@@ -807,7 +805,7 @@ static int thread_add_stream(struct audio_thread *thread,
 		struct active_dev *loop_adev =
 			thread->active_devs[CRAS_STREAM_POST_MIX_PRE_DSP];
 
-		rc = init_devices(thread, CRAS_STREAM_OUTPUT, stream);
+		rc = init_devices(thread, CRAS_STREAM_OUTPUT);
 		if (rc < 0) {
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
@@ -831,7 +829,7 @@ static int thread_add_stream(struct audio_thread *thread,
 	}
 	if (stream_uses_input(stream) &&
 	    !thread->devs_open[CRAS_STREAM_INPUT]) {
-		rc = init_devices(thread, CRAS_STREAM_INPUT, stream);
+		rc = init_devices(thread, CRAS_STREAM_INPUT);
 		if (rc < 0) {
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_INPUT_DEV_ERROR;
@@ -839,7 +837,7 @@ static int thread_add_stream(struct audio_thread *thread,
 	}
 	if (stream_uses_loopback(stream) &&
 	    !thread->devs_open[CRAS_STREAM_POST_MIX_PRE_DSP]) {
-		rc = init_devices(thread, CRAS_STREAM_POST_MIX_PRE_DSP, stream);
+		rc = init_devices(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
 		if (rc < 0) {
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_LOOPBACK_DEV_ERROR;

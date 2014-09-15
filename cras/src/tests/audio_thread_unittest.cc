@@ -53,6 +53,7 @@ static struct timespec time_now;
 static int cras_fmt_conversion_needed_return_val;
 static struct cras_audio_area *dummy_audio_area1;
 static struct cras_audio_area *dummy_audio_area2;
+static struct cras_audio_format cras_iodev_set_format_val;
 static float cras_iodev_get_software_volume_scaler_return_value;
 
 }
@@ -65,13 +66,12 @@ static const int CAP_EXTRA_SLEEP_FRAMES = 16;
 class ReadStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      memset(&fmt_, 0, sizeof(fmt_));
-      fmt_.frame_rate = 44100;
-      fmt_.num_channels = 2;
-      fmt_.format = SND_PCM_FORMAT_S16_LE;
+      memset(&cras_iodev_set_format_val, 0, sizeof(cras_iodev_set_format_val));
+      cras_iodev_set_format_val.frame_rate = 44100;
+      cras_iodev_set_format_val.num_channels = 2;
+      cras_iodev_set_format_val.format = SND_PCM_FORMAT_S16_LE;
 
       memset(&iodev_, 0, sizeof(iodev_));
-      iodev_.format = &fmt_;
       iodev_.buffer_size = 16384;
       cb_threshold_ = 480;
       iodev_.direction = CRAS_STREAM_INPUT;
@@ -142,7 +142,8 @@ class ReadStreamSuite : public testing::Test {
       struct cras_audio_shm *shm;
 
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
-      memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
+      memcpy(&(*rstream)->format, &cras_iodev_set_format_val,
+             sizeof(cras_iodev_set_format_val));
       (*rstream)->direction = CRAS_STREAM_INPUT;
       (*rstream)->cb_threshold = cb_threshold_;
       (*rstream)->client = (struct cras_rclient *)this;
@@ -230,7 +231,6 @@ class ReadStreamSuite : public testing::Test {
   static unsigned int close_dev_called_;
   struct cras_rstream *rstream_;
   struct cras_rstream *rstream2_;
-  struct cras_audio_format fmt_;
   struct cras_audio_shm *shm_;
   struct cras_audio_shm *shm2_;
 };
@@ -286,7 +286,7 @@ TEST_F(ReadStreamSuite, PossiblyReadEmpty) {
   frames_queued_ = 0;
   is_open_ = 1;
   nsec_expected = (GetCaptureSleepFrames()) * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
+                  (uint64_t)cras_iodev_set_format_val.frame_rate;
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, ts.tv_sec);
@@ -316,7 +316,8 @@ TEST_F(ReadStreamSuite, PossiblyReadTooLittleData) {
   is_open_ = 1;
   audio_buffer_size_ = frames_queued_;
   nsec_expected = ((uint64_t)num_frames_short + CAP_EXTRA_SLEEP_FRAMES) *
-                  1000000000ULL / (uint64_t)fmt_.frame_rate;
+                  1000000000ULL /
+                  (uint64_t)cras_iodev_set_format_val.frame_rate;
 
   rc = unified_io(thread, &ts);
   EXPECT_EQ(0, rc);
@@ -353,7 +354,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteStream) {
 
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
+                  (uint64_t)cras_iodev_set_format_val.frame_rate;
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
@@ -395,7 +396,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoStreams) {
 
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
+                  (uint64_t)cras_iodev_set_format_val.frame_rate;
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
@@ -436,7 +437,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
 
   uint64_t sleep_frames = GetCaptureSleepFrames() - 4;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
+                  (uint64_t)cras_iodev_set_format_val.frame_rate;
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
   //  Give it some samples to copy.
@@ -451,7 +452,7 @@ TEST_F(ReadStreamSuite, PossiblyReadHasDataWriteTwoDifferentStreams) {
   frames_queued_ = cb_threshold_ + 5;
   sleep_frames = GetCaptureSleepFrames() - 5;
   nsec_expected = (uint64_t)sleep_frames * 1000000000ULL /
-                  (uint64_t)fmt_.frame_rate;
+                  (uint64_t)cras_iodev_set_format_val.frame_rate;
   audio_buffer_size_ = frames_queued_;
   cras_rstream_audio_ready_count = 999;
   is_open_ = 1;
@@ -1376,13 +1377,12 @@ TEST_F(WriteStreamSuite, DrainOutputStream) {
 class AddStreamSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      memset(&fmt_, 0, sizeof(fmt_));
-      fmt_.frame_rate = 44100;
-      fmt_.num_channels = 2;
-      fmt_.format = SND_PCM_FORMAT_S16_LE;
+      memset(&cras_iodev_set_format_val, 0, sizeof(cras_iodev_set_format_val));
+      cras_iodev_set_format_val.frame_rate = 44100;
+      cras_iodev_set_format_val.num_channels = 2;
+      cras_iodev_set_format_val.format = SND_PCM_FORMAT_S16_LE;
 
       memset(&iodev_, 0, sizeof(iodev_));
-      iodev_.format = &fmt_;
       iodev_.buffer_size = 16384;
       used_size_ = 480;
       cb_threshold_ = 96;
@@ -1442,8 +1442,7 @@ class AddStreamSuite : public testing::Test {
       thread = audio_thread_create();
 
       fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
-      memcpy(fmt, &fmt_, sizeof(fmt_));
-      iodev_.format = fmt;
+      memcpy(fmt, &cras_iodev_set_format_val, sizeof(*fmt));
       iodev_.direction = direction;
       new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
       new_stream->fd = 55;
@@ -1526,7 +1525,6 @@ class AddStreamSuite : public testing::Test {
   static int close_dev_called_;
   static int used_size_;
   static int cb_threshold_;
-  struct cras_audio_format fmt_;
 };
 
 int AddStreamSuite::is_open_ = 0;
@@ -1545,13 +1543,13 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
 
   thread = audio_thread_create();
 
-  iodev_.format = &fmt_;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   new_stream->client = (struct cras_rclient* )this;
   new_stream->fd = 55;
   new_stream->buffer_frames = 65;
   new_stream->cb_threshold = 80;
-  memcpy(&new_stream->format, &fmt_, sizeof(fmt_));
+  memcpy(&new_stream->format, &cras_iodev_set_format_val,
+         sizeof(cras_iodev_set_format_val));
 
   shm = cras_rstream_output_shm(new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
@@ -1591,6 +1589,7 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
   thread = audio_thread_create();
   ASSERT_TRUE(thread);
   thread_set_active_dev(thread, &iodev_);
+  printf("1\n");
 
   shm = cras_rstream_output_shm(&new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
@@ -1599,9 +1598,11 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
   new_stream.direction = CRAS_STREAM_OUTPUT;
   EXPECT_EQ(AUDIO_THREAD_OUTPUT_DEV_ERROR,
             thread_add_stream(thread, &new_stream));
+  printf("2\n");
   EXPECT_EQ(1, open_dev_called_);
   EXPECT_EQ(1, cras_iodev_set_format_called);
   audio_thread_destroy(thread);
+  printf("3\n");
   free(shm->area);
 }
 
@@ -1621,12 +1622,12 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
 
   thread = audio_thread_create();
 
-  iodev_.format = &fmt_;
   new_stream = (struct cras_rstream *)calloc(1, sizeof(*new_stream));
   new_stream->fd = 55;
   new_stream->buffer_frames = 65;
   new_stream->cb_threshold = 80;
-  memcpy(&new_stream->format, &fmt_, sizeof(fmt_));
+  memcpy(&new_stream->format, &cras_iodev_set_format_val,
+         sizeof(cras_iodev_set_format_val));
 
   shm = cras_rstream_output_shm(new_stream);
   shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
@@ -1661,10 +1662,10 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
 class ActiveDevicesSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      memset(&fmt_, 0, sizeof(fmt_));
-      fmt_.frame_rate = 44100;
-      fmt_.num_channels = 2;
-      fmt_.format = SND_PCM_FORMAT_S16_LE;
+      memset(&cras_iodev_set_format_val, 0, sizeof(cras_iodev_set_format_val));
+      cras_iodev_set_format_val.frame_rate = 44100;
+      cras_iodev_set_format_val.num_channels = 2;
+      cras_iodev_set_format_val.format = SND_PCM_FORMAT_S16_LE;
 
       memset(&iodev_, 0, sizeof(iodev_));
       memset(&iodev2_, 0, sizeof(iodev2_));
@@ -1677,7 +1678,6 @@ class ActiveDevicesSuite : public testing::Test {
       iodev_.frames_queued = frames_queued;
       iodev_.delay_frames = delay_frames;
       iodev_.dev_running = dev_running;
-      iodev_.format = &fmt_;
       iodev_.buffer_size = 2048;
       iodev2_.close_dev = close_dev;
       iodev2_.is_open = is_open;
@@ -1688,7 +1688,6 @@ class ActiveDevicesSuite : public testing::Test {
       iodev2_.frames_queued = frames_queued;
       iodev2_.delay_frames = delay_frames;
       iodev2_.dev_running = dev_running;
-      iodev2_.format = &fmt_;
       iodev2_.buffer_size = 2048;
       thread_ = audio_thread_create();
       ASSERT_TRUE(thread_);
@@ -1746,7 +1745,8 @@ class ActiveDevicesSuite : public testing::Test {
     void SetupRstream(struct cras_rstream **rstream) {
       struct cras_audio_shm *shm;
       *rstream = (struct cras_rstream *)calloc(1, sizeof(**rstream));
-      memcpy(&(*rstream)->format, &fmt_, sizeof(fmt_));
+      memcpy(&(*rstream)->format, &cras_iodev_set_format_val,
+             sizeof(cras_iodev_set_format_val));
       (*rstream)->direction = CRAS_STREAM_OUTPUT;
       (*rstream)->buffer_frames = buffer_frames_;
       (*rstream)->cb_threshold = cb_threshold_;
@@ -1841,7 +1841,6 @@ class ActiveDevicesSuite : public testing::Test {
   static int put_buffer_val_idx_;
   struct cras_iodev iodev_;
   struct cras_iodev iodev2_;
-  struct cras_audio_format fmt_;
   struct cras_rstream *rstream_;
   struct cras_rstream *rstream2_;
   struct audio_thread *thread_;
@@ -1981,7 +1980,7 @@ TEST_F(ActiveDevicesSuite, OpenFirstActiveDeviceFail) {
   open_dev_val_[0] = -1;
   rc = thread_add_stream(thread_, rstream_);
   EXPECT_EQ(rc, AUDIO_THREAD_OUTPUT_DEV_ERROR);
-  EXPECT_EQ(1, cras_iodev_set_format_called);
+  EXPECT_EQ(2, cras_iodev_set_format_called);
   EXPECT_EQ(0, thread_->buffer_frames[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(0, thread_->cb_threshold[CRAS_STREAM_OUTPUT]);
 }
@@ -2168,6 +2167,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
                           struct cras_audio_format *fmt)
 {
   cras_iodev_set_format_called++;
+  iodev->format = &cras_iodev_set_format_val;
   return 0;
 }
 
