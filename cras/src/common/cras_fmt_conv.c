@@ -671,10 +671,17 @@ int cras_fmt_conversion_needed(const struct cras_audio_format *a,
  * converter that handles transforming the input format to the format used by
  * the server. */
 int config_format_converter(struct cras_fmt_conv **conv,
+			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,
 			    const struct cras_audio_format *to,
 			    unsigned int frames)
 {
+	/* Don't check channel count/layout for format conversion for input. */
+	if ((dir == CRAS_STREAM_INPUT) &&
+	    (from->format == to->format) &&
+	    (from->frame_rate == to->frame_rate))
+		return 0;
+
 	if (cras_fmt_conversion_needed(from, to)) {
 		syslog(LOG_DEBUG,
 		       "format convert: from:%d %zu %zu to: %d %zu %zu "

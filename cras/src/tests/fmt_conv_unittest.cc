@@ -9,6 +9,10 @@ extern "C" {
 #include "cras_types.h"
 }
 
+static int mono_channel_layout[CRAS_CH_MAX] =
+  {-1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1};
+static int stereo_channel_layout[CRAS_CH_MAX] =
+  {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 static int surround_channel_layout[CRAS_CH_MAX] =
 	{0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1};
 
@@ -968,6 +972,78 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48Short) {
   cras_fmt_conv_destroy(c);
   free(in_buff);
   free(out_buff);
+}
+
+// Test format converter created in config_format_converter
+TEST(FormatConverterTest, ConfigConverter) {
+  int i;
+  struct cras_fmt_conv *c = NULL;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 1;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 96000;
+  out_fmt.frame_rate = 48000;
+  for (i = 0; i < CRAS_CH_MAX; i++) {
+    in_fmt.channel_layout[i] = mono_channel_layout[i];
+    out_fmt.channel_layout[i] = stereo_channel_layout[i];
+  }
+
+  config_format_converter(&c, CRAS_STREAM_OUTPUT, &in_fmt, &out_fmt, 4096);
+  ASSERT_NE(c, (void *)NULL);
+
+  cras_fmt_conv_destroy(c);
+}
+
+// Test format converter not created when in/out format conversion is not
+// needed.
+TEST(FormatConverterTest, ConfigConverterNoNeed) {
+  int i;
+  struct cras_fmt_conv *c = NULL;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 2;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+  for (i = 0; i < CRAS_CH_MAX; i++) {
+    in_fmt.channel_layout[i] = stereo_channel_layout[i];
+    out_fmt.channel_layout[i] = stereo_channel_layout[i];
+  }
+
+  config_format_converter(&c, CRAS_STREAM_OUTPUT, &in_fmt, &out_fmt, 4096);
+  EXPECT_EQ(c, (void *)NULL);
+}
+
+// Test format converter not created for input when in/out format differs
+// at channel count or layout.
+TEST(FormatConverterTest, ConfigConverterNoNeedForInput) {
+  static int kmic_channel_layout[CRAS_CH_MAX] =
+    {0, 1, -1, -1, 2, -1, -1, -1, -1, -1, -1};
+  int i;
+  struct cras_fmt_conv *c = NULL;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 2;
+  out_fmt.num_channels = 3;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+  for (i = 0; i < CRAS_CH_MAX; i++) {
+    in_fmt.channel_layout[i] = stereo_channel_layout[i];
+    out_fmt.channel_layout[i] = kmic_channel_layout[i];
+  }
+
+  config_format_converter(&c, CRAS_STREAM_INPUT, &in_fmt, &out_fmt, 4096);
+  EXPECT_EQ(c, (void *)NULL);
 }
 
 int main(int argc, char **argv) {

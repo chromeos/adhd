@@ -116,6 +116,7 @@ extern "C" {
 struct audio_thread_event_log *atlog;
 
 int config_format_converter(struct cras_fmt_conv **conv,
+			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,
 			    const struct cras_audio_format *to,
 			    unsigned int frames) {

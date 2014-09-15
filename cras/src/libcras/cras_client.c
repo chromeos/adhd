@@ -747,6 +747,7 @@ static int stream_connected(struct client_stream *stream,
 
 		/* Convert from h/w format to stream format for input. */
 		rc = config_format_converter(&stream->capture_conv,
+					     stream->direction,
 					     &mfmt,
 					     &stream->config->format,
 					     max_frames);
@@ -782,6 +783,7 @@ static int stream_connected(struct client_stream *stream,
 
 		/* Convert the stream format to the h/w format for output */
 		rc = config_format_converter(&stream->play_conv,
+					     stream->direction,
 					     &stream->config->format,
 					     &mfmt,
 					     max_frames);

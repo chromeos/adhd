@@ -13,6 +13,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "cras_types.h"
+
 struct cras_audio_format;
 struct cras_fmt_conv;
 
@@ -68,11 +70,13 @@ int cras_fmt_conversion_needed(const struct cras_audio_format *a,
  * the server.
  * Args:
  *    conv - filled with the new converter if needed.
+ *    dir - the stream direction the new converter used for.
  *    from - Format to convert from.
  *    to - Format to convert to.
  *    frames - size of buffer.
  */
 int config_format_converter(struct cras_fmt_conv **conv,
+			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,
 			    const struct cras_audio_format *to,
 			    unsigned int frames);

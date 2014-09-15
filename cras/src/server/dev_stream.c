@@ -17,7 +17,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 {
 	struct dev_stream *out;
 	struct cras_audio_format *stream_fmt = &stream->format;
-	int rc;
+	int rc = 0;
 	unsigned int max_frames;
 
 	out = calloc(1, sizeof(*out));
@@ -29,14 +29,18 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				 cras_frames_at_rate(stream_fmt->frame_rate,
 						     stream->buffer_frames,
 						     dev_fmt->frame_rate));
-		rc = config_format_converter(&out->conv, stream_fmt,
-				dev_fmt, max_frames);
+		rc = config_format_converter(&out->conv,
+					     stream->direction,
+					     stream_fmt,
+					     dev_fmt,
+					     max_frames);
 	} else {
 		max_frames = MAX(stream->buffer_frames,
 				 cras_frames_at_rate(dev_fmt->frame_rate,
 						     stream->buffer_frames,
 						     stream_fmt->frame_rate));
 		rc = config_format_converter(&out->conv,
+					     stream->direction,
 					     dev_fmt,
 					     stream_fmt,
 					     max_frames);
