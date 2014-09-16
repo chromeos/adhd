@@ -482,6 +482,56 @@ static int close_devices(struct audio_thread *thread,
 	return err;
 }
 
+/* Put 'frames' worth of zero samples into odev. */
+int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+{
+	struct cras_audio_area *area;
+	unsigned int frame_bytes, frames_written;
+	int rc;
+
+	frame_bytes = cras_get_format_bytes(odev->format);
+	while (frames > 0) {
+		frames_written = frames;
+		rc = odev->get_buffer(odev, &area, &frames_written);
+		if (rc < 0) {
+			syslog(LOG_ERR, "fill zeros fail: %d", rc);
+			return rc;
+		}
+		/* This assumes consecutive channel areas. */
+		memset(area->channels[0].buf, 0,
+		       frames_written * frame_bytes);
+		odev->put_buffer(odev, frames_written);
+		frames -= frames_written;
+	}
+
+	return 0;
+}
+
+/* Builds an initial buffer to avoid an underrun. Adds min_level of latency. */
+void fill_odevs_zeros_min_level(struct cras_iodev *dev)
+{
+	fill_odev_zeros(dev, dev->min_buffer_level);
+}
+
+/* Open the device potentially filling the output with a pre buffer. */
+static int init_device(struct cras_iodev *dev)
+{
+	int rc;
+
+	rc = dev->open_dev(dev);
+	if (rc < 0)
+		return rc;
+
+	/*
+	 * Start output devices by padding the output. This avoids a burst of
+	 * audio callbacks when the stream starts
+	 */
+	if (dev->direction == CRAS_STREAM_OUTPUT)
+		fill_odevs_zeros_min_level(dev);
+
+	return 0;
+}
+
 static void thread_rm_active_dev(struct audio_thread *thread,
 			  struct cras_iodev *iodev);
 
@@ -502,14 +552,14 @@ static int init_devices(struct audio_thread *thread,
 	 * don't bother initialize other active devices.
 	 */
 	first_dev = adevs->dev;
-	rc = first_dev->open_dev(first_dev);
+	rc = init_device(first_dev);
 	if (rc)
 		return rc;
 
 	/* Initialize all other active devices of the same direction. */
 	adevs = adevs->next;
 	DL_FOREACH(adevs, adev) {
-		rc = adev->dev->open_dev(adev->dev);
+		rc = init_device(adev->dev);
 		if (rc) {
 			syslog(LOG_ERR, "Failed to open %s",
 					adev->dev->info.name);
@@ -750,40 +800,6 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	return streams_attached(thread);
 }
 
-/* Put 'frames' worth of zero samples into odev. */
-int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
-{
-	struct cras_audio_area *area;
-	unsigned int frame_bytes, frames_written;
-	int rc;
-
-	frame_bytes = cras_get_format_bytes(odev->format);
-	while (frames > 0) {
-		frames_written = frames;
-		rc = odev->get_buffer(odev, &area, &frames_written);
-		if (rc < 0) {
-			syslog(LOG_ERR, "fill zeros fail: %d", rc);
-			return rc;
-		}
-		/* This assumes consecutive channel areas. */
-		memset(area->channels[0].buf, 0,
-		       frames_written * frame_bytes);
-		odev->put_buffer(odev, frames_written);
-		frames -= frames_written;
-	}
-
-	return 0;
-}
-
-/* Builds an initial buffer to avoid an underrun. Adds min_level of latency. */
-void fill_odevs_zeros_min_level(struct audio_thread *thread)
-{
-	struct active_dev *adev;
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
-		fill_odev_zeros(adev->dev,
-				adev->dev->min_buffer_level);
-}
-
 /* Handles the add_stream message from the main thread. */
 static int thread_add_stream(struct audio_thread *thread,
 			     struct cras_rstream *stream)
@@ -810,12 +826,6 @@ static int thread_add_stream(struct audio_thread *thread,
 			delete_stream(thread, stream);
 			return AUDIO_THREAD_OUTPUT_DEV_ERROR;
 		}
-
-		/* Start streams by padding the output.
-		 * This avoids a burst of audio callbacks when the stream starts
-		 */
-		config_devices_min_latency(thread, CRAS_STREAM_OUTPUT);
-		fill_odevs_zeros_min_level(thread);
 
 		if (loop_adev) {
 			struct dev_stream *iostream;
