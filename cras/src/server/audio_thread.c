@@ -1014,7 +1014,6 @@ static int check_stream_timeout(struct cras_rstream *stream, unsigned int rate)
  * Args:
  *    thread - The thread to write streams from.
  *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
- *    level - The number of frames still in device buffer.
  *    write_limit - The maximum number of frames to write to dst.
  *
  * Returns:
@@ -1024,7 +1023,6 @@ static int check_stream_timeout(struct cras_rstream *stream, unsigned int rate)
  */
 static int write_streams(struct audio_thread *thread,
 			 uint8_t *dst,
-			 size_t level,
 			 size_t write_limit)
 {
 	struct cras_iodev *odev = first_output_dev(thread);
@@ -1077,7 +1075,7 @@ static int write_streams(struct audio_thread *thread,
 	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
-				    write_limit, num_mixed, level);
+				    write_limit, num_mixed, 0);
 	if (num_mixed == 0)
 		return num_mixed;
 
@@ -1309,22 +1307,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	return ret;
 }
 
-/* Adjusts the hw_level for output only streams.  Account for any extra
- * buffering that is needed and indicated by the min_buffer_level member.
- */
-static unsigned int adjust_level(const struct audio_thread *thread,
-				 unsigned int level)
-{
-	struct cras_iodev *odev = first_output_dev(thread);
-
-	if (!odev || odev->min_buffer_level == 0)
-		return level;
-
-	return (level > odev->min_buffer_level)
-			? level - odev->min_buffer_level
-			: 0;
-}
-
 /* Fills the time that the next stream needs to be serviced. */
 static void get_next_stream_wake_from_list(struct dev_stream *streams,
 					   struct timespec *min_ts,
@@ -1462,7 +1444,7 @@ int possibly_fill_audio(struct audio_thread *thread)
 	struct cras_iodev *odev = first_output_dev(thread);
 	struct cras_iodev *loop_dev = first_loop_dev(thread);
 	unsigned int frame_bytes;
-	unsigned int hw_level, adjusted_level;
+	unsigned int hw_level;
 
 	if (!device_open(odev))
 		return 0;
@@ -1476,11 +1458,10 @@ int possibly_fill_audio(struct audio_thread *thread)
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
-	adjusted_level = adjust_level(thread, hw_level);
 
 	delay = odev->delay_frames(odev);
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO,
-				    hw_level, adjusted_level, delay);
+				    hw_level, delay, 0);
 	if (delay < 0)
 		return delay;
 
@@ -1507,7 +1488,6 @@ int possibly_fill_audio(struct audio_thread *thread)
 		dst = area->channels[0].buf;
 		written = write_streams(thread,
 					dst,
-					adjusted_level + total_written,
 					frames);
 		if (written < 0) /* pcm has been closed */
 			return (int)written;

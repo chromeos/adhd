@@ -416,9 +416,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec, data1);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
-		printf("FILL_AUDIO: %u.%09u hw_level %u adj_level %u "
-		       "delay %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("FILL_AUDIO: %u.%09u hw_level %u delay %u\n",
+		       sec, nsec, data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
 		printf("FILL_AUDIO_DONE: %u.%09u total_written %u\n",
@@ -438,8 +437,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_MIXED:
 		printf("WRITE_STREAMS_MIXED: %u.%09u write_limit %u "
-		       "num_mixed %u level %u\n",
-		       sec, nsec, data1, data2, data3);
+		       "num_mixed %u\n",
+		       sec, nsec, data1, data2);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_STREAM:
 		printf("WRITE_STREAMS_STREAM: %u.%09u id %x "
