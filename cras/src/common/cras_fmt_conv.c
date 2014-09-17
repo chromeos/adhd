@@ -676,21 +676,26 @@ int config_format_converter(struct cras_fmt_conv **conv,
 			    const struct cras_audio_format *to,
 			    unsigned int frames)
 {
-	/* Don't check channel count/layout for format conversion for input. */
-	if ((dir == CRAS_STREAM_INPUT) &&
-	    (from->format == to->format) &&
-	    (from->frame_rate == to->frame_rate))
-		return 0;
+	struct cras_audio_format target;
 
-	if (cras_fmt_conversion_needed(from, to)) {
+	/* For input, preserve the channel count and layout of
+	 * from format */
+	if (dir == CRAS_STREAM_INPUT) {
+		target = *from;
+		target.format = to->format;
+		target.frame_rate = to->frame_rate;
+	} else {
+		target = *to;
+	}
+
+	if (cras_fmt_conversion_needed(from, &target)) {
 		syslog(LOG_DEBUG,
-		       "format convert: from:%d %zu %zu to: %d %zu %zu "
+		       "format convert: from:%d %zu %zu target: %d %zu %zu "
 		       "frames = %u",
 		       from->format, from->frame_rate, from->num_channels,
-		       to->format, to->frame_rate, to->num_channels,
+		       target.format, target.frame_rate, target.num_channels,
 		       frames);
-
-		*conv = cras_fmt_conv_create(from, to, frames);
+		*conv = cras_fmt_conv_create(from, &target, frames);
 		if (!*conv) {
 			syslog(LOG_ERR, "Failed to create format converter");
 			return -ENOMEM;
