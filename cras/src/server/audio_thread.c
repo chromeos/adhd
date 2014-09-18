@@ -1215,8 +1215,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 /* Fills the time that the next stream needs to be serviced. */
 static void get_next_stream_wake_from_list(struct dev_stream *streams,
-					   struct timespec *min_ts,
-					   const struct timespec *now)
+					   struct timespec *min_ts)
 {
 	struct dev_stream *dev_stream;
 
@@ -1241,11 +1240,11 @@ static void get_next_stream_wake(struct audio_thread *thread,
 	struct active_dev *adev;
 
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
-		get_next_stream_wake_from_list(adev->streams, min_ts, now);
+		get_next_stream_wake_from_list(adev->streams, min_ts);
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev)
-		get_next_stream_wake_from_list(adev->streams, min_ts, now);
+		get_next_stream_wake_from_list(adev->streams, min_ts);
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_POST_MIX_PRE_DSP], adev)
-		get_next_stream_wake_from_list(adev->streams, min_ts, now);
+		get_next_stream_wake_from_list(adev->streams, min_ts);
 }
 
 static void get_next_dev_wake(struct audio_thread *thread,
