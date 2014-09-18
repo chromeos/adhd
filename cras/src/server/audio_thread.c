@@ -358,6 +358,7 @@ static int append_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
 	struct active_dev *adev;
+	unsigned int max_level = 0;
 
 	/* Check that we don't already have this stream */
 	if (thread_find_stream(thread, stream))
@@ -365,14 +366,24 @@ static int append_stream(struct audio_thread *thread,
 
 	/* TODO(dgreid) - add to correct dev, not all. */
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		int rc = append_stream_to_dev(adev, stream);
+		int rc;
+		unsigned int hw_level;
+
+		rc = append_stream_to_dev(adev, stream);
 		if (rc)
 			return rc;
+
+		if (device_open(adev->dev)) {
+			hw_level = adev->dev->frames_queued(adev->dev);
+
+			if (hw_level > max_level)
+				max_level = hw_level;
+		}
 	}
 
-	if (stream_uses_output(stream)) {
+	if (stream_uses_output(stream) && max_level < stream->cb_threshold) {
 		struct cras_audio_shm *shm = cras_rstream_output_shm(stream);
-		cras_shm_buffer_written(shm, stream->cb_threshold);
+		cras_shm_buffer_written(shm, stream->cb_threshold - max_level);
 		cras_shm_buffer_write_complete(shm);
 	}
 
