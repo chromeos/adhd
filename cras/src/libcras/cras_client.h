@@ -167,6 +167,21 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 				     struct cras_attached_client_info *clients,
 				     size_t max_clients);
 
+/* Find a node info with the matching node id.
+ *
+ * Args:
+ *    dev_name - The prefix of the iodev name.
+ *    node_name - The prefix of the ionode name.
+ *    dev_info - The information about the iodev will be returned here.
+ *    node_info - The information about the ionode will be returned here.
+ * Returns:
+ *    0 if successful, -1 if the node cannot be found.
+ */
+int cras_client_get_node_by_id(const struct cras_client *client,
+			       int input,
+			       const cras_node_id_t node_id,
+			       struct cras_ionode_info* node_info);
+
 /* Checks if the output device with the given name is currently plugged in.  For
  * internal devices this checks that jack state, for USB devices this will
  * always be true if they are present.  The name parameter can be the
@@ -452,6 +467,14 @@ long cras_client_get_system_capture_gain(struct cras_client *client);
  *    0 if not muted, 1 if it is.
  */
 int cras_client_get_system_muted(struct cras_client *client);
+
+/* Gets the current user mute state.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    0 if not muted, 1 if it is.
+ */
+int cras_client_get_user_muted(struct cras_client *client);
 
 /* Gets the current system captue mute state.
  * Args:

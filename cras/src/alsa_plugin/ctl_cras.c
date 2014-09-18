@@ -161,21 +161,30 @@ static int ctl_cras_read_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 				 long *value)
 {
 	struct ctl_cras *cras = (struct ctl_cras *)ext_ctl->private_data;
+	cras_node_id_t node_id;
+	struct cras_ionode_info node;
 
 	switch (key) {
 	case CTL_CRAS_MIXER_PLAYBACK_SWITCH:
-		*value = !cras_client_get_system_muted(cras->client);
+		*value = !cras_client_get_user_muted(cras->client);
 		break;
 	case CTL_CRAS_MIXER_PLAYBACK_VOLUME:
-		*value = cras_client_get_system_volume(cras->client);
+		node_id = cras_client_get_selected_output(cras->client);
+		if (cras_client_get_node_by_id(cras->client, 0,
+							node_id, &node) < 0)
+			return -EIO;
+		*value = node.volume;
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_SWITCH:
 		*value = !cras_client_get_system_capture_muted(cras->client);
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_VOLUME:
-		*value = capture_gain_to_index(
-			cras->client,
-			cras_client_get_system_capture_gain(cras->client));
+		node_id = cras_client_get_selected_input(cras->client);
+		if (cras_client_get_node_by_id(cras->client, 1,
+							node_id, &node) < 0)
+			return -EIO;
+		*value = capture_gain_to_index(cras->client,
+						node.capture_gain);
 		break;
 	default:
 		return -EINVAL;
@@ -189,20 +198,24 @@ static int ctl_cras_write_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 				   long *value)
 {
 	struct ctl_cras *cras = (struct ctl_cras *)ext_ctl->private_data;
+	cras_node_id_t node_id;
 
 	switch (key) {
 	case CTL_CRAS_MIXER_PLAYBACK_SWITCH:
-		cras_client_set_system_mute(cras->client, !(*value));
+		cras_client_set_user_mute(cras->client, !(*value));
 		break;
 	case CTL_CRAS_MIXER_PLAYBACK_VOLUME:
-		cras_client_set_system_volume(cras->client, *value);
+		node_id = cras_client_get_selected_output(cras->client);
+		cras_client_set_node_volume(cras->client, node_id, *value);
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_SWITCH:
 		cras_client_set_system_capture_mute(cras->client, !(*value));
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_VOLUME:
-		cras_client_set_system_capture_gain(
+		node_id = cras_client_get_selected_input(cras->client);
+		cras_client_set_node_capture_gain(
 				cras->client,
+				node_id,
 				capture_index_to_gain(cras->client, *value));
 		break;
 	default:

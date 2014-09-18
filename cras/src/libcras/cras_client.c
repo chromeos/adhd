@@ -1689,6 +1689,13 @@ int cras_client_get_system_muted(struct cras_client *client)
 	return client->server_state->mute;
 }
 
+int cras_client_get_user_muted(struct cras_client *client)
+{
+	if (!client || !client->server_state)
+		return 0;
+	return client->server_state->user_mute;
+}
+
 int cras_client_get_system_capture_muted(struct cras_client *client)
 {
 	if (!client || !client->server_state)
@@ -1961,6 +1968,63 @@ found_node:
 	*dev_info = devs[i];
 	*node_info = nodes[j];
 	rc = 0;
+
+quit:
+	free(devs);
+	free(nodes);
+	return rc;
+}
+
+int cras_client_get_node_by_id(const struct cras_client *client,
+			       int input,
+			       const cras_node_id_t node_id,
+			       struct cras_ionode_info* node_info)
+{
+	size_t ndevs, nnodes;
+	struct cras_iodev_info *devs = NULL;
+	struct cras_ionode_info *nodes = NULL;
+	int rc = -EINVAL;
+	unsigned i;
+
+	if (!client || !node_info) {
+		rc = -EINVAL;
+		goto quit;
+	}
+
+	devs = (struct cras_iodev_info *)
+			malloc(CRAS_MAX_IODEVS * sizeof(*devs));
+	if (!devs) {
+		rc = -ENOMEM;
+		goto quit;
+	}
+
+	nodes = (struct cras_ionode_info *)
+			malloc(CRAS_MAX_IONODES * sizeof(*nodes));
+	if (!nodes) {
+		rc = -ENOMEM;
+		goto quit;
+	}
+
+	ndevs = CRAS_MAX_IODEVS;
+	nnodes = CRAS_MAX_IONODES;
+	if (input)
+		rc = cras_client_get_input_devices(client, devs, nodes,
+						&ndevs, &nnodes);
+	else
+		rc = cras_client_get_output_devices(client, devs, nodes,
+						&ndevs, &nnodes);
+	if (rc < 0)
+		goto quit;
+
+	rc = -ENOENT;
+	for (i = 0; i < nnodes; i++) {
+		if (node_id == cras_make_node_id(nodes[i].iodev_idx,
+						 nodes[i].ionode_idx)) {
+			memcpy(node_info, &nodes[i], sizeof(*node_info));
+			rc = 0;
+			break;
+		}
+	}
 
 quit:
 	free(devs);
