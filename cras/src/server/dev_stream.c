@@ -116,22 +116,25 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 	size_t frames = 0;
 	unsigned int dev_frames;
 	float mix_vol;
+	unsigned int num_to_write;
 
 	shm = cras_rstream_output_shm(dev_stream->stream);
+	num_to_write = *count;
 	fr_in_buf = cras_shm_get_frames(shm);
 	if (fr_in_buf <= 0) {
-		*count = 0;
+		if (!cras_rstream_get_is_draining(dev_stream->stream))
+			*count = 0;
 		return 0;
 	}
-	if (fr_in_buf < *count)
-		*count = fr_in_buf;
+	if (fr_in_buf < num_to_write)
+		num_to_write = fr_in_buf;
 
 	/* Stream volume scaler. */
 	mix_vol = cras_shm_get_volume_scaler(shm);
 
 	fr_written = 0;
 	fr_read = 0;
-	while (fr_written < *count) {
+	while (fr_written < num_to_write) {
 		unsigned int read_frames;
 		src = cras_shm_get_readable_frames(shm, fr_read,
 				&frames);
@@ -144,10 +147,10 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 					(uint8_t *)src,
 					dev_stream->conv_buffer->bytes,
 					&read_frames,
-					*count - fr_written);
+					num_to_write - fr_written);
 			src = (int16_t *)dev_stream->conv_buffer->bytes;
 		} else {
-			dev_frames = MIN(frames, *count - fr_written);
+			dev_frames = MIN(frames, num_to_write - fr_written);
 			read_frames = dev_frames;
 		}
 		num_samples = dev_frames * num_channels;
@@ -158,7 +161,9 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 		fr_read += read_frames;
 	}
 
-	*count = fr_written;
+	/* Don't update the write limit for streams that are draining. */
+	if (!cras_rstream_get_is_draining(dev_stream->stream))
+		*count = fr_written;
 	cras_shm_buffer_read(shm, fr_read);
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_DEV_STREAM_MIX,
 				    fr_written, fr_read, 0);

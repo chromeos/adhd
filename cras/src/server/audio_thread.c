@@ -944,6 +944,8 @@ static int write_streams(struct active_dev *adev,
 	struct dev_stream *curr;
 	size_t num_mixed;
 	int max_frames = 0;
+	unsigned int drain_limit = write_limit;
+	unsigned int num_playing = 0;
 
 	num_mixed = 0;
 
@@ -951,9 +953,6 @@ static int write_streams(struct active_dev *adev,
 	DL_FOREACH(adev->streams, curr) {
 		struct cras_audio_shm *shm;
 		int shm_frames;
-
-		if (curr->stream->client == NULL)
-			continue;
 
 		shm = cras_rstream_output_shm(curr->stream);
 
@@ -966,19 +965,26 @@ static int write_streams(struct active_dev *adev,
 					    shm_frames,
 					    cras_shm_callback_pending(shm));
 		/* If not in underrun, use this stream. */
-		write_limit = MIN((size_t)shm_frames, write_limit);
+		if (cras_rstream_get_is_draining(curr->stream)) {
+			drain_limit = MIN((size_t)shm_frames, drain_limit);
+		} else {
+			write_limit = MIN((size_t)shm_frames, write_limit);
+			num_playing++;
+		}
 		max_frames = MAX(max_frames, shm_frames);
 	}
+
+	/* Don't limit the amount written for draining streams unless there are
+	 * only draining streams. */
+	if (!num_playing)
+		write_limit = drain_limit;
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
 				    write_limit, 0, 0);
 
-	DL_FOREACH(adev->streams, curr) {
-		if (curr->skip_mix)
-			continue;
+	DL_FOREACH(adev->streams, curr)
 		dev_stream_mix(curr, odev->format->num_channels, dst,
 			       &write_limit, &num_mixed);
-	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
 				    write_limit, num_mixed, 0);
