@@ -30,6 +30,7 @@ static int update_channel_layout_return_val;
 static int  set_swap_mode_for_node_called;
 static int  set_swap_mode_for_node_enable;
 static int notify_node_left_right_swapped_called;
+static int cras_audio_format_set_channel_layout_called;
 static unsigned int cras_system_get_volume_return;
 
 // Iodev callback
@@ -59,6 +60,7 @@ void ResetStubData() {
   set_swap_mode_for_node_called = 0;
   set_swap_mode_for_node_enable = 0;
   notify_node_left_right_swapped_called = 0;
+  cras_audio_format_set_channel_layout_called = 0;
 }
 
 namespace {
@@ -108,6 +110,8 @@ class IoDevSetFormatTestSuite : public testing::Test {
       iodev_.update_channel_layout = update_channel_layout;
       iodev_.supported_rates = sample_rates_;
       iodev_.supported_channel_counts = channel_counts_;
+
+      cras_audio_format_set_channel_layout_called  = 0;
     }
 
     virtual void TearDown() {
@@ -218,8 +222,10 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutSuccess) {
 }
 
 TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
+  static const int8_t stereo_layout[] =
+      {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
   struct cras_audio_format fmt;
-  int rc;
+  int rc, i;
 
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 48000;
@@ -234,6 +240,9 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(48000, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(2, cras_audio_format_set_channel_layout_called);
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
 }
 
 static void update_active_node(struct cras_iodev *iodev)
@@ -458,6 +467,10 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
 int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
 					 const int8_t layout[CRAS_CH_MAX])
 {
+  int i;
+  cras_audio_format_set_channel_layout_called++;
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    format->channel_layout[i] = layout[i];
   return 0;
 }
 

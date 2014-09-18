@@ -80,6 +80,24 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 	return iodev->supported_channel_counts[0];
 }
 
+/* Set default channel count and layout to an iodev. */
+static void set_default_channel_count_layout(struct cras_iodev *iodev)
+{
+	static const int stereo_channel_count = 2;
+	static const int8_t stereo_layout[] =
+			{0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+	size_t num_channels;
+
+	/* Fall back to stereo when no matching layout is found. If we
+	 * see any device only supports channel count > 2, make sure
+	 * it has a default channel layout. */
+	num_channels = get_best_channel_count(iodev, stereo_channel_count);
+	iodev->format->num_channels = num_channels;
+	if (num_channels == stereo_channel_count)
+		cras_audio_format_set_channel_layout(iodev->format,
+						     stereo_layout);
+}
+
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
@@ -118,16 +136,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 
 		if (iodev->update_channel_layout) {
 			rc = iodev->update_channel_layout(iodev);
-			if (rc < 0) {
-				/* Fall back to stereo when no matching layout
-				 * is found. */
-				actual_num_channels = get_best_channel_count(
-						iodev, 2);
-				if (actual_num_channels == 0)
-					goto error;
-				iodev->format->num_channels =
-						actual_num_channels;
-			}
+			if (rc < 0)
+				set_default_channel_count_layout(iodev);
 		}
 		cras_iodev_alloc_dsp(iodev);
 	}
