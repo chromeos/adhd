@@ -954,7 +954,6 @@ static int write_streams(struct active_dev *adev,
 	struct cras_iodev *odev = adev->dev;
 	struct dev_stream *curr;
 	size_t num_mixed;
-	int max_frames = 0;
 	unsigned int drain_limit = write_limit;
 	unsigned int num_playing = 0;
 
@@ -982,7 +981,6 @@ static int write_streams(struct active_dev *adev,
 			write_limit = MIN((size_t)shm_frames, write_limit);
 			num_playing++;
 		}
-		max_frames = MAX(max_frames, shm_frames);
 	}
 
 	/* Don't limit the amount written for draining streams unless there are
