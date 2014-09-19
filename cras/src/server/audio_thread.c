@@ -29,6 +29,9 @@
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MIN_READ_WAIT_US 2000 /* 2ms */
+static const struct timespec playback_wake_fuzz_ts = {
+	0, 500 * 1000 /* 500 usec. */
+};
 
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
@@ -885,9 +888,10 @@ static int fetch_streams(struct audio_thread *thread,
 			continue;
 		}
 
-		/* Check if it's time to get more data from this stream. */
+		/* Check if it's time to get more data from this stream.
+		 * Allowing for waking up half a little early. */
 		clock_gettime(CLOCK_MONOTONIC, &now);
-		// TODO add some fuzz here.
+		add_timespecs(&now, &playback_wake_fuzz_ts);
 		if (!timespec_after(&now, dev_stream_next_cb_ts(dev_stream)))
 			continue;
 
