@@ -27,8 +27,6 @@ struct cras_rstream;
  *    conv_buffer_size_frames - Size of conv_buffer in frames.
  *    skip_mix - Don't mix this next time streams are mixed.
  *    mix_offset - Current mix progress in the buffer.
- *    next_cb_ts - Next callback time for this stream.
- *    sleep_interval_ts - Time between audio callbacks.
  */
 struct dev_stream {
 	struct cras_rstream *stream;
@@ -38,8 +36,6 @@ struct dev_stream {
 	unsigned int conv_buffer_size_frames;
 	unsigned int skip_mix;
 	unsigned int mix_offset;
-	struct timespec next_cb_ts;
-	struct timespec sleep_interval_ts;
 	struct dev_stream *prev, *next;
 };
 
@@ -116,5 +112,17 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 
 /* Ask the client for cb_threshold samples of audio to play. */
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream);
+
+static inline const struct timespec *
+dev_stream_next_cb_ts(struct dev_stream *dev_stream)
+{
+	return &dev_stream->stream->next_cb_ts;
+}
+
+static inline const struct timespec *
+dev_stream_sleep_interval_ts(struct dev_stream *dev_stream)
+{
+	return &dev_stream->stream->sleep_interval_ts;
+}
 
 #endif /* DEV_STREAM_H_ */

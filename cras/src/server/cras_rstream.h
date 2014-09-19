@@ -42,6 +42,8 @@ struct rstream_shm_info {
  *    input_audio_area - space for captured audio
  *    output_audio_area - space for playback audio
  *    format - format of the stream
+ *    next_cb_ts - Next callback time for this stream.
+ *    sleep_interval_ts - Time between audio callbacks.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -59,6 +61,8 @@ struct cras_rstream {
 	struct cras_audio_area *input_audio_area;
 	struct cras_audio_area *output_audio_area;
 	struct cras_audio_format format;
+	struct timespec next_cb_ts;
+	struct timespec sleep_interval_ts;
 	struct cras_rstream *prev, *next;
 };
 

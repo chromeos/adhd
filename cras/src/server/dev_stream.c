@@ -80,12 +80,12 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 
 	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
 			    stream_fmt->frame_rate,
-			    &out->sleep_interval_ts);
-	clock_gettime(CLOCK_MONOTONIC, &out->next_cb_ts);
+			    &stream->sleep_interval_ts);
+	clock_gettime(CLOCK_MONOTONIC, &stream->next_cb_ts);
 
 	if (stream->direction != CRAS_STREAM_OUTPUT) {
-		add_timespecs(&out->next_cb_ts, &out->sleep_interval_ts);
-		add_timespecs(&out->next_cb_ts, &capture_oversleep_time);
+		add_timespecs(&stream->next_cb_ts, &stream->sleep_interval_ts);
+		add_timespecs(&stream->next_cb_ts, &capture_oversleep_time);
 	}
 
 	return out;
@@ -356,14 +356,15 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 /* TODO(dgreid) remove this hack to reset the time if needed. */
 static void check_next_wake_time(struct dev_stream *dev_stream)
 {
+	struct cras_rstream *rstream = dev_stream->stream;
 	struct timespec now;
 
 	clock_gettime(CLOCK_MONOTONIC, &now);
-	if (timespec_after(&now, &dev_stream->next_cb_ts)) {
-		dev_stream->next_cb_ts = now;
-		add_timespecs(&dev_stream->next_cb_ts,
-			      &dev_stream->sleep_interval_ts);
-		printf("behind %x\n", dev_stream->stream->stream_id);
+	if (timespec_after(&now, &rstream->next_cb_ts)) {
+		rstream->next_cb_ts = now;
+		add_timespecs(&rstream->next_cb_ts,
+			      &rstream->sleep_interval_ts);
+		printf("behind %x\n", rstream->stream_id);
 	}
 }
 
@@ -397,7 +398,7 @@ int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
 
 	/* Tell the client that samples are ready and mark the next time it
 	 * should be called back. */
-	add_timespecs(&dev_stream->next_cb_ts, &dev_stream->sleep_interval_ts);
+	add_timespecs(&rstream->next_cb_ts, &rstream->sleep_interval_ts);
 	check_next_wake_time(dev_stream);
 
 	return cras_rstream_audio_ready(rstream, str_cb_threshold);
@@ -491,7 +492,7 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 				shm->area->write_offset[1]);
 	}
 
-	add_timespecs(&dev_stream->next_cb_ts, &dev_stream->sleep_interval_ts);
+	add_timespecs(&rstream->next_cb_ts, &rstream->sleep_interval_ts);
 	check_next_wake_time(dev_stream);
 
 	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);

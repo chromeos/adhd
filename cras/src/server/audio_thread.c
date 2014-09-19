@@ -888,7 +888,7 @@ static int fetch_streams(struct audio_thread *thread,
 		/* Check if it's time to get more data from this stream. */
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		// TODO add some fuzz here.
-		if (!timespec_after(&now, &dev_stream->next_cb_ts))
+		if (!timespec_after(&now, dev_stream_next_cb_ts(dev_stream)))
 			continue;
 
 		dev_stream_set_delay(dev_stream, delay);
@@ -1235,16 +1235,18 @@ static void get_next_stream_wake_from_list(struct dev_stream *streams,
 	struct dev_stream *dev_stream;
 
 	DL_FOREACH(streams, dev_stream) {
+		const struct timespec *next_cb_ts;
 		if (cras_rstream_get_is_draining(dev_stream->stream))
 			continue;
 
+		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
 		audio_thread_event_log_data(atlog,
 					    AUDIO_THREAD_STREAM_SLEEP_TIME,
 					    dev_stream->stream->stream_id,
-					    dev_stream->next_cb_ts.tv_sec,
-					    dev_stream->next_cb_ts.tv_nsec);
-		if (timespec_after(min_ts, &dev_stream->next_cb_ts))
-			*min_ts = dev_stream->next_cb_ts;
+					    next_cb_ts->tv_sec,
+					    next_cb_ts->tv_nsec);
+		if (timespec_after(min_ts, next_cb_ts))
+			*min_ts = *next_cb_ts;
 	}
 }
 
