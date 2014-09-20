@@ -560,25 +560,6 @@ static int init_devices(struct audio_thread *thread,
 	return 0;
 }
 
-/* Checks all active devices are playing or recording. Return 0
- * if there's no active device present or any active device is not
- * running, return 1 otherwise.
- */
-static int devices_running(struct audio_thread *thread,
-			   enum CRAS_STREAM_DIRECTION dir)
-{
-	struct active_dev *adev;
-	struct active_dev *adevs;
-
-	adevs = thread->active_devs[dir];
-	if (adevs == NULL)
-		return 0;
-	DL_FOREACH(adevs, adev)
-		if (!adev->dev->dev_running(adev->dev))
-			return 0;
-	return 1;
-}
-
 /*
  * Non-static functions of prefix 'thread_' runs in audio thread
  * to manipulate iodevs and streams, visible for unittest.
@@ -1559,6 +1540,12 @@ static int capture_to_streams(struct dev_stream *streams,
 
 static int do_capture(struct audio_thread *thread)
 {
+	struct active_dev *idev_list = thread->active_devs[CRAS_STREAM_INPUT];
+	struct active_dev *adev;
+
+	DL_FOREACH(idev_list, adev) {
+	}
+
 	return 0;
 }
 
@@ -1588,10 +1575,6 @@ int possibly_read_audio(struct audio_thread *thread,
 		return rc;
 	hw_level = rc;
 	write_limit = hw_level;
-
-	/* Check if the device is still running. */
-	if (!devices_running(thread, dir))
-		return -1;
 
 	write_limit = get_write_limit_set_delay(thread,
 						write_limit,
@@ -1626,16 +1609,21 @@ int possibly_read_audio(struct audio_thread *thread,
 }
 
 /* Reads and/or writes audio sampels from/to the devices. */
-static int stream_dev_io(struct audio_thread *thread, struct timespec *ts)
+static int stream_dev_io(struct audio_thread *thread)
 {
-	struct timespec min_ts;
-	struct timespec now;
-
 	output_stream_fetch(thread);
 	do_capture(thread);
 	send_captured_samples(thread);
 	wait_pending_output_streams(thread);
 	do_playback(thread);
+
+	return 0;
+}
+
+void fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
+{
+	struct timespec min_ts;
+	struct timespec now;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
@@ -1650,8 +1638,6 @@ static int stream_dev_io(struct audio_thread *thread, struct timespec *ts)
 	get_next_dev_wake(thread, &min_ts, &now);
 	if (timespec_after(&min_ts, &now))
 		subtract_timespecs(&min_ts, &now, ts);
-
-	return 0;
 }
 
 /* For playback, fill the audio buffer when needed, for capture, pull out
@@ -1689,9 +1675,10 @@ static void *audio_io_thread(void *arg)
 		    device_open(first_input_dev(thread)) ||
 		    device_open(first_loop_dev(thread))) {
 			/* device opened */
-			err = stream_dev_io(thread, &ts);
+			err = stream_dev_io(thread);
 			if (err < 0)
 				syslog(LOG_ERR, "audio cb error %d", err);
+			fill_next_sleep_interval(thread, &ts);
 			wait_ts = &ts;
 		}
 
