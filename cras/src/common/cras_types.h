@@ -21,6 +21,9 @@ struct __attribute__ ((__packed__)) cras_timespec {
 	int64_t tv_nsec;
 };
 
+/* Device index 0 is reserved for "no device" */
+#define NO_DEVICE 0
+
 /* Directions of audio streams.
  * Input, Output, or loopback.
  *

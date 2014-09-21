@@ -104,8 +104,7 @@ static int add_dev_to_list(struct iodev_list *list,
 	/* Move to the next index and make sure it isn't taken. */
 	new_idx = next_iodev_idx;
 	while (1) {
-		/* Index 0 is reserved to mean "no device". */
-		if (new_idx == 0)
+		if (new_idx == NO_DEVICE)
 			new_idx++;
 		DL_SEARCH_SCALAR(list->iodevs, tmp, info.idx, new_idx);
 		if (tmp == NULL)
