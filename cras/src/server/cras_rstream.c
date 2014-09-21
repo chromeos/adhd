@@ -62,29 +62,17 @@ static int setup_shm(struct cras_rstream *stream,
 /* Setup the shared memory area used for audio samples. */
 static inline int setup_shm_area(struct cras_rstream *stream)
 {
-	int rc = 0;
+	int rc;
 
-	if (stream_uses_output(stream)) {
-		rc = setup_shm(stream, &stream->output_shm,
-			       &stream->output_shm_info);
-		if (rc)
-			return rc;
-		stream->output_audio_area =
-			cras_audio_area_create(stream->format.num_channels);
-		cras_audio_area_config_channels(stream->output_audio_area,
-						&stream->format);
-	}
+	rc = setup_shm(stream, &stream->shm,
+			&stream->shm_info);
+	if (rc)
+		return rc;
+	stream->audio_area =
+		cras_audio_area_create(stream->format.num_channels);
+	cras_audio_area_config_channels(stream->audio_area, &stream->format);
 
-	if (cras_stream_has_input(stream->direction)) {
-		rc = setup_shm(stream, &stream->input_shm,
-			       &stream->input_shm_info);
-		stream->input_audio_area =
-			cras_audio_area_create(stream->format.num_channels);
-		cras_audio_area_config_channels(stream->input_audio_area,
-						&stream->format);
-	}
-
-	return rc;
+	return 0;
 }
 
 static inline int buffer_meets_size_limit(size_t buffer_size, size_t rate)
@@ -165,8 +153,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->buffer_frames = buffer_frames;
 	stream->cb_threshold = cb_threshold;
 	stream->client = client;
-	stream->output_shm.area = NULL;
-	stream->input_shm.area = NULL;
+	stream->shm.area = NULL;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {
@@ -183,17 +170,11 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
-	if (stream->input_shm.area != NULL) {
-		shmdt(stream->input_shm.area);
-		shmctl(stream->input_shm_info.shm_id, IPC_RMID,
-		       (void *)stream->input_shm.area);
-		cras_audio_area_destroy(stream->input_audio_area);
-	}
-	if (stream->output_shm.area != NULL) {
-		shmdt(stream->output_shm.area);
-		shmctl(stream->output_shm_info.shm_id, IPC_RMID,
-		       (void *)stream->output_shm.area);
-		cras_audio_area_destroy(stream->output_audio_area);
+	if (stream->shm.area != NULL) {
+		shmdt(stream->shm.area);
+		shmctl(stream->shm_info.shm_id, IPC_RMID,
+		       (void *)stream->shm.area);
+		cras_audio_area_destroy(stream->audio_area);
 	}
 	free(stream);
 }

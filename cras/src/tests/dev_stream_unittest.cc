@@ -67,8 +67,7 @@ class CreateSuite : public testing::Test{
       in_fmt.num_channels = 2;
       out_fmt.num_channels = 2;
 
-      SetupShm(&rstream_.output_shm);
-      SetupShm(&rstream_.input_shm);
+      SetupShm(&rstream_.shm);
 
       rstream_.stream_id = 0x10001;
       rstream_.buffer_frames = kBufferFrames;
@@ -88,8 +87,7 @@ class CreateSuite : public testing::Test{
     }
 
     virtual void TearDown() {
-      free(rstream_.output_shm.area);
-      free(rstream_.input_shm.area);
+      free(rstream_.shm.area);
       audio_thread_event_log_deinit(atlog);
     }
 
@@ -139,8 +137,8 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   stream_area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
                                                   2 * sizeof(*area->channels));
   stream_area->num_channels = 2;
-  rstream_.input_audio_area = stream_area;
-  int16_t *shm_samples = (int16_t *)rstream_.input_shm.area->samples;
+  rstream_.audio_area = stream_area;
+  int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
   stream_area->channels[0].step_bytes = 4;
   stream_area->channels[0].buf = (uint8_t *)(shm_samples);
   stream_area->channels[1].step_bytes = 4;
@@ -186,13 +184,13 @@ TEST_F(CreateSuite, CaptureSRC) {
   stream_area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
                                                   2 * sizeof(*area->channels));
   stream_area->num_channels = 2;
-  rstream_.input_audio_area = stream_area;
-  int16_t *shm_samples = (int16_t *)rstream_.input_shm.area->samples;
+  rstream_.audio_area = stream_area;
+  int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
   stream_area->channels[0].step_bytes = 4;
   stream_area->channels[0].buf = (uint8_t *)(shm_samples);
   stream_area->channels[1].step_bytes = 4;
   stream_area->channels[1].buf = (uint8_t *)(shm_samples + 1);
-  rstream_.input_audio_area = stream_area;
+  rstream_.audio_area = stream_area;
 
   devstr.conv_area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
                                                   2 * sizeof(*area->channels));

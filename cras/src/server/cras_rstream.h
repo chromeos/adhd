@@ -35,12 +35,9 @@ struct rstream_shm_info {
  *    cb_threshold - Callback client when this much is left.
  *    is_draining - The stream is draining and waiting to be removed.
  *    client - The client who uses this stream.
- *    input_shm_info - Configuration data for input shared memory
- *    output_shm_info - Configuration data for output shared memory
- *    input_shm - input shared memory
- *    output_shm - output shared memory
- *    input_audio_area - space for captured audio
- *    output_audio_area - space for playback audio
+ *    shm_info - Configuration data for shared memory
+ *    shm - shared memory
+ *    audio_area - space for playback/capture audio
  *    format - format of the stream
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
@@ -54,12 +51,9 @@ struct cras_rstream {
 	size_t cb_threshold;
 	int is_draining;
 	struct cras_rclient *client;
-	struct rstream_shm_info input_shm_info;
-	struct rstream_shm_info output_shm_info;
-	struct cras_audio_shm input_shm;
-	struct cras_audio_shm output_shm;
-	struct cras_audio_area *input_audio_area;
-	struct cras_audio_area *output_audio_area;
+	struct rstream_shm_info shm_info;
+	struct cras_audio_shm shm;
+	struct cras_audio_area *audio_area;
 	struct cras_audio_format format;
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
@@ -162,13 +156,13 @@ static inline void cras_rstream_set_is_draining(struct cras_rstream *stream,
 /* Gets the shm key used to find the outputshm region. */
 static inline int cras_rstream_output_shm_key(const struct cras_rstream *stream)
 {
-	return stream->output_shm_info.shm_key;
+	return stream->shm_info.shm_key;
 }
 
 /* Gets the shm key used to find the input shm region. */
 static inline int cras_rstream_input_shm_key(const struct cras_rstream *stream)
 {
-	return stream->input_shm_info.shm_key;
+	return stream->shm_info.shm_key;
 }
 
 /* Gets the total size of shm memory allocated. */
@@ -176,24 +170,24 @@ static inline size_t cras_rstream_get_total_shm_size(
 		const struct cras_rstream *stream)
 {
 	if (stream->direction == CRAS_STREAM_OUTPUT)
-		return cras_shm_total_size(&stream->output_shm);
+		return cras_shm_total_size(&stream->shm);
 
-	/* Use the input shm size for loopback streams. */
-	return cras_shm_total_size(&stream->input_shm);
-}
-
-/* Gets shared memory region for this stream. */
-static inline
-struct cras_audio_shm *cras_rstream_output_shm(struct cras_rstream *stream)
-{
-	return &stream->output_shm;
+	/* Use the shm size for loopback streams. */
+	return cras_shm_total_size(&stream->shm);
 }
 
 /* Gets shared memory region for this stream. */
 static inline
 struct cras_audio_shm *cras_rstream_input_shm(struct cras_rstream *stream)
 {
-	return &stream->input_shm;
+	return &stream->shm;
+}
+
+/* Gets shared memory region for this stream. */
+static inline
+struct cras_audio_shm *cras_rstream_output_shm(struct cras_rstream *stream)
+{
+	return &stream->shm;
 }
 
 /* Checks if the stream uses an output device. */

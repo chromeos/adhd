@@ -236,8 +236,8 @@ static void capture_copy_converted_to_stream(struct dev_stream *dev_stream,
 				shm,
 				cras_rstream_get_cb_threshold(rstream) -
 						dev_stream->mix_offset,
-				&rstream->input_audio_area->frames);
-	num_frames = MIN(rstream->input_audio_area->frames,
+				&rstream->audio_area->frames);
+	num_frames = MIN(rstream->audio_area->frames,
 			 buf_queued_bytes(dev_stream->conv_buffer) /
 							frame_bytes);
 
@@ -259,11 +259,11 @@ static void capture_copy_converted_to_stream(struct dev_stream *dev_stream,
 		cras_audio_area_config_channels(dev_stream->conv_area, fmt);
 		dev_stream->conv_area->frames = write_frames;
 
-		cras_audio_area_config_buf_pointers(rstream->input_audio_area,
+		cras_audio_area_config_buf_pointers(rstream->audio_area,
 						    &rstream->format,
 						    stream_samples);
 
-		cras_audio_area_copy(rstream->input_audio_area,
+		cras_audio_area_copy(rstream->audio_area,
 				     dev_stream->mix_offset,
 				     cras_get_format_bytes(&rstream->format),
 				     dev_stream->conv_area, dev_index);
@@ -301,12 +301,12 @@ void dev_stream_capture(struct dev_stream *dev_stream,
 		stream_samples = cras_shm_get_writeable_frames(
 				shm,
 				cras_rstream_get_cb_threshold(rstream),
-				&rstream->input_audio_area->frames);
-		cras_audio_area_config_buf_pointers(rstream->input_audio_area,
+				&rstream->audio_area->frames);
+		cras_audio_area_config_buf_pointers(rstream->audio_area,
 						    &rstream->format,
 						    stream_samples);
 
-		cras_audio_area_copy(rstream->input_audio_area,
+		cras_audio_area_copy(rstream->audio_area,
 				     dev_stream->mix_offset,
 				     cras_get_format_bytes(&rstream->format),
 				     area, dev_index);
