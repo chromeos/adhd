@@ -175,6 +175,7 @@ TESTS = \
 	hfp_info_unittest \
 	hfp_iodev_unittest \
 	hfp_slc_unittest \
+	input_mix_unittest \
 	iodev_list_unittest \
 	iodev_unittest \
 	loopback_iodev_unittest \
@@ -431,6 +432,12 @@ hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
 hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+input_mix_unittest_SOURCES = tests/input_mix_unittest.cc \
+	server/input_mix.c
+input_mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+input_mix_unittest_LDADD = -lgtest -liniparser -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c
