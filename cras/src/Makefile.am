@@ -158,7 +158,6 @@ TESTS = \
 	alsa_mixer_unittest \
 	alsa_ucm_unittest \
 	array_unittest \
-	audio_thread_unittest \
 	card_config_unittest \
 	checksum_unittest \
 	cras_client_unittest \
