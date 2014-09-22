@@ -17,12 +17,10 @@
  * Sleep this much time past the buffer size to be sure at least
  * the buffer size is captured when the audio thread wakes up.
  */
-static const struct timespec capture_oversleep_time = {
-	.tv_sec = 0,
-	.tv_nsec = 250e3 /* TODO(dgreid), is this too long? */
-};
+static const unsigned int capture_extra_sleep_frames = 20;
 
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
+				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt)
 {
 	struct dev_stream *out;
@@ -33,6 +31,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	unsigned int fmt_conv_frame_bytes;
 
 	out = calloc(1, sizeof(*out));
+	out->dev_id = dev_id;
 	out->stream = stream;
 
 	if (stream->direction == CRAS_STREAM_OUTPUT) {
@@ -84,15 +83,22 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	clock_gettime(CLOCK_MONOTONIC, &stream->next_cb_ts);
 
 	if (stream->direction != CRAS_STREAM_OUTPUT) {
+		struct timespec extra_sleep;
+
+		cras_frames_to_time(capture_extra_sleep_frames,
+				    stream->format.frame_rate, &extra_sleep);
 		add_timespecs(&stream->next_cb_ts, &stream->sleep_interval_ts);
-		add_timespecs(&stream->next_cb_ts, &capture_oversleep_time);
+		add_timespecs(&stream->next_cb_ts, &extra_sleep);
 	}
+
+	cras_rstream_dev_attach(stream, dev_id);
 
 	return out;
 }
 
 void dev_stream_destroy(struct dev_stream *dev_stream)
 {
+	cras_rstream_dev_detach(dev_stream->stream, dev_stream->dev_id);
 	if (dev_stream->conv) {
 		cras_audio_area_destroy(dev_stream->conv_area);
 		cras_fmt_conv_destroy(dev_stream->conv);
@@ -214,9 +220,10 @@ static void capture_with_fmt_conv(struct dev_stream *dev_stream,
 
 /* Copy from the converted buffer to the stream shm.  These have the same format
  * at this point. */
-static void capture_copy_converted_to_stream(struct dev_stream *dev_stream,
-					     struct cras_rstream *rstream,
-					     unsigned int dev_index)
+static unsigned int capture_copy_converted_to_stream(
+		struct dev_stream *dev_stream,
+		struct cras_rstream *rstream,
+		unsigned int dev_index)
 {
 	struct cras_audio_shm *shm;
 	uint8_t *stream_samples;
@@ -278,6 +285,7 @@ static void capture_copy_converted_to_stream(struct dev_stream *dev_stream,
 				    rstream->stream_id,
 				    total_written,
 				    cras_shm_frames_written(shm));
+	return total_written;
 }
 
 void dev_stream_capture(struct dev_stream *dev_stream,
@@ -287,14 +295,15 @@ void dev_stream_capture(struct dev_stream *dev_stream,
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm;
 	uint8_t *stream_samples;
+	unsigned int nwritten;
 
 	/* Check if format conversion is needed. */
 	if (dev_stream->conv) {
 		capture_with_fmt_conv(dev_stream,
 				      area->channels[0].buf,
 				      area->frames);
-		capture_copy_converted_to_stream(dev_stream, rstream,
-						 dev_index);
+		nwritten = capture_copy_converted_to_stream(dev_stream, rstream,
+							    dev_index);
 	} else {
 		/* Set up the shm area and copy to it. */
 		shm = cras_rstream_input_shm(rstream);
@@ -311,11 +320,14 @@ void dev_stream_capture(struct dev_stream *dev_stream,
 				     cras_get_format_bytes(&rstream->format),
 				     area, dev_index);
 		dev_stream->mix_offset += area->frames;
+		nwritten = area->frames;
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 					    rstream->stream_id,
 					    area->frames,
 					    cras_shm_frames_written(shm));
 	}
+	cras_rstream_input_samples_written(rstream, nwritten,
+					   dev_stream->dev_id);
 }
 
 int dev_stream_playback_frames(const struct dev_stream *dev_stream)
@@ -368,33 +380,25 @@ static void check_next_wake_time(struct dev_stream *dev_stream)
 	}
 }
 
-int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
-				    unsigned int written)
+int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
-	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
-	unsigned int str_frames;
-
-	if (dev_stream->conv)
-		written = cras_fmt_conv_in_frames_to_out(dev_stream->conv,
-							 written);
-	cras_shm_buffer_written(shm, dev_stream->mix_offset);
-	str_frames = cras_shm_frames_written(shm);
 
 	dev_stream->mix_offset = 0;
 
+	cras_rstream_update_input_write_pointer(rstream);
+
 	/* If this stream doesn't have enough data yet, skip it. */
-	if (str_frames < str_cb_threshold)
+	if (!cras_rstream_input_level_met(rstream))
 		return 0;
 
 	/* Enough data for this stream. */
-	cras_shm_buffer_write_complete(shm);
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_POST,
 				    rstream->stream_id,
 				    str_cb_threshold,
-				    shm->area->read_buf_idx);
+				    rstream->shm.area->read_buf_idx);
 
 	/* Tell the client that samples are ready and mark the next time it
 	 * should be called back. */

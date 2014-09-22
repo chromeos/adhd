@@ -68,6 +68,7 @@ cras_SOURCES = \
 	server/cras_mix.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
+	server/input_mix.c \
 	common/cras_sbc_codec.c \
 	server/cras_server.c \
 	server/cras_server_metrics.c \

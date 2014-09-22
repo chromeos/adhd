@@ -13,6 +13,7 @@
 #include "cras_types.h"
 
 struct cras_rclient;
+struct dev_mix;
 
 /* Holds identifiers for an shm segment.
  *  shm_key - Key shared with client to access shm.
@@ -41,6 +42,7 @@ struct rstream_shm_info {
  *    format - format of the stream
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
+ *    input_mix_state - State of input from all devices for this capture stream.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -57,6 +59,7 @@ struct cras_rstream {
 	struct cras_audio_format format;
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
+	struct dev_mix *input_mix_state;
 	struct cras_rstream *prev, *next;
 };
 
@@ -212,11 +215,27 @@ static inline int stream_uses_loopback(const struct cras_rstream *s)
 int cras_rstream_request_audio(const struct cras_rstream *stream);
 
 /* Tells a capture client that count frames are ready. */
-int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count);
+int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count);
 /* Waits for the response to a request for audio. */
 int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream);
 /* Sends a message to the client telling him to re-attach the stream. Used when
  * moving a stream between io devices. */
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream);
+
+/* Let the rstream know when a device is added or removed. */
+void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id);
+void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id);
+
+void cras_rstream_input_samples_written(struct cras_rstream *rstream,
+					unsigned int frames,
+					unsigned int dev_id);
+
+void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream);
+
+static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
+{
+	const struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	return cras_shm_frames_written(shm) >= rstream->cb_threshold;
+}
 
 #endif /* CRAS_RSTREAM_H_ */

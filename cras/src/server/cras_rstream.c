@@ -13,7 +13,7 @@
 #include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-
+#include "input_mix.h"
 
 /* Configure the shm area for the stream. */
 static int setup_shm(struct cras_rstream *stream,
@@ -162,6 +162,9 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 		return rc;
 	}
 
+	if (direction == CRAS_STREAM_INPUT)
+		stream->input_mix_state = dev_mix_create(stream->buffer_frames);
+
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       stream_id, buffer_frames, cb_threshold);
 	*stream_out = stream;
@@ -176,6 +179,8 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 		       (void *)stream->shm.area);
 		cras_audio_area_destroy(stream->audio_area);
 	}
+	if (stream->direction == CRAS_STREAM_INPUT)
+		dev_mix_destroy(stream->input_mix_state);
 	free(stream);
 }
 
@@ -194,10 +199,12 @@ int cras_rstream_request_audio(const struct cras_rstream *stream)
 	return rc;
 }
 
-int cras_rstream_audio_ready(const struct cras_rstream *stream, size_t count)
+int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 {
 	struct audio_message msg;
 	int rc;
+
+	cras_shm_buffer_write_complete(&stream->shm);
 
 	msg.id = AUDIO_MESSAGE_DATA_READY;
 	msg.frames = count;
@@ -223,4 +230,34 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 		return;
 	cras_fill_client_stream_reattach(&msg, stream->stream_id);
 	cras_rclient_send_message(stream->client, &msg.header);
+}
+
+void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
+{
+	if (rstream->direction != CRAS_STREAM_INPUT)
+		return;
+	dev_mix_add_dev(rstream->input_mix_state, dev_id);
+}
+
+void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
+{
+	if (rstream->direction != CRAS_STREAM_INPUT)
+		return;
+	dev_mix_rm_dev(rstream->input_mix_state, dev_id);
+}
+
+void cras_rstream_input_samples_written(struct cras_rstream *rstream,
+					unsigned int frames,
+					unsigned int dev_id)
+{
+	dev_mix_frames_added(rstream->input_mix_state, dev_id, frames);
+}
+
+void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
+{
+	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	unsigned int nwritten =
+			dev_mix_get_new_write_point(rstream->input_mix_state);
+
+	cras_shm_buffer_written(shm, nwritten);
 }

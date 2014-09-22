@@ -21,6 +21,7 @@ struct cras_rstream;
 /*
  * Linked list of streams of audio from/to a client.
  * Args:
+ *    dev_id - Index of the hw device.
  *    stream - The rstream attached to a device.
  *    conv - Sample rate or format converter.
  *    conv_buffer - The buffer for converter if needed.
@@ -29,6 +30,7 @@ struct cras_rstream;
  *    mix_offset - Current mix progress in the buffer.
  */
 struct dev_stream {
+	unsigned int dev_id;
 	struct cras_rstream *stream;
 	struct cras_fmt_conv *conv;
 	struct byte_buffer *conv_buffer;
@@ -40,6 +42,7 @@ struct dev_stream {
 };
 
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
+				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt);
 void dev_stream_destroy(struct dev_stream *dev_stream);
 
@@ -84,12 +87,10 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream);
 unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream);
 
 /*
- * Returns the number of frames that still need to be captured before this
- * capture stream is ready.  min_sleep is updated to hold the number of frames
- * needed if it is less that the current value.
+ * If enough samples have been captured, post them to the client.
+ * TODO(dgreid) - see if this function can be eliminated.
  */
-int dev_stream_capture_sleep_frames(struct dev_stream *dev_stream,
-				    unsigned int written);
+int dev_stream_capture_update_rstream(struct dev_stream *dev_stream);
 
 /* Fill ts with the time the playback sample will be played. */
 void cras_set_playback_timestamp(size_t frame_rate,
