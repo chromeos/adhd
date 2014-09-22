@@ -273,7 +273,8 @@ void cras_shm_buffer_written(struct cras_audio_shm *shm, size_t frames)
 }
 
 /* Returns the number of frames that have been written to the current buffer. */
-static inline unsigned int cras_shm_frames_written(struct cras_audio_shm *shm)
+static inline
+unsigned int cras_shm_frames_written(const struct cras_audio_shm *shm)
 {
 	size_t buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
 
