@@ -227,9 +227,8 @@ void empty_iodev_destroy(struct cras_iodev *iodev)
 
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_rm_input(iodev);
-	else {
+	else
 		cras_iodev_list_rm_output(iodev);
-	}
 	free(iodev->active_node);
 	cras_iodev_free_dsp(iodev);
 	free(empty_iodev);
