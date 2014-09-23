@@ -76,11 +76,14 @@ struct set_stream_volume_command_message {
 /* Adds a stream to the client.
  *  stream - The stream to add.
  *  stream_id_out - Filled with the stream id of the new stream.
+ *  dev_idx - Index of the device to attach the newly created stream.
+ *      NO_DEVICE means not to pin the stream to a device.
  */
 struct add_stream_command_message {
 	struct command_msg header;
 	struct client_stream *stream;
 	cras_stream_id_t *stream_id_out;
+	uint32_t dev_idx;
 };
 
 /* Commands send from a running stream to the client. */
@@ -683,7 +686,8 @@ err_ret:
 }
 
 static int send_connect_message(struct cras_client *client,
-				struct client_stream *stream)
+				struct client_stream *stream,
+				uint32_t dev_idx)
 {
 	int rc;
 	struct cras_connect_message serv_msg;
@@ -703,7 +707,8 @@ static int send_connect_message(struct cras_client *client,
 				  stream->config->buffer_frames,
 				  stream->config->cb_threshold,
 				  stream->flags,
-				  stream->config->format);
+				  stream->config->format,
+				  dev_idx);
 	rc = cras_send_with_fd(client->server_fd, &serv_msg, sizeof(serv_msg),
 			       sock[1]);
 	if (rc != sizeof(serv_msg)) {
@@ -729,7 +734,8 @@ fail:
  * passed here. */
 static int client_thread_add_stream(struct cras_client *client,
 				    struct client_stream *stream,
-				    cras_stream_id_t *stream_id_out)
+				    cras_stream_id_t *stream_id_out,
+				    uint32_t dev_idx)
 {
 	int rc;
 	cras_stream_id_t new_id;
@@ -747,7 +753,7 @@ static int client_thread_add_stream(struct cras_client *client,
 	stream->client = client;
 
 	/* send a message to the server asking that the stream be started. */
-	rc = send_connect_message(client, stream);
+	rc = send_connect_message(client, stream, dev_idx);
 	if (rc != 0)
 		return rc;
 
@@ -845,7 +851,7 @@ static int handle_stream_reattach(struct cras_client *client,
 	free_shm(stream);
 
 	/* send a message to the server asking that the stream be started. */
-	rc = send_connect_message(client, stream);
+	rc = send_connect_message(client, stream, NO_DEVICE);
 	if (rc != 0) {
 		client_thread_rm_stream(client, stream_id);
 		return rc;
@@ -1013,7 +1019,8 @@ static int handle_command_message(struct cras_client *client)
 			(struct add_stream_command_message *)msg;
 		rc = client_thread_add_stream(client,
 					      add_msg->stream,
-					      add_msg->stream_id_out);
+					      add_msg->stream_id_out,
+					      add_msg->dev_idx);
 		break;
 	}
 	case CLIENT_REMOVE_STREAM:
@@ -1351,9 +1358,11 @@ void cras_client_stream_params_destroy(struct cras_stream_params *params)
 	free(params);
 }
 
-int cras_client_add_stream(struct cras_client *client,
-			   cras_stream_id_t *stream_id_out,
-			   struct cras_stream_params *config)
+static inline int cras_client_send_add_stream_command_message(
+		struct cras_client *client,
+		uint32_t dev_idx,
+		cras_stream_id_t *stream_id_out,
+		struct cras_stream_params *config)
 {
 	struct add_stream_command_message cmd_msg;
 	struct client_stream *stream;
@@ -1386,12 +1395,12 @@ int cras_client_add_stream(struct cras_client *client,
 	stream->direction = config->direction;
 	stream->volume_scaler = 1.0;
 
-
 	cmd_msg.header.len = sizeof(cmd_msg);
 	cmd_msg.header.msg_id = CLIENT_ADD_STREAM;
 	cmd_msg.header.stream_id = stream->id;
 	cmd_msg.stream = stream;
 	cmd_msg.stream_id_out = stream_id_out;
+	cmd_msg.dev_idx = dev_idx;
 	rc = send_command_message(client, &cmd_msg.header);
 	if (rc < 0) {
 		syslog(LOG_ERR, "adding stream failed in thread %d", rc);
@@ -1407,6 +1416,29 @@ add_failed:
 		free(stream);
 	}
 	return rc;
+}
+
+int cras_client_add_stream(struct cras_client *client,
+			   cras_stream_id_t *stream_id_out,
+			   struct cras_stream_params *config)
+{
+	return cras_client_send_add_stream_command_message(
+			client,
+			NO_DEVICE,
+			stream_id_out,
+			config);
+}
+
+int cras_client_add_pinned_stream(struct cras_client *client,
+				  uint32_t dev_idx,
+				  cras_stream_id_t *stream_id_out,
+				  struct cras_stream_params *config)
+{
+	return cras_client_send_add_stream_command_message(
+			client,
+			dev_idx,
+			stream_id_out,
+			config);
 }
 
 int cras_client_rm_stream(struct cras_client *client,

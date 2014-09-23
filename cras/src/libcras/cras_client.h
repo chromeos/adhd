@@ -357,6 +357,22 @@ int cras_client_add_stream(struct cras_client *client,
 			   cras_stream_id_t *stream_id_out,
 			   struct cras_stream_params *config);
 
+/* Creates a pinned stream and return the stream id or < 0 on error.
+ * Args:
+ *    client - The client to add the stream to (from cras_client_create).
+ *    dev_idx - Index of the device to attach the newly created stream.
+ *    stream_id_out - On success will be filled with the new stream id.
+ *        Guaranteed to be set before any callbacks are made.
+ *    config - The cras_stream_params struct specifying the parameters for the
+ *        stream.
+ * Returns:
+ *    0 on success, negative error code on failure (from errno.h).
+ */
+int cras_client_add_pinned_stream(struct cras_client *client,
+				  uint32_t dev_idx,
+				  cras_stream_id_t *stream_id_out,
+				  struct cras_stream_params *config);
+
 /* Removes a currently playing/capturing stream.
  * Args:
  *    client - Client to remove the stream (returned from cras_client_create).

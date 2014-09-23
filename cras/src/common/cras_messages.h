@@ -79,6 +79,7 @@ struct __attribute__ ((__packed__)) cras_connect_message {
 	uint32_t cb_threshold; /* callback client when this much is left */
 	uint32_t flags;
 	struct cras_audio_format_packed format; /* rate, channel, sample size */
+	uint32_t dev_idx; /* device to attach stream, 0 if none */
 };
 static inline void cras_fill_connect_message(struct cras_connect_message *m,
 					   enum CRAS_STREAM_DIRECTION direction,
@@ -87,7 +88,8 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 					   size_t buffer_frames,
 					   size_t cb_threshold,
 					   uint32_t flags,
-					   struct cras_audio_format format)
+					   struct cras_audio_format format,
+					   uint32_t dev_idx)
 {
 	m->proto_version = CRAS_PROTO_VER;
 	m->direction = direction;
@@ -97,6 +99,7 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 	m->cb_threshold = cb_threshold;
 	m->flags = flags;
 	pack_cras_audio_format(&m->format, &format);
+	m->dev_idx = dev_idx;
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;
 	m->header.length = sizeof(struct cras_connect_message);
 }

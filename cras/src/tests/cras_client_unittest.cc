@@ -244,7 +244,8 @@ TEST_F(CrasClientTestSuite, AddAndRemoveStream) {
       malloc(sizeof(*(stream_ptr->config)));
   memcpy(stream_ptr->config, stream_.config, sizeof(*(stream_.config)));
 
-  EXPECT_EQ(0, client_thread_add_stream(&client_, stream_ptr, &stream_id));
+  EXPECT_EQ(0, client_thread_add_stream(
+      &client_, stream_ptr, &stream_id, NO_DEVICE));
   EXPECT_EQ(&client_, stream_ptr->client);
   EXPECT_EQ(stream_id, stream_ptr->id);
   EXPECT_EQ(1, sendmsg_called); // send connect message to server
