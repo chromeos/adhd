@@ -40,7 +40,6 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_DISCONNECT_STREAM,
 	AUDIO_THREAD_RM_ACTIVE_DEV,
 	AUDIO_THREAD_RM_STREAM,
-	AUDIO_THREAD_RM_ALL_STREAMS,
 	AUDIO_THREAD_SET_ACTIVE_DEV,
 	AUDIO_THREAD_STOP,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
@@ -1069,22 +1068,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		ret = thread_disconnect_stream(thread, rmsg->stream);
 		break;
 	}
-	case AUDIO_THREAD_RM_ALL_STREAMS: {
-		struct dev_stream *iostream;
-		struct audio_thread_add_rm_stream_msg *rmsg;
-		enum CRAS_STREAM_DIRECTION dir;
-
-		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
-		dir = rmsg->dir;
-
-		/* For each stream; detach and tell client to reconfig. */
-		/* TODO(dgreid) - handle > 1 active iodev, even needed?  */
-		DL_FOREACH(thread->active_devs[dir]->streams, iostream) {
-			cras_rstream_send_client_reattach(iostream->stream);
-			thread_remove_stream(thread, iostream->stream);
-		}
-		break;
-	}
 	case AUDIO_THREAD_SET_ACTIVE_DEV: {
 		struct audio_thread_active_device_msg *rmsg;
 		struct cras_iodev *dev;
@@ -1696,23 +1679,6 @@ static int audio_thread_post_message(struct audio_thread *thread,
 	return rc;
 }
 
-/* Remove all streams from the thread.
- * Args:
- *    thread - a pointer to the audio thread.
- */
-static void audio_thread_rm_all_streams(struct audio_thread *thread,
-					enum CRAS_STREAM_DIRECTION dir)
-{
-	struct audio_thread_add_rm_stream_msg msg;
-
-	assert(thread);
-
-	msg.header.id = AUDIO_THREAD_RM_ALL_STREAMS;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
-	msg.dir = dir;
-	audio_thread_post_message(thread, &msg.header);
-}
-
 /* Handles metrics log message and send stats to UMA. */
 static int audio_thread_metrics_log(struct audio_thread_msg *msg)
 {
@@ -1940,13 +1906,6 @@ int audio_thread_start(struct audio_thread *thread)
 	thread->started = 1;
 
 	return 0;
-}
-
-void audio_thread_remove_streams(struct audio_thread *thread,
-				 enum CRAS_STREAM_DIRECTION dir)
-{
-	if (thread->started)
-		audio_thread_rm_all_streams(thread, dir);
 }
 
 void audio_thread_destroy(struct audio_thread *thread)

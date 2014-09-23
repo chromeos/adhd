@@ -347,8 +347,6 @@ static struct cras_iodev *cras_iodev_set_active(
 
 	cras_iodev_list_notify_active_node_changed();
 
-	audio_thread_remove_streams(audio_thread, dir);
-
 	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
 	audio_thread_set_active_dev(audio_thread, new_active);
 
@@ -370,13 +368,6 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (new_dev->set_as_default)
 		new_dev->set_as_default(new_dev);
 
-	/* Detach and then reattach all client streams, so that the new set
-	 * of active devices can be opened together later at the same time.
-	 * TODO(hychao): get rid of the remove streams call in the get/add/rm
-	 * active node functions.
-	 */
-	audio_thread_remove_streams(audio_thread, new_dev->direction);
-
 	audio_thread_add_active_dev(audio_thread, new_dev);
 }
 
@@ -391,12 +382,6 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 	dev = find_dev(dev_index_of(node_id));
 	if (!dev)
 		return;
-
-	/* Detach and then reattach all client streams, so that the
-	 * updated set of active devices can be opened together later
-	 * at the same time.
-	 */
-	audio_thread_remove_streams(audio_thread, dev->direction);
 
 	/* If the device to remove matches the main active device, select
 	 * to the default one.

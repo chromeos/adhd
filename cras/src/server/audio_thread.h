@@ -166,15 +166,6 @@ int audio_thread_add_stream(struct audio_thread *thread,
 int audio_thread_disconnect_stream(struct audio_thread *thread,
 			   	   struct cras_rstream *stream);
 
-/* Remove all streams of the given direction from a thread.  Used when streams
- * should be re-attached after a device switch.
- * Args:
- *    thread - a pointer to the audio thread.
- *    dir - the direction of streams to remove.
- */
-void audio_thread_remove_streams(struct audio_thread *thread,
-				 enum CRAS_STREAM_DIRECTION dir);
-
 /* Add a loopback device to the audio thread.
  * Args:
  *    thread - The thread to add the device to.
