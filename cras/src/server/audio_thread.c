@@ -1114,10 +1114,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			strncpy(info->output_dev_name, odev->info.name,
 				sizeof(info->output_dev_name));
 			info->output_buffer_size = odev->buffer_size;
-			info->output_used_size =
-					thread->buffer_frames[CRAS_STREAM_OUTPUT];
-			info->output_cb_threshold =
-					thread->cb_threshold[CRAS_STREAM_OUTPUT];
+			info->output_used_size = 0;
+			info->output_cb_threshold = 0;
 		} else {
 			info->output_dev_name[0] = '\0';
 			info->output_buffer_size = 0;
@@ -1128,10 +1126,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			strncpy(info->input_dev_name, idev->info.name,
 				sizeof(info->input_dev_name));
 			info->input_buffer_size = idev->buffer_size;
-			info->input_used_size =
-					thread->buffer_frames[CRAS_STREAM_INPUT];
-			info->input_cb_threshold =
-					thread->cb_threshold[CRAS_STREAM_INPUT];
+			info->input_used_size = 0;
+			info->input_cb_threshold = 0;
 		} else {
 			info->output_dev_name[0] = '\0';
 			info->output_buffer_size = 0;
