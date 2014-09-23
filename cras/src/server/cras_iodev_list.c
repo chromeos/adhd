@@ -28,8 +28,8 @@ static struct iodev_list inputs;
 static struct cras_iodev *active_output;
 static struct cras_iodev *active_input;
 /* Keep a default input and output. For use when there is nothing else. */
-static struct cras_iodev *default_output;
-static struct cras_iodev *default_input;
+static struct cras_iodev *fallback_output;
+static struct cras_iodev *fallback_input;
 /* device used for loopback. */
 static struct cras_iodev *loopback_dev;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
@@ -388,11 +388,11 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 	 */
 	if (dev->direction == CRAS_STREAM_OUTPUT) {
 		active_dev = active_output;
-		default_dev = default_output;
+		default_dev = fallback_output;
 		selected = &selected_output;
 	} else {
 		active_dev = active_input;
-		default_dev = default_input;
+		default_dev = fallback_input;
 		selected = &selected_input;
 	}
 	if (active_dev == dev) {
@@ -419,8 +419,8 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 		active_output = output;
 		audio_thread_set_active_dev(audio_thread, output);
 	}
-	if (!default_output)
-		default_output = output;
+	if (!fallback_output)
+		fallback_output = output;
 
 	return 0;
 }
@@ -446,8 +446,8 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 		active_input = input;
 		audio_thread_set_active_dev(audio_thread, input);
 	}
-	if (!default_input)
-		default_input = input;
+	if (!fallback_input)
+		fallback_input = input;
 
 	return 0;
 }
@@ -460,7 +460,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	 * list, otherwise it could be busy and remain in the list.
 	 */
 	if (active_output == dev)
-		cras_iodev_set_active(CRAS_STREAM_OUTPUT, default_output);
+		cras_iodev_set_active(CRAS_STREAM_OUTPUT, fallback_output);
 	else
 		audio_thread_rm_active_dev(audio_thread, dev);
 	res = rm_dev_from_list(&outputs, dev);
@@ -477,7 +477,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	 * list, otherwise it could be busy and remain in the list.
 	 */
 	if (active_input == dev)
-		cras_iodev_set_active(CRAS_STREAM_INPUT, default_input);
+		cras_iodev_set_active(CRAS_STREAM_INPUT, fallback_input);
 	else
 		audio_thread_rm_active_dev(audio_thread, dev);
 	res = rm_dev_from_list(&inputs, dev);
@@ -679,8 +679,8 @@ void cras_iodev_list_reset()
 {
 	active_output = NULL;
 	active_input = NULL;
-	default_output = NULL;
-	default_input = NULL;
+	fallback_output = NULL;
+	fallback_input = NULL;
 	outputs.iodevs = NULL;
 	inputs.iodevs = NULL;
 }
