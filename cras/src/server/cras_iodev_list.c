@@ -641,7 +641,7 @@ void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
 }
 
 void cras_iodev_list_set_node_left_right_swapped_callbacks(
-					node_left_right_swapped_callback_t swapped_cb)
+		node_left_right_swapped_callback_t swapped_cb)
 {
 	node_left_right_swapped_callback = swapped_cb;
 }
