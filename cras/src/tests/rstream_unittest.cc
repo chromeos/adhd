@@ -230,4 +230,9 @@ int dev_mix_rm_dev(struct dev_mix *mix, unsigned int dev_id) {
   return 0;
 }
 
+unsigned int dev_mix_dev_offset(const struct dev_mix *mix, unsigned int dev_id)
+{
+  return 0;
+}
+
 }

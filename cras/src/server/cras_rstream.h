@@ -232,6 +232,9 @@ void cras_rstream_input_samples_written(struct cras_rstream *rstream,
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream);
 
+unsigned int cras_rstream_capture_write_offset(
+		const struct cras_rstream *rstream, unsigned int dev_id);
+
 static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 {
 	const struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);

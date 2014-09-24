@@ -128,3 +128,23 @@ unsigned int dev_mix_get_new_write_point(struct dev_mix *mix)
 	mix->wr_point = mix->wr_idx[min_index].wr_offset;
 	return min_written;
 }
+
+unsigned int dev_mix_dev_offset(const struct dev_mix *mix, unsigned int dev_id)
+{
+	unsigned int i;
+	struct dev_write *wr;
+
+	for (i = 0; i < mix->dev_sz; i++) {
+		wr = &mix->wr_idx[i];
+
+		if (wr->id != dev_id)
+			continue;
+
+		if (wr->wr_offset >= mix->wr_point)
+			return wr->wr_offset - mix->wr_point;
+		else
+			return mix->buf_sz - (mix->wr_point - wr->wr_offset);
+	}
+
+	return 0;
+}

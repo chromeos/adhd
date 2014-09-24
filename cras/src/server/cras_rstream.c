@@ -261,3 +261,9 @@ void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 
 	cras_shm_buffer_written(shm, nwritten);
 }
+
+unsigned int cras_rstream_capture_write_offset(
+		const struct cras_rstream *rstream, unsigned int dev_id)
+{
+	return dev_mix_dev_offset(rstream->input_mix_state, dev_id);
+}

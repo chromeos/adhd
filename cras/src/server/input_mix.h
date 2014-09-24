@@ -31,4 +31,10 @@ int dev_mix_frames_added(struct dev_mix *mix, unsigned int dev_id,
  */
 unsigned int dev_mix_get_new_write_point(struct dev_mix *mix);
 
+/*
+ * The amount by which the dev given by dev_id is ahead of the current write
+ * point.
+ */
+unsigned int dev_mix_dev_offset(const struct dev_mix *mix, unsigned int dev_id);
+
 #endif /* INPUT_MIX_H_ */

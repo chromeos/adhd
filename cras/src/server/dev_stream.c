@@ -232,6 +232,7 @@ static unsigned int capture_copy_converted_to_stream(
 	unsigned int total_written = 0;
 	unsigned int write_frames;
 	unsigned int frame_bytes;
+	unsigned int offset;
 	const struct cras_audio_format *fmt;
 
 	shm = cras_rstream_input_shm(rstream);
@@ -239,11 +240,12 @@ static unsigned int capture_copy_converted_to_stream(
 	fmt = cras_fmt_conv_out_format(dev_stream->conv);
 	frame_bytes = cras_get_format_bytes(fmt);
 
+	offset = cras_rstream_capture_write_offset(rstream, dev_stream->dev_id);
+
 	stream_samples = cras_shm_get_writeable_frames(
-				shm,
-				cras_rstream_get_cb_threshold(rstream) -
-						dev_stream->mix_offset,
-				&rstream->audio_area->frames);
+			shm,
+			cras_rstream_get_cb_threshold(rstream) - offset,
+			&rstream->audio_area->frames);
 	num_frames = MIN(rstream->audio_area->frames,
 			 buf_queued_bytes(dev_stream->conv_buffer) /
 							frame_bytes);
@@ -270,15 +272,17 @@ static unsigned int capture_copy_converted_to_stream(
 						    &rstream->format,
 						    stream_samples);
 
-		cras_audio_area_copy(rstream->audio_area,
-				     dev_stream->mix_offset,
+		cras_audio_area_copy(rstream->audio_area, offset,
 				     cras_get_format_bytes(&rstream->format),
 				     dev_stream->conv_area, dev_index);
 
 		buf_increment_read(dev_stream->conv_buffer,
 				   write_frames * frame_bytes);
 		total_written += write_frames;
-		dev_stream->mix_offset += write_frames;
+		cras_rstream_input_samples_written(rstream, write_frames,
+						   dev_stream->dev_id);
+		offset = cras_rstream_capture_write_offset(rstream,
+							   dev_stream->dev_id);
 	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
@@ -290,21 +294,23 @@ static unsigned int capture_copy_converted_to_stream(
 
 void dev_stream_capture(struct dev_stream *dev_stream,
 			const struct cras_audio_area *area,
-			unsigned int dev_index)
+			unsigned int dev_idx)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm;
 	uint8_t *stream_samples;
-	unsigned int nwritten;
 
 	/* Check if format conversion is needed. */
 	if (dev_stream->conv) {
 		capture_with_fmt_conv(dev_stream,
 				      area->channels[0].buf,
 				      area->frames);
-		nwritten = capture_copy_converted_to_stream(dev_stream, rstream,
-							    dev_index);
+		capture_copy_converted_to_stream(dev_stream, rstream, dev_idx);
 	} else {
+		unsigned int offset =
+			cras_rstream_capture_write_offset(rstream,
+							  dev_stream->dev_id);
+
 		/* Set up the shm area and copy to it. */
 		shm = cras_rstream_input_shm(rstream);
 		stream_samples = cras_shm_get_writeable_frames(
@@ -315,19 +321,16 @@ void dev_stream_capture(struct dev_stream *dev_stream,
 						    &rstream->format,
 						    stream_samples);
 
-		cras_audio_area_copy(rstream->audio_area,
-				     dev_stream->mix_offset,
+		cras_audio_area_copy(rstream->audio_area, offset,
 				     cras_get_format_bytes(&rstream->format),
-				     area, dev_index);
-		dev_stream->mix_offset += area->frames;
-		nwritten = area->frames;
+				     area, dev_idx);
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 					    rstream->stream_id,
 					    area->frames,
 					    cras_shm_frames_written(shm));
+		cras_rstream_input_samples_written(rstream, area->frames,
+						   dev_stream->dev_id);
 	}
-	cras_rstream_input_samples_written(rstream, nwritten,
-					   dev_stream->dev_id);
 }
 
 int dev_stream_playback_frames(const struct dev_stream *dev_stream)
@@ -396,8 +399,6 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
-
-	dev_stream->mix_offset = 0;
 
 	cras_rstream_update_input_write_pointer(rstream);
 

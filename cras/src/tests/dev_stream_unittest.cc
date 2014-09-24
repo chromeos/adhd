@@ -122,7 +122,6 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   devstr.conv_buffer = NULL;
   devstr.conv_buffer_size_frames = 0;
   devstr.skip_mix = 0;
-  devstr.mix_offset = 0;
 
   area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
                                                2 * sizeof(*area->channels));
@@ -168,7 +167,6 @@ TEST_F(CreateSuite, CaptureSRC) {
       (struct byte_buffer *)byte_buffer_create(kBufferFrames * 2 * 4);
   devstr.conv_buffer_size_frames = kBufferFrames * 2;
   devstr.skip_mix = 0;
-  devstr.mix_offset = 0;
 
   area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
                                                2 * sizeof(*area->channels));
@@ -409,6 +407,11 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
+}
+
+unsigned int cras_rstream_capture_write_offset(
+    const struct cras_rstream *rstream, unsigned int dev_id) {
+  return 0;
 }
 
 int config_format_converter(struct cras_fmt_conv **conv,
