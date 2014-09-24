@@ -274,7 +274,7 @@ static unsigned int capture_copy_converted_to_stream(
 
 		cras_audio_area_copy(rstream->audio_area, offset,
 				     cras_get_format_bytes(&rstream->format),
-				     dev_stream->conv_area, dev_index);
+				     dev_stream->conv_area, 1);
 
 		buf_increment_read(dev_stream->conv_buffer,
 				   write_frames * frame_bytes);
@@ -323,7 +323,7 @@ void dev_stream_capture(struct dev_stream *dev_stream,
 
 		cras_audio_area_copy(rstream->audio_area, offset,
 				     cras_get_format_bytes(&rstream->format),
-				     area, dev_idx);
+				     area, 1);
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 					    rstream->stream_id,
 					    area->frames,

@@ -149,7 +149,7 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   EXPECT_EQ(0, copy_area_call.dst_offset);
   EXPECT_EQ(4, copy_area_call.dst_format_bytes);
   EXPECT_EQ(area, copy_area_call.src);
-  EXPECT_EQ(0, copy_area_call.src_index);
+  EXPECT_EQ(1, copy_area_call.src_index);
 
   free(area);
   free(stream_area);
@@ -213,7 +213,7 @@ TEST_F(CreateSuite, CaptureSRC) {
   EXPECT_EQ(0, copy_area_call.dst_offset);
   EXPECT_EQ(4, copy_area_call.dst_format_bytes);
   EXPECT_EQ(devstr.conv_area, copy_area_call.src);
-  EXPECT_EQ(0, copy_area_call.src_index);
+  EXPECT_EQ(1, copy_area_call.src_index);
   EXPECT_EQ(conv_frames_ret, devstr.conv_area->frames);
 
   free(area);

@@ -254,8 +254,12 @@ static inline void cras_shm_check_write_overrun(struct cras_audio_shm *shm)
 	size_t read_buf_idx = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
 
 	if (!shm->area->write_in_progress[write_buf_idx]) {
+		unsigned int used_size = shm->config.used_size;
+
 		if (write_buf_idx != read_buf_idx)
 			shm->area->num_overruns++; /* Will over-write unread */
+
+		memset(cras_shm_buff_for_idx(shm, write_buf_idx), 0, used_size);
 
 		shm->area->write_in_progress[write_buf_idx] = 1;
 		shm->area->write_offset[write_buf_idx] = 0;
