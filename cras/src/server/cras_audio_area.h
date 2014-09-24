@@ -63,13 +63,13 @@ struct cras_audio_area *cras_audio_area_create(int num_channels);
  *    dst_offset - The offset of dst audio area in frames.
  *    dst_format_bytes - The format bytes of dst area.
  *    src - The source audio area.
- *    src_index - Index of the src areas to copy.
+ *    skip_zero - Skip zeroing the area before copying the data.
  */
 void cras_audio_area_copy(const struct cras_audio_area *dst,
 			  unsigned int dst_offset,
 			  unsigned int dst_format_bytes,
 			  const struct cras_audio_area *src,
-			  unsigned int src_index);
+			  unsigned int skip_zero);
 
 /*
  * Destroys a cras_audio_area.
