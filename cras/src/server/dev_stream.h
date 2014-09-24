@@ -87,6 +87,12 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream);
 unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream);
 
 /*
+ * Returns the callback threshold, if necesary converted from a stream frame
+ * count to a device frame count.
+ */
+unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream);
+
+/*
  * If enough samples have been captured, post them to the client.
  * TODO(dgreid) - see if this function can be eliminated.
  */

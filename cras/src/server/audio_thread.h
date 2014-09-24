@@ -43,6 +43,7 @@ struct active_dev {
  *    started - Non-zero if the thread has started successfully.
  *    active_devs - Lists of active devices attached running for each
  *        CRAS_STREAM_DIRECTION.
+ *    fallback_devs - One fallback device per direction (empty_iodev).
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -51,6 +52,7 @@ struct audio_thread {
 	pthread_t tid;
 	int started;
 	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
+	struct active_dev *fallback_devs[CRAS_NUM_DIRECTIONS];
 };
 
 /* Callback function to be handled in main loop in audio thread.
@@ -61,13 +63,14 @@ typedef int (*thread_callback)(void *data);
 
 /* Creates an audio thread.
  * Args:
- *    iodev - The iodev to attach this thread to.
+ *    fallback_output - A device to play to when no output is active.
+ *    fallback_input - A device to record from when no input is active.
  * Returns:
- *    A pointer to the newly create audio thread.  It has been allocated from
- *    the heap and must be freed by calling audio_thread_destroy().  NULL on
- *    error.
+ *    A pointer to the newly create audio thread.  It must be freed by calling
+ *    audio_thread_destroy().  Returns NULL on error.
  */
-struct audio_thread *audio_thread_create();
+struct audio_thread *audio_thread_create(struct cras_iodev *fallback_output,
+					 struct cras_iodev *fallback_input);
 
 /* Sets the device to be used for input.
  * Args:

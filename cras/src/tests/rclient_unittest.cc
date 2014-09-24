@@ -147,27 +147,6 @@ class RClientMessagesSuite : public testing::Test {
     int pipe_fds_[2];
 };
 
-TEST_F(RClientMessagesSuite, AudThreadAttachFailRetry) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
-  cras_rstream_create_stream_out = rstream_;
-  audio_thread_add_stream_return = AUDIO_THREAD_OUTPUT_DEV_ERROR;
-
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
-  EXPECT_EQ(0, rc);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id_, out_msg.stream_id);
-  EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(2, cras_rstream_destroy_called);
-  EXPECT_EQ(1, cras_iodev_list_rm_output_called);
-  EXPECT_EQ(2, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
-}
-
 TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   struct cras_client_stream_connected out_msg;
   int rc;
@@ -187,24 +166,6 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_EQ(0, cras_iodev_list_rm_output_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(0, audio_thread_disconnect_stream_called);
-}
-
-TEST_F(RClientMessagesSuite, NoDevErrorReply) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  get_iodev_odev = (struct cras_iodev *)NULL;
-  get_iodev_retval = -1;
-
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
-  EXPECT_EQ(0, rc);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id_, out_msg.stream_id);
-  EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(audio_thread_add_stream_called,
-            audio_thread_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {

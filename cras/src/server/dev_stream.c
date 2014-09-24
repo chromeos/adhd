@@ -347,6 +347,19 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream)
 	return cras_fmt_conv_in_frames_to_out(dev_stream->conv, frames);
 }
 
+unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream)
+{
+	const struct cras_rstream *rstream = dev_stream->stream;
+	unsigned int cb_threshold = cras_rstream_get_cb_threshold(rstream);
+
+	if (rstream->direction == CRAS_STREAM_OUTPUT)
+		return cras_fmt_conv_in_frames_to_out(dev_stream->conv,
+						      cb_threshold);
+	else
+		return cras_fmt_conv_out_frames_to_in(dev_stream->conv,
+						      cb_threshold);
+}
+
 unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 {
 	struct cras_audio_shm *shm;
@@ -376,7 +389,6 @@ static void check_next_wake_time(struct dev_stream *dev_stream)
 		rstream->next_cb_ts = now;
 		add_timespecs(&rstream->next_cb_ts,
 			      &rstream->sleep_interval_ts);
-		printf("behind %x\n", rstream->stream_id);
 	}
 }
 

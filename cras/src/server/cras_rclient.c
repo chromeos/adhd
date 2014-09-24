@@ -34,7 +34,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 					int aud_fd)
 {
 	struct cras_rstream *stream;
-	struct cras_iodev *idev, *odev;
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format remote_fmt;
 	struct audio_thread *thread;
@@ -50,17 +49,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	}
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
-
-try_again:
-	/* Find the iodev for this new connection and connect to it. */
-	rc = cras_get_iodev_for_stream_type(msg->stream_type,
-					    msg->direction,
-					    &idev,
-					    &odev);
-	if (rc) {
-		syslog(LOG_ERR, "No iodev available.\n");
-		goto reply_err;
-	}
 
 	/* Create the stream with the modified parameters. */
 	rc = cras_rstream_create(msg->stream_id,
@@ -86,17 +74,7 @@ try_again:
 	if (rc < 0) {
 		syslog(LOG_ERR, "Attach stream failed.\n");
 		DL_DELETE(client->streams, stream);
-		if (rc == AUDIO_THREAD_OUTPUT_DEV_ERROR) {
-			cras_iodev_list_rm_output(odev);
-			cras_rstream_destroy(stream);
-			goto try_again;
-		} else if (rc == AUDIO_THREAD_INPUT_DEV_ERROR) {
-			cras_iodev_list_rm_input(idev);
-			cras_rstream_destroy(stream);
-			goto try_again;
-		} else {
-			goto destroy_stream_and_reply_err;
-		}
+		goto destroy_stream_and_reply_err;
 	}
 
 	/* Tell client about the stream setup. */

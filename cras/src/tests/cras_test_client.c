@@ -415,7 +415,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("READ_AUDIO_DONE: %u.%09u\n", sec, nsec);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
-		printf("FILL_AUDIO: %u.%09u hw_level %u delay %u\n",
+		printf("FILL_AUDIO: %u.%09u dev %x hw_level %u\n",
 		       sec, nsec, data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
@@ -497,6 +497,14 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_SET_DEV_WAKE:
 		printf("SET_DEV_WAKE: %u.%09u devidx:%x adj:%u cbth:%u\n",
 		       sec, nsec, data1, data2, data3);
+		break;
+	case AUDIO_THREAD_DEV_ADDED:
+		printf("DEV_ADDED: %u.%09u devidx:%x\n",
+		       sec, nsec, data1);
+		break;
+	case AUDIO_THREAD_DEV_REMOVED:
+		printf("DEV_REMOVED: %u.%09u devidx:%x\n",
+		       sec, nsec, data1);
 		break;
 	default:
 		printf("Unknown alog tag %u\n", tag);

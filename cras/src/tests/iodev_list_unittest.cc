@@ -227,7 +227,6 @@ TEST_F(IoDevTestSuite, AddWrongDirection) {
 
 // Test adding/removing an iodev to the list.
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
-  struct cras_iodev *idev, *odev;
   struct cras_iodev_info *dev_info;
   int rc;
 
@@ -239,15 +238,6 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   // Test insert a second output.
   rc = cras_iodev_list_add_output(&d2_);
   EXPECT_EQ(0, rc);
-
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_OUTPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  ASSERT_NE(static_cast<void*>(0), odev);
-  EXPECT_EQ(static_cast<void*>(0), idev);
-  EXPECT_EQ(d1_.info.idx, odev->info.idx);
 
   // Test that it is removed.
   rc = cras_iodev_list_rm_output(&d1_);
@@ -355,7 +345,6 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
 // Test removing the last input.
 TEST_F(IoDevTestSuite, RemoveLastInput) {
   struct cras_iodev_info *dev_info;
-  struct cras_iodev *idev, *odev;
   int rc;
 
   d1_.direction = CRAS_STREAM_INPUT;
@@ -365,14 +354,6 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   EXPECT_EQ(0, rc);
   rc = cras_iodev_list_add_input(&d2_);
   EXPECT_EQ(0, rc);
-
-  // Default should fall back to most recently added device.
-  rc = cras_get_iodev_for_stream_type(CRAS_STREAM_TYPE_DEFAULT,
-                                      CRAS_STREAM_INPUT,
-                                      &idev,
-                                      &odev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(&d1_, idev);
 
   // Test that it is removed.
   rc = cras_iodev_list_rm_input(&d1_);
@@ -399,156 +380,6 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   EXPECT_EQ(0, rc);
   // Should be 0 devs now.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(0, rc);
-}
-
-// Test volume callbacks for default output.
-TEST_F(IoDevTestSuite, VolumeCallbacks) {
-  int rc;
-
-  cras_iodev_list_init();
-  ASSERT_EQ(1, register_volume_changed_cb_called);
-  ASSERT_TRUE(volume_changed_cb);
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-
-  // Check that callback isn't called if not open and no callback set.
-  is_open_ = 0;
-  set_volume_1_called_ = 0;
-  d1_.set_volume = NULL;
-  volume_changed_cb(volume_changed_arg);
-  EXPECT_EQ(0, set_volume_1_called_);
-
-  // Check that callback isn't called if open and no callback is set.
-  is_open_ = 1;
-  set_volume_1_called_ = 0;
-  d1_.set_volume = NULL;
-  volume_changed_cb(volume_changed_arg);
-  EXPECT_EQ(0, set_volume_1_called_);
-
-  // Check that it is called if there is a callback and iodev is active.
-  is_open_ = 1;
-  set_volume_1_called_ = 0;
-  d1_.set_volume = set_volume_1;
-  volume_changed_cb(volume_changed_arg);
-  EXPECT_EQ(1, set_volume_1_called_);
-
-  is_open_ = 0;
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-}
-
-// Test mute callbacks for default output.
-TEST_F(IoDevTestSuite, MuteCallbacks) {
-  int rc;
-
-  cras_iodev_list_init();
-  ASSERT_EQ(1, register_mute_changed_cb_called);
-  ASSERT_TRUE(mute_changed_cb);
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
-
-  // Check that callback isn't called if not open.
-  is_open_ = 0;
-  set_mute_1_called_ = 0;
-  d1_.set_mute = set_mute_1;
-  mute_changed_cb(mute_changed_arg);
-  EXPECT_EQ(0, set_mute_1_called_);
-
-  // Check that callback isn't called if no callback is set.
-  is_open_ = 1;
-  set_mute_1_called_ = 0;
-  d1_.set_mute = NULL;
-  mute_changed_cb(mute_changed_arg);
-  EXPECT_EQ(0, set_mute_1_called_);
-
-  // Check that it is called if there is a callback and iodev is active.
-  is_open_ = 1;
-  set_mute_1_called_ = 0;
-  d1_.set_mute = set_mute_1;
-  mute_changed_cb(mute_changed_arg);
-  EXPECT_EQ(1, set_mute_1_called_);
-
-  is_open_ = 0;
-  rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
-}
-
-// Test capture gain callbacks for default output.
-TEST_F(IoDevTestSuite, CaptureGainCallbacks) {
-  int rc;
-
-  cras_iodev_list_init();
-  ASSERT_EQ(1, register_capture_gain_changed_cb_called);
-  ASSERT_TRUE(capture_gain_changed_cb);
-
-  d1_.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
-
-  // Check that callback isn't called if not open.
-  is_open_ = 0;
-  set_capture_gain_1_called_ = 0;
-  d1_.set_capture_gain = set_capture_gain_1;
-  capture_gain_changed_cb(capture_gain_changed_arg);
-  EXPECT_EQ(0, set_capture_gain_1_called_);
-
-  // Check that callback isn't called if no callback is set.
-  is_open_ = 1;
-  set_capture_gain_1_called_ = 0;
-  d1_.set_capture_gain = NULL;
-  capture_gain_changed_cb(capture_gain_changed_arg);
-  EXPECT_EQ(0, set_capture_gain_1_called_);
-
-  // Check that it is called if there is a callback and iodev is active.
-  is_open_ = 1;
-  set_capture_gain_1_called_ = 0;
-  d1_.set_capture_gain = set_capture_gain_1;
-  capture_gain_changed_cb(capture_gain_changed_arg);
-  EXPECT_EQ(1, set_capture_gain_1_called_);
-
-  is_open_ = 0;
-  rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_EQ(0, rc);
-}
-
-// Test capture mute callbacks for default output.
-TEST_F(IoDevTestSuite, CaptureMuteCallbacks) {
-  int rc;
-
-  cras_iodev_list_init();
-  ASSERT_EQ(1, register_capture_mute_changed_cb_called);
-  ASSERT_TRUE(capture_mute_changed_cb);
-
-  d1_.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
-
-  // Check that callback isn't called if not open.
-  is_open_ = 0;
-  set_capture_mute_1_called_ = 0;
-  d1_.set_capture_mute = set_capture_mute_1;
-  capture_mute_changed_cb(capture_mute_changed_arg);
-  EXPECT_EQ(0, set_capture_mute_1_called_);
-
-  // Check that callback isn't called if no callback is set.
-  is_open_ = 1;
-  set_capture_mute_1_called_ = 0;
-  d1_.set_capture_mute = NULL;
-  capture_mute_changed_cb(capture_mute_changed_arg);
-  EXPECT_EQ(0, set_capture_mute_1_called_);
-
-  // Check that it is called if there is a callback and iodev is active.
-  is_open_ = 1;
-  set_capture_mute_1_called_ = 0;
-  d1_.set_capture_mute = set_capture_mute_1;
-  capture_mute_changed_cb(capture_mute_changed_arg);
-  EXPECT_EQ(1, set_capture_mute_1_called_);
-
-  is_open_ = 0;
-  rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
 }
 
@@ -642,7 +473,6 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   d3_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
-  ASSERT_EQ(audio_thread_set_active_dev_called, 1);
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
   rc = cras_iodev_list_add_output(&d3_);
@@ -658,7 +488,6 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   /* Assert active devices was set to default one, when selected device
    * removed. */
   cras_iodev_list_rm_output(&d1_);
-  ASSERT_EQ(audio_thread_set_active_dev_called, 2);
 }
 
 TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
@@ -672,22 +501,16 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
   /* d1_ will be the default_output */
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
-  ASSERT_EQ(audio_thread_set_active_dev_called, 1);
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
 
   /* Test the scenario that the selected active output removed
    * from active dev list, should be able to select back again. */
   id = cras_make_node_id(d2_.info.idx, 1);
-  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT, id);
-  ASSERT_EQ(audio_thread_set_active_dev_called, 2);
 
   cras_iodev_list_rm_active_node(CRAS_STREAM_OUTPUT, id);
   ASSERT_EQ(audio_thread_rm_active_dev_called, 1);
-  ASSERT_EQ(audio_thread_set_active_dev_called, 3);
 
-  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT, id);
-  ASSERT_EQ(audio_thread_set_active_dev_called, 4);
 }
 
 }  //  namespace
@@ -782,7 +605,8 @@ void cras_alert_destroy(struct cras_alert *alert) {
   cras_alert_destroy_called++;
 }
 
-struct audio_thread *audio_thread_create() {
+struct audio_thread *audio_thread_create(struct cras_iodev *out,
+                                         struct cras_iodev *in) {
   return &thread;
 }
 
@@ -860,6 +684,10 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
   }
 
   return 0;
+}
+
+struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction) {
+  return NULL;
 }
 
 }  // extern "C"

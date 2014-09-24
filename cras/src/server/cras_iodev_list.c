@@ -6,6 +6,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
+#include "cras_empty_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
@@ -27,9 +28,6 @@ static struct iodev_list inputs;
 /* Keep an active input and output. */
 static struct cras_iodev *active_output;
 static struct cras_iodev *active_input;
-/* Keep a default input and output. For use when there is nothing else. */
-static struct cras_iodev *fallback_output;
-static struct cras_iodev *fallback_input;
 /* device used for loopback. */
 static struct cras_iodev *loopback_dev;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
@@ -243,40 +241,24 @@ static int get_dev_list(struct iodev_list *list,
  * the default output if it is active. */
 void sys_vol_change(void *data)
 {
-	if (active_output &&
-	    active_output->set_volume &&
-	    active_output->is_open(active_output))
-		active_output->set_volume(active_output);
 }
 
 /* Called when the system mute state changes.  Pass the current mute setting
  * to the default output if it is active. */
 void sys_mute_change(void *data)
 {
-	if (active_output &&
-	    active_output->set_mute &&
-	    active_output->is_open(active_output))
-		active_output->set_mute(active_output);
 }
 
 /* Called when the system capture gain changes.  Pass the current capture_gain
  * setting to the default input if it is active. */
 void sys_cap_gain_change(void *data)
 {
-	if (active_input &&
-	    active_input->set_capture_gain &&
-	    active_input->is_open(active_input))
-		active_input->set_capture_gain(active_input);
 }
 
 /* Called when the system capture mute state changes.  Pass the current capture
  * mute setting to the default input if it is active. */
 void sys_cap_mute_change(void *data)
 {
-	if (active_input &&
-	    active_input->set_capture_mute &&
-	    active_input->is_open(active_input))
-		active_input->set_capture_mute(active_input);
 }
 
 /*
@@ -285,6 +267,8 @@ void sys_cap_mute_change(void *data)
 
 void cras_iodev_list_init()
 {
+	struct cras_iodev *fallback_output, *fallback_input;
+
 	cras_system_register_volume_changed_cb(sys_vol_change, NULL);
 	cras_system_register_mute_changed_cb(sys_mute_change, NULL);
 	cras_system_register_capture_gain_changed_cb(sys_cap_gain_change, NULL);
@@ -292,7 +276,12 @@ void cras_iodev_list_init()
 	nodes_changed_alert = cras_alert_create(nodes_changed_prepare);
 	active_node_changed_alert = cras_alert_create(
 		active_node_changed_prepare);
-	audio_thread = audio_thread_create();
+
+	/* Add an empty device so there is always something to play to or
+	 * capture from. */
+	fallback_output = empty_iodev_create(CRAS_STREAM_OUTPUT);
+	fallback_input = empty_iodev_create(CRAS_STREAM_INPUT);
+	audio_thread = audio_thread_create(fallback_output, fallback_input);
 	audio_thread_start(audio_thread);
 }
 
@@ -375,31 +364,10 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 				    cras_node_id_t node_id)
 {
 	struct cras_iodev *dev;
-	struct cras_iodev *active_dev;
-	struct cras_iodev *default_dev;
-	cras_node_id_t *selected;
 
 	dev = find_dev(dev_index_of(node_id));
 	if (!dev)
 		return;
-
-	/* If the device to remove matches the main active device, select
-	 * to the default one.
-	 */
-	if (dev->direction == CRAS_STREAM_OUTPUT) {
-		active_dev = active_output;
-		default_dev = fallback_output;
-		selected = &selected_output;
-	} else {
-		active_dev = active_input;
-		default_dev = fallback_input;
-		selected = &selected_input;
-	}
-	if (active_dev == dev) {
-		*selected = cras_make_node_id(default_dev->info.idx,
-					      default_dev->active_node->idx);
-		cras_iodev_set_active(dev->direction, default_dev);
-	}
 
 	audio_thread_rm_active_dev(audio_thread, dev);
 }
@@ -414,13 +382,6 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 	rc = add_dev_to_list(&outputs, output);
 	if (rc)
 		return rc;
-
-	if (!active_output) {
-		active_output = output;
-		audio_thread_set_active_dev(audio_thread, output);
-	}
-	if (!fallback_output)
-		fallback_output = output;
 
 	return 0;
 }
@@ -442,13 +403,6 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 	if (rc)
 		return rc;
 
-	if (!active_input) {
-		active_input = input;
-		audio_thread_set_active_dev(audio_thread, input);
-	}
-	if (!fallback_input)
-		fallback_input = input;
-
 	return 0;
 }
 
@@ -459,10 +413,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	/* Retire the current active output device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	if (active_output == dev)
-		cras_iodev_set_active(CRAS_STREAM_OUTPUT, fallback_output);
-	else
-		audio_thread_rm_active_dev(audio_thread, dev);
+	audio_thread_rm_active_dev(audio_thread, dev);
 	res = rm_dev_from_list(&outputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -476,10 +427,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	/* Retire the current active input device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	if (active_input == dev)
-		cras_iodev_set_active(CRAS_STREAM_INPUT, fallback_input);
-	else
-		audio_thread_rm_active_dev(audio_thread, dev);
+	audio_thread_rm_active_dev(audio_thread, dev);
 	res = rm_dev_from_list(&inputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -679,8 +627,6 @@ void cras_iodev_list_reset()
 {
 	active_output = NULL;
 	active_input = NULL;
-	fallback_output = NULL;
-	fallback_input = NULL;
 	outputs.iodevs = NULL;
 	inputs.iodevs = NULL;
 }
