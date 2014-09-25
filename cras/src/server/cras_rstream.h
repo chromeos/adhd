@@ -42,7 +42,7 @@ struct rstream_shm_info {
  *    format - format of the stream
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
- *    input_mix_state - State of input from all devices for this capture stream.
+ *    buf_state - State of the buffer from all devices for this stream.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -59,7 +59,7 @@ struct cras_rstream {
 	struct cras_audio_format format;
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
-	struct dev_mix *input_mix_state;
+	struct buffer_share *buf_state;
 	struct cras_rstream *prev, *next;
 };
 

@@ -68,7 +68,7 @@ cras_SOURCES = \
 	server/cras_mix.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
-	server/input_mix.c \
+	server/buffer_share.c \
 	common/cras_sbc_codec.c \
 	server/cras_server.c \
 	server/cras_server_metrics.c \
@@ -176,7 +176,7 @@ TESTS = \
 	hfp_info_unittest \
 	hfp_iodev_unittest \
 	hfp_slc_unittest \
-	input_mix_unittest \
+	buffer_share_unittest \
 	iodev_list_unittest \
 	iodev_unittest \
 	loopback_iodev_unittest \
@@ -434,11 +434,11 @@ hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
-input_mix_unittest_SOURCES = tests/input_mix_unittest.cc \
-	server/input_mix.c
-input_mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+buffer_share_unittest_SOURCES = tests/buffer_share_unittest.cc \
+	server/buffer_share.c
+buffer_share_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-input_mix_unittest_LDADD = -lgtest -liniparser -lpthread
+buffer_share_unittest_LDADD = -lgtest -liniparser -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c

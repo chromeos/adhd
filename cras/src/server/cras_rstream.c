@@ -13,7 +13,7 @@
 #include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "input_mix.h"
+#include "buffer_share.h"
 
 /* Configure the shm area for the stream. */
 static int setup_shm(struct cras_rstream *stream,
@@ -163,7 +163,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	}
 
 	if (direction == CRAS_STREAM_INPUT)
-		stream->input_mix_state = dev_mix_create(stream->buffer_frames);
+		stream->buf_state = buffer_share_create(stream->buffer_frames);
 
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       stream_id, buffer_frames, cb_threshold);
@@ -180,7 +180,7 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 		cras_audio_area_destroy(stream->audio_area);
 	}
 	if (stream->direction == CRAS_STREAM_INPUT)
-		dev_mix_destroy(stream->input_mix_state);
+		buffer_share_destroy(stream->buf_state);
 	free(stream);
 }
 
@@ -236,28 +236,28 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
 {
 	if (rstream->direction != CRAS_STREAM_INPUT)
 		return;
-	dev_mix_add_dev(rstream->input_mix_state, dev_id);
+	buffer_share_add_dev(rstream->buf_state, dev_id);
 }
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
 	if (rstream->direction != CRAS_STREAM_INPUT)
 		return;
-	dev_mix_rm_dev(rstream->input_mix_state, dev_id);
+	buffer_share_rm_dev(rstream->buf_state, dev_id);
 }
 
 void cras_rstream_input_samples_written(struct cras_rstream *rstream,
 					unsigned int frames,
 					unsigned int dev_id)
 {
-	dev_mix_frames_added(rstream->input_mix_state, dev_id, frames);
+	buffer_share_offset_update(rstream->buf_state, dev_id, frames);
 }
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 {
 	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
-	unsigned int nwritten =
-			dev_mix_get_new_write_point(rstream->input_mix_state);
+	unsigned int nwritten = buffer_share_get_new_write_point(
+					rstream->buf_state);
 
 	cras_shm_buffer_written(shm, nwritten);
 }
@@ -265,5 +265,5 @@ void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 unsigned int cras_rstream_capture_write_offset(
 		const struct cras_rstream *rstream, unsigned int dev_id)
 {
-	return dev_mix_dev_offset(rstream->input_mix_state, dev_id);
+	return buffer_share_dev_offset(rstream->buf_state, dev_id);
 }

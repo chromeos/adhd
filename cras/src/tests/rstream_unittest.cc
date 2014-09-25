@@ -206,31 +206,32 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
                                      const struct cras_audio_format *fmt) {
 }
 
-struct dev_mix *dev_mix_create(unsigned int buf_sz) {
+struct buffer_share *buffer_share_create(unsigned int buf_sz) {
   return NULL;
 }
 
-void dev_mix_destroy(struct dev_mix *mix) {
+void buffer_share_destroy(struct buffer_share *mix) {
 }
 
-int dev_mix_frames_added(struct dev_mix *mix, unsigned int dev_id,
-			 unsigned int frames) {
+int buffer_share_offset_update(struct buffer_share *mix, unsigned int dev_id,
+                               unsigned int frames) {
   return 0;
 }
 
-unsigned int dev_mix_get_new_write_point(struct dev_mix *mix) {
+unsigned int buffer_share_get_new_write_point(struct buffer_share *mix) {
   return 0;
 }
 
-int dev_mix_add_dev(struct dev_mix *mix, unsigned int dev_id) {
+int buffer_share_add_dev(struct buffer_share *mix, unsigned int dev_id) {
   return 0;
 }
 
-int dev_mix_rm_dev(struct dev_mix *mix, unsigned int dev_id) {
+int buffer_share_rm_dev(struct buffer_share *mix, unsigned int dev_id) {
   return 0;
 }
 
-unsigned int dev_mix_dev_offset(const struct dev_mix *mix, unsigned int dev_id)
+unsigned int buffer_share_dev_offset(const struct buffer_share *mix,
+                                     unsigned int dev_id)
 {
   return 0;
 }
