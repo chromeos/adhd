@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <syslog.h>
+
 #include "audio_thread_log.h"
 #include "byte_buffer.h"
 #include "cras_fmt_conv.h"
@@ -399,12 +401,17 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
+	struct timespec now;
 
 	cras_rstream_update_input_write_pointer(rstream);
 
-	/* If this stream doesn't have enough data yet, skip it. */
-	if (!cras_rstream_input_level_met(rstream))
+	/* If it isn't time for this stream then skip it. */
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	if (!timespec_after(&now, &rstream->next_cb_ts))
 		return 0;
+
+	if (!cras_rstream_input_level_met(rstream))
+		syslog(LOG_INFO, "short capture samples");
 
 	/* Enough data for this stream. */
 
