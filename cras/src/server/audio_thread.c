@@ -380,6 +380,9 @@ static int append_stream(struct audio_thread *thread,
 			return rc;
 	}
 
+	if (!stream_uses_output(stream))
+		return 0;
+
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
 		unsigned int hw_level;
 
@@ -389,7 +392,7 @@ static int append_stream(struct audio_thread *thread,
 			max_level = hw_level;
 	}
 
-	if (stream_uses_output(stream) && max_level < stream->cb_threshold) {
+	if (max_level < stream->cb_threshold) {
 		struct cras_audio_shm *shm = cras_rstream_output_shm(stream);
 		cras_shm_buffer_written(shm, stream->cb_threshold - max_level);
 		cras_shm_buffer_write_complete(shm);
