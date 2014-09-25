@@ -563,13 +563,10 @@ static void move_streams_to_added_dev(struct audio_thread *thread,
 	enum CRAS_STREAM_DIRECTION dir = added_dev->dev->direction;
 	struct active_dev *fallback_dev = thread->fallback_devs[dir];
 	struct dev_stream *dev_stream;
-	unsigned int min_cb_level = added_dev->dev->buffer_size;
 
 	DL_FOREACH(thread->active_devs[dir], adev) {
 		DL_FOREACH(adev->streams, dev_stream) {
 			append_stream_to_dev(added_dev, dev_stream->stream);
-			min_cb_level = MIN(min_cb_level,
-					   dev_stream_cb_threshold(dev_stream));
 
 			if (adev == fallback_dev) {
 				DL_DELETE(adev->streams, dev_stream);
@@ -584,8 +581,8 @@ static void move_streams_to_added_dev(struct audio_thread *thread,
 	}
 
 	if (dir == CRAS_STREAM_OUTPUT &&
-	    min_cb_level != added_dev->dev->buffer_size)
-		fill_odev_zeros(added_dev->dev, min_cb_level);
+	    added_dev->min_cb_level < added_dev->dev->buffer_size)
+		fill_odev_zeros(added_dev->dev, added_dev->min_cb_level);
 }
 
 /* Handles messages from main thread to add a new active device. */
@@ -928,23 +925,23 @@ static int write_streams(struct active_dev *adev,
 	/* Mix as much as we can, the minimum fill level of any stream. */
 	DL_FOREACH(adev->streams, curr) {
 		struct cras_audio_shm *shm;
-		int shm_frames;
+		int dev_frames;
 
 		shm = cras_rstream_output_shm(curr->stream);
 
-		shm_frames = cras_shm_get_frames(shm);
-		if (shm_frames < 0) /* TODO(dgreid) remove this stream. */
+		dev_frames = dev_stream_playback_frames(curr);
+		if (dev_frames < 0) /* TODO(dgreid) remove this stream. */
 			continue;
 		audio_thread_event_log_data(atlog,
 					    AUDIO_THREAD_WRITE_STREAMS_STREAM,
 					    curr->stream->stream_id,
-					    shm_frames,
+					    dev_frames,
 					    cras_shm_callback_pending(shm));
 		/* If not in underrun, use this stream. */
 		if (cras_rstream_get_is_draining(curr->stream)) {
-			drain_limit = MIN((size_t)shm_frames, drain_limit);
+			drain_limit = MIN((size_t)dev_frames, drain_limit);
 		} else {
-			write_limit = MIN((size_t)shm_frames, write_limit);
+			write_limit = MIN((size_t)dev_frames, write_limit);
 			num_playing++;
 		}
 	}
@@ -1358,9 +1355,13 @@ static int write_output_samples(struct active_dev *adev,
 	}
 
 	/* If we haven't started the device and wrote samples, then start it. */
-	if (total_written || hw_level)
+	if (total_written || hw_level) {
 		if (!odev->dev_running(odev))
 			return -1;
+	} else if (adev->min_cb_level < odev->buffer_size) {
+		/* Empty hardware and nothing written, zero fill it. */
+		fill_odev_zeros(odev, adev->min_cb_level);
+	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 				    total_written, 0, 0);
