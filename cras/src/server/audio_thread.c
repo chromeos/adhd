@@ -40,7 +40,6 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_DISCONNECT_STREAM,
 	AUDIO_THREAD_RM_ACTIVE_DEV,
 	AUDIO_THREAD_RM_STREAM,
-	AUDIO_THREAD_SET_ACTIVE_DEV,
 	AUDIO_THREAD_STOP,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
 	AUDIO_THREAD_METRICS_LOG,
@@ -543,48 +542,6 @@ static void thread_clear_active_devs(struct audio_thread *thread,
 	}
 }
 
-/* Handles messages from main thread to set an active device. The purpose
- * of this function is to set one as the main active device, which
- * is the device at the head of the active device list.
- */
-static void thread_set_active_dev(struct audio_thread *thread,
-				  struct cras_iodev *iodev)
-{
-	struct active_dev *adev;
-	struct cras_iodev *first_dev;
-
-	first_dev = first_active_device(thread, iodev->direction);
-	if (first_dev == iodev)
-		return;
-
-	/* Output device could still be in draining mode, close it. */
-	close_devices(thread, iodev->direction);
-
-
-	/* Remove the old first active device. */
-	if (first_dev)
-		thread_rm_active_dev(thread, first_dev);
-
-	/* Look up if iodev is already in active dev list, if so then
-	 * pull it out and set to the head later.
-	 */
-	DL_FOREACH(thread->active_devs[iodev->direction], adev) {
-		if (adev->dev == iodev) {
-			DL_DELETE(thread->active_devs[iodev->direction], adev);
-			break;
-		}
-	}
-
-	if (!adev) {
-		/* Set to the first active device in list. */
-		adev = (struct active_dev *)calloc(1, sizeof(*adev));
-		adev->dev = iodev;
-		iodev->is_active = 1;
-	}
-
-	DL_PREPEND(thread->active_devs[iodev->direction], adev);
-}
-
 static void move_streams_to_added_dev(struct audio_thread *thread,
 				      struct active_dev *added_dev)
 {
@@ -1073,15 +1030,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
 
 		ret = thread_disconnect_stream(thread, rmsg->stream);
-		break;
-	}
-	case AUDIO_THREAD_SET_ACTIVE_DEV: {
-		struct audio_thread_active_device_msg *rmsg;
-		struct cras_iodev *dev;
-
-		rmsg = (struct audio_thread_active_device_msg *)msg;
-		dev = rmsg->dev;
-		thread_set_active_dev(thread, dev);
 		break;
 	}
 	case AUDIO_THREAD_ADD_ACTIVE_DEV: {
@@ -1864,22 +1812,6 @@ struct audio_thread *audio_thread_create(struct cras_iodev *fallback_output,
 
 	return thread;
 }
-
-int audio_thread_set_active_dev(struct audio_thread *thread,
-				struct cras_iodev *dev)
-{
-	struct audio_thread_active_device_msg msg;
-
-	assert(thread && dev);
-	if (!thread->started)
-		return -EINVAL;
-
-	msg.header.id = AUDIO_THREAD_SET_ACTIVE_DEV;
-	msg.header.length = sizeof(struct audio_thread_active_device_msg);
-	msg.dev = dev;
-	return audio_thread_post_message(thread, &msg.header);
-}
-
 
 int audio_thread_add_active_dev(struct audio_thread *thread,
 				struct cras_iodev *dev)

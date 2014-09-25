@@ -72,14 +72,6 @@ typedef int (*thread_callback)(void *data);
 struct audio_thread *audio_thread_create(struct cras_iodev *fallback_output,
 					 struct cras_iodev *fallback_input);
 
-/* Sets the device to be used for input.
- * Args:
- *    thread - The thread to set the active device to.
- *    dev - The device to set as active.
- */
-int audio_thread_set_active_dev(struct audio_thread *thread,
-				struct cras_iodev *dev);
-
 /* Adds an active device.
  * Args:
  *    thread - The thread to add active device to.

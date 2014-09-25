@@ -325,25 +325,31 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 	return 0;
 }
 
-static struct cras_iodev *cras_iodev_set_active(
-		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_iodev *new_active)
+static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
+				  struct cras_iodev *new_active)
 {
-	struct cras_iodev *old_active;
+	struct cras_iodev *dev;
 	struct cras_iodev **curr;
 	if (new_active && new_active->set_as_default)
 		new_active->set_as_default(new_active);
 
 	cras_iodev_list_notify_active_node_changed();
 
-	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
-	audio_thread_set_active_dev(audio_thread, new_active);
+	if (dir == CRAS_STREAM_OUTPUT) {
+		DL_FOREACH(outputs.iodevs, dev) {
+			audio_thread_rm_active_dev(audio_thread, dev);
+		}
+	} else {
+		DL_FOREACH(inputs.iodevs, dev) {
+			audio_thread_rm_active_dev(audio_thread, dev);
+		}
+	}
+
+	audio_thread_add_active_dev(audio_thread, new_active);
 
 	/* Set current active to the newly requested device. */
-	old_active = *curr;
+	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
 	*curr = new_active;
-
-	return old_active;
 }
 
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
