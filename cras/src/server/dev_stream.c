@@ -109,6 +109,20 @@ void dev_stream_destroy(struct dev_stream *dev_stream)
 	free(dev_stream);
 }
 
+void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
+			     unsigned int frame_rate)
+{
+	if (dev_stream->conv) {
+		/* TODO(dgreid) - Should this be checking for master instead? */
+		/* TODO(dgreid) - adjust SRC */
+		return;
+	}
+
+	cras_frames_to_time(cras_rstream_get_cb_threshold(dev_stream->stream),
+			    frame_rate,
+			    &dev_stream->stream->sleep_interval_ts);
+}
+
 unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 			    size_t num_channels,
 			    uint8_t *dst,

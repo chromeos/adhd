@@ -31,6 +31,9 @@ struct active_dev {
 	struct cras_iodev *dev;
 	struct dev_stream *streams;
 	struct timespec wake_ts; /* When callback is needed to avoid xrun. */
+	unsigned int min_cb_level;
+	unsigned int max_cb_level;
+	int speed_adjust;
 	struct active_dev *prev, *next;
 };
 

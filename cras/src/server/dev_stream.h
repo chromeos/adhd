@@ -45,6 +45,12 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 void dev_stream_destroy(struct dev_stream *dev_stream);
 
 /*
+ * Update the sample rate of the device.
+ */
+void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
+			     unsigned int frame_rate);
+
+/*
  * Renders count frames from shm into dst.  Updates count if anything is
  * written. If it's muted and the only stream zero memory.
  * Args:
