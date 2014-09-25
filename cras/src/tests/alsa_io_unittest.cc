@@ -1142,6 +1142,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		const char *card_name,
 		unsigned int device_index,
+		int check_gpio_jack,
 		struct cras_alsa_mixer *mixer,
 		snd_use_case_mgr_t *ucm,
 		enum CRAS_STREAM_DIRECTION direction,

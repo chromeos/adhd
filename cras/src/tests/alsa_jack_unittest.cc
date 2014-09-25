@@ -155,14 +155,14 @@ static void fake_jack_cb(const struct cras_alsa_jack *jack,
 }
 
 TEST(AlsaJacks, CreateFailInvalidParams) {
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(32, "c1", 0,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(32, "c1", 0, 1,
                                              fake_mixer,
                                              NULL,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
   EXPECT_EQ(0, snd_hctl_open_called);
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 32,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 32, 1,
                                              fake_mixer,
                                              NULL,
                                              CRAS_STREAM_OUTPUT,
@@ -175,7 +175,7 @@ TEST(AlsaJacks, CreateFailOpen) {
   ResetStubData();
   snd_hctl_open_return_value = -1;
   snd_hctl_open_pointer_val = NULL;
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0, 1,
                                              fake_mixer,
 					     NULL,
                                              CRAS_STREAM_OUTPUT,
@@ -188,7 +188,7 @@ TEST(AlsaJacks, CreateFailLoad) {
   ResetStubData();
   snd_hctl_load_return_value = -1;
   gpio_get_switch_names_count = ~0;
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 0, 1,
                                              fake_mixer,
 					     NULL,
                                              CRAS_STREAM_OUTPUT,
@@ -210,7 +210,7 @@ TEST(AlsaJacks, CreateNoElements) {
   ResetStubData();
   snd_hctl_first_elem_return_val = NULL;
   gpio_get_switch_names_count = 0;
-  jack_list = cras_alsa_jack_list_create(0, "c1", 0,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
 					 NULL,
                                          CRAS_STREAM_OUTPUT,
@@ -250,6 +250,7 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   jack_list = cras_alsa_jack_list_create(0,
                                          "card_name",
                                          device_index,
+                                         1,
                                          fake_mixer,
 					 ucm,
                                          direction,
@@ -312,7 +313,7 @@ TEST(AlsaJacks, CreateGPIOHp) {
   eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
   gpio_switch_eviocgbit_fd = 2;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_list_create(0, "c1", 0,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
 					 NULL,
                                          CRAS_STREAM_OUTPUT,
@@ -348,6 +349,7 @@ TEST(AlsaJacks, CreateGPIOMic) {
       0,
       "c1",
       0,
+      1,
       fake_mixer,
       reinterpret_cast<snd_use_case_mgr_t*>(0x55),
       CRAS_STREAM_INPUT,
@@ -367,7 +369,7 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
   eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
   gpio_switch_eviocgbit_fd = 3;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_list_create(0, "c1", 0,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
 					 NULL,
                                          CRAS_STREAM_OUTPUT,
@@ -404,6 +406,7 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
       0,
       "c1",
       0,
+      1,
       fake_mixer,
       reinterpret_cast<snd_use_case_mgr_t*>(0x55),
       CRAS_STREAM_OUTPUT,
@@ -432,7 +435,7 @@ TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
   ResetStubData();
   gpio_get_switch_names_count = ~0;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_list_create(0, "c2", 0,
+  jack_list = cras_alsa_jack_list_create(0, "c2", 0, 1,
                                          fake_mixer,
 					 NULL,
                                          CRAS_STREAM_OUTPUT,

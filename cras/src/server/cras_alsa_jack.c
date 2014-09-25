@@ -773,6 +773,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		const char *card_name,
 		unsigned int device_index,
+		int check_gpio_jack,
 		struct cras_alsa_mixer *mixer,
 		snd_use_case_mgr_t *ucm,
 		enum CRAS_STREAM_DIRECTION direction,
@@ -809,8 +810,13 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		return NULL;
 	}
 
-	if (device_index == 0 && jack_list->jacks == NULL)
+	/*
+	 * GPIO jacks are attached to the first input device or the first
+	 * output device on the card.
+	 */
+	if (jack_list->jacks == NULL && check_gpio_jack)
 		find_gpio_jacks(jack_list, card_index, card_name, direction);
+
 	return jack_list;
 }
 
