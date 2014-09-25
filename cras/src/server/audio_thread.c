@@ -85,6 +85,7 @@ static int thread_remove_stream(struct audio_thread *thread,
 				struct cras_rstream *stream);
 
 static struct iodev_callback_list *iodev_callbacks;
+static struct timespec longest_wake;
 
 struct iodev_callback_list {
 	int fd;
@@ -1015,6 +1016,9 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->num_cb_timeouts = cras_shm_num_cb_timeouts(shm);
 	memcpy(si->channel_layout, stream->stream->format.channel_layout,
 	       sizeof(si->channel_layout));
+
+	longest_wake.tv_sec = 0;
+	longest_wake.tv_nsec = 0;
 }
 
 /* Handle a message sent to the playback thread */
@@ -1540,7 +1544,7 @@ static void *audio_io_thread(void *arg)
 	struct audio_thread *thread = (struct audio_thread *)arg;
 	struct active_dev *adev;
 	struct dev_stream *curr;
-	struct timespec ts;
+	struct timespec ts, now, last_wake;
 	fd_set poll_set;
 	fd_set poll_write_set;
 	int msg_fd;
@@ -1551,6 +1555,10 @@ static void *audio_io_thread(void *arg)
 	/* Attempt to get realtime scheduling */
 	if (cras_set_rt_scheduling(CRAS_SERVER_RT_THREAD_PRIORITY) == 0)
 		cras_set_thread_priority(CRAS_SERVER_RT_THREAD_PRIORITY);
+
+	last_wake.tv_sec = 0;
+	longest_wake.tv_sec = 0;
+	longest_wake.tv_nsec = 0;
 
 	while (1) {
 		struct timespec *wait_ts;
@@ -1596,11 +1604,20 @@ static void *audio_io_thread(void *arg)
 			}
 		}
 
+		if (last_wake.tv_sec) {
+			struct timespec this_wake;
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			subtract_timespecs(&now, &last_wake, &this_wake);
+			if (timespec_after(&this_wake, &longest_wake))
+				longest_wake = this_wake;
+		}
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_SLEEP,
 					    wait_ts ? wait_ts->tv_sec : 0,
-					    wait_ts ? wait_ts->tv_nsec : 0, 0);
+					    wait_ts ? wait_ts->tv_nsec : 0,
+					    longest_wake.tv_nsec);
 		err = pselect(max_fd + 1, &poll_set, &poll_write_set, NULL,
 			      wait_ts, NULL);
+		clock_gettime(CLOCK_MONOTONIC, &last_wake);
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_WAKE, 0, 0, 0);
 		if (err <= 0)
 			continue;
