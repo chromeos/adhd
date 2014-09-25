@@ -78,6 +78,7 @@ cras_SOURCES = \
 	server/cras_udev.c \
 	server/cras_volume_curve.c \
 	server/dev_stream.c \
+	server/linear_resampler.c \
 	server/rate_estimator.c \
 	server/softvol_curve.c
 
@@ -182,6 +183,7 @@ TESTS = \
 	iodev_unittest \
 	loopback_iodev_unittest \
 	mix_unittest \
+	linear_resampler_unittest \
 	rate_estimator_unittest \
 	rclient_unittest \
 	rstream_unittest \
@@ -465,6 +467,12 @@ mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
 mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 mix_unittest_LDADD = -lgtest -lpthread
+
+linear_resampler_unittest_SOURCES = tests/linear_resampler_unittest.cc \
+	server/linear_resampler.c server/cras_audio_area.c
+linear_resampler_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	 -I$(top_srcdir)/src/server
+linear_resampler_unittest_LDADD = -lgtest -lpthread
 
 rate_estimator_unittest_SOURCES = tests/rate_estimator_unittest.cc server/rate_estimator.c
 rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
