@@ -625,7 +625,8 @@ int audio_thread_add_active_dev(struct audio_thread *thread,
 }
 
 int audio_thread_rm_active_dev(struct audio_thread *thread,
-				struct cras_iodev *dev)
+                               struct cras_iodev *dev,
+                               int is_device_removal)
 {
   audio_thread_rm_active_dev_called++;
   return 0;

@@ -55,6 +55,8 @@ struct master_dev_info {
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
  *    buf_state - State of the buffer from all devices for this stream.
+ *    is_pinned - True if the stream is a pinned stream, false otherwise.
+ *    pinned_dev_idx - device the stream is pinned, 0 if none.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -74,6 +76,8 @@ struct cras_rstream {
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
 	struct buffer_share *buf_state;
+	int is_pinned;
+	uint32_t pinned_dev_idx;
 	struct cras_rstream *prev, *next;
 };
 

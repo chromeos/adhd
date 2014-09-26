@@ -370,11 +370,11 @@ static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
 
 	if (dir == CRAS_STREAM_OUTPUT) {
 		DL_FOREACH(outputs.iodevs, dev) {
-			audio_thread_rm_active_dev(audio_thread, dev);
+			audio_thread_rm_active_dev(audio_thread, dev, 0);
 		}
 	} else {
 		DL_FOREACH(inputs.iodevs, dev) {
-			audio_thread_rm_active_dev(audio_thread, dev);
+			audio_thread_rm_active_dev(audio_thread, dev, 0);
 		}
 	}
 
@@ -408,7 +408,24 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (!dev)
 		return;
 
-	audio_thread_rm_active_dev(audio_thread, dev);
+	audio_thread_rm_active_dev(audio_thread, dev, 0);
+}
+
+int cras_iodev_list_is_dev_active(size_t dev_index,
+				  struct cras_iodev **output_dev)
+{
+	struct cras_iodev *dev;
+
+	dev = find_dev(dev_index);
+	if (output_dev)
+		*output_dev = dev;
+
+	return dev->is_active;
+}
+
+struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
+{
+	return find_dev(dev_index);
 }
 
 int cras_iodev_list_add_output(struct cras_iodev *output)
@@ -452,7 +469,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	/* Retire the current active output device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	audio_thread_rm_active_dev(audio_thread, dev);
+	audio_thread_rm_active_dev(audio_thread, dev, 1);
 	res = rm_dev_from_list(&outputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -466,7 +483,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	/* Retire the current active input device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	audio_thread_rm_active_dev(audio_thread, dev);
+	audio_thread_rm_active_dev(audio_thread, dev, 1);
 	res = rm_dev_from_list(&inputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();

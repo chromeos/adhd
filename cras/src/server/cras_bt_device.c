@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The Chromium Authors. All rights reserved.
+/* Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -576,7 +576,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		iodev = device->bt_iodevs[dir];
 		if (!iodev)
 			continue;
-		rc = audio_thread_rm_active_dev(thread, iodev);
+		rc = audio_thread_rm_active_dev(thread, iodev, 0);
 		is_active[dir] = !rc;
 	}
 

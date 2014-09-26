@@ -37,6 +37,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format remote_fmt;
 	struct audio_thread *thread;
+	struct cras_iodev *dev = NULL;
 	int rc;
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
@@ -71,7 +72,20 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	thread = cras_iodev_list_get_audio_thread();
 
 	DL_APPEND(client->streams, stream);
-	rc = audio_thread_add_stream(thread, stream);
+
+	/* Check the target device is valid for pinned streams. */
+	if (msg->dev_idx != NO_DEVICE) {
+		stream->is_pinned = 1;
+		stream->pinned_dev_idx = msg->dev_idx;
+
+		dev = cras_iodev_list_find_dev(msg->dev_idx);
+		if (!dev) {
+			rc = -EINVAL;
+			goto destroy_stream_and_reply_err;
+		}
+	}
+
+	rc = audio_thread_add_stream(thread, stream, dev);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Attach stream failed.\n");
 		DL_DELETE(client->streams, stream);

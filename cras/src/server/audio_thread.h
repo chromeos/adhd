@@ -18,11 +18,13 @@ struct dev_stream;
 
 /* List of active input/output devices.
  *    dev - The device.
+ *    for_pinned_streams - True if the device is active only for pinned streams.
  */
 struct active_dev {
 	struct cras_iodev *dev;
 	struct timespec wake_ts; /* When callback is needed to avoid xrun. */
 	int coarse_rate_adjust;
+	int for_pinned_streams;
 	struct active_dev *prev, *next;
 };
 
@@ -76,9 +78,11 @@ int audio_thread_add_active_dev(struct audio_thread *thread,
  * Args:
  *    thread - The thread to remove active device from.
  *    dev - The active device to remove.
+ *    is_device_removal - True if the I/O device is being removed.
  */
 int audio_thread_rm_active_dev(struct audio_thread *thread,
-			       struct cras_iodev *dev);
+			       struct cras_iodev *dev,
+			       int is_device_removal);
 
 /* Adds an thread_callback to audio thread.
  * Args:
@@ -126,12 +130,14 @@ void audio_thread_destroy(struct audio_thread *thread);
  * Args:
  *    thread - a pointer to the audio thread.
  *    stream - the new stream to add.
+ *    dev - device to attach stream. NULL to attach to all the default devices.
  * Returns:
  *    zero on success, negative error from the AUDIO_THREAD enum above when an
  *    the thread can't be added.
  */
 int audio_thread_add_stream(struct audio_thread *thread,
-			    struct cras_rstream *stream);
+			    struct cras_rstream *stream,
+			    struct cras_iodev *dev);
 
 /* Disconnect a stream from the client.
  * Args:

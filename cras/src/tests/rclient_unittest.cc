@@ -129,6 +129,7 @@ class RClientMessagesSuite : public testing::Test {
       connect_msg_.format.num_channels = 2;
       connect_msg_.format.frame_rate = 48000;
       connect_msg_.format.format = SND_PCM_FORMAT_S16_LE;
+      connect_msg_.dev_idx = NO_DEVICE;
 
       ResetStubData();
     }
@@ -344,7 +345,8 @@ struct audio_thread* cras_iodev_list_get_audio_thread() {
 }
 
 int audio_thread_add_stream(audio_thread* thread,
-                            cras_rstream* stream) {
+                            cras_rstream* stream,
+                            struct cras_iodev *dev) {
   int ret;
 
   audio_thread_add_stream_called++;
@@ -362,6 +364,11 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
                                     cras_node_id_t node_id)
 {
+}
+
+struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
+{
+	return NULL;
 }
 
 int audio_thread_disconnect_stream(audio_thread* thread,

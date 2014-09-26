@@ -59,11 +59,13 @@ struct audio_thread_msg {
 struct audio_thread_active_device_msg {
 	struct audio_thread_msg header;
 	struct cras_iodev *dev;
+	int is_device_removal;
 };
 
 struct audio_thread_add_rm_stream_msg {
 	struct audio_thread_msg header;
 	struct cras_rstream *stream;
+	struct cras_iodev *dev;
 };
 
 struct audio_thread_dump_debug_info_msg {
@@ -243,10 +245,16 @@ static struct dev_stream *thread_find_stream(struct audio_thread *thread,
 					     struct cras_rstream *stream)
 {
 	struct dev_stream *out;
-	struct active_dev *fallback_dev =
-			thread->fallback_devs[stream->direction];
+	struct active_dev *adev = thread->fallback_devs[stream->direction];
 
-	DL_SEARCH_SCALAR(fallback_dev->dev->streams, out, stream, stream);
+	if (stream->is_pinned) {
+		DL_SEARCH_SCALAR(thread->active_devs[stream->direction], adev,
+				 dev->info.idx, stream->pinned_dev_idx);
+		if (!adev)
+			return NULL;
+	}
+
+	DL_SEARCH_SCALAR(adev->dev->streams, out, stream, stream);
 	if (out)
 		return out;
 
@@ -435,48 +443,84 @@ static void delete_stream_from_dev(struct cras_iodev *dev,
 }
 
 static int append_stream(struct audio_thread *thread,
-			 struct cras_rstream *stream)
+			 struct cras_rstream *stream,
+			 struct cras_iodev *target_dev)
 {
 	struct active_dev *adev;
 	struct active_dev *fallback_dev =
 			thread->fallback_devs[stream->direction];
 	unsigned int max_level = 0;
-	int num_devs_added_to = 0;
 	int rc;
 
 	/* Check that we don't already have this stream */
 	if (thread_find_stream(thread, stream))
 		return -EEXIST;
 
-	/* Have stream added to fallback device. */
-	rc = append_stream_to_dev(thread, fallback_dev, stream);
-	if (rc)
-		return rc;
+	if (target_dev) {
+		/* If the stream is going to attach to a specific device, mark
+		 * the target device as active if needed.
+		 */
+		DL_SEARCH_SCALAR(thread->active_devs[stream->direction],
+				 adev, dev, target_dev);
+		if (!adev) {
+			adev = (struct active_dev *)calloc(1, sizeof(*adev));
+			adev->dev = target_dev;
+			adev->for_pinned_streams = 1;
+			target_dev->is_active = 1;
 
-	/* TODO(dgreid) - add to correct dev, not all. */
-	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		if (adev == fallback_dev)
-			continue;
-		if (append_stream_to_dev(thread, adev, stream) == 0)
-			num_devs_added_to++;
-	}
+			audio_thread_event_log_data(atlog,
+						    AUDIO_THREAD_DEV_ADDED,
+						    target_dev->info.idx, 1, 0);
 
-	/* Return error when stream failed to be added to any active device. */
-	if (num_devs_added_to == 0 && fallback_dev->dev->is_active == 0) {
-		delete_stream_from_dev(fallback_dev->dev, stream);
-		return -EINVAL;
+			DL_APPEND(thread->active_devs[stream->direction], adev);
+		}
+
+		rc = append_stream_to_dev(thread, adev, stream);
+		if (rc) {
+			if (adev->for_pinned_streams &&
+			    adev->dev->streams == NULL) {
+				thread_rm_active_adev(thread, adev);
+			}
+			return rc;
+		}
+	} else {
+		int num_devs_added_to = 0;
+
+		/* Have non-pinned stream added to fallback device. */
+		rc = append_stream_to_dev(thread, fallback_dev, stream);
+		if (rc)
+			return rc;
+
+		DL_FOREACH(thread->active_devs[stream->direction], adev) {
+			if (adev == fallback_dev || adev->for_pinned_streams)
+				continue;
+			if (append_stream_to_dev(thread, adev, stream) == 0)
+				num_devs_added_to++;
+		}
+
+		if (num_devs_added_to == 0 && !fallback_dev->dev->is_active) {
+			delete_stream_from_dev(fallback_dev->dev, stream);
+			return -EINVAL;
+		}
 	}
 
 	if (!stream_uses_output(stream))
 		return 0;
 
-	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		unsigned int hw_level;
+	if (target_dev) {
+		max_level = target_dev->frames_queued(target_dev);
+	} else {
+		DL_FOREACH(thread->active_devs[stream->direction], adev) {
+			unsigned int hw_level;
 
-		hw_level = adev->dev->frames_queued(adev->dev);
+			if (adev->for_pinned_streams)
+				continue;
 
-		if (hw_level > max_level)
-			max_level = hw_level;
+			hw_level = adev->dev->frames_queued(adev->dev);
+
+			if (hw_level > max_level)
+				max_level = hw_level;
+		}
 	}
 
 	if (max_level < stream->cb_threshold) {
@@ -512,26 +556,36 @@ static int delete_stream(struct audio_thread *thread,
 				thread, longest_timeout_msec);
 	}
 
-	/* remove from each device it is attached to. */
-	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		struct cras_iodev *dev = adev->dev;
+	if (stream->is_pinned) {
+		DL_SEARCH_SCALAR(thread->active_devs[stream->direction], adev,
+				 dev->info.idx, stream->pinned_dev_idx);
+		if (adev) {
+			delete_stream_from_dev(adev->dev, stream);
+			if (!adev->dev->streams && adev->for_pinned_streams)
+				thread_rm_active_adev(thread, adev);
+		}
+	} else {
+		/* remove from each device it is attached to. */
+		DL_FOREACH(thread->active_devs[stream->direction], adev) {
+			struct cras_iodev *dev = adev->dev;
 
-		if (adev == fallback_dev)
-			continue;
+			if (adev == fallback_dev)
+				continue;
 
-		delete_stream_from_dev(dev, stream);
-		if (!dev->streams) {
-			if (stream->direction == CRAS_STREAM_OUTPUT) {
-				dev->is_draining = 1;
-				dev->extra_silent_frames = 0;
-			} else {
-				cras_iodev_close(dev);
+			delete_stream_from_dev(dev, stream);
+			if (!dev->streams) {
+				if (stream->direction == CRAS_STREAM_OUTPUT) {
+					dev->is_draining = 1;
+					dev->extra_silent_frames = 0;
+				} else {
+					cras_iodev_close(dev);
+				}
 			}
 		}
-	}
 
-	/* Remove from fallback device. */
-	delete_stream_from_dev(fallback_dev->dev, stream);
+		/* Remove from fallback device. */
+		delete_stream_from_dev(fallback_dev->dev, stream);
+	}
 
 	if (stream->client == NULL)
 		cras_rstream_destroy(stream);
@@ -637,13 +691,17 @@ static int thread_add_active_dev(struct audio_thread *thread,
 	DL_SEARCH_SCALAR(thread->active_devs[iodev->direction],
 			 adev, dev, iodev);
 	if (adev) {
-		syslog(LOG_ERR, "Device %s already active",
-		       adev->dev->info.name);
-		return -EEXIST;
+		if (!adev->for_pinned_streams) {
+			syslog(LOG_ERR, "Device %s already active",
+			       adev->dev->info.name);
+			return -EEXIST;
+		}
+		adev->for_pinned_streams = 0;
+	} else {
+		adev = (struct active_dev *)calloc(1, sizeof(*adev));
+		adev->dev = iodev;
+		iodev->is_active = 1;
 	}
-	adev = (struct active_dev *)calloc(1, sizeof(*adev));
-	adev->dev = iodev;
-	iodev->is_active = 1;
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_DEV_ADDED,
@@ -708,16 +766,42 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 	free(dev_to_rm);
 }
 
+static void thread_inactivate_adev(struct audio_thread *thread,
+				   struct active_dev *adev)
+{
+	struct dev_stream *dev_stream;
+
+	DL_FOREACH(adev->dev->streams, dev_stream) {
+		if (dev_stream->stream->is_pinned)
+			continue;
+
+		cras_iodev_rm_stream(adev->dev, dev_stream->stream);
+		dev_stream_destroy(dev_stream);
+	}
+
+	if (!adev->dev->streams) {
+		/* No pinned streams, remove whole adev. */
+		thread_rm_active_adev(thread, adev);
+		return;
+	}
+
+	adev->for_pinned_streams = 1;
+}
+
 /* Handles messages from the main thread to remove an active device. */
 static int thread_rm_active_dev(struct audio_thread *thread,
-				 struct cras_iodev *iodev)
+				struct cras_iodev *iodev,
+				int is_device_removal)
 {
 	struct active_dev *adev = find_adev(
 			thread->active_devs[iodev->direction], iodev);
 	if (!adev)
 		return -EINVAL;
 
-	thread_rm_active_adev(thread, adev);
+	if (is_device_removal)
+		thread_rm_active_adev(thread, adev);
+	else
+		thread_inactivate_adev(thread, adev);
 	return 0;
 }
 
@@ -764,17 +848,20 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 
 /* Handles the add_stream message from the main thread. */
 static int thread_add_stream(struct audio_thread *thread,
-			     struct cras_rstream *stream)
+			     struct cras_rstream *stream,
+			     struct cras_iodev *iodev)
 {
 	int rc;
 
-	rc = append_stream(thread, stream);
+	rc = append_stream(thread, stream, iodev);
 	if (rc < 0)
 		return rc;
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_STREAM_ADDED,
-				    stream->stream_id, 0, 0);
+				    stream->stream_id,
+				    iodev ? iodev->info.idx : 0,
+				    0);
 	return 0;
 }
 
@@ -1053,7 +1140,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			atlog,
 			AUDIO_THREAD_WRITE_STREAMS_WAIT,
 			amsg->stream->stream_id, 0, 0);
-		ret = thread_add_stream(thread, amsg->stream);
+		ret = thread_add_stream(thread, amsg->stream, amsg->dev);
 		break;
 	}
 	case AUDIO_THREAD_DISCONNECT_STREAM: {
@@ -1075,7 +1162,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		struct audio_thread_active_device_msg *rmsg;
 
 		rmsg = (struct audio_thread_active_device_msg *)msg;
-		ret = thread_rm_active_dev(thread, rmsg->dev);
+		ret = thread_rm_active_dev(thread, rmsg->dev,
+					   rmsg->is_device_removal);
 		break;
 	}
 	case AUDIO_THREAD_STOP:
@@ -1831,7 +1919,8 @@ static int audio_thread_metrics_log(struct audio_thread_msg *msg)
 /* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
-			    struct cras_rstream *stream)
+			    struct cras_rstream *stream,
+			    struct cras_iodev *dev)
 {
 	struct audio_thread_add_rm_stream_msg msg;
 
@@ -1843,6 +1932,7 @@ int audio_thread_add_stream(struct audio_thread *thread,
 	msg.header.id = AUDIO_THREAD_ADD_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
+	msg.dev = dev;
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1999,7 +2089,8 @@ int audio_thread_add_active_dev(struct audio_thread *thread,
 }
 
 int audio_thread_rm_active_dev(struct audio_thread *thread,
-			       struct cras_iodev *dev)
+			       struct cras_iodev *dev,
+			       int is_device_removal)
 {
 	struct audio_thread_active_device_msg msg;
 
@@ -2010,6 +2101,7 @@ int audio_thread_rm_active_dev(struct audio_thread *thread,
 	msg.header.id = AUDIO_THREAD_RM_ACTIVE_DEV;
 	msg.header.length = sizeof(struct audio_thread_active_device_msg);
 	msg.dev = dev;
+	msg.is_device_removal = is_device_removal;
 	return audio_thread_post_message(thread, &msg.header);
 }
 
