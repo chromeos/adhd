@@ -1379,6 +1379,16 @@ static int do_playback(struct audio_thread *thread)
 		write_output_samples(adev, first_loop_dev(thread));
 	}
 
+	/* TODO(dgreid) - once per rstream, not once per dev_stream. */
+	DL_FOREACH(odev_list, adev) {
+		struct dev_stream *stream;
+		if (!device_open(adev->dev))
+			continue;
+		DL_FOREACH(adev->streams, stream) {
+			dev_stream_playback_update_rstream(stream);
+		}
+	}
+
 	set_odev_wake_times(odev_list);
 
 	return 0;

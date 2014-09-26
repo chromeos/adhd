@@ -393,12 +393,15 @@ int cras_rstream_request_audio(const struct cras_rstream *stream) {
   return 0;
 }
 
-void cras_rstream_input_samples_written(struct cras_rstream *rstream,
-					unsigned int frames,
-					unsigned int dev_id) {
+void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream) {
 }
 
-void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream) {
+void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream) {
+}
+
+void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
+					unsigned int frames,
+					unsigned int dev_id) {
 }
 
 void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
@@ -409,8 +412,8 @@ void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
 }
 
-unsigned int cras_rstream_capture_write_offset(
-    const struct cras_rstream *rstream, unsigned int dev_id) {
+unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
+                                     unsigned int dev_id) {
   return 0;
 }
 

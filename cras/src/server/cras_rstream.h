@@ -226,14 +226,16 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream);
 void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id);
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id);
 
-void cras_rstream_input_samples_written(struct cras_rstream *rstream,
-					unsigned int frames,
-					unsigned int dev_id);
+/* A device using this stream has read or written samples. */
+void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
+				    unsigned int frames,
+				    unsigned int dev_id);
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream);
+void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream);
 
-unsigned int cras_rstream_capture_write_offset(
-		const struct cras_rstream *rstream, unsigned int dev_id);
+unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
+				     unsigned int dev_id);
 
 static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 {

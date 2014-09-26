@@ -102,6 +102,9 @@ unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream);
  */
 int dev_stream_capture_update_rstream(struct dev_stream *dev_stream);
 
+/* Updates the read buffer pointers for the stream. */
+int dev_stream_playback_update_rstream(struct dev_stream *dev_stream);
+
 /* Fill ts with the time the playback sample will be played. */
 void cras_set_playback_timestamp(size_t frame_rate,
 				 size_t frames,

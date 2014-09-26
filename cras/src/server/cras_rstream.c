@@ -162,8 +162,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 		return rc;
 	}
 
-	if (direction == CRAS_STREAM_INPUT)
-		stream->buf_state = buffer_share_create(stream->buffer_frames);
+	stream->buf_state = buffer_share_create(stream->buffer_frames);
 
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       stream_id, buffer_frames, cb_threshold);
@@ -179,8 +178,7 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 		       (void *)stream->shm.area);
 		cras_audio_area_destroy(stream->audio_area);
 	}
-	if (stream->direction == CRAS_STREAM_INPUT)
-		buffer_share_destroy(stream->buf_state);
+	buffer_share_destroy(stream->buf_state);
 	free(stream);
 }
 
@@ -234,21 +232,17 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 
 void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
 {
-	if (rstream->direction != CRAS_STREAM_INPUT)
-		return;
 	buffer_share_add_dev(rstream->buf_state, dev_id);
 }
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
-	if (rstream->direction != CRAS_STREAM_INPUT)
-		return;
 	buffer_share_rm_dev(rstream->buf_state, dev_id);
 }
 
-void cras_rstream_input_samples_written(struct cras_rstream *rstream,
-					unsigned int frames,
-					unsigned int dev_id)
+void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
+				    unsigned int frames,
+				    unsigned int dev_id)
 {
 	buffer_share_offset_update(rstream->buf_state, dev_id, frames);
 }
@@ -262,8 +256,17 @@ void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 	cras_shm_buffer_written(shm, nwritten);
 }
 
-unsigned int cras_rstream_capture_write_offset(
-		const struct cras_rstream *rstream, unsigned int dev_id)
+void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream)
+{
+	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	unsigned int nwritten = buffer_share_get_new_write_point(
+					rstream->buf_state);
+
+	cras_shm_buffer_read(shm, nwritten);
+}
+
+unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
+				     unsigned int dev_id)
 {
 	return buffer_share_dev_offset(rstream->buf_state, dev_id);
 }
