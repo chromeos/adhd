@@ -581,6 +581,7 @@ static void move_streams_to_added_dev(struct audio_thread *thread,
 	}
 
 	if (dir == CRAS_STREAM_OUTPUT &&
+	    device_open(added_dev->dev) &&
 	    added_dev->min_cb_level < added_dev->dev->buffer_size)
 		fill_odev_zeros(added_dev->dev, added_dev->min_cb_level);
 }
