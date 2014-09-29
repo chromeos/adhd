@@ -786,12 +786,8 @@ static int fetch_streams(struct audio_thread *thread,
 		if (frames_in_buff < 0)
 			return frames_in_buff;
 
-		/* Remove the stream after it is fully drained. */
-		if (cras_rstream_get_is_draining(rstream)) {
-			if (frames_in_buff == 0)
-				thread_remove_stream(thread, rstream);
+		if (cras_rstream_get_is_draining(rstream))
 			continue;
-		}
 
 		dev_stream_set_dev_rate(dev_stream,
 			odev->format->frame_rate + 5 * adev->speed_adjust);
@@ -1334,7 +1330,12 @@ static int do_playback(struct audio_thread *thread)
 		if (!device_open(adev->dev))
 			continue;
 		DL_FOREACH(adev->streams, stream) {
+			struct cras_rstream *rstream = stream->stream;
 			dev_stream_playback_update_rstream(stream);
+			/* Remove the stream after it is fully drained. */
+			if (cras_rstream_get_is_draining(rstream) &&
+			    dev_stream_playback_frames(stream) == 0)
+				thread_remove_stream(thread, rstream);
 		}
 	}
 
