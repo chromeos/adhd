@@ -425,6 +425,12 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 	aout = get_active_output(aio);
 	if (aout)
 		volume = cras_iodev_adjust_node_volume(&aout->base, volume);
+
+	/* Samples get scaled for devices using software volume, set alsa
+	 * volume to 100. */
+	if (cras_iodev_software_volume_needed(iodev))
+		volume = 100;
+
 	cras_alsa_mixer_set_dBFS(
 		aio->mixer,
 		curve->get_dBFS(curve, volume),
