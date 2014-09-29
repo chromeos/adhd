@@ -1225,15 +1225,21 @@ static void *client_thread(void *arg)
 		int rc;
 
 		inputs = NULL;
-		server_input.fd = client->server_fd;
-		server_input.cb = handle_message_from_server;
-		LL_APPEND(inputs, &server_input);
-		command_input.fd = client->command_fds[0];
-		command_input.cb = handle_command_message;
-		LL_APPEND(inputs, &command_input);
-		stream_input.fd = client->stream_fds[0];
-		stream_input.cb = handle_stream_message;
-		LL_APPEND(inputs, &stream_input);
+		if (client->server_fd >= 0) {
+			server_input.fd = client->server_fd;
+			server_input.cb = handle_message_from_server;
+			LL_APPEND(inputs, &server_input);
+		}
+		if (client->command_fds[0] >= 0) {
+			command_input.fd = client->command_fds[0];
+			command_input.cb = handle_command_message;
+			LL_APPEND(inputs, &command_input);
+		}
+		if (client->stream_fds[0] >= 0) {
+			stream_input.fd = client->stream_fds[0];
+			stream_input.cb = handle_stream_message;
+			LL_APPEND(inputs, &stream_input);
+		}
 
 		FD_ZERO(&poll_set);
 		max_fd = 0;
