@@ -401,6 +401,8 @@ static int append_stream_to_dev(struct active_dev *adev,
 	if (!out)
 		return -EINVAL;
 
+	adev->dev->is_draining = 0;
+
 	DL_APPEND(adev->streams, out);
 	init_device(adev);
 
@@ -486,7 +488,11 @@ static int delete_stream(struct audio_thread *thread,
 						 out->stream->cb_threshold);
 			adev->max_cb_level = MAX(adev->max_cb_level,
 						 out->stream->cb_threshold);
+		}
 
+		if (!adev->streams) {
+			adev->dev->is_draining = 1;
+			adev->dev->extra_silent_frames = 0;
 		}
 	}
 
@@ -503,27 +509,6 @@ static inline int close_device(struct cras_iodev *dev)
 		return 0;
 	return dev->close_dev(dev);
 }
-
-/* Close active devices. */
-static int close_devices(struct audio_thread *thread,
-			 enum CRAS_STREAM_DIRECTION dir)
-{
-	struct active_dev *adev;
-	int err = 0;
-	int rc;
-
-	DL_FOREACH(thread->active_devs[dir], adev) {
-		if (!device_open(adev->dev))
-			continue;
-		rc = close_device(adev->dev);
-		if (rc)
-			err = rc;
-	}
-	return err;
-}
-
-static void thread_rm_active_dev(struct audio_thread *thread,
-			  struct cras_iodev *iodev);
 
 /*
  * Non-static functions of prefix 'thread_' runs in audio thread
@@ -648,16 +633,6 @@ static void thread_rm_active_dev(struct audio_thread *thread,
 	}
 }
 
-/* Mark or unmark all output devices' is_draining flags. */
-static void devices_set_output_draining(struct audio_thread *thread,
-					int is_draining) {
-	struct active_dev *adev;
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
-		adev->dev->is_draining = is_draining;
-		adev->dev->extra_silent_frames = 0;
-	}
-}
-
 /* Remove stream from the audio thread. If this is the last stream to be
  * removed close the device. Returns the number of streams still attached
  * to the thread.
@@ -671,19 +646,6 @@ static int thread_remove_stream(struct audio_thread *thread,
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_STREAM_REMOVED,
 				    stream->stream_id, 0, 0);
-
-	/* When removing the last stream of a certain direction, close
-	 * all active devices of that direction. Otherwise reconfigure
-	 * active devices for the min latency stream.
-	 */
-	if (!streams_attached_direction(thread, CRAS_STREAM_INPUT))
-		close_devices(thread, CRAS_STREAM_INPUT);
-
-	if (!streams_attached_direction(thread, CRAS_STREAM_OUTPUT))
-		devices_set_output_draining(thread, 1);
-
-	if (!streams_attached_direction(thread, CRAS_STREAM_POST_MIX_PRE_DSP))
-		close_devices(thread, CRAS_STREAM_POST_MIX_PRE_DSP);
 
 	return streams_attached(thread);
 }
@@ -717,11 +679,6 @@ static int thread_add_stream(struct audio_thread *thread,
 			     struct cras_rstream *stream)
 {
 	int rc;
-
-	if (stream_uses_output(stream)) {
-		/* Stream added, exit draining mode. */
-		devices_set_output_draining(thread, 0);
-	}
 
 	rc = append_stream(thread, stream);
 	if (rc < 0)
