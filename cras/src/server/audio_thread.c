@@ -1083,13 +1083,15 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 }
 
 /* Fills the time that the next stream needs to be serviced. */
-static void get_next_stream_wake_from_list(struct dev_stream *streams,
-					   struct timespec *min_ts)
+static int get_next_stream_wake_from_list(struct dev_stream *streams,
+					  struct timespec *min_ts)
 {
 	struct dev_stream *dev_stream;
+	int ret = 0; /* The total number of streams to wait on. */
 
 	DL_FOREACH(streams, dev_stream) {
 		const struct timespec *next_cb_ts;
+		ret++;
 		if (cras_rstream_get_is_draining(dev_stream->stream))
 			continue;
 
@@ -1102,32 +1104,39 @@ static void get_next_stream_wake_from_list(struct dev_stream *streams,
 		if (timespec_after(min_ts, next_cb_ts))
 			*min_ts = *next_cb_ts;
 	}
+
+	return ret;
 }
 
-static void get_next_stream_wake(struct audio_thread *thread,
+static int get_next_stream_wake(struct audio_thread *thread,
 				 struct timespec *min_ts,
 				 const struct timespec *now)
 {
 	struct active_dev *adev;
+	int ret = 0; /* The total number of streams to wait on. */
 
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
-		get_next_stream_wake_from_list(adev->streams, min_ts);
+		ret += get_next_stream_wake_from_list(adev->streams, min_ts);
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev)
-		get_next_stream_wake_from_list(adev->streams, min_ts);
+		ret += get_next_stream_wake_from_list(adev->streams, min_ts);
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_POST_MIX_PRE_DSP], adev)
-		get_next_stream_wake_from_list(adev->streams, min_ts);
+		ret += get_next_stream_wake_from_list(adev->streams, min_ts);
+
+	return ret;
 }
 
-static void get_next_dev_wake(struct audio_thread *thread,
-			      struct timespec *min_ts,
-			      const struct timespec *now)
+static int get_next_dev_wake(struct audio_thread *thread,
+			     struct timespec *min_ts,
+			     const struct timespec *now)
 {
 	struct active_dev *adev;
+	int ret = 0; /* The total number of devices to wait on. */
 
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 		/* Only wake up for devices when they finish draining. */
 		if (!device_open(adev->dev) || !adev->dev->is_draining)
 			continue;
+		ret++;
 		audio_thread_event_log_data(atlog,
 					    AUDIO_THREAD_DEV_SLEEP_TIME,
 					    adev->dev->info.idx,
@@ -1136,6 +1145,8 @@ static void get_next_dev_wake(struct audio_thread *thread,
 		if (timespec_after(min_ts, &adev->wake_ts))
 			*min_ts = adev->wake_ts;
 	}
+
+	return ret;
 }
 
 /* Drain the hardware buffer of odev.
@@ -1475,10 +1486,11 @@ static int stream_dev_io(struct audio_thread *thread)
 	return 0;
 }
 
-void fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
+int fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
 {
 	struct timespec min_ts;
 	struct timespec now;
+	int ret; /* The sum of active streams and devices. */
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
@@ -1487,10 +1499,12 @@ void fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
 	min_ts.tv_nsec = 0;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 	add_timespecs(&min_ts, &now);
-	get_next_stream_wake(thread, &min_ts, &now);
-	get_next_dev_wake(thread, &min_ts, &now);
+	ret = get_next_stream_wake(thread, &min_ts, &now);
+	ret += get_next_dev_wake(thread, &min_ts, &now);
 	if (timespec_after(&min_ts, &now))
 		subtract_timespecs(&min_ts, &now, ts);
+
+	return ret;
 }
 
 /* For playback, fill the audio buffer when needed, for capture, pull out
@@ -1528,16 +1542,13 @@ static void *audio_io_thread(void *arg)
 
 		wait_ts = NULL;
 
-		if (device_open(first_output_dev(thread)) ||
-		    device_open(first_input_dev(thread)) ||
-		    device_open(first_loop_dev(thread))) {
-			/* device opened */
-			err = stream_dev_io(thread);
-			if (err < 0)
-				syslog(LOG_ERR, "audio cb error %d", err);
-			fill_next_sleep_interval(thread, &ts);
+		/* device opened */
+		err = stream_dev_io(thread);
+		if (err < 0)
+			syslog(LOG_ERR, "audio cb error %d", err);
+
+		if (fill_next_sleep_interval(thread, &ts))
 			wait_ts = &ts;
-		}
 
 		FD_ZERO(&poll_set);
 		FD_ZERO(&poll_write_set);
