@@ -237,16 +237,7 @@ static int audio_thread_read_command(struct audio_thread *thread,
 static int audio_thread_log_longest_timeout(struct audio_thread *thread,
 					    int timeout_msec)
 {
-	struct audio_thread_metrics_log_msg msg;
-	int rc;
-
-	msg.header.id = AUDIO_THREAD_METRICS_LOG;
-	msg.header.length = sizeof(msg);
-	msg.type = LONGEST_TIMEOUT_MSECS;
-	msg.arg = timeout_msec;
-
-	rc = write(thread->main_msg_fds[1], &msg, sizeof(msg));
-	return rc;
+	return 0;
 }
 
 /* Find a given stream that is attached to the thread. */
