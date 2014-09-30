@@ -60,6 +60,17 @@ double rate_estimator_get_rate(struct rate_estimator *re)
 	return re->estimated_rate;
 }
 
+void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate)
+{
+	re->estimated_rate = rate;
+	least_square_reset(&re->lsq);
+	re->window_start_ts.tv_sec = 0;
+	re->window_start_ts.tv_nsec = 0;
+	re->window_frames = 0;
+	re->level_diff = 0;
+	re->last_level = 0;
+}
+
 int rate_estimator_check(struct rate_estimator *re, int level,
 			 struct timespec *now)
 {

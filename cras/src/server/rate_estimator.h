@@ -81,4 +81,7 @@ int rate_estimator_check(struct rate_estimator *re, int level,
 /* Gets the estimated rate. */
 double rate_estimator_get_rate(struct rate_estimator *re);
 
+/* Resets the estimated rate. */
+void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate);
+
 #endif /* RATE_ESTIMATOR_H_ */
