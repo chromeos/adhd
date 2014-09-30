@@ -144,7 +144,7 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 
 	shm = cras_rstream_output_shm(dev_stream->stream);
 	num_to_write = *count;
-	fr_in_buf = cras_shm_get_frames(shm);
+	fr_in_buf = dev_stream_playback_frames(dev_stream);
 	if (fr_in_buf <= 0) {
 		if (!cras_rstream_get_is_draining(dev_stream->stream))
 			*count = 0;
