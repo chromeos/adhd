@@ -176,12 +176,12 @@ void cras_iodev_init_audio_area(struct cras_iodev *iodev,
  */
 void cras_iodev_free_audio_area(struct cras_iodev *iodev);
 
-/* Free the dsp context for this iodev
+/* Free resources allocated for this iodev.
  *
  * Args:
- *    iodev - the iodev you want to free the dsp context.
+ *    iodev - the iodev you want to free the resources for.
  */
-void cras_iodev_free_dsp(struct cras_iodev *iodev);
+void cras_iodev_free_resources(struct cras_iodev *iodev);
 
 /* Fill timespec ts with the time to sleep based on the number of frames and
  * frame rate.

@@ -527,7 +527,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	}
 
 	free((void *)aio->dsp_name_default);
-	cras_iodev_free_dsp(&aio->base);
+	cras_iodev_free_resources(&aio->base);
 	free(aio->dev);
 }
 

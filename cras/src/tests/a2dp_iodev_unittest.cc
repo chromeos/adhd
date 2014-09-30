@@ -43,7 +43,7 @@ static size_t drain_a2dp_called;
 static size_t a2dp_block_size_called;
 static size_t a2dp_queued_frames_val;
 static size_t cras_iodev_free_format_called;
-static size_t cras_iodev_free_dsp_called;
+static size_t cras_iodev_free_resources_called;
 static int pcm_buf_size_val[MAX_A2DP_ENCODE_CALLS];
 static unsigned int a2dp_encode_processed_bytes_val[MAX_A2DP_ENCODE_CALLS];
 static unsigned int a2dp_encode_index;
@@ -69,7 +69,7 @@ void ResetStubData() {
   a2dp_block_size_called = 0;
   a2dp_queued_frames_val = 0;
   cras_iodev_free_format_called = 0;
-  cras_iodev_free_dsp_called = 0;
+  cras_iodev_free_resources_called = 0;
   memset(a2dp_encode_processed_bytes_val, 0,
          sizeof(a2dp_encode_processed_bytes_val));
   a2dp_encode_index = 0;
@@ -125,7 +125,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(1, cras_iodev_list_rm_output_called);
   ASSERT_EQ(1, cras_iodev_rm_node_called);
   ASSERT_EQ(1, destroy_a2dp_called);
-  ASSERT_EQ(1, cras_iodev_free_dsp_called);
+  ASSERT_EQ(1, cras_iodev_free_resources_called);
 
   /* Assert iodev name matches the bt device's name */
   fake_device = reinterpret_cast<struct cras_bt_device *>(0x456);
@@ -344,9 +344,9 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
   cras_iodev_free_format_called++;
 }
 
-void cras_iodev_free_dsp(struct cras_iodev *iodev)
+void cras_iodev_free_resources(struct cras_iodev *iodev)
 {
-  cras_iodev_free_dsp_called++;
+  cras_iodev_free_resources_called++;
 }
 
 // Cras iodev

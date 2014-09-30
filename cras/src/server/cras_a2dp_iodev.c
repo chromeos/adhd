@@ -486,6 +486,6 @@ void a2dp_iodev_destroy(struct cras_iodev *iodev)
 
 	/* Free resources when device successfully removed. */
 	free_resources(a2dpio);
-	cras_iodev_free_dsp(iodev);
+	cras_iodev_free_resources(iodev);
 	free(a2dpio);
 }

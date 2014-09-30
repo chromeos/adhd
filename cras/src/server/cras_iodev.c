@@ -200,6 +200,18 @@ void cras_iodev_free_audio_area(struct cras_iodev *iodev)
 	iodev->area = NULL;
 }
 
+static void cras_iodev_free_dsp(struct cras_iodev *iodev)
+{
+	if (iodev->dsp_context) {
+		cras_dsp_context_free(iodev->dsp_context);
+		iodev->dsp_context = NULL;
+	}
+}
+
+void cras_iodev_free_resources(struct cras_iodev *iodev)
+{
+	cras_iodev_free_dsp(iodev);
+}
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 {
@@ -215,14 +227,6 @@ static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 						  iodev->format->frame_rate,
 						  purpose);
 	cras_iodev_update_dsp(iodev);
-}
-
-void cras_iodev_free_dsp(struct cras_iodev *iodev)
-{
-	if (iodev->dsp_context) {
-		cras_dsp_context_free(iodev->dsp_context);
-		iodev->dsp_context = NULL;
-	}
 }
 
 void cras_iodev_fill_time_from_frames(size_t frames,

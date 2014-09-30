@@ -82,7 +82,7 @@ static size_t ucm_get_dsp_name_default_called;
 static const char *ucm_get_dsp_name_default_value;
 static size_t cras_alsa_jack_get_dsp_name_called;
 static const char *cras_alsa_jack_get_dsp_name_value;
-static size_t cras_iodev_free_dsp_called;
+static size_t cras_iodev_free_resources_called;
 static size_t cras_alsa_jack_exists_called;
 static const char *cras_alsa_jack_exists_match;
 static size_t cras_alsa_jack_update_node_type_called;
@@ -126,7 +126,7 @@ void ResetStubData() {
   ucm_get_dsp_name_default_value = NULL;
   cras_alsa_jack_get_dsp_name_called = 0;
   cras_alsa_jack_get_dsp_name_value = NULL;
-  cras_iodev_free_dsp_called = 0;
+  cras_iodev_free_resources_called = 0;
   cras_alsa_jack_exists_called = 0;
   cras_alsa_jack_exists_match = NULL;
   cras_alsa_jack_update_node_type_called = 0;
@@ -173,7 +173,7 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(NULL, cras_iodev_update_dsp_name);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-  EXPECT_EQ(1, cras_iodev_free_dsp_called);
+  EXPECT_EQ(1, cras_iodev_free_resources_called);
 }
 
 TEST(AlsaIoInit, DefaultNodeInternalCard) {
@@ -1274,9 +1274,9 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
   iodev->active_node = node;
 }
 
-void cras_iodev_free_dsp(struct cras_iodev *iodev)
+void cras_iodev_free_resources(struct cras_iodev *iodev)
 {
-  cras_iodev_free_dsp_called++;
+  cras_iodev_free_resources_called++;
 }
 
 int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name)
