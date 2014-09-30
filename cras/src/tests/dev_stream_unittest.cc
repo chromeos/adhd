@@ -417,6 +417,11 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
   return 0;
 }
 
+unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
+					  unsigned int dev_id) {
+  return 0;
+}
+
 int config_format_converter(struct cras_fmt_conv **conv,
 			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,

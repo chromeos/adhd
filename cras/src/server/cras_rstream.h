@@ -243,4 +243,8 @@ static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 	return cras_shm_frames_written(shm) >= rstream->cb_threshold;
 }
 
+/* Returns the number of playable samples in shm for the given device id. */
+unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
+					  unsigned int dev_id);
+
 #endif /* CRAS_RSTREAM_H_ */

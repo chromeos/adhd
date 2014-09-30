@@ -901,7 +901,7 @@ static int write_streams(struct active_dev *adev,
 
 	DL_FOREACH(adev->streams, curr)
 		dev_stream_mix(curr, odev->format->num_channels, dst,
-			       &write_limit, &num_mixed);
+			       write_limit, &num_mixed);
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
 				    write_limit, num_mixed, 0);

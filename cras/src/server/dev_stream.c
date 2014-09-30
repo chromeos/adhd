@@ -126,7 +126,7 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 			    size_t num_channels,
 			    uint8_t *dst,
-			    size_t *count,
+			    unsigned int num_to_write,
 			    size_t *index)
 {
 	struct cras_audio_shm *shm;
@@ -140,16 +140,11 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 	size_t frames = 0;
 	unsigned int dev_frames;
 	float mix_vol;
-	unsigned int num_to_write;
 
 	shm = cras_rstream_output_shm(dev_stream->stream);
-	num_to_write = *count;
 	fr_in_buf = dev_stream_playback_frames(dev_stream);
-	if (fr_in_buf <= 0) {
-		if (!cras_rstream_get_is_draining(dev_stream->stream))
-			*count = 0;
+	if (fr_in_buf <= 0)
 		return 0;
-	}
 	if (fr_in_buf < num_to_write)
 		num_to_write = fr_in_buf;
 
@@ -187,15 +182,12 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 		fr_read += read_frames;
 	}
 
-	/* Don't update the write limit for streams that are draining. */
-	if (!cras_rstream_get_is_draining(dev_stream->stream))
-		*count = fr_written;
 	cras_rstream_dev_offset_update(rstream, fr_read, dev_stream->dev_id);
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_DEV_STREAM_MIX,
 				    fr_written, fr_read, 0);
 
 	*index = *index + 1;
-	return *count;
+	return fr_written;
 }
 
 /* Copy from the captured buffer to the temporary format converted buffer. */
@@ -353,12 +345,10 @@ void dev_stream_capture(struct dev_stream *dev_stream,
 
 int dev_stream_playback_frames(const struct dev_stream *dev_stream)
 {
-	struct cras_audio_shm *shm;
 	int frames;
 
-	shm = cras_rstream_output_shm(dev_stream->stream);
-
-	frames = cras_shm_get_frames(shm);
+	frames = cras_rstream_playable_frames(dev_stream->stream,
+					      dev_stream->dev_id);
 	if (frames < 0)
 		return frames;
 
