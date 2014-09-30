@@ -340,7 +340,7 @@ static int fill_odev_zeros(struct active_dev *adev, unsigned int frames)
 	frame_bytes = cras_get_format_bytes(odev->format);
 	while (frames > 0) {
 		frames_written = frames;
-		rc = odev->get_buffer(odev, &area, &frames_written);
+		rc = cras_iodev_get_buffer(odev, &area, &frames_written);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fill zeros fail: %d", rc);
 			return rc;
@@ -348,7 +348,7 @@ static int fill_odev_zeros(struct active_dev *adev, unsigned int frames)
 		/* This assumes consecutive channel areas. */
 		memset(area->channels[0].buf, 0,
 		       frames_written * frame_bytes);
-		odev->put_buffer(odev, frames_written);
+		cras_iodev_put_buffer(odev, frames_written);
 		frames -= frames_written;
 	}
 
@@ -561,8 +561,7 @@ static void move_streams_to_added_dev(struct audio_thread *thread,
 	if (dir == CRAS_STREAM_OUTPUT &&
 	    device_open(added_dev->dev) &&
 	    added_dev->dev->min_cb_level < added_dev->dev->buffer_size)
-		fill_odev_zeros(added_dev, added_dev->dev,
-				added_dev->dev->min_cb_level);
+		fill_odev_zeros(added_dev, added_dev->dev->min_cb_level);
 }
 
 /* Handles messages from main thread to add a new active device. */
@@ -1270,7 +1269,7 @@ static int write_output_samples(struct audio_thread *thread,
 	 * partial area to write to from mmap_begin */
 	while (total_written < fr_to_req) {
 		frames = fr_to_req - total_written;
-		rc = odev->get_buffer(odev, &area, &frames);
+		rc = cras_iodev_get_buffer(odev, &area, &frames);
 		if (rc < 0)
 			return rc;
 
@@ -1302,7 +1301,7 @@ static int write_output_samples(struct audio_thread *thread,
 							odev));
 		}
 
-		rc = odev->put_buffer(odev, written);
+		rc = cras_iodev_put_buffer(odev, written);
 		if (rc < 0)
 			return rc;
 		total_written += written;
@@ -1419,7 +1418,7 @@ static int capture_to_streams(struct active_dev *adev,
 
 		nread = remainder;
 
-		rc = idev->get_buffer(idev, &area, &nread);
+		rc = cras_iodev_get_buffer(idev, &area, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 		/* TODO(dgreid) - This assumes interleaved audio. */
@@ -1432,8 +1431,7 @@ static int capture_to_streams(struct active_dev *adev,
 
 		DL_FOREACH(adev->dev->streams, stream)
 			dev_stream_capture(stream, area, dev_index);
-
-		rc = idev->put_buffer(idev, nread);
+		rc = cras_iodev_put_buffer(idev, nread);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;

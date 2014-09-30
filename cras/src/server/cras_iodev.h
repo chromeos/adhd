@@ -324,4 +324,17 @@ int cras_iodev_open(struct cras_iodev *iodev);
 /* Open an iodev, does teardown and invokes the close_dev callback. */
 int cras_iodev_close(struct cras_iodev *iodev);
 
+/* Marks a buffer from get_buffer as read/written. */
+int cras_iodev_put_buffer(struct cras_iodev *iodev, unsigned int nframes);
+
+/* Returns a buffer to read/write to/from.
+ * Args:
+ *    iodev - The device.
+ *    area - Filled with a pointer to the audio to read/write.
+ *    frames - Filled with the number of frames that can be read/written.
+ */
+int cras_iodev_get_buffer(struct cras_iodev *iodev,
+			  struct cras_audio_area **area,
+			  unsigned *frames);
+
 #endif /* CRAS_IODEV_H_ */
