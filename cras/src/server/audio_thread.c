@@ -330,11 +330,12 @@ static int fetch_stream(struct dev_stream *dev_stream,
 }
 
 /* Put 'frames' worth of zero samples into odev. */
-static int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+static int fill_odev_zeros(struct active_dev *adev, unsigned int frames)
 {
 	struct cras_audio_area *area;
 	unsigned int frame_bytes, frames_written;
 	int rc;
+	struct cras_iodev *odev = adev->dev;
 
 	frame_bytes = cras_get_format_bytes(odev->format);
 	while (frames > 0) {
@@ -355,9 +356,9 @@ static int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 }
 
 /* Builds an initial buffer to avoid an underrun. Adds min_level of latency. */
-static void fill_odevs_zeros_min_level(struct cras_iodev *dev)
+static void fill_odevs_zeros_min_level(struct active_dev *adev)
 {
-	fill_odev_zeros(dev, dev->min_buffer_level);
+	fill_odev_zeros(adev, adev->dev->min_buffer_level);
 }
 
 /* Open the device potentially filling the output with a pre buffer. */
@@ -381,7 +382,7 @@ static int init_device(struct active_dev *adev)
 	 * audio callbacks when the stream starts
 	 */
 	if (dev->direction == CRAS_STREAM_OUTPUT)
-		fill_odevs_zeros_min_level(dev);
+		fill_odevs_zeros_min_level(adev);
 
 	return 0;
 }
@@ -560,7 +561,8 @@ static void move_streams_to_added_dev(struct audio_thread *thread,
 	if (dir == CRAS_STREAM_OUTPUT &&
 	    device_open(added_dev->dev) &&
 	    added_dev->dev->min_cb_level < added_dev->dev->buffer_size)
-		fill_odev_zeros(added_dev->dev, added_dev->dev->min_cb_level);
+		fill_odev_zeros(added_dev, added_dev->dev,
+				added_dev->dev->min_cb_level);
 }
 
 /* Handles messages from main thread to add a new active device. */
@@ -1148,12 +1150,13 @@ static int get_next_dev_wake(struct audio_thread *thread,
  * Args:
  *    odev - the output device to be drainned.
  */
-int drain_output_buffer(struct cras_iodev *odev)
+int drain_output_buffer(struct active_dev *adev)
 {
 	int hw_level;
 	int filled_count;
 	int buffer_frames;
 	int rc;
+	struct cras_iodev *odev = adev->dev;
 
 	buffer_frames = odev->buffer_size;
 
@@ -1170,7 +1173,7 @@ int drain_output_buffer(struct cras_iodev *odev)
 
 	filled_count = MIN(buffer_frames - hw_level,
 			   2048 - (int)odev->extra_silent_frames);
-	rc = fill_odev_zeros(odev, filled_count);
+	rc = fill_odev_zeros(adev, filled_count);
 	if (rc)
 		return rc;
 	odev->extra_silent_frames += filled_count;
@@ -1243,7 +1246,7 @@ static int write_output_samples(struct audio_thread *thread,
 	struct cras_audio_area *area;
 
 	if (odev->is_draining)
-		return drain_output_buffer(odev);
+		return drain_output_buffer(adev);
 
 	rc = odev->frames_queued(odev);
 	if (rc < 0)
@@ -1311,7 +1314,7 @@ static int write_output_samples(struct audio_thread *thread,
 			return -1;
 	} else if (odev->min_cb_level < odev->buffer_size) {
 		/* Empty hardware and nothing written, zero fill it. */
-		fill_odev_zeros(odev, odev->min_cb_level);
+		fill_odev_zeros(adev, odev->min_cb_level);
 	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
