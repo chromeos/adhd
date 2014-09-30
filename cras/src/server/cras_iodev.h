@@ -24,6 +24,7 @@ struct cras_audio_area;
 struct cras_audio_format;
 struct audio_thread;
 struct cras_iodev;
+struct rate_estimator;
 
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
@@ -72,6 +73,7 @@ struct cras_ionode {
  * update_channel_layout - Update the channel layout base on set iodev->format,
  *     expect the best available layout be filled to iodev->format.
  * format - The audio format being rendered or captured.
+ * rate_est - Rate estimator to estimate the actual device rate.
  * area - Information about how the samples are stored.
  * info - Unique identifier for this device (index and name).
  * nodes - The output or input nodes available for this device.
@@ -118,6 +120,7 @@ struct cras_iodev {
 	void (*update_active_node)(struct cras_iodev *iodev);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
+	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
 	struct cras_iodev_info info;
 	struct cras_ionode *nodes;
@@ -336,5 +339,11 @@ int cras_iodev_put_buffer(struct cras_iodev *iodev, unsigned int nframes);
 int cras_iodev_get_buffer(struct cras_iodev *iodev,
 			  struct cras_audio_area **area,
 			  unsigned *frames);
+
+/* Update the estimated sample rate of the device. */
+int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level);
+
+/* Returst the estimated frame rate of the device. */
+double cras_iodev_get_est_rate(const struct cras_iodev *iodev);
 
 #endif /* CRAS_IODEV_H_ */

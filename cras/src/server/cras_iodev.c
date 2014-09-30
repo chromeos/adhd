@@ -19,7 +19,13 @@
 #include "cras_util.h"
 #include "dev_stream.h"
 #include "utlist.h"
+#include "rate_estimator.h"
 #include "softvol_curve.h"
+
+static const struct timespec rate_estimation_window_sz = {
+	1, 0 /* 1 sec. */
+};
+static const double rate_estimation_smooth_factor = 0.9f;
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev);
 
@@ -141,6 +147,14 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 				set_default_channel_count_layout(iodev);
 		}
 		cras_iodev_alloc_dsp(iodev);
+
+		if (!iodev->rate_est)
+			iodev->rate_est = rate_estimator_create(
+						actual_rate,
+						&rate_estimation_window_sz,
+						rate_estimation_smooth_factor);
+		else
+			rate_estimator_reset_rate(iodev->rate_est, actual_rate);
 	}
 
 	/* Fill the format information back to stream. For capture stream,
@@ -211,6 +225,7 @@ static void cras_iodev_free_dsp(struct cras_iodev *iodev)
 void cras_iodev_free_resources(struct cras_iodev *iodev)
 {
 	cras_iodev_free_dsp(iodev);
+	rate_estimator_destroy(iodev->rate_est);
 }
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
@@ -434,6 +449,11 @@ int cras_iodev_close(struct cras_iodev *iodev)
 
 int cras_iodev_put_buffer(struct cras_iodev *iodev, unsigned int nframes)
 {
+	rate_estimator_add_frames(
+			iodev->rate_est,
+			(iodev->direction == CRAS_STREAM_OUTPUT)
+					? nframes
+					: -nframes);
 	return iodev->put_buffer(iodev, nframes);
 }
 
@@ -442,4 +462,17 @@ int cras_iodev_get_buffer(struct cras_iodev *iodev,
 			  unsigned *frames)
 {
 	return iodev->get_buffer(iodev, area, frames);
+}
+
+int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
+{
+	struct timespec now;
+
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	return rate_estimator_check(iodev->rate_est, level, &now);
+}
+
+double cras_iodev_get_est_rate(const struct cras_iodev *iodev)
+{
+	return rate_estimator_get_rate(iodev->rate_est);
 }

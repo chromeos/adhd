@@ -515,6 +515,30 @@ size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
 }
 
+struct rate_estimator *rate_estimator_create(unsigned int rate,
+                                             const struct timespec *window_size,
+                                             double smooth_factor) {
+  return NULL;
+}
+
+void rate_estimator_destroy(struct rate_estimator *re) {
+}
+
+void rate_estimator_add_frames(struct rate_estimator *re, int fr) {
+}
+
+int rate_estimator_check(struct rate_estimator *re, int level,
+                         struct timespec *now) {
+  return 0;
+}
+
+void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate) {
+}
+
+double rate_estimator_get_rate(struct rate_estimator *re) {
+  return 0.0;
+}
+
 }  // extern "C"
 }  //  namespace
 
