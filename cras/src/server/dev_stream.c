@@ -67,10 +67,14 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	}
 
 	if (out->conv) {
-		unsigned int dev_frames =
-			cras_fmt_conv_in_frames_to_out(out->conv,
-						       stream->buffer_frames);
+		unsigned int dev_frames;
 		unsigned int buf_bytes;
+
+		dev_frames = (stream->direction == CRAS_STREAM_OUTPUT)
+			? cras_fmt_conv_in_frames_to_out(out->conv,
+							 stream->buffer_frames)
+			: cras_fmt_conv_out_frames_to_in(out->conv,
+							 stream->buffer_frames);
 
 		out->conv_buffer_size_frames = 2 * MAX(dev_frames,
 						       stream->buffer_frames);
@@ -385,8 +389,10 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 	if (!dev_stream->conv)
 		return frames_avail;
 
-	return buf_available_bytes(dev_stream->conv_buffer) /
-			cras_shm_frame_bytes(shm);
+	frames_avail = cras_fmt_conv_out_frames_to_in(dev_stream->conv,
+			buf_available_bytes(dev_stream->conv_buffer) /
+				cras_shm_frame_bytes(shm));
+	return frames_avail;
 }
 
 /* TODO(dgreid) remove this hack to reset the time if needed. */
