@@ -844,9 +844,6 @@ static int fetch_streams(struct audio_thread *thread,
 		if (cras_rstream_get_is_draining(rstream))
 			continue;
 
-		dev_stream_set_dev_rate(dev_stream,
-			odev->format->frame_rate + 5 * adev->speed_adjust);
-
 		/* Check if it's time to get more data from this stream.
 		 * Allowing for waking up half a little early. */
 		clock_gettime(CLOCK_MONOTONIC, &now);
@@ -1314,6 +1311,38 @@ static int wait_pending_output_streams(struct audio_thread *thread)
 	return 0;
 }
 
+/* Gets the master device which the stream is attached to. */
+static inline
+struct cras_iodev *get_master_dev(const struct dev_stream *stream)
+{
+	return (struct cras_iodev *)stream->stream->master_dev.dev_ptr;
+}
+
+/* Updates the estimated sample rate of active device to all attached
+ * streams.
+ */
+static void update_estimated_rate(struct audio_thread *thread,
+				  struct active_dev *adev)
+{
+	struct cras_iodev *master_dev;
+	struct cras_iodev *dev = adev->dev;
+	struct dev_stream *dev_stream;
+
+	DL_FOREACH(dev->streams, dev_stream) {
+		master_dev = get_master_dev(dev_stream);
+		if (master_dev == NULL) {
+			syslog(LOG_ERR, "Fail to find master active dev.");
+			continue;
+		}
+
+		dev_stream_set_dev_rate(dev_stream,
+				dev->format->frame_rate,
+				cras_iodev_get_est_rate_ratio(dev),
+				cras_iodev_get_est_rate_ratio(master_dev),
+				adev->coarse_rate_adjust);
+	}
+}
+
 /* Returns 0 on success negative error on device failure. */
 static int write_output_samples(struct audio_thread *thread,
 				struct active_dev *adev,
@@ -1335,12 +1364,15 @@ static int write_output_samples(struct audio_thread *thread,
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
-	if (hw_level < odev->min_cb_level)
-		adev->speed_adjust = 1;
-	else if (hw_level > odev->max_cb_level + 20)
-		adev->speed_adjust = -1;
+	if (hw_level < odev->min_cb_level / 2)
+		adev->coarse_rate_adjust = 1;
+	else if (hw_level > odev->max_cb_level * 2)
+		adev->coarse_rate_adjust = -1;
 	else
-		adev->speed_adjust = 0;
+		adev->coarse_rate_adjust = 0;
+
+	if (cras_iodev_update_rate(odev, hw_level))
+		update_estimated_rate(thread, adev);
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO,
 				    adev->dev->info.idx, hw_level, 0);
@@ -1476,7 +1508,8 @@ static unsigned int get_stream_limit_set_delay(struct active_dev *adev,
  *      case the first read.
  * Returns 0 on success.
  */
-static int capture_to_streams(struct active_dev *adev,
+static int capture_to_streams(struct audio_thread *thread,
+			      struct active_dev *adev,
 			      unsigned int dev_index)
 {
 	struct cras_iodev *idev = adev->dev;
@@ -1484,6 +1517,9 @@ static int capture_to_streams(struct active_dev *adev,
 	snd_pcm_uframes_t remainder, hw_level;
 
 	hw_level = idev->frames_queued(idev);
+	if (cras_iodev_update_rate(idev, hw_level))
+		update_estimated_rate(thread, adev);
+
 	remainder = MIN(hw_level, get_stream_limit_set_delay(adev, hw_level));
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO,
@@ -1547,9 +1583,8 @@ static int do_capture(struct audio_thread *thread)
 	DL_FOREACH(idev_list, adev) {
 		if (!device_open(adev->dev))
 			continue;
-		if (capture_to_streams(adev, dev_index) < 0) {
+		if (capture_to_streams(thread, adev, dev_index) < 0)
 			thread_rm_active_adev(thread, adev);
-		}
 		dev_index++;
 	}
 

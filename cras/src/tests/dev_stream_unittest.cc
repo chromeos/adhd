@@ -67,6 +67,10 @@ static size_t conv_frames_ret;
 static int cras_audio_area_create_num_channels_val;
 static int cras_fmt_conv_convert_frames_in_frames_val;
 static int cras_fmt_conversion_needed_val;
+static int cras_fmt_conv_set_linear_resample_rates_called;
+static unsigned int cras_fmt_conv_set_linear_resample_rates_from;
+static unsigned int cras_fmt_conv_set_linear_resample_rates_to;
+
 
 class CreateSuite : public testing::Test{
   protected:
@@ -89,6 +93,7 @@ class CreateSuite : public testing::Test{
 
       config_format_converter_called = 0;
       cras_fmt_conversion_needed_val = 0;
+      cras_fmt_conv_set_linear_resample_rates_called = 0;
 
       memset(&copy_area_call, 0xff, sizeof(copy_area_call));
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
@@ -370,6 +375,72 @@ TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
   dev_stream_destroy(dev_stream);
 }
 
+TEST_F(CreateSuite, SetDevRateNotMasterDev) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+
+  rstream_.format = fmt_s16le_48;
+  rstream_.direction = CRAS_STREAM_INPUT;
+  rstream_.master_dev.dev_id = 4;
+  config_format_converter_conv =
+      reinterpret_cast<struct cras_fmt_conv*>(0x33);
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55);
+
+  dev_stream_set_dev_rate(dev_stream, 44100, 1.01, 1.0, 0);
+  EXPECT_EQ(1, cras_fmt_conv_set_linear_resample_rates_called);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
+  EXPECT_EQ(44541, cras_fmt_conv_set_linear_resample_rates_to);
+
+  dev_stream_set_dev_rate(dev_stream, 44100, 1.01, 1.0, 1);
+  EXPECT_EQ(2, cras_fmt_conv_set_linear_resample_rates_called);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
+  EXPECT_LE(44541, cras_fmt_conv_set_linear_resample_rates_to);
+
+  dev_stream_set_dev_rate(dev_stream, 44100, 1.0, 1.01, -1);
+  EXPECT_EQ(3, cras_fmt_conv_set_linear_resample_rates_called);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
+  EXPECT_GE(43663, cras_fmt_conv_set_linear_resample_rates_to);
+}
+
+TEST_F(CreateSuite, SetDevRateMasterDev) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+  unsigned int expected_ts_nsec;
+
+  rstream_.format = fmt_s16le_48;
+  rstream_.direction = CRAS_STREAM_INPUT;
+  rstream_.master_dev.dev_id = dev_id;
+  config_format_converter_conv =
+      reinterpret_cast<struct cras_fmt_conv*>(0x33);
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55);
+
+  dev_stream_set_dev_rate(dev_stream, 44100, 1.01, 1.0, 0);
+  EXPECT_EQ(1, cras_fmt_conv_set_linear_resample_rates_called);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_to);
+  expected_ts_nsec = 1000000000.0 * kBufferFrames / 2.0 / 48000.0 / 1.01;
+  EXPECT_EQ(0, rstream_.sleep_interval_ts.tv_sec);
+  EXPECT_EQ(expected_ts_nsec, rstream_.sleep_interval_ts.tv_nsec);
+
+  dev_stream_set_dev_rate(dev_stream, 44100, 1.01, 1.0, 1);
+  EXPECT_EQ(2, cras_fmt_conv_set_linear_resample_rates_called);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
+  EXPECT_LE(44100, cras_fmt_conv_set_linear_resample_rates_to);
+  expected_ts_nsec = 1000000000.0 * kBufferFrames / 2.0 / 48000.0 / 1.01;
+  EXPECT_EQ(0, rstream_.sleep_interval_ts.tv_sec);
+  EXPECT_EQ(expected_ts_nsec, rstream_.sleep_interval_ts.tv_nsec);
+
+  dev_stream_set_dev_rate(dev_stream, 44100, 1.0, 1.33, -1);
+  EXPECT_EQ(3, cras_fmt_conv_set_linear_resample_rates_called);
+  EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
+  EXPECT_GE(44100, cras_fmt_conv_set_linear_resample_rates_to);
+  expected_ts_nsec = 1000000000.0 * kBufferFrames / 2.0 / 48000.0;
+  EXPECT_EQ(0, rstream_.sleep_interval_ts.tv_sec);
+  EXPECT_EQ(expected_ts_nsec, rstream_.sleep_interval_ts.tv_nsec);
+}
+
 //  Test set_playback_timestamp.
 TEST(DevStreamTimimg, SetPlaybackTimeStampSimple) {
   struct cras_timespec ts;
@@ -572,6 +643,15 @@ const struct cras_audio_format *cras_fmt_conv_out_format(
 int cras_fmt_conversion_needed(const struct cras_fmt_conv *conv)
 {
   return cras_fmt_conversion_needed_val;
+}
+
+void cras_fmt_conv_set_linear_resample_rates(struct cras_fmt_conv *conv,
+                                             unsigned int from,
+                                             unsigned int to)
+{
+  cras_fmt_conv_set_linear_resample_rates_from = from;
+  cras_fmt_conv_set_linear_resample_rates_to = to;
+  cras_fmt_conv_set_linear_resample_rates_called++;
 }
 
 //  From librt.

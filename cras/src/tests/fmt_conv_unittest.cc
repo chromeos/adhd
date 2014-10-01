@@ -1217,6 +1217,12 @@ int linear_resampler_needed(struct linear_resampler *lr)
   return linear_resampler_needed_val;
 }
 
+void linear_resampler_set_rates(struct linear_resampler *lr,
+                                unsigned int from,
+                                unsigned int to)
+{
+}
+
 unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,
                                                unsigned int frames)
 {

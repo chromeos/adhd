@@ -607,6 +607,13 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 	return out_frames;
 }
 
+void cras_fmt_conv_set_linear_resample_rates(struct cras_fmt_conv *conv,
+					     unsigned int from,
+					     unsigned int to)
+{
+	linear_resampler_set_rates(conv->resampler, from, to);
+}
+
 size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				    const uint8_t *in_buf,
 				    uint8_t *out_buf,

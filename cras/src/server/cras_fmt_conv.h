@@ -39,6 +39,10 @@ size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 /* Get the number of input frames that will result from converting out_frames */
 size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 				      size_t out_frames);
+/* Sets the input and output rate to the linear resampler. */
+void cras_fmt_conv_set_linear_resample_rates(struct cras_fmt_conv *conv,
+					     unsigned int from,
+					     unsigned int to);
 /* Converts in_frames samples from in_buf, storing the results in out_buf.
  * Args:
  *    conv - The format converter returned from cras_fmt_conv_create().
