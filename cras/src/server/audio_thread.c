@@ -448,6 +448,14 @@ static int append_stream(struct audio_thread *thread,
 	return 0;
 }
 
+/* Close a device if it's been opened. */
+static inline int close_device(struct cras_iodev *dev)
+{
+	if (!dev->is_open(dev))
+		return 0;
+	return dev->close_dev(dev);
+}
+
 static int delete_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
@@ -487,8 +495,12 @@ static int delete_stream(struct audio_thread *thread,
 		}
 
 		if (!adev->streams) {
-			adev->dev->is_draining = 1;
-			adev->dev->extra_silent_frames = 0;
+			if (stream->direction == CRAS_STREAM_OUTPUT) {
+				adev->dev->is_draining = 1;
+				adev->dev->extra_silent_frames = 0;
+			} else {
+				close_device(adev->dev);
+			}
 		}
 	}
 
@@ -496,14 +508,6 @@ static int delete_stream(struct audio_thread *thread,
 		cras_rstream_destroy(stream);
 
 	return 0;
-}
-
-/* Close a device if it's been opened. */
-static inline int close_device(struct cras_iodev *dev)
-{
-	if (!dev->is_open(dev))
-		return 0;
-	return dev->close_dev(dev);
 }
 
 /*
