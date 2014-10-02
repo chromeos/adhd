@@ -29,16 +29,12 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	struct cras_audio_format *stream_fmt = &stream->format;
 	int rc = 0;
 	unsigned int max_frames;
-	unsigned int fmt_conv_num_channels;
-	unsigned int fmt_conv_frame_bytes;
 
 	out = calloc(1, sizeof(*out));
 	out->dev_id = dev_id;
 	out->stream = stream;
 
 	if (stream->direction == CRAS_STREAM_OUTPUT) {
-		fmt_conv_num_channels = dev_fmt->num_channels;
-		fmt_conv_frame_bytes = cras_get_format_bytes(dev_fmt);
 		max_frames = MAX(stream->buffer_frames,
 				 cras_frames_at_rate(stream_fmt->frame_rate,
 						     stream->buffer_frames,
@@ -49,8 +45,6 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 					     dev_fmt,
 					     max_frames);
 	} else {
-		fmt_conv_num_channels = stream->format.num_channels;
-		fmt_conv_frame_bytes = cras_get_format_bytes(&stream->format);
 		max_frames = MAX(stream->buffer_frames,
 				 cras_frames_at_rate(dev_fmt->frame_rate,
 						     stream->buffer_frames,
@@ -69,6 +63,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	if (out->conv) {
 		unsigned int dev_frames;
 		unsigned int buf_bytes;
+		const struct cras_audio_format *ofmt =
+				cras_fmt_conv_out_format(out->conv);
 
 		dev_frames = (stream->direction == CRAS_STREAM_OUTPUT)
 			? cras_fmt_conv_in_frames_to_out(out->conv,
@@ -78,9 +74,13 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 
 		out->conv_buffer_size_frames = 2 * MAX(dev_frames,
 						       stream->buffer_frames);
-		buf_bytes = out->conv_buffer_size_frames * fmt_conv_frame_bytes;
+
+		/* Create conversion buffer and area using the output format
+		 * of the format converter. Note that this format might not be
+		 * identical to stream_fmt for capture. */
+		buf_bytes = out->conv_buffer_size_frames * cras_get_format_bytes(ofmt);
 		out->conv_buffer = byte_buffer_create(buf_bytes);
-		out->conv_area = cras_audio_area_create(fmt_conv_num_channels);
+		out->conv_area = cras_audio_area_create(ofmt->num_channels);
 	}
 
 	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
@@ -219,6 +219,8 @@ static void capture_with_fmt_conv(struct dev_stream *dev_stream,
 		buffer = buf_write_pointer_size(dev_stream->conv_buffer,
 						&write_frames);
 		write_frames /= dst_frame_bytes;
+		if (write_frames == 0)
+			break;
 
 		read_frames = num_frames - total_read;
 		write_frames = cras_fmt_conv_convert_frames(
@@ -381,6 +383,8 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int cb_threshold = cras_rstream_get_cb_threshold(rstream);
 	unsigned int frames_avail;
+	unsigned int conv_buf_level;
+	unsigned int format_bytes;
 
 	shm = cras_rstream_input_shm(rstream);
 
@@ -389,10 +393,22 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 	if (!dev_stream->conv)
 		return frames_avail;
 
-	frames_avail = cras_fmt_conv_out_frames_to_in(dev_stream->conv,
-			buf_available_bytes(dev_stream->conv_buffer) /
-				cras_shm_frame_bytes(shm));
-	return frames_avail;
+	format_bytes = cras_get_format_bytes(
+			cras_fmt_conv_out_format(dev_stream->conv));
+
+	/* Sample rate conversion may cause some sample left in conv_buffer
+	 * take this buffer into account. */
+	conv_buf_level = buf_queued_bytes(dev_stream->conv_buffer) /
+			format_bytes;
+	if (frames_avail < conv_buf_level)
+		return 0;
+	else
+		frames_avail -= conv_buf_level;
+
+	frames_avail = MIN(frames_avail,
+			   buf_available_bytes(dev_stream->conv_buffer) /
+					format_bytes);
+	return cras_fmt_conv_out_frames_to_in(dev_stream->conv, frames_avail);
 }
 
 /* TODO(dgreid) remove this hack to reset the time if needed. */

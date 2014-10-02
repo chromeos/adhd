@@ -34,6 +34,11 @@ static const struct cras_audio_format fmt_s16le_48 = {
 	48000,
 	2,
 };
+static const struct cras_audio_format fmt_s16le_48_mono = {
+  SND_PCM_FORMAT_S16_LE,
+  48000,
+  1,
+};
 
 struct cras_audio_area_copy_call {
   const struct cras_audio_area *dst;
@@ -58,6 +63,8 @@ static struct cras_audio_format out_fmt;
 static struct cras_audio_area_copy_call copy_area_call;
 static struct fmt_conv_call conv_frames_call;
 static size_t conv_frames_ret;
+static int cras_audio_area_create_num_channels_val;
+static int cras_fmt_conv_convert_frames_in_frames_val;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -200,7 +207,7 @@ TEST_F(CreateSuite, CaptureSRC) {
       (uint8_t *)(devstr.conv_buffer->bytes + 1);
 
   conv_frames_ret = kBufferFrames / 2;
-
+  cras_fmt_conv_convert_frames_in_frames_val = kBufferFrames;
   dev_stream_capture(&devstr, area, 0);
 
   EXPECT_EQ((struct cras_fmt_conv *)0xdead, conv_frames_call.conv);
@@ -311,6 +318,51 @@ TEST_F(CreateSuite, CreateSRC48to44Input) {
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
                                 out_fmt.frame_rate),
             dev_stream->conv_buffer_size_frames);
+  dev_stream_destroy(dev_stream);
+}
+
+TEST_F(CreateSuite, CreateSRC48to44StereoToMono) {
+  struct dev_stream *dev_stream;
+
+  rstream_.format = fmt_s16le_48_mono;
+  rstream_.direction = CRAS_STREAM_INPUT;
+  in_fmt.frame_rate = 44100;
+  out_fmt.frame_rate = 48000;
+  config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  EXPECT_EQ(1, config_format_converter_called);
+  EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
+  EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
+                                out_fmt.frame_rate),
+            dev_stream->conv_buffer_size_frames);
+  EXPECT_EQ(dev_stream->conv_buffer_size_frames * 4,
+            dev_stream->conv_buffer->size);
+  EXPECT_EQ(2, cras_audio_area_create_num_channels_val);
+  dev_stream_destroy(dev_stream);
+}
+
+TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
+  struct dev_stream *dev_stream;
+  unsigned int avail;
+
+  rstream_.format = fmt_s16le_48;
+  rstream_.direction = CRAS_STREAM_INPUT;
+  config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  EXPECT_EQ(1, config_format_converter_called);
+  EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
+  EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
+                                out_fmt.frame_rate),
+            dev_stream->conv_buffer_size_frames);
+  EXPECT_EQ(dev_stream->conv_buffer_size_frames * 4,
+            dev_stream->conv_buffer->size);
+  EXPECT_EQ(2, cras_audio_area_create_num_channels_val);
+
+  buf_increment_write(dev_stream->conv_buffer, 50 * 4);
+  avail = dev_stream_capture_avail(dev_stream);
+
+  EXPECT_EQ(cras_frames_at_rate(48000, 512 - 50, 44100), avail);
+
   dev_stream_destroy(dev_stream);
 }
 
@@ -444,6 +496,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
   conv_frames_call.in_buf = in_buf;
   conv_frames_call.out_buf = out_buf;
   conv_frames_call.in_frames = *in_frames;
+  *in_frames = cras_fmt_conv_convert_frames_in_frames_val;
   conv_frames_call.out_frames = out_frames;
 
   return conv_frames_ret;
@@ -455,6 +508,7 @@ void cras_mix_add(int16_t *dst, int16_t *src,
 }
 
 struct cras_audio_area *cras_audio_area_create(int num_channels) {
+  cras_audio_area_create_num_channels_val = num_channels;
   return NULL;
 }
 
