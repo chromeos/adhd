@@ -127,11 +127,11 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 			    &dev_stream->stream->sleep_interval_ts);
 }
 
-unsigned int dev_stream_mix(struct dev_stream *dev_stream,
-			    size_t num_channels,
-			    uint8_t *dst,
-			    unsigned int num_to_write,
-			    size_t *index)
+int dev_stream_mix(struct dev_stream *dev_stream,
+		   size_t num_channels,
+		   uint8_t *dst,
+		   unsigned int num_to_write,
+		   size_t *index)
 {
 	struct cras_audio_shm *shm;
 	struct cras_rstream *rstream = dev_stream->stream;
@@ -148,7 +148,7 @@ unsigned int dev_stream_mix(struct dev_stream *dev_stream,
 	shm = cras_rstream_output_shm(dev_stream->stream);
 	fr_in_buf = dev_stream_playback_frames(dev_stream);
 	if (fr_in_buf <= 0)
-		return 0;
+		return fr_in_buf;
 	if (fr_in_buf < num_to_write)
 		num_to_write = fr_in_buf;
 

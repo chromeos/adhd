@@ -80,10 +80,6 @@ struct audio_thread_metrics_log_msg {
 /* Audio thread logging. */
 struct audio_thread_event_log *atlog;
 
-/* forward declarations */
-static int thread_remove_stream(struct audio_thread *thread,
-				struct cras_rstream *stream);
-
 static struct iodev_callback_list *iodev_callbacks;
 static struct timespec longest_wake;
 
@@ -846,6 +842,7 @@ static int check_stream_timeout(struct cras_rstream *stream, unsigned int rate)
 
 /* Fill the buffer with samples from the attached streams.
  * Args:
+ *    thread - The thread object the device is attached to.
  *    adev - The device to write to.
  *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
  *    write_limit - The maximum number of frames to write to dst.
@@ -855,7 +852,8 @@ static int check_stream_timeout(struct cras_rstream *stream, unsigned int rate)
  *    This number of frames is the minimum of the amount of frames each stream
  *    could provide which is the maximum that can currently be rendered.
  */
-static int write_streams(struct active_dev *adev,
+static int write_streams(struct audio_thread *thread,
+			 struct active_dev *adev,
 			 uint8_t *dst,
 			 size_t write_limit)
 {
@@ -875,8 +873,10 @@ static int write_streams(struct active_dev *adev,
 		shm = cras_rstream_output_shm(curr->stream);
 
 		dev_frames = dev_stream_playback_frames(curr);
-		if (dev_frames < 0) /* TODO(dgreid) remove this stream. */
+		if (dev_frames < 0) {
+			thread_remove_stream(thread, curr->stream);
 			continue;
+		}
 		audio_thread_event_log_data(atlog,
 					    AUDIO_THREAD_WRITE_STREAMS_STREAM,
 					    curr->stream->stream_id,
@@ -899,9 +899,11 @@ static int write_streams(struct active_dev *adev,
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
 				    write_limit, 0, 0);
 
-	DL_FOREACH(adev->streams, curr)
-		dev_stream_mix(curr, odev->format->num_channels, dst,
-			       write_limit, &num_mixed);
+	DL_FOREACH(adev->streams, curr) {
+		if (dev_stream_mix(curr, odev->format->num_channels, dst,
+				   write_limit, &num_mixed) < 0)
+			thread_remove_stream(thread, curr->stream);
+	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
 				    write_limit, num_mixed, 0);
@@ -1233,7 +1235,8 @@ static int wait_pending_output_streams(struct audio_thread *thread)
 	return 0;
 }
 
-static int write_output_samples(struct active_dev *adev,
+static int write_output_samples(struct audio_thread *thread,
+				struct active_dev *adev,
 				struct cras_iodev *loop_dev)
 {
 	struct cras_iodev *odev = adev->dev;
@@ -1276,9 +1279,7 @@ static int write_output_samples(struct active_dev *adev,
 
 		/* TODO(dgreid) - This assumes interleaved audio. */
 		dst = area->channels[0].buf;
-		written = write_streams(adev,
-					dst,
-					frames);
+		written = write_streams(thread, adev, dst, frames);
 		if (written < 0) /* pcm has been closed */
 			return (int)written;
 
@@ -1332,7 +1333,7 @@ static int do_playback(struct audio_thread *thread)
 	DL_FOREACH(odev_list, adev) {
 		if (!device_open(adev->dev))
 			continue;
-		write_output_samples(adev, first_loop_dev(thread));
+		write_output_samples(thread, adev, first_loop_dev(thread));
 	}
 
 	/* TODO(dgreid) - once per rstream, not once per dev_stream. */

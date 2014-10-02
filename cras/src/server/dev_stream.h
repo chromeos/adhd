@@ -60,11 +60,11 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
  *    num_to_write - The number of frames written.
  *    index - The index of the stream writing to this buffer.
  */
-unsigned int dev_stream_mix(struct dev_stream *dev_stream,
-			    size_t num_channels,
-			    uint8_t *dst,
-			    unsigned int num_to_write,
-			    size_t *index);
+int dev_stream_mix(struct dev_stream *dev_stream,
+		   size_t num_channels,
+		   uint8_t *dst,
+		   unsigned int num_to_write,
+		   size_t *index);
 
 /*
  * Reads froms from the source into the dev_stream.
