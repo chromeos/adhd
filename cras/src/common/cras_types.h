@@ -21,8 +21,13 @@ struct __attribute__ ((__packed__)) cras_timespec {
 	int64_t tv_nsec;
 };
 
-/* Device index 0 is reserved for "no device" */
-#define NO_DEVICE 0
+/* Some special device index values. */
+enum CRAS_SPECIAL_DEVICE {
+	NO_DEVICE,
+	SILENT_RECORD_DEVICE,
+	SILENT_PLAYBACK_DEVICE,
+	MAX_SPECIAL_DEVICE_IDX
+};
 
 /* Directions of audio streams.
  * Input, Output, or loopback.

@@ -209,11 +209,13 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 			 ARRAY_SIZE(iodev->info.name),
 			 "Silent record device.");
 		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+		iodev->info.idx = SILENT_RECORD_DEVICE;
 	} else {
 		snprintf(iodev->info.name,
 			 ARRAY_SIZE(iodev->info.name),
 			 "Silent playback device.");
 		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+		iodev->info.idx = SILENT_PLAYBACK_DEVICE;
 	}
 
 	return iodev;

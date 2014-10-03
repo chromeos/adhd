@@ -32,7 +32,7 @@ static struct cras_iodev *active_input;
 static struct cras_iodev *loopback_dev;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
-static uint32_t next_iodev_idx = 1;
+static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
 /* Selected node for input and output. 0 if there is no node selected. */
 static cras_node_id_t selected_input;
 static cras_node_id_t selected_output;
@@ -102,8 +102,8 @@ static int add_dev_to_list(struct iodev_list *list,
 	/* Move to the next index and make sure it isn't taken. */
 	new_idx = next_iodev_idx;
 	while (1) {
-		if (new_idx == NO_DEVICE)
-			new_idx++;
+		if (new_idx < MAX_SPECIAL_DEVICE_IDX)
+			new_idx = MAX_SPECIAL_DEVICE_IDX;
 		DL_SEARCH_SCALAR(list->iodevs, tmp, info.idx, new_idx);
 		if (tmp == NULL)
 			break;
