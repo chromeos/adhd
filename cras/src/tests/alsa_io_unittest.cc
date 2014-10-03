@@ -3,29 +3,9 @@
 // found in the LICENSE file.
 
 #include <stdio.h>
-#include <sys/select.h>
 #include <gtest/gtest.h>
 
 extern "C" {
-//  Override select so it can be stubbed.
-static int select_return_value;
-static struct timeval select_timeval;
-static int select_max_fd;
-static fd_set select_in_fds;
-static fd_set select_out_fds;
-int ut_select(int nfds,
-              fd_set *readfds,
-              fd_set *writefds,
-              fd_set *exceptfds,
-              struct timeval *timeout) {
-  select_max_fd = nfds;
-  select_timeval.tv_sec = timeout->tv_sec;
-  select_timeval.tv_usec = timeout->tv_usec;
-  select_in_fds = *readfds;
-  *readfds = select_out_fds;
-  return select_return_value;
-}
-#define select ut_select
 
 #include "cras_iodev.h"
 #include "cras_shm.h"
@@ -116,8 +96,6 @@ void ResetStubData() {
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = 0;
   cras_alsa_start_called = 0;
-  select_return_value = 0;
-  select_max_fd = -1;
   cras_alsa_fill_properties_called = 0;
   sys_get_volume_called = 0;
   sys_get_capture_gain_called = 0;
