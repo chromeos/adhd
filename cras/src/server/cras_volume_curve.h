@@ -6,6 +6,9 @@
 #ifndef CRAS_VOLUME_CURVE_H_
 #define CRAS_VOLUME_CURVE_H_
 
+#define MAX_VOLUME 100
+#define NUM_VOLUME_STEPS (MAX_VOLUME + 1) /* 0-100 inclusive. */
+
 /* Holds the function that converts from a volume index to a dBFS value. */
 struct cras_volume_curve {
 	/* Function to convert from index to dBFS value.

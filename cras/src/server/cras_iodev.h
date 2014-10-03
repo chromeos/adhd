@@ -38,6 +38,7 @@ struct rate_estimator;
  *    left_right_swapped - If left and right output channels are swapped.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
+ *    softvol_scalers - pointer to software volume scalers.
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -49,6 +50,7 @@ struct cras_ionode {
 	int left_right_swapped;
 	enum CRAS_NODE_TYPE type;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
+	float *softvol_scalers;
 	struct cras_ionode *prev, *next;
 };
 

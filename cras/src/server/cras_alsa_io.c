@@ -31,6 +31,7 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
+#include "softvol_curve.h"
 #include "utlist.h"
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
@@ -523,6 +524,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 			cras_volume_curve_destroy(aout->jack_curve);
 		}
 		cras_iodev_rm_node(&aio->base, node);
+		free(node->softvol_scalers);
 		free(node);
 	}
 
@@ -959,6 +961,28 @@ static int may_have_internal_mic(size_t card_index)
 	return 1;
 }
 
+/* Builds software volume scalers for output nodes in the device. */
+static void build_softvol_scalers(struct alsa_io *aio)
+{
+	struct cras_ionode *ionode;
+
+	DL_FOREACH(aio->base.nodes, ionode) {
+		struct alsa_output_node *aout;
+		const struct cras_volume_curve *curve;
+
+		aout = (struct alsa_output_node *)ionode;
+		if (aout->mixer_output && aout->mixer_output->volume_curve)
+			curve = aout->mixer_output->volume_curve;
+		else if (aout->jack_curve)
+			curve = aout->jack_curve;
+		else
+			curve = cras_alsa_mixer_default_volume_curve(
+					aio->mixer);
+
+		ionode->softvol_scalers = softvol_build_from_curve(curve);
+	}
+}
+
 /*
  * Exported Interface.
  */
@@ -1095,6 +1119,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	/* HDMI outputs don't have volume adjustment, do it in software. */
 	if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, "HDMI"))
 		iodev->software_volume_needed = 1;
+
+	/* Build software volume scalers. */
+	if (direction == CRAS_STREAM_OUTPUT)
+		build_softvol_scalers(aio);
 
 	/* Set the active node as the best node we have now. */
 	alsa_iodev_set_active_node(&aio->base,

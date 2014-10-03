@@ -3,6 +3,14 @@
  * found in the LICENSE file.
  */
 
+#include <math.h>
+#include <stddef.h>
+#include <stdlib.h>
+
+#include "cras_volume_curve.h"
+
+#define LOG_10 2.302585
+
 /* This is a ramp that increases 0.5dB per step, for a total range of 50dB. */
 const float softvol_scalers[101] = {
 	0.003162, /* volume 0 */
@@ -107,3 +115,27 @@ const float softvol_scalers[101] = {
 	0.944061,
 	1.000000, /* volume 100 */
 };
+
+float *softvol_build_from_curve(const struct cras_volume_curve *curve)
+{
+	float *scalers;
+	long max_dBFS, diff;
+	unsigned int volume;
+
+	if (!curve)
+		return NULL;
+
+	scalers = (float *)malloc(NUM_VOLUME_STEPS * sizeof(float));
+	if (!scalers)
+		return NULL;
+
+	max_dBFS = curve->get_dBFS(curve, MAX_VOLUME);
+	scalers[MAX_VOLUME] = 1.0;
+
+	for (volume = 0; volume < MAX_VOLUME; volume++) {
+		diff = max_dBFS - curve->get_dBFS(curve, volume);
+		scalers[volume] = 1.0F / expf(LOG_10 * diff / 2000);
+	}
+
+	return scalers;
+}

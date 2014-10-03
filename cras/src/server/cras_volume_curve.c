@@ -10,9 +10,6 @@
 #include "cras_util.h"
 #include "cras_volume_curve.h"
 
-#define MAX_VOLUME 100
-#define NUM_VOLUME_STEPS (MAX_VOLUME + 1) /* 0-100 inclusive. */
-
 /* Simple curve with configurable max volume and volume step. */
 struct stepped_curve {
 	struct cras_volume_curve curve;

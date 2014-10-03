@@ -366,8 +366,14 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
-	return softvol_get_scaler(cras_iodev_adjust_active_node_volume(
-			iodev, cras_system_get_volume()));
+	unsigned int volume;
+
+	volume = cras_iodev_adjust_active_node_volume(
+			iodev, cras_system_get_volume());
+
+	if (iodev->active_node && iodev->active_node->softvol_scalers)
+		return iodev->active_node->softvol_scalers[volume];
+	return softvol_get_scaler(volume);
 }
 
 int cras_iodev_add_stream(struct cras_iodev *iodev,
