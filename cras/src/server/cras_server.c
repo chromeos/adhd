@@ -7,6 +7,7 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
+#include <poll.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,12 +46,14 @@
  *    fd - socket file descriptor used to communicate with client.
  *    ucred - Process, user, and group ID of the client.
  *    client - rclient to handle messages from this client.
+ *    pollfd - Pointer to struct pollfd for this callback.
  */
 struct attached_client {
 	size_t id;
 	int fd;
 	struct ucred ucred;
 	struct cras_rclient *client;
+	struct pollfd *pollfd;
 	struct attached_client *next, *prev;
 };
 
@@ -63,11 +66,13 @@ struct attached_client {
  *    fd - The file descriptor passed to select.
  *    callack - The funciton to call when fd is ready.
  *    callback_data - Pointer passed to the callback.
+ *    pollfd - Pointer to struct pollfd for this callback.
  */
 struct client_callback {
 	int select_fd;
 	void (*callback)(void *);
 	void *callback_data;
+	struct pollfd *pollfd;
 	int deleted;
 	struct client_callback *prev, *next;
 };
@@ -77,6 +82,7 @@ struct server_data {
 	struct attached_client *clients_head;
 	size_t num_clients;
 	struct client_callback *client_callbacks;
+	size_t num_client_callbacks;
 	size_t next_client_id;
 } server_instance;
 
@@ -197,6 +203,7 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 
 	poll_client->fd = connection_fd;
 	poll_client->next = NULL;
+	poll_client->pollfd = NULL;
 	fill_client_info(poll_client);
 	poll_client->client = cras_rclient_create(connection_fd,
 						  poll_client->id);
@@ -241,8 +248,10 @@ static int add_select_fd(int fd, void (*cb)(void *data),
 	new_cb->callback = cb;
 	new_cb->callback_data = callback_data;
 	new_cb->deleted = 0;
+	new_cb->pollfd = NULL;
 
 	DL_APPEND(serv->client_callbacks, new_cb);
+	server_instance.num_client_callbacks++;
 	return 0;
 }
 
@@ -277,6 +286,7 @@ static void cleanup_select_fds(void *server_data)
 	DL_FOREACH(serv->client_callbacks, client_cb)
 		if (client_cb->deleted) {
 			DL_DELETE(serv->client_callbacks, client_cb);
+			server_instance.num_client_callbacks--;
 			free(client_cb);
 		}
 }
@@ -312,8 +322,6 @@ int cras_server_run(int enable_hfp)
 
 	DBusConnection *dbus_conn;
 	int socket_fd = -1;
-	int max_poll_fd;
-	fd_set poll_set;
 	int rc = 0;
 	const char *sockdir;
 	struct sockaddr_un addr;
@@ -322,6 +330,11 @@ int cras_server_run(int enable_hfp)
 	struct cras_tm *tm;
 	struct timespec ts;
 	int timers_active;
+	struct pollfd *pollfds;
+	unsigned int pollfds_size = 32;
+	unsigned int num_pollfds, poll_size_needed;
+
+	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
 
 	cras_udev_start_sound_subsystem_monitor();
 
@@ -394,42 +407,54 @@ int cras_server_run(int enable_hfp)
 
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {
-		FD_ZERO(&poll_set);
-		FD_SET(socket_fd, &poll_set);
-		max_poll_fd = socket_fd;
+		poll_size_needed = 1 + server_instance.num_clients +
+					server_instance.num_client_callbacks;
+		if (poll_size_needed > pollfds_size) {
+			pollfds_size = 2 * poll_size_needed;
+			pollfds = realloc(pollfds,
+					sizeof(*pollfds) * pollfds_size);
+		}
+
+		pollfds[0].fd = socket_fd;
+		pollfds[0].events = POLLIN;
+		num_pollfds = 1;
+
 		DL_FOREACH(server_instance.clients_head, elm) {
-			if (elm->fd > max_poll_fd)
-				max_poll_fd = elm->fd;
-			FD_SET(elm->fd, &poll_set);
+			pollfds[num_pollfds].fd = elm->fd;
+			pollfds[num_pollfds].events = POLLIN;
+			elm->pollfd = &pollfds[num_pollfds];
+			num_pollfds++;
 		}
 		DL_FOREACH(server_instance.client_callbacks, client_cb) {
 			if (client_cb->deleted)
 				continue;
-			if (client_cb->select_fd > max_poll_fd)
-				max_poll_fd = client_cb->select_fd;
-			FD_SET(client_cb->select_fd, &poll_set);
+			pollfds[num_pollfds].fd = client_cb->select_fd;
+			pollfds[num_pollfds].events = POLLIN;
+			client_cb->pollfd = &pollfds[num_pollfds];
+			num_pollfds++;
 		}
 
 		timers_active = cras_tm_get_next_timeout(tm, &ts);
 
-		rc = pselect(max_poll_fd + 1, &poll_set, NULL, NULL,
-			     timers_active ? &ts : NULL, NULL);
+		rc = ppoll(pollfds, num_pollfds,
+			   timers_active ? &ts : NULL, NULL);
 		if  (rc < 0)
 			continue;
 
 		cras_tm_call_callbacks(tm);
 
 		/* Check for new connections. */
-		if (FD_ISSET(socket_fd, &poll_set))
+		if (pollfds[0].revents & POLLIN)
 			handle_new_connection(&addr, socket_fd);
 		/* Check if there are messages pending for any clients. */
 		DL_FOREACH(server_instance.clients_head, elm)
-			if (FD_ISSET(elm->fd, &poll_set))
+			if (elm->pollfd && elm->pollfd->revents & POLLIN)
 				handle_message_from_client(elm);
 		/* Check any client-registered fd/callback pairs. */
 		DL_FOREACH(server_instance.client_callbacks, client_cb)
-			if (FD_ISSET(client_cb->select_fd, &poll_set) &&
-			    !client_cb->deleted)
+			if (!client_cb->deleted &&
+			    client_cb->pollfd &&
+			    (client_cb->pollfd->revents & POLLIN))
 				client_cb->callback(client_cb->callback_data);
 
 		cleanup_select_fds(&server_instance);
@@ -445,6 +470,7 @@ bail:
 		close(socket_fd);
 		unlink(addr.sun_path);
 	}
+	free(pollfds);
 	return rc;
 }
 

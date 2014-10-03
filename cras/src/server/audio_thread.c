@@ -3,7 +3,10 @@
  * found in the LICENSE file.
  */
 
+#define _GNU_SOURCE /* for ppoll */
+
 #include <pthread.h>
+#include <poll.h>
 #include <sys/param.h>
 #include <syslog.h>
 
@@ -89,6 +92,7 @@ struct iodev_callback_list {
 	int enabled;
 	thread_callback cb;
 	void *cb_data;
+	struct pollfd *pollfd;
 	struct iodev_callback_list *prev, *next;
 };
 
@@ -735,15 +739,15 @@ static int get_dsp_delay(struct cras_iodev *iodev)
 static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 {
 	struct audio_message msg;
-	struct timespec ts = {0, 0};
-	fd_set poll_set;
+	struct pollfd pollfd;
 	int err;
 
+	pollfd.fd = fd;
+	pollfd.events = POLLIN;
+
 	do {
-		FD_ZERO(&poll_set);
-		FD_SET(fd, &poll_set);
-		err = pselect(fd + 1, &poll_set, NULL, NULL, &ts, NULL);
-		if (err > 0 && FD_ISSET(fd, &poll_set)) {
+		err = poll(&pollfd, 1, 0);
+		if (pollfd.revents & POLLIN) {
 			err = read(fd, &msg, sizeof(msg));
 			cras_shm_set_callback_pending(shm, 0);
 		}
@@ -1536,8 +1540,9 @@ static void *audio_io_thread(void *arg)
 	struct active_dev *adev;
 	struct dev_stream *curr;
 	struct timespec ts, now, last_wake;
-	fd_set poll_set;
-	fd_set poll_write_set;
+	struct pollfd *pollfds;
+	unsigned int num_pollfds;
+	unsigned int pollfds_size = 32;
 	int msg_fd;
 	int err;
 
@@ -1551,10 +1556,13 @@ static void *audio_io_thread(void *arg)
 	longest_wake.tv_sec = 0;
 	longest_wake.tv_nsec = 0;
 
+	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
+	pollfds[0].fd = msg_fd;
+	pollfds[0].events = POLLIN;
+
 	while (1) {
 		struct timespec *wait_ts;
 		struct iodev_callback_list *iodev_cb;
-		int max_fd = msg_fd;
 
 		wait_ts = NULL;
 
@@ -1566,19 +1574,25 @@ static void *audio_io_thread(void *arg)
 		if (fill_next_sleep_interval(thread, &ts))
 			wait_ts = &ts;
 
-		FD_ZERO(&poll_set);
-		FD_ZERO(&poll_write_set);
-		FD_SET(msg_fd, &poll_set);
+restart_poll_loop:
+		num_pollfds = 1;
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
 			if (!iodev_cb->enabled)
 				continue;
+			pollfds[num_pollfds].fd = iodev_cb->fd;
+			iodev_cb->pollfd = &pollfds[num_pollfds];
 			if (iodev_cb->is_write)
-				FD_SET(iodev_cb->fd, &poll_write_set);
+				pollfds[num_pollfds].events = POLLOUT;
 			else
-				FD_SET(iodev_cb->fd, &poll_set);
-			if (iodev_cb->fd > max_fd)
-				max_fd = iodev_cb->fd;
+				pollfds[num_pollfds].events = POLLIN;
+			num_pollfds++;
+			if (num_pollfds >= pollfds_size) {
+				pollfds_size *= 2;
+				pollfds = realloc(pollfds,
+					sizeof(*pollfds) * pollfds_size);
+				goto restart_poll_loop;
+			}
 		}
 
 		/* TODO(dgreid) - once per rstream not per dev_stream */
@@ -1586,9 +1600,16 @@ static void *audio_io_thread(void *arg)
 			DL_FOREACH(adev->streams, curr) {
 				if (cras_rstream_get_is_draining(curr->stream))
 					continue;
-				FD_SET(curr->stream->fd, &poll_set);
-				if (curr->stream->fd > max_fd)
-					max_fd = curr->stream->fd;
+				pollfds[num_pollfds].fd = curr->stream->fd;
+				pollfds[num_pollfds].events = POLLIN;
+				num_pollfds++;
+				if (num_pollfds >= pollfds_size) {
+					pollfds_size *= 2;
+					pollfds = realloc(pollfds,
+							  sizeof(*pollfds) *
+								pollfds_size);
+					goto restart_poll_loop;
+				}
 			}
 		}
 
@@ -1603,22 +1624,21 @@ static void *audio_io_thread(void *arg)
 					    wait_ts ? wait_ts->tv_sec : 0,
 					    wait_ts ? wait_ts->tv_nsec : 0,
 					    longest_wake.tv_nsec);
-		err = pselect(max_fd + 1, &poll_set, &poll_write_set, NULL,
-			      wait_ts, NULL);
+		err = ppoll(pollfds, num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC, &last_wake);
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_WAKE, 0, 0, 0);
 		if (err <= 0)
 			continue;
 
-		if (FD_ISSET(msg_fd, &poll_set)) {
+		if (pollfds[0].revents & POLLIN) {
 			err = handle_playback_thread_message(thread);
 			if (err < 0)
 				syslog(LOG_INFO, "handle message %d", err);
 		}
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
-			if (FD_ISSET(iodev_cb->fd, &poll_set) ||
-			    FD_ISSET(iodev_cb->fd, &poll_write_set))
+			if (iodev_cb->pollfd &&
+			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT))
 				iodev_cb->cb(iodev_cb->cb_data);
 		}
 	}
@@ -1738,22 +1758,21 @@ static void audio_thread_process_messages(void *arg)
 	uint8_t buf[256];
 	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
 	struct audio_thread *thread = (struct audio_thread *)arg;
-	struct timespec ts = {0, 0};
-	fd_set poll_set;
+	struct pollfd pollfd;
 	int to_read, nread, err;
 
+	pollfd.fd = thread->main_msg_fds[0];
+	pollfd.events = POLLIN;
+
 	while (1) {
-		FD_ZERO(&poll_set);
-		FD_SET(thread->main_msg_fds[0], &poll_set);
-		err = pselect(thread->main_msg_fds[0] + 1, &poll_set,
-			      NULL, NULL, &ts, NULL);
+		err = poll(&pollfd, 1, 0);
 		if (err < 0) {
 			if (err == -EINTR)
 				continue;
 			return;
 		}
 
-		if (!FD_ISSET(thread->main_msg_fds[0], &poll_set))
+		if (!(pollfd.revents & POLLIN))
 			break;
 
 		/* Get the length of the message first */

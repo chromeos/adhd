@@ -5,6 +5,7 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
+#include <poll.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <syslog.h>
@@ -17,29 +18,20 @@
 static void dbus_watch_callback(void *arg)
 {
 	DBusWatch *watch = (DBusWatch *)arg;
-	int fd, r, flags;
-	fd_set readfds, writefds;
-	struct timeval timeout;
+	int r, flags;
+	struct pollfd pollfd;
 
-	fd = dbus_watch_get_unix_fd(watch);
+	pollfd.fd = dbus_watch_get_unix_fd(watch);
+	pollfd.events = POLLIN | POLLOUT;
 
-	FD_ZERO(&readfds);
-	FD_SET(fd, &readfds);
-
-	FD_ZERO(&writefds);
-	FD_SET(fd, &writefds);
-
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 0;
-
-	r = select(fd + 1, &readfds, &writefds, NULL, &timeout);
+	r = poll(&pollfd, 1, 0);
 	if (r <= 0)
 		return;
 
 	flags = 0;
-	if (FD_ISSET(fd, &readfds))
+	if (pollfd.revents & POLLIN)
 		flags |= DBUS_WATCH_READABLE;
-	if (FD_ISSET(fd, &writefds))
+	if (pollfd.revents & POLLOUT)
 		flags |= DBUS_WATCH_WRITABLE;
 
 	if (!dbus_watch_handle(watch, flags))
