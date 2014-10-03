@@ -1464,7 +1464,10 @@ static int do_capture(struct audio_thread *thread)
 	DL_FOREACH(idev_list, adev) {
 		if (!device_open(adev->dev))
 			continue;
-		capture_to_streams(adev, dev_index);
+		if (capture_to_streams(adev, dev_index) < 0) {
+			close_device(adev->dev);
+			thread_rm_active_adev(thread, adev);
+		}
 		dev_index++;
 	}
 
