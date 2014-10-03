@@ -495,7 +495,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_SET_DEV_WAKE:
-		printf("SET_DEV_WAKE: %u.%09u devidx:%x adj:%u cbth:%u\n",
+		printf("SET_DEV_WAKE: %u.%09u devidx:%x adj:%u min_cbth:%u\n",
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_ADDED:

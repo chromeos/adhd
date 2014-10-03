@@ -1282,7 +1282,8 @@ static void set_odev_wake_times(struct active_dev *dev_list)
 		audio_thread_event_log_data(atlog,
 					    AUDIO_THREAD_SET_DEV_WAKE,
 					    adev->dev->info.idx,
-					    0, 0);
+					    adev->coarse_rate_adjust,
+					    adev->dev->min_cb_level);
 
 		cras_frames_to_time(hw_level, adev->dev->format->frame_rate,
 				    &sleep_time);
