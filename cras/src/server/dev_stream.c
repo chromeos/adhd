@@ -134,7 +134,7 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 						dev_rate_ratio,
 				    &dev_stream->stream->sleep_interval_ts);
 	} else {
-		unsigned int new_rate = dev_rate * dev_rate_ratio /
+		double new_rate = dev_rate * dev_rate_ratio /
 				master_rate_ratio +
 				coarse_rate_adjust_step * coarse_rate_adjust;
 		cras_fmt_conv_set_linear_resample_rates(

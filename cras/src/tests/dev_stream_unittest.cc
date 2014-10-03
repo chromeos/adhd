@@ -68,8 +68,8 @@ static int cras_audio_area_create_num_channels_val;
 static int cras_fmt_conv_convert_frames_in_frames_val;
 static int cras_fmt_conversion_needed_val;
 static int cras_fmt_conv_set_linear_resample_rates_called;
-static unsigned int cras_fmt_conv_set_linear_resample_rates_from;
-static unsigned int cras_fmt_conv_set_linear_resample_rates_to;
+static float cras_fmt_conv_set_linear_resample_rates_from;
+static float cras_fmt_conv_set_linear_resample_rates_to;
 
 
 class CreateSuite : public testing::Test{
@@ -646,8 +646,8 @@ int cras_fmt_conversion_needed(const struct cras_fmt_conv *conv)
 }
 
 void cras_fmt_conv_set_linear_resample_rates(struct cras_fmt_conv *conv,
-                                             unsigned int from,
-                                             unsigned int to)
+                                             float from,
+                                             float to)
 {
   cras_fmt_conv_set_linear_resample_rates_from = from;
   cras_fmt_conv_set_linear_resample_rates_to = to;
