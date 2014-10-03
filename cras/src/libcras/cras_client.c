@@ -21,8 +21,13 @@
  *    samples. This happens in the aud_cb specified in the stream parameters.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* For ppoll() */
+#endif
+
 #include <fcntl.h>
 #include <limits.h>
+#include <poll.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/ipc.h>
@@ -45,9 +50,9 @@
 #include "utlist.h"
 
 static const size_t MAX_CMD_MSG_LEN = 256;
-static const size_t SERVER_CONNECT_TIMEOUT_US = 500000;
+static const size_t SERVER_CONNECT_TIMEOUT_NS = 500000000;
 static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;
-static const size_t SERVER_FIRST_MESSAGE_TIMEOUT_US = 500000;
+static const size_t SERVER_FIRST_MESSAGE_TIMEOUT_NS = 500000000;
 
 /* Commands sent from the user to the running client. */
 enum {
@@ -202,25 +207,28 @@ static struct client_stream *stream_from_id(const struct cras_client *client,
  * return code of zero means that the client is not connected to the server. */
 static int check_server_connected_wait(struct cras_client *client)
 {
-	fd_set poll_set;
+	struct pollfd pollfd;
 	int rc;
-	int fd = client->server_fd;
-	struct timeval timeout;
+	struct timespec timeout, now;
 
+	clock_gettime(CLOCK_MONOTONIC, &now);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = SERVER_FIRST_MESSAGE_TIMEOUT_US;
+	timeout.tv_nsec = SERVER_FIRST_MESSAGE_TIMEOUT_NS;
+	add_timespecs(&timeout, &now);
 
-	while (timeout.tv_usec > 0 && client->id < 0) {
-		FD_ZERO(&poll_set);
-		FD_SET(fd, &poll_set);
-		rc = select(fd + 1, &poll_set, NULL, NULL, &timeout);
-		if (rc <= 0)
+	pollfd.fd = client->server_fd;
+	pollfd.events = POLLIN;
+
+	while (timespec_after(&timeout, &now) > 0 && client->id < 0) {
+		rc = ppoll(&pollfd, 1, &timeout, NULL);
+		if (rc <= 0 && rc != -EAGAIN)
 			return 0; /* Timeout or error. */
-		if (FD_ISSET(fd, &poll_set)) {
+		if (pollfd.revents & POLLIN) {
 			rc = handle_message_from_server(client);
 			if (rc < 0)
 				return 0;
 		}
+		clock_gettime(CLOCK_MONOTONIC, &now);
 	}
 
 	return client->id >= 0;
@@ -228,19 +236,19 @@ static int check_server_connected_wait(struct cras_client *client)
 
 /* Waits until the fd is writable or the specified time has passed. Returns 0 if
  * the fd is writable, -1 for timeout or other error. */
-static int wait_until_fd_writable(int fd, int timeout_us)
+static int wait_until_fd_writable(int fd, int timeout_ns)
 {
-	struct timeval timeout;
-	fd_set poll_set;
+	struct pollfd pollfd;
+	struct timespec timeout;
 	int rc;
 
 	timeout.tv_sec = 0;
-	timeout.tv_usec = timeout_us;
+	timeout.tv_nsec = timeout_ns;
 
-	FD_ZERO(&poll_set);
-	FD_SET(fd, &poll_set);
-	rc = select(fd + 1, NULL, &poll_set, NULL, &timeout);
+	pollfd.fd = fd;
+	pollfd.events = POLLOUT;
 
+	rc = ppoll(&pollfd, 1, &timeout, NULL);
 	if (rc <= 0)
 		return -1;
 	return 0;
@@ -276,7 +284,7 @@ static int connect_to_server(struct cras_client *client)
 
 	if (rc == -1 && errno == EINPROGRESS) {
 		rc = wait_until_fd_writable(client->server_fd,
-					    SERVER_CONNECT_TIMEOUT_US);
+					    SERVER_CONNECT_TIMEOUT_NS);
 	}
 
 	cras_make_fd_blocking(client->server_fd);
@@ -344,25 +352,25 @@ static int send_stream_message(const struct client_stream *stream,
  * incoming "poke" on wake_fd. Up to "len" bytes are read into "buf". */
 static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 {
-	fd_set poll_set;
+	struct pollfd pollfds[2];
 	int nread = 0;
-	int rc, max_fd;
+	int rc;
 	char tmp;
 
-	FD_ZERO(&poll_set);
-	FD_SET(read_fd, &poll_set);
-	FD_SET(wake_fd, &poll_set);
-	max_fd = MAX(read_fd, wake_fd);
+	pollfds[0].fd = read_fd;
+	pollfds[0].events = POLLIN;
+	pollfds[1].fd = wake_fd;
+	pollfds[1].events = POLLIN;
 
-	rc = pselect(max_fd + 1, &poll_set, NULL, NULL, NULL, NULL);
+	rc = poll(pollfds, 2, -1);
 	if (rc < 0)
 		return rc;
-	if (FD_ISSET(read_fd, &poll_set)) {
+	if (pollfds[0].revents & POLLIN) {
 		nread = read(read_fd, buf, len);
 		if (nread != (int)len)
 			return -EIO;
 	}
-	if (FD_ISSET(wake_fd, &poll_set)) {
+	if (pollfds[1].revents & POLLIN) {
 		rc = read(wake_fd, &tmp, 1);
 		if (rc < 0)
 			return rc;
@@ -1202,59 +1210,45 @@ cmd_msg_complete:
  */
 static void *client_thread(void *arg)
 {
-	struct client_input {
-		int fd;
-		int (*cb)(struct cras_client *client);
-		struct client_input *next;
-	};
 	struct cras_client *client = (struct cras_client *)arg;
-	struct client_input server_input, command_input, stream_input;
-	struct client_input *inputs = NULL;
 
 	if (arg == NULL)
 		return (void *)-EINVAL;
 
-	memset(&server_input, 0, sizeof(server_input));
-	memset(&command_input, 0, sizeof(command_input));
-	memset(&stream_input, 0, sizeof(stream_input));
-
 	while (client->thread.running) {
-		fd_set poll_set;
-		struct client_input *curr_input;
-		int max_fd;
+		struct pollfd pollfds[3];
+		int (*cbs[3])(struct cras_client *client);
+		unsigned int num_pollfds, i;
 		int rc;
 
-		inputs = NULL;
+		num_pollfds = 0;
 		if (client->server_fd >= 0) {
-			server_input.fd = client->server_fd;
-			server_input.cb = handle_message_from_server;
-			LL_APPEND(inputs, &server_input);
+			cbs[num_pollfds] = handle_message_from_server;
+			pollfds[num_pollfds].fd = client->server_fd;
+			pollfds[num_pollfds].events = POLLIN;
+			num_pollfds++;
 		}
 		if (client->command_fds[0] >= 0) {
-			command_input.fd = client->command_fds[0];
-			command_input.cb = handle_command_message;
-			LL_APPEND(inputs, &command_input);
+			cbs[num_pollfds] = handle_command_message;
+			pollfds[num_pollfds].fd = client->command_fds[0];
+			pollfds[num_pollfds].events = POLLIN;
+			num_pollfds++;
 		}
 		if (client->stream_fds[0] >= 0) {
-			stream_input.fd = client->stream_fds[0];
-			stream_input.cb = handle_stream_message;
-			LL_APPEND(inputs, &stream_input);
+			cbs[num_pollfds] = handle_stream_message;
+			pollfds[num_pollfds].fd = client->stream_fds[0];
+			pollfds[num_pollfds].events = POLLIN;
+			num_pollfds++;
 		}
 
-		FD_ZERO(&poll_set);
-		max_fd = 0;
-		LL_FOREACH(inputs, curr_input) {
-			FD_SET(curr_input->fd, &poll_set);
-			max_fd = MAX(curr_input->fd, max_fd);
-		}
-
-		rc = select(max_fd + 1, &poll_set, NULL, NULL, NULL);
+		rc = poll(pollfds, num_pollfds, -1);
 		if (rc < 0)
 			continue;
 
-		LL_FOREACH(inputs, curr_input)
-			if (FD_ISSET(curr_input->fd, &poll_set))
-				rc = curr_input->cb(client);
+		for (i = 0; i < num_pollfds; i++) {
+			if (pollfds[i].revents & POLLIN)
+				cbs[i](client);
+		}
 	}
 
 	/* close the command reply pipe. */
