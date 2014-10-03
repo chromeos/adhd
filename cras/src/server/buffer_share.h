@@ -16,7 +16,6 @@ struct dev_offset {
 struct buffer_share {
 	unsigned int buf_sz;
 	unsigned int dev_sz;
-	unsigned int wr_point;
 	struct dev_offset *wr_idx;
 };
 

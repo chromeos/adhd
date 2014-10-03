@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <sys/param.h>
 
 #include "cras_types.h"
 #include "buffer_share.h"
@@ -68,7 +69,7 @@ int buffer_share_add_dev(struct buffer_share *mix, unsigned int dev_id)
 
 	o = find_dev(mix, NO_DEVICE);
 	o->id = dev_id;
-	o->offset = mix->wr_point;
+	o->offset = 0;
 
 	return 0;
 }
@@ -95,8 +96,6 @@ int buffer_share_offset_update(struct buffer_share *mix, unsigned int dev_id,
 			continue;
 
 		mix->wr_idx[i].offset += delta;
-		mix->wr_idx[i].offset %= mix->buf_sz;
-
 		break;
 	}
 
@@ -105,31 +104,25 @@ int buffer_share_offset_update(struct buffer_share *mix, unsigned int dev_id,
 
 unsigned int buffer_share_get_new_write_point(struct buffer_share *mix)
 {
-	unsigned int min_written = mix->buf_sz;
-	unsigned int min_index = 0;
+	unsigned int min_written = mix->buf_sz + 1;
 	unsigned int i;
-	unsigned int distance;
-	struct dev_offset *o;
 
 	for (i = 0; i < mix->dev_sz; i++) {
-		o = &mix->wr_idx[i];
+		struct dev_offset *o = &mix->wr_idx[i];
 
 		if (o->id == NO_DEVICE)
 			continue;
 
-		if (o->offset >= mix->wr_point)
-			distance = o->offset - mix->wr_point;
-		else
-			distance = mix->buf_sz -
-					(mix->wr_point - o->offset);
-
-		if (distance < min_written) {
-			min_written = distance;
-			min_index = i;
-		}
+		min_written = MIN(min_written, o->offset);
+	}
+	for (i = 0; i < mix->dev_sz; i++) {
+		struct dev_offset *o = &mix->wr_idx[i];
+		o->offset -= min_written;
 	}
 
-	mix->wr_point = mix->wr_idx[min_index].offset;
+	if (min_written > mix->buf_sz)
+		return 0;
+
 	return min_written;
 }
 
@@ -142,13 +135,8 @@ unsigned int buffer_share_dev_offset(const struct buffer_share *mix,
 	for (i = 0; i < mix->dev_sz; i++) {
 		o = &mix->wr_idx[i];
 
-		if (o->id != dev_id)
-			continue;
-
-		if (o->offset >= mix->wr_point)
-			return o->offset - mix->wr_point;
-		else
-			return mix->buf_sz - (mix->wr_point - o->offset);
+		if (o->id == dev_id)
+			return o->offset;
 	}
 
 	return 0;
