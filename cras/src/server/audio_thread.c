@@ -783,8 +783,10 @@ static int fetch_streams(struct audio_thread *thread,
 			flush_old_aud_messages(shm, fd);
 
 		frames_in_buff = cras_shm_get_frames(shm);
-		if (frames_in_buff < 0)
-			return frames_in_buff;
+		if (frames_in_buff < 0) {
+			thread_remove_stream(thread, rstream);
+			continue;
+		}
 
 		if (cras_rstream_get_is_draining(rstream))
 			continue;
@@ -1239,6 +1241,7 @@ static int wait_pending_output_streams(struct audio_thread *thread)
 	return 0;
 }
 
+/* Returns 0 on success negative error on device failure. */
 static int write_output_samples(struct audio_thread *thread,
 				struct active_dev *adev,
 				struct cras_iodev *loop_dev)
@@ -1331,17 +1334,22 @@ static int write_output_samples(struct audio_thread *thread,
 
 static int do_playback(struct audio_thread *thread)
 {
-	struct active_dev *odev_list = thread->active_devs[CRAS_STREAM_OUTPUT];
 	struct active_dev *adev;
+	int rc;
 
-	DL_FOREACH(odev_list, adev) {
+	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 		if (!device_open(adev->dev))
 			continue;
-		write_output_samples(thread, adev, first_loop_dev(thread));
+		rc = write_output_samples(thread, adev, first_loop_dev(thread));
+		if (rc < 0) {
+			/* Device error, close it. */
+			close_device(adev->dev);
+			thread_rm_active_adev(thread, adev);
+		}
 	}
 
 	/* TODO(dgreid) - once per rstream, not once per dev_stream. */
-	DL_FOREACH(odev_list, adev) {
+	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 		struct dev_stream *stream;
 		if (!device_open(adev->dev))
 			continue;
@@ -1355,7 +1363,7 @@ static int do_playback(struct audio_thread *thread)
 		}
 	}
 
-	set_odev_wake_times(odev_list);
+	set_odev_wake_times(thread->active_devs[CRAS_STREAM_OUTPUT]);
 
 	return 0;
 }
