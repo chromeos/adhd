@@ -386,12 +386,17 @@ static int init_device(struct active_dev *adev)
 	return 0;
 }
 
-static int append_stream_to_dev(struct active_dev *adev,
+static void thread_rm_active_adev(struct audio_thread *thread,
+				  struct active_dev *adev);
+
+static int append_stream_to_dev(struct audio_thread *thread,
+				struct active_dev *adev,
 				struct cras_rstream *stream)
 {
 	struct dev_stream *out;
 	struct cras_audio_format fmt;
 	struct cras_iodev *dev = adev->dev;
+	int rc;
 
 	if (dev->format == NULL) {
 		fmt = stream->format;
@@ -399,12 +404,16 @@ static int append_stream_to_dev(struct active_dev *adev,
 	}
 	out = dev_stream_create(stream, dev->info.idx, dev->format);
 	if (!out)
-		return -EINVAL;
+		return -ENOMEM;
 
 	adev->dev->is_draining = 0;
 
 	DL_APPEND(adev->streams, out);
-	init_device(adev);
+	rc = init_device(adev);
+	if (rc) {
+		thread_rm_active_adev(thread, adev);
+		return rc;
+	}
 
 	adev->min_cb_level = MIN(adev->min_cb_level, stream->cb_threshold);
 	adev->max_cb_level = MAX(adev->max_cb_level, stream->cb_threshold);
@@ -423,13 +432,8 @@ static int append_stream(struct audio_thread *thread,
 		return -EEXIST;
 
 	/* TODO(dgreid) - add to correct dev, not all. */
-	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		int rc;
-
-		rc = append_stream_to_dev(adev, stream);
-		if (rc)
-			return rc;
-	}
+	DL_FOREACH(thread->active_devs[stream->direction], adev)
+		append_stream_to_dev(thread, adev, stream);
 
 	if (!stream_uses_output(stream))
 		return 0;
@@ -546,7 +550,8 @@ static void move_streams_to_added_dev(struct audio_thread *thread,
 
 	DL_FOREACH(thread->active_devs[dir], adev) {
 		DL_FOREACH(adev->streams, dev_stream) {
-			append_stream_to_dev(added_dev, dev_stream->stream);
+			append_stream_to_dev(thread, added_dev,
+					     dev_stream->stream);
 
 			if (adev == fallback_dev) {
 				DL_DELETE(adev->streams, dev_stream);
@@ -616,7 +621,8 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 
 	DL_FOREACH(adev->streams, dev_stream) {
 		if (last_device)
-			append_stream_to_dev(fallback_dev, dev_stream->stream);
+			append_stream_to_dev(thread, fallback_dev,
+					     dev_stream->stream);
 		DL_DELETE(adev->streams, dev_stream);
 		dev_stream_destroy(dev_stream);
 	}
