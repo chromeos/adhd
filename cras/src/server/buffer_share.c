@@ -9,13 +9,26 @@
 #include "cras_types.h"
 #include "buffer_share.h"
 
+static inline struct dev_offset *find_unused(const struct buffer_share *mix)
+{
+	unsigned int i;
+
+	for (i = 0; i < mix->dev_sz; i++) {
+		if (!mix->wr_idx[i].used)
+			return &mix->wr_idx[i];
+	}
+
+	return NULL;
+}
+
+
 static inline struct dev_offset *find_dev(const struct buffer_share *mix,
 					  unsigned int dev_id)
 {
 	unsigned int i;
 
 	for (i = 0; i < mix->dev_sz; i++) {
-		if (dev_id == mix->wr_idx[i].id)
+		if (mix->wr_idx[i].used && dev_id == mix->wr_idx[i].id)
 			return &mix->wr_idx[i];
 	}
 
@@ -29,8 +42,8 @@ static void alloc_more_devs(struct buffer_share *mix)
 
 	mix->wr_idx = realloc(mix->wr_idx, sizeof(mix->wr_idx[0]) * new_size);
 
-	for (i = 0; i < mix->dev_sz; i++)
-		mix->wr_idx[mix->dev_sz + i].id = NO_DEVICE;
+	for (i = mix->dev_sz; i < new_size; i++)
+		mix->wr_idx[i].used = 0;
 
 	mix->dev_sz = new_size;
 }
@@ -63,11 +76,12 @@ int buffer_share_add_dev(struct buffer_share *mix, unsigned int dev_id)
 	if (o)
 		return -EEXIST;
 
-	o = find_dev(mix, NO_DEVICE);
+	o = find_unused(mix);
 	if (!o)
 		alloc_more_devs(mix);
 
-	o = find_dev(mix, NO_DEVICE);
+	o = find_unused(mix);
+	o->used = 1;
 	o->id = dev_id;
 	o->offset = 0;
 
@@ -81,7 +95,7 @@ int buffer_share_rm_dev(struct buffer_share *mix, unsigned int dev_id)
 	o = find_dev(mix, dev_id);
 	if (!o)
 		return -ENOENT;
-	o->id = NO_DEVICE;
+	o->used = 0;
 
 	return 0;
 }
@@ -110,7 +124,7 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share *mix)
 	for (i = 0; i < mix->dev_sz; i++) {
 		struct dev_offset *o = &mix->wr_idx[i];
 
-		if (o->id == NO_DEVICE)
+		if (!o->used)
 			continue;
 
 		min_written = MIN(min_written, o->offset);

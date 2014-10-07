@@ -9,6 +9,7 @@
 #define INITIAL_DEV_SIZE 3
 
 struct dev_offset {
+	unsigned int used;
 	unsigned int id;
 	unsigned int offset;
 };
