@@ -11,6 +11,7 @@
 
 #include "cras_types.h"
 
+struct buffer_share;
 struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;

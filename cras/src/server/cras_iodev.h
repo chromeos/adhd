@@ -18,6 +18,7 @@
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
 
+struct buffer_share;
 struct cras_rstream;
 struct cras_audio_area;
 struct cras_audio_format;
@@ -91,6 +92,8 @@ struct cras_ionode {
  * streams - List of audio streams serviced by dev.
  * min_cb_level - min callback level of any stream attached.
  * max_cb_level - max callback level of any stream attached.
+ * buf_state - If multiple streams are writing to this device, then this
+ *     keeps track of how much each stream has written.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -133,6 +136,7 @@ struct cras_iodev {
 	struct dev_stream *streams;
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
+	struct buffer_share *buf_state;
 	struct cras_iodev *prev, *next;
 };
 
@@ -295,6 +299,24 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 /* Indicate that a stream has been removed from the device. */
 int cras_iodev_rm_stream(struct cras_iodev *iodev,
 			 const struct dev_stream *stream);
+
+/* Get the offset of this stream into the dev's buffer. */
+unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
+				      struct dev_stream *stream);
+
+/* Get the maximum offset of any stream into the dev's buffer. */
+unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev);
+
+/* Tell the device how many frames the given stream wrote. */
+void cras_iodev_stream_written(struct cras_iodev *iodev,
+			       struct dev_stream *stream,
+			       unsigned int nwritten);
+
+/* All streams have written what they can, update the write pointers and return
+ * the amount that has been filled by all streams and can be comitted to the
+ * device.
+ */
+unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev);
 
 /* Open an iodev, does setup and invokes the open_dev callback. */
 int cras_iodev_open(struct cras_iodev *iodev);

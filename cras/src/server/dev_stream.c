@@ -130,8 +130,7 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 int dev_stream_mix(struct dev_stream *dev_stream,
 		   size_t num_channels,
 		   uint8_t *dst,
-		   unsigned int num_to_write,
-		   size_t *index)
+		   unsigned int num_to_write)
 {
 	struct cras_audio_shm *shm;
 	struct cras_rstream *rstream = dev_stream->stream;
@@ -179,7 +178,7 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 			read_frames = dev_frames;
 		}
 		num_samples = dev_frames * num_channels;
-		cras_mix_add(target, src, num_samples, *index,
+		cras_mix_add(target, src, num_samples, 1,
 			     cras_shm_get_mute(shm), mix_vol);
 		target += num_samples;
 		fr_written += dev_frames;
@@ -190,7 +189,6 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_DEV_STREAM_MIX,
 				    fr_written, fr_read, 0);
 
-	*index = *index + 1;
 	return fr_written;
 }
 

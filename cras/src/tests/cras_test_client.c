@@ -431,13 +431,12 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_MIX:
-		printf("WRITE_STREAMS_MIX: %u.%09u write_limit %u\n",
-		       sec, nsec, data1);
+		printf("WRITE_STREAMS_MIX: %u.%09u wlimit %u max_offset %u\n",
+		       sec, nsec, data1, data2);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_MIXED:
-		printf("WRITE_STREAMS_MIXED: %u.%09u write_limit %u "
-		       "num_mixed %u\n",
-		       sec, nsec, data1, data2);
+		printf("WRITE_STREAMS_MIXED: %u.%09u write_limit %u\n",
+		       sec, nsec, data1);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_STREAM:
 		printf("WRITE_STREAMS_STREAM: %u.%09u id %x "

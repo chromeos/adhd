@@ -379,6 +379,38 @@ int pthread_join(pthread_t thread, void **value_ptr) {
   return 0;
 }
 
+// From buffer_share
+struct buffer_share *buffer_share_create(unsigned int buf_sz) {
+  return NULL;
+}
+
+void buffer_share_destroy(struct buffer_share *mix)
+{
+}
+
+int buffer_share_offset_update(struct buffer_share *mix, unsigned int id,
+                               unsigned int frames) {
+  return 0;
+}
+
+unsigned int buffer_share_get_new_write_point(struct buffer_share *mix) {
+  return 0;
+}
+
+int buffer_share_add_id(struct buffer_share *mix, unsigned int id) {
+  return 0;
+}
+
+int buffer_share_rm_id(struct buffer_share *mix, unsigned int id) {
+  return 0;
+}
+
+unsigned int buffer_share_id_offset(const struct buffer_share *mix,
+                                    unsigned int id)
+{
+  return 0;
+}
+
 // From cras_system_state.
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
 }

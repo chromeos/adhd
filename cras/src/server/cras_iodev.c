@@ -10,6 +10,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "buffer_share.h"
 #include "cras_audio_area.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -357,6 +358,8 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 
 	DL_APPEND(iodev->streams, stream);
 
+	buffer_share_add_id(iodev->buf_state, stream->stream->stream_id);
+
 	iodev->min_cb_level = MIN(iodev->min_cb_level, rstream->cb_threshold);
 	iodev->max_cb_level = MAX(iodev->max_cb_level, rstream->cb_threshold);
 	return 0;
@@ -365,8 +368,43 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 int cras_iodev_rm_stream(struct cras_iodev *iodev,
 			 const struct dev_stream *stream)
 {
+	buffer_share_rm_id(iodev->buf_state, stream->stream->stream_id);
 	DL_DELETE(iodev->streams, stream);
 	return 0;
+}
+
+unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
+				      struct dev_stream *stream)
+{
+	return buffer_share_id_offset(iodev->buf_state,
+				      stream->stream->stream_id);
+}
+
+void cras_iodev_stream_written(struct cras_iodev *iodev,
+			       struct dev_stream *stream,
+			       unsigned int nwritten)
+{
+	buffer_share_offset_update(iodev->buf_state,
+				   stream->stream->stream_id, nwritten);
+}
+
+unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev)
+{
+	return buffer_share_get_new_write_point(iodev->buf_state);
+}
+
+unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
+{
+	unsigned int max = 0;
+	struct dev_stream *curr;
+
+	DL_FOREACH(iodev->streams, curr) {
+		max = MAX(max,
+			  buffer_share_id_offset(iodev->buf_state,
+						 curr->stream->stream_id));
+	}
+
+	return max;
 }
 
 int cras_iodev_open(struct cras_iodev *iodev)
@@ -376,6 +414,8 @@ int cras_iodev_open(struct cras_iodev *iodev)
 	rc = iodev->open_dev(iodev);
 	if (rc < 0)
 		return rc;
+
+	iodev->buf_state = buffer_share_create(iodev->buffer_size);
 	return 0;
 }
 
@@ -383,5 +423,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
 {
 	if (!iodev->is_open(iodev))
 		return 0;
+	buffer_share_destroy(iodev->buf_state);
+	iodev->buf_state = NULL;
 	return iodev->close_dev(iodev);
 }

@@ -408,12 +408,12 @@ static int append_stream_to_dev(struct audio_thread *thread,
 
 	adev->dev->is_draining = 0;
 
-	cras_iodev_add_stream(dev, out);
 	rc = init_device(adev);
 	if (rc) {
 		thread_rm_active_adev(thread, adev);
 		return rc;
 	}
+	cras_iodev_add_stream(dev, out);
 
 	return 0;
 }
@@ -867,56 +867,40 @@ static int write_streams(struct audio_thread *thread,
 {
 	struct cras_iodev *odev = adev->dev;
 	struct dev_stream *curr;
-	size_t num_mixed;
-	unsigned int drain_limit = write_limit;
-	unsigned int num_playing = 0;
-
-	num_mixed = 0;
+	unsigned int max_offset = 0;
+	unsigned int frame_bytes = cras_get_format_bytes(odev->format);
 
 	/* Mix as much as we can, the minimum fill level of any stream. */
+	max_offset = cras_iodev_max_stream_offset(odev);
+
+	if (write_limit > max_offset)
+		memset(dst + max_offset * frame_bytes, 0,
+		       (write_limit - max_offset) * frame_bytes);
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
+				    write_limit, max_offset, 0);
+
 	DL_FOREACH(adev->dev->streams, curr) {
-		struct cras_audio_shm *shm;
-		int dev_frames;
+		unsigned int offset;
+		int nwritten;
 
-		shm = cras_rstream_output_shm(curr->stream);
+		offset = cras_iodev_stream_offset(odev, curr);
+		nwritten = dev_stream_mix(curr, odev->format->num_channels,
+					  dst + frame_bytes * offset,
+					  write_limit - offset);
 
-		dev_frames = dev_stream_playback_frames(curr);
-		if (dev_frames < 0) {
+		if (nwritten < 0) {
 			thread_remove_stream(thread, curr->stream);
 			continue;
 		}
-		audio_thread_event_log_data(atlog,
-					    AUDIO_THREAD_WRITE_STREAMS_STREAM,
-					    curr->stream->stream_id,
-					    dev_frames,
-					    cras_shm_callback_pending(shm));
-		/* If not in underrun, use this stream. */
-		if (cras_rstream_get_is_draining(curr->stream)) {
-			drain_limit = MIN((size_t)dev_frames, drain_limit);
-		} else {
-			write_limit = MIN((size_t)dev_frames, write_limit);
-			num_playing++;
-		}
+
+		cras_iodev_stream_written(odev, curr, nwritten);
 	}
 
-	/* Don't limit the amount written for draining streams unless there are
-	 * only draining streams. */
-	if (!num_playing)
-		write_limit = drain_limit;
-
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
-				    write_limit, 0, 0);
-
-	DL_FOREACH(adev->dev->streams, curr) {
-		if (dev_stream_mix(curr, odev->format->num_channels, dst,
-				   write_limit, &num_mixed) < 0)
-			thread_remove_stream(thread, curr->stream);
-	}
+	write_limit = cras_iodev_all_streams_written(odev);
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
-				    write_limit, num_mixed, 0);
-	if (num_mixed == 0)
-		return num_mixed;
+				    write_limit, 0, 0);
 
 	return write_limit;
 }
