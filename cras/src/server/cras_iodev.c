@@ -349,3 +349,20 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 	return softvol_get_scaler(cras_iodev_adjust_active_node_volume(
 			iodev, cras_system_get_volume()));
 }
+
+int cras_iodev_open(struct cras_iodev *iodev)
+{
+	int rc;
+
+	rc = iodev->open_dev(iodev);
+	if (rc < 0)
+		return rc;
+	return 0;
+}
+
+int cras_iodev_close(struct cras_iodev *iodev)
+{
+	if (!iodev->is_open(iodev))
+		return 0;
+	return iodev->close_dev(iodev);
+}

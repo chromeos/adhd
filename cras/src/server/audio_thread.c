@@ -369,7 +369,7 @@ static int init_device(struct active_dev *adev)
 	if (device_open(dev))
 		return 0;
 
-	rc = dev->open_dev(dev);
+	rc = cras_iodev_open(dev);
 	if (rc < 0)
 		return rc;
 
@@ -456,14 +456,6 @@ static int append_stream(struct audio_thread *thread,
 	return 0;
 }
 
-/* Close a device if it's been opened. */
-static inline int close_device(struct cras_iodev *dev)
-{
-	if (!dev->is_open(dev))
-		return 0;
-	return dev->close_dev(dev);
-}
-
 static int delete_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
@@ -507,7 +499,7 @@ static int delete_stream(struct audio_thread *thread,
 				adev->dev->is_draining = 1;
 				adev->dev->extra_silent_frames = 0;
 			} else {
-				close_device(adev->dev);
+				cras_iodev_close(adev->dev);
 			}
 		}
 	}
@@ -533,7 +525,7 @@ static void thread_clear_active_devs(struct audio_thread *thread,
 
 	DL_FOREACH(thread->active_devs[dir], adev) {
 		if (device_open(adev->dev))
-			close_device(adev->dev);
+			cras_iodev_close(adev->dev);
 		DL_DELETE(thread->active_devs[dir], adev);
 		adev->dev->is_active = 0;
 		free(adev);
@@ -638,7 +630,7 @@ static void thread_rm_active_dev(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[iodev->direction], adev) {
 		if (adev->dev == iodev) {
 			thread_rm_active_adev(thread, adev);
-			close_device(iodev);
+			cras_iodev_close(iodev);
 		}
 	}
 }
@@ -1186,7 +1178,7 @@ int drain_output_buffer(struct cras_iodev *odev)
 
 	if ((int)odev->extra_silent_frames >= hw_level) {
 		/* Remaining audio has been played out. Close the device. */
-		close_device(odev);
+		cras_iodev_close(odev);
 		odev->is_draining = 0;
 		return 0;
 	}
@@ -1353,7 +1345,7 @@ static int do_playback(struct audio_thread *thread)
 		rc = write_output_samples(thread, adev, first_loop_dev(thread));
 		if (rc < 0) {
 			/* Device error, close it. */
-			close_device(adev->dev);
+			cras_iodev_close(adev->dev);
 			thread_rm_active_adev(thread, adev);
 		}
 	}
@@ -1475,7 +1467,7 @@ static int do_capture(struct audio_thread *thread)
 		if (!device_open(adev->dev))
 			continue;
 		if (capture_to_streams(adev, dev_index) < 0) {
-			close_device(adev->dev);
+			cras_iodev_close(adev->dev);
 			thread_rm_active_adev(thread, adev);
 		}
 		dev_index++;

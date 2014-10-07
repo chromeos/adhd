@@ -281,4 +281,11 @@ static inline int cras_iodev_software_volume_needed(
 /* Gets the software volume scaler of the iodev. The scaler should only be
  * applied if the device needs software volume. */
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev);
+
+/* Open an iodev, does setup and invokes the open_dev callback. */
+int cras_iodev_open(struct cras_iodev *iodev);
+
+/* Open an iodev, does teardown and invokes the close_dev callback. */
+int cras_iodev_close(struct cras_iodev *iodev);
+
 #endif /* CRAS_IODEV_H_ */
