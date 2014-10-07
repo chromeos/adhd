@@ -213,7 +213,7 @@ struct buffer_share *buffer_share_create(unsigned int buf_sz) {
 void buffer_share_destroy(struct buffer_share *mix) {
 }
 
-int buffer_share_offset_update(struct buffer_share *mix, unsigned int dev_id,
+int buffer_share_offset_update(struct buffer_share *mix, unsigned int id,
                                unsigned int frames) {
   return 0;
 }
@@ -222,16 +222,16 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share *mix) {
   return 0;
 }
 
-int buffer_share_add_dev(struct buffer_share *mix, unsigned int dev_id) {
+int buffer_share_add_id(struct buffer_share *mix, unsigned int id) {
   return 0;
 }
 
-int buffer_share_rm_dev(struct buffer_share *mix, unsigned int dev_id) {
+int buffer_share_rm_id(struct buffer_share *mix, unsigned int id) {
   return 0;
 }
 
-unsigned int buffer_share_dev_offset(const struct buffer_share *mix,
-                                     unsigned int dev_id)
+unsigned int buffer_share_id_offset(const struct buffer_share *mix,
+                                    unsigned int id)
 {
   return 0;
 }

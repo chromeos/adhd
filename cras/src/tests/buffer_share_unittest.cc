@@ -32,14 +32,14 @@ TEST_F(BufferShareTestSuite, AddRmDev) {
   buffer_share *dm = buffer_share_create(1024);
   int rc;
 
-  rc = buffer_share_add_dev(dm, 0xf00);
+  rc = buffer_share_add_id(dm, 0xf00);
   EXPECT_EQ(0, rc);
-  rc = buffer_share_add_dev(dm, 0xf00);
+  rc = buffer_share_add_id(dm, 0xf00);
   EXPECT_NE(0, rc);
 
-  rc = buffer_share_rm_dev(dm, 0xf00);
+  rc = buffer_share_rm_id(dm, 0xf00);
   EXPECT_EQ(0, rc);
-  rc = buffer_share_rm_dev(dm, 0xf00);
+  rc = buffer_share_rm_id(dm, 0xf00);
   EXPECT_NE(0, rc);
 
   buffer_share_destroy(dm);
@@ -48,14 +48,14 @@ TEST_F(BufferShareTestSuite, AddRmDev) {
 TEST_F(BufferShareTestSuite, AddManyDevs) {
   buffer_share *dm = buffer_share_create(1024);
 
-  for (unsigned int i = 0; i < INITIAL_DEV_SIZE; i++)
-    EXPECT_EQ(0, buffer_share_add_dev(dm, 0xf00 + i));
+  for (unsigned int i = 0; i < INITIAL_ID_SIZE; i++)
+    EXPECT_EQ(0, buffer_share_add_id(dm, 0xf00 + i));
 
-  EXPECT_EQ(0, buffer_share_add_dev(dm, 0xf00 + INITIAL_DEV_SIZE));
-  EXPECT_EQ(0, buffer_share_rm_dev(dm, 0xf00 + INITIAL_DEV_SIZE));
+  EXPECT_EQ(0, buffer_share_add_id(dm, 0xf00 + INITIAL_ID_SIZE));
+  EXPECT_EQ(0, buffer_share_rm_id(dm, 0xf00 + INITIAL_ID_SIZE));
 
-  for (unsigned int i = 0; i < INITIAL_DEV_SIZE; i++)
-    EXPECT_EQ(0, buffer_share_rm_dev(dm, 0xf00 + i));
+  for (unsigned int i = 0; i < INITIAL_ID_SIZE; i++)
+    EXPECT_EQ(0, buffer_share_rm_id(dm, 0xf00 + i));
 
   buffer_share_destroy(dm);
 }
@@ -64,7 +64,7 @@ TEST_F(BufferShareTestSuite, OneDev) {
   buffer_share *dm = buffer_share_create(1024);
   int rc;
 
-  rc = buffer_share_add_dev(dm, 0xf00);
+  rc = buffer_share_add_id(dm, 0xf00);
   EXPECT_EQ(0, rc);
 
   buffer_share_offset_update(dm, 0xf00, 500);
@@ -86,9 +86,9 @@ TEST_F(BufferShareTestSuite, TwoDevs) {
   buffer_share *dm = buffer_share_create(1024);
   int rc;
 
-  rc = buffer_share_add_dev(dm, 0xf00);
+  rc = buffer_share_add_id(dm, 0xf00);
   EXPECT_EQ(0, rc);
-  rc = buffer_share_add_dev(dm, 0xf02);
+  rc = buffer_share_add_id(dm, 0xf02);
   EXPECT_EQ(0, rc);
 
   buffer_share_offset_update(dm, 0xf00, 500);

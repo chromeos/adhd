@@ -232,12 +232,12 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 
 void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
 {
-	buffer_share_add_dev(rstream->buf_state, dev_id);
+	buffer_share_add_id(rstream->buf_state, dev_id);
 }
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
-	buffer_share_rm_dev(rstream->buf_state, dev_id);
+	buffer_share_rm_id(rstream->buf_state, dev_id);
 }
 
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
@@ -268,7 +268,7 @@ void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream)
 unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 				     unsigned int dev_id)
 {
-	return buffer_share_dev_offset(rstream->buf_state, dev_id);
+	return buffer_share_id_offset(rstream->buf_state, dev_id);
 }
 
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
