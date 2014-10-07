@@ -127,6 +127,11 @@ static int rm_dev_from_list(struct iodev_list *list, struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp;
 
+	if (active_input == dev)
+		active_input = NULL;
+	if (active_output == dev)
+		active_output = NULL;
+
 	DL_FOREACH(list->iodevs, tmp)
 		if (tmp == dev) {
 			if (dev->is_open(dev))
