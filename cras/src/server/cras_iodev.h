@@ -88,6 +88,9 @@ struct cras_ionode {
  *     hardware buffer.
  * extra_silent_frames - In draining, the number of silent frames filled in to
  *     prevent buffer underrun.
+ * streams - List of audio streams serviced by dev.
+ * min_cb_level - min callback level of any stream attached.
+ * max_cb_level - max callback level of any stream attached.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -125,9 +128,12 @@ struct cras_iodev {
 	const char *dsp_name;
 	int is_active;
 	int software_volume_needed;
-	struct cras_iodev *prev, *next;
 	int is_draining;
 	size_t extra_silent_frames;
+	struct dev_stream *streams;
+	unsigned int min_cb_level;
+	unsigned int max_cb_level;
+	struct cras_iodev *prev, *next;
 };
 
 /*
@@ -281,6 +287,14 @@ static inline int cras_iodev_software_volume_needed(
 /* Gets the software volume scaler of the iodev. The scaler should only be
  * applied if the device needs software volume. */
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev);
+
+/* Indicate that a stream has been added from the device. */
+int cras_iodev_add_stream(struct cras_iodev *iodev,
+			  struct dev_stream *stream);
+
+/* Indicate that a stream has been removed from the device. */
+int cras_iodev_rm_stream(struct cras_iodev *iodev,
+			 const struct dev_stream *stream);
 
 /* Open an iodev, does setup and invokes the open_dev callback. */
 int cras_iodev_open(struct cras_iodev *iodev);

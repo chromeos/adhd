@@ -16,7 +16,7 @@
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
-#include "audio_thread.h"
+#include "dev_stream.h"
 #include "utlist.h"
 #include "softvol_curve.h"
 
@@ -348,6 +348,25 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
 	return softvol_get_scaler(cras_iodev_adjust_active_node_volume(
 			iodev, cras_system_get_volume()));
+}
+
+int cras_iodev_add_stream(struct cras_iodev *iodev,
+			  struct dev_stream *stream)
+{
+	struct cras_rstream *rstream = stream->stream;
+
+	DL_APPEND(iodev->streams, stream);
+
+	iodev->min_cb_level = MIN(iodev->min_cb_level, rstream->cb_threshold);
+	iodev->max_cb_level = MAX(iodev->max_cb_level, rstream->cb_threshold);
+	return 0;
+}
+
+int cras_iodev_rm_stream(struct cras_iodev *iodev,
+			 const struct dev_stream *stream)
+{
+	DL_DELETE(iodev->streams, stream);
+	return 0;
 }
 
 int cras_iodev_open(struct cras_iodev *iodev)
