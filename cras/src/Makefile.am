@@ -197,7 +197,7 @@ check_PROGRAMS = $(TESTS)
 cras_test_client_SOURCES = tests/cras_test_client.c
 cras_test_client_LDADD = -lm libcras.la
 cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common -I$(top_builddir)/src/common
 
 tests/cras_test_client.c: common/cras_version.h
 
