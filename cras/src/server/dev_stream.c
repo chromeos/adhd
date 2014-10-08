@@ -276,7 +276,7 @@ static unsigned int capture_copy_converted_to_stream(
 			buf_read_pointer_size(dev_stream->conv_buffer,
 					      &write_frames);
 		write_frames /= frame_bytes;
-		write_frames = MIN(write_frames, num_frames);
+		write_frames = MIN(write_frames, num_frames - total_written);
 
 		cras_audio_area_config_buf_pointers(dev_stream->conv_area,
 						    fmt,
