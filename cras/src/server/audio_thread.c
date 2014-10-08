@@ -620,6 +620,7 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 		dev_stream_destroy(dev_stream);
 	}
 
+	cras_iodev_close(adev->dev);
 	free(adev);
 }
 
@@ -631,7 +632,7 @@ static void thread_rm_active_dev(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[iodev->direction], adev) {
 		if (adev->dev == iodev) {
 			thread_rm_active_adev(thread, adev);
-			cras_iodev_close(iodev);
+			break;
 		}
 	}
 }
@@ -1364,7 +1365,6 @@ static int do_playback(struct audio_thread *thread)
 		rc = write_output_samples(thread, adev, first_loop_dev(thread));
 		if (rc < 0) {
 			/* Device error, close it. */
-			cras_iodev_close(adev->dev);
 			thread_rm_active_adev(thread, adev);
 		}
 	}
@@ -1485,7 +1485,6 @@ static int do_capture(struct audio_thread *thread)
 		if (!device_open(adev->dev))
 			continue;
 		if (capture_to_streams(adev, dev_index) < 0) {
-			cras_iodev_close(adev->dev);
 			thread_rm_active_adev(thread, adev);
 		}
 		dev_index++;
