@@ -886,6 +886,8 @@ static int write_streams(struct audio_thread *thread,
 		int nwritten;
 
 		offset = cras_iodev_stream_offset(odev, curr);
+		if (offset >= write_limit)
+			continue;
 		nwritten = dev_stream_mix(curr, odev->format->num_channels,
 					  dst + frame_bytes * offset,
 					  write_limit - offset);
