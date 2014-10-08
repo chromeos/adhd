@@ -870,9 +870,39 @@ static int write_streams(struct audio_thread *thread,
 	struct dev_stream *curr;
 	unsigned int max_offset = 0;
 	unsigned int frame_bytes = cras_get_format_bytes(odev->format);
+	unsigned int num_playing = 0;
+	unsigned int drain_limit = write_limit;
 
 	/* Mix as much as we can, the minimum fill level of any stream. */
 	max_offset = cras_iodev_max_stream_offset(odev);
+
+        /* Mix as much as we can, the minimum fill level of any stream. */
+	DL_FOREACH(adev->dev->streams, curr) {
+		struct cras_audio_shm *shm;
+		int dev_frames;
+
+		shm = cras_rstream_output_shm(curr->stream);
+
+		dev_frames = dev_stream_playback_frames(curr);
+		if (dev_frames < 0) {
+			thread_remove_stream(thread, curr->stream);
+			continue;
+		}
+		audio_thread_event_log_data(atlog,
+				AUDIO_THREAD_WRITE_STREAMS_STREAM,
+				curr->stream->stream_id,
+				dev_frames,
+				cras_shm_callback_pending(shm));
+		if (cras_rstream_get_is_draining(curr->stream)) {
+			drain_limit = MIN((size_t)dev_frames, drain_limit);
+		} else {
+			write_limit = MIN((size_t)dev_frames, write_limit);
+			num_playing++;
+		}
+	}
+
+	if (!num_playing)
+		write_limit = drain_limit;
 
 	if (write_limit > max_offset)
 		memset(dst + max_offset * frame_bytes, 0,
