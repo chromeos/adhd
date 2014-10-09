@@ -341,7 +341,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 		shm = cras_rstream_input_shm(rstream);
 		stream_samples = cras_shm_get_writeable_frames(
 				shm,
-				cras_rstream_get_cb_threshold(rstream),
+				cras_rstream_get_cb_threshold(rstream) - offset,
 				&rstream->audio_area->frames);
 		cras_audio_area_config_buf_pointers(rstream->audio_area,
 						    &rstream->format,
@@ -393,14 +393,16 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 {
 	struct cras_audio_shm *shm;
 	struct cras_rstream *rstream = dev_stream->stream;
-	unsigned int cb_threshold = cras_rstream_get_cb_threshold(rstream);
 	unsigned int frames_avail;
 	unsigned int conv_buf_level;
 	unsigned int format_bytes;
+	unsigned int wlimit;
 
 	shm = cras_rstream_input_shm(rstream);
 
-	cras_shm_get_writeable_frames(shm, cb_threshold, &frames_avail);
+	wlimit = cras_rstream_get_cb_threshold(rstream);
+	wlimit -= cras_rstream_dev_offset(rstream, dev_stream->dev_id);
+	cras_shm_get_writeable_frames(shm, wlimit, &frames_avail);
 
 	if (!dev_stream->conv)
 		return frames_avail;
