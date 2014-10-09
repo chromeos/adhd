@@ -458,8 +458,15 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	if (!timespec_after(&now, &rstream->next_cb_ts))
 		return 0;
 
-	if (!cras_rstream_input_level_met(rstream))
+	if (!cras_rstream_input_level_met(rstream)) {
+		struct timespec extra_sleep;
+
+		cras_frames_to_time(capture_extra_sleep_frames,
+				    rstream->format.frame_rate, &extra_sleep);
+		add_timespecs(&rstream->next_cb_ts, &extra_sleep);
 		syslog(LOG_INFO, "short capture samples");
+		return 0;
+	}
 
 	/* Enough data for this stream. */
 
