@@ -24,6 +24,16 @@ struct rstream_shm_info {
 	int shm_id;
 };
 
+/* Holds informations about the master active device.
+ * Members:
+ *    dev_id - id of the master device.
+ *    dev_ptr - pointer to the master device.
+ */
+struct master_dev_info {
+	int dev_id;
+	void *dev_ptr;
+};
+
 /* cras_rstream is used to manage an active audio stream from
  * a client.  Each client can have any number of open streams for
  * playing or recording.
@@ -34,6 +44,7 @@ struct rstream_shm_info {
  *    fd - Socket for requesting and sending audio buffer events.
  *    buffer_frames - Buffer size in frames.
  *    cb_threshold - Callback client when this much is left.
+ *    master_dev_info - The info of the master device this stream attaches to.
  *    is_draining - The stream is draining and waiting to be removed.
  *    client - The client who uses this stream.
  *    shm_info - Configuration data for shared memory
@@ -52,6 +63,7 @@ struct cras_rstream {
 	size_t buffer_frames;
 	size_t cb_threshold;
 	int is_draining;
+	struct master_dev_info master_dev;
 	struct cras_rclient *client;
 	struct rstream_shm_info shm_info;
 	struct cras_audio_shm shm;
@@ -223,7 +235,9 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream);
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream);
 
 /* Let the rstream know when a device is added or removed. */
-void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id);
+void cras_rstream_dev_attach(struct cras_rstream *rstream,
+			     unsigned int dev_id,
+			     void *dev_ptr);
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id);
 
 /* A device using this stream has read or written samples. */

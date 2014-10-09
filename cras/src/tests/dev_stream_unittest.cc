@@ -238,7 +238,7 @@ TEST_F(CreateSuite, CreateNoSRCOutput) {
   rstream_.format = fmt_s16le_44_1;
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 44100;
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
   dev_stream_destroy(dev_stream);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_EQ(NULL, dev_stream->conv_buffer);
@@ -252,7 +252,7 @@ TEST_F(CreateSuite, CreateNoSRCInput) {
   rstream_.direction = CRAS_STREAM_INPUT;
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 44100;
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_EQ(NULL, dev_stream->conv_buffer);
   EXPECT_EQ(0, dev_stream->conv_buffer_size_frames);
@@ -266,7 +266,7 @@ TEST_F(CreateSuite, CreateSRC44to48) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 48000;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -283,7 +283,7 @@ TEST_F(CreateSuite, CreateSRC44to48Input) {
   in_fmt.frame_rate = 48000;
   out_fmt.frame_rate = 44100;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -299,7 +299,7 @@ TEST_F(CreateSuite, CreateSRC48to44) {
   in_fmt.frame_rate = 48000;
   out_fmt.frame_rate = 44100;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -316,7 +316,7 @@ TEST_F(CreateSuite, CreateSRC48to44Input) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 48000;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -333,7 +333,7 @@ TEST_F(CreateSuite, CreateSRC48to44StereoToMono) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 48000;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -352,7 +352,7 @@ TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
   rstream_.format = fmt_s16le_48;
   rstream_.direction = CRAS_STREAM_INPUT;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -460,7 +460,8 @@ void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
 					unsigned int dev_id) {
 }
 
-void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
+void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
+                             void *dev_ptr)
 {
 }
 

@@ -23,7 +23,8 @@ static const unsigned int capture_extra_sleep_frames = 20;
 
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
-				     const struct cras_audio_format *dev_fmt)
+				     const struct cras_audio_format *dev_fmt,
+				     void *dev_ptr)
 {
 	struct dev_stream *out;
 	struct cras_audio_format *stream_fmt = &stream->format;
@@ -97,7 +98,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		add_timespecs(&stream->next_cb_ts, &extra_sleep);
 	}
 
-	cras_rstream_dev_attach(stream, dev_id);
+	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
 
 	return out;
 }

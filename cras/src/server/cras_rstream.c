@@ -154,6 +154,8 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->cb_threshold = cb_threshold;
 	stream->client = client;
 	stream->shm.area = NULL;
+	stream->master_dev.dev_id = NO_DEVICE;
+	stream->master_dev.dev_ptr = NULL;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {
@@ -230,14 +232,40 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 	cras_rclient_send_message(stream->client, &msg.header);
 }
 
-void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
+void cras_rstream_dev_attach(struct cras_rstream *rstream,
+			     unsigned int dev_id,
+			     void *dev_ptr)
 {
-	buffer_share_add_id(rstream->buf_state, dev_id, NULL);
+	buffer_share_add_id(rstream->buf_state, dev_id, dev_ptr);
+
+	/* TODO(hychao): Handle master device assignment for complicated
+	 * routing case.
+	 */
+	if (rstream->master_dev.dev_id == NO_DEVICE) {
+		rstream->master_dev.dev_id = dev_id;
+		rstream->master_dev.dev_ptr = dev_ptr;
+	}
 }
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
 	buffer_share_rm_id(rstream->buf_state, dev_id);
+	if (rstream->master_dev.dev_id == dev_id) {
+		int i;
+		struct id_offset *o;
+
+		/* Choose the first device id as master. */
+		rstream->master_dev.dev_id = NO_DEVICE;
+		rstream->master_dev.dev_ptr = NULL;
+		for (i = 0; i < rstream->buf_state->id_sz; i++) {
+			o = &rstream->buf_state->wr_idx[i];
+			if (o->used) {
+				rstream->master_dev.dev_id = o->id;
+				rstream->master_dev.dev_ptr = o->data;
+				break;
+			}
+		}
+	}
 }
 
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,

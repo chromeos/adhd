@@ -405,7 +405,7 @@ static int append_stream_to_dev(struct audio_thread *thread,
 		if (rc)
 			return rc;
 	}
-	out = dev_stream_create(stream, dev->info.idx, dev->format);
+	out = dev_stream_create(stream, dev->info.idx, dev->format, dev);
 	if (!out)
 		return -ENOMEM;
 
