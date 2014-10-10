@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include <sys/param.h>
 
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
@@ -28,14 +29,17 @@ void cras_audio_area_copy(const struct cras_audio_area *dst,
 {
 	unsigned int src_idx, dst_idx;
 	unsigned int i;
+	unsigned int ncopy;
 	uint8_t *schan, *dchan;
+
+	ncopy = MIN(src->frames, dst->frames - dst_offset);
 
 	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
 	 * each channel. */
 	if (!skip_zero)
 		memset(dst->channels[0].buf +
 				dst_offset * dst->channels[0].step_bytes, 0,
-		       src->frames * dst_format_bytes);
+		       ncopy * dst_format_bytes);
 
 	/* TODO(dgreid) - this replaces a memcpy, it needs to be way faster. */
 	for (src_idx = 0; src_idx < src->num_channels; src_idx++) {
@@ -50,7 +54,7 @@ void cras_audio_area_copy(const struct cras_audio_area *dst,
 			dchan = dst->channels[dst_idx].buf +
 				dst_offset * dst->channels[dst_idx].step_bytes;
 
-			for (i = 0; i < src->frames; i++) {
+			for (i = 0; i < ncopy; i++) {
 				int32_t sum;
 				sum = *(int16_t *)dchan + *(int16_t *)schan;
 				if (sum > 0x7fff)
