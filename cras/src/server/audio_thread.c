@@ -1445,7 +1445,7 @@ static int capture_to_streams(struct active_dev *adev,
 		struct cras_audio_area *area;
 		struct dev_stream *stream;
 		uint8_t *hw_buffer;
-		unsigned int nread;
+		unsigned int nread, total_read;
 		int rc;
 
 		nread = remainder;
@@ -1461,16 +1461,28 @@ static int capture_to_streams(struct active_dev *adev,
 		else
 			apply_dsp(idev, hw_buffer, nread);
 
-		DL_FOREACH(adev->dev->streams, stream)
-			dev_stream_capture(stream, area, dev_index);
-		rc = cras_iodev_put_buffer(idev, nread);
+		DL_FOREACH(adev->dev->streams, stream) {
+			unsigned int this_read;
+			unsigned int area_offset;
+
+			area_offset = cras_iodev_stream_offset(idev, stream);
+			this_read = dev_stream_capture(stream, area,
+						       area_offset, dev_index);
+			cras_iodev_stream_written(idev, stream, this_read);
+		}
+		total_read = cras_iodev_all_streams_written(idev);
+
+		rc = cras_iodev_put_buffer(idev, total_read);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;
+
+		if (total_read < nread)
+			break;
 	}
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO_DONE,
-				    0, 0, 0);
+				    remainder, 0, 0);
 
 	return 0;
 }

@@ -412,7 +412,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO_DONE:
-		printf("READ_AUDIO_DONE: %u.%09u\n", sec, nsec);
+		printf("READ_AUDIO_DONE: %u.%09u read remainder %u\n",
+		       sec, nsec, data1);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
 		printf("FILL_AUDIO: %u.%09u dev %x hw_level %u\n",

@@ -48,7 +48,7 @@ TEST(AudioArea, CopyAudioArea) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 4, a2, 0);
+  cras_audio_area_copy(a1, 0, 4, a2, 0, 0);
   for (i = 0; i < 32; i++)
     EXPECT_EQ(buf1[i], buf2[i]);
 
@@ -77,7 +77,7 @@ TEST(AudioArea, CopyAudioAreaOffset) {
   memset(buf1, 0x55, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 2, 4, a2, 0);
+  cras_audio_area_copy(a1, 2, 4, a2, 0, 0);
   EXPECT_EQ(buf1[0], 0x5555);
   EXPECT_EQ(buf1[1], 0x5555);
   EXPECT_EQ(buf1[2], 0x5555);
@@ -110,7 +110,7 @@ TEST(AudioArea, CopyAudioAreaOffsetLimit) {
   memset(buf1, 0x55, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 2, 4, a2, 0);
+  cras_audio_area_copy(a1, 2, 4, a2, 0, 0);
   EXPECT_EQ(buf1[0], 0x5555);
   EXPECT_EQ(buf1[1], 0x5555);
   EXPECT_EQ(buf1[2], 0x5555);
@@ -150,7 +150,7 @@ TEST(AudioArea, CopyMonoToStereo) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 4, a2, 0);
+  cras_audio_area_copy(a1, 0, 4, a2, 0, 0);
   for (i = 0; i < 16; i++) {
     EXPECT_EQ(buf1[i * 2], buf2[i]);
     EXPECT_EQ(buf1[i * 2 + 1], buf2[i]);
@@ -184,7 +184,7 @@ TEST(AudioArea, CopyStereoToMono) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand() % 10000;
-  cras_audio_area_copy(a1, 0, 2, a2, 0);
+  cras_audio_area_copy(a1, 0, 2, a2, 0, 0);
   for (i = 0; i < 16; i++)
     EXPECT_EQ(buf1[i], buf2[i * 2] + buf2[i * 2 + 1]);
 
@@ -216,7 +216,7 @@ TEST(AudioArea, KeyboardMicCopyStereo) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 6, a2, 0);
+  cras_audio_area_copy(a1, 0, 6, a2, 0, 0);
   for (i = 0; i < 10; i++) {
     EXPECT_EQ(buf1[i * 3], buf2[i * 2]);
     EXPECT_EQ(buf1[i * 3 + 1], buf2[i * 2 + 1]);
@@ -253,7 +253,7 @@ TEST(AudioArea, KeyboardMicCopyFrontCenter) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 6, a2, 0);
+  cras_audio_area_copy(a1, 0, 6, a2, 0, 0);
   for (i = 0; i < 10; i++) {
     EXPECT_EQ(buf1[i * 3], 0);
     EXPECT_EQ(buf1[i * 3 + 1], 0);

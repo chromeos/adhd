@@ -21,18 +21,19 @@ struct cras_audio_area *cras_audio_area_create(int num_channels)
 	return area;
 }
 
-void cras_audio_area_copy(const struct cras_audio_area *dst,
-			  unsigned int dst_offset,
-			  unsigned int dst_format_bytes,
-			  const struct cras_audio_area *src,
-			  unsigned int skip_zero)
+unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
+				  unsigned int dst_offset,
+				  unsigned int dst_format_bytes,
+				  const struct cras_audio_area *src,
+				  unsigned int src_offset,
+				  unsigned int skip_zero)
 {
 	unsigned int src_idx, dst_idx;
 	unsigned int i;
 	unsigned int ncopy;
 	uint8_t *schan, *dchan;
 
-	ncopy = MIN(src->frames, dst->frames - dst_offset);
+	ncopy = MIN(src->frames - src_offset, dst->frames - dst_offset);
 
 	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
 	 * each channel. */
@@ -50,7 +51,8 @@ void cras_audio_area_copy(const struct cras_audio_area *dst,
 				continue;
 
 			/* TODO(dgreid) - this assumes s16le. */
-			schan = src->channels[src_idx].buf;
+			schan = src->channels[src_idx].buf +
+				src_offset * src->channels[dst_idx].step_bytes;
 			dchan = dst->channels[dst_idx].buf +
 				dst_offset * dst->channels[dst_idx].step_bytes;
 
@@ -67,6 +69,8 @@ void cras_audio_area_copy(const struct cras_audio_area *dst,
 			}
 		}
 	}
+
+	return ncopy;
 }
 
 void cras_audio_area_destroy(struct cras_audio_area *area)
