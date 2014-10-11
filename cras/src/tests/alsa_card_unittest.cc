@@ -45,6 +45,8 @@ static int cras_device_blacklist_check_retval;
 static unsigned ucm_create_called;
 static unsigned ucm_destroy_called;
 static size_t ucm_get_dev_for_mixer_called;
+static size_t ucm_get_flag_called;
+static char ucm_get_flag_name[64];
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -73,6 +75,8 @@ static void ResetStubData() {
   ucm_create_called = 0;
   ucm_destroy_called = 0;
   ucm_get_dev_for_mixer_called = 0;
+  ucm_get_flag_called = 0;
+  memset(ucm_get_flag_name, 0, sizeof(ucm_get_flag_name));
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -191,6 +195,8 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(1, ucm_create_called);
   EXPECT_EQ(1, ucm_get_dev_for_mixer_called);
+  EXPECT_EQ(1, ucm_get_flag_called);
+  EXPECT_EQ(0, strcmp(ucm_get_flag_name, "ExtraMainVolume"));
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, ucm_destroy_called);
@@ -338,7 +344,8 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
 extern "C" {
 struct cras_alsa_mixer *cras_alsa_mixer_create(
     const char *card_name, const struct cras_card_config *config,
-    const char *output_names_extra[], size_t output_names_extra_size) {
+    const char *output_names_extra[], size_t output_names_extra_size,
+    const char *extra_master_volume) {
   cras_alsa_mixer_create_called++;
   return cras_alsa_mixer_create_return;
 }
@@ -465,6 +472,12 @@ char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer)
 {
   ucm_get_dev_for_mixer_called++;
   return strdup("device");
+}
+
+char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
+  ucm_get_flag_called++;
+  strncpy(ucm_get_flag_name, flag_name, sizeof(ucm_get_flag_name));
+  return NULL;
 }
 
 } /* extern "C" */

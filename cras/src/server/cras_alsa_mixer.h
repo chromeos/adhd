@@ -51,6 +51,7 @@ struct cras_alsa_mixer_output {
  *    output_names_extra - An array of extra output mixer control names. The
  *      array may contain NULL entries which should be ignored.
  *    output_names_extra_size - The length of the output_names_extra array.
+ *    extra_main_volume - Name of extra main volume if any.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy.
@@ -59,7 +60,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const char *card_name,
 		const struct cras_card_config *config,
 		const char *output_names_extra[],
-		size_t output_names_extra_size);
+		size_t output_names_extra_size,
+		const char *extra_main_volume);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

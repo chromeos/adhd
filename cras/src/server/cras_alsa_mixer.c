@@ -208,7 +208,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const char *card_name,
 		const struct cras_card_config *config,
 		const char *output_names_extra[],
-		size_t output_names_extra_size)
+		size_t output_names_extra_size,
+		const char *extra_main_volume)
 {
 	/* Names of controls for main system volume. */
 	static const char * const main_volume_names[] = {
@@ -275,6 +276,12 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 					   output_names_extra_size)) {
 			/* TODO(dgreid) - determine device index. */
 			if (add_output_control(cmix, elem, 0) != 0) {
+				cras_alsa_mixer_destroy(cmix);
+				return NULL;
+			}
+		} else if (extra_main_volume &&
+			   !strcmp(name, extra_main_volume)) {
+			if (add_main_volume_control(cmix, elem) != 0) {
 				cras_alsa_mixer_destroy(cmix);
 				return NULL;
 			}

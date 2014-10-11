@@ -160,6 +160,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 		"IEC958",
 	};
 	size_t output_names_extra_size = ARRAY_SIZE(output_names_extra);
+	char *extra_main_volume = NULL;
 
 	if (info->card_index >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR,
@@ -215,11 +216,17 @@ struct cras_alsa_card *cras_alsa_card_create(
 	else
 		output_names_extra_size = 0;
 
+	/* Check if an extra main volume has been specified. */
+	if (alsa_card->ucm)
+		extra_main_volume = ucm_get_flag(alsa_card->ucm,
+						 "ExtraMainVolume");
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
 						  alsa_card->config,
 						  output_names_extra,
-						  output_names_extra_size);
+						  output_names_extra_size,
+						  extra_main_volume);
+	free(extra_main_volume);
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
 		goto error_bail;
