@@ -345,7 +345,8 @@ int cras_iodev_get_buffer(struct cras_iodev *iodev,
 /* Update the estimated sample rate of the device. */
 int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level);
 
-/* Returst the estimated frame rate of the device. */
-double cras_iodev_get_est_rate(const struct cras_iodev *iodev);
+/* Returns the rate of estimated frame rate and the claimed frame rate of
+ * the device. */
+double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev);
 
 #endif /* CRAS_IODEV_H_ */
