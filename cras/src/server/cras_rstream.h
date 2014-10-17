@@ -262,4 +262,16 @@ static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 					  unsigned int dev_id);
 
+/* Returns the volume scaler for this stream. */
+float cras_rstream_get_volume_scaler(struct cras_rstream *rstream);
+
+/* Returns a pointer to readable frames, fills frames with the number of frames
+ * available. */
+int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
+					  unsigned int offset,
+					  size_t *frames);
+
+/* Returns non-zero if the stream is muted. */
+int cras_rstream_get_mute(const struct cras_rstream *rstream);
+
 #endif /* CRAS_RSTREAM_H_ */

@@ -307,3 +307,22 @@ unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 	return cras_shm_get_frames(shm) -
 			cras_rstream_dev_offset(rstream, dev_id);
 }
+
+float cras_rstream_get_volume_scaler(struct cras_rstream *rstream)
+{
+	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
+
+	return cras_shm_get_volume_scaler(shm);
+}
+
+int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
+					  unsigned int offset,
+					  size_t *frames)
+{
+	return cras_shm_get_readable_frames(&rstream->shm, offset, frames);
+}
+
+int cras_rstream_get_mute(const struct cras_rstream *rstream)
+{
+	return cras_shm_get_mute(&rstream->shm);
+}
