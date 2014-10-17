@@ -641,15 +641,16 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				conv->speex_state,
 				(int16_t *)buffers[buf_idx],
 				&fr_in,
-				(int16_t *)out_buf,
+				(int16_t *)buffers[buf_idx + 1],
 				&fr_out);
+		buf_idx++;
 	}
 
 	/* If the output format isn't S16_LE convert to it. */
 	if (conv->out_fmt.format != SND_PCM_FORMAT_S16_LE) {
 		conv->sample_format_converter(
 				buffers[buf_idx],
-				fr_in * conv->out_fmt.num_channels,
+				fr_out * conv->out_fmt.num_channels,
 				(uint8_t *)buffers[buf_idx + 1]);
 		buf_idx++;
 	}
