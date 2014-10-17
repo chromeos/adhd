@@ -25,14 +25,14 @@ static struct timespec clock_gettime_retspec;
 
 static const int kBufferFrames = 1024;
 static const struct cras_audio_format fmt_s16le_44_1 = {
-	SND_PCM_FORMAT_S16_LE,
-	44100,
-	2,
+  SND_PCM_FORMAT_S16_LE,
+  44100,
+  2,
 };
 static const struct cras_audio_format fmt_s16le_48 = {
-	SND_PCM_FORMAT_S16_LE,
-	48000,
-	2,
+  SND_PCM_FORMAT_S16_LE,
+  48000,
+  2,
 };
 static const struct cras_audio_format fmt_s16le_48_mono = {
   SND_PCM_FORMAT_S16_LE,
