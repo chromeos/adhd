@@ -373,7 +373,7 @@ void cras_shm_set_volume_scaler(struct cras_audio_shm *shm, float volume_scaler)
 }
 
 /* Returns the volume of the stream(0.0-1.0). */
-static inline float cras_shm_get_volume_scaler(struct cras_audio_shm *shm)
+static inline float cras_shm_get_volume_scaler(const struct cras_audio_shm *shm)
 {
 	return shm->area->volume_scaler;
 }
@@ -385,7 +385,7 @@ static inline void cras_shm_set_mute(struct cras_audio_shm *shm, size_t mute)
 }
 
 /* Returns the mute state of the stream.  0 if not muted, non-zero if muted. */
-static inline size_t cras_shm_get_mute(struct cras_audio_shm *shm)
+static inline size_t cras_shm_get_mute(const struct cras_audio_shm *shm)
 {
 	return shm->area->mute;
 }
