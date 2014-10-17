@@ -57,6 +57,21 @@ struct fmt_conv_call {
   size_t out_frames;
 };
 
+struct mix_add_call {
+  int16_t *dst;
+  int16_t *src;
+  unsigned int count;
+  unsigned int index;
+  int mute;
+  float mix_vol;
+};
+
+struct rstream_get_readable_call {
+  struct cras_rstream *rstream;
+  unsigned int offset;
+  unsigned int num_called;
+};
+
 static int config_format_converter_called;
 static struct cras_fmt_conv *config_format_converter_conv;
 static struct cras_audio_format in_fmt;
@@ -71,6 +86,11 @@ static int cras_fmt_conv_set_linear_resample_rates_called;
 static float cras_fmt_conv_set_linear_resample_rates_from;
 static float cras_fmt_conv_set_linear_resample_rates_to;
 
+static unsigned int rstream_playable_frames_ret;
+static struct mix_add_call mix_add_call;
+static struct rstream_get_readable_call rstream_get_readable_call;
+static unsigned int rstream_get_readable_num;
+static int16_t *rstream_get_readable_ptr;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -441,6 +461,58 @@ TEST_F(CreateSuite, SetDevRateMasterDev) {
   EXPECT_EQ(expected_ts_nsec, rstream_.sleep_interval_ts.tv_nsec);
 }
 
+TEST_F(CreateSuite, StreamMixNoFrames) {
+  struct dev_stream dev_stream;
+
+  dev_stream.conv = NULL;
+  rstream_playable_frames_ret = 0;
+  EXPECT_EQ(0, dev_stream_mix(&dev_stream, 2, 0, 3));
+}
+
+TEST_F(CreateSuite, StreamMixNoConv) {
+  struct dev_stream dev_stream;
+  const unsigned int nfr = 100;
+
+  dev_stream.conv = NULL;
+  dev_stream.stream = reinterpret_cast<cras_rstream*>(0x5446);
+  rstream_playable_frames_ret = nfr;
+  rstream_get_readable_num = nfr;
+  rstream_get_readable_ptr = reinterpret_cast<int16_t*>(0x4000);
+  rstream_get_readable_call.num_called = 0;
+  EXPECT_EQ(nfr, dev_stream_mix(&dev_stream, 2, (uint8_t*)0x5000, nfr));
+  EXPECT_EQ((int16_t*)0x5000, mix_add_call.dst);
+  EXPECT_EQ((int16_t*)0x4000, mix_add_call.src);
+  EXPECT_EQ(200, mix_add_call.count);
+  EXPECT_EQ(1, mix_add_call.index);
+  EXPECT_EQ(dev_stream.stream, rstream_get_readable_call.rstream);
+  EXPECT_EQ(0, rstream_get_readable_call.offset);
+  EXPECT_EQ(1, rstream_get_readable_call.num_called);
+}
+
+TEST_F(CreateSuite, StreamMixNoConvTwoPass) {
+  struct dev_stream dev_stream;
+  const unsigned int nfr = 100;
+  const unsigned int bytes_per_sample = 2;
+  const unsigned int num_channels = 2;
+  const unsigned int bytes_per_frame = bytes_per_sample * num_channels;
+
+  dev_stream.conv = NULL;
+  dev_stream.stream = reinterpret_cast<cras_rstream*>(0x5446);
+  rstream_playable_frames_ret = nfr;
+  rstream_get_readable_num = nfr / 2;
+  rstream_get_readable_ptr = reinterpret_cast<int16_t*>(0x4000);
+  rstream_get_readable_call.num_called = 0;
+  EXPECT_EQ(nfr, dev_stream_mix(&dev_stream, 2, (uint8_t*)0x5000, nfr));
+  const unsigned int half_offset = nfr / 2 * bytes_per_frame;
+  EXPECT_EQ((int16_t*)(0x5000 + half_offset), mix_add_call.dst);
+  EXPECT_EQ((int16_t*)0x4000, mix_add_call.src);
+  EXPECT_EQ(nfr / 2 * num_channels, mix_add_call.count);
+  EXPECT_EQ(1, mix_add_call.index);
+  EXPECT_EQ(dev_stream.stream, rstream_get_readable_call.rstream);
+  EXPECT_EQ(nfr/2, rstream_get_readable_call.offset);
+  EXPECT_EQ(2, rstream_get_readable_call.num_called);
+}
+
 //  Test set_playback_timestamp.
 TEST(DevStreamTimimg, SetPlaybackTimeStampSimple) {
   struct cras_timespec ts;
@@ -547,7 +619,7 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 					  unsigned int dev_id) {
-  return 0;
+  return rstream_playable_frames_ret;
 }
 
 float cras_rstream_get_volume_scaler(struct cras_rstream *rstream) {
@@ -557,8 +629,11 @@ float cras_rstream_get_volume_scaler(struct cras_rstream *rstream) {
 int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
                                           unsigned int offset,
 					  size_t *frames) {
-  *frames = 0;
-  return NULL;
+  rstream_get_readable_call.rstream = rstream;
+  rstream_get_readable_call.offset = offset;
+  rstream_get_readable_call.num_called++;
+  *frames = rstream_get_readable_num;
+  return rstream_get_readable_ptr;
 }
 
 int cras_rstream_get_mute(const struct cras_rstream *rstream) {
@@ -596,6 +671,12 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 void cras_mix_add(int16_t *dst, int16_t *src,
 		  unsigned int count, unsigned int index,
 		  int mute, float mix_vol) {
+  mix_add_call.dst = dst;
+  mix_add_call.src = src;
+  mix_add_call.count = count;
+  mix_add_call.index = index;
+  mix_add_call.mute = mute;
+  mix_add_call.mix_vol = mix_vol;
 }
 
 struct cras_audio_area *cras_audio_area_create(int num_channels) {
