@@ -11,12 +11,13 @@
 #include "cras_fmt_conv.h"
 #include "cras_audio_format.h"
 #include "cras_util.h"
+#include "linear_resampler.h"
 
 /* The quality level is a value between 0 and 10. This is a tradeoff between
  * performance, latency, and quality. */
 #define SPEEX_QUALITY_LEVEL 4
-/* Max number of converters, src, down/up mix, and format. */
-#define MAX_NUM_CONVERTERS 3
+/* Max number of converters, src, down/up mix, format, and linear resample. */
+#define MAX_NUM_CONVERTERS 4
 /* Channel index for stereo. */
 #define STEREO_L 0
 #define STEREO_R 1
@@ -35,9 +36,12 @@ struct cras_fmt_conv {
 	channel_converter_t channel_converter;
 	float **ch_conv_mtx; /* Coefficient matrix for mixing channels. */
 	sample_format_converter_t sample_format_converter;
+	struct linear_resampler *resampler;
 	struct cras_audio_format in_fmt;
 	struct cras_audio_format out_fmt;
 	uint8_t *tmp_bufs[MAX_NUM_CONVERTERS - 1];
+	size_t tmp_buf_frames;
+	size_t pre_linear_resample;
 	size_t num_converters; /* Incremented once for SRC, channel, format. */
 };
 
@@ -361,7 +365,8 @@ static void surround51_to_stereo_downmix_mtx(float **mtx,
 
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   const struct cras_audio_format *out,
-					   size_t max_frames)
+					   size_t max_frames,
+					   size_t pre_linear_resample)
 {
 	struct cras_fmt_conv *conv;
 	int rc;
@@ -380,6 +385,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		return NULL;
 	conv->in_fmt = *in;
 	conv->out_fmt = *out;
+	conv->tmp_buf_frames = max_frames;
+	conv->pre_linear_resample = pre_linear_resample;
 
 	/* Set up sample format conversion. */
 	if (in->format != SND_PCM_FORMAT_S16_LE) {
@@ -503,6 +510,19 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		}
 	}
 
+	/* Set up linear resampler. */
+	conv->num_converters++;
+	conv->resampler = linear_resampler_create(
+			out->num_channels,
+			cras_get_format_bytes(out),
+			out->frame_rate,
+			out->frame_rate);
+	if (conv->resampler == NULL) {
+		syslog(LOG_ERR, "Fail to create linear resampler");
+		cras_fmt_conv_destroy(conv);
+		return NULL;
+	}
+
 	/* Need num_converters-1 temp buffers, the final converter renders
 	 * directly into the output. */
 	for (i = 0; i < conv->num_converters - 1; i++) {
@@ -529,6 +549,8 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 						 conv->out_fmt.num_channels);
 	if (conv->speex_state)
 		speex_resampler_destroy(conv->speex_state);
+	if (conv->resampler)
+		linear_resampler_destroy(conv->resampler);
 	for (i = 0; i < MAX_NUM_CONVERTERS - 1; i++)
 		free(conv->tmp_bufs[i]);
 	free(conv);
@@ -551,9 +573,19 @@ size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
 {
 	if (!conv)
 		return in_frames;
-	return cras_frames_at_rate(conv->in_fmt.frame_rate,
+
+	if (conv->pre_linear_resample)
+		in_frames = linear_resampler_in_frames_to_out(
+				conv->resampler,
+				in_frames);
+	in_frames = cras_frames_at_rate(conv->in_fmt.frame_rate,
 				   in_frames,
 				   conv->out_fmt.frame_rate);
+	if (!conv->pre_linear_resample)
+		in_frames = linear_resampler_in_frames_to_out(
+				conv->resampler,
+				in_frames);
+	return in_frames;
 }
 
 size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
@@ -561,9 +593,18 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
 {
 	if (!conv)
 		return out_frames;
-	return cras_frames_at_rate(conv->out_fmt.frame_rate,
+	if (!conv->pre_linear_resample)
+		out_frames = linear_resampler_out_frames_to_in(
+				conv->resampler,
+				out_frames);
+	out_frames = cras_frames_at_rate(conv->out_fmt.frame_rate,
 				   out_frames,
 				   conv->in_fmt.frame_rate);
+	if (conv->pre_linear_resample)
+		out_frames = linear_resampler_out_frames_to_in(
+				conv->resampler,
+				out_frames);
+	return out_frames;
 }
 
 size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
@@ -576,8 +617,17 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	uint8_t *buffers[MAX_NUM_CONVERTERS + 1]; /* converters + out buffer. */
 	size_t buf_idx = 0;
 	static int logged_frames_dont_fit;
+	unsigned int used_converters = conv->num_converters;
+	unsigned int post_linear_resample = 0;
+	unsigned int pre_linear_resample = 0;
+	unsigned int linear_resample_fr = 0;
 
 	assert(conv);
+
+	if (linear_resampler_needed(conv->resampler)) {
+		post_linear_resample = !conv->pre_linear_resample;
+		pre_linear_resample = conv->pre_linear_resample;
+	}
 
 	/* If no SRC, then in_frames should = out_frames. */
 	if (conv->speex_state == NULL) {
@@ -597,14 +647,44 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	/* Set up a chain of buffers.  The output buffer of the first conversion
 	 * is used as input to the second and so forth, ending in the output
 	 * buffer. */
+	if (!linear_resampler_needed(conv->resampler))
+		used_converters--;
+
 	buffers[0] = (uint8_t *)in_buf;
-	if (conv->num_converters == 2) {
-		buffers[1] = (uint8_t *)conv->tmp_bufs[0];
-	} else if (conv->num_converters == 3) {
-		buffers[1] = (uint8_t *)conv->tmp_bufs[0];
+	switch (used_converters) {
+	case 4:
+		buffers[3] = (uint8_t *)conv->tmp_bufs[2];
+	case 3:
 		buffers[2] = (uint8_t *)conv->tmp_bufs[1];
+	case 2:
+		buffers[1] = (uint8_t *)conv->tmp_bufs[0];
+		break;
+	case 0:
+	case 1:
+	default:
+		break;
 	}
-	buffers[conv->num_converters] = out_buf;
+	buffers[used_converters] = out_buf;
+
+	if (pre_linear_resample) {
+		linear_resample_fr = fr_in;
+		unsigned resample_limit = out_frames;
+
+		if (conv->speex_state != NULL)
+			resample_limit = cras_frames_at_rate(
+					conv->out_fmt.frame_rate,
+					resample_limit,
+					conv->in_fmt.frame_rate);
+
+		resample_limit = MIN(resample_limit, conv->tmp_buf_frames);
+		fr_in = linear_resampler_resample(
+				conv->resampler,
+				buffers[buf_idx],
+				&linear_resample_fr,
+				buffers[buf_idx + 1],
+				resample_limit);
+		buf_idx++;
+	}
 
 	/* If the input format isn't S16_LE convert to it. */
 	if (conv->in_fmt.format != SND_PCM_FORMAT_S16_LE) {
@@ -625,6 +705,11 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 
 	/* Then SRC. */
 	if (conv->speex_state != NULL) {
+		unsigned int out_limit = out_frames;
+
+		if (post_linear_resample)
+			out_limit = linear_resampler_out_frames_to_in(
+					conv->resampler, out_limit);
 		fr_out = cras_frames_at_rate(conv->in_fmt.frame_rate,
 					     fr_in,
 					     conv->out_fmt.frame_rate);
@@ -636,13 +721,25 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 			logged_frames_dont_fit = 1;
 		}
 		/* limit frames to the output size. */
-		fr_out = MIN(fr_out, out_frames);
+		fr_out = MIN(fr_out, out_limit);
 		speex_resampler_process_interleaved_int(
 				conv->speex_state,
 				(int16_t *)buffers[buf_idx],
 				&fr_in,
 				(int16_t *)buffers[buf_idx + 1],
 				&fr_out);
+		buf_idx++;
+	}
+
+	if (post_linear_resample) {
+		linear_resample_fr = fr_out;
+		unsigned resample_limit = MIN(conv->tmp_buf_frames, out_frames);
+		fr_out = linear_resampler_resample(
+				conv->resampler,
+				buffers[buf_idx],
+				&linear_resample_fr,
+				buffers[buf_idx + 1],
+				resample_limit);
 		buf_idx++;
 	}
 
@@ -655,7 +752,10 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 		buf_idx++;
 	}
 
-	*in_frames = fr_in;
+	if (pre_linear_resample)
+		*in_frames = linear_resample_fr;
+	else
+		*in_frames = fr_in;
 	return fr_out;
 }
 
@@ -696,7 +796,8 @@ int config_format_converter(struct cras_fmt_conv **conv,
 		       from->format, from->frame_rate, from->num_channels,
 		       target.format, target.frame_rate, target.num_channels,
 		       frames);
-		*conv = cras_fmt_conv_create(from, &target, frames);
+		*conv = cras_fmt_conv_create(from, &target, frames,
+					     (dir == CRAS_STREAM_INPUT));
 		if (!*conv) {
 			syslog(LOG_ERR, "Failed to create format converter");
 			return -ENOMEM;

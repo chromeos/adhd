@@ -4,6 +4,7 @@
  */
 
 #include "cras_audio_area.h"
+#include "cras_util.h"
 #include "linear_resampler.h"
 
 /* A linear resampler.
@@ -58,6 +59,23 @@ void linear_resampler_set_rates(struct linear_resampler *lr,
 	lr->f = (float)to / from;
 	lr->src_offset = 0;
 	lr->dst_offset = 0;
+}
+
+unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,
+					       unsigned int frames)
+{
+	return cras_frames_at_rate(lr->dst_rate, frames, lr->src_rate);
+}
+
+unsigned int linear_resampler_in_frames_to_out(struct linear_resampler *lr,
+					       unsigned int frames)
+{
+	return cras_frames_at_rate(lr->src_rate, frames, lr->dst_rate);
+}
+
+int linear_resampler_needed(struct linear_resampler *lr)
+{
+	return lr->src_rate != lr->dst_rate;
 }
 
 unsigned int linear_resampler_resample(struct linear_resampler *lr,

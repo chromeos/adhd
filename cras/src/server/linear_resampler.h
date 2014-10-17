@@ -30,6 +30,16 @@ void linear_resampler_set_rates(struct linear_resampler *lr,
 			      unsigned int from,
 			      unsigned int to);
 
+/* Converts the frames count from output rate to input rate. */
+unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,
+                                               unsigned int frames);
+
+/* Converts the frames count from input rate to output rate. */
+unsigned int linear_resampler_in_frames_to_out(struct linear_resampler *lr,
+					       unsigned int frames);
+
+/* Returns true if SRC is needed, otherwise return false. */
+int linear_resampler_needed(struct linear_resampler *lr);
 
 /* Run linear resample for audio samples.
  * Args:

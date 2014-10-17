@@ -21,7 +21,8 @@ struct cras_fmt_conv;
 /* Create and destroy format converters. */
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   const struct cras_audio_format *out,
-					   size_t max_frames);
+					   size_t max_frames,
+					   size_t pre_linear_resample);
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv);
 
 /* Get the input format of the converter. */
