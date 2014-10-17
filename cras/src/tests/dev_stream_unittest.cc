@@ -550,6 +550,21 @@ unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
   return 0;
 }
 
+float cras_rstream_get_volume_scaler(struct cras_rstream *rstream) {
+  return 1.0;
+}
+
+int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
+                                          unsigned int offset,
+					  size_t *frames) {
+  *frames = 0;
+  return NULL;
+}
+
+int cras_rstream_get_mute(const struct cras_rstream *rstream) {
+  return 0;
+}
+
 int config_format_converter(struct cras_fmt_conv **conv,
 			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,
