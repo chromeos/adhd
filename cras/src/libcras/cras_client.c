@@ -42,7 +42,6 @@
 
 #include "cras_client.h"
 #include "cras_config.h"
-#include "cras_fmt_conv.h"
 #include "cras_messages.h"
 #include "cras_shm.h"
 #include "cras_types.h"
@@ -128,12 +127,6 @@ struct cras_stream_params {
  * config - Audio stream configuration.
  * capture_shm - Shared memory used to exchange audio samples with the server.
  * play_shm - Shared memory used to exchange audio samples with the server.
- * play_conv - Format converter, if the server's audio format doesn't match.
- * play_conv_buffer - Buffer used to store samples before sending for format
- *     conversion.
- * capture_conv - Format converter for capture stream.
- * capture_conv_buffer - Buffer used to store captured samples before sending
- *     for format conversion.
  * prev, next - Form a linked list of streams attached to a client.
  */
 struct client_stream {
@@ -148,10 +141,6 @@ struct client_stream {
 	struct cras_stream_params *config;
 	struct cras_audio_shm capture_shm;
 	struct cras_audio_shm play_shm;
-	struct cras_fmt_conv *play_conv;
-	uint8_t *play_conv_buffer;
-	struct cras_fmt_conv *capture_conv;
-	uint8_t *capture_conv_buffer;
 	struct client_stream *prev, *next;
 };
 
@@ -387,26 +376,13 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 {
 	*captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm);
 
-	/* If we need to do format conversion convert to the temporary
-	 * buffer and pass the converted samples to the client. */
-	if (stream->capture_conv) {
-		num_frames = cras_fmt_conv_convert_frames(
-				stream->capture_conv,
-				*captured_frames,
-				stream->capture_conv_buffer,
-				&num_frames,
-				stream->config->buffer_frames);
-		*captured_frames = stream->capture_conv_buffer;
-	}
-
 	/* Don't ask for more frames than the client desires. */
 	num_frames = MIN(num_frames, stream->config->cb_threshold);
 
 	return num_frames;
 }
 
-/* If doing format conversion, configure that, and configure a buffer to write
- * audio into. */
+/* Configure a buffer to write audio into. */
 static unsigned int config_playback_buf(struct client_stream *stream,
 					uint8_t **playback_frames,
 					unsigned int num_frames)
@@ -420,34 +396,13 @@ static unsigned int config_playback_buf(struct client_stream *stream,
 			shm, cras_shm_used_frames(shm), &limit);
 	num_frames = MIN(num_frames, limit);
 
-	/* If we need to do format conversion on this stream, change to
-	 * use an intermediate buffer to store the samples so they can be
-	 * converted. */
-	if (stream->play_conv) {
-		*playback_frames = stream->play_conv_buffer;
-
-		/* Recalculate the frames we'd want to request from client
-		 * according to sample rate change. */
-		num_frames = cras_fmt_conv_out_frames_to_in(
-				stream->play_conv,
-				num_frames);
-	}
-
-	/* Don't ask for more frames than the client desires. */
-	num_frames = MIN(num_frames, stream->config->cb_threshold);
-
 	return num_frames;
 }
 
 static void complete_capture_read_current(struct client_stream *stream,
 					  unsigned int num_frames)
 {
-	unsigned int frames = num_frames;
-
-	if (stream->capture_conv)
-		frames = cras_fmt_conv_out_frames_to_in(stream->capture_conv,
-							num_frames);
-	cras_shm_buffer_read_current(&stream->capture_shm, frames);
+	cras_shm_buffer_read_current(&stream->capture_shm, num_frames);
 }
 
 /* For capture streams this handles the message signalling that data is ready to
@@ -511,21 +466,6 @@ static void complete_playback_write(struct client_stream *stream,
 {
 	struct cras_audio_shm *shm = &stream->play_shm;
 
-	/* Possibly convert to the correct format. */
-	if (stream->play_conv) {
-		uint8_t *final_buf;
-		unsigned limit;
-
-		final_buf = cras_shm_get_writeable_frames(
-				shm, cras_shm_used_frames(shm), &limit);
-
-		frames = cras_fmt_conv_convert_frames(
-				stream->play_conv,
-				stream->play_conv_buffer,
-				final_buf,
-				&frames,
-				limit);
-	}
 	/* And move the write pointer to indicate samples written. */
 	cras_shm_buffer_written(shm, frames);
 	cras_shm_buffer_write_complete(shm);
@@ -707,21 +647,6 @@ static void free_shm(struct client_stream *stream)
 	stream->play_shm.area = NULL;
 }
 
-/* Free format converters if they exist. */
-static void free_fmt_conv(struct client_stream *stream)
-{
-	if (stream->play_conv) {
-		cras_fmt_conv_destroy(stream->play_conv);
-		free(stream->play_conv_buffer);
-	}
-	if (stream->capture_conv) {
-		cras_fmt_conv_destroy(stream->capture_conv);
-		free(stream->capture_conv_buffer);
-	}
-	stream->play_conv = NULL;
-	stream->capture_conv = NULL;
-}
-
 /* Handles the stream connected message from the server.  Check if we need a
  * format converter, configure the shared memory region, and start the audio
  * thread that will handle requests from the server. */
@@ -729,7 +654,6 @@ static int stream_connected(struct client_stream *stream,
 			    const struct cras_client_stream_connected *msg)
 {
 	int rc;
-	struct cras_audio_format *sfmt = &stream->config->format;
 	struct cras_audio_format mfmt;
 
 	if (msg->err) {
@@ -740,8 +664,6 @@ static int stream_connected(struct client_stream *stream,
 	unpack_cras_audio_format(&mfmt, &msg->format);
 
 	if (cras_stream_has_input(stream->direction)) {
-		unsigned int max_frames;
-
 		rc = config_shm(&stream->capture_shm,
 				msg->input_shm_key,
 				msg->shm_max_size);
@@ -749,65 +671,15 @@ static int stream_connected(struct client_stream *stream,
 			syslog(LOG_ERR, "Error configuring capture shm");
 			goto err_ret;
 		}
-
-		max_frames = MAX(cras_shm_used_frames(&stream->capture_shm),
-				 stream->config->buffer_frames);
-
-		/* Convert from h/w format to stream format for input. */
-		rc = config_format_converter(&stream->capture_conv,
-					     stream->direction,
-					     &mfmt,
-					     &stream->config->format,
-					     max_frames);
-		if (rc < 0) {
-			syslog(LOG_ERR, "Error setting up capture conversion");
-			goto err_ret;
-		}
-
-		if (stream->capture_conv) {
-			stream->capture_conv_buffer =
-				(uint8_t *)malloc(max_frames *
-						  cras_get_format_bytes(sfmt));
-			if (!stream->capture_conv_buffer) {
-				rc = -ENOMEM;
-				goto err_ret;
-			}
-		}
 	}
 
 	if (cras_stream_uses_output_hw(stream->direction)) {
-		unsigned int max_frames;
-
 		rc = config_shm(&stream->play_shm,
 				msg->output_shm_key,
 				msg->shm_max_size);
 		if (rc < 0) {
 			syslog(LOG_ERR, "Error configuring playback shm");
 			goto err_ret;
-		}
-
-		max_frames = MAX(cras_shm_used_frames(&stream->play_shm),
-				 stream->config->buffer_frames);
-
-		/* Convert the stream format to the h/w format for output */
-		rc = config_format_converter(&stream->play_conv,
-					     stream->direction,
-					     &stream->config->format,
-					     &mfmt,
-					     max_frames);
-		if (rc < 0) {
-			syslog(LOG_ERR, "Error setting up playback conversion");
-			goto err_ret;
-		}
-
-		if (stream->play_conv) {
-			stream->play_conv_buffer =
-				(uint8_t *)malloc(max_frames *
-						  cras_get_format_bytes(sfmt));
-			if (!stream->play_conv_buffer) {
-				rc = -ENOMEM;
-				goto err_ret;
-			}
 		}
 
 		cras_shm_set_volume_scaler(&stream->play_shm,
@@ -831,7 +703,6 @@ static int stream_connected(struct client_stream *stream,
 
 	return 0;
 err_ret:
-	free_fmt_conv(stream);
 	if (stream->wake_fds[0] >= 0) {
 		close(stream->wake_fds[0]);
 		close(stream->wake_fds[1]);
@@ -949,8 +820,6 @@ static int client_thread_rm_stream(struct cras_client *client,
 		if (close(stream->aud_fd))
 			syslog(LOG_WARNING, "Couldn't close audio socket");
 
-	free_fmt_conv(stream);
-
 	if (stream->wake_fds[0] >= 0) {
 		close(stream->wake_fds[0]);
 		close(stream->wake_fds[1]);
@@ -997,8 +866,6 @@ static int handle_stream_reattach(struct cras_client *client,
 		wake_aud_thread(stream);
 		pthread_join(stream->thread.tid, NULL);
 	}
-
-	free_fmt_conv(stream);
 
 	if (stream->aud_fd >= 0) {
 		close(stream->aud_fd);

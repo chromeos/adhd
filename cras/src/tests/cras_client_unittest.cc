@@ -7,8 +7,6 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-
-#include "cras_fmt_conv.h"
 #include "cras_messages.h"
 
 //  Include C file to test static functions.
@@ -16,10 +14,6 @@ extern "C" {
 }
 
 static const cras_stream_id_t FIRST_STREAM_ID = 1;
-
-static float conv_out_frames_to_in_ratio;
-static size_t cras_fmt_conv_convert_frames_in_frames_val;
-static size_t cras_fmt_conv_convert_frames_out_frames_val;
 
 static int shmat_called;
 static int shmdt_called;
@@ -30,19 +24,11 @@ static int close_called;
 static int pipe_called;
 static int sendmsg_called;
 static int write_called;
-static int cras_fmt_conv_destroy_called;
 
 static void* shmat_returned_value;
 static int pthread_create_returned_value;
 
 namespace {
-
-struct fake_cras_fmt_conv {
-  struct cras_audio_format in_format;
-  struct cras_audio_format out_format;
-};
-
-static struct fake_cras_fmt_conv fake_conv;
 
 void InitStaticVariables() {
   shmat_called = 0;
@@ -54,7 +40,6 @@ void InitStaticVariables() {
   pipe_called = 0;
   sendmsg_called = 0;
   write_called = 0;
-  cras_fmt_conv_destroy_called = 0;
   shmat_returned_value = NULL;
   pthread_create_returned_value = 0;
 }
@@ -113,40 +98,15 @@ TEST_F(CrasClientTestSuite, ConfigPlaybackBuf) {
   unsigned int fr;
 
   InitShm(&stream_.play_shm);
-  stream_.play_conv = reinterpret_cast<cras_fmt_conv*>(&fake_conv);
 
-  /* Convert from 48kHz to 16kHz */
-  conv_out_frames_to_in_ratio = 3.0f;
 
   /* Expect configured frames not limited by shm */
   fr = config_playback_buf(&stream_, &playback_frames, 100);
-  ASSERT_EQ(fr, 300);
+  ASSERT_EQ(fr, 100);
 
   /* Expect configured frames limited by shm limit */
   fr = config_playback_buf(&stream_, &playback_frames, 300);
-  ASSERT_EQ(fr, shm_writable_frames_ * conv_out_frames_to_in_ratio);
-
-  FreeShm(&stream_.play_shm);
-}
-
-TEST_F(CrasClientTestSuite, CompletePlaybackWrite) {
-  /* Test complete playback with different frames, format
-   * converter should handle the converted frame count
-   * and limit. */
-
-  InitShm(&stream_.play_shm);
-  stream_.play_conv = reinterpret_cast<cras_fmt_conv*>(&fake_conv);
-
-  complete_playback_write(&stream_, 200);
-  ASSERT_EQ(cras_fmt_conv_convert_frames_in_frames_val, 200);
-  ASSERT_EQ(cras_fmt_conv_convert_frames_out_frames_val,
-            shm_writable_frames_);
-
-  /* Complete playback with frames larger then shm limit */
-  complete_playback_write(&stream_, 400);
-  ASSERT_EQ(cras_fmt_conv_convert_frames_in_frames_val, 400);
-  ASSERT_EQ(cras_fmt_conv_convert_frames_out_frames_val,
-            shm_writable_frames_);
+  ASSERT_EQ(fr, shm_writable_frames_);
 
   FreeShm(&stream_.play_shm);
 }
@@ -161,17 +121,6 @@ void set_audio_format(struct cras_audio_format* format,
   for (size_t i = 0; i < CRAS_CH_MAX; ++i)
     format->channel_layout[i] = i < num_channels ? i : -1;
 }
-
-bool cras_audio_format_equal(struct cras_audio_format& a,
-                             struct cras_audio_format& b) {
-  if (a.format != b.format || a.frame_rate != b.frame_rate)
-    return false;
-  for (size_t i = 0; i < CRAS_CH_MAX; ++i)
-    if (a.channel_layout[i] != b.channel_layout[i])
-      return false;
-  return true;
-}
-
 
 void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   struct cras_client_stream_connected msg;
@@ -213,18 +162,9 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   if (direction == CRAS_STREAM_OUTPUT) {
     EXPECT_EQ(NULL, stream_.capture_shm.area);
     EXPECT_EQ(&area, stream_.play_shm.area);
-    EXPECT_EQ(reinterpret_cast<cras_fmt_conv*>(&fake_conv), stream_.play_conv);
-    EXPECT_TRUE(cras_audio_format_equal(stream_.config->format,
-                                        fake_conv.in_format));
-    EXPECT_TRUE(cras_audio_format_equal(server_format, fake_conv.out_format));
   } else {
     EXPECT_EQ(NULL, stream_.play_shm.area);
     EXPECT_EQ(&area, stream_.capture_shm.area);
-    EXPECT_EQ(reinterpret_cast<cras_fmt_conv*>(&fake_conv),
-              stream_.capture_conv);
-    EXPECT_TRUE(cras_audio_format_equal(stream_.config->format,
-                                        fake_conv.out_format));
-    EXPECT_TRUE(cras_audio_format_equal(server_format, fake_conv.in_format));
   }
 }
 
@@ -295,16 +235,12 @@ TEST_F(CrasClientTestSuite, HandleStreamReattach) {
   DL_APPEND(client_.streams, &stream_);
   stream_.client = &client_;
   stream_.thread.running = 1;
-  stream_.play_conv = reinterpret_cast<cras_fmt_conv*>(&fake_conv);
-  stream_.capture_conv = NULL;
 
   EXPECT_EQ(0, handle_stream_reattach(&client_, FIRST_STREAM_ID));
 
   // The stream's audio thread will be stopped
   EXPECT_EQ(1, pthread_join_called);
   EXPECT_EQ(0, stream_.thread.running);
-
-  EXPECT_EQ(1, cras_fmt_conv_destroy_called);
 
   // Expect the connect message will be send.
   EXPECT_EQ(1, sendmsg_called);
@@ -402,54 +338,6 @@ int pthread_create(pthread_t *thread,
 
 int pthread_join(pthread_t thread, void **retval) {
   ++pthread_join_called;
-  return 0;
-}
-
-size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv *conv,
-				      size_t out_frames) {
-  return out_frames * conv_out_frames_to_in_ratio;
-}
-
-void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
-{
-  ++cras_fmt_conv_destroy_called;
-}
-
-struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
-					   const struct cras_audio_format *out,
-					   size_t max_frames)
-{
-  fake_conv.in_format = *in;
-  fake_conv.out_format = *out;
-  return reinterpret_cast<struct cras_fmt_conv*>(&fake_conv);
-}
-
-size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
-				    const uint8_t *in_buf,
-				    uint8_t *out_buf,
-				    unsigned int  *in_frames,
-				    size_t out_frames)
-{
-  cras_fmt_conv_convert_frames_in_frames_val = *in_frames;
-  cras_fmt_conv_convert_frames_out_frames_val = out_frames;
-
-  /* Don't care the return value */
-  return 0;
-}
-
-int cras_fmt_conversion_needed(const struct cras_audio_format *a,
-			       const struct cras_audio_format *b)
-{
-  return 1;
-}
-
-int config_format_converter(struct cras_fmt_conv **conv,
-                            enum CRAS_STREAM_DIRECTION dir,
-                            const struct cras_audio_format *from,
-                            const struct cras_audio_format *to,
-                            unsigned int frames)
-{
-  *conv = cras_fmt_conv_create(from, to, frames);
   return 0;
 }
 
