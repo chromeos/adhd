@@ -66,6 +66,7 @@ static struct fmt_conv_call conv_frames_call;
 static size_t conv_frames_ret;
 static int cras_audio_area_create_num_channels_val;
 static int cras_fmt_conv_convert_frames_in_frames_val;
+static int cras_fmt_conversion_needed_val;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -87,6 +88,7 @@ class CreateSuite : public testing::Test{
       rstream_.format.num_channels = 2;;
 
       config_format_converter_called = 0;
+      cras_fmt_conversion_needed_val = 0;
 
       memset(&copy_area_call, 0xff, sizeof(copy_area_call));
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
@@ -209,6 +211,7 @@ TEST_F(CreateSuite, CaptureSRC) {
 
   conv_frames_ret = kBufferFrames / 2;
   cras_fmt_conv_convert_frames_in_frames_val = kBufferFrames;
+  cras_fmt_conversion_needed_val = 1;
   dev_stream_capture(&devstr, area, 0, 0);
 
   EXPECT_EQ((struct cras_fmt_conv *)0xdead, conv_frames_call.conv);
@@ -563,6 +566,11 @@ const struct cras_audio_format *cras_fmt_conv_in_format(
 const struct cras_audio_format *cras_fmt_conv_out_format(
     const struct cras_fmt_conv *conv) {
   return &out_fmt;
+}
+
+int cras_fmt_conversion_needed(const struct cras_fmt_conv *conv)
+{
+  return cras_fmt_conversion_needed_val;
 }
 
 //  From librt.

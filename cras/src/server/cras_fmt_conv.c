@@ -759,13 +759,10 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	return fr_out;
 }
 
-int cras_fmt_conversion_needed(const struct cras_audio_format *a,
-			       const struct cras_audio_format *b)
+int cras_fmt_conversion_needed(const struct cras_fmt_conv *conv)
 {
-	return (a->format != b->format ||
-		a->num_channels != b->num_channels ||
-		a->frame_rate != b->frame_rate ||
-		(a->num_channels > 2 && !is_channel_layout_equal(a, b)));
+	return linear_resampler_needed(conv->resampler) ||
+	       (conv->num_converters > 1);
 }
 
 /* If the server cannot provide the requested format, configures an audio format
@@ -789,19 +786,17 @@ int config_format_converter(struct cras_fmt_conv **conv,
 		target = *to;
 	}
 
-	if (cras_fmt_conversion_needed(from, &target)) {
-		syslog(LOG_DEBUG,
-		       "format convert: from:%d %zu %zu target: %d %zu %zu "
-		       "frames = %u",
-		       from->format, from->frame_rate, from->num_channels,
-		       target.format, target.frame_rate, target.num_channels,
-		       frames);
-		*conv = cras_fmt_conv_create(from, &target, frames,
-					     (dir == CRAS_STREAM_INPUT));
-		if (!*conv) {
-			syslog(LOG_ERR, "Failed to create format converter");
-			return -ENOMEM;
-		}
+	syslog(LOG_DEBUG,
+	       "format convert: from:%d %zu %zu target: %d %zu %zu "
+	       "frames = %u",
+	       from->format, from->frame_rate, from->num_channels,
+	       target.format, target.frame_rate, target.num_channels,
+	       frames);
+	*conv = cras_fmt_conv_create(from, &target, frames,
+				     (dir == CRAS_STREAM_INPUT));
+	if (!*conv) {
+		syslog(LOG_ERR, "Failed to create format converter");
+		return -ENOMEM;
 	}
 
 	return 0;

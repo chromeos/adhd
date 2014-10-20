@@ -19,6 +19,11 @@ static int surround_channel_layout[CRAS_CH_MAX] =
 static int linear_resampler_needed_val;
 static double linear_resampler_ratio = 1.0;
 
+void ResetStub() {
+  linear_resampler_needed_val = 0;
+  linear_resampler_ratio = 1.0;
+}
+
 // Like malloc or calloc, but fill the memory with random bytes.
 static void *ralloc(size_t size) {
   unsigned char *buf = (unsigned char *)malloc(size);
@@ -41,6 +46,7 @@ TEST(FormatConverterTest,  InvalidParamsUpDownMix) {
   struct cras_audio_format out_fmt;
   struct cras_fmt_conv *c;
 
+  ResetStub();
   in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 4;
   out_fmt.num_channels = 2;
@@ -54,6 +60,7 @@ TEST(FormatConverterTest,  InvalidParamsOnlyLE) {
   struct cras_audio_format out_fmt;
   struct cras_fmt_conv *c;
 
+  ResetStub();
   in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S32_BE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
   c = cras_fmt_conv_create(&in_fmt, &out_fmt, 4096, 0);
@@ -72,6 +79,7 @@ TEST(FormatConverterTest, MonoToStereo) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 1;
@@ -122,6 +130,7 @@ TEST(FormatConverterTest, StereoToMono) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -172,6 +181,7 @@ TEST(FormatConverterTest, SurroundToStereo) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -278,6 +288,7 @@ TEST(FormatConverterTest,  Convert2To1) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
   in_fmt.frame_rate = 96000;
@@ -312,6 +323,7 @@ TEST(FormatConverterTest,  Convert1To2) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
   in_fmt.frame_rate = 22050;
@@ -346,6 +358,7 @@ TEST(FormatConverterTest,  Convert1To2MonoToStereo) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 1;
   out_fmt.num_channels = 2;
@@ -385,6 +398,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LE) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
@@ -425,6 +439,7 @@ TEST(FormatConverterTest, ConvertS24LEToS16LE) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S24_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
@@ -465,6 +480,7 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_U8;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -506,6 +522,7 @@ TEST(FormatConverterTest, ConvertS16LEToS32LE) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S32_LE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
@@ -546,6 +563,7 @@ TEST(FormatConverterTest, ConvertS16LEToS24LE) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S24_LE;
   in_fmt.num_channels = out_fmt.num_channels = 2;
@@ -586,6 +604,7 @@ TEST(FormatConverterTest, ConvertS16LEToU8) {
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_U8;
   in_fmt.num_channels = 2;
@@ -628,7 +647,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo) {
   unsigned int in_buf_size = 4096;
   int i;
 
-
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -671,7 +690,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEStereoTo51) {
   unsigned int in_buf_size = 4096;
   int i;
 
-
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -723,7 +742,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEMonoTo51) {
   unsigned int in_buf_size = 4096;
   int i;
 
-
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 1;
@@ -775,6 +794,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To96) {
   unsigned int in_buf_size = 4096;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -817,6 +837,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48) {
   unsigned int in_buf_size = 4096;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -860,6 +881,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To441) {
   unsigned int in_buf_size = 4096;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -903,6 +925,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo441To48) {
   unsigned int in_buf_size = 4096;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -947,6 +970,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48Short) {
   unsigned int in_buf_size = 4096;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S32_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 6;
@@ -991,6 +1015,7 @@ TEST(FormatConverterTest, Convert96to48PreLinearResample) {
   unsigned int expected_fr;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -1039,6 +1064,7 @@ TEST(FormatConverterTest, Convert96to48PostLinearResample) {
   unsigned int expected_fr;
   int i;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -1080,6 +1106,7 @@ TEST(FormatConverterTest, ConfigConverter) {
   struct cras_audio_format in_fmt;
   struct cras_audio_format out_fmt;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 1;
@@ -1105,6 +1132,7 @@ TEST(FormatConverterTest, ConfigConverterNoNeed) {
   struct cras_audio_format in_fmt;
   struct cras_audio_format out_fmt;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -1117,7 +1145,8 @@ TEST(FormatConverterTest, ConfigConverterNoNeed) {
   }
 
   config_format_converter(&c, CRAS_STREAM_OUTPUT, &in_fmt, &out_fmt, 4096);
-  EXPECT_EQ(c, (void *)NULL);
+  EXPECT_NE(c, (void *)NULL);
+  EXPECT_EQ(0, cras_fmt_conversion_needed(c));
 }
 
 // Test format converter not created for input when in/out format differs
@@ -1130,6 +1159,7 @@ TEST(FormatConverterTest, ConfigConverterNoNeedForInput) {
   struct cras_audio_format in_fmt;
   struct cras_audio_format out_fmt;
 
+  ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
   out_fmt.format = SND_PCM_FORMAT_S16_LE;
   in_fmt.num_channels = 2;
@@ -1142,7 +1172,8 @@ TEST(FormatConverterTest, ConfigConverterNoNeedForInput) {
   }
 
   config_format_converter(&c, CRAS_STREAM_INPUT, &in_fmt, &out_fmt, 4096);
-  EXPECT_EQ(c, (void *)NULL);
+  EXPECT_NE(c, (void *)NULL);
+  EXPECT_EQ(0, cras_fmt_conversion_needed(c));
 }
 
 int main(int argc, char **argv) {

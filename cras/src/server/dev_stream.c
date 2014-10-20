@@ -164,7 +164,7 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 						   &frames);
 		if (frames == 0)
 			break;
-		if (dev_stream->conv) {
+		if (cras_fmt_conversion_needed(dev_stream->conv)) {
 			read_frames = frames;
 			dev_frames = cras_fmt_conv_convert_frames(
 					dev_stream->conv,
@@ -320,7 +320,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 	unsigned int nread;
 
 	/* Check if format conversion is needed. */
-	if (dev_stream->conv) {
+	if (cras_fmt_conversion_needed(dev_stream->conv)) {
 		unsigned int format_bytes;
 
 		format_bytes = cras_get_format_bytes(
