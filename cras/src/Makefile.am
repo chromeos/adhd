@@ -12,7 +12,6 @@ cras_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
-	common/cras_fmt_conv.c \
 	common/cras_metrics.c \
 	common/cras_util.c \
 	common/dumper.c \
@@ -57,6 +56,7 @@ cras_SOURCES = \
 	server/cras_dsp_pipeline.c \
 	server/cras_empty_iodev.c \
 	server/cras_expr.c \
+	server/cras_fmt_conv.c \
 	server/cras_gpio_jack.c \
 	server/cras_hfp_ag_profile.c \
 	server/cras_hfp_info.c \
@@ -94,7 +94,6 @@ lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_config.c \
-	common/cras_fmt_conv.c \
 	common/cras_sbc_codec.c \
 	common/cras_util.c \
 	common/edid_utils.c \
@@ -103,7 +102,6 @@ libcras_la_SOURCES = \
 include_HEADERS = \
 	common/cras_audio_format.h \
 	common/cras_config.h \
-	common/cras_fmt_conv.h \
 	common/cras_iodev_info.h \
 	common/cras_messages.h \
 	common/cras_sbc_codec.h \
@@ -416,7 +414,7 @@ expr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 expr_unittest_LDADD = -lgtest -lpthread
 
-fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc common/cras_fmt_conv.c
+fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc server/cras_fmt_conv.c
 fmt_conv_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 fmt_conv_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
