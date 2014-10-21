@@ -16,7 +16,7 @@ PKG_PROG_PKG_CONFIG
 #AC_CONFIG_FILES([Makefile src/Makefile libcras.pc])
 
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
-PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.23 ])
+PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.27 ])
 PKG_CHECK_MODULES([DBUS], [ dbus-1 >= 1.4.12 ])
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
