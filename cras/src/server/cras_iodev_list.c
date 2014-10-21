@@ -246,24 +246,48 @@ static int get_dev_list(struct iodev_list *list,
  * the default output if it is active. */
 void sys_vol_change(void *data)
 {
+	struct cras_iodev *dev;
+
+	DL_FOREACH(outputs.iodevs, dev) {
+		if (dev->set_volume && dev->is_open(dev))
+			dev->set_volume(dev);
+	}
 }
 
 /* Called when the system mute state changes.  Pass the current mute setting
  * to the default output if it is active. */
 void sys_mute_change(void *data)
 {
+	struct cras_iodev *dev;
+
+	DL_FOREACH(outputs.iodevs, dev) {
+		if (dev->set_mute && dev->is_open(dev))
+			dev->set_mute(dev);
+	}
 }
 
 /* Called when the system capture gain changes.  Pass the current capture_gain
  * setting to the default input if it is active. */
 void sys_cap_gain_change(void *data)
 {
+	struct cras_iodev *dev;
+
+	DL_FOREACH(inputs.iodevs, dev) {
+		if (dev->set_capture_gain && dev->is_open(dev))
+			dev->set_capture_gain(dev);
+	}
 }
 
 /* Called when the system capture mute state changes.  Pass the current capture
  * mute setting to the default input if it is active. */
 void sys_cap_mute_change(void *data)
 {
+	struct cras_iodev *dev;
+
+	DL_FOREACH(inputs.iodevs, dev) {
+		if (dev->set_capture_mute && dev->is_open(dev))
+			dev->set_capture_mute(dev);
+	}
 }
 
 /*
