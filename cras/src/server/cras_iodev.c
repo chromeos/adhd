@@ -383,7 +383,7 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 
 	DL_APPEND(iodev->streams, stream);
 
-	buffer_share_add_id(iodev->buf_state, stream->stream->stream_id);
+	buffer_share_add_id(iodev->buf_state, stream->stream->stream_id, NULL);
 
 	iodev->min_cb_level = MIN(iodev->min_cb_level, rstream->cb_threshold);
 	iodev->max_cb_level = MAX(iodev->max_cb_level, rstream->cb_threshold);

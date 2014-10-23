@@ -68,7 +68,7 @@ void buffer_share_destroy(struct buffer_share *mix)
 	free(mix);
 }
 
-int buffer_share_add_id(struct buffer_share *mix, unsigned int id)
+int buffer_share_add_id(struct buffer_share *mix, unsigned int id, void *data)
 {
 	struct id_offset *o;
 
@@ -84,6 +84,7 @@ int buffer_share_add_id(struct buffer_share *mix, unsigned int id)
 	o->used = 1;
 	o->id = id;
 	o->offset = 0;
+	o->data = data;
 
 	return 0;
 }
@@ -96,6 +97,7 @@ int buffer_share_rm_id(struct buffer_share *mix, unsigned int id)
 	if (!o)
 		return -ENOENT;
 	o->used = 0;
+	o->data = NULL;
 
 	return 0;
 }
@@ -140,18 +142,30 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share *mix)
 	return min_written;
 }
 
-unsigned int buffer_share_id_offset(const struct buffer_share *mix,
-				    unsigned int id)
+static struct id_offset *get_id_offset(const struct buffer_share *mix,
+				       unsigned int id)
 {
 	unsigned int i;
 	struct id_offset *o;
 
 	for (i = 0; i < mix->id_sz; i++) {
 		o = &mix->wr_idx[i];
-
-		if (o->id == id)
-			return o->offset;
+		if (o->used && o->id == id)
+			return o;
 	}
+	return NULL;
+}
 
-	return 0;
+unsigned int buffer_share_id_offset(const struct buffer_share *mix,
+				    unsigned int id)
+{
+	struct id_offset *o = get_id_offset(mix, id);
+	return o ? o->offset : 0;
+}
+
+void *buffer_share_get_data(const struct buffer_share *mix,
+			    unsigned int id)
+{
+	struct id_offset *o = get_id_offset(mix, id);
+	return o ? o->data : NULL;
 }

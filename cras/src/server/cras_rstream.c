@@ -232,7 +232,7 @@ void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
 
 void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id)
 {
-	buffer_share_add_id(rstream->buf_state, dev_id);
+	buffer_share_add_id(rstream->buf_state, dev_id, NULL);
 }
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)

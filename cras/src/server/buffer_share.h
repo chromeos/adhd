@@ -12,6 +12,7 @@ struct id_offset {
 	unsigned int used;
 	unsigned int id;
 	unsigned int offset;
+	void *data;
 };
 
 struct buffer_share {
@@ -30,7 +31,7 @@ struct buffer_share *buffer_share_create(unsigned int buf_sz);
 void buffer_share_destroy(struct buffer_share *mix);
 
 /* Adds an ID that shares the buffer. */
-int buffer_share_add_id(struct buffer_share *mix, unsigned int id);
+int buffer_share_add_id(struct buffer_share *mix, unsigned int id, void *data);
 
 /* Removes an ID that shares the buffer. */
 int buffer_share_rm_id(struct buffer_share *mix, unsigned int id);
@@ -51,5 +52,11 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share *mix);
  */
 unsigned int buffer_share_id_offset(const struct buffer_share *mix,
 				    unsigned int id);
+
+/*
+ * Gets the data pointer for given id.
+ */
+void *buffer_share_get_data(const struct buffer_share *mix,
+			    unsigned int id);
 
 #endif /* BUFFER_SHARE_H_ */
