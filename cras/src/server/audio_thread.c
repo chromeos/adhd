@@ -1714,8 +1714,12 @@ restart_poll_loop:
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
 			if (iodev_cb->pollfd &&
-			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT))
+			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT)) {
+				audio_thread_event_log_data(
+					atlog, AUDIO_THREAD_IODEV_CB,
+					iodev_cb->is_write, 0, 0);
 				iodev_cb->cb(iodev_cb->cb_data);
+			}
 		}
 	}
 
