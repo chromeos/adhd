@@ -1052,6 +1052,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	if (err < 0)
 		return err;
 
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_PB_MSG, msg->id, 0, 0);
+
 	switch (msg->id) {
 	case AUDIO_THREAD_ADD_STREAM: {
 		struct audio_thread_add_rm_stream_msg *amsg;

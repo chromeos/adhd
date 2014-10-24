@@ -135,6 +135,7 @@ enum AUDIO_THREAD_LOG_EVENTS {
 	AUDIO_THREAD_DEV_ADDED,
 	AUDIO_THREAD_DEV_REMOVED,
 	AUDIO_THREAD_IODEV_CB,
+	AUDIO_THREAD_PB_MSG,
 };
 
 struct __attribute__ ((__packed__)) audio_thread_event {

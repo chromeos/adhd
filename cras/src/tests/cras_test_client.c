@@ -509,6 +509,9 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_IODEV_CB:
 		printf("IODEV_CB: %u.%09u is_write:%u\n", sec, nsec, data1);
 		break;
+	case AUDIO_THREAD_PB_MSG:
+		printf("PB_MSG: %u.%09u msg_id:%u\n", sec, nsec, data1);
+		break;
 	default:
 		printf("Unknown alog tag %u\n", tag);
 		break;
