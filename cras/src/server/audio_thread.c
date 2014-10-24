@@ -1620,7 +1620,7 @@ static void *audio_io_thread(void *arg)
 	unsigned int num_pollfds;
 	unsigned int pollfds_size = 32;
 	int msg_fd;
-	int err;
+	int rc;
 
 	msg_fd = thread->to_thread_fds[0];
 
@@ -1643,9 +1643,9 @@ static void *audio_io_thread(void *arg)
 		wait_ts = NULL;
 
 		/* device opened */
-		err = stream_dev_io(thread);
-		if (err < 0)
-			syslog(LOG_ERR, "audio cb error %d", err);
+		rc = stream_dev_io(thread);
+		if (rc < 0)
+			syslog(LOG_ERR, "audio cb error %d", rc);
 
 		if (fill_next_sleep_interval(thread, &ts))
 			wait_ts = &ts;
@@ -1700,16 +1700,16 @@ restart_poll_loop:
 					    wait_ts ? wait_ts->tv_sec : 0,
 					    wait_ts ? wait_ts->tv_nsec : 0,
 					    longest_wake.tv_nsec);
-		err = ppoll(pollfds, num_pollfds, wait_ts, NULL);
+		rc = ppoll(pollfds, num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC, &last_wake);
-		audio_thread_event_log_data(atlog, AUDIO_THREAD_WAKE, 0, 0, 0);
-		if (err <= 0)
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
+		if (rc <= 0)
 			continue;
 
 		if (pollfds[0].revents & POLLIN) {
-			err = handle_playback_thread_message(thread);
-			if (err < 0)
-				syslog(LOG_INFO, "handle message %d", err);
+			rc = handle_playback_thread_message(thread);
+			if (rc < 0)
+				syslog(LOG_INFO, "handle message %d", rc);
 		}
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
