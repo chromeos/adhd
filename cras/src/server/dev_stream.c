@@ -262,9 +262,9 @@ static unsigned int capture_copy_converted_to_stream(
 
 	stream_samples = cras_shm_get_writeable_frames(
 			shm,
-			cras_rstream_get_cb_threshold(rstream) - offset,
+			cras_rstream_get_cb_threshold(rstream),
 			&rstream->audio_area->frames);
-	num_frames = MIN(rstream->audio_area->frames,
+	num_frames = MIN(rstream->audio_area->frames - offset,
 			 buf_queued_bytes(dev_stream->conv_buffer) /
 							frame_bytes);
 
@@ -341,7 +341,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 		shm = cras_rstream_input_shm(rstream);
 		stream_samples = cras_shm_get_writeable_frames(
 				shm,
-				cras_rstream_get_cb_threshold(rstream) - offset,
+				cras_rstream_get_cb_threshold(rstream),
 				&rstream->audio_area->frames);
 		cras_audio_area_config_buf_pointers(rstream->audio_area,
 						    &rstream->format,
