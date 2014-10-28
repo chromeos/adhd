@@ -93,24 +93,6 @@ class CrasClientTestSuite : public testing::Test {
     int shm_writable_frames_;
 };
 
-TEST_F(CrasClientTestSuite, ConfigPlaybackBuf) {
-  uint8_t *playback_frames;
-  unsigned int fr;
-
-  InitShm(&stream_.play_shm);
-
-
-  /* Expect configured frames not limited by shm */
-  fr = config_playback_buf(&stream_, &playback_frames, 100);
-  ASSERT_EQ(fr, 100);
-
-  /* Expect configured frames limited by shm limit */
-  fr = config_playback_buf(&stream_, &playback_frames, 300);
-  ASSERT_EQ(fr, shm_writable_frames_);
-
-  FreeShm(&stream_.play_shm);
-}
-
 void set_audio_format(struct cras_audio_format* format,
                       snd_pcm_format_t pcm_format,
                       size_t frame_rate,

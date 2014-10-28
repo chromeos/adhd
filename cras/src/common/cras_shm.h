@@ -302,6 +302,17 @@ static inline void cras_shm_buffer_write_complete(struct cras_audio_shm *shm)
 	shm->area->write_buf_idx = buf_idx;
 }
 
+/* Set the write pointer for the current buffer and complete the write. */
+static inline
+void cras_shm_buffer_written_start(struct cras_audio_shm *shm, size_t frames)
+{
+	size_t buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+
+	shm->area->write_offset[buf_idx] = frames * shm->config.frame_bytes;
+	shm->area->read_offset[buf_idx] = 0;
+	cras_shm_buffer_write_complete(shm);
+}
+
 /* Increment the read pointer.  If it goes past the write pointer for this
  * buffer, move to the next buffer. */
 static inline

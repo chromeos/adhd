@@ -382,23 +382,6 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 	return num_frames;
 }
 
-/* Configure a buffer to write audio into. */
-static unsigned int config_playback_buf(struct client_stream *stream,
-					uint8_t **playback_frames,
-					unsigned int num_frames)
-{
-	unsigned int limit;
-	struct cras_audio_shm *shm = &stream->play_shm;
-
-	/* Assert num_frames doesn't exceed shm limit, no matter
-	 * format conversion is needed of not. */
-	*playback_frames = cras_shm_get_writeable_frames(
-			shm, cras_shm_used_frames(shm), &limit);
-	num_frames = MIN(num_frames, limit);
-
-	return num_frames;
-}
-
 static void complete_capture_read_current(struct client_stream *stream,
 					  unsigned int num_frames)
 {
@@ -459,18 +442,6 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	return 0;
 }
 
-/* Handles any format conversion that is necessary for newly written samples and
- * marks them as written to shm. */
-static void complete_playback_write(struct client_stream *stream,
-				    unsigned int frames)
-{
-	struct cras_audio_shm *shm = &stream->play_shm;
-
-	/* And move the write pointer to indicate samples written. */
-	cras_shm_buffer_written(shm, frames);
-	cras_shm_buffer_write_complete(shm);
-}
-
 /* Notifies the server that "frames" samples have been written. */
 static int send_playback_reply(struct client_stream *stream,
 			       unsigned int frames,
@@ -514,7 +485,7 @@ static int handle_playback_request(struct client_stream *stream,
 		return 0;
 	}
 
-	num_frames = config_playback_buf(stream, &buf, num_frames);
+	buf = cras_shm_get_write_buffer_base(&stream->play_shm);
 
 	/* Limit the amount of frames to the configured amount. */
 	num_frames = MIN(num_frames, config->cb_threshold);
@@ -544,7 +515,7 @@ static int handle_playback_request(struct client_stream *stream,
 		goto reply_written;
 	}
 
-	complete_playback_write(stream, frames);
+	cras_shm_buffer_written_start(shm, frames);
 
 reply_written:
 	/* Signal server that data is ready, or that an error has occurred. */
