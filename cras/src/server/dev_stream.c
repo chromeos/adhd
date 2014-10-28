@@ -595,3 +595,15 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
 	return 0;
 }
+
+int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
+{
+	const struct cras_rstream *stream = dev_stream->stream;
+
+	if (!stream_uses_output(stream) ||
+	    !cras_shm_callback_pending(&stream->shm) ||
+	    cras_rstream_get_is_draining(stream))
+		return -1;
+
+	return stream->fd;
+}

@@ -1712,10 +1712,10 @@ restart_poll_loop:
 		/* TODO(dgreid) - once per rstream not per dev_stream */
 		DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 			DL_FOREACH(adev->dev->streams, curr) {
-				if (!stream_uses_output(curr->stream) ||
-				    cras_rstream_get_is_draining(curr->stream))
+				int fd = dev_stream_poll_stream_fd(curr);
+				if (fd < 0)
 					continue;
-				pollfds[num_pollfds].fd = curr->stream->fd;
+				pollfds[num_pollfds].fd = fd;
 				pollfds[num_pollfds].events = POLLIN;
 				num_pollfds++;
 				if (num_pollfds >= pollfds_size) {

@@ -143,6 +143,12 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 /* Ask the client for cb_threshold samples of audio to play. */
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream);
 
+/*
+ * Returns a non-negative fd if the fd is expecting a message and should be
+ * added to the list of descriptors to poll.
+ */
+int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream);
+
 static inline const struct timespec *
 dev_stream_next_cb_ts(struct dev_stream *dev_stream)
 {

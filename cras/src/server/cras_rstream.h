@@ -156,7 +156,8 @@ static inline int cras_rstream_get_audio_fd(const struct cras_rstream *stream)
 }
 
 /* Gets the is_draning flag. */
-static inline int cras_rstream_get_is_draining(struct cras_rstream *stream)
+static inline
+int cras_rstream_get_is_draining(const struct cras_rstream *stream)
 {
 	return stream->is_draining;
 }
