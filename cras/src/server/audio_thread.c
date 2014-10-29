@@ -65,7 +65,6 @@ struct audio_thread_active_device_msg {
 struct audio_thread_add_rm_stream_msg {
 	struct audio_thread_msg header;
 	struct cras_rstream *stream;
-	enum CRAS_STREAM_DIRECTION dir;
 };
 
 struct audio_thread_dump_debug_info_msg {
