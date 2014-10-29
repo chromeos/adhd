@@ -628,8 +628,11 @@ static int thread_add_active_dev(struct audio_thread *thread,
 				    iodev->info.idx, 0, 0);
 
 	rc = move_streams_to_added_dev(thread, adev);
-	if (rc)
+	if (rc) {
+		iodev->is_active = 0;
+		free(adev);
 		return rc;
+	}
 
 	flush_fallback_streams(thread, iodev->direction);
 
