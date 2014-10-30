@@ -399,6 +399,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	unsigned int data2 = log->log[tag_idx].data2;
 	unsigned int data3 = log->log[tag_idx].data3;
 
+	/* Skip unused log entries. */
+	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
+		return;
+
 	switch (tag) {
 	case AUDIO_THREAD_WAKE:
 		printf("WAKE: %u.%09u num_fds %d\n", sec, nsec, (int)data1);
