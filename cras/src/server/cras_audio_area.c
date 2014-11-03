@@ -52,7 +52,7 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 
 			/* TODO(dgreid) - this assumes s16le. */
 			schan = src->channels[src_idx].buf +
-				src_offset * src->channels[dst_idx].step_bytes;
+				src_offset * src->channels[src_idx].step_bytes;
 			dchan = dst->channels[dst_idx].buf +
 				dst_offset * dst->channels[dst_idx].step_bytes;
 
