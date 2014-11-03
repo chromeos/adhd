@@ -23,7 +23,7 @@ extern "C" {
 #define FAKE_OBJECT_PATH "/fake/obj/path"
 
 #define MAX_A2DP_ENCODE_CALLS 2
-#define MAX_A2DP_WRITE_CALLS 2
+#define MAX_A2DP_WRITE_CALLS 4
 
 static struct cras_bt_transport *fake_transport;
 static struct cras_bt_device *fake_device;
