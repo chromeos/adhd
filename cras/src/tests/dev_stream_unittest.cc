@@ -264,10 +264,10 @@ TEST_F(CreateSuite, CreateNoSRCOutput) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 44100;
   dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
-  dev_stream_destroy(dev_stream);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_EQ(NULL, dev_stream->conv_buffer);
   EXPECT_EQ(0, dev_stream->conv_buffer_size_frames);
+  dev_stream_destroy(dev_stream);
 }
 
 TEST_F(CreateSuite, CreateNoSRCInput) {
