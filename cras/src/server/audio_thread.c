@@ -695,12 +695,12 @@ static void thread_rm_active_dev(struct audio_thread *thread,
 static int thread_remove_stream(struct audio_thread *thread,
 				struct cras_rstream *stream)
 {
-	if (delete_stream(thread, stream))
-		syslog(LOG_ERR, "Stream to remove not found.");
-
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_STREAM_REMOVED,
 				    stream->stream_id, 0, 0);
+
+	if (delete_stream(thread, stream))
+		syslog(LOG_ERR, "Stream to remove not found.");
 
 	return streams_attached(thread);
 }
