@@ -257,7 +257,6 @@ TEST_F(CrasClientTestSuite, AddAndRemoveStream) {
   // One for the disconnect message to server,
   // the other is to wake_up the audio thread
   EXPECT_EQ(2, write_called);
-  EXPECT_EQ(0, stream_ptr->thread.running);
   EXPECT_EQ(1, pthread_join_called);
 
   EXPECT_EQ(NULL, stream_from_id(&client_, stream_id));
