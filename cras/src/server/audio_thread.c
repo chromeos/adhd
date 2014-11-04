@@ -307,7 +307,7 @@ struct cras_iodev *first_loop_dev(const struct audio_thread *thread)
 
 /* Requests audio from a stream and marks it as pending. */
 static int fetch_stream(struct dev_stream *dev_stream,
-			unsigned int frames_in_buff)
+			unsigned int frames_in_buff, unsigned int delay)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
@@ -317,7 +317,7 @@ static int fetch_stream(struct dev_stream *dev_stream,
 			atlog,
 			AUDIO_THREAD_FETCH_STREAM,
 			rstream->stream_id,
-			cras_rstream_get_cb_threshold(rstream), 0);
+			cras_rstream_get_cb_threshold(rstream), delay);
 	rc = dev_stream_request_playback_samples(dev_stream);
 	if (rc < 0)
 		return rc;
@@ -865,7 +865,7 @@ static int fetch_streams(struct audio_thread *thread,
 
 		dev_stream_set_delay(dev_stream, delay);
 
-		rc = fetch_stream(dev_stream, frames_in_buff);
+		rc = fetch_stream(dev_stream, frames_in_buff, delay);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fetch err: %d for %x",
 			       rc, rstream->stream_id);

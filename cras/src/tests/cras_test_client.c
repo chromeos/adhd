@@ -449,8 +449,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_FETCH_STREAM:
-		printf("WRITE_STREAMS_FETCH_STREAM: %u.%09u id %x cbth %u\n",
-		       sec, nsec, data1, data2);
+		printf("WRITE_STREAMS_FETCH_STREAM: %u.%09u id %x cbth %u delay %u\n",
+		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_ADDED:
 		printf("STREAM_ADDED: %u.%9u id %x\n", sec, nsec, data1);
