@@ -54,7 +54,7 @@ TEST(RateEstimatorTest, EstimateOutputLinear2) {
   int interval_nsec[5] = {1000000, 1500000, 2000000, 2500000, 3000000};
   int frames_written[5] = {30, 25, 20, 15, 10};
 
-  re = rate_estimator_create(10000, &window, 0.0f);
+  re = rate_estimator_create(7470, &window, 0.0f);
   for (i = 0; i < 5; i++) {
     rc = rate_estimator_check(re, level, &t);
     EXPECT_EQ(0, rc);
@@ -74,12 +74,43 @@ TEST(RateEstimatorTest, EstimateOutputLinear2) {
   rate_estimator_destroy(re);
 }
 
+TEST(RateEstimatorTest, EstimateRateSkewTooLarge) {
+  struct rate_estimator *re;
+  struct timespec t = {
+    .tv_sec = 1,
+    .tv_nsec = 0
+  };
+  int level = 240;
+  int i, rc, tmp;
+
+  int interval_nsec[5] = {1000000, 1500000, 2000000, 2500000, 3000000};
+  int frames_written[5] = {30, 25, 20, 15, 10};
+
+  re = rate_estimator_create(10000, &window, 0.0f);
+  for (i = 0; i < 5; i++) {
+    rc = rate_estimator_check(re, level, &t);
+    EXPECT_EQ(0, rc);
+
+    tmp = rand() % 10;
+    rate_estimator_add_frames(re, frames_written[i] + tmp);
+    level += tmp;
+    t.tv_nsec += interval_nsec[i];
+  }
+  t.tv_nsec += 1;
+  rc = rate_estimator_check(re, level, &t);
+  EXPECT_EQ(1, rc);
+  /* Estimated rate too far from allowed max rate skew */
+  EXPECT_EQ(10000, rate_estimator_get_rate(re));
+
+  rate_estimator_destroy(re);
+}
+
 TEST(RateEstimatorTest, EstimateOutputSmooth) {
   struct rate_estimator *re;
   struct timespec t;
   int rc;
 
-  re = rate_estimator_create(12000, &window, 0.9f);
+  re = rate_estimator_create(10010, &window, 0.9f);
   t.tv_sec = 1;
   rc = rate_estimator_check(re, 240, &t);
   EXPECT_EQ(0, rc);
@@ -96,9 +127,9 @@ TEST(RateEstimatorTest, EstimateOutputSmooth) {
   rc = rate_estimator_check(re, 250, &t);
   EXPECT_EQ(1, rc);
 
-  /* Assert the rate is smoothed 12000 * 0.9 + 10000 * 0.1 */
-  EXPECT_GT(11800, rate_estimator_get_rate(re));
-  EXPECT_LT(11799, rate_estimator_get_rate(re));
+  /* Assert the rate is smoothed 10010 * 0.9 + 10000 * 0.1 */
+  EXPECT_LT(10008, rate_estimator_get_rate(re));
+  EXPECT_GT(10009, rate_estimator_get_rate(re));
 
   rate_estimator_destroy(re);
 }

@@ -2,8 +2,13 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "math.h"
+
 #include "cras_util.h"
 #include "rate_estimator.h"
+
+/* The max rate skew that considered reasonable */
+#define MAX_RATE_SKEW 100
 
 static void least_square_reset(struct least_square *lsq)
 {
@@ -96,8 +101,9 @@ int rate_estimator_check(struct rate_estimator *re, int level,
 	if (timespec_after(&td, &re->window_size) &&
 	    re->lsq.num_samples > 1) {
 		double rate = least_square_best_fit_slope(&re->lsq);
-		re->estimated_rate = rate * (1 - re->smooth_factor) +
-				re->smooth_factor * re->estimated_rate;
+		if (fabs(re->estimated_rate - rate) < MAX_RATE_SKEW)
+			re->estimated_rate = rate * (1 - re->smooth_factor) +
+					re->smooth_factor * re->estimated_rate;
 		least_square_reset(&re->lsq);
 		re->window_start_ts = *now;
 		re->window_frames = 0;
