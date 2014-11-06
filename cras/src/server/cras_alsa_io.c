@@ -233,6 +233,7 @@ static int dev_running(const struct cras_iodev *iodev)
 			syslog(LOG_ERR, "Resume error: %s", snd_strerror(rc));
 			return 0;
 		}
+		cras_iodev_reset_rate_estimator(iodev);
 	} else {
 		rc = cras_alsa_pcm_start(handle);
 		if (rc < 0) {

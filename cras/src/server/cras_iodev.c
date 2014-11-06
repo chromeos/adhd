@@ -478,6 +478,13 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
 	return rate_estimator_check(iodev->rate_est, level, &now);
 }
 
+int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
+{
+	rate_estimator_reset_rate(iodev->rate_est,
+				  iodev->format->frame_rate);
+	return 0;
+}
+
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 {
 	return rate_estimator_get_rate(iodev->rate_est) /
