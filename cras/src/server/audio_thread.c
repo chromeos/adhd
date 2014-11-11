@@ -425,6 +425,7 @@ static int append_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
 	struct active_dev *adev;
+	struct active_dev *fallback_dev = thread->fallback_devs[stream->direction];
 	unsigned int max_level = 0;
 	int add_failed = 0;
 
@@ -434,21 +435,19 @@ static int append_stream(struct audio_thread *thread,
 
 	/* TODO(dgreid) - add to correct dev, not all. */
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		if (append_stream_to_dev(thread, adev, stream)) {
+		if (append_stream_to_dev(thread, adev, stream) &&
+		    adev != fallback_dev) {
 			add_failed = 1;
 			thread_rm_active_adev(thread, adev);
 		}
 	}
 
-	if (add_failed &&
-	    thread->fallback_devs[stream->direction]->dev->is_active) {
+	if (add_failed && fallback_dev->dev->is_active) {
 		/*
 		 * The stream wasn't added to any device, if no more active
 		 * devices, append it to the fallback device.
 		 */
-		append_stream_to_dev(thread,
-				     thread->fallback_devs[stream->direction],
-				     stream);
+		append_stream_to_dev(thread, fallback_dev, stream);
 	}
 
 	if (!stream_uses_output(stream))
