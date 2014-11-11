@@ -428,6 +428,7 @@ static int append_stream(struct audio_thread *thread,
 	struct active_dev *fallback_dev = thread->fallback_devs[stream->direction];
 	unsigned int max_level = 0;
 	int add_failed = 0;
+	int rc;
 
 	/* Check that we don't already have this stream */
 	if (thread_find_stream(thread, stream))
@@ -447,7 +448,9 @@ static int append_stream(struct audio_thread *thread,
 		 * The stream wasn't added to any device, if no more active
 		 * devices, append it to the fallback device.
 		 */
-		append_stream_to_dev(thread, fallback_dev, stream);
+		rc = append_stream_to_dev(thread, fallback_dev, stream);
+		if (rc)
+			return rc;
 	}
 
 	if (!stream_uses_output(stream))
