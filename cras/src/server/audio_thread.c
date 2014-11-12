@@ -401,18 +401,21 @@ static int append_stream_to_dev(struct audio_thread *thread,
 	if (dev->format == NULL) {
 		fmt = stream->format;
 		rc = cras_iodev_set_format(dev, &fmt);
-		if (rc)
+		if (rc) {
+			thread_rm_active_adev(thread, adev);
 			return rc;
+		}
 	}
 	out = dev_stream_create(stream, dev->info.idx, dev->format, dev);
 	if (!out)
-		return -ENOMEM;
+		return -EINVAL;
 
 	adev->dev->is_draining = 0;
 
 	rc = init_device(adev);
 	if (rc) {
 		dev_stream_destroy(out);
+		thread_rm_active_adev(thread, adev);
 		return rc;
 	}
 
@@ -427,7 +430,7 @@ static int append_stream(struct audio_thread *thread,
 	struct active_dev *adev;
 	struct active_dev *fallback_dev = thread->fallback_devs[stream->direction];
 	unsigned int max_level = 0;
-	int add_failed = 0;
+	int num_devs_added_to = 0;
 	int rc;
 
 	/* Check that we don't already have this stream */
@@ -436,21 +439,23 @@ static int append_stream(struct audio_thread *thread,
 
 	/* TODO(dgreid) - add to correct dev, not all. */
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
-		if (append_stream_to_dev(thread, adev, stream) &&
-		    adev != fallback_dev) {
-			add_failed = 1;
-			thread_rm_active_adev(thread, adev);
-		}
+		if (append_stream_to_dev(thread, adev, stream) == 0)
+			num_devs_added_to++;
 	}
 
-	if (add_failed && fallback_dev->dev->is_active) {
+	if (num_devs_added_to == 0) {
 		/*
 		 * The stream wasn't added to any device, if no more active
-		 * devices, append it to the fallback device.
+		 * devices, append it to the fallback device, otherwise return
+		 * error.
 		 */
-		rc = append_stream_to_dev(thread, fallback_dev, stream);
-		if (rc)
-			return rc;
+		if (fallback_dev->dev->is_active) {
+			rc = append_stream_to_dev(thread, fallback_dev, stream);
+			if (rc)
+				return rc;
+		} else {
+			return -EINVAL;
+		}
 	}
 
 	if (!stream_uses_output(stream))
@@ -650,6 +655,9 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 	struct active_dev *fallback_dev = thread->fallback_devs[dir];
 	unsigned int last_device;
 	struct dev_stream *dev_stream;
+
+	if (adev == fallback_dev)
+		return;
 
 	DL_DELETE(thread->active_devs[dir], adev);
 	adev->dev->is_active = 0;
