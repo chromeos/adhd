@@ -739,7 +739,7 @@ static int thread_add_stream(struct audio_thread *thread,
 
 	rc = append_stream(thread, stream);
 	if (rc < 0)
-		return AUDIO_THREAD_ERROR_OTHER;
+		return rc;
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_STREAM_ADDED,

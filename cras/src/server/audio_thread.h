@@ -16,14 +16,6 @@ struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;
 
-/* Errors that can be returned from add_stream. */
-enum error_type_from_audio_thread_h {
-	AUDIO_THREAD_ERROR_OTHER = -1,
-	AUDIO_THREAD_OUTPUT_DEV_ERROR = -2,
-	AUDIO_THREAD_INPUT_DEV_ERROR = -3,
-	AUDIO_THREAD_LOOPBACK_DEV_ERROR = -3,
-};
-
 /* List of active input/output devices.
  *    dev - The device.
  */

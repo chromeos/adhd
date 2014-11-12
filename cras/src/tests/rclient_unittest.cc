@@ -153,7 +153,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
 
   get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
-  audio_thread_add_stream_return = AUDIO_THREAD_ERROR_OTHER;
+  audio_thread_add_stream_return = -EINVAL;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
   EXPECT_EQ(0, rc);
@@ -350,7 +350,7 @@ int audio_thread_add_stream(audio_thread* thread,
   audio_thread_add_stream_called++;
   ret = audio_thread_add_stream_return;
   if (ret)
-    audio_thread_add_stream_return = AUDIO_THREAD_ERROR_OTHER;
+    audio_thread_add_stream_return = -EINVAL;
   return ret;
 }
 
