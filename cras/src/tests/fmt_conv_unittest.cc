@@ -40,20 +40,6 @@ static void swap_channel_layout(int8_t *layout,
 	layout[b] = tmp;
 }
 
-// Don't yet support up/down mix.
-TEST(FormatConverterTest,  InvalidParamsUpDownMix) {
-  struct cras_audio_format in_fmt;
-  struct cras_audio_format out_fmt;
-  struct cras_fmt_conv *c;
-
-  ResetStub();
-  in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
-  in_fmt.num_channels = 4;
-  out_fmt.num_channels = 2;
-  c = cras_fmt_conv_create(&in_fmt, &out_fmt, 4096, 0);
-  EXPECT_EQ(NULL, c);
-}
-
 // Only support LE, BE should fail.
 TEST(FormatConverterTest,  InvalidParamsOnlyLE) {
   struct cras_audio_format in_fmt;

@@ -259,6 +259,30 @@ static size_t s16_51_to_stereo(struct cras_fmt_conv *conv,
 	return in_frames;
 }
 
+/* Converts S16 N channels to S16 M channels.  The out buffer must have room for
+ * M channel. This convert function is used as the default behavior when channel
+ * layout is not set from the client side. */
+static size_t s16_default_all_to_all(struct cras_fmt_conv *conv,
+				     const int16_t *in, size_t in_frames,
+				     int16_t *out)
+{
+	unsigned int num_in_ch = conv->in_fmt.num_channels;
+	unsigned int num_out_ch = conv->out_fmt.num_channels;
+	unsigned int in_ch, out_ch, i;
+
+	memset(out, 0, num_out_ch * in_frames *
+				cras_get_format_bytes(&conv->out_fmt));
+	for (out_ch = 0; out_ch < num_out_ch; out_ch++) {
+		for (in_ch = 0; in_ch < num_in_ch; in_ch++) {
+			for (i = 0; i < in_frames; i++) {
+				out[out_ch + i * num_out_ch] +=
+					in[in_ch + i * num_in_ch] / num_in_ch;
+			}
+		}
+	}
+	return in_frames;
+}
+
 static int is_channel_layout_equal(const struct cras_audio_format *a,
 				   const struct cras_audio_format *b)
 {
@@ -473,10 +497,9 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			}
 		} else {
 			syslog(LOG_WARNING,
-			       "Invalid channel conversion %zu to %zu",
+			       "Using default channel map for %zu to %zu",
 			       in->num_channels, out->num_channels);
-			cras_fmt_conv_destroy(conv);
-			return NULL;
+			conv->channel_converter = s16_default_all_to_all;
 		}
 	} else if (in->num_channels > 2 &&
 		   !is_channel_layout_equal(in, out)){
