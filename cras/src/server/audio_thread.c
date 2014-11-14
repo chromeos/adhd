@@ -3,7 +3,9 @@
  * found in the LICENSE file.
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* for ppoll */
+#endif
 
 #include <pthread.h>
 #include <poll.h>
@@ -331,7 +333,7 @@ static int fetch_stream(struct dev_stream *dev_stream,
 /* Put 'frames' worth of zero samples into odev. */
 static int fill_odev_zeros(struct active_dev *adev, unsigned int frames)
 {
-	struct cras_audio_area *area;
+	struct cras_audio_area *area = NULL;
 	unsigned int frame_bytes, frames_written;
 	int rc;
 	struct cras_iodev *odev = adev->dev;
@@ -1369,7 +1371,7 @@ static int write_output_samples(struct audio_thread *thread,
 	snd_pcm_uframes_t total_written = 0;
 	int rc;
 	uint8_t *dst = NULL;
-	struct cras_audio_area *area;
+	struct cras_audio_area *area = NULL;
 
 	if (odev->is_draining)
 		return drain_output_buffer(adev);
@@ -1543,7 +1545,7 @@ static int capture_to_streams(struct audio_thread *thread,
 		return 0;
 
 	while (remainder > 0) {
-		struct cras_audio_area *area;
+		struct cras_audio_area *area = NULL;
 		struct dev_stream *stream;
 		uint8_t *hw_buffer;
 		unsigned int nread, total_read;
@@ -1683,7 +1685,7 @@ static void *audio_io_thread(void *arg)
 	longest_wake.tv_sec = 0;
 	longest_wake.tv_nsec = 0;
 
-	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
+	pollfds = (struct pollfd *)malloc(sizeof(*pollfds) * pollfds_size);
 	pollfds[0].fd = msg_fd;
 	pollfds[0].events = POLLIN;
 
@@ -1716,7 +1718,7 @@ restart_poll_loop:
 			num_pollfds++;
 			if (num_pollfds >= pollfds_size) {
 				pollfds_size *= 2;
-				pollfds = realloc(pollfds,
+				pollfds = (struct pollfd *)realloc(pollfds,
 					sizeof(*pollfds) * pollfds_size);
 				goto restart_poll_loop;
 			}
@@ -1733,8 +1735,9 @@ restart_poll_loop:
 				num_pollfds++;
 				if (num_pollfds >= pollfds_size) {
 					pollfds_size *= 2;
-					pollfds = realloc(pollfds,
-							  sizeof(*pollfds) *
+					pollfds = (struct pollfd *)realloc(
+							pollfds,
+							sizeof(*pollfds) *
 								pollfds_size);
 					goto restart_poll_loop;
 				}
@@ -1936,7 +1939,8 @@ static void config_fallback_dev(struct audio_thread *thread,
 {
 	enum CRAS_STREAM_DIRECTION dir = fallback_dev->direction;
 
-	thread->fallback_devs[dir] = calloc(1, sizeof(struct active_dev));
+	thread->fallback_devs[dir] = (struct active_dev *)calloc(
+			1, sizeof(struct active_dev));
 	thread->fallback_devs[dir]->dev = fallback_dev;
 	DL_APPEND(thread->active_devs[dir], thread->fallback_devs[dir]);
 	fallback_dev->is_active = 1;

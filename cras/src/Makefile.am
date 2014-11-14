@@ -149,6 +149,7 @@ $(hide_install)-asound_module_ctl_crasLTLIBRARIES: install-libLTLIBRARIES
 TESTS = \
 	audio_area_unittest \
 	audio_format_unittest \
+	audio_thread_unittest \
 	a2dp_info_unittest \
 	a2dp_iodev_unittest \
 	alert_unittest \
