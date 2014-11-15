@@ -280,12 +280,10 @@ static void gpio_switch_initial_state(struct cras_alsa_jack *jack)
 }
 
 /* Check if the input event is an audio switch event. */
-static inline int is_audio_switch_event(const struct input_event *ev)
+static inline int is_audio_switch_event(const struct input_event *ev,
+					int sw_code)
 {
-	return (ev->type == EV_SW &&
-		(ev->code == SW_HEADPHONE_INSERT ||
-		 ev->code == SW_LINEOUT_INSERT ||
-		 ev->code == SW_MICROPHONE_INSERT));
+	return (ev->type == EV_SW && ev->code == sw_code);
 }
 
 /* Timer callback to read display info after a hotplug event for an HDMI jack.
@@ -317,7 +315,7 @@ static void gpio_switch_callback(void *arg)
 		return;
 
 	for (i = 0; i < r / sizeof(struct input_event); ++i)
-		if (is_audio_switch_event(&ev[i])) {
+		if (is_audio_switch_event(&ev[i], jack->gpio.switch_event)) {
 			jack->gpio.current_state = ev[i].value;
 
 			jack_state_change_cb(jack, 1);
@@ -367,7 +365,8 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	DL_APPEND(jack_list->jacks, jack);
 
 	if (direction == CRAS_STREAM_OUTPUT &&
-	    strstr(jack->gpio.device_name, "Headphone"))
+	    (strstr(jack->gpio.device_name, "Headphone") ||
+	     strstr(jack->gpio.device_name, "Headset")))
 		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
 			jack_list->mixer,
 			jack_list->device_index,

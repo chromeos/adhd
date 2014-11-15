@@ -124,6 +124,8 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
 			(direction == CRAS_STREAM_OUTPUT &&
 			 jack_matches_string(ioctl_name,
 					     "^.*Headphone Jack$")) ||
+			(jack_matches_string(ioctl_name,
+					     "^.*Headset Jack$")) ||
 			(direction == CRAS_STREAM_OUTPUT &&
 			 jack_matches_string(ioctl_name, "^.*HDMI Jack$"));
 
