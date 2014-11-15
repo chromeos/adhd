@@ -200,7 +200,8 @@ TEST(AlsaUcm, GetSectionForVar) {
   snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
 
-  section_name = ucm_get_section_for_var(mgr, "Var", "Value2", "Identifier");
+  section_name = ucm_get_section_for_var(mgr, "Var", "Value2", "Identifier",
+                                         CRAS_STREAM_OUTPUT);
 
   ASSERT_TRUE(section_name);
   EXPECT_EQ(0, strcmp(section_name, "Sec2"));
@@ -230,7 +231,7 @@ TEST(AlsaUcm, GetDevForJack) {
   snd_use_case_get_value[id_1] = value_1;
   snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
-  dev_name = ucm_get_dev_for_jack(mgr, value_2.c_str());
+  dev_name = ucm_get_dev_for_jack(mgr, value_2.c_str(), CRAS_STREAM_OUTPUT);
   ASSERT_TRUE(dev_name);
   EXPECT_EQ(0, strcmp(dev_name, "Dev2"));
   free((void*)dev_name);

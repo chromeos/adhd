@@ -382,7 +382,8 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	if (jack_list->ucm)
 		jack->ucm_device =
 			ucm_get_dev_for_jack(jack_list->ucm,
-					     jack->gpio.device_name);
+					     jack->gpio.device_name,
+					     direction);
 
 	if (jack->ucm_device)
 		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
@@ -714,7 +715,8 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 					name);
 		if (jack_list->ucm)
 			jack->ucm_device =
-				ucm_get_dev_for_jack(jack_list->ucm, name);
+				ucm_get_dev_for_jack(jack_list->ucm, name,
+						     direction);
 
 		if (jack->ucm_device && direction == CRAS_STREAM_INPUT) {
 			char *control_name;

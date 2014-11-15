@@ -821,7 +821,8 @@ char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev) {
   return ucm_get_cap_control_value;
 }
 
-char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack) {
+char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
+                           CRAS_STREAM_DIRECTION direction) {
   ++ucm_get_dev_for_jack_called;
   if (ucm_get_dev_for_jack_return)
     return static_cast<char*>(malloc(1)); // Will be freed in jack_list_destroy.

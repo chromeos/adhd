@@ -134,7 +134,8 @@ static void filter_mixer_names(snd_use_case_mgr_t *ucm,
 {
 	size_t i;
 	for (i = 0; i < names_len; i++) {
-		char *dev = ucm_get_dev_for_mixer(ucm, names[i]);
+		char *dev = ucm_get_dev_for_mixer(ucm, names[i],
+						  CRAS_STREAM_OUTPUT);
 		if (dev)
 			free(dev);
 		else

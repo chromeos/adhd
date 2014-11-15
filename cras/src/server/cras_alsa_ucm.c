@@ -155,7 +155,8 @@ static int ucm_mod_exists_with_name(snd_use_case_mgr_t *mgr, const char *name)
 }
 
 static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,
-			      const char *value, const char *identifier)
+				     const char *value, const char *identifier,
+				     enum CRAS_STREAM_DIRECTION direction)
 {
 	const char **list;
 	char *section_name = NULL;
@@ -175,6 +176,15 @@ static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,
 		if (!list[i])
 			continue;
 
+		/* Skip mic seciton for output, only check mic for input. */
+		if (!strcmp(list[i], "Mic")) {
+			if (direction == CRAS_STREAM_OUTPUT)
+				continue;
+		} else {
+			if (direction == CRAS_STREAM_INPUT)
+				continue;
+		}
+
 		rc = get_var(mgr, var, list[i], default_verb, &this_value);
 		if (rc)
 			continue;
@@ -192,8 +202,8 @@ static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,
 }
 
 static char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
-			  const char *value) {
-	return ucm_get_section_for_var(mgr, var, value, "_devices/HiFi");
+			  const char *value, enum CRAS_STREAM_DIRECTION dir) {
+	return ucm_get_section_for_var(mgr, var, value, "_devices/HiFi", dir);
 }
 
 /* Exported Interface */
@@ -306,14 +316,16 @@ const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
 	return override_type_name;
 }
 
-char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack)
+char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
+			   enum CRAS_STREAM_DIRECTION direction)
 {
-	return ucm_get_dev_for_var(mgr, jack_var, jack);
+	return ucm_get_dev_for_var(mgr, jack_var, jack, direction);
 }
 
-char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer)
+char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer,
+			    enum CRAS_STREAM_DIRECTION dir)
 {
-	return ucm_get_dev_for_var(mgr, mixer_var, mixer);
+	return ucm_get_dev_for_var(mgr, mixer_var, mixer, dir);
 }
 
 const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
