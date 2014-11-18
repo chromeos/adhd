@@ -411,7 +411,7 @@ struct pipeline *cras_dsp_pipeline_create(struct ini *ini,
 		ini, "sink", purpose, env);
 
 	if (!source || !sink) {
-		syslog(LOG_ERR,
+		syslog(LOG_INFO,
 		       "no enabled source or sink found %p/%p for %s",
 		       source, sink, purpose);
 		return NULL;
