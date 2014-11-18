@@ -428,7 +428,8 @@ static int append_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
 	struct active_dev *adev;
-	struct active_dev *fallback_dev = thread->fallback_devs[stream->direction];
+	struct active_dev *fallback_dev =
+			thread->fallback_devs[stream->direction];
 	unsigned int max_level = 0;
 	int num_devs_added_to = 0;
 	int rc;
