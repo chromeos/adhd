@@ -421,3 +421,10 @@ struct cras_bt_profile *cras_bt_profile_get(const char *path)
 
 	return NULL;
 }
+
+void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device)
+{
+	struct cras_bt_profile *profile;
+	DL_FOREACH(profiles, profile)
+		profile->request_disconnection(profile, device);
+}

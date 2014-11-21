@@ -55,6 +55,9 @@ struct cras_bt_profile *cras_bt_profile_get(const char *path);
 /* Resets all added profiles. */
 void cras_bt_profile_reset();
 
+/* Notifies all profiles when a device is disconnected. */
+void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device);
+
 /* Registers all added profiles.
  * Args:
  *    conn - The dbus connection.

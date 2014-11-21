@@ -15,6 +15,7 @@
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_constants.h"
+#include "cras_bt_profile.h"
 #include "utlist.h"
 
 #define BTPROTO_SCO 2
@@ -266,12 +267,16 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 
 			dbus_message_iter_get_basic(&variant_iter, &value);
 
-			if (strcmp(key, "Paired") == 0)
+			if (strcmp(key, "Paired") == 0) {
 				device->paired = value;
-			else if (strcmp(key, "Trusted") == 0)
+			} else if (strcmp(key, "Trusted") == 0) {
 				device->trusted = value;
-			else if (strcmp(key, "Connected") == 0)
+			} else if (strcmp(key, "Connected") == 0) {
+				if (device->connected && !value)
+					cras_bt_profile_on_device_disconnected(
+							device);
 				device->connected = value;
+			}
 
 		} else if (strcmp(
 				dbus_message_iter_get_signature(&variant_iter),
