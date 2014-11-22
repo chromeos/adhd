@@ -29,13 +29,12 @@ void cras_dsp_stop();
  * cras_dsp_load_pipeline() to load it and then use
  * cras_dsp_get_pipeline() to lock it for access.
  * Args:
- *    channels - The number of audio channels of the pipeline.
  *    sample_rate - The sampling rate of the pipeline.
  *    purpose - The purpose of the pipeline, "playback" or "capture".
  * Returns:
  *    A pointer to the dsp context.
  */
-struct cras_dsp_context *cras_dsp_context_new(int channels, int sample_rate,
+struct cras_dsp_context *cras_dsp_context_new(int sample_rate,
 					      const char *purpose);
 
 /* Frees a dsp context. */
@@ -66,6 +65,12 @@ void cras_dsp_reload_ini();
 
 /* Dump current dsp information to syslog. */
 void cras_dsp_dump_info();
+
+/* Number of channels output. */
+unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context *ctx);
+
+/* Number of channels input. */
+unsigned int cras_dsp_num_input_channels(const struct cras_dsp_context *ctx);
 
 /* Wait for the previous asynchronous requests to finish. The
  * asynchronous requests include:

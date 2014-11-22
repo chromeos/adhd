@@ -76,7 +76,8 @@ void cras_dsp_pipeline_deinstantiate(struct pipeline *pipeline);
 int cras_dsp_pipeline_get_delay(struct pipeline *pipeline);
 
 /* Returns the number of input/output audio channels this pipeline expects */
-int cras_dsp_pipeline_get_num_channels(struct pipeline *pipeline);
+int cras_dsp_pipeline_get_num_input_channels(struct pipeline *pipeline);
+int cras_dsp_pipeline_get_num_output_channels(struct pipeline *pipeline);
 
 /* Returns the pointer to the input buffer for a channel of this
  * pipeline. The size of the buffer is DSP_BUFFER_SIZE samples, and
@@ -125,11 +126,10 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 /* Runs the specified pipeline across the given interleaved buffer in place.
  * Args:
  *    pipeline - The pipeline to run.
- *    channels - Number of audio channels in the buffer. (e.g. stereo = 2)
  *    buf - The samples to be processed, interleaved.
  *    frames - the numver of samples in the buffer.
  */
-void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
+void cras_dsp_pipeline_apply(struct pipeline *pipeline,
 			     uint8_t *buf, unsigned int frames);
 
 /* Dumps the current state of the pipeline. For debugging only */

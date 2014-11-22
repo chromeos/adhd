@@ -318,11 +318,6 @@ struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)
   return NULL;
 }
 
-void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
-                             uint8_t *buf, unsigned int frames)
-{
-}
-
 int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
 {
   return 0;

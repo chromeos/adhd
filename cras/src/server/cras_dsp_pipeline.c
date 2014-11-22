@@ -123,7 +123,8 @@ struct pipeline {
 	struct instance *sink_instance;
 
 	/* The number of audio channels for this pipeline */
-	int channels;
+	int input_channels;
+	int output_channels;
 
 	/* The audio sampling rate for this pipleine. It is zero if
 	 * cras_dsp_pipeline_instantiate() has not been called. */
@@ -448,8 +449,16 @@ struct pipeline *cras_dsp_pipeline_create(struct ini *ini,
 		return NULL;
 	}
 
-	pipeline->channels = ARRAY_COUNT(
+	pipeline->input_channels = ARRAY_COUNT(
 		&pipeline->source_instance->output_audio_ports);
+	pipeline->output_channels = ARRAY_COUNT(
+		&pipeline->sink_instance->input_audio_ports);
+	if (pipeline->output_channels > pipeline->input_channels) {
+		/* Can't increase channel count, no where to put them. */
+		syslog(LOG_ERR, "DSP output more channels than input\n");
+		cras_dsp_pipeline_free(pipeline);
+		return NULL;
+	}
 
 	return pipeline;
 }
@@ -728,9 +737,14 @@ int cras_dsp_pipeline_get_sample_rate(struct pipeline *pipeline)
 	return pipeline->sample_rate;
 }
 
-int cras_dsp_pipeline_get_num_channels(struct pipeline *pipeline)
+int cras_dsp_pipeline_get_num_input_channels(struct pipeline *pipeline)
 {
-	return pipeline->channels;
+	return pipeline->input_channels;
+}
+
+int cras_dsp_pipeline_get_num_output_channels(struct pipeline *pipeline)
+{
+	return pipeline->output_channels;
 }
 
 int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline *pipeline)
@@ -800,14 +814,17 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 	pipeline->total_time += t;
 }
 
-void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
+void cras_dsp_pipeline_apply(struct pipeline *pipeline,
 			     uint8_t *buf, unsigned int frames)
 {
 	size_t remaining;
 	size_t chunk;
 	size_t i;
 	int16_t *target;
-	float *source[channels], *sink[channels];
+	unsigned int input_channels = pipeline->input_channels;
+	unsigned int output_channels = pipeline->output_channels;
+	float *source[input_channels];
+	float *sink[output_channels];
 	struct timespec begin, end, delta;
 
 	if (!pipeline || frames == 0)
@@ -818,10 +835,10 @@ void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
 	target = (int16_t *)buf;
 
 	/* get pointers to source and sink buffers */
-	for (i = 0; i < channels; i++) {
+	for (i = 0; i < input_channels; i++)
 		source[i] = cras_dsp_pipeline_get_source_buffer(pipeline, i);
+	for (i = 0; i < output_channels; i++)
 		sink[i] = cras_dsp_pipeline_get_sink_buffer(pipeline, i);
-	}
 
 	remaining = frames;
 
@@ -830,15 +847,15 @@ void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
 		chunk = MIN(remaining, (size_t)DSP_BUFFER_SIZE);
 
 		/* deinterleave and convert to float */
-		dsp_util_deinterleave(target, source, channels, chunk);
+		dsp_util_deinterleave(target, source, input_channels, chunk);
 
 		/* Run the pipeline */
 		cras_dsp_pipeline_run(pipeline, chunk);
 
 		/* interleave and convert back to int16_t */
-		dsp_util_interleave(sink, target, channels, chunk);
+		dsp_util_interleave(sink, target, output_channels, chunk);
 
-		target += chunk * channels;
+		target += chunk * output_channels;
 		remaining -= chunk;
 	}
 
@@ -922,7 +939,8 @@ void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline)
 
 	dumpf(d, "---- pipeline dump begin ----\n");
 	dumpf(d, "pipeline (%s):\n", pipeline->purpose);
-	dumpf(d, " channels: %d\n", pipeline->channels);
+	dumpf(d, " input channels: %d\n", pipeline->input_channels);
+	dumpf(d, " output channels: %d\n", pipeline->output_channels);
 	dumpf(d, " sample_rate: %d\n", pipeline->sample_rate);
 	dumpf(d, " processed samples: %" PRId64 "\n", pipeline->total_samples);
 	dumpf(d, " processed blocks: %" PRId64 "\n", pipeline->total_blocks);

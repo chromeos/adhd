@@ -123,7 +123,6 @@ static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 		return;
 
 	cras_dsp_pipeline_apply(pipeline,
-				iodev->format->num_channels,
 				buf,
 				frames);
 
@@ -264,8 +263,7 @@ static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 		purpose = "capture";
 
 	cras_iodev_free_dsp(iodev);
-	iodev->dsp_context = cras_dsp_context_new(iodev->format->num_channels,
-						  iodev->format->frame_rate,
+	iodev->dsp_context = cras_dsp_context_new(iodev->format->frame_rate,
 						  purpose);
 	cras_iodev_update_dsp(iodev);
 }

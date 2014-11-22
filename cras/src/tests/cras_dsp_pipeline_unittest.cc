@@ -271,7 +271,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_TRUE(m1);
   ASSERT_TRUE(m2);
 
-  ASSERT_EQ(1, cras_dsp_pipeline_get_num_channels(p));
+  ASSERT_EQ(1, cras_dsp_pipeline_get_num_input_channels(p));
   ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000));
 
   struct data *d1 = (struct data *)m1->data;
@@ -433,7 +433,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   ASSERT_TRUE(m5);
   ASSERT_FALSE(find_module("m6"));
 
-  ASSERT_EQ(2, cras_dsp_pipeline_get_num_channels(p));
+  ASSERT_EQ(2, cras_dsp_pipeline_get_num_input_channels(p));
   ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000));
 
   struct data *d0 = (struct data *)m0->data;
@@ -464,7 +464,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
 
   int16_t *samples = new int16_t[DSP_BUFFER_SIZE];
   fill_test_data(samples, DSP_BUFFER_SIZE);
-  cras_dsp_pipeline_apply(p, 2, (uint8_t*)samples, 100);
+  cras_dsp_pipeline_apply(p, (uint8_t*)samples, 100);
   /* the data flow through 2 plugins because m4 is disabled. */
   verify_processed_data(samples, 100, 2);
   delete[] samples;

@@ -60,26 +60,22 @@ TEST_F(DspTestSuite, Simple) {
   CloseFile();
 
   cras_dsp_init(filename);
-  struct cras_dsp_context *ctx1, *ctx2, *ctx3, *ctx4;
-  ctx1 = cras_dsp_context_new(1, 44100, "playback");  /* wrong purpose */
-  ctx2 = cras_dsp_context_new(2, 44100, "capture");  /* wrong channels */
-  ctx3 = cras_dsp_context_new(1, 44100, "capture");
-  ctx4 = cras_dsp_context_new(1, 44100, "capture");
+  struct cras_dsp_context *ctx1, *ctx3, *ctx4;
+  ctx1 = cras_dsp_context_new(44100, "playback");  /* wrong purpose */
+  ctx3 = cras_dsp_context_new(44100, "capture");
+  ctx4 = cras_dsp_context_new(44100, "capture");
 
   cras_dsp_set_variable(ctx1, "variable", "foo");
-  cras_dsp_set_variable(ctx2, "variable", "foo");
   cras_dsp_set_variable(ctx3, "variable", "bar");  /* wrong value */
   cras_dsp_set_variable(ctx4, "variable", "foo");
 
   cras_dsp_load_pipeline(ctx1);
-  cras_dsp_load_pipeline(ctx2);
   cras_dsp_load_pipeline(ctx3);
   cras_dsp_load_pipeline(ctx4);
   cras_dsp_sync();
 
   /* only ctx4 should load the pipeline successfully */
   ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx1));
-  ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx2));
   ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx3));
 
   struct pipeline *pipeline = cras_dsp_get_pipeline(ctx4);
@@ -99,7 +95,6 @@ TEST_F(DspTestSuite, Simple) {
   ASSERT_TRUE(cras_dsp_get_pipeline(ctx4));
 
   cras_dsp_context_free(ctx1);
-  cras_dsp_context_free(ctx2);
   cras_dsp_context_free(ctx3);
   cras_dsp_context_free(ctx4);
   cras_dsp_stop();
