@@ -109,9 +109,7 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		       format->format);
 		return -EINVAL;
 	}
-	if (direction != CRAS_STREAM_OUTPUT &&
-	    direction != CRAS_STREAM_INPUT &&
-	    direction != CRAS_STREAM_POST_MIX_PRE_DSP) {
+	if (direction != CRAS_STREAM_OUTPUT && direction != CRAS_STREAM_INPUT) {
 		syslog(LOG_ERR, "rstream: Invalid direction.\n");
 		return -EINVAL;
 	}
