@@ -50,16 +50,6 @@ static unsigned int dev_stream_set_delay_called;
 static unsigned int cras_system_get_volume_return;
 static unsigned int dev_stream_mix_called;
 
-static int cras_dsp_get_pipeline_called;
-static int cras_dsp_get_pipeline_ret;
-static int cras_dsp_put_pipeline_called;
-static int cras_dsp_pipeline_get_source_buffer_called;
-static int cras_dsp_pipeline_get_sink_buffer_called;
-static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
-static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
-static int cras_dsp_pipeline_get_delay_called;
-static int cras_dsp_pipeline_apply_called;
-static int cras_dsp_pipeline_apply_sample_count;
 static struct timespec time_now;
 static int cras_fmt_conversion_needed_return_val;
 static struct cras_audio_area *dummy_audio_area1;
@@ -125,18 +115,6 @@ class ReadStreamSuite : public testing::Test {
       is_open_ = 0;
       close_dev_called_ = 0;
 
-      cras_dsp_get_pipeline_called = 0;
-      cras_dsp_get_pipeline_ret = 0;
-      cras_dsp_put_pipeline_called = 0;
-      cras_dsp_pipeline_get_source_buffer_called = 0;
-      cras_dsp_pipeline_get_sink_buffer_called = 0;
-      memset(&cras_dsp_pipeline_source_buffer, 0,
-             sizeof(cras_dsp_pipeline_source_buffer));
-      memset(&cras_dsp_pipeline_sink_buffer, 0,
-             sizeof(cras_dsp_pipeline_sink_buffer));
-      cras_dsp_pipeline_get_delay_called = 0;
-      cras_dsp_pipeline_apply_called = 0;
-      cras_dsp_pipeline_apply_sample_count = 0;
       cras_iodev_set_format_called = 0;
       dev_stream_set_delay_called = 0;
     }
@@ -517,64 +495,6 @@ TEST_F(ReadStreamSuite, PossiblyReadWriteThreeBuffers) {
   audio_thread_destroy(thread);
 }
 
-TEST_F(ReadStreamSuite, PossiblyReadWithoutPipeline) {
-  struct timespec ts;
-  int rc;
-  struct audio_thread *thread;
-
-  thread = audio_thread_create();
-  ASSERT_TRUE(thread);
-  thread_set_active_dev(thread, &iodev_);
-
-  thread_add_stream(thread, rstream_);
-
-  //  A full block plus 4 frames.
-  frames_queued_ = cb_threshold_ + 4;
-  audio_buffer_size_ = frames_queued_;
-  iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
-  is_open_ = 1;
-
-  rc = unified_io(thread, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(0, cras_dsp_put_pipeline_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_get_delay_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
-
-  audio_thread_destroy(thread);
-}
-
-TEST_F(ReadStreamSuite, PossiblyReadWithPipeline) {
-  struct timespec ts;
-  int rc;
-  struct audio_thread *thread;
-
-  thread = audio_thread_create();
-  ASSERT_TRUE(thread);
-  thread_set_active_dev(thread, &iodev_);
-
-  thread_add_stream(thread, rstream_);
-
-  //  A full block plus 4 frames.
-  frames_queued_ = cb_threshold_ + 4;
-  audio_buffer_size_ = frames_queued_;
-  iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
-  cras_dsp_get_pipeline_ret = 0x6;
-  is_open_ = 1;
-
-  rc = unified_io(thread, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(2, cras_dsp_put_pipeline_called);
-  EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
-  EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
-  EXPECT_EQ(cb_threshold_, cras_dsp_pipeline_apply_sample_count);
-
-  audio_thread_destroy(thread);
-}
-
 //  Test the audio playback path.
 class WriteStreamSuite : public testing::Test {
   protected:
@@ -618,21 +538,9 @@ class WriteStreamSuite : public testing::Test {
       dev_stream_request_playback_samples_called = 0;
       cras_rstream_destroy_called = 0;
       dev_stream_mix_called = 0;
-      cras_dsp_get_pipeline_called = 0;
       is_open_ = 0;
       close_dev_called_ = 0;
 
-      cras_dsp_get_pipeline_ret = 0;
-      cras_dsp_put_pipeline_called = 0;
-      cras_dsp_pipeline_get_source_buffer_called = 0;
-      cras_dsp_pipeline_get_sink_buffer_called = 0;
-      memset(&cras_dsp_pipeline_source_buffer, 0,
-             sizeof(cras_dsp_pipeline_source_buffer));
-      memset(&cras_dsp_pipeline_sink_buffer, 0,
-             sizeof(cras_dsp_pipeline_sink_buffer));
-      cras_dsp_pipeline_get_delay_called = 0;
-      cras_dsp_pipeline_apply_called = 0;
-      cras_dsp_pipeline_apply_sample_count = 0;
       cras_iodev_get_software_volume_scaler_return_value = 1.0;
 
       dev_running_called_ = 0;
@@ -1139,64 +1047,6 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromTwoStreamsOneLimited) {
   EXPECT_EQ(smaller_frames, dev_stream_mix_count);
   EXPECT_EQ(1, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
-}
-
-TEST_F(WriteStreamSuite, PossiblyFillWithoutPipeline) {
-  struct timespec ts;
-  int rc;
-
-  frames_queued_ = cb_threshold_;
-  audio_buffer_size_ = buffer_frames_ - frames_queued_;
-  iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
-
-  //  shm has plenty of data in it.
-  shm_->area->write_offset[0] = cras_shm_used_size(shm_);
-
-  FD_ZERO(&select_out_fds);
-  FD_SET(rstream_->fd, &select_out_fds);
-  select_return_value = 1;
-
-  is_open_ = 1;
-  rc = unified_io(thread_, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            dev_stream_mix_count);
-  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(0, cras_dsp_put_pipeline_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_get_source_buffer_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_get_sink_buffer_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_get_delay_called);
-  EXPECT_EQ(0, cras_dsp_pipeline_apply_called);
-}
-
-TEST_F(WriteStreamSuite, PossiblyFillWithPipeline) {
-  struct timespec ts;
-  int rc;
-
-  //  Have cb_threshold samples left.
-  frames_queued_ = cb_threshold_;
-  audio_buffer_size_ = buffer_frames_ - frames_queued_;
-  iodev_.dsp_context = reinterpret_cast<cras_dsp_context *>(0x5);
-  cras_dsp_get_pipeline_ret = 0x6;
-
-  //  shm has plenty of data in it.
-  shm_->area->write_offset[0] = cras_shm_used_size(shm_);
-
-  FD_ZERO(&select_out_fds);
-  FD_SET(rstream_->fd, &select_out_fds);
-  select_return_value = 1;
-
-  is_open_ = 1;
-  rc = unified_io(thread_, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            dev_stream_mix_count);
-  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(2, cras_dsp_put_pipeline_called);
-  EXPECT_EQ(1, cras_dsp_pipeline_get_delay_called);
-  EXPECT_EQ(1, cras_dsp_pipeline_apply_called);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            cras_dsp_pipeline_apply_sample_count);
 }
 
 TEST_F(WriteStreamSuite, DrainOutputBufferCompelete) {
@@ -2223,50 +2073,7 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream) {
   return 0;
 }
 
-struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)
-{
-  cras_dsp_get_pipeline_called++;
-  return reinterpret_cast<struct pipeline *>(cras_dsp_get_pipeline_ret);
-}
-
-void cras_dsp_put_pipeline(struct cras_dsp_context *ctx)
-{
-  cras_dsp_put_pipeline_called++;
-}
-
-float *cras_dsp_pipeline_get_source_buffer(struct pipeline *pipeline,
-					   int index)
-{
-  cras_dsp_pipeline_get_source_buffer_called++;
-  return cras_dsp_pipeline_source_buffer[index];
-}
-
-float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index)
-{
-  cras_dsp_pipeline_get_sink_buffer_called++;
-  return cras_dsp_pipeline_sink_buffer[index];
-}
-
-int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
-{
-  cras_dsp_pipeline_get_delay_called++;
-  return 0;
-}
-
-void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
-			     uint8_t *buf, unsigned int frames)
-{
-  cras_dsp_pipeline_apply_called++;
-  cras_dsp_pipeline_apply_sample_count = frames;
-}
-
 void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
-{
-}
-
-void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
-                                     const struct timespec *time_delta,
-                                     int samples)
 {
 }
 

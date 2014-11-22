@@ -313,20 +313,6 @@ extern "C" {
 
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
 
-struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)
-{
-  return NULL;
-}
-
-int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
-{
-  return 0;
-}
-
-void cras_dsp_put_pipeline(struct cras_dsp_context *ctx)
-{
-}
-
 size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
                                       size_t in_frames)
 {
