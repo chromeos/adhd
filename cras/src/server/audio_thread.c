@@ -21,7 +21,6 @@
 #include "cras_iodev.h"
 #include "cras_loopback_iodev.h"
 #include "cras_metrics.h"
-#include "cras_mix.h"
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
@@ -759,27 +758,6 @@ static int thread_add_stream(struct audio_thread *thread,
 	return 0;
 }
 
-static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
-{
-	struct cras_dsp_context *ctx;
-	struct pipeline *pipeline;
-
-	ctx = iodev->dsp_context;
-	if (!ctx)
-		return;
-
-	pipeline = cras_dsp_get_pipeline(ctx);
-	if (!pipeline)
-		return;
-
-	cras_dsp_pipeline_apply(pipeline,
-				iodev->format->num_channels,
-				buf,
-				frames);
-
-	cras_dsp_put_pipeline(ctx);
-}
-
 static int get_dsp_delay(struct cras_iodev *iodev)
 {
 	struct cras_dsp_context *ctx;
@@ -1419,21 +1397,6 @@ static int write_output_samples(struct audio_thread *thread,
 
 		//loopback_iodev_add_audio(loop_dev, dst, written);
 
-		if (cras_system_get_mute()) {
-			unsigned int frame_bytes;
-			frame_bytes = cras_get_format_bytes(odev->format);
-			cras_mix_mute_buffer(dst, frame_bytes, written);
-		} else {
-			apply_dsp(odev, dst, written);
-		}
-
-		if (cras_iodev_software_volume_needed(odev)) {
-			cras_scale_buffer((int16_t *)dst,
-					  written * odev->format->num_channels,
-					  cras_iodev_get_software_volume_scaler(
-							odev));
-		}
-
 		rc = cras_iodev_put_output_buffer(odev, dst, written);
 		if (rc < 0)
 			return rc;
@@ -1530,7 +1493,6 @@ static int capture_to_streams(struct audio_thread *thread,
 			      unsigned int dev_index)
 {
 	struct cras_iodev *idev = adev->dev;
-	unsigned int frame_bytes = cras_get_format_bytes(idev->format);
 	snd_pcm_uframes_t remainder, hw_level;
 
 	hw_level = idev->frames_queued(idev);
@@ -1548,7 +1510,6 @@ static int capture_to_streams(struct audio_thread *thread,
 	while (remainder > 0) {
 		struct cras_audio_area *area = NULL;
 		struct dev_stream *stream;
-		uint8_t *hw_buffer;
 		unsigned int nread, total_read;
 		int rc;
 
@@ -1557,13 +1518,6 @@ static int capture_to_streams(struct audio_thread *thread,
 		rc = cras_iodev_get_input_buffer(idev, &area, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
-		/* TODO(dgreid) - This assumes interleaved audio. */
-		hw_buffer = area->channels[0].buf;
-
-		if (cras_system_get_capture_mute())
-			cras_mix_mute_buffer(hw_buffer, frame_bytes, nread);
-		else
-			apply_dsp(idev, hw_buffer, nread);
 
 		DL_FOREACH(adev->dev->streams, stream) {
 			unsigned int this_read;

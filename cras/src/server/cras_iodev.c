@@ -12,8 +12,11 @@
 
 #include "buffer_share.h"
 #include "cras_audio_area.h"
+#include "cras_dsp.h"
+#include "cras_dsp_pipeline.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_mix.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
@@ -104,6 +107,29 @@ static void set_default_channel_count_layout(struct cras_iodev *iodev)
 		cras_audio_format_set_channel_layout(iodev->format,
 						     stereo_layout);
 }
+
+/* Applies the DSP to the samples for the iodev if applicable. */
+static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
+{
+	struct cras_dsp_context *ctx;
+	struct pipeline *pipeline;
+
+	ctx = iodev->dsp_context;
+	if (!ctx)
+		return;
+
+	pipeline = cras_dsp_get_pipeline(ctx);
+	if (!pipeline)
+		return;
+
+	cras_dsp_pipeline_apply(pipeline,
+				iodev->format->num_channels,
+				buf,
+				frames);
+
+	cras_dsp_put_pipeline(ctx);
+}
+
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
@@ -462,6 +488,22 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				 unsigned int nframes)
 {
+	const struct cras_audio_format *fmt = iodev->format;
+
+	if (cras_system_get_mute()) {
+		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
+		cras_mix_mute_buffer(frames, frame_bytes, nframes);
+	} else {
+		apply_dsp(iodev, frames, nframes);
+
+		if (cras_iodev_software_volume_needed(iodev)) {
+			unsigned int nsamples = nframes * fmt->num_channels;
+			float scaler =
+				cras_iodev_get_software_volume_scaler(iodev);
+
+			cras_scale_buffer((int16_t *)frames, nsamples, scaler);
+		}
+	}
 
 	rate_estimator_add_frames(iodev->rate_est, nframes);
 	return iodev->put_buffer(iodev, nframes);
@@ -471,11 +513,22 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
 				struct cras_audio_area **area,
 				unsigned *frames)
 {
+	const struct cras_audio_format *fmt = iodev->format;
+	const unsigned int frame_bytes = cras_get_format_bytes(fmt);
+	uint8_t *hw_buffer;
 	int rc;
 
 	rc = iodev->get_buffer(iodev, area, frames);
 	if (rc < 0 || *frames == 0)
 		return rc;
+
+	/* TODO(dgreid) - This assumes interleaved audio. */
+	hw_buffer = (*area)->channels[0].buf;
+
+	if (cras_system_get_capture_mute())
+		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
+	else
+		apply_dsp(iodev, hw_buffer, *frames); /* TODO-applied 2x */
 
 	return rc;
 }

@@ -32,6 +32,17 @@ static int  set_swap_mode_for_node_enable;
 static int notify_node_left_right_swapped_called;
 static int cras_audio_format_set_channel_layout_called;
 static unsigned int cras_system_get_volume_return;
+static int cras_dsp_get_pipeline_called;
+static int cras_dsp_get_pipeline_ret;
+static int cras_dsp_put_pipeline_called;
+static int cras_dsp_pipeline_get_source_buffer_called;
+static int cras_dsp_pipeline_get_sink_buffer_called;
+static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
+static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
+static int cras_dsp_pipeline_get_delay_called;
+static int cras_dsp_pipeline_apply_called;
+static int cras_dsp_pipeline_apply_sample_count;
+static unsigned int cras_mix_mute_count;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -61,6 +72,18 @@ void ResetStubData() {
   set_swap_mode_for_node_enable = 0;
   notify_node_left_right_swapped_called = 0;
   cras_audio_format_set_channel_layout_called = 0;
+  cras_dsp_get_pipeline_called = 0;
+  cras_dsp_get_pipeline_ret = 0;
+  cras_dsp_put_pipeline_called = 0;
+  cras_dsp_pipeline_get_source_buffer_called = 0;
+  cras_dsp_pipeline_get_sink_buffer_called = 0;
+  memset(&cras_dsp_pipeline_source_buffer, 0,
+         sizeof(cras_dsp_pipeline_source_buffer));
+  memset(&cras_dsp_pipeline_sink_buffer, 0,
+         sizeof(cras_dsp_pipeline_sink_buffer));
+  cras_dsp_pipeline_get_delay_called = 0;
+  cras_dsp_pipeline_apply_called = 0;
+  cras_dsp_pipeline_apply_sample_count = 0;
 }
 
 namespace {
@@ -441,6 +464,53 @@ void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
 {
 }
 
+struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)
+{
+  cras_dsp_get_pipeline_called++;
+  return reinterpret_cast<struct pipeline *>(cras_dsp_get_pipeline_ret);
+}
+
+void cras_dsp_put_pipeline(struct cras_dsp_context *ctx)
+{
+  cras_dsp_put_pipeline_called++;
+}
+
+float *cras_dsp_pipeline_get_source_buffer(struct pipeline *pipeline,
+					   int index)
+{
+  cras_dsp_pipeline_get_source_buffer_called++;
+  return cras_dsp_pipeline_source_buffer[index];
+}
+
+float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index)
+{
+  cras_dsp_pipeline_get_sink_buffer_called++;
+  return cras_dsp_pipeline_sink_buffer[index];
+}
+
+int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
+{
+  cras_dsp_pipeline_get_delay_called++;
+  return 0;
+}
+
+void cras_dsp_pipeline_apply(struct pipeline *pipeline, unsigned int channels,
+			     uint8_t *buf, unsigned int frames)
+{
+  cras_dsp_pipeline_apply_called++;
+  cras_dsp_pipeline_apply_sample_count = frames;
+}
+
+void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
+{
+}
+
+void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
+                                     const struct timespec *time_delta,
+                                     int samples)
+{
+}
+
 // From audio thread
 int audio_thread_post_message(struct audio_thread *thread,
                               struct audio_thread_msg *msg) {
@@ -513,6 +583,24 @@ float softvol_get_scaler(unsigned int volume_index)
 
 size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
+}
+
+int cras_system_get_mute() {
+  return 0;
+}
+
+int cras_system_get_capture_mute() {
+  return 0;
+}
+
+void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler) {
+}
+
+size_t cras_mix_mute_buffer(uint8_t *dst,
+                            size_t frame_bytes,
+                            size_t count) {
+  cras_mix_mute_count = count;
+  return count;
 }
 
 struct rate_estimator *rate_estimator_create(unsigned int rate,
