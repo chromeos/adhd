@@ -97,6 +97,7 @@ static int add_dev_to_list(struct iodev_list *list,
 			return -EEXIST;
 
 	dev->format = NULL;
+	dev->ext_format = NULL;
 	dev->prev = dev->next = NULL;
 
 	/* Move to the next index and make sure it isn't taken. */

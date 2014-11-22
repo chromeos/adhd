@@ -33,7 +33,7 @@ class StreamDeviceSuite : public testing::Test {
       iodev->delay_frames = delay_frames;
       iodev->get_buffer = get_buffer;
       iodev->put_buffer = put_buffer;
-      iodev->format = &format_;
+      iodev->ext_format = &format_;
     }
 
     void SetupRstream(struct cras_rstream *rstream,

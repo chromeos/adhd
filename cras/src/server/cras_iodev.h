@@ -74,7 +74,9 @@ struct cras_ionode {
  * update_active_node - Update the active node using the selected/plugged state.
  * update_channel_layout - Update the channel layout base on set iodev->format,
  *     expect the best available layout be filled to iodev->format.
- * format - The audio format being rendered or captured.
+ * format - The audio format being rendered or captured to hardware.
+ * ext_format - The audio format that is visible to the rest of the system.
+ *     This can be different than the hardware if the device dsp changes it.
  * rate_est - Rate estimator to estimate the actual device rate.
  * area - Information about how the samples are stored.
  * info - Unique identifier for this device (index and name).
@@ -122,6 +124,7 @@ struct cras_iodev {
 	void (*update_active_node)(struct cras_iodev *iodev);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
+	struct cras_audio_format *ext_format;
 	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
 	struct cras_iodev_info info;

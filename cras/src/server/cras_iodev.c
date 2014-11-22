@@ -103,9 +103,13 @@ static void set_default_channel_count_layout(struct cras_iodev *iodev)
 	 * it has a default channel layout. */
 	num_channels = get_best_channel_count(iodev, stereo_channel_count);
 	iodev->format->num_channels = num_channels;
-	if (num_channels == stereo_channel_count)
+	iodev->ext_format->num_channels = num_channels;
+	if (num_channels == stereo_channel_count) {
 		cras_audio_format_set_channel_layout(iodev->format,
 						     stereo_layout);
+		cras_audio_format_set_channel_layout(iodev->ext_format,
+						     stereo_layout);
+	}
 }
 
 /* Applies the DSP to the samples for the iodev if applicable. */
@@ -140,9 +144,11 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 	 * requested in "fmt". */
 	if (iodev->format == NULL) {
 		iodev->format = malloc(sizeof(struct cras_audio_format));
-		if (!iodev->format)
+		iodev->ext_format = malloc(sizeof(struct cras_audio_format));
+		if (!iodev->format || !iodev->ext_format)
 			return -ENOMEM;
 		*iodev->format = *fmt;
+		*iodev->ext_format = *fmt;
 
 		if (iodev->update_supported_formats) {
 			rc = iodev->update_supported_formats(iodev);
@@ -163,8 +169,11 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		}
 		iodev->format->frame_rate = actual_rate;
 		iodev->format->num_channels = actual_num_channels;
+		iodev->ext_format->frame_rate = actual_rate;
+		iodev->ext_format->num_channels = actual_num_channels;
 		/* TODO(dgreid) - allow other formats. */
 		iodev->format->format = SND_PCM_FORMAT_S16_LE;
+		iodev->ext_format->format = SND_PCM_FORMAT_S16_LE;
 
 		if (iodev->update_channel_layout) {
 			rc = iodev->update_channel_layout(iodev);
@@ -185,19 +194,21 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 	/* Fill the format information back to stream. For capture stream,
 	 * leave the channel count/layout as it is.
 	 */
-	fmt->format = iodev->format->format;
-	fmt->frame_rate = iodev->format->frame_rate;
+	fmt->format = iodev->ext_format->format;
+	fmt->frame_rate = iodev->ext_format->frame_rate;
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
-		fmt->num_channels = iodev->format->num_channels;
+		fmt->num_channels = iodev->ext_format->num_channels;
 		cras_audio_format_set_channel_layout(fmt,
-				iodev->format->channel_layout);
+				iodev->ext_format->channel_layout);
 	}
 
 	return 0;
 
 error:
 	free(iodev->format);
+	free(iodev->ext_format);
 	iodev->format = NULL;
+	iodev->ext_format = NULL;
 	return rc;
 }
 
@@ -213,10 +224,10 @@ void cras_iodev_update_dsp(struct cras_iodev *iodev)
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
-	if (iodev->format) {
-		free(iodev->format);
-		iodev->format = NULL;
-	}
+	free(iodev->format);
+	free(iodev->ext_format);
+	iodev->format = NULL;
+	iodev->ext_format = NULL;
 }
 
 
@@ -263,7 +274,7 @@ static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 		purpose = "capture";
 
 	cras_iodev_free_dsp(iodev);
-	iodev->dsp_context = cras_dsp_context_new(iodev->format->frame_rate,
+	iodev->dsp_context = cras_dsp_context_new(iodev->ext_format->frame_rate,
 						  purpose);
 	cras_iodev_update_dsp(iodev);
 }
@@ -549,14 +560,14 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
 int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
 {
 	rate_estimator_reset_rate(iodev->rate_est,
-				  iodev->format->frame_rate);
+				  iodev->ext_format->frame_rate);
 	return 0;
 }
 
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 {
 	return rate_estimator_get_rate(iodev->rate_est) /
-			iodev->format->frame_rate;
+			iodev->ext_format->frame_rate;
 }
 
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)

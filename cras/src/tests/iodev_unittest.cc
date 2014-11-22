@@ -260,7 +260,7 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(48000, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
-  EXPECT_EQ(2, cras_audio_format_set_channel_layout_called);
+  EXPECT_EQ(3, cras_audio_format_set_channel_layout_called);
   for (i = 0; i < CRAS_CH_MAX; i++)
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
 }

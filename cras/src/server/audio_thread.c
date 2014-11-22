@@ -336,7 +336,7 @@ static int fill_odev_zeros(struct active_dev *adev, unsigned int frames)
 	struct cras_iodev *odev = adev->dev;
 	uint8_t *buf;
 
-	frame_bytes = cras_get_format_bytes(odev->format);
+	frame_bytes = cras_get_format_bytes(odev->ext_format);
 	while (frames > 0) {
 		frames_written = frames;
 		rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);
@@ -398,7 +398,7 @@ static int append_stream_to_dev(struct audio_thread *thread,
 	struct cras_iodev *dev = adev->dev;
 	int rc;
 
-	if (dev->format == NULL) {
+	if (dev->ext_format == NULL) {
 		fmt = stream->format;
 		rc = cras_iodev_set_format(dev, &fmt);
 		if (rc) {
@@ -406,7 +406,7 @@ static int append_stream_to_dev(struct audio_thread *thread,
 			return rc;
 		}
 	}
-	out = dev_stream_create(stream, dev->info.idx, dev->format, dev);
+	out = dev_stream_create(stream, dev->info.idx, dev->ext_format, dev);
 	if (!out)
 		return -EINVAL;
 
@@ -887,7 +887,7 @@ static int write_streams(struct audio_thread *thread,
 	struct cras_iodev *odev = adev->dev;
 	struct dev_stream *curr;
 	unsigned int max_offset = 0;
-	unsigned int frame_bytes = cras_get_format_bytes(odev->format);
+	unsigned int frame_bytes = cras_get_format_bytes(odev->ext_format);
 	unsigned int num_playing = 0;
 	unsigned int drain_limit = write_limit;
 
@@ -936,7 +936,7 @@ static int write_streams(struct audio_thread *thread,
 		offset = cras_iodev_stream_offset(odev, curr);
 		if (offset >= write_limit)
 			continue;
-		nwritten = dev_stream_mix(curr, odev->format->num_channels,
+		nwritten = dev_stream_mix(curr, odev->ext_format->num_channels,
 					  dst + frame_bytes * offset,
 					  write_limit - offset);
 
@@ -1255,7 +1255,7 @@ static void set_odev_wake_times(struct active_dev *dev_list)
 					    adev->coarse_rate_adjust,
 					    adev->dev->min_cb_level);
 
-		cras_frames_to_time(hw_level, adev->dev->format->frame_rate,
+		cras_frames_to_time(hw_level, adev->dev->ext_format->frame_rate,
 				    &sleep_time);
 		adev->wake_ts = now;
 		add_timespecs(&adev->wake_ts, &sleep_time);
@@ -1307,7 +1307,7 @@ static void update_estimated_rate(struct audio_thread *thread,
 		}
 
 		dev_stream_set_dev_rate(dev_stream,
-				dev->format->frame_rate,
+				dev->ext_format->frame_rate,
 				cras_iodev_get_est_rate_ratio(dev),
 				cras_iodev_get_est_rate_ratio(master_dev),
 				adev->coarse_rate_adjust);
