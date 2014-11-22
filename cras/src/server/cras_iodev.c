@@ -133,6 +133,37 @@ static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 	cras_dsp_put_pipeline(ctx);
 }
 
+static void cras_iodev_free_dsp(struct cras_iodev *iodev)
+{
+	if (iodev->dsp_context) {
+		cras_dsp_context_free(iodev->dsp_context);
+		iodev->dsp_context = NULL;
+	}
+}
+
+/* Modifies the format to the one that will be presented to the device after
+ * any format changes from the DSP. */
+static inline void adjust_dev_fmt_for_dsp(const struct cras_iodev *iodev)
+{
+	struct cras_dsp_context *ctx = iodev->dsp_context;
+
+	if (!ctx || !cras_dsp_get_pipeline(ctx))
+		return;
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		iodev->format->num_channels =
+			cras_dsp_num_output_channels(ctx);
+		iodev->ext_format->num_channels =
+			cras_dsp_num_input_channels(ctx);
+	} else {
+		iodev->format->num_channels =
+			cras_dsp_num_input_channels(ctx);
+		iodev->ext_format->num_channels =
+			cras_dsp_num_output_channels(ctx);
+	}
+
+	cras_dsp_put_pipeline(ctx);
+}
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
@@ -158,29 +189,37 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			}
 		}
 
+		cras_iodev_alloc_dsp(iodev);
+		if (iodev->dsp_context)
+			adjust_dev_fmt_for_dsp(iodev);
 
 		actual_rate = get_best_rate(iodev, fmt->frame_rate);
 		actual_num_channels = get_best_channel_count(iodev,
-							     fmt->num_channels);
+					iodev->format->num_channels);
 		if (actual_rate == 0 || actual_num_channels == 0) {
 			/* No compatible frame rate found. */
 			rc = -EINVAL;
 			goto error;
 		}
 		iodev->format->frame_rate = actual_rate;
-		iodev->format->num_channels = actual_num_channels;
 		iodev->ext_format->frame_rate = actual_rate;
-		iodev->ext_format->num_channels = actual_num_channels;
+		if (iodev->format->num_channels != actual_num_channels) {
+			/* If the DSP for this device doesn't match, drop it. */
+			iodev->format->num_channels = actual_num_channels;
+			iodev->ext_format->num_channels = actual_num_channels;
+			cras_iodev_free_dsp(iodev);
+		}
 		/* TODO(dgreid) - allow other formats. */
 		iodev->format->format = SND_PCM_FORMAT_S16_LE;
 		iodev->ext_format->format = SND_PCM_FORMAT_S16_LE;
 
 		if (iodev->update_channel_layout) {
 			rc = iodev->update_channel_layout(iodev);
-			if (rc < 0)
+			if (rc < 0) {
 				set_default_channel_count_layout(iodev);
+				cras_iodev_free_dsp(iodev);
+			}
 		}
-		cras_iodev_alloc_dsp(iodev);
 
 		if (!iodev->rate_est)
 			iodev->rate_est = rate_estimator_create(
@@ -248,14 +287,6 @@ void cras_iodev_free_audio_area(struct cras_iodev *iodev)
 
 	cras_audio_area_destroy(iodev->area);
 	iodev->area = NULL;
-}
-
-static void cras_iodev_free_dsp(struct cras_iodev *iodev)
-{
-	if (iodev->dsp_context) {
-		cras_dsp_context_free(iodev->dsp_context);
-		iodev->dsp_context = NULL;
-	}
 }
 
 void cras_iodev_free_resources(struct cras_iodev *iodev)

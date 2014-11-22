@@ -42,6 +42,9 @@ static int cras_dsp_pipeline_get_delay_called;
 static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_apply_sample_count;
 static unsigned int cras_mix_mute_count;
+static unsigned int cras_dsp_num_input_channels_return;
+static unsigned int cras_dsp_num_output_channels_return;
+struct cras_dsp_context *cras_dsp_context_new_return;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -82,6 +85,9 @@ void ResetStubData() {
   cras_dsp_pipeline_get_delay_called = 0;
   cras_dsp_pipeline_apply_called = 0;
   cras_dsp_pipeline_apply_sample_count = 0;
+  cras_dsp_num_input_channels_return = 2;
+  cras_dsp_num_output_channels_return = 2;
+  cras_dsp_context_new_return = NULL;
 }
 
 namespace {
@@ -116,6 +122,7 @@ TEST(IoDevTestSuite, FillTimeFromFramesShort) {
 class IoDevSetFormatTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
+      ResetStubData();
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
       sample_rates_[2] = 0;
@@ -220,6 +227,50 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatFallbackDefault) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
   EXPECT_EQ(44100, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, OutputDSPChannleReduction) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev_.supported_channel_counts[0] = 1;
+  iodev_.supported_channel_counts[1] = 0;
+  cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context *>(0xf00);
+  cras_dsp_get_pipeline_ret =  0xf01;
+  cras_dsp_num_input_channels_return = 2;
+  cras_dsp_num_output_channels_return = 1;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, InputDSPChannleReduction) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+
+  iodev_.direction = CRAS_STREAM_INPUT;
+  iodev_.supported_channel_counts[0] = 10;
+  iodev_.supported_channel_counts[1] = 0;
+  cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context *>(0xf00);
+  cras_dsp_get_pipeline_ret =  0xf01;
+  cras_dsp_num_input_channels_return = 10;
+  cras_dsp_num_output_channels_return = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
 }
 
@@ -444,7 +495,7 @@ struct cras_dsp_context *cras_dsp_context_new(int sample_rate,
 {
   dsp_context_new_sample_rate = sample_rate;
   dsp_context_new_purpose = purpose;
-  return NULL;
+  return cras_dsp_context_new_return;
 }
 
 void cras_dsp_context_free(struct cras_dsp_context *ctx)
@@ -509,12 +560,12 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
 
 unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context *ctx)
 {
-	return 2;
+	return cras_dsp_num_output_channels_return;
 }
 
 unsigned int cras_dsp_num_input_channels(const struct cras_dsp_context *ctx)
 {
-	return 2;
+	return cras_dsp_num_input_channels_return;
 }
 
 // From audio thread
