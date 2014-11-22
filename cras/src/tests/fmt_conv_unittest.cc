@@ -154,6 +154,66 @@ TEST(FormatConverterTest, StereoToMono) {
   free(out_buff);
 }
 
+// Test Stereo to Mono mix 24 and 32 bit.
+TEST(FormatConverterTest, StereoToMono24bit) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  int32_t *in_buff;
+  int32_t *out_buff;
+  unsigned int i;
+  const size_t buf_size = 100;
+  unsigned int in_buf_size = 100;
+  unsigned int test;
+
+  for (test = 0; test < 2; test++) {
+    ResetStub();
+    if (test == 0) {
+      in_fmt.format = SND_PCM_FORMAT_S24_LE;
+      out_fmt.format = SND_PCM_FORMAT_S24_LE;
+    } else {
+      in_fmt.format = SND_PCM_FORMAT_S32_LE;
+      out_fmt.format = SND_PCM_FORMAT_S32_LE;
+    }
+    in_fmt.num_channels = 2;
+    out_fmt.num_channels = 1;
+    in_fmt.frame_rate = 48000;
+    out_fmt.frame_rate = 48000;
+
+    c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+    ASSERT_NE(c, (void *)NULL);
+
+    out_frames = cras_fmt_conv_out_frames_to_in(c, buf_size);
+    EXPECT_EQ(buf_size, out_frames);
+
+    out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+    EXPECT_EQ(buf_size, out_frames);
+
+    in_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+    out_buff = (int32_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+    // TODO(dgreid) - s/0x10000/1/ once it stays full bits the whole way.
+    for (i = 0; i < buf_size; i++) {
+	    in_buff[i * 2] = 13450 << 16;
+	    in_buff[i * 2 + 1] = -in_buff[i * 2] + 0x10000;
+    }
+    out_frames = cras_fmt_conv_convert_frames(c,
+		    (uint8_t *)in_buff,
+		    (uint8_t *)out_buff,
+		    &in_buf_size,
+		    buf_size);
+    EXPECT_EQ(buf_size, out_frames);
+    for (i = 0; i < buf_size; i++) {
+	    EXPECT_EQ(0x10000, out_buff[i]);
+    }
+
+    cras_fmt_conv_destroy(c);
+    free(in_buff);
+    free(out_buff);
+  }
+}
+
 // Test 5.1 to Stereo mix.
 TEST(FormatConverterTest, SurroundToStereo) {
   struct cras_fmt_conv *c;
