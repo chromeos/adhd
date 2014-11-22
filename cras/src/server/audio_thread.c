@@ -15,8 +15,6 @@
 #include "cras_audio_area.h"
 #include "audio_thread_log.h"
 #include "cras_config.h"
-#include "cras_dsp.h"
-#include "cras_dsp_pipeline.h"
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_loopback_iodev.h"
@@ -758,26 +756,6 @@ static int thread_add_stream(struct audio_thread *thread,
 	return 0;
 }
 
-static int get_dsp_delay(struct cras_iodev *iodev)
-{
-	struct cras_dsp_context *ctx;
-	struct pipeline *pipeline;
-	int delay;
-
-	ctx = iodev->dsp_context;
-	if (!ctx)
-		return 0;
-
-	pipeline = cras_dsp_get_pipeline(ctx);
-	if (!pipeline)
-		return 0;
-
-	delay = cras_dsp_pipeline_get_delay(pipeline);
-
-	cras_dsp_put_pipeline(ctx);
-	return delay;
-}
-
 /* Reads any pending audio message from the socket. */
 static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 {
@@ -814,10 +792,9 @@ static int fetch_streams(struct audio_thread *thread,
 	int rc;
 	int delay;
 
-	delay = odev->delay_frames(odev);
+	delay = cras_iodev_delay_frames(odev);
 	if (delay < 0)
 		return delay;
-	delay += get_dsp_delay(odev);
 
 	DL_FOREACH(adev->dev->streams, dev_stream) {
 		struct cras_rstream *rstream = dev_stream->stream;
@@ -987,8 +964,7 @@ static int input_delay_frames(struct active_dev *adevs)
 	int max_delay = 0;
 
 	DL_FOREACH(adevs, adev) {
-		delay = adev->dev->delay_frames(adev->dev) +
-				get_dsp_delay(adev->dev);
+		delay = cras_iodev_delay_frames(adev->dev);
 		if (delay < 0)
 			return delay;
 		if (delay > max_delay)

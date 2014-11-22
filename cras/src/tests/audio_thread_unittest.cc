@@ -441,6 +441,11 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
   return 0;
 }
 
+int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
+{
+  return 0;
+}
+
 void cras_metrics_log_histogram(const char *name, int sample, int min,
                                 int max, int nbuckets)
 {

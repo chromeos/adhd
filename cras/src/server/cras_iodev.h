@@ -366,4 +366,12 @@ int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev);
  * the device. */
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev);
 
+/* Get the delay from DSP processing in frames. */
+int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev);
+
+/* Get the delay for input/output in frames. */
+static inline int cras_iodev_delay_frames(const struct cras_iodev *iodev)
+{
+	return iodev->delay_frames(iodev) + cras_iodev_get_dsp_delay(iodev);
+}
 #endif /* CRAS_IODEV_H_ */

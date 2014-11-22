@@ -560,3 +560,23 @@ double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 	return rate_estimator_get_rate(iodev->rate_est) /
 			iodev->format->frame_rate;
 }
+
+int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
+{
+	struct cras_dsp_context *ctx;
+	struct pipeline *pipeline;
+	int delay;
+
+	ctx = iodev->dsp_context;
+	if (!ctx)
+		return 0;
+
+	pipeline = cras_dsp_get_pipeline(ctx);
+	if (!pipeline)
+		return 0;
+
+	delay = cras_dsp_pipeline_get_delay(pipeline);
+
+	cras_dsp_put_pipeline(ctx);
+	return delay;
+}
