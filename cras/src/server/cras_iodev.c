@@ -453,19 +453,36 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	return iodev->close_dev(iodev);
 }
 
-int cras_iodev_put_buffer(struct cras_iodev *iodev, unsigned int nframes)
+int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 {
-	rate_estimator_add_frames(
-			iodev->rate_est,
-			(iodev->direction == CRAS_STREAM_OUTPUT)
-					? nframes
-					: -nframes);
+	rate_estimator_add_frames(iodev->rate_est, -nframes);
 	return iodev->put_buffer(iodev, nframes);
 }
 
-int cras_iodev_get_buffer(struct cras_iodev *iodev,
-			  struct cras_audio_area **area,
-			  unsigned *frames)
+int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
+				 unsigned int nframes)
+{
+
+	rate_estimator_add_frames(iodev->rate_est, nframes);
+	return iodev->put_buffer(iodev, nframes);
+}
+
+int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
+				struct cras_audio_area **area,
+				unsigned *frames)
+{
+	int rc;
+
+	rc = iodev->get_buffer(iodev, area, frames);
+	if (rc < 0 || *frames == 0)
+		return rc;
+
+	return rc;
+}
+
+int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
+				 struct cras_audio_area **area,
+				 unsigned *frames)
 {
 	return iodev->get_buffer(iodev, area, frames);
 }

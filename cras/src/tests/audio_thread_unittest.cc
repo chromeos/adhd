@@ -416,6 +416,31 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
   return 0;
 }
 
+int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
+{
+  return 0;
+}
+
+int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
+				 unsigned int nframes)
+{
+  return 0;
+}
+
+int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
+				struct cras_audio_area **area,
+				unsigned *frames)
+{
+  return 0;
+}
+
+int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
+				 struct cras_audio_area **area,
+				 unsigned *frames)
+{
+  return 0;
+}
+
 void cras_metrics_log_histogram(const char *name, int sample, int min,
                                 int max, int nbuckets)
 {

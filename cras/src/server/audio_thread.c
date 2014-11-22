@@ -337,19 +337,20 @@ static int fill_odev_zeros(struct active_dev *adev, unsigned int frames)
 	unsigned int frame_bytes, frames_written;
 	int rc;
 	struct cras_iodev *odev = adev->dev;
+	uint8_t *buf;
 
 	frame_bytes = cras_get_format_bytes(odev->format);
 	while (frames > 0) {
 		frames_written = frames;
-		rc = cras_iodev_get_buffer(odev, &area, &frames_written);
+		rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fill zeros fail: %d", rc);
 			return rc;
 		}
 		/* This assumes consecutive channel areas. */
-		memset(area->channels[0].buf, 0,
-		       frames_written * frame_bytes);
-		cras_iodev_put_buffer(odev, frames_written);
+		buf = area->channels[0].buf;
+		memset(buf, 0, frames_written * frame_bytes);
+		cras_iodev_put_output_buffer(odev, buf, frames_written);
 		frames -= frames_written;
 	}
 
@@ -1401,7 +1402,7 @@ static int write_output_samples(struct audio_thread *thread,
 	 * partial area to write to from mmap_begin */
 	while (total_written < fr_to_req) {
 		frames = fr_to_req - total_written;
-		rc = cras_iodev_get_buffer(odev, &area, &frames);
+		rc = cras_iodev_get_output_buffer(odev, &area, &frames);
 		if (rc < 0)
 			return rc;
 
@@ -1433,7 +1434,7 @@ static int write_output_samples(struct audio_thread *thread,
 							odev));
 		}
 
-		rc = cras_iodev_put_buffer(odev, written);
+		rc = cras_iodev_put_output_buffer(odev, dst, written);
 		if (rc < 0)
 			return rc;
 		total_written += written;
@@ -1553,7 +1554,7 @@ static int capture_to_streams(struct audio_thread *thread,
 
 		nread = remainder;
 
-		rc = cras_iodev_get_buffer(idev, &area, &nread);
+		rc = cras_iodev_get_input_buffer(idev, &area, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 		/* TODO(dgreid) - This assumes interleaved audio. */
@@ -1575,7 +1576,7 @@ static int capture_to_streams(struct audio_thread *thread,
 		}
 		total_read = cras_iodev_all_streams_written(idev);
 
-		rc = cras_iodev_put_buffer(idev, total_read);
+		rc = cras_iodev_put_input_buffer(idev, total_read);
 		if (rc < 0)
 			return rc;
 		remainder -= nread;
