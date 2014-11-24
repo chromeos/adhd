@@ -83,7 +83,7 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 	const char *profile_path, *object_path;
 	int fd = -1;
 	struct cras_bt_profile *profile;
-	struct cras_bt_transport *transport = NULL;
+	struct cras_bt_device *device;
 
 	profile_path = dbus_message_get_path(message);
 
@@ -106,12 +106,11 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 	if (!profile)
 		goto invalid;
 
-	transport = cras_bt_transport_get(object_path);
-	if (!transport)
-		transport = cras_bt_transport_create(conn, object_path);
-	cras_bt_transport_fill_properties(transport, fd, profile->uuid);
+	device = cras_bt_device_get(object_path);
+	if (!device)
+		goto invalid;
 
-	profile->new_connection(profile, transport);
+	profile->new_connection(profile, device, fd);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
@@ -139,7 +138,7 @@ static DBusHandlerResult cras_bt_profile_handle_request_disconnection(
 	DBusMessage *reply;
 	const char *prpofile_path, *object_path;
 	struct cras_bt_profile *profile;
-	struct cras_bt_transport *transport;
+	struct cras_bt_device *device;
 
 	prpofile_path = dbus_message_get_path(message);
 
@@ -151,10 +150,11 @@ static DBusHandlerResult cras_bt_profile_handle_request_disconnection(
 	if (!profile)
 		goto invalid;
 
-	transport = cras_bt_transport_get(object_path);
-	profile->request_disconnection(profile, transport);
-	if (transport)
-		cras_bt_transport_destroy(transport);
+	device = cras_bt_device_get(object_path);
+	if (!device)
+		goto invalid;
+
+	profile->request_disconnection(profile, device);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)

@@ -60,12 +60,6 @@ uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport);
 void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
 		int fd, const char *uuid);
 
-/* Gets the SCO socket for the transport.
- * Args:
- *     transport - THe transport object to get SCO socket for.
- */
-int cras_bt_transport_sco_connect(struct cras_bt_transport *transport);
-
 void cras_bt_transport_update_properties(
 	struct cras_bt_transport *transport,
 	DBusMessageIter *properties_array_iter,

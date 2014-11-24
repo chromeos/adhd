@@ -47,4 +47,10 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
 
+/* Gets the SCO socket for the device.
+ * Args:
+ *     device - The device object to get SCO socket for.
+ */
+int cras_bt_device_sco_connect(struct cras_bt_device *device);
+
 #endif /* CRAS_BT_DEVICE_H_ */

@@ -16,7 +16,7 @@
  */
 struct cras_iodev *hfp_iodev_create(
 		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_bt_transport *transport,
+		struct cras_bt_device *device,
 		struct hfp_info *info);
 
 void hfp_iodev_destroy(struct cras_iodev *iodev);

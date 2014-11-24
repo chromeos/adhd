@@ -17,7 +17,7 @@
 
 struct hfp_io {
 	struct cras_iodev base;
-	struct cras_bt_transport *transport;
+	struct cras_bt_device *device;
 	struct hfp_info *info;
 	int opened;
 };
@@ -70,7 +70,7 @@ static int open_dev(struct cras_iodev *iodev)
 	if (hfp_info_running(hfpio->info))
 		goto add_dev;
 
-	sk = cras_bt_transport_sco_connect(hfpio->transport);
+	sk = cras_bt_device_sco_connect(hfpio->device);
 	if (sk < 0)
 		goto error;
 
@@ -172,14 +172,13 @@ void hfp_free_resources(struct hfp_io *hfpio)
 
 struct cras_iodev *hfp_iodev_create(
 		enum CRAS_STREAM_DIRECTION dir,
-		struct cras_bt_transport *transport,
+		struct cras_bt_device *device,
 		struct hfp_info *info)
 {
 	int err;
 	struct hfp_io *hfpio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
-	struct cras_bt_device *device;
 
 	hfpio = (struct hfp_io *)calloc(1, sizeof(*hfpio));
 	if (!hfpio)
@@ -188,13 +187,11 @@ struct cras_iodev *hfp_iodev_create(
 	iodev = &hfpio->base;
 	iodev->direction = dir;
 
-	hfpio->transport = transport;
+	hfpio->device = device;
 
 	/* Set iodev's name to device readable name or the address. */
-	device = cras_bt_transport_device(transport);
 	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
-		 device ? cras_bt_device_name(device)
-			: cras_bt_transport_object_path(transport));
+		 cras_bt_device_name(device));
 
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = 0;
 

@@ -8,7 +8,7 @@
 
 #include <dbus/dbus.h>
 
-#include "cras_bt_transport.h"
+#include "cras_bt_device.h"
 
 #define PROFILE_MANAGER_OBJ_PATH "/org/bluez"
 
@@ -26,9 +26,10 @@ struct cras_bt_profile {
 	int features;
 	void (*release)(struct cras_bt_profile *profile);
 	void (*new_connection)(struct cras_bt_profile *profile,
-			       struct cras_bt_transport *transport);
+			       struct cras_bt_device *device,
+			       int rfcomm_fd);
 	void (*request_disconnection)(struct cras_bt_profile *profile,
-				      struct cras_bt_transport *transport);
+				      struct cras_bt_device *device);
 	void (*cancel)(struct cras_bt_profile *profile);
 	struct cras_bt_profile *prev, *next;
 };

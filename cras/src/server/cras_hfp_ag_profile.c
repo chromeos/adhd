@@ -96,11 +96,11 @@ static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 
 static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
 {
-	struct cras_bt_transport *transport = (struct cras_bt_transport *)data;
+	struct cras_bt_device *device = (struct cras_bt_device *)data;
 
 	info = hfp_info_create();
-	idev = hfp_iodev_create(CRAS_STREAM_INPUT, transport, info);
-	odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, transport, info);
+	idev = hfp_iodev_create(CRAS_STREAM_INPUT, device, info);
+	odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, device, info);
 
 	if (!idev && !odev) {
 		if (info)
@@ -118,23 +118,21 @@ static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 }
 
 static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
-				       struct cras_bt_transport *transport)
+				       struct cras_bt_device *device,
+				       int rfcomm_fd)
 {
-	int fd;
-	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
-
 	/* Destroy all existing devices and replace with new ones */
 	destroy_hfp_resources();
 
-	slc_handle = hfp_slc_create(fd,
+	slc_handle = hfp_slc_create(rfcomm_fd,
 				    0,
 				    cras_hfp_ag_slc_initialized,
-				    transport,
+				    device,
 				    cras_hfp_ag_slc_disconnected);
 }
 
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
-		struct cras_bt_transport *transport)
+					      struct cras_bt_device *device)
 {
 	/* There is at most one device connected, just release it. */
 	cras_hfp_ag_release(profile);
@@ -164,17 +162,15 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 }
 
 static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
-				       struct cras_bt_transport *transport)
+				       struct cras_bt_device *device,
+				       int rfcomm_fd)
 {
-	int fd = 0;
-	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
-
 	/* Destroy all existing devices and replace with new ones */
 	destroy_hfp_resources();
-	slc_handle = hfp_slc_create(fd, 1, NULL, transport,
+	slc_handle = hfp_slc_create(rfcomm_fd, 1, NULL, NULL,
 				    cras_hfp_ag_slc_disconnected);
 
-	cras_hfp_ag_slc_initialized(slc_handle, transport);
+	cras_hfp_ag_slc_initialized(slc_handle, device);
 }
 
 static struct cras_bt_profile cras_hsp_ag_profile = {

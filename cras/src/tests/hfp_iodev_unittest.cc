@@ -14,7 +14,7 @@ extern "C" {
 }
 
 static struct cras_iodev *iodev;
-static struct cras_bt_transport *fake_transport;
+static struct cras_bt_device *fake_device;
 static struct hfp_info *fake_info;
 struct cras_audio_format fake_format;
 static size_t cras_iodev_list_add_output_called;
@@ -25,7 +25,7 @@ static size_t cras_iodev_add_node_called;
 static size_t cras_iodev_rm_node_called;
 static size_t cras_iodev_set_active_node_called;
 static size_t cras_iodev_free_format_called;
-static size_t cras_bt_transport_sco_connect_called;
+static size_t cras_bt_device_sco_connect_called;
 static int cras_bt_transport_sco_connect_return_val;
 static size_t hfp_info_add_iodev_called;
 static size_t hfp_info_rm_iodev_called;
@@ -50,7 +50,7 @@ void ResetStubData() {
   cras_iodev_rm_node_called = 0;
   cras_iodev_set_active_node_called = 0;
   cras_iodev_free_format_called = 0;
-  cras_bt_transport_sco_connect_called = 0;
+  cras_bt_device_sco_connect_called = 0;
   cras_bt_transport_sco_connect_return_val = 0;
   hfp_info_add_iodev_called = 0;
   hfp_info_rm_iodev_called = 0;
@@ -76,7 +76,7 @@ void ResetStubData() {
 namespace {
 
 TEST(HfpIodev, CreateHfpIodev) {
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_transport,
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device,
 		  	   fake_info);
 
   ASSERT_EQ(CRAS_STREAM_OUTPUT, iodev->direction);
@@ -93,7 +93,7 @@ TEST(HfpIodev, CreateHfpIodev) {
 TEST(HfpIodev, OpenHfpIodev) {
   ResetStubData();
 
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_transport,
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device,
 		  	   fake_info);
 
   cras_iodev_set_format(iodev, &fake_format);
@@ -102,7 +102,7 @@ TEST(HfpIodev, OpenHfpIodev) {
   hfp_info_running_return_val = 0;
   iodev->open_dev(iodev);
 
-  ASSERT_EQ(1, cras_bt_transport_sco_connect_called);
+  ASSERT_EQ(1, cras_bt_device_sco_connect_called);
   ASSERT_EQ(1, hfp_info_start_called);
   ASSERT_EQ(1, hfp_info_add_iodev_called);
 
@@ -119,7 +119,7 @@ TEST(HfpIodev, OpenHfpIodev) {
 TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   ResetStubData();
 
-  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_transport,
+  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device,
 		  	   fake_info);
 
   cras_iodev_set_format(iodev, &fake_format);
@@ -128,7 +128,7 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   hfp_info_running_return_val = 1;
   iodev->open_dev(iodev);
 
-  ASSERT_EQ(0, cras_bt_transport_sco_connect_called);
+  ASSERT_EQ(0, cras_bt_device_sco_connect_called);
   ASSERT_EQ(0, hfp_info_start_called);
   ASSERT_EQ(1, hfp_info_add_iodev_called);
 
@@ -146,7 +146,7 @@ TEST(HfpIodev, PutGetBuffer) {
   unsigned frames;
 
   ResetStubData();
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_transport,
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device,
 			   fake_info);
   cras_iodev_set_format(iodev, &fake_format);
   iodev->open_dev(iodev);
@@ -224,22 +224,10 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
   return 0;
 }
 
-// From bt transport
-const char *cras_bt_transport_object_path(
-		const struct cras_bt_transport *transport)
+// From bt device
+int cras_bt_device_sco_connect(struct cras_bt_device *device)
 {
-  return NULL;
-}
-
-struct cras_bt_device *cras_bt_transport_device(
-    const struct cras_bt_transport *transport)
-{
-  return reinterpret_cast<struct cras_bt_device *>(0x55);
-}
-
-int cras_bt_transport_sco_connect(struct cras_bt_transport *transport)
-{
-  cras_bt_transport_sco_connect_called++;
+  cras_bt_device_sco_connect_called++;
   return cras_bt_transport_sco_connect_return_val;
 }
 
