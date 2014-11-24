@@ -14,7 +14,6 @@ extern "C" {
 #include "audio_thread_log.h"
 #include "cras_bt_transport.h"
 #include "cras_iodev.h"
-#include "cras_iodev_list.h"
 
 #include "cras_a2dp_iodev.h"
 }
@@ -28,8 +27,8 @@ extern "C" {
 static struct cras_bt_transport *fake_transport;
 static struct cras_bt_device *fake_device;
 static cras_audio_format format;
-static size_t cras_iodev_list_add_output_called;
-static size_t cras_iodev_list_rm_output_called;
+static size_t cras_bt_device_append_iodev_called;
+static size_t cras_bt_device_rm_iodev_called;
 static size_t cras_iodev_add_node_called;
 static size_t cras_iodev_rm_node_called;
 static size_t cras_iodev_set_active_node_called;
@@ -54,8 +53,8 @@ static thread_callback write_callback;
 static void *write_callback_data;
 
 void ResetStubData() {
-  cras_iodev_list_add_output_called = 0;
-  cras_iodev_list_rm_output_called = 0;
+  cras_bt_device_append_iodev_called = 0;
+  cras_bt_device_rm_iodev_called = 0;
   cras_iodev_add_node_called = 0;
   cras_iodev_rm_node_called = 0;
   cras_iodev_set_active_node_called = 0;
@@ -113,7 +112,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(iodev->direction, CRAS_STREAM_OUTPUT);
   ASSERT_EQ(1, cras_bt_transport_configuration_called);
   ASSERT_EQ(1, init_a2dp_called);
-  ASSERT_EQ(1, cras_iodev_list_add_output_called);
+  ASSERT_EQ(1, cras_bt_device_append_iodev_called);
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
 
@@ -122,7 +121,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   a2dp_iodev_destroy(iodev);
 
-  ASSERT_EQ(1, cras_iodev_list_rm_output_called);
+  ASSERT_EQ(1, cras_bt_device_rm_iodev_called);
   ASSERT_EQ(1, cras_iodev_rm_node_called);
   ASSERT_EQ(1, destroy_a2dp_called);
   ASSERT_EQ(1, cras_iodev_free_resources_called);
@@ -146,7 +145,7 @@ TEST(A2dpIoInit, InitializeFail) {
   ASSERT_EQ(iodev, (void *)NULL);
   ASSERT_EQ(1, cras_bt_transport_configuration_called);
   ASSERT_EQ(1, init_a2dp_called);
-  ASSERT_EQ(0, cras_iodev_list_add_output_called);
+  ASSERT_EQ(0, cras_bt_device_append_iodev_called);
   ASSERT_EQ(0, cras_iodev_add_node_called);
   ASSERT_EQ(0, cras_iodev_set_active_node_called);
   ASSERT_EQ(0, cras_iodev_rm_node_called);
@@ -369,19 +368,6 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
   iodev->active_node = node;
 }
 
-//  From iodev list.
-int cras_iodev_list_add_output(struct cras_iodev *output)
-{
-  cras_iodev_list_add_output_called++;
-  return 0;
-}
-
-int cras_iodev_list_rm_output(struct cras_iodev *dev)
-{
-  cras_iodev_list_rm_output_called++;
-  return 0;
-}
-
 // From cras_bt_transport
 struct cras_bt_device *cras_bt_transport_device(
 	const struct cras_bt_transport *transport)
@@ -389,10 +375,29 @@ struct cras_bt_device *cras_bt_transport_device(
   return fake_device;
 }
 
+enum cras_bt_device_profile cras_bt_transport_profile(
+  const struct cras_bt_transport *transport)
+{
+  return CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
+}
+
 // From cras_bt_device
 const char *cras_bt_device_name(const struct cras_bt_device *device)
 {
   return FAKE_DEVICE_NAME;
+}
+
+void cras_bt_device_append_iodev(struct cras_bt_device *device,
+                                 struct cras_iodev *iodev,
+                                 enum cras_bt_device_profile profile)
+{
+  cras_bt_device_append_iodev_called++;
+}
+
+void cras_bt_device_rm_iodev(struct cras_bt_device *device,
+                             struct cras_iodev *iodev)
+{
+  cras_bt_device_rm_iodev_called++;
 }
 
 int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)

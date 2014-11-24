@@ -109,8 +109,10 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 		return -EINVAL;
 
 	ag->info = hfp_info_create();
-	ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device, ag->info);
-	ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device, ag->info);
+	ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
+				    ag->profile, ag->info);
+	ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
+				    ag->profile, ag->info);
 
 	if (!ag->idev && !ag->odev) {
 		destroy_audio_gateway(ag);

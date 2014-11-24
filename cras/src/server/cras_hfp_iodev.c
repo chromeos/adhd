@@ -10,7 +10,6 @@
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_info.h"
 #include "cras_iodev.h"
-#include "cras_iodev_list.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -173,9 +172,9 @@ void hfp_free_resources(struct hfp_io *hfpio)
 struct cras_iodev *hfp_iodev_create(
 		enum CRAS_STREAM_DIRECTION dir,
 		struct cras_bt_device *device,
+		enum cras_bt_device_profile profile,
 		struct hfp_info *info)
 {
-	int err;
 	struct hfp_io *hfpio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
@@ -216,13 +215,7 @@ struct cras_iodev *hfp_iodev_create(
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
 
-	if (dir == CRAS_STREAM_OUTPUT)
-		err = cras_iodev_list_add_output(iodev);
-	else
-		err = cras_iodev_list_add_input(iodev);
-	if (err)
-		goto error;
-
+	cras_bt_device_append_iodev(device, iodev, profile);
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
 
@@ -240,17 +233,9 @@ error:
 
 void hfp_iodev_destroy(struct cras_iodev *iodev)
 {
-	int rc;
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
-	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		rc = cras_iodev_list_rm_output(iodev);
-	else
-		rc = cras_iodev_list_rm_input(iodev);
-	if (rc == -EBUSY) {
-		syslog(LOG_ERR, "Failed to remove iodev %s", iodev->info.name);
-		return;
-	}
+	cras_bt_device_rm_iodev(hfpio->device, iodev);
 	hfp_free_resources(hfpio);
 	free(hfpio);
 }

@@ -19,7 +19,6 @@
 #include "cras_audio_area.h"
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
-#include "cras_iodev_list.h"
 #include "cras_util.h"
 #include "rtp.h"
 #include "utlist.h"
@@ -462,10 +461,8 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
 	gettimeofday(&node->plugged_time, NULL);
 
 	/* A2DP does output only */
-	err = cras_iodev_list_add_output(iodev);
-	if (err)
-		goto error;
-
+	cras_bt_device_append_iodev(device, iodev,
+			cras_bt_transport_profile(a2dpio->transport));
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
 
@@ -480,15 +477,13 @@ error:
 
 void a2dp_iodev_destroy(struct cras_iodev *iodev)
 {
-	int rc;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct cras_bt_device *device;
+
+	device = cras_bt_transport_device(a2dpio->transport);
 
 	/* A2DP does output only */
-	rc = cras_iodev_list_rm_output(iodev);
-	if (rc == -EBUSY) {
-		syslog(LOG_ERR, "Failed to remove iodev %s", iodev->info.name);
-		return;
-	}
+	cras_bt_device_rm_iodev(device, iodev);
 
 	/* Free resources when device successfully removed. */
 	free_resources(a2dpio);
