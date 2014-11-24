@@ -309,6 +309,51 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   EXPECT_EQ(dev_stream->next->next->stream, &rstream3);
 }
 
+TEST_F(StreamDeviceSuite, FallbackDeviceKeepStreams) {
+  struct cras_iodev iodev;
+  struct cras_iodev iodev2;
+  struct cras_rstream rstream;
+  struct cras_rstream rstream2;
+  struct cras_rstream rstream3;
+  struct dev_stream *dev_stream;
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream2, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream3, CRAS_STREAM_OUTPUT);
+
+  // Add an active device and a stream, check fallback device has the stream.
+  thread_add_active_dev(thread_, &iodev);
+  thread_add_stream(thread_, &rstream);
+  EXPECT_EQ(fallback_output_.is_active, 0);
+  dev_stream = fallback_output_.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream);
+
+  // Add another stream and check it's added to fallback device as well.
+  thread_add_stream(thread_, &rstream2);
+  dev_stream = fallback_output_.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream);
+  EXPECT_EQ(dev_stream->next->stream, &rstream2);
+
+  // Remove first stream and check it's also removed from fallback device.
+  thread_remove_stream(thread_, &rstream);
+  dev_stream = fallback_output_.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream2);
+
+  // Remove active device, check fallback device keeps stream.
+  thread_rm_active_dev(thread_, &iodev);
+  EXPECT_EQ(fallback_output_.is_active, 1);
+  dev_stream = fallback_output_.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream2);
+
+  // Add stream without active device. (fallback active)
+  thread_add_stream(thread_, &rstream3);
+  dev_stream = fallback_output_.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream2);
+  EXPECT_EQ(dev_stream->next->stream, &rstream3);
+}
+
 extern "C" {
 
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
@@ -411,6 +456,16 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
 
 void cras_metrics_log_histogram(const char *name, int sample, int min,
                                 int max, int nbuckets)
+{
+}
+
+void cras_rstream_dev_attach(struct cras_rstream *rstream,
+                             unsigned int dev_id,
+                             void *dev_ptr)
+{
+}
+
+void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
 }
 

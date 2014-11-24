@@ -13,10 +13,11 @@
 #include <sys/time.h>
 
 #include "cras_types.h"
+#include "cras_rstream.h"
 
 struct cras_audio_area;
 struct cras_fmt_conv;
-struct cras_rstream;
+struct cras_iodev;
 
 /*
  * Linked list of streams of audio from/to a client.
@@ -159,6 +160,18 @@ static inline const struct timespec *
 dev_stream_sleep_interval_ts(struct dev_stream *dev_stream)
 {
 	return &dev_stream->stream->sleep_interval_ts;
+}
+
+static inline void
+dev_stream_attach(struct dev_stream *dev_stream, struct cras_iodev *dev)
+{
+	cras_rstream_dev_attach(dev_stream->stream, dev_stream->dev_id, dev);
+}
+
+static inline void
+dev_stream_detach(struct dev_stream *dev_stream)
+{
+	cras_rstream_dev_detach(dev_stream->stream, dev_stream->dev_id);
 }
 
 #endif /* DEV_STREAM_H_ */

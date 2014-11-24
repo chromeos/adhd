@@ -8,14 +8,12 @@
 #include "audio_thread_log.h"
 #include "byte_buffer.h"
 #include "cras_fmt_conv.h"
-#include "cras_rstream.h"
 #include "dev_stream.h"
 #include "cras_audio_area.h"
 #include "cras_mix.h"
-#include "cras_rstream.h"
 #include "cras_shm.h"
 
- /*
+/*
  * Sleep this much time past the buffer size to be sure at least
  * the buffer size is captured when the audio thread wakes up.
  */
@@ -102,7 +100,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		add_timespecs(&stream->next_cb_ts, &extra_sleep);
 	}
 
-	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
+	if (dev_ptr)
+		cras_rstream_dev_attach(stream, dev_id, dev_ptr);
 
 	return out;
 }
