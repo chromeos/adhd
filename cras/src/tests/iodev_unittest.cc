@@ -45,6 +45,10 @@ static unsigned int cras_mix_mute_count;
 static unsigned int cras_dsp_num_input_channels_return;
 static unsigned int cras_dsp_num_output_channels_return;
 struct cras_dsp_context *cras_dsp_context_new_return;
+static unsigned int rate_estimator_add_frames_num_frames;
+static unsigned int rate_estimator_add_frames_called;
+static int cras_system_get_mute_return;
+static float cras_scale_buffer_scaler;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -88,6 +92,10 @@ void ResetStubData() {
   cras_dsp_num_input_channels_return = 2;
   cras_dsp_num_output_channels_return = 2;
   cras_dsp_context_new_return = NULL;
+  rate_estimator_add_frames_num_frames = 0;
+  rate_estimator_add_frames_called = 0;
+  cras_system_get_mute_return = 0;
+  cras_mix_mute_count = 0;
 }
 
 namespace {
@@ -314,6 +322,114 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(3, cras_audio_format_set_channel_layout_called);
   for (i = 0; i < CRAS_CH_MAX; i++)
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
+}
+
+// Put buffer tests
+
+static unsigned int put_buffer_nframes;
+
+static int put_buffer(struct cras_iodev *iodev, unsigned int nframes)
+{
+  put_buffer_nframes = nframes;
+  return 0;
+}
+
+TEST(IoDevPutOutputBuffer, SystemMuted) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  cras_system_get_mute_return = 1;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(20, cras_mix_mute_count);
+  EXPECT_EQ(20, put_buffer_nframes);
+  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+}
+
+TEST(IoDevPutOutputBuffer, NoDSP) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 22);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  EXPECT_EQ(22, put_buffer_nframes);
+  EXPECT_EQ(22, rate_estimator_add_frames_num_frames);
+}
+
+TEST(IoDevPutOutputBuffer, DSP) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.dsp_context = reinterpret_cast<cras_dsp_context*>(0x15);
+  cras_dsp_get_pipeline_ret = 0x25;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 32);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  EXPECT_EQ(32, put_buffer_nframes);
+  EXPECT_EQ(32, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(32, cras_dsp_pipeline_apply_sample_count);
+  EXPECT_EQ(cras_dsp_get_pipeline_called, cras_dsp_put_pipeline_called);
+}
+
+TEST(IoDevPutOutputBuffer, SoftVol) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.software_volume_needed = 1;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  cras_system_get_volume_return = 13;
+  softvol_scalers[13] = 0.435;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 53);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  EXPECT_EQ(53, put_buffer_nframes);
+  EXPECT_EQ(53, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(softvol_scalers[13], cras_scale_buffer_scaler);
 }
 
 static void update_active_node(struct cras_iodev *iodev)
@@ -643,7 +759,7 @@ size_t cras_system_get_volume() {
 }
 
 int cras_system_get_mute() {
-  return 0;
+  return cras_system_get_mute_return;
 }
 
 int cras_system_get_capture_mute() {
@@ -651,6 +767,7 @@ int cras_system_get_capture_mute() {
 }
 
 void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler) {
+  cras_scale_buffer_scaler = scaler;
 }
 
 size_t cras_mix_mute_buffer(uint8_t *dst,
@@ -670,6 +787,8 @@ void rate_estimator_destroy(struct rate_estimator *re) {
 }
 
 void rate_estimator_add_frames(struct rate_estimator *re, int fr) {
+  rate_estimator_add_frames_called++;
+  rate_estimator_add_frames_num_frames = fr;
 }
 
 int rate_estimator_check(struct rate_estimator *re, int level,
