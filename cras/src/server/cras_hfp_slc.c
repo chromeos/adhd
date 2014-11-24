@@ -649,6 +649,7 @@ void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 {
 	active_slc_handle = NULL;
 	cras_system_rm_select_fd(slc_handle->rfcomm_fd);
+	close(slc_handle->rfcomm_fd);
 	free(slc_handle);
 }
 

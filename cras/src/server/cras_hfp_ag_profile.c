@@ -96,7 +96,6 @@ static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 
 static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data)
 {
-	int fd;
 	struct cras_bt_transport *transport = (struct cras_bt_transport *)data;
 
 	info = hfp_info_create();
@@ -106,8 +105,7 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle, void *data
 	if (!idev && !odev) {
 		if (info)
 			hfp_info_destroy(info);
-		cras_bt_transport_configuration(transport, &fd, sizeof(fd));
-		close(fd);
+		hfp_slc_destroy(handle);
         }
 
 	return 0;
@@ -138,12 +136,8 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 		struct cras_bt_transport *transport)
 {
-	int fd;
-
 	/* There is at most one device connected, just release it. */
 	cras_hfp_ag_release(profile);
-	cras_bt_transport_configuration(transport, &fd, sizeof(fd));
-	close(fd);
 }
 
 static void cras_hfp_ag_cancel(struct cras_bt_profile *profile)
