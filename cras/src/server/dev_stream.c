@@ -129,10 +129,10 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 				dev_stream->conv,
 				dev_rate,
 				dev_rate);
-		cras_frames_to_time(cras_rstream_get_cb_threshold(dev_stream->stream),
-				    dev_stream->stream->format.frame_rate *
-						dev_rate_ratio,
-				    &dev_stream->stream->sleep_interval_ts);
+		cras_frames_to_time_precise(
+			cras_rstream_get_cb_threshold(dev_stream->stream),
+			dev_stream->stream->format.frame_rate * dev_rate_ratio,
+			&dev_stream->stream->sleep_interval_ts);
 	} else {
 		double new_rate = dev_rate * dev_rate_ratio /
 				master_rate_ratio +

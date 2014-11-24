@@ -42,6 +42,17 @@ static inline void cras_frames_to_time(unsigned int frames,
 	t->tv_nsec = (uint64_t)frames * 1000000000 / rate;
 }
 
+/* Converts a number of frames to a time in a timespec. */
+static inline void cras_frames_to_time_precise(unsigned int frames,
+					       double rate,
+					       struct timespec *t)
+{
+	double seconds = frames / rate;
+	t->tv_sec = (unsigned int)seconds;
+	seconds -= t->tv_sec;
+	t->tv_nsec = (unsigned int)(seconds * 1000000000);
+}
+
 /* Converts a timespec duration to a frame count. */
 static inline unsigned int cras_time_to_frames(const struct timespec *t,
 					       unsigned int rate)
