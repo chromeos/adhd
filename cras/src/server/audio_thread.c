@@ -709,13 +709,16 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 }
 
 /* Handles messages from the main thread to remove an active device. */
-static void thread_rm_active_dev(struct audio_thread *thread,
+static int thread_rm_active_dev(struct audio_thread *thread,
 				 struct cras_iodev *iodev)
 {
 	struct active_dev *adev = find_adev(
 			thread->active_devs[iodev->direction], iodev);
-	if (adev)
-		thread_rm_active_adev(thread, adev);
+	if (!adev)
+		return -EINVAL;
+
+	thread_rm_active_adev(thread, adev);
+	return 0;
 }
 
 /* Remove stream from the audio thread. If this is the last stream to be
@@ -1072,7 +1075,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		struct audio_thread_active_device_msg *rmsg;
 
 		rmsg = (struct audio_thread_active_device_msg *)msg;
-		thread_rm_active_dev(thread, rmsg->dev);
+		ret = thread_rm_active_dev(thread, rmsg->dev);
 		break;
 	}
 	case AUDIO_THREAD_STOP:
