@@ -790,7 +790,8 @@ int cras_system_get_capture_mute() {
   return 0;
 }
 
-void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler) {
+void cras_scale_buffer(snd_pcm_format_t ftm, uint8_t *buffer,
+                       unsigned int count, float scaler) {
   cras_scale_buffer_scaler = scaler;
 }
 

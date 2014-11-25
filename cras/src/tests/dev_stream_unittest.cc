@@ -668,11 +668,11 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
   return conv_frames_ret;
 }
 
-void cras_mix_add(int16_t *dst, int16_t *src,
-		  unsigned int count, unsigned int index,
-		  int mute, float mix_vol) {
-  mix_add_call.dst = dst;
-  mix_add_call.src = src;
+void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
+                  unsigned int count, unsigned int index,
+                  int mute, float mix_vol) {
+  mix_add_call.dst = (int16_t *)dst;
+  mix_add_call.src = (int16_t *)src;
   mix_add_call.count = count;
   mix_add_call.index = index;
   mix_add_call.mute = mute;

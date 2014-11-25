@@ -194,7 +194,8 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 			read_frames = dev_frames;
 		}
 		num_samples = dev_frames * num_channels;
-		cras_mix_add(target, src, num_samples, 1,
+		cras_mix_add(SND_PCM_FORMAT_S16_LE, (uint8_t *)target,
+			     (uint8_t *)src, num_samples, 1,
 			     cras_rstream_get_mute(rstream), mix_vol);
 		target += num_samples;
 		fr_written += dev_frames;
