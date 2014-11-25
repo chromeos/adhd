@@ -55,7 +55,6 @@ static int cras_fmt_conversion_needed_return_val;
 static struct cras_audio_area *dummy_audio_area1;
 static struct cras_audio_area *dummy_audio_area2;
 static struct cras_audio_format cras_iodev_set_format_val;
-static float cras_iodev_get_software_volume_scaler_return_value;
 
 static struct dev_stream_capture_call dev_stream_capture_call;
 static struct cap_sleep_frames_call cap_sleep_frames_call;
@@ -541,8 +540,6 @@ class WriteStreamSuite : public testing::Test {
       is_open_ = 0;
       close_dev_called_ = 0;
 
-      cras_iodev_get_software_volume_scaler_return_value = 1.0;
-
       dev_running_called_ = 0;
 
       audio_buffer_size_ = 8196;
@@ -848,46 +845,6 @@ TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFill) {
   EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
   EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
   EXPECT_EQ(buffer_frames_ - cb_threshold_, dev_stream_mix_count);
-  EXPECT_EQ(1, dev_stream_request_playback_samples_called);
-  EXPECT_NE(-1, select_max_fd);
-  EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
-  EXPECT_EQ(0, shm_->area->read_offset[0]);
-}
-
-TEST_F(WriteStreamSuite, PossiblyFillGetFromStreamNeedFillWithScaler) {
-  struct timespec ts;
-  uint64_t nsec_expected;
-  int rc;
-
-  //  Have cb_threshold samples left.
-  frames_queued_ = cb_threshold_;
-  audio_buffer_size_ = buffer_frames_ - frames_queued_;
-
-  //  Software volume config.
-  cras_iodev_get_software_volume_scaler_return_value = 0.5;
-
-  //  shm is out of data.
-  shm_->area->write_offset[0] = 0;
-
-  FD_ZERO(&select_out_fds);
-  FD_SET(rstream_->fd, &select_out_fds);
-  select_return_value = 1;
-
-  // Set write offset after call to select.
-  select_write_ptr = &shm_->area->write_offset[0];
-  select_write_value = (buffer_frames_ - cb_threshold_) * 4;
-
-  nsec_expected = (buffer_frames_ - cb_threshold_) *
-      1000000000ULL / (uint64_t)fmt_.frame_rate;
-
-  is_open_ = 1;
-  rc = unified_io(thread_, &ts);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, nsec_expected - 1000);
-  EXPECT_LE(ts.tv_nsec, nsec_expected + 1000);
-  EXPECT_EQ(buffer_frames_ - cb_threshold_,
-            dev_stream_mix_count);
   EXPECT_EQ(1, dev_stream_request_playback_samples_called);
   EXPECT_NE(-1, select_max_fd);
   EXPECT_EQ(0, memcmp(&select_out_fds, &select_in_fds, sizeof(select_in_fds)));
@@ -2189,11 +2146,6 @@ int select(int nfds,
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   *tp = time_now;
   return 0;
-}
-
-float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
-{
-  return cras_iodev_get_software_volume_scaler_return_value;
 }
 
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,

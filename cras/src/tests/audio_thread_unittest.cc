@@ -313,12 +313,6 @@ extern "C" {
 
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
 
-size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
-                                      size_t in_frames)
-{
-  return in_frames;
-}
-
 int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 {
   DL_APPEND(iodev->streams, stream);
@@ -335,19 +329,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
   return 0;
 }
 
-int cras_iodev_get_buffer(struct cras_iodev *iodev,
-                          struct cras_audio_area **area,
-                          unsigned *frames)
-{
-  return 0;
-}
-
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
-{
-  return 1.0;
-}
-
-float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
   return 1.0;
 }
@@ -432,17 +414,7 @@ void cras_metrics_log_histogram(const char *name, int sample, int min,
 {
 }
 
-size_t cras_mix_mute_buffer(uint8_t *dst, size_t frame_bytes, size_t count)
-{
-  memset(dst, 0, count * frame_bytes);
-  return count;
-}
-
 void cras_rstream_destroy(struct cras_rstream *stream)
-{
-}
-
-void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler)
 {
 }
 
@@ -459,16 +431,6 @@ int cras_set_thread_priority(int priority)
 int cras_system_add_select_fd(int fd,
                               void (*callback)(void *data),
                               void *callback_data)
-{
-  return 0;
-}
-
-int cras_system_get_capture_mute()
-{
-  return 0;
-}
-
-int cras_system_get_mute()
 {
   return 0;
 }
