@@ -27,16 +27,6 @@ size_t cras_mix_mute_buffer(uint8_t *dst,
 			    size_t frame_bytes,
 			    size_t count);
 
-/* Add and clip src buffer to dst.
- * Args:
- *    dst - Buffer of samples to mix to
- *    src - Buffer of samples to mix
- *    count - The number of samples to mix
- */
-void cras_mix_add_clip(int16_t *dst,
-		       const int16_t *src,
-		       size_t count);
-
 /* Add src buffer to dst, scaling and setting mute.
  * Args:
  *    dst - Buffer of samples to mix to.

@@ -10,6 +10,23 @@
 #define MAX_VOLUME_TO_SCALE 0.9999999
 #define MIN_VOLUME_TO_SCALE 0.0000001
 
+static void cras_mix_add_clip(int16_t *dst,
+			      const int16_t *src,
+			      size_t count)
+{
+	int32_t sum;
+	size_t i;
+
+	for (i = 0; i < count; i++) {
+		sum = dst[i] + src[i];
+		if (sum > 0x7fff)
+			sum = 0x7fff;
+		else if (sum < -0x8000)
+			sum = -0x8000;
+		dst[i] = sum;
+	}
+}
+
 /* Adds src into dst, after scaling by vol.
  * Just hard limits to the min and max S16 value, can be improved later. */
 static void scale_add_clip(int16_t *dst,
@@ -19,6 +36,9 @@ static void scale_add_clip(int16_t *dst,
 {
 	int32_t sum;
 	size_t i;
+
+	if (vol > MAX_VOLUME_TO_SCALE)
+		return cras_mix_add_clip(dst, src, count);
 
 	for (i = 0; i < count; i++) {
 		sum = dst[i] + (int16_t)(src[i] * vol);
@@ -55,6 +75,11 @@ void cras_scale_buffer(int16_t *buffer, unsigned int count, float scaler)
 	if (scaler > MAX_VOLUME_TO_SCALE)
 		return;
 
+	if (scaler < MIN_VOLUME_TO_SCALE) {
+		memset(buffer, 0, count * sizeof(*buffer));
+		return;
+	}
+
 	for (i = 0; i < count; i++)
 		buffer[i] *= scaler;
 }
@@ -67,33 +92,18 @@ size_t cras_mix_mute_buffer(uint8_t *dst,
 	return count;
 }
 
-void cras_mix_add_clip(int16_t *dst,
-		       const int16_t *src,
-		       size_t count)
-{
-	int32_t sum;
-	size_t i;
-
-	for (i = 0; i < count; i++) {
-		sum = dst[i] + src[i];
-		if (sum > 0x7fff)
-			sum = 0x7fff;
-		else if (sum < -0x8000)
-			sum = -0x8000;
-		dst[i] = sum;
-	}
-}
-
 void cras_mix_add(int16_t *dst, int16_t *src,
 		  unsigned int count, unsigned int index,
 		  int mute, float mix_vol)
 {
-	if (index == 0) {
-		if (mute || (mix_vol < MIN_VOLUME_TO_SCALE))
+	if (mute || (mix_vol < MIN_VOLUME_TO_SCALE)) {
+		if (index == 0)
 			memset(dst, 0, count * sizeof(*src));
-		else
-			copy_scaled(dst, src, count, mix_vol);
-	} else if (!mute && mix_vol > MIN_VOLUME_TO_SCALE) {
-		scale_add_clip(dst, src, count, mix_vol);
+		return;
 	}
+
+	if (index == 0)
+		return copy_scaled(dst, src, count, mix_vol);
+
+	scale_add_clip(dst, src, count, mix_vol);
 }
