@@ -34,6 +34,7 @@ struct cras_bt_device {
 	int connected;
 	enum cras_bt_device_profile profiles;
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
+	unsigned int active_profile;
 
 	struct cras_bt_device *prev, *next;
 };
@@ -208,6 +209,17 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			cras_bt_io_destroy(bt_iodev);
 		}
 	}
+}
+
+int cras_bt_device_get_active_profile(const struct cras_bt_device *device)
+{
+	return device->active_profile;
+}
+
+void cras_bt_device_set_active_profile(struct cras_bt_device *device,
+				       unsigned int profile)
+{
+	device->active_profile = profile;
 }
 
 static void cras_bt_device_log_profile(const struct cras_bt_device *device,

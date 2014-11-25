@@ -72,4 +72,11 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev);
 
+/* Gets the active profile of the bt device. */
+int cras_bt_device_get_active_profile(const struct cras_bt_device *device);
+
+/* Sets the active profile of the bt device. */
+void cras_bt_device_set_active_profile(struct cras_bt_device *device,
+				       unsigned int profile);
+
 #endif /* CRAS_BT_DEVICE_H_ */
