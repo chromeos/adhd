@@ -19,8 +19,16 @@ static unsigned int cras_bt_io_create_called;
 static unsigned int cras_bt_io_append_called;
 static unsigned int cras_bt_io_remove_called;
 static unsigned int cras_bt_io_destroy_called;
+static struct cras_iodev *audio_thread_add_active_dev_dev;
+static unsigned int audio_thread_add_active_dev_called;
+static unsigned int audio_thread_rm_active_dev_called;
+static int audio_thread_rm_active_dev_rets[CRAS_NUM_DIRECTIONS];
+static audio_thread* iodev_get_thread_return;
 static enum cras_bt_device_profile cras_bt_io_create_profile_val;
 static enum cras_bt_device_profile cras_bt_io_append_profile_val;
+
+static void (*cras_system_add_select_fd_callback)(void *data);
+static void *cras_system_add_select_fd_callback_data;
 
 void ResetStubData() {
   cras_bt_io_has_dev_ret = 0;
@@ -28,6 +36,10 @@ void ResetStubData() {
   cras_bt_io_append_called = 0;
   cras_bt_io_remove_called = 0;
   cras_bt_io_destroy_called = 0;
+  audio_thread_add_active_dev_called = 0;
+  audio_thread_rm_active_dev_called = 0;
+  for (int dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++)
+    audio_thread_rm_active_dev_rets[dir] = 0;
 }
 
 namespace {
@@ -36,16 +48,31 @@ class BtDeviceTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       ResetStubData();
+      bt_iodev1.direction = CRAS_STREAM_OUTPUT;
+      bt_iodev1.is_open = is_open;
+      bt_iodev1.update_active_node = update_active_node;
+      bt_iodev2.direction = CRAS_STREAM_INPUT;
+      bt_iodev2.is_open = is_open;
+      bt_iodev2.update_active_node = update_active_node;
       d1_.direction = CRAS_STREAM_OUTPUT;
       d1_.is_open = is_open;
+      d1_.update_active_node = update_active_node;
       d2_.direction = CRAS_STREAM_OUTPUT;
       d2_.is_open = is_open;
+      d2_.update_active_node = update_active_node;
+      d3_.direction = CRAS_STREAM_INPUT;
+      d3_.is_open = is_open;
+      d3_.update_active_node = update_active_node;
     }
     static int is_open(const cras_iodev* iodev) {
       return is_open_;
     }
+    static void update_active_node(struct cras_iodev *iodev) {
+    }
 
     struct cras_iodev bt_iodev1;
+    struct cras_iodev bt_iodev2;
+    struct cras_iodev d3_;
     struct cras_iodev d2_;
     struct cras_iodev d1_;
     static int is_open_;
@@ -94,6 +121,45 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   cras_bt_device_rm_iodev(device, &d1_);
   EXPECT_EQ(2, cras_bt_io_remove_called);
   EXPECT_EQ(1, cras_bt_io_destroy_called);
+}
+
+TEST_F(BtDeviceTestSuite, SwitchProfile) {
+  struct cras_bt_device *device;
+
+  ResetStubData();
+  device = cras_bt_device_create(FAKE_OBJ_PATH);
+  cras_bt_io_create_profile_ret = &bt_iodev1;
+  cras_bt_device_append_iodev(device, &d1_,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+  cras_bt_io_create_profile_ret = &bt_iodev2;
+  cras_bt_device_append_iodev(device, &d3_,
+      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+
+  cras_bt_device_start_monitor();
+  cras_bt_device_switch_profile_on_open(device, &bt_iodev1);
+
+  /* Two bt iodevs were all active. */
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_INPUT] = 0;
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_OUTPUT] = 0;
+  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+  EXPECT_EQ(2, audio_thread_rm_active_dev_called);
+  EXPECT_EQ(2, audio_thread_add_active_dev_called);
+
+  /* One bt iodev was active, the other was not. */
+  cras_bt_device_switch_profile_on_open(device, &bt_iodev2);
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_OUTPUT] = 0;
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_INPUT] = -1;
+  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+  EXPECT_EQ(4, audio_thread_rm_active_dev_called);
+  EXPECT_EQ(4, audio_thread_add_active_dev_called);
+
+  /* Output bt iodev wasn't active, close the active input iodev. */
+  cras_bt_device_switch_profile_on_close(device, &bt_iodev2);
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_OUTPUT] = -1;
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_INPUT] = 0;
+  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+  EXPECT_EQ(6, audio_thread_rm_active_dev_called);
+  EXPECT_EQ(5, audio_thread_add_active_dev_called);
 }
 
 /* Stubs */
@@ -147,6 +213,37 @@ const char *cras_bt_adapter_address(const struct cras_bt_adapter *adapter)
 void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device)
 {
 }
+
+/* From audio_thread */
+int audio_thread_add_active_dev(struct audio_thread *thread,
+         struct cras_iodev *dev)
+{
+  audio_thread_add_active_dev_dev = dev;
+  audio_thread_add_active_dev_called++;
+  return 0;
+}
+
+int audio_thread_rm_active_dev(struct audio_thread *thread,
+        struct cras_iodev *dev)
+{
+  audio_thread_rm_active_dev_called++;
+  return audio_thread_rm_active_dev_rets[dev->direction];
+}
+
+/* From iodev_list */
+struct audio_thread* cras_iodev_list_get_audio_thread() {
+  return iodev_get_thread_return;
+}
+
+int cras_system_add_select_fd(int fd,
+            void (*callback)(void *data),
+            void *callback_data)
+{
+  cras_system_add_select_fd_callback = callback;
+  cras_system_add_select_fd_callback_data = callback_data;
+  return 0;
+}
+
 } // extern "C"
 } // namespace
 

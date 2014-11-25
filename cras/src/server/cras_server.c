@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "cras_bt_manager.h"
+#include "cras_bt_device.h"
 #include "cras_a2dp_endpoint.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_config.h"
@@ -337,6 +338,7 @@ int cras_server_run(int enable_hfp)
 	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
 
 	cras_udev_start_sound_subsystem_monitor();
+	cras_bt_device_start_monitor();
 
 	dbus_threads_init_default();
 	dbus_conn = cras_dbus_connect_system_bus();

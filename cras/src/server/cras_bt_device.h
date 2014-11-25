@@ -79,4 +79,26 @@ int cras_bt_device_get_active_profile(const struct cras_bt_device *device);
 void cras_bt_device_set_active_profile(struct cras_bt_device *device,
 				       unsigned int profile);
 
+/* Calls this function after configures the active profile of bt device
+ * will reactivate the bt_ios associated with the bluetooth device. So it
+ * can switch to the new active profile at open.
+ * Args:
+ *    device - The bluetooth device.
+ *    bt_iodev - The iodev triggers the reactivaion.
+ */
+int cras_bt_device_switch_profile_on_open(struct cras_bt_device *device,
+					  struct cras_iodev *bt_iodev);
+
+/* Calls this function after configures the active profile of bt device
+ * will reactivate the bt_ios associated with the bluetooth device. So it
+ * can switch to the new active profile at device close.
+ * Args:
+ *    device - The bluetooth device.
+ *    bt_iodev - The iodev triggers the reactivaion.
+ */
+int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
+					   struct cras_iodev *bt_iodev);
+
+void cras_bt_device_start_monitor();
+
 #endif /* CRAS_BT_DEVICE_H_ */

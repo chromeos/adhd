@@ -12,12 +12,15 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
+#include "audio_thread.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_io.h"
 #include "cras_bt_profile.h"
 #include "cras_iodev.h"
+#include "cras_iodev_list.h"
+#include "cras_system_state.h"
 #include "utlist.h"
 
 #define BTPROTO_SCO 2
@@ -39,8 +42,21 @@ struct cras_bt_device {
 	struct cras_bt_device *prev, *next;
 };
 
+enum BT_DEVICE_COMMAND {
+	BT_DEVICE_SWITCH_PROFILE_ON_CLOSE,
+	BT_DEVICE_SWITCH_PROFILE_ON_OPEN,
+};
+
+struct bt_device_msg {
+	enum BT_DEVICE_COMMAND cmd;
+	struct cras_bt_device *device;
+	struct cras_iodev *dev;
+};
+
 static struct cras_bt_device *devices;
 
+/* To send message to main thread. */
+int main_fds[2];
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid)
 {
@@ -445,4 +461,131 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 
 error:
 	return -1;
+}
+
+/* This diagram describes how the profile switching happens. When
+ * certain conditions met, bt iodev will call the APIs below to interact
+ * with main thread to switch to another active profile.
+ *
+ * Audio thread:
+ *  +--------------------------------------------------------------+
+ *  | bt iodev                                                     |
+ *  |              +------------------+    +-----------------+     |
+ *  |              | condition met to |    | open, close, or |     |
+ *  |           +--| change profile   |<---| append profile  |<--+ |
+ *  |           |  +------------------+    +-----------------+   | |
+ *  +-----------|------------------------------------------------|-+
+ *              |                                                |
+ * Main thread: |
+ *  +-----------|------------------------------------------------|-+
+ *  |           |                                                | |
+ *  |           |      +------------+     +----------------+     | |
+ *  |           +----->| set active |---->| switch profile |-----+ |
+ *  |                  | profile    |     +----------------+       |
+ *  | bt device        +------------+                              |
+ *  +--------------------------------------------------------------+
+ */
+int cras_bt_device_switch_profile_on_open(struct cras_bt_device *device,
+					  struct cras_iodev *bt_iodev)
+{
+	struct bt_device_msg msg;
+	int rc;
+
+	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ON_OPEN;
+	msg.device = device;
+	msg.dev = bt_iodev;
+	rc = write(main_fds[1], &msg, sizeof(msg));
+	return rc;
+}
+
+int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
+					   struct cras_iodev *bt_iodev)
+{
+	struct bt_device_msg msg;
+	int rc;
+
+	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ON_CLOSE;
+	msg.device = device;
+	msg.dev = bt_iodev;
+	rc = write(main_fds[1], &msg, sizeof(msg));
+	return rc;
+}
+
+/* Switches associated bt iodevs to use the active profile. This is
+ * achieved by close the iodevs, update their active nodes, and then
+ * finally reopen them. */
+static void bt_device_switch_profile(struct cras_bt_device *device,
+				     struct cras_iodev *bt_iodev,
+				     int on_open)
+{
+	struct audio_thread *thread = cras_iodev_list_get_audio_thread();
+	struct cras_iodev *iodev;
+	int is_active[CRAS_NUM_DIRECTIONS] = {0};
+	int rc;
+	int dir;
+
+	/* If a bt iodev is active, temporarily remove it from the active
+	 * device list. Note that we need to check all bt_iodevs for the
+	 * situation that both input and output are active while switches
+	 * from HFP/HSP to A2DP.
+	 */
+	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
+		iodev = device->bt_iodevs[dir];
+		if (!iodev)
+			continue;
+		rc = audio_thread_rm_active_dev(thread, iodev);
+		is_active[dir] = !rc;
+	}
+
+	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
+		iodev = device->bt_iodevs[dir];
+		if (!iodev)
+			continue;
+		/* If the iodev was active or this profile switching is
+		 * triggered at opening iodev, add it to active dev list.
+		 */
+		if (is_active[dir] ||
+		    (on_open && iodev == bt_iodev)) {
+			iodev->update_active_node(iodev);
+			audio_thread_add_active_dev(thread, iodev);
+		}
+	}
+}
+
+static void bt_device_process_msg(void *arg)
+{
+	int rc;
+	struct bt_device_msg msg;
+
+	rc = read(main_fds[0], &msg, sizeof(msg));
+	if (rc < 0)
+		return;
+
+	switch (msg.cmd) {
+	case BT_DEVICE_SWITCH_PROFILE_ON_CLOSE:
+		bt_device_switch_profile(msg.device, msg.dev, 0);
+		break;
+	case BT_DEVICE_SWITCH_PROFILE_ON_OPEN:
+		bt_device_switch_profile(msg.device, msg.dev, 1);
+		break;
+	default:
+		break;
+	}
+}
+
+void cras_bt_device_start_monitor()
+{
+	int rc;
+
+	main_fds[0] = -1;
+	main_fds[1] = -1;
+	rc = pipe(main_fds);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to pipe");
+		return;
+	}
+
+	cras_system_add_select_fd(main_fds[0],
+				  bt_device_process_msg,
+				  NULL);
 }
