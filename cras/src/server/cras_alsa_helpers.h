@@ -81,11 +81,14 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle);
  *            Must be freed by the caller.
  *    channel_counts - Pointer that will be set to the array of valid channel
  *                     counts.  Must be freed by the caller.
+ *    formats - Pointer that will be set to the arrary of valid PCM formats.
+ *              Must be freed by the caller.
  * Returns:
  *   0 on success.  On failure an error code from alsa or -ENOMEM.
  */
 int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
-			      size_t **rates, size_t **channel_counts);
+			      size_t **rates, size_t **channel_counts,
+			      snd_pcm_format_t **formats);
 
 /* Sets up the hwparams to alsa.
  * Args:

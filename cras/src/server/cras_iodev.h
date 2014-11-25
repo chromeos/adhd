@@ -85,6 +85,7 @@ struct cras_ionode {
  * direction - Input or Output.
  * supported_rates - Array of sample rates supported by device 0-terminated.
  * supported_channel_counts - List of number of channels supported by device.
+ * supported_formats - List of audio formats (s16le, s32le) supported by device.
  * buffer_size - Size of the audio buffer in frames.
  * min_buffer_level - Extra frames to keep queued in addition to requested.
  * dsp_context - The context used for dsp processing on the audio data.
@@ -133,6 +134,7 @@ struct cras_iodev {
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t *supported_rates;
 	size_t *supported_channel_counts;
+	snd_pcm_format_t *supported_formats;
 	snd_pcm_uframes_t buffer_size;
 	unsigned int min_buffer_level;
 	struct cras_dsp_context *dsp_context;

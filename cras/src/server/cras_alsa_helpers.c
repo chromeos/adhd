@@ -51,6 +51,13 @@ static const size_t test_channel_counts[] = {
 	0
 };
 
+static const snd_pcm_format_t test_formats[] = {
+	SND_PCM_FORMAT_S16_LE,
+	SND_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_S32_LE,
+	(snd_pcm_format_t)0
+};
+
 /* Looks up the list of channel map for the one can exactly matches
  * the layout specified in fmt.
  */
@@ -326,7 +333,8 @@ done:
 }
 
 int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
-			      size_t **rates, size_t **channel_counts)
+			      size_t **rates, size_t **channel_counts,
+			      snd_pcm_format_t **formats)
 {
 	int rc;
 	snd_pcm_t *handle;
@@ -361,6 +369,13 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 		snd_pcm_close(handle);
 		return -ENOMEM;
 	}
+	*formats = (snd_pcm_format_t *)malloc(sizeof(test_formats));
+	if (*formats == NULL) {
+		free(*channel_counts);
+		free(*rates);
+		snd_pcm_close(handle);
+		return -ENOMEM;
+	}
 
 	num_found = 0;
 	for (i = 0; test_sample_rates[i] != 0; i++) {
@@ -379,6 +394,15 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 			(*channel_counts)[num_found++] = test_channel_counts[i];
 	}
 	(*channel_counts)[num_found] = 0;
+
+	num_found = 0;
+	for (i = 0; test_formats[i] != 0; i++) {
+		rc = snd_pcm_hw_params_test_format(handle, params,
+						   test_formats[i]);
+		if (rc == 0)
+			(*formats)[num_found++] = test_formats[i];
+	}
+	(*formats)[num_found] = (snd_pcm_format_t)0;
 
 	snd_pcm_close(handle);
 

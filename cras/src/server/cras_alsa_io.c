@@ -165,8 +165,6 @@ static int open_dev(struct cras_iodev *iodev)
 	 */
 	if (iodev->format == NULL)
 		return -EINVAL;
-	/* TODO(dgreid) - allow more formats here. */
-	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	aio->num_underruns = 0;
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
@@ -518,6 +516,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
+	free(aio->base.supported_formats);
 
 	DL_FOREACH(aio->base.nodes, node) {
 		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
@@ -938,10 +937,13 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	iodev->supported_rates = NULL;
 	free(iodev->supported_channel_counts);
 	iodev->supported_channel_counts = NULL;
+	free(iodev->supported_formats);
+	iodev->supported_formats = NULL;
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
-					&iodev->supported_channel_counts);
+					&iodev->supported_channel_counts,
+					&iodev->supported_formats);
 	return err;
 }
 
@@ -1050,9 +1052,11 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
 					&iodev->supported_rates,
-					&iodev->supported_channel_counts);
+					&iodev->supported_channel_counts,
+					&iodev->supported_formats);
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
-	    iodev->supported_channel_counts[0] == 0) {
+	    iodev->supported_channel_counts[0] == 0 ||
+	    iodev->supported_formats[0] == 0) {
 		syslog(LOG_ERR, "cras_alsa_fill_properties: %s", strerror(err));
 		goto cleanup_iodev;
 	}

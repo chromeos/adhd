@@ -90,6 +90,21 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 	return iodev->supported_channel_counts[0];
 }
 
+/* finds the best match for the current format. If no exact match is
+ * found, use the first. */
+static snd_pcm_format_t get_best_pcm_format(struct cras_iodev *iodev,
+					    snd_pcm_format_t fmt)
+{
+	size_t i;
+
+	for (i = 0; iodev->supported_formats[i] != 0; i++) {
+		if (fmt == iodev->supported_formats[i])
+			return fmt;
+	}
+
+	return iodev->supported_formats[0];
+}
+
 /* Set default channel count and layout to an iodev. */
 static void set_default_channel_count_layout(struct cras_iodev *iodev)
 {
@@ -169,6 +184,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
 	size_t actual_rate, actual_num_channels;
+	snd_pcm_format_t actual_format;
 	int rc;
 
 	/* If this device isn't already using a format, try to match the one
@@ -196,22 +212,23 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		actual_rate = get_best_rate(iodev, fmt->frame_rate);
 		actual_num_channels = get_best_channel_count(iodev,
 					iodev->format->num_channels);
-		if (actual_rate == 0 || actual_num_channels == 0) {
+		actual_format = get_best_pcm_format(iodev, fmt->format);
+		if (actual_rate == 0 || actual_num_channels == 0 ||
+		    actual_format == 0) {
 			/* No compatible frame rate found. */
 			rc = -EINVAL;
 			goto error;
 		}
 		iodev->format->frame_rate = actual_rate;
 		iodev->ext_format->frame_rate = actual_rate;
+		iodev->format->format = actual_format;
+		iodev->ext_format->format = actual_format;
 		if (iodev->format->num_channels != actual_num_channels) {
 			/* If the DSP for this device doesn't match, drop it. */
 			iodev->format->num_channels = actual_num_channels;
 			iodev->ext_format->num_channels = actual_num_channels;
 			cras_iodev_free_dsp(iodev);
 		}
-		/* TODO(dgreid) - allow other formats. */
-		iodev->format->format = SND_PCM_FORMAT_S16_LE;
-		iodev->ext_format->format = SND_PCM_FORMAT_S16_LE;
 
 		if (iodev->update_channel_layout) {
 			rc = iodev->update_channel_layout(iodev);

@@ -81,6 +81,12 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	iodev->supported_channel_counts[0] = channel;
 	iodev->supported_channel_counts[1] = 0;
 
+	free(iodev->supported_formats);
+	iodev->supported_formats =
+		(snd_pcm_format_t *)malloc(2 * sizeof(snd_pcm_format_t));
+	iodev->supported_formats[0] = SND_PCM_FORMAT_S16_LE;
+	iodev->supported_formats[1] = 0;
+
 	return 0;
 }
 

@@ -939,7 +939,8 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 int cras_alsa_fill_properties(const char *dev,
 			      snd_pcm_stream_t stream,
 			      size_t **rates,
-			      size_t **channel_counts)
+			      size_t **channel_counts,
+			      snd_pcm_format_t **formats)
 {
   *rates = (size_t *)malloc(sizeof(**rates) * 3);
   (*rates)[0] = 44100;
@@ -948,6 +949,9 @@ int cras_alsa_fill_properties(const char *dev,
   *channel_counts = (size_t *)malloc(sizeof(**channel_counts) * 2);
   (*channel_counts)[0] = 2;
   (*channel_counts)[1] = 0;
+  *formats = (snd_pcm_format_t *)malloc(sizeof(**formats) * 2);
+  (*formats)[0] = SND_PCM_FORMAT_S16_LE;
+  (*formats)[1] = (snd_pcm_format_t)0;
 
   cras_alsa_fill_properties_called++;
   return 0;
