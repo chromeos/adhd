@@ -1,0 +1,244 @@
+// Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include <gtest/gtest.h>
+
+extern "C" {
+
+// To test static functions.
+#include "cras_bt_io.c"
+}
+
+static unsigned int cras_iodev_add_node_called;
+static unsigned int cras_iodev_rm_node_called;
+static unsigned int cras_iodev_free_format_called;
+static unsigned int cras_iodev_set_active_node_called;
+static unsigned int cras_iodev_list_add_output_called;
+static unsigned int cras_iodev_list_rm_output_called;
+static unsigned int cras_iodev_list_add_input_called;
+static unsigned int cras_iodev_list_rm_input_called;
+
+void ResetStubData() {
+  cras_iodev_add_node_called = 0;
+  cras_iodev_rm_node_called = 0;
+  cras_iodev_free_format_called = 0;
+  cras_iodev_set_active_node_called = 0;
+  cras_iodev_list_add_output_called = 0;
+  cras_iodev_list_rm_output_called = 0;
+  cras_iodev_list_add_input_called = 0;
+  cras_iodev_list_rm_input_called = 0;
+}
+
+namespace {
+
+class BtIoBasicSuite : public testing::Test {
+  protected:
+    virtual void SetUp() {
+      ResetStubData();
+      SetUpIodev(&iodev_, CRAS_STREAM_OUTPUT);
+
+      update_supported_formats_called_ = 0;
+      frames_queued_called_ = 0;
+      delay_frames_called_ = 0;
+      get_buffer_called_ = 0;
+      put_buffer_called_ = 0;
+      is_open_called_ = 0;
+      open_dev_called_ = 0;
+      close_dev_called_ = 0;
+      dev_running_called_ = 0;
+    }
+
+    virtual void TearDown() {
+    }
+
+    static void SetUpIodev(struct cras_iodev *d,
+                           enum CRAS_STREAM_DIRECTION dir) {
+      d->direction = dir;
+      d->update_supported_formats = update_supported_formats;
+      d->frames_queued = frames_queued;
+      d->delay_frames = delay_frames;
+      d->get_buffer = get_buffer;
+      d->put_buffer = put_buffer;
+      d->is_open = is_open;
+      d->open_dev = open_dev;
+      d->close_dev = close_dev;
+      d->dev_running = dev_running;
+    }
+
+    // Stub functions for the iodev structure.
+    static int update_supported_formats(struct cras_iodev *iodev) {
+      iodev->supported_rates = (size_t *)calloc(
+          2, sizeof(*iodev->supported_rates));
+      iodev->supported_rates[0] = 48000;
+      iodev->supported_rates[1] = 0;
+      iodev->supported_channel_counts = (size_t *)calloc(
+          2, sizeof(*iodev->supported_channel_counts));
+      iodev->supported_channel_counts[0] = 2;
+      iodev->supported_channel_counts[1] = 0;
+      iodev->supported_formats = (snd_pcm_format_t *)calloc(
+          2, sizeof(*iodev->supported_formats));
+      iodev->supported_formats[0] = SND_PCM_FORMAT_S16_LE;
+      iodev->supported_formats[1] = (snd_pcm_format_t)0;
+      update_supported_formats_called_++;
+      return 0;
+    }
+    static int frames_queued(const cras_iodev* iodev) {
+      frames_queued_called_++;
+      return 0;
+    }
+    static int delay_frames(const cras_iodev* iodev) {
+      delay_frames_called_++;
+      return 0;
+    }
+    static int get_buffer(cras_iodev* iodev,
+                          struct cras_audio_area** area,
+                          unsigned int* num) {
+      get_buffer_called_++;
+      return 0;
+    }
+    static int put_buffer(cras_iodev* iodev,
+                          unsigned int num) {
+      put_buffer_called_++;
+      return 0;
+    }
+    static int is_open(const cras_iodev* iodev) {
+      is_open_called_++;
+      return 0;
+    }
+    static int open_dev(cras_iodev* iodev) {
+      open_dev_called_++;
+      return 0;
+    }
+    static int close_dev(cras_iodev* iodev) {
+      close_dev_called_++;
+      return 0;
+    }
+    static int dev_running(const cras_iodev* iodev) {
+      dev_running_called_++;
+      return 1;
+    }
+
+  static struct cras_iodev *bt_iodev;
+  static struct cras_iodev iodev_;
+  static unsigned int update_supported_formats_called_;
+  static unsigned int frames_queued_called_;
+  static unsigned int delay_frames_called_;
+  static unsigned int get_buffer_called_;
+  static unsigned int put_buffer_called_;
+  static unsigned int is_open_called_;
+  static unsigned int open_dev_called_;
+  static unsigned int close_dev_called_;
+  static unsigned int dev_running_called_;
+};
+
+struct cras_iodev *BtIoBasicSuite::bt_iodev;
+struct cras_iodev BtIoBasicSuite::iodev_;
+unsigned int BtIoBasicSuite::update_supported_formats_called_;
+unsigned int BtIoBasicSuite::frames_queued_called_;
+unsigned int BtIoBasicSuite::delay_frames_called_;
+unsigned int BtIoBasicSuite::get_buffer_called_;
+unsigned int BtIoBasicSuite::put_buffer_called_;
+unsigned int BtIoBasicSuite::is_open_called_;
+unsigned int BtIoBasicSuite::open_dev_called_;
+unsigned int BtIoBasicSuite::close_dev_called_;
+unsigned int BtIoBasicSuite::dev_running_called_;
+
+TEST_F(BtIoBasicSuite, CreateBtIo) {
+  struct cras_audio_area *fake_area;
+  struct cras_audio_format fake_fmt;
+  unsigned fr;
+  bt_iodev = cras_bt_io_create(&iodev_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+  EXPECT_NE((void *)NULL, bt_iodev);
+  EXPECT_EQ(&iodev_, active_profile_dev(bt_iodev));
+  EXPECT_EQ(1, cras_iodev_list_add_output_called);
+  bt_iodev->format = &fake_fmt;
+  bt_iodev->update_supported_formats(bt_iodev);
+  EXPECT_EQ(1, update_supported_formats_called_);
+
+  bt_iodev->open_dev(bt_iodev);
+  EXPECT_EQ(1, open_dev_called_);
+  bt_iodev->is_open(bt_iodev);
+  EXPECT_EQ(1, is_open_called_);
+  bt_iodev->frames_queued(bt_iodev);
+  EXPECT_EQ(1, frames_queued_called_);
+  bt_iodev->get_buffer(bt_iodev, &fake_area, &fr);
+  EXPECT_EQ(1, get_buffer_called_);
+  bt_iodev->put_buffer(bt_iodev, fr);
+  EXPECT_EQ(1, put_buffer_called_);
+  bt_iodev->dev_running(bt_iodev);
+  EXPECT_EQ(1, dev_running_called_);
+  bt_iodev->close_dev(bt_iodev);
+  EXPECT_EQ(1, close_dev_called_);
+  EXPECT_EQ(1, cras_iodev_free_format_called);
+  cras_bt_io_destroy(bt_iodev);
+  EXPECT_EQ(1, cras_iodev_list_rm_output_called);
+}
+
+} // namespace
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+
+extern "C" {
+
+// Cras iodev
+void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
+{
+  cras_iodev_add_node_called++;
+  iodev->nodes = node;
+}
+
+void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
+{
+  cras_iodev_rm_node_called++;
+  iodev->nodes = NULL;
+}
+
+int cras_iodev_set_format(struct cras_iodev *iodev,
+                          struct cras_audio_format *fmt)
+{
+  iodev->format = fmt;
+  return 0;
+}
+
+void cras_iodev_free_format(struct cras_iodev *iodev)
+{
+  cras_iodev_free_format_called++;
+}
+
+void cras_iodev_set_active_node(struct cras_iodev *iodev,
+        struct cras_ionode *node)
+{
+  cras_iodev_set_active_node_called++;
+  iodev->active_node = node;
+}
+
+//  From iodev list.
+int cras_iodev_list_add_output(struct cras_iodev *output)
+{
+  cras_iodev_list_add_output_called++;
+  return 0;
+}
+
+int cras_iodev_list_rm_output(struct cras_iodev *dev)
+{
+  cras_iodev_list_rm_output_called++;
+  return 0;
+}
+
+int cras_iodev_list_add_input(struct cras_iodev *output)
+{
+  cras_iodev_list_add_input_called++;
+  return 0;
+}
+
+int cras_iodev_list_rm_input(struct cras_iodev *dev)
+{
+  cras_iodev_list_rm_input_called++;
+  return 0;
+}
+
+} // extern "C"
