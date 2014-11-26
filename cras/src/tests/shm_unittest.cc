@@ -30,7 +30,7 @@ class ShmTestSuite : public testing::Test{
     }
 
     struct cras_audio_shm shm_;
-    int16_t *buf_;
+    uint8_t *buf_;
     size_t frames_;
 };
 
@@ -47,7 +47,7 @@ TEST_F(ShmTestSuite, OneHundredFilled) {
   shm_.area->write_offset[0] = 100 * shm_.area->config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(100, frames_);
-  EXPECT_EQ((int16_t *)shm_.area->samples, buf_);
+  EXPECT_EQ(shm_.area->samples, buf_);
   cras_shm_buffer_read(&shm_, frames_ - 9);
   EXPECT_EQ((frames_ - 9) * shm_.config.frame_bytes, shm_.area->read_offset[0]);
   cras_shm_buffer_read(&shm_, 9);
@@ -61,7 +61,7 @@ TEST_F(ShmTestSuite, OneHundredFilled50Read) {
   shm_.area->read_offset[0] = 50 * shm_.config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(50, frames_);
-  EXPECT_EQ((int16_t *)(shm_.area->samples + shm_.area->read_offset[0]), buf_);
+  EXPECT_EQ((shm_.area->samples + shm_.area->read_offset[0]), buf_);
   cras_shm_buffer_read(&shm_, frames_ - 10);
   EXPECT_EQ(shm_.area->write_offset[0] - 10 * shm_.config.frame_bytes,
             shm_.area->read_offset[0]);

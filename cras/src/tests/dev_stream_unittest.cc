@@ -90,7 +90,7 @@ static unsigned int rstream_playable_frames_ret;
 static struct mix_add_call mix_add_call;
 static struct rstream_get_readable_call rstream_get_readable_call;
 static unsigned int rstream_get_readable_num;
-static int16_t *rstream_get_readable_ptr;
+static uint8_t *rstream_get_readable_ptr;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -463,23 +463,29 @@ TEST_F(CreateSuite, SetDevRateMasterDev) {
 
 TEST_F(CreateSuite, StreamMixNoFrames) {
   struct dev_stream dev_stream;
+  struct cras_audio_format fmt;
 
   dev_stream.conv = NULL;
   rstream_playable_frames_ret = 0;
-  EXPECT_EQ(0, dev_stream_mix(&dev_stream, 2, 0, 3));
+  fmt.num_channels = 2;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  EXPECT_EQ(0, dev_stream_mix(&dev_stream, &fmt, 0, 3));
 }
 
 TEST_F(CreateSuite, StreamMixNoConv) {
   struct dev_stream dev_stream;
   const unsigned int nfr = 100;
+  struct cras_audio_format fmt;
 
   dev_stream.conv = NULL;
   dev_stream.stream = reinterpret_cast<cras_rstream*>(0x5446);
   rstream_playable_frames_ret = nfr;
   rstream_get_readable_num = nfr;
-  rstream_get_readable_ptr = reinterpret_cast<int16_t*>(0x4000);
+  rstream_get_readable_ptr = reinterpret_cast<uint8_t*>(0x4000);
   rstream_get_readable_call.num_called = 0;
-  EXPECT_EQ(nfr, dev_stream_mix(&dev_stream, 2, (uint8_t*)0x5000, nfr));
+  fmt.num_channels = 2;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  EXPECT_EQ(nfr, dev_stream_mix(&dev_stream, &fmt, (uint8_t*)0x5000, nfr));
   EXPECT_EQ((int16_t*)0x5000, mix_add_call.dst);
   EXPECT_EQ((int16_t*)0x4000, mix_add_call.src);
   EXPECT_EQ(200, mix_add_call.count);
@@ -495,14 +501,17 @@ TEST_F(CreateSuite, StreamMixNoConvTwoPass) {
   const unsigned int bytes_per_sample = 2;
   const unsigned int num_channels = 2;
   const unsigned int bytes_per_frame = bytes_per_sample * num_channels;
+  struct cras_audio_format fmt;
 
   dev_stream.conv = NULL;
   dev_stream.stream = reinterpret_cast<cras_rstream*>(0x5446);
   rstream_playable_frames_ret = nfr;
   rstream_get_readable_num = nfr / 2;
-  rstream_get_readable_ptr = reinterpret_cast<int16_t*>(0x4000);
+  rstream_get_readable_ptr = reinterpret_cast<uint8_t*>(0x4000);
   rstream_get_readable_call.num_called = 0;
-  EXPECT_EQ(nfr, dev_stream_mix(&dev_stream, 2, (uint8_t*)0x5000, nfr));
+  fmt.num_channels = 2;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  EXPECT_EQ(nfr, dev_stream_mix(&dev_stream, &fmt, (uint8_t*)0x5000, nfr));
   const unsigned int half_offset = nfr / 2 * bytes_per_frame;
   EXPECT_EQ((int16_t*)(0x5000 + half_offset), mix_add_call.dst);
   EXPECT_EQ((int16_t*)0x4000, mix_add_call.src);
@@ -626,7 +635,7 @@ float cras_rstream_get_volume_scaler(struct cras_rstream *rstream) {
   return 1.0;
 }
 
-int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
+uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
                                           unsigned int offset,
 					  size_t *frames) {
   rstream_get_readable_call.rstream = rstream;

@@ -313,7 +313,7 @@ float cras_rstream_get_volume_scaler(struct cras_rstream *rstream)
 	return cras_shm_get_volume_scaler(shm);
 }
 
-int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
+uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
 					  unsigned int offset,
 					  size_t *frames)
 {

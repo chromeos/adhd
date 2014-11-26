@@ -71,12 +71,12 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
  * written. If it's muted and the only stream zero memory.
  * Args:
  *    dev_stream - The struct holding the stream to mix.
- *    num_channels - The number of channels on the device.
+ *    format - The format of the audio device.
  *    dst - The destination buffer for mixing.
  *    num_to_write - The number of frames written.
  */
 int dev_stream_mix(struct dev_stream *dev_stream,
-		   size_t num_channels,
+		   const struct cras_audio_format *fmt,
 		   uint8_t *dst,
 		   unsigned int num_to_write);
 

@@ -473,7 +473,7 @@ void dev_stream_destroy(struct dev_stream *dev_stream)
 }
 
 int dev_stream_mix(struct dev_stream *dev_stream,
-                   size_t num_channels,
+		   const struct cras_audio_format *fmt,
                    uint8_t *dst,
                    unsigned int num_to_write)
 {

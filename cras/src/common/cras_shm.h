@@ -154,7 +154,7 @@ uint8_t *cras_shm_get_writeable_frames(const struct cras_audio_shm *shm,
  * copied from the returned buffer.
  */
 static inline
-int16_t *cras_shm_get_readable_frames(const struct cras_audio_shm *shm,
+uint8_t *cras_shm_get_readable_frames(const struct cras_audio_shm *shm,
 				      size_t offset,
 				      size_t *frames)
 {
@@ -183,7 +183,7 @@ int16_t *cras_shm_get_readable_frames(const struct cras_audio_shm *shm,
 		return NULL;
 	}
 	*frames = (write_offset - final_offset) / shm->config.frame_bytes;
-	return (int16_t *)(cras_shm_buff_for_idx(shm, buf_idx) + final_offset);
+	return cras_shm_buff_for_idx(shm, buf_idx) + final_offset;
 }
 
 /* How many bytes are queued? */

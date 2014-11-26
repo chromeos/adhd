@@ -267,7 +267,7 @@ float cras_rstream_get_volume_scaler(struct cras_rstream *rstream);
 
 /* Returns a pointer to readable frames, fills frames with the number of frames
  * available. */
-int16_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
+uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
 					  unsigned int offset,
 					  size_t *frames);
 

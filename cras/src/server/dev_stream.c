@@ -146,13 +146,13 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 }
 
 int dev_stream_mix(struct dev_stream *dev_stream,
-		   size_t num_channels,
+		   const struct cras_audio_format *fmt,
 		   uint8_t *dst,
 		   unsigned int num_to_write)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
-	int16_t *src;
-	int16_t *target = (int16_t *)dst;
+	uint8_t *src;
+	uint8_t *target = dst;
 	unsigned int fr_written, fr_read;
 	unsigned int buffer_offset;
 	int fr_in_buf;
@@ -184,20 +184,19 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 			read_frames = frames;
 			dev_frames = cras_fmt_conv_convert_frames(
 					dev_stream->conv,
-					(uint8_t *)src,
+					src,
 					dev_stream->conv_buffer->bytes,
 					&read_frames,
 					num_to_write - fr_written);
-			src = (int16_t *)dev_stream->conv_buffer->bytes;
+			src = dev_stream->conv_buffer->bytes;
 		} else {
 			dev_frames = MIN(frames, num_to_write - fr_written);
 			read_frames = dev_frames;
 		}
-		num_samples = dev_frames * num_channels;
-		cras_mix_add(SND_PCM_FORMAT_S16_LE, (uint8_t *)target,
-			     (uint8_t *)src, num_samples, 1,
+		num_samples = dev_frames * fmt->num_channels;
+		cras_mix_add(fmt->format, target, src, num_samples, 1,
 			     cras_rstream_get_mute(rstream), mix_vol);
-		target += num_samples;
+		target += dev_frames * cras_get_format_bytes(fmt);
 		fr_written += dev_frames;
 		fr_read += read_frames;
 	}

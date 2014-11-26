@@ -558,7 +558,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 			float scaler =
 				cras_iodev_get_software_volume_scaler(iodev);
 
-			cras_scale_buffer(SND_PCM_FORMAT_S16_LE, frames,
+			cras_scale_buffer(fmt->format, frames,
 					  nsamples, scaler);
 		}
 	}
