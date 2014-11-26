@@ -33,6 +33,19 @@ void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 		  unsigned int count, unsigned int index,
 		  int mute, float mix_vol);
 
+/* Add src buffer to dst with independent channel strides.
+ * Args:
+ *    fmt - The format (SND_PCM_FORMAT_*)
+ *    dst - Buffer of samples to mix to.
+ *    src - Buffer of samples to mix from.
+ *    count - The number of samples to mix.
+ *    dst_stride - Stride between channel samples in dst in bytes.
+ *    src_stride - Stride between channel samples in src in bytes.
+ */
+void cras_mix_add_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
+			 unsigned int count, unsigned int dst_stride,
+			 unsigned int src_stride);
+
 /* Mutes the given buffer.
  * Args:
  *    num_channel - Number of channels in data.

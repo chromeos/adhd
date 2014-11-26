@@ -109,6 +109,26 @@ static void cras_mix_add_s16_le(uint8_t *dst, uint8_t *src,
 	scale_add_clip_s16_le(out, in, count, mix_vol);
 }
 
+void cras_mix_add_stride_s16_le(uint8_t *dst, uint8_t *src,
+				unsigned int dst_stride,
+				unsigned int src_stride,
+				unsigned int count)
+{
+	unsigned int i;
+
+	for (i = 0; i < count; i++) {
+		int32_t sum;
+		sum = *(int16_t *)dst + *(int16_t *)src;
+		if (sum > INT16_MAX)
+			sum = INT16_MAX;
+		else if (sum < INT16_MIN)
+			sum = INT16_MIN;
+		*(int16_t*)dst = sum;
+		dst += dst_stride;
+		src += src_stride;
+	}
+}
+
 /*
  * Signed 24 bit little endian functions.
  */
@@ -206,6 +226,26 @@ static void cras_mix_add_s24_le(uint8_t *dst, uint8_t *src,
 		return copy_scaled_s24_le(out, in, count, mix_vol);
 
 	scale_add_clip_s24_le(out, in, count, mix_vol);
+}
+
+void cras_mix_add_stride_s24_le(uint8_t *dst, uint8_t *src,
+				unsigned int dst_stride,
+				unsigned int src_stride,
+				unsigned int count)
+{
+	unsigned int i;
+
+	for (i = 0; i < count; i++) {
+		int32_t sum;
+		sum = *(int32_t *)dst + *(int32_t *)src;
+		if (sum > 0x007fffff)
+			sum = 0x007fffff;
+		else if (sum < (int32_t)0xff800000)
+			sum = (int32_t)0xff800000;
+		*(int32_t*)dst = sum;
+		dst += dst_stride;
+		src += src_stride;
+	}
 }
 
 /*
@@ -307,6 +347,26 @@ static void cras_mix_add_s32_le(uint8_t *dst, uint8_t *src,
 	scale_add_clip_s32_le(out, in, count, mix_vol);
 }
 
+void cras_mix_add_stride_s32_le(uint8_t *dst, uint8_t *src,
+				unsigned int dst_stride,
+				unsigned int src_stride,
+				unsigned int count)
+{
+	unsigned int i;
+
+	for (i = 0; i < count; i++) {
+		int64_t sum;
+		sum = *(int32_t *)dst + *(int32_t *)src;
+		if (sum > INT32_MAX)
+			sum = INT32_MAX;
+		else if (sum < INT32_MIN)
+			sum = INT32_MIN;
+		*(int32_t*)dst = sum;
+		dst += dst_stride;
+		src += src_stride;
+	}
+}
+
 /*
  * Exported Interface
  */
@@ -340,6 +400,25 @@ void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 	case SND_PCM_FORMAT_S32_LE:
 		return cras_mix_add_s32_le(dst, src, count, index, mute,
 					   mix_vol);
+	default:
+		break;
+	}
+}
+
+void cras_mix_add_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
+			 unsigned int count, unsigned int dst_stride,
+			 unsigned int src_stride)
+{
+	switch (fmt) {
+	case SND_PCM_FORMAT_S16_LE:
+		return cras_mix_add_stride_s16_le(dst, src, dst_stride,
+						  src_stride, count);
+	case SND_PCM_FORMAT_S24_LE:
+		return cras_mix_add_stride_s24_le(dst, src, dst_stride,
+						  src_stride, count);
+	case SND_PCM_FORMAT_S32_LE:
+		return cras_mix_add_stride_s32_le(dst, src, dst_stride,
+						  src_stride, count);
 	default:
 		break;
 	}

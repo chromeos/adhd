@@ -136,6 +136,18 @@ TEST_F(MixTestSuiteS16_LE, ScaleHalfVolume) {
   EXPECT_EQ(0, memcmp(compare_buffer_, src_buffer_, kBufferFrames * 4));
 }
 
+TEST_F(MixTestSuiteS16_LE, StrideCopy) {
+  for (size_t i = 0; i < kBufferFrames * 2; i += 2)
+    compare_buffer_[i] = src_buffer_[i/2];
+  for (size_t i = 1; i < kBufferFrames * 2; i += 2)
+    compare_buffer_[i] = 0;
+  memset(mix_buffer_, 0, kBufferFrames * 4);
+  cras_mix_add_stride(fmt_, (uint8_t *)mix_buffer_, (uint8_t *)src_buffer_,
+                      kBufferFrames, 4, 2);
+
+  EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
+}
+
 class MixTestSuiteS24_LE : public testing::Test{
   protected:
     virtual void SetUp() {
@@ -256,6 +268,18 @@ TEST_F(MixTestSuiteS24_LE, ScaleHalfVolume) {
   EXPECT_EQ(0, memcmp(compare_buffer_, src_buffer_, kBufferFrames * fr_bytes_));
 }
 
+TEST_F(MixTestSuiteS24_LE, StrideCopy) {
+  for (size_t i = 0; i < kBufferFrames * 2; i += 2)
+    compare_buffer_[i] = src_buffer_[i/2];
+  for (size_t i = 1; i < kBufferFrames * 2; i += 2)
+    compare_buffer_[i] = 0;
+  memset(mix_buffer_, 0, kBufferFrames * 8);
+  cras_mix_add_stride(fmt_, (uint8_t *)mix_buffer_, (uint8_t *)src_buffer_,
+                      kBufferFrames, 8, 4);
+
+  EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 8));
+}
+
 class MixTestSuiteS32_LE : public testing::Test{
   protected:
     virtual void SetUp() {
@@ -374,6 +398,18 @@ TEST_F(MixTestSuiteS32_LE, ScaleHalfVolume) {
   cras_scale_buffer(fmt_, (uint8_t *)src_buffer_, kNumSamples, 0.5);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, src_buffer_, kBufferFrames * fr_bytes_));
+}
+
+TEST_F(MixTestSuiteS32_LE, StrideCopy) {
+  for (size_t i = 0; i < kBufferFrames * 2; i += 2)
+    compare_buffer_[i] = src_buffer_[i/2];
+  for (size_t i = 1; i < kBufferFrames * 2; i += 2)
+    compare_buffer_[i] = 0;
+  memset(mix_buffer_, 0, kBufferFrames * 8);
+  cras_mix_add_stride(fmt_, (uint8_t *)mix_buffer_, (uint8_t *)src_buffer_,
+                      kBufferFrames, 8, 4);
+
+  EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 8));
 }
 
 /* Stubs */
