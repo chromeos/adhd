@@ -8,6 +8,7 @@
 
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
+#include "cras_mix.h"
 
 struct cras_audio_area *cras_audio_area_create(int num_channels)
 {
@@ -29,7 +30,6 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 				  unsigned int skip_zero)
 {
 	unsigned int src_idx, dst_idx;
-	unsigned int i;
 	unsigned int ncopy;
 	unsigned int dst_format_bytes = cras_get_format_bytes(dst_fmt);
 	uint8_t *schan, *dchan;
@@ -51,23 +51,15 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 			      dst->channels[dst_idx].ch_set))
 				continue;
 
-			/* TODO(dgreid) - this assumes s16le. */
 			schan = src->channels[src_idx].buf +
 				src_offset * src->channels[src_idx].step_bytes;
 			dchan = dst->channels[dst_idx].buf +
 				dst_offset * dst->channels[dst_idx].step_bytes;
 
-			for (i = 0; i < ncopy; i++) {
-				int32_t sum;
-				sum = *(int16_t *)dchan + *(int16_t *)schan;
-				if (sum > 0x7fff)
-					sum = 0x7fff;
-				else if (sum < -0x8000)
-					sum = -0x8000;
-				*(int16_t*)dchan = sum;
-				dchan += dst->channels[dst_idx].step_bytes;
-				schan += src->channels[src_idx].step_bytes;
-			}
+			cras_mix_add_stride(dst_fmt->format, dchan, schan,
+					    ncopy,
+					    dst->channels[dst_idx].step_bytes,
+					    src->channels[src_idx].step_bytes);
 		}
 	}
 

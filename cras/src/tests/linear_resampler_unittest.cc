@@ -154,6 +154,29 @@ TEST(LinearResampler, ResampleIntegerFractionToLess) {
 	}
 }
 
+extern "C" {
+
+void cras_mix_add_stride(int fmt, uint8_t *dst, uint8_t *src,
+			 unsigned int count, unsigned int dst_stride,
+			 unsigned int src_stride)
+{
+	unsigned int i;
+
+	for (i = 0; i < count; i++) {
+		int32_t sum;
+		sum = *(int16_t *)dst + *(int16_t *)src;
+		if (sum > INT16_MAX)
+			sum = INT16_MAX;
+		else if (sum < INT16_MIN)
+			sum = INT16_MIN;
+		*(int16_t*)dst = sum;
+		dst += dst_stride;
+		src += src_stride;
+	}
+}
+
+}  //  extern "C"
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
