@@ -23,7 +23,7 @@ struct cras_audio_area *cras_audio_area_create(int num_channels)
 
 unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 				  unsigned int dst_offset,
-				  unsigned int dst_format_bytes,
+				  const struct cras_audio_format *dst_fmt,
 				  const struct cras_audio_area *src,
 				  unsigned int src_offset,
 				  unsigned int skip_zero)
@@ -31,6 +31,7 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 	unsigned int src_idx, dst_idx;
 	unsigned int i;
 	unsigned int ncopy;
+	unsigned int dst_format_bytes = cras_get_format_bytes(dst_fmt);
 	uint8_t *schan, *dchan;
 
 	ncopy = MIN(src->frames - src_offset, dst->frames - dst_offset);

@@ -48,7 +48,7 @@ TEST(AudioArea, CopyAudioArea) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 4, a2, 0, 0);
+  cras_audio_area_copy(a1, 0, &fmt, a2, 0, 0);
   for (i = 0; i < 32; i++)
     EXPECT_EQ(buf1[i], buf2[i]);
 
@@ -77,7 +77,7 @@ TEST(AudioArea, CopyAudioAreaOffset) {
   memset(buf1, 0x55, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 2, 4, a2, 0, 0);
+  cras_audio_area_copy(a1, 2, &fmt, a2, 0, 0);
   EXPECT_EQ(buf1[0], 0x5555);
   EXPECT_EQ(buf1[1], 0x5555);
   EXPECT_EQ(buf1[2], 0x5555);
@@ -110,7 +110,7 @@ TEST(AudioArea, CopyAudioAreaOffsetLimit) {
   memset(buf1, 0x55, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 2, 4, a2, 0, 0);
+  cras_audio_area_copy(a1, 2, &fmt, a2, 0, 0);
   EXPECT_EQ(buf1[0], 0x5555);
   EXPECT_EQ(buf1[1], 0x5555);
   EXPECT_EQ(buf1[2], 0x5555);
@@ -127,30 +127,32 @@ TEST(AudioArea, CopyAudioAreaOffsetLimit) {
 }
 
 TEST(AudioArea, CopyMonoToStereo) {
-  struct cras_audio_format fmt;
+  struct cras_audio_format dst_fmt;
+  struct cras_audio_format src_fmt;
   int i;
 
-  fmt.num_channels = 2;
-  fmt.format = SND_PCM_FORMAT_S16_LE;
+  dst_fmt.num_channels = 2;
+  dst_fmt.format = SND_PCM_FORMAT_S16_LE;
   for (i = 0; i < CRAS_CH_MAX; i++)
-    fmt.channel_layout[i] = stereo[i];
+    dst_fmt.channel_layout[i] = stereo[i];
   a1 = cras_audio_area_create(2);
   a1->frames = 16;
-  cras_audio_area_config_channels(a1, &fmt);
-  cras_audio_area_config_buf_pointers(a1, &fmt, (uint8_t *)buf1);
+  cras_audio_area_config_channels(a1, &dst_fmt);
+  cras_audio_area_config_buf_pointers(a1, &dst_fmt, (uint8_t *)buf1);
 
-  fmt.num_channels = 1;
+  src_fmt.num_channels = 1;
+  src_fmt.format = SND_PCM_FORMAT_S16_LE;
   for (i = 0; i < CRAS_CH_MAX; i++)
-    fmt.channel_layout[i] = mono[i];
+    src_fmt.channel_layout[i] = mono[i];
   a2 = cras_audio_area_create(1);
   a2->frames = 16;
-  cras_audio_area_config_channels(a2, &fmt);
-  cras_audio_area_config_buf_pointers(a2, &fmt, (uint8_t *)buf2);
+  cras_audio_area_config_channels(a2, &src_fmt);
+  cras_audio_area_config_buf_pointers(a2, &src_fmt, (uint8_t *)buf2);
 
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 4, a2, 0, 0);
+  cras_audio_area_copy(a1, 0, &dst_fmt, a2, 0, 0);
   for (i = 0; i < 16; i++) {
     EXPECT_EQ(buf1[i * 2], buf2[i]);
     EXPECT_EQ(buf1[i * 2 + 1], buf2[i]);
@@ -184,7 +186,7 @@ TEST(AudioArea, CopyStereoToMono) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand() % 10000;
-  cras_audio_area_copy(a1, 0, 2, a2, 0, 0);
+  cras_audio_area_copy(a1, 0, &fmt, a2, 0, 0);
   for (i = 0; i < 16; i++)
     EXPECT_EQ(buf1[i], buf2[i * 2] + buf2[i * 2 + 1]);
 
@@ -216,7 +218,7 @@ TEST(AudioArea, KeyboardMicCopyStereo) {
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 6, a2, 0, 0);
+  cras_audio_area_copy(a1, 0, &fmt, a2, 0, 0);
   for (i = 0; i < 10; i++) {
     EXPECT_EQ(buf1[i * 3], buf2[i * 2]);
     EXPECT_EQ(buf1[i * 3 + 1], buf2[i * 2 + 1]);
@@ -228,32 +230,34 @@ TEST(AudioArea, KeyboardMicCopyStereo) {
 }
 
 TEST(AudioArea, KeyboardMicCopyFrontCenter) {
-  struct cras_audio_format fmt;
+  struct cras_audio_format dst_fmt;
+  struct cras_audio_format src_fmt;
   int i;
 
-  fmt.num_channels = 3;
-  fmt.format = SND_PCM_FORMAT_S16_LE;
+  dst_fmt.num_channels = 3;
+  dst_fmt.format = SND_PCM_FORMAT_S16_LE;
   for (i = 0; i < CRAS_CH_MAX; i++)
-    fmt.channel_layout[i] = kb_mic[i];
+    dst_fmt.channel_layout[i] = kb_mic[i];
   a1 = cras_audio_area_create(3);
   a1->frames = 10;
-  cras_audio_area_config_channels(a1, &fmt);
-  cras_audio_area_config_buf_pointers(a1, &fmt, (uint8_t *)buf1);
+  cras_audio_area_config_channels(a1, &dst_fmt);
+  cras_audio_area_config_buf_pointers(a1, &dst_fmt, (uint8_t *)buf1);
 
   /* Test 2 channels area with only front center in layout. */
-  fmt.num_channels = 2;
+  src_fmt.num_channels = 2;
+  src_fmt.format = SND_PCM_FORMAT_S16_LE;
   for (i = 0; i < CRAS_CH_MAX; i++)
-    fmt.channel_layout[i] = -1;
-  fmt.channel_layout[CRAS_CH_FC] = 0;
+    src_fmt.channel_layout[i] = -1;
+  src_fmt.channel_layout[CRAS_CH_FC] = 0;
   a2 = cras_audio_area_create(2);
   a2->frames = 10;
-  cras_audio_area_config_channels(a2, &fmt);
-  cras_audio_area_config_buf_pointers(a2, &fmt, (uint8_t *)buf2);
+  cras_audio_area_config_channels(a2, &src_fmt);
+  cras_audio_area_config_buf_pointers(a2, &src_fmt, (uint8_t *)buf2);
 
   memset(buf1, 0, 32 * 2);
   for (i = 0; i < 32; i++)
     buf2[i] = rand();
-  cras_audio_area_copy(a1, 0, 6, a2, 0, 0);
+  cras_audio_area_copy(a1, 0, &dst_fmt, a2, 0, 0);
   for (i = 0; i < 10; i++) {
     EXPECT_EQ(buf1[i * 3], 0);
     EXPECT_EQ(buf1[i * 3 + 1], 0);

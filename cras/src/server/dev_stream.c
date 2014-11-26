@@ -307,7 +307,7 @@ static unsigned int capture_copy_converted_to_stream(
 						    stream_samples);
 
 		cras_audio_area_copy(rstream->audio_area, offset,
-				     cras_get_format_bytes(&rstream->format),
+				     &rstream->format,
 				     dev_stream->conv_area, 0, 1);
 
 		buf_increment_read(dev_stream->conv_buffer,
@@ -349,9 +349,6 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 	} else {
 		unsigned int offset =
 			cras_rstream_dev_offset(rstream, dev_stream->dev_id);
-		unsigned int format_bytes;
-
-		format_bytes = cras_get_format_bytes(&rstream->format);
 
 		/* Set up the shm area and copy to it. */
 		shm = cras_rstream_input_shm(rstream);
@@ -364,7 +361,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 						    stream_samples);
 
 		nread = cras_audio_area_copy(rstream->audio_area, offset,
-					     format_bytes, area,
+					     &rstream->format, area,
 					     area_offset, 1);
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 					    rstream->stream_id,

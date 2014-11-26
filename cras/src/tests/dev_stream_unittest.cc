@@ -707,13 +707,13 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
 
 unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
                                   unsigned int dst_offset,
-                                  unsigned int dst_format_bytes,
+				  const struct cras_audio_format *dst_fmt,
                                   const struct cras_audio_area *src,
                                   unsigned int src_offset,
                                   unsigned int src_index) {
   copy_area_call.dst = dst;
   copy_area_call.dst_offset = dst_offset;
-  copy_area_call.dst_format_bytes = dst_format_bytes;
+  copy_area_call.dst_format_bytes = cras_get_format_bytes(dst_fmt);
   copy_area_call.src = src;
   copy_area_call.src_offset = src_offset;
   copy_area_call.src_index = src_index;
