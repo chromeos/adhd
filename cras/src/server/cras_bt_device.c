@@ -227,6 +227,18 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 	}
 }
 
+int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
+{
+	struct cras_iodev *idev;
+
+	if (!cras_bt_device_supports_profile(device,
+					     CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
+		return 0;
+
+	idev = device->bt_iodevs[CRAS_STREAM_INPUT];
+	return !idev || !idev->is_open(idev);
+}
+
 int cras_bt_device_get_active_profile(const struct cras_bt_device *device)
 {
 	return device->active_profile;

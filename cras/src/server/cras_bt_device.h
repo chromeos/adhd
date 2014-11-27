@@ -101,4 +101,9 @@ int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
 
 void cras_bt_device_start_monitor();
 
+/* Returns true if and only if device supports A2DP and the bt device
+ * is not opening for audio capture.
+ */
+int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);
+
 #endif /* CRAS_BT_DEVICE_H_ */
