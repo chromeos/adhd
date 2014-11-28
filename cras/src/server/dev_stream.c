@@ -478,6 +478,8 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 				    rstream->format.frame_rate, &extra_sleep);
 		add_timespecs(&rstream->next_cb_ts, &extra_sleep);
 		syslog(LOG_INFO, "short capture samples");
+		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_EARLY,
+				    rstream->stream_id, 0, 0);
 		return 0;
 	}
 
