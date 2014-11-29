@@ -1135,7 +1135,7 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 
 	DL_FOREACH(streams, dev_stream) {
 		const struct timespec *next_cb_ts;
-		ret++;
+
 		if (cras_rstream_get_is_draining(dev_stream->stream))
 			continue;
 
@@ -1147,6 +1147,7 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 					    next_cb_ts->tv_nsec);
 		if (timespec_after(min_ts, next_cb_ts))
 			*min_ts = *next_cb_ts;
+		ret++;
 	}
 
 	return ret;
