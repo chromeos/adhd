@@ -53,6 +53,21 @@ enum CRAS_STREAM_DIRECTION {
 	CRAS_NUM_DIRECTIONS
 };
 
+/*
+ * Flags for stream types.
+ *  BULK_AUDIO_OK - This stream is OK with receiving up to a full shm of samples
+ *      in a single callback.
+ *  USE_DEV_TIMING - Don't wake up based on stream timing.  Only wake when the
+ *      device is ready. Input streams only.
+ *  HOTWORD_STREAM - This stream is used only to listen for hotwords such as "OK
+ *      Google".  Hardware will wake the device when this phrase is heard.
+ */
+enum CRAS_INPUT_STREAM_FLAG {
+	BULK_AUDIO_OK = 0x01,
+	USE_DEV_TIMING = 0x02,
+	HOTWORD_STREAM = BULK_AUDIO_OK | USE_DEV_TIMING,
+};
+
 static inline int cras_stream_uses_output_hw(enum CRAS_STREAM_DIRECTION dir)
 {
 	return dir == CRAS_STREAM_OUTPUT;
