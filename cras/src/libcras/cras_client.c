@@ -2041,15 +2041,3 @@ int cras_client_set_node_capture_gain(struct cras_client *client,
 	cras_fill_set_node_attr(&msg, node_id, IONODE_ATTR_CAPTURE_GAIN, gain);
 	return write_message_to_server(client, &msg.header);
 }
-
-int cras_client_add_hotword_callback(struct cras_client *client,
-				     struct cras_audio_format *fmt,
-				     cras_hotword_callback_t *hotword_callback,
-				     void *user_arg)
-{
-	return -ENOSYS;
-}
-
-void cras_client_disable_hotword_callback(struct cras_client *client)
-{
-}

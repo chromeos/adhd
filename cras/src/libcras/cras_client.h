@@ -66,22 +66,6 @@ typedef int (*cras_error_cb_t)(struct cras_client *client,
 			       int error,
 			       void *user_arg);
 
-/* Callback for the system being woken up by a callback.
- * Args:
- *    client - The client requesting service.
- *    fmt - The format of the hotword samples.
- *    hotword_phrase - The audio samples that triggered the hotword detection.
- *    frames - The number of frames in hotword_phrase.
- *    capture_ts - Capture time for the first sample in hotword_phrase.
- *    user_arg - Value passed when setting up the callback.
- */
-typedef int (*cras_hotword_callback_t)(struct cras_client *client,
-				       struct cras_audio_format *fmt,
-				       uint8_t *hotword_phrase,
-				       unsigned int frames,
-				       const struct timespec *capture_ts,
-				       void *user_arg);
-
 /*
  * Client handling.
  */
@@ -659,24 +643,6 @@ int cras_client_swap_node_left_right(struct cras_client *client,
 int cras_client_set_node_capture_gain(struct cras_client *client,
 				      cras_node_id_t node_id,
 				      long gain);
-
-/* Enable hotword wake up.
- * Args:
- *    client - The client from cras_client_create.
- *    fmt - The desired audio format of the hotword buffer.
- *    hotword_callback - The function to call when a hotword is detected.
- *    user_arg - Opaque pointer that is passed to the callback.
- */
-int cras_client_add_hotword_callback(struct cras_client *client,
-				     struct cras_audio_format *fmt,
-				     cras_hotword_callback_t *hotword_callback,
-				     void *user_arg);
-
-/* Disable hotword wake up callbacks.
- * Args:
- *    client - The client from cras_client_create.
- */
-void cras_client_disable_hotword_callback(struct cras_client *client);
 
 #ifdef __cplusplus
 }
