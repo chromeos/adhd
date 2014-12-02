@@ -2042,3 +2042,12 @@ int cras_client_set_node_capture_gain(struct cras_client *client,
 	cras_fill_set_node_attr(&msg, node_id, IONODE_ATTR_CAPTURE_GAIN, gain);
 	return write_message_to_server(client, &msg.header);
 }
+
+int cras_client_add_test_iodev(struct cras_client *client,
+			       enum TEST_IODEV_TYPE type)
+{
+	struct cras_add_test_dev msg;
+
+	cras_fill_add_test_dev(&msg, type);
+	return write_message_to_server(client, &msg.header);
+}

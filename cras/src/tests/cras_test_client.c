@@ -942,6 +942,7 @@ static struct option long_options[] = {
 	{"rm_active_output",	required_argument,	0, '2'},
 	{"swap_left_right",     required_argument,      0, '3'},
 	{"version",             no_argument,            0, '4'},
+	{"add_test_dev",        required_argument,      0, '5'},
 	{0, 0, 0, 0}
 };
 
@@ -987,6 +988,7 @@ static void show_usage()
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--dump_audio_thread - Dumps audio thread info.\n");
 	printf("--version - Print the git commit ID that was used to build the client.\n");
+	printf("--add_test_dev <type> - add a test iodev.\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -1202,6 +1204,10 @@ int main(int argc, char **argv)
 		case '4':
 			printf("%s\n", VCSID);
 			break;
+		case '5': {
+			cras_client_add_test_iodev(client, atoi(optarg));
+			break;
+		}
 		default:
 			break;
 		}

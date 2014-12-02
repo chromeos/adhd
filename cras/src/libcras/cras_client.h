@@ -644,6 +644,14 @@ int cras_client_set_node_capture_gain(struct cras_client *client,
 				      cras_node_id_t node_id,
 				      long gain);
 
+/* Add a test iodev to the iodev list.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    type - The type of test iodev, see cras_types.h
+ */
+int cras_client_add_test_iodev(struct cras_client *client,
+			       enum TEST_IODEV_TYPE type);
+
 #ifdef __cplusplus
 }
 #endif

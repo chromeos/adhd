@@ -289,6 +289,12 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DUMP_AUDIO_THREAD:
 		dump_audio_thread_info(client);
 		break;
+	case CRAS_SERVER_ADD_TEST_DEV: {
+		const struct cras_add_test_dev *m =
+			(const struct cras_add_test_dev *)msg;
+		cras_iodev_list_add_test_dev(m->type);
+		break;
+	}
 	default:
 		break;
 	}

@@ -532,4 +532,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 {
 }
 
+void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type) {
+}
+
 }  // extern "C"

@@ -207,6 +207,8 @@ void cras_iodev_list_set_node_left_right_swapped_callbacks(
 /* Notify the current left right channel swapping state of the given node. */
 void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node);
 
+/* Handles the adding and removing of test iodevs. */
+void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type);
 
 /* Gets the audio thread used by the devices. */
 struct audio_thread *cras_iodev_list_get_audio_thread();

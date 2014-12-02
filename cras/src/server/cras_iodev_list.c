@@ -14,6 +14,7 @@
 #include "cras_server.h"
 #include "cras_types.h"
 #include "cras_system_state.h"
+#include "test_iodev.h"
 #include "utlist.h"
 
 /* Linked list of available devices. */
@@ -652,6 +653,13 @@ void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
 
 	if (node_input_gain_callback)
 		node_input_gain_callback(id, node->capture_gain);
+}
+
+void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type)
+{
+	if (type != TEST_IODEV_HOTWORD)
+		return;
+	test_iodev_create(CRAS_STREAM_INPUT, type);
 }
 
 struct audio_thread *cras_iodev_list_get_audio_thread()

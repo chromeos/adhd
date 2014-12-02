@@ -39,7 +39,8 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_DUMP_DSP_INFO,
 	CRAS_SERVER_DUMP_AUDIO_THREAD,
 	CRAS_SERVER_ADD_ACTIVE_NODE,
-	CRAS_SERVER_RM_ACTIVE_NODE
+	CRAS_SERVER_RM_ACTIVE_NODE,
+	CRAS_SERVER_ADD_TEST_DEV,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -303,6 +304,21 @@ static inline void cras_fill_dump_audio_thread(
 	m->header.id = CRAS_SERVER_DUMP_AUDIO_THREAD;
 	m->header.length = sizeof(*m);
 }
+
+/* Add a test device. */
+struct __attribute__ ((__packed__)) cras_add_test_dev {
+	struct cras_server_message header;
+	enum TEST_IODEV_TYPE type;
+};
+
+static inline void cras_fill_add_test_dev(struct cras_add_test_dev *m,
+					  enum TEST_IODEV_TYPE type)
+{
+	m->header.id = CRAS_SERVER_ADD_TEST_DEV;
+	m->header.length = sizeof(*m);
+	m->type = type;
+}
+
 
 /*
  * Messages sent from server to client.
