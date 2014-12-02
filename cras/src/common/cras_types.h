@@ -29,6 +29,14 @@ enum CRAS_SPECIAL_DEVICE {
 	MAX_SPECIAL_DEVICE_IDX
 };
 
+/*
+ * Types of test iodevs supported.
+ */
+
+enum TEST_IODEV_TYPE {
+	TEST_IODEV_HOTWORD,
+};
+
 /* Directions of audio streams.
  * Input, Output, or loopback.
  *

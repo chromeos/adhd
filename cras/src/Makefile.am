@@ -79,6 +79,7 @@ cras_SOURCES = \
 	server/cras_volume_curve.c \
 	server/dev_stream.c \
 	server/linear_resampler.c \
+	server/test_iodev.c \
 	server/rate_estimator.c \
 	server/softvol_curve.c
 
