@@ -29,9 +29,6 @@ static const size_t MAX_IODEVS = 10; /* Max devices to print out. */
 static const size_t MAX_IONODES = 20; /* Max ionodes to print out. */
 static const size_t MAX_ATTACHED_CLIENTS = 10; /* Max clients to print out. */
 
-static uint8_t *file_buf;
-static size_t file_buf_size;
-static size_t file_buf_read_offset;
 static int pipefd[2];
 static struct timespec last_latency;
 static int show_latency;
@@ -175,35 +172,29 @@ static int put_samples(struct cras_client *client,
 		       void *user_arg)
 {
 	size_t this_size, decoded;
-	snd_pcm_uframes_t avail;
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
+	int fd = *(int *)user_arg;
+	uint8_t buff[BUF_SIZE];
+	int nread;
 
 	while (pause_client)
 		usleep(10000);
 
-	if (file_buf_read_offset >= file_buf_size) {
-		if (exit_after_done_playing)
-			terminate_stream_loop();
-		return EOF;
-	}
-
 	check_stream_terminate(frames);
-
-	avail = frames * frame_bytes;
-
-	this_size = file_buf_size - file_buf_read_offset;
-	if (this_size > avail)
-		this_size = avail;
 
 	cras_client_calc_playback_latency(playback_time, &last_latency);
 
+	nread = read(fd, buff, MIN(frames * frame_bytes, BUF_SIZE));
+	if (nread < 0)
+		return nread;
+
 	if (playback_codec) {
 		this_size = playback_codec->decode(playback_codec,
-				       file_buf + file_buf_read_offset,
-				       file_buf_size - file_buf_read_offset,
-				       playback_samples, this_size, &decoded);
-
-		file_buf_read_offset += this_size;
+				       buff,
+				       nread,
+				       playback_samples,
+				       frames * frame_bytes,
+				       &decoded);
 		if (this_size == 0) {
 			printf("stop looping\n");
 			terminate_stream_loop();
@@ -212,10 +203,9 @@ static int put_samples(struct cras_client *client,
 		return decoded / frame_bytes;
 	} else {
 		memcpy(playback_samples,
-		       file_buf + file_buf_read_offset,
-		       this_size);
-		file_buf_read_offset += this_size;
-		return this_size / frame_bytes;
+		       buff,
+		       nread);
+		return nread / frame_bytes;
 	}
 }
 
@@ -590,8 +580,6 @@ static int start_stream(struct cras_client *client,
 {
 	int rc;
 
-	file_buf_read_offset = 0;
-
 	rc = cras_client_add_stream(client, stream_id, params);
 	if (rc < 0) {
 		fprintf(stderr, "adding a stream %d\n", rc);
@@ -856,18 +844,11 @@ static int run_playback(struct cras_client *client,
 {
 	int fd;
 
-	file_buf = malloc(1024*1024*4);
-	if (!file_buf) {
-		perror("allocating file_buf");
-		return -ENOMEM;
-	}
-
 	fd = open(file, O_RDONLY);
 	if (fd == -1) {
 		perror("failed to open file");
 		return -errno;
 	}
-	file_buf_size = read(fd, file_buf, 1024*1024*4);
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT,
 			   block_size, rate, num_channels);
