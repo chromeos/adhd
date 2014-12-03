@@ -114,7 +114,7 @@ TEST_F(RstreamTestSuite, CreateOutput) {
       &s);
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, s);
-  EXPECT_EQ(4096, cras_rstream_get_buffer_size(s));
+  EXPECT_EQ(4096, cras_rstream_get_buffer_frames(s));
   EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_OUTPUT, cras_rstream_get_direction(s));
@@ -159,7 +159,7 @@ TEST_F(RstreamTestSuite, CreateInput) {
       &s);
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, s);
-  EXPECT_EQ(4096, cras_rstream_get_buffer_size(s));
+  EXPECT_EQ(4096, cras_rstream_get_buffer_frames(s));
   EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_INPUT, cras_rstream_get_direction(s));

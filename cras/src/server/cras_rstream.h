@@ -104,7 +104,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 void cras_rstream_destroy(struct cras_rstream *stream);
 
 /* Gets the total buffer size in frames for the given client stream. */
-static inline size_t cras_rstream_get_buffer_size(
+static inline size_t cras_rstream_get_buffer_frames(
 		const struct cras_rstream *stream)
 {
 	return stream->buffer_frames;
