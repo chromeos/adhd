@@ -295,6 +295,13 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_iodev_list_add_test_dev(m->type);
 		break;
 	}
+	case CRAS_SERVER_TEST_DEV_COMMAND: {
+		const struct cras_test_dev_command *m =
+			(const struct cras_test_dev_command *)msg;
+		cras_iodev_list_test_dev_command(m->iodev_idx, m->command,
+						 m->data_len, m->data);
+		break;
+	}
 	default:
 		break;
 	}

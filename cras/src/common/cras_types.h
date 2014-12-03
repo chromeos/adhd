@@ -32,9 +32,14 @@ enum CRAS_SPECIAL_DEVICE {
 /*
  * Types of test iodevs supported.
  */
-
 enum TEST_IODEV_TYPE {
 	TEST_IODEV_HOTWORD,
+};
+
+
+/* Commands for test iodevs. */
+enum CRAS_TEST_IODEV_CMD {
+	TEST_IODEV_CMD_HOTWORD_TRIGGER,
 };
 
 /* Directions of audio streams.

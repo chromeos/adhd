@@ -3,10 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include <sys/ioctl.h>
 #include <pthread.h>
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "audio_thread.h"
 #include "byte_buffer.h"
 #include "cras_audio_area.h"
 #include "cras_config.h"
@@ -58,7 +60,13 @@ static int dev_running(const struct cras_iodev *iodev)
 
 static int frames_queued(const struct cras_iodev *iodev)
 {
-	return 0;
+	struct test_iodev *testio = (struct test_iodev *)iodev;
+	int available;
+
+	if (testio->fd < 0)
+		return 0;
+	ioctl(testio->fd, FIONREAD, &available);
+	return available / testio->fmt_bytes;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
@@ -120,8 +128,59 @@ static int put_buffer(struct cras_iodev *iodev, unsigned frames)
 	return 0;
 }
 
+static int get_buffer_fd_read(struct cras_iodev *iodev,
+			      struct cras_audio_area **area,
+			      unsigned *frames)
+{
+	struct test_iodev *testio = (struct test_iodev *)iodev;
+	int nread;
+	uint8_t *write_ptr;
+	unsigned int avail;
+
+	if (testio->fd < 0) {
+		*frames = 0;
+		return 0;
+	}
+
+	write_ptr = buf_write_pointer_size(testio->audbuff, &avail);
+	avail = MIN(avail, *frames * testio->fmt_bytes);
+	nread = read(testio->fd, write_ptr, avail);
+	if (nread <= 0) {
+		*frames = 0;
+		audio_thread_rm_callback(testio->fd);
+		close(testio->fd);
+		testio->fd = -1;
+		return 0;
+	}
+	buf_increment_write(testio->audbuff, nread);
+	*frames = nread / testio->fmt_bytes;
+	iodev->area->frames = *frames;
+	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
+					    write_ptr);
+	*area = iodev->area;
+	return nread;
+}
+
 static void update_active_node(struct cras_iodev *iodev)
 {
+}
+
+static int data_ready_cb(void *data)
+{
+	return 0;
+}
+
+static void play_file_as_hotword(struct test_iodev *testio, const char *path)
+{
+	if (testio->fd >= 0) {
+		audio_thread_rm_callback(testio->fd);
+		close(testio->fd);
+	}
+
+	testio->fd = open(path, O_RDONLY);
+	if (testio->fd >= 0)
+		audio_thread_add_callback(testio->fd, data_ready_cb, NULL);
+	buf_reset(testio->audbuff);
 }
 
 /*
@@ -143,6 +202,7 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 		return NULL;
 	iodev = &testio->base;
 	iodev->direction = direction;
+	testio->fd = -1;
 
 	iodev->supported_rates = test_supported_rates;
 	iodev->supported_channel_counts = test_supported_channel_counts;
@@ -154,7 +214,10 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	iodev->is_open = is_open;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
-	iodev->get_buffer = get_buffer;
+	if (type == TEST_IODEV_HOTWORD)
+		iodev->get_buffer = get_buffer_fd_read;
+	else
+		iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
@@ -198,4 +261,23 @@ unsigned int test_iodev_add_samples(struct test_iodev *testio,
 	memcpy(write_ptr, samples, count * testio->fmt_bytes);
 	buf_increment_write(testio->audbuff, count * testio->fmt_bytes);
 	return count;
+}
+
+void test_iodev_command(struct cras_iodev *iodev,
+			enum CRAS_TEST_IODEV_CMD command,
+			unsigned int data_len,
+			const uint8_t *data)
+{
+	struct test_iodev *testio = (struct test_iodev *)iodev;
+
+	if (!is_open(iodev))
+		return;
+
+	switch (command) {
+	case TEST_IODEV_CMD_HOTWORD_TRIGGER:
+		play_file_as_hotword(testio, (char *)data);
+		break;
+	default:
+		break;
+	}
 }

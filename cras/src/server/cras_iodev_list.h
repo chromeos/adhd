@@ -210,6 +210,12 @@ void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node);
 /* Handles the adding and removing of test iodevs. */
 void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type);
 
+/* Handles sending a command to a test iodev. */
+void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
+				      enum CRAS_TEST_IODEV_CMD command,
+				      unsigned int data_len,
+				      const uint8_t *data);
+
 /* Gets the audio thread used by the devices. */
 struct audio_thread *cras_iodev_list_get_audio_thread();
 

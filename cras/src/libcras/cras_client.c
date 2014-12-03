@@ -2051,3 +2051,19 @@ int cras_client_add_test_iodev(struct cras_client *client,
 	cras_fill_add_test_dev(&msg, type);
 	return write_message_to_server(client, &msg.header);
 }
+
+int cras_client_test_iodev_command(struct cras_client *client,
+				   unsigned int iodev_idx,
+				   enum CRAS_TEST_IODEV_CMD command,
+				   unsigned int data_len,
+				   const uint8_t *data)
+{
+	struct cras_test_dev_command *msg;
+	int rc;
+
+	msg = (struct cras_test_dev_command *)malloc(sizeof(*msg) + data_len);
+	cras_fill_test_dev_command(msg, iodev_idx, command, data_len, data);
+	rc = write_message_to_server(client, &msg->header);
+	free(msg);
+	return rc;
+}

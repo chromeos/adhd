@@ -652,6 +652,20 @@ int cras_client_set_node_capture_gain(struct cras_client *client,
 int cras_client_add_test_iodev(struct cras_client *client,
 			       enum TEST_IODEV_TYPE type);
 
+/* Send a test command to a test iodev.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    iodev_idx - The index of the test iodev.
+ *    command - The command to send.
+ *    data_len - Length of command data.
+ *    data - Command data.
+ */
+int cras_client_test_iodev_command(struct cras_client *client,
+				   unsigned int iodev_idx,
+				   enum CRAS_TEST_IODEV_CMD command,
+				   unsigned int data_len,
+				   const uint8_t *data);
+
 #ifdef __cplusplus
 }
 #endif

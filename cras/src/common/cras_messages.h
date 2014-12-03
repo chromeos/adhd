@@ -41,6 +41,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_ADD_ACTIVE_NODE,
 	CRAS_SERVER_RM_ACTIVE_NODE,
 	CRAS_SERVER_ADD_TEST_DEV,
+	CRAS_SERVER_TEST_DEV_COMMAND,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -317,6 +318,29 @@ static inline void cras_fill_add_test_dev(struct cras_add_test_dev *m,
 	m->header.id = CRAS_SERVER_ADD_TEST_DEV;
 	m->header.length = sizeof(*m);
 	m->type = type;
+}
+
+/* Command a test device. */
+struct __attribute__ ((__packed__)) cras_test_dev_command {
+	struct cras_server_message header;
+	unsigned int command;
+	unsigned int iodev_idx;
+	unsigned int data_len;
+	uint8_t data[];
+};
+
+static inline void cras_fill_test_dev_command(struct cras_test_dev_command *m,
+					      unsigned int iodev_idx,
+					      enum CRAS_TEST_IODEV_CMD command,
+					      unsigned int data_len,
+					      const uint8_t *data)
+{
+	m->header.id = CRAS_SERVER_TEST_DEV_COMMAND;
+	m->header.length = sizeof(*m) + data_len;
+	m->iodev_idx = iodev_idx;
+	m->command = command;
+	m->data_len = data_len;
+	memcpy(m->data, data, data_len);
 }
 
 

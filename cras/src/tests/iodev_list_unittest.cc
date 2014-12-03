@@ -678,4 +678,10 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
   return NULL;
 }
 
+void test_iodev_command(struct cras_iodev *iodev,
+                        enum CRAS_TEST_IODEV_CMD command,
+                        unsigned int data_len,
+                        const uint8_t *data) {
+}
+
 }  // extern "C"

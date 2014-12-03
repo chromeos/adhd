@@ -535,4 +535,11 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type) {
 }
 
+/* Handles sending a command to a test iodev. */
+void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
+                                      enum CRAS_TEST_IODEV_CMD command,
+                                      unsigned int data_len,
+                                      const uint8_t *data) {
+}
+
 }  // extern "C"

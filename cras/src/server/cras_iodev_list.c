@@ -662,6 +662,19 @@ void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type)
 	test_iodev_create(CRAS_STREAM_INPUT, type);
 }
 
+void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
+				      enum CRAS_TEST_IODEV_CMD command,
+				      unsigned int data_len,
+				      const uint8_t *data)
+{
+	struct cras_iodev *dev = find_dev(iodev_idx);
+
+	if (!dev)
+		return;
+
+	test_iodev_command(dev, command, data_len, data);
+}
+
 struct audio_thread *cras_iodev_list_get_audio_thread()
 {
 	return audio_thread;
