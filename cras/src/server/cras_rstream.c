@@ -125,6 +125,7 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 int cras_rstream_create(cras_stream_id_t stream_id,
 			enum CRAS_STREAM_TYPE stream_type,
 			enum CRAS_STREAM_DIRECTION direction,
+			uint32_t flags,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
@@ -147,6 +148,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->stream_id = stream_id;
 	stream->stream_type = stream_type;
 	stream->direction = direction;
+	stream->flags = flags;
 	stream->format = *format;
 	stream->buffer_frames = buffer_frames;
 	stream->cb_threshold = cb_threshold;

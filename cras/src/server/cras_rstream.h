@@ -41,6 +41,7 @@ struct master_dev_info {
  *    stream_id - identifier for this stream.
  *    stream_type - not used.
  *    direction - input or output.
+ *    flags - Indicative of what special handling is needed.
  *    fd - Socket for requesting and sending audio buffer events.
  *    buffer_frames - Buffer size in frames.
  *    cb_threshold - Callback client when this much is left.
@@ -59,6 +60,7 @@ struct cras_rstream {
 	cras_stream_id_t stream_id;
 	enum CRAS_STREAM_TYPE stream_type;
 	enum CRAS_STREAM_DIRECTION direction;
+	uint32_t flags;
 	int fd;
 	size_t buffer_frames;
 	size_t cb_threshold;
@@ -79,6 +81,7 @@ struct cras_rstream {
  * Args:
  *    stream_type - CRAS_STREAM_TYPE.
  *    direction - CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
+ *    flags - Any special handling for this stream.
  *    format - The audio format the stream wishes to use.
  *    buffer_frames - Total number of audio frames to buffer.
  *    cb_threshold - # of frames when to request more from the client.
@@ -91,6 +94,7 @@ struct cras_rstream {
 int cras_rstream_create(cras_stream_id_t stream_id,
 			enum CRAS_STREAM_TYPE stream_type,
 			enum CRAS_STREAM_DIRECTION direction,
+			uint32_t flags,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
