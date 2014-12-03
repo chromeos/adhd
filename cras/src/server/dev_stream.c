@@ -412,7 +412,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 
 	shm = cras_rstream_input_shm(rstream);
 
-	wlimit = cras_rstream_get_cb_threshold(rstream);
+	wlimit = cras_rstream_get_max_write_frames(rstream);
 	wlimit -= cras_rstream_dev_offset(rstream, dev_stream->dev_id);
 	cras_shm_get_writeable_frames(shm, wlimit, &frames_avail);
 
@@ -461,13 +461,15 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
+	unsigned int frames_ready = str_cb_threshold;
 	struct timespec now;
 
 	cras_rstream_update_input_write_pointer(rstream);
 
 	/* If it isn't time for this stream then skip it. */
 	clock_gettime(CLOCK_MONOTONIC, &now);
-	if (!timespec_after(&now, &rstream->next_cb_ts))
+	if ((rstream->flags & USE_DEV_TIMING) == 0 &&
+	    !timespec_after(&now, &rstream->next_cb_ts))
 		return 0;
 
 	if (!cras_rstream_input_level_met(rstream)) {
@@ -483,10 +485,12 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	}
 
 	/* Enough data for this stream. */
+	if (rstream->flags & BULK_AUDIO_OK)
+		frames_ready = cras_rstream_level(rstream);
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_POST,
 				    rstream->stream_id,
-				    str_cb_threshold,
+				    frames_ready,
 				    rstream->shm.area->read_buf_idx);
 
 	/* Tell the client that samples are ready and mark the next time it
@@ -494,7 +498,7 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	add_timespecs(&rstream->next_cb_ts, &rstream->sleep_interval_ts);
 	check_next_wake_time(dev_stream);
 
-	return cras_rstream_audio_ready(rstream, str_cb_threshold);
+	return cras_rstream_audio_ready(rstream, frames_ready);
 }
 
 void cras_set_playback_timestamp(size_t frame_rate,

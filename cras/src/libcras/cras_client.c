@@ -371,7 +371,7 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 	return nread;
 }
 
-/* Check if doing format conversion and configure a caprute buffer appropriately
+/* Check if doing format conversion and configure a capture buffer appropriately
  * before passing to the client. */
 static unsigned int config_capture_buf(struct client_stream *stream,
 				       uint8_t **captured_frames,
@@ -380,7 +380,10 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 	*captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm);
 
 	/* Don't ask for more frames than the client desires. */
-	num_frames = MIN(num_frames, stream->config->cb_threshold);
+	if (stream->flags & BULK_AUDIO_OK)
+		num_frames = MIN(num_frames, stream->config->buffer_frames);
+	else
+		num_frames = MIN(num_frames, stream->config->cb_threshold);
 
 	return num_frames;
 }

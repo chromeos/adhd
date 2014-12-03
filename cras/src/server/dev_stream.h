@@ -153,7 +153,8 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream);
 static inline const struct timespec *
 dev_stream_next_cb_ts(struct dev_stream *dev_stream)
 {
-	if (cras_rstream_get_is_draining(dev_stream->stream))
+	if (cras_rstream_get_is_draining(dev_stream->stream) ||
+	    dev_stream->stream->flags & USE_DEV_TIMING)
 		return NULL;
 	return &dev_stream->stream->next_cb_ts;
 }

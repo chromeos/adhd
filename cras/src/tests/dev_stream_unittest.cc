@@ -109,7 +109,8 @@ class CreateSuite : public testing::Test{
       rstream_.stream_type = CRAS_STREAM_TYPE_DEFAULT;
       rstream_.direction = CRAS_STREAM_OUTPUT;
       rstream_.format.format = SND_PCM_FORMAT_S16_LE;
-      rstream_.format.num_channels = 2;;
+      rstream_.format.num_channels = 2;
+      rstream_.flags = 0;
 
       config_format_converter_called = 0;
       cras_fmt_conversion_needed_val = 0;

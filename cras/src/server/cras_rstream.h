@@ -117,6 +117,15 @@ static inline size_t cras_rstream_get_cb_threshold(
 	return stream->cb_threshold;
 }
 
+/* Gets the max write size for the stream. */
+static inline size_t cras_rstream_get_max_write_frames(
+		const struct cras_rstream *stream)
+{
+	if (stream->flags & BULK_AUDIO_OK)
+		return cras_rstream_get_buffer_frames(stream);
+	return cras_rstream_get_cb_threshold(stream);
+}
+
 /* Gets the stream type of this stream. */
 static inline enum CRAS_STREAM_TYPE cras_rstream_get_type(
 		const struct cras_rstream *stream)
@@ -252,6 +261,12 @@ void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream);
 
 unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 				     unsigned int dev_id);
+
+static inline unsigned int cras_rstream_level(struct cras_rstream *rstream)
+{
+	const struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	return cras_shm_frames_written(shm);
+}
 
 static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 {
