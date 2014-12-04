@@ -2030,10 +2030,6 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream) {
   return 0;
 }
 
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
-{
-}
-
 void cras_rstream_log_overrun(const struct cras_rstream *stream) {
 }
 

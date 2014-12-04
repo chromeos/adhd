@@ -231,9 +231,6 @@ int cras_rstream_request_audio(const struct cras_rstream *stream);
 int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count);
 /* Waits for the response to a request for audio. */
 int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream);
-/* Sends a message to the client telling him to re-attach the stream. Used when
- * moving a stream between io devices. */
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream);
 
 /* Let the rstream know when a device is added or removed. */
 void cras_rstream_dev_attach(struct cras_rstream *rstream,

@@ -221,15 +221,6 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream)
 	return 0;
 }
 
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
-{
-	struct cras_client_stream_reattach msg;
-	if (!stream->client)
-		return;
-	cras_fill_client_stream_reattach(&msg, stream->stream_id);
-	cras_rclient_send_message(stream->client, &msg.header);
-}
-
 void cras_rstream_dev_attach(struct cras_rstream *rstream,
 			     unsigned int dev_id,
 			     void *dev_ptr)

@@ -717,10 +717,6 @@ void cras_dsp_pipeline_apply(struct pipeline *pipeline,
   cras_dsp_pipeline_apply_sample_count = frames;
 }
 
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream)
-{
-}
-
 void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
                                      const struct timespec *time_delta,
                                      int samples)

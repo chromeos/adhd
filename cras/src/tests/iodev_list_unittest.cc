@@ -524,9 +524,6 @@ extern "C" {
 
 // Stubs
 
-void cras_rstream_send_client_reattach(const struct cras_rstream *stream) {
-}
-
 struct cras_server_state *cras_system_state_update_begin() {
   return server_state_update_begin_return;
 }

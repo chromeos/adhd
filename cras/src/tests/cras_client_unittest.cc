@@ -212,27 +212,6 @@ TEST_F(CrasClientTestSuite, OutputStreamConnectedFail) {
   StreamConnectedFail(CRAS_STREAM_OUTPUT);
 }
 
-TEST_F(CrasClientTestSuite, HandleStreamReattach) {
-  // Setup the stream
-  DL_APPEND(client_.streams, &stream_);
-  stream_.client = &client_;
-  stream_.thread.running = 1;
-
-  EXPECT_EQ(0, handle_stream_reattach(&client_, FIRST_STREAM_ID));
-
-  // The stream's audio thread will be stopped
-  EXPECT_EQ(1, pthread_join_called);
-  EXPECT_EQ(0, stream_.thread.running);
-
-  // Expect the connect message will be send.
-  EXPECT_EQ(1, sendmsg_called);
-}
-
-TEST_F(CrasClientTestSuite, HandleStreamReattchInvalidStream) {
-  EXPECT_EQ(0, handle_stream_reattach(&client_, FIRST_STREAM_ID));
-  EXPECT_EQ(0, pthread_join_called);
-}
-
 TEST_F(CrasClientTestSuite, AddAndRemoveStream) {
   cras_stream_id_t stream_id;
 

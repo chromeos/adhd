@@ -825,41 +825,6 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 	return 0;
 }
 
-/* Re-attaches a stream that was removed on the server side so that it could be
- * moved to a new device. To achieve this, remove the stream and send the
- * connect message again. */
-static int handle_stream_reattach(struct cras_client *client,
-				  cras_stream_id_t stream_id)
-{
-	struct client_stream *stream = stream_from_id(client, stream_id);
-	int rc;
-
-	if (stream == NULL)
-		return 0;
-
-	/* Shut down locally. Stream has been removed on the server side. */
-	if (stream->thread.running) {
-		stream->thread.running = 0;
-		wake_aud_thread(stream);
-		pthread_join(stream->thread.tid, NULL);
-	}
-
-	if (stream->aud_fd >= 0) {
-		close(stream->aud_fd);
-		stream->aud_fd = -1;
-	}
-	free_shm(stream);
-
-	/* send a message to the server asking that the stream be started. */
-	rc = send_connect_message(client, stream, NO_DEVICE);
-	if (rc != 0) {
-		client_thread_rm_stream(client, stream_id);
-		return rc;
-	}
-
-	return 0;
-}
-
 /* Attach to the shm region containing the server state. */
 static int client_attach_shm(struct cras_client *client, key_t shm_key)
 {
@@ -931,12 +896,6 @@ static int handle_message_from_server(struct cras_client *client)
 					       stream->id,
 					       rc,
 					       stream->config->user_data);
-		break;
-	}
-	case CRAS_CLIENT_STREAM_REATTACH: {
-		struct cras_client_stream_reattach *cmsg =
-			(struct cras_client_stream_reattach *)msg;
-		handle_stream_reattach(client, cmsg->stream_id);
 		break;
 	}
 	case CRAS_CLIENT_AUDIO_DEBUG_INFO_READY:

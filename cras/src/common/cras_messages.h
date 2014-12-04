@@ -46,7 +46,6 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	/* Server -> Client */
 	CRAS_CLIENT_CONNECTED,
 	CRAS_CLIENT_STREAM_CONNECTED,
-	CRAS_CLIENT_STREAM_REATTACH,
 	CRAS_CLIENT_AUDIO_DEBUG_INFO_READY,
 };
 
@@ -353,22 +352,6 @@ static inline void cras_fill_client_stream_connected(
 	m->shm_max_size = shm_max_size;
 	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
 	m->header.length = sizeof(struct cras_client_stream_connected);
-}
-
-/* Reattach a given stream.  This is used to indicate that a stream has been
- * removed from it's device and should be re-attached.  Occurs when moving
- * streams. */
-struct __attribute__ ((__packed__)) cras_client_stream_reattach {
-	struct cras_client_message header;
-	cras_stream_id_t stream_id;
-};
-static inline void cras_fill_client_stream_reattach(
-		struct cras_client_stream_reattach *m,
-		cras_stream_id_t stream_id)
-{
-	m->stream_id = stream_id;
-	m->header.id = CRAS_CLIENT_STREAM_REATTACH;
-	m->header.length = sizeof(struct cras_client_stream_reattach);
 }
 
 /* Sent from server to client when audio debug information is requested. */
