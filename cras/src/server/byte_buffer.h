@@ -105,3 +105,10 @@ static inline void buf_increment_write(struct byte_buffer *buf, size_t inc)
 	else
 		buf->level = buf->size;
 }
+
+static inline void buf_reset(struct byte_buffer *buf)
+{
+	buf->write_idx = 0;
+	buf->read_idx = 0;
+	buf->level = 0;
+}
