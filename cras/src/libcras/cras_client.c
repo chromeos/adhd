@@ -1353,6 +1353,7 @@ static inline int cras_client_send_add_stream_command_message(
 	stream->wake_fds[1] = -1;
 	stream->direction = config->direction;
 	stream->volume_scaler = 1.0;
+	stream->flags = config->flags;
 
 	cmd_msg.header.len = sizeof(cmd_msg);
 	cmd_msg.header.msg_id = CLIENT_ADD_STREAM;
