@@ -47,6 +47,7 @@ static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
 static unsigned char cap_buf[BUF_SIZE];
 static char *channel_layout = NULL;
+static int pin_device_id;
 
 /* Conditional so the client thread can signal that main should exit. */
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -596,7 +597,11 @@ static int start_stream(struct cras_client *client,
 {
 	int rc;
 
-	rc = cras_client_add_stream(client, stream_id, params);
+	if (pin_device_id)
+		rc = cras_client_add_pinned_stream(client, pin_device_id,
+						   stream_id, params);
+	else
+		rc = cras_client_add_stream(client, stream_id, params);
 	if (rc < 0) {
 		fprintf(stderr, "adding a stream %d\n", rc);
 		return rc;
@@ -973,6 +978,7 @@ static struct option long_options[] = {
 	{"add_test_dev",        required_argument,      0, '5'},
 	{"test_hotword_file",   required_argument,      0, '6'},
 	{"listen_for_hotword",  no_argument,            0, '7'},
+	{"pin_device",		required_argument,	0, '8'},
 	{0, 0, 0, 0}
 };
 
@@ -1021,6 +1027,8 @@ static void show_usage()
 	printf("--add_test_dev <type> - add a test iodev.\n");
 	printf("--test_hotword_file <N>:<filename> - Use filename as a hotword buffer for device N\n");
 	printf("--listen_for_hotword - Listen for a hotword if supported\n");
+	printf("--pin_device <N> - Playback/Capture only on the given device."
+	       "\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -1253,6 +1261,9 @@ int main(int argc, char **argv)
 			run_hotword(client, 4096, 16000);
 			break;
 		}
+		case '8':
+			pin_device_id = atoi(optarg);
+			break;
 		default:
 			break;
 		}
