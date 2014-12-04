@@ -162,6 +162,21 @@ static int got_samples(struct cras_client *client,
 }
 
 /* Run from callback thread. */
+static int got_hotword(struct cras_client *client,
+		       cras_stream_id_t stream_id,
+		       uint8_t *captured_samples,
+		       uint8_t *playback_samples,
+		       unsigned int frames,
+		       const struct timespec *captured_time,
+		       const struct timespec *playback_time,
+		       void *user_arg)
+{
+	printf("got hotword %u frames\n", frames);
+
+	return frames;
+}
+
+/* Run from callback thread. */
 static int put_samples(struct cras_client *client,
 		       cras_stream_id_t stream_id,
 		       uint8_t *captured_samples,
@@ -608,7 +623,8 @@ static int run_file_io_stream(struct cras_client *client,
 			      enum CRAS_STREAM_DIRECTION direction,
 			      size_t block_size,
 			      size_t rate,
-			      size_t num_channels)
+			      size_t num_channels,
+			      uint32_t flags)
 {
 	int rc, tty;
 	struct cras_stream_params *params;
@@ -640,11 +656,14 @@ static int run_file_io_stream(struct cras_client *client,
 	total_rms_sqr_sum = 0;
 	total_rms_size = 0;
 
-	if (direction == CRAS_STREAM_INPUT ||
-	    direction == CRAS_STREAM_POST_MIX_PRE_DSP)
-		aud_cb = got_samples;
-	else
+	if (direction == CRAS_STREAM_INPUT) {
+		if (flags == HOTWORD_STREAM)
+			aud_cb = got_hotword;
+		else
+			aud_cb = got_samples;
+	} else {
 		aud_cb = put_samples;
+	}
 
 	if (fd == 0) {
 		if (direction != CRAS_STREAM_OUTPUT)
@@ -666,7 +685,7 @@ static int run_file_io_stream(struct cras_client *client,
 	params = cras_client_unified_params_create(direction,
 						   block_size,
 						   0,
-						   0,
+						   flags,
 						   pfd,
 						   aud_cb,
 						   stream_error,
@@ -830,7 +849,7 @@ static int run_capture(struct cras_client *client,
 	run_file_io_stream(
 		client, fd,
 		loopback ? CRAS_STREAM_POST_MIX_PRE_DSP : CRAS_STREAM_INPUT,
-		block_size, rate, num_channels);
+		block_size, rate, num_channels, 0);
 
 	close(fd);
 	return 0;
@@ -851,12 +870,20 @@ static int run_playback(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT,
-			   block_size, rate, num_channels);
+			   block_size, rate, num_channels, 0);
 
 	close(fd);
 	return 0;
 }
 
+static int run_hotword(struct cras_client *client,
+		       size_t block_size,
+		       size_t rate)
+{
+	run_file_io_stream(client, -1, CRAS_STREAM_INPUT, block_size, rate, 1,
+			   HOTWORD_STREAM);
+	return 0;
+}
 static void print_server_info(struct cras_client *client)
 {
 	cras_client_run_thread(client);
@@ -944,6 +971,7 @@ static struct option long_options[] = {
 	{"version",             no_argument,            0, '4'},
 	{"add_test_dev",        required_argument,      0, '5'},
 	{"test_hotword_file",   required_argument,      0, '6'},
+	{"listen_for_hotword",  no_argument,            0, '7'},
 	{0, 0, 0, 0}
 };
 
@@ -991,6 +1019,7 @@ static void show_usage()
 	printf("--version - Print the git commit ID that was used to build the client.\n");
 	printf("--add_test_dev <type> - add a test iodev.\n");
 	printf("--test_hotword_file <N>:<filename> - Use filename as a hotword buffer for device N\n");
+	printf("--listen_for_hotword - Listen for a hotword if supported\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -1219,6 +1248,10 @@ int main(int argc, char **argv)
 					(uint8_t *)file_name);
 			break;
 		}
+		case '7': {
+			run_hotword(client, 4096, 16000);
+			break;
+		}
 		default:
 			break;
 		}
@@ -1234,7 +1267,7 @@ int main(int argc, char **argv)
 	else if (playback_file != NULL)
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
-					block_size, rate, num_channels);
+					block_size, rate, num_channels, 0);
 		else
 			rc = run_playback(client, playback_file,
 					block_size, rate, num_channels);
