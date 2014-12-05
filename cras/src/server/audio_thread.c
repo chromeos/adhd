@@ -456,8 +456,11 @@ static int append_stream(struct audio_thread *thread,
 			num_devs_added_to++;
 	}
 
-	if (num_devs_added_to == 0)
+	/* Return error when stream failed to be added to any active device. */
+	if (num_devs_added_to == 0 && fallback_dev->dev->is_active == 0) {
+		delete_stream_from_dev(fallback_dev->dev, stream);
 		return -EINVAL;
+	}
 
 	if (!stream_uses_output(stream))
 		return 0;
