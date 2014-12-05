@@ -31,18 +31,20 @@ struct bt_node {
  * by the bluetooth audio device.
  * Member:
  *    base - The base class cras_iodev
+ *    next_node_id - The index will give to the next node
  */
 struct bt_io {
 	struct cras_iodev base;
+	unsigned int next_node_id;
 	struct cras_bt_device *device;
 };
 
 /* Returns the active profile specific iodev. */
 static struct cras_iodev *active_profile_dev(const struct cras_iodev *iodev)
 {
-	struct bt_node *n = (struct bt_node *)iodev->active_node;
+	struct bt_node *active = (struct bt_node *)iodev->active_node;
 
-	return n ? n->profile_dev : NULL;
+	return active->profile_dev;
 }
 
 /* Adds a profile specific iodev to btio. */
@@ -51,12 +53,14 @@ static struct cras_ionode *add_profile_dev(struct cras_iodev *bt_iodev,
 					   enum cras_bt_device_profile profile)
 {
 	struct bt_node *n;
+	struct bt_io *btio = (struct bt_io *)bt_iodev;
 
 	n = (struct bt_node *)calloc(1, sizeof(*n));
 	if (!n)
 		return NULL;
 
 	n->base.dev = bt_iodev;
+	n->base.idx = btio->next_node_id++;
 	n->base.type = CRAS_NODE_TYPE_BLUETOOTH;
 	n->base.volume = 100;
 	gettimeofday(&n->base.plugged_time, NULL);
@@ -185,11 +189,7 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct bt_io *btio = (struct bt_io *)iodev;
 	int rc;
-	struct bt_node *active;
-	struct cras_iodev *dev;
-
-	active = (struct bt_node *)iodev->active_node;
-	dev = active->profile_dev;
+	struct cras_iodev *dev = active_profile_dev(iodev);
 
 	/* Force back to A2DP if closing HFP. */
 	if (device_using_profile(btio->device,
@@ -276,14 +276,13 @@ static void update_active_node(struct cras_iodev *iodev)
 	/* Switch to the correct dev using active_profile. */
 	DL_FOREACH(iodev->nodes, node) {
 		struct bt_node *n = (struct bt_node *)node;
-		if (device_using_profile(btio->device, n->profile))
-			break;
-	}
-	/* Select to the new active node. */
-	if (node && (iodev->active_node != node)) {
-		cras_iodev_set_node_attr(iodev->active_node, IONODE_ATTR_PLUGGED, 0);
-		cras_iodev_set_node_attr(node, IONODE_ATTR_PLUGGED, 1);
-		cras_iodev_set_active_node(iodev, node);
+		if (n == active)
+			continue;
+
+		if (device_using_profile(btio->device, n->profile)) {
+			active->profile = n->profile;
+			active->profile_dev = n->profile_dev;
+		}
 	}
 }
 
@@ -295,6 +294,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	struct bt_io *btio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
+	struct bt_node *active;
 
 	if (!dev)
 		return NULL;
@@ -322,6 +322,22 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->update_active_node = update_active_node;
 	iodev->software_volume_needed = 1;
 
+	/* Create the dummy node set to plugged so it's the only node exposed
+	 * to UI, and point it to the first profile dev. */
+	active = (struct bt_node *)calloc(1, sizeof(*active));
+	if (!active)
+		return NULL;
+	active->base.dev = iodev;
+	active->base.idx = btio->next_node_id++;
+	active->base.type = CRAS_NODE_TYPE_BLUETOOTH;
+	active->base.volume = 100;
+	active->base.plugged = 1;
+	active->profile = profile;
+	active->profile_dev = dev;
+	gettimeofday(&active->base.plugged_time, NULL);
+	strcpy(active->base.name, dev->info.name);
+	cras_iodev_add_node(iodev, &active->base);
+
 	node = add_profile_dev(&btio->base, dev, profile);
 	if (node == NULL)
 		goto error;
@@ -333,8 +349,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	if (err)
 		goto error;
 
-	node->plugged = 1;
-	cras_iodev_set_active_node(iodev, node);
+	cras_iodev_set_active_node(iodev, &active->base);
 	return &btio->base;
 
 error:
