@@ -674,7 +674,6 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 	enum CRAS_STREAM_DIRECTION dir = dev_to_rm->dev->direction;
 	struct active_dev *fallback_dev = thread->fallback_devs[dir];
 	struct active_dev *adev;
-	unsigned int last_device;
 	struct dev_stream *dev_stream;
 
 	if (dev_to_rm == fallback_dev)
@@ -692,8 +691,7 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 				    AUDIO_THREAD_DEV_REMOVED,
 				    dev_to_rm->dev->info.idx, 0, 0);
 
-	last_device = thread->active_devs[dir] == NULL;
-	if (last_device)
+	if (thread->active_devs[dir] == NULL)
 		enable_fallback_dev(thread, dir);
 
 	DL_FOREACH(dev_to_rm->dev->streams, dev_stream) {
