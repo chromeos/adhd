@@ -8,6 +8,8 @@
 
 #include <dbus/dbus.h>
 
+#include "cras_bt_device.h"
+
 struct hfp_slc_handle;
 
 /* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
@@ -19,5 +21,8 @@ int cras_hsp_ag_profile_create(DBusConnection *conn);
 
 /* Gets the active SLC handle. Used for HFP qualification. */
 struct hfp_slc_handle *cras_hfp_ag_get_active_handle();
+
+/* Gets the SLC handle for given cras_bt_device. */
+struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device);
 
 #endif /* CRAS_HFP_AG_PROFILE_H_ */

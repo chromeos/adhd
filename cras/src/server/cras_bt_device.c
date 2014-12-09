@@ -18,6 +18,8 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_io.h"
 #include "cras_bt_profile.h"
+#include "cras_hfp_ag_profile.h"
+#include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_system_state.h"
@@ -491,6 +493,17 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 
 error:
 	return -1;
+}
+
+int cras_bt_device_set_speaker_gain(struct cras_bt_device *device, int gain)
+{
+	struct hfp_slc_handle *slc_handle;
+
+	slc_handle = cras_hfp_ag_get_slc(device);
+	if (!slc_handle)
+		return -EINVAL;
+
+	return hfp_event_speaker_gain(slc_handle, gain);
 }
 
 /* This diagram describes how the profile switching happens. When

@@ -56,4 +56,7 @@ int hfp_event_set_signal(struct hfp_slc_handle *handle, int value);
 /* Sets service availability which is required for qualification test. */
 int hfp_event_set_service(struct hfp_slc_handle *handle, int value);
 
+/* Sets speaker gain value to headsfree device. */
+int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain);
+
 #endif /* CRAS_HFP_SLC_H_ */

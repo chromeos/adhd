@@ -242,6 +242,16 @@ struct hfp_slc_handle *cras_hfp_ag_get_active_handle()
 	return connected_ags ? connected_ags->slc_handle : NULL;
 }
 
+struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
+{
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->device == device)
+			return ag->slc_handle;
+	}
+	return NULL;
+}
+
 int cras_hsp_ag_profile_create(DBusConnection *conn)
 {
 	return cras_bt_add_profile(conn, &cras_hsp_ag_profile);

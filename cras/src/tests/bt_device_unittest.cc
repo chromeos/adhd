@@ -230,6 +230,18 @@ void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device)
 {
 }
 
+/* From hfp_ag_profile */
+struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
+{
+  return NULL;
+}
+
+/* From hfp_slc */
+int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
+{
+  return 0;
+}
+
 /* From audio_thread */
 int audio_thread_add_active_dev(struct audio_thread *thread,
          struct cras_iodev *dev)

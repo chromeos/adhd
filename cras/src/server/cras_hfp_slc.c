@@ -469,6 +469,17 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	return hfp_send(handle, "OK");
 }
 
+int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
+{
+	char command[128];
+
+	/* Normailize gain value to 0-15 */
+	gain = gain * 15 / 100;
+	snprintf(command, 128, "+VGS=%d", gain);
+
+	return hfp_send(handle, command);
+}
+
 /* AT+CHUP command to terminate current call. Mandatory support
  * per spec 4.15.
  */

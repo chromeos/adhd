@@ -198,6 +198,12 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
   iodev->active_node = node;
 }
 
+//  From system_state.
+size_t cras_system_get_volume()
+{
+  return 0;
+}
+
 // From bt device
 int cras_bt_device_sco_connect(struct cras_bt_device *device)
 {
@@ -208,6 +214,11 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 const char *cras_bt_device_name(const struct cras_bt_device *device)
 {
   return "fake-device-name";
+}
+
+int cras_bt_device_set_speaker_gain(struct cras_bt_device *device, int gain)
+{
+  return 0;
 }
 
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
