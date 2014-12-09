@@ -394,11 +394,17 @@ int cras_iodev_put_buffer(struct cras_iodev *iodev, unsigned int nframes)
   return 0;
 }
 
-int cras_iodev_rm_stream(struct cras_iodev *iodev,
-                         const struct dev_stream *stream)
+struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
+                                        const struct cras_rstream *stream)
 {
-  DL_DELETE(iodev->streams, stream);
-  return 0;
+  struct dev_stream *out;
+  DL_FOREACH(iodev->streams, out) {
+    if (out->stream == stream) {
+      DL_DELETE(iodev->streams, out);
+      return out;
+    }
+  }
+  return NULL;
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,

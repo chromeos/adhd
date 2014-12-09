@@ -307,8 +307,8 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct dev_stream *stream);
 
 /* Indicate that a stream has been removed from the device. */
-int cras_iodev_rm_stream(struct cras_iodev *iodev,
-			 const struct dev_stream *stream);
+struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
+					const struct cras_rstream *stream);
 
 /* Get the offset of this stream into the dev's buffer. */
 unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,

@@ -421,6 +421,16 @@ static int append_stream_to_dev(struct audio_thread *thread,
 	return 0;
 }
 
+static void delete_stream_from_dev(struct cras_iodev *dev,
+				   struct cras_rstream *stream)
+{
+	struct dev_stream *out;
+
+	out = cras_iodev_rm_stream(dev, stream);
+	if (out)
+		dev_stream_destroy(out);
+}
+
 static int append_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
@@ -498,21 +508,7 @@ static int delete_stream(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
 		struct cras_iodev *dev = adev->dev;
 
-		/* TODO(dgreid) - move more of this to cras_iodev. */
-		dev->min_cb_level = dev->buffer_size;
-		dev->max_cb_level = 0;
-		DL_FOREACH(dev->streams, out) {
-			if (out->stream == stream) {
-				cras_iodev_rm_stream(dev, out);
-				dev_stream_destroy(out);
-				continue;
-			}
-			dev->min_cb_level = MIN(dev->min_cb_level,
-						out->stream->cb_threshold);
-			dev->max_cb_level = MAX(dev->max_cb_level,
-						out->stream->cb_threshold);
-		}
-
+		delete_stream_from_dev(dev, stream);
 		if (!dev->streams) {
 			if (stream->direction == CRAS_STREAM_OUTPUT) {
 				dev->is_draining = 1;
@@ -524,12 +520,7 @@ static int delete_stream(struct audio_thread *thread,
 	}
 
 	/* Remove from fallback device. */
-	DL_FOREACH(fallback_dev->dev->streams, out) {
-		if (out->stream == stream) {
-			cras_iodev_rm_stream(fallback_dev->dev, out);
-			dev_stream_destroy(out);
-		}
-	}
+	delete_stream_from_dev(fallback_dev->dev, stream);
 
 	if (stream->client == NULL)
 		cras_rstream_destroy(stream);
@@ -585,7 +576,8 @@ dev_add_error:
 	if (rc) {
 		/* Remove any streams added before the error. */
 		DL_FOREACH(added_dev->dev->streams, dev_stream) {
-			cras_iodev_rm_stream(added_dev->dev, dev_stream);
+			cras_iodev_rm_stream(added_dev->dev,
+					     dev_stream->stream);
 			dev_stream_destroy(dev_stream);
 		}
 	}
@@ -699,7 +691,7 @@ static void thread_rm_active_adev(struct audio_thread *thread,
 		enable_fallback_dev(thread, dir);
 
 	DL_FOREACH(dev_to_rm->dev->streams, dev_stream) {
-		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream);
+		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream->stream);
 		dev_stream_destroy(dev_stream);
 	}
 

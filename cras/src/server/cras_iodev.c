@@ -473,12 +473,28 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 	return 0;
 }
 
-int cras_iodev_rm_stream(struct cras_iodev *iodev,
-			 const struct dev_stream *stream)
+struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
+					const struct cras_rstream *rstream)
 {
-	buffer_share_rm_id(iodev->buf_state, stream->stream->stream_id);
-	DL_DELETE(iodev->streams, stream);
-	return 0;
+	struct dev_stream *out;
+	struct dev_stream *ret = NULL;
+
+	buffer_share_rm_id(iodev->buf_state, rstream->stream_id);
+	iodev->min_cb_level = iodev->buffer_size;
+	iodev->max_cb_level = 0;
+
+	DL_FOREACH(iodev->streams, out) {
+		if (out->stream == rstream) {
+			ret = out;
+			DL_DELETE(iodev->streams, out);
+			continue;
+		}
+		iodev->min_cb_level = MIN(iodev->min_cb_level,
+					  out->stream->cb_threshold);
+		iodev->max_cb_level = MAX(iodev->max_cb_level,
+					  out->stream->cb_threshold);
+	}
+	return ret;
 }
 
 unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
