@@ -404,8 +404,11 @@ static int append_stream_to_dev(struct audio_thread *thread,
 	}
 	out = dev_stream_create(stream, dev->info.idx, dev->ext_format,
 				dev->is_active ? dev : NULL);
-	if (!out)
+	if (!out) {
+		if (dev->streams == NULL)
+			cras_iodev_free_format(dev);
 		return -EINVAL;
+	}
 
 	adev->dev->is_draining = 0;
 
