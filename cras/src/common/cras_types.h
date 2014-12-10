@@ -329,6 +329,7 @@ enum CRAS_NODE_TYPE {
 	/* These value can be used for input nodes. */
 	CRAS_NODE_TYPE_INTERNAL_MIC,
 	CRAS_NODE_TYPE_MIC,
+	CRAS_NODE_TYPE_AOKR,
 	/* These value can be used for both output and input nodes. */
 	CRAS_NODE_TYPE_USB,
 	CRAS_NODE_TYPE_BLUETOOTH,

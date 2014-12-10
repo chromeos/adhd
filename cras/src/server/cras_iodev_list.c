@@ -175,6 +175,8 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "INTERNAL_MIC";
 	case CRAS_NODE_TYPE_MIC:
 		return "MIC";
+	case CRAS_NODE_TYPE_AOKR:
+		return "AOKR";
 	case CRAS_NODE_TYPE_USB:
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:

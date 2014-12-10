@@ -225,7 +225,10 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
-	node->type = CRAS_NODE_TYPE_UNKNOWN;
+	if (type == TEST_IODEV_HOTWORD)
+		node->type = CRAS_NODE_TYPE_AOKR;
+	else
+		node->type = CRAS_NODE_TYPE_UNKNOWN;
 	node->volume = 100;
 	strcpy(node->name, "(default)");
 	cras_iodev_add_node(iodev, node);
