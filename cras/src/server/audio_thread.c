@@ -455,6 +455,8 @@ static int append_stream(struct audio_thread *thread,
 
 	/* TODO(dgreid) - add to correct dev, not all. */
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
+		if (adev == fallback_dev)
+			continue;
 		if (append_stream_to_dev(thread, adev, stream) == 0)
 			num_devs_added_to++;
 	}
