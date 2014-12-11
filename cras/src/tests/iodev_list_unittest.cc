@@ -450,20 +450,6 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
   EXPECT_EQ(1, set_node_attr_called);
 }
 
-TEST_F(IoDevTestSuite, SoftwareVolumeForUSB) {
-  d1_.info.idx = 1;
-  d1_.software_volume_needed = 0;
-  d1_.active_node->dev = &d1_;
-  d1_.active_node->volume = 100;
-
-  cras_iodev_list_init();
-  ASSERT_FALSE(cras_iodev_software_volume_needed(&d1_));
-
-  // Check that USB uses software volume.
-  d1_.active_node->type = CRAS_NODE_TYPE_USB;
-  ASSERT_TRUE(cras_iodev_software_volume_needed(&d1_));
-}
-
 TEST_F(IoDevTestSuite, AddActiveNode) {
   int rc;
   cras_iodev_list_init();

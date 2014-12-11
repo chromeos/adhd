@@ -294,8 +294,7 @@ static inline int cras_iodev_software_volume_needed(
 	if (!iodev->active_node)
 		return 0;
 
-	return iodev->active_node->type == CRAS_NODE_TYPE_HDMI ||
-	       iodev->active_node->type == CRAS_NODE_TYPE_USB;
+	return iodev->active_node->type == CRAS_NODE_TYPE_HDMI;
 }
 
 /* Gets the software volume scaler of the iodev. The scaler should only be
