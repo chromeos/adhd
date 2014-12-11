@@ -211,6 +211,16 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
+static void set_bt_volume(struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+
+	if (dev->active_node)
+		dev->active_node->volume = iodev->active_node->volume;
+	if (dev->set_volume)
+		dev->set_volume(dev);
+}
+
 static int is_open(const struct cras_iodev *iodev)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
@@ -282,6 +292,12 @@ static void update_active_node(struct cras_iodev *iodev)
 		if (device_using_profile(btio->device, n->profile)) {
 			active->profile = n->profile;
 			active->profile_dev = n->profile_dev;
+
+			/* Fill all volume related stuff to/from the
+			 * profile dev. */
+			iodev->software_volume_needed =
+				active->profile_dev->software_volume_needed;
+			set_bt_volume(iodev);
 		}
 	}
 }
@@ -320,7 +336,8 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->software_volume_needed = 1;
+	iodev->software_volume_needed = dev->software_volume_needed;
+	iodev->set_volume = set_bt_volume;
 
 	/* Create the dummy node set to plugged so it's the only node exposed
 	 * to UI, and point it to the first profile dev. */
