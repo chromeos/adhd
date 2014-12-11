@@ -26,6 +26,15 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
 		      struct cras_iodev *dev,
 		      enum cras_bt_device_profile profile);
 
+/* Dry-run the profile device removal from bt_iodev.
+ * Returns:
+ *    0 if the bt_iodev will be empty and should to be destroied
+ *    after the removal, othersie the value of the next preffered
+ *    profile to use.
+ */
+unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
+				   struct cras_iodev *dev);
+
 /* Removes a profile specific iodev from bt_iodev. */
 int cras_bt_io_remove(struct cras_iodev *bt_iodev, struct cras_iodev *dev);
 

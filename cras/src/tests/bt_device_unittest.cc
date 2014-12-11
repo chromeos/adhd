@@ -26,6 +26,7 @@ static int audio_thread_rm_active_dev_rets[CRAS_NUM_DIRECTIONS];
 static audio_thread* iodev_get_thread_return;
 static enum cras_bt_device_profile cras_bt_io_create_profile_val;
 static enum cras_bt_device_profile cras_bt_io_append_profile_val;
+static unsigned int cras_bt_io_try_remove_ret;
 
 static void (*cras_system_add_select_fd_callback)(void *data);
 static void *cras_system_add_select_fd_callback_data;
@@ -36,6 +37,7 @@ void ResetStubData() {
   cras_bt_io_append_called = 0;
   cras_bt_io_remove_called = 0;
   cras_bt_io_destroy_called = 0;
+  cras_bt_io_try_remove_ret = 0;
   audio_thread_add_active_dev_called = 0;
   audio_thread_rm_active_dev_called = 0;
   for (int dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++)
@@ -114,12 +116,21 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   	    cras_bt_io_append_profile_val);
   EXPECT_EQ(&bt_iodev1, cras_bt_io_append_btio_val);
 
+  /* Test HFP disconnected and switch to A2DP. */
   cras_bt_io_has_dev_ret = 1;
+  cras_bt_io_try_remove_ret = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
+  audio_thread_rm_active_dev_rets[CRAS_STREAM_OUTPUT] = 0;
+  cras_bt_device_set_active_profile(
+      device, CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
   cras_bt_device_rm_iodev(device, &d2_);
   EXPECT_EQ(1, cras_bt_io_remove_called);
-  bt_iodev1.nodes = NULL;
+  EXPECT_EQ(1, audio_thread_rm_active_dev_called);
+  EXPECT_EQ(1, audio_thread_add_active_dev_called);
+
+  /* Test A2DP disconnection will cause bt_io destroy. */
+  cras_bt_io_try_remove_ret = 0;
   cras_bt_device_rm_iodev(device, &d1_);
-  EXPECT_EQ(2, cras_bt_io_remove_called);
+  EXPECT_EQ(1, cras_bt_io_remove_called);
   EXPECT_EQ(1, cras_bt_io_destroy_called);
 }
 
@@ -191,6 +202,11 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
   cras_bt_io_append_profile_val = profile;
   cras_bt_io_append_btio_val = bt_iodev;
   return 0;
+}
+unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
+           struct cras_iodev *dev)
+{
+  return cras_bt_io_try_remove_ret;
 }
 int cras_bt_io_remove(struct cras_iodev *bt_iodev,
 		                  struct cras_iodev *dev)

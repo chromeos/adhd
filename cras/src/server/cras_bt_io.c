@@ -402,6 +402,31 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
 	return 0;
 }
 
+unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
+				   struct cras_iodev *dev)
+{
+	struct cras_ionode *node;
+	struct bt_node *active, *btnode;
+	unsigned int try_profile = 0;
+
+	active = (struct bt_node *)bt_iodev->active_node;
+
+	if (active->profile_dev == dev) {
+		DL_FOREACH(bt_iodev->nodes, node) {
+			btnode = (struct bt_node *)node;
+			/* Skip the active node and the node we're trying
+			 * to remove. */
+			if (btnode == active || btnode->profile_dev == dev)
+				continue;
+			try_profile = btnode->profile;
+			break;
+		}
+	} else {
+		try_profile = active->profile;
+	}
+	return try_profile;
+}
+
 int cras_bt_io_remove(struct cras_iodev *bt_iodev,
 		      struct cras_iodev *dev)
 {

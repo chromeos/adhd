@@ -212,6 +212,10 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				cras_bt_io_create(device, iodev, profile);
 }
 
+static void bt_device_switch_profile(struct cras_bt_device *device,
+				     struct cras_iodev *bt_iodev,
+				     int on_open);
+
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev)
 {
@@ -219,10 +223,24 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 
 	bt_iodev = device->bt_iodevs[iodev->direction];
 	if (bt_iodev) {
-		cras_bt_io_remove(bt_iodev, iodev);
-		if (bt_iodev->nodes == NULL) {
+		unsigned try_profile;
+
+		/* Check what will the preffered profile be if we remove dev. */
+		try_profile = cras_bt_io_try_remove(bt_iodev, iodev);
+		if (!try_profile) {
 			device->bt_iodevs[iodev->direction] = NULL;
 			cras_bt_io_destroy(bt_iodev);
+			return;
+		} else {
+			/* If the check result doesn't match with the active
+			 * profile we are currently using, switch to the
+			 * preffered profile before actually remove the iodev.
+			 */
+			if ((try_profile & device->active_profile) == 0) {
+				device->active_profile = try_profile;
+				bt_device_switch_profile(device, bt_iodev, 0);
+			}
+			cras_bt_io_remove(bt_iodev, iodev);
 		}
 	}
 }
