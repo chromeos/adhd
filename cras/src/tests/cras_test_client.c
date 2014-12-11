@@ -1261,19 +1261,24 @@ int main(int argc, char **argv)
 	if (block_size == NOT_ASSIGNED)
 		block_size = get_block_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
 
-	if (capture_file != NULL)
-		rc = run_capture(client, capture_file,
-				block_size, rate, num_channels, 0);
-	else if (playback_file != NULL)
+	if (capture_file != NULL) {
+		if (strcmp(capture_file, "-") == 0)
+			rc = run_file_io_stream(client, 1, CRAS_STREAM_INPUT,
+					block_size, rate, num_channels, 0);
+		else
+			rc = run_capture(client, capture_file,
+					block_size, rate, num_channels, 0);
+	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
 					block_size, rate, num_channels, 0);
 		else
 			rc = run_playback(client, playback_file,
 					block_size, rate, num_channels);
-	else if (loopback_file != NULL)
+	} else if (loopback_file != NULL) {
 		rc = run_capture(client, loopback_file,
 				 block_size, rate, num_channels, 1);
+	}
 
 destroy_exit:
 	cras_client_destroy(client);
