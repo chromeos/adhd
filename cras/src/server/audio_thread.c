@@ -516,6 +516,9 @@ static int delete_stream(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[stream->direction], adev) {
 		struct cras_iodev *dev = adev->dev;
 
+		if (adev == fallback_dev)
+			continue;
+
 		delete_stream_from_dev(dev, stream);
 		if (!dev->streams) {
 			if (stream->direction == CRAS_STREAM_OUTPUT) {
