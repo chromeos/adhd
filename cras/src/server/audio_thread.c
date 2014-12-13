@@ -1187,9 +1187,6 @@ static int get_next_stream_wake(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev)
 		ret += get_next_stream_wake_from_list(adev->dev->streams,
 						      min_ts);
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev)
-		ret += get_next_stream_wake_from_list(adev->dev->streams,
-						      min_ts);
 
 	return ret;
 }
@@ -1204,6 +1201,19 @@ static int get_next_dev_wake(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 		/* Only wake up for devices when they finish draining. */
 		if (!device_open(adev->dev) || !adev->dev->is_draining)
+			continue;
+		ret++;
+		audio_thread_event_log_data(atlog,
+					    AUDIO_THREAD_DEV_SLEEP_TIME,
+					    adev->dev->info.idx,
+					    adev->wake_ts.tv_sec,
+					    adev->wake_ts.tv_nsec);
+		if (timespec_after(min_ts, &adev->wake_ts))
+			*min_ts = adev->wake_ts;
+	}
+
+	DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev) {
+		if (!device_open(adev->dev))
 			continue;
 		ret++;
 		audio_thread_event_log_data(atlog,
@@ -1461,10 +1471,13 @@ static unsigned int get_stream_limit_set_delay(struct active_dev *adev,
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
 	struct dev_stream *stream;
+	unsigned int needed, min_needed;
 	int delay;
 
 	/* TODO(dgreid) - Setting delay from last dev only. */
 	delay = input_delay_frames(adev);
+
+	min_needed = dev_stream_cb_threshold(adev->dev->streams);
 
 	DL_FOREACH(adev->dev->streams, stream) {
 		rstream = stream->stream;
@@ -1473,7 +1486,18 @@ static unsigned int get_stream_limit_set_delay(struct active_dev *adev,
 		cras_shm_check_write_overrun(shm);
 		dev_stream_set_delay(stream, delay);
 		write_limit = MIN(write_limit,
-				  dev_stream_capture_avail(stream));
+				  dev_stream_capture_avail(stream, &needed));
+		min_needed = MIN(min_needed, needed);
+	}
+
+	if (min_needed) {
+		struct timespec now;
+
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		cras_frames_to_time(min_needed + 10,
+				    adev->dev->ext_format->frame_rate,
+				    &adev->wake_ts);
+		add_timespecs(&adev->wake_ts, &now);
 	}
 
 	return write_limit;

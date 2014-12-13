@@ -374,6 +374,7 @@ TEST_F(CreateSuite, CreateSRC48to44StereoToMono) {
 TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
   struct dev_stream *dev_stream;
   unsigned int avail;
+  unsigned int needed;
 
   rstream_.format = fmt_s16le_48;
   rstream_.direction = CRAS_STREAM_INPUT;
@@ -389,9 +390,10 @@ TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
   EXPECT_EQ(2, cras_audio_area_create_num_channels_val);
 
   buf_increment_write(dev_stream->conv_buffer, 50 * 4);
-  avail = dev_stream_capture_avail(dev_stream);
+  avail = dev_stream_capture_avail(dev_stream, &needed);
 
   EXPECT_EQ(cras_frames_at_rate(48000, 512 - 50, 44100), avail);
+  EXPECT_EQ(cras_frames_at_rate(48000, 512 - 50, 44100), needed);
 
   dev_stream_destroy(dev_stream);
 }

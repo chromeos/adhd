@@ -521,9 +521,6 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_PB_MSG:
 		printf("PB_MSG: %u.%09u msg_id:%u\n", sec, nsec, data1);
 		break;
-	case AUDIO_THREAD_CAPTURE_EARLY:
-		printf("CAPTURE_EARLY: %u.%09u id %x\n", sec, nsec, data1);
-		break;
 	default:
 		printf("Unknown alog tag %u\n", tag);
 		break;

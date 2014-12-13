@@ -508,7 +508,13 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
   return 0;
 }
 
-unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
+unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream,
+				      unsigned int *needed)
+{
+  return 0;
+
+}
+unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream)
 {
   return 0;
 }
