@@ -1190,9 +1190,6 @@ static int get_next_stream_wake(struct audio_thread *thread,
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev)
 		ret += get_next_stream_wake_from_list(adev->dev->streams,
 						      min_ts);
-	DL_FOREACH(thread->active_devs[CRAS_STREAM_POST_MIX_PRE_DSP], adev)
-		ret += get_next_stream_wake_from_list(adev->dev->streams,
-						      min_ts);
 
 	return ret;
 }
