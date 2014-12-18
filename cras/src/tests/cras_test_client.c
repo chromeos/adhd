@@ -200,8 +200,11 @@ static int put_samples(struct cras_client *client,
 	cras_client_calc_playback_latency(playback_time, &last_latency);
 
 	nread = read(fd, buff, MIN(frames * frame_bytes, BUF_SIZE));
-	if (nread < 0)
+	if (nread <= 0) {
+		if (exit_after_done_playing)
+			terminate_stream_loop();
 		return nread;
+	}
 
 	if (playback_codec) {
 		this_size = playback_codec->decode(playback_codec,
