@@ -1477,7 +1477,8 @@ static unsigned int get_stream_limit_set_delay(struct active_dev *adev,
 	/* TODO(dgreid) - Setting delay from last dev only. */
 	delay = input_delay_frames(adev);
 
-	min_needed = dev_stream_cb_threshold(adev->dev->streams);
+	min_needed = adev->dev->max_cb_level;
+	needed = min_needed;
 
 	DL_FOREACH(adev->dev->streams, stream) {
 		rstream = stream->stream;
