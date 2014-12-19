@@ -112,10 +112,18 @@ unsigned int linear_resampler_resample(struct linear_resampler *lr,
 		in = (int16_t *)(src + src_idx * lr->format_bytes);
 		out = (int16_t *)(dst + dst_idx * lr->format_bytes);
 
-		for (ch = 0; ch < lr->num_channels; ch++) {
-			out[ch] = in[ch] + (src_pos - src_idx) *
+		/* Don't do linear interpolcation if src_pos falls on the
+		 * last index. */
+		if (src_idx == *src_frames - 1) {
+			for (ch = 0; ch < lr->num_channels; ch++)
+				out[ch] = in[ch];
+		} else {
+			for (ch = 0; ch < lr->num_channels; ch++) {
+				out[ch] = in[ch] + (src_pos - src_idx) *
 					(in[lr->num_channels + ch] - in[ch]);
+			}
 		}
+
 	}
 
 	*src_frames = src_idx + 1;
