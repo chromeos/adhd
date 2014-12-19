@@ -165,11 +165,6 @@ static void update_active_node(struct cras_iodev *iodev)
 {
 }
 
-static int data_ready_cb(void *data)
-{
-	return 0;
-}
-
 static void play_file_as_hotword(struct test_iodev *testio, const char *path)
 {
 	if (testio->fd >= 0) {
@@ -178,8 +173,6 @@ static void play_file_as_hotword(struct test_iodev *testio, const char *path)
 	}
 
 	testio->fd = open(path, O_RDONLY);
-	if (testio->fd >= 0)
-		audio_thread_add_callback(testio->fd, data_ready_cb, NULL);
 	buf_reset(testio->audbuff);
 }
 
