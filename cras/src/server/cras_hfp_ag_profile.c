@@ -17,10 +17,13 @@
 #include "cras_hfp_slc.h"
 #include "utlist.h"
 
-#define HFP_AG_PROFILE_NAME "Headset Gateway"
+#define STR(s) #s
+#define VSTR(id) STR(id)
+
+#define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
 #define HFP_VERSION_1_6 0x0106
-#define HSP_AG_PROFILE_NAME "Headset Gateway"
+#define HSP_AG_PROFILE_NAME "Headset Voice gateway"
 #define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
 #define HSP_VERSION_1_2 0x0102
 
@@ -53,12 +56,12 @@
 	"    <sequence>"						\
 	"      <sequence>"						\
 	"        <uuid value=\"" HSP_HS_UUID "\" />"			\
-	"        <uint16 value=\"0x0102\" />"				\
+	"        <uint16 value=\"" VSTR(HSP_VERSION_1_2) "\" />"	\
 	"      </sequence>"						\
 	"    </sequence>"						\
 	"  </attribute>"						\
 	"  <attribute id=\"0x0100\">"					\
-	"    <text value=\"Voice Gateway\" />"				\
+	"    <text value=\"" HSP_AG_PROFILE_NAME "\" />"		\
 	"  </attribute>"						\
 	"  <attribute id=\"0x0301\" >"					\
 	"    <uint8 value=\"0x01\" />"					\
@@ -183,7 +186,7 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 	.uuid = HFP_AG_UUID,
 	.version = HFP_VERSION_1_6,
 	.role = NULL,
-	.features = 0,
+	.features = HFP_SUPPORTED_FEATURE & 0x1F,
 	.record = NULL,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hfp_ag_new_connection,
@@ -228,7 +231,6 @@ static struct cras_bt_profile cras_hsp_ag_profile = {
 	.version = HSP_VERSION_1_2,
 	.role = NULL,
 	.record = HSP_AG_RECORD,
-	.features = 0,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hsp_ag_new_connection,
 	.request_disconnection = cras_hfp_ag_request_disconnection,
