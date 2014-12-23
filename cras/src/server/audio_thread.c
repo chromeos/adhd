@@ -255,10 +255,7 @@ static struct dev_stream *thread_find_stream(struct audio_thread *thread,
 	}
 
 	DL_SEARCH_SCALAR(adev->dev->streams, out, stream, stream);
-	if (out)
-		return out;
-
-	return NULL;
+	return out;
 }
 
 /* Calculates the length of timeout period and updates the longest
@@ -535,7 +532,6 @@ static int append_stream(struct audio_thread *thread,
 static int delete_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream)
 {
-	struct dev_stream *out;
 	int longest_timeout_msec;
 	struct cras_audio_shm *shm;
 	struct active_dev *adev;
@@ -543,8 +539,7 @@ static int delete_stream(struct audio_thread *thread,
 			thread->fallback_devs[stream->direction];
 
 	/* Find stream, and if found, delete it. */
-	out = thread_find_stream(thread, stream);
-	if (out == NULL)
+	if (!thread_find_stream(thread, stream))
 		return -EINVAL;
 
 	/* Log the longest timeout of the stream about to be removed. */
@@ -825,16 +820,14 @@ static int thread_remove_stream(struct audio_thread *thread,
 
 /* Handles the disconnect_stream message from the main thread. */
 static int thread_disconnect_stream(struct audio_thread* thread,
-				    struct cras_rstream* stream) {
-	struct dev_stream *out;
-
+				    struct cras_rstream* stream)
+{
 	stream->client = NULL;
 	cras_rstream_set_audio_fd(stream, -1);
 	cras_rstream_set_is_draining(stream, 1);
 
 	/* If the stream has been removed from active streams, destroy it. */
-	out = thread_find_stream(thread, stream);
-	if (out == NULL) {
+	if (!thread_find_stream(thread, stream)) {
 		cras_rstream_destroy(stream);
 		return 0;
 	}
