@@ -722,6 +722,13 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
+  strcpy(node.name, "Something HDMI Jack");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
   strcpy(node.name, "Headphone");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);

@@ -597,7 +597,10 @@ static void set_node_initial_state(struct cras_ionode *node,
 
 	/* If we didn't find a matching name above, but the node is a jack node,
 	 * set its type to headphone/mic. This matches node names like "DAISY-I2S Mic
-	 * Jack" */
+	 * Jack".
+	 * If HDMI is in the node name, set its type to HDMI. This matches node names
+	 * like "Rockchip HDMI Jack".
+	 */
 	if (i == ARRAY_SIZE(node_defaults)) {
 		if (endswith(node->name, "Jack")) {
 			if (node->dev->direction == CRAS_STREAM_OUTPUT)
@@ -605,6 +608,9 @@ static void set_node_initial_state(struct cras_ionode *node,
 			else
 				node->type = CRAS_NODE_TYPE_MIC;
 		}
+		if (strstr(node->name, "HDMI") &&
+		    node->dev->direction == CRAS_STREAM_OUTPUT)
+			node->type = CRAS_NODE_TYPE_HDMI;
 	}
 
 	/* Regardless of the node name of a USB headset (it can be "Speaker"),
