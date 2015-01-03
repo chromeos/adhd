@@ -235,6 +235,42 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatDivisor) {
   EXPECT_EQ(2, fmt.num_channels);
 }
 
+TEST_F(IoDevSetFormatTestSuite, Supported96k) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  sample_rates_[0] = 48000;
+  sample_rates_[1] = 96000;
+  sample_rates_[2] = 0;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 96000;
+  fmt.num_channels = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(96000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
+TEST_F(IoDevSetFormatTestSuite, LimitLowRate) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  sample_rates_[0] = 48000;
+  sample_rates_[1] = 8000;
+  sample_rates_[2] = 0;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 8000;
+  fmt.num_channels = 2;
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
+  EXPECT_EQ(48000, fmt.frame_rate);
+  EXPECT_EQ(2, fmt.num_channels);
+}
+
 TEST_F(IoDevSetFormatTestSuite, UnsupportedChannelCount) {
   struct cras_audio_format fmt;
   int rc;

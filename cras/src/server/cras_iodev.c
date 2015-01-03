@@ -48,7 +48,8 @@ static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
 		return 0;
 
 	for (i = 0, best = 0; iodev->supported_rates[i] != 0; i++) {
-		if (rrate == iodev->supported_rates[i])
+		if (rrate == iodev->supported_rates[i] &&
+		    rrate >= 44100)
 			return rrate;
 		if (best == 0 && (rrate % iodev->supported_rates[i] == 0 ||
 				  iodev->supported_rates[i] % rrate == 0))
