@@ -87,8 +87,11 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 		hfp_iodev_destroy(ag->idev);
 	if (ag->odev)
 		hfp_iodev_destroy(ag->odev);
-	if (ag->info)
+	if (ag->info) {
+		if (hfp_info_running(ag->info))
+			hfp_info_stop(ag->info);
 		hfp_info_destroy(ag->info);
+	}
 	if (ag->slc_handle)
 		hfp_slc_destroy(ag->slc_handle);
 	free(ag);
