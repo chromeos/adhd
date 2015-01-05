@@ -465,11 +465,19 @@ int cras_bt_io_remove(struct cras_iodev *bt_iodev,
 	struct cras_ionode *node;
 	struct bt_node *btnode;
 
-	DL_SEARCH_SCALAR_WITH_CAST(bt_iodev->nodes, node, btnode,
-				   profile_dev, dev);
-	if (node) {
-		DL_DELETE(bt_iodev->nodes, node);
-		free(node);
+	DL_FOREACH(bt_iodev->nodes, node) {
+		if (node == bt_iodev->active_node)
+			continue;
+
+		btnode = (struct bt_node *)node;
+		if (btnode->profile_dev == dev) {
+			DL_DELETE(bt_iodev->nodes, node);
+			free(node);
+		}
 	}
+
+	/* The node of active profile could have been removed, update it. */
+	update_active_node(bt_iodev);
+
 	return 0;
 }
