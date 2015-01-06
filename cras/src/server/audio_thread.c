@@ -551,36 +551,32 @@ static int delete_stream(struct audio_thread *thread,
 				thread, longest_timeout_msec);
 	}
 
-	if (stream->is_pinned) {
-		DL_SEARCH_SCALAR(thread->active_devs[stream->direction], adev,
-				 dev->info.idx, stream->pinned_dev_idx);
-		if (adev) {
-			delete_stream_from_dev(adev->dev, stream);
-			if (!adev->dev->streams && adev->for_pinned_streams)
+	/* Remove from each device it is attached to. */
+	DL_FOREACH(thread->active_devs[stream->direction], adev) {
+		struct cras_iodev *dev = adev->dev;
+
+		if (adev == fallback_dev)
+			continue;
+		if (stream->is_pinned &&
+		    dev->info.idx != stream->pinned_dev_idx)
+			continue;
+
+		delete_stream_from_dev(dev, stream);
+		if (!dev->streams) {
+			if (stream->direction == CRAS_STREAM_OUTPUT) {
+				dev->is_draining = 1;
+				dev->extra_silent_frames = 0;
+			} else {
+				cras_iodev_close(dev);
+			}
+
+			if (adev->for_pinned_streams)
 				thread_rm_active_adev(thread, adev);
 		}
-	} else {
-		/* remove from each device it is attached to. */
-		DL_FOREACH(thread->active_devs[stream->direction], adev) {
-			struct cras_iodev *dev = adev->dev;
-
-			if (adev == fallback_dev)
-				continue;
-
-			delete_stream_from_dev(dev, stream);
-			if (!dev->streams) {
-				if (stream->direction == CRAS_STREAM_OUTPUT) {
-					dev->is_draining = 1;
-					dev->extra_silent_frames = 0;
-				} else {
-					cras_iodev_close(dev);
-				}
-			}
-		}
-
-		/* Remove from fallback device. */
-		delete_stream_from_dev(fallback_dev->dev, stream);
 	}
+
+	/* Remove from fallback device. */
+	delete_stream_from_dev(fallback_dev->dev, stream);
 
 	if (stream->client == NULL)
 		cras_rstream_destroy(stream);
