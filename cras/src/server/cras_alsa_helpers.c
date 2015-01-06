@@ -329,6 +329,10 @@ int cras_alsa_get_channel_map(snd_pcm_t *handle,
 		fmt->channel_layout[CH_TO_CRAS(match->map.pos[i])] = i;
 	}
 
+	/* Handle the special channel map {SND_CHMAP_MONO} */
+	if (match->map.channels == 1 && match->map.pos[0] == SND_CHMAP_MONO)
+		fmt->channel_layout[CRAS_CH_FC] = 0;
+
 done:
 	snd_pcm_free_chmaps(chmaps);
 	return rc;
