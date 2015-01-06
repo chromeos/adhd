@@ -26,6 +26,10 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
 		      struct cras_iodev *dev,
 		      enum cras_bt_device_profile profile);
 
+/* Checks if the active node of bt_io matches a profile. */
+int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
+			  enum cras_bt_device_profile profile);
+
 /* Dry-run the profile device removal from bt_iodev.
  * Returns:
  *    0 if the bt_iodev will be empty and should to be destroied

@@ -203,6 +203,11 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
   cras_bt_io_append_btio_val = bt_iodev;
   return 0;
 }
+int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
+                          enum cras_bt_device_profile profile)
+{
+  return 0;
+}
 unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
            struct cras_iodev *dev)
 {

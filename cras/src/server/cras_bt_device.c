@@ -238,7 +238,7 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			 * profile we are currently using, switch to the
 			 * preffered profile before actually remove the iodev.
 			 */
-			if ((try_profile & device->active_profile) == 0) {
+			if (!cras_bt_io_on_profile(bt_iodev, try_profile)) {
 				device->active_profile = try_profile;
 				bt_device_switch_profile(device, bt_iodev, 0);
 			}
