@@ -66,20 +66,6 @@ install:	$(DESTDIR)/lib/firmware/$(BOARD)_alsa.fw
 
 endif
 
-optional_cras_conf := $(wildcard $(ADHD_DIR)/cras-config/$(BOARD)/*)
-
-ifneq ($(strip $(optional_cras_conf)),)
-
-.PHONY: cras-config-files
-cras-config-files:
-	$(ECHO) "Installing cras config files"
-	$(INSTALL) --mode 755 -d $(DESTDIR)etc/cras/
-	$(INSTALL) --mode 644 -D $(ADHD_DIR)/cras-config/$(BOARD)/* $(DESTDIR)etc/cras/
-
-install:	cras-config-files
-
-endif
-
 install:	$(DESTDIR)/etc/init/cras.conf				\
 		$(DESTDIR)/etc/asound.state				\
 		$(DESTDIR)/etc/cras/device_blacklist			\
