@@ -575,8 +575,9 @@ static int delete_stream(struct audio_thread *thread,
 		}
 	}
 
-	/* Remove from fallback device. */
-	delete_stream_from_dev(fallback_dev->dev, stream);
+	/* Remove non-pinned streams from fallback device. */
+	if (!stream->is_pinned)
+		delete_stream_from_dev(fallback_dev->dev, stream);
 
 	if (stream->client == NULL)
 		cras_rstream_destroy(stream);
