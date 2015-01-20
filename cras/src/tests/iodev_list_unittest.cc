@@ -51,6 +51,7 @@ static int audio_thread_add_active_dev_called;
 static int audio_thread_rm_active_dev_called;
 static struct audio_thread thread;
 static int node_left_right_swapped_cb_called;
+static struct cras_iodev loopback_input;
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -270,6 +271,10 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   d1_.direction = CRAS_STREAM_INPUT;
   d2_.direction = CRAS_STREAM_INPUT;
 
+  // Check a loopback record device exists.
+  rc = cras_iodev_list_get_inputs(NULL);
+  EXPECT_EQ(1, rc);
+
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
   EXPECT_GE(d1_.info.idx, 0);
@@ -281,17 +286,16 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   EXPECT_EQ(0, rc);
   EXPECT_GE(d2_.info.idx, 1);
   // make sure shared state was updated.
-  EXPECT_EQ(2, server_state_stub.num_input_devs);
+  EXPECT_EQ(3, server_state_stub.num_input_devs);
   EXPECT_EQ(d2_.info.idx, server_state_stub.input_devs[0].idx);
   EXPECT_EQ(d1_.info.idx, server_state_stub.input_devs[1].idx);
 
-  // Passing null should return the number of outputs.
   rc = cras_iodev_list_get_inputs(NULL);
-  EXPECT_EQ(2, rc);
+  EXPECT_EQ(3, rc);
   // List the outputs.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(2, rc);
-  if (rc == 2) {
+  EXPECT_EQ(3, rc);
+  if (rc == 3) {
     found_mask = 0;
     for (i = 0; i < rc; i++) {
       uint32_t idx = dev_info[i].idx;
@@ -308,16 +312,16 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   // Test that we can't remove a dev twice.
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_NE(0, rc);
-  // Should be 1 dev now.
+  // Should be 2 devs now.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(1, rc);
+  EXPECT_EQ(2, rc);
   free(dev_info);
   // Remove other dev.
   rc = cras_iodev_list_rm_input(&d2_);
   EXPECT_EQ(0, rc);
-  // Should be 0 devs now.
+  // Should be 1 dev (loopback) now.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, rc);
   free(dev_info);
 }
 
@@ -378,9 +382,9 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   EXPECT_EQ(0, rc);
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
-  // Should be 0 devs now.
+  // Should be 1 dev (loopback) now.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, rc);
 }
 
 // Test nodes changed notification is sent.
@@ -589,7 +593,9 @@ void cras_alert_destroy(struct cras_alert *alert) {
 }
 
 struct audio_thread *audio_thread_create(struct cras_iodev *out,
-                                         struct cras_iodev *in) {
+                                         struct cras_iodev *in,
+                                         struct cras_iodev *loop_out,
+                                         struct cras_iodev *loop_in) {
   return &thread;
 }
 
@@ -683,6 +689,17 @@ void test_iodev_command(struct cras_iodev *iodev,
                         enum CRAS_TEST_IODEV_CMD command,
                         unsigned int data_len,
                         const uint8_t *data) {
+}
+
+void loopback_iodev_create(struct cras_iodev **loop_in,
+                           struct cras_iodev **loop_out)
+{
+  *loop_in = &loopback_input;
+}
+
+void loopback_iodev_destroy(struct cras_iodev *loop_in,
+                            struct cras_iodev *loop_out)
+{
 }
 
 }  // extern "C"

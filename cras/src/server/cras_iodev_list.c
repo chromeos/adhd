@@ -10,6 +10,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
+#include "cras_loopback_iodev.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
 #include "cras_types.h"
@@ -29,8 +30,9 @@ static struct iodev_list inputs;
 /* Keep an active input and output. */
 static struct cras_iodev *active_output;
 static struct cras_iodev *active_input;
-/* device used for loopback. */
-static struct cras_iodev *loopback_dev;
+/* Keep loopback input and output. */
+static struct cras_iodev *loopback_output;
+static struct cras_iodev *loopback_input;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
@@ -54,6 +56,9 @@ static void active_node_changed_prepare(struct cras_alert *alert);
 static struct cras_iodev *find_dev(size_t dev_index)
 {
 	struct cras_iodev *dev;
+
+	if (dev_index == LOOPBACK_RECORD_DEVICE)
+		return loopback_input;
 
 	DL_FOREACH(outputs.iodevs, dev)
 		if (dev->info.idx == dev_index)
@@ -314,8 +319,15 @@ void cras_iodev_list_init()
 	 * capture from. */
 	fallback_output = empty_iodev_create(CRAS_STREAM_OUTPUT);
 	fallback_input = empty_iodev_create(CRAS_STREAM_INPUT);
-	audio_thread = audio_thread_create(fallback_output, fallback_input);
+	loopback_iodev_create(&loopback_input, &loopback_output);
+	audio_thread = audio_thread_create(fallback_output, fallback_input,
+					   loopback_output, loopback_input);
 	audio_thread_start(audio_thread);
+
+	/* Add loopback capture device to input device list. */
+	DL_PREPEND(inputs.iodevs, loopback_input);
+	inputs.size++;
+	cras_iodev_list_update_device_list();
 }
 
 void cras_iodev_list_deinit()
@@ -328,6 +340,7 @@ void cras_iodev_list_deinit()
 	cras_alert_destroy(active_node_changed_alert);
 	nodes_changed_alert = NULL;
 	active_node_changed_alert = NULL;
+	loopback_iodev_destroy(loopback_input, loopback_output);
 	audio_thread_destroy(audio_thread);
 }
 
@@ -346,10 +359,6 @@ int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
 		break;
 	case CRAS_STREAM_INPUT:
 		*idev = active_input;
-		*odev = NULL;
-		break;
-	case CRAS_STREAM_POST_MIX_PRE_DSP:
-		*idev = (struct cras_iodev *)loopback_dev;
 		*odev = NULL;
 		break;
 	default:
@@ -445,12 +454,6 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 int cras_iodev_list_add_input(struct cras_iodev *input)
 {
 	int rc;
-
-	if (input->direction == CRAS_STREAM_POST_MIX_PRE_DSP) {
-		loopback_dev = input;
-		audio_thread_add_loopback_device(audio_thread, input);
-		return 0;
-	}
 
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;

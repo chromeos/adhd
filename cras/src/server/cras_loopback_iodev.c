@@ -17,23 +17,41 @@
 
 #define LOOPBACK_BUFFER_SIZE 8192
 
-/* loopack iodev.  Keep state of a loopback device.
+static size_t loopback_supported_rates[] = {
+	44100, 0
+};
+
+static size_t loopback_supported_channel_counts[] = {
+	2, 0
+};
+
+static snd_pcm_format_t loopback_supported_formats[] = {
+	SND_PCM_FORMAT_S16_LE, 0
+};
+
+/* Shared buffer between loopback devices.
  *    buffer - The audio samples being looped.
  *    buffer_frames - Number of audio frames that fit in the buffer.
  *    read_offset - Current read pointer.
  *    write_offset - Current write pointer.
- *    open - Is the device open.
- *    pre_buffered - Has half of the buffer been filled once. Doesn't allow
- *        removing samples until buffered.
+ *    write_ahead - True if write offset is ahead of read and wrapped.
  */
-struct loopback_iodev {
-	struct cras_iodev base;
+struct shared_buffer {
 	uint8_t *buffer;
 	unsigned int buffer_frames;
 	unsigned int read_offset;
 	unsigned int write_offset;
+	int write_ahead;
+};
+
+/* loopack iodev.  Keep state of a loopback device.
+ *    open - Is the device open.
+ *    shared_buffer - Pointer to shared buffer between loopback devices.
+ */
+struct loopback_iodev {
+	struct cras_iodev base;
 	int open;
-	int pre_buffered;
+	struct shared_buffer *shared_buffer;
 };
 
 /*
@@ -42,9 +60,9 @@ struct loopback_iodev {
 
 static int is_open(const struct cras_iodev *iodev)
 {
-	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 
-	return loopback_iodev && loopback_iodev->open;
+	return loopdev && loopdev->open;
 }
 
 static int dev_running(const struct cras_iodev *iodev)
@@ -55,74 +73,129 @@ static int dev_running(const struct cras_iodev *iodev)
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
 
-	if (!loopdev->pre_buffered)
-		return 0;
-
-	if (loopdev->write_offset > loopdev->read_offset)
-		return loopdev->write_offset - loopdev->read_offset;
-
-	return loopdev->write_offset +
-	       (loopdev->buffer_frames - loopdev->read_offset);;
+	if (sbuf->write_ahead)
+		return sbuf->write_offset +
+		       (sbuf->buffer_frames - sbuf->read_offset);
+	if (sbuf->write_offset > sbuf->read_offset)
+		return sbuf->write_offset - sbuf->read_offset;
+	return 0;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
-	return loopdev->buffer_frames / 2;
+	return frames_queued(iodev);
 }
 
-static int close_dev(struct cras_iodev *iodev)
+static int close_record_dev(struct cras_iodev *iodev)
 {
-	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 
-	loopback_iodev->open = 0;
-	free(loopback_iodev->buffer);
-	loopback_iodev->buffer = NULL;
-	loopback_iodev->pre_buffered = 0;
+	loopdev->open = 0;
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
 	return 0;
 }
 
-static int open_dev(struct cras_iodev *iodev)
+static int open_record_dev(struct cras_iodev *iodev)
 {
-	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
-	loopback_iodev->open = 1;
-
-	loopback_iodev->buffer = malloc(cras_get_format_bytes(iodev->format) *
-					LOOPBACK_BUFFER_SIZE);
-	loopback_iodev->buffer_frames = LOOPBACK_BUFFER_SIZE;
-	loopback_iodev->read_offset = 0;
-	loopback_iodev->write_offset = 0;
+	loopdev->open = 1;
 	return 0;
 }
 
-static int get_buffer(struct cras_iodev *iodev,
+static int get_record_buffer(struct cras_iodev *iodev,
 		      struct cras_audio_area **area,
 		      unsigned *frames)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
-	*frames = MIN(*frames, loopdev->buffer_frames - loopdev->read_offset);
+	*frames = MIN(*frames, sbuf->buffer_frames - sbuf->read_offset);
 	*frames = MIN(*frames, frames_queued(iodev));
 
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
-			loopdev->buffer + loopdev->read_offset * frame_bytes);
+			sbuf->buffer + sbuf->read_offset * frame_bytes);
 	*area = iodev->area;
 	return 0;
 }
 
-static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
+static int put_record_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
-	loopdev->read_offset += nwritten;
-	if (loopdev->read_offset >= loopdev->buffer_frames)
-		loopdev->read_offset = 0;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
+
+	sbuf->read_offset += nwritten;
+	if (sbuf->read_offset >= sbuf->buffer_frames) {
+		sbuf->read_offset = 0;
+		sbuf->write_ahead = 0;
+	}
+	return 0;
+}
+
+static int close_playback_dev(struct cras_iodev *iodev)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
+
+	loopdev->open = 0;
+	cras_iodev_free_format(iodev);
+	cras_iodev_free_audio_area(iodev);
+
+	free(sbuf->buffer);
+	sbuf->buffer = NULL;
+	return 0;
+}
+
+static int open_playback_dev(struct cras_iodev *iodev)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
+
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+	loopdev->open = 1;
+
+	sbuf->buffer = malloc(cras_get_format_bytes(iodev->format) *
+			      LOOPBACK_BUFFER_SIZE);
+	sbuf->buffer_frames = LOOPBACK_BUFFER_SIZE;
+	sbuf->read_offset = 0;
+	sbuf->write_offset = 0;
+	sbuf->write_ahead = 0;
+	return 0;
+}
+
+static int get_playback_buffer(struct cras_iodev *iodev,
+		      struct cras_audio_area **area,
+		      unsigned *frames)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
+	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
+
+	*frames = MIN(*frames, sbuf->buffer_frames - sbuf->write_offset);
+
+	iodev->area->frames = *frames;
+	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
+			sbuf->buffer + sbuf->write_offset * frame_bytes);
+	*area = iodev->area;
+	return 0;
+}
+
+static int put_playback_buffer(struct cras_iodev *iodev, unsigned nwritten)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
+
+	sbuf->write_offset += nwritten;
+	if (sbuf->write_offset >= sbuf->buffer_frames) {
+		sbuf->write_offset = 0;
+		sbuf->write_ahead = 1;
+	}
 	return 0;
 }
 
@@ -130,137 +203,87 @@ static void update_active_node(struct cras_iodev *iodev)
 {
 }
 
-/*
- * Exported Interface.
- */
-
-struct cras_iodev *loopback_iodev_create(enum CRAS_STREAM_DIRECTION direction)
+static struct cras_iodev *create_loopback_iodev(enum CRAS_STREAM_DIRECTION dir,
+						const char *name,
+						struct shared_buffer *sbuf)
 {
 	struct loopback_iodev *loopback_iodev;
 	struct cras_iodev *iodev;
 
-	if (direction != CRAS_STREAM_POST_MIX_PRE_DSP)
-		return NULL;
-
 	loopback_iodev = calloc(1, sizeof(*loopback_iodev));
 	if (loopback_iodev == NULL)
 		return NULL;
-	iodev = &loopback_iodev->base;
-	iodev->direction = direction;
 
-	snprintf(iodev->info.name,
-		 ARRAY_SIZE(iodev->info.name),
-		 "Loopback record device.");
+	loopback_iodev->shared_buffer = sbuf;
+
+	iodev = &loopback_iodev->base;
+	iodev->direction = dir;
+	snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 
-	iodev->supported_rates = calloc(2, sizeof(*iodev->supported_rates));
-	iodev->supported_rates[0] = 44100;
-	iodev->supported_channel_counts =
-		calloc(2, sizeof(*iodev->supported_channel_counts));
-	iodev->supported_channel_counts[0] = 2;
+	iodev->supported_rates = loopback_supported_rates;
+	iodev->supported_channel_counts = loopback_supported_channel_counts;
+	iodev->supported_formats = loopback_supported_formats;
 	iodev->buffer_size = LOOPBACK_BUFFER_SIZE;
 
-	iodev->open_dev = open_dev;
-	iodev->close_dev = close_dev;
 	iodev->is_open = is_open;
+	iodev->dev_running = dev_running;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
-	iodev->get_buffer = get_buffer;
-	iodev->put_buffer = put_buffer;
-	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
-
-	cras_iodev_list_add_input(iodev);
 
 	return iodev;
 }
 
-void loopback_iodev_destroy(struct cras_iodev *iodev)
+/*
+ * Exported Interface.
+ */
+
+void loopback_iodev_create(struct cras_iodev **loopback_input,
+			   struct cras_iodev **loopback_output)
 {
-	struct loopback_iodev *loopback_iodev = (struct loopback_iodev *)iodev;
+	struct shared_buffer *sbuf;
+	struct cras_iodev *iodev;
 
-	cras_iodev_list_rm_input(iodev);
+	sbuf = calloc(1, sizeof(*sbuf));
+	if (sbuf == NULL)
+		return;
 
-	free(iodev->supported_rates);
-	free(iodev->supported_channel_counts);
-	free(loopback_iodev);
+	iodev = create_loopback_iodev(CRAS_STREAM_INPUT,
+				      "Loopback record device.",
+				      sbuf);
+	if (iodev == NULL)
+		return;
+	iodev->info.idx = LOOPBACK_RECORD_DEVICE;
+	iodev->open_dev = open_record_dev;
+	iodev->close_dev = close_record_dev;
+	iodev->get_buffer = get_record_buffer;
+	iodev->put_buffer = put_record_buffer;
+	*loopback_input = iodev;
+
+	iodev = create_loopback_iodev(CRAS_STREAM_OUTPUT,
+				      "Loopback playback device.",
+				      sbuf);
+	if (iodev == NULL)
+		return;
+	iodev->open_dev = open_playback_dev;
+	iodev->close_dev = close_playback_dev;
+	iodev->get_buffer = get_playback_buffer;
+	iodev->put_buffer = put_playback_buffer;
+	*loopback_output = iodev;
 }
 
-int loopback_iodev_add_audio(struct cras_iodev *dev,
-			     const uint8_t *audio,
-			     unsigned int count)
+void loopback_iodev_destroy(struct cras_iodev *loopback_input,
+			    struct cras_iodev *loopback_output)
 {
-	struct loopback_iodev *loopdev = (struct loopback_iodev *)dev;
-	uint8_t *dst;
-	unsigned int this_count;
-	unsigned int frame_bytes;
-	unsigned int total_written = 0;
+	struct loopback_iodev *loopdev =
+			(struct loopback_iodev *)loopback_output;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
 
-	if (!is_open(dev))
-		return 0;
+	cras_iodev_list_rm_input(loopback_input);
 
-	frame_bytes = cras_get_format_bytes(dev->format);
-
-	/* copy samples to buffer accounting for wrap around. */
-	dst = loopdev->buffer + loopdev->write_offset * frame_bytes;
-	this_count = MIN(count, loopdev->buffer_frames - loopdev->write_offset);
-	memcpy(dst, audio, this_count * frame_bytes);
-	loopdev->write_offset += this_count;
-	total_written = this_count;
-	if (loopdev->write_offset >= loopdev->buffer_frames)
-		loopdev->write_offset = 0;
-
-	/* write any remaining frames after wrapping. */
-	if (this_count < count) {
-		this_count = count - this_count;
-		memcpy(loopdev->buffer, audio + total_written * frame_bytes,
-			this_count * frame_bytes);
-		loopdev->write_offset += this_count;
-	}
-
-	if (loopdev->write_offset >= loopdev->buffer_frames / 2)
-		loopdev->pre_buffered = 1;
-
-	return 0;
-}
-
-int loopback_iodev_add_zeros(struct cras_iodev *dev,
-			     unsigned int count)
-{
-	struct loopback_iodev *loopdev = (struct loopback_iodev *)dev;
-	uint8_t *dst;
-	unsigned int this_count;
-	unsigned int frame_bytes;
-
-	if (!is_open(dev))
-		return 0;
-
-	frame_bytes = cras_get_format_bytes(dev->format);
-
-	/* copy samples to buffer accounting for wrap around. */
-	dst = loopdev->buffer + loopdev->write_offset * frame_bytes;
-	this_count = MIN(count, loopdev->buffer_frames - loopdev->write_offset);
-	memset(dst, 0, this_count * frame_bytes);
-	loopdev->write_offset += this_count;
-	if (loopdev->write_offset >= loopdev->buffer_frames)
-		loopdev->write_offset = 0;
-
-	/* write any remaining frames after wrapping. */
-	if (this_count < count) {
-		this_count = count - this_count;
-		memset(loopdev->buffer, 0, this_count * frame_bytes);
-		loopdev->write_offset += this_count;
-	}
-
-	if (loopdev->write_offset >= loopdev->buffer_frames / 2)
-		loopdev->pre_buffered = 1;
-
-	return 0;
-}
-
-void loopback_iodev_set_format(struct cras_iodev *iodev,
-			       const struct cras_audio_format *fmt)
-{
-	iodev->supported_rates[0] = fmt->frame_rate;
-	iodev->supported_channel_counts[0] = fmt->num_channels;
+	free(sbuf->buffer);
+	free(sbuf);
+	free(loopback_input);
+	free(loopback_output);
 }

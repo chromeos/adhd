@@ -24,140 +24,141 @@ static cras_audio_area *dummy_audio_area;
 class LoopBackTestSuite : public testing::Test{
   protected:
     virtual void SetUp() {
+      dummy_audio_area = (cras_audio_area*)calloc(
+          1, sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
       for (unsigned int i = 0; i < kBufferSize; i++) {
         buf_[i] = rand();
       }
-
-      dev_ = loopback_iodev_create(CRAS_STREAM_POST_MIX_PRE_DSP);
       fmt_.frame_rate = 44100;
       fmt_.num_channels = 2;
       fmt_.format = SND_PCM_FORMAT_S16_LE;
-      dev_->format = &fmt_;
 
-      dummy_audio_area = (cras_audio_area*)calloc(1,
-          sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+      loopback_iodev_create(&loop_in_, &loop_out_);
+      loop_in_->format = &fmt_;
+      loop_out_->format = &fmt_;
     }
 
     virtual void TearDown() {
-      loopback_iodev_destroy(dev_);
+      loopback_iodev_destroy(loop_in_, loop_out_);
       free(dummy_audio_area);
     }
 
-  uint8_t buf_[kBufferSize];
-  unsigned int frame_bytes;
-  struct cras_iodev *dev_;
-  struct cras_audio_format fmt_;
+    uint8_t buf_[kBufferSize];
+    struct cras_audio_format fmt_;
+    struct cras_iodev *loop_in_, *loop_out_;
 };
 
-TEST_F(LoopBackTestSuite, CopyReturnZero) {
-  // Test that no frames are returned until the buffer level is met.
-  unsigned int frames = 200;
-  int rc = dev_->open_dev(dev_);
-  EXPECT_EQ(0, rc);
-  rc = loopback_iodev_add_audio(dev_, buf_, frames);
-  EXPECT_EQ(0, rc);
+TEST_F(LoopBackTestSuite, OpenAndCloseDevice) {
+  int rc;
 
-  cras_audio_area *dev_area;
-  rc = dev_->get_buffer(dev_, &dev_area, &frames);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, frames);
-  EXPECT_EQ(0, dev_area->frames);
-  rc = dev_->close_dev(dev_);
-  EXPECT_EQ(0, rc);
+  // Open loopback devices.
+  rc = loop_out_->open_dev(loop_out_);
+  EXPECT_EQ(rc, 0);
+  rc = loop_in_->open_dev(loop_in_);
+  EXPECT_EQ(rc, 0);
+
+  // Check device open status.
+  rc = loop_out_->is_open(loop_out_);
+  EXPECT_EQ(rc, 1);
+  rc = loop_in_->is_open(loop_in_);
+  EXPECT_EQ(rc, 1);
+
+  // Check zero frames queued.
+  rc = loop_out_->frames_queued(loop_out_);
+  EXPECT_EQ(rc, 0);
+  rc = loop_in_->frames_queued(loop_in_);
+  EXPECT_EQ(rc, 0);
+
+  // Close loopback devices.
+  rc = loop_in_->close_dev(loop_in_);
+  EXPECT_EQ(rc, 0);
+  rc = loop_out_->close_dev(loop_out_);
+  EXPECT_EQ(rc, 0);
+
+  // Check device open status.
+  rc = loop_out_->is_open(loop_out_);
+  EXPECT_EQ(rc, 0);
+  rc = loop_in_->is_open(loop_in_);
+  EXPECT_EQ(rc, 0);
 }
 
-TEST_F(LoopBackTestSuite, SimpleCopy) {
-  // Fill with the minimum pore-buffer
-  unsigned int frames = 200;
-  int rc = dev_->open_dev(dev_);
-  EXPECT_EQ(0, rc);
-  rc = loopback_iodev_add_audio(dev_, buf_, 4096);
-  EXPECT_EQ(0, rc);
+TEST_F(LoopBackTestSuite, SimpleLoopback) {
+  static cras_audio_area *area;
+  unsigned int nread = 1024;
+  int rc;
 
-  cras_audio_area *dev_area;
-  rc = dev_->get_buffer(dev_, &dev_area, &frames);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(200, frames);
-  EXPECT_EQ(0, memcmp(buf_, dev_area->channels[0].buf, 200 * kFrameBytes));
-  dev_->put_buffer(dev_, frames);
+  loop_out_->open_dev(loop_out_);
+  loop_in_->open_dev(loop_in_);
 
-  frames = 4000;
-  rc = dev_->get_buffer(dev_, &dev_area, &frames);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(4096 - 200, frames);
-  EXPECT_EQ(0, memcmp(buf_ + 200 * kFrameBytes,
-            dev_area->channels[0].buf, (4096 - 200) * kFrameBytes));
-  dev_->put_buffer(dev_, frames);
-  rc = dev_->close_dev(dev_);
-  EXPECT_EQ(0, rc);
+  // Copy frames to loopback playback.
+  loop_out_->get_buffer(loop_out_, &area, &nread);
+  EXPECT_EQ(nread, 1024);
+  memcpy(area->channels[0].buf, buf_, nread);
+  loop_out_->put_buffer(loop_out_, nread);
+
+  // Check frames queued.
+  rc = loop_out_->frames_queued(loop_out_);
+  EXPECT_EQ(rc, 1024);
+
+  // Verify frames from loopback record.
+  loop_in_->get_buffer(loop_in_, &area, &nread);
+  EXPECT_EQ(nread, 1024);
+  rc = memcmp(area->channels[0].buf, buf_, nread);
+  EXPECT_EQ(rc, 0);
+  loop_in_->put_buffer(loop_in_, nread);
+
+  // Check zero frames queued.
+  rc = loop_out_->frames_queued(loop_in_);
+  EXPECT_EQ(rc, 0);
+
+  loop_in_->close_dev(loop_in_);
+  loop_out_->close_dev(loop_out_);
 }
 
-TEST_F(LoopBackTestSuite, WrapCopy) {
-  // Fill with the minimum pore-buffer
-  unsigned int frames = 8000;
-  int rc = dev_->open_dev(dev_);
-  EXPECT_EQ(0, rc);
-  rc = loopback_iodev_add_audio(dev_, buf_, 8000);
-  EXPECT_EQ(0, rc);
+TEST_F(LoopBackTestSuite, CheckSharedBufferLimit) {
+  static cras_audio_area *area;
+  unsigned int nread = 1024 * 16;
 
-  cras_audio_area *dev_area;
-  rc = dev_->get_buffer(dev_, &dev_area, &frames);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(8000, frames);
-  EXPECT_EQ(0, memcmp(buf_, dev_area->channels[0].buf, 200 * kFrameBytes));
-  dev_->put_buffer(dev_, frames);
+  loop_out_->open_dev(loop_out_);
+  loop_in_->open_dev(loop_in_);
 
-  rc = loopback_iodev_add_audio(dev_, buf_, 8000);
-  EXPECT_EQ(0, rc);
+  // Check loopback shared buffer limit.
+  loop_out_->get_buffer(loop_out_, &area, &nread);
+  EXPECT_EQ(nread, 8192);
+  loop_out_->put_buffer(loop_out_, nread);
 
-  frames = 8000;
-  rc = dev_->get_buffer(dev_, &dev_area, &frames);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(192, frames);
-  EXPECT_EQ(0, memcmp(buf_, dev_area->channels[0].buf, 192 * kFrameBytes));
-  dev_->put_buffer(dev_, frames);
-  EXPECT_EQ(0, rc);
-
-  frames = 8000;
-  rc = dev_->get_buffer(dev_, &dev_area, &frames);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(8000 - 192, frames);
-  EXPECT_EQ(0, memcmp(buf_ + 192 * kFrameBytes,
-            dev_area->channels[0].buf, (8000 - 192) * kFrameBytes));
-  dev_->put_buffer(dev_, frames);
-  rc = dev_->close_dev(dev_);
-  EXPECT_EQ(0, rc);
+  loop_in_->close_dev(loop_in_);
+  loop_out_->close_dev(loop_out_);
 }
 
 /* Stubs */
 extern "C" {
 
-int cras_iodev_list_add_input(struct cras_iodev *input) {
-  return 0;
+void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
+                                         const struct cras_audio_format *fmt,
+                                         uint8_t *base_buffer)
+{
+  dummy_audio_area->channels[0].buf = base_buffer;
 }
 
-int cras_iodev_list_rm_input(struct cras_iodev *dev) {
-  return 0;
+void cras_iodev_free_audio_area(struct cras_iodev *iodev)
+{
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev *iodev,
-                                int num_channels) {
+void cras_iodev_init_audio_area(struct cras_iodev *iodev, int num_channels)
+{
   iodev->area = dummy_audio_area;
 }
 
-void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+int cras_iodev_list_rm_input(struct cras_iodev *input)
+{
+  return 0;
 }
 
-void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
-					 const struct cras_audio_format *fmt,
-					 uint8_t *base_buffer)
-{
-  dummy_audio_area->channels[0].buf = base_buffer;
-}
 }  // extern "C"
 
 }  //  namespace

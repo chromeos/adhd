@@ -843,8 +843,7 @@ static int run_capture(struct cras_client *client,
 		       const char *file,
 		       size_t block_size,
 		       size_t rate,
-		       size_t num_channels,
-		       int loopback)
+		       size_t num_channels)
 {
 	int fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0666);
 	if (fd == -1) {
@@ -852,10 +851,8 @@ static int run_capture(struct cras_client *client,
 		return -errno;
 	}
 
-	run_file_io_stream(
-		client, fd,
-		loopback ? CRAS_STREAM_POST_MIX_PRE_DSP : CRAS_STREAM_INPUT,
-		block_size, rate, num_channels, 0);
+	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size, rate,
+			   num_channels, 0);
 
 	close(fd);
 	return 0;
@@ -1076,6 +1073,7 @@ int main(int argc, char **argv)
 			break;
 		case 'l':
 			loopback_file = optarg;
+			pin_device_id = LOOPBACK_RECORD_DEVICE;
 			break;
 		case 'b':
 			block_size = atoi(optarg);
@@ -1279,7 +1277,7 @@ int main(int argc, char **argv)
 					block_size, rate, num_channels, 0);
 		else
 			rc = run_capture(client, capture_file,
-					block_size, rate, num_channels, 0);
+					block_size, rate, num_channels);
 	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
@@ -1289,7 +1287,7 @@ int main(int argc, char **argv)
 					block_size, rate, num_channels);
 	} else if (loopback_file != NULL) {
 		rc = run_capture(client, loopback_file,
-				 block_size, rate, num_channels, 1);
+				 block_size, rate, num_channels);
 	}
 
 destroy_exit:

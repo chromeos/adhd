@@ -38,6 +38,7 @@ struct active_dev {
  *    active_devs - Lists of active devices attached running for each
  *        CRAS_STREAM_DIRECTION.
  *    fallback_devs - One fallback device per direction (empty_iodev).
+ *    loopback_devs - Keep loopback input and output devices (loopback_iodev).
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -47,6 +48,8 @@ struct audio_thread {
 	int started;
 	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
 	struct active_dev *fallback_devs[CRAS_NUM_DIRECTIONS];
+	struct cras_iodev *loopback_devs[CRAS_NUM_DIRECTIONS];
+
 };
 
 /* Callback function to be handled in main loop in audio thread.
@@ -59,12 +62,16 @@ typedef int (*thread_callback)(void *data);
  * Args:
  *    fallback_output - A device to play to when no output is active.
  *    fallback_input - A device to record from when no input is active.
+ *    loopback_output - A device that keeps track of what the system is playing.
+ *    loopback_input - A device to record what the system is playing.
  * Returns:
  *    A pointer to the newly create audio thread.  It must be freed by calling
  *    audio_thread_destroy().  Returns NULL on error.
  */
 struct audio_thread *audio_thread_create(struct cras_iodev *fallback_output,
-					 struct cras_iodev *fallback_input);
+					 struct cras_iodev *fallback_input,
+					 struct cras_iodev *loopback_output,
+					 struct cras_iodev *loopback_input);
 
 /* Adds an active device.
  * Args:
@@ -148,14 +155,6 @@ int audio_thread_add_stream(struct audio_thread *thread,
  */
 int audio_thread_disconnect_stream(struct audio_thread *thread,
 			   	   struct cras_rstream *stream);
-
-/* Add a loopback device to the audio thread.
- * Args:
- *    thread - The thread to add the device to.
- *    loop_dev - The loopback device to add.
- */
-void audio_thread_add_loopback_device(struct audio_thread *thread,
-				      struct cras_iodev *loop_dev);
 
 /* Dumps information about all active streams to syslog. */
 int audio_thread_dump_thread_info(struct audio_thread *thread,

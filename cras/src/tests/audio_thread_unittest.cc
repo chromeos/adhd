@@ -15,7 +15,10 @@ class StreamDeviceSuite : public testing::Test {
       device_id_ = 0;
       SetupDevice(&fallback_output_, CRAS_STREAM_OUTPUT);
       SetupDevice(&fallback_input_, CRAS_STREAM_INPUT);
-      thread_ = audio_thread_create(&fallback_output_, &fallback_input_);
+      SetupDevice(&loopback_output_, CRAS_STREAM_OUTPUT);
+      SetupDevice(&loopback_input_, CRAS_STREAM_INPUT);
+      thread_ = audio_thread_create(&fallback_output_, &fallback_input_,
+                                    &loopback_output_, &loopback_input_);
     }
 
     virtual void TearDown() {
@@ -108,6 +111,8 @@ class StreamDeviceSuite : public testing::Test {
     int device_id_;
     struct cras_iodev fallback_output_;
     struct cras_iodev fallback_input_;
+    struct cras_iodev loopback_output_;
+    struct cras_iodev loopback_input_;
     struct audio_thread *thread_;
 
     static int open_dev_called_;
