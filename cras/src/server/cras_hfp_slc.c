@@ -24,7 +24,7 @@
 #define CALLHELD_IND_INDEX		6
 #define INDICATOR_UPDATE_RSP		\
 	"+CIND: "			\
-	"(\"battchg\",(0-5),"		\
+	"(\"battchg\",(0-5)),"		\
 	"(\"signal\",(0-5)),"		\
 	"(\"service\",(0,1)),"		\
 	"(\"call\",(0,1)),"		\
