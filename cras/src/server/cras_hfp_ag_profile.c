@@ -146,13 +146,9 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 				       int rfcomm_fd)
 {
 	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
-		if (ag->slc_handle && ag->device == device)
-			break;
-	}
 
 	/* Destroy all existing devices and replace with new ones */
-	if (ag) {
+	DL_FOREACH(connected_ags, ag) {
 		DL_DELETE(connected_ags, ag);
 		destroy_audio_gateway(ag);
 	}
@@ -207,13 +203,8 @@ static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
 				       int rfcomm_fd)
 {
 	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
-		if (ag->slc_handle && ag->device == device)
-			break;
-	}
-
 	/* Destroy all existing devices and replace with new ones */
-	if (ag)  {
+	DL_FOREACH(connected_ags, ag) {
 		DL_DELETE(connected_ags, ag);
 		destroy_audio_gateway(ag);
 	}
