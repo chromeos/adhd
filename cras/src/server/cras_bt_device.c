@@ -193,12 +193,6 @@ int cras_bt_device_connected(const struct cras_bt_device *device)
 	return device->connected;
 }
 
-int cras_bt_device_supports_profile(const struct cras_bt_device *device,
-				    enum cras_bt_device_profile profile)
-{
-	return device->profiles & profile;
-}
-
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				 struct cras_iodev *iodev,
 				 enum cras_bt_device_profile profile)
@@ -247,16 +241,21 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 	}
 }
 
+int cras_bt_device_has_a2dp(struct cras_bt_device *device)
+{
+	struct cras_iodev *odev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
+
+	/* Check if there is an output iodev with A2DP node attached. */
+	return odev && cras_bt_io_get_profile(
+			odev, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+}
+
 int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 {
-	struct cras_iodev *idev;
+	struct cras_iodev *idev = device->bt_iodevs[CRAS_STREAM_INPUT];
 
-	if (!cras_bt_device_supports_profile(device,
-					     CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
-		return 0;
-
-	idev = device->bt_iodevs[CRAS_STREAM_INPUT];
-	return !idev || !idev->is_open(idev);
+	return cras_bt_device_has_a2dp(device) &&
+		(!idev || !idev->is_open(idev));
 }
 
 int cras_bt_device_get_active_profile(const struct cras_bt_device *device)

@@ -200,8 +200,7 @@ static int close_dev(struct cras_iodev *iodev)
 			CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
 			CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY) &&
 	    iodev->direction == CRAS_STREAM_INPUT &&
-	    cras_bt_device_supports_profile(btio->device,
-			CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
+	    cras_bt_device_has_a2dp(btio->device)) {
 		cras_bt_device_set_active_profile(btio->device,
 				CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
 		cras_bt_device_switch_profile_on_close(btio->device,
@@ -401,17 +400,16 @@ void cras_bt_io_destroy(struct cras_iodev *bt_iodev)
 	free(btio);
 }
 
-int cras_bt_io_has_dev(struct cras_iodev *bt_iodev,
-			  struct cras_iodev *dev)
+struct cras_ionode *cras_bt_io_get_profile(struct cras_iodev *bt_iodev,
+					   enum cras_bt_device_profile profile)
 {
 	struct cras_ionode *node;
-
 	DL_FOREACH(bt_iodev->nodes, node) {
 		struct bt_node *n = (struct bt_node *)node;
-		if (n->profile_dev == dev)
-			return 1;
+		if (n->profile & profile)
+			return node;
 	}
-	return 0;
+	return NULL;
 }
 
 int cras_bt_io_append(struct cras_iodev *bt_iodev,
@@ -421,7 +419,7 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
 	struct cras_ionode *node;
 	struct bt_io *btio = (struct bt_io *)bt_iodev;
 
-	if (cras_bt_io_has_dev(bt_iodev, dev))
+	if (cras_bt_io_get_profile(bt_iodev, profile))
 		return -EEXIST;
 
 	node = add_profile_dev(bt_iodev, dev, profile);

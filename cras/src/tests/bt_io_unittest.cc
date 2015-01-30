@@ -24,8 +24,8 @@ static unsigned int cras_bt_device_set_active_profile_val;
 static int cras_bt_device_get_active_profile_ret;
 static int cras_bt_device_switch_profile_on_open_called;
 static int cras_bt_device_switch_profile_on_close_called;
-static int cras_bt_device_supports_profile_val;
 static int cras_bt_device_can_switch_to_a2dp_ret;
+static int cras_bt_device_has_a2dp_ret;
 
 void ResetStubData() {
   cras_iodev_add_node_called = 0;
@@ -40,8 +40,8 @@ void ResetStubData() {
   cras_bt_device_get_active_profile_ret = 0;
   cras_bt_device_switch_profile_on_open_called= 0;
   cras_bt_device_switch_profile_on_close_called = 0;
-  cras_bt_device_supports_profile_val = 0;
   cras_bt_device_can_switch_to_a2dp_ret = 0;
+  cras_bt_device_has_a2dp_ret = 0;
 }
 
 namespace {
@@ -231,7 +231,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   cras_bt_device_get_active_profile_ret =
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
       CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
-  cras_bt_device_supports_profile_val = CRAS_BT_DEVICE_PROFILE_A2DP_SINK;
+  cras_bt_device_has_a2dp_ret = 1;
   bt_iodev->close_dev(bt_iodev);
 
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE,
@@ -248,9 +248,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   cras_bt_device_get_active_profile_ret =
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
       CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
-  cras_bt_device_supports_profile_val =
-      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
-      CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+  cras_bt_device_has_a2dp_ret = 0;
   bt_iodev->close_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_device_switch_profile_on_close_called);
@@ -366,11 +364,11 @@ void cras_bt_device_set_active_profile(struct cras_bt_device *device,
   cras_bt_device_set_active_profile_val = profile;
 }
 
-int cras_bt_device_supports_profile(const struct cras_bt_device *device,
-            enum cras_bt_device_profile profile)
+int cras_bt_device_has_a2dp(struct cras_bt_device *device)
 {
-  return cras_bt_device_supports_profile_val & profile;
+  return cras_bt_device_has_a2dp_ret;
 }
+
 int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 {
   return cras_bt_device_can_switch_to_a2dp_ret;

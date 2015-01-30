@@ -41,9 +41,6 @@ int cras_bt_device_paired(const struct cras_bt_device *device);
 int cras_bt_device_trusted(const struct cras_bt_device *device);
 int cras_bt_device_connected(const struct cras_bt_device *device);
 
-int cras_bt_device_supports_profile(const struct cras_bt_device *device,
-				    enum cras_bt_device_profile profile);
-
 void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
@@ -108,7 +105,10 @@ int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
 
 void cras_bt_device_start_monitor();
 
-/* Returns true if and only if device supports A2DP and the bt device
+/* Checks if the device has an iodev for A2DP. */
+int cras_bt_device_has_a2dp(struct cras_bt_device *device);
+
+/* Returns true if and only if device has an iodev for A2DP and the bt device
  * is not opening for audio capture.
  */
 int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);

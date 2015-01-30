@@ -18,8 +18,10 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 /* Destroys a bluetooth iodev. */
 void cras_bt_io_destroy(struct cras_iodev *bt_iodev);
 
-/* Checks if dev is attached to the bt_iodev. */
-int cras_bt_io_has_dev(struct cras_iodev *bt_iodev, struct cras_iodev *dev);
+/* Looks up for the node of given profile, returns NULL if doesn't exist. */
+struct cras_ionode *cras_bt_io_get_profile(
+		struct cras_iodev *bt_iodev,
+		enum cras_bt_device_profile profile);
 
 /* Appends a profile specific iodev to bt_iodev. */
 int cras_bt_io_append(struct cras_iodev *bt_iodev,

@@ -14,7 +14,7 @@ extern "C" {
 
 static struct cras_iodev *cras_bt_io_create_profile_ret;
 static struct cras_iodev *cras_bt_io_append_btio_val;
-static int cras_bt_io_has_dev_ret;
+static struct cras_ionode* cras_bt_io_get_profile_ret;
 static unsigned int cras_bt_io_create_called;
 static unsigned int cras_bt_io_append_called;
 static unsigned int cras_bt_io_remove_called;
@@ -32,7 +32,7 @@ static void (*cras_system_add_select_fd_callback)(void *data);
 static void *cras_system_add_select_fd_callback_data;
 
 void ResetStubData() {
-  cras_bt_io_has_dev_ret = 0;
+  cras_bt_io_get_profile_ret = NULL;
   cras_bt_io_create_called = 0;
   cras_bt_io_append_called = 0;
   cras_bt_io_remove_called = 0;
@@ -117,7 +117,7 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   EXPECT_EQ(&bt_iodev1, cras_bt_io_append_btio_val);
 
   /* Test HFP disconnected and switch to A2DP. */
-  cras_bt_io_has_dev_ret = 1;
+  cras_bt_io_get_profile_ret = bt_iodev1.nodes;
   cras_bt_io_try_remove_ret = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
   audio_thread_rm_active_dev_rets[CRAS_STREAM_OUTPUT] = 0;
   cras_bt_device_set_active_profile(
@@ -190,9 +190,11 @@ void cras_bt_io_destroy(struct cras_iodev *bt_iodev)
 {
   cras_bt_io_destroy_called++;
 }
-int cras_bt_io_has_dev(struct cras_iodev *bt_iodev, struct cras_iodev *dev)
+struct cras_ionode* cras_bt_io_get_profile(
+    struct cras_iodev *bt_iodev,
+    enum cras_bt_device_profile profile)
 {
-  return cras_bt_io_has_dev_ret;
+  return cras_bt_io_get_profile_ret;
 }
 int cras_bt_io_append(struct cras_iodev *bt_iodev,
 		      struct cras_iodev *dev,
