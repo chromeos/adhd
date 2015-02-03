@@ -1332,6 +1332,12 @@ int drain_output_buffer(struct active_dev *adev)
 	if (hw_level < 0)
 		return hw_level;
 
+	audio_thread_event_log_data(atlog,
+				    AUDIO_THREAD_DRAIN_OUTPUT,
+				    odev->info.idx,
+				    hw_level,
+				    odev->extra_silent_frames);
+
 	if ((int)odev->extra_silent_frames >= hw_level) {
 		/* Remaining audio has been played out. Close the device. */
 		cras_iodev_close(odev);
