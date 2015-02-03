@@ -9,6 +9,7 @@
 
 /* The max rate skew that considered reasonable */
 #define MAX_RATE_SKEW 100
+#define MIN_RATE_SKEW 20
 
 static void least_square_reset(struct least_square *lsq)
 {
@@ -101,7 +102,9 @@ int rate_estimator_check(struct rate_estimator *re, int level,
 	if (timespec_after(&td, &re->window_size) &&
 	    re->lsq.num_samples > 1) {
 		double rate = least_square_best_fit_slope(&re->lsq);
-		if (fabs(re->estimated_rate - rate) < MAX_RATE_SKEW)
+
+		if (fabs(re->estimated_rate - rate) < MAX_RATE_SKEW &&
+		    fabs(re->estimated_rate - rate) > MIN_RATE_SKEW)
 			re->estimated_rate = rate * (1 - re->smooth_factor) +
 					re->smooth_factor * re->estimated_rate;
 		least_square_reset(&re->lsq);
