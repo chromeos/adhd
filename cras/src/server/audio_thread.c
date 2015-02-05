@@ -1560,14 +1560,10 @@ static unsigned int get_stream_limit_set_delay(struct active_dev *adev,
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
 	struct dev_stream *stream;
-	unsigned int needed, min_needed;
 	int delay;
 
 	/* TODO(dgreid) - Setting delay from last dev only. */
 	delay = input_delay_frames(adev);
-
-	min_needed = adev->dev->max_cb_level;
-	needed = min_needed;
 
 	DL_FOREACH(adev->dev->streams, stream) {
 		rstream = stream->stream;
@@ -1576,18 +1572,7 @@ static unsigned int get_stream_limit_set_delay(struct active_dev *adev,
 		cras_shm_check_write_overrun(shm);
 		dev_stream_set_delay(stream, delay);
 		write_limit = MIN(write_limit,
-				  dev_stream_capture_avail(stream, &needed));
-		min_needed = MIN(min_needed, needed);
-	}
-
-	if (min_needed) {
-		struct timespec now;
-
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		cras_frames_to_time(min_needed + 10,
-				    adev->dev->ext_format->frame_rate,
-				    &adev->wake_ts);
-		add_timespecs(&adev->wake_ts, &now);
+				  dev_stream_capture_avail(stream));
 	}
 
 	return write_limit;
@@ -1688,13 +1673,35 @@ static int send_captured_samples(struct audio_thread *thread)
 {
 	struct active_dev *idev_list = thread->active_devs[CRAS_STREAM_INPUT];
 	struct active_dev *adev;
+	struct timespec now;
 
 	// TODO(dgreid) - once per rstream, not once per dev_stream.
 	DL_FOREACH(idev_list, adev) {
 		struct dev_stream *stream;
+		unsigned int min_needed = adev->dev->max_cb_level;
+		unsigned int curr_level;
+
+		if (!device_open(adev->dev))
+			continue;
+
+		curr_level = adev->dev->frames_queued(adev->dev);
+
 		DL_FOREACH(adev->dev->streams, stream) {
 			dev_stream_capture_update_rstream(stream);
+			min_needed = MIN(min_needed,
+					 dev_stream_capture_avail(stream));
 		}
+
+		if (min_needed > curr_level)
+			min_needed -= curr_level;
+		else
+			min_needed = 0;
+
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		cras_frames_to_time(min_needed + 10,
+				    adev->dev->ext_format->frame_rate,
+				    &adev->wake_ts);
+		add_timespecs(&adev->wake_ts, &now);
 	}
 
 	return 0;

@@ -104,11 +104,8 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream);
 /*
  * Returns the number of frames free to be written to in a capture stream.  This
  * number is also post format conversion, similar to playback_frames above.
- * "needed" will be filled with the minimum amount of samples required before
- * the client's min threshold is met.
  */
-unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream,
-				      unsigned int *needed);
+unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream);
 
 /*
  * Returns the callback threshold, if necesary converted from a stream frame
