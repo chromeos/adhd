@@ -258,7 +258,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		if (name == NULL)
 			continue;
 
-		if (name_in_list(name, main_volume_names,
+		if (!extra_main_volume &&
+		    name_in_list(name, main_volume_names,
 				 ARRAY_SIZE(main_volume_names))) {
 			if (add_main_volume_control(cmix, elem) != 0) {
 				cras_alsa_mixer_destroy(cmix);
