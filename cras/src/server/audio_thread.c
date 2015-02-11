@@ -920,6 +920,9 @@ static int fetch_streams(struct audio_thread *thread,
 			continue;
 		}
 
+		if (cras_rstream_get_is_draining(dev_stream->stream))
+			continue;
+
 		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
 		if (!next_cb_ts)
 			continue;
@@ -1245,6 +1248,10 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 
 	DL_FOREACH(streams, dev_stream) {
 		const struct timespec *next_cb_ts;
+
+		if (cras_rstream_get_is_draining(dev_stream->stream) &&
+		    dev_stream_playback_frames(dev_stream) <= 0)
+			continue;
 
 		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
 		if (!next_cb_ts)
