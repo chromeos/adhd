@@ -235,7 +235,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			rc = iodev->update_channel_layout(iodev);
 			if (rc < 0) {
 				set_default_channel_count_layout(iodev);
-				cras_iodev_free_dsp(iodev);
 			}
 		}
 
