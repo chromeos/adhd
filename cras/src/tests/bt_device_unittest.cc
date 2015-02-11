@@ -232,6 +232,11 @@ const char *cras_bt_adapter_address(const struct cras_bt_adapter *adapter)
   return NULL;
 }
 
+int cras_bt_adapter_on_usb(struct cras_bt_adapter *adapter)
+{
+  return 1;
+}
+
 /* From bt_profile */
 void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device)
 {

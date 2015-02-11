@@ -28,4 +28,6 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 				       DBusMessageIter *properties_array_iter,
 				       DBusMessageIter *invalidated_array_iter);
 
+int cras_bt_adapter_on_usb(struct cras_bt_adapter *adapter);
+
 #endif /* CRAS_BT_ADAPTER_H_ */
