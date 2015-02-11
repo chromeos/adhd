@@ -51,6 +51,9 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
  */
 int cras_bt_device_sco_connect(struct cras_bt_device *device);
 
+/* Queries the preffered mtu value for SCO socket. */
+int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket);
+
 /* Sets the speaker gain for bt device, note this is for HFP/HSP mode.
  * Args:
  *    device - The device object to set speaker gain.

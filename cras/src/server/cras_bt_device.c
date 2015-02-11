@@ -13,6 +13,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
+#include "bluetooth.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_constants.h"
@@ -25,7 +26,7 @@
 #include "cras_system_state.h"
 #include "utlist.h"
 
-#define BTPROTO_SCO 2
+#define DEFAULT_HFP_MTU_BYTES 48
 
 
 struct cras_bt_device {
@@ -492,6 +493,21 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 
 error:
 	return -1;
+}
+
+int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
+{
+	struct sco_options so;
+	socklen_t len = sizeof(so);
+
+	if (cras_bt_adapter_on_usb(device->adapter))
+		return DEFAULT_HFP_MTU_BYTES;
+
+	if (getsockopt(sco_socket, SOL_SCO, SCO_OPTIONS, &so, &len) < 0) {
+		syslog(LOG_ERR, "Get SCO options error: %s", strerror(errno));
+		return DEFAULT_HFP_MTU_BYTES;
+	}
+	return so.mtu;
 }
 
 int cras_bt_device_set_speaker_gain(struct cras_bt_device *device, int gain)

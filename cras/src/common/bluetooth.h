@@ -21,6 +21,11 @@
 #define HCI_BUS_MAX     7
 
 #define BTPROTO_HCI 1
+#define BTPROTO_SCO 2
+
+#define SCO_OPTIONS   0x01
+#define SOL_SCO 17
+
 #define HCIGETDEVINFO   _IOR('H', 211, int)
 
 typedef struct {
@@ -55,4 +60,8 @@ struct hci_dev_info {
 	uint16_t sco_mtu;
 	uint16_t sco_pkts;
 	struct hci_dev_stats stat;
+};
+
+struct sco_options {
+	uint16_t mtu;
 };
