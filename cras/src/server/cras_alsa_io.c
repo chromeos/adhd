@@ -15,6 +15,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "audio_thread.h"
 #include "cras_alsa_helpers.h"
 #include "cras_alsa_io.h"
 #include "cras_alsa_jack.h"
@@ -154,6 +155,11 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
+static int dummy_aokr_cb(void *unused)
+{
+	return 0;
+}
+
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
@@ -201,6 +207,42 @@ static int open_dev(struct cras_iodev *iodev)
 	/* Assign pcm handle then initialize device settings. */
 	aio->handle = handle;
 	init_device_settings(aio);
+
+	if (iodev->active_node->type == CRAS_NODE_TYPE_AOKR) {
+		struct pollfd *ufds;
+		int count, i;
+		int fd = -1;
+
+		count = snd_pcm_poll_descriptors_count(handle);
+		if (count <= 0) {
+			syslog(LOG_ERR, "Invalid poll descriptors count\n");
+			return count;
+		}
+
+		ufds = (struct pollfd *)malloc(sizeof(struct pollfd) * count);
+		if (ufds == NULL)
+			return -ENOMEM;
+
+		rc = snd_pcm_poll_descriptors(handle, ufds, count);
+		if (rc < 0) {
+			syslog(LOG_ERR,
+			       "Getting hotword poll descriptors: %s\n",
+			       snd_strerror(rc));
+			free(ufds);
+			return rc;
+		}
+
+		for (i = 0; i < count; i++) {
+			if (ufds[i].events & POLLIN) {
+				fd = ufds[i].fd;
+				break;
+			}
+		}
+		free(ufds);
+
+		if (fd >= 0)
+			audio_thread_add_callback(fd, dummy_aokr_cb, NULL);
+	}
 
 	/* Capture starts right away, playback will wait for samples. */
 	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE)
@@ -579,6 +621,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Mic", 0, CRAS_NODE_TYPE_MIC },
+		{ "Wake On Voice", 0, CRAS_NODE_TYPE_AOKR },
 	};
 	unsigned i;
 

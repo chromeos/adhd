@@ -374,6 +374,8 @@ static int init_device(struct active_dev *adev)
 	dev->min_cb_level = dev->buffer_size;
 	dev->max_cb_level = 0;
 
+	adev->input_streaming = 0;
+
 	/*
 	 * Start output devices by padding the output. This avoids a burst of
 	 * audio callbacks when the stream starts
@@ -1287,6 +1289,21 @@ static int get_next_stream_wake(struct audio_thread *thread,
 	return ret;
 }
 
+static int input_adev_ignore_wake(const struct active_dev *adev)
+{
+	if (!device_open(adev->dev))
+		return 1;
+
+	if (!adev->dev->active_node)
+		return 1;
+
+	if (adev->dev->active_node->type == CRAS_NODE_TYPE_AOKR &&
+	    !adev->input_streaming)
+		return 1;
+
+	return 0;
+}
+
 static int get_next_dev_wake(struct audio_thread *thread,
 			     struct timespec *min_ts,
 			     const struct timespec *now)
@@ -1309,7 +1326,7 @@ static int get_next_dev_wake(struct audio_thread *thread,
 	}
 
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev) {
-		if (!device_open(adev->dev))
+		if (input_adev_ignore_wake(adev))
 			continue;
 		ret++;
 		audio_thread_event_log_data(atlog,
@@ -1613,6 +1630,9 @@ static int capture_to_streams(struct audio_thread *thread,
 		adev->coarse_rate_adjust = -1;
 	else
 		adev->coarse_rate_adjust = 0;
+
+	if (hw_level)
+		adev->input_streaming = 1;
 
 	if (cras_iodev_update_rate(idev, hw_level))
 		update_estimated_rate(thread, adev);

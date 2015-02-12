@@ -19,12 +19,14 @@ struct dev_stream;
 /* List of active input/output devices.
  *    dev - The device.
  *    for_pinned_streams - True if the device is active only for pinned streams.
+ *    input_streaming - For capture, has the input started?
  */
 struct active_dev {
 	struct cras_iodev *dev;
 	struct timespec wake_ts; /* When callback is needed to avoid xrun. */
 	int coarse_rate_adjust;
 	int for_pinned_streams;
+	int input_streaming;
 	struct active_dev *prev, *next;
 };
 

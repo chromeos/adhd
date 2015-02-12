@@ -1323,3 +1323,7 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 					 uint8_t *base_buffer)
 {
 }
+
+void audio_thread_add_callback(int fd, thread_callback cb, void *data)
+{
+}
