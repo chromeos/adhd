@@ -24,6 +24,7 @@ static size_t notify_node_volume_called;
 static size_t notify_node_capture_gain_called;
 static int dsp_context_new_sample_rate;
 static const char *dsp_context_new_purpose;
+static int dsp_context_free_called;
 static int update_channel_layout_called;
 static int update_channel_layout_return_val;
 static int  set_swap_mode_for_node_called;
@@ -74,6 +75,7 @@ void ResetStubData() {
   notify_node_capture_gain_called = 0;
   dsp_context_new_sample_rate = 0;
   dsp_context_new_purpose = NULL;
+  dsp_context_free_called = 0;
   set_swap_mode_for_node_called = 0;
   set_swap_mode_for_node_enable = 0;
   notify_node_left_right_swapped_called = 0;
@@ -371,6 +373,8 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   fmt.frame_rate = 48000;
   fmt.num_channels = 6;
 
+  cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context *>(0xf0f);
+
   update_channel_layout_return_val = -1;
   iodev_.supported_channel_counts[0] = 6;
   iodev_.supported_channel_counts[1] = 2;
@@ -381,6 +385,7 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(48000, fmt.frame_rate);
   EXPECT_EQ(2, fmt.num_channels);
   EXPECT_EQ(3, cras_audio_format_set_channel_layout_called);
+  EXPECT_EQ(0, dsp_context_free_called);
   for (i = 0; i < CRAS_CH_MAX; i++)
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
 }
@@ -705,6 +710,7 @@ struct cras_dsp_context *cras_dsp_context_new(int sample_rate,
 
 void cras_dsp_context_free(struct cras_dsp_context *ctx)
 {
+  dsp_context_free_called++;
 }
 
 void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
