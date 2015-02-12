@@ -8,11 +8,14 @@ extern "C" {
 
 #include <gtest/gtest.h>
 
+static int cras_iodev_close_called;
+
 // Test streams and devices manipulation.
 class StreamDeviceSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       device_id_ = 0;
+      cras_iodev_close_called = 0;
       SetupDevice(&fallback_output_, CRAS_STREAM_OUTPUT);
       SetupDevice(&fallback_input_, CRAS_STREAM_INPUT);
       SetupDevice(&loopback_output_, CRAS_STREAM_OUTPUT);
@@ -523,6 +526,15 @@ TEST_F(StreamDeviceSuite, RemoveActiveDeviceWithPinnedStreams) {
   EXPECT_EQ(adev->for_pinned_streams, 1);
 }
 
+TEST_F(StreamDeviceSuite, DisconnectCaptureStreamNoInternalMic) {
+  struct cras_rstream rstream;
+  SetupRstream(&rstream, CRAS_STREAM_INPUT);
+
+  thread_add_stream(thread_, &rstream, NULL);
+  thread_disconnect_stream(thread_, &rstream);
+  EXPECT_EQ(cras_iodev_close_called, 1);
+}
+
 extern "C" {
 
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
@@ -540,6 +552,7 @@ unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev)
 
 int cras_iodev_close(struct cras_iodev *iodev)
 {
+  cras_iodev_close_called++;
   return 0;
 }
 
