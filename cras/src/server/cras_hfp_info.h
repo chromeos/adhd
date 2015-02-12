@@ -27,7 +27,7 @@ int hfp_info_running(struct hfp_info *info);
 /* Starts the hfp_info to transmit and reveice samples to and from the file
  * descriptor of a SCO socket.
  */
-int hfp_info_start(int fd, struct hfp_info *info);
+int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info);
 
 /* Stops given hfp_info. This implies sample transmission will
  * stop and socket be closed.

@@ -13,11 +13,10 @@
 #include "cras_hfp_info.h"
 
 /* Make buffer size of multiple MTUs (= 48 bytes * 21) */
-#define HFP_BUF_SIZE_BYTES 1008
+#define MAX_HFP_BUF_SIZE_BYTES 4096
 
 /* rate(8kHz) * sample_size(2 bytes) * channels(1) */
 #define HFP_BYTE_RATE 16000
-#define HFP_MTU_BYTES 48
 
 /* Ring buffer storing samples for transmission. */
 struct pcm_buf {
@@ -25,6 +24,7 @@ struct pcm_buf {
 	size_t read_idx;
 	size_t write_idx;
 	size_t used_size;
+	size_t size;
 };
 
 static struct pcm_buf *create_buf()
@@ -34,7 +34,7 @@ static struct pcm_buf *create_buf()
 	if (!pb)
 		return NULL;
 
-	pb->buf = (uint8_t *)calloc(HFP_BUF_SIZE_BYTES,
+	pb->buf = (uint8_t *)calloc(MAX_HFP_BUF_SIZE_BYTES,
 				    sizeof(*pb->buf));
 	if (!pb->buf)
 		return NULL;
@@ -48,11 +48,17 @@ static void destroy_buf(struct pcm_buf *pb)
 	free(pb);
 }
 
-static void init_buf(struct pcm_buf *pb)
+static void reset_buf(struct pcm_buf *pb)
 {
 	pb->read_idx = 0;
 	pb->write_idx = 0;
 	pb->used_size = 0;
+}
+
+static void init_buf(struct pcm_buf *pb, unsigned int size)
+{
+	reset_buf(pb);
+	pb->size = size;
 }
 
 static int queued_bytes(struct pcm_buf *pb)
@@ -65,9 +71,9 @@ static void get_read_buf_bytes(struct pcm_buf *pb, uint8_t **b, unsigned *count)
 	int avail;
 
 	*b = pb->buf + pb->read_idx;
-	if (pb->used_size == HFP_BUF_SIZE_BYTES
+	if (pb->used_size == pb->size
 			|| pb->read_idx > pb->write_idx)
-		avail = HFP_BUF_SIZE_BYTES - pb->read_idx;
+		avail = pb->size - pb->read_idx;
 	else
 		avail = pb->write_idx - pb->read_idx;
 
@@ -78,7 +84,7 @@ static void get_read_buf_bytes(struct pcm_buf *pb, uint8_t **b, unsigned *count)
 static void put_read_buf_bytes(struct pcm_buf *pb, unsigned nread)
 {
 	pb->read_idx += nread;
-	if (pb->read_idx == HFP_BUF_SIZE_BYTES)
+	if (pb->read_idx == pb->size)
 		pb->read_idx = 0;
 	pb->used_size -= nread;
 }
@@ -89,11 +95,11 @@ static void get_write_buf_bytes(struct pcm_buf *pb, uint8_t **b,
 	size_t avail;
 
 	*b = pb->buf + pb->write_idx;
-	if (pb->used_size == HFP_BUF_SIZE_BYTES
+	if (pb->used_size == pb->size
 			|| pb->read_idx > pb->write_idx)
 		avail = pb->read_idx - pb->write_idx;
 	else
-		avail = HFP_BUF_SIZE_BYTES - pb->write_idx;
+		avail = pb->size - pb->write_idx;
 
 	if (*count > avail)
 		*count = avail;
@@ -102,7 +108,7 @@ static void get_write_buf_bytes(struct pcm_buf *pb, uint8_t **b,
 static void put_write_buf_bytes(struct pcm_buf *pb, unsigned nwrite)
 {
 	pb->write_idx += nwrite;
-	if (pb->write_idx == HFP_BUF_SIZE_BYTES)
+	if (pb->write_idx == pb->size)
 		pb->write_idx = 0;
 	pb->used_size += nwrite;
 }
@@ -114,6 +120,7 @@ static void put_write_buf_bytes(struct pcm_buf *pb, unsigned nwrite)
 struct hfp_info {
 	int fd;
 	int started;
+	unsigned int mtu;
 
 	struct pcm_buf *capture_buf;
 	struct pcm_buf *playback_buf;
@@ -129,13 +136,13 @@ int hfp_info_add_iodev(struct hfp_info *info, struct cras_iodev *dev)
 			goto invalid;
 		info->odev = dev;
 
-		init_buf(info->playback_buf);
+		reset_buf(info->playback_buf);
 	} else if (dev->direction == CRAS_STREAM_INPUT) {
 		if (info->idev)
 			goto invalid;
 		info->idev = dev;
 
-		init_buf(info->capture_buf);
+		reset_buf(info->capture_buf);
 	}
 
 	return 0;
@@ -180,7 +187,7 @@ void hfp_buf_acquire(struct hfp_info *info, struct cras_iodev *dev,
 
 int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev)
 {
-	return HFP_BUF_SIZE_BYTES / cras_get_format_bytes(dev->format);
+	return info->playback_buf->size / cras_get_format_bytes(dev->format);
 }
 
 void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
@@ -215,9 +222,9 @@ int hfp_write(struct hfp_info *info)
 	uint8_t *samples;
 
 	/* Write something */
-	to_send = HFP_MTU_BYTES;
+	to_send = info->mtu;
 	get_read_buf_bytes(info->playback_buf, &samples, &to_send);
-	if (to_send != HFP_MTU_BYTES) {
+	if (to_send != info->mtu) {
 		syslog(LOG_ERR, "Buffer not enough for write.");
 		return 0;
 	}
@@ -231,7 +238,7 @@ send_sample:
 		return err;
 	}
 
-	if (err != HFP_MTU_BYTES) {
+	if (err != (int)info->mtu) {
 		syslog(LOG_ERR, "Partially write %d bytes", err);
 		return -1;
 	}
@@ -247,9 +254,9 @@ int hfp_read(struct hfp_info *info)
 	unsigned to_read;
 	uint8_t *capture_buf;
 
-	to_read = HFP_MTU_BYTES;
+	to_read = info->mtu;
 	get_write_buf_bytes(info->capture_buf, &capture_buf, &to_read);
-	if (to_read != HFP_MTU_BYTES) {
+	if (to_read != info->mtu) {
 		syslog(LOG_ERR, "Buffer not enough for read.");
 		return 0;
 	}
@@ -264,7 +271,7 @@ recv_sample:
 		return err;
 	}
 
-	if (err != HFP_MTU_BYTES) {
+	if (err != (int)info->mtu) {
 		syslog(LOG_ERR, "Partially read %d bytes", err);
 		return -1;
 	}
@@ -299,7 +306,7 @@ static int hfp_info_callback(void *arg)
 
 	/* Ignore the MTU bytes just read if input dev not in present */
 	if (!info->idev)
-		put_read_buf_bytes(info->capture_buf, HFP_MTU_BYTES);
+		put_read_buf_bytes(info->capture_buf, info->mtu);
 
 	if (info->odev) {
 		err = hfp_write(info);
@@ -332,9 +339,6 @@ struct hfp_info *hfp_info_create()
 	if (!info->playback_buf)
 		goto error;
 
-	init_buf(info->playback_buf);
-	init_buf(info->capture_buf);
-
 	return info;
 
 error:
@@ -353,11 +357,18 @@ int hfp_info_running(struct hfp_info *info)
 	return info->started;
 }
 
-int hfp_info_start(int fd, struct hfp_info *info)
+int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 {
+	unsigned int buf_size;
+
 	info->fd = fd;
-	init_buf(info->playback_buf);
-	init_buf(info->capture_buf);
+	info->mtu = mtu;
+
+	/* Make sure buffer size is multiple of MTUs */
+	buf_size = (MAX_HFP_BUF_SIZE_BYTES / mtu) * mtu;
+
+	init_buf(info->playback_buf, buf_size);
+	init_buf(info->capture_buf, buf_size);
 
 	audio_thread_add_callback(info->fd, hfp_info_callback, info);
 

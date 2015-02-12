@@ -69,6 +69,7 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   info = hfp_info_create();
   ASSERT_NE(info, (void *)NULL);
 
+  hfp_info_start(1, 48, info);
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
@@ -79,12 +80,13 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   hfp_buf_release(info, &dev, 500);
   ASSERT_EQ(500, hfp_buf_queued(info, &dev));
 
-  /* Assert the amount of frames of available buffer + queued buf equals
-   * the buffer size, 2 bytes per frame */
+  /* Assert the amount of frames of available buffer + queued buf is
+   * greater than or equal to the buffer size, 2 bytes per frame
+   */
   queued = hfp_buf_queued(info, &dev);
   buffer_frames = 500;
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
-  ASSERT_EQ(HFP_BUF_SIZE_BYTES / 2, buffer_frames + queued);
+  ASSERT_GE(info->playback_buf->size / 2, buffer_frames + queued);
 
   /* Consume all queued data from read buffer */
   put_read_buf_bytes(info->playback_buf, queued * 2);
@@ -101,7 +103,7 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames2);
   hfp_buf_release(info, &dev, buffer_frames2);
 
-  ASSERT_EQ(HFP_BUF_SIZE_BYTES / 2, buffer_frames + buffer_frames2);
+  ASSERT_GE(info->playback_buf->size / 2, buffer_frames + buffer_frames2);
 
   hfp_info_destroy(info);
 }
@@ -115,6 +117,7 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   info = hfp_info_create();
   ASSERT_NE(info, (void *)NULL);
 
+  hfp_info_start(1, 48, info);
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
@@ -130,20 +133,20 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   ASSERT_EQ(0, hfp_buf_queued(info, &dev));
 
   /* Push fake data to capture buffer */
-  put_write_buf_bytes(info->capture_buf, HFP_BUF_SIZE_BYTES - 100);
+  put_write_buf_bytes(info->capture_buf, info->capture_buf->size - 100);
   put_write_buf_bytes(info->capture_buf, 100);
 
   /* Assert consecutive acquire call will consume the whole buffer */
-  buffer_frames = 500;
+  buffer_frames = 1000;
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
   hfp_buf_release(info, &dev, buffer_frames);
-  ASSERT_GT(500, buffer_frames);
+  ASSERT_GE(1000, buffer_frames);
 
-  buffer_frames2 = 500;
+  buffer_frames2 = 1000;
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames2);
   hfp_buf_release(info, &dev, buffer_frames2);
 
-  ASSERT_EQ(HFP_BUF_SIZE_BYTES / 2, buffer_frames + buffer_frames2);
+  ASSERT_GE(info->capture_buf->size / 2, buffer_frames + buffer_frames2);
 
   hfp_info_destroy(info);
 }
@@ -161,10 +164,10 @@ TEST(HfpInfo, HfpReadWriteFD) {
   ASSERT_NE(info, (void *)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
+  hfp_info_start(sock[1], 48, info);
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
   /* Mock the sco fd and send some fake data */
-  info->fd = sock[1];
   send(sock[0], sample, 48, 0);
 
   rc = hfp_read(info);
@@ -174,7 +177,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   ASSERT_EQ(48 / 2, rc);
 
   /* Fill the write buffer*/
-  buffer_count = 1024;
+  buffer_count = info->capture_buf->size;
   get_write_buf_bytes(info->capture_buf, &buf, &buffer_count);
   put_write_buf_bytes(info->capture_buf, buffer_count);
 
@@ -210,7 +213,7 @@ TEST(HfpInfo, StartHfpInfo) {
   info = hfp_info_create();
   ASSERT_NE(info, (void *)NULL);
 
-  hfp_info_start(sock[0], info);
+  hfp_info_start(sock[0], 48, info);
   ASSERT_EQ(1, hfp_info_running(info));
   ASSERT_EQ(cb_data, (void *)info);
 
@@ -234,7 +237,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   ASSERT_NE(info, (void *)NULL);
 
   /* Start and send two chunk of fake data */
-  hfp_info_start(sock[1], info);
+  hfp_info_start(sock[1], 48, info);
   send(sock[0], sample ,48, 0);
   send(sock[0], sample ,48, 0);
 
@@ -276,7 +279,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   info = hfp_info_create();
   ASSERT_NE(info, (void *)NULL);
 
-  hfp_info_start(sock[1], info);
+  hfp_info_start(sock[1], 48, info);
   send(sock[0], sample ,48, 0);
   send(sock[0], sample ,48, 0);
 

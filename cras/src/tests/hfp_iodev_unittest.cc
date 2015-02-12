@@ -234,6 +234,11 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
   cras_bt_device_rm_iodev_called++;
 }
 
+int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
+{
+  return 48;
+}
+
 // From cras_hfp_info
 int hfp_info_add_iodev(struct hfp_info *info, struct cras_iodev *dev)
 {
@@ -259,7 +264,7 @@ int hfp_info_running(struct hfp_info *info)
   return hfp_info_running_return_val;
 }
 
-int hfp_info_start(int fd, struct hfp_info *info)
+int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 {
   hfp_info_start_called++;
   return 0;

@@ -59,7 +59,7 @@ static int frames_queued(const struct cras_iodev *iodev)
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	int sk, err;
+	int sk, err, mtu;
 
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
@@ -74,8 +74,10 @@ static int open_dev(struct cras_iodev *iodev)
 	if (sk < 0)
 		goto error;
 
+	mtu = cras_bt_device_sco_mtu(hfpio->device, sk);
+
 	/* Start hfp_info */
-	err = hfp_info_start(sk, hfpio->info);
+	err = hfp_info_start(sk, mtu, hfpio->info);
 	if (err)
 		goto error;
 
