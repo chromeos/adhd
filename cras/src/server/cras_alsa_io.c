@@ -39,6 +39,7 @@
 #define INTERNAL_SPEAKER "Speaker"
 #define INTERNAL_MICROPHONE "Internal Mic"
 #define KEYBOARD_MIC "Keyboard Mic"
+#define AOKR_DEV "Wake on Voice"
 
 /* For USB, pad the output buffer.  This avoids a situation where there isn't a
  * complete URB's worth of audio ready to be transmitted when it is requested.
@@ -621,7 +622,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Mic", 0, CRAS_NODE_TYPE_MIC },
-		{ "Wake On Voice", 0, CRAS_NODE_TYPE_AOKR },
+		{ AOKR_DEV, 1, CRAS_NODE_TYPE_AOKR },
 	};
 	unsigned i;
 
@@ -1043,6 +1044,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
 				     const char *dev_name,
+				     const char *dev_id,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
@@ -1166,6 +1168,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			new_input(INTERNAL_MICROPHONE, aio);
 		else if (strstr(dev_name, KEYBOARD_MIC))
 			new_input(KEYBOARD_MIC, aio);
+		else if (dev_id && strstr(dev_id, AOKR_DEV))
+			new_input(AOKR_DEV, aio);
 		else if (!aio->base.nodes)
 			new_input("(default)", aio);
 	}

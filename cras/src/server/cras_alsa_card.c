@@ -66,6 +66,7 @@ int is_first_dev(struct cras_alsa_card *alsa_card,
  *    info - Information about the card type and priority.
  *    card_name - The name of the card.
  *    dev_name - The name of the device.
+ *    dev_id - The id string of the device.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    direction - Input or output.
  */
@@ -73,6 +74,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 			     struct cras_alsa_card_info *info,
 			     const char *card_name,
 			     const char *dev_name,
+			     const char *dev_id,
 			     unsigned device_index,
 			     enum CRAS_STREAM_DIRECTION direction)
 {
@@ -90,6 +92,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 					   card_name,
 					   device_index,
 					   dev_name,
+					   dev_id,
 					   info->card_type,
 					   first,
 					   alsa_card->mixer,
@@ -255,6 +258,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 						info,
 						card_name,
 						snd_pcm_info_get_name(dev_info),
+						snd_pcm_info_get_id(dev_info),
 						dev_idx,
 						CRAS_STREAM_OUTPUT);
 
@@ -265,6 +269,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 						info,
 						card_name,
 						snd_pcm_info_get_name(dev_info),
+						snd_pcm_info_get_id(dev_info),
 						dev_idx,
 						CRAS_STREAM_INPUT);
 	}

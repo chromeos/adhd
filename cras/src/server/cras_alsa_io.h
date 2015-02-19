@@ -21,6 +21,7 @@ struct cras_ionode;
  *    card_name - The name of the card.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    dev_name - The name of the device.
+ *    dev_id - The id string of the device.
  *    card_type - the type of the card this iodev belongs.
  *    is_first - if this is the first iodev on the card.
  *    mixer - The mixer for the alsa device.
@@ -33,6 +34,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     const char *card_name,
 				     size_t device_index,
 				     const char *dev_name,
+				     const char *dev_id,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
