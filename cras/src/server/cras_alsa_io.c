@@ -85,6 +85,7 @@ struct alsa_input_node {
  * mmap_offset - offset returned from mmap_begin.
  * dsp_name_default - the default dsp name for the device. It can be overridden
  *     by the jack specific dsp name.
+ * poll_fd - Descriptor used to block until data is ready.
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -101,6 +102,7 @@ struct alsa_io {
 	snd_use_case_mgr_t *ucm;
 	snd_pcm_uframes_t mmap_offset;
 	const char *dsp_name_default;
+	int poll_fd;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -147,6 +149,8 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
+	if (aio->poll_fd >= 0)
+		audio_thread_rm_callback(aio->poll_fd);
 	if (!aio->handle)
 		return 0;
 	cras_alsa_pcm_close(aio->handle);
@@ -156,8 +160,12 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int dummy_aokr_cb(void *unused)
+static int dummy_aokr_cb(void *arg)
 {
+	/* Only need this once. */
+	struct alsa_io *aio = (struct alsa_io *)arg;
+	audio_thread_rm_callback(aio->poll_fd);
+	aio->poll_fd = -1;
 	return 0;
 }
 
@@ -209,10 +217,10 @@ static int open_dev(struct cras_iodev *iodev)
 	aio->handle = handle;
 	init_device_settings(aio);
 
+	aio->poll_fd = -1;
 	if (iodev->active_node->type == CRAS_NODE_TYPE_AOKR) {
 		struct pollfd *ufds;
 		int count, i;
-		int fd = -1;
 
 		count = snd_pcm_poll_descriptors_count(handle);
 		if (count <= 0) {
@@ -235,14 +243,15 @@ static int open_dev(struct cras_iodev *iodev)
 
 		for (i = 0; i < count; i++) {
 			if (ufds[i].events & POLLIN) {
-				fd = ufds[i].fd;
+				aio->poll_fd = ufds[i].fd;
 				break;
 			}
 		}
 		free(ufds);
 
-		if (fd >= 0)
-			audio_thread_add_callback(fd, dummy_aokr_cb, NULL);
+		if (aio->poll_fd >= 0)
+			audio_thread_add_callback(aio->poll_fd, dummy_aokr_cb,
+						  aio);
 	}
 
 	/* Capture starts right away, playback will wait for samples. */
