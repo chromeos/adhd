@@ -43,6 +43,7 @@ struct __attribute__ ((__packed__)) cras_ionode_info {
 	uint32_t volume;
 	int32_t capture_gain;
 	int32_t left_right_swapped;
+	uint32_t type_enum;
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 };

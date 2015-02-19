@@ -1381,10 +1381,44 @@ add_failed:
 	return rc;
 }
 
+static int get_aokr_idx(const struct cras_client *client)
+{
+	const struct cras_server_state *state;
+	unsigned int version;
+	unsigned int i;
+
+	if (!client)
+		return -EINVAL;
+	state = client->server_state;
+	if (!state)
+		return -EINVAL;
+
+read_inputs_again:
+	version = begin_server_state_read(state);
+	for (i = 0; i < state->num_input_nodes; i++) {
+		if ((enum CRAS_NODE_TYPE)state->input_nodes[i].type_enum ==
+		    CRAS_NODE_TYPE_AOKR)
+			return state->input_nodes[i].iodev_idx;
+	}
+	if (end_server_state_read(state, version))
+		goto read_inputs_again;
+
+	return -ENODEV;
+}
+
 int cras_client_add_stream(struct cras_client *client,
 			   cras_stream_id_t *stream_id_out,
 			   struct cras_stream_params *config)
 {
+	if ((config->flags & HOTWORD_STREAM) == HOTWORD_STREAM) {
+		int aokr_idx;
+		aokr_idx = get_aokr_idx(client);
+		if (aokr_idx < 0)
+			return aokr_idx;
+		return cras_client_add_pinned_stream(client, aokr_idx,
+						     stream_id_out, config);
+	}
+
 	return cras_client_send_add_stream_command_message(
 			client,
 			NO_DEVICE,

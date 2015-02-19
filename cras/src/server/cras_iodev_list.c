@@ -219,6 +219,7 @@ static int fill_node_list(struct iodev_list *list,
 			strcpy(node_info->name, node->name);
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
 				node_type_to_str(node->type));
+			node_info->type_enum = node->type;
 			node_info++;
 			i++;
 			if (i == out_size)
