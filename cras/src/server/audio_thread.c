@@ -1081,6 +1081,8 @@ static int input_delay_frames(struct active_dev *adevs)
 	int max_delay = 0;
 
 	DL_FOREACH(adevs, adev) {
+		if (!device_open(adev->dev))
+			continue;
 		delay = cras_iodev_delay_frames(adev->dev);
 		if (delay < 0)
 			return delay;
