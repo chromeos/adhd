@@ -99,7 +99,8 @@ libcras_la_SOURCES = \
 	common/cras_sbc_codec.c \
 	common/cras_util.c \
 	common/edid_utils.c \
-	libcras/cras_client.c
+	libcras/cras_client.c \
+	libcras/cras_helpers.c
 
 include_HEADERS = \
 	common/cras_audio_format.h \
@@ -112,7 +113,8 @@ include_HEADERS = \
 	common/cras_util.h \
 	common/edid_utils.h \
 	common/utlist.h \
-	libcras/cras_client.h
+	libcras/cras_client.h \
+	libcras/cras_helpers.h
 
 libcras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras $(SBC_CFLAGS)
