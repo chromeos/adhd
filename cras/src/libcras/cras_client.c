@@ -592,6 +592,32 @@ static int wake_aud_thread(struct client_stream *stream)
  * Client thread.
  */
 
+/* Gets the update_count of the server state shm region. */
+static inline
+unsigned begin_server_state_read(const struct cras_server_state *state)
+{
+	unsigned count;
+
+	/* Version will be odd when the server is writing. */
+	while ((count = *(volatile unsigned *)&state->update_count) & 1)
+		sched_yield();
+	__sync_synchronize();
+	return count;
+}
+
+/* Checks if the update count of the server state shm region has changed from
+ * count.  Returns 0 if the count still matches.
+ */
+static inline
+int end_server_state_read(const struct cras_server_state *state, unsigned count)
+{
+	__sync_synchronize();
+	if (count != *(volatile unsigned *)&state->update_count)
+		return -EAGAIN;
+	return 0;
+
+}
+
 /* Gets the shared memory region used to share audio data with the server. */
 static int config_shm(struct cras_audio_shm *shm, int key, size_t size)
 {
@@ -732,6 +758,32 @@ fail:
 	return rc;
 }
 
+/* Return the index of the device used for listening to hotwords. */
+static int get_aokr_idx(const struct cras_client *client)
+{
+	const struct cras_server_state *state;
+	unsigned int version;
+	unsigned int i;
+
+	if (!client)
+		return -EINVAL;
+	state = client->server_state;
+	if (!state)
+		return -EINVAL;
+
+read_inputs_again:
+	version = begin_server_state_read(state);
+	for (i = 0; i < state->num_input_nodes; i++) {
+		if ((enum CRAS_NODE_TYPE)state->input_nodes[i].type_enum ==
+		    CRAS_NODE_TYPE_AOKR)
+			return state->input_nodes[i].iodev_idx;
+	}
+	if (end_server_state_read(state, version))
+		goto read_inputs_again;
+
+	return -ENODEV;
+}
+
 /* Adds a stream to a running client.  Checks to make sure that the client is
  * attached, waits if it isn't.  The stream is prepared on the  main thread and
  * passed here. */
@@ -743,6 +795,18 @@ static int client_thread_add_stream(struct cras_client *client,
 	int rc;
 	cras_stream_id_t new_id;
 	struct client_stream *out;
+
+	/* Find the hotword device index. */
+	if ((stream->flags & HOTWORD_STREAM) == HOTWORD_STREAM &&
+			dev_idx == NO_DEVICE) {
+		int aokr_idx;
+		aokr_idx = get_aokr_idx(client);
+		if (aokr_idx < 0) {
+			syslog(LOG_ERR, "add_stream: Cannot find hotword device.");
+			return aokr_idx;
+		}
+		dev_idx = aokr_idx;
+	}
 
 	/* Find an available stream id. */
 	do {
@@ -1138,32 +1202,6 @@ static int write_message_to_server(struct cras_client *client,
 	return 0;
 }
 
-/* Gets the update_count of the server state shm region. */
-static inline
-unsigned begin_server_state_read(const struct cras_server_state *state)
-{
-	unsigned count;
-
-	/* Version will be odd when the server is writing. */
-	while ((count = *(volatile unsigned *)&state->update_count) & 1)
-		sched_yield();
-	__sync_synchronize();
-	return count;
-}
-
-/* Checks if the update count of the server state shm region has changed from
- * count.  Returns 0 if the count still matches.
- */
-static inline
-int end_server_state_read(const struct cras_server_state *state, unsigned count)
-{
-	__sync_synchronize();
-	if (count != *(volatile unsigned *)&state->update_count)
-		return -EAGAIN;
-	return 0;
-
-}
-
 /*
  * Exported Client Interface
  */
@@ -1381,44 +1419,10 @@ add_failed:
 	return rc;
 }
 
-static int get_aokr_idx(const struct cras_client *client)
-{
-	const struct cras_server_state *state;
-	unsigned int version;
-	unsigned int i;
-
-	if (!client)
-		return -EINVAL;
-	state = client->server_state;
-	if (!state)
-		return -EINVAL;
-
-read_inputs_again:
-	version = begin_server_state_read(state);
-	for (i = 0; i < state->num_input_nodes; i++) {
-		if ((enum CRAS_NODE_TYPE)state->input_nodes[i].type_enum ==
-		    CRAS_NODE_TYPE_AOKR)
-			return state->input_nodes[i].iodev_idx;
-	}
-	if (end_server_state_read(state, version))
-		goto read_inputs_again;
-
-	return -ENODEV;
-}
-
 int cras_client_add_stream(struct cras_client *client,
 			   cras_stream_id_t *stream_id_out,
 			   struct cras_stream_params *config)
 {
-	if ((config->flags & HOTWORD_STREAM) == HOTWORD_STREAM) {
-		int aokr_idx;
-		aokr_idx = get_aokr_idx(client);
-		if (aokr_idx < 0)
-			return aokr_idx;
-		return cras_client_add_pinned_stream(client, aokr_idx,
-						     stream_id_out, config);
-	}
-
 	return cras_client_send_add_stream_command_message(
 			client,
 			NO_DEVICE,
