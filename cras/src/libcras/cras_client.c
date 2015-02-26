@@ -775,9 +775,9 @@ static int client_thread_add_stream(struct cras_client *client,
 			dev_idx == NO_DEVICE) {
 		int aokr_idx;
 		aokr_idx = cras_client_get_first_dev_type_idx(client,
-				CRAS_NODE_TYPE_AOKR);
+				CRAS_NODE_TYPE_AOKR, CRAS_STREAM_INPUT);
 		if (aokr_idx < 0) {
-			syslog(LOG_ERR, "add_stream: Cannot find hotword device.");
+			syslog(LOG_ERR, "add_stream: Cannot find hotword dev");
 			return aokr_idx;
 		}
 		dev_idx = aokr_idx;
@@ -2086,11 +2086,14 @@ int cras_client_test_iodev_command(struct cras_client *client,
 
 /* Return the index of the device used for listening to hotwords. */
 int cras_client_get_first_dev_type_idx(const struct cras_client *client,
-				       enum CRAS_NODE_TYPE type)
+				       enum CRAS_NODE_TYPE type,
+				       enum CRAS_STREAM_DIRECTION direction)
 {
 	const struct cras_server_state *state;
 	unsigned int version;
 	unsigned int i;
+	const struct cras_ionode_info *node_list;
+	unsigned int num_nodes;
 
 	if (!client)
 		return -EINVAL;
@@ -2098,16 +2101,21 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
 	if (!state)
 		return -EINVAL;
 
-read_inputs_again:
+read_nodes_again:
 	version = begin_server_state_read(state);
-	for (i = 0; i < state->num_input_nodes; i++) {
-		enum CRAS_NODE_TYPE this_type =
-			(enum CRAS_NODE_TYPE)state->input_nodes[i].type_enum;
-		if (this_type == type)
-			return state->input_nodes[i].iodev_idx;
+	if (direction == CRAS_STREAM_OUTPUT) {
+		node_list = state->output_nodes;
+		num_nodes = state->num_output_nodes;
+	} else {
+		node_list = state->input_nodes;
+		num_nodes = state->num_input_nodes;
+	}
+	for (i = 0; i < num_nodes; i++) {
+		if ((enum CRAS_NODE_TYPE)node_list[i].type_enum == type)
+			return node_list[i].iodev_idx;
 	}
 	if (end_server_state_read(state, version))
-		goto read_inputs_again;
+		goto read_nodes_again;
 
 	return -ENODEV;
 }

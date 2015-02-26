@@ -672,10 +672,12 @@ int cras_client_test_iodev_command(struct cras_client *client,
  * Args:
  *    client - The client from cras_client_create.
  *    type - The type of device to find.
+ *    direction - Search input or output devices.
  * Returns the device index of a negative error on failure.
  */
 int cras_client_get_first_dev_type_idx(const struct cras_client *client,
-				       enum CRAS_NODE_TYPE type);
+				       enum CRAS_NODE_TYPE type,
+				       enum CRAS_STREAM_DIRECTION direction);
 
 #ifdef __cplusplus
 }
