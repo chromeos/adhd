@@ -462,6 +462,11 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 	struct cras_bt_adapter *adapter;
 
 	adapter = cras_bt_device_adapter(device);
+	if (!adapter) {
+		syslog(LOG_ERR, "No adapter found for device %s at SCO connect",
+		       cras_bt_device_object_path(device));
+		goto error;
+	}
 
 	sk = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_SCO);
 	if (sk < 0) {

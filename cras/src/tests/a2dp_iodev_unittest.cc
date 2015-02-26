@@ -18,14 +18,12 @@ extern "C" {
 #include "cras_a2dp_iodev.h"
 }
 
-#define FAKE_DEVICE_NAME "fake device name"
 #define FAKE_OBJECT_PATH "/fake/obj/path"
 
 #define MAX_A2DP_ENCODE_CALLS 2
 #define MAX_A2DP_WRITE_CALLS 4
 
 static struct cras_bt_transport *fake_transport;
-static struct cras_bt_device *fake_device;
 static cras_audio_format format;
 static size_t cras_bt_device_append_iodev_called;
 static size_t cras_bt_device_rm_iodev_called;
@@ -51,6 +49,8 @@ static unsigned int a2dp_write_index;
 static cras_audio_area *dummy_audio_area;
 static thread_callback write_callback;
 static void *write_callback_data;
+static const char *fake_device_name = "fake device name";
+static const char *cras_bt_device_name_ret;
 
 void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -75,7 +75,6 @@ void ResetStubData() {
   a2dp_write_index = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
-  fake_device = NULL;
 
   if (!dummy_audio_area) {
     dummy_audio_area = (cras_audio_area*)calloc(1,
@@ -106,6 +105,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   ResetStubData();
 
+  cras_bt_device_name_ret = NULL;
   iodev = a2dp_iodev_create(fake_transport, NULL);
 
   ASSERT_NE(iodev, (void *)NULL);
@@ -116,7 +116,8 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
 
-  /* Assert iodev name matches the object path when bt device is NULL */
+  /* Assert iodev name matches the object path when bt device doesn't
+   * have its readable name populated. */
   ASSERT_STREQ(FAKE_OBJECT_PATH, iodev->info.name);
 
   a2dp_iodev_destroy(iodev);
@@ -126,10 +127,10 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ASSERT_EQ(1, destroy_a2dp_called);
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 
+  cras_bt_device_name_ret = fake_device_name;
   /* Assert iodev name matches the bt device's name */
-  fake_device = reinterpret_cast<struct cras_bt_device *>(0x456);
   iodev = a2dp_iodev_create(fake_transport, NULL);
-  ASSERT_STREQ(FAKE_DEVICE_NAME, iodev->info.name);
+  ASSERT_STREQ(fake_device_name, iodev->info.name);
 
   a2dp_iodev_destroy(iodev);
 }
@@ -372,7 +373,7 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 struct cras_bt_device *cras_bt_transport_device(
 	const struct cras_bt_transport *transport)
 {
-  return fake_device;
+  return reinterpret_cast<struct cras_bt_device *>(0x456);;
 }
 
 enum cras_bt_device_profile cras_bt_transport_profile(
@@ -384,7 +385,7 @@ enum cras_bt_device_profile cras_bt_transport_profile(
 // From cras_bt_device
 const char *cras_bt_device_name(const struct cras_bt_device *device)
 {
-  return FAKE_DEVICE_NAME;
+  return cras_bt_device_name_ret;
 }
 
 void cras_bt_device_append_iodev(struct cras_bt_device *device,

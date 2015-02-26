@@ -109,6 +109,12 @@ static DBusHandlerResult cras_bt_endpoint_set_configuration(
 		}
 	}
 
+	if (!cras_bt_transport_device(transport)) {
+		syslog(LOG_ERR, "Do device found for transport %s",
+		       cras_bt_transport_object_path(transport));
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
 	cras_bt_endpoint_start(endpoint, transport);
 
 	reply = dbus_message_new_method_return(message);

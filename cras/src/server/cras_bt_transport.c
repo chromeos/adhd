@@ -277,11 +277,16 @@ void cras_bt_transport_update_properties(
 		} else if (type == DBUS_TYPE_OBJECT_PATH) {
 			const char *obj_path;
 
+			/* Property: object Device [readonly] */
 			dbus_message_iter_get_basic(&variant_iter, &obj_path);
-
-			if (strcmp(key, "Device") == 0)
+			transport->device = cras_bt_device_get(obj_path);
+			if (!transport->device) {
+				syslog(LOG_ERR, "Device %s not found at update"
+				       "transport properties",
+				       obj_path);
 				transport->device =
-					cras_bt_device_get(obj_path);
+					cras_bt_device_create(obj_path);
+			}
 		} else if (strcmp(
 				dbus_message_iter_get_signature(&variant_iter),
 				"ay") == 0 &&

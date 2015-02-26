@@ -406,6 +406,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
 	struct cras_ionode *node;
 	a2dp_sbc_t a2dp;
 	struct cras_bt_device *device;
+	const char *name;
 
 	a2dpio = (struct a2dp_io *)calloc(1, sizeof(*a2dpio));
 	if (!a2dpio)
@@ -430,13 +431,11 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
 	 * the readable name is not available, use address instead.
 	 */
 	device = cras_bt_transport_device(transport);
-	if (device)
-		snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
-				cras_bt_device_name(device));
-	else
-		snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
-			 cras_bt_transport_object_path(a2dpio->transport));
+	name = cras_bt_device_name(device);
+	if (!name)
+		name = cras_bt_transport_object_path(a2dpio->transport);
 
+	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 
 	iodev->open_dev = open_dev;

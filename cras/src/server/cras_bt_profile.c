@@ -107,8 +107,11 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 		goto invalid;
 
 	device = cras_bt_device_get(object_path);
-	if (!device)
-		goto invalid;
+	if (!device) {
+		syslog(LOG_ERR, "Device %s not found at %s new connection",
+		       object_path, profile_path);
+		device = cras_bt_device_create(object_path);
+	}
 
 	profile->new_connection(profile, device, fd);
 
