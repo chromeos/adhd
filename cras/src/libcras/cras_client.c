@@ -758,32 +758,6 @@ fail:
 	return rc;
 }
 
-/* Return the index of the device used for listening to hotwords. */
-static int get_aokr_idx(const struct cras_client *client)
-{
-	const struct cras_server_state *state;
-	unsigned int version;
-	unsigned int i;
-
-	if (!client)
-		return -EINVAL;
-	state = client->server_state;
-	if (!state)
-		return -EINVAL;
-
-read_inputs_again:
-	version = begin_server_state_read(state);
-	for (i = 0; i < state->num_input_nodes; i++) {
-		if ((enum CRAS_NODE_TYPE)state->input_nodes[i].type_enum ==
-		    CRAS_NODE_TYPE_AOKR)
-			return state->input_nodes[i].iodev_idx;
-	}
-	if (end_server_state_read(state, version))
-		goto read_inputs_again;
-
-	return -ENODEV;
-}
-
 /* Adds a stream to a running client.  Checks to make sure that the client is
  * attached, waits if it isn't.  The stream is prepared on the  main thread and
  * passed here. */
@@ -800,7 +774,8 @@ static int client_thread_add_stream(struct cras_client *client,
 	if ((stream->flags & HOTWORD_STREAM) == HOTWORD_STREAM &&
 			dev_idx == NO_DEVICE) {
 		int aokr_idx;
-		aokr_idx = get_aokr_idx(client);
+		aokr_idx = cras_client_get_first_dev_type_idx(client,
+				CRAS_NODE_TYPE_AOKR);
 		if (aokr_idx < 0) {
 			syslog(LOG_ERR, "add_stream: Cannot find hotword device.");
 			return aokr_idx;
@@ -2107,4 +2082,32 @@ int cras_client_test_iodev_command(struct cras_client *client,
 	rc = write_message_to_server(client, &msg->header);
 	free(msg);
 	return rc;
+}
+
+/* Return the index of the device used for listening to hotwords. */
+int cras_client_get_first_dev_type_idx(const struct cras_client *client,
+				       enum CRAS_NODE_TYPE type)
+{
+	const struct cras_server_state *state;
+	unsigned int version;
+	unsigned int i;
+
+	if (!client)
+		return -EINVAL;
+	state = client->server_state;
+	if (!state)
+		return -EINVAL;
+
+read_inputs_again:
+	version = begin_server_state_read(state);
+	for (i = 0; i < state->num_input_nodes; i++) {
+		enum CRAS_NODE_TYPE this_type =
+			(enum CRAS_NODE_TYPE)state->input_nodes[i].type_enum;
+		if (this_type == type)
+			return state->input_nodes[i].iodev_idx;
+	}
+	if (end_server_state_read(state, version))
+		goto read_inputs_again;
+
+	return -ENODEV;
 }

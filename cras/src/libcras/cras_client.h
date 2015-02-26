@@ -666,6 +666,17 @@ int cras_client_test_iodev_command(struct cras_client *client,
 				   unsigned int data_len,
 				   const uint8_t *data);
 
+/* Finds the first device that contains a node of the given type.
+ * This is used for finding a special device list the internal speaker of the
+ * AOKR device.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    type - The type of device to find.
+ * Returns the device index of a negative error on failure.
+ */
+int cras_client_get_first_dev_type_idx(const struct cras_client *client,
+				       enum CRAS_NODE_TYPE type);
+
 #ifdef __cplusplus
 }
 #endif
