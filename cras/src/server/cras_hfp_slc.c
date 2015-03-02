@@ -222,27 +222,33 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 	tmp = strtok(NULL, ",");
 
 	/* mode = 3 for forward unsolicited result codes.
-	 * AT+CMER=3,0,0,1 activates “indicator events reporting” and the
-	 * service level connection is established. Ignore other AT+CMER=
-	 * command values.
+	 * AT+CMER=3,0,0,1 activates “indicator events reporting”.
+	 * The service level connection is considered established after
+	 * successfully responded with OK, regardless of the indicator
+	 * events reporting status.
 	 */
-	if (mode && atoi(mode) == 3 && tmp && atoi(tmp) == 1) {
-		/* "indicator events reporting” is activated */
-		if (handle->initialized) {
-			syslog(LOG_ERR, "Service level connection has already"
-					"been initialized");
-		} else {
-			err = hfp_send(handle, "OK");
-			if (err == 0) {
-				handle->init_cb(handle);
-				handle->initialized = 1;
-			}
-		}
-	} else {
-		syslog(LOG_ERR, "No service level connection established,"
-				"got cmd=%s", cmd);
+	if (!mode || !tmp) {
+		syslog(LOG_ERR, "Invalid event reporting” cmd %s", cmd);
+		err = -EINVAL;
+		goto event_reporting_err;
 	}
 
+	err = hfp_send(handle, "OK");
+	if (err) {
+		syslog(LOG_ERR, "Error sending response for command %s", cmd);
+		goto event_reporting_err;
+	}
+
+	/* Consider the Service Level Connection to be fully initialized,
+	 * and thereby established, after successfully responded with OK.
+	 */
+	if (!handle->initialized) {
+		handle->initialized = 1;
+		if (handle->init_cb)
+			handle->init_cb(handle);
+	}
+
+event_reporting_err:
 	free(tokens);
 	return err;
 }
