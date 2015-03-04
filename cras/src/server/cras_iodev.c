@@ -618,7 +618,7 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
 {
 	struct timespec now;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	return rate_estimator_check(iodev->rate_est, level, &now);
 }
 

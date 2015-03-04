@@ -455,7 +455,8 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
 
 	/* Set the last active time when removing the final stream. */
 	if (sum == 1)
-		cras_clock_gettime(CLOCK_MONOTONIC, &s->last_active_stream_time);
+		cras_clock_gettime(CLOCK_MONOTONIC_RAW,
+				   &s->last_active_stream_time);
 	s->num_active_streams[direction]--;
 
 	cras_system_state_update_complete();

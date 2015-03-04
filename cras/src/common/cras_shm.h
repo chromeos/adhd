@@ -456,7 +456,7 @@ void cras_shm_since_first_timeout(const struct cras_audio_shm *shm,
 	if (shm->area->first_timeout_sec ||
 	    shm->area->first_timeout_nsec) {
 		struct timespec now, first_timeout;
-		clock_gettime(CLOCK_MONOTONIC, &now);
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 		first_timeout.tv_sec = shm->area->first_timeout_sec;
 		first_timeout.tv_nsec = shm->area->first_timeout_nsec;
 		subtract_timespecs(&now, &first_timeout, ts);
@@ -471,7 +471,7 @@ static inline
 void cras_shm_set_first_timeout(const struct cras_audio_shm *shm)
 {
 	struct timespec now;
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	shm->area->first_timeout_sec = now.tv_sec;
 	shm->area->first_timeout_nsec = now.tv_nsec;
 }

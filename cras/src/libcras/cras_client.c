@@ -203,7 +203,7 @@ static int check_server_connected_wait(struct cras_client *client)
 	int rc;
 	struct timespec timeout, now;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	timeout.tv_sec = 0;
 	timeout.tv_nsec = SERVER_FIRST_MESSAGE_TIMEOUT_NS;
 	add_timespecs(&timeout, &now);
@@ -220,7 +220,7 @@ static int check_server_connected_wait(struct cras_client *client)
 			if (rc < 0)
 				return 0;
 		}
-		clock_gettime(CLOCK_MONOTONIC, &now);
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	}
 
 	return client->id >= 0;
@@ -1601,7 +1601,7 @@ read_active_streams_again:
 		num_streams += client->server_state->num_active_streams[i];
 	if (ts) {
 		if (num_streams)
-			clock_gettime(CLOCK_MONOTONIC, ts);
+			clock_gettime(CLOCK_MONOTONIC_RAW, ts);
 		else
 			cras_timespec_to_timespec(ts,
 				&client->server_state->last_active_stream_time);
@@ -1959,7 +1959,7 @@ int cras_client_calc_playback_latency(const struct timespec *sample_time,
 	if (delay == NULL)
 		return -EINVAL;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	/* for output return time until sample is played (t - now) */
 	subtract_timespecs(sample_time, &now, delay);
@@ -1974,7 +1974,7 @@ int cras_client_calc_capture_latency(const struct timespec *sample_time,
 	if (delay == NULL)
 		return -EINVAL;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	/* For input want time since sample read (now - t) */
 	subtract_timespecs(&now, sample_time, delay);

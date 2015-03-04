@@ -89,7 +89,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
 			    stream_fmt->frame_rate,
 			    &stream->sleep_interval_ts);
-	clock_gettime(CLOCK_MONOTONIC, &stream->next_cb_ts);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &stream->next_cb_ts);
 
 	if (stream->direction != CRAS_STREAM_OUTPUT) {
 		struct timespec extra_sleep;
@@ -446,7 +446,7 @@ static void check_next_wake_time(struct dev_stream *dev_stream)
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct timespec now;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	if (timespec_after(&now, &rstream->next_cb_ts)) {
 		rstream->next_cb_ts = now;
 		add_timespecs(&rstream->next_cb_ts,
@@ -470,7 +470,7 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	cras_rstream_update_input_write_pointer(rstream);
 
 	/* If it isn't time for this stream then skip it. */
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	if (!cras_rstream_input_level_met(rstream))
 		return 0;
@@ -491,7 +491,7 @@ void cras_set_playback_timestamp(size_t frame_rate,
 				 size_t frames,
 				 struct cras_timespec *ts)
 {
-	cras_clock_gettime(CLOCK_MONOTONIC, ts);
+	cras_clock_gettime(CLOCK_MONOTONIC_RAW, ts);
 
 	/* For playback, want now + samples left to be played.
 	 * ts = time next written sample will be played to DAC,
@@ -509,7 +509,7 @@ void cras_set_capture_timestamp(size_t frame_rate,
 {
 	long tmp;
 
-	cras_clock_gettime(CLOCK_MONOTONIC, ts);
+	cras_clock_gettime(CLOCK_MONOTONIC_RAW, ts);
 
 	/* For capture, now - samples left to be read.
 	 * ts = time next sample to be read was captured at ADC.

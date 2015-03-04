@@ -933,7 +933,7 @@ static int fetch_streams(struct audio_thread *thread,
 
 		/* Check if it's time to get more data from this stream.
 		 * Allowing for waking up half a little early. */
-		clock_gettime(CLOCK_MONOTONIC, &now);
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 		add_timespecs(&now, &playback_wake_fuzz_ts);
 		if (!timespec_after(&now, next_cb_ts))
 			continue;
@@ -1388,7 +1388,7 @@ static void set_odev_wake_times(struct active_dev *dev_list)
 	struct active_dev *adev;
 	struct timespec now;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	DL_FOREACH(dev_list, adev) {
 		struct timespec sleep_time;
@@ -1728,7 +1728,7 @@ static int send_captured_samples(struct audio_thread *thread)
 		else
 			min_needed = 0;
 
-		clock_gettime(CLOCK_MONOTONIC, &now);
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 		cras_frames_to_time(min_needed + 10,
 				    adev->dev->ext_format->frame_rate,
 				    &adev->wake_ts);
@@ -1761,7 +1761,7 @@ int fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
 	/* Limit the sleep time to 20 seconds. */
 	min_ts.tv_sec = 20;
 	min_ts.tv_nsec = 0;
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	add_timespecs(&min_ts, &now);
 	ret = get_next_stream_wake(thread, &min_ts, &now);
 	ret += get_next_dev_wake(thread, &min_ts, &now);
@@ -1861,7 +1861,7 @@ restart_poll_loop:
 
 		if (last_wake.tv_sec) {
 			struct timespec this_wake;
-			clock_gettime(CLOCK_MONOTONIC, &now);
+			clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 			subtract_timespecs(&now, &last_wake, &this_wake);
 			if (timespec_after(&this_wake, &longest_wake))
 				longest_wake = this_wake;
@@ -1871,7 +1871,7 @@ restart_poll_loop:
 					    wait_ts ? wait_ts->tv_nsec : 0,
 					    longest_wake.tv_nsec);
 		rc = ppoll(pollfds, num_pollfds, wait_ts, NULL);
-		clock_gettime(CLOCK_MONOTONIC, &last_wake);
+		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
 		if (rc <= 0)
 			continue;

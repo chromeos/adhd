@@ -54,7 +54,7 @@ static unsigned int current_level(const struct cras_iodev *iodev)
 
 	frames = empty_iodev->buffer_level;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	subtract_timespecs(&now, &empty_iodev->last_buffer_access, &time_since);
 
@@ -119,7 +119,7 @@ static int open_dev(struct cras_iodev *iodev)
 	empty_iodev->audio_buffer = calloc(1, EMPTY_BUFFER_SIZE);
 	empty_iodev->buffer_level = 0;
 
-	clock_gettime(CLOCK_MONOTONIC, &empty_iodev->last_buffer_access);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &empty_iodev->last_buffer_access);
 
 	return 0;
 }
@@ -148,7 +148,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned frames)
 
 	empty_iodev->buffer_level = current_level(iodev);
 
-	clock_gettime(CLOCK_MONOTONIC, &empty_iodev->last_buffer_access);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &empty_iodev->last_buffer_access);
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
 		empty_iodev->buffer_level += frames;

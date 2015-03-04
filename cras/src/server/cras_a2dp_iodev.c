@@ -95,7 +95,7 @@ static uint64_t frames_since(struct timespec ts, size_t rate)
 {
 	struct timespec te, diff;
 
-	clock_gettime(CLOCK_MONOTONIC, &te);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &te);
 	subtract_timespecs(&te, &ts, &diff);
 	return (uint64_t)diff.tv_sec * rate +
 			diff.tv_nsec / (1000000000L / rate);
@@ -166,7 +166,7 @@ static int open_dev(struct cras_iodev *iodev)
 
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;
-	clock_gettime(CLOCK_MONOTONIC, &a2dpio->dev_open_time);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
 
 	/* Set up the socket to hold two MTUs full of data before returning
 	 * EAGAIN.  This will allow the write to be throttled when a reasonable
@@ -372,7 +372,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		pre_fill_socket(a2dpio);
 		a2dpio->pre_fill_complete = 1;
 		/* Start measuring frames_consumed from now. */
-		clock_gettime(CLOCK_MONOTONIC, &a2dpio->dev_open_time);
+		clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
 	}
 
 	flush_data(iodev);

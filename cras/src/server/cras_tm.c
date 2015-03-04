@@ -68,7 +68,7 @@ struct cras_timer *cras_tm_create_timer(
 	t->cb = cb;
 	t->cb_data = cb_data;
 
-	clock_gettime(CLOCK_MONOTONIC, &t->ts);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &t->ts);
 	add_ms_ts(&t->ts, ms);
 
 	DL_APPEND(tm->timers, t);
@@ -112,7 +112,7 @@ int cras_tm_get_next_timeout(const struct cras_tm *tm, struct timespec *ts)
 		if (timespec_sooner(&t->ts, min))
 			min = &t->ts;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	if (timespec_sooner(min, &now)) {
 		/* Timer already expired. */
@@ -129,7 +129,7 @@ void cras_tm_call_callbacks(struct cras_tm *tm)
 	struct timespec now;
 	struct cras_timer *t;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	DL_FOREACH(tm->timers, t)
 		if (timespec_sooner(&t->ts, &now)) {

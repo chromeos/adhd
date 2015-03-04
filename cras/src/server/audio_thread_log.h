@@ -44,7 +44,7 @@ static inline void audio_thread_event_log_data(
 {
 	struct timespec now;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	log->log[log->write_pos].tag_sec =
 			(event << 24) | (now.tv_sec & 0x00ffffff);
 	log->log[log->write_pos].nsec = now.tv_nsec;
