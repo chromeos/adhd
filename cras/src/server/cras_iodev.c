@@ -466,6 +466,8 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 
 	DL_APPEND(iodev->streams, stream);
 
+	if (!iodev->buf_state)
+		iodev->buf_state = buffer_share_create(iodev->buffer_size);
 	buffer_share_add_id(iodev->buf_state, stream->stream->stream_id, NULL);
 
 	iodev->min_cb_level = MIN(iodev->min_cb_level, rstream->cb_threshold);
@@ -493,6 +495,11 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 					  out->stream->cb_threshold);
 		iodev->max_cb_level = MAX(iodev->max_cb_level,
 					  out->stream->cb_threshold);
+	}
+
+	if (!iodev->streams) {
+		buffer_share_destroy(iodev->buf_state);
+		iodev->buf_state = NULL;
 	}
 	return ret;
 }
@@ -539,7 +546,6 @@ int cras_iodev_open(struct cras_iodev *iodev)
 	if (rc < 0)
 		return rc;
 
-	iodev->buf_state = buffer_share_create(iodev->buffer_size);
 	return 0;
 }
 
@@ -547,8 +553,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
 {
 	if (!iodev->is_open(iodev))
 		return 0;
-	buffer_share_destroy(iodev->buf_state);
-	iodev->buf_state = NULL;
+
 	return iodev->close_dev(iodev);
 }
 
