@@ -877,6 +877,8 @@ static int thread_suspend_adevs(struct audio_thread *thread)
 	if (thread->suspended)
 		return 0;
 
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_SUSPENDED, 0, 0, 0);
+
 	/* TODO(dgreid) - should ramp volume to 0 first. */
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 		if (adev->dev->is_draining)
@@ -927,6 +929,8 @@ static int thread_resume_adevs(struct audio_thread *thread)
 {
 	if (!thread->suspended)
 		return 0;
+
+	audio_thread_event_log_data(atlog, AUDIO_THREAD_RESUMED, 0, 0, 0);
 
 	reopen_devs(thread, CRAS_STREAM_OUTPUT);
 	reopen_devs(thread, CRAS_STREAM_INPUT);
