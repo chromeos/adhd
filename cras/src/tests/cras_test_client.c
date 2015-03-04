@@ -980,6 +980,7 @@ static struct option long_options[] = {
 	{"test_hotword_file",   required_argument,      0, '6'},
 	{"listen_for_hotword",  no_argument,            0, '7'},
 	{"pin_device",		required_argument,	0, '8'},
+	{"suspend",		required_argument,	0, '9'},
 	{0, 0, 0, 0}
 };
 
@@ -1030,6 +1031,7 @@ static void show_usage()
 	printf("--listen_for_hotword - Listen for a hotword if supported\n");
 	printf("--pin_device <N> - Playback/Capture only on the given device."
 	       "\n");
+	printf("--suspend <0|1> - Set audio suspend state.\n");
 	printf("--help - Print this message.\n");
 }
 
@@ -1266,6 +1268,11 @@ int main(int argc, char **argv)
 		case '8':
 			pin_device_id = atoi(optarg);
 			break;
+		case '9': {
+			int suspend = atoi(optarg);
+			cras_client_set_suspend(client, suspend);
+			break;
+		}
 		default:
 			break;
 		}

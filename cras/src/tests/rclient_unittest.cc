@@ -393,6 +393,16 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
   return 0;
 }
 
+int audio_thread_suspend(struct audio_thread *thread)
+{
+  return 0;
+}
+
+int audio_thread_resume(struct audio_thread *thread)
+{
+  return 0;
+}
+
 const char *cras_config_get_socket_file_dir()
 {
   return "/tmp";

@@ -316,6 +316,12 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 						 m->data_len, m->data);
 		break;
 	}
+	case CRAS_SERVER_SUSPEND:
+		audio_thread_suspend(cras_iodev_list_get_audio_thread());
+		break;
+	case CRAS_SERVER_RESUME:
+		audio_thread_resume(cras_iodev_list_get_audio_thread());
+		break;
 	default:
 		break;
 	}

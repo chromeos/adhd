@@ -42,6 +42,8 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_RM_ACTIVE_NODE,
 	CRAS_SERVER_ADD_TEST_DEV,
 	CRAS_SERVER_TEST_DEV_COMMAND,
+	CRAS_SERVER_SUSPEND,
+	CRAS_SERVER_RESUME,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -343,6 +345,12 @@ static inline void cras_fill_test_dev_command(struct cras_test_dev_command *m,
 	memcpy(m->data, data, data_len);
 }
 
+static inline void cras_fill_suspend_message(struct cras_server_message *m,
+					     int is_suspend)
+{
+	m->id = is_suspend ? CRAS_SERVER_SUSPEND : CRAS_SERVER_RESUME;
+	m->length = sizeof(*m);
+}
 
 /*
  * Messages sent from server to client.

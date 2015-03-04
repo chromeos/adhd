@@ -679,6 +679,14 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
 				       enum CRAS_NODE_TYPE type,
 				       enum CRAS_STREAM_DIRECTION direction);
 
+/* Sets the suspend state of audio playback and capture.
+ * Set this before putting the system into suspend.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    suspend - Suspend the system if non-zero, otherwise resume.
+ */
+int cras_client_set_suspend(struct cras_client *client, int suspend);
+
 #ifdef __cplusplus
 }
 #endif

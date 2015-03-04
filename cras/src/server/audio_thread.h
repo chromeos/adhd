@@ -37,6 +37,7 @@ struct active_dev {
  *    main_msg_fds - Send a message from running thread to main.
  *    tid - Thread ID of the running playback/capture thread.
  *    started - Non-zero if the thread has started successfully.
+ *    suspended - Non-zero if the thread is suspended.
  *    active_devs - Lists of active devices attached running for each
  *        CRAS_STREAM_DIRECTION.
  *    fallback_devs - One fallback device per direction (empty_iodev).
@@ -48,6 +49,7 @@ struct audio_thread {
 	int main_msg_fds[2];
 	pthread_t tid;
 	int started;
+	int suspended;
 	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
 	struct active_dev *fallback_devs[CRAS_NUM_DIRECTIONS];
 	struct cras_iodev *loopback_devs[CRAS_NUM_DIRECTIONS];
@@ -161,5 +163,11 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 /* Dumps information about all active streams to syslog. */
 int audio_thread_dump_thread_info(struct audio_thread *thread,
 				  struct audio_debug_info *info);
+
+/* Go to suspend, close all devices. */
+int audio_thread_suspend(struct audio_thread *thread);
+
+/* Resume from suspend. */
+int audio_thread_resume(struct audio_thread *thread);
 
 #endif /* AUDIO_THREAD_H_ */

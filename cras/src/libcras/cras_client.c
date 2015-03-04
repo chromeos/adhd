@@ -2119,3 +2119,11 @@ read_nodes_again:
 
 	return -ENODEV;
 }
+
+int cras_client_set_suspend(struct cras_client *client, int suspend)
+{
+	struct cras_server_message msg;
+
+	cras_fill_suspend_message(&msg, suspend);
+	return write_message_to_server(client, &msg);
+}
