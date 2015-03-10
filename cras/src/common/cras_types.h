@@ -227,6 +227,7 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *    mute - 0 = unmuted, 1 = muted by system (device switch, suspend, etc).
  *    user_mute - 0 = unmuted, 1 = muted by user.
  *    mute_locked - 0 = unlocked, 1 = locked.
+ *    suspended - 1 = suspended, 0 = resumed.
  *    capture_gain - Capture gain in dBFS * 100.
  *    capture_mute - 0 = unmuted, 1 = muted.
  *    capture_mute_locked - 0 = unlocked, 1 = locked.
@@ -264,6 +265,7 @@ struct __attribute__ ((__packed__)) cras_server_state {
 	int32_t mute;
 	int32_t user_mute;
 	int32_t mute_locked;
+	int32_t suspended;
 	int32_t capture_gain;
 	int32_t capture_mute;
 	int32_t capture_mute_locked;

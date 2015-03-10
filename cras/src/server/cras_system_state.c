@@ -33,6 +33,7 @@ struct card_list {
  *    device_blacklist - Blacklist of device the server will ignore.
  *    volume_alert - Called when the system volume changes.
  *    mute_alert - Called when the system mute state changes.
+ *    suspend_alert - Called when the audio suspend state changes.
  *    capture_gain_alert - Called when the capture gain changes.
  *    capture_mute_alert - Called when the capture mute changes.
  *    volume_limits_alert - Called when the volume limits are changed.
@@ -49,6 +50,7 @@ static struct {
 	struct cras_device_blacklist *device_blacklist;
 	struct cras_alert *volume_alert;
 	struct cras_alert *mute_alert;
+	struct cras_alert *suspend_alert;
 	struct cras_alert *capture_gain_alert;
 	struct cras_alert *capture_mute_alert;
 	struct cras_alert *volume_limits_alert;
@@ -95,6 +97,7 @@ void cras_system_state_init()
 	exp_state->volume = CRAS_MAX_SYSTEM_VOLUME;
 	exp_state->mute = 0;
 	exp_state->mute_locked = 0;
+	exp_state->suspended = 0;
 	exp_state->capture_gain = DEFAULT_CAPTURE_GAIN;
 	exp_state->capture_mute = 0;
 	exp_state->capture_mute_locked = 0;
@@ -114,6 +117,7 @@ void cras_system_state_init()
 	/* Initialize alerts. */
 	state.volume_alert = cras_alert_create(NULL);
 	state.mute_alert = cras_alert_create(NULL);
+	state.suspend_alert = cras_alert_create(NULL);
 	state.capture_gain_alert = cras_alert_create(NULL);
 	state.capture_mute_alert = cras_alert_create(NULL);
 	state.volume_limits_alert = cras_alert_create(NULL);
@@ -145,6 +149,7 @@ void cras_system_state_deinit()
 
 	cras_alert_destroy(state.volume_alert);
 	cras_alert_destroy(state.mute_alert);
+	cras_alert_destroy(state.suspend_alert);
 	cras_alert_destroy(state.capture_gain_alert);
 	cras_alert_destroy(state.capture_mute_alert);
 	cras_alert_destroy(state.volume_limits_alert);
@@ -152,6 +157,7 @@ void cras_system_state_deinit()
 
 	state.volume_alert = NULL;
 	state.mute_alert = NULL;
+	state.suspend_alert = NULL;
 	state.capture_gain_alert = NULL;
 	state.capture_mute_alert = NULL;
 	state.volume_limits_alert = NULL;
@@ -294,6 +300,27 @@ int cras_system_register_capture_mute_changed_cb(cras_alert_cb cb, void *arg)
 int cras_system_remove_capture_mute_changed_cb(cras_alert_cb cb, void *arg)
 {
 	return cras_alert_rm_callback(state.capture_mute_alert, cb, arg);
+}
+
+int cras_system_get_suspended()
+{
+	return state.exp_state->suspended;
+}
+
+void cras_system_set_suspended(int suspended)
+{
+	state.exp_state->suspended = suspended;
+	cras_alert_pending(state.suspend_alert);
+}
+
+int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg)
+{
+	return cras_alert_add_callback(state.suspend_alert, cb, arg);
+}
+
+int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg)
+{
+	return cras_alert_rm_callback(state.suspend_alert, cb, arg);
 }
 
 void cras_system_set_volume_limits(long min, long max)

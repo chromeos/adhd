@@ -87,6 +87,21 @@ int cras_system_get_system_mute();
 /* Gets if the system muting is locked or not. */
 int cras_system_get_mute_locked();
 
+/* Gets the suspend state of audio. */
+int cras_system_get_suspended();
+
+/* Sets the suspend state of audio.
+ * Args:
+ *    suspend - True for suspend, false for resume.
+ */
+void cras_system_set_suspended(int suspend);
+
+/* Adds a callback to call when the suspend state changes. */
+int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg);
+
+/* Removes a callback to call when the suspend state changes. */
+int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg);
+
 /* Adds a callback to call when the mute state changes.
  * Args:
  *    cb - Function to call when mute state changes.

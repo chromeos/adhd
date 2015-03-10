@@ -276,6 +276,15 @@ void sys_mute_change(void *data)
 	}
 }
 
+/* Called when the system audio is suspended or resumed. */
+void sys_suspend_change(void *data)
+{
+	if (cras_system_get_suspended())
+		audio_thread_suspend(cras_iodev_list_get_audio_thread());
+	else
+		audio_thread_resume(cras_iodev_list_get_audio_thread());
+}
+
 /* Called when the system capture gain changes.  Pass the current capture_gain
  * setting to the default input if it is active. */
 void sys_cap_gain_change(void *data)
@@ -310,6 +319,7 @@ void cras_iodev_list_init()
 
 	cras_system_register_volume_changed_cb(sys_vol_change, NULL);
 	cras_system_register_mute_changed_cb(sys_mute_change, NULL);
+	cras_system_register_suspend_cb(sys_suspend_change, NULL);
 	cras_system_register_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_register_capture_mute_changed_cb(sys_cap_mute_change, NULL);
 	nodes_changed_alert = cras_alert_create(nodes_changed_prepare);
@@ -335,6 +345,7 @@ void cras_iodev_list_deinit()
 {
 	cras_system_remove_volume_changed_cb(sys_vol_change, NULL);
 	cras_system_remove_mute_changed_cb(sys_vol_change, NULL);
+	cras_system_remove_suspend_cb(sys_suspend_change, NULL);
 	cras_system_remove_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_remove_capture_mute_changed_cb(sys_cap_mute_change, NULL);
 	cras_alert_destroy(nodes_changed_alert);

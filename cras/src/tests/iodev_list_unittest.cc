@@ -26,9 +26,13 @@ static void* volume_changed_arg;
 static unsigned int register_volume_changed_cb_called;
 static unsigned int remove_volume_changed_cb_called;
 static cras_alert_cb mute_changed_cb;
+static cras_alert_cb suspend_cb;
 static void* mute_changed_arg;
 static unsigned int register_mute_changed_cb_called;
 static unsigned int remove_mute_changed_cb_called;
+static unsigned int register_suspend_cb_called;
+static unsigned int remove_suspend_cb_called;
+static unsigned int cras_system_get_suspended_val;
 static cras_alert_cb capture_gain_changed_cb;
 static void* capture_gain_changed_arg;
 static unsigned int register_capture_gain_changed_cb_called;
@@ -49,6 +53,8 @@ static int audio_thread_set_active_dev_called;
 static cras_iodev *audio_thread_add_active_dev_dev;
 static int audio_thread_add_active_dev_called;
 static int audio_thread_rm_active_dev_called;
+static int audio_thread_suspend_called;
+static int audio_thread_resume_called;
 static struct audio_thread thread;
 static int node_left_right_swapped_cb_called;
 static struct cras_iodev loopback_input;
@@ -154,6 +160,8 @@ class IoDevTestSuite : public testing::Test {
       remove_capture_gain_changed_cb_called = 0;
       register_mute_changed_cb_called = 0;
       remove_mute_changed_cb_called = 0;
+      register_suspend_cb_called = 0;
+      remove_suspend_cb_called = 0;
       register_capture_mute_changed_cb_called = 0;
       remove_capture_mute_changed_cb_called = 0;
       add_stream_called = 0;
@@ -166,6 +174,8 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_rm_active_dev_called = 0;
       audio_thread_add_active_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
+      audio_thread_suspend_called = 0;
+      audio_thread_resume_called = 0;
       node_left_right_swapped_cb_called = 0;
     }
 
@@ -223,13 +233,32 @@ TEST_F(IoDevTestSuite, InitSetup) {
   cras_iodev_list_init();
   EXPECT_EQ(1, register_volume_changed_cb_called);
   EXPECT_EQ(1, register_mute_changed_cb_called);
+  EXPECT_EQ(1, register_suspend_cb_called);
   EXPECT_EQ(1, register_capture_gain_changed_cb_called);
   EXPECT_EQ(1, register_capture_mute_changed_cb_called);
   cras_iodev_list_deinit();
   EXPECT_EQ(1, remove_volume_changed_cb_called);
   EXPECT_EQ(1, remove_mute_changed_cb_called);
+  EXPECT_EQ(1, remove_suspend_cb_called);
   EXPECT_EQ(1, remove_capture_gain_changed_cb_called);
   EXPECT_EQ(1, remove_capture_mute_changed_cb_called);
+}
+
+/* Check that the suspend alert from cras_system will trigger suspend
+ * and resume call in audio_thread. */
+TEST_F(IoDevTestSuite, SetSuspendResume) {
+  cras_iodev_list_init();
+
+  cras_system_get_suspended_val = 1;
+  suspend_cb(NULL);
+  EXPECT_EQ(1, audio_thread_suspend_called);
+  EXPECT_EQ(0, audio_thread_resume_called);
+
+  cras_system_get_suspended_val = 0;
+  suspend_cb(NULL);
+  EXPECT_EQ(1, audio_thread_resume_called);
+
+  cras_iodev_list_deinit();
 }
 
 // Devices with the wrong direction should be rejected.
@@ -570,6 +599,24 @@ int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg) {
   return 0;
 }
 
+int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg)
+{
+  suspend_cb = cb;
+  register_suspend_cb_called++;
+  return 0;
+}
+
+int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg)
+{
+  remove_suspend_cb_called++;
+  return 0;
+}
+
+int cras_system_get_suspended()
+{
+  return cras_system_get_suspended_val;
+}
+
 int cras_system_register_capture_gain_changed_cb(cras_alert_cb cb, void *arg) {
   capture_gain_changed_cb = cb;
   capture_gain_changed_arg = arg;
@@ -629,6 +676,16 @@ int audio_thread_start(struct audio_thread *thread) {
 }
 
 void audio_thread_destroy(struct audio_thread *thread) {
+}
+
+int audio_thread_suspend(struct audio_thread *thread) {
+  audio_thread_suspend_called++;
+  return 0;
+}
+
+int audio_thread_resume(struct audio_thread *thread) {
+  audio_thread_resume_called++;
+  return 0;
 }
 
 int audio_thread_set_active_dev(struct audio_thread *thread,

@@ -41,6 +41,9 @@
     "    <method name=\"SetOutputUserMute\">\n"                         \
     "      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"       \
     "    </method>\n"                                                   \
+    "    <method name=\"SetSuspendAudio\">\n"                           \
+    "      <arg name=\"suspend\" type=\"b\" direction=\"in\"/>\n"       \
+    "    </method>\n"                                                   \
     "    <method name=\"SetInputGain\">\n"                              \
     "      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"          \
     "    </method>\n"                                                   \
@@ -248,6 +251,24 @@ static DBusHandlerResult handle_set_output_user_mute(
 		return rc;
 
 	cras_system_set_user_mute(new_mute);
+
+	send_empty_reply(message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_set_suspend_audio(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	int rc;
+	dbus_bool_t suspend;
+	rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &suspend);
+	if (rc)
+		return rc;
+
+	cras_system_set_suspended(suspend);
 
 	send_empty_reply(message);
 
@@ -654,6 +675,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetOutputUserMute")) {
 		return handle_set_output_user_mute(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "SetSuspendAudio")) {
+		return handle_set_suspend_audio(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetInputGain")) {
