@@ -896,6 +896,10 @@ double rate_estimator_get_rate(struct rate_estimator *re) {
   return 0.0;
 }
 
+unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream) {
+  return 0;
+}
+
 }  // extern "C"
 }  //  namespace
 

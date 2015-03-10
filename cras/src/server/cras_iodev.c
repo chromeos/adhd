@@ -462,16 +462,15 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct dev_stream *stream)
 {
-	struct cras_rstream *rstream = stream->stream;
-
+	unsigned int cb_threshold = dev_stream_cb_threshold(stream);
 	DL_APPEND(iodev->streams, stream);
 
 	if (!iodev->buf_state)
 		iodev->buf_state = buffer_share_create(iodev->buffer_size);
 	buffer_share_add_id(iodev->buf_state, stream->stream->stream_id, NULL);
 
-	iodev->min_cb_level = MIN(iodev->min_cb_level, rstream->cb_threshold);
-	iodev->max_cb_level = MAX(iodev->max_cb_level, rstream->cb_threshold);
+	iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
+	iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
 	return 0;
 }
 
@@ -480,6 +479,7 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 {
 	struct dev_stream *out;
 	struct dev_stream *ret = NULL;
+	unsigned int cb_threshold;
 
 	buffer_share_rm_id(iodev->buf_state, rstream->stream_id);
 	iodev->min_cb_level = iodev->buffer_size;
@@ -491,10 +491,9 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 			DL_DELETE(iodev->streams, out);
 			continue;
 		}
-		iodev->min_cb_level = MIN(iodev->min_cb_level,
-					  out->stream->cb_threshold);
-		iodev->max_cb_level = MAX(iodev->max_cb_level,
-					  out->stream->cb_threshold);
+		cb_threshold = dev_stream_cb_threshold(out);
+		iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
+		iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
 	}
 
 	if (!iodev->streams) {
