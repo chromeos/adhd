@@ -281,28 +281,6 @@ static void update_stream_timeout(struct cras_audio_shm *shm)
 		cras_shm_set_longest_timeout(shm, timeout_msec);
 }
 
-/* Gets the first active device for given direction. */
-static inline
-struct cras_iodev *first_active_device(const struct audio_thread *thread,
-				       enum CRAS_STREAM_DIRECTION dir)
-{
-	return thread->active_devs[dir]
-			? thread->active_devs[dir]->dev
-			: NULL;
-}
-
-static inline
-struct cras_iodev *first_output_dev(const struct audio_thread *thread)
-{
-	return first_active_device(thread, CRAS_STREAM_OUTPUT);
-}
-
-static inline
-struct cras_iodev *first_input_dev(const struct audio_thread *thread)
-{
-	return first_active_device(thread, CRAS_STREAM_INPUT);
-}
-
 /* Requests audio from a stream and marks it as pending. */
 static int fetch_stream(struct dev_stream *dev_stream,
 			unsigned int frames_in_buff, unsigned int delay)
@@ -1169,6 +1147,26 @@ static void terminate_pb_thread()
 	pthread_exit(0);
 }
 
+static void append_dev_dump_info(struct audio_dev_debug_info *di,
+				 struct active_dev *adev)
+{
+	struct cras_audio_format *fmt = adev->dev->ext_format;
+	strncpy(di->dev_name, adev->dev->info.name, sizeof(di->dev_name));
+	di->buffer_size = adev->dev->buffer_size;
+	di->min_cb_level = adev->dev->min_cb_level;
+	di->max_cb_level = adev->dev->max_cb_level;
+	di->direction = adev->dev->direction;
+	if (fmt) {
+		di->frame_rate = fmt->frame_rate;
+		di->num_channels = fmt->num_channels;
+		di->est_rate_ratio = cras_iodev_get_est_rate_ratio(adev->dev);
+	} else {
+		di->frame_rate = 0;
+		di->num_channels = 0;
+		di->est_rate_ratio = 0;
+	}
+}
+
 /* Put stream info for the given stream into the info struct. */
 static void append_stream_dump_info(struct audio_debug_info *info,
 				    struct dev_stream *stream,
@@ -1260,48 +1258,39 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		break;
 	case AUDIO_THREAD_DUMP_THREAD_INFO: {
 		struct dev_stream *curr;
-		struct cras_iodev *idev = first_input_dev(thread);
-		struct cras_iodev *odev = first_output_dev(thread);
+		struct active_dev *adev;
 		struct audio_thread_dump_debug_info_msg *dmsg;
 		struct audio_debug_info *info;
 		unsigned int num_streams = 0;
+		unsigned int num_devs = 0;
 
 		ret = 0;
 		dmsg = (struct audio_thread_dump_debug_info_msg *)msg;
 		info = dmsg->info;
 
-		if (odev) {
-			strncpy(info->output_dev_name, odev->info.name,
-				sizeof(info->output_dev_name));
-			info->output_buffer_size = odev->buffer_size;
-			info->output_used_size = 0;
-			info->output_cb_threshold = 0;
-		} else {
-			info->output_dev_name[0] = '\0';
-			info->output_buffer_size = 0;
-			info->output_used_size = 0;
-			info->output_cb_threshold = 0;
+		/* Go through all active devices. */
+		DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
+			append_dev_dump_info(&info->devs[num_devs], adev);
+			if (++num_devs == MAX_DEBUG_DEVS)
+				break;
 		}
-		if (idev) {
-			strncpy(info->input_dev_name, idev->info.name,
-				sizeof(info->input_dev_name));
-			info->input_buffer_size = idev->buffer_size;
-			info->input_used_size = 0;
-			info->input_cb_threshold = 0;
-		} else {
-			info->output_dev_name[0] = '\0';
-			info->output_buffer_size = 0;
-			info->output_used_size = 0;
-			info->output_cb_threshold = 0;
+		DL_FOREACH(thread->active_devs[CRAS_STREAM_INPUT], adev) {
+			if (num_devs == MAX_DEBUG_DEVS)
+				break;
+			append_dev_dump_info(&info->devs[num_devs], adev);
+			++num_devs;
 		}
+		info->num_devs = num_devs;
 
-		/* TODO(dgreid) - handle > 1 active iodev */
-		DL_FOREACH(odev->streams, curr) {
+		/* Go through all streams appended to fallback dev. */
+		adev = thread->fallback_devs[CRAS_STREAM_OUTPUT];
+		DL_FOREACH(adev->dev->streams, curr) {
 			append_stream_dump_info(info, curr, num_streams);
 			if (++num_streams == MAX_DEBUG_STREAMS)
 				break;
 		}
-		DL_FOREACH(idev->streams, curr) {
+		adev = thread->fallback_devs[CRAS_STREAM_INPUT];
+		DL_FOREACH(adev->dev->streams, curr) {
 			if (num_streams == MAX_DEBUG_STREAMS)
 				break;
 			append_stream_dump_info(info, curr, num_streams);

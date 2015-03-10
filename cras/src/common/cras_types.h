@@ -131,6 +131,7 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define CRAS_MAX_IODEVS 20
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
+#define MAX_DEBUG_DEVS 4
 #define MAX_DEBUG_STREAMS 8
 #define AUDIO_THREAD_EVENT_LOG_SIZE (1024*6)
 
@@ -185,6 +186,17 @@ struct __attribute__ ((__packed__)) audio_thread_event_log {
 	struct audio_thread_event log[AUDIO_THREAD_EVENT_LOG_SIZE];
 };
 
+struct __attribute__ ((__packed__)) audio_dev_debug_info {
+	char dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
+	uint32_t buffer_size;
+	uint32_t min_cb_level;
+	uint32_t max_cb_level;
+	uint32_t frame_rate;
+	uint32_t num_channels;
+	double est_rate_ratio;
+	uint8_t direction;
+};
+
 struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint64_t stream_id;
 	uint32_t direction;
@@ -199,15 +211,9 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 
 /* Debug info shared from server to client. */
 struct __attribute__ ((__packed__)) audio_debug_info {
-	char output_dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
-	uint32_t output_buffer_size;
-	uint32_t output_used_size;
-	uint32_t output_cb_threshold;
-	char input_dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
-	uint32_t input_buffer_size;
-	uint32_t input_used_size;
-	uint32_t input_cb_threshold;
 	uint32_t num_streams;
+	uint32_t num_devs;
+	struct audio_dev_debug_info devs[MAX_DEBUG_DEVS];
 	struct audio_stream_debug_info streams[MAX_DEBUG_STREAMS];
 	struct audio_thread_event_log log;
 };

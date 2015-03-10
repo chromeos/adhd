@@ -553,16 +553,23 @@ static void audio_debug_info(struct cras_client *client)
 
 	printf("Audio Debug Stats:\n");
 	printf("-------------devices------------\n");
-	printf("output dev: %s\n", info->output_dev_name);
-	printf("%u %u %u\n",
-	       (unsigned int)info->output_buffer_size,
-	       (unsigned int)info->output_used_size,
-	       (unsigned int)info->output_cb_threshold);
-	printf("input dev: %s\n", info->input_dev_name);
-	printf("%u %u %u\n",
-	       (unsigned int)info->input_buffer_size,
-	       (unsigned int)info->input_used_size,
-	       (unsigned int)info->input_cb_threshold);
+	if (info->num_devs > MAX_DEBUG_DEVS)
+		return;
+
+	for (i = 0; i < info->num_devs; i++) {
+		printf("%s dev: %s\n",
+		       (info->devs[i].direction == CRAS_STREAM_INPUT)
+				? "Input" : "Output",
+		       info->devs[i].dev_name);
+		printf("%u %u %u %u %u %lf\n",
+		       (unsigned int)info->devs[i].buffer_size,
+		       (unsigned int)info->devs[i].min_cb_level,
+		       (unsigned int)info->devs[i].max_cb_level,
+		       (unsigned int)info->devs[i].frame_rate,
+		       (unsigned int)info->devs[i].num_channels,
+		       info->devs[i].est_rate_ratio);
+	}
+
 	printf("-------------stream_dump------------\n");
 	if (info->num_streams > MAX_DEBUG_STREAMS)
 		return;
