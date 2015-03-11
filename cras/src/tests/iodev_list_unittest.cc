@@ -128,6 +128,23 @@ class IoDevTestSuite : public testing::Test {
       d3_.supported_rates = sample_rates_;
       d3_.supported_channel_counts = channel_counts_;
 
+      loopback_input.set_volume = NULL;
+      loopback_input.set_mute = NULL;
+      loopback_input.set_capture_gain = NULL;
+      loopback_input.set_capture_mute = NULL;
+      loopback_input.is_open = is_open;
+      loopback_input.update_supported_formats = NULL;
+      loopback_input.set_as_default = NULL;
+      loopback_input.update_active_node = update_active_node;
+      loopback_input.format = NULL;
+      loopback_input.direction = CRAS_STREAM_OUTPUT;
+      loopback_input.info.idx = -999;
+      loopback_input.nodes = &node3;
+      loopback_input.active_node = &node3;
+      strcpy(loopback_input.info.name, "loopback_input");
+      loopback_input.supported_rates = sample_rates_;
+      loopback_input.supported_channel_counts = channel_counts_;
+
       server_state_update_begin_return = &server_state_stub;
 
       /* Reset stub data. */
@@ -271,6 +288,8 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   d1_.direction = CRAS_STREAM_INPUT;
   d2_.direction = CRAS_STREAM_INPUT;
 
+  cras_iodev_list_init();
+
   // Check a loopback record device exists.
   rc = cras_iodev_list_get_inputs(NULL);
   EXPECT_EQ(1, rc);
@@ -323,6 +342,8 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(1, rc);
   free(dev_info);
+
+  cras_iodev_list_deinit();
 }
 
 // Test adding/removing an input dev to the list without updating the server
@@ -353,6 +374,8 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
 
   d1_.direction = CRAS_STREAM_INPUT;
   d2_.direction = CRAS_STREAM_INPUT;
+
+  cras_iodev_list_init();
 
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
@@ -385,6 +408,8 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   // Should be 1 dev (loopback) now.
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(1, rc);
+
+  cras_iodev_list_deinit();
 }
 
 // Test nodes changed notification is sent.
@@ -700,6 +725,8 @@ void loopback_iodev_create(struct cras_iodev **loop_in,
 void loopback_iodev_destroy(struct cras_iodev *loop_in,
                             struct cras_iodev *loop_out)
 {
+  if (loop_in)
+    cras_iodev_list_rm_input(loop_in);
 }
 
 }  // extern "C"
