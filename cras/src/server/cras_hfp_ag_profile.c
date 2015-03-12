@@ -97,6 +97,17 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 	free(ag);
 }
 
+/* Checks if there already a audio gateway connected for device. */
+static int has_audio_gateway(struct cras_bt_device *device)
+{
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->device == device)
+			return 1;
+	}
+	return 0;
+}
+
 static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 {
 	struct audio_gateway *ag;
@@ -146,6 +157,13 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 				       int rfcomm_fd)
 {
 	struct audio_gateway *ag;
+
+	if (has_audio_gateway(device)) {
+		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
+			cras_bt_device_name(device), profile->name);
+		close(rfcomm_fd);
+		return;
+	}
 
 	/* Destroy all existing devices and replace with new ones */
 	DL_FOREACH(connected_ags, ag) {
@@ -203,6 +221,14 @@ static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
 				       int rfcomm_fd)
 {
 	struct audio_gateway *ag;
+
+	if (has_audio_gateway(device)) {
+		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
+			cras_bt_device_name(device), profile->name);
+		close(rfcomm_fd);
+		return;
+	}
+
 	/* Destroy all existing devices and replace with new ones */
 	DL_FOREACH(connected_ags, ag) {
 		DL_DELETE(connected_ags, ag);
