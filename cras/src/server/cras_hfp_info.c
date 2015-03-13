@@ -22,12 +22,22 @@
 /* Structure to hold variables for a HFP connection. Since HFP supports
  * bi-direction audio, two iodevs should share one hfp_info if they
  * represent two directions of the same HFP headset
+ * Members:
+ *     fd - The file descriptor for SCO socket.
+ *     started - If the hfp_info has started to read/write SCO data.
+ *     mtu - The max transmit unit reported from BT adapter.
+ *     packet_size - The size of SCO packet to read/write preferred by
+ *         adapter, could be different than mtu.
+ *     capture_buf - The buffer to hold samples read from SCO socket.
+ *     playback_buf - The buffer to hold samples about to write to SCO socket.
+ *     idev - The input iodev using this hfp_info.
+ *     odev - The output iodev using this hfp_info.
  */
 struct hfp_info {
 	int fd;
 	int started;
 	unsigned int mtu;
-
+	unsigned int packet_size;
 	struct byte_buffer *capture_buf;
 	struct byte_buffer *playback_buf;
 
@@ -131,9 +141,9 @@ int hfp_write(struct hfp_info *info)
 
 	/* Write something */
 	samples = buf_read_pointer_size(info->playback_buf, &to_send);
-	if (to_send < info->mtu)
+	if (to_send < info->packet_size)
 		return 0;
-	to_send = info->mtu;
+	to_send = info->packet_size;
 
 send_sample:
 	err = send(info->fd, samples, to_send, 0);
@@ -144,14 +154,27 @@ send_sample:
 		return err;
 	}
 
-	if (err != (int)info->mtu) {
-		syslog(LOG_ERR, "Partially write %d bytes", err);
+	if (err != (int)info->packet_size) {
+		syslog(LOG_ERR,
+		       "Partially write %d bytes for SCO packet size %u",
+		       err, info->packet_size);
 		return -1;
 	}
 
 	buf_increment_read(info->playback_buf, to_send);
 
 	return err;
+}
+
+
+static void hfp_info_set_packet_size(struct hfp_info *info,
+				     unsigned int packet_size)
+{
+	unsigned int used_size =
+		MAX_HFP_BUF_SIZE_BYTES / packet_size * packet_size;
+	info->packet_size = packet_size;
+	byte_buffer_set_used_size(info->playback_buf, used_size);
+	byte_buffer_set_used_size(info->capture_buf, used_size);
 }
 
 int hfp_read(struct hfp_info *info)
@@ -161,9 +184,10 @@ int hfp_read(struct hfp_info *info)
 	uint8_t *capture_buf;
 
 	capture_buf = buf_write_pointer_size(info->capture_buf, &to_read);
-	if (to_read < info->mtu)
+
+	if (to_read < info->packet_size)
 		return 0;
-	to_read = info->mtu;
+	to_read = info->packet_size;
 
 recv_sample:
 	err = recv(info->fd, capture_buf, to_read, 0);
@@ -175,9 +199,19 @@ recv_sample:
 		return err;
 	}
 
-	if (err != (int)info->mtu) {
-		syslog(LOG_ERR, "Partially read %d bytes", err);
-		return -1;
+	if (err != (int)info->packet_size) {
+		/* Allow the SCO packet size be modified from the default MTU
+		 * value to the size of SCO data we first read. This is for
+		 * some adapters who prefers a different value than MTU for
+		 * transmitting SCO packet.
+		 */
+		if (err && (info->packet_size == info->mtu)) {
+			hfp_info_set_packet_size(info, err);
+		} else {
+			syslog(LOG_ERR, "Partially read %d bytes for %u size SCO packet",
+			       err, info->packet_size);
+			return -1;
+		}
 	}
 
 	buf_increment_write(info->capture_buf, err);
@@ -210,7 +244,7 @@ static int hfp_info_callback(void *arg)
 
 	/* Ignore the MTU bytes just read if input dev not in present */
 	if (!info->idev)
-		buf_increment_read(info->capture_buf, info->mtu);
+		buf_increment_read(info->capture_buf, info->packet_size);
 
 	if (info->odev) {
 		err = hfp_write(info);
@@ -263,16 +297,12 @@ int hfp_info_running(struct hfp_info *info)
 
 int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 {
-	unsigned int buf_size;
-
 	info->fd = fd;
 	info->mtu = mtu;
 
-	/* Make sure buffer size is multiple of MTUs */
-	buf_size = (MAX_HFP_BUF_SIZE_BYTES / mtu) * mtu;
-
-	byte_buffer_set_used_size(info->playback_buf, buf_size);
-	byte_buffer_set_used_size(info->capture_buf, buf_size);
+	/* Make sure buffer size is multiple of packet size, which initially
+	 * set to MTU. */
+	hfp_info_set_packet_size(info, mtu);
 	buf_reset(info->playback_buf);
 	buf_reset(info->capture_buf);
 
