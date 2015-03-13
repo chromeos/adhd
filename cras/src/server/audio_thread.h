@@ -16,14 +16,17 @@ struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;
 
+
 /* List of active input/output devices.
  *    dev - The device.
+ *    wake_ts - When callback is needed to avoid xrun.
+ *    coarse_rate_adjust - Hack for when the sample rate needs heavy correction.
  *    for_pinned_streams - True if the device is active only for pinned streams.
  *    input_streaming - For capture, has the input started?
  */
 struct active_dev {
 	struct cras_iodev *dev;
-	struct timespec wake_ts; /* When callback is needed to avoid xrun. */
+	struct timespec wake_ts;
 	int coarse_rate_adjust;
 	int for_pinned_streams;
 	int input_streaming;
