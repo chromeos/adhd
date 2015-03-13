@@ -24,12 +24,22 @@ struct iodev_list {
 	size_t size;
 };
 
+/* List of enabled input/output devices.
+ *    dev - The device.
+ *    for_pinned_streams - True if the device is active only for pinned streams.
+ */
+struct enabled_dev {
+	struct cras_iodev *dev;
+	int for_pinned_streams;
+	struct enabled_dev *prev, *next;
+};
+
 /* Separate list for inputs and outputs. */
 static struct iodev_list outputs;
 static struct iodev_list inputs;
-/* Keep an active input and output. */
-static struct cras_iodev *active_output;
-static struct cras_iodev *active_input;
+/* Keep a list of enabled inputs and outputs. */
+static struct enabled_dev *enabled_outputs;
+static struct enabled_dev *enabled_inputs;
 /* Keep loopback input and output. */
 static struct cras_iodev *loopback_output;
 static struct cras_iodev *loopback_input;
@@ -133,11 +143,6 @@ static int add_dev_to_list(struct iodev_list *list,
 static int rm_dev_from_list(struct iodev_list *list, struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp;
-
-	if (active_input == dev)
-		active_input = NULL;
-	if (active_output == dev)
-		active_output = NULL;
 
 	DL_FOREACH(list->iodevs, tmp)
 		if (tmp == dev) {
@@ -360,27 +365,31 @@ static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
 				  struct cras_iodev *new_active)
 {
 	struct cras_iodev *dev;
-	struct cras_iodev **curr;
+	struct enabled_dev *adev;
+
 	if (new_active && new_active->set_as_default)
 		new_active->set_as_default(new_active);
 
 	cras_iodev_list_notify_active_node_changed();
 
+	adev = calloc(1, sizeof(*adev));
+	if (!adev)
+		return;
+	adev->dev = new_active;
+
 	if (dir == CRAS_STREAM_OUTPUT) {
 		DL_FOREACH(outputs.iodevs, dev) {
 			audio_thread_rm_active_dev(audio_thread, dev, 0);
 		}
+		DL_APPEND(enabled_outputs, adev);
 	} else {
 		DL_FOREACH(inputs.iodevs, dev) {
 			audio_thread_rm_active_dev(audio_thread, dev, 0);
 		}
+		DL_APPEND(enabled_inputs, adev);
 	}
 
 	audio_thread_add_active_dev(audio_thread, new_active);
-
-	/* Set current active to the newly requested device. */
-	curr = (dir == CRAS_STREAM_OUTPUT) ? &active_output : &active_input;
-	*curr = new_active;
 }
 
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
@@ -445,11 +454,19 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
 	int res;
+	struct enabled_dev *adev;
 
 	/* Retire the current active output device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
 	audio_thread_rm_active_dev(audio_thread, dev, 1);
+	DL_FOREACH(enabled_outputs, adev) {
+		if (adev->dev == dev) {
+			DL_DELETE(enabled_outputs, adev);
+			free(adev);
+			break;
+		}
+	}
 	res = rm_dev_from_list(&outputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -459,11 +476,19 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	int res;
+	struct enabled_dev *adev;
 
 	/* Retire the current active input device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
 	audio_thread_rm_active_dev(audio_thread, dev, 1);
+	DL_FOREACH(enabled_inputs, adev) {
+		if (adev->dev == dev) {
+			DL_DELETE(enabled_inputs, adev);
+			free(adev);
+			break;
+		}
+	}
 	res = rm_dev_from_list(&inputs, dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -483,13 +508,14 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out)
 cras_node_id_t cras_iodev_list_get_active_node_id(
 	enum CRAS_STREAM_DIRECTION direction)
 {
-	struct cras_iodev *dev = (direction == CRAS_STREAM_OUTPUT) ?
-		active_output : active_input;
+	struct enabled_dev *edev = (direction == CRAS_STREAM_OUTPUT) ?
+		enabled_outputs : enabled_inputs;
 
-	if (!dev || !dev->active_node)
+	if (!edev || !edev->dev || !edev->dev->active_node)
 		return 0;
 
-	return cras_make_node_id(dev->info.idx, dev->active_node->idx);
+	return cras_make_node_id(edev->dev->info.idx,
+				 edev->dev->active_node->idx);
 }
 
 void cras_iodev_list_update_device_list()
@@ -681,8 +707,18 @@ struct audio_thread *cras_iodev_list_get_audio_thread()
 
 void cras_iodev_list_reset()
 {
-	active_output = NULL;
-	active_input = NULL;
+	struct enabled_dev *edev;
+
+	DL_FOREACH(enabled_outputs, edev) {
+		DL_DELETE(enabled_outputs, edev);
+		free(edev);
+	}
+	enabled_outputs = NULL;
+	DL_FOREACH(enabled_inputs, edev) {
+		DL_DELETE(enabled_inputs, edev);
+		free(edev);
+	}
+	enabled_inputs = NULL;
 	outputs.iodevs = NULL;
 	inputs.iodevs = NULL;
 }
