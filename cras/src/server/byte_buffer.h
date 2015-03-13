@@ -11,7 +11,8 @@ struct byte_buffer {
 	unsigned int write_idx;
 	unsigned int read_idx;
 	unsigned int level;
-	unsigned int size;
+	unsigned int max_size;
+	unsigned int used_size;
 	uint8_t bytes[];
 };
 
@@ -23,8 +24,15 @@ static inline struct byte_buffer *byte_buffer_create(size_t buffer_size_bytes)
 		calloc(1, sizeof(struct byte_buffer) + buffer_size_bytes);
 	if (!buf)
 		return buf;
-	buf->size = buffer_size_bytes;
+	buf->max_size = buffer_size_bytes;
+	buf->used_size = buffer_size_bytes;
 	return buf;
+}
+
+static inline void byte_buffer_set_used_size(struct byte_buffer *buf,
+					     size_t used_size)
+{
+	buf->used_size = MIN(used_size, buf->max_size);
 }
 
 /* Destory a byte_buffer created with byte_buffer_create. */
@@ -35,12 +43,12 @@ static inline void byte_buffer_destroy(struct byte_buffer *buf)
 
 static inline unsigned int buf_writable_bytes(struct byte_buffer *buf)
 {
-	if (buf->level >= buf->size)
+	if (buf->level >= buf->used_size)
 		return 0;
 	if (buf->write_idx < buf->read_idx)
 		return buf->read_idx - buf->write_idx;
 
-	return buf->size - buf->write_idx;
+	return buf->used_size - buf->write_idx;
 }
 
 static inline unsigned int buf_readable_bytes(struct byte_buffer *buf)
@@ -51,7 +59,7 @@ static inline unsigned int buf_readable_bytes(struct byte_buffer *buf)
 	if (buf->read_idx < buf->write_idx)
 		return buf->write_idx - buf->read_idx;
 
-	return buf->size - buf->read_idx;
+	return buf->used_size - buf->read_idx;
 }
 
 static inline unsigned int buf_queued_bytes(struct byte_buffer *buf)
@@ -61,7 +69,7 @@ static inline unsigned int buf_queued_bytes(struct byte_buffer *buf)
 
 static inline unsigned int buf_available_bytes(const struct byte_buffer *buf)
 {
-	return buf->size - buf->level;
+	return buf->used_size - buf->level;
 }
 
 static inline uint8_t *buf_read_pointer(struct byte_buffer *buf)
@@ -80,7 +88,7 @@ static inline void buf_increment_read(struct byte_buffer *buf, size_t inc)
 {
 	inc = MIN(inc, buf->level);
 	buf->read_idx += inc;
-	buf->read_idx %= buf->size;
+	buf->read_idx %= buf->used_size;
 	buf->level -= inc;
 }
 
@@ -99,11 +107,11 @@ static inline uint8_t *buf_write_pointer_size(struct byte_buffer *buf,
 static inline void buf_increment_write(struct byte_buffer *buf, size_t inc)
 {
 	buf->write_idx += inc;
-	buf->write_idx %= buf->size;
-	if (buf->level + inc < buf->size)
+	buf->write_idx %= buf->used_size;
+	if (buf->level + inc < buf->used_size)
 		buf->level += inc;
 	else
-		buf->level = buf->size;
+		buf->level = buf->used_size;
 }
 
 static inline void buf_reset(struct byte_buffer *buf)

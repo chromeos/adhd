@@ -366,7 +366,7 @@ TEST_F(CreateSuite, CreateSRC48to44StereoToMono) {
                                 out_fmt.frame_rate),
             dev_stream->conv_buffer_size_frames);
   EXPECT_EQ(dev_stream->conv_buffer_size_frames * 4,
-            dev_stream->conv_buffer->size);
+            dev_stream->conv_buffer->max_size);
   EXPECT_EQ(2, cras_audio_area_create_num_channels_val);
   dev_stream_destroy(dev_stream);
 }
@@ -385,7 +385,7 @@ TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
                                 out_fmt.frame_rate),
             dev_stream->conv_buffer_size_frames);
   EXPECT_EQ(dev_stream->conv_buffer_size_frames * 4,
-            dev_stream->conv_buffer->size);
+            dev_stream->conv_buffer->max_size);
   EXPECT_EQ(2, cras_audio_area_create_num_channels_val);
 
   buf_increment_write(dev_stream->conv_buffer, 50 * 4);

@@ -166,6 +166,7 @@ TESTS = \
 	array_unittest \
 	bt_device_unittest \
 	bt_io_unittest \
+	byte_buffer_unittest \
 	card_config_unittest \
 	checksum_unittest \
 	cras_client_unittest \
@@ -356,6 +357,10 @@ bt_profile_unittest_SOURCES = tests/bt_profile_unittest.cc tests/dbus_test.cc \
 bt_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 bt_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+byte_buffer_unittest_SOURCES = tests/byte_buffer_unittest.cc
+byte_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server
+byte_buffer_unittest_LDADD = -lgtest
 
 card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c
