@@ -86,10 +86,10 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   queued = hfp_buf_queued(info, &dev);
   buffer_frames = 500;
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
-  ASSERT_GE(info->playback_buf->size / 2, buffer_frames + queued);
+  ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + queued);
 
   /* Consume all queued data from read buffer */
-  put_read_buf_bytes(info->playback_buf, queued * 2);
+  buf_increment_read(info->playback_buf, queued * 2);
 
   queued = hfp_buf_queued(info, &dev);
   ASSERT_EQ(0, queued);
@@ -103,7 +103,7 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames2);
   hfp_buf_release(info, &dev, buffer_frames2);
 
-  ASSERT_GE(info->playback_buf->size / 2, buffer_frames + buffer_frames2);
+  ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + buffer_frames2);
 
   hfp_info_destroy(info);
 }
@@ -122,7 +122,7 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
   /* Put fake data 100 bytes(50 frames) in capture buf for test */
-  put_write_buf_bytes(info->capture_buf, 100);
+  buf_increment_write(info->capture_buf, 100);
 
   /* Assert successfully acquire and release 100 bytes of data */
   buffer_frames = 50;
@@ -133,8 +133,8 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   ASSERT_EQ(0, hfp_buf_queued(info, &dev));
 
   /* Push fake data to capture buffer */
-  put_write_buf_bytes(info->capture_buf, info->capture_buf->size - 100);
-  put_write_buf_bytes(info->capture_buf, 100);
+  buf_increment_write(info->capture_buf, info->capture_buf->used_size - 100);
+  buf_increment_write(info->capture_buf, 100);
 
   /* Assert consecutive acquire call will consume the whole buffer */
   buffer_frames = 1000;
@@ -146,7 +146,7 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames2);
   hfp_buf_release(info, &dev, buffer_frames2);
 
-  ASSERT_GE(info->capture_buf->size / 2, buffer_frames + buffer_frames2);
+  ASSERT_GE(info->capture_buf->used_size / 2, buffer_frames + buffer_frames2);
 
   hfp_info_destroy(info);
 }
@@ -177,9 +177,10 @@ TEST(HfpInfo, HfpReadWriteFD) {
   ASSERT_EQ(48 / 2, rc);
 
   /* Fill the write buffer*/
-  buffer_count = info->capture_buf->size;
-  get_write_buf_bytes(info->capture_buf, &buf, &buffer_count);
-  put_write_buf_bytes(info->capture_buf, buffer_count);
+  buffer_count = info->capture_buf->used_size;
+  buf = buf_write_pointer_size(info->capture_buf, &buffer_count);
+  buf_increment_write(info->capture_buf, buffer_count);
+  ASSERT_NE((void *)NULL, buf);
 
   rc = hfp_read(info);
   ASSERT_EQ(0, rc);
@@ -193,8 +194,8 @@ TEST(HfpInfo, HfpReadWriteFD) {
   ASSERT_EQ(0, rc);
 
   buffer_count = 1024;
-  get_write_buf_bytes(info->playback_buf, &buf, &buffer_count);
-  put_write_buf_bytes(info->playback_buf, buffer_count);
+  buf = buf_write_pointer_size(info->playback_buf, &buffer_count);
+  buf_increment_write(info->playback_buf, buffer_count);
 
   rc = hfp_write(info);
   ASSERT_EQ(48, rc);
@@ -293,7 +294,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   ASSERT_EQ(0, hfp_buf_queued(info, &dev));
 
   /* Put some fake data and trigger thread callback again */
-  put_write_buf_bytes(info->playback_buf, 1008);
+  buf_increment_write(info->playback_buf, 1008);
   thread_cb((struct hfp_info *)cb_data);
 
   /* Assert some samples written */
