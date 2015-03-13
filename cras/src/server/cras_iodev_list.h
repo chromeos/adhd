@@ -30,20 +30,6 @@ void cras_iodev_list_init();
 /* Clean up any resources used by iodev. */
 void cras_iodev_list_deinit();
 
-/* Gets the iodev that should be used for a stream of given type.
- * Args:
- *    type - The type of stream to find the output for. (media, voice).
- *    direction - Playback or capture.
- *    idev - Filled with a pointer to the input device.
- *    odev - Filled with a pointer to the output device.
- * Returns:
- *    0 on success or a negative error on failure.
- */
-int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
-				   enum CRAS_STREAM_DIRECTION direction,
-				   struct cras_iodev **idev,
-				   struct cras_iodev **odev);
-
 /* Adds an output to the output list.
  * Args:
  *    output - the output to add.
@@ -185,14 +171,6 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION direction,
  */
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION direction,
 				    cras_node_id_t node_id);
-
-/* Returns true if the device is active.
- * Args:
- *    dev_index - Index of device.
- *    output_dev - If not NULL, fill cras_iodev of device.
- */
-int cras_iodev_list_is_dev_active(size_t dev_index,
-				  struct cras_iodev **output_dev);
 
 /* Returns the cras_iodev by index.
  * Args:

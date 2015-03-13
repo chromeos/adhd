@@ -15,8 +15,6 @@ extern "C" {
 }
 
 //  Stub data.
-static struct cras_iodev *get_iodev_odev;
-static struct cras_iodev *get_iodev_idev;
 static int get_iodev_retval;
 static int cras_rstream_create_return;
 static struct cras_rstream *cras_rstream_create_stream_out;
@@ -152,7 +150,6 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   audio_thread_add_stream_return = -EINVAL;
 
@@ -173,7 +170,6 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_return = -1;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
@@ -191,7 +187,6 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
@@ -209,7 +204,6 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
@@ -230,8 +224,6 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   struct cras_client_stream_connected out_msg;
   int rc;
 
-  get_iodev_idev = NULL;
-  get_iodev_odev = (struct cras_iodev *)0xbaba;
   cras_rstream_create_stream_out = rstream_;
   cras_iodev_attach_stream_retval = 0;
 
@@ -406,16 +398,6 @@ int audio_thread_resume(struct audio_thread *thread)
 const char *cras_config_get_socket_file_dir()
 {
   return "/tmp";
-}
-
-int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
-				   enum CRAS_STREAM_DIRECTION direction,
-				   struct cras_iodev **idev,
-				   struct cras_iodev **odev)
-{
-  *idev = get_iodev_idev;
-  *odev = get_iodev_odev;
-  return get_iodev_retval;
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,

@@ -356,29 +356,6 @@ void cras_iodev_list_deinit()
 	audio_thread_destroy(audio_thread);
 }
 
-/* Finds the current device for a stream of "type", only default streams are
- * currently supported so return the default device fot the given direction.
- */
-int cras_get_iodev_for_stream_type(enum CRAS_STREAM_TYPE type,
-				   enum CRAS_STREAM_DIRECTION direction,
-				   struct cras_iodev **idev,
-				   struct cras_iodev **odev)
-{
-	switch (direction) {
-	case CRAS_STREAM_OUTPUT:
-		*idev = NULL;
-		*odev = active_output;
-		break;
-	case CRAS_STREAM_INPUT:
-		*idev = active_input;
-		*odev = NULL;
-		break;
-	default:
-		return -EINVAL;
-	}
-	return 0;
-}
-
 static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
 				  struct cras_iodev *new_active)
 {
@@ -430,18 +407,6 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 		return;
 
 	audio_thread_rm_active_dev(audio_thread, dev, 0);
-}
-
-int cras_iodev_list_is_dev_active(size_t dev_index,
-				  struct cras_iodev **output_dev)
-{
-	struct cras_iodev *dev;
-
-	dev = find_dev(dev_index);
-	if (output_dev)
-		*output_dev = dev;
-
-	return dev->is_active;
 }
 
 struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
