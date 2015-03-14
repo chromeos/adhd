@@ -20,6 +20,7 @@ struct cras_ionode;
 struct cras_rclient;
 struct cras_rstream;
 struct cras_audio_format;
+struct stream_list;
 
 typedef void (*node_volume_callback_t)(cras_node_id_t, int);
 typedef void (*node_left_right_swapped_callback_t)(cras_node_id_t, int);
@@ -210,6 +211,9 @@ void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
 
 /* Gets the audio thread used by the devices. */
 struct audio_thread *cras_iodev_list_get_audio_thread();
+
+/* Gets the list of all active audio streams attached to devices. */
+struct stream_list *cras_iodev_list_get_stream_list();
 
 /* For unit test only. */
 void cras_iodev_list_reset();

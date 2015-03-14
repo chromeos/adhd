@@ -15,6 +15,7 @@
 #include "cras_server.h"
 #include "cras_types.h"
 #include "cras_system_state.h"
+#include "stream_list.h"
 #include "test_iodev.h"
 #include "utlist.h"
 
@@ -57,6 +58,8 @@ static node_volume_callback_t node_input_gain_callback;
 static node_left_right_swapped_callback_t node_left_right_swapped_callback;
 /* Thread that handles audio input and output. */
 static struct audio_thread *audio_thread;
+/* List of all streams. */
+static struct stream_list *stream_list;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
 static void active_node_changed_prepare(struct cras_alert *alert);
@@ -312,6 +315,24 @@ void sys_cap_mute_change(void *data)
 	}
 }
 
+static int stream_added_cb(struct cras_rstream *rstream)
+{
+	struct cras_iodev *dev = NULL;
+
+	/* Check that the target device is valid for pinned streams. */
+	if (rstream->is_pinned) {
+		dev = cras_iodev_list_find_dev(rstream->pinned_dev_idx);
+		if (!dev)
+			return -EINVAL;
+	}
+	return audio_thread_add_stream(audio_thread, rstream, dev);
+}
+
+static int stream_removed_cb(struct cras_rstream *rstream)
+{
+	return audio_thread_disconnect_stream(audio_thread, rstream);
+}
+
 /*
  * Exported Interface.
  */
@@ -328,6 +349,9 @@ void cras_iodev_list_init()
 	nodes_changed_alert = cras_alert_create(nodes_changed_prepare);
 	active_node_changed_alert = cras_alert_create(
 		active_node_changed_prepare);
+
+	/* Create the audio stream list for the system. */
+	stream_list = stream_list_create(stream_added_cb, stream_removed_cb);
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */
@@ -357,6 +381,7 @@ void cras_iodev_list_deinit()
 	active_node_changed_alert = NULL;
 	loopback_iodev_destroy(loopback_input, loopback_output);
 	audio_thread_destroy(audio_thread);
+	stream_list_destroy(stream_list);
 }
 
 static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
@@ -696,6 +721,11 @@ void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
 struct audio_thread *cras_iodev_list_get_audio_thread()
 {
 	return audio_thread;
+}
+
+struct stream_list *cras_iodev_list_get_stream_list()
+{
+	return stream_list;
 }
 
 void cras_iodev_list_reset()

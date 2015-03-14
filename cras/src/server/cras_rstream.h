@@ -85,6 +85,7 @@ struct cras_rstream {
  * Args:
  *    stream_type - CRAS_STREAM_TYPE.
  *    direction - CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
+ *    dev_idx - Pin to this device if != NO_DEVICE.
  *    flags - Any special handling for this stream.
  *    format - The audio format the stream wishes to use.
  *    buffer_frames - Total number of audio frames to buffer.
@@ -98,6 +99,7 @@ struct cras_rstream {
 int cras_rstream_create(cras_stream_id_t stream_id,
 			enum CRAS_STREAM_TYPE stream_type,
 			enum CRAS_STREAM_DIRECTION direction,
+			uint32_t dev_idx,
 			uint32_t flags,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,

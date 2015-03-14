@@ -11,6 +11,7 @@ extern "C" {
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
+#include "stream_list.h"
 #include "utlist.h"
 
 }
@@ -709,6 +710,19 @@ int audio_thread_rm_active_dev(struct audio_thread *thread,
   return 0;
 }
 
+int audio_thread_add_stream(struct audio_thread *thread,
+                            struct cras_rstream *stream,
+                            struct cras_iodev *dev)
+{
+  return 0;
+}
+
+int audio_thread_disconnect_stream(struct audio_thread *thread,
+                                   struct cras_rstream *stream)
+{
+  return 0;
+}
+
 void set_node_volume(struct cras_ionode *node, int value)
 {
   struct cras_iodev *dev = node->dev;
@@ -773,6 +787,16 @@ void loopback_iodev_destroy(struct cras_iodev *loop_in,
 {
   if (loop_in)
     cras_iodev_list_rm_input(loop_in);
+}
+
+struct stream_list *stream_list_create(stream_callback *add_cb,
+                                       stream_callback *rm_cb)
+{
+  return NULL;
+}
+
+void stream_list_destroy(struct stream_list *list)
+{
 }
 
 }  // extern "C"

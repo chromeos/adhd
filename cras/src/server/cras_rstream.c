@@ -125,6 +125,7 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 int cras_rstream_create(cras_stream_id_t stream_id,
 			enum CRAS_STREAM_TYPE stream_type,
 			enum CRAS_STREAM_DIRECTION direction,
+			uint32_t dev_idx,
 			uint32_t flags,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
@@ -156,6 +157,8 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->shm.area = NULL;
 	stream->master_dev.dev_id = NO_DEVICE;
 	stream->master_dev.dev_ptr = NULL;
+	stream->is_pinned = (dev_idx != NO_DEVICE);
+	stream->pinned_dev_idx = dev_idx;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {

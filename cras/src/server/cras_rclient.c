@@ -18,14 +18,16 @@
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "stream_list.h"
 #include "utlist.h"
 
-/* An attached client.  This has a list of audio connections and a file
- * descriptor for communication with the client that isn't time critical. */
+/* An attached client.
+ *  id - The id of the client.
+ *  fd - Connection for client communication.
+ */
 struct cras_rclient {
 	size_t id;
-	int fd; /* Connection for client communication. */
-	struct cras_rstream *streams;
+	int fd;
 };
 
 /* Handles a message from the client to connect a new stream */
@@ -36,8 +38,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_rstream *stream;
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format remote_fmt;
-	struct audio_thread *thread;
-	struct cras_iodev *dev = NULL;
 	int rc;
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
@@ -51,10 +51,11 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
 
-	/* Create the stream with the modified parameters. */
+	/* Create the stream with the specified parameters. */
 	rc = cras_rstream_create(msg->stream_id,
 				 msg->stream_type,
 				 msg->direction,
+				 msg->dev_idx,
 				 msg->flags,
 				 &remote_fmt,
 				 msg->buffer_frames,
@@ -68,27 +69,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	cras_rstream_set_audio_fd(stream, aud_fd);
 
-	/* Now can pass the stream to the thread. */
-	thread = cras_iodev_list_get_audio_thread();
-
-	DL_APPEND(client->streams, stream);
-
-	/* Check the target device is valid for pinned streams. */
-	if (msg->dev_idx != NO_DEVICE) {
-		stream->is_pinned = 1;
-		stream->pinned_dev_idx = msg->dev_idx;
-
-		dev = cras_iodev_list_find_dev(msg->dev_idx);
-		if (!dev) {
-			rc = -EINVAL;
-			goto destroy_stream_and_reply_err;
-		}
-	}
-
-	rc = audio_thread_add_stream(thread, stream, dev);
+	rc = stream_list_add(cras_iodev_list_get_stream_list(), stream);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Attach stream failed.\n");
-		DL_DELETE(client->streams, stream);
 		goto destroy_stream_and_reply_err;
 	}
 
@@ -105,8 +88,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	rc = cras_rclient_send_message(client, &reply.header);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
-		audio_thread_disconnect_stream(thread, stream);
-		DL_DELETE(client->streams, stream);
+		stream_list_rm(cras_iodev_list_get_stream_list(),
+			       stream->stream_id);
 		goto reply_err;
 	}
 
@@ -128,38 +111,26 @@ reply_err:
 	return rc;
 }
 
-/* Removes the stream from the current device it is being played/captured on and
- * from the list of streams for the client. */
-static int disconnect_client_stream(struct cras_rclient *client,
-				    struct cras_rstream *stream)
-{
-	enum CRAS_STREAM_DIRECTION direction = stream->direction;
-	struct audio_thread *thread = cras_iodev_list_get_audio_thread();
-	int aud_fd = cras_rstream_get_audio_fd(stream);
-
-	DL_DELETE(client->streams, stream);
-	audio_thread_disconnect_stream(thread, stream);
-
-	close(aud_fd);
-	cras_system_state_stream_removed(direction);
-
-	return 0;
-}
-
 /* Handles messages from the client requesting that a stream be removed from the
  * server. */
 static int handle_client_stream_disconnect(
 		struct cras_rclient *client,
 		const struct cras_disconnect_stream_message *msg)
 {
-	struct cras_rstream *to_disconnect;
+	struct cras_rstream *removed;
+	int aud_fd;
 
-	DL_SEARCH_SCALAR(client->streams, to_disconnect, stream_id,
-			 msg->stream_id);
-	if (!to_disconnect)
+	removed = stream_list_rm(cras_iodev_list_get_stream_list(),
+				 msg->stream_id);
+	if (!removed)
 		return -EINVAL;
 
-	return disconnect_client_stream(client, to_disconnect);
+	aud_fd = cras_rstream_get_audio_fd(removed);
+	close(aud_fd);
+
+	cras_system_state_stream_removed(removed->direction);
+
+	return 0;
 }
 
 /* Handles dumping audio thread debug info back to the client. */
@@ -202,9 +173,16 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 /* Removes all streams that the client owns and destroys it. */
 void cras_rclient_destroy(struct cras_rclient *client)
 {
-	struct cras_rstream *stream;
-	DL_FOREACH(client->streams, stream) {
-		disconnect_client_stream(client, stream);
+	struct cras_rstream *removed_streams;
+	struct cras_rstream *removed;
+
+	removed_streams = stream_list_rm_all_client_streams(
+			cras_iodev_list_get_stream_list(), client);
+	DL_FOREACH(removed_streams, removed) {
+		int aud_fd = cras_rstream_get_audio_fd(removed);
+
+		close(aud_fd);
+		cras_system_state_stream_removed(removed->direction);
 	}
 	free(client);
 }

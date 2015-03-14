@@ -35,9 +35,9 @@ static size_t cras_system_set_capture_mute_locked_value;
 static int cras_system_set_capture_mute_locked_called;
 static size_t cras_make_fd_nonblocking_called;
 static audio_thread* iodev_get_thread_return;
-static int audio_thread_add_stream_return;
-static unsigned int audio_thread_add_stream_called;
-static unsigned int audio_thread_disconnect_stream_called;
+static int stream_list_add_stream_return;
+static unsigned int stream_list_add_stream_called;
+static unsigned int stream_list_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
 
@@ -62,9 +62,9 @@ void ResetStubData() {
   cras_system_set_capture_mute_locked_called = 0;
   cras_make_fd_nonblocking_called = 0;
   iodev_get_thread_return = reinterpret_cast<audio_thread*>(0xad);
-  audio_thread_add_stream_return = 0;
-  audio_thread_add_stream_called = 0;
-  audio_thread_disconnect_stream_called = 0;
+  stream_list_add_stream_return = 0;
+  stream_list_add_stream_called = 0;
+  stream_list_disconnect_stream_called = 0;
   cras_iodev_list_rm_output_called = 0;
   cras_iodev_list_rm_input_called = 0;
 }
@@ -147,7 +147,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   int rc;
 
   cras_rstream_create_stream_out = rstream_;
-  audio_thread_add_stream_return = -EINVAL;
+  stream_list_add_stream_return = -EINVAL;
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
   EXPECT_EQ(0, rc);
@@ -158,8 +158,8 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(1, cras_rstream_destroy_called);
   EXPECT_EQ(0, cras_iodev_list_rm_output_called);
-  EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(1, stream_list_add_stream_called);
+  EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
@@ -175,8 +175,8 @@ TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(audio_thread_add_stream_called,
-            audio_thread_disconnect_stream_called);
+  EXPECT_EQ(stream_list_add_stream_called,
+            stream_list_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
@@ -192,8 +192,8 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
-  EXPECT_EQ(audio_thread_add_stream_called,
-            audio_thread_disconnect_stream_called);
+  EXPECT_EQ(stream_list_add_stream_called,
+            stream_list_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SuccessReply) {
@@ -212,8 +212,8 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
-  EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(1, stream_list_add_stream_called);
+  EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
@@ -232,8 +232,8 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
   EXPECT_EQ(0, cras_rstream_destroy_called);
-  EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(1, stream_list_add_stream_called);
+  EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SetVolume) {
@@ -332,18 +332,6 @@ struct audio_thread* cras_iodev_list_get_audio_thread() {
   return iodev_get_thread_return;
 }
 
-int audio_thread_add_stream(audio_thread* thread,
-                            cras_rstream* stream,
-                            struct cras_iodev *dev) {
-  int ret;
-
-  audio_thread_add_stream_called++;
-  ret = audio_thread_add_stream_return;
-  if (ret)
-    audio_thread_add_stream_return = -EINVAL;
-  return ret;
-}
-
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
                                      cras_node_id_t node_id)
 {
@@ -357,12 +345,6 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
 {
 	return NULL;
-}
-
-int audio_thread_disconnect_stream(audio_thread* thread,
-				   cras_rstream* stream) {
-  audio_thread_disconnect_stream_called++;
-  return 0;
 }
 
 int audio_thread_rm_stream(audio_thread* thread,
@@ -399,6 +381,7 @@ const char *cras_config_get_socket_file_dir()
 int cras_rstream_create(cras_stream_id_t stream_id,
 			enum CRAS_STREAM_TYPE stream_type,
 			enum CRAS_STREAM_DIRECTION direction,
+			uint32_t dev_idx,
 			uint32_t flags,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
@@ -522,11 +505,40 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type) {
 }
 
+struct stream_list *cras_iodev_list_get_stream_list()
+{
+  return NULL;
+}
+
 /* Handles sending a command to a test iodev. */
 void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
                                       enum CRAS_TEST_IODEV_CMD command,
                                       unsigned int data_len,
                                       const uint8_t *data) {
+}
+
+int stream_list_add(struct stream_list *list, struct cras_rstream *stream)
+{
+  int ret;
+
+  stream_list_add_stream_called++;
+  ret = stream_list_add_stream_return;
+  if (ret)
+    stream_list_add_stream_return = -EINVAL;
+  return ret;
+}
+
+struct cras_rstream *stream_list_rm(struct stream_list *list,
+                                    cras_stream_id_t id)
+{
+  stream_list_disconnect_stream_called++;
+  return NULL;
+}
+
+struct cras_rstream *stream_list_rm_all_client_streams(
+                struct stream_list *list, struct cras_rclient *rclient)
+{
+  return NULL;
 }
 
 }  // extern "C"
