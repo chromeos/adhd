@@ -34,12 +34,10 @@ struct enabled_dev {
 	struct enabled_dev *prev, *next;
 };
 
-/* Separate list for inputs and outputs. */
-static struct iodev_list outputs;
-static struct iodev_list inputs;
+/* Lists for devs[CRAS_STREAM_INPUT] and devs[CRAS_STREAM_OUTPUT]. */
+static struct iodev_list devs[CRAS_NUM_DIRECTIONS];
 /* Keep a list of enabled inputs and outputs. */
-static struct enabled_dev *enabled_outputs;
-static struct enabled_dev *enabled_inputs;
+static struct enabled_dev *enabled_devs[CRAS_NUM_DIRECTIONS];
 /* Keep loopback input and output. */
 static struct cras_iodev *loopback_output;
 static struct cras_iodev *loopback_input;
@@ -70,11 +68,11 @@ static struct cras_iodev *find_dev(size_t dev_index)
 	if (dev_index == LOOPBACK_RECORD_DEVICE)
 		return loopback_input;
 
-	DL_FOREACH(outputs.iodevs, dev)
+	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev)
 		if (dev->info.idx == dev_index)
 			return dev;
 
-	DL_FOREACH(inputs.iodevs, dev)
+	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev)
 		if (dev->info.idx == dev_index)
 			return dev;
 
@@ -263,7 +261,7 @@ void sys_vol_change(void *data)
 {
 	struct cras_iodev *dev;
 
-	DL_FOREACH(outputs.iodevs, dev) {
+	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
 		if (dev->set_volume && dev->is_open(dev))
 			dev->set_volume(dev);
 	}
@@ -275,7 +273,7 @@ void sys_mute_change(void *data)
 {
 	struct cras_iodev *dev;
 
-	DL_FOREACH(outputs.iodevs, dev) {
+	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
 		if (dev->set_mute && dev->is_open(dev))
 			dev->set_mute(dev);
 	}
@@ -296,7 +294,7 @@ void sys_cap_gain_change(void *data)
 {
 	struct cras_iodev *dev;
 
-	DL_FOREACH(inputs.iodevs, dev) {
+	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
 		if (dev->set_capture_gain && dev->is_open(dev))
 			dev->set_capture_gain(dev);
 	}
@@ -308,7 +306,7 @@ void sys_cap_mute_change(void *data)
 {
 	struct cras_iodev *dev;
 
-	DL_FOREACH(inputs.iodevs, dev) {
+	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
 		if (dev->set_capture_mute && dev->is_open(dev))
 			dev->set_capture_mute(dev);
 	}
@@ -341,8 +339,8 @@ void cras_iodev_list_init()
 	audio_thread_start(audio_thread);
 
 	/* Add loopback capture device to input device list. */
-	DL_PREPEND(inputs.iodevs, loopback_input);
-	inputs.size++;
+	DL_PREPEND(devs[CRAS_STREAM_INPUT].iodevs, loopback_input);
+	devs[CRAS_STREAM_INPUT].size++;
 	cras_iodev_list_update_device_list();
 }
 
@@ -378,15 +376,15 @@ static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
 	adev->dev = new_active;
 
 	if (dir == CRAS_STREAM_OUTPUT) {
-		DL_FOREACH(outputs.iodevs, dev) {
+		DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
 			audio_thread_rm_active_dev(audio_thread, dev, 0);
 		}
-		DL_APPEND(enabled_outputs, adev);
+		DL_APPEND(enabled_devs[CRAS_STREAM_OUTPUT], adev);
 	} else {
-		DL_FOREACH(inputs.iodevs, dev) {
+		DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
 			audio_thread_rm_active_dev(audio_thread, dev, 0);
 		}
-		DL_APPEND(enabled_inputs, adev);
+		DL_APPEND(enabled_devs[CRAS_STREAM_INPUT], adev);
 	}
 
 	audio_thread_add_active_dev(audio_thread, new_active);
@@ -430,7 +428,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 	if (output->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	rc = add_dev_to_list(&outputs, output);
+	rc = add_dev_to_list(&devs[CRAS_STREAM_OUTPUT], output);
 	if (rc)
 		return rc;
 
@@ -444,7 +442,7 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
 
-	rc = add_dev_to_list(&inputs, input);
+	rc = add_dev_to_list(&devs[CRAS_STREAM_INPUT], input);
 	if (rc)
 		return rc;
 
@@ -460,14 +458,14 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	 * list, otherwise it could be busy and remain in the list.
 	 */
 	audio_thread_rm_active_dev(audio_thread, dev, 1);
-	DL_FOREACH(enabled_outputs, adev) {
+	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], adev) {
 		if (adev->dev == dev) {
-			DL_DELETE(enabled_outputs, adev);
+			DL_DELETE(enabled_devs[CRAS_STREAM_OUTPUT], adev);
 			free(adev);
 			break;
 		}
 	}
-	res = rm_dev_from_list(&outputs, dev);
+	res = rm_dev_from_list(&devs[CRAS_STREAM_OUTPUT], dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -482,14 +480,14 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	 * list, otherwise it could be busy and remain in the list.
 	 */
 	audio_thread_rm_active_dev(audio_thread, dev, 1);
-	DL_FOREACH(enabled_inputs, adev) {
+	DL_FOREACH(enabled_devs[CRAS_STREAM_INPUT], adev) {
 		if (adev->dev == dev) {
-			DL_DELETE(enabled_inputs, adev);
+			DL_DELETE(enabled_devs[CRAS_STREAM_INPUT], adev);
 			free(adev);
 			break;
 		}
 	}
-	res = rm_dev_from_list(&inputs, dev);
+	res = rm_dev_from_list(&devs[CRAS_STREAM_INPUT], dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -497,19 +495,18 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 
 int cras_iodev_list_get_outputs(struct cras_iodev_info **list_out)
 {
-	return get_dev_list(&outputs, list_out);
+	return get_dev_list(&devs[CRAS_STREAM_OUTPUT], list_out);
 }
 
 int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out)
 {
-	return get_dev_list(&inputs, list_out);
+	return get_dev_list(&devs[CRAS_STREAM_INPUT], list_out);
 }
 
 cras_node_id_t cras_iodev_list_get_active_node_id(
 	enum CRAS_STREAM_DIRECTION direction)
 {
-	struct enabled_dev *edev = (direction == CRAS_STREAM_OUTPUT) ?
-		enabled_outputs : enabled_inputs;
+	struct enabled_dev *edev = enabled_devs[direction];
 
 	if (!edev || !edev->dev || !edev->dev->active_node)
 		return 0;
@@ -526,15 +523,17 @@ void cras_iodev_list_update_device_list()
 	if (!state)
 		return;
 
-	state->num_output_devs = outputs.size;
-	state->num_input_devs = inputs.size;
-	fill_dev_list(&outputs, &state->output_devs[0], CRAS_MAX_IODEVS);
-	fill_dev_list(&inputs, &state->input_devs[0], CRAS_MAX_IODEVS);
+	state->num_output_devs = devs[CRAS_STREAM_OUTPUT].size;
+	state->num_input_devs = devs[CRAS_STREAM_INPUT].size;
+	fill_dev_list(&devs[CRAS_STREAM_OUTPUT], &state->output_devs[0],
+		      CRAS_MAX_IODEVS);
+	fill_dev_list(&devs[CRAS_STREAM_INPUT], &state->input_devs[0],
+		      CRAS_MAX_IODEVS);
 
-	state->num_output_nodes = fill_node_list(&outputs,
+	state->num_output_nodes = fill_node_list(&devs[CRAS_STREAM_OUTPUT],
 						 &state->output_nodes[0],
 						 CRAS_MAX_IONODES);
-	state->num_input_nodes = fill_node_list(&inputs,
+	state->num_input_nodes = fill_node_list(&devs[CRAS_STREAM_INPUT],
 						&state->input_nodes[0],
 						CRAS_MAX_IONODES);
 	state->selected_output = selected_output;
@@ -709,16 +708,18 @@ void cras_iodev_list_reset()
 {
 	struct enabled_dev *edev;
 
-	DL_FOREACH(enabled_outputs, edev) {
-		DL_DELETE(enabled_outputs, edev);
+	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+		DL_DELETE(enabled_devs[CRAS_STREAM_OUTPUT], edev);
 		free(edev);
 	}
-	enabled_outputs = NULL;
-	DL_FOREACH(enabled_inputs, edev) {
-		DL_DELETE(enabled_inputs, edev);
+	enabled_devs[CRAS_STREAM_OUTPUT] = NULL;
+	DL_FOREACH(enabled_devs[CRAS_STREAM_INPUT], edev) {
+		DL_DELETE(enabled_devs[CRAS_STREAM_INPUT], edev);
 		free(edev);
 	}
-	enabled_inputs = NULL;
-	outputs.iodevs = NULL;
-	inputs.iodevs = NULL;
+	enabled_devs[CRAS_STREAM_INPUT] = NULL;
+	devs[CRAS_STREAM_OUTPUT].iodevs = NULL;
+	devs[CRAS_STREAM_INPUT].iodevs = NULL;
+	devs[CRAS_STREAM_OUTPUT].size = 0;
+	devs[CRAS_STREAM_INPUT].size = 0;
 }
