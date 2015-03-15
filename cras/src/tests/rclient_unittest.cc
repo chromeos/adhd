@@ -15,7 +15,6 @@ extern "C" {
 }
 
 //  Stub data.
-static int get_iodev_retval;
 static int cras_rstream_create_return;
 static struct cras_rstream *cras_rstream_create_stream_out;
 static int cras_rstream_destroy_called;
@@ -41,10 +40,8 @@ static unsigned int audio_thread_add_stream_called;
 static unsigned int audio_thread_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
-static unsigned int cras_iodev_set_format_frame_rate;
 
 void ResetStubData() {
-  get_iodev_retval = 0;
   cras_rstream_create_return = 0;
   cras_rstream_create_stream_out = (struct cras_rstream *)NULL;
   cras_rstream_destroy_called = 0;
@@ -70,7 +67,6 @@ void ResetStubData() {
   audio_thread_disconnect_stream_called = 0;
   cras_iodev_list_rm_output_called = 0;
   cras_iodev_list_rm_input_called = 0;
-  cras_iodev_set_format_frame_rate = 0;
 }
 
 namespace {
@@ -398,14 +394,6 @@ int audio_thread_resume(struct audio_thread *thread)
 const char *cras_config_get_socket_file_dir()
 {
   return "/tmp";
-}
-
-int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt)
-{
-  if (cras_iodev_set_format_frame_rate)
-    fmt->frame_rate = cras_iodev_set_format_frame_rate;
-  return 0;
 }
 
 int cras_rstream_create(cras_stream_id_t stream_id,
