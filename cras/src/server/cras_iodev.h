@@ -378,4 +378,13 @@ static inline int cras_iodev_delay_frames(const struct cras_iodev *iodev)
 {
 	return iodev->delay_frames(iodev) + cras_iodev_get_dsp_delay(iodev);
 }
+
+/* Returns true if the device is open. */
+static inline int cras_iodev_is_open(const struct cras_iodev *iodev)
+{
+	if (iodev && iodev->is_open(iodev))
+		return 1;
+	return 0;
+}
+
 #endif /* CRAS_IODEV_H_ */
