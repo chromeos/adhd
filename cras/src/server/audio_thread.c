@@ -1362,6 +1362,9 @@ static int input_adev_ignore_wake(const struct active_dev *adev)
 	if (!device_open(adev->dev))
 		return 1;
 
+	if (adev->dev->info.idx == LOOPBACK_RECORD_DEVICE)
+		return 0;
+
 	if (!adev->dev->active_node)
 		return 1;
 
@@ -1599,7 +1602,8 @@ static int write_output_samples(struct audio_thread *thread,
 	if (total_written || hw_level) {
 		if (!odev->dev_running(odev))
 			return -1;
-	} else if (odev->min_cb_level < odev->buffer_size) {
+	} else if (odev->min_cb_level < odev->buffer_size &&
+		   odev != thread->loopback_devs[CRAS_STREAM_OUTPUT]) {
 		/* Empty hardware and nothing written, zero fill it. */
 		fill_odev_zeros(adev, odev->min_cb_level);
 	}

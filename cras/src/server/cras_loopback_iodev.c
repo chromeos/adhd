@@ -178,6 +178,7 @@ static int get_playback_buffer(struct cras_iodev *iodev,
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
 	*frames = MIN(*frames, sbuf->buffer_frames - sbuf->write_offset);
+	*frames = MIN(*frames, sbuf->buffer_frames - frames_queued(iodev));
 
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
