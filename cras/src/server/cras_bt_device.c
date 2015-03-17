@@ -574,6 +574,18 @@ int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
 	return rc;
 }
 
+void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
+{
+	struct cras_iodev *iodev;
+
+	iodev = device->bt_iodevs[CRAS_STREAM_INPUT];
+	if (iodev && iodev->is_open(iodev))
+		cras_bt_io_update_buffer_size(iodev);
+	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
+	if (iodev && iodev->is_open(iodev))
+		cras_bt_io_update_buffer_size(iodev);
+}
+
 /* Switches associated bt iodevs to use the active profile. This is
  * achieved by close the iodevs, update their active nodes, and then
  * finally reopen them. */

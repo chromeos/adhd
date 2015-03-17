@@ -12,9 +12,13 @@
 #include "audio_thread.h"
 #include "byte_buffer.h"
 #include "cras_hfp_info.h"
+#include "utlist.h"
 
-/* Make buffer size of multiple MTUs (= 48 bytes * 21) */
-#define MAX_HFP_BUF_SIZE_BYTES 4096
+/* The max buffer size. Note that the actual used size must set to multiple
+ * of SCO packet size, and the packet size does not necessarily be equal to
+ * MTU.
+ */
+#define MAX_HFP_BUF_SIZE_BYTES 16384
 
 /* rate(8kHz) * sample_size(2 bytes) * channels(1) */
 #define HFP_BYTE_RATE 16000
@@ -32,6 +36,8 @@
  *     playback_buf - The buffer to hold samples about to write to SCO socket.
  *     idev - The input iodev using this hfp_info.
  *     odev - The output iodev using this hfp_info.
+ *     packet_size_changed_cbs - The callbacks to trigger when SCO packet
+ *         size changed.
  */
 struct hfp_info {
 	int fd;
@@ -43,6 +49,7 @@ struct hfp_info {
 
 	struct cras_iodev *idev;
 	struct cras_iodev *odev;
+	struct hfp_packet_size_changed_callback *packet_size_changed_cbs;
 };
 
 int hfp_info_add_iodev(struct hfp_info *info, struct cras_iodev *dev)
@@ -170,11 +177,39 @@ send_sample:
 static void hfp_info_set_packet_size(struct hfp_info *info,
 				     unsigned int packet_size)
 {
+	struct hfp_packet_size_changed_callback *callback;
 	unsigned int used_size =
 		MAX_HFP_BUF_SIZE_BYTES / packet_size * packet_size;
 	info->packet_size = packet_size;
 	byte_buffer_set_used_size(info->playback_buf, used_size);
 	byte_buffer_set_used_size(info->capture_buf, used_size);
+
+	DL_FOREACH(info->packet_size_changed_cbs, callback)
+		callback->cb(callback->data);
+}
+
+void hfp_register_packet_size_changed_callback(struct hfp_info *info,
+					       void (*cb)(void *data),
+					       void *data)
+{
+	struct hfp_packet_size_changed_callback *callback =
+		(struct hfp_packet_size_changed_callback *)calloc(1,
+			sizeof(struct hfp_packet_size_changed_callback));
+	callback->data = data;
+	callback->cb = cb;
+	DL_APPEND(info->packet_size_changed_cbs, callback);
+}
+
+void hfp_unregister_packet_size_changed_callback(struct hfp_info *info,
+						 void *data)
+{
+	struct hfp_packet_size_changed_callback *callback;
+	DL_FOREACH(info->packet_size_changed_cbs, callback) {
+		if (data == callback->data) {
+			DL_DELETE(info->packet_size_changed_cbs, callback);
+			free(callback);
+		}
+	}
 }
 
 int hfp_read(struct hfp_info *info)

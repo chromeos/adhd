@@ -238,6 +238,9 @@ int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
 {
   return 48;
 }
+void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
+{
+}
 
 // From cras_hfp_info
 int hfp_info_add_iodev(struct hfp_info *info, struct cras_iodev *dev)
@@ -299,6 +302,17 @@ void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
 {
   hfp_buf_release_called++;
   hfp_buf_release_nwritten_val = written_bytes;
+}
+
+void hfp_register_packet_size_changed_callback(struct hfp_info *info,
+                 void (*cb)(void *data),
+                 void *data)
+{
+}
+
+void hfp_unregister_packet_size_changed_callback(struct hfp_info *info,
+             void *data)
+{
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev *iodev,

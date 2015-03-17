@@ -210,6 +210,10 @@ int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
 {
   return 0;
 }
+int cras_bt_io_update_buffer_size(struct cras_iodev *bt_iodev)
+{
+  return 0;
+}
 unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
            struct cras_iodev *dev)
 {

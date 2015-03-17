@@ -10,6 +10,15 @@
 #include "cras_types.h"
 
 
+/* Linked list to hold the information of callbacks to trigger
+ * when the size of SCO packet has changed.
+ */
+struct hfp_packet_size_changed_callback {
+	void *data;
+	void (*cb)(void *data);
+	struct hfp_packet_size_changed_callback *next, *prev;
+};
+
 /* Structure to handle sample transmission between CRAS and the SCO
  * socket acquired from bluez.
  */
@@ -85,5 +94,23 @@ int hfp_info_rm_iodev(struct hfp_info *info, struct cras_iodev *dev);
 
 /* Checks if there's any iodev added to the given hfp_info. */
 int hfp_info_has_iodev(struct hfp_info *info);
+
+/* Registers a callback function for the SCO packet size changed event.
+ * Args:
+ *    info - The hfp_info to register callback to.
+ *    cb - The callback function to call.
+ *    data - The data which will be passed to callback function.
+ */
+void hfp_register_packet_size_changed_callback(struct hfp_info *info,
+					       void (*cb)(void *data),
+					       void *data);
+
+/* Unregisters a callback function for the SCO packet size changed event.
+ * Args:
+ *    info - The hfp_info to unregister callback from.
+ *    data - The data used as key to unregister callback.
+ */
+void hfp_unregister_packet_size_changed_callback(struct hfp_info *info,
+						 void *data);
 
 #endif /* CRAS_HFP_INFO_H_ */

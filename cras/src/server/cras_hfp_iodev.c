@@ -56,6 +56,18 @@ static int frames_queued(const struct cras_iodev *iodev)
 	return hfp_buf_queued(hfpio->info, iodev);
 }
 
+/* Modify the hfpio's buffer_size when the SCO packet size has changed. */
+static void hfp_packet_size_changed(void *data)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)data;
+	struct cras_iodev *iodev = &hfpio->base;
+
+	if (!iodev->is_open(iodev))
+		return;
+	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev);
+	cras_bt_device_iodev_buffer_size_changed(hfpio->device);
+}
+
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
@@ -235,6 +247,9 @@ struct cras_iodev *hfp_iodev_create(
 	cras_iodev_set_active_node(iodev, node);
 
 	hfpio->info = info;
+	hfp_register_packet_size_changed_callback(info,
+						  hfp_packet_size_changed,
+						  hfpio);
 
 	return iodev;
 
@@ -251,6 +266,7 @@ void hfp_iodev_destroy(struct cras_iodev *iodev)
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	cras_bt_device_rm_iodev(hfpio->device, iodev);
+	hfp_unregister_packet_size_changed_callback(hfpio->info, hfpio);
 	hfp_free_resources(hfpio);
 	free(hfpio);
 }
