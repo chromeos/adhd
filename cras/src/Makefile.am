@@ -80,6 +80,7 @@ cras_SOURCES = \
 	server/cras_volume_curve.c \
 	server/dev_stream.c \
 	server/linear_resampler.c \
+	server/stream_list.c \
 	server/test_iodev.c \
 	server/rate_estimator.c \
 	server/softvol_curve.c
@@ -194,6 +195,7 @@ TESTS = \
 	rclient_unittest \
 	rstream_unittest \
 	shm_unittest \
+	stream_list_unittest \
 	system_state_unittest \
 	util_unittest \
 	volume_curve_unittest
@@ -513,6 +515,12 @@ rstream_unittest_LDADD = -lasound -lgtest -lpthread
 shm_unittest_SOURCES = tests/shm_unittest.cc
 shm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 shm_unittest_LDADD = -lgtest -lpthread
+
+stream_list_unittest_SOURCES = tests/stream_list_unittest.cc \
+	server/stream_list.c
+stream_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	 -I$(top_srcdir)/src/server
+stream_list_unittest_LDADD = -lgtest -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 	server/cras_system_state.c
