@@ -11,7 +11,6 @@
 
 struct cras_message;
 struct cras_rclient;
-struct cras_rstream;
 
 /* Creates an rclient structure.
  * Args:
