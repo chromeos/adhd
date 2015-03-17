@@ -18,15 +18,18 @@
 #define LOOPBACK_BUFFER_SIZE 8192
 
 static size_t loopback_supported_rates[] = {
-	44100, 0
+	44100, 48000, 0
 };
 
 static size_t loopback_supported_channel_counts[] = {
-	2, 0
+	1, 2, 0
 };
 
 static snd_pcm_format_t loopback_supported_formats[] = {
-	SND_PCM_FORMAT_S16_LE, 0
+	SND_PCM_FORMAT_S16_LE,
+	SND_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_S32_LE,
+	0
 };
 
 /* Shared buffer between loopback devices.
@@ -42,6 +45,7 @@ struct shared_buffer {
 	unsigned int read_offset;
 	unsigned int write_offset;
 	int write_ahead;
+	struct timespec loopback_last_output;
 };
 
 /* loopack iodev.  Keep state of a loopback device.
@@ -166,6 +170,7 @@ static int open_playback_dev(struct cras_iodev *iodev)
 	sbuf->read_offset = 0;
 	sbuf->write_offset = 0;
 	sbuf->write_ahead = 0;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &sbuf->loopback_last_output);
 	return 0;
 }
 
@@ -197,6 +202,7 @@ static int put_playback_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		sbuf->write_offset = 0;
 		sbuf->write_ahead = 1;
 	}
+	clock_gettime(CLOCK_MONOTONIC_RAW, &sbuf->loopback_last_output);
 	return 0;
 }
 
@@ -287,4 +293,15 @@ void loopback_iodev_destroy(struct cras_iodev *loopback_input,
 	free(sbuf);
 	free(loopback_input);
 	free(loopback_output);
+}
+
+unsigned int loopback_iodev_fill_level(struct cras_iodev *dev)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)dev;
+	struct shared_buffer *sbuf = loopdev->shared_buffer;
+	struct timespec now, time_since;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &sbuf->loopback_last_output, &time_since);
+	return cras_time_to_frames(&time_since, dev->format->frame_rate);
 }

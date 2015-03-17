@@ -20,4 +20,7 @@ void loopback_iodev_create(struct cras_iodev **loopback_input,
 void loopback_iodev_destroy(struct cras_iodev *loopback_input,
 			    struct cras_iodev *loopback_output);
 
+/* Returns the number of frames to fill since last loopback output. */
+unsigned int loopback_iodev_fill_level(struct cras_iodev *dev);
+
 #endif /* CRAS_LOOPBACK_IO_H_ */

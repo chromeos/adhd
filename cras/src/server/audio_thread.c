@@ -97,7 +97,8 @@ struct iodev_callback_list {
 	struct iodev_callback_list *prev, *next;
 };
 
-static void enable_loopback(struct audio_thread *thread);
+static void enable_loopback(struct audio_thread *thread,
+			    struct cras_audio_format *fmt);
 static void disable_loopback_if_unused(struct audio_thread *thread);
 
 static void _audio_thread_add_callback(int fd, thread_callback cb,
@@ -433,7 +434,7 @@ static int append_stream(struct audio_thread *thread,
 
 	if (target_dev) {
 		if (stream->pinned_dev_idx == LOOPBACK_RECORD_DEVICE)
-			enable_loopback(thread);
+			enable_loopback(thread, &stream->format);
 
 		/* If the stream is going to attach to a specific device, mark
 		 * the target device as active if needed.
@@ -1621,6 +1622,12 @@ static int do_playback(struct audio_thread *thread)
 	DL_FOREACH(thread->active_devs[CRAS_STREAM_OUTPUT], adev) {
 		if (!device_open(adev->dev))
 			continue;
+		if (adev->dev == thread->loopback_devs[CRAS_STREAM_OUTPUT] &&
+		    !adev->dev->streams) {
+			fill_odev_zeros(adev,
+					loopback_iodev_fill_level(adev->dev));
+			continue;
+		}
 		rc = write_output_samples(thread, adev);
 		if (rc < 0) {
 			/* Device error, close it. */
@@ -2032,19 +2039,25 @@ static int audio_thread_metrics_log(struct audio_thread_msg *msg)
 }
 
 /* Enables loopback device if loopback capture stream is connected. */
-static void enable_loopback(struct audio_thread *thread)
+static void enable_loopback(struct audio_thread *thread,
+			    struct cras_audio_format *fmt)
 {
-	thread_add_active_dev(thread,
-			      thread->loopback_devs[CRAS_STREAM_OUTPUT]);
+	struct cras_iodev *dev = thread->loopback_devs[CRAS_STREAM_OUTPUT];
+
+	thread_add_active_dev(thread, dev);
+	if (dev->format == NULL)
+		cras_iodev_set_format(dev, fmt);
+	if (!device_open(dev))
+		cras_iodev_open(dev);
 }
 
 /* Disables loopback device when no loopback capture streams. */
 static void disable_loopback_if_unused(struct audio_thread *thread)
 {
+	struct cras_iodev *dev = thread->loopback_devs[CRAS_STREAM_OUTPUT];
+
 	if (!thread->loopback_devs[CRAS_STREAM_INPUT]->streams)
-		thread_rm_active_dev(thread,
-				     thread->loopback_devs[CRAS_STREAM_OUTPUT],
-				     0);
+		thread_rm_active_dev(thread, dev, 0);
 }
 
 /* Exported Interface */

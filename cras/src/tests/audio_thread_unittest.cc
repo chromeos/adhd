@@ -761,6 +761,11 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 {
 }
 
+unsigned int loopback_iodev_fill_level(struct cras_iodev *dev)
+{
+  return 0;
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {
