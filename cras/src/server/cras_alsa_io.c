@@ -1006,11 +1006,6 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return err;
 }
 
-static void set_as_default(struct cras_iodev *iodev) {
-	struct alsa_io *aio = (struct alsa_io *)iodev;
-	init_device_settings(aio);
-}
-
 /* On older kernels we don't know how to determine if there is an internal mic.
  * On newer kernels there are "Phantom" Jacks that are created for internal
  * speaker/mic. So if there is a phantom jack for speaker but not for mic, we
@@ -1099,7 +1094,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->close_dev = close_dev;
 	iodev->is_open = is_open;
 	iodev->update_supported_formats = update_supported_formats;
-	iodev->set_as_default = set_as_default;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;

@@ -365,9 +365,6 @@ static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
 	struct cras_iodev *dev;
 	struct enabled_dev *adev;
 
-	if (new_active && new_active->set_as_default)
-		new_active->set_as_default(new_active);
-
 	cras_iodev_list_notify_active_node_changed();
 
 	adev = calloc(1, sizeof(*adev));
@@ -397,9 +394,6 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	new_dev = find_dev(dev_index_of(node_id));
 	if (!new_dev || new_dev->direction != dir)
 		return;
-
-	if (new_dev->set_as_default)
-		new_dev->set_as_default(new_dev);
 
 	audio_thread_add_active_dev(audio_thread, new_dev);
 }

@@ -64,7 +64,6 @@ struct cras_ionode {
  * close_dev - Closes the device if it is open.
  * is_open - Checks if the device has been openned.
  * update_supported_formats - Refresh supported frame rates and channel counts.
- * set_as_default - Function to call when this device is set as system default.
  * frames_queued - The number of frames in the audio buffer.
  * delay_frames - The delay of the next sample in frames.
  * get_buffer - Returns a buffer to read/write to/from.
@@ -114,7 +113,6 @@ struct cras_iodev {
 	int (*close_dev)(struct cras_iodev *iodev);
 	int (*is_open)(const struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
-	void (*set_as_default)(struct cras_iodev *iodev);
 	int (*frames_queued)(const struct cras_iodev *iodev);
 	int (*delay_frames)(const struct cras_iodev *iodev);
 	int (*get_buffer)(struct cras_iodev *iodev,

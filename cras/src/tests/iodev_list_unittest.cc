@@ -91,7 +91,6 @@ class IoDevTestSuite : public testing::Test {
       d1_.set_capture_mute = NULL;
       d1_.is_open = is_open;
       d1_.update_supported_formats = NULL;
-      d1_.set_as_default = NULL;
       d1_.update_active_node = update_active_node;
       d1_.format = NULL;
       d1_.direction = CRAS_STREAM_OUTPUT;
@@ -107,7 +106,6 @@ class IoDevTestSuite : public testing::Test {
       d2_.set_capture_mute = NULL;
       d2_.is_open = is_open;
       d2_.update_supported_formats = NULL;
-      d2_.set_as_default = NULL;
       d2_.update_active_node = update_active_node;
       d2_.format = NULL;
       d2_.direction = CRAS_STREAM_OUTPUT;
@@ -123,7 +121,6 @@ class IoDevTestSuite : public testing::Test {
       d3_.set_capture_mute = NULL;
       d3_.is_open = is_open;
       d3_.update_supported_formats = NULL;
-      d3_.set_as_default = NULL;
       d3_.update_active_node = update_active_node;
       d3_.format = NULL;
       d3_.direction = CRAS_STREAM_OUTPUT;
@@ -140,7 +137,6 @@ class IoDevTestSuite : public testing::Test {
       loopback_input.set_capture_mute = NULL;
       loopback_input.is_open = is_open;
       loopback_input.update_supported_formats = NULL;
-      loopback_input.set_as_default = NULL;
       loopback_input.update_active_node = update_active_node;
       loopback_input.format = NULL;
       loopback_input.direction = CRAS_STREAM_OUTPUT;
@@ -195,11 +191,6 @@ class IoDevTestSuite : public testing::Test {
       set_capture_mute_1_called_++;
     }
 
-    static void set_as_default(struct cras_iodev *iodev)
-    {
-      default_dev_to_set_ = iodev;
-    }
-
     static void update_active_node(struct cras_iodev *iodev) {
     }
 
@@ -216,7 +207,6 @@ class IoDevTestSuite : public testing::Test {
     static int set_mute_1_called_;
     static int set_capture_gain_1_called_;
     static int set_capture_mute_1_called_;
-    static cras_iodev *default_dev_to_set_;
     static int is_open_;
     struct cras_ionode node1, node2, node3;
 };
@@ -225,7 +215,6 @@ int IoDevTestSuite::set_volume_1_called_;
 int IoDevTestSuite::set_mute_1_called_;
 int IoDevTestSuite::set_capture_gain_1_called_;
 int IoDevTestSuite::set_capture_mute_1_called_;
-cras_iodev *IoDevTestSuite::default_dev_to_set_;
 int IoDevTestSuite::is_open_;
 
 // Check that Init registers a volume changed callback. */
