@@ -360,7 +360,7 @@ bt_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 byte_buffer_unittest_SOURCES = tests/byte_buffer_unittest.cc
 byte_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server
-byte_buffer_unittest_LDADD = -lgtest
+byte_buffer_unittest_LDADD = -lgtest -lpthread
 
 card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c
