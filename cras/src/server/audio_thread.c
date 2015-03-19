@@ -144,33 +144,6 @@ void audio_thread_enable_callback(int fd, int enabled)
 	}
 }
 
-static inline int streams_attached_direction(const struct audio_thread *thread,
-					     enum CRAS_STREAM_DIRECTION dir)
-{
-	struct active_dev *adev;
-
-	DL_FOREACH(thread->active_devs[dir], adev) {
-		if (adev->dev->streams)
-			return 1;
-	}
-
-	return 0;
-}
-
-/* Returns true if there are streams attached to the thread. */
-static inline int streams_attached(const struct audio_thread *thread)
-{
-	int dir;
-
-	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		if (streams_attached_direction(thread,
-					       (enum CRAS_STREAM_DIRECTION)dir))
-			return 1;
-	}
-
-	return 0;
-}
-
 /* Sends a response (error code) from the audio thread to the main thread.
  * Indicates that the last message sent to the audio thread has been handled
  * with an error code of rc.
@@ -743,8 +716,7 @@ static int thread_rm_active_dev(struct audio_thread *thread,
 }
 
 /* Remove stream from the audio thread. If this is the last stream to be
- * removed close the device. Returns the number of streams still attached
- * to the thread.
+ * removed close the device.
  */
 static int thread_remove_stream(struct audio_thread *thread,
 				struct cras_rstream *stream)
@@ -756,7 +728,7 @@ static int thread_remove_stream(struct audio_thread *thread,
 	if (delete_stream(thread, stream))
 		syslog(LOG_ERR, "Stream to remove not found.");
 
-	return streams_attached(thread);
+	return 0;
 }
 
 /* Handles the disconnect_stream message from the main thread. */
@@ -786,7 +758,7 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 
 		return rc;
 	}
-	return streams_attached(thread);
+	return 0;
 }
 
 /* Handles the add_stream message from the main thread. */

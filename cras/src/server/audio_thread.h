@@ -156,7 +156,7 @@ int audio_thread_add_stream(struct audio_thread *thread,
  *    thread - a pointer to the audio thread.
  *    stream - the stream to be disonnected.
  * Returns:
- *    The number of streams remaining if successful, negative if error.
+ *    0 on success, negative if error.
  */
 int audio_thread_disconnect_stream(struct audio_thread *thread,
 			   	   struct cras_rstream *stream);
