@@ -537,8 +537,6 @@ TEST_F(StreamDeviceSuite, DisconnectCaptureStreamNoInternalMic) {
 
 extern "C" {
 
-const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
-
 int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 {
   DL_APPEND(iodev->streams, stream);
@@ -640,11 +638,6 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
 {
   return 0;
-}
-
-void cras_metrics_log_histogram(const char *name, int sample, int min,
-                                int max, int nbuckets)
-{
 }
 
 void cras_rstream_dev_attach(struct cras_rstream *rstream,

@@ -37,7 +37,6 @@ struct active_dev {
  * record audio.
  *    to_thread_fds - Send a message from main to running thread.
  *    to_main_fds - Send a synchronous response to main from running thread.
- *    main_msg_fds - Send a message from running thread to main.
  *    tid - Thread ID of the running playback/capture thread.
  *    started - Non-zero if the thread has started successfully.
  *    suspended - Non-zero if the thread is suspended.
@@ -49,7 +48,6 @@ struct active_dev {
 struct audio_thread {
 	int to_thread_fds[2];
 	int to_main_fds[2];
-	int main_msg_fds[2];
 	pthread_t tid;
 	int started;
 	int suspended;
