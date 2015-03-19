@@ -3,9 +3,14 @@
  * found in the LICENSE file.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* for ppoll */
+#endif
+
 #include <dbus/dbus.h>
 
 #include <errno.h>
+#include <poll.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -577,9 +582,11 @@ static int bt_address(const char *str, struct sockaddr *addr)
 
 int cras_bt_device_sco_connect(struct cras_bt_device *device)
 {
-	int sk, err;
+	int sk = 0, err;
 	struct sockaddr addr;
 	struct cras_bt_adapter *adapter;
+	struct timespec timeout = { 1, 0 };
+	struct pollfd *pollfds;
 
 	adapter = cras_bt_device_adapter(device);
 	if (!adapter) {
@@ -604,19 +611,32 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 		goto error;
 	}
 
-	/* Connect to remote */
+	/* Connect to remote in nonblocking mode */
+	fcntl(sk, F_SETFL, O_NONBLOCK);
+	pollfds = (struct pollfd *)malloc(sizeof(*pollfds));
+	pollfds[0].fd = sk;
+	pollfds[0].events = POLLOUT;
+
 	if (bt_address(cras_bt_device_address(device), &addr))
 		goto error;
 	err = connect(sk, (struct sockaddr *) &addr, sizeof(addr));
-	if (err < 0 && !(errno == EAGAIN || errno == EINPROGRESS)) {
+	if (err && errno != EINPROGRESS) {
 		syslog(LOG_ERR, "Failed to connect: %s (%d)",
 				strerror(errno), errno);
+		goto error;
+	}
+
+	err = ppoll(pollfds, 1, &timeout, NULL);
+	if (err <= 0) {
+		syslog(LOG_ERR, "Connect SCO: poll for writable timeout");
 		goto error;
 	}
 
 	return sk;
 
 error:
+	if (sk)
+		close(sk);
 	return -1;
 }
 
