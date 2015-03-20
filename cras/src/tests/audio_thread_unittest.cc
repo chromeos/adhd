@@ -664,13 +664,6 @@ int cras_set_thread_priority(int priority)
   return 0;
 }
 
-int cras_system_add_select_fd(int fd,
-                              void (*callback)(void *data),
-                              void *callback_data)
-{
-  return 0;
-}
-
 void cras_system_rm_select_fd(int fd)
 {
 }
