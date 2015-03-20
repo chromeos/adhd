@@ -256,7 +256,7 @@ static int connect_to_server(struct cras_client *client)
 		close(client->server_fd);
 	client->server_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (client->server_fd < 0) {
-		syslog(LOG_ERR, "%s: Socket failed.", __func__);
+		syslog(LOG_ERR, "cras_client: %s: Socket failed.", __func__);
 		return client->server_fd;
 	}
 
@@ -284,7 +284,8 @@ static int connect_to_server(struct cras_client *client)
 	if (rc != 0) {
 		close(client->server_fd);
 		client->server_fd = -1;
-		syslog(LOG_ERR, "%s: Connect server failed.", __func__);
+		syslog(LOG_ERR, "cras_client: %s: Connect server failed.",
+		       __func__);
 	}
 
 	return rc;
@@ -414,7 +415,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
 	if (!cras_stream_has_input(stream->direction)) {
-		syslog(LOG_ERR, "Play data to input\n");
+		syslog(LOG_ERR, "cras_client: Play data to input\n");
 		return 0;
 	}
 
@@ -487,7 +488,7 @@ static int handle_playback_request(struct client_stream *stream,
 
 	/* If this message is for an input stream, log error and drop it. */
 	if (stream->direction != CRAS_STREAM_OUTPUT) {
-		syslog(LOG_ERR, "Record data from output\n");
+		syslog(LOG_ERR, "cras_client: Record data from output\n");
 		return 0;
 	}
 
@@ -546,7 +547,6 @@ static void *audio_thread(void *arg)
 	    cras_set_thread_priority(CRAS_CLIENT_RT_THREAD_PRIORITY))
 		cras_set_nice_level(CRAS_CLIENT_NICENESS_LEVEL);
 
-	syslog(LOG_DEBUG, "audio thread started");
 	while (stream->thread.running && !thread_terminated) {
 		num_read = read_with_wake_fd(stream->wake_fds[0],
 					     stream->aud_fd,
@@ -569,7 +569,6 @@ static void *audio_thread(void *arg)
 					aud_msg.frames);
 			break;
 		default:
-			syslog(LOG_WARNING, "Unknown aud msg %d\n", aud_msg.id);
 			break;
 		}
 	}
@@ -625,12 +624,14 @@ static int config_shm(struct cras_audio_shm *shm, int key, size_t size)
 
 	shmid = shmget(key, size, 0600);
 	if (shmid < 0) {
-		syslog(LOG_ERR, "shmget failed to get shm for stream.");
+		syslog(LOG_ERR,
+		       "cras_client: shmget failed to get shm for stream.");
 		return shmid;
 	}
 	shm->area = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
 	if (shm->area == (struct cras_audio_shm_area *)-1) {
-		syslog(LOG_ERR, "shmat failed to attach shm for stream.");
+		syslog(LOG_ERR,
+		       "cras_client: shmat failed to attach shm for stream.");
 		return errno;
 	}
 	/* Copy server shm config locally. */
@@ -660,7 +661,8 @@ static int stream_connected(struct client_stream *stream,
 	struct cras_audio_format mfmt;
 
 	if (msg->err) {
-		syslog(LOG_ERR, "Error Setting up stream %d\n", msg->err);
+		syslog(LOG_ERR, "cras_client: Error Setting up stream %d\n",
+		       msg->err);
 		return msg->err;
 	}
 
@@ -671,7 +673,8 @@ static int stream_connected(struct client_stream *stream,
 				msg->input_shm_key,
 				msg->shm_max_size);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Error configuring capture shm");
+			syslog(LOG_ERR,
+			       "cras_client: Error configuring capture shm");
 			goto err_ret;
 		}
 	}
@@ -681,7 +684,8 @@ static int stream_connected(struct client_stream *stream,
 				msg->output_shm_key,
 				msg->shm_max_size);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Error configuring playback shm");
+			syslog(LOG_ERR,
+			       "cras_client: Error configuring playback shm");
 			goto err_ret;
 		}
 
@@ -691,7 +695,6 @@ static int stream_connected(struct client_stream *stream,
 
 	rc = pipe(stream->wake_fds);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Error piping");
 		goto err_ret;
 	}
 
@@ -699,7 +702,8 @@ static int stream_connected(struct client_stream *stream,
 
 	rc = pthread_create(&stream->thread.tid, NULL, audio_thread, stream);
 	if (rc) {
-		syslog(LOG_ERR, "Couldn't create audio stream.");
+		syslog(LOG_ERR,
+		       "cras_client: Couldn't create audio stream.");
 		stream->thread.running = 0;
 		goto err_ret;
 	}
@@ -725,7 +729,7 @@ static int send_connect_message(struct cras_client *client,
 	/* Create a socket pair for the server to notify of audio events. */
 	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
 	if (rc != 0) {
-		syslog(LOG_ERR, "socketpair fails.");
+		syslog(LOG_ERR, "cras_client: socketpair fails.");
 		goto fail;
 	}
 
@@ -742,7 +746,8 @@ static int send_connect_message(struct cras_client *client,
 			       sock[1]);
 	if (rc != sizeof(serv_msg)) {
 		rc = EIO;
-		syslog(LOG_ERR, "add_stream: Send server message failed.");
+		syslog(LOG_ERR,
+		       "cras_client: add_stream: Send server message failed.");
 		goto fail;
 	}
 
@@ -777,7 +782,8 @@ static int client_thread_add_stream(struct cras_client *client,
 		aokr_idx = cras_client_get_first_dev_type_idx(client,
 				CRAS_NODE_TYPE_AOKR, CRAS_STREAM_INPUT);
 		if (aokr_idx < 0) {
-			syslog(LOG_ERR, "add_stream: Cannot find hotword dev");
+			syslog(LOG_ERR,
+			       "cras_client: add_stream: Finding hotword dev");
 			return aokr_idx;
 		}
 		dev_idx = aokr_idx;
@@ -822,7 +828,8 @@ static int client_thread_rm_stream(struct cras_client *client,
 	cras_fill_disconnect_stream_message(&msg, stream_id);
 	rc = write(client->server_fd, &msg, sizeof(msg));
 	if (rc < 0)
-		syslog(LOG_WARNING, "error removing stream from server\n");
+		syslog(LOG_ERR,
+		       "cras_client: error removing stream from server\n");
 
 	/* And shut down locally. */
 	if (stream->thread.running) {
@@ -836,8 +843,7 @@ static int client_thread_rm_stream(struct cras_client *client,
 
 	DL_DELETE(client->streams, stream);
 	if (stream->aud_fd >= 0)
-		if (close(stream->aud_fd))
-			syslog(LOG_WARNING, "Couldn't close audio socket");
+		close(stream->aud_fd);
 
 	if (stream->wake_fds[0] >= 0) {
 		close(stream->wake_fds[0]);
@@ -878,21 +884,24 @@ static int client_attach_shm(struct cras_client *client, key_t shm_key)
 
 	shmid = shmget(shm_key, sizeof(*(client->server_state)), 0400);
 	if (shmid < 0) {
-		syslog(LOG_ERR, "shmget failed to get shm for client.");
+		syslog(LOG_ERR,
+		       "cras_client: shmget failed to get shm for client.");
 		return shmid;
 	}
 	client->server_state = (struct cras_server_state *)
 			shmat(shmid, NULL, SHM_RDONLY);
 	if (client->server_state == (void *)-1) {
 		client->server_state = NULL;
-		syslog(LOG_ERR, "shmat failed to attach shm for client.");
+		syslog(LOG_ERR,
+		       "cras_client: shmat failed to attach shm for client.");
 		return errno;
 	}
 
 	if (client->server_state->state_version != CRAS_SERVER_STATE_VERSION) {
 		shmdt(client->server_state);
 		client->server_state = NULL;
-		syslog(LOG_ERR, "Unknown server_state version.");
+		syslog(LOG_ERR,
+		       "cras_client: Unknown server_state version.");
 		return -EINVAL;
 	}
 
@@ -945,7 +954,6 @@ static int handle_message_from_server(struct cras_client *client)
 			client->debug_info_callback(client);
 		break;
 	default:
-		syslog(LOG_WARNING, "Receive unknown command %d", msg->id);
 		break;
 	}
 
@@ -953,7 +961,6 @@ static int handle_message_from_server(struct cras_client *client)
 read_error:
 	rc = connect_to_server_wait(client);
 	if (rc < 0) {
-		syslog(LOG_WARNING, "Can't read from server\n");
 		client->thread.running = 0;
 		return -EIO;
 	}
@@ -968,7 +975,7 @@ static int handle_stream_message(struct cras_client *client)
 
 	rc = read(client->stream_fds[0], &msg, sizeof(msg));
 	if (rc < 0)
-		syslog(LOG_DEBUG, "Stream read failed %d\n", errno);
+		syslog(LOG_ERR, "cras_client: Stream read failed %d\n", errno);
 	/* The only reason a stream sends a message is if it needs to be
 	 * removed. An error on read would mean the same thing so regardless of
 	 * what gets us here, just remove the stream */
@@ -997,7 +1004,7 @@ static int handle_command_message(struct cras_client *client)
 
 	if (!check_server_connected_wait(client))
 		if (connect_to_server_wait(client) < 0) {
-			syslog(LOG_ERR, "Lost server connection.");
+			syslog(LOG_ERR, "cras_client: Lost server connection.");
 			rc = -EIO;
 			goto cmd_msg_complete;
 		}
@@ -1162,7 +1169,6 @@ static int write_message_to_server(struct cras_client *client,
 		int rc = 0;
 
 		/* Write to server failed, try to re-connect. */
-		syslog(LOG_DEBUG, "Server write failed, re-attach.");
 		if (client->thread.running)
 			rc = send_simple_cmd_msg(client, 0,
 						 CLIENT_SERVER_CONNECT);
@@ -1206,9 +1212,6 @@ int cras_client_create(struct cras_client **client)
 	}
 	(*client)->command_reply_fds[0] = -1;
 	(*client)->command_reply_fds[1] = -1;
-
-	openlog("cras_client", LOG_PID, LOG_USER);
-	setlogmask(LOG_MASK(LOG_ERR));
 
 	return 0;
 free_error:
@@ -1379,7 +1382,8 @@ static inline int cras_client_send_add_stream_command_message(
 	cmd_msg.dev_idx = dev_idx;
 	rc = send_command_message(client, &cmd_msg.header);
 	if (rc < 0) {
-		syslog(LOG_ERR, "adding stream failed in thread %d", rc);
+		syslog(LOG_ERR,
+		       "cras_client: adding stream failed in thread %d", rc);
 		goto add_failed;
 	}
 
