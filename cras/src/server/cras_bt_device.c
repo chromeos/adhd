@@ -102,6 +102,57 @@ struct cras_bt_device *cras_bt_device_create(const char *object_path)
 	return device;
 }
 
+static void on_disconnect_reply(DBusPendingCall *pending_call, void *data)
+{
+	DBusMessage *reply;
+
+	reply = dbus_pending_call_steal_reply(pending_call);
+	dbus_pending_call_unref(pending_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
+		syslog(LOG_ERR, "Disconnect message replied error");
+
+	dbus_message_unref(reply);
+}
+
+int cras_bt_device_disconnect(DBusConnection *conn,
+			      struct cras_bt_device *device)
+{
+	DBusMessage *method_call;
+	DBusError dbus_error;
+	DBusPendingCall *pending_call;
+
+	method_call = dbus_message_new_method_call(
+			BLUEZ_SERVICE,
+			device->object_path,
+			BLUEZ_INTERFACE_DEVICE,
+			"Disconnect");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_error_init(&dbus_error);
+
+	pending_call = NULL;
+	if (!dbus_connection_send_with_reply(conn,
+					     method_call,
+					     &pending_call,
+					     DBUS_TIMEOUT_USE_DEFAULT)) {
+		dbus_message_unref(method_call);
+		syslog(LOG_ERR, "Failed to send Disconnect message");
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+	if (!dbus_pending_call_set_notify(pending_call,
+					  on_disconnect_reply,
+					  conn, NULL)) {
+		dbus_pending_call_cancel(pending_call);
+		dbus_pending_call_unref(pending_call);
+		return -EIO;
+	}
+	return 0;
+}
+
 void cras_bt_device_destroy(struct cras_bt_device *device)
 {
 	DL_DELETE(devices, device);

@@ -45,6 +45,16 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
 
+/* Forces disconnect the bt device. Used when handling audio error
+ * that we want to make the device be completely disconnected from
+ * host to reflect the state that an error has occurred.
+ * Args:
+ *    conn - The dbus connection.
+ *    device - The bt device to disconnect.
+ */
+int cras_bt_device_disconnect(DBusConnection *conn,
+			      struct cras_bt_device *device);
+
 /* Gets the SCO socket for the device.
  * Args:
  *     device - The device object to get SCO socket for.

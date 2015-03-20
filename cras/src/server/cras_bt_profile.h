@@ -25,7 +25,8 @@ struct cras_bt_profile {
 	int version;
 	int features;
 	void (*release)(struct cras_bt_profile *profile);
-	void (*new_connection)(struct cras_bt_profile *profile,
+	void (*new_connection)(DBusConnection *conn,
+			       struct cras_bt_profile *profile,
 			       struct cras_bt_device *device,
 			       int rfcomm_fd);
 	void (*request_disconnection)(struct cras_bt_profile *profile,

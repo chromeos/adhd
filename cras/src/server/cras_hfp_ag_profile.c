@@ -68,13 +68,23 @@
 	"  </attribute>"						\
 	"</record>"
 
-
+/* Object representing the audio gateway role for HFP/HSP.
+ * Members:
+ *    idev - The input iodev for HFP/HSP.
+ *    odev - The output iodev for HFP/HSP.
+ *    info - The hfp_info object for SCO audio.
+ *    slc_handle - The service level connection.
+ *    device - The bt device associated with this audio gateway.
+ *    conn - The dbus connection used to send message to bluetoothd.
+ *    profile - The profile enum of this audio gateway.
+ */
 struct audio_gateway {
 	struct cras_iodev *idev;
 	struct cras_iodev *odev;
 	struct hfp_info *info;
 	struct hfp_slc_handle *slc_handle;
 	struct cras_bt_device *device;
+	DBusConnection *conn;
 	enum cras_bt_device_profile profile;
 	struct audio_gateway *prev, *next;
 };
@@ -94,6 +104,12 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 	}
 	if (ag->slc_handle)
 		hfp_slc_destroy(ag->slc_handle);
+
+	/* If the bt device is not using a2dp, do a deeper clean up
+	 * to force disconnect it. */
+	if (!cras_bt_device_has_a2dp(ag->device))
+		cras_bt_device_disconnect(ag->conn, ag->device);
+
 	free(ag);
 }
 
@@ -152,7 +168,8 @@ static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 	return 0;
 }
 
-static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
+static void cras_hfp_ag_new_connection(DBusConnection *conn,
+				       struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
@@ -173,6 +190,7 @@ static void cras_hfp_ag_new_connection(struct cras_bt_profile *profile,
 
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
+	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
 	ag->slc_handle = hfp_slc_create(rfcomm_fd,
 					0,
@@ -216,7 +234,8 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 	return cras_bt_add_profile(conn, &cras_hfp_ag_profile);
 }
 
-static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
+static void cras_hsp_ag_new_connection(DBusConnection *conn,
+				       struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
@@ -237,6 +256,7 @@ static void cras_hsp_ag_new_connection(struct cras_bt_profile *profile,
 
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
+	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
 	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, NULL,
 					cras_hfp_ag_slc_disconnected);

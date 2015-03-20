@@ -113,7 +113,7 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 		device = cras_bt_device_create(object_path);
 	}
 
-	profile->new_connection(profile, device, fd);
+	profile->new_connection(conn, profile, device, fd);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
