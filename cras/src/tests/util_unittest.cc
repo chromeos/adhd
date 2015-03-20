@@ -97,6 +97,15 @@ TEST(Util, TimeToFrames) {
   EXPECT_EQ(0, frames);
 }
 
+TEST(Util, FramesToMs) {
+
+  EXPECT_EQ(500, cras_frames_to_ms(24000, 48000));
+  EXPECT_EQ(0, cras_frames_to_ms(1, 48000));
+  EXPECT_EQ(10, cras_frames_to_ms(480, 48000));
+  EXPECT_EQ(10, cras_frames_to_ms(488, 48000));
+  EXPECT_EQ(50, cras_frames_to_ms(800, 16000));
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {

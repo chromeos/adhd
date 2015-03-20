@@ -60,6 +60,13 @@ static inline unsigned int cras_time_to_frames(const struct timespec *t,
 	return t->tv_nsec * (uint64_t)rate / 1000000000 + rate * t->tv_sec;
 }
 
+/* Converts a number of frames to a duration in ms. */
+static inline unsigned int cras_frames_to_ms(unsigned int frames,
+					     unsigned int rate)
+{
+	return 1000 * frames / rate;
+}
+
 /* Makes a file descriptor non blocking. */
 int cras_make_fd_nonblocking(int fd);
 
