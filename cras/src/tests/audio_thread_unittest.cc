@@ -535,6 +535,36 @@ TEST_F(StreamDeviceSuite, DisconnectCaptureStreamNoInternalMic) {
   EXPECT_EQ(cras_iodev_close_called, 1);
 }
 
+TEST(AUdioThreadStreams, DrainStream) {
+  struct cras_rstream rstream;
+  struct cras_audio_shm_area shm_area;
+  struct audio_thread thread;
+
+  memset(&rstream, 0, sizeof(rstream));
+  memset(&shm_area, 0, sizeof(shm_area));
+  rstream.shm.config.frame_bytes = 4;
+  shm_area.config.frame_bytes = 4;
+  shm_area.config.used_size = 4096 * 4;
+  rstream.shm.config.used_size = 4096 * 4;
+  rstream.shm.area = &shm_area;
+  rstream.format.frame_rate = 48000;
+  rstream.direction = CRAS_STREAM_OUTPUT;
+
+  shm_area.write_offset[0] = 1 * 4;
+  EXPECT_EQ(1, thread_drain_stream_ms_remaining(&thread, &rstream));
+
+  shm_area.write_offset[0] = 479 * 4;
+  EXPECT_EQ(10, thread_drain_stream_ms_remaining(&thread, &rstream));
+
+  shm_area.write_offset[0] = 0;
+  EXPECT_EQ(0, thread_drain_stream_ms_remaining(&thread, &rstream));
+
+  rstream.direction = CRAS_STREAM_INPUT;
+  shm_area.write_offset[0] = 479 * 4;
+  EXPECT_EQ(0, thread_drain_stream_ms_remaining(&thread, &rstream));
+}
+
+
 extern "C" {
 
 int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)

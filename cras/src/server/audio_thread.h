@@ -151,6 +151,18 @@ int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream,
 			    struct cras_iodev *dev);
 
+/* Begin draining a stream and check the draining status.
+ * Args:
+ *    thread - a pointer to the audio thread.
+ *    stream - the stream to drain/remove.
+ * Returns:
+ *    zero if the stream is drained and can be deleted.  If the stream is not
+ *    completely drained, then the number of milliseconds until is is drained
+ *    are returned.
+ */
+int audio_thread_drain_stream(struct audio_thread *thread,
+			      struct cras_rstream *stream);
+
 /* Disconnect a stream from the client.
  * Args:
  *    thread - a pointer to the audio thread.

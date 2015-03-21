@@ -43,6 +43,7 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_SUSPEND,
 	AUDIO_THREAD_RESUME,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
+	AUDIO_THREAD_DRAIN_STREAM,
 };
 
 struct audio_thread_msg {
@@ -761,6 +762,50 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	return 0;
 }
 
+/* Initiates draining of a stream or returns the status of a drainging stream.
+ * If the stream has completed draining the thread forfeits ownership and must
+ * never reference it again.  Returns the number of milliseconds it will take to
+ * finish draining, a minimum of one ms if any samples remain.
+ */
+static int thread_drain_stream_ms_remaining(struct audio_thread *thread,
+					    struct cras_rstream *rstream)
+{
+	int fr_in_buff;
+	struct cras_audio_shm *shm;
+
+	if (rstream->direction != CRAS_STREAM_OUTPUT)
+		return 0;
+
+	shm = cras_rstream_output_shm(rstream);
+	fr_in_buff = cras_shm_get_frames(shm);
+
+	if (fr_in_buff <= 0)
+		return 0;
+
+	cras_rstream_set_is_draining(rstream, 1);
+
+	return 1 + cras_frames_to_ms(fr_in_buff, rstream->format.frame_rate);
+}
+
+/* Handles a request to begin draining and return the amount of time left to
+ * draing a stream.
+ */
+static int thread_drain_stream(struct audio_thread *thread,
+			       struct cras_rstream *rstream)
+{
+	int ms_left;
+
+	ms_left = thread_drain_stream_ms_remaining(thread, rstream);
+	if (ms_left == 0)
+		delete_stream(thread, rstream);
+
+	return ms_left;
+}
+
+/* Handles the a request to begin draining and return the amount of time left to
+ * draing a stream.
+ */
+
 /* Handles the add_stream message from the main thread. */
 static int thread_add_stream(struct audio_thread *thread,
 			     struct cras_rstream *stream,
@@ -1234,6 +1279,13 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		info->num_streams = num_streams;
 
 		memcpy(&info->log, atlog, sizeof(info->log));
+		break;
+	}
+	case AUDIO_THREAD_DRAIN_STREAM: {
+		struct audio_thread_add_rm_stream_msg *rmsg;
+
+		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
+		ret = thread_drain_stream(thread, rmsg->stream);
 		break;
 	}
 	default:
@@ -1994,6 +2046,19 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 	assert(thread && stream);
 
 	msg.header.id = AUDIO_THREAD_DISCONNECT_STREAM;
+	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
+	msg.stream = stream;
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_drain_stream(struct audio_thread *thread,
+			      struct cras_rstream *stream)
+{
+	struct audio_thread_add_rm_stream_msg msg;
+
+	assert(thread && stream);
+
+	msg.header.id = AUDIO_THREAD_DRAIN_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
 	return audio_thread_post_message(thread, &msg.header);
