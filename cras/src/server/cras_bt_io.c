@@ -323,8 +323,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 		goto error;
 	btio->device = device;
 
-	bt_switch_to_profile(device, profile);
-
 	iodev = &btio->base;
 	iodev->direction = dev->direction;
 	strcpy(iodev->info.name, dev->info.name);
@@ -361,6 +359,12 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	node = add_profile_dev(&btio->base, dev, profile);
 	if (node == NULL)
 		goto error;
+
+	/* Default active profile to a2dp whenever it's allowed. */
+	if (!cras_bt_device_get_active_profile(device) ||
+	    (profile == CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE &&
+	     cras_bt_device_can_switch_to_a2dp(device)))
+		bt_switch_to_profile(device, profile);
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		err = cras_iodev_list_add_output(iodev);

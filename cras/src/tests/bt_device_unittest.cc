@@ -107,6 +107,8 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   EXPECT_EQ(0, cras_bt_io_append_called);
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE,
             cras_bt_io_create_profile_val);
+  cras_bt_device_set_active_profile(device,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
 
   cras_bt_device_append_iodev(device, &d2_,
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
@@ -132,6 +134,7 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   cras_bt_device_rm_iodev(device, &d1_);
   EXPECT_EQ(1, cras_bt_io_remove_called);
   EXPECT_EQ(1, cras_bt_io_destroy_called);
+  EXPECT_EQ(0, cras_bt_device_get_active_profile(device));
 }
 
 TEST_F(BtDeviceTestSuite, SwitchProfile) {

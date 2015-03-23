@@ -278,6 +278,10 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 		if (!try_profile) {
 			device->bt_iodevs[iodev->direction] = NULL;
 			cras_bt_io_destroy(bt_iodev);
+
+			if (!device->bt_iodevs[CRAS_STREAM_INPUT] &&
+			    !device->bt_iodevs[CRAS_STREAM_OUTPUT])
+				cras_bt_device_set_active_profile(device, 0);
 			return;
 		} else {
 			/* If the check result doesn't match with the active
