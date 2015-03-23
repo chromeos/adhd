@@ -269,6 +269,17 @@ int cras_system_add_select_fd(int fd,
   return 0;
 }
 
+/* From cras_system_state */
+struct cras_tm *cras_system_state_get_tm()
+{
+  return NULL;
+}
+
+/* From cras_tm */
+void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t)
+{
+}
+
 } // extern "C"
 } // namespace
 

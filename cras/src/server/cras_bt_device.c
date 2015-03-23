@@ -23,11 +23,30 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_system_state.h"
+#include "cras_tm.h"
 #include "utlist.h"
 
 #define DEFAULT_HFP_MTU_BYTES 48
 
 
+/* Object to represent a general bluetooth device, and used to
+ * associate with some CRAS modules if it supports audio.
+ * Members:
+ *    object_path - Object path of the bluetooth device.
+ *    adapter - The adapter object associates with this device.
+ *    address - The BT address of this device.
+ *    name - The readable name of this device.
+ *    bluetooth_class - The bluetooth class of this device.
+ *    paired - If this device is paired.
+ *    trusted - If this device is trusted.
+ *    connected - If this devices is connected.
+ *    profiles - OR'ed by all audio profiles this device supports.
+ *    bt_iodevs - The pointer to the cras_iodevs of this device.
+ *    active_profile - The flag to indicate the active audio profile this
+ *        device is currently using.
+ *    a2dp_delay_timer - The timer used to delay the allocation of HFP/HSP
+ *        stuff until a2dp connection is established.
+ */
 struct cras_bt_device {
 	char *object_path;
 	struct cras_bt_adapter *adapter;
@@ -40,6 +59,7 @@ struct cras_bt_device {
 	enum cras_bt_device_profile profiles;
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	unsigned int active_profile;
+	struct cras_timer *a2dp_delay_timer;
 
 	struct cras_bt_device *prev, *next;
 };
@@ -244,6 +264,12 @@ int cras_bt_device_connected(const struct cras_bt_device *device)
 	return device->connected;
 }
 
+int cras_bt_device_supports_profile(const struct cras_bt_device *device,
+				    enum cras_bt_device_profile profile)
+{
+	return !!(device->profiles & profile);
+}
+
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				 struct cras_iodev *iodev,
 				 enum cras_bt_device_profile profile)
@@ -311,6 +337,22 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 
 	return cras_bt_device_has_a2dp(device) &&
 		(!idev || !idev->is_open(idev));
+}
+
+void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
+					struct cras_timer *timer)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (device->a2dp_delay_timer)
+		cras_tm_cancel_timer(tm, device->a2dp_delay_timer);
+
+	device->a2dp_delay_timer = timer;
+}
+
+void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device)
+{
+	device->a2dp_delay_timer = NULL;
 }
 
 int cras_bt_device_get_active_profile(const struct cras_bt_device *device)

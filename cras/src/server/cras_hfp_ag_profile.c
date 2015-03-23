@@ -15,6 +15,8 @@
 #include "cras_hfp_info.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_slc.h"
+#include "cras_system_state.h"
+#include "cras_tm.h"
 #include "utlist.h"
 
 #define STR(s) #s
@@ -68,6 +70,9 @@
 	"  </attribute>"						\
 	"</record>"
 
+static const unsigned int A2DP_RETRY_DELAY_MS = 500;
+static const unsigned int A2DP_MAX_RETRIES = 10;
+
 /* Object representing the audio gateway role for HFP/HSP.
  * Members:
  *    idev - The input iodev for HFP/HSP.
@@ -75,6 +80,8 @@
  *    info - The hfp_info object for SCO audio.
  *    slc_handle - The service level connection.
  *    device - The bt device associated with this audio gateway.
+ *    a2dp_delay_retries - The number of retries left to delay starting
+ *        the hfp/hsp audio gateway to wait for a2dp connection.
  *    conn - The dbus connection used to send message to bluetoothd.
  *    profile - The profile enum of this audio gateway.
  */
@@ -84,6 +91,7 @@ struct audio_gateway {
 	struct hfp_info *info;
 	struct hfp_slc_handle *slc_handle;
 	struct cras_bt_device *device;
+	int a2dp_delay_retries;
 	DBusConnection *conn;
 	enum cras_bt_device_profile profile;
 	struct audio_gateway *prev, *next;
@@ -124,23 +132,9 @@ static int has_audio_gateway(struct cras_bt_device *device)
 	return 0;
 }
 
-static void cras_hfp_ag_release(struct cras_bt_profile *profile)
+/* Creates the iodevs to start the audio gateway. */
+static int start_audio_gateway(struct audio_gateway *ag)
 {
-	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
-		DL_DELETE(connected_ags, ag);
-		destroy_audio_gateway(ag);
-	}
-}
-
-static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
-{
-	struct audio_gateway *ag;
-
-	DL_SEARCH_SCALAR(connected_ags, ag, slc_handle, handle);
-	if (!ag)
-		return -EINVAL;
-
 	ag->info = hfp_info_create();
 	ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
 				    ag->profile, ag->info);
@@ -152,6 +146,69 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 		return -ENOMEM;
         }
 
+	return 0;
+}
+
+static void cras_hfp_ag_release(struct cras_bt_profile *profile)
+{
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		DL_DELETE(connected_ags, ag);
+		destroy_audio_gateway(ag);
+	}
+}
+
+/* Checks if a2dp connection is present. If not then delay the
+ * start of audio gateway until the max number of retry is reached.
+ */
+static void a2dp_delay_cb(struct cras_timer *timer, void *arg)
+{
+	struct audio_gateway *ag = (struct audio_gateway *)arg;
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	cras_bt_device_rm_a2dp_delay_timer(ag->device);
+
+	if (cras_bt_device_has_a2dp(ag->device))
+		goto start_ag;
+
+	if (--ag->a2dp_delay_retries == 0)
+		goto start_ag;
+
+	cras_bt_device_add_a2dp_delay_timer(
+			ag->device,
+			cras_tm_create_timer(tm, A2DP_RETRY_DELAY_MS,
+					     a2dp_delay_cb, ag));
+	return;
+
+start_ag:
+	if (start_audio_gateway(ag))
+		syslog(LOG_ERR, "Start audio gateway failed");
+}
+
+static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
+{
+	struct audio_gateway *ag;
+	struct cras_tm *tm = cras_system_state_get_tm();
+	int rc;
+
+	DL_SEARCH_SCALAR(connected_ags, ag, slc_handle, handle);
+	if (!ag)
+		return -EINVAL;
+
+	/* This is a HFP/HSP only headset. */
+	if (!cras_bt_device_supports_profile(
+			ag->device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
+		rc = start_audio_gateway(ag);
+		if (rc)
+			syslog(LOG_ERR, "Start audio gateway failed");
+		return rc;
+	}
+
+	ag->a2dp_delay_retries = A2DP_MAX_RETRIES;
+	cras_bt_device_add_a2dp_delay_timer(
+			ag->device,
+			cras_tm_create_timer(tm, A2DP_RETRY_DELAY_MS,
+					     a2dp_delay_cb, ag));
 	return 0;
 }
 

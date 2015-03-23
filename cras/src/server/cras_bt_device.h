@@ -11,6 +11,7 @@
 struct cras_bt_adapter;
 struct cras_bt_device;
 struct cras_iodev;
+struct cras_timer;
 
 enum cras_bt_device_profile {
 	CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE	= (1 << 0),
@@ -44,6 +45,10 @@ int cras_bt_device_connected(const struct cras_bt_device *device);
 void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
+
+/* Checks if profile is claimed supported by the device. */
+int cras_bt_device_supports_profile(const struct cras_bt_device *device,
+				    enum cras_bt_device_profile profile);
 
 /* Forces disconnect the bt device. Used when handling audio error
  * that we want to make the device be completely disconnected from
@@ -129,5 +134,12 @@ int cras_bt_device_has_a2dp(struct cras_bt_device *device);
  * is not opening for audio capture.
  */
 int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);
+
+/* Adds an a2dp delay timer to this device. */
+void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
+					 struct cras_timer *timer);
+
+/* Removes any a2dp delay timer from this device. */
+void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device);
 
 #endif /* CRAS_BT_DEVICE_H_ */
