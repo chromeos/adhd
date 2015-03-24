@@ -576,8 +576,9 @@ static void audio_debug_info(struct cras_client *client)
 
 	for (i = 0; i < info->num_streams; i++) {
 		int channel;
-		printf("stream: %llx\n",
-		       (unsigned long long)info->streams[i].stream_id);
+		printf("stream: %llx dev: %x\n",
+		       (unsigned long long)info->streams[i].stream_id,
+		       (unsigned int)info->streams[i].dev_idx);
 		printf("%d %u %u %u %u %u\n",
 		       info->streams[i].direction,
 		       (unsigned int)info->streams[i].buffer_frames,

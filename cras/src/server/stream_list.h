@@ -17,7 +17,7 @@ struct stream_list *stream_list_create(stream_callback *add_cb,
 
 void stream_list_destroy(struct stream_list *list);
 
-const struct cras_rstream * stream_list_get(struct stream_list *list);
+struct cras_rstream *stream_list_get(struct stream_list *list);
 
 int stream_list_add(struct stream_list *list, struct cras_rstream *stream);
 

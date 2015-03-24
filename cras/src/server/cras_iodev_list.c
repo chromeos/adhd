@@ -39,6 +39,8 @@ struct enabled_dev {
 static struct iodev_list devs[CRAS_NUM_DIRECTIONS];
 /* Keep a list of enabled inputs and outputs. */
 static struct enabled_dev *enabled_devs[CRAS_NUM_DIRECTIONS];
+/* Keep an empty device per direction. */
+static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
 /* Keep loopback input and output. */
 static struct cras_iodev *loopback_output;
 static struct cras_iodev *loopback_input;
@@ -315,22 +317,210 @@ void sys_cap_mute_change(void *data)
 	}
 }
 
+/* Open the device potentially filling the output with a pre buffer. */
+static int init_device(struct cras_iodev *dev,
+		       struct cras_rstream *rstream)
+{
+	int rc;
+	struct cras_audio_format fmt;
+
+	if (cras_iodev_is_open(dev))
+		return 0;
+
+	if (dev->ext_format == NULL) {
+		fmt = rstream->format;
+		rc = cras_iodev_set_format(dev, &fmt);
+		if (rc)
+			return rc;
+	}
+
+	rc = cras_iodev_open(dev);
+	if (rc)
+		return rc;
+
+	dev->min_cb_level = rstream->cb_threshold;
+	dev->max_cb_level = 0;
+
+	rc = audio_thread_add_open_dev(audio_thread, dev);
+	if (rc)
+		cras_iodev_close(dev);
+	return rc;
+}
+
 static int stream_added_cb(struct cras_rstream *rstream)
 {
-	struct cras_iodev *dev = NULL;
+	struct enabled_dev *edev;
+	int rc;
 
 	/* Check that the target device is valid for pinned streams. */
 	if (rstream->is_pinned) {
+		struct cras_iodev *dev;
 		dev = cras_iodev_list_find_dev(rstream->pinned_dev_idx);
 		if (!dev)
 			return -EINVAL;
+		rc = audio_thread_add_stream(audio_thread, rstream, dev);
+		if (rc)
+			return rc;
+
+		return init_device(dev, rstream);
 	}
-	return audio_thread_add_stream(audio_thread, rstream, dev);
+	DL_FOREACH(enabled_devs[rstream->direction], edev) {
+		init_device(edev->dev, rstream);
+		rc = audio_thread_add_stream(audio_thread, rstream, edev->dev);
+		if (rc)
+			syslog(LOG_ERR, "adding stream to thread");
+	}
+	return 0;
+}
+
+static int dev_has_pinned_stream(unsigned int dev_idx)
+{
+	const struct cras_rstream *rstream;
+
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->pinned_dev_idx == dev_idx)
+			return 1;
+	}
+	return 0;
+}
+
+static int dev_is_enabled(struct cras_iodev *dev)
+{
+	struct enabled_dev *edev;
+
+	DL_FOREACH(enabled_devs[dev->direction], edev) {
+		if (edev->dev == dev)
+			return 1;
+	}
+
+	return 0;
+}
+
+static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
+{
+	struct enabled_dev *edev;
+	const struct cras_rstream *s;
+
+	/* Check if there are still streams attached. */
+	DL_FOREACH(stream_list_get(stream_list), s) {
+		if (s->direction == dir)
+			return 0;
+	}
+
+	/* No more default streams, close any device that doesn't have a stream
+	 * pinned to it. */
+	DL_FOREACH(enabled_devs[dir], edev) {
+		if (dev_has_pinned_stream(edev->dev->info.idx))
+			continue;
+		audio_thread_rm_open_dev(audio_thread, edev->dev, 0);
+		cras_iodev_close(edev->dev);
+	}
+
+	return 0;
+}
+
+static void pinned_stream_removed(struct cras_rstream *rstream)
+{
+	struct cras_iodev *dev;
+
+	dev = find_dev(rstream->pinned_dev_idx);
+	if (!dev_is_enabled(dev) &&
+	    !dev_has_pinned_stream(rstream->pinned_dev_idx)) {
+		audio_thread_rm_open_dev(audio_thread, dev, 1);
+		cras_iodev_close(dev);
+	}
 }
 
 static int stream_removed_cb(struct cras_rstream *rstream)
 {
-	return audio_thread_disconnect_stream(audio_thread, rstream);
+	enum CRAS_STREAM_DIRECTION direction = rstream->direction;
+	int rc;
+
+	rc = audio_thread_disconnect_stream(audio_thread, rstream, NULL);
+	if (rc)
+		return rc;
+
+	if (rstream->is_pinned)
+		pinned_stream_removed(rstream);
+
+	return possibly_close_enabled_devs(direction);
+}
+
+static int disable_device(struct enabled_dev *edev, int is_removal);
+
+static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
+{
+	struct enabled_dev *edev;
+
+	DL_FOREACH(enabled_devs[dir], edev) {
+		if (edev->dev == fallback_devs[dir])
+			disable_device(edev, 1);
+	}
+}
+
+static int enable_device(struct cras_iodev *dev)
+{
+	struct enabled_dev *edev;
+	struct cras_rstream *stream;
+	enum CRAS_STREAM_DIRECTION dir = dev->direction;
+
+	DL_FOREACH(enabled_devs[dir], edev) {
+		if (edev->dev == dev)
+			return -EEXIST;
+	}
+
+	edev = calloc(1, sizeof(*edev));
+	edev->dev = dev;
+	DL_APPEND(enabled_devs[dir], edev);
+
+	/* If there are active streams to attach to this device, open it. */
+	DL_FOREACH(stream_list_get(stream_list), stream) {
+		if (stream->direction == dir && !stream->is_pinned) {
+			init_device(dev, stream);
+			audio_thread_add_stream(audio_thread, stream, dev);
+		}
+	}
+
+	return 0;
+}
+
+static int disable_device(struct enabled_dev *edev, int is_removal)
+{
+	struct cras_iodev *dev = edev->dev;
+	enum CRAS_STREAM_DIRECTION dir = dev->direction;
+	struct cras_rstream *stream;
+
+	DL_DELETE(enabled_devs[dir], edev);
+	free(edev);
+
+	/* Pull all default streams off this device. */
+	DL_FOREACH(stream_list_get(stream_list), stream) {
+		if (stream->direction != dev->direction || stream->is_pinned)
+			continue;
+		audio_thread_disconnect_stream(audio_thread, stream, dev);
+	}
+	if (cras_iodev_is_open(dev) && !dev_has_pinned_stream(dev->info.idx)) {
+		/* No pinned streams, close the device. */
+		audio_thread_rm_open_dev(audio_thread, dev, 1);
+		cras_iodev_close(dev);
+	}
+
+	return 0;
+}
+
+static int cras_iodev_set_active(struct cras_iodev *new_active)
+{
+	struct enabled_dev *edev;
+
+	cras_iodev_list_notify_active_node_changed();
+
+	DL_FOREACH(enabled_devs[new_active->direction], edev) {
+		disable_device(edev, 0);
+	}
+
+	new_active->update_active_node(new_active);
+
+	return enable_device(new_active);
 }
 
 /*
@@ -339,8 +529,6 @@ static int stream_removed_cb(struct cras_rstream *rstream)
 
 void cras_iodev_list_init()
 {
-	struct cras_iodev *fallback_output, *fallback_input;
-
 	cras_system_register_volume_changed_cb(sys_vol_change, NULL);
 	cras_system_register_mute_changed_cb(sys_mute_change, NULL);
 	cras_system_register_suspend_cb(sys_suspend_change, NULL);
@@ -355,11 +543,14 @@ void cras_iodev_list_init()
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */
-	fallback_output = empty_iodev_create(CRAS_STREAM_OUTPUT);
-	fallback_input = empty_iodev_create(CRAS_STREAM_INPUT);
+	fallback_devs[CRAS_STREAM_OUTPUT] =
+			empty_iodev_create(CRAS_STREAM_OUTPUT);
+	fallback_devs[CRAS_STREAM_INPUT] =
+			empty_iodev_create(CRAS_STREAM_INPUT);
+	enable_device(fallback_devs[CRAS_STREAM_OUTPUT]);
+	enable_device(fallback_devs[CRAS_STREAM_INPUT]);
 	loopback_iodev_create(&loopback_input, &loopback_output);
-	audio_thread = audio_thread_create(fallback_output, fallback_input,
-					   loopback_output, loopback_input);
+	audio_thread = audio_thread_create(loopback_output, loopback_input);
 	audio_thread_start(audio_thread);
 
 	/* Add loopback capture device to input device list. */
@@ -384,34 +575,6 @@ void cras_iodev_list_deinit()
 	stream_list_destroy(stream_list);
 }
 
-static void cras_iodev_set_active(enum CRAS_STREAM_DIRECTION dir,
-				  struct cras_iodev *new_active)
-{
-	struct cras_iodev *dev;
-	struct enabled_dev *adev;
-
-	cras_iodev_list_notify_active_node_changed();
-
-	adev = calloc(1, sizeof(*adev));
-	if (!adev)
-		return;
-	adev->dev = new_active;
-
-	if (dir == CRAS_STREAM_OUTPUT) {
-		DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-			audio_thread_rm_active_dev(audio_thread, dev, 0);
-		}
-		DL_APPEND(enabled_devs[CRAS_STREAM_OUTPUT], adev);
-	} else {
-		DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
-			audio_thread_rm_active_dev(audio_thread, dev, 0);
-		}
-		DL_APPEND(enabled_devs[CRAS_STREAM_INPUT], adev);
-	}
-
-	audio_thread_add_active_dev(audio_thread, new_active);
-}
-
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 				     cras_node_id_t node_id)
 {
@@ -420,19 +583,28 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (!new_dev || new_dev->direction != dir)
 		return;
 
-	audio_thread_add_active_dev(audio_thread, new_dev);
+	possibly_disable_fallback(dir);
+	enable_device(new_dev);
 }
 
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 				    cras_node_id_t node_id)
 {
 	struct cras_iodev *dev;
+	struct enabled_dev *edev;
 
 	dev = find_dev(dev_index_of(node_id));
 	if (!dev)
 		return;
 
-	audio_thread_rm_active_dev(audio_thread, dev, 0);
+	DL_FOREACH(enabled_devs[dir], edev) {
+		if (edev->dev == dev) {
+			disable_device(edev, 0);
+			if (!enabled_devs[dir])
+				enable_device(fallback_devs[dir]);
+			return;
+		}
+	}
 }
 
 struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
@@ -471,16 +643,14 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 int cras_iodev_list_rm_output(struct cras_iodev *dev)
 {
 	int res;
-	struct enabled_dev *adev;
+	struct enabled_dev *edev;
 
 	/* Retire the current active output device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	audio_thread_rm_active_dev(audio_thread, dev, 1);
-	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], adev) {
-		if (adev->dev == dev) {
-			DL_DELETE(enabled_devs[CRAS_STREAM_OUTPUT], adev);
-			free(adev);
+	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+		if (edev->dev == dev) {
+			disable_device(edev, 1);
 			break;
 		}
 	}
@@ -493,16 +663,14 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 int cras_iodev_list_rm_input(struct cras_iodev *dev)
 {
 	int res;
-	struct enabled_dev *adev;
+	struct enabled_dev *edev;
 
 	/* Retire the current active input device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	audio_thread_rm_active_dev(audio_thread, dev, 1);
-	DL_FOREACH(enabled_devs[CRAS_STREAM_INPUT], adev) {
-		if (adev->dev == dev) {
-			DL_DELETE(enabled_devs[CRAS_STREAM_INPUT], adev);
-			free(adev);
+	DL_FOREACH(enabled_devs[CRAS_STREAM_INPUT], edev) {
+		if (edev->dev == dev) {
+			disable_device(edev, 1);
 			break;
 		}
 	}
@@ -633,9 +801,8 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 
 	/* update new device */
 	if (new_dev) {
-		new_dev->update_active_node(new_dev);
 		/* There is an iodev and it isn't the default, switch to it. */
-		cras_iodev_set_active(new_dev->direction, new_dev);
+		cras_iodev_set_active(new_dev);
 	}
 
 	/* update old device if it is not the same device */

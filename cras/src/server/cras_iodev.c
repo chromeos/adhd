@@ -481,12 +481,10 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 	struct dev_stream *ret = NULL;
 	unsigned int cb_threshold;
 
-	buffer_share_rm_id(iodev->buf_state, rstream->stream_id);
-	iodev->min_cb_level = iodev->buffer_size;
-	iodev->max_cb_level = 0;
-
 	DL_FOREACH(iodev->streams, out) {
 		if (out->stream == rstream) {
+			buffer_share_rm_id(iodev->buf_state,
+					   rstream->stream_id);
 			ret = out;
 			DL_DELETE(iodev->streams, out);
 			continue;

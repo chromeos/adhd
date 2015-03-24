@@ -29,15 +29,20 @@ void stream_list_destroy(struct stream_list *list)
 	free(list);
 }
 
-const struct cras_rstream *stream_list_get(struct stream_list *list)
+struct cras_rstream *stream_list_get(struct stream_list *list)
 {
 	return list->streams;
 }
 
 int stream_list_add(struct stream_list *list, struct cras_rstream *stream)
 {
+	int rc;
+
 	DL_APPEND(list->streams, stream);
-	return list->stream_added_cb(stream);
+	rc = list->stream_added_cb(stream);
+	if (rc)
+		DL_DELETE(list->streams, stream);
+	return rc;
 }
 
 struct cras_rstream *stream_list_rm(struct stream_list *list,

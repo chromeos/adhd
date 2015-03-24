@@ -51,14 +51,20 @@ static int cras_alert_pending_called;
 static cras_iodev *audio_thread_remove_streams_active_dev;
 static cras_iodev *audio_thread_set_active_dev_val;
 static int audio_thread_set_active_dev_called;
-static cras_iodev *audio_thread_add_active_dev_dev;
-static int audio_thread_add_active_dev_called;
-static int audio_thread_rm_active_dev_called;
+static cras_iodev *audio_thread_add_open_dev_dev;
+static int audio_thread_add_open_dev_called;
+static int audio_thread_rm_open_dev_called;
 static int audio_thread_suspend_called;
 static int audio_thread_resume_called;
 static struct audio_thread thread;
 static int node_left_right_swapped_cb_called;
 static struct cras_iodev loopback_input;
+static int cras_iodev_close_called;
+static struct cras_iodev dummy_empty_iodev[2];
+static stream_callback *stream_add_cb;
+static stream_callback *stream_rm_cb;
+static int iodev_is_open;
+static int empty_iodev_is_open[CRAS_NUM_DIRECTIONS];
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -66,10 +72,20 @@ void node_left_right_swapped_cb(cras_node_id_t, int)
   node_left_right_swapped_cb_called++;
 }
 
+/* For iodev is_open. */
+int cras_iodev_is_open_stub(const struct cras_iodev *dev) {
+  enum CRAS_STREAM_DIRECTION dir = dev->direction;
+  if (dev == &dummy_empty_iodev[dir])
+    return empty_iodev_is_open[dir];
+  return iodev_is_open;
+}
+
 class IoDevTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       cras_iodev_list_reset();
+
+      cras_iodev_close_called = 0;
 
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
@@ -168,8 +184,8 @@ class IoDevTestSuite : public testing::Test {
       cras_alert_destroy_called = 0;
       cras_alert_pending_called = 0;
       is_open_ = 0;
-      audio_thread_rm_active_dev_called = 0;
-      audio_thread_add_active_dev_called = 0;
+      audio_thread_rm_open_dev_called = 0;
+      audio_thread_add_open_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
       audio_thread_suspend_called = 0;
       audio_thread_resume_called = 0;
@@ -500,11 +516,16 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
 
 TEST_F(IoDevTestSuite, AddActiveNode) {
   int rc;
+  struct cras_rstream rstream;
+
+  memset(&rstream, 0, sizeof(rstream));
+
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   d2_.direction = CRAS_STREAM_OUTPUT;
   d3_.direction = CRAS_STREAM_OUTPUT;
+  d3_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
   rc = cras_iodev_list_add_output(&d2_);
@@ -512,12 +533,25 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   rc = cras_iodev_list_add_output(&d3_);
   ASSERT_EQ(0, rc);
 
+  iodev_is_open = 0;
+  audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d3_.info.idx, 1));
-  ASSERT_EQ(audio_thread_add_active_dev_called, 1);
+  ASSERT_EQ(audio_thread_add_open_dev_called, 0);
+  ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
 
+  // If a stream is added, the device should be opened.
+  stream_add_cb(&rstream);
+  ASSERT_EQ(audio_thread_add_open_dev_called, 1);
+  iodev_is_open = 1;
+  audio_thread_rm_open_dev_called = 0;
+  stream_rm_cb(&rstream);
+  ASSERT_EQ(audio_thread_rm_open_dev_called, 1);
+  iodev_is_open = 0;
+
+  audio_thread_rm_open_dev_called = 0;
   cras_iodev_list_rm_output(&d3_);
-  ASSERT_EQ(audio_thread_rm_active_dev_called, 1);
+  ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
 
   /* Assert active devices was set to default one, when selected device
    * removed. */
@@ -543,9 +577,151 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
   id = cras_make_node_id(d2_.info.idx, 1);
 
   cras_iodev_list_rm_active_node(CRAS_STREAM_OUTPUT, id);
-  ASSERT_EQ(audio_thread_rm_active_dev_called, 1);
+  ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
 
 }
+
+// TODO(chinyue) make these tests work
+#if 0
+TEST_F(StreamDeviceSuite, AddPinnedStream) {
+  struct cras_iodev iodev;
+  struct cras_iodev iodev2;
+  struct cras_rstream pstream;
+  struct active_dev *adev;
+  struct dev_stream *dev_stream;
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
+  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev);
+
+  // Add active device and check a pinned stream can be added.
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &pstream, &iodev);
+  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(adev->for_pinned_streams, 0);
+  dev_stream = iodev.streams;
+  EXPECT_EQ(dev_stream->stream, &pstream);
+  EXPECT_EQ(pstream.is_pinned, 1);
+
+  // Add another active device and check pinned stream is not copied over.
+  thread_add_open_dev(thread_, &iodev2);
+  dev_stream = iodev2.streams;
+  EXPECT_EQ(dev_stream, (void *)NULL);
+}
+
+TEST_F(StreamDeviceSuite, AddPinnedStreamToInactiveDevice) {
+  struct cras_iodev iodev;
+  struct cras_iodev iodev2;
+  struct cras_rstream pstream;
+  struct cras_rstream pstream2;
+  struct cras_rstream rstream;
+  struct active_dev *adev;
+  struct dev_stream *dev_stream;
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
+  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev2);
+  SetupPinnedStream(&pstream2, CRAS_STREAM_OUTPUT, &iodev2);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+
+  thread_add_open_dev(thread_, &iodev);
+
+  // Add a pinned stream to inactive device, check the device is activated and
+  // pinned stream added.
+  thread_add_stream(thread_, &pstream, &iodev2);
+  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(adev->dev, &iodev);
+  EXPECT_EQ(adev->next->dev, &iodev2);
+  EXPECT_EQ(adev->next->for_pinned_streams, 1);
+  EXPECT_EQ(iodev2.is_active, 1);
+
+  // Add a normal stream, check it's not added to for_pinned_streams device.
+  thread_add_stream(thread_, &rstream, NULL);
+  dev_stream = iodev2.streams;
+  EXPECT_EQ(dev_stream->stream, &pstream);
+  EXPECT_EQ(dev_stream->next, (void *)NULL);
+
+  // Check adding another pinned stream to for_pinned_streams device.
+  thread_add_stream(thread_, &pstream2, &iodev2);
+  EXPECT_EQ(dev_stream->next->stream, &pstream2);
+
+  // Remove both pinned streams, check the device that was activated
+  // for_pinned_streams is inactive now.
+  thread_remove_stream(thread_, &pstream);
+  thread_remove_stream(thread_, &pstream2);
+  EXPECT_EQ(adev->dev, &iodev);
+  EXPECT_EQ(adev->next, (void *)NULL);
+  EXPECT_EQ(iodev2.is_active, 0);
+}
+
+TEST_F(StreamDeviceSuite, AddForPinnedStreamDeviceAsActive) {
+  struct cras_iodev iodev;
+  struct cras_iodev iodev2;
+  struct cras_rstream pstream;
+  struct cras_rstream rstream;
+  struct active_dev *adev;
+  struct dev_stream *dev_stream;
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
+  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev2);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &pstream, &iodev2);
+  thread_add_stream(thread_, &rstream, NULL);
+
+  // Set for_pinned_streams device as active, check normal streams are copied
+  // over.
+  thread_add_open_dev(thread_, &iodev2);
+  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(adev->dev, &iodev);
+  EXPECT_EQ(adev->next->dev, &iodev2);
+  EXPECT_EQ(adev->next->for_pinned_streams, 0);
+  EXPECT_EQ(iodev2.is_active, 1);
+  dev_stream = iodev2.streams;
+  EXPECT_EQ(dev_stream->stream, &pstream);
+  EXPECT_EQ(dev_stream->next->stream, &rstream);
+}
+
+TEST_F(StreamDeviceSuite, RemoveActiveDeviceWithPinnedStreams) {
+  struct cras_iodev iodev;
+  struct cras_iodev iodev2;
+  struct cras_iodev iodev3;
+  struct cras_rstream rstream;
+  struct cras_rstream pstream;
+  struct cras_rstream pstream2;
+  struct active_dev *adev;
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
+  SetupDevice(&iodev3, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev2);
+  SetupPinnedStream(&pstream2, CRAS_STREAM_OUTPUT, &iodev3);
+
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_open_dev(thread_, &iodev2);
+  thread_add_open_dev(thread_, &iodev3);
+  thread_add_stream(thread_, &rstream, NULL);
+  thread_add_stream(thread_, &pstream, &iodev2);
+  thread_add_stream(thread_, &pstream2, &iodev3);
+
+  // Remove first 2 active devices with is_device_removal=1.
+  thread_rm_open_dev(thread_, &iodev, 1);
+  thread_rm_open_dev(thread_, &iodev2, 1);
+  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(adev->dev, &iodev3);
+  EXPECT_EQ(adev->for_pinned_streams, 0);
+
+  // Remove last active device with is_device_removal=0, check it's still
+  // active because it has pinned streams.
+  thread_rm_open_dev(thread_, &iodev3, 0);
+  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(adev->dev, &iodev3);
+  EXPECT_EQ(adev->for_pinned_streams, 1);
+}
+#endif
 
 }  //  namespace
 
@@ -654,9 +830,7 @@ void cras_alert_destroy(struct cras_alert *alert) {
   cras_alert_destroy_called++;
 }
 
-struct audio_thread *audio_thread_create(struct cras_iodev *out,
-                                         struct cras_iodev *in,
-                                         struct cras_iodev *loop_out,
+struct audio_thread *audio_thread_create(struct cras_iodev *loop_out,
                                          struct cras_iodev *loop_in) {
   return &thread;
 }
@@ -694,19 +868,19 @@ void audio_thread_add_loopback_device(struct audio_thread *thread,
 				      struct cras_iodev *loop_dev) {
 }
 
-int audio_thread_add_active_dev(struct audio_thread *thread,
+int audio_thread_add_open_dev(struct audio_thread *thread,
 				 struct cras_iodev *dev)
 {
-  audio_thread_add_active_dev_dev = dev;
-  audio_thread_add_active_dev_called++;
+  audio_thread_add_open_dev_dev = dev;
+  audio_thread_add_open_dev_called++;
   return 0;
 }
 
-int audio_thread_rm_active_dev(struct audio_thread *thread,
+int audio_thread_rm_open_dev(struct audio_thread *thread,
                                struct cras_iodev *dev,
                                int is_device_removal)
 {
-  audio_thread_rm_active_dev_called++;
+  audio_thread_rm_open_dev_called++;
   return 0;
 }
 
@@ -718,7 +892,8 @@ int audio_thread_add_stream(struct audio_thread *thread,
 }
 
 int audio_thread_disconnect_stream(struct audio_thread *thread,
-                                   struct cras_rstream *stream)
+                                   struct cras_rstream *stream,
+                                   struct cras_iodev *iodev)
 {
   return 0;
 }
@@ -762,7 +937,9 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 }
 
 struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction) {
-  return NULL;
+  dummy_empty_iodev[direction].direction = direction;
+  dummy_empty_iodev[direction].is_open = cras_iodev_is_open_stub;
+  return &dummy_empty_iodev[direction];
 }
 
 struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
@@ -789,14 +966,38 @@ void loopback_iodev_destroy(struct cras_iodev *loop_in,
     cras_iodev_list_rm_input(loop_in);
 }
 
-struct stream_list *stream_list_create(stream_callback *add_cb,
-                                       stream_callback *rm_cb)
-{
-  return NULL;
+int cras_iodev_open(struct cras_iodev *iodev) {
+  enum CRAS_STREAM_DIRECTION dir = iodev->direction;
+  if (iodev == &dummy_empty_iodev[dir])
+    empty_iodev_is_open[dir] = 1;
+  return 0;
 }
 
-void stream_list_destroy(struct stream_list *list)
-{
+int cras_iodev_close(struct cras_iodev *iodev) {
+  enum CRAS_STREAM_DIRECTION dir = iodev->direction;
+  if (iodev == &dummy_empty_iodev[dir])
+    empty_iodev_is_open[dir] = 0;
+  cras_iodev_close_called++;
+  return 0;
+}
+
+int cras_iodev_set_format(struct cras_iodev *iodev,
+                          struct cras_audio_format *fmt) {
+  return 0;
+}
+
+struct stream_list *stream_list_create(stream_callback *add_cb,
+                                       stream_callback *rm_cb) {
+  stream_add_cb = add_cb;
+  stream_rm_cb = rm_cb;
+  return reinterpret_cast<stream_list *>(0xf00);
+}
+
+void stream_list_destroy(struct stream_list *list) {
+}
+
+struct cras_rstream *stream_list_get(struct stream_list *list) {
+  return NULL;
 }
 
 }  // extern "C"

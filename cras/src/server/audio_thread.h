@@ -16,21 +16,19 @@ struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;
 
-
-/* List of active input/output devices.
+/* Open input/output devices.
  *    dev - The device.
  *    wake_ts - When callback is needed to avoid xrun.
  *    coarse_rate_adjust - Hack for when the sample rate needs heavy correction.
- *    for_pinned_streams - True if the device is active only for pinned streams.
  *    input_streaming - For capture, has the input started?
  */
-struct active_dev {
+struct open_dev {
 	struct cras_iodev *dev;
 	struct timespec wake_ts;
 	int coarse_rate_adjust;
 	int for_pinned_streams;
 	int input_streaming;
-	struct active_dev *prev, *next;
+	struct open_dev *prev, *next;
 };
 
 /* Hold communication pipes and pthread info for the thread used to play or
@@ -40,9 +38,7 @@ struct active_dev {
  *    tid - Thread ID of the running playback/capture thread.
  *    started - Non-zero if the thread has started successfully.
  *    suspended - Non-zero if the thread is suspended.
- *    active_devs - Lists of active devices attached running for each
- *        CRAS_STREAM_DIRECTION.
- *    fallback_devs - One fallback device per direction (empty_iodev).
+ *    open_devs - Lists of open input and output devices.
  *    loopback_devs - Keep loopback input and output devices (loopback_iodev).
  */
 struct audio_thread {
@@ -51,8 +47,7 @@ struct audio_thread {
 	pthread_t tid;
 	int started;
 	int suspended;
-	struct active_dev *active_devs[CRAS_NUM_DIRECTIONS];
-	struct active_dev *fallback_devs[CRAS_NUM_DIRECTIONS];
+	struct open_dev *open_devs[CRAS_NUM_DIRECTIONS];
 	struct cras_iodev *loopback_devs[CRAS_NUM_DIRECTIONS];
 
 };
@@ -65,36 +60,32 @@ typedef int (*thread_callback)(void *data);
 
 /* Creates an audio thread.
  * Args:
- *    fallback_output - A device to play to when no output is active.
- *    fallback_input - A device to record from when no input is active.
  *    loopback_output - A device that keeps track of what the system is playing.
  *    loopback_input - A device to record what the system is playing.
  * Returns:
  *    A pointer to the newly create audio thread.  It must be freed by calling
  *    audio_thread_destroy().  Returns NULL on error.
  */
-struct audio_thread *audio_thread_create(struct cras_iodev *fallback_output,
-					 struct cras_iodev *fallback_input,
-					 struct cras_iodev *loopback_output,
+struct audio_thread *audio_thread_create(struct cras_iodev *loopback_output,
 					 struct cras_iodev *loopback_input);
 
-/* Adds an active device.
+/* Adds an open device.
  * Args:
- *    thread - The thread to add active device to.
- *    dev - The active device to add.
+ *    thread - The thread to add open device to.
+ *    dev - The open device to add.
  */
-int audio_thread_add_active_dev(struct audio_thread *thread,
-				struct cras_iodev *dev);
+int audio_thread_add_open_dev(struct audio_thread *thread,
+			      struct cras_iodev *dev);
 
-/* Removes an active device.
+/* Removes an open device.
  * Args:
- *    thread - The thread to remove active device from.
- *    dev - The active device to remove.
+ *    thread - The thread to remove open device from.
+ *    dev - The open device to remove.
  *    is_device_removal - True if the I/O device is being removed.
  */
-int audio_thread_rm_active_dev(struct audio_thread *thread,
-			       struct cras_iodev *dev,
-			       int is_device_removal);
+int audio_thread_rm_open_dev(struct audio_thread *thread,
+			     struct cras_iodev *dev,
+			     int is_device_removal);
 
 /* Adds an thread_callback to audio thread.
  * Args:
@@ -166,12 +157,14 @@ int audio_thread_drain_stream(struct audio_thread *thread,
 /* Disconnect a stream from the client.
  * Args:
  *    thread - a pointer to the audio thread.
- *    stream - the stream to be disonnected.
+ *    stream - the stream to be disconnected.
+ *    iodev - the device to disconnect from.
  * Returns:
  *    0 on success, negative if error.
  */
 int audio_thread_disconnect_stream(struct audio_thread *thread,
-			   	   struct cras_rstream *stream);
+				   struct cras_rstream *stream,
+				   struct cras_iodev *iodev);
 
 /* Dumps information about all active streams to syslog. */
 int audio_thread_dump_thread_info(struct audio_thread *thread,

@@ -663,7 +663,9 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		iodev = device->bt_iodevs[dir];
 		if (!iodev)
 			continue;
-		rc = audio_thread_rm_active_dev(thread, iodev, 0);
+		rc = audio_thread_rm_open_dev(thread, iodev, 0);
+                if (rc == 0)
+			cras_iodev_close(iodev);
 		is_active[dir] = !rc;
 	}
 
@@ -677,7 +679,8 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		if (is_active[dir] ||
 		    (on_open && iodev == bt_iodev)) {
 			iodev->update_active_node(iodev);
-			audio_thread_add_active_dev(thread, iodev);
+			cras_iodev_open(iodev);
+			audio_thread_add_open_dev(thread, iodev);
 		}
 	}
 }

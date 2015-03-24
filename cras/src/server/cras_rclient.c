@@ -90,6 +90,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
 			       stream->stream_id);
+		cras_rstream_destroy(stream);
 		goto reply_err;
 	}
 
@@ -129,6 +130,7 @@ static int handle_client_stream_disconnect(
 	close(aud_fd);
 
 	cras_system_state_stream_removed(removed->direction);
+	cras_rstream_destroy(removed);
 
 	return 0;
 }
@@ -183,6 +185,7 @@ void cras_rclient_destroy(struct cras_rclient *client)
 
 		close(aud_fd);
 		cras_system_state_stream_removed(removed->direction);
+		cras_rstream_destroy(removed);
 	}
 	free(client);
 }
