@@ -861,8 +861,10 @@ static void reopen_devs(struct audio_thread *thread,
 				continue;
 			}
 		}
-		if (cras_iodev_open(adev->dev) < 0)
+		if (cras_iodev_open(adev->dev) < 0) {
 			thread_rm_active_adev(thread, adev);
+			continue;
+		}
 
 		if (adev->dev->direction == CRAS_STREAM_OUTPUT)
 			fill_odevs_zeros_min_level(adev);
