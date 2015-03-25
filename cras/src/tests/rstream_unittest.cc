@@ -44,6 +44,7 @@ TEST_F(RstreamTestSuite, InvalidDirection) {
       &fmt_,
       4096,
       2048,
+      1,
       NULL,
       &s);
   EXPECT_NE(0, rc);
@@ -61,6 +62,7 @@ TEST_F(RstreamTestSuite, InvalidBufferSize) {
       &fmt_,
       3,
       2048,
+      1,
       NULL,
       &s);
   EXPECT_NE(0, rc);
@@ -78,6 +80,7 @@ TEST_F(RstreamTestSuite, InvalidCallbackThreshold) {
       &fmt_,
       4096,
       3,
+      1,
       NULL,
       &s);
   EXPECT_NE(0, rc);
@@ -94,6 +97,7 @@ TEST_F(RstreamTestSuite, InvalidStreamPointer) {
       &fmt_,
       4096,
       2048,
+      1,
       NULL,
       NULL);
   EXPECT_NE(0, rc);
@@ -115,6 +119,7 @@ TEST_F(RstreamTestSuite, CreateOutput) {
       &fmt_,
       4096,
       2048,
+      1,
       NULL,
       &s);
   EXPECT_EQ(0, rc);
@@ -161,6 +166,7 @@ TEST_F(RstreamTestSuite, CreateInput) {
       &fmt_,
       4096,
       2048,
+      1,
       NULL,
       &s);
   EXPECT_EQ(0, rc);
@@ -246,6 +252,12 @@ unsigned int buffer_share_id_offset(const struct buffer_share *mix,
                                     unsigned int id)
 {
   return 0;
+}
+
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
+}
+
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {
 }
 
 }

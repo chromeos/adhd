@@ -60,14 +60,13 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 				 &remote_fmt,
 				 msg->buffer_frames,
 				 msg->cb_threshold,
+				 aud_fd,
 				 client,
 				 &stream);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to create rstream.\n");
 		goto reply_err;
 	}
-
-	cras_rstream_set_audio_fd(stream, aud_fd);
 
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), stream);
 	if (rc < 0) {
@@ -94,8 +93,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		goto reply_err;
 	}
 
-	cras_system_state_stream_added(stream->direction);
-
 	return 0;
 
 destroy_stream_and_reply_err:
@@ -119,17 +116,12 @@ static int handle_client_stream_disconnect(
 		const struct cras_disconnect_stream_message *msg)
 {
 	struct cras_rstream *removed;
-	int aud_fd;
 
 	removed = stream_list_rm(cras_iodev_list_get_stream_list(),
 				 msg->stream_id);
 	if (!removed)
 		return -EINVAL;
 
-	aud_fd = cras_rstream_get_audio_fd(removed);
-	close(aud_fd);
-
-	cras_system_state_stream_removed(removed->direction);
 	cras_rstream_destroy(removed);
 
 	return 0;
@@ -181,10 +173,6 @@ void cras_rclient_destroy(struct cras_rclient *client)
 	removed_streams = stream_list_rm_all_client_streams(
 			cras_iodev_list_get_stream_list(), client);
 	DL_FOREACH(removed_streams, removed) {
-		int aud_fd = cras_rstream_get_audio_fd(removed);
-
-		close(aud_fd);
-		cras_system_state_stream_removed(removed->direction);
 		cras_rstream_destroy(removed);
 	}
 	free(client);

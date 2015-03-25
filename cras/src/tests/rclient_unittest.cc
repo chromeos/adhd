@@ -386,6 +386,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
+			int audio_fd,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out)
 {
@@ -465,12 +466,6 @@ void cras_system_set_capture_mute_locked(int mute)
 int cras_system_remove_alsa_card(size_t alsa_card_index)
 {
 	return -1;
-}
-
-void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
-}
-
-void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {
 }
 
 void cras_system_set_suspended(int suspended) {

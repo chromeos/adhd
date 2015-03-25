@@ -90,6 +90,7 @@ struct cras_rstream {
  *    format - The audio format the stream wishes to use.
  *    buffer_frames - Total number of audio frames to buffer.
  *    cb_threshold - # of frames when to request more from the client.
+ *    audio_fd - The fd to read/write audio signals to.
  *    client - The client that owns this stream.
  *    stream_out - Filled with the newly created stream pointer.
  * Returns:
@@ -104,6 +105,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
+			int audio_fd,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out);
 /* Destroys an rstream. */
@@ -161,14 +163,7 @@ static inline int cras_rstream_get_format(const struct cras_rstream *stream,
 	return 0;
 }
 
-/* Gets fd to be used to poll this client for audio. */
-static inline void cras_rstream_set_audio_fd(struct cras_rstream *stream,
-					     int fd)
-{
-	stream->fd = fd;
-}
-
-/* Sets fd to be used to poll this client for audio. */
+/* Gets the fd to be used to poll this client for audio. */
 static inline int cras_rstream_get_audio_fd(const struct cras_rstream *stream)
 {
 	return stream->fd;

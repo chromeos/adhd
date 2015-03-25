@@ -14,6 +14,7 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "buffer_share.h"
+#include "cras_system_state.h"
 
 /* Configure the shm area for the stream. */
 static int setup_shm(struct cras_rstream *stream,
@@ -130,6 +131,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 			const struct cras_audio_format *format,
 			size_t buffer_frames,
 			size_t cb_threshold,
+			int audio_fd,
 			struct cras_rclient *client,
 			struct cras_rstream **stream_out)
 {
@@ -159,6 +161,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->master_dev.dev_ptr = NULL;
 	stream->is_pinned = (dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = dev_idx;
+	stream->fd = audio_fd;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {
@@ -172,11 +175,16 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       stream_id, buffer_frames, cb_threshold);
 	*stream_out = stream;
+
+	cras_system_state_stream_added(stream->direction);
+
 	return 0;
 }
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
+	cras_system_state_stream_removed(stream->direction);
+	close(stream->fd);
 	if (stream->shm.area != NULL) {
 		shmdt(stream->shm.area);
 		shmctl(stream->shm_info.shm_id, IPC_RMID,
