@@ -40,8 +40,6 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_ADD_STREAM,
 	AUDIO_THREAD_DISCONNECT_STREAM,
 	AUDIO_THREAD_STOP,
-	AUDIO_THREAD_SUSPEND,
-	AUDIO_THREAD_RESUME,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
 	AUDIO_THREAD_DRAIN_STREAM,
 };
@@ -569,78 +567,6 @@ static int thread_add_stream(struct audio_thread *thread,
 	return 0;
 }
 
-/* Suspend the audio thread. */
-static int thread_suspend_adevs(struct audio_thread *thread)
-{
-	struct open_dev *adev;
-
-	if (thread->suspended)
-		return 0;
-
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_SUSPENDED, 0, 0, 0);
-
-	/* TODO(dgreid) - should ramp volume to 0 first. */
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
-		if (adev->dev->is_draining)
-			thread_inactivate_adev(thread, adev);
-		else
-			cras_iodev_close(adev->dev);
-	}
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_INPUT], adev) {
-		if (adev->dev->active_node->type == CRAS_NODE_TYPE_AOKR)
-			continue;
-		cras_iodev_close(adev->dev);
-	}
-
-	thread->suspended = 1;
-	return 0;
-}
-
-static void reopen_devs(struct audio_thread *thread,
-			enum CRAS_STREAM_DIRECTION dir)
-{
-	struct open_dev *adev;
-
-	DL_FOREACH(thread->open_devs[dir], adev) {
-		struct cras_audio_format fmt;
-
-		if (!adev->dev->streams || cras_iodev_is_open(adev->dev))
-			continue;
-
-		if (adev->dev->ext_format == NULL) {
-			/* TODO(dgreid) - lowest latency stream's format. */
-			fmt = adev->dev->streams->stream->format;
-			if (cras_iodev_set_format(adev->dev, &fmt)) {
-				thread_rm_open_adev(thread, adev);
-				continue;
-			}
-		}
-		if (cras_iodev_open(adev->dev) < 0) {
-			thread_rm_open_adev(thread, adev);
-			continue;
-		}
-
-		if (adev->dev->direction == CRAS_STREAM_OUTPUT)
-			fill_odevs_zeros_min_level(adev->dev);
-	}
-
-}
-
-/* Resume the audio thread. */
-static int thread_resume_adevs(struct audio_thread *thread)
-{
-	if (!thread->suspended)
-		return 0;
-
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_RESUMED, 0, 0, 0);
-
-	reopen_devs(thread, CRAS_STREAM_OUTPUT);
-	reopen_devs(thread, CRAS_STREAM_INPUT);
-
-	thread->suspended = 0;
-	return 0;
-}
-
 /* Reads any pending audio message from the socket. */
 static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 {
@@ -969,12 +895,6 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		if (err < 0)
 			return err;
 		terminate_pb_thread();
-		break;
-	case AUDIO_THREAD_SUSPEND:
-		thread_suspend_adevs(thread);
-		break;
-	case AUDIO_THREAD_RESUME:
-		thread_resume_adevs(thread);
 		break;
 	case AUDIO_THREAD_DUMP_THREAD_INFO: {
 		struct dev_stream *curr;
@@ -1616,9 +1536,6 @@ static void *audio_io_thread(void *arg)
 		wait_ts = NULL;
 		num_pollfds = 1;
 
-		if (thread->suspended)
-			goto thread_sleep;
-
 		/* device opened */
 		rc = stream_dev_io(thread);
 		if (rc < 0)
@@ -1675,7 +1592,7 @@ restart_poll_loop:
 			if (timespec_after(&this_wake, &longest_wake))
 				longest_wake = this_wake;
 		}
-thread_sleep:
+
 		audio_thread_event_log_data(atlog, AUDIO_THREAD_SLEEP,
 					    wait_ts ? wait_ts->tv_sec : 0,
 					    wait_ts ? wait_ts->tv_nsec : 0,
@@ -1933,22 +1850,4 @@ void audio_thread_destroy(struct audio_thread *thread)
 	}
 
 	free(thread);
-}
-
-int audio_thread_suspend(struct audio_thread *thread)
-{
-	struct audio_thread_msg msg;
-
-	msg.id = AUDIO_THREAD_SUSPEND;
-	msg.length = sizeof(msg);
-	return audio_thread_post_message(thread, &msg);
-}
-
-int audio_thread_resume(struct audio_thread *thread)
-{
-	struct audio_thread_msg msg;
-
-	msg.id = AUDIO_THREAD_RESUME;
-	msg.length = sizeof(msg);
-	return audio_thread_post_message(thread, &msg);
 }

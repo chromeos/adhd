@@ -170,10 +170,4 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 int audio_thread_dump_thread_info(struct audio_thread *thread,
 				  struct audio_debug_info *info);
 
-/* Go to suspend, close all devices. */
-int audio_thread_suspend(struct audio_thread *thread);
-
-/* Resume from suspend. */
-int audio_thread_resume(struct audio_thread *thread);
-
 #endif /* AUDIO_THREAD_H_ */

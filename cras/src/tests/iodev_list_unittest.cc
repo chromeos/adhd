@@ -54,8 +54,6 @@ static int audio_thread_set_active_dev_called;
 static cras_iodev *audio_thread_add_open_dev_dev;
 static int audio_thread_add_open_dev_called;
 static int audio_thread_rm_open_dev_called;
-static int audio_thread_suspend_called;
-static int audio_thread_resume_called;
 static struct audio_thread thread;
 static int node_left_right_swapped_cb_called;
 static struct cras_iodev loopback_input;
@@ -65,6 +63,7 @@ static stream_callback *stream_add_cb;
 static stream_callback *stream_rm_cb;
 static int iodev_is_open;
 static int empty_iodev_is_open[CRAS_NUM_DIRECTIONS];
+static struct cras_rstream *stream_list_get_ret;
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -86,6 +85,7 @@ class IoDevTestSuite : public testing::Test {
       cras_iodev_list_reset();
 
       cras_iodev_close_called = 0;
+      stream_list_get_ret = 0;
 
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
@@ -187,8 +187,6 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_rm_open_dev_called = 0;
       audio_thread_add_open_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
-      audio_thread_suspend_called = 0;
-      audio_thread_resume_called = 0;
       node_left_right_swapped_cb_called = 0;
     }
 
@@ -251,18 +249,40 @@ TEST_F(IoDevTestSuite, InitSetup) {
 }
 
 /* Check that the suspend alert from cras_system will trigger suspend
- * and resume call in audio_thread. */
+ * and resume call of all iodevs. */
 TEST_F(IoDevTestSuite, SetSuspendResume) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
   cras_iodev_list_init();
 
-  cras_system_get_suspended_val = 1;
-  suspend_cb(NULL);
-  EXPECT_EQ(1, audio_thread_suspend_called);
-  EXPECT_EQ(0, audio_thread_resume_called);
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
 
-  cras_system_get_suspended_val = 0;
+  iodev_is_open = 0;
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 1));
+  stream_add_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
+
+  cras_system_get_suspended_val = 1;
+  audio_thread_rm_open_dev_called = 0;
   suspend_cb(NULL);
-  EXPECT_EQ(1, audio_thread_resume_called);
+  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+  iodev_is_open = 0;
+
+  audio_thread_add_open_dev_called = 0;
+  cras_system_get_suspended_val = 0;
+  stream_list_get_ret = &rstream;
+  suspend_cb(NULL);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
 
   cras_iodev_list_deinit();
 }
@@ -842,16 +862,6 @@ int audio_thread_start(struct audio_thread *thread) {
 void audio_thread_destroy(struct audio_thread *thread) {
 }
 
-int audio_thread_suspend(struct audio_thread *thread) {
-  audio_thread_suspend_called++;
-  return 0;
-}
-
-int audio_thread_resume(struct audio_thread *thread) {
-  audio_thread_resume_called++;
-  return 0;
-}
-
 int audio_thread_set_active_dev(struct audio_thread *thread,
                                  struct cras_iodev *dev) {
   audio_thread_set_active_dev_called++;
@@ -997,7 +1007,7 @@ void stream_list_destroy(struct stream_list *list) {
 }
 
 struct cras_rstream *stream_list_get(struct stream_list *list) {
-  return NULL;
+  return stream_list_get_ret;
 }
 
 }  // extern "C"

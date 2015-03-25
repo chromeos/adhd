@@ -530,12 +530,6 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("DRAIN_OUTPUT: %u.%09u id:%u hw_level:%u silent:%u\n",
 		       sec, nsec, data1, data2, data3);
 		break;
-	case AUDIO_THREAD_SUSPENDED:
-		printf("SUSPENDED: %u.%09u\n", sec, nsec);
-		break;
-	case AUDIO_THREAD_RESUMED:
-		printf("RESUMED: %u.%09u\n", sec, nsec);
-		break;
 	default:
 		printf("Unknown alog tag %u\n", tag);
 		break;

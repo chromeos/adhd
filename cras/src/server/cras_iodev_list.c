@@ -284,37 +284,36 @@ void sys_mute_change(void *data)
 	}
 }
 
-/* Called when the system audio is suspended or resumed. */
-void sys_suspend_change(void *data)
+static int dev_has_pinned_stream(unsigned int dev_idx)
 {
-	if (cras_system_get_suspended())
-		audio_thread_suspend(cras_iodev_list_get_audio_thread());
-	else
-		audio_thread_resume(cras_iodev_list_get_audio_thread());
+	const struct cras_rstream *rstream;
+
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->pinned_dev_idx == dev_idx)
+			return 1;
+	}
+	return 0;
 }
 
-/* Called when the system capture gain changes.  Pass the current capture_gain
- * setting to the default input if it is active. */
-void sys_cap_gain_change(void *data)
+static int dev_is_enabled(struct cras_iodev *dev)
 {
-	struct cras_iodev *dev;
+	struct enabled_dev *edev;
 
-	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
-		if (dev->set_capture_gain && dev->is_open(dev))
-			dev->set_capture_gain(dev);
+	DL_FOREACH(enabled_devs[dev->direction], edev) {
+		if (edev->dev == dev)
+			return 1;
 	}
+
+	return 0;
 }
 
-/* Called when the system capture mute state changes.  Pass the current capture
- * mute setting to the default input if it is active. */
-void sys_cap_mute_change(void *data)
+static void close_dev(struct cras_iodev *dev)
 {
-	struct cras_iodev *dev;
-
-	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
-		if (dev->set_capture_mute && dev->is_open(dev))
-			dev->set_capture_mute(dev);
-	}
+	if (!cras_iodev_is_open(dev) ||
+	    dev_has_pinned_stream(dev->info.idx))
+		return;
+	audio_thread_rm_open_dev(audio_thread, dev, 1);
+	cras_iodev_close(dev);
 }
 
 /* Open the device potentially filling the output with a pre buffer. */
@@ -347,6 +346,93 @@ static int init_device(struct cras_iodev *dev,
 	return rc;
 }
 
+static void suspend_devs()
+{
+	struct enabled_dev *edev;
+	struct cras_rstream *rstream;
+
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->is_pinned) {
+			struct cras_iodev *dev;
+
+			dev = find_dev(rstream->pinned_dev_idx);
+			if (dev) {
+				audio_thread_disconnect_stream(audio_thread,
+							       rstream, dev);
+				if (!dev_is_enabled(dev))
+					close_dev(dev);
+			}
+		} else {
+			audio_thread_disconnect_stream(audio_thread, rstream,
+						       NULL);
+		}
+	}
+	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+		close_dev(edev->dev);
+	}
+	DL_FOREACH(enabled_devs[CRAS_STREAM_INPUT], edev) {
+		close_dev(edev->dev);
+	}
+}
+
+static void resume_devs()
+{
+	struct enabled_dev *edev;
+	struct cras_rstream *rstream;
+
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->is_pinned) {
+			struct cras_iodev *dev;
+
+			dev = find_dev(rstream->pinned_dev_idx);
+			if (dev) {
+				init_device(dev, rstream);
+				audio_thread_add_stream(audio_thread, rstream,
+							dev);
+			}
+		} else {
+			DL_FOREACH(enabled_devs[rstream->direction], edev) {
+				init_device(edev->dev, rstream);
+				audio_thread_add_stream(audio_thread, rstream,
+							edev->dev);
+			}
+		}
+	}
+}
+
+/* Called when the system audio is suspended or resumed. */
+void sys_suspend_change(void *data)
+{
+	if (cras_system_get_suspended())
+		suspend_devs();
+	else
+		resume_devs();
+}
+
+/* Called when the system capture gain changes.  Pass the current capture_gain
+ * setting to the default input if it is active. */
+void sys_cap_gain_change(void *data)
+{
+	struct cras_iodev *dev;
+
+	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
+		if (dev->set_capture_gain && dev->is_open(dev))
+			dev->set_capture_gain(dev);
+	}
+}
+
+/* Called when the system capture mute state changes.  Pass the current capture
+ * mute setting to the default input if it is active. */
+void sys_cap_mute_change(void *data)
+{
+	struct cras_iodev *dev;
+
+	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
+		if (dev->set_capture_mute && dev->is_open(dev))
+			dev->set_capture_mute(dev);
+	}
+}
+
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
@@ -373,29 +459,6 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	return 0;
 }
 
-static int dev_has_pinned_stream(unsigned int dev_idx)
-{
-	const struct cras_rstream *rstream;
-
-	DL_FOREACH(stream_list_get(stream_list), rstream) {
-		if (rstream->pinned_dev_idx == dev_idx)
-			return 1;
-	}
-	return 0;
-}
-
-static int dev_is_enabled(struct cras_iodev *dev)
-{
-	struct enabled_dev *edev;
-
-	DL_FOREACH(enabled_devs[dev->direction], edev) {
-		if (edev->dev == dev)
-			return 1;
-	}
-
-	return 0;
-}
-
 static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
 {
 	struct enabled_dev *edev;
@@ -410,10 +473,7 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
 	/* No more default streams, close any device that doesn't have a stream
 	 * pinned to it. */
 	DL_FOREACH(enabled_devs[dir], edev) {
-		if (dev_has_pinned_stream(edev->dev->info.idx))
-			continue;
-		audio_thread_rm_open_dev(audio_thread, edev->dev, 0);
-		cras_iodev_close(edev->dev);
+		close_dev(edev->dev);
 	}
 
 	return 0;
@@ -424,11 +484,8 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
 	struct cras_iodev *dev;
 
 	dev = find_dev(rstream->pinned_dev_idx);
-	if (!dev_is_enabled(dev) &&
-	    !dev_has_pinned_stream(rstream->pinned_dev_idx)) {
-		audio_thread_rm_open_dev(audio_thread, dev, 1);
-		cras_iodev_close(dev);
-	}
+	if (!dev_is_enabled(dev))
+		close_dev(dev);
 }
 
 static int stream_removed_cb(struct cras_rstream *rstream)
@@ -499,11 +556,7 @@ static int disable_device(struct enabled_dev *edev, int is_removal)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, stream, dev);
 	}
-	if (cras_iodev_is_open(dev) && !dev_has_pinned_stream(dev->info.idx)) {
-		/* No pinned streams, close the device. */
-		audio_thread_rm_open_dev(audio_thread, dev, 1);
-		cras_iodev_close(dev);
-	}
+	close_dev(dev);
 
 	return 0;
 }

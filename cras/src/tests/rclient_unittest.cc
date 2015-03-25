@@ -473,6 +473,9 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {
 }
 
+void cras_system_set_suspended(int suspended) {
+}
+
 struct cras_server_state *cras_system_state_get_no_lock()
 {
   return NULL;

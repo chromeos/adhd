@@ -298,10 +298,10 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		break;
 	}
 	case CRAS_SERVER_SUSPEND:
-		audio_thread_suspend(cras_iodev_list_get_audio_thread());
+		cras_system_set_suspended(1);
 		break;
 	case CRAS_SERVER_RESUME:
-		audio_thread_resume(cras_iodev_list_get_audio_thread());
+		cras_system_set_suspended(0);
 		break;
 	default:
 		break;
