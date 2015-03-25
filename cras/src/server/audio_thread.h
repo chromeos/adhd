@@ -26,7 +26,6 @@ struct open_dev {
 	struct cras_iodev *dev;
 	struct timespec wake_ts;
 	int coarse_rate_adjust;
-	int for_pinned_streams;
 	int input_streaming;
 	struct open_dev *prev, *next;
 };

@@ -356,18 +356,12 @@ static int thread_add_open_dev(struct audio_thread *thread,
 
 	DL_SEARCH_SCALAR(thread->open_devs[iodev->direction],
 			 adev, dev, iodev);
-	if (adev) {
-		if (!adev->for_pinned_streams) {
-			syslog(LOG_ERR, "Device %s already open",
-			       adev->dev->info.name);
-			return -EEXIST;
-		}
-		adev->for_pinned_streams = 0;
-	} else {
-		adev = (struct open_dev *)calloc(1, sizeof(*adev));
-		adev->dev = iodev;
-		iodev->is_active = 1;
-	}
+	if (adev)
+		return -EEXIST;
+
+	adev = (struct open_dev *)calloc(1, sizeof(*adev));
+	adev->dev = iodev;
+	iodev->is_active = 1;
 
 	/*
 	 * Start output devices by padding the output. This avoids a burst of
@@ -425,28 +419,6 @@ static void thread_rm_open_adev(struct audio_thread *thread,
 	free(dev_to_rm);
 }
 
-static void thread_inactivate_adev(struct audio_thread *thread,
-				   struct open_dev *adev)
-{
-	struct dev_stream *dev_stream;
-
-	DL_FOREACH(adev->dev->streams, dev_stream) {
-		if (dev_stream->stream->is_pinned)
-			continue;
-
-		cras_iodev_rm_stream(adev->dev, dev_stream->stream);
-		dev_stream_destroy(dev_stream);
-	}
-
-	if (!adev->dev->streams) {
-		/* No pinned streams, remove whole adev. */
-		thread_rm_open_adev(thread, adev);
-		return;
-	}
-
-	adev->for_pinned_streams = 1;
-}
-
 /* Handles messages from the main thread to remove an active device. */
 static int thread_rm_open_dev(struct audio_thread *thread,
 			      struct cras_iodev *iodev,
@@ -457,10 +429,7 @@ static int thread_rm_open_dev(struct audio_thread *thread,
 	if (!adev)
 		return -EINVAL;
 
-	if (is_device_removal)
-		thread_rm_open_adev(thread, adev);
-	else
-		thread_inactivate_adev(thread, adev);
+	thread_rm_open_adev(thread, adev);
 	return 0;
 }
 
