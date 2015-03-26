@@ -21,6 +21,17 @@ class RstreamTestSuite : public testing::Test {
       fmt_.format = SND_PCM_FORMAT_S16_LE;
       fmt_.frame_rate = 48000;
       fmt_.num_channels = 2;
+
+      config_.stream_id = 555;
+      config_.stream_type = CRAS_STREAM_TYPE_DEFAULT;
+      config_.direction = CRAS_STREAM_OUTPUT;
+      config_.dev_idx = NO_DEVICE;
+      config_.flags = 0;
+      config_.format = &fmt_;
+      config_.buffer_frames = 4096;
+      config_.cb_threshold = 2048;
+      config_.audio_fd = 1;
+      config_.client = NULL;
     }
 
     static bool format_equal(cras_audio_format *fmt1, cras_audio_format *fmt2) {
@@ -30,23 +41,15 @@ class RstreamTestSuite : public testing::Test {
     }
 
     struct cras_audio_format fmt_;
+    struct cras_rstream_config config_;
 };
 
 TEST_F(RstreamTestSuite, InvalidDirection) {
   struct cras_rstream *s;
   int rc;
 
-  rc = cras_rstream_create(555,
-      CRAS_STREAM_TYPE_DEFAULT,
-      (enum CRAS_STREAM_DIRECTION)66,
-      NO_DEVICE,
-      0,
-      &fmt_,
-      4096,
-      2048,
-      1,
-      NULL,
-      &s);
+  config_.direction = (enum CRAS_STREAM_DIRECTION)66;
+  rc = cras_rstream_create(&config_, &s);
   EXPECT_NE(0, rc);
 }
 
@@ -54,17 +57,8 @@ TEST_F(RstreamTestSuite, InvalidBufferSize) {
   struct cras_rstream *s;
   int rc;
 
-  rc = cras_rstream_create(555,
-      CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT,
-      NO_DEVICE,
-      0,
-      &fmt_,
-      3,
-      2048,
-      1,
-      NULL,
-      &s);
+  config_.buffer_frames = 3;
+  rc = cras_rstream_create(&config_, &s);
   EXPECT_NE(0, rc);
 }
 
@@ -72,34 +66,15 @@ TEST_F(RstreamTestSuite, InvalidCallbackThreshold) {
   struct cras_rstream *s;
   int rc;
 
-  rc = cras_rstream_create(555,
-      CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT,
-      NO_DEVICE,
-      0,
-      &fmt_,
-      4096,
-      3,
-      1,
-      NULL,
-      &s);
+  config_.cb_threshold = 3;
+  rc = cras_rstream_create(&config_, &s);
   EXPECT_NE(0, rc);
 }
 
 TEST_F(RstreamTestSuite, InvalidStreamPointer) {
   int rc;
 
-  rc = cras_rstream_create(555,
-      CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT,
-      NO_DEVICE,
-      0,
-      &fmt_,
-      4096,
-      2048,
-      1,
-      NULL,
-      NULL);
+  rc = cras_rstream_create(&config_, NULL);
   EXPECT_NE(0, rc);
 }
 
@@ -111,17 +86,7 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   int rc, key_ret, shmid;
   size_t shm_size;
 
-  rc = cras_rstream_create(555,
-      CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_OUTPUT,
-      NO_DEVICE,
-      0,
-      &fmt_,
-      4096,
-      2048,
-      1,
-      NULL,
-      &s);
+  rc = cras_rstream_create(&config_, &s);
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, s);
   EXPECT_EQ(4096, cras_rstream_get_buffer_frames(s));
@@ -158,17 +123,8 @@ TEST_F(RstreamTestSuite, CreateInput) {
   int rc, key_ret, shmid;
   size_t shm_size;
 
-  rc = cras_rstream_create(555,
-      CRAS_STREAM_TYPE_DEFAULT,
-      CRAS_STREAM_INPUT,
-      NO_DEVICE,
-      0,
-      &fmt_,
-      4096,
-      2048,
-      1,
-      NULL,
-      &s);
+  config_.direction = CRAS_STREAM_INPUT;
+  rc = cras_rstream_create(&config_, &s);
   EXPECT_EQ(0, rc);
   EXPECT_NE((void *)NULL, s);
   EXPECT_EQ(4096, cras_rstream_get_buffer_frames(s));

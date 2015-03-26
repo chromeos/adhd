@@ -123,23 +123,15 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 
 /* Exported functions */
 
-int cras_rstream_create(cras_stream_id_t stream_id,
-			enum CRAS_STREAM_TYPE stream_type,
-			enum CRAS_STREAM_DIRECTION direction,
-			uint32_t dev_idx,
-			uint32_t flags,
-			const struct cras_audio_format *format,
-			size_t buffer_frames,
-			size_t cb_threshold,
-			int audio_fd,
-			struct cras_rclient *client,
+int cras_rstream_create(struct cras_rstream_config *config,
 			struct cras_rstream **stream_out)
 {
 	struct cras_rstream *stream;
 	int rc;
 
-	rc = verify_rstream_parameters(direction, format, buffer_frames,
-				       cb_threshold, client,
+	rc = verify_rstream_parameters(config->direction, config->format,
+				       config->buffer_frames,
+				       config->cb_threshold, config->client,
 				       stream_out);
 	if (rc < 0)
 		return rc;
@@ -148,20 +140,20 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	if (stream == NULL)
 		return -ENOMEM;
 
-	stream->stream_id = stream_id;
-	stream->stream_type = stream_type;
-	stream->direction = direction;
-	stream->flags = flags;
-	stream->format = *format;
-	stream->buffer_frames = buffer_frames;
-	stream->cb_threshold = cb_threshold;
-	stream->client = client;
+	stream->stream_id = config->stream_id;
+	stream->stream_type = config->stream_type;
+	stream->direction = config->direction;
+	stream->flags = config->flags;
+	stream->format = *config->format;
+	stream->buffer_frames = config->buffer_frames;
+	stream->cb_threshold = config->cb_threshold;
+	stream->client = config->client;
 	stream->shm.area = NULL;
 	stream->master_dev.dev_id = NO_DEVICE;
 	stream->master_dev.dev_ptr = NULL;
-	stream->is_pinned = (dev_idx != NO_DEVICE);
-	stream->pinned_dev_idx = dev_idx;
-	stream->fd = audio_fd;
+	stream->is_pinned = (config->dev_idx != NO_DEVICE);
+	stream->pinned_dev_idx = config->dev_idx;
+	stream->fd = config->audio_fd;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {
@@ -173,7 +165,7 @@ int cras_rstream_create(cras_stream_id_t stream_id,
 	stream->buf_state = buffer_share_create(stream->buffer_frames);
 
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
-	       stream_id, buffer_frames, cb_threshold);
+	       config->stream_id, config->buffer_frames, config->cb_threshold);
 	*stream_out = stream;
 
 	cras_system_state_stream_added(stream->direction);

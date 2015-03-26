@@ -592,7 +592,9 @@ void cras_iodev_list_init()
 		active_node_changed_prepare);
 
 	/* Create the audio stream list for the system. */
-	stream_list = stream_list_create(stream_added_cb, stream_removed_cb);
+	stream_list = stream_list_create(stream_added_cb, stream_removed_cb,
+					 cras_rstream_create,
+					 cras_rstream_destroy);
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */

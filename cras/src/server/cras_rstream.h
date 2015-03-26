@@ -81,8 +81,7 @@ struct cras_rstream {
 	struct cras_rstream *prev, *next;
 };
 
-/* Creates an rstream.
- * Args:
+/* Config for creating an rstream.
  *    stream_type - CRAS_STREAM_TYPE.
  *    direction - CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
  *    dev_idx - Pin to this device if != NO_DEVICE.
@@ -92,22 +91,31 @@ struct cras_rstream {
  *    cb_threshold - # of frames when to request more from the client.
  *    audio_fd - The fd to read/write audio signals to.
  *    client - The client that owns this stream.
+ */
+struct cras_rstream_config {
+	cras_stream_id_t stream_id;
+	enum CRAS_STREAM_TYPE stream_type;
+	enum CRAS_STREAM_DIRECTION direction;
+	uint32_t dev_idx;
+	uint32_t flags;
+	const struct cras_audio_format *format;
+	size_t buffer_frames;
+	size_t cb_threshold;
+	int audio_fd;
+	struct cras_rclient *client;
+};
+
+/* Creates an rstream.
+ * Args:
+ *    config - Params for configuration of the new rstream.
  *    stream_out - Filled with the newly created stream pointer.
  * Returns:
  *    0 on success, EINVAL if an invalid argument is passed, or ENOMEM if out of
  *    memory.
  */
-int cras_rstream_create(cras_stream_id_t stream_id,
-			enum CRAS_STREAM_TYPE stream_type,
-			enum CRAS_STREAM_DIRECTION direction,
-			uint32_t dev_idx,
-			uint32_t flags,
-			const struct cras_audio_format *format,
-			size_t buffer_frames,
-			size_t cb_threshold,
-			int audio_fd,
-			struct cras_rclient *client,
+int cras_rstream_create(struct cras_rstream_config *config,
 			struct cras_rstream **stream_out);
+
 /* Destroys an rstream. */
 void cras_rstream_destroy(struct cras_rstream *stream);
 

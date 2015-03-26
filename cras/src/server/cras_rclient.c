@@ -38,6 +38,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_rstream *stream;
 	struct cras_client_stream_connected reply;
 	struct cras_audio_format remote_fmt;
+	struct cras_rstream_config stream_config;
 	int rc;
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
@@ -52,26 +53,21 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	cras_make_fd_nonblocking(aud_fd);
 
 	/* Create the stream with the specified parameters. */
-	rc = cras_rstream_create(msg->stream_id,
-				 msg->stream_type,
-				 msg->direction,
-				 msg->dev_idx,
-				 msg->flags,
-				 &remote_fmt,
-				 msg->buffer_frames,
-				 msg->cb_threshold,
-				 aud_fd,
-				 client,
-				 &stream);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to create rstream.\n");
+	stream_config.stream_id = msg->stream_id;
+	stream_config.stream_type = msg->stream_type;
+	stream_config.direction = msg->direction;
+	stream_config.dev_idx = msg->dev_idx;
+	stream_config.flags = msg->flags;
+	stream_config.format = &remote_fmt;
+	stream_config.buffer_frames = msg->buffer_frames;
+	stream_config.cb_threshold = msg->cb_threshold;
+	stream_config.audio_fd = aud_fd;
+	stream_config.client = client;
+	rc = stream_list_add(cras_iodev_list_get_stream_list(),
+			     &stream_config, &stream);
+	if (rc) {
+		rc = -ENOMEM;
 		goto reply_err;
-	}
-
-	rc = stream_list_add(cras_iodev_list_get_stream_list(), stream);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Attach stream failed.\n");
-		goto destroy_stream_and_reply_err;
 	}
 
 	/* Tell client about the stream setup. */
@@ -89,14 +85,11 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
 			       stream->stream_id);
-		cras_rstream_destroy(stream);
 		goto reply_err;
 	}
 
 	return 0;
 
-destroy_stream_and_reply_err:
-	cras_rstream_destroy(stream);
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
@@ -115,16 +108,8 @@ static int handle_client_stream_disconnect(
 		struct cras_rclient *client,
 		const struct cras_disconnect_stream_message *msg)
 {
-	struct cras_rstream *removed;
-
-	removed = stream_list_rm(cras_iodev_list_get_stream_list(),
-				 msg->stream_id);
-	if (!removed)
-		return -EINVAL;
-
-	cras_rstream_destroy(removed);
-
-	return 0;
+	return stream_list_rm(cras_iodev_list_get_stream_list(),
+			      msg->stream_id);
 }
 
 /* Handles dumping audio thread debug info back to the client. */
@@ -167,14 +152,8 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 /* Removes all streams that the client owns and destroys it. */
 void cras_rclient_destroy(struct cras_rclient *client)
 {
-	struct cras_rstream *removed_streams;
-	struct cras_rstream *removed;
-
-	removed_streams = stream_list_rm_all_client_streams(
+	stream_list_rm_all_client_streams(
 			cras_iodev_list_get_stream_list(), client);
-	DL_FOREACH(removed_streams, removed) {
-		cras_rstream_destroy(removed);
-	}
 	free(client);
 }
 

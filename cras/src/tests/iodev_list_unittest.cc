@@ -997,7 +997,9 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 }
 
 struct stream_list *stream_list_create(stream_callback *add_cb,
-                                       stream_callback *rm_cb) {
+                                       stream_callback *rm_cb,
+                                       stream_create_func *create_cb,
+                                       stream_destroy_func *destroy_cb) {
   stream_add_cb = add_cb;
   stream_rm_cb = rm_cb;
   return reinterpret_cast<stream_list *>(0xf00);
@@ -1008,6 +1010,14 @@ void stream_list_destroy(struct stream_list *list) {
 
 struct cras_rstream *stream_list_get(struct stream_list *list) {
   return stream_list_get_ret;
+}
+
+int cras_rstream_create(struct cras_rstream_config *config,
+                        struct cras_rstream **stream_out) {
+  return 0;
+}
+
+void cras_rstream_destroy(struct cras_rstream *rstream) {
 }
 
 }  // extern "C"

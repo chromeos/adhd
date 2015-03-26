@@ -17,7 +17,6 @@ extern "C" {
 //  Stub data.
 static int cras_rstream_create_return;
 static struct cras_rstream *cras_rstream_create_stream_out;
-static int cras_rstream_destroy_called;
 static int cras_iodev_attach_stream_retval;
 static size_t cras_system_set_volume_value;
 static int cras_system_set_volume_called;
@@ -40,11 +39,11 @@ static unsigned int stream_list_add_stream_called;
 static unsigned int stream_list_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
+static struct cras_rstream dummy_rstream;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
   cras_rstream_create_stream_out = (struct cras_rstream *)NULL;
-  cras_rstream_destroy_called = 0;
   cras_iodev_attach_stream_retval = 0;
   cras_system_set_volume_value = 0;
   cras_system_set_volume_called = 0;
@@ -156,33 +155,14 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(1, cras_rstream_destroy_called);
   EXPECT_EQ(0, cras_iodev_list_rm_output_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
 
-TEST_F(RClientMessagesSuite, RstreamCreateErrorReply) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  cras_rstream_create_return = -1;
-
-  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
-  EXPECT_EQ(0, rc);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id_, out_msg.stream_id);
-  EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(stream_list_add_stream_called,
-            stream_list_disconnect_stream_called);
-}
-
 TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   struct cras_client_stream_connected out_msg;
   int rc;
-
 
   rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, -1);
   EXPECT_EQ(0, rc);
@@ -191,7 +171,6 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(stream_list_add_stream_called,
             stream_list_disconnect_stream_called);
 }
@@ -211,7 +190,6 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
-  EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
@@ -231,7 +209,6 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_EQ(0, out_msg.err);
-  EXPECT_EQ(0, cras_rstream_destroy_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
@@ -378,25 +355,11 @@ const char *cras_config_get_socket_file_dir()
   return "/tmp";
 }
 
-int cras_rstream_create(cras_stream_id_t stream_id,
-			enum CRAS_STREAM_TYPE stream_type,
-			enum CRAS_STREAM_DIRECTION direction,
-			uint32_t dev_idx,
-			uint32_t flags,
-			const struct cras_audio_format *format,
-			size_t buffer_frames,
-			size_t cb_threshold,
-			int audio_fd,
-			struct cras_rclient *client,
+int cras_rstream_create(struct cras_rstream_config *stream_config,
 			struct cras_rstream **stream_out)
 {
   *stream_out = cras_rstream_create_stream_out;
   return cras_rstream_create_return;
-}
-
-void cras_rstream_destroy(struct cras_rstream *stream)
-{
-  cras_rstream_destroy_called++;
 }
 
 int cras_iodev_move_stream_type(uint32_t type, uint32_t index)
@@ -515,14 +478,22 @@ void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
                                       const uint8_t *data) {
 }
 
-int stream_list_add(struct stream_list *list, struct cras_rstream *stream)
+int stream_list_add(struct stream_list *list,
+                    struct cras_rstream_config *config,
+		    struct cras_rstream **stream)
 {
   int ret;
+
+  *stream = &dummy_rstream;
 
   stream_list_add_stream_called++;
   ret = stream_list_add_stream_return;
   if (ret)
     stream_list_add_stream_return = -EINVAL;
+
+  dummy_rstream.direction = config->direction;
+  dummy_rstream.stream_id = config->stream_id;
+
   return ret;
 }
 
