@@ -488,19 +488,23 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
 		close_dev(dev);
 }
 
+/* Returns the number of milliseconds left to drain this stream.  This is passed
+ * directly from the audio thread. */
 static int stream_removed_cb(struct cras_rstream *rstream)
 {
 	enum CRAS_STREAM_DIRECTION direction = rstream->direction;
 	int rc;
 
-	rc = audio_thread_disconnect_stream(audio_thread, rstream, NULL);
+	rc = audio_thread_drain_stream(audio_thread, rstream);
 	if (rc)
 		return rc;
 
 	if (rstream->is_pinned)
 		pinned_stream_removed(rstream);
 
-	return possibly_close_enabled_devs(direction);
+	possibly_close_enabled_devs(direction);
+
+	return 0;
 }
 
 static int disable_device(struct enabled_dev *edev, int is_removal);
@@ -594,7 +598,8 @@ void cras_iodev_list_init()
 	/* Create the audio stream list for the system. */
 	stream_list = stream_list_create(stream_added_cb, stream_removed_cb,
 					 cras_rstream_create,
-					 cras_rstream_destroy);
+					 cras_rstream_destroy,
+					 cras_system_state_get_tm());
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */

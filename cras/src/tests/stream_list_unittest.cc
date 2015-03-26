@@ -60,7 +60,7 @@ TEST(StreamList, AddRemove) {
 
   reset_test_data();
   l = stream_list_create(added_cb, removed_cb, create_rstream_cb,
-                         destroy_rstream_cb);
+                         destroy_rstream_cb, NULL);
   stream_list_add(l, &s1_config, &s1);
   EXPECT_EQ(1, add_called);
   EXPECT_EQ(1, create_called);
@@ -71,6 +71,21 @@ TEST(StreamList, AddRemove) {
   EXPECT_EQ(1, destroy_called);
   EXPECT_EQ(s1, destroyed_stream);
   stream_list_destroy(l);
+}
+
+extern "C" {
+
+struct cras_timer *cras_tm_create_timer(
+                struct cras_tm *tm,
+                unsigned int ms,
+                void (*cb)(struct cras_timer *t, void *data),
+                void *cb_data) {
+  return reinterpret_cast<struct cras_timer *>(0x404);
+}
+
+void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t) {
+}
+
 }
 
 } // namespace

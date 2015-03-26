@@ -64,6 +64,8 @@ static stream_callback *stream_rm_cb;
 static int iodev_is_open;
 static int empty_iodev_is_open[CRAS_NUM_DIRECTIONS];
 static struct cras_rstream *stream_list_get_ret;
+static int audio_thread_drain_stream_return;
+static int audio_thread_drain_stream_called;
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -86,6 +88,8 @@ class IoDevTestSuite : public testing::Test {
 
       cras_iodev_close_called = 0;
       stream_list_get_ret = 0;
+      audio_thread_drain_stream_return = 0;
+      audio_thread_drain_stream_called = 0;
 
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
@@ -565,7 +569,13 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   ASSERT_EQ(audio_thread_add_open_dev_called, 1);
   iodev_is_open = 1;
   audio_thread_rm_open_dev_called = 0;
+  audio_thread_drain_stream_return = 10;
   stream_rm_cb(&rstream);
+  ASSERT_EQ(audio_thread_drain_stream_called, 1);
+  ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
+  audio_thread_drain_stream_return = 0;
+  stream_rm_cb(&rstream);
+  ASSERT_EQ(audio_thread_drain_stream_called, 2);
   ASSERT_EQ(audio_thread_rm_open_dev_called, 1);
   iodev_is_open = 0;
 
@@ -908,6 +918,13 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
   return 0;
 }
 
+int audio_thread_drain_stream(struct audio_thread *thread,
+                              struct cras_rstream *stream)
+{
+	audio_thread_drain_stream_called++;
+	return audio_thread_drain_stream_return;
+}
+
 void set_node_volume(struct cras_ionode *node, int value)
 {
   struct cras_iodev *dev = node->dev;
@@ -999,7 +1016,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 struct stream_list *stream_list_create(stream_callback *add_cb,
                                        stream_callback *rm_cb,
                                        stream_create_func *create_cb,
-                                       stream_destroy_func *destroy_cb) {
+                                       stream_destroy_func *destroy_cb,
+				       struct cras_tm *timer_manager) {
   stream_add_cb = add_cb;
   stream_rm_cb = rm_cb;
   return reinterpret_cast<stream_list *>(0xf00);
@@ -1018,6 +1036,10 @@ int cras_rstream_create(struct cras_rstream_config *config,
 }
 
 void cras_rstream_destroy(struct cras_rstream *rstream) {
+}
+
+struct cras_tm *cras_system_state_get_tm() {
+  return NULL;
 }
 
 }  // extern "C"
