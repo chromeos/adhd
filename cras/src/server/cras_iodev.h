@@ -96,6 +96,7 @@ struct cras_ionode {
  * max_cb_level - max callback level of any stream attached.
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
+ * idle_timeout - The timestamp when to close the dev after being idle.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -139,6 +140,7 @@ struct cras_iodev {
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
 	struct buffer_share *buf_state;
+	struct timespec idle_timeout;
 	struct cras_iodev *prev, *next;
 };
 

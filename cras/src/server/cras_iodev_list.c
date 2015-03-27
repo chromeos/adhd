@@ -13,11 +13,17 @@
 #include "cras_loopback_iodev.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
+#include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_system_state.h"
 #include "stream_list.h"
 #include "test_iodev.h"
 #include "utlist.h"
+
+const struct timespec idle_timeout_interval = {
+	.tv_sec = 10,
+	.tv_nsec = 0
+};
 
 /* Linked list of available devices. */
 struct iodev_list {
@@ -62,9 +68,12 @@ static node_left_right_swapped_callback_t node_left_right_swapped_callback;
 static struct audio_thread *audio_thread;
 /* List of all streams. */
 static struct stream_list *stream_list;
+/* Idle device timer. */
+static struct cras_timer *idle_timer;
 
 static void nodes_changed_prepare(struct cras_alert *alert);
 static void active_node_changed_prepare(struct cras_alert *alert);
+static void idle_dev_check(struct cras_timer *timer, void *data);
 
 static struct cras_iodev *find_dev(size_t dev_index)
 {
@@ -313,7 +322,56 @@ static void close_dev(struct cras_iodev *dev)
 	    dev_has_pinned_stream(dev->info.idx))
 		return;
 	audio_thread_rm_open_dev(audio_thread, dev, 1);
+	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
+	if (idle_timer)
+		cras_tm_cancel_timer(cras_system_state_get_tm(), idle_timer);
+	idle_dev_check(NULL, NULL);
+}
+
+static void idle_dev_check(struct cras_timer *timer, void *data)
+{
+	struct enabled_dev *edev;
+	struct timespec now;
+	struct timespec min_idle_expiration;
+	unsigned int num_idle_devs = 0;
+	unsigned int min_idle_timeout_ms;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	min_idle_expiration.tv_sec = 0;
+	min_idle_expiration.tv_nsec = 0;
+
+	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+		if (edev->dev->idle_timeout.tv_sec == 0)
+			continue;
+		if (timespec_after(&now, &edev->dev->idle_timeout)) {
+			audio_thread_rm_open_dev(audio_thread, edev->dev, 1);
+			edev->dev->idle_timeout.tv_sec = 0;
+			cras_iodev_close(edev->dev);
+			continue;
+		}
+		num_idle_devs++;
+		if (min_idle_expiration.tv_sec == 0 ||
+		    timespec_after(&min_idle_expiration,
+				   &edev->dev->idle_timeout))
+			min_idle_expiration = edev->dev->idle_timeout;
+	}
+
+	idle_timer = NULL;
+	if (!num_idle_devs)
+		return;
+	if (timespec_after(&now, &min_idle_expiration)) {
+		min_idle_timeout_ms = 0;
+	} else {
+		struct timespec timeout;
+		subtract_timespecs(&min_idle_expiration, &now, &timeout);
+		min_idle_timeout_ms = timespec_to_ms(&timeout);
+	}
+	/* Wake up when it is time to close the next idle device.  Sleep for a
+	 * minimum of 10 milliseconds. */
+	idle_timer = cras_tm_create_timer(cras_system_state_get_tm(),
+					  MAX(min_idle_timeout_ms, 10),
+					  idle_dev_check, NULL);
 }
 
 /* Open the device potentially filling the output with a pre buffer. */
@@ -322,6 +380,8 @@ static int init_device(struct cras_iodev *dev,
 {
 	int rc;
 	struct cras_audio_format fmt;
+
+	dev->idle_timeout.tv_sec = 0;
 
 	if (cras_iodev_is_open(dev))
 		return 0;
@@ -473,7 +533,16 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
 	/* No more default streams, close any device that doesn't have a stream
 	 * pinned to it. */
 	DL_FOREACH(enabled_devs[dir], edev) {
-		close_dev(edev->dev);
+		if (dev_has_pinned_stream(edev->dev->info.idx))
+			continue;
+		if (dir == CRAS_STREAM_INPUT) {
+			close_dev(edev->dev);
+			continue;
+		}
+		/* Allow output devs to drain before closing. */
+		clock_gettime(CLOCK_MONOTONIC_RAW, &edev->dev->idle_timeout);
+		add_timespecs(&edev->dev->idle_timeout, &idle_timeout_interval);
+		idle_dev_check(NULL, NULL);
 	}
 
 	return 0;

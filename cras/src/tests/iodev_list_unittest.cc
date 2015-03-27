@@ -11,9 +11,9 @@ extern "C" {
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
+#include "cras_tm.h"
 #include "stream_list.h"
 #include "utlist.h"
-
 }
 
 namespace {
@@ -66,6 +66,8 @@ static int empty_iodev_is_open[CRAS_NUM_DIRECTIONS];
 static struct cras_rstream *stream_list_get_ret;
 static int audio_thread_drain_stream_return;
 static int audio_thread_drain_stream_called;
+static void (*cras_tm_timer_cb)(struct cras_timer *t, void *data);
+static struct timespec clock_gettime_retspec;
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -574,9 +576,16 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   ASSERT_EQ(audio_thread_drain_stream_called, 1);
   ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
   audio_thread_drain_stream_return = 0;
+  clock_gettime_retspec.tv_sec = 15;
+  clock_gettime_retspec.tv_nsec = 45;
   stream_rm_cb(&rstream);
   ASSERT_EQ(audio_thread_drain_stream_called, 2);
-  ASSERT_EQ(audio_thread_rm_open_dev_called, 1);
+  ASSERT_EQ(0, audio_thread_rm_open_dev_called);
+  // Stream should remain open for a while before being closed.
+  // Test it is closed after 30 seconds.
+  clock_gettime_retspec.tv_sec += 30;
+  cras_tm_timer_cb(NULL, NULL);
+  ASSERT_EQ(1, audio_thread_rm_open_dev_called);
   iodev_is_open = 0;
 
   audio_thread_rm_open_dev_called = 0;
@@ -586,6 +595,60 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   /* Assert active devices was set to default one, when selected device
    * removed. */
   cras_iodev_list_rm_output(&d1_);
+}
+
+TEST_F(IoDevTestSuite, DrainTimerCancel) {
+  int rc;
+  struct cras_rstream rstream;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(0, rc);
+
+  iodev_is_open = 0;
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 1));
+  EXPECT_EQ(0, audio_thread_add_open_dev_called);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+
+  // If a stream is added, the device should be opened.
+  stream_add_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
+
+  audio_thread_rm_open_dev_called = 0;
+  audio_thread_drain_stream_return = 0;
+  clock_gettime_retspec.tv_sec = 15;
+  clock_gettime_retspec.tv_nsec = 45;
+  stream_rm_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_drain_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+
+  // Add stream again, make sure device isn't closed after timeout.
+  audio_thread_add_open_dev_called = 0;
+  stream_add_cb(&rstream);
+  EXPECT_EQ(0, audio_thread_add_open_dev_called);
+
+  clock_gettime_retspec.tv_sec += 30;
+  cras_tm_timer_cb(NULL, NULL);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+
+  // Remove stream, and check the device is eventually closed.
+  audio_thread_rm_open_dev_called = 0;
+  audio_thread_drain_stream_called = 0;
+  stream_rm_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_drain_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+
+  clock_gettime_retspec.tv_sec += 30;
+  cras_tm_timer_cb(NULL, NULL);
+  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
 }
 
 TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
@@ -1040,6 +1103,25 @@ void cras_rstream_destroy(struct cras_rstream *rstream) {
 
 struct cras_tm *cras_system_state_get_tm() {
   return NULL;
+}
+
+struct cras_timer *cras_tm_create_timer(
+                struct cras_tm *tm,
+                unsigned int ms,
+                void (*cb)(struct cras_timer *t, void *data),
+                void *cb_data) {
+  cras_tm_timer_cb = cb;
+  return reinterpret_cast<struct cras_timer *>(0x404);
+}
+
+void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t) {
+}
+
+//  From librt.
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+  tp->tv_sec = clock_gettime_retspec.tv_sec;
+  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
+  return 0;
 }
 
 }  // extern "C"
