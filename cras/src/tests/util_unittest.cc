@@ -106,6 +106,34 @@ TEST(Util, FramesToMs) {
   EXPECT_EQ(50, cras_frames_to_ms(800, 16000));
 }
 
+TEST(Util, TimespecToMs) {
+  struct timespec ts;
+
+  ts.tv_sec = 0;
+  ts.tv_nsec = 500000000;
+  EXPECT_EQ(500, timespec_to_ms(&ts));
+
+  ts.tv_sec = 0;
+  ts.tv_nsec = 0;
+  EXPECT_EQ(0, timespec_to_ms(&ts));
+
+  ts.tv_sec = 0;
+  ts.tv_nsec = 2;
+  EXPECT_EQ(1, timespec_to_ms(&ts));
+
+  ts.tv_sec = 0;
+  ts.tv_nsec = 10000000;
+  EXPECT_EQ(10, timespec_to_ms(&ts));
+
+  ts.tv_sec = 1;
+  ts.tv_nsec = 0;
+  EXPECT_EQ(1000, timespec_to_ms(&ts));
+
+  ts.tv_sec = 1;
+  ts.tv_nsec = 1;
+  EXPECT_EQ(1001, timespec_to_ms(&ts));
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {

@@ -145,6 +145,12 @@ static inline int timespec_after(const struct timespec *a,
 		(a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec);
 }
 
+/* Retruns the equivalent number of milliseconds for a given timespec.
+ * The result is rounded up to the next millisecond. */
+static inline unsigned int timespec_to_ms(const struct timespec *ts)
+{
+	return ts->tv_sec * 1000 + (ts->tv_nsec + 999999) / 1000000;
+}
 
 #ifdef __cplusplus
 } /* extern "C" */
