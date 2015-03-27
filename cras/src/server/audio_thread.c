@@ -280,8 +280,6 @@ static int append_stream_to_dev(struct audio_thread *thread,
 		return -EINVAL;
 	}
 
-	adev->dev->is_draining = 0;
-
 	cras_iodev_add_stream(dev, out);
 
 	return 0;
@@ -512,10 +510,6 @@ static int thread_drain_stream(struct audio_thread *thread,
 
 	return ms_left;
 }
-
-/* Handles the a request to begin draining and return the amount of time left to
- * draing a stream.
- */
 
 /* Handles the add_stream message from the main thread. */
 static int thread_add_stream(struct audio_thread *thread,
@@ -999,8 +993,8 @@ static int get_next_dev_wake(struct audio_thread *thread,
 	int ret = 0; /* The total number of devices to wait on. */
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
-		/* Only wake up for devices when they finish draining. */
-		if (!cras_iodev_is_open(adev->dev) || !adev->dev->is_draining)
+		/* Only wake up for devices when they don't have streams. */
+		if (!cras_iodev_is_open(adev->dev) || adev->dev->streams)
 			continue;
 		ret++;
 		audio_thread_event_log_data(atlog,
@@ -1028,43 +1022,29 @@ static int get_next_dev_wake(struct audio_thread *thread,
 	return ret;
 }
 
-/* Drain the hardware buffer of odev.
+/* When an odev is open but no streams are attached, play zeros.
  * Args:
- *    odev - the output device to be drainned.
+ *    odev - the output device to be filled.
  */
-int drain_output_buffer(struct open_dev *adev)
+int fill_output_no_streams(struct open_dev *adev)
 {
-	int hw_level;
-	int filled_count;
-	int buffer_frames;
+	unsigned int hw_level;
 	int rc;
 	struct cras_iodev *odev = adev->dev;
 
-	buffer_frames = odev->buffer_size;
+	rc = odev->frames_queued(odev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
 
-	hw_level = odev->frames_queued(odev);
-	if (hw_level < 0)
-		return hw_level;
+	if (hw_level < odev->min_cb_level)
+		fill_odev_zeros(odev, odev->min_cb_level);
 
 	audio_thread_event_log_data(atlog,
-				    AUDIO_THREAD_DRAIN_OUTPUT,
+				    AUDIO_THREAD_ODEV_NO_STREAMS,
 				    odev->info.idx,
 				    hw_level,
-				    odev->extra_silent_frames);
-
-	if ((int)odev->extra_silent_frames >= hw_level) {
-		/* Remaining audio has been played out. Close the device. */
-		cras_iodev_close(odev);
-		odev->is_draining = 0;
-		return 0;
-	}
-
-	filled_count = MIN(buffer_frames - hw_level,
-			   2048 - (int)odev->extra_silent_frames);
-	rc = fill_odev_zeros(adev->dev, filled_count);
-	if (rc)
-		return rc;
-	odev->extra_silent_frames += filled_count;
+				    odev->min_cb_level);
 
 	return 0;
 }
@@ -1078,20 +1058,25 @@ static void set_odev_wake_times(struct open_dev *dev_list)
 
 	DL_FOREACH(dev_list, adev) {
 		struct timespec sleep_time;
-		int hw_level;
+		unsigned int hw_level;
+		int rc;
 
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
-		hw_level = adev->dev->frames_queued(adev->dev);
-		if (hw_level < 0)
-			return;
+		rc = adev->dev->frames_queued(adev->dev);
+		hw_level = (rc < 0) ? 0 : rc;
 
 		audio_thread_event_log_data(atlog,
 					    AUDIO_THREAD_SET_DEV_WAKE,
 					    adev->dev->info.idx,
 					    adev->coarse_rate_adjust,
 					    adev->dev->min_cb_level);
+
+		if (hw_level < adev->dev->min_cb_level) {
+			adev->wake_ts = now;
+			return;
+		}
 
 		cras_frames_to_time(hw_level, adev->dev->ext_format->frame_rate,
 				    &sleep_time);
@@ -1165,8 +1150,8 @@ static int write_output_samples(struct audio_thread *thread,
 	uint8_t *dst = NULL;
 	struct cras_audio_area *area = NULL;
 
-	if (odev->is_draining)
-		return drain_output_buffer(adev);
+	if (!odev->streams)
+		return fill_output_no_streams(adev);
 
 	rc = odev->frames_queued(odev);
 	if (rc < 0)
@@ -1243,8 +1228,6 @@ static int do_playback(struct audio_thread *thread)
 					loopback_iodev_fill_level(adev->dev));
 			continue;
 		}
-		if (!adev->dev->streams)
-			continue;
 
 		rc = write_output_samples(thread, adev);
 		if (rc < 0) {

@@ -91,10 +91,6 @@ struct cras_ionode {
  * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
  * is_active - True if this iodev is set as active, false otherwise.
  * software_volume_needed - True if volume control is not supported by hardware.
- * is_draining - Indicate the device is playing the remaining audio in the
- *     hardware buffer.
- * extra_silent_frames - In draining, the number of silent frames filled in to
- *     prevent buffer underrun.
  * streams - List of audio streams serviced by dev.
  * min_cb_level - min callback level of any stream attached.
  * max_cb_level - max callback level of any stream attached.
@@ -139,8 +135,6 @@ struct cras_iodev {
 	const char *dsp_name;
 	int is_active;
 	int software_volume_needed;
-	int is_draining;
-	size_t extra_silent_frames;
 	struct dev_stream *streams;
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
