@@ -431,6 +431,22 @@ static int thread_rm_open_dev(struct audio_thread *thread,
 	return 0;
 }
 
+/* Return non-zero if the stream is attached to any device. */
+static int thread_find_stream(struct audio_thread *thread,
+			      struct cras_rstream *rstream)
+{
+	struct open_dev *open_dev;
+	struct dev_stream *s;
+
+	DL_FOREACH(thread->open_devs[rstream->direction], open_dev) {
+		DL_FOREACH(open_dev->dev->streams, s) {
+			if (s->stream == rstream)
+				return 1;
+		}
+	}
+	return 0;
+}
+
 /* Remove stream from the audio thread. If this is the last stream to be
  * removed close the device.
  */
@@ -462,6 +478,9 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	int detach_from_loopback = (stream->is_pinned &&
 			stream->pinned_dev_idx == LOOPBACK_RECORD_DEVICE);
 	int rc;
+
+	if (!thread_find_stream(thread, stream))
+		return 0;
 
 	rc = thread_remove_stream(thread, stream, dev);
 
@@ -503,6 +522,9 @@ static int thread_drain_stream(struct audio_thread *thread,
 			       struct cras_rstream *rstream)
 {
 	int ms_left;
+
+	if (!thread_find_stream(thread, rstream))
+		return 0;
 
 	ms_left = thread_drain_stream_ms_remaining(thread, rstream);
 	if (ms_left == 0)
@@ -676,7 +698,7 @@ static int write_streams(struct audio_thread *thread,
 
 		dev_frames = dev_stream_playback_frames(curr);
 		if (dev_frames < 0) {
-			// TODO thread_remove_stream(thread, curr->stream);
+			thread_remove_stream(thread, curr->stream, NULL);
 			continue;
 		}
 		audio_thread_event_log_data(atlog,
@@ -686,6 +708,9 @@ static int write_streams(struct audio_thread *thread,
 				cras_shm_callback_pending(shm));
 		if (cras_rstream_get_is_draining(curr->stream)) {
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
+			if (!dev_frames)
+				thread_remove_stream(thread, curr->stream,
+						     NULL);
 		} else {
 			write_limit = MIN((size_t)dev_frames, write_limit);
 			num_playing++;
@@ -714,7 +739,7 @@ static int write_streams(struct audio_thread *thread,
 					  write_limit - offset);
 
 		if (nwritten < 0) {
-			// TODO thread_remove_stream(thread, curr->stream);
+			thread_remove_stream(thread, curr->stream, NULL);
 			continue;
 		}
 
