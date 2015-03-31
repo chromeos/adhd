@@ -17,7 +17,6 @@
 #include "cras_config.h"
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
-#include "cras_loopback_iodev.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
@@ -81,10 +80,6 @@ struct iodev_callback_list {
 	struct pollfd *pollfd;
 	struct iodev_callback_list *prev, *next;
 };
-
-static void enable_loopback(struct audio_thread *thread,
-			    struct cras_audio_format *fmt);
-static void disable_loopback_if_unused(struct audio_thread *thread);
 
 static void _audio_thread_add_callback(int fd, thread_callback cb,
 				       void *data, int is_write)
@@ -317,9 +312,6 @@ static int append_stream(struct audio_thread *thread,
 	if (!open_dev)
 		return -EINVAL;
 
-	if (stream->pinned_dev_idx == LOOPBACK_RECORD_DEVICE)
-		enable_loopback(thread, &stream->format);
-
 	rc = append_stream_to_dev(thread, open_dev, stream);
 	if (rc)
 		return rc;
@@ -475,17 +467,12 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 				    struct cras_rstream* stream,
 				    struct cras_iodev *dev)
 {
-	int detach_from_loopback = (stream->is_pinned &&
-			stream->pinned_dev_idx == LOOPBACK_RECORD_DEVICE);
 	int rc;
 
 	if (!thread_find_stream(thread, stream))
 		return 0;
 
 	rc = thread_remove_stream(thread, stream, dev);
-
-	if (detach_from_loopback)
-		disable_loopback_if_unused(thread);
 
 	return rc;
 }
@@ -997,9 +984,6 @@ static int input_adev_ignore_wake(const struct open_dev *adev)
 	if (!cras_iodev_is_open(adev->dev))
 		return 1;
 
-	if (adev->dev->info.idx == LOOPBACK_RECORD_DEVICE)
-		return 0;
-
 	if (!adev->dev->active_node)
 		return 1;
 
@@ -1228,8 +1212,7 @@ static int write_output_samples(struct audio_thread *thread,
 	if (total_written || hw_level) {
 		if (!odev->dev_running(odev))
 			return -1;
-	} else if (odev->min_cb_level < odev->buffer_size &&
-		   odev != thread->loopback_devs[CRAS_STREAM_OUTPUT]) {
+	} else if (odev->min_cb_level < odev->buffer_size) {
 		/* Empty hardware and nothing written, zero fill it. */
 		fill_odev_zeros(adev->dev, odev->min_cb_level);
 	}
@@ -1247,12 +1230,6 @@ static int do_playback(struct audio_thread *thread)
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
-		if (adev->dev == thread->loopback_devs[CRAS_STREAM_OUTPUT] &&
-		    !adev->dev->streams) {
-			fill_odev_zeros(adev->dev,
-					loopback_iodev_fill_level(adev->dev));
-			continue;
-		}
 
 		rc = write_output_samples(thread, adev);
 		if (rc < 0) {
@@ -1631,28 +1608,6 @@ static int audio_thread_post_message(struct audio_thread *thread,
 	return rc;
 }
 
-/* Enables loopback device if loopback capture stream is connected. */
-static void enable_loopback(struct audio_thread *thread,
-			    struct cras_audio_format *fmt)
-{
-	struct cras_iodev *dev = thread->loopback_devs[CRAS_STREAM_OUTPUT];
-
-	thread_add_open_dev(thread, dev);
-	if (dev->format == NULL)
-		cras_iodev_set_format(dev, fmt);
-	if (!cras_iodev_is_open(dev))
-		cras_iodev_open(dev);
-}
-
-/* Disables loopback device when no loopback capture streams. */
-static void disable_loopback_if_unused(struct audio_thread *thread)
-{
-	struct cras_iodev *dev = thread->loopback_devs[CRAS_STREAM_OUTPUT];
-
-	if (!thread->loopback_devs[CRAS_STREAM_INPUT]->streams)
-		thread_rm_open_dev(thread, dev, 0);
-}
-
 /* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
@@ -1712,16 +1667,7 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 	return audio_thread_post_message(thread, &msg.header);
 }
 
-static void config_loopback_dev(struct audio_thread *thread,
-				struct cras_iodev *loopback_dev)
-{
-	enum CRAS_STREAM_DIRECTION dir = loopback_dev->direction;
-
-	thread->loopback_devs[dir] = loopback_dev;
-}
-
-struct audio_thread *audio_thread_create(struct cras_iodev *loopback_output,
-					 struct cras_iodev *loopback_input)
+struct audio_thread *audio_thread_create()
 {
 	int rc;
 	struct audio_thread *thread;
@@ -1734,9 +1680,6 @@ struct audio_thread *audio_thread_create(struct cras_iodev *loopback_output,
 	thread->to_thread_fds[1] = -1;
 	thread->to_main_fds[0] = -1;
 	thread->to_main_fds[1] = -1;
-
-	config_loopback_dev(thread, loopback_output);
-	config_loopback_dev(thread, loopback_input);
 
 	/* Two way pipes for communication with the device's audio thread. */
 	rc = pipe(thread->to_thread_fds);

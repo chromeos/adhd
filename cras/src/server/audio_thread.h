@@ -38,7 +38,6 @@ struct open_dev {
  *    started - Non-zero if the thread has started successfully.
  *    suspended - Non-zero if the thread is suspended.
  *    open_devs - Lists of open input and output devices.
- *    loopback_devs - Keep loopback input and output devices (loopback_iodev).
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -47,7 +46,6 @@ struct audio_thread {
 	int started;
 	int suspended;
 	struct open_dev *open_devs[CRAS_NUM_DIRECTIONS];
-	struct cras_iodev *loopback_devs[CRAS_NUM_DIRECTIONS];
 
 };
 
@@ -58,15 +56,11 @@ struct audio_thread {
 typedef int (*thread_callback)(void *data);
 
 /* Creates an audio thread.
- * Args:
- *    loopback_output - A device that keeps track of what the system is playing.
- *    loopback_input - A device to record what the system is playing.
  * Returns:
  *    A pointer to the newly create audio thread.  It must be freed by calling
  *    audio_thread_destroy().  Returns NULL on error.
  */
-struct audio_thread *audio_thread_create(struct cras_iodev *loopback_output,
-					 struct cras_iodev *loopback_input);
+struct audio_thread *audio_thread_create();
 
 /* Adds an open device.
  * Args:

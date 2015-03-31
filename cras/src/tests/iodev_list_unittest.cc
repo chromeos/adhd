@@ -351,9 +351,9 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
 
   cras_iodev_list_init();
 
-  // Check a loopback record device exists.
+  // Check no devices exist initially.
   rc = cras_iodev_list_get_inputs(NULL);
-  EXPECT_EQ(1, rc);
+  EXPECT_EQ(0, rc);
 
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
@@ -366,16 +366,14 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   EXPECT_EQ(0, rc);
   EXPECT_GE(d2_.info.idx, 1);
   // make sure shared state was updated.
-  EXPECT_EQ(3, server_state_stub.num_input_devs);
+  EXPECT_EQ(2, server_state_stub.num_input_devs);
   EXPECT_EQ(d2_.info.idx, server_state_stub.input_devs[0].idx);
   EXPECT_EQ(d1_.info.idx, server_state_stub.input_devs[1].idx);
 
-  rc = cras_iodev_list_get_inputs(NULL);
-  EXPECT_EQ(3, rc);
   // List the outputs.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(3, rc);
-  if (rc == 3) {
+  EXPECT_EQ(2, rc);
+  if (rc == 2) {
     found_mask = 0;
     for (i = 0; i < rc; i++) {
       uint32_t idx = dev_info[i].idx;
@@ -392,16 +390,16 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   // Test that we can't remove a dev twice.
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_NE(0, rc);
-  // Should be 2 devs now.
+  // Should be 1 dev now.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(2, rc);
+  EXPECT_EQ(1, rc);
   free(dev_info);
   // Remove other dev.
   rc = cras_iodev_list_rm_input(&d2_);
   EXPECT_EQ(0, rc);
-  // Should be 1 dev (loopback) now.
+  // Shouldn't be any devices left.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(1, rc);
+  EXPECT_EQ(0, rc);
   free(dev_info);
 
   cras_iodev_list_deinit();
@@ -466,9 +464,9 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   EXPECT_EQ(0, rc);
   rc = cras_iodev_list_rm_input(&d1_);
   EXPECT_EQ(0, rc);
-  // Should be 1 dev (loopback) now.
+  // Shouldn't be any devices left.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(1, rc);
+  EXPECT_EQ(0, rc);
 
   cras_iodev_list_deinit();
 }
@@ -923,8 +921,7 @@ void cras_alert_destroy(struct cras_alert *alert) {
   cras_alert_destroy_called++;
 }
 
-struct audio_thread *audio_thread_create(struct cras_iodev *loop_out,
-                                         struct cras_iodev *loop_in) {
+struct audio_thread *audio_thread_create() {
   return &thread;
 }
 

@@ -10,7 +10,6 @@
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
-#include "cras_loopback_iodev.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
 #include "cras_tm.h"
@@ -47,9 +46,6 @@ static struct iodev_list devs[CRAS_NUM_DIRECTIONS];
 static struct enabled_dev *enabled_devs[CRAS_NUM_DIRECTIONS];
 /* Keep an empty device per direction. */
 static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
-/* Keep loopback input and output. */
-static struct cras_iodev *loopback_output;
-static struct cras_iodev *loopback_input;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
@@ -78,9 +74,6 @@ static void idle_dev_check(struct cras_timer *timer, void *data);
 static struct cras_iodev *find_dev(size_t dev_index)
 {
 	struct cras_iodev *dev;
-
-	if (dev_index == LOOPBACK_RECORD_DEVICE)
-		return loopback_input;
 
 	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev)
 		if (dev->info.idx == dev_index)
@@ -678,13 +671,9 @@ void cras_iodev_list_init()
 			empty_iodev_create(CRAS_STREAM_INPUT);
 	enable_device(fallback_devs[CRAS_STREAM_OUTPUT]);
 	enable_device(fallback_devs[CRAS_STREAM_INPUT]);
-	loopback_iodev_create(&loopback_input, &loopback_output);
-	audio_thread = audio_thread_create(loopback_output, loopback_input);
+	audio_thread = audio_thread_create();
 	audio_thread_start(audio_thread);
 
-	/* Add loopback capture device to input device list. */
-	DL_PREPEND(devs[CRAS_STREAM_INPUT].iodevs, loopback_input);
-	devs[CRAS_STREAM_INPUT].size++;
 	cras_iodev_list_update_device_list();
 }
 
@@ -699,7 +688,6 @@ void cras_iodev_list_deinit()
 	cras_alert_destroy(active_node_changed_alert);
 	nodes_changed_alert = NULL;
 	active_node_changed_alert = NULL;
-	loopback_iodev_destroy(loopback_input, loopback_output);
 	audio_thread_destroy(audio_thread);
 	stream_list_destroy(stream_list);
 }

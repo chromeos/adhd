@@ -13,9 +13,7 @@ class StreamDeviceSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       device_id_ = 0;
-      SetupDevice(&loopback_output_, CRAS_STREAM_OUTPUT);
-      SetupDevice(&loopback_input_, CRAS_STREAM_INPUT);
-      thread_ = audio_thread_create(&loopback_output_, &loopback_input_);
+      thread_ = audio_thread_create();
     }
 
     virtual void TearDown() {
@@ -106,8 +104,6 @@ class StreamDeviceSuite : public testing::Test {
     }
 
     int device_id_;
-    struct cras_iodev loopback_output_;
-    struct cras_iodev loopback_input_;
     struct audio_thread *thread_;
 
     static int open_dev_called_;
@@ -520,11 +516,6 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
                              double master_rate_ratio,
                              int coarse_rate_adjust)
 {
-}
-
-unsigned int loopback_iodev_fill_level(struct cras_iodev *dev)
-{
-  return 0;
 }
 
 }  // extern "C"
