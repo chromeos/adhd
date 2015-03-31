@@ -114,11 +114,11 @@ static struct cras_ionode *find_node(cras_node_id_t id)
 }
 
 /* Adds a device to the list.  Used from add_input and add_output. */
-static int add_dev_to_list(struct iodev_list *list,
-			   struct cras_iodev *dev)
+static int add_dev_to_list(struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp;
 	uint32_t new_idx;
+	struct iodev_list *list = &devs[dev->direction];
 
 	DL_FOREACH(list->iodevs, tmp)
 		if (tmp == dev)
@@ -152,16 +152,16 @@ static int add_dev_to_list(struct iodev_list *list,
 }
 
 /* Removes a device to the list.  Used from rm_input and rm_output. */
-static int rm_dev_from_list(struct iodev_list *list, struct cras_iodev *dev)
+static int rm_dev_from_list(struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp;
 
-	DL_FOREACH(list->iodevs, tmp)
+	DL_FOREACH(devs[dev->direction].iodevs, tmp)
 		if (tmp == dev) {
 			if (dev->is_open(dev))
 				return -EBUSY;
-			DL_DELETE(list->iodevs, dev);
-			list->size--;
+			DL_DELETE(devs[dev->direction].iodevs, dev);
+			devs[dev->direction].size--;
 			return 0;
 		}
 
@@ -748,7 +748,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 	if (output->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	rc = add_dev_to_list(&devs[CRAS_STREAM_OUTPUT], output);
+	rc = add_dev_to_list(output);
 	if (rc)
 		return rc;
 
@@ -762,7 +762,7 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 	if (input->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
 
-	rc = add_dev_to_list(&devs[CRAS_STREAM_INPUT], input);
+	rc = add_dev_to_list(input);
 	if (rc)
 		return rc;
 
@@ -783,7 +783,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 			break;
 		}
 	}
-	res = rm_dev_from_list(&devs[CRAS_STREAM_OUTPUT], dev);
+	res = rm_dev_from_list(dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
@@ -803,7 +803,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 			break;
 		}
 	}
-	res = rm_dev_from_list(&devs[CRAS_STREAM_INPUT], dev);
+	res = rm_dev_from_list(dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
 	return res;
