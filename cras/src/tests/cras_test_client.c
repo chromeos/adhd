@@ -994,53 +994,53 @@ static struct option long_options[] = {
 
 static void show_usage()
 {
-	printf("--sbc - Use sbc codec for playback/capture.\n");
-	printf("--show_latency - Display latency while playing or recording.\n");
-	printf("--show_rms - Display RMS value of loopback stream.\n");
-	printf("--show_total_rms - Display total RMS value of loopback stream at the end.\n");
-	printf("--rate <N> - Specifies the sample rate in Hz.\n");
-	printf("--num_channels <N> - Two for stereo.\n");
-	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
-	printf("--capture_file <name> - Name of file to record to.\n");
-	printf("--playback_file <name> - Name of file to play, "
-	       "\"-\" to playback raw audio from stdin.\n");
-	printf("--loopback_file <name> - Name of file to record loopback to.\n");
-	printf("--mute <0|1> - Set system mute state.\n");
-	printf("--user_mute <0|1> - Set user mute state.\n");
-	printf("--capture_mute <0|1> - Set capture mute state.\n");
-	printf("--block_size <N> - The number for frames per callback(dictates latency).\n");
-	printf("--duration_seconds <N> - Seconds to record or playback.\n");
-	printf("--volume <0-100> - Set system output volume.\n");
-	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
-	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
-	printf("--reload_dsp - Reload dsp configuration from the ini file\n");
-	printf("--dump_server_info - Print status of the server.\n");
-	printf("--dump_dsp - Print status of dsp to syslog.\n");
-	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
-	       " ionode with the given index M on the device with index N\n");
-	printf("--swap_left_right <N>:<M>:<0|1> - Swap or unswap (1 or 0) the"
-	       " left and right channel for the ionode with the given index M"
-	       " on the device with index N\n");
-	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
-	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--add_active_input <N>:<M> - Add the ionode with the given id"
 	       "to active input device list\n");
 	printf("--add_active_output <N>:<M> - Add the ionode with the given id"
 	       "to active output device list\n");
+	printf("--add_test_dev <type> - add a test iodev.\n");
+	printf("--block_size <N> - The number for frames per callback(dictates latency).\n");
+	printf("--capture_file <name> - Name of file to record to.\n");
+	printf("--capture_gain <dB> - Set system caputre gain in dB*100 (100 = 1dB).\n");
+	printf("--capture_mute <0|1> - Set capture mute state.\n");
+	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
+	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
+	printf("--dump_audio_thread - Dumps audio thread info.\n");
+	printf("--dump_dsp - Print status of dsp to syslog.\n");
+	printf("--dump_server_info - Print status of the server.\n");
+	printf("--duration_seconds <N> - Seconds to record or playback.\n");
+	printf("--help - Print this message.\n");
+	printf("--listen_for_hotword - Listen for a hotword if supported\n");
+	printf("--loopback_file <name> - Name of file to record loopback to.\n");
+	printf("--mute <0|1> - Set system mute state.\n");
+	printf("--num_channels <N> - Two for stereo.\n");
+	printf("--pin_device <N> - Playback/Capture only on the given device."
+	       "\n");
+	printf("--playback_file <name> - Name of file to play, "
+	       "\"-\" to playback raw audio from stdin.\n");
+	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
+	       " ionode with the given index M on the device with index N\n");
+	printf("--rate <N> - Specifies the sample rate in Hz.\n");
+	printf("--reload_dsp - Reload dsp configuration from the ini file\n");
 	printf("--rm_active_input <N>:<M> - Removes the ionode with the given"
 	       "id from active input device list\n");
 	printf("--rm_active_output <N>:<M> - Removes the ionode with the given"
 	       "id from active output device list\n");
+	printf("--sbc - Use sbc codec for playback/capture.\n");
+	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
+	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
-	printf("--dump_audio_thread - Dumps audio thread info.\n");
-	printf("--version - Print the git commit ID that was used to build the client.\n");
-	printf("--add_test_dev <type> - add a test iodev.\n");
-	printf("--test_hotword_file <N>:<filename> - Use filename as a hotword buffer for device N\n");
-	printf("--listen_for_hotword - Listen for a hotword if supported\n");
-	printf("--pin_device <N> - Playback/Capture only on the given device."
-	       "\n");
+	printf("--show_latency - Display latency while playing or recording.\n");
+	printf("--show_rms - Display RMS value of loopback stream.\n");
+	printf("--show_total_rms - Display total RMS value of loopback stream at the end.\n");
 	printf("--suspend <0|1> - Set audio suspend state.\n");
-	printf("--help - Print this message.\n");
+	printf("--swap_left_right <N>:<M>:<0|1> - Swap or unswap (1 or 0) the"
+	       " left and right channel for the ionode with the given index M"
+	       " on the device with index N\n");
+	printf("--test_hotword_file <N>:<filename> - Use filename as a hotword buffer for device N\n");
+	printf("--user_mute <0|1> - Set user mute state.\n");
+	printf("--version - Print the git commit ID that was used to build the client.\n");
+	printf("--volume <0-100> - Set system output volume.\n");
 }
 
 int main(int argc, char **argv)
