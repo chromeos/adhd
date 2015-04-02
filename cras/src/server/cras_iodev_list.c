@@ -497,11 +497,11 @@ static int stream_added_cb(struct cras_rstream *rstream)
 		dev = cras_iodev_list_find_dev(rstream->pinned_dev_idx);
 		if (!dev)
 			return -EINVAL;
-		rc = audio_thread_add_stream(audio_thread, rstream, dev);
+		rc = init_device(dev, rstream);
 		if (rc)
 			return rc;
 
-		return init_device(dev, rstream);
+		return audio_thread_add_stream(audio_thread, rstream, dev);
 	}
 	DL_FOREACH(enabled_devs[rstream->direction], edev) {
 		init_device(edev->dev, rstream);
