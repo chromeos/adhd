@@ -1118,6 +1118,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->mixer = mixer;
 	aio->ucm = ucm;
 	if (ucm) {
+		unsigned int level;
+
 		aio->dsp_name_default = ucm_get_dsp_name_default(ucm,
 								 direction);
 		/* Set callback for swap mode if it is supported
@@ -1125,6 +1127,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		if (ucm_swap_mode_exists(ucm))
 			aio->base.set_swap_mode_for_node =
 				set_alsa_node_swapped;
+
+		level = ucm_get_min_buffer_level(ucm);
+		if (level && direction == CRAS_STREAM_OUTPUT)
+			iodev->min_buffer_level = level;
         }
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
 

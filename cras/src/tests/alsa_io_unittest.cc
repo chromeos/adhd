@@ -1230,6 +1230,12 @@ int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
   ucm_enable_swap_mode_called++;
   return ucm_enable_swap_mode_ret_value;
 }
+
+unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
+{
+  return 0;
+}
+
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }
