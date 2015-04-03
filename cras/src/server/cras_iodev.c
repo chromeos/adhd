@@ -658,3 +658,17 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
 	cras_dsp_put_pipeline(ctx);
 	return delay;
 }
+
+int cras_iodev_frames_queued(struct cras_iodev *iodev)
+{
+	int rc;
+
+	rc = iodev->frames_queued(iodev);
+	if (rc < 0 || iodev->direction == CRAS_STREAM_INPUT)
+		return rc;
+
+	if (rc < iodev->min_buffer_level)
+		return 0;
+
+	return rc - iodev->min_buffer_level;
+}

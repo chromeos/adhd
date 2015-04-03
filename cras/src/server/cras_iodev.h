@@ -367,6 +367,9 @@ double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev);
 /* Get the delay from DSP processing in frames. */
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev);
 
+/* Returns the number of frames in the hardware buffer. */
+int cras_iodev_frames_queued(struct cras_iodev *iodev);
+
 /* Get the delay for input/output in frames. */
 static inline int cras_iodev_delay_frames(const struct cras_iodev *iodev)
 {

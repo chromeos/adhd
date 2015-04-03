@@ -518,6 +518,11 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 {
 }
 
+int cras_iodev_frames_queued(struct cras_iodev *iodev)
+{
+	return iodev->frames_queued(iodev);
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {
