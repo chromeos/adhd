@@ -18,6 +18,7 @@ static const char output_dsp_name_var[] = "OutputDspName";
 static const char input_dsp_name_var[] = "InputDspName";
 static const char mixer_var[] = "MixerName";
 static const char swap_mode_suffix[] = "Swap Mode";
+static const char min_buffer_level_var[] = "MinBufferLevel";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -359,4 +360,16 @@ const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
 const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
 {
 	return ucm_get_dsp_name(mgr, "", direction);
+}
+
+unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
+{
+	const char *val = NULL;
+	int rc;
+
+	rc = get_var(mgr, min_buffer_level_var, "", default_verb, &val);
+	if (rc)
+		return 0;
+
+	return atoi(val);
 }

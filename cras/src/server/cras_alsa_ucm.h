@@ -154,4 +154,12 @@ const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
  */
 const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction);
 
+/* Gets the minimum buffer level for an output.  This level will add latency to
+ * all streams playing on the output, but can be used to work around an
+ * unreliable dma residue.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ */
+unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr);
+
 #endif /* _CRAS_ALSA_UCM_H */
