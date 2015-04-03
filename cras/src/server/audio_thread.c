@@ -296,8 +296,6 @@ static int append_stream(struct audio_thread *thread,
 {
 	struct open_dev *open_dev;
 	struct dev_stream *out;
-	unsigned int max_level = 0;
-	int rc;
 
 	if (!target_dev)
 		return -EINVAL;
@@ -312,22 +310,7 @@ static int append_stream(struct audio_thread *thread,
 	if (!open_dev)
 		return -EINVAL;
 
-	rc = append_stream_to_dev(thread, open_dev, stream);
-	if (rc)
-		return rc;
-
-	if (!stream_uses_output(stream))
-		return 0;
-
-	max_level = target_dev->frames_queued(target_dev);
-
-	if (max_level < stream->cb_threshold) {
-		struct cras_audio_shm *shm = cras_rstream_output_shm(stream);
-		cras_shm_buffer_written(shm, stream->cb_threshold - max_level);
-		cras_shm_buffer_write_complete(shm);
-	}
-
-	return 0;
+	return append_stream_to_dev(thread, open_dev, stream);
 }
 
 static int delete_stream(struct audio_thread *thread,
