@@ -51,6 +51,10 @@ static unsigned int rate_estimator_add_frames_called;
 static int cras_system_get_mute_return;
 static snd_pcm_format_t cras_scale_buffer_fmt;
 static float cras_scale_buffer_scaler;
+static unsigned int pre_dsp_hook_called;
+static const uint8_t *pre_dsp_hook_frames;
+static unsigned int post_dsp_hook_called;
+static const uint8_t *post_dsp_hook_frames;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -99,6 +103,10 @@ void ResetStubData() {
   rate_estimator_add_frames_called = 0;
   cras_system_get_mute_return = 0;
   cras_mix_mute_count = 0;
+  pre_dsp_hook_called = 0;
+  pre_dsp_hook_frames = NULL;
+  post_dsp_hook_called = 0;
+  post_dsp_hook_frames = NULL;
 }
 
 namespace {
@@ -400,6 +408,22 @@ static int put_buffer(struct cras_iodev *iodev, unsigned int nframes)
   return 0;
 }
 
+static int pre_dsp_hook(const uint8_t *frames, unsigned int nframes,
+			const struct cras_audio_format *fmt)
+{
+  pre_dsp_hook_called++;
+  pre_dsp_hook_frames = frames;
+  return 0;
+}
+
+static int post_dsp_hook(const uint8_t *frames, unsigned int nframes,
+			 const struct cras_audio_format *fmt)
+{
+  post_dsp_hook_called++;
+  post_dsp_hook_frames = frames;
+  return 0;
+}
+
 TEST(IoDevPutOutputBuffer, SystemMuted) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
@@ -461,10 +485,15 @@ TEST(IoDevPutOutputBuffer, DSP) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  cras_iodev_register_pre_dsp_hook(&iodev, pre_dsp_hook);
+  cras_iodev_register_post_dsp_hook(&iodev, post_dsp_hook);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 32);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
+  EXPECT_EQ(1, pre_dsp_hook_called);
+  EXPECT_EQ(frames, pre_dsp_hook_frames);
+  EXPECT_EQ(1, post_dsp_hook_called);
   EXPECT_EQ(32, put_buffer_nframes);
   EXPECT_EQ(32, rate_estimator_add_frames_num_frames);
   EXPECT_EQ(32, cras_dsp_pipeline_apply_sample_count);

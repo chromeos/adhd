@@ -26,6 +26,12 @@ struct audio_thread;
 struct cras_iodev;
 struct rate_estimator;
 
+/* Callback type for loopback listeners.  When enabled, this is called from the
+ * playback path of an iodev with the samples that are being played back.
+ */
+typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
+			       const struct cras_audio_format *fmt);
+
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
  * Members:
@@ -97,6 +103,10 @@ struct cras_ionode {
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
  * idle_timeout - The timestamp when to close the dev after being idle.
+ * pre_dsp_hook - Hook called before applying DSP, but after mixing.  Used for
+ *     system loopback.
+ * post_dsp_hook - Hook called after applying DSP.  Can be used for echo
+ *     reference.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -141,6 +151,8 @@ struct cras_iodev {
 	unsigned int max_cb_level;
 	struct buffer_share *buf_state;
 	struct timespec idle_timeout;
+	loopback_hook_t pre_dsp_hook;
+	loopback_hook_t post_dsp_hook;
 	struct cras_iodev *prev, *next;
 };
 
@@ -383,5 +395,13 @@ static inline int cras_iodev_is_open(const struct cras_iodev *iodev)
 		return 1;
 	return 0;
 }
+
+/* Register a pre-dsp loopback hook.  Pass NULL to clear. */
+void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
+				      loopback_hook_t loop_cb);
+
+/* Register a post-dsp loopback hook.  Pass NULL to clear. */
+void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
+				       loopback_hook_t loop_cb);
 
 #endif /* CRAS_IODEV_H_ */

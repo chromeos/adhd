@@ -567,11 +567,17 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 {
 	const struct cras_audio_format *fmt = iodev->format;
 
+	if (iodev->pre_dsp_hook)
+		iodev->pre_dsp_hook(frames, nframes, fmt);
+
 	if (cras_system_get_mute()) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
 	} else {
 		apply_dsp(iodev, frames, nframes);
+
+		if (iodev->post_dsp_hook)
+			iodev->post_dsp_hook(frames, nframes, fmt);
 
 		if (cras_iodev_software_volume_needed(iodev)) {
 			unsigned int nsamples = nframes * fmt->num_channels;
@@ -671,4 +677,16 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev)
 		return 0;
 
 	return rc - iodev->min_buffer_level;
+}
+
+void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
+				      loopback_hook_t loop_cb)
+{
+	iodev->pre_dsp_hook = loop_cb;
+}
+
+void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
+				       loopback_hook_t loop_cb)
+{
+	iodev->post_dsp_hook = loop_cb;
 }
