@@ -518,6 +518,8 @@ void cras_iodev_stream_written(struct cras_iodev *iodev,
 
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev)
 {
+	if (!iodev->buf_state)
+		return 0;
 	return buffer_share_get_new_write_point(iodev->buf_state);
 }
 
