@@ -642,7 +642,8 @@ static int run_file_io_stream(struct cras_client *client,
 			      size_t block_size,
 			      size_t rate,
 			      size_t num_channels,
-			      uint32_t flags)
+			      uint32_t flags,
+			      int is_loopback)
 {
 	int rc, tty;
 	struct cras_stream_params *params;
@@ -712,6 +713,12 @@ static int run_file_io_stream(struct cras_client *client,
 		return -ENOMEM;
 
 	cras_client_run_thread(client);
+	if (is_loopback) {
+		cras_client_connected_wait(client);
+		pin_device_id = cras_client_get_first_dev_type_idx(client,
+				CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
+				CRAS_STREAM_INPUT);
+	}
 
 	stream_playing =
 		start_stream(client, &stream_id, params, volume_scaler) == 0;
@@ -855,7 +862,8 @@ static int run_capture(struct cras_client *client,
 		       const char *file,
 		       size_t block_size,
 		       size_t rate,
-		       size_t num_channels)
+		       size_t num_channels,
+		       int is_loopback)
 {
 	int fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0666);
 	if (fd == -1) {
@@ -864,7 +872,7 @@ static int run_capture(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size, rate,
-			   num_channels, 0);
+			   num_channels, 0, is_loopback);
 
 	close(fd);
 	return 0;
@@ -885,7 +893,7 @@ static int run_playback(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT,
-			   block_size, rate, num_channels, 0);
+			   block_size, rate, num_channels, 0, 0);
 
 	close(fd);
 	return 0;
@@ -896,7 +904,7 @@ static int run_hotword(struct cras_client *client,
 		       size_t rate)
 {
 	run_file_io_stream(client, -1, CRAS_STREAM_INPUT, block_size, rate, 1,
-			   HOTWORD_STREAM);
+			   HOTWORD_STREAM, 0);
 	return 0;
 }
 static void print_server_info(struct cras_client *client)
@@ -1087,7 +1095,6 @@ int main(int argc, char **argv)
 			break;
 		case 'l':
 			loopback_file = optarg;
-			pin_device_id = LOOPBACK_RECORD_DEVICE;
 			break;
 		case 'b':
 			block_size = atoi(optarg);
@@ -1293,20 +1300,20 @@ int main(int argc, char **argv)
 	if (capture_file != NULL) {
 		if (strcmp(capture_file, "-") == 0)
 			rc = run_file_io_stream(client, 1, CRAS_STREAM_INPUT,
-					block_size, rate, num_channels, 0);
+					block_size, rate, num_channels, 0, 0);
 		else
 			rc = run_capture(client, capture_file,
-					block_size, rate, num_channels);
+					block_size, rate, num_channels, 0);
 	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
-					block_size, rate, num_channels, 0);
+					block_size, rate, num_channels, 0, 0);
 		else
 			rc = run_playback(client, playback_file,
 					block_size, rate, num_channels);
 	} else if (loopback_file != NULL) {
 		rc = run_capture(client, loopback_file,
-				 block_size, rate, num_channels);
+				 block_size, rate, num_channels, 1);
 	}
 
 destroy_exit:

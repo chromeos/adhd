@@ -10,6 +10,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
+#include "cras_loopback_iodev.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
 #include "cras_tm.h"
@@ -195,6 +196,10 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "MIC";
 	case CRAS_NODE_TYPE_AOKR:
 		return "AOKR";
+	case CRAS_NODE_TYPE_POST_MIX_PRE_DSP:
+		return "POST_MIX_LOOPBACK";
+	case CRAS_NODE_TYPE_POST_DSP:
+		return "POST_DSP_LOOPBACK";
 	case CRAS_NODE_TYPE_USB:
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:
