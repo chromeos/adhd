@@ -14,6 +14,7 @@
 #include "cras_dsp.h"
 
 static struct option long_options[] = {
+	{"dsp_config", required_argument, 0, 'd'},
 	{"syslog_mask", required_argument, 0, 'l'},
 	{0, 0, 0, 0}
 };
@@ -30,6 +31,8 @@ int main(int argc, char **argv)
 {
 	int c, option_index;
 	int log_mask = LOG_ERR;
+	const char default_dsp_config[] = CRAS_CONFIG_FILE_DIR "/dsp.ini";
+	const char *dsp_config = default_dsp_config;
 
 	set_signals();
 
@@ -49,6 +52,11 @@ int main(int argc, char **argv)
 			log_mask = atoi(optarg);
 			break;
 
+		case 'd':
+			dsp_config = optarg;
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -69,7 +77,7 @@ int main(int argc, char **argv)
 	/* Initialize system. */
 	cras_server_init();
 	cras_system_state_init();
-	cras_dsp_init(CRAS_CONFIG_FILE_DIR "/dsp.ini");
+	cras_dsp_init(dsp_config);
 	cras_iodev_list_init();
 
 	/* Start the server. */
