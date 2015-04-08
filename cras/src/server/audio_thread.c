@@ -1065,14 +1065,13 @@ static void set_odev_wake_times(struct open_dev *dev_list)
 					    adev->coarse_rate_adjust,
 					    adev->dev->min_cb_level);
 
-		if (hw_level < adev->dev->min_cb_level) {
-			adev->wake_ts = now;
-			return;
-		}
-
-		cras_frames_to_time(hw_level, adev->dev->ext_format->frame_rate,
-				    &sleep_time);
 		adev->wake_ts = now;
+		if (hw_level < adev->dev->min_cb_level)
+			return;
+
+		cras_frames_to_time(hw_level - adev->dev->min_cb_level,
+				    adev->dev->ext_format->frame_rate,
+				    &sleep_time);
 		add_timespecs(&adev->wake_ts, &sleep_time);
 	}
 }
