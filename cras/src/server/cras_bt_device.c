@@ -12,7 +12,6 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
-#include "audio_thread.h"
 #include "bluetooth.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
@@ -648,41 +647,6 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 				     struct cras_iodev *bt_iodev,
 				     int on_open)
 {
-	struct audio_thread *thread = cras_iodev_list_get_audio_thread();
-	struct cras_iodev *iodev;
-	int is_active[CRAS_NUM_DIRECTIONS] = {0};
-	int rc;
-	int dir;
-
-	/* If a bt iodev is active, temporarily remove it from the active
-	 * device list. Note that we need to check all bt_iodevs for the
-	 * situation that both input and output are active while switches
-	 * from HFP/HSP to A2DP.
-	 */
-	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		iodev = device->bt_iodevs[dir];
-		if (!iodev)
-			continue;
-		rc = audio_thread_rm_open_dev(thread, iodev, 0);
-                if (rc == 0)
-			cras_iodev_close(iodev);
-		is_active[dir] = !rc;
-	}
-
-	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		iodev = device->bt_iodevs[dir];
-		if (!iodev)
-			continue;
-		/* If the iodev was active or this profile switching is
-		 * triggered at opening iodev, add it to active dev list.
-		 */
-		if (is_active[dir] ||
-		    (on_open && iodev == bt_iodev)) {
-			iodev->update_active_node(iodev);
-			cras_iodev_open(iodev);
-			audio_thread_add_open_dev(thread, iodev);
-		}
-	}
 }
 
 static void bt_device_process_msg(void *arg)

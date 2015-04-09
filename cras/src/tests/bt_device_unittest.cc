@@ -19,11 +19,6 @@ static unsigned int cras_bt_io_create_called;
 static unsigned int cras_bt_io_append_called;
 static unsigned int cras_bt_io_remove_called;
 static unsigned int cras_bt_io_destroy_called;
-static struct cras_iodev *audio_thread_add_open_dev_dev;
-static unsigned int audio_thread_add_open_dev_called;
-static unsigned int audio_thread_rm_open_dev_called;
-static int audio_thread_rm_open_dev_rets[CRAS_NUM_DIRECTIONS];
-static audio_thread* iodev_get_thread_return;
 static enum cras_bt_device_profile cras_bt_io_create_profile_val;
 static enum cras_bt_device_profile cras_bt_io_append_profile_val;
 static unsigned int cras_bt_io_try_remove_ret;
@@ -38,10 +33,6 @@ void ResetStubData() {
   cras_bt_io_remove_called = 0;
   cras_bt_io_destroy_called = 0;
   cras_bt_io_try_remove_ret = 0;
-  audio_thread_add_open_dev_called = 0;
-  audio_thread_rm_open_dev_called = 0;
-  for (int dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++)
-    audio_thread_rm_open_dev_rets[dir] = 0;
 }
 
 namespace {
@@ -121,13 +112,10 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   /* Test HFP disconnected and switch to A2DP. */
   cras_bt_io_get_profile_ret = bt_iodev1.nodes;
   cras_bt_io_try_remove_ret = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_OUTPUT] = 0;
   cras_bt_device_set_active_profile(
       device, CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
   cras_bt_device_rm_iodev(device, &d2_);
   EXPECT_EQ(1, cras_bt_io_remove_called);
-  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
-  EXPECT_EQ(1, audio_thread_add_open_dev_called);
 
   /* Test A2DP disconnection will cause bt_io destroy. */
   cras_bt_io_try_remove_ret = 0;
@@ -153,27 +141,15 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
   cras_bt_device_switch_profile_on_open(device, &bt_iodev1);
 
   /* Two bt iodevs were all active. */
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_INPUT] = 0;
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_OUTPUT] = 0;
   cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
-  EXPECT_EQ(2, audio_thread_rm_open_dev_called);
-  EXPECT_EQ(2, audio_thread_add_open_dev_called);
 
   /* One bt iodev was active, the other was not. */
   cras_bt_device_switch_profile_on_open(device, &bt_iodev2);
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_OUTPUT] = 0;
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_INPUT] = -1;
   cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
-  EXPECT_EQ(4, audio_thread_rm_open_dev_called);
-  EXPECT_EQ(4, audio_thread_add_open_dev_called);
 
   /* Output bt iodev wasn't active, close the active input iodev. */
   cras_bt_device_switch_profile_on_close(device, &bt_iodev2);
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_OUTPUT] = -1;
-  audio_thread_rm_open_dev_rets[CRAS_STREAM_INPUT] = 0;
   cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
-  EXPECT_EQ(6, audio_thread_rm_open_dev_called);
-  EXPECT_EQ(5, audio_thread_add_open_dev_called);
 }
 
 /* Stubs */
@@ -261,27 +237,7 @@ int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
   return 0;
 }
 
-/* From audio_thread */
-int audio_thread_add_open_dev(struct audio_thread *thread,
-         struct cras_iodev *dev)
-{
-  audio_thread_add_open_dev_dev = dev;
-  audio_thread_add_open_dev_called++;
-  return 0;
-}
-
-int audio_thread_rm_open_dev(struct audio_thread *thread,
-        struct cras_iodev *dev)
-{
-  audio_thread_rm_open_dev_called++;
-  return audio_thread_rm_open_dev_rets[dev->direction];
-}
-
 /* From iodev_list */
-struct audio_thread* cras_iodev_list_get_audio_thread() {
-  return iodev_get_thread_return;
-}
-
 int cras_iodev_open(struct cras_iodev *dev) {
   return 0;
 }
