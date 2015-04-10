@@ -387,7 +387,6 @@ static void thread_rm_open_adev(struct audio_thread *thread,
 		dev_stream_destroy(dev_stream);
 	}
 
-	cras_iodev_close(dev_to_rm->dev);
 	free(dev_to_rm);
 }
 
