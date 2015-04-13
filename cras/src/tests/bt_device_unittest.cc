@@ -238,12 +238,26 @@ int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 }
 
 /* From iodev_list */
+
 int cras_iodev_open(struct cras_iodev *dev) {
   return 0;
 }
 
 int cras_iodev_close(struct cras_iodev *dev) {
   return 0;
+}
+
+int cras_iodev_list_dev_is_enabled(struct cras_iodev *dev)
+{
+  return 0;
+}
+
+void cras_iodev_list_disable_dev(struct cras_iodev *dev)
+{
+}
+
+void cras_iodev_list_enable_dev(struct cras_iodev *dev)
+{
 }
 
 int cras_system_add_select_fd(int fd,

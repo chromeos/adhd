@@ -647,6 +647,36 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 				     struct cras_iodev *bt_iodev,
 				     int on_open)
 {
+	struct cras_iodev *iodev;
+	int was_enabled[CRAS_NUM_DIRECTIONS] = {0};
+	int dir;
+
+	/* If a bt iodev is active, temporarily remove it from the active
+	 * device list. Note that we need to check all bt_iodevs for the
+	 * situation that both input and output are active while switches
+	 * from HFP/HSP to A2DP.
+	 */
+	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
+		iodev = device->bt_iodevs[dir];
+		if (!iodev)
+			continue;
+		was_enabled[dir] = cras_iodev_list_dev_is_enabled(iodev);
+		cras_iodev_list_disable_dev(iodev);
+	}
+
+	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
+		iodev = device->bt_iodevs[dir];
+		if (!iodev)
+			continue;
+		/* If the iodev was active or this profile switching is
+		 * triggered at opening iodev, add it to active dev list.
+		 */
+		if (was_enabled[dir] ||
+		    (on_open && iodev == bt_iodev)) {
+			iodev->update_active_node(iodev);
+			cras_iodev_list_enable_dev(iodev);
+		}
+	}
 }
 
 static void bt_device_process_msg(void *arg)
