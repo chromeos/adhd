@@ -157,6 +157,17 @@ int cras_iodev_list_set_node_attr(cras_node_id_t id,
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 				 cras_node_id_t node_id);
 
+/* Checks if an iodev is enabled. */
+int cras_iodev_list_dev_is_enabled(struct cras_iodev *dev);
+
+/* Enables an iodev. If the fallback device was already enabled, this
+ * call will disable it. */
+void cras_iodev_list_enable_dev(struct cras_iodev *dev);
+
+/* Disables an iodev. If this is the last device to disable, the
+ * fallback devices will be enabled accordingly. */
+void cras_iodev_list_disable_dev(struct cras_iodev *dev);
+
 /* Adds a node to the active devices list.
  * Args:
  *    direction - Playback or capture.
