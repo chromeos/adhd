@@ -140,7 +140,7 @@ TEST_F(StreamDeviceSuite, AddRemoveOpenOutputDevice) {
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(adev->dev, &iodev);
 
-  thread_rm_open_dev(thread_, &iodev, 1);
+  thread_rm_open_dev(thread_, &iodev);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(NULL, adev);
 }
@@ -156,7 +156,7 @@ TEST_F(StreamDeviceSuite, AddRemoveOpenInputDevice) {
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &iodev);
 
-  thread_rm_open_dev(thread_, &iodev, 1);
+  thread_rm_open_dev(thread_, &iodev);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(NULL, adev);
 }
@@ -185,7 +185,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
   EXPECT_EQ(adev->next->dev, &odev2);
 
   // Remove first open device and check the second one is still open.
-  thread_rm_open_dev(thread_, &odev, 1);
+  thread_rm_open_dev(thread_, &odev);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(adev->dev, &odev2);
 
@@ -203,13 +203,13 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
   EXPECT_EQ(adev->next->dev, &idev2);
 
   // Remove first open device and check the second one is still open.
-  thread_rm_open_dev(thread_, &idev, 1);
+  thread_rm_open_dev(thread_, &idev);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &idev2);
 
   // Add and remove another open device and check still open.
   thread_add_open_dev(thread_, &idev3);
-  thread_rm_open_dev(thread_, &idev3, 1);
+  thread_rm_open_dev(thread_, &idev3);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &idev2);
 }
@@ -257,7 +257,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
 
   // Remove first device from open and streams on second device remain
   // intact.
-  thread_rm_open_dev(thread_, &iodev, 1);
+  thread_rm_open_dev(thread_, &iodev);
   dev_stream = iodev2.streams;
   EXPECT_EQ(&rstream3, dev_stream->stream);
   EXPECT_EQ(NULL, dev_stream->next);
@@ -269,7 +269,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   EXPECT_EQ(NULL, dev_stream);
 
   // Remove open devices and check stream is on fallback device.
-  thread_rm_open_dev(thread_, &iodev2, 1);
+  thread_rm_open_dev(thread_, &iodev2);
 
   // Add open device, again check it is empty of streams.
   thread_add_open_dev(thread_, &iodev);

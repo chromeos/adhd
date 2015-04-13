@@ -957,8 +957,7 @@ int audio_thread_add_open_dev(struct audio_thread *thread,
 }
 
 int audio_thread_rm_open_dev(struct audio_thread *thread,
-                               struct cras_iodev *dev,
-                               int is_device_removal)
+                               struct cras_iodev *dev)
 {
   audio_thread_rm_open_dev_called++;
   return 0;

@@ -314,7 +314,7 @@ static void close_dev(struct cras_iodev *dev)
 	if (!cras_iodev_is_open(dev) ||
 	    dev_has_pinned_stream(dev->info.idx))
 		return;
-	audio_thread_rm_open_dev(audio_thread, dev, 1);
+	audio_thread_rm_open_dev(audio_thread, dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
 	if (idle_timer)
@@ -338,7 +338,7 @@ static void idle_dev_check(struct cras_timer *timer, void *data)
 		if (edev->dev->idle_timeout.tv_sec == 0)
 			continue;
 		if (timespec_after(&now, &edev->dev->idle_timeout)) {
-			audio_thread_rm_open_dev(audio_thread, edev->dev, 1);
+			audio_thread_rm_open_dev(audio_thread, edev->dev);
 			edev->dev->idle_timeout.tv_sec = 0;
 			cras_iodev_close(edev->dev);
 			continue;
@@ -569,7 +569,7 @@ static int stream_removed_cb(struct cras_rstream *rstream)
 	return 0;
 }
 
-static int disable_device(struct enabled_dev *edev, int is_removal);
+static int disable_device(struct enabled_dev *edev);
 
 static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 {
@@ -577,7 +577,7 @@ static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 
 	DL_FOREACH(enabled_devs[dir], edev) {
 		if (edev->dev == fallback_devs[dir])
-			disable_device(edev, 1);
+			disable_device(edev);
 	}
 }
 
@@ -607,7 +607,7 @@ static int enable_device(struct cras_iodev *dev)
 	return 0;
 }
 
-static int disable_device(struct enabled_dev *edev, int is_removal)
+static int disable_device(struct enabled_dev *edev)
 {
 	struct cras_iodev *dev = edev->dev;
 	enum CRAS_STREAM_DIRECTION dir = dev->direction;
@@ -634,7 +634,7 @@ static int cras_iodev_set_active(struct cras_iodev *new_active)
 	cras_iodev_list_notify_active_node_changed();
 
 	DL_FOREACH(enabled_devs[new_active->direction], edev) {
-		disable_device(edev, 0);
+		disable_device(edev);
 	}
 
 	new_active->update_active_node(new_active);
@@ -716,7 +716,7 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 
 	DL_FOREACH(enabled_devs[dir], edev) {
 		if (edev->dev == dev) {
-			disable_device(edev, 0);
+			disable_device(edev);
 			if (!enabled_devs[dir])
 				enable_device(fallback_devs[dir]);
 			return;
@@ -767,7 +767,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	 */
 	DL_FOREACH(enabled_devs[CRAS_STREAM_OUTPUT], edev) {
 		if (edev->dev == dev) {
-			disable_device(edev, 1);
+			disable_device(edev);
 			break;
 		}
 	}
@@ -787,7 +787,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	 */
 	DL_FOREACH(enabled_devs[CRAS_STREAM_INPUT], edev) {
 		if (edev->dev == dev) {
-			disable_device(edev, 1);
+			disable_device(edev);
 			break;
 		}
 	}
