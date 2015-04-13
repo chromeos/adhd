@@ -1026,7 +1026,8 @@ int fill_output_no_streams(struct open_dev *adev)
 	hw_level = rc;
 
 	if (hw_level < odev->min_cb_level)
-		fill_odev_zeros(odev, odev->min_cb_level);
+		fill_odev_zeros(odev, MIN(odev->min_cb_level,
+					  odev->buffer_size - hw_level));
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_ODEV_NO_STREAMS,
