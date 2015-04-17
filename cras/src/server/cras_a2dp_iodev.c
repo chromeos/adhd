@@ -255,6 +255,7 @@ static int flush_data(void *arg)
 	const struct cras_iodev *iodev = (const struct cras_iodev *)arg;
 	int processed;
 	size_t format_bytes;
+	int err = 0;
 	int written = 0;
 	struct a2dp_io *a2dpio;
 
@@ -295,6 +296,7 @@ encode_more:
 	} else if (written < 0) {
 		if (a2dpio->force_suspend_cb)
 			a2dpio->force_suspend_cb(&a2dpio->base);
+		err = written;
 		goto write_done;
 	} else if (written == 0) {
 		goto write_done;
@@ -308,7 +310,7 @@ write_done:
 	audio_thread_enable_callback(
 			cras_bt_transport_fd(a2dpio->transport), 0);
 
-	return 0;
+	return err;
 }
 
 static int dev_running(const struct cras_iodev *iodev)
@@ -375,8 +377,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
 	}
 
-	flush_data(iodev);
-	return 0;
+	return flush_data(iodev);
 }
 
 static void update_active_node(struct cras_iodev *iodev)

@@ -14,6 +14,7 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_endpoint.h"
 #include "cras_system_state.h"
+#include "cras_util.h"
 
 #define A2DP_SOURCE_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSource"
 #define A2DP_SINK_ENDPOINT_PATH   "/org/chromium/Cras/Bluetooth/A2DPSink"
@@ -248,6 +249,11 @@ int cras_a2dp_endpoint_create(DBusConnection *conn)
 		syslog(LOG_ERR, "Failed to create pipe for a2dp endpoint");
 		return err;
 	}
+
+	/* When full it's preferred to get error instead of blocked. */
+	cras_make_fd_nonblocking(to_main_fds[0]);
+	cras_make_fd_nonblocking(to_main_fds[1]);
+
 	cras_system_add_select_fd(to_main_fds[0],
 				  a2dp_handle_message,
 				  &cras_a2dp_endpoint);
