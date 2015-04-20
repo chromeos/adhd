@@ -53,8 +53,10 @@ static snd_pcm_format_t cras_scale_buffer_fmt;
 static float cras_scale_buffer_scaler;
 static unsigned int pre_dsp_hook_called;
 static const uint8_t *pre_dsp_hook_frames;
+static void *pre_dsp_hook_cb_data;
 static unsigned int post_dsp_hook_called;
 static const uint8_t *post_dsp_hook_frames;
+static void *post_dsp_hook_cb_data;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -409,18 +411,20 @@ static int put_buffer(struct cras_iodev *iodev, unsigned int nframes)
 }
 
 static int pre_dsp_hook(const uint8_t *frames, unsigned int nframes,
-			const struct cras_audio_format *fmt)
+			const struct cras_audio_format *fmt, void *cb_data)
 {
   pre_dsp_hook_called++;
   pre_dsp_hook_frames = frames;
+  pre_dsp_hook_cb_data = cb_data;
   return 0;
 }
 
 static int post_dsp_hook(const uint8_t *frames, unsigned int nframes,
-			 const struct cras_audio_format *fmt)
+			 const struct cras_audio_format *fmt, void *cb_data)
 {
   post_dsp_hook_called++;
   post_dsp_hook_frames = frames;
+  post_dsp_hook_cb_data = cb_data;
   return 0;
 }
 
@@ -485,15 +489,17 @@ TEST(IoDevPutOutputBuffer, DSP) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  cras_iodev_register_pre_dsp_hook(&iodev, pre_dsp_hook);
-  cras_iodev_register_post_dsp_hook(&iodev, post_dsp_hook);
+  cras_iodev_register_pre_dsp_hook(&iodev, pre_dsp_hook, (void *)0x1234);
+  cras_iodev_register_post_dsp_hook(&iodev, post_dsp_hook, (void *)0x5678);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 32);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(1, pre_dsp_hook_called);
   EXPECT_EQ(frames, pre_dsp_hook_frames);
+  EXPECT_EQ((void *)0x1234, pre_dsp_hook_cb_data);
   EXPECT_EQ(1, post_dsp_hook_called);
+  EXPECT_EQ((void *)0x5678, post_dsp_hook_cb_data);
   EXPECT_EQ(32, put_buffer_nframes);
   EXPECT_EQ(32, rate_estimator_add_frames_num_frames);
   EXPECT_EQ(32, cras_dsp_pipeline_apply_sample_count);
