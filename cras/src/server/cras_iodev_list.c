@@ -60,6 +60,9 @@ static struct cras_alert *active_node_changed_alert;
 static node_volume_callback_t node_volume_callback;
 static node_volume_callback_t node_input_gain_callback;
 static node_left_right_swapped_callback_t node_left_right_swapped_callback;
+/* Call when a device is enabled or disabled. */
+static device_enabled_callback_t device_enabled_callback;
+static void *device_enabled_cb_data;
 /* Thread that handles audio input and output. */
 static struct audio_thread *audio_thread;
 /* List of all streams. */
@@ -591,6 +594,8 @@ static int enable_device(struct cras_iodev *dev)
 			audio_thread_add_stream(audio_thread, stream, dev);
 		}
 	}
+	if (device_enabled_callback)
+		device_enabled_callback(dev, 1, device_enabled_cb_data);
 
 	return 0;
 }
@@ -610,6 +615,8 @@ static int disable_device(struct enabled_dev *edev)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, stream, dev);
 	}
+	if (device_enabled_callback)
+		device_enabled_callback(dev, 0, device_enabled_cb_data);
 	close_dev(dev);
 
 	return 0;
@@ -1009,6 +1016,20 @@ struct audio_thread *cras_iodev_list_get_audio_thread()
 struct stream_list *cras_iodev_list_get_stream_list()
 {
 	return stream_list;
+}
+
+int cras_iodev_list_set_device_enabled_callback(
+		device_enabled_callback_t device_enabled_cb, void *cb_data)
+{
+	/* TODO(chinyue): Allow multiple callbacks to be registered. */
+	if (device_enabled_callback) {
+		syslog(LOG_ERR, "Device enabled callback already registered.");
+		return -EEXIST;
+	}
+
+	device_enabled_callback = device_enabled_cb;
+	device_enabled_cb_data = cb_data;
+	return 0;
 }
 
 void cras_iodev_list_reset()

@@ -68,6 +68,9 @@ static int audio_thread_drain_stream_return;
 static int audio_thread_drain_stream_called;
 static void (*cras_tm_timer_cb)(struct cras_timer *t, void *data);
 static struct timespec clock_gettime_retspec;
+static struct cras_iodev *device_enabled_dev;
+static struct cras_iodev *device_disabled_dev;
+static void *device_enabled_cb_data;
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -338,6 +341,37 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   rc = cras_iodev_list_get_outputs(&dev_info);
   EXPECT_EQ(0, rc);
   free(dev_info);
+}
+
+static void device_enabled_cb(struct cras_iodev *dev, int enabled,
+                              void *cb_data)
+{
+  if (enabled)
+    device_enabled_dev = dev;
+  else
+    device_disabled_dev = dev;
+  device_enabled_cb_data = cb_data;
+}
+
+// Test enable/disable an iodev.
+TEST_F(IoDevTestSuite, EnableDisableDevice) {
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+
+  EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(
+      device_enabled_cb, (void *)0xABCD));
+
+  // Enable a device.
+  cras_iodev_list_enable_dev(&d1_);
+  EXPECT_EQ(&d1_, device_enabled_dev);
+  EXPECT_EQ((void *)0xABCD, device_enabled_cb_data);
+
+  // Disable a device.
+  cras_iodev_list_disable_dev(&d1_);
+  EXPECT_EQ(&d1_, device_disabled_dev);
+  EXPECT_EQ((void *)0xABCD, device_enabled_cb_data);
+
+  EXPECT_EQ(-EEXIST, cras_iodev_list_set_device_enabled_callback(
+      device_enabled_cb, (void *)0xABCD));
 }
 
 // Test adding/removing an input dev to the list.

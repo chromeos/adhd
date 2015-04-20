@@ -25,6 +25,12 @@ struct stream_list;
 typedef void (*node_volume_callback_t)(cras_node_id_t, int);
 typedef void (*node_left_right_swapped_callback_t)(cras_node_id_t, int);
 
+/* Device enabled/disabled callback.
+ * enabled=1 when a device is enabled, enabled=0 when a device is disabled.
+ */
+typedef void (*device_enabled_callback_t)(struct cras_iodev *dev, int enabled,
+					  void *cb_data);
+
 /* Initialize the list of iodevs. */
 void cras_iodev_list_init();
 
@@ -225,6 +231,10 @@ struct audio_thread *cras_iodev_list_get_audio_thread();
 
 /* Gets the list of all active audio streams attached to devices. */
 struct stream_list *cras_iodev_list_get_stream_list();
+
+/* Sets the function to call when a device is enabled or disabled. */
+int cras_iodev_list_set_device_enabled_callback(
+		device_enabled_callback_t device_enabled_cb, void *cb_data);
 
 /* For unit test only. */
 void cras_iodev_list_reset();
