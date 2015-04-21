@@ -364,6 +364,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   cras_iodev_list_enable_dev(&d1_);
   EXPECT_EQ(&d1_, device_enabled_dev);
   EXPECT_EQ((void *)0xABCD, device_enabled_cb_data);
+  EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
 
   // Disable a device.
   cras_iodev_list_disable_dev(&d1_);

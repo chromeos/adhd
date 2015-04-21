@@ -813,6 +813,14 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out)
 	return get_dev_list(&devs[CRAS_STREAM_INPUT], list_out);
 }
 
+struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
+	enum CRAS_STREAM_DIRECTION direction)
+{
+	struct enabled_dev *edev = enabled_devs[direction];
+
+	return edev ? edev->dev : NULL;
+}
+
 cras_node_id_t cras_iodev_list_get_active_node_id(
 	enum CRAS_STREAM_DIRECTION direction)
 {
