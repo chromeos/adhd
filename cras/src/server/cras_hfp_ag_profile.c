@@ -24,7 +24,7 @@
 
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
-#define HFP_VERSION_1_6 0x0106
+#define HFP_VERSION_1_5 0x0105
 #define HSP_AG_PROFILE_NAME "Headset Voice gateway"
 #define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
 #define HSP_VERSION_1_2 0x0102
@@ -276,7 +276,7 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 	.name = HFP_AG_PROFILE_NAME,
 	.object_path = HFP_AG_PROFILE_PATH,
 	.uuid = HFP_AG_UUID,
-	.version = HFP_VERSION_1_6,
+	.version = HFP_VERSION_1_5,
 	.role = NULL,
 	.features = HFP_SUPPORTED_FEATURE & 0x1F,
 	.record = NULL,
