@@ -58,6 +58,7 @@ static struct audio_thread thread;
 static int node_left_right_swapped_cb_called;
 static struct cras_iodev loopback_input;
 static int cras_iodev_close_called;
+static struct cras_iodev *cras_iodev_close_dev;
 static struct cras_iodev dummy_empty_iodev[2];
 static stream_callback *stream_add_cb;
 static stream_callback *stream_rm_cb;
@@ -71,6 +72,9 @@ static struct timespec clock_gettime_retspec;
 static struct cras_iodev *device_enabled_dev;
 static struct cras_iodev *device_disabled_dev;
 static void *device_enabled_cb_data;
+static struct cras_rstream *audio_thread_add_stream_stream;
+static struct cras_iodev *audio_thread_add_stream_dev;
+static int audio_thread_add_stream_called;
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
@@ -197,6 +201,7 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_add_open_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
       node_left_right_swapped_cb_called = 0;
+      audio_thread_add_stream_called = 0;
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -707,147 +712,39 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
 
 }
 
-// TODO(chinyue) make these tests work
-#if 0
-TEST_F(StreamDeviceSuite, AddPinnedStream) {
-  struct cras_iodev iodev;
-  struct cras_iodev iodev2;
-  struct cras_rstream pstream;
-  struct active_dev *adev;
-  struct dev_stream *dev_stream;
-
-  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
-  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
-  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev);
-
-  // Add active device and check a pinned stream can be added.
-  thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &pstream, &iodev);
-  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
-  EXPECT_EQ(adev->for_pinned_streams, 0);
-  dev_stream = iodev.streams;
-  EXPECT_EQ(dev_stream->stream, &pstream);
-  EXPECT_EQ(pstream.is_pinned, 1);
-
-  // Add another active device and check pinned stream is not copied over.
-  thread_add_open_dev(thread_, &iodev2);
-  dev_stream = iodev2.streams;
-  EXPECT_EQ(dev_stream, (void *)NULL);
-}
-
-TEST_F(StreamDeviceSuite, AddPinnedStreamToInactiveDevice) {
-  struct cras_iodev iodev;
-  struct cras_iodev iodev2;
-  struct cras_rstream pstream;
-  struct cras_rstream pstream2;
+TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   struct cras_rstream rstream;
-  struct active_dev *adev;
-  struct dev_stream *dev_stream;
 
-  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
-  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
-  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev2);
-  SetupPinnedStream(&pstream2, CRAS_STREAM_OUTPUT, &iodev2);
-  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  cras_iodev_list_init();
 
-  thread_add_open_dev(thread_, &iodev);
+  // Add 2 output devices.
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
 
-  // Add a pinned stream to inactive device, check the device is activated and
-  // pinned stream added.
-  thread_add_stream(thread_, &pstream, &iodev2);
-  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
-  EXPECT_EQ(adev->dev, &iodev);
-  EXPECT_EQ(adev->next->dev, &iodev2);
-  EXPECT_EQ(adev->next->for_pinned_streams, 1);
-  EXPECT_EQ(iodev2.is_active, 1);
+  // Setup pinned stream.
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
 
-  // Add a normal stream, check it's not added to for_pinned_streams device.
-  thread_add_stream(thread_, &rstream, NULL);
-  dev_stream = iodev2.streams;
-  EXPECT_EQ(dev_stream->stream, &pstream);
-  EXPECT_EQ(dev_stream->next, (void *)NULL);
+  // Add pinned stream to d1.
+  EXPECT_EQ(0, stream_add_cb(&rstream));
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  iodev_is_open = 1;
 
-  // Check adding another pinned stream to for_pinned_streams device.
-  thread_add_stream(thread_, &pstream2, &iodev2);
-  EXPECT_EQ(dev_stream->next->stream, &pstream2);
+  // Enable d2, check pinned stream is not added to d2.
+  cras_iodev_list_enable_dev(&d2_);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
 
-  // Remove both pinned streams, check the device that was activated
-  // for_pinned_streams is inactive now.
-  thread_remove_stream(thread_, &pstream);
-  thread_remove_stream(thread_, &pstream2);
-  EXPECT_EQ(adev->dev, &iodev);
-  EXPECT_EQ(adev->next, (void *)NULL);
-  EXPECT_EQ(iodev2.is_active, 0);
+  // Remove pinned stream from d1, check d1 is closed after stream removed.
+  EXPECT_EQ(0, stream_rm_cb(&rstream));
+  EXPECT_EQ(1, cras_iodev_close_called);
+  EXPECT_EQ(&d1_, cras_iodev_close_dev);
 }
-
-TEST_F(StreamDeviceSuite, AddForPinnedStreamDeviceAsActive) {
-  struct cras_iodev iodev;
-  struct cras_iodev iodev2;
-  struct cras_rstream pstream;
-  struct cras_rstream rstream;
-  struct active_dev *adev;
-  struct dev_stream *dev_stream;
-
-  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
-  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
-  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev2);
-  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
-
-  thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &pstream, &iodev2);
-  thread_add_stream(thread_, &rstream, NULL);
-
-  // Set for_pinned_streams device as active, check normal streams are copied
-  // over.
-  thread_add_open_dev(thread_, &iodev2);
-  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
-  EXPECT_EQ(adev->dev, &iodev);
-  EXPECT_EQ(adev->next->dev, &iodev2);
-  EXPECT_EQ(adev->next->for_pinned_streams, 0);
-  EXPECT_EQ(iodev2.is_active, 1);
-  dev_stream = iodev2.streams;
-  EXPECT_EQ(dev_stream->stream, &pstream);
-  EXPECT_EQ(dev_stream->next->stream, &rstream);
-}
-
-TEST_F(StreamDeviceSuite, RemoveActiveDeviceWithPinnedStreams) {
-  struct cras_iodev iodev;
-  struct cras_iodev iodev2;
-  struct cras_iodev iodev3;
-  struct cras_rstream rstream;
-  struct cras_rstream pstream;
-  struct cras_rstream pstream2;
-  struct active_dev *adev;
-
-  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
-  SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
-  SetupDevice(&iodev3, CRAS_STREAM_OUTPUT);
-  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
-  SetupPinnedStream(&pstream, CRAS_STREAM_OUTPUT, &iodev2);
-  SetupPinnedStream(&pstream2, CRAS_STREAM_OUTPUT, &iodev3);
-
-  thread_add_open_dev(thread_, &iodev);
-  thread_add_open_dev(thread_, &iodev2);
-  thread_add_open_dev(thread_, &iodev3);
-  thread_add_stream(thread_, &rstream, NULL);
-  thread_add_stream(thread_, &pstream, &iodev2);
-  thread_add_stream(thread_, &pstream2, &iodev3);
-
-  // Remove first 2 active devices with is_device_removal=1.
-  thread_rm_open_dev(thread_, &iodev, 1);
-  thread_rm_open_dev(thread_, &iodev2, 1);
-  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
-  EXPECT_EQ(adev->dev, &iodev3);
-  EXPECT_EQ(adev->for_pinned_streams, 0);
-
-  // Remove last active device with is_device_removal=0, check it's still
-  // active because it has pinned streams.
-  thread_rm_open_dev(thread_, &iodev3, 0);
-  adev = thread_->active_devs[CRAS_STREAM_OUTPUT];
-  EXPECT_EQ(adev->dev, &iodev3);
-  EXPECT_EQ(adev->for_pinned_streams, 1);
-}
-#endif
 
 }  //  namespace
 
@@ -1002,6 +899,9 @@ int audio_thread_add_stream(struct audio_thread *thread,
                             struct cras_rstream *stream,
                             struct cras_iodev *dev)
 {
+  audio_thread_add_stream_called++;
+  audio_thread_add_stream_stream = stream;
+  audio_thread_add_stream_dev = dev;
   return 0;
 }
 
@@ -1099,6 +999,7 @@ int cras_iodev_close(struct cras_iodev *iodev) {
   if (iodev == &dummy_empty_iodev[dir])
     empty_iodev_is_open[dir] = 0;
   cras_iodev_close_called++;
+  cras_iodev_close_dev = iodev;
   return 0;
 }
 
