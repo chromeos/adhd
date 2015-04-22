@@ -10,4 +10,7 @@
 
 int cras_a2dp_endpoint_create(DBusConnection *conn);
 
+/* Gets the connected a2dp device, NULL is returned when there's none. */
+struct cras_bt_device *cras_a2dp_connected_device();
+
 #endif /* CRAS_A2DP_ENDPOINT_H_ */

@@ -82,6 +82,7 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 	DBusMessage *reply;
 	const char *profile_path, *object_path;
 	int fd = -1;
+	int err;
 	struct cras_bt_profile *profile;
 	struct cras_bt_device *device;
 
@@ -113,7 +114,19 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 		device = cras_bt_device_create(object_path);
 	}
 
-	profile->new_connection(conn, profile, device, fd);
+	err = profile->new_connection(conn, profile, device, fd);
+	if (err) {
+		syslog(LOG_INFO, "%s new connection rejected", profile->name);
+		close(fd);
+		reply = dbus_message_new_error(message,
+				"org.chromium.Cras.Error.RejectNewConnection",
+				"Possibly another headset already in use");
+		if (!dbus_connection_send(conn, reply, NULL))
+			return DBUS_HANDLER_RESULT_NEED_MEMORY;
+
+		dbus_message_unref(reply);
+		return DBUS_HANDLER_RESULT_HANDLED;
+	}
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)

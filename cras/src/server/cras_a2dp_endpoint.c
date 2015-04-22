@@ -28,8 +28,11 @@ struct a2dp_msg {
 	struct cras_iodev *dev;
 };
 
-/* TODO(hychao): support multiple a2dp devices. */
-static struct cras_iodev *iodev;
+/* Pointers for the only connected a2dp device. */
+static struct a2dp {
+	struct cras_iodev *iodev;
+	struct cras_bt_device *device;
+} connected_a2dp;
 
 /* To send a message to main thread. */
 static int to_main_fds[2];
@@ -163,25 +166,28 @@ static void cras_a2dp_start(struct cras_bt_endpoint *endpoint,
 {
 	syslog(LOG_INFO, "Creating iodev for A2DP device");
 
-	if (iodev) {
+	if (connected_a2dp.iodev) {
 		syslog(LOG_WARNING,
 		       "Replacing existing endpoint configuration");
-		a2dp_iodev_destroy(iodev);
+		a2dp_iodev_destroy(connected_a2dp.iodev);
 	}
 
-	iodev = a2dp_iodev_create(transport,
+	connected_a2dp.iodev = a2dp_iodev_create(transport,
 				  cras_a2dp_force_suspend);
-	if (!iodev)
+	connected_a2dp.device = cras_bt_transport_device(transport);
+
+	if (!connected_a2dp.iodev)
 		syslog(LOG_WARNING, "Failed to create a2dp iodev");
 }
 
 static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
 			      struct cras_bt_transport *transport)
 {
-	if (iodev) {
+	if (connected_a2dp.iodev) {
 		syslog(LOG_INFO, "Destroying iodev for A2DP device");
-		a2dp_iodev_destroy(iodev);
-		iodev = NULL;
+		a2dp_iodev_destroy(connected_a2dp.iodev);
+		connected_a2dp.iodev = NULL;
+		connected_a2dp.device = NULL;
 	}
 }
 
@@ -200,10 +206,11 @@ static void a2dp_handle_message(void *arg)
 	case A2DP_FORCE_SUSPEND:
 		/* If the iodev to force suspend no longer active,
 		 * ignore the message. */
-		if (iodev != msg.dev)
+		if (connected_a2dp.iodev != msg.dev)
 			break;
-		a2dp_iodev_destroy(iodev);
-		iodev = NULL;
+		a2dp_iodev_destroy(connected_a2dp.iodev);
+		connected_a2dp.iodev = NULL;
+		connected_a2dp.device = NULL;
 		break;
 	default:
 		syslog(LOG_ERR, "Unhandled a2dp command");
@@ -215,7 +222,7 @@ static void a2dp_handle_message(void *arg)
 static void a2dp_transport_state_changed(struct cras_bt_endpoint *endpoint,
 					 struct cras_bt_transport *transport)
 {
-	if (iodev && transport) {
+	if (connected_a2dp.iodev && transport) {
 		/* When pending message is received in bluez, try to aquire
 		 * the transport. */
 		if (cras_bt_transport_fd(transport) != -1 &&
@@ -258,4 +265,9 @@ int cras_a2dp_endpoint_create(DBusConnection *conn)
 				  a2dp_handle_message,
 				  &cras_a2dp_endpoint);
 	return cras_bt_endpoint_add(conn, &cras_a2dp_endpoint);
+}
+
+struct cras_bt_device *cras_a2dp_connected_device()
+{
+	return connected_a2dp.device;
 }

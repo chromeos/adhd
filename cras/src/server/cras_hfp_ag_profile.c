@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_profile.h"
@@ -225,8 +226,27 @@ static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 	return 0;
 }
 
-static void cras_hfp_ag_new_connection(DBusConnection *conn,
-				       struct cras_bt_profile *profile,
+static int check_for_conflict_ag(struct cras_bt_device *new_connected)
+{
+	struct audio_gateway *ag;
+
+	/* Check if there's already an A2DP/HFP device. */
+	DL_FOREACH(connected_ags, ag) {
+		if (cras_bt_device_has_a2dp(ag->device))
+			return -1;
+	}
+
+	/* Check if there's already an A2DP-only device. */
+	if (cras_a2dp_connected_device() &&
+		cras_bt_device_supports_profile(
+			new_connected, CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
+		return -1;
+
+	return 0;
+}
+
+static int cras_hfp_ag_new_connection(DBusConnection *conn,
+					   struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
@@ -236,11 +256,13 @@ static void cras_hfp_ag_new_connection(DBusConnection *conn,
 		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
 			cras_bt_device_name(device), profile->name);
 		close(rfcomm_fd);
-		return;
+		return 0;
 	}
 
 	/* Destroy all existing devices and replace with new ones */
 	DL_FOREACH(connected_ags, ag) {
+		if (check_for_conflict_ag(device))
+			return -1;
 		DL_DELETE(connected_ags, ag);
 		destroy_audio_gateway(ag);
 	}
@@ -254,6 +276,7 @@ static void cras_hfp_ag_new_connection(DBusConnection *conn,
 					cras_hfp_ag_slc_initialized,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
+	return 0;
 }
 
 static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
@@ -291,8 +314,8 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 	return cras_bt_add_profile(conn, &cras_hfp_ag_profile);
 }
 
-static void cras_hsp_ag_new_connection(DBusConnection *conn,
-				       struct cras_bt_profile *profile,
+static int cras_hsp_ag_new_connection(DBusConnection *conn,
+					   struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
@@ -302,11 +325,13 @@ static void cras_hsp_ag_new_connection(DBusConnection *conn,
 		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
 			cras_bt_device_name(device), profile->name);
 		close(rfcomm_fd);
-		return;
+		return 0;
 	}
 
 	/* Destroy all existing devices and replace with new ones */
 	DL_FOREACH(connected_ags, ag) {
+		if (check_for_conflict_ag(device))
+			return -1;
 		DL_DELETE(connected_ags, ag);
 		destroy_audio_gateway(ag);
 	}
@@ -319,6 +344,7 @@ static void cras_hsp_ag_new_connection(DBusConnection *conn,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
 	cras_hfp_ag_slc_initialized(ag->slc_handle);
+	return 0;
 }
 
 static struct cras_bt_profile cras_hsp_ag_profile = {
