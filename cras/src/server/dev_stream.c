@@ -567,6 +567,13 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 		rc = cras_rstream_request_audio(dev_stream->stream);
 		if (rc < 0)
 			return rc;
+
+		add_timespecs(&rstream->next_cb_ts,
+			      &rstream->sleep_interval_ts);
+		check_next_wake_time(dev_stream);
+
+		cras_shm_set_callback_pending(cras_rstream_output_shm(rstream),
+					      1);
 	} else {
 		audio_thread_event_log_data(
 				atlog, AUDIO_THREAD_STREAM_SKIP_CB,
@@ -574,11 +581,6 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 				shm->area->write_offset[0],
 				shm->area->write_offset[1]);
 	}
-
-	add_timespecs(&rstream->next_cb_ts, &rstream->sleep_interval_ts);
-	check_next_wake_time(dev_stream);
-
-	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
 	return 0;
 }
 
