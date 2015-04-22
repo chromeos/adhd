@@ -50,16 +50,11 @@ static unsigned int current_level(const struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 	unsigned int frames, frames_since_last;
-	struct timespec now, time_since;
 
 	frames = empty_iodev->buffer_level;
-
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-
-	subtract_timespecs(&now, &empty_iodev->last_buffer_access, &time_since);
-
-	frames_since_last = cras_time_to_frames(&time_since,
-						iodev->format->frame_rate);
+	frames_since_last = cras_frames_since_time(
+			&empty_iodev->last_buffer_access,
+			iodev->format->frame_rate);
 
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		return (frames + frames_since_last) % EMPTY_FRAMES;

@@ -139,13 +139,11 @@ static int frames_queued(const struct cras_iodev *iodev)
 			CRAS_STREAM_OUTPUT);
 
 	if (!edev || !edev->streams) {
-		struct timespec now, time_since;
 		unsigned int frames_since_last, frames_to_fill, bytes_to_fill;
 
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-		subtract_timespecs(&now, &loopdev->last_filled, &time_since);
-		frames_since_last = cras_time_to_frames(
-				&time_since, iodev->format->frame_rate);
+		frames_since_last = cras_frames_since_time(
+				&loopdev->last_filled,
+				iodev->format->frame_rate);
 		frames_to_fill = MIN(buf_writable_bytes(sbuf) / frame_bytes,
 				     frames_since_last);
 		if (frames_to_fill > 0) {

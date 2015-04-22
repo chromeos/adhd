@@ -11,6 +11,8 @@
 
 namespace {
 
+static struct timespec time_now;
+
 TEST(Util, SendRecvFileDescriptor) {
   int fd[2];
   int sock[2];
@@ -133,6 +135,34 @@ TEST(Util, TimespecToMs) {
   ts.tv_nsec = 1;
   EXPECT_EQ(1001, timespec_to_ms(&ts));
 }
+
+TEST(Util, FramesSinceTime) {
+  struct timespec t;
+  unsigned int frames;
+
+  t.tv_sec = 0;
+  t.tv_nsec = 500000000;
+
+  time_now.tv_sec = 2;
+  time_now.tv_nsec = 0;
+  frames = cras_frames_since_time(&t, 48000);
+  EXPECT_EQ(72000, frames);
+
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  frames = cras_frames_since_time(&t, 48000);
+  EXPECT_EQ(0, frames);
+}
+
+/* Stubs */
+extern "C" {
+
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+  *tp = time_now;
+  return 0;
+}
+
+}  // extern "C"
 
 }  //  namespace
 

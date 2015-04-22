@@ -89,18 +89,6 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
-/* Calculates the amount of consumed frames since given time.
- */
-static uint64_t frames_since(struct timespec ts, size_t rate)
-{
-	struct timespec te, diff;
-
-	clock_gettime(CLOCK_MONOTONIC_RAW, &te);
-	subtract_timespecs(&te, &ts, &diff);
-	return (uint64_t)diff.tv_sec * rate +
-			diff.tv_nsec / (1000000000L / rate);
-}
-
 /* Calculates the number of virtual buffer in frames. Assuming all written
  * buffer is consumed in a constant frame rate at bluetooth device side.
  * Args:
@@ -114,8 +102,8 @@ static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
 
 	/* Calculate consumed frames since device has opened */
 	a2dpio->bt_written_frames += fr;
-	consumed = frames_since(a2dpio->dev_open_time,
-				iodev->format->frame_rate);
+	consumed = cras_frames_since_time(&a2dpio->dev_open_time,
+					  iodev->format->frame_rate);
 
 	if (a2dpio->bt_written_frames > consumed)
 		return a2dpio->bt_written_frames - consumed;

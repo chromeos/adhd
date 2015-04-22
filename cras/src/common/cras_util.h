@@ -152,6 +152,20 @@ static inline unsigned int timespec_to_ms(const struct timespec *ts)
 	return ts->tv_sec * 1000 + (ts->tv_nsec + 999999) / 1000000;
 }
 
+/* Calculates frames since time beg. */
+static inline unsigned int cras_frames_since_time(const struct timespec *beg,
+						  unsigned int rate)
+{
+	struct timespec now, time_since;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	if (!timespec_after(&now, beg))
+		return 0;
+
+	subtract_timespecs(&now, beg, &time_since);
+	return cras_time_to_frames(&time_since, rate);
+}
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
