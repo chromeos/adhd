@@ -513,8 +513,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_ADDED:
-		printf("DEV_ADDED: %u.%09u devidx:%x for_pinned_streams:%u\n",
-		       sec, nsec, data1, data2);
+		printf("DEV_ADDED: %u.%09u devidx:%x\n",
+		       sec, nsec, data1);
 		break;
 	case AUDIO_THREAD_DEV_REMOVED:
 		printf("DEV_REMOVED: %u.%09u devidx:%x\n",

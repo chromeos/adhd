@@ -33,11 +33,9 @@ struct iodev_list {
 
 /* List of enabled input/output devices.
  *    dev - The device.
- *    for_pinned_streams - True if the device is active only for pinned streams.
  */
 struct enabled_dev {
 	struct cras_iodev *dev;
-	int for_pinned_streams;
 	struct enabled_dev *prev, *next;
 };
 
