@@ -513,9 +513,9 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
 	struct enabled_dev *edev;
 	const struct cras_rstream *s;
 
-	/* Check if there are still streams attached. */
+	/* Check if there are still default streams attached. */
 	DL_FOREACH(stream_list_get(stream_list), s) {
-		if (s->direction == dir)
+		if (s->direction == dir && !s->is_pinned)
 			return 0;
 	}
 
