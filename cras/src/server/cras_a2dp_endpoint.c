@@ -183,12 +183,7 @@ static void cras_a2dp_start(struct cras_bt_endpoint *endpoint,
 static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
 			      struct cras_bt_transport *transport)
 {
-	if (connected_a2dp.iodev) {
-		syslog(LOG_INFO, "Destroying iodev for A2DP device");
-		a2dp_iodev_destroy(connected_a2dp.iodev);
-		connected_a2dp.iodev = NULL;
-		connected_a2dp.device = NULL;
-	}
+	cras_a2dp_suspend_connected_device();
 }
 
 /* Handles a2dp messages in main thread.
@@ -270,4 +265,14 @@ int cras_a2dp_endpoint_create(DBusConnection *conn)
 struct cras_bt_device *cras_a2dp_connected_device()
 {
 	return connected_a2dp.device;
+}
+
+void cras_a2dp_suspend_connected_device()
+{
+	if (connected_a2dp.iodev) {
+		syslog(LOG_INFO, "Destroying iodev for A2DP device");
+		a2dp_iodev_destroy(connected_a2dp.iodev);
+		connected_a2dp.iodev = NULL;
+		connected_a2dp.device = NULL;
+	}
 }

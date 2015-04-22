@@ -46,6 +46,10 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
 
+/* Sets the append_iodev_cb to bt device. */
+void cras_bt_device_set_append_iodev_cb(struct cras_bt_device *device,
+					void (*cb)(void *data));
+
 /* Checks if profile is claimed supported by the device. */
 int cras_bt_device_supports_profile(const struct cras_bt_device *device,
 				    enum cras_bt_device_profile profile);

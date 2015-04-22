@@ -145,7 +145,7 @@ static int start_audio_gateway(struct audio_gateway *ag)
 	if (!ag->idev && !ag->odev) {
 		destroy_audio_gateway(ag);
 		return -ENOMEM;
-        }
+    }
 
 	return 0;
 }
@@ -245,6 +245,36 @@ static int check_for_conflict_ag(struct cras_bt_device *new_connected)
 	return 0;
 }
 
+static void possibly_remove_conflict_dev(void *data)
+{
+	struct cras_bt_device *device = (struct cras_bt_device *)data;
+	struct audio_gateway *ag, *new_ag = NULL;
+	struct cras_bt_device *a2dp_device;
+
+	/* Check if the device is still connected. */
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->device == device)
+			new_ag = ag;
+	}
+	if (!new_ag)
+		return;
+
+	/* Kick out any previously connected hfp iodev. */
+	DL_FOREACH(connected_ags, ag) {
+		if (ag == new_ag)
+			continue;
+		DL_DELETE(connected_ags, ag);
+		destroy_audio_gateway(ag);
+	}
+
+	/* Kick out any previously connected a2dp iodev. */
+	a2dp_device = cras_a2dp_connected_device();
+	if (a2dp_device && a2dp_device != device) {
+		cras_a2dp_suspend_connected_device();
+		cras_bt_device_disconnect(new_ag->conn, a2dp_device);
+	}
+}
+
 static int cras_hfp_ag_new_connection(DBusConnection *conn,
 					   struct cras_bt_profile *profile,
 				       struct cras_bt_device *device,
@@ -259,14 +289,10 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 		return 0;
 	}
 
-	/* Destroy all existing devices and replace with new ones */
-	DL_FOREACH(connected_ags, ag) {
-		if (check_for_conflict_ag(device))
-			return -1;
-		DL_DELETE(connected_ags, ag);
-		destroy_audio_gateway(ag);
-	}
+	if (check_for_conflict_ag(device))
+		return -1;
 
+	cras_bt_device_set_append_iodev_cb(device, possibly_remove_conflict_dev);
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
 	ag->conn = conn;
@@ -328,14 +354,10 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 		return 0;
 	}
 
-	/* Destroy all existing devices and replace with new ones */
-	DL_FOREACH(connected_ags, ag) {
-		if (check_for_conflict_ag(device))
-			return -1;
-		DL_DELETE(connected_ags, ag);
-		destroy_audio_gateway(ag);
-	}
+	if (check_for_conflict_ag(device))
+		return -1;
 
+	cras_bt_device_set_append_iodev_cb(device, possibly_remove_conflict_dev);
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
 	ag->conn = conn;

@@ -13,4 +13,9 @@ int cras_a2dp_endpoint_create(DBusConnection *conn);
 /* Gets the connected a2dp device, NULL is returned when there's none. */
 struct cras_bt_device *cras_a2dp_connected_device();
 
+/* Suspends the connected a2dp device, the purpose is to remove a2dp iodev
+ * to release a2dp audio before sending dbus message to disconnect a2dp
+ * device. */
+void cras_a2dp_suspend_connected_device();
+
 #endif /* CRAS_A2DP_ENDPOINT_H_ */

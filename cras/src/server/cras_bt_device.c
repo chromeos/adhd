@@ -46,6 +46,7 @@
  *        device is currently using.
  *    a2dp_delay_timer - The timer used to delay the allocation of HFP/HSP
  *        stuff until a2dp connection is established.
+ *    append_iodev_cb - The callback to trigger when an iodev is appended.
  */
 struct cras_bt_device {
 	char *object_path;
@@ -60,6 +61,7 @@ struct cras_bt_device {
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	unsigned int active_profile;
 	struct cras_timer *a2dp_delay_timer;
+	void (*append_iodev_cb)(void *data);
 
 	struct cras_bt_device *prev, *next;
 };
@@ -79,6 +81,12 @@ static struct cras_bt_device *devices;
 
 /* To send message to main thread. */
 int main_fds[2];
+
+void cras_bt_device_set_append_iodev_cb(struct cras_bt_device *device,
+					void (*cb)(void *data))
+{
+	device->append_iodev_cb = cb;
+}
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid)
 {
@@ -278,11 +286,16 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 
 	bt_iodev = device->bt_iodevs[iodev->direction];
 
-	if (bt_iodev)
+	if (bt_iodev) {
 		cras_bt_io_append(bt_iodev, iodev, profile);
-	else
+	} else {
+		if (device->append_iodev_cb) {
+			device->append_iodev_cb(device);
+			device->append_iodev_cb = NULL;
+		}
 		device->bt_iodevs[iodev->direction] =
 				cras_bt_io_create(device, iodev, profile);
+	}
 }
 
 static void bt_device_switch_profile(struct cras_bt_device *device,
