@@ -143,6 +143,9 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);
 void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
 					 struct cras_timer *timer);
 
+/* Cancels the a2dp delay timer if it's not been trigered yet. */
+void cras_bt_device_cancel_a2dp_delay_timer(struct cras_bt_device *device);
+
 /* Removes any a2dp delay timer from this device. */
 void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device);
 

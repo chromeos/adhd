@@ -355,12 +355,16 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
 					struct cras_timer *timer)
 {
+	device->a2dp_delay_timer = timer;
+}
+
+void cras_bt_device_cancel_a2dp_delay_timer(struct cras_bt_device *device)
+{
 	struct cras_tm *tm = cras_system_state_get_tm();
 
 	if (device->a2dp_delay_timer)
 		cras_tm_cancel_timer(tm, device->a2dp_delay_timer);
-
-	device->a2dp_delay_timer = timer;
+	device->a2dp_delay_timer = NULL;
 }
 
 void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device)

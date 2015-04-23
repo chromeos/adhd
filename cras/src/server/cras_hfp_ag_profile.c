@@ -114,6 +114,8 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 	if (ag->slc_handle)
 		hfp_slc_destroy(ag->slc_handle);
 
+	cras_bt_device_cancel_a2dp_delay_timer(ag->device);
+
 	/* If the bt device is not using a2dp, do a deeper clean up
 	 * to force disconnect it. */
 	if (!cras_bt_device_has_a2dp(ag->device))
