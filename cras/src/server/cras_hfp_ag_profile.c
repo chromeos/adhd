@@ -152,11 +152,7 @@ static int start_audio_gateway(struct audio_gateway *ag)
 
 static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 {
-	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
-		DL_DELETE(connected_ags, ag);
-		destroy_audio_gateway(ag);
-	}
+	cras_hfp_ag_suspend();
 }
 
 /* Checks if a2dp connection is present. If not then delay the
@@ -381,6 +377,15 @@ static struct cras_bt_profile cras_hsp_ag_profile = {
 	.request_disconnection = cras_hfp_ag_request_disconnection,
 	.cancel = cras_hfp_ag_cancel
 };
+
+void cras_hfp_ag_suspend()
+{
+	struct audio_gateway *ag;
+	DL_FOREACH(connected_ags, ag) {
+		DL_DELETE(connected_ags, ag);
+		destroy_audio_gateway(ag);
+	}
+}
 
 struct hfp_slc_handle *cras_hfp_ag_get_active_handle()
 {
