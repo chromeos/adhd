@@ -265,10 +265,13 @@ TEST_F(IoDevTestSuite, InitSetup) {
 /* Check that the suspend alert from cras_system will trigger suspend
  * and resume call of all iodevs. */
 TEST_F(IoDevTestSuite, SetSuspendResume) {
-  struct cras_rstream rstream;
+  struct cras_rstream rstream, rstream2, rstream3;
+  struct cras_rstream *stream_list = NULL;
   int rc;
 
   memset(&rstream, 0, sizeof(rstream));
+  memset(&rstream2, 0, sizeof(rstream2));
+  memset(&rstream3, 0, sizeof(rstream3));
 
   cras_iodev_list_init();
 
@@ -281,9 +284,15 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 1));
+  DL_APPEND(stream_list, &rstream);
   stream_add_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
   iodev_is_open = 1;
+
+  DL_APPEND(stream_list, &rstream2);
+  stream_add_cb(&rstream2);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
 
   cras_system_get_suspended_val = 1;
   audio_thread_rm_open_dev_called = 0;
@@ -291,11 +300,31 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   EXPECT_EQ(1, audio_thread_rm_open_dev_called);
   iodev_is_open = 0;
 
+  /* Test disable/enable dev won't cause add_stream to audio_thread. */
+  audio_thread_add_stream_called = 0;
+  cras_iodev_list_disable_dev(&d1_);
+  cras_iodev_list_enable_dev(&d1_);
+  EXPECT_EQ(0, audio_thread_add_stream_called);
+
+  audio_thread_drain_stream_return = 0;
+  DL_DELETE(stream_list, &rstream2);
+  stream_rm_cb(&rstream2);
+  EXPECT_EQ(1, audio_thread_drain_stream_called);
+
+  /* Test stream_add_cb won't cause add_stream to audio_thread. */
+  audio_thread_add_stream_called = 0;
+  DL_APPEND(stream_list, &rstream3);
+  stream_add_cb(&rstream3);
+  EXPECT_EQ(0, audio_thread_add_stream_called);
+
   audio_thread_add_open_dev_called = 0;
+  audio_thread_add_stream_called = 0;
   cras_system_get_suspended_val = 0;
-  stream_list_get_ret = &rstream;
+  stream_list_get_ret = stream_list;
   suspend_cb(NULL);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream3, audio_thread_add_stream_stream);
   iodev_is_open = 1;
 
   cras_iodev_list_deinit();
@@ -991,6 +1020,7 @@ int cras_iodev_open(struct cras_iodev *iodev) {
   enum CRAS_STREAM_DIRECTION dir = iodev->direction;
   if (iodev == &dummy_empty_iodev[dir])
     empty_iodev_is_open[dir] = 1;
+  iodev_is_open = 1;
   return 0;
 }
 
