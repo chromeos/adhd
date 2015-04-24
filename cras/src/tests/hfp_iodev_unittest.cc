@@ -241,6 +241,10 @@ int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
 void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
 {
 }
+const char *cras_bt_device_object_path(const struct cras_bt_device *device)
+{
+  return "/fake/object/path";
+}
 
 // From cras_hfp_info
 int hfp_info_add_iodev(struct hfp_info *info, struct cras_iodev *dev)

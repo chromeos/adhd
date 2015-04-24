@@ -205,6 +205,7 @@ struct cras_iodev *hfp_iodev_create(
 	struct hfp_io *hfpio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
+	const char *name;
 
 	hfpio = (struct hfp_io *)calloc(1, sizeof(*hfpio));
 	if (!hfpio)
@@ -216,9 +217,11 @@ struct cras_iodev *hfp_iodev_create(
 	hfpio->device = device;
 
 	/* Set iodev's name to device readable name or the address. */
-	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
-		 cras_bt_device_name(device));
+	name = cras_bt_device_name(device);
+	if (!name)
+		name = cras_bt_device_object_path(device);
 
+	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = 0;
 
 	iodev->open_dev= open_dev;
