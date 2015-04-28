@@ -898,6 +898,7 @@ function audio_source_set(url) {
   player.pause();
   container.removeChild(player);
   player = document.createElement('audio');
+  player.crossOrigin = 'anonymous';
   player.id = 'audio_player';
   player.loop = true;
   player.controls = true;
