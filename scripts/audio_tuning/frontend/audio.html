@@ -7,6 +7,9 @@
     <TITLE>Audio Tuning</TITLE>
     <link rel="stylesheet" href="audio.css" type="text/css">
     <script type="text/javascript" src="audio.js"></script>
+    <script type="text/javascript" src="setup_credential.js"></script>
+    <script type="text/javascript" src="google_drive_picker.js"></script>
+    <script src="https://apis.google.com/js/client.js?onload=onGoogleClientApiLoad"></script>
   </head>
   <h1> Audio Source </h1>
   URL: <input size=100 id="audio_source_url" list=samples autofocus=autofocus
@@ -18,6 +21,7 @@
   </select>
   -->
   <input type=button value='Local Audio File' onclick="load_audio()"> </input>
+  <input type=button id='google_drive_pick_file' value='Select File from Google Drive' disable> </input>
   <p></p>
   <span id=audio_player_container>
     <audio controls="controls" id="audio_player" loop=loop
