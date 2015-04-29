@@ -600,7 +600,7 @@ static int enable_device(struct cras_iodev *dev)
 
 	/* If enable_device is called after suspend, for example bluetooth
 	 * profile switching, don't add back the stream list. */
-	if (stream_list_suspended) {
+	if (!stream_list_suspended) {
 		/* If there are active streams to attach to this device,
 		 * open it. */
 		DL_FOREACH(stream_list_get(stream_list), stream) {

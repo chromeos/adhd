@@ -330,6 +330,47 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, SelectNode) {
+  struct cras_rstream rstream, rstream2, rstream3;
+  struct cras_rstream *stream_list = NULL;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  memset(&rstream2, 0, sizeof(rstream2));
+  memset(&rstream3, 0, sizeof(rstream3));
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
+
+  iodev_is_open = 0;
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 1));
+  DL_APPEND(stream_list, &rstream);
+  stream_add_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
+
+  DL_APPEND(stream_list, &rstream2);
+  stream_add_cb(&rstream2);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+
+  stream_list_get_ret = stream_list;
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 1));
+  EXPECT_EQ(4, audio_thread_add_stream_called);
+}
+
 // Devices with the wrong direction should be rejected.
 TEST_F(IoDevTestSuite, AddWrongDirection) {
   int rc;
