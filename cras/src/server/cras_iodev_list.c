@@ -924,17 +924,22 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 {
 	struct cras_iodev *old_dev = NULL, *new_dev = NULL;
 	cras_node_id_t *selected;
+	struct enabled_dev *edev;
 
 	selected = (direction == CRAS_STREAM_OUTPUT) ? &selected_output :
 		&selected_input;
 
-	/* return if no change */
-	if (node_id == *selected)
-		return;
-
 	/* find the devices for the id. */
 	old_dev = find_dev(dev_index_of(*selected));
 	new_dev = find_dev(dev_index_of(node_id));
+
+	/* Return if no change. Note that there could be a case a node got
+	 * disabled but left as selected. */
+	DL_FOREACH(enabled_devs[direction], edev) {
+		if ((new_dev == edev->dev) &&
+		    (node_id == *selected))
+			return;
+	}
 
 	/* Fail if the direction is mismatched. We don't fail for the new_dev ==
 	   NULL case. That can happen if node_id is 0 (no selection), or the

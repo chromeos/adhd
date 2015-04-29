@@ -14,6 +14,7 @@ extern "C" {
 float softvol_scalers[101];
 }
 
+static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
 static enum CRAS_STREAM_DIRECTION select_node_direction;
 static cras_node_id_t select_node_id;
@@ -74,6 +75,7 @@ int set_swap_mode_for_node(struct cras_iodev *iodev, struct cras_ionode *node,
 }
 
 void ResetStubData() {
+  cras_iodev_list_disable_dev_called = 0;
   select_node_called = 0;
   notify_nodes_changed_called = 0;
   notify_active_node_changed_called = 0;
@@ -573,7 +575,7 @@ static void dev_set_capture_gain(struct cras_iodev *iodev)
 {
 }
 
-TEST(IoNodePlug, ClearSelection) {
+TEST(IoNodePlug, PlugUnplugNode) {
   struct cras_iodev iodev;
   struct cras_ionode ionode;
 
@@ -584,6 +586,9 @@ TEST(IoNodePlug, ClearSelection) {
   iodev.update_active_node = update_active_node;
   ResetStubData();
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 1);
+  EXPECT_EQ(0, cras_iodev_list_disable_dev_called);
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 0);
+  EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
 }
 
 TEST(IoDev, AddRemoveNode) {
@@ -827,6 +832,11 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 int cras_iodev_list_node_selected(struct cras_ionode *node)
 {
   return node == node_selected;
+}
+
+void cras_iodev_list_disable_dev(struct cras_iodev *dev)
+{
+  cras_iodev_list_disable_dev_called++;
 }
 
 void cras_iodev_list_notify_nodes_changed()

@@ -352,6 +352,8 @@ static void plug_node(struct cras_ionode *node, int plugged)
 	node->plugged = plugged;
 	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
+	} else {
+		cras_iodev_list_disable_dev(node->dev);
 	}
 	cras_iodev_list_notify_nodes_changed();
 }
