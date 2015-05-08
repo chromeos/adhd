@@ -18,6 +18,7 @@
 struct hfp_io {
 	struct cras_iodev base;
 	struct cras_bt_device *device;
+	struct hfp_slc_handle *slc;
 	struct hfp_info *info;
 	int opened;
 };
@@ -199,6 +200,7 @@ void hfp_free_resources(struct hfp_io *hfpio)
 struct cras_iodev *hfp_iodev_create(
 		enum CRAS_STREAM_DIRECTION dir,
 		struct cras_bt_device *device,
+		struct hfp_slc_handle *slc,
 		enum cras_bt_device_profile profile,
 		struct hfp_info *info)
 {
@@ -215,6 +217,7 @@ struct cras_iodev *hfp_iodev_create(
 	iodev->direction = dir;
 
 	hfpio->device = device;
+	hfpio->slc = slc;
 
 	/* Set iodev's name to device readable name or the address. */
 	name = cras_bt_device_name(device);

@@ -14,6 +14,7 @@ extern "C" {
 
 static struct cras_iodev *iodev;
 static struct cras_bt_device *fake_device;
+static struct hfp_slc_handle *fake_slc;
 static struct hfp_info *fake_info;
 struct cras_audio_format fake_format;
 static size_t cras_bt_device_append_iodev_called;
@@ -71,7 +72,7 @@ void ResetStubData() {
 namespace {
 
 TEST(HfpIodev, CreateHfpIodev) {
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device,
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                 		  	   fake_info);
 
@@ -89,7 +90,7 @@ TEST(HfpIodev, CreateHfpIodev) {
 TEST(HfpIodev, OpenHfpIodev) {
   ResetStubData();
 
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device,
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                            fake_info);
 
@@ -116,7 +117,7 @@ TEST(HfpIodev, OpenHfpIodev) {
 TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   ResetStubData();
 
-  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device,
+  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                            fake_info);
 
@@ -144,7 +145,7 @@ TEST(HfpIodev, PutGetBuffer) {
   unsigned frames;
 
   ResetStubData();
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device,
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                   			   fake_info);
   cras_iodev_set_format(iodev, &fake_format);

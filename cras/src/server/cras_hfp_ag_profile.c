@@ -140,8 +140,10 @@ static int start_audio_gateway(struct audio_gateway *ag)
 {
 	ag->info = hfp_info_create();
 	ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
+				    ag->slc_handle,
 				    ag->profile, ag->info);
 	ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
+				    ag->slc_handle,
 				    ag->profile, ag->info);
 
 	if (!ag->idev && !ag->odev) {
