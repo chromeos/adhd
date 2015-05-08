@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 {
 	struct cras_client *client;
 	cras_stream_id_t stream_id;
-	struct stream_data *data = malloc(sizeof(*data));
+	struct stream_data *data;
 	int rc = 0;
 	int fd;
 	const unsigned int block_size = 4800;
@@ -77,6 +77,7 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
+	data = malloc(sizeof(*data));
 	data->fd = fd;
 	data->frame_bytes = 4;
 
@@ -85,7 +86,7 @@ int main(int argc, char **argv)
 			num_channels, NO_DEVICE, &stream_id);
 	if (rc < 0) {
 		fprintf(stderr, "adding a stream %d\n", rc);
-		return rc;
+		goto destroy_exit;
 	}
 
 	/* At this point the stream has been added and audio callbacks will

@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 	rc = cras_helper_create_connect(&client);
 	if (rc < 0) {
 		fprintf(stderr, "Couldn't create client.\n");
+		free(buffer);
 		close(fd);
 		return rc;
 	}
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
 				CRAS_STREAM_OUTPUT));
 	if (rc < 0) {
 		fprintf(stderr, "playing a buffer %d\n", rc);
-		return rc;
+		goto destroy_exit;
 	}
 
 	/* At this point the stream has been added and audio callbacks will
