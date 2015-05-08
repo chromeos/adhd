@@ -32,6 +32,9 @@
 	"(\"callheld\",(0-2)),"		\
 	"(\"roam\",(0,1))"		\
 	""
+/* Mode values for standard event reporting activation/deactivation AT
+ * command AT+CMER. Used for indicator events reporting in HFP. */
+#define FORWARD_UNSOLICIT_RESULT_CODE	3
 
 /* Handle object to hold required info to initialize and maintain
  * an HFP service level connection.
@@ -47,6 +50,7 @@
  *    signal - Current signal strength of AG stored in SLC.
  *    service - Current service availability of AG stored in SLC.
  *    callheld - Current callheld status of AG stored in SLC.
+ *    ind_event_report - Activate status of indicator events reporting.
  *    telephony - A reference of current telephony handle.
  */
 struct hfp_slc_handle {
@@ -64,6 +68,7 @@ struct hfp_slc_handle {
 	int signal;
 	int service;
 	int callheld;
+	int ind_event_report;
 
 	struct cras_telephony_handle *telephony;
 };
@@ -111,7 +116,7 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 {
 	char cmd[64];
 
-	if (handle->is_hsp)
+	if (handle->is_hsp || !handle->ind_event_report)
 		return 0;
 
 	snprintf(cmd, 64, "+CIEV: %d,%d", ind_index, value);
@@ -232,6 +237,8 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 		err = -EINVAL;
 		goto event_reporting_err;
 	}
+	if (atoi(mode) == FORWARD_UNSOLICIT_RESULT_CODE)
+		handle->ind_event_report = atoi(tmp);
 
 	err = hfp_send(handle, "OK");
 	if (err) {
@@ -620,6 +627,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->battery = 5;
 	handle->signal = 5;
 	handle->service = 1;
+	handle->ind_event_report = 0;
 	handle->telephony = cras_telephony_get();
 
 	cras_system_add_select_fd(handle->rfcomm_fd,
@@ -633,6 +641,17 @@ void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 	cras_system_rm_select_fd(slc_handle->rfcomm_fd);
 	close(slc_handle->rfcomm_fd);
 	free(slc_handle);
+}
+
+int hfp_set_call_status(struct hfp_slc_handle *handle, int call)
+{
+	int old_call = handle->telephony->call;
+
+	if (old_call == call)
+		return 0;
+
+	handle->telephony->call = call;
+	return hfp_event_update_call(handle);
 }
 
 /* Procedure to setup a call when AG sees incoming call.

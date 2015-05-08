@@ -30,6 +30,9 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp, hfp_slc_init_cb init_c
 /* Destroys an hfp_slc_handle. */
 void hfp_slc_destroy(struct hfp_slc_handle *handle);
 
+/* Sets the call status to notify handsfree device. */
+int hfp_set_call_status(struct hfp_slc_handle *handle, int call);
+
 /* Fakes the incoming call event for qualification test. */
 int hfp_event_incoming_call(struct hfp_slc_handle *handle,
 			    const char *number,

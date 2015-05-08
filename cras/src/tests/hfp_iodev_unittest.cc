@@ -335,6 +335,10 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
   dummy_audio_area->channels[0].buf = base_buffer;
 }
 
+int hfp_set_call_status(struct hfp_slc_handle *handle, int call)
+{
+  return 0;
+}
 } // extern "C"
 
 int main(int argc, char **argv) {

@@ -9,6 +9,7 @@
 #include "cras_audio_area.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_info.h"
+#include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
@@ -96,6 +97,7 @@ static int open_dev(struct cras_iodev *iodev)
 
 add_dev:
 	hfp_info_add_iodev(hfpio->info, iodev);
+	hfp_set_call_status(hfpio->slc, 1);
 
 	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev);
 	hfpio->opened = 1;
@@ -112,8 +114,10 @@ static int close_dev(struct cras_iodev *iodev)
 
 	hfpio->opened = 0;
 	hfp_info_rm_iodev(hfpio->info, iodev);
-	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info))
+	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info)) {
 		hfp_info_stop(hfpio->info);
+		hfp_set_call_status(hfpio->slc, 0);
+	}
 
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
