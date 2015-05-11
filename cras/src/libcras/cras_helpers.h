@@ -61,7 +61,7 @@ int cras_helper_add_stream_simple(struct cras_client *client,
  *    0 on success, negative error code on failure (from errno.h).
  */
 int cras_helper_play_buffer(struct cras_client *client,
-			    void *buffer,
+			    const void *buffer,
 			    unsigned int num_frames,
 			    snd_pcm_format_t format,
 			    unsigned int frame_rate,

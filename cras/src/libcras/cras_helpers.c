@@ -10,7 +10,7 @@
 #include "cras_util.h"
 
 struct buffer_data {
-	uint8_t *buffer;
+	const uint8_t *buffer;
 	unsigned int offset;
 	unsigned int frame_bytes;
 	unsigned int len;
@@ -117,7 +117,7 @@ done_add_stream:
 }
 
 int cras_helper_play_buffer(struct cras_client *client,
-			    void *buffer,
+			    const void *buffer,
 			    unsigned int frames,
 			    snd_pcm_format_t format,
 			    unsigned int frame_rate,
