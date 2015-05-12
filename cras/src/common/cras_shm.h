@@ -323,6 +323,9 @@ void cras_shm_buffer_read(struct cras_audio_shm *shm, size_t frames)
 	struct cras_audio_shm_area *area = shm->area;
 	struct cras_audio_shm_config *config = &shm->config;
 
+	if (frames == 0)
+		return;
+
 	area->read_offset[buf_idx] += frames * config->frame_bytes;
 	if (area->read_offset[buf_idx] >= area->write_offset[buf_idx]) {
 		remainder = area->read_offset[buf_idx] -
