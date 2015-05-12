@@ -363,7 +363,7 @@ static void print_user_muted(struct cras_client *client)
 static void show_alog_tag(const struct audio_thread_event_log *log,
 			  unsigned int tag_idx)
 {
-	unsigned int tag = (log->log[tag_idx].tag_sec >> 24) & 0x1f;
+	unsigned int tag = (log->log[tag_idx].tag_sec >> 24) & 0xff;
 	unsigned int sec = log->log[tag_idx].tag_sec & 0x00ffffff;
 	unsigned int nsec = log->log[tag_idx].nsec;
 	unsigned int data1 = log->log[tag_idx].data1;
