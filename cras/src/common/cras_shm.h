@@ -277,6 +277,9 @@ void cras_shm_buffer_written(struct cras_audio_shm *shm, size_t frames)
 {
 	size_t buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
 
+	if (frames == 0)
+		return;
+
 	shm->area->write_offset[buf_idx] += frames * shm->config.frame_bytes;
 	shm->area->read_offset[buf_idx] = 0;
 }
