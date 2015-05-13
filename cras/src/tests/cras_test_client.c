@@ -489,7 +489,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_CONV_COPY:
-		printf("CONV_COPY: %u.%09u stream %x wr_buf %u num_frames %u\n",
+		printf("CONV_COPY: %u.%09u wr_buf %u shm_writable %u"
+		       "offset %u\n",
 		       sec, nsec, data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_SLEEP_TIME:

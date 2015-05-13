@@ -283,9 +283,9 @@ static unsigned int capture_copy_converted_to_stream(
 							frame_bytes);
 
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_CONV_COPY,
-				    cras_shm_frames_written(shm),
 				    shm->area->write_buf_idx,
-				    num_frames);
+				    rstream->audio_area->frames,
+				    offset);
 
 	while (total_written < num_frames) {
 		converted_samples =
