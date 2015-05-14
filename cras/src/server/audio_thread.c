@@ -1030,7 +1030,8 @@ int fill_output_no_streams(struct open_dev *adev)
 
 	if (hw_level < odev->min_cb_level)
 		fill_odev_zeros(odev, MIN(odev->min_cb_level,
-					  odev->buffer_size - hw_level));
+					  odev->buffer_size - hw_level -
+						odev->min_buffer_level));
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_ODEV_NO_STREAMS,
@@ -1161,8 +1162,10 @@ static int write_output_samples(struct audio_thread *thread,
 	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO,
 				    adev->dev->info.idx, hw_level, 0);
 
-	/* Don't request more than hardware can hold. */
-	fr_to_req = odev->buffer_size - hw_level;
+	/* Don't request more than hardware can hold. Note that min_buffer_level
+	 * has been subtracted from the actual hw_level so we need to take it
+	 * into account here. */
+	fr_to_req = odev->buffer_size - hw_level - odev->min_buffer_level;
 
 	/* Have to loop writing to the device, will be at most 2 loops, this
 	 * only happens when the circular buffer is at the end and returns us a
