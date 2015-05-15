@@ -28,8 +28,12 @@
 
 struct cras_tm;
 
-/* Initialize system settings. */
-void cras_system_state_init();
+/* Initialize system settings.
+ *
+ * Args:
+ *    device_config_dir - Directory for device configs where volume curves live.
+ */
+void cras_system_state_init(const char *device_config_dir);
 void cras_system_state_deinit();
 
 /* Sets the system volume.  Will be applied by the active device. */

@@ -30,6 +30,7 @@ struct card_list {
  *    exp_state - The exported system state shared with clients.
  *    shm_key - Key for shm area of system_state struct.
  *    shm_id - Id for shm area of system_state struct.
+ *    device_config_dir - Directory of device configs where volume curves live.
  *    device_blacklist - Blacklist of device the server will ignore.
  *    volume_alert - Called when the system volume changes.
  *    mute_alert - Called when the system mute state changes.
@@ -47,6 +48,7 @@ static struct {
 	struct cras_server_state *exp_state;
 	key_t shm_key;
 	int shm_id;
+	const char *device_config_dir;
 	struct cras_device_blacklist *device_blacklist;
 	struct cras_alert *volume_alert;
 	struct cras_alert *mute_alert;
@@ -69,7 +71,7 @@ static struct {
  * Exported Interface.
  */
 
-void cras_system_state_init()
+void cras_system_state_init(const char *device_config_dir)
 {
 	struct cras_server_state *exp_state;
 	unsigned loops = 0;
@@ -113,6 +115,12 @@ void cras_system_state_init()
 	}
 
 	state.exp_state = exp_state;
+
+	/* Directory for volume curve configs.
+	 * Note that device_config_dir does not affect device blacklist.
+	 * Device blacklist is common to all boards so we do not need
+	 * to change device blacklist at run time. */
+	state.device_config_dir = device_config_dir;
 
 	/* Initialize alerts. */
 	state.volume_alert = cras_alert_create(NULL);
@@ -383,7 +391,7 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 			return -EINVAL;
 	}
 	alsa_card = cras_alsa_card_create(alsa_card_info,
-					  CRAS_CONFIG_FILE_DIR,
+					  state.device_config_dir,
 					  state.device_blacklist);
 	if (alsa_card == NULL)
 		return -ENOMEM;

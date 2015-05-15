@@ -25,6 +25,8 @@ static size_t rm_callback_called;
 static cras_alert_cb rm_callback_cb;
 static void *rm_callback_arg;
 static size_t alert_pending_called;
+static char* device_config_dir;
+static const char* cras_alsa_card_config_dir;
 
 static void ResetStubData() {
   cras_alsa_card_create_called = 0;
@@ -36,6 +38,8 @@ static void ResetStubData() {
   add_callback_called = 0;
   rm_callback_called = 0;
   alert_pending_called = 0;
+  device_config_dir = reinterpret_cast<char *>(3);
+  cras_alsa_card_config_dir = NULL;
 }
 
 static void volume_changed(void *arg) {
@@ -76,7 +80,7 @@ static void callback_stub(void *data) {
 }
 
 TEST(SystemStateSuite, DefaultVolume) {
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   EXPECT_EQ(100, cras_system_get_volume());
   EXPECT_EQ(2000, cras_system_get_capture_gain());
   EXPECT_EQ(0, cras_system_get_mute());
@@ -85,7 +89,7 @@ TEST(SystemStateSuite, DefaultVolume) {
 }
 
 TEST(SystemStateSuite, SetVolume) {
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   cras_system_set_volume(0);
   EXPECT_EQ(0, cras_system_get_volume());
   cras_system_set_volume(50);
@@ -98,7 +102,7 @@ TEST(SystemStateSuite, SetVolume) {
 }
 
 TEST(SystemStateSuite, SetMinMaxVolume) {
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   cras_system_set_volume_limits(-10000, -600);
   EXPECT_EQ(-10000, cras_system_get_min_volume());
   EXPECT_EQ(-600, cras_system_get_max_volume());
@@ -106,7 +110,7 @@ TEST(SystemStateSuite, SetMinMaxVolume) {
 }
 
 TEST(SystemStateSuite, SetCaptureVolume) {
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   cras_system_set_capture_gain(0);
   EXPECT_EQ(0, cras_system_get_capture_gain());
   cras_system_set_capture_gain(3000);
@@ -123,7 +127,7 @@ TEST(SystemStateSuite, VolumeChangedCallback) {
   const size_t fake_volume_2 = 44;
   int rc;
 
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   ResetStubData();
   cras_system_register_volume_changed_cb(volume_changed, fake_user_arg);
   EXPECT_EQ(1, add_callback_called);
@@ -155,7 +159,7 @@ TEST(SystemStateSuite, VolumeLimitChangedCallbackMultiple) {
   const size_t fake_max_2 = -600;
   int rc;
 
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   ResetStubData();
   rc = cras_system_register_volume_limits_changed_cb(volume_limits_changed,
                                                      fake_user_arg);
@@ -203,7 +207,7 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallback) {
   const long fake_capture_gain_2 = -1600;
   int rc;
 
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   ResetStubData();
   cras_system_register_capture_gain_changed_cb(capture_gain_changed,
                                                fake_user_arg);
@@ -229,7 +233,7 @@ TEST(SystemStateSuite, CaptureVolumeChangedCallback) {
 }
 
 TEST(SystemStateSuite, SetMute) {
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   EXPECT_EQ(0, cras_system_get_mute());
   cras_system_set_mute(0);
   EXPECT_EQ(0, cras_system_get_mute());
@@ -244,7 +248,7 @@ TEST(SystemStateSuite, MuteChangedCallback) {
   void * const fake_user_arg = (void *)1;
   int rc;
 
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   ResetStubData();
   cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
   EXPECT_EQ(1, add_callback_called);
@@ -272,7 +276,7 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
   void * const fake_arg_2 = (void *)2;
   int rc;
 
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   ResetStubData();
   rc = cras_system_register_capture_mute_changed_cb(capture_mute_changed,
                                                     fake_arg);
@@ -313,7 +317,7 @@ TEST(SystemStateSuite, MuteLocked) {
   void * const fake_user_arg = (void *)1;
   int rc;
 
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   ResetStubData();
 
   cras_system_register_mute_changed_cb(mute_changed, fake_user_arg);
@@ -360,8 +364,10 @@ TEST(SystemStateSuite, AddCardFailCreate) {
 
   info.card_type = ALSA_CARD_TYPE_INTERNAL;
   info.card_index = 0;
+  cras_system_state_init(device_config_dir);
   EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(&info));
   EXPECT_EQ(1, cras_alsa_card_create_called);
+  EXPECT_EQ(cras_alsa_card_config_dir, device_config_dir);
 }
 
 TEST(SystemStateSuite, AddCard) {
@@ -370,8 +376,10 @@ TEST(SystemStateSuite, AddCard) {
 
   info.card_type = ALSA_CARD_TYPE_INTERNAL;
   info.card_index = 0;
+  cras_system_state_init(device_config_dir);
   EXPECT_EQ(0, cras_system_add_alsa_card(&info));
   EXPECT_EQ(1, cras_alsa_card_create_called);
+  EXPECT_EQ(cras_alsa_card_config_dir, device_config_dir);
   // Adding the same card again should fail.
   ResetStubData();
   EXPECT_NE(0, cras_system_add_alsa_card(&info));
@@ -387,7 +395,7 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   int rc;
 
   ResetStubData();
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
   rc = cras_system_add_select_fd(7, callback_stub, stub_data);
   EXPECT_NE(0, rc);
   EXPECT_EQ(0, add_stub_called);
@@ -413,7 +421,7 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
 
 TEST(SystemSettingsStreamCount, StreamCount) {
   ResetStubData();
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
 
   EXPECT_EQ(0, cras_system_state_get_active_streams());
   cras_system_state_stream_added(CRAS_STREAM_OUTPUT);
@@ -430,7 +438,7 @@ TEST(SystemSettingsStreamCount, StreamCount) {
 
 TEST(SystemSettingsStreamCount, StreamCountByDirection) {
   ResetStubData();
-  cras_system_state_init();
+  cras_system_state_init(device_config_dir);
 
   EXPECT_EQ(0, cras_system_state_get_active_streams());
   cras_system_state_stream_added(CRAS_STREAM_OUTPUT);
@@ -465,8 +473,12 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
 
 extern "C" {
 
-struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info) {
+
+struct cras_alsa_card *cras_alsa_card_create(struct cras_alsa_card_info *info,
+	const char *device_config_dir,
+	struct cras_device_blacklist *blacklist) {
   cras_alsa_card_create_called++;
+  cras_alsa_card_config_dir = device_config_dir;
   return kFakeAlsaCard;
 }
 

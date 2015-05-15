@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
 	/* Initialize system. */
 	cras_server_init();
-	cras_system_state_init();
+	cras_system_state_init(CRAS_CONFIG_FILE_DIR);
 	cras_dsp_init(dsp_config);
 	cras_iodev_list_init();
 
