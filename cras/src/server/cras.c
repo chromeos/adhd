@@ -17,6 +17,7 @@
 static struct option long_options[] = {
 	{"dsp_config", required_argument, 0, 'd'},
 	{"syslog_mask", required_argument, 0, 'l'},
+	{"device_config_dir", required_argument, 0, 'c'},
 	{0, 0, 0, 0}
 };
 
@@ -34,6 +35,7 @@ int main(int argc, char **argv)
 	int log_mask = LOG_ERR;
 	const char default_dsp_config[] = CRAS_CONFIG_FILE_DIR "/dsp.ini";
 	const char *dsp_config = default_dsp_config;
+	const char *device_config_dir = CRAS_CONFIG_FILE_DIR;
 
 	set_signals();
 
@@ -51,6 +53,10 @@ int main(int argc, char **argv)
 		   http://tools.ietf.org/html/rfc5424#page-11 */
 		case 'l':
 			log_mask = atoi(optarg);
+			break;
+
+		case 'c':
+			device_config_dir = optarg;
 			break;
 
 		case 'd':
@@ -77,7 +83,7 @@ int main(int argc, char **argv)
 
 	/* Initialize system. */
 	cras_server_init();
-	cras_system_state_init(CRAS_CONFIG_FILE_DIR);
+	cras_system_state_init(device_config_dir);
 	cras_dsp_init(dsp_config);
 	cras_iodev_list_init();
 
