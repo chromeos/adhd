@@ -383,6 +383,7 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 			return -EINVAL;
 	}
 	alsa_card = cras_alsa_card_create(alsa_card_info,
+					  CRAS_CONFIG_FILE_DIR,
 					  state.device_blacklist);
 	if (alsa_card == NULL)
 		return -ENOMEM;

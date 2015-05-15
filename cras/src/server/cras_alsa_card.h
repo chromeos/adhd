@@ -22,6 +22,8 @@ struct cras_device_blacklist;
  * capture endpoints.
  * Args:
  *    card_info - Contains the card index, type, and priority.
+ *    device_config_dir - The directory of device configs which contains the
+ *                        volume curves.
  *    blacklist - List of devices that should be ignored.
  * Returns:
  *    A pointer to the newly created cras_alsa_card which must later be freed
@@ -29,6 +31,7 @@ struct cras_device_blacklist;
  */
 struct cras_alsa_card *cras_alsa_card_create(
 		struct cras_alsa_card_info *info,
+		const char *device_config_dir,
 		struct cras_device_blacklist *blacklist);
 
 /* Destroys a cras_alsa_card that was returned from cras_alsa_card_create.

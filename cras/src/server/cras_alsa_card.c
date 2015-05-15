@@ -152,6 +152,7 @@ static void filter_mixer_names(snd_use_case_mgr_t *ucm,
 
 struct cras_alsa_card *cras_alsa_card_create(
 		struct cras_alsa_card_info *info,
+		const char *device_config_dir,
 		struct cras_device_blacklist *blacklist)
 {
 	snd_ctl_t *handle = NULL;
@@ -205,7 +206,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 	}
 
 	/* Read config file for this card if it exists. */
-	alsa_card->config = cras_card_config_create(CRAS_CONFIG_FILE_DIR,
+	alsa_card->config = cras_card_config_create(device_config_dir,
 						    card_name);
 	if (alsa_card->config == NULL)
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
