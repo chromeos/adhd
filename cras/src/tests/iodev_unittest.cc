@@ -563,6 +563,58 @@ TEST(IoDevPutOutputBuffer, Scale32Bit) {
   EXPECT_EQ(SND_PCM_FORMAT_S32_LE, cras_scale_buffer_fmt);
 }
 
+// frames queued/avail tests
+
+static unsigned fr_queued = 0;
+
+static int frames_queued(const struct cras_iodev *iodev)
+{
+  return fr_queued;
+}
+
+TEST(IoDevQueuedBuffer, ZeroMinBufferLevel) {
+  struct cras_iodev iodev;
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.frames_queued = frames_queued;
+  iodev.min_buffer_level = 0;
+  iodev.buffer_size = 200;
+  fr_queued = 50;
+
+  rc = cras_iodev_frames_queued(&iodev);
+  EXPECT_EQ(50, rc);
+  rc = cras_iodev_buffer_avail(&iodev, rc);
+  EXPECT_EQ(150, rc);
+}
+
+TEST(IoDevQueuedBuffer, NonZeroMinBufferLevel) {
+  struct cras_iodev iodev;
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.frames_queued = frames_queued;
+  iodev.min_buffer_level = 100;
+  iodev.buffer_size = 200;
+  fr_queued = 180;
+
+  rc = cras_iodev_frames_queued(&iodev);
+  EXPECT_EQ(80, rc);
+  rc = cras_iodev_buffer_avail(&iodev, rc);
+  EXPECT_EQ(20, rc);
+
+  /* When fr_queued < min_buffer_level*/
+  fr_queued = 80;
+  rc = cras_iodev_frames_queued(&iodev);
+  EXPECT_EQ(0, rc);
+  rc = cras_iodev_buffer_avail(&iodev, rc);
+  EXPECT_EQ(100, rc);
+}
+
 static void update_active_node(struct cras_iodev *iodev)
 {
 }

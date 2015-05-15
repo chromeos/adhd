@@ -1017,6 +1017,7 @@ static int get_next_dev_wake(struct audio_thread *thread,
 int fill_output_no_streams(struct open_dev *adev)
 {
 	unsigned int hw_level;
+	unsigned int fr_to_write;
 	int rc;
 	struct cras_iodev *odev = adev->dev;
 
@@ -1025,10 +1026,10 @@ int fill_output_no_streams(struct open_dev *adev)
 		return rc;
 	hw_level = rc;
 
+	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
+
 	if (hw_level < odev->min_cb_level)
-		fill_odev_zeros(odev, MIN(odev->min_cb_level,
-					  odev->buffer_size - hw_level -
-						odev->min_buffer_level));
+		fill_odev_zeros(odev, MIN(odev->min_cb_level, fr_to_write));
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_ODEV_NO_STREAMS,
@@ -1162,7 +1163,7 @@ static int write_output_samples(struct audio_thread *thread,
 	/* Don't request more than hardware can hold. Note that min_buffer_level
 	 * has been subtracted from the actual hw_level so we need to take it
 	 * into account here. */
-	fr_to_req = odev->buffer_size - hw_level - odev->min_buffer_level;
+	fr_to_req = cras_iodev_buffer_avail(odev, hw_level);
 
 	/* Have to loop writing to the device, will be at most 2 loops, this
 	 * only happens when the circular buffer is at the end and returns us a

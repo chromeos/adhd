@@ -687,6 +687,17 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev)
 	return rc - iodev->min_buffer_level;
 }
 
+int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
+{
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		return hw_level;
+
+	if (hw_level + iodev->min_buffer_level > iodev->buffer_size)
+		return 0;
+
+	return iodev->buffer_size - iodev->min_buffer_level - hw_level;
+}
+
 void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
 				      loopback_hook_t loop_cb,
 				      void *cb_data)

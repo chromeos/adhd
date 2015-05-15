@@ -523,6 +523,11 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev)
 	return iodev->frames_queued(iodev);
 }
 
+int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
+{
+  return iodev->buffer_size - iodev->frames_queued(iodev);
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {

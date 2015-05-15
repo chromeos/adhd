@@ -344,6 +344,9 @@ int cras_iodev_open(struct cras_iodev *iodev);
 /* Open an iodev, does teardown and invokes the close_dev callback. */
 int cras_iodev_close(struct cras_iodev *iodev);
 
+/* Gets the available buffer to write/read audio.*/
+int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level);
+
 /* Marks a buffer from get_buffer as read. */
 int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes);
 
