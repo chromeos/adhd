@@ -96,7 +96,7 @@ struct cras_ionode {
  * min_buffer_level - Extra frames to keep queued in addition to requested.
  * dsp_context - The context used for dsp processing on the audio data.
  * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
- * is_active - True if this iodev is set as active, false otherwise.
+ * is_enabled - True if this iodev is enabled, false otherwise.
  * software_volume_needed - True if volume control is not supported by hardware.
  * streams - List of audio streams serviced by dev.
  * min_cb_level - min callback level of any stream attached.
@@ -147,7 +147,7 @@ struct cras_iodev {
 	unsigned int min_buffer_level;
 	struct cras_dsp_context *dsp_context;
 	const char *dsp_name;
-	int is_active;
+	int is_enabled;
 	int software_volume_needed;
 	struct dev_stream *streams;
 	unsigned int min_cb_level;

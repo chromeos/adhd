@@ -332,7 +332,6 @@ static int thread_add_open_dev(struct audio_thread *thread,
 
 	adev = (struct open_dev *)calloc(1, sizeof(*adev));
 	adev->dev = iodev;
-	iodev->is_active = 1;
 
 	/*
 	 * Start output devices by padding the output. This avoids a burst of
@@ -375,7 +374,6 @@ static void thread_rm_open_adev(struct audio_thread *thread,
 		return;
 
 	DL_DELETE(thread->open_devs[dir], dev_to_rm);
-	dev_to_rm->dev->is_active = 0;
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_DEV_REMOVED,

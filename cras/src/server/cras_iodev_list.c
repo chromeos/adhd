@@ -229,7 +229,7 @@ static int fill_node_list(struct iodev_list *list,
 				node->plugged_time.tv_sec;
 			node_info->plugged_time.tv_usec =
 				node->plugged_time.tv_usec;
-			node_info->active = dev->is_active &&
+			node_info->active = dev->is_enabled &&
 					    (dev->active_node == node);
 			node_info->volume = node->volume;
 			node_info->capture_gain = node->capture_gain;
@@ -597,6 +597,7 @@ static int enable_device(struct cras_iodev *dev)
 	edev = calloc(1, sizeof(*edev));
 	edev->dev = dev;
 	DL_APPEND(enabled_devs[dir], edev);
+	dev->is_enabled = 1;
 
 	/* If enable_device is called after suspend, for example bluetooth
 	 * profile switching, don't add back the stream list. */
@@ -625,6 +626,7 @@ static int disable_device(struct enabled_dev *edev)
 
 	DL_DELETE(enabled_devs[dir], edev);
 	free(edev);
+	dev->is_enabled = 0;
 
 	/* Pull all default streams off this device. */
 	DL_FOREACH(stream_list_get(stream_list), stream) {
