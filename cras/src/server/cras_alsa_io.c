@@ -334,18 +334,12 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 				     &aio->num_underruns);
 }
 
-/* Gets the node in the ionode list of given iodev which is the
- * best fit to set as active node.
- */
-static struct cras_ionode *alsa_get_best_node(struct cras_iodev *iodev)
+ /* Gets the first plugged node in list. This is used as the
+  * default node to set as active.
+  */
+static struct cras_ionode *first_plugged_node(struct cras_iodev *iodev)
 {
 	struct cras_ionode *n;
-
-	/* Check if any node is already selected by user. */
-	DL_FOREACH(iodev->nodes, n) {
-		if (cras_iodev_list_node_selected(n))
-			return n;
-	}
 
 	/* When this is called at iodev creation, none of the nodes
 	 * are selected. Just pick the first plugged one and let Chrome
@@ -357,12 +351,19 @@ static struct cras_ionode *alsa_get_best_node(struct cras_iodev *iodev)
 	return iodev->nodes;
 }
 
-static void update_active_node(struct cras_iodev *iodev)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
-	struct cras_ionode *best_node;
+	struct cras_ionode *n;
 
-	best_node = alsa_get_best_node(iodev);
-	alsa_iodev_set_active_node(iodev, best_node);
+	/* If a node exists for node_idx, set it as active. */
+	DL_FOREACH(iodev->nodes, n) {
+		if (n->idx == node_idx) {
+			alsa_iodev_set_active_node(iodev, n);
+			return;
+		}
+	}
+
+	alsa_iodev_set_active_node(iodev, first_plugged_node(iodev));
 }
 
 static int update_channel_layout(struct cras_iodev *iodev)
@@ -1193,7 +1194,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Set the active node as the best node we have now. */
 	alsa_iodev_set_active_node(&aio->base,
-				   alsa_get_best_node(&aio->base));
+				   first_plugged_node(&aio->base));
 	if (direction == CRAS_STREAM_OUTPUT)
 		cras_iodev_list_add_output(&aio->base);
 	else

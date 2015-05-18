@@ -249,8 +249,6 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *    num_input_nodes - Number of available input nodes.
  *    output_nodes - Output nodes currently attached.
  *    input_nodes - Input nodes currently attached.
- *    selected_input - The input node currently selected. 0 if none selected.
- *    selected_output - The output node currently selected. 0 if none selected.
  *    num_attached_clients - Number of clients attached to server.
  *    client_info - List of first 20 attached clients.
  *    update_count - Incremented twice each time the struct is updated.  Odd
@@ -287,8 +285,6 @@ struct __attribute__ ((__packed__)) cras_server_state {
 	uint32_t num_input_nodes;
 	struct cras_ionode_info output_nodes[CRAS_MAX_IONODES];
 	struct cras_ionode_info input_nodes[CRAS_MAX_IONODES];
-	cras_node_id_t selected_input;
-	cras_node_id_t selected_output;
 	uint32_t num_attached_clients;
 	struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
 	uint32_t update_count;

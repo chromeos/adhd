@@ -130,7 +130,7 @@ struct cras_iodev {
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*dev_running)(const struct cras_iodev *iodev);
-	void (*update_active_node)(struct cras_iodev *iodev);
+	void (*update_active_node)(struct cras_iodev *iodev, unsigned node_idx);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_audio_format *ext_format;

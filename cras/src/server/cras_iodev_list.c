@@ -48,9 +48,6 @@ static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
-/* Selected node for input and output. 0 if there is no node selected. */
-static cras_node_id_t selected_input;
-static cras_node_id_t selected_output;
 /* Called when the nodes are added/removed. */
 static struct cras_alert *nodes_changed_alert;
 /* Called when the active output/input is changed */
@@ -641,21 +638,6 @@ static int disable_device(struct enabled_dev *edev)
 	return 0;
 }
 
-static int cras_iodev_set_active(struct cras_iodev *new_active)
-{
-	struct enabled_dev *edev;
-
-	cras_iodev_list_notify_active_node_changed();
-
-	DL_FOREACH(enabled_devs[new_active->direction], edev) {
-		disable_device(edev);
-	}
-
-	new_active->update_active_node(new_active);
-
-	return enable_device(new_active);
-}
-
 /*
  * Exported Interface.
  */
@@ -873,8 +855,6 @@ void cras_iodev_list_update_device_list()
 	state->num_input_nodes = fill_node_list(&devs[CRAS_STREAM_INPUT],
 						&state->input_nodes[0],
 						CRAS_MAX_IONODES);
-	state->selected_output = selected_output;
-	state->selected_input = selected_input;
 
 	cras_system_state_update_complete();
 }
@@ -924,45 +904,30 @@ static void active_node_changed_prepare(struct cras_alert *alert)
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 				 cras_node_id_t node_id)
 {
-	struct cras_iodev *old_dev = NULL, *new_dev = NULL;
-	cras_node_id_t *selected;
+	struct cras_iodev *new_dev = NULL;
 	struct enabled_dev *edev;
 
-	selected = (direction == CRAS_STREAM_OUTPUT) ? &selected_output :
-		&selected_input;
-
 	/* find the devices for the id. */
-	old_dev = find_dev(dev_index_of(*selected));
 	new_dev = find_dev(dev_index_of(node_id));
 
-	/* Return if no change. Note that there could be a case a node got
-	 * disabled but left as selected. */
-	DL_FOREACH(enabled_devs[direction], edev) {
-		if ((new_dev == edev->dev) &&
-		    (node_id == *selected))
-			return;
-	}
-
-	/* Fail if the direction is mismatched. We don't fail for the new_dev ==
-	   NULL case. That can happen if node_id is 0 (no selection), or the
-	   client tries to select a non-existing node (maybe it's unplugged just
-	   before the client selects it). We will just behave like there is no
-	   selected node. */
-	if (new_dev && new_dev->direction != direction)
+	/* Do nothing if the direction is mismatched. The new_dev == NULL case
+	   could happen if node_id is 0 (no selection), or the client tries
+	   to select a non-existing node (maybe it's unplugged just before
+	   the client selects it). We will just behave like there is no selected
+	   node. */
+	if (new_dev->direction != direction)
 		return;
 
-	/* change to new selection */
-	*selected = node_id;
+	DL_FOREACH(enabled_devs[direction], edev)
+		disable_device(edev);
 
-	/* update new device */
 	if (new_dev) {
-		/* There is an iodev and it isn't the default, switch to it. */
-		cras_iodev_set_active(new_dev);
+		new_dev->update_active_node(new_dev, node_index_of(node_id));
+		enable_device(new_dev);
+	} else {
+		enable_device(fallback_devs[new_dev->direction]);
 	}
-
-	/* update old device if it is not the same device */
-	if (old_dev && old_dev != new_dev)
-		old_dev->update_active_node(old_dev);
+	cras_iodev_list_notify_active_node_changed();
 }
 
 int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
@@ -975,12 +940,6 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
 		return -EINVAL;
 
 	return cras_iodev_set_node_attr(node, attr, value);
-}
-
-int cras_iodev_list_node_selected(struct cras_ionode *node)
-{
-	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
-	return (id == selected_input || id == selected_output);
 }
 
 void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,

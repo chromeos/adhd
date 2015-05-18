@@ -74,7 +74,6 @@ static char test_dev_name[] = "TestDev";
 static size_t cras_iodev_set_node_attr_called;
 static enum ionode_attr cras_iodev_set_node_attr_attr;
 static int cras_iodev_set_node_attr_value;
-static size_t cras_iodev_list_node_selected_called;
 static unsigned cras_alsa_jack_enable_ucm_called;
 static size_t cras_iodev_update_dsp_called;
 static const char *cras_iodev_update_dsp_name;
@@ -118,7 +117,6 @@ void ResetStubData() {
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_set_node_attr_called = 0;
-  cras_iodev_list_node_selected_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
   cras_iodev_update_dsp_called = 0;
   cras_iodev_update_dsp_name = 0;
@@ -283,7 +281,6 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(1, sys_set_volume_limits_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
-  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
 
   alsa_iodev_destroy(iodev);
@@ -338,7 +335,6 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
-  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -372,7 +368,6 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
-  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -445,9 +440,7 @@ TEST(AlsaIoInit, UpdateActiveNode) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
 
-  EXPECT_EQ(1, cras_iodev_list_node_selected_called);
-  iodev->update_active_node(iodev);
-  EXPECT_EQ(2, cras_iodev_list_node_selected_called);
+  iodev->update_active_node(iodev, 0);
 
   alsa_iodev_destroy(iodev);
 }
@@ -1268,12 +1261,6 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
   cras_iodev_set_node_attr_attr = attr;
   cras_iodev_set_node_attr_value = value;
   return 0;
-}
-
-int cras_iodev_list_node_selected(struct cras_ionode *node)
-{
-  cras_iodev_list_node_selected_called++;
-  return 1;
 }
 
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)

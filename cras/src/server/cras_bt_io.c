@@ -277,7 +277,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 /* If the first private iodev doesn't match the active profile stored on
  * device, select to the correct private iodev.
  */
-static void update_active_node(struct cras_iodev *iodev)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
 	struct bt_io *btio = (struct bt_io *)iodev;
 	struct cras_ionode *node;
@@ -500,7 +500,7 @@ int cras_bt_io_remove(struct cras_iodev *bt_iodev,
 	}
 
 	/* The node of active profile could have been removed, update it. */
-	update_active_node(bt_iodev);
+	update_active_node(bt_iodev, 0);
 
 	return 0;
 }

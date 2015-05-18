@@ -220,7 +220,8 @@ class IoDevTestSuite : public testing::Test {
       set_capture_mute_1_called_++;
     }
 
-    static void update_active_node(struct cras_iodev *iodev) {
+    static void update_active_node(struct cras_iodev *iodev,
+                                   unsigned node_idx) {
     }
 
     static int is_open(const cras_iodev* iodev) {

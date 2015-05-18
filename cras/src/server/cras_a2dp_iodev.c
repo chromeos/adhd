@@ -368,7 +368,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return flush_data(iodev);
 }
 
-static void update_active_node(struct cras_iodev *iodev)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
 }
 

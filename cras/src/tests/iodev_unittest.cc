@@ -615,7 +615,8 @@ TEST(IoDevQueuedBuffer, NonZeroMinBufferLevel) {
   EXPECT_EQ(100, rc);
 }
 
-static void update_active_node(struct cras_iodev *iodev)
+static void update_active_node(struct cras_iodev *iodev,
+                               unsigned node_idx)
 {
 }
 

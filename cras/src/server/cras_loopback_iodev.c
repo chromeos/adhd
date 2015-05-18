@@ -227,7 +227,7 @@ static int put_record_buffer(struct cras_iodev *iodev, unsigned nframes)
 	return 0;
 }
 
-static void update_active_node(struct cras_iodev *iodev)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
 }
 
