@@ -341,19 +341,6 @@ static void print_device_lists(struct cras_client *client)
 	print_node_info(nodes, num_nodes, 1);
 }
 
-static void print_selected_nodes(struct cras_client *client)
-{
-	cras_node_id_t id;
-
-	id = cras_client_get_selected_output(client);
-	printf("Selected Output Node: %u:%u\n", dev_index_of(id),
-	       node_index_of(id));
-
-	id = cras_client_get_selected_input(client);
-	printf("Selected Input Node: %u:%u\n", dev_index_of(id),
-	       node_index_of(id));
-}
-
 static void print_attached_client_list(struct cras_client *client)
 {
 	struct cras_attached_client_info clients[MAX_ATTACHED_CLIENTS];
@@ -914,7 +901,6 @@ static void print_server_info(struct cras_client *client)
 	cras_client_connected_wait(client); /* To synchronize data. */
 	print_system_volumes(client);
 	print_device_lists(client);
-	print_selected_nodes(client);
 	print_attached_client_list(client);
 	print_active_stream_info(client);
 }

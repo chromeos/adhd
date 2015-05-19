@@ -1616,34 +1616,6 @@ read_active_streams_again:
 	return num_streams;
 }
 
-cras_node_id_t cras_client_get_selected_output(struct cras_client *client)
-{
-	unsigned version;
-	cras_node_id_t id;
-
-read_active_streams_again:
-	version = begin_server_state_read(client->server_state);
-	id = client->server_state->selected_output;
-	if (end_server_state_read(client->server_state, version))
-		goto read_active_streams_again;
-
-	return id;
-}
-
-cras_node_id_t cras_client_get_selected_input(struct cras_client *client)
-{
-	unsigned version;
-	cras_node_id_t id;
-
-read_active_streams_again:
-	version = begin_server_state_read(client->server_state);
-	id = client->server_state->selected_input;
-	if (end_server_state_read(client->server_state, version))
-		goto read_active_streams_again;
-
-	return id;
-}
-
 int cras_client_run_thread(struct cras_client *client)
 {
 	if (client == NULL || client->thread.running)

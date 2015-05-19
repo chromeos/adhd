@@ -7,6 +7,9 @@
 #include <alsa/control_external.h>
 #include <cras_client.h>
 
+static const size_t MAX_IODEVS = 10; /* Max devices to print out. */
+static const size_t MAX_IONODES = 20; /* Max ionodes to print out. */
+
 /* Support basic input/output volume/mute only. */
 enum CTL_CRAS_MIXER_CONTROLS {
 	CTL_CRAS_MIXER_PLAYBACK_SWITCH,
@@ -156,35 +159,62 @@ static long capture_gain_to_index(struct cras_client *client, long gain)
 	return (gain - min) / dB_step;
 }
 
+static int get_nodes(struct cras_client *client,
+		     enum CRAS_STREAM_DIRECTION dir,
+		     struct cras_ionode_info *nodes,
+		     size_t num_nodes)
+{
+	struct cras_iodev_info devs[MAX_IODEVS];
+	size_t num_devs;
+	int rc;
+
+	if (dir == CRAS_STREAM_OUTPUT)
+		rc = cras_client_get_output_devices(client, devs, nodes,
+						    &num_devs, &num_nodes);
+	else
+		rc = cras_client_get_input_devices(client, devs, nodes,
+						   &num_devs, &num_nodes);
+	if (rc < 0)
+		return 0;
+	return num_nodes;
+}
+
 /* Gets the value of the given control from CRAS and puts it in value. */
 static int ctl_cras_read_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 				 long *value)
 {
 	struct ctl_cras *cras = (struct ctl_cras *)ext_ctl->private_data;
-	cras_node_id_t node_id;
-	struct cras_ionode_info node;
+	struct cras_ionode_info nodes[MAX_IONODES];
+	int num_nodes, i;
 
 	switch (key) {
 	case CTL_CRAS_MIXER_PLAYBACK_SWITCH:
 		*value = !cras_client_get_user_muted(cras->client);
 		break;
 	case CTL_CRAS_MIXER_PLAYBACK_VOLUME:
-		node_id = cras_client_get_selected_output(cras->client);
-		if (cras_client_get_node_by_id(cras->client, 0,
-							node_id, &node) < 0)
-			return -EIO;
-		*value = node.volume;
+		num_nodes = get_nodes(cras->client, CRAS_STREAM_OUTPUT,
+				      nodes, MAX_IONODES);
+		for (i = 0; i < num_nodes; i++) {
+			if (!nodes[i].active)
+				continue;
+			*value = nodes[i].volume;
+			break;
+		}
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_SWITCH:
 		*value = !cras_client_get_system_capture_muted(cras->client);
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_VOLUME:
-		node_id = cras_client_get_selected_input(cras->client);
-		if (cras_client_get_node_by_id(cras->client, 1,
-							node_id, &node) < 0)
-			return -EIO;
-		*value = capture_gain_to_index(cras->client,
-						node.capture_gain);
+		num_nodes = get_nodes(cras->client, CRAS_STREAM_INPUT,
+				      nodes, MAX_IONODES);
+		for (i = 0; i < num_nodes; i++) {
+			if (!nodes[i].active)
+				continue;
+			*value = capture_gain_to_index(
+					cras->client,
+					nodes[i].capture_gain);
+			break;
+		}
 		break;
 	default:
 		return -EINVAL;
@@ -198,25 +228,41 @@ static int ctl_cras_write_integer(snd_ctl_ext_t *ext_ctl, snd_ctl_ext_key_t key,
 				   long *value)
 {
 	struct ctl_cras *cras = (struct ctl_cras *)ext_ctl->private_data;
-	cras_node_id_t node_id;
+	struct cras_ionode_info nodes[MAX_IONODES];
+	int num_nodes, i;
+	long gain;
 
 	switch (key) {
 	case CTL_CRAS_MIXER_PLAYBACK_SWITCH:
 		cras_client_set_user_mute(cras->client, !(*value));
 		break;
 	case CTL_CRAS_MIXER_PLAYBACK_VOLUME:
-		node_id = cras_client_get_selected_output(cras->client);
-		cras_client_set_node_volume(cras->client, node_id, *value);
+		num_nodes = get_nodes(cras->client, CRAS_STREAM_OUTPUT,
+				      nodes, MAX_IONODES);
+		for (i = 0; i < num_nodes; i++) {
+			if (!nodes[i].active)
+				continue;
+			cras_client_set_node_volume(cras->client,
+					cras_make_node_id(nodes[i].iodev_idx,
+							  nodes[i].ionode_idx),
+					*value);
+		}
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_SWITCH:
 		cras_client_set_system_capture_mute(cras->client, !(*value));
 		break;
 	case CTL_CRAS_MIXER_CAPTURE_VOLUME:
-		node_id = cras_client_get_selected_input(cras->client);
-		cras_client_set_node_capture_gain(
-				cras->client,
-				node_id,
-				capture_index_to_gain(cras->client, *value));
+		gain = capture_index_to_gain(cras->client, *value);
+		num_nodes = get_nodes(cras->client, CRAS_STREAM_INPUT,
+				      nodes, MAX_IONODES);
+		for (i = 0; i < num_nodes; i++) {
+			if (!nodes[i].active)
+				continue;
+			cras_client_set_node_capture_gain(cras->client,
+					cras_make_node_id(nodes[i].iodev_idx,
+							  nodes[i].ionode_idx),
+					gain);
+		}
 		break;
 	default:
 		return -EINVAL;
