@@ -100,8 +100,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		add_timespecs(&stream->next_cb_ts, &extra_sleep);
 	}
 
-	if (dev_ptr)
-		cras_rstream_dev_attach(stream, dev_id, dev_ptr);
+	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
 
 	return out;
 }
