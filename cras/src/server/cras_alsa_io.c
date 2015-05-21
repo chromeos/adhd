@@ -36,6 +36,7 @@
 #include "utlist.h"
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
+#define HDMI "HDMI"
 #define INTERNAL_SPEAKER "Speaker"
 #define INTERNAL_MICROPHONE "Internal Mic"
 #define KEYBOARD_MIC "Keyboard Mic"
@@ -627,7 +628,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ INTERNAL_SPEAKER, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
 		{ INTERNAL_MICROPHONE, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
 		{ KEYBOARD_MIC, 1, CRAS_NODE_TYPE_KEYBOARD_MIC },
-		{ "HDMI", 0, CRAS_NODE_TYPE_HDMI },
+		{ HDMI, 0, CRAS_NODE_TYPE_HDMI },
 		{ "IEC958", 0, CRAS_NODE_TYPE_HDMI },
 		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
@@ -662,7 +663,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 			else
 				node->type = CRAS_NODE_TYPE_MIC;
 		}
-		if (strstr(node->name, "HDMI") &&
+		if (strstr(node->name, HDMI) &&
 		    node->dev->direction == CRAS_STREAM_OUTPUT)
 			node->type = CRAS_NODE_TYPE_HDMI;
 	}
@@ -681,8 +682,8 @@ static const char *get_output_node_name(struct alsa_io *aio,
 		return cras_alsa_mixer_get_output_name(cras_output);
 
 	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER)) {
-		if (strstr(aio->base.info.name, "HDMI"))
-			return "HDMI";
+		if (strstr(aio->base.info.name, HDMI))
+			return HDMI;
 		return INTERNAL_SPEAKER;
 	} else {
 		return "(default)";
@@ -1185,7 +1186,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 
 	/* HDMI outputs don't have volume adjustment, do it in software. */
-	if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, "HDMI"))
+	if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, HDMI))
 		iodev->software_volume_needed = 1;
 
 	/* Build software volume scalers. */
