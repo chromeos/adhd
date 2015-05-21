@@ -1169,7 +1169,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	if ((direction == CRAS_STREAM_OUTPUT) &&
 			!no_create_default_output_node(aio)) {
 		if (!aio->base.nodes || (first_internal_device(aio) &&
-					 !has_node(aio, INTERNAL_SPEAKER)))
+					 !has_node(aio, INTERNAL_SPEAKER) &&
+					 !has_node(aio, HDMI)))
 			new_output(NULL, aio);
 	} else if ((direction == CRAS_STREAM_INPUT) &&
 			!no_create_default_input_node(aio)) {
