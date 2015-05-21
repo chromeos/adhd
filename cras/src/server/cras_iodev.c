@@ -489,7 +489,7 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 	unsigned int cb_threshold;
 	unsigned int old_min_cb_level = iodev->min_cb_level;
 
-	iodev->min_cb_level = iodev->buffer_size;
+	iodev->min_cb_level = iodev->buffer_size / 2;
 	iodev->max_cb_level = 0;
 	DL_FOREACH(iodev->streams, out) {
 		if (out->stream == rstream) {
@@ -548,13 +548,17 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
 	return max;
 }
 
-int cras_iodev_open(struct cras_iodev *iodev)
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
 	int rc;
 
 	rc = iodev->open_dev(iodev);
 	if (rc < 0)
 		return rc;
+
+	/* Make sure the min_cb_level doesn't get too large. */
+	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
+	iodev->max_cb_level = 0;
 
 	return 0;
 }

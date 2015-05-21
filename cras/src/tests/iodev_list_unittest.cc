@@ -1077,7 +1077,8 @@ void loopback_iodev_destroy(struct cras_iodev *loop_in,
     cras_iodev_list_rm_input(loop_in);
 }
 
-int cras_iodev_open(struct cras_iodev *iodev) {
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
+{
   enum CRAS_STREAM_DIRECTION dir = iodev->direction;
   if (iodev == &dummy_empty_iodev[dir])
     empty_iodev_is_open[dir] = 1;

@@ -338,7 +338,7 @@ void cras_iodev_stream_written(struct cras_iodev *iodev,
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev);
 
 /* Open an iodev, does setup and invokes the open_dev callback. */
-int cras_iodev_open(struct cras_iodev *iodev);
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level);
 
 /* Open an iodev, does teardown and invokes the close_dev callback. */
 int cras_iodev_close(struct cras_iodev *iodev);

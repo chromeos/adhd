@@ -377,12 +377,9 @@ static int init_device(struct cras_iodev *dev,
 			return rc;
 	}
 
-	rc = cras_iodev_open(dev);
+	rc = cras_iodev_open(dev, rstream->cb_threshold);
 	if (rc)
 		return rc;
-
-	dev->min_cb_level = rstream->cb_threshold;
-	dev->max_cb_level = 0;
 
 	rc = audio_thread_add_open_dev(audio_thread, dev);
 	if (rc)

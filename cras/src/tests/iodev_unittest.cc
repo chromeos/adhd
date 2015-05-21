@@ -8,6 +8,7 @@
 extern "C" {
 #include "cras_iodev.h"
 #include "cras_rstream.h"
+#include "dev_stream.h"
 #include "utlist.h"
 
 // Mock software volume scalers.
@@ -58,6 +59,7 @@ static void *pre_dsp_hook_cb_data;
 static unsigned int post_dsp_hook_called;
 static const uint8_t *post_dsp_hook_frames;
 static void *post_dsp_hook_cb_data;
+static int iodev_buffer_size;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -111,6 +113,7 @@ void ResetStubData() {
   pre_dsp_hook_frames = NULL;
   post_dsp_hook_called = 0;
   post_dsp_hook_frames = NULL;
+  iodev_buffer_size = 0;
 }
 
 namespace {
@@ -740,6 +743,47 @@ TEST(IoDev, SoftwareVolume) {
   EXPECT_FLOAT_EQ(0.3, cras_iodev_get_software_volume_scaler(&iodev));
 }
 
+static int open_dev(struct cras_iodev *iodev) {
+  iodev->buffer_size = iodev_buffer_size;
+  return 0;
+}
+
+TEST(IoDev, AddRmStream) {
+  struct cras_iodev iodev;
+  struct cras_rstream rstream1, rstream2;
+  struct dev_stream stream1, stream2;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.open_dev = open_dev;
+  rstream1.cb_threshold = 800;
+  stream1.stream = &rstream1;
+  rstream2.cb_threshold = 400;
+  stream2.stream = &rstream2;
+  ResetStubData();
+
+  iodev_buffer_size = 1024;
+  cras_iodev_open(&iodev, rstream1.cb_threshold);
+  EXPECT_EQ(0, iodev.max_cb_level);
+  EXPECT_EQ(512, iodev.min_cb_level);
+
+  /* min_cb_level should not exceed half the buffer size. */
+  cras_iodev_add_stream(&iodev, &stream1);
+  EXPECT_EQ(800, iodev.max_cb_level);
+  EXPECT_EQ(512, iodev.min_cb_level);
+
+  cras_iodev_add_stream(&iodev, &stream2);
+  EXPECT_EQ(800, iodev.max_cb_level);
+  EXPECT_EQ(400, iodev.min_cb_level);
+
+  cras_iodev_rm_stream(&iodev, &rstream1);
+  EXPECT_EQ(400, iodev.max_cb_level);
+  EXPECT_EQ(400, iodev.min_cb_level);
+
+  /* When all streams are removed, keep the last min_cb_level for draining. */
+  cras_iodev_rm_stream(&iodev, &rstream2);
+  EXPECT_EQ(0, iodev.max_cb_level);
+  EXPECT_EQ(400, iodev.min_cb_level);
+}
 
 extern "C" {
 
@@ -995,6 +1039,8 @@ double rate_estimator_get_rate(struct rate_estimator *re) {
 }
 
 unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream) {
+  if (dev_stream->stream)
+    return dev_stream->stream->cb_threshold;
   return 0;
 }
 

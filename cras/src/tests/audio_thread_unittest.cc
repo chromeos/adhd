@@ -335,7 +335,7 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
   return 0;
 }
 
-int cras_iodev_open(struct cras_iodev *iodev)
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
   return 0;
 }
