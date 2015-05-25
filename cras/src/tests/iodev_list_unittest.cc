@@ -1076,7 +1076,7 @@ int cras_iodev_close(struct cras_iodev *iodev) {
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
-                          struct cras_audio_format *fmt) {
+                          const struct cras_audio_format *fmt) {
   return 0;
 }
 

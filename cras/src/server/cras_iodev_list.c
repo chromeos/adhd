@@ -365,7 +365,6 @@ static int init_device(struct cras_iodev *dev,
 		       struct cras_rstream *rstream)
 {
 	int rc;
-	struct cras_audio_format fmt;
 
 	dev->idle_timeout.tv_sec = 0;
 
@@ -373,8 +372,7 @@ static int init_device(struct cras_iodev *dev,
 		return 0;
 
 	if (dev->ext_format == NULL) {
-		fmt = rstream->format;
-		rc = cras_iodev_set_format(dev, &fmt);
+		rc = cras_iodev_set_format(dev, &rstream->format);
 		if (rc)
 			return rc;
 	}

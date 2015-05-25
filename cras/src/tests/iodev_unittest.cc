@@ -192,9 +192,9 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatSecondary) {
   ResetStubData();
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
   EXPECT_EQ(dsp_context_new_sample_rate, 48000);
   EXPECT_STREQ(dsp_context_new_purpose, "playback");
 }
@@ -210,9 +210,9 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormat32bit) {
   ResetStubData();
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S32_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S32_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
   EXPECT_EQ(dsp_context_new_sample_rate, 48000);
   EXPECT_STREQ(dsp_context_new_purpose, "playback");
 }
@@ -228,9 +228,9 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatPrimary) {
   ResetStubData();
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(44100, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(44100, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
   EXPECT_EQ(dsp_context_new_sample_rate, 44100);
   EXPECT_STREQ(dsp_context_new_purpose, "capture");
 }
@@ -244,9 +244,9 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatDivisor) {
   fmt.num_channels = 2;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, Supported96k) {
@@ -262,9 +262,9 @@ TEST_F(IoDevSetFormatTestSuite, Supported96k) {
   fmt.num_channels = 2;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(96000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(96000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, LimitLowRate) {
@@ -280,9 +280,9 @@ TEST_F(IoDevSetFormatTestSuite, LimitLowRate) {
   fmt.num_channels = 2;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, UnsupportedChannelCount) {
@@ -294,9 +294,9 @@ TEST_F(IoDevSetFormatTestSuite, UnsupportedChannelCount) {
   fmt.num_channels = 1;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatFallbackDefault) {
@@ -308,9 +308,9 @@ TEST_F(IoDevSetFormatTestSuite, SupportedFormatFallbackDefault) {
   fmt.num_channels = 2;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(44100, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(44100, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, OutputDSPChannleReduction) {
@@ -330,9 +330,9 @@ TEST_F(IoDevSetFormatTestSuite, OutputDSPChannleReduction) {
   cras_dsp_num_output_channels_return = 1;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, InputDSPChannleReduction) {
@@ -352,9 +352,9 @@ TEST_F(IoDevSetFormatTestSuite, InputDSPChannleReduction) {
   cras_dsp_num_output_channels_return = 2;
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutSuccess) {
@@ -370,9 +370,9 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutSuccess) {
 
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(6, fmt.num_channels);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(6, iodev_.ext_format->num_channels);
 }
 
 TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
@@ -393,10 +393,10 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
 
   rc = cras_iodev_set_format(&iodev_, &fmt);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, fmt.format);
-  EXPECT_EQ(48000, fmt.frame_rate);
-  EXPECT_EQ(2, fmt.num_channels);
-  EXPECT_EQ(3, cras_audio_format_set_channel_layout_called);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(2, iodev_.ext_format->num_channels);
+  EXPECT_EQ(2, cras_audio_format_set_channel_layout_called);
   EXPECT_EQ(0, dsp_context_free_called);
   for (i = 0; i < CRAS_CH_MAX; i++)
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);

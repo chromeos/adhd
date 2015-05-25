@@ -93,8 +93,7 @@ TEST(HfpIodev, OpenHfpIodev) {
   iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                            fake_info);
-
-  cras_iodev_set_format(iodev, &fake_format);
+  iodev->format = &fake_format;
 
   /* hfp_info not start yet */
   hfp_info_running_return_val = 0;
@@ -121,7 +120,7 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                            fake_info);
 
-  cras_iodev_set_format(iodev, &fake_format);
+  iodev->format = &fake_format;
 
   /* hfp_info already started by another device */
   hfp_info_running_return_val = 1;
@@ -148,7 +147,7 @@ TEST(HfpIodev, PutGetBuffer) {
   iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                   			   fake_info);
-  cras_iodev_set_format(iodev, &fake_format);
+  iodev->format = &fake_format;
   iodev->open_dev(iodev);
 
   hfp_buf_acquire_return_val = 100;
@@ -168,16 +167,6 @@ extern "C" {
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
   cras_iodev_free_format_called++;
-}
-
-int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt)
-{
-  fmt->format = SND_PCM_FORMAT_S16_LE;
-  fmt->num_channels = 1;
-  fmt->frame_rate = 8000;
-  iodev->format = fmt;
-  return 0;
 }
 
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)

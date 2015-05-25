@@ -343,13 +343,6 @@ void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
   iodev->nodes = NULL;
 }
 
-int cras_iodev_set_format(struct cras_iodev *iodev,
-                          struct cras_audio_format *fmt)
-{
-  iodev->format = fmt;
-  return 0;
-}
-
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
   cras_iodev_free_format_called++;

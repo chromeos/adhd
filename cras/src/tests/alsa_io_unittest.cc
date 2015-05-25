@@ -263,7 +263,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
 
 TEST(AlsaIoInit, OpenPlayback) {
   struct cras_iodev *iodev;
-  struct cras_audio_format *format = NULL;
+  struct cras_audio_format format;
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -271,7 +271,7 @@ TEST(AlsaIoInit, OpenPlayback) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT);
 
-  cras_iodev_set_format(iodev, format);
+  cras_iodev_set_format(iodev, &format);
   fake_curve =
       static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
@@ -405,14 +405,14 @@ TEST(AlsaIoInit, InitializeCapture) {
 
 TEST(AlsaIoInit, OpenCapture) {
   struct cras_iodev *iodev;
-  struct cras_audio_format *format = NULL;
+  struct cras_audio_format format;
 
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
                             NULL, ALSA_CARD_TYPE_INTERNAL, 0,
                             fake_mixer, NULL,
                             CRAS_STREAM_INPUT);
 
-  cras_iodev_set_format(iodev, format);
+  cras_iodev_set_format(iodev, &format);
 
   ResetStubData();
   iodev->open_dev(iodev);
@@ -1234,7 +1234,7 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt)
+			  const struct cras_audio_format *fmt)
 {
   fake_format = (struct cras_audio_format *)calloc(1, sizeof(*fake_format));
   iodev->format = fake_format;

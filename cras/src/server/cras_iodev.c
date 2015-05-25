@@ -203,7 +203,7 @@ static void update_channel_layout(struct cras_iodev *iodev)
 }
 
 int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt)
+			  const struct cras_audio_format *fmt)
 {
 	size_t actual_rate, actual_num_channels;
 	snd_pcm_format_t actual_format;
@@ -261,17 +261,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 						rate_estimation_smooth_factor);
 		else
 			rate_estimator_reset_rate(iodev->rate_est, actual_rate);
-	}
-
-	/* Fill the format information back to stream. For capture stream,
-	 * leave the channel count/layout as it is.
-	 */
-	fmt->format = iodev->ext_format->format;
-	fmt->frame_rate = iodev->ext_format->frame_rate;
-	if (iodev->direction == CRAS_STREAM_OUTPUT) {
-		fmt->num_channels = iodev->ext_format->num_channels;
-		cras_audio_format_set_channel_layout(fmt,
-				iodev->ext_format->channel_layout);
 	}
 
 	return 0;

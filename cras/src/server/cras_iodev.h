@@ -166,15 +166,14 @@ struct cras_iodev {
  */
 
 /* Sets up the iodev for the given format if possible.  If the iodev can't
- * handle the requested format, it will modify the fmt parameter to inform the
- * caller of the actual format. It also allocates a dsp context for the iodev.
+ * handle the requested format, format conversion will happen in dev_stream.
+ * It also allocates a dsp context for the iodev.
  * Args:
  *    iodev - the iodev you want the format for.
- *    fmt - pass in the desired format, is filled with the actual
- *      format on return.
+ *    fmt - the desired format.
  */
 int cras_iodev_set_format(struct cras_iodev *iodev,
-			  struct cras_audio_format *fmt);
+			  const struct cras_audio_format *fmt);
 
 /* Clear the format previously set for this iodev.
  *
