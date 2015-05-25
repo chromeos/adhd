@@ -181,6 +181,27 @@ static inline void adjust_dev_fmt_for_dsp(const struct cras_iodev *iodev)
 	cras_dsp_put_pipeline(ctx);
 }
 
+/* Updates channel layout based on the number of channels set by a
+ * client stream. When successful we need to update the new channel
+ * layout to ext_format, otherwise we should set a default value
+ * to both format and ext_format.
+ */
+static void update_channel_layout(struct cras_iodev *iodev)
+{
+	int rc;
+	if (iodev->update_channel_layout == NULL)
+		return;
+
+	rc = iodev->update_channel_layout(iodev);
+	if (rc < 0) {
+		set_default_channel_count_layout(iodev);
+	} else {
+		cras_audio_format_set_channel_layout(
+				iodev->ext_format,
+				iodev->format->channel_layout);
+	}
+}
+
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  struct cras_audio_format *fmt)
 {
@@ -231,12 +252,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			cras_iodev_free_dsp(iodev);
 		}
 
-		if (iodev->update_channel_layout) {
-			rc = iodev->update_channel_layout(iodev);
-			if (rc < 0) {
-				set_default_channel_count_layout(iodev);
-			}
-		}
+		update_channel_layout(iodev);
 
 		if (!iodev->rate_est)
 			iodev->rate_est = rate_estimator_create(
