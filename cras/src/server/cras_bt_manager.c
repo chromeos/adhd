@@ -177,13 +177,16 @@ static void cras_bt_update_properties(DBusConnection *conn,
 	}
 }
 
+/* Destroys all bt related stuff. The reset functions must be called in
+ * reverse order of the adapter -> device -> profile(s) hierarchy.
+ */
 static void cras_bt_reset()
 {
-	cras_bt_adapter_reset();
-	cras_bt_device_reset();
 	cras_bt_endpoint_reset();
 	cras_bt_transport_reset();
 	cras_bt_profile_reset();
+	cras_bt_device_reset();
+	cras_bt_adapter_reset();
 }
 
 
