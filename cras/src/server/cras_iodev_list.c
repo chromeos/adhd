@@ -915,7 +915,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	   to select a non-existing node (maybe it's unplugged just before
 	   the client selects it). We will just behave like there is no selected
 	   node. */
-	if (new_dev->direction != direction)
+	if (new_dev && new_dev->direction != direction)
 		return;
 
 	DL_FOREACH(enabled_devs[direction], edev)
