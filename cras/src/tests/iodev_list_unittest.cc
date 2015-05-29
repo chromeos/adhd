@@ -372,6 +372,25 @@ TEST_F(IoDevTestSuite, SelectNode) {
   EXPECT_EQ(4, audio_thread_add_stream_called);
 }
 
+TEST_F(IoDevTestSuite, SelectNonExistingNode) {
+  int rc;
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 0));
+  EXPECT_EQ(1, d1_.is_enabled);
+
+  /* Select non-existing node should disable all devices. */
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(2, 1));
+  EXPECT_EQ(0, d1_.is_enabled);
+}
+
 // Devices with the wrong direction should be rejected.
 TEST_F(IoDevTestSuite, AddWrongDirection) {
   int rc;

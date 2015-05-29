@@ -923,7 +923,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 		new_dev->update_active_node(new_dev, node_index_of(node_id));
 		enable_device(new_dev);
 	} else {
-		enable_device(fallback_devs[new_dev->direction]);
+		enable_device(fallback_devs[direction]);
 	}
 	cras_iodev_list_notify_active_node_changed();
 }
