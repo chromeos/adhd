@@ -218,11 +218,16 @@ snd_use_case_mgr_t *ucm_create(const char *name)
 		return NULL;
 
 	rc = snd_use_case_mgr_open(&mgr, name);
-	if (rc)
+	if (rc) {
+		syslog(LOG_WARNING, "Can not open ucm for card %s, rc = %d",
+		       name, rc);
 		return NULL;
+	}
 
 	rc = snd_use_case_set(mgr, "_verb", default_verb);
 	if (rc) {
+		syslog(LOG_ERR, "Can not set verb %s for card %s, rc = %d",
+		       default_verb, name, rc);
 		ucm_destroy(mgr);
 		return NULL;
 	}
