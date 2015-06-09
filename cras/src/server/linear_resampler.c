@@ -13,10 +13,8 @@
  *    format_bytes - The size of one frame in bytes.
  *    src_offset - The accumulated offset for resampled src data.
  *    dst_offset - The accumulated offset for resampled dst data.
- *    src_rate - The source sample rate.
- *    dst_rate - The destination sample rate.
- *    factor_num - The numerator of the rate factor used for SRC.
- *    factor_den - The denominator of the rate factor used for SRC.
+ *    to_times_100 - The numerator of the rate factor used for SRC.
+ *    from_times_100 - The denominator of the rate factor used for SRC.
  *    f - The rate factor used for linear resample.
  */
 struct linear_resampler {
@@ -24,10 +22,8 @@ struct linear_resampler {
 	unsigned int format_bytes;
 	unsigned int src_offset;
 	unsigned int dst_offset;
-	unsigned int src_rate;
-	unsigned int dst_rate;
-	unsigned int factor_num;
-	unsigned int factor_den;
+	unsigned int to_times_100;
+	unsigned int from_times_100;
 	float f;
 };
 
@@ -56,11 +52,9 @@ void linear_resampler_destroy(struct linear_resampler *lr)
 void linear_resampler_set_rates(struct linear_resampler *lr,
 				float from, float to)
 {
-	lr->src_rate = from;
-	lr->dst_rate = to;
 	lr->f = (float)to / from;
-	lr->factor_num = lr->dst_rate * 100;
-	lr->factor_den = lr->src_rate * 100;
+	lr->to_times_100 = to * 100;
+	lr->from_times_100 = from * 100;
 	lr->src_offset = 0;
 	lr->dst_offset = 0;
 }
@@ -68,18 +62,18 @@ void linear_resampler_set_rates(struct linear_resampler *lr,
 unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,
 					       unsigned int frames)
 {
-	return cras_frames_at_rate(lr->dst_rate, frames, lr->src_rate);
+	return cras_frames_at_rate(lr->to_times_100, frames, lr->from_times_100);
 }
 
 unsigned int linear_resampler_in_frames_to_out(struct linear_resampler *lr,
 					       unsigned int frames)
 {
-	return cras_frames_at_rate(lr->src_rate, frames, lr->dst_rate);
+	return cras_frames_at_rate(lr->from_times_100, frames, lr->to_times_100);
 }
 
 int linear_resampler_needed(struct linear_resampler *lr)
 {
-	return lr->src_rate != lr->dst_rate;
+	return lr->from_times_100 != lr->to_times_100;
 }
 
 unsigned int linear_resampler_resample(struct linear_resampler *lr,
@@ -130,10 +124,10 @@ unsigned int linear_resampler_resample(struct linear_resampler *lr,
 
 	lr->src_offset += *src_frames;
 	lr->dst_offset += dst_idx;
-	while ((lr->src_offset > lr->factor_den) &&
-	       (lr->dst_offset > lr->factor_num)) {
-		lr->src_offset -= lr->factor_den;
-		lr->dst_offset -= lr->factor_num;
+	while ((lr->src_offset > lr->from_times_100) &&
+	       (lr->dst_offset > lr->to_times_100)) {
+		lr->src_offset -= lr->from_times_100;
+		lr->dst_offset -= lr->to_times_100;
 	}
 
 	return dst_idx;
