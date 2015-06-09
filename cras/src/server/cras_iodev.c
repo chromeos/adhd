@@ -26,7 +26,7 @@
 #include "softvol_curve.h"
 
 static const struct timespec rate_estimation_window_sz = {
-	1, 0 /* 1 sec. */
+	20, 0 /* 20 sec. */
 };
 static const double rate_estimation_smooth_factor = 0.9f;
 
