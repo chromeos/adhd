@@ -325,6 +325,11 @@ int cras_iodev_close(struct cras_iodev *iodev)
   return 0;
 }
 
+void cras_iodev_free_format(struct cras_iodev *iodev)
+{
+  return;
+}
+
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 {
   return 1.0;
