@@ -21,7 +21,7 @@ TEST(RateEstimatorTest, EstimateOutputLinear) {
   };
   int i, rc, level, tmp;
 
-  re = rate_estimator_create(10020, &window, 0.0f);
+  re = rate_estimator_create(10000, &window, 0.0f);
   level = 240;
   for (i = 0; i < 20; i++) {
     rc = rate_estimator_check(re, level, &t);
@@ -54,7 +54,7 @@ TEST(RateEstimatorTest, EstimateOutputLinear2) {
   int interval_nsec[5] = {1000000, 1500000, 2000000, 2500000, 3000000};
   int frames_written[5] = {30, 25, 20, 15, 10};
 
-  re = rate_estimator_create(7450, &window, 0.0f);
+  re = rate_estimator_create(7470, &window, 0.0f);
   for (i = 0; i < 5; i++) {
     rc = rate_estimator_check(re, level, &t);
     EXPECT_EQ(0, rc);
@@ -110,7 +110,7 @@ TEST(RateEstimatorTest, EstimateOutputSmooth) {
   struct timespec t;
   int rc;
 
-  re = rate_estimator_create(10020, &window, 0.9f);
+  re = rate_estimator_create(10010, &window, 0.9f);
   t.tv_sec = 1;
   rc = rate_estimator_check(re, 240, &t);
   EXPECT_EQ(0, rc);
@@ -127,9 +127,9 @@ TEST(RateEstimatorTest, EstimateOutputSmooth) {
   rc = rate_estimator_check(re, 250, &t);
   EXPECT_EQ(1, rc);
 
-  /* Assert the rate is smoothed 10020 * 0.9 + 10000 * 0.1 */
-  EXPECT_LT(10017, rate_estimator_get_rate(re));
-  EXPECT_GT(10018, rate_estimator_get_rate(re));
+  /* Assert the rate is smoothed 10010 * 0.9 + 10000 * 0.1 */
+  EXPECT_LT(10008, rate_estimator_get_rate(re));
+  EXPECT_GT(10009, rate_estimator_get_rate(re));
 
   rate_estimator_destroy(re);
 }
@@ -139,7 +139,7 @@ TEST(RateEstimatorTest, EstimateInputLinear) {
   struct timespec t;
   int i, rc, level, tmp;
 
-  re = rate_estimator_create(10020, &window, 0.0f);
+  re = rate_estimator_create(10000, &window, 0.0f);
   t.tv_sec = 1;
   level = 1200;
   for (i = 0; i < 20; i++) {
@@ -170,7 +170,7 @@ TEST(RateEstimatorTest, EstimateInputLinear2) {
     .tv_nsec = 100000000
   };
 
-  re = rate_estimator_create(10020, &this_window, 0.0f);
+  re = rate_estimator_create(10000, &this_window, 0.0f);
   t.tv_sec = 1;
   t.tv_nsec = 0;
   rc = rate_estimator_check(re, 200, &t);
