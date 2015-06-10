@@ -1208,7 +1208,14 @@ static int write_output_samples(struct audio_thread *thread,
 static int do_playback(struct audio_thread *thread)
 {
 	struct open_dev *adev;
+	struct dev_stream *curr;
 	int rc;
+
+	/* Update the number of queued frames in shm of all streams. */
+	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+		DL_FOREACH(adev->dev->streams, curr)
+			dev_stream_update_frames(curr);
+	}
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
 		if (!cras_iodev_is_open(adev->dev))

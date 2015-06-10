@@ -94,6 +94,9 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			unsigned int area_offset,
 			unsigned int dev_index);
 
+/* Updates the number of queued frames in dev_stream. */
+void dev_stream_update_frames(const struct dev_stream *dev_stream);
+
 /*
  * Returns the number of playback frames queued in shared memory.  This is a
  * post-format-conversion number.  If the stream is 24k with 10 frames queued

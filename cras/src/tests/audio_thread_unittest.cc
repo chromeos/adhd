@@ -523,6 +523,10 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 {
 }
 
+void dev_stream_update_frames(const struct dev_stream *dev_stream)
+{
+}
+
 int cras_iodev_frames_queued(struct cras_iodev *iodev)
 {
 	return iodev->frames_queued(iodev);

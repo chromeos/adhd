@@ -650,6 +650,10 @@ int cras_rstream_get_mute(const struct cras_rstream *rstream) {
   return 0;
 }
 
+void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
+{
+}
+
 int config_format_converter(struct cras_fmt_conv **conv,
 			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,

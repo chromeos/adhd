@@ -55,6 +55,7 @@ struct master_dev_info {
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
  *    buf_state - State of the buffer from all devices for this stream.
+ *    queued_frames - Cached value of the number of queued frames in shm.
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
  *    pinned_dev_idx - device the stream is pinned, 0 if none.
  */
@@ -76,6 +77,7 @@ struct cras_rstream {
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
 	struct buffer_share *buf_state;
+	int queued_frames;
 	int is_pinned;
 	uint32_t pinned_dev_idx;
 	struct cras_rstream *prev, *next;
@@ -276,6 +278,11 @@ static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 	const struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
 	return cras_shm_frames_written(shm) >= rstream->cb_threshold;
 }
+
+/* Updates the number of queued frames in shm. The queued frames should be
+ * updated everytime before calling cras_rstream_playable_frames.
+ */
+void cras_rstream_update_queued_frames(struct cras_rstream *rstream);
 
 /* Returns the number of playable samples in shm for the given device id. */
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,

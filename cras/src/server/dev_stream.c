@@ -372,6 +372,11 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 	return nread;
 }
 
+void dev_stream_update_frames(const struct dev_stream *dev_stream)
+{
+	cras_rstream_update_queued_frames(dev_stream->stream);
+}
+
 int dev_stream_playback_frames(const struct dev_stream *dev_stream)
 {
 	int frames;

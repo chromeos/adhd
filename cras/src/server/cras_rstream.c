@@ -293,12 +293,16 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 	return buffer_share_id_offset(rstream->buf_state, dev_id);
 }
 
+void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
+{
+	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
+	rstream->queued_frames = cras_shm_get_frames(shm);
+}
+
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 					  unsigned int dev_id)
 {
-	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
-
-	return cras_shm_get_frames(shm) -
+	return rstream->queued_frames -
 			cras_rstream_dev_offset(rstream, dev_id);
 }
 
