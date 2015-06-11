@@ -59,16 +59,45 @@ void linear_resampler_set_rates(struct linear_resampler *lr,
 	lr->dst_offset = 0;
 }
 
+/* Assuming the linear resampler transforms X frames of input buffer into
+ * Y frames of output buffer. The resample method requires the last output
+ * buffer at Y-1 be interpolated from input buffer in range (X-d, X-1) as
+ * illustrated.
+ *    Input Index:    ...      X-1 <--floor--|   X
+ *    Output Index:   ... Y-1   |--ceiling-> Y
+ *
+ * That said, the calculation between input and output frames is based on
+ * equations X-1 = floor(Y/f) and Y = ceil((X-1)*f).  Note that in any case
+ * when the resampled frames number isn't sufficient to consume the first
+ * buffer at input or output offset(index 0), always count as one buffer
+ * used so the intput/output offset can always increment.
+ */
 unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,
 					       unsigned int frames)
 {
-	return cras_frames_at_rate(lr->to_times_100, frames, lr->from_times_100);
+	float in_frames;
+	if (frames == 0)
+		return 0;
+
+	in_frames = (float)(lr->dst_offset + frames) / lr->f;
+	if ((in_frames > lr->src_offset))
+		return 1 + (unsigned int)(in_frames - lr->src_offset);
+	else
+		return 1;
 }
 
 unsigned int linear_resampler_in_frames_to_out(struct linear_resampler *lr,
 					       unsigned int frames)
 {
-	return cras_frames_at_rate(lr->from_times_100, frames, lr->to_times_100);
+	float out_frames;
+	if (frames == 0)
+		return 0;
+
+	out_frames = lr->f * (lr->src_offset + frames - 1);
+	if (out_frames > lr->dst_offset)
+		return 1 + (unsigned int)(out_frames - lr->dst_offset);
+	else
+		return 1;
 }
 
 int linear_resampler_needed(struct linear_resampler *lr)
