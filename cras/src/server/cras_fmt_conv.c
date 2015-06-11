@@ -687,11 +687,13 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 		linear_resample_fr = fr_in;
 		unsigned resample_limit = out_frames;
 
+		/* If there is a 2nd fmt conversion we should convert the
+		 * resample limit and round it to the lower bound in order
+		 * not to convert too many frames in the pre linear resampler.
+		 */
 		if (conv->speex_state != NULL)
-			resample_limit = cras_frames_at_rate(
-					conv->out_fmt.frame_rate,
-					resample_limit,
-					conv->in_fmt.frame_rate);
+			resample_limit = resample_limit * conv->in_fmt.frame_rate /
+					conv->out_fmt.frame_rate;
 
 		resample_limit = MIN(resample_limit, conv->tmp_buf_frames);
 		fr_in = linear_resampler_resample(
