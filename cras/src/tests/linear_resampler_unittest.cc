@@ -154,6 +154,42 @@ TEST(LinearResampler, ResampleIntegerFractionToLess) {
 	}
 }
 
+TEST(LinearResampler, ResampleIntegerNoSrcBuffer) {
+	int rc;
+	unsigned int count;
+	struct linear_resampler *lr;
+
+	memset(in_buf, 0, BUF_SIZE);
+	memset(out_buf, 0, BUF_SIZE);
+
+	/* Rate 10 -> 9 */
+	lr = linear_resampler_create(2, 4, 10, 9);
+
+	count = 0;
+	rc = linear_resampler_resample(lr, in_buf, &count,
+				     out_buf, BUF_SIZE);
+	EXPECT_EQ(0, rc);
+	EXPECT_EQ(0, count);
+}
+
+TEST(LinearResampler, ResampleIntegerNoDstBuffer) {
+	int rc;
+	unsigned int count;
+	struct linear_resampler *lr;
+
+	memset(in_buf, 0, BUF_SIZE);
+	memset(out_buf, 0, BUF_SIZE);
+
+	/* Rate 10 -> 9 */
+	lr = linear_resampler_create(2, 4, 10, 9);
+
+	count = BUF_SIZE;
+	rc = linear_resampler_resample(lr, in_buf, &count,
+				     out_buf, 0);
+	EXPECT_EQ(0, rc);
+	EXPECT_EQ(0, count);
+}
+
 extern "C" {
 
 void cras_mix_add_stride(int fmt, uint8_t *dst, uint8_t *src,

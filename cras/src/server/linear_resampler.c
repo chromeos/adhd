@@ -88,8 +88,14 @@ unsigned int linear_resampler_resample(struct linear_resampler *lr,
 	float src_pos;
 	int16_t *in, *out;
 
-	for (dst_idx = 0; dst_idx <= dst_frames; dst_idx++) {
+	/* Check for corner cases so that we can assume both src_idx and
+	 * dst_idx are valid with value 0 in the loop below. */
+	if (dst_frames == 0 || *src_frames == 0) {
+		*src_frames = 0;
+		return 0;
+	}
 
+	for (dst_idx = 0; dst_idx <= dst_frames; dst_idx++) {
 		src_pos = (float)(lr->dst_offset + dst_idx) / lr->f;
 		if (src_pos > lr->src_offset)
 			src_pos -= lr->src_offset;
@@ -100,6 +106,8 @@ unsigned int linear_resampler_resample(struct linear_resampler *lr,
 		if (src_pos > *src_frames - 1 || dst_idx >= dst_frames) {
 			if (src_pos > *src_frames - 1)
 				src_idx = *src_frames - 1;
+			/* When this loop stops, dst_idx is always at the last
+			 * used index incremented by 1. */
 			break;
 		}
 
