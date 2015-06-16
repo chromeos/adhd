@@ -1070,7 +1070,7 @@ int fill_output_no_streams(struct open_dev *adev)
 
 	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
 
-	if (hw_level < odev->min_cb_level)
+	if (hw_level <= odev->min_cb_level)
 		fill_odev_zeros(odev, MIN(odev->min_cb_level, fr_to_write));
 
 	audio_thread_event_log_data(atlog,
@@ -1107,7 +1107,7 @@ static void set_odev_wake_times(struct open_dev *dev_list)
 					    adev->dev->min_cb_level);
 
 		adev->wake_ts = now;
-		if (hw_level < adev->dev->min_cb_level)
+		if (hw_level <= adev->dev->min_cb_level)
 			return;
 
 		cras_frames_to_time(hw_level - adev->dev->min_cb_level,
