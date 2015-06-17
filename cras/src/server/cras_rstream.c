@@ -243,7 +243,8 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream,
 			     unsigned int dev_id,
 			     void *dev_ptr)
 {
-	buffer_share_add_id(rstream->buf_state, dev_id, dev_ptr);
+	if (buffer_share_add_id(rstream->buf_state, dev_id, dev_ptr) == 0)
+		rstream->num_attached_devs++;
 
 	/* TODO(hychao): Handle master device assignment for complicated
 	 * routing case.
@@ -256,7 +257,9 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream,
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 {
-	buffer_share_rm_id(rstream->buf_state, dev_id);
+	if (buffer_share_rm_id(rstream->buf_state, dev_id) == 0)
+		rstream->num_attached_devs--;
+
 	if (rstream->master_dev.dev_id == dev_id) {
 		int i;
 		struct id_offset *o;

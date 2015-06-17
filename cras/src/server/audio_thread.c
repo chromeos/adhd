@@ -654,6 +654,11 @@ static int write_streams(struct audio_thread *thread,
 
 		shm = cras_rstream_output_shm(curr->stream);
 
+		/* If this is a single output dev stream, updates the latest
+		 * number of frames for playback. */
+		if (dev_stream_attached_devs(curr) == 1)
+			dev_stream_update_frames(curr);
+
 		dev_frames = dev_stream_playback_frames(curr);
 		if (dev_frames < 0) {
 			thread_remove_stream(thread, curr->stream, NULL);
@@ -1194,10 +1199,14 @@ static int do_playback(struct audio_thread *thread)
 	struct dev_stream *curr;
 	int rc;
 
-	/* Update the number of queued frames in shm of all streams. */
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
-		DL_FOREACH(adev->dev->streams, curr)
-			dev_stream_update_frames(curr);
+	/* For multiple output case, update the number of queued frames in shm
+	 * of all streams before starting write output samples. */
+	adev = thread->open_devs[CRAS_STREAM_OUTPUT];
+	if (adev && adev->next) {
+		DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+			DL_FOREACH(adev->dev->streams, curr)
+				dev_stream_update_frames(curr);
+		}
 	}
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {

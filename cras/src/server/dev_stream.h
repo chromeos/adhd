@@ -94,6 +94,9 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			unsigned int area_offset,
 			unsigned int dev_index);
 
+/* Returns the number of iodevs this stream has attached to. */
+int dev_stream_attached_devs(const struct dev_stream *dev_stream);
+
 /* Updates the number of queued frames in dev_stream. */
 void dev_stream_update_frames(const struct dev_stream *dev_stream);
 

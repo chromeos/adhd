@@ -57,6 +57,7 @@ struct master_dev_info {
  *    last_fetch_ts - The time of the last stream fetch.
  *    longest_fetch_interval_ts - Longest interval between two fetches.
  *    buf_state - State of the buffer from all devices for this stream.
+ *    num_attached_devs - Number of iodevs this stream has attached to.
  *    queued_frames - Cached value of the number of queued frames in shm.
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
  *    pinned_dev_idx - device the stream is pinned, 0 if none.
@@ -81,6 +82,7 @@ struct cras_rstream {
 	struct timespec last_fetch_ts;
 	struct timespec longest_fetch_interval;
 	struct buffer_share *buf_state;
+	int num_attached_devs;
 	int queued_frames;
 	int is_pinned;
 	uint32_t pinned_dev_idx;
