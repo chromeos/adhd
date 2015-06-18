@@ -418,30 +418,15 @@ static void suspend_devs()
 	}
 }
 
+static int stream_added_cb(struct cras_rstream *rstream);
+
 static void resume_devs()
 {
-	struct enabled_dev *edev;
 	struct cras_rstream *rstream;
 
 	stream_list_suspended = 0;
-	DL_FOREACH(stream_list_get(stream_list), rstream) {
-		if (rstream->is_pinned) {
-			struct cras_iodev *dev;
-
-			dev = find_dev(rstream->pinned_dev_idx);
-			if (dev) {
-				init_device(dev, rstream);
-				audio_thread_add_stream(audio_thread, rstream,
-							dev);
-			}
-		} else {
-			DL_FOREACH(enabled_devs[rstream->direction], edev) {
-				init_device(edev->dev, rstream);
-				audio_thread_add_stream(audio_thread, rstream,
-							edev->dev);
-			}
-		}
-	}
+	DL_FOREACH(stream_list_get(stream_list), rstream)
+		stream_added_cb(rstream);
 }
 
 /* Called when the system audio is suspended or resumed. */
