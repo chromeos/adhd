@@ -319,11 +319,6 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 {
 }
 
-struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
-{
-	return NULL;
-}
-
 int audio_thread_rm_stream(audio_thread* thread,
 			   cras_rstream* stream) {
   return 0;

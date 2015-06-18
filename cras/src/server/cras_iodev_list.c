@@ -488,7 +488,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	/* Check that the target device is valid for pinned streams. */
 	if (rstream->is_pinned) {
 		struct cras_iodev *dev;
-		dev = cras_iodev_list_find_dev(rstream->pinned_dev_idx);
+		dev = find_dev(rstream->pinned_dev_idx);
 		if (!dev)
 			return -EINVAL;
 		rc = init_device(dev, rstream);
@@ -736,11 +736,6 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 		return;
 
 	cras_iodev_list_disable_dev(dev);
-}
-
-struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index)
-{
-	return find_dev(dev_index);
 }
 
 int cras_iodev_list_add_output(struct cras_iodev *output)

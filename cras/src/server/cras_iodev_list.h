@@ -199,12 +199,6 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION direction,
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION direction,
 				    cras_node_id_t node_id);
 
-/* Returns the cras_iodev by index.
- * Args:
- *    dev_index - Index of device.
- */
-struct cras_iodev *cras_iodev_list_find_dev(size_t dev_index);
-
 /* Returns 1 if the node is selected, 0 otherwise. */
 int cras_iodev_list_node_selected(struct cras_ionode *node);
 
