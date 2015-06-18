@@ -482,11 +482,15 @@ static int stream_added_cb(struct cras_rstream *rstream)
 
 		return audio_thread_add_stream(audio_thread, rstream, dev);
 	}
-	DL_FOREACH(enabled_devs[rstream->direction], edev) {
+
+	/* Add the new stream to all iodevs at once to avoid offset in shm
+	 * level between different ouput iodevs. */
+	DL_FOREACH(enabled_devs[rstream->direction], edev)
 		init_device(edev->dev, rstream);
-		rc = audio_thread_add_stream(audio_thread, rstream, edev->dev);
-		if (rc)
-			syslog(LOG_ERR, "adding stream to thread");
+	rc = audio_thread_add_stream(audio_thread, rstream, NULL);
+	if (rc) {
+		syslog(LOG_ERR, "adding stream to thread fail");
+		return rc;
 	}
 	return 0;
 }

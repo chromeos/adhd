@@ -259,22 +259,6 @@ static void fill_odevs_zeros_min_level(struct cras_iodev *odev)
 static void thread_rm_open_adev(struct audio_thread *thread,
 				struct open_dev *adev);
 
-static int append_stream_to_dev(struct audio_thread *thread,
-				struct open_dev *adev,
-				struct cras_rstream *stream)
-{
-	struct dev_stream *out;
-	struct cras_iodev *dev = adev->dev;
-
-	out = dev_stream_create(stream, dev->info.idx, dev->ext_format, dev);
-	if (!out)
-		return -EINVAL;
-
-	cras_iodev_add_stream(dev, out);
-
-	return 0;
-}
-
 static void delete_stream_from_dev(struct cras_iodev *dev,
 				   struct cras_rstream *stream)
 {
@@ -285,9 +269,50 @@ static void delete_stream_from_dev(struct cras_iodev *dev,
 		dev_stream_destroy(out);
 }
 
-static int append_stream(struct audio_thread *thread,
-			 struct cras_rstream *stream,
-			 struct cras_iodev *target_dev)
+/* Append a new stream to all enabled iodevs. */
+static int append_stream_to_all(struct audio_thread *thread,
+				struct cras_rstream *stream)
+{
+	struct open_dev *open_dev;
+	struct cras_iodev *dev;
+	struct dev_stream *out;
+	int rc = 0;
+
+	DL_FOREACH(thread->open_devs[stream->direction], open_dev) {
+		dev = open_dev->dev;
+		DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
+		if (out)
+			continue;
+
+		out = dev_stream_create(stream, dev->info.idx,
+					dev->ext_format, dev);
+		if (!out) {
+			rc = -EINVAL;
+			break;
+		}
+
+		cras_iodev_add_stream(dev, out);
+	}
+
+	if (rc) {
+		DL_FOREACH(thread->open_devs[stream->direction], open_dev) {
+			dev = open_dev->dev;
+			DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
+			if (!out)
+				continue;
+
+			cras_iodev_rm_stream(dev, stream);
+			dev_stream_destroy(out);
+		}
+	}
+
+	return rc;
+}
+
+/* Append a new stream to specific iodev. */
+static int append_stream_to_dev(struct audio_thread *thread,
+				struct cras_rstream *stream,
+				struct cras_iodev *target_dev)
 {
 	struct open_dev *open_dev;
 	struct dev_stream *out;
@@ -305,7 +330,14 @@ static int append_stream(struct audio_thread *thread,
 	if (!open_dev)
 		return -EINVAL;
 
-	return append_stream_to_dev(thread, open_dev, stream);
+	out = dev_stream_create(stream, target_dev->info.idx,
+				target_dev->ext_format, target_dev);
+	if (!out)
+		return -EINVAL;
+
+	cras_iodev_add_stream(target_dev, out);
+
+	return 0;
 }
 
 static int delete_stream(struct audio_thread *thread,
@@ -501,7 +533,10 @@ static int thread_add_stream(struct audio_thread *thread,
 {
 	int rc;
 
-	rc = append_stream(thread, stream, iodev);
+	if (iodev)
+		rc = append_stream_to_dev(thread, stream, iodev);
+	else
+		rc = append_stream_to_all(thread, stream);
 	if (rc < 0)
 		return rc;
 
