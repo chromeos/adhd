@@ -227,6 +227,15 @@ static int put_record_buffer(struct cras_iodev *iodev, unsigned nframes)
 	return 0;
 }
 
+static int flush_record_buffer(struct cras_iodev *iodev)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
+	struct byte_buffer *sbuf = loopdev->sample_buffer;
+	unsigned int queued_bytes = buf_queued_bytes(sbuf);
+	buf_increment_read(sbuf, queued_bytes);
+	return 0;
+}
+
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
 }
@@ -268,6 +277,7 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	iodev->close_dev = close_record_dev;
 	iodev->get_buffer = get_record_buffer;
 	iodev->put_buffer = put_record_buffer;
+	iodev->flush_buffer = flush_record_buffer;
 
 	return iodev;
 }

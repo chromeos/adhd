@@ -368,6 +368,11 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return flush_data(iodev);
 }
 
+static int flush_buffer(struct cras_iodev *iodev)
+{
+	return 0;
+}
+
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
 }
@@ -434,6 +439,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
+	iodev->flush_buffer = flush_buffer;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;

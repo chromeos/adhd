@@ -75,6 +75,7 @@ struct cras_ionode {
  * delay_frames - The delay of the next sample in frames.
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
+ * flush_buffer - Flushes the buffer and return the number of frames flushed.
  * dev_running - Checks if the device is playing or recording, return 1 if it's
  *     running, return 0 if not.
  * update_active_node - Update the active node using the selected/plugged state.
@@ -129,6 +130,7 @@ struct cras_iodev {
 			  struct cras_audio_area **area,
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
+	int (*flush_buffer)(struct cras_iodev *iodev);
 	int (*dev_running)(const struct cras_iodev *iodev);
 	void (*update_active_node)(struct cras_iodev *iodev, unsigned node_idx);
 	int (*update_channel_layout)(struct cras_iodev *iodev);

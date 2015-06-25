@@ -274,6 +274,14 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return dev->put_buffer(dev, nwritten);
 }
 
+static int flush_buffer(struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+	return dev->flush_buffer(dev);
+}
+
 /* If the first private iodev doesn't match the active profile stored on
  * device, select to the correct private iodev.
  */
@@ -334,6 +342,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
+	iodev->flush_buffer = flush_buffer;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;

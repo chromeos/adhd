@@ -291,6 +291,16 @@ static int append_stream_to_all(struct audio_thread *thread,
 			break;
 		}
 
+		/* When the first input stream is added, flush the input buffer
+		 * so that we can read from multiple input devices of the same
+		 * buffer level.
+		 */
+		if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
+			rc = dev->flush_buffer(dev);
+			if (rc < 0)
+				break;
+		}
+
 		cras_iodev_add_stream(dev, out);
 	}
 

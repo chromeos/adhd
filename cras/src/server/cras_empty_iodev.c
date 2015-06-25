@@ -159,6 +159,15 @@ static int put_buffer(struct cras_iodev *iodev, unsigned frames)
 	return 0;
 }
 
+static int flush_buffer(struct cras_iodev *iodev)
+{
+	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
+	empty_iodev->buffer_level = current_level(iodev);
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		empty_iodev->buffer_level = 0;
+	return 0;
+}
+
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
 {
 }
@@ -194,6 +203,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
+	iodev->flush_buffer = flush_buffer;
 	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
 
