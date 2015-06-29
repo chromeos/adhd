@@ -672,6 +672,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Unknown");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
@@ -680,6 +681,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Speaker");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
@@ -688,6 +690,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Internal Mic");
+  dev.direction = CRAS_STREAM_INPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
@@ -696,6 +699,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "HDMI");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
@@ -704,6 +708,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "IEC958");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
@@ -711,6 +716,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "HDMI Jack");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
@@ -718,6 +724,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Something HDMI Jack");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
@@ -725,6 +732,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Headphone");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
@@ -732,6 +740,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Headphone Jack");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
@@ -739,6 +748,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Mic");
+  dev.direction = CRAS_STREAM_INPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
@@ -746,6 +756,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Mic Jack");
+  dev.direction = CRAS_STREAM_INPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
@@ -753,6 +764,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Unknown");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
@@ -768,6 +780,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
   strcpy(node.name, "Speaker");
+  dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
