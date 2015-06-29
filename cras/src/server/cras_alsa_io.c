@@ -23,6 +23,7 @@
 #include "cras_alsa_ucm.h"
 #include "cras_audio_area.h"
 #include "cras_config.h"
+#include "cras_dbus_util.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
@@ -36,11 +37,13 @@
 #include "utlist.h"
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
-#define HDMI "HDMI"
-#define INTERNAL_SPEAKER "Speaker"
-#define INTERNAL_MICROPHONE "Internal Mic"
-#define KEYBOARD_MIC "Keyboard Mic"
 #define AOKR_DEV "Wake on Voice"
+#define DEFAULT "(default)"
+#define HDMI "HDMI"
+#define INTERNAL_MICROPHONE "Internal Mic"
+#define INTERNAL_SPEAKER "Speaker"
+#define KEYBOARD_MIC "Keyboard Mic"
+#define USB "USB"
 
 /* For USB, pad the output buffer.  This avoids a situation where there isn't a
  * complete URB's worth of audio ready to be transmitted when it is requested.
@@ -625,6 +628,21 @@ int endswith(const char *s, const char *suffix)
 	return n >= m && !strcmp(s + (n - m), suffix);
 }
 
+/* Drop the node name and replace it with node type.  */
+static void drop_node_name(struct cras_ionode *node)
+{
+	if (node->type == CRAS_NODE_TYPE_USB)
+		strcpy(node->name, USB);
+	else if (node->type == CRAS_NODE_TYPE_HDMI)
+		strcpy(node->name, HDMI);
+	else {
+		/* Only HDMI or USB node might have invalid name to drop */
+		syslog(LOG_ERR, "Unexpectedly drop node name for "
+		       "node: %s, type: %d", node->name, node->type);
+		strcpy(node->name, DEFAULT);
+	}
+}
+
 /* Sets the initial plugged state and type of a node based on its
  * name. Chrome will assign priority to nodes base on node type.
  */
@@ -636,7 +654,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		int initial_plugged;
 		enum CRAS_NODE_TYPE type;
 	} node_defaults[] = {
-		{ "(default)", 1, CRAS_NODE_TYPE_UNKNOWN},
+		{ DEFAULT, 1, CRAS_NODE_TYPE_UNKNOWN},
 		{ INTERNAL_SPEAKER, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
 		{ INTERNAL_MICROPHONE, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
 		{ KEYBOARD_MIC, 1, CRAS_NODE_TYPE_KEYBOARD_MIC },
@@ -685,6 +703,9 @@ static void set_node_initial_state(struct cras_ionode *node,
 	 */
 	if (card_type == ALSA_CARD_TYPE_USB)
 		node->type = CRAS_NODE_TYPE_USB;
+
+	if (!is_utf8_string(node->name))
+		drop_node_name(node);
 }
 
 static const char *get_output_node_name(struct alsa_io *aio,
@@ -698,7 +719,7 @@ static const char *get_output_node_name(struct alsa_io *aio,
 			return HDMI;
 		return INTERNAL_SPEAKER;
 	} else {
-		return "(default)";
+		return DEFAULT;
 	}
 }
 

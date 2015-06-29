@@ -88,6 +88,7 @@ static size_t cras_alsa_jack_update_node_type_called;
 static int ucm_swap_mode_exists_ret_value;
 static int ucm_enable_swap_mode_ret_value;
 static size_t ucm_enable_swap_mode_called;
+static int is_utf8_string_ret_value;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -131,6 +132,7 @@ void ResetStubData() {
   ucm_swap_mode_exists_ret_value = 0;
   ucm_enable_swap_mode_ret_value = 0;
   ucm_enable_swap_mode_called = 0;
+  is_utf8_string_ret_value = 1;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -772,10 +774,42 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
 }
 
+TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
+  struct cras_ionode node;
+  struct cras_iodev dev;
+
+  memset(&dev, 0, sizeof(dev));
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  strcpy(node.name, "Something USB");
+  //0xfe can not appear in a valid UTF-8 string.
+  node.name[0] = 0xfe;
+  is_utf8_string_ret_value = 0;
+  dev.direction = CRAS_STREAM_OUTPUT;
+  set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
+  ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
+  ASSERT_STREQ("USB", node.name);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  strcpy(node.name, "Something HDMI Jack");
+  //0xfe can not appear in a valid UTF-8 string.
+  node.name[0] = 0xfe;
+  is_utf8_string_ret_value = 0;
+  dev.direction = CRAS_STREAM_OUTPUT;
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
+  ASSERT_STREQ("HDMI", node.name);
+}
+
 //  Test thread add/rm stream, open_alsa, and iodev config.
 class AlsaVolumeMuteSuite : public testing::Test {
   protected:
     virtual void SetUp() {
+      ResetStubData();
       aio_output_ = (struct alsa_io *)alsa_iodev_create(
           0, test_card_name, 0, test_dev_name, NULL,
           ALSA_CARD_TYPE_INTERNAL, 0,
@@ -793,7 +827,6 @@ class AlsaVolumeMuteSuite : public testing::Test {
       fmt_.format = SND_PCM_FORMAT_S16_LE;
       aio_input_->base.format = &fmt_;
       aio_output_->base.format = &fmt_;
-      ResetStubData();
       cras_alsa_get_avail_frames_ret = -1;
       fake_curve =
         static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -1323,4 +1356,9 @@ void audio_thread_add_callback(int fd, thread_callback cb, void *data)
 
 void audio_thread_rm_callback(int fd)
 {
+}
+
+int is_utf8_string(const char* string)
+{
+  return is_utf8_string_ret_value;
 }

@@ -310,7 +310,7 @@ a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 alsa_io_unittest_LDADD = -lgtest -lpthread
 
 alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
