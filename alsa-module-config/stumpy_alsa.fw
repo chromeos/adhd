@@ -7,3 +7,4 @@ stumpy
 [hint]
 auto_mute = no
 auto_mic = no
+single_adc_amp = true
