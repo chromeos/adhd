@@ -102,6 +102,8 @@ static struct audio_gateway *connected_ags;
 
 static void destroy_audio_gateway(struct audio_gateway *ag)
 {
+	DL_DELETE(connected_ags, ag);
+
 	if (ag->idev)
 		hfp_iodev_destroy(ag->idev);
 	if (ag->odev)
@@ -149,7 +151,7 @@ static int start_audio_gateway(struct audio_gateway *ag)
 	if (!ag->idev && !ag->odev) {
 		destroy_audio_gateway(ag);
 		return -ENOMEM;
-    }
+	}
 
 	return 0;
 }
@@ -221,7 +223,6 @@ static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 	if (!ag)
 		return -EINVAL;
 
-	DL_DELETE(connected_ags, ag);
 	destroy_audio_gateway(ag);
 	return 0;
 }
@@ -263,7 +264,6 @@ static void possibly_remove_conflict_dev(void *data)
 	DL_FOREACH(connected_ags, ag) {
 		if (ag == new_ag)
 			continue;
-		DL_DELETE(connected_ags, ag);
 		destroy_audio_gateway(ag);
 	}
 
@@ -310,10 +310,8 @@ static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 {
 	struct audio_gateway *ag;
 	DL_FOREACH(connected_ags, ag) {
-		if (ag->slc_handle && ag->device == device) {
-			DL_DELETE(connected_ags, ag);
+		if (ag->slc_handle && ag->device == device)
 			destroy_audio_gateway(ag);
-		}
 	}
 }
 
@@ -385,10 +383,8 @@ static struct cras_bt_profile cras_hsp_ag_profile = {
 void cras_hfp_ag_suspend()
 {
 	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
-		DL_DELETE(connected_ags, ag);
+	DL_FOREACH(connected_ags, ag)
 		destroy_audio_gateway(ag);
-	}
 }
 
 struct hfp_slc_handle *cras_hfp_ag_get_active_handle()
