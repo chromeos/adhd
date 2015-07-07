@@ -688,6 +688,7 @@ void cras_iodev_list_enable_dev(struct cras_iodev *dev)
 {
 	possibly_disable_fallback(dev->direction);
 	enable_device(dev);
+	cras_iodev_list_notify_active_node_changed();
 }
 
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
@@ -710,6 +711,7 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev)
 			disable_device(edev);
 			if (!enabled_devs[dev->direction])
 				enable_device(fallback_devs[dev->direction]);
+			cras_iodev_list_notify_active_node_changed();
 			return;
 		}
 	}
