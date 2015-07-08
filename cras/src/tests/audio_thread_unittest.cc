@@ -8,6 +8,17 @@ extern "C" {
 
 #include <gtest/gtest.h>
 
+#define MAX_CALLS 10
+
+static unsigned int cras_rstream_dev_offset_called;
+static unsigned int cras_rstream_dev_offset_ret[MAX_CALLS];
+static const struct cras_rstream *cras_rstream_dev_offset_rstream_val[MAX_CALLS];
+static unsigned int cras_rstream_dev_offset_dev_id_val[MAX_CALLS];
+static unsigned int cras_rstream_dev_offset_update_called;
+static const struct cras_rstream *cras_rstream_dev_offset_update_rstream_val[MAX_CALLS];
+static unsigned int cras_rstream_dev_offset_update_frames_val[MAX_CALLS];
+static unsigned int cras_rstream_dev_offset_update_dev_id_val[MAX_CALLS];
+
 // Test streams and devices manipulation.
 class StreamDeviceSuite : public testing::Test {
   protected:
@@ -32,6 +43,7 @@ class StreamDeviceSuite : public testing::Test {
       iodev->delay_frames = delay_frames;
       iodev->get_buffer = get_buffer;
       iodev->put_buffer = put_buffer;
+      iodev->flush_buffer = flush_buffer;
       iodev->ext_format = &format_;
     }
 
@@ -39,6 +51,7 @@ class StreamDeviceSuite : public testing::Test {
                       enum CRAS_STREAM_DIRECTION direction) {
       memset(rstream, 0, sizeof(*rstream));
       rstream->direction = direction;
+      rstream->cb_threshold = 480;
     }
 
     void SetupPinnedStream(struct cras_rstream *rstream,
@@ -100,6 +113,10 @@ class StreamDeviceSuite : public testing::Test {
 
     static int put_buffer(cras_iodev* iodev, unsigned int num) {
       free(area_);
+      return 0;
+    }
+
+    static int flush_buffer(cras_iodev *iodev) {
       return 0;
     }
 
@@ -212,6 +229,47 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
   thread_rm_open_dev(thread_, &idev3);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &idev2);
+}
+
+TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
+  struct cras_iodev iodev;
+  struct cras_iodev iodev2;
+  struct cras_rstream rstream;
+  struct cras_rstream rstream2;
+  struct cras_rstream rstream3;
+
+  SetupDevice(&iodev, CRAS_STREAM_INPUT);
+  SetupDevice(&iodev2, CRAS_STREAM_INPUT);
+  SetupRstream(&rstream, CRAS_STREAM_INPUT);
+  SetupRstream(&rstream2, CRAS_STREAM_INPUT);
+  SetupRstream(&rstream3, CRAS_STREAM_INPUT);
+
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_open_dev(thread_, &iodev2);
+
+  thread_add_stream(thread_, &rstream, NULL);
+  EXPECT_NE((void *)NULL, iodev.streams);
+  EXPECT_NE((void *)NULL, iodev2.streams);
+
+  EXPECT_EQ(0, cras_rstream_dev_offset_called);
+  EXPECT_EQ(0, cras_rstream_dev_offset_update_called);
+
+  // Fake offset for rstream
+  cras_rstream_dev_offset_ret[0] = 30;
+  cras_rstream_dev_offset_ret[1] = 0;
+
+  thread_add_stream(thread_, &rstream2, NULL);
+  EXPECT_EQ(2, cras_rstream_dev_offset_called);
+  EXPECT_EQ(&rstream, cras_rstream_dev_offset_rstream_val[0]);
+  EXPECT_EQ(iodev.info.idx, cras_rstream_dev_offset_dev_id_val[0]);
+  EXPECT_EQ(&rstream, cras_rstream_dev_offset_rstream_val[1]);
+  EXPECT_EQ(iodev2.info.idx, cras_rstream_dev_offset_dev_id_val[1]);
+
+  EXPECT_EQ(2, cras_rstream_dev_offset_update_called);
+  EXPECT_EQ(&rstream2, cras_rstream_dev_offset_update_rstream_val[0]);
+  EXPECT_EQ(30, cras_rstream_dev_offset_update_frames_val[0]);
+  EXPECT_EQ(&rstream2, cras_rstream_dev_offset_update_rstream_val[1]);
+  EXPECT_EQ(0, cras_rstream_dev_offset_update_frames_val[1]);
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
@@ -428,6 +486,32 @@ void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
+}
+
+void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
+				    unsigned int frames,
+				    unsigned int dev_id)
+{
+  int i = cras_rstream_dev_offset_update_called;
+  if (i < MAX_CALLS)  {
+    cras_rstream_dev_offset_update_rstream_val[i] = rstream;
+    cras_rstream_dev_offset_update_frames_val[i] = frames;
+    cras_rstream_dev_offset_update_dev_id_val[i] = dev_id;
+    cras_rstream_dev_offset_update_called++;
+  }
+}
+
+unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
+				     unsigned int dev_id)
+{
+  int i = cras_rstream_dev_offset_called;
+  if (i < MAX_CALLS) {
+    cras_rstream_dev_offset_rstream_val[i] = rstream;
+    cras_rstream_dev_offset_dev_id_val[i] = dev_id;
+    cras_rstream_dev_offset_called++;
+    return cras_rstream_dev_offset_ret[i];
+  }
+  return 0;
 }
 
 int cras_set_rt_scheduling(int rt_lim)

@@ -302,6 +302,28 @@ static int append_stream_to_all(struct audio_thread *thread,
 		}
 
 		cras_iodev_add_stream(dev, out);
+
+		/* For multiple inputs case, if the new stream is not the first
+		 * one to append, copy the 1st stream's offset to it so that
+		 * future read offsets can be aligned across all input streams
+		 * to avoid the deadlock scenario when multiple streams reading
+		 * from multiple devices.
+		 */
+		if ((stream->direction == CRAS_STREAM_INPUT) &&
+		    (dev->streams != out)) {
+			unsigned int offset =
+				cras_iodev_stream_offset(dev, dev->streams);
+			if (offset > stream->cb_threshold)
+				offset = stream->cb_threshold;
+			cras_iodev_stream_written(dev, out, offset);
+
+			offset = cras_rstream_dev_offset(dev->streams->stream,
+							 dev->info.idx);
+			if (offset > stream->cb_threshold)
+				offset = stream->cb_threshold;
+			cras_rstream_dev_offset_update(stream, offset,
+						       dev->info.idx);
+		}
 	}
 
 	if (rc) {
