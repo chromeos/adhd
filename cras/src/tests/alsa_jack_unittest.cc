@@ -870,6 +870,12 @@ int edid_lpcm_support(const unsigned char *edid_data, int ext) {
   return 0;
 }
 
+int edid_get_monitor_name(const unsigned char *edid_data,
+                          char *buf,
+                          unsigned int buf_size) {
+  return 0;
+}
+
 } /* extern "C" */
 
 }  //  namespace

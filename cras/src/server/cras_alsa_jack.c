@@ -168,15 +168,10 @@ static int get_jack_current_state(struct cras_alsa_jack *jack)
 	return snd_ctl_elem_value_get_boolean(elem_value, 0);
 }
 
-static int check_jack_edid(struct cras_alsa_jack *jack)
+static int read_jack_edid(const struct cras_alsa_jack *jack, uint8_t *edid)
 {
 	int fd, nread;
-	uint8_t edid[EEDID_SIZE];
 
-	/* If the jack supports EDID, check that it supports audio, clearing
-	 * the plugged state if it doesn't.  If the EDID isn't ready, try
-	 * again later.
-	 */
 	fd = open(jack->edid_file, O_RDONLY);
 	if (fd < 0)
 		return -1;
@@ -186,11 +181,34 @@ static int check_jack_edid(struct cras_alsa_jack *jack)
 
 	if (nread < EDID_SIZE || !edid_valid(edid))
 		return -1;
+	return 0;
+}
 
-	/* Valid EDID */
+static int check_jack_edid(struct cras_alsa_jack *jack)
+{
+	uint8_t edid[EEDID_SIZE];
+
+	if (read_jack_edid(jack, edid))
+		return -1;
+
+	/* If the jack supports EDID, check that it supports audio, clearing
+	 * the plugged state if it doesn't.
+	 */
 	if (!edid_lpcm_support(edid, edid[EDID_EXT_FLAG]))
 		jack->gpio.current_state = 0;
 	return 0;
+}
+
+static int get_jack_edid_monitor_name(const struct cras_alsa_jack *jack,
+				      char *buf,
+				      unsigned int buf_size)
+{
+	uint8_t edid[EEDID_SIZE];
+
+	if (read_jack_edid(jack, edid))
+		return -1;
+
+	return edid_get_monitor_name(edid, buf, buf_size);
 }
 
 /* Checks the ELD control of the jack to see if the ELD buffer
@@ -903,8 +921,11 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 	int count;
 	int mnl = 0;
 
-	if (!jack->eld_control)
+	if (!jack->eld_control) {
+		if (jack->edid_file)
+			get_jack_edid_monitor_name(jack, name_buf, buf_size);
 		return;
+	}
 
 	snd_ctl_elem_info_alloca(&elem_info);
 	if (snd_hctl_elem_info(jack->eld_control, elem_info) < 0)
