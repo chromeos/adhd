@@ -187,6 +187,16 @@ extern char *aspect_to_str[];
 int get_test_edid(int n, unsigned char *dst);
 int show_test_edid(FILE *outfile, int n);
 
+/* Gets monitor name from EDID.
+ * Args:
+ *    edid_data - EDID data.
+ *    buf - buffer to store monitor name.
+ *    buf_size - buffer size.
+ */
+int edid_get_monitor_name(const unsigned char *edid_data,
+			  char *buf,
+			  unsigned int buf_size);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

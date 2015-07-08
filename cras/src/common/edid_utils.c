@@ -212,12 +212,23 @@ int show_test_edid(FILE *outfile, int n)
 	return 0;
 }
 
+static void get_dtd_string(const char *str, char *buf, int buf_size)
+{
+	int stp;
+	int len = buf_size < 14 ? buf_size : 14;
+
+	strncpy(buf, str, len - 1);
+	for (stp = 0; stp < len - 1; stp++)
+		if (buf[stp] == 0x0a)
+			buf[stp] = 0;
+	buf[stp] = 0;
+}
+
 /* Print an edid descriptor block (standard case is at 54 + 18 * i) */
 void show_edid_dtd(FILE *outfile, unsigned char *base)
 {
 	int pelclk = base[DTD_PCLK_LO] + (base[DTD_PCLK_HI]<<8);
 	char monstr[DTD_SIZE];
-	int stp;
 
 	if (pelclk != 0) {
 		int hres = base[DTD_HA_LO] + ((base[DTD_HABL_HI] & 0xf0)<<4);
@@ -262,11 +273,8 @@ void show_edid_dtd(FILE *outfile, unsigned char *base)
 	case DTDTYPE_SERIAL:
 	case DTDTYPE_STRING:
 	case DTDTYPE_NAME:
-		strncpy(monstr, (char *)base+DTD_STRING, 13);
-		for (stp = 0; stp < 13; stp++)
-			if (monstr[stp] == 0x0a)
-				monstr[stp] = 0;
-		monstr[stp] = 0;
+		get_dtd_string((const char *)base + DTD_STRING,
+			       monstr, DTD_SIZE);
 
 		if (base[3] != DTDTYPE_STRING)
 			fprintf(outfile, "%s: %s\n",
@@ -856,4 +864,24 @@ int find_aspect_fromisize(unsigned char *edid_data)
 		return ASPECT_4_3;
 	else
 		return res;
+}
+
+int edid_get_monitor_name(const unsigned char *edid_data,
+			  char *buf,
+			  unsigned int buf_size)
+{
+	int i;
+	const unsigned char *dtd;
+
+	for (i = 0; i < EDID_N_DTDS; i++) {
+		dtd = edid_data + (EDID_DTD_BASE + i * DTD_SIZE);
+		if (dtd[DTD_PCLK_LO] == 0x00 && dtd[DTD_PCLK_HI] == 0x00 &&
+		    dtd[DTD_TYPETAG] == DTDTYPE_NAME) {
+			get_dtd_string((const char *)dtd + DTD_STRING,
+				       buf, buf_size);
+			return 0;
+		}
+	}
+
+	return -1;
 }
