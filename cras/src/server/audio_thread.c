@@ -296,9 +296,11 @@ static int append_stream_to_all(struct audio_thread *thread,
 		 * buffer level.
 		 */
 		if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
-			rc = dev->flush_buffer(dev);
-			if (rc < 0)
+			int num_flushed = dev->flush_buffer(dev);
+			if (num_flushed < 0) {
+				rc = num_flushed;
 				break;
+			}
 		}
 
 		cras_iodev_add_stream(dev, out);
