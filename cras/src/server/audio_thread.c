@@ -651,6 +651,10 @@ static int fetch_streams(struct audio_thread *thread,
 		if (!timespec_after(&now, next_cb_ts))
 			continue;
 
+		/* Don't fetch if the previous request hasn't got response. */
+		if (cras_shm_callback_pending(shm))
+			continue;
+
 		dev_stream_set_delay(dev_stream, delay);
 
 		rc = fetch_stream(dev_stream, frames_in_buff, delay);
@@ -985,12 +989,14 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 
 	DL_FOREACH(streams, dev_stream) {
 		const struct timespec *next_cb_ts;
+		struct cras_audio_shm *shm =
+				cras_rstream_output_shm(dev_stream->stream);
 
 		if (cras_rstream_get_is_draining(dev_stream->stream) &&
 		    dev_stream_playback_frames(dev_stream) <= 0)
 			continue;
-		if (!cras_shm_is_buffer_available(
-				cras_rstream_output_shm(dev_stream->stream)))
+		if (!cras_shm_is_buffer_available(shm) ||
+		    cras_shm_callback_pending(shm))
 			continue;
 
 		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
