@@ -834,7 +834,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 	 * GPIO jacks are attached to the first input device or the first
 	 * output device on the card.
 	 */
-	if (jack_list->jacks == NULL && check_gpio_jack)
+	if (check_gpio_jack)
 		find_gpio_jacks(jack_list, card_index, card_name, direction);
 
 	return jack_list;
