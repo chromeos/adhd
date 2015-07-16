@@ -669,6 +669,7 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 		"Headphone Jack",
 		"Front Headphone Jack",
 		"HDMI/DP",
+		"Speaker Phantom Jack",
 	};
 	static const char * const input_jack_base_names[] = {
 		"Mic Jack",
