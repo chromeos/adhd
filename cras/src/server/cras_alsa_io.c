@@ -1041,18 +1041,6 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return err;
 }
 
-/* On older kernels we don't know how to determine if there is an internal mic.
- * On newer kernels there are "Phantom" Jacks that are created for internal
- * speaker/mic. So if there is a phantom jack for speaker but not for mic, we
- * know we are using the newer kernel and there is no internal mic. */
-static int may_have_internal_mic(size_t card_index)
-{
-	if (cras_alsa_jack_exists(card_index, "Speaker Phantom Jack") &&
-	    !cras_alsa_jack_exists(card_index, "Internal Mic Phantom Jack"))
-		return 0;
-	return 1;
-}
-
 /* Builds software volume scalers for output nodes in the device. */
 static void build_softvol_scalers(struct alsa_io *aio)
 {
@@ -1209,8 +1197,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	} else if ((direction == CRAS_STREAM_INPUT) &&
 			!no_create_default_input_node(aio)) {
 		if (first_internal_device(aio) &&
-		    !has_node(aio, INTERNAL_MICROPHONE) &&
-		    may_have_internal_mic(card_index))
+		    !has_node(aio, INTERNAL_MICROPHONE))
 			new_input(INTERNAL_MICROPHONE, aio);
 		else if (strstr(dev_name, KEYBOARD_MIC))
 			new_input(KEYBOARD_MIC, aio);

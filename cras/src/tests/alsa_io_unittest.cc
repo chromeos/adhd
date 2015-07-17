@@ -82,8 +82,6 @@ static const char *ucm_get_dsp_name_default_value;
 static size_t cras_alsa_jack_get_dsp_name_called;
 static const char *cras_alsa_jack_get_dsp_name_value;
 static size_t cras_iodev_free_resources_called;
-static size_t cras_alsa_jack_exists_called;
-static const char *cras_alsa_jack_exists_match;
 static size_t cras_alsa_jack_update_node_type_called;
 static int ucm_swap_mode_exists_ret_value;
 static int ucm_enable_swap_mode_ret_value;
@@ -126,8 +124,6 @@ void ResetStubData() {
   cras_alsa_jack_get_dsp_name_called = 0;
   cras_alsa_jack_get_dsp_name_value = NULL;
   cras_iodev_free_resources_called = 0;
-  cras_alsa_jack_exists_called = 0;
-  cras_alsa_jack_exists_match = NULL;
   cras_alsa_jack_update_node_type_called = 0;
   ucm_swap_mode_exists_ret_value = 0;
   ucm_enable_swap_mode_ret_value = 0;
@@ -206,7 +202,6 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ(0, cras_alsa_jack_exists_called);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -216,21 +211,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("Internal Mic", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ(1, cras_alsa_jack_exists_called);
   alsa_iodev_destroy((struct cras_iodev *)aio);
-
-
-  cras_alsa_jack_exists_match = "Speaker Phantom Jack";
-  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
-                                            fake_mixer, NULL,
-                                            CRAS_STREAM_INPUT);
-
-  ASSERT_STREQ("(default)", aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ(3, cras_alsa_jack_exists_called);
-  alsa_iodev_destroy((struct cras_iodev *)aio);
-
 }
 
 TEST(AlsaIoInit, DefaultNodeUSBCard) {
@@ -1328,14 +1309,6 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 void cras_iodev_free_resources(struct cras_iodev *iodev)
 {
   cras_iodev_free_resources_called++;
-}
-
-int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name)
-{
-  cras_alsa_jack_exists_called++;
-  if (cras_alsa_jack_exists_match)
-    return strcmp(cras_alsa_jack_exists_match, jack_name) == 0;
-  return 0;
 }
 
 void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
