@@ -559,32 +559,32 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 	}
 }
 
-int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
+int dev_stream_can_fetch(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm;
-	int rc;
 
 	shm = cras_rstream_output_shm(rstream);
 
-	if (cras_shm_is_buffer_available(shm)) {
-		rc = cras_rstream_request_audio(dev_stream->stream);
-		if (rc < 0)
-			return rc;
+	/* Don't fetch if the previous request hasn't got response. */
+	return !cras_shm_callback_pending(shm) &&
+	       cras_shm_is_buffer_available(shm);
+}
 
-		add_timespecs(&rstream->next_cb_ts,
-			      &rstream->sleep_interval_ts);
-		check_next_wake_time(dev_stream);
+int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	int rc;
 
-		cras_shm_set_callback_pending(cras_rstream_output_shm(rstream),
-					      1);
-	} else {
-		audio_thread_event_log_data(
-				atlog, AUDIO_THREAD_STREAM_SKIP_CB,
-				rstream->stream_id,
-				shm->area->write_offset[0],
-				shm->area->write_offset[1]);
-	}
+	rc = cras_rstream_request_audio(dev_stream->stream);
+	if (rc < 0)
+		return rc;
+
+	add_timespecs(&rstream->next_cb_ts,
+		      &rstream->sleep_interval_ts);
+	check_next_wake_time(dev_stream);
+	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
+
 	return 0;
 }
 

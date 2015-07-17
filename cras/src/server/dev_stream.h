@@ -144,6 +144,9 @@ void cras_set_capture_timestamp(size_t frame_rate,
 void dev_stream_set_delay(const struct dev_stream *dev_stream,
 			  unsigned int delay_frames);
 
+/* Returns if it's okay to request playback samples for this stream. */
+int dev_stream_can_fetch(struct dev_stream *dev_stream);
+
 /* Ask the client for cb_threshold samples of audio to play. */
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream);
 

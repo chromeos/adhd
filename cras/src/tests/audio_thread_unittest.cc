@@ -590,6 +590,11 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
   return dev_stream->stream->fd;
 }
 
+int dev_stream_can_fetch(struct dev_stream *dev_stream)
+{
+  return 1;
+}
+
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
 {
   return 0;

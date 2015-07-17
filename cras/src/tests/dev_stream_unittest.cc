@@ -110,6 +110,7 @@ class CreateSuite : public testing::Test{
       rstream_.direction = CRAS_STREAM_OUTPUT;
       rstream_.format.format = SND_PCM_FORMAT_S16_LE;
       rstream_.format.num_channels = 2;
+      rstream_.format = fmt_s16le_44_1;
       rstream_.flags = 0;
 
       config_format_converter_called = 0;
@@ -422,6 +423,7 @@ TEST_F(CreateSuite, SetDevRateNotMasterDev) {
   EXPECT_EQ(3, cras_fmt_conv_set_linear_resample_rates_called);
   EXPECT_EQ(44100, cras_fmt_conv_set_linear_resample_rates_from);
   EXPECT_GE(43663, cras_fmt_conv_set_linear_resample_rates_to);
+  dev_stream_destroy(dev_stream);
 }
 
 TEST_F(CreateSuite, SetDevRateMasterDev) {
@@ -460,6 +462,7 @@ TEST_F(CreateSuite, SetDevRateMasterDev) {
   expected_ts_nsec = 1000000000.0 * kBufferFrames / 2.0 / 48000.0;
   EXPECT_EQ(0, rstream_.sleep_interval_ts.tv_sec);
   EXPECT_EQ(expected_ts_nsec, rstream_.sleep_interval_ts.tv_nsec);
+  dev_stream_destroy(dev_stream);
 }
 
 TEST_F(CreateSuite, StreamMixNoFrames) {
@@ -521,6 +524,30 @@ TEST_F(CreateSuite, StreamMixNoConvTwoPass) {
   EXPECT_EQ(dev_stream.stream, rstream_get_readable_call.rstream);
   EXPECT_EQ(nfr/2, rstream_get_readable_call.offset);
   EXPECT_EQ(2, rstream_get_readable_call.num_called);
+}
+
+TEST_F(CreateSuite, StreamCanFetch) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55);
+
+  /* Verify stream cannot fetch when it's still pending. */
+  cras_shm_set_callback_pending(&rstream_.shm, 1);
+  EXPECT_EQ(0, dev_stream_can_fetch(dev_stream));
+
+  /* Verify stream can fetch when buffer available. */
+  cras_shm_set_callback_pending(&rstream_.shm, 0);
+  rstream_.shm.area->write_offset[0] = 0;
+  rstream_.shm.area->write_offset[1] = 0;
+  EXPECT_EQ(1, dev_stream_can_fetch(dev_stream));
+
+  /* Verify stream cannot fetch when there's still buffer. */
+  rstream_.shm.area->write_offset[0] = kBufferFrames;
+  rstream_.shm.area->write_offset[1] = kBufferFrames;
+  EXPECT_EQ(0, dev_stream_can_fetch(dev_stream));
+  dev_stream_destroy(dev_stream);
 }
 
 //  Test set_playback_timestamp.
