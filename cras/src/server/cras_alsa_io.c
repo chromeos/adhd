@@ -926,6 +926,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
 				aio->mixer, jack_name);
 		node->jack = jack;
+		/* Speaker phantom jack is actually for internal speaker. */
+		if (!strcmp(jack_name, "Speaker Phantom Jack"))
+			jack_name = INTERNAL_SPEAKER;
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
