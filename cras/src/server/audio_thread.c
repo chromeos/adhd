@@ -203,8 +203,7 @@ static void update_stream_timeout(struct cras_audio_shm *shm)
 }
 
 /* Requests audio from a stream and marks it as pending. */
-static int fetch_stream(struct dev_stream *dev_stream,
-			unsigned int frames_in_buff, unsigned int delay)
+static int fetch_stream(struct dev_stream *dev_stream, unsigned int delay)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
@@ -590,7 +589,6 @@ static int fetch_streams(struct audio_thread *thread,
 {
 	struct dev_stream *dev_stream;
 	struct cras_iodev *odev = adev->dev;
-	int frames_in_buff;
 	int rc;
 	int delay;
 
@@ -609,8 +607,7 @@ static int fetch_streams(struct audio_thread *thread,
 		if (cras_shm_callback_pending(shm) && fd >= 0)
 			flush_old_aud_messages(shm, fd);
 
-		frames_in_buff = cras_shm_get_frames(shm);
-		if (frames_in_buff < 0)
+		if (cras_shm_get_frames(shm) < 0)
 			cras_rstream_set_is_draining(rstream, 1);
 
 		if (cras_rstream_get_is_draining(dev_stream->stream))
@@ -638,7 +635,7 @@ static int fetch_streams(struct audio_thread *thread,
 
 		dev_stream_set_delay(dev_stream, delay);
 
-		rc = fetch_stream(dev_stream, frames_in_buff, delay);
+		rc = fetch_stream(dev_stream, delay);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fetch err: %d for %x",
 			       rc, rstream->stream_id);
