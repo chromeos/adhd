@@ -810,6 +810,25 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 				output->base.plugged = 0;
 	}
 
+	long range = 0;
+	switch (output->base.type) {
+	/* Use software volume for HDMI output */
+	case CRAS_NODE_TYPE_HDMI:
+		output->base.software_volume_needed = 1;
+		break;
+
+	/* Use software volume if the usb device's volume range is smaller
+	 * than 40dB */
+	case CRAS_NODE_TYPE_USB:
+		range += cras_alsa_mixer_get_dB_range(aio->mixer);
+		range += cras_alsa_mixer_get_output_dB_range(cras_output);
+		if (range < 4000)
+			output->base.software_volume_needed = 1;
+		break;
+	default:
+		break;
+	}
+
 	cras_iodev_add_node(&aio->base, &output->base);
 }
 

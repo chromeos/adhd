@@ -32,6 +32,7 @@ struct mixer_volume_control {
  *  has_mute - non-zero indicates there is a mute switch.
  *  device_index - ALSA device index for this control.
  *  max_volume_dB - Maximum volume available in the volume control.
+ *  min_volume_dB - Minimum volume available in the volume control.
  *  volume_curve - Curve for this output.
  */
 struct cras_alsa_mixer_output {
@@ -40,6 +41,7 @@ struct cras_alsa_mixer_output {
 	int has_mute;
 	size_t device_index;
 	long max_volume_dB;
+	long min_volume_dB;
 	struct cras_volume_curve *volume_curve;
 };
 
@@ -87,6 +89,19 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 			      long dBFS,
 			      struct cras_alsa_mixer_output *mixer_output);
+
+/* Gets the volume range of the mixer in dB.
+ * Args:
+ *    cras_mixer - The mixer to get the volume range.
+ */
+long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer);
+
+/* Gets the volume range of the mixer output in dB.
+ * Args:
+ *    mixer_output - The mixer output to get the volume range.
+ */
+long cras_alsa_mixer_get_output_dB_range(
+		struct cras_alsa_mixer_output *mixer_output);
 
 /* Sets the capture gain for the device associated with this mixer.
  * Args:

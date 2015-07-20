@@ -46,6 +46,8 @@ typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  *    softvol_scalers - pointer to software volume scalers.
+ *    software_volume_needed - True if the volume range of the node is
+ *      smaller than desired.
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -58,6 +60,7 @@ struct cras_ionode {
 	enum CRAS_NODE_TYPE type;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	float *softvol_scalers;
+	int software_volume_needed;
 	struct cras_ionode *prev, *next;
 };
 
@@ -306,7 +309,7 @@ static inline int cras_iodev_software_volume_needed(
 	if (!iodev->active_node)
 		return 0;
 
-	return iodev->active_node->type == CRAS_NODE_TYPE_HDMI;
+	return iodev->active_node->software_volume_needed;
 }
 
 /* Gets the software volume scaler of the iodev. The scaler should only be

@@ -30,6 +30,7 @@ struct mixer_output_control {
  * volume_curve - Default volume curve that converts from an index to dBFS.
  * max_volume_dB - Maximum volume available in main volume controls.  The dBFS
  *   value setting will be applied relative to this.
+ * min_volume_dB - Minimum volume available in main volume controls.
  * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_mixer {
@@ -41,6 +42,7 @@ struct cras_alsa_mixer {
 	snd_mixer_elem_t *capture_switch;
 	struct cras_volume_curve *volume_curve;
 	long max_volume_dB;
+	long min_volume_dB;
 	const struct cras_card_config *config;
 };
 
@@ -107,8 +109,10 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 
 		if (snd_mixer_selem_get_playback_dB_range(elem,
 							  &min,
-							  &max) == 0)
+							  &max) == 0) {
 			cmix->max_volume_dB += max;
+			cmix->min_volume_dB += min;
+		}
 	}
 
 	/* If cmix doesn't yet have a playback switch and this is a playback
@@ -186,8 +190,10 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 		return -ENOMEM;
 	}
 
-	if (snd_mixer_selem_get_playback_dB_range(elem, &min, &max) == 0)
+	if (snd_mixer_selem_get_playback_dB_range(elem, &min, &max) == 0) {
 		c->properties.max_volume_dB = max;
+		c->properties.min_volume_dB = min;
+	}
 
 	c->properties.elem = elem;
 	c->properties.has_volume = snd_mixer_selem_has_playback_volume(elem);
@@ -388,6 +394,21 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 		snd_mixer_selem_set_playback_dB_all(mixer_output->elem,
 						    to_set,
 						    1);
+}
+
+inline long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer)
+{
+	if (!cras_mixer)
+		return 0;
+	return cras_mixer->max_volume_dB - cras_mixer->min_volume_dB;
+}
+
+inline long cras_alsa_mixer_get_output_dB_range(
+		struct cras_alsa_mixer_output *mixer_output)
+{
+	if (!mixer_output || !mixer_output->elem || !mixer_output->has_volume)
+		return 0;
+	return mixer_output->max_volume_dB - mixer_output->min_volume_dB;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,

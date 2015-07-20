@@ -44,6 +44,10 @@ static size_t sys_get_capture_gain_called;
 static long sys_get_capture_gain_return_value;
 static size_t alsa_mixer_set_mute_called;
 static int alsa_mixer_set_mute_value;
+static size_t alsa_mixer_get_dB_range_called;
+static long alsa_mixer_get_dB_range_value;
+static size_t alsa_mixer_get_output_dB_range_called;
+static long alsa_mixer_get_output_dB_range_value;
 static const struct cras_alsa_mixer_output *alsa_mixer_set_mute_output;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
@@ -106,6 +110,8 @@ void ResetStubData() {
   sys_get_mute_called = 0;
   sys_get_capture_mute_called = 0;
   alsa_mixer_set_mute_called = 0;
+  alsa_mixer_get_dB_range_called = 0;
+  alsa_mixer_get_output_dB_range_called = 0;
   alsa_mixer_set_capture_mute_called = 0;
   cras_alsa_mixer_list_outputs_called = 0;
   cras_alsa_mixer_list_outputs_outputs_length = 0;
@@ -307,6 +313,34 @@ TEST(AlsaIoInit, UsbCardAutoPlug) {
   EXPECT_EQ(1, cras_iodev_set_node_attr_called);
   EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
   EXPECT_EQ(1, cras_iodev_set_node_attr_value);
+  alsa_iodev_destroy(iodev);
+}
+
+TEST(AlsaIoInit, UsbCardUseSoftwareVolume) {
+  struct cras_iodev *iodev;
+
+  alsa_mixer_get_dB_range_value = 1000;
+  alsa_mixer_get_output_dB_range_value = 1000;
+  ResetStubData();
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_USB, 1,
+                            fake_mixer, NULL,
+                            CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(1, alsa_mixer_get_dB_range_called);
+  EXPECT_EQ(1, alsa_mixer_get_output_dB_range_called);
+  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
+  alsa_iodev_destroy(iodev);
+
+  alsa_mixer_get_dB_range_value = 3000;
+  alsa_mixer_get_output_dB_range_value = 2000;
+  ResetStubData();
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_USB, 1,
+                            fake_mixer, NULL,
+                            CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(1, alsa_mixer_get_dB_range_called);
+  EXPECT_EQ(1, alsa_mixer_get_output_dB_range_called);
+  EXPECT_EQ(0, iodev->active_node->software_volume_needed);
   alsa_iodev_destroy(iodev);
 }
 
@@ -1135,6 +1169,19 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
   alsa_mixer_set_mute_called++;
   alsa_mixer_set_mute_value = muted;
   alsa_mixer_set_mute_output = mixer_output;
+}
+
+long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer)
+{
+  alsa_mixer_get_dB_range_called++;
+  return alsa_mixer_get_dB_range_value;
+}
+
+long cras_alsa_mixer_get_output_dB_range(
+    struct cras_alsa_mixer_output *mixer_output)
+{
+  alsa_mixer_get_output_dB_range_called++;
+  return alsa_mixer_get_output_dB_range_value;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *m, long dB_level,
