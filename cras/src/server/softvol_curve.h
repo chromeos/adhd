@@ -6,6 +6,10 @@
 #ifndef SOFTVOL_CURVE_H_
 #define SOFTVOL_CURVE_H_
 
+#include <math.h>
+
+#define LOG_10 2.302585
+
 struct cras_volume_curve;
 
 extern const float softvol_scalers[101];
@@ -14,6 +18,12 @@ extern const float softvol_scalers[101];
 static inline float softvol_get_scaler(unsigned int volume_index)
 {
 	return softvol_scalers[volume_index];
+}
+
+/* convert dBFS to softvol scaler */
+static inline float convert_softvol_scaler_from_dB(long dBFS)
+{
+	return expf(LOG_10 * dBFS / 2000);
 }
 
 /* Builds software volume scalers from volume curve. */

@@ -195,6 +195,7 @@ TESTS = \
 	rclient_unittest \
 	rstream_unittest \
 	shm_unittest \
+	softvol_curve_unittest \
 	stream_list_unittest \
 	system_state_unittest \
 	util_unittest \
@@ -515,6 +516,11 @@ rstream_unittest_LDADD = -lasound -lgtest -lpthread
 shm_unittest_SOURCES = tests/shm_unittest.cc
 shm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 shm_unittest_LDADD = -lgtest -lpthread
+
+softvol_curve_unittest_SOURCES = tests/softvol_curve_unittest.cc server/softvol_curve.c
+softvol_curve_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	 -I$(top_srcdir)/src/server
+softvol_curve_unittest_LDADD = -lgtest -lpthread
 
 stream_list_unittest_SOURCES = tests/stream_list_unittest.cc \
 	server/stream_list.c
