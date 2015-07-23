@@ -44,7 +44,10 @@ int cras_bt_io_update_buffer_size(struct cras_iodev *bt_iodev);
 unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
 				   struct cras_iodev *dev);
 
-/* Removes a profile specific iodev from bt_iodev. */
+/* Removes a profile specific iodev from bt_iodev.
+ * Returns:
+ *    0 if dev is removed and bt_iodev successfully updated to
+ *    the new profile, otherwise return negative error code. */
 int cras_bt_io_remove(struct cras_iodev *bt_iodev, struct cras_iodev *dev);
 
 #endif /* CRAS_BT_IODEV_H_ */

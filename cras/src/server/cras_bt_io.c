@@ -22,7 +22,7 @@
 struct bt_node {
 	struct cras_ionode base;
 	struct cras_iodev *profile_dev;
-	enum cras_bt_device_profile profile;
+	unsigned int profile;
 };
 
 /* The structure represents a virtual input or output device of a
@@ -498,18 +498,27 @@ int cras_bt_io_remove(struct cras_iodev *bt_iodev,
 	struct bt_node *btnode;
 
 	DL_FOREACH(bt_iodev->nodes, node) {
-		if (node == bt_iodev->active_node)
+		btnode = (struct bt_node *)node;
+		if (btnode->profile_dev != dev)
 			continue;
 
-		btnode = (struct bt_node *)node;
-		if (btnode->profile_dev == dev) {
+		/* If this is the active node, reset it. Otherwise delete
+		 * this node. */
+		if (node == bt_iodev->active_node) {
+			btnode->profile_dev = NULL;
+			btnode->profile = 0;
+		} else {
 			DL_DELETE(bt_iodev->nodes, node);
 			free(node);
 		}
 	}
 
-	/* The node of active profile could have been removed, update it. */
+	/* The node of active profile could have been removed, update it.
+	 * Return err when fail to locate the active profile dev. */
 	update_active_node(bt_iodev, 0);
+	btnode = (struct bt_node *)bt_iodev->active_node;
+	if ((btnode->profile == 0) || (btnode->profile_dev == NULL))
+		return -EINVAL;
 
 	return 0;
 }

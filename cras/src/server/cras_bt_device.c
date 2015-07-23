@@ -306,6 +306,7 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev)
 {
 	struct cras_iodev *bt_iodev;
+	int rc;
 
 	bt_iodev = device->bt_iodevs[iodev->direction];
 	if (bt_iodev) {
@@ -313,26 +314,33 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 
 		/* Check what will the preffered profile be if we remove dev. */
 		try_profile = cras_bt_io_try_remove(bt_iodev, iodev);
-		if (!try_profile) {
-			device->bt_iodevs[iodev->direction] = NULL;
-			cras_bt_io_destroy(bt_iodev);
+		if (!try_profile)
+			goto destroy_bt_io;
 
-			if (!device->bt_iodevs[CRAS_STREAM_INPUT] &&
-			    !device->bt_iodevs[CRAS_STREAM_OUTPUT])
-				cras_bt_device_set_active_profile(device, 0);
-			return;
-		} else {
-			/* If the check result doesn't match with the active
-			 * profile we are currently using, switch to the
-			 * preffered profile before actually remove the iodev.
-			 */
-			if (!cras_bt_io_on_profile(bt_iodev, try_profile)) {
-				device->active_profile = try_profile;
-				bt_device_switch_profile(device, bt_iodev, 0);
-			}
-			cras_bt_io_remove(bt_iodev, iodev);
+		/* If the check result doesn't match with the active
+		 * profile we are currently using, switch to the
+		 * preffered profile before actually remove the iodev.
+		 */
+		if (!cras_bt_io_on_profile(bt_iodev, try_profile)) {
+			device->active_profile = try_profile;
+			bt_device_switch_profile(device, bt_iodev, 0);
+		}
+		rc = cras_bt_io_remove(bt_iodev, iodev);
+		if (rc) {
+			syslog(LOG_ERR, "Fail to fallback to profile %u",
+			       try_profile);
+			goto destroy_bt_io;
 		}
 	}
+	return;
+
+destroy_bt_io:
+	device->bt_iodevs[iodev->direction] = NULL;
+	cras_bt_io_destroy(bt_iodev);
+
+	if (!device->bt_iodevs[CRAS_STREAM_INPUT] &&
+	    !device->bt_iodevs[CRAS_STREAM_OUTPUT])
+		cras_bt_device_set_active_profile(device, 0);
 }
 
 int cras_bt_device_has_a2dp(struct cras_bt_device *device)
