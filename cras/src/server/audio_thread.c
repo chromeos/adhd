@@ -183,24 +183,6 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	return 0;
 }
 
-/* Requests audio from a stream and marks it as pending. */
-static int fetch_stream(struct dev_stream *dev_stream, unsigned int delay)
-{
-	struct cras_rstream *rstream = dev_stream->stream;
-	int rc;
-
-	audio_thread_event_log_data(
-			atlog,
-			AUDIO_THREAD_FETCH_STREAM,
-			rstream->stream_id,
-			cras_rstream_get_cb_threshold(rstream), delay);
-	rc = dev_stream_request_playback_samples(dev_stream);
-	if (rc < 0)
-		return rc;
-
-	return 0;
-}
-
 /* Put 'frames' worth of zero samples into odev. */
 static int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 {
@@ -604,7 +586,13 @@ static int fetch_streams(struct audio_thread *thread,
 
 		dev_stream_set_delay(dev_stream, delay);
 
-		rc = fetch_stream(dev_stream, delay);
+		audio_thread_event_log_data(
+				atlog,
+				AUDIO_THREAD_FETCH_STREAM,
+				rstream->stream_id,
+				cras_rstream_get_cb_threshold(rstream), delay);
+
+		rc = dev_stream_request_playback_samples(dev_stream);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fetch err: %d for %x",
 			       rc, rstream->stream_id);
