@@ -40,8 +40,6 @@ struct __attribute__ ((__packed__)) cras_audio_shm_config {
  *  muted - bool, true if stream should be muted.
  *  num_overruns - Starting at 0 this is incremented very time data is over
  *    written because too much accumulated before a read.
- *  num_cb_timeouts = how many times has the client failed to meet the read or
- *    write deadline.
  *  ts - For capture, the time stamp of the next sample at read_index.  For
  *    playback, this is the time that the next sample written will be played.
  *    This is only valid in audio callbacks.
@@ -58,11 +56,7 @@ struct __attribute__ ((__packed__)) cras_audio_shm_area {
 	float volume_scaler;
 	int32_t mute;
 	int32_t callback_pending;
-	uint32_t first_timeout_sec;
-	uint32_t first_timeout_nsec;
-	uint32_t longest_timeout_msec;
 	uint32_t num_overruns;
-	uint32_t num_cb_timeouts;
 	struct cras_timespec ts;
 	uint8_t samples[];
 };
@@ -454,75 +448,11 @@ static inline unsigned cras_shm_total_size(const struct cras_audio_shm *shm)
 			sizeof(*shm->area);
 }
 
-/* Gets the period of time since the first timeout. */
-static inline
-void cras_shm_since_first_timeout(const struct cras_audio_shm *shm,
-				  struct timespec *ts)
-{
-	if (shm->area->first_timeout_sec ||
-	    shm->area->first_timeout_nsec) {
-		struct timespec now, first_timeout;
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-		first_timeout.tv_sec = shm->area->first_timeout_sec;
-		first_timeout.tv_nsec = shm->area->first_timeout_nsec;
-		subtract_timespecs(&now, &first_timeout, ts);
-	} else {
-		ts->tv_sec = 0;
-		ts->tv_nsec = 0;
-	}
-}
-
-/* Sets the first timeout. */
-static inline
-void cras_shm_set_first_timeout(const struct cras_audio_shm *shm)
-{
-	struct timespec now;
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	shm->area->first_timeout_sec = now.tv_sec;
-	shm->area->first_timeout_nsec = now.tv_nsec;
-}
-
-/* Clears the first timeout. */
-static inline
-void cras_shm_clear_first_timeout(const struct cras_audio_shm *shm)
-{
-	shm->area->first_timeout_sec = 0;
-	shm->area->first_timeout_nsec = 0;
-}
-
-/* Gets the longest timeout in milliseconds. */
-static inline
-int cras_shm_get_longest_timeout(const struct cras_audio_shm *shm)
-{
-	return shm->area->longest_timeout_msec;
-}
-
-/* Sets the longest timeout in milliseconds. */
-static inline
-void cras_shm_set_longest_timeout(const struct cras_audio_shm *shm,
-				  unsigned int longest_timeout)
-{
-	shm->area->longest_timeout_msec = longest_timeout;
-}
-
 /* Gets the counter of over-runs. */
 static inline
 unsigned cras_shm_num_overruns(const struct cras_audio_shm *shm)
 {
 	return shm->area->num_overruns;
-}
-
-/* Increments the counter of callback timeouts. */
-static inline void cras_shm_inc_cb_timeouts(struct cras_audio_shm *shm)
-{
-	shm->area->num_cb_timeouts++;
-}
-
-/* Gets the counter of callback timeouts. */
-static inline
-unsigned cras_shm_num_cb_timeouts(const struct cras_audio_shm *shm)
-{
-	return shm->area->num_cb_timeouts;
 }
 
 /* Copy the config from the shm region to the local config.  Used by clients

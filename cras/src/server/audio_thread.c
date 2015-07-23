@@ -183,30 +183,10 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	return 0;
 }
 
-/* Calculates the length of timeout period and updates the longest
- * timeout value.
- */
-static void update_stream_timeout(struct cras_audio_shm *shm)
-{
-	struct timespec diff;
-	int timeout_msec = 0;
-	int longest_timeout_msec;
-
-	cras_shm_since_first_timeout(shm, &diff);
-	if (!diff.tv_sec && !diff.tv_nsec)
-		return;
-
-	timeout_msec = diff.tv_sec * 1000 + diff.tv_nsec / 1000000;
-	longest_timeout_msec = cras_shm_get_longest_timeout(shm);
-	if (timeout_msec > longest_timeout_msec)
-		cras_shm_set_longest_timeout(shm, timeout_msec);
-}
-
 /* Requests audio from a stream and marks it as pending. */
 static int fetch_stream(struct dev_stream *dev_stream, unsigned int delay)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
-	struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
 	int rc;
 
 	audio_thread_event_log_data(
@@ -217,9 +197,6 @@ static int fetch_stream(struct dev_stream *dev_stream, unsigned int delay)
 	rc = dev_stream_request_playback_samples(dev_stream);
 	if (rc < 0)
 		return rc;
-
-	update_stream_timeout(shm);
-	cras_shm_clear_first_timeout(shm);
 
 	return 0;
 }
@@ -638,34 +615,6 @@ static int fetch_streams(struct audio_thread *thread,
 	return 0;
 }
 
-#if 0 //TODO(dgreid) - remove this, replace with check if haven't gotten data for a long time.
-/* Check if the stream kept timeout for a long period.
- * Args:
- *    stream - The stream to check
- *    rate - the frame rate of iodev
- * Returns:
- *    0 if this is a first timeout or the accumulated timeout
- *    period is not too long, -1 otherwise.
- */
-static int check_stream_timeout(struct cras_rstream *stream, unsigned int rate)
-{
-	static int longest_cb_timeout_sec = 10;
-
-	struct cras_audio_shm *shm;
-	struct timespec diff;
-	shm = cras_rstream_output_shm(stream);
-
-	cras_shm_since_first_timeout(shm, &diff);
-
-	if (!diff.tv_sec && !diff.tv_nsec) {
-		cras_shm_set_first_timeout(shm);
-		return 0;
-	}
-
-	return (diff.tv_sec > longest_cb_timeout_sec) ? -1 : 0;
-}
-#endif
-
 /* Fill the buffer with samples from the attached streams.
  * Args:
  *    thread - The thread object the device is attached to.
@@ -809,12 +758,7 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 				    unsigned int dev_idx,
 				    int index)
 {
-	struct cras_audio_shm *shm;
 	struct audio_stream_debug_info *si;
-
-	shm = stream_uses_output(stream->stream) ?
-		cras_rstream_output_shm(stream->stream) :
-		cras_rstream_input_shm(stream->stream);
 
 	si = &info->streams[index];
 
@@ -825,7 +769,6 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->cb_threshold = stream->stream->cb_threshold;
 	si->frame_rate = stream->stream->format.frame_rate;
 	si->num_channels = stream->stream->format.num_channels;
-	si->num_cb_timeouts = cras_shm_num_cb_timeouts(shm);
 	memcpy(si->channel_layout, stream->stream->format.channel_layout,
 	       sizeof(si->channel_layout));
 
