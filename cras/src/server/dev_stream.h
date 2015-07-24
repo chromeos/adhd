@@ -148,7 +148,8 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 int dev_stream_can_fetch(struct dev_stream *dev_stream);
 
 /* Ask the client for cb_threshold samples of audio to play. */
-int dev_stream_request_playback_samples(struct dev_stream *dev_stream);
+int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
+					const struct timespec *now);
 
 /*
  * Returns a non-negative fd if the fd is expecting a message and should be

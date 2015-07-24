@@ -54,6 +54,8 @@ struct master_dev_info {
  *    format - format of the stream
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
+ *    last_fetch_ts - The time of the last stream fetch.
+ *    longest_fetch_interval_ts - Longest interval between two fetches.
  *    buf_state - State of the buffer from all devices for this stream.
  *    queued_frames - Cached value of the number of queued frames in shm.
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
@@ -76,6 +78,8 @@ struct cras_rstream {
 	struct cras_audio_format format;
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
+	struct timespec last_fetch_ts;
+	struct timespec longest_fetch_interval;
 	struct buffer_share *buf_state;
 	int queued_frames;
 	int is_pinned;
@@ -241,6 +245,11 @@ static inline int stream_uses_input(const struct cras_rstream *s)
 {
 	return cras_stream_uses_input_hw(s->direction);
 }
+
+/* Checks how much time has passed since last stream fetch and records
+ * the longest fetch interval. */
+void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
+					const struct timespec *now);
 
 /* Requests min_req frames from the client. */
 int cras_rstream_request_audio(const struct cras_rstream *stream);

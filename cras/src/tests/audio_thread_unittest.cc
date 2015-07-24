@@ -595,7 +595,8 @@ int dev_stream_can_fetch(struct dev_stream *dev_stream)
   return 1;
 }
 
-int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
+int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
+                                        const struct timespec *now)
 {
   return 0;
 }

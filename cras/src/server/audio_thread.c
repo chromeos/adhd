@@ -592,7 +592,7 @@ static int fetch_streams(struct audio_thread *thread,
 				rstream->stream_id,
 				cras_rstream_get_cb_threshold(rstream), delay);
 
-		rc = dev_stream_request_playback_samples(dev_stream);
+		rc = dev_stream_request_playback_samples(dev_stream, &now);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fetch err: %d for %x",
 			       rc, rstream->stream_id);
@@ -759,6 +759,8 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->num_channels = stream->stream->format.num_channels;
 	memcpy(si->channel_layout, stream->stream->format.channel_layout,
 	       sizeof(si->channel_layout));
+	si->longest_fetch_sec = stream->stream->longest_fetch_interval.tv_sec;
+	si->longest_fetch_nsec = stream->stream->longest_fetch_interval.tv_nsec;
 
 	longest_wake.tv_sec = 0;
 	longest_wake.tv_nsec = 0;

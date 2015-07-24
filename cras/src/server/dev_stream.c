@@ -571,10 +571,13 @@ int dev_stream_can_fetch(struct dev_stream *dev_stream)
 	       cras_shm_is_buffer_available(shm);
 }
 
-int dev_stream_request_playback_samples(struct dev_stream *dev_stream)
+int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
+					const struct timespec *now)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	int rc;
+
+	cras_rstream_record_fetch_interval(dev_stream->stream, now);
 
 	rc = cras_rstream_request_audio(dev_stream->stream);
 	if (rc < 0)

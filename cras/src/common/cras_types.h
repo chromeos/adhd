@@ -212,6 +212,8 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint32_t flags;
 	uint32_t frame_rate;
 	uint32_t num_channels;
+	uint32_t longest_fetch_sec;
+	uint32_t longest_fetch_nsec;
 	int8_t channel_layout[CRAS_CH_MAX];
 };
 

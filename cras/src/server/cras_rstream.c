@@ -187,6 +187,19 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	free(stream);
 }
 
+void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
+					const struct timespec *now)
+{
+	struct timespec ts;
+
+	if (rstream->last_fetch_ts.tv_sec || rstream->last_fetch_ts.tv_nsec) {
+		subtract_timespecs(now, &rstream->last_fetch_ts, &ts);
+		if (timespec_after(&ts, &rstream->longest_fetch_interval))
+			rstream->longest_fetch_interval = ts;
+	}
+	rstream->last_fetch_ts = *now;
+}
+
 int cras_rstream_request_audio(const struct cras_rstream *stream)
 {
 	struct audio_message msg;

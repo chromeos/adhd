@@ -629,6 +629,10 @@ int cras_rstream_request_audio(const struct cras_rstream *stream) {
   return 0;
 }
 
+void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
+                                        const struct timespec *now) {
+}
+
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream) {
 }
 
