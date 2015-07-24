@@ -57,6 +57,7 @@ static const snd_pcm_format_t test_formats[] = {
 	SND_PCM_FORMAT_S16_LE,
 	SND_PCM_FORMAT_S24_LE,
 	SND_PCM_FORMAT_S32_LE,
+	SND_PCM_FORMAT_S24_3LE,
 	(snd_pcm_format_t)0
 };
 

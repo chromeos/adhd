@@ -96,6 +96,21 @@ static void convert_s32le_to_s16le(const uint8_t *in, size_t in_samples,
 		*_out = (int16_t)(*_in >> 16);
 }
 
+/* Converts from S24_3LE to S16. */
+static void convert_s243le_to_s16le(const uint8_t *in, size_t in_samples,
+				   uint8_t *out)
+{
+	/* find how to calculate in and out size, implement the conversion
+	 * between S24_3LE and S16 */
+
+	size_t i;
+	int8_t *_in = (int8_t *)in;
+	uint16_t *_out = (uint16_t *)out;
+
+	for (i = 0; i < in_samples; i++, _in += 3, _out++)
+		memcpy(_out, _in + 1, 2);
+}
+
 /* Converts from S16 to U8. */
 static void convert_s16le_to_u8(const uint8_t *in, size_t in_samples,
 				uint8_t *out)
@@ -129,6 +144,20 @@ static void convert_s16le_to_s32le(const uint8_t *in, size_t in_samples,
 
 	for (i = 0; i < in_samples; i++, _in++, _out++)
 		*_out = ((int32_t)*_in << 16);
+}
+
+/* Converts from S16 to S24_3LE. */
+static void convert_s16le_to_s243le(const uint8_t *in, size_t in_samples,
+				   uint8_t *out)
+{
+	size_t i;
+	int16_t *_in = (int16_t *)in;
+	uint8_t *_out = (uint8_t *)out;
+
+	for (i = 0; i < in_samples; i++, _in++, _out += 3) {
+		*_out = 0;
+		memcpy(_out + 1, _in, 2);
+	}
 }
 
 /*
@@ -422,6 +451,9 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		case SND_PCM_FORMAT_S32_LE:
 			conv->in_format_converter = convert_s32le_to_s16le;
 			break;
+		case SND_PCM_FORMAT_S24_3LE:
+			conv->in_format_converter = convert_s243le_to_s16le;
+			break;
 		default:
 			syslog(LOG_WARNING, "Invalid format %d", in->format);
 			cras_fmt_conv_destroy(conv);
@@ -441,6 +473,9 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			break;
 		case SND_PCM_FORMAT_S32_LE:
 			conv->out_format_converter = convert_s16le_to_s32le;
+			break;
+		case SND_PCM_FORMAT_S24_3LE:
+			conv->out_format_converter = convert_s16le_to_s243le;
 			break;
 		default:
 			syslog(LOG_WARNING, "Invalid format %d", out->format);

@@ -388,6 +388,7 @@ static int set_hw_constraints(struct snd_pcm_cras *pcm_cras)
 		SND_PCM_FORMAT_S16_LE,
 		SND_PCM_FORMAT_S24_LE,
 		SND_PCM_FORMAT_S32_LE,
+		SND_PCM_FORMAT_S24_3LE,
 	};
 	int rc;
 

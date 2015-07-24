@@ -31,6 +31,7 @@ static snd_pcm_format_t empty_supported_formats[] = {
 	SND_PCM_FORMAT_S16_LE,
 	SND_PCM_FORMAT_S24_LE,
 	SND_PCM_FORMAT_S32_LE,
+	SND_PCM_FORMAT_S24_3LE,
 	0
 };
 
