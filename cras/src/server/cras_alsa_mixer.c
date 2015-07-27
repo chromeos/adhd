@@ -220,6 +220,7 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	/* Names of controls for individual outputs. */
 	static const char * const output_names[] = {
 		"Headphone",
+		"Headset",
 		"HDMI",
 		"Speaker",
 	};
