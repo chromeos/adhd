@@ -351,14 +351,6 @@ static int append_stream(struct audio_thread *thread,
 	return rc;
 }
 
-static int delete_stream(struct audio_thread *thread,
-			 struct cras_rstream *stream,
-			 struct cras_iodev *iodev)
-{
-	delete_stream_from_dev(iodev, stream);
-	return 0;
-}
-
 /* Handles messages from main thread to add a new active device. */
 static int thread_add_open_dev(struct audio_thread *thread,
 			       struct cras_iodev *iodev)
@@ -470,10 +462,10 @@ static int thread_remove_stream(struct audio_thread *thread,
 
 	if (dev == NULL) {
 		DL_FOREACH(thread->open_devs[stream->direction], open_dev) {
-			delete_stream(thread, stream, open_dev->dev);
+			delete_stream_from_dev(open_dev->dev, stream);
 		}
 	} else {
-		delete_stream(thread, stream, dev);
+		delete_stream_from_dev(dev, stream);
 	}
 
 	return 0;
