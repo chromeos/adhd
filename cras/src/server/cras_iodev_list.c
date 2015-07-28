@@ -666,6 +666,10 @@ void cras_iodev_list_init()
 	loopback_iodev_create(LOOPBACK_POST_DSP);
 
 	audio_thread = audio_thread_create();
+	if (!audio_thread) {
+		syslog(LOG_ERR, "Fatal: audio thread init");
+		exit(-ENOMEM);
+	}
 	audio_thread_start(audio_thread);
 
 	cras_iodev_list_update_device_list();
