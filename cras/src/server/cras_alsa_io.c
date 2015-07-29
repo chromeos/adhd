@@ -944,6 +944,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 
 	cras_alsa_jack_update_monitor_name(jack, node->base.name,
 					   sizeof(node->base.name));
+	/* The name got from jack might be an invalid UTF8 string. */
+	if (!is_utf8_string(node->base.name))
+		drop_node_name(&node->base);
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
 

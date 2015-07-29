@@ -87,6 +87,10 @@ static int ucm_swap_mode_exists_ret_value;
 static int ucm_enable_swap_mode_ret_value;
 static size_t ucm_enable_swap_mode_called;
 static int is_utf8_string_ret_value;
+static char *cras_alsa_jack_update_monitor_fake_name = 0;
+static int cras_alsa_jack_get_name_ret_called;
+static const char *cras_alsa_jack_get_name_ret_value = 0;
+static char default_jack_name[] = "Something Jack";
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -129,6 +133,9 @@ void ResetStubData() {
   ucm_enable_swap_mode_ret_value = 0;
   ucm_enable_swap_mode_called = 0;
   is_utf8_string_ret_value = 1;
+  cras_alsa_jack_get_name_ret_called = 0;
+  cras_alsa_jack_get_name_ret_value = default_jack_name;
+  cras_alsa_jack_update_monitor_fake_name = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -799,6 +806,38 @@ TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
   ASSERT_STREQ("HDMI", node.name);
 }
 
+TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
+
+  ResetStubData();
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_OUTPUT);
+  ASSERT_NE(aio, (void *)NULL);
+
+  // Prepare the stub data such that the jack will be identified as an
+  // HDMI jack, and thus the callback creates an HDMI node.
+  cras_alsa_jack_get_name_ret_value = "HDMI Jack";
+  // Set the jack name updated from monitor to be an invalid UTF8 string.
+  cras_alsa_jack_update_monitor_fake_name = strdup("Something");
+  cras_alsa_jack_update_monitor_fake_name[0] = 0xfe;
+  is_utf8_string_ret_value = 0;
+
+  // Add the jack node.
+  cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
+
+  EXPECT_EQ(1, cras_alsa_jack_get_name_ret_called);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, aio->base.nodes->next->type);
+  // The node name should be "HDMI".
+  ASSERT_STREQ("HDMI", aio->base.nodes->next->name);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
 //  Test thread add/rm stream, open_alsa, and iodev config.
 class AlsaVolumeMuteSuite : public testing::Test {
   protected:
@@ -1201,7 +1240,8 @@ void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable) {
 
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 {
-  return "";
+  cras_alsa_jack_get_name_ret_called++;
+  return cras_alsa_jack_get_name_ret_value;
 }
 
 const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack)
@@ -1315,6 +1355,8 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 					char *name_buf,
 					unsigned int buf_size)
 {
+  if (cras_alsa_jack_update_monitor_fake_name)
+    strcpy(name_buf, cras_alsa_jack_update_monitor_fake_name);
 }
 
 void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
