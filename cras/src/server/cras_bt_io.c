@@ -7,9 +7,12 @@
 
 #include "cras_bt_io.h"
 #include "cras_bt_device.h"
+#include "cras_dbus_util.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "utlist.h"
+
+#define DEFAULT_BT_DEVICE_NAME "BLUETOOTH"
 
 /* Extends cras_ionode to hold bluetooth profile information
  * so that iodevs of different profile(A2DP or HFP/HSP) can be
@@ -363,6 +366,9 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	active->profile_dev = dev;
 	gettimeofday(&active->base.plugged_time, NULL);
 	strcpy(active->base.name, dev->info.name);
+	/* The node name exposed to UI should be a valid UTF8 string. */
+	if (!is_utf8_string(active->base.name))
+		strcpy(active->base.name, DEFAULT_BT_DEVICE_NAME);
 	cras_iodev_add_node(iodev, &active->base);
 
 	node = add_profile_dev(&btio->base, dev, profile);

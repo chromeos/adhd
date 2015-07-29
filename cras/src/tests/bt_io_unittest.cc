@@ -27,6 +27,7 @@ static int cras_bt_device_switch_profile_on_open_called;
 static int cras_bt_device_switch_profile_on_close_called;
 static int cras_bt_device_can_switch_to_a2dp_ret;
 static int cras_bt_device_has_a2dp_ret;
+static int is_utf8_string_ret_value;
 
 void ResetStubData() {
   cras_iodev_add_node_called = 0;
@@ -44,6 +45,7 @@ void ResetStubData() {
   cras_bt_device_switch_profile_on_close_called = 0;
   cras_bt_device_can_switch_to_a2dp_ret = 0;
   cras_bt_device_has_a2dp_ret = 0;
+  is_utf8_string_ret_value = 1;
 }
 
 namespace {
@@ -321,6 +323,17 @@ TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToHFP) {
   cras_bt_io_destroy(bt_iodev);
 }
 
+TEST_F(BtIoBasicSuite, CreateDeviceWithInvalidUTF8Name) {
+  ResetStubData();
+  strcpy(iodev_.info.name, "Something BT");
+  iodev_.info.name[0] = 0xfe;
+  is_utf8_string_ret_value = 0;
+  bt_iodev = cras_bt_io_create(fake_device, &iodev_,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+
+  ASSERT_STREQ("BLUETOOTH", bt_iodev->active_node->name);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -421,5 +434,10 @@ int cras_bt_device_switch_profile_on_open(struct cras_bt_device *device,
 {
   cras_bt_device_switch_profile_on_open_called++;
   return 0;
+}
+
+int is_utf8_string(const char* string)
+{
+  return is_utf8_string_ret_value;
 }
 } // extern "C"
