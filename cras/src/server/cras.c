@@ -9,7 +9,6 @@
 
 #include "cras_config.h"
 #include "cras_iodev_list.h"
-#include "cras_loopback_iodev.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
 #include "cras_dsp.h"
@@ -86,9 +85,6 @@ int main(int argc, char **argv)
 	cras_system_state_init(device_config_dir);
 	cras_dsp_init(dsp_config);
 	cras_iodev_list_init();
-
-	loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
-	loopback_iodev_create(LOOPBACK_POST_DSP);
 
 	/* Start the server. */
 	cras_server_run();

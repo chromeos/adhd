@@ -169,7 +169,7 @@ class IoDevTestSuite : public testing::Test {
       loopback_input.update_supported_formats = NULL;
       loopback_input.update_active_node = update_active_node;
       loopback_input.format = NULL;
-      loopback_input.direction = CRAS_STREAM_OUTPUT;
+      loopback_input.direction = CRAS_STREAM_INPUT;
       loopback_input.info.idx = -999;
       loopback_input.nodes = &node3;
       loopback_input.active_node = &node3;
@@ -966,10 +966,6 @@ void audio_thread_remove_streams(struct audio_thread *thread,
   audio_thread_remove_streams_active_dev = audio_thread_set_active_dev_val;
 }
 
-void audio_thread_add_loopback_device(struct audio_thread *thread,
-				      struct cras_iodev *loop_dev) {
-}
-
 int audio_thread_add_open_dev(struct audio_thread *thread,
 				 struct cras_iodev *dev)
 {
@@ -1064,17 +1060,11 @@ void test_iodev_command(struct cras_iodev *iodev,
                         const uint8_t *data) {
 }
 
-void loopback_iodev_create(struct cras_iodev **loop_in,
-                           struct cras_iodev **loop_out)
-{
-  *loop_in = &loopback_input;
+struct cras_iodev *loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type) {
+  return &loopback_input;
 }
 
-void loopback_iodev_destroy(struct cras_iodev *loop_in,
-                            struct cras_iodev *loop_out)
-{
-  if (loop_in)
-    cras_iodev_list_rm_input(loop_in);
+void loopback_iodev_destroy(struct cras_iodev *iodev) {
 }
 
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)

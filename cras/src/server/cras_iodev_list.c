@@ -651,6 +651,11 @@ void cras_iodev_list_init()
 			empty_iodev_create(CRAS_STREAM_INPUT);
 	enable_device(fallback_devs[CRAS_STREAM_OUTPUT]);
 	enable_device(fallback_devs[CRAS_STREAM_INPUT]);
+
+	/* Create loopback devices. */
+	loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
+	loopback_iodev_create(LOOPBACK_POST_DSP);
+
 	audio_thread = audio_thread_create();
 	audio_thread_start(audio_thread);
 
