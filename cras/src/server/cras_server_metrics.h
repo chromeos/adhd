@@ -9,5 +9,11 @@
 extern const char kNoCodecsFoundMetric[];
 extern const char kStreamTimeoutMilliSeconds[];
 
+/* Logs the longest fetch delay of a stream in millisecond. */
+int cras_server_metrics_longest_fetch_delay(int delay_msec);
+
+/* Initialize metrics logging stuff. */
+int cras_server_metrics_init();
+
 #endif /* CRAS_SERVER_METRICS_H_ */
 

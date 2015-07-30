@@ -18,6 +18,7 @@
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -415,6 +416,22 @@ static int thread_remove_stream(struct audio_thread *thread,
 				struct cras_iodev *dev)
 {
 	struct open_dev *open_dev;
+	struct timespec delay;
+	unsigned fetch_delay_msec;
+
+	/* Metrics log the longest fetch delay of this stream. */
+	if (timespec_after(&stream->longest_fetch_interval,
+			   &stream->sleep_interval_ts)) {
+		subtract_timespecs(&stream->longest_fetch_interval,
+				   &stream->sleep_interval_ts,
+				   &delay);
+		fetch_delay_msec = delay.tv_sec * 1000 +
+				   delay.tv_nsec / 1000000;
+		if (fetch_delay_msec)
+			cras_server_metrics_longest_fetch_delay(
+					fetch_delay_msec);
+	}
+
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_STREAM_REMOVED,
 				    stream->stream_id, 0, 0);

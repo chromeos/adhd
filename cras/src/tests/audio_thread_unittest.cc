@@ -628,6 +628,11 @@ int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
   return iodev->buffer_size - iodev->frames_queued(iodev);
 }
 
+int cras_server_metrics_longest_fetch_delay(int delay_msec)
+{
+  return 0;
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {

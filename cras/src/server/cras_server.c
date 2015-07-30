@@ -343,6 +343,8 @@ int cras_server_run()
 	cras_udev_start_sound_subsystem_monitor();
 	cras_bt_device_start_monitor();
 
+	cras_server_metrics_init();
+
 	dbus_threads_init_default();
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {

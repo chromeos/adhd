@@ -15,6 +15,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
 	/* Audio thread -> main thread */
 	CRAS_MAIN_A2DP,
 	CRAS_MAIN_BT,
+	CRAS_MAIN_METRICS,
 };
 
 /* Structure of the header of the message handled by main thread.
