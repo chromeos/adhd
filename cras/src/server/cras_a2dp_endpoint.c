@@ -14,6 +14,7 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_endpoint.h"
 #include "cras_hfp_ag_profile.h"
+#include "cras_main_message.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 
@@ -25,6 +26,7 @@ enum A2DP_COMMAND {
 };
 
 struct a2dp_msg {
+	struct cras_main_message header;
 	enum A2DP_COMMAND cmd;
 	struct cras_iodev *dev;
 };
@@ -35,9 +37,6 @@ static struct a2dp {
 	struct cras_bt_device *device;
 } connected_a2dp;
 
-/* To send a message to main thread. */
-static int to_main_fds[2];
-
 /*
  * Force suspends a cras_iodev when unexpect error occurs.
  */
@@ -46,10 +45,12 @@ static void cras_a2dp_force_suspend(struct cras_iodev *dev)
 	int err;
 	struct a2dp_msg msg;
 
+	msg.header.type = CRAS_MAIN_A2DP;
+	msg.header.length = sizeof(msg);
 	msg.cmd = A2DP_FORCE_SUSPEND;
 	msg.dev = dev;
 
-	err = write(to_main_fds[1], &msg, sizeof(msg));
+	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to post message to main thread");
 		return;
@@ -198,20 +199,15 @@ static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
 
 /* Handles a2dp messages in main thread.
  */
-static void a2dp_handle_message(void *arg)
+static void a2dp_handle_message(struct cras_main_message *msg, void *arg)
 {
-	int rc;
-	struct a2dp_msg msg;
+	struct a2dp_msg *a2dp_msg = (struct a2dp_msg *)msg;
 
-	rc = read(to_main_fds[0], &msg, sizeof(msg));
-	if (rc < 0)
-		return;
-
-	switch (msg.cmd) {
+	switch (a2dp_msg->cmd) {
 	case A2DP_FORCE_SUSPEND:
 		/* If the iodev to force suspend no longer active,
 		 * ignore the message. */
-		if (connected_a2dp.iodev != msg.dev)
+		if (connected_a2dp.iodev != a2dp_msg->dev)
 			break;
 		a2dp_iodev_destroy(connected_a2dp.iodev);
 		connected_a2dp.iodev = NULL;
@@ -255,20 +251,8 @@ static struct cras_bt_endpoint cras_a2dp_endpoint = {
 
 int cras_a2dp_endpoint_create(DBusConnection *conn)
 {
-	int err;
-	err = pipe(to_main_fds);
-	if (err < 0) {
-		syslog(LOG_ERR, "Failed to create pipe for a2dp endpoint");
-		return err;
-	}
-
-	/* When full it's preferred to get error instead of blocked. */
-	cras_make_fd_nonblocking(to_main_fds[0]);
-	cras_make_fd_nonblocking(to_main_fds[1]);
-
-	cras_system_add_select_fd(to_main_fds[0],
-				  a2dp_handle_message,
-				  &cras_a2dp_endpoint);
+	cras_main_message_add_handler(CRAS_MAIN_A2DP,
+				      a2dp_handle_message, NULL);
 	return cras_bt_endpoint_add(conn, &cras_a2dp_endpoint);
 }
 

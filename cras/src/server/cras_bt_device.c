@@ -22,6 +22,7 @@
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_main_message.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "utlist.h"
@@ -72,15 +73,13 @@ enum BT_DEVICE_COMMAND {
 };
 
 struct bt_device_msg {
+	struct cras_main_message header;
 	enum BT_DEVICE_COMMAND cmd;
 	struct cras_bt_device *device;
 	struct cras_iodev *dev;
 };
 
 static struct cras_bt_device *devices;
-
-/* To send message to main thread. */
-int main_fds[2];
 
 void cras_bt_device_set_append_iodev_cb(struct cras_bt_device *device,
 					void (*cb)(void *data))
@@ -675,10 +674,13 @@ int cras_bt_device_switch_profile_on_open(struct cras_bt_device *device,
 	struct bt_device_msg msg;
 	int rc;
 
+	msg.header.type = CRAS_MAIN_BT;
+	msg.header.length = sizeof(msg);
 	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ON_OPEN;
 	msg.device = device;
 	msg.dev = bt_iodev;
-	rc = write(main_fds[1], &msg, sizeof(msg));
+
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
 
@@ -688,10 +690,12 @@ int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
 	struct bt_device_msg msg;
 	int rc;
 
+	msg.header.type = CRAS_MAIN_BT;
+	msg.header.length = sizeof(msg);
 	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ON_CLOSE;
 	msg.device = device;
 	msg.dev = bt_iodev;
-	rc = write(main_fds[1], &msg, sizeof(msg));
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
 
@@ -746,21 +750,16 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 	}
 }
 
-static void bt_device_process_msg(void *arg)
+static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 {
-	int rc;
-	struct bt_device_msg msg;
+	struct bt_device_msg *bt_msg = (struct bt_device_msg *)msg;
 
-	rc = read(main_fds[0], &msg, sizeof(msg));
-	if (rc < 0)
-		return;
-
-	switch (msg.cmd) {
+	switch (bt_msg->cmd) {
 	case BT_DEVICE_SWITCH_PROFILE_ON_CLOSE:
-		bt_device_switch_profile(msg.device, msg.dev, 0);
+		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 0);
 		break;
 	case BT_DEVICE_SWITCH_PROFILE_ON_OPEN:
-		bt_device_switch_profile(msg.device, msg.dev, 1);
+		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 1);
 		break;
 	default:
 		break;
@@ -769,17 +768,6 @@ static void bt_device_process_msg(void *arg)
 
 void cras_bt_device_start_monitor()
 {
-	int rc;
-
-	main_fds[0] = -1;
-	main_fds[1] = -1;
-	rc = pipe(main_fds);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to pipe");
-		return;
-	}
-
-	cras_system_add_select_fd(main_fds[0],
-				  bt_device_process_msg,
-				  NULL);
+	cras_main_message_add_handler(CRAS_MAIN_BT,
+				      bt_device_process_msg, NULL);
 }

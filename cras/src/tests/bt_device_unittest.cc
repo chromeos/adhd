@@ -8,6 +8,7 @@ extern "C" {
 #include "cras_bt_io.h"
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
+#include "cras_main_message.h"
 
 #define FAKE_OBJ_PATH "/obj/path"
 }
@@ -23,8 +24,9 @@ static enum cras_bt_device_profile cras_bt_io_create_profile_val;
 static enum cras_bt_device_profile cras_bt_io_append_profile_val;
 static unsigned int cras_bt_io_try_remove_ret;
 
-static void (*cras_system_add_select_fd_callback)(void *data);
-static void *cras_system_add_select_fd_callback_data;
+static cras_main_message *cras_main_message_send_msg;
+static cras_message_callback cras_main_message_add_handler_callback;
+static void *cras_main_message_add_handler_callback_data;
 
 void ResetStubData() {
   cras_bt_io_get_profile_ret = NULL;
@@ -142,15 +144,21 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
   cras_bt_device_switch_profile_on_open(device, &bt_iodev1);
 
   /* Two bt iodevs were all active. */
-  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+  cras_main_message_add_handler_callback(
+      cras_main_message_send_msg,
+      cras_main_message_add_handler_callback_data);
 
   /* One bt iodev was active, the other was not. */
   cras_bt_device_switch_profile_on_open(device, &bt_iodev2);
-  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+  cras_main_message_add_handler_callback(
+      cras_main_message_send_msg,
+      cras_main_message_add_handler_callback_data);
 
   /* Output bt iodev wasn't active, close the active input iodev. */
   cras_bt_device_switch_profile_on_close(device, &bt_iodev2);
-  cras_system_add_select_fd_callback(cras_system_add_select_fd_callback_data);
+  cras_main_message_add_handler_callback(
+      cras_main_message_send_msg,
+      cras_main_message_add_handler_callback_data);
 }
 
 /* Stubs */
@@ -261,12 +269,18 @@ void cras_iodev_list_enable_dev(struct cras_iodev *dev)
 {
 }
 
-int cras_system_add_select_fd(int fd,
-            void (*callback)(void *data),
-            void *callback_data)
+int cras_main_message_send(struct cras_main_message *msg)
 {
-  cras_system_add_select_fd_callback = callback;
-  cras_system_add_select_fd_callback_data = callback_data;
+  cras_main_message_send_msg = msg;
+  return 0;
+}
+
+int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
+          cras_message_callback callback,
+          void *callback_data)
+{
+  cras_main_message_add_handler_callback = callback;
+  cras_main_message_add_handler_callback_data = callback_data;
   return 0;
 }
 
