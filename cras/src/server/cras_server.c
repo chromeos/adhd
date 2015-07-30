@@ -29,6 +29,7 @@
 #include "cras_dbus_control.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_iodev_list.h"
+#include "cras_main_message.h"
 #include "cras_messages.h"
 #include "cras_metrics.h"
 #include "cras_rclient.h"
@@ -314,6 +315,8 @@ int cras_server_init()
 	 * from the list that are passed to select in the main loop below. */
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
+	cras_main_message_init();
+
 	return 0;
 }
 

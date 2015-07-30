@@ -66,6 +66,7 @@ cras_SOURCES = \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
+	server/cras_main_message.c \
 	server/cras_mix.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
