@@ -465,6 +465,8 @@ void sys_cap_mute_change(void *data)
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
+	struct cras_iodev *iodevs[10];
+	unsigned int num_iodevs;
 	int rc;
 
 	if (stream_list_suspended)
@@ -480,14 +482,21 @@ static int stream_added_cb(struct cras_rstream *rstream)
 		if (rc)
 			return rc;
 
-		return audio_thread_add_stream(audio_thread, rstream, dev);
+		return audio_thread_add_stream(audio_thread, rstream, &dev, 1);
 	}
 
-	/* Add the new stream to all iodevs at once to avoid offset in shm
-	 * level between different ouput iodevs. */
-	DL_FOREACH(enabled_devs[rstream->direction], edev)
+	/* Add the new stream to all enabled iodevs at once to avoid offset
+	 * in shm level between different ouput iodevs. */
+	num_iodevs = 0;
+	DL_FOREACH(enabled_devs[rstream->direction], edev) {
+		if (num_iodevs >= ARRAY_SIZE(iodevs)) {
+			syslog(LOG_ERR, "too many enabled devices");
+			break;
+		}
 		init_device(edev->dev, rstream);
-	rc = audio_thread_add_stream(audio_thread, rstream, NULL);
+		iodevs[num_iodevs++] = edev->dev;
+	}
+	rc = audio_thread_add_stream(audio_thread, rstream, iodevs, num_iodevs);
 	if (rc) {
 		syslog(LOG_ERR, "adding stream to thread fail");
 		return rc;
@@ -589,7 +598,7 @@ static int enable_device(struct cras_iodev *dev)
 			if (stream->direction == dir && !stream->is_pinned) {
 				init_device(dev, stream);
 				audio_thread_add_stream(audio_thread,
-							stream, dev);
+							stream, &dev, 1);
 			}
 		}
 	}

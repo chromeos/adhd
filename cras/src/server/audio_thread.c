@@ -56,7 +56,8 @@ struct audio_thread_open_device_msg {
 struct audio_thread_add_rm_stream_msg {
 	struct audio_thread_msg header;
 	struct cras_rstream *stream;
-	struct cras_iodev *dev;
+	struct cras_iodev **devs;
+	unsigned int num_devs;
 };
 
 struct audio_thread_dump_debug_info_msg {
@@ -269,17 +270,25 @@ static void delete_stream_from_dev(struct cras_iodev *dev,
 		dev_stream_destroy(out);
 }
 
-/* Append a new stream to all enabled iodevs. */
-static int append_stream_to_all(struct audio_thread *thread,
-				struct cras_rstream *stream)
+/* Append a new stream to a specified set of iodevs. */
+static int append_stream(struct audio_thread *thread,
+			 struct cras_rstream *stream,
+			 struct cras_iodev **iodevs,
+			 unsigned int num_iodevs)
 {
 	struct open_dev *open_dev;
 	struct cras_iodev *dev;
 	struct dev_stream *out;
+	unsigned int i;
 	int rc = 0;
 
-	DL_FOREACH(thread->open_devs[stream->direction], open_dev) {
-		dev = open_dev->dev;
+	for (i = 0; i < num_iodevs; i++) {
+		DL_SEARCH_SCALAR(thread->open_devs[stream->direction], open_dev,
+				dev, iodevs[i]);
+		if (!open_dev)
+			continue;
+
+		dev = iodevs[i];
 		DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
 		if (out)
 			continue;
@@ -341,37 +350,6 @@ static int append_stream_to_all(struct audio_thread *thread,
 	}
 
 	return rc;
-}
-
-/* Append a new stream to specific iodev. */
-static int append_stream_to_dev(struct audio_thread *thread,
-				struct cras_rstream *stream,
-				struct cras_iodev *target_dev)
-{
-	struct open_dev *open_dev;
-	struct dev_stream *out;
-
-	if (!target_dev)
-		return -EINVAL;
-
-	/* Check that we don't already have this stream */
-	DL_SEARCH_SCALAR(target_dev->streams, out, stream, stream);
-	if (out)
-		return -EEXIST;
-
-	DL_SEARCH_SCALAR(thread->open_devs[stream->direction], open_dev, dev,
-			 target_dev);
-	if (!open_dev)
-		return -EINVAL;
-
-	out = dev_stream_create(stream, target_dev->info.idx,
-				target_dev->ext_format, target_dev);
-	if (!out)
-		return -EINVAL;
-
-	cras_iodev_add_stream(target_dev, out);
-
-	return 0;
 }
 
 static int delete_stream(struct audio_thread *thread,
@@ -563,22 +541,20 @@ static int thread_drain_stream(struct audio_thread *thread,
 /* Handles the add_stream message from the main thread. */
 static int thread_add_stream(struct audio_thread *thread,
 			     struct cras_rstream *stream,
-			     struct cras_iodev *iodev)
+			     struct cras_iodev **iodevs,
+			     unsigned int num_iodevs)
 {
 	int rc;
 
-	if (iodev)
-		rc = append_stream_to_dev(thread, stream, iodev);
-	else
-		rc = append_stream_to_all(thread, stream);
+	rc = append_stream(thread, stream, iodevs, num_iodevs);
 	if (rc < 0)
 		return rc;
 
 	audio_thread_event_log_data(atlog,
 				    AUDIO_THREAD_STREAM_ADDED,
 				    stream->stream_id,
-				    iodev ? iodev->info.idx : 0,
-				    0);
+				    num_iodevs ? iodevs[0]->info.idx : 0,
+				    num_iodevs);
 	return 0;
 }
 
@@ -885,7 +861,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 			atlog,
 			AUDIO_THREAD_WRITE_STREAMS_WAIT,
 			amsg->stream->stream_id, 0, 0);
-		ret = thread_add_stream(thread, amsg->stream, amsg->dev);
+		ret = thread_add_stream(thread, amsg->stream, amsg->devs,
+				amsg->num_devs);
 		break;
 	}
 	case AUDIO_THREAD_DISCONNECT_STREAM: {
@@ -893,7 +870,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
 
-		ret = thread_disconnect_stream(thread, rmsg->stream, rmsg->dev);
+		ret = thread_disconnect_stream(thread, rmsg->stream,
+				rmsg->devs[0]);
 		break;
 	}
 	case AUDIO_THREAD_ADD_OPEN_DEV: {
@@ -1663,7 +1641,8 @@ static int audio_thread_post_message(struct audio_thread *thread,
 
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream,
-			    struct cras_iodev *dev)
+			    struct cras_iodev **devs,
+			    unsigned int num_devs)
 {
 	struct audio_thread_add_rm_stream_msg msg;
 
@@ -1675,7 +1654,8 @@ int audio_thread_add_stream(struct audio_thread *thread,
 	msg.header.id = AUDIO_THREAD_ADD_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
-	msg.dev = dev;
+	msg.devs = devs;
+	msg.num_devs = num_devs;
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1690,7 +1670,7 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 	msg.header.id = AUDIO_THREAD_DISCONNECT_STREAM;
 	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
 	msg.stream = stream;
-	msg.dev = dev;
+	msg.devs = &dev;
 	return audio_thread_post_message(thread, &msg.header);
 }
 

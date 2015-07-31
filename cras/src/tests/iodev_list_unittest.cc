@@ -983,11 +983,12 @@ int audio_thread_rm_open_dev(struct audio_thread *thread,
 
 int audio_thread_add_stream(struct audio_thread *thread,
                             struct cras_rstream *stream,
-                            struct cras_iodev *dev)
+                            struct cras_iodev **devs,
+                            unsigned int num_devs)
 {
   audio_thread_add_stream_called++;
   audio_thread_add_stream_stream = stream;
-  audio_thread_add_stream_dev = dev;
+  audio_thread_add_stream_dev = (num_devs ? devs[0] : NULL);
   return 0;
 }
 

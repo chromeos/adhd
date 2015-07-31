@@ -124,14 +124,16 @@ void audio_thread_destroy(struct audio_thread *thread);
  * Args:
  *    thread - a pointer to the audio thread.
  *    stream - the new stream to add.
- *    dev - device to attach stream. NULL to attach to all the default devices.
+ *    devs - an array of devices to attach stream.
+ *    num_devs - number of devices in the array pointed by devs
  * Returns:
  *    zero on success, negative error from the AUDIO_THREAD enum above when an
  *    the thread can't be added.
  */
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream,
-			    struct cras_iodev *dev);
+			    struct cras_iodev **devs,
+			    unsigned int num_devs);
 
 /* Begin draining a stream and check the draining status.
  * Args:

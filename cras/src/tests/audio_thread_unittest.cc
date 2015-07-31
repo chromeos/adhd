@@ -234,6 +234,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
 TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   struct cras_iodev iodev;
   struct cras_iodev iodev2;
+  struct cras_iodev *iodevs[] = {&iodev, &iodev2};
   struct cras_rstream rstream;
   struct cras_rstream rstream2;
   struct cras_rstream rstream3;
@@ -247,7 +248,7 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   thread_add_open_dev(thread_, &iodev);
   thread_add_open_dev(thread_, &iodev2);
 
-  thread_add_stream(thread_, &rstream, NULL);
+  thread_add_stream(thread_, &rstream, iodevs, 2);
   EXPECT_NE((void *)NULL, iodev.streams);
   EXPECT_NE((void *)NULL, iodev2.streams);
 
@@ -258,7 +259,7 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   cras_rstream_dev_offset_ret[0] = 30;
   cras_rstream_dev_offset_ret[1] = 0;
 
-  thread_add_stream(thread_, &rstream2, NULL);
+  thread_add_stream(thread_, &rstream2, iodevs, 2);
   EXPECT_EQ(2, cras_rstream_dev_offset_called);
   EXPECT_EQ(&rstream, cras_rstream_dev_offset_rstream_val[0]);
   EXPECT_EQ(iodev.info.idx, cras_rstream_dev_offset_dev_id_val[0]);
@@ -273,8 +274,8 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
-  struct cras_iodev iodev;
-  struct cras_iodev iodev2;
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct cras_iodev iodev2, *piodev2 = &iodev2;
   struct cras_rstream rstream;
   struct cras_rstream rstream2;
   struct cras_rstream rstream3;
@@ -288,10 +289,10 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
 
   // Add first device as open and check 2 streams can be added.
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &iodev);
+  thread_add_stream(thread_, &rstream, &piodev, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
-  thread_add_stream(thread_, &rstream2, &iodev);
+  thread_add_stream(thread_, &rstream2, &piodev, 1);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
 
   // Add second device as open and check no streams are copied over.
@@ -304,7 +305,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
 
   // Add a stream to the second dev and check it isn't also added to the first.
-  thread_add_stream(thread_, &rstream3, &iodev2);
+  thread_add_stream(thread_, &rstream3, &piodev2, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
