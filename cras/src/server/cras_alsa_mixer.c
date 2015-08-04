@@ -237,6 +237,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	};
 	snd_mixer_elem_t *elem;
 	struct cras_alsa_mixer *cmix;
+	snd_mixer_elem_t *other_elem = NULL;
+	unsigned int other_dB_range = 0;
 
 	cmix = calloc(1, sizeof(*cmix));
 	if (cmix == NULL)
@@ -293,6 +295,32 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 				cras_alsa_mixer_destroy(cmix);
 				return NULL;
 			}
+		} else if (snd_mixer_selem_has_playback_volume(elem)) {
+			/* Temporarily cache one elem whose name is not
+			 * in the list above, but has a playback volume
+			 * control and the largest volume range. */
+			long min, max, range;
+			if (snd_mixer_selem_get_playback_dB_range(elem,
+								  &min,
+								  &max) != 0)
+				continue;
+
+			range = max - min;
+			if (other_dB_range < range) {
+				other_dB_range = range;
+				other_elem = elem;
+			}
+		}
+	}
+
+	/* If there is no volume control and output control found,
+	 * use the volume control which has the largest volume range
+	 * in the mixer as a main volume control. */
+	if (!cmix->main_volume_controls && !cmix->output_controls &&
+	    other_elem) {
+		if (add_main_volume_control(cmix, other_elem) != 0) {
+			cras_alsa_mixer_destroy(cmix);
+			return NULL;
 		}
 	}
 

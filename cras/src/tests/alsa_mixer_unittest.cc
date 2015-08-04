@@ -234,8 +234,11 @@ TEST(AlsaMixer, CreateNoElements) {
   EXPECT_EQ(1, snd_mixer_close_called);
 }
 
-TEST(AlsaMixer, CreateOneUnknownElement) {
+TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   struct cras_alsa_mixer *c;
+  int element_playback_volume[] = {
+    0,
+  };
   const char *element_names[] = {
     "Unknown",
   };
@@ -243,6 +246,9 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
+  snd_mixer_selem_has_playback_volume_return_values = element_playback_volume;
+  snd_mixer_selem_has_playback_volume_return_values_length =
+      ARRAY_SIZE(element_playback_volume);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
@@ -253,7 +259,7 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
   EXPECT_EQ(1, snd_mixer_selem_register_called);
   EXPECT_EQ(1, snd_mixer_load_called);
   EXPECT_EQ(0, snd_mixer_close_called);
-  EXPECT_EQ(0, snd_mixer_selem_has_playback_volume_called);
+  EXPECT_EQ(1, snd_mixer_selem_has_playback_volume_called);
   EXPECT_EQ(1, snd_mixer_selem_get_name_called);
 
   /* set mute shouldn't call anything. */
@@ -267,6 +273,55 @@ TEST(AlsaMixer, CreateOneUnknownElement) {
   /* set volume shouldn't call anything. */
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_dB_all_called);
+
+  cras_alsa_mixer_destroy(c);
+  EXPECT_EQ(1, snd_mixer_close_called);
+}
+
+TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
+  struct cras_alsa_mixer *c;
+  static const long min_volumes[] = {-500};
+  static const long max_volumes[] = {40};
+  int element_playback_volume[] = {
+    1,
+  };
+  const char *element_names[] = {
+    "Unknown",
+  };
+  struct cras_alsa_mixer_output mixer_output;
+
+  ResetStubData();
+  snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
+  snd_mixer_selem_has_playback_volume_return_values = element_playback_volume;
+  snd_mixer_selem_has_playback_volume_return_values_length =
+      ARRAY_SIZE(element_playback_volume);
+  snd_mixer_selem_get_name_return_values = element_names;
+  snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
+  snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
+  snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
+  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
+  ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_EQ(1, snd_mixer_open_called);
+  EXPECT_EQ(1, snd_mixer_attach_called);
+  EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
+  EXPECT_EQ(1, snd_mixer_selem_register_called);
+  EXPECT_EQ(1, snd_mixer_load_called);
+  EXPECT_EQ(0, snd_mixer_close_called);
+  EXPECT_EQ(2, snd_mixer_selem_has_playback_volume_called);
+  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_range_called);
+  EXPECT_EQ(1, snd_mixer_selem_get_name_called);
+
+  /* should use the unknown element as a fallback */
+  cras_alsa_mixer_set_mute(c, 0, NULL);
+  EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
+  /* if passed a mixer output then it should mute that. */
+  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
+  mixer_output.has_mute = 1;
+  cras_alsa_mixer_set_mute(c, 0, &mixer_output);
+  EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
+  cras_alsa_mixer_set_dBFS(c, 0, NULL);
+  EXPECT_EQ(1, snd_mixer_selem_set_playback_dB_all_called);
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);
