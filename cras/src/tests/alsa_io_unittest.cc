@@ -1003,8 +1003,6 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
   return 0;
 }
 
-}
-
 //  From alsa helper.
 int cras_alsa_set_channel_map(snd_pcm_t *handle,
 			      struct cras_audio_format *fmt)
@@ -1355,7 +1353,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
   return 0;
 }
 
-audio_thread* audio_thread_create(cras_iodev* iodev) {
+struct audio_thread *audio_thread_create() {
   return reinterpret_cast<audio_thread*>(0x323);
 }
 
@@ -1436,4 +1434,6 @@ void audio_thread_rm_callback(int fd)
 int is_utf8_string(const char* string)
 {
   return is_utf8_string_ret_value;
+}
+
 }
