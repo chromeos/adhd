@@ -51,6 +51,7 @@ static thread_callback write_callback;
 static void *write_callback_data;
 static const char *fake_device_name = "fake device name";
 static const char *cras_bt_device_name_ret;
+static unsigned int cras_bt_transport_write_mtu_ret;
 
 void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -73,6 +74,7 @@ void ResetStubData() {
          sizeof(a2dp_encode_processed_bytes_val));
   a2dp_encode_index = 0;
   a2dp_write_index = 0;
+  cras_bt_transport_write_mtu_ret = 800;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport *>(0x123);
 
@@ -176,9 +178,11 @@ TEST(A2dpIoInit, GetPutBuffer) {
   struct cras_audio_area *area1, *area2, *area3;
   uint8_t *area1_buf;
   unsigned frames;
+  int pre_fill_bytes;
 
   ResetStubData();
   iodev = a2dp_iodev_create(fake_transport, NULL);
+  pre_fill_bytes = cras_bt_transport_write_mtu_ret * 2;
 
   iodev_set_format(iodev, &format);
   iodev->open_dev(iodev);
@@ -200,7 +204,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   write_callback(write_callback_data);
   // Start with 4k frames.
   EXPECT_EQ(4096, pcm_buf_size_val[0]);
-  EXPECT_EQ(16384 + 400, pcm_buf_size_val[1]);
+  EXPECT_EQ(pre_fill_bytes + 400, pcm_buf_size_val[1]);
 
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
@@ -220,8 +224,8 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_return_val[1] = 0;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
-  EXPECT_EQ(16384 + 400, pcm_buf_size_val[0]);
-  ASSERT_EQ(16384 + 40, pcm_buf_size_val[1]);
+  EXPECT_EQ(pre_fill_bytes + 400, pcm_buf_size_val[0]);
+  ASSERT_EQ(pre_fill_bytes + 40, pcm_buf_size_val[1]);
 
   iodev->get_buffer(iodev, &area3, &frames);
 
@@ -238,9 +242,11 @@ TEST(A2dpIoInif, FramesQueued) {
   struct cras_iodev *iodev;
   struct cras_audio_area *area;
   unsigned frames;
+  int pre_fill_frames;
 
   ResetStubData();
   iodev = a2dp_iodev_create(fake_transport, NULL);
+  pre_fill_frames = cras_bt_transport_write_mtu_ret * 2 / 4;
 
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
@@ -265,7 +271,7 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
-  EXPECT_EQ(4096 + 100, iodev->frames_queued(iodev));
+  EXPECT_EQ(pre_fill_frames + 100, iodev->frames_queued(iodev));
 
   /* After writing another 200 frames, check for correct buffer level. */
   time_now.tv_sec = 0;
@@ -274,7 +280,7 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_write_index = 0;
   a2dp_encode_processed_bytes_val[0] = 800;
   write_callback(write_callback_data);
-  EXPECT_EQ(4096 + 100 - 200, iodev->frames_queued(iodev));
+  EXPECT_EQ(pre_fill_frames + 100 - 200, iodev->frames_queued(iodev));
 
   /* Queued frames and new put buffer are all written */
   a2dp_encode_processed_bytes_val[0] = 400;
@@ -289,8 +295,8 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 3000000;
   iodev->put_buffer(iodev, 200);
-  EXPECT_EQ(16784, pcm_buf_size_val[0]);
-  EXPECT_EQ(4096, iodev->frames_queued(iodev));
+  EXPECT_EQ((pre_fill_frames + 100) * 4, pcm_buf_size_val[0]);
+  EXPECT_EQ(pre_fill_frames, iodev->frames_queued(iodev));
 }
 
 } // namespace
@@ -334,8 +340,7 @@ const char *cras_bt_transport_object_path(
 
 uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
 {
-  /* 256 frames of 16 bit stereo, plus header size */
-  return 1024 + 13;
+  return cras_bt_transport_write_mtu_ret;
 }
 
 

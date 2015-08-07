@@ -31,6 +31,7 @@ struct a2dp_io {
 	struct a2dp_info a2dp;
 	struct cras_bt_transport *transport;
 	a2dp_force_suspend_cb force_suspend_cb;
+	unsigned sock_depth_frames;
 
 	/* To hold the pcm samples. */
 	struct byte_buffer *pcm_buf;
@@ -145,8 +146,20 @@ static int open_dev(struct cras_iodev *iodev)
 		return -ENOMEM;
 
 	iodev->buffer_size = PCM_BUF_MAX_SIZE_FRAMES;
-	/* TODO(dgreid) - this should be 2 * (mtu size in frames) */
-	iodev->min_buffer_level = 4096;
+
+	/* Set up the socket to hold two MTUs full of data before returning
+	 * EAGAIN.  This will allow the write to be throttled when a reasonable
+	 * amount of data is queued. */
+	sock_depth = 2 * cras_bt_transport_write_mtu(a2dpio->transport);
+	setsockopt(cras_bt_transport_fd(a2dpio->transport),
+		   SOL_SOCKET, SO_SNDBUF, &sock_depth, sizeof(sock_depth));
+
+	a2dpio->sock_depth_frames =
+		a2dp_block_size(&a2dpio->a2dp,
+				cras_bt_transport_write_mtu(a2dpio->transport))
+			/ cras_get_format_bytes(iodev->format) * 2;
+	iodev->min_buffer_level = a2dpio->sock_depth_frames;
+
 	a2dpio->pre_fill_complete = 0;
 	buf_increment_write(a2dpio->pcm_buf,
 			    iodev->min_buffer_level *
@@ -156,20 +169,10 @@ static int open_dev(struct cras_iodev *iodev)
 	a2dpio->bt_written_frames = 0;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
 
-	/* Set up the socket to hold two MTUs full of data before returning
-	 * EAGAIN.  This will allow the write to be throttled when a reasonable
-	 * amount of data is queued. */
-	sock_depth = 2 * cras_bt_transport_write_mtu(a2dpio->transport);
-	setsockopt(cras_bt_transport_fd(a2dpio->transport),
-		   SOL_SOCKET, SO_SNDBUF, &sock_depth, sizeof(sock_depth));
-
 	audio_thread_add_write_callback(cras_bt_transport_fd(a2dpio->transport),
 					flush_data, iodev);
 	audio_thread_enable_callback(cras_bt_transport_fd(a2dpio->transport),
 				     0);
-
-	syslog(LOG_ERR, "a2dp iodev buf size %lu %u", iodev->buffer_size,
-		cras_bt_transport_write_mtu(a2dpio->transport));
 	return 0;
 }
 
@@ -311,9 +314,7 @@ static int delay_frames(const struct cras_iodev *iodev)
 	const struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 
 	/* The number of frames in the pcm buffer plus two mtu packets */
-	return frames_queued(iodev)
-		+ 2 * cras_bt_transport_write_mtu(a2dpio->transport) /
-			cras_get_format_bytes(iodev->format);
+	return frames_queued(iodev) + a2dpio->sock_depth_frames;
 }
 
 static int get_buffer(struct cras_iodev *iodev,
