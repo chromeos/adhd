@@ -16,6 +16,7 @@ cras_SOURCES = \
 	common/cras_util.c \
 	common/dumper.c \
 	common/edid_utils.c \
+	common/sfh.c \
 	dsp/biquad.c \
 	dsp/crossover.c \
 	dsp/crossover2.c \
