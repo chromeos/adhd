@@ -543,8 +543,9 @@ static void audio_debug_info(struct cras_client *client)
 		       (info->devs[i].direction == CRAS_STREAM_INPUT)
 				? "Input" : "Output",
 		       info->devs[i].dev_name);
-		printf("%u %u %u %u %u %lf\n",
+		printf("%u %u %u %u %u %u %lf\n",
 		       (unsigned int)info->devs[i].buffer_size,
+		       (unsigned int)info->devs[i].min_buffer_level,
 		       (unsigned int)info->devs[i].min_cb_level,
 		       (unsigned int)info->devs[i].max_cb_level,
 		       (unsigned int)info->devs[i].frame_rate,

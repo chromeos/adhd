@@ -195,6 +195,7 @@ struct __attribute__ ((__packed__)) audio_thread_event_log {
 struct __attribute__ ((__packed__)) audio_dev_debug_info {
 	char dev_name[CRAS_NODE_NAME_BUFFER_SIZE];
 	uint32_t buffer_size;
+	uint32_t min_buffer_level;
 	uint32_t min_cb_level;
 	uint32_t max_cb_level;
 	uint32_t frame_rate;

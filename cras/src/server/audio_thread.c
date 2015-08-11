@@ -743,6 +743,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	struct cras_audio_format *fmt = adev->dev->ext_format;
 	strncpy(di->dev_name, adev->dev->info.name, sizeof(di->dev_name));
 	di->buffer_size = adev->dev->buffer_size;
+	di->min_buffer_level = adev->dev->min_buffer_level;
 	di->min_cb_level = adev->dev->min_cb_level;
 	di->max_cb_level = adev->dev->max_cb_level;
 	di->direction = adev->dev->direction;
