@@ -1037,11 +1037,9 @@ static void set_iodev_name(struct cras_iodev *dev,
 {
 	snprintf(dev->info.name,
 		 sizeof(dev->info.name),
-		 "%s: %s:%zu,%zu",
+		 "%s: %s",
 		 card_name,
-		 dev_name,
-		 card_index,
-		 device_index);
+		 dev_name);
 	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
 	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
 }

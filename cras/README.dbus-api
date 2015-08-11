@@ -91,7 +91,7 @@ Methods		void SetOutputVolume(int32 volume)
 				string DeviceName
 					The name of the device that this node
 					belongs to. For example,
-					"HDA Intel PCH: CA0132 Analog:0,0" or
+					"HDA Intel PCH: CA0132 Analog" or
 					"Creative SB Arena Headset".
 				boolean Active
 					Whether this node is currently used
