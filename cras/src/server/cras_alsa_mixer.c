@@ -94,7 +94,7 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 				   snd_mixer_elem_t *elem)
 {
 	if (snd_mixer_selem_has_playback_volume(elem)) {
-		struct mixer_volume_control *c;
+		struct mixer_volume_control *c, *next;
 		long min, max;
 
 		c = calloc(1, sizeof(*c));
@@ -105,14 +105,24 @@ static int add_main_volume_control(struct cras_alsa_mixer *cmix,
 
 		c->elem = elem;
 
-		DL_APPEND(cmix->main_volume_controls, c);
-
 		if (snd_mixer_selem_get_playback_dB_range(elem,
 							  &min,
 							  &max) == 0) {
 			cmix->max_volume_dB += max;
 			cmix->min_volume_dB += min;
 		}
+
+		DL_FOREACH(cmix->main_volume_controls, next) {
+			long next_min, next_max;
+			snd_mixer_selem_get_playback_dB_range(next->elem,
+							      &next_min,
+							      &next_max);
+			if (max - min > next_max - next_min)
+				break;
+		}
+
+		DL_INSERT(cmix->main_volume_controls, next, c);
+
 	}
 
 	/* If cmix doesn't yet have a playback switch and this is a playback

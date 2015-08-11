@@ -415,7 +415,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
       ARRAY_SIZE(set_dB_values);
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
-  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_range_called);
+  EXPECT_EQ(3, snd_mixer_selem_get_playback_dB_range_called);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
   EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
@@ -455,8 +455,9 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   EXPECT_EQ(30, set_dB_values[0]);
   EXPECT_EQ(30, set_dB_values[1]);
   EXPECT_EQ(30, set_dB_values[2]);
-  /* Set volume should be called for Master and PCM. PCM should get the volume
-   * remaining after Master is set, in this case -50 - -25 = -25. */
+  /* Set volume should be called for Master and PCM. Since the controls were
+   * sorted, Master should get the volume remaining after PCM is set, in this
+   * case -50 - -24 = -26. */
   long get_dB_returns2[] = {
     -25,
     -24,
@@ -470,8 +471,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  EXPECT_EQ(30, set_dB_values[0]);
-  EXPECT_EQ(55, set_dB_values[1]);
+  EXPECT_EQ(54, set_dB_values[0]); // Master
+  EXPECT_EQ(30, set_dB_values[1]); // PCM
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);
