@@ -372,7 +372,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
-				     enum CRAS_STREAM_DIRECTION direction) {
+				     enum CRAS_STREAM_DIRECTION direction,
+                                     size_t usb_vid,
+                                     size_t usb_pid) {
   cras_alsa_iodev_create_called++;
   return cras_alsa_iodev_create_return;
 }

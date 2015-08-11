@@ -306,12 +306,13 @@ a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 a2dp_info_unittest_LDADD = -lgtest -lpthread
 
 a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc \
-	server/cras_a2dp_iodev.c
+	server/cras_a2dp_iodev.c common/sfh.c
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
-alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c
+alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
+	common/sfh.c
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 alsa_io_unittest_LDADD = -lgtest -lpthread
@@ -453,7 +454,7 @@ hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 hfp_info_unittest_LDADD = -lgtest -lpthread
 
 hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
-	server/cras_hfp_iodev.c
+	server/cras_hfp_iodev.c common/sfh.c
 hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
@@ -477,7 +478,7 @@ iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 iodev_list_unittest_LDADD = -lgtest -lpthread
 
 loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
-	server/cras_loopback_iodev.c
+	server/cras_loopback_iodev.c common/sfh.c
 loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server

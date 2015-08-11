@@ -13,6 +13,7 @@
 #include "cras_iodev.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
+#include "sfh.h"
 #include "utlist.h"
 
 
@@ -242,6 +243,10 @@ struct cras_iodev *hfp_iodev_create(
 
 	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = 0;
+	iodev->info.stable_id = SuperFastHash(
+			cras_bt_device_address(device),
+			strlen(cras_bt_device_address(device)),
+			strlen(cras_bt_device_address(device)));
 
 	iodev->open_dev= open_dev;
 	iodev->is_open = is_open;

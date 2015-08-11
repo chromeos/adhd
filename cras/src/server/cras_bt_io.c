@@ -337,6 +337,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev = &btio->base;
 	iodev->direction = dev->direction;
 	strcpy(iodev->info.name, dev->info.name);
+	iodev->info.stable_id = dev->info.stable_id;
 
 	iodev->open_dev = open_dev;
 	iodev->is_open = is_open; /* Needed by thread_add_stream */

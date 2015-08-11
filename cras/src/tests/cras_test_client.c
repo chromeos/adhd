@@ -287,9 +287,11 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 {
 	unsigned i;
 
-	printf("\tID\tName\n");
-	for (i = 0; i < num_devs; i++)
-		printf("\t%u\t%s\n", devs[i].idx, devs[i].name);
+	printf("\tID\tName (Stable ID)\n");
+	for (i = 0; i < num_devs; i++) {
+		printf("\t%u\t%s (%08x)\n", devs[i].idx, devs[i].name,
+					    devs[i].stable_id);
+	}
 }
 
 static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,

@@ -33,6 +33,7 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
+#include "sfh.h"
 #include "softvol_curve.h"
 #include "utlist.h"
 
@@ -1033,7 +1034,10 @@ static void set_iodev_name(struct cras_iodev *dev,
 			   const char *card_name,
 			   const char *dev_name,
 			   size_t card_index,
-			   size_t device_index)
+			   size_t device_index,
+			   enum CRAS_ALSA_CARD_TYPE card_type,
+			   size_t usb_vid,
+			   size_t usb_pid)
 {
 	snprintf(dev->info.name,
 		 sizeof(dev->info.name),
@@ -1042,6 +1046,29 @@ static void set_iodev_name(struct cras_iodev *dev,
 		 dev_name);
 	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
 	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
+	dev->info.stable_id = SuperFastHash(dev->info.name,
+					    strlen(dev->info.name),
+					    strlen(dev->info.name));
+
+	switch (card_type) {
+	case ALSA_CARD_TYPE_INTERNAL:
+		dev->info.stable_id = SuperFastHash((const char *)&card_index,
+						    sizeof(card_index),
+						    dev->info.stable_id);
+		dev->info.stable_id = SuperFastHash((const char *)&device_index,
+						    sizeof(device_index),
+						    dev->info.stable_id);
+		break;
+	case ALSA_CARD_TYPE_USB:
+		dev->info.stable_id = SuperFastHash((const char *)&usb_vid,
+						    sizeof(usb_vid),
+						    dev->info.stable_id);
+		dev->info.stable_id = SuperFastHash((const char *)&usb_pid,
+						    sizeof(usb_pid),
+						    dev->info.stable_id);
+		break;
+	}
+	syslog(LOG_DEBUG, "Stable ID=%08x", dev->info.stable_id);
 }
 
 /* Updates the supported sample rates and channel counts. */
@@ -1099,7 +1126,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
-				     enum CRAS_STREAM_DIRECTION direction)
+				     enum CRAS_STREAM_DIRECTION direction,
+				     size_t usb_vid,
+				     size_t usb_pid)
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
@@ -1179,7 +1208,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		if (level && direction == CRAS_STREAM_OUTPUT)
 			iodev->min_buffer_level = level;
         }
-	set_iodev_name(iodev, card_name, dev_name, card_index, device_index);
+	set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
+		       card_type, usb_vid, usb_pid);
 
 	/* Create output nodes for mixer controls, such as Headphone
 	 * and Speaker. */

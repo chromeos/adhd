@@ -393,6 +393,10 @@ const char *cras_bt_device_name(const struct cras_bt_device *device)
   return cras_bt_device_name_ret;
 }
 
+const char *cras_bt_device_address(const struct cras_bt_device *device) {
+  return "1A:2B:3C:4D:5E:6F";
+}
+
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
                                  struct cras_iodev *iodev,
                                  enum cras_bt_device_profile profile)

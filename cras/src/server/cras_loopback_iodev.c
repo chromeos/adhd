@@ -14,6 +14,7 @@
 #include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "sfh.h"
 #include "utlist.h"
 
 #define LOOPBACK_BUFFER_SIZE 8192
@@ -262,6 +263,9 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name), "%s",
 		 loopdev_names[type]);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+	iodev->info.stable_id = SuperFastHash(iodev->info.name,
+					      strlen(iodev->info.name),
+					      strlen(iodev->info.name));
 
 	iodev->supported_rates = loopback_supported_rates;
 	iodev->supported_channel_counts = loopback_supported_channel_counts;

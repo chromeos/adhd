@@ -206,6 +206,10 @@ const char *cras_bt_device_name(const struct cras_bt_device *device)
   return "fake-device-name";
 }
 
+const char *cras_bt_device_address(const struct cras_bt_device *device) {
+  return "1A:2B:3C:4D:5E:6F";
+}
+
 int cras_bt_device_set_speaker_gain(struct cras_bt_device *device, int gain)
 {
   return 0;
@@ -328,6 +332,7 @@ int hfp_set_call_status(struct hfp_slc_handle *handle, int call)
 {
   return 0;
 }
+
 } // extern "C"
 
 int main(int argc, char **argv) {
