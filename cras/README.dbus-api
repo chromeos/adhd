@@ -93,6 +93,9 @@ Methods		void SetOutputVolume(int32 volume)
 					belongs to. For example,
 					"HDA Intel PCH: CA0132 Analog" or
 					"Creative SB Arena Headset".
+				uint64 StableDeviceId
+					The stable ID does not change due to
+					device plug/unplug or reboot.
 				boolean Active
 					Whether this node is currently used
 					for output/input. There is one active
