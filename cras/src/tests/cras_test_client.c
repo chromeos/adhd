@@ -385,6 +385,12 @@ static void print_system_volumes(struct cras_client *client)
 	       cras_client_get_system_capture_muted(client) ? "(Muted)" : "");
 }
 
+static void print_user_muted(struct cras_client *client)
+{
+	printf("User muted: %s\n",
+	       cras_client_get_user_muted(client) ? "Muted" : "Not muted");
+}
+
 static void show_alog_tag(const struct audio_thread_event_log *log,
 			  unsigned int tag_idx)
 {
@@ -902,6 +908,7 @@ static void print_server_info(struct cras_client *client)
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client); /* To synchronize data. */
 	print_system_volumes(client);
+	print_user_muted(client);
 	print_device_lists(client);
 	print_attached_client_list(client);
 	print_active_stream_info(client);
