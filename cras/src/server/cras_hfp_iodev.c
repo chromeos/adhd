@@ -140,7 +140,7 @@ static void set_hfp_volume(struct cras_iodev *iodev)
 static int is_open(const struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	return hfpio->opened && hfp_info_running(hfpio->info);
+	return hfpio->opened;
 }
 
 static int dev_running(const struct cras_iodev *iodev)
