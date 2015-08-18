@@ -279,6 +279,7 @@ static int key_press(struct hfp_slc_handle *handle, const char *buf)
 	if (handle->telephony->call || handle->telephony->callsetup) {
 		cras_telephony_event_terminate_call();
 		handle->disconnect_cb(handle);
+		return -EIO;
 	}
 	return 0;
 }
@@ -576,6 +577,8 @@ static void slc_watch_callback(void *arg)
 		*end_char = '\0';
 		err = handle_at_command(handle,
 					&handle->buf[handle->buf_read_idx]);
+		if (err < 0)
+			return;
 
 		/* Shift the read index */
 		handle->buf_read_idx = 1 + end_char - handle->buf;
@@ -583,9 +586,6 @@ static void slc_watch_callback(void *arg)
 			handle->buf_read_idx = 0;
 			handle->buf_write_idx = 0;
 		}
-
-		if (err < 0)
-			break;
 	}
 
 	/* Handle the case when buffer is full and no command found. */
