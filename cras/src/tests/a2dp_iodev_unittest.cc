@@ -178,11 +178,9 @@ TEST(A2dpIoInit, GetPutBuffer) {
   struct cras_audio_area *area1, *area2, *area3;
   uint8_t *area1_buf;
   unsigned frames;
-  int pre_fill_bytes;
 
   ResetStubData();
   iodev = a2dp_iodev_create(fake_transport, NULL);
-  pre_fill_bytes = cras_bt_transport_write_mtu_ret * 2;
 
   iodev_set_format(iodev, &format);
   iodev->open_dev(iodev);
@@ -204,7 +202,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   write_callback(write_callback_data);
   // Start with 4k frames.
   EXPECT_EQ(4096, pcm_buf_size_val[0]);
-  EXPECT_EQ(pre_fill_bytes + 400, pcm_buf_size_val[1]);
+  EXPECT_EQ(400, pcm_buf_size_val[1]);
 
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
@@ -224,8 +222,8 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_write_return_val[1] = 0;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
-  EXPECT_EQ(pre_fill_bytes + 400, pcm_buf_size_val[0]);
-  ASSERT_EQ(pre_fill_bytes + 40, pcm_buf_size_val[1]);
+  EXPECT_EQ(400, pcm_buf_size_val[0]);
+  ASSERT_EQ(40, pcm_buf_size_val[1]);
 
   iodev->get_buffer(iodev, &area3, &frames);
 
@@ -242,11 +240,9 @@ TEST(A2dpIoInif, FramesQueued) {
   struct cras_iodev *iodev;
   struct cras_audio_area *area;
   unsigned frames;
-  int pre_fill_frames;
 
   ResetStubData();
   iodev = a2dp_iodev_create(fake_transport, NULL);
-  pre_fill_frames = cras_bt_transport_write_mtu_ret * 2 / 4;
 
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
@@ -269,9 +265,9 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_queued_frames_val = 50;
   time_now.tv_sec = 0;
   time_now.tv_nsec = 1000000;
-  iodev->put_buffer(iodev, 100);
+  iodev->put_buffer(iodev, 300);
   write_callback(write_callback_data);
-  EXPECT_EQ(pre_fill_frames + 100, iodev->frames_queued(iodev));
+  EXPECT_EQ(300, iodev->frames_queued(iodev));
 
   /* After writing another 200 frames, check for correct buffer level. */
   time_now.tv_sec = 0;
@@ -280,7 +276,10 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_write_index = 0;
   a2dp_encode_processed_bytes_val[0] = 800;
   write_callback(write_callback_data);
-  EXPECT_EQ(pre_fill_frames + 100 - 200, iodev->frames_queued(iodev));
+  /* 1000000 nsec has passed, estimated queued frames adjusted by 44 */
+  EXPECT_EQ(256, iodev->frames_queued(iodev));
+  EXPECT_EQ(1200, pcm_buf_size_val[0]);
+  EXPECT_EQ(400, pcm_buf_size_val[1]);
 
   /* Queued frames and new put buffer are all written */
   a2dp_encode_processed_bytes_val[0] = 400;
@@ -293,10 +292,11 @@ TEST(A2dpIoInif, FramesQueued) {
 
   /* Add wnother 200 samples, get back to the original level. */
   time_now.tv_sec = 0;
-  time_now.tv_nsec = 3000000;
+  time_now.tv_nsec = 50000000;
+  a2dp_encode_processed_bytes_val[0] = 600;
   iodev->put_buffer(iodev, 200);
-  EXPECT_EQ((pre_fill_frames + 100) * 4, pcm_buf_size_val[0]);
-  EXPECT_EQ(pre_fill_frames, iodev->frames_queued(iodev));
+  EXPECT_EQ(1200, pcm_buf_size_val[0]);
+  EXPECT_EQ(150, iodev->frames_queued(iodev));
 }
 
 } // namespace

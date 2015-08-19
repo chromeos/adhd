@@ -162,9 +162,6 @@ static int open_dev(struct cras_iodev *iodev)
 	iodev->min_buffer_level = a2dpio->sock_depth_frames;
 
 	a2dpio->pre_fill_complete = 0;
-	buf_increment_write(a2dpio->pcm_buf,
-			    iodev->min_buffer_level *
-				cras_get_format_bytes(iodev->format));
 
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;
