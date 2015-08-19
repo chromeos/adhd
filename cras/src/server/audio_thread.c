@@ -1581,6 +1581,48 @@ static int audio_thread_post_message(struct audio_thread *thread,
 	return (intptr_t)rsp;
 }
 
+static void init_open_device_msg(struct audio_thread_open_device_msg *msg,
+				 enum AUDIO_THREAD_COMMAND id,
+				 struct cras_iodev *dev)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.id = id;
+	msg->header.length = sizeof(*msg);
+	msg->dev = dev;
+}
+
+static void init_add_rm_stream_msg(struct audio_thread_add_rm_stream_msg *msg,
+				   enum AUDIO_THREAD_COMMAND id,
+				   struct cras_rstream *stream,
+				   struct cras_iodev **devs,
+				   unsigned int num_devs)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.id = id;
+	msg->header.length = sizeof(*msg);
+	msg->stream = stream;
+	msg->devs = devs;
+	msg->num_devs = num_devs;
+}
+
+static void init_dump_debug_info_msg(
+		struct audio_thread_dump_debug_info_msg *msg,
+		struct audio_debug_info *info)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.id = AUDIO_THREAD_DUMP_THREAD_INFO;
+	msg->header.length = sizeof(*msg);
+	msg->info = info;
+}
+
+static void init_config_global_remix_msg(
+		struct audio_thread_config_global_remix *msg)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.id = AUDIO_THREAD_CONFIG_GLOBAL_REMIX;
+	msg->header.length = sizeof(*msg);
+}
+
 /* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
@@ -1595,11 +1637,8 @@ int audio_thread_add_stream(struct audio_thread *thread,
 	if (!thread->started)
 		return -EINVAL;
 
-	msg.header.id = AUDIO_THREAD_ADD_STREAM;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
-	msg.stream = stream;
-	msg.devs = devs;
-	msg.num_devs = num_devs;
+	init_add_rm_stream_msg(&msg, AUDIO_THREAD_ADD_STREAM, stream,
+			       devs, num_devs);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1611,10 +1650,8 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 
 	assert(thread && stream);
 
-	msg.header.id = AUDIO_THREAD_DISCONNECT_STREAM;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
-	msg.stream = stream;
-	msg.devs = &dev;
+	init_add_rm_stream_msg(&msg, AUDIO_THREAD_DISCONNECT_STREAM, stream,
+			       &dev, 0);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1625,9 +1662,8 @@ int audio_thread_drain_stream(struct audio_thread *thread,
 
 	assert(thread && stream);
 
-	msg.header.id = AUDIO_THREAD_DRAIN_STREAM;
-	msg.header.length = sizeof(struct audio_thread_add_rm_stream_msg);
-	msg.stream = stream;
+	init_add_rm_stream_msg(&msg, AUDIO_THREAD_DRAIN_STREAM, stream,
+			       NULL, 0);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1636,9 +1672,7 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 {
 	struct audio_thread_dump_debug_info_msg msg;
 
-	msg.header.id = AUDIO_THREAD_DUMP_THREAD_INFO;
-	msg.header.length = sizeof(msg);
-	msg.info = info;
+	init_dump_debug_info_msg(&msg, info);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1652,9 +1686,7 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 	struct audio_thread_config_global_remix msg;
 	void *rsp;
 
-	msg.header.id = AUDIO_THREAD_CONFIG_GLOBAL_REMIX;
-	msg.header.length = sizeof(msg);
-	msg.fmt_conv = NULL;
+	init_config_global_remix_msg(&msg);
 
 	/* Check if the coefficients represent an identity matrix for remix
 	 * conversion, which means no remix at all. If so then leave the
@@ -1740,12 +1772,11 @@ int audio_thread_add_open_dev(struct audio_thread *thread,
 	struct audio_thread_open_device_msg msg;
 
 	assert(thread && dev);
+
 	if (!thread->started)
 		return -EINVAL;
 
-	msg.header.id = AUDIO_THREAD_ADD_OPEN_DEV;
-	msg.header.length = sizeof(struct audio_thread_open_device_msg);
-	msg.dev = dev;
+	init_open_device_msg(&msg, AUDIO_THREAD_ADD_OPEN_DEV, dev);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1758,9 +1789,7 @@ int audio_thread_rm_open_dev(struct audio_thread *thread,
 	if (!thread->started)
 		return -EINVAL;
 
-	msg.header.id = AUDIO_THREAD_RM_OPEN_DEV;
-	msg.header.length = sizeof(struct audio_thread_open_device_msg);
-	msg.dev = dev;
+	init_open_device_msg(&msg, AUDIO_THREAD_RM_OPEN_DEV, dev);
 	return audio_thread_post_message(thread, &msg.header);
 }
 

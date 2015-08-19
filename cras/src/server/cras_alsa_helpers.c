@@ -82,6 +82,8 @@ static snd_pcm_chmap_query_t *cras_chmap_caps_match(
 			idx = fmt->channel_layout[ch];
 			if (idx == -1)
 				continue;
+			if ((unsigned)idx >= (*chmap)->map.channels)
+				continue;
 			if ((*chmap)->map.pos[idx] != CH_TO_ALSA(ch)) {
 				matches = 0;
 				break;

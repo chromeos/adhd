@@ -50,6 +50,7 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 	}
 
 	/* dev_id = 0 for hci0 */
+	dev_info.type = 0;
 	dev_info.dev_id = atoi(pos + 3);
 	err = ioctl(ctl, HCIGETDEVINFO, (void *)&dev_info);
 	if (err) {

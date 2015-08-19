@@ -904,15 +904,27 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
 	return device->use_hardware_volume;
 }
 
+static void init_bt_device_msg(struct bt_device_msg *msg,
+			       enum BT_DEVICE_COMMAND cmd,
+			       struct cras_bt_device *device,
+			       struct cras_iodev *dev,
+			       unsigned int arg)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.type = CRAS_MAIN_BT;
+	msg->header.length = sizeof(*msg);
+	msg->cmd = cmd;
+	msg->device = device;
+	msg->dev = dev;
+	msg->arg = arg;
+}
+
 int cras_bt_device_cancel_suspend(struct cras_bt_device *device)
 {
 	struct bt_device_msg msg;
 	int rc;
-	msg.header.type = CRAS_MAIN_BT;
-	msg.header.length = sizeof(msg);
-	msg.cmd = BT_DEVICE_CANCEL_SUSPEND;
-	msg.device = device;
 
+	init_bt_device_msg(&msg, BT_DEVICE_CANCEL_SUSPEND, device, NULL, 0);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -922,12 +934,9 @@ int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
 {
 	struct bt_device_msg msg;
 	int rc;
-	msg.header.type = CRAS_MAIN_BT;
-	msg.header.length = sizeof(msg);
-	msg.cmd = BT_DEVICE_SCHEDULE_SUSPEND;
-	msg.device = device;
-	msg.arg = msec;
 
+	init_bt_device_msg(&msg, BT_DEVICE_SCHEDULE_SUSPEND, device,
+			   NULL, msec);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -960,12 +969,8 @@ int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
 	struct bt_device_msg msg;
 	int rc;
 
-	msg.header.type = CRAS_MAIN_BT;
-	msg.header.length = sizeof(msg);
-	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV;
-	msg.device = device;
-	msg.dev = bt_iodev;
-
+	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV,
+			   device, bt_iodev, 0);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -976,11 +981,8 @@ int cras_bt_device_switch_profile(struct cras_bt_device *device,
 	struct bt_device_msg msg;
 	int rc;
 
-	msg.header.type = CRAS_MAIN_BT;
-	msg.header.length = sizeof(msg);
-	msg.cmd = BT_DEVICE_SWITCH_PROFILE;
-	msg.device = device;
-	msg.dev = bt_iodev;
+	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE,
+			   device, bt_iodev, 0);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }

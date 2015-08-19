@@ -200,6 +200,15 @@ void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 	}
 }
 
+static void init_audio_message(struct audio_message *msg,
+			       enum CRAS_AUDIO_MESSAGE_ID id,
+			       uint32_t frames)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->id = id;
+	msg->frames = frames;
+}
+
 int cras_rstream_request_audio(struct cras_rstream *stream,
 			       const struct timespec *now)
 {
@@ -212,8 +221,8 @@ int cras_rstream_request_audio(struct cras_rstream *stream,
 
 	stream->last_fetch_ts = *now;
 
-	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
-	msg.frames = stream->cb_threshold;
+	init_audio_message(&msg, AUDIO_MESSAGE_REQUEST_DATA,
+			   stream->cb_threshold);
 	rc = write(stream->fd, &msg, sizeof(msg));
 	if (rc < 0)
 		return -errno;
@@ -227,8 +236,7 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 
 	cras_shm_buffer_write_complete(&stream->shm);
 
-	msg.id = AUDIO_MESSAGE_DATA_READY;
-	msg.frames = count;
+	init_audio_message(&msg, AUDIO_MESSAGE_DATA_READY, count);
 	rc = write(stream->fd, &msg, sizeof(msg));
 	if (rc < 0)
 		return -errno;
@@ -321,7 +329,7 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
 {
 	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
-	rstream->queued_frames = MIN(cras_shm_get_frames(shm), 
+	rstream->queued_frames = MIN(cras_shm_get_frames(shm),
 				     rstream->buffer_frames);
 }
 
