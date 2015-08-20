@@ -232,6 +232,7 @@ static int pre_fill_socket(struct a2dp_io *a2dpio)
 			break;
 	};
 
+	a2dp_drain(&a2dpio->a2dp);
 	return 0;
 }
 
