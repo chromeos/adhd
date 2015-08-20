@@ -117,11 +117,14 @@ static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-	unsigned int n = MAX(bt_queued_frames(iodev, 0),
-			     buf_queued_bytes(a2dpio->pcm_buf) /
-				cras_get_format_bytes(iodev->format));
+	int estimate_queued_frames = bt_queued_frames(iodev, 0);
+	int local_queued_frames =
+			a2dp_queued_frames(&a2dpio->a2dp) +
+			buf_queued_bytes(a2dpio->pcm_buf) /
+				cras_get_format_bytes(iodev->format);
 
-	return MIN(iodev->buffer_size, n);
+	return MIN(iodev->buffer_size,
+		   MAX(estimate_queued_frames, local_queued_frames));
 }
 
 static int open_dev(struct cras_iodev *iodev)

@@ -267,7 +267,7 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 300);
   write_callback(write_callback_data);
-  EXPECT_EQ(300, iodev->frames_queued(iodev));
+  EXPECT_EQ(350, iodev->frames_queued(iodev));
 
   /* After writing another 200 frames, check for correct buffer level. */
   time_now.tv_sec = 0;
@@ -284,7 +284,6 @@ TEST(A2dpIoInif, FramesQueued) {
   /* Queued frames and new put buffer are all written */
   a2dp_encode_processed_bytes_val[0] = 400;
   a2dp_encode_processed_bytes_val[1] = 0;
-  a2dp_queued_frames_val = 50;
   a2dp_encode_index = 0;
   a2dp_write_return_val[0] = 400;
   a2dp_write_return_val[1] = -EAGAIN;
@@ -296,7 +295,7 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_encode_processed_bytes_val[0] = 600;
   iodev->put_buffer(iodev, 200);
   EXPECT_EQ(1200, pcm_buf_size_val[0]);
-  EXPECT_EQ(150, iodev->frames_queued(iodev));
+  EXPECT_EQ(200, iodev->frames_queued(iodev));
 }
 
 } // namespace
