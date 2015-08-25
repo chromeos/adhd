@@ -72,7 +72,6 @@ TEST_F(DspTestSuite, Simple) {
   cras_dsp_load_pipeline(ctx1);
   cras_dsp_load_pipeline(ctx3);
   cras_dsp_load_pipeline(ctx4);
-  cras_dsp_sync();
 
   /* only ctx4 should load the pipeline successfully */
   ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx1));
@@ -85,13 +84,11 @@ TEST_F(DspTestSuite, Simple) {
   /* change the variable to a wrong value, and we should fail to reload. */
   cras_dsp_set_variable(ctx4, "variable", "bar");
   cras_dsp_load_pipeline(ctx4);
-  cras_dsp_sync();
   ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx4));
 
   /* change the variable back, and we should reload successfully. */
   cras_dsp_set_variable(ctx4, "variable", "foo");
   cras_dsp_reload_ini();
-  cras_dsp_sync();
   ASSERT_TRUE(cras_dsp_get_pipeline(ctx4));
 
   cras_dsp_context_free(ctx1);
@@ -153,7 +150,7 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
   empty_init_module(module);
   return module;
 }
-}
+} // extern "C"
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
