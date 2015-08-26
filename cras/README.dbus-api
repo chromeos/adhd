@@ -104,6 +104,9 @@ Methods		void SetOutputVolume(int32 volume)
 				uint64 PluggedTime
 					The time that this device was plugged
 					in. This value is in microseconds.
+				string MicPositions
+					The string formed by floating numbers
+					describing the position of mic array.
 
 		void SetActiveOutputNode(uint64 node_id);
 

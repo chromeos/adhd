@@ -843,6 +843,7 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 static void new_input(const char *name, struct alsa_io *aio)
 {
 	struct alsa_input_node *input;
+	char *mic_positions;
 
 	input = (struct alsa_input_node *)calloc(1, sizeof(*input));
 	if (input == NULL) {
@@ -853,6 +854,16 @@ static void new_input(const char *name, struct alsa_io *aio)
 	input->base.idx = aio->next_ionode_index++;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
+
+	/* Check mic positions only for internal mic. */
+	if (aio->ucm && input->base.type == CRAS_NODE_TYPE_INTERNAL_MIC) {
+		mic_positions = ucm_get_mic_positions(aio->ucm);
+		if (mic_positions) {
+			strncpy(input->base.mic_positions, mic_positions,
+				sizeof(input->base.mic_positions) - 1);
+			free(mic_positions);
+		}
+	}
 
 	/* Auto unplug internal mic if any input node has already
 	 * been created */

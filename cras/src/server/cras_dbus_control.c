@@ -392,6 +392,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_uint64_t stable_dev_id = dev->stable_id;
 	const char *node_type = node->type;
 	const char *node_name = node->name;
+	const char *mic_positions = node->mic_positions;
 	dbus_bool_t active;
 	dbus_uint64_t plugged_time = node->plugged_time.tv_sec * 1000000ULL +
 		node->plugged_time.tv_usec;
@@ -423,6 +424,9 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		return FALSE;
 	if (!append_key_value(&dict, "Name", DBUS_TYPE_STRING,
 			      DBUS_TYPE_STRING_AS_STRING, &node_name))
+		return FALSE;
+	if (!append_key_value(&dict, "MicPositions", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &mic_positions))
 		return FALSE;
 	if (!append_key_value(&dict, "Active", DBUS_TYPE_BOOLEAN,
 			      DBUS_TYPE_BOOLEAN_AS_STRING, &active))

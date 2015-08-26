@@ -13,6 +13,7 @@ static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
 static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
+static const char mic_positions[] = "MicPositions";
 static const char override_type_name_var[] = "OverrideNodeType";
 static const char output_dsp_name_var[] = "OutputDspName";
 static const char input_dsp_name_var[] = "InputDspName";
@@ -300,6 +301,21 @@ char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev)
 	int rc;
 
 	rc = get_var(mgr, cap_var, ucm_dev, default_verb, &value);
+	if (!rc) {
+		control_name = strdup(value);
+		free((void *)value);
+	}
+
+	return control_name;
+}
+
+char *ucm_get_mic_positions(snd_use_case_mgr_t *mgr)
+{
+	char *control_name = NULL;
+	const char *value;
+	int rc;
+
+	rc = get_var(mgr, mic_positions, "", default_verb, &value);
 	if (!rc) {
 		control_name = strdup(value);
 		free((void *)value);

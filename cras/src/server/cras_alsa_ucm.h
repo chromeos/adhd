@@ -85,6 +85,15 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name);
  */
 char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev);
 
+/* Gets the mic positions string for internal mic.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    A pointer to the allocated string containing the mic positions
+ *    information, or NULL if not specified.
+ */
+char *ucm_get_mic_positions(snd_use_case_mgr_t *mgr);
+
 /* Gets the new node type name which user wants to override the old one for
  * given ucm device.
  * Args:

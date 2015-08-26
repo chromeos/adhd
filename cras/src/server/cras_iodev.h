@@ -44,6 +44,9 @@ typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
  *    left_right_swapped - If left and right output channels are swapped.
  *    type - Type displayed to the user.
+ *    mic_positions - Whitespace-separated microphone positions using Cartesian
+ *      coordinates in meters with ordering x, y, z. The string is formatted as:
+ *      "x1 y1 z1 ... xn yn zn" for an n-microphone array.
  *    name - Name displayed to the user.
  *    softvol_scalers - pointer to software volume scalers.
  *    software_volume_needed - True if the volume range of the node is
@@ -58,6 +61,7 @@ struct cras_ionode {
 	long capture_gain;
 	int left_right_swapped;
 	enum CRAS_NODE_TYPE type;
+	char mic_positions[CRAS_NODE_MIC_POS_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	float *softvol_scalers;
 	int software_volume_needed;

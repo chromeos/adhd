@@ -1324,6 +1324,10 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
   return NULL;
 }
 
+char *ucm_get_mic_positions(snd_use_case_mgr_t *mgr) {
+  return NULL;
+}
+
 int ucm_swap_mode_exists(snd_use_case_mgr_t *mgr)
 {
   return ucm_swap_mode_exists_ret_value;

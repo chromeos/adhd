@@ -231,6 +231,7 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->volume = node->volume;
 			node_info->capture_gain = node->capture_gain;
 			node_info->left_right_swapped = node->left_right_swapped;
+			strcpy(node_info->mic_positions, node->mic_positions);
 			strcpy(node_info->name, node->name);
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
 				node_type_to_str(node->type));
