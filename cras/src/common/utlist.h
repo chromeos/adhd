@@ -165,6 +165,20 @@ do {                                                                           \
 		}                                                              \
 	} while (0)
 
+#define DL_INSERT(head, next_node, add)                                        \
+	do {                                                                   \
+		if (head == next_node)                                         \
+			DL_PREPEND(head, add);                                 \
+		else if (next_node == NULL) {                                  \
+			DL_APPEND(head, add);                                  \
+		} else {                                                       \
+			(add)->prev = (next_node)->prev;                       \
+			(next_node)->prev->next = (add);                       \
+			(add)->next = (next_node);                             \
+			(next_node)->prev = (add);                             \
+		}                                                              \
+	} while (0)
+
 #define DL_CONCAT(head1, head2)                                                \
 	do {                                                                   \
 		__typeof(head1) _tmp;                                          \
