@@ -434,6 +434,11 @@ unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
   return 0;
 }
 
+int dev_stream_attached_devs(const struct dev_stream *dev_stream)
+{
+  return 1;
+}
+
 void cras_iodev_stream_written(struct cras_iodev *iodev,
                                struct dev_stream *stream,
                                unsigned int nwritten)
