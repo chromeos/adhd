@@ -947,6 +947,7 @@ static int get_next_output_wake(struct audio_thread *thread,
 {
 	struct open_dev *adev;
 	struct timespec sleep_time;
+	double est_rate;
 	unsigned int hw_level;
 	int ret = 0;
 	int rc;
@@ -969,18 +970,15 @@ static int get_next_output_wake(struct audio_thread *thread,
 		adev->wake_ts = *now;
 
 		/* Use the estimated dev rate to schedule that audio thread
-		 * will wake up when output dev buffer level drops below
-		 * min_cb_level.
+		 * will wake up when hw_level drops to 0.
 		 */
-		if (hw_level > adev->dev->min_cb_level) {
-			double est_rate = adev->dev->ext_format->frame_rate *
+		est_rate = adev->dev->ext_format->frame_rate *
 				cras_iodev_get_est_rate_ratio(adev->dev);
-			cras_frames_to_time_precise(
-					hw_level - adev->dev->min_cb_level,
-					est_rate,
-					&sleep_time);
-			add_timespecs(&adev->wake_ts, &sleep_time);
-		}
+		cras_frames_to_time_precise(
+				hw_level,
+				est_rate,
+				&sleep_time);
+		add_timespecs(&adev->wake_ts, &sleep_time);
 
 		ret++;
 		audio_thread_event_log_data(atlog,
