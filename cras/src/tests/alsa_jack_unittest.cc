@@ -66,7 +66,7 @@ static size_t snd_hctl_nonblock_called;
 static struct cras_alsa_mixer *fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
 static size_t cras_alsa_mixer_get_input_matching_name_called;
-static struct cras_alsa_mixer_output *
+static struct mixer_output_control *
     cras_alsa_mixer_get_output_matching_name_return_value;
 struct mixer_volume_control *
     cras_alsa_mixer_get_input_matching_name_return_value;
@@ -126,7 +126,7 @@ static void ResetStubData() {
   cras_alsa_mixer_get_output_matching_name_called = 0;
   cras_alsa_mixer_get_input_matching_name_called = 0;
   cras_alsa_mixer_get_output_matching_name_return_value =
-      reinterpret_cast<struct cras_alsa_mixer_output *>(0x456);
+      reinterpret_cast<struct mixer_output_control *>(0x456);
   cras_alsa_mixer_get_input_matching_name_return_value = NULL;
   ucm_get_dev_for_jack_called = 0;
   ucm_get_cap_control_called = 0;
@@ -720,7 +720,7 @@ int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj,
 }
 
 // From cras_alsa_mixer
-struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
+struct mixer_output_control *cras_alsa_mixer_get_output_matching_name(
     const struct cras_alsa_mixer *cras_mixer,
     size_t device_index,
     const char * const name)

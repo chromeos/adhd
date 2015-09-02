@@ -82,8 +82,8 @@ struct cras_alsa_jack {
 
 	snd_hctl_elem_t *eld_control;
 	struct cras_alsa_jack_list *jack_list;
-	struct cras_alsa_mixer_output *mixer_output;
-	struct mixer_volume_control *mixer_input;
+	struct mixer_control *mixer_output;
+	struct mixer_control *mixer_input;
 	char *ucm_device;
 	const char *dsp_name;
 	const char* override_type_name;
@@ -872,7 +872,7 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 	free(jack_list);
 }
 
-struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
+struct mixer_control *cras_alsa_jack_get_mixer_output(
 		const struct cras_alsa_jack *jack)
 {
 	if (jack == NULL)
@@ -880,7 +880,7 @@ struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
 	return jack->mixer_output;
 }
 
-struct mixer_volume_control *cras_alsa_jack_get_mixer_input(
+struct mixer_control *cras_alsa_jack_get_mixer_input(
 		const struct cras_alsa_jack *jack)
 {
 	return jack ? jack->mixer_input : NULL;

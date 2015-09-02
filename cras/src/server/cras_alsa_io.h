@@ -12,7 +12,6 @@
 #include "cras_types.h"
 
 struct cras_alsa_mixer;
-struct cras_alsa_mixer_output;
 struct cras_ionode;
 
 /* Initializes an alsa iodev.

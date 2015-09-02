@@ -62,14 +62,14 @@
  */
 struct alsa_output_node {
 	struct cras_ionode base;
-	struct cras_alsa_mixer_output *mixer_output;
+	struct mixer_control *mixer_output;
 	struct cras_volume_curve *jack_curve;
 	const struct cras_alsa_jack *jack;
 };
 
 struct alsa_input_node {
 	struct cras_ionode base;
-	struct mixer_volume_control* mixer_input;
+	struct mixer_control* mixer_input;
 	const struct cras_alsa_jack *jack;
 };
 
@@ -425,16 +425,28 @@ static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
 }
 
 /* Gets the curve for the active output. */
+static const struct cras_volume_curve *get_curve_for_output_node(
+		const struct alsa_io *aio,
+		const struct alsa_output_node *aout)
+{
+	struct cras_volume_curve *curve = NULL;
+	if (aout) {
+		curve = cras_alsa_mixer_get_output_volume_curve(
+				aout->mixer_output);
+		if (curve)
+			return curve;
+		else if (aout->jack_curve)
+			return aout->jack_curve;
+	}
+	return cras_alsa_mixer_default_volume_curve(aio->mixer);
+}
+
+/* Gets the curve for the active output. */
 static const struct cras_volume_curve *get_curve_for_active_output(
 		const struct alsa_io *aio)
 {
 	struct alsa_output_node *aout = get_active_output(aio);
-
-	if (aout && aout->mixer_output && aout->mixer_output->volume_curve)
-		return aout->mixer_output->volume_curve;
-	else if (aout && aout->jack_curve)
-		return aout->jack_curve;
-	return cras_alsa_mixer_default_volume_curve(aio->mixer);
+	return get_curve_for_output_node(aio, aout);
 }
 
 /* Informs the system of the volume limits for this device. */
@@ -559,7 +571,7 @@ static void init_device_settings(struct alsa_io *aio)
 		set_alsa_volume_limits(aio);
 		set_alsa_volume(&aio->base);
 	} else {
-		struct mixer_volume_control *mixer_input = NULL;
+		struct mixer_control *mixer_input = NULL;
 		struct alsa_input_node *ain = get_active_input(aio);
 		if (ain)
 			mixer_input = ain->mixer_input;
@@ -711,10 +723,10 @@ static void set_node_initial_state(struct cras_ionode *node,
 }
 
 static const char *get_output_node_name(struct alsa_io *aio,
-	struct cras_alsa_mixer_output *cras_output)
+	struct mixer_control *cras_output)
 {
 	if (cras_output)
-		return cras_alsa_mixer_get_output_name(cras_output);
+		return cras_alsa_mixer_get_control_name(cras_output);
 
 	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER)) {
 		if (strstr(aio->base.info.name, HDMI))
@@ -804,7 +816,7 @@ static void set_output_node_software_volume_needed(
 /* Callback for listing mixer outputs.  The mixer will call this once for each
  * output associated with this device.  Most commonly this is used to tell the
  * device it has Headphones and Speakers. */
-static void new_output(struct cras_alsa_mixer_output *cras_output,
+static void new_output(struct mixer_control *cras_output,
 		       void *callback_arg)
 {
 	struct alsa_io *aio;
@@ -836,7 +848,6 @@ static void new_output(struct cras_alsa_mixer_output *cras_output,
 			if (tmp->plugged)
 				output->base.plugged = 0;
 	}
-
 
 	cras_iodev_add_node(&aio->base, &output->base);
 }
@@ -882,7 +893,7 @@ static void new_input(const char *name, struct alsa_io *aio)
 static struct alsa_output_node *get_output_node_from_jack(
 		struct alsa_io *aio, const struct cras_alsa_jack *jack)
 {
-	struct cras_alsa_mixer_output *mixer_output;
+	struct mixer_control *mixer_output;
 	struct cras_ionode *node = NULL;
 	struct alsa_output_node *aout = NULL;
 
@@ -902,7 +913,7 @@ static struct alsa_output_node *get_output_node_from_jack(
 static struct alsa_input_node *get_input_node_from_jack(
 		struct alsa_io *aio, const struct cras_alsa_jack *jack)
 {
-	struct mixer_volume_control *mixer_input;
+	struct mixer_control *mixer_input;
 	struct cras_ionode *node = NULL;
 	struct alsa_input_node *ain = NULL;
 
@@ -1121,13 +1132,7 @@ static void build_softvol_scalers(struct alsa_io *aio)
 		const struct cras_volume_curve *curve;
 
 		aout = (struct alsa_output_node *)ionode;
-		if (aout->mixer_output && aout->mixer_output->volume_curve)
-			curve = aout->mixer_output->volume_curve;
-		else if (aout->jack_curve)
-			curve = aout->jack_curve;
-		else
-			curve = cras_alsa_mixer_default_volume_curve(
-					aio->mixer);
+		curve = get_curve_for_output_node(aio, aout);
 
 		ionode->softvol_scalers = softvol_build_from_curve(curve);
 	}
@@ -1333,7 +1338,7 @@ static void alsa_iodev_unmute_node(struct alsa_io *aio,
 				   struct cras_ionode *ionode)
 {
 	struct alsa_output_node *active = (struct alsa_output_node *)ionode;
-	struct cras_alsa_mixer_output *mixer = active->mixer_output;
+	struct mixer_control *mixer = active->mixer_output;
 	struct alsa_output_node *output;
 	struct cras_ionode *node;
 

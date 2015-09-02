@@ -14,34 +14,10 @@
  * headphones and mic.
  */
 
+struct mixer_control;
 struct cras_alsa_mixer;
 struct cras_volume_curve;
 struct cras_card_config;
-
-/* Represents an ALSA volume control element. Each device can have several
- * volume controls in the path to the output, a list of these will be used to
- * represent that so we can apply each volume control in sequence. */
-struct mixer_volume_control {
-	snd_mixer_elem_t *elem;
-	struct mixer_volume_control *prev, *next;
-};
-
-/* A mixer output, such as 'Headphone' or 'Speaker'.
- *  elem - ALSA mixer element.
- *  has_volume - non-zero indicates there is a volume control.
- *  has_mute - non-zero indicates there is a mute switch.
- *  max_volume_dB - Maximum volume available in the volume control.
- *  min_volume_dB - Minimum volume available in the volume control.
- *  volume_curve - Curve for this output.
- */
-struct cras_alsa_mixer_output {
-	snd_mixer_elem_t *elem;
-	int has_volume;
-	int has_mute;
-	long max_volume_dB;
-	long min_volume_dB;
-	struct cras_volume_curve *volume_curve;
-};
 
 /* Creates a cras_alsa_mixer instance for the given alsa device.
  * Args:
@@ -86,7 +62,7 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
  */
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 			      long dBFS,
-			      struct cras_alsa_mixer_output *mixer_output);
+			      struct mixer_control *mixer_output);
 
 /* Gets the volume range of the mixer in dB.
  * Args:
@@ -99,7 +75,7 @@ long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer);
  *    mixer_output - The mixer output to get the volume range.
  */
 long cras_alsa_mixer_get_output_dB_range(
-		struct cras_alsa_mixer_output *mixer_output);
+		struct mixer_control *mixer_output);
 
 /* Sets the capture gain for the device associated with this mixer.
  * Args:
@@ -110,7 +86,7 @@ long cras_alsa_mixer_get_output_dB_range(
  */
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 				      long dBFS,
-				      struct mixer_volume_control* mixer_input);
+				      struct mixer_control* mixer_input);
 
 /* Gets the minimum allowed setting for capture gain.
  * Args:
@@ -122,7 +98,7 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
  */
 long cras_alsa_mixer_get_minimum_capture_gain(
                 struct cras_alsa_mixer *cmix,
-		struct mixer_volume_control *mixer_input);
+		struct mixer_control *mixer_input);
 
 /* Gets the maximum allowed setting for capture gain.
  * Args:
@@ -132,8 +108,9 @@ long cras_alsa_mixer_get_minimum_capture_gain(
  * Returns:
  *    The maximum allowed capture gain in dBFS * 100.
  */
-long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
-		struct mixer_volume_control *mixer_input);
+long cras_alsa_mixer_get_maximum_capture_gain(
+		struct cras_alsa_mixer *cmix,
+		struct mixer_control *mixer_input);
 
 /* Sets the playback switch for the device.
  * Args:
@@ -143,7 +120,7 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
  */
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
 			      int muted,
-			      struct cras_alsa_mixer_output *mixer_output);
+			      struct mixer_control *mixer_output);
 
 /* Sets the capture switch for the device.
  * Args:
@@ -153,7 +130,7 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
  */
 void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
 				      int muted,
-				      struct mixer_volume_control *mixer_input);
+				      struct mixer_control *mixer_input);
 
 /* Invokes the provided callback once for each output associated with the given
  * device number.  The callback will be provided with a reference to the control
@@ -163,15 +140,15 @@ void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
  *    cb - Function to call for each output.
  *    cb_arg - Argument to pass to cb.
  */
-typedef void (*cras_alsa_mixer_output_callback)(
-		struct cras_alsa_mixer_output *output, void *arg);
+typedef void (*cras_alsa_mixer_control_callback)(
+		struct mixer_control *control, void *arg);
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
-				  cras_alsa_mixer_output_callback cb,
+				  cras_alsa_mixer_control_callback cb,
 				  void *cb_arg);
 
-/* Gets the name of a given output. */
-const char *cras_alsa_mixer_get_output_name(
-		const struct cras_alsa_mixer_output *output);
+/* Gets the name of a given control. */
+const char *cras_alsa_mixer_get_control_name(
+		const struct mixer_control *control);
 
 /* Finds the output that matches the given string.  Used to match Jacks to Mixer
  * elements.
@@ -181,7 +158,7 @@ const char *cras_alsa_mixer_get_output_name(
  * Returns:
  *    A pointer to the output with a mixer control that matches "name".
  */
-struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
+struct mixer_control *cras_alsa_mixer_get_output_matching_name(
 		const struct cras_alsa_mixer *cras_mixer,
 		const char *name);
 
@@ -193,13 +170,13 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
  * Returns:
  *    A pointer the input mixer control that matches control_name.
  */
-struct mixer_volume_control *cras_alsa_mixer_get_input_matching_name(
+struct mixer_control *cras_alsa_mixer_get_input_matching_name(
 		struct cras_alsa_mixer *cras_mixer,
 		const char *control_name);
 
 /* Sets the given output active or inactive. */
 int cras_alsa_mixer_set_output_active_state(
-		struct cras_alsa_mixer_output *output,
+		struct mixer_control *output,
 		int active);
 
 /* Returns a volume curve for the given output node name.  The name can be that
@@ -209,5 +186,9 @@ int cras_alsa_mixer_set_output_active_state(
 struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 		const struct cras_alsa_mixer *cmix,
 		const char *name);
+
+/* Returns a volume curve stored in the output control element, can be null. */
+struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
+		const struct mixer_control *control);
 
 #endif /* _CRAS_ALSA_MIXER_H */

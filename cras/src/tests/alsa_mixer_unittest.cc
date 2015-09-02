@@ -11,6 +11,10 @@ extern "C" {
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
+
+//  Include C file to test static functions and use the definition of some
+//  structure.
+#include "cras_alsa_mixer.c"
 }
 
 namespace {
@@ -221,7 +225,9 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   const char *element_names[] = {
     "Unknown",
   };
-  struct cras_alsa_mixer_output mixer_output;
+  struct mixer_output_control output;
+  struct mixer_control *mixer_output;
+  mixer_output = reinterpret_cast<mixer_control *>(&output);
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
@@ -246,9 +252,9 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
   /* if passed a mixer output then it should mute that. */
-  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
-  mixer_output.has_mute = 1;
-  cras_alsa_mixer_set_mute(c, 0, &mixer_output);
+  mixer_output->elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
+  mixer_output->has_mute = 1;
+  cras_alsa_mixer_set_mute(c, 0, mixer_output);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   /* set volume shouldn't call anything. */
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
@@ -268,7 +274,9 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   const char *element_names[] = {
     "Unknown",
   };
-  struct cras_alsa_mixer_output mixer_output;
+  struct mixer_output_control output;
+  struct mixer_control *mixer_output;
+  mixer_output = reinterpret_cast<mixer_control *>(&output);
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
@@ -296,9 +304,9 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
   /* if passed a mixer output then it should mute that. */
-  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
-  mixer_output.has_mute = 1;
-  cras_alsa_mixer_set_mute(c, 0, &mixer_output);
+  mixer_output->elem = reinterpret_cast<snd_mixer_elem_t *>(0x454);
+  mixer_output->has_mute = 1;
+  cras_alsa_mixer_set_mute(c, 0, mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_dB_all_called);
@@ -318,11 +326,13 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   const char *element_names[] = {
     "Master",
   };
-  struct cras_alsa_mixer_output mixer_output;
-  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(2);
-  mixer_output.has_mute = 1;
-  mixer_output.has_volume = 1;
-  mixer_output.max_volume_dB = 950;
+  struct mixer_output_control output;
+  struct mixer_control *mixer_output;
+  mixer_output = reinterpret_cast<mixer_control *>(&output);
+  mixer_output->elem = reinterpret_cast<snd_mixer_elem_t *>(2);
+  mixer_output->has_mute = 1;
+  mixer_output->has_volume = 1;
+  output.max_volume_dB = 950;
   long set_dB_values[3];
 
   ResetStubData();
@@ -359,7 +369,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
       ARRAY_SIZE(set_dB_values);
   snd_mixer_selem_set_playback_dB_all_called = 0;
   snd_mixer_selem_get_playback_dB_called = 0;
-  cras_alsa_mixer_set_dBFS(c, 0, &mixer_output);
+  cras_alsa_mixer_set_dBFS(c, 0, mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(950, set_dB_values[0]);
   EXPECT_EQ(950, set_dB_values[1]);
@@ -385,10 +395,12 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
     "Master",
     "PCM",
   };
-  struct cras_alsa_mixer_output mixer_output;
-  mixer_output.elem = reinterpret_cast<snd_mixer_elem_t *>(3);
-  mixer_output.has_volume = 1;
-  mixer_output.max_volume_dB = 0;
+  struct mixer_output_control output;
+  struct mixer_control *mixer_output;
+  mixer_output = reinterpret_cast<mixer_control *>(&output);
+  mixer_output->elem = reinterpret_cast<snd_mixer_elem_t *>(3);
+  mixer_output->has_volume = 1;
+  output.max_volume_dB = 0;
   static const long min_volumes[] = {-500, -1250, -500};
   static const long max_volumes[] = {40, 40, 0};
   long get_dB_returns[] = {0, 0, 0};
@@ -449,7 +461,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
    * should be passed to the PCM control.*/
   snd_mixer_selem_set_playback_dB_all_called = 0;
   snd_mixer_selem_get_playback_dB_called = 0;
-  cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
+  cras_alsa_mixer_set_dBFS(c, -50, mixer_output);
   EXPECT_EQ(3, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
   EXPECT_EQ(30, set_dB_values[0]);
@@ -467,8 +479,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
       ARRAY_SIZE(get_dB_returns2);
   snd_mixer_selem_set_playback_dB_all_called = 0;
   snd_mixer_selem_get_playback_dB_called = 0;
-  mixer_output.has_volume = 0;
-  cras_alsa_mixer_set_dBFS(c, -50, &mixer_output);
+  mixer_output->has_volume = 0;
+  cras_alsa_mixer_set_dBFS(c, -50, mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
   EXPECT_EQ(54, set_dB_values[0]); // Master
@@ -498,8 +510,8 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
     "Digital Capture",
     "Mic",
   };
-  struct mixer_volume_control *mixer_input;
-  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
+  struct mixer_control *mixer_input;
+  mixer_input = (struct mixer_control *)calloc(1, sizeof(*mixer_input));
   mixer_input->elem = reinterpret_cast<snd_mixer_elem_t *>(3);
 
   ResetStubData();
@@ -576,6 +588,7 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
     0,
   };
   long set_dB_values3[3];
+  mixer_input->has_volume = 1;
   snd_mixer_selem_get_capture_dB_return_values = get_dB_returns3;
   snd_mixer_selem_get_capture_dB_return_values_length =
       ARRAY_SIZE(get_dB_returns3);
@@ -703,18 +716,18 @@ class AlsaMixerOutputs : public testing::Test {
     EXPECT_EQ(1, snd_mixer_close_called);
   }
 
-  static void OutputCallback(struct cras_alsa_mixer_output *out, void *arg) {
+  static void OutputCallback(struct mixer_control *out, void *arg) {
     output_callback_called_++;
     output_called_values_.push_back(out);
   }
 
   struct cras_alsa_mixer *cras_mixer_;
   static size_t output_callback_called_;
-  static std::vector<struct cras_alsa_mixer_output *> output_called_values_;
+  static std::vector<struct mixer_control *> output_called_values_;
 };
 
 size_t AlsaMixerOutputs::output_callback_called_;
-std::vector<struct cras_alsa_mixer_output *>
+std::vector<struct mixer_control *>
     AlsaMixerOutputs::output_called_values_;
 
 TEST_F(AlsaMixerOutputs, CheckFourOutputs) {
@@ -725,37 +738,37 @@ TEST_F(AlsaMixerOutputs, CheckFourOutputs) {
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindOutputByNameNoMatch) {
-  struct cras_alsa_mixer_output *out;
+  struct mixer_control *out;
 
   snd_mixer_selem_get_name_called = 0;
   out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
                                                  "AAAAA Jack");
-  EXPECT_EQ(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
+  EXPECT_EQ(static_cast<struct mixer_control *>(NULL), out);
   EXPECT_EQ(4, snd_mixer_selem_get_name_called);
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindOutputByName) {
-  struct cras_alsa_mixer_output *out;
+  struct mixer_control *out;
 
   snd_mixer_selem_get_name_called = 0;
   out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
                                                  "Headphone Jack");
-  EXPECT_NE(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
+  EXPECT_NE(static_cast<struct mixer_control *>(NULL), out);
   EXPECT_EQ(1, snd_mixer_selem_get_name_called);
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindOutputHDMIByName) {
-  struct cras_alsa_mixer_output *out;
+  struct mixer_control *out;
 
   snd_mixer_selem_get_name_called = 0;
   out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
                                                  "HDMI Jack");
-  EXPECT_NE(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
+  EXPECT_NE(static_cast<struct mixer_control *>(NULL), out);
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindInputName) {
-  struct mixer_volume_control *control;
+  struct mixer_control *control;
   snd_mixer_elem_t *elements[] = {
     reinterpret_cast<snd_mixer_elem_t *>(2),  // Headphone
     reinterpret_cast<snd_mixer_elem_t *>(3),  // MIC
@@ -776,7 +789,7 @@ TEST_F(AlsaMixerOutputs, CheckFindInputName) {
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
   control = cras_alsa_mixer_get_input_matching_name(cras_mixer_,
                                                     "MIC");
-  EXPECT_NE(static_cast<struct mixer_volume_control *>(NULL), control);
+  EXPECT_NE(static_cast<struct mixer_control *>(NULL), control);
   free(control);
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
 }
@@ -815,7 +828,7 @@ TEST_F(AlsaMixerOutputs, MinMaxCaptureGain) {
 }
 
 TEST_F(AlsaMixerOutputs, MinMaxCaptureGainWithActiveInput) {
-  struct mixer_volume_control *mixer_input;
+  struct mixer_control *mixer_input;
   long min, max;
 
   static const long min_volumes[] = {0, 0, 0, 0, 0, 0, 500, -1250, 50};
@@ -826,7 +839,7 @@ TEST_F(AlsaMixerOutputs, MinMaxCaptureGainWithActiveInput) {
   snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_capture_dB_range_values_length = ARRAY_SIZE(min_volumes);
 
-  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
+  mixer_input = (struct mixer_control *)calloc(1, sizeof(*mixer_input));
   mixer_input->elem = reinterpret_cast<snd_mixer_elem_t *>(9);
   min = cras_alsa_mixer_get_minimum_capture_gain(cras_mixer_, mixer_input);
   max = cras_alsa_mixer_get_maximum_capture_gain(cras_mixer_, mixer_input);

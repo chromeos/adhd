@@ -28,13 +28,13 @@ static size_t cras_alsa_mmap_begin_frames;
 static size_t cras_alsa_fill_properties_called;
 static size_t alsa_mixer_set_dBFS_called;
 static int alsa_mixer_set_dBFS_value;
-static const struct cras_alsa_mixer_output *alsa_mixer_set_dBFS_output;
+static const struct mixer_control *alsa_mixer_set_dBFS_output;
 static size_t alsa_mixer_set_capture_dBFS_called;
 static int alsa_mixer_set_capture_dBFS_value;
-static const struct mixer_volume_control *alsa_mixer_set_capture_dBFS_input;
-static const struct mixer_volume_control
+static const struct mixer_control *alsa_mixer_set_capture_dBFS_input;
+static const struct mixer_control
     *cras_alsa_mixer_get_minimum_capture_gain_mixer_input;
-static const struct mixer_volume_control
+static const struct mixer_control
     *cras_alsa_mixer_get_maximum_capture_gain_mixer_input;
 static size_t cras_alsa_mixer_list_outputs_called;
 static size_t sys_get_volume_called;
@@ -47,19 +47,19 @@ static size_t alsa_mixer_get_dB_range_called;
 static long alsa_mixer_get_dB_range_value;
 static size_t alsa_mixer_get_output_dB_range_called;
 static long alsa_mixer_get_output_dB_range_value;
-static const struct cras_alsa_mixer_output *alsa_mixer_set_mute_output;
+static const struct mixer_control *alsa_mixer_set_mute_output;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
-static const struct mixer_volume_control *alsa_mixer_set_capture_mute_input;
+static const struct mixer_control *alsa_mixer_set_capture_mute_input;
 static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
 static size_t sys_get_capture_mute_called;
 static int sys_get_capture_mute_return_value;
 static struct cras_alsa_mixer *fake_mixer = (struct cras_alsa_mixer *)1;
-static struct cras_alsa_mixer_output **cras_alsa_mixer_list_outputs_outputs;
+static struct mixer_control **cras_alsa_mixer_list_outputs_outputs;
 static size_t cras_alsa_mixer_list_outputs_outputs_length;
 static size_t cras_alsa_mixer_set_output_active_state_called;
-static std::vector<struct cras_alsa_mixer_output *>
+static std::vector<struct mixer_control *>
     cras_alsa_mixer_set_output_active_state_outputs;
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static size_t cras_alsa_mixer_default_volume_curve_called;
@@ -69,6 +69,8 @@ static size_t sys_set_volume_limits_called;
 static size_t sys_set_capture_gain_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
 static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
+static size_t cras_alsa_mixer_get_output_volume_curve_called;
+static struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve_value;
 static size_t cras_alsa_jack_list_create_called;
 static size_t cras_alsa_jack_list_destroy_called;
 static jack_state_change_callback *cras_alsa_jack_list_create_cb;
@@ -123,6 +125,8 @@ void ResetStubData() {
   sys_set_capture_gain_limits_called = 0;
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
+  cras_alsa_mixer_get_output_volume_curve_called = 0;
+  cras_alsa_mixer_get_output_volume_curve_value = NULL;
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_set_node_attr_called = 0;
@@ -587,18 +591,15 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   int rc;
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  struct cras_alsa_mixer_output *outputs[2];
+  struct mixer_control *outputs[2];
 
   ResetStubData();
-  outputs[0] =
-    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
-  outputs[1] =
-    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
+  outputs[0] = reinterpret_cast<struct mixer_control *>(3);
+  outputs[1] = reinterpret_cast<struct mixer_control *>(4);
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
-  outputs[0]->volume_curve = fake_curve;
-  outputs[1]->volume_curve = fake_curve;
+  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -624,8 +625,6 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   EXPECT_EQ(2, cras_alsa_jack_enable_ucm_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-  free(outputs[0]);
-  free(outputs[1]);
   free(fake_curve);
   fake_curve = NULL;
 }
@@ -635,18 +634,15 @@ TEST(AlsaOutputNode, TwoOutputs) {
   int rc;
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  struct cras_alsa_mixer_output *outputs[2];
+  struct mixer_control *outputs[2];
 
   ResetStubData();
-  outputs[0] =
-    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
-  outputs[1] =
-    static_cast<struct cras_alsa_mixer_output *>(calloc(1, sizeof(**outputs)));
+  outputs[0] = reinterpret_cast<struct mixer_control *>(3);
+  outputs[1] = reinterpret_cast<struct mixer_control *>(4);
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
-  outputs[0]->volume_curve = fake_curve;
-  outputs[1]->volume_curve = fake_curve;
+  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -656,6 +652,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  EXPECT_EQ(2, cras_alsa_mixer_get_output_volume_curve_called);
 
   aio->handle = (snd_pcm_t *)0x24;
 
@@ -676,8 +673,6 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(2, cras_alsa_jack_enable_ucm_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-  free(outputs[0]);
-  free(outputs[1]);
   free(fake_curve);
   fake_curve = NULL;
 }
@@ -1105,8 +1100,8 @@ const char *snd_strerror(int errnum)
   return "Alsa Error in UT";
 }
 
-const char *cras_alsa_mixer_get_output_name(
-		const struct cras_alsa_mixer_output *output)
+const char *cras_alsa_mixer_get_control_name(
+		const struct mixer_control *control)
 {
   return "";
 }
@@ -1149,7 +1144,7 @@ void cras_system_set_capture_gain_limits(long min, long max)
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *m,
 			      long dB_level,
-			      struct cras_alsa_mixer_output *output)
+			      struct mixer_control *output)
 {
   alsa_mixer_set_dBFS_called++;
   alsa_mixer_set_dBFS_value = dB_level;
@@ -1158,7 +1153,7 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *m,
 
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
 			      int muted,
-			      struct cras_alsa_mixer_output *mixer_output)
+			      struct mixer_control *mixer_output)
 {
   alsa_mixer_set_mute_called++;
   alsa_mixer_set_mute_value = muted;
@@ -1172,14 +1167,14 @@ long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer)
 }
 
 long cras_alsa_mixer_get_output_dB_range(
-    struct cras_alsa_mixer_output *mixer_output)
+    struct mixer_control *mixer_output)
 {
   alsa_mixer_get_output_dB_range_called++;
   return alsa_mixer_get_output_dB_range_value;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *m, long dB_level,
-		                      struct mixer_volume_control *mixer_input)
+		                      struct mixer_control *mixer_input)
 {
   alsa_mixer_set_capture_dBFS_called++;
   alsa_mixer_set_capture_dBFS_value = dB_level;
@@ -1187,7 +1182,7 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *m, long dB_level,
 }
 
 void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *m, int mute,
-				      struct mixer_volume_control *mixer_input)
+				      struct mixer_control *mixer_input)
 {
   alsa_mixer_set_capture_mute_called++;
   alsa_mixer_set_capture_mute_value = mute;
@@ -1195,7 +1190,7 @@ void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *m, int mute,
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
-				  cras_alsa_mixer_output_callback cb,
+				  cras_alsa_mixer_control_callback cb,
 				  void *callback_arg)
 {
   cras_alsa_mixer_list_outputs_called++;
@@ -1212,7 +1207,7 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 }
 
 int cras_alsa_mixer_set_output_active_state(
-		struct cras_alsa_mixer_output *output,
+		struct mixer_control *output,
 		int active)
 {
   cras_alsa_mixer_set_output_active_state_called++;
@@ -1233,7 +1228,7 @@ void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 }
 
 long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix,
-		struct mixer_volume_control *mixer_input)
+		struct mixer_control *mixer_input)
 {
 	cras_alsa_mixer_get_minimum_capture_gain_called++;
 	cras_alsa_mixer_get_minimum_capture_gain_mixer_input = mixer_input;
@@ -1241,11 +1236,18 @@ long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix,
 }
 
 long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
-		struct mixer_volume_control *mixer_input)
+		struct mixer_control *mixer_input)
 {
 	cras_alsa_mixer_get_maximum_capture_gain_called++;
 	cras_alsa_mixer_get_maximum_capture_gain_mixer_input = mixer_input;
 	return 0;
+}
+
+struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
+		const struct mixer_control *control)
+{
+  cras_alsa_mixer_get_output_volume_curve_called++;
+  return cras_alsa_mixer_get_output_volume_curve_value;
 }
 
 // From cras_alsa_jack
@@ -1300,13 +1302,13 @@ const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
     return NULL;
 }
 
-struct cras_alsa_mixer_output *cras_alsa_jack_get_mixer_output(
+struct mixer_control *cras_alsa_jack_get_mixer_output(
     const struct cras_alsa_jack *jack)
 {
   return NULL;
 }
 
-struct mixer_volume_control *cras_alsa_jack_get_mixer_input(
+struct mixer_control *cras_alsa_jack_get_mixer_input(
 		const struct cras_alsa_jack *jack)
 {
   return NULL;
