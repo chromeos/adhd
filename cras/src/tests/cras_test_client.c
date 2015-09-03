@@ -42,6 +42,8 @@ static int keep_looping = 1;
 static int exit_after_done_playing = 1;
 static size_t duration_frames;
 static int pause_client = 0;
+static int pause_a_reply = 0;
+static int pause_in_playback_reply = 1000;
 
 static struct cras_audio_codec *capture_codec;
 static struct cras_audio_codec *playback_codec;
@@ -195,6 +197,11 @@ static int put_samples(struct cras_client *client,
 
 	while (pause_client)
 		usleep(10000);
+
+	if (pause_a_reply) {
+		usleep(pause_in_playback_reply);
+		pause_a_reply = 0;
+	}
 
 	check_stream_terminate(frames);
 
@@ -760,6 +767,9 @@ static int run_file_io_stream(struct cras_client *client,
 		case 'p':
 			pause_client = !pause_client;
 			break;
+		case 'i':
+			pause_a_reply = 1;
+			break;
 		case 'q':
 			terminate_stream_loop();
 			break;
@@ -985,6 +995,7 @@ static struct option long_options[] = {
 	{"set_node_volume",	required_argument,      0, 'w'},
 	{"plug",                required_argument,      0, 'x'},
 	{"select_output",       required_argument,      0, 'y'},
+	{"playback_delay_us",   required_argument,      0, 'z'},
 	{"capture_mute",        required_argument,      0, '0'},
 	{"rm_active_input",	required_argument,	0, '1'},
 	{"rm_active_output",	required_argument,	0, '2'},
@@ -1035,6 +1046,7 @@ static void show_usage()
 	printf("--sbc - Use sbc codec for playback/capture.\n");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
+	printf("--playback_delay_us <N> - Set the time in us to delay a reply for playback when i is pressed\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
 	printf("--show_rms - Display RMS value of loopback stream.\n");
@@ -1169,6 +1181,9 @@ int main(int argc, char **argv)
 			break;
 		}
 		case 'y':
+		case 'z':
+			pause_in_playback_reply = atoi(optarg);
+			break;
 		case 'a': {
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
