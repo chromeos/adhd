@@ -486,15 +486,21 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   int element_capture_volume[] = {
     1,
     1,
+    1,
   };
   int element_capture_switches[] = {
+    1,
     1,
     1,
   };
   const char *element_names[] = {
     "Capture",
     "Digital Capture",
+    "Mic",
   };
+  struct mixer_volume_control *mixer_input;
+  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
+  mixer_input->elem = reinterpret_cast<snd_mixer_elem_t *>(3);
 
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
@@ -521,7 +527,7 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
 
   /* Set mute should be called for Master only. */
-  cras_alsa_mixer_set_capture_mute(c, 0);
+  cras_alsa_mixer_set_capture_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_capture_switch_all_called);
   /* Set volume should be called for Capture and Digital Capture. If Capture
    * doesn't set to anything but zero then the entire volume should be passed to
@@ -564,9 +570,6 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
 
   /* Set volume to the two main controls plus additional specific input
    * volume control */
-  struct mixer_volume_control *mixer_input;
-  mixer_input = (struct mixer_volume_control *)calloc(1, sizeof(*mixer_input));
-  mixer_input->elem = reinterpret_cast<snd_mixer_elem_t *>(3);
 
   long get_dB_returns3[] = {
     0,

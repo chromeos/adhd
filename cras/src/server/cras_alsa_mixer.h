@@ -151,9 +151,11 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
  * Args:
  *    cras_mixer - Mixer to set the volume in.
  *    muted - 1 if muted, 0 if not.
+ *    mixer_input - The mixer input to mute if no master mute.
  */
 void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
-				      int muted);
+				      int muted,
+				      struct mixer_volume_control *mixer_input);
 
 /* Invokes the provided callback once for each output associated with the given
  * device number.  The callback will be provided with a reference to the control

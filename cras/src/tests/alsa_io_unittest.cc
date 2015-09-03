@@ -51,6 +51,7 @@ static long alsa_mixer_get_output_dB_range_value;
 static const struct cras_alsa_mixer_output *alsa_mixer_set_mute_output;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
+static const struct mixer_volume_control *alsa_mixer_set_capture_mute_input;
 static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
 static size_t sys_get_capture_mute_called;
@@ -1190,10 +1191,12 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *m, long dB_level,
   alsa_mixer_set_capture_dBFS_input = mixer_input;
 }
 
-void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *m, int mute)
+void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *m, int mute,
+				      struct mixer_volume_control *mixer_input)
 {
   alsa_mixer_set_capture_mute_called++;
   alsa_mixer_set_capture_mute_value = mute;
+  alsa_mixer_set_capture_mute_input = mixer_input;
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,

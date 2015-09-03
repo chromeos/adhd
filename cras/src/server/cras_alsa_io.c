@@ -535,7 +535,8 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 			gain,
 			ain ? ain->mixer_input : NULL);
 	cras_alsa_mixer_set_capture_mute(aio->mixer,
-					 cras_system_get_capture_mute());
+					 cras_system_get_capture_mute(),
+					 ain ? ain->mixer_input : NULL);
 }
 
 /* Swaps the left and right channels of the given node. */
