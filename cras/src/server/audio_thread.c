@@ -959,12 +959,6 @@ static int get_next_output_wake(struct audio_thread *thread,
 		rc = cras_iodev_frames_queued(adev->dev);
 		hw_level = (rc < 0) ? 0 : rc;
 
-		ATLOG(atlog,
-					    AUDIO_THREAD_SET_DEV_WAKE,
-					    adev->dev->info.idx,
-					    adev->coarse_rate_adjust,
-					    adev->dev->min_cb_level);
-
 		adev->wake_ts = *now;
 
 		est_rate = adev->dev->ext_format->frame_rate *
@@ -988,6 +982,12 @@ static int get_next_output_wake(struct audio_thread *thread,
 			else
 				frames_to_play_in_sleep = 0;
 		}
+
+		ATLOG(atlog,
+	              AUDIO_THREAD_SET_DEV_WAKE,
+		      adev->dev->info.idx,
+		      hw_level,
+		      frames_to_play_in_sleep);
 
 		cras_frames_to_time_precise(
 				frames_to_play_in_sleep,
