@@ -334,7 +334,7 @@ static int thread_add_open_dev(struct audio_thread *thread,
 	else
 		adev->input_streaming = 0;
 
-	audio_thread_event_log_data(atlog,
+	ATLOG(atlog,
 				    AUDIO_THREAD_DEV_ADDED,
 				    iodev->info.idx, 0, 0);
 
@@ -367,7 +367,7 @@ static void thread_rm_open_adev(struct audio_thread *thread,
 
 	DL_DELETE(thread->open_devs[dir], dev_to_rm);
 
-	audio_thread_event_log_data(atlog,
+	ATLOG(atlog,
 				    AUDIO_THREAD_DEV_REMOVED,
 				    dev_to_rm->dev->info.idx, 0, 0);
 
@@ -432,7 +432,7 @@ static int thread_remove_stream(struct audio_thread *thread,
 					fetch_delay_msec);
 	}
 
-	audio_thread_event_log_data(atlog,
+	ATLOG(atlog,
 				    AUDIO_THREAD_STREAM_REMOVED,
 				    stream->stream_id, 0, 0);
 
@@ -517,7 +517,7 @@ static int thread_add_stream(struct audio_thread *thread,
 	if (rc < 0)
 		return rc;
 
-	audio_thread_event_log_data(atlog,
+	ATLOG(atlog,
 				    AUDIO_THREAD_STREAM_ADDED,
 				    stream->stream_id,
 				    num_iodevs ? iodevs[0]->info.idx : 0,
@@ -593,7 +593,7 @@ static int fetch_streams(struct audio_thread *thread,
 			continue;
 
 		if (!dev_stream_can_fetch(dev_stream)) {
-			audio_thread_event_log_data(
+			ATLOG(
 				atlog, AUDIO_THREAD_STREAM_SKIP_CB,
 				rstream->stream_id,
 				shm->area->write_offset[0],
@@ -603,7 +603,7 @@ static int fetch_streams(struct audio_thread *thread,
 
 		dev_stream_set_delay(dev_stream, delay);
 
-		audio_thread_event_log_data(
+		ATLOG(
 				atlog,
 				AUDIO_THREAD_FETCH_STREAM,
 				rstream->stream_id,
@@ -649,10 +649,7 @@ static int write_streams(struct audio_thread *thread,
 
         /* Mix as much as we can, the minimum fill level of any stream. */
 	DL_FOREACH(adev->dev->streams, curr) {
-		struct cras_audio_shm *shm;
 		int dev_frames;
-
-		shm = cras_rstream_output_shm(curr->stream);
 
 		/* If this is a single output dev stream, updates the latest
 		 * number of frames for playback. */
@@ -664,11 +661,11 @@ static int write_streams(struct audio_thread *thread,
 			thread_remove_stream(thread, curr->stream, NULL);
 			continue;
 		}
-		audio_thread_event_log_data(atlog,
+		ATLOG(atlog,
 				AUDIO_THREAD_WRITE_STREAMS_STREAM,
 				curr->stream->stream_id,
 				dev_frames,
-				cras_shm_callback_pending(shm));
+				cras_shm_callback_pending(cras_rstream_output_shm(curr->stream)));
 		if (cras_rstream_get_is_draining(curr->stream)) {
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
 			if (!dev_frames)
@@ -687,7 +684,7 @@ static int write_streams(struct audio_thread *thread,
 		memset(dst + max_offset * frame_bytes, 0,
 		       (write_limit - max_offset) * frame_bytes);
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
+	ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
 				    write_limit, max_offset, 0);
 
 	DL_FOREACH(adev->dev->streams, curr) {
@@ -711,7 +708,7 @@ static int write_streams(struct audio_thread *thread,
 
 	write_limit = cras_iodev_all_streams_written(odev);
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
+	ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED,
 				    write_limit, 0, 0);
 
 	return write_limit;
@@ -801,13 +798,13 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	if (err < 0)
 		return err;
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_PB_MSG, msg->id, 0, 0);
+	ATLOG(atlog, AUDIO_THREAD_PB_MSG, msg->id, 0, 0);
 
 	switch (msg->id) {
 	case AUDIO_THREAD_ADD_STREAM: {
 		struct audio_thread_add_rm_stream_msg *amsg;
 		amsg = (struct audio_thread_add_rm_stream_msg *)msg;
-		audio_thread_event_log_data(
+		ATLOG(
 			atlog,
 			AUDIO_THREAD_WRITE_STREAMS_WAIT,
 			amsg->stream->stream_id, 0, 0);
@@ -928,7 +925,7 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 		if (!next_cb_ts)
 			continue;
 
-		audio_thread_event_log_data(atlog,
+		ATLOG(atlog,
 					    AUDIO_THREAD_STREAM_SLEEP_TIME,
 					    dev_stream->stream->stream_id,
 					    next_cb_ts->tv_sec,
@@ -962,7 +959,7 @@ static int get_next_output_wake(struct audio_thread *thread,
 		rc = cras_iodev_frames_queued(adev->dev);
 		hw_level = (rc < 0) ? 0 : rc;
 
-		audio_thread_event_log_data(atlog,
+		ATLOG(atlog,
 					    AUDIO_THREAD_SET_DEV_WAKE,
 					    adev->dev->info.idx,
 					    adev->coarse_rate_adjust,
@@ -1000,7 +997,7 @@ static int get_next_output_wake(struct audio_thread *thread,
 		add_timespecs(&adev->wake_ts, &sleep_time);
 
 		ret++;
-		audio_thread_event_log_data(atlog,
+		ATLOG(atlog,
 					    AUDIO_THREAD_DEV_SLEEP_TIME,
 					    adev->dev->info.idx,
 					    adev->wake_ts.tv_sec,
@@ -1038,7 +1035,7 @@ static int get_next_input_wake(struct audio_thread *thread,
 		if (input_adev_ignore_wake(adev))
 			continue;
 		ret++;
-		audio_thread_event_log_data(atlog,
+		ATLOG(atlog,
 					    AUDIO_THREAD_DEV_SLEEP_TIME,
 					    adev->dev->info.idx,
 					    adev->wake_ts.tv_sec,
@@ -1073,7 +1070,7 @@ int fill_output_no_streams(struct open_dev *adev)
 		fill_odev_zeros(odev, MIN(target_hw_level - hw_level,
 					  fr_to_write));
 
-	audio_thread_event_log_data(atlog,
+	ATLOG(atlog,
 				    AUDIO_THREAD_ODEV_NO_STREAMS,
 				    odev->info.idx,
 				    hw_level,
@@ -1164,7 +1161,7 @@ static int write_output_samples(struct audio_thread *thread,
 	if (cras_iodev_update_rate(odev, hw_level))
 		update_estimated_rate(thread, adev);
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO,
+	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO,
 				    adev->dev->info.idx, hw_level, 0);
 
 	/* Don't request more than hardware can hold. Note that min_buffer_level
@@ -1207,7 +1204,7 @@ static int write_output_samples(struct audio_thread *thread,
 		fill_odev_zeros(adev->dev, odev->min_cb_level);
 	}
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
+	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 				    total_written, 0, 0);
 	return 0;
 }
@@ -1315,7 +1312,7 @@ static int capture_to_streams(struct audio_thread *thread,
 
 	remainder = MIN(hw_level, get_stream_limit_set_delay(adev, hw_level));
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO,
+	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO,
 				    idev->info.idx, hw_level, remainder);
 
 	if (!idev->dev_running(idev))
@@ -1355,7 +1352,7 @@ static int capture_to_streams(struct audio_thread *thread,
 			break;
 	}
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_READ_AUDIO_DONE,
+	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO_DONE,
 				    remainder, 0, 0);
 
 	return 0;
@@ -1546,13 +1543,13 @@ restart_poll_loop:
 				longest_wake = this_wake;
 		}
 
-		audio_thread_event_log_data(atlog, AUDIO_THREAD_SLEEP,
+		ATLOG(atlog, AUDIO_THREAD_SLEEP,
 					    wait_ts ? wait_ts->tv_sec : 0,
 					    wait_ts ? wait_ts->tv_nsec : 0,
 					    longest_wake.tv_nsec);
 		rc = ppoll(pollfds, num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
-		audio_thread_event_log_data(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
+		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
 		if (rc <= 0)
 			continue;
 
@@ -1565,7 +1562,7 @@ restart_poll_loop:
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
 			if (iodev_cb->pollfd &&
 			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT)) {
-				audio_thread_event_log_data(
+				ATLOG(
 					atlog, AUDIO_THREAD_IODEV_CB,
 					iodev_cb->is_write, 0, 0);
 				iodev_cb->cb(iodev_cb->cb_data);

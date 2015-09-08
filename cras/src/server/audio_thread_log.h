@@ -13,6 +13,15 @@
 
 #include "cras_types.h"
 
+#define AUDIO_THREAD_LOGGING	1
+
+#if (AUDIO_THREAD_LOGGING)
+#define ATLOG(log,event,data1,data2,data3) \
+	audio_thread_event_log_data(log,event,data1,data2,data3);
+#else
+#define ATLOG(log,event,data1,data2,data3)
+#endif
+
 extern struct audio_thread_event_log *atlog;
 
 static inline

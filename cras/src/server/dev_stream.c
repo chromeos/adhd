@@ -200,7 +200,7 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 	}
 
 	cras_rstream_dev_offset_update(rstream, fr_read, dev_stream->dev_id);
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_DEV_STREAM_MIX,
+	ATLOG(atlog, AUDIO_THREAD_DEV_STREAM_MIX,
 				    fr_written, fr_read, 0);
 
 	return fr_written;
@@ -282,7 +282,7 @@ static unsigned int capture_copy_converted_to_stream(
 			 buf_queued_bytes(dev_stream->conv_buffer) /
 							frame_bytes);
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_CONV_COPY,
+	ATLOG(atlog, AUDIO_THREAD_CONV_COPY,
 				    shm->area->write_buf_idx,
 				    rstream->audio_area->frames,
 				    offset);
@@ -316,7 +316,7 @@ static unsigned int capture_copy_converted_to_stream(
 		offset = cras_rstream_dev_offset(rstream, dev_stream->dev_id);
 	}
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
+	ATLOG(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 				    rstream->stream_id,
 				    total_written,
 				    cras_shm_frames_written(shm));
@@ -361,7 +361,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 		nread = cras_audio_area_copy(rstream->audio_area, offset,
 					     &rstream->format, area,
 					     area_offset, 1);
-		audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_WRITE,
+		ATLOG(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 					    rstream->stream_id,
 					    nread,
 					    cras_shm_frames_written(shm));
@@ -488,7 +488,7 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	if (rstream->flags & BULK_AUDIO_OK)
 		frames_ready = cras_rstream_level(rstream);
 
-	audio_thread_event_log_data(atlog, AUDIO_THREAD_CAPTURE_POST,
+	ATLOG(atlog, AUDIO_THREAD_CAPTURE_POST,
 				    rstream->stream_id,
 				    frames_ready,
 				    rstream->shm.area->read_buf_idx);
