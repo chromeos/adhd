@@ -790,8 +790,8 @@ TEST_F(AlsaMixerOutputs, CheckFindInputName) {
   control = cras_alsa_mixer_get_input_matching_name(cras_mixer_,
                                                     "MIC");
   EXPECT_NE(static_cast<struct mixer_control *>(NULL), control);
-  free(control);
-  EXPECT_EQ(3, snd_mixer_selem_get_name_called);
+  /* 3 + 1, one more for log */
+  EXPECT_EQ(4, snd_mixer_selem_get_name_called);
 }
 
 TEST_F(AlsaMixerOutputs, ActivateDeactivate) {

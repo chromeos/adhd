@@ -37,6 +37,7 @@ static const struct mixer_control
 static const struct mixer_control
     *cras_alsa_mixer_get_maximum_capture_gain_mixer_input;
 static size_t cras_alsa_mixer_list_outputs_called;
+static size_t cras_alsa_mixer_list_inputs_called;
 static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
 static size_t sys_get_capture_gain_called;
@@ -58,6 +59,8 @@ static int sys_get_capture_mute_return_value;
 static struct cras_alsa_mixer *fake_mixer = (struct cras_alsa_mixer *)1;
 static struct mixer_control **cras_alsa_mixer_list_outputs_outputs;
 static size_t cras_alsa_mixer_list_outputs_outputs_length;
+static struct mixer_control **cras_alsa_mixer_list_inputs_outputs;
+static size_t cras_alsa_mixer_list_inputs_outputs_length;
 static size_t cras_alsa_mixer_set_output_active_state_called;
 static std::vector<struct mixer_control *>
     cras_alsa_mixer_set_output_active_state_outputs;
@@ -117,6 +120,8 @@ void ResetStubData() {
   alsa_mixer_set_capture_mute_called = 0;
   cras_alsa_mixer_list_outputs_called = 0;
   cras_alsa_mixer_list_outputs_outputs_length = 0;
+  cras_alsa_mixer_list_inputs_called = 0;
+  cras_alsa_mixer_list_inputs_outputs_length = 0;
   cras_alsa_mixer_set_output_active_state_called = 0;
   cras_alsa_mixer_set_output_active_state_outputs.clear();
   cras_alsa_mixer_set_output_active_state_values.clear();
@@ -425,6 +430,7 @@ TEST(AlsaIoInit, InitializeCapture) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
@@ -1196,6 +1202,16 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
   cras_alsa_mixer_list_outputs_called++;
   for (size_t i = 0; i < cras_alsa_mixer_list_outputs_outputs_length; i++) {
     cb(cras_alsa_mixer_list_outputs_outputs[i], callback_arg);
+  }
+}
+
+void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer *cras_mixer,
+				  cras_alsa_mixer_control_callback cb,
+				  void *callback_arg)
+{
+  cras_alsa_mixer_list_inputs_called++;
+  for (size_t i = 0; i < cras_alsa_mixer_list_inputs_outputs_length; i++) {
+    cb(cras_alsa_mixer_list_inputs_outputs[i], callback_arg);
   }
 }
 

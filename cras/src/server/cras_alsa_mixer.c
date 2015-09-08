@@ -58,6 +58,7 @@ struct cras_alsa_mixer {
 	struct mixer_control *output_controls;
 	snd_mixer_elem_t *playback_switch;
 	struct mixer_control *main_capture_controls;
+	struct mixer_control *input_controls;
 	snd_mixer_elem_t *capture_switch;
 	struct cras_volume_curve *volume_curve;
 	long max_volume_dB;
@@ -233,6 +234,59 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 	return 0;
 }
 
+/* Adds an input control to the list. */
+static int add_input_control(struct cras_alsa_mixer *cmix,
+			      snd_mixer_elem_t *elem)
+{
+	int index; /* Index part of mixer simple element */
+	struct mixer_control *c;
+
+	index = snd_mixer_selem_get_index(elem);
+	syslog(LOG_DEBUG, "Add input control: %s,%d\n",
+	       snd_mixer_selem_get_name(elem), index);
+
+	c = (struct mixer_control *)calloc(1, sizeof(*c));
+	if (c == NULL) {
+		syslog(LOG_ERR, "No memory for input control.");
+		return -ENOMEM;
+	}
+
+	c->elem = elem;
+	c->has_volume = snd_mixer_selem_has_capture_volume(elem);
+	c->has_mute = snd_mixer_selem_has_capture_switch(elem);
+	DL_APPEND(cmix->input_controls, c);
+
+	return 0;
+}
+
+static void list_controls(struct mixer_control *control_list,
+			  cras_alsa_mixer_control_callback cb,
+			  void *cb_arg)
+{
+	struct mixer_control *control;
+
+	DL_FOREACH(control_list, control)
+		cb(control, cb_arg);
+}
+
+static struct mixer_control *get_control_matching_name(
+		struct mixer_control *control_list,
+		const char *name)
+{
+	struct mixer_control *c;
+
+	DL_FOREACH(control_list, c) {
+		const char *elem_name;
+
+		elem_name = snd_mixer_selem_get_name(c->elem);
+		if (elem_name == NULL)
+			continue;
+		if (strstr(name, elem_name))
+			return c;
+	}
+	return NULL;
+}
+
 /*
  * Exported interface.
  */
@@ -261,6 +315,11 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	static const char * const main_capture_names[] = {
 		"Capture",
 		"Digital Capture",
+	};
+	/* Names of controls for individual inputs. */
+	static const char * const input_names[] = {
+		"Mic",
+		"Microphone",
 	};
 	snd_mixer_elem_t *elem;
 	struct cras_alsa_mixer *cmix;
@@ -313,6 +372,12 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 					   output_names_extra_size)) {
 			/* TODO(dgreid) - determine device index. */
 			if (add_output_control(cmix, elem) != 0) {
+				cras_alsa_mixer_destroy(cmix);
+				return NULL;
+			}
+		} else if (name_in_list(name, input_names,
+					ARRAY_SIZE(input_names))) {
+			if (add_input_control(cmix, elem) != 0) {
 				cras_alsa_mixer_destroy(cmix);
 				return NULL;
 			}
@@ -375,37 +440,13 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 		DL_DELETE(cras_mixer->output_controls, c);
 		free(output);
 	}
+	DL_FOREACH(cras_mixer->input_controls, c) {
+		DL_DELETE(cras_mixer->input_controls, c);
+		free(c);
+	}
 	cras_volume_curve_destroy(cras_mixer->volume_curve);
 	snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
-}
-
-struct mixer_control *cras_alsa_mixer_get_input_matching_name(
-		struct cras_alsa_mixer *cras_mixer,
-		const char *control_name)
-{
-	snd_mixer_elem_t *elem;
-	for (elem = snd_mixer_first_elem(cras_mixer->mixer);
-			elem != NULL; elem = snd_mixer_elem_next(elem)) {
-		const char *name;
-		name = snd_mixer_selem_get_name(elem);
-
-		if (name == NULL)
-			continue;
-		if (strcmp(control_name, name) == 0) {
-			struct mixer_control *c;
-
-			c = (struct mixer_control *)calloc(1, sizeof(*c));
-			if (c == NULL) {
-				syslog(LOG_ERR, "No memory for control.");
-				return NULL;
-			}
-
-			c->elem = elem;
-			return c;
-		}
-	}
-	return NULL;
 }
 
 const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
@@ -577,10 +618,15 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 				  void *cb_arg)
 {
 	assert(cras_mixer);
-	struct mixer_control *output;
+	list_controls(cras_mixer->output_controls, cb, cb_arg);
+}
 
-	DL_FOREACH(cras_mixer->output_controls, output)
-		cb(output, cb_arg);
+void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer *cras_mixer,
+				 cras_alsa_mixer_control_callback cb,
+				 void *cb_arg)
+{
+	assert(cras_mixer);
+	list_controls(cras_mixer->input_controls, cb, cb_arg);
 }
 
 const char *cras_alsa_mixer_get_control_name(
@@ -593,17 +639,35 @@ struct mixer_control *cras_alsa_mixer_get_output_matching_name(
 		const struct cras_alsa_mixer *cras_mixer,
 		const char * const name)
 {
-	struct mixer_control *output;
+	assert(cras_mixer);
+	return get_control_matching_name(cras_mixer->output_controls, name);
+}
+
+struct mixer_control *cras_alsa_mixer_get_input_matching_name(
+		struct cras_alsa_mixer *cras_mixer,
+		const char *name)
+{
+	struct mixer_control *c = NULL;
+	snd_mixer_elem_t *elem;
 
 	assert(cras_mixer);
-	DL_FOREACH(cras_mixer->output_controls, output) {
-		const char *elem_name;
+	c = get_control_matching_name(cras_mixer->input_controls, name);
+	if (c)
+		return c;
 
-		elem_name = snd_mixer_selem_get_name(output->elem);
-		if (elem_name == NULL)
+	/* TODO: This is a workaround, we should pass the input names in
+	 * ucm config to cras_alsa_mixer_create. */
+	for (elem = snd_mixer_first_elem(cras_mixer->mixer);
+			elem != NULL; elem = snd_mixer_elem_next(elem)) {
+		const char *control_name;
+		control_name = snd_mixer_selem_get_name(elem);
+
+		if (control_name == NULL)
 			continue;
-		if (strstr(name, elem_name))
-			return output;
+		if (strcmp(name, control_name) == 0) {
+			if (add_input_control(cras_mixer, elem) == 0)
+				return cras_mixer->input_controls->prev;
+		}
 	}
 	return NULL;
 }

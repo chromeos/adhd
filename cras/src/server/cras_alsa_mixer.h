@@ -132,12 +132,12 @@ void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
 				      int muted,
 				      struct mixer_control *mixer_input);
 
-/* Invokes the provided callback once for each output associated with the given
- * device number.  The callback will be provided with a reference to the control
+/* Invokes the provided callback once for each output (input).
+ * The callback will be provided with a reference to the control
  * that can be queried to see what the control supports.
  * Args:
  *    cras_mixer - Mixer to set the volume in.
- *    cb - Function to call for each output.
+ *    cb - Function to call for each output (input).
  *    cb_arg - Argument to pass to cb.
  */
 typedef void (*cras_alsa_mixer_control_callback)(
@@ -145,6 +145,10 @@ typedef void (*cras_alsa_mixer_control_callback)(
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 				  cras_alsa_mixer_control_callback cb,
 				  void *cb_arg);
+
+void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer *cras_mixer,
+				 cras_alsa_mixer_control_callback cb,
+				 void *cb_arg);
 
 /* Gets the name of a given control. */
 const char *cras_alsa_mixer_get_control_name(
@@ -166,13 +170,13 @@ struct mixer_control *cras_alsa_mixer_get_output_matching_name(
  * name specified in ucm config.
  * Args:
  *    cras_mixer - Mixer to search for a control.
- *    control_name - Name of the control to search for.
+ *    name - Name of the control to search for.
  * Returns:
- *    A pointer the input mixer control that matches control_name.
+ *    A pointer to the input with a mixer control that matches "name".
  */
 struct mixer_control *cras_alsa_mixer_get_input_matching_name(
 		struct cras_alsa_mixer *cras_mixer,
-		const char *control_name);
+		const char *name);
 
 /* Sets the given output active or inactive. */
 int cras_alsa_mixer_set_output_active_state(

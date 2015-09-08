@@ -66,6 +66,8 @@ struct cras_gpio_jack {
  *    jack_list - list of jacks this belongs to.
  *    mixer_output - mixer output control used to control audio to this jack.
  *        This will be null for input jacks.
+ *    mixer_input - mixer input control used to control audio to this jack.
+ *        This will be null for output jacks.
  *    ucm_device - Name of the ucm device if found, otherwise, NULL.
  *    edid_file - File to read the EDID from (if available, HDMI only).
  *    display_info_timer - Timer used to poll display info for HDMI jacks.
@@ -857,9 +859,6 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 			free(jack->gpio.device_name);
 			close(jack->gpio.fd);
 		}
-
-		if (jack->mixer_input)
-			free(jack->mixer_input);
 
 		if (jack->override_type_name)
 			free((void *)jack->override_type_name);

@@ -737,6 +737,18 @@ static const char *get_output_node_name(struct alsa_io *aio,
 	}
 }
 
+static const char *get_input_node_name(struct alsa_io *aio,
+	struct mixer_control *cras_input)
+{
+	if (cras_input)
+		return cras_alsa_mixer_get_control_name(cras_input);
+
+	if (first_internal_device(aio) && !has_node(aio, INTERNAL_MICROPHONE))
+		return INTERNAL_MICROPHONE;
+	else
+		return DEFAULT;
+}
+
 static int get_ucm_flag_integer(struct alsa_io *aio,
 				const char *flag_name,
 				int *result)
@@ -852,7 +864,9 @@ static void new_output(struct mixer_control *cras_output,
 	cras_iodev_add_node(&aio->base, &output->base);
 }
 
-static void new_input(const char *name, struct alsa_io *aio)
+static void _new_input(struct mixer_control *cras_input,
+		       const char *name,
+		       struct alsa_io *aio)
 {
 	struct alsa_input_node *input;
 	char *mic_positions;
@@ -864,6 +878,7 @@ static void new_input(const char *name, struct alsa_io *aio)
 	}
 	input->base.dev = &aio->base;
 	input->base.idx = aio->next_ionode_index++;
+	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
 
@@ -887,6 +902,21 @@ static void new_input(const char *name, struct alsa_io *aio)
 	}
 
 	cras_iodev_add_node(&aio->base, &input->base);
+}
+
+static void new_input(struct mixer_control *cras_input,
+		      void *callback_arg)
+{
+	struct alsa_io *aio;
+	const char* name;
+	aio = (struct alsa_io *)callback_arg;
+	name = get_input_node_name(aio, cras_input);
+	_new_input(cras_input, name, aio);
+}
+
+static void new_input_by_name(const char *name, struct alsa_io *aio)
+{
+	_new_input(NULL, name, aio);
 }
 
 /* Finds the output node associated with the jack. Returns NULL if not found. */
@@ -1240,6 +1270,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	 * and Speaker. */
 	if (direction == CRAS_STREAM_OUTPUT)
 		cras_alsa_mixer_list_outputs(mixer, new_output, aio);
+	else if (direction == CRAS_STREAM_INPUT)
+		cras_alsa_mixer_list_inputs(mixer, new_input, aio);
 
 	/* Find any jack controls for this device. */
 	aio->jack_list = cras_alsa_jack_list_create(
@@ -1275,13 +1307,13 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			!no_create_default_input_node(aio)) {
 		if (first_internal_device(aio) &&
 		    !has_node(aio, INTERNAL_MICROPHONE))
-			new_input(INTERNAL_MICROPHONE, aio);
+			new_input_by_name(INTERNAL_MICROPHONE, aio);
 		else if (strstr(dev_name, KEYBOARD_MIC))
-			new_input(KEYBOARD_MIC, aio);
+			new_input_by_name(KEYBOARD_MIC, aio);
 		else if (dev_id && strstr(dev_id, AOKR_DEV))
-			new_input(AOKR_DEV, aio);
+			new_input_by_name(AOKR_DEV, aio);
 		else if (!aio->base.nodes)
-			new_input("(default)", aio);
+			new_input_by_name(DEFAULT, aio);
 	}
 
 	/* HDMI outputs don't have volume adjustment, do it in software. */
