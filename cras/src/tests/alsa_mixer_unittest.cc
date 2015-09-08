@@ -717,17 +717,8 @@ size_t AlsaMixerOutputs::output_callback_called_;
 std::vector<struct cras_alsa_mixer_output *>
     AlsaMixerOutputs::output_called_values_;
 
-TEST_F(AlsaMixerOutputs, CheckNoOutputsForDeviceOne) {
+TEST_F(AlsaMixerOutputs, CheckFourOutputs) {
   cras_alsa_mixer_list_outputs(cras_mixer_,
-                               1,
-                               AlsaMixerOutputs::OutputCallback,
-                               reinterpret_cast<void*>(555));
-  EXPECT_EQ(0, output_callback_called_);
-}
-
-TEST_F(AlsaMixerOutputs, CheckFourOutputsForDeviceZero) {
-  cras_alsa_mixer_list_outputs(cras_mixer_,
-                               0,
                                AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
   EXPECT_EQ(4, output_callback_called_);
@@ -738,7 +729,6 @@ TEST_F(AlsaMixerOutputs, CheckFindOutputByNameNoMatch) {
 
   snd_mixer_selem_get_name_called = 0;
   out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
-                                                 0,  // device_index
                                                  "AAAAA Jack");
   EXPECT_EQ(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
   EXPECT_EQ(4, snd_mixer_selem_get_name_called);
@@ -749,7 +739,6 @@ TEST_F(AlsaMixerOutputs, CheckFindOutputByName) {
 
   snd_mixer_selem_get_name_called = 0;
   out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
-                                                 0,  // device_index
                                                  "Headphone Jack");
   EXPECT_NE(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
   EXPECT_EQ(1, snd_mixer_selem_get_name_called);
@@ -760,7 +749,6 @@ TEST_F(AlsaMixerOutputs, CheckFindOutputHDMIByName) {
 
   snd_mixer_selem_get_name_called = 0;
   out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
-                                                 0,  // device_index
                                                  "HDMI Jack");
   EXPECT_NE(static_cast<struct cras_alsa_mixer_output *>(NULL), out);
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
@@ -797,7 +785,6 @@ TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
   int rc;
 
   cras_alsa_mixer_list_outputs(cras_mixer_,
-                               0,
                                AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
   EXPECT_EQ(4, output_callback_called_);

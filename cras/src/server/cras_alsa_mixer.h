@@ -30,7 +30,6 @@ struct mixer_volume_control {
  *  elem - ALSA mixer element.
  *  has_volume - non-zero indicates there is a volume control.
  *  has_mute - non-zero indicates there is a mute switch.
- *  device_index - ALSA device index for this control.
  *  max_volume_dB - Maximum volume available in the volume control.
  *  min_volume_dB - Minimum volume available in the volume control.
  *  volume_curve - Curve for this output.
@@ -39,7 +38,6 @@ struct cras_alsa_mixer_output {
 	snd_mixer_elem_t *elem;
 	int has_volume;
 	int has_mute;
-	size_t device_index;
 	long max_volume_dB;
 	long min_volume_dB;
 	struct cras_volume_curve *volume_curve;
@@ -162,14 +160,12 @@ void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
  * that can be queried to see what the control supports.
  * Args:
  *    cras_mixer - Mixer to set the volume in.
- *    device_index - Y in hw:X,Y.
  *    cb - Function to call for each output.
  *    cb_arg - Argument to pass to cb.
  */
 typedef void (*cras_alsa_mixer_output_callback)(
 		struct cras_alsa_mixer_output *output, void *arg);
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
-				  size_t device_index,
 				  cras_alsa_mixer_output_callback cb,
 				  void *cb_arg);
 
@@ -181,14 +177,12 @@ const char *cras_alsa_mixer_get_output_name(
  * elements.
  * Args:
  *    cras_mixer - Mixer to search for a control.
- *    device_index - Y in hw:X,Y.
  *    name - The name to match against the controls.
  * Returns:
  *    A pointer to the output with a mixer control that matches "name".
  */
 struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 		const struct cras_alsa_mixer *cras_mixer,
-		size_t device_index,
 		const char *name);
 
 /* Finds the mixer control for that matches the control name of input control

@@ -37,7 +37,6 @@ static const struct mixer_volume_control
 static const struct mixer_volume_control
     *cras_alsa_mixer_get_maximum_capture_gain_mixer_input;
 static size_t cras_alsa_mixer_list_outputs_called;
-static size_t cras_alsa_mixer_list_outputs_device_value;
 static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
 static size_t sys_get_capture_gain_called;
@@ -175,7 +174,6 @@ TEST(AlsaIoInit, InitializePlayback) {
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
   EXPECT_EQ(0, strncmp(test_card_name,
                        aio->base.info.name,
 		       strlen(test_card_name)));
@@ -358,7 +356,6 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
 
   fake_curve =
@@ -611,7 +608,6 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
   ResetStubData();
   rc = alsa_iodev_set_active_node((struct cras_iodev *)aio,
@@ -660,7 +656,6 @@ TEST(AlsaOutputNode, TwoOutputs) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(0, cras_alsa_mixer_list_outputs_device_value);
 
   aio->handle = (snd_pcm_t *)0x24;
 
@@ -1200,12 +1195,10 @@ void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *m, int mute,
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
-				  size_t device_index,
 				  cras_alsa_mixer_output_callback cb,
 				  void *callback_arg)
 {
   cras_alsa_mixer_list_outputs_called++;
-  cras_alsa_mixer_list_outputs_device_value = device_index;
   for (size_t i = 0; i < cras_alsa_mixer_list_outputs_outputs_length; i++) {
     cb(cras_alsa_mixer_list_outputs_outputs[i], callback_arg);
   }

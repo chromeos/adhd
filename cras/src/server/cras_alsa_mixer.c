@@ -181,18 +181,17 @@ static struct cras_volume_curve *create_volume_curve_for_output(
 							     output_name);
 }
 
-/* Adds an output control to the list for the specified device. */
+/* Adds an output control to the list. */
 static int add_output_control(struct cras_alsa_mixer *cmix,
-			      snd_mixer_elem_t *elem,
-			      size_t device_index)
+			      snd_mixer_elem_t *elem)
 {
 	int index; /* Index part of mixer simple element */
 	struct mixer_output_control *c;
 	long min, max;
 
 	index = snd_mixer_selem_get_index(elem);
-	syslog(LOG_DEBUG, "Add output control for dev %zu: %s,%d\n",
-	       device_index, snd_mixer_selem_get_name(elem), index);
+	syslog(LOG_DEBUG, "Add output control: %s,%d\n",
+	       snd_mixer_selem_get_name(elem), index);
 
 	c = calloc(1, sizeof(*c));
 	if (c == NULL) {
@@ -208,7 +207,6 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 	c->properties.elem = elem;
 	c->properties.has_volume = snd_mixer_selem_has_playback_volume(elem);
 	c->properties.has_mute = snd_mixer_selem_has_playback_switch(elem);
-	c->properties.device_index = device_index;
 	c->properties.volume_curve =
 		create_volume_curve_for_output(cmix, &c->properties);
 	DL_APPEND(cmix->output_controls, c);
@@ -295,7 +293,7 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 			   || name_in_list(name, output_names_extra,
 					   output_names_extra_size)) {
 			/* TODO(dgreid) - determine device index. */
-			if (add_output_control(cmix, elem, 0) != 0) {
+			if (add_output_control(cmix, elem) != 0) {
 				cras_alsa_mixer_destroy(cmix);
 				return NULL;
 			}
@@ -552,7 +550,6 @@ void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
-				  size_t device_index,
 				  cras_alsa_mixer_output_callback cb,
 				  void *cb_arg)
 {
@@ -560,8 +557,7 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer *cras_mixer,
 	struct mixer_output_control *output;
 
 	DL_FOREACH(cras_mixer->output_controls, output)
-		if (output->properties.device_index == device_index)
-			cb(&output->properties, cb_arg);
+		cb(&output->properties, cb_arg);
 }
 
 const char *cras_alsa_mixer_get_output_name(
@@ -572,7 +568,6 @@ const char *cras_alsa_mixer_get_output_name(
 
 struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 		const struct cras_alsa_mixer *cras_mixer,
-		size_t device_index,
 		const char * const name)
 {
 	struct mixer_output_control *output;
@@ -580,9 +575,6 @@ struct cras_alsa_mixer_output *cras_alsa_mixer_get_output_matching_name(
 	assert(cras_mixer);
 	DL_FOREACH(cras_mixer->output_controls, output) {
 		const char *elem_name;
-
-		if (output->properties.device_index != device_index)
-			continue;
 
 		elem_name = snd_mixer_selem_get_name(output->properties.elem);
 		if (elem_name == NULL)

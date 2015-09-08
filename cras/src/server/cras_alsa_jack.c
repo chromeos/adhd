@@ -387,13 +387,11 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	     strstr(jack->gpio.device_name, "Headset")))
 		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
 			jack_list->mixer,
-			jack_list->device_index,
 			"Headphone");
 	else if (direction == CRAS_STREAM_OUTPUT &&
 		 strstr(jack->gpio.device_name, "HDMI"))
 		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
 			jack_list->mixer,
-			jack_list->device_index,
 			"HDMI");
 
 	if (jack_list->ucm)
@@ -729,7 +727,6 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 			jack->mixer_output =
 				cras_alsa_mixer_get_output_matching_name(
 					jack_list->mixer,
-					jack_list->device_index,
 					name);
 		if (jack_list->ucm)
 			jack->ucm_device =

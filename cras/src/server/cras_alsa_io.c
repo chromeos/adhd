@@ -1234,8 +1234,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	/* Create output nodes for mixer controls, such as Headphone
 	 * and Speaker. */
 	if (direction == CRAS_STREAM_OUTPUT)
-		cras_alsa_mixer_list_outputs(mixer, device_index, new_output,
-					     aio);
+		cras_alsa_mixer_list_outputs(mixer, new_output, aio);
 
 	/* Find any jack controls for this device. */
 	aio->jack_list = cras_alsa_jack_list_create(
