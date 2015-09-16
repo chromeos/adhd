@@ -176,7 +176,7 @@ TEST(AlsaIoInit, InitializePlayback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
                                             fake_mixer, NULL,
                                             CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_NE(aio, (void *)NULL);
@@ -358,7 +358,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
                                             fake_mixer, NULL,
                                             CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_NE(aio, (void *)NULL);
@@ -424,7 +424,7 @@ TEST(AlsaIoInit, InitializeCapture) {
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
                                             fake_mixer, NULL,
                                             CRAS_STREAM_INPUT, 0, 0);
   ASSERT_NE(aio, (void *)NULL);
@@ -609,7 +609,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
                                             fake_mixer, NULL,
                                             CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_NE(aio, (void *)NULL);
@@ -652,13 +652,16 @@ TEST(AlsaOutputNode, TwoOutputs) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
                                             fake_mixer, NULL,
                                             CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(2, cras_alsa_mixer_get_output_volume_curve_called);
+  // This will be called three times because there will be
+  // two default node (because the output control's name is "")
+  // and one speaker node (because it is the first internal device).
+  EXPECT_EQ(3, cras_alsa_mixer_get_output_volume_curve_called);
 
   aio->handle = (snd_pcm_t *)0x24;
 

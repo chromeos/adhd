@@ -1267,10 +1267,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		       card_type, usb_vid, usb_pid);
 
 	/* Create output nodes for mixer controls, such as Headphone
-	 * and Speaker. */
-	if (direction == CRAS_STREAM_OUTPUT)
+	 * and Speaker, only for the first device. */
+	if (direction == CRAS_STREAM_OUTPUT && is_first)
 		cras_alsa_mixer_list_outputs(mixer, new_output, aio);
-	else if (direction == CRAS_STREAM_INPUT)
+	else if (direction == CRAS_STREAM_INPUT && is_first)
 		cras_alsa_mixer_list_inputs(mixer, new_input, aio);
 
 	/* Find any jack controls for this device. */
