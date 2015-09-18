@@ -1006,6 +1006,7 @@ static struct option long_options[] = {
 	{"listen_for_hotword",  no_argument,            0, '7'},
 	{"pin_device",		required_argument,	0, '8'},
 	{"suspend",		required_argument,	0, '9'},
+	{"set_node_gain",	required_argument,	0, ':'},
 	{0, 0, 0, 0}
 };
 
@@ -1216,6 +1217,7 @@ int main(int argc, char **argv)
 				cras_client_rm_active_node(client, dir, id);
 			break;
 		}
+		case ':':
 		case 'w': {
 			const char *s;
 			int dev_index;
@@ -1246,7 +1248,11 @@ int main(int argc, char **argv)
 			cras_node_id_t id = cras_make_node_id(dev_index,
 							      node_index);
 
-			cras_client_set_node_volume(client, id, value);
+			if (c == 'w')
+				cras_client_set_node_volume(client, id, value);
+			else
+				cras_client_set_node_capture_gain(
+						client, id, value);
 			break;
 		}
 		case '0': {
