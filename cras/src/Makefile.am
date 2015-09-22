@@ -99,7 +99,6 @@ lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_config.c \
-	common/cras_sbc_codec.c \
 	common/cras_util.c \
 	common/edid_utils.c \
 	libcras/cras_client.c \
@@ -110,7 +109,6 @@ include_HEADERS = \
 	common/cras_config.h \
 	common/cras_iodev_info.h \
 	common/cras_messages.h \
-	common/cras_sbc_codec.h \
 	common/cras_shm.h \
 	common/cras_types.h \
 	common/cras_util.h \
@@ -120,9 +118,8 @@ include_HEADERS = \
 	libcras/cras_helpers.h
 
 libcras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/libcras $(SBC_CFLAGS)
-libcras_la_LIBADD = -lpthread -lasound -lrt -lspeexdsp \
-	$(SBC_LIBS)
+	-I$(top_srcdir)/src/libcras
+libcras_la_LIBADD = -lpthread -lasound -lrt -lspeexdsp
 libcras_la_LDFLAGS = -version-info 0:0:0
 
 asound_module_pcm_cras_LTLIBRARIES = libasound_module_pcm_cras.la

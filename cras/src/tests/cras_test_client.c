@@ -14,7 +14,6 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-#include "cras_sbc_codec.h"
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -45,9 +44,6 @@ static int pause_client = 0;
 static int pause_a_reply = 0;
 static int pause_in_playback_reply = 1000;
 
-static struct cras_audio_codec *capture_codec;
-static struct cras_audio_codec *playback_codec;
-static unsigned char cap_buf[BUF_SIZE];
 static char *channel_layout = NULL;
 static int pin_device_id;
 
@@ -122,8 +118,7 @@ static int got_samples(struct cras_client *client,
 	int *fd = (int *)user_arg;
 	int ret;
 	int write_size;
-	int processed_bytes, frame_bytes;
-	size_t encoded;
+	int frame_bytes;
 
 	cras_client_calc_capture_latency(captured_time, &last_latency);
 
@@ -138,30 +133,10 @@ static int got_samples(struct cras_client *client,
 
 	check_stream_terminate(frames);
 
-	if (capture_codec) {
-		processed_bytes = capture_codec->encode(
-				capture_codec,
-				captured_samples,
-				write_size,
-				cap_buf,
-				BUF_SIZE,
-				&encoded);
-		if (processed_bytes <= 0 || processed_bytes > write_size) {
-			terminate_stream_loop();
-			return EOF;
-		}
-
-		ret = write(*fd, cap_buf, encoded);
-		if (ret != encoded)
-			printf("Error writing file\n");
-
-		return processed_bytes / frame_bytes;
-	} else {
-		ret = write(*fd, captured_samples, write_size);
-		if (ret != write_size)
-			printf("Error writing file\n");
-		return frames;
-	}
+	ret = write(*fd, captured_samples, write_size);
+	if (ret != write_size)
+		printf("Error writing file\n");
+	return frames;
 }
 
 /* Run from callback thread. */
@@ -189,7 +164,6 @@ static int put_samples(struct cras_client *client,
 		       const struct timespec *playback_time,
 		       void *user_arg)
 {
-	size_t this_size, decoded;
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 	int fd = *(int *)user_arg;
 	uint8_t buff[BUF_SIZE];
@@ -214,25 +188,8 @@ static int put_samples(struct cras_client *client,
 		return nread;
 	}
 
-	if (playback_codec) {
-		this_size = playback_codec->decode(playback_codec,
-				       buff,
-				       nread,
-				       playback_samples,
-				       frames * frame_bytes,
-				       &decoded);
-		if (this_size == 0) {
-			printf("stop looping\n");
-			terminate_stream_loop();
-			return EOF;
-		}
-		return decoded / frame_bytes;
-	} else {
-		memcpy(playback_samples,
-		       buff,
-		       nread);
-		return nread / frame_bytes;
-	}
+	memcpy(playback_samples, buff, nread);
+	return nread / frame_bytes;
 }
 
 /* Run from callback thread. */
@@ -950,22 +907,6 @@ static void check_output_plugged(struct cras_client *client, const char *name)
 	       cras_client_output_dev_plugged(client, name) ? "Yes" : "No");
 }
 
-static void init_sbc_codec()
-{
-	capture_codec = cras_sbc_codec_create(SBC_FREQ_16000,
-					      SBC_MODE_DUAL_CHANNEL,
-					      SBC_SB_4,
-					      SBC_AM_LOUDNESS,
-					      SBC_BLK_8,
-					      53);
-	playback_codec = cras_sbc_codec_create(SBC_FREQ_16000,
-					       SBC_MODE_DUAL_CHANNEL,
-					       SBC_SB_4,
-					       SBC_AM_LOUDNESS,
-					       SBC_BLK_8,
-					       53);
-}
-
 static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"show_rms",            no_argument, &show_rms, 1},
@@ -974,7 +915,6 @@ static struct option long_options[] = {
 	{"block_size",		required_argument,	0, 'b'},
 	{"capture_file",	required_argument,	0, 'c'},
 	{"duration_seconds",	required_argument,	0, 'd'},
-	{"sbc",                 no_argument,            0, 'e'},
 	{"dump_dsp",            no_argument,            0, 'f'},
 	{"capture_gain",        required_argument,      0, 'g'},
 	{"help",                no_argument,            0, 'h'},
@@ -1044,7 +984,6 @@ static void show_usage()
 	       "id from active input device list\n");
 	printf("--rm_active_output <N>:<M> - Removes the ionode with the given"
 	       "id from active output device list\n");
-	printf("--sbc - Use sbc codec for playback/capture.\n");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
 	printf("--playback_delay_us <N> - Set the time in us to delay a reply for playback when i is pressed\n");
@@ -1097,9 +1036,6 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'c':
 			capture_file = optarg;
-			break;
-		case 'e':
-			init_sbc_codec();
 			break;
 		case 'p':
 			playback_file = optarg;
@@ -1337,9 +1273,5 @@ int main(int argc, char **argv)
 
 destroy_exit:
 	cras_client_destroy(client);
-	if (capture_codec)
-		cras_sbc_codec_destroy(capture_codec);
-	if (playback_codec)
-		cras_sbc_codec_destroy(playback_codec);
 	return rc;
 }
