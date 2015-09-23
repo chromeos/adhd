@@ -119,7 +119,7 @@ include_HEADERS = \
 
 libcras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
-libcras_la_LIBADD = -lpthread -lasound -lrt -lspeexdsp
+libcras_la_LIBADD = -lpthread -lasound -lrt
 libcras_la_LDFLAGS = -version-info 0:0:0
 
 asound_module_pcm_cras_LTLIBRARIES = libasound_module_pcm_cras.la
