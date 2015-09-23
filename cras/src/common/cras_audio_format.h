@@ -8,7 +8,15 @@
 
 #include <stdint.h>
 #include <string.h>
+
+#ifdef __ANDROID__
+#include <tinyalsa/asoundlib.h>
+#define PCM_FORMAT_WIDTH(format) pcm_format_to_bits(format)
+typedef enum pcm_format snd_pcm_format_t;
+#else
 #include <alsa/asoundlib.h>
+#define PCM_FORMAT_WIDTH(format) snd_pcm_format_physical_width(format)
+#endif
 
 /* Identifiers for each channel in audio stream. */
 enum CRAS_CHANNEL {
@@ -84,7 +92,7 @@ static inline void unpack_cras_audio_format(struct cras_audio_format* dest,
  */
 static inline size_t cras_get_format_bytes(const struct cras_audio_format *fmt)
 {
-	const int bytes = snd_pcm_format_physical_width(fmt->format) / 8;
+	const int bytes = PCM_FORMAT_WIDTH(fmt->format) / 8;
 	return (size_t)bytes * fmt->num_channels;
 }
 

@@ -131,8 +131,7 @@ int cras_helper_play_buffer(struct cras_client *client,
 	data = malloc(sizeof(*data));
 
 	data->buffer = buffer;
-	data->frame_bytes = num_channels *
-			    snd_pcm_format_physical_width(format) / 8;
+	data->frame_bytes = num_channels * PCM_FORMAT_WIDTH(format) / 8;
 	data->offset = 0;
 	data->len = frames * data->frame_bytes;
 
