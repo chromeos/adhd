@@ -934,12 +934,15 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
 				  enum ionode_attr attr, int value)
 {
 	struct cras_ionode *node;
+	int rc;
 
 	node = find_node(node_id);
 	if (!node)
 		return -EINVAL;
 
-	return cras_iodev_set_node_attr(node, attr, value);
+	rc = cras_iodev_set_node_attr(node, attr, value);
+	cras_iodev_list_notify_nodes_changed();
+	return rc;
 }
 
 void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
