@@ -718,6 +718,7 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (!new_dev || new_dev->direction != dir)
 		return;
 
+	new_dev->update_active_node(new_dev, node_index_of(node_id));
 	cras_iodev_list_enable_dev(new_dev);
 }
 
