@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <errno.h>
 #include <stdint.h>
 #include <sys/param.h>
 

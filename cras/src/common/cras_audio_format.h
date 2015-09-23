@@ -7,6 +7,7 @@
 #define CRAS_AUDIO_FORMAT_H_
 
 #include <stdint.h>
+#include <string.h>
 #include <alsa/asoundlib.h>
 
 /* Identifiers for each channel in audio stream. */

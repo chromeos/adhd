@@ -25,6 +25,7 @@
 #define _GNU_SOURCE /* For ppoll() */
 #endif
 
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
