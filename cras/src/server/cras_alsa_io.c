@@ -1102,9 +1102,11 @@ static void set_iodev_name(struct cras_iodev *dev,
 {
 	snprintf(dev->info.name,
 		 sizeof(dev->info.name),
-		 "%s: %s",
+		 "%s: %s:%zu,%zu",
 		 card_name,
-		 dev_name);
+		 dev_name,
+		 card_index,
+		 device_index);
 	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
 	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
 	dev->info.stable_id = SuperFastHash(dev->info.name,
