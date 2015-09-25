@@ -56,6 +56,52 @@ static void empty_init_module(struct dsp_module *module)
 }
 
 /*
+ *  invert_lr module functions
+ */
+static int invert_lr_instantiate(struct dsp_module *module,
+				 unsigned long sample_rate)
+{
+	module->data = calloc(4, sizeof(float*));
+	return 0;
+}
+
+static void invert_lr_connect_port(struct dsp_module *module,
+				   unsigned long port, float *data_location)
+{
+	float **ports;
+	ports = (float **)module->data;
+	ports[port] = data_location;
+}
+
+static void invert_lr_run(struct dsp_module *module,
+			  unsigned long sample_count)
+{
+	size_t i;
+	float **ports = (float **)module->data;
+
+	for (i = 0; i < sample_count; i++) {
+		ports[2][i] = -ports[0][i];
+		ports[3][i] = ports[1][i];
+	}
+}
+
+static void invert_lr_deinstantiate(struct dsp_module *module)
+{
+	free(module->data);
+}
+
+static void invert_lr_init_module(struct dsp_module *module)
+{
+	module->instantiate = &invert_lr_instantiate;
+	module->connect_port = &invert_lr_connect_port;
+	module->get_delay = &empty_get_delay;
+	module->run = &invert_lr_run;
+	module->deinstantiate = &invert_lr_deinstantiate;
+	module->free_module = &empty_free_module;
+	module->get_properties = &empty_get_properties;
+}
+
+/*
  *  mix_stereo module functions
  */
 static int mix_stereo_instantiate(struct dsp_module *module,
@@ -370,6 +416,8 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
 
 	if (strcmp(plugin->label, "mix_stereo") == 0) {
 		mix_stereo_init_module(module);
+	} else if (strcmp(plugin->label, "invert_lr") == 0) {
+		invert_lr_init_module(module);
 	} else if (strcmp(plugin->label, "eq") == 0) {
 		eq_init_module(module);
 	} else if (strcmp(plugin->label, "eq2") == 0) {
