@@ -417,6 +417,24 @@ TEST(AlsaUcm, SectionExistsWithSuffix) {
   EXPECT_EQ(0, ucm_section_exists_with_suffix(mgr, "Suffix3", "Identifier"));
 }
 
+TEST(AlsaUcm, DisableSoftwareVolume) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  unsigned int disable_software_volume;
+  std::string id = "=DisableSoftwareVolume//HiFi";
+  std::string value = "1";
+
+  ResetStubData();
+
+  snd_use_case_get_value[id] = value;
+  snd_use_case_get_ret_value[id] = 0;
+
+  disable_software_volume = ucm_get_disable_software_volume(mgr);
+  ASSERT_TRUE(disable_software_volume);
+
+  ASSERT_EQ(1, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id);
+}
+
 /* Stubs */
 
 extern "C" {

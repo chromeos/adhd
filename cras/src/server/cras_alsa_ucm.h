@@ -171,4 +171,9 @@ const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction);
  */
 unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr);
 
+/* Gets the flag for disabling software volume.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ */
+unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr);
 #endif /* _CRAS_ALSA_UCM_H */
