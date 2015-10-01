@@ -500,7 +500,9 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 	/* Finally, write the parameters to the device. */
 	err = snd_pcm_hw_params(handle, hwparams);
 	if (err < 0) {
-		syslog(LOG_ERR, "hw_params: %s\n", snd_strerror(err));
+		syslog(LOG_ERR, "hw_params: %s: rate: %u, ret_rate: %u, "
+		       "channel: %zu, format: %u\n", snd_strerror(err), rate,
+		       ret_rate, format->num_channels, format->format);
 		return err;
 	}
 
