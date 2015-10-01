@@ -494,7 +494,10 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			syslog(LOG_ERR, "too many enabled devices");
 			break;
 		}
-		init_device(edev->dev, rstream);
+		rc = init_device(edev->dev, rstream);
+		if (rc)
+			return rc;
+
 		iodevs[num_iodevs++] = edev->dev;
 	}
 	rc = audio_thread_add_stream(audio_thread, rstream, iodevs, num_iodevs);
