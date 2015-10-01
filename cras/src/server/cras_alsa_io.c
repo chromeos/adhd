@@ -802,10 +802,18 @@ static int no_create_default_output_node(struct alsa_io *aio)
 }
 
 static void set_output_node_software_volume_needed(
-	struct alsa_output_node *output, struct cras_alsa_mixer * mixer)
+	struct alsa_output_node *output, struct alsa_io *aio)
 {
 
+	struct cras_alsa_mixer *mixer = aio->mixer;
 	long range = 0;
+
+	if (aio->ucm && ucm_get_disable_software_volume(aio->ucm)) {
+		output->base.software_volume_needed = 0;
+		syslog(LOG_DEBUG, "Disable software volume for %s from ucm.",
+		       output->base.name);
+		return;
+	}
 
 	/* Use software volume for HDMI output */
 	if (output->base.type == CRAS_NODE_TYPE_HDMI)
@@ -851,7 +859,7 @@ static void new_output(struct mixer_control *cras_output,
 	name = get_output_node_name(aio, cras_output);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
-	set_output_node_software_volume_needed(output, aio->mixer);
+	set_output_node_software_volume_needed(output, aio);
 
 	/* Auto unplug internal speaker if any output node has been created */
 	if (auto_unplug_output_node(aio) && !strcmp(name, INTERNAL_SPEAKER)) {
@@ -1012,7 +1020,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		strncpy(node->base.name, jack_name,
 			sizeof(node->base.name) - 1);
 		set_node_initial_state(&node->base, aio->card_type);
-		set_output_node_software_volume_needed(node, aio->mixer);
+		set_output_node_software_volume_needed(node, aio);
 		cras_alsa_jack_update_node_type(jack, &(node->base.type));
 		cras_iodev_add_node(&aio->base, &node->base);
 	} else if (!node->jack) {

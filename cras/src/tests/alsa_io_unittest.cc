@@ -1362,6 +1362,11 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
   return 0;
 }
 
+unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
+{
+  return 0;
+}
+
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }
