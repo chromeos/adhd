@@ -479,8 +479,10 @@ static int stream_added_cb(struct cras_rstream *rstream)
 		dev = find_dev(rstream->pinned_dev_idx);
 		if (!dev)
 			return -EINVAL;
+
+		/* Negative EAGAIN code indicates dev will be opened later. */
 		rc = init_device(dev, rstream);
-		if (rc)
+		if (rc && (rc != -EAGAIN))
 			return rc;
 
 		return audio_thread_add_stream(audio_thread, rstream, &dev, 1);
@@ -494,8 +496,9 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			syslog(LOG_ERR, "too many enabled devices");
 			break;
 		}
+		/* Negative EAGAIN code indicates dev will be opened later. */
 		rc = init_device(edev->dev, rstream);
-		if (rc)
+		if (rc && (rc != -EAGAIN))
 			return rc;
 
 		iodevs[num_iodevs++] = edev->dev;
