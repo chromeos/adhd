@@ -125,18 +125,6 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static void set_hfp_volume(struct cras_iodev *iodev)
-{
-	size_t volume;
-	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-
-	volume = cras_system_get_volume();
-	if (iodev->active_node)
-		volume = cras_iodev_adjust_node_volume(iodev->active_node, volume);
-
-	cras_bt_device_set_speaker_gain(hfpio->device, volume);
-}
-
 static int is_open(const struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
@@ -259,7 +247,7 @@ struct cras_iodev *hfp_iodev_create(
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->set_volume = set_hfp_volume;
+	iodev->software_volume_needed = 1;
 
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
