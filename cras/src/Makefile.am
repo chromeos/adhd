@@ -5,9 +5,35 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
+if HAVE_SSE42
+CRAS_SSE4_2 = libcrasmix_sse42.la
+else
+CRAS_SSE4_2 =
+endif
+
+if HAVE_AVX
+CRAS_AVX = libcrasmix_avx.la
+else
+CRAS_AVX =
+endif
+
+if HAVE_AVX2
+CRAS_AVX2 = libcrasmix_avx2.la
+else
+CRAS_AVX2 =
+endif
+
+if HAVE_FMA
+CRAS_FMA = libcrasmix_fma.la
+else
+CRAS_FMA =
+endif
+
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
+COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
 bin_PROGRAMS = cras cras_test_client
+
 cras_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
@@ -91,9 +117,68 @@ cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
-cras_LDADD = -lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
+
+cras_LDADD = \
+	libcrasmix.la \
+	$(CRAS_SSE4_2) \
+	$(CRAS_AVX) \
+	$(CRAS_AVX2) \
+	$(CRAS_FMA) \
+	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS)
+
+noinst_LTLIBRARIES = \
+	$(CRAS_SSE4_2) \
+	$(CRAS_AVX) \
+	$(CRAS_AVX2) \
+	$(CRAS_FMA) \
+	libcrasmix.la
+
+libcrasmix_la_SOURCES = \
+	server/cras_mix_ops.c
+
+libcrasmix_la_CFLAGS = \
+	$(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
+	$(DBUS_CFLAGS) $(SBC_CFLAGS)
+
+libcrasmix_sse42_la_SOURCES = \
+	server/cras_mix_ops.c
+
+libcrasmix_sse42_la_CFLAGS = \
+	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
+	$(DBUS_CFLAGS) $(SSE42_CFLAGS)
+
+libcrasmix_avx_la_SOURCES = \
+	server/cras_mix_ops.c
+
+libcrasmix_avx_la_CFLAGS = \
+	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
+	$(DBUS_CFLAGS) $(AVX_CFLAGS)
+
+libcrasmix_avx2_la_SOURCES = \
+	server/cras_mix_ops.c
+
+libcrasmix_avx2_la_CFLAGS = \
+	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
+	$(DBUS_CFLAGS) $(AVX2_CFLAGS)
+
+libcrasmix_fma_la_SOURCES = \
+	server/cras_mix_ops.c
+
+libcrasmix_fma_la_CFLAGS = \
+	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
+	$(DBUS_CFLAGS) $(FMA_CFLAGS)
 
 lib_LTLIBRARIES = libcras.la
 libcras_la_SOURCES = \
@@ -483,7 +568,13 @@ iodev_unittest_LDADD = -lgtest -lpthread
 mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
 mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-mix_unittest_LDADD = -lgtest -lpthread
+mix_unittest_LDADD = libcrasmix.la \
+	$(CRAS_SSE4_2) \
+	$(CRAS_AVX) \
+	$(CRAS_AVX2) \
+	$(CRAS_FMA) \
+	-lgtest \
+	-lpthread
 
 linear_resampler_unittest_SOURCES = tests/linear_resampler_unittest.cc \
 	server/linear_resampler.c server/cras_audio_area.c
