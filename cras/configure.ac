@@ -6,6 +6,8 @@ AC_INIT([cras], [0.1], [dgreid@chromium.org],
 AC_PREREQ([2.59])
 AM_INIT_AUTOMAKE([1.10 -Wall no-define])
 #AC_CONFIG_HEADERS([config.h])
+
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
 AC_PROG_CC
 # c++ unit test (gtest).
