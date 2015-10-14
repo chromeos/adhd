@@ -130,16 +130,45 @@ static void cras_mix_add_stride_s16_le(uint8_t *dst, uint8_t *src,
 {
 	unsigned int i;
 
-	for (i = 0; i < count; i++) {
-		int32_t sum;
-		sum = *(int16_t *)dst + *(int16_t *)src;
-		if (sum > INT16_MAX)
-			sum = INT16_MAX;
-		else if (sum < INT16_MIN)
-			sum = INT16_MIN;
-		*(int16_t*)dst = sum;
-		dst += dst_stride;
-		src += src_stride;
+	/* optimise the loops for vectorization */
+	if (dst_stride == src_stride && dst_stride == 2) {
+
+		for (i = 0; i < count; i++) {
+			int32_t sum;
+			sum = *(int16_t *)dst + *(int16_t *)src;
+			if (sum > INT16_MAX)
+				sum = INT16_MAX;
+			else if (sum < INT16_MIN)
+				sum = INT16_MIN;
+			*(int16_t*)dst = sum;
+			dst += 2;
+			src += 2;
+		}
+	} else if (dst_stride == src_stride && dst_stride == 4) {
+
+		for (i = 0; i < count; i++) {
+			int32_t sum;
+			sum = *(int16_t *)dst + *(int16_t *)src;
+			if (sum > INT16_MAX)
+				sum = INT16_MAX;
+			else if (sum < INT16_MIN)
+				sum = INT16_MIN;
+			*(int16_t*)dst = sum;
+			dst += 4;
+			src += 4;
+		}
+	} else {
+		for (i = 0; i < count; i++) {
+			int32_t sum;
+			sum = *(int16_t *)dst + *(int16_t *)src;
+			if (sum > INT16_MAX)
+				sum = INT16_MAX;
+			else if (sum < INT16_MIN)
+				sum = INT16_MIN;
+			*(int16_t*)dst = sum;
+			dst += dst_stride;
+			src += src_stride;
+		}
 	}
 }
 
@@ -249,16 +278,33 @@ static void cras_mix_add_stride_s24_le(uint8_t *dst, uint8_t *src,
 {
 	unsigned int i;
 
-	for (i = 0; i < count; i++) {
-		int32_t sum;
-		sum = *(int32_t *)dst + *(int32_t *)src;
-		if (sum > 0x007fffff)
-			sum = 0x007fffff;
-		else if (sum < (int32_t)0xff800000)
-			sum = (int32_t)0xff800000;
-		*(int32_t*)dst = sum;
-		dst += dst_stride;
-		src += src_stride;
+	/* optimise the loops for vectorization */
+	if (dst_stride == src_stride && dst_stride == 4) {
+
+		for (i = 0; i < count; i++) {
+			int32_t sum;
+			sum = *(int32_t *)dst + *(int32_t *)src;
+			if (sum > 0x007fffff)
+				sum = 0x007fffff;
+			else if (sum < (int32_t)0xff800000)
+				sum = (int32_t)0xff800000;
+			*(int32_t*)dst = sum;
+			dst += 4;
+			src += 4;
+		}
+	} else {
+
+		for (i = 0; i < count; i++) {
+			int32_t sum;
+			sum = *(int32_t *)dst + *(int32_t *)src;
+			if (sum > 0x007fffff)
+				sum = 0x007fffff;
+			else if (sum < (int32_t)0xff800000)
+				sum = (int32_t)0xff800000;
+			*(int32_t*)dst = sum;
+			dst += dst_stride;
+			src += src_stride;
+		}
 	}
 }
 
@@ -368,16 +414,33 @@ static void cras_mix_add_stride_s32_le(uint8_t *dst, uint8_t *src,
 {
 	unsigned int i;
 
-	for (i = 0; i < count; i++) {
-		int64_t sum;
-		sum = *(int32_t *)dst + *(int32_t *)src;
-		if (sum > INT32_MAX)
-			sum = INT32_MAX;
-		else if (sum < INT32_MIN)
-			sum = INT32_MIN;
-		*(int32_t*)dst = sum;
-		dst += dst_stride;
-		src += src_stride;
+	/* optimise the loops for vectorization */
+	if (dst_stride == src_stride && dst_stride == 4) {
+
+		for (i = 0; i < count; i++) {
+			int64_t sum;
+			sum = *(int32_t *)dst + *(int32_t *)src;
+			if (sum > INT32_MAX)
+				sum = INT32_MAX;
+			else if (sum < INT32_MIN)
+				sum = INT32_MIN;
+			*(int32_t*)dst = sum;
+			dst += 4;
+			src += 4;
+		}
+	} else {
+
+		for (i = 0; i < count; i++) {
+			int64_t sum;
+			sum = *(int32_t *)dst + *(int32_t *)src;
+			if (sum > INT32_MAX)
+				sum = INT32_MAX;
+			else if (sum < INT32_MIN)
+				sum = INT32_MIN;
+			*(int32_t*)dst = sum;
+			dst += dst_stride;
+			src += src_stride;
+		}
 	}
 }
 
