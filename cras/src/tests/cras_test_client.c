@@ -3,7 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include <alsa/asoundlib.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <math.h>
 #include <pthread.h>
@@ -12,6 +13,8 @@
 #include <string.h>
 #include <sys/param.h>
 #include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "cras_client.h"
