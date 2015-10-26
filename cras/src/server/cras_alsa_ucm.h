@@ -176,4 +176,19 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr);
  *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
  */
 unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr);
+
+/* Gets the device name of this device on the card..
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for device name
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ * Returns:
+ *    A pointer to the allocated string containing the device name, or NULL
+ *    if no device name is found. The device name is of format
+ *    "card_name:device_index".
+ */
+const char *ucm_get_device_name_for_dev(
+		snd_use_case_mgr_t *mgr, const char *dev,
+		enum CRAS_STREAM_DIRECTION direction);
 #endif /* _CRAS_ALSA_UCM_H */

@@ -21,6 +21,8 @@ static const char mixer_var[] = "MixerName";
 static const char swap_mode_suffix[] = "Swap Mode";
 static const char min_buffer_level_var[] = "MinBufferLevel";
 static const char disable_software_volume[] = "DisableSoftwareVolume";
+static const char playback_device_name_var[] = "PlaybackPCM";
+static const char capture_device_name_var[] = "CapturePCM";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -209,6 +211,32 @@ static char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
 	return ucm_get_section_for_var(mgr, var, value, "_devices/HiFi", dir);
 }
 
+static const char *ucm_get_playback_device_name_for_dev(
+	snd_use_case_mgr_t *mgr, const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, playback_device_name_var, dev, default_verb, &name);
+	if (rc)
+		return NULL;
+
+	return name;
+}
+
+static const char *ucm_get_capture_device_name_for_dev(
+	snd_use_case_mgr_t *mgr, const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, capture_device_name_var, dev, default_verb, &name);
+	if (rc)
+		return NULL;
+
+	return name;
+}
+
 /* Exported Interface */
 
 snd_use_case_mgr_t *ucm_create(const char *name)
@@ -221,7 +249,7 @@ snd_use_case_mgr_t *ucm_create(const char *name)
 
 	rc = snd_use_case_mgr_open(&mgr, name);
 	if (rc) {
-		syslog(LOG_WARNING, "Can not open ucm for card %s, rc = %d",
+		syslog(LOG_ERR, "Can not open ucm for card %s, rc = %d",
 		       name, rc);
 		return NULL;
 	}
@@ -406,4 +434,15 @@ unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
 		return 0;
 
 	return atoi(val);
+}
+
+const char *ucm_get_device_name_for_dev(
+	snd_use_case_mgr_t *mgr, const char *dev,
+	enum CRAS_STREAM_DIRECTION direction)
+{
+	if (direction == CRAS_STREAM_OUTPUT)
+		return ucm_get_playback_device_name_for_dev(mgr, dev);
+	else if (direction == CRAS_STREAM_INPUT)
+		return ucm_get_capture_device_name_for_dev(mgr, dev);
+	return NULL;
 }
