@@ -99,6 +99,7 @@ struct cras_alsa_jack {
  *    hctl - alsa hcontrol for this device.
  *    mixer - cras mixer for the card providing this device.
  *    device_index - Index ALSA uses to refer to the device.  The Y in "hw:X,Y".
+ *    is_first_device - whether this device is the first device on the card.
  *    registered_fds - list of fds registered with system, to be removed upon
  *        destruction.
  *    change_callback - function to call when the state of a jack changes.
@@ -110,6 +111,7 @@ struct cras_alsa_jack_list {
 	struct cras_alsa_mixer *mixer;
 	snd_use_case_mgr_t *ucm;
 	size_t device_index;
+	int is_first_device;
 	struct jack_poll_fd *registered_fds;
 	jack_state_change_callback *change_callback;
 	void *callback_data;
@@ -342,6 +344,50 @@ static void gpio_switch_callback(void *arg)
 		}
 }
 
+/* Determines if the GPIO jack should be associated with the device of the
+ * jack list. If the device name is not specified in UCM (common case),
+ * assume it should be associated with the first input device or the first
+ * output device on the card.
+ */
+static unsigned int gpio_jack_match_device(const struct cras_alsa_jack *jack,
+			struct cras_alsa_jack_list* jack_list,
+			const char *card_name,
+			enum CRAS_STREAM_DIRECTION direction)
+{
+	const char* target_device_name = NULL;
+	char current_device_name[CRAS_IODEV_NAME_BUFFER_SIZE];
+	unsigned int rc;
+
+	/* If the device name is not specified in UCM, assume it should be
+	 * associated with device 0. */
+	if (!jack_list->ucm || !jack->ucm_device)
+		return jack_list->is_first_device;
+
+	/* Look for device name specified in a device section of UCM. */
+	target_device_name = ucm_get_device_name_for_dev(
+				jack_list->ucm, jack->ucm_device, direction);
+
+	if (!target_device_name)
+		return jack_list->is_first_device;
+
+	syslog(LOG_DEBUG, "Matching GPIO jack, target device name: %s, "
+	       "current card name: %s, device index: %zu\n",
+		target_device_name, card_name, jack_list->device_index);
+
+	/* Device name of format "hw:<card_name>,<device_index>", should fit
+	 * in the string of size CRAS_IODEV_NAME_BUFFER_SIZE.*/
+	snprintf(current_device_name,
+		 sizeof(current_device_name),
+		 "hw:%s,%zu",
+		 card_name,
+		 jack_list->device_index);
+
+	rc = !strcmp(current_device_name, target_device_name);
+	free((void*)target_device_name);
+	return rc;
+}
+
+
 /* open_and_monitor_gpio:
  *
  *   Opens a /dev/input/event file associated with a headphone /
@@ -382,6 +428,20 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 		return -EIO;
 	}
 
+	if (jack_list->ucm)
+		jack->ucm_device =
+			ucm_get_dev_for_jack(jack_list->ucm,
+					     jack->gpio.device_name,
+					     direction);
+
+	if (!gpio_jack_match_device(jack, jack_list, card_name, direction)) {
+		close(jack->gpio.fd);
+		free(jack->gpio.device_name);
+		free(jack);
+		return -EIO;
+	}
+
+
 	DL_APPEND(jack_list->jacks, jack);
 
 	if (direction == CRAS_STREAM_OUTPUT &&
@@ -395,12 +455,6 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 		jack->mixer_output = cras_alsa_mixer_get_output_matching_name(
 			jack_list->mixer,
 			"HDMI");
-
-	if (jack_list->ucm)
-		jack->ucm_device =
-			ucm_get_dev_for_jack(jack_list->ucm,
-					     jack->gpio.device_name,
-					     direction);
 
 	if (jack->ucm_device)
 		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
@@ -564,7 +618,7 @@ static void alsa_control_event_pending(void *arg)
 
 /* Determines the device associated with this jack if any.  If the device cannot
  * be determined (common case), assume device 0. */
-static unsigned int jack_device_index(const char *name)
+static unsigned int hctl_jack_device_index(const char *name)
 {
 	/* Look for the substring 'pcm=<device number>' in the element name. */
 	static const char pcm_search[] = "pcm=";
@@ -711,7 +765,7 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list,
 		name = snd_hctl_elem_get_name(elem);
 		if (!is_jack_control_in_list(jack_names, num_jack_names, name))
 			continue;
-		if (jack_device_index(name) != jack_list->device_index)
+		if (hctl_jack_device_index(name) != jack_list->device_index)
 			continue;
 
 		jack = cras_alloc_jack(0);
@@ -792,7 +846,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
 		const char *card_name,
 		unsigned int device_index,
-		int check_gpio_jack,
+		int is_first_device,
 		struct cras_alsa_mixer *mixer,
 		snd_use_case_mgr_t *ucm,
 		enum CRAS_STREAM_DIRECTION direction,
@@ -821,6 +875,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 	jack_list->mixer = mixer;
 	jack_list->ucm = ucm;
 	jack_list->device_index = device_index;
+	jack_list->is_first_device = is_first_device;
 
 	snprintf(device_name, sizeof(device_name), "hw:%d", card_index);
 
@@ -829,12 +884,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		return NULL;
 	}
 
-	/*
-	 * GPIO jacks are attached to the first input device or the first
-	 * output device on the card.
-	 */
-	if (check_gpio_jack)
-		find_gpio_jacks(jack_list, card_index, card_name, direction);
+	find_gpio_jacks(jack_list, card_index, card_name, direction);
 
 	return jack_list;
 }

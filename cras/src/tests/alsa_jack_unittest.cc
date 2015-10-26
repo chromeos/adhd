@@ -86,6 +86,7 @@ static int gpio_switch_eviocgbit_fd;
 static const char *edid_file_ret;
 static size_t ucm_get_dsp_name_called;
 static unsigned ucm_get_override_type_name_called;
+static char *ucm_get_device_name_for_dev_value;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -120,6 +121,7 @@ static void ResetStubData() {
   snd_hctl_elem_get_hctl_called = 0;
   snd_ctl_elem_value_get_boolean_called = 0;
   fake_jack_cb_called = 0;
+  fake_jack_cb_plugged = 0;
   fake_jack_cb_arg = reinterpret_cast<void *>(0x987);
   snd_hctl_nonblock_called = 0;
   fake_mixer = reinterpret_cast<struct cras_alsa_mixer *>(0x789);
@@ -135,6 +137,7 @@ static void ResetStubData() {
   edid_file_ret = NULL;
   ucm_get_dsp_name_called = 0;
   ucm_get_override_type_name_called = 0;
+  ucm_get_device_name_for_dev_value = NULL;
 
   memset(eviocbit_ret, 0, sizeof(eviocbit_ret));
 }
@@ -390,6 +393,150 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
   EXPECT_EQ(1, snd_hctl_close_called);
+}
+
+void run_gpio_jack_test(
+    int device_index,
+    int is_first_device,
+    enum CRAS_STREAM_DIRECTION direction,
+    int should_create_jack)
+{
+  struct cras_alsa_jack_list *jack_list;
+  snd_use_case_mgr_t *ucm = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+
+  gpio_get_switch_names_count = ~0;
+  gpio_switch_eviocgbit_fd = 2;
+  if (direction == CRAS_STREAM_OUTPUT)
+    eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
+  else
+    eviocbit_ret[LONG(SW_MICROPHONE_INSERT)] |= 1 << OFF(SW_MICROPHONE_INSERT);
+  snd_hctl_first_elem_return_val = NULL;
+
+  jack_list = cras_alsa_jack_list_create(0, "c1", device_index, is_first_device,
+                                         fake_mixer,
+                                         ucm,
+                                         direction,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(should_create_jack, fake_jack_cb_plugged);
+  EXPECT_EQ(should_create_jack, fake_jack_cb_called);
+
+  cras_alsa_jack_list_destroy(jack_list);
+}
+
+TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMMatched) {
+  int device_index = 1;
+  int is_first_device = 0;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_OUTPUT;
+  int should_create_jack = 1;
+
+  ResetStubData();
+
+  /* PlaybackPCM matched, so create jack even if this is not the first device.*/
+  ucm_get_dev_for_jack_return = true;
+  ucm_get_device_name_for_dev_value = strdup("hw:c1,1");
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
+}
+
+TEST(AlsaJacks, CreateGPIOHpUCMCapturePCMMatched) {
+  int device_index = 1;
+  int is_first_device = 0;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_INPUT;
+  int should_create_jack = 1;
+
+  ResetStubData();
+
+  /* CapturePCM matched, so create jack even if this is not the first device.*/
+  ucm_get_dev_for_jack_return = true;
+  ucm_get_device_name_for_dev_value = strdup("hw:c1,1");
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
+}
+
+TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotMatched) {
+  int device_index = 0;
+  int is_first_device = 1;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_OUTPUT;
+  int should_create_jack = 0;
+
+  ResetStubData();
+
+  /* PlaybackPCM not matched, do not create jack. */
+  ucm_get_dev_for_jack_return = true;
+  ucm_get_device_name_for_dev_value = strdup("hw:c1,2");
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
+}
+
+TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotSpecifiedFirstDevice) {
+  int device_index = 1;
+  int is_first_device = 1;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_OUTPUT;
+  int should_create_jack = 1;
+
+  ResetStubData();
+
+  /* PlaybackPCM not specified, create jack for the first device. */
+  ucm_get_dev_for_jack_return = true;
+  ucm_get_device_name_for_dev_value = NULL;
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
+}
+
+TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotSpecifiedSecondDevice) {
+  int device_index = 1;
+  int is_first_device = 0;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_OUTPUT;
+  int should_create_jack = 0;
+
+  ResetStubData();
+
+  /* PlaybackPCM not specified, do not create jack for the second device. */
+  ucm_get_dev_for_jack_return = true;
+  ucm_get_device_name_for_dev_value = NULL;
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
+}
+
+TEST(AlsaJacks, CreateGPIOHpNoUCMFirstDevice) {
+  int device_index = 1;
+  int is_first_device = 1;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_OUTPUT;
+  int should_create_jack = 1;
+
+  ResetStubData();
+
+  /* No UCM for this jack, create jack for the first device. */
+  ucm_get_dev_for_jack_return = false;
+  ucm_get_device_name_for_dev_value = NULL;
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
+}
+
+TEST(AlsaJacks, CreateGPIOHpNoUCMSecondDevice) {
+  int device_index = 1;
+  int is_first_device = 0;
+  enum CRAS_STREAM_DIRECTION direction = CRAS_STREAM_OUTPUT;
+  int should_create_jack = 0;
+
+  ResetStubData();
+
+  /* No UCM for this jack, dot not create jack for the second device. */
+  ucm_get_dev_for_jack_return = false;
+  ucm_get_device_name_for_dev_value = NULL;
+
+  run_gpio_jack_test(
+      device_index, is_first_device, direction, should_create_jack);
 }
 
 TEST(AlsaJacks, GPIOHdmiWithEdid) {
@@ -845,6 +992,13 @@ const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
 {
   ++ucm_get_override_type_name_called;
   return NULL;
+}
+
+const char *ucm_get_device_name_for_dev(snd_use_case_mgr_t *mgr,
+                                        const char *dev,
+                                        enum CRAS_STREAM_DIRECTION direction)
+{
+  return ucm_get_device_name_for_dev_value;
 }
 
 cras_timer *cras_tm_create_timer(
