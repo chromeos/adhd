@@ -106,26 +106,20 @@ static snd_pcm_format_t get_best_pcm_format(struct cras_iodev *iodev,
 	return iodev->supported_formats[0];
 }
 
-/* Set default channel count and layout to an iodev. */
+/* Set default channel count and layout to an iodev.
+ * iodev->format->num_channels is from get_best_channel_count.
+ */
 static void set_default_channel_count_layout(struct cras_iodev *iodev)
 {
-	static const int stereo_channel_count = 2;
-	static const int8_t stereo_layout[] =
-			{0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-	size_t num_channels;
+	int8_t default_layout[CRAS_CH_MAX];
+	size_t i;
 
-	/* Fall back to stereo when no matching layout is found. If we
-	 * see any device only supports channel count > 2, make sure
-	 * it has a default channel layout. */
-	num_channels = get_best_channel_count(iodev, stereo_channel_count);
-	iodev->format->num_channels = num_channels;
-	iodev->ext_format->num_channels = num_channels;
-	if (num_channels == stereo_channel_count) {
-		cras_audio_format_set_channel_layout(iodev->format,
-						     stereo_layout);
-		cras_audio_format_set_channel_layout(iodev->ext_format,
-						     stereo_layout);
-	}
+	for (i = 0; i < CRAS_CH_MAX; i++)
+		default_layout[i] = i < iodev->format->num_channels ? i : -1;
+
+	iodev->ext_format->num_channels = iodev->format->num_channels;
+	cras_audio_format_set_channel_layout(iodev->format, default_layout);
+	cras_audio_format_set_channel_layout(iodev->ext_format, default_layout);
 }
 
 /* Applies the DSP to the samples for the iodev if applicable. */

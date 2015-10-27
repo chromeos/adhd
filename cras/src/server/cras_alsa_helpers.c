@@ -268,8 +268,8 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle,
 
 	chmaps = snd_pcm_query_chmaps(handle);
 	if (chmaps == NULL) {
-		syslog(LOG_ERR, "No chmap queried!");
-		rc = -EINVAL;
+		syslog(LOG_WARNING, "No chmap queried! Skip chmap set");
+		rc = 0;
 		goto done;
 	}
 

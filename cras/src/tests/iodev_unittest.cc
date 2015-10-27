@@ -386,7 +386,7 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
 
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 48000;
-  fmt.num_channels = 6;
+  fmt.num_channels = 2;
 
   cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context *>(0xf0f);
 
@@ -403,6 +403,33 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(0, dsp_context_free_called);
   for (i = 0; i < CRAS_CH_MAX; i++)
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
+}
+
+TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
+  static const int8_t default_6ch_layout[] =
+      {0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1};
+  struct cras_audio_format fmt;
+  int rc, i;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 6;
+
+  cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context *>(0xf0f);
+
+  update_channel_layout_return_val = -1;
+  iodev_.supported_channel_counts[0] = 6;
+  iodev_.supported_channel_counts[1] = 2;
+
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
+  EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
+  EXPECT_EQ(6, iodev_.ext_format->num_channels);
+  EXPECT_EQ(2, cras_audio_format_set_channel_layout_called);
+  EXPECT_EQ(0, dsp_context_free_called);
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    EXPECT_EQ(iodev_.format->channel_layout[i], default_6ch_layout[i]);
 }
 
 // Put buffer tests
