@@ -49,6 +49,17 @@
 #include "cras_util.h"
 #include "utlist.h"
 
+#ifdef __ANDROID__
+void *shmat(int shmid, const void *shmaddr, int shmflg);
+int shmdt(const void *shmaddr);
+int shmget(key_t key, size_t size, int shmflg);
+
+long __set_errno_internal(int n) {
+  errno = n;
+  return -1;
+}
+#endif
+
 static const size_t MAX_CMD_MSG_LEN = 256;
 static const size_t SERVER_CONNECT_TIMEOUT_NS = 500000000;
 static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;
