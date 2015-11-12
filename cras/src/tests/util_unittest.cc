@@ -13,11 +13,61 @@ namespace {
 
 static struct timespec time_now;
 
-TEST(Util, SendRecvFileDescriptor) {
+TEST(Util, SendRecvTwoFileDescriptors) {
+  int fd[2];
+  int fd2[2];
+  int send_fds[2];
+  int sock[2];
+  char buf[256] = {0};
+  int new_fds[2];
+  char msg[] = "multi-fd";
+  unsigned int num_fds = 2;
+
+  /* Create a pipe and a pair of sockets. Then send the write end of
+   * the pipe (fd[1]) through the socket, and receive it as
+   * new_fd */
+  ASSERT_EQ(0, pipe(fd));
+  ASSERT_EQ(0, pipe(fd2));
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  send_fds[0] = fd[1];
+  send_fds[1] = fd2[1];
+  ASSERT_GE(cras_send_with_fds(sock[0], msg, strlen(msg), send_fds, num_fds),
+            0);
+  ASSERT_GE(cras_recv_with_fds(sock[1], buf, strlen(msg), new_fds, &num_fds),
+            0);
+  ASSERT_STREQ(msg, buf);
+  ASSERT_EQ(2, num_fds);
+  ASSERT_NE(-1, new_fds[0]);
+  ASSERT_NE(-1, new_fds[1]);
+
+  close(sock[0]);
+  close(sock[1]);
+  close(fd[1]);
+  close(fd2[1]);
+
+  /* Send a character to the new_fd, and receive it from the read end
+   * of the pipe (fd[0]) */
+  ASSERT_EQ(1, write(new_fds[0], "a", 1));
+  ASSERT_EQ(1, read(fd[0], buf, 1));
+  ASSERT_EQ('a', buf[0]);
+  ASSERT_EQ(1, write(new_fds[1], "b", 1));
+  ASSERT_EQ(1, read(fd2[0], buf, 1));
+  ASSERT_EQ('b', buf[0]);
+
+  close(fd[0]);
+  close(fd2[0]);
+  close(new_fds[0]);
+  close(new_fds[1]);
+}
+
+TEST(Util, SendOneRecvTwoFileDescriptors) {
   int fd[2];
   int sock[2];
-  char buf[6] = {0};
-  int new_fd;
+  char buf[256] = {0};
+  int new_fds[2];
+  char msg[] = "multi-fd";
+  unsigned int num_fds = 2;
 
   /* Create a pipe and a pair of sockets. Then send the write end of
    * the pipe (fd[1]) through the socket, and receive it as
@@ -25,9 +75,48 @@ TEST(Util, SendRecvFileDescriptor) {
   ASSERT_EQ(0, pipe(fd));
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  ASSERT_EQ(5, cras_send_with_fd(sock[0], "hello", 5, fd[1]));
-  ASSERT_EQ(5, cras_recv_with_fd(sock[1], buf, 5, &new_fd));
-  ASSERT_STREQ("hello", buf);
+  ASSERT_GE(cras_send_with_fds(sock[0], msg, strlen(msg), &fd[1], 1), 0);
+  ASSERT_GE(cras_recv_with_fds(sock[1], buf, strlen(msg), new_fds, &num_fds),
+            0);
+  ASSERT_STREQ(msg, buf);
+  ASSERT_EQ(1, num_fds);
+  ASSERT_NE(-1, new_fds[0]);
+  ASSERT_EQ(-1, new_fds[1]);
+
+  close(sock[0]);
+  close(sock[1]);
+  close(fd[1]);
+
+  /* Send a character to the new_fd, and receive it from the read end
+   * of the pipe (fd[0]) */
+  ASSERT_EQ(1, write(new_fds[0], "a", 1));
+  ASSERT_EQ(1, read(fd[0], buf, 1));
+  ASSERT_EQ('a', buf[0]);
+
+  close(fd[0]);
+  close(new_fds[0]);
+  close(new_fds[1]);
+}
+
+TEST(Util, SendRecvFileDescriptor) {
+  int fd[2];
+  int sock[2];
+  char buf[256] = {0};
+  int new_fd;
+  char msg[] = "hello";
+  unsigned int num_fds = 1;
+
+  /* Create a pipe and a pair of sockets. Then send the write end of
+   * the pipe (fd[1]) through the socket, and receive it as
+   * new_fd */
+  ASSERT_EQ(0, pipe(fd));
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  ASSERT_EQ(5, cras_send_with_fds(sock[0], msg, strlen(msg), &fd[1], num_fds));
+  ASSERT_EQ(5,
+            cras_recv_with_fds(sock[1], buf, strlen(msg), &new_fd, &num_fds));
+  ASSERT_STREQ(msg, buf);
+  ASSERT_EQ(1, num_fds);
 
   close(sock[0]);
   close(sock[1]);
@@ -41,6 +130,23 @@ TEST(Util, SendRecvFileDescriptor) {
 
   close(fd[0]);
   close(new_fd);
+}
+
+TEST(Util, SendRecvNoDescriptors) {
+  char buf[256] = {0};
+  char msg[] = "no descriptors";
+  unsigned int num_fds = 0;
+  int sock[2];
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  ASSERT_GE(cras_send_with_fds(sock[0], msg, strlen(msg), NULL, num_fds), 0);
+  ASSERT_GE(cras_recv_with_fds(sock[1], buf, strlen(msg), NULL, &num_fds), 0);
+  ASSERT_STREQ(msg, buf);
+  ASSERT_EQ(0, num_fds);
+
+  close(sock[0]);
+  close(sock[1]);
 }
 
 TEST(Util, TimevalAfter) {

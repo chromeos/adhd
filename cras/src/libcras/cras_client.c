@@ -754,8 +754,8 @@ static int send_connect_message(struct cras_client *client,
 				  stream->flags,
 				  stream->config->format,
 				  dev_idx);
-	rc = cras_send_with_fd(client->server_fd, &serv_msg, sizeof(serv_msg),
-			       sock[1]);
+	rc = cras_send_with_fds(client->server_fd, &serv_msg, sizeof(serv_msg),
+			       &sock[1], 1);
 	if (rc != sizeof(serv_msg)) {
 		rc = EIO;
 		syslog(LOG_ERR,

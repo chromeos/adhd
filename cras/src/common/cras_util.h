@@ -75,12 +75,14 @@ int cras_make_fd_nonblocking(int fd);
 /* Makes a file descriptor blocking. */
 int cras_make_fd_blocking(int fd);
 
-/* Send data in buf to the socket with an extra file descriptor. */
-int cras_send_with_fd(int sockfd, const void *buf, size_t len, int fd);
+/* Send data in buf to the socket attach the fds. */
+int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
+		       unsigned int num_fds);
 
-/* Receive data in buf from the socket. If we also receive a file
-descriptor, put it in *fd, otherwise set *fd to -1. */
-int cras_recv_with_fd(int sockfd, const void *buf, size_t len, int *fd);
+/* Receive data in buf from the socket. If file descriptors are received, put
+ * them in *fd, otherwise set *fd to -1. */
+int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
+		       unsigned int *num_fds);
 
 /* This must be written a million times... */
 static inline void subtract_timespecs(const struct timespec *end,

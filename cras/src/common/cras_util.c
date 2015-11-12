@@ -7,7 +7,9 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <sched.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
@@ -85,58 +87,76 @@ int cras_make_fd_blocking(int fd)
 	return fcntl(fd, F_SETFL, fl & ~O_NONBLOCK);
 }
 
-int cras_send_with_fd(int sockfd, void *buf, size_t len, int fd)
+int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
+		       unsigned int num_fds)
 {
 	struct msghdr msg = {0};
 	struct iovec iov;
 	struct cmsghdr *cmsg;
-	char control[CMSG_SPACE(sizeof(int))];
+	char *control;
+	const unsigned int control_size = CMSG_SPACE(sizeof(*fd) * num_fds);
+	int rc;
+
+	control = calloc(control_size, 1);
 
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
-	iov.iov_base = buf;
+	iov.iov_base = (void *)buf;
 	iov.iov_len = len;
 
 	msg.msg_control = control;
-	msg.msg_controllen = sizeof(control);
+	msg.msg_controllen = control_size;
+
 	cmsg = CMSG_FIRSTHDR(&msg);
 	cmsg->cmsg_level = SOL_SOCKET;
 	cmsg->cmsg_type = SCM_RIGHTS;
-	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-	memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
-	msg.msg_controllen = cmsg->cmsg_len;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(*fd) * num_fds);
+	memcpy(CMSG_DATA(cmsg), fd, sizeof(*fd) * num_fds);
 
-	return sendmsg(sockfd, &msg, 0);
+	rc = sendmsg(sockfd, &msg, 0);
+	free(control);
+	return rc;
 }
 
-int cras_recv_with_fd(int sockfd, void *buf, size_t len, int *fd)
+int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
+		       unsigned int *num_fds)
 {
 	struct msghdr msg = {0};
 	struct iovec iov;
 	struct cmsghdr *cmsg;
-	char control[CMSG_SPACE(sizeof(int))];
+	char *control;
+	const unsigned int control_size = CMSG_SPACE(sizeof(*fd) * *num_fds);
 	int rc;
+	int i;
 
-	*fd = -1;
+	control = calloc(control_size, 1);
+
+	for (i = 0; i < *num_fds; i++)
+		fd[i] = -1;
+
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 	iov.iov_base = buf;
 	iov.iov_len = len;
 	msg.msg_control = control;
-	msg.msg_controllen = sizeof(control);
+	msg.msg_controllen = control_size;
 
 	rc = recvmsg(sockfd, &msg, 0);
 	if (rc < 0)
-		return rc;
+		goto exit;
 
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
 	     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
 		if (cmsg->cmsg_level == SOL_SOCKET
 		    && cmsg->cmsg_type == SCM_RIGHTS) {
-			memcpy(fd, CMSG_DATA(cmsg), sizeof(*fd));
+			size_t fd_size = cmsg->cmsg_len - sizeof(*cmsg);
+			*num_fds = MIN(*num_fds, fd_size / sizeof(*fd));
+			memcpy(fd, CMSG_DATA(cmsg), *num_fds * sizeof(*fd));
 			break;
 		}
 	}
 
+exit:
+	free(control);
 	return rc;
 }

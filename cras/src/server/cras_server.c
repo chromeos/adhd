@@ -108,9 +108,10 @@ static void handle_message_from_client(struct attached_client *client)
 	struct cras_server_message *msg;
 	int nread;
 	int fd;
+	unsigned int num_fds = 1;
 
 	msg = (struct cras_server_message *)buf;
-	nread = cras_recv_with_fd(client->fd, buf, sizeof(buf), &fd);
+	nread = cras_recv_with_fds(client->fd, buf, sizeof(buf), &fd, &num_fds);
 	if (nread < sizeof(msg->length))
 		goto read_error;
 	if (msg->length != nread)
