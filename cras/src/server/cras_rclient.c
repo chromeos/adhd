@@ -281,6 +281,7 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 int cras_rclient_send_message(const struct cras_rclient *client,
 			      const struct cras_client_message *msg)
 {
-	return write(client->fd, msg, msg->length);
+	return cras_send_with_fds(client->fd, (const void *)msg, msg->length,
+				  NULL, 0);
 }
 

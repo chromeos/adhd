@@ -927,9 +927,12 @@ static int handle_message_from_server(struct cras_client *client)
 	struct cras_client_message *msg;
 	int rc = 0;
 	int nread;
+	int server_fds[2];
+	unsigned int num_fds = 2;
 
 	msg = (struct cras_client_message *)buf;
-	nread = recv(client->server_fd, buf, sizeof(buf), 0);
+	nread = cras_recv_with_fds(client->server_fd, buf, sizeof(buf),
+				   server_fds, &num_fds);
 	if (nread < (int)sizeof(msg->length))
 		goto read_error;
 	if ((int)msg->length != nread)

@@ -505,4 +505,10 @@ struct cras_rstream *stream_list_rm_all_client_streams(
   return NULL;
 }
 
+int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
+                       unsigned int num_fds)
+{
+  return write(sockfd, buf, len);
+}
+
 }  // extern "C"
