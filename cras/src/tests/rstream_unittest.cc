@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <fcntl.h>
 #include <stdio.h>
+#include <sys/mman.h>
 #include <sys/shm.h>
+#include <sys/types.h>
 #include <gtest/gtest.h>
 
 extern "C" {
@@ -83,7 +86,7 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   struct cras_audio_format fmt_ret;
   struct cras_audio_shm *shm_ret;
   struct cras_audio_shm shm_mapped;
-  int rc, key_ret, shmid;
+  int rc, fd_ret;
   size_t shm_size;
 
   rc = cras_rstream_create(&config_, &s);
@@ -101,16 +104,15 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   // Check if shm is really set up.
   shm_ret = cras_rstream_output_shm(s);
   ASSERT_NE((void *)NULL, shm_ret);
-  key_ret = cras_rstream_output_shm_key(s);
+  fd_ret = cras_rstream_output_shm_fd(s);
   shm_size = cras_rstream_get_total_shm_size(s);
   EXPECT_GT(shm_size, 4096);
-  shmid = shmget(key_ret, shm_size, 0600);
-  EXPECT_GE(shmid, 0);
-  shm_mapped.area = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
+  shm_mapped.area = (struct cras_audio_shm_area *)mmap(
+      NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_ret, 0);
   EXPECT_NE((void *)NULL, shm_mapped.area);
   cras_shm_copy_shared_config(&shm_mapped);
   EXPECT_EQ(cras_shm_used_size(&shm_mapped), cras_shm_used_size(shm_ret));
-  shmdt(shm_mapped.area);
+  munmap(shm_mapped.area, shm_size);
 
   cras_rstream_destroy(s);
 }
@@ -120,7 +122,7 @@ TEST_F(RstreamTestSuite, CreateInput) {
   struct cras_audio_format fmt_ret;
   struct cras_audio_shm *shm_ret;
   struct cras_audio_shm shm_mapped;
-  int rc, key_ret, shmid;
+  int rc, fd_ret;
   size_t shm_size;
 
   config_.direction = CRAS_STREAM_INPUT;
@@ -139,16 +141,15 @@ TEST_F(RstreamTestSuite, CreateInput) {
   // Check if shm is really set up.
   shm_ret = cras_rstream_input_shm(s);
   ASSERT_NE((void *)NULL, shm_ret);
-  key_ret = cras_rstream_input_shm_key(s);
+  fd_ret = cras_rstream_input_shm_fd(s);
   shm_size = cras_rstream_get_total_shm_size(s);
   EXPECT_GT(shm_size, 4096);
-  shmid = shmget(key_ret, shm_size, 0600);
-  EXPECT_GE(shmid, 0);
-  shm_mapped.area = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
+  shm_mapped.area = (struct cras_audio_shm_area *)mmap(
+      NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_ret, 0);
   EXPECT_NE((void *)NULL, shm_mapped.area);
   cras_shm_copy_shared_config(&shm_mapped);
   EXPECT_EQ(cras_shm_used_size(&shm_mapped), cras_shm_used_size(shm_ret));
-  shmdt(shm_mapped.area);
+  munmap(shm_mapped.area, shm_size);
 
   cras_rstream_destroy(s);
 }

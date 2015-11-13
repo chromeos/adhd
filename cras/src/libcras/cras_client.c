@@ -156,7 +156,11 @@ struct client_stream {
 	struct cras_client *client;
 	struct cras_stream_params *config;
 	struct cras_audio_shm capture_shm;
+	int capture_shm_fd;
+	int capture_shm_size;
 	struct cras_audio_shm play_shm;
+	int play_shm_fd;
+	int play_shm_size;
 	struct client_stream *prev, *next;
 };
 
@@ -633,20 +637,14 @@ int end_server_state_read(const struct cras_server_state *state, unsigned count)
 }
 
 /* Gets the shared memory region used to share audio data with the server. */
-static int config_shm(struct cras_audio_shm *shm, int key, size_t size)
+static int config_shm(struct cras_audio_shm *shm, int shm_fd, size_t size)
 {
-	int shmid;
-
-	shmid = shmget(key, size, 0600);
-	if (shmid < 0) {
-		syslog(LOG_ERR,
-		       "cras_client: shmget failed to get shm for stream.");
-		return shmid;
-	}
-	shm->area = (struct cras_audio_shm_area *)shmat(shmid, NULL, 0);
+	shm->area = (struct cras_audio_shm_area *)mmap(
+			NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
+			shm_fd, 0);
 	if (shm->area == (struct cras_audio_shm_area *)-1) {
 		syslog(LOG_ERR,
-		       "cras_client: shmat failed to attach shm for stream.");
+		       "cras_client: mmap failed to map shm for stream.");
 		return errno;
 	}
 	/* Copy server shm config locally. */
@@ -658,10 +656,14 @@ static int config_shm(struct cras_audio_shm *shm, int key, size_t size)
 /* Release shm areas if references to them are held. */
 static void free_shm(struct client_stream *stream)
 {
-	if (stream->capture_shm.area)
-		shmdt(stream->capture_shm.area);
-	if (stream->play_shm.area)
-		shmdt(stream->play_shm.area);
+	if (stream->capture_shm.area) {
+		munmap(stream->capture_shm.area, stream->capture_shm_size);
+		close(stream->capture_shm_fd);
+	}
+	if (stream->play_shm.area) {
+		munmap(stream->play_shm.area, stream->play_shm_size);
+		close(stream->play_shm_fd);
+	}
 	stream->capture_shm.area = NULL;
 	stream->play_shm.area = NULL;
 }
@@ -670,12 +672,13 @@ static void free_shm(struct client_stream *stream)
  * format converter, configure the shared memory region, and start the audio
  * thread that will handle requests from the server. */
 static int stream_connected(struct client_stream *stream,
-			    const struct cras_client_stream_connected *msg)
+			    const struct cras_client_stream_connected *msg,
+			    const int stream_fds[2], const unsigned int num_fds)
 {
 	int rc;
 	struct cras_audio_format mfmt;
 
-	if (msg->err) {
+	if (msg->err || num_fds != 2) {
 		syslog(LOG_ERR, "cras_client: Error Setting up stream %d\n",
 		       msg->err);
 		return msg->err;
@@ -685,24 +688,28 @@ static int stream_connected(struct client_stream *stream,
 
 	if (cras_stream_has_input(stream->direction)) {
 		rc = config_shm(&stream->capture_shm,
-				msg->input_shm_key,
+				stream_fds[0],
 				msg->shm_max_size);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: Error configuring capture shm");
 			goto err_ret;
 		}
+		stream->capture_shm_fd = stream_fds[0];
+		stream->capture_shm_size = msg->shm_max_size;
 	}
 
 	if (cras_stream_uses_output_hw(stream->direction)) {
 		rc = config_shm(&stream->play_shm,
-				msg->output_shm_key,
+				stream_fds[1],
 				msg->shm_max_size);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: Error configuring playback shm");
 			goto err_ret;
 		}
+		stream->play_shm_fd = stream_fds[1];
+		stream->play_shm_size = msg->shm_max_size;
 
 		cras_shm_set_volume_scaler(&stream->play_shm,
 					   stream->volume_scaler);
@@ -899,9 +906,9 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 	client->server_state = (struct cras_server_state *)mmap(
 			NULL, sizeof(*client->server_state),
 			PROT_READ, MAP_SHARED, shm_fd, 0);
-	if (client->server_state == NULL) {
+	if (client->server_state == (struct cras_server_state *)-1) {
 		syslog(LOG_ERR,
-		       "cras_client: shmat failed to attach shm for client.");
+		       "cras_client: mmap failed to map shm for client.");
 		return errno;
 	}
 
@@ -957,7 +964,7 @@ static int handle_message_from_server(struct cras_client *client)
 			stream_from_id(client, cmsg->stream_id);
 		if (stream == NULL)
 			break;
-		rc = stream_connected(stream, cmsg);
+		rc = stream_connected(stream, cmsg, server_fds, num_fds);
 		if (rc < 0)
 			stream->config->err_cb(stream->client,
 					       stream->id,

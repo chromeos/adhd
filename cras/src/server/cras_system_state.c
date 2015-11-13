@@ -102,7 +102,7 @@ void cras_system_state_init(const char *device_config_dir)
 	exp_state = mmap(NULL, state.shm_size,
 			 PROT_READ | PROT_WRITE, MAP_SHARED,
 			 state.shm_fd, 0);
-	if (exp_state == NULL)
+	if (exp_state == (struct cras_server_state *)-1)
 		exit(-ENOMEM);
 
 	/* Initial system state. */

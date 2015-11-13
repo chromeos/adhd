@@ -2,8 +2,11 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include <fcntl.h>
 #include <stdint.h>
+#include <sys/mman.h>
 #include <sys/shm.h>
+#include <sys/types.h>
 #include <syslog.h>
 
 #include "cras_audio_area.h"
@@ -21,9 +24,9 @@ static int setup_shm(struct cras_rstream *stream,
 		     struct cras_audio_shm *shm,
 		     struct rstream_shm_info *shm_info)
 {
-	size_t used_size, samples_size, total_size, frame_bytes;
-	int loops = 0;
+	size_t used_size, samples_size, frame_bytes;
 	const struct cras_audio_format *fmt = &stream->format;
+	int rc;
 
 	if (shm->area != NULL) /* already setup */
 		return -EEXIST;
@@ -32,25 +35,25 @@ static int setup_shm(struct cras_rstream *stream,
 			fmt->num_channels;
 	used_size = stream->buffer_frames * frame_bytes;
 	samples_size = used_size * CRAS_NUM_SHM_BUFFERS;
-	total_size = sizeof(struct cras_audio_shm_area) + samples_size;
+	shm_info->length = sizeof(struct cras_audio_shm_area) + samples_size;
 
-	/* Find an available shm key. */
-	do {
-		shm_info->shm_key = getpid() + stream->stream_id + loops;
-		shm_info->shm_id = shmget(shm_info->shm_key,
-					  total_size,
-					  IPC_CREAT | IPC_EXCL | 0660);
-	} while (shm_info->shm_id < 0 && loops++ < 100);
-	if (shm_info->shm_id < 0) {
-		syslog(LOG_ERR, "shmget");
-		return shm_info->shm_id;
-	}
+	snprintf(shm_info->shm_name, sizeof(shm_info->shm_name),
+		 "/cras-stream-%08x", stream->stream_id);
+	shm_info->shm_fd = shm_open(shm_info->shm_name,
+				    O_CREAT | O_EXCL | O_RDWR, 0600);
+	if (shm_info->shm_fd < 0)
+		return shm_info->shm_fd;
+	rc = ftruncate(shm_info->shm_fd, shm_info->length);
+	if (rc)
+		return rc;
 
-	/* Attach to shm and clear it. */
-	shm->area = shmat(shm_info->shm_id, NULL, 0);
-	if (shm->area == (void *)-1)
-		return -ENOMEM;
-	memset(shm->area, 0, total_size);
+	/* mmap shm. */
+	shm->area = mmap(NULL, shm_info->length,
+			 PROT_READ | PROT_WRITE, MAP_SHARED,
+			 shm_info->shm_fd, 0);
+	if (shm->area == (struct cras_audio_shm_area *)-1)
+		return errno;
+
 	cras_shm_set_volume_scaler(shm, 1.0);
 	/* Set up config and copy to shared area. */
 	cras_shm_set_frame_bytes(shm, frame_bytes);
@@ -178,9 +181,8 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	cras_system_state_stream_removed(stream->direction);
 	close(stream->fd);
 	if (stream->shm.area != NULL) {
-		shmdt(stream->shm.area);
-		shmctl(stream->shm_info.shm_id, IPC_RMID,
-		       (void *)stream->shm.area);
+		munmap(stream->shm.area, stream->shm_info.length);
+		shm_unlink(stream->shm_info.shm_name);
 		cras_audio_area_destroy(stream->audio_area);
 	}
 	buffer_share_destroy(stream->buf_state);

@@ -40,6 +40,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_audio_format remote_fmt;
 	struct cras_rstream_config stream_config;
 	int rc;
+	int stream_fds[2];
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
@@ -77,10 +78,10 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 			0, /* No error. */
 			msg->stream_id,
 			&remote_fmt,
-			cras_rstream_input_shm_key(stream),
-			cras_rstream_output_shm_key(stream),
 			cras_rstream_get_total_shm_size(stream));
-	rc = cras_rclient_send_message(client, &reply.header, NULL, 0);
+	stream_fds[0] = cras_rstream_input_shm_fd(stream);
+	stream_fds[1] = cras_rstream_output_shm_fd(stream);
+	rc = cras_rclient_send_message(client, &reply.header, stream_fds, 2);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
@@ -93,7 +94,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
-					  &remote_fmt, 0, 0, 0);
+					  &remote_fmt, 0);
 	cras_rclient_send_message(client, &reply.header, NULL, 0);
 
 	if (aud_fd >= 0)

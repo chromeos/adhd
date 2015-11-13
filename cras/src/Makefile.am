@@ -510,7 +510,7 @@ rclient_unittest_LDADD = -lgtest -lpthread
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-rstream_unittest_LDADD = -lasound -lgtest -lpthread
+rstream_unittest_LDADD = -lasound -lgtest -lpthread -lrt
 
 shm_unittest_SOURCES = tests/shm_unittest.cc
 shm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common

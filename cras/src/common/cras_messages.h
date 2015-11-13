@@ -370,14 +370,15 @@ static inline void cras_fill_client_connected(
 	m->header.length = sizeof(struct cras_client_connected);
 }
 
-/* Reply from server that a stream has been successfully added. */
+/*
+ * Reply from server that a stream has been successfully added.
+ * Two file descriptors are added, input shm followed by out shm.
+ */
 struct __attribute__ ((__packed__)) cras_client_stream_connected {
 	struct cras_client_message header;
 	int32_t err;
 	cras_stream_id_t stream_id;
 	struct cras_audio_format_packed format;
-	int32_t input_shm_key;
-	int32_t output_shm_key;
 	uint32_t shm_max_size;
 };
 static inline void cras_fill_client_stream_connected(
@@ -385,15 +386,11 @@ static inline void cras_fill_client_stream_connected(
 		int err,
 		cras_stream_id_t stream_id,
 		struct cras_audio_format *format,
-		int input_shm_key,
-		int output_shm_key,
 		size_t shm_max_size)
 {
 	m->err = err;
 	m->stream_id = stream_id;
 	pack_cras_audio_format(&m->format, format);
-	m->input_shm_key = input_shm_key;
-	m->output_shm_key = output_shm_key;
 	m->shm_max_size = shm_max_size;
 	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
 	m->header.length = sizeof(struct cras_client_stream_connected);

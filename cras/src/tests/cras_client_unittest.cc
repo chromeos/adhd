@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include <stdio.h>
-#include <sys/shm.h>
 #include <gtest/gtest.h>
 
 extern "C" {
@@ -15,33 +14,27 @@ extern "C" {
 
 static const cras_stream_id_t FIRST_STREAM_ID = 1;
 
-static int shmat_called;
-static int shmdt_called;
-static int shmget_called;
 static int pthread_create_called;
 static int pthread_join_called;
 static int close_called;
 static int pipe_called;
 static int sendmsg_called;
 static int write_called;
+static void *mmap_return_value;
 
-static void* shmat_returned_value;
 static int pthread_create_returned_value;
 
 namespace {
 
 void InitStaticVariables() {
-  shmat_called = 0;
-  shmdt_called = 0;
-  shmget_called = 0;
   pthread_create_called = 0;
   pthread_join_called = 0;
   close_called = 0;
   pipe_called = 0;
   sendmsg_called = 0;
   write_called = 0;
-  shmat_returned_value = NULL;
   pthread_create_returned_value = 0;
+  mmap_return_value = NULL;
 }
 
 class CrasClientTestSuite : public testing::Test {
@@ -106,8 +99,7 @@ void set_audio_format(struct cras_audio_format* format,
 
 void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   struct cras_client_stream_connected msg;
-  int input_shm_key = 0;
-  int output_shm_key = 1;
+  int shm_fds[2] = {0, 1};
   int shm_max_size = 600;
   size_t format_bytes;
   struct cras_audio_shm_area area;
@@ -124,21 +116,17 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   area.config.frame_bytes = format_bytes;
   area.config.used_size = shm_writable_frames_ * format_bytes;
 
-  shmat_returned_value = &area;
+  mmap_return_value = &area;
 
   cras_fill_client_stream_connected(
       &msg,
       0,
       stream_.id,
       &server_format,
-      input_shm_key,
-      output_shm_key,
       shm_max_size);
 
-  stream_connected(&stream_, &msg);
+  stream_connected(&stream_, &msg, shm_fds, 2);
 
-  EXPECT_EQ(1, shmget_called);
-  EXPECT_EQ(1, shmat_called);
   EXPECT_NE(0, stream_.thread.running);
 
   if (direction == CRAS_STREAM_OUTPUT) {
@@ -162,8 +150,7 @@ void CrasClientTestSuite::StreamConnectedFail(
     CRAS_STREAM_DIRECTION direction) {
 
   struct cras_client_stream_connected msg;
-  int input_shm_key = 0;
-  int output_shm_key = 1;
+  int shm_fds[2] = {0, 1};
   int shm_max_size = 600;
   size_t format_bytes;
   struct cras_audio_shm_area area;
@@ -180,7 +167,7 @@ void CrasClientTestSuite::StreamConnectedFail(
   area.config.frame_bytes = format_bytes;
   area.config.used_size = shm_writable_frames_ * format_bytes;
 
-  shmat_returned_value = &area;
+  mmap_return_value = &area;
 
   // let pthread_create fail
   pthread_create_returned_value = -1;
@@ -190,18 +177,13 @@ void CrasClientTestSuite::StreamConnectedFail(
       0,
       stream_.id,
       &server_format,
-      input_shm_key,
-      output_shm_key,
       shm_max_size);
 
-  stream_connected(&stream_, &msg);
+  stream_connected(&stream_, &msg, shm_fds, 2);
 
   EXPECT_EQ(0, stream_.thread.running);
-  EXPECT_EQ(1, shmget_called);
-  EXPECT_EQ(1, shmat_called);
-  EXPECT_EQ(1, shmdt_called);
   EXPECT_EQ(1, pipe_called);
-  EXPECT_EQ(2, close_called); // close the pipefds
+  EXPECT_EQ(3, close_called); // close the pipefds and shm_fd
 }
 
 TEST_F(CrasClientTestSuite, InputStreamConnectedFail) {
@@ -252,21 +234,6 @@ int main(int argc, char **argv) {
 /* stubs */
 extern "C" {
 
-int shmget(key_t key, size_t size, int shmflg) {
-  ++shmget_called;
-  return 0;
-}
-
-void* shmat(int shmid, const void* shmaddr, int shmflg) {
-  ++shmat_called;
-  return shmat_returned_value;
-}
-
-int shmdt(const void *shmaddr) {
-  ++shmdt_called;
-  return 0;
-}
-
 ssize_t write(int fd, const void *buf, size_t count) {
   ++write_called;
   return count;
@@ -306,5 +273,10 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   tp->tv_sec = 0;
   tp->tv_nsec = 0;
   return 0;
+}
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+{
+  return mmap_return_value;
 }
 }
