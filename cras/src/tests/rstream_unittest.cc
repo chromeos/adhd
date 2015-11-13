@@ -163,12 +163,6 @@ int main(int argc, char **argv) {
 /* stubs */
 extern "C" {
 
-int cras_rclient_send_message(const struct cras_rclient *client,
-            const struct cras_message *msg)
-{
-  return 0;
-}
-
 struct cras_audio_area *cras_audio_area_create(int num_channels) {
   return NULL;
 }
