@@ -44,10 +44,14 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
  * Args:
  *    client - The client to send the message to.
  *    msg - The message to send.
+ *    fds - Array of file descriptors or null
+ *    num_fds - Number of entries in the fds array.
  * Returns:
  *    number of bytes written on success, otherwise a negative error code.
  */
 int cras_rclient_send_message(const struct cras_rclient *client,
-			      const struct cras_client_message *msg);
+			      const struct cras_client_message *msg,
+			      int *fds,
+			      unsigned int num_fds);
 
 #endif /* CRAS_RCLIENT_H_ */

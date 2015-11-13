@@ -485,5 +485,5 @@ void cras_server_send_to_all_clients(const struct cras_client_message *msg)
 	struct attached_client *client;
 
 	DL_FOREACH(server_instance.clients_head, client)
-		cras_rclient_send_message(client->client, msg);
+		cras_rclient_send_message(client->client, msg, NULL, 0);
 }

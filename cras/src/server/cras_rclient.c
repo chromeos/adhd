@@ -80,7 +80,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 			cras_rstream_input_shm_key(stream),
 			cras_rstream_output_shm_key(stream),
 			cras_rstream_get_total_shm_size(stream));
-	rc = cras_rclient_send_message(client, &reply.header);
+	rc = cras_rclient_send_message(client, &reply.header, NULL, 0);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
@@ -94,7 +94,7 @@ reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
 					  &remote_fmt, 0, 0, 0);
-	cras_rclient_send_message(client, &reply.header);
+	cras_rclient_send_message(client, &reply.header, NULL, 0);
 
 	if (aud_fd >= 0)
 		close(aud_fd);
@@ -122,7 +122,7 @@ static void dump_audio_thread_info(struct cras_rclient *client)
 	state = cras_system_state_get_no_lock();
 	audio_thread_dump_thread_info(cras_iodev_list_get_audio_thread(),
 				      &state->audio_debug_info);
-	cras_rclient_send_message(client, &msg.header);
+	cras_rclient_send_message(client, &msg.header, NULL, 0);
 }
 
 /*
@@ -144,7 +144,7 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 	client->id = id;
 
 	cras_fill_client_connected(&msg, client->id, cras_sys_state_shm_key());
-	cras_rclient_send_message(client, &msg.header);
+	cras_rclient_send_message(client, &msg.header, NULL, 0);
 
 	return client;
 }
@@ -279,9 +279,11 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 
 /* Sends a message to the client. */
 int cras_rclient_send_message(const struct cras_rclient *client,
-			      const struct cras_client_message *msg)
+			      const struct cras_client_message *msg,
+			      int *fds,
+			      unsigned int num_fds)
 {
 	return cras_send_with_fds(client->fd, (const void *)msg, msg->length,
-				  NULL, 0);
+				  fds, num_fds);
 }
 
