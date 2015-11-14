@@ -350,8 +350,8 @@ void cras_system_state_update_complete();
  * log.  Don't add calls to this function. */
 struct cras_server_state *cras_system_state_get_no_lock();
 
-/* Returns the shm key for the server_state structure. */
-key_t cras_sys_state_shm_key();
+/* Returns the shm fd for the server_state structure. */
+key_t cras_sys_state_shm_fd();
 
 /* Returns the timer manager. */
 struct cras_tm *cras_system_state_get_tm();

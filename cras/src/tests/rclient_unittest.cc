@@ -434,7 +434,7 @@ struct cras_server_state *cras_system_state_get_no_lock()
   return NULL;
 }
 
-key_t cras_sys_state_shm_key()
+key_t cras_sys_state_shm_fd()
 {
   return 1;
 }

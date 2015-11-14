@@ -368,6 +368,7 @@ TEST(SystemStateSuite, AddCardFailCreate) {
   EXPECT_EQ(-ENOMEM, cras_system_add_alsa_card(&info));
   EXPECT_EQ(1, cras_alsa_card_create_called);
   EXPECT_EQ(cras_alsa_card_config_dir, device_config_dir);
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, AddCard) {
@@ -387,6 +388,7 @@ TEST(SystemStateSuite, AddCard) {
   // Removing card should destroy it.
   cras_system_remove_alsa_card(0);
   EXPECT_EQ(1, cras_alsa_card_destroy_called);
+  cras_system_state_deinit();
 }
 
 TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {

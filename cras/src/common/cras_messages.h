@@ -360,15 +360,12 @@ static inline void cras_fill_suspend_message(struct cras_server_message *m,
 struct __attribute__ ((__packed__)) cras_client_connected {
 	struct cras_client_message header;
 	uint32_t client_id;
-	key_t shm_key;
 };
 static inline void cras_fill_client_connected(
 		struct cras_client_connected *m,
-		size_t client_id,
-		key_t shm_key)
+		size_t client_id)
 {
 	m->client_id = client_id;
-	m->shm_key = shm_key;
 	m->header.id = CRAS_CLIENT_CONNECTED;
 	m->header.length = sizeof(struct cras_client_connected);
 }

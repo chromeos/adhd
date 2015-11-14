@@ -135,6 +135,7 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 {
 	struct cras_rclient *client;
 	struct cras_client_connected msg;
+	int state_fd;
 
 	client = calloc(1, sizeof(struct cras_rclient));
 	if (!client)
@@ -143,8 +144,9 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id)
 	client->fd = fd;
 	client->id = id;
 
-	cras_fill_client_connected(&msg, client->id, cras_sys_state_shm_key());
-	cras_rclient_send_message(client, &msg.header, NULL, 0);
+	cras_fill_client_connected(&msg, client->id);
+	state_fd = cras_sys_state_shm_fd();
+	cras_rclient_send_message(client, &msg.header, &state_fd, 1);
 
 	return client;
 }

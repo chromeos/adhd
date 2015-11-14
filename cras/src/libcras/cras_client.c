@@ -32,6 +32,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/ipc.h>
+#include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/shm.h>
 #include <sys/signal.h>
@@ -172,6 +173,7 @@ struct client_stream {
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
  * server_state - RO shared memory region holding server state.
+ * server_state_fd - Descriptor of server_state shm region.
  * debug_info_callback - Function to call when debug info is received.
  */
 struct cras_client {
@@ -186,6 +188,7 @@ struct cras_client {
 	int last_command_result;
 	struct client_stream *streams;
 	const struct cras_server_state *server_state;
+	int server_state_fd;
 	void (*debug_info_callback)(struct cras_client *);
 };
 
@@ -886,32 +889,28 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 }
 
 /* Attach to the shm region containing the server state. */
-static int client_attach_shm(struct cras_client *client, key_t shm_key)
+static int client_attach_shm(struct cras_client *client, int shm_fd)
 {
-	int shmid;
-
 	/* Should only happen once per client lifetime. */
 	if (client->server_state)
 		return -EBUSY;
 
-	shmid = shmget(shm_key, sizeof(*(client->server_state)), 0400);
-	if (shmid < 0) {
-		syslog(LOG_ERR,
-		       "cras_client: shmget failed to get shm for client.");
-		return shmid;
-	}
-	client->server_state = (struct cras_server_state *)
-			shmat(shmid, NULL, SHM_RDONLY);
-	if (client->server_state == (void *)-1) {
-		client->server_state = NULL;
+	client->server_state_fd = shm_fd;
+	client->server_state = (struct cras_server_state *)mmap(
+			NULL, sizeof(*client->server_state),
+			PROT_READ, MAP_SHARED, shm_fd, 0);
+	if (client->server_state == NULL) {
 		syslog(LOG_ERR,
 		       "cras_client: shmat failed to attach shm for client.");
 		return errno;
 	}
 
 	if (client->server_state->state_version != CRAS_SERVER_STATE_VERSION) {
-		shmdt(client->server_state);
+		munmap((void *)client->server_state,
+		       sizeof(*client->server_state));
+		close(client->server_state_fd);
 		client->server_state = NULL;
+		client->server_state_fd = -1;
 		syslog(LOG_ERR,
 		       "cras_client: Unknown server_state version.");
 		return -EINVAL;
@@ -942,7 +941,9 @@ static int handle_message_from_server(struct cras_client *client)
 	case CRAS_CLIENT_CONNECTED: {
 		struct cras_client_connected *cmsg =
 			(struct cras_client_connected *)msg;
-		rc = client_attach_shm(client, cmsg->shm_key);
+		if (num_fds != 1)
+			return -EINVAL;
+		rc = client_attach_shm(client, server_fds[0]);
 		if (rc)
 			return rc;
 		client->id = cmsg->client_id;
@@ -1263,8 +1264,11 @@ void cras_client_destroy(struct cras_client *client)
 	if (client == NULL)
 		return;
 	cras_client_stop(client);
-	if (client->server_state)
-		shmdt(client->server_state);
+	if (client->server_state) {
+		munmap((void *)client->server_state,
+		       sizeof(*client->server_state));
+		close(client->server_state_fd);
+	}
 	if (client->server_fd >= 0)
 		shutdown_and_close_socket(client->server_fd);
 	close(client->command_fds[0]);

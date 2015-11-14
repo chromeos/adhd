@@ -3,9 +3,11 @@
  * found in the LICENSE file.
  */
 
+#include <fcntl.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
@@ -28,8 +30,10 @@ struct card_list {
 /* The system state.
  * Members:
  *    exp_state - The exported system state shared with clients.
- *    shm_key - Key for shm area of system_state struct.
- *    shm_id - Id for shm area of system_state struct.
+ *    shm_name - Name of posix shm region for exported state.
+ *    shm_fd - fd for shm area of system_state struct.
+ *    shm_fd_ro - fd for shm area of system_state struct, opened read-only.
+ *    shm_size - Size of the shm area.
  *    device_config_dir - Directory of device configs where volume curves live.
  *    device_blacklist - Blacklist of device the server will ignore.
  *    volume_alert - Called when the system volume changes.
@@ -46,8 +50,10 @@ struct card_list {
  */
 static struct {
 	struct cras_server_state *exp_state;
-	key_t shm_key;
-	int shm_id;
+	char shm_name[NAME_MAX];
+	int shm_fd;
+	int shm_fd_ro;
+	size_t shm_size;
 	const char *device_config_dir;
 	struct cras_device_blacklist *device_blacklist;
 	struct cras_alert *volume_alert;
@@ -74,25 +80,30 @@ static struct {
 void cras_system_state_init(const char *device_config_dir)
 {
 	struct cras_server_state *exp_state;
-	unsigned loops = 0;
 	int rc;
 
-	/* Find an available shm key. */
-	do {
-		state.shm_key = getpid() + rand();
-		state.shm_id = shmget(state.shm_key, sizeof(*exp_state),
-				      IPC_CREAT | IPC_EXCL | 0640);
-	} while (state.shm_id < 0 && loops++ < 100);
-	if (state.shm_id < 0) {
-		syslog(LOG_ERR, "Fatal: system state can't shmget");
-		exit(state.shm_id);
-	}
+	state.shm_size = sizeof(*exp_state);
 
-	exp_state = shmat(state.shm_id, NULL, 0);
-	if (exp_state == (void *)-1) {
-		syslog(LOG_ERR, "Fatal: system state can't shmat");
+	snprintf(state.shm_name, sizeof(state.shm_name), "/cras-%d", getpid());
+	state.shm_fd = shm_open(state.shm_name,
+				 O_CREAT | O_EXCL | O_RDWR, 0600);
+	if (state.shm_fd < 0)
+		exit(state.shm_fd);
+	rc = ftruncate(state.shm_fd, state.shm_size);
+	if (rc)
+		exit(errno);
+
+	/* Open a read-only copy to dup and pass to clients. */
+	state.shm_fd_ro = shm_open(state.shm_name, O_RDONLY, 0);
+	if (state.shm_fd_ro < 0)
+		exit(state.shm_fd_ro);
+
+	/* mmap shm. */
+	exp_state = mmap(NULL, state.shm_size,
+			 PROT_READ | PROT_WRITE, MAP_SHARED,
+			 state.shm_fd, 0);
+	if (exp_state == NULL)
 		exit(-ENOMEM);
-	}
 
 	/* Initial system state. */
 	exp_state->state_version = CRAS_SERVER_STATE_VERSION;
@@ -151,8 +162,8 @@ void cras_system_state_deinit()
 	cras_tm_deinit(state.tm);
 
 	if (state.exp_state) {
-		shmdt(state.exp_state);
-		shmctl(state.shm_id, IPC_RMID, (void *)state.exp_state);
+		munmap(state.exp_state, state.shm_size);
+		shm_unlink(state.shm_name);
 	}
 
 	cras_alert_destroy(state.volume_alert);
@@ -575,9 +586,9 @@ struct cras_server_state *cras_system_state_get_no_lock()
 	return state.exp_state;
 }
 
-key_t cras_sys_state_shm_key()
+key_t cras_sys_state_shm_fd()
 {
-	return state.shm_key;
+	return state.shm_fd_ro;
 }
 
 struct cras_tm *cras_system_state_get_tm()
