@@ -354,12 +354,6 @@ bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
-bt_profile_unittest_SOURCES = tests/bt_profile_unittest.cc tests/dbus_test.cc \
-	server/cras_bt_profile.c
-bt_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-bt_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
-
 byte_buffer_unittest_SOURCES = tests/byte_buffer_unittest.cc
 byte_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 byte_buffer_unittest_LDADD = -lgtest -lpthread
