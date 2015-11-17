@@ -34,7 +34,6 @@ static inline int audio_format_to_cras_format(audio_format_t audio_format)
     case AUDIO_FORMAT_PCM_8_24_BIT:
         return SND_PCM_FORMAT_S24_LE;
     default:
-        ALOGD("Unsupported audio format %d.", audio_format);
         return SND_PCM_FORMAT_UNKNOWN;
     }
 }
