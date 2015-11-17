@@ -10,8 +10,6 @@ LOCAL_SRC_FILES := \
 	libcras/cras_client.c \
 	libcras/cras_helpers.c
 
-LOCAL_SRC_FILES_arm := arm/shm.S
-
 LOCAL_SHARED_LIBRARIES := \
 	libtinyalsa
 
