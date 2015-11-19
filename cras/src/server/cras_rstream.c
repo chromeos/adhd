@@ -38,11 +38,14 @@ static int setup_shm(struct cras_rstream *stream,
 	shm_info->length = sizeof(struct cras_audio_shm_area) + samples_size;
 
 	snprintf(shm_info->shm_name, sizeof(shm_info->shm_name),
-		 "/cras-stream-%08x", stream->stream_id);
+		 "/cras-%d-stream-%08x", getpid(), stream->stream_id);
 	shm_info->shm_fd = shm_open(shm_info->shm_name,
 				    O_CREAT | O_EXCL | O_RDWR, 0600);
-	if (shm_info->shm_fd < 0)
+	if (shm_info->shm_fd < 0) {
+		syslog(LOG_ERR, "failed to shm_open %s errno %d\n",
+		       shm_info->shm_name, errno);
 		return shm_info->shm_fd;
+	}
 	rc = ftruncate(shm_info->shm_fd, shm_info->length);
 	if (rc)
 		return rc;
