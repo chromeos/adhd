@@ -169,6 +169,8 @@ struct client_stream {
  * server_state - RO shared memory region holding server state.
  * server_state_fd - Descriptor of server_state shm region.
  * debug_info_callback - Function to call when debug info is received.
+ * server_err_cb - Function to call when failed to read messages from server.
+ * server_err_user_arg - User argument for server_err_cb.
  */
 struct cras_client {
 	int id;
@@ -184,6 +186,8 @@ struct cras_client {
 	const struct cras_server_state *server_state;
 	int server_state_fd;
 	void (*debug_info_callback)(struct cras_client *);
+	cras_server_error_cb_t server_err_cb;
+	void *server_err_user_arg;
 };
 
 /*
@@ -978,6 +982,9 @@ read_error:
 	rc = connect_to_server_wait(client);
 	if (rc < 0) {
 		client->thread.running = 0;
+		if (client->server_err_cb)
+			client->server_err_cb(client,
+					      client->server_err_user_arg);
 		return -EIO;
 	}
 	return 0;
@@ -1677,6 +1684,14 @@ int cras_client_stop(struct cras_client *client)
 	client->command_reply_fds[0] = -1;
 
 	return 0;
+}
+
+void cras_client_set_server_error_cb(struct cras_client *client,
+				     cras_server_error_cb_t err_cb,
+				     void *user_arg)
+{
+	client->server_err_cb = err_cb;
+	client->server_err_user_arg = user_arg;
 }
 
 int cras_client_get_output_devices(const struct cras_client *client,

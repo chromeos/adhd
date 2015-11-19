@@ -66,6 +66,10 @@ typedef int (*cras_error_cb_t)(struct cras_client *client,
 			       int error,
 			       void *user_arg);
 
+/* Callback for handling server error. */
+typedef void (*cras_server_error_cb_t)(struct cras_client *client,
+				       void *user_arg);
+
 /*
  * Client handling.
  */
@@ -128,6 +132,15 @@ int cras_client_run_thread(struct cras_client *client);
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
 int cras_client_stop(struct cras_client *client);
+
+/* Sets server error callback.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    user_arg - Pointer that will be passed to the callback.
+ */
+void cras_client_set_server_error_cb(struct cras_client *client,
+				     cras_server_error_cb_t err_cb,
+				     void *user_arg);
 
 /* Returns the current list of output devices.
  * Args:
