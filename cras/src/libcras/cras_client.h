@@ -93,6 +93,16 @@ void cras_client_destroy(struct cras_client *client);
  */
 int cras_client_connect(struct cras_client *client);
 
+/* Connects a client to the running server, retries until timeout.
+ * Args:
+ *    client - pointer returned from "cras_client_create".
+ *    timeout_ms - timeout in milliseconds.
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+int cras_client_connect_timeout(struct cras_client *client,
+				unsigned int timeout_ms);
+
 /* Waits for the server to indicate that the client is connected.  Useful to
  * ensure that any information about the server is up to date.
  * Args:

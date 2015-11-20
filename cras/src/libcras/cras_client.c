@@ -54,6 +54,7 @@ static const size_t MAX_CMD_MSG_LEN = 256;
 static const size_t SERVER_CONNECT_TIMEOUT_NS = 500000000;
 static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;
 static const size_t SERVER_FIRST_MESSAGE_TIMEOUT_NS = 500000000;
+static const unsigned int retry_delay_ms = 200;
 
 /* Commands sent from the user to the running client. */
 enum {
@@ -299,14 +300,9 @@ static int connect_to_server(struct cras_client *client)
 	return rc;
 }
 
-/* Tries to connect to the server.  Waits for the initial message from the
- * server.  This will happen near instantaneously if the server is already
- * running.*/
-static int connect_to_server_wait(struct cras_client *client)
+static int connect_to_server_wait_retry(struct cras_client *client,
+					unsigned int retries)
 {
-	unsigned int retries = 4;
-	const unsigned int retry_delay_ms = 200;
-
 	assert(client);
 
 	/* Ignore sig pipe as it will be handled when we write to the socket. */
@@ -324,6 +320,14 @@ static int connect_to_server_wait(struct cras_client *client)
 	}
 
 	return -EIO;
+}
+
+/* Tries to connect to the server.  Waits for the initial message from the
+ * server.  This will happen near instantaneously if the server is already
+ * running.*/
+static int connect_to_server_wait(struct cras_client *client)
+{
+	return connect_to_server_wait_retry(client, 4);
 }
 
 /*
@@ -1277,6 +1281,17 @@ void cras_client_destroy(struct cras_client *client)
 int cras_client_connect(struct cras_client *client)
 {
 	return connect_to_server(client);
+}
+
+int cras_client_connect_timeout(struct cras_client *client,
+				unsigned int timeout_ms)
+{
+	unsigned int retries = timeout_ms / retry_delay_ms;
+
+	if (retries > 0)
+		return connect_to_server_wait_retry(client, retries);
+	else
+		return cras_client_connect(client);
 }
 
 int cras_client_connected_wait(struct cras_client *client)
