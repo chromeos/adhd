@@ -221,11 +221,17 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			}
 		}
 
+		/* Finds the actual rate of device before allocating DSP
+		 * because DSP needs to use the rate of device, not rate of
+		 * stream. */
+		actual_rate = get_best_rate(iodev, fmt->frame_rate);
+		iodev->format->frame_rate = actual_rate;
+		iodev->ext_format->frame_rate = actual_rate;
+
 		cras_iodev_alloc_dsp(iodev);
 		if (iodev->dsp_context)
 			adjust_dev_channel_for_dsp(iodev);
 
-		actual_rate = get_best_rate(iodev, fmt->frame_rate);
 		actual_num_channels = get_best_channel_count(iodev,
 					iodev->format->num_channels);
 		actual_format = get_best_pcm_format(iodev, fmt->format);
@@ -235,8 +241,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			rc = -EINVAL;
 			goto error;
 		}
-		iodev->format->frame_rate = actual_rate;
-		iodev->ext_format->frame_rate = actual_rate;
 		iodev->format->format = actual_format;
 		iodev->ext_format->format = actual_format;
 		if (iodev->format->num_channels != actual_num_channels) {
