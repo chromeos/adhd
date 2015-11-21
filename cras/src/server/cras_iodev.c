@@ -151,9 +151,9 @@ static void cras_iodev_free_dsp(struct cras_iodev *iodev)
 	}
 }
 
-/* Modifies the format to the one that will be presented to the device after
- * any format changes from the DSP. */
-static inline void adjust_dev_fmt_for_dsp(const struct cras_iodev *iodev)
+/* Modifies the number of channels in device format to the one that will be
+ * presented to the device after any channel changes from the DSP. */
+static inline void adjust_dev_channel_for_dsp(const struct cras_iodev *iodev)
 {
 	struct cras_dsp_context *ctx = iodev->dsp_context;
 
@@ -223,7 +223,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 
 		cras_iodev_alloc_dsp(iodev);
 		if (iodev->dsp_context)
-			adjust_dev_fmt_for_dsp(iodev);
+			adjust_dev_channel_for_dsp(iodev);
 
 		actual_rate = get_best_rate(iodev, fmt->frame_rate);
 		actual_num_channels = get_best_channel_count(iodev,
