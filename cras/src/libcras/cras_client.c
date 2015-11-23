@@ -305,22 +305,25 @@ static int connect_to_server(struct cras_client *client)
 }
 
 static int connect_to_server_wait_retry(struct cras_client *client,
-					unsigned int retries)
+					int timeout_ms)
 {
 	assert(client);
 
 	/* Ignore sig pipe as it will be handled when we write to the socket. */
 	signal(SIGPIPE, SIG_IGN);
 
-	while (--retries) {
+	while (1) {
 		/* If connected, wait for the first message from the server
 		 * indicating it's ready. */
 		if (connect_to_server(client) == 0 &&
 		    check_server_connected_wait(client))
-				return 0;
+			return 0;
 
-		/* If we didn't succeed, wait and try again. */
-		usleep(retry_delay_ms * 1000);
+		/* If we didn't succeed or timeout, wait and try again. */
+		if (timeout_ms <= 0)
+			break;
+		usleep(MIN((unsigned int)timeout_ms, retry_delay_ms) * 1000);
+		timeout_ms -= retry_delay_ms;
 	}
 
 	return -EIO;
@@ -331,7 +334,7 @@ static int connect_to_server_wait_retry(struct cras_client *client,
  * running.*/
 static int connect_to_server_wait(struct cras_client *client)
 {
-	return connect_to_server_wait_retry(client, 4);
+	return connect_to_server_wait_retry(client, 600);
 }
 
 /*
@@ -1293,12 +1296,7 @@ int cras_client_connect(struct cras_client *client)
 int cras_client_connect_timeout(struct cras_client *client,
 				unsigned int timeout_ms)
 {
-	unsigned int retries = timeout_ms / retry_delay_ms;
-
-	if (retries > 0)
-		return connect_to_server_wait_retry(client, retries);
-	else
-		return cras_client_connect(client);
+	return connect_to_server_wait_retry(client, timeout_ms);
 }
 
 int cras_client_connected_wait(struct cras_client *client)
