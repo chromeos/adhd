@@ -108,7 +108,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   ResetStubData();
 
   cras_bt_device_name_ret = NULL;
-  iodev = a2dp_iodev_create(fake_transport, NULL);
+  iodev = a2dp_iodev_create(fake_transport);
 
   ASSERT_NE(iodev, (void *)NULL);
   ASSERT_EQ(iodev->direction, CRAS_STREAM_OUTPUT);
@@ -131,7 +131,7 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
 
   cras_bt_device_name_ret = fake_device_name;
   /* Assert iodev name matches the bt device's name */
-  iodev = a2dp_iodev_create(fake_transport, NULL);
+  iodev = a2dp_iodev_create(fake_transport);
   ASSERT_STREQ(fake_device_name, iodev->info.name);
 
   a2dp_iodev_destroy(iodev);
@@ -143,7 +143,7 @@ TEST(A2dpIoInit, InitializeFail) {
   ResetStubData();
 
   init_a2dp_return_val = -1;
-  iodev = a2dp_iodev_create(fake_transport, NULL);
+  iodev = a2dp_iodev_create(fake_transport);
 
   ASSERT_EQ(iodev, (void *)NULL);
   ASSERT_EQ(1, cras_bt_transport_configuration_called);
@@ -158,7 +158,7 @@ TEST(A2dpIoInit, OpenIodev) {
   struct cras_iodev *iodev;
 
   ResetStubData();
-  iodev = a2dp_iodev_create(fake_transport, NULL);
+  iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
   iodev->open_dev(iodev);
@@ -180,7 +180,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   unsigned frames;
 
   ResetStubData();
-  iodev = a2dp_iodev_create(fake_transport, NULL);
+  iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
   iodev->open_dev(iodev);
@@ -242,7 +242,7 @@ TEST(A2dpIoInif, FramesQueued) {
   unsigned frames;
 
   ResetStubData();
-  iodev = a2dp_iodev_create(fake_transport, NULL);
+  iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
@@ -491,6 +491,21 @@ void audio_thread_rm_callback(int fd) {
 }
 
 void audio_thread_enable_callback(int fd, int enabled) {
+}
+
+// From a2dp endpoint
+int cras_a2dp_has_suspend_timer()
+{
+  return 0;
+}
+
+void cras_a2dp_schedule_suspend_timer(struct cras_iodev *iodev,
+                                      unsigned int msec)
+{
+}
+
+void cras_a2dp_cancel_suspend_timer(struct cras_iodev *iodev)
+{
 }
 
 }

@@ -10,20 +10,13 @@
 
 struct cras_iodev;
 
-/* Callback to force suspend a a2dp iodev. */
-typedef void (*a2dp_force_suspend_cb)(struct cras_iodev *iodev);
-
 /*
  * Creates an a2dp iodev from transport object.
  * Args:
  *    transport - The transport to create a2dp iodev for
- *    force_suspend_cb - The callback to trigger when severe error occurs
- *        during transmitting audio, used to force suspend an a2dp iodev
- *        outside the life cycle controlled by bluetooth daemon.
  */
 struct cras_iodev *a2dp_iodev_create(
-		struct cras_bt_transport *transport,
-		a2dp_force_suspend_cb force_suspend_cb);
+		struct cras_bt_transport *transport);
 
 /*
  * Destroys a2dp iodev.

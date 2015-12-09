@@ -14,6 +14,7 @@
 #include "audio_thread.h"
 #include "audio_thread_log.h"
 #include "byte_buffer.h"
+#include "cras_a2dp_endpoint.h"
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
 #include "cras_audio_area.h"
@@ -31,7 +32,6 @@ struct a2dp_io {
 	struct cras_iodev base;
 	struct a2dp_info a2dp;
 	struct cras_bt_transport *transport;
-	a2dp_force_suspend_cb force_suspend_cb;
 	unsigned sock_depth_frames;
 
 	/* To hold the pcm samples. */
@@ -245,10 +245,9 @@ static int pre_fill_socket(struct a2dp_io *a2dpio)
  */
 static int flush_data(void *arg)
 {
-	const struct cras_iodev *iodev = (const struct cras_iodev *)arg;
+	struct cras_iodev *iodev = (struct cras_iodev *)arg;
 	int processed;
 	size_t format_bytes;
-	int err = 0;
 	int written = 0;
 	struct a2dp_io *a2dpio;
 
@@ -283,14 +282,20 @@ encode_more:
 				    written,
 				    a2dp_queued_frames(&a2dpio->a2dp), 0);
 	if (written == -EAGAIN) {
+		/* If EAGAIN error lasts longer than 5 seconds, suspend the
+		 * a2dp connection. */
+		if (!cras_a2dp_has_suspend_timer())
+			cras_a2dp_schedule_suspend_timer(iodev, 5000);
+
 		audio_thread_enable_callback(
 				cras_bt_transport_fd(a2dpio->transport), 1);
 		return 0;
 	} else if (written < 0) {
-		if (a2dpio->force_suspend_cb)
-			a2dpio->force_suspend_cb(&a2dpio->base);
-		err = written;
-		goto write_done;
+		/* Suspend a2dp immediately when receives error other than
+		 * EAGAIN. */
+		cras_a2dp_cancel_suspend_timer(iodev);
+		cras_a2dp_schedule_suspend_timer(iodev, 0);
+		return written;
 	} else if (written == 0) {
 		goto write_done;
 	}
@@ -300,10 +305,11 @@ encode_more:
 
 write_done:
 	/* everything written. */
+	cras_a2dp_cancel_suspend_timer(iodev);
 	audio_thread_enable_callback(
 			cras_bt_transport_fd(a2dpio->transport), 0);
 
-	return err;
+	return 0;
 }
 
 static int dev_running(const struct cras_iodev *iodev)
@@ -395,8 +401,7 @@ void free_resources(struct a2dp_io *a2dpio)
 	destroy_a2dp(&a2dpio->a2dp);
 }
 
-struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
-				     a2dp_force_suspend_cb force_suspend_cb)
+struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 {
 	int err;
 	struct a2dp_io *a2dpio;
@@ -418,7 +423,6 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport,
 		syslog(LOG_ERR, "Fail to init a2dp");
 		goto error;
 	}
-	a2dpio->force_suspend_cb = force_suspend_cb;
 
 	iodev = &a2dpio->base;
 
