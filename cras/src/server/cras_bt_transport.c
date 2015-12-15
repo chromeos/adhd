@@ -453,10 +453,29 @@ int cras_bt_transport_try_acquire(struct cras_bt_transport *transport)
 	return 0;
 }
 
+/* Callback to trigger when transport release completed. */
+static void cras_bt_on_transport_release(DBusPendingCall *pending_call,
+					 void *data)
+{
+	DBusMessage *reply;
+
+	reply = dbus_pending_call_steal_reply(pending_call);
+	dbus_pending_call_unref(pending_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_WARNING, "Release transport returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return;
+	}
+
+	dbus_message_unref(reply);
+}
+
 int cras_bt_transport_release(struct cras_bt_transport *transport)
 {
-	DBusMessage *method_call, *reply;
-	DBusError dbus_error;
+	DBusMessage *method_call;
+	DBusPendingCall *pending_call;
 
 	if (transport->fd < 0)
 		return 0;
@@ -475,30 +494,26 @@ int cras_bt_transport_release(struct cras_bt_transport *transport)
 	if (!method_call)
 		return -ENOMEM;
 
-	dbus_error_init(&dbus_error);
-
-	reply = dbus_connection_send_with_reply_and_block(
-		transport->conn,
-		method_call,
-		DBUS_TIMEOUT_USE_DEFAULT,
-		&dbus_error);
-	if (!reply) {
-		syslog(LOG_ERR, "Failed to release transport %s: %s",
-		       transport->object_path, dbus_error.message);
-		dbus_error_free(&dbus_error);
+	if (!dbus_connection_send_with_reply(
+			transport->conn,
+			method_call,
+			&pending_call,
+			DBUS_TIMEOUT_USE_DEFAULT)) {
 		dbus_message_unref(method_call);
-		return -EIO;
+		return -ENOMEM;
 	}
 
 	dbus_message_unref(method_call);
-
-	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "Release returned error: %s",
-		       dbus_message_get_error_name(reply));
-		dbus_message_unref(reply);
+	if (!pending_call)
 		return -EIO;
+
+	if (!dbus_pending_call_set_notify(pending_call,
+					  cras_bt_on_transport_release,
+					  transport, NULL)) {
+		dbus_pending_call_cancel(pending_call);
+		dbus_pending_call_unref(pending_call);
+		return -ENOMEM;
 	}
 
-	dbus_message_unref(reply);
 	return 0;
 }
