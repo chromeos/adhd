@@ -75,11 +75,20 @@ static void *device_enabled_cb_data;
 static struct cras_rstream *audio_thread_add_stream_stream;
 static struct cras_iodev *audio_thread_add_stream_dev;
 static int audio_thread_add_stream_called;
+static unsigned update_active_node_called;
+static struct cras_iodev *update_active_node_iodev_val[5];
+static unsigned update_active_node_node_idx_val[5];
+static unsigned update_active_node_dev_enabled_val[5];
 
 /* Callback in iodev_list. */
 void node_left_right_swapped_cb(cras_node_id_t, int)
 {
   node_left_right_swapped_cb_called++;
+}
+
+void dummy_update_active_node(struct cras_iodev *iodev,
+                              unsigned node_idx,
+                              unsigned dev_enabled) {
 }
 
 /* For iodev is_open. */
@@ -202,6 +211,7 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_set_active_dev_called = 0;
       node_left_right_swapped_cb_called = 0;
       audio_thread_add_stream_called = 0;
+      update_active_node_called = 0;
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -221,7 +231,12 @@ class IoDevTestSuite : public testing::Test {
     }
 
     static void update_active_node(struct cras_iodev *iodev,
-                                   unsigned node_idx) {
+                                   unsigned node_idx,
+                                   unsigned dev_enabled) {
+      int i = update_active_node_called++ % 5;
+      update_active_node_iodev_val[i] = iodev;
+      update_active_node_node_idx_val[i] = node_idx;
+      update_active_node_dev_enabled_val[i] = dev_enabled;
     }
 
     static int is_open(const cras_iodev* iodev) {
@@ -370,6 +385,45 @@ TEST_F(IoDevTestSuite, SelectNode) {
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 1));
   EXPECT_EQ(4, audio_thread_add_stream_called);
+}
+
+
+TEST_F(IoDevTestSuite, UpdateActiveNode) {
+  int rc;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.is_open = cras_iodev_is_open_stub;
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 1));
+
+  EXPECT_EQ(1, update_active_node_called);
+  EXPECT_EQ(&d2_, update_active_node_iodev_val[0]);
+  EXPECT_EQ(1, update_active_node_node_idx_val[0]);
+  EXPECT_EQ(1, update_active_node_dev_enabled_val[0]);
+
+  /* Fake the active node idx on d2_, and later assert this node is
+   * called for update_active_node when d2_ disabled. */
+  d2_.active_node->idx = 2;
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 0));
+
+  EXPECT_EQ(3, update_active_node_called);
+  EXPECT_EQ(&d2_, update_active_node_iodev_val[1]);
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
+  EXPECT_EQ(2, update_active_node_node_idx_val[1]);
+  EXPECT_EQ(0, update_active_node_node_idx_val[2]);
+  EXPECT_EQ(0, update_active_node_dev_enabled_val[1]);
+  EXPECT_EQ(1, update_active_node_dev_enabled_val[2]);
 }
 
 TEST_F(IoDevTestSuite, SelectNonExistingNode) {
@@ -1047,6 +1101,11 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction) {
   dummy_empty_iodev[direction].direction = direction;
   dummy_empty_iodev[direction].is_open = cras_iodev_is_open_stub;
+  dummy_empty_iodev[direction].update_active_node = dummy_update_active_node;
+  if (dummy_empty_iodev[direction].active_node == NULL) {
+    struct cras_ionode *node = (struct cras_ionode *)calloc(1, sizeof(*node));
+    dummy_empty_iodev[direction].active_node = node;
+  }
   return &dummy_empty_iodev[direction];
 }
 

@@ -484,7 +484,7 @@ TEST(AlsaIoInit, UpdateActiveNode) {
                             fake_mixer, NULL,
                             CRAS_STREAM_OUTPUT, 0, 0);
 
-  iodev->update_active_node(iodev, 0);
+  iodev->update_active_node(iodev, 0, 1);
 
   alsa_iodev_destroy(iodev);
 }
@@ -534,13 +534,13 @@ TEST(AlsaIoInit, DspNameJackOverride) {
   EXPECT_EQ(1, ucm_get_dsp_name_default_called);
 
   // Mark the jack node as active.
-  alsa_iodev_set_active_node(&aio->base, aio->base.nodes->next);
+  alsa_iodev_set_active_node(&aio->base, aio->base.nodes->next, 1);
   EXPECT_EQ(2, cras_alsa_jack_get_dsp_name_called);
   EXPECT_EQ(2, cras_iodev_update_dsp_called);
   EXPECT_STREQ("override_dsp", cras_iodev_update_dsp_name);
 
   // Mark the default node as active.
-  alsa_iodev_set_active_node(&aio->base, aio->base.nodes);
+  alsa_iodev_set_active_node(&aio->base, aio->base.nodes, 1);
   EXPECT_EQ(1, ucm_get_dsp_name_default_called);
   EXPECT_EQ(3, cras_alsa_jack_get_dsp_name_called);
   EXPECT_EQ(3, cras_iodev_update_dsp_called);
@@ -630,7 +630,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
 
   ResetStubData();
   rc = alsa_iodev_set_active_node((struct cras_iodev *)aio,
-                                  aio->base.nodes->next);
+                                  aio->base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
   EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
@@ -679,7 +679,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
 
   ResetStubData();
   rc = alsa_iodev_set_active_node((struct cras_iodev *)aio,
-                                  aio->base.nodes->next);
+                                  aio->base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(2, alsa_mixer_set_mute_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_mute_output);

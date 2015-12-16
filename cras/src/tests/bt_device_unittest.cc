@@ -63,7 +63,8 @@ class BtDeviceTestSuite : public testing::Test {
       return is_open_;
     }
     static void update_active_node(struct cras_iodev *iodev,
-                                   unsigned node_idx) {
+                                   unsigned node_idx,
+                                   unsigned dev_enabled) {
     }
 
     struct cras_iodev bt_iodev1;

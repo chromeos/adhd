@@ -87,7 +87,8 @@ struct cras_ionode {
  * flush_buffer - Flushes the buffer and return the number of frames flushed.
  * dev_running - Checks if the device is playing or recording, return 1 if it's
  *     running, return 0 if not.
- * update_active_node - Update the active node using the selected/plugged state.
+ * update_active_node - Update the active node when the selected device/node has
+ *     changed.
  * update_channel_layout - Update the channel layout base on set iodev->format,
  *     expect the best available layout be filled to iodev->format.
  * format - The audio format being rendered or captured to hardware.
@@ -141,7 +142,8 @@ struct cras_iodev {
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*flush_buffer)(struct cras_iodev *iodev);
 	int (*dev_running)(const struct cras_iodev *iodev);
-	void (*update_active_node)(struct cras_iodev *iodev, unsigned node_idx);
+	void (*update_active_node)(struct cras_iodev *iodev,
+				   unsigned node_idx, unsigned dev_enabled);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_audio_format *ext_format;

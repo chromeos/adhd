@@ -764,7 +764,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		 */
 		if (was_enabled[dir] ||
 		    (on_open && iodev == bt_iodev)) {
-			iodev->update_active_node(iodev, 0);
+			iodev->update_active_node(iodev, 0, 1);
 			cras_iodev_list_enable_dev(iodev);
 		}
 	}

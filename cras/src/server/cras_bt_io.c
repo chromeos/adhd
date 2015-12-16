@@ -289,7 +289,8 @@ static int flush_buffer(struct cras_iodev *iodev)
 /* If the first private iodev doesn't match the active profile stored on
  * device, select to the correct private iodev.
  */
-static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
+			       unsigned dev_enabled)
 {
 	struct bt_io *btio = (struct bt_io *)iodev;
 	struct cras_ionode *node;
@@ -523,7 +524,7 @@ int cras_bt_io_remove(struct cras_iodev *bt_iodev,
 
 	/* The node of active profile could have been removed, update it.
 	 * Return err when fail to locate the active profile dev. */
-	update_active_node(bt_iodev, 0);
+	update_active_node(bt_iodev, 0, 1);
 	btnode = (struct bt_node *)bt_iodev->active_node;
 	if ((btnode->profile == 0) || (btnode->profile_dev == NULL))
 		return -EINVAL;

@@ -161,7 +161,8 @@ static int get_buffer_fd_read(struct cras_iodev *iodev,
 	return nread;
 }
 
-static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
+			       unsigned dev_enabled)
 {
 }
 

@@ -169,7 +169,8 @@ static int flush_buffer(struct cras_iodev *iodev)
 	return 0;
 }
 
-static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
+			       unsigned dev_enabled)
 {
 }
 

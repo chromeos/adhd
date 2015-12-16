@@ -635,6 +635,7 @@ static int disable_device(struct enabled_dev *edev)
 	if (device_enabled_callback)
 		device_enabled_callback(dev, 0, device_enabled_cb_data);
 	close_dev(dev);
+	dev->update_active_node(dev, dev->active_node->idx, 0);
 
 	return 0;
 }
@@ -725,7 +726,7 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (!new_dev || new_dev->direction != dir)
 		return;
 
-	new_dev->update_active_node(new_dev, node_index_of(node_id));
+	new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
 	cras_iodev_list_enable_dev(new_dev);
 }
 
@@ -736,6 +737,7 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev)
 	DL_FOREACH(enabled_devs[dev->direction], edev) {
 		if (edev->dev == dev) {
 			disable_device(edev);
+
 			if (!enabled_devs[dev->direction])
 				enable_device(fallback_devs[dev->direction]);
 			cras_iodev_list_notify_active_node_changed();
@@ -930,7 +932,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 		disable_device(edev);
 
 	if (new_dev) {
-		new_dev->update_active_node(new_dev, node_index_of(node_id));
+		new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
 		enable_device(new_dev);
 	} else {
 		enable_device(fallback_devs[direction]);

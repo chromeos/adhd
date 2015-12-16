@@ -113,7 +113,8 @@ struct alsa_io {
 static void init_device_settings(struct alsa_io *aio);
 
 static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
-				      struct cras_ionode *ionode);
+				      struct cras_ionode *ionode,
+				      unsigned dev_enabled);
 
 /*
  * iodev callbacks.
@@ -371,19 +372,21 @@ static struct cras_ionode *first_plugged_node(struct cras_iodev *iodev)
 	return iodev->nodes;
 }
 
-static void update_active_node(struct cras_iodev *iodev, unsigned node_idx)
+static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
+			       unsigned dev_enabled)
 {
 	struct cras_ionode *n;
 
 	/* If a node exists for node_idx, set it as active. */
 	DL_FOREACH(iodev->nodes, n) {
 		if (n->idx == node_idx) {
-			alsa_iodev_set_active_node(iodev, n);
+			alsa_iodev_set_active_node(iodev, n, dev_enabled);
 			return;
 		}
 	}
 
-	alsa_iodev_set_active_node(iodev, first_plugged_node(iodev));
+	alsa_iodev_set_active_node(iodev, first_plugged_node(iodev),
+				   dev_enabled);
 }
 
 static int update_channel_layout(struct cras_iodev *iodev)
@@ -1346,7 +1349,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	/* Set the active node as the best node we have now. */
 	alsa_iodev_set_active_node(&aio->base,
-				   first_plugged_node(&aio->base));
+				   first_plugged_node(&aio->base),
+				   0);
 	if (direction == CRAS_STREAM_OUTPUT)
 		cras_iodev_list_add_output(&aio->base);
 	else
@@ -1423,13 +1427,17 @@ static void enable_jack_ucm(struct alsa_io *aio, int plugged)
 }
 
 static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
-				      struct cras_ionode *ionode)
+				      struct cras_ionode *ionode,
+				      unsigned dev_enabled)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
-	if (iodev->active_node == ionode)
+	if (iodev->active_node == ionode) {
+		enable_jack_ucm(aio, dev_enabled);
 		return 0;
+	}
 
+	/* Disable jack ucm before switching node. */
 	enable_jack_ucm(aio, 0);
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		alsa_iodev_unmute_node(aio, ionode);
@@ -1437,7 +1445,7 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 	cras_iodev_set_active_node(iodev, ionode);
 	aio->base.dsp_name = get_active_dsp_name(aio);
 	cras_iodev_update_dsp(iodev);
-	enable_jack_ucm(aio, 1);
+	enable_jack_ucm(aio, dev_enabled);
 	/* Setting the volume will also unmute if the system isn't muted. */
 	init_device_settings(aio);
 	return 0;
