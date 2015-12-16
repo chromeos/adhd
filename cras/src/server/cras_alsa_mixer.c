@@ -69,30 +69,31 @@ struct cras_alsa_mixer {
 /* Wrapper for snd_mixer_open and helpers.
  * Args:
  *    mixdev - Name of the device to open the mixer for.
- * Returns:
- *    pointer to opened mixer on success, NULL on failure.
+ *    mixer - Pointer filled with the opened mixer on success, NULL on failure.
  */
-static snd_mixer_t *alsa_mixer_open(const char *mixdev)
+static void alsa_mixer_open(const char *mixdev,
+			    snd_mixer_t **mixer)
 {
-	snd_mixer_t *mixer = NULL;
 	int rc;
-	rc = snd_mixer_open(&mixer, 0);
+
+	*mixer = NULL;
+	rc = snd_mixer_open(mixer, 0);
 	if (rc < 0)
-		return NULL;
-	rc = snd_mixer_attach(mixer, mixdev);
-	if (rc < 0)
-		goto fail_after_open;
-	rc = snd_mixer_selem_register(mixer, NULL, NULL);
-	if (rc < 0)
-		goto fail_after_open;
-	rc = snd_mixer_load(mixer);
+		return;
+	rc = snd_mixer_attach(*mixer, mixdev);
 	if (rc < 0)
 		goto fail_after_open;
-	return mixer;
+	rc = snd_mixer_selem_register(*mixer, NULL, NULL);
+	if (rc < 0)
+		goto fail_after_open;
+	rc = snd_mixer_load(*mixer);
+	if (rc < 0)
+		goto fail_after_open;
+	return;
 
 fail_after_open:
-	snd_mixer_close(mixer);
-	return NULL;
+	snd_mixer_close(*mixer);
+	*mixer = NULL;
 }
 
 /* Checks if the given element's name is in the list. */
@@ -332,17 +333,16 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 
 	syslog(LOG_DEBUG, "Add mixer for device %s", card_name);
 
-	cmix->mixer = alsa_mixer_open(card_name);
-	if (cmix->mixer == NULL) {
-		syslog(LOG_DEBUG, "Couldn't open mixer.");
-		free(cmix);
-		return NULL;
-	}
-
 	cmix->config = config;
 	cmix->volume_curve =
 		cras_card_config_get_volume_curve_for_control(cmix->config,
 							      "Default");
+
+	alsa_mixer_open(card_name, &cmix->mixer);
+	if (cmix->mixer == NULL) {
+		syslog(LOG_DEBUG, "Couldn't open mixer.");
+		return cmix;
+	}
 
 	/* Find volume and mute controls. */
 	for(elem = snd_mixer_first_elem(cmix->mixer);
@@ -445,7 +445,8 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 		free(c);
 	}
 	cras_volume_curve_destroy(cras_mixer->volume_curve);
-	snd_mixer_close(cras_mixer->mixer);
+	if (cras_mixer->mixer)
+		snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
 }
 
@@ -654,6 +655,9 @@ struct mixer_control *cras_alsa_mixer_get_input_matching_name(
 	c = get_control_matching_name(cras_mixer->input_controls, name);
 	if (c)
 		return c;
+
+	if (!cras_mixer->mixer)
+		return NULL;
 
 	/* TODO: This is a workaround, we should pass the input names in
 	 * ucm config to cras_alsa_mixer_create. */

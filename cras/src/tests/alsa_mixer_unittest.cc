@@ -146,9 +146,8 @@ TEST(AlsaMixer, CreateFailOpen) {
   ResetStubData();
   snd_mixer_open_return_value = -1;
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
-  EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
-  EXPECT_EQ(0, snd_mixer_close_called);
 }
 
 TEST(AlsaMixer, CreateFailAttach) {
@@ -157,7 +156,7 @@ TEST(AlsaMixer, CreateFailAttach) {
   ResetStubData();
   snd_mixer_attach_return_value = -1;
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
-  EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
   EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
@@ -170,7 +169,7 @@ TEST(AlsaMixer, CreateFailSelemRegister) {
   ResetStubData();
   snd_mixer_selem_register_return_value = -1;
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
-  EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
   EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
@@ -184,7 +183,7 @@ TEST(AlsaMixer, CreateFailLoad) {
   ResetStubData();
   snd_mixer_load_return_value = -1;
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL);
-  EXPECT_EQ(static_cast<struct cras_alsa_mixer *>(NULL), c);
+  EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
   EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
