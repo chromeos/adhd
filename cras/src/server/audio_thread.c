@@ -1066,15 +1066,18 @@ int fill_output_no_streams(struct open_dev *adev)
 
 	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
 
-	if (hw_level <= target_hw_level)
-		fill_odev_zeros(odev, MIN(target_hw_level - hw_level,
-					  fr_to_write));
+	if (hw_level <= target_hw_level) {
+		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
+		fill_odev_zeros(odev, fr_to_write);
+	}
+	else
+		fr_to_write = 0;
 
 	ATLOG(atlog,
 				    AUDIO_THREAD_ODEV_NO_STREAMS,
 				    odev->info.idx,
 				    hw_level,
-				    odev->min_cb_level);
+				    fr_to_write);
 
 	return 0;
 }
