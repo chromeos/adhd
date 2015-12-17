@@ -51,6 +51,7 @@ typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
  *    softvol_scalers - pointer to software volume scalers.
  *    software_volume_needed - True if the volume range of the node is
  *      smaller than desired.
+ *    stable_id - id for node that doesn't change after unplug/plug.
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -65,6 +66,7 @@ struct cras_ionode {
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	float *softvol_scalers;
 	int software_volume_needed;
+	unsigned int stable_id;
 	struct cras_ionode *prev, *next;
 };
 

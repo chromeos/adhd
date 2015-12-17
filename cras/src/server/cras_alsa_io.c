@@ -852,6 +852,9 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	}
 	output->base.dev = &aio->base;
 	output->base.idx = aio->next_ionode_index++;
+	output->base.stable_id = SuperFastHash(name,
+					       sizeof(name),
+					       aio->base.info.stable_id);
 	output->mixer_output = cras_output;
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
@@ -911,6 +914,9 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	}
 	input->base.dev = &aio->base;
 	input->base.idx = aio->next_ionode_index++;
+	input->base.stable_id = SuperFastHash(name,
+					      sizeof(name),
+					      aio->base.info.stable_id);
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);

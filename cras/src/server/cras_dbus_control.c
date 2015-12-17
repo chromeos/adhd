@@ -389,7 +389,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_bool_t is_input;
 	dbus_uint64_t id;
 	const char *dev_name = dev->name;
-	dbus_uint64_t stable_dev_id = dev->stable_id;
+	dbus_uint64_t stable_dev_id = node->stable_id;
 	const char *node_type = node->type;
 	const char *node_name = node->name;
 	const char *mic_positions = node->mic_positions;

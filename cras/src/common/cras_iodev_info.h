@@ -34,6 +34,7 @@ struct __attribute__ ((__packed__)) cras_iodev_info {
  *    volume - per-node volume (0-100)
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
  *    left_right_swapped - Set true if left and right channels are swapped.
+ *    stable_id - ID that does not change due to device plug/unplug or reboot.
  *    mic_positions - Positions of the mic array.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
@@ -48,6 +49,7 @@ struct __attribute__ ((__packed__)) cras_ionode_info {
 	int32_t capture_gain;
 	int32_t left_right_swapped;
 	uint32_t type_enum;
+	uint32_t stable_id;
 	char mic_positions[CRAS_NODE_MIC_POS_BUFFER_SIZE];
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
