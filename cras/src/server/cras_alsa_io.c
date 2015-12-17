@@ -722,33 +722,6 @@ static void set_node_initial_state(struct cras_ionode *node,
 		drop_node_name(node);
 }
 
-static const char *get_output_node_name(struct alsa_io *aio,
-	struct mixer_control *cras_output)
-{
-	if (cras_output)
-		return cras_alsa_mixer_get_control_name(cras_output);
-
-	if (first_internal_device(aio) && !has_node(aio, INTERNAL_SPEAKER)) {
-		if (strstr(aio->base.info.name, HDMI))
-			return HDMI;
-		return INTERNAL_SPEAKER;
-	} else {
-		return DEFAULT;
-	}
-}
-
-static const char *get_input_node_name(struct alsa_io *aio,
-	struct mixer_control *cras_input)
-{
-	if (cras_input)
-		return cras_alsa_mixer_get_control_name(cras_input);
-
-	if (first_internal_device(aio) && !has_node(aio, INTERNAL_MICROPHONE))
-		return INTERNAL_MICROPHONE;
-	else
-		return DEFAULT;
-}
-
 static int get_ucm_flag_integer(struct alsa_io *aio,
 				const char *flag_name,
 				int *result)
@@ -896,7 +869,7 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 	struct alsa_io *aio = (struct alsa_io *)callback_arg;
 	const char *name;
 
-	name = get_output_node_name(aio, cras_output);
+	name = cras_alsa_mixer_get_control_name(cras_output);
 	new_output(aio, cras_output, name);
 }
 
@@ -964,7 +937,7 @@ static void new_input_by_mixer_control(struct mixer_control *cras_input,
 	struct alsa_io *aio = (struct alsa_io *)callback_arg;
 	const char* name;
 
-	name = get_input_node_name(aio, cras_input);
+	name = cras_alsa_mixer_get_control_name(cras_input);
 	new_input(aio, cras_input, name);
 }
 
@@ -1319,11 +1292,15 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	 * which really don't have an internal device. */
 	if ((direction == CRAS_STREAM_OUTPUT) &&
 			!no_create_default_output_node(aio)) {
-		if (!aio->base.nodes || (first_internal_device(aio) &&
-					 !has_node(aio, INTERNAL_SPEAKER) &&
-					 !has_node(aio, HDMI))) {
-			const char *node_name = get_output_node_name(aio, NULL);
-			new_output(aio, NULL, node_name);
+		if (first_internal_device(aio) &&
+		    !has_node(aio, INTERNAL_SPEAKER) &&
+		    !has_node(aio, HDMI)) {
+			if (strstr(aio->base.info.name, HDMI))
+				new_output(aio, NULL, HDMI);
+			else
+				new_output(aio, NULL, INTERNAL_SPEAKER);
+		} else if (!aio->base.nodes) {
+			new_output(aio, NULL, DEFAULT);
 		}
 	} else if ((direction == CRAS_STREAM_INPUT) &&
 			!no_create_default_input_node(aio)) {
