@@ -862,27 +862,24 @@ static void check_auto_unplug_output_node(struct alsa_io *aio,
 /* Callback for listing mixer outputs.  The mixer will call this once for each
  * output associated with this device.  Most commonly this is used to tell the
  * device it has Headphones and Speakers. */
-static void new_output(struct mixer_control *cras_output,
-		       void *callback_arg)
+static struct alsa_output_node *new_output(struct alsa_io *aio,
+					   struct mixer_control *cras_output,
+					   const char *name)
 {
-	struct alsa_io *aio;
 	struct alsa_output_node *output;
-	const char *name;
 
-	aio = (struct alsa_io *)callback_arg;
 	if (aio == NULL) {
 		syslog(LOG_ERR, "Invalid aio when listing outputs.");
-		return;
+		return NULL;
 	}
 	output = (struct alsa_output_node *)calloc(1, sizeof(*output));
 	if (output == NULL) {
 		syslog(LOG_ERR, "Out of memory when listing outputs.");
-		return;
+		return NULL;
 	}
 	output->base.dev = &aio->base;
 	output->base.idx = aio->next_ionode_index++;
 	output->mixer_output = cras_output;
-	name = get_output_node_name(aio, cras_output);
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
 	set_output_node_software_volume_needed(output, aio);
@@ -890,6 +887,17 @@ static void new_output(struct mixer_control *cras_output,
 	cras_iodev_add_node(&aio->base, &output->base);
 
 	check_auto_unplug_output_node(aio, &output->base, output->base.plugged);
+	return output;
+}
+
+static void new_output_by_mixer_control(struct mixer_control *cras_output,
+				        void *callback_arg)
+{
+	struct alsa_io *aio = (struct alsa_io *)callback_arg;
+	const char *name;
+
+	name = get_output_node_name(aio, cras_output);
+	new_output(aio, cras_output, name);
 }
 
 static void check_auto_unplug_input_node(struct alsa_io *aio,
@@ -917,9 +925,8 @@ static void check_auto_unplug_input_node(struct alsa_io *aio,
 	}
 }
 
-static void _new_input(struct mixer_control *cras_input,
-		       const char *name,
-		       struct alsa_io *aio)
+static struct alsa_input_node *new_input(struct alsa_io *aio,
+		struct mixer_control *cras_input, const char *name)
 {
 	struct alsa_input_node *input;
 	char *mic_positions;
@@ -927,7 +934,7 @@ static void _new_input(struct mixer_control *cras_input,
 	input = (struct alsa_input_node *)calloc(1, sizeof(*input));
 	if (input == NULL) {
 		syslog(LOG_ERR, "Out of memory when listing inputs.");
-		return;
+		return NULL;
 	}
 	input->base.dev = &aio->base;
 	input->base.idx = aio->next_ionode_index++;
@@ -948,21 +955,17 @@ static void _new_input(struct mixer_control *cras_input,
 	cras_iodev_add_node(&aio->base, &input->base);
 	check_auto_unplug_input_node(aio, &input->base,
 				     input->base.plugged);
+	return input;
 }
 
-static void new_input(struct mixer_control *cras_input,
-		      void *callback_arg)
+static void new_input_by_mixer_control(struct mixer_control *cras_input,
+				       void *callback_arg)
 {
-	struct alsa_io *aio;
+	struct alsa_io *aio = (struct alsa_io *)callback_arg;
 	const char* name;
-	aio = (struct alsa_io *)callback_arg;
-	name = get_input_node_name(aio, cras_input);
-	_new_input(cras_input, name, aio);
-}
 
-static void new_input_by_name(const char *name, struct alsa_io *aio)
-{
-	_new_input(NULL, name, aio);
+	name = get_input_node_name(aio, cras_input);
+	new_input(aio, cras_input, name);
 }
 
 /* Finds the output node associated with the jack. Returns NULL if not found. */
@@ -1038,32 +1041,21 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 
 	aio = (struct alsa_io *)arg;
 	node = get_output_node_from_jack(aio, jack);
+	jack_name = cras_alsa_jack_get_name(jack);
+	if (!strcmp(jack_name, "Speaker Phantom Jack"))
+		jack_name = INTERNAL_SPEAKER;
 
 	/* If there isn't a node for this jack, create one. */
 	if (node == NULL) {
-		node = (struct alsa_output_node *)calloc(1, sizeof(*node));
-		if (node == NULL) {
-			syslog(LOG_ERR, "Out of memory creating jack node.");
+		node = new_output(aio, NULL, jack_name);
+		if (node == NULL)
 			return;
-		}
-		node->base.dev = &aio->base;
-		node->base.idx = aio->next_ionode_index++;
-		jack_name = cras_alsa_jack_get_name(jack);
-		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
-				aio->mixer, jack_name);
-		node->jack = jack;
-		/* Speaker phantom jack is actually for internal speaker. */
-		if (!strcmp(jack_name, "Speaker Phantom Jack"))
-			jack_name = INTERNAL_SPEAKER;
-		strncpy(node->base.name, jack_name,
-			sizeof(node->base.name) - 1);
-		set_node_initial_state(&node->base, aio->card_type);
-		set_output_node_software_volume_needed(node, aio);
+
 		cras_alsa_jack_update_node_type(jack, &(node->base.type));
-		cras_iodev_add_node(&aio->base, &node->base);
-	} else if (!node->jack) {
+	}
+
+	if (!node->jack) {
 		/* If we already have the node, associate with the jack. */
-		jack_name = cras_alsa_jack_get_name(jack);
 		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
 				aio->mixer, jack_name);
 		node->jack = jack;
@@ -1087,6 +1079,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 {
 	struct alsa_io *aio;
 	struct alsa_input_node *node;
+	struct mixer_control *cras_input;
 	const char *jack_name;
 
 	if (arg == NULL)
@@ -1096,24 +1089,16 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 
 	/* If there isn't a node for this jack, create one. */
 	if (node == NULL) {
-		node = (struct alsa_input_node *)calloc(1, sizeof(*node));
-		if (node == NULL) {
-			syslog(LOG_ERR, "Out of memory creating jack node.");
-			return;
-		}
-		node->base.dev = &aio->base;
-		node->base.idx = aio->next_ionode_index++;
+		cras_input = cras_alsa_jack_get_mixer_input(jack);
 		jack_name = cras_alsa_jack_get_name(jack);
-		node->jack = jack;
-		node->mixer_input = cras_alsa_jack_get_mixer_input(jack);
-		strncpy(node->base.name, jack_name,
-			sizeof(node->base.name) - 1);
-		set_node_initial_state(&node->base, aio->card_type);
-		cras_iodev_add_node(&aio->base, &node->base);
-	} else if (!node->jack) {
-		/* If we already have the node, associate with the jack. */
-		node->jack = jack;
+		node = new_input(aio, cras_input, jack_name);
+		if (node == NULL)
+			return;
 	}
+
+	/* If we already have the node, associate with the jack. */
+	if (!node->jack)
+		node->jack = jack;
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
 
@@ -1302,9 +1287,11 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	/* Create output nodes for mixer controls, such as Headphone
 	 * and Speaker, only for the first device. */
 	if (direction == CRAS_STREAM_OUTPUT && is_first)
-		cras_alsa_mixer_list_outputs(mixer, new_output, aio);
+		cras_alsa_mixer_list_outputs(mixer,
+				new_output_by_mixer_control, aio);
 	else if (direction == CRAS_STREAM_INPUT && is_first)
-		cras_alsa_mixer_list_inputs(mixer, new_input, aio);
+		cras_alsa_mixer_list_inputs(mixer,
+				new_input_by_mixer_control, aio);
 
 	/* Find any jack controls for this device. */
 	aio->jack_list = cras_alsa_jack_list_create(
@@ -1334,19 +1321,21 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			!no_create_default_output_node(aio)) {
 		if (!aio->base.nodes || (first_internal_device(aio) &&
 					 !has_node(aio, INTERNAL_SPEAKER) &&
-					 !has_node(aio, HDMI)))
-			new_output(NULL, aio);
+					 !has_node(aio, HDMI))) {
+			const char *node_name = get_output_node_name(aio, NULL);
+			new_output(aio, NULL, node_name);
+		}
 	} else if ((direction == CRAS_STREAM_INPUT) &&
 			!no_create_default_input_node(aio)) {
 		if (first_internal_device(aio) &&
 		    !has_node(aio, INTERNAL_MICROPHONE))
-			new_input_by_name(INTERNAL_MICROPHONE, aio);
+			new_input(aio, NULL, INTERNAL_MICROPHONE);
 		else if (strstr(dev_name, KEYBOARD_MIC))
-			new_input_by_name(KEYBOARD_MIC, aio);
+			new_input(aio, NULL, KEYBOARD_MIC);
 		else if (dev_id && strstr(dev_id, AOKR_DEV))
-			new_input_by_name(AOKR_DEV, aio);
+			new_input(aio, NULL, AOKR_DEV);
 		else if (!aio->base.nodes)
-			new_input_by_name(DEFAULT, aio);
+			new_input(aio, NULL, DEFAULT);
 	}
 
 	/* HDMI outputs don't have volume adjustment, do it in software. */
