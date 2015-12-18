@@ -1121,9 +1121,6 @@ int main(int argc, char **argv)
 			break;
 		}
 		case 'y':
-		case 'z':
-			pause_in_playback_reply = atoi(optarg);
-			break;
 		case 'a': {
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
@@ -1135,6 +1132,9 @@ int main(int argc, char **argv)
 			cras_client_select_node(client, direction, id);
 			break;
 		}
+		case 'z':
+			pause_in_playback_reply = atoi(optarg);
+			break;
 		case 'k':
 		case 't':
 		case '1':
