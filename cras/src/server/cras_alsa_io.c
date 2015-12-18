@@ -870,10 +870,16 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 				        void *callback_arg)
 {
 	struct alsa_io *aio = (struct alsa_io *)callback_arg;
-	const char *name;
+	char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
+	const char *ctl_name = cras_alsa_mixer_get_control_name(cras_output);
 
-	name = cras_alsa_mixer_get_control_name(cras_output);
-	new_output(aio, cras_output, name);
+	if (aio->card_type == ALSA_CARD_TYPE_USB) {
+		snprintf(node_name, sizeof(node_name), "%s: %s",
+			aio->base.info.name, ctl_name);
+		new_output(aio, cras_output, node_name);
+	} else {
+		new_output(aio, cras_output, ctl_name);
+	}
 }
 
 static void check_auto_unplug_input_node(struct alsa_io *aio,
@@ -941,10 +947,16 @@ static void new_input_by_mixer_control(struct mixer_control *cras_input,
 				       void *callback_arg)
 {
 	struct alsa_io *aio = (struct alsa_io *)callback_arg;
-	const char* name;
+	char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
+	const char *ctl_name = cras_alsa_mixer_get_control_name(cras_input);
 
-	name = cras_alsa_mixer_get_control_name(cras_input);
-	new_input(aio, cras_input, name);
+	if (aio->card_type == ALSA_CARD_TYPE_USB) {
+		snprintf(node_name , sizeof(node_name), "%s: %s",
+			 aio->base.info.name, ctl_name);
+		new_input(aio, cras_input, node_name);
+	} else {
+		new_input(aio, cras_input, ctl_name);
+	}
 }
 
 /* Finds the output node associated with the jack. Returns NULL if not found. */
