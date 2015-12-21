@@ -72,7 +72,11 @@ static size_t sys_set_volume_limits_called;
 static size_t sys_set_capture_gain_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
 static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
+static struct mixer_control *cras_alsa_jack_get_mixer_output_ret;
+static struct mixer_control *cras_alsa_jack_get_mixer_input_ret;
 static size_t cras_alsa_mixer_get_output_volume_curve_called;
+static const char *cras_alsa_mixer_get_control_name_values[3];
+static size_t cras_alsa_mixer_get_control_name_called;
 static struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve_value;
 static size_t cras_alsa_jack_list_create_called;
 static size_t cras_alsa_jack_list_destroy_called;
@@ -100,8 +104,11 @@ static char *cras_alsa_jack_update_monitor_fake_name = 0;
 static int cras_alsa_jack_get_name_ret_called;
 static const char *cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
+static int auto_unplug_input_node_ret = 0;
+static int auto_unplug_output_node_ret = 0;
 
 void ResetStubData() {
+  int i;
   cras_alsa_open_called = 0;
   cras_iodev_append_stream_ret = 0;
   cras_alsa_get_avail_frames_ret = 0;
@@ -132,6 +139,11 @@ void ResetStubData() {
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_mixer_get_output_volume_curve_called = 0;
   cras_alsa_mixer_get_output_volume_curve_value = NULL;
+  cras_alsa_jack_get_mixer_output_ret = NULL;
+  cras_alsa_jack_get_mixer_input_ret = NULL;
+  for (i = 0; i < 3; i++)
+    cras_alsa_mixer_get_control_name_values[i] = NULL;
+  cras_alsa_mixer_get_control_name_called = 0;
   cras_alsa_jack_list_create_called = 0;
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_set_node_attr_called = 0;
@@ -686,6 +698,96 @@ TEST(AlsaOutputNode, TwoOutputs) {
   fake_curve = NULL;
 }
 
+TEST(AlsaOutputNode, AutoUnplugOutputNode) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct mixer_control *outputs[2];
+  const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
+
+  ResetStubData();
+  outputs[0] = reinterpret_cast<struct mixer_control *>(5);
+  outputs[1] = reinterpret_cast<struct mixer_control *>(6);
+
+  cras_alsa_mixer_list_outputs_outputs = outputs;
+  cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
+
+  cras_alsa_mixer_get_control_name_values[0] = INTERNAL_SPEAKER;
+  cras_alsa_mixer_get_control_name_values[1] = "Headphone";
+  auto_unplug_output_node_ret = 1;
+
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_OUTPUT, 0, 0);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  EXPECT_EQ(2, cras_alsa_mixer_get_control_name_called);
+
+  // Assert that the the internal speaker is plugged and other nodes aren't.
+  ASSERT_NE(aio->base.nodes, (void *)NULL);
+  EXPECT_EQ(aio->base.nodes->plugged, 1);
+  ASSERT_NE(aio->base.nodes->next, (void *)NULL);
+  EXPECT_EQ(aio->base.nodes->next->plugged, 0);
+
+  // Plug headphone jack
+  cras_alsa_jack_get_name_ret_value = "Headphone Jack";
+  is_utf8_string_ret_value = 1;
+  cras_alsa_jack_get_mixer_output_ret = outputs[1];
+  cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
+
+  // Assert internal speaker is auto unplugged
+  EXPECT_EQ(aio->base.nodes->plugged, 0);
+  EXPECT_EQ(aio->base.nodes->next->plugged, 1);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
+TEST(AlsaOutputNode, AutoUnplugInputNode) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct mixer_control *inputs[2];
+  const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
+
+  ResetStubData();
+  inputs[0] = reinterpret_cast<struct mixer_control *>(5);
+  inputs[1] = reinterpret_cast<struct mixer_control *>(6);
+
+  cras_alsa_mixer_list_inputs_outputs = inputs;
+  cras_alsa_mixer_list_inputs_outputs_length = ARRAY_SIZE(inputs);
+
+  cras_alsa_mixer_get_control_name_values[0] = INTERNAL_MICROPHONE;
+  cras_alsa_mixer_get_control_name_values[1] = "Mic";
+  auto_unplug_input_node_ret = 1;
+
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_INPUT, 0, 0);
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
+  EXPECT_EQ(2, cras_alsa_mixer_get_control_name_called);
+
+  // Assert that the the internal speaker is plugged and other nodes aren't.
+  ASSERT_NE(aio->base.nodes, (void *)NULL);
+  EXPECT_EQ(aio->base.nodes->plugged, 1);
+  ASSERT_NE(aio->base.nodes->next, (void *)NULL);
+  EXPECT_EQ(aio->base.nodes->next->plugged, 0);
+
+  // Plug headphone jack
+  cras_alsa_jack_get_name_ret_value = "Mic Jack";
+  is_utf8_string_ret_value = 1;
+  cras_alsa_jack_get_mixer_input_ret = inputs[1];
+  cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
+
+  // Assert internal speaker is auto unplugged
+  EXPECT_EQ(aio->base.nodes->plugged, 0);
+  EXPECT_EQ(aio->base.nodes->next->plugged, 1);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+}
+
 TEST(AlsaInitNode, SetNodeInitialState) {
   struct cras_ionode node;
   struct cras_iodev dev;
@@ -1112,7 +1214,10 @@ const char *snd_strerror(int errnum)
 const char *cras_alsa_mixer_get_control_name(
 		const struct mixer_control *control)
 {
-  return "";
+  int i = cras_alsa_mixer_get_control_name_called++;
+  return cras_alsa_mixer_get_control_name_values[i]
+      ? cras_alsa_mixer_get_control_name_values[i]
+      : "";
 }
 
 //  From system_state.
@@ -1324,13 +1429,13 @@ const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
 struct mixer_control *cras_alsa_jack_get_mixer_output(
     const struct cras_alsa_jack *jack)
 {
-  return NULL;
+  return cras_alsa_jack_get_mixer_output_ret;
 }
 
 struct mixer_control *cras_alsa_jack_get_mixer_input(
 		const struct cras_alsa_jack *jack)
 {
-  return NULL;
+  return cras_alsa_jack_get_mixer_input_ret;
 }
 
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
@@ -1338,6 +1443,15 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
 }
 
 char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
+  char *ret = (char *)malloc(8);
+  if ((!strcmp(flag_name, "AutoUnplugInputNode") &&
+       auto_unplug_input_node_ret) ||
+      (!strcmp(flag_name, "AutoUnplugOutputNode") &&
+       auto_unplug_output_node_ret)) {
+    snprintf(ret, 8, "%s", "1");
+    return ret;
+  }
+
   return NULL;
 }
 
@@ -1398,6 +1512,8 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
   cras_iodev_set_node_attr_called++;
   cras_iodev_set_node_attr_attr = attr;
   cras_iodev_set_node_attr_value = value;
+  if (ionode && (attr == IONODE_ATTR_PLUGGED))
+    ionode->plugged = value;
   return 0;
 }
 
