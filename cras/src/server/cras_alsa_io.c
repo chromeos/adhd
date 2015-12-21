@@ -866,7 +866,9 @@ static void new_output(struct mixer_control *cras_output,
 		struct cras_ionode *tmp;
 		DL_FOREACH(aio->base.nodes, tmp)
 			if (tmp->plugged)
-				output->base.plugged = 0;
+				cras_iodev_set_node_attr(&output->base,
+							 IONODE_ATTR_PLUGGED,
+							 0);
 	}
 
 	cras_iodev_add_node(&aio->base, &output->base);
@@ -906,7 +908,9 @@ static void _new_input(struct mixer_control *cras_input,
 		struct cras_ionode *tmp;
 		DL_FOREACH(aio->base.nodes, tmp)
 			if (tmp->plugged)
-				input->base.plugged = 0;
+				cras_iodev_set_node_attr(&input->base,
+							 IONODE_ATTR_PLUGGED,
+							 0);
 	}
 
 	cras_iodev_add_node(&aio->base, &input->base);
