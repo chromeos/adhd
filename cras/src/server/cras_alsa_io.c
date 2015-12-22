@@ -112,6 +112,9 @@ struct alsa_io {
 
 static void init_device_settings(struct alsa_io *aio);
 
+static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
+				      struct cras_ionode *ionode);
+
 /*
  * iodev callbacks.
  */
@@ -1419,8 +1422,8 @@ static void enable_jack_ucm(struct alsa_io *aio, int plugged)
 	}
 }
 
-int alsa_iodev_set_active_node(struct cras_iodev *iodev,
-			       struct cras_ionode *ionode)
+static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
+				      struct cras_ionode *ionode)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 

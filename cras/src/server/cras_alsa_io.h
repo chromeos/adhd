@@ -47,22 +47,4 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 /* Destroys an alsa_iodev created with alsa_iodev_create. */
 void alsa_iodev_destroy(struct cras_iodev *iodev);
 
-/* Sets the active node of an alsa mixer.  Used to switch form Speaker to
- * Headphones or vice-versa.
- * Args:
- *    iodev - An iodev created with alsa_iodev_create.
- *    ionode - The node to activate.
- */
-int alsa_iodev_set_active_node(struct cras_iodev *iodev,
-			       struct cras_ionode *ionode);
-
-/* Sets the active input of an alsa mixer.  Used to switch between different
- * Microphones.
- * Args:
- *    iodev - An iodev created with alsa_iodev_create.
- *    ionode - The input to activate.
- */
-int alsa_iodev_set_active_input(struct cras_iodev *iodev,
-				struct cras_ionode *ionode);
-
 #endif /* CRAS_ALSA_IO_H_ */
