@@ -374,127 +374,120 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
 		return;
 
+	printf("%10u.%09u  ", sec, nsec);
+
 	switch (tag) {
 	case AUDIO_THREAD_WAKE:
-		printf("WAKE: %u.%09u num_fds %d\n", sec, nsec, (int)data1);
+		printf("%-30s num_fds:%d\n", "WAKE", (int)data1);
 		break;
 	case AUDIO_THREAD_SLEEP:
-		printf("SLEEP: %u.%09u %09d.%09d long:%09d\n", sec, nsec,
-		       (int)data1, (int)data2, (int)data3);
+		printf("%-30s sleep:%09d.%09d longest_wake:%09d\n",
+		       "SLEEP", (int)data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO:
-		printf("READ_AUDIO: %u.%09u dev: %x hw_level: %u read %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s dev:%x hw_level:%u read:%u\n",
+		       "READ_AUDIO", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO_DONE:
-		printf("READ_AUDIO_DONE: %u.%09u read remainder %u\n",
-		       sec, nsec, data1);
+		printf("%-30s read_remainder:%u\n", "READ_AUDIO_DONE", data1);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
-		printf("FILL_AUDIO: %u.%09u dev %x hw_level %u\n",
-		       sec, nsec, data1, data2);
+		printf("%-30s dev:%x hw_level:%u\n",
+		       "FILL_AUDIO", data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
-		printf("FILL_AUDIO_DONE: %u.%09u total_written %u\n",
-		       sec, nsec, data1);
+		printf("%-30s total_written:%u\n", "FILL_AUDIO_DONE", data1);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_WAIT:
-		printf("WRITE_STREAMS_WAIT: %u.%09u for %u.%06u\n",
-		       sec, nsec, data1, data2);
+		printf("%-30s stream:%x\n", "WRITE_STREAMS_WAIT", data1);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_WAIT_TO:
-		printf("WRITE_STREAMS_WAIT_TO: %u.%09u\n",
-		       sec, nsec);
+		printf("%-30s\n", "WRITE_STREAMS_WAIT_TO");
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_MIX:
-		printf("WRITE_STREAMS_MIX: %u.%09u wlimit %u max_offset %u\n",
-		       sec, nsec, data1, data2);
+		printf("%-30s write_limit:%u max_offset:%u\n",
+		       "WRITE_STREAMS_MIX", data1, data2);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_MIXED:
-		printf("WRITE_STREAMS_MIXED: %u.%09u write_limit %u\n",
-		       sec, nsec, data1);
+		printf("%-30s write_limit:%u\n", "WRITE_STREAMS_MIXED", data1);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_STREAM:
-		printf("WRITE_STREAMS_STREAM: %u.%09u id %x "
-		       "shm_frames %u cb_pending %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s id:%x shm_frames:%u cb_pending:%u\n",
+		       "WRITE_STREAMS_STREAM", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_FETCH_STREAM:
-		printf("WRITE_STREAMS_FETCH_STREAM: %u.%09u id %x cbth %u delay %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s id:%x cbth:%u delay:%u\n",
+		       "WRITE_STREAMS_FETCH_STREAM", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_ADDED:
-		printf("STREAM_ADDED: %u.%9u id %x dev_idx %u\n",
-		       sec, nsec, data1, data2);
+		printf("%-30s id:%x dev_idx:%u\n",
+		       "STREAM_ADDED", data1, data2);
 		break;
 	case AUDIO_THREAD_STREAM_REMOVED:
-		printf("STREAM_REMOVED: %u.%9u id %x\n", sec, nsec, data1);
+		printf("%-30s id:%x\n", "STREAM_REMOVED", data1);
 		break;
 	case AUDIO_THREAD_A2DP_ENCODE:
-		printf("A2DP_ENCODE: %u.%09u proc %d queued %u readable %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s proc:%d queued:%u readable:%u\n",
+		       "A2DP_ENCODE", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_A2DP_WRITE:
-		printf("A2DP_WRITE: %u.%09u written %d queued %u\n",
-		       sec, nsec, data1, data2);
+		printf("%-30s written:%d queued:%u\n",
+		       "A2DP_WRITE", data1, data2);
 		break;
 	case AUDIO_THREAD_DEV_STREAM_MIX:
-		printf("DEV_STREAM_MIX: %u.%09u written %u read %u\n",
-		       sec, nsec, data1, data2);
+		printf("%-30s written:%u read:%u\n",
+		       "DEV_STREAM_MIX", data1, data2);
 		break;
 	case AUDIO_THREAD_CAPTURE_POST:
-		printf("CAPTURE_POST: %u.%09u stream %x thresh %u rd_buf %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s stream:%x thresh:%u rd_buf:%u\n",
+		       "CAPTURE_POST", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_CAPTURE_WRITE:
-		printf("CAPTURE_WRITE: %u.%09u stream %x write %u shm_fr %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s stream:%x write:%u shm_fr:%u\n",
+		       "CAPTURE_WRITE", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_CONV_COPY:
-		printf("CONV_COPY: %u.%09u wr_buf %u shm_writable %u"
-		       "offset %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s wr_buf:%u shm_writable:%u offset:%u\n",
+		       "CONV_COPY", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_SLEEP_TIME:
-		printf("STREAM_SLEEP_TIME: %u.%09u id:%x wake:%09u.%09d\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s id:%x wake:%09u.%09d\n",
+		       "STREAM_SLEEP_TIME", data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_STREAM_SLEEP_ADJUST:
-		printf("STREAM_SLEEP_ADJUST: %u.%09u id:%x from:%09u.%09d\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s id:%x from:%09u.%09d\n",
+		       "STREAM_SLEEP_ADJUST", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_SKIP_CB:
-		printf("STREAM_SKIP_CB: %u.%9u id %x write offsets %u %u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s id:%x write_offset_0:%u write_offset_1:%u\n",
+		       "STREAM_SKIP_CB", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_SLEEP_TIME:
-		printf("DEV_SLEEP_TIME: %u.%09u devidx:%x wake:%09u.%09d\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s devidx:%x wake:%09u.%09d\n",
+		       "DEV_SLEEP_TIME", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_SET_DEV_WAKE:
-		printf("SET_DEV_WAKE: %u.%09u devidx:%x hw_level:%u "
-		       "sleep:%u\n", sec, nsec, data1, data2, data3);
+		printf("%-30s devidx:%x hw_level:%u sleep:%u\n",
+		       "SET_DEV_WAKE", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_ADDED:
-		printf("DEV_ADDED: %u.%09u devidx:%x\n",
-		       sec, nsec, data1);
+		printf("%-30s devidx:%x\n", "DEV_ADDED", data1);
 		break;
 	case AUDIO_THREAD_DEV_REMOVED:
-		printf("DEV_REMOVED: %u.%09u devidx:%x\n",
-		       sec, nsec, data1);
+		printf("%-30s devidx:%x\n", "DEV_REMOVED", data1);
 		break;
 	case AUDIO_THREAD_IODEV_CB:
-		printf("IODEV_CB: %u.%09u is_write:%u\n", sec, nsec, data1);
+		printf("%-30s is_write:%u\n", "IODEV_CB", data1);
 		break;
 	case AUDIO_THREAD_PB_MSG:
-		printf("PB_MSG: %u.%09u msg_id:%u\n", sec, nsec, data1);
+		printf("%-30s msg_id:%u\n", "PB_MSG", data1);
 		break;
 	case AUDIO_THREAD_ODEV_NO_STREAMS:
-		printf("ODEV_NO_STREAMS: %u.%09u id:%u hw_level:%u cb_lev:%u\n",
-		       sec, nsec, data1, data2, data3);
+		printf("%-30s id:%u hw_level:%u cb_lev:%u\n",
+		       "ODEV_NO_STREAMS", data1, data2, data3);
 		break;
 	default:
-		printf("Unknown alog tag %u\n", tag);
+		printf("%-30s tag:%u\n","UNKNOWN", tag);
 		break;
 	}
 }
