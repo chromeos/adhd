@@ -420,7 +420,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "WRITE_STREAMS_FETCH_STREAM", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_ADDED:
-		printf("%-30s id:%x dev_idx:%u\n",
+		printf("%-30s id:%x dev:%x\n",
 		       "STREAM_ADDED", data1, data2);
 		break;
 	case AUDIO_THREAD_STREAM_REMOVED:
@@ -463,18 +463,18 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "STREAM_SKIP_CB", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_SLEEP_TIME:
-		printf("%-30s devidx:%x wake:%09u.%09d\n",
+		printf("%-30s dev:%x wake:%09u.%09d\n",
 		       "DEV_SLEEP_TIME", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_SET_DEV_WAKE:
-		printf("%-30s devidx:%x hw_level:%u sleep:%u\n",
+		printf("%-30s dev:%x hw_level:%u sleep:%u\n",
 		       "SET_DEV_WAKE", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_ADDED:
-		printf("%-30s devidx:%x\n", "DEV_ADDED", data1);
+		printf("%-30s dev:%x\n", "DEV_ADDED", data1);
 		break;
 	case AUDIO_THREAD_DEV_REMOVED:
-		printf("%-30s devidx:%x\n", "DEV_REMOVED", data1);
+		printf("%-30s dev:%x\n", "DEV_REMOVED", data1);
 		break;
 	case AUDIO_THREAD_IODEV_CB:
 		printf("%-30s is_write:%u\n", "IODEV_CB", data1);
@@ -483,7 +483,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s msg_id:%u\n", "PB_MSG", data1);
 		break;
 	case AUDIO_THREAD_ODEV_NO_STREAMS:
-		printf("%-30s id:%u hw_level:%u cb_lev:%u\n",
+		printf("%-30s dev:%x hw_level:%u cb_lev:%u\n",
 		       "ODEV_NO_STREAMS", data1, data2, data3);
 		break;
 	default:
