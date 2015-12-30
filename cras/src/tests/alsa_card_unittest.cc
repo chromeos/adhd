@@ -120,9 +120,9 @@ TEST(AlsaCard, CreateFailCtlOpen) {
   card_info.card_index = 0;
   snd_ctl_open_return = -1;
   c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
-  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
   EXPECT_EQ(1, snd_ctl_open_called);
-  EXPECT_EQ(1, snd_ctl_close_called);
+  EXPECT_EQ(0, snd_ctl_close_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 

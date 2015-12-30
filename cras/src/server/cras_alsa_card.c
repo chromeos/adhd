@@ -190,44 +190,43 @@ struct cras_alsa_card *cras_alsa_card_create(
 		 info->card_index);
 
 	rc = snd_ctl_open(&handle, alsa_card->name, 0);
-	if (rc == 0) {
-		rc = snd_ctl_card_info(handle, card_info);
-		if (rc < 0) {
-			syslog(LOG_ERR, "Error getting card info.");
-			goto error_bail;
-		}
-
-		card_name = snd_ctl_card_info_get_name(card_info);
-		if (card_name == NULL) {
-			syslog(LOG_ERR, "Error getting card name.");
-			goto error_bail;
-		}
-
-		/* Read config file for this card if it exists. */
-		alsa_card->config = cras_card_config_create(device_config_dir,
-							    card_name);
-		if (alsa_card->config == NULL)
-			syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
-
-		/* Create a use case manager if a configuration is available. */
-		alsa_card->ucm = ucm_create(card_name);
-
-		/* Filter the extra output mixer names */
-		if (alsa_card->ucm)
-			filter_mixer_names(alsa_card->ucm, output_names_extra,
-					   output_names_extra_size);
-		else
-			output_names_extra_size = 0;
-
-		/* Check if an extra main volume has been specified. */
-		if (alsa_card->ucm)
-			extra_main_volume = ucm_get_flag(alsa_card->ucm,
-							 "ExtraMainVolume");
-	} else {
+	if (rc < 0) {
 		syslog(LOG_ERR, "Fail opening control %s.", alsa_card->name);
-		card_name = "Unknown";
-		output_names_extra_size = 0;
+		goto error_bail;
 	}
+
+	rc = snd_ctl_card_info(handle, card_info);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Error getting card info.");
+		goto error_bail;
+	}
+
+	card_name = snd_ctl_card_info_get_name(card_info);
+	if (card_name == NULL) {
+		syslog(LOG_ERR, "Error getting card name.");
+		goto error_bail;
+	}
+
+	/* Read config file for this card if it exists. */
+	alsa_card->config = cras_card_config_create(device_config_dir,
+						    card_name);
+	if (alsa_card->config == NULL)
+		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
+
+	/* Create a use case manager if a configuration is available. */
+	alsa_card->ucm = ucm_create(card_name);
+
+	/* Filter the extra output mixer names */
+	if (alsa_card->ucm)
+		filter_mixer_names(alsa_card->ucm, output_names_extra,
+				   output_names_extra_size);
+	else
+		output_names_extra_size = 0;
+
+	/* Check if an extra main volume has been specified. */
+	if (alsa_card->ucm)
+		extra_main_volume = ucm_get_flag(alsa_card->ucm,
+						 "ExtraMainVolume");
 
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
