@@ -396,7 +396,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "FILL_AUDIO", data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
-		printf("%-30s total_written:%u\n", "FILL_AUDIO_DONE", data1);
+		printf("%-30s hw_level:%u total_written:%u min_cb_level:%u\n",
+		       "FILL_AUDIO_DONE", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_WRITE_STREAMS_WAIT:
 		printf("%-30s stream:%x\n", "WRITE_STREAMS_WAIT", data1);

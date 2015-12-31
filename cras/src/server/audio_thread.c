@@ -1208,7 +1208,7 @@ static int write_output_samples(struct audio_thread *thread,
 	}
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
-				    total_written, 0, 0);
+			hw_level, total_written, odev->min_cb_level);
 	return 0;
 }
 
