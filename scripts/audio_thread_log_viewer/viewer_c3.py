@@ -430,8 +430,16 @@ class AudioThreadLogParser(object):
             self.content = f.read().splitlines()
 
         # Event logs starting at two lines after 'Audio Thread Event Log'.
-        index = self.content.index('Audio Thread Event Log:')
-        event_logs = self.content[(index + 2):]
+        index_start = self.content.index('Audio Thread Event Log:') + 2
+        # If input is from audio_diagnostic result, use aplay -l line to find
+        # the end of audio thread event logs.
+        try:
+            index_end = self.content.index('=== aplay -l ===')
+        except ValueError:
+            logging.debug(
+                    'Can not find aplay line. This is not from diagnostic')
+            index_end = len(self.content)
+        event_logs = self.content[index_start:index_end]
         logging.info('Parsed %s log events', len(event_logs))
         return event_logs
 
