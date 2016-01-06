@@ -384,7 +384,7 @@ TEST_F(IoDevTestSuite, SelectNode) {
   stream_list_get_ret = stream_list;
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 1));
-  EXPECT_EQ(4, audio_thread_add_stream_called);
+  EXPECT_EQ(6, audio_thread_add_stream_called);
 }
 
 

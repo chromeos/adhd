@@ -570,6 +570,7 @@ static int stream_removed_cb(struct cras_rstream *rstream)
 }
 
 static int disable_device(struct enabled_dev *edev);
+static int enable_device(struct cras_iodev *dev);
 
 static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 {
@@ -579,6 +580,12 @@ static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 		if (edev->dev == fallback_devs[dir])
 			disable_device(edev);
 	}
+}
+
+static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
+{
+	if (!cras_iodev_list_dev_is_enabled(fallback_devs[dir]))
+		enable_device(fallback_devs[dir]);
 }
 
 static int enable_device(struct cras_iodev *dev)
@@ -928,15 +935,24 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	if (new_dev && new_dev->direction != direction)
 		return;
 
+	/* Enable fallback device during the transition so client will not be
+	 * blocked in this duration, which is as long as 300 ms on some boards
+	 * before new device is opened. */
+	possibly_enable_fallback(direction);
+
+	/* Disable all devices except for fallback device. */
 	DL_FOREACH(enabled_devs[direction], edev)
-		disable_device(edev);
+		if (edev->dev != fallback_devs[direction])
+			disable_device(edev);
 
 	if (new_dev) {
 		new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
 		enable_device(new_dev);
-	} else {
-		enable_device(fallback_devs[direction]);
+		/* Disable fallback device after new device is enabled.
+		 * Leave the fallback device enabled in new_dev == NULL case. */
+		possibly_disable_fallback(direction);
 	}
+
 	cras_iodev_list_notify_active_node_changed();
 }
 
