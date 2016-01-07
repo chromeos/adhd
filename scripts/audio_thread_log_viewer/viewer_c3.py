@@ -34,6 +34,20 @@ page_content = string.Template("""
       border:1px solid #ccc;
       overflow:auto;
     }
+    .checkbox {
+      font-size: 30px;
+      border: 2px;
+    }
+    .device {
+      font-size: 15px;
+    }
+    .stream{
+      font-size: 15px;
+    }
+    .fetch{
+    }
+    .wake{
+    }
   </style>
   <script type="text/javascript">
     draw_chart = function() {
@@ -72,16 +86,47 @@ page_content = string.Template("""
       document.getElementById('logs').innerHTML = logs;
     };
 
+    set_initial_checkbox_value = function () {
+      document.getElementById('device').checked = true;
+      document.getElementById('stream').checked = true;
+      document.getElementById('fetch').checked = true;
+      document.getElementById('wake').checked = true;
+    }
+
     window.onload = function() {
       draw_chart();
       put_logs();
+      set_initial_checkbox_value();
     };
+
+    function handleClick(checkbox) {
+      var class_name = checkbox.id;
+      var elements = document.getElementsByClassName(class_name);
+      var i;
+
+      if (checkbox.checked) {
+        display_value = "block";
+      } else {
+        display_value = "none"
+      }
+
+      console.log("change " + class_name + " to " + display_value);
+      for (i = 0; i < elements.length; i++) {
+        elements[i].style.display = display_value;
+      }
+    }
 
   </script>
 </head>
 
 <body>
   <div id="chart" style="height:50%; width:100%" ></div>
+  <div style="margin:0 auto"; class="checkbox">
+      <label><input type="checkbox" onclick="handleClick(this);" id="device">Show device removed/added event</label>
+      <label><input type="checkbox" onclick="handleClick(this);" id="stream">Show stream removed/added event</label>
+      <label><input type="checkbox" onclick="handleClick(this);" id="fetch">Show fetch event</label>
+      <label><input type="checkbox" onclick="handleClick(this);" id="wake">Show wake by num_fds=1 event</label>
+  </div>
   <div class="event_log_box", id="logs", style="float:left;"></div>
   <textarea class="event_log_box", id="text", style="float:right;"></textarea>
 </body>
@@ -89,11 +134,12 @@ page_content = string.Template("""
 """)
 
 
-Tag = collections.namedtuple('Tag', {'time', 'text', 'position'})
+Tag = collections.namedtuple('Tag', {'time', 'text', 'position', 'class_name'})
 """
 The tuple for tags shown on the plot on certain time.
 text is the tag to show, position is the tag position, which is one of
-'start', 'middle', 'end'.
+'start', 'middle', 'end', class_name is one of 'device', 'stream', 'fetch',
+and 'wake' which will be their CSS class name.
 """
 
 class EventData(object):
@@ -109,6 +155,7 @@ class EventData(object):
         self.name = name
         self._text = None
         self._position = None
+        self._class_name = None
 
     def GetTag(self):
         """Gets the tag for this event.
@@ -117,7 +164,9 @@ class EventData(object):
 
         """
         if self._text:
-            return Tag(time=self.time, text=self._text, position=self._position)
+            return Tag(
+                    time=self.time, text=self._text, position=self._position,
+                    class_name=self._class_name)
         return None
 
 
@@ -134,6 +183,7 @@ class DeviceEvent(EventData):
         super(DeviceEvent, self).__init__(time, name)
         self.device = device
         self._position = 'start'
+        self._class_name = 'device'
 
 
 class DeviceRemovedEvent(DeviceEvent):
@@ -191,6 +241,7 @@ class StreamEvent(EventData):
         """
         super(StreamEvent, self).__init__(time, name)
         self.stream = stream
+        self._class_name = 'stream'
 
 
 class FetchStreamEvent(StreamEvent):
@@ -206,6 +257,7 @@ class FetchStreamEvent(StreamEvent):
         super(FetchStreamEvent, self).__init__(time, name, stream)
         self._text = 'Fetch %s' % self.stream
         self._position = 'end'
+        self._class_name = 'fetch'
 
 
 class StreamAddedEvent(StreamEvent):
@@ -250,6 +302,7 @@ class WakeEvent(EventData):
         """
         super(WakeEvent, self).__init__(time, name)
         self._position = 'middle'
+        self._class_name = 'wake'
         if num_fds != '0':
             self._text = 'num_fds %s' % num_fds
 
@@ -300,8 +353,9 @@ class C3LogWriter(object):
         """
         grids = []
         for tag in self.tags:
-            content = '{value: %s, text: \"%s\", position: \"%s\"}' % (
-                    tag.time, tag.text, tag.position)
+            content = ('{value: %s, text: "%s", position: "%s", '
+                       'class: "%s"}') % (
+                              tag.time, tag.text, tag.position, tag.class_name)
             grids.append(content)
         grids_joined = ', '.join(grids)
         return grids_joined
