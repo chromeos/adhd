@@ -1157,7 +1157,7 @@ int cras_alsa_fill_properties(const char *dev,
   return 0;
 }
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
-			   snd_pcm_uframes_t *buffer_size)
+			   snd_pcm_uframes_t *buffer_size, int period_wakeup)
 {
   return 0;
 }

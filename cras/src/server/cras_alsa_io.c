@@ -182,6 +182,7 @@ static int open_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle;
+	int period_wakeup;
 	int rc;
 
 	/* This is called after the first stream added so configure for it.
@@ -200,8 +201,10 @@ static int open_dev(struct cras_iodev *iodev)
 	if (rc < 0)
 		return rc;
 
+	/* If it's a wake on voice device, period_wakeups are required. */
+	period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_AOKR);
 	rc = cras_alsa_set_hwparams(handle, iodev->format,
-				    &iodev->buffer_size);
+				    &iodev->buffer_size, period_wakeup);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
 		return rc;
@@ -404,7 +407,7 @@ static int update_channel_layout(struct cras_iodev *iodev)
 
 	/* Sets frame rate and channel count to alsa device before
 	 * we test channel mapping. */
-	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size);
+	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size, 0);
 	if (err < 0) {
 		cras_alsa_pcm_close(handle);
 		return err;

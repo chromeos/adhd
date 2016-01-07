@@ -417,7 +417,7 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 }
 
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
-			   snd_pcm_uframes_t *buffer_frames)
+			   snd_pcm_uframes_t *buffer_frames, int period_wakeup)
 {
 	unsigned int rate, ret_rate;
 	int err;
@@ -444,8 +444,10 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 		syslog(LOG_ERR, "Setting interleaved %s\n", snd_strerror(err));
 		return err;
 	}
-	/* Try to disable ALSA wakeups, we'll keep a timer. */
-	if (snd_pcm_hw_params_can_disable_period_wakeup(hwparams)) {
+	/* If period_wakeup flag is not set, try to disable ALSA wakeups,
+	 * we'll keep a timer. */
+	if (!period_wakeup &&
+	    snd_pcm_hw_params_can_disable_period_wakeup(hwparams)) {
 		err = snd_pcm_hw_params_set_period_wakeup(handle, hwparams, 0);
 		if (err < 0)
 			syslog(LOG_WARNING, "disabling wakeups %s\n",

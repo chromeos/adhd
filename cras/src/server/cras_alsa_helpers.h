@@ -95,11 +95,13 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
  *    handle - The open PCM to configure.
  *    format - The audio format desired for playback/capture.
  *    buffer_frames - Number of frames in the ALSA buffer.
+ *    period_wakeup - Flag to determine if period_wakeup is required
+ *                      0 - disable, 1 - enable
  * Returns:
  *    0 on success, negative error on failure.
  */
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
-			   snd_pcm_uframes_t *buffer_frames);
+			   snd_pcm_uframes_t *buffer_frames, int period_wakeup);
 
 /* Sets up the swparams to alsa.
  * Args:
