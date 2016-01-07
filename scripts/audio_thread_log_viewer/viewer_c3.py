@@ -21,6 +21,9 @@ page_content = string.Template("""
   <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
   <script src="https://rawgit.com/masayuki0812/c3/master/c3.js" charset="utf-8"></script>
   <style type="text/css">
+    .c3-grid text {
+        fill: grey;
+    }
     .event_log_box {
       font-family: 'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace;
       font-size: 20px;
@@ -30,7 +33,7 @@ page_content = string.Template("""
       line-height: 26.4px;
       white-space: pre;
       height:50%;
-      width:45%;
+      width:48%;
       border:1px solid #ccc;
       overflow:auto;
     }
