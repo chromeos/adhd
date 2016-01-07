@@ -739,18 +739,30 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 
 void cras_iodev_list_disable_dev(struct cras_iodev *dev)
 {
-	struct enabled_dev *edev;
+	struct enabled_dev *edev, *edev_to_disable = NULL;
+
+	int is_the_only_enabled_device = 1;
 
 	DL_FOREACH(enabled_devs[dev->direction], edev) {
-		if (edev->dev == dev) {
-			disable_device(edev);
-
-			if (!enabled_devs[dev->direction])
-				enable_device(fallback_devs[dev->direction]);
-			cras_iodev_list_notify_active_node_changed();
-			return;
-		}
+		if (edev->dev == dev)
+			edev_to_disable = edev;
+		else
+			is_the_only_enabled_device = 0;
 	}
+
+	if (!edev_to_disable)
+		return;
+
+	/* If the device to be closed is the only enabled device, we should
+	 * enable the fallback device first then disable the target
+	 * device. */
+	if (is_the_only_enabled_device)
+		enable_device(fallback_devs[dev->direction]);
+
+	disable_device(edev_to_disable);
+
+	cras_iodev_list_notify_active_node_changed();
+	return;
 }
 
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
