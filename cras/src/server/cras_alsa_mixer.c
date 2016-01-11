@@ -458,6 +458,19 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 	return cras_mixer->volume_curve;
 }
 
+int cras_alsa_mixer_has_main_volume(
+		const struct cras_alsa_mixer *cras_mixer)
+{
+	return !!cras_mixer->main_volume_controls;
+}
+
+int cras_alsa_mixer_has_volume(const struct mixer_control *mixer_control)
+{
+	return !!(mixer_control &&
+		  mixer_control->elem &&
+		  mixer_control->has_volume);
+}
+
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 			      long dBFS,
 			      struct mixer_control *mixer_output)
@@ -490,7 +503,7 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 		to_set -= actual_dB;
 	}
 	/* Apply the rest to the output-specific control. */
-	if (mixer_output && mixer_output->elem && mixer_output->has_volume)
+	if (cras_alsa_mixer_has_volume(mixer_output))
 		snd_mixer_selem_set_playback_dB_all(mixer_output->elem,
 						    to_set,
 						    1);
@@ -507,7 +520,7 @@ long cras_alsa_mixer_get_output_dB_range(
 		struct mixer_control *mixer_output)
 {
 	struct mixer_output_control *output;
-	if (!mixer_output || !mixer_output->elem || !mixer_output->has_volume)
+	if (!cras_alsa_mixer_has_volume(mixer_output))
 		return 0;
 	output = (struct mixer_output_control *)mixer_output;
 	return output->max_volume_dB - output->min_volume_dB;
@@ -537,7 +550,7 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 	}
 
 	/* Apply the reset to input specific control */
-	if (mixer_input && mixer_input->elem && mixer_input->has_volume)
+	if (cras_alsa_mixer_has_volume(mixer_input))
 		snd_mixer_selem_set_capture_dB_all(mixer_input->elem,
 						   to_set, 1);
 	assert(cras_mixer);

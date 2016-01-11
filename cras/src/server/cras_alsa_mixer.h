@@ -52,6 +52,12 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer);
 const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 		const struct cras_alsa_mixer *mixer);
 
+/* Returns if the mixer has any main volume control. */
+int cras_alsa_mixer_has_main_volume(const struct cras_alsa_mixer *cras_mixer);
+
+/* Returns if the mixer control supports volume adjust. */
+int cras_alsa_mixer_has_volume(const struct mixer_control *mixer_control);
+
 /* Sets the output volume for the device associated with this mixer.
  * Args:
  *    cras_mixer - The mixer to set the volume on.

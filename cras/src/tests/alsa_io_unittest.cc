@@ -1374,6 +1374,16 @@ struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
   return cras_alsa_mixer_get_output_volume_curve_value;
 }
 
+int cras_alsa_mixer_has_main_volume(const struct cras_alsa_mixer *cras_mixer)
+{
+  return 1;
+}
+
+int cras_alsa_mixer_has_volume(const struct mixer_control *mixer_control)
+{
+  return 1;
+}
+
 // From cras_alsa_jack
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int card_index,
