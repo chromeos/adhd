@@ -609,6 +609,31 @@ TEST(AlsaUcm, MaxSoftwareGain) {
   ASSERT_TRUE(ret);
 }
 
+TEST(AlsaUCM, UseFullySpecifiedUCMConfig) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  int fully_specified_flag;
+
+  std::string id = "=FullySpecifiedUCM//HiFi";
+  ResetStubData();
+
+  /* Flag is not set */
+  snd_use_case_get_ret_value[id] = -1;
+  fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
+  ASSERT_FALSE(fully_specified_flag);
+
+  /* Flag is set to "1". */
+  snd_use_case_get_value[id] = std::string("1");
+  snd_use_case_get_ret_value[id] = 0;
+  fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
+  ASSERT_TRUE(fully_specified_flag);
+
+  /* Flag is set to "0". */
+  snd_use_case_get_value[id] = std::string("0");
+  snd_use_case_get_ret_value[id] = 0;
+  fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
+  ASSERT_FALSE(fully_specified_flag);
+}
+
 /* Stubs */
 
 extern "C" {

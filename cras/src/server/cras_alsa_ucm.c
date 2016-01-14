@@ -31,6 +31,7 @@ static const char coupled_mixers[] = "CoupledMixers";
  * and enable software gain on this node. */
 static const char max_software_gain[] = "MaxSoftwareGain";
 static const char hotword_model_prefix[] = "Hotword Model";
+static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -578,4 +579,16 @@ enable_mod:
 	ucm_set_modifier_enabled(mgr, model_mod, 1);
 
 	return 0;
+}
+
+int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr)
+{
+	char *flag;
+	int ret = 0;
+	flag = ucm_get_flag(mgr, fully_specified_ucm_var);
+	if (!flag)
+		return 0;
+	ret = !strcmp(flag, "1");
+	free(flag);
+	return ret;
 }

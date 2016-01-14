@@ -245,4 +245,13 @@ char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr);
  */
 int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model);
 
+/* Checks if this card has fully specified UCM config.
+ *
+ * Args:
+ *   mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *   1 if this UCM uses fully specified UCM config. 0 otherwise.
+ */
+int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr);
+
 #endif /* _CRAS_ALSA_UCM_H */
