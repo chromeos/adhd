@@ -592,3 +592,15 @@ int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr)
 	free(flag);
 	return ret;
 }
+
+const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, mixer_var, dev, default_verb, &name);
+	if (rc)
+		return NULL;
+
+	return name;
+}

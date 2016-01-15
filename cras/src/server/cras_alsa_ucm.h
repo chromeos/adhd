@@ -254,4 +254,15 @@ int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model);
  */
 int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr);
 
+/* Gets the mixer name of this device on the card.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for device name
+ * Returns:
+ *    A pointer to the allocated string containing the mixer name, or NULL
+ *    if no device name is found.
+ */
+const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
+
 #endif /* _CRAS_ALSA_UCM_H */
