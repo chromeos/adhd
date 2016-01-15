@@ -10,8 +10,10 @@ extern "C" {
 #include "cras_alsa_card.h"
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
+#include "cras_alsa_ucm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "utlist.h"
 }
 
 namespace {
@@ -49,6 +51,9 @@ static size_t ucm_get_flag_called;
 static char ucm_get_flag_name[64];
 static char* device_config_dir;
 static const char* cras_card_config_dir;
+static struct mixer_name *ucm_get_coupled_mixer_names_return_value;
+static char *coupled_output_names_value[4];
+static size_t coupled_output_names_size_value;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -81,6 +86,10 @@ static void ResetStubData() {
   memset(ucm_get_flag_name, 0, sizeof(ucm_get_flag_name));
   device_config_dir = reinterpret_cast<char *>(3);
   cras_card_config_dir = NULL;
+  ucm_get_coupled_mixer_names_return_value = NULL;
+  for (size_t i = 0; i < 4; i++)
+    coupled_output_names_value[i] = NULL;
+  coupled_output_names_size_value = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -348,13 +357,80 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
+TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
+  struct cras_alsa_card *c;
+  int dev_nums[] = {0};
+  int info_rets[] = {0, -1};
+  struct mixer_name *mixer_name_1, *mixer_name_2;
+  /* Use strdup because cras_alsa_card_create will delete it. */
+  const char *name1 = strdup("MixerName1"), *name2 = strdup("MixerName2");
+  size_t i;
+
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
+  snd_ctl_pcm_next_device_set_devs = dev_nums;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+
+  /* Creates a list of mixer names as return value of
+   * ucm_get_coupled_mixer_names. */
+  mixer_name_1 = (struct mixer_name*)malloc(sizeof(*mixer_name_1));
+  mixer_name_2 = (struct mixer_name*)malloc(sizeof(*mixer_name_2));
+  mixer_name_1->name = name1;
+  mixer_name_2->name = name2;
+  DL_APPEND(ucm_get_coupled_mixer_names_return_value, mixer_name_1);
+  DL_APPEND(ucm_get_coupled_mixer_names_return_value, mixer_name_2);
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
+  EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(1, ucm_create_called);
+  EXPECT_EQ(1, ucm_get_dev_for_mixer_called);
+  EXPECT_EQ(1, ucm_get_flag_called);
+  EXPECT_EQ(0, strcmp(ucm_get_flag_name, "ExtraMainVolume"));
+  EXPECT_EQ(cras_card_config_dir, device_config_dir);
+
+  /* Checks cras_alsa_card_create can handle the list and pass the names to
+   * cras_alsa_mixer_create. */
+  EXPECT_EQ(0, strcmp(coupled_output_names_value[0], "MixerName1"));
+  EXPECT_EQ(0, strcmp(coupled_output_names_value[1], "MixerName2"));
+  EXPECT_EQ(2, coupled_output_names_size_value);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, ucm_destroy_called);
+  EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+
+  for(i = 0; i < coupled_output_names_size_value; i++) {
+    free(coupled_output_names_value[i]);
+    coupled_output_names_value[i] = NULL;
+  }
+}
+
+
 /* Stubs */
 
 extern "C" {
 struct cras_alsa_mixer *cras_alsa_mixer_create(
     const char *card_name, const struct cras_card_config *config,
     const char *output_names_extra[], size_t output_names_extra_size,
-    const char *extra_master_volume) {
+    const char *extra_master_volume, const char *coupled_output_names[],
+    size_t coupled_output_names_size) {
+  /* Duplicate coupled_output_names to verify in the end of unittest
+   * because names will get freed later in cras_alsa_card_create. */
+  for(size_t i = 0; i < coupled_output_names_size; i++)
+    coupled_output_names_value[i] = strdup(coupled_output_names[i]);
+  coupled_output_names_size_value = coupled_output_names_size;
   cras_alsa_mixer_create_called++;
   return cras_alsa_mixer_create_return;
 }
@@ -481,7 +557,8 @@ void ucm_destroy(snd_use_case_mgr_t* mgr) {
   ucm_destroy_called++;
 }
 
-char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer)
+char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer,
+                            enum CRAS_STREAM_DIRECTION dir)
 {
   ucm_get_dev_for_mixer_called++;
   return strdup("device");
@@ -491,6 +568,22 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
   ucm_get_flag_called++;
   strncpy(ucm_get_flag_name, flag_name, sizeof(ucm_get_flag_name));
   return NULL;
+}
+
+struct mixer_name *ucm_get_coupled_mixer_names(
+  snd_use_case_mgr_t *mgr, const char *dev)
+{
+  return ucm_get_coupled_mixer_names_return_value;
+}
+
+void ucm_free_mixer_names(struct mixer_name *names)
+{
+  struct mixer_name *m;
+  DL_FOREACH(names, m) {
+    DL_DELETE(names, m);
+    free((void*)m->name);
+    free(m);
+  }
 }
 
 } /* extern "C" */

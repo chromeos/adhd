@@ -23,6 +23,7 @@
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
 #define MAX_ALSA_PCM_NAME_LENGTH 6 /* Alsa names "hw:XX" + 1 for null. */
 #define MAX_INI_NAME_LENGTH 63 /* 63 chars + 1 for null where declared. */
+#define MAX_COUPLED_OUTPUT_SIZE 4
 
 struct iodev_list_node {
 	struct cras_iodev *iodev;
@@ -166,8 +167,11 @@ struct cras_alsa_card *cras_alsa_card_create(
 	const char *output_names_extra[] = {
 		"IEC958",
 	};
+	const char *coupled_output_names[MAX_COUPLED_OUTPUT_SIZE];
+	size_t coupled_output_names_size = 0;
 	size_t output_names_extra_size = ARRAY_SIZE(output_names_extra);
 	char *extra_main_volume = NULL;
+	struct mixer_name *coupled_mixer_names = NULL, *m_name;
 
 	if (info->card_index >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR,
@@ -228,13 +232,37 @@ struct cras_alsa_card *cras_alsa_card_create(
 		extra_main_volume = ucm_get_flag(alsa_card->ucm,
 						 "ExtraMainVolume");
 
+	/* Check if coupled controls has been specified for speaker. */
+	if (alsa_card->ucm)
+		coupled_mixer_names = ucm_get_coupled_mixer_names(
+				alsa_card->ucm, "Speaker");
+
+	if (coupled_mixer_names) {
+		DL_FOREACH(coupled_mixer_names, m_name) {
+			coupled_output_names[coupled_output_names_size] =
+					m_name->name;
+			coupled_output_names_size++;
+			if (coupled_output_names_size >
+					MAX_COUPLED_OUTPUT_SIZE) {
+				syslog(LOG_ERR, "Too many coupled outputs");
+				free(extra_main_volume);
+				ucm_free_mixer_names(coupled_mixer_names);
+				goto error_bail;
+			}
+		}
+	}
+
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
 						  alsa_card->config,
 						  output_names_extra,
 						  output_names_extra_size,
-						  extra_main_volume);
+						  extra_main_volume,
+						  coupled_output_names,
+						  coupled_output_names_size);
 	free(extra_main_volume);
+	ucm_free_mixer_names(coupled_mixer_names);
+
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
 		goto error_bail;

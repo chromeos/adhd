@@ -29,15 +29,42 @@ struct mixer_control {
 /* Represents an ALSA control element related to a specific output such as
  * speakers or headphones.  A device can have several of these, each potentially
  * having independent volume and mute controls.
+ *
+ * Support virtual base mixer_control where there is no such control element.
+ * A virtual base is created so this mixer_output_control can still be accessed
+ * from cras_alsa_mixer output_controls.
+ * E.g. On some boards, there is no "Speaker" control, but rather left/right
+ * volume and switch controls. Create a virtual mixer_control as base and put
+ * left/right controls into one coupled_mixer_control.
+ *
+ * base - Mixer control related to this specific output.
+ * coupled_mixers - The coupled_mixer_control related to this specific
+ *                  output.
  * max_volume_dB - Maximum volume available in the volume control.
  * min_volume_dB - Minimum volume available in the volume control.
  * volume_curve - Curve for this output.
  */
 struct mixer_output_control {
 	struct mixer_control base;
+	struct coupled_mixer_control *coupled_mixers;
 	long max_volume_dB;
 	long min_volume_dB;
 	struct cras_volume_curve *volume_curve;
+};
+
+/* Represents a set of ALSA control elements that must be changed together
+ * to the same volume and mute/unmute state.
+ * E.g. these controls are coupled as they should be changed together:
+ *
+ * "Left Speaker" (Switch)
+ * "Left Master" (Volume)
+ * "Right Speaker" (Switch)
+ * "Right Master" (Volume)
+ *
+ * controls: A list of mixer_controls.
+ */
+struct coupled_mixer_control {
+	struct mixer_control *controls;
 };
 
 /* Holds a reference to the opened mixer and the volume controls.
@@ -191,14 +218,10 @@ static int add_main_capture_control(struct cras_alsa_mixer *cmix,
 
 /* Creates a volume curve for a new output. */
 static struct cras_volume_curve *create_volume_curve_for_output(
-		const struct cras_alsa_mixer *cmix,
-		snd_mixer_elem_t *elem)
+		const struct cras_alsa_mixer *cmix, const char* output_name)
 {
-	const char *output_name;
-
-	output_name = snd_mixer_selem_get_name(elem);
-	return cras_card_config_get_volume_curve_for_control(cmix->config,
-							     output_name);
+	return cras_card_config_get_volume_curve_for_control(
+			cmix->config, output_name);
 }
 
 /* Adds an output control to the list. */
@@ -224,7 +247,10 @@ static int add_output_control(struct cras_alsa_mixer *cmix,
 		output->max_volume_dB = max;
 		output->min_volume_dB = min;
 	}
-	output->volume_curve = create_volume_curve_for_output(cmix, elem);
+
+	output->coupled_mixers = NULL;
+	output->volume_curve = create_volume_curve_for_output(
+			cmix, snd_mixer_selem_get_name(elem));
 
 	c = &output->base;
 	c->elem = elem;
@@ -279,6 +305,9 @@ static struct mixer_control *get_control_matching_name(
 	DL_FOREACH(control_list, c) {
 		const char *elem_name;
 
+		/* Skip the virtual base control */
+		if (!c->elem)
+			continue;
 		elem_name = snd_mixer_selem_get_name(c->elem);
 		if (elem_name == NULL)
 			continue;
@@ -286,6 +315,136 @@ static struct mixer_control *get_control_matching_name(
 			return c;
 	}
 	return NULL;
+}
+
+void coupled_mixer_destroy(struct coupled_mixer_control *coupled_control)
+{
+	struct mixer_control *c;
+
+	assert(coupled_control);
+
+	DL_FOREACH(coupled_control->controls, c) {
+		DL_DELETE(coupled_control->controls, c);
+		free(c);
+	}
+
+	free(coupled_control);
+}
+
+/* Creates a mixer_control by finding control name in simple mixer interface. */
+static struct mixer_control *create_mixer_control_by_name(
+		struct cras_alsa_mixer *cmix,
+		const char *name)
+{
+	snd_mixer_selem_id_t *sid;
+	snd_mixer_elem_t *elem;
+	struct mixer_control *control;
+
+	control = (struct mixer_control *)calloc(1, sizeof(*control));
+	if (control == NULL) {
+		syslog(LOG_ERR, "No memory for mixer control.");
+		return NULL;
+	}
+
+	snd_mixer_selem_id_malloc(&sid);
+	snd_mixer_selem_id_set_index(sid, 0);
+	snd_mixer_selem_id_set_name(sid, name);
+	elem = snd_mixer_find_selem(cmix->mixer, sid);
+	if (!elem) {
+		syslog(LOG_ERR, "Unable to find simple control %s, 0", name);
+		snd_mixer_selem_id_free(sid);
+		free(control);
+		return NULL;
+	}
+
+	control->elem = elem;
+	control->has_volume = snd_mixer_selem_has_playback_volume(elem);
+	control->has_mute = snd_mixer_selem_has_playback_switch(elem);
+
+	snd_mixer_selem_id_free(sid);
+
+	return control;
+}
+
+/* Creates a coupled_mixer_control by finding and adding coupled mixers. */
+static struct coupled_mixer_control *create_coupled_mixer_control(
+		struct cras_alsa_mixer *cmix,
+		const char *coupled_output_names[],
+		size_t coupled_output_names_size)
+{
+	struct coupled_mixer_control *coupled_mixers;
+	size_t i;
+	struct mixer_control *new_control;
+
+	coupled_mixers = (struct coupled_mixer_control*)calloc(1,
+			sizeof(*coupled_mixers));
+	if (coupled_mixers  == NULL) {
+		syslog(LOG_ERR, "No memory for coupled mixer controls.");
+		return NULL;
+	}
+
+	for (i = 0; i < coupled_output_names_size; i++) {
+		new_control = create_mixer_control_by_name(
+				cmix, coupled_output_names[i]);
+
+		if (!new_control) {
+			coupled_mixer_destroy(coupled_mixers);
+			return NULL;
+		}
+
+		DL_APPEND(coupled_mixers->controls, new_control);
+	}
+
+	return coupled_mixers;
+}
+
+/* Creates a mixer_output_control with a virtual base mixer_control.
+ * Then, adds coupled output controls into coupled_mixer_control of this
+ * mixer_output_control. Finally, append the virtual base mixer_control to
+ * output_controls of cras_alsa_mixer. Note that this is for speaker only.
+ */
+static int add_output_with_coupled_mixers(
+				struct cras_alsa_mixer *cmix,
+				const char *coupled_output_names[],
+				size_t coupled_output_names_size)
+{
+	struct mixer_output_control *output;
+	struct coupled_mixer_control *coupled_mixers;
+	struct mixer_control *base_control;
+	int rc;
+
+	output = (struct mixer_output_control *)calloc(1, sizeof(*output));
+	if (output == NULL) {
+		syslog(LOG_ERR, "No memory for output control.");
+		return -ENOMEM;
+	}
+
+	coupled_mixers = create_coupled_mixer_control(
+			cmix, coupled_output_names, coupled_output_names_size);
+	if (!coupled_mixers) {
+		syslog(LOG_ERR, "Failed to create coupled mixers.");
+		free((void*)output);
+		return -EINVAL;
+	}
+
+	output->coupled_mixers = coupled_mixers;
+
+	/* This output control is for speaker. */
+	output->volume_curve = create_volume_curve_for_output(
+			cmix, "Speaker");
+
+	/* This is a virtual base control because there is no such element. */
+	base_control = &output->base;
+	base_control->elem = NULL;
+	base_control->has_volume = 0;
+	base_control->has_mute = 0;
+
+	/* The virtual base control can not adjust volume. */
+	output->max_volume_dB = 0;
+	output->min_volume_dB = 0;
+
+	DL_APPEND(cmix->output_controls, base_control);
+	return 0;
 }
 
 /*
@@ -297,7 +456,9 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const struct cras_card_config *config,
 		const char *output_names_extra[],
 		size_t output_names_extra_size,
-		const char *extra_main_volume)
+		const char *extra_main_volume,
+		const char *coupled_output_names[],
+		size_t coupled_output_names_size)
 {
 	/* Names of controls for main system volume. */
 	static const char * const main_volume_names[] = {
@@ -405,6 +566,17 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		}
 	}
 
+	/* Handle coupled output names for speaker */
+	if (coupled_output_names_size) {
+		if (add_output_with_coupled_mixers(
+				cmix,
+				coupled_output_names,
+				coupled_output_names_size) != 0) {
+			cras_alsa_mixer_destroy(cmix);
+			return NULL;
+		}
+	}
+
 	/* If there is no volume control and output control found,
 	 * use the volume control which has the largest volume range
 	 * in the mixer as a main volume control. */
@@ -437,6 +609,8 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 		struct mixer_output_control *output;
 		output = (struct mixer_output_control *)c;
 		cras_volume_curve_destroy(output->volume_curve);
+		if (output->coupled_mixers)
+			coupled_mixer_destroy(output->coupled_mixers);
 		DL_DELETE(cras_mixer->output_controls, c);
 		free(output);
 	}

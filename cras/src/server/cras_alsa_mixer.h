@@ -28,6 +28,9 @@ struct cras_card_config;
  *      array may contain NULL entries which should be ignored.
  *    output_names_extra_size - The length of the output_names_extra array.
  *    extra_main_volume - Name of extra main volume if any.
+ *    coupled_output_names - An array of coupled output mixer control names.
+ *                           Note that this is for speaker only.
+ *    coupled_output_names_size - The length of the coupled_output_names array.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy.
@@ -37,7 +40,9 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const struct cras_card_config *config,
 		const char *output_names_extra[],
 		size_t output_names_extra_size,
-		const char *extra_main_volume);
+		const char *extra_main_volume,
+		const char *coupled_output_names[],
+		size_t coupled_output_names_size);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:
