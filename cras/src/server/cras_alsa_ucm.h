@@ -191,4 +191,23 @@ unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr);
 const char *ucm_get_device_name_for_dev(
 		snd_use_case_mgr_t *mgr, const char *dev,
 		enum CRAS_STREAM_DIRECTION direction);
+
+/* Represents a list of mixer names found in UCM. */
+struct mixer_name {
+	const char* name;
+	struct mixer_name  *prev, *next;
+};
+
+/* Gets the mixer names for the coupled mixer controls of this device
+ * on the card.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for coupled mixer controls.
+ * Returns:
+ *    names - A list of mixer_name.
+ */
+struct mixer_name *ucm_get_coupled_mixer_names(
+		snd_use_case_mgr_t *mgr, const char *dev);
+
 #endif /* _CRAS_ALSA_UCM_H */

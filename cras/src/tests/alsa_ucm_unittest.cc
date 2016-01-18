@@ -10,6 +10,7 @@
 extern "C" {
 #include "cras_alsa_ucm.h"
 #include "cras_types.h"
+#include "utlist.h"
 
 //  Include C file to test static functions.
 #include "cras_alsa_ucm.c"
@@ -464,6 +465,42 @@ TEST(AlsaUcm, DisableSoftwareVolume) {
 
   ASSERT_EQ(1, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id);
+}
+
+TEST(AlsaUcm, GetCoupledMixersForDevice) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct mixer_name *mixer_names_1, *mixer_names_2, *c;
+  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
+                            "Comment for Dev2" };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=CoupledMixers/Dev1/HiFi";
+  std::string value_1 = "Mixer Name1,Mixer Name2,Mixer Name3";
+  std::string id_2 = "=CoupledMixers/Dev2/HiFi";
+  std::string value_2 = "";
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_ret_value[id_2] = 1;
+  snd_use_case_get_value[id_2] = value_2;
+  mixer_names_1 = ucm_get_coupled_mixer_names(mgr, "Dev1");
+  mixer_names_2 = ucm_get_coupled_mixer_names(mgr, "Dev2");
+
+  ASSERT_TRUE(mixer_names_1);
+  EXPECT_EQ(0, strcmp(mixer_names_1->name, "Mixer Name1"));
+  EXPECT_EQ(0, strcmp(mixer_names_1->next->name, "Mixer Name2"));
+  EXPECT_EQ(0, strcmp(mixer_names_1->next->next->name, "Mixer Name3"));
+  EXPECT_EQ(NULL, mixer_names_1->next->next->next);
+
+  EXPECT_EQ(NULL, mixer_names_2);
+
+  DL_FOREACH(mixer_names_1, c) {
+    DL_DELETE(mixer_names_1, c);
+    free((void*)c->name);
+    free(c);
+  }
 }
 
 /* Stubs */

@@ -5,9 +5,11 @@
 
 #include <alsa/asoundlib.h>
 #include <alsa/use-case.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras_alsa_ucm.h"
+#include "utlist.h"
 
 static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
@@ -23,6 +25,7 @@ static const char min_buffer_level_var[] = "MinBufferLevel";
 static const char disable_software_volume[] = "DisableSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char capture_device_name_var[] = "CapturePCM";
+static const char coupled_mixers[] = "CoupledMixers";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -237,6 +240,34 @@ static const char *ucm_get_capture_device_name_for_dev(
 	return name;
 }
 
+/* Get a list of mixer names specified in a UCM variable separated by ",".
+ * E.g. "Left Playback,Right Playback".
+ */
+static struct mixer_name *ucm_get_mixer_names(snd_use_case_mgr_t *mgr,
+		const char *dev, const char* var)
+{
+	const char *names_in_string = NULL;
+	int rc;
+	char *tokens, *name;
+	struct mixer_name *names = NULL, *m_name;
+
+	rc = get_var(mgr, var, dev, default_verb, &names_in_string);
+	if (rc)
+		return NULL;
+
+	tokens = strdup(names_in_string);
+	name = strtok(tokens, ",");
+	while (name != NULL) {
+		m_name = (struct mixer_name *)malloc(sizeof(struct mixer_name));
+		m_name->name = strdup(name);
+		DL_APPEND(names, m_name);
+		name = strtok(NULL, ",");
+	}
+	free((void*)names_in_string);
+	free(tokens);
+	return names;
+}
+
 /* Exported Interface */
 
 snd_use_case_mgr_t *ucm_create(const char *name)
@@ -445,4 +476,10 @@ const char *ucm_get_device_name_for_dev(
 	else if (direction == CRAS_STREAM_INPUT)
 		return ucm_get_capture_device_name_for_dev(mgr, dev);
 	return NULL;
+}
+
+struct mixer_name *ucm_get_coupled_mixer_names(
+		snd_use_case_mgr_t *mgr, const char *dev)
+{
+	return ucm_get_mixer_names(mgr, dev, coupled_mixers);
 }
