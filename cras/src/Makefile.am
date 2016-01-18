@@ -42,6 +42,7 @@ CRAS_DBUS_SOURCES = \
 	server/cras_bt_device.c \
 	server/cras_bt_transport.c \
 	server/cras_bt_endpoint.c \
+	server/cras_bt_player.c \
 	server/cras_bt_io.c \
 	server/cras_bt_profile.c \
 	server/cras_dbus.c \

@@ -37,6 +37,7 @@
 #include "cras_main_message.h"
 #include "cras_messages.h"
 #include "cras_metrics.h"
+#include "cras_bt_player.h"
 #include "cras_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
@@ -427,6 +428,7 @@ int cras_server_run()
 		cras_hsp_ag_profile_create(dbus_conn);
 		cras_telephony_start(dbus_conn);
 		cras_a2dp_endpoint_create(dbus_conn);
+		cras_bt_player_create(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
 #endif

@@ -13,9 +13,9 @@
 #define BLUEZ_INTERFACE_MEDIA "org.bluez.Media1"
 #define BLUEZ_INTERFACE_MEDIA_ENDPOINT "org.bluez.MediaEndpoint1"
 #define BLUEZ_INTERFACE_MEDIA_TRANSPORT "org.bluez.MediaTransport1"
+#define BLUEZ_INTERFACE_PLAYER "org.bluez.MediaPlayer1"
 #define BLUEZ_INTERFACE_PROFILE "org.bluez.Profile1"
 #define BLUEZ_PROFILE_MGMT_INTERFACE "org.bluez.ProfileManager1"
-
 /* Remove once our D-Bus header files are updated to define this. */
 #ifndef DBUS_INTERFACE_OBJECT_MANAGER
 #define DBUS_INTERFACE_OBJECT_MANAGER "org.freedesktop.DBus.ObjectManager"

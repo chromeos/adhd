@@ -15,6 +15,7 @@
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_endpoint.h"
+#include "cras_bt_player.h"
 #include "cras_bt_profile.h"
 #include "cras_bt_transport.h"
 #include "utlist.h"
@@ -38,6 +39,7 @@ static void cras_bt_interface_added(DBusConnection *conn,
 				cras_bt_adapter_update_properties(
 					adapter, properties_array_iter, NULL);
 				cras_bt_register_endpoints(conn, adapter);
+				cras_bt_register_player(conn, adapter);
 				cras_bt_register_profiles(conn);
 
 				syslog(LOG_INFO, "Bluetooth Adapter: %s added",
