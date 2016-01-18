@@ -660,6 +660,39 @@ TEST(AlsaUcm, GetMixerNameForDevice) {
   EXPECT_EQ(0, strcmp(mixer_name_2, value_2.c_str()));
 }
 
+TEST(AlsaUcm, GetMainVolumeMixerName) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct mixer_name *mixer_names_1, *mixer_names_2, *c;
+
+  ResetStubData();
+
+  std::string id = "=MainVolumeNames//HiFi";
+  std::string value_1 = "Mixer Name1,Mixer Name2,Mixer Name3";
+  std::string value_2 = "";
+
+  snd_use_case_get_ret_value[id] = 0;
+  snd_use_case_get_value[id] = value_1;
+  mixer_names_1 = ucm_get_main_volume_names(mgr);
+
+  snd_use_case_get_ret_value[id] = 1;
+  snd_use_case_get_value[id] = value_2;
+  mixer_names_2 = ucm_get_main_volume_names(mgr);
+
+  ASSERT_TRUE(mixer_names_1);
+  EXPECT_EQ(0, strcmp(mixer_names_1->name, "Mixer Name1"));
+  EXPECT_EQ(0, strcmp(mixer_names_1->next->name, "Mixer Name2"));
+  EXPECT_EQ(0, strcmp(mixer_names_1->next->next->name, "Mixer Name3"));
+  EXPECT_EQ(NULL, mixer_names_1->next->next->next);
+
+  DL_FOREACH(mixer_names_1, c) {
+    DL_DELETE(mixer_names_1, c);
+    free((void*)c->name);
+    free(c);
+  }
+
+  EXPECT_EQ(NULL, mixer_names_2);
+}
+
 /* Stubs */
 
 extern "C" {

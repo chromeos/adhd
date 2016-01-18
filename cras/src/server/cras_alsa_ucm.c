@@ -32,6 +32,7 @@ static const char coupled_mixers[] = "CoupledMixers";
 static const char max_software_gain[] = "MaxSoftwareGain";
 static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
+static const char main_volume_names[] = "MainVolumeNames";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -603,4 +604,9 @@ const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 		return NULL;
 
 	return name;
+}
+
+struct mixer_name *ucm_get_main_volume_names(snd_use_case_mgr_t *mgr)
+{
+	return ucm_get_mixer_names(mgr, "", main_volume_names);
 }

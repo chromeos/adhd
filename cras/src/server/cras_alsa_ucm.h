@@ -265,4 +265,20 @@ int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr);
  */
 const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
 
+/* Gets the mixer names for the main volume controls on the card.
+ *
+ * The main volume controls in the list are considered in series.
+ * If 3 controls are specified, MainVolumeNames "A,B,C", with dB ranges
+ * A=-10dB~0dB, B=-20dB~0dB, C=-30dB~0dB, then applying -35dB overall volume
+ * sets A=-10dB, B=-20dB, C=-5dB.
+ * The volume control affects all output on this card, e.g.
+ * speaker and headphone.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    names - A list of mixer_name.
+ */
+struct mixer_name *ucm_get_main_volume_names(snd_use_case_mgr_t *mgr);
+
 #endif /* _CRAS_ALSA_UCM_H */
