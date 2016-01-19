@@ -47,15 +47,19 @@ static int setup_shm(struct cras_rstream *stream,
 		return shm_info->shm_fd;
 	}
 	rc = ftruncate(shm_info->shm_fd, shm_info->length);
-	if (rc)
+	if (rc) {
+		close(shm_info->shm_fd);
 		return rc;
+	}
 
 	/* mmap shm. */
 	shm->area = mmap(NULL, shm_info->length,
 			 PROT_READ | PROT_WRITE, MAP_SHARED,
 			 shm_info->shm_fd, 0);
-	if (shm->area == (struct cras_audio_shm_area *)-1)
+	if (shm->area == (struct cras_audio_shm_area *)-1) {
+		close(shm_info->shm_fd);
 		return errno;
+	}
 
 	cras_shm_set_volume_scaler(shm, 1.0);
 	/* Set up config and copy to shared area. */
@@ -186,6 +190,7 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	if (stream->shm.area != NULL) {
 		munmap(stream->shm.area, stream->shm_info.length);
 		shm_unlink(stream->shm_info.shm_name);
+		close(stream->shm_info.shm_fd);
 		cras_audio_area_destroy(stream->audio_area);
 	}
 	buffer_share_destroy(stream->buf_state);
