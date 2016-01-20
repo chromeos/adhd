@@ -657,3 +657,40 @@ struct mixer_name *ucm_get_main_volume_names(snd_use_case_mgr_t *mgr)
 {
 	return ucm_get_mixer_names(mgr, "", main_volume_names);
 }
+
+int ucm_list_section_devices_by_device_name(
+		snd_use_case_mgr_t *mgr,
+		enum CRAS_STREAM_DIRECTION direction,
+		const char *device_name,
+		ucm_list_section_devices_callback cb,
+		void *cb_arg)
+{
+	int listed= 0;
+	struct section_name *section_names, *c;
+	const char* var;
+
+	if (direction == CRAS_STREAM_OUTPUT)
+		var = playback_device_name_var;
+	else if (direction == CRAS_STREAM_INPUT)
+		var = capture_device_name_var;
+	else
+		return 0;
+
+	section_names = ucm_get_sections_for_var(
+		mgr, var, device_name, "_devices/HiFi", direction);
+
+	if (!section_names)
+		return 0;
+
+	DL_FOREACH(section_names, c) {
+		cb(c->name, cb_arg);
+		listed++;
+	}
+
+	DL_FOREACH(section_names, c) {
+		DL_DELETE(section_names, c);
+		free((void*)c->name);
+		free(c);
+	}
+	return listed;
+}

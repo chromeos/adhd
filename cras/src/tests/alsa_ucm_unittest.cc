@@ -31,6 +31,8 @@ static std::vector<std::pair<std::string, std::string> > snd_use_case_set_param;
 static std::map<std::string, const char **> fake_list;
 static std::map<std::string, unsigned> fake_list_size;
 static unsigned snd_use_case_free_list_called;
+static std::vector<std::string> list_devices_callback_names;
+static std::vector<void*> list_devices_callback_args;
 
 static void ResetStubData() {
   snd_use_case_mgr_open_called = 0;
@@ -45,6 +47,39 @@ static void ResetStubData() {
   snd_use_case_get_value.clear();
   fake_list.clear();
   fake_list_size.clear();
+  list_devices_callback_names.clear();
+  list_devices_callback_args.clear();
+}
+
+static void list_devices_callback(const char* section_name, void *arg) {
+  list_devices_callback_names.push_back(std::string(section_name));
+  list_devices_callback_args.push_back(arg);
+}
+
+static void SetSectionDeviceData() {
+  static const char *sections[] = { "Speaker", "Comment for Dev1",
+                                    "IntMic", "Comment for Dev2",
+                                    "Headphone", "Comment for Dev3",
+                                    "ExtMic", "Comment for Dev4",
+                                    "HDMI", "Comment for Dev5"};
+  fake_list["_devices/HiFi"] = sections;
+  fake_list_size["_devices/HiFi"] = 10;
+  std::string id_1 = "=PlaybackPCM/Speaker/HiFi";
+  std::string id_2 = "=CapturePCM/IntMic/HiFi";
+  std::string id_3 = "=PlaybackPCM/Headphone/HiFi";
+  std::string id_4 = "=CapturePCM/ExtMic/HiFi";
+  std::string id_5 = "=PlaybackPCM/HDMI/HiFi";
+  std::string value_1 = "test_card:0";
+  std::string value_2 = "test_card:0";
+  std::string value_3 = "test_card:0";
+  std::string value_4 = "test_card:0";
+  std::string value_5 = "test_card:1";
+
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_value[id_2] = value_2;
+  snd_use_case_get_value[id_3] = value_3;
+  snd_use_case_get_value[id_4] = value_4;
+  snd_use_case_get_value[id_5] = value_5;
 }
 
 TEST(AlsaUcm, CreateFailInvalidCard) {
@@ -761,6 +796,55 @@ TEST(AlsaUcm, GetMainVolumeMixerName) {
   EXPECT_EQ(NULL, mixer_names_2);
 }
 
+TEST(AlsaUcm, ListSectionsByDeviceNameOutput) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  void* callback_arg = reinterpret_cast<void*>(0x56);
+  int listed = 0;
+
+  ResetStubData();
+  SetSectionDeviceData();
+
+  listed = ucm_list_section_devices_by_device_name(
+      mgr, CRAS_STREAM_OUTPUT, "test_card:0", list_devices_callback,
+      callback_arg);
+
+  EXPECT_EQ(2, listed);
+  EXPECT_EQ(2, list_devices_callback_names.size());
+  EXPECT_EQ(2, list_devices_callback_args.size());
+
+  EXPECT_EQ(
+      0, strcmp(list_devices_callback_names[0].c_str(), "Speaker"));
+  EXPECT_EQ(callback_arg, list_devices_callback_args[0]);
+
+  EXPECT_EQ(
+      0, strcmp(list_devices_callback_names[1].c_str(), "Headphone"));
+  EXPECT_EQ(callback_arg, list_devices_callback_args[1]);
+}
+
+TEST(AlsaUcm, ListSectionsByDeviceNameInput) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  void* callback_arg = reinterpret_cast<void*>(0x56);
+  int listed = 0;
+
+  ResetStubData();
+  SetSectionDeviceData();
+
+  listed = ucm_list_section_devices_by_device_name(
+      mgr, CRAS_STREAM_INPUT, "test_card:0", list_devices_callback,
+      callback_arg);
+
+  EXPECT_EQ(2, listed);
+  EXPECT_EQ(2, list_devices_callback_names.size());
+  EXPECT_EQ(2, list_devices_callback_args.size());
+
+  EXPECT_EQ(
+      0, strcmp(list_devices_callback_names[0].c_str(), "IntMic"));
+  EXPECT_EQ(callback_arg, list_devices_callback_args[0]);
+
+  EXPECT_EQ(
+      0, strcmp(list_devices_callback_names[1].c_str(), "ExtMic"));
+  EXPECT_EQ(callback_arg, list_devices_callback_args[1]);
+}
 /* Stubs */
 
 extern "C" {

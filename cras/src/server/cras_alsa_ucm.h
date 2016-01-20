@@ -281,4 +281,34 @@ const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
  */
 struct mixer_name *ucm_get_main_volume_names(snd_use_case_mgr_t *mgr);
 
+/* The callback to be provided with a reference to the section name.
+ *
+ * Args:
+ *    section_name: The name of a SectionDevice in UCM.
+ *    arg - Argument to pass to this callback.
+ */
+typedef void (*ucm_list_section_devices_callback)(
+		const char *section_name, void *arg);
+
+/* Invokes the provided callback once for each section with matched device name.
+ *
+ * Iterate through each SectionDevice in UCM of this card. Invoke callback if
+ * "PlaybackPCM" for output or "CapturePCM" for input of the section matches
+ * the specified device_name.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    device_name - A string for device name of format "card_name:device_index".
+ *    cb - Function to call for each section.
+ *    cb_arg - Argument to pass to cb.
+ * Returns:
+ *    Number of sections listed.
+ */
+int ucm_list_section_devices_by_device_name(
+		snd_use_case_mgr_t *mgr,
+		enum CRAS_STREAM_DIRECTION direction,
+		const char *device_name,
+		ucm_list_section_devices_callback cb,
+		void *cb_arg);
+
 #endif /* _CRAS_ALSA_UCM_H */
