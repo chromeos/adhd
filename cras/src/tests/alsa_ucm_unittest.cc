@@ -181,36 +181,48 @@ TEST(AlsaUcm, GetOverrideType) {
   EXPECT_EQ(snd_use_case_get_id[0], id);
 }
 
-TEST(AlsaUcm, GetSectionForVar) {
+TEST(AlsaUcm, GetSectionsForVar) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
-  const char *section_name;
+  struct section_name *section_names, *c;
 
   ResetStubData();
 
-  const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
-                             "Comment for Sec2" };
+  const char *sections[] = { "Sec1", "Comment for Sec1",
+                             "Sec2", "Comment for Sec2",
+                             "Sec3", "Comment for Sec3"};
   fake_list["Identifier"] = sections;
-  fake_list_size["Identifier"] = 4;
+  fake_list_size["Identifier"] = 6;
   std::string id_1 = "=Var/Sec1/HiFi";
   std::string id_2 = "=Var/Sec2/HiFi";
+  std::string id_3 = "=Var/Sec3/HiFi";
   std::string value_1 = "Value1";
   std::string value_2 = "Value2";
+  std::string value_3 = "Value2";
 
   snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
   snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
+  snd_use_case_get_ret_value[id_3] = 0;
+  snd_use_case_get_value[id_3] = value_3;
 
-  section_name = ucm_get_section_for_var(mgr, "Var", "Value2", "Identifier",
-                                         CRAS_STREAM_OUTPUT);
+  section_names = ucm_get_sections_for_var(mgr, "Var", "Value2", "Identifier",
+                                           CRAS_STREAM_OUTPUT);
 
-  ASSERT_TRUE(section_name);
-  EXPECT_EQ(0, strcmp(section_name, "Sec2"));
-  free((void*)section_name);
+  ASSERT_TRUE(section_names);
+  EXPECT_EQ(0, strcmp(section_names->name, "Sec2"));
+  EXPECT_EQ(0, strcmp(section_names->next->name, "Sec3"));
 
-  ASSERT_EQ(2, snd_use_case_get_called);
+  ASSERT_EQ(3, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id_1);
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
+  EXPECT_EQ(snd_use_case_get_id[2], id_3);
+
+  DL_FOREACH(section_names, c) {
+    DL_DELETE(section_names, c);
+    free((void*)c->name);
+    free(c);
+  }
 }
 
 TEST(AlsaUcm, GetDevForJack) {
@@ -240,6 +252,94 @@ TEST(AlsaUcm, GetDevForJack) {
   ASSERT_EQ(2, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id_1);
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
+}
+
+TEST(AlsaUcm, GetDevForHeadphoneJack) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *dev_name;
+  const char *devices[] = { "Mic", "Comment for Dev1", "Headphone",
+                            "Comment for Dev2" };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=JackName/Mic/HiFi";
+  std::string id_2 = "=JackName/Headphone/HiFi";
+  std::string value = "JackValue";
+
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value;
+  snd_use_case_get_ret_value[id_2] = 0;
+  snd_use_case_get_value[id_2] = value;
+
+  /* Looking for jack with matched value with output direction, Headphone will
+   * be found even though Mic section has the matched value too. */
+  dev_name = ucm_get_dev_for_jack(mgr, value.c_str(), CRAS_STREAM_OUTPUT);
+
+  ASSERT_TRUE(dev_name);
+  EXPECT_EQ(0, strcmp(dev_name, "Headphone"));
+  free((void*)dev_name);
+}
+
+TEST(AlsaUcm, GetDevForMicJack) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *dev_name;
+  const char *devices[] = { "Headphone", "Comment for Dev1", "Mic",
+                            "Comment for Dev2" };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=JackName/Headphone/HiFi";
+  std::string id_2 = "=JackName/Mic/HiFi";
+  std::string value = "JackValue";
+
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value;
+  snd_use_case_get_ret_value[id_2] = 0;
+  snd_use_case_get_value[id_2] = value;
+
+  /* Looking for jack with matched value with input direction, Mic will be found
+   * even though Headphone section has the matched value too. */
+  dev_name = ucm_get_dev_for_jack(mgr, value.c_str(), CRAS_STREAM_INPUT);
+
+  ASSERT_TRUE(dev_name);
+  EXPECT_EQ(0, strcmp(dev_name, "Mic"));
+  free((void*)dev_name);
+}
+
+TEST(AlsaUcm, GetDevForMixer) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *dev_name_out, *dev_name_in;
+  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
+                            "Comment for Dev2" };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=MixerName/Dev1/HiFi";
+  std::string id_2 = "=MixerName/Dev2/HiFi";
+  std::string value_1 = "Value1";
+  std::string value_2 = "Value2";
+
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_ret_value[id_2] = 0;
+  snd_use_case_get_value[id_2] = value_2;
+  dev_name_out = ucm_get_dev_for_mixer(
+      mgr, value_1.c_str(), CRAS_STREAM_OUTPUT);
+  dev_name_in = ucm_get_dev_for_mixer(mgr, value_2.c_str(), CRAS_STREAM_INPUT);
+
+  ASSERT_TRUE(dev_name_out);
+  EXPECT_EQ(0, strcmp(dev_name_out, "Dev1"));
+  free((void*)dev_name_out);
+
+  ASSERT_TRUE(dev_name_in);
+  EXPECT_EQ(0, strcmp(dev_name_in, "Dev2"));
+  free((void*)dev_name_in);
 }
 
 TEST(AlsaUcm, GetDeviceNameForDevice) {

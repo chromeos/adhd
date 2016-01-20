@@ -34,6 +34,12 @@ static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
 
+/* Represents a list of section names found in UCM. */
+struct section_name {
+	const char* name;
+	struct section_name  *prev, *next;
+};
+
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
 	const char **list;
@@ -169,12 +175,14 @@ static int ucm_mod_exists_with_name(snd_use_case_mgr_t *mgr, const char *name)
 	return ucm_section_exists_with_name(mgr, name, "_modifiers/HiFi");
 }
 
-static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,
-				     const char *value, const char *identifier,
-				     enum CRAS_STREAM_DIRECTION direction)
+/* Get a list of section names whose variable is the matched value. */
+static struct section_name * ucm_get_sections_for_var(snd_use_case_mgr_t *mgr,
+			const char *var, const char *value,
+			const char *identifier,
+			enum CRAS_STREAM_DIRECTION direction)
 {
 	const char **list;
-	char *section_name = NULL;
+	struct section_name *section_names = NULL, *s_name;
 	unsigned int i;
 	int num_entries;
 	int rc;
@@ -191,34 +199,34 @@ static char *ucm_get_section_for_var(snd_use_case_mgr_t *mgr, const char *var,
 		if (!list[i])
 			continue;
 
-		/* Skip mic seciton for output, only check mic for input. */
-		if (!strcmp(list[i], "Mic")) {
-			if (direction == CRAS_STREAM_OUTPUT)
-				continue;
-		} else {
-			if (direction == CRAS_STREAM_INPUT)
-				continue;
-		}
-
 		rc = get_var(mgr, var, list[i], default_verb, &this_value);
 		if (rc)
 			continue;
 
 		if (!strcmp(value, this_value)) {
-			section_name = strdup(list[i]);
-			free((void *)this_value);
-			break;
+			s_name = (struct section_name *)malloc(
+					sizeof(struct section_name));
+
+			if (!s_name) {
+				syslog(LOG_ERR, "Failed to allocate memory");
+				free((void *)this_value);
+				break;
+			}
+
+			s_name->name = strdup(list[i]);
+			DL_APPEND(section_names, s_name);
 		}
 		free((void *)this_value);
 	}
 
 	snd_use_case_free_list(list, num_entries);
-	return section_name;
+	return section_names;
 }
 
-static char *ucm_get_dev_for_var(snd_use_case_mgr_t *mgr, const char *var,
-			  const char *value, enum CRAS_STREAM_DIRECTION dir) {
-	return ucm_get_section_for_var(mgr, var, value, "_devices/HiFi", dir);
+static struct section_name *ucm_get_devices_for_var(snd_use_case_mgr_t *mgr,
+		const char *var, const char *value,
+		enum CRAS_STREAM_DIRECTION dir) {
+	return ucm_get_sections_for_var(mgr, var, value, "_devices/HiFi", dir);
 }
 
 static const char *ucm_get_playback_device_name_for_dev(
@@ -408,13 +416,52 @@ const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
 char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
 			   enum CRAS_STREAM_DIRECTION direction)
 {
-	return ucm_get_dev_for_var(mgr, jack_var, jack, direction);
+	struct section_name *section_names, *c;
+	char *ret = NULL;
+
+	section_names = ucm_get_devices_for_var(mgr, jack_var, jack, direction);
+
+	DL_FOREACH(section_names, c) {
+		if (!strcmp(c->name, "Mic")) {
+			/* Skip mic section for output */
+			if (direction == CRAS_STREAM_OUTPUT)
+				continue;
+		} else {
+			/* Only check mic for input. */
+			if (direction == CRAS_STREAM_INPUT)
+				continue;
+		}
+		ret = strdup(c->name);
+		break;
+	}
+
+	DL_FOREACH(section_names, c) {
+		DL_DELETE(section_names, c);
+		free((void*)c->name);
+		free(c);
+	}
+
+	return ret;
 }
 
 char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer,
 			    enum CRAS_STREAM_DIRECTION dir)
 {
-	return ucm_get_dev_for_var(mgr, mixer_var, mixer, dir);
+	struct section_name *section_names, *c;
+	char *ret = NULL;
+
+	section_names = ucm_get_devices_for_var(mgr, mixer_var, mixer, dir);
+
+	if (section_names)
+		ret = strdup(section_names->name);
+
+	DL_FOREACH(section_names, c) {
+		DL_DELETE(section_names, c);
+		free((void*)c->name);
+		free(c);
+	}
+
+	return ret;
 }
 
 const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
