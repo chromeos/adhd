@@ -422,18 +422,23 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
 
 extern "C" {
 struct cras_alsa_mixer *cras_alsa_mixer_create(
-    const char *card_name, const struct cras_card_config *config,
-    const char *output_names_extra[], size_t output_names_extra_size,
-    const char *extra_master_volume, const char *coupled_output_names[],
-    size_t coupled_output_names_size) {
+    const char *card_name, const struct cras_card_config *config) {
+  cras_alsa_mixer_create_called++;
+  return cras_alsa_mixer_create_return;
+}
+
+int cras_alsa_mixer_add_controls_by_name_matching(
+    struct cras_alsa_mixer* cmix, const char *output_names_extra[],
+    size_t output_names_extra_size, const char *extra_master_volume,
+    const char *coupled_output_names[], size_t coupled_output_names_size) {
   /* Duplicate coupled_output_names to verify in the end of unittest
    * because names will get freed later in cras_alsa_card_create. */
   for(size_t i = 0; i < coupled_output_names_size; i++)
     coupled_output_names_value[i] = strdup(coupled_output_names[i]);
   coupled_output_names_size_value = coupled_output_names_size;
-  cras_alsa_mixer_create_called++;
-  return cras_alsa_mixer_create_return;
+  return 0;
 }
+
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer) {
   cras_alsa_mixer_destroy_called++;
 }

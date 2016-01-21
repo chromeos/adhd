@@ -254,17 +254,28 @@ struct cras_alsa_card *cras_alsa_card_create(
 
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
-						  alsa_card->config,
-						  output_names_extra,
-						  output_names_extra_size,
-						  extra_main_volume,
-						  coupled_output_names,
-						  coupled_output_names_size);
-	free(extra_main_volume);
-	ucm_free_mixer_names(coupled_mixer_names);
+						  alsa_card->config);
 
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
+		goto error_bail;
+	}
+
+	/* Add controls to mixer by name matching. */
+	rc = cras_alsa_mixer_add_controls_by_name_matching(
+			alsa_card->mixer,
+			output_names_extra,
+			output_names_extra_size,
+			extra_main_volume,
+			coupled_output_names,
+			coupled_output_names_size);
+
+	free(extra_main_volume);
+	ucm_free_mixer_names(coupled_mixer_names);
+
+	if (rc) {
+		syslog(LOG_ERR, "Fail adding controls to mixer for %s.",
+		       alsa_card->name);
 		goto error_bail;
 	}
 

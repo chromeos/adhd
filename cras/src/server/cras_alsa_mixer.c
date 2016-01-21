@@ -524,7 +524,28 @@ static void coupled_mixers_set_mute(
 
 struct cras_alsa_mixer *cras_alsa_mixer_create(
 		const char *card_name,
-		const struct cras_card_config *config,
+		const struct cras_card_config *config)
+{
+	struct cras_alsa_mixer *cmix;
+
+	cmix = (struct cras_alsa_mixer *)calloc(1, sizeof(*cmix));
+	if (cmix == NULL)
+		return NULL;
+
+	syslog(LOG_DEBUG, "Add mixer for device %s", card_name);
+
+	cmix->config = config;
+	cmix->volume_curve =
+		cras_card_config_get_volume_curve_for_control(cmix->config,
+							      "Default");
+
+	alsa_mixer_open(card_name, &cmix->mixer);
+
+	return cmix;
+}
+
+int cras_alsa_mixer_add_controls_by_name_matching(
+		struct cras_alsa_mixer *cmix,
 		const char *output_names_extra[],
 		size_t output_names_extra_size,
 		const char *extra_main_volume,
@@ -555,25 +576,14 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		"Microphone",
 	};
 	snd_mixer_elem_t *elem;
-	struct cras_alsa_mixer *cmix;
 	snd_mixer_elem_t *other_elem = NULL;
 	long other_dB_range = 0;
+	int rc = 0;
 
-	cmix = (struct cras_alsa_mixer *)calloc(1, sizeof(*cmix));
-	if (cmix == NULL)
-		return NULL;
-
-	syslog(LOG_DEBUG, "Add mixer for device %s", card_name);
-
-	cmix->config = config;
-	cmix->volume_curve =
-		cras_card_config_get_volume_curve_for_control(cmix->config,
-							      "Default");
-
-	alsa_mixer_open(card_name, &cmix->mixer);
+	/* Note that there is no mixer on some cards. This is acceptable. */
 	if (cmix->mixer == NULL) {
 		syslog(LOG_DEBUG, "Couldn't open mixer.");
-		return cmix;
+		return 0;
 	}
 
 	/* Find volume and mute controls. */
@@ -588,36 +598,51 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		if (!extra_main_volume &&
 		    name_in_list(name, main_volume_names,
 				 ARRAY_SIZE(main_volume_names))) {
-			if (add_main_volume_control(cmix, elem) != 0) {
-				cras_alsa_mixer_destroy(cmix);
-				return NULL;
+			rc = add_main_volume_control(cmix, elem);
+			if (rc) {
+				syslog(LOG_ERR,
+				       "Could not add main volume control %s",
+				       name);
+				return rc;
 			}
 		} else if (name_in_list(name, main_capture_names,
 					ARRAY_SIZE(main_capture_names))) {
-			if (add_main_capture_control(cmix, elem) != 0) {
-				cras_alsa_mixer_destroy(cmix);
-				return NULL;
+			rc = add_main_capture_control(cmix, elem);
+			if (rc) {
+				syslog(LOG_ERR,
+				       "Could not add main capture control %s",
+				       name);
+				return rc;
 			}
 		} else if (name_in_list(name, output_names,
 					ARRAY_SIZE(output_names))
 			   || name_in_list(name, output_names_extra,
 					   output_names_extra_size)) {
 			/* TODO(dgreid) - determine device index. */
-			if (add_output_control(cmix, elem) != 0) {
-				cras_alsa_mixer_destroy(cmix);
-				return NULL;
+			rc = add_output_control(cmix, elem);
+			if (rc) {
+				syslog(LOG_ERR,
+				       "Could not add output control %s",
+				       name);
+				return rc;
 			}
 		} else if (name_in_list(name, input_names,
 					ARRAY_SIZE(input_names))) {
-			if (add_input_control(cmix, elem) != 0) {
-				cras_alsa_mixer_destroy(cmix);
-				return NULL;
+			rc = add_input_control(cmix, elem);
+			if (rc) {
+				syslog(LOG_ERR,
+				       "Could not add input control %s",
+				       name);
+				return rc;
 			}
 		} else if (extra_main_volume &&
 			   !strcmp(name, extra_main_volume)) {
-			if (add_main_volume_control(cmix, elem) != 0) {
-				cras_alsa_mixer_destroy(cmix);
-				return NULL;
+			rc = add_main_volume_control(cmix, elem);
+			if (rc) {
+				syslog(LOG_ERR,
+				       "Could not add extra main volume %s",
+				       name);
+				return rc;
 			}
 		} else if (snd_mixer_selem_has_playback_volume(elem)) {
 			/* Temporarily cache one elem whose name is not
@@ -639,12 +664,14 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 
 	/* Handle coupled output names for speaker */
 	if (coupled_output_names_size) {
-		if (add_output_with_coupled_mixers(
+		rc = add_output_with_coupled_mixers(
 				cmix,
 				coupled_output_names,
-				coupled_output_names_size) != 0) {
-			cras_alsa_mixer_destroy(cmix);
-			return NULL;
+				coupled_output_names_size);
+
+		if (rc) {
+			syslog(LOG_ERR, "Could not add coupled output");
+			return rc;
 		}
 	}
 
@@ -653,13 +680,14 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	 * in the mixer as a main volume control. */
 	if (!cmix->main_volume_controls && !cmix->output_controls &&
 	    other_elem) {
-		if (add_main_volume_control(cmix, other_elem) != 0) {
-			cras_alsa_mixer_destroy(cmix);
-			return NULL;
+		rc = add_main_volume_control(cmix, other_elem);
+		if (rc) {
+			syslog(LOG_ERR, "Could not add other volume control");
+			return rc;
 		}
 	}
 
-	return cmix;
+	return rc;
 }
 
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)

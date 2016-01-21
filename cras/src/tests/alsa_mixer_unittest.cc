@@ -146,12 +146,27 @@ static void ResetStubData() {
   snd_mixer_find_elem_id_name.clear();
 }
 
+struct cras_alsa_mixer *create_mixer_and_add_controls_by_name_matching(
+    const char *card_name,
+    const struct cras_card_config *config,
+    const char *output_names_extra[],
+    size_t output_names_extra_size,
+    const char *extra_main_volume,
+    const char *coupled_output_names[],
+    size_t coupled_output_names_size) {
+  struct cras_alsa_mixer *cmix = cras_alsa_mixer_create(card_name, config);
+  cras_alsa_mixer_add_controls_by_name_matching(
+      cmix, output_names_extra, output_names_extra_size, extra_main_volume,
+      coupled_output_names, coupled_output_names_size);
+  return cmix;
+}
+
 TEST(AlsaMixer, CreateFailOpen) {
   struct cras_alsa_mixer *c;
 
   ResetStubData();
   snd_mixer_open_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
 }
@@ -161,7 +176,7 @@ TEST(AlsaMixer, CreateFailAttach) {
 
   ResetStubData();
   snd_mixer_attach_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -174,7 +189,7 @@ TEST(AlsaMixer, CreateFailSelemRegister) {
 
   ResetStubData();
   snd_mixer_selem_register_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -188,7 +203,7 @@ TEST(AlsaMixer, CreateFailLoad) {
 
   ResetStubData();
   snd_mixer_load_return_value = -1;
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = cras_alsa_mixer_create("hw:0", NULL);
   EXPECT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -202,7 +217,8 @@ TEST(AlsaMixer, CreateNoElements) {
   struct cras_alsa_mixer *c;
 
   ResetStubData();
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, NULL, 0);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -241,7 +257,8 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
       ARRAY_SIZE(element_playback_volume);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, NULL, 0);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -293,7 +310,8 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, NULL, 0);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -351,7 +369,8 @@ TEST(AlsaMixer, CreateOneMasterElement) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, NULL, 0);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -432,7 +451,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
   snd_mixer_selem_set_playback_dB_all_values_length =
       ARRAY_SIZE(set_dB_values);
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, NULL, 0);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(3, snd_mixer_selem_get_playback_dB_range_called);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -533,7 +553,8 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
       ARRAY_SIZE(element_capture_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL, NULL, 0);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, NULL, 0);
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -700,7 +721,8 @@ class AlsaMixerOutputs : public testing::Test {
     snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
     iniparser_getstring_returns = iniparser_returns;
     iniparser_getstring_return_length = ARRAY_SIZE(iniparser_returns);
-    cras_mixer_ = cras_alsa_mixer_create("hw:0",
+    cras_mixer_ = create_mixer_and_add_controls_by_name_matching(
+        "hw:0",
         reinterpret_cast<struct cras_card_config*>(5),
         output_names_extra, ARRAY_SIZE(output_names_extra), NULL, NULL, 0);
     ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), cras_mixer_);
@@ -900,8 +922,9 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
 
-  c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL,
-                             coupled_output_names, coupled_output_names_size);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, NULL, 0, NULL, coupled_output_names,
+      coupled_output_names_size);
 
   ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
