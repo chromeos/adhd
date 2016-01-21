@@ -24,7 +24,6 @@ static unsigned snd_use_case_mgr_open_called;
 static unsigned snd_use_case_mgr_close_called;
 static unsigned snd_use_case_get_called;
 static std::vector<std::string> snd_use_case_get_id;
-static std::map<std::string, int> snd_use_case_get_ret_value;
 static int snd_use_case_set_return;
 static std::map<std::string, std::string> snd_use_case_get_value;
 static unsigned snd_use_case_set_called;
@@ -44,7 +43,6 @@ static void ResetStubData() {
   snd_use_case_free_list_called = 0;
   snd_use_case_get_id.clear();
   snd_use_case_get_value.clear();
-  snd_use_case_get_ret_value.clear();
   fake_list.clear();
   fake_list_size.clear();
 }
@@ -130,7 +128,6 @@ TEST(AlsaUcm, GetEdidForDev) {
   ResetStubData();
 
   snd_use_case_get_value[id] = value;
-  snd_use_case_get_ret_value[id] = 0;
 
   file_name = ucm_get_edid_file_for_dev(mgr, "Dev1");
   ASSERT_TRUE(file_name);
@@ -150,7 +147,6 @@ TEST(AlsaUcm, GetCapControlForDev) {
   ResetStubData();
 
   snd_use_case_get_value[id] = value;
-  snd_use_case_get_ret_value[id] = 0;
 
   cap_control = ucm_get_cap_control(mgr, "Dev1");
   ASSERT_TRUE(cap_control);
@@ -170,7 +166,6 @@ TEST(AlsaUcm, GetOverrideType) {
   ResetStubData();
 
   snd_use_case_get_value[id] = value;
-  snd_use_case_get_ret_value[id] = 0;
 
   override_type_name = ucm_get_override_type_name(mgr, "Dev1");
   ASSERT_TRUE(override_type_name);
@@ -199,11 +194,8 @@ TEST(AlsaUcm, GetSectionsForVar) {
   std::string value_2 = "Value2";
   std::string value_3 = "Value2";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
-  snd_use_case_get_ret_value[id_3] = 0;
   snd_use_case_get_value[id_3] = value_3;
 
   section_names = ucm_get_sections_for_var(mgr, "Var", "Value2", "Identifier",
@@ -240,9 +232,7 @@ TEST(AlsaUcm, GetDevForJack) {
   std::string value_1 = "Value1";
   std::string value_2 = "Value2";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
   dev_name = ucm_get_dev_for_jack(mgr, value_2.c_str(), CRAS_STREAM_OUTPUT);
   ASSERT_TRUE(dev_name);
@@ -268,9 +258,7 @@ TEST(AlsaUcm, GetDevForHeadphoneJack) {
   std::string id_2 = "=JackName/Headphone/HiFi";
   std::string value = "JackValue";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value;
 
   /* Looking for jack with matched value with output direction, Headphone will
@@ -296,9 +284,7 @@ TEST(AlsaUcm, GetDevForMicJack) {
   std::string id_2 = "=JackName/Mic/HiFi";
   std::string value = "JackValue";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value;
 
   /* Looking for jack with matched value with input direction, Mic will be found
@@ -325,9 +311,7 @@ TEST(AlsaUcm, GetDevForMixer) {
   std::string value_1 = "Value1";
   std::string value_2 = "Value2";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
   dev_name_out = ucm_get_dev_for_mixer(
       mgr, value_1.c_str(), CRAS_STREAM_OUTPUT);
@@ -357,9 +341,7 @@ TEST(AlsaUcm, GetDeviceNameForDevice) {
   std::string value_1 = "DeviceName1";
   std::string value_2 = "DeviceName2";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
   input_dev_name = ucm_get_device_name_for_dev(mgr, "Dev1", CRAS_STREAM_INPUT);
   output_dev_name = ucm_get_device_name_for_dev(mgr, "Dev2", CRAS_STREAM_OUTPUT);
@@ -609,7 +591,6 @@ TEST(AlsaUcm, DisableSoftwareVolume) {
   ResetStubData();
 
   snd_use_case_get_value[id] = value;
-  snd_use_case_get_ret_value[id] = 0;
 
   disable_software_volume = ucm_get_disable_software_volume(mgr);
   ASSERT_TRUE(disable_software_volume);
@@ -632,9 +613,7 @@ TEST(AlsaUcm, GetCoupledMixersForDevice) {
   std::string value_1 = "Mixer Name1,Mixer Name2,Mixer Name3";
   std::string id_2 = "=CoupledMixers/Dev2/HiFi";
   std::string value_2 = "";
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
-  snd_use_case_get_ret_value[id_2] = 1;
   snd_use_case_get_value[id_2] = value_2;
   mixer_names_1 = ucm_get_coupled_mixer_names(mgr, "Dev1");
   mixer_names_2 = ucm_get_coupled_mixer_names(mgr, "Dev2");
@@ -665,7 +644,6 @@ TEST(AlsaUcm, FreeMixerNames) {
   fake_list_size["_devices/HiFi"] = 2;
   std::string id_1 = "=CoupledMixers/Dev1/HiFi";
   std::string value_1 = "Mixer Name1,Mixer Name2,Mixer Name3";
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
   mixer_names_1 = ucm_get_coupled_mixer_names(mgr, "Dev1");
 
@@ -691,7 +669,6 @@ TEST(AlsaUcm, MaxSoftwareGain) {
 
   /* Value can be found in UCM. */
   snd_use_case_get_value[id] = value;
-  snd_use_case_get_ret_value[id] = 0;
 
   ret = ucm_get_max_software_gain(mgr, "Internal Mic", &max_software_gain);
 
@@ -701,9 +678,6 @@ TEST(AlsaUcm, MaxSoftwareGain) {
   ResetStubData();
 
   /* Value can not be found in UCM. */
-  snd_use_case_get_value[id] = "";
-  snd_use_case_get_ret_value[id] = -1;
-
   ret = ucm_get_max_software_gain(mgr, "Internal Mic", &max_software_gain);
 
   ASSERT_TRUE(ret);
@@ -717,19 +691,16 @@ TEST(AlsaUCM, UseFullySpecifiedUCMConfig) {
   ResetStubData();
 
   /* Flag is not set */
-  snd_use_case_get_ret_value[id] = -1;
   fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
   ASSERT_FALSE(fully_specified_flag);
 
   /* Flag is set to "1". */
   snd_use_case_get_value[id] = std::string("1");
-  snd_use_case_get_ret_value[id] = 0;
   fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
   ASSERT_TRUE(fully_specified_flag);
 
   /* Flag is set to "0". */
   snd_use_case_get_value[id] = std::string("0");
-  snd_use_case_get_ret_value[id] = 0;
   fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
   ASSERT_FALSE(fully_specified_flag);
 }
@@ -749,9 +720,7 @@ TEST(AlsaUcm, GetMixerNameForDevice) {
   std::string value_1 = "MixerName1";
   std::string value_2 = "MixerName2";
 
-  snd_use_case_get_ret_value[id_1] = 0;
   snd_use_case_get_value[id_1] = value_1;
-  snd_use_case_get_ret_value[id_2] = 0;
   snd_use_case_get_value[id_2] = value_2;
   mixer_name_1 = ucm_get_mixer_name_for_dev(mgr, "Dev1");
   mixer_name_2 = ucm_get_mixer_name_for_dev(mgr, "Dev2");
@@ -768,14 +737,13 @@ TEST(AlsaUcm, GetMainVolumeMixerName) {
 
   std::string id = "=MainVolumeNames//HiFi";
   std::string value_1 = "Mixer Name1,Mixer Name2,Mixer Name3";
-  std::string value_2 = "";
 
-  snd_use_case_get_ret_value[id] = 0;
   snd_use_case_get_value[id] = value_1;
   mixer_names_1 = ucm_get_main_volume_names(mgr);
 
-  snd_use_case_get_ret_value[id] = 1;
-  snd_use_case_get_value[id] = value_2;
+  ResetStubData();
+
+  /* Can not find MainVolumeNames */
   mixer_names_2 = ucm_get_main_volume_names(mgr);
 
   ASSERT_TRUE(mixer_names_1);
@@ -812,9 +780,13 @@ int snd_use_case_get(snd_use_case_mgr_t* uc_mgr,
                      const char *identifier,
                      const char **value) {
   snd_use_case_get_called++;
-  *value = strdup(snd_use_case_get_value[identifier].c_str());
   snd_use_case_get_id.push_back(std::string(identifier));
-  return snd_use_case_get_ret_value[identifier];
+  if (snd_use_case_get_value.find(identifier) == snd_use_case_get_value.end()) {
+    *value = NULL;
+    return -1;
+  }
+  *value = strdup(snd_use_case_get_value[identifier].c_str());
+  return 0;
 }
 
 int snd_use_case_set(snd_use_case_mgr_t* uc_mgr,
