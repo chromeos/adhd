@@ -4,7 +4,9 @@
  */
 
 #include <errno.h>
+#include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cras_alert.h"
 #include "utlist.h"
@@ -16,10 +18,19 @@ struct cras_alert_cb_list {
 	struct cras_alert_cb_list *prev, *next;
 };
 
+/* A list of data args to callbacks. Variable-length structure. */
+struct cras_alert_data {
+	struct cras_alert_data *prev, *next;
+	/* This field must be the last in this structure. */
+	char buf[];
+};
+
 struct cras_alert {
 	int pending;
+	unsigned int flags;
 	cras_alert_prepare prepare;
 	struct cras_alert_cb_list *callbacks;
+	struct cras_alert_data *data;
 	struct cras_alert *prev, *next;
 };
 
@@ -28,13 +39,15 @@ static struct cras_alert *all_alerts;
 /* If there is any alert pending. */
 static int has_alert_pending;
 
-struct cras_alert *cras_alert_create(cras_alert_prepare prepare)
+struct cras_alert *cras_alert_create(cras_alert_prepare prepare,
+				     unsigned int flags)
 {
 	struct cras_alert *alert;
 	alert = calloc(1, sizeof(*alert));
 	if (!alert)
 		return NULL;
 	alert->prepare = prepare;
+	alert->flags = flags;
 	DL_APPEND(all_alerts, alert);
 	return alert;
 }
@@ -79,13 +92,26 @@ int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
 static void cras_alert_process(struct cras_alert *alert)
 {
 	struct cras_alert_cb_list *cb;
+	struct cras_alert_data *data;
 
-	if (alert->pending) {
-		alert->pending = 0;
-		if (alert->prepare)
-			alert->prepare(alert);
+	if (!alert->pending)
+		return;
+
+	alert->pending = 0;
+	if (alert->prepare)
+		alert->prepare(alert);
+
+	if (!alert->data) {
 		DL_FOREACH(alert->callbacks, cb)
-			cb->callback(cb->arg);
+			cb->callback(cb->arg, NULL);
+	}
+
+	/* Have data arguments, pass each to the callbacks. */
+	DL_FOREACH(alert->data, data) {
+		DL_FOREACH(alert->callbacks, cb)
+			cb->callback(cb->arg, (void *)data->buf);
+		DL_DELETE(alert->data, data);
+		free(data);
 	}
 }
 
@@ -93,6 +119,27 @@ void cras_alert_pending(struct cras_alert *alert)
 {
 	alert->pending = 1;
 	has_alert_pending = 1;
+}
+
+void cras_alert_pending_data(struct cras_alert *alert,
+			     void *data, size_t data_size)
+{
+	struct cras_alert_data *d;
+
+	alert->pending = 1;
+	has_alert_pending = 1;
+	d = calloc(1, offsetof(struct cras_alert_data, buf) + data_size);
+	memcpy(d->buf, data, data_size);
+
+	if (!(alert->flags & CRAS_ALERT_FLAG_KEEP_ALL_DATA) && alert->data) {
+		/* There will never be more than one item in the list. */
+		free(alert->data);
+		alert->data = NULL;
+	}
+
+	/* Even when there is only one item, it is important to use DL_APPEND
+	 * here so that d's next and prev pointers are setup correctly. */
+	DL_APPEND(alert->data, d);
 }
 
 void cras_alert_process_all_pending_alerts()
@@ -109,6 +156,7 @@ void cras_alert_process_all_pending_alerts()
 void cras_alert_destroy(struct cras_alert *alert)
 {
 	struct cras_alert_cb_list *cb;
+	struct cras_alert_data *data;
 
 	if (!alert)
 		return;
@@ -116,6 +164,11 @@ void cras_alert_destroy(struct cras_alert *alert)
 	DL_FOREACH(alert->callbacks, cb) {
 		DL_DELETE(alert->callbacks, cb);
 		free(cb);
+	}
+
+	DL_FOREACH(alert->data, data) {
+		DL_DELETE(alert->data, data);
+		free(data);
 	}
 
 	alert->callbacks = NULL;

@@ -824,7 +824,7 @@ static DBusMessage *create_dbus_message(const char *name)
 
 /* Handlers for system updates that generate DBus signals. */
 
-static void signal_volume(void *arg)
+static void signal_volume(void *arg, void *data)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
@@ -842,7 +842,7 @@ static void signal_volume(void *arg)
 	dbus_message_unref(msg);
 }
 
-static void signal_mute(void *arg)
+static void signal_mute(void *arg, void *data)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
@@ -863,7 +863,7 @@ static void signal_mute(void *arg)
 	dbus_message_unref(msg);
 }
 
-static void signal_capture_gain(void *arg)
+static void signal_capture_gain(void *arg, void *data)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
@@ -881,7 +881,7 @@ static void signal_capture_gain(void *arg)
 	dbus_message_unref(msg);
 }
 
-static void signal_capture_mute(void *arg)
+static void signal_capture_mute(void *arg, void *data)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
@@ -899,7 +899,7 @@ static void signal_capture_mute(void *arg)
 	dbus_message_unref(msg);
 }
 
-static void signal_nodes_changed(void *arg)
+static void signal_nodes_changed(void *arg, void *data)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;
@@ -927,7 +927,7 @@ static void signal_with_node_id(const char *name, cras_node_id_t id)
 	dbus_message_unref(msg);
 }
 
-static void signal_active_node_changed(void *arg)
+static void signal_active_node_changed(void *arg, void *data)
 {
 	cras_node_id_t output, input;
 
@@ -1012,7 +1012,7 @@ static void signal_node_left_right_swapped_changed(cras_node_id_t id,
 	dbus_message_unref(msg);
 }
 
-static void signal_num_active_streams_changed(void *arg)
+static void signal_num_active_streams_changed(void *arg, void *data)
 {
 	dbus_uint32_t serial = 0;
 	DBusMessage *msg;

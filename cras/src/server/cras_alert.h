@@ -32,19 +32,33 @@ extern "C" {
 struct cras_alert;
 
 /* Callback functions to be notified when settings change. arg is a user
- * provided argument that will be passed back. */
-typedef void (*cras_alert_cb)(void *arg);
+ * provided argument that will be passed back, data is extra info about the
+ * signal if available.
+ */
+typedef void (*cras_alert_cb)(void *arg, void *data);
 typedef void (*cras_alert_prepare)(struct cras_alert *alert);
+
+/* Flags for alerts. */
+enum CRAS_ALERT_FLAGS {
+	/* By default, alerts will only keep the last copy of the data
+	 * specified in cras_alert_pending_data as an optimization - then
+	 * the callback is executed once with the latest value, rather than
+	 * for every value. In some cases, it is important to send the data
+	 * with every change. Use this flag to enable that behavior. */
+	CRAS_ALERT_FLAG_KEEP_ALL_DATA = 1 << 0,
+};
 
 /* Creates an alert.
  * Args:
  *    prepare - A function which will be called before calling the callbacks.
  *        The prepare function should update the system state in the shared
  *        memory to be consistent. It can be NULL if not needed.
+ *    flags - 0 for defauts, or ORed values from enum CRAS_ALERT_FLAGS.
  * Returns:
  *    A pointer to the alert, NULL if out of memory.
  */
-struct cras_alert *cras_alert_create(cras_alert_prepare prepare);
+struct cras_alert *cras_alert_create(cras_alert_prepare prepare,
+				     unsigned int flags);
 
 /* Adds a callback to the alert.
  * Args:
@@ -76,6 +90,20 @@ int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
  *    alert - A pointer to the alert.
  */
 void cras_alert_pending(struct cras_alert *alert);
+
+/* Marks an alert as pending. We don't call the callbacks immediately when an
+ * alert becomes pending, but will do that when
+ * cras_alert_process_all_pending_alerts() is called.
+ * By default only the last data value supplied here is provided as an
+ * argument to the callback. To have the callback executed with every
+ * data value, call cras_alert_keep_all_data() (see above).
+ * Args:
+ *    alert - A pointer to the alert.
+ *    data - A pointer to data that is copied and passed to the callback.
+ *    data_size - Size of the data.
+ */
+void cras_alert_pending_data(struct cras_alert *alert,
+			     void *data, size_t data_size);
 
 /* Processes all alerts that are pending.
  *

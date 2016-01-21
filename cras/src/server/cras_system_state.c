@@ -130,13 +130,13 @@ void cras_system_state_init(const char *device_config_dir)
 	state.device_config_dir = device_config_dir;
 
 	/* Initialize alerts. */
-	state.volume_alert = cras_alert_create(NULL);
-	state.mute_alert = cras_alert_create(NULL);
-	state.suspend_alert = cras_alert_create(NULL);
-	state.capture_gain_alert = cras_alert_create(NULL);
-	state.capture_mute_alert = cras_alert_create(NULL);
-	state.volume_limits_alert = cras_alert_create(NULL);
-	state.active_streams_alert = cras_alert_create(NULL);
+	state.volume_alert = cras_alert_create(NULL, 0);
+	state.mute_alert = cras_alert_create(NULL, 0);
+	state.suspend_alert = cras_alert_create(NULL, 0);
+	state.capture_gain_alert = cras_alert_create(NULL, 0);
+	state.capture_mute_alert = cras_alert_create(NULL, 0);
+	state.volume_limits_alert = cras_alert_create(NULL, 0);
+	state.active_streams_alert = cras_alert_create(NULL, 0);
 
 	state.tm = cras_tm_init();
 	if (!state.tm) {
