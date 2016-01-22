@@ -343,6 +343,11 @@ uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
   return cras_bt_transport_write_mtu_ret;
 }
 
+int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
+    uint16_t volume)
+{
+  return 0;
+}
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
@@ -408,6 +413,11 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
                              struct cras_iodev *iodev)
 {
   cras_bt_device_rm_iodev_called++;
+}
+
+int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
+{
+  return 0;
 }
 
 int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)

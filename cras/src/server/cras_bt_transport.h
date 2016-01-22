@@ -77,4 +77,13 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport);
 int cras_bt_transport_release(struct cras_bt_transport *transport,
 			      unsigned int blocking);
 
+/* Sets the volume to cras_bt_transport. Note that the volume gets applied
+ * to BT headset only when the transport is in ACTIVE state.
+ * Args:
+ *    transport - The transport object to set volume to.
+ *    volume - The desired volume value, range in [0-127].
+ */
+int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
+				 uint16_t volume);
+
 #endif /* CRAS_BT_TRANSPORT_H_ */

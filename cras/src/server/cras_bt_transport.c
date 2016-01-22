@@ -338,6 +338,69 @@ void cras_bt_transport_update_properties(
 	}
 }
 
+static void on_transport_volume_set(DBusPendingCall *pending_call, void *data)
+{
+	DBusMessage *reply;
+
+	reply = dbus_pending_call_steal_reply(pending_call);
+	dbus_pending_call_unref(pending_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
+		syslog(LOG_ERR, "Set absolute volume returned error: %s",
+		       dbus_message_get_error_name(reply));
+	dbus_message_unref(reply);
+}
+
+int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
+				 uint16_t volume)
+{
+	const char *key = "Volume";
+	const char *interface = BLUEZ_INTERFACE_MEDIA_TRANSPORT;
+	DBusMessage *method_call;
+	DBusMessageIter message_iter, variant;
+	DBusPendingCall *pending_call;
+
+	method_call = dbus_message_new_method_call(
+		BLUEZ_SERVICE,
+		transport->object_path,
+		DBUS_INTERFACE_PROPERTIES,
+		"Set");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_message_iter_init_append(method_call, &message_iter);
+
+	dbus_message_iter_append_basic(&message_iter, DBUS_TYPE_STRING,
+				       &interface);
+	dbus_message_iter_append_basic(&message_iter, DBUS_TYPE_STRING, &key);
+
+	dbus_message_iter_open_container(&message_iter, DBUS_TYPE_VARIANT,
+					 DBUS_TYPE_UINT16_AS_STRING, &variant);
+	dbus_message_iter_append_basic(&variant, DBUS_TYPE_UINT16, &volume);
+	dbus_message_iter_close_container(&message_iter, &variant);
+
+	if (!dbus_connection_send_with_reply(transport->conn, method_call,
+					     &pending_call,
+					     DBUS_TIMEOUT_USE_DEFAULT)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_message_unref(method_call);
+	if (!pending_call)
+		return -EIO;
+
+	if (!dbus_pending_call_set_notify(pending_call,
+					  on_transport_volume_set,
+					  NULL, NULL)) {
+		dbus_pending_call_cancel(pending_call);
+		dbus_pending_call_unref(pending_call);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
 int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 {
 	DBusMessage *method_call, *reply;

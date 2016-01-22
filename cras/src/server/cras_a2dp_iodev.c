@@ -145,6 +145,11 @@ static int open_dev(struct cras_iodev *iodev)
 		return err;
 	}
 
+	/* Apply the node's volume after transport is acquired. Doing this
+	 * is necessary because the volume can not sync to hardware until
+	 * it is opened. */
+	iodev->set_volume(iodev);
+
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
 		return -EINVAL;
@@ -398,6 +403,22 @@ static int flush_buffer(struct cras_iodev *iodev)
 	return 0;
 }
 
+static void set_volume(struct cras_iodev *iodev)
+{
+	size_t volume;
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct cras_bt_device *device =
+			cras_bt_transport_device(a2dpio->transport);
+
+	if (!cras_bt_device_get_use_hardware_volume(device))
+		return;
+
+	volume = iodev->active_node->volume * 127 / 100;
+
+	if (a2dpio->transport)
+		cras_bt_transport_set_volume(a2dpio->transport, volume);
+}
+
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 			       unsigned dev_enabled)
 {
@@ -472,6 +493,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
+	iodev->set_volume = set_volume;
 
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
