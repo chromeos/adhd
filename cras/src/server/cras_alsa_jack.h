@@ -27,8 +27,8 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
 					  int plugged,
 					  void *data);
 
-/* Creates a jack list.  The list holds all the interesting ALSA jacks for this
- * device.  These jacks will be for headphones, speakers, HDMI, etc.
+/* Creates a jack list. The jacks can be added later by name matching or
+ * fully specified UCM.
  * Args:
  *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
  *    card_name - The name of the card (used to find gpio jacks).
@@ -45,6 +45,25 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
  *    A pointer to a new jack list on success, NULL if there is a failure.
  */
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
+		unsigned int card_index,
+		const char *card_name,
+		unsigned int device_index,
+		int is_first_device,
+		struct cras_alsa_mixer *mixer,
+		snd_use_case_mgr_t *ucm,
+		enum CRAS_STREAM_DIRECTION direction,
+		jack_state_change_callback *cb,
+		void *cb_data);
+
+/* Creates jack list and finds jacks by name matching.
+ * The list holds all the interesting ALSA jacks for this
+ * device. These jacks will be for headphones, speakers, HDMI, etc.
+ * Args:
+ *   jack_list - A pointer to a jack list.
+ * Returns:
+ *   0 on success. Error code if there is a failure.
+ */
+struct cras_alsa_jack_list *cras_alsa_jack_create_jack_list_and_find_jacks(
 		unsigned int card_index,
 		const char *card_name,
 		unsigned int device_index,

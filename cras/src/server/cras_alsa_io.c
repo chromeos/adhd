@@ -1379,7 +1379,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				new_input_by_mixer_control, aio);
 
 	/* Find any jack controls for this device. */
-	aio->jack_list = cras_alsa_jack_list_create(
+	aio->jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
 			card_index,
 			card_name,
 			device_index,

@@ -78,7 +78,7 @@ static size_t cras_alsa_mixer_get_output_volume_curve_called;
 static const char *cras_alsa_mixer_get_control_name_values[3];
 static size_t cras_alsa_mixer_get_control_name_called;
 static struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve_value;
-static size_t cras_alsa_jack_list_create_called;
+static size_t cras_alsa_jack_list_create_find_jacks;
 static size_t cras_alsa_jack_list_destroy_called;
 static jack_state_change_callback *cras_alsa_jack_list_create_cb;
 static void *cras_alsa_jack_list_create_cb_data;
@@ -153,7 +153,7 @@ void ResetStubData() {
   for (i = 0; i < 3; i++)
     cras_alsa_mixer_get_control_name_values[i] = NULL;
   cras_alsa_mixer_get_control_name_called = 0;
-  cras_alsa_jack_list_create_called = 0;
+  cras_alsa_jack_list_create_find_jacks = 0;
   cras_alsa_jack_list_destroy_called = 0;
   cras_iodev_set_node_attr_called = 0;
   cras_alsa_jack_enable_ucm_called = 0;
@@ -436,7 +436,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(1, cras_alsa_jack_list_create_called);
+  EXPECT_EQ(1, cras_alsa_jack_list_create_find_jacks);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -469,7 +469,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   ASSERT_NE(aio, (void *)NULL);
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
-  EXPECT_EQ(1, cras_alsa_jack_list_create_called);
+  EXPECT_EQ(1, cras_alsa_jack_list_create_find_jacks);
 
   fake_curve =
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
@@ -1568,7 +1568,7 @@ int cras_alsa_mixer_output_has_volume(const struct mixer_control *mixer_control)
 }
 
 // From cras_alsa_jack
-struct cras_alsa_jack_list *cras_alsa_jack_list_create(
+struct cras_alsa_jack_list *cras_alsa_jack_create_jack_list_and_find_jacks(
 		unsigned int card_index,
 		const char *card_name,
 		unsigned int device_index,
@@ -1579,10 +1579,16 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		jack_state_change_callback *cb,
 		void *cb_data)
 {
-  cras_alsa_jack_list_create_called++;
+  cras_alsa_jack_list_create_find_jacks++;
   cras_alsa_jack_list_create_cb = cb;
   cras_alsa_jack_list_create_cb_data = cb_data;
   return (struct cras_alsa_jack_list *)0xfee;
+}
+
+int cras_alsa_jack_list_find_jacks_by_name_matching(
+	struct cras_alsa_jack_list *jack_list)
+{
+  return 0;
 }
 
 void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
