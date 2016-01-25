@@ -273,6 +273,57 @@ TEST(AlsaUcm, GetDeviceNameForDevice) {
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
 }
 
+TEST(AlsaUcm, GetHotwordModels) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *models;
+  const char *modifiers[] = { "Mod1",
+                            "Comment1",
+                            "Hotword Model en",
+                            "Comment2",
+                            "Hotword Model jp",
+                            "Comment3",
+                            "Mod2",
+                            "Comment4",
+                            "Hotword Model de",
+                            "Comment5" };
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 10;
+
+  models = ucm_get_hotword_models(mgr);
+  ASSERT_TRUE(models);
+  EXPECT_EQ(0, strcmp(models, "en,jp,de"));
+}
+
+TEST(AlsaUcm, SetHotwordModel) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *modifiers[] = { "Hotword Model en",
+                              "Comment1",
+                              "Hotword Model jp",
+                              "Comment2",
+                              "Hotword Model de",
+                              "Comment3" };
+  const char *enabled_mods[] = { "Hotword Model en" };
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 6;
+
+  EXPECT_EQ(-EINVAL, ucm_set_hotword_model(mgr, "zh"));
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  fake_list["_enamods"] = enabled_mods;
+  fake_list_size["_enamods"] = 1;
+  ucm_set_hotword_model(mgr, "jp");
+
+  EXPECT_EQ(2, snd_use_case_set_called);
+  EXPECT_EQ(snd_use_case_set_param[0],
+      std::make_pair(std::string("_dismod"), std::string("Hotword Model en")));
+  EXPECT_EQ(snd_use_case_set_param[1],
+      std::make_pair(std::string("_enamod"), std::string("Hotword Model jp")));
+}
+
 TEST(AlsaUcm, SwapModeExists) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   int rc;

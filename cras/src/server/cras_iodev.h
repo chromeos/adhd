@@ -95,6 +95,9 @@ struct cras_ionode {
  *     changed.
  * update_channel_layout - Update the channel layout base on set iodev->format,
  *     expect the best available layout be filled to iodev->format.
+ * set_hotword_model - Sets the hotword model to this iodev.
+ * get_hotword_models - Gets a comma separated string of the list of supported
+ *     hotword models of this iodev.
  * format - The audio format being rendered or captured to hardware.
  * ext_format - The audio format that is visible to the rest of the system.
  *     This can be different than the hardware if the device dsp changes it.
@@ -150,6 +153,9 @@ struct cras_iodev {
 	void (*update_active_node)(struct cras_iodev *iodev,
 				   unsigned node_idx, unsigned dev_enabled);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
+	int (*set_hotword_model)(struct cras_iodev *iodev,
+				 const char *model_name);
+	char *(*get_hotword_models)(struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_audio_format *ext_format;
 	struct rate_estimator *rate_est;

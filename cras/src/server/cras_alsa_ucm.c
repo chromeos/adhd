@@ -5,6 +5,7 @@
 
 #include <alsa/asoundlib.h>
 #include <alsa/use-case.h>
+#include <ctype.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -29,6 +30,7 @@ static const char coupled_mixers[] = "CoupledMixers";
 /* Set this value in a SectionDevice to specify the maximum software gain in dBm
  * and enable software gain on this node. */
 static const char max_software_gain[] = "MaxSoftwareGain";
+static const char hotword_model_prefix[] = "Hotword Model";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -508,4 +510,72 @@ void ucm_free_mixer_names(struct mixer_name *names)
 		free((void*)m->name);
 		free(m);
 	}
+}
+
+char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
+{
+	const char **list;
+	int i, num_entries;
+	int models_len = 0;
+	char *models = NULL;
+	const char *tmp;
+
+	num_entries = snd_use_case_get_list(mgr, "_modifiers/HiFi", &list);
+	if (num_entries <= 0)
+		return 0;
+	models = (char *)malloc(num_entries * 8);
+	for (i = 0; i < num_entries; i+=2) {
+		if (!list[i])
+			continue;
+		if (0 == strncmp(list[i], hotword_model_prefix,
+				 strlen(hotword_model_prefix))) {
+			tmp = list[i] + strlen(hotword_model_prefix);
+			while (isspace(*tmp))
+				tmp++;
+			strcpy(models + models_len, tmp);
+			models_len += strlen(tmp);
+			if (i + 2 >= num_entries)
+				models[models_len] = '\0';
+			else
+				models[models_len++] = ',';
+		}
+	}
+	snd_use_case_free_list(list, num_entries);
+
+	return models;
+}
+
+int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
+{
+	const char **list;
+	int num_enmods, mod_idx;
+	char *model_mod = NULL;
+	model_mod = (char *)malloc(strlen(model) + 1 +
+			strlen(hotword_model_prefix) + 1);
+	if (!model_mod)
+		return -ENOMEM;
+	sprintf(model_mod, "%s %s", hotword_model_prefix, model);
+	if (!ucm_mod_exists_with_name(mgr, model_mod)) {
+		syslog(LOG_ERR, "Can not find hotword model modifier %s",
+		       model_mod);
+		free((void *)model_mod);
+		return -EINVAL;
+	}
+
+	/* Disable all currently enabled horword model modifiers. */
+	num_enmods = snd_use_case_get_list(mgr, "_enamods", &list);
+	if (num_enmods <= 0)
+		goto enable_mod;
+
+	for (mod_idx = 0; mod_idx < num_enmods; mod_idx++) {
+		if (!strncmp(list[mod_idx], hotword_model_prefix,
+			     strlen(hotword_model_prefix)))
+			ucm_set_modifier_enabled(mgr, list[mod_idx], 0);
+	}
+	snd_use_case_free_list(list, num_enmods);
+
+enable_mod:
+	ucm_set_modifier_enabled(mgr, model_mod, 1);
+
+	return 0;
 }

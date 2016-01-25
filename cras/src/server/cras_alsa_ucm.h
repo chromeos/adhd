@@ -228,4 +228,21 @@ struct mixer_name *ucm_get_coupled_mixer_names(
  */
 void ucm_free_mixer_names(struct mixer_name *names);
 
+/* Gets the list of supported hotword model names.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    String containing comma separated model names, e.g 'en,fr,zh'. Needs
+ *    to be freed by caller.
+ */
+char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr);
+
+/* Sets the desired hotword model.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model);
+
 #endif /* _CRAS_ALSA_UCM_H */

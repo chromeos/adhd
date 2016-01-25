@@ -1681,6 +1681,16 @@ int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
   return ucm_get_max_software_gain_ret_value;
 }
 
+char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
+{
+  return NULL;
+}
+
+int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
+{
+  return 0;
+}
+
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }

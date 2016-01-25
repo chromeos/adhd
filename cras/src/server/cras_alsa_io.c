@@ -427,6 +427,24 @@ static int update_channel_layout(struct cras_iodev *iodev)
 	return err;
 }
 
+static int set_hotword_model(struct cras_iodev *iodev, const char *model_name)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	if (!aio->ucm)
+		return -EINVAL;
+
+	return ucm_set_hotword_model(aio->ucm, model_name);
+}
+
+static char *get_hotword_models(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	if (!aio->ucm)
+		return NULL;
+
+	return ucm_get_hotword_models(aio->ucm);
+}
+
 /*
  * Alsa helper functions.
  */
@@ -1315,6 +1333,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
 	iodev->update_channel_layout = update_channel_layout;
+	iodev->set_hotword_model = set_hotword_model;
+	iodev->get_hotword_models = get_hotword_models;
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
