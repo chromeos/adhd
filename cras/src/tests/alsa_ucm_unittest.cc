@@ -503,6 +503,32 @@ TEST(AlsaUcm, GetCoupledMixersForDevice) {
   }
 }
 
+TEST(AlsaUcm, FreeMixerNames) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct mixer_name *mixer_names_1;
+  const char *devices[] = { "Dev1", "Comment for Dev1"};
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 2;
+  std::string id_1 = "=CoupledMixers/Dev1/HiFi";
+  std::string value_1 = "Mixer Name1,Mixer Name2,Mixer Name3";
+  snd_use_case_get_ret_value[id_1] = 0;
+  snd_use_case_get_value[id_1] = value_1;
+  mixer_names_1 = ucm_get_coupled_mixer_names(mgr, "Dev1");
+
+
+  ASSERT_TRUE(mixer_names_1);
+  EXPECT_EQ(0, strcmp(mixer_names_1->name, "Mixer Name1"));
+  EXPECT_EQ(0, strcmp(mixer_names_1->next->name, "Mixer Name2"));
+  EXPECT_EQ(0, strcmp(mixer_names_1->next->next->name, "Mixer Name3"));
+  EXPECT_EQ(NULL, mixer_names_1->next->next->next);
+
+  /* No way to actually check if memory is freed. */
+  ucm_free_mixer_names(mixer_names_1);
+}
+
 /* Stubs */
 
 extern "C" {

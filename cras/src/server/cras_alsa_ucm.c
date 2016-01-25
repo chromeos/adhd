@@ -483,3 +483,13 @@ struct mixer_name *ucm_get_coupled_mixer_names(
 {
 	return ucm_get_mixer_names(mgr, dev, coupled_mixers);
 }
+
+void ucm_free_mixer_names(struct mixer_name *names)
+{
+	struct mixer_name *m;
+	DL_FOREACH(names, m) {
+		DL_DELETE(names, m);
+		free((void*)m->name);
+		free(m);
+	}
+}

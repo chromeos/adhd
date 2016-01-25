@@ -210,4 +210,11 @@ struct mixer_name {
 struct mixer_name *ucm_get_coupled_mixer_names(
 		snd_use_case_mgr_t *mgr, const char *dev);
 
+/* Frees a list of mixer names.
+ *
+ * Args:
+ *    names - A list of mixer_name.
+ */
+void ucm_free_mixer_names(struct mixer_name *names);
+
 #endif /* _CRAS_ALSA_UCM_H */
