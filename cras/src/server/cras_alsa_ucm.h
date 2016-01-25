@@ -311,4 +311,27 @@ int ucm_list_section_devices_by_device_name(
 		ucm_list_section_devices_callback cb,
 		void *cb_arg);
 
+/* Gets the jack name of this device on the card.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for jack name.
+ * Returns:
+ *    A pointer to the allocated string containing the jack name, or NULL
+ *    if no jack name is found.
+ */
+const char *ucm_get_jack_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
+
+/* Gets the jack type of this device on the card.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for jack type.
+ * Returns:
+ *    A pointer to the allocated string containing the jack type, or NULL
+ *    if no jack type is found or the found jack type is invalid. The valid
+ *    jack types are "hctl" or "gpio".
+ */
+const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
+
 #endif /* _CRAS_ALSA_UCM_H */

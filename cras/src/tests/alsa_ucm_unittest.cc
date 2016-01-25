@@ -845,6 +845,63 @@ TEST(AlsaUcm, ListSectionsByDeviceNameInput) {
       0, strcmp(list_devices_callback_names[1].c_str(), "ExtMic"));
   EXPECT_EQ(callback_arg, list_devices_callback_args[1]);
 }
+
+TEST(AlsaUcm, GetJackNameForDevice) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *jack_name_1, *jack_name_2;
+  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
+                            "Comment for Dev2" };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=JackName/Dev1/HiFi";
+  std::string value_1 = "JackName1";
+
+  snd_use_case_get_value[id_1] = value_1;
+  jack_name_1 = ucm_get_jack_name_for_dev(mgr, "Dev1");
+  jack_name_2 = ucm_get_jack_name_for_dev(mgr, "Dev2");
+
+  EXPECT_EQ(0, strcmp(jack_name_1, value_1.c_str()));
+  EXPECT_EQ(NULL, jack_name_2);
+}
+
+TEST(AlsaUcm, GetJackTypeForDevice) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  const char *jack_type_1, *jack_type_2, *jack_type_3, *jack_type_4;
+  const char *devices[] = { "Dev1", "Comment for Dev1",
+                            "Dev2", "Comment for Dev2",
+                            "Dev3", "Comment for Dev3",
+                            "Dev4", "Comment for Dev4"};
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 8;
+  std::string id_1 = "=JackType/Dev1/HiFi";
+  std::string value_1 = "hctl";
+  std::string id_2 = "=JackType/Dev2/HiFi";
+  std::string value_2 = "gpio";
+  std::string id_3 = "=JackType/Dev3/HiFi";
+  std::string value_3 = "something";
+
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_value[id_2] = value_2;
+  snd_use_case_get_value[id_3] = value_3;
+
+  jack_type_1 = ucm_get_jack_type_for_dev(mgr, "Dev1");
+  jack_type_2 = ucm_get_jack_type_for_dev(mgr, "Dev2");
+  jack_type_3 = ucm_get_jack_type_for_dev(mgr, "Dev3");
+  jack_type_4 = ucm_get_jack_type_for_dev(mgr, "Dev4");
+
+  /* Only "hctl" and "gpio" are valid types. */
+  EXPECT_EQ(0, strcmp(jack_type_1, value_1.c_str()));
+  EXPECT_EQ(0, strcmp(jack_type_2, value_2.c_str()));
+  EXPECT_EQ(NULL, jack_type_3);
+  EXPECT_EQ(NULL, jack_type_4);
+}
+
 /* Stubs */
 
 extern "C" {

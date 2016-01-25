@@ -14,6 +14,7 @@
 
 static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
+static const char jack_type_var[] = "JackType";
 static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
 static const char mic_positions[] = "MicPositions";
@@ -693,4 +694,32 @@ int ucm_list_section_devices_by_device_name(
 		free(c);
 	}
 	return listed;
+}
+
+const char *ucm_get_jack_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, jack_var, dev, default_verb, &name);
+	if (rc)
+		return NULL;
+
+	return name;
+}
+
+const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, jack_type_var, dev, default_verb, &name);
+	if (rc)
+		return NULL;
+
+	if (strcmp(name, "hctl") && strcmp(name, "gpio")) {
+		syslog(LOG_ERR, "Unknown jack type: %s", name);
+		return NULL;
+	}
+	return name;
 }
