@@ -213,4 +213,12 @@ struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
  */
 int cras_alsa_mixer_is_virtual_mixer(const struct mixer_control *control);
 
+/* Returns 1 if there is coupled mixers in mixer_output_control associated
+ * with this mixer_control.
+ * Args:
+ *   control - A pointer to the mixer_control.
+ */
+int cras_alsa_mixer_output_has_coupled_mixers(
+		const struct mixer_control *control);
+
 #endif /* _CRAS_ALSA_MIXER_H */

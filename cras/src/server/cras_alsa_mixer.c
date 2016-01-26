@@ -447,6 +447,17 @@ static int add_output_with_coupled_mixers(
 	return 0;
 }
 
+static struct coupled_mixer_control *get_coupled_mixer_control(
+		const struct mixer_control *control)
+{
+	struct mixer_output_control *output;
+	output = (struct mixer_output_control *)control;
+	if (output)
+		return output->coupled_mixers;
+	else
+		return NULL;
+}
+
 /*
  * Exported interface.
  */
@@ -899,4 +910,10 @@ struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
 int cras_alsa_mixer_is_virtual_mixer(const struct mixer_control *control)
 {
 	return !!(control && !control->elem);
+}
+
+int cras_alsa_mixer_output_has_coupled_mixers(
+		const struct mixer_control *control)
+{
+	return !!get_coupled_mixer_control(control);
 }

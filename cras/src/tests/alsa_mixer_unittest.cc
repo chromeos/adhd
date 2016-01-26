@@ -932,6 +932,15 @@ TEST(AlsaMixer, IsVirtualMixer) {
   EXPECT_EQ(0, cras_alsa_mixer_is_virtual_mixer(&c));
 }
 
+TEST(AlsaMixer, HasCoupledMixer) {
+  struct mixer_output_control c;
+  c.coupled_mixers = reinterpret_cast<struct coupled_mixer_control *>(1);
+  EXPECT_EQ(1, cras_alsa_mixer_output_has_coupled_mixers(&c.base));
+  c.coupled_mixers = NULL;
+  EXPECT_EQ(0, cras_alsa_mixer_output_has_coupled_mixers(&c.base));
+  EXPECT_EQ(0, reinterpret_cast<struct mixer_output_control *>(NULL));
+}
+
 /* Stubs */
 
 extern "C" {
