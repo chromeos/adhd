@@ -941,6 +941,49 @@ TEST(AlsaMixer, HasCoupledMixer) {
   EXPECT_EQ(0, reinterpret_cast<struct mixer_output_control *>(NULL));
 }
 
+TEST(AlsaMixer, OutputHasVolume) {
+  struct mixer_output_control output;
+  struct coupled_mixer_control coupled_control;
+  struct mixer_control *base;
+  struct mixer_control c1, c2;
+
+  output.coupled_mixers = reinterpret_cast<struct coupled_mixer_control *>(
+      NULL);
+  base = &output.base;
+  base->elem = reinterpret_cast<snd_mixer_elem_t *>(NULL);
+  base->has_volume = 0;
+
+  /* No base control, no coupled control. */
+  EXPECT_EQ(0, cras_alsa_mixer_output_has_volume(base));
+
+  /* Base control has volume, but no control element (should not happend). */
+  base->has_volume = 1;
+  EXPECT_EQ(0, cras_alsa_mixer_output_has_volume(base));
+
+  /* Base control has element and volume. */
+  base->elem = reinterpret_cast<snd_mixer_elem_t *>(1);
+  EXPECT_EQ(1, cras_alsa_mixer_output_has_volume(base));
+
+  base->elem = reinterpret_cast<snd_mixer_elem_t *>(NULL);
+  base->has_volume = 0;
+
+  c1.elem = reinterpret_cast<snd_mixer_elem_t *>(2);
+  c2.elem = reinterpret_cast<snd_mixer_elem_t *>(3);
+  c1.has_volume = 0;
+  c2.has_volume = 1;
+  coupled_control.controls = reinterpret_cast<struct mixer_control *>(NULL);
+  DL_APPEND(coupled_control.controls, &c1);
+  DL_APPEND(coupled_control.controls, &c2);
+  output.coupled_mixers = &coupled_control;
+
+  /* Base control has no element and volume. Coupled control has volume. */
+  EXPECT_EQ(1, cras_alsa_mixer_output_has_volume(base));
+
+  /* Base control has no element and volume. Coupled control has no volume. */
+  c2.has_volume = 0;
+  EXPECT_EQ(0, cras_alsa_mixer_output_has_volume(base));
+}
+
 /* Stubs */
 
 extern "C" {

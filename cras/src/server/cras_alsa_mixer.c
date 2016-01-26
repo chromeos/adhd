@@ -656,6 +656,25 @@ int cras_alsa_mixer_has_volume(const struct mixer_control *mixer_control)
 		  mixer_control->has_volume);
 }
 
+int cras_alsa_mixer_output_has_volume(const struct mixer_control *mixer_control)
+{
+	struct mixer_control *c;
+	struct mixer_output_control *output;
+
+	if (!mixer_control)
+		return 0;
+	if (cras_alsa_mixer_has_volume(mixer_control))
+		return 1;
+	output = (struct mixer_output_control *)mixer_control;
+	if (output->coupled_mixers) {
+		DL_FOREACH(output->coupled_mixers->controls, c) {
+			if (cras_alsa_mixer_has_volume(c))
+				return 1;
+		}
+	}
+	return 0;
+}
+
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 			      long dBFS,
 			      struct mixer_control *mixer_output)
