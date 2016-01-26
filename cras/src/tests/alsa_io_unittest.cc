@@ -106,6 +106,8 @@ static const char *cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
 static int auto_unplug_input_node_ret = 0;
 static int auto_unplug_output_node_ret = 0;
+static int cras_alsa_mixer_is_virtual_mixer_ret_value;
+static int cras_alsa_mixer_output_has_coupled_mixers_ret_value;
 
 void ResetStubData() {
   int i;
@@ -163,6 +165,8 @@ void ResetStubData() {
   cras_alsa_jack_get_name_ret_called = 0;
   cras_alsa_jack_get_name_ret_value = default_jack_name;
   cras_alsa_jack_update_monitor_fake_name = 0;
+  cras_alsa_mixer_is_virtual_mixer_ret_value = 0;
+  cras_alsa_mixer_output_has_coupled_mixers_ret_value = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -696,6 +700,42 @@ TEST(AlsaOutputNode, TwoOutputs) {
   alsa_iodev_destroy((struct cras_iodev *)aio);
   free(fake_curve);
   fake_curve = NULL;
+}
+
+TEST(AlsaOutputNode, SpeakerCreatedByVirtualControl) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct mixer_control *outputs[1];
+  struct alsa_output_node *alsa_output;
+
+  ResetStubData();
+  outputs[0] = reinterpret_cast<struct mixer_control *>(5);
+
+  cras_alsa_mixer_list_outputs_outputs = outputs;
+  cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
+  cras_alsa_mixer_is_virtual_mixer_ret_value = 1;
+  cras_alsa_mixer_output_has_coupled_mixers_ret_value = 1;
+
+  aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
+                                            fake_mixer, fake_ucm,
+                                            CRAS_STREAM_OUTPUT, 0, 0);
+
+  ASSERT_NE(aio, (void *)NULL);
+  EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
+  /* Checks there is a speaker node created and plugged. */
+  ASSERT_NE(aio->base.nodes, (void *)NULL);
+  EXPECT_EQ(aio->base.nodes->plugged, 1);
+  EXPECT_EQ(0, strcmp(aio->base.nodes->name, "Speaker"));
+
+  /* Checks the speaker node's mixer_output is the same as it get from
+   * cras_alsa_mixer_list_outputs.
+   */
+  alsa_output = (struct alsa_output_node*)aio->base.nodes;
+  EXPECT_EQ(alsa_output->mixer_output, outputs[0]);
+
+  alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
 TEST(AlsaOutputNode, AutoUnplugOutputNode) {
@@ -1586,6 +1626,17 @@ void audio_thread_rm_callback(int fd)
 int is_utf8_string(const char* string)
 {
   return is_utf8_string_ret_value;
+}
+
+int cras_alsa_mixer_is_virtual_mixer(const struct mixer_control *control)
+{
+  return cras_alsa_mixer_is_virtual_mixer_ret_value;
+}
+
+int cras_alsa_mixer_output_has_coupled_mixers(
+    const struct mixer_control *control)
+{
+  return cras_alsa_mixer_output_has_coupled_mixers_ret_value;
 }
 
 }

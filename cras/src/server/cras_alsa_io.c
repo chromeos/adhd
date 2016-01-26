@@ -882,7 +882,18 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 {
 	struct alsa_io *aio = (struct alsa_io *)callback_arg;
 	char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
-	const char *ctl_name = cras_alsa_mixer_get_control_name(cras_output);
+	const char *ctl_name;
+
+	if (cras_alsa_mixer_is_virtual_mixer(cras_output) &&
+	    cras_alsa_mixer_output_has_coupled_mixers(cras_output)) {
+		/* Assume that a virtual output with coupled mixers is only for
+		 * speaker node. This is to support issue crosbug.com/p/48716
+		 * without fully-specified UCM. */
+		new_output(aio, cras_output, "Speaker");
+		return;
+	}
+
+	ctl_name = cras_alsa_mixer_get_control_name(cras_output);
 
 	if (aio->card_type == ALSA_CARD_TYPE_USB) {
 		snprintf(node_name, sizeof(node_name), "%s: %s",
