@@ -860,6 +860,9 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   struct mixer_output_control *output_control;
   struct coupled_mixer_control *coupled_mixers;
 
+  static const long min_volumes[] = {-70};
+  static const long max_volumes[] = {30};
+
   const char *coupled_output_names[] = {"Left Master",
                                         "Right Master",
                                         "Left Speaker",
@@ -885,6 +888,10 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   snd_mixer_selem_has_playback_switch_return_values = element_playback_switches;
   snd_mixer_selem_has_playback_switch_return_values_length =
       ARRAY_SIZE(element_playback_switches);
+
+  snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
+  snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
+  snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
 
   c = cras_alsa_mixer_create("hw:0", NULL, NULL, 0, NULL,
                              coupled_output_names, coupled_output_names_size);
@@ -919,6 +926,8 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   EXPECT_EQ(c3->has_mute, 1);
   EXPECT_EQ(c4->has_volume, 0);
   EXPECT_EQ(c4->has_mute, 1);
+  EXPECT_EQ(output_control->max_volume_dB, max_volumes[0]);
+  EXPECT_EQ(output_control->min_volume_dB, min_volumes[0]);
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);

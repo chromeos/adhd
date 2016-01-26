@@ -41,7 +41,11 @@ struct mixer_control {
  * coupled_mixers - The coupled_mixer_control related to this specific
  *                  output.
  * max_volume_dB - Maximum volume available in the volume control.
+ *                 This is the sum of maximum volume available in base and
+ *                 coupled mixers.
  * min_volume_dB - Minimum volume available in the volume control.
+ *                 This is the sum of minimum volume available in base and
+ *                 coupled mixers.
  * volume_curve - Curve for this output.
  */
 struct mixer_output_control {
@@ -331,6 +335,27 @@ void coupled_mixer_destroy(struct coupled_mixer_control *coupled_control)
 	free(coupled_control);
 }
 
+/* Finds the max_volume_dB and min_volume_dB supported in this group of
+ * coupled mixers. Since they should always be changed to the same volume,
+ * use any valid result queried from them. */
+static int get_coupled_mixer_min_max_volume_dB(
+		struct coupled_mixer_control *coupled_control,
+		long *min, long *max)
+{
+	struct mixer_control *c;
+
+	DL_FOREACH(coupled_control->controls, c) {
+		if (snd_mixer_selem_get_playback_dB_range(c->elem,
+							  min,
+							  max) == 0)
+			return 0;
+	}
+
+	syslog(LOG_ERR,
+	       "Fail to find min and max volume supported in coupled mixers");
+	return -EINVAL;
+}
+
 /* Creates a mixer_control by finding control name in simple mixer interface. */
 static struct mixer_control *create_mixer_control_by_name(
 		struct cras_alsa_mixer *cmix,
@@ -429,6 +454,23 @@ static int add_output_with_coupled_mixers(
 
 	output->coupled_mixers = coupled_mixers;
 
+	/* Note that min/max volume dB of mixer_output_control should contain
+	 * sum of min/max volume dB on base control and min/max volume dB
+	 * on coupled mixers. However, we limit the use case of coupled mixer
+	 * to virtual base control until fully-specified UCM is supported.
+	 *
+	 * The virtual base control can not adjust volume, so min and max
+	 * volumes are from coupled mixers.
+	 */
+	rc = get_coupled_mixer_min_max_volume_dB(coupled_mixers,
+						 &output->min_volume_dB,
+						 &output->max_volume_dB);
+	if (rc) {
+		coupled_mixer_destroy(coupled_mixers);
+		free(output);
+		return rc;
+	}
+
 	/* This output control is for speaker. */
 	output->volume_curve = create_volume_curve_for_output(
 			cmix, "Speaker");
@@ -438,10 +480,6 @@ static int add_output_with_coupled_mixers(
 	base_control->elem = NULL;
 	base_control->has_volume = 0;
 	base_control->has_mute = 0;
-
-	/* The virtual base control can not adjust volume. */
-	output->max_volume_dB = 0;
-	output->min_volume_dB = 0;
 
 	DL_APPEND(cmix->output_controls, base_control);
 	return 0;
