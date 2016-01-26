@@ -895,3 +895,8 @@ struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
 	else
 		return NULL;
 }
+
+int cras_alsa_mixer_is_virtual_mixer(const struct mixer_control *control)
+{
+	return !!(control && !control->elem);
+}

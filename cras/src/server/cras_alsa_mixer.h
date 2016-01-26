@@ -206,4 +206,11 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
 		const struct mixer_control *control);
 
+/* Returns 1 if the mixer control is virtual, that is, there is no control
+ * element.
+ * Args:
+ *   control - A pointer to the mixer_control to check.
+ */
+int cras_alsa_mixer_is_virtual_mixer(const struct mixer_control *control);
+
 #endif /* _CRAS_ALSA_MIXER_H */

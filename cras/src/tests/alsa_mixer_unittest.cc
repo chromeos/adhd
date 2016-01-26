@@ -924,6 +924,14 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   EXPECT_EQ(1, snd_mixer_close_called);
 }
 
+TEST(AlsaMixer, IsVirtualMixer) {
+  struct mixer_control c;
+  c.elem = NULL;
+  EXPECT_EQ(1, cras_alsa_mixer_is_virtual_mixer(&c));
+  c.elem = reinterpret_cast<snd_mixer_elem_t *>(1);
+  EXPECT_EQ(0, cras_alsa_mixer_is_virtual_mixer(&c));
+}
+
 /* Stubs */
 
 extern "C" {
