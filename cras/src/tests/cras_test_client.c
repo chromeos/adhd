@@ -919,6 +919,30 @@ static void print_audio_debug_info(struct cras_client *client)
 	pthread_mutex_unlock(&done_mutex);
 }
 
+static void hotword_models_cb(struct cras_client *client,
+			      const char *hotword_models)
+{
+	printf("Hotword models: %s\n", hotword_models);
+}
+
+static void print_hotword_models(struct cras_client *client,
+				 cras_node_id_t id)
+{
+	struct timespec wait_time;
+
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client);
+	cras_client_get_hotword_models(client, id,
+				       hotword_models_cb);
+
+	clock_gettime(CLOCK_REALTIME, &wait_time);
+	wait_time.tv_sec += 2;
+
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
+	pthread_mutex_unlock(&done_mutex);
+}
+
 static void check_output_plugged(struct cras_client *client, const char *name)
 {
 	cras_client_run_thread(client);
@@ -969,6 +993,8 @@ static struct option long_options[] = {
 	{"set_node_gain",	required_argument,	0, ':'},
 	{"play_short_sound",	required_argument,	0, '!'},
 	{"config_global_remix", required_argument,	0, ';'},
+	{"set_hotword_model",	required_argument,	0, '<'},
+	{"get_hotword_models",	required_argument,	0, '>'},
 	{0, 0, 0, 0}
 };
 
@@ -989,6 +1015,7 @@ static void show_usage()
 	printf("--dump_dsp - Print status of dsp to syslog.\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
+	printf("--get_hotword_models <N>:<M> - Get the supported hotword models of node\n");
 	printf("--help - Print this message.\n");
 	printf("--listen_for_hotword - Listen for a hotword if supported\n");
 	printf("--loopback_file <name> - Name of file to record loopback to.\n");
@@ -1009,6 +1036,7 @@ static void show_usage()
 	       "id from active output device list\n");
 	printf("--select_input <N>:<M> - Select the ionode with the given id as preferred input\n");
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
+	printf("--set_hotword_model <N>:<M>:<model> - Set the model to node\n");
 	printf("--playback_delay_us <N> - Set the time in us to delay a reply for playback when i is pressed\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
@@ -1289,6 +1317,40 @@ int main(int argc, char **argv)
 			}
 			cras_client_config_global_remix(client, nch, coeff);
 			free(coeff);
+			break;
+		}
+		case '<':
+		case '>': {
+			char *s;
+			int dev_index;
+			int node_index;
+
+			s = strtok(optarg, ":");
+			if (!s) {
+				show_usage();
+				return -EINVAL;
+			}
+			dev_index = atoi(s);
+
+			s = strtok(NULL, ":");
+			if (!s) {
+				show_usage();
+				return -EINVAL;
+			}
+			node_index = atoi(s);
+
+			s = strtok(NULL, ":");
+			if (!s && c == ';') {
+				show_usage();
+				return -EINVAL;
+			}
+
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
+			if (c == ';')
+				cras_client_set_hotword_model(client, id, s);
+			else
+				print_hotword_models(client, id);
 			break;
 		}
 		default:
