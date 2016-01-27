@@ -70,6 +70,9 @@ typedef int (*cras_error_cb_t)(struct cras_client *client,
 typedef void (*cras_server_error_cb_t)(struct cras_client *client,
 				       void *user_arg);
 
+/* Callback for handling get hotword models reply. */
+typedef void (*get_hotword_models_cb_t)(struct cras_client *client,
+					const char *hotword_models);
 /*
  * Client handling.
  */
@@ -703,6 +706,35 @@ int cras_client_set_suspend(struct cras_client *client, int suspend);
 int cras_client_config_global_remix(struct cras_client *client,
 				    unsigned num_channels,
 				    float *coefficient);
+
+/* Gets the set of supported hotword language models on a node. The supported
+ * models may differ on different nodes.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_AOKR).
+ *    cb - The function to be called when hotword models are ready.
+ * Returns:
+ *    0 on success.
+ */
+int cras_client_get_hotword_models(struct cras_client *client,
+				     cras_node_id_t node_id,
+				     get_hotword_models_cb_t cb);
+
+/* Sets the hotword language model on a node. If there are existing streams on
+ * the hotword input node when this function is called, they need to be closed
+ * then re-opend for the model change to take effect.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_AOKR).
+ *    model_name - Name of the model to use, e.g. "en_us".
+ * Returns:
+ *    0 on success.
+ *    -EINVAL if client or node_id is invalid.
+ *    -ENOENT if the specified model is not found.
+ */
+int cras_client_set_hotword_model(struct cras_client *client,
+				  cras_node_id_t node_id,
+				  const char *model_name);
 
 #ifdef __cplusplus
 }

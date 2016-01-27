@@ -19,6 +19,7 @@
 #define CRAS_PROTO_VER 1
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
+#define CRAS_HOTWORD_NAME_MAX_SIZE 8
 
 /* Message IDs. */
 enum CRAS_SERVER_MESSAGE_ID {
@@ -45,6 +46,8 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SUSPEND,
 	CRAS_SERVER_RESUME,
 	CRAS_CONFIG_GLOBAL_REMIX,
+	CRAS_SERVER_GET_HOTWORD_MODELS,
+	CRAS_SERVER_SET_HOTWORD_MODEL,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -52,6 +55,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_CONNECTED,
 	CRAS_CLIENT_STREAM_CONNECTED,
 	CRAS_CLIENT_AUDIO_DEBUG_INFO_READY,
+	CRAS_CLIENT_GET_HOTWORD_MODELS_READY,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -372,6 +376,40 @@ static inline void cras_fill_config_global_remix_command(
 	memcpy(m->coefficient, coeff, count * sizeof(*coeff));
 }
 
+/* Get supported hotword models. */
+struct __attribute__ ((__packed__)) cras_get_hotword_models {
+	struct cras_server_message header;
+	cras_node_id_t node_id;
+};
+
+static inline void cras_fill_get_hotword_models_message(
+		struct cras_get_hotword_models *m,
+		cras_node_id_t node_id)
+{
+	m->header.id = CRAS_SERVER_GET_HOTWORD_MODELS;
+	m->header.length = sizeof(*m);
+	m->node_id = node_id;
+}
+
+/* Set desired hotword model. */
+struct __attribute__ ((__packed__)) cras_set_hotword_model {
+	struct cras_server_message header;
+	cras_node_id_t node_id;
+	char model_name[CRAS_HOTWORD_NAME_MAX_SIZE];
+};
+
+static inline void cras_fill_set_hotword_model_message(
+		struct cras_set_hotword_model *m,
+		cras_node_id_t node_id,
+		const char *model_name)
+{
+	m->header.id = CRAS_SERVER_SET_HOTWORD_MODEL;
+	m->header.length = sizeof(*m);
+	m->node_id = node_id;
+	memcpy(m->model_name, model_name, CRAS_HOTWORD_NAME_MAX_SIZE);
+}
+
+
 /*
  * Messages sent from server to client.
  */
@@ -425,6 +463,23 @@ static inline void cras_fill_client_audio_debug_info_ready(
 {
 	m->header.id = CRAS_CLIENT_AUDIO_DEBUG_INFO_READY;
 	m->header.length = sizeof(*m);
+}
+
+/* Sent from server to client when hotword models info is ready. */
+struct cras_client_get_hotword_models_ready {
+	struct cras_client_message header;
+	int32_t hotword_models_size;
+	uint8_t hotword_models[0];
+};
+static inline void cras_fill_client_get_hotword_models_ready(
+		struct cras_client_get_hotword_models_ready *m,
+		const char *hotword_models,
+		size_t hotword_models_size)
+{
+	m->header.id = CRAS_CLIENT_GET_HOTWORD_MODELS_READY;
+	m->header.length = sizeof(*m) + hotword_models_size;
+	m->hotword_models_size = hotword_models_size;
+	memcpy(m->hotword_models, hotword_models, hotword_models_size);
 }
 
 /*

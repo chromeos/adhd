@@ -117,6 +117,14 @@ void cras_iodev_list_update_device_list();
 /* Stores the node list in the shared memory server state region. */
 void cras_iodev_list_update_node_list();
 
+/* Gets the supported hotword models of an ionode. Caller should free
+ * the returned string after use. */
+char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id);
+
+/* Sets the desired hotword model to an ionode. */
+int cras_iodev_list_set_hotword_model(cras_node_id_t id,
+				      const char *model_name);
+
 /* Adds a callback to call when the nodes are added/removed.
  * Args:
  *    cb - Function to call when there is a change.

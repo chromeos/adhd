@@ -166,6 +166,7 @@ struct client_stream {
  * streams - Linked list of streams attached to this client.
  * server_state - RO shared memory region holding server state.
  * debug_info_callback - Function to call when debug info is received.
+ * get_hotword_models_cb_t - Function to call when hotword models info is ready.
  * server_err_cb - Function to call when failed to read messages from server.
  * server_err_user_arg - User argument for server_err_cb.
  */
@@ -182,6 +183,7 @@ struct cras_client {
 	struct client_stream *streams;
 	const struct cras_server_state *server_state;
 	void (*debug_info_callback)(struct cras_client *);
+	get_hotword_models_cb_t get_hotword_models_cb;
 	cras_server_error_cb_t server_err_cb;
 	void *server_err_user_arg;
 };
@@ -920,6 +922,16 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 	return 0;
 }
 
+static void cras_client_get_hotword_models_ready(
+		struct cras_client *client,
+		const char *hotword_models)
+{
+	if (!client->get_hotword_models_cb)
+		return;
+	client->get_hotword_models_cb(client, hotword_models);
+	client->get_hotword_models_cb = NULL;
+}
+
 /* Handles messages from the cras server. */
 static int handle_message_from_server(struct cras_client *client)
 {
@@ -970,6 +982,13 @@ static int handle_message_from_server(struct cras_client *client)
 		if (client->debug_info_callback)
 			client->debug_info_callback(client);
 		break;
+	case CRAS_CLIENT_GET_HOTWORD_MODELS_READY: {
+		struct cras_client_get_hotword_models_ready *cmsg =
+			(struct cras_client_get_hotword_models_ready *)msg;
+		cras_client_get_hotword_models_ready(client,
+				(const char *)cmsg->hotword_models);
+		break;
+	}
 	default:
 		break;
 	}
@@ -2155,4 +2174,28 @@ int cras_client_set_suspend(struct cras_client *client, int suspend)
 
 	cras_fill_suspend_message(&msg, suspend);
 	return write_message_to_server(client, &msg);
+}
+
+int cras_client_get_hotword_models(struct cras_client *client,
+				     cras_node_id_t node_id,
+				     get_hotword_models_cb_t cb)
+{
+	struct cras_get_hotword_models msg;
+
+	if (!client)
+		return -EINVAL;
+	client->get_hotword_models_cb = cb;
+
+	cras_fill_get_hotword_models_message(&msg, node_id);
+	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_set_hotword_model(struct cras_client *client,
+				  cras_node_id_t node_id,
+				  const char *model_name)
+{
+	struct cras_set_hotword_model msg;
+
+	cras_fill_set_hotword_model_message(&msg, node_id, model_name);
+	return write_message_to_server(client, &msg.header);
 }

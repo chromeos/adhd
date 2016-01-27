@@ -888,6 +888,30 @@ void cras_iodev_list_update_device_list()
 	cras_system_state_update_complete();
 }
 
+char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id)
+{
+	struct cras_iodev *dev = NULL;
+
+	dev = find_dev(dev_index_of(node_id));
+	if (!dev || !dev->get_hotword_models ||
+	    (dev->active_node->type != CRAS_NODE_TYPE_AOKR))
+		return NULL;
+
+	return dev->get_hotword_models(dev);
+}
+
+int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
+				      const char *model_name)
+{
+	struct cras_iodev *dev =
+			 find_dev(dev_index_of(node_id));
+	if (!dev || !dev->get_hotword_models ||
+	    (dev->active_node->type != CRAS_NODE_TYPE_AOKR))
+		return -EINVAL;
+
+	return dev->set_hotword_model(dev, model_name);
+}
+
 int cras_iodev_list_register_nodes_changed_cb(cras_alert_cb cb, void *arg)
 {
 	return cras_alert_add_callback(nodes_changed_alert, cb, arg);

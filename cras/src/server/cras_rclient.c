@@ -126,6 +126,35 @@ static void dump_audio_thread_info(struct cras_rclient *client)
 	cras_rclient_send_message(client, &msg.header, NULL, 0);
 }
 
+static void handle_get_hotword_models(struct cras_rclient *client,
+				      cras_node_id_t node_id)
+{
+	struct cras_client_get_hotword_models_ready *msg;
+	char *hotword_models;
+	unsigned hotword_models_size;
+	uint8_t buf[CRAS_CLIENT_MAX_MSG_SIZE];
+
+	msg = (struct cras_client_get_hotword_models_ready *)buf;
+	hotword_models = cras_iodev_list_get_hotword_models(node_id);
+	if (!hotword_models)
+		goto empty_reply;
+	hotword_models_size = strlen(hotword_models);
+	if (hotword_models_size + sizeof(*msg) > CRAS_CLIENT_MAX_MSG_SIZE) {
+		free(hotword_models);
+		goto empty_reply;
+	}
+
+	cras_fill_client_get_hotword_models_ready(msg, hotword_models,
+						  hotword_models_size);
+	cras_rclient_send_message(client, &msg->header, NULL, 0);
+	free(hotword_models);
+	return;
+
+empty_reply:
+	cras_fill_client_get_hotword_models_ready(msg, NULL, 0);
+	cras_rclient_send_message(client, &msg->header, NULL, 0);
+}
+
 /*
  * Exported Functions.
  */
@@ -280,6 +309,18 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 				cras_iodev_list_get_audio_thread(),
 				m->num_channels,
 				m->coefficient);
+		break;
+	}
+	case CRAS_SERVER_GET_HOTWORD_MODELS: {
+		handle_get_hotword_models(client,
+			((const struct cras_get_hotword_models *)msg)->node_id);
+		break;
+	}
+	case CRAS_SERVER_SET_HOTWORD_MODEL: {
+		const struct cras_set_hotword_model *m =
+			(const struct cras_set_hotword_model *)msg;
+		cras_iodev_list_set_hotword_model(m->node_id,
+						  m->model_name);
 		break;
 	}
 	default:

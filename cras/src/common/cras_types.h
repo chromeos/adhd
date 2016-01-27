@@ -139,6 +139,7 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define CRAS_MAX_IODEVS 20
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
+#define CRAS_HOTWORD_STRING_SIZE 256
 #define MAX_DEBUG_DEVS 4
 #define MAX_DEBUG_STREAMS 8
 #define AUDIO_THREAD_EVENT_LOG_SIZE (1024*6)

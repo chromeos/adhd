@@ -524,4 +524,15 @@ int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
   return write(sockfd, buf, len);
 }
 
+char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id)
+{
+  return NULL;
+}
+
+int cras_iodev_list_set_hotword_model(cras_node_id_t id,
+              const char *model_name)
+{
+  return 0;
+}
+
 }  // extern "C"
