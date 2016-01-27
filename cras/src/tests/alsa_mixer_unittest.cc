@@ -337,6 +337,7 @@ TEST(AlsaMixer, CreateOneMasterElement) {
   mixer_output->elem = reinterpret_cast<snd_mixer_elem_t *>(2);
   mixer_output->has_mute = 1;
   mixer_output->has_volume = 1;
+  output.coupled_mixers = NULL;
   output.max_volume_dB = 950;
   long set_dB_values[3];
 
@@ -405,6 +406,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   mixer_output = reinterpret_cast<mixer_control *>(&output);
   mixer_output->elem = reinterpret_cast<snd_mixer_elem_t *>(3);
   mixer_output->has_volume = 1;
+  output.coupled_mixers = NULL;
   output.max_volume_dB = 0;
   static const long min_volumes[] = {-500, -1250, -500};
   static const long max_volumes[] = {40, 40, 0};
@@ -468,7 +470,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   snd_mixer_selem_get_playback_dB_called = 0;
   cras_alsa_mixer_set_dBFS(c, -50, mixer_output);
   EXPECT_EQ(3, snd_mixer_selem_set_playback_dB_all_called);
-  EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
+  EXPECT_EQ(3, snd_mixer_selem_get_playback_dB_called);
   EXPECT_EQ(30, set_dB_values[0]);
   EXPECT_EQ(30, set_dB_values[1]);
   EXPECT_EQ(30, set_dB_values[2]);
@@ -863,6 +865,8 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   static const long min_volumes[] = {-70};
   static const long max_volumes[] = {30};
 
+  long set_dB_values[2];
+
   const char *coupled_output_names[] = {"Left Master",
                                         "Right Master",
                                         "Left Speaker",
@@ -870,6 +874,9 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   size_t coupled_output_names_size = 4;
   int element_playback_volume[] = {1, 1, 0, 0};
   int element_playback_switches[] = {0, 0, 1, 1};
+
+  long target_dBFS = -30;
+  long expected_dB_value = target_dBFS + max_volumes[0];
 
   ResetStubData();
 
@@ -928,6 +935,17 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   EXPECT_EQ(c4->has_mute, 1);
   EXPECT_EQ(output_control->max_volume_dB, max_volumes[0]);
   EXPECT_EQ(output_control->min_volume_dB, min_volumes[0]);
+
+  snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
+  snd_mixer_selem_set_playback_dB_all_values_length =
+      ARRAY_SIZE(set_dB_values);
+
+  cras_alsa_mixer_set_dBFS(c, target_dBFS, base);
+
+  /* Set volume should set playback dB on two of the coupled controls. */
+  EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
+  EXPECT_EQ(set_dB_values[0], expected_dB_value);
+  EXPECT_EQ(set_dB_values[1], expected_dB_value);
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);

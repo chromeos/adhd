@@ -496,6 +496,16 @@ static struct coupled_mixer_control *get_coupled_mixer_control(
 		return NULL;
 }
 
+static void coupled_mixers_set_dBFS(
+		struct coupled_mixer_control *coupled_control, long to_set)
+{
+	struct mixer_control *c;
+	DL_FOREACH(coupled_control->controls, c) {
+		if(c->has_volume)
+			snd_mixer_selem_set_playback_dB_all(c->elem, to_set, 1);
+	}
+}
+
 /*
  * Exported interface.
  */
@@ -720,9 +730,12 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 	struct mixer_control *c;
 	struct mixer_output_control *output;
 	output = (struct mixer_output_control *)mixer_output;
+	struct coupled_mixer_control *coupled_control;
 	long to_set;
 
 	assert(cras_mixer);
+
+	coupled_control = get_coupled_mixer_control(mixer_output);
 
 	/* dBFS is normally < 0 to specify the attenuation from max. max is the
 	 * combined max of the master controls and the current output.
@@ -745,10 +758,21 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer,
 		to_set -= actual_dB;
 	}
 	/* Apply the rest to the output-specific control. */
-	if (cras_alsa_mixer_has_volume(mixer_output))
+	if (cras_alsa_mixer_has_volume(mixer_output)) {
+		long actual_dB;
 		snd_mixer_selem_set_playback_dB_all(mixer_output->elem,
 						    to_set,
 						    1);
+		snd_mixer_selem_get_playback_dB(mixer_output->elem,
+						SND_MIXER_SCHN_FRONT_LEFT,
+						&actual_dB);
+		to_set -= actual_dB;
+	}
+	/* Apply the rest to the coupled mixers in the output-specific
+	 * control.*/
+	if (coupled_control) {
+		coupled_mixers_set_dBFS(coupled_control, to_set);
+	}
 }
 
 long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer)
