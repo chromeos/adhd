@@ -947,6 +947,16 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   EXPECT_EQ(set_dB_values[0], expected_dB_value);
   EXPECT_EQ(set_dB_values[1], expected_dB_value);
 
+  /* Mute should set playback switch on two of the coupled controls. */
+  cras_alsa_mixer_set_mute(c, 1, base);
+  EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
+  EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_value);
+
+  /* Unmute should set playback switch on two of the coupled controls. */
+  cras_alsa_mixer_set_mute(c, 0, base);
+  EXPECT_EQ(4, snd_mixer_selem_set_playback_switch_all_called);
+  EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_value);
+
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);
 }

@@ -337,7 +337,8 @@ void coupled_mixer_destroy(struct coupled_mixer_control *coupled_control)
 
 /* Finds the max_volume_dB and min_volume_dB supported in this group of
  * coupled mixers. Since they should always be changed to the same volume,
- * use any valid result queried from them. */
+ * use any valid result queried from them. Here we assume the coupled mixer
+ * must support volume and can get min and max volume dB. */
 static int get_coupled_mixer_min_max_volume_dB(
 		struct coupled_mixer_control *coupled_control,
 		long *min, long *max)
@@ -503,6 +504,17 @@ static void coupled_mixers_set_dBFS(
 	DL_FOREACH(coupled_control->controls, c) {
 		if(c->has_volume)
 			snd_mixer_selem_set_playback_dB_all(c->elem, to_set, 1);
+	}
+}
+
+static void coupled_mixers_set_mute(
+		struct coupled_mixer_control *coupled_control, int muted)
+{
+	struct mixer_control *c;
+	DL_FOREACH(coupled_control->controls, c) {
+		if(c->has_mute)
+			snd_mixer_selem_set_playback_switch_all(
+					c->elem, !muted);
 	}
 }
 
@@ -867,15 +879,25 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
 			      int muted,
 			      struct mixer_control *mixer_output)
 {
+	struct coupled_mixer_control* coupled_control;
 	assert(cras_mixer);
+
 	if (cras_mixer->playback_switch) {
 		snd_mixer_selem_set_playback_switch_all(
 				cras_mixer->playback_switch, !muted);
 		return;
 	}
-	if (mixer_output && mixer_output->has_mute)
+	if (mixer_output && mixer_output->has_mute) {
 		snd_mixer_selem_set_playback_switch_all(
 				mixer_output->elem, !muted);
+		return;
+	}
+
+	/* If main playback switch and output specific switch are not
+	 * available, use the switch in coupled mixers. */
+	coupled_control = get_coupled_mixer_control(mixer_output);
+	if (coupled_control)
+		coupled_mixers_set_mute(coupled_control, muted);
 }
 
 void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
