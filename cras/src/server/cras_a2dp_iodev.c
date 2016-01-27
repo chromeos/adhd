@@ -296,16 +296,18 @@ encode_more:
 		cras_a2dp_cancel_suspend_timer(iodev);
 		cras_a2dp_schedule_suspend_timer(iodev, 0);
 		return written;
-	} else if (written == 0) {
-		goto write_done;
 	}
 
-	if (buf_queued_bytes(a2dpio->pcm_buf))
+	/* Data succcessfully written to a2dp socket, cancel any scheduled
+	 * suspend timer. */
+	cras_a2dp_cancel_suspend_timer(iodev);
+
+	/* If it looks okay to write more and we do have queued data, try
+	 * encode more. */
+	if (written && buf_queued_bytes(a2dpio->pcm_buf))
 		goto encode_more;
 
-write_done:
 	/* everything written. */
-	cras_a2dp_cancel_suspend_timer(iodev);
 	audio_thread_enable_callback(
 			cras_bt_transport_fd(a2dpio->transport), 0);
 
