@@ -798,8 +798,9 @@ long cras_alsa_mixer_get_output_dB_range(
 		struct mixer_control *mixer_output)
 {
 	struct mixer_output_control *output;
-	if (!cras_alsa_mixer_has_volume(mixer_output))
+	if (!cras_alsa_mixer_output_has_volume(mixer_output))
 		return 0;
+
 	output = (struct mixer_output_control *)mixer_output;
 	return output->max_volume_dB - output->min_volume_dB;
 }
