@@ -1,0 +1,4 @@
+[Speaker]
+  volume_curve = simple_step
+  volume_step = 30
+  max_volume = -2800
