@@ -146,10 +146,8 @@ struct client_stream {
 	struct cras_client *client;
 	struct cras_stream_params *config;
 	struct cras_audio_shm capture_shm;
-	int capture_shm_fd;
 	int capture_shm_size;
 	struct cras_audio_shm play_shm;
-	int play_shm_fd;
 	int play_shm_size;
 	struct client_stream *prev, *next;
 };
@@ -658,11 +656,9 @@ static void free_shm(struct client_stream *stream)
 {
 	if (stream->capture_shm.area) {
 		munmap(stream->capture_shm.area, stream->capture_shm_size);
-		close(stream->capture_shm_fd);
 	}
 	if (stream->play_shm.area) {
 		munmap(stream->play_shm.area, stream->play_shm_size);
-		close(stream->play_shm_fd);
 	}
 	stream->capture_shm.area = NULL;
 	stream->play_shm.area = NULL;
@@ -690,12 +686,12 @@ static int stream_connected(struct client_stream *stream,
 		rc = config_shm(&stream->capture_shm,
 				stream_fds[0],
 				msg->shm_max_size);
+		close(stream_fds[0]);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: Error configuring capture shm");
 			goto err_ret;
 		}
-		stream->capture_shm_fd = stream_fds[0];
 		stream->capture_shm_size = msg->shm_max_size;
 	}
 
@@ -703,12 +699,12 @@ static int stream_connected(struct client_stream *stream,
 		rc = config_shm(&stream->play_shm,
 				stream_fds[1],
 				msg->shm_max_size);
+		close(stream_fds[1]);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: Error configuring playback shm");
 			goto err_ret;
 		}
-		stream->play_shm_fd = stream_fds[1];
 		stream->play_shm_size = msg->shm_max_size;
 
 		cras_shm_set_volume_scaler(&stream->play_shm,
