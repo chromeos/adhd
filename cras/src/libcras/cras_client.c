@@ -165,7 +165,6 @@ struct client_stream {
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
  * server_state - RO shared memory region holding server state.
- * server_state_fd - Descriptor of server_state shm region.
  * debug_info_callback - Function to call when debug info is received.
  * server_err_cb - Function to call when failed to read messages from server.
  * server_err_user_arg - User argument for server_err_cb.
@@ -182,7 +181,6 @@ struct cras_client {
 	int last_command_result;
 	struct client_stream *streams;
 	const struct cras_server_state *server_state;
-	int server_state_fd;
 	void (*debug_info_callback)(struct cras_client *);
 	cras_server_error_cb_t server_err_cb;
 	void *server_err_user_arg;
@@ -898,10 +896,10 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 	if (client->server_state)
 		return -EBUSY;
 
-	client->server_state_fd = shm_fd;
 	client->server_state = (struct cras_server_state *)mmap(
 			NULL, sizeof(*client->server_state),
 			PROT_READ, MAP_SHARED, shm_fd, 0);
+	close(shm_fd);
 	if (client->server_state == (struct cras_server_state *)-1) {
 		syslog(LOG_ERR,
 		       "cras_client: mmap failed to map shm for client.");
@@ -911,9 +909,7 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 	if (client->server_state->state_version != CRAS_SERVER_STATE_VERSION) {
 		munmap((void *)client->server_state,
 		       sizeof(*client->server_state));
-		close(client->server_state_fd);
 		client->server_state = NULL;
-		client->server_state_fd = -1;
 		syslog(LOG_ERR,
 		       "cras_client: Unknown server_state version.");
 		return -EINVAL;
@@ -1273,7 +1269,6 @@ void cras_client_destroy(struct cras_client *client)
 	if (client->server_state) {
 		munmap((void *)client->server_state,
 		       sizeof(*client->server_state));
-		close(client->server_state_fd);
 	}
 	if (client->server_fd >= 0)
 		shutdown_and_close_socket(client->server_fd);
