@@ -684,7 +684,6 @@ static int stream_connected(struct client_stream *stream,
 		rc = config_shm(&stream->capture_shm,
 				stream_fds[0],
 				msg->shm_max_size);
-		close(stream_fds[0]);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: Error configuring capture shm");
@@ -697,7 +696,6 @@ static int stream_connected(struct client_stream *stream,
 		rc = config_shm(&stream->play_shm,
 				stream_fds[1],
 				msg->shm_max_size);
-		close(stream_fds[1]);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: Error configuring playback shm");
@@ -724,12 +722,16 @@ static int stream_connected(struct client_stream *stream,
 		goto err_ret;
 	}
 
+	close(stream_fds[0]);
+	close(stream_fds[1]);
 	return 0;
 err_ret:
 	if (stream->wake_fds[0] >= 0) {
 		close(stream->wake_fds[0]);
 		close(stream->wake_fds[1]);
 	}
+	close(stream_fds[0]);
+	close(stream_fds[1]);
 	free_shm(stream);
 	return rc;
 }

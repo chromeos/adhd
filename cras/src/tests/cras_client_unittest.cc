@@ -183,7 +183,7 @@ void CrasClientTestSuite::StreamConnectedFail(
 
   EXPECT_EQ(0, stream_.thread.running);
   EXPECT_EQ(1, pipe_called);
-  EXPECT_EQ(3, close_called); // close the pipefds and shm_fd
+  EXPECT_EQ(4, close_called); // close the pipefds and shm_fds
 }
 
 TEST_F(CrasClientTestSuite, InputStreamConnectedFail) {
