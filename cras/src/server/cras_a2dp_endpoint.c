@@ -230,6 +230,7 @@ static void a2dp_suspend_timer_cb(struct cras_timer *timer, void *arg)
 		return;
 
 	cras_a2dp_suspend_connected_device();
+	cras_hfp_ag_suspend();
 }
 
 /* Handles a2dp messages in main thread.
