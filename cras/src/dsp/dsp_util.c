@@ -21,48 +21,49 @@
 #undef deinterleave_stereo
 #undef interleave_stereo
 
+// TODO(fbarchard): Port to aarch64.
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 
+// TODO(fbarchard): vcvt.f32.s16 q0, d0, #15 for Arm R5
 static void deinterleave_stereo(int16_t *input, float *output1,
-				float *output2, int frames)
+                                float *output2, int frames)
 {
-	/* Process 8 frames (16 samples) each loop. */
-	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
-	int chunk = frames >> 3;
-	frames &= 7;
-	if (chunk) {
-		__asm__ __volatile__ (
-			"1:					    \n"
-			"vld2.16 {d0-d3}, [%[input]]!		    \n"
-			"subs %[chunk], #1			    \n"
-			"vmovl.s16 q3, d3			    \n"
-			"vmovl.s16 q2, d2			    \n"
-			"vmovl.s16 q1, d1			    \n"
-			"vmovl.s16 q0, d0			    \n"
-			"vcvt.f32.s32 q3, q3, #15		    \n"
-			"vcvt.f32.s32 q2, q2, #15		    \n"
-			"vcvt.f32.s32 q1, q1, #15		    \n"
-			"vcvt.f32.s32 q0, q0, #15		    \n"
-			"vst1.32 {d4-d7}, [%[output2]]!		    \n"
-			"vst1.32 {d0-d3}, [%[output1]]!		    \n"
-			"bne 1b					    \n"
-			: /* output */
-			  [chunk]"+r"(chunk),
-			  [input]"+r"(input),
-			  [output1]"+r"(output1),
-			  [output2]"+r"(output2)
-			: /* input */
-			: /* clobber */
-			  "q0", "q1", "q2", "q3", "memory", "cc"
-			);
-	}
+  /* Process 8 frames (16 samples) each loop. */
+  /* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
+  if (frames >= 8) {
+    __asm__ __volatile__ (
+      "1:                             \n"
+      "vld2.16 {q2,q3}, [%[input]]!   \n"
+      "subs %[frames], #8             \n"
+      "vmovl.s16 q0, d4	              \n"
+      "vmovl.s16 q1, d5	              \n"
+      "vmovl.s16 q2, d6	              \n"
+      "vmovl.s16 q3, d7	              \n"
+      "vcvt.f32.s32 q0, q0, #15       \n"
+      "vcvt.f32.s32 q1, q1, #15       \n"
+      "vcvt.f32.s32 q2, q2, #15       \n"
+      "vcvt.f32.s32 q3, q3, #15       \n"
+      "vst1.32 {q2,q3}, [%[output2]]! \n"
+      "vst1.32 {q0,q1}, [%[output1]]! \n"
+      "bgt 1b                         \n"
+      : /* output */
+        [frames]"+r"(frames),
+        [input]"+r"(input),
+        [output1]"+r"(output1),
+        [output2]"+r"(output2)
+      : /* input */
+      : /* clobber */
+        "q0", "q1", "q2", "q3", "memory", "cc"
+      );
+  }
 
-	/* The remaining samples. */
-	while (frames--) {
-		*output1++ = *input++ / 32768.0f;
-		*output2++ = *input++ / 32768.0f;
-	}
+  /* The remaining samples. */
+  frames &= 7;
+  while (frames--) {
+    *output1++ = *input++ / 32768.0f;
+    *output2++ = *input++ / 32768.0f;
+  }
 }
 #define deinterleave_stereo deinterleave_stereo
 
@@ -133,6 +134,8 @@ static void interleave_stereo(float *input1, float *input2,
 
 #ifdef __SSE3__
 #include <emmintrin.h>
+
+// TODO(fbarchard): Consider punpcklwd
 
 static void deinterleave_stereo(int16_t *input, float *output1,
 				float *output2, int frames)
