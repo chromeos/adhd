@@ -799,8 +799,9 @@ static void set_output_node_software_volume_needed(
 
 	/* Use software volume for HDMI output and nodes without volume mixer
 	 * control. */
-	if (!cras_alsa_mixer_has_main_volume(mixer) &&
-	    !cras_alsa_mixer_output_has_volume(output->mixer_output))
+	if ((output->base.type == CRAS_NODE_TYPE_HDMI) ||
+	    (!cras_alsa_mixer_has_main_volume(mixer) &&
+	     !cras_alsa_mixer_output_has_volume(output->mixer_output)))
 		output->base.software_volume_needed = 1;
 
 	/* Use software volume if the usb device's volume range is smaller
