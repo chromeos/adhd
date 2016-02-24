@@ -50,10 +50,6 @@ static int pause_in_playback_reply = 1000;
 static char *channel_layout = NULL;
 static int pin_device_id;
 
-static int play_short_sound = 0;
-static int play_short_sound_periods = 0;
-static int play_short_sound_periods_left = 0;
-
 /* Conditional so the client thread can signal that main should exit. */
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
@@ -187,18 +183,6 @@ static int put_samples(struct cras_client *client,
 	check_stream_terminate(frames);
 
 	cras_client_calc_playback_latency(playback_time, &last_latency);
-
-	if (play_short_sound) {
-		if (play_short_sound_periods_left)
-			/* Play a period from file. */
-			play_short_sound_periods_left--;
-		else {
-			/* Fill zeros to play silence. */
-			memset(playback_samples, 0,
-			       MIN(frames * frame_bytes, BUF_SIZE));
-			return frames;
-		}
-	}
 
 	nread = read(fd, buff, MIN(frames * frame_bytes, BUF_SIZE));
 	if (nread <= 0) {
@@ -813,9 +797,6 @@ static int run_file_io_stream(struct cras_client *client,
 			       cras_client_get_system_min_capture_gain(client),
 			       cras_client_get_system_max_capture_gain(client));
 			break;
-		case '\'':
-			play_short_sound_periods_left = play_short_sound_periods;
-			break;
 		case '\n':
 			break;
 		default:
@@ -963,7 +944,6 @@ static struct option long_options[] = {
 	{"pin_device",		required_argument,	0, '8'},
 	{"suspend",		required_argument,	0, '9'},
 	{"set_node_gain",	required_argument,	0, ':'},
-	{"play_short_sound",	required_argument,	0, '!'},
 	{0, 0, 0, 0}
 };
 
@@ -993,7 +973,6 @@ static void show_usage()
 	       "\n");
 	printf("--playback_file <name> - Name of file to play, "
 	       "\"-\" to playback raw audio from stdin.\n");
-	printf("--play_short_sound <N> - Plays the content in the file for N periods when ' is pressed.\n");
 	printf("--plug <N>:<M>:<0|1> - Set the plug state (0 or 1) for the"
 	       " ionode with the given index M on the device with index N\n");
 	printf("--rate <N> - Specifies the sample rate in Hz.\n");
@@ -1259,11 +1238,6 @@ int main(int argc, char **argv)
 		case '9': {
 			int suspend = atoi(optarg);
 			cras_client_set_suspend(client, suspend);
-			break;
-		}
-		case '!': {
-			play_short_sound = 1;
-			play_short_sound_periods = atoi(optarg);
 			break;
 		}
 		default:
