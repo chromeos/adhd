@@ -1138,16 +1138,15 @@ static void set_iodev_name(struct cras_iodev *dev,
 		 device_index);
 	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
 	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
-
-	dev->info.stable_id = SuperFastHash(card_name,
-					    strlen(card_name),
-					    strlen(card_name));
-	dev->info.stable_id = SuperFastHash(dev_name,
-					    strlen(dev_name),
-					    dev->info.stable_id);
+	dev->info.stable_id = SuperFastHash(dev->info.name,
+					    strlen(dev->info.name),
+					    strlen(dev->info.name));
 
 	switch (card_type) {
 	case ALSA_CARD_TYPE_INTERNAL:
+		dev->info.stable_id = SuperFastHash((const char *)&card_index,
+						    sizeof(card_index),
+						    dev->info.stable_id);
 		dev->info.stable_id = SuperFastHash((const char *)&device_index,
 						    sizeof(device_index),
 						    dev->info.stable_id);
