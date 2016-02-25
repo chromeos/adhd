@@ -328,8 +328,8 @@ static inline void show_audio_dbc(FILE *outfile,
 			(edid_ext[dbp + DBCA_FORMAT]>>3) & 0xf;
 		unsigned char dbca_rate = edid_ext[dbp + DBCA_RATE];
 
-		fprintf(outfile, "Audio: %d channel %s: ",
-			edid_ext[dbp + DBCA_FORMAT] & 0x7,
+		fprintf(outfile, "Audio: %d channels %s: ",
+			(edid_ext[dbp + DBCA_FORMAT] & 0x7) + 1,
 			sad_audio_type[atype]);
 
 		if (dbca_rate & 0x40)
