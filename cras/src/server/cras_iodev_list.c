@@ -979,7 +979,6 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
 		return -EINVAL;
 
 	rc = cras_iodev_set_node_attr(node, attr, value);
-	cras_iodev_list_notify_nodes_changed();
 	return rc;
 }
 
@@ -999,6 +998,7 @@ void cras_iodev_list_set_node_left_right_swapped_callbacks(
 void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
+	cras_iodev_list_update_device_list();
 
 	if (node_volume_callback)
 		node_volume_callback(id, node->volume);
@@ -1007,6 +1007,7 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
+	cras_iodev_list_update_device_list();
 
 	if (node_left_right_swapped_callback)
 		node_left_right_swapped_callback(id, node->left_right_swapped);
@@ -1015,6 +1016,7 @@ void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
+	cras_iodev_list_update_device_list();
 
 	if (node_input_gain_callback)
 		node_input_gain_callback(id, node->capture_gain);
