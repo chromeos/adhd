@@ -270,11 +270,9 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 {
 	unsigned i;
 
-	printf("\tID\tName (Stable ID)\n");
-	for (i = 0; i < num_devs; i++) {
-		printf("\t%u\t%s (%08x)\n", devs[i].idx, devs[i].name,
-					    devs[i].stable_id);
-	}
+	printf("\tID\tName\n");
+	for (i = 0; i < num_devs; i++)
+		printf("\t%u\t%s\n", devs[i].idx, devs[i].name);
 }
 
 static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
@@ -282,10 +280,11 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
 {
 	unsigned i;
 
-	printf("\t ID\t%4s   Plugged\tL/R swapped\t      "
+	printf("\tStable Id\t ID\t%4s   Plugged\tL/R swapped\t      "
 	       "Time\tType\t\t Name\n", is_input ? "Gain" : " Vol");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t%u:%u\t%5g  %7s\t%14s\t%10ld\t%-16s%c%s\n",
+		printf("\t(%08x)\t%u:%u\t%5g  %7s\t%14s\t%10ld\t%-16s%c%s\n",
+		       nodes[i].stable_id,
 		       nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       is_input ? nodes[i].capture_gain / 100.0
