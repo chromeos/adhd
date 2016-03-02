@@ -20,6 +20,50 @@
 #undef deinterleave_stereo
 #undef interleave_stereo
 
+#ifdef __aarch64__
+static void deinterleave_stereo(int16_t *input, float *output1,
+				float *output2, int frames)
+{
+	int chunk = frames >> 3;
+	frames &= 7;
+	/* Process 8 frames (16 samples) each loop. */
+	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
+	if (chunk) {
+		__asm__ __volatile__ (
+			"1:                             	    \n"
+			"ld2  {v2.8h, v3.8h}, [%[input]], #32       \n"
+			"subs %[chunk], %[chunk], #1   		    \n"
+			"sxtl   v0.4s, v2.4h           		    \n"
+			"sxtl2  v1.4s, v2.8h           		    \n"
+			"sxtl   v2.4s, v3.4h           		    \n"
+			"sxtl2  v3.4s, v3.8h           		    \n"
+			"scvtf  v0.4s, v0.4s, #15      		    \n"
+			"scvtf  v1.4s, v1.4s, #15      		    \n"
+			"scvtf  v2.4s, v2.4s, #15      		    \n"
+			"scvtf  v3.4s, v3.4s, #15      		    \n"
+			"st1    {v0.4s, v1.4s}, [%[output1]], #32   \n"
+			"st1    {v2.4s, v3.4s}, [%[output2]], #32   \n"
+			"b.ne   1b                      	    \n"
+			: /* output */
+			  [chunk]"+r"(chunk),
+			  [input]"+r"(input),
+			  [output1]"+r"(output1),
+			  [output2]"+r"(output2)
+			: /* input */
+			: /* clobber */
+			  "v0", "v1", "v2", "v3", "memory", "cc"
+			);
+	}
+
+	/* The remaining samples. */
+	while (frames--) {
+		*output1++ = *input++ / 32768.0f;
+		*output2++ = *input++ / 32768.0f;
+	}
+}
+#define deinterleave_stereo deinterleave_stereo
+#endif
+
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 
