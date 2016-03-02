@@ -35,6 +35,7 @@
  *    transport - The transport object for bluez media API.
  *    sock_depth_frames - Socket depth in frames of the a2dp socket.
  *    pcm_buf - Buffer to hold pcm samples before encode.
+ *    destroyed - Flag to note if this a2dp_io is about to destroy.
  *    pre_fill_complete - Flag to note if socket pre-fill is completed.
  *    bt_written_frames - Accumulated frames written to a2dp socket. Used
  *        together with the device open timestamp to estimate how many virtual
@@ -47,6 +48,7 @@ struct a2dp_io {
 	struct cras_bt_transport *transport;
 	unsigned sock_depth_frames;
 	struct byte_buffer *pcm_buf;
+	int destroyed;
 	int pre_fill_complete;
 	uint64_t bt_written_frames;
 	struct timespec dev_open_time;
@@ -191,7 +193,8 @@ static int close_dev(struct cras_iodev *iodev)
 
 	audio_thread_rm_callback(cras_bt_transport_fd(a2dpio->transport));
 
-	err = cras_bt_transport_release(a2dpio->transport);
+	err = cras_bt_transport_release(a2dpio->transport,
+					!a2dpio->destroyed);
 	if (err < 0)
 		syslog(LOG_ERR, "transport_release failed");
 
@@ -492,6 +495,7 @@ void a2dp_iodev_destroy(struct cras_iodev *iodev)
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	struct cras_bt_device *device;
 
+	a2dpio->destroyed = 1;
 	device = cras_bt_transport_device(a2dpio->transport);
 
 	/* A2DP does output only */

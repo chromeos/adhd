@@ -320,7 +320,8 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
   return 0;
 }
 
-int cras_bt_transport_release(struct cras_bt_transport *transport)
+int cras_bt_transport_release(struct cras_bt_transport *transport,
+    unsigned int blocking)
 {
   cras_bt_transport_release_called++;
   return 0;

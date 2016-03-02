@@ -67,6 +67,14 @@ void cras_bt_transport_update_properties(
 
 int cras_bt_transport_try_acquire(struct cras_bt_transport *transport);
 int cras_bt_transport_acquire(struct cras_bt_transport *transport);
-int cras_bt_transport_release(struct cras_bt_transport *transport);
+
+/* Releases the cras_bt_transport.
+ * Args:
+ *    transport - The transport object to release
+ *    blocking - True to send release dbus message in blocking mode, otherwise
+ *        in non-block mode.
+ */
+int cras_bt_transport_release(struct cras_bt_transport *transport,
+			      unsigned int blocking);
 
 #endif /* CRAS_BT_TRANSPORT_H_ */

@@ -472,10 +472,12 @@ static void cras_bt_on_transport_release(DBusPendingCall *pending_call,
 	dbus_message_unref(reply);
 }
 
-int cras_bt_transport_release(struct cras_bt_transport *transport)
+int cras_bt_transport_release(struct cras_bt_transport *transport,
+			      unsigned int blocking)
 {
-	DBusMessage *method_call;
+	DBusMessage *method_call, *reply;
 	DBusPendingCall *pending_call;
+	DBusError dbus_error;
 
 	if (transport->fd < 0)
 		return 0;
@@ -494,26 +496,53 @@ int cras_bt_transport_release(struct cras_bt_transport *transport)
 	if (!method_call)
 		return -ENOMEM;
 
-	if (!dbus_connection_send_with_reply(
+	if (blocking) {
+		dbus_error_init(&dbus_error);
+
+		reply = dbus_connection_send_with_reply_and_block(
 			transport->conn,
 			method_call,
-			&pending_call,
-			DBUS_TIMEOUT_USE_DEFAULT)) {
+			DBUS_TIMEOUT_USE_DEFAULT,
+			&dbus_error);
+		if (!reply) {
+			syslog(LOG_ERR, "Failed to release transport %s: %s",
+			       transport->object_path, dbus_error.message);
+			dbus_error_free(&dbus_error);
+			dbus_message_unref(method_call);
+			return -EIO;
+		}
+
 		dbus_message_unref(method_call);
-		return -ENOMEM;
+
+		if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+			syslog(LOG_ERR, "Release returned error: %s",
+			       dbus_message_get_error_name(reply));
+			dbus_message_unref(reply);
+			return -EIO;
+		}
+
+		dbus_message_unref(reply);
+	} else {
+		if (!dbus_connection_send_with_reply(
+				transport->conn,
+				method_call,
+				&pending_call,
+				DBUS_TIMEOUT_USE_DEFAULT)) {
+			dbus_message_unref(method_call);
+			return -ENOMEM;
+		}
+
+		dbus_message_unref(method_call);
+		if (!pending_call)
+			return -EIO;
+
+		if (!dbus_pending_call_set_notify(pending_call,
+						  cras_bt_on_transport_release,
+						  transport, NULL)) {
+			dbus_pending_call_cancel(pending_call);
+			dbus_pending_call_unref(pending_call);
+			return -ENOMEM;
+		}
 	}
-
-	dbus_message_unref(method_call);
-	if (!pending_call)
-		return -EIO;
-
-	if (!dbus_pending_call_set_notify(pending_call,
-					  cras_bt_on_transport_release,
-					  transport, NULL)) {
-		dbus_pending_call_cancel(pending_call);
-		dbus_pending_call_unref(pending_call);
-		return -ENOMEM;
-	}
-
 	return 0;
 }
