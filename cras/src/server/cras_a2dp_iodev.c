@@ -28,22 +28,26 @@
 #define PCM_BUF_MAX_SIZE_FRAMES (4096*4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
 
+/* Child of cras_iodev to handle bluetooth A2DP streaming.
+ * Members:
+ *    base - The cras_iodev structure "base class"
+ *    a2dp - The codec and encoded state of a2dp_io.
+ *    transport - The transport object for bluez media API.
+ *    sock_depth_frames - Socket depth in frames of the a2dp socket.
+ *    pcm_buf - Buffer to hold pcm samples before encode.
+ *    pre_fill_complete - Flag to note if socket pre-fill is completed.
+ *    bt_written_frames - Accumulated frames written to a2dp socket. Used
+ *        together with the device open timestamp to estimate how many virtual
+ *        buffer is queued there.
+ *    dev_open_time - The last time a2dp_ios is opened.
+ */
 struct a2dp_io {
 	struct cras_iodev base;
 	struct a2dp_info a2dp;
 	struct cras_bt_transport *transport;
 	unsigned sock_depth_frames;
-
-	/* To hold the pcm samples. */
 	struct byte_buffer *pcm_buf;
-
-	/* Has the socket been filled once. */
 	int pre_fill_complete;
-
-	/* Accumulated frames written to a2dp socket. Will need this info
-	 * together with the device open time stamp to get how many virtual
-	 * buffer is queued there.
-	 */
 	uint64_t bt_written_frames;
 	struct timespec dev_open_time;
 };
