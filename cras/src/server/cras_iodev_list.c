@@ -947,6 +947,12 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	if (new_dev && new_dev->direction != direction)
 		return;
 
+	/* If the new device and new node are active already, do nothing. */
+	DL_FOREACH(enabled_devs[direction], edev)
+		if (edev->dev == new_dev &&
+		    edev->dev->active_node->idx == node_index_of(node_id))
+			return;
+
 	/* Enable fallback device during the transition so client will not be
 	 * blocked in this duration, which is as long as 300 ms on some boards
 	 * before new device is opened. */
