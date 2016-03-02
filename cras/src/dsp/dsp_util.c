@@ -305,7 +305,7 @@ void dsp_enable_flush_denormal_to_zero()
 	unsigned int mxcsr;
 	mxcsr = __builtin_ia32_stmxcsr();
 	__builtin_ia32_ldmxcsr(mxcsr | 0x8040);
-#elif defined(__arm__)
+#elif defined(__arm__) || defined(__aarch64__)
 	int cw;
 	_FPU_GETCW(cw);
 	_FPU_SETCW(cw | (1 << 24));
