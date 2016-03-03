@@ -663,17 +663,28 @@ static void dev_set_capture_gain(struct cras_iodev *iodev)
 
 TEST(IoNodePlug, PlugUnplugNode) {
   struct cras_iodev iodev;
-  struct cras_ionode ionode;
+  struct cras_ionode ionode, ionode2;
 
   memset(&iodev, 0, sizeof(iodev));
   memset(&ionode, 0, sizeof(ionode));
-  ionode.dev = &iodev;
+  memset(&ionode2, 0, sizeof(ionode2));
   iodev.direction = CRAS_STREAM_INPUT;
   iodev.update_active_node = update_active_node;
+  ionode.dev = &iodev;
+  cras_iodev_add_node(&iodev, &ionode);
+  ionode2.dev = &iodev;
+  cras_iodev_add_node(&iodev, &ionode2);
+  cras_iodev_set_active_node(&iodev, &ionode);
   ResetStubData();
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 1);
   EXPECT_EQ(0, cras_iodev_list_disable_dev_called);
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 0);
+  EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
+
+  /* Unplug non-active node shouldn't disable iodev. */
+  cras_iodev_set_node_attr(&ionode2, IONODE_ATTR_PLUGGED, 1);
+  EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
+  cras_iodev_set_node_attr(&ionode2, IONODE_ATTR_PLUGGED, 0);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
 }
 
