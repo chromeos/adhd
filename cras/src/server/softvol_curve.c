@@ -117,7 +117,6 @@ const float softvol_scalers[101] = {
 float *softvol_build_from_curve(const struct cras_volume_curve *curve)
 {
 	float *scalers;
-	long max_dBFS, diff;
 	unsigned int volume;
 
 	if (!curve)
@@ -127,12 +126,16 @@ float *softvol_build_from_curve(const struct cras_volume_curve *curve)
 	if (!scalers)
 		return NULL;
 
-	max_dBFS = curve->get_dBFS(curve, MAX_VOLUME);
-	scalers[MAX_VOLUME] = 1.0;
-
-	for (volume = 0; volume < MAX_VOLUME; volume++) {
-		diff = curve->get_dBFS(curve, volume) - max_dBFS;
-		scalers[volume] = convert_softvol_scaler_from_dB(diff);
+	/* When software volume is used, it is assumed all volume curve values
+	 * are relative to 0 dBFS when converting to scale. If a positive dBFS
+	 * value is specified in curve config, it will be treated as invalid
+	 * and clip to 1.0 in scale.
+	 */
+	for (volume = 0; volume <= MAX_VOLUME; volume++) {
+		scalers[volume] = convert_softvol_scaler_from_dB(
+				curve->get_dBFS(curve, volume));
+		if (scalers[volume] > 1.0)
+			scalers[volume] = 1.0;
 	}
 
 	return scalers;
