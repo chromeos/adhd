@@ -3,7 +3,6 @@
  * found in the LICENSE file.
  */
 
-#include <fpu_control.h>
 #include "dsp_util.h"
 
 #ifndef max
@@ -305,10 +304,21 @@ void dsp_enable_flush_denormal_to_zero()
 	unsigned int mxcsr;
 	mxcsr = __builtin_ia32_stmxcsr();
 	__builtin_ia32_ldmxcsr(mxcsr | 0x8040);
-#elif defined(__arm__) || defined(__aarch64__)
-	int cw;
-	_FPU_GETCW(cw);
-	_FPU_SETCW(cw | (1 << 24));
+#elif defined(__aarch64__)
+        uint64_t cw;
+	__asm__ __volatile__ (
+		"mrs    %0, fpcr			    \n"
+		"orr    %0, %0, #0x1000000		    \n"
+		"msr    fpcr, %0			    \n"
+		"isb					    \n"
+		: "=r"(cw) :: "memory");
+#elif defined(__arm__)
+        uint32_t cw;
+	__asm__ __volatile__ (
+		"vmrs   %0, fpscr			    \n"
+		"orr    %0, %0, #0x1000000		    \n"
+		"vmsr   fpscr, %0			    \n"
+		: "=r"(cw) :: "memory");
 #else
 #warning "Don't know how to disable denorms. Performace may suffer."
 #endif
