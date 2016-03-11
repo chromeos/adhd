@@ -62,6 +62,72 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 	}
 }
 #define deinterleave_stereo deinterleave_stereo
+
+// TODO(fbarchard): Round using multiply and frintp.
+// TODO(fbarchard): Coonsider doing 8 samples at a time.
+static void interleave_stereo(float *input1, float *input2,
+			      int16_t *output, int frames)
+{
+	/* Process 4 frames (8 samples) each loop. */
+	/* L0 L1 L2 L3, R0 R1 R2 R3 -> L0 R0 L1 R1, L2 R2 L3 R3 */
+	int chunk = frames >> 2;
+	frames &= 3;
+
+	if (chunk) {
+		__asm__ __volatile__ (
+			"dup    v5.4s, %w[pos]				\n"
+			"dup    v6.4s, %w[neg]				\n"
+			"eor    v0.16b, v0.16b, v0.16b			\n"
+			"1:						\n"
+			"ld1    {v1.4s}, [%[input1]], #16		\n"
+			"ld1    {v2.4s}, [%[input2]], #16		\n"
+			"subs   %[chunk], %[chunk], #1			\n"
+			/* We try to round to the nearest number by adding 0.5
+			 * to positive input, and adding -0.5 to the negative
+			 * input, then truncate.
+			 */
+			"fcmgt  v3.4s, v1.4s, v0.4s			\n"
+			"fcmgt  v4.4s, v2.4s, v0.4s			\n"
+			"bsl    v3.16b, v5.16b, v6.16b			\n"
+			"bsl    v4.16b, v5.16b, v6.16b			\n"
+			"fadd   v1.4s, v1.4s, v3.4s			\n"
+			"fadd   v2.4s, v2.4s, v4.4s			\n"
+			"fcvtzs v1.4s, v1.4s, #15			\n"
+			"fcvtzs v2.4s, v2.4s, #15			\n"
+			"sqxtn  v1.4h, v1.4s				\n"
+			"sqxtn  v2.4h, v2.4s				\n"
+			"st2    {v1.4h, v2.4h}, [%[output]], #16	\n"
+			"b.ne   1b					\n"
+			: /* output */
+			  "=r"(chunk),
+			  "=r"(input1),
+			  "=r"(input2),
+			  "=r"(output)
+			: /* input */
+			  [chunk]"0"(chunk),
+			  [input1]"1"(input1),
+			  [input2]"2"(input2),
+			  [output]"3"(output),
+			  [pos]"r"(0.5f / 32768.0f),
+			  [neg]"r"(-0.5f / 32768.0f)
+			: /* clobber */
+			  "v0", "v1", "v2", "v3", "v4", "v5", "v6",
+			  "memory", "cc"
+			);
+	}
+
+	/* The remaining samples */
+	while (frames--) {
+		float f;
+		f = *input1++;
+		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
+		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+		f = *input2++;
+		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
+		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+	}
+}
+#define interleave_stereo interleave_stereo
 #endif
 
 #ifdef __ARM_NEON__
@@ -171,7 +237,6 @@ static void interleave_stereo(float *input1, float *input2,
 	}
 }
 #define interleave_stereo interleave_stereo
-
 #endif
 
 #ifdef __SSE3__
@@ -288,7 +353,6 @@ static void interleave_stereo(float *input1, float *input2,
 	}
 }
 #define interleave_stereo interleave_stereo
-
 #endif
 
 void dsp_util_deinterleave(int16_t *input, float *const *output, int channels,
