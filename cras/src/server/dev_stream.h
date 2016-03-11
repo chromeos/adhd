@@ -87,12 +87,10 @@ int dev_stream_mix(struct dev_stream *dev_stream,
  *    dev_stream - The struct holding the stream to mix to.
  *    area - The area to copy audio from.
  *    area_offset - The offset at which to start reading from area.
- *    index - The index of the buffer to copy to the dev stream.
  */
 unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			const struct cras_audio_area *area,
-			unsigned int area_offset,
-			unsigned int dev_index);
+			unsigned int area_offset);
 
 /* Returns the number of iodevs this stream has attached to. */
 int dev_stream_attached_devs(const struct dev_stream *dev_stream);

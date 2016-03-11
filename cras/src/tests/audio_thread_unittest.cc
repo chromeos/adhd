@@ -536,8 +536,7 @@ void cras_system_rm_select_fd(int fd)
 
 unsigned int dev_stream_capture(struct dev_stream *dev_stream,
                                 const struct cras_audio_area *area,
-                                unsigned int area_offset,
-                                unsigned int dev_index)
+                                unsigned int area_offset)
 {
   return 0;
 }

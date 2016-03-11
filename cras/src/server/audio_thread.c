@@ -1284,13 +1284,10 @@ static unsigned int get_stream_limit_set_delay(struct open_dev *adev,
 /* Read samples from an input device to the specified stream.
  * Args:
  *    adev - The device to capture samples from.
- *    dev_index - The index of the device being read from, only used to special
- *      case the first read.
  * Returns 0 on success.
  */
 static int capture_to_streams(struct audio_thread *thread,
-			      struct open_dev *adev,
-			      unsigned int dev_index)
+			      struct open_dev *adev)
 {
 	struct cras_iodev *idev = adev->dev;
 	snd_pcm_uframes_t remainder, hw_level;
@@ -1338,7 +1335,7 @@ static int capture_to_streams(struct audio_thread *thread,
 
 			area_offset = cras_iodev_stream_offset(idev, stream);
 			this_read = dev_stream_capture(stream, area,
-						       area_offset, dev_index);
+						       area_offset);
 			cras_iodev_stream_written(idev, stream, this_read);
 		}
 		if (adev->dev->streams)
@@ -1365,14 +1362,12 @@ static int do_capture(struct audio_thread *thread)
 {
 	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
 	struct open_dev *adev;
-	unsigned int dev_index = 0;
 
 	DL_FOREACH(idev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
-		if (capture_to_streams(thread, adev, dev_index) < 0)
+		if (capture_to_streams(thread, adev) < 0)
 			thread_rm_open_adev(thread, adev);
-		dev_index++;
 	}
 
 	return 0;

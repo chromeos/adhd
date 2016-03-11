@@ -254,8 +254,7 @@ static unsigned int capture_with_fmt_conv(struct dev_stream *dev_stream,
  * at this point. */
 static unsigned int capture_copy_converted_to_stream(
 		struct dev_stream *dev_stream,
-		struct cras_rstream *rstream,
-		unsigned int dev_index)
+		struct cras_rstream *rstream)
 {
 	struct cras_audio_shm *shm;
 	uint8_t *stream_samples;
@@ -325,8 +324,7 @@ static unsigned int capture_copy_converted_to_stream(
 
 unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			const struct cras_audio_area *area,
-			unsigned int area_offset,
-			unsigned int dev_idx)
+			unsigned int area_offset)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm;
@@ -343,7 +341,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			dev_stream,
 			area->channels[0].buf + area_offset * format_bytes,
 			area->frames - area_offset);
-		capture_copy_converted_to_stream(dev_stream, rstream, dev_idx);
+		capture_copy_converted_to_stream(dev_stream, rstream);
 	} else {
 		unsigned int offset =
 			cras_rstream_dev_offset(rstream, dev_stream->dev_id);

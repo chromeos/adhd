@@ -180,7 +180,7 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   stream_area->channels[1].step_bytes = 4;
   stream_area->channels[1].buf = (uint8_t *)(shm_samples + 1);
 
-  dev_stream_capture(&devstr, area, 0, 0);
+  dev_stream_capture(&devstr, area, 0);
 
   EXPECT_EQ(stream_area, copy_area_call.dst);
   EXPECT_EQ(0, copy_area_call.dst_offset);
@@ -239,7 +239,7 @@ TEST_F(CreateSuite, CaptureSRC) {
   conv_frames_ret = kBufferFrames / 2;
   cras_fmt_conv_convert_frames_in_frames_val = kBufferFrames;
   cras_fmt_conversion_needed_val = 1;
-  dev_stream_capture(&devstr, area, 0, 0);
+  dev_stream_capture(&devstr, area, 0);
 
   EXPECT_EQ((struct cras_fmt_conv *)0xdead, conv_frames_call.conv);
   EXPECT_EQ((uint8_t *)cap_buf, conv_frames_call.in_buf);
