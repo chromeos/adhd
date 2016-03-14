@@ -1222,6 +1222,39 @@ TEST(FormatConverterTest, ConfigConverterNoNeedForInput) {
   EXPECT_EQ(0, cras_fmt_conversion_needed(c));
 }
 
+TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
+  float coeff[4] = {0.5, 0.5, 0.26, 0.73};
+  struct cras_fmt_conv *conv;
+  struct cras_audio_format fmt;
+  int16_t *buf, *res;
+  unsigned i;
+
+  fmt.num_channels = 2;
+  conv = cras_channel_remix_conv_create(2, coeff);
+
+  buf = (int16_t *)ralloc(50 * 4);
+  res = (int16_t *)malloc(50 * 4);
+
+  for (i = 0; i < 100; i += 2) {
+    res[i] = coeff[0] * buf[i];
+    res[i] += coeff[1] * buf[i + 1];
+    res[i + 1] = coeff[2] * buf[i];
+    res[i + 1] += coeff[3] * buf[i + 1];
+  }
+
+  cras_channel_remix_convert(conv, &fmt, (uint8_t *)buf, 50);
+  for (i = 0; i < 100; i++)
+    EXPECT_EQ(res[i],  buf[i]);
+
+  /* If num_channels not match, remix conversion will not apply. */
+  fmt.num_channels = 6;
+  cras_channel_remix_convert(conv, &fmt, (uint8_t *)buf, 50);
+  for (i = 0; i < 100; i++)
+    EXPECT_EQ(res[i],  buf[i]);
+
+  cras_fmt_conv_destroy(conv);
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

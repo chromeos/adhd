@@ -25,6 +25,29 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   size_t pre_linear_resample);
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv);
 
+/* Creates the format converter for channel remixing. The conversion takes
+ * a N by N float matrix, to multiply each N-channels sample.
+ * Args:
+ *    num_channels - Number of channels of PCM data.
+ *    coefficient - Float array of length N * N representing the conversion
+ *        matrix, where matrix[i][j] corresponds to coefficient[i * N + j]
+ */
+struct cras_fmt_conv *cras_channel_remix_conv_create(
+		unsigned int num_channels,
+		const float *coefficient);
+
+/* Converts nframes of sample from in_buf, using given remix converter.
+ * Args:
+ *    conv - The format converter.
+ *    fmt - The format of the buffer to convert.
+ *    in_buf - The buffer to convert.
+ *    nframes - The number of frames to convert.
+ */
+void cras_channel_remix_convert(struct cras_fmt_conv *conv,
+				const struct cras_audio_format *fmt,
+				uint8_t *in_buf,
+				size_t nframes);
+
 /* Get the input format of the converter. */
 const struct cras_audio_format *cras_fmt_conv_in_format(
 		const struct cras_fmt_conv *conv);

@@ -610,6 +610,58 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 	free(conv);
 }
 
+struct cras_fmt_conv *cras_channel_remix_conv_create(
+		unsigned int num_channels,
+		const float *coefficient)
+{
+	struct cras_fmt_conv *conv;
+	unsigned out_ch, in_ch;
+
+	conv = calloc(1, sizeof(*conv));
+	if (conv == NULL)
+		return NULL;
+	conv->in_fmt.num_channels = num_channels;
+	conv->out_fmt.num_channels = num_channels;
+
+	conv->ch_conv_mtx = cras_channel_conv_matrix_alloc(num_channels,
+							   num_channels);
+	/* Convert the coeffiencnt array to conversion matrix. */
+	for (out_ch = 0; out_ch < num_channels; out_ch++)
+		for (in_ch = 0; in_ch < num_channels; in_ch++)
+			conv->ch_conv_mtx[out_ch][in_ch] =
+				coefficient[in_ch + out_ch * num_channels];
+
+	conv->num_converters = 1;
+	conv->tmp_bufs[0] = malloc(4 * /* width in bytes largest format. */
+				   num_channels);
+	return conv;
+}
+
+void cras_channel_remix_convert(struct cras_fmt_conv *conv,
+				const struct cras_audio_format *fmt,
+				uint8_t *in_buf,
+				size_t nframes)
+{
+	unsigned ch, fr;
+	int16_t *tmp = (int16_t *)conv->tmp_bufs[0];
+	int16_t *buf = (int16_t *)in_buf;
+
+	/* Do remix only when input buffer has the same number of channels. */
+	if (fmt->num_channels != conv->in_fmt.num_channels)
+		return;
+
+	for (fr = 0; fr < nframes; fr++) {
+		for (ch = 0; ch < conv->in_fmt.num_channels; ch++)
+			tmp[ch] = multiply_buf_with_coef(
+				conv->ch_conv_mtx[ch],
+				buf,
+				conv->in_fmt.num_channels);
+		for (ch = 0; ch < conv->in_fmt.num_channels; ch++)
+			buf[ch] = tmp[ch];
+		buf += conv->in_fmt.num_channels;
+	}
+}
+
 const struct cras_audio_format *cras_fmt_conv_in_format(
 		const struct cras_fmt_conv *conv)
 {
