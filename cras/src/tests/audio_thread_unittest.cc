@@ -638,6 +638,11 @@ int cras_server_metrics_longest_fetch_delay(int delay_msec)
   return 0;
 }
 
+float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
+{
+  return 1.0f;
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {
