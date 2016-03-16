@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
 #include <sys/select.h>
@@ -963,6 +964,7 @@ static struct option long_options[] = {
 	{"suspend",		required_argument,	0, '9'},
 	{"set_node_gain",	required_argument,	0, ':'},
 	{"play_short_sound",	required_argument,	0, '!'},
+	{"config_global_remix", required_argument,	0, ';'},
 	{0, 0, 0, 0}
 };
 
@@ -1263,6 +1265,26 @@ int main(int argc, char **argv)
 		case '!': {
 			play_short_sound = 1;
 			play_short_sound_periods = atoi(optarg);
+			break;
+		}
+		case ';': {
+			char *s;
+			int nch;
+			int size = 0;
+			float *coeff;
+
+			s = strtok(optarg, ":");
+			nch = atoi(s);
+			coeff = (float *)calloc(nch * nch,
+						sizeof(*coeff));
+			for (size = 0; size < nch * nch; size++) {
+				s = strtok(NULL, ",");
+				if (NULL == s)
+					break;
+				coeff[size] = atof(s);
+			}
+			cras_client_config_global_remix(client, nch, coeff);
+			free(coeff);
 			break;
 		}
 		default:

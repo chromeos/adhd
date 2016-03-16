@@ -163,4 +163,13 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 int audio_thread_dump_thread_info(struct audio_thread *thread,
 				  struct audio_debug_info *info);
 
+/* Configures the global converter for output remixing. Called by main
+ * thread. */
+int audio_thread_config_global_remix(struct audio_thread *thread,
+				     unsigned int num_channels,
+				     const float *coefficient);
+
+/* Gets the global remix converter. */
+struct cras_fmt_conv *audio_thread_get_global_remix_converter();
+
 #endif /* AUDIO_THREAD_H_ */

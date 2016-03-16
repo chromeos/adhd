@@ -857,6 +857,19 @@ int pthread_join(pthread_t thread, void **value_ptr) {
   return 0;
 }
 
+// From audio_thread
+struct cras_fmt_conv *audio_thread_get_global_remix_converter()
+{
+  return NULL;
+}
+
+// Fromt fmt_conv
+void cras_channel_remix_convert(struct cras_fmt_conv *conv,
+    uint8_t *in_buf,
+    size_t frames)
+{
+}
+
 // From buffer_share
 struct buffer_share *buffer_share_create(unsigned int buf_sz) {
   return NULL;

@@ -273,6 +273,15 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_RESUME:
 		cras_system_set_suspended(0);
 		break;
+	case CRAS_CONFIG_GLOBAL_REMIX: {
+		const struct cras_config_global_remix *m =
+			(const struct cras_config_global_remix *)msg;
+		audio_thread_config_global_remix(
+				cras_iodev_list_get_audio_thread(),
+				m->num_channels,
+				m->coefficient);
+		break;
+	}
 	default:
 		break;
 	}

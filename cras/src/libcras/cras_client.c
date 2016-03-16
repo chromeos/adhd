@@ -2096,6 +2096,23 @@ int cras_client_test_iodev_command(struct cras_client *client,
 	return rc;
 }
 
+int cras_client_config_global_remix(struct cras_client *client,
+				    unsigned num_channels,
+				    float *coefficient)
+{
+	struct cras_config_global_remix *msg;
+	int rc;
+
+	msg = (struct cras_config_global_remix *)malloc(sizeof(*msg) +
+			num_channels * num_channels * sizeof(*coefficient));
+	cras_fill_config_global_remix_command(msg, num_channels,
+					      coefficient,
+					      num_channels * num_channels);
+	rc = write_message_to_server(client, &msg->header);
+	free(msg);
+	return rc;
+}
+
 /* Return the index of the device used for listening to hotwords. */
 int cras_client_get_first_dev_type_idx(const struct cras_client *client,
 				       enum CRAS_NODE_TYPE type,

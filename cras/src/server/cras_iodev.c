@@ -10,10 +10,12 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "audio_thread.h"
 #include "buffer_share.h"
 #include "cras_audio_area.h"
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
+#include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_mix.h"
@@ -589,6 +591,8 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				 unsigned int nframes)
 {
 	const struct cras_audio_format *fmt = iodev->format;
+	struct cras_fmt_conv * remix_converter =
+			audio_thread_get_global_remix_converter();
 
 	if (iodev->pre_dsp_hook)
 		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
@@ -614,6 +618,11 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		}
 	}
 
+	if (remix_converter)
+		cras_channel_remix_convert(remix_converter,
+				   iodev->format,
+				   frames,
+				   nframes);
 	rate_estimator_add_frames(iodev->rate_est, nframes);
 	return iodev->put_buffer(iodev, nframes);
 }

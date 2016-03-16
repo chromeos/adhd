@@ -1191,6 +1191,22 @@ struct cras_timer *cras_tm_create_timer(
 void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t) {
 }
 
+void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
+{
+}
+
+struct cras_fmt_conv *cras_channel_remix_conv_create(
+    unsigned int num_channels, const float *coefficient)
+{
+  return NULL;
+}
+
+void cras_channel_remix_convert(struct cras_fmt_conv *conv,
+    uint8_t *in_buf, size_t frames)
+{
+}
+
+
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;

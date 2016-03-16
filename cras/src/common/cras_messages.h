@@ -44,6 +44,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_TEST_DEV_COMMAND,
 	CRAS_SERVER_SUSPEND,
 	CRAS_SERVER_RESUME,
+	CRAS_CONFIG_GLOBAL_REMIX,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -350,6 +351,25 @@ static inline void cras_fill_suspend_message(struct cras_server_message *m,
 {
 	m->id = is_suspend ? CRAS_SERVER_SUSPEND : CRAS_SERVER_RESUME;
 	m->length = sizeof(*m);
+}
+
+/* Configures the global remix converter. */
+struct __attribute__ ((__packed__)) cras_config_global_remix {
+	struct cras_server_message header;
+	unsigned int num_channels;
+	float coefficient[];
+};
+
+static inline void cras_fill_config_global_remix_command(
+		struct cras_config_global_remix *m,
+		unsigned int num_channels,
+		float *coeff,
+		unsigned int count)
+{
+	m->header.id = CRAS_CONFIG_GLOBAL_REMIX;
+	m->header.length = sizeof(*m) + count * sizeof(*coeff);
+	m->num_channels = num_channels;
+	memcpy(m->coefficient, coeff, count * sizeof(*coeff));
 }
 
 /*

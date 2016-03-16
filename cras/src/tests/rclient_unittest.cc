@@ -345,6 +345,13 @@ int audio_thread_resume(struct audio_thread *thread)
   return 0;
 }
 
+int audio_thread_config_global_remix(struct audio_thread *thread,
+    unsigned int num_channels,
+    const float *coefficient)
+{
+  return 0;
+}
+
 const char *cras_config_get_socket_file_dir()
 {
   return "/tmp";
@@ -471,6 +478,12 @@ void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
                                       enum CRAS_TEST_IODEV_CMD command,
                                       unsigned int data_len,
                                       const uint8_t *data) {
+}
+
+void cras_iodev_list_configure_global_remix_converter(
+    unsigned int num_channels,
+    const float *coefficient)
+{
 }
 
 int stream_list_add(struct stream_list *list,

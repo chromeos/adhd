@@ -480,6 +480,17 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
   return 0;
 }
 
+void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
+{
+}
+
+struct cras_fmt_conv *cras_channel_remix_conv_create(
+    unsigned int num_channels,
+    const float *coefficient)
+{
+  return NULL;
+}
+
 void cras_rstream_dev_attach(struct cras_rstream *rstream,
                              unsigned int dev_id,
                              void *dev_ptr)

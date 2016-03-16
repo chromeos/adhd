@@ -42,11 +42,17 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_STOP,
 	AUDIO_THREAD_DUMP_THREAD_INFO,
 	AUDIO_THREAD_DRAIN_STREAM,
+	AUDIO_THREAD_CONFIG_GLOBAL_REMIX,
 };
 
 struct audio_thread_msg {
 	size_t length;
 	enum AUDIO_THREAD_COMMAND id;
+};
+
+struct audio_thread_config_global_remix {
+	struct audio_thread_msg header;
+	struct cras_fmt_conv *fmt_conv;
 };
 
 struct audio_thread_open_device_msg {
@@ -68,6 +74,8 @@ struct audio_thread_dump_debug_info_msg {
 
 /* Audio thread logging. */
 struct audio_thread_event_log *atlog;
+/* Global fmt converter used to remix output channels. */
+static struct cras_fmt_conv *remix_converter = NULL;
 
 static struct iodev_callback_list *iodev_callbacks;
 static struct timespec longest_wake;
@@ -894,6 +902,19 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		ret = thread_drain_stream(thread, rmsg->stream);
 		break;
 	}
+	case AUDIO_THREAD_CONFIG_GLOBAL_REMIX: {
+		struct audio_thread_config_global_remix *rmsg;
+		void *rsp;
+
+		/* Respond the pointer to the old remix converter, so it can be
+		 * freed later in main thread. */
+		rsp = (void *)remix_converter;
+
+		rmsg = (struct audio_thread_config_global_remix *)msg;
+		remix_converter = rmsg->fmt_conv;
+
+		return write(thread->to_main_fds[1], &rsp, sizeof(rsp));
+	}
 	default:
 		ret = -EINVAL;
 		break;
@@ -1587,7 +1608,8 @@ restart_poll_loop:
 static int audio_thread_post_message(struct audio_thread *thread,
 				     struct audio_thread_msg *msg)
 {
-	int rc, err;
+	int err;
+	void *rsp;
 
 	err = write(thread->to_thread_fds[1], msg, msg->length);
 	if (err < 0) {
@@ -1595,13 +1617,13 @@ static int audio_thread_post_message(struct audio_thread *thread,
 		return err;
 	}
 	/* Synchronous action, wait for response. */
-	err = read(thread->to_main_fds[0], &rc, sizeof(rc));
+	err = read(thread->to_main_fds[0], &rsp, sizeof(rsp));
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to read reply from thread.");
 		return err;
 	}
 
-	return rc;
+	return (intptr_t)rsp;
 }
 
 /* Exported Interface */
@@ -1663,6 +1685,65 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 	msg.header.length = sizeof(msg);
 	msg.info = info;
 	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_config_global_remix(struct audio_thread *thread,
+				     unsigned int num_channels,
+				     const float *coefficient)
+{
+	int err;
+	int identity_remix = 1;
+	unsigned int i, j;
+	struct audio_thread_config_global_remix msg;
+	void *rsp;
+
+	msg.header.id = AUDIO_THREAD_CONFIG_GLOBAL_REMIX;
+	msg.header.length = sizeof(msg);
+	msg.fmt_conv = NULL;
+
+	/* Check if the coefficients represent an identity matrix for remix
+	 * conversion, which means no remix at all. If so then leave the
+	 * converter as NULL. */
+	for (i = 0; i < num_channels; i++) {
+		if (coefficient[i * num_channels + i] != 1.0f) {
+			identity_remix = 0;
+			break;
+		}
+		for (j = i + 1; j < num_channels; j++) {
+			if (coefficient[i * num_channels + j] != 0 ||
+			    coefficient[j * num_channels + i] != 0)
+				identity_remix = 0;
+				break;
+		}
+	}
+
+	if (!identity_remix) {
+		msg.fmt_conv = cras_channel_remix_conv_create(num_channels,
+							      coefficient);
+		if (NULL == msg.fmt_conv)
+			return -ENOMEM;
+	}
+
+	err = write(thread->to_thread_fds[1], &msg, msg.header.length);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to post message to thread.");
+		return err;
+	}
+	/* Synchronous action, wait for response. */
+	err = read(thread->to_main_fds[0], &rsp, sizeof(rsp));
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to read reply from thread.");
+		return err;
+	}
+
+	if (rsp)
+		cras_fmt_conv_destroy((struct cras_fmt_conv *)rsp);
+	return 0;
+}
+
+struct cras_fmt_conv *audio_thread_get_global_remix_converter()
+{
+	return remix_converter;
 }
 
 struct audio_thread *audio_thread_create()
@@ -1764,6 +1845,9 @@ void audio_thread_destroy(struct audio_thread *thread)
 		close(thread->to_main_fds[0]);
 		close(thread->to_main_fds[1]);
 	}
+
+	if (remix_converter)
+		cras_fmt_conv_destroy(remix_converter);
 
 	free(thread);
 }
