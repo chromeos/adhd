@@ -26,6 +26,9 @@ static const char disable_software_volume[] = "DisableSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char capture_device_name_var[] = "CapturePCM";
 static const char coupled_mixers[] = "CoupledMixers";
+/* Set this value in a SectionDevice to specify the maximum software gain in dBm
+ * and enable software gain on this node. */
+static const char max_software_gain[] = "MaxSoftwareGain";
 
 static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 {
@@ -465,6 +468,19 @@ unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
 		return 0;
 
 	return atoi(val);
+}
+
+int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
+			      long *gain)
+{
+	const char *val = NULL;
+	int rc;
+
+	rc = get_var(mgr, max_software_gain, dev, default_verb, &val);
+	if (rc)
+		return rc;
+	*gain = atoi(val);
+	return 0;
 }
 
 const char *ucm_get_device_name_for_dev(

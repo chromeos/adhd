@@ -177,6 +177,17 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr);
  */
 unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr);
 
+/* Gets the value for maximum software gain.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for maximum software gain.
+ *    gain - The pointer to the returned value;
+ * Returns:
+ *    0 on success, other error codes on failure.
+ */
+int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
+			      long *gain);
+
 /* Gets the device name of this device on the card..
  *
  * Args:

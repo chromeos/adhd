@@ -529,6 +529,35 @@ TEST(AlsaUcm, FreeMixerNames) {
   ucm_free_mixer_names(mixer_names_1);
 }
 
+TEST(AlsaUcm, MaxSoftwareGain) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  long max_software_gain;
+  int ret;
+  std::string id = "=MaxSoftwareGain/Internal Mic/HiFi";
+  std::string value = "2000";
+
+  ResetStubData();
+
+  /* Value can be found in UCM. */
+  snd_use_case_get_value[id] = value;
+  snd_use_case_get_ret_value[id] = 0;
+
+  ret = ucm_get_max_software_gain(mgr, "Internal Mic", &max_software_gain);
+
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(2000, max_software_gain);
+
+  ResetStubData();
+
+  /* Value can not be found in UCM. */
+  snd_use_case_get_value[id] = "";
+  snd_use_case_get_ret_value[id] = -1;
+
+  ret = ucm_get_max_software_gain(mgr, "Internal Mic", &max_software_gain);
+
+  ASSERT_TRUE(ret);
+}
+
 /* Stubs */
 
 extern "C" {
