@@ -47,6 +47,7 @@ struct cras_audio_area_copy_call {
   const struct cras_audio_area *src;
   unsigned int src_offset;
   unsigned int src_index;
+  float software_gain_scaler;
 };
 
 struct fmt_conv_call {
@@ -153,6 +154,7 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   struct cras_audio_area *area;
   struct cras_audio_area *stream_area;
   int16_t cap_buf[kBufferFrames * 2];
+  float software_gain_scaler = 10;
 
   devstr.stream = &rstream_;
   devstr.conv = NULL;
@@ -180,13 +182,14 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   stream_area->channels[1].step_bytes = 4;
   stream_area->channels[1].buf = (uint8_t *)(shm_samples + 1);
 
-  dev_stream_capture(&devstr, area, 0);
+  dev_stream_capture(&devstr, area, 0, software_gain_scaler);
 
   EXPECT_EQ(stream_area, copy_area_call.dst);
   EXPECT_EQ(0, copy_area_call.dst_offset);
   EXPECT_EQ(4, copy_area_call.dst_format_bytes);
   EXPECT_EQ(area, copy_area_call.src);
   EXPECT_EQ(1, copy_area_call.src_index);
+  EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
   free(area);
   free(stream_area);
@@ -197,6 +200,7 @@ TEST_F(CreateSuite, CaptureSRC) {
   struct cras_audio_area *area;
   struct cras_audio_area *stream_area;
   int16_t cap_buf[kBufferFrames * 2];
+  float software_gain_scaler = 10;
 
   devstr.stream = &rstream_;
   devstr.conv = (struct cras_fmt_conv *)0xdead;
@@ -239,7 +243,7 @@ TEST_F(CreateSuite, CaptureSRC) {
   conv_frames_ret = kBufferFrames / 2;
   cras_fmt_conv_convert_frames_in_frames_val = kBufferFrames;
   cras_fmt_conversion_needed_val = 1;
-  dev_stream_capture(&devstr, area, 0);
+  dev_stream_capture(&devstr, area, 0, software_gain_scaler);
 
   EXPECT_EQ((struct cras_fmt_conv *)0xdead, conv_frames_call.conv);
   EXPECT_EQ((uint8_t *)cap_buf, conv_frames_call.in_buf);
@@ -253,6 +257,7 @@ TEST_F(CreateSuite, CaptureSRC) {
   EXPECT_EQ(devstr.conv_area, copy_area_call.src);
   EXPECT_EQ(1, copy_area_call.src_index);
   EXPECT_EQ(conv_frames_ret, devstr.conv_area->frames);
+  EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
   free(area);
   free(stream_area);
@@ -746,13 +751,15 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 				  const struct cras_audio_format *dst_fmt,
                                   const struct cras_audio_area *src,
                                   unsigned int src_offset,
-                                  unsigned int src_index) {
+                                  unsigned int src_index,
+                                  float software_gain_scaler) {
   copy_area_call.dst = dst;
   copy_area_call.dst_offset = dst_offset;
   copy_area_call.dst_format_bytes = cras_get_format_bytes(dst_fmt);
   copy_area_call.src = src;
   copy_area_call.src_offset = src_offset;
   copy_area_call.src_index = src_index;
+  copy_area_call.software_gain_scaler = software_gain_scaler;
   return src->frames;
 }
 

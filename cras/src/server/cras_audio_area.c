@@ -27,7 +27,8 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 				  const struct cras_audio_format *dst_fmt,
 				  const struct cras_audio_area *src,
 				  unsigned int src_offset,
-				  unsigned int skip_zero)
+				  unsigned int skip_zero,
+				  float software_gain_scaler)
 {
 	unsigned int src_idx, dst_idx;
 	unsigned int ncopy;
@@ -60,7 +61,7 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 					    ncopy,
 					    dst->channels[dst_idx].step_bytes,
 					    src->channels[src_idx].step_bytes,
-					    1.0f);
+					    software_gain_scaler);
 		}
 	}
 

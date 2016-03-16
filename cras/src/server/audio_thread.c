@@ -1335,7 +1335,7 @@ static int capture_to_streams(struct audio_thread *thread,
 
 			area_offset = cras_iodev_stream_offset(idev, stream);
 			this_read = dev_stream_capture(stream, area,
-						       area_offset);
+						       area_offset, 1.0f);
 			cras_iodev_stream_written(idev, stream, this_read);
 		}
 		if (adev->dev->streams)

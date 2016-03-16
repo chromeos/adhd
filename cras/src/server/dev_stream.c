@@ -254,7 +254,8 @@ static unsigned int capture_with_fmt_conv(struct dev_stream *dev_stream,
  * at this point. */
 static unsigned int capture_copy_converted_to_stream(
 		struct dev_stream *dev_stream,
-		struct cras_rstream *rstream)
+		struct cras_rstream *rstream,
+		float software_gain_scaler)
 {
 	struct cras_audio_shm *shm;
 	uint8_t *stream_samples;
@@ -305,7 +306,8 @@ static unsigned int capture_copy_converted_to_stream(
 
 		cras_audio_area_copy(rstream->audio_area, offset,
 				     &rstream->format,
-				     dev_stream->conv_area, 0, 1);
+				     dev_stream->conv_area, 0, 1,
+				     software_gain_scaler);
 
 		buf_increment_read(dev_stream->conv_buffer,
 				   write_frames * frame_bytes);
@@ -324,7 +326,8 @@ static unsigned int capture_copy_converted_to_stream(
 
 unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			const struct cras_audio_area *area,
-			unsigned int area_offset)
+			unsigned int area_offset,
+			float software_gain_scaler)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct cras_audio_shm *shm;
@@ -341,7 +344,8 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			dev_stream,
 			area->channels[0].buf + area_offset * format_bytes,
 			area->frames - area_offset);
-		capture_copy_converted_to_stream(dev_stream, rstream);
+		capture_copy_converted_to_stream(dev_stream, rstream,
+						 software_gain_scaler);
 	} else {
 		unsigned int offset =
 			cras_rstream_dev_offset(rstream, dev_stream->dev_id);
@@ -358,7 +362,9 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 
 		nread = cras_audio_area_copy(rstream->audio_area, offset,
 					     &rstream->format, area,
-					     area_offset, 1);
+					     area_offset, 1,
+					     software_gain_scaler);
+
 		ATLOG(atlog, AUDIO_THREAD_CAPTURE_WRITE,
 					    rstream->stream_id,
 					    nread,
