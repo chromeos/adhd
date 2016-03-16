@@ -49,8 +49,10 @@ typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
  *      "x1 y1 z1 ... xn yn zn" for an n-microphone array.
  *    name - Name displayed to the user.
  *    softvol_scalers - pointer to software volume scalers.
- *    software_volume_needed - True if the volume range of the node is
- *      smaller than desired.
+ *    software_volume_needed - For output: True if the volume range of the node
+ *      is smaller than desired. For input: True if this node needs software
+ *      gain.
+ *    max_software_gain - The maximum software gain in dBm if needed.
  *    stable_id - id for node that doesn't change after unplug/plug.
  */
 struct cras_ionode {
@@ -66,6 +68,7 @@ struct cras_ionode {
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	float *softvol_scalers;
 	int software_volume_needed;
+	long max_software_gain;
 	unsigned int stable_id;
 	struct cras_ionode *prev, *next;
 };

@@ -71,7 +71,8 @@ void ResetStubData() {
 
 namespace {
 
-TEST(HfpIodev, CreateHfpIodev) {
+TEST(HfpIodev, CreateHfpOutputIodev) {
+  ResetStubData();
   iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                 		  	   fake_info);
@@ -80,6 +81,25 @@ TEST(HfpIodev, CreateHfpIodev) {
   ASSERT_EQ(1, cras_bt_device_append_iodev_called);
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
+  ASSERT_EQ(1, iodev->software_volume_needed);
+
+  hfp_iodev_destroy(iodev);
+
+  ASSERT_EQ(1, cras_bt_device_rm_iodev_called);
+  ASSERT_EQ(1, cras_iodev_rm_node_called);
+}
+
+TEST(HfpIodev, CreateHfpInputIodev) {
+  ResetStubData();
+  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc,
+                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+
+  ASSERT_EQ(CRAS_STREAM_INPUT, iodev->direction);
+  ASSERT_EQ(1, cras_bt_device_append_iodev_called);
+  ASSERT_EQ(1, cras_iodev_add_node_called);
+  ASSERT_EQ(1, cras_iodev_set_active_node_called);
+  /* Input device does not use software gain. */
+  ASSERT_EQ(0, iodev->software_volume_needed);
 
   hfp_iodev_destroy(iodev);
 

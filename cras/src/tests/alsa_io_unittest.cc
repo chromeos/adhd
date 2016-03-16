@@ -108,6 +108,8 @@ static int auto_unplug_input_node_ret = 0;
 static int auto_unplug_output_node_ret = 0;
 static int cras_alsa_mixer_is_virtual_mixer_ret_value;
 static int cras_alsa_mixer_output_has_coupled_mixers_ret_value;
+static int ucm_get_max_software_gain_ret_value;
+static long ucm_get_max_software_gain_value;
 
 void ResetStubData() {
   int i;
@@ -167,6 +169,8 @@ void ResetStubData() {
   cras_alsa_jack_update_monitor_fake_name = 0;
   cras_alsa_mixer_is_virtual_mixer_ret_value = 0;
   cras_alsa_mixer_output_has_coupled_mixers_ret_value = 0;
+  ucm_get_max_software_gain_ret_value = -1;
+  ucm_get_max_software_gain_value = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -368,6 +372,35 @@ TEST(AlsaIoInit, UsbCardUseSoftwareVolume) {
   alsa_iodev_destroy(iodev);
 }
 
+TEST(AlsaIoInit, UseSoftwareGain) {
+  struct cras_iodev *iodev;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+
+  /* Meet the requirements of using software gain. */
+  ResetStubData();
+  ucm_get_max_software_gain_ret_value = 0;
+  ucm_get_max_software_gain_value = 2000;
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
+                            fake_mixer, fake_ucm,
+                            CRAS_STREAM_INPUT, 0, 0);
+  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
+  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
+
+  /* MaxSoftwareGain is not specified in UCM */
+  ResetStubData();
+  ucm_get_max_software_gain_ret_value = 1;
+  ucm_get_max_software_gain_value = 1;
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
+                            fake_mixer, fake_ucm,
+                            CRAS_STREAM_INPUT, 0, 0);
+  EXPECT_EQ(0, iodev->active_node->software_volume_needed);
+  EXPECT_EQ(0, iodev->active_node->max_software_gain);
+
+  alsa_iodev_destroy(iodev);
+}
+
 TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
@@ -473,6 +506,44 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, sys_get_capture_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
   EXPECT_EQ(1, cras_alsa_start_called);
+
+  alsa_iodev_destroy(iodev);
+  free(fake_format);
+}
+
+TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
+  struct cras_iodev *iodev;
+  struct cras_audio_format format;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+
+  /* Meet the requirements of using software gain. */
+  ResetStubData();
+  ucm_get_max_software_gain_ret_value = 0;
+  ucm_get_max_software_gain_value = 2000;
+
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                            fake_mixer, fake_ucm,
+                            CRAS_STREAM_INPUT, 0, 0);
+
+  cras_iodev_set_format(iodev, &format);
+
+  /* System gain is set to 1000dBm */
+  sys_get_capture_gain_return_value = 1000;
+
+  iodev->open_dev(iodev);
+  iodev->close_dev(iodev);
+
+  /* Hardware gain is set to 0dB when software gain is used. */
+  EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_value);
+
+  /* Test the case where software gain is not needed. */
+  iodev->active_node->software_volume_needed = 0;
+  iodev->open_dev(iodev);
+  iodev->close_dev(iodev);
+
+  /* Hardware gain is set to 1000dBm as got from system capture gain.*/
+  EXPECT_EQ(1000, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -1529,6 +1600,13 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
 unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
 {
   return 0;
+}
+
+int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
+    long *gain)
+{
+  *gain = ucm_get_max_software_gain_value;
+  return ucm_get_max_software_gain_ret_value;
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)

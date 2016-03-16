@@ -551,6 +551,9 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	ain = get_active_input(aio);
 	if (ain)
 		gain += ain->base.capture_gain;
+	/* Set hardware gain to 0dB if software gain is needed. */
+	if (cras_iodev_software_volume_needed(iodev))
+		gain = 0;
 	cras_alsa_mixer_set_capture_dBFS(
 			aio->mixer,
 			gain,
@@ -818,6 +821,31 @@ static void set_output_node_software_volume_needed(
 		       output->base.name);
 }
 
+static void set_input_node_software_volume_needed(
+	struct alsa_input_node *input, struct alsa_io *aio)
+{
+	long max_software_gain;
+	int rc;
+
+	input->base.software_volume_needed = 0;
+	input->base.max_software_gain = 0;
+
+	/* Enable software gain only if max software gain is specified in UCM.*/
+	if (!aio->ucm)
+		return;
+
+	rc = ucm_get_max_software_gain(aio->ucm, input->base.name,
+	                               &max_software_gain);
+	if (rc)
+		return;
+
+	input->base.software_volume_needed = 1;
+	input->base.max_software_gain = max_software_gain;
+	syslog(LOG_INFO,
+	       "Use software gain for %s with max %ld because it is specified"
+	       " in UCM", input->base.name, max_software_gain);
+}
+
 static void check_auto_unplug_output_node(struct alsa_io *aio,
 					  struct cras_ionode *node,
 					  int plugged)
@@ -949,6 +977,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
+	set_input_node_software_volume_needed(input, aio);
 
 	/* Check mic positions only for internal mic. */
 	if (aio->ucm && input->base.type == CRAS_NODE_TYPE_INTERNAL_MIC) {

@@ -248,7 +248,12 @@ struct cras_iodev *hfp_iodev_create(
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->software_volume_needed = 1;
+	/* Use software volume for output, not for input because HFP has
+	 * its own gain control.
+	 * TODO(hychao) Hook up HFP gain control. */
+	iodev->software_volume_needed = 0;
+	if (dir == CRAS_STREAM_OUTPUT)
+		iodev->software_volume_needed = 1;
 
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
