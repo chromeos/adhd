@@ -464,6 +464,16 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 	return softvol_get_scaler(volume);
 }
 
+float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev) {
+	float scaler = 1.0f;
+	if (cras_iodev_software_volume_needed(iodev)) {
+		long gain = cras_iodev_adjust_active_node_gain(
+				iodev, cras_system_get_capture_gain());
+		scaler = convert_softvol_scaler_from_dB(gain);
+	}
+	return scaler;
+}
+
 int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct dev_stream *stream)
 {

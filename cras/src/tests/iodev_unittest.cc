@@ -60,6 +60,7 @@ static unsigned int post_dsp_hook_called;
 static const uint8_t *post_dsp_hook_frames;
 static void *post_dsp_hook_cb_data;
 static int iodev_buffer_size;
+static long cras_system_get_capture_gain_ret_value;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -114,6 +115,7 @@ void ResetStubData() {
   post_dsp_hook_called = 0;
   post_dsp_hook_frames = NULL;
   iodev_buffer_size = 0;
+  cras_system_get_capture_gain_ret_value = 0;
 }
 
 namespace {
@@ -771,6 +773,36 @@ TEST(IoDev, SoftwareVolume) {
   EXPECT_FLOAT_EQ(0.3, cras_iodev_get_software_volume_scaler(&iodev));
 }
 
+// Test software gain scaler.
+TEST(IoDev, SoftwareGain) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+  ResetStubData();
+
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+
+  ionode.capture_gain= 400;
+  ionode.software_volume_needed = 1;
+  ionode.max_software_gain = 3000;
+
+  // Check that system volume changes software volume if needed.
+  cras_system_get_capture_gain_ret_value = 2000;
+  // system_gain + node_gain = 2000 + 400  = 2400
+  // 2400 dBm is 15.848931
+  EXPECT_FLOAT_EQ(15.848931, cras_iodev_get_software_gain_scaler(&iodev));
+  EXPECT_FLOAT_EQ(3000, cras_iodev_maximum_software_gain(&iodev));
+
+  // Software gain scaler should be 1.0 if software gain is not needed.
+  ionode.software_volume_needed = 0;
+  EXPECT_FLOAT_EQ(1.0, cras_iodev_get_software_gain_scaler(&iodev));
+  EXPECT_FLOAT_EQ(0, cras_iodev_maximum_software_gain(&iodev));
+}
+
 static int open_dev(struct cras_iodev *iodev) {
   iodev->buffer_size = iodev_buffer_size;
   return 0;
@@ -1017,6 +1049,10 @@ float softvol_get_scaler(unsigned int volume_index)
 
 size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
+}
+
+long cras_system_get_capture_gain() {
+  return cras_system_get_capture_gain_ret_value;
 }
 
 int cras_system_get_mute() {

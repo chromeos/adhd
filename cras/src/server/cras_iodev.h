@@ -310,6 +310,16 @@ static inline unsigned int cras_iodev_adjust_active_node_volume(
 	return cras_iodev_adjust_node_volume(iodev->active_node, system_volume);
 }
 
+/* Get the gain adjusted based on system for the active node. */
+static inline long cras_iodev_adjust_active_node_gain(
+		const struct cras_iodev *iodev, long system_gain)
+{
+	if (!iodev->active_node)
+		return system_gain;
+
+	return iodev->active_node->capture_gain + system_gain;
+}
+
 /* Returns true if the active node of the iodev needs software volume. */
 static inline int cras_iodev_software_volume_needed(
 		const struct cras_iodev *iodev)
@@ -322,6 +332,30 @@ static inline int cras_iodev_software_volume_needed(
 
 	return iodev->active_node->software_volume_needed;
 }
+
+/* Returns maximum software gain for the iodev.
+ * Args:
+ *    iodev - The device.
+ * Returs:
+ *    0 if software gain is not needed, or if there is no active node.
+ *    Returns max_software_gain on active node if there is one. */
+static inline long cras_iodev_maximum_software_gain(
+		const struct cras_iodev *iodev)
+{
+	if (!cras_iodev_software_volume_needed(iodev))
+		return 0;
+	if (!iodev->active_node)
+		return 0;
+	return iodev->active_node->max_software_gain;
+}
+
+/* Gets the software gain scaler should be applied on the deivce.
+ * Args:
+ *    iodev - The device.
+ * Returns:
+ *    A scaler translated from system gain and active node gain dBm value.
+ *    Returns 1.0 if software gain is not needed. */
+float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev);
 
 /* Gets the software volume scaler of the iodev. The scaler should only be
  * applied if the device needs software volume. */
