@@ -135,6 +135,20 @@ Methods		void SetOutputVolume(int32 volume)
 
 			Returns the number of streams currently using output hardware.
 
+		void SetGlobalOutputChannelRemix(int32 num_channels,
+						 array:double coefficient)
+
+			Sets the conversion matrix for global output channel
+			remixing. The coefficient array represents an N * N
+			conversion matrix M, where N is num_channels, with
+			M[i][j] = coefficient[i * N + j].
+			The remix is done by multiplying the conversion matrix
+			to each N-channel PCM data, i.e M * [L, R] = [L', R']
+			For example, coefficient [0.1, 0.9, 0.4, 0.6] will
+			result in:
+			L' = 0.1 * L + 0.9 * R
+			R' = 0.4 * L + 0.6 * R
+
 Signals		OutputVolumeChanged(int32 volume)
 
 			Indicates that the output volume level has changed.

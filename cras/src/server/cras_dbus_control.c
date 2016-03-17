@@ -10,6 +10,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "audio_thread.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
 #include "cras_dbus_util.h"
@@ -90,6 +91,10 @@
     "    </method>\n"                                                   \
     "    <method name=\"GetNumberOfActiveInputStreams\">\n"             \
     "      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"          \
+    "    </method>\n"                                                   \
+    "    <method name=\"SetGlobalOutputChannelRemix\">\n"               \
+    "      <arg name=\"num_channels\" type=\"i\" direction=\"in\"/>\n"  \
+    "      <arg name=\"coefficient\" type=\"ad\" direction=\"in\"/>\n"  \
     "    </method>\n"                                                   \
     "  </interface>\n"                                                  \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"        \
@@ -634,6 +639,48 @@ static DBusHandlerResult handle_get_num_active_streams_use_output_hw(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_global_output_channel_remix(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	dbus_int32_t num_channels;
+	double *coeff_array;
+	dbus_int32_t count;
+	DBusError dbus_error;
+	float *coefficient;
+	int i;
+
+	dbus_error_init(&dbus_error);
+
+	if (!dbus_message_get_args(message, &dbus_error,
+			DBUS_TYPE_INT32, &num_channels,
+			DBUS_TYPE_ARRAY,
+			      DBUS_TYPE_DOUBLE, &coeff_array, &count,
+			      DBUS_TYPE_INVALID)) {
+		syslog(LOG_WARNING, "Set global output channel remix error: %s",
+			dbus_error.message);
+		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	coefficient = (float *)calloc(count, sizeof(*coefficient));
+	if (!coefficient)
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+	for (i = 0; i < count; i++)
+		coefficient[i] = coeff_array[i];
+
+	audio_thread_config_global_remix(
+			cras_iodev_list_get_audio_thread(),
+			num_channels,
+			coefficient);
+
+	send_empty_reply(message);
+	free(coefficient);
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message,
@@ -751,7 +798,13 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						   "GetNumberOfActiveOutputStreams")) {
 		return handle_get_num_active_streams_use_output_hw(
 				conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "SetGlobalOutputChannelRemix")) {
+		return handle_set_global_output_channel_remix(
+				conn, message, arg);
 	}
+
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
