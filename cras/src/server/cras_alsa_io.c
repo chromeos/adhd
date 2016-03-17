@@ -585,13 +585,25 @@ static void init_device_settings(struct alsa_io *aio)
 	} else {
 		struct mixer_control *mixer_input = NULL;
 		struct alsa_input_node *ain = get_active_input(aio);
+		long min_capture_gain, max_capture_gain;
+
 		if (ain)
 			mixer_input = ain->mixer_input;
-		cras_system_set_capture_gain_limits(
-			cras_alsa_mixer_get_minimum_capture_gain(aio->mixer,
-								 mixer_input),
-			cras_alsa_mixer_get_maximum_capture_gain(aio->mixer,
-								 mixer_input));
+
+		if (cras_iodev_software_volume_needed(&aio->base)) {
+			min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
+			max_capture_gain = cras_iodev_maximum_software_gain(
+					&aio->base);
+		} else {
+			min_capture_gain =
+				cras_alsa_mixer_get_minimum_capture_gain(
+						aio->mixer, mixer_input);
+			max_capture_gain =
+				cras_alsa_mixer_get_maximum_capture_gain(
+						aio->mixer, mixer_input);
+		}
+		cras_system_set_capture_gain_limits(min_capture_gain,
+						    max_capture_gain);
 		set_alsa_capture_gain(&aio->base);
 	}
 }

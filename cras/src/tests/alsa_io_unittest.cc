@@ -110,6 +110,9 @@ static int cras_alsa_mixer_is_virtual_mixer_ret_value;
 static int cras_alsa_mixer_output_has_coupled_mixers_ret_value;
 static int ucm_get_max_software_gain_ret_value;
 static long ucm_get_max_software_gain_value;
+static long cras_system_set_capture_gain_limits_set_value[2];
+static long cras_alsa_mixer_get_minimum_capture_gain_ret_value;
+static long cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 
 void ResetStubData() {
   int i;
@@ -171,6 +174,10 @@ void ResetStubData() {
   cras_alsa_mixer_output_has_coupled_mixers_ret_value = 0;
   ucm_get_max_software_gain_ret_value = -1;
   ucm_get_max_software_gain_value = 0;
+  cras_system_set_capture_gain_limits_set_value[0] = -1;
+  cras_system_set_capture_gain_limits_set_value[1] = -1;
+  cras_alsa_mixer_get_minimum_capture_gain_ret_value = 0;
+  cras_alsa_mixer_get_maximum_capture_gain_ret_value = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -386,17 +393,28 @@ TEST(AlsaIoInit, UseSoftwareGain) {
                             CRAS_STREAM_INPUT, 0, 0);
   EXPECT_EQ(1, iodev->active_node->software_volume_needed);
   EXPECT_EQ(2000, iodev->active_node->max_software_gain);
+  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
+  /* The gain range is [DEFAULT_MIN_CAPTURE_GAIN, maximum softare gain]. */
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0],
+      DEFAULT_MIN_CAPTURE_GAIN);
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
 
   /* MaxSoftwareGain is not specified in UCM */
   ResetStubData();
   ucm_get_max_software_gain_ret_value = 1;
   ucm_get_max_software_gain_value = 1;
+  cras_alsa_mixer_get_minimum_capture_gain_ret_value = -500;
+  cras_alsa_mixer_get_maximum_capture_gain_ret_value = 500;
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
                             NULL, ALSA_CARD_TYPE_INTERNAL, 1,
                             fake_mixer, fake_ucm,
                             CRAS_STREAM_INPUT, 0, 0);
   EXPECT_EQ(0, iodev->active_node->software_volume_needed);
   EXPECT_EQ(0, iodev->active_node->max_software_gain);
+  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
+  /* The gain range is reported by controls. */
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0], -500);
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 500);
 
   alsa_iodev_destroy(iodev);
 }
@@ -1363,6 +1381,8 @@ void cras_system_set_volume_limits(long min, long max)
 
 void cras_system_set_capture_gain_limits(long min, long max)
 {
+  cras_system_set_capture_gain_limits_set_value[0] = min;
+  cras_system_set_capture_gain_limits_set_value[1] = max;
   sys_set_capture_gain_limits_called++;
 }
 
@@ -1467,7 +1487,7 @@ long cras_alsa_mixer_get_minimum_capture_gain(struct cras_alsa_mixer *cmix,
 {
 	cras_alsa_mixer_get_minimum_capture_gain_called++;
 	cras_alsa_mixer_get_minimum_capture_gain_mixer_input = mixer_input;
-	return 0;
+	return cras_alsa_mixer_get_minimum_capture_gain_ret_value;
 }
 
 long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
@@ -1475,7 +1495,7 @@ long cras_alsa_mixer_get_maximum_capture_gain(struct cras_alsa_mixer *cmix,
 {
 	cras_alsa_mixer_get_maximum_capture_gain_called++;
 	cras_alsa_mixer_get_maximum_capture_gain_mixer_input = mixer_input;
-	return 0;
+	return cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 }
 
 struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
