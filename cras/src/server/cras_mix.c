@@ -56,11 +56,12 @@ void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 	ops->add(fmt, dst, src, count, index, mute, mix_vol);
 }
 
-void cras_mix_add_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
+void cras_mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 			 unsigned int count, unsigned int dst_stride,
-			 unsigned int src_stride)
+			 unsigned int src_stride, float scaler)
 {
-	ops->add_stride(fmt, dst, src, count, dst_stride, src_stride);
+	ops->add_scale_stride(fmt, dst, src, count, dst_stride, src_stride,
+			      scaler);
 }
 
 size_t cras_mix_mute_buffer(uint8_t *dst,

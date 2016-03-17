@@ -56,10 +56,11 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 			dchan = dst->channels[dst_idx].buf +
 				dst_offset * dst->channels[dst_idx].step_bytes;
 
-			cras_mix_add_stride(dst_fmt->format, dchan, schan,
+			cras_mix_add_scale_stride(dst_fmt->format, dchan, schan,
 					    ncopy,
 					    dst->channels[dst_idx].step_bytes,
-					    src->channels[src_idx].step_bytes);
+					    src->channels[src_idx].step_bytes,
+					    1.0f);
 		}
 	}
 

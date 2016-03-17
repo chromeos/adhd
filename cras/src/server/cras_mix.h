@@ -49,10 +49,11 @@ void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
  *    count - The number of samples to mix.
  *    dst_stride - Stride between channel samples in dst in bytes.
  *    src_stride - Stride between channel samples in src in bytes.
+ *    scaler - Amount to scale samples.
  */
-void cras_mix_add_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
+void cras_mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 			 unsigned int count, unsigned int dst_stride,
-			 unsigned int src_stride);
+			 unsigned int src_stride, float scaler);
 
 /* Mutes the given buffer.
  * Args:

@@ -272,15 +272,15 @@ TEST(AudioArea, KeyboardMicCopyFrontCenter) {
 
 extern "C" {
 
-void cras_mix_add_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
+void cras_mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 			 unsigned int count, unsigned int dst_stride,
-			 unsigned int src_stride)
+			 unsigned int src_stride, float scaler)
 {
 	unsigned int i;
 
 	for (i = 0; i < count; i++) {
 		int32_t sum;
-		sum = *(int16_t *)dst + *(int16_t *)src;
+		sum = *(int16_t *)dst + *(int16_t *)src * scaler;
 		if (sum > INT16_MAX)
 			sum = INT16_MAX;
 		else if (sum < INT16_MIN)
