@@ -63,8 +63,6 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 }
 #define deinterleave_stereo deinterleave_stereo
 
-// TODO(fbarchard): Round using multiply and frintp.
-// TODO(fbarchard): Coonsider doing 8 samples at a time.
 static void interleave_stereo(float *input1, float *input2,
 			      int16_t *output, int frames)
 {
@@ -75,44 +73,27 @@ static void interleave_stereo(float *input1, float *input2,
 
 	if (chunk) {
 		__asm__ __volatile__ (
-			"dup    v5.4s, %w[pos]				\n"
-			"dup    v6.4s, %w[neg]				\n"
-			"eor    v0.16b, v0.16b, v0.16b			\n"
-			"1:						\n"
-			"ld1    {v1.4s}, [%[input1]], #16		\n"
-			"ld1    {v2.4s}, [%[input2]], #16		\n"
-			"subs   %[chunk], %[chunk], #1			\n"
-			/* We try to round to the nearest number by adding 0.5
-			 * to positive input, and adding -0.5 to the negative
-			 * input, then truncate.
-			 */
-			"fcmgt  v3.4s, v1.4s, v0.4s			\n"
-			"fcmgt  v4.4s, v2.4s, v0.4s			\n"
-			"bsl    v3.16b, v5.16b, v6.16b			\n"
-			"bsl    v4.16b, v5.16b, v6.16b			\n"
-			"fadd   v1.4s, v1.4s, v3.4s			\n"
-			"fadd   v2.4s, v2.4s, v4.4s			\n"
-			"fcvtzs v1.4s, v1.4s, #15			\n"
-			"fcvtzs v2.4s, v2.4s, #15			\n"
-			"sqxtn  v1.4h, v1.4s				\n"
-			"sqxtn  v2.4h, v2.4s				\n"
-			"st2    {v1.4h, v2.4h}, [%[output]], #16	\n"
-			"b.ne   1b					\n"
+			"1:                                         \n"
+			"ld1    {v0.4s}, [%[input1]], #16           \n"
+			"ld1    {v1.4s}, [%[input2]], #16           \n"
+			"subs   %[chunk], %[chunk], #1              \n"
+			"fmul   v0.4s, v0.4s, %w[scale].4s[0]       \n"
+			"fmul   v1.4s, v1.4s, %w[scale].4s[0]       \n"
+			"fcvtns v0.4s, v0.4s                        \n"
+			"fcvtns v1.4s, v1.4s                        \n"
+			"sqxtn  v0.4h, v0.4s                        \n"
+			"sqxtn  v1.4h, v1.4s                        \n"
+			"st2    {v0.4h, v1.4h}, [%[output]], #16    \n"
+			"b.ne   1b                                  \n"
 			: /* output */
-			  "=r"(chunk),
-			  "=r"(input1),
-			  "=r"(input2),
-			  "=r"(output)
+			  [chunk]"+r"(chunk),
+			  [input1]"+r"(input1),
+			  [input2]"+r"(input2),
+			  [output]"+r"(output)
 			: /* input */
-			  [chunk]"0"(chunk),
-			  [input1]"1"(input1),
-			  [input2]"2"(input2),
-			  [output]"3"(output),
-			  [pos]"r"(0.5f / 32768.0f),
-			  [neg]"r"(-0.5f / 32768.0f)
+			  [scale]"w"(32768.0f)
 			: /* clobber */
-			  "v0", "v1", "v2", "v3", "v4", "v5", "v6",
-			  "memory", "cc"
+			  "v0", "v1", "memory", "cc"
 			);
 	}
 
