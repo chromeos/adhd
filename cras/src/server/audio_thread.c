@@ -977,6 +977,10 @@ static int get_next_output_wake(struct audio_thread *thread,
 				min_ts);
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+		/* Do not wake up for device not started yet. */
+		if (!adev->dev->dev_running(adev->dev))
+			continue;
+
 		rc = cras_iodev_frames_queued(adev->dev);
 		hw_level = (rc < 0) ? 0 : rc;
 
