@@ -61,6 +61,7 @@ static const uint8_t *post_dsp_hook_frames;
 static void *post_dsp_hook_cb_data;
 static int iodev_buffer_size;
 static long cras_system_get_capture_gain_ret_value;
+static int is_open_ret;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -116,6 +117,7 @@ void ResetStubData() {
   post_dsp_hook_frames = NULL;
   iodev_buffer_size = 0;
   cras_system_get_capture_gain_ret_value = 0;
+  is_open_ret = 0;
 }
 
 namespace {
@@ -854,6 +856,30 @@ TEST(IoDev, AddRmStream) {
   cras_iodev_rm_stream(&iodev, &rstream2);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
+}
+
+static int start(const struct cras_iodev *iodev) {
+  return 0;
+}
+
+static int is_open(const struct cras_iodev *iodev) {
+  return is_open_ret;
+}
+
+TEST(IoDev, StartDevice) {
+  struct cras_iodev iodev;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.is_open = is_open;
+  iodev.start = start;
+
+  // Start fails if it is called in closed state.
+  is_open_ret = 0;
+  ASSERT_TRUE(cras_iodev_start(&iodev));
+
+  // Start can only be called in open state.
+  is_open_ret = 1;
+  EXPECT_EQ(0, cras_iodev_start(&iodev));
 }
 
 extern "C" {

@@ -573,6 +573,13 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 	return 0;
 }
 
+int cras_iodev_start(struct cras_iodev *iodev)
+{
+	if (!iodev->is_open(iodev))
+		return -EPERM;
+	return iodev->start(iodev);
+}
+
 int cras_iodev_close(struct cras_iodev *iodev)
 {
 	if (!iodev->is_open(iodev))

@@ -136,6 +136,12 @@ static int dev_running(const struct cras_iodev *iodev)
 	return iodev->is_open(iodev);
 }
 
+/* This is dummy because dev_running is identical to is_open. */
+static int start(const struct cras_iodev *iodev)
+{
+	return 0;
+}
+
 static int delay_frames(const struct cras_iodev *iodev)
 {
 	return frames_queued(iodev);
@@ -241,6 +247,7 @@ struct cras_iodev *hfp_iodev_create(
 	iodev->is_open = is_open;
 	iodev->frames_queued = frames_queued;
 	iodev->dev_running = dev_running;
+	iodev->start = start;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;

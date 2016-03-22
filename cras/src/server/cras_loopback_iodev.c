@@ -131,6 +131,12 @@ static int dev_running(const struct cras_iodev *iodev)
 	return is_open(iodev);
 }
 
+/* This is dummy because dev_running is identical to is_open. */
+static int start(const struct cras_iodev *iodev)
+{
+	return 0;
+}
+
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
@@ -275,6 +281,7 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 
 	iodev->is_open = is_open;
 	iodev->dev_running = dev_running;
+	iodev->start = start;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->update_active_node = update_active_node;

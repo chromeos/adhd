@@ -4,11 +4,14 @@
 
 extern "C" {
 #include "audio_thread.c"
+#include "cras_audio_area.h"
 }
 
 #include <gtest/gtest.h>
 
 #define MAX_CALLS 10
+#define BUFFER_SIZE 8192
+#define FIRST_CB_LEVEL 480
 
 static unsigned int cras_rstream_dev_offset_called;
 static unsigned int cras_rstream_dev_offset_ret[MAX_CALLS];
@@ -18,13 +21,39 @@ static unsigned int cras_rstream_dev_offset_update_called;
 static const struct cras_rstream *cras_rstream_dev_offset_update_rstream_val[MAX_CALLS];
 static unsigned int cras_rstream_dev_offset_update_frames_val[MAX_CALLS];
 static unsigned int cras_rstream_dev_offset_update_dev_id_val[MAX_CALLS];
+static int cras_iodev_start_called;
+static int cras_iodev_all_streams_written_ret;
+static struct cras_audio_area *cras_iodev_get_output_buffer_area;
+static int cras_iodev_put_output_buffer_called;
+static unsigned int cras_iodev_put_output_buffer_nframes;
+
+void ResetGlobalStubData() {
+  cras_rstream_dev_offset_called = 0;
+  cras_rstream_dev_offset_update_called = 0;
+  for (int i = 0; i < MAX_CALLS; i++) {
+    cras_rstream_dev_offset_ret[i] = 0;
+    cras_rstream_dev_offset_rstream_val[i] = NULL;
+    cras_rstream_dev_offset_dev_id_val[i] = 0;
+    cras_rstream_dev_offset_update_rstream_val[i] = NULL;
+    cras_rstream_dev_offset_update_frames_val[i] = 0;
+    cras_rstream_dev_offset_update_dev_id_val[i] = 0;
+  }
+  cras_iodev_start_called = 0;
+  cras_iodev_all_streams_written_ret = 0;
+  if (cras_iodev_get_output_buffer_area) {
+    free(cras_iodev_get_output_buffer_area);
+    cras_iodev_get_output_buffer_area = NULL;
+  }
+  cras_iodev_put_output_buffer_called = 0;
+  cras_iodev_put_output_buffer_nframes = 0;
+}
 
 // Test streams and devices manipulation.
 class StreamDeviceSuite : public testing::Test {
   protected:
     virtual void SetUp() {
-      device_id_ = 0;
       thread_ = audio_thread_create();
+      ResetStubData();
     }
 
     virtual void TearDown() {
@@ -45,6 +74,20 @@ class StreamDeviceSuite : public testing::Test {
       iodev->put_buffer = put_buffer;
       iodev->flush_buffer = flush_buffer;
       iodev->ext_format = &format_;
+      iodev->buffer_size = BUFFER_SIZE;
+      iodev->min_cb_level = FIRST_CB_LEVEL;
+    }
+
+    void ResetStubData() {
+      device_id_ = 0;
+      open_dev_called_ = 0;
+      close_dev_called_ = 0;
+      dev_running_called_ = 0;
+      dev_running_ret = 0;
+      is_open_ = 0;
+      frames_queued_ = 0;
+      delay_frames_ = 0;
+      audio_buffer_size_ = 0;
     }
 
     void SetupRstream(struct cras_rstream *rstream,
@@ -52,6 +95,12 @@ class StreamDeviceSuite : public testing::Test {
       memset(rstream, 0, sizeof(*rstream));
       rstream->direction = direction;
       rstream->cb_threshold = 480;
+      rstream->shm.area = static_cast<cras_audio_shm_area*>(
+          calloc(1, sizeof(rstream->shm.area)));
+    }
+
+    void TearDownRstream(struct cras_rstream *rstream) {
+      free(rstream->shm.area);
     }
 
     void SetupPinnedStream(struct cras_rstream *rstream,
@@ -74,7 +123,7 @@ class StreamDeviceSuite : public testing::Test {
 
     static int dev_running(const cras_iodev* iodev) {
       dev_running_called_++;
-      return 1;
+      return dev_running_ret;
     }
 
     static int is_open(const cras_iodev* iodev) {
@@ -131,20 +180,22 @@ class StreamDeviceSuite : public testing::Test {
     static int delay_frames_;
     static struct cras_audio_format format_;
     static struct cras_audio_area *area_;
-    static uint8_t audio_buffer_[8192];
+    static uint8_t audio_buffer_[BUFFER_SIZE];
     static unsigned int audio_buffer_size_;
+    static int dev_running_ret;
 };
 
-int StreamDeviceSuite::open_dev_called_ = 0;
-int StreamDeviceSuite::close_dev_called_ = 0;
-int StreamDeviceSuite::dev_running_called_ = 0;
-int StreamDeviceSuite::is_open_ = 0;
-int StreamDeviceSuite::frames_queued_ = 0;
-int StreamDeviceSuite::delay_frames_ = 0;
+int StreamDeviceSuite::open_dev_called_;
+int StreamDeviceSuite::close_dev_called_;
+int StreamDeviceSuite::dev_running_called_;
+int StreamDeviceSuite::dev_running_ret;
+int StreamDeviceSuite::is_open_;
+int StreamDeviceSuite::frames_queued_;
+int StreamDeviceSuite::delay_frames_;
 struct cras_audio_format StreamDeviceSuite::format_;
 struct cras_audio_area *StreamDeviceSuite::area_;
 uint8_t StreamDeviceSuite::audio_buffer_[8192];
-unsigned int StreamDeviceSuite::audio_buffer_size_ = 0;
+unsigned int StreamDeviceSuite::audio_buffer_size_;
 
 TEST_F(StreamDeviceSuite, AddRemoveOpenOutputDevice) {
   struct cras_iodev iodev;
@@ -271,6 +322,10 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   EXPECT_EQ(30, cras_rstream_dev_offset_update_frames_val[0]);
   EXPECT_EQ(&rstream2, cras_rstream_dev_offset_update_rstream_val[1]);
   EXPECT_EQ(0, cras_rstream_dev_offset_update_frames_val[1]);
+
+  TearDownRstream(&rstream);
+  TearDownRstream(&rstream2);
+  TearDownRstream(&rstream3);
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
@@ -334,6 +389,108 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   thread_add_open_dev(thread_, &iodev);
   dev_stream = iodev.streams;
   EXPECT_EQ(NULL, dev_stream);
+
+  TearDownRstream(&rstream);
+  TearDownRstream(&rstream2);
+  TearDownRstream(&rstream3);
+}
+
+TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
+  struct cras_iodev iodev;
+  struct open_dev *adev;
+
+  ResetGlobalStubData();
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+
+  // Setup the output buffer for device.
+  cras_iodev_get_output_buffer_area = cras_audio_area_create(2);
+
+  // Add the device.
+  thread_add_open_dev(thread_, &iodev);
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+
+  // Device is not running yet. Should return right away.
+  dev_running_ret = 0;
+  write_output_samples(thread_, adev);
+  EXPECT_EQ(0, cras_iodev_put_output_buffer_called);
+
+  // Device is running. Should fill zeros. The target level is two times of
+  // cb level.
+  dev_running_ret = 1;
+  write_output_samples(thread_, adev);
+  EXPECT_EQ(1, cras_iodev_put_output_buffer_called);
+  EXPECT_EQ(FIRST_CB_LEVEL * 2, cras_iodev_put_output_buffer_nframes);
+
+  thread_rm_open_dev(thread_, &iodev);
+}
+
+TEST_F(StreamDeviceSuite, WriteOutputSamplesWithStream) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct open_dev *adev;
+  struct cras_rstream rstream;
+
+  ResetGlobalStubData();
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+
+  // Setup the output buffer for device.
+  cras_iodev_get_output_buffer_area = cras_audio_area_create(2);
+
+  // Add the device and add the stream.
+  thread_add_open_dev(thread_, &iodev);
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+  thread_add_stream(thread_, &rstream, &piodev, 1);
+
+  // Assume there is no sample written in this cycle.
+  cras_iodev_all_streams_written_ret = 0;
+  write_output_samples(thread_, adev);
+  EXPECT_EQ(0, cras_iodev_start_called);
+
+  // Assume there are 100 samples written in this cycle.
+  cras_iodev_all_streams_written_ret = 100;
+  write_output_samples(thread_, adev);
+  EXPECT_EQ(1, cras_iodev_start_called);
+  EXPECT_EQ(cras_iodev_all_streams_written_ret,
+            cras_iodev_put_output_buffer_nframes);
+
+  thread_rm_open_dev(thread_, &iodev);
+  TearDownRstream(&rstream);
+}
+
+TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct open_dev *adev;
+  struct cras_rstream rstream;
+
+  ResetGlobalStubData();
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+
+  // Setup the output buffer for device.
+  cras_iodev_get_output_buffer_area = cras_audio_area_create(2);
+
+  // Add the device and add the stream.
+  thread_add_open_dev(thread_, &iodev);
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+  thread_add_stream(thread_, &rstream, &piodev, 1);
+
+  // Assume device is running and there is an underrun. There is no frame
+  // queued and there is no sample written in this cycle.
+  // Audio thread should fill one cb level of zeros.
+  dev_running_ret = 1;
+  frames_queued_ = 0;
+  cras_iodev_all_streams_written_ret = 0;
+  write_output_samples(thread_, adev);
+  // write_streams put the first time, and filling for underrun put the second
+  // time.
+  EXPECT_EQ(2, cras_iodev_put_output_buffer_called);
+  EXPECT_EQ(FIRST_CB_LEVEL, cras_iodev_put_output_buffer_nframes);
+
+  thread_rm_open_dev(thread_, &iodev);
+  TearDownRstream(&rstream);
 }
 
 TEST(AUdioThreadStreams, DrainStream) {
@@ -376,7 +533,7 @@ int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev)
 {
-  return 0;
+  return cras_iodev_all_streams_written_ret;
 }
 
 int cras_iodev_close(struct cras_iodev *iodev)
@@ -458,6 +615,8 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				 unsigned int nframes)
 {
+  cras_iodev_put_output_buffer_called++;
+  cras_iodev_put_output_buffer_nframes = nframes;
   return 0;
 }
 
@@ -472,6 +631,7 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 				 struct cras_audio_area **area,
 				 unsigned *frames)
 {
+  *area = cras_iodev_get_output_buffer_area;
   return 0;
 }
 
@@ -644,6 +804,12 @@ int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
   return iodev->buffer_size - iodev->frames_queued(iodev);
 }
 
+int cras_iodev_start(struct cras_iodev *iodev)
+{
+  cras_iodev_start_called = 1;
+  return 0;
+}
+
 int cras_server_metrics_longest_fetch_delay(int delay_msec)
 {
   return 0;
@@ -652,6 +818,19 @@ int cras_server_metrics_longest_fetch_delay(int delay_msec)
 float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
 {
   return 1.0f;
+}
+
+struct cras_audio_area *cras_audio_area_create(int num_channels)
+{
+  struct cras_audio_area *area;
+  size_t sz;
+
+  sz = sizeof(*area) + num_channels * sizeof(struct cras_channel_area);
+  area = (cras_audio_area *)calloc(1, sz);
+  area->num_channels = num_channels;
+  area->channels[0].buf = (uint8_t*)calloc(1, BUFFER_SIZE * 2 * num_channels);
+
+  return area;
 }
 
 }  // extern "C"

@@ -90,6 +90,7 @@ struct cras_ionode {
  * flush_buffer - Flushes the buffer and return the number of frames flushed.
  * dev_running - Checks if the device is playing or recording, return 1 if it's
  *     running, return 0 if not.
+ * start - Starts running device.
  * update_active_node - Update the active node when the selected device/node has
  *     changed.
  * update_channel_layout - Update the channel layout base on set iodev->format,
@@ -145,6 +146,7 @@ struct cras_iodev {
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*flush_buffer)(struct cras_iodev *iodev);
 	int (*dev_running)(const struct cras_iodev *iodev);
+	int (*start)(const struct cras_iodev *iodev);
 	void (*update_active_node)(struct cras_iodev *iodev,
 				   unsigned node_idx, unsigned dev_enabled);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
@@ -389,6 +391,9 @@ unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev);
 
 /* Open an iodev, does setup and invokes the open_dev callback. */
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level);
+
+/* Starts an opened iodev, invokes the start callback. */
+int cras_iodev_start(struct cras_iodev *iodev);
 
 /* Open an iodev, does teardown and invokes the close_dev callback. */
 int cras_iodev_close(struct cras_iodev *iodev);

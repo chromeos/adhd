@@ -58,6 +58,12 @@ static int dev_running(const struct cras_iodev *iodev)
 	return 1;
 }
 
+/* This is dummy because dev_running always returns 1. */
+static int start(const struct cras_iodev *iodev)
+{
+	return 0;
+}
+
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	struct test_iodev *testio = (struct test_iodev *)iodev;
@@ -214,6 +220,7 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 		iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->dev_running = dev_running;
+	iodev->start = start;
 	iodev->update_active_node = update_active_node;
 
 	/* Create a dummy ionode */

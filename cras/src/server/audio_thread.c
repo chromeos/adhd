@@ -1167,9 +1167,19 @@ static int write_output_samples(struct audio_thread *thread,
 	int rc;
 	uint8_t *dst = NULL;
 	struct cras_audio_area *area = NULL;
+	int is_running;
 
-	if (!odev->streams)
-		return fill_output_no_streams(adev);
+	is_running = odev->dev_running(odev);
+
+	/* Do not fill zeros before the device start playing. Only fill zeros
+	 * in the idle stage when device is still playing.
+	 * TODO(cychiang) Use stop call instead of filling zeros.
+	 */
+	if (!odev->streams) {
+		if (is_running)
+			return fill_output_no_streams(adev);
+		return 0;
+	}
 
 	rc = cras_iodev_frames_queued(odev);
 	if (rc < 0)
@@ -1219,14 +1229,18 @@ static int write_output_samples(struct audio_thread *thread,
 		total_written += written;
 	}
 
-	/* If we haven't started the device and wrote samples, then start it. */
+	/* In the case where we have written samples or there are samples in
+	 * device, start it if needed. */
 	if (total_written || hw_level) {
-		if (!odev->dev_running(odev))
-			return -1;
-	} else if (odev->min_cb_level < odev->buffer_size) {
-		/* Empty hardware and nothing written, zero fill it. */
-		fill_odev_zeros(adev->dev, odev->min_cb_level);
-	}
+		if (!is_running) {
+			rc = cras_iodev_start(odev);
+			if (rc < 0)
+				return rc;
+		}
+	} else if (is_running && odev->min_cb_level < odev->buffer_size)
+		/* Empty hardware and nothing written, zero fill it if it is
+		 * running. */
+		fill_odev_zeros(odev, odev->min_cb_level);
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 			hw_level, total_written, odev->min_cb_level);
