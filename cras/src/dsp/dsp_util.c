@@ -299,6 +299,8 @@ static void interleave_stereo(float *input1, float *input2,
 			"add $16, %[input2]                         \n"
 			"mulps %[scale_2_15], %%xmm0                \n"
 			"mulps %[scale_2_15], %%xmm1                \n"
+			"minps %[clamp_large], %%xmm0               \n"
+			"minps %[clamp_large], %%xmm1               \n"
 			"cvtps2dq %%xmm0, %%xmm0                    \n"
 			"cvtps2dq %%xmm1, %%xmm1                    \n"
 			"packssdw %%xmm1, %%xmm0                    \n"
@@ -316,7 +318,8 @@ static void interleave_stereo(float *input1, float *input2,
 			  [input1]"1"(input1),
 			  [input2]"2"(input2),
 			  [output]"3"(output),
-			  [scale_2_15]"x"(_mm_set1_ps(1.0f*(1<<15)))
+			  [scale_2_15]"x"(_mm_set1_ps(1.0f*(1<<15))),
+			  [clamp_large]"x"(_mm_set1_ps(32767.0f))
 			: /* clobber */
 			  "xmm0", "xmm1", "xmm2", "memory", "cc"
 			);
