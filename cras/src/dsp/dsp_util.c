@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+/* Copyright 2013 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -20,6 +20,11 @@
 #undef deinterleave_stereo
 #undef interleave_stereo
 
+/* Converts shorts in range of -32768 to 32767 to floats in range of
+ * -1.0f to 1.0f.
+ * scvtf instruction accepts fixed point ints, so sxtl is used to lengthen
+ * shorts to int with sign extension.
+ */
 #ifdef __aarch64__
 static void deinterleave_stereo(int16_t *input, float *output1,
 				float *output2, int frames)
@@ -30,20 +35,20 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
 	if (chunk) {
 		__asm__ __volatile__ (
-			"1:                             	    \n"
+			"1:                                         \n"
 			"ld2  {v2.8h, v3.8h}, [%[input]], #32       \n"
-			"subs %[chunk], %[chunk], #1   		    \n"
-			"sxtl   v0.4s, v2.4h           		    \n"
-			"sxtl2  v1.4s, v2.8h           		    \n"
-			"sxtl   v2.4s, v3.4h           		    \n"
-			"sxtl2  v3.4s, v3.8h           		    \n"
-			"scvtf  v0.4s, v0.4s, #15      		    \n"
-			"scvtf  v1.4s, v1.4s, #15      		    \n"
-			"scvtf  v2.4s, v2.4s, #15      		    \n"
-			"scvtf  v3.4s, v3.4s, #15      		    \n"
+			"subs %[chunk], %[chunk], #1                \n"
+			"sxtl   v0.4s, v2.4h                        \n"
+			"sxtl2  v1.4s, v2.8h                        \n"
+			"sxtl   v2.4s, v3.4h                        \n"
+			"sxtl2  v3.4s, v3.8h                        \n"
+			"scvtf  v0.4s, v0.4s, #15                   \n"
+			"scvtf  v1.4s, v1.4s, #15                   \n"
+			"scvtf  v2.4s, v2.4s, #15                   \n"
+			"scvtf  v3.4s, v3.4s, #15                   \n"
 			"st1    {v0.4s, v1.4s}, [%[output1]], #32   \n"
 			"st1    {v2.4s, v3.4s}, [%[output2]], #32   \n"
-			"b.ne   1b                      	    \n"
+			"b.ne   1b                                  \n"
 			: /* output */
 			  [chunk]"+r"(chunk),
 			  [input]"+r"(input),
@@ -63,6 +68,18 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 }
 #define deinterleave_stereo deinterleave_stereo
 
+/* Converts floats in range of -1.0f to 1.0f to shorts in range of
+ * -32768 to 32767 with rounding to nearest, with ties (0.5) rounding away
+ * from zero.
+ * Rounding is achieved by using fcvtas instruction. (a = away)
+ * The float scaled to a range of -32768 to 32767 by adding 15 to the exponent.
+ * Add to exponent is equivalent to multiply for exponent range of 0 to 239,
+ * which is 2.59 * 10^33.  A signed saturating add (sqadd) limits exponents
+ * from 240 to 255 to clamp to 255.
+ * For very large values, beyond +/- 2 billion, fcvtas will clamp the result
+ * to the min or max value that fits an int.
+ * For other values, sqxtn clamps the output to -32768 to 32767 range.
+ */
 static void interleave_stereo(float *input1, float *input2,
 			      int16_t *output, int frames)
 {
@@ -73,12 +90,13 @@ static void interleave_stereo(float *input1, float *input2,
 
 	if (chunk) {
 		__asm__ __volatile__ (
+			"dup    v2.4s, %w[scale]                    \n"
 			"1:                                         \n"
 			"ld1    {v0.4s}, [%[input1]], #16           \n"
 			"ld1    {v1.4s}, [%[input2]], #16           \n"
 			"subs   %[chunk], %[chunk], #1              \n"
-			"fmul   v0.4s, v0.4s, %w[scale].4s[0]       \n"
-			"fmul   v1.4s, v1.4s, %w[scale].4s[0]       \n"
+			"sqadd  v0.4s, v0.4s, v2.4s                 \n"
+			"sqadd  v1.4s, v1.4s, v2.4s                 \n"
 			"fcvtas v0.4s, v0.4s                        \n"
 			"fcvtas v1.4s, v1.4s                        \n"
 			"sqxtn  v0.4h, v0.4s                        \n"
@@ -91,21 +109,21 @@ static void interleave_stereo(float *input1, float *input2,
 			  [input2]"+r"(input2),
 			  [output]"+r"(output)
 			: /* input */
-			  [scale]"w"(32768.0f)
+			  [scale]"r"(15 << 23)
 			: /* clobber */
-			  "v0", "v1", "memory", "cc"
+			  "v0", "v1", "v2", "memory", "cc"
 			);
 	}
 
 	/* The remaining samples */
 	while (frames--) {
 		float f;
-		f = *input1++;
-		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
-		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
-		f = *input2++;
-		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
-		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+		f = *input1++ * 32768.0f;
+		f += (f >= 0) ? 0.5f : -0.5f;
+		*output++ = max(-32768, min(32767, (int)(f)));
+		f = *input2++ * 32768.0f;
+		f += (f >= 0) ? 0.5f : -0.5f;
+		*output++ = max(-32768, min(32767, (int)(f)));
 	}
 }
 #define interleave_stereo interleave_stereo
@@ -156,6 +174,16 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 }
 #define deinterleave_stereo deinterleave_stereo
 
+/* Converts floats in range of -1.0f to 1.0f to shorts in range of
+ * -32768 to 32767 with rounding to nearest, with ties (0.5) rounding away
+ * from zero.
+ * Rounding is achieved by adding 0.5 or -0.5 adjusted for fixed point
+ * precision, and then converting float to fixed point using vcvt instruction
+ * which truncated toward zero.
+ * For very large values, beyond +/- 2 billion, vcvt will clamp the result
+ * to the min or max value that fits an int.
+ * For other values, vqmovn clamps the output to -32768 to 32767 range.
+ */
 static void interleave_stereo(float *input1, float *input2,
 			      int16_t *output, int frames)
 {
@@ -190,15 +218,11 @@ static void interleave_stereo(float *input1, float *input2,
 			"vst2.16 {d2-d3}, [%[output]]!		    \n"
 			"bne 1b					    \n"
 			: /* output */
-			  "=r"(chunk),
-			  "=r"(input1),
-			  "=r"(input2),
-			  "=r"(output)
+			  [chunk]"+r"(chunk),
+			  [input1]"+r"(input1),
+			  [input2]"+r"(input2),
+			  [output]"+r"(output)
 			: /* input */
-			  [chunk]"0"(chunk),
-			  [input1]"1"(input1),
-			  [input2]"2"(input2),
-			  [output]"3"(output),
 			  [pos]"w"(pos),
 			  [neg]"w"(neg)
 			: /* clobber */
@@ -209,12 +233,12 @@ static void interleave_stereo(float *input1, float *input2,
 	/* The remaining samples */
 	while (frames--) {
 		float f;
-		f = *input1++;
-		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
-		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
-		f = *input2++;
-		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
-		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+		f = *input1++ * 32768.0f;
+		f += (f >= 0) ? 0.5f : -0.5f;
+		*output++ = max(-32768, min(32767, (int)(f)));
+		f = *input2++ * 32768.0f;
+		f += (f >= 0) ? 0.5f : -0.5f;
+		*output++ = max(-32768, min(32767, (int)(f)));
 	}
 }
 #define interleave_stereo interleave_stereo
@@ -223,6 +247,16 @@ static void interleave_stereo(float *input1, float *input2,
 #ifdef __SSE3__
 #include <emmintrin.h>
 
+/* Converts shorts in range of -32768 to 32767 to floats in range of
+ * -1.0f to 1.0f.
+ * pslld and psrad shifts are used to isolate the low and high word, but
+ * each in a different range:
+ * The low word is shifted to the high bits in range 0x80000000 .. 0x7fff0000.
+ * The high word is shifted to the low bits in range 0x00008000 .. 0x00007fff.
+ * cvtdq2ps converts ints to floats as is.
+ * mulps is used to normalize the range of the low and high words, adjusting
+ * for high and low words being in different range.
+ */
 static void deinterleave_stereo(int16_t *input, float *output1,
 				float *output2, int frames)
 {
@@ -279,6 +313,12 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 }
 #define deinterleave_stereo deinterleave_stereo
 
+/* Converts floats in range of -1.0f to 1.0f to shorts in range of
+ * -32768 to 32767 with rounding to nearest, with ties (0.5) rounding to
+ * even.
+ * For very large values, beyond +/- 2 billion, cvtps2dq will produce
+ * 0x80000000 and packssdw will clamp -32768.
+ */
 static void interleave_stereo(float *input1, float *input2,
 			      int16_t *output, int frames)
 {
@@ -292,15 +332,13 @@ static void interleave_stereo(float *input1, float *input2,
 			"1:                                         \n"
 			"lddqu (%[input1]), %%xmm0                  \n"
 			"lddqu (%[input2]), %%xmm2                  \n"
+			"add $16, %[input1]                         \n"
+			"add $16, %[input2]                         \n"
 			"movaps %%xmm0, %%xmm1                      \n"
 			"unpcklps %%xmm2, %%xmm0                    \n"
 			"unpckhps %%xmm2, %%xmm1                    \n"
-			"add $16, %[input1]                         \n"
-			"add $16, %[input2]                         \n"
-			"mulps %[scale_2_15], %%xmm0                \n"
-			"mulps %[scale_2_15], %%xmm1                \n"
-			"minps %[clamp_large], %%xmm0               \n"
-			"minps %[clamp_large], %%xmm1               \n"
+			"paddsw %[scale_2_15], %%xmm0               \n"
+			"paddsw %[scale_2_15], %%xmm1               \n"
 			"cvtps2dq %%xmm0, %%xmm0                    \n"
 			"cvtps2dq %%xmm1, %%xmm1                    \n"
 			"packssdw %%xmm1, %%xmm0                    \n"
@@ -309,16 +347,12 @@ static void interleave_stereo(float *input1, float *input2,
 			"sub $1, %[chunk]                           \n"
 			"jnz 1b                                     \n"
 			: /* output */
-			  "=r"(chunk),
-			  "=r"(input1),
-			  "=r"(input2),
-			  "=r"(output)
+			  [chunk]"+r"(chunk),
+			  [input1]"+r"(input1),
+			  [input2]"+r"(input2),
+			  [output]"+r"(output)
 			: /* input */
-			  [chunk]"0"(chunk),
-			  [input1]"1"(input1),
-			  [input2]"2"(input2),
-			  [output]"3"(output),
-			  [scale_2_15]"x"(_mm_set1_ps(1.0f*(1<<15))),
+			  [scale_2_15]"x"(_mm_set1_epi32(15 << 23)),
 			  [clamp_large]"x"(_mm_set1_ps(32767.0f))
 			: /* clobber */
 			  "xmm0", "xmm1", "xmm2", "memory", "cc"
@@ -328,12 +362,12 @@ static void interleave_stereo(float *input1, float *input2,
 	/* The remaining samples */
 	while (frames--) {
 		float f;
-		f = *input1++;
-		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
-		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
-		f = *input2++;
-		f += (f > 0) ? (0.5f / 32768.0f) : (-0.5f / 32768.0f);
-		*output++ = max(-32768, min(32767, (int)(f * 32768.0f)));
+		f = *input1++ * 32768.0f;
+		f += (f >= 0) ? 0.5f : -0.5f;
+		*output++ = max(-32768, min(32767, (int)(f)));
+		f = *input2++ * 32768.0f;
+		f += (f >= 0) ? 0.5f : -0.5f;
+		*output++ = max(-32768, min(32767, (int)(f)));
 	}
 }
 #define interleave_stereo interleave_stereo
@@ -378,15 +412,9 @@ void dsp_util_interleave(float *const *input, int16_t *output, int channels,
 
 	for (i = 0; i < frames; i++)
 		for (j = 0; j < channels; j++) {
-			int16_t i16;
 			float f = *(input_ptr[j]++) * 32768.0f;
-			if (f > 32767)
-				i16 = 32767;
-			else if (f < -32768)
-				i16 = -32768;
-			else
-				i16 = (int16_t) (f > 0 ? f + 0.5f : f - 0.5f);
-			*output++ = i16;
+			f += (f >= 0) ? 0.5f : -0.5f;
+			*output++ = max(-32768, min(32767, (int)(f)));
 		}
 }
 
@@ -397,7 +425,7 @@ void dsp_enable_flush_denormal_to_zero()
 	mxcsr = __builtin_ia32_stmxcsr();
 	__builtin_ia32_ldmxcsr(mxcsr | 0x8040);
 #elif defined(__aarch64__)
-        uint64_t cw;
+	uint64_t cw;
 	__asm__ __volatile__ (
 		"mrs    %0, fpcr			    \n"
 		"orr    %0, %0, #0x1000000		    \n"
@@ -405,7 +433,7 @@ void dsp_enable_flush_denormal_to_zero()
 		"isb					    \n"
 		: "=r"(cw) :: "memory");
 #elif defined(__arm__)
-        uint32_t cw;
+	uint32_t cw;
 	__asm__ __volatile__ (
 		"vmrs   %0, fpscr			    \n"
 		"orr    %0, %0, #0x1000000		    \n"
