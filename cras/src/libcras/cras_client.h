@@ -206,12 +206,12 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 /* Find a node info with the matching node id.
  *
  * Args:
- *    dev_name - The prefix of the iodev name.
- *    node_name - The prefix of the ionode name.
- *    dev_info - The information about the iodev will be returned here.
+ *    client - This client (from cras_client_create).
+ *    input - Non-zero for input nodes, zero for output nodes.
+ *    node_id - The node id to look for.
  *    node_info - The information about the ionode will be returned here.
  * Returns:
- *    0 if successful, -1 if the node cannot be found.
+ *    0 if successful, negative on error; -ENOENT if the node cannot be found.
  */
 int cras_client_get_node_by_id(const struct cras_client *client,
 			       int input,
@@ -232,12 +232,14 @@ int cras_client_get_node_by_id(const struct cras_client *client,
 int cras_client_output_dev_plugged(const struct cras_client *client,
 				   const char *name);
 
-/* Sets an attribute of an ionode on a device.
+/* Set the value of an attribute of an ionode.
  * Args:
  *    client - The client from cras_client_create.
  *    node_id - The id of the ionode.
  *    attr - the attribute we want to change.
  *    value - the value we want to set.
+ * Returns:
+ *    Returns 0 for success, negative on error (from errno.h).
  */
 int cras_client_set_node_attr(struct cras_client *client,
 			      cras_node_id_t node_id,
