@@ -15,6 +15,7 @@
 #include "cras_alsa_card.h"
 #include "cras_config.h"
 #include "cras_device_blacklist.h"
+#include "cras_observer.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
@@ -190,6 +191,7 @@ void cras_system_set_volume(size_t volume)
 
 	state.exp_state->volume = MIN(volume, CRAS_MAX_SYSTEM_VOLUME);
 	cras_alert_pending(state.volume_alert);
+	cras_observer_notify_output_volume(state.exp_state->volume);
 }
 
 size_t cras_system_get_volume()
@@ -212,6 +214,7 @@ void cras_system_set_capture_gain(long gain)
 	state.exp_state->capture_gain =
 		MAX(gain, state.exp_state->min_capture_gain);
 	cras_alert_pending(state.capture_gain_alert);
+	cras_observer_notify_capture_gain(state.exp_state->capture_gain);
 }
 
 long cras_system_get_capture_gain()
@@ -229,10 +232,18 @@ int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg)
 	return cras_alert_rm_callback(state.capture_gain_alert, cb, arg);
 }
 
+void cras_system_notify_mute(void)
+{
+	cras_alert_pending(state.mute_alert);
+	cras_observer_notify_output_mute(state.exp_state->mute,
+					 state.exp_state->user_mute,
+					 state.exp_state->mute_locked);
+}
+
 void cras_system_set_user_mute(int mute)
 {
 	state.exp_state->user_mute = !!mute;
-	cras_alert_pending(state.mute_alert);
+	cras_system_notify_mute();
 }
 
 void cras_system_set_mute(int mute)
@@ -241,15 +252,13 @@ void cras_system_set_mute(int mute)
 		return;
 
 	state.exp_state->mute = !!mute;
-	cras_alert_pending(state.mute_alert);
+	cras_system_notify_mute();
 }
 
 void cras_system_set_mute_locked(int locked)
 {
 	state.exp_state->mute_locked = !!locked;
-
-	if (!state.exp_state->mute_locked)
-		cras_alert_pending(state.mute_alert);
+	cras_system_notify_mute();
 }
 
 int cras_system_get_mute()
@@ -282,21 +291,26 @@ int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg)
 	return cras_alert_rm_callback(state.mute_alert, cb, arg);
 }
 
+void cras_system_notify_capture_mute(void)
+{
+	cras_alert_pending(state.mute_alert);
+	cras_observer_notify_capture_mute(state.exp_state->capture_mute,
+					  state.exp_state->capture_mute_locked);
+}
+
 void cras_system_set_capture_mute(int mute)
 {
 	if (state.exp_state->capture_mute_locked)
 		return;
 
 	state.exp_state->capture_mute = !!mute;
-	cras_alert_pending(state.capture_mute_alert);
+	cras_system_notify_capture_mute();
 }
 
 void cras_system_set_capture_mute_locked(int locked)
 {
 	state.exp_state->capture_mute_locked = !!locked;
-
-	if (!state.exp_state->capture_mute_locked)
-		cras_alert_pending(state.capture_mute_alert);
+	cras_system_notify_capture_mute();
 }
 
 int cras_system_get_capture_mute()
@@ -482,6 +496,8 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction)
 
 	cras_system_state_update_complete();
 	cras_alert_pending(state.active_streams_alert);
+	cras_observer_notify_num_active_streams(
+		direction, s->num_active_streams[direction]);
 }
 
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
@@ -506,6 +522,8 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
 
 	cras_system_state_update_complete();
 	cras_alert_pending(state.active_streams_alert);
+	cras_observer_notify_num_active_streams(
+		direction, s->num_active_streams[direction]);
 }
 
 unsigned cras_system_state_get_active_streams()

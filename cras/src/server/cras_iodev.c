@@ -454,7 +454,7 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 				struct cras_ionode *node)
 {
 	iodev->active_node = node;
-	cras_iodev_list_notify_active_node_changed();
+	cras_iodev_list_notify_active_node_changed(iodev->direction);
 }
 
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)

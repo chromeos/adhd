@@ -11,6 +11,7 @@
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
 #include "cras_loopback_iodev.h"
+#include "cras_observer.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
 #include "cras_tm.h"
@@ -724,7 +725,7 @@ void cras_iodev_list_enable_dev(struct cras_iodev *dev)
 {
 	possibly_disable_fallback(dev->direction);
 	enable_device(dev);
-	cras_iodev_list_notify_active_node_changed();
+	cras_iodev_list_notify_active_node_changed(dev->direction);
 }
 
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
@@ -763,7 +764,7 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev)
 
 	disable_device(edev_to_disable);
 
-	cras_iodev_list_notify_active_node_changed();
+	cras_iodev_list_notify_active_node_changed(dev->direction);
 	return;
 }
 
@@ -927,6 +928,7 @@ int cras_iodev_list_remove_nodes_changed_cb(cras_alert_cb cb, void *arg)
 void cras_iodev_list_notify_nodes_changed()
 {
 	cras_alert_pending(nodes_changed_alert);
+	cras_observer_notify_nodes();
 }
 
 static void nodes_changed_prepare(struct cras_alert *alert)
@@ -946,9 +948,12 @@ int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
 	return cras_alert_rm_callback(active_node_changed_alert, cb, arg);
 }
 
-void cras_iodev_list_notify_active_node_changed()
+void cras_iodev_list_notify_active_node_changed(
+		enum CRAS_STREAM_DIRECTION direction)
 {
 	cras_alert_pending(active_node_changed_alert);
+	cras_observer_notify_active_node(direction,
+			cras_iodev_list_get_active_node_id(direction));
 }
 
 static void active_node_changed_prepare(struct cras_alert *alert)
@@ -997,7 +1002,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 		possibly_disable_fallback(direction);
 	}
 
-	cras_iodev_list_notify_active_node_changed();
+	cras_iodev_list_notify_active_node_changed(direction);
 }
 
 int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
@@ -1034,6 +1039,7 @@ void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 
 	if (node_volume_callback)
 		node_volume_callback(id, node->volume);
+	cras_observer_notify_output_node_volume(id, node->volume);
 }
 
 void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
@@ -1043,6 +1049,8 @@ void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
 
 	if (node_left_right_swapped_callback)
 		node_left_right_swapped_callback(id, node->left_right_swapped);
+	cras_observer_notify_node_left_right_swapped(id,
+						     node->left_right_swapped);
 }
 
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
@@ -1052,6 +1060,7 @@ void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
 
 	if (node_input_gain_callback)
 		node_input_gain_callback(id, node->capture_gain);
+	cras_observer_notify_input_node_gain(id, node->capture_gain);
 }
 
 void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type)

@@ -1051,7 +1051,8 @@ void cras_iodev_list_notify_nodes_changed()
   notify_nodes_changed_called++;
 }
 
-void cras_iodev_list_notify_active_node_changed()
+void cras_iodev_list_notify_active_node_changed(
+				enum CRAS_STREAM_DIRECTION direction)
 {
   notify_active_node_changed_called++;
 }

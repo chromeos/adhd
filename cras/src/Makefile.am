@@ -109,6 +109,7 @@ cras_SOURCES = \
 	server/cras_loopback_iodev.c \
 	server/cras_main_message.c \
 	server/cras_mix.c \
+	server/cras_observer.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
 	server/cras_utf8.c \
@@ -294,6 +295,7 @@ TESTS = \
 	loopback_iodev_unittest \
 	mix_unittest \
 	linear_resampler_unittest \
+	observer_unittest \
 	rate_estimator_unittest \
 	rclient_unittest \
 	rstream_unittest \
@@ -621,6 +623,11 @@ linear_resampler_unittest_SOURCES = tests/linear_resampler_unittest.cc \
 linear_resampler_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 linear_resampler_unittest_LDADD = -lgtest -lpthread
+
+observer_unittest_SOURCES = tests/observer_unittest.cc
+observer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+observer_unittest_LDADD = -lgtest -lpthread
 
 rate_estimator_unittest_SOURCES = tests/rate_estimator_unittest.cc server/rate_estimator.c
 rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \

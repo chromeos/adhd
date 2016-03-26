@@ -27,6 +27,11 @@ static void *rm_callback_arg;
 static size_t alert_pending_called;
 static char* device_config_dir;
 static const char* cras_alsa_card_config_dir;
+static size_t cras_observer_notify_output_volume_called;
+static size_t cras_observer_notify_output_mute_called;
+static size_t cras_observer_notify_capture_gain_called;
+static size_t cras_observer_notify_capture_mute_called;
+static size_t cras_observer_notify_num_active_streams_called;
 
 static void ResetStubData() {
   cras_alsa_card_create_called = 0;
@@ -40,6 +45,11 @@ static void ResetStubData() {
   alert_pending_called = 0;
   device_config_dir = reinterpret_cast<char *>(3);
   cras_alsa_card_config_dir = NULL;
+  cras_observer_notify_output_volume_called = 0;
+  cras_observer_notify_output_mute_called = 0;
+  cras_observer_notify_capture_gain_called = 0;
+  cras_observer_notify_capture_mute_called = 0;
+  cras_observer_notify_num_active_streams_called = 0;
 }
 
 static void volume_changed(void *arg, void *data) {
@@ -99,6 +109,7 @@ TEST(SystemStateSuite, SetVolume) {
   cras_system_set_volume(CRAS_MAX_SYSTEM_VOLUME + 1);
   EXPECT_EQ(CRAS_MAX_SYSTEM_VOLUME, cras_system_get_volume());
   cras_system_state_deinit();
+  EXPECT_EQ(4, cras_observer_notify_output_volume_called);
 }
 
 TEST(SystemStateSuite, SetMinMaxVolume) {
@@ -119,6 +130,7 @@ TEST(SystemStateSuite, SetCaptureVolume) {
   cras_system_set_capture_gain(-10000);
   EXPECT_EQ(-5000, cras_system_get_capture_gain());
   cras_system_state_deinit();
+  EXPECT_EQ(3, cras_observer_notify_capture_gain_called);
 }
 
 TEST(SystemStateSuite, VolumeChangedCallback) {
@@ -242,6 +254,7 @@ TEST(SystemStateSuite, SetMute) {
   cras_system_set_mute(22);
   EXPECT_EQ(1, cras_system_get_mute());
   cras_system_state_deinit();
+  EXPECT_EQ(3, cras_observer_notify_output_mute_called);
 }
 
 TEST(SystemStateSuite, MuteChangedCallback) {
@@ -311,6 +324,7 @@ TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
                                                   fake_arg_2);
   EXPECT_EQ(0, rc);
   cras_system_state_deinit();
+  EXPECT_EQ(2, cras_observer_notify_capture_mute_called);
 }
 
 TEST(SystemStateSuite, MuteLocked) {
@@ -334,7 +348,8 @@ TEST(SystemStateSuite, MuteLocked) {
   cras_system_set_mute(0);
   EXPECT_EQ(1, cras_system_get_mute());
   EXPECT_EQ(1, cras_system_get_mute_locked());
-  EXPECT_EQ(1, alert_pending_called);
+  EXPECT_EQ(2, alert_pending_called);
+  EXPECT_EQ(2, cras_observer_notify_output_mute_called);
 
   rc = cras_system_remove_mute_changed_cb(mute_changed, fake_user_arg);
   EXPECT_EQ(0, rc);
@@ -347,14 +362,15 @@ TEST(SystemStateSuite, MuteLocked) {
   cras_system_set_capture_mute(1);
   EXPECT_EQ(1, cras_system_get_capture_mute());
   EXPECT_EQ(0, cras_system_get_capture_mute_locked());
-  EXPECT_EQ(2, alert_pending_called);
+  EXPECT_EQ(3, alert_pending_called);
 
   cras_system_set_capture_mute_locked(1);
   cras_system_set_capture_mute(0);
   EXPECT_EQ(1, cras_system_get_capture_mute());
   EXPECT_EQ(1, cras_system_get_capture_mute_locked());
-  EXPECT_EQ(2, alert_pending_called);
+  EXPECT_EQ(4, alert_pending_called);
   cras_system_state_deinit();
+  EXPECT_EQ(2, cras_observer_notify_capture_mute_called);
 }
 
 TEST(SystemStateSuite, AddCardFailCreate) {
@@ -456,6 +472,7 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
 	cras_system_state_get_active_streams_by_direction(
 		CRAS_STREAM_POST_MIX_PRE_DSP));
   EXPECT_EQ(3, cras_system_state_get_active_streams());
+  EXPECT_EQ(3, cras_observer_notify_num_active_streams_called);
   cras_system_state_stream_removed(CRAS_STREAM_OUTPUT);
   cras_system_state_stream_removed(CRAS_STREAM_INPUT);
   cras_system_state_stream_removed(CRAS_STREAM_POST_MIX_PRE_DSP);
@@ -469,6 +486,7 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
 	cras_system_state_get_active_streams_by_direction(
 		CRAS_STREAM_POST_MIX_PRE_DSP));
   EXPECT_EQ(0, cras_system_state_get_active_streams());
+  EXPECT_EQ(6, cras_observer_notify_num_active_streams_called);
 
   cras_system_state_deinit();
 }
@@ -541,6 +559,33 @@ cras_tm *cras_tm_init() {
 
 void cras_tm_deinit(cras_tm *tm) {
   free(tm);
+}
+
+void cras_observer_notify_output_volume(int32_t volume)
+{
+  cras_observer_notify_output_volume_called++;
+}
+
+void cras_observer_notify_output_mute(int muted, int user_muted,
+				      int mute_locked)
+{
+  cras_observer_notify_output_mute_called++;
+}
+
+void cras_observer_notify_capture_gain(int32_t gain)
+{
+  cras_observer_notify_capture_gain_called++;
+}
+
+void cras_observer_notify_capture_mute(int muted, int mute_locked)
+{
+  cras_observer_notify_capture_mute_called++;
+}
+
+void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,
+					     uint32_t num_active_streams)
+{
+  cras_observer_notify_num_active_streams_called++;
 }
 
 }  // extern "C"

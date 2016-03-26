@@ -158,8 +158,12 @@ int cras_iodev_list_register_active_node_changed_cb(cras_alert_cb cb,
 int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
 						  void *arg);
 
-/* Notify that active output/input node is changed. */
-void cras_iodev_list_notify_active_node_changed();
+/* Notify that active node is changed for the given direction.
+ * Args:
+ *    direction - Direction of the node.
+ */
+void cras_iodev_list_notify_active_node_changed(
+		enum CRAS_STREAM_DIRECTION direction);
 
 /* Sets an attribute of an ionode on a device.
  * Args:

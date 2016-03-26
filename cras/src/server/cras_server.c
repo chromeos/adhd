@@ -38,6 +38,7 @@
 #include "cras_main_message.h"
 #include "cras_messages.h"
 #include "cras_metrics.h"
+#include "cras_observer.h"
 #include "cras_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
@@ -378,6 +379,9 @@ int cras_server_init()
 	/* Log to syslog. */
 	openlog("cras_server", LOG_PID, LOG_USER);
 
+	/* Initialize global observer. */
+	cras_observer_server_init();
+
 	/* init mixer with CPU capabilities */
 	cras_mix_init(cpu_get_flags());
 
@@ -555,6 +559,7 @@ bail:
 		unlink(addr.sun_path);
 	}
 	free(pollfds);
+	cras_observer_server_free();
 	return rc;
 }
 
