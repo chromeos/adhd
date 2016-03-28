@@ -503,6 +503,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s dev:%x hw_level:%u write:%u\n",
 		       "ODEV_NO_STREAMS", data1, data2, data3);
 		break;
+	case AUDIO_THREAD_ODEV_START:
+		printf("%-30s dev:%x hw_level:%u write:%u\n",
+		       "ODEV_START", data1, data2, data3);
+		break;
 	default:
 		printf("%-30s tag:%u\n","UNKNOWN", tag);
 		break;

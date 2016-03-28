@@ -1233,6 +1233,8 @@ static int write_output_samples(struct audio_thread *thread,
 	 * device, start it if needed. */
 	if (total_written || hw_level) {
 		if (!is_running) {
+			ATLOG(atlog, AUDIO_THREAD_ODEV_START,
+				odev->info.idx, hw_level, total_written);
 			rc = cras_iodev_start(odev);
 			if (rc < 0)
 				return rc;
