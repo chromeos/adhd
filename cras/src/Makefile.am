@@ -313,6 +313,7 @@ check_PROGRAMS += \
 	crossover_test \
 	crossover2_test \
 	drc_test \
+	dsp_util_test \
 	eq_test \
 	eq2_test \
 	cmpraw
@@ -332,6 +333,10 @@ drc_test_SOURCES = dsp/drc.c dsp/drc_kernel.c dsp/drc_math.c \
 	dsp/tests/drc_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 drc_test_LDADD = -lrt -lm
 drc_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+
+dsp_util_test_SOURCES = dsp/tests/dsp_util_test.c dsp/dsp_util.c
+dsp_util_test_LDADD = -lm
+dsp_util_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp -Wno-error=strict-aliasing
 
 eq_test_SOURCES = dsp/biquad.c dsp/eq.c dsp/dsp_util.c dsp/tests/eq_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
