@@ -256,7 +256,42 @@ static void free_kernel(struct drc *drc)
 		dk_free(&drc->kernel[i]);
 }
 
-#if defined(__ARM_NEON__)
+// Note gcc 4.9+ with -O2 on aarch64 produces vectorized version of C
+// that is comparable performance, but twice as large.  -O1 and -Os produce
+// small but slower code (4x slower than Neon).
+#if defined(__aarch64__)
+static void sum3(float *data, float *data1, float *data2, int n)
+{
+	int count = n / 4;
+	int i;
+
+	if (count) {
+		__asm__ __volatile(
+			"1:                                         \n"
+			"ld1 {v0.4s}, [%[data1]], #16               \n"
+			"ld1 {v1.4s}, [%[data2]], #16               \n"
+			"ld1 {v2.4s}, [%[data]]                     \n"
+			"fadd v0.4s, v0.4s, v1.4s                   \n"
+			"fadd v0.4s, v0.4s, v2.4s                   \n"
+			"st1 {v0.4s}, [%[data]], #16                \n"
+			"subs %[count], %[count], #1                \n"
+			"b.ne 1b                                    \n"
+			: /* output */
+			  [data]"+r"(data),
+			  [data1]"+r"(data1),
+			  [data2]"+r"(data2),
+			  [count]"+r"(count)
+			: /* input */
+			: /* clobber */
+			  "v0", "v1", "v2", "memory", "cc"
+			);
+	}
+
+	n &= 3;
+	for (i = 0; i < n; i++)
+		data[i] += data1[i] + data2[i];
+}
+#elif defined(__ARM_NEON__)
 #include <arm_neon.h>
 static void sum3(float *data, float *data1, float *data2, int n)
 {
