@@ -811,15 +811,15 @@ static int client_thread_add_stream(struct cras_client *client,
 	/* Find the hotword device index. */
 	if ((stream->flags & HOTWORD_STREAM) == HOTWORD_STREAM &&
 			dev_idx == NO_DEVICE) {
-		int aokr_idx;
-		aokr_idx = cras_client_get_first_dev_type_idx(client,
-				CRAS_NODE_TYPE_AOKR, CRAS_STREAM_INPUT);
-		if (aokr_idx < 0) {
+		int hotword_idx;
+		hotword_idx = cras_client_get_first_dev_type_idx(client,
+				CRAS_NODE_TYPE_HOTWORD, CRAS_STREAM_INPUT);
+		if (hotword_idx < 0) {
 			syslog(LOG_ERR,
 			       "cras_client: add_stream: Finding hotword dev");
-			return aokr_idx;
+			return hotword_idx;
 		}
-		dev_idx = aokr_idx;
+		dev_idx = hotword_idx;
 	}
 
 	/* Find an available stream id. */

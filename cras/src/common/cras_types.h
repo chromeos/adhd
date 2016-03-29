@@ -347,7 +347,7 @@ enum CRAS_NODE_TYPE {
 	/* These value can be used for input nodes. */
 	CRAS_NODE_TYPE_INTERNAL_MIC,
 	CRAS_NODE_TYPE_MIC,
-	CRAS_NODE_TYPE_AOKR,
+	CRAS_NODE_TYPE_HOTWORD,
 	CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
 	CRAS_NODE_TYPE_POST_DSP,
 	/* These value can be used for both output and input nodes. */

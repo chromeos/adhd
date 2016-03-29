@@ -38,7 +38,7 @@
 #include "utlist.h"
 
 #define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
-#define AOKR_DEV "Wake on Voice"
+#define HOTWORD_DEV "Wake on Voice"
 #define DEFAULT "(default)"
 #define HDMI "HDMI"
 #define INTERNAL_MICROPHONE "Internal Mic"
@@ -169,7 +169,7 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int dummy_aokr_cb(void *arg)
+static int dummy_hotword_cb(void *arg)
 {
 	/* Only need this once. */
 	struct alsa_io *aio = (struct alsa_io *)arg;
@@ -202,7 +202,7 @@ static int open_dev(struct cras_iodev *iodev)
 		return rc;
 
 	/* If it's a wake on voice device, period_wakeups are required. */
-	period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_AOKR);
+	period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD);
 	rc = cras_alsa_set_hwparams(handle, iodev->format,
 				    &iodev->buffer_size, period_wakeup);
 	if (rc < 0) {
@@ -230,7 +230,7 @@ static int open_dev(struct cras_iodev *iodev)
 	init_device_settings(aio);
 
 	aio->poll_fd = -1;
-	if (iodev->active_node->type == CRAS_NODE_TYPE_AOKR) {
+	if (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD) {
 		struct pollfd *ufds;
 		int count, i;
 
@@ -262,7 +262,8 @@ static int open_dev(struct cras_iodev *iodev)
 		free(ufds);
 
 		if (aio->poll_fd >= 0)
-			audio_thread_add_callback(aio->poll_fd, dummy_aokr_cb,
+			audio_thread_add_callback(aio->poll_fd,
+						  dummy_hotword_cb,
 						  aio);
 	}
 
@@ -727,7 +728,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Mic", 0, CRAS_NODE_TYPE_MIC },
-		{ AOKR_DEV, 1, CRAS_NODE_TYPE_AOKR },
+		{ HOTWORD_DEV, 1, CRAS_NODE_TYPE_HOTWORD },
 	};
 	unsigned i;
 
@@ -1421,8 +1422,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			new_input(aio, NULL, INTERNAL_MICROPHONE);
 		else if (strstr(dev_name, KEYBOARD_MIC))
 			new_input(aio, NULL, KEYBOARD_MIC);
-		else if (dev_id && strstr(dev_id, AOKR_DEV))
-			new_input(aio, NULL, AOKR_DEV);
+		else if (dev_id && strstr(dev_id, HOTWORD_DEV))
+			new_input(aio, NULL, HOTWORD_DEV);
 		else if (!aio->base.nodes)
 			new_input(aio, NULL, DEFAULT);
 	}

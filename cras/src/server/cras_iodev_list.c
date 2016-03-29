@@ -191,8 +191,8 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "INTERNAL_MIC";
 	case CRAS_NODE_TYPE_MIC:
 		return "MIC";
-	case CRAS_NODE_TYPE_AOKR:
-		return "AOKR";
+	case CRAS_NODE_TYPE_HOTWORD:
+		return "HOTWORD";
 	case CRAS_NODE_TYPE_POST_MIX_PRE_DSP:
 		return "POST_MIX_LOOPBACK";
 	case CRAS_NODE_TYPE_POST_DSP:
@@ -894,7 +894,7 @@ char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id)
 
 	dev = find_dev(dev_index_of(node_id));
 	if (!dev || !dev->get_hotword_models ||
-	    (dev->active_node->type != CRAS_NODE_TYPE_AOKR))
+	    (dev->active_node->type != CRAS_NODE_TYPE_HOTWORD))
 		return NULL;
 
 	return dev->get_hotword_models(dev);
@@ -906,7 +906,7 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
 	struct cras_iodev *dev =
 			 find_dev(dev_index_of(node_id));
 	if (!dev || !dev->get_hotword_models ||
-	    (dev->active_node->type != CRAS_NODE_TYPE_AOKR))
+	    (dev->active_node->type != CRAS_NODE_TYPE_HOTWORD))
 		return -EINVAL;
 
 	return dev->set_hotword_model(dev, model_name);

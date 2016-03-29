@@ -685,8 +685,7 @@ int cras_client_test_iodev_command(struct cras_client *client,
 				   const uint8_t *data);
 
 /* Finds the first device that contains a node of the given type.
- * This is used for finding a special device list the internal speaker of the
- * AOKR device.
+ * This is used for finding a special hotword device.
  * Args:
  *    client - The client from cras_client_create.
  *    type - The type of device to find.
@@ -721,7 +720,7 @@ int cras_client_config_global_remix(struct cras_client *client,
  * models may differ on different nodes.
  * Args:
  *    client - The client from cras_client_create.
- *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_AOKR).
+ *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_HOTWORD).
  *    cb - The function to be called when hotword models are ready.
  * Returns:
  *    0 on success.
@@ -735,7 +734,7 @@ int cras_client_get_hotword_models(struct cras_client *client,
  * then re-opend for the model change to take effect.
  * Args:
  *    client - The client from cras_client_create.
- *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_AOKR).
+ *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_HOTWORD).
  *    model_name - Name of the model to use, e.g. "en_us".
  * Returns:
  *    0 on success.

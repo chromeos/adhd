@@ -1046,7 +1046,7 @@ static int input_adev_ignore_wake(const struct open_dev *adev)
 	if (!adev->dev->active_node)
 		return 1;
 
-	if (adev->dev->active_node->type == CRAS_NODE_TYPE_AOKR &&
+	if (adev->dev->active_node->type == CRAS_NODE_TYPE_HOTWORD &&
 	    !adev->input_streaming)
 		return 1;
 
