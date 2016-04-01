@@ -34,7 +34,33 @@ COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
 bin_PROGRAMS = cras cras_test_client
 
+if HAVE_DBUS
+CRAS_DBUS_SOURCES = \
+	common/cras_sbc_codec.c \
+	server/cras_bt_manager.c \
+	server/cras_bt_adapter.c \
+	server/cras_bt_device.c \
+	server/cras_bt_transport.c \
+	server/cras_bt_endpoint.c \
+	server/cras_bt_io.c \
+	server/cras_bt_profile.c \
+	server/cras_dbus.c \
+	server/cras_dbus_util.c \
+	server/cras_dbus_control.c \
+	server/cras_hfp_ag_profile.c \
+	server/cras_hfp_iodev.c \
+	server/cras_hfp_info.c \
+	server/cras_hfp_slc.c \
+	server/cras_a2dp_endpoint.c \
+	server/cras_a2dp_info.c \
+	server/cras_a2dp_iodev.c \
+	server/cras_telephony.c
+else
+CRAS_DBUS_SOURCES =
+endif
+
 cras_SOURCES = \
+	$(CRAS_DBUS_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
@@ -53,12 +79,10 @@ cras_SOURCES = \
 	dsp/eq.c \
 	dsp/eq2.c \
 	server/audio_thread.c \
+	server/buffer_share.c \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
 	server/cras.c \
-	server/cras_a2dp_endpoint.c \
-	server/cras_a2dp_info.c \
-	server/cras_a2dp_iodev.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -67,16 +91,6 @@ cras_SOURCES = \
 	server/cras_alsa_mixer.c \
 	server/cras_alsa_ucm.c \
 	server/cras_audio_area.c \
-	server/cras_bt_manager.c \
-	server/cras_bt_adapter.c \
-	server/cras_bt_device.c \
-	server/cras_bt_transport.c \
-	server/cras_bt_endpoint.c \
-	server/cras_bt_io.c \
-	server/cras_bt_profile.c \
-	server/cras_dbus.c \
-	server/cras_dbus_util.c \
-	server/cras_dbus_control.c \
 	server/cras_dsp.c \
 	server/cras_dsp_ini.c \
 	server/cras_dsp_mod_builtin.c \
@@ -86,10 +100,6 @@ cras_SOURCES = \
 	server/cras_expr.c \
 	server/cras_fmt_conv.c \
 	server/cras_gpio_jack.c \
-	server/cras_hfp_ag_profile.c \
-	server/cras_hfp_info.c \
-	server/cras_hfp_iodev.c \
-	server/cras_hfp_slc.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
@@ -97,12 +107,10 @@ cras_SOURCES = \
 	server/cras_mix.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
-	server/buffer_share.c \
-	common/cras_sbc_codec.c \
+	server/cras_utf8.c \
 	server/cras_server.c \
 	server/cras_server_metrics.c \
 	server/cras_system_state.c \
-	server/cras_telephony.c \
 	server/cras_tm.c \
 	server/cras_udev.c \
 	server/cras_volume_curve.c \
@@ -235,22 +243,31 @@ hide_install=install
 $(hide_install)-asound_module_pcm_crasLTLIBRARIES: install-libLTLIBRARIES
 $(hide_install)-asound_module_ctl_crasLTLIBRARIES: install-libLTLIBRARIES
 
+if HAVE_DBUS
+DBUS_TESTS = \
+	a2dp_info_unittest \
+	a2dp_iodev_unittest \
+	alsa_io_unittest \
+	bt_device_unittest \
+	bt_io_unittest \
+	hfp_iodev_unittest \
+	hfp_slc_unittest
+else
+DBUS_TESTS =
+endif
+
 TESTS = \
+	$(DBUS_TESTS) \
 	audio_area_unittest \
 	audio_format_unittest \
 	audio_thread_unittest \
-	a2dp_info_unittest \
-	a2dp_iodev_unittest \
 	alert_unittest \
 	alsa_card_unittest \
 	alsa_helpers_unittest \
-	alsa_io_unittest \
 	alsa_jack_unittest \
 	alsa_mixer_unittest \
 	alsa_ucm_unittest \
 	array_unittest \
-	bt_device_unittest \
-	bt_io_unittest \
 	byte_buffer_unittest \
 	card_config_unittest \
 	checksum_unittest \
@@ -267,8 +284,6 @@ TESTS = \
 	expr_unittest \
 	fmt_conv_unittest \
 	hfp_info_unittest \
-	hfp_iodev_unittest \
-	hfp_slc_unittest \
 	buffer_share_unittest \
 	iodev_list_unittest \
 	iodev_unittest \
@@ -282,6 +297,7 @@ TESTS = \
 	softvol_curve_unittest \
 	stream_list_unittest \
 	system_state_unittest \
+	utf8_unittest \
 	util_unittest \
 	volume_curve_unittest
 
@@ -386,6 +402,7 @@ audio_format_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
 audio_format_unittest_LDADD = -lgtest -lpthread
 
+if HAVE_DBUS
 a2dp_info_unittest_SOURCES = tests/a2dp_info_unittest.cc \
 	server/cras_a2dp_info.c
 a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
@@ -397,11 +414,12 @@ a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc \
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+endif
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	common/sfh.c
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
+	-I$(top_srcdir)/src/common
 alsa_io_unittest_LDADD = -lgtest -lpthread
 
 alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
@@ -433,6 +451,7 @@ audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
 
+if HAVE_DBUS
 bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \
 	server/cras_bt_device.c
 bt_device_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
@@ -443,6 +462,7 @@ bt_io_unittest_SOURCES = tests/bt_io_unittest.cc
 bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+endif
 
 byte_buffer_unittest_SOURCES = tests/byte_buffer_unittest.cc
 byte_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
@@ -533,6 +553,7 @@ hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 hfp_info_unittest_LDADD = -lgtest -lpthread
 
+if HAVE_DBUS
 hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
 	server/cras_hfp_iodev.c common/sfh.c
 hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
@@ -544,6 +565,7 @@ hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
 hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+endif
 
 buffer_share_unittest_SOURCES = tests/buffer_share_unittest.cc \
 	server/buffer_share.c
@@ -623,6 +645,10 @@ system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 system_state_unittest_LDADD = -lgtest -lrt -lpthread
+
+utf8_unittest_SOURCES = tests/utf8_unittest.cc server/cras_utf8.c
+utf8_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server
+utf8_unittest_LDADD = -lgtest
 
 util_unittest_SOURCES = tests/util_unittest.cc common/cras_util.c \
 	common/cras_config.c

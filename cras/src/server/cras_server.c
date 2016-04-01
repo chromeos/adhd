@@ -5,7 +5,9 @@
 
 #define _GNU_SOURCE /* Needed for Linux socket credential passing. */
 
+#ifdef CRAS_DBUS
 #include <dbus/dbus.h>
+#endif
 #include <errno.h>
 #include <poll.h>
 #include <stdint.h>
@@ -21,13 +23,16 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#ifdef CRAS_DBUS
+#include "cras_a2dp_endpoint.h"
 #include "cras_bt_manager.h"
 #include "cras_bt_device.h"
-#include "cras_a2dp_endpoint.h"
-#include "cras_config.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
 #include "cras_hfp_ag_profile.h"
+#include "cras_telephony.h"
+#endif
+#include "cras_config.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
 #include "cras_messages.h"
@@ -36,7 +41,6 @@
 #include "cras_server.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
-#include "cras_telephony.h"
 #include "cras_tm.h"
 #include "cras_udev.h"
 #include "cras_util.h"
@@ -382,8 +386,9 @@ int cras_server_init()
 int cras_server_run()
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
-
+#ifdef CRAS_DBUS
 	DBusConnection *dbus_conn;
+#endif
 	int socket_fd = -1;
 	int rc = 0;
 	const char *sockdir;
@@ -400,10 +405,13 @@ int cras_server_run()
 	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
 
 	cras_udev_start_sound_subsystem_monitor();
+#ifdef CRAS_DBUS
 	cras_bt_device_start_monitor();
+#endif
 
 	cras_server_metrics_init();
 
+#ifdef CRAS_DBUS
 	dbus_threads_init_default();
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
@@ -414,6 +422,7 @@ int cras_server_run()
 		cras_a2dp_endpoint_create(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
+#endif
 
 	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (socket_fd < 0) {
@@ -523,8 +532,10 @@ int cras_server_run()
 
 		cleanup_select_fds(&server_instance);
 
+#ifdef CRAS_DBUS
 		if (dbus_conn)
 			cras_dbus_dispatch(dbus_conn);
+#endif
 
 		cras_alert_process_all_pending_alerts();
 	}

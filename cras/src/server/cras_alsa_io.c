@@ -23,7 +23,7 @@
 #include "cras_alsa_ucm.h"
 #include "cras_audio_area.h"
 #include "cras_config.h"
-#include "cras_dbus_util.h"
+#include "cras_utf8.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"

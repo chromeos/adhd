@@ -18,11 +18,3 @@
 dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key,
 			     int type, const char *type_string,
 			     void *value);
-
-/* Checks if a string is a valid utf-8 string.
- * Args:
- *    string - a string.
- * Returns:
- *    1 if it is a valid utf-8 string. 0 otherwise.
-*/
-int is_utf8_string(const char* string);

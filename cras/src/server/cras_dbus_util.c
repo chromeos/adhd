@@ -28,8 +28,3 @@ dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key,
 
        return TRUE;
 }
-
-int is_utf8_string(const char* string)
-{
-	return !!dbus_validate_utf8(string, NULL);
-}

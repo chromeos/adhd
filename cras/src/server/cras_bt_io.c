@@ -7,7 +7,7 @@
 
 #include "cras_bt_io.h"
 #include "cras_bt_device.h"
-#include "cras_dbus_util.h"
+#include "cras_utf8.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "utlist.h"
