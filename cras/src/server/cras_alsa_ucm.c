@@ -85,11 +85,12 @@ static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 {
 	char *id;
 	int rc;
+	size_t len = strlen(var) + strlen(dev) + strlen(verb) + 4;
 
-	id = (char *)malloc(strlen(var) + strlen(dev) + strlen(verb) + 4);
+	id = (char *)malloc(len);
 	if (!id)
 		return -ENOMEM;
-	sprintf(id, "=%s/%s/%s", var, dev, verb);
+	snprintf(id, len, "=%s/%s/%s", var, dev, verb);
 	rc = snd_use_case_get(mgr, id, value);
 
 	free((void *)id);
@@ -327,11 +328,11 @@ int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
 {
 	char *swap_mod = NULL;
 	int rc;
-	swap_mod = (char *)malloc(strlen(node_name) + 1 +
-			strlen(swap_mode_suffix) + 1);
+	size_t len = strlen(node_name) + 1 + strlen(swap_mode_suffix) + 1;
+	swap_mod = (char *)malloc(len);
 	if (!swap_mod)
 		return -ENOMEM;
-	sprintf(swap_mod, "%s %s", node_name, swap_mode_suffix);
+	snprintf(swap_mod, len, "%s %s", node_name, swap_mode_suffix);
 	if (!ucm_mod_exists_with_name(mgr, swap_mod)) {
 		syslog(LOG_ERR, "Can not find swap mode modifier %s.", swap_mod);
 		free((void *)swap_mod);
@@ -600,11 +601,13 @@ int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
 	const char **list;
 	int num_enmods, mod_idx;
 	char *model_mod = NULL;
-	model_mod = (char *)malloc(strlen(model) + 1 +
-			strlen(hotword_model_prefix) + 1);
+	size_t model_mod_size = strlen(model) + 1 +
+				strlen(hotword_model_prefix) + 1;
+	model_mod = (char *)malloc(model_mod_size);
 	if (!model_mod)
 		return -ENOMEM;
-	sprintf(model_mod, "%s %s", hotword_model_prefix, model);
+	snprintf(model_mod, model_mod_size,
+		 "%s %s", hotword_model_prefix, model);
 	if (!ucm_mod_exists_with_name(mgr, model_mod)) {
 		syslog(LOG_ERR, "Can not find hotword model modifier %s",
 		       model_mod);
