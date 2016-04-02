@@ -6,6 +6,10 @@
 #ifndef CRAS_AUDIO_FORMAT_H_
 #define CRAS_AUDIO_FORMAT_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <string.h>
 
@@ -148,5 +152,9 @@ void cras_channel_conv_matrix_destroy(float **mtx, size_t out_ch);
  */
 float **cras_channel_conv_matrix_create(const struct cras_audio_format *in,
 					const struct cras_audio_format *out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CRAS_AUDIO_FORMAT_H_ */
