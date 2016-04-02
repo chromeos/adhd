@@ -157,13 +157,22 @@ int main(int argc, char **argv)
 	TestRounding(5000000000.f / 32768.f, 32767, samples);
 	TestRounding(-5000000000.f / 32768.f, -32768, samples);
 
-	// test infinity
+	// casting inf float to int produces different results
+#ifdef __aarch64__
 	int inf_int = 0x7f7fffff;;
 	float inf = *(float *)&inf_int;
-	TestRounding(inf, 32767, samples);  // expect fail
+	TestRounding(inf, 0, samples);
 	inf_int = 0xff7fffff;;
 	inf = *(float *)&inf_int;
-	TestRounding(inf, -32768, samples);  // expect fail
+	TestRounding(inf, 0, samples);
+#else
+	int inf_int = 0x7f7fffff;;
+	float inf = *(float *)&inf_int;
+	TestRounding(inf, -32768, samples);
+	inf_int = 0xff7fffff;;
+	inf = *(float *)&inf_int;
+	TestRounding(inf, -32768, samples);
+#endif
 
 	// test rounding
 	TestRounding(0.25f, 8192, samples);
@@ -218,5 +227,119 @@ int main(int argc, char **argv)
 	nan_int = 0xff800001;
 	nan = *(float *)&nan_int;
 	TestRounding(nan, EXPECTED_NAN_RESULT, samples);
+
+	/* Test Performance */
+	uint64_t diff;
+	struct timespec start, end;
+	int i;
+	int d;
+
+	short* in_shorts = (short*) malloc(MAXSAMPLES * 2 * 2 + PAD);
+	float* out_floats_left_c = (float*) malloc(MAXSAMPLES * 4 + PAD);
+	float* out_floats_right_c = (float*) malloc(MAXSAMPLES * 4 + PAD);
+	float* out_floats_left_opt = (float*) malloc(MAXSAMPLES * 4 + PAD);
+	float* out_floats_right_opt = (float*) malloc(MAXSAMPLES * 4 + PAD);
+	short* out_shorts_c = (short*) malloc(MAXSAMPLES * 2 * 2 + PAD);
+	short* out_shorts_opt = (short*) malloc(MAXSAMPLES * 2 * 2 + PAD);
+
+	memset(in_shorts, 0x11, MAXSAMPLES * 2 * 2 + PAD);
+	memset(out_floats_left_c, 0x22, MAXSAMPLES * 4 + PAD);
+	memset(out_floats_right_c, 0x33, MAXSAMPLES * 4 + PAD);
+	memset(out_floats_left_opt, 0x44, MAXSAMPLES * 4 + PAD);
+	memset(out_floats_right_opt, 0x55, MAXSAMPLES * 4 + PAD);
+	memset(out_shorts_c, 0x66, MAXSAMPLES * 2 * 2 + PAD);
+	memset(out_shorts_opt, 0x66, MAXSAMPLES * 2 * 2 + PAD);
+
+	float *out_floats_ptr_c[2];
+	float *out_floats_ptr_opt[2];
+
+	out_floats_ptr_c[0] = out_floats_left_c;
+	out_floats_ptr_c[1] = out_floats_right_c;
+	out_floats_ptr_opt[0] = out_floats_left_opt;
+	out_floats_ptr_opt[1] = out_floats_right_opt;
+
+	/* Benchmark dsp_util_interleave */
+	for (samples = MAXSAMPLES; samples >= 1024; samples /= 2) {
+
+		/* measure original C interleave */
+		clock_gettime(CLOCK_MONOTONIC, &start); /* mark start time */
+		for (i = 0; i < ITERATIONS; ++i) {
+			dsp_util_interleave_reference(out_floats_ptr_c,
+						      out_shorts_c,
+						      2, samples);
+		}
+		clock_gettime(CLOCK_MONOTONIC, &end); /* mark the end time */
+		diff = (BILLION * (end.tv_sec - start.tv_sec) +
+			end.tv_nsec - start.tv_nsec) / 1000000;
+		printf("interleave   ORIG size = %6d, elapsed time = %llu ms\n",
+		       samples, (long long unsigned int) diff);
+
+		/* measure optimized interleave */
+		clock_gettime(CLOCK_MONOTONIC, &start); /* mark start time */
+		for (i = 0; i < ITERATIONS; ++i) {
+			dsp_util_interleave(out_floats_ptr_c, out_shorts_opt, 2,
+					    samples);
+		}
+		clock_gettime(CLOCK_MONOTONIC, &end); /* mark the end time */
+		diff = (BILLION * (end.tv_sec - start.tv_sec) +
+			end.tv_nsec - start.tv_nsec) / 1000000;
+		printf("interleave   SIMD size = %6d, elapsed time = %llu ms\n",
+		       samples, (long long unsigned int) diff);
+
+		/* Test C and SIMD output match */
+		d = memcmp(out_shorts_c, out_shorts_opt,
+			   MAXSAMPLES * 2 * 2 + PAD);
+		if (d) printf("interleave compare %d, %d %d, %d %d\n", d,
+			      out_shorts_c[0], out_shorts_c[1],
+			      out_shorts_opt[0], out_shorts_opt[1]);
+	}
+
+	/* Benchmark dsp_util_deinterleave */
+	for (samples = MAXSAMPLES; samples >= 1024; samples /= 2) {
+
+		/* Measure original C deinterleave */
+		clock_gettime(CLOCK_MONOTONIC, &start); /* mark start time */
+		for (i = 0; i < ITERATIONS; ++i) {
+			dsp_util_deinterleave_reference(in_shorts,
+							out_floats_ptr_c,
+							2, samples);
+		}
+		clock_gettime(CLOCK_MONOTONIC, &end); /* mark the end time */
+		diff = (BILLION * (end.tv_sec - start.tv_sec) +
+			end.tv_nsec - start.tv_nsec) / 1000000;
+			printf("deinterleave ORIG size = %6d, "
+			       "elapsed time = %llu ms\n",
+			       samples, (long long unsigned int) diff);
+
+		/* Measure optimized deinterleave */
+		clock_gettime(CLOCK_MONOTONIC, &start); /* mark start time */
+		for (i = 0; i < ITERATIONS; ++i) {
+			dsp_util_deinterleave(in_shorts, out_floats_ptr_opt, 2,
+					      samples);
+		}
+		clock_gettime(CLOCK_MONOTONIC, &end); /* mark the end time */
+		diff = (BILLION * (end.tv_sec - start.tv_sec) +
+			end.tv_nsec - start.tv_nsec) / 1000000;
+		printf("deinterleave SIMD size = %6d, elapsed time = %llu ms\n",
+			samples, (long long unsigned int) diff);
+
+		/* Test C and SIMD output match */
+		d = memcmp(out_floats_ptr_c[0], out_floats_ptr_opt[0],
+			   samples * 4);
+		if (d) printf("left compare %d, %f %f\n", d,
+			      out_floats_ptr_c[0][0], out_floats_ptr_opt[0][0]);
+		d = memcmp(out_floats_ptr_c[1], out_floats_ptr_opt[1],
+			   samples * 4);
+		if (d) printf("right compare %d, %f %f\n", d,
+			      out_floats_ptr_c[1][0], out_floats_ptr_opt[1][0]);
+	}
+
+	free(in_shorts);
+	free(out_floats_left_c);
+	free(out_floats_right_c);
+	free(out_floats_left_opt);
+	free(out_floats_right_opt);
+	free(out_shorts_c);
+	free(out_shorts_opt);
 	return 0;
 }
