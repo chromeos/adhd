@@ -64,6 +64,11 @@ AC_DEFINE_UNQUOTED(ALSA_PLUGIN_DIR, "$plugindir",
 ALSA_PLUGIN_DIR="$plugindir"
 AC_SUBST(ALSA_PLUGIN_DIR)
 
+# Determine CRAS configuration directory.
+eval cras_config_file_dir="$sysconfdir/cras"
+AC_DEFINE_UNQUOTED(CRAS_CONFIG_FILE_DIR, "$cras_config_file_dir",
+                   [directory containing CRAS configuration])
+
 # Get iniparser library and include locations
 AC_ARG_WITH([iniparser-include-path],
   [AS_HELP_STRING([--with-iniparser-include-path],
