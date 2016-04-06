@@ -198,6 +198,7 @@ static int close_dev(struct cras_iodev *iodev)
 	if (err < 0)
 		syslog(LOG_ERR, "transport_release failed");
 
+	cras_a2dp_cancel_suspend_timer(iodev);
 	a2dp_drain(&a2dpio->a2dp);
 	byte_buffer_destroy(a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
