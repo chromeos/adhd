@@ -6,7 +6,7 @@
 #ifndef CRAS_HFP_IODEV_H_
 #define CRAS_HFP_IODEV_H_
 
-#include "cras_bt_transport.h"
+#include "cras_bt_device.h"
 #include "cras_hfp_info.h"
 #include "cras_types.h"
 
