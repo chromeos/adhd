@@ -12,7 +12,22 @@ extern "C" {
 
 #include <stddef.h>
 #include <math.h>
+
+#ifndef __BIONIC__
 #include <ieee754.h>
+#else
+union ieee754_float
+{
+	float f;
+	/* Little endian float fields */
+	struct
+	{
+		unsigned int mantissa:23;
+		unsigned int exponent:8;
+		unsigned int negative:1;
+	} ieee;
+};
+#endif
 
 /* Uncomment to use the slow but accurate functions. */
 /* #define SLOW_DB_TO_LINEAR */
@@ -54,13 +69,13 @@ extern float db_to_linear[201]; /* from -100dB to 100dB */
 void drc_math_init();
 
 /* Rounds the input number to the nearest integer */
-#ifdef __arm__
+#if defined(__arm__)
 static inline float round_int(float x)
 {
 	return x < 0 ? (int)(x - 0.5f) : (int)(x + 0.5f);
 }
 #else
-#define round_int rintf /* glibc will use roundss if SSE4.1 is available */
+#define round_int rintf /* Uses frintx for arm64 and roundss for SSE4.1 */
 #endif
 
 static inline float decibels_to_linear(float decibels)
