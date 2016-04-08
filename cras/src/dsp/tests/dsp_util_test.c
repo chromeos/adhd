@@ -10,11 +10,13 @@
 #include <stdlib.h> /* for exit() definition */
 #include <time.h> /* for clock_gettime */
 
+#include "../drc_math.h"
 #include "../dsp_util.h"
 
-// Constant for converting time to milliseconds.
+
+/* Constant for converting time to milliseconds. */
 #define BILLION 1000000000LL
-// Number of iterations for performance testing.
+/* Number of iterations for performance testing. */
 #define ITERATIONS 40000
 
 void dsp_util_deinterleave_reference(int16_t *input, float *const *output,
@@ -54,9 +56,9 @@ void dsp_util_interleave_reference(float *const *input, int16_t *output,
 		}
 }
 
-// Use fixed size allocation to avoid performance fluctuation of allocation.
+/* Use fixed size allocation to avoid performance fluctuation of allocation. */
 #define MAXSAMPLES (65536)
-// PAD buffer to check for overflows.
+/* PAD buffer to check for overflows. */
 #define PAD 4096
 
 void TestRounding(float in, int16_t expected, int samples)
@@ -129,7 +131,7 @@ void TestRounding(float in, int16_t expected, int samples)
 		      out_floats_ptr_opt[0][0]);
 	d = memcmp(out_floats_ptr_c[1], out_floats_ptr_opt[1], samples * 4);
 	if (d) printf("right compare %d, %f %f\n", d, out_floats_ptr_c[1][0],
-			out_floats_ptr_opt[1][0]);
+		      out_floats_ptr_opt[1][0]);
 
 	free(in_shorts);
 	free(out_floats_left_c);
@@ -154,25 +156,32 @@ int main(int argc, char **argv)
 	TestRounding(-1.1f, -32768, samples);
 	TestRounding(2000000000.f / 32768.f, 32767, samples);
 	TestRounding(-2000000000.f / 32768.f, -32768, samples);
-	TestRounding(5000000000.f / 32768.f, 32767, samples);
-	TestRounding(-5000000000.f / 32768.f, -32768, samples);
 
-	// casting inf float to int produces different results
-#ifdef __aarch64__
-	int inf_int = 0x7f7fffff;;
-	float inf = *(float *)&inf_int;
-	TestRounding(inf, 0, samples);
-	inf_int = 0xff7fffff;;
-	inf = *(float *)&inf_int;
-	TestRounding(inf, 0, samples);
+	/* Infinity produces zero on arm64. */
+#if defined(__aarch64__)
+#define EXPECTED_INF_RESULT 0
+#define EXPECTED_NEGINF_RESULT 0
+#elif defined(__i386__) || defined(__x86_64__)
+#define EXPECTED_INF_RESULT -32768
+#define EXPECTED_NEGINF_RESULT 0
 #else
-	int inf_int = 0x7f7fffff;;
-	float inf = *(float *)&inf_int;
-	TestRounding(inf, -32768, samples);
-	inf_int = 0xff7fffff;;
-	inf = *(float *)&inf_int;
-	TestRounding(inf, -32768, samples);
+#define EXPECTED_INF_RESULT 32767
+#define EXPECTED_NEGINF_RESULT -32768
 #endif
+
+	TestRounding(5000000000.f / 32768.f, EXPECTED_INF_RESULT, samples);
+	TestRounding(-5000000000.f / 32768.f, EXPECTED_NEGINF_RESULT, samples);
+
+	// test infinity
+	union ieee754_float inf;
+	inf.ieee.negative = 0;
+	inf.ieee.exponent = 0xfe;
+	inf.ieee.mantissa = 0x7fffff;
+	TestRounding(inf.f, EXPECTED_INF_RESULT, samples);  // expect fail
+	inf.ieee.negative = 1;
+	inf.ieee.exponent = 0xfe;
+	inf.ieee.mantissa = 0x7fffff;
+	TestRounding(inf.f, EXPECTED_NEGINF_RESULT, samples);  // expect fail
 
 	// test rounding
 	TestRounding(0.25f, 8192, samples);
@@ -186,12 +195,12 @@ int main(int argc, char **argv)
 	TestRounding(1.0f / 32768.0f - e, 1, samples);
 	TestRounding(-1.0f / 32768.0f + e, -1, samples);
 
-	// Rounding on 'tie' is not consistent at this time.
+	/* Rounding on 'tie' is different for Intel. */
 #if defined(__i386__) || defined(__x86_64__)
-	TestRounding(0.5f / 32768.0f, 0, samples);  // expect round to even
+	TestRounding(0.5f / 32768.0f, 0, samples);  /* Expect round to even */
 	TestRounding(-0.5f / 32768.0f, 0, samples);
 #else
-	TestRounding(0.5f / 32768.0f, 1, samples);  // expect round away
+	TestRounding(0.5f / 32768.0f, 1, samples);  /* Expect round away */
 	TestRounding(-0.5f / 32768.0f, -1, samples);
 #endif
 
@@ -200,33 +209,39 @@ int main(int argc, char **argv)
 	TestRounding(0.5f / 32768.0f - e, 0, samples);
 	TestRounding(-0.5f / 32768.0f + e, 0, samples);
 
-	TestRounding(1.5f / 32768.0f, 2, samples);  // expect fail?
-	TestRounding(-1.5f / 32768.0f, -2, samples);  // expect fail?
+	TestRounding(1.5f / 32768.0f, 2, samples);
+	TestRounding(-1.5f / 32768.0f, -2, samples);
 	TestRounding(1.5f / 32768.0f + e, 2, samples);
 	TestRounding(-1.5f / 32768.0f - e, -2, samples);
 	TestRounding(1.5f / 32768.0f - e, 1, samples);
 	TestRounding(-1.5f / 32768.0f + e, -1, samples);
 
-	// test denormals
-	int denorm_int = 1;
-	float denorm = *(float *)&denorm_int;
-	TestRounding(denorm, 0, samples);
-	denorm_int = 0x80000001;
-	denorm = *(float *)&denorm_int;
-	TestRounding(denorm, 0, samples);
+	/* Test denormals */
+	union ieee754_float denorm;
+	denorm.ieee.negative = 0;
+	denorm.ieee.exponent = 0;
+	denorm.ieee.mantissa = 1;
+	TestRounding(denorm.f, 0, samples);
+	denorm.ieee.negative = 1;
+	denorm.ieee.exponent = 0;
+	denorm.ieee.mantissa = 1;
+	TestRounding(denorm.f, 0, samples);
 
-	// test nans. caveat Results vary by implementation.
+	/* Test NaNs. Caveat Results vary by implementation. */
 #if defined(__i386__) || defined(__x86_64__)
-#define EXPECTED_NAN_RESULT 32767
+#define EXPECTED_NAN_RESULT -32768
 #else
 #define EXPECTED_NAN_RESULT 0
 #endif
-	unsigned int nan_int = 0x7f800001;
-	float nan = *(float *)&nan_int;
-	TestRounding(nan, EXPECTED_NAN_RESULT, samples);
-	nan_int = 0xff800001;
-	nan = *(float *)&nan_int;
-	TestRounding(nan, EXPECTED_NAN_RESULT, samples);
+        union ieee754_float nan;  /* Quiet NaN */
+        nan.ieee.negative = 0;
+        nan.ieee.exponent = 0xff;
+        nan.ieee.mantissa = 0x400001;
+        TestRounding(nan.f, EXPECTED_NAN_RESULT, samples);
+        nan.ieee.negative = 0;
+        nan.ieee.exponent = 0xff;
+        nan.ieee.mantissa = 0x000001;  /* Signalling NaN */
+        TestRounding(nan.f, EXPECTED_NAN_RESULT, samples);
 
 	/* Test Performance */
 	uint64_t diff;
@@ -341,5 +356,6 @@ int main(int argc, char **argv)
 	free(out_floats_right_opt);
 	free(out_shorts_c);
 	free(out_shorts_opt);
+
 	return 0;
 }
