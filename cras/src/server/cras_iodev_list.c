@@ -696,7 +696,7 @@ void cras_iodev_list_init()
 void cras_iodev_list_deinit()
 {
 	cras_system_remove_volume_changed_cb(sys_vol_change, NULL);
-	cras_system_remove_mute_changed_cb(sys_vol_change, NULL);
+	cras_system_remove_mute_changed_cb(sys_mute_change, NULL);
 	cras_system_remove_suspend_cb(sys_suspend_change, NULL);
 	cras_system_remove_capture_gain_changed_cb(sys_cap_gain_change, NULL);
 	cras_system_remove_capture_mute_changed_cb(sys_cap_mute_change, NULL);
