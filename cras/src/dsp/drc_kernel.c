@@ -406,42 +406,37 @@ static void dk_update_envelope(struct drc_kernel *dk)
 
 /* For a division of frames, take the absolute values of left channel and right
  * channel, store the maximum of them in output. */
-#ifdef __ARM_NEON__
-#include <arm_neon.h>
-static inline void max_abs_division(float *output, float *data0, float *data1)
+/* TODO(fbarchard): Port to aarch64 */
+#if defined(__ARM_NEON__)
+static inline void max_abs_division(float *output,
+				    const float *data0, const float *data1)
 {
-	float32x4_t x, y;
 	int count = DIVISION_FRAMES / 4;
 
 	__asm__ __volatile__(
 		"1:                                     \n"
-		"vld1.32 {%e[x],%f[x]}, [%[data0]]!     \n"
-		"vld1.32 {%e[y],%f[y]}, [%[data1]]!     \n"
-		"vabs.f32 %q[x], %q[x]                  \n"
-		"vabs.f32 %q[y], %q[y]                  \n"
-		"vmax.f32 %q[x], %q[y]                  \n"
-		"vst1.32 {%e[x],%f[x]}, [%[output]]!    \n"
+		"vld1.32 {q0}, [%[data0]]!              \n"
+		"vld1.32 {q1}, [%[data1]]!              \n"
+		"vabs.f32 q0, q0                        \n"
+		"vabs.f32 q1, q1                        \n"
+		"vmax.f32 q0, q1                        \n"
+		"vst1.32 {q0}, [%[output]]!             \n"
 		"subs %[count], #1                      \n"
 		"bne 1b                                 \n"
 		: /* output */
-		  "=r"(data0),
-		  "=r"(data1),
-		  "=r"(output),
-		  "=r"(count),
-		  [x]"=&w"(x),
-		  [y]"=&w"(y)
+		  [data0]"+r"(data0),
+		  [data1]"+r"(data1),
+		  [output]"+r"(output),
+		  [count]"+r"(count)
 		: /* input */
-		  [data0]"0"(data0),
-		  [data1]"1"(data1),
-		  [output]"2"(output),
-		  [count]"3"(count)
 		: /* clobber */
-		  "memory", "cc"
+		  "q0", "q1", "memory", "cc"
 		);
 }
 #elif defined(__SSE3__)
 #include <emmintrin.h>
-static inline void max_abs_division(float *output, float *data0, float *data1)
+static inline void max_abs_division(float *output,
+				    const float *data0, const float *data1)
 {
 	__m128 x, y;
 	int count = DIVISION_FRAMES / 4;
@@ -473,7 +468,8 @@ static inline void max_abs_division(float *output, float *data0, float *data1)
 		);
 }
 #else
-static inline void max_abs_division(float *output, float *data0, float *data1)
+static inline void max_abs_division(float *output,
+				    const float *data0, const float *data1)
 {
 	int i;
 	for (i = 0; i < DIVISION_FRAMES; i++)
@@ -545,6 +541,7 @@ static void dk_update_detector_average(struct drc_kernel *dk)
 
 /* Calculate compress_gain from the envelope and apply total_gain to compress
  * the next output division. */
+/* TODO(fbarchard): Port to aarch64 */
 #if defined(__ARM_NEON__)
 #include <arm_neon.h>
 static void dk_compress_output(struct drc_kernel *dk)
