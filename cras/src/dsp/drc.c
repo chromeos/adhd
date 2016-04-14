@@ -260,7 +260,7 @@ static void free_kernel(struct drc *drc)
 // that is comparable performance, but twice as large.  -O1 and -Os produce
 // small but slower code (4x slower than Neon).
 #if defined(__aarch64__)
-static void sum3(float *data, float *data1, float *data2, int n)
+static void sum3(float *data, const float *data1, const float *data2, int n)
 {
 	int count = n / 4;
 	int i;
@@ -292,39 +292,30 @@ static void sum3(float *data, float *data1, float *data2, int n)
 		data[i] += data1[i] + data2[i];
 }
 #elif defined(__ARM_NEON__)
-#include <arm_neon.h>
-static void sum3(float *data, float *data1, float *data2, int n)
+static void sum3(float *data, const float *data1, const float *data2, int n)
 {
-	float32x4_t x, y, z;
 	int count = n / 4;
 	int i;
 
 	if (count) {
 		__asm__ __volatile(
 			"1:                                         \n"
-			"vld1.32 {%e[x],%f[x]}, [%[data1]]!         \n"
-			"vld1.32 {%e[y],%f[y]}, [%[data2]]!         \n"
-			"vld1.32 {%e[z],%f[z]}, [%[data]]           \n"
-			"vadd.f32 %q[y], %q[x]                      \n"
-			"vadd.f32 %q[z], %q[y]                      \n"
-			"vst1.32 {%e[z],%f[z]}, [%[data]]!          \n"
+			"vld1.32 {q0}, [%[data1]]!                  \n"
+			"vld1.32 {q1}, [%[data2]]!                  \n"
+			"vld1.32 {q2}, [%[data]]                    \n"
+			"vadd.f32 q0, q0, q1                        \n"
+			"vadd.f32 q0, q0, q2                        \n"
+			"vst1.32 {q0}, [%[data]]!                   \n"
 			"subs %[count], #1                          \n"
 			"bne 1b                                     \n"
 			: /* output */
-			  "=r"(data),
-			  "=r"(data1),
-			  "=r"(data2),
-			  "=r"(count),
-			  [x]"=&w"(x),
-			  [y]"=&w"(y),
-			  [z]"=&w"(z)
+			  [data]"+r"(data),
+			  [data1]"+r"(data1),
+			  [data2]"+r"(data2),
+			  [count]"+r"(count)
 			: /* input */
-			  [data]"0"(data),
-			  [data1]"1"(data1),
-			  [data2]"2"(data2),
-			  [count]"3"(count)
 			: /* clobber */
-			  "memory", "cc"
+			  "q0", "q1", "q2", "memory", "cc"
 			);
 	}
 
@@ -334,7 +325,7 @@ static void sum3(float *data, float *data1, float *data2, int n)
 }
 #elif defined(__SSE3__)
 #include <emmintrin.h>
-static void sum3(float *data, float *data1, float *data2, int n)
+static void sum3(float *data, const float *data1, const float *data2, int n)
 {
 	__m128 x, y, z;
 	int count = n / 4;
@@ -355,18 +346,14 @@ static void sum3(float *data, float *data1, float *data2, int n)
 			"sub $1, %[count]                           \n"
 			"jne 1b                                     \n"
 			: /* output */
-			  "=r"(data),
-			  "=r"(data1),
-			  "=r"(data2),
-			  "=r"(count),
-			  [x]"=&x"(x),
-			  [y]"=&x"(y),
-			  [z]"=&x"(z)
+			  [data]"+r"(data),
+			  [data1]"+r"(data1),
+			  [data2]"+r"(data2),
+			  [count]"+r"(count),
+			  [x]"=x"(x),
+			  [y]"=x"(y),
+			  [z]"=x"(z)
 			: /* input */
-			  [data]"0"(data),
-			  [data1]"1"(data1),
-			  [data2]"2"(data2),
-			  [count]"3"(count)
 			: /* clobber */
 			  "memory", "cc"
 			);
@@ -377,7 +364,7 @@ static void sum3(float *data, float *data1, float *data2, int n)
 		data[i] += data1[i] + data2[i];
 }
 #else
-static void sum3(float *data, float *data1, float *data2, int n)
+static void sum3(float *data, const float *data1, const float *data2, int n)
 {
 	int i;
 	for (i = 0; i < n; i++)
