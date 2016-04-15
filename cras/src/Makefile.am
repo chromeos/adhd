@@ -381,7 +381,8 @@ alert_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 alert_unittest_LDADD = -lgtest -lpthread
 
 alsa_card_unittest_SOURCES = tests/alsa_card_unittest.cc \
-	server/cras_alsa_card.c server/cras_alsa_mixer_name.c
+	server/cras_alsa_card.c server/cras_alsa_mixer_name.c \
+	server/cras_alsa_ucm_section.c
 alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \

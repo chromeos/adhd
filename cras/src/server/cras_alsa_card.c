@@ -196,6 +196,215 @@ static void alsa_control_event_pending(void *arg)
 	snd_hctl_handle_events(card->hctl);
 }
 
+static int add_controls_and_iodevs_by_matching(
+		struct cras_alsa_card_info *info,
+		struct cras_device_blacklist *blacklist,
+		struct cras_alsa_card *alsa_card,
+		const char *card_name,
+		snd_ctl_t *handle)
+{
+	struct mixer_name *coupled_controls = NULL;
+	int dev_idx;
+	snd_pcm_info_t *dev_info;
+	struct mixer_name *extra_controls = NULL;
+	int rc = 0;
+
+	snd_pcm_info_alloca(&dev_info);
+
+	if (alsa_card->ucm) {
+		char *extra_main_volume;
+
+		/* Filter the extra output mixer names */
+		extra_controls =
+			filter_controls(alsa_card->ucm,
+				mixer_name_add(extra_controls, "IEC958",
+					       CRAS_STREAM_OUTPUT,
+					       MIXER_NAME_VOLUME));
+
+		/* Get the extra main volume control. */
+		extra_main_volume = ucm_get_flag(alsa_card->ucm,
+						 "ExtraMainVolume");
+		if (extra_main_volume) {
+			extra_controls =
+				mixer_name_add(extra_controls,
+					       extra_main_volume,
+					       CRAS_STREAM_OUTPUT,
+					       MIXER_NAME_MAIN_VOLUME);
+			free(extra_main_volume);
+		}
+		mixer_name_dump(extra_controls, "extra controls");
+
+		/* Check if coupled controls has been specified for speaker. */
+		coupled_controls = ucm_get_coupled_mixer_names(
+					alsa_card->ucm, "Speaker");
+		mixer_name_dump(coupled_controls, "coupled controls");
+	}
+
+	/* Add controls to mixer by name matching. */
+	rc = cras_alsa_mixer_add_controls_by_name_matching(
+			alsa_card->mixer,
+			extra_controls,
+			coupled_controls);
+	if (rc) {
+		syslog(LOG_ERR, "Fail adding controls to mixer for %s.",
+		       alsa_card->name);
+		goto error;
+	}
+
+	/* Go through every device. */
+	dev_idx = -1;
+	while (1) {
+		rc = snd_ctl_pcm_next_device(handle, &dev_idx);
+		if (rc < 0)
+			goto error;
+		if (dev_idx < 0)
+			break;
+
+		snd_pcm_info_set_device(dev_info, dev_idx);
+		snd_pcm_info_set_subdevice(dev_info, 0);
+
+		/* Check for playback devices. */
+		snd_pcm_info_set_stream(
+			dev_info, SND_PCM_STREAM_PLAYBACK);
+		if (snd_ctl_pcm_info(handle, dev_info) == 0 &&
+		    !should_ignore_dev(info, blacklist, dev_idx)) {
+			struct cras_iodev *iodev =
+				create_iodev_for_device(
+					alsa_card,
+					info,
+					card_name,
+					snd_pcm_info_get_name(dev_info),
+					snd_pcm_info_get_id(dev_info),
+					dev_idx,
+					CRAS_STREAM_OUTPUT);
+			if (iodev) {
+				rc = alsa_iodev_legacy_complete_init(
+					iodev);
+				if (rc < 0)
+					goto error;
+			}
+		}
+
+		/* Check for capture devices. */
+		snd_pcm_info_set_stream(
+			dev_info, SND_PCM_STREAM_CAPTURE);
+		if (snd_ctl_pcm_info(handle, dev_info) == 0) {
+			struct cras_iodev *iodev =
+				create_iodev_for_device(
+					alsa_card,
+					info,
+					card_name,
+					snd_pcm_info_get_name(dev_info),
+					snd_pcm_info_get_id(dev_info),
+					dev_idx,
+					CRAS_STREAM_INPUT);
+			if (iodev) {
+				rc = alsa_iodev_legacy_complete_init(
+					iodev);
+				if (rc < 0)
+					goto error;
+			}
+		}
+	}
+error:
+	mixer_name_free(coupled_controls);
+	mixer_name_free(extra_controls);
+	return rc;
+}
+
+static int add_controls_and_iodevs_with_ucm(
+		struct cras_alsa_card_info *info,
+		struct cras_alsa_card *alsa_card,
+		const char *card_name,
+		snd_ctl_t *handle)
+{
+	snd_pcm_info_t *dev_info;
+	struct iodev_list_node *node;
+	int rc = 0;
+	struct ucm_section *section;
+	struct ucm_section *ucm_sections;
+
+	snd_pcm_info_alloca(&dev_info);
+
+	/* Get info on the devices specified in the UCM config. */
+	ucm_sections = ucm_get_sections(alsa_card->ucm);
+	if (!ucm_sections) {
+		syslog(LOG_ERR,
+		       "Could not retrieve any UCM SectionDevice"
+		       " info for '%s'.", card_name);
+		rc = -ENOENT;
+		goto error;
+	}
+
+	/* Create all of the controls first. */
+	DL_FOREACH(ucm_sections, section) {
+		rc = cras_alsa_mixer_add_controls_in_section(
+				alsa_card->mixer, section);
+		if (rc) {
+			syslog(LOG_ERR, "Failed adding controls to"
+					" mixer for '%s:%s'",
+					card_name,
+					section->name);
+			goto error;
+		}
+	}
+
+	/* Create all of the devices. */
+	DL_FOREACH(ucm_sections, section) {
+		snd_pcm_info_set_device(dev_info, section->dev_idx);
+		snd_pcm_info_set_subdevice(dev_info, 0);
+		if (section->dir == CRAS_STREAM_OUTPUT)
+			snd_pcm_info_set_stream(
+				dev_info, SND_PCM_STREAM_PLAYBACK);
+		else if (section->dir == CRAS_STREAM_INPUT)
+			snd_pcm_info_set_stream(
+				dev_info, SND_PCM_STREAM_CAPTURE);
+		else {
+			syslog(LOG_ERR, "Unexpected direction: %d",
+			       section->dir);
+			rc = -EINVAL;
+			goto error;
+		}
+
+		if (snd_ctl_pcm_info(handle, dev_info)) {
+			syslog(LOG_ERR,
+			       "Could not get info for device: %s",
+			       section->name);
+			continue;
+		}
+
+		create_iodev_for_device(
+			alsa_card, info, card_name,
+			snd_pcm_info_get_name(dev_info),
+			snd_pcm_info_get_id(dev_info),
+			section->dev_idx, section->dir);
+	}
+
+	/* Setup jacks and controls for the devices. */
+	DL_FOREACH(ucm_sections, section) {
+		DL_FOREACH(alsa_card->iodevs, node) {
+			if (node->direction == section->dir &&
+			    alsa_iodev_index(node->iodev) ==
+			    section->dev_idx)
+				break;
+		}
+		if (node) {
+			rc = alsa_iodev_ucm_add_nodes_and_jacks(
+				node->iodev, section);
+			if (rc < 0)
+				goto error;
+		}
+	}
+
+	DL_FOREACH(alsa_card->iodevs, node) {
+		alsa_iodev_ucm_complete_init(node->iodev);
+	}
+
+error:
+	ucm_section_free_list(ucm_sections);
+	return rc;
+}
+
 /*
  * Exported Interface.
  */
@@ -206,13 +415,10 @@ struct cras_alsa_card *cras_alsa_card_create(
 		struct cras_device_blacklist *blacklist)
 {
 	snd_ctl_t *handle = NULL;
-	int rc, dev_idx, n;
+	int rc, n;
 	snd_ctl_card_info_t *card_info;
 	const char *card_name;
-	snd_pcm_info_t *dev_info;
 	struct cras_alsa_card *alsa_card;
-	struct mixer_name *extra_controls = NULL;
-	struct mixer_name *coupled_controls = NULL;
 
 	if (info->card_index >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR,
@@ -222,7 +428,6 @@ struct cras_alsa_card *cras_alsa_card_create(
 	}
 
 	snd_ctl_card_info_alloca(&card_info);
-	snd_pcm_info_alloca(&dev_info);
 
 	alsa_card = calloc(1, sizeof(*alsa_card));
 	if (alsa_card == NULL)
@@ -263,35 +468,6 @@ struct cras_alsa_card *cras_alsa_card_create(
 	syslog(LOG_INFO, "Card %s (%s) has UCM: %s",
 		alsa_card->name, card_name, alsa_card->ucm ? "yes" : "no");
 
-	if (alsa_card->ucm) {
-		char *extra_main_volume;
-
-		/* Filter the extra output mixer names */
-		extra_controls =
-			filter_controls(alsa_card->ucm,
-				mixer_name_add(extra_controls, "IEC958",
-					       CRAS_STREAM_OUTPUT,
-					       MIXER_NAME_VOLUME));
-
-		/* Get the extra main volume control. */
-		extra_main_volume = ucm_get_flag(alsa_card->ucm,
-						 "ExtraMainVolume");
-		if (extra_main_volume) {
-			extra_controls =
-				mixer_name_add(extra_controls,
-					       extra_main_volume,
-					       CRAS_STREAM_OUTPUT,
-					       MIXER_NAME_MAIN_VOLUME);
-			free(extra_main_volume);
-		}
-		mixer_name_dump(extra_controls, "extra controls");
-
-		/* Check if coupled controls has been specified for speaker. */
-		coupled_controls = ucm_get_coupled_mixer_names(
-					alsa_card->ucm, "Speaker");
-		mixer_name_dump(coupled_controls, "coupled controls");
-	}
-
 	rc = snd_hctl_open(&alsa_card->hctl,
 			   alsa_card->name,
 			   SND_CTL_NONBLOCK);
@@ -324,70 +500,14 @@ struct cras_alsa_card *cras_alsa_card_create(
 		goto error_bail;
 	}
 
-	/* Add controls to mixer by name matching. */
-	rc = cras_alsa_mixer_add_controls_by_name_matching(
-			alsa_card->mixer,
-			extra_controls,
-			coupled_controls);
-	if (rc) {
-		syslog(LOG_ERR, "Fail adding controls to mixer for %s.",
-		       alsa_card->name);
+	if (alsa_card->ucm && ucm_has_fully_specified_ucm_flag(alsa_card->ucm))
+		rc = add_controls_and_iodevs_with_ucm(
+				info, alsa_card, card_name, handle);
+	else
+		rc = add_controls_and_iodevs_by_matching(
+				info, blacklist, alsa_card, card_name, handle);
+	if (rc)
 		goto error_bail;
-	}
-
-	dev_idx = -1;
-	while (1) {
-		rc = snd_ctl_pcm_next_device(handle, &dev_idx);
-		if (rc < 0) {
-			cras_alsa_card_destroy(alsa_card);
-			snd_ctl_close(handle);
-			return NULL;
-		}
-		if (dev_idx < 0)
-			break;
-
-		snd_pcm_info_set_device(dev_info, dev_idx);
-		snd_pcm_info_set_subdevice(dev_info, 0);
-
-		/* Check for playback devices. */
-		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
-		if (snd_ctl_pcm_info(handle, dev_info) == 0 &&
-		    !should_ignore_dev(info, blacklist, dev_idx)) {
-			struct cras_iodev *iodev =
-				create_iodev_for_device(
-						alsa_card,
-						info,
-						card_name,
-						snd_pcm_info_get_name(dev_info),
-						snd_pcm_info_get_id(dev_info),
-						dev_idx,
-						CRAS_STREAM_OUTPUT);
-			if (iodev) {
-				rc = alsa_iodev_legacy_complete_init(iodev);
-				if (rc < 0)
-					goto error_bail;
-			}
-		}
-
-		/* Check for capture devices. */
-		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_CAPTURE);
-		if (snd_ctl_pcm_info(handle, dev_info) == 0) {
-			struct cras_iodev *iodev =
-				create_iodev_for_device(
-						alsa_card,
-						info,
-						card_name,
-						snd_pcm_info_get_name(dev_info),
-						snd_pcm_info_get_id(dev_info),
-						dev_idx,
-						CRAS_STREAM_INPUT);
-			if (iodev) {
-				rc = alsa_iodev_legacy_complete_init(iodev);
-				if (rc < 0)
-					goto error_bail;
-			}
-		}
-	}
 
 	n = alsa_card->hctl ?
 		snd_hctl_poll_descriptors_count(alsa_card->hctl) : 0;
@@ -426,14 +546,10 @@ struct cras_alsa_card *cras_alsa_card_create(
 		free(pollfds);
 	}
 
-	mixer_name_free(coupled_controls);
-	mixer_name_free(extra_controls);
 	snd_ctl_close(handle);
 	return alsa_card;
 
 error_bail:
-	mixer_name_free(coupled_controls);
-	mixer_name_free(extra_controls);
 	if (handle != NULL)
 		snd_ctl_close(handle);
 	cras_alsa_card_destroy(alsa_card);

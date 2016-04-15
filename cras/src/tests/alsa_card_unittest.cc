@@ -4,7 +4,9 @@
 
 #include <gtest/gtest.h>
 #include <iniparser.h>
+#include <map>
 #include <stdio.h>
+#include <syslog.h>
 #include <sys/param.h>
 
 extern "C" {
@@ -23,12 +25,21 @@ static size_t cras_alsa_mixer_create_called;
 static struct cras_alsa_mixer *cras_alsa_mixer_create_return;
 static size_t cras_alsa_mixer_destroy_called;
 static size_t cras_alsa_iodev_create_called;
-static struct cras_iodev *cras_alsa_iodev_create_return;
+static struct cras_iodev **cras_alsa_iodev_create_return;
+static struct cras_iodev *cras_alsa_iodev_create_default_return[] = {
+  reinterpret_cast<struct cras_iodev *>(2),
+  reinterpret_cast<struct cras_iodev *>(3),
+  reinterpret_cast<struct cras_iodev *>(4),
+  reinterpret_cast<struct cras_iodev *>(5),
+};
+static size_t cras_alsa_iodev_create_return_size;
 static size_t cras_alsa_iodev_legacy_complete_init_called;
+static size_t cras_alsa_iodev_ucm_add_nodes_and_jacks_called;
+static size_t cras_alsa_iodev_ucm_complete_init_called;
 static size_t cras_alsa_iodev_destroy_called;
 static struct cras_iodev *cras_alsa_iodev_destroy_arg;
 static size_t cras_alsa_iodev_index_called;
-static unsigned cras_alsa_iodev_index_return;
+static std::map<struct cras_iodev *, unsigned int> cras_alsa_iodev_index_return;
 static int alsa_iodev_has_hctl_jacks_return;
 static size_t snd_ctl_open_called;
 static size_t snd_ctl_open_return;
@@ -73,17 +84,27 @@ static char* device_config_dir;
 static const char* cras_card_config_dir;
 static struct mixer_name *ucm_get_coupled_mixer_names_return_value;
 static struct mixer_name *coupled_output_names_value;
+static int ucm_has_fully_specified_ucm_flag_return_value;
+static int ucm_get_sections_called;
+static struct ucm_section *ucm_get_sections_return_value;
+static size_t cras_alsa_mixer_add_controls_in_section_called;
+static int cras_alsa_mixer_add_controls_in_section_return_value;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
   cras_alsa_mixer_create_return = reinterpret_cast<struct cras_alsa_mixer *>(1);
   cras_alsa_mixer_destroy_called = 0;
+  cras_alsa_iodev_destroy_arg = NULL;
   cras_alsa_iodev_create_called = 0;
-  cras_alsa_iodev_create_return = reinterpret_cast<struct cras_iodev *>(2);
+  cras_alsa_iodev_create_return = cras_alsa_iodev_create_default_return;
+  cras_alsa_iodev_create_return_size =
+      ARRAY_SIZE(cras_alsa_iodev_create_default_return);
   cras_alsa_iodev_legacy_complete_init_called = 0;
+  cras_alsa_iodev_ucm_add_nodes_and_jacks_called = 0;
+  cras_alsa_iodev_ucm_complete_init_called = 0;
   cras_alsa_iodev_destroy_called = 0;
   cras_alsa_iodev_index_called = 0;
-  cras_alsa_iodev_index_return = 0;
+  cras_alsa_iodev_index_return.clear();
   alsa_iodev_has_hctl_jacks_return = 1;
   snd_ctl_open_called = 0;
   snd_ctl_open_return = 0;
@@ -128,6 +149,11 @@ static void ResetStubData() {
   ucm_get_coupled_mixer_names_return_value = NULL;
   mixer_name_free(coupled_output_names_value);
   coupled_output_names_value = NULL;
+  ucm_has_fully_specified_ucm_flag_return_value = 0;
+  ucm_get_sections_called = 0;
+  ucm_get_sections_return_value = NULL;
+  cras_alsa_mixer_add_controls_in_section_called = 0;
+  cras_alsa_mixer_add_controls_in_section_return_value = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -316,6 +342,8 @@ TEST(AlsaCard, CreateNoDevices) {
   EXPECT_EQ(0, cras_alsa_iodev_create_called);
   EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(1, cras_alsa_card_get_index(c));
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
@@ -364,11 +392,13 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(1, ucm_get_flag_called);
   EXPECT_EQ(0, strcmp(ucm_get_flag_name, "ExtraMainVolume"));
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, ucm_destroy_called);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -399,7 +429,7 @@ TEST(AlsaCard, CreateOneOutputBlacklisted) {
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(NULL, cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -426,10 +456,12 @@ TEST(AlsaCard, CreateTwoOutputs) {
   EXPECT_EQ(1, cras_alsa_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[1], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -456,10 +488,12 @@ TEST(AlsaCard, CreateTwoDuplicateDeviceIndex) {
   EXPECT_EQ(1, cras_alsa_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -485,10 +519,12 @@ TEST(AlsaCard, CreateOneInput) {
   EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -514,10 +550,12 @@ TEST(AlsaCard, CreateOneInputAndOneOutput) {
   EXPECT_EQ(2, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[1], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -543,10 +581,12 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   EXPECT_EQ(2, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(2, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[1], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -592,6 +632,8 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
   EXPECT_EQ(1, ucm_get_flag_called);
   EXPECT_EQ(0, strcmp(ucm_get_flag_name, "ExtraMainVolume"));
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(0, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 
   /* Checks cras_alsa_card_create can handle the list and pass the names to
    * cras_alsa_mixer_create. */
@@ -604,12 +646,147 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, ucm_destroy_called);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 
   mixer_name_free(coupled_output_names_value);
   coupled_output_names_value = NULL;
+}
+
+TEST(AlsaCard, CreateFullyUCMNoSections) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  ucm_has_fully_specified_ucm_flag_return_value = 1;
+  ucm_get_sections_return_value = NULL;
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+  EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_ucm_complete_init_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(1, ucm_get_sections_called);
+  EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, ucm_destroy_called);
+  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(NULL, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
+struct ucm_section *GenerateUcmSections (void) {
+  struct ucm_section *sections = NULL;
+  struct ucm_section *section;
+
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                               "my-sound-card Headset Jack", "gpio");
+  ucm_section_add_coupled(section, "HP-L", MIXER_NAME_VOLUME);
+  ucm_section_add_coupled(section, "HP-R", MIXER_NAME_VOLUME);
+  DL_APPEND(sections, section);
+
+  section = ucm_section_create("Speaker", 0, CRAS_STREAM_OUTPUT,
+                               NULL, NULL);
+  ucm_section_add_coupled(section, "SPK-L", MIXER_NAME_VOLUME);
+  ucm_section_add_coupled(section, "SPK-R", MIXER_NAME_VOLUME);
+  DL_APPEND(sections, section);
+
+  section = ucm_section_create("Mic", 0, CRAS_STREAM_INPUT,
+                               "my-sound-card Headset Jack", "gpio");
+  ucm_section_set_mixer_name(section, "CAPTURE");
+
+  section = ucm_section_create("Internal Mic", 0, CRAS_STREAM_INPUT,
+                               NULL, NULL);
+  ucm_section_add_coupled(section, "INT-MIC-L", MIXER_NAME_VOLUME);
+  ucm_section_add_coupled(section, "INT-MIC-R", MIXER_NAME_VOLUME);
+  DL_APPEND(sections, section);
+
+  section = ucm_section_create("Mic", 1, CRAS_STREAM_INPUT,
+                               "my-sound-card Headset Jack", "gpio");
+  ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
+  ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
+  DL_APPEND(sections, section);
+
+  section = ucm_section_create("HDMI", 2, CRAS_STREAM_OUTPUT,
+                               NULL, NULL);
+  ucm_section_set_mixer_name(section, "HDMI");
+  DL_APPEND(sections, section);
+
+  return sections;
+}
+
+TEST(AlsaCard, CreateFullyUCMFailureOnControls) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  ucm_has_fully_specified_ucm_flag_return_value = 1;
+  ucm_get_sections_return_value = GenerateUcmSections();
+  ASSERT_NE(ucm_get_sections_return_value, (struct ucm_section *)NULL);
+
+  cras_alsa_mixer_add_controls_in_section_return_value = -EINVAL;
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+
+  EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(1, ucm_get_sections_called);
+  EXPECT_EQ(1, cras_alsa_mixer_add_controls_in_section_called);
+  EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_ucm_complete_init_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, ucm_destroy_called);
+  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(NULL, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
+TEST(AlsaCard, CreateFullyUCMFourDevicesFiveSections) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+  int info_rets[] = {0, 0, 0, 0, 0, -1};
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  ucm_has_fully_specified_ucm_flag_return_value = 1;
+  ucm_get_sections_return_value = GenerateUcmSections();
+  cras_alsa_iodev_index_return[cras_alsa_iodev_create_return[0]] = 0;
+  cras_alsa_iodev_index_return[cras_alsa_iodev_create_return[1]] = 0;
+  cras_alsa_iodev_index_return[cras_alsa_iodev_create_return[2]] = 1;
+  cras_alsa_iodev_index_return[cras_alsa_iodev_create_return[3]] = 2;
+  ASSERT_NE(ucm_get_sections_return_value, (struct ucm_section *)NULL);
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(1, ucm_get_sections_called);
+  EXPECT_EQ(5, snd_ctl_pcm_info_called);
+  EXPECT_EQ(5, cras_alsa_mixer_add_controls_in_section_called);
+  EXPECT_EQ(4, cras_alsa_iodev_create_called);
+  EXPECT_EQ(5, cras_alsa_iodev_ucm_add_nodes_and_jacks_called);
+  EXPECT_EQ(4, cras_alsa_iodev_ucm_complete_init_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, ucm_destroy_called);
+  EXPECT_EQ(4, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_iodev_create_return[3], cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
 
@@ -656,8 +833,11 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_STREAM_DIRECTION direction,
                                      size_t usb_vid,
                                      size_t usb_pid) {
+  struct cras_iodev *result = NULL;
+  if (cras_alsa_iodev_create_called < cras_alsa_iodev_create_return_size)
+    result = cras_alsa_iodev_create_return[cras_alsa_iodev_create_called];
   cras_alsa_iodev_create_called++;
-  return cras_alsa_iodev_create_return;
+  return result;
 }
 void alsa_iodev_destroy(struct cras_iodev *iodev) {
   cras_alsa_iodev_destroy_called++;
@@ -667,9 +847,21 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev) {
   cras_alsa_iodev_legacy_complete_init_called++;
   return 0;
 }
+int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
+				       struct ucm_section *section) {
+  cras_alsa_iodev_ucm_add_nodes_and_jacks_called++;
+  return 0;
+}
+void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev) {
+  cras_alsa_iodev_ucm_complete_init_called++;
+}
 unsigned alsa_iodev_index(struct cras_iodev *iodev) {
+  std::map<struct cras_iodev *, unsigned int>::iterator i;
   cras_alsa_iodev_index_called++;
-  return cras_alsa_iodev_index_return;
+  i = cras_alsa_iodev_index_return.find(iodev);
+  if (i != cras_alsa_iodev_index_return.end())
+    return i->second;
+  return 0;
 }
 int alsa_iodev_has_hctl_jacks(struct cras_iodev *iodev) {
   return alsa_iodev_has_hctl_jacks_return;
@@ -839,6 +1031,25 @@ struct mixer_name *ucm_get_coupled_mixer_names(
   return ucm_get_coupled_mixer_names_return_value;
 }
 
+int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr)
+{
+  return ucm_has_fully_specified_ucm_flag_return_value;
+}
+
+struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr)
+{
+  ucm_get_sections_called++;
+  return ucm_get_sections_return_value;
+}
+
+int cras_alsa_mixer_add_controls_in_section(
+		struct cras_alsa_mixer *cmix,
+		struct ucm_section *section)
+{
+  cras_alsa_mixer_add_controls_in_section_called++;
+  return cras_alsa_mixer_add_controls_in_section_return_value;
+}
+
 void ucm_free_mixer_names(struct mixer_name *names)
 {
   struct mixer_name *m;
@@ -855,5 +1066,6 @@ void ucm_free_mixer_names(struct mixer_name *names)
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  openlog(NULL, LOG_PERROR, LOG_USER);
   return RUN_ALL_TESTS();
 }
