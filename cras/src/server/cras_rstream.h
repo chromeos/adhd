@@ -256,7 +256,8 @@ void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 					const struct timespec *now);
 
 /* Requests min_req frames from the client. */
-int cras_rstream_request_audio(const struct cras_rstream *stream);
+int cras_rstream_request_audio(struct cras_rstream *stream,
+			       const struct timespec *now);
 
 /* Tells a capture client that count frames are ready. */
 int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count);

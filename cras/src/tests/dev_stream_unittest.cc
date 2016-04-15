@@ -628,7 +628,8 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count) {
   return 0;
 }
 
-int cras_rstream_request_audio(const struct cras_rstream *stream) {
+int cras_rstream_request_audio(struct cras_rstream *stream,
+    const struct timespec *now) {
   return 0;
 }
 

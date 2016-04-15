@@ -207,10 +207,10 @@ void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 		if (timespec_after(&ts, &rstream->longest_fetch_interval))
 			rstream->longest_fetch_interval = ts;
 	}
-	rstream->last_fetch_ts = *now;
 }
 
-int cras_rstream_request_audio(const struct cras_rstream *stream)
+int cras_rstream_request_audio(struct cras_rstream *stream,
+			       const struct timespec *now)
 {
 	struct audio_message msg;
 	int rc;
@@ -218,6 +218,8 @@ int cras_rstream_request_audio(const struct cras_rstream *stream)
 	/* Only request samples from output streams. */
 	if (stream->direction != CRAS_STREAM_OUTPUT)
 		return 0;
+
+	stream->last_fetch_ts = *now;
 
 	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
 	msg.frames = stream->cb_threshold;

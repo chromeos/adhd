@@ -586,9 +586,7 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
 	struct cras_rstream *rstream = dev_stream->stream;
 	int rc;
 
-	cras_rstream_record_fetch_interval(dev_stream->stream, now);
-
-	rc = cras_rstream_request_audio(dev_stream->stream);
+	rc = cras_rstream_request_audio(dev_stream->stream, now);
 	if (rc < 0)
 		return rc;
 

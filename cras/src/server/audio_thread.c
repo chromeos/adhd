@@ -580,8 +580,13 @@ static int fetch_streams(struct audio_thread *thread,
 		const struct timespec *next_cb_ts;
 		struct timespec now;
 
-		if (cras_shm_callback_pending(shm) && fd >= 0)
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+
+		if (cras_shm_callback_pending(shm) && fd >= 0) {
 			flush_old_aud_messages(shm, fd);
+			cras_rstream_record_fetch_interval(dev_stream->stream,
+							   &now);
+		}
 
 		if (cras_shm_get_frames(shm) < 0)
 			cras_rstream_set_is_draining(rstream, 1);
@@ -595,7 +600,6 @@ static int fetch_streams(struct audio_thread *thread,
 
 		/* Check if it's time to get more data from this stream.
 		 * Allowing for waking up half a little early. */
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 		add_timespecs(&now, &playback_wake_fuzz_ts);
 		if (!timespec_after(&now, next_cb_ts))
 			continue;

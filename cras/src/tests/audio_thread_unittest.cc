@@ -691,6 +691,11 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
   return 0;
 }
 
+void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
+    const struct timespec *now)
+{
+}
+
 int cras_set_rt_scheduling(int rt_lim)
 {
   return 0;
