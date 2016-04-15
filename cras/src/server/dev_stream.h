@@ -27,7 +27,6 @@ struct cras_iodev;
  *    conv - Sample rate or format converter.
  *    conv_buffer - The buffer for converter if needed.
  *    conv_buffer_size_frames - Size of conv_buffer in frames.
- *    skip_mix - Don't mix this next time streams are mixed.
  */
 struct dev_stream {
 	unsigned int dev_id;
@@ -36,7 +35,6 @@ struct dev_stream {
 	struct byte_buffer *conv_buffer;
 	struct cras_audio_area *conv_area;
 	unsigned int conv_buffer_size_frames;
-	unsigned int skip_mix;
 	struct dev_stream *prev, *next;
 };
 
