@@ -261,24 +261,24 @@ static const char *ucm_get_capture_device_name_for_dev(
  * E.g. "Left Playback,Right Playback".
  */
 static struct mixer_name *ucm_get_mixer_names(snd_use_case_mgr_t *mgr,
-		const char *dev, const char* var)
+				const char *dev, const char* var,
+				enum CRAS_STREAM_DIRECTION dir,
+				mixer_name_type type)
 {
 	const char *names_in_string = NULL;
 	int rc;
-	char *tokens, *name;
-	struct mixer_name *names = NULL, *m_name;
+	char *tokens, *name, *laststr;
+	struct mixer_name *names = NULL;
 
 	rc = get_var(mgr, var, dev, default_verb, &names_in_string);
 	if (rc)
 		return NULL;
 
 	tokens = strdup(names_in_string);
-	name = strtok(tokens, ",");
+	name = strtok_r(tokens, ",", &laststr);
 	while (name != NULL) {
-		m_name = (struct mixer_name *)malloc(sizeof(struct mixer_name));
-		m_name->name = strdup(name);
-		DL_APPEND(names, m_name);
-		name = strtok(NULL, ",");
+		names = mixer_name_add(names, name, dir, type);
+		name = strtok_r(NULL, ",", &laststr);
 	}
 	free((void*)names_in_string);
 	free(tokens);
@@ -550,17 +550,9 @@ const char *ucm_get_device_name_for_dev(
 struct mixer_name *ucm_get_coupled_mixer_names(
 		snd_use_case_mgr_t *mgr, const char *dev)
 {
-	return ucm_get_mixer_names(mgr, dev, coupled_mixers);
-}
-
-void ucm_free_mixer_names(struct mixer_name *names)
-{
-	struct mixer_name *m;
-	DL_FOREACH(names, m) {
-		DL_DELETE(names, m);
-		free((void*)m->name);
-		free(m);
-	}
+	return ucm_get_mixer_names(mgr, dev, coupled_mixers,
+				   CRAS_STREAM_OUTPUT,
+				   MIXER_NAME_VOLUME);
 }
 
 char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
@@ -659,7 +651,8 @@ const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 
 struct mixer_name *ucm_get_main_volume_names(snd_use_case_mgr_t *mgr)
 {
-	return ucm_get_mixer_names(mgr, "", main_volume_names);
+	return ucm_get_mixer_names(mgr, "", main_volume_names,
+				   CRAS_STREAM_OUTPUT, MIXER_NAME_MAIN_VOLUME);
 }
 
 int ucm_list_section_devices_by_device_name(

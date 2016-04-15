@@ -133,20 +133,18 @@ static int should_ignore_dev(struct cras_alsa_card_info *info,
 }
 
 /* Filters an array of mixer control names. Keep a name if it is
- * specified in the ucm config, otherwise set it to NULL */
-static void filter_mixer_names(snd_use_case_mgr_t *ucm,
-			       const char *names[],
-			       size_t names_len)
+ * specified in the ucm config. */
+static struct mixer_name *filter_controls(snd_use_case_mgr_t *ucm,
+					  struct mixer_name *controls)
 {
-	size_t i;
-	for (i = 0; i < names_len; i++) {
-		char *dev = ucm_get_dev_for_mixer(ucm, names[i],
+	struct mixer_name *control;
+	DL_FOREACH(controls, control) {
+		char *dev = ucm_get_dev_for_mixer(ucm, control->name,
 						  CRAS_STREAM_OUTPUT);
-		if (dev)
-			free(dev);
-		else
-			names[i] = NULL;
+		if (!dev)
+			DL_DELETE(controls, control);
 	}
+	return controls;
 }
 
 /*
@@ -164,14 +162,8 @@ struct cras_alsa_card *cras_alsa_card_create(
 	const char *card_name;
 	snd_pcm_info_t *dev_info;
 	struct cras_alsa_card *alsa_card;
-	const char *output_names_extra[] = {
-		"IEC958",
-	};
-	const char *coupled_output_names[MAX_COUPLED_OUTPUT_SIZE];
-	size_t coupled_output_names_size = 0;
-	size_t output_names_extra_size = ARRAY_SIZE(output_names_extra);
-	char *extra_main_volume = NULL;
-	struct mixer_name *coupled_mixer_names = NULL, *m_name;
+	struct mixer_name *extra_controls = NULL;
+	struct mixer_name *coupled_controls = NULL;
 
 	if (info->card_index >= MAX_ALSA_CARDS) {
 		syslog(LOG_ERR,
@@ -219,37 +211,36 @@ struct cras_alsa_card *cras_alsa_card_create(
 
 	/* Create a use case manager if a configuration is available. */
 	alsa_card->ucm = ucm_create(card_name);
+	syslog(LOG_INFO, "Card %s (%s) has UCM: %s",
+		alsa_card->name, card_name, alsa_card->ucm ? "yes" : "no");
 
-	/* Filter the extra output mixer names */
-	if (alsa_card->ucm)
-		filter_mixer_names(alsa_card->ucm, output_names_extra,
-				   output_names_extra_size);
-	else
-		output_names_extra_size = 0;
+	if (alsa_card->ucm) {
+		char *extra_main_volume;
 
-	/* Check if an extra main volume has been specified. */
-	if (alsa_card->ucm)
+		/* Filter the extra output mixer names */
+		extra_controls =
+			filter_controls(alsa_card->ucm,
+				mixer_name_add(extra_controls, "IEC958",
+					       CRAS_STREAM_OUTPUT,
+					       MIXER_NAME_VOLUME));
+
+		/* Get the extra main volume control. */
 		extra_main_volume = ucm_get_flag(alsa_card->ucm,
 						 "ExtraMainVolume");
-
-	/* Check if coupled controls has been specified for speaker. */
-	if (alsa_card->ucm)
-		coupled_mixer_names = ucm_get_coupled_mixer_names(
-				alsa_card->ucm, "Speaker");
-
-	if (coupled_mixer_names) {
-		DL_FOREACH(coupled_mixer_names, m_name) {
-			coupled_output_names[coupled_output_names_size] =
-					m_name->name;
-			coupled_output_names_size++;
-			if (coupled_output_names_size >
-					MAX_COUPLED_OUTPUT_SIZE) {
-				syslog(LOG_ERR, "Too many coupled outputs");
-				free(extra_main_volume);
-				ucm_free_mixer_names(coupled_mixer_names);
-				goto error_bail;
-			}
+		if (extra_main_volume) {
+			extra_controls =
+				mixer_name_add(extra_controls,
+					       extra_main_volume,
+					       CRAS_STREAM_OUTPUT,
+					       MIXER_NAME_MAIN_VOLUME);
+			free(extra_main_volume);
 		}
+		mixer_name_dump(extra_controls, "extra controls");
+
+		/* Check if coupled controls has been specified for speaker. */
+		coupled_controls = ucm_get_coupled_mixer_names(
+					alsa_card->ucm, "Speaker");
+		mixer_name_dump(coupled_controls, "coupled controls");
 	}
 
 	/* Create one mixer per card. */
@@ -264,15 +255,8 @@ struct cras_alsa_card *cras_alsa_card_create(
 	/* Add controls to mixer by name matching. */
 	rc = cras_alsa_mixer_add_controls_by_name_matching(
 			alsa_card->mixer,
-			output_names_extra,
-			output_names_extra_size,
-			extra_main_volume,
-			coupled_output_names,
-			coupled_output_names_size);
-
-	free(extra_main_volume);
-	ucm_free_mixer_names(coupled_mixer_names);
-
+			extra_controls,
+			coupled_controls);
 	if (rc) {
 		syslog(LOG_ERR, "Fail adding controls to mixer for %s.",
 		       alsa_card->name);
@@ -317,10 +301,14 @@ struct cras_alsa_card *cras_alsa_card_create(
 						CRAS_STREAM_INPUT);
 	}
 
+	mixer_name_free(coupled_controls);
+	mixer_name_free(extra_controls);
 	snd_ctl_close(handle);
 	return alsa_card;
 
 error_bail:
+	mixer_name_free(coupled_controls);
+	mixer_name_free(extra_controls);
 	if (handle != NULL)
 		snd_ctl_close(handle);
 	if (alsa_card->ucm)

@@ -18,6 +18,7 @@ struct mixer_control;
 struct cras_alsa_mixer;
 struct cras_volume_curve;
 struct cras_card_config;
+struct mixer_name;
 
 /* Creates a cras_alsa_mixer instance for the given alsa device.
  * Args:
@@ -36,23 +37,15 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 /* Adds controls to a cras_alsa_mixer instance by name matching.
  * Args:
  *    cmix - A pointer to cras_alsa_mixer.
- *    output_names_extra - An array of extra output mixer control names. The
- *      array may contain NULL entries which should be ignored.
- *    output_names_extra_size - The length of the output_names_extra array.
- *    extra_main_volume - Name of extra main volume if any.
- *    coupled_output_names - An array of coupled output mixer control names.
- *                           Note that this is for speaker only.
- *    coupled_output_names_size - The length of the coupled_output_names array.
+ *    extra_controls - A list array of extra mixer control names, always added.
+ *    coupled_controls - A list of coupled mixer control names.
  * Returns:
  *    0 on success. Other error code if error happens.
  */
 int cras_alsa_mixer_add_controls_by_name_matching(
 		struct cras_alsa_mixer *cmix,
-		const char *output_names_extra[],
-		size_t output_names_extra_size,
-		const char *extra_main_volume,
-		const char *coupled_output_names[],
-		size_t coupled_output_names_size);
+		struct mixer_name *extra_controls,
+		struct mixer_name *coupled_controls);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

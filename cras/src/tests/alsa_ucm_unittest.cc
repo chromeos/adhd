@@ -690,7 +690,7 @@ TEST(AlsaUcm, FreeMixerNames) {
   EXPECT_EQ(NULL, mixer_names_1->next->next->next);
 
   /* No way to actually check if memory is freed. */
-  ucm_free_mixer_names(mixer_names_1);
+  mixer_name_free(mixer_names_1);
 }
 
 TEST(AlsaUcm, MaxSoftwareGain) {

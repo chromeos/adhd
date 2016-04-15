@@ -89,6 +89,7 @@ cras_SOURCES = \
 	server/cras_alsa_io.c \
 	server/cras_alsa_jack.c \
 	server/cras_alsa_mixer.c \
+	server/cras_alsa_mixer_name.c \
 	server/cras_alsa_ucm.c \
 	server/cras_audio_area.c \
 	server/cras_dsp.c \
@@ -377,7 +378,7 @@ alert_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 alert_unittest_LDADD = -lgtest -lpthread
 
 alsa_card_unittest_SOURCES = tests/alsa_card_unittest.cc \
-	server/cras_alsa_card.c
+	server/cras_alsa_card.c server/cras_alsa_mixer_name.c
 alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
@@ -428,14 +429,16 @@ alsa_jack_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 alsa_jack_unittest_LDADD = -lgtest -lpthread
 
-alsa_mixer_unittest_SOURCES = tests/alsa_mixer_unittest.cc
+alsa_mixer_unittest_SOURCES = tests/alsa_mixer_unittest.cc \
+	server/cras_alsa_mixer_name.c
 alsa_mixer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 alsa_mixer_unittest_LDADD = -lgtest -lpthread
 
-alsa_ucm_unittest_SOURCES = tests/alsa_ucm_unittest.cc
+alsa_ucm_unittest_SOURCES = tests/alsa_ucm_unittest.cc \
+	server/cras_alsa_mixer_name.c
 alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \

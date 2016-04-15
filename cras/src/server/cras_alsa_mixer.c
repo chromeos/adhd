@@ -8,6 +8,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_mixer.h"
+#include "cras_alsa_mixer_name.h"
 #include "cras_card_config.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
@@ -109,35 +110,30 @@ static void alsa_mixer_open(const char *mixdev,
 
 	*mixer = NULL;
 	rc = snd_mixer_open(mixer, 0);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "snd_mixer_open: %d: %s", rc, strerror(-rc));
 		return;
+	}
 	rc = snd_mixer_attach(*mixer, mixdev);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "snd_mixer_attach: %d: %s", rc, strerror(-rc));
 		goto fail_after_open;
+	}
 	rc = snd_mixer_selem_register(*mixer, NULL, NULL);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "snd_mixer_selem_register: %d: %s", rc, strerror(-rc));
 		goto fail_after_open;
+	}
 	rc = snd_mixer_load(*mixer);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR, "snd_mixer_load: %d: %s", rc, strerror(-rc));
 		goto fail_after_open;
+	}
 	return;
 
 fail_after_open:
 	snd_mixer_close(*mixer);
 	*mixer = NULL;
-}
-
-/* Checks if the given element's name is in the list. */
-static int name_in_list(const char *name,
-			const char * const list[],
-			size_t len)
-{
-	size_t i;
-
-	for (i = 0; i < len; i++)
-		if (list[i] && strcmp(list[i], name) == 0)
-			return 1;
-	return 0;
 }
 
 /* Adds the main volume control to the list and grabs the first seen playback
@@ -395,11 +391,10 @@ static struct mixer_control *create_mixer_control_by_name(
 /* Creates a coupled_mixer_control by finding and adding coupled mixers. */
 static struct coupled_mixer_control *create_coupled_mixer_control(
 		struct cras_alsa_mixer *cmix,
-		const char *coupled_output_names[],
-		size_t coupled_output_names_size)
+		struct mixer_name *coupled_controls)
 {
+	struct mixer_name *control;
 	struct coupled_mixer_control *coupled_mixers;
-	size_t i;
 	struct mixer_control *new_control;
 
 	coupled_mixers = (struct coupled_mixer_control*)calloc(1,
@@ -409,9 +404,9 @@ static struct coupled_mixer_control *create_coupled_mixer_control(
 		return NULL;
 	}
 
-	for (i = 0; i < coupled_output_names_size; i++) {
+	DL_FOREACH(coupled_controls, control) {
 		new_control = create_mixer_control_by_name(
-				cmix, coupled_output_names[i]);
+				cmix, control->name);
 
 		if (!new_control) {
 			coupled_mixer_destroy(coupled_mixers);
@@ -431,8 +426,7 @@ static struct coupled_mixer_control *create_coupled_mixer_control(
  */
 static int add_output_with_coupled_mixers(
 				struct cras_alsa_mixer *cmix,
-				const char *coupled_output_names[],
-				size_t coupled_output_names_size)
+				struct mixer_name *coupled_controls)
 {
 	struct mixer_output_control *output;
 	struct coupled_mixer_control *coupled_mixers;
@@ -445,8 +439,7 @@ static int add_output_with_coupled_mixers(
 		return -ENOMEM;
 	}
 
-	coupled_mixers = create_coupled_mixer_control(
-			cmix, coupled_output_names, coupled_output_names_size);
+	coupled_mixers = create_coupled_mixer_control(cmix, coupled_controls);
 	if (!coupled_mixers) {
 		syslog(LOG_ERR, "Failed to create coupled mixers.");
 		free((void*)output);
@@ -546,11 +539,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 
 int cras_alsa_mixer_add_controls_by_name_matching(
 		struct cras_alsa_mixer *cmix,
-		const char *output_names_extra[],
-		size_t output_names_extra_size,
-		const char *extra_main_volume,
-		const char *coupled_output_names[],
-		size_t coupled_output_names_size)
+		struct mixer_name *extra_controls,
+		struct mixer_name *coupled_controls)
 {
 	/* Names of controls for main system volume. */
 	static const char * const main_volume_names[] = {
@@ -575,7 +565,10 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 		"Mic",
 		"Microphone",
 	};
+
+	struct mixer_name *default_controls = NULL;
 	snd_mixer_elem_t *elem;
+	int extra_main_volume = 0;
 	snd_mixer_elem_t *other_elem = NULL;
 	long other_dB_range = 0;
 	int rc = 0;
@@ -586,65 +579,115 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 		return 0;
 	}
 
+	default_controls = mixer_name_add_array(default_controls,
+				output_names, ARRAY_SIZE(output_names),
+				CRAS_STREAM_OUTPUT, MIXER_NAME_VOLUME);
+	default_controls = mixer_name_add_array(default_controls,
+				input_names, ARRAY_SIZE(input_names),
+				CRAS_STREAM_INPUT, MIXER_NAME_VOLUME);
+	default_controls =
+		mixer_name_add_array(default_controls,
+			main_volume_names, ARRAY_SIZE(main_volume_names),
+			CRAS_STREAM_OUTPUT, MIXER_NAME_MAIN_VOLUME);
+	default_controls =
+		mixer_name_add_array(default_controls,
+			main_capture_names, ARRAY_SIZE(main_capture_names),
+			CRAS_STREAM_INPUT, MIXER_NAME_MAIN_VOLUME);
+	extra_main_volume =
+		mixer_name_find(extra_controls, NULL,
+				CRAS_STREAM_OUTPUT,
+				MIXER_NAME_MAIN_VOLUME) != NULL;
+
 	/* Find volume and mute controls. */
 	for(elem = snd_mixer_first_elem(cmix->mixer);
 			elem != NULL; elem = snd_mixer_elem_next(elem)) {
 		const char *name;
+		struct mixer_name *control;
+		int found = 0;
 
 		name = snd_mixer_selem_get_name(elem);
 		if (name == NULL)
 			continue;
 
-		if (!extra_main_volume &&
-		    name_in_list(name, main_volume_names,
-				 ARRAY_SIZE(main_volume_names))) {
-			rc = add_main_volume_control(cmix, elem);
+		/* Find a matching control. */
+		control = mixer_name_find(default_controls, name,
+					  CRAS_STREAM_OUTPUT,
+					  MIXER_NAME_UNDEFINED);
+
+		/* If our extra controls contain a main volume
+		 * entry, and we found a main volume entry, then
+		 * skip it. */
+		if (extra_main_volume &&
+		    control && control->type == MIXER_NAME_MAIN_VOLUME)
+			control = NULL;
+
+		/* If we didn't match any of the defaults, match
+		 * the extras list. */
+		if (!control)
+			control = mixer_name_find(extra_controls, name,
+					  CRAS_STREAM_OUTPUT,
+					  MIXER_NAME_UNDEFINED);
+
+		if (control) {
+			int rc = -1;
+			switch(control->type) {
+			case MIXER_NAME_MAIN_VOLUME:
+				rc = add_main_volume_control(cmix, elem);
+				break;
+			case MIXER_NAME_VOLUME:
+				/* TODO(dgreid) - determine device index. */
+				rc = add_output_control(cmix, elem);
+				break;
+			case MIXER_NAME_UNDEFINED:
+				rc = -EINVAL;
+				break;
+			}
 			if (rc) {
 				syslog(LOG_ERR,
-				       "Could not add main volume control %s",
-				       name);
+				       "Failed to add mixer control '%s'"
+				       " with type '%d'",
+				       control->name, control->type);
 				return rc;
 			}
-		} else if (name_in_list(name, main_capture_names,
-					ARRAY_SIZE(main_capture_names))) {
-			rc = add_main_capture_control(cmix, elem);
+			found = 1;
+		}
+
+		/* Find a matching input control. */
+		control = mixer_name_find(default_controls, name,
+					  CRAS_STREAM_INPUT,
+					  MIXER_NAME_UNDEFINED);
+
+		/* If we didn't match any of the defaults, match
+		   the extras list */
+		if (!control)
+			control = mixer_name_find(extra_controls, name,
+					  CRAS_STREAM_INPUT,
+					  MIXER_NAME_UNDEFINED);
+
+		if (control) {
+			int rc = -1;
+			switch(control->type) {
+			case MIXER_NAME_MAIN_VOLUME:
+				rc = add_main_capture_control(cmix, elem);
+				break;
+			case MIXER_NAME_VOLUME:
+				rc = add_input_control(cmix, elem);
+				break;
+			case MIXER_NAME_UNDEFINED:
+				rc = -EINVAL;
+				break;
+			}
 			if (rc) {
 				syslog(LOG_ERR,
-				       "Could not add main capture control %s",
-				       name);
+				       "Failed to add mixer control '%s'"
+				       " with type '%d'",
+				       control->name, control->type);
 				return rc;
 			}
-		} else if (name_in_list(name, output_names,
-					ARRAY_SIZE(output_names))
-			   || name_in_list(name, output_names_extra,
-					   output_names_extra_size)) {
-			/* TODO(dgreid) - determine device index. */
-			rc = add_output_control(cmix, elem);
-			if (rc) {
-				syslog(LOG_ERR,
-				       "Could not add output control %s",
-				       name);
-				return rc;
-			}
-		} else if (name_in_list(name, input_names,
-					ARRAY_SIZE(input_names))) {
-			rc = add_input_control(cmix, elem);
-			if (rc) {
-				syslog(LOG_ERR,
-				       "Could not add input control %s",
-				       name);
-				return rc;
-			}
-		} else if (extra_main_volume &&
-			   !strcmp(name, extra_main_volume)) {
-			rc = add_main_volume_control(cmix, elem);
-			if (rc) {
-				syslog(LOG_ERR,
-				       "Could not add extra main volume %s",
-				       name);
-				return rc;
-			}
-		} else if (snd_mixer_selem_has_playback_volume(elem)) {
+			found = 1;
+		}
+
+		if (!found && snd_mixer_selem_has_playback_volume(elem)) {
 			/* Temporarily cache one elem whose name is not
 			 * in the list above, but has a playback volume
 			 * control and the largest volume range. */
@@ -663,12 +706,8 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 	}
 
 	/* Handle coupled output names for speaker */
-	if (coupled_output_names_size) {
-		rc = add_output_with_coupled_mixers(
-				cmix,
-				coupled_output_names,
-				coupled_output_names_size);
-
+	if (coupled_controls) {
+		rc = add_output_with_coupled_mixers(cmix, coupled_controls);
 		if (rc) {
 			syslog(LOG_ERR, "Could not add coupled output");
 			return rc;
