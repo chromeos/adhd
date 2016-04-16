@@ -170,8 +170,8 @@ static void emphasis_stage_pair_biquads(float gain, float f1, float f2,
 /* Initializes the emphasis and deemphasis filter */
 static void init_emphasis_eq(struct drc *drc)
 {
-	struct biquad e = {0};
-	struct biquad d = {0};
+	struct biquad e = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
+	struct biquad d = { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f };
 	int i, j;
 
 	float stage_gain = drc_get_param(drc, 0, PARAM_FILTER_STAGE_GAIN);
