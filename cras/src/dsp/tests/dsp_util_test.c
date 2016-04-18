@@ -17,7 +17,7 @@
 /* Constant for converting time to milliseconds. */
 #define BILLION 1000000000LL
 /* Number of iterations for performance testing. */
-#define ITERATIONS 40000
+#define ITERATIONS 400000
 
 void dsp_util_deinterleave_reference(int16_t *input, float *const *output,
 				     int channels, int frames)
@@ -57,7 +57,8 @@ void dsp_util_interleave_reference(float *const *input, int16_t *output,
 }
 
 /* Use fixed size allocation to avoid performance fluctuation of allocation. */
-#define MAXSAMPLES (65536)
+#define MAXSAMPLES 4096
+#define MINSAMPLES 256
 /* PAD buffer to check for overflows. */
 #define PAD 4096
 
@@ -274,7 +275,7 @@ int main(int argc, char **argv)
 	out_floats_ptr_opt[1] = out_floats_right_opt;
 
 	/* Benchmark dsp_util_interleave */
-	for (samples = MAXSAMPLES; samples >= 1024; samples /= 2) {
+	for (samples = MAXSAMPLES; samples >= MINSAMPLES; samples /= 2) {
 
 		/* measure original C interleave */
 		clock_gettime(CLOCK_MONOTONIC, &start); /* mark start time */
@@ -310,7 +311,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Benchmark dsp_util_deinterleave */
-	for (samples = MAXSAMPLES; samples >= 1024; samples /= 2) {
+	for (samples = MAXSAMPLES; samples >= MINSAMPLES; samples /= 2) {
 
 		/* Measure original C deinterleave */
 		clock_gettime(CLOCK_MONOTONIC, &start); /* mark start time */
