@@ -19,6 +19,23 @@
 /* Number of iterations for performance testing. */
 #define ITERATIONS 400000
 
+#if defined(__aarch64__)
+int16_t clamp_to_short(int a) {
+	int ret;
+	asm volatile ("sqxtn h0, %s[a]\n"
+		      "sxtl  v0.4s, v0.4h\n"
+		      "fmov %w[ret], s0\n"
+		      : [ret] "=&r" (ret)
+		      : [a] "w" (a)
+		      : "v0" );
+	return (int16_t)(ret);
+}
+#else
+int16_t clamp_to_short(int a) {
+	return (int16_t)(max(-32768, min(32767, a)));
+}
+#endif
+
 void dsp_util_deinterleave_reference(int16_t *input, float *const *output,
 				     int channels, int frames)
 {
@@ -44,15 +61,9 @@ void dsp_util_interleave_reference(float *const *input, int16_t *output,
 
 	for (i = 0; i < frames; i++)
 		for (j = 0; j < channels; j++) {
-			int16_t i16;
 			float f = *(input_ptr[j]++) * 32768.0f;
-			if (f > 32767)
-				i16 = 32767;
-			else if (f < -32768)
-				i16 = -32768;
-			else
-				i16 = (int16_t) (f > 0 ? f + 0.5f : f - 0.5f);
-			*output++ = i16;
+			f += (f >= 0) ? 0.5f : -0.5f;
+			*output++ = clamp_to_short((int)(f));
 		}
 }
 
@@ -97,7 +108,7 @@ void TestRounding(float in, int16_t expected, int samples)
 		out_floats_right_c[i] = in;
 	}
 
-	/*  referenceinal C interleave */
+	/*  reference C interleave */
 	dsp_util_interleave_reference(out_floats_ptr_c, out_shorts_c, 2,
 				      samples);
 
@@ -120,7 +131,7 @@ void TestRounding(float in, int16_t expected, int samples)
 		max_diff == 0 ? "PASS" : (out_shorts_opt[0] == expected ?
 		"EXPECTED DIFFERENCE" : "UNEXPECTED DIFFERENCE"));
 
-	/* measure referenceinal C deinterleave */
+	/* measure reference C deinterleave */
 	dsp_util_deinterleave_reference(in_shorts, out_floats_ptr_c, 2,
 					samples);
 
