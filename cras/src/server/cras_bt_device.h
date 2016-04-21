@@ -54,6 +54,18 @@ void cras_bt_device_set_append_iodev_cb(struct cras_bt_device *device,
 int cras_bt_device_supports_profile(const struct cras_bt_device *device,
 				    enum cras_bt_device_profile profile);
 
+/* Sets if the BT audio device should use hardware volume.
+ * Args:
+ *    device - The remote bluetooth audio device.
+ *    use_hardware_volume - Set to true to indicate hardware volume
+ *        is preferred over software volume.
+ */
+void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
+					    int use_hardware_volume);
+
+/* Gets if the BT audio device should use hardware volume. */
+int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device);
+
 /* Forces disconnect the bt device. Used when handling audio error
  * that we want to make the device be completely disconnected from
  * host to reflect the state that an error has occurred.

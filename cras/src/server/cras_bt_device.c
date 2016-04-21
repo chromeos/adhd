@@ -68,6 +68,7 @@ struct cras_bt_device {
 	enum cras_bt_device_profile profiles;
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	unsigned int active_profile;
+	int use_hardware_volume;
 	struct cras_timer *a2dp_delay_timer;
 	void (*append_iodev_cb)(void *data);
 
@@ -655,6 +656,22 @@ int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
 		return DEFAULT_HFP_MTU_BYTES;
 	}
 	return so.mtu;
+}
+
+void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
+					    int use_hardware_volume)
+{
+	struct cras_iodev *iodev;
+
+	device->use_hardware_volume = use_hardware_volume;
+	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
+	if (iodev)
+		iodev->software_volume_needed = !use_hardware_volume;
+}
+
+int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
+{
+	return device->use_hardware_volume;
 }
 
 /* This diagram describes how the profile switching happens. When
