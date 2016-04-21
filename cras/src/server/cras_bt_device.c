@@ -655,17 +655,6 @@ int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
 	return so.mtu;
 }
 
-int cras_bt_device_set_speaker_gain(struct cras_bt_device *device, int gain)
-{
-	struct hfp_slc_handle *slc_handle;
-
-	slc_handle = cras_hfp_ag_get_slc(device);
-	if (!slc_handle)
-		return -EINVAL;
-
-	return hfp_event_speaker_gain(slc_handle, gain);
-}
-
 /* This diagram describes how the profile switching happens. When
  * certain conditions met, bt iodev will call the APIs below to interact
  * with main thread to switch to another active profile.

@@ -229,11 +229,6 @@ const char *cras_bt_device_address(const struct cras_bt_device *device) {
   return "1A:2B:3C:4D:5E:6F";
 }
 
-int cras_bt_device_set_speaker_gain(struct cras_bt_device *device, int gain)
-{
-  return 0;
-}
-
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
                                  struct cras_iodev *iodev,
                                  enum cras_bt_device_profile profile)
@@ -348,6 +343,11 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 }
 
 int hfp_set_call_status(struct hfp_slc_handle *handle, int call)
+{
+  return 0;
+}
+
+int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 {
   return 0;
 }

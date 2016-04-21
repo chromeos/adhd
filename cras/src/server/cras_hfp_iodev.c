@@ -134,7 +134,7 @@ static void set_hfp_volume(struct cras_iodev *iodev)
 	if (iodev->active_node)
 		volume = cras_iodev_adjust_node_volume(iodev->active_node, volume);
 
-	cras_bt_device_set_speaker_gain(hfpio->device, volume);
+	hfp_event_speaker_gain(hfpio->slc, volume);
 }
 
 static int is_open(const struct cras_iodev *iodev)
