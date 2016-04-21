@@ -169,6 +169,7 @@ struct client_stream {
  * get_hotword_models_cb_t - Function to call when hotword models info is ready.
  * server_err_cb - Function to call when failed to read messages from server.
  * server_err_user_arg - User argument for server_err_cb.
+ * thread_priority_cb - Function to call for setting audio thread priority.
  */
 struct cras_client {
 	int id;
@@ -186,6 +187,7 @@ struct cras_client {
 	get_hotword_models_cb_t get_hotword_models_cb;
 	cras_server_error_cb_t server_err_cb;
 	void *server_err_user_arg;
+	cras_thread_priority_cb_t thread_priority_cb;
 };
 
 /*
@@ -547,6 +549,20 @@ reply_written:
 	return rc;
 }
 
+static void audio_thread_set_priority(struct client_stream *stream)
+{
+	/* Use provided callback to set priority if available. */
+	if (stream->client->thread_priority_cb) {
+		stream->client->thread_priority_cb(stream->client);
+		return;
+	}
+
+	/* Try to get RT scheduling, if that fails try to set the nice value. */
+	if (cras_set_rt_scheduling(CRAS_CLIENT_RT_THREAD_PRIORITY) ||
+	    cras_set_thread_priority(CRAS_CLIENT_RT_THREAD_PRIORITY))
+		cras_set_nice_level(CRAS_CLIENT_NICENESS_LEVEL);
+}
+
 /* Listens to the audio socket for messages from the server indicating that
  * the stream needs to be serviced.  One of these runs per stream. */
 static void *audio_thread(void *arg)
@@ -559,10 +575,7 @@ static void *audio_thread(void *arg)
 	if (arg == NULL)
 		return (void *)-EIO;
 
-	/* Try to get RT scheduling, if that fails try to set the nice value. */
-	if (cras_set_rt_scheduling(CRAS_CLIENT_RT_THREAD_PRIORITY) ||
-	    cras_set_thread_priority(CRAS_CLIENT_RT_THREAD_PRIORITY))
-		cras_set_nice_level(CRAS_CLIENT_NICENESS_LEVEL);
+	audio_thread_set_priority(stream);
 
 	while (stream->thread.running && !thread_terminated) {
 		num_read = read_with_wake_fd(stream->wake_fds[0],
@@ -1702,6 +1715,12 @@ void cras_client_set_server_error_cb(struct cras_client *client,
 {
 	client->server_err_cb = err_cb;
 	client->server_err_user_arg = user_arg;
+}
+
+void cras_client_set_thread_priority_cb(struct cras_client *client,
+					cras_thread_priority_cb_t cb)
+{
+	client->thread_priority_cb = cb;
 }
 
 int cras_client_get_output_devices(const struct cras_client *client,

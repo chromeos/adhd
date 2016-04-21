@@ -70,6 +70,9 @@ typedef int (*cras_error_cb_t)(struct cras_client *client,
 typedef void (*cras_server_error_cb_t)(struct cras_client *client,
 				       void *user_arg);
 
+/* Callback for setting thread priority. */
+typedef void (*cras_thread_priority_cb_t)(struct cras_client *client);
+
 /* Callback for handling get hotword models reply. */
 typedef void (*get_hotword_models_cb_t)(struct cras_client *client,
 					const char *hotword_models);
@@ -144,6 +147,13 @@ int cras_client_stop(struct cras_client *client);
 void cras_client_set_server_error_cb(struct cras_client *client,
 				     cras_server_error_cb_t err_cb,
 				     void *user_arg);
+
+/* Sets callback for setting thread priority.
+ * Args:
+ *    client - The client from cras_client_create.
+ */
+void cras_client_set_thread_priority_cb(struct cras_client *client,
+					cras_thread_priority_cb_t cb);
 
 /* Returns the current list of output devices.
  * Args:
