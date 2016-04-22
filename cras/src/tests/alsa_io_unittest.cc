@@ -1088,6 +1088,24 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  strcpy(node.name, "Haptic");
+  dev.direction = CRAS_STREAM_OUTPUT;
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_GT(node.plugged_time.tv_sec, 0);
+  ASSERT_EQ(CRAS_NODE_TYPE_HAPTIC, node.type);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  strcpy(node.name, "Rumbler");
+  dev.direction = CRAS_STREAM_OUTPUT;
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_GT(node.plugged_time.tv_sec, 0);
+  ASSERT_EQ(CRAS_NODE_TYPE_HAPTIC, node.type);
 }
 
 TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {

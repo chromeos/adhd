@@ -187,6 +187,8 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "HEADPHONE";
 	case CRAS_NODE_TYPE_HDMI:
 		return "HDMI";
+	case CRAS_NODE_TYPE_HAPTIC:
+		return "HAPTIC";
 	case CRAS_NODE_TYPE_INTERNAL_MIC:
 		return "INTERNAL_MIC";
 	case CRAS_NODE_TYPE_MIC:

@@ -729,6 +729,8 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
 		{ "Mic", 0, CRAS_NODE_TYPE_MIC },
 		{ HOTWORD_DEV, 1, CRAS_NODE_TYPE_HOTWORD },
+		{ "Haptic", 1, CRAS_NODE_TYPE_HAPTIC },
+		{ "Rumbler", 1, CRAS_NODE_TYPE_HAPTIC },
 	};
 	unsigned i;
 
@@ -919,7 +921,7 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 					   const char *name)
 {
 	struct alsa_output_node *output;
-
+	syslog(LOG_DEBUG, "New output node for '%s'", name);
 	if (aio == NULL) {
 		syslog(LOG_ERR, "Invalid aio when listing outputs.");
 		return NULL;
