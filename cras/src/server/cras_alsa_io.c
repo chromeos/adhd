@@ -1474,6 +1474,12 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	free(iodev);
 }
 
+unsigned alsa_iodev_index(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	return aio->device_index;
+}
+
 static void alsa_iodev_unmute_node(struct alsa_io *aio,
 				   struct cras_ionode *ionode)
 {

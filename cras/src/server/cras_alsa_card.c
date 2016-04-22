@@ -48,19 +48,6 @@ struct cras_alsa_card {
 	struct cras_card_config *config;
 };
 
-/* Checks if there are any devices with direction already in the card.
- */
-int is_first_dev(struct cras_alsa_card *alsa_card,
-		 enum CRAS_STREAM_DIRECTION direction)
-{
-	struct iodev_list_node *node;
-
-	DL_FOREACH(alsa_card->iodevs, node)
-		if (node->direction == direction)
-			return 0;
-	return 1;
-}
-
 /* Creates an iodev for the given device.
  * Args:
  *    alsa_card - the alsa_card the device will be added to.
@@ -80,9 +67,22 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 			     enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list_node *new_dev;
-	int first;
+	struct iodev_list_node *node;
+	int first = 1;
 
-	first = is_first_dev(alsa_card, direction);
+	/* Find whether this is the first device in this direction, and
+	 * avoid duplicate device indexes. */
+	DL_FOREACH(alsa_card->iodevs, node) {
+		if (node->direction != direction)
+			continue;
+		first = 0;
+		if (alsa_iodev_index(node->iodev) == device_index) {
+			syslog(LOG_DEBUG,
+			       "Skipping duplicate device for %s:%s:%s [%u]",
+			       card_name, dev_name, dev_id, device_index);
+			return;
+		}
+	}
 
 	new_dev = calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL)

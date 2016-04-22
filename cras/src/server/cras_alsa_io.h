@@ -47,4 +47,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 /* Destroys an alsa_iodev created with alsa_iodev_create. */
 void alsa_iodev_destroy(struct cras_iodev *iodev);
 
+/* Returns the ALSA device index for the given ALSA iodev. */
+unsigned alsa_iodev_index(struct cras_iodev *iodev);
+
 #endif /* CRAS_ALSA_IO_H_ */
