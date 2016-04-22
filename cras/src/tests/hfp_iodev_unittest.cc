@@ -81,7 +81,6 @@ TEST(HfpIodev, CreateHfpOutputIodev) {
   ASSERT_EQ(1, cras_bt_device_append_iodev_called);
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
-  ASSERT_EQ(1, iodev->software_volume_needed);
 
   hfp_iodev_destroy(iodev);
 

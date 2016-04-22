@@ -225,7 +225,12 @@ static void set_bt_volume(struct cras_iodev *iodev)
 
 	if (dev->active_node)
 		dev->active_node->volume = iodev->active_node->volume;
-	if (dev->set_volume)
+
+	/* The parent bt_iodev could set software_volume_needed flag for cases
+	 * that software volume provides better experience across profiles
+	 * (HFP and A2DP). Otherwise, use the profile specific implementation
+	 * to adjust volume. */
+	if (dev->set_volume && !iodev->software_volume_needed)
 		dev->set_volume(dev);
 }
 
@@ -318,10 +323,7 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 			active->profile = n->profile;
 			active->profile_dev = n->profile_dev;
 
-			/* Fill all volume related stuff to/from the
-			 * profile dev. */
-			iodev->software_volume_needed =
-				active->profile_dev->software_volume_needed;
+			/* Set volume for the new profile. */
 			set_bt_volume(iodev);
 		}
 	}
@@ -362,7 +364,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->software_volume_needed = dev->software_volume_needed;
+	iodev->software_volume_needed = 1;
 	iodev->set_volume = set_bt_volume;
 
 	/* Create the dummy node set to plugged so it's the only node exposed
