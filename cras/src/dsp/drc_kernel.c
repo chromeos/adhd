@@ -406,8 +406,33 @@ static void dk_update_envelope(struct drc_kernel *dk)
 
 /* For a division of frames, take the absolute values of left channel and right
  * channel, store the maximum of them in output. */
-/* TODO(fbarchard): Port to aarch64 */
-#if defined(__ARM_NEON__)
+#if defined(__aarch64__)
+static inline void max_abs_division(float *output,
+				    const float *data0, const float *data1)
+{
+	int count = DIVISION_FRAMES / 4;
+
+	__asm__ __volatile__(
+		"1:                                     \n"
+		"ld1 {v0.4s}, [%[data0]], #16           \n"
+		"ld1 {v1.4s}, [%[data1]], #16           \n"
+		"fabs v0.4s, v0.4s                      \n"
+		"fabs v1.4s, v1.4s                      \n"
+		"fmax v0.4s, v0.4s, v1.4s               \n"
+		"st1 {v0.4s}, [%[output]], #16          \n"
+		"subs %w[count], %w[count], #1          \n"
+		"b.ne 1b                                \n"
+		: /* output */
+		  [data0]"+r"(data0),
+		  [data1]"+r"(data1),
+		  [output]"+r"(output),
+		  [count]"+r"(count)
+		: /* input */
+		: /* clobber */
+		  "v0", "v1", "memory", "cc"
+		);
+}
+#elif defined(__ARM_NEON__)
 static inline void max_abs_division(float *output,
 				    const float *data0, const float *data1)
 {
