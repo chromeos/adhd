@@ -65,6 +65,7 @@ cras_SOURCES = \
 	common/cras_checksum.c \
 	common/cras_config.c \
 	common/cras_metrics.c \
+	common/cras_shm.c \
 	common/cras_util.c \
 	common/dumper.c \
 	common/edid_utils.c \
@@ -622,7 +623,8 @@ rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 rclient_unittest_LDADD = -lgtest -lpthread
 
-rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c
+rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
+	common/cras_shm.c
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 rstream_unittest_LDADD = -lasound -lgtest -lpthread -lrt
@@ -643,7 +645,7 @@ stream_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 stream_list_unittest_LDADD = -lgtest -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
-	server/cras_system_state.c
+	server/cras_system_state.c common/cras_shm.c
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config

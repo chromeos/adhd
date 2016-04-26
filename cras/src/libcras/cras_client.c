@@ -34,7 +34,6 @@
 #include <sys/ipc.h>
 #include <sys/mman.h>
 #include <sys/param.h>
-#include <sys/shm.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>

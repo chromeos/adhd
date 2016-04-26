@@ -2,10 +2,10 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 #include <fcntl.h>
 #include <stdint.h>
 #include <sys/mman.h>
-#include <sys/shm.h>
 #include <sys/types.h>
 #include <syslog.h>
 
@@ -26,7 +26,6 @@ static int setup_shm(struct cras_rstream *stream,
 {
 	size_t used_size, samples_size, frame_bytes;
 	const struct cras_audio_format *fmt = &stream->format;
-	int rc;
 
 	if (shm->area != NULL) /* already setup */
 		return -EEXIST;
@@ -39,18 +38,10 @@ static int setup_shm(struct cras_rstream *stream,
 
 	snprintf(shm_info->shm_name, sizeof(shm_info->shm_name),
 		 "/cras-%d-stream-%08x", getpid(), stream->stream_id);
-	shm_info->shm_fd = shm_open(shm_info->shm_name,
-				    O_CREAT | O_EXCL | O_RDWR, 0600);
-	if (shm_info->shm_fd < 0) {
-		syslog(LOG_ERR, "failed to shm_open %s errno %d\n",
-		       shm_info->shm_name, errno);
+
+	shm_info->shm_fd = cras_shm_open_rw(shm_info->shm_name, shm_info->length);
+	if (shm_info->shm_fd < 0)
 		return shm_info->shm_fd;
-	}
-	rc = ftruncate(shm_info->shm_fd, shm_info->length);
-	if (rc) {
-		close(shm_info->shm_fd);
-		return rc;
-	}
 
 	/* mmap shm. */
 	shm->area = mmap(NULL, shm_info->length,
@@ -189,8 +180,8 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	close(stream->fd);
 	if (stream->shm.area != NULL) {
 		munmap(stream->shm.area, stream->shm_info.length);
-		shm_unlink(stream->shm_info.shm_name);
-		close(stream->shm_info.shm_fd);
+		cras_shm_close_unlink(stream->shm_info.shm_name,
+				      stream->shm_info.shm_fd);
 		cras_audio_area_destroy(stream->audio_area);
 	}
 	buffer_share_destroy(stream->buf_state);

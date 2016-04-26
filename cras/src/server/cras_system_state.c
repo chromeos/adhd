@@ -9,13 +9,13 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/param.h>
-#include <sys/shm.h>
 #include <sys/stat.h>
 #include <syslog.h>
 
 #include "cras_alsa_card.h"
 #include "cras_config.h"
 #include "cras_device_blacklist.h"
+#include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_types.h"
@@ -85,18 +85,9 @@ void cras_system_state_init(const char *device_config_dir)
 	state.shm_size = sizeof(*exp_state);
 
 	snprintf(state.shm_name, sizeof(state.shm_name), "/cras-%d", getpid());
-	state.shm_fd = shm_open(state.shm_name,
-				 O_CREAT | O_EXCL | O_RDWR, 0600);
+	state.shm_fd = cras_shm_open_rw(state.shm_name, state.shm_size);
 	if (state.shm_fd < 0)
 		exit(state.shm_fd);
-	rc = ftruncate(state.shm_fd, state.shm_size);
-	if (rc)
-		exit(errno);
-
-	/* Open a read-only copy to dup and pass to clients. */
-	state.shm_fd_ro = shm_open(state.shm_name, O_RDONLY, 0);
-	if (state.shm_fd_ro < 0)
-		exit(state.shm_fd_ro);
 
 	/* mmap shm. */
 	exp_state = mmap(NULL, state.shm_size,
@@ -104,6 +95,11 @@ void cras_system_state_init(const char *device_config_dir)
 			 state.shm_fd, 0);
 	if (exp_state == (struct cras_server_state *)-1)
 		exit(-ENOMEM);
+
+	/* Open a read-only copy to dup and pass to clients. */
+	state.shm_fd_ro = cras_shm_reopen_ro(state.shm_name, state.shm_fd);
+	if (state.shm_fd_ro < 0)
+		exit(state.shm_fd_ro);
 
 	/* Initial system state. */
 	exp_state->state_version = CRAS_SERVER_STATE_VERSION;
@@ -163,7 +159,9 @@ void cras_system_state_deinit()
 
 	if (state.exp_state) {
 		munmap(state.exp_state, state.shm_size);
-		shm_unlink(state.shm_name);
+		cras_shm_close_unlink(state.shm_name, state.shm_fd);
+		if (state.shm_fd_ro != state.shm_fd)
+			close(state.shm_fd_ro);
 	}
 
 	cras_alert_destroy(state.volume_alert);

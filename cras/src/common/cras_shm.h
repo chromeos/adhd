@@ -463,4 +463,31 @@ static inline void cras_shm_copy_shared_config(struct cras_audio_shm *shm)
 	memcpy(&shm->config, &shm->area->config, sizeof(shm->config));
 }
 
+/* Open a read/write shared memory area with the given name.
+ * Args:
+ *    name - Name of the shared-memory area.
+ *    size - Size of the shared-memory area.
+ * Returns:
+ *    >= 0 file descriptor value, or negative errno value on error.
+ */
+int cras_shm_open_rw (const char *name, size_t size);
+
+/* Reopen an existing shared memory area read-only.
+ * Args:
+ *    name - Name of the shared-memory area.
+ *    fd - Existing file descriptor.
+ * Returns:
+ *    >= 0 new file descriptor value, or negative errno value on error.
+ */
+int cras_shm_reopen_ro (const char *name, int fd);
+
+/* Close and delete a shared memory area.
+ * Args:
+ *    name - Name of the shared-memory area.
+ *    fd - Existing file descriptor.
+ * Returns:
+ *    >= 0 new file descriptor value, or negative errno value on error.
+ */
+void cras_shm_close_unlink (const char *name, int fd);
+
 #endif /* CRAS_SHM_H_ */
