@@ -87,7 +87,5 @@ int main(int argc, char **argv)
 	cras_iodev_list_init();
 
 	/* Start the server. */
-	cras_server_run();
-
-	return 0;
+	return cras_server_run();
 }
