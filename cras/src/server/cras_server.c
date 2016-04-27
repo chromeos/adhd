@@ -127,7 +127,14 @@ static void handle_message_from_client(struct attached_client *client)
 read_error:
 	if (fd != -1)
 		close(fd);
-	syslog(LOG_DEBUG, "read err, removing client %zu", client->id);
+	switch (nread) {
+	case 0:
+		break;
+	default:
+		syslog(LOG_DEBUG, "read err [%d] '%s', removing client %zu",
+		       -nread, strerror(-nread), client->id);
+		break;
+	}
 	remove_client(client);
 }
 

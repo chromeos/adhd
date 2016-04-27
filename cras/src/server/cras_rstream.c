@@ -215,6 +215,8 @@ int cras_rstream_request_audio(struct cras_rstream *stream,
 	msg.id = AUDIO_MESSAGE_REQUEST_DATA;
 	msg.frames = stream->cb_threshold;
 	rc = write(stream->fd, &msg, sizeof(msg));
+	if (rc < 0)
+		return -errno;
 	return rc;
 }
 
@@ -228,6 +230,8 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 	msg.id = AUDIO_MESSAGE_DATA_READY;
 	msg.frames = count;
 	rc = write(stream->fd, &msg, sizeof(msg));
+	if (rc < 0)
+		return -errno;
 	return rc;
 }
 
@@ -237,8 +241,10 @@ int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream)
 	int rc;
 
 	rc = read(stream->fd, &msg, sizeof(msg));
-	if (rc < 0 || msg.error < 0)
-		return -EIO;
+	if (rc < 0)
+		return -errno;
+	if (msg.error < 0)
+		return msg.error;
 	return 0;
 }
 

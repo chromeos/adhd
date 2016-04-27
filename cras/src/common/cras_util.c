@@ -142,8 +142,10 @@ int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
 	msg.msg_controllen = control_size;
 
 	rc = recvmsg(sockfd, &msg, 0);
-	if (rc < 0)
+	if (rc < 0) {
+		rc = -errno;
 		goto exit;
+	}
 
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
 	     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
