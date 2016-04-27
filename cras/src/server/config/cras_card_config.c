@@ -49,6 +49,7 @@ static struct cras_volume_curve *create_explicit_curve(
 		ini_key[MAX_KEY_LEN] = 0;
 		dB_values[i] = iniparser_getint(card_config->ini, ini_key, 0);
 	}
+	syslog(LOG_INFO, "Explicit volume curve found for %s.", control_name);
 	return cras_volume_curve_create_explicit(dB_values);
 }
 

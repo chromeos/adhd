@@ -58,9 +58,9 @@ static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx)
 	pipeline = cras_dsp_pipeline_create(ini, &ctx->env, purpose);
 
 	if (pipeline) {
-		syslog(LOG_ERR, "pipeline created");
+		syslog(LOG_DEBUG, "pipeline created");
 	} else {
-		syslog(LOG_ERR, "cannot create pipeline");
+		syslog(LOG_DEBUG, "cannot create pipeline");
 		goto bail;
 	}
 
