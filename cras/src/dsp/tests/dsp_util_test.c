@@ -20,18 +20,18 @@
 #define ITERATIONS 400000
 
 #if defined(__aarch64__)
-int16_t clamp_to_short(int a) {
-	int ret;
-	asm volatile ("sqxtn h0, %s[a]\n"
-		      "sxtl  v0.4s, v0.4h\n"
-		      "fmov %w[ret], s0\n"
-		      : [ret] "=&r" (ret)
+int16_t float_to_short(float a) {
+	int32_t ret;
+	asm volatile ("fcvtas %s[ret], %s[a]\n"
+		      "sqxtn %h[ret], %s[ret]\n"
+		      : [ret] "=w" (ret)
 		      : [a] "w" (a)
-		      : "v0" );
+		      :);
 	return (int16_t)(ret);
 }
 #else
-int16_t clamp_to_short(int a) {
+int16_t float_to_short(float a) {
+	a += (a >= 0) ? 0.5f : -0.5f;
 	return (int16_t)(max(-32768, min(32767, a)));
 }
 #endif
@@ -62,8 +62,7 @@ void dsp_util_interleave_reference(float *const *input, int16_t *output,
 	for (i = 0; i < frames; i++)
 		for (j = 0; j < channels; j++) {
 			float f = *(input_ptr[j]++) * 32768.0f;
-			f += (f >= 0) ? 0.5f : -0.5f;
-			*output++ = clamp_to_short((int)(f));
+			*output++ = float_to_short(f);
 		}
 }
 
@@ -161,6 +160,10 @@ int main(int argc, char **argv)
 
 	dsp_enable_flush_denormal_to_zero();
 
+	// Print headings for TestRounding output.
+	printf("test interleave compare maxdif,     float,   float * 32k      "
+	       "C   SIMD expect pass\n");
+
 	// test clamping
 	TestRounding(1.0f, 32767, samples);
 	TestRounding(-1.0f, -32768, samples);
@@ -245,15 +248,15 @@ int main(int argc, char **argv)
 #else
 #define EXPECTED_NAN_RESULT 0
 #endif
-        union ieee754_float nan;  /* Quiet NaN */
-        nan.ieee.negative = 0;
-        nan.ieee.exponent = 0xff;
-        nan.ieee.mantissa = 0x400001;
-        TestRounding(nan.f, EXPECTED_NAN_RESULT, samples);
-        nan.ieee.negative = 0;
-        nan.ieee.exponent = 0xff;
-        nan.ieee.mantissa = 0x000001;  /* Signalling NaN */
-        TestRounding(nan.f, EXPECTED_NAN_RESULT, samples);
+	union ieee754_float nan;  /* Quiet NaN */
+	nan.ieee.negative = 0;
+	nan.ieee.exponent = 0xff;
+	nan.ieee.mantissa = 0x400001;
+	TestRounding(nan.f, EXPECTED_NAN_RESULT, samples);
+	nan.ieee.negative = 0;
+	nan.ieee.exponent = 0xff;
+	nan.ieee.mantissa = 0x000001;  /* Signalling NaN */
+	TestRounding(nan.f, EXPECTED_NAN_RESULT, samples);
 
 	/* Test Performance */
 	uint64_t diff;
