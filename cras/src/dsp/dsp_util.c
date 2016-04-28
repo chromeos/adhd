@@ -37,7 +37,7 @@ static void deinterleave_stereo(int16_t *input, float *output1,
 		__asm__ __volatile__ (
 			"1:                                         \n"
 			"ld2  {v2.8h, v3.8h}, [%[input]], #32       \n"
-			"subs %[chunk], %[chunk], #1                \n"
+			"subs %w[chunk], %w[chunk], #1              \n"
 			"sxtl   v0.4s, v2.4h                        \n"
 			"sxtl2  v1.4s, v2.8h                        \n"
 			"sxtl   v2.4s, v3.4h                        \n"
@@ -94,7 +94,7 @@ static void interleave_stereo(float *input1, float *input2,
 			"1:                                         \n"
 			"ld1    {v0.4s}, [%[input1]], #16           \n"
 			"ld1    {v1.4s}, [%[input2]], #16           \n"
-			"subs   %[chunk], %[chunk], #1              \n"
+			"subs   %w[chunk], %w[chunk], #1            \n"
 			"sqadd  v0.4s, v0.4s, v2.4s                 \n"
 			"sqadd  v1.4s, v1.4s, v2.4s                 \n"
 			"fcvtas v0.4s, v0.4s                        \n"

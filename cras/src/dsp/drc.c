@@ -274,7 +274,7 @@ static void sum3(float *data, const float *data1, const float *data2, int n)
 			"fadd v0.4s, v0.4s, v1.4s                   \n"
 			"fadd v0.4s, v0.4s, v2.4s                   \n"
 			"st1 {v0.4s}, [%[data]], #16                \n"
-			"subs %[count], %[count], #1                \n"
+			"subs %w[count], %w[count], #1              \n"
 			"b.ne 1b                                    \n"
 			: /* output */
 			  [data]"+r"(data),
