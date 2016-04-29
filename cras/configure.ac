@@ -70,12 +70,11 @@ AC_DEFINE_UNQUOTED(CRAS_CONFIG_FILE_DIR, "$cras_config_file_dir",
                    [directory containing CRAS configuration])
 
 # CRAS socket dir
-eval cras_sock_file_dir="$localstatedir/run/cras"
 AC_ARG_WITH(socketdir,
     AS_HELP_STRING([--with-socketdir=dir],
         [path where CRAS stores its sockets]),
     socketdir="$withval",
-    socketdir=$cras_sock_file_dir)
+    socketdir="/var/run/cras")
 AC_DEFINE_UNQUOTED(CRAS_SOCKET_FILE_DIR, "$socketdir",
                    [directory containing CRAS socket files])
 
