@@ -19,12 +19,15 @@ typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
  * Args:
  *    fd - the rfcomm fd used to initialize service level connection
  *    is_hsp - if the slc handle is created for headset profile
+ *    device - The bt device associated with the created slc object
  *    init_cb - the callback function to be triggered when a service level
  *        connection is initialized.
  *    disconnect_cb - the callback function to be triggered when the service
  *        level connection is disconnected.
  */
-struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp, hfp_slc_init_cb init_cb,
+struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
+				      struct cras_bt_device *device,
+				      hfp_slc_init_cb init_cb,
 				      hfp_slc_disconnect_cb disconnect_cb);
 
 /* Destroys an hfp_slc_handle. */

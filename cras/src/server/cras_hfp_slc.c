@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
+#include "cras_bt_device.h"
 #include "cras_telephony.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_slc.h"
@@ -52,6 +53,7 @@
  *    callheld - Current callheld status of AG stored in SLC.
  *    ind_event_report - Activate status of indicator events reporting.
  *    telephony - A reference of current telephony handle.
+ *    device - The associated bt device.
  */
 struct hfp_slc_handle {
 	char buf[SLC_BUF_SIZE_BYTES];
@@ -69,6 +71,7 @@ struct hfp_slc_handle {
 	int service;
 	int callheld;
 	int ind_event_report;
+	struct cras_bt_device *device;
 
 	struct cras_telephony_handle *telephony;
 };
@@ -418,10 +421,13 @@ static int signal_gain_setting(struct hfp_slc_handle *handle,
 		return -EINVAL;
 	}
 
-	// TODO(hychao): set mic/speaker gain
-	gain = atoi(&cmd[7]);
-	syslog(LOG_ERR, "Reported gain level %d for %s", gain,
-			cmd[5] == 'S' ? "speaker" : "microphone");
+	/* Map 0 to the smallest non-zero scale 6/100, and 15 to
+	 * 100/100 full. */
+	if (cmd[5] == 'S') {
+		gain = atoi(&cmd[7]);
+		cras_bt_device_update_hardware_volume(handle->device,
+						      (gain + 1) * 100 / 16);
+	}
 
 	return hfp_send(handle, "OK");
 }
@@ -610,6 +616,7 @@ static void slc_watch_callback(void *arg)
 
 struct hfp_slc_handle *hfp_slc_create(int fd,
 				      int is_hsp,
+				      struct cras_bt_device *device,
 				      hfp_slc_init_cb init_cb,
 				      hfp_slc_disconnect_cb disconnect_cb)
 {
@@ -621,6 +628,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 
 	handle->rfcomm_fd = fd;
 	handle->is_hsp = is_hsp;
+	handle->device = device;
 	handle->init_cb = init_cb;
 	handle->disconnect_cb = disconnect_cb;
 	handle->cli_active = 0;

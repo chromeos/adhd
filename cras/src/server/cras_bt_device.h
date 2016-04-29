@@ -154,4 +154,8 @@ void cras_bt_device_cancel_a2dp_delay_timer(struct cras_bt_device *device);
 /* Removes any a2dp delay timer from this device. */
 void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device);
 
+/* Updates the volume to bt_device when a volume change event is reported. */
+void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
+					   int volume);
+
 #endif /* CRAS_BT_DEVICE_H_ */

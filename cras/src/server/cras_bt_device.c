@@ -825,3 +825,22 @@ void cras_bt_device_start_monitor()
 	cras_main_message_add_handler(CRAS_MAIN_BT,
 				      bt_device_process_msg, NULL);
 }
+
+void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
+					   int volume)
+{
+	struct cras_iodev *iodev;
+
+	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
+	if (iodev == NULL)
+		return;
+
+	/* Check if this BT device is okay to use hardware volume. If not
+	 * then ignore the reported volume change event.
+	 */
+	if (!cras_bt_device_get_use_hardware_volume(device))
+		return;
+
+	iodev->active_node->volume = volume;
+	cras_iodev_list_notify_node_volume(iodev->active_node);
+}

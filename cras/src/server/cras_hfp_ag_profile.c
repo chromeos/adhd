@@ -299,6 +299,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
 	ag->slc_handle = hfp_slc_create(rfcomm_fd,
 					0,
+					device,
 					cras_hfp_ag_slc_initialized,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
@@ -360,7 +361,7 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	ag->device = device;
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
-	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, NULL,
+	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, device, NULL,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
 	cras_hfp_ag_slc_initialized(ag->slc_handle);

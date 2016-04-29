@@ -16,12 +16,15 @@ extern "C" {
 
 static struct hfp_slc_handle *handle;
 static struct cras_telephony_handle fake_telephony;
+static int cras_bt_device_update_hardware_volume_called;
 static int slc_initialized_cb_called;
 static int slc_disconnected_cb_called;
 static int cras_system_add_select_fd_called;
 static void(*slc_cb)(void *data);
 static void *slc_cb_data;
 static int fake_errno;
+static struct cras_bt_device *device =
+    reinterpret_cast<struct cras_bt_device *>(2);
 
 int slc_initialized_cb(struct hfp_slc_handle *handle);
 int slc_disconnected_cb(struct hfp_slc_handle *handle);
@@ -29,6 +32,7 @@ int slc_disconnected_cb(struct hfp_slc_handle *handle);
 void ResetStubData() {
   slc_initialized_cb_called = 0;
   cras_system_add_select_fd_called = 0;
+  cras_bt_device_update_hardware_volume_called = 0;
   slc_cb = NULL;
   slc_cb_data = NULL;
 }
@@ -38,7 +42,7 @@ namespace {
 TEST(HfpSlc, CreateSlcHandle) {
   ResetStubData();
 
-  handle = hfp_slc_create(0, 0, slc_initialized_cb,
+  handle = hfp_slc_create(0, 0, device, slc_initialized_cb,
                           slc_disconnected_cb);
   ASSERT_EQ(1, cras_system_add_select_fd_called);
   ASSERT_EQ(handle, slc_cb_data);
@@ -54,7 +58,7 @@ TEST(HfpSlc, InitializeSlc) {
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-  handle = hfp_slc_create(sock[0], 0, slc_initialized_cb,
+  handle = hfp_slc_create(sock[0], 0, device, slc_initialized_cb,
                           slc_disconnected_cb);
 
   err = write(sock[1], "AT+CIND=?\r", 10);
@@ -89,6 +93,18 @@ TEST(HfpSlc, InitializeSlc) {
   ASSERT_NE((void *)NULL, (void *)chp);
   ASSERT_EQ(0, strncmp("\r\nOK", chp, 4));
 
+  err = write(sock[1], "AT+VGS=13\r", 10);
+  ASSERT_EQ(err, 10);
+  slc_cb(slc_cb_data);
+
+  err = read(sock[1], buf, 256);
+
+  chp = strstr(buf, "\r\n");
+  ASSERT_NE((void *)NULL, (void *)chp);
+  ASSERT_EQ(0, strncmp("\r\nOK", chp, 4));
+
+  ASSERT_EQ(1, cras_bt_device_update_hardware_volume_called);
+
   hfp_slc_destroy(handle);
 }
 
@@ -97,7 +113,7 @@ TEST(HfpSlc, DisconnectSlc) {
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-  handle = hfp_slc_create(sock[0], 0, slc_initialized_cb,
+  handle = hfp_slc_create(sock[0], 0, device, slc_initialized_cb,
                           slc_disconnected_cb);
   /* Close socket right away to make read() get negative err code, and
    * fake the errno to ECONNRESET. */
@@ -133,6 +149,12 @@ int cras_system_add_select_fd(int fd,
 }
 
 void cras_system_rm_select_fd(int fd) {
+}
+
+void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
+    int volume)
+{
+  cras_bt_device_update_hardware_volume_called++;
 }
 
 /* To return fake errno */

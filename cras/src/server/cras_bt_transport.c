@@ -31,6 +31,7 @@ struct cras_bt_transport {
 	int fd;
 	uint16_t read_mtu;
 	uint16_t write_mtu;
+	int volume;
 
 	struct cras_bt_endpoint *endpoint;
 	struct cras_bt_transport *prev, *next;
@@ -57,6 +58,7 @@ struct cras_bt_transport *cras_bt_transport_create(DBusConnection *conn,
 	dbus_connection_ref(transport->conn);
 
 	transport->fd = -1;
+	transport->volume = -1;
 
 	DL_APPEND(transports, transport);
 
@@ -213,6 +215,25 @@ static void cras_bt_transport_state_changed(struct cras_bt_transport *transport)
 				transport);
 }
 
+/* Updates bt_device when certain transport property has changed. */
+static void cras_bt_transport_update_device(struct cras_bt_transport *transport)
+{
+	if (!transport->device)
+		return;
+
+	/* When the transport has non-negaive volume, it means the remote
+	 * BT audio devices supports AVRCP absolute volume. Set the flag in bt
+	 * device to use hardware volume. Also map the volume value from 0-127
+	 * to 0-100.
+	 */
+	if (transport->volume != -1) {
+		cras_bt_device_set_use_hardware_volume(transport->device, 1);
+		cras_bt_device_update_hardware_volume(
+				transport->device,
+				transport->volume * 100 / 127);
+	}
+}
+
 void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
 				       int fd, const char *uuid)
 {
@@ -286,6 +307,7 @@ void cras_bt_transport_update_properties(
 				       obj_path);
 				transport->device =
 					cras_bt_device_create(obj_path);
+				cras_bt_transport_update_device(transport);
 			}
 		} else if (strcmp(
 				dbus_message_iter_get_signature(&variant_iter),
@@ -308,6 +330,12 @@ void cras_bt_transport_update_properties(
 				transport->configuration_len = len;
 			}
 
+		} else if (strcmp(key, "Volume") == 0) {
+			uint16_t volume;
+
+			dbus_message_iter_get_basic(&variant_iter, &volume);
+			transport->volume = volume;
+			cras_bt_transport_update_device(transport);
 		}
 
 		dbus_message_iter_next(properties_array_iter);

@@ -270,6 +270,10 @@ void cras_iodev_list_enable_dev(struct cras_iodev *dev)
 {
 }
 
+void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
+{
+}
+
 int cras_main_message_send(struct cras_main_message *msg)
 {
   cras_main_message_send_msg = msg;
