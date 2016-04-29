@@ -651,7 +651,7 @@ system_state_unittest_LDADD = -lgtest -lrt -lpthread
 
 utf8_unittest_SOURCES = tests/utf8_unittest.cc server/cras_utf8.c
 utf8_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server
-utf8_unittest_LDADD = -lgtest
+utf8_unittest_LDADD = -lgtest -lpthread
 
 util_unittest_SOURCES = tests/util_unittest.cc common/cras_util.c \
 	common/cras_config.c
