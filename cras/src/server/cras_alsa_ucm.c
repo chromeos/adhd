@@ -97,6 +97,22 @@ static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 	return rc;
 }
 
+static int get_int(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
+		   const char *verb, int *value)
+{
+	const char *str_value;
+	int rc;
+
+	if (!value)
+		return -EINVAL;
+	rc = get_var(mgr, var, dev, verb, &str_value);
+	if (rc != 0)
+		return rc;
+	*value = atoi(str_value);
+	free((void *)str_value);
+	return 0;
+}
+
 static int ucm_set_modifier_enabled(snd_use_case_mgr_t *mgr, const char *mod,
 				    int enable)
 {
@@ -501,38 +517,38 @@ const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
 
 unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
 {
-	const char *val = NULL;
+	int value;
 	int rc;
 
-	rc = get_var(mgr, min_buffer_level_var, "", default_verb, &val);
+	rc = get_int(mgr, min_buffer_level_var, "", default_verb, &value);
 	if (rc)
 		return 0;
 
-	return atoi(val);
+	return value;
 }
 
 unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
 {
-	const char *val = NULL;
+	int value;
 	int rc;
 
-	rc = get_var(mgr, disable_software_volume, "", default_verb, &val);
+	rc = get_int(mgr, disable_software_volume, "", default_verb, &value);
 	if (rc)
 		return 0;
 
-	return atoi(val);
+	return value;
 }
 
 int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
 			      long *gain)
 {
-	const char *val = NULL;
+	int value;
 	int rc;
 
-	rc = get_var(mgr, max_software_gain, dev, default_verb, &val);
+	rc = get_int(mgr, max_software_gain, dev, default_verb, &value);
 	if (rc)
 		return rc;
-	*gain = atoi(val);
+	*gain = value;
 	return 0;
 }
 
