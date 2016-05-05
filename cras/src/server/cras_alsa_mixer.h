@@ -209,4 +209,34 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
 		const struct mixer_control *control);
 
+/* Returns 1 if the mixer control is virtual, that is, there is no control
+ * element.
+ * Args:
+ *   control - A pointer to the mixer_control to check.
+ */
+int cras_alsa_mixer_is_virtual_mixer(const struct mixer_control *control);
+
+/* Returns 1 if there is coupled mixers in mixer_output_control associated
+ * with this mixer_control.
+ * Args:
+ *   control - A pointer to the mixer_control.
+ */
+int cras_alsa_mixer_output_has_coupled_mixers(
+		const struct mixer_control *control);
+
+
+/* Returns 1 if there is this volume control in this mixer_output_control.
+ * The volume control may be in the base mixer_control, or in some of the
+ * coupled mixers.
+ *
+ * Args:
+ *   control - A pointer to the mixer_control.
+ * Returns:
+ *   1 if the mixer_control has volume control, or some of the coupled mixers
+ *   of the associated mixer_output_control has volume control. Otherwise,
+ *   returns 0.
+ */
+int cras_alsa_mixer_output_has_volume(
+		const struct mixer_control *mixer_control);
+
 #endif /* _CRAS_ALSA_MIXER_H */

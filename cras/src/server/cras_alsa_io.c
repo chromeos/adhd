@@ -845,7 +845,7 @@ static void set_output_node_software_volume_needed(
 	 * control. */
 	if ((output->base.type == CRAS_NODE_TYPE_HDMI) ||
 	    (!cras_alsa_mixer_has_main_volume(mixer) &&
-	     !cras_alsa_mixer_has_volume(output->mixer_output)))
+	     !cras_alsa_mixer_output_has_volume(output->mixer_output)))
 		output->base.software_volume_needed = 1;
 
 	/* Use software volume if the usb device's volume range is smaller
@@ -954,9 +954,16 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 	char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
 	const char *ctl_name;
 
+	if (cras_alsa_mixer_is_virtual_mixer(cras_output) &&
+	    cras_alsa_mixer_output_has_coupled_mixers(cras_output)) {
+		/* Assume that a virtual output with coupled mixers is only for
+		 * speaker node. This is to support issue crosbug.com/p/48716
+		 * without fully-specified UCM. */
+		new_output(aio, cras_output, "Speaker");
+		return;
+	}
+
 	ctl_name = cras_alsa_mixer_get_control_name(cras_output);
-	if (!ctl_name)
-	        return;
 
 	if (aio->card_type == ALSA_CARD_TYPE_USB) {
 		snprintf(node_name, sizeof(node_name), "%s: %s",
