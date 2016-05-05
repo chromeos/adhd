@@ -10,6 +10,7 @@
 extern "C" {
 #include "cras_alsa_ucm.h"
 #include "cras_types.h"
+#include "cras_util.h"
 #include "utlist.h"
 
 //  Include C file to test static functions.
@@ -900,6 +901,76 @@ TEST(AlsaUcm, GetJackTypeForDevice) {
   EXPECT_EQ(0, strcmp(jack_type_2, value_2.c_str()));
   EXPECT_EQ(NULL, jack_type_3);
   EXPECT_EQ(NULL, jack_type_4);
+}
+
+TEST(AlsaUcm, UcmSection) {
+  struct ucm_section *section_list = NULL;
+  struct ucm_section *section;
+  struct mixer_name *controls = NULL;
+  struct mixer_name *m_name;
+  int dev_idx = 0;
+  size_t i;
+  enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_OUTPUT;
+  static const char *name = "Headphone";
+  static const char *jack_name = "my-card-name Headset Jack";
+  static const char *jack_type = "gpio";
+  static const char *mixer_name = "Control1";
+  static const char *coupled_names[] = {
+    "Coupled1",
+    "Coupled2"
+  };
+
+  section = ucm_section_create(NULL, 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+  EXPECT_EQ(reinterpret_cast<struct ucm_section*>(NULL), section);
+
+  section = ucm_section_create(name, dev_idx, dir, jack_name, jack_type);
+  EXPECT_NE(reinterpret_cast<struct ucm_section*>(NULL), section);
+  EXPECT_NE(name, section->name);
+  EXPECT_EQ(0, strcmp(name, section->name));
+  EXPECT_EQ(dev_idx, section->dev_idx);
+  EXPECT_EQ(dir, section->dir);
+  EXPECT_NE(jack_name, section->jack_name);
+  EXPECT_NE(jack_type, section->jack_type);
+  EXPECT_EQ(section->prev, section);
+  EXPECT_EQ(reinterpret_cast<const char *>(NULL), section->mixer_name);
+  EXPECT_EQ(reinterpret_cast<struct mixer_name*>(NULL), section->coupled);
+
+  EXPECT_EQ(-EINVAL, ucm_section_set_mixer_name(section, NULL));
+  EXPECT_EQ(-EINVAL, ucm_section_set_mixer_name(NULL, mixer_name));
+  EXPECT_EQ(0, ucm_section_set_mixer_name(section, mixer_name));
+
+  EXPECT_NE(section->mixer_name, mixer_name);
+  EXPECT_EQ(0, strcmp(section->mixer_name, mixer_name));
+
+  EXPECT_EQ(-EINVAL, ucm_section_add_coupled(
+                         section, NULL, MIXER_NAME_VOLUME));
+  EXPECT_EQ(-EINVAL, ucm_section_add_coupled(
+                         NULL, coupled_names[0], MIXER_NAME_VOLUME));
+  EXPECT_EQ(0, ucm_section_add_coupled(
+                         section, coupled_names[0], MIXER_NAME_VOLUME));
+
+  EXPECT_EQ(-EINVAL, ucm_section_concat_coupled(section, NULL));
+  EXPECT_EQ(-EINVAL, ucm_section_concat_coupled(
+                         NULL, reinterpret_cast<struct mixer_name*>(0x1111)));
+
+  controls = NULL;
+  for (i = 1; i < ARRAY_SIZE(coupled_names); i++) {
+    controls = mixer_name_add(controls, coupled_names[i],
+                              CRAS_STREAM_OUTPUT, MIXER_NAME_VOLUME);
+  }
+  /* Add controls to the list of coupled controls for this section. */
+  EXPECT_EQ(0, ucm_section_concat_coupled(section, controls));
+
+  i = 0;
+  DL_FOREACH(section->coupled, m_name) {
+    EXPECT_NE(m_name->name, coupled_names[i]);
+    EXPECT_EQ(0, strcmp(m_name->name, coupled_names[i]));
+    i++;
+  }
+  EXPECT_EQ(i, ARRAY_SIZE(coupled_names));
+
+  DL_APPEND(section_list, section);
+  ucm_section_free_list(section_list);
 }
 
 /* Stubs */
