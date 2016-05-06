@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <iniparser.h>
 #include <stdio.h>
+#include <sys/param.h>
 
 extern "C" {
 #include "cras_alsa_card.h"
@@ -27,6 +28,7 @@ static size_t cras_alsa_iodev_destroy_called;
 static struct cras_iodev *cras_alsa_iodev_destroy_arg;
 static size_t cras_alsa_iodev_index_called;
 static unsigned cras_alsa_iodev_index_return;
+static int alsa_iodev_has_hctl_jacks_return;
 static size_t snd_ctl_open_called;
 static size_t snd_ctl_open_return;
 static size_t snd_ctl_close_called;
@@ -42,6 +44,21 @@ static size_t snd_ctl_pcm_info_rets_size;
 static size_t snd_ctl_pcm_info_rets_index;
 static size_t snd_ctl_card_info_called;
 static int snd_ctl_card_info_ret;
+static size_t snd_hctl_open_called;
+static int snd_hctl_open_return_value;
+static int snd_hctl_close_called;
+static size_t snd_hctl_nonblock_called;
+static snd_hctl_t *snd_hctl_open_pointer_val;
+static size_t snd_hctl_load_called;
+static int snd_hctl_load_return_value;
+static struct pollfd *snd_hctl_poll_descriptors_fds;
+static size_t snd_hctl_poll_descriptors_num_fds;
+static size_t snd_hctl_poll_descriptors_called;
+static size_t cras_system_add_select_fd_called;
+static std::vector<int> cras_system_add_select_fd_values;
+static size_t cras_system_rm_select_fd_called;
+static std::vector<int> cras_system_rm_select_fd_values;
+static size_t snd_hctl_handle_events_called;
 static size_t iniparser_freedict_called;
 static size_t iniparser_load_called;
 static struct cras_device_blacklist *fake_blacklist;
@@ -65,6 +82,7 @@ static void ResetStubData() {
   cras_alsa_iodev_destroy_called = 0;
   cras_alsa_iodev_index_called = 0;
   cras_alsa_iodev_index_return = 0;
+  alsa_iodev_has_hctl_jacks_return = 1;
   snd_ctl_open_called = 0;
   snd_ctl_open_return = 0;
   snd_ctl_close_called = 0;
@@ -78,6 +96,22 @@ static void ResetStubData() {
   snd_ctl_pcm_info_rets_index = 0;
   snd_ctl_card_info_called = 0;
   snd_ctl_card_info_ret = 0;
+  snd_hctl_open_called = 0;
+  snd_hctl_open_return_value = 0;
+  snd_hctl_open_pointer_val = reinterpret_cast<snd_hctl_t *>(0x4323);
+  snd_hctl_load_called = 0;
+  snd_hctl_load_return_value = 0;
+  snd_hctl_close_called = 0;
+  snd_hctl_nonblock_called = 0;
+  snd_hctl_poll_descriptors_num_fds = 0;
+  snd_hctl_poll_descriptors_called = 0;
+  snd_hctl_handle_events_called = 0;
+  snd_hctl_poll_descriptors_num_fds = 0;
+  snd_hctl_poll_descriptors_called = 0;
+  cras_system_add_select_fd_called = 0;
+  cras_system_add_select_fd_values.clear();
+  cras_system_rm_select_fd_called = 0;
+  cras_system_rm_select_fd_values.clear();
   iniparser_freedict_called = 0;
   iniparser_load_called = 0;
   fake_blacklist = reinterpret_cast<struct cras_device_blacklist *>(3);
@@ -135,6 +169,119 @@ TEST(AlsaCard, CreateFailCtlOpen) {
   EXPECT_EQ(1, snd_ctl_open_called);
   EXPECT_EQ(0, snd_ctl_close_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+  EXPECT_EQ(0, cras_alsa_mixer_create_called);
+}
+
+TEST(AlsaCard, CreateFailHctlOpen) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_hctl_open_pointer_val = NULL;
+  snd_hctl_open_return_value = -1;
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(1, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_close_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+  EXPECT_EQ(1, snd_hctl_open_called);
+  EXPECT_EQ(0, snd_hctl_nonblock_called);
+  EXPECT_EQ(0, snd_hctl_load_called);
+  EXPECT_EQ(1, cras_alsa_mixer_create_called);
+}
+
+TEST(AlsaCard, CreateFailHctlLoad) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_hctl_load_return_value = -1;
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+  EXPECT_EQ(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(1, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_close_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+  EXPECT_EQ(1, snd_hctl_open_called);
+  EXPECT_EQ(1, snd_hctl_nonblock_called);
+  EXPECT_EQ(1, snd_hctl_load_called);
+  EXPECT_EQ(0, cras_alsa_mixer_create_called);
+}
+
+TEST(AlsaCard, AddSelectForHctlNoDevices) {
+  struct pollfd poll_fds[] = {
+    {3, 0, 0},
+  };
+
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_hctl_poll_descriptors_fds = poll_fds;
+  snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(1, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_close_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+  EXPECT_EQ(1, snd_hctl_open_called);
+  EXPECT_EQ(1, snd_hctl_nonblock_called);
+  EXPECT_EQ(1, snd_hctl_load_called);
+  EXPECT_EQ(1, cras_alsa_mixer_create_called);
+  EXPECT_EQ(0, cras_system_add_select_fd_called);
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(0, cras_system_rm_select_fd_called);
+}
+
+TEST(AlsaCard, AddSelectForHctlWithDevices) {
+  struct pollfd poll_fds[] = {
+    {3, 0, 0},
+  };
+  int dev_nums[] = {0};
+  int info_rets[] = {0, -1};
+
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
+  snd_ctl_pcm_next_device_set_devs = dev_nums;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_hctl_poll_descriptors_fds = poll_fds;
+  snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist);
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
+  EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_index_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(1, ucm_create_called);
+  EXPECT_EQ(1, ucm_get_dev_for_mixer_called);
+  EXPECT_EQ(1, ucm_get_flag_called);
+  EXPECT_EQ(0, strcmp(ucm_get_flag_name, "ExtraMainVolume"));
+  EXPECT_EQ(cras_card_config_dir, device_config_dir);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+  EXPECT_EQ(1, snd_hctl_open_called);
+  EXPECT_EQ(1, snd_hctl_nonblock_called);
+  EXPECT_EQ(1, snd_hctl_load_called);
+  EXPECT_EQ(1, cras_alsa_mixer_create_called);
+  ASSERT_EQ(1, cras_system_add_select_fd_called);
+  EXPECT_EQ(3, cras_system_add_select_fd_values[0]);
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_rm_select_fd_called);
 }
 
 TEST(AlsaCard, CreateFailCtlCardInfo) {
@@ -233,6 +380,7 @@ TEST(AlsaCard, CreateOneOutputBlacklisted) {
   snd_ctl_pcm_next_device_set_devs = dev_nums;
   snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
   snd_ctl_pcm_info_rets = info_rets;
+  alsa_iodev_has_hctl_jacks_return = 0;
   cras_device_blacklist_check_retval = 1;
   card_info.card_type = ALSA_CARD_TYPE_USB;
   card_info.card_index = 0;
@@ -493,6 +641,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
+				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
                                      size_t usb_vid,
                                      size_t usb_pid) {
@@ -506,6 +655,9 @@ void alsa_iodev_destroy(struct cras_iodev *iodev) {
 unsigned alsa_iodev_index(struct cras_iodev *iodev) {
   cras_alsa_iodev_index_called++;
   return cras_alsa_iodev_index_return;
+}
+int alsa_iodev_has_hctl_jacks(struct cras_iodev *iodev) {
+  return alsa_iodev_has_hctl_jacks_return;
 }
 
 size_t snd_pcm_info_sizeof() {
@@ -568,6 +720,52 @@ const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj) {
 }
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj) {
   return "TestId";
+}
+int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode) {
+  *hctlp = snd_hctl_open_pointer_val;
+  snd_hctl_open_called++;
+  return snd_hctl_open_return_value;
+}
+int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock) {
+  snd_hctl_nonblock_called++;
+  return 0;
+}
+int snd_hctl_load(snd_hctl_t *hctl) {
+  snd_hctl_load_called++;
+  return snd_hctl_load_return_value;
+}
+int snd_hctl_close(snd_hctl_t *hctl) {
+  snd_hctl_close_called++;
+  return 0;
+}
+int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl) {
+  return snd_hctl_poll_descriptors_num_fds;
+}
+int snd_hctl_poll_descriptors(snd_hctl_t *hctl,
+                              struct pollfd *pfds,
+                              unsigned int space) {
+  unsigned int num = MIN(space, snd_hctl_poll_descriptors_num_fds);
+  memcpy(pfds, snd_hctl_poll_descriptors_fds, num * sizeof(*pfds));
+  snd_hctl_poll_descriptors_called++;
+  return num;
+}
+int snd_hctl_handle_events(snd_hctl_t *hctl) {
+  snd_hctl_handle_events_called++;
+  return 0;
+}
+
+int cras_system_add_select_fd(int fd,
+			      void (*callback)(void *data),
+			      void *callback_data)
+{
+  cras_system_add_select_fd_called++;
+  cras_system_add_select_fd_values.push_back(fd);
+  return 0;
+}
+void cras_system_rm_select_fd(int fd)
+{
+  cras_system_rm_select_fd_called++;
+  cras_system_rm_select_fd_values.push_back(fd);
 }
 
 struct cras_card_config *cras_card_config_create(const char *config_path,

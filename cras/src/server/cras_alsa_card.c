@@ -16,6 +16,7 @@
 #include "cras_config.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -31,12 +32,21 @@ struct iodev_list_node {
 	struct iodev_list_node *prev, *next;
 };
 
+/* Keeps an fd that is registered with system state.  A list of fds must be
+ * kept so that they can be removed when the card is destroyed. */
+struct hctl_poll_fd {
+	int fd;
+	struct hctl_poll_fd *prev, *next;
+};
+
 /* Holds information about each sound card on the system.
  * name - of the form hw:XX,YY.
  * card_index - 0 based index, value of "XX" in the name.
  * iodevs - Input and output devices for this card.
  * mixer - Controls the mixer controls for this card.
  * ucm - ALSA use case manager if available.
+ * hctl - ALSA high-level control interface.
+ * hctl_poll_fds - List of fds registered with cras_system_state.
  * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_card {
@@ -45,6 +55,8 @@ struct cras_alsa_card {
 	struct iodev_list_node *iodevs;
 	struct cras_alsa_mixer *mixer;
 	snd_use_case_mgr_t *ucm;
+	snd_hctl_t *hctl;
+	struct hctl_poll_fd *hctl_poll_fds;
 	struct cras_card_config *config;
 };
 
@@ -98,6 +110,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 					   first,
 					   alsa_card->mixer,
 					   alsa_card->ucm,
+					   alsa_card->hctl,
 					   direction,
 					   info->usb_vendor_id,
 					   info->usb_product_id);
@@ -114,6 +127,20 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 	       device_index);
 
 	DL_APPEND(alsa_card->iodevs, new_dev);
+}
+
+/* Returns non-zero if this card has hctl jacks.
+ */
+static int card_has_hctl_jack(struct cras_alsa_card *alsa_card)
+{
+	struct iodev_list_node *node;
+
+	/* Find the first device that has an hctl jack. */
+	DL_FOREACH(alsa_card->iodevs, node) {
+		if (alsa_iodev_has_hctl_jacks(node->iodev))
+			return 1;
+	}
+	return 0;
 }
 
 /* Check if a device should be ignored for this card. Returns non-zero if the
@@ -147,6 +174,23 @@ static struct mixer_name *filter_controls(snd_use_case_mgr_t *ucm,
 	return controls;
 }
 
+/* Handles notifications from alsa controls.  Called by main thread when a poll
+ * fd provided by alsa signals there is an event available. */
+static void alsa_control_event_pending(void *arg)
+{
+	struct cras_alsa_card *card;
+
+	card = (struct cras_alsa_card *)arg;
+	if (card == NULL) {
+		syslog(LOG_ERR, "Invalid card from control event.");
+		return;
+	}
+
+	/* handle_events will trigger the callback registered with each control
+	 * that has changed. */
+	snd_hctl_handle_events(card->hctl);
+}
+
 /*
  * Exported Interface.
  */
@@ -157,7 +201,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 		struct cras_device_blacklist *blacklist)
 {
 	snd_ctl_t *handle = NULL;
-	int rc, dev_idx;
+	int rc, dev_idx, n;
 	snd_ctl_card_info_t *card_info;
 	const char *card_name;
 	snd_pcm_info_t *dev_info;
@@ -243,6 +287,29 @@ struct cras_alsa_card *cras_alsa_card_create(
 		mixer_name_dump(coupled_controls, "coupled controls");
 	}
 
+	rc = snd_hctl_open(&alsa_card->hctl,
+			   alsa_card->name,
+			   SND_CTL_NONBLOCK);
+	if (rc < 0) {
+		syslog(LOG_DEBUG,
+		       "failed to get hctl for %s", alsa_card->name);
+		alsa_card->hctl = NULL;
+	} else {
+		rc = snd_hctl_nonblock(alsa_card->hctl, 1);
+		if (rc < 0) {
+			syslog(LOG_ERR,
+			    "failed to nonblock hctl for %s", alsa_card->name);
+			goto error_bail;
+		}
+
+		rc = snd_hctl_load(alsa_card->hctl);
+		if (rc < 0) {
+			syslog(LOG_ERR,
+			       "failed to load hctl for %s", alsa_card->name);
+			goto error_bail;
+		}
+	}
+
 	/* Create one mixer per card. */
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
 						  alsa_card->config);
@@ -301,6 +368,43 @@ struct cras_alsa_card *cras_alsa_card_create(
 						CRAS_STREAM_INPUT);
 	}
 
+	n = alsa_card->hctl ?
+		snd_hctl_poll_descriptors_count(alsa_card->hctl) : 0;
+	if (n != 0 && card_has_hctl_jack(alsa_card)) {
+		struct hctl_poll_fd *registered_fd;
+		struct pollfd *pollfds;
+		int i;
+
+		pollfds = malloc(n * sizeof(*pollfds));
+		if (pollfds == NULL) {
+			rc = -ENOMEM;
+			goto error_bail;
+		}
+
+		n = snd_hctl_poll_descriptors(alsa_card->hctl, pollfds, n);
+		for (i = 0; i < n; i++) {
+			registered_fd = calloc(1, sizeof(*registered_fd));
+			if (registered_fd == NULL) {
+				free(pollfds);
+				rc = -ENOMEM;
+				goto error_bail;
+			}
+			registered_fd->fd = pollfds[i].fd;
+			DL_APPEND(alsa_card->hctl_poll_fds, registered_fd);
+			rc = cras_system_add_select_fd(
+					registered_fd->fd,
+					alsa_control_event_pending,
+					alsa_card);
+			if (rc < 0) {
+				DL_DELETE(alsa_card->hctl_poll_fds,
+					  registered_fd);
+				free(pollfds);
+				goto error_bail;
+			}
+		}
+		free(pollfds);
+	}
+
 	mixer_name_free(coupled_controls);
 	mixer_name_free(extra_controls);
 	snd_ctl_close(handle);
@@ -311,19 +415,14 @@ error_bail:
 	mixer_name_free(extra_controls);
 	if (handle != NULL)
 		snd_ctl_close(handle);
-	if (alsa_card->ucm)
-		ucm_destroy(alsa_card->ucm);
-	if (alsa_card->mixer)
-		cras_alsa_mixer_destroy(alsa_card->mixer);
-	if (alsa_card->config)
-		cras_card_config_destroy(alsa_card->config);
-	free(alsa_card);
+	cras_alsa_card_destroy(alsa_card);
 	return NULL;
 }
 
 void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 {
 	struct iodev_list_node *curr;
+	struct hctl_poll_fd *poll_fd;
 
 	if (alsa_card == NULL)
 		return;
@@ -333,9 +432,17 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 		DL_DELETE(alsa_card->iodevs, curr);
 		free(curr);
 	}
+	DL_FOREACH(alsa_card->hctl_poll_fds, poll_fd) {
+		cras_system_rm_select_fd(poll_fd->fd);
+		DL_DELETE(alsa_card->hctl_poll_fds, poll_fd);
+		free(poll_fd);
+	}
+	if (alsa_card->hctl)
+		snd_hctl_close(alsa_card->hctl);
 	if (alsa_card->ucm)
 		ucm_destroy(alsa_card->ucm);
-	cras_alsa_mixer_destroy(alsa_card->mixer);
+	if (alsa_card->mixer)
+		cras_alsa_mixer_destroy(alsa_card->mixer);
 	if (alsa_card->config)
 		cras_card_config_destroy(alsa_card->config);
 	free(alsa_card);

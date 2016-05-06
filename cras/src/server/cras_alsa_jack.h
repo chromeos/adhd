@@ -38,6 +38,7 @@ typedef void (jack_state_change_callback)(const struct cras_alsa_jack *jack,
  *      correspond to jacks.  For instance "Headphone switch" for "Headphone
  *      Jack".
  *    ucm - ALSA use case manager if available.
+ *    hctl - ALSA high-level control interface if available.
  *    direction - Input or output, look for mic or headphone jacks.
  *    cb - Function to call when a jack state changes.
  *    cb_data - Passed to the callback when called.
@@ -51,11 +52,12 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		int is_first_device,
 		struct cras_alsa_mixer *mixer,
 		snd_use_case_mgr_t *ucm,
+		snd_hctl_t *hctl,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
 		void *cb_data);
 
-/* Creates jack list and finds jacks by name matching.
+/* Finds jacks by name matching.
  * The list holds all the interesting ALSA jacks for this
  * device. These jacks will be for headphones, speakers, HDMI, etc.
  * Args:
@@ -63,22 +65,20 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
  * Returns:
  *   0 on success. Error code if there is a failure.
  */
-struct cras_alsa_jack_list *cras_alsa_jack_create_jack_list_and_find_jacks(
-		unsigned int card_index,
-		const char *card_name,
-		unsigned int device_index,
-		int is_first_device,
-		struct cras_alsa_mixer *mixer,
-		snd_use_case_mgr_t *ucm,
-		enum CRAS_STREAM_DIRECTION direction,
-		jack_state_change_callback *cb,
-		void *cb_data);
+int cras_alsa_jack_list_find_jacks_by_name_matching(
+	struct cras_alsa_jack_list *jack_list);
 
 /* Destroys a jack list created with cras_alsa_jack_list_create.
  * Args:
  *    jack_list - The list to destroy.
  */
 void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list);
+
+/* Returns non-zero if the jack list has hctl jacks.
+ * Args:
+ *    jack_list - The list check.
+ */
+int cras_alsa_jack_list_has_hctl_jacks(struct cras_alsa_jack_list *jack_list);
 
 /* Gets the mixer output associated with the given jack.
  * Args:

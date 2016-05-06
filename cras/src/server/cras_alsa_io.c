@@ -1277,6 +1277,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
+				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
 				     size_t usb_pid)
@@ -1375,18 +1376,26 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				new_input_by_mixer_control, aio);
 
 	/* Find any jack controls for this device. */
-	aio->jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
+	aio->jack_list =
+		cras_alsa_jack_list_create(
 			card_index,
 			card_name,
 			device_index,
 			is_first,
 			mixer,
 			ucm,
+			hctl,
 			direction,
 			direction == CRAS_STREAM_OUTPUT ?
 				     jack_output_plug_event :
 				     jack_input_plug_event,
 			aio);
+	if (!aio->jack_list)
+		goto cleanup_iodev;
+
+	err = cras_alsa_jack_list_find_jacks_by_name_matching(aio->jack_list);
+	if (err)
+	        goto cleanup_iodev;
 
 	/* Create nodes for jacks that aren't associated with an
 	 * already existing node. Get an initial read of the jacks for
@@ -1478,6 +1487,12 @@ unsigned alsa_iodev_index(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	return aio->device_index;
+}
+
+int alsa_iodev_has_hctl_jacks(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	return cras_alsa_jack_list_has_hctl_jacks(aio->jack_list);
 }
 
 static void alsa_iodev_unmute_node(struct alsa_io *aio,

@@ -25,7 +25,8 @@ struct cras_ionode;
  *    is_first - if this is the first iodev on the card.
  *    mixer - The mixer for the alsa device.
  *    ucm - ALSA use case manager if available.
- *    direciton - input or output.
+ *    hctl - high-level control manager if available.
+ *    direction - input or output.
  *    usb_vid - vendor ID of USB device.
  *    usb_pid - product ID of USB device.
  * Returns:
@@ -40,6 +41,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
 				     snd_use_case_mgr_t *ucm,
+				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
 				     size_t usb_pid);
@@ -49,5 +51,8 @@ void alsa_iodev_destroy(struct cras_iodev *iodev);
 
 /* Returns the ALSA device index for the given ALSA iodev. */
 unsigned alsa_iodev_index(struct cras_iodev *iodev);
+
+/* Returns whether this IODEV has ALSA hctl jacks. */
+int alsa_iodev_has_hctl_jacks(struct cras_iodev *iodev);
 
 #endif /* CRAS_ALSA_IO_H_ */

@@ -9,6 +9,7 @@
 #include <sys/param.h>
 #include <gtest/gtest.h>
 #include <string>
+#include <syslog.h>
 
 extern "C" {
 #include "cras_alsa_jack.h"
@@ -27,13 +28,7 @@ namespace {
 #define LONG(x)			((x) / BITS_PER_LONG)
 #define IS_BIT_SET(bit, array)	!!((array[LONG(bit)]) & (1UL << OFF(bit)))
 
-static size_t snd_hctl_open_called;
-static int snd_hctl_open_return_value;
-static snd_hctl_t *snd_hctl_open_pointer_val;
-static size_t snd_hctl_load_called;
-static int snd_hctl_load_return_value;
 static int fake_jack_cb_plugged;
-static int snd_hctl_close_called;
 static void *fake_jack_cb_data;
 static size_t fake_jack_cb_called;
 unsigned int snd_hctl_elem_get_device_return_val;
@@ -47,14 +42,10 @@ static size_t snd_hctl_elem_get_name_called;
 static size_t snd_hctl_elem_set_callback_called;
 static snd_hctl_elem_t *snd_hctl_elem_set_callback_obj;
 static snd_hctl_elem_callback_t snd_hctl_elem_set_callback_value;
-static struct pollfd *snd_hctl_poll_descriptors_fds;
-static size_t snd_hctl_poll_descriptors_num_fds;
-static size_t snd_hctl_poll_descriptors_called;
 static size_t cras_system_add_select_fd_called;
 static std::vector<int> cras_system_add_select_fd_values;
 static size_t cras_system_rm_select_fd_called;
 static std::vector<int> cras_system_rm_select_fd_values;
-static size_t snd_hctl_handle_events_called;
 static size_t snd_hctl_elem_set_callback_private_called;
 static void *snd_hctl_elem_set_callback_private_value;
 static size_t snd_hctl_elem_get_hctl_called;
@@ -62,7 +53,6 @@ static snd_hctl_t *snd_hctl_elem_get_hctl_return_value;
 static size_t snd_ctl_elem_value_get_boolean_called;
 static int snd_ctl_elem_value_get_boolean_return_value;
 static void *fake_jack_cb_arg;
-static size_t snd_hctl_nonblock_called;
 static struct cras_alsa_mixer *fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
 static size_t cras_alsa_mixer_get_input_matching_name_called;
@@ -87,6 +77,7 @@ static const char *edid_file_ret;
 static size_t ucm_get_dsp_name_called;
 static unsigned ucm_get_override_type_name_called;
 static char *ucm_get_device_name_for_dev_value;
+static snd_hctl_t *fake_hctl = (snd_hctl_t *)2;
 
 static void ResetStubData() {
   gpio_get_switch_names_called = 0;
@@ -95,12 +86,6 @@ static void ResetStubData() {
   gpio_switch_eviocgsw_called = 0;
   gpio_switch_eviocgbit_called = 0;
   sys_input_get_device_name_called = 0;
-  snd_hctl_open_called = 0;
-  snd_hctl_open_return_value = 0;
-  snd_hctl_open_pointer_val = reinterpret_cast<snd_hctl_t *>(0x4323);
-  snd_hctl_load_called = 0;
-  snd_hctl_load_return_value = 0;
-  snd_hctl_close_called = 0;
   snd_hctl_elem_get_device_return_val = 0;
   snd_hctl_elem_get_device_called = 0;
   snd_hctl_first_elem_called = 0;
@@ -110,20 +95,16 @@ static void ResetStubData() {
   snd_hctl_elem_next_ret_vals_poped.clear();
   snd_hctl_elem_get_name_called = 0;
   snd_hctl_elem_set_callback_called = 0;
-  snd_hctl_poll_descriptors_num_fds = 0;
-  snd_hctl_poll_descriptors_called = 0;
   cras_system_add_select_fd_called = 0;
   cras_system_add_select_fd_values.clear();
   cras_system_rm_select_fd_called = 0;
   cras_system_rm_select_fd_values.clear();
-  snd_hctl_handle_events_called = 0;
   snd_hctl_elem_set_callback_private_called = 0;
   snd_hctl_elem_get_hctl_called = 0;
   snd_ctl_elem_value_get_boolean_called = 0;
   fake_jack_cb_called = 0;
   fake_jack_cb_plugged = 0;
   fake_jack_cb_arg = reinterpret_cast<void *>(0x987);
-  snd_hctl_nonblock_called = 0;
   fake_mixer = reinterpret_cast<struct cras_alsa_mixer *>(0x789);
   cras_alsa_mixer_get_output_matching_name_called = 0;
   cras_alsa_mixer_get_input_matching_name_called = 0;
@@ -158,57 +139,38 @@ static void fake_jack_cb(const struct cras_alsa_jack *jack,
 }
 
 TEST(AlsaJacks, CreateFailInvalidParams) {
-  EXPECT_EQ(NULL, cras_alsa_jack_create_jack_list_and_find_jacks(
-                                             32, "c1", 0, 1,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(32, "c1", 0, 1,
                                              fake_mixer,
-                                             NULL,
+                                             NULL, fake_hctl,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
-  EXPECT_EQ(0, snd_hctl_open_called);
-  EXPECT_EQ(NULL, cras_alsa_jack_create_jack_list_and_find_jacks(
-                                             0, "c1", 32, 1,
+  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 32, 1,
                                              fake_mixer,
-                                             NULL,
+                                             NULL, fake_hctl,
                                              CRAS_STREAM_OUTPUT,
                                              fake_jack_cb,
                                              fake_jack_cb_arg));
-  EXPECT_EQ(0, snd_hctl_open_called);
 }
 
-TEST(AlsaJacks, CreateFailOpen) {
+TEST(AlsaJacks, CreateNullHctl) {
+  struct cras_alsa_jack_list *jack_list;
   ResetStubData();
-  snd_hctl_open_return_value = -1;
-  snd_hctl_open_pointer_val = NULL;
-  EXPECT_EQ(NULL, cras_alsa_jack_create_jack_list_and_find_jacks(
-                                             0, "c1", 0, 1,
-                                             fake_mixer,
-					     NULL,
-                                             CRAS_STREAM_OUTPUT,
-                                             fake_jack_cb,
-                                             fake_jack_cb_arg));
-  EXPECT_EQ(1, snd_hctl_open_called);
-}
-
-TEST(AlsaJacks, CreateFailLoad) {
-  ResetStubData();
-  snd_hctl_load_return_value = -1;
-  gpio_get_switch_names_count = ~0;
-  EXPECT_EQ(NULL, cras_alsa_jack_create_jack_list_and_find_jacks(
-                                             0, "c1", 0, 1,
-                                             fake_mixer,
-					     NULL,
-                                             CRAS_STREAM_OUTPUT,
-                                             fake_jack_cb,
-                                             fake_jack_cb_arg));
-  EXPECT_EQ(0, gpio_get_switch_names_called);
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
+                                         fake_mixer,
+                                         NULL, NULL,
+                                         CRAS_STREAM_OUTPUT,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(1, gpio_get_switch_names_called);
   EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, gpio_switch_eviocgsw_called);
   EXPECT_EQ(0, gpio_switch_eviocgbit_called);
   EXPECT_EQ(0, sys_input_get_device_name_called);
-  EXPECT_EQ(1, snd_hctl_open_called);
-  EXPECT_EQ(1, snd_hctl_load_called);
-  EXPECT_EQ(1, snd_hctl_close_called);
+
+  cras_alsa_jack_list_destroy(jack_list);
 }
 
 TEST(AlsaJacks, CreateNoElements) {
@@ -217,26 +179,23 @@ TEST(AlsaJacks, CreateNoElements) {
   ResetStubData();
   snd_hctl_first_elem_return_val = NULL;
   gpio_get_switch_names_count = 0;
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
-                                         0, "c1", 0, 1,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
-					 NULL,
+                                         NULL, fake_hctl,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(1, gpio_get_switch_names_called);
   EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, gpio_switch_eviocgsw_called);
   EXPECT_EQ(0, gpio_switch_eviocgbit_called);
   EXPECT_EQ(0, sys_input_get_device_name_called);
-  EXPECT_EQ(1, snd_hctl_open_called);
-  EXPECT_EQ(1, snd_hctl_load_called);
   EXPECT_EQ(1, snd_hctl_first_elem_called);
   EXPECT_EQ(0, snd_hctl_elem_next_called);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, snd_hctl_close_called);
 }
 
 static struct cras_alsa_jack_list *run_test_with_elem_list(
@@ -255,22 +214,20 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
     snd_hctl_elem_next_ret_vals.push_front(
         reinterpret_cast<snd_hctl_elem_t *>(&elems[i]));
 
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
-                                         0,
+  jack_list = cras_alsa_jack_list_create(0,
                                          "card_name",
                                          device_index,
                                          1,
                                          fake_mixer,
-					 ucm,
+                                         ucm, fake_hctl,
                                          direction,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   if (jack_list == NULL)
     return jack_list;
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_dev_for_jack_called);
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_override_type_name_called);
-  EXPECT_EQ(1, snd_hctl_open_called);
-  EXPECT_EQ(1, snd_hctl_load_called);
   EXPECT_EQ(1 + nhdmi_jacks, snd_hctl_first_elem_called);
   EXPECT_EQ(njacks, snd_hctl_elem_set_callback_called);
 
@@ -304,14 +261,14 @@ TEST(AlsaJacks, CreateNoJacks) {
   jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
                                       elem_names,
                                       0,
-				      NULL,
+                                      NULL,
                                       ARRAY_SIZE(elem_names),
                                       0,
                                       0);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, snd_hctl_close_called);
+  EXPECT_EQ(0, cras_system_rm_select_fd_called);
 }
 
 TEST(AlsaJacks, CreateGPIOHp) {
@@ -322,15 +279,14 @@ TEST(AlsaJacks, CreateGPIOHp) {
   eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
   gpio_switch_eviocgbit_fd = 2;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
-                                         0, "c1", 0, 1,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
-					 NULL,
+                                         NULL, fake_hctl,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
-
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_get_switch_names_called);
   EXPECT_GT(gpio_switch_open_called, 1);
@@ -338,7 +294,7 @@ TEST(AlsaJacks, CreateGPIOHp) {
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
-  EXPECT_EQ(1, snd_hctl_close_called);
+  EXPECT_EQ(1, cras_system_rm_select_fd_called);
 }
 
 TEST(AlsaJacks, CreateGPIOMic) {
@@ -355,17 +311,19 @@ TEST(AlsaJacks, CreateGPIOMic) {
   cras_alsa_mixer_get_input_matching_name_return_value =
       reinterpret_cast<struct mixer_volume_control *>(malloc(1));
 
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
+  jack_list = cras_alsa_jack_list_create(
       0,
       "c1",
       0,
       1,
       fake_mixer,
       reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      fake_hctl,
       CRAS_STREAM_INPUT,
       fake_jack_cb,
       fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(ucm_get_cap_control_called, 1);
   EXPECT_EQ(cras_alsa_mixer_get_input_matching_name_called, 1);
   cras_alsa_jack_list_destroy(jack_list);
@@ -379,14 +337,14 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
   eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
   gpio_switch_eviocgbit_fd = 3;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
-                                         0, "c1", 0, 1,
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
-					 NULL,
+                                         NULL, fake_hctl,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(1, gpio_switch_eviocgsw_called);
 
   fake_jack_cb_called = 0;
@@ -400,7 +358,7 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
-  EXPECT_EQ(1, snd_hctl_close_called);
+  EXPECT_EQ(1, cras_system_rm_select_fd_called);
 }
 
 void run_gpio_jack_test(
@@ -420,14 +378,15 @@ void run_gpio_jack_test(
     eviocbit_ret[LONG(SW_MICROPHONE_INSERT)] |= 1 << OFF(SW_MICROPHONE_INSERT);
   snd_hctl_first_elem_return_val = NULL;
 
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
-                                         0, "c1", device_index, is_first_device,
+  jack_list = cras_alsa_jack_list_create(0, "c1", device_index,
+                                         is_first_device,
                                          fake_mixer,
-                                         ucm,
+                                         ucm, fake_hctl,
                                          direction,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
 
   cras_alsa_jack_list_report(jack_list);
   EXPECT_EQ(should_create_jack, fake_jack_cb_plugged);
@@ -558,17 +517,19 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
   eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
   gpio_switch_eviocgbit_fd = 3;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
+  jack_list = cras_alsa_jack_list_create(
       0,
       "c1",
       0,
       1,
       fake_mixer,
       reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      fake_hctl,
       CRAS_STREAM_OUTPUT,
       fake_jack_cb,
       fake_jack_cb_arg);
   ASSERT_NE(static_cast<cras_alsa_jack_list*>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(1, gpio_switch_eviocgsw_called);
 
   // EDID shouldn't open, callback should be skipped until re-try.
@@ -582,7 +543,7 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
-  EXPECT_EQ(1, snd_hctl_close_called);
+  EXPECT_EQ(1, cras_system_rm_select_fd_called);
 }
 
 TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
@@ -591,21 +552,21 @@ TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
   ResetStubData();
   gpio_get_switch_names_count = ~0;
   snd_hctl_first_elem_return_val = NULL;
-  jack_list = cras_alsa_jack_create_jack_list_and_find_jacks(
-                                         0, "c2", 0, 1,
+  jack_list = cras_alsa_jack_list_create(0, "c2", 0, 1,
                                          fake_mixer,
-					 NULL,
+                                         NULL, fake_hctl,
                                          CRAS_STREAM_OUTPUT,
                                          fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_get_switch_names_called);
   EXPECT_GT(gpio_switch_open_called, 1);
   EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(0, cras_system_add_select_fd_called);
-  EXPECT_EQ(1, snd_hctl_close_called);
+  EXPECT_EQ(0, cras_system_rm_select_fd_called);
 }
 
 TEST(AlsaJacks, CreateOneHpJack) {
@@ -614,24 +575,17 @@ TEST(AlsaJacks, CreateOneHpJack) {
     "Headphone Jack, klasdjf",
     "Mic Jack",
   };
-  struct pollfd poll_fds[] = {
-    {3, 0, 0},
-  };
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
-  snd_hctl_poll_descriptors_fds = poll_fds;
-  snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
   jack_list = run_test_with_elem_list(CRAS_STREAM_OUTPUT,
                                       elem_names,
                                       0,
-				      NULL,
+                                      NULL,
                                       ARRAY_SIZE(elem_names),
                                       0,
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
-  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_add_select_fd_called);
-  EXPECT_EQ(3, cras_system_add_select_fd_values[0]);
 
   snd_hctl_elem_get_hctl_return_value = reinterpret_cast<snd_hctl_t *>(0x33);
   snd_hctl_elem_get_name_called = 0;
@@ -651,9 +605,6 @@ TEST(AlsaJacks, CreateOneHpJack) {
   EXPECT_EQ(1, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_rm_select_fd_called);
-  EXPECT_EQ(3, cras_system_rm_select_fd_values[0]);
-  EXPECT_EQ(1, snd_hctl_close_called);
 }
 
 TEST(AlsaJacks, CreateOneMicJack) {
@@ -670,14 +621,14 @@ TEST(AlsaJacks, CreateOneMicJack) {
   jack_list = run_test_with_elem_list(CRAS_STREAM_INPUT,
                                       elem_names,
                                       0,
-				      NULL,
+                                      NULL,
                                       ARRAY_SIZE(elem_names),
                                       0,
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, snd_hctl_close_called);
+  EXPECT_EQ(0, cras_system_rm_select_fd_called);
 }
 
 TEST(AlsaJacks, CreateHDMIJacksWithELD) {
@@ -687,14 +638,9 @@ TEST(AlsaJacks, CreateHDMIJacksWithELD) {
     "ELD",
     "HDMI/DP,pcm=4 Jack"
   };
-  struct pollfd poll_fds[] = {
-    {0},
-  };
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
-  snd_hctl_poll_descriptors_fds = poll_fds;
-  snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
   snd_hctl_elem_get_device_return_val = 3;
 
   jack_list = run_test_with_elem_list(
@@ -710,7 +656,6 @@ TEST(AlsaJacks, CreateHDMIJacksWithELD) {
   /* Assert get device is called for the ELD control */
   EXPECT_EQ(1, snd_hctl_elem_get_device_called);
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, snd_hctl_close_called);
 }
 
 TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
@@ -721,14 +666,9 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
     "HDMI/DP,pcm=6 Jack",
     "Mic Jack",
   };
-  struct pollfd poll_fds[] = {
-    {5, 0, 0},
-  };
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
-  snd_hctl_poll_descriptors_fds = poll_fds;
-  snd_hctl_poll_descriptors_num_fds = ARRAY_SIZE(poll_fds);
   ucm_get_dev_for_jack_return = true;
   jack_list = run_test_with_elem_list(
       CRAS_STREAM_OUTPUT,
@@ -739,8 +679,6 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
       1,
       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
-  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_add_select_fd_called);
-  EXPECT_EQ(5, cras_system_add_select_fd_values[0]);
 
   snd_hctl_elem_get_hctl_return_value = reinterpret_cast<snd_hctl_t *>(0x33);
   snd_hctl_elem_get_name_called = 0;
@@ -760,9 +698,6 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
   EXPECT_EQ(1, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(ARRAY_SIZE(poll_fds), cras_system_rm_select_fd_called);
-  EXPECT_EQ(5, cras_system_rm_select_fd_values[0]);
-  EXPECT_EQ(1, snd_hctl_close_called);
 }
 
 /* Stubs */
@@ -785,19 +720,6 @@ void cras_system_rm_select_fd(int fd)
 }
 
 // From alsa-lib hcontrol.c
-int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode) {
-  *hctlp = snd_hctl_open_pointer_val;
-  snd_hctl_open_called++;
-  return snd_hctl_open_return_value;
-}
-int snd_hctl_load(snd_hctl_t *hctl) {
-  snd_hctl_load_called++;
-  return snd_hctl_load_return_value;
-}
-int snd_hctl_close(snd_hctl_t *hctl) {
-  snd_hctl_close_called++;
-  return 0;
-}
 unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t *obj) {
   snd_hctl_elem_get_device_called = 1;
   return snd_hctl_elem_get_device_return_val;
@@ -836,21 +758,6 @@ void snd_hctl_elem_set_callback(snd_hctl_elem_t *obj,
   snd_hctl_elem_set_callback_obj = obj;
   snd_hctl_elem_set_callback_value = val;
 }
-int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl) {
-  return snd_hctl_poll_descriptors_num_fds;
-}
-int snd_hctl_poll_descriptors(snd_hctl_t *hctl,
-                              struct pollfd *pfds,
-                              unsigned int space) {
-  unsigned int num = MIN(space, snd_hctl_poll_descriptors_num_fds);
-  memcpy(pfds, snd_hctl_poll_descriptors_fds, num * sizeof(*pfds));
-  snd_hctl_poll_descriptors_called++;
-  return num;
-}
-int snd_hctl_handle_events(snd_hctl_t *hctl) {
-  snd_hctl_handle_events_called++;
-  return 0;
-}
 void snd_hctl_elem_set_callback_private(snd_hctl_elem_t *obj, void * val) {
   snd_hctl_elem_set_callback_private_called++;
   snd_hctl_elem_set_callback_private_value = val;
@@ -863,10 +770,6 @@ snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem) {
   return snd_hctl_elem_get_hctl_return_value;
 }
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value) {
-  return 0;
-}
-int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock) {
-  snd_hctl_nonblock_called++;
   return 0;
 }
 // From alsa-lib control.c
@@ -1046,5 +949,6 @@ int edid_get_monitor_name(const unsigned char *edid_data,
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  openlog(NULL, LOG_PERROR, LOG_USER);
   return RUN_ALL_TESTS();
 }

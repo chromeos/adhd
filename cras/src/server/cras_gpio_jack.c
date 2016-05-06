@@ -7,6 +7,7 @@
 #include <linux/input.h>
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -75,8 +76,11 @@ char *sys_input_get_device_name(const char *path)
 		gpio_switch_eviocgname(fd, name, sizeof(name));
 		close(fd);
 		return strdup(name);
-	} else
+	} else {
+		syslog(LOG_WARNING, "Could not open '%s': %s",
+		       path, strerror(errno));
 		return NULL;
+	}
 }
 
 /* gpio_get_switch_names:
