@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <libudev.h>
-#include <regex.h>
 
 #include "cras_util.h"
 #include "cras_gpio_jack.h"
@@ -42,31 +41,6 @@ int gpio_switch_eviocgsw(int fd, void *bits, size_t n_bytes)
 	return ioctl(fd, EVIOCGSW(n_bytes), bits);
 }
 
-static void compile_regex(regex_t *regex, const char *str)
-{
-	int r;
-	r = regcomp(regex, str, REG_EXTENDED);
-	assert(r == 0);
-}
-
-static int jack_matches_string(const char *jack, const char *re)
-{
-	regmatch_t m[1];
-	regex_t regex;
-	unsigned success;
-
-	compile_regex(&regex, re);
-	success = regexec(&regex, jack, ARRAY_SIZE(m), m, 0) == 0;
-	regfree(&regex);
-	return success;
-}
-
-/* sys_input_get_device_name:
- *
- *   Returns the heap-allocated device name of a /dev/input/event*
- *   pathname.  Caller is responsible for releasing.
- *
- */
 char *sys_input_get_device_name(const char *path)
 {
 	char name[256];
@@ -83,23 +57,15 @@ char *sys_input_get_device_name(const char *path)
 	}
 }
 
-/* gpio_get_switch_names:
- *
- *    Fills 'names' with up to 'n_names' entries of
- *    '/dev/input/event*' pathnames which are associated with a GPIO
- *    jack of the specified 'direction'.
- *
- *  Returns the number of filenames found.
- *
- */
-unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
-			       char **names, size_t n_names)
+void gpio_switch_list_for_each(gpio_switch_list_callback callback, void *arg)
 {
 	struct udev *udev;
 	struct udev_enumerate *enumerate;
 	struct udev_list_entry *dl;
 	struct udev_list_entry *dev_list_entry;
-	unsigned n = 0;
+
+	if (!callback)
+		return;
 
 	udev = udev_new();
 	assert(udev != NULL);
@@ -114,7 +80,6 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
 								       path);
 		const char *devnode = udev_device_get_devnode(dev);
 		char *ioctl_name;
-		int save;
 
 		if (devnode == NULL)
 			continue;
@@ -123,22 +88,12 @@ unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
 		if (ioctl_name == NULL)
 			continue;
 
-		save = ((direction == CRAS_STREAM_INPUT &&
-			 jack_matches_string(ioctl_name, "^.*Mic Jack$"))) ||
-			(direction == CRAS_STREAM_OUTPUT &&
-			 jack_matches_string(ioctl_name,
-					     "^.*Headphone Jack$")) ||
-			(jack_matches_string(ioctl_name,
-					     "^.*Headset Jack$")) ||
-			(direction == CRAS_STREAM_OUTPUT &&
-			 jack_matches_string(ioctl_name, "^.*HDMI Jack$"));
-
-		if (save && n < n_names)
-			names[n++] = strdup(devnode);
-
+		if (callback(devnode, ioctl_name, arg)) {
+			free(ioctl_name);
+			break;
+		}
 		free(ioctl_name);
 	}
 	udev_enumerate_unref(enumerate);
 	udev_unref(udev);
-	return n;
 }

@@ -5,6 +5,7 @@
 
 #include <alsa/asoundlib.h>
 #include <linux/input.h>
+#include <regex.h>
 #include <syslog.h>
 
 #include "cras_alsa_jack.h"
@@ -400,6 +401,7 @@ static unsigned int gpio_jack_match_device(const struct cras_alsa_jack *jack,
  */
 static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 				 const char *pathname,
+				 const char *dev_name,
 				 unsigned switch_event)
 {
 	struct cras_alsa_jack *jack;
@@ -420,10 +422,13 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 
 	jack->gpio.switch_event = switch_event;
 	jack->jack_list = jack_list;
-	jack->gpio.device_name = sys_input_get_device_name(pathname);
+	jack->gpio.device_name = strdup(dev_name);
+	if (!jack->gpio.device_name) {
+		r = -ENOMEM;
+		goto error;
+	}
 
-	if (!jack->gpio.device_name ||
-	    !strstr(jack->gpio.device_name, card_name) ||
+	if (!strstr(jack->gpio.device_name, card_name) ||
 	    (gpio_switch_eviocgbit(jack->gpio.fd, bits, sizeof(bits)) < 0) ||
 	    !IS_BIT_SET(switch_event, bits)) {
 		r = -EIO;
@@ -453,10 +458,6 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 			jack_list->mixer,
 			"HDMI");
 
-	if (jack->ucm_device)
-		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
-							    jack->ucm_device);
-
 	if (jack->ucm_device && direction == CRAS_STREAM_INPUT) {
 		char *control_name;
 		control_name = ucm_get_cap_control(jack->jack_list->ucm,
@@ -469,6 +470,8 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 	}
 
 	if (jack->ucm_device) {
+		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
+							    jack->ucm_device);
 		jack->dsp_name = ucm_get_dsp_name(
 			jack->jack_list->ucm, jack->ucm_device, direction);
 	}
@@ -539,6 +542,103 @@ static int wait_for_dev_input_access()
 	return 0;
 }
 
+/* Monitor GPIO switches for this jack_list.
+ * Args:
+ *    jack_list - Jack list to add to.
+ *    dev_path - Device full path.
+ *    dev_name - Device name.
+ * Returns:
+ *    0 for success, or negative on error. Assumes success if no jack is
+ *    found, or if the jack could not be accessed.
+ */
+static int gpio_switches_monitor_device(struct cras_alsa_jack_list *jack_list,
+					const char *dev_path,
+					const char *dev_name)
+{
+	static const int out_switches[] = {SW_HEADPHONE_INSERT,
+					   SW_LINEOUT_INSERT};
+	static const int in_switches[] = {SW_MICROPHONE_INSERT};
+	int sw;
+	const int *switches = out_switches;
+	int num_switches = ARRAY_SIZE(out_switches);
+	int success = 1;
+	int rc = 0;
+
+	if (jack_list->direction == CRAS_STREAM_INPUT) {
+		switches = in_switches;
+		num_switches = ARRAY_SIZE(in_switches);
+	}
+
+	/* Assume that -EIO is returned for jacks that we shouldn't
+	 * be looking at, but stop trying if we run into another
+	 * type of error.
+	 */
+	for (sw = 0; (rc == 0 || rc == -EIO)
+		     && sw < num_switches; sw++) {
+		rc = open_and_monitor_gpio(
+			 jack_list, dev_path, dev_name, switches[sw]);
+		if (rc != 0 && rc != -EIO)
+			success = 0;
+	}
+
+	if (success)
+		return 0;
+	return rc;
+}
+
+struct gpio_switch_list_data {
+	struct cras_alsa_jack_list *jack_list;
+	int rc;
+};
+
+static void compile_regex(regex_t *regex, const char *str)
+{
+	int r;
+	r = regcomp(regex, str, REG_EXTENDED);
+	assert(r == 0);
+}
+
+static int jack_matches_string(const char *jack, const char *re)
+{
+	regmatch_t m[1];
+	regex_t regex;
+	unsigned success;
+
+	compile_regex(&regex, re);
+	success = regexec(&regex, jack, ARRAY_SIZE(m), m, 0) == 0;
+	regfree(&regex);
+	return success;
+}
+
+static int gpio_switch_list_by_matching(const char *dev_path,
+					const char *dev_name,
+					void *arg)
+{
+	struct gpio_switch_list_data *data =
+		(struct gpio_switch_list_data *)arg;
+
+	if (data->jack_list->direction == CRAS_STREAM_INPUT) {
+		if (!jack_matches_string(dev_name, "^.*Mic Jack$")) {
+			/* Continue searching. */
+			return 0;
+		}
+	}
+	else if (data->jack_list->direction == CRAS_STREAM_OUTPUT) {
+		if (!jack_matches_string(dev_name, "^.*Headphone Jack$") &&
+		    !jack_matches_string(dev_name, "^.*Headset Jack$") &&
+		    !jack_matches_string(dev_name, "^.*HDMI Jack$")) {
+			/* Continue searching. */
+			return 0;
+		}
+	}
+
+	data->rc = gpio_switches_monitor_device(data->jack_list,
+						dev_path,
+						dev_name);
+	/* Stop searching for failure. */
+	return data->rc;
+}
+
 /* Find GPIO jacks for this jack_list.
  * Args:
  *    jack_list - Jack list to add to.
@@ -551,14 +651,7 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list)
 	/* GPIO switches are on Arm-based machines, and are
 	 * only associated with on-board devices.
 	 */
-	char *devices[32];
-	enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
-	unsigned n_devices;
-	unsigned i;
-	static const int out_switches[] = {SW_HEADPHONE_INSERT,
-					   SW_LINEOUT_INSERT};
-	static const int in_switches[] = {SW_MICROPHONE_INSERT};
-	int success = 1;
+	struct gpio_switch_list_data data;
 	int rc;
 
 	rc = wait_for_dev_input_access();
@@ -568,35 +661,12 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list)
 		return 0;
 	}
 
-	n_devices = gpio_get_switch_names(direction, devices,
-					  ARRAY_SIZE(devices));
-	for (i = 0; i < n_devices; ++i) {
-		int sw;
-		const int *switches = out_switches;
-		int num_switches = ARRAY_SIZE(out_switches);
+	data.jack_list = jack_list;
+	data.rc = 0;
 
-		if (direction == CRAS_STREAM_INPUT) {
-			switches = in_switches;
-			num_switches = ARRAY_SIZE(in_switches);
-		}
-
-		/* Assume that -EIO is returned for jacks that we shouldn't
-		 * be looking at, but stop trying if we run into another
-		 * type of error.
-		 */
-		for (sw = 0; (rc == 0 || rc == -EIO)
-			     && sw < num_switches; sw++) {
-			rc = open_and_monitor_gpio(
-				 jack_list, devices[i], switches[sw]);
-			if (rc != 0 && rc != -EIO)
-				success = 0;
-		}
-		free(devices[i]);
-	}
-
-	if (success)
-		return 0;
-	return rc;
+	gpio_switch_list_for_each(
+		gpio_switch_list_by_matching, &data);
+	return data.rc;
 }
 
 /* Callback from alsa when a jack control changes.  This is registered with

@@ -4,15 +4,19 @@
 
 #include <deque>
 #include <linux/input.h>
+#include <map>
 #include <poll.h>
 #include <stdio.h>
 #include <sys/param.h>
 #include <gtest/gtest.h>
 #include <string>
 #include <syslog.h>
+#include <vector>
 
 extern "C" {
 #include "cras_alsa_jack.h"
+#include "cras_alsa_ucm_section.h"
+#include "cras_gpio_jack.h"
 #include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -60,12 +64,12 @@ static struct mixer_output_control *
     cras_alsa_mixer_get_output_matching_name_return_value;
 struct mixer_volume_control *
     cras_alsa_mixer_get_input_matching_name_return_value;
-static size_t gpio_get_switch_names_called;
-static size_t gpio_get_switch_names_count;
+static size_t gpio_switch_list_for_each_called;
+static std::vector<std::string> gpio_switch_list_for_each_dev_paths;
+static std::vector<std::string> gpio_switch_list_for_each_dev_names;
 static size_t gpio_switch_open_called;
 static size_t gpio_switch_eviocgsw_called;
 static size_t gpio_switch_eviocgbit_called;
-static size_t sys_input_get_device_name_called;
 static unsigned ucm_get_dev_for_jack_called;
 static unsigned ucm_get_cap_control_called;
 static char *ucm_get_cap_control_value;
@@ -80,12 +84,14 @@ static char *ucm_get_device_name_for_dev_value;
 static snd_hctl_t *fake_hctl = (snd_hctl_t *)2;
 
 static void ResetStubData() {
-  gpio_get_switch_names_called = 0;
-  gpio_get_switch_names_count = 0;
+  gpio_switch_list_for_each_called = 0;
+  gpio_switch_list_for_each_dev_paths.clear();
+  gpio_switch_list_for_each_dev_paths.push_back("/dev/input/event3");
+  gpio_switch_list_for_each_dev_paths.push_back("/dev/input/event2");
+  gpio_switch_list_for_each_dev_names.clear();
   gpio_switch_open_called = 0;
   gpio_switch_eviocgsw_called = 0;
   gpio_switch_eviocgbit_called = 0;
-  sys_input_get_device_name_called = 0;
   snd_hctl_elem_get_device_return_val = 0;
   snd_hctl_elem_get_device_called = 0;
   snd_hctl_first_elem_called = 0;
@@ -164,11 +170,10 @@ TEST(AlsaJacks, CreateNullHctl) {
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
   EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
-  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, gpio_switch_eviocgsw_called);
   EXPECT_EQ(0, gpio_switch_eviocgbit_called);
-  EXPECT_EQ(0, sys_input_get_device_name_called);
 
   cras_alsa_jack_list_destroy(jack_list);
 }
@@ -178,7 +183,6 @@ TEST(AlsaJacks, CreateNoElements) {
 
   ResetStubData();
   snd_hctl_first_elem_return_val = NULL;
-  gpio_get_switch_names_count = 0;
   jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
                                          fake_mixer,
                                          NULL, fake_hctl,
@@ -187,11 +191,10 @@ TEST(AlsaJacks, CreateNoElements) {
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
   EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
-  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, gpio_switch_eviocgsw_called);
   EXPECT_EQ(0, gpio_switch_eviocgbit_called);
-  EXPECT_EQ(0, sys_input_get_device_name_called);
   EXPECT_EQ(1, snd_hctl_first_elem_called);
   EXPECT_EQ(0, snd_hctl_elem_next_called);
 
@@ -275,7 +278,8 @@ TEST(AlsaJacks, CreateGPIOHp) {
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
-  gpio_get_switch_names_count = ~0;
+  gpio_switch_list_for_each_dev_names.push_back("some-other-device");
+  gpio_switch_list_for_each_dev_names.push_back("c1 Headphone Jack");
   eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
   gpio_switch_eviocgbit_fd = 2;
   snd_hctl_first_elem_return_val = NULL;
@@ -288,11 +292,10 @@ TEST(AlsaJacks, CreateGPIOHp) {
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
   EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_GT(gpio_switch_open_called, 1);
   EXPECT_EQ(1, gpio_switch_eviocgsw_called);
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
-  EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
   EXPECT_EQ(1, cras_system_rm_select_fd_called);
 }
@@ -301,7 +304,8 @@ TEST(AlsaJacks, CreateGPIOMic) {
   struct cras_alsa_jack_list *jack_list;
   ResetStubData();
   ucm_get_dev_for_jack_return = true;
-  gpio_get_switch_names_count = ~0;
+  gpio_switch_list_for_each_dev_names.push_back("c1 Mic Jack");
+  gpio_switch_list_for_each_dev_names.push_back("c1 Headphone Jack");
   eviocbit_ret[LONG(SW_MICROPHONE_INSERT)] |= 1 << OFF(SW_MICROPHONE_INSERT);
   gpio_switch_eviocgbit_fd = 3;
   snd_hctl_first_elem_return_val = NULL;
@@ -333,7 +337,8 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
-  gpio_get_switch_names_count = ~0;
+  gpio_switch_list_for_each_dev_names.push_back("c1 HDMI Jack");
+  gpio_switch_list_for_each_dev_names.push_back("c1 Mic Jack");
   eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
   gpio_switch_eviocgbit_fd = 3;
   snd_hctl_first_elem_return_val = NULL;
@@ -353,10 +358,9 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
   EXPECT_EQ(1, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_GT(gpio_switch_open_called, 1);
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
-  EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
   EXPECT_EQ(1, cras_system_rm_select_fd_called);
 }
@@ -370,12 +374,15 @@ void run_gpio_jack_test(
   struct cras_alsa_jack_list *jack_list;
   snd_use_case_mgr_t *ucm = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
 
-  gpio_get_switch_names_count = ~0;
+  gpio_switch_list_for_each_dev_names.push_back("some-other-device one");
   gpio_switch_eviocgbit_fd = 2;
-  if (direction == CRAS_STREAM_OUTPUT)
+  if (direction == CRAS_STREAM_OUTPUT) {
+    gpio_switch_list_for_each_dev_names.push_back("c1 Headset Jack");
     eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
-  else
+  } else {
+    gpio_switch_list_for_each_dev_names.push_back("c1 Mic Jack");
     eviocbit_ret[LONG(SW_MICROPHONE_INSERT)] |= 1 << OFF(SW_MICROPHONE_INSERT);
+  }
   snd_hctl_first_elem_return_val = NULL;
 
   jack_list = cras_alsa_jack_list_create(0, "c1", device_index,
@@ -513,7 +520,7 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
   ResetStubData();
   ucm_get_dev_for_jack_return = 1;
   edid_file_ret = static_cast<char*>(calloc(1, 1));  // Freed in destroy.
-  gpio_get_switch_names_count = ~0;
+  gpio_switch_list_for_each_dev_names.push_back("c1 HDMI Jack");
   eviocbit_ret[LONG(SW_LINEOUT_INSERT)] |= 1 << OFF(SW_LINEOUT_INSERT);
   gpio_switch_eviocgbit_fd = 3;
   snd_hctl_first_elem_return_val = NULL;
@@ -538,10 +545,9 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
   EXPECT_EQ(0, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, gpio_get_switch_names_called);
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_GT(gpio_switch_open_called, 1);
   EXPECT_GT(gpio_switch_eviocgbit_called, 1);
-  EXPECT_GT(sys_input_get_device_name_called, 1);
   EXPECT_EQ(1, cras_system_add_select_fd_called);
   EXPECT_EQ(1, cras_system_rm_select_fd_called);
 }
@@ -550,7 +556,8 @@ TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
   struct cras_alsa_jack_list *jack_list;
 
   ResetStubData();
-  gpio_get_switch_names_count = ~0;
+  gpio_switch_list_for_each_dev_names.push_back("some-other-device one");
+  gpio_switch_list_for_each_dev_names.push_back("some-other-device two");
   snd_hctl_first_elem_return_val = NULL;
   jack_list = cras_alsa_jack_list_create(0, "c2", 0, 1,
                                          fake_mixer,
@@ -562,9 +569,8 @@ TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
   EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
 
   cras_alsa_jack_list_destroy(jack_list);
-  EXPECT_EQ(1, gpio_get_switch_names_called);
-  EXPECT_GT(gpio_switch_open_called, 1);
-  EXPECT_GT(sys_input_get_device_name_called, 1);
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
+  EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, cras_system_add_select_fd_called);
   EXPECT_EQ(0, cras_system_rm_select_fd_called);
 }
@@ -772,6 +778,7 @@ snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem) {
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value) {
   return 0;
 }
+
 // From alsa-lib control.c
 int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj,
                                    unsigned int idx) {
@@ -795,12 +802,6 @@ struct mixer_volume_control *cras_alsa_mixer_get_input_matching_name(
 {
   cras_alsa_mixer_get_input_matching_name_called++;
   return cras_alsa_mixer_get_input_matching_name_return_value;
-}
-
-char *sys_input_get_device_name(const char *path)
-{
-  sys_input_get_device_name_called++;
-  return strdup("c1 Headphone Jack");
 }
 
 int gpio_switch_eviocgbit(int fd, void *buf, size_t n_bytes)
@@ -850,25 +851,19 @@ int gpio_switch_open(const char *pathname)
   return 0;
 }
 
-unsigned gpio_get_switch_names(enum CRAS_STREAM_DIRECTION direction,
-                               char **names, size_t n_names)
+void gpio_switch_list_for_each(gpio_switch_list_callback callback, void *arg)
 {
-  unsigned i, ub;
-  static const char *dummy[] = {
-      "/dev/input/event3",
-      "/dev/input/event2",
-  };
+  size_t i = 0;
 
-  ++gpio_get_switch_names_called;
+  ++gpio_switch_list_for_each_called;
 
-  ub = gpio_get_switch_names_count;
-  if (ub > ARRAY_SIZE(dummy))
-    ub = ARRAY_SIZE(dummy);
-
-  for (i = 0; i < ub; ++i) {
-    names[i] = strdup(dummy[i]);
+  while (i < gpio_switch_list_for_each_dev_names.size() &&
+         i < gpio_switch_list_for_each_dev_paths.size()) {
+    callback(gpio_switch_list_for_each_dev_paths[i].c_str(),
+             gpio_switch_list_for_each_dev_names[i].c_str(),
+             arg);
+    i++;
   }
-  return ub;
 }
 
 int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable) {
