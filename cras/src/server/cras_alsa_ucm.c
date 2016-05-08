@@ -367,7 +367,7 @@ int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable)
 {
 	if (device_enabled(mgr, dev) == !!enable)
 		return 0;
-
+	syslog(LOG_DEBUG, "UCM %s %s", enable ? "enable" : "disable", dev);
 	return snd_use_case_set(mgr, enable ? "_enadev" : "_disdev", dev);
 }
 
@@ -569,6 +569,125 @@ struct mixer_name *ucm_get_coupled_mixer_names(
 	return ucm_get_mixer_names(mgr, dev, coupled_mixers,
 				   CRAS_STREAM_OUTPUT,
 				   MIXER_NAME_VOLUME);
+}
+
+static int get_device_index_from_target(const char *target_device_name)
+{
+	/* Expects a string in the form: hw:card-name,<num> */
+	const char *pos = target_device_name;
+	if (!pos)
+		return -1;
+	while (*pos && *pos != ',')
+		++pos;
+	if (*pos == ',') {
+		++pos;
+		return atoi(pos);
+	}
+	return -1;
+}
+
+struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr)
+{
+	struct ucm_section *sections = NULL;
+	struct ucm_section *dev_sec;
+	const char **list;
+	int num_devs;
+	int i;
+
+	/* Find the list of all mixers using the control names defined in
+	 * the header definintion for this function.  */
+	num_devs = snd_use_case_get_list(mgr, "_devices/HiFi", &list);
+
+	/* snd_use_case_get_list fills list with pairs of device name and
+	 * comment, so device names are in even-indexed elements. */
+	for (i = 0; i < num_devs; i += 2) {
+		enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_UNDEFINED;
+		int dev_idx = -1;
+		const char *dev_name = strdup(list[i]);
+		const char *jack_name;
+		const char *jack_type;
+		const char *mixer_name;
+		struct mixer_name *m_name;
+		int rc;
+		const char *target_device_name;
+
+		if (!dev_name)
+			continue;
+
+		target_device_name =
+			ucm_get_playback_device_name_for_dev(mgr, dev_name);
+		if (target_device_name)
+			dir = CRAS_STREAM_OUTPUT;
+		else {
+			target_device_name =
+				ucm_get_capture_device_name_for_dev(
+					mgr, dev_name);
+			if (target_device_name)
+				dir = CRAS_STREAM_INPUT;
+		}
+		if (target_device_name) {
+			dev_idx = get_device_index_from_target(
+					target_device_name);
+			free((void *)target_device_name);
+		}
+
+		if (dir == CRAS_STREAM_UNDEFINED) {
+			syslog(LOG_ERR,
+			       "UCM configuration for device '%s' missing"
+			       " PlaybackPCM or CapturePCM definition.",
+			       dev_name);
+			goto error_cleanup;
+		}
+
+		if (dev_idx == -1) {
+			syslog(LOG_ERR,
+			       "PlaybackPCM or CapturePCM for '%s' must be in"
+			       " the form 'hw:<card>,<number>'", dev_name);
+			goto error_cleanup;
+		}
+
+		jack_name = ucm_get_jack_name_for_dev(mgr, dev_name);
+		jack_type = ucm_get_jack_type_for_dev(mgr, dev_name);
+		mixer_name = ucm_get_mixer_name_for_dev(mgr, dev_name);
+
+		dev_sec = ucm_section_create(dev_name, dev_idx, dir,
+					     jack_name, jack_type);
+		if (jack_name)
+			free((void *)jack_name);
+		if (jack_type)
+			free((void *)jack_type);
+
+		if (!dev_sec) {
+			syslog(LOG_ERR, "Failed to allocate memory.");
+			if (mixer_name)
+				free((void *)mixer_name);
+			goto error_cleanup;
+		}
+
+		if (mixer_name) {
+			rc = ucm_section_set_mixer_name(dev_sec, mixer_name);
+			free((void *)mixer_name);
+			if (rc)
+				goto error_cleanup;
+		}
+
+		m_name = ucm_get_mixer_names(mgr, dev_name, coupled_mixers,
+					     dir, MIXER_NAME_VOLUME);
+		ucm_section_concat_coupled(dev_sec, m_name);
+
+		DL_APPEND(sections, dev_sec);
+		ucm_section_dump(dev_sec);
+	}
+
+	if (num_devs > 0)
+		snd_use_case_free_list(list, num_devs);
+	return sections;
+
+error_cleanup:
+	if (num_devs > 0)
+		snd_use_case_free_list(list, num_devs);
+	ucm_section_free_list(sections);
+	return NULL;
 }
 
 char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)

@@ -108,7 +108,7 @@ static const char *mixer_name_type_str(enum CRAS_STREAM_DIRECTION dir,
 			break;
 		}
 		break;
-	case CRAS_STREAM_UNIFIED:
+	case CRAS_STREAM_UNDEFINED:
 	case CRAS_STREAM_POST_MIX_PRE_DSP:
 	case CRAS_NUM_DIRECTIONS:
 		break;
@@ -121,14 +121,14 @@ void mixer_name_dump(struct mixer_name *names, const char *message)
 	struct mixer_name *m_name;
 
 	if (!names) {
-		syslog(LOG_DEBUG, "mixer_name_dump: %s: empty", message);
+		syslog(LOG_DEBUG, "%s: empty", message);
 		return;
 	}
 
-	syslog(LOG_DEBUG, "mixer_name_dump: %s", message);
+	syslog(LOG_DEBUG, "%s:", message);
 	DL_FOREACH(names, m_name) {
 		const char *type_str =
 			mixer_name_type_str(m_name->dir, m_name->type);
-		syslog(LOG_DEBUG, "  %s %s", m_name->name, type_str);
+		syslog(LOG_DEBUG, "    %s %s", m_name->name, type_str);
 	}
 }

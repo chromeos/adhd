@@ -217,6 +217,18 @@ const char *ucm_get_device_name_for_dev(
 struct mixer_name *ucm_get_coupled_mixer_names(
 				snd_use_case_mgr_t *mgr, const char *dev);
 
+/* Gets a list of UCM sections
+ *
+ * The data includes the represented devices and their controls.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer return from alsa_ucm_create.
+ *
+ * Returns:
+ *    A list of ucm_section or NULL. Free it with ucm_section_free_list().
+ */
+struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr);
+
 /* Gets the list of supported hotword model names.
  * Args:
  *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.

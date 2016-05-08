@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <iniparser.h>
 #include <stdio.h>
+#include <syslog.h>
 #include <map>
 
 extern "C" {
@@ -12,6 +13,7 @@ extern "C" {
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
+#include "cras_util.h"
 
 //  Include C file to test static functions.
 #include "cras_alsa_ucm.c"
@@ -973,6 +975,207 @@ TEST(AlsaUcm, UcmSection) {
   ucm_section_free_list(section_list);
 }
 
+TEST(AlsaUcm, GetSections) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct ucm_section* sections;
+  struct ucm_section* section;
+  struct mixer_name* m_name;
+  int section_count = 0;
+  int i = 0;
+  const char *devices[] = { "Headphone", "The headphones jack.",
+                            "Speaker", "The speakers.",
+                            "Mic", "Microphone jack.",
+                            "Internal Mic", "Internal Microphones",
+                            "HDMI", "HDMI output" };
+  const char* ids[] = {
+    "=PlaybackPCM/Headphone/HiFi",
+    "=JackName/Headphone/HiFi",
+    "=JackType/Headphone/HiFi",
+    "=CoupledMixers/Headphone/HiFi",
+
+    "=PlaybackPCM/Speaker/HiFi",
+    "=CoupledMixers/Speaker/HiFi",
+
+    "=CapturePCM/Mic/HiFi",
+    "=JackName/Mic/HiFi",
+    "=JackType/Mic/HiFi",
+    "=MixerName/Mic/HiFi",
+
+    "=CapturePCM/Internal Mic/HiFi",
+    "=CoupledMixers/Internal Mic/HiFi",
+
+    "=PlaybackPCM/HDMI/HiFi",
+    "=MixerName/HDMI/HiFi",
+
+    NULL
+  };
+  const char* values[] = {
+    "hw:my-sound-card,0",
+    "my-sound-card Headset Jack",
+    "gpio",
+    "HP-L,HP-R",
+
+    "hw:my-sound-card,0",
+    "SPK-L,SPK-R",
+
+    "hw:my-sound-card,0",
+    "my-sound-card Headset Jack",
+    "gpio",
+    "CAPTURE",
+
+    "hw:my-sound-card,0",
+    "MIC-L,MIC-R",
+
+    "hw:my-sound-card,2",
+    "HDMI",
+  };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = ARRAY_SIZE(devices);
+
+  while (ids[i]) {
+    snd_use_case_get_value[ids[i]] = values[i];
+    i++;
+  }
+
+  sections = ucm_get_sections(mgr);
+  ASSERT_NE(sections, (struct ucm_section*)NULL);
+  DL_FOREACH(sections, section) {
+    section_count++;
+  }
+  EXPECT_EQ(section_count, ARRAY_SIZE(devices) / 2);
+
+  // Headphone
+  section = sections;
+  EXPECT_EQ(0, strcmp(section->name, "Headphone"));
+  EXPECT_EQ(0, section->dev_idx);
+  EXPECT_EQ(CRAS_STREAM_OUTPUT, section->dir);
+  EXPECT_EQ(0, strcmp(section->jack_name, values[1]));
+  EXPECT_EQ(0, strcmp(section->jack_type, values[2]));
+  EXPECT_EQ(NULL, section->mixer_name);
+  ASSERT_NE((struct mixer_name*)NULL, section->coupled);
+  m_name = section->coupled;
+  EXPECT_EQ(0, strcmp(m_name->name, "HP-L"));
+  m_name = m_name->next;
+  EXPECT_EQ(0, strcmp(m_name->name, "HP-R"));
+  EXPECT_EQ(NULL, m_name->next);
+
+  // Speaker
+  section = section->next;
+  EXPECT_EQ(0, strcmp(section->name, "Speaker"));
+  EXPECT_EQ(0, section->dev_idx);
+  EXPECT_EQ(CRAS_STREAM_OUTPUT, section->dir);
+  EXPECT_EQ(NULL, section->jack_name);
+  EXPECT_EQ(NULL, section->jack_type);
+  EXPECT_EQ(NULL, section->mixer_name);
+  ASSERT_NE((struct mixer_name*)NULL, section->coupled);
+  m_name = section->coupled;
+  EXPECT_EQ(0, strcmp(m_name->name, "SPK-L"));
+  m_name = m_name->next;
+  EXPECT_EQ(0, strcmp(m_name->name, "SPK-R"));
+  EXPECT_EQ(NULL, m_name->next);
+
+  // Mic
+  section = section->next;
+  EXPECT_EQ(0, strcmp(section->name, "Mic"));
+  EXPECT_EQ(0, section->dev_idx);
+  EXPECT_EQ(CRAS_STREAM_INPUT, section->dir);
+  EXPECT_EQ(0, strcmp(section->jack_name, values[1]));
+  EXPECT_EQ(0, strcmp(section->jack_type, values[2]));
+  ASSERT_NE((const char *)NULL, section->mixer_name);
+  EXPECT_EQ(0, strcmp(section->mixer_name, "CAPTURE"));
+  EXPECT_EQ(NULL, section->coupled);
+
+  // Internal Mic
+  section = section->next;
+  EXPECT_EQ(0, strcmp(section->name, "Internal Mic"));
+  EXPECT_EQ(0, section->dev_idx);
+  EXPECT_EQ(CRAS_STREAM_INPUT, section->dir);
+  EXPECT_EQ(NULL, section->jack_name);
+  EXPECT_EQ(NULL, section->jack_type);
+  EXPECT_EQ(NULL, section->mixer_name);
+  ASSERT_NE((struct mixer_name*)NULL, section->coupled);
+  m_name = section->coupled;
+  EXPECT_EQ(0, strcmp(m_name->name, "MIC-L"));
+  m_name = m_name->next;
+  EXPECT_EQ(0, strcmp(m_name->name, "MIC-R"));
+
+  // HDMI
+  section = section->next;
+  EXPECT_EQ(0, strcmp(section->name, "HDMI"));
+  EXPECT_EQ(2, section->dev_idx);
+  EXPECT_EQ(CRAS_STREAM_OUTPUT, section->dir);
+  EXPECT_EQ(NULL, section->jack_name);
+  EXPECT_EQ(NULL, section->jack_type);
+  ASSERT_NE((const char *)NULL, section->mixer_name);
+  EXPECT_EQ(0, strcmp(section->mixer_name, "HDMI"));
+
+  EXPECT_EQ(NULL, section->next);
+  ucm_section_free_list(sections);
+}
+
+TEST(AlsaUcm, GetSectionsMissingPCM) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct ucm_section* sections;
+  int i = 0;
+  const char *devices[] = { "Headphone", "The headphones jack." };
+  const char* ids[] = {
+    "=JackName/Headphone/HiFi",
+    "=CoupledMixers/Headphone/HiFi",
+    NULL
+  };
+  const char* values[] = {
+    "my-sound-card Headset Jack",
+    "HP-L,HP-R",
+  };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = ARRAY_SIZE(devices);
+
+  while (ids[i]) {
+    snd_use_case_get_value[ids[i]] = values[i];
+    i++;
+  }
+
+  sections = ucm_get_sections(mgr);
+  EXPECT_EQ(NULL, sections);
+}
+
+TEST(AlsaUcm, GetSectionsBadPCM) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct ucm_section* sections;
+  int i = 0;
+  const char *devices[] = { "Headphone", "The headphones jack." };
+  const char* ids[] = {
+    "=PlaybackPCM/Headphone/HiFi",
+    "=JackName/Headphone/HiFi",
+    "=CoupledMixers/Headphone/HiFi",
+    NULL
+  };
+  const char* values[] = {
+    "hw:my-sound-card:0",
+    "my-sound-card Headset Jack",
+    "HP-L,HP-R",
+  };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = ARRAY_SIZE(devices);
+
+  while (ids[i]) {
+    snd_use_case_get_value[ids[i]] = values[i];
+    i++;
+  }
+
+  sections = ucm_get_sections(mgr);
+  EXPECT_EQ(NULL, sections);
+}
+
 /* Stubs */
 
 extern "C" {
@@ -1028,5 +1231,6 @@ int snd_use_case_free_list(const char *list[], int items) {
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  openlog(NULL, LOG_PERROR, LOG_USER);
   return RUN_ALL_TESTS();
 }
