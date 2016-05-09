@@ -10,6 +10,7 @@
 
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_mixer_name.h"
+#include "cras_alsa_ucm.h"
 #include "cras_card_config.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
@@ -330,7 +331,7 @@ static int mixer_control_create_by_name(
 		return -EINVAL;
 	*control = NULL;
 	if (!mixer_names)
-	        return -EINVAL;
+		return -EINVAL;
 	if (!name) {
 		/* Assume that we're using the first name in the list of mixer
 		 * names. */
@@ -634,6 +635,41 @@ static int add_control_with_coupled_mixers(
 	return 0;
 }
 
+static int add_control_by_name(struct cras_alsa_mixer *cmix,
+			       enum CRAS_STREAM_DIRECTION dir,
+			       const char *name)
+{
+	struct mixer_control *c;
+	struct mixer_name *m_name;
+	int rc;
+
+	m_name = mixer_name_add(NULL, name, dir, MIXER_NAME_VOLUME);
+	if (!m_name)
+		return -ENOMEM;
+
+	rc = mixer_control_create_by_name(&c, cmix, name, m_name, dir);
+	mixer_name_free(m_name);
+	if (rc)
+		return rc;
+	syslog(LOG_DEBUG, "Add %s control: %s\n",
+	       dir == CRAS_STREAM_OUTPUT ? "output" : "input",
+	       c->name);
+
+	if (c->has_volume)
+		syslog(LOG_DEBUG, "Control '%s' volume range: [%ld:%ld]",
+		       c->name, c->min_volume_dB, c->max_volume_dB);
+
+	if (dir == CRAS_STREAM_OUTPUT) {
+		c->volume_curve =
+			create_volume_curve_for_output(cmix, c->name);
+		DL_APPEND(cmix->output_controls, c);
+	}
+	else if (dir == CRAS_STREAM_INPUT) {
+		DL_APPEND(cmix->input_controls, c);
+	}
+	return 0;
+}
+
 /*
  * Exported interface.
  */
@@ -856,6 +892,48 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 	return rc;
 }
 
+int cras_alsa_mixer_add_controls_in_section(
+		struct cras_alsa_mixer *cmix,
+		struct ucm_section *section)
+{
+	int rc;
+
+	/* Note that there is no mixer on some cards. This is acceptable. */
+	if (cmix->mixer == NULL) {
+		syslog(LOG_DEBUG, "Couldn't open mixer.");
+		return 0;
+	}
+
+	if (!section) {
+		syslog(LOG_ERR, "No UCM SectionDevice specified.");
+		return -EINVAL;
+	}
+
+	/* TODO(muirj) - Extra main volume controls when fully-specified. */
+
+	if (section->mixer_name) {
+		rc = add_control_by_name(
+				cmix, section->dir, section->mixer_name);
+		if (rc) {
+			syslog(LOG_ERR, "Could not add mixer control '%s': %s",
+			       section->mixer_name, strerror(-rc));
+			return rc;
+		}
+	}
+
+	if (section->coupled) {
+		rc = add_control_with_coupled_mixers(
+				cmix, section->dir,
+				section->name, section->coupled);
+		if (rc) {
+			syslog(LOG_ERR, "Could not add coupled control: %s",
+			       strerror(-rc));
+			return rc;
+		}
+	}
+	return 0;
+}
+
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 {
 	assert(cras_mixer);
@@ -1056,48 +1134,77 @@ void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer *cras_mixer,
 const char *cras_alsa_mixer_get_control_name(
 		const struct mixer_control *control)
 {
+	if (!control)
+		return NULL;
 	return control->name;
 }
 
+struct mixer_control *cras_alsa_mixer_get_control_matching_name(
+		struct cras_alsa_mixer *cras_mixer,
+		enum CRAS_STREAM_DIRECTION dir, const char *name,
+		int create_missing)
+{
+	struct mixer_control *c;
+
+	assert(cras_mixer);
+	if (!name)
+		return NULL;
+
+	if (dir == CRAS_STREAM_OUTPUT) {
+		c = get_control_matching_name(
+				cras_mixer->output_controls, name);
+	} else if (dir == CRAS_STREAM_INPUT) {
+		c = get_control_matching_name(
+				cras_mixer->input_controls, name);
+	} else {
+		return NULL;
+        }
+
+	/* TODO: Allowing creation of a new control is a workaround: we
+	 * should pass the input names in ucm config to
+	 * cras_alsa_mixer_create. */
+	if (!c && cras_mixer->mixer && create_missing) {
+		int rc = add_control_by_name(cras_mixer, dir, name);
+		if (rc)
+			return NULL;
+		c = cras_alsa_mixer_get_control_matching_name(
+				cras_mixer, dir, name, 0);
+	}
+	return c;
+}
+
+struct mixer_control *cras_alsa_mixer_get_control_for_section(
+		struct cras_alsa_mixer *cras_mixer,
+		const struct ucm_section *section)
+{
+	assert(cras_mixer && section);
+	if (section->mixer_name) {
+		return cras_alsa_mixer_get_control_matching_name(
+			   cras_mixer, section->dir, section->mixer_name, 0);
+	} else if (section->coupled) {
+		return cras_alsa_mixer_get_control_matching_name(
+			   cras_mixer, section->dir, section->name, 0);
+	}
+	return NULL;
+}
+
 struct mixer_control *cras_alsa_mixer_get_output_matching_name(
-		const struct cras_alsa_mixer *cras_mixer,
+		struct cras_alsa_mixer *cras_mixer,
 		const char * const name)
 {
-	assert(cras_mixer);
-	return get_control_matching_name(cras_mixer->output_controls, name);
+	return cras_alsa_mixer_get_control_matching_name(
+			cras_mixer, CRAS_STREAM_OUTPUT, name, 0);
 }
 
 struct mixer_control *cras_alsa_mixer_get_input_matching_name(
 		struct cras_alsa_mixer *cras_mixer,
 		const char *name)
 {
-	struct mixer_control *c = NULL;
-	snd_mixer_elem_t *elem;
-
-	assert(cras_mixer);
-	c = get_control_matching_name(cras_mixer->input_controls, name);
-	if (c)
-		return c;
-
-	if (!cras_mixer->mixer)
-		return NULL;
-
-	/* TODO: This is a workaround, we should pass the input names in
-	 * ucm config to cras_alsa_mixer_create. */
-	for (elem = snd_mixer_first_elem(cras_mixer->mixer);
-			elem != NULL; elem = snd_mixer_elem_next(elem)) {
-		const char *control_name;
-		control_name = snd_mixer_selem_get_name(elem);
-
-		if (control_name == NULL)
-			continue;
-		if (strcmp(name, control_name) == 0) {
-			if (add_control(cras_mixer,
-					CRAS_STREAM_INPUT, elem) == 0)
-				return cras_mixer->input_controls->prev;
-		}
-	}
-	return NULL;
+	/* TODO: Allowing creation of a new control is a workaround: we
+	 * should pass the input names in ucm config to
+	 * cras_alsa_mixer_create. */
+	return cras_alsa_mixer_get_control_matching_name(
+			cras_mixer, CRAS_STREAM_INPUT, name, 1);
 }
 
 int cras_alsa_mixer_set_output_active_state(

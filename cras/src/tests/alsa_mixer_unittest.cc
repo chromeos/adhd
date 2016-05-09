@@ -15,6 +15,7 @@ extern "C" {
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
+#include "utlist.h"
 
 //  Include C file to test static functions and use the definition of some
 //  structure.
@@ -83,6 +84,7 @@ static const long *snd_mixer_selem_get_capture_dB_range_max_values;
 static size_t iniparser_getstring_return_index;
 static size_t iniparser_getstring_return_length;
 static char **iniparser_getstring_returns;
+static size_t snd_mixer_find_selem_called;
 static std::map<std::string, snd_mixer_elem_t*> snd_mixer_find_elem_map;
 static std::string snd_mixer_find_elem_id_name;
 
@@ -144,6 +146,7 @@ static void ResetStubData() {
   snd_mixer_selem_get_capture_dB_range_values_length = 0;
   snd_mixer_selem_get_capture_dB_range_min_values = static_cast<long *>(NULL);
   snd_mixer_selem_get_capture_dB_range_max_values = static_cast<long *>(NULL);
+  snd_mixer_find_selem_called = 0;
   snd_mixer_find_elem_map.clear();
   snd_mixer_find_elem_id_name.clear();
 }
@@ -904,6 +907,7 @@ TEST_F(AlsaMixerOutputs, CheckFindOutputHDMIByName) {
 TEST_F(AlsaMixerOutputs, CheckFindInputNameWorkaround) {
   struct mixer_control *control;
   snd_mixer_elem_t *elements[] = {
+    reinterpret_cast<snd_mixer_elem_t *>(1),  // Speaker
     reinterpret_cast<snd_mixer_elem_t *>(2),  // Headphone
     reinterpret_cast<snd_mixer_elem_t *>(3),  // MIC
   };
@@ -912,11 +916,11 @@ TEST_F(AlsaMixerOutputs, CheckFindInputNameWorkaround) {
     "Headphone",
     "MIC",
   };
+  size_t i;
 
-  snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t *>(1);
-  snd_mixer_elem_next_return_values = elements;
-  snd_mixer_elem_next_return_values_index = 0;
-  snd_mixer_elem_next_return_values_length = ARRAY_SIZE(elements);
+  ResetStubData();
+  for (i = 0; i < ARRAY_SIZE(elements); i++)
+    snd_mixer_find_elem_map[element_names[i]] = elements[i];
 
   snd_mixer_selem_get_name_called = 0;
   snd_mixer_selem_get_name_return_values = element_names;
@@ -926,9 +930,10 @@ TEST_F(AlsaMixerOutputs, CheckFindInputNameWorkaround) {
   EXPECT_NE(static_cast<struct mixer_control *>(NULL), control);
   /* This exercises the 'workaround' where the control is added if it was
    * previouly missing in cras_alsa_mixer_get_input_matching_name().
-   * snd_mixer_selem_get_name is called once per element_name above plus
-   * once more for the control creation. */
-  EXPECT_EQ(4, snd_mixer_selem_get_name_called);
+   * snd_mixer_find_selem is called once for the missing control. */
+  EXPECT_EQ(1, snd_mixer_find_selem_called);
+  EXPECT_EQ(1, snd_mixer_selem_has_capture_volume_called);
+  EXPECT_EQ(1, snd_mixer_selem_has_capture_switch_called);
 }
 
 TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
@@ -1299,6 +1304,234 @@ TEST(AlsaMixer, MixerName) {
   mixer_name_free(names);
 }
 
+class AlsaMixerFullySpeced : public testing::Test {
+ protected:
+  virtual void SetUp() {
+    callback_values_.clear();
+    callback_called_ = 0;
+    static snd_mixer_elem_t *elements[] = {
+      reinterpret_cast<snd_mixer_elem_t *>(1),  // HP-L
+      reinterpret_cast<snd_mixer_elem_t *>(2),  // HP-R
+      reinterpret_cast<snd_mixer_elem_t *>(3),  // SPK-L
+      reinterpret_cast<snd_mixer_elem_t *>(4),  // SPK-R
+      reinterpret_cast<snd_mixer_elem_t *>(5),  // HDMI
+      reinterpret_cast<snd_mixer_elem_t *>(6),  // CAPTURE
+      reinterpret_cast<snd_mixer_elem_t *>(7),  // MIC-L
+      reinterpret_cast<snd_mixer_elem_t *>(8),  // MIC-R
+      reinterpret_cast<snd_mixer_elem_t *>(0),  // Unknown
+    };
+    static int element_playback_volume[] = {
+      1,
+      1,
+      1,
+      1,
+      1,
+      0, 0, 0,
+    };
+    static int element_playback_switches[] = {
+      0,
+      0,
+      0,
+      0,
+      1,
+      0, 0, 0,
+    };
+    static int element_capture_volume[] = {0, 0, 0, 0, 0,
+      0,
+      1,
+      1,
+    };
+    static int element_capture_switches[] = {0, 0, 0, 0, 0,
+      1,
+      0,
+      0,
+    };
+    static const long min_volumes[] = {-84, -84, -84, -84, -84, 0, 0, 0};
+    static const long max_volumes[] = {0, 0, 0, 0, 0, 0, 84, 84};
+    static const char *element_names[] = {
+      "HP-L",
+      "HP-R",
+      "SPK-L",
+      "SPK-R",
+      "HDMI",
+      "CAPTURE",
+      "MIC-L",
+      "MIC-R",
+      "Unknown"
+    };
+    struct ucm_section *sections = NULL;
+    struct ucm_section *section;
+    size_t i;
+
+    ResetStubData();
+
+    for (i = 0; i < ARRAY_SIZE(elements); i++)
+       snd_mixer_find_elem_map[element_names[i]] = elements[i];
+
+    section = ucm_section_create("NullElement", 0, CRAS_STREAM_OUTPUT,
+                                 NULL, NULL);
+    ucm_section_set_mixer_name(section, "Unknown");
+    DL_APPEND(sections, section);
+    section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                                 "my-sound-card Headset Jack", "gpio");
+    ucm_section_add_coupled(section, "HP-L", MIXER_NAME_VOLUME);
+    ucm_section_add_coupled(section, "HP-R", MIXER_NAME_VOLUME);
+    DL_APPEND(sections, section);
+    section = ucm_section_create("Speaker", 0, CRAS_STREAM_OUTPUT,
+                                 NULL, NULL);
+    ucm_section_add_coupled(section, "SPK-L", MIXER_NAME_VOLUME);
+    ucm_section_add_coupled(section, "SPK-R", MIXER_NAME_VOLUME);
+    DL_APPEND(sections, section);
+    section = ucm_section_create("Mic", 0, CRAS_STREAM_INPUT,
+                                 "my-sound-card Headset Jack", "gpio");
+    ucm_section_set_mixer_name(section, "CAPTURE");
+    DL_APPEND(sections, section);
+    section = ucm_section_create("Internal Mic", 0, CRAS_STREAM_INPUT,
+                                 NULL, NULL);
+    ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
+    ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
+    DL_APPEND(sections, section);
+    section = ucm_section_create("HDMI", 0, CRAS_STREAM_OUTPUT,
+                                 NULL, NULL);
+    ucm_section_set_mixer_name(section, "HDMI");
+    DL_APPEND(sections, section);
+    ASSERT_NE(sections, (struct ucm_section *)NULL);
+
+    snd_mixer_selem_has_playback_volume_return_values =
+        element_playback_volume;
+    snd_mixer_selem_has_playback_volume_return_values_length =
+      ARRAY_SIZE(element_playback_volume);
+    snd_mixer_selem_has_playback_switch_return_values =
+        element_playback_switches;
+    snd_mixer_selem_has_playback_switch_return_values_length =
+      ARRAY_SIZE(element_playback_switches);
+    snd_mixer_selem_has_capture_volume_return_values =
+        element_capture_volume;
+    snd_mixer_selem_has_capture_volume_return_values_length =
+      ARRAY_SIZE(element_capture_volume);
+    snd_mixer_selem_has_capture_switch_return_values =
+        element_capture_switches;
+    snd_mixer_selem_has_capture_switch_return_values_length =
+      ARRAY_SIZE(element_capture_switches);
+    snd_mixer_selem_get_name_return_values = element_names;
+    snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+    snd_mixer_selem_get_capture_dB_range_min_values = min_volumes;
+    snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
+    snd_mixer_selem_get_capture_dB_range_values_length =
+        ARRAY_SIZE(min_volumes);
+
+    cras_mixer_ = cras_alsa_mixer_create(
+                      "hw:0", reinterpret_cast<struct cras_card_config*>(5));
+    ASSERT_NE(static_cast<struct cras_alsa_mixer *>(NULL), cras_mixer_);
+    EXPECT_EQ(1, snd_mixer_open_called);
+    EXPECT_EQ(1, snd_mixer_attach_called);
+    EXPECT_EQ(0, strcmp(snd_mixer_attach_mixdev, "hw:0"));
+    EXPECT_EQ(1, snd_mixer_selem_register_called);
+    EXPECT_EQ(1, snd_mixer_load_called);
+    EXPECT_EQ(0, snd_mixer_close_called);
+    EXPECT_EQ(1, cras_card_config_get_volume_curve_for_control_called);
+    cras_card_config_get_volume_curve_for_control_called = 0;
+
+    section = sections;
+    EXPECT_EQ(-ENOENT,\
+              cras_alsa_mixer_add_controls_in_section(cras_mixer_, section));
+    ASSERT_NE((struct ucm_section *)NULL, section->next);
+    section = section->next;
+    EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section(cras_mixer_, section));
+    ASSERT_NE((struct ucm_section *)NULL, section->next);
+    section = section->next;
+    EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section(cras_mixer_, section));
+    ASSERT_NE((struct ucm_section *)NULL, section->next);
+    section = section->next;
+    EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section(cras_mixer_, section));
+    ASSERT_NE((struct ucm_section *)NULL, section->next);
+    section = section->next;
+    EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section(cras_mixer_, section));
+    ASSERT_NE((struct ucm_section *)NULL, section->next);
+    section = section->next;
+    EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section(cras_mixer_, section));
+    EXPECT_EQ(section->next, (struct ucm_section*)NULL);
+
+    EXPECT_EQ(9, snd_mixer_find_selem_called);
+    EXPECT_EQ(5, snd_mixer_selem_has_playback_volume_called);
+    EXPECT_EQ(5, snd_mixer_selem_has_playback_switch_called);
+    EXPECT_EQ(3, snd_mixer_selem_has_capture_volume_called);
+    EXPECT_EQ(3, snd_mixer_selem_has_capture_switch_called);
+    EXPECT_EQ(5, snd_mixer_selem_get_playback_dB_range_called);
+    EXPECT_EQ(2, snd_mixer_selem_get_capture_dB_range_called);
+    EXPECT_EQ(3, cras_card_config_get_volume_curve_for_control_called);
+
+    sections_ = sections;
+  }
+
+  virtual void TearDown() {
+    ucm_section_free_list(sections_);
+    cras_alsa_mixer_destroy(cras_mixer_);
+    EXPECT_EQ(1, snd_mixer_close_called);
+  }
+
+  static void Callback(struct mixer_control *control, void *arg) {
+    callback_called_++;
+    callback_values_.push_back(control);
+  }
+
+  struct cras_alsa_mixer *cras_mixer_;
+  static size_t callback_called_;
+  static std::vector<struct mixer_control *> callback_values_;
+  struct ucm_section *sections_;
+};
+
+size_t AlsaMixerFullySpeced::callback_called_;
+std::vector<struct mixer_control *> AlsaMixerFullySpeced::callback_values_;
+
+TEST_F(AlsaMixerFullySpeced, CheckControlCounts) {
+  cras_alsa_mixer_list_outputs(cras_mixer_,
+                               AlsaMixerFullySpeced::Callback,
+                               reinterpret_cast<void*>(555));
+  EXPECT_EQ(3, callback_called_);
+  callback_called_ = 0;
+  cras_alsa_mixer_list_inputs(cras_mixer_,
+                               AlsaMixerFullySpeced::Callback,
+                               reinterpret_cast<void*>(555));
+  EXPECT_EQ(2, callback_called_);
+}
+
+TEST_F(AlsaMixerFullySpeced, CheckFindOutputByNameNoMatch) {
+  struct mixer_control *out;
+
+  out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
+                                                 "AAAAA Jack");
+  EXPECT_EQ(static_cast<struct mixer_control *>(NULL), out);
+}
+
+TEST_F(AlsaMixerFullySpeced, CheckFindOutputByName) {
+  struct mixer_control *out;
+
+  out = cras_alsa_mixer_get_output_matching_name(cras_mixer_,
+                                                 "Headphone Jack");
+  EXPECT_NE(static_cast<struct mixer_control *>(NULL), out);
+}
+
+TEST_F(AlsaMixerFullySpeced, CheckFindControlForSection) {
+  struct mixer_control *control;
+  struct ucm_section *section = sections_;
+
+  // Look for the control for the Headphone section.
+  // We've already asserted that section != NULL above.
+  // Matching the control created by CoupledMixers.
+  section = section->next;
+  control = cras_alsa_mixer_get_control_for_section(cras_mixer_, section);
+  ASSERT_NE(static_cast<struct mixer_control *>(NULL), control);
+  EXPECT_EQ(0, strcmp(control->name, "Headphone"));
+
+  // Look for the control for the Mic section.
+  // Matching the control created by MixerName.
+  section = section->next->next;
+  control = cras_alsa_mixer_get_control_for_section(cras_mixer_, section);
+  ASSERT_NE(static_cast<struct mixer_control *>(NULL), control);
+  EXPECT_EQ(0, strcmp(control->name, "CAPTURE"));
+}
+
 /* Stubs */
 
 extern "C" {
@@ -1464,6 +1697,7 @@ snd_mixer_elem_t *snd_mixer_find_selem(
     snd_mixer_t *mixer, const snd_mixer_selem_id_t *id) {
   std::string name(snd_mixer_selem_id_get_name(id));
   unsigned int index = snd_mixer_selem_id_get_index(id);
+  snd_mixer_find_selem_called++;
   if (index != 0)
     return NULL;
   if (snd_mixer_find_elem_map.find(name) == snd_mixer_find_elem_map.end()) {
