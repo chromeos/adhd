@@ -68,6 +68,19 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 int cras_alsa_jack_list_find_jacks_by_name_matching(
 	struct cras_alsa_jack_list *jack_list);
 
+/* Add the jack defined by the UCM section information.
+ * Args:
+ *   jack_list - A pointer to a jack list.
+ *   ucm_section - UCM section data.
+ *   result_jack - Resulting jack that was added.
+ * Returns:
+ *   0 on success. Error code if there is a failure.
+ */
+int cras_alsa_jack_list_add_jack_for_section(
+	struct cras_alsa_jack_list *jack_list,
+	struct ucm_section *ucm_section,
+	struct cras_alsa_jack **result_jack);
+
 /* Destroys a jack list created with cras_alsa_jack_list_create.
  * Args:
  *    jack_list - The list to destroy.

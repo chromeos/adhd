@@ -427,7 +427,9 @@ alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 alsa_io_unittest_LDADD = -lgtest -lpthread
 
 alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
-	server/cras_alsa_jack.c
+	server/cras_alsa_jack.c \
+	server/cras_alsa_ucm_section.c \
+	server/cras_alsa_mixer_name.c
 alsa_jack_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 alsa_jack_unittest_LDADD = -lgtest -lpthread

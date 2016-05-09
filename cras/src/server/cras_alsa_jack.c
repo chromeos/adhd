@@ -123,6 +123,19 @@ struct cras_alsa_jack_list {
 	struct cras_alsa_jack *jacks;
 };
 
+/* Used to contain information needed while looking through GPIO jacks.
+ *    jack_list - The current jack_list.
+ *    section - An associated UCM section.
+ *    result_jack - The resulting jack.
+ *    rc - The return code for the operation.
+ */
+struct gpio_switch_list_data {
+	struct cras_alsa_jack_list *jack_list;
+	struct ucm_section *section;
+	struct cras_alsa_jack *result_jack;
+	int rc;
+};
+
 /*
  * Local Helpers.
  */
@@ -161,6 +174,32 @@ static inline struct cras_alsa_jack *cras_alloc_jack(int is_gpio)
 		return NULL;
 	jack->is_gpio = is_gpio;
 	return jack;
+}
+
+static void cras_free_jack(struct cras_alsa_jack *jack,
+			   int rm_select_fd)
+{
+	if (!jack)
+		return;
+
+	free(jack->ucm_device);
+	free((void *)jack->edid_file);
+	if (jack->display_info_timer)
+		cras_tm_cancel_timer(cras_system_state_get_tm(),
+				     jack->display_info_timer);
+
+	if (jack->is_gpio) {
+		free(jack->gpio.device_name);
+		if (jack->gpio.fd >= 0) {
+			if (rm_select_fd)
+				cras_system_rm_select_fd(jack->gpio.fd);
+			close(jack->gpio.fd);
+		}
+	}
+
+	free((void *)jack->override_type_name);
+	free((void *)jack->dsp_name);
+	free(jack);
 }
 
 /* Gets the current plug state of the jack */
@@ -392,23 +431,20 @@ static unsigned int gpio_jack_match_device(const struct cras_alsa_jack *jack,
 	return rc;
 }
 
-
-/* open_and_monitor_gpio:
- *
- *   Opens a /dev/input/event file associated with a headphone /
- *   microphone jack and watches it for activity.
- *   Returns 0 when a jack has been successfully added.
- */
-static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
-				 const char *pathname,
-				 const char *dev_name,
-				 unsigned switch_event)
+static int create_jack_for_gpio(struct cras_alsa_jack_list *jack_list,
+				const char *pathname,
+				const char *dev_name,
+				unsigned switch_event,
+				struct cras_alsa_jack **out_jack)
 {
 	struct cras_alsa_jack *jack;
 	unsigned long bits[NBITS(SW_CNT)];
-	enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
 	const char *card_name = jack_list->card_name;
 	int r;
+
+	if (!out_jack)
+		return -EINVAL;
+	*out_jack = NULL;
 
 	jack = cras_alloc_jack(1);
 	if (jack == NULL)
@@ -435,6 +471,75 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 		goto error;
 	}
 
+	*out_jack = jack;
+	return 0;
+
+error:
+	/* Not yet registered with system select. */
+	cras_free_jack(jack, 0);
+	return r;
+}
+
+/* Take ownership and finish setup of the jack.
+ * Add the jack to the jack_list if everything goes well, or destroy it.
+ */
+static int cras_complete_gpio_jack(struct gpio_switch_list_data *data,
+				   struct cras_alsa_jack *jack,
+				   unsigned switch_event)
+{
+	struct cras_alsa_jack_list *jack_list = data->jack_list;
+	enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
+	int r;
+
+	if (jack->ucm_device) {
+		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
+							    jack->ucm_device);
+		jack->dsp_name = ucm_get_dsp_name(
+			jack->jack_list->ucm, jack->ucm_device, direction);
+	}
+
+	sys_input_get_switch_state(jack->gpio.fd, switch_event,
+				   &jack->gpio.current_state);
+	r = cras_system_add_select_fd(jack->gpio.fd,
+				      gpio_switch_callback, jack);
+	if (r < 0) {
+		/* Not yet registered with system select. */
+		cras_free_jack(jack, 0);
+		return r;
+	}
+
+	DL_APPEND(jack_list->jacks, jack);
+	if (!data->result_jack)
+		data->result_jack = jack;
+	else if (data->section)
+		syslog(LOG_ERR,
+		       "More than one jack for SectionDevice '%s'.",
+		       data->section->name);
+	return 0;
+}
+
+/* open_and_monitor_gpio:
+ *
+ *   Opens a /dev/input/event file associated with a headphone /
+ *   microphone jack and watches it for activity.
+ *   Returns 0 when a jack has been successfully added.
+ */
+static int open_and_monitor_gpio(struct gpio_switch_list_data *data,
+				 const char *pathname,
+				 const char *dev_name,
+				 unsigned switch_event)
+{
+	struct cras_alsa_jack *jack;
+	struct cras_alsa_jack_list *jack_list = data->jack_list;
+	const char *card_name = jack_list->card_name;
+	enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
+	int r;
+
+	r = create_jack_for_gpio(jack_list, pathname, dev_name,
+				 switch_event, &jack);
+	if (r != 0)
+		return r;
+
 	if (jack_list->ucm)
 		jack->ucm_device =
 			ucm_get_dev_for_jack(jack_list->ucm,
@@ -442,8 +547,8 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 					     direction);
 
 	if (!gpio_jack_match_device(jack, jack_list, card_name, direction)) {
-		r = -EIO;
-		goto error;
+		cras_free_jack(jack, 0);
+		return -EIO;
 	}
 
 	if (direction == CRAS_STREAM_OUTPUT &&
@@ -469,30 +574,39 @@ static int open_and_monitor_gpio(struct cras_alsa_jack_list *jack_list,
 					control_name);
 	}
 
-	if (jack->ucm_device) {
-		jack->edid_file = ucm_get_edid_file_for_dev(jack_list->ucm,
-							    jack->ucm_device);
-		jack->dsp_name = ucm_get_dsp_name(
-			jack->jack_list->ucm, jack->ucm_device, direction);
+	return cras_complete_gpio_jack(data, jack, switch_event);
+}
+
+static int open_and_monitor_gpio_with_section(
+			struct gpio_switch_list_data *data,
+			const char *pathname,
+			unsigned switch_event)
+{
+	struct cras_alsa_jack *jack;
+	struct cras_alsa_jack_list *jack_list = data->jack_list;
+	struct ucm_section *section = data->section;
+	enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
+	int r;
+
+	r = create_jack_for_gpio(jack_list, pathname, section->jack_name,
+				 switch_event, &jack);
+	if (r != 0)
+		return r;
+
+	jack->ucm_device = strdup(section->name);
+	if (!jack->ucm_device) {
+		cras_free_jack(jack, 0);
+		return -ENOMEM;
 	}
 
-	sys_input_get_switch_state(jack->gpio.fd, switch_event,
-				   &jack->gpio.current_state);
-	r = cras_system_add_select_fd(jack->gpio.fd,
-				      gpio_switch_callback, jack);
-	if (r < 0)
-		goto error;
+	if (direction == CRAS_STREAM_OUTPUT)
+		jack->mixer_output = cras_alsa_mixer_get_control_for_section(
+						jack_list->mixer, section);
+	else if (direction == CRAS_STREAM_INPUT)
+		jack->mixer_input = cras_alsa_mixer_get_control_for_section(
+						jack_list->mixer, section);
 
-	DL_APPEND(jack_list->jacks, jack);
-	return 0;
-
-error:
-	if (jack->gpio.fd >= 0)
-		close(jack->gpio.fd);
-	if (jack->gpio.device_name)
-		free(jack->gpio.device_name);
-	free(jack);
-	return r;
+	return cras_complete_gpio_jack(data, jack, switch_event);
 }
 
 static int wait_for_dev_input_access()
@@ -544,14 +658,14 @@ static int wait_for_dev_input_access()
 
 /* Monitor GPIO switches for this jack_list.
  * Args:
- *    jack_list - Jack list to add to.
+ *    data - Data for GPIO switch search.
  *    dev_path - Device full path.
  *    dev_name - Device name.
  * Returns:
  *    0 for success, or negative on error. Assumes success if no jack is
  *    found, or if the jack could not be accessed.
  */
-static int gpio_switches_monitor_device(struct cras_alsa_jack_list *jack_list,
+static int gpio_switches_monitor_device(struct gpio_switch_list_data *data,
 					const char *dev_path,
 					const char *dev_name)
 {
@@ -564,7 +678,7 @@ static int gpio_switches_monitor_device(struct cras_alsa_jack_list *jack_list,
 	int success = 1;
 	int rc = 0;
 
-	if (jack_list->direction == CRAS_STREAM_INPUT) {
+	if (data->jack_list->direction == CRAS_STREAM_INPUT) {
 		switches = in_switches;
 		num_switches = ARRAY_SIZE(in_switches);
 	}
@@ -575,8 +689,12 @@ static int gpio_switches_monitor_device(struct cras_alsa_jack_list *jack_list,
 	 */
 	for (sw = 0; (rc == 0 || rc == -EIO)
 		     && sw < num_switches; sw++) {
-		rc = open_and_monitor_gpio(
-			 jack_list, dev_path, dev_name, switches[sw]);
+		if (data->section)
+			rc = open_and_monitor_gpio_with_section(
+				data, dev_path, switches[sw]);
+		else
+			rc = open_and_monitor_gpio(
+				data, dev_path, dev_name, switches[sw]);
 		if (rc != 0 && rc != -EIO)
 			success = 0;
 	}
@@ -586,10 +704,22 @@ static int gpio_switches_monitor_device(struct cras_alsa_jack_list *jack_list,
 	return rc;
 }
 
-struct gpio_switch_list_data {
-	struct cras_alsa_jack_list *jack_list;
-	int rc;
-};
+static int gpio_switch_list_with_section(const char *dev_path,
+					 const char *dev_name,
+					 void *arg)
+{
+	struct gpio_switch_list_data *data =
+		(struct gpio_switch_list_data *)arg;
+
+	if (strcmp(dev_name, data->section->jack_name)) {
+		/* No match: continue searching. */
+		return 0;
+	}
+
+	data->rc = gpio_switches_monitor_device(data, dev_path, dev_name);
+	/* Found the only possible match: stop searching. */
+	return 1;
+}
 
 static void compile_regex(regex_t *regex, const char *str)
 {
@@ -633,9 +763,7 @@ static int gpio_switch_list_by_matching(const char *dev_path,
 		}
 	}
 
-	data->rc = gpio_switches_monitor_device(data->jack_list,
-						dev_path,
-						dev_name);
+	data->rc = gpio_switches_monitor_device(data, dev_path, dev_name);
 	/* Stop searching for failure. */
 	return data->rc;
 }
@@ -643,11 +771,15 @@ static int gpio_switch_list_by_matching(const char *dev_path,
 /* Find GPIO jacks for this jack_list.
  * Args:
  *    jack_list - Jack list to add to.
+ *    section - UCM section.
+ *    result_jack - Filled with a pointer to the resulting cras_alsa_jack.
  * Returns:
  *    0 for success, or negative on error. Assumes success if no jack is
  *    found, or if the jack could not be accessed.
  */
-static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list)
+static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
+			   struct ucm_section *section,
+			   struct cras_alsa_jack **result_jack)
 {
 	/* GPIO switches are on Arm-based machines, and are
 	 * only associated with on-board devices.
@@ -663,10 +795,18 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list)
 	}
 
 	data.jack_list = jack_list;
+	data.section = section;
+	data.result_jack = NULL;
 	data.rc = 0;
 
-	gpio_switch_list_for_each(
-		gpio_switch_list_by_matching, &data);
+	if (section)
+		gpio_switch_list_for_each(
+			gpio_switch_list_with_section, &data);
+	else
+		gpio_switch_list_for_each(
+			gpio_switch_list_by_matching, &data);
+	if (result_jack)
+		*result_jack = data.result_jack;
 	return data.rc;
 }
 
@@ -869,7 +1009,113 @@ int cras_alsa_jack_list_find_jacks_by_name_matching(
 	if (rc != 0)
 		return rc;
 
-	return find_gpio_jacks(jack_list);
+	return find_gpio_jacks(jack_list, NULL, NULL);
+}
+
+static int find_hctl_jack_for_section(
+		struct cras_alsa_jack_list *jack_list,
+		struct ucm_section *section,
+		struct cras_alsa_jack **result_jack)
+{
+	static const char eld_control_name[] = "ELD";
+	snd_hctl_elem_t *elem;
+	snd_ctl_elem_id_t *elem_id;
+	struct cras_alsa_jack *jack;
+
+	if (!jack_list->hctl) {
+		syslog(LOG_WARNING, "Can't search hctl for jacks.");
+		return -ENODEV;
+	}
+
+	snd_ctl_elem_id_alloca(&elem_id);
+	snd_ctl_elem_id_clear(elem_id);
+	snd_ctl_elem_id_set_interface(elem_id, SND_CTL_ELEM_IFACE_CARD);
+	snd_ctl_elem_id_set_device(elem_id, jack_list->device_index);
+	snd_ctl_elem_id_set_name(elem_id, section->jack_name);
+	elem = snd_hctl_find_elem(jack_list->hctl, elem_id);
+	if (!elem)
+		return -ENOENT;
+
+	syslog(LOG_DEBUG, "Found Jack: %s for %s",
+	       section->jack_name, section->name);
+
+	jack = cras_alloc_jack(0);
+	if (jack == NULL)
+		return -ENOMEM;
+	jack->elem = elem;
+	jack->jack_list = jack_list;
+
+	jack->ucm_device = strdup(section->name);
+	if (!jack->ucm_device) {
+		free(jack);
+		return -ENOMEM;
+	}
+	if (jack_list->direction == CRAS_STREAM_OUTPUT)
+		jack->mixer_output = cras_alsa_mixer_get_control_for_section(
+					jack_list->mixer, section);
+	else if (jack_list->direction == CRAS_STREAM_INPUT)
+		jack->mixer_input = cras_alsa_mixer_get_control_for_section(
+					jack_list->mixer, section);
+
+	jack->dsp_name = ucm_get_dsp_name(
+		jack->jack_list->ucm, jack->ucm_device,
+		jack_list->direction);
+
+	snd_hctl_elem_set_callback(elem, hctl_jack_cb);
+	snd_hctl_elem_set_callback_private(elem, jack);
+	DL_APPEND(jack_list->jacks, jack);
+	if (result_jack)
+		*result_jack = jack;
+
+	if (!strcmp(jack->ucm_device, "HDMI") ||
+	    !strcmp(jack->ucm_device, "DP"))
+		return 0;
+
+	/* Look up ELD control. */
+	snd_ctl_elem_id_set_name(elem_id, eld_control_name);
+	elem = snd_hctl_find_elem(jack_list->hctl, elem_id);
+	if (elem)
+		jack->eld_control = elem;
+	return 0;
+}
+
+/*
+ * Exported Interface.
+ */
+
+int cras_alsa_jack_list_add_jack_for_section(
+	struct cras_alsa_jack_list *jack_list,
+	struct ucm_section *ucm_section,
+	struct cras_alsa_jack **result_jack)
+{
+	if (result_jack)
+		*result_jack = NULL;
+	if (!ucm_section)
+		return -EINVAL;
+
+	if (!ucm_section->jack_name) {
+		/* No jacks defined for this device. */
+		return 0;
+	}
+
+	if (!ucm_section->jack_type) {
+		syslog(LOG_ERR,
+		       "Must specify the JackType for jack '%s' in '%s'.",
+		       ucm_section->jack_name, ucm_section->name);
+		return -EINVAL;
+	}
+
+	if (!strcmp(ucm_section->jack_type, "hctl")) {
+		return find_hctl_jack_for_section(
+				jack_list, ucm_section, result_jack);
+	} else if (!strcmp(ucm_section->jack_type, "gpio")) {
+		return find_gpio_jacks(jack_list, ucm_section, result_jack);
+	} else {
+		syslog(LOG_ERR,
+		       "Invalid JackType '%s' in '%s'.",
+		       ucm_section->jack_type, ucm_section->name);
+		return -EINVAL;
+	}
 }
 
 struct cras_alsa_jack_list *cras_alsa_jack_list_create(
@@ -922,24 +1168,7 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list *jack_list)
 		return;
 	DL_FOREACH(jack_list->jacks, jack) {
 		DL_DELETE(jack_list->jacks, jack);
-		free(jack->ucm_device);
-
-		free((void *)jack->edid_file);
-		if (jack->display_info_timer)
-			cras_tm_cancel_timer(cras_system_state_get_tm(),
-					     jack->display_info_timer);
-
-		if (jack->is_gpio) {
-			free(jack->gpio.device_name);
-			cras_system_rm_select_fd(jack->gpio.fd);
-			close(jack->gpio.fd);
-		}
-
-		if (jack->override_type_name)
-			free((void *)jack->override_type_name);
-
-		free((void *)jack->dsp_name);
-		free(jack);
+		cras_free_jack(jack, 1);
 	}
 	free(jack_list);
 }

@@ -46,6 +46,9 @@ static size_t snd_hctl_elem_get_name_called;
 static size_t snd_hctl_elem_set_callback_called;
 static snd_hctl_elem_t *snd_hctl_elem_set_callback_obj;
 static snd_hctl_elem_callback_t snd_hctl_elem_set_callback_value;
+static size_t snd_hctl_find_elem_called;
+static std::vector<snd_hctl_elem_t *> snd_hctl_find_elem_return_vals;
+static std::map<std::string, size_t> snd_ctl_elem_id_set_name_map;
 static size_t cras_system_add_select_fd_called;
 static std::vector<int> cras_system_add_select_fd_values;
 static size_t cras_system_rm_select_fd_called;
@@ -60,10 +63,13 @@ static void *fake_jack_cb_arg;
 static struct cras_alsa_mixer *fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
 static size_t cras_alsa_mixer_get_input_matching_name_called;
-static struct mixer_output_control *
+static size_t cras_alsa_mixer_get_control_for_section_called;
+static struct mixer_control *
     cras_alsa_mixer_get_output_matching_name_return_value;
-struct mixer_volume_control *
+static struct mixer_control *
     cras_alsa_mixer_get_input_matching_name_return_value;
+static struct mixer_control *
+    cras_alsa_mixer_get_control_for_section_return_value;
 static size_t gpio_switch_list_for_each_called;
 static std::vector<std::string> gpio_switch_list_for_each_dev_paths;
 static std::vector<std::string> gpio_switch_list_for_each_dev_names;
@@ -101,6 +107,9 @@ static void ResetStubData() {
   snd_hctl_elem_next_ret_vals_poped.clear();
   snd_hctl_elem_get_name_called = 0;
   snd_hctl_elem_set_callback_called = 0;
+  snd_hctl_find_elem_called = 0;
+  snd_hctl_find_elem_return_vals.clear();
+  snd_ctl_elem_id_set_name_map.clear();
   cras_system_add_select_fd_called = 0;
   cras_system_add_select_fd_values.clear();
   cras_system_rm_select_fd_called = 0;
@@ -114,9 +123,12 @@ static void ResetStubData() {
   fake_mixer = reinterpret_cast<struct cras_alsa_mixer *>(0x789);
   cras_alsa_mixer_get_output_matching_name_called = 0;
   cras_alsa_mixer_get_input_matching_name_called = 0;
+  cras_alsa_mixer_get_control_for_section_called = 0;
   cras_alsa_mixer_get_output_matching_name_return_value =
-      reinterpret_cast<struct mixer_output_control *>(0x456);
+      reinterpret_cast<struct mixer_control *>(0x456);
   cras_alsa_mixer_get_input_matching_name_return_value = NULL;
+  cras_alsa_mixer_get_control_for_section_return_value =
+      reinterpret_cast<struct mixer_control *>(0x456);
   ucm_get_dev_for_jack_called = 0;
   ucm_get_cap_control_called = 0;
   ucm_get_cap_control_value = NULL;
@@ -248,6 +260,53 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   return jack_list;
 }
 
+static struct cras_alsa_jack_list *run_test_with_section(
+    CRAS_STREAM_DIRECTION direction,
+    std::string *elems,
+    size_t nelems,
+    unsigned int device_index,
+    snd_use_case_mgr_t *ucm,
+    struct ucm_section *ucm_section,
+    int add_jack_rc,
+    size_t njacks) {
+  struct cras_alsa_jack_list *jack_list;
+  struct cras_alsa_jack *jack;
+
+  for (size_t i = 0; i < nelems; i++) {
+    snd_ctl_elem_id_set_name_map[elems[i]] = i;
+    snd_hctl_find_elem_return_vals.push_back(
+        reinterpret_cast<snd_hctl_elem_t*>(&elems[i]));
+  }
+
+  jack_list = cras_alsa_jack_list_create(0,
+                                         "card_name",
+                                         device_index,
+                                         1,
+                                         fake_mixer,
+                                         ucm, fake_hctl,
+                                         direction,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  if (jack_list == NULL)
+    return jack_list;
+  EXPECT_EQ(add_jack_rc,
+      cras_alsa_jack_list_add_jack_for_section(jack_list, ucm_section, &jack));
+  if (add_jack_rc == 0) {
+    EXPECT_EQ(njacks, ucm_get_dsp_name_called);
+    EXPECT_NE(jack, reinterpret_cast<struct cras_alsa_jack *>(NULL));
+  } else {
+    EXPECT_EQ(jack, reinterpret_cast<struct cras_alsa_jack *>(NULL));
+  }
+  if (add_jack_rc != 0 || njacks != ucm_get_dsp_name_called) {
+      cras_alsa_jack_list_destroy(jack_list);
+      return NULL;
+  }
+  EXPECT_EQ(njacks, snd_hctl_elem_set_callback_called);
+  EXPECT_EQ(njacks, cras_alsa_mixer_get_control_for_section_called);
+
+  return jack_list;
+}
+
 TEST(AlsaJacks, ReportNull) {
   cras_alsa_jack_list_report(NULL);
 }
@@ -313,7 +372,7 @@ TEST(AlsaJacks, CreateGPIOMic) {
 
   // Freed in destroy.
   cras_alsa_mixer_get_input_matching_name_return_value =
-      reinterpret_cast<struct mixer_volume_control *>(malloc(1));
+      reinterpret_cast<struct mixer_control *>(malloc(1));
 
   jack_list = cras_alsa_jack_list_create(
       0,
@@ -749,6 +808,149 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
   cras_alsa_jack_list_destroy(jack_list);
 }
 
+TEST(AlsaJacks, CreateHCTLHeadphoneJackFromUCM) {
+  std::string elem_names[] = {
+    "HP/DP,pcm=5 Jack",
+    "Headphone Jack",
+  };
+  struct cras_alsa_jack_list *jack_list;
+  struct ucm_section *section;
+
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                               "Headphone Jack", "hctl");
+
+  ResetStubData();
+  ucm_get_dev_for_jack_return = true;
+
+  jack_list = run_test_with_section(
+      CRAS_STREAM_OUTPUT,
+      elem_names,
+      ARRAY_SIZE(elem_names),
+      5,
+      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      section,
+      0,
+      1);
+  ASSERT_NE(reinterpret_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  snd_hctl_elem_get_hctl_return_value = reinterpret_cast<snd_hctl_t *>(0x33);
+  snd_ctl_elem_value_get_boolean_return_value = 1;
+  snd_hctl_elem_set_callback_value(
+      reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]), 0);
+  EXPECT_EQ(1, snd_hctl_elem_get_name_called);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
+  EXPECT_EQ(reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]),
+            snd_hctl_elem_set_callback_obj);
+
+  fake_jack_cb_called = 0;
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
+
+  ucm_section_free_list(section);
+  cras_alsa_jack_list_destroy(jack_list);
+}
+
+TEST(AlsaJacks, CreateGPIOHeadphoneJackFromUCM) {
+  struct cras_alsa_jack_list *jack_list;
+  struct cras_alsa_jack *jack;
+  struct ucm_section *section;
+
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                               "c1 Headphone Jack", "gpio");
+
+  ResetStubData();
+  gpio_switch_list_for_each_dev_names.push_back("some-other-device");
+  gpio_switch_list_for_each_dev_names.push_back("c1 Headphone Jack");
+  eviocbit_ret[LONG(SW_HEADPHONE_INSERT)] |= 1 << OFF(SW_HEADPHONE_INSERT);
+  gpio_switch_eviocgbit_fd = 2;
+  snd_hctl_first_elem_return_val = NULL;
+  jack_list = cras_alsa_jack_list_create(0, "c1", 0, 1,
+                                         fake_mixer,
+                                         NULL, fake_hctl,
+                                         CRAS_STREAM_OUTPUT,
+                                         fake_jack_cb,
+                                         fake_jack_cb_arg);
+  ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section(
+                   jack_list, section, &jack));
+  EXPECT_EQ(1, gpio_switch_list_for_each_called);
+  EXPECT_GT(gpio_switch_open_called, 1);
+  EXPECT_EQ(1, gpio_switch_eviocgsw_called);
+  EXPECT_GT(gpio_switch_eviocgbit_called, 1);
+  EXPECT_EQ(1, cras_system_add_select_fd_called);
+  EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
+
+  fake_jack_cb_called = 0;
+  ucm_get_dev_for_jack_return = true;
+  cras_alsa_jack_list_report(jack_list);
+  EXPECT_EQ(1, fake_jack_cb_plugged);
+  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
+
+  ucm_section_free_list(section);
+  cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(1, cras_system_rm_select_fd_called);
+}
+
+TEST(AlsaJacks, BadJackTypeFromUCM) {
+  std::string elem_names[] = {
+    "HP/DP,pcm=5 Jack",
+    "Headphone Jack",
+  };
+  struct cras_alsa_jack_list *jack_list;
+  struct ucm_section *section;
+
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                               "Headphone Jack", "badtype");
+
+  ResetStubData();
+  ucm_get_dev_for_jack_return = true;
+
+  jack_list = run_test_with_section(
+      CRAS_STREAM_OUTPUT,
+      elem_names,
+      ARRAY_SIZE(elem_names),
+      5,
+      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      section,
+      -22,
+      1);
+  EXPECT_EQ(reinterpret_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  ucm_section_free_list(section);
+}
+
+TEST(AlsaJacks, NoJackTypeFromUCM) {
+  std::string elem_names[] = {
+    "HP/DP,pcm=5 Jack",
+    "Headphone Jack",
+  };
+  struct cras_alsa_jack_list *jack_list;
+  struct ucm_section *section;
+
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                               "Headphone Jack", NULL);
+
+  ResetStubData();
+  ucm_get_dev_for_jack_return = true;
+
+  jack_list = run_test_with_section(
+      CRAS_STREAM_OUTPUT,
+      elem_names,
+      ARRAY_SIZE(elem_names),
+      5,
+      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      section,
+      -22,
+      1);
+  EXPECT_EQ(reinterpret_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+
+  ucm_section_free_list(section);
+}
+
 /* Stubs */
 
 extern "C" {
@@ -821,6 +1023,28 @@ snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem) {
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value) {
   return 0;
 }
+snd_hctl_elem_t *snd_hctl_find_elem(snd_hctl_t *hctl,
+                                    const snd_ctl_elem_id_t *id) {
+  const size_t* index = reinterpret_cast<const size_t*>(id);
+  snd_hctl_find_elem_called++;
+  if (*index < snd_hctl_find_elem_return_vals.size())
+    return snd_hctl_find_elem_return_vals[*index];
+  return NULL;
+}
+void snd_ctl_elem_id_set_interface(snd_ctl_elem_id_t *obj,
+                                   snd_ctl_elem_iface_t val) {
+}
+void snd_ctl_elem_id_set_device(snd_ctl_elem_id_t *obj, unsigned int val) {
+}
+void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val) {
+  size_t *obj_id = reinterpret_cast<size_t*>(obj);
+  std::map<std::string, size_t>::iterator id_name_it =
+      snd_ctl_elem_id_set_name_map.find(val);
+  if (id_name_it != snd_ctl_elem_id_set_name_map.end())
+    *obj_id = id_name_it->second;
+  else
+    *obj_id = INT_MAX;
+}
 
 // From alsa-lib control.c
 int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj,
@@ -830,7 +1054,7 @@ int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj,
 }
 
 // From cras_alsa_mixer
-struct mixer_output_control *cras_alsa_mixer_get_output_matching_name(
+struct mixer_control *cras_alsa_mixer_get_output_matching_name(
     const struct cras_alsa_mixer *cras_mixer,
     size_t device_index,
     const char * const name)
@@ -839,12 +1063,20 @@ struct mixer_output_control *cras_alsa_mixer_get_output_matching_name(
   return cras_alsa_mixer_get_output_matching_name_return_value;
 }
 
-struct mixer_volume_control *cras_alsa_mixer_get_input_matching_name(
+struct mixer_control *cras_alsa_mixer_get_input_matching_name(
     struct cras_alsa_mixer *cras_mixer,
     const char *control_name)
 {
   cras_alsa_mixer_get_input_matching_name_called++;
   return cras_alsa_mixer_get_input_matching_name_return_value;
+}
+
+struct mixer_control *cras_alsa_mixer_get_control_for_section(
+    struct cras_alsa_mixer *cras_mixer,
+    struct ucm_section *section)
+{
+  cras_alsa_mixer_get_control_for_section_called++;
+  return cras_alsa_mixer_get_control_for_section_return_value;
 }
 
 int gpio_switch_eviocgbit(int fd, void *buf, size_t n_bytes)
