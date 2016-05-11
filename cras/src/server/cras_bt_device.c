@@ -35,6 +35,8 @@
 #define DEFAULT_HFP_MTU_BYTES 48
 
 
+static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
+
 /* Object to represent a general bluetooth device, and used to
  * associate with some CRAS modules if it supports audio.
  * Members:
@@ -720,6 +722,19 @@ void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
 		cras_bt_io_update_buffer_size(iodev);
 }
 
+static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
+{
+	struct cras_bt_device *device = (struct cras_bt_device *)arg;
+	struct cras_iodev *iodev;
+
+	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
+	if (!iodev)
+		return;
+
+	iodev->update_active_node(iodev, 0, 1);
+	cras_iodev_list_enable_dev(iodev);
+}
+
 /* Switches associated bt iodevs to use the active profile. This is
  * achieved by close the iodevs, update their active nodes, and then
  * finally reopen them. */
@@ -730,6 +745,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 	struct cras_iodev *iodev;
 	int was_enabled[CRAS_NUM_DIRECTIONS] = {0};
 	int dir;
+	struct cras_tm *tm = cras_system_state_get_tm();
 
 	/* If a bt iodev is active, temporarily remove it from the active
 	 * device list. Note that we need to check all bt_iodevs for the
@@ -748,13 +764,25 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		iodev = device->bt_iodevs[dir];
 		if (!iodev)
 			continue;
+
 		/* If the iodev was active or this profile switching is
 		 * triggered at opening iodev, add it to active dev list.
+		 * However for the output iodev, adding it back to active dev
+		 * list could cause immediate switching from HFP to A2DP if
+		 * there exists an output stream. Certain headset/speaker
+		 * would fail to playback afterwards when the switching happens
+		 * too soon, so put this task in a delayed callback.
 		 */
 		if (was_enabled[dir] ||
 		    (on_open && iodev == bt_iodev)) {
-			iodev->update_active_node(iodev, 0, 1);
-			cras_iodev_list_enable_dev(iodev);
+			if (dir == CRAS_STREAM_INPUT) {
+				iodev->update_active_node(iodev, 0, 1);
+				cras_iodev_list_enable_dev(iodev);
+			} else {
+				cras_tm_create_timer(
+					tm, PROFILE_SWITCH_DELAY_MS,
+					profile_switch_delay_cb, device);
+			}
 		}
 	}
 }

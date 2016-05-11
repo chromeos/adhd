@@ -292,6 +292,15 @@ struct cras_tm *cras_system_state_get_tm()
 }
 
 /* From cras_tm */
+struct cras_timer *cras_tm_create_timer(
+    struct cras_tm *tm,
+    unsigned int ms,
+    void (*cb)(struct cras_timer *t, void *data),
+    void *cb_data)
+{
+  return NULL;
+}
+
 void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t)
 {
 }
