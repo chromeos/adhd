@@ -69,14 +69,18 @@ struct cras_alsa_card {
  *    dev_id - The id string of the device.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    direction - Input or output.
+ * Returns:
+ *    Pointer to the created iodev, or NULL on error.
+ *    other negative error code otherwise.
  */
-void create_iodev_for_device(struct cras_alsa_card *alsa_card,
-			     struct cras_alsa_card_info *info,
-			     const char *card_name,
-			     const char *dev_name,
-			     const char *dev_id,
-			     unsigned device_index,
-			     enum CRAS_STREAM_DIRECTION direction)
+struct cras_iodev *create_iodev_for_device(
+		struct cras_alsa_card *alsa_card,
+		struct cras_alsa_card_info *info,
+		const char *card_name,
+		const char *dev_name,
+		const char *dev_id,
+		unsigned device_index,
+		enum CRAS_STREAM_DIRECTION direction)
 {
 	struct iodev_list_node *new_dev;
 	struct iodev_list_node *node;
@@ -92,13 +96,13 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 			syslog(LOG_DEBUG,
 			       "Skipping duplicate device for %s:%s:%s [%u]",
 			       card_name, dev_name, dev_id, device_index);
-			return;
+			return node->iodev;
 		}
 	}
 
 	new_dev = calloc(1, sizeof(*new_dev));
 	if (new_dev == NULL)
-		return;
+		return NULL;
 
 	new_dev->direction = direction;
 	new_dev->iodev = alsa_iodev_create(info->card_index,
@@ -118,7 +122,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %u:%u\n",
 		       info->card_index, device_index);
 		free(new_dev);
-		return;
+		return NULL;
 	}
 
 	syslog(LOG_DEBUG, "New %s device %u:%d",
@@ -127,6 +131,7 @@ void create_iodev_for_device(struct cras_alsa_card *alsa_card,
 	       device_index);
 
 	DL_APPEND(alsa_card->iodevs, new_dev);
+	return new_dev->iodev;
 }
 
 /* Returns non-zero if this card has hctl jacks.
@@ -347,25 +352,41 @@ struct cras_alsa_card *cras_alsa_card_create(
 		/* Check for playback devices. */
 		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
 		if (snd_ctl_pcm_info(handle, dev_info) == 0 &&
-		    !should_ignore_dev(info, blacklist, dev_idx))
-			create_iodev_for_device(alsa_card,
+		    !should_ignore_dev(info, blacklist, dev_idx)) {
+			struct cras_iodev *iodev =
+				create_iodev_for_device(
+						alsa_card,
 						info,
 						card_name,
 						snd_pcm_info_get_name(dev_info),
 						snd_pcm_info_get_id(dev_info),
 						dev_idx,
 						CRAS_STREAM_OUTPUT);
+			if (iodev) {
+				rc = alsa_iodev_legacy_complete_init(iodev);
+				if (rc < 0)
+					goto error_bail;
+			}
+		}
 
 		/* Check for capture devices. */
 		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_CAPTURE);
-		if (snd_ctl_pcm_info(handle, dev_info) == 0)
-			create_iodev_for_device(alsa_card,
+		if (snd_ctl_pcm_info(handle, dev_info) == 0) {
+			struct cras_iodev *iodev =
+				create_iodev_for_device(
+						alsa_card,
 						info,
 						card_name,
 						snd_pcm_info_get_name(dev_info),
 						snd_pcm_info_get_id(dev_info),
 						dev_idx,
 						CRAS_STREAM_INPUT);
+			if (iodev) {
+				rc = alsa_iodev_legacy_complete_init(iodev);
+				if (rc < 0)
+					goto error_bail;
+			}
+		}
 	}
 
 	n = alsa_card->hctl ?

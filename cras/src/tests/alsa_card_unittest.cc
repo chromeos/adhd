@@ -24,6 +24,7 @@ static struct cras_alsa_mixer *cras_alsa_mixer_create_return;
 static size_t cras_alsa_mixer_destroy_called;
 static size_t cras_alsa_iodev_create_called;
 static struct cras_iodev *cras_alsa_iodev_create_return;
+static size_t cras_alsa_iodev_legacy_complete_init_called;
 static size_t cras_alsa_iodev_destroy_called;
 static struct cras_iodev *cras_alsa_iodev_destroy_arg;
 static size_t cras_alsa_iodev_index_called;
@@ -79,6 +80,7 @@ static void ResetStubData() {
   cras_alsa_mixer_destroy_called = 0;
   cras_alsa_iodev_create_called = 0;
   cras_alsa_iodev_create_return = reinterpret_cast<struct cras_iodev *>(2);
+  cras_alsa_iodev_legacy_complete_init_called = 0;
   cras_alsa_iodev_destroy_called = 0;
   cras_alsa_iodev_index_called = 0;
   cras_alsa_iodev_index_return = 0;
@@ -312,6 +314,7 @@ TEST(AlsaCard, CreateNoDevices) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(1, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(1, cras_alsa_card_get_index(c));
 
   cras_alsa_card_destroy(c);
@@ -353,6 +356,7 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(1, ucm_create_called);
@@ -390,6 +394,7 @@ TEST(AlsaCard, CreateOneOutputBlacklisted) {
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
 
   cras_alsa_card_destroy(c);
@@ -417,6 +422,7 @@ TEST(AlsaCard, CreateTwoOutputs) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(2, cras_alsa_iodev_create_called);
+  EXPECT_EQ(2, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(1, cras_alsa_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
@@ -446,6 +452,7 @@ TEST(AlsaCard, CreateTwoDuplicateDeviceIndex) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(2, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(1, cras_alsa_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
@@ -475,6 +482,7 @@ TEST(AlsaCard, CreateOneInput) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
 
@@ -503,6 +511,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutput) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(2, cras_alsa_iodev_create_called);
+  EXPECT_EQ(2, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
 
@@ -531,6 +540,7 @@ TEST(AlsaCard, CreateOneInputAndOneOutputTwoDevices) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(3, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(2, cras_alsa_iodev_create_called);
+  EXPECT_EQ(2, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
 
@@ -574,6 +584,7 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(0, cras_alsa_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(1, ucm_create_called);
@@ -651,6 +662,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 void alsa_iodev_destroy(struct cras_iodev *iodev) {
   cras_alsa_iodev_destroy_called++;
   cras_alsa_iodev_destroy_arg = iodev;
+}
+int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev) {
+  cras_alsa_iodev_legacy_complete_init_called++;
+  return 0;
 }
 unsigned alsa_iodev_index(struct cras_iodev *iodev) {
   cras_alsa_iodev_index_called++;

@@ -13,6 +13,7 @@
 
 struct cras_alsa_mixer;
 struct cras_ionode;
+struct ucm_section;
 
 /* Initializes an alsa iodev.
  * Args:
@@ -45,6 +46,35 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
 				     size_t usb_pid);
+
+/* Complete initializeation of this iodev with the legacy method.
+ * Add IO nodes and find jacks for this iodev with magic sauce, then choose
+ * the current active node.
+ * Args:
+ *    iodev - ALSA io device associated with the IO nodes.
+ *    section - UCM section information if available (or NULL).
+ * Returns:
+ *    0 for success, negative error code on error.
+ */
+int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev);
+
+/* Add IO nodes and jacks for this iodev using UCM data.
+ * Args:
+ *    iodev - ALSA io device associated with the given section.
+ *    section - UCM section information.
+ * Returns:
+ *    0 for success, negative error code on error.
+ */
+int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
+				       struct ucm_section *section);
+
+/* Complete initialization of this iodev with fully-spec UCM data.
+ * After all UCM devices associated with the same iodev have been processed
+ * this is called to finish iodev setup.
+ * Args:
+ *    iodev - ALSA io device.
+ */
+void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev);
 
 /* Destroys an alsa_iodev created with alsa_iodev_create. */
 void alsa_iodev_destroy(struct cras_iodev *iodev);

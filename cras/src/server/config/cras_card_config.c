@@ -108,6 +108,6 @@ struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
 		return create_simple_step_curve(card_config, control_name);
 	if (curve_type && strcmp(curve_type, "explicit") == 0)
 		return create_explicit_curve(card_config, control_name);
-	syslog(LOG_INFO, "No configure curve found for %s.", control_name);
+	syslog(LOG_DEBUG, "No configure curve found for %s.", control_name);
 	return cras_volume_curve_create_default();
 }
