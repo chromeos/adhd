@@ -335,4 +335,15 @@ const char *ucm_get_jack_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
  */
 const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
 
+/* Gets the period frames for the given device.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check.
+ * Returns:
+ *    A value > 0, or 0 if no period is defined.
+ */
+unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
+					   const char *dev);
+
 #endif /* _CRAS_ALSA_UCM_H */

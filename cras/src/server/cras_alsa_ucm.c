@@ -24,6 +24,7 @@ static const char input_dsp_name_var[] = "InputDspName";
 static const char mixer_var[] = "MixerName";
 static const char swap_mode_suffix[] = "Swap Mode";
 static const char min_buffer_level_var[] = "MinBufferLevel";
+static const char period_frames_var[] = "PeriodFrames";
 static const char disable_software_volume[] = "DisableSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char capture_device_name_var[] = "CapturePCM";
@@ -853,4 +854,15 @@ const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 		return NULL;
 	}
 	return name;
+}
+
+unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
+					   const char *dev)
+{
+	int value;
+
+	int rc = get_int(mgr, period_frames_var, dev, default_verb, &value);
+	if (rc || value < 0)
+		return 0;
+	return value;
 }

@@ -131,6 +131,8 @@ static long cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 static snd_pcm_state_t snd_pcm_state_ret;
 static int cras_alsa_attempt_resume_called;
 static snd_hctl_t *fake_hctl = (snd_hctl_t *)2;
+static size_t ucm_get_period_frames_for_dev_called;
+static unsigned int ucm_get_period_frames_for_dev_ret;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -205,6 +207,8 @@ void ResetStubData() {
   cras_alsa_mixer_get_maximum_capture_gain_ret_value = 0;
   snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
   cras_alsa_attempt_resume_called = 0;
+  ucm_get_period_frames_for_dev_called = 0;
+  ucm_get_period_frames_for_dev_ret = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -918,6 +922,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
     static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
   cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
+  ucm_get_period_frames_for_dev_ret = 48;
 
   // Create the IO device.
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -959,6 +964,8 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_output_volume_curve_called);
+  EXPECT_EQ(1, ucm_get_period_frames_for_dev_called);
+  EXPECT_EQ(ucm_get_period_frames_for_dev_ret, aio->period_frames);
 
   aio->handle = (snd_pcm_t *)0x24;
 
@@ -1142,6 +1149,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   EXPECT_EQ(1, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, sys_set_capture_gain_limits_called);
   EXPECT_EQ(2, cras_iodev_add_node_called);
+  EXPECT_EQ(2, ucm_get_period_frames_for_dev_called);
+  EXPECT_EQ(0, aio->period_frames);
 
   aio->handle = (snd_pcm_t *)0x24;
 
@@ -1719,7 +1728,8 @@ int cras_alsa_fill_properties(const char *dev,
   return 0;
 }
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
-			   snd_pcm_uframes_t *buffer_size, int period_wakeup)
+			   snd_pcm_uframes_t *buffer_size, int period_wakeup,
+			   unsigned int period_frames)
 {
   return 0;
 }
@@ -2109,6 +2119,13 @@ char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
 int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
 {
   return 0;
+}
+
+unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
+                                           const char *dev)
+{
+  ucm_get_period_frames_for_dev_called++;
+  return ucm_get_period_frames_for_dev_ret;
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)

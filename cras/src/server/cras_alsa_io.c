@@ -115,6 +115,7 @@ struct alsa_io {
 	snd_pcm_uframes_t mmap_offset;
 	const char *dsp_name_default;
 	int poll_fd;
+	unsigned int period_frames;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -210,8 +211,10 @@ static int open_dev(struct cras_iodev *iodev)
 
 	/* If it's a wake on voice device, period_wakeups are required. */
 	period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD);
+
 	rc = cras_alsa_set_hwparams(handle, iodev->format,
-				    &iodev->buffer_size, period_wakeup);
+				    &iodev->buffer_size, period_wakeup,
+				    aio->period_frames);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
 		return rc;
@@ -423,7 +426,8 @@ static int update_channel_layout(struct cras_iodev *iodev)
 
 	/* Sets frame rate and channel count to alsa device before
 	 * we test channel mapping. */
-	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size, 0);
+	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size, 0,
+				     aio->period_frames);
 	if (err < 0) {
 		cras_alsa_pcm_close(handle);
 		return err;
@@ -1576,6 +1580,12 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 
 	/* This iodev is fully specified. Avoid automatic node creation. */
 	aio->fully_specified = 1;
+
+	/* Check here in case the PeriodFrames flag has only been specified
+	 * on one of many device entries with the same PCM. */
+	if (!aio->period_frames)
+		aio->period_frames = ucm_get_period_frames_for_dev(
+						aio->ucm, section->name);
 
 	/* Create a node matching this section. If there is a matching
 	 * control use that, otherwise make a node without a control. */
