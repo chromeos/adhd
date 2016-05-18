@@ -335,6 +335,21 @@ const char *ucm_get_jack_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
  */
 const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
 
+/* Gets the jack switch number for this device.
+ * Some sound cards can detect multiple types of connections into the
+ * audio jack - for example distinguish between line-out and headphones
+ * by measuring the impedance on the other end. In that case we want each
+ * jack to have it's own I/O node so that each can have it's own volume
+ * settings. This allows us to specify the jack used more exactly.
+ * Valid values are defined in /usr/include/linux/input.h.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check.
+ * Returns:
+ *    A value >= 0 when the switch is defined, or -1 otherwise.
+ */
+int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
+
 /* Gets the period frames for the given device.
  *
  * Args:

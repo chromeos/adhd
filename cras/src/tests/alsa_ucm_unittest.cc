@@ -1020,6 +1020,7 @@ TEST(AlsaUcm, GetSections) {
     "=PlaybackPCM/Headphone/HiFi",
     "=JackName/Headphone/HiFi",
     "=JackType/Headphone/HiFi",
+    "=JackSwitch/Headphone/HiFi",
     "=CoupledMixers/Headphone/HiFi",
 
     "=PlaybackPCM/Speaker/HiFi",
@@ -1028,10 +1029,12 @@ TEST(AlsaUcm, GetSections) {
     "=CapturePCM/Mic/HiFi",
     "=JackName/Mic/HiFi",
     "=JackType/Mic/HiFi",
+    "=JackSwitch/Mic/HiFi",
     "=MixerName/Mic/HiFi",
 
     "=CapturePCM/Internal Mic/HiFi",
     "=CoupledMixers/Internal Mic/HiFi",
+    "=JackSwitch/Internal Mic/HiFi",
 
     "=PlaybackPCM/HDMI/HiFi",
     "=MixerName/HDMI/HiFi",
@@ -1042,6 +1045,7 @@ TEST(AlsaUcm, GetSections) {
     "hw:my-sound-card,0",
     "my-sound-card Headset Jack",
     "gpio",
+    "2",
     "HP-L,HP-R",
 
     "hw:my-sound-card,0",
@@ -1050,10 +1054,12 @@ TEST(AlsaUcm, GetSections) {
     "hw:my-sound-card,0",
     "my-sound-card Headset Jack",
     "gpio",
+    "0",
     "CAPTURE",
 
     "hw:my-sound-card,0",
     "MIC-L,MIC-R",
+    "-10",
 
     "hw:my-sound-card,2",
     "HDMI",
@@ -1090,6 +1096,7 @@ TEST(AlsaUcm, GetSections) {
   m_name = m_name->next;
   EXPECT_EQ(0, strcmp(m_name->name, "HP-R"));
   EXPECT_EQ(NULL, m_name->next);
+  EXPECT_EQ(2, section->jack_switch);
 
   // Speaker
   section = section->next;
@@ -1098,6 +1105,7 @@ TEST(AlsaUcm, GetSections) {
   EXPECT_EQ(CRAS_STREAM_OUTPUT, section->dir);
   EXPECT_EQ(NULL, section->jack_name);
   EXPECT_EQ(NULL, section->jack_type);
+  EXPECT_EQ(-1, section->jack_switch);
   EXPECT_EQ(NULL, section->mixer_name);
   ASSERT_NE((struct mixer_name*)NULL, section->coupled);
   m_name = section->coupled;
@@ -1113,6 +1121,7 @@ TEST(AlsaUcm, GetSections) {
   EXPECT_EQ(CRAS_STREAM_INPUT, section->dir);
   EXPECT_EQ(0, strcmp(section->jack_name, values[1]));
   EXPECT_EQ(0, strcmp(section->jack_type, values[2]));
+  EXPECT_EQ(0, section->jack_switch);
   ASSERT_NE((const char *)NULL, section->mixer_name);
   EXPECT_EQ(0, strcmp(section->mixer_name, "CAPTURE"));
   EXPECT_EQ(NULL, section->coupled);
@@ -1124,6 +1133,7 @@ TEST(AlsaUcm, GetSections) {
   EXPECT_EQ(CRAS_STREAM_INPUT, section->dir);
   EXPECT_EQ(NULL, section->jack_name);
   EXPECT_EQ(NULL, section->jack_type);
+  EXPECT_EQ(-1, section->jack_switch);
   EXPECT_EQ(NULL, section->mixer_name);
   ASSERT_NE((struct mixer_name*)NULL, section->coupled);
   m_name = section->coupled;
@@ -1138,6 +1148,7 @@ TEST(AlsaUcm, GetSections) {
   EXPECT_EQ(CRAS_STREAM_OUTPUT, section->dir);
   EXPECT_EQ(NULL, section->jack_name);
   EXPECT_EQ(NULL, section->jack_type);
+  EXPECT_EQ(-1, section->jack_switch);
   ASSERT_NE((const char *)NULL, section->mixer_name);
   EXPECT_EQ(0, strcmp(section->mixer_name, "HDMI"));
 

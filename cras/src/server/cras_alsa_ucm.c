@@ -15,6 +15,7 @@
 static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
 static const char jack_type_var[] = "JackType";
+static const char jack_switch_var[] = "JackSwitch";
 static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
 static const char mic_positions[] = "MicPositions";
@@ -665,6 +666,9 @@ struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr)
 			goto error_cleanup;
 		}
 
+		dev_sec->jack_switch =
+			ucm_get_jack_switch_for_dev(mgr, dev_name);
+
 		if (mixer_name) {
 			rc = ucm_section_set_mixer_name(dev_sec, mixer_name);
 			free((void *)mixer_name);
@@ -854,6 +858,16 @@ const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 		return NULL;
 	}
 	return name;
+}
+
+int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+{
+	int value;
+
+	int rc = get_int(mgr, jack_switch_var, dev, default_verb, &value);
+	if (rc || value < 0)
+		return -1;
+	return value;
 }
 
 unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,

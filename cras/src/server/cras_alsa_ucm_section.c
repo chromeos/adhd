@@ -66,6 +66,8 @@ struct ucm_section *ucm_section_create(const char *name,
 		if (!section->jack_type)
 			goto error;
 	}
+	/* Default to -1 which means auto-detect. */
+	section->jack_switch = -1;
 
 	/* Make sure to initialize this item as a list. */
 	DL_APPEND(section_list, section);

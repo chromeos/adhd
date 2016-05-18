@@ -20,6 +20,8 @@ struct ucm_section {
 	enum CRAS_STREAM_DIRECTION dir;  /* Output or Input. */
 	const char *jack_name;           /* Associated jack's name. */
 	const char *jack_type;           /* Associated jack's type. */
+	int jack_switch;                 /* Switch number for jack from
+	                                  * linux/input.h, or -1. */
 	const char *mixer_name;          /* MixerName value. */
 	struct mixer_name *coupled;      /* CoupledMixers value. */
 	struct ucm_section *prev, *next;

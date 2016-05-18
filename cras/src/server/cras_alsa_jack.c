@@ -148,7 +148,7 @@ struct gpio_switch_list_data {
 #define LONG(x)			((x) / BITS_PER_LONG)
 #define IS_BIT_SET(bit, array)	!!((array[LONG(bit)]) & (1UL << OFF(bit)))
 
-static unsigned sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
+static int sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
 {
 	unsigned long bits[NBITS(SW_CNT)];
 	const unsigned long switch_no = sw;
@@ -339,8 +339,8 @@ report_jack_state:
 static void gpio_switch_initial_state(struct cras_alsa_jack *jack)
 {
 	unsigned v;
-	unsigned r = sys_input_get_switch_state(jack->gpio.fd,
-						jack->gpio.switch_event, &v);
+	int r = sys_input_get_switch_state(jack->gpio.fd,
+					   jack->gpio.switch_event, &v);
 	jack->gpio.current_state = r == 0 ? v : 0;
 	jack_state_change_cb(jack, 1);
 }
@@ -498,8 +498,12 @@ static int cras_complete_gpio_jack(struct gpio_switch_list_data *data,
 			jack->jack_list->ucm, jack->ucm_device, direction);
 	}
 
-	sys_input_get_switch_state(jack->gpio.fd, switch_event,
-				   &jack->gpio.current_state);
+	r = sys_input_get_switch_state(jack->gpio.fd, switch_event,
+				       &jack->gpio.current_state);
+	if (r < 0) {
+		cras_free_jack(jack, 0);
+		return -EIO;
+	}
 	r = cras_system_add_select_fd(jack->gpio.fd,
 				      gpio_switch_callback, jack);
 	if (r < 0) {
@@ -678,7 +682,11 @@ static int gpio_switches_monitor_device(struct gpio_switch_list_data *data,
 	int success = 1;
 	int rc = 0;
 
-	if (data->jack_list->direction == CRAS_STREAM_INPUT) {
+	if (data->section && data->section->jack_switch >= 0) {
+		switches = &data->section->jack_switch;
+		num_switches = 1;
+	}
+	else if (data->jack_list->direction == CRAS_STREAM_INPUT) {
 		switches = in_switches;
 		num_switches = ARRAY_SIZE(in_switches);
 	}
