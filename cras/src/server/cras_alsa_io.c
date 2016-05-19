@@ -52,7 +52,6 @@
  * predict the exact interval. */
 #define USB_EXTRA_BUFFER_FRAMES 768
 
-
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
@@ -95,6 +94,11 @@ struct alsa_input_node {
  * dsp_name_default - the default dsp name for the device. It can be overridden
  *     by the jack specific dsp name.
  * poll_fd - Descriptor used to block until data is ready.
+ * is_free_running - true if device is playing zeros in the buffer without
+ *                   user filling meaningful data. The device buffer is filled
+ *                   with zeros. In this state, appl_ptr remains the same
+ *                   while hw_ptr keeps running ahead.
+ * filled_zeros_for_draining - The number of zeros filled for draining.
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -116,6 +120,8 @@ struct alsa_io {
 	const char *dsp_name_default;
 	int poll_fd;
 	unsigned int period_frames;
+	int is_free_running;
+	unsigned int filled_zeros_for_draining;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -172,6 +178,8 @@ static int close_dev(struct cras_iodev *iodev)
 		return 0;
 	cras_alsa_pcm_close(aio->handle);
 	aio->handle = NULL;
+	aio->is_free_running = 0;
+	aio->filled_zeros_for_draining = 0;
 	cras_iodev_free_format(&aio->base);
 	cras_iodev_free_audio_area(&aio->base);
 	return 0;
@@ -199,6 +207,8 @@ static int open_dev(struct cras_iodev *iodev)
 	if (iodev->format == NULL)
 		return -EINVAL;
 	aio->num_underruns = 0;
+	aio->is_free_running = 0;
+	aio->filled_zeros_for_draining = 0;
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
@@ -1334,6 +1344,113 @@ static void enable_active_ucm(struct alsa_io *aio, int plugged)
 		ucm_set_enabled(aio->ucm, name, plugged);
 }
 
+static int fill_whole_buffer_with_zeros(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int rc;
+	uint8_t *dst = NULL;
+	size_t format_bytes;
+
+	/* Fill whole buffer with zeros. */
+	rc = cras_alsa_mmap_get_whole_buffer(
+			aio->handle, &dst, &aio->num_underruns);
+
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to get whole buffer: %s",
+		       snd_strerror(rc));
+		return rc;
+	}
+
+	format_bytes = cras_get_format_bytes(iodev->format);
+	memset(dst, 0, iodev->buffer_size * format_bytes);
+
+	return 0;
+}
+
+static int possibly_enter_free_run(struct cras_iodev *odev)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+	int rc;
+	unsigned int hw_level, fr_to_write;
+	unsigned int target_hw_level = odev->min_cb_level * 2;
+
+	if (aio->is_free_running)
+		return 0;
+
+	/* Check if all valid samples are played.
+	 * If all valid samples are played, fill whole buffer with zeros. */
+	rc = cras_iodev_frames_queued(odev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
+
+	if (hw_level < aio->filled_zeros_for_draining || hw_level == 0) {
+		rc = fill_whole_buffer_with_zeros(odev);
+		if (rc < 0)
+			return rc;
+		aio->is_free_running = 1;
+		return 0;
+	}
+
+	/* Fill some zeros to drain valid samples. */
+	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
+
+	if (hw_level <= target_hw_level) {
+		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
+		rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+		if (rc)
+			return rc;
+		aio->filled_zeros_for_draining += fr_to_write;
+	}
+
+	return 0;
+}
+
+static int leave_free_run(struct cras_iodev *odev)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+	int rc;
+
+	if (!aio->is_free_running)
+		return 0;
+
+	/* Move appl_ptr to min_buffer_level + min_cb_level frames ahead of
+	 * hw_ptr when resuming from free run. */
+	rc = cras_alsa_resume_appl_ptr(
+			aio->handle,
+			odev->min_buffer_level + odev->min_cb_level);
+	if (rc) {
+		syslog(LOG_ERR, "device %s failed to leave free run, rc = %d",
+		       odev->info.name, rc);
+		return rc;
+	}
+	aio->is_free_running = 0;
+	aio->filled_zeros_for_draining = 0;
+
+	return 0;
+}
+
+/* Free run state is the optimization of no_stream playback on alsa_io.
+ * The whole buffer will be filled with zeros. Device can play these zeros
+ * indefinitely. When there is new meaningful sample, appl_ptr should be
+ * resumed to some distance ahead of hw_ptr. */
+static int no_stream(struct cras_iodev *odev, int enable)
+{
+	if (enable)
+		return possibly_enter_free_run(odev);
+	else
+		return leave_free_run(odev);
+}
+
+static int output_should_wake(const struct cras_iodev *odev)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+	if (aio->is_free_running)
+		return 0;
+	else
+		return dev_running(odev);
+}
+
 /*
  * Exported Interface.
  */
@@ -1379,6 +1496,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		if (!aio->dev_id)
 			goto cleanup_iodev;
 	}
+	aio->is_free_running = 0;
+	aio->filled_zeros_for_draining = 0;
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
 	if (aio->dev == NULL)
 		goto cleanup_iodev;
@@ -1412,6 +1531,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->update_channel_layout = update_channel_layout;
 	iodev->set_hotword_model = set_hotword_model;
 	iodev->get_hotword_models = get_hotword_models;
+	iodev->no_stream = cras_iodev_default_no_stream_playback;
+
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
@@ -1442,7 +1563,16 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		level = ucm_get_min_buffer_level(ucm);
 		if (level && direction == CRAS_STREAM_OUTPUT)
 			iodev->min_buffer_level = level;
-	}
+
+		if (ucm_get_optimize_no_stream_flag(ucm) &&
+		    direction == CRAS_STREAM_OUTPUT) {
+			syslog(LOG_DEBUG, "Use no_stream ops on %s:%s",
+			       card_name, dev_name);
+			iodev->no_stream = no_stream;
+			iodev->output_should_wake = output_should_wake;
+		}
+        }
+
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
 		       card_type, usb_vid, usb_pid);
 

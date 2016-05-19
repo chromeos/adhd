@@ -20,6 +20,8 @@ extern "C" {
 #include "cras_alsa_io.c"
 }
 
+#define BUFFER_SIZE 8192
+
 //  Data for simulating functions stubbed below.
 static int cras_alsa_open_called;
 static int cras_iodev_append_stream_ret;
@@ -133,6 +135,14 @@ static int cras_alsa_attempt_resume_called;
 static snd_hctl_t *fake_hctl = (snd_hctl_t *)2;
 static size_t ucm_get_period_frames_for_dev_called;
 static unsigned int ucm_get_period_frames_for_dev_ret;
+static int cras_alsa_mmap_get_whole_buffer_called;
+static int cras_iodev_fill_odev_zeros_called;
+static unsigned int cras_iodev_fill_odev_zeros_frames;
+static int cras_iodev_frames_queued_ret;
+static int cras_iodev_buffer_avail_ret;
+static int cras_alsa_resume_appl_ptr_called;
+static int cras_alsa_resume_appl_ptr_ahead;
+static int ucm_get_optimize_no_stream_flag_ret;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -209,6 +219,14 @@ void ResetStubData() {
   cras_alsa_attempt_resume_called = 0;
   ucm_get_period_frames_for_dev_called = 0;
   ucm_get_period_frames_for_dev_ret = 0;
+  cras_alsa_mmap_get_whole_buffer_called = 0;
+  cras_iodev_fill_odev_zeros_called = 0;
+  cras_iodev_fill_odev_zeros_frames = 0;
+  cras_iodev_frames_queued_ret = 0;
+  cras_iodev_buffer_avail_ret = 0;
+  cras_alsa_resume_appl_ptr_called = 0;
+  cras_alsa_resume_appl_ptr_ahead = 0;
+  ucm_get_optimize_no_stream_flag_ret = 0;
 }
 
 static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
@@ -259,6 +277,7 @@ TEST(AlsaIoInit, InitializePlayback) {
 TEST(AlsaIoInit, DefaultNodeInternalCard) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -269,6 +288,9 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void *)cras_iodev_default_no_stream_playback,
+            (void *)aio->base.no_stream);
+  ASSERT_EQ(NULL, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -279,6 +301,9 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("Speaker", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void *)cras_iodev_default_no_stream_playback,
+            (void *)aio->base.no_stream);
+  ASSERT_EQ(NULL, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -299,6 +324,17 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("Internal Mic", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
+  alsa_iodev_destroy((struct cras_iodev *)aio);
+
+  /* Enables no_stream ops. */
+  ucm_get_optimize_no_stream_flag_ret = 1;
+  aio = (struct alsa_io *)alsa_iodev_create(
+                                            0, test_card_name, 0, test_dev_name,
+                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                                            fake_mixer, fake_ucm, fake_hctl,
+                                            CRAS_STREAM_OUTPUT, 0, 0);
+  ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
+  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
@@ -337,6 +373,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
 TEST(AlsaIoInit, OpenPlayback) {
   struct cras_iodev *iodev;
   struct cras_audio_format format;
+  struct alsa_io *aio;
 
   ResetStubData();
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -345,10 +382,15 @@ TEST(AlsaIoInit, OpenPlayback) {
                             CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
 
+  aio = (struct alsa_io *)iodev;
   cras_iodev_set_format(iodev, &format);
   fake_curve =
       static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
   fake_curve->get_dBFS = fake_get_dBFS;
+
+  // Test that these flags are cleared after open_dev.
+  aio->is_free_running = 1;
+  aio->filled_zeros_for_draining = 512;
 
   iodev->open_dev(iodev);
   EXPECT_EQ(1, cras_alsa_open_called);
@@ -356,6 +398,8 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
+  EXPECT_EQ(0, aio->is_free_running);
+  EXPECT_EQ(0, aio->filled_zeros_for_draining);
 
   alsa_iodev_destroy(iodev);
   free(fake_curve);
@@ -1645,6 +1689,172 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   free(fmt);
 }
 
+//  Test free run.
+class AlsaFreeRunTestSuite: public testing::Test {
+  protected:
+    virtual void SetUp() {
+      ResetStubData();
+      memset(&aio, 0, sizeof(aio));
+      fmt_.format = SND_PCM_FORMAT_S16_LE;
+      fmt_.frame_rate = 48000;
+      fmt_.num_channels = 2;
+      aio.base.format = &fmt_;
+      aio.base.buffer_size = BUFFER_SIZE;
+      aio.base.min_cb_level = 240;
+    }
+
+    virtual void TearDown() {
+    }
+
+  struct alsa_io aio;
+  struct cras_audio_format fmt_;
+};
+
+TEST_F(AlsaFreeRunTestSuite, FillWholeBufferWithZeros) {
+  int rc;
+  int16_t *zeros;
+
+  cras_alsa_mmap_begin_buffer = (uint8_t *)calloc(
+      BUFFER_SIZE * 2 * 2,
+      sizeof(*cras_alsa_mmap_begin_buffer));
+  memset(cras_alsa_mmap_begin_buffer, 0xff,
+         sizeof(*cras_alsa_mmap_begin_buffer));
+
+  rc = fill_whole_buffer_with_zeros(&aio.base);
+
+  EXPECT_EQ(0, rc);
+  zeros = (int16_t *)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
+  EXPECT_EQ(0, memcmp(zeros, cras_alsa_mmap_begin_buffer, BUFFER_SIZE * 2 * 2));
+
+  free(zeros);
+  free(cras_alsa_mmap_begin_buffer);
+}
+
+TEST_F(AlsaFreeRunTestSuite, EnterFreeRunAlreadyFreeRunning) {
+  int rc;
+
+  // Device is in free run state, no need to fill zeros or fill whole buffer.
+  aio.is_free_running = 1;
+
+  rc = no_stream(&aio.base, 1);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
+  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_frames);
+}
+
+TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
+  int rc;
+
+  // Device is not in free run state. There are still valid samples to play.
+  // The number of valid samples is less than min_cb_level * 2.
+  // Need to fill zeros targeting min_cb_level * 2 = 480.
+  // The number of zeros to be filled is 480 - 200 = 280.
+  cras_iodev_frames_queued_ret = 200;
+  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+
+  rc = no_stream(&aio.base, 1);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
+  EXPECT_EQ(1, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(280, cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(280, aio.filled_zeros_for_draining);
+  EXPECT_EQ(0, aio.is_free_running);
+}
+
+TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNoNeedToFillZeros) {
+  int rc;
+
+  // Device is not in free run state. There are still valid samples to play.
+  // The number of valid samples is more than min_cb_level * 2.
+  // No need to fill zeros.
+  cras_iodev_frames_queued_ret = 500;
+  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+
+  rc = no_stream(&aio.base, 1);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
+  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(0, aio.is_free_running);
+}
+
+TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
+  int rc;
+
+  // Device is not in free run state. There are still valid samples to play.
+  // The number of valid samples is less than filled zeros.
+  // Should enter free run state and fill whole buffer with zeros.
+  cras_iodev_frames_queued_ret = 40;
+  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+  aio.filled_zeros_for_draining = 100;
+
+  rc = no_stream(&aio.base, 1);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_mmap_get_whole_buffer_called);
+  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(1, aio.is_free_running);
+}
+
+TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
+  int rc;
+
+  // Device is not in free run state. There is no sample to play.
+  // Should enter free run state and fill whole buffer with zeros.
+  cras_iodev_frames_queued_ret = 0;
+  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+
+  rc = no_stream(&aio.base, 1);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_mmap_get_whole_buffer_called);
+  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(1, aio.is_free_running);
+}
+
+TEST_F(AlsaFreeRunTestSuite, OutputShouldWake) {
+
+  aio.is_free_running = 1;
+
+  EXPECT_EQ(0, output_should_wake(&aio.base));
+
+  aio.is_free_running = 0;
+  snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
+  EXPECT_EQ(1, output_should_wake(&aio.base));
+
+  snd_pcm_state_ret = SND_PCM_STATE_OPEN;
+  EXPECT_EQ(0, output_should_wake(&aio.base));
+}
+
+TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRun) {
+  int rc;
+
+  rc = no_stream(&aio.base, 0);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_alsa_resume_appl_ptr_called);
+}
+
+TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
+  int rc;
+
+  aio.is_free_running = 1;
+  aio.filled_zeros_for_draining = 100;
+  aio.base.min_buffer_level = 512;
+
+  rc = no_stream(&aio.base, 0);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
+  EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
+            cras_alsa_resume_appl_ptr_ahead);
+  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.filled_zeros_for_draining);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -2098,6 +2308,11 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
   return 0;
 }
 
+unsigned int ucm_get_optimize_no_stream_flag(snd_use_case_mgr_t *mgr)
+{
+  return ucm_get_optimize_no_stream_flag_ret;
+}
+
 unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
 {
   return 0;
@@ -2212,6 +2427,23 @@ int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
   return 0;
 }
 
+int cras_iodev_frames_queued(struct cras_iodev *iodev)
+{
+  return cras_iodev_frames_queued_ret;
+}
+
+int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
+{
+  return cras_iodev_buffer_avail_ret;
+}
+
+int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+{
+  cras_iodev_fill_odev_zeros_called++;
+  cras_iodev_fill_odev_zeros_frames = frames;
+  return 0;
+}
+
 void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 					 const struct cras_audio_format *fmt,
 					 uint8_t *base_buffer)
@@ -2229,6 +2461,27 @@ void audio_thread_rm_callback(int fd)
 int is_utf8_string(const char* string)
 {
   return is_utf8_string_ret_value;
+}
+
+int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
+				    unsigned int *underruns)
+{
+  snd_pcm_uframes_t offset, frames;
+
+  cras_alsa_mmap_get_whole_buffer_called++;
+  return cras_alsa_mmap_begin(handle, 0, dst, &offset, &frames, underruns);
+}
+
+int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
+{
+  cras_alsa_resume_appl_ptr_called++;
+  cras_alsa_resume_appl_ptr_ahead = ahead;
+  return 0;
+}
+
+int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
+{
+  return 0;
 }
 
 }

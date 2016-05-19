@@ -69,6 +69,9 @@ static uint8_t audio_buffer[BUFFER_SIZE];
 static struct cras_audio_area *audio_area;
 static int dev_running_ret_value;
 static unsigned int put_buffer_nframes;
+static int output_should_wake_ret;
+static int no_stream_called;
+static int no_stream_enable;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -133,6 +136,9 @@ void ResetStubData() {
   }
   dev_running_ret_value = 0;
   put_buffer_nframes = 0;
+  output_should_wake_ret= 0;
+  no_stream_called = 0;
+  no_stream_enable = 0;
 }
 
 namespace {
@@ -479,6 +485,19 @@ static int put_buffer(struct cras_iodev *iodev, unsigned int nframes)
     audio_area = NULL;
   }
   return 0;
+}
+
+static int no_stream(struct cras_iodev *odev, int enable)
+{
+  no_stream_called++;
+  no_stream_enable = enable;
+  // Use default no stream playback to test default behavior.
+  return cras_iodev_default_no_stream_playback(odev, enable);
+}
+
+static int output_should_wake(const struct cras_iodev *odev)
+{
+  return output_should_wake_ret;
 }
 
 static int pre_dsp_hook(const uint8_t *frames, unsigned int nframes,
@@ -861,6 +880,23 @@ static int open_dev(struct cras_iodev *iodev) {
   return 0;
 }
 
+TEST(IoDev, OpenDevice) {
+  struct cras_iodev iodev;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.open_dev = open_dev;
+  ResetStubData();
+
+  // Test that this flag is cleared after cras_iodev_open.
+  iodev.no_stream_state = 1;
+
+  iodev_buffer_size = 1024;
+  cras_iodev_open(&iodev, 240);
+  EXPECT_EQ(0, iodev.max_cb_level);
+  EXPECT_EQ(240, iodev.min_cb_level);
+  EXPECT_EQ(0, iodev.no_stream_state);
+}
+
 TEST(IoDev, AddRmStream) {
   struct cras_iodev iodev;
   struct cras_rstream rstream1, rstream2;
@@ -965,7 +1001,7 @@ TEST(IoDev, NoStreamPlaybackNotRunning) {
   iodev.dev_running = dev_running;
 
   // Device is not running. No need to fill zeros.
-  rc = cras_iodev_no_stream_playback(&iodev);
+  rc = cras_iodev_no_stream_playback(&iodev, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, put_buffer_nframes);
 }
@@ -993,6 +1029,9 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   iodev.min_buffer_level = 0;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.buffer_size = BUFFER_SIZE;
+  iodev.no_stream = no_stream;
+
+  ResetStubData();
 
   // Device is running. hw_level is less than target.
   // Need to fill to callback level * 2;
@@ -1000,9 +1039,12 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   fr_queued = hw_level;
   zeros_to_fill = min_cb_level * 2 - hw_level;
 
-  rc = cras_iodev_no_stream_playback(&iodev);
+  rc = cras_iodev_no_stream_playback(&iodev, 1);
 
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, no_stream_called);
+  EXPECT_EQ(1, no_stream_enable);
+  EXPECT_EQ(1, iodev.no_stream_state);
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
   zeros = (int16_t *)calloc(zeros_to_fill * 2, sizeof(*zeros));
   EXPECT_EQ(0, memcmp(audio_buffer, zeros, zeros_to_fill * 2 * 2));
@@ -1017,9 +1059,22 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   fr_queued = hw_level;
   zeros_to_fill = 0;
 
-  rc = cras_iodev_no_stream_playback(&iodev);
+  rc = cras_iodev_no_stream_playback(&iodev, 1);
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, no_stream_called);
+  EXPECT_EQ(1, no_stream_enable);
+  EXPECT_EQ(1, iodev.no_stream_state);
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
+
+  ResetStubData();
+
+  // Device is running. Resume normal playback.
+  dev_running_ret_value = 1;
+  rc = cras_iodev_no_stream_playback(&iodev, 0);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, no_stream_called);
+  EXPECT_EQ(0, no_stream_enable);
+  EXPECT_EQ(0, iodev.no_stream_state);
 }
 
 TEST(IoDev, OutputDeviceShouldWake) {
@@ -1038,6 +1093,17 @@ TEST(IoDev, OutputDeviceShouldWake) {
 
   // Device is running. Need to wake for this device.
   dev_running_ret_value = 1;
+  rc = cras_iodev_odev_should_wake(&iodev);
+  EXPECT_EQ(1, rc);
+
+  // Device is running. Device has output_should_wake ops.
+  iodev.output_should_wake = output_should_wake;
+  output_should_wake_ret = 0;
+  rc = cras_iodev_odev_should_wake(&iodev);
+  EXPECT_EQ(0, rc);
+
+  // Device is running. Device has output_should_wake ops.
+  output_should_wake_ret = 1;
   rc = cras_iodev_odev_should_wake(&iodev);
   EXPECT_EQ(1, rc);
 

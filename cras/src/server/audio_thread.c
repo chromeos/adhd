@@ -606,6 +606,42 @@ static int fetch_streams(struct audio_thread *thread,
 	return 0;
 }
 
+/* Gets the number of frames ready for this device to play.
+ * It is the minimum number of available samples in dev_streams.
+ */
+static unsigned int dev_playback_frames(struct audio_thread *thread,
+			       struct open_dev* adev)
+{
+	struct dev_stream *curr;
+	int frames = 0;
+
+	DL_FOREACH(adev->dev->streams, curr) {
+		int dev_frames;
+
+		/* If this is a single output dev stream, updates the latest
+		 * number of frames for playback. */
+		if (dev_stream_attached_devs(curr) == 1)
+			dev_stream_update_frames(curr);
+
+		dev_frames = dev_stream_playback_frames(curr);
+		/* Do not handle stream error or end of draining in this
+		 * function because they should be handled in write_streams. */
+		if (dev_frames < 0)
+			continue;
+		if (!dev_frames) {
+			if(cras_rstream_get_is_draining(curr->stream))
+				continue;
+			else
+				return 0;
+		}
+		if (frames == 0)
+			frames = dev_frames;
+		else
+			frames = MIN(dev_frames, frames);
+	}
+	return frames;
+}
+
 /* Fill the buffer with samples from the attached streams.
  * Args:
  *    thread - The thread object the device is attached to.
@@ -1096,7 +1132,20 @@ static int write_output_samples(struct audio_thread *thread,
 
 	/* Let device handle playback when there is no stream. */
 	if (!odev->streams)
-		return cras_iodev_no_stream_playback(odev);
+		return cras_iodev_no_stream_playback(odev, 1);
+
+	if (odev->no_stream_state) {
+		/* If there is sample ready in dev_stream, let device resume
+		 * normal playback from no stream playback state if needed. */
+		if (dev_playback_frames(thread, adev)) {
+			cras_iodev_no_stream_playback(odev, 0);
+		} else {
+			/* If device is in no stream state, and the sample of
+			 * the newly attached stream is not ready yet,
+			 * keep device in no stream playback. */
+			return cras_iodev_no_stream_playback(odev, 1);
+		}
+	}
 
 	rc = cras_iodev_frames_queued(odev);
 	if (rc < 0)

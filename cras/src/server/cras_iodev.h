@@ -91,6 +91,16 @@ struct cras_ionode {
  * dev_running - Checks if the device is playing or recording, return 1 if it's
  *     running, return 0 if not.
  * start - Starts running device.
+ * no_stream - (Optional) When there is no stream, we let device keep running
+ *             for some time to save the time to open device for the next
+ *             stream. This is the no stream state of an output device.
+ *             The default action of no stream state is to fill zeros
+ *             periodically. Device can implement this function to define
+ *             its own optimization of entering/exiting no stream state.
+ * output_should_wake - (Optional) Checks if audio thread should schedule a
+ *                      wake for this output device. The default condition is
+ *                      whether the device is running. Device can implement this
+ *                      function to use its own condition.
  * update_active_node - Update the active node when the selected device/node has
  *     changed.
  * update_channel_layout - Update the channel layout base on set iodev->format,
@@ -117,6 +127,7 @@ struct cras_ionode {
  * is_enabled - True if this iodev is enabled, false otherwise.
  * software_volume_needed - True if volume control is not supported by hardware.
  * streams - List of audio streams serviced by dev.
+ * no_stream_state - Flag to indicate the device is in no stream state.
  * min_cb_level - min callback level of any stream attached.
  * max_cb_level - max callback level of any stream attached.
  * buf_state - If multiple streams are writing to this device, then this
@@ -150,6 +161,8 @@ struct cras_iodev {
 	int (*flush_buffer)(struct cras_iodev *iodev);
 	int (*dev_running)(const struct cras_iodev *iodev);
 	int (*start)(const struct cras_iodev *iodev);
+	int (*output_should_wake)(const struct cras_iodev *iodev);
+	int (*no_stream)(struct cras_iodev *iodev, int enable);
 	void (*update_active_node)(struct cras_iodev *iodev,
 				   unsigned node_idx, unsigned dev_enabled);
 	int (*update_channel_layout)(struct cras_iodev *iodev);
@@ -174,6 +187,7 @@ struct cras_iodev {
 	int is_enabled;
 	int software_volume_needed;
 	struct dev_stream *streams;
+	int no_stream_state;
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
 	struct buffer_share *buf_state;
@@ -495,7 +509,26 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
  */
 int cras_iodev_odev_should_wake(const struct cras_iodev *odev);
 
-/* Let device handle no stream playback. */
-int cras_iodev_no_stream_playback(struct cras_iodev *iodev);
+/* Let device enter/leave no stream playback.
+ * Args:
+ *    iodev[in] - The output device.
+ *    enable[in] - 1 to enter no stream playback, 0 to leave.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_no_stream_playback(struct cras_iodev *iodev, int enable);
+
+/* The default implementation of no_stream ops.
+ * The default behavior is to fill some zeros when entering no stream state.
+ * Note that when a device in no stream state enters into no stream state again,
+ * device needs to fill some zeros again.
+ * Do nothing to leave no stream state.
+ * Args:
+ *    iodev[in] - The output device.
+ *    enable[in] - 1 to enter no stream playback, 0 to leave.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ * */
+int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable);
 
 #endif /* CRAS_IODEV_H_ */

@@ -366,6 +366,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->update_active_node = update_active_node;
 	iodev->software_volume_needed = 1;
 	iodev->set_volume = set_bt_volume;
+	iodev->no_stream = cras_iodev_default_no_stream_playback;
 
 	/* Create the dummy node set to plugged so it's the only node exposed
 	 * to UI, and point it to the first profile dev. */

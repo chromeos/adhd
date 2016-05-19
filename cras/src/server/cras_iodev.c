@@ -34,6 +34,27 @@ static const double rate_estimation_smooth_factor = 0.9f;
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev);
 
+static int default_no_stream_playback(struct cras_iodev *odev)
+{
+	int rc;
+	unsigned int hw_level, fr_to_write;
+	unsigned int target_hw_level = odev->min_cb_level * 2;
+
+	/* The default action for no stream playback is to fill zeros. */
+	rc = cras_iodev_frames_queued(odev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
+
+	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
+
+	if (hw_level <= target_hw_level) {
+		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
+		return cras_iodev_fill_odev_zeros(odev, fr_to_write);
+	}
+	return 0;
+}
+
 /*
  * Exported Interface.
  */
@@ -572,6 +593,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;
+	iodev->no_stream_state = 0;
 
 	return 0;
 }
@@ -782,10 +804,12 @@ int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 {
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return 0;
-	if (odev->dev_running(odev))
-		return 1;
+
+	if (odev->output_should_wake)
+		return odev->output_should_wake(odev);
+
 	/* Do not wake up for device not started yet. */
-	return 0;
+	return odev->dev_running(odev);
 }
 
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
@@ -812,26 +836,26 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
 		return 0;
 }
 
-int cras_iodev_no_stream_playback(struct cras_iodev *odev)
+int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
+{
+	if (enable)
+		return default_no_stream_playback(odev);
+	return 0;
+}
+
+int cras_iodev_no_stream_playback(struct cras_iodev *odev, int enable)
 {
 	int rc;
-	unsigned int hw_level, fr_to_write;
-	unsigned int target_hw_level = odev->min_cb_level * 2;
+
+	if (odev->direction != CRAS_STREAM_OUTPUT)
+		return -EINVAL;
 
 	if (!odev->dev_running(odev))
 		return 0;
 
-	/* The default action for no stream playback is to fill zeros. */
-	rc = cras_iodev_frames_queued(odev);
+	rc = odev->no_stream(odev, enable);
 	if (rc < 0)
 		return rc;
-	hw_level = rc;
-
-	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
-
-	if (hw_level <= target_hw_level) {
-		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
-		return cras_iodev_fill_odev_zeros(odev, fr_to_write);
-	}
+	odev->no_stream_state = enable;
 	return 0;
 }

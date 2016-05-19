@@ -28,6 +28,8 @@ static int cras_iodev_put_output_buffer_called;
 static unsigned int cras_iodev_put_output_buffer_nframes;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
 static unsigned int cras_iodev_no_stream_playback_called;
+static unsigned int cras_iodev_no_stream_playback_enable;
+static int dev_stream_playback_frames_ret;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -50,6 +52,8 @@ void ResetGlobalStubData() {
   cras_iodev_put_output_buffer_nframes = 0;
   cras_iodev_fill_odev_zeros_frames = 0;
   cras_iodev_no_stream_playback_called = 0;
+  cras_iodev_no_stream_playback_enable = 0;
+  dev_stream_playback_frames_ret = 0;
 }
 
 // Test streams and devices manipulation.
@@ -417,6 +421,48 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
   // cras_iodev should handle no stream playback.
   write_output_samples(thread_, adev);
   EXPECT_EQ(1, cras_iodev_no_stream_playback_called);
+  EXPECT_EQ(1, cras_iodev_no_stream_playback_enable);
+
+  thread_rm_open_dev(thread_, &iodev);
+}
+
+TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct open_dev *adev;
+  struct cras_rstream rstream;
+
+  ResetGlobalStubData();
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+
+  // Setup the output buffer for device.
+  cras_iodev_get_output_buffer_area = cras_audio_area_create(2);
+
+  // Add the device.
+  thread_add_open_dev(thread_, &iodev);
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+
+  // Assume device in no stream state.
+  iodev.no_stream_state = 1;
+
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  thread_add_stream(thread_, &rstream, &piodev, 1);
+
+  // Assume sample from stream is not ready.
+  dev_stream_playback_frames_ret = 0;
+
+  // cras_iodev should NOT leave no stream state;
+  write_output_samples(thread_, adev);
+  EXPECT_EQ(1, cras_iodev_no_stream_playback_called);
+  EXPECT_EQ(1, cras_iodev_no_stream_playback_enable);
+
+  // Assume sample from stream is ready.
+  dev_stream_playback_frames_ret = 1;
+
+  // cras_iodev should leave no stream state;
+  write_output_samples(thread_, adev);
+  EXPECT_EQ(2, cras_iodev_no_stream_playback_called);
+  EXPECT_EQ(0, cras_iodev_no_stream_playback_enable);
 
   thread_rm_open_dev(thread_, &iodev);
 }
@@ -751,7 +797,7 @@ int dev_stream_mix(struct dev_stream *dev_stream,
 
 int dev_stream_playback_frames(const struct dev_stream *dev_stream)
 {
-  return 0;
+  return dev_stream_playback_frames_ret;
 }
 
 int dev_stream_playback_update_rstream(struct dev_stream *dev_stream)
@@ -814,9 +860,10 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
   return 0;
 }
 
-int cras_iodev_no_stream_playback(struct cras_iodev *odev)
+int cras_iodev_no_stream_playback(struct cras_iodev *odev, int enable)
 {
   cras_iodev_no_stream_playback_called++;
+  cras_iodev_no_stream_playback_enable = enable;
   return 0;
 }
 

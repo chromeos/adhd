@@ -446,4 +446,10 @@ int is_utf8_string(const char* string)
 {
   return is_utf8_string_ret_value;
 }
+
+int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
+{
+  return 0;
+}
+
 } // extern "C"
