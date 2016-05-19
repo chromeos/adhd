@@ -778,6 +778,40 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 	return 0;
 }
 
+int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
+{
+	if (odev->direction != CRAS_STREAM_OUTPUT)
+		return 0;
+	if (odev->dev_running(odev))
+		return 1;
+	/* Do not wake up for device not started yet. */
+	return 0;
+}
+
+unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
+		unsigned int *hw_level)
+{
+	int rc;
+
+	rc = cras_iodev_frames_queued(odev);
+	*hw_level = (rc < 0) ? 0 : rc;
+
+	if (odev->streams) {
+		/* Schedule that audio thread will wake up when
+		 * hw_level drops to 0.
+		 * This should not cause underrun because audio thread
+		 * should be waken up by the reply from client. */
+		return *hw_level;
+	}
+	/* When this device has no stream, schedule audio thread to wake up
+	 * when hw_level drops to min_cb_level so audio thread can fill
+	 * zeros to it. */
+	if (*hw_level > odev->min_cb_level)
+		return *hw_level - odev->min_cb_level;
+	else
+		return 0;
+}
+
 int cras_iodev_no_stream_playback(struct cras_iodev *odev)
 {
 	int rc;

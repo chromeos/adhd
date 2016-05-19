@@ -477,6 +477,24 @@ void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
 /* Put 'frames' worth of zero samples into odev. */
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);
 
+/* Gets the number of frames to play when audio thread sleeps.
+ * Args:
+ *    iodev[in] - The device.
+ *    hw_level[output] - Pointer to number of frames in hardware.
+ * Returns:
+ *    Number of frames to play in sleep for this output device.
+ */
+unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
+						unsigned int *hw_level);
+
+/* Checks if audio thread should wake for this output device.
+ * Args:
+ *    iodev[in] - The output device.
+ * Returns:
+ *    1 if audio thread should wake for this output device. 0 otherwise.
+ */
+int cras_iodev_odev_should_wake(const struct cras_iodev *odev);
+
 /* Let device handle no stream playback. */
 int cras_iodev_no_stream_playback(struct cras_iodev *iodev);
 

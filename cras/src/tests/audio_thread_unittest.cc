@@ -830,6 +830,17 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
   return 1.0f;
 }
 
+unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
+                                                unsigned int *hw_level)
+{
+  return 0;
+}
+
+int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
+{
+  return 1;
+}
+
 struct cras_audio_area *cras_audio_area_create(int num_channels)
 {
   struct cras_audio_area *area;

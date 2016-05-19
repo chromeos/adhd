@@ -944,10 +944,8 @@ static int get_next_output_wake(struct audio_thread *thread,
 	struct open_dev *adev;
 	struct timespec sleep_time;
 	double est_rate;
-	unsigned int hw_level;
 	int ret = 0;
-	int rc;
-	int frames_to_play_in_sleep;
+	unsigned int frames_to_play_in_sleep, hw_level;
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev)
 		ret += get_next_stream_wake_from_list(
@@ -955,36 +953,16 @@ static int get_next_output_wake(struct audio_thread *thread,
 				min_ts);
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
-		/* Do not wake up for device not started yet. */
-		if (!adev->dev->dev_running(adev->dev))
+		if (!cras_iodev_odev_should_wake(adev->dev))
 			continue;
 
-		rc = cras_iodev_frames_queued(adev->dev);
-		hw_level = (rc < 0) ? 0 : rc;
+		frames_to_play_in_sleep = cras_iodev_frames_to_play_in_sleep(
+				adev->dev, &hw_level);
 
 		adev->wake_ts = *now;
 
 		est_rate = adev->dev->ext_format->frame_rate *
 				cras_iodev_get_est_rate_ratio(adev->dev);
-
-
-	        if (adev->dev->streams)
-			/* Use the estimated dev rate to schedule that audio
-			 * thread will wake up when hw_level drops to 0.
-			 */
-			frames_to_play_in_sleep = hw_level;
-		else {
-			/* When device has no stream and we fill zeros,
-			 * use the estimated dev rate to schedule that audio
-			 * thread will wake up when hw_level drops to
-			 * min_cb_level.
-			 */
-			if (hw_level > adev->dev->min_cb_level)
-				frames_to_play_in_sleep = hw_level -
-					adev->dev->min_cb_level;
-			else
-				frames_to_play_in_sleep = 0;
-		}
 
 		ATLOG(atlog,
 	              AUDIO_THREAD_SET_DEV_WAKE,

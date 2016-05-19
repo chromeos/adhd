@@ -1022,6 +1022,76 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
 }
 
+TEST(IoDev, OutputDeviceShouldWake) {
+  struct cras_iodev iodev;
+  int rc;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.dev_running = dev_running;
+
+  ResetStubData();
+
+  // Device is not running. No need to wake for this device.
+  dev_running_ret_value = 0;
+  rc = cras_iodev_odev_should_wake(&iodev);
+  EXPECT_EQ(0, rc);
+
+  // Device is running. Need to wake for this device.
+  dev_running_ret_value = 1;
+  rc = cras_iodev_odev_should_wake(&iodev);
+  EXPECT_EQ(1, rc);
+
+  // Ignore input device.
+  iodev.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_odev_should_wake(&iodev);
+  EXPECT_EQ(0, rc);
+}
+
+TEST(IoDev, FramesToPlayInSleep) {
+  struct cras_iodev iodev;
+  unsigned int min_cb_level = 240, hw_level;
+  unsigned int got_hw_level, got_frames;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.dev_running = dev_running;
+  iodev.frames_queued = frames_queued;
+  iodev.min_buffer_level = 0;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.buffer_size = BUFFER_SIZE;
+  iodev.min_cb_level = min_cb_level;
+
+  ResetStubData();
+
+  // Device is running. There is at least one stream for this device.
+  // hw_level is greater than min_cb_level.
+  dev_running_ret_value = 1;
+  hw_level = min_cb_level + 50;
+  fr_queued = hw_level;
+  iodev.streams = reinterpret_cast<struct dev_stream *>(0x1);
+
+  got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
+  EXPECT_EQ(hw_level, got_hw_level);
+  EXPECT_EQ(hw_level, got_frames);
+
+  // Device is running. There is no stream for this device.
+  // hw_level is greater than min_cb_level.
+  iodev.streams = NULL;
+
+  got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
+  EXPECT_EQ(hw_level, got_hw_level);
+  EXPECT_EQ(hw_level - min_cb_level, got_frames);
+
+  // Device is running. There is no stream for this device.
+  // hw_level is less than min_cb_level.
+  iodev.streams = NULL;
+  hw_level = min_cb_level - 50;
+  fr_queued = hw_level;
+
+  got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
+  EXPECT_EQ(hw_level, got_hw_level);
+  EXPECT_EQ(0, got_frames);
+}
+
 extern "C" {
 
 //  From libpthread.
