@@ -73,6 +73,36 @@ int cras_alsa_pcm_start(snd_pcm_t *handle);
  */
 int cras_alsa_pcm_drain(snd_pcm_t *handle);
 
+/* Forward/rewind appl_ptr so it becomes ahead of hw_ptr by fuzz samples.
+ * After moving appl_ptr, device can play the new samples as quick as possible.
+ *    avail = buffer_frames - appl_ptr + hw_ptr
+ * => hw_ptr - appl_ptr = avail - buffer_frames.
+ * The difference between hw_ptr and app_ptr can be inferred from snd_pcm_avail.
+ * So the amount of frames to forward appl_ptr is
+ * avail - buffer_frames + fuzz.
+ * When hw_ptr is wrapped around boundary, this value may be negative. Use
+ * snd_pcm_rewind to move appl_ptr backward.
+ *
+ * Case 1: avail - buffer_frames + fuzz > 0
+ *
+ * -------|----------|-----------------------------------
+ *      app_ptr     hw_ptr
+ *        |------------->| forward target
+ *
+ * Case 2: avail - buffer_frames + fuzz < 0
+ *
+ * -------|----------|-----------------------------------
+ *      hw_ptr      app_ptr
+ *           |<------| rewind target
+ *
+ * Args:
+ *    handle - Filled with a pointer to the opened pcm.
+ *    ahead - Number of frames appl_ptr should be ahead of hw_ptr.
+ * Returns:
+ *    0 on success. A negative error code on failure.
+ */
+int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead);
+
 /* Probes properties of the alsa device.
  * Args:
  *    dev - Path to the alsa device to test.

@@ -255,6 +255,47 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 	return snd_pcm_drain(handle);
 }
 
+int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
+{
+	int rc;
+	snd_pcm_uframes_t period_frames, buffer_frames;
+	snd_pcm_sframes_t to_move, avail_frames;
+	rc = snd_pcm_avail(handle);
+	if (rc == -EPIPE || rc == -ESTRPIPE) {
+		cras_alsa_attempt_resume(handle);
+		avail_frames = 0;
+	} else if (rc < 0) {
+		syslog(LOG_ERR, "Fail to get avail frames: %s",
+		       snd_strerror(rc));
+		return rc;
+	} else {
+		avail_frames = rc;
+	}
+
+	rc = snd_pcm_get_params(handle, &buffer_frames, &period_frames);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Fail to get buffer size: %s",
+		       snd_strerror(rc));
+		return rc;
+	}
+
+	to_move = avail_frames - buffer_frames + ahead;
+	if (to_move > 0) {
+		rc = snd_pcm_forward(handle, to_move);
+	} else if (to_move < 0) {
+		rc = snd_pcm_rewind(handle, -to_move);
+	} else {
+		return 0;
+	}
+
+	if (rc < 0) {
+		syslog(LOG_ERR, "Fail to resume appl_ptr: %s",
+		       snd_strerror(rc));
+		return rc;
+	}
+	return 0;
+}
+
 int cras_alsa_set_channel_map(snd_pcm_t *handle,
 			      struct cras_audio_format *fmt)
 {
