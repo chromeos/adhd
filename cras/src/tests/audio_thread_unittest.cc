@@ -26,6 +26,7 @@ static int cras_iodev_all_streams_written_ret;
 static struct cras_audio_area *cras_iodev_get_output_buffer_area;
 static int cras_iodev_put_output_buffer_called;
 static unsigned int cras_iodev_put_output_buffer_nframes;
+static unsigned int cras_iodev_fill_odev_zeros_frames;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -46,6 +47,7 @@ void ResetGlobalStubData() {
   }
   cras_iodev_put_output_buffer_called = 0;
   cras_iodev_put_output_buffer_nframes = 0;
+  cras_iodev_fill_odev_zeros_frames = 0;
 }
 
 // Test streams and devices manipulation.
@@ -419,8 +421,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
   // cb level.
   dev_running_ret = 1;
   write_output_samples(thread_, adev);
-  EXPECT_EQ(1, cras_iodev_put_output_buffer_called);
-  EXPECT_EQ(FIRST_CB_LEVEL * 2, cras_iodev_put_output_buffer_nframes);
+  EXPECT_EQ(FIRST_CB_LEVEL * 2, cras_iodev_fill_odev_zeros_frames);
 
   thread_rm_open_dev(thread_, &iodev);
 }
@@ -484,10 +485,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
   frames_queued_ = 0;
   cras_iodev_all_streams_written_ret = 0;
   write_output_samples(thread_, adev);
-  // write_streams put the first time, and filling for underrun put the second
-  // time.
-  EXPECT_EQ(2, cras_iodev_put_output_buffer_called);
-  EXPECT_EQ(FIRST_CB_LEVEL, cras_iodev_put_output_buffer_nframes);
+  EXPECT_EQ(FIRST_CB_LEVEL, cras_iodev_fill_odev_zeros_frames);
 
   thread_rm_open_dev(thread_, &iodev);
   TearDownRstream(&rstream);
@@ -812,6 +810,12 @@ int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
 int cras_iodev_start(struct cras_iodev *iodev)
 {
   cras_iodev_start_called = 1;
+  return 0;
+}
+
+int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+{
+  cras_iodev_fill_odev_zeros_frames = frames;
   return 0;
 }
 

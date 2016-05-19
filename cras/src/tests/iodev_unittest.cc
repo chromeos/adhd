@@ -10,10 +10,13 @@ extern "C" {
 #include "cras_rstream.h"
 #include "dev_stream.h"
 #include "utlist.h"
+#include "cras_audio_area.h"
 
 // Mock software volume scalers.
 float softvol_scalers[101];
 }
+
+#define BUFFER_SIZE 8192
 
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
@@ -62,6 +65,8 @@ static void *post_dsp_hook_cb_data;
 static int iodev_buffer_size;
 static long cras_system_get_capture_gain_ret_value;
 static int is_open_ret;
+static uint8_t audio_buffer[BUFFER_SIZE];
+static struct cras_audio_area *audio_area;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -118,6 +123,12 @@ void ResetStubData() {
   iodev_buffer_size = 0;
   cras_system_get_capture_gain_ret_value = 0;
   is_open_ret = 0;
+  // Assume there is some data in audio buffer.
+  memset(audio_buffer, 0xff, sizeof(audio_buffer));
+  if (audio_area) {
+    free(audio_area);
+    audio_area = NULL;
+  }
 }
 
 namespace {
@@ -440,9 +451,31 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
 
 static unsigned int put_buffer_nframes;
 
+static int get_buffer(cras_iodev* iodev, struct cras_audio_area** area,
+               unsigned int* num) {
+  size_t sz = sizeof(*audio_area) + sizeof(struct cras_channel_area) * 2;
+
+  audio_area = (cras_audio_area*)calloc(1, sz);
+  audio_area->frames = *num;
+  audio_area->num_channels = 2;
+  audio_area->channels[0].buf = audio_buffer;
+  channel_area_set_channel(&audio_area->channels[0], CRAS_CH_FL);
+  audio_area->channels[0].step_bytes = 4;
+  audio_area->channels[1].buf = audio_buffer + 2;
+  channel_area_set_channel(&audio_area->channels[1], CRAS_CH_FR);
+  audio_area->channels[1].step_bytes = 4;
+
+  *area = audio_area;
+  return 0;
+}
+
 static int put_buffer(struct cras_iodev *iodev, unsigned int nframes)
 {
   put_buffer_nframes = nframes;
+  if (audio_area) {
+    free(audio_area);
+    audio_area = NULL;
+  }
   return 0;
 }
 
@@ -880,6 +913,38 @@ TEST(IoDev, StartDevice) {
   // Start can only be called in open state.
   is_open_ret = 1;
   EXPECT_EQ(0, cras_iodev_start(&iodev));
+}
+
+TEST(IoDev, FillZeros) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  unsigned int frames = 50;
+  int16_t *zeros;
+  int rc;
+
+  ResetStubData();
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.ext_format = &fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+
+  iodev.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
+  EXPECT_EQ(-EINVAL, rc);
+
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(frames, put_buffer_nframes);
+  zeros = (int16_t *)calloc(frames * 2, sizeof(*zeros));
+  rc = memcmp(audio_buffer, zeros, frames * 2 * 2);
+  free(zeros);
+  EXPECT_EQ(0, rc);
 }
 
 extern "C" {

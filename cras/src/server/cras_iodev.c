@@ -749,3 +749,31 @@ void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
 	iodev->post_dsp_hook = loop_cb;
 	iodev->post_dsp_hook_cb_data = cb_data;
 }
+
+int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+{
+	struct cras_audio_area *area = NULL;
+	unsigned int frame_bytes, frames_written;
+	int rc;
+	uint8_t *buf;
+
+	if (odev->direction != CRAS_STREAM_OUTPUT)
+		return -EINVAL;
+
+	frame_bytes = cras_get_format_bytes(odev->ext_format);
+	while (frames > 0) {
+		frames_written = frames;
+		rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);
+		if (rc < 0) {
+			syslog(LOG_ERR, "fill zeros fail: %d", rc);
+			return rc;
+		}
+		/* This assumes consecutive channel areas. */
+		buf = area->channels[0].buf;
+		memset(buf, 0, frames_written * frame_bytes);
+		cras_iodev_put_output_buffer(odev, buf, frames_written);
+		frames -= frames_written;
+	}
+
+	return 0;
+}

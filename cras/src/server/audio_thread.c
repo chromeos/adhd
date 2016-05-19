@@ -192,36 +192,10 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	return 0;
 }
 
-/* Put 'frames' worth of zero samples into odev. */
-static int fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
-{
-	struct cras_audio_area *area = NULL;
-	unsigned int frame_bytes, frames_written;
-	int rc;
-	uint8_t *buf;
-
-	frame_bytes = cras_get_format_bytes(odev->ext_format);
-	while (frames > 0) {
-		frames_written = frames;
-		rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);
-		if (rc < 0) {
-			syslog(LOG_ERR, "fill zeros fail: %d", rc);
-			return rc;
-		}
-		/* This assumes consecutive channel areas. */
-		buf = area->channels[0].buf;
-		memset(buf, 0, frames_written * frame_bytes);
-		cras_iodev_put_output_buffer(odev, buf, frames_written);
-		frames -= frames_written;
-	}
-
-	return 0;
-}
-
 /* Builds an initial buffer to avoid an underrun. Adds min_level of latency. */
 static void fill_odevs_zeros_min_level(struct cras_iodev *odev)
 {
-	fill_odev_zeros(odev, odev->min_buffer_level);
+	cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level);
 }
 
 static void thread_rm_open_adev(struct audio_thread *thread,
@@ -1097,7 +1071,7 @@ int fill_output_no_streams(struct open_dev *adev)
 
 	if (hw_level <= target_hw_level) {
 		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
-		fill_odev_zeros(odev, fr_to_write);
+		cras_iodev_fill_odev_zeros(odev, fr_to_write);
 	}
 	else
 		fr_to_write = 0;
@@ -1250,7 +1224,7 @@ static int write_output_samples(struct audio_thread *thread,
 	} else if (is_running && odev->min_cb_level < odev->buffer_size)
 		/* Empty hardware and nothing written, zero fill it if it is
 		 * running. */
-		fill_odev_zeros(odev, odev->min_cb_level);
+		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 			hw_level, total_written, odev->min_cb_level);

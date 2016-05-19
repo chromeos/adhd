@@ -474,4 +474,7 @@ void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
 				       loopback_hook_t loop_cb,
 				       void *cb_data);
 
+/* Put 'frames' worth of zero samples into odev. */
+int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);
+
 #endif /* CRAS_IODEV_H_ */
