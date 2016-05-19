@@ -27,6 +27,7 @@ static struct cras_audio_area *cras_iodev_get_output_buffer_area;
 static int cras_iodev_put_output_buffer_called;
 static unsigned int cras_iodev_put_output_buffer_nframes;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
+static unsigned int cras_iodev_no_stream_playback_called;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -48,6 +49,7 @@ void ResetGlobalStubData() {
   cras_iodev_put_output_buffer_called = 0;
   cras_iodev_put_output_buffer_nframes = 0;
   cras_iodev_fill_odev_zeros_frames = 0;
+  cras_iodev_no_stream_playback_called = 0;
 }
 
 // Test streams and devices manipulation.
@@ -412,16 +414,9 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
   thread_add_open_dev(thread_, &iodev);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
-  // Device is not running yet. Should return right away.
-  dev_running_ret = 0;
+  // cras_iodev should handle no stream playback.
   write_output_samples(thread_, adev);
-  EXPECT_EQ(0, cras_iodev_put_output_buffer_called);
-
-  // Device is running. Should fill zeros. The target level is two times of
-  // cb level.
-  dev_running_ret = 1;
-  write_output_samples(thread_, adev);
-  EXPECT_EQ(FIRST_CB_LEVEL * 2, cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(1, cras_iodev_no_stream_playback_called);
 
   thread_rm_open_dev(thread_, &iodev);
 }
@@ -816,6 +811,12 @@ int cras_iodev_start(struct cras_iodev *iodev)
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 {
   cras_iodev_fill_odev_zeros_frames = frames;
+  return 0;
+}
+
+int cras_iodev_no_stream_playback(struct cras_iodev *odev)
+{
+  cras_iodev_no_stream_playback_called++;
   return 0;
 }
 

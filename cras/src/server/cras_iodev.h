@@ -477,4 +477,7 @@ void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
 /* Put 'frames' worth of zero samples into odev. */
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);
 
+/* Let device handle no stream playback. */
+int cras_iodev_no_stream_playback(struct cras_iodev *iodev);
+
 #endif /* CRAS_IODEV_H_ */

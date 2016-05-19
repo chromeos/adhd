@@ -777,3 +777,27 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 
 	return 0;
 }
+
+int cras_iodev_no_stream_playback(struct cras_iodev *odev)
+{
+	int rc;
+	unsigned int hw_level, fr_to_write;
+	unsigned int target_hw_level = odev->min_cb_level * 2;
+
+	if (!odev->dev_running(odev))
+		return 0;
+
+	/* The default action for no stream playback is to fill zeros. */
+	rc = cras_iodev_frames_queued(odev);
+	if (rc < 0)
+		return rc;
+	hw_level = rc;
+
+	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
+
+	if (hw_level <= target_hw_level) {
+		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
+		return cras_iodev_fill_odev_zeros(odev, fr_to_write);
+	}
+	return 0;
+}

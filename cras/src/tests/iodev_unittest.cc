@@ -67,6 +67,8 @@ static long cras_system_get_capture_gain_ret_value;
 static int is_open_ret;
 static uint8_t audio_buffer[BUFFER_SIZE];
 static struct cras_audio_area *audio_area;
+static int dev_running_ret_value;
+static unsigned int put_buffer_nframes;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -129,6 +131,8 @@ void ResetStubData() {
     free(audio_area);
     audio_area = NULL;
   }
+  dev_running_ret_value = 0;
+  put_buffer_nframes = 0;
 }
 
 namespace {
@@ -449,8 +453,6 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
 
 // Put buffer tests
 
-static unsigned int put_buffer_nframes;
-
 static int get_buffer(cras_iodev* iodev, struct cras_audio_area** area,
                unsigned int* num) {
   size_t sz = sizeof(*audio_area) + sizeof(struct cras_channel_area) * 2;
@@ -495,6 +497,11 @@ static int post_dsp_hook(const uint8_t *frames, unsigned int nframes,
   post_dsp_hook_frames = frames;
   post_dsp_hook_cb_data = cb_data;
   return 0;
+}
+
+static int dev_running(const struct cras_iodev *iodev)
+{
+  return dev_running_ret_value;
 }
 
 TEST(IoDevPutOutputBuffer, SystemMuted) {
@@ -945,6 +952,74 @@ TEST(IoDev, FillZeros) {
   rc = memcmp(audio_buffer, zeros, frames * 2 * 2);
   free(zeros);
   EXPECT_EQ(0, rc);
+}
+
+TEST(IoDev, NoStreamPlaybackNotRunning) {
+  struct cras_iodev iodev;
+  int rc;
+
+  memset(&iodev, 0, sizeof(iodev));
+
+  ResetStubData();
+
+  iodev.dev_running = dev_running;
+
+  // Device is not running. No need to fill zeros.
+  rc = cras_iodev_no_stream_playback(&iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, put_buffer_nframes);
+}
+
+TEST(IoDev, NoStreamPlaybackRunning) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  unsigned int hw_level = 50;
+  unsigned int min_cb_level = 240;
+  unsigned int zeros_to_fill;
+  int16_t *zeros;
+  int rc;
+
+  memset(&iodev, 0, sizeof(iodev));
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.ext_format = &fmt;
+  iodev.min_cb_level = min_cb_level;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+  iodev.dev_running = dev_running;
+  iodev.frames_queued = frames_queued;
+  iodev.min_buffer_level = 0;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.buffer_size = BUFFER_SIZE;
+
+  // Device is running. hw_level is less than target.
+  // Need to fill to callback level * 2;
+  dev_running_ret_value = 1;
+  fr_queued = hw_level;
+  zeros_to_fill = min_cb_level * 2 - hw_level;
+
+  rc = cras_iodev_no_stream_playback(&iodev);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
+  zeros = (int16_t *)calloc(zeros_to_fill * 2, sizeof(*zeros));
+  EXPECT_EQ(0, memcmp(audio_buffer, zeros, zeros_to_fill * 2 * 2));
+  free(zeros);
+
+  ResetStubData();
+
+  // Device is running. hw_level is not less than target.
+  // No need to fill zeros.
+  dev_running_ret_value = 1;
+  hw_level = min_cb_level * 2;
+  fr_queued = hw_level;
+  zeros_to_fill = 0;
+
+  rc = cras_iodev_no_stream_playback(&iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
 }
 
 extern "C" {

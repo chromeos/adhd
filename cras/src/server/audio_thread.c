@@ -1050,41 +1050,6 @@ static int get_next_input_wake(struct audio_thread *thread,
 	return ret;
 }
 
-/* When an odev is open but no streams are attached, play zeros.
- * Args:
- *    odev - the output device to be filled.
- */
-int fill_output_no_streams(struct open_dev *adev)
-{
-	unsigned int hw_level;
-	unsigned int fr_to_write;
-	int rc;
-	struct cras_iodev *odev = adev->dev;
-	unsigned int target_hw_level = odev->min_cb_level * 2;
-
-	rc = cras_iodev_frames_queued(odev);
-	if (rc < 0)
-		return rc;
-	hw_level = rc;
-
-	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
-
-	if (hw_level <= target_hw_level) {
-		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
-		cras_iodev_fill_odev_zeros(odev, fr_to_write);
-	}
-	else
-		fr_to_write = 0;
-
-	ATLOG(atlog,
-				    AUDIO_THREAD_ODEV_NO_STREAMS,
-				    odev->info.idx,
-				    hw_level,
-				    fr_to_write);
-
-	return 0;
-}
-
 static int output_stream_fetch(struct audio_thread *thread)
 {
 	struct open_dev *odev_list = thread->open_devs[CRAS_STREAM_OUTPUT];
@@ -1151,17 +1116,9 @@ static int write_output_samples(struct audio_thread *thread,
 	struct cras_audio_area *area = NULL;
 	int is_running;
 
-	is_running = odev->dev_running(odev);
-
-	/* Do not fill zeros before the device start playing. Only fill zeros
-	 * in the idle stage when device is still playing.
-	 * TODO(cychiang) Use stop call instead of filling zeros.
-	 */
-	if (!odev->streams) {
-		if (is_running)
-			return fill_output_no_streams(adev);
-		return 0;
-	}
+	/* Let device handle playback when there is no stream. */
+	if (!odev->streams)
+		return cras_iodev_no_stream_playback(odev);
 
 	rc = cras_iodev_frames_queued(odev);
 	if (rc < 0)
@@ -1210,6 +1167,8 @@ static int write_output_samples(struct audio_thread *thread,
 			return rc;
 		total_written += written;
 	}
+
+	is_running = odev->dev_running(odev);
 
 	/* In the case where we have written samples or there are samples in
 	 * device, start it if needed. */
