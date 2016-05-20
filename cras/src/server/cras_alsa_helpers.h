@@ -135,6 +135,18 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 			       snd_pcm_sframes_t *delay);
 
+/* Wrapper for snd_pcm_mmap_begin where only buffer is concerned.
+ * Offset and frames from cras_alsa_mmap_begin are neglected.
+ * Args:
+ *    handle - The open PCM to configure.
+ *    dst - Pointer set to the area for reading/writing the audio.
+ *    underruns - counter to increment if an under-run occurs.
+ * Returns:
+ *    zero on success, negative error code for fatal errors.
+ */
+int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
+				    unsigned int *underrun);
+
 /* Wrapper for snd_pcm_mmap_begin
  * Args:
  *    handle - The open PCM to configure.

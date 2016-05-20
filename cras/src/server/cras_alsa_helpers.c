@@ -625,6 +625,15 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 	return rc;
 }
 
+int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
+				    unsigned int *underruns)
+{
+	snd_pcm_uframes_t offset, frames;
+
+	return cras_alsa_mmap_begin(
+			handle, 0, dst, &offset, &frames, underruns);
+}
+
 int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
 			 snd_pcm_uframes_t *frames, unsigned int *underruns)
