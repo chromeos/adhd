@@ -44,6 +44,7 @@
 #include "cras_client.h"
 #include "cras_config.h"
 #include "cras_messages.h"
+#include "cras_observer_ops.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -169,6 +170,8 @@ struct client_stream {
  * server_err_cb - Function to call when failed to read messages from server.
  * server_err_user_arg - User argument for server_err_cb.
  * thread_priority_cb - Function to call for setting audio thread priority.
+ * observer_ops - Functions to call when system state changes.
+ * observer_context - Context passed to client in state change callbacks.
  */
 struct cras_client {
 	int id;
@@ -187,6 +190,8 @@ struct cras_client {
 	cras_server_error_cb_t server_err_cb;
 	void *server_err_user_arg;
 	cras_thread_priority_cb_t thread_priority_cb;
+	struct cras_observer_ops observer_ops;
+	void *observer_context;
 };
 
 /*
@@ -999,6 +1004,103 @@ static int handle_message_from_server(struct cras_client *client)
 			(struct cras_client_get_hotword_models_ready *)msg;
 		cras_client_get_hotword_models_ready(client,
 				(const char *)cmsg->hotword_models);
+		break;
+	}
+	case CRAS_CLIENT_OUTPUT_VOLUME_CHANGED: {
+		struct cras_client_volume_changed *cmsg =
+			(struct cras_client_volume_changed *)msg;
+		if (client->observer_ops.output_volume_changed)
+			client->observer_ops.output_volume_changed(
+					client->observer_context,
+					cmsg->volume);
+		break;
+	}
+	case CRAS_CLIENT_OUTPUT_MUTE_CHANGED: {
+		struct cras_client_mute_changed *cmsg =
+			(struct cras_client_mute_changed *)msg;
+		if (client->observer_ops.output_mute_changed)
+			client->observer_ops.output_mute_changed(
+					client->observer_context,
+					cmsg->muted,
+					cmsg->user_muted,
+					cmsg->mute_locked);
+		break;
+	}
+	case CRAS_CLIENT_CAPTURE_GAIN_CHANGED: {
+		struct cras_client_volume_changed *cmsg =
+			(struct cras_client_volume_changed *)msg;
+		if (client->observer_ops.capture_gain_changed)
+			client->observer_ops.capture_gain_changed(
+					client->observer_context,
+					cmsg->volume);
+		break;
+	}
+	case CRAS_CLIENT_CAPTURE_MUTE_CHANGED: {
+		struct cras_client_mute_changed *cmsg =
+			(struct cras_client_mute_changed *)msg;
+		if (client->observer_ops.capture_mute_changed)
+			client->observer_ops.capture_mute_changed(
+					client->observer_context,
+					cmsg->muted,
+					cmsg->mute_locked);
+		break;
+	}
+	case CRAS_CLIENT_NODES_CHANGED: {
+		if (client->observer_ops.nodes_changed)
+			client->observer_ops.nodes_changed(
+					client->observer_context);
+		break;
+	}
+	case CRAS_CLIENT_ACTIVE_NODE_CHANGED: {
+		struct cras_client_active_node_changed *cmsg =
+			(struct cras_client_active_node_changed *)msg;
+		enum CRAS_STREAM_DIRECTION direction =
+			(enum CRAS_STREAM_DIRECTION)cmsg->direction;
+		if (client->observer_ops.active_node_changed)
+			client->observer_ops.active_node_changed(
+					client->observer_context,
+					direction, cmsg->node_id);
+		break;
+	}
+	case CRAS_CLIENT_OUTPUT_NODE_VOLUME_CHANGED: {
+		struct cras_client_node_value_changed *cmsg =
+			(struct cras_client_node_value_changed *)msg;
+		if (client->observer_ops.output_node_volume_changed)
+			client->observer_ops.output_node_volume_changed(
+					client->observer_context,
+					cmsg->node_id,
+					cmsg->value);
+		break;
+	}
+	case CRAS_CLIENT_NODE_LEFT_RIGHT_SWAPPED_CHANGED: {
+		struct cras_client_node_value_changed *cmsg =
+			(struct cras_client_node_value_changed *)msg;
+		if (client->observer_ops.node_left_right_swapped_changed)
+			client->observer_ops.node_left_right_swapped_changed(
+					client->observer_context,
+					cmsg->node_id,
+					cmsg->value);
+		break;
+	}
+	case CRAS_CLIENT_INPUT_NODE_GAIN_CHANGED: {
+		struct cras_client_node_value_changed *cmsg =
+			(struct cras_client_node_value_changed *)msg;
+		if (client->observer_ops.input_node_gain_changed)
+			client->observer_ops.input_node_gain_changed(
+					client->observer_context,
+					cmsg->node_id,
+					cmsg->value);
+		break;
+	}
+	case CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED: {
+		struct cras_client_num_active_streams_changed *cmsg =
+		    (struct cras_client_num_active_streams_changed *)msg;
+		enum CRAS_STREAM_DIRECTION direction =
+			(enum CRAS_STREAM_DIRECTION)cmsg->direction;
+		if (client->observer_ops.num_active_streams_changed)
+			client->observer_ops.num_active_streams_changed(
+					client->observer_context,
+					direction, cmsg->num_active_streams);
 		break;
 	}
 	default:
@@ -2216,4 +2318,132 @@ int cras_client_set_hotword_model(struct cras_client *client,
 
 	cras_fill_set_hotword_model_message(&msg, node_id, model_name);
 	return write_message_to_server(client, &msg.header);
+}
+
+void cras_client_set_state_change_callback_context(
+		struct cras_client *client, void *context)
+{
+	if (!client)
+		return;
+	client->observer_context = context;
+}
+
+static int cras_send_register_notification(struct cras_client *client,
+					   enum CRAS_CLIENT_MESSAGE_ID msg_id,
+					   int do_register)
+{
+	struct cras_register_notification msg;
+
+	cras_fill_register_notification_message(&msg, msg_id, do_register);
+	return cras_send_with_fds(client->server_fd, &msg, sizeof(msg), NULL, 0);
+}
+
+int cras_client_set_output_volume_changed_callback(
+		struct cras_client *client,
+		cras_client_output_volume_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.output_volume_changed = cb;
+	return cras_send_register_notification(
+			client, CRAS_CLIENT_OUTPUT_VOLUME_CHANGED, cb != NULL);
+}
+
+int cras_client_set_output_mute_changed_callback(
+		struct cras_client *client,
+		cras_client_output_mute_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.output_mute_changed = cb;
+	return cras_send_register_notification(
+			client, CRAS_CLIENT_OUTPUT_MUTE_CHANGED, cb != NULL);
+}
+
+int cras_client_set_capture_gain_changed_callback(
+		struct cras_client *client,
+		cras_client_capture_gain_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.capture_gain_changed = cb;
+	return cras_send_register_notification(
+			client, CRAS_CLIENT_CAPTURE_GAIN_CHANGED, cb != NULL);
+}
+
+int cras_client_set_capture_mute_changed_callback(
+		struct cras_client *client,
+		cras_client_capture_mute_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.capture_mute_changed = cb;
+	return cras_send_register_notification(
+			client, CRAS_CLIENT_CAPTURE_MUTE_CHANGED, cb != NULL);
+}
+
+int cras_client_set_nodes_changed_callback(
+		struct cras_client *client,
+		cras_client_nodes_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.nodes_changed = cb;
+	return cras_send_register_notification(
+			client, CRAS_CLIENT_NODES_CHANGED, cb != NULL);
+}
+
+int cras_client_set_active_node_changed_callback(
+		struct cras_client *client,
+		cras_client_active_node_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.active_node_changed = cb;
+	return cras_send_register_notification(
+		   client, CRAS_CLIENT_ACTIVE_NODE_CHANGED, cb != NULL);
+}
+
+int cras_client_set_output_node_volume_changed_callback(
+		struct cras_client *client,
+		cras_client_output_node_volume_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.output_node_volume_changed = cb;
+	return cras_send_register_notification(
+		    client, CRAS_CLIENT_OUTPUT_NODE_VOLUME_CHANGED, cb != NULL);
+}
+
+int cras_client_set_node_left_right_swapped_changed_callback(
+		struct cras_client *client,
+		cras_client_node_left_right_swapped_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.node_left_right_swapped_changed = cb;
+	return cras_send_register_notification(
+	       client, CRAS_CLIENT_NODE_LEFT_RIGHT_SWAPPED_CHANGED, cb != NULL);
+}
+
+int cras_client_set_input_node_gain_changed_callback(
+		struct cras_client *client,
+		cras_client_input_node_gain_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.input_node_gain_changed = cb;
+	return cras_send_register_notification(
+		       client, CRAS_CLIENT_INPUT_NODE_GAIN_CHANGED, cb != NULL);
+}
+
+int cras_client_set_num_active_streams_changed_callback(
+		struct cras_client *client,
+		cras_client_num_active_streams_changed_callback cb)
+{
+	if (!client)
+		return -EINVAL;
+	client->observer_ops.num_active_streams_changed = cb;
+	return cras_send_register_notification(
+	      client, CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED, cb != NULL);
 }

@@ -747,6 +747,159 @@ int cras_client_set_hotword_model(struct cras_client *client,
 				  cras_node_id_t node_id,
 				  const char *model_name);
 
+/* Set the context pointer for system state change callbacks.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    context - The context pointer passed to all callbacks.
+ */
+void cras_client_set_state_change_callback_context(
+		struct cras_client *client, void *context);
+
+/* Output volume change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    volume - The system output volume, ranging from 0 to 100.
+ */
+typedef void (*cras_client_output_volume_changed_callback)(
+		void* context, int32_t volume);
+
+/* Output mute change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    muted - Non-zero when the audio is muted, zero otherwise.
+ *    user_muted - Non-zero when the audio has been muted by the
+ *                 user, zero otherwise.
+ *    mute_locked - Non-zero when the mute funcion is locked,
+ *                  zero otherwise.
+ */
+typedef void (*cras_client_output_mute_changed_callback)(
+		void* context, int muted, int user_muted, int mute_locked);
+
+/* Capture gain change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    gain - The system capture gain, in centi-decibels.
+ */
+typedef void (*cras_client_capture_gain_changed_callback)(
+		void* context, int32_t gain);
+
+/* Capture mute change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    muted - Non-zero when the audio is muted, zero otherwise.
+ *    mute_locked - Non-zero when the mute funcion is locked,
+ *                  zero otherwise.
+ */
+typedef void (*cras_client_capture_mute_changed_callback)(
+		void* context, int muted, int mute_locked);
+
+/* Nodes change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ */
+typedef void (*cras_client_nodes_changed_callback)(void* context);
+
+/* Active node change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    direction - Indicates the direction of the selected node.
+ *    node_id - The ID of the selected node. Special device ID values
+ *              defined by CRAS_SPECIAL_DEVICE will be used when no other
+ *              device or node is selected or between selections.
+ */
+typedef void (*cras_client_active_node_changed_callback)(
+    void* context, enum CRAS_STREAM_DIRECTION direction,
+    cras_node_id_t node_id);
+
+/* Output node volume change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    node_id - The ID of the output node.
+ *    volume - The volume for this node with range 0 to 100.
+ */
+typedef void (*cras_client_output_node_volume_changed_callback)(
+		void* context, cras_node_id_t node_id, int32_t volume);
+
+/* Node left right swapped change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    node_id - The ID of the node.
+ *    swapped - Non-zero if the node is left-right swapped, zero otherwise.
+ */
+typedef void (*cras_client_node_left_right_swapped_changed_callback)(
+		void* context, cras_node_id_t node_id, int swapped);
+
+/* Input node gain change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    node_id - The ID of the input node.
+ *    gain - The gain for this node in centi-decibels.
+ */
+typedef void (*cras_client_input_node_gain_changed_callback)(
+		void* context, cras_node_id_t node_id, int32_t gain);
+
+/* Number of active streams change callback.
+ * Args:
+ *    context - Context pointer set with
+ *              cras_client_set_state_change_callback_context().
+ *    direction - Indicates the direction of the stream's node.
+ *    num_active_streams - The number of active streams.
+ */
+typedef void (*cras_client_num_active_streams_changed_callback)(
+		void* context, enum CRAS_STREAM_DIRECTION direction,
+		uint32_t num_active_streams);
+
+/* Set system state information callbacks.
+ * NOTE: These callbacks are executed from the client control thread.
+ * Each state change callback is given the context pointer set with
+ * cras_client_set_state_change_callback_context(). The context pointer is
+ * NULL by default.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    cb - The callback, or NULL to disable the call-back.
+ * Returns:
+ *    0 for success or negative errno error code on error.
+ */
+int cras_client_set_output_volume_changed_callback(
+		struct cras_client *client,
+		cras_client_output_volume_changed_callback cb);
+int cras_client_set_output_mute_changed_callback(
+		struct cras_client *client,
+		cras_client_output_mute_changed_callback cb);
+int cras_client_set_capture_gain_changed_callback(
+		struct cras_client *client,
+		cras_client_capture_gain_changed_callback cb);
+int cras_client_set_capture_mute_changed_callback(
+		struct cras_client *client,
+		cras_client_capture_mute_changed_callback cb);
+int cras_client_set_nodes_changed_callback(
+		struct cras_client *client,
+		cras_client_nodes_changed_callback cb);
+int cras_client_set_active_node_changed_callback(
+		struct cras_client *client,
+		cras_client_active_node_changed_callback cb);
+int cras_client_set_output_node_volume_changed_callback(
+		struct cras_client *client,
+		cras_client_output_node_volume_changed_callback cb);
+int cras_client_set_node_left_right_swapped_changed_callback(
+		struct cras_client *client,
+		cras_client_node_left_right_swapped_changed_callback cb);
+int cras_client_set_input_node_gain_changed_callback(
+		struct cras_client *client,
+		cras_client_input_node_gain_changed_callback cb);
+int cras_client_set_num_active_streams_changed_callback(
+		struct cras_client *client,
+		cras_client_num_active_streams_changed_callback cb);
+
 #ifdef __cplusplus
 }
 #endif

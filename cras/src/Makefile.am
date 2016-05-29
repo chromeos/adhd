@@ -32,7 +32,7 @@ endif
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
 COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
-bin_PROGRAMS = cras cras_test_client
+bin_PROGRAMS = cras cras_test_client cras_monitor
 
 if HAVE_DBUS
 CRAS_DBUS_SOURCES = \
@@ -315,6 +315,13 @@ cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common -I$(top_builddir)/src/common
 
 tests/cras_test_client.c: common/cras_version.h
+
+cras_monitor_SOURCES = tests/cras_monitor.c
+cras_monitor_LDADD = -lm libcras.la
+cras_monitor_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
+	-I$(top_srcdir)/src/common -I$(top_builddir)/src/common
+
+tests/cras_monitor.c: common/cras_version.h
 
 CLEANFILES = common/cras_version.h
 .PHONY: common/cras_version.h
