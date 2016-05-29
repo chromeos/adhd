@@ -12,6 +12,9 @@ extern "C" {
 #include "cras_rclient.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
+
+// Access to data structures and static functions.
+#include "cras_rclient.c"
 }
 
 //  Stub data.
@@ -40,6 +43,17 @@ static unsigned int stream_list_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
 static struct cras_rstream dummy_rstream;
+static size_t cras_observer_num_ops_registered;
+static size_t cras_observer_register_notify_called;
+static size_t cras_observer_add_called;
+static void *cras_observer_add_context_value;
+static struct cras_observer_client *cras_observer_add_return_value;
+static size_t cras_observer_get_ops_called;
+static struct cras_observer_ops cras_observer_ops_value;
+static size_t cras_observer_set_ops_called;
+static size_t cras_observer_ops_are_empty_called;
+static struct cras_observer_ops cras_observer_ops_are_empty_empty_ops;
+static size_t cras_observer_remove_called;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -66,6 +80,19 @@ void ResetStubData() {
   stream_list_disconnect_stream_called = 0;
   cras_iodev_list_rm_output_called = 0;
   cras_iodev_list_rm_input_called = 0;
+  cras_observer_num_ops_registered = 0;
+  cras_observer_register_notify_called = 0;
+  cras_observer_add_called = 0;
+  cras_observer_add_return_value =
+      reinterpret_cast<struct cras_observer_client *>(1);
+  cras_observer_add_context_value = NULL;
+  cras_observer_get_ops_called = 0;
+  memset(&cras_observer_ops_value, 0, sizeof(cras_observer_ops_value));
+  cras_observer_set_ops_called = 0;
+  cras_observer_ops_are_empty_called = 0;
+  memset(&cras_observer_ops_are_empty_empty_ops, 0,
+         sizeof(cras_observer_ops_are_empty_empty_ops));
+  cras_observer_remove_called = 0;
 }
 
 namespace {
@@ -86,7 +113,6 @@ TEST(RClientSuite, CreateSendMessage) {
 
   rc = read(pipe_fds[0], &msg, sizeof(msg));
   EXPECT_EQ(sizeof(msg), rc);
-  EXPECT_EQ(CRAS_CLIENT_CONNECTED, msg.header.id);
   EXPECT_EQ(CRAS_CLIENT_CONNECTED, msg.header.id);
 
   cras_rclient_destroy(rclient);
@@ -133,6 +159,9 @@ class RClientMessagesSuite : public testing::Test {
       close(pipe_fds_[0]);
       close(pipe_fds_[1]);
     }
+
+    void RegisterNotification(enum CRAS_CLIENT_MESSAGE_ID msg_id,
+                              void *callback, void **ops_address);
 
     struct cras_connect_message connect_msg_;
     struct cras_rclient *rclient_;
@@ -295,6 +324,301 @@ TEST_F(RClientMessagesSuite, SetCaptureMute) {
   EXPECT_EQ(1, cras_system_set_capture_mute_locked_value);
 }
 
+void RClientMessagesSuite::RegisterNotification(
+    enum CRAS_CLIENT_MESSAGE_ID msg_id,
+    void *callback, void **ops_address) {
+  struct cras_register_notification msg;
+  int do_register = callback != NULL ? 1 : 0;
+  int rc;
+
+  cras_observer_register_notify_called++;
+
+  cras_fill_register_notification_message(&msg, msg_id, do_register);
+  EXPECT_EQ(msg.header.length, sizeof(msg));
+  EXPECT_EQ(msg.header.id, CRAS_SERVER_REGISTER_NOTIFICATION);
+  EXPECT_EQ(msg.do_register, do_register);
+  EXPECT_EQ(msg.msg_id, msg_id);
+
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(cras_observer_register_notify_called, cras_observer_get_ops_called);
+  EXPECT_EQ(cras_observer_register_notify_called,\
+            cras_observer_ops_are_empty_called);
+  if (msg.do_register)
+    cras_observer_num_ops_registered++;
+  if (cras_observer_num_ops_registered == 1) {
+    if (msg.do_register) {
+      EXPECT_EQ(1, cras_observer_add_called);
+      EXPECT_EQ(rclient_, cras_observer_add_context_value);
+      EXPECT_EQ(rclient_->observer, cras_observer_add_return_value);
+    } else {
+      EXPECT_EQ(1, cras_observer_remove_called);
+      EXPECT_EQ(rclient_->observer, (struct cras_observer_client *)NULL);
+    }
+  } else {
+    EXPECT_EQ(cras_observer_register_notify_called - 1,\
+              cras_observer_set_ops_called);
+  }
+  if (!msg.do_register)
+    cras_observer_num_ops_registered--;
+  if (cras_observer_num_ops_registered)
+    EXPECT_EQ(callback, *ops_address);
+}
+
+TEST_F(RClientMessagesSuite, RegisterStatusNotification) {
+  /* First registration for this client. */
+  RegisterNotification(
+      CRAS_CLIENT_OUTPUT_VOLUME_CHANGED,
+      (void *)send_output_volume_changed,
+      (void **)&cras_observer_ops_value.output_volume_changed);
+
+  /* Second registration for this client. */
+  RegisterNotification(
+      CRAS_CLIENT_CAPTURE_GAIN_CHANGED,
+      (void *)send_capture_gain_changed,
+      (void **)&cras_observer_ops_value.capture_gain_changed);
+
+  /* Deregister output_volume. */
+  RegisterNotification(
+      CRAS_CLIENT_OUTPUT_VOLUME_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.output_volume_changed);
+
+  /* Register/deregister all msg_ids. */
+
+  RegisterNotification(
+      CRAS_CLIENT_OUTPUT_MUTE_CHANGED,
+      (void *)send_output_mute_changed,
+      (void **)&cras_observer_ops_value.output_mute_changed);
+  RegisterNotification(
+      CRAS_CLIENT_OUTPUT_MUTE_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.output_mute_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_CAPTURE_MUTE_CHANGED,
+      (void *)send_capture_mute_changed,
+      (void **)&cras_observer_ops_value.capture_mute_changed);
+  RegisterNotification(
+      CRAS_CLIENT_CAPTURE_MUTE_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.capture_mute_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_NODES_CHANGED,
+      (void *)send_nodes_changed,
+      (void **)&cras_observer_ops_value.nodes_changed);
+  RegisterNotification(
+      CRAS_CLIENT_NODES_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.nodes_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_ACTIVE_NODE_CHANGED,
+      (void *)send_active_node_changed,
+      (void **)&cras_observer_ops_value.active_node_changed);
+  RegisterNotification(
+      CRAS_CLIENT_ACTIVE_NODE_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.active_node_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_OUTPUT_NODE_VOLUME_CHANGED,
+      (void *)send_output_node_volume_changed,
+      (void **)&cras_observer_ops_value.output_node_volume_changed);
+  RegisterNotification(
+      CRAS_CLIENT_OUTPUT_NODE_VOLUME_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.output_node_volume_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_NODE_LEFT_RIGHT_SWAPPED_CHANGED,
+      (void *)send_node_left_right_swapped_changed,
+      (void **)&cras_observer_ops_value.node_left_right_swapped_changed);
+  RegisterNotification(
+      CRAS_CLIENT_NODE_LEFT_RIGHT_SWAPPED_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.node_left_right_swapped_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_INPUT_NODE_GAIN_CHANGED,
+      (void *)send_input_node_gain_changed,
+      (void **)&cras_observer_ops_value.input_node_gain_changed);
+  RegisterNotification(
+      CRAS_CLIENT_INPUT_NODE_GAIN_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.input_node_gain_changed);
+
+  RegisterNotification(
+      CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED,
+      (void *)send_num_active_streams_changed,
+      (void **)&cras_observer_ops_value.num_active_streams_changed);
+  RegisterNotification(
+      CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.num_active_streams_changed);
+
+  /* Deregister last. */
+  RegisterNotification(
+      CRAS_CLIENT_CAPTURE_GAIN_CHANGED, NULL,
+      (void **)&cras_observer_ops_value.capture_gain_changed);
+}
+
+TEST_F(RClientMessagesSuite, SendOutputVolumeChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_volume_changed *msg =
+      (struct cras_client_volume_changed *)buf;
+  const int32_t volume = 90;
+
+  send_output_volume_changed(void_client, volume);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_OUTPUT_VOLUME_CHANGED);
+  EXPECT_EQ(msg->volume, volume);
+}
+
+TEST_F(RClientMessagesSuite, SendOutputMuteChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_mute_changed *msg =
+      (struct cras_client_mute_changed *)buf;
+  const int muted = 1;
+  const int user_muted = 0;
+  const int mute_locked = 1;
+
+  send_output_mute_changed(void_client, muted, user_muted, mute_locked);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_OUTPUT_MUTE_CHANGED);
+  EXPECT_EQ(msg->muted, muted);
+  EXPECT_EQ(msg->user_muted, user_muted);
+  EXPECT_EQ(msg->mute_locked, mute_locked);
+}
+
+TEST_F(RClientMessagesSuite, SendCaptureGainChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_volume_changed *msg =
+      (struct cras_client_volume_changed *)buf;
+  const int32_t gain = 90;
+
+  send_capture_gain_changed(void_client, gain);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_CAPTURE_GAIN_CHANGED);
+  EXPECT_EQ(msg->volume, gain);
+}
+
+TEST_F(RClientMessagesSuite, SendCaptureMuteChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_mute_changed *msg =
+      (struct cras_client_mute_changed *)buf;
+  const int muted = 1;
+  const int mute_locked = 0;
+
+  send_capture_mute_changed(void_client, muted, mute_locked);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_CAPTURE_MUTE_CHANGED);
+  EXPECT_EQ(msg->muted, muted);
+  EXPECT_EQ(msg->mute_locked, mute_locked);
+}
+
+TEST_F(RClientMessagesSuite, SendNodesChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_nodes_changed *msg =
+      (struct cras_client_nodes_changed *)buf;
+
+  send_nodes_changed(void_client);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_NODES_CHANGED);
+}
+
+TEST_F(RClientMessagesSuite, SendActiveNodeChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_active_node_changed *msg =
+      (struct cras_client_active_node_changed *)buf;
+  const enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_INPUT;
+  const cras_node_id_t node_id = 0x0001000200030004;
+
+  send_active_node_changed(void_client, dir, node_id);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_ACTIVE_NODE_CHANGED);
+  EXPECT_EQ(msg->direction, (int32_t)dir);
+  EXPECT_EQ(msg->node_id, node_id);
+}
+
+TEST_F(RClientMessagesSuite, SendOutputNodeVolumeChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_node_value_changed *msg =
+      (struct cras_client_node_value_changed *)buf;
+  const cras_node_id_t node_id = 0x0001000200030004;
+  const int32_t value = 90;
+
+  send_output_node_volume_changed(void_client, node_id, value);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_OUTPUT_NODE_VOLUME_CHANGED);
+  EXPECT_EQ(msg->node_id, node_id);
+  EXPECT_EQ(msg->value, value);
+}
+
+TEST_F(RClientMessagesSuite, SendNodeLeftRightSwappedChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_node_value_changed *msg =
+      (struct cras_client_node_value_changed *)buf;
+  const cras_node_id_t node_id = 0x0001000200030004;
+  const int32_t value = 0;
+
+  send_node_left_right_swapped_changed(void_client, node_id, value);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_NODE_LEFT_RIGHT_SWAPPED_CHANGED);
+  EXPECT_EQ(msg->node_id, node_id);
+  EXPECT_EQ(msg->value, value);
+}
+
+TEST_F(RClientMessagesSuite, SendNodeInputNodeGainChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_node_value_changed *msg =
+      (struct cras_client_node_value_changed *)buf;
+  const cras_node_id_t node_id = 0x0001000200030004;
+  const int32_t value = -19;
+
+  send_input_node_gain_changed(void_client, node_id, value);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_INPUT_NODE_GAIN_CHANGED);
+  EXPECT_EQ(msg->node_id, node_id);
+  EXPECT_EQ(msg->value, value);
+}
+
+TEST_F(RClientMessagesSuite, SendNumActiveStreamsChanged) {
+  void *void_client = reinterpret_cast<void *>(rclient_);
+  char buf[1024];
+  ssize_t rc;
+  struct cras_client_num_active_streams_changed *msg =
+      (struct cras_client_num_active_streams_changed *)buf;
+  const enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_INPUT;
+  const uint32_t num_active_streams = 3;
+
+  send_num_active_streams_changed(void_client, dir, num_active_streams);
+  rc = read(pipe_fds_[0], buf, sizeof(buf));
+  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
+  EXPECT_EQ(msg->header.id, CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED);
+  EXPECT_EQ(msg->direction, (int32_t)dir);
+  EXPECT_EQ(msg->num_active_streams, num_active_streams);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -454,8 +778,8 @@ void cras_dsp_dump_info()
 {
 }
 
-int cras_iodev_list_set_node_attr(int dev_index, int node_index,
-                                  enum ionode_attr attr, int value)
+int cras_iodev_list_set_node_attr(cras_node_id_t id,
+				  enum ionode_attr attr, int value)
 {
   return 0;
 }
@@ -505,17 +829,16 @@ int stream_list_add(struct stream_list *list,
   return ret;
 }
 
-struct cras_rstream *stream_list_rm(struct stream_list *list,
-                                    cras_stream_id_t id)
+int stream_list_rm(struct stream_list *list, cras_stream_id_t id)
 {
   stream_list_disconnect_stream_called++;
-  return NULL;
+  return 0;
 }
 
-struct cras_rstream *stream_list_rm_all_client_streams(
-                struct stream_list *list, struct cras_rclient *rclient)
+int stream_list_rm_all_client_streams(struct stream_list *list,
+				      struct cras_rclient *rclient)
 {
-  return NULL;
+  return 0;
 }
 
 int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
@@ -533,6 +856,42 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t id,
               const char *model_name)
 {
   return 0;
+}
+
+struct cras_observer_client *cras_observer_add(
+			const struct cras_observer_ops *ops,
+			void *context)
+{
+  cras_observer_add_called++;
+  cras_observer_add_context_value = context;
+  memcpy(&cras_observer_ops_value, ops, sizeof(cras_observer_ops_value));
+  return cras_observer_add_return_value;
+}
+
+void cras_observer_get_ops(const struct cras_observer_client *client,
+			   struct cras_observer_ops *ops)
+{
+  cras_observer_get_ops_called++;
+  memcpy(ops, &cras_observer_ops_value, sizeof(*ops));
+}
+
+void cras_observer_set_ops(struct cras_observer_client *client,
+			   const struct cras_observer_ops *ops)
+{
+  cras_observer_set_ops_called++;
+  memcpy(&cras_observer_ops_value, ops, sizeof(cras_observer_ops_value));
+}
+
+int cras_observer_ops_are_empty(const struct cras_observer_ops *ops)
+{
+  cras_observer_ops_are_empty_called++;
+  return memcmp(&cras_observer_ops_are_empty_empty_ops, ops,
+                sizeof(cras_observer_ops_are_empty_empty_ops)) == 0;
+}
+
+void cras_observer_remove(struct cras_observer_client *client)
+{
+  cras_observer_remove_called++;
 }
 
 }  // extern "C"

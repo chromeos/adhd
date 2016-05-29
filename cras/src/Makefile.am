@@ -634,7 +634,7 @@ rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 	 -I$(top_srcdir)/src/server
 rate_estimator_unittest_LDADD = -lgtest -lpthread
 
-rclient_unittest_SOURCES = tests/rclient_unittest.cc server/cras_rclient.c
+rclient_unittest_SOURCES = tests/rclient_unittest.cc
 rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 rclient_unittest_LDADD = -lgtest -lpthread
