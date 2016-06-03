@@ -721,6 +721,24 @@ TEST(AlsaUcm, MaxSoftwareGain) {
   ASSERT_TRUE(ret);
 }
 
+TEST(AlsaUcm, OptimizeNoStream) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  std::string id = "=OptimizeNoStream//HiFi";
+  std::string value = "1";
+
+  ResetStubData();
+
+  /* Value can be found in UCM. */
+  snd_use_case_get_value[id] = value;
+
+  EXPECT_EQ(1, ucm_get_optimize_no_stream_flag(mgr));
+
+  ResetStubData();
+
+  /* Value can not be found in UCM. */
+  EXPECT_EQ(0, ucm_get_optimize_no_stream_flag(mgr));
+}
+
 TEST(AlsaUCM, UseFullySpecifiedUCMConfig) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   int fully_specified_flag;

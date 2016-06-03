@@ -361,4 +361,13 @@ int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
 unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
 					   const char *dev);
 
+/* Gets the flag of optimization for no stream state.
+ * This flag enables no_stream ops in alsa_io.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    1 if the flag is enabled. 0 otherwise.
+ */
+unsigned int ucm_get_optimize_no_stream_flag(snd_use_case_mgr_t *mgr);
+
 #endif /* _CRAS_ALSA_UCM_H */
