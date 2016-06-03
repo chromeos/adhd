@@ -618,7 +618,8 @@ static int gpio_switch_list_by_matching(const char *dev_path,
 		(struct gpio_switch_list_data *)arg;
 
 	if (data->jack_list->direction == CRAS_STREAM_INPUT) {
-		if (!jack_matches_string(dev_name, "^.*Mic Jack$")) {
+		if (!jack_matches_string(dev_name, "^.*Mic Jack$") &&
+		    !jack_matches_string(dev_name, "^.*Headset Jack$")) {
 			/* Continue searching. */
 			return 0;
 		}
