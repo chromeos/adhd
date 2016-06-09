@@ -729,23 +729,28 @@ static int gpio_switch_list_with_section(const char *dev_path,
 	return 1;
 }
 
-static void compile_regex(regex_t *regex, const char *str)
-{
-	int r;
-	r = regcomp(regex, str, REG_EXTENDED);
-	assert(r == 0);
-}
-
-static int jack_matches_string(const char *jack, const char *re)
+/* Match the given jack name to the given regular expression.
+ * Args:
+ *    jack_name - The jack's name.
+ *    re - Regular expression string.
+ * Returns:
+ *    Non-zero for success, or 0 for failure.
+ */
+static int jack_matches_regex(const char *jack_name, const char *re)
 {
 	regmatch_t m[1];
 	regex_t regex;
-	unsigned success;
+	int rc;
 
-	compile_regex(&regex, re);
-	success = regexec(&regex, jack, ARRAY_SIZE(m), m, 0) == 0;
+	rc = regcomp(&regex, re, REG_EXTENDED);
+	if (rc != 0) {
+		syslog(LOG_ERR, "Failed to compile regular expression: %s", re);
+		return 0;
+	}
+
+	rc = regexec(&regex, jack_name, ARRAY_SIZE(m), m, 0) == 0;
 	regfree(&regex);
-	return success;
+	return rc;
 }
 
 static int gpio_switch_list_by_matching(const char *dev_path,
@@ -756,16 +761,16 @@ static int gpio_switch_list_by_matching(const char *dev_path,
 		(struct gpio_switch_list_data *)arg;
 
 	if (data->jack_list->direction == CRAS_STREAM_INPUT) {
-		if (!jack_matches_string(dev_name, "^.*Mic Jack$") &&
-		    !jack_matches_string(dev_name, "^.*Headset Jack$")) {
+		if (!jack_matches_regex(dev_name, "^.*Mic Jack$") &&
+		    !jack_matches_regex(dev_name, "^.*Headset Jack$")) {
 			/* Continue searching. */
 			return 0;
 		}
 	}
 	else if (data->jack_list->direction == CRAS_STREAM_OUTPUT) {
-		if (!jack_matches_string(dev_name, "^.*Headphone Jack$") &&
-		    !jack_matches_string(dev_name, "^.*Headset Jack$") &&
-		    !jack_matches_string(dev_name, "^.*HDMI Jack$")) {
+		if (!jack_matches_regex(dev_name, "^.*Headphone Jack$") &&
+		    !jack_matches_regex(dev_name, "^.*Headset Jack$") &&
+		    !jack_matches_regex(dev_name, "^.*HDMI Jack$")) {
 			/* Continue searching. */
 			return 0;
 		}
