@@ -1347,7 +1347,7 @@ int main(int argc, char **argv)
 
 			cras_node_id_t id = cras_make_node_id(dev_index,
 							      node_index);
-			if (c == ';')
+			if (c == '<')
 				cras_client_set_hotword_model(client, id, s);
 			else
 				print_hotword_models(client, id);
