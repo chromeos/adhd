@@ -5,7 +5,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/mman.h>
-#include <sys/shm.h>
 #include <sys/types.h>
 #include <gtest/gtest.h>
 

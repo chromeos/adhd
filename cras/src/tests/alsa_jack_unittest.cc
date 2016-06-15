@@ -1114,6 +1114,7 @@ int gpio_switch_read(int fd, void *buf, size_t n_bytes)
    * unittest.
    */
   assert(0);
+  return 0;
 }
 
 int gpio_switch_open(const char *pathname)
