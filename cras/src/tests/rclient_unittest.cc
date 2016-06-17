@@ -678,7 +678,7 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 
 const char *cras_config_get_socket_file_dir()
 {
-  return "/tmp";
+  return CRAS_UT_TMPDIR;
 }
 
 int cras_rstream_create(struct cras_rstream_config *stream_config,

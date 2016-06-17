@@ -29,6 +29,7 @@ else
 CRAS_FMA =
 endif
 
+CRAS_UT_TMPDIR_CFLAGS=-DCRAS_UT_TMPDIR=\"/tmp\"
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
 COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
@@ -494,7 +495,7 @@ card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c
 card_config_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config
+	-I$(top_srcdir)/src/server/config $(CRAS_UT_TMPDIR_CFLAGS)
 card_config_unittest_LDADD = -lgtest -liniparser -lpthread
 
 checksum_unittest_SOURCES = tests/checksum_unittest.cc common/cras_checksum.c
@@ -522,7 +523,7 @@ device_blacklist_unittest_SOURCES = tests/device_blacklist_unittest.cc \
 	server/config/cras_device_blacklist.c
 device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config
+	-I$(top_srcdir)/src/server/config $(CRAS_UT_TMPDIR_CFLAGS)
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
@@ -643,7 +644,7 @@ rate_estimator_unittest_LDADD = -lgtest -lpthread
 
 rclient_unittest_SOURCES = tests/rclient_unittest.cc
 rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	 -I$(top_srcdir)/src/server
+	 -I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
 rclient_unittest_LDADD = -lgtest -lpthread
 
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \

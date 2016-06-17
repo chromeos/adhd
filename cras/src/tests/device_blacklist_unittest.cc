@@ -11,7 +11,7 @@ extern "C" {
 
 namespace {
 
-static const char CONFIG_PATH[] = "/tmp";
+static const char CONFIG_PATH[] = CRAS_UT_TMPDIR;
 static const char CONFIG_FILENAME[] = "device_blacklist";
 
 void CreateConfigFile(const char* config_text) {

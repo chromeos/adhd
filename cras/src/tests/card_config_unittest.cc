@@ -22,7 +22,7 @@ static unsigned int cras_volume_curve_create_explicit_called;
 static long cras_explicit_curve[101];
 static struct cras_volume_curve* cras_volume_curve_create_explicit_return;
 
-static const char CONFIG_PATH[] = "/tmp";
+static const char CONFIG_PATH[] = CRAS_UT_TMPDIR;
 
 void CreateConfigFile(const char* name, const char* config_text) {
   FILE* f;
