@@ -10,6 +10,7 @@
 #include "cras_utf8.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "sfh.h"
 #include "utlist.h"
 
 #define DEFAULT_BT_DEVICE_NAME "BLUETOOTH"
@@ -376,6 +377,10 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	active->base.type = CRAS_NODE_TYPE_BLUETOOTH;
 	active->base.volume = 100;
 	active->base.plugged = 1;
+	active->base.stable_id = SuperFastHash(
+		cras_bt_device_object_path(device),
+		strlen(cras_bt_device_object_path(device)),
+		strlen(cras_bt_device_object_path(device)));
 	active->profile = profile;
 	active->profile_dev = dev;
 	gettimeofday(&active->base.plugged_time, NULL);

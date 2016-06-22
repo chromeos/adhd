@@ -437,6 +437,11 @@ int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
   return 0;
 }
 
+const char *cras_bt_device_object_path(const struct cras_bt_device *device)
+{
+  return "/fake/object/path";
+}
+
 int is_utf8_string(const char* string)
 {
   return is_utf8_string_ret_value;
