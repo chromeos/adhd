@@ -76,8 +76,8 @@ struct cras_bt_device {
 };
 
 enum BT_DEVICE_COMMAND {
-	BT_DEVICE_SWITCH_PROFILE_ON_CLOSE,
-	BT_DEVICE_SWITCH_PROFILE_ON_OPEN,
+	BT_DEVICE_SWITCH_PROFILE,
+	BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV,
 };
 
 struct bt_device_msg {
@@ -307,7 +307,7 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 
 static void bt_device_switch_profile(struct cras_bt_device *device,
 				     struct cras_iodev *bt_iodev,
-				     int on_open);
+				     int enable_dev);
 
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev)
@@ -696,15 +696,15 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
  *  | bt device        +------------+                              |
  *  +--------------------------------------------------------------+
  */
-int cras_bt_device_switch_profile_on_open(struct cras_bt_device *device,
-					  struct cras_iodev *bt_iodev)
+int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
+					     struct cras_iodev *bt_iodev)
 {
 	struct bt_device_msg msg;
 	int rc;
 
 	msg.header.type = CRAS_MAIN_BT;
 	msg.header.length = sizeof(msg);
-	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ON_OPEN;
+	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV;
 	msg.device = device;
 	msg.dev = bt_iodev;
 
@@ -712,15 +712,15 @@ int cras_bt_device_switch_profile_on_open(struct cras_bt_device *device,
 	return rc;
 }
 
-int cras_bt_device_switch_profile_on_close(struct cras_bt_device *device,
-					   struct cras_iodev *bt_iodev)
+int cras_bt_device_switch_profile(struct cras_bt_device *device,
+				  struct cras_iodev *bt_iodev)
 {
 	struct bt_device_msg msg;
 	int rc;
 
 	msg.header.type = CRAS_MAIN_BT;
 	msg.header.length = sizeof(msg);
-	msg.cmd = BT_DEVICE_SWITCH_PROFILE_ON_CLOSE;
+	msg.cmd = BT_DEVICE_SWITCH_PROFILE;
 	msg.device = device;
 	msg.dev = bt_iodev;
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
@@ -757,7 +757,7 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
  * finally reopen them. */
 static void bt_device_switch_profile(struct cras_bt_device *device,
 				     struct cras_iodev *bt_iodev,
-				     int on_open)
+				     int enable_dev)
 {
 	struct cras_iodev *iodev;
 	int was_enabled[CRAS_NUM_DIRECTIONS] = {0};
@@ -791,7 +791,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		 * too soon, so put this task in a delayed callback.
 		 */
 		if (was_enabled[dir] ||
-		    (on_open && iodev == bt_iodev)) {
+		    (enable_dev && iodev == bt_iodev)) {
 			if (dir == CRAS_STREAM_INPUT) {
 				iodev->update_active_node(iodev, 0, 1);
 				cras_iodev_list_enable_dev(iodev);
@@ -809,10 +809,10 @@ static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 	struct bt_device_msg *bt_msg = (struct bt_device_msg *)msg;
 
 	switch (bt_msg->cmd) {
-	case BT_DEVICE_SWITCH_PROFILE_ON_CLOSE:
+	case BT_DEVICE_SWITCH_PROFILE:
 		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 0);
 		break;
-	case BT_DEVICE_SWITCH_PROFILE_ON_OPEN:
+	case BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV:
 		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 1);
 		break;
 	default:

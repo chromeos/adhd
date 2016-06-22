@@ -142,7 +142,7 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
   cras_bt_device_start_monitor();
-  cras_bt_device_switch_profile_on_open(device, &bt_iodev1);
+  cras_bt_device_switch_profile_enable_dev(device, &bt_iodev1);
 
   /* Two bt iodevs were all active. */
   cras_main_message_add_handler_callback(
@@ -150,13 +150,13 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
       cras_main_message_add_handler_callback_data);
 
   /* One bt iodev was active, the other was not. */
-  cras_bt_device_switch_profile_on_open(device, &bt_iodev2);
+  cras_bt_device_switch_profile_enable_dev(device, &bt_iodev2);
   cras_main_message_add_handler_callback(
       cras_main_message_send_msg,
       cras_main_message_add_handler_callback_data);
 
   /* Output bt iodev wasn't active, close the active input iodev. */
-  cras_bt_device_switch_profile_on_close(device, &bt_iodev2);
+  cras_bt_device_switch_profile(device, &bt_iodev2);
   cras_main_message_add_handler_callback(
       cras_main_message_send_msg,
       cras_main_message_add_handler_callback_data);

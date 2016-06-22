@@ -131,7 +131,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	    iodev->direction == CRAS_STREAM_INPUT) {
 		bt_switch_to_profile(btio->device,
 				     CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
-		cras_bt_device_switch_profile_on_open(btio->device, iodev);
+		cras_bt_device_switch_profile_enable_dev(btio->device, iodev);
 		return -EAGAIN;
 	}
 
@@ -208,8 +208,7 @@ static int close_dev(struct cras_iodev *iodev)
 	    cras_bt_device_has_a2dp(btio->device)) {
 		cras_bt_device_set_active_profile(btio->device,
 				CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-		cras_bt_device_switch_profile_on_close(btio->device,
-						       iodev);
+		cras_bt_device_switch_profile(btio->device, iodev);
 	}
 
 	rc = dev->close_dev(dev);
@@ -464,7 +463,7 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
 	    cras_bt_device_can_switch_to_a2dp(btio->device)) {
 		bt_switch_to_profile(btio->device,
 				     CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-		cras_bt_device_switch_profile_on_open(btio->device, bt_iodev);
+		cras_bt_device_switch_profile(btio->device, bt_iodev);
 		syslog(LOG_ERR, "Switch to A2DP on append");
 	}
 	return 0;
