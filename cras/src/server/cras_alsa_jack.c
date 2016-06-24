@@ -19,7 +19,7 @@
 #include "utlist.h"
 
 static const unsigned int DISPLAY_INFO_RETRY_DELAY_MS = 200;
-static const unsigned int DISPLAY_INFO_MAX_RETRIES = 10;
+static const unsigned int DISPLAY_INFO_MAX_RETRIES = 25;
 
 /* Constants used to retrieve monitor name from ELD buffer. */
 static const unsigned int ELD_MNL_MASK = 31;
