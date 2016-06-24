@@ -316,7 +316,7 @@ snd_use_case_mgr_t *ucm_create(const char *name)
 
 	rc = snd_use_case_mgr_open(&mgr, name);
 	if (rc) {
-		syslog(LOG_ERR, "Can not open ucm for card %s, rc = %d",
+		syslog(LOG_WARNING, "Can not open ucm for card %s, rc = %d",
 		       name, rc);
 		return NULL;
 	}
