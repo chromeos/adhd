@@ -669,7 +669,16 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
 				    unsigned int *underruns)
 {
-	snd_pcm_uframes_t offset, frames;
+	snd_pcm_uframes_t offset;
+	/* The purpose of calling cras_alsa_mmap_begin is to get the base
+	 * address of the buffer. The requested and retrieved frames are not
+	 * meaningful here.
+	 * However, we need to set a non-zero requested frames to get a
+	 * non-zero retrieved frames. This is to avoid the error checking in
+	 * snd_pcm_mmap_begin, where it judges retrieved frames being 0 as a
+	 * failure.
+	 */
+	snd_pcm_uframes_t frames = 1;
 
 	return cras_alsa_mmap_begin(
 			handle, 0, dst, &offset, &frames, underruns);
