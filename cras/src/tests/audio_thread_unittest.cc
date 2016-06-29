@@ -418,6 +418,9 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
   thread_add_open_dev(thread_, &iodev);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
+  // Assume device is started.
+  dev_running_ret = 1;
+
   // cras_iodev should handle no stream playback.
   write_output_samples(thread_, adev);
   EXPECT_EQ(1, cras_iodev_no_stream_playback_called);
@@ -490,10 +493,14 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesWithStream) {
   write_output_samples(thread_, adev);
   EXPECT_EQ(0, cras_iodev_start_called);
 
-  // Assume there are 100 samples written in this cycle.
+  // Assume sample from streams are ready.
+  dev_stream_playback_frames_ret = 100;
+  // Assume there are 100 samples from streams written in this cycle.
   cras_iodev_all_streams_written_ret = 100;
   write_output_samples(thread_, adev);
   EXPECT_EQ(1, cras_iodev_start_called);
+  // Fill min_cb_level of zeros before samples from streams.
+  EXPECT_EQ(iodev.min_cb_level, cras_iodev_fill_odev_zeros_frames);
   EXPECT_EQ(cras_iodev_all_streams_written_ret,
             cras_iodev_put_output_buffer_nframes);
 

@@ -1116,6 +1116,42 @@ static void update_estimated_rate(struct audio_thread *thread,
 	}
 }
 
+/* Output device state transition diagram:
+ *
+ *                          ----------------
+ *                          | S0  Closed   |<-------------.
+ *                          ----------------              |
+ *      iodev_list enables     |                          |
+ *      device and adds to     |                          |
+ *      audio_thread           V                          | iodev_list removes
+ *                          ----------------              | device from
+ *                          | S1  Open     |              | audio_thread and
+ *                          ----------------              | closes device
+ *                             |                          |
+ *          Sample is ready    |                          |
+ *                             V                          |
+ *                          ----------------              |
+ *                          | S2  Normal   |              |
+ *                          ----------------              |
+ *                             |     ^                    |
+ *        There is no stream   |     | Sample is ready    |
+ *                             V     |                    |
+ *                          ----------------              |
+ *                          | S3 No Stream |--------------
+ *                          ----------------
+ *                            ^  |     |  ^
+ *   (a) There is no stream   |  |     |  | (b) There is stream but sample is
+ *                            |  |     |  |     not ready yet
+ *                             --       --
+ *
+ *  Device in open_devs can be in one of S1, S2, S3.
+ *
+ *            dev_running         no_stream_state
+ *      S1        0                      0
+ *      S2        1                      0
+ *      S3        1                      1
+ */
+
 /* Returns 0 on success negative error on device failure. */
 static int write_output_samples(struct audio_thread *thread,
 				struct open_dev *adev)
@@ -1130,21 +1166,32 @@ static int write_output_samples(struct audio_thread *thread,
 	struct cras_audio_area *area = NULL;
 	int is_running;
 
-	/* Let device handle playback when there is no stream. */
-	if (!odev->streams)
+	is_running = odev->dev_running(odev);
+
+	/* S2 => S3 and S3 => S3 (a):
+	 * Let device handle playback when there is no stream. */
+	if (is_running && !odev->streams)
 		return cras_iodev_no_stream_playback(odev, 1);
 
 	if (odev->no_stream_state) {
-		/* If there is sample ready in dev_stream, let device resume
+		/* S3 => S2:
+		 * If there is sample ready in dev_stream, let device resume
 		 * normal playback from no stream playback state if needed. */
 		if (dev_playback_frames(thread, adev)) {
 			cras_iodev_no_stream_playback(odev, 0);
 		} else {
-			/* If device is in no stream state, and the sample of
+			/* S3 => S3 (b):
+			 * If device is in no stream state, and the sample of
 			 * the newly attached stream is not ready yet,
 			 * keep device in no stream playback. */
 			return cras_iodev_no_stream_playback(odev, 1);
 		}
+	} else if (!is_running && dev_playback_frames(thread, adev)) {
+		/* S1 => S2:
+		 * If device is not started yet, and there is sample ready from
+		 * stream, fill 1 min_cb_level of zeros first and fill sample
+		 * from stream later. */
+		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
 	}
 
 	rc = cras_iodev_frames_queued(odev);
@@ -1194,8 +1241,6 @@ static int write_output_samples(struct audio_thread *thread,
 			return rc;
 		total_written += written;
 	}
-
-	is_running = odev->dev_running(odev);
 
 	/* In the case where we have written samples or there are samples in
 	 * device, start it if needed. */

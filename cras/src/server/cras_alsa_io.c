@@ -306,6 +306,17 @@ static int dev_running(const struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle = aio->handle;
 
+	/* If device is suspended, resume the device to its previous state.
+	 * Otherwise, we might get 0 from dev_running but the device is
+	 * resumed later by other cras_alsa_attempt_resume call in
+	 * cras_alsa_helpers. */
+	if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
+		/* If cras_alsa_attempt_resume really fails, let it be handled
+		 * in later cras_alsa_attempt_resume calls because it is not
+		 * clean to let the user of dev_running to handle it. */
+		cras_alsa_attempt_resume(handle);
+	}
+
 	return snd_pcm_state(handle) == SND_PCM_STATE_RUNNING;
 }
 

@@ -847,9 +847,6 @@ int cras_iodev_no_stream_playback(struct cras_iodev *odev, int enable)
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	if (!odev->dev_running(odev))
-		return 0;
-
 	rc = odev->no_stream(odev, enable);
 	if (rc < 0)
 		return rc;

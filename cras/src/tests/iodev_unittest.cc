@@ -990,22 +990,6 @@ TEST(IoDev, FillZeros) {
   EXPECT_EQ(0, rc);
 }
 
-TEST(IoDev, NoStreamPlaybackNotRunning) {
-  struct cras_iodev iodev;
-  int rc;
-
-  memset(&iodev, 0, sizeof(iodev));
-
-  ResetStubData();
-
-  iodev.dev_running = dev_running;
-
-  // Device is not running. No need to fill zeros.
-  rc = cras_iodev_no_stream_playback(&iodev, 1);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, put_buffer_nframes);
-}
-
 TEST(IoDev, NoStreamPlaybackRunning) {
   struct cras_iodev iodev;
   struct cras_audio_format fmt;

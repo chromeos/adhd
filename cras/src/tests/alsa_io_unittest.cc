@@ -732,6 +732,26 @@ TEST(AlsaIoInit, ResumeDevice) {
   alsa_iodev_destroy(iodev);
 }
 
+TEST(AlsaIoInit, ResumeDeviceInDevRunning) {
+  struct cras_iodev *iodev;
+  int rc;
+
+  ResetStubData();
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
+                            NULL, NULL, fake_hctl,
+                            CRAS_STREAM_OUTPUT, 0, 0);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+
+  // Attempt to resume if the device is suspended.
+  snd_pcm_state_ret = SND_PCM_STATE_SUSPENDED;
+  rc = iodev->dev_running(iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_attempt_resume_called);
+
+  alsa_iodev_destroy(iodev);
+}
+
 TEST(AlsaIoInit, DspNameDefault) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
