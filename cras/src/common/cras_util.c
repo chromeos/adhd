@@ -3,19 +3,24 @@
  * found in the LICENSE file.
  */
 
+#define _GNU_SOURCE /* For ppoll() */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <poll.h>
 #include <sched.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
-#include <syslog.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "cras_util.h"
 
 int cras_set_rt_scheduling(int rt_lim)
 {
@@ -160,5 +165,47 @@ int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
 
 exit:
 	free(control);
+	return rc;
+}
+
+int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
+	      const sigset_t *sigmask)
+{
+	struct timespec now;
+	struct timespec future;
+	struct pollfd *fd = fds;
+	nfds_t i;
+	int rc = 0;
+
+	if (timeout) {
+		/* Treat a negative timeout as valid (but timed-out) since
+		 * this function could update timeout to have negative tv_sec
+		 * or tv_nsec. */
+		if (timeout->tv_sec < 0 || timeout->tv_nsec < 0)
+			return -ETIMEDOUT;
+		rc = clock_gettime(CLOCK_MONOTONIC_RAW, &future);
+		if (rc < 0)
+			return -errno;
+		add_timespecs(&future, timeout);
+	}
+
+	for (i = 0; i < nfds; i++) {
+		fd->revents = 0;
+		fd++;
+	}
+
+	rc = ppoll(fds, nfds, timeout, sigmask);
+	if (rc == 0 && timeout) {
+		rc = -ETIMEDOUT;
+	}
+	else if (rc < 0) {
+		rc = -errno;
+	}
+
+	if (timeout) {
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+		subtract_timespecs(&future, &now, timeout);
+	}
+
 	return rc;
 }

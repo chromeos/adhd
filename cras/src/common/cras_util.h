@@ -156,6 +156,13 @@ static inline unsigned int timespec_to_ms(const struct timespec *ts)
 	return ts->tv_sec * 1000 + (ts->tv_nsec + 999999) / 1000000;
 }
 
+/* Convert milliseconds to timespec. */
+static inline void ms_to_timespec(time_t milliseconds, struct timespec *ts)
+{
+	ts->tv_sec = milliseconds / 1000;
+	ts->tv_nsec = (milliseconds % 1000) * 1000000;
+}
+
 /* Calculates frames since time beg. */
 static inline unsigned int cras_frames_since_time(const struct timespec *beg,
 						  unsigned int rate)
@@ -169,6 +176,32 @@ static inline unsigned int cras_frames_since_time(const struct timespec *beg,
 	subtract_timespecs(&now, beg, &time_since);
 	return cras_time_to_frames(&time_since, rate);
 }
+
+/* Poll on the given file descriptors.
+ *
+ * See ppoll(). This implementation changes the value of timeout to the
+ * remaining time, and returns negative error codes on error.
+ *
+ * Args:
+ *    fds - Array of pollfd structures.
+ *    nfds - Number of pollfd structures.
+ *    timeout - Timeout time updated upon return with remaining time. The
+ *              timeout value may be updated to become invalid (negative
+ *              tv_nsec or negative tv_sec). In that case, -tv_nsec is the
+ *              number of nanoseconds by which the polling exceeded the
+ *              supplied timeout. The function immediately returns with
+ *              -ETIMEOUT if tv_nsec is negative, simplifying loops that
+ *              rely on the returned remaining timeout.
+ *    sigmask - Signal mask while in the poll.
+ *
+ * Returns:
+ *    Positive when file decriptors are ready.
+ *    Zero if no file descriptors are ready and timeout is NULL.
+ *    -ETIMEDOUT when no file descriptors are ready and a timeout specified.
+ *    Other negative error codes specified in the ppoll() man page.
+ */
+int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
+              const sigset_t *sigmask);
 
 #ifdef __cplusplus
 } /* extern "C" */

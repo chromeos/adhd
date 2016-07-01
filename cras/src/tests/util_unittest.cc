@@ -3,15 +3,17 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <string>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <vector>
 
 #include "cras_util.h"
 
 namespace {
 
-static struct timespec time_now;
+static std::vector<struct timespec> time_now;
 
 TEST(Util, SendRecvTwoFileDescriptors) {
   int fd[2];
@@ -243,28 +245,79 @@ TEST(Util, TimespecToMs) {
 }
 
 TEST(Util, FramesSinceTime) {
-  struct timespec t;
+  struct timespec t, tn;
   unsigned int frames;
 
   t.tv_sec = 0;
   t.tv_nsec = 500000000;
 
-  time_now.tv_sec = 2;
-  time_now.tv_nsec = 0;
+  tn.tv_sec = 2;
+  tn.tv_nsec = 0;
+  time_now.push_back(tn);
   frames = cras_frames_since_time(&t, 48000);
   EXPECT_EQ(72000, frames);
 
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 0;
+  tn.tv_sec = 0;
+  time_now.push_back(tn);
   frames = cras_frames_since_time(&t, 48000);
   EXPECT_EQ(0, frames);
+}
+
+// Test cras_poll().
+TEST(Util, CrasPoll) {
+  int pipe_fds[2];
+  struct pollfd poll_fd;
+  std::string output;
+  struct timespec timeout;
+  char buf[256];
+
+  ASSERT_EQ(0, pipe(pipe_fds));
+  poll_fd.fd = pipe_fds[0];
+  poll_fd.events = POLLIN;
+  ASSERT_NE(0, poll_fd.fd >= 0);
+
+  // Simple poll.
+  output = "Hello";
+  EXPECT_EQ(output.size() + 1,
+            write(pipe_fds[1], output.c_str(), output.size() + 1));
+  EXPECT_EQ(1, cras_poll(&poll_fd, 1, NULL, NULL));
+  ASSERT_EQ(static_cast<ssize_t>(output.size() + 1),
+            read(pipe_fds[0], buf, sizeof(buf)));
+  EXPECT_EQ(0, strcmp(output.c_str(), buf));
+
+  // Negative time.
+  timeout.tv_sec = 0;
+  timeout.tv_nsec = -10000000;
+  EXPECT_EQ(-ETIMEDOUT, cras_poll(&poll_fd, 1, &timeout, NULL));
+  timeout.tv_sec = -1;
+  timeout.tv_nsec = 10000000;
+  EXPECT_EQ(-ETIMEDOUT, cras_poll(&poll_fd, 1, &timeout, NULL));
+
+  // Timeout.
+  timeout.tv_sec = 0;
+  timeout.tv_nsec = 0;
+  time_now.push_back(timeout);
+  timeout.tv_nsec = 1100000;
+  time_now.push_back(timeout);
+  timeout.tv_nsec = 1000000;
+  EXPECT_EQ(-ETIMEDOUT, cras_poll(&poll_fd, 1, &timeout, NULL));
+  EXPECT_EQ(timeout.tv_nsec, -100000);
+
+  EXPECT_EQ(0, close(pipe_fds[0]));
+  EXPECT_EQ(0, close(pipe_fds[1]));
 }
 
 /* Stubs */
 extern "C" {
 
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
-  *tp = time_now;
+  std::vector<struct timespec>::iterator i = time_now.begin();
+  if (i != time_now.end()) {
+    *tp = *i;
+    time_now.erase(i);
+  }
+  else
+    memset(tp, 0, sizeof(*tp));
   return 0;
 }
 
