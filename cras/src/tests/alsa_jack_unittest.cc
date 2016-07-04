@@ -702,7 +702,7 @@ TEST(AlsaJacks, CreateOneHpJack) {
       reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]), 0);
   EXPECT_EQ(1, snd_hctl_elem_get_name_called);
   EXPECT_EQ(1, fake_jack_cb_plugged);
-  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(2, fake_jack_cb_called);
   EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
   EXPECT_EQ(reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]),
             snd_hctl_elem_set_callback_obj);
@@ -710,7 +710,7 @@ TEST(AlsaJacks, CreateOneHpJack) {
   fake_jack_cb_called = 0;
   cras_alsa_jack_list_report(jack_list);
   EXPECT_EQ(1, fake_jack_cb_plugged);
-  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(2, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
 }
@@ -795,7 +795,7 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
       reinterpret_cast<snd_hctl_elem_t *>(&elem_names[2]), 0);
   EXPECT_EQ(1, snd_hctl_elem_get_name_called);
   EXPECT_EQ(1, fake_jack_cb_plugged);
-  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(2, fake_jack_cb_called);
   EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
   EXPECT_EQ(reinterpret_cast<snd_hctl_elem_t *>(&elem_names[2]),
             snd_hctl_elem_set_callback_obj);
@@ -803,7 +803,7 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
   fake_jack_cb_called = 0;
   cras_alsa_jack_list_report(jack_list);
   EXPECT_EQ(1, fake_jack_cb_plugged);
-  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(2, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
 }
@@ -839,7 +839,7 @@ TEST(AlsaJacks, CreateHCTLHeadphoneJackFromUCM) {
       reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]), 0);
   EXPECT_EQ(1, snd_hctl_elem_get_name_called);
   EXPECT_EQ(1, fake_jack_cb_plugged);
-  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(2, fake_jack_cb_called);
   EXPECT_EQ(fake_jack_cb_arg, fake_jack_cb_data);
   EXPECT_EQ(reinterpret_cast<snd_hctl_elem_t *>(&elem_names[1]),
             snd_hctl_elem_set_callback_obj);
@@ -847,7 +847,7 @@ TEST(AlsaJacks, CreateHCTLHeadphoneJackFromUCM) {
   fake_jack_cb_called = 0;
   cras_alsa_jack_list_report(jack_list);
   EXPECT_EQ(1, fake_jack_cb_plugged);
-  EXPECT_EQ(1, fake_jack_cb_called);
+  EXPECT_EQ(2, fake_jack_cb_called);
 
   ucm_section_free_list(section);
   cras_alsa_jack_list_destroy(jack_list);
