@@ -4,7 +4,9 @@
  */
 
 #include <errno.h>
+#include <getopt.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -175,23 +177,98 @@ static void num_active_streams_changed(void *context,
 	       string_for_direction(dir), num_active_streams);
 }
 
+static void server_connection_callback(struct cras_client *client,
+				       cras_connection_status_t status,
+				       void *user_arg)
+{
+	const char *status_str = "undefined";
+	switch (status) {
+		case CRAS_CONN_STATUS_FAILED:
+			status_str = "error";
+			break;
+		case CRAS_CONN_STATUS_DISCONNECTED:
+			status_str = "disconnected";
+			break;
+		case CRAS_CONN_STATUS_CONNECTED:
+			status_str = "connected";
+			break;
+	}
+	printf("server %s\n", status_str);
+}
+
+static void print_usage(const char *command) {
+	fprintf(stderr,
+		"%s [options]\n"
+		"  Where [options] are:\n"
+		"    --sync|-s  - Use the synchronous connection functions.\n"
+		"    --log-level|-l <n>  - Set the syslog level (7 == "
+			"LOG_DEBUG).\n",
+		command);
+}
 
 int main(int argc, char **argv)
 {
 	struct cras_client *client;
 	int rc;
+	int option_character;
+	bool synchronous = false;
+	int log_level = LOG_WARNING;
+	static struct option long_options[] = {
+		{"sync", no_argument, NULL, 's'},
+		{"log-level", required_argument, NULL, 'l'},
+		{NULL, 0, NULL, 0},
+	};
+
+	while(true) {
+		int option_index = 0;
+
+		option_character = getopt_long(argc, argv, "sl:",
+					       long_options, &option_index);
+		if (option_character == -1)
+			break;
+		switch (option_character) {
+		case 's':
+			synchronous = !synchronous;
+			break;
+		case 'l':
+			log_level = atoi(optarg);
+			if (log_level < 0)
+				log_level = LOG_WARNING;
+			else if (log_level > LOG_DEBUG)
+				log_level = LOG_DEBUG;
+			break;
+		default:
+			print_usage(argv[0]);
+			return 1;
+		}
+	}
+
+	if (optind < argc) {
+		fprintf(stderr, "%s: Extra arguments.\n", argv[0]);
+		print_usage(argv[0]);
+		return 1;
+	}
+
 	openlog("cras_monitor", LOG_PERROR, LOG_USER);
+	setlogmask(LOG_UPTO(log_level));
 
 	rc = cras_client_create(&client);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Couldn't create client.\n");
+		syslog(LOG_ERR, "Couldn't create client.");
 		return rc;
 	}
 
-	rc = cras_client_connect(client);
-	if (rc) {
-		syslog(LOG_ERR, "Couldn't connect to server.\n");
-		goto destroy_exit;
+	cras_client_set_connection_status_cb(
+			client, server_connection_callback, NULL);
+
+	if (synchronous) {
+		rc = cras_client_connect(client);
+		if (rc != 0) {
+			syslog(LOG_ERR, "Could not connect to server.");
+			return -rc;
+		}
+	} else {
+		cras_client_set_server_message_blocking(client, false);
 	}
 
 	cras_client_set_output_volume_changed_callback(
@@ -216,7 +293,20 @@ int main(int argc, char **argv)
 			client, num_active_streams_changed);
 	cras_client_set_state_change_callback_context(client, client);
 
-	cras_client_run_thread(client);
+	rc = cras_client_run_thread(client);
+	if (rc != 0) {
+		syslog(LOG_ERR, "Could not start thread.");
+		return -rc;
+	}
+
+	if (!synchronous) {
+		rc = cras_client_connect_async(client);
+		if (rc) {
+			syslog(LOG_ERR, "Couldn't connect to server.\n");
+			goto destroy_exit;
+		}
+	}
+
 	while(1) {
 		int rc;
 		char c;

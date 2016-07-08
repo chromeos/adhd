@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -50,6 +50,34 @@ static int play_buffer_error(struct cras_client *client,
 {
 	free(user_arg);
 	return 0;
+}
+
+int cras_helper_create_connect_async(struct cras_client **client,
+				     cras_connection_status_cb_t connection_cb,
+				     void *user_arg)
+{
+	int rc;
+
+	rc = cras_client_create(client);
+	if (rc < 0)
+		return rc;
+
+	cras_client_set_connection_status_cb(*client, connection_cb, user_arg);
+	cras_client_set_server_message_blocking(*client, false);
+
+	rc = cras_client_run_thread(*client);
+	if (rc < 0)
+		goto client_start_error;
+
+	rc = cras_client_connect_async(*client);
+	if (rc < 0)
+		goto client_start_error;
+
+	return 0;
+
+client_start_error:
+	cras_client_destroy(*client);
+	return rc;
 }
 
 int cras_helper_create_connect(struct cras_client **client)

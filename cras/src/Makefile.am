@@ -505,7 +505,7 @@ checksum_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 checksum_unittest_LDADD = -lgtest -lpthread
 
 cras_client_unittest_SOURCES = tests/cras_client_unittest.cc \
-	common/cras_config.c common/cras_util.c
+	common/cras_config.c common/cras_util.c common/cras_file_wait.c
 cras_client_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
 cras_client_unittest_LDADD = -lgtest -lpthread -lspeexdsp

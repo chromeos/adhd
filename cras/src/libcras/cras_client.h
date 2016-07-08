@@ -1,6 +1,49 @@
 /* Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
+ *
+ * This API creates multiple threads, one for control, and a thread per audio
+ * stream. The control thread is used to receive messages and notifications
+ * from the audio server, and manage the per-stream threads. API calls below
+ * may send messages to the control thread, or directly to the server. It is
+ * required that the control thread is running in order to support audio
+ * streams and notifications from the server.
+ *
+ * The API has multiple initialization sequences, but some of those can block
+ * while waiting for a response from the server.
+ *
+ * The following is the non-blocking API initialization sequence:
+ *	cras_client_create()
+ *      cras_client_set_connection_status_cb()                       (optional)
+ *      cras_client_set_server_message_blocking(client, false)       (optional)
+ *      cras_client_run_thread()
+ *      cras_client_connect_async()
+ *
+ * The connection callback is executed asynchronously from the control thread
+ * when the connection has been established. The connection callback should be
+ * used to turn on or off interactions with any API call that communicates with
+ * the audio server or starts/stops audio streams. The above is implemented by
+ * cras_helper_create_connect_async().
+ *
+ * The following alternative (deprecated) initialization sequence can ensure
+ * that the connection is established synchronously.
+ *      cras_client_create()
+ *      cras_client_set_server_connection_cb()                       (optional)
+ *      cras_client_connect()                                        (blocking)
+ * If API calls below require the control thread to be running, then the caller
+ * must also execute:
+ *      cras_client_run_thread();
+ *      cras_client_connected_wait();
+ *
+ * The above minus setting the connection callback is implemented within
+ * cras_helper_create_connect().
+ *
+ * Note on cras_client_set_server_message_blocking(): This call is introduced
+ * to change the behaviour of API calls that send messages to the audio server.
+ * By default all calls to the server will block waiting for a connection if
+ * there is none. When message blocking is set to false, then the connection
+ * will be re-established asynchronously by the control thread, and an error
+ * returned.
  */
 
 #ifndef CRAS_CLIENT_H_
@@ -10,6 +53,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/select.h>
 
@@ -29,7 +73,9 @@ struct cras_stream_params;
  *    sample_time - Playback time for the first sample read/written.
  *    user_arg - Value passed to add_stream;
  * Return:
- *    0 on success, or a negative number if there is a stream-fatal error.
+ *    Returns the number of frames read or written on success, or a negative
+ *    number if there is a stream-fatal error. Returns EOF when the end of the
+ *    stream is reached.
  */
 typedef int (*cras_playback_cb_t)(struct cras_client *client,
 				  cras_stream_id_t stream_id,
@@ -49,7 +95,9 @@ typedef int (*cras_playback_cb_t)(struct cras_client *client,
  *    playback_time - Playback time for the first sample written.
  *    user_arg - Value passed to add_stream;
  * Return:
- *    0 on success, or a negative number if there is a stream-fatal error.
+ *    Returns the number of frames read or written on success, or a negative
+ *    number if there is a stream-fatal error. Returns EOF when the end of the
+ *    stream is reached.
  */
 typedef int (*cras_unified_cb_t)(struct cras_client *client,
 				 cras_stream_id_t stream_id,
@@ -60,15 +108,70 @@ typedef int (*cras_unified_cb_t)(struct cras_client *client,
 				 const struct timespec *playback_time,
 				 void *user_arg);
 
-/* Callback for handling errors. */
+/* Callback for handling stream errors.
+ * Args:
+ *    client - The client created with cras_client_create().
+ *    stream_id - The ID for this stream.
+ *    error - The error code,
+ *    user_arg - The argument defined in cras_client_*_params_create().
+ */
 typedef int (*cras_error_cb_t)(struct cras_client *client,
 			       cras_stream_id_t stream_id,
 			       int error,
 			       void *user_arg);
 
-/* Callback for handling server error. */
+/* Callback for handling server error. DEPRECATED
+ *
+ * Deprecated by cras_server_connection_status_cb_t: use that instead.
+ * This is equivalent to CRAS_CONN_STATUS_FAILED.
+ *
+ * This callback is executed rarely: only when the connection to the server has
+ * already been interrupted and could not be re-established due to resource
+ * allocation failure (memory or file-descriptors). The caller may attempt
+ * to reestablish communication once those resources are available with
+ * cras_client_connect_async(), or (blocking) cras_client_connect().
+ *
+ * Args:
+ *    client - The client created with cras_client_create().
+ *    user_arg - The argument defined in cras_client_set_server_errro_cb().
+ */
 typedef void (*cras_server_error_cb_t)(struct cras_client *client,
 				       void *user_arg);
+
+/* Server connection status. */
+typedef enum cras_connection_status {
+	CRAS_CONN_STATUS_FAILED,
+		/* Resource allocation problem. Free resources, and retry the
+		 * connection with cras_client_connect_async(), or (blocking)
+		 * cras_client_connect(). Do not call cras_client_connect(),
+		 * cras_client_connect_timeout(), or cras_client_destroy()
+		 * from the callback. */
+	CRAS_CONN_STATUS_DISCONNECTED,
+		/* The control thread is attempting to reconnect to the
+		 * server in the background. Any attempt to access the
+		 * server will fail or block (see
+		 * cras_client_set_server_message_blocking(). */
+	CRAS_CONN_STATUS_CONNECTED,
+		/* Connection is established. All state change callbacks
+		 * have been re-registered, but audio streams must be
+		 * restarted, and node state data must be updated. */
+} cras_connection_status_t;
+
+/* Callback for handling server connection status.
+ *
+ * See also cras_client_set_connection_status_cb(). Do not call
+ * cras_client_connect(), cras_client_connect_timeout(), or
+ * cras_client_destroy() from this callback.
+ *
+ * Args:
+ *    client - The client created with cras_client_create().
+ *    status - The status of the connection to the server.
+ *    user_arg - The argument defined in
+ *               cras_client_set_connection_status_cb().
+ */
+typedef void (*cras_connection_status_cb_t)(struct cras_client *client,
+					    cras_connection_status_t status,
+					    void *user_arg);
 
 /* Callback for setting thread priority. */
 typedef void (*cras_thread_priority_cb_t)(struct cras_client *client);
@@ -76,6 +179,7 @@ typedef void (*cras_thread_priority_cb_t)(struct cras_client *client);
 /* Callback for handling get hotword models reply. */
 typedef void (*get_hotword_models_cb_t)(struct cras_client *client,
 					const char *hotword_models);
+
 /*
  * Client handling.
  */
@@ -96,6 +200,7 @@ int cras_client_create(struct cras_client **client);
 void cras_client_destroy(struct cras_client *client);
 
 /* Connects a client to the running server.
+ * Waits forever (until interrupted or connected).
  * Args:
  *    client - pointer returned from "cras_client_create".
  * Returns:
@@ -106,23 +211,17 @@ int cras_client_connect(struct cras_client *client);
 /* Connects a client to the running server, retries until timeout.
  * Args:
  *    client - pointer returned from "cras_client_create".
- *    timeout_ms - timeout in milliseconds.
+ *    timeout_ms - timeout in milliseconds or negative to wait forever.
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
 int cras_client_connect_timeout(struct cras_client *client,
 				unsigned int timeout_ms);
 
-/* Waits for the server to indicate that the client is connected.  Useful to
- * ensure that any information about the server is up to date.
- * Args:
- *    client - pointer returned from "cras_client_create".
- * Returns:
- *    0 on success, or a negative error code on failure (from errno.h).
- */
-int cras_client_connected_wait(struct cras_client *client);
-
-/* Begins running a client.
+/* Begins running the client control thread.
+ *
+ * Required for stream operations and other operations noted below.
+ *
  * Args:
  *    client - the client to start (from cras_client_create).
  * Returns:
@@ -132,6 +231,7 @@ int cras_client_connected_wait(struct cras_client *client);
 int cras_client_run_thread(struct cras_client *client);
 
 /* Stops running a client.
+ * This function is executed automatically by cras_client_destroy().
  * Args:
  *    client - the client to stop (from cras_client_create).
  * Returns:
@@ -139,23 +239,98 @@ int cras_client_run_thread(struct cras_client *client);
  */
 int cras_client_stop(struct cras_client *client);
 
-/* Sets server error callback.
+/* Wait up to 1 second for the client thread to complete the server connection.
+ *
+ * After cras_client_run_thread() is executed, this function can be used to
+ * ensure that the connection has been established with the server and ensure
+ * that any information about the server is up to date. If
+ * cras_client_run_thread() has not yet been executed, or cras_client_stop()
+ * was executed and thread isn't running, then this function returns -EINVAL.
+ *
+ * Args:
+ *    client - pointer returned from "cras_client_create".
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+int cras_client_connected_wait(struct cras_client *client);
+
+/* Ask the client control thread to connect to the audio server.
+ *
+ * After cras_client_run_thread() is executed, this function can be used
+ * to ask the control thread to connect to the audio server asynchronously.
+ * The callback set with cras_client_set_connection_status_cb() will be
+ * executed when the connection is established.
+ *
+ * Args:
+ *    client - The client from cras_client_create().
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ *    -EINVAL if the client pointer is invalid or the control thread is
+ *    not running.
+ */
+int cras_client_connect_async(struct cras_client *client);
+
+/* Set the server message send behaviour.
+ *
+ * By default actions that result in messages to the server will block
+ * waiting for a connection to the server if the server is not connected.
+ * Change this behaviour with this function to cause those messages to
+ * return immediately with an error. The connection will be re-established
+ * in the background by the control thread (if started with
+ * cras_client_run_thread()), and the callback set with
+ * cras_client_set_connection_status_cb() will indicate when the connection
+ * was re-established.
+ *
+ * Args:
+ *    client - The client from cras_client_create().
+ *    blocking - true to auto-reconnect, or false for asynchronous reconnect.
+ */
+void cras_client_set_server_message_blocking(struct cras_client *client,
+					     bool blocking);
+
+/* Sets server error callback. DEPRECATED
+ *
+ * See cras_server_error_cb_t for more information about this callback.
+ *
  * Args:
  *    client - The client from cras_client_create.
+ *    err_cb - The callback function to register.
  *    user_arg - Pointer that will be passed to the callback.
  */
 void cras_client_set_server_error_cb(struct cras_client *client,
 				     cras_server_error_cb_t err_cb,
 				     void *user_arg);
 
+/* Sets server connection status callback.
+ *
+ * See cras_connection_status_t for a description of the connection states
+ * and appropriate user action.
+ *
+ * Args:
+ *    client - The client from cras_client_create.
+ *    connection_cb - The callback function to register.
+ *    user_arg - Pointer that will be passed to the callback.
+ */
+void cras_client_set_connection_status_cb(
+		struct cras_client *client,
+		cras_connection_status_cb_t connection_cb,
+		void *user_arg);
+
 /* Sets callback for setting thread priority.
  * Args:
  *    client - The client from cras_client_create.
+ *    cb - The thread priority callback.
  */
 void cras_client_set_thread_priority_cb(struct cras_client *client,
 					cras_thread_priority_cb_t cb);
 
 /* Returns the current list of output devices.
+ *
+ * Requires that the connection to the server has been established.
+ *
+ * Data is copied and thus can become out of date. This call must be
+ * re-executed to get updates.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    devs - Array that will be filled with device info.
@@ -173,6 +348,12 @@ int cras_client_get_output_devices(const struct cras_client *client,
 				   size_t *num_devs, size_t *num_nodes);
 
 /* Returns the current list of input devices.
+ *
+ * Requires that the connection to the server has been established.
+ *
+ * Data is copied and thus can become out of date. This call must be
+ * re-executed to get updates.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    devs - Array that will be filled with device info.
@@ -190,6 +371,12 @@ int cras_client_get_input_devices(const struct cras_client *client,
 				  size_t *num_devs, size_t *num_nodes);
 
 /* Returns the current list of clients attached to the server.
+ *
+ * Requires that the connection to the server has been established.
+ *
+ * Data is copied and thus can become out of date. This call must be
+ * re-executed to get updates.
+ *
  * Args:
  *    client - This client (from cras_client_create).
  *    clients - Array that will be filled with a list of attached clients.
@@ -205,6 +392,11 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 
 /* Find a node info with the matching node id.
  *
+ * Requires that the connection to the server has been established.
+ *
+ * Data is copied and thus can become out of date. This call must be
+ * re-executed to get updates.
+ *
  * Args:
  *    client - This client (from cras_client_create).
  *    input - Non-zero for input nodes, zero for output nodes.
@@ -218,11 +410,18 @@ int cras_client_get_node_by_id(const struct cras_client *client,
 			       const cras_node_id_t node_id,
 			       struct cras_ionode_info* node_info);
 
-/* Checks if the output device with the given name is currently plugged in.  For
- * internal devices this checks that jack state, for USB devices this will
- * always be true if they are present.  The name parameter can be the
- * complete name or any unique prefix of the name.  If the name is not unique
- * the first matching name will be checked.
+/* Checks if the output device with the given name is currently plugged in.
+ *
+ * For internal devices this checks that jack state, for USB devices this will
+ * always be true if they are present. The name parameter can be the complete
+ * name or any unique prefix of the name. If the name is not unique the first
+ * matching name will be checked.
+ *
+ * Requires that the connection to the server has been established.
+ *
+ * Data is copied and thus can become out of date. This call must be
+ * re-executed to get updates.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    name - Name of the device to check.
@@ -233,6 +432,10 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
 				   const char *name);
 
 /* Set the value of an attribute of an ionode.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    node_id - The id of the ionode.
@@ -247,6 +450,10 @@ int cras_client_set_node_attr(struct cras_client *client,
 			      int value);
 
 /* Select the preferred node for playback/capture.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    direction - The direction of the ionode.
@@ -258,6 +465,10 @@ int cras_client_select_node(struct cras_client *client,
 			    cras_node_id_t node_id);
 
 /* Adds an active node for playback/capture.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    direction - The direction of the ionode.
@@ -269,6 +480,10 @@ int cras_client_add_active_node(struct cras_client *client,
 				cras_node_id_t node_id);
 
 /* Removes an active node for playback/capture.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    direction - The direction of the ionode.
@@ -281,6 +496,10 @@ int cras_client_rm_active_node(struct cras_client *client,
 
 
 /* Asks the server to reload dsp plugin configuration from the ini file.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -289,6 +508,10 @@ int cras_client_rm_active_node(struct cras_client *client,
 int cras_client_reload_dsp(struct cras_client *client);
 
 /* Asks the server to dump current dsp information to syslog.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -297,6 +520,10 @@ int cras_client_reload_dsp(struct cras_client *client);
 int cras_client_dump_dsp_info(struct cras_client *client);
 
 /* Asks the server to dump current audio thread information.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    cb - A function to call when the data is received.
@@ -366,6 +593,10 @@ struct cras_stream_params *cras_client_unified_params_create(
 void cras_client_stream_params_destroy(struct cras_stream_params *params);
 
 /* Creates a new stream and return the stream id or < 0 on error.
+ *
+ * Requires execution of cras_client_run_thread(), and an active connection
+ * to the audio server.
+ *
  * Args:
  *    client - The client to add the stream to (from cras_client_create).
  *    stream_id_out - On success will be filled with the new stream id.
@@ -380,6 +611,10 @@ int cras_client_add_stream(struct cras_client *client,
 			   struct cras_stream_params *config);
 
 /* Creates a pinned stream and return the stream id or < 0 on error.
+ *
+ * Requires execution of cras_client_run_thread(), and an active connection
+ * to the audio server.
+ *
  * Args:
  *    client - The client to add the stream to (from cras_client_create).
  *    dev_idx - Index of the device to attach the newly created stream.
@@ -396,6 +631,9 @@ int cras_client_add_pinned_stream(struct cras_client *client,
 				  struct cras_stream_params *config);
 
 /* Removes a currently playing/capturing stream.
+ *
+ * Requires execution of cras_client_run_thread().
+ *
  * Args:
  *    client - Client to remove the stream (returned from cras_client_create).
  *    stream_id - ID returned from cras_client_add_stream to identify the stream
@@ -407,6 +645,9 @@ int cras_client_rm_stream(struct cras_client *client,
 			  cras_stream_id_t stream_id);
 
 /* Sets the volume scaling factor for the given stream.
+ *
+ * Requires execution of cras_client_run_thread().
+ *
  * Args:
  *    client - Client owning the stream.
  *    stream_id - ID returned from cras_client_add_stream.
@@ -420,8 +661,14 @@ int cras_client_set_stream_volume(struct cras_client *client,
  * System level functions.
  */
 
-/* Sets the volume of the system.  Volume here ranges from 0 to 100, and will be
- * translated to dB based on the output-specific volume curve.
+/* Sets the volume of the system.
+ *
+ * Volume here ranges from 0 to 100, and will be translated to dB based on the
+ * output-specific volume curve.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    volume - 0-100 the new volume index.
@@ -431,9 +678,14 @@ int cras_client_set_stream_volume(struct cras_client *client,
  */
 int cras_client_set_system_volume(struct cras_client *client, size_t volume);
 
-/* Sets the capture gain of the system. Gain is specified in dBFS * 100.  For
- * example 5dB of gain would be specified with an argument of 500, while -10
- * would be specified with -1000.
+/* Sets the capture gain of the system.
+ *
+ * Gain is specified in dBFS * 100.  For example 5dB of gain would be specified
+ * with an argument of 500, while -10 would be specified with -1000.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    gain - The gain in dBFS * 100.
@@ -444,6 +696,11 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume);
 int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
 
 /* Sets the mute state of the system.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    mute - 0 is un-mute, 1 is muted.
@@ -453,8 +710,13 @@ int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
  */
 int cras_client_set_system_mute(struct cras_client *client, int mute);
 
-/* Sets the user mute state of the system.  This is used for mutes caused by
- * user interaction.  Like the mute key.
+/* Sets the user mute state of the system.
+ *
+ * This is used for mutes caused by user interaction. Like the mute key.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    mute - 0 is un-mute, 1 is muted.
@@ -464,8 +726,13 @@ int cras_client_set_system_mute(struct cras_client *client, int mute);
  */
 int cras_client_set_user_mute(struct cras_client *client, int mute);
 
-/* Sets the mute locked state of the system. Changing mute state is impossible
- * when this flag is set to locked.
+/* Sets the mute locked state of the system.
+ *
+ * Changing mute state is impossible when this flag is set to locked.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    locked - 0 is un-locked, 1 is locked.
@@ -475,8 +742,13 @@ int cras_client_set_user_mute(struct cras_client *client, int mute);
  */
 int cras_client_set_system_mute_locked(struct cras_client *client, int locked);
 
-/* Sets the capture mute state of the system.  Recordings will be muted when
- * this is set.
+/* Sets the capture mute state of the system.
+ *
+ * Recordings will be muted when this is set.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    mute - 0 is un-mute, 1 is muted.
@@ -486,8 +758,13 @@ int cras_client_set_system_mute_locked(struct cras_client *client, int locked);
  */
 int cras_client_set_system_capture_mute(struct cras_client *client, int mute);
 
-/* Sets the capture mute locked state of the system. Changing mute state is
- * impossible when this flag is set to locked.
+/* Sets the capture mute locked state of the system.
+ *
+ * Changing mute state is impossible when this flag is set to locked.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    locked - 0 is un-locked, 1 is locked.
@@ -499,6 +776,9 @@ int cras_client_set_system_capture_mute_locked(struct cras_client *client,
 					       int locked);
 
 /* Gets the current system volume.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -507,6 +787,9 @@ int cras_client_set_system_capture_mute_locked(struct cras_client *client,
 size_t cras_client_get_system_volume(struct cras_client *client);
 
 /* Gets the current system capture gain.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -515,6 +798,9 @@ size_t cras_client_get_system_volume(struct cras_client *client);
 long cras_client_get_system_capture_gain(struct cras_client *client);
 
 /* Gets the current system mute state.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -523,6 +809,9 @@ long cras_client_get_system_capture_gain(struct cras_client *client);
 int cras_client_get_system_muted(struct cras_client *client);
 
 /* Gets the current user mute state.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -530,7 +819,10 @@ int cras_client_get_system_muted(struct cras_client *client);
  */
 int cras_client_get_user_muted(struct cras_client *client);
 
-/* Gets the current system captue mute state.
+/* Gets the current system capture mute state.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -557,6 +849,9 @@ long cras_client_get_system_min_volume(struct cras_client *client);
 long cras_client_get_system_max_volume(struct cras_client *client);
 
 /* Gets the current minimum system capture gain.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -565,6 +860,9 @@ long cras_client_get_system_max_volume(struct cras_client *client);
 long cras_client_get_system_min_capture_gain(struct cras_client *client);
 
 /* Gets the current maximum system capture gain.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -573,6 +871,9 @@ long cras_client_get_system_min_capture_gain(struct cras_client *client);
 long cras_client_get_system_max_capture_gain(struct cras_client *client);
 
 /* Gets audio debug info.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  * Returns:
@@ -582,11 +883,15 @@ long cras_client_get_system_max_capture_gain(struct cras_client *client);
 const struct audio_debug_info *cras_client_get_audio_debug_info(
 		struct cras_client *client);
 
-/* Gets the number of streams currently attached to the server.  This is the
- * total number of capture and playback streams.  If the ts argument is
- * not null, then it will be filled with the last time audio was played or
- * recorded.  ts will be set to the current time if streams are currently
+/* Gets the number of streams currently attached to the server.
+ *
+ * This is the total number of capture and playback streams. If the ts argument
+ * is not null, then it will be filled with the last time audio was played or
+ * recorded. ts will be set to the current time if streams are currently
  * active.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    ts - Filled with the timestamp of the last stream.
@@ -636,6 +941,10 @@ int cras_client_calc_capture_latency(const struct timespec *sample_time,
 				     struct timespec *delay);
 
 /* Set the volume of the given output node. Only for output nodes.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    node_id - ID of the node.
@@ -646,6 +955,10 @@ int cras_client_set_node_volume(struct cras_client *client,
 				uint8_t volume);
 
 /* Swap the left and right channel of the given node.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    node_id - ID of the node.
@@ -655,6 +968,10 @@ int cras_client_swap_node_left_right(struct cras_client *client,
 					cras_node_id_t node_id, int enable);
 
 /* Set the capture gain of the given input node.  Only for input nodes.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    node_id - ID of the node.
@@ -665,6 +982,10 @@ int cras_client_set_node_capture_gain(struct cras_client *client,
 				      long gain);
 
 /* Add a test iodev to the iodev list.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    type - The type of test iodev, see cras_types.h
@@ -673,6 +994,10 @@ int cras_client_add_test_iodev(struct cras_client *client,
 			       enum TEST_IODEV_TYPE type);
 
 /* Send a test command to a test iodev.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    iodev_idx - The index of the test iodev.
@@ -687,7 +1012,11 @@ int cras_client_test_iodev_command(struct cras_client *client,
 				   const uint8_t *data);
 
 /* Finds the first device that contains a node of the given type.
+ *
  * This is used for finding a special hotword device.
+ *
+ * Requires that the connection to the server has been established.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    type - The type of device to find.
@@ -699,7 +1028,12 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
 				       enum CRAS_STREAM_DIRECTION direction);
 
 /* Sets the suspend state of audio playback and capture.
+ *
  * Set this before putting the system into suspend.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    suspend - Suspend the system if non-zero, otherwise resume.
@@ -707,6 +1041,10 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
 int cras_client_set_suspend(struct cras_client *client, int suspend);
 
 /* Configures the global converter for output remixing.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    num_channels - Number of output channels.
@@ -720,6 +1058,10 @@ int cras_client_config_global_remix(struct cras_client *client,
 
 /* Gets the set of supported hotword language models on a node. The supported
  * models may differ on different nodes.
+ *
+ * By default, this will block waiting for a connection to the server.
+ * Use cras_client_set_server_message_blocking() to make it non-blocking.
+ *
  * Args:
  *    client - The client from cras_client_create.
  *    node_id - ID of a hotword input node (CRAS_NODE_TYPE_HOTWORD).
@@ -756,6 +1098,10 @@ void cras_client_set_state_change_callback_context(
 		struct cras_client *client, void *context);
 
 /* Output volume change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -765,6 +1111,10 @@ typedef void (*cras_client_output_volume_changed_callback)(
 		void* context, int32_t volume);
 
 /* Output mute change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -778,6 +1128,10 @@ typedef void (*cras_client_output_mute_changed_callback)(
 		void* context, int muted, int user_muted, int mute_locked);
 
 /* Capture gain change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -787,6 +1141,10 @@ typedef void (*cras_client_capture_gain_changed_callback)(
 		void* context, int32_t gain);
 
 /* Capture mute change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -798,6 +1156,10 @@ typedef void (*cras_client_capture_mute_changed_callback)(
 		void* context, int muted, int mute_locked);
 
 /* Nodes change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -805,6 +1167,10 @@ typedef void (*cras_client_capture_mute_changed_callback)(
 typedef void (*cras_client_nodes_changed_callback)(void* context);
 
 /* Active node change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -818,6 +1184,10 @@ typedef void (*cras_client_active_node_changed_callback)(
     cras_node_id_t node_id);
 
 /* Output node volume change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -828,6 +1198,10 @@ typedef void (*cras_client_output_node_volume_changed_callback)(
 		void* context, cras_node_id_t node_id, int32_t volume);
 
 /* Node left right swapped change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
@@ -848,6 +1222,10 @@ typedef void (*cras_client_input_node_gain_changed_callback)(
 		void* context, cras_node_id_t node_id, int32_t gain);
 
 /* Number of active streams change callback.
+ *
+ * When server messages are blocking, requires that the connection to the
+ * server has been established. See cras_client_set_server_message_blocking().
+ *
  * Args:
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().

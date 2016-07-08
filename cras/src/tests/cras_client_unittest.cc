@@ -60,6 +60,7 @@ class CrasClientTestSuite : public testing::Test {
       InitStaticVariables();
 
       memset(&client_, 0, sizeof(client_));
+      client_.server_fd_state = CRAS_SOCKET_STATE_CONNECTED;
       memset(&stream_, 0, sizeof(stream_));
       stream_.id = FIRST_STREAM_ID;
 

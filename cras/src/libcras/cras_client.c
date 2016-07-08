@@ -30,12 +30,15 @@
 #include <limits.h>
 #include <poll.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <sys/eventfd.h>
 #include <sys/ipc.h>
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
+#include <sys/timerfd.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <syslog.h>
@@ -43,6 +46,7 @@
 
 #include "cras_client.h"
 #include "cras_config.h"
+#include "cras_file_wait.h"
 #include "cras_messages.h"
 #include "cras_observer_ops.h"
 #include "cras_shm.h"
@@ -51,10 +55,8 @@
 #include "utlist.h"
 
 static const size_t MAX_CMD_MSG_LEN = 256;
-static const size_t SERVER_CONNECT_TIMEOUT_NS = 500000000;
 static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;
-static const size_t SERVER_FIRST_MESSAGE_TIMEOUT_NS = 500000000;
-static const unsigned int retry_delay_ms = 200;
+static const size_t SERVER_CONNECT_TIMEOUT_MS = 1000;
 
 /* Commands sent from the user to the running client. */
 enum {
@@ -63,6 +65,7 @@ enum {
 	CLIENT_REMOVE_STREAM,
 	CLIENT_SET_STREAM_VOLUME_SCALER,
 	CLIENT_SERVER_CONNECT,
+	CLIENT_SERVER_CONNECT_ASYNC,
 };
 
 struct command_msg {
@@ -152,13 +155,41 @@ struct client_stream {
 	struct client_stream *prev, *next;
 };
 
+/* State of the socket. */
+typedef enum cras_socket_state {
+	CRAS_SOCKET_STATE_DISCONNECTED,
+		/* Not connected. Also used to cleanup the current connection
+		 * before restarting the connection attempt. */
+	CRAS_SOCKET_STATE_WAIT_FOR_SOCKET,
+		/* Waiting for the socket file to exist. Socket file existence
+		 * is monitored using cras_file_wait. */
+	CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE,
+		/* Waiting for the socket to have something at the other end. */
+	CRAS_SOCKET_STATE_FIRST_MESSAGE,
+		/* Waiting for the first messages from the server and set our
+		 * client ID. */
+	CRAS_SOCKET_STATE_CONNECTED,
+		/* The socket is connected and working. */
+	CRAS_SOCKET_STATE_ERROR_DELAY,
+		/* There was an error during one of the above states. Sleep for
+		 * a bit before continuing. If this state could not be initiated
+		 * then we move to the DISCONNECTED state and notify via the
+		 * connection callback. */
+} cras_socket_state_t;
+
 /* Represents a client used to communicate with the audio server.
  * id - Unique identifier for this client, negative until connected.
- * server_fd Incoming messages from server.
+ * server_fd - Incoming messages from server.
+ * server_fd_state - State of the server's socket.
+ * server_event_fd - Eventfd to wait on until a connection is established.
+ * server_message_blocking - When true write_message_to_server blocks waiting
+ *			   to reestablish the connection to the server.
  * stream_fds - Pipe for attached streams.
  * command_fds - Pipe for user commands to thread.
  * command_reply_fds - Pipe for acking/nacking command messages from thread.
- * sock_dir - Directory where the local audio socket can be found.
+ * sock_file - Server communication socket file.
+ * sock_file_wait - Structure used to monitor existence of the socket file.
+ * sock_file_exists - Set to true when the socket file exists.
  * running - The client thread will run while this is non zero.
  * next_stream_id - ID to give the next stream.
  * tid - Thread ID of the client thread started by "cras_client_run_thread".
@@ -169,6 +200,8 @@ struct client_stream {
  * get_hotword_models_cb_t - Function to call when hotword models info is ready.
  * server_err_cb - Function to call when failed to read messages from server.
  * server_err_user_arg - User argument for server_err_cb.
+ * server_connection_cb - Function to called when a connection state changes.
+ * server_connection_user_arg - User argument for server_connection_cb.
  * thread_priority_cb - Function to call for setting audio thread priority.
  * observer_ops - Functions to call when system state changes.
  * observer_context - Context passed to client in state change callbacks.
@@ -176,10 +209,15 @@ struct client_stream {
 struct cras_client {
 	int id;
 	int server_fd;
+	cras_socket_state_t server_fd_state;
+	int server_event_fd;
+	bool server_message_blocking;
 	int stream_fds[2];
 	int command_fds[2];
 	int command_reply_fds[2];
-	const char *sock_dir;
+	const char *sock_file;
+	struct cras_file_wait *sock_file_wait;
+	bool sock_file_exists;
 	struct thread_state thread;
 	cras_stream_id_t next_stream_id;
 	int last_command_result;
@@ -188,7 +226,8 @@ struct cras_client {
 	void (*debug_info_callback)(struct cras_client *);
 	get_hotword_models_cb_t get_hotword_models_cb;
 	cras_server_error_cb_t server_err_cb;
-	void *server_err_user_arg;
+	cras_connection_status_cb_t server_connection_cb;
+	void *server_connection_user_arg;
 	cras_thread_priority_cb_t thread_priority_cb;
 	struct cras_observer_ops observer_ops;
 	void *observer_context;
@@ -198,7 +237,10 @@ struct cras_client {
  * Local Helpers
  */
 
+static int client_thread_rm_stream(struct cras_client *client,
+				   cras_stream_id_t stream_id);
 static int handle_message_from_server(struct cras_client *client);
+static int reregister_notifications(struct cras_client *client);
 
 /* Get the stream pointer from a stream id. */
 static struct client_stream *stream_from_id(const struct cras_client *client,
@@ -210,135 +252,626 @@ static struct client_stream *stream_from_id(const struct cras_client *client,
 	return out;
 }
 
-/* Waits until we have heard back from the server so that we know we are
- * connected.  The connected success/failure message is always the first message
- * the server sends. Return non zero if client is connected to the server. A
- * return code of zero means that the client is not connected to the server. */
-static int check_server_connected_wait(struct cras_client *client)
+/*
+ * Fill a pollfd structure with the current server fd and events.
+ */
+void server_fill_pollfd(const struct cras_client *client,
+			struct pollfd *poll_fd)
 {
-	struct pollfd pollfd;
-	int rc;
-	struct timespec timeout, now;
+	int events = 0;
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	timeout.tv_sec = 0;
-	timeout.tv_nsec = SERVER_FIRST_MESSAGE_TIMEOUT_NS;
-	add_timespecs(&timeout, &now);
-
-	pollfd.fd = client->server_fd;
-	pollfd.events = POLLIN;
-
-	while (timespec_after(&timeout, &now) > 0 && client->id < 0) {
-		rc = ppoll(&pollfd, 1, &timeout, NULL);
-		if (rc <= 0 && rc != -EAGAIN)
-			return 0; /* Timeout or error. */
-		if (pollfd.revents & POLLIN) {
-			rc = handle_message_from_server(client);
-			if (rc < 0)
-				return 0;
-		}
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	poll_fd->fd = client->server_fd;
+	switch (client->server_fd_state) {
+	case CRAS_SOCKET_STATE_DISCONNECTED:
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
+	case CRAS_SOCKET_STATE_FIRST_MESSAGE:
+	case CRAS_SOCKET_STATE_CONNECTED:
+	case CRAS_SOCKET_STATE_ERROR_DELAY:
+		events = POLLIN;
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
+		events = POLLOUT;
+		break;
 	}
-
-	return client->id >= 0;
+	poll_fd->events = events;
+	poll_fd->revents = 0;
 }
 
-/* Waits until the fd is writable or the specified time has passed. Returns 0 if
- * the fd is writable, -1 for timeout or other error. */
-static int wait_until_fd_writable(int fd, int timeout_ns)
+/*
+ * Change the server_fd_state.
+ */
+static void server_fd_move_to_state(struct cras_client *client,
+				    cras_socket_state_t state)
 {
-	struct pollfd pollfd;
-	struct timespec timeout;
+	const char *state_str = "unknown";
+
+	if (state == client->server_fd_state)
+		return;
+
+	client->server_fd_state = state;
+	switch (state) {
+	case CRAS_SOCKET_STATE_DISCONNECTED:
+		state_str = "disconnected";
+		break;
+	case CRAS_SOCKET_STATE_ERROR_DELAY:
+		state_str = "error_delay";
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
+		state_str = "wait_for_socket";
+		break;
+	case CRAS_SOCKET_STATE_FIRST_MESSAGE:
+		state_str = "first_message";
+		break;
+	case CRAS_SOCKET_STATE_CONNECTED:
+		state_str = "connected";
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
+		state_str = "wait_for_writable";
+		break;
+	}
+	syslog(LOG_DEBUG, "cras_client: server_fd_state: %s", state_str);
+}
+
+/*
+ * Action to take when in state ERROR_DELAY.
+ *
+ * In this state we want to sleep for a few seconds before retrying the
+ * connection to the audio server.
+ *
+ * If server_fd is negative: create a timer and setup server_fd with the
+ * timer's fd. If server_fd is not negative and there is input, then assume
+ * that the timer has expired, and restart the connection by moving to
+ * WAIT_FOR_SOCKET state.
+ */
+static int error_delay_next_action(struct cras_client *client,
+				   int poll_revents)
+{
 	int rc;
+	struct itimerspec timeout;
 
-	timeout.tv_sec = 0;
-	timeout.tv_nsec = timeout_ns;
+	if (client->server_fd == -1) {
+		client->server_fd = timerfd_create(
+					CLOCK_MONOTONIC,
+					TFD_NONBLOCK|TFD_CLOEXEC);
+		if (client->server_fd == -1) {
+			rc = -errno;
+			syslog(LOG_ERR,
+			       "cras_client: Could not create timerfd: %s",
+			       strerror(-rc));
+			return rc;
+		}
 
-	pollfd.fd = fd;
-	pollfd.events = POLLOUT;
+		/* Setup a relative timeout of 2 seconds. */
+		memset(&timeout, 0, sizeof(timeout));
+		timeout.it_value.tv_sec = 2;
+		rc = timerfd_settime(client->server_fd, 0, &timeout, NULL);
+		if (rc != 0) {
+			rc = -errno;
+			syslog(LOG_ERR,
+			       "cras_client: Could not set timeout: %s",
+			       strerror(-rc));
+			return rc;
+		}
+		return 0;
+	} else if ((poll_revents & POLLIN) == 0) {
+		return 0;
+	}
 
-	rc = ppoll(&pollfd, 1, &timeout, NULL);
-	if (rc <= 0)
-		return -1;
+	/* Move to the next state: close the timer fd first. */
+	close(client->server_fd);
+	client->server_fd = -1;
+	server_fd_move_to_state(client, CRAS_SOCKET_STATE_WAIT_FOR_SOCKET);
 	return 0;
 }
 
-/* Opens the server socket and connects to it. */
-static int connect_to_server(struct cras_client *client)
+/*
+ * Action to take when in WAIT_FOR_SOCKET state.
+ *
+ * In this state we are waiting for the socket file to exist. The existence of
+ * the socket file is continually monitored using the cras_file_wait structure
+ * and a separate fd. When the sock_file_exists boolean is modified, the state
+ * machine is invoked.
+ *
+ * If the socket file exists, then we move to the WAIT_FOR_WRITABLE state.
+ */
+static void wait_for_socket_next_action(struct cras_client *client)
+{
+	if (client->sock_file_exists)
+		server_fd_move_to_state(
+			client, CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE);
+}
+
+/*
+ * Action to take when in WAIT_FOR_WRITABLE state.
+ *
+ * In this state we are initiating a connection the server and waiting for the
+ * server to ready for incoming messages.
+ *
+ * Create the socket to the server, and wait while a connect request results in
+ * -EINPROGRESS. Otherwise, we assume that the socket file will be deleted by
+ * the server and the server_fd_state will be changed in
+ * sock_file_wait_dispatch().
+ */
+static int wait_for_writable_next_action(struct cras_client *client,
+					 int poll_revents)
 {
 	int rc;
 	struct sockaddr_un address;
 
-	if (client->server_fd >= 0)
-		close(client->server_fd);
-	client->server_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
-	if (client->server_fd < 0) {
-		syslog(LOG_ERR, "cras_client: %s: Socket failed.", __func__);
-		return client->server_fd;
+	if (client->server_fd == -1) {
+		client->server_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
+		if (client->server_fd < 0) {
+			rc = -errno;
+			syslog(LOG_ERR, "cras_client: server socket failed: %s",
+			       strerror(-rc));
+			return rc;
+		}
+	}
+	else if ((poll_revents & POLLOUT) == 0) {
+		return 0;
 	}
 
-	memset(&address, 0, sizeof(struct sockaddr_un));
-
-	address.sun_family = AF_UNIX;
-	client->sock_dir = cras_config_get_system_socket_file_dir();
-	assert(client->sock_dir);
-	snprintf(address.sun_path, sizeof(address.sun_path),
-		 "%s/%s", client->sock_dir, CRAS_SOCKET_FILE);
-
 	/* We make the file descriptor non-blocking when we do connect(), so we
-	 * don't block indifinitely. */
+	 * don't block indefinitely. */
 	cras_make_fd_nonblocking(client->server_fd);
+
+	memset(&address, 0, sizeof(struct sockaddr_un));
+	address.sun_family = AF_UNIX;
+	strcpy(address.sun_path, client->sock_file);
 	rc = connect(client->server_fd, (struct sockaddr *)&address,
 		     sizeof(struct sockaddr_un));
-
-	if (rc == -1 && errno == EINPROGRESS) {
-		rc = wait_until_fd_writable(client->server_fd,
-					    SERVER_CONNECT_TIMEOUT_NS);
+	if (rc != 0) {
+		rc = -errno;
+		/* For -EINPROGRESS, we wait for POLLOUT on the server_fd.
+		 * Otherwise CRAS is not running and we assume that the socket
+		 * file will be deleted and recreated. Notification of that will
+		 * happen via the sock_file_wait_dispatch(). */
+		if (rc == -ECONNREFUSED) {
+			/* CRAS is not running, don't log this error and just
+			 * stay in this state waiting sock_file_wait_dispatch()
+			 * to move the state machine. */
+			close(client->server_fd);
+			client->server_fd = -1;
+		}
+		else if (rc != -EINPROGRESS) {
+			syslog(LOG_ERR,
+			       "cras_client: server connect failed: %s",
+			       strerror(-rc));
+			return rc;
+		}
+		return 0;
 	}
 
 	cras_make_fd_blocking(client->server_fd);
+	server_fd_move_to_state(client, CRAS_SOCKET_STATE_FIRST_MESSAGE);
+	return 0;
+}
+
+/*
+ * Action to take when transitioning to the CONNECTED state.
+ */
+static int connect_transition_action(struct cras_client *client)
+{
+	eventfd_t event_value;
+	int rc;
+
+	rc = reregister_notifications(client);
+	if (rc < 0)
+		return rc;
+
+	server_fd_move_to_state(client, CRAS_SOCKET_STATE_CONNECTED);
+	/* Notify anyone waiting on this state change that we're
+	 * connected. */
+	eventfd_read(client->server_event_fd, &event_value);
+	eventfd_write(client->server_event_fd, 1);
+	if (client->server_connection_cb)
+		client->server_connection_cb(
+				client, CRAS_CONN_STATUS_CONNECTED,
+				client->server_connection_user_arg);
+	return 0;
+}
+
+/*
+ * Action to take when in the FIRST_MESSAGE state.
+ *
+ * We are waiting for the first message from the server. When our client ID has
+ * been set, then we can move to the CONNECTED state.
+ */
+static int first_message_next_action(struct cras_client *client,
+				     int poll_revents)
+{
+	int rc;
+
+	if (client->server_fd < 0)
+		return -EINVAL;
+
+	if ((poll_revents & POLLIN) == 0)
+		return 0;
+
+	rc = handle_message_from_server(client);
+	if (rc < 0) {
+		syslog(LOG_ERR, "handle first message: %s", strerror(-rc));
+	} else if (client->id >= 0) {
+		rc = connect_transition_action(client);
+	} else {
+		syslog(LOG_ERR, "did not get ID after first message!");
+		rc = -EINVAL;
+	}
+	return rc;
+}
+
+/*
+ * Play nice and shutdown the server socket.
+ */
+static inline int shutdown_and_close_socket(int sockfd)
+{
+	int rc;
+	uint8_t buffer[CRAS_CLIENT_MAX_MSG_SIZE];
+	struct timeval tv;
+
+	tv.tv_sec = 0;
+	tv.tv_usec = SERVER_SHUTDOWN_TIMEOUT_US;
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
+
+	rc = shutdown(sockfd, SHUT_WR);
+	if (rc < 0)
+		return rc;
+	/* Wait until the socket is closed by the peer. */
+	for (;;) {
+		rc = recv(sockfd, buffer, sizeof(buffer), 0);
+		if (rc <= 0)
+			break;
+	}
+	return close(sockfd);
+}
+
+/*
+ * Action to take when disconnecting from the server.
+ *
+ * Clean up the server socket, and the server_state pointer. Move to the next
+ * logical state.
+ */
+static void disconnect_transition_action(struct cras_client *client, bool force)
+{
+	eventfd_t event_value;
+	cras_socket_state_t old_state = client->server_fd_state;
+	struct client_stream *s;
+
+	/* Stop all playing streams.
+	 * TODO(muirj): Pause and resume streams. */
+	DL_FOREACH(client->streams, s) {
+		s->config->err_cb(client, s->id, -ENOTCONN,
+				  s->config->user_data);
+		client_thread_rm_stream(client, s->id);
+	}
+
+	/* Clean up the server_state pointer.
+	 * TODO(dgreid): Do we need a rwlock to access this? Many functions
+	 *     below access client->server_state and in theory there is a
+	 *     race condition (not thread safe). */
+	if (client->server_state) {
+		void *server_state = (void *)client->server_state;
+		client->server_state = NULL;
+		munmap(server_state, sizeof(*client->server_state));
+	}
+	/* Our ID is unknown now. */
+	client->id = -1;
+
+	/* Clean up the server fd. */
+	if (client->server_fd >= 0) {
+		if (!force)
+			shutdown_and_close_socket(client->server_fd);
+		else
+			close(client->server_fd);
+		client->server_fd = -1;
+	}
+
+	/* Reset the server_event_fd value to 0 (and cause subsequent threads
+	 * waiting on the connection to wait). */
+	eventfd_read(client->server_event_fd, &event_value);
+
+	switch (old_state) {
+	case CRAS_SOCKET_STATE_DISCONNECTED:
+		/* Do nothing: already disconnected. */
+		break;
+	case CRAS_SOCKET_STATE_ERROR_DELAY:
+		/* We're disconnected and there was a failure to setup
+		 * automatic reconnection, so call the server error
+		 * callback now. */
+		server_fd_move_to_state(
+			client, CRAS_SOCKET_STATE_DISCONNECTED);
+		if (client->server_connection_cb)
+			client->server_connection_cb(
+					client, CRAS_CONN_STATUS_FAILED,
+					client->server_connection_user_arg);
+		else if (client->server_err_cb)
+			client->server_err_cb(
+				client, client->server_connection_user_arg);
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
+	case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
+	case CRAS_SOCKET_STATE_FIRST_MESSAGE:
+		/* We are running this state transition while a connection is
+		 * in progress for an error case. When there is no error, we
+		 * come into this function in the DISCONNECTED state. */
+		server_fd_move_to_state(
+			client, CRAS_SOCKET_STATE_ERROR_DELAY);
+		break;
+	case CRAS_SOCKET_STATE_CONNECTED:
+		/* Disconnected from CRAS (for an error), wait for the socket
+		 * file to be (re)created. */
+		server_fd_move_to_state(
+			client, CRAS_SOCKET_STATE_WAIT_FOR_SOCKET);
+		/* Notify the caller that we aren't connected anymore. */
+		if (client->server_connection_cb)
+			client->server_connection_cb(
+					client, CRAS_CONN_STATUS_DISCONNECTED,
+					client->server_connection_user_arg);
+		break;
+	}
+}
+
+static int server_fd_dispatch(struct cras_client *client, int poll_revents)
+{
+	int rc = 0;
+	cras_socket_state_t old_state;
+
+	if ((poll_revents & POLLHUP) != 0) {
+		/* Error or disconnect: cleanup and make a state change now. */
+		disconnect_transition_action(client, true);
+	}
+	old_state = client->server_fd_state;
+
+	switch (client->server_fd_state) {
+	case CRAS_SOCKET_STATE_DISCONNECTED:
+		/* Assume that we've taken the necessary actions. */
+		return -ENOTCONN;
+	case CRAS_SOCKET_STATE_ERROR_DELAY:
+		rc = error_delay_next_action(client, poll_revents);
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
+		wait_for_socket_next_action(client);
+		break;
+	case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
+		rc = wait_for_writable_next_action(client, poll_revents);
+		break;
+	case CRAS_SOCKET_STATE_FIRST_MESSAGE:
+		rc = first_message_next_action(client, poll_revents);
+		break;
+	case CRAS_SOCKET_STATE_CONNECTED:
+		if ((poll_revents & POLLIN) != 0)
+			rc = handle_message_from_server(client);
+		break;
+	}
 
 	if (rc != 0) {
-		close(client->server_fd);
-		client->server_fd = -1;
-		syslog(LOG_ERR, "cras_client: %s: Connect server failed.",
-		       __func__);
+		/* If there is an error, then start-over. */
+		rc = server_fd_dispatch(client, POLLHUP);
+	} else if (old_state != client->server_fd_state) {
+		/* There was a state change, process the new state now. */
+		rc = server_fd_dispatch(client, 0);
 	}
+	return rc;
+}
+
+/*
+ * Start connecting to the server if we aren't already.
+ */
+static int server_connect(struct cras_client *client)
+{
+	if (client->server_fd_state != CRAS_SOCKET_STATE_DISCONNECTED)
+		return 0;
+	/* Start waiting for the server socket to exist. */
+	server_fd_move_to_state(client, CRAS_SOCKET_STATE_WAIT_FOR_SOCKET);
+	return server_fd_dispatch(client, 0);
+}
+
+/*
+ * Disconnect from the server if we haven't already.
+ */
+static void server_disconnect(struct cras_client *client)
+{
+	if (client->server_fd_state == CRAS_SOCKET_STATE_DISCONNECTED)
+		return;
+	/* Set the disconnected state first so that the disconnect
+	 * transition doesn't move the server state to ERROR_DELAY. */
+	server_fd_move_to_state(client, CRAS_SOCKET_STATE_DISCONNECTED);
+	disconnect_transition_action(client, false);
+}
+
+/*
+ * Called when something happens to the socket file.
+ */
+static void sock_file_wait_callback(void *context, cras_file_wait_event_t event,
+				    const char *filename)
+{
+	struct cras_client *client = (struct cras_client *)context;
+	switch (event) {
+	case CRAS_FILE_WAIT_EVENT_CREATED:
+		client->sock_file_exists = 1;
+		switch (client->server_fd_state) {
+		case CRAS_SOCKET_STATE_DISCONNECTED:
+		case CRAS_SOCKET_STATE_ERROR_DELAY:
+		case CRAS_SOCKET_STATE_FIRST_MESSAGE:
+		case CRAS_SOCKET_STATE_CONNECTED:
+			break;
+		case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
+		case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
+			/* The socket file exists. Tell the server state
+			 * machine. */
+			server_fd_dispatch(client, 0);
+			break;
+		}
+		break;
+	case CRAS_FILE_WAIT_EVENT_DELETED:
+		client->sock_file_exists = 0;
+		switch (client->server_fd_state) {
+		case CRAS_SOCKET_STATE_DISCONNECTED:
+			break;
+		case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
+		case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
+		case CRAS_SOCKET_STATE_ERROR_DELAY:
+		case CRAS_SOCKET_STATE_FIRST_MESSAGE:
+		case CRAS_SOCKET_STATE_CONNECTED:
+			/* Restart the connection process. */
+			server_disconnect(client);
+			server_connect(client);
+			break;
+		}
+		break;
+	case CRAS_FILE_WAIT_EVENT_NONE:
+		break;
+	}
+}
+
+/*
+ * Service the sock_file_wait's fd.
+ *
+ * If the socket file is deleted, then cause a disconnect from the server.
+ * Otherwise, start a reconnect depending on the server_fd_state.
+ */
+static int sock_file_wait_dispatch(struct cras_client *client,
+				   int poll_revents)
+{
+	int rc;
+
+	if ((poll_revents & POLLIN) == 0)
+		return 0;
+
+	rc = cras_file_wait_dispatch(client->sock_file_wait);
+	if (rc == -EAGAIN || rc == -EWOULDBLOCK)
+		rc = 0;
+	else if (rc != 0)
+		syslog(LOG_ERR, "cras_file_wait_dispatch: %s", strerror(-rc));
+	return rc;
+}
+
+/*
+ * Waits until we have heard back from the server so that we know we are
+ * connected.
+ *
+ * The connected success/failure message is always the first message the server
+ * sends. Return non zero if client is connected to the server. A return code
+ * of zero means that the client is not connected to the server.
+ */
+static int check_server_connected_wait(struct cras_client *client,
+				       struct timespec *timeout)
+{
+	int rc = 0;
+	struct pollfd poll_fd;
+
+	poll_fd.fd = client->server_event_fd;
+	poll_fd.events = POLLIN;
+	poll_fd.revents = 0;
+
+	/* The server_event_fd is only read and written by the functions
+	 * that connect to the server. When a connection is established the
+	 * eventfd has a value of 1 and cras_poll will return immediately
+	 * with 1. When there is no connection to the server, then this
+	 * function waits until the timeout has expired or a non-zero value
+	 * is written to the server_event_fd. */
+	while (rc == 0)
+		rc = cras_poll(&poll_fd, 1, timeout, NULL);
+	return rc > 0;
+}
+
+/*
+ * Opens the server socket and connects to it.
+ * Args:
+ *    client - Client pointer created with cras_client_create().
+ *    timeout - Connection timeout.
+ * Returns:
+ *    0 for success, negative error code on failure.
+ */
+static int connect_to_server(struct cras_client *client,
+			     struct timespec *timeout,
+			     bool use_command_thread)
+{
+	int rc;
+	struct pollfd poll_fd[2];
+	struct timespec connected_timeout;
+
+	if (!client)
+		return -EINVAL;
+
+	if (client->thread.running && use_command_thread) {
+		rc = cras_client_connect_async(client);
+		if (rc == 0) {
+			rc = check_server_connected_wait(client, timeout);
+			return rc ? 0 : -ESHUTDOWN;
+		}
+	}
+
+	connected_timeout.tv_sec = 0;
+	connected_timeout.tv_nsec = 0;
+	if (check_server_connected_wait(client, &connected_timeout))
+		return 0;
+
+	poll_fd[0].fd = cras_file_wait_get_fd(client->sock_file_wait);
+	poll_fd[0].events = POLLIN;
+
+	rc = server_connect(client);
+	while(rc == 0) {
+		// Wait until we've connected or until there is a timeout.
+		// Meanwhile handle incoming actions on our fds.
+
+		server_fill_pollfd(client, &(poll_fd[1]));
+		rc = cras_poll(poll_fd, 2, timeout, NULL);
+		if (rc <= 0)
+			continue;
+
+		if (poll_fd[0].revents) {
+			rc = sock_file_wait_dispatch(
+					client, poll_fd[0].revents);
+			continue;
+		}
+
+		if (poll_fd[1].revents) {
+			rc = server_fd_dispatch(client, poll_fd[1].revents);
+			if (rc == 0 &&
+			    client->server_fd_state ==
+					CRAS_SOCKET_STATE_CONNECTED)
+				break;
+		}
+	}
+
+	if (rc != 0)
+		syslog(LOG_ERR, "cras_client: Connect server failed: %s",
+		       strerror(-rc));
 
 	return rc;
 }
 
 static int connect_to_server_wait_retry(struct cras_client *client,
-					int timeout_ms)
+					int timeout_ms,
+					bool use_command_thread)
 {
-	assert(client);
+	struct timespec timeout_value;
+	struct timespec *timeout;
 
-	/* Ignore sig pipe as it will be handled when we write to the socket. */
-	signal(SIGPIPE, SIG_IGN);
-
-	while (1) {
-		/* If connected, wait for the first message from the server
-		 * indicating it's ready. */
-		if (connect_to_server(client) == 0 &&
-		    check_server_connected_wait(client))
-			return 0;
-
-		/* If we didn't succeed or timeout, wait and try again. */
-		if (timeout_ms <= 0)
-			break;
-		usleep(MIN((unsigned int)timeout_ms, retry_delay_ms) * 1000);
-		timeout_ms -= retry_delay_ms;
+	if (timeout_ms < 0) {
+		timeout = NULL;
+	} else {
+		timeout = &timeout_value;
+		ms_to_timespec(timeout_ms, timeout);
 	}
 
-	return -EIO;
+	/* If connected, wait for the first message from the server
+	 * indicating it's ready. */
+	return connect_to_server(client, timeout, use_command_thread);
 }
 
-/* Tries to connect to the server.  Waits for the initial message from the
+/*
+ * Tries to connect to the server.  Waits for the initial message from the
  * server.  This will happen near instantaneously if the server is already
- * running.*/
-static int connect_to_server_wait(struct cras_client *client)
+ * running.
+ */
+static int connect_to_server_wait(struct cras_client *client,
+				  bool use_command_thread)
 {
-	return connect_to_server_wait_retry(client, 600);
+	return connect_to_server_wait_retry(
+			client, SERVER_CONNECT_TIMEOUT_MS, use_command_thread);
 }
 
 /*
@@ -860,13 +1393,16 @@ static int client_thread_rm_stream(struct cras_client *client,
 
 	if (stream == NULL)
 		return 0;
+	syslog(LOG_INFO, "cras_client: remove stream %u", stream_id);
 
 	/* Tell server to remove. */
-	cras_fill_disconnect_stream_message(&msg, stream_id);
-	rc = write(client->server_fd, &msg, sizeof(msg));
-	if (rc < 0)
-		syslog(LOG_ERR,
-		       "cras_client: error removing stream from server\n");
+	if (client->server_fd_state == CRAS_SOCKET_STATE_CONNECTED) {
+		cras_fill_disconnect_stream_message(&msg, stream_id);
+		rc = write(client->server_fd, &msg, sizeof(msg));
+		if (rc < 0)
+			syslog(LOG_ERR,
+			       "cras_client: error removing stream from server\n");
+	}
 
 	/* And shut down locally. */
 	if (stream->thread.running) {
@@ -962,10 +1498,8 @@ static int handle_message_from_server(struct cras_client *client)
 	msg = (struct cras_client_message *)buf;
 	nread = cras_recv_with_fds(client->server_fd, buf, sizeof(buf),
 				   server_fds, &num_fds);
-	if (nread < (int)sizeof(msg->length))
-		goto read_error;
-	if ((int)msg->length != nread)
-		goto read_error;
+	if (nread < (int)sizeof(msg->length) || (int)msg->length != nread)
+		return -EIO;
 
 	switch (msg->id) {
 	case CRAS_CLIENT_CONNECTED: {
@@ -1108,23 +1642,17 @@ static int handle_message_from_server(struct cras_client *client)
 	}
 
 	return 0;
-read_error:
-	rc = connect_to_server_wait(client);
-	if (rc < 0) {
-		client->thread.running = 0;
-		if (client->server_err_cb)
-			client->server_err_cb(client,
-					      client->server_err_user_arg);
-		return -EIO;
-	}
-	return 0;
 }
 
 /* Handles messages from streams to this client. */
-static int handle_stream_message(struct cras_client *client)
+static int handle_stream_message(struct cras_client *client,
+				 int poll_revents)
 {
 	struct stream_msg msg;
 	int rc;
+
+	if ((poll_revents & POLLIN) == 0)
+		return 0;
 
 	rc = read(client->stream_fds[0], &msg, sizeof(msg));
 	if (rc < 0)
@@ -1137,11 +1665,15 @@ static int handle_stream_message(struct cras_client *client)
 }
 
 /* Handles messages from users to this client. */
-static int handle_command_message(struct cras_client *client)
+static int handle_command_message(struct cras_client *client,
+				  int poll_revents)
 {
 	uint8_t buf[MAX_CMD_MSG_LEN];
 	struct command_msg *msg = (struct command_msg *)buf;
 	int rc, to_read;
+
+	if ((poll_revents & POLLIN) == 0)
+		return 0;
 
 	rc = read(client->command_fds[0], buf, sizeof(msg->len));
 	if (rc != sizeof(msg->len) || msg->len > MAX_CMD_MSG_LEN) {
@@ -1154,13 +1686,6 @@ static int handle_command_message(struct cras_client *client)
 		rc = -EIO;
 		goto cmd_msg_complete;
 	}
-
-	if (!check_server_connected_wait(client))
-		if (connect_to_server_wait(client) < 0) {
-			syslog(LOG_ERR, "cras_client: Lost server connection.");
-			rc = -EIO;
-			goto cmd_msg_complete;
-		}
 
 	switch (msg->msg_id) {
 	case CLIENT_STOP: {
@@ -1196,7 +1721,10 @@ static int handle_command_message(struct cras_client *client)
 		break;
 	}
 	case CLIENT_SERVER_CONNECT:
-		rc = connect_to_server_wait(client);
+		rc = connect_to_server_wait(client, false);
+		break;
+	case CLIENT_SERVER_CONNECT_ASYNC:
+		rc = server_connect(client);
 		break;
 	default:
 		assert(0);
@@ -1217,43 +1745,58 @@ cmd_msg_complete:
 static void *client_thread(void *arg)
 {
 	struct cras_client *client = (struct cras_client *)arg;
+	struct pollfd pollfds[4];
+	int (*cbs[4])(struct cras_client *client, int poll_revents);
+	unsigned int num_pollfds, i;
+	int rc;
 
 	if (arg == NULL)
 		return (void *)-EINVAL;
 
 	while (client->thread.running) {
-		struct pollfd pollfds[3];
-		int (*cbs[3])(struct cras_client *client);
-		unsigned int num_pollfds, i;
-		int rc;
-
 		num_pollfds = 0;
-		if (client->server_fd >= 0) {
-			cbs[num_pollfds] = handle_message_from_server;
-			pollfds[num_pollfds].fd = client->server_fd;
+
+		rc = cras_file_wait_get_fd(client->sock_file_wait);
+		if (rc >= 0) {
+			cbs[num_pollfds] = sock_file_wait_dispatch;
+			pollfds[num_pollfds].fd = rc;
 			pollfds[num_pollfds].events = POLLIN;
+			pollfds[num_pollfds].revents = 0;
+			num_pollfds++;
+		}
+		else
+			syslog(LOG_ERR, "file wait fd: %d", rc);
+		if (client->server_fd >= 0) {
+			cbs[num_pollfds] = server_fd_dispatch;
+			server_fill_pollfd(client, &(pollfds[num_pollfds]));
 			num_pollfds++;
 		}
 		if (client->command_fds[0] >= 0) {
 			cbs[num_pollfds] = handle_command_message;
 			pollfds[num_pollfds].fd = client->command_fds[0];
 			pollfds[num_pollfds].events = POLLIN;
+			pollfds[num_pollfds].revents = 0;
 			num_pollfds++;
 		}
 		if (client->stream_fds[0] >= 0) {
 			cbs[num_pollfds] = handle_stream_message;
 			pollfds[num_pollfds].fd = client->stream_fds[0];
 			pollfds[num_pollfds].events = POLLIN;
+			pollfds[num_pollfds].revents = 0;
 			num_pollfds++;
 		}
 
 		rc = poll(pollfds, num_pollfds, -1);
-		if (rc < 0)
+		if (rc <= 0)
 			continue;
 
 		for (i = 0; i < num_pollfds; i++) {
-			if (pollfds[i].revents & POLLIN)
-				cbs[i](client);
+			/* Only do one at a time, since some messages may
+			 * result in change to other fds. */
+			if (pollfds[i].revents) {
+				cbs[i](client, pollfds[i].revents);
+				break;
+			}
 		}
 	}
 
@@ -1317,23 +1860,37 @@ static int send_stream_volume_command_msg(struct cras_client *client,
 static int write_message_to_server(struct cras_client *client,
 				   const struct cras_server_message *msg)
 {
-	if (write(client->server_fd, msg, msg->length) !=
-			(ssize_t)msg->length) {
+	ssize_t write_rc = -EPIPE;
+
+	if (client->server_fd_state == CRAS_SOCKET_STATE_CONNECTED ||
+	    client->server_fd_state == CRAS_SOCKET_STATE_FIRST_MESSAGE) {
+		write_rc = write(client->server_fd, msg, msg->length);
+		if (write_rc < 0)
+			write_rc = -errno;
+	}
+
+	if (write_rc != (ssize_t)msg->length &&
+	    client->server_fd_state != CRAS_SOCKET_STATE_FIRST_MESSAGE) {
 		int rc = 0;
 
 		/* Write to server failed, try to re-connect. */
-		if (client->thread.running)
-			rc = send_simple_cmd_msg(client, 0,
-						 CLIENT_SERVER_CONNECT);
-		else
-			rc = connect_to_server_wait(client);
+		if (!client->server_message_blocking)
+			return -EPIPE;
+
+		rc = connect_to_server_wait(client, true);
 		if (rc < 0)
 			return rc;
-		if (write(client->server_fd, msg, msg->length) !=
-				(ssize_t)msg->length)
-			return -EINVAL;
+		write_rc = write(client->server_fd, msg, msg->length);
+		if (write_rc < 0)
+			write_rc = -errno;
 	}
-	return 0;
+
+	if (write_rc < 0)
+		return write_rc;
+	else if (write_rc != (ssize_t)msg->length)
+		return -EIO;
+	else
+		return 0;
 }
 
 /*
@@ -1342,13 +1899,50 @@ static int write_message_to_server(struct cras_client *client,
 
 int cras_client_create(struct cras_client **client)
 {
+	const char *sock_dir;
+	size_t sock_file_size;
 	int rc;
+
+	/* Ignore SIGPIPE while using this API. */
+	signal(SIGPIPE, SIG_IGN);
+
+	sock_dir = cras_config_get_system_socket_file_dir();
+	if (!sock_dir)
+		return -ENOMEM;
 
 	*client = (struct cras_client *)calloc(1, sizeof(struct cras_client));
 	if (*client == NULL)
 		return -ENOMEM;
 	(*client)->server_fd = -1;
 	(*client)->id = -1;
+	(*client)->server_message_blocking = true;
+
+	(*client)->server_event_fd = eventfd(0, EFD_CLOEXEC|EFD_NONBLOCK);
+	if ((*client)->server_event_fd < 0) {
+		syslog(LOG_ERR, "cras_client: Could not setup server eventfd.");
+		rc = -errno;
+		goto free_error;
+	}
+
+	sock_file_size = strlen(sock_dir) + strlen(CRAS_SOCKET_FILE) + 2;
+	(*client)->sock_file = (const char *)malloc(sock_file_size);
+	if (!(*client)->sock_file) {
+		rc = -ENOMEM;
+		goto free_error;
+	}
+	snprintf((char *)(*client)->sock_file, sock_file_size, "%s/%s", sock_dir,
+		 CRAS_SOCKET_FILE);
+
+	rc = cras_file_wait_create((*client)->sock_file,
+				   CRAS_FILE_WAIT_FLAG_NONE,
+				   sock_file_wait_callback, *client,
+				   &(*client)->sock_file_wait);
+	if (rc != 0 && rc != -ENOENT) {
+		syslog(LOG_ERR, "cras_client: Could not setup watch for '%s'.",
+		       (*client)->sock_file);
+		goto free_error;
+	}
+	(*client)->sock_file_exists = (rc == 0);
 
 	/* Pipes used by the main thread and the client thread to send commands
 	 * and replies. */
@@ -1368,66 +1962,59 @@ int cras_client_create(struct cras_client **client)
 
 	return 0;
 free_error:
+	if ((*client)->server_event_fd >= 0)
+		close((*client)->server_event_fd);
+	cras_file_wait_destroy((*client)->sock_file_wait);
+	free((void *)(*client)->sock_file);
 	free(*client);
 	*client = NULL;
 	return rc;
-}
-
-static inline
-int shutdown_and_close_socket(int sockfd)
-{
-	int rc;
-	uint8_t buffer[CRAS_CLIENT_MAX_MSG_SIZE];
-	struct timeval tv;
-
-	tv.tv_sec = 0;
-	tv.tv_usec = SERVER_SHUTDOWN_TIMEOUT_US;
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
-
-	rc = shutdown(sockfd, SHUT_WR);
-	if (rc < 0)
-		return rc;
-	/* Wait until the socket is closed by the peer. */
-	for (;;) {
-		rc = recv(sockfd, buffer, sizeof(buffer), 0);
-		if (rc <= 0)
-			break;
-	}
-	return close(sockfd);
 }
 
 void cras_client_destroy(struct cras_client *client)
 {
 	if (client == NULL)
 		return;
+	client->server_connection_cb = NULL;
+	client->server_err_cb = NULL;
 	cras_client_stop(client);
-	if (client->server_state) {
-		munmap((void *)client->server_state,
-		       sizeof(*client->server_state));
-	}
-	if (client->server_fd >= 0)
-		shutdown_and_close_socket(client->server_fd);
+	server_disconnect(client);
 	close(client->command_fds[0]);
 	close(client->command_fds[1]);
 	close(client->stream_fds[0]);
 	close(client->stream_fds[1]);
+	cras_file_wait_destroy(client->sock_file_wait);
+	free((void *)client->sock_file);
 	free(client);
 }
 
 int cras_client_connect(struct cras_client *client)
 {
-	return connect_to_server(client);
+	return connect_to_server(client, NULL, true);
 }
 
 int cras_client_connect_timeout(struct cras_client *client,
 				unsigned int timeout_ms)
 {
-	return connect_to_server_wait_retry(client, timeout_ms);
+	return connect_to_server_wait_retry(client, timeout_ms, true);
 }
 
 int cras_client_connected_wait(struct cras_client *client)
 {
 	return send_simple_cmd_msg(client, 0, CLIENT_SERVER_CONNECT);
+}
+
+int cras_client_connect_async(struct cras_client *client)
+{
+	return send_simple_cmd_msg(client, 0, CLIENT_SERVER_CONNECT_ASYNC);
+}
+
+void cras_client_set_server_message_blocking(struct cras_client *client,
+					     bool blocking)
+{
+	if (!client)
+		return;
+	client->server_message_blocking = blocking;
 }
 
 struct cras_stream_params *cras_client_stream_params_create(
@@ -1815,7 +2402,16 @@ void cras_client_set_server_error_cb(struct cras_client *client,
 				     void *user_arg)
 {
 	client->server_err_cb = err_cb;
-	client->server_err_user_arg = user_arg;
+	client->server_connection_user_arg = user_arg;
+}
+
+void cras_client_set_connection_status_cb(
+		struct cras_client *client,
+		cras_connection_status_cb_t connection_cb,
+		void *user_arg)
+{
+	client->server_connection_cb = connection_cb;
+	client->server_connection_user_arg = user_arg;
 }
 
 void cras_client_set_thread_priority_cb(struct cras_client *client,
@@ -2333,9 +2929,16 @@ static int cras_send_register_notification(struct cras_client *client,
 					   int do_register)
 {
 	struct cras_register_notification msg;
+	int rc;
 
+	/* This library automatically re-registers notifications when
+	 * reconnecting, so we can ignore message send failure due to no
+	 * connection. */
 	cras_fill_register_notification_message(&msg, msg_id, do_register);
-	return cras_send_with_fds(client->server_fd, &msg, sizeof(msg), NULL, 0);
+	rc = write_message_to_server(client, &msg.header);
+	if (rc == -EPIPE)
+		rc = 0;
+	return rc;
 }
 
 int cras_client_set_output_volume_changed_callback(
@@ -2446,4 +3049,80 @@ int cras_client_set_num_active_streams_changed_callback(
 	client->observer_ops.num_active_streams_changed = cb;
 	return cras_send_register_notification(
 	      client, CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED, cb != NULL);
+}
+
+static int reregister_notifications(struct cras_client *client)
+{
+	int rc;
+
+	if (client->observer_ops.output_volume_changed) {
+		rc = cras_client_set_output_volume_changed_callback(
+				client,
+				client->observer_ops.output_volume_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.output_mute_changed) {
+		rc = cras_client_set_output_mute_changed_callback(
+				client,
+				client->observer_ops.output_mute_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.capture_gain_changed) {
+		rc = cras_client_set_capture_gain_changed_callback(
+				client,
+				client->observer_ops.capture_gain_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.capture_mute_changed) {
+		rc = cras_client_set_capture_mute_changed_callback(
+				client,
+				client->observer_ops.capture_mute_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.nodes_changed) {
+		rc = cras_client_set_nodes_changed_callback(
+				client, client->observer_ops.nodes_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.active_node_changed) {
+		rc = cras_client_set_active_node_changed_callback(
+				client,
+				client->observer_ops.active_node_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.output_node_volume_changed) {
+		rc = cras_client_set_output_node_volume_changed_callback(
+			    client,
+			    client->observer_ops.output_node_volume_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.node_left_right_swapped_changed) {
+		rc = cras_client_set_node_left_right_swapped_changed_callback(
+			  client,
+			  client->observer_ops.node_left_right_swapped_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.input_node_gain_changed) {
+		rc = cras_client_set_input_node_gain_changed_callback(
+				client,
+				client->observer_ops.input_node_gain_changed);
+		if (rc != 0)
+			return rc;
+	}
+	if (client->observer_ops.num_active_streams_changed) {
+		rc = cras_client_set_num_active_streams_changed_callback(
+			       client,
+			       client->observer_ops.num_active_streams_changed);
+		if (rc != 0)
+			return rc;
+	}
+	return 0;
 }

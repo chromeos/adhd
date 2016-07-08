@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -9,7 +9,27 @@
 extern "C" {
 #endif
 
+/* Creates and connects a client to the running server asynchronously.
+ *
+ * When the connection has been established the connection_cb is executed
+ * with the appropriate state. See cras_connection_status_cb_t for more
+ * information.
+ *
+ * Args:
+ *    client - Filled with a pointer to the new client.
+ *    connection_cb - The connection status callback function.
+ *    user_arg - Argument passed to the connection status callback.
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+int cras_helper_create_connect_async(struct cras_client **client,
+				     cras_connection_status_cb_t connection_cb,
+				     void *user_arg);
+
 /* Creates and connects a client to the running server.
+ *
+ * Waits forever (or interrupt) for the server to be available.
+ *
  * Args:
  *    client - Filled with a pointer to the new client.
  * Returns:
