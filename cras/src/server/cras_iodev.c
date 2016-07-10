@@ -393,9 +393,6 @@ static void set_node_volume(struct cras_ionode *node, int value)
 		return;
 
 	volume = (unsigned int)MIN(value, 100);
-	if (node->volume == volume)
-		return;
-
 	node->volume = volume;
 	if (dev->set_volume)
 		dev->set_volume(dev);
