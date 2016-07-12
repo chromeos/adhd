@@ -33,7 +33,7 @@ CRAS_UT_TMPDIR_CFLAGS=-DCRAS_UT_TMPDIR=\"/tmp\"
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
 COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
-bin_PROGRAMS = cras cras_test_client cras_monitor
+bin_PROGRAMS = cras cras_test_client cras_monitor cras_router
 
 if HAVE_DBUS
 CRAS_DBUS_SOURCES = \
@@ -330,6 +330,14 @@ cras_monitor_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common -I$(top_builddir)/src/common
 
 tests/cras_monitor.c: common/cras_version.h
+
+cras_router_SOURCES = tests/cras_router.c
+cras_router_LDADD = -lm libcras.la
+cras_router_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
+        -I$(top_srcdir)/src/common -I$(top_srcdir)/src/dsp \
+	-I$(top_srcdir)/src/server -I$(top_builddir)/src/common
+
+tests/cras_router.c: common/cras_version.h
 
 CLEANFILES = common/cras_version.h
 .PHONY: common/cras_version.h
