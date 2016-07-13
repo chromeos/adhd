@@ -156,21 +156,6 @@ static void fake_jack_cb(const struct cras_alsa_jack *jack,
             ucm_set_enabled_value);
 }
 
-TEST(AlsaJacks, CreateFailInvalidParams) {
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(32, "c1", 0, 1,
-                                             fake_mixer,
-                                             NULL, fake_hctl,
-                                             CRAS_STREAM_OUTPUT,
-                                             fake_jack_cb,
-                                             fake_jack_cb_arg));
-  EXPECT_EQ(NULL, cras_alsa_jack_list_create(0, "c1", 32, 1,
-                                             fake_mixer,
-                                             NULL, fake_hctl,
-                                             CRAS_STREAM_OUTPUT,
-                                             fake_jack_cb,
-                                             fake_jack_cb_arg));
-}
-
 TEST(AlsaJacks, CreateNullHctl) {
   struct cras_alsa_jack_list *jack_list;
   ResetStubData();
