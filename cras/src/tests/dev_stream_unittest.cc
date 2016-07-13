@@ -22,6 +22,7 @@ struct audio_thread_event_log *atlog;
 };
 
 static struct timespec clock_gettime_retspec;
+static struct timespec cb_ts;
 
 static const int kBufferFrames = 1024;
 static const struct cras_audio_format fmt_s16le_44_1 = {
@@ -268,7 +269,8 @@ TEST_F(CreateSuite, CreateNoSRCOutput) {
   rstream_.format = fmt_s16le_44_1;
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 44100;
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_EQ(NULL, dev_stream->conv_buffer);
   EXPECT_EQ(0, dev_stream->conv_buffer_size_frames);
@@ -282,7 +284,8 @@ TEST_F(CreateSuite, CreateNoSRCInput) {
   rstream_.direction = CRAS_STREAM_INPUT;
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 44100;
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_EQ(NULL, dev_stream->conv_buffer);
   EXPECT_EQ(0, dev_stream->conv_buffer_size_frames);
@@ -296,7 +299,8 @@ TEST_F(CreateSuite, CreateSRC44to48) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 48000;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -313,7 +317,8 @@ TEST_F(CreateSuite, CreateSRC44to48Input) {
   in_fmt.frame_rate = 48000;
   out_fmt.frame_rate = 44100;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -329,7 +334,8 @@ TEST_F(CreateSuite, CreateSRC48to44) {
   in_fmt.frame_rate = 48000;
   out_fmt.frame_rate = 44100;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -346,7 +352,8 @@ TEST_F(CreateSuite, CreateSRC48to44Input) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 48000;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -363,7 +370,8 @@ TEST_F(CreateSuite, CreateSRC48to44StereoToMono) {
   in_fmt.frame_rate = 44100;
   out_fmt.frame_rate = 48000;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -382,7 +390,8 @@ TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
   rstream_.format = fmt_s16le_48;
   rstream_.direction = CRAS_STREAM_INPUT;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55);
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
+                                 &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
   EXPECT_NE(static_cast<byte_buffer*>(NULL), dev_stream->conv_buffer);
   EXPECT_LE(cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames,
@@ -410,7 +419,7 @@ TEST_F(CreateSuite, SetDevRateNotMasterDev) {
   config_format_converter_conv =
       reinterpret_cast<struct cras_fmt_conv*>(0x33);
   dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
-                                 (void *)0x55);
+                                 (void *)0x55, &cb_ts);
 
   dev_stream_set_dev_rate(dev_stream, 44100, 1.01, 1.0, 0);
   EXPECT_EQ(1, cras_fmt_conv_set_linear_resample_rates_called);
@@ -440,7 +449,7 @@ TEST_F(CreateSuite, SetDevRateMasterDev) {
   config_format_converter_conv =
       reinterpret_cast<struct cras_fmt_conv*>(0x33);
   dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
-                                 (void *)0x55);
+                                 (void *)0x55, &cb_ts);
 
   dev_stream_set_dev_rate(dev_stream, 44100, 1.01, 1.0, 0);
   EXPECT_EQ(1, cras_fmt_conv_set_linear_resample_rates_called);
@@ -534,7 +543,7 @@ TEST_F(CreateSuite, StreamCanFetch) {
   unsigned int dev_id = 9;
 
   dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
-                                 (void *)0x55);
+                                 (void *)0x55, &cb_ts);
 
   /* Verify stream cannot fetch when it's still pending. */
   cras_shm_set_callback_pending(&rstream_.shm, 1);

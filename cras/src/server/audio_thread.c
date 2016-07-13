@@ -220,6 +220,7 @@ static int append_stream(struct audio_thread *thread,
 	struct open_dev *open_dev;
 	struct cras_iodev *dev;
 	struct dev_stream *out;
+	struct timespec init_cb_ts;
 	unsigned int i;
 	int rc = 0;
 
@@ -234,8 +235,18 @@ static int append_stream(struct audio_thread *thread,
 		if (out)
 			continue;
 
+		/* If open device already has stream, get the first stream
+		 * and use its next callback time to align with. Otherwise
+		 * use the timestamp now as the initial callback time for
+		 * new stream.
+		 */
+		if (dev->streams)
+			init_cb_ts = *dev_stream_next_cb_ts(dev->streams);
+		else
+			clock_gettime(CLOCK_MONOTONIC_RAW, &init_cb_ts);
+
 		out = dev_stream_create(stream, dev->info.idx,
-					dev->ext_format, dev);
+					dev->ext_format, dev, &init_cb_ts);
 		if (!out) {
 			rc = -EINVAL;
 			break;

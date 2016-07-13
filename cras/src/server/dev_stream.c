@@ -26,7 +26,8 @@ static const int coarse_rate_adjust_step = 3;
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
-				     void *dev_ptr)
+				     void *dev_ptr,
+				     struct timespec *cb_ts)
 {
 	struct dev_stream *out;
 	struct cras_audio_format *stream_fmt = &stream->format;
@@ -89,7 +90,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
 			    stream_fmt->frame_rate,
 			    &stream->sleep_interval_ts);
-	clock_gettime(CLOCK_MONOTONIC_RAW, &stream->next_cb_ts);
+	stream->next_cb_ts = *cb_ts;
 
 	if (stream->direction != CRAS_STREAM_OUTPUT) {
 		struct timespec extra_sleep;
