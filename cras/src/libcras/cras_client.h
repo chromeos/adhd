@@ -222,8 +222,9 @@ int cras_client_connect_timeout(struct cras_client *client,
  * Args:
  *    client - the client to start (from cras_client_create).
  * Returns:
- *    0 on success, -EINVAL if the client pointer is NULL, or -ENOMEM if there
- *    isn't enough memory to start the thread.
+ *    0 on success, -EINVAL if the client pointer is NULL or the client is
+ *    already running, or -ENOMEM if there isn't enough memory to start the
+ *    thread.
  */
 int cras_client_run_thread(struct cras_client *client);
 
@@ -720,7 +721,7 @@ int cras_client_set_system_capture_mute_locked(struct cras_client *client,
  * Returns:
  *    The current system volume between 0 and 100.
  */
-size_t cras_client_get_system_volume(struct cras_client *client);
+size_t cras_client_get_system_volume(const struct cras_client *client);
 
 /* Gets the current system capture gain.
  *
@@ -731,7 +732,7 @@ size_t cras_client_get_system_volume(struct cras_client *client);
  * Returns:
  *    The current system capture volume in dB * 100.
  */
-long cras_client_get_system_capture_gain(struct cras_client *client);
+long cras_client_get_system_capture_gain(const struct cras_client *client);
 
 /* Gets the current system mute state.
  *
@@ -742,7 +743,7 @@ long cras_client_get_system_capture_gain(struct cras_client *client);
  * Returns:
  *    0 if not muted, 1 if it is.
  */
-int cras_client_get_system_muted(struct cras_client *client);
+int cras_client_get_system_muted(const struct cras_client *client);
 
 /* Gets the current user mute state.
  *
@@ -753,7 +754,7 @@ int cras_client_get_system_muted(struct cras_client *client);
  * Returns:
  *    0 if not muted, 1 if it is.
  */
-int cras_client_get_user_muted(struct cras_client *client);
+int cras_client_get_user_muted(const struct cras_client *client);
 
 /* Gets the current system capture mute state.
  *
@@ -764,7 +765,7 @@ int cras_client_get_user_muted(struct cras_client *client);
  * Returns:
  *    0 if capture is not muted, 1 if it is.
  */
-int cras_client_get_system_capture_muted(struct cras_client *client);
+int cras_client_get_system_capture_muted(const struct cras_client *client);
 
 /* Gets the current minimum system volume.
  * Args:
@@ -773,7 +774,7 @@ int cras_client_get_system_capture_muted(struct cras_client *client);
  *    The minimum value for the current output device in dBFS * 100.  This is
  *    the level of attenuation at volume == 1.
  */
-long cras_client_get_system_min_volume(struct cras_client *client);
+long cras_client_get_system_min_volume(const struct cras_client *client);
 
 /* Gets the current maximum system volume.
  * Args:
@@ -782,7 +783,7 @@ long cras_client_get_system_min_volume(struct cras_client *client);
  *    The maximum value for the current output device in dBFS * 100.  This is
  *    the level of attenuation at volume == 100.
  */
-long cras_client_get_system_max_volume(struct cras_client *client);
+long cras_client_get_system_max_volume(const struct cras_client *client);
 
 /* Gets the current minimum system capture gain.
  *
@@ -793,7 +794,7 @@ long cras_client_get_system_max_volume(struct cras_client *client);
  * Returns:
  *    The minimum capture gain for the current input device in dBFS * 100.
  */
-long cras_client_get_system_min_capture_gain(struct cras_client *client);
+long cras_client_get_system_min_capture_gain(const struct cras_client *client);
 
 /* Gets the current maximum system capture gain.
  *
@@ -804,11 +805,12 @@ long cras_client_get_system_min_capture_gain(struct cras_client *client);
  * Returns:
  *    The maximum capture gain for the current input device in dBFS * 100.
  */
-long cras_client_get_system_max_capture_gain(struct cras_client *client);
+long cras_client_get_system_max_capture_gain(const struct cras_client *client);
 
 /* Gets audio debug info.
  *
  * Requires that the connection to the server has been established.
+ * Access to the resulting pointer is not thread-safe.
  *
  * Args:
  *    client - The client from cras_client_create.
@@ -817,7 +819,7 @@ long cras_client_get_system_max_capture_gain(struct cras_client *client);
  *    calling cras_client_update_audio_debug_info.
  */
 const struct audio_debug_info *cras_client_get_audio_debug_info(
-		struct cras_client *client);
+		const struct cras_client *client);
 
 /* Gets the number of streams currently attached to the server.
  *
@@ -834,7 +836,7 @@ const struct audio_debug_info *cras_client_get_audio_debug_info(
  * Returns:
  *    The number of active streams.
  */
-unsigned cras_client_get_num_active_streams(struct cras_client *client,
+unsigned cras_client_get_num_active_streams(const struct cras_client *client,
 					    struct timespec *ts);
 
 

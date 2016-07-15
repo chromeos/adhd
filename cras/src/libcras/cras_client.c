@@ -231,6 +231,20 @@ struct cras_client {
 };
 
 /*
+ * Holds the client pointer plus internal book keeping.
+ *
+ * client - The client
+ * server_state_rwlock - lock to make the client's server_state thread-safe.
+ */
+struct client_int {
+	struct cras_client client;
+	pthread_rwlock_t server_state_rwlock;
+};
+
+#define to_client_int(cptr) \
+((struct client_int *)((char *)cptr - offsetof(struct client_int, client)))
+
+/*
  * Local Helpers
  */
 
@@ -238,6 +252,73 @@ static int client_thread_rm_stream(struct cras_client *client,
 				   cras_stream_id_t stream_id);
 static int handle_message_from_server(struct cras_client *client);
 static int reregister_notifications(struct cras_client *client);
+
+/*
+ * Unlock the server_state_rwlock if lock_rc is 0.
+ *
+ * Args:
+ *    client - The CRAS client pointer.
+ *    lock_rc - The result of server_state_rdlock or
+ *              server_state_wrlock.
+ */
+static void server_state_unlock(const struct cras_client *client,
+				int lock_rc)
+{
+	struct client_int *client_int;
+
+	if (!client)
+		return;
+	client_int = to_client_int(client);
+	if (lock_rc == 0)
+		pthread_rwlock_unlock(&client_int->server_state_rwlock);
+}
+
+/*
+ * Lock the server_state_rwlock for reading.
+ *
+ * Also checks that the server_state pointer is valid.
+ *
+ * Args:
+ *    client - The CRAS client pointer.
+ * Returns:
+ *    0 for success, positive error code on error.
+ *    Returns EINVAL if the server state pointer is NULL.
+ */
+static int server_state_rdlock(const struct cras_client *client)
+{
+	struct client_int *client_int;
+	int lock_rc;
+
+	if (!client)
+		return EINVAL;
+	client_int = to_client_int(client);
+	lock_rc = pthread_rwlock_rdlock(&client_int->server_state_rwlock);
+	if (lock_rc != 0)
+		return lock_rc;
+	if (!client->server_state) {
+		pthread_rwlock_unlock(&client_int->server_state_rwlock);
+		return EINVAL;
+	}
+	return 0;
+}
+
+/*
+ * Lock the server_state_rwlock for writing.
+ *
+ * Args:
+ *    client - The CRAS client pointer.
+ * Returns:
+ *    0 for success, positive error code on error.
+ */
+static int server_state_wrlock(const struct cras_client *client)
+{
+	struct client_int *client_int;
+
+	if (!client)
+		return EINVAL;
+	client_int = to_client_int(client);
+	return pthread_rwlock_wrlock(&client_int->server_state_rwlock);
+}
 
 /* Get the stream pointer from a stream id. */
 static struct client_stream *stream_from_id(const struct cras_client *client,
@@ -534,6 +615,7 @@ static void disconnect_transition_action(struct cras_client *client, bool force)
 	eventfd_t event_value;
 	cras_socket_state_t old_state = client->server_fd_state;
 	struct client_stream *s;
+	int lock_rc;
 
 	/* Stop all playing streams.
 	 * TODO(muirj): Pause and resume streams. */
@@ -543,15 +625,15 @@ static void disconnect_transition_action(struct cras_client *client, bool force)
 		client_thread_rm_stream(client, s->id);
 	}
 
-	/* Clean up the server_state pointer.
-	 * TODO(dgreid): Do we need a rwlock to access this? Many functions
-	 *     below access client->server_state and in theory there is a
-	 *     race condition (not thread safe). */
+	/* Clean up the server_state pointer. */
+	lock_rc = server_state_wrlock(client);
 	if (client->server_state) {
-		void *server_state = (void *)client->server_state;
+		munmap((void *)client->server_state,
+		       sizeof(*client->server_state));
 		client->server_state = NULL;
-		munmap(server_state, sizeof(*client->server_state));
 	}
+	server_state_unlock(client, lock_rc);
+
 	/* Our ID is unknown now. */
 	client->id = -1;
 
@@ -1446,30 +1528,40 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 /* Attach to the shm region containing the server state. */
 static int client_attach_shm(struct cras_client *client, int shm_fd)
 {
-	/* Should only happen once per client lifetime. */
-	if (client->server_state)
-		return -EBUSY;
+	int lock_rc;
+	int rc;
+
+	lock_rc = server_state_wrlock(client);
+	if (client->server_state) {
+		rc = -EBUSY;
+		goto error;
+	}
 
 	client->server_state = (struct cras_server_state *)mmap(
 			NULL, sizeof(*client->server_state),
 			PROT_READ, MAP_SHARED, shm_fd, 0);
+	rc = -errno;
 	close(shm_fd);
 	if (client->server_state == (struct cras_server_state *)-1) {
 		syslog(LOG_ERR,
-		       "cras_client: mmap failed to map shm for client.");
-		return errno;
+		       "cras_client: mmap failed to map shm for client: %s",
+		       strerror(-rc));
+		goto error;
 	}
 
 	if (client->server_state->state_version != CRAS_SERVER_STATE_VERSION) {
 		munmap((void *)client->server_state,
 		       sizeof(*client->server_state));
 		client->server_state = NULL;
-		syslog(LOG_ERR,
-		       "cras_client: Unknown server_state version.");
-		return -EINVAL;
+		rc = -EINVAL;
+		syslog(LOG_ERR, "cras_client: Unknown server_state version.");
+	} else {
+		rc = 0;
 	}
 
-	return 0;
+error:
+	server_state_unlock(client, lock_rc);
+	return rc;
 }
 
 static void cras_client_get_hotword_models_ready(
@@ -1887,6 +1979,7 @@ int cras_client_create(struct cras_client **client)
 	const char *sock_dir;
 	size_t sock_file_size;
 	int rc;
+	struct client_int *client_int;
 
 	/* Ignore SIGPIPE while using this API. */
 	signal(SIGPIPE, SIG_IGN);
@@ -1895,17 +1988,25 @@ int cras_client_create(struct cras_client **client)
 	if (!sock_dir)
 		return -ENOMEM;
 
-	*client = (struct cras_client *)calloc(1, sizeof(struct cras_client));
-	if (*client == NULL)
+	client_int = (struct client_int *)calloc(1, sizeof(*client_int));
+	if (!client_int)
 		return -ENOMEM;
+	*client = &client_int->client;
 	(*client)->server_fd = -1;
 	(*client)->id = -1;
+
+	rc = pthread_rwlock_init(&client_int->server_state_rwlock, NULL);
+	if (rc != 0) {
+		syslog(LOG_ERR, "cras_client: Could not init state rwlock.");
+		rc = -rc;
+		goto free_client;
+	}
 
 	(*client)->server_event_fd = eventfd(0, EFD_CLOEXEC|EFD_NONBLOCK);
 	if ((*client)->server_event_fd < 0) {
 		syslog(LOG_ERR, "cras_client: Could not setup server eventfd.");
 		rc = -errno;
-		goto free_error;
+		goto free_lock;
 	}
 
 	sock_file_size = strlen(sock_dir) + strlen(CRAS_SOCKET_FILE) + 2;
@@ -1950,15 +2051,20 @@ free_error:
 		close((*client)->server_event_fd);
 	cras_file_wait_destroy((*client)->sock_file_wait);
 	free((void *)(*client)->sock_file);
-	free(*client);
+free_lock:
+	pthread_rwlock_destroy(&client_int->server_state_rwlock);
+free_client:
 	*client = NULL;
+	free(client_int);
 	return rc;
 }
 
 void cras_client_destroy(struct cras_client *client)
 {
+	struct client_int *client_int;
 	if (client == NULL)
 		return;
+	client_int = to_client_int(client);
 	client->server_connection_cb = NULL;
 	client->server_err_cb = NULL;
 	cras_client_stop(client);
@@ -1968,8 +2074,9 @@ void cras_client_destroy(struct cras_client *client)
 	close(client->stream_fds[0]);
 	close(client->stream_fds[1]);
 	cras_file_wait_destroy(client->sock_file_wait);
+	pthread_rwlock_destroy(&client_int->server_state_rwlock);
 	free((void *)client->sock_file);
-	free(client);
+	free(client_int);
 }
 
 int cras_client_connect(struct cras_client *client)
@@ -2242,84 +2349,155 @@ int cras_client_set_system_capture_mute_locked(struct cras_client *client,
 	return write_message_to_server(client, &msg.header);
 }
 
-size_t cras_client_get_system_volume(struct cras_client *client)
+size_t cras_client_get_system_volume(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	size_t volume;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->volume;
+
+	volume = client->server_state->volume;
+	server_state_unlock(client, lock_rc);
+	return volume;
 }
 
-long cras_client_get_system_capture_gain(struct cras_client *client)
+long cras_client_get_system_capture_gain(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	long gain;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->capture_gain;
+
+	gain = client->server_state->capture_gain;
+	server_state_unlock(client, lock_rc);
+	return gain;
 }
 
-int cras_client_get_system_muted(struct cras_client *client)
+int cras_client_get_system_muted(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	int muted;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->mute;
+
+	muted = client->server_state->mute;
+	server_state_unlock(client, lock_rc);
+	return muted;
 }
 
-int cras_client_get_user_muted(struct cras_client *client)
+int cras_client_get_user_muted(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	int muted;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->user_mute;
+
+	muted = client->server_state->user_mute;
+	server_state_unlock(client, lock_rc);
+	return muted;
 }
 
-int cras_client_get_system_capture_muted(struct cras_client *client)
+int cras_client_get_system_capture_muted(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	int muted;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->capture_mute;
+
+	muted = client->server_state->capture_mute;
+	server_state_unlock(client, lock_rc);
+	return muted;
 }
 
-long cras_client_get_system_min_volume(struct cras_client *client)
+long cras_client_get_system_min_volume(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	long min_volume;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->min_volume_dBFS;
+
+	min_volume = client->server_state->min_volume_dBFS;
+	server_state_unlock(client, lock_rc);
+	return min_volume;
 }
 
-long cras_client_get_system_max_volume(struct cras_client *client)
+long cras_client_get_system_max_volume(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	long max_volume;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->max_volume_dBFS;
+
+	max_volume = client->server_state->max_volume_dBFS;
+	server_state_unlock(client, lock_rc);
+	return max_volume;
 }
 
-long cras_client_get_system_min_capture_gain(struct cras_client *client)
+long cras_client_get_system_min_capture_gain(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	long min_gain;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->min_capture_gain;
+
+	min_gain = client->server_state->min_capture_gain;
+	server_state_unlock(client, lock_rc);
+	return min_gain;
 }
 
-long cras_client_get_system_max_capture_gain(struct cras_client *client)
+long cras_client_get_system_max_capture_gain(const struct cras_client *client)
 {
-	if (!client || !client->server_state)
+	long max_gain;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
-	return client->server_state->max_capture_gain;
+
+	max_gain = client->server_state->max_capture_gain;
+	server_state_unlock(client, lock_rc);
+	return max_gain;
 }
 
 const struct audio_debug_info *cras_client_get_audio_debug_info(
-		struct cras_client *client)
+		const struct cras_client *client)
 {
-	if (!client || !client->server_state)
-		return NULL;
+	const struct audio_debug_info *debug_info;
+	int lock_rc;
 
-	return &client->server_state->audio_debug_info;
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return 0;
+
+	debug_info = &client->server_state->audio_debug_info;
+	server_state_unlock(client, lock_rc);
+	return debug_info;
 }
 
-unsigned cras_client_get_num_active_streams(struct cras_client *client,
+unsigned cras_client_get_num_active_streams(const struct cras_client *client,
 					    struct timespec *ts)
 {
 	unsigned num_streams, version, i;
+	int lock_rc;
 
-	if (!client || !client->server_state)
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return 0;
 
 read_active_streams_again:
@@ -2337,6 +2515,7 @@ read_active_streams_again:
 	if (end_server_state_read(client->server_state, version))
 		goto read_active_streams_again;
 
+	server_state_unlock(client, lock_rc);
 	return num_streams;
 }
 
@@ -2403,12 +2582,12 @@ int cras_client_get_output_devices(const struct cras_client *client,
 {
 	const struct cras_server_state *state;
 	unsigned avail_devs, avail_nodes, version;
+	int lock_rc;
 
-	if (!client)
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return -EINVAL;
 	state = client->server_state;
-	if (!state)
-		return -EINVAL;
 
 read_outputs_again:
 	version = begin_server_state_read(state);
@@ -2418,6 +2597,7 @@ read_outputs_again:
 	memcpy(nodes, state->output_nodes, avail_nodes * sizeof(*nodes));
 	if (end_server_state_read(state, version))
 		goto read_outputs_again;
+	server_state_unlock(client, lock_rc);
 
 	*num_devs = avail_devs;
 	*num_nodes = avail_nodes;
@@ -2432,12 +2612,12 @@ int cras_client_get_input_devices(const struct cras_client *client,
 {
 	const struct cras_server_state *state;
 	unsigned avail_devs, avail_nodes, version;
+	int lock_rc;
 
+	lock_rc = server_state_rdlock(client);
 	if (!client)
 		return -EINVAL;
 	state = client->server_state;
-	if (!state)
-		return -EINVAL;
 
 read_inputs_again:
 	version = begin_server_state_read(state);
@@ -2447,6 +2627,7 @@ read_inputs_again:
 	memcpy(nodes, state->input_nodes, avail_nodes * sizeof(*nodes));
 	if (end_server_state_read(state, version))
 		goto read_inputs_again;
+	server_state_unlock(client, lock_rc);
 
 	*num_devs = avail_devs;
 	*num_nodes = avail_nodes;
@@ -2460,12 +2641,12 @@ int cras_client_get_attached_clients(const struct cras_client *client,
 {
 	const struct cras_server_state *state;
 	unsigned num, version;
+	int lock_rc;
 
-	if (!client)
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return -EINVAL;
 	state = client->server_state;
-	if (!state)
-		return 0;
 
 read_clients_again:
 	version = begin_server_state_read(state);
@@ -2473,6 +2654,7 @@ read_clients_again:
 	memcpy(clients, state->client_info, num * sizeof(*clients));
 	if (end_server_state_read(state, version))
 		goto read_clients_again;
+	server_state_unlock(client, lock_rc);
 
 	return num;
 }
@@ -2834,12 +3016,12 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
 	unsigned int i;
 	const struct cras_ionode_info *node_list;
 	unsigned int num_nodes;
+	int lock_rc;
 
-	if (!client)
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
 		return -EINVAL;
 	state = client->server_state;
-	if (!state)
-		return -EINVAL;
 
 read_nodes_again:
 	version = begin_server_state_read(state);
@@ -2856,6 +3038,7 @@ read_nodes_again:
 	}
 	if (end_server_state_read(state, version))
 		goto read_nodes_again;
+	server_state_unlock(client, lock_rc);
 
 	return -ENODEV;
 }
