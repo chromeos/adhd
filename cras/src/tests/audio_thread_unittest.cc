@@ -887,6 +887,7 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
                                                 unsigned int *hw_level)
 {
+  *hw_level = 0;
   return 0;
 }
 
