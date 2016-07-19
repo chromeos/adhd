@@ -1190,8 +1190,14 @@ static int write_output_samples(struct audio_thread *thread,
 		/* S1 => S2:
 		 * If device is not started yet, and there is sample ready from
 		 * stream, fill 1 min_cb_level of zeros first and fill sample
-		 * from stream later. */
+		 * from stream later.
+		 * Starts the device here to finish state transition. */
 		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+		ATLOG(atlog, AUDIO_THREAD_ODEV_START,
+				odev->info.idx, odev->min_cb_level, 0);
+		rc = cras_iodev_start(odev);
+		if (rc < 0)
+			return rc;
 	}
 
 	rc = cras_iodev_frames_queued(odev);
@@ -1242,19 +1248,9 @@ static int write_output_samples(struct audio_thread *thread,
 		total_written += written;
 	}
 
-	/* In the case where we have written samples or there are samples in
-	 * device, start it if needed. */
-	if (total_written || hw_level) {
-		if (!is_running) {
-			ATLOG(atlog, AUDIO_THREAD_ODEV_START,
-				odev->info.idx, hw_level, total_written);
-			rc = cras_iodev_start(odev);
-			if (rc < 0)
-				return rc;
-		}
-	} else if (is_running && odev->min_cb_level < odev->buffer_size)
-		/* Empty hardware and nothing written, zero fill it if it is
-		 * running. */
+	/* Empty hardware and nothing written, zero fill it if it is running. */
+	if (!hw_level && !total_written && is_running &&
+	    odev->min_cb_level < odev->buffer_size)
 		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
