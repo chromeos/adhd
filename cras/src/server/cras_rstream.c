@@ -321,7 +321,8 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
 {
 	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
-	rstream->queued_frames = cras_shm_get_frames(shm);
+	rstream->queued_frames = MIN(cras_shm_get_frames(shm), 
+				     rstream->buffer_frames);
 }
 
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
