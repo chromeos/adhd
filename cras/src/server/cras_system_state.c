@@ -293,7 +293,7 @@ int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg)
 
 void cras_system_notify_capture_mute(void)
 {
-	cras_alert_pending(state.mute_alert);
+	cras_alert_pending(state.capture_mute_alert);
 	cras_observer_notify_capture_mute(state.exp_state->capture_mute,
 					  state.exp_state->capture_mute_locked);
 }
