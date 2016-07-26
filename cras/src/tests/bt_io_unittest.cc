@@ -62,10 +62,8 @@ class BtIoBasicSuite : public testing::Test {
       delay_frames_called_ = 0;
       get_buffer_called_ = 0;
       put_buffer_called_ = 0;
-      is_open_called_ = 0;
       open_dev_called_ = 0;
       close_dev_called_ = 0;
-      dev_running_called_ = 0;
     }
 
     virtual void TearDown() {
@@ -79,10 +77,8 @@ class BtIoBasicSuite : public testing::Test {
       d->delay_frames = delay_frames;
       d->get_buffer = get_buffer;
       d->put_buffer = put_buffer;
-      d->is_open = is_open;
       d->open_dev = open_dev;
       d->close_dev = close_dev;
-      d->dev_running = dev_running;
     }
 
     // Stub functions for the iodev structure.
@@ -121,10 +117,6 @@ class BtIoBasicSuite : public testing::Test {
       put_buffer_called_++;
       return 0;
     }
-    static int is_open(const cras_iodev* iodev) {
-      is_open_called_++;
-      return 0;
-    }
     static int open_dev(cras_iodev* iodev) {
       open_dev_called_++;
       return 0;
@@ -132,10 +124,6 @@ class BtIoBasicSuite : public testing::Test {
     static int close_dev(cras_iodev* iodev) {
       close_dev_called_++;
       return 0;
-    }
-    static int dev_running(const cras_iodev* iodev) {
-      dev_running_called_++;
-      return 1;
     }
 
   static struct cras_iodev *bt_iodev;
@@ -146,10 +134,8 @@ class BtIoBasicSuite : public testing::Test {
   static unsigned int delay_frames_called_;
   static unsigned int get_buffer_called_;
   static unsigned int put_buffer_called_;
-  static unsigned int is_open_called_;
   static unsigned int open_dev_called_;
   static unsigned int close_dev_called_;
-  static unsigned int dev_running_called_;
 };
 
 struct cras_iodev *BtIoBasicSuite::bt_iodev;
@@ -160,10 +146,8 @@ unsigned int BtIoBasicSuite::frames_queued_called_;
 unsigned int BtIoBasicSuite::delay_frames_called_;
 unsigned int BtIoBasicSuite::get_buffer_called_;
 unsigned int BtIoBasicSuite::put_buffer_called_;
-unsigned int BtIoBasicSuite::is_open_called_;
 unsigned int BtIoBasicSuite::open_dev_called_;
 unsigned int BtIoBasicSuite::close_dev_called_;
-unsigned int BtIoBasicSuite::dev_running_called_;
 
 TEST_F(BtIoBasicSuite, CreateBtIo) {
   struct cras_audio_area *fake_area;
@@ -180,16 +164,12 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
 
   bt_iodev->open_dev(bt_iodev);
   EXPECT_EQ(1, open_dev_called_);
-  bt_iodev->is_open(bt_iodev);
-  EXPECT_EQ(1, is_open_called_);
   bt_iodev->frames_queued(bt_iodev);
   EXPECT_EQ(1, frames_queued_called_);
   bt_iodev->get_buffer(bt_iodev, &fake_area, &fr);
   EXPECT_EQ(1, get_buffer_called_);
   bt_iodev->put_buffer(bt_iodev, fr);
   EXPECT_EQ(1, put_buffer_called_);
-  bt_iodev->dev_running(bt_iodev);
-  EXPECT_EQ(1, dev_running_called_);
   bt_iodev->close_dev(bt_iodev);
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(1, cras_iodev_free_format_called);

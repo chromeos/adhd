@@ -70,24 +70,6 @@ static unsigned int current_level(const struct cras_iodev *iodev)
  * iodev callbacks.
  */
 
-static int is_open(const struct cras_iodev *iodev)
-{
-	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
-
-	return empty_iodev->open;
-}
-
-static int dev_running(const struct cras_iodev *iodev)
-{
-	return 1;
-}
-
-/* This is dummy because dev_running always returns 1. */
-static int start(const struct cras_iodev *iodev)
-{
-	return 0;
-}
-
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	return current_level(iodev);
@@ -210,14 +192,11 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;
-	iodev->is_open = is_open;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->flush_buffer = flush_buffer;
-	iodev->dev_running = dev_running;
-	iodev->start = start;
 	iodev->update_active_node = update_active_node;
 	iodev->no_stream = cras_iodev_default_no_stream_playback;
 

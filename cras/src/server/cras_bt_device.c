@@ -370,7 +370,7 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 	struct cras_iodev *idev = device->bt_iodevs[CRAS_STREAM_INPUT];
 
 	return cras_bt_device_has_a2dp(device) &&
-		(!idev || !idev->is_open(idev));
+		(!idev || !cras_iodev_is_open(idev));
 }
 
 void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
@@ -738,10 +738,10 @@ void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
 	struct cras_iodev *iodev;
 
 	iodev = device->bt_iodevs[CRAS_STREAM_INPUT];
-	if (iodev && iodev->is_open(iodev))
+	if (iodev && cras_iodev_is_open(iodev))
 		cras_bt_io_update_buffer_size(iodev);
 	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (iodev && iodev->is_open(iodev))
+	if (iodev && cras_iodev_is_open(iodev))
 		cras_bt_io_update_buffer_size(iodev);
 }
 

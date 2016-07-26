@@ -1157,11 +1157,6 @@ static void update_estimated_rate(struct audio_thread *thread,
  *                             --       --
  *
  *  Device in open_devs can be in one of S1, S2, S3.
- *
- *            dev_running         no_stream_state
- *      S1        0                      0
- *      S2        1                      0
- *      S3        1                      1
  */
 
 /* Returns 0 on success negative error on device failure. */
@@ -1177,15 +1172,18 @@ static int write_output_samples(struct audio_thread *thread,
 	uint8_t *dst = NULL;
 	struct cras_audio_area *area = NULL;
 	int is_running;
+	enum CRAS_IODEV_STATE state;
 
-	is_running = odev->dev_running(odev);
+	state = cras_iodev_state(odev);
+	is_running = (state  == CRAS_IODEV_STATE_NORMAL_RUN ||
+	              state  == CRAS_IODEV_STATE_NO_STREAM_RUN);
 
 	/* S2 => S3 and S3 => S3 (a):
 	 * Let device handle playback when there is no stream. */
 	if (is_running && !odev->streams)
 		return cras_iodev_no_stream_playback(odev, 1);
 
-	if (odev->no_stream_state) {
+	if (state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
 		/* S3 => S2:
 		 * If there is sample ready in dev_stream, let device resume
 		 * normal playback from no stream playback state if needed. */
@@ -1373,7 +1371,7 @@ static int capture_to_streams(struct audio_thread *thread,
 	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO,
 				    idev->info.idx, hw_level, remainder);
 
-	if (!idev->dev_running(idev))
+	if (cras_iodev_state(idev) != CRAS_IODEV_STATE_NORMAL_RUN)
 		return 0;
 
 	while (remainder > 0) {

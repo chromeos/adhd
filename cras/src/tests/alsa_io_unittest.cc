@@ -724,26 +724,6 @@ TEST(AlsaIoInit, ResumeDevice) {
   alsa_iodev_destroy(iodev);
 }
 
-TEST(AlsaIoInit, ResumeDeviceInDevRunning) {
-  struct cras_iodev *iodev;
-  int rc;
-
-  ResetStubData();
-  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
-                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
-                            NULL, NULL, fake_hctl,
-                            CRAS_STREAM_OUTPUT, 0, 0);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-
-  // Attempt to resume if the device is suspended.
-  snd_pcm_state_ret = SND_PCM_STATE_SUSPENDED;
-  rc = iodev->dev_running(iodev);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, cras_alsa_attempt_resume_called);
-
-  alsa_iodev_destroy(iodev);
-}
-
 TEST(AlsaIoInit, DspNameDefault) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
@@ -1939,10 +1919,13 @@ TEST_F(AlsaFreeRunTestSuite, OutputShouldWake) {
   EXPECT_EQ(0, output_should_wake(&aio.base));
 
   aio.is_free_running = 0;
-  snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
+  aio.base.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
   EXPECT_EQ(1, output_should_wake(&aio.base));
 
-  snd_pcm_state_ret = SND_PCM_STATE_OPEN;
+  aio.base.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  EXPECT_EQ(1, output_should_wake(&aio.base));
+
+  aio.base.state = CRAS_IODEV_STATE_OPEN;
   EXPECT_EQ(0, output_should_wake(&aio.base));
 }
 
@@ -2104,7 +2087,6 @@ int snd_pcm_format_physical_width(snd_pcm_format_t format)
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *handle)
 {
   return snd_pcm_state_ret;
-  return SND_PCM_STATE_RUNNING;
 }
 
 const char *snd_strerror(int errnum)
@@ -2605,6 +2587,11 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
 int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
 {
   return 0;
+}
+
+enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
+{
+  return iodev->state;
 }
 
 }
