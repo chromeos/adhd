@@ -590,24 +590,60 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;
-	iodev->no_stream_state = 0;
+
+	iodev->state = CRAS_IODEV_STATE_OPEN;
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		/* If device supports start ops, device can be in open state.
+		 * Otherwise, device starts running right after opening. */
+		if (iodev->start)
+			iodev->state = CRAS_IODEV_STATE_OPEN;
+		else
+			iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+	} else {
+		/* Input device starts running right after opening.
+		 * No stream state is only for output device. Input device
+		 * should be in normal run state. */
+		iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+	}
 
 	return 0;
 }
 
+enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
+{
+	return iodev->state;
+}
+
 int cras_iodev_start(struct cras_iodev *iodev)
 {
-	if (!iodev->is_open(iodev))
+	int rc;
+	if (!cras_iodev_is_open(iodev))
 		return -EPERM;
-	return iodev->start(iodev);
+	if (!iodev->start) {
+		syslog(LOG_ERR,
+		       "start called on device %s not supporting start ops",
+		       iodev->info.name);
+		return -EINVAL;
+	}
+	rc = iodev->start(iodev);
+	if (rc)
+		return rc;
+	iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+	return 0;
 }
 
 int cras_iodev_close(struct cras_iodev *iodev)
 {
-	if (!iodev->is_open(iodev))
+	int rc;
+	if (!cras_iodev_is_open(iodev))
 		return 0;
 
-	return iodev->close_dev(iodev);
+	rc = iodev->close_dev(iodev);
+	if (rc)
+		return rc;
+	iodev->state = CRAS_IODEV_STATE_CLOSE;
+	return 0;
 }
 
 int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
@@ -823,7 +859,8 @@ int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 		return odev->output_should_wake(odev);
 
 	/* Do not wake up for device not started yet. */
-	return odev->dev_running(odev);
+	return (odev->state == CRAS_IODEV_STATE_NORMAL_RUN ||
+	        odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN);
 }
 
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
@@ -867,6 +904,9 @@ int cras_iodev_no_stream_playback(struct cras_iodev *odev, int enable)
 	rc = odev->no_stream(odev, enable);
 	if (rc < 0)
 		return rc;
-	odev->no_stream_state = enable;
+	if (enable)
+		odev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+	else
+		odev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 	return 0;
 }

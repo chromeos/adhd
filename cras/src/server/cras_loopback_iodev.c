@@ -38,13 +38,11 @@ static snd_pcm_format_t loopback_supported_formats[] = {
 };
 
 /* loopack iodev.  Keep state of a loopback device.
- *    open - Is the device open.
  *    sample_buffer - Pointer to sample buffer.
  */
 struct loopback_iodev {
 	struct cras_iodev base;
 	enum CRAS_LOOPBACK_TYPE loopback_type;
-	int open;
 	struct timespec last_filled;
 	struct byte_buffer *sample_buffer;
 };
@@ -119,24 +117,6 @@ static void device_enabled_hook(struct cras_iodev *iodev, int enabled,
  * iodev callbacks.
  */
 
-static int is_open(const struct cras_iodev *iodev)
-{
-	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
-
-	return loopdev && loopdev->open;
-}
-
-static int dev_running(const struct cras_iodev *iodev)
-{
-	return is_open(iodev);
-}
-
-/* This is dummy because dev_running is identical to is_open. */
-static int start(const struct cras_iodev *iodev)
-{
-	return 0;
-}
-
 static int frames_queued(const struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
@@ -176,7 +156,6 @@ static int close_record_dev(struct cras_iodev *iodev)
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	struct cras_iodev *edev;
 
-	loopdev->open = 0;
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
 	buf_reset(sbuf);
@@ -194,7 +173,6 @@ static int open_record_dev(struct cras_iodev *iodev)
 	struct cras_iodev *edev;
 
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
-	loopdev->open = 1;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &loopdev->last_filled);
 
 	edev = cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT);
@@ -279,9 +257,6 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	iodev->supported_formats = loopback_supported_formats;
 	iodev->buffer_size = LOOPBACK_BUFFER_SIZE;
 
-	iodev->is_open = is_open;
-	iodev->dev_running = dev_running;
-	iodev->start = start;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->update_active_node = update_active_node;

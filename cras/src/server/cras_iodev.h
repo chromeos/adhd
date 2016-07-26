@@ -33,6 +33,17 @@ typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
 			       const struct cras_audio_format *fmt,
 			       void *cb_data);
 
+/* State of an iodev.
+ * no_stream state is only supported on output device.
+ * Open state is only supported for device supporting start ops.
+ */
+enum CRAS_IODEV_STATE {
+	CRAS_IODEV_STATE_CLOSE = 0,
+	CRAS_IODEV_STATE_OPEN = 1,
+	CRAS_IODEV_STATE_NORMAL_RUN = 2,
+	CRAS_IODEV_STATE_NO_STREAM_RUN = 3,
+};
+
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
  * Members:
@@ -81,16 +92,17 @@ struct cras_ionode {
  * set_swap_mode_for_node - Function to call to set swap mode for the node.
  * open_dev - Opens the device.
  * close_dev - Closes the device if it is open.
- * is_open - Checks if the device has been openned.
  * update_supported_formats - Refresh supported frame rates and channel counts.
  * frames_queued - The number of frames in the audio buffer.
  * delay_frames - The delay of the next sample in frames.
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
  * flush_buffer - Flushes the buffer and return the number of frames flushed.
- * dev_running - Checks if the device is playing or recording, return 1 if it's
- *     running, return 0 if not.
- * start - Starts running device.
+ * start - Starts running device. This is optionally supported on output device.
+ *         If device supports this ops, device can be in CRAS_IODEV_STATE_OPEN
+ *         state after being opened.
+ *         If device does not support this ops, then device will be in
+ *         CRAS_IODEV_STATE_NO_STREAM_RUN.
  * no_stream - (Optional) When there is no stream, we let device keep running
  *             for some time to save the time to open device for the next
  *             stream. This is the no stream state of an output device.
@@ -127,7 +139,8 @@ struct cras_ionode {
  * is_enabled - True if this iodev is enabled, false otherwise.
  * software_volume_needed - True if volume control is not supported by hardware.
  * streams - List of audio streams serviced by dev.
- * no_stream_state - Flag to indicate the device is in no stream state.
+ * state - Device is in one of close, open, normal, or no_stream state defined
+ *         in enum CRAS_IODEV_STATE.
  * min_cb_level - min callback level of any stream attached.
  * max_cb_level - max callback level of any stream attached.
  * buf_state - If multiple streams are writing to this device, then this
@@ -150,7 +163,6 @@ struct cras_iodev {
 				      int enable);
 	int (*open_dev)(struct cras_iodev *iodev);
 	int (*close_dev)(struct cras_iodev *iodev);
-	int (*is_open)(const struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
 	int (*frames_queued)(const struct cras_iodev *iodev);
 	int (*delay_frames)(const struct cras_iodev *iodev);
@@ -159,7 +171,6 @@ struct cras_iodev {
 			  unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*flush_buffer)(struct cras_iodev *iodev);
-	int (*dev_running)(const struct cras_iodev *iodev);
 	int (*start)(const struct cras_iodev *iodev);
 	int (*output_should_wake)(const struct cras_iodev *iodev);
 	int (*no_stream)(struct cras_iodev *iodev, int enable);
@@ -187,7 +198,7 @@ struct cras_iodev {
 	int is_enabled;
 	int software_volume_needed;
 	struct dev_stream *streams;
-	int no_stream_state;
+	enum CRAS_IODEV_STATE state;
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
 	struct buffer_share *buf_state;
@@ -409,10 +420,13 @@ void cras_iodev_stream_written(struct cras_iodev *iodev,
  */
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev);
 
+/* Return the state of an iodev. */
+enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev);
+
 /* Open an iodev, does setup and invokes the open_dev callback. */
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level);
 
-/* Starts an opened iodev, invokes the start callback. */
+/* Starts an opened output iodev, invokes the start callback. */
 int cras_iodev_start(struct cras_iodev *iodev);
 
 /* Open an iodev, does teardown and invokes the close_dev callback. */
@@ -473,7 +487,7 @@ static inline int cras_iodev_delay_frames(const struct cras_iodev *iodev)
 /* Returns true if the device is open. */
 static inline int cras_iodev_is_open(const struct cras_iodev *iodev)
 {
-	if (iodev && iodev->is_open(iodev))
+	if (iodev && iodev->state != CRAS_IODEV_STATE_CLOSE)
 		return 1;
 	return 0;
 }
@@ -530,5 +544,14 @@ int cras_iodev_no_stream_playback(struct cras_iodev *iodev, int enable);
  *    0 on success. Negative error code on failure.
  * */
 int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable);
+
+
+/* Get current state of iodev.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    One of states defined in CRAS_IODEV_STATE.
+ */
+enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev);
 
 #endif /* CRAS_IODEV_H_ */
