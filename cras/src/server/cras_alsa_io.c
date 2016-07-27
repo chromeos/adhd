@@ -767,6 +767,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 		{ HOTWORD_DEV, 1, CRAS_NODE_TYPE_HOTWORD },
 		{ "Haptic", 1, CRAS_NODE_TYPE_HAPTIC },
 		{ "Rumbler", 1, CRAS_NODE_TYPE_HAPTIC },
+		{ "Line Out", 0, CRAS_NODE_TYPE_LINEOUT},
 	};
 	unsigned i;
 

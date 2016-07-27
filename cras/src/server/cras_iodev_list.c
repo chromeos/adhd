@@ -196,6 +196,8 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "MIC";
 	case CRAS_NODE_TYPE_HOTWORD:
 		return "HOTWORD";
+	case CRAS_NODE_TYPE_LINEOUT:
+		return "LINEOUT";
 	case CRAS_NODE_TYPE_POST_MIX_PRE_DSP:
 		return "POST_MIX_LOOPBACK";
 	case CRAS_NODE_TYPE_POST_DSP:
