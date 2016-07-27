@@ -1089,13 +1089,16 @@ static struct alsa_output_node *get_output_node_from_jack(
 	struct cras_ionode *node = NULL;
 	struct alsa_output_node *aout = NULL;
 
-	mixer_output = cras_alsa_jack_get_mixer_output(jack);
-	if (mixer_output == NULL) {
-		/* no mixer output, search by node. */
-		DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
-					   jack, jack);
+	/* Search by jack first. */
+	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
+				   jack, jack);
+	if (aout)
 		return aout;
-	}
+
+	/* Search by mixer control next. */
+	mixer_output = cras_alsa_jack_get_mixer_output(jack);
+	if (mixer_output == NULL)
+		return NULL;
 
 	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
 				   mixer_output, mixer_output);

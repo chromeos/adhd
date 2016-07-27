@@ -101,6 +101,7 @@ static char test_card_name[] = "TestCard";
 static char test_dev_name[] = "TestDev";
 static char test_dev_id[] = "TestDevId";
 static size_t cras_iodev_add_node_called;
+static struct cras_ionode *cras_iodev_set_node_attr_ionode;
 static size_t cras_iodev_set_node_attr_called;
 static enum ionode_attr cras_iodev_set_node_attr_attr;
 static int cras_iodev_set_node_attr_value;
@@ -961,6 +962,64 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(0, ucm_set_enabled_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
+  free(fake_curve);
+  fake_curve = NULL;
+}
+
+TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
+  struct alsa_io *aio;
+  struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer *)2;
+  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t *)3;
+  struct cras_iodev *iodev;
+  struct mixer_control *output;
+  struct ucm_section *section;
+
+  ResetStubData();
+  output = reinterpret_cast<struct mixer_control *>(3);
+  cras_alsa_mixer_get_control_name_values[output] = "Headphone";
+  fake_curve =
+      static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
+  fake_curve->get_dBFS = fake_get_dBFS;
+  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
+
+  // Create the iodev
+  iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
+                            NULL, ALSA_CARD_TYPE_INTERNAL, 1,
+                            fake_mixer, fake_ucm, fake_hctl,
+                            CRAS_STREAM_OUTPUT, 0, 0);
+  ASSERT_NE(iodev, (void *)NULL);
+  aio = reinterpret_cast<struct alsa_io *>(iodev);
+
+  // First node 'Headphone'
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+                               "fake-jack", "gpio");
+  ucm_section_set_mixer_name(section, "Headphone");
+  cras_alsa_jack_list_add_jack_for_section_result_jack =
+      reinterpret_cast<struct cras_alsa_jack *>(10);
+  cras_alsa_mixer_get_control_for_section_return_value = output;
+  ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ucm_section_free_list(section);
+
+  // Second node 'Line Out'
+  section = ucm_section_create("Line Out", 0, CRAS_STREAM_OUTPUT,
+                               "fake-jack", "gpio");
+  ucm_section_set_mixer_name(section, "Headphone");
+  cras_alsa_jack_list_add_jack_for_section_result_jack =
+      reinterpret_cast<struct cras_alsa_jack *>(20);
+  cras_alsa_mixer_get_control_for_section_return_value = output;
+  ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ucm_section_free_list(section);
+
+  // Both nodes are associated with the same mixer output. Different jack plug
+  // report should trigger different node attribute change.
+  cras_alsa_jack_get_mixer_output_ret = output;
+  jack_output_plug_event(reinterpret_cast<struct cras_alsa_jack *>(10), 0, aio);
+  EXPECT_STREQ(cras_iodev_set_node_attr_ionode->name, "Headphone");
+
+  jack_output_plug_event(reinterpret_cast<struct cras_alsa_jack *>(20), 0, aio);
+  EXPECT_STREQ(cras_iodev_set_node_attr_ionode->name, "Line Out");
+
+  alsa_iodev_destroy(iodev);
   free(fake_curve);
   fake_curve = NULL;
 }
@@ -2392,6 +2451,7 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 			     enum ionode_attr attr, int value)
 {
   cras_iodev_set_node_attr_called++;
+  cras_iodev_set_node_attr_ionode = ionode;
   cras_iodev_set_node_attr_attr = attr;
   cras_iodev_set_node_attr_value = value;
   if (ionode && (attr == IONODE_ATTR_PLUGGED))
