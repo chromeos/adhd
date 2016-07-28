@@ -992,7 +992,8 @@ static int get_next_output_wake(struct audio_thread *thread,
 	struct timespec sleep_time;
 	double est_rate;
 	int ret = 0;
-	unsigned int frames_to_play_in_sleep, hw_level;
+	unsigned int frames_to_play_in_sleep;
+	unsigned int hw_level = 0;
 
 	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev)
 		ret += get_next_stream_wake_from_list(
