@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "audio_thread.h"
+#include "audio_thread_log.h"
 #include "buffer_share.h"
 #include "cras_audio_area.h"
 #include "cras_dsp.h"
@@ -51,6 +52,139 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 	if (hw_level <= target_hw_level) {
 		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
 		return cras_iodev_fill_odev_zeros(odev, fr_to_write);
+	}
+	return 0;
+}
+
+static int cras_iodev_start(struct cras_iodev *iodev)
+{
+	int rc;
+	if (!cras_iodev_is_open(iodev))
+		return -EPERM;
+	if (!iodev->start) {
+		syslog(LOG_ERR,
+		       "start called on device %s not supporting start ops",
+		       iodev->info.name);
+		return -EINVAL;
+	}
+	rc = iodev->start(iodev);
+	if (rc)
+		return rc;
+	iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+	return 0;
+}
+
+/* Gets the number of frames ready for this device to play.
+ * It is the minimum number of available samples in dev_streams.
+ */
+static unsigned int dev_playback_frames(struct cras_iodev* odev)
+{
+	struct dev_stream *curr;
+	int frames = 0;
+
+	DL_FOREACH(odev->streams, curr) {
+		int dev_frames;
+
+		/* If this is a single output dev stream, updates the latest
+		 * number of frames for playback. */
+		if (dev_stream_attached_devs(curr) == 1)
+			dev_stream_update_frames(curr);
+
+		dev_frames = dev_stream_playback_frames(curr);
+		/* Do not handle stream error or end of draining in this
+		 * function because they should be handled in write_streams. */
+		if (dev_frames < 0)
+			continue;
+		if (!dev_frames) {
+			if(cras_rstream_get_is_draining(curr->stream))
+				continue;
+			else
+				return 0;
+		}
+		if (frames == 0)
+			frames = dev_frames;
+		else
+			frames = MIN(dev_frames, frames);
+	}
+	return frames;
+}
+
+/* Let device enter/leave no stream playback.
+ * Args:
+ *    iodev[in] - The output device.
+ *    enable[in] - 1 to enter no stream playback, 0 to leave.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
+						    int enable)
+{
+	int rc;
+
+	if (odev->direction != CRAS_STREAM_OUTPUT)
+		return -EINVAL;
+
+	rc = odev->no_stream(odev, enable);
+	if (rc < 0)
+		return rc;
+	if (enable)
+		odev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+	else
+		odev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+	return 0;
+}
+
+/* Output device state transition diagram:
+ *
+ *                           ----------------
+ *  -------------<-----------| S0  Closed   |------<-------.
+ *  |                        ----------------              |
+ *  |                           |   iodev_list enables     |
+ *  |                           |   device and adds to     |
+ *  |                           V   audio thread           | iodev_list removes
+ *  |                        ----------------              | device from
+ *  |                        | S1  Open     |              | audio_thread and
+ *  |                        ----------------              | closes device
+ *  | Device with dummy start       |                      |
+ *  | ops transits into             | Sample is ready      |
+ *  | no stream state right         V                      |
+ *  | after open.            ----------------              |
+ *  |                        | S2  Normal   |              |
+ *  |                        ----------------              |
+ *  |                           |        ^                 |
+ *  |       There is no stream  |        | Sample is ready |
+ *  |                           V        |                 |
+ *  |                        ----------------              |
+ *  ------------->-----------| S3 No Stream |------->------
+ *                           ----------------
+ *
+ *  Device in open_devs can be in one of S1, S2, S3.
+ *
+ * cras_iodev_output_event_sample_ready change device state from S1 or S3 into
+ * S2.
+ */
+int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
+{
+	if (odev->state == CRAS_IODEV_STATE_OPEN) {
+		/* S1 => S2:
+		 * If device is not started yet, and there is sample ready from
+		 * stream, fill 1 min_cb_level of zeros first and fill sample
+		 * from stream later.
+		 * Starts the device here to finish state transition. */
+		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+		ATLOG(atlog, AUDIO_THREAD_ODEV_START,
+				odev->info.idx, odev->min_cb_level, 0);
+		return cras_iodev_start(odev);
+	} else if (odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
+		/* S3 => S2:
+		 * Device in no stream state get sample ready. Leave no stream
+		 * state and transit to normal run state.*/
+		return cras_iodev_no_stream_playback_transition(odev, 0);
+	} else {
+		syslog(LOG_ERR,
+		       "Device %s in state %d received sample ready event",
+		       odev->info.name, odev->state);
+		return -EINVAL;
 	}
 	return 0;
 }
@@ -539,6 +673,11 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 		buffer_share_destroy(iodev->buf_state);
 		iodev->buf_state = NULL;
 		iodev->min_cb_level = old_min_cb_level;
+		/* Let output device transit into no stream state.
+		 * Leave input device in normal run state. */
+		if (iodev->direction == CRAS_STREAM_OUTPUT) {
+			cras_iodev_no_stream_playback_transition(iodev, 1);
+		}
 	}
 	return ret;
 }
@@ -609,24 +748,6 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
 {
 	return iodev->state;
-}
-
-int cras_iodev_start(struct cras_iodev *iodev)
-{
-	int rc;
-	if (!cras_iodev_is_open(iodev))
-		return -EPERM;
-	if (!iodev->start) {
-		syslog(LOG_ERR,
-		       "start called on device %s not supporting start ops",
-		       iodev->info.name);
-		return -EINVAL;
-	}
-	rc = iodev->start(iodev);
-	if (rc)
-		return rc;
-	iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
-	return 0;
 }
 
 int cras_iodev_close(struct cras_iodev *iodev)
@@ -836,6 +957,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 			syslog(LOG_ERR, "fill zeros fail: %d", rc);
 			return rc;
 		}
+
 		/* This assumes consecutive channel areas. */
 		buf = area->channels[0].buf;
 		memset(buf, 0, frames_written * frame_bytes);
@@ -890,19 +1012,25 @@ int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
 	return 0;
 }
 
-int cras_iodev_no_stream_playback(struct cras_iodev *odev, int enable)
+int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev)
 {
-	int rc;
+	int may_enter_normal_run;
+	enum CRAS_IODEV_STATE state;
 
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
-	rc = odev->no_stream(odev, enable);
-	if (rc < 0)
-		return rc;
-	if (enable)
-		odev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
-	else
-		odev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+	state = cras_iodev_state(odev);
+
+	may_enter_normal_run = (state == CRAS_IODEV_STATE_OPEN ||
+		                state == CRAS_IODEV_STATE_NO_STREAM_RUN);
+
+	if (may_enter_normal_run && dev_playback_frames(odev))
+		return cras_iodev_output_event_sample_ready(odev);
+
+	/* no_stream ops is called every cycle in no_stream state. */
+	if (state == CRAS_IODEV_STATE_NO_STREAM_RUN)
+		return odev->no_stream(odev, 1);
+
 	return 0;
 }
