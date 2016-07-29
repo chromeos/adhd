@@ -6,6 +6,16 @@
 #
 # Collect information about the audio system from top to bottom.
 
+dump_cards() {
+    for card in ${@}
+    do
+        echo '=== amixer -c' $card scontents '==='
+        amixer -c $card scontents
+        echo '=== amixer -c' $card contents '==='
+        amixer -c $card contents
+    done
+}
+
 echo '=== cras_test_client --dump_server_info ==='
 cras_test_client --dump_server_info
 
@@ -17,14 +27,11 @@ aplay -l
 echo '=== arecord -l ==='
 arecord -l
 
-cards=$(aplay -l | egrep ^card | sed 's/card \([0-9]\+\).*/\1/' | sort -u)
-for card in $cards
-do
-    echo '=== amixer -c' $card scontents '==='
-    amixer -c $card scontents
-    echo '=== amixer -c' $card contents '==='
-    amixer -c $card contents
-done
+output_cards=$(aplay -l | egrep ^card | sed 's/card \([0-9]\+\).*/\1/' | sort -u)
+dump_cards $output_cards
+
+input_cards=$(arecord -l | egrep ^card | sed 's/card \([0-9]\+\).*/\1/' | sort -u)
+dump_cards $input_cards
 
 # HDA codec for codecs on x86.
 codecs=$(find /proc/asound -mindepth 2 -maxdepth 2 -path '*card*/codec#*')
