@@ -11,6 +11,7 @@ extern "C" {
 #include "dev_stream.h"
 #include "utlist.h"
 #include "cras_audio_area.h"
+#include "audio_thread_log.h"
 
 // Mock software volume scalers.
 float softvol_scalers[101];
@@ -70,6 +71,11 @@ static unsigned int put_buffer_nframes;
 static int output_should_wake_ret;
 static int no_stream_called;
 static int no_stream_enable;
+struct audio_thread_event_log *atlog;
+static unsigned int simple_no_stream_called;
+static int simple_no_stream_enable;
+static int dev_stream_playback_frames_ret;
+
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -135,6 +141,9 @@ void ResetStubData() {
   output_should_wake_ret= 0;
   no_stream_called = 0;
   no_stream_enable = 0;
+  simple_no_stream_called = 0;
+  simple_no_stream_enable = 0;
+  dev_stream_playback_frames_ret = 0;
 }
 
 namespace {
@@ -988,6 +997,13 @@ TEST(IoDev, OpenInputDeviceWithStart) {
   EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
 }
 
+static int simple_no_stream(struct cras_iodev *dev, int enable)
+{
+  simple_no_stream_enable = enable;
+  simple_no_stream_called++;
+  return 0;
+}
+
 TEST(IoDev, AddRmStream) {
   struct cras_iodev iodev;
   struct cras_rstream rstream1, rstream2;
@@ -995,6 +1011,8 @@ TEST(IoDev, AddRmStream) {
 
   memset(&iodev, 0, sizeof(iodev));
   iodev.open_dev = open_dev;
+  iodev.no_stream = simple_no_stream;
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   rstream1.cb_threshold = 800;
   stream1.stream = &rstream1;
   rstream2.cb_threshold = 400;
@@ -1018,33 +1036,12 @@ TEST(IoDev, AddRmStream) {
   cras_iodev_rm_stream(&iodev, &rstream1);
   EXPECT_EQ(400, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
+  EXPECT_EQ(0, simple_no_stream_called);
 
   /* When all streams are removed, keep the last min_cb_level for draining. */
   cras_iodev_rm_stream(&iodev, &rstream2);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
-}
-
-static int start(const struct cras_iodev *iodev) {
-  return 0;
-}
-
-TEST(IoDev, StartDevice) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-  iodev.start = start;
-
-  // Start fails if it is called in closed state.
-  iodev.state = CRAS_IODEV_STATE_CLOSE;
-  ASSERT_TRUE(cras_iodev_start(&iodev));
-
-  // Start can only be called in open state.
-  iodev.state = CRAS_IODEV_STATE_OPEN;
-  EXPECT_EQ(0, cras_iodev_start(&iodev));
-
-  // The state should be normal run.
-  EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, cras_iodev_state(&iodev));
 }
 
 TEST(IoDev, FillZeros) {
@@ -1079,7 +1076,7 @@ TEST(IoDev, FillZeros) {
   EXPECT_EQ(0, rc);
 }
 
-TEST(IoDev, NoStreamPlaybackRunning) {
+TEST(IoDev, DefaultNoStreamPlaybackRunning) {
   struct cras_iodev iodev;
   struct cras_audio_format fmt;
   unsigned int hw_level = 50;
@@ -1111,11 +1108,9 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   fr_queued = hw_level;
   zeros_to_fill = min_cb_level * 2 - hw_level;
 
-  rc = cras_iodev_no_stream_playback(&iodev, 1);
+  rc = cras_iodev_default_no_stream_playback(&iodev, 1);
 
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, no_stream_called);
-  EXPECT_EQ(1, no_stream_enable);
   EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
   zeros = (int16_t *)calloc(zeros_to_fill * 2, sizeof(*zeros));
@@ -1131,22 +1126,121 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   fr_queued = hw_level;
   zeros_to_fill = 0;
 
-  rc = cras_iodev_no_stream_playback(&iodev, 1);
+  rc = cras_iodev_default_no_stream_playback(&iodev, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, no_stream_called);
-  EXPECT_EQ(1, no_stream_enable);
   EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
+}
+
+TEST(IoDev, PrepareOutputBeforeWriteSamples) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  unsigned int min_cb_level = 240;
+  int rc;
+  struct cras_rstream rstream1;
+  struct dev_stream stream1;
+  struct cras_iodev_info info;
 
   ResetStubData();
 
-  // Device is running. Resume normal playback.
-  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
-  rc = cras_iodev_no_stream_playback(&iodev, 0);
+  rstream1.cb_threshold = min_cb_level;
+  stream1.stream = &rstream1;
+
+  memset(&iodev, 0, sizeof(iodev));
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.ext_format = &fmt;
+  iodev.min_cb_level = min_cb_level;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+  iodev.frames_queued = frames_queued;
+  iodev.min_buffer_level = 0;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.buffer_size = BUFFER_SIZE;
+  iodev.no_stream = no_stream;
+  iodev.open_dev = open_dev;
+  iodev.start = fake_start;
+  iodev.info = info;
+  iodev_buffer_size = BUFFER_SIZE;
+
+  atlog = audio_thread_event_log_init();
+
+  // Open device.
+  cras_iodev_open(&iodev, rstream1.cb_threshold);
+
+  // Add one stream to device.
+  cras_iodev_add_stream(&iodev, &stream1);
+
+  // Case 1: Assume device is not started yet.
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  // Assume sample is not ready yet.
+  dev_stream_playback_frames_ret = 0;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, no_stream_called);
-  EXPECT_EQ(0, no_stream_enable);
+  // Device should remain in open state.
+  EXPECT_EQ(CRAS_IODEV_STATE_OPEN, iodev.state);
+  EXPECT_EQ(0, no_stream_called);
+
+  // Assume now sample is ready.
+  dev_stream_playback_frames_ret = 100;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  EXPECT_EQ(0, rc);
+  // Device should enter normal run state.
   EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
+  EXPECT_EQ(0, no_stream_called);
+  // Need to fill 1 callback level of zeros;
+  EXPECT_EQ(min_cb_level, put_buffer_nframes);
+
+  ResetStubData();
+
+  // Case 2: Assume device is started and is in no stream state.
+  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  // Sample is not ready yet.
+  dev_stream_playback_frames_ret = 0;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  EXPECT_EQ(0, rc);
+  // Device should remain in no_stream state.
+  EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
+  // Device in no_stream state should call no_stream ops once.
+  EXPECT_EQ(1, no_stream_called);
+  EXPECT_EQ(1, no_stream_enable);
+
+  // Assume now sample is ready.
+  dev_stream_playback_frames_ret = 100;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  EXPECT_EQ(0, rc);
+  // Device should enter normal run state.
+  EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
+  // Device should call no_stream ops with enable=0 to leave no stream state.
+  EXPECT_EQ(2, no_stream_called);
+  EXPECT_EQ(0, no_stream_enable);
+
+  ResetStubData();
+
+  // Case 3: Assume device is started and is in normal run state.
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  EXPECT_EQ(0, rc);
+  // Device should remain in normal run state.
+  EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
+  // Device in no_stream state should call no_stream ops once.
+  EXPECT_EQ(0, no_stream_called);
+
+  ResetStubData();
+
+  audio_thread_event_log_deinit(atlog);
 }
 
 TEST(IoDev, OutputDeviceShouldWake) {
@@ -1503,6 +1597,17 @@ unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream) {
   if (dev_stream->stream)
     return dev_stream->stream->cb_threshold;
   return 0;
+}
+
+int dev_stream_attached_devs(const struct dev_stream *dev_stream) {
+  return 1;
+}
+
+void dev_stream_update_frames(const struct dev_stream *dev_stream) {
+}
+
+int dev_stream_playback_frames(const struct dev_stream *dev_stream) {
+  return dev_stream_playback_frames_ret;
 }
 
 }  // extern "C"
