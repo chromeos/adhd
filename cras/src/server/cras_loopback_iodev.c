@@ -117,7 +117,8 @@ static void device_enabled_hook(struct cras_iodev *iodev, int enabled,
  * iodev callbacks.
  */
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *hw_tstamp)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
@@ -141,13 +142,15 @@ static int frames_queued(const struct cras_iodev *iodev)
 				      &loopdev->last_filled);
 		}
 	}
-
+	*hw_tstamp = loopdev->last_filled;
 	return buf_queued_bytes(sbuf) / frame_bytes;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	return frames_queued(iodev);
+	struct timespec tstamp;
+
+	return frames_queued(iodev, &tstamp);
 }
 
 static int close_record_dev(struct cras_iodev *iodev)

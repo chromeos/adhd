@@ -84,6 +84,7 @@ struct alsa_input_node {
  * is_first - true if this is the first iodev on the card.
  * fully_specified - true if this device and it's nodes were fully specified.
  *     That is, don't automatically create nodes for it.
+ * enable_htimestamp - True when the device's htimestamp is used.
  * handle - Handle to the opened ALSA device.
  * num_underruns - Number of times we have run out of data (playback only).
  * alsa_stream - Playback or capture type.
@@ -110,6 +111,7 @@ struct alsa_io {
 	enum CRAS_ALSA_CARD_TYPE card_type;
 	int is_first;
 	int fully_specified;
+	int enable_htimestamp;
 	snd_pcm_t *handle;
 	unsigned int num_underruns;
 	snd_pcm_stream_t alsa_stream;
@@ -134,7 +136,8 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
  * iodev callbacks.
  */
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *tstamp)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
@@ -142,11 +145,12 @@ static int frames_queued(const struct cras_iodev *iodev)
 
 	rc = cras_alsa_get_avail_frames(aio->handle,
 					aio->base.buffer_size,
-					&frames,
+					&frames, tstamp,
 					&aio->num_underruns);
 	if (rc < 0)
 		return rc;
-
+	if (!aio->enable_htimestamp)
+		clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		return (int)frames;
 
@@ -240,7 +244,7 @@ static int open_dev(struct cras_iodev *iodev)
 	}
 
 	/* Configure software params. */
-	rc = cras_alsa_set_swparams(handle);
+	rc = cras_alsa_set_swparams(handle, &aio->enable_htimestamp);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
 		return rc;
@@ -1404,13 +1408,14 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	int rc;
 	unsigned int hw_level, fr_to_write;
 	unsigned int target_hw_level = odev->min_cb_level * 2;
+	struct timespec hw_tstamp;
 
 	if (aio->is_free_running)
 		return 0;
 
 	/* Check if all valid samples are played.
 	 * If all valid samples are played, fill whole buffer with zeros. */
-	rc = cras_iodev_frames_queued(odev);
+	rc = cras_iodev_frames_queued(odev, &hw_tstamp);
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
@@ -1525,6 +1530,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->device_index = device_index;
 	aio->card_type = card_type;
 	aio->is_first = is_first;
+	aio->enable_htimestamp = 1;
 	aio->handle = NULL;
 	if (dev_name) {
 		aio->dev_name = strdup(dev_name);

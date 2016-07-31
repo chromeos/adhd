@@ -93,7 +93,9 @@ struct cras_ionode {
  * open_dev - Opens the device.
  * close_dev - Closes the device if it is open.
  * update_supported_formats - Refresh supported frame rates and channel counts.
- * frames_queued - The number of frames in the audio buffer.
+ * frames_queued - The number of frames in the audio buffer, and fills tstamp
+ *                 with the associated timestamp. The timestamp is {0, 0} when
+ *                 the device hasn't started processing data (and on error).
  * delay_frames - The delay of the next sample in frames.
  * get_buffer - Returns a buffer to read/write to/from.
  * put_buffer - Marks a buffer from get_buffer as read/written.
@@ -165,7 +167,8 @@ struct cras_iodev {
 	int (*open_dev)(struct cras_iodev *iodev);
 	int (*close_dev)(struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
-	int (*frames_queued)(const struct cras_iodev *iodev);
+	int (*frames_queued)(const struct cras_iodev *iodev,
+			     struct timespec *tstamp);
 	int (*delay_frames)(const struct cras_iodev *iodev);
 	int (*get_buffer)(struct cras_iodev *iodev,
 			  struct cras_audio_area **area,
@@ -462,7 +465,8 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 				 unsigned *frames);
 
 /* Update the estimated sample rate of the device. */
-int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level);
+int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
+			   struct timespec *level_tstamp);
 
 /* Resets the rate estimator of the device. */
 int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev);
@@ -474,8 +478,13 @@ double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev);
 /* Get the delay from DSP processing in frames. */
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev);
 
-/* Returns the number of frames in the hardware buffer. */
-int cras_iodev_frames_queued(struct cras_iodev *iodev);
+/* Returns the number of frames in the hardware buffer.
+ * Args:
+ *    iodev - The device.
+ *    tstamp - The associated hardware time stamp.
+ */
+int cras_iodev_frames_queued(struct cras_iodev *iodev,
+			     struct timespec *tstamp);
 
 /* Get the delay for input/output in frames. */
 static inline int cras_iodev_delay_frames(const struct cras_iodev *iodev)
@@ -507,12 +516,14 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);
 /* Gets the number of frames to play when audio thread sleeps.
  * Args:
  *    iodev[in] - The device.
- *    hw_level[output] - Pointer to number of frames in hardware.
+ *    hw_level[out] - Pointer to number of frames in hardware.
+ *    hw_tstamp[out] - Pointer to the timestamp for hw_level.
  * Returns:
  *    Number of frames to play in sleep for this output device.
  */
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
-						unsigned int *hw_level);
+						unsigned int *hw_level,
+						struct timespec *hw_tstamp);
 
 /* Checks if audio thread should wake for this output device.
  * Args:

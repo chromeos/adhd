@@ -126,7 +126,8 @@ class StreamDeviceSuite : public testing::Test {
       return 0;
     }
 
-    static int frames_queued(const cras_iodev* iodev) {
+    static int frames_queued(const cras_iodev* iodev, struct timespec* tstamp) {
+      clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
       return frames_queued_;
     }
 
@@ -630,7 +631,8 @@ void cras_iodev_stream_written(struct cras_iodev *iodev,
 {
 }
 
-int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
+int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
+                           struct timespec *level_tstamp)
 {
   return 0;
 }
@@ -828,14 +830,15 @@ void dev_stream_update_frames(const struct dev_stream *dev_stream)
 {
 }
 
-int cras_iodev_frames_queued(struct cras_iodev *iodev)
+int cras_iodev_frames_queued(struct cras_iodev *iodev, struct timespec *tstamp)
 {
-	return iodev->frames_queued(iodev);
+	return iodev->frames_queued(iodev, tstamp);
 }
 
 int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
 {
-  return iodev->buffer_size - iodev->frames_queued(iodev);
+  struct timespec tstamp;
+  return iodev->buffer_size - iodev->frames_queued(iodev, &tstamp);
 }
 
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
@@ -862,8 +865,10 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
 }
 
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
-                                                unsigned int *hw_level)
+                                                unsigned int *hw_level,
+                                                struct timespec *hw_tstamp)
 {
+  clock_gettime(CLOCK_MONOTONIC_RAW, hw_tstamp);
   *hw_level = 0;
   return 0;
 }

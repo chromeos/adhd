@@ -45,7 +45,8 @@ struct test_iodev {
  * iodev callbacks.
  */
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *tstamp)
 {
 	struct test_iodev *testio = (struct test_iodev *)iodev;
 	int available;
@@ -53,6 +54,7 @@ static int frames_queued(const struct cras_iodev *iodev)
 	if (testio->fd < 0)
 		return 0;
 	ioctl(testio->fd, FIONREAD, &available);
+	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	return available / testio->fmt_bytes;
 }
 

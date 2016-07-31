@@ -68,6 +68,7 @@ class LoopBackTestSuite : public testing::Test{
 
 TEST_F(LoopBackTestSuite, InstallLoopHook) {
   struct cras_iodev iodev;
+  struct timespec tstamp;
 
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.format = &fmt_;
@@ -86,7 +87,7 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
   ASSERT_NE(reinterpret_cast<loopback_hook_t>(NULL), loop_hook);
 
   // Check zero frames queued.
-  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_));
+  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_, &tstamp));
 
   // Close loopback devices.
   EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
@@ -97,6 +98,7 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
 TEST_F(LoopBackTestSuite, OpenIdleSystem) {
   cras_audio_area *area;
   unsigned int nread = 1024;
+  struct timespec tstamp;
   int rc;
 
   // No active output device.
@@ -109,7 +111,7 @@ TEST_F(LoopBackTestSuite, OpenIdleSystem) {
 
   // Should be 480 samples after 480/frame rate seconds
   time_now.tv_nsec += 480 * 1e9 / 48000;
-  EXPECT_EQ(480, loop_in_->frames_queued(loop_in_));
+  EXPECT_EQ(480, loop_in_->frames_queued(loop_in_, &tstamp));
 
   // Verify frames from loopback record.
   loop_in_->get_buffer(loop_in_, &area, &nread);
@@ -120,7 +122,7 @@ TEST_F(LoopBackTestSuite, OpenIdleSystem) {
   loop_in_->put_buffer(loop_in_, nread);
 
   // Check zero frames queued.
-  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_));
+  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_, &tstamp));
 
   EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
 }
@@ -132,6 +134,7 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
   int rc;
   struct cras_iodev iodev;
   struct dev_stream stream;
+  struct timespec tstamp;
 
   iodev.streams = &stream;
   enabled_dev = &iodev;
@@ -150,7 +153,7 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
   loop_in_->put_buffer(loop_in_, nread);
 
   // Check zero frames queued.
-  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_));
+  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_, &tstamp));
 
   EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
 }

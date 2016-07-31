@@ -1,4 +1,4 @@
-/* Copyright (c) 2013 The Chromium Authors. All rights reserved.
+/* Copyright 2013 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -63,6 +63,7 @@ TEST(HfpInfo, AddRmDevInvalid) {
 TEST(HfpInfo, AcquirePlaybackBuffer) {
   unsigned buffer_frames, buffer_frames2, queued;
   uint8_t *samples;
+  struct timespec tstamp;
 
   ResetStubData();
 
@@ -78,12 +79,12 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   ASSERT_EQ(500, buffer_frames);
 
   hfp_buf_release(info, &dev, 500);
-  ASSERT_EQ(500, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(500, hfp_buf_queued(info, &dev, &tstamp));
 
   /* Assert the amount of frames of available buffer + queued buf is
    * greater than or equal to the buffer size, 2 bytes per frame
    */
-  queued = hfp_buf_queued(info, &dev);
+  queued = hfp_buf_queued(info, &dev, &tstamp);
   buffer_frames = 500;
   hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
   ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + queued);
@@ -91,7 +92,7 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
   /* Consume all queued data from read buffer */
   buf_increment_read(info->playback_buf, queued * 2);
 
-  queued = hfp_buf_queued(info, &dev);
+  queued = hfp_buf_queued(info, &dev, &tstamp);
   ASSERT_EQ(0, queued);
 
   /* Assert consecutive acquire buffer will acquire full used size of buffer */
@@ -111,6 +112,7 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
 TEST(HfpInfo, AcquireCaptureBuffer) {
   unsigned buffer_frames, buffer_frames2;
   uint8_t *samples;
+  struct timespec tstamp;
 
   ResetStubData();
 
@@ -130,7 +132,7 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
   ASSERT_EQ(50, buffer_frames);
 
   hfp_buf_release(info, &dev, buffer_frames);
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(0, hfp_buf_queued(info, &dev, &tstamp));
 
   /* Push fake data to capture buffer */
   buf_increment_write(info->capture_buf, info->capture_buf->used_size - 100);
@@ -157,6 +159,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   uint8_t sample[480];
   uint8_t *buf;
   unsigned buffer_count;
+  struct timespec tstamp;
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
@@ -173,7 +176,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   rc = hfp_read(info);
   ASSERT_EQ(48, rc);
 
-  rc = hfp_buf_queued(info, &dev);
+  rc = hfp_buf_queued(info, &dev, &tstamp);
   ASSERT_EQ(48 / 2, rc);
 
   /* Fill the write buffer*/
@@ -229,6 +232,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   int rc;
   int sock[2];
   uint8_t sample[480];
+  struct timespec tstamp;
 
   ResetStubData();
 
@@ -249,7 +253,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
   /* Expect no data read, since no idev present at previous thread callback */
-  rc = hfp_buf_queued(info, &dev);
+  rc = hfp_buf_queued(info, &dev, &tstamp);
   ASSERT_EQ(0, rc);
 
   /* Trigger thread callback after idev added. */
@@ -257,7 +261,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   ts.tv_nsec = 5000000;
   thread_cb((struct hfp_info *)cb_data);
 
-  rc = hfp_buf_queued(info, &dev);
+  rc = hfp_buf_queued(info, &dev, &tstamp);
   ASSERT_EQ(48 / 2, rc);
 
   /* Assert wait time is unchanged. */
@@ -274,6 +278,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   int rc;
   int sock[2];
   uint8_t sample[480];
+  struct timespec tstamp;
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
@@ -291,7 +296,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
   /* Assert queued samples unchanged before output device added */
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(0, hfp_buf_queued(info, &dev, &tstamp));
 
   /* Put some fake data and trigger thread callback again */
   buf_increment_write(info->playback_buf, 1008);
@@ -300,7 +305,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   /* Assert some samples written */
   rc = recv(sock[0], sample ,48, 0);
   ASSERT_EQ(48, rc);
-  ASSERT_EQ(480, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(480, hfp_buf_queued(info, &dev, &tstamp));
 
   hfp_info_stop(info);
   hfp_info_destroy(info);

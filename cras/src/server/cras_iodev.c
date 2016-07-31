@@ -40,9 +40,10 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 	int rc;
 	unsigned int hw_level, fr_to_write;
 	unsigned int target_hw_level = odev->min_cb_level * 2;
+	struct timespec hw_tstamp;
 
 	/* The default action for no stream playback is to fill zeros. */
-	rc = cras_iodev_frames_queued(odev);
+	rc = cras_iodev_frames_queued(odev, &hw_tstamp);
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
@@ -871,12 +872,10 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 	return rc;
 }
 
-int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
+int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
+			   struct timespec *level_tstamp)
 {
-	struct timespec now;
-
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	return rate_estimator_check(iodev->rate_est, level, &now);
+	return rate_estimator_check(iodev->rate_est, level, level_tstamp);
 }
 
 int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
@@ -912,11 +911,12 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
 	return delay;
 }
 
-int cras_iodev_frames_queued(struct cras_iodev *iodev)
+int cras_iodev_frames_queued(struct cras_iodev *iodev,
+			     struct timespec *hw_tstamp)
 {
 	int rc;
 
-	rc = iodev->frames_queued(iodev);
+	rc = iodev->frames_queued(iodev, hw_tstamp);
 	if (rc < 0 || iodev->direction == CRAS_STREAM_INPUT)
 		return rc;
 
@@ -998,11 +998,12 @@ int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 }
 
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
-		unsigned int *hw_level)
+						unsigned int *hw_level,
+						struct timespec *hw_tstamp)
 {
 	int rc;
 
-	rc = cras_iodev_frames_queued(odev);
+	rc = cras_iodev_frames_queued(odev, hw_tstamp);
 	*hw_level = (rc < 0) ? 0 : rc;
 
 	if (odev->streams) {

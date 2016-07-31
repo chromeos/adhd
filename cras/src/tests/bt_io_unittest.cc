@@ -98,7 +98,8 @@ class BtIoBasicSuite : public testing::Test {
       update_supported_formats_called_++;
       return 0;
     }
-    static int frames_queued(const cras_iodev* iodev) {
+    static int frames_queued(const cras_iodev* iodev,
+                             struct timespec *tstamp) {
       frames_queued_called_++;
       return 0;
     }
@@ -152,6 +153,7 @@ unsigned int BtIoBasicSuite::close_dev_called_;
 TEST_F(BtIoBasicSuite, CreateBtIo) {
   struct cras_audio_area *fake_area;
   struct cras_audio_format fake_fmt;
+  struct timespec tstamp;
   unsigned fr;
   bt_iodev = cras_bt_io_create(fake_device, &iodev_,
       CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
@@ -164,7 +166,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
 
   bt_iodev->open_dev(bt_iodev);
   EXPECT_EQ(1, open_dev_called_);
-  bt_iodev->frames_queued(bt_iodev);
+  bt_iodev->frames_queued(bt_iodev, &tstamp);
   EXPECT_EQ(1, frames_queued_called_);
   bt_iodev->get_buffer(bt_iodev, &fake_area, &fr);
   EXPECT_EQ(1, get_buffer_called_);

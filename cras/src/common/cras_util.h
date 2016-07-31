@@ -163,6 +163,12 @@ static inline void ms_to_timespec(time_t milliseconds, struct timespec *ts)
 	ts->tv_nsec = (milliseconds % 1000) * 1000000;
 }
 
+/* Returns non-zero if the given timespec is non-zero. */
+static inline int timespec_is_nonzero(const struct timespec *ts) {
+	return ts && (ts->tv_sec != 0 ||
+		      (ts->tv_sec == 0 && ts->tv_nsec != 0));
+}
+
 /* Calculates frames since time beg. */
 static inline unsigned int cras_frames_since_time(const struct timespec *beg,
 						  unsigned int rate)

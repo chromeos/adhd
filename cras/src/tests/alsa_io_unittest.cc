@@ -2043,15 +2043,17 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 {
   return 0;
 }
-int cras_alsa_set_swparams(snd_pcm_t *handle)
+int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp)
 {
   return 0;
 }
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 			       snd_pcm_uframes_t *used,
+			       struct timespec *tstamp,
 			       unsigned int *num_underruns)
 {
   *used = cras_alsa_get_avail_frames_avail;
+  clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
   return cras_alsa_get_avail_frames_ret;
 }
 int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
@@ -2533,8 +2535,9 @@ int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
   return 0;
 }
 
-int cras_iodev_frames_queued(struct cras_iodev *iodev)
+int cras_iodev_frames_queued(struct cras_iodev *iodev, struct timespec *tstamp)
 {
+  clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
   return cras_iodev_frames_queued_ret;
 }
 

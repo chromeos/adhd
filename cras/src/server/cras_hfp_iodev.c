@@ -48,14 +48,15 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *tstamp)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	if (!hfp_info_running(hfpio->info))
 		return -1;
 
-	return hfp_buf_queued(hfpio->info, iodev);
+	return hfp_buf_queued(hfpio->info, iodev, tstamp);
 }
 
 /* Modify the hfpio's buffer_size when the SCO packet size has changed. */
@@ -136,7 +137,9 @@ static void set_hfp_volume(struct cras_iodev *iodev)
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	return frames_queued(iodev);
+	struct timespec tstamp;
+
+	return frames_queued(iodev, &tstamp);
 }
 
 static int get_buffer(struct cras_iodev *iodev,
@@ -175,10 +178,11 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 static int flush_buffer(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+	struct timespec tstamp;
 	unsigned nframes;
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
-		nframes = hfp_buf_queued(hfpio->info, iodev);
+		nframes = hfp_buf_queued(hfpio->info, iodev, &tstamp);
 		hfp_buf_release(hfpio->info, iodev, nframes);
 	}
 	return 0;

@@ -665,13 +665,16 @@ TEST(IoDevPutOutputBuffer, Scale32Bit) {
 
 static unsigned fr_queued = 0;
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+                         struct timespec *tstamp)
 {
+  clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
   return fr_queued;
 }
 
 TEST(IoDevQueuedBuffer, ZeroMinBufferLevel) {
   struct cras_iodev iodev;
+  struct timespec tstamp;
   int rc;
 
   ResetStubData();
@@ -682,7 +685,7 @@ TEST(IoDevQueuedBuffer, ZeroMinBufferLevel) {
   iodev.buffer_size = 200;
   fr_queued = 50;
 
-  rc = cras_iodev_frames_queued(&iodev);
+  rc = cras_iodev_frames_queued(&iodev, &tstamp);
   EXPECT_EQ(50, rc);
   rc = cras_iodev_buffer_avail(&iodev, rc);
   EXPECT_EQ(150, rc);
@@ -690,6 +693,7 @@ TEST(IoDevQueuedBuffer, ZeroMinBufferLevel) {
 
 TEST(IoDevQueuedBuffer, NonZeroMinBufferLevel) {
   struct cras_iodev iodev;
+  struct timespec hw_tstamp;
   int rc;
 
   ResetStubData();
@@ -700,14 +704,14 @@ TEST(IoDevQueuedBuffer, NonZeroMinBufferLevel) {
   iodev.buffer_size = 200;
   fr_queued = 180;
 
-  rc = cras_iodev_frames_queued(&iodev);
+  rc = cras_iodev_frames_queued(&iodev, &hw_tstamp);
   EXPECT_EQ(80, rc);
   rc = cras_iodev_buffer_avail(&iodev, rc);
   EXPECT_EQ(20, rc);
 
   /* When fr_queued < min_buffer_level*/
   fr_queued = 80;
-  rc = cras_iodev_frames_queued(&iodev);
+  rc = cras_iodev_frames_queued(&iodev, &hw_tstamp);
   EXPECT_EQ(0, rc);
   rc = cras_iodev_buffer_avail(&iodev, rc);
   EXPECT_EQ(100, rc);
@@ -1283,6 +1287,7 @@ TEST(IoDev, FramesToPlayInSleep) {
   struct cras_iodev iodev;
   unsigned int min_cb_level = 240, hw_level;
   unsigned int got_hw_level, got_frames;
+  struct timespec hw_tstamp;
 
   memset(&iodev, 0, sizeof(iodev));
   iodev.frames_queued = frames_queued;
@@ -1300,7 +1305,8 @@ TEST(IoDev, FramesToPlayInSleep) {
   fr_queued = hw_level;
   iodev.streams = reinterpret_cast<struct dev_stream *>(0x1);
 
-  got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
+  got_frames = cras_iodev_frames_to_play_in_sleep(
+                   &iodev, &got_hw_level, &hw_tstamp);
   EXPECT_EQ(hw_level, got_hw_level);
   EXPECT_EQ(hw_level, got_frames);
 
@@ -1308,7 +1314,8 @@ TEST(IoDev, FramesToPlayInSleep) {
   // hw_level is greater than min_cb_level.
   iodev.streams = NULL;
 
-  got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
+  got_frames = cras_iodev_frames_to_play_in_sleep(
+                   &iodev, &got_hw_level, &hw_tstamp);
   EXPECT_EQ(hw_level, got_hw_level);
   EXPECT_EQ(hw_level - min_cb_level, got_frames);
 
@@ -1318,7 +1325,8 @@ TEST(IoDev, FramesToPlayInSleep) {
   hw_level = min_cb_level - 50;
   fr_queued = hw_level;
 
-  got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
+  got_frames = cras_iodev_frames_to_play_in_sleep(
+                   &iodev, &got_hw_level, &hw_tstamp);
   EXPECT_EQ(hw_level, got_hw_level);
   EXPECT_EQ(0, got_frames);
 }

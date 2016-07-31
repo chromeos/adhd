@@ -239,6 +239,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
 TEST(A2dpIoInif, FramesQueued) {
   struct cras_iodev *iodev;
   struct cras_audio_area *area;
+  struct timespec tstamp;
   unsigned frames;
 
   ResetStubData();
@@ -267,7 +268,9 @@ TEST(A2dpIoInif, FramesQueued) {
   time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 300);
   write_callback(write_callback_data);
-  EXPECT_EQ(350, iodev->frames_queued(iodev));
+  EXPECT_EQ(350, iodev->frames_queued(iodev, &tstamp));
+  EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
+  EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
   /* After writing another 200 frames, check for correct buffer level. */
   time_now.tv_sec = 0;
@@ -277,9 +280,11 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_encode_processed_bytes_val[0] = 800;
   write_callback(write_callback_data);
   /* 1000000 nsec has passed, estimated queued frames adjusted by 44 */
-  EXPECT_EQ(256, iodev->frames_queued(iodev));
+  EXPECT_EQ(256, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(1200, pcm_buf_size_val[0]);
   EXPECT_EQ(400, pcm_buf_size_val[1]);
+  EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
+  EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
   /* Queued frames and new put buffer are all written */
   a2dp_encode_processed_bytes_val[0] = 400;
@@ -295,7 +300,9 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_encode_processed_bytes_val[0] = 600;
   iodev->put_buffer(iodev, 200);
   EXPECT_EQ(1200, pcm_buf_size_val[0]);
-  EXPECT_EQ(200, iodev->frames_queued(iodev));
+  EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
+  EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
+  EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 }
 
 } // namespace

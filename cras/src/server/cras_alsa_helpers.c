@@ -564,11 +564,10 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 		       ret_rate, format->num_channels, format->format);
 		return err;
 	}
-
 	return 0;
 }
 
-int cras_alsa_set_swparams(snd_pcm_t *handle)
+int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp)
 {
 	int err;
 	snd_pcm_sw_params_t *swparams;
@@ -605,7 +604,53 @@ int cras_alsa_set_swparams(snd_pcm_t *handle)
 		return err;
 	}
 
+	if (*enable_htimestamp) {
+		/* Use MONOTONIC_RAW time-stamps. */
+		err = snd_pcm_sw_params_set_tstamp_type(
+				handle, swparams,
+				SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW);
+		if (err < 0) {
+			syslog(LOG_ERR, "set_tstamp_type: %s\n",
+			       snd_strerror(err));
+			return err;
+		}
+		err = snd_pcm_sw_params_set_tstamp_mode(
+				handle, swparams, SND_PCM_TSTAMP_ENABLE);
+		if (err < 0) {
+			syslog(LOG_ERR, "set_tstamp_mode: %s\n",
+			       snd_strerror(err));
+			return err;
+		}
+	}
+
+	/* This hack is required because ALSA-LIB does not provide any way to
+	 * detect whether MONOTONIC_RAW timestamps are supported by the kernel.
+	 * In ALSA-LIB, the code checks the hardware protocol version. */
 	err = snd_pcm_sw_params(handle, swparams);
+	if (err == -EINVAL && *enable_htimestamp) {
+		*enable_htimestamp = 0;
+		syslog(LOG_WARNING,
+		       "MONOTONIC_RAW timestamps are not supported.");
+
+		err = snd_pcm_sw_params_set_tstamp_type(
+				handle, swparams,
+				SND_PCM_TSTAMP_TYPE_GETTIMEOFDAY);
+		if (err < 0) {
+			syslog(LOG_ERR, "set_tstamp_type: %s\n",
+			       snd_strerror(err));
+			return err;
+		}
+		err = snd_pcm_sw_params_set_tstamp_mode(
+				handle, swparams, SND_PCM_TSTAMP_NONE);
+		if (err < 0) {
+			syslog(LOG_ERR, "set_tstamp_mode: %s\n",
+			       snd_strerror(err));
+			return err;
+		}
+
+		err = snd_pcm_sw_params(handle, swparams);
+	}
+
 	if (err < 0) {
 		syslog(LOG_ERR, "sw_params: %s\n", snd_strerror(err));
 		return err;
@@ -614,20 +659,29 @@ int cras_alsa_set_swparams(snd_pcm_t *handle)
 }
 
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t *used,
+			       snd_pcm_uframes_t *avail,
+			       struct timespec *tstamp,
 			       unsigned int *underruns)
 {
 	snd_pcm_sframes_t frames;
 	int rc = 0;
 
+	/* Use snd_pcm_avail still to ensure that the hardware pointer is
+	 * up to date. Otherwise, we could use the deprecated snd_pcm_hwsync().
+	 * IMO this is a deficiency in the ALSA API.
+	 */
 	frames = snd_pcm_avail(handle);
-	if (frames == -EPIPE || frames == -ESTRPIPE) {
-		cras_alsa_attempt_resume(handle);
-		frames = 0;
-	} else if (frames < 0) {
-		syslog(LOG_ERR, "pcm_avail error %s\n", snd_strerror(frames));
+	if (frames >= 0)
+		rc = snd_pcm_htimestamp(handle, avail, tstamp);
+	else
 		rc = frames;
-		frames = 0;
+	if (rc == -EPIPE || rc == -ESTRPIPE) {
+		cras_alsa_attempt_resume(handle);
+		rc = 0;
+		goto error;
+	} else if (rc < 0) {
+		syslog(LOG_ERR, "pcm_avail error %s\n", snd_strerror(rc));
+		goto error;
 	} else if (frames > (snd_pcm_sframes_t)buf_size) {
 		syslog(LOG_ERR,
 		       "pcm_avail returned frames larger than buf_size: "
@@ -635,7 +689,13 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		frames = buf_size;
 		*underruns = *underruns + 1;
 	}
-	*used = frames;
+	*avail = frames;
+	return 0;
+
+error:
+	*avail = 0;
+	tstamp->tv_sec = 0;
+	tstamp->tv_nsec = 0;
 	return rc;
 }
 

@@ -70,8 +70,10 @@ static unsigned int current_level(const struct cras_iodev *iodev)
  * iodev callbacks.
  */
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *tstamp)
 {
+	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	return current_level(iodev);
 }
 

@@ -47,9 +47,11 @@ int hfp_info_stop(struct hfp_info *info);
  * Args:
  *    info - The hfp_info holding the buffer to query.
  *    dev - The iodev to indicate which buffer to query, playback
- *    or capture, depend on its direction.
+ *          or capture, depending on its direction.
+ *    tstamp - Time stamp associated with the amount queued.
  */
-int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev);
+int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev,
+		   struct timespec *tstamp);
 
 /* Gets how many bytes of the buffer are used.
  * Args:

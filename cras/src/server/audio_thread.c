@@ -972,9 +972,9 @@ static int get_next_output_wake(struct audio_thread *thread,
 			continue;
 
 		frames_to_play_in_sleep = cras_iodev_frames_to_play_in_sleep(
-				adev->dev, &hw_level);
-
-		adev->wake_ts = *now;
+				adev->dev, &hw_level, &adev->wake_ts);
+		if (!timespec_is_nonzero(&adev->wake_ts))
+			adev->wake_ts = *now;
 
 		est_rate = adev->dev->ext_format->frame_rate *
 				cras_iodev_get_est_rate_ratio(adev->dev);
@@ -1101,6 +1101,7 @@ static int write_output_samples(struct audio_thread *thread,
 {
 	struct cras_iodev *odev = adev->dev;
 	unsigned int hw_level;
+	struct timespec hw_tstamp;
 	unsigned int frames, fr_to_req;
 	snd_pcm_sframes_t written;
 	snd_pcm_uframes_t total_written = 0;
@@ -1119,20 +1120,24 @@ static int write_output_samples(struct audio_thread *thread,
 	if (cras_iodev_state(odev) != CRAS_IODEV_STATE_NORMAL_RUN)
 		return 0;
 
-	rc = cras_iodev_frames_queued(odev);
+	rc = cras_iodev_frames_queued(odev, &hw_tstamp);
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
-	if (hw_level < odev->min_cb_level / 2)
-		adev->coarse_rate_adjust = 1;
-	else if (hw_level > odev->max_cb_level * 2)
-		adev->coarse_rate_adjust = -1;
-	else
-		adev->coarse_rate_adjust = 0;
 
-	if (cras_iodev_update_rate(odev, hw_level))
-		update_estimated_rate(thread, adev);
+	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_TSTAMP, adev->dev->info.idx,
+	      hw_tstamp.tv_sec, hw_tstamp.tv_nsec);
+	if (timespec_is_nonzero(&hw_tstamp)) {
+		if (hw_level < odev->min_cb_level / 2)
+			adev->coarse_rate_adjust = 1;
+		else if (hw_level > odev->max_cb_level * 2)
+			adev->coarse_rate_adjust = -1;
+		else
+			adev->coarse_rate_adjust = 0;
 
+		if (cras_iodev_update_rate(odev, hw_level, &hw_tstamp))
+			update_estimated_rate(thread, adev);
+	}
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO,
 				    adev->dev->info.idx, hw_level, 0);
 
@@ -1256,24 +1261,29 @@ static int capture_to_streams(struct audio_thread *thread,
 {
 	struct cras_iodev *idev = adev->dev;
 	snd_pcm_uframes_t remainder, hw_level;
+	struct timespec hw_tstamp;
 	int rc;
 
-	rc = cras_iodev_frames_queued(idev);
+	rc = cras_iodev_frames_queued(idev, &hw_tstamp);
 	if (rc < 0)
 		return rc;
 	hw_level = rc;
-	if (hw_level < idev->min_cb_level / 2)
-		adev->coarse_rate_adjust = 1;
-	else if (hw_level > idev->max_cb_level * 2)
-		adev->coarse_rate_adjust = -1;
-	else
-		adev->coarse_rate_adjust = 0;
 
-	if (hw_level)
-		adev->input_streaming = 1;
+	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO_TSTAMP, idev->info.idx,
+	      hw_tstamp.tv_sec, hw_tstamp.tv_nsec);
+	if (timespec_is_nonzero(&hw_tstamp)) {
+		if (hw_level)
+			adev->input_streaming = 1;
 
-	if (cras_iodev_update_rate(idev, hw_level))
-		update_estimated_rate(thread, adev);
+		if (hw_level < idev->min_cb_level / 2)
+			adev->coarse_rate_adjust = 1;
+		else if (hw_level > idev->max_cb_level * 2)
+			adev->coarse_rate_adjust = -1;
+		else
+			adev->coarse_rate_adjust = 0;
+		if (cras_iodev_update_rate(idev, hw_level, &hw_tstamp))
+			update_estimated_rate(thread, adev);
+	}
 
 	remainder = MIN(hw_level, get_stream_limit_set_delay(adev, hw_level));
 
@@ -1344,7 +1354,7 @@ static int send_captured_samples(struct audio_thread *thread)
 {
 	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
 	struct open_dev *adev;
-	struct timespec now;
+	struct timespec level_tstamp;
 
 	// TODO(dgreid) - once per rstream, not once per dev_stream.
 	DL_FOREACH(idev_list, adev) {
@@ -1355,7 +1365,9 @@ static int send_captured_samples(struct audio_thread *thread)
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
-		curr_level = cras_iodev_frames_queued(adev->dev);
+		curr_level = cras_iodev_frames_queued(adev->dev, &level_tstamp);
+		if (!timespec_is_nonzero(&level_tstamp))
+			clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
 		DL_FOREACH(adev->dev->streams, stream) {
 			dev_stream_capture_update_rstream(stream);
@@ -1368,11 +1380,10 @@ static int send_captured_samples(struct audio_thread *thread)
 		else
 			min_needed = 0;
 
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 		cras_frames_to_time(min_needed + 10,
 				    adev->dev->ext_format->frame_rate,
 				    &adev->wake_ts);
-		add_timespecs(&adev->wake_ts, &now);
+		add_timespecs(&adev->wake_ts, &level_tstamp);
 	}
 
 	return 0;

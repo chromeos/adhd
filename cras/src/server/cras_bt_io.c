@@ -234,12 +234,13 @@ static void set_bt_volume(struct cras_iodev *iodev)
 		dev->set_volume(dev);
 }
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *tstamp)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
 	if (!dev)
 		return -EINVAL;
-	return dev->frames_queued(dev);
+	return dev->frames_queued(dev, tstamp);
 }
 
 static int delay_frames(const struct cras_iodev *iodev)

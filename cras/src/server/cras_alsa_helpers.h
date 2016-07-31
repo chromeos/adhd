@@ -138,22 +138,30 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 /* Sets up the swparams to alsa.
  * Args:
  *    handle - The open PCM to configure.
+ *    enable_htimestamp - If non-zero, enable and configure hardware timestamps,
+ *                        updated to reflect whether MONOTONIC RAW htimestamps
+ *                        are supported by the kernel implementation.
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_alsa_set_swparams(snd_pcm_t *handle);
+int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp);
 
 /* Get the number of used frames in the alsa buffer.
  * Args:
- *    handle - The open PCM to configure.
- *    buf_size - Number of frames in the ALSA buffer.
- *    used - Filled with the number of used frames.
- *    underruns - Pointer to the underrun counter.
+ *    handle[in] - The open PCM to configure.
+ *    buf_size[in] - Number of frames in the ALSA buffer.
+ *    avail[out] - Filled with the number of frames available in the buffer.
+ *    tstamp[out] - Filled with the hardware timestamp for the available frames.
+ *                  This value is {0, 0} when the device hasn't actually started
+ *                  reading or writing frames.
+ *    underruns[in,out] - Pointer to the underrun counter updated if there was
+ *                        an underrun.
  * Returns:
  *    0 on success, negative error on failure.
  */
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t *used,
+			       snd_pcm_uframes_t *avail,
+			       struct timespec *tstamp,
 			       unsigned int *underruns);
 
 /* Get the current alsa delay, make sure it's no bigger than the buffer size.

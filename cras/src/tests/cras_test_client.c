@@ -405,12 +405,20 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s dev:%x hw_level:%u read:%u\n",
 		       "READ_AUDIO", data1, data2, data3);
 		break;
+	case AUDIO_THREAD_READ_AUDIO_TSTAMP:
+		printf("%-30s dev:%x tstamp:%09d.%09d\n",
+		       "READ_AUDIO_TSTAMP", data1, (int)data2, (int)data3);
+		break;
 	case AUDIO_THREAD_READ_AUDIO_DONE:
 		printf("%-30s read_remainder:%u\n", "READ_AUDIO_DONE", data1);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
 		printf("%-30s dev:%x hw_level:%u\n",
 		       "FILL_AUDIO", data1, data2);
+		break;
+	case AUDIO_THREAD_FILL_AUDIO_TSTAMP:
+		printf("%-30s dev:%x tstamp:%09d.%09d\n",
+		       "FILL_AUDIO_TSTAMP", data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
 		printf("%-30s hw_level:%u total_written:%u min_cb_level:%u\n",

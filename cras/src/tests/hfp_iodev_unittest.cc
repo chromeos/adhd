@@ -288,7 +288,8 @@ int hfp_info_stop(struct hfp_info *info)
   return 0;
 }
 
-int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
+int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev,
+                   struct timespec *tstamp)
 {
   return 0;
 }

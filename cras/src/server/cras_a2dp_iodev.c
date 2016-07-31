@@ -120,7 +120,8 @@ static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
 }
 
 
-static int frames_queued(const struct cras_iodev *iodev)
+static int frames_queued(const struct cras_iodev *iodev,
+			 struct timespec *tstamp)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	int estimate_queued_frames = bt_queued_frames(iodev, 0);
@@ -129,6 +130,7 @@ static int frames_queued(const struct cras_iodev *iodev)
 			buf_queued_bytes(a2dpio->pcm_buf) /
 				cras_get_format_bytes(iodev->format);
 
+	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	return MIN(iodev->buffer_size,
 		   MAX(estimate_queued_frames, local_queued_frames));
 }
@@ -332,9 +334,10 @@ encode_more:
 static int delay_frames(const struct cras_iodev *iodev)
 {
 	const struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct timespec tstamp;
 
 	/* The number of frames in the pcm buffer plus two mtu packets */
-	return frames_queued(iodev) + a2dpio->sock_depth_frames;
+	return frames_queued(iodev, &tstamp) + a2dpio->sock_depth_frames;
 }
 
 static int get_buffer(struct cras_iodev *iodev,
