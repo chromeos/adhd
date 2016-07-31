@@ -182,8 +182,6 @@ typedef enum cras_socket_state {
  * server_fd - Incoming messages from server.
  * server_fd_state - State of the server's socket.
  * server_event_fd - Eventfd to wait on until a connection is established.
- * server_message_blocking - When true write_message_to_server blocks waiting
- *			   to reestablish the connection to the server.
  * stream_fds - Pipe for attached streams.
  * command_fds - Pipe for user commands to thread.
  * command_reply_fds - Pipe for acking/nacking command messages from thread.
@@ -211,7 +209,6 @@ struct cras_client {
 	int server_fd;
 	cras_socket_state_t server_fd_state;
 	int server_event_fd;
-	bool server_message_blocking;
 	int stream_fds[2];
 	int command_fds[2];
 	int command_reply_fds[2];
@@ -1870,20 +1867,8 @@ static int write_message_to_server(struct cras_client *client,
 	}
 
 	if (write_rc != (ssize_t)msg->length &&
-	    client->server_fd_state != CRAS_SOCKET_STATE_FIRST_MESSAGE) {
-		int rc = 0;
-
-		/* Write to server failed, try to re-connect. */
-		if (!client->server_message_blocking)
-			return -EPIPE;
-
-		rc = connect_to_server_wait(client, true);
-		if (rc < 0)
-			return rc;
-		write_rc = write(client->server_fd, msg, msg->length);
-		if (write_rc < 0)
-			write_rc = -errno;
-	}
+	    client->server_fd_state != CRAS_SOCKET_STATE_FIRST_MESSAGE)
+		return -EPIPE;
 
 	if (write_rc < 0)
 		return write_rc;
@@ -1915,7 +1900,6 @@ int cras_client_create(struct cras_client **client)
 		return -ENOMEM;
 	(*client)->server_fd = -1;
 	(*client)->id = -1;
-	(*client)->server_message_blocking = true;
 
 	(*client)->server_event_fd = eventfd(0, EFD_CLOEXEC|EFD_NONBLOCK);
 	if ((*client)->server_event_fd < 0) {
@@ -2007,14 +1991,6 @@ int cras_client_connected_wait(struct cras_client *client)
 int cras_client_connect_async(struct cras_client *client)
 {
 	return send_simple_cmd_msg(client, 0, CLIENT_SERVER_CONNECT_ASYNC);
-}
-
-void cras_client_set_server_message_blocking(struct cras_client *client,
-					     bool blocking)
-{
-	if (!client)
-		return;
-	client->server_message_blocking = blocking;
 }
 
 struct cras_stream_params *cras_client_stream_params_create(

@@ -267,8 +267,6 @@ int main(int argc, char **argv)
 			syslog(LOG_ERR, "Could not connect to server.");
 			return -rc;
 		}
-	} else {
-		cras_client_set_server_message_blocking(client, false);
 	}
 
 	cras_client_set_output_volume_changed_callback(

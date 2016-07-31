@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <sys/param.h>
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -951,6 +952,24 @@ static void check_output_plugged(struct cras_client *client, const char *name)
 	       cras_client_output_dev_plugged(client, name) ? "Yes" : "No");
 }
 
+/* Repeatedly mute and unmute the output until there is an error. */
+static void mute_loop_test(struct cras_client *client, int auto_reconnect)
+{
+	int mute = 0;
+	int rc;
+
+	if (auto_reconnect)
+		cras_client_run_thread(client);
+	while(1) {
+		rc = cras_client_set_user_mute(client, mute);
+		printf("cras_client_set_user_mute(%d): %d\n", mute, rc);
+		if (rc != 0 && !auto_reconnect)
+			return;
+		mute = !mute;
+		sleep(2);
+	}
+}
+
 static struct option long_options[] = {
 	{"show_latency",	no_argument, &show_latency, 1},
 	{"show_rms",            no_argument, &show_rms, 1},
@@ -995,6 +1014,8 @@ static struct option long_options[] = {
 	{"config_global_remix", required_argument,	0, ';'},
 	{"set_hotword_model",	required_argument,	0, '<'},
 	{"get_hotword_models",	required_argument,	0, '>'},
+	{"syslog_mask",		required_argument,	0, 'L'},
+	{"mute_loop_test",	required_argument,	0, 'M'},
 	{0, 0, 0, 0}
 };
 
@@ -1020,6 +1041,8 @@ static void show_usage()
 	printf("--listen_for_hotword - Listen for a hotword if supported\n");
 	printf("--loopback_file <name> - Name of file to record loopback to.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
+	printf("--mute_loop_test <0|1> - Continuously loop mute/umute. Argument: 0 - stop on error.\n"
+	       "                         1 - automatically reconnect to CRAS.\n");
 	printf("--num_channels <N> - Two for stereo.\n");
 	printf("--pin_device <N> - Playback/Capture only on the given device."
 	       "\n");
@@ -1046,6 +1069,7 @@ static void show_usage()
 	printf("--swap_left_right <N>:<M>:<0|1> - Swap or unswap (1 or 0) the"
 	       " left and right channel for the ionode with the given index M"
 	       " on the device with index N\n");
+	printf("--syslog_mask <n> - Set the syslog mask to the given log level.\n");
 	printf("--test_hotword_file <N>:<filename> - Use filename as a hotword buffer for device N\n");
 	printf("--user_mute <0|1> - Set user mute state.\n");
 	printf("--version - Print the git commit ID that was used to build the client.\n");
@@ -1066,6 +1090,8 @@ int main(int argc, char **argv)
 	int rc = 0;
 
 	option_index = 0;
+	openlog("cras_test_client", LOG_PERROR, LOG_USER);
+	setlogmask(LOG_UPTO(LOG_INFO));
 
 	rc = cras_client_create(&client);
 	if (rc < 0) {
@@ -1073,7 +1099,7 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
-	rc = cras_client_connect(client);
+	rc = cras_client_connect_timeout(client, 1000);
 	if (rc) {
 		fprintf(stderr, "Couldn't connect to server.\n");
 		goto destroy_exit;
@@ -1351,6 +1377,15 @@ int main(int argc, char **argv)
 				cras_client_set_hotword_model(client, id, s);
 			else
 				print_hotword_models(client, id);
+			break;
+		case 'L': {
+			int log_level = atoi(optarg);
+
+			setlogmask(LOG_UPTO(log_level));
+			break;
+		}
+		case 'M':
+			mute_loop_test(client, atoi(optarg));
 			break;
 		}
 		default:

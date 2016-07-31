@@ -63,7 +63,6 @@ int cras_helper_create_connect_async(struct cras_client **client,
 		return rc;
 
 	cras_client_set_connection_status_cb(*client, connection_cb, user_arg);
-	cras_client_set_server_message_blocking(*client, false);
 
 	rc = cras_client_run_thread(*client);
 	if (rc < 0)
