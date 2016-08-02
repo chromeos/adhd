@@ -54,6 +54,8 @@ static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
  *        device is currently using.
  *    a2dp_delay_timer - The timer used to delay the allocation of HFP/HSP
  *        stuff until a2dp connection is established.
+ *    switch_profile_timer - The timer used to delay enabling iodev after
+ *        profile switch.
  *    append_iodev_cb - The callback to trigger when an iodev is appended.
  */
 struct cras_bt_device {
@@ -70,6 +72,7 @@ struct cras_bt_device {
 	unsigned int active_profile;
 	int use_hardware_volume;
 	struct cras_timer *a2dp_delay_timer;
+	struct cras_timer *switch_profile_timer;
 	void (*append_iodev_cb)(void *data);
 
 	struct cras_bt_device *prev, *next;
@@ -191,6 +194,9 @@ void cras_bt_device_destroy(struct cras_bt_device *device)
 {
 	DL_DELETE(devices, device);
 
+	if (device->switch_profile_timer)
+		cras_tm_cancel_timer(cras_system_state_get_tm(),
+				     device->switch_profile_timer);
 	free(device->object_path);
 	free(device->address);
 	free(device->name);
@@ -744,12 +750,25 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
 	struct cras_iodev *iodev;
 
+	device->switch_profile_timer = NULL;
 	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
 	if (!iodev)
 		return;
-
 	iodev->update_active_node(iodev, 0, 1);
 	cras_iodev_list_enable_dev(iodev);
+}
+
+static void bt_device_switch_profile_with_delay(struct cras_bt_device *device,
+						unsigned int delay_ms)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (device->switch_profile_timer) {
+		cras_tm_cancel_timer(tm, device->switch_profile_timer);
+		device->switch_profile_timer = NULL;
+	}
+	device->switch_profile_timer = cras_tm_create_timer(
+			tm, delay_ms, profile_switch_delay_cb, device);
 }
 
 /* Switches associated bt iodevs to use the active profile. This is
@@ -762,7 +781,6 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 	struct cras_iodev *iodev;
 	int was_enabled[CRAS_NUM_DIRECTIONS] = {0};
 	int dir;
-	struct cras_tm *tm = cras_system_state_get_tm();
 
 	/* If a bt iodev is active, temporarily remove it from the active
 	 * device list. Note that we need to check all bt_iodevs for the
@@ -796,9 +814,9 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 				iodev->update_active_node(iodev, 0, 1);
 				cras_iodev_list_enable_dev(iodev);
 			} else {
-				cras_tm_create_timer(
-					tm, PROFILE_SWITCH_DELAY_MS,
-					profile_switch_delay_cb, device);
+				bt_device_switch_profile_with_delay(
+						device,
+						PROFILE_SWITCH_DELAY_MS);
 			}
 		}
 	}
