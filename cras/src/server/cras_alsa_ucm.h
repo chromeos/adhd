@@ -370,4 +370,12 @@ unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
  */
 unsigned int ucm_get_optimize_no_stream_flag(snd_use_case_mgr_t *mgr);
 
+/* Retrieve the flag that enables use of htimestamp.
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ * Returns:
+ *    1 if the flag is enabled. 0 otherwise.
+ */
+unsigned int ucm_get_enable_htimestamp_flag(snd_use_case_mgr_t *mgr);
+
 #endif /* _CRAS_ALSA_UCM_H */

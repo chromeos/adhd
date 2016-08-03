@@ -146,6 +146,7 @@ static int cras_iodev_buffer_avail_ret;
 static int cras_alsa_resume_appl_ptr_called;
 static int cras_alsa_resume_appl_ptr_ahead;
 static int ucm_get_optimize_no_stream_flag_ret;
+static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve *fake_get_dBFS_volume_curve_val;
 
 void ResetStubData() {
@@ -231,6 +232,7 @@ void ResetStubData() {
   cras_alsa_resume_appl_ptr_called = 0;
   cras_alsa_resume_appl_ptr_ahead = 0;
   ucm_get_optimize_no_stream_flag_ret = 0;
+  ucm_get_enable_htimestamp_flag_ret = 0;
   fake_get_dBFS_volume_curve_val = NULL;
 }
 
@@ -2413,6 +2415,11 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
 unsigned int ucm_get_optimize_no_stream_flag(snd_use_case_mgr_t *mgr)
 {
   return ucm_get_optimize_no_stream_flag_ret;
+}
+
+unsigned int ucm_get_enable_htimestamp_flag(snd_use_case_mgr_t *mgr)
+{
+  return ucm_get_enable_htimestamp_flag_ret;
 }
 
 unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)

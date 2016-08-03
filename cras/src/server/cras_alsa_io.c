@@ -1530,7 +1530,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->device_index = device_index;
 	aio->card_type = card_type;
 	aio->is_first = is_first;
-	aio->enable_htimestamp = 1;
 	aio->handle = NULL;
 	if (dev_name) {
 		aio->dev_name = strdup(dev_name);
@@ -1616,6 +1615,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			iodev->no_stream = no_stream;
 			iodev->output_should_wake = output_should_wake;
 		}
+
+		aio->enable_htimestamp =
+			ucm_get_enable_htimestamp_flag(ucm);
         }
 
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
