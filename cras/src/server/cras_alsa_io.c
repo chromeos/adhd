@@ -95,6 +95,7 @@ struct alsa_input_node {
  * dsp_name_default - the default dsp name for the device. It can be overridden
  *     by the jack specific dsp name.
  * poll_fd - Descriptor used to block until data is ready.
+ * dma_period_set_microsecs - If non-zero, the value to apply to the dma_period.
  * is_free_running - true if device is playing zeros in the buffer without
  *                   user filling meaningful data. The device buffer is filled
  *                   with zeros. In this state, appl_ptr remains the same
@@ -121,7 +122,7 @@ struct alsa_io {
 	snd_pcm_uframes_t mmap_offset;
 	const char *dsp_name_default;
 	int poll_fd;
-	unsigned int period_frames;
+	unsigned int dma_period_set_microsecs;
 	int is_free_running;
 	unsigned int filled_zeros_for_draining;
 };
@@ -229,7 +230,7 @@ static int open_dev(struct cras_iodev *iodev)
 
 	rc = cras_alsa_set_hwparams(handle, iodev->format,
 				    &iodev->buffer_size, period_wakeup,
-				    aio->period_frames);
+				    aio->dma_period_set_microsecs);
 	if (rc < 0) {
 		cras_alsa_pcm_close(handle);
 		return rc;
@@ -440,7 +441,7 @@ static int update_channel_layout(struct cras_iodev *iodev)
 	/* Sets frame rate and channel count to alsa device before
 	 * we test channel mapping. */
 	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size, 0,
-				     aio->period_frames);
+				     aio->dma_period_set_microsecs);
 	if (err < 0) {
 		cras_alsa_pcm_close(handle);
 		return err;
@@ -1758,11 +1759,11 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 	/* This iodev is fully specified. Avoid automatic node creation. */
 	aio->fully_specified = 1;
 
-	/* Check here in case the PeriodFrames flag has only been specified
-	 * on one of many device entries with the same PCM. */
-	if (!aio->period_frames)
-		aio->period_frames = ucm_get_period_frames_for_dev(
-						aio->ucm, section->name);
+	/* Check here in case the DmaPeriodMicrosecs flag has only been
+	 * specified on one of many device entries with the same PCM. */
+	if (!aio->dma_period_set_microsecs)
+		aio->dma_period_set_microsecs =
+			ucm_get_dma_period_for_dev(aio->ucm, section->name);
 
 	/* Create a node matching this section. If there is a matching
 	 * control use that, otherwise make a node without a control. */

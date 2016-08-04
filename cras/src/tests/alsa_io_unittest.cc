@@ -136,8 +136,8 @@ static long cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 static snd_pcm_state_t snd_pcm_state_ret;
 static int cras_alsa_attempt_resume_called;
 static snd_hctl_t *fake_hctl = (snd_hctl_t *)2;
-static size_t ucm_get_period_frames_for_dev_called;
-static unsigned int ucm_get_period_frames_for_dev_ret;
+static size_t ucm_get_dma_period_for_dev_called;
+static unsigned int ucm_get_dma_period_for_dev_ret;
 static int cras_alsa_mmap_get_whole_buffer_called;
 static int cras_iodev_fill_odev_zeros_called;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
@@ -222,8 +222,8 @@ void ResetStubData() {
   cras_alsa_mixer_get_maximum_capture_gain_ret_value = 0;
   snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
   cras_alsa_attempt_resume_called = 0;
-  ucm_get_period_frames_for_dev_called = 0;
-  ucm_get_period_frames_for_dev_ret = 0;
+  ucm_get_dma_period_for_dev_called = 0;
+  ucm_get_dma_period_for_dev_ret = 0;
   cras_alsa_mmap_get_whole_buffer_called = 0;
   cras_iodev_fill_odev_zeros_called = 0;
   cras_iodev_fill_odev_zeros_frames = 0;
@@ -996,7 +996,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   cras_alsa_mixer_get_control_name_values[outputs[0]] = INTERNAL_SPEAKER;
   cras_alsa_mixer_get_control_name_values[outputs[1]] = "Headphone";
-  ucm_get_period_frames_for_dev_ret = 48;
+  ucm_get_dma_period_for_dev_ret = 1000;
 
   // Create the IO device.
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -1038,8 +1038,8 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_output_volume_curve_called);
-  EXPECT_EQ(1, ucm_get_period_frames_for_dev_called);
-  EXPECT_EQ(ucm_get_period_frames_for_dev_ret, aio->period_frames);
+  EXPECT_EQ(1, ucm_get_dma_period_for_dev_called);
+  EXPECT_EQ(ucm_get_dma_period_for_dev_ret, aio->dma_period_set_microsecs);
 
   aio->handle = (snd_pcm_t *)0x24;
 
@@ -1215,8 +1215,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   EXPECT_EQ(1, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, sys_set_capture_gain_limits_called);
   EXPECT_EQ(2, cras_iodev_add_node_called);
-  EXPECT_EQ(2, ucm_get_period_frames_for_dev_called);
-  EXPECT_EQ(0, aio->period_frames);
+  EXPECT_EQ(2, ucm_get_dma_period_for_dev_called);
+  EXPECT_EQ(0, aio->dma_period_set_microsecs);
 
   aio->handle = (snd_pcm_t *)0x24;
 
@@ -2041,7 +2041,7 @@ int cras_alsa_fill_properties(const char *dev,
 }
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			   snd_pcm_uframes_t *buffer_size, int period_wakeup,
-			   unsigned int period_frames)
+			   unsigned int dma_period_time)
 {
   return 0;
 }
@@ -2445,11 +2445,11 @@ int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
   return 0;
 }
 
-unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
-                                           const char *dev)
+unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
+                                        const char *dev)
 {
-  ucm_get_period_frames_for_dev_called++;
-  return ucm_get_period_frames_for_dev_ret;
+  ucm_get_dma_period_for_dev_called++;
+  return ucm_get_dma_period_for_dev_ret;
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)

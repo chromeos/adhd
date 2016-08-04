@@ -947,7 +947,7 @@ TEST(AlsaUcm, GetJackTypeForDevice) {
 
 TEST(AlsaUcm, GetPeriodFramesForDevice) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
-  int period_frames_1, period_frames_2, period_frames_3;
+  int dma_period_1, dma_period_2, dma_period_3;
   const char *devices[] = { "Dev1", "Comment for Dev1",
                             "Dev2", "Comment for Dev2",
                             "Dev3", "Comment for Dev3" };
@@ -956,22 +956,22 @@ TEST(AlsaUcm, GetPeriodFramesForDevice) {
 
   fake_list["_devices/HiFi"] = devices;
   fake_list_size["_devices/HiFi"] = 6;
-  std::string id_1 = "=PeriodFrames/Dev1/HiFi";
-  std::string value_1 = "48";
-  std::string id_2 = "=PeriodFrames/Dev2/HiFi";
+  std::string id_1 = "=DmaPeriodMicrosecs/Dev1/HiFi";
+  std::string value_1 = "1000";
+  std::string id_2 = "=DmaPeriodMicrosecs/Dev2/HiFi";
   std::string value_2 = "-10";
 
   snd_use_case_get_value[id_1] = value_1;
   snd_use_case_get_value[id_2] = value_2;
 
-  period_frames_1 = ucm_get_period_frames_for_dev(mgr, "Dev1");
-  period_frames_2 = ucm_get_period_frames_for_dev(mgr, "Dev2");
-  period_frames_3 = ucm_get_period_frames_for_dev(mgr, "Dev3");
+  dma_period_1 = ucm_get_dma_period_for_dev(mgr, "Dev1");
+  dma_period_2 = ucm_get_dma_period_for_dev(mgr, "Dev2");
+  dma_period_3 = ucm_get_dma_period_for_dev(mgr, "Dev3");
 
   /* Only "hctl" and "gpio" are valid types. */
-  EXPECT_EQ(48, period_frames_1);
-  EXPECT_EQ(0, period_frames_2);
-  EXPECT_EQ(0, period_frames_3);
+  EXPECT_EQ(1000, dma_period_1);
+  EXPECT_EQ(0, dma_period_2);
+  EXPECT_EQ(0, dma_period_3);
 }
 
 TEST(AlsaUcm, UcmSection) {

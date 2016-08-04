@@ -459,7 +459,7 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			   snd_pcm_uframes_t *buffer_frames, int period_wakeup,
-			   unsigned int period_frames)
+			   unsigned int dma_period_time)
 {
 	unsigned int rate, ret_rate;
 	int err;
@@ -495,20 +495,22 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			syslog(LOG_WARNING, "disabling wakeups %s\n",
 			       snd_strerror(err));
 	}
-	/* Setup the period size so that the hardware pulls the right amount
+	/* Setup the period time so that the hardware pulls the right amount
 	 * of data at the right time. */
-	if (period_frames) {
+	if (dma_period_time) {
 		int dir = 0;
-		snd_pcm_uframes_t value = period_frames;
-		err = snd_pcm_hw_params_set_period_size_near(
-				handle, hwparams, &value, &dir);
+		unsigned int original = dma_period_time;
+
+		err = snd_pcm_hw_params_set_period_time_near(
+				handle, hwparams, &dma_period_time, &dir);
 		if (err < 0) {
-			syslog(LOG_ERR, "could not set period size: %s",
+			syslog(LOG_ERR, "could not set period time: %s",
 			       snd_strerror(err));
 			return err;
+		} else if (original != dma_period_time) {
+			syslog(LOG_DEBUG, "period time set to: %u",
+			       dma_period_time);
 		}
-		if (value != period_frames)
-			syslog(LOG_DEBUG, "period size set to: %lu", value);
 	}
 	/* Set the sample format. */
 	err = snd_pcm_hw_params_set_format(handle, hwparams,

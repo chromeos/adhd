@@ -127,13 +127,14 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
  *    buffer_frames - Number of frames in the ALSA buffer.
  *    period_wakeup - Flag to determine if period_wakeup is required
  *                      0 - disable, 1 - enable
- *    period_frames - If non-zero, set the period frames to this value.
+ *    dma_period_time - If non-zero, set the dma period time to this value
+ *                      (in microseconds).
  * Returns:
  *    0 on success, negative error on failure.
  */
 int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 			   snd_pcm_uframes_t *buffer_frames, int period_wakeup,
-			   unsigned int period_frames);
+			   unsigned int dma_period_time);
 
 /* Sets up the swparams to alsa.
  * Args:

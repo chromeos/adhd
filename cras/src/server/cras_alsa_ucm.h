@@ -350,7 +350,7 @@ const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
  */
 int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
 
-/* Gets the period frames for the given device.
+/* Gets the DMA period time in microseconds for the given device.
  *
  * Args:
  *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
@@ -358,8 +358,8 @@ int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev);
  * Returns:
  *    A value > 0, or 0 if no period is defined.
  */
-unsigned int ucm_get_period_frames_for_dev(snd_use_case_mgr_t *mgr,
-					   const char *dev);
+unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
+					const char *dev);
 
 /* Gets the flag of optimization for no stream state.
  * This flag enables no_stream ops in alsa_io.
