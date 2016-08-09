@@ -29,8 +29,7 @@ void cras_card_config_destroy(struct cras_card_config *card_config);
  * Args:
  *    card_config - Card configuration returned by cras_card_config_create()
  * Returns:
- *    The specialized curve for the control if there is one, otherwise the
- *    default volume curve.
+ *    The specialized curve for the control if there is one, otherwise NULL.
  */
 struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
 		const struct cras_card_config *card_config,

@@ -1713,6 +1713,15 @@ static long get_dBFS_default(const struct cras_volume_curve *curve,
   return 100 * (volume - 100);
 }
 
+struct cras_volume_curve *cras_volume_curve_create_default()
+{
+  struct cras_volume_curve *curve;
+  curve = (struct cras_volume_curve *)calloc(1, sizeof(*curve));
+  if (curve)
+    curve->get_dBFS = get_dBFS_default;
+  return curve;
+}
+
 void cras_volume_curve_destroy(struct cras_volume_curve *curve)
 {
   cras_volume_curve_destroy_called++;

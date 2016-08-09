@@ -690,6 +690,8 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 	cmix->volume_curve =
 		cras_card_config_get_volume_curve_for_control(cmix->config,
 							      "Default");
+	if (cmix->volume_curve == NULL)
+		cmix->volume_curve = cras_volume_curve_create_default();
 
 	alsa_mixer_open(card_name, &cmix->mixer);
 
@@ -1221,12 +1223,10 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 		const struct cras_alsa_mixer *cmix,
 		const char *name)
 {
-	if (cmix != NULL)
-		return cras_card_config_get_volume_curve_for_control(
-				cmix->config, name);
-	else
-		return cras_card_config_get_volume_curve_for_control(NULL,
-								     name);
+	if (!cmix)
+		return NULL;
+	return cras_card_config_get_volume_curve_for_control(
+			cmix->config, name);
 }
 
 struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(

@@ -74,8 +74,9 @@ static std::vector<struct mixer_control *>
     cras_alsa_mixer_set_output_active_state_outputs;
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static size_t cras_alsa_mixer_create_volume_curve_for_name_called;
+static struct cras_volume_curve *
+    cras_alsa_mixer_create_volume_curve_for_name_value = NULL;
 static size_t cras_alsa_mixer_default_volume_curve_called;
-static cras_volume_curve *fake_curve;
 static cras_audio_format *fake_format;
 static size_t sys_set_volume_limits_called;
 static size_t sys_set_capture_gain_limits_called;
@@ -87,7 +88,8 @@ static size_t cras_alsa_mixer_get_output_volume_curve_called;
 typedef std::map<const struct mixer_control*, std::string> ControlNameMap;
 static ControlNameMap cras_alsa_mixer_get_control_name_values;
 static size_t cras_alsa_mixer_get_control_name_called;
-static struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve_value;
+typedef std::map<const struct mixer_control*, struct cras_volume_curve*> VolumeCurveMap;
+static VolumeCurveMap cras_alsa_mixer_get_output_volume_curve_values;
 static size_t cras_alsa_jack_list_create_called;
 static size_t cras_alsa_jack_list_find_jacks_by_name_matching_called;
 static size_t cras_alsa_jack_list_add_jack_for_section_called;
@@ -179,7 +181,7 @@ void ResetStubData() {
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_mixer_get_output_volume_curve_called = 0;
-  cras_alsa_mixer_get_output_volume_curve_value = NULL;
+  cras_alsa_mixer_get_output_volume_curve_values.clear();
   cras_alsa_jack_get_mixer_output_ret = NULL;
   cras_alsa_jack_get_mixer_input_ret = NULL;
   cras_alsa_mixer_get_control_name_values.clear();
@@ -234,6 +236,9 @@ static long fake_get_dBFS(const cras_volume_curve *curve, size_t volume)
 {
   return (volume - 100) * 100;
 }
+static cras_volume_curve fake_curve = {
+  .get_dBFS = fake_get_dBFS,
+};
 
 namespace {
 
@@ -385,9 +390,6 @@ TEST(AlsaIoInit, OpenPlayback) {
 
   aio = (struct alsa_io *)iodev;
   cras_iodev_set_format(iodev, &format);
-  fake_curve =
-      static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
 
   // Test that these flags are cleared after open_dev.
   aio->is_free_running = 1;
@@ -403,8 +405,6 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(0, aio->filled_zeros_for_draining);
 
   alsa_iodev_destroy(iodev);
-  free(fake_curve);
-  fake_curve = NULL;
   free(fake_format);
 }
 
@@ -532,10 +532,6 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
   EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section_called);
 
-  fake_curve =
-    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_iodev_set_node_attr_called);
   EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
@@ -547,8 +543,6 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
@@ -568,10 +562,6 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
   EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section_called);
 
-  fake_curve =
-    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-
   cras_alsa_jack_list_create_cb(NULL, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_iodev_set_node_attr_called);
   EXPECT_EQ(IONODE_ATTR_PLUGGED, cras_iodev_set_node_attr_attr);
@@ -583,8 +573,6 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
   EXPECT_EQ(1, cras_alsa_jack_list_destroy_called);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 TEST(AlsaIoInit, InitializeCapture) {
@@ -878,10 +866,6 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   ResetStubData();
   outputs[0] = reinterpret_cast<struct mixer_control *>(3);
   outputs[1] = reinterpret_cast<struct mixer_control *>(4);
-  fake_curve =
-    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -909,8 +893,6 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   EXPECT_EQ(0, ucm_set_enabled_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 //  Test handling of different amounts of outputs.
@@ -923,10 +905,6 @@ TEST(AlsaOutputNode, TwoOutputs) {
   ResetStubData();
   outputs[0] = reinterpret_cast<struct mixer_control *>(3);
   outputs[1] = reinterpret_cast<struct mixer_control *>(4);
-  fake_curve =
-    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -962,8 +940,6 @@ TEST(AlsaOutputNode, TwoOutputs) {
   EXPECT_EQ(0, ucm_set_enabled_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
@@ -977,10 +953,6 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   ResetStubData();
   output = reinterpret_cast<struct mixer_control *>(3);
   cras_alsa_mixer_get_control_name_values[output] = "Headphone";
-  fake_curve =
-      static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
 
   // Create the iodev
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -1020,8 +992,6 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   EXPECT_STREQ(cras_iodev_set_node_attr_ionode->name, "Line Out");
 
   alsa_iodev_destroy(iodev);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 TEST(AlsaOutputNode, OutputsFromUCM) {
@@ -1041,10 +1011,6 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   cras_alsa_mixer_get_control_name_values[outputs[0]] = INTERNAL_SPEAKER;
   cras_alsa_mixer_get_control_name_values[outputs[1]] = "Headphone";
-  fake_curve =
-    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
   ucm_get_period_frames_for_dev_ret = 48;
 
   // Create the IO device.
@@ -1115,8 +1081,6 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(1, cras_iodev_set_node_attr_called);
 
   alsa_iodev_destroy(iodev);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 TEST(AlsaOutputNode, OutputNoControlsUCM) {
@@ -1166,10 +1130,6 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   struct ucm_section *section;
 
   ResetStubData();
-  fake_curve =
-    static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-  fake_curve->get_dBFS = fake_get_dBFS;
-  cras_alsa_mixer_get_output_volume_curve_value = fake_curve;
 
   // Create the IO device.
   iodev = alsa_iodev_create(1, test_card_name, 0, test_dev_name,
@@ -1200,8 +1160,6 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   EXPECT_EQ(0, ucm_set_enabled_called);
 
   alsa_iodev_destroy(iodev);
-  free(fake_curve);
-  fake_curve = NULL;
 }
 
 TEST(AlsaOutputNode, InputsFromUCM) {
@@ -1671,12 +1629,23 @@ class AlsaVolumeMuteSuite : public testing::Test {
   protected:
     virtual void SetUp() {
       ResetStubData();
+      output_control_ = reinterpret_cast<struct mixer_control *>(10);
+      cras_alsa_mixer_list_outputs_outputs = &output_control_;
+      cras_alsa_mixer_list_outputs_outputs_length = 1;
+      cras_alsa_mixer_get_control_name_values[output_control_] = "Speaker";
+      cras_alsa_mixer_list_outputs_outputs_length = 1;
       aio_output_ = (struct alsa_io *)alsa_iodev_create(
           0, test_card_name, 0, test_dev_name, NULL,
-          ALSA_CARD_TYPE_INTERNAL, 0,
+          ALSA_CARD_TYPE_INTERNAL, 1,
           fake_mixer, NULL, fake_hctl,
           CRAS_STREAM_OUTPUT, 0, 0);
       alsa_iodev_legacy_complete_init((struct cras_iodev *)aio_output_);
+
+      struct cras_ionode *node;
+      int count = 0;
+      DL_FOREACH(aio_output_->base.nodes, node) {
+        printf("node %d \n", count);
+      }
       aio_output_->base.direction = CRAS_STREAM_OUTPUT;
       aio_input_ = (struct alsa_io *)alsa_iodev_create(
           0, test_card_name, 0, test_dev_name, NULL,
@@ -1690,23 +1659,51 @@ class AlsaVolumeMuteSuite : public testing::Test {
       aio_input_->base.format = &fmt_;
       aio_output_->base.format = &fmt_;
       cras_alsa_get_avail_frames_ret = -1;
-      fake_curve =
-        static_cast<struct cras_volume_curve *>(calloc(1, sizeof(*fake_curve)));
-      fake_curve->get_dBFS = fake_get_dBFS;
     }
 
     virtual void TearDown() {
       alsa_iodev_destroy((struct cras_iodev *)aio_output_);
       alsa_iodev_destroy((struct cras_iodev *)aio_input_);
       cras_alsa_get_avail_frames_ret = 0;
-      free(fake_curve);
-      fake_curve = NULL;
     }
 
+  struct mixer_control *output_control_;
   struct alsa_io *aio_output_;
   struct alsa_io *aio_input_;
   struct cras_audio_format fmt_;
 };
+
+TEST_F(AlsaVolumeMuteSuite, GetVolumeCurve) {
+  int rc;
+  struct cras_audio_format *fmt;
+
+  fmt = (struct cras_audio_format *)malloc(sizeof(*fmt));
+  memcpy(fmt, &fmt_, sizeof(fmt_));
+  aio_output_->base.format = fmt;
+  aio_output_->handle = (snd_pcm_t *)0x24;
+
+  cras_alsa_mixer_get_output_volume_curve_called = 0;
+  cras_alsa_mixer_default_volume_curve_called = 0;
+  rc = aio_output_->base.open_dev(&aio_output_->base);
+  ASSERT_EQ(0, rc);
+  // get_curve_for_output_node() get called twice for setting volume limits
+  // and initial values.
+  EXPECT_EQ(2, cras_alsa_mixer_get_output_volume_curve_called);
+  EXPECT_EQ(2, cras_alsa_mixer_default_volume_curve_called);
+
+  cras_alsa_mixer_get_output_volume_curve_values[output_control_] = NULL;
+  aio_output_->base.set_volume(&aio_output_->base);
+  EXPECT_EQ(3, cras_alsa_mixer_get_output_volume_curve_called);
+  EXPECT_EQ(3, cras_alsa_mixer_default_volume_curve_called);
+
+  // If output control has its own volume curve, mixer default volume curve
+  // should't get called again.
+  cras_alsa_mixer_get_output_volume_curve_values[output_control_] =
+      &fake_curve;
+  aio_output_->base.set_volume(&aio_output_->base);
+  EXPECT_EQ(4, cras_alsa_mixer_get_output_volume_curve_called);
+  EXPECT_EQ(3, cras_alsa_mixer_default_volume_curve_called);
+}
 
 TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   int rc;
@@ -1740,7 +1737,7 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   EXPECT_EQ(0, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-5000, alsa_mixer_set_dBFS_value);
-  EXPECT_EQ(NULL, alsa_mixer_set_dBFS_output);
+  EXPECT_EQ(output_control_, alsa_mixer_set_dBFS_output);
 
   alsa_mixer_set_mute_called = 0;
   alsa_mixer_set_mute_value = 0;
@@ -2203,7 +2200,7 @@ struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
 		const char *name)
 {
   cras_alsa_mixer_create_volume_curve_for_name_called++;
-  return fake_curve;
+  return cras_alsa_mixer_create_volume_curve_for_name_value;
 }
 
 int cras_alsa_mixer_set_output_active_state(
@@ -2220,7 +2217,7 @@ const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
 		const struct cras_alsa_mixer *cras_mixer)
 {
   cras_alsa_mixer_default_volume_curve_called++;
-  return fake_curve;
+  return &fake_curve;
 }
 
 void cras_volume_curve_destroy(struct cras_volume_curve *curve)
@@ -2247,7 +2244,7 @@ struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
 		const struct mixer_control *control)
 {
   cras_alsa_mixer_get_output_volume_curve_called++;
-  return cras_alsa_mixer_get_output_volume_curve_value;
+  return cras_alsa_mixer_get_output_volume_curve_values[control];
 }
 
 int cras_alsa_mixer_has_main_volume(const struct cras_alsa_mixer *cras_mixer)
