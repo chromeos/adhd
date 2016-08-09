@@ -123,6 +123,12 @@ void cras_alsa_jack_list_report(const struct cras_alsa_jack_list *jack_list);
  */
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack);
 
+/* Gets the ucm device of a jack.
+ * Args:
+ *    jack - The alsa jack.
+ */
+const char *cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack *jack);
+
 
 void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 					char *name_buf,

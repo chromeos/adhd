@@ -122,7 +122,7 @@ static int ucm_enable_swap_mode_ret_value;
 static size_t ucm_enable_swap_mode_called;
 static int is_utf8_string_ret_value;
 static char *cras_alsa_jack_update_monitor_fake_name = 0;
-static int cras_alsa_jack_get_name_ret_called;
+static int cras_alsa_jack_get_name_called;
 static const char *cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
 static int auto_unplug_input_node_ret = 0;
@@ -209,7 +209,7 @@ void ResetStubData() {
   ucm_enable_swap_mode_ret_value = 0;
   ucm_enable_swap_mode_called = 0;
   is_utf8_string_ret_value = 1;
-  cras_alsa_jack_get_name_ret_called = 0;
+  cras_alsa_jack_get_name_called = 0;
   cras_alsa_jack_get_name_ret_value = default_jack_name;
   cras_alsa_jack_update_monitor_fake_name = 0;
   ucm_get_max_software_gain_called = 0;
@@ -1151,7 +1151,7 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_iodev_add_node_called);
   EXPECT_EQ(1, cras_alsa_jack_list_add_jack_for_section_called);
-  EXPECT_EQ(1, cras_alsa_mixer_create_volume_curve_for_name_called);
+  EXPECT_EQ(2, cras_alsa_mixer_create_volume_curve_for_name_called);
   ucm_section_free_list(section);
 
   // Complete initialization, and make first node active.
@@ -1619,7 +1619,7 @@ TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
   // Add the jack node.
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
 
-  EXPECT_EQ(1, cras_alsa_jack_get_name_ret_called);
+  EXPECT_EQ(2, cras_alsa_jack_get_name_called);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, aio->base.nodes->next->type);
   // The node name should be "HDMI".
   ASSERT_STREQ("HDMI", aio->base.nodes->next->name);
@@ -2355,7 +2355,7 @@ void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable) {
 
 const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 {
-  cras_alsa_jack_get_name_ret_called++;
+  cras_alsa_jack_get_name_called++;
   return cras_alsa_jack_get_name_ret_value;
 }
 
@@ -2531,6 +2531,11 @@ void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
 				     enum CRAS_NODE_TYPE *type)
 {
   cras_alsa_jack_update_node_type_called++;
+}
+
+const char *cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack *jack)
+{
+  return NULL;
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev *iodev,

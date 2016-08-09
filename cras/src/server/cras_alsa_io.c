@@ -1149,6 +1149,29 @@ static const char *get_active_dsp_name(struct alsa_io *aio)
 	return cras_alsa_jack_get_dsp_name(jack) ? : aio->dsp_name_default;
 }
 
+/* Creates volume curve for the node associated with given jack. */
+static struct cras_volume_curve *create_volume_curve_for_jack(
+		const struct cras_alsa_mixer *mixer,
+		const struct cras_alsa_jack *jack)
+{
+	struct cras_volume_curve *curve;
+	const char *name;
+
+	/* Use jack's UCM device name as key to get volume curve. */
+	name = cras_alsa_jack_get_ucm_device(jack);
+	curve = cras_alsa_mixer_create_volume_curve_for_name(mixer, name);
+	if (curve)
+		return curve;
+
+	/* Use alsa jack's name as key to get volume curve. */
+	name = cras_alsa_jack_get_name(jack);
+	curve = cras_alsa_mixer_create_volume_curve_for_name(mixer, name);
+	if (curve)
+		return curve;
+
+	return NULL;
+}
+
 /* Callback that is called when an output jack is plugged or unplugged. */
 static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 				    int plugged,
@@ -1190,8 +1213,8 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			       jack_name, node->base.name);
 
 		/* If we already have the node, associate with the jack. */
-		node->jack_curve = cras_alsa_mixer_create_volume_curve_for_name(
-				aio->mixer, jack_name);
+		node->jack_curve = create_volume_curve_for_jack(aio->mixer,
+								jack);
 		node->jack = jack;
 	}
 
@@ -1761,8 +1784,7 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 		if (output_node) {
 			output_node->jack = jack;
 			output_node->jack_curve =
-				cras_alsa_mixer_create_volume_curve_for_name(
-					aio->mixer, section->jack_name);
+				create_volume_curve_for_jack(aio->mixer, jack);
 		} else if (input_node) {
 			input_node->jack = jack;
 		}

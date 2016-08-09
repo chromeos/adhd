@@ -1240,6 +1240,11 @@ const char *cras_alsa_jack_get_name(const struct cras_alsa_jack *jack)
 	return snd_hctl_elem_get_name(jack->elem);
 }
 
+const char *cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack *jack)
+{
+	return jack->ucm_device;
+}
+
 void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 					char *name_buf,
 					unsigned int buf_size)
