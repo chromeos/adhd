@@ -492,19 +492,24 @@ static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
 	return (struct alsa_input_node *)aio->base.active_node;
 }
 
-/* Gets the curve for the active output. */
+/* Gets the curve for the active output node by below priority:
+ * 1. Jack's volume curve.
+ * 2. Output mixer control's volume curve.
+ * 3. Card mixer's default volume curve.
+ */
 static const struct cras_volume_curve *get_curve_for_output_node(
 		const struct alsa_io *aio,
-		const struct alsa_output_node *aout)
+		const struct alsa_output_node *node)
 {
 	struct cras_volume_curve *curve = NULL;
-	if (aout) {
+	if (node) {
+		if (node->jack_curve)
+			return node->jack_curve;
+
 		curve = cras_alsa_mixer_get_output_volume_curve(
-				aout->mixer_output);
+				node->mixer_output);
 		if (curve)
 			return curve;
-		else if (aout->jack_curve)
-			return aout->jack_curve;
 	}
 	return cras_alsa_mixer_default_volume_curve(aio->mixer);
 }
@@ -513,8 +518,8 @@ static const struct cras_volume_curve *get_curve_for_output_node(
 static const struct cras_volume_curve *get_curve_for_active_output(
 		const struct alsa_io *aio)
 {
-	struct alsa_output_node *aout = get_active_output(aio);
-	return get_curve_for_output_node(aio, aout);
+	struct alsa_output_node *node = get_active_output(aio);
+	return get_curve_for_output_node(aio, node);
 }
 
 /* Informs the system of the volume limits for this device. */
