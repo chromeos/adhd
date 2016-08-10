@@ -117,6 +117,58 @@ var analyzer_right;     /* The FFT analyzer for right channel */
  * The detection result will be stored in this value. When user saves config,
  * This value is stored in drc.emphasis_disabled in the config. */
 var browser_emphasis_disabled_detection_result;
+/* check_biquad_filter_q detects if the browser implements the lowpass and
+ * highpass biquad filters with the original formula or the new formula from
+ * Audio EQ Cookbook. Chrome changed the filter implementation in R53, see:
+ * https://github.com/GoogleChrome/web-audio-samples/wiki/Detection-of-lowpass-BiquadFilter-implementation
+ * The detection result is saved in this value before the page is initialized.
+ * make_biquad_q() uses this value to compute Q to ensure consistent behavior
+ * on different browser versions.
+ */
+var browser_biquad_filter_uses_audio_cookbook_formula;
+
+/* Check the lowpass implementation and return a promise. */
+function check_biquad_filter_q() {
+  'use strict';
+  var context = new OfflineAudioContext(1, 128, 48000);
+  var osc = context.createOscillator();
+  var filter1 = context.createBiquadFilter();
+  var filter2 = context.createBiquadFilter();
+  var inverter = context.createGain();
+
+  osc.type = 'sawtooth';
+  osc.frequency.value = 8 * 440;
+  inverter.gain.value = -1;
+  /* each filter should get a different Q value */
+  filter1.Q.value = -1;
+  filter2.Q.value = -20;
+  osc.connect(filter1);
+  osc.connect(filter2);
+  filter1.connect(context.destination);
+  filter2.connect(inverter);
+  inverter.connect(context.destination);
+  osc.start();
+
+  return context.startRendering().then(function (buffer) {
+    return browser_biquad_filter_uses_audio_cookbook_formula =
+      Math.max(...buffer.getChannelData(0)) !== 0;
+  });
+}
+
+/* Return the Q value to be used with the lowpass and highpass biquad filters,
+ * given Q in dB for the original filter formula. If the browser uses the new
+ * formula, conversion is made to simulate the original frequency response
+ * with the new formula.
+ */
+function make_biquad_q(q_db) {
+  if (!browser_biquad_filter_uses_audio_cookbook_formula)
+    return q_db;
+
+  var q_lin = dBToLinear(q_db);
+  var q_new = 1 / Math.sqrt((4 - Math.sqrt(16 - 16 / (q_lin * q_lin))) / 2);
+  q_new = linearToDb(q_new);
+  return q_new;
+}
 
 /* The supported audio element names are different on browsers with different
  * versions.*/
@@ -506,7 +558,10 @@ function eq() {
       filter.frequency.value = parseFloat(value);
       break;
     case 'q':
-      filter.Q.value = parseFloat(value);
+      value = parseFloat(value);
+      if (filter.type == 'lowpass' || filter.type == 'highpass')
+        value = make_biquad_q(value);
+      filter.Q.value = value;
       break;
     case 'gain':
       filter.gain.value = parseFloat(value);
@@ -837,7 +892,7 @@ function create_lowpass(freq) {
   var lp = audioContext.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = freq;
-  lp.Q.value = 0;
+  lp.Q.value = make_biquad_q(0);
   return lp;
 }
 
@@ -846,7 +901,7 @@ function create_highpass(freq) {
   var hp = audioContext.createBiquadFilter();
   hp.type = 'highpass';
   hp.frequency.value = freq;
-  hp.Q.value = 0;
+  hp.Q.value = make_biquad_q(0);
   return hp;
 }
 
@@ -1438,12 +1493,17 @@ function global_section(parent) {
 
 window.onload = function() {
   fix_audio_elements();
-  /* Detects if emphasis is disabled and sets
-   * browser_emphasis_disabled_detection_result. */
-  get_emphasis_disabled();
-  init_config();
-  init_audio();
-  init_ui();
+  check_biquad_filter_q().then(function (flag) {
+    console.log('Browser biquad filter uses Audio Cookbook formula:', flag);
+    /* Detects if emphasis is disabled and sets
+     * browser_emphasis_disabled_detection_result. */
+    get_emphasis_disabled();
+    init_config();
+    init_audio();
+    init_ui();
+  }).catch(function (reason) {
+    alert('Cannot detect browser biquad filter implementation:', reason);
+  });
 };
 
 function init_ui() {
@@ -1760,7 +1820,10 @@ function EqDrawer(canvas, channel) {
       }
       filter.type = get_config('eq', channel, i, 'type');
       filter.frequency.value = centerFreq[i];
-      filter.Q.value = q[i];
+      if (filter.type == 'lowpass' || filter.type == 'highpass')
+        filter.Q.value = make_biquad_q(q[i]);
+      else
+        filter.Q.value = q[i];
       filter.gain.value = gain[i];
       filter.getFrequencyResponse(frequencyHz, magResponse,
                                   phaseResponse);
