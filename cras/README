@@ -48,7 +48,19 @@ has the following format.
 [<output-node-name>] ; Name of the mixer control for this output.
   <config-option> = <config-value>
 
-output-node-name is the mixer control name, e.g. "Headphone" or "Speaker".
+output-node-name can be speficied in a few ways to link with the real node:
+  UCM device name - The name string following the SectionDevice label in UCM
+    config, i.e. HiFi.conf
+  Jack name - Name of the mixer control for mixer jack, or the gpio jack name
+    listed by 'evtest' command.
+  Mixer control name - e.g. "Headphone" or "Speaker", listed by
+    'amixer scontrols' command.
+
+Note that an output node matches to the output-node-name label in card config by
+priorty ordered above. For example if a node has UCM device, it will first
+search the config file for the UCM device name. When not found, jack name will
+be used for searching, and lastly the mixer output control name.
+
 config-option can be the following:
   volume_curve - The type of volume curve, "simple_step" or "explicit".
   Options valid and mandatory when volume_curve = simple_step:
