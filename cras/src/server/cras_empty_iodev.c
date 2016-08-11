@@ -131,11 +131,15 @@ static int get_buffer(struct cras_iodev *iodev,
 		      unsigned *frames)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
+	unsigned int avail, current;
 
-	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		*frames = MIN(*frames, EMPTY_FRAMES - current_level(iodev));
-	else
-		*frames = MIN(*frames, current_level(iodev));
+	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		avail = EMPTY_FRAMES - current_level(iodev);
+		*frames = MIN(*frames, avail);
+	} else {
+		current = current_level(iodev);
+		*frames = MIN(*frames, current);
+	}
 
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
