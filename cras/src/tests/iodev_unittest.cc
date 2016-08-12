@@ -875,6 +875,41 @@ TEST(IoDev, SoftwareGain) {
   EXPECT_FLOAT_EQ(0, cras_iodev_maximum_software_gain(&iodev));
 }
 
+// This get_buffer implementation set returned frames larger than requested
+// frames.
+static int bad_get_buffer(struct cras_iodev *iodev,
+                          struct cras_audio_area **area,
+                          unsigned *frames)
+{
+  *frames = *frames + 1;
+  return 0;
+}
+
+// Check that if get_buffer implementation returns invalid frames,
+// cras_iodev_get_output_buffer and cras_iodev_get_input_buffer can return
+// error.
+TEST(IoDev, GetBufferInvalidFrames) {
+  struct cras_iodev iodev;
+  struct cras_audio_area **area = NULL;
+  unsigned int frames = 512;
+  struct cras_audio_format fmt;
+
+  // Format is used in cras_iodev_get_input_buffer;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+
+  memset(&iodev, 0, sizeof(iodev));
+
+  ResetStubData();
+
+  iodev.format = &fmt;
+  iodev.get_buffer = bad_get_buffer;
+
+  EXPECT_EQ(-EINVAL, cras_iodev_get_output_buffer(&iodev, area, &frames));
+  EXPECT_EQ(-EINVAL, cras_iodev_get_input_buffer(&iodev, area, &frames));
+}
+
 static int open_dev(struct cras_iodev *iodev) {
   iodev->buffer_size = iodev_buffer_size;
   return 0;

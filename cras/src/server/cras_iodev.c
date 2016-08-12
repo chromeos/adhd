@@ -664,10 +664,17 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
 	const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 	uint8_t *hw_buffer;
 	int rc;
+	unsigned frame_requested = *frames;
 
 	rc = iodev->get_buffer(iodev, area, frames);
 	if (rc < 0 || *frames == 0)
 		return rc;
+	if (*frames > frame_requested) {
+		syslog(LOG_ERR,
+		       "frames returned from get_buffer is greater than "
+		       "requested: %u > %u", *frames, frame_requested);
+		return -EINVAL;
+	}
 
 	/* TODO(dgreid) - This assumes interleaved audio. */
 	hw_buffer = (*area)->channels[0].buf;
@@ -684,7 +691,17 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 				 struct cras_audio_area **area,
 				 unsigned *frames)
 {
-	return iodev->get_buffer(iodev, area, frames);
+	int rc;
+	unsigned frame_requested = *frames;
+
+	rc = iodev->get_buffer(iodev, area, frames);
+	if (*frames > frame_requested) {
+		syslog(LOG_ERR,
+		       "frames returned from get_buffer is greater than "
+		       "requested: %u > %u", *frames, frame_requested);
+		return -EINVAL;
+	}
+	return rc;
 }
 
 int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level)
