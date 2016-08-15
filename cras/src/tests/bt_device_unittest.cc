@@ -239,6 +239,11 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device *device)
 {
 }
 
+int cras_hfp_ag_start(struct cras_bt_device *device)
+{
+  return 0;
+}
+
 /* From hfp_slc */
 int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 {

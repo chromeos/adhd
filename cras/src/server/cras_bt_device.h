@@ -144,16 +144,6 @@ int cras_bt_device_has_a2dp(struct cras_bt_device *device);
  */
 int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);
 
-/* Adds an a2dp delay timer to this device. */
-void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
-					 struct cras_timer *timer);
-
-/* Cancels the a2dp delay timer if it's not been trigered yet. */
-void cras_bt_device_cancel_a2dp_delay_timer(struct cras_bt_device *device);
-
-/* Removes any a2dp delay timer from this device. */
-void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device);
-
 /* Updates the volume to bt_device when a volume change event is reported. */
 void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 					   int volume);
@@ -164,5 +154,8 @@ int cras_bt_device_cancel_suspend(struct cras_bt_device *device);
 /* Schedules device to suspend after given delay. */
 int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
 				    unsigned int msec);
+
+/* Notifies bt device that audio gateway is ititialized. */
+void cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
 
 #endif /* CRAS_BT_DEVICE_H_ */

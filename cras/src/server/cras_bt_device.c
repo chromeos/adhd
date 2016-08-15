@@ -53,8 +53,6 @@ static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
  *    bt_iodevs - The pointer to the cras_iodevs of this device.
  *    active_profile - The flag to indicate the active audio profile this
  *        device is currently using.
- *    a2dp_delay_timer - The timer used to delay the allocation of HFP/HSP
- *        stuff until a2dp connection is established.
  *    suspend_timer - The timer used to suspend device.
  *    switch_profile_timer - The timer used to delay enabling iodev after
  *        profile switch.
@@ -73,7 +71,6 @@ struct cras_bt_device {
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	unsigned int active_profile;
 	int use_hardware_volume;
-	struct cras_timer *a2dp_delay_timer;
 	struct cras_timer *suspend_timer;
 	struct cras_timer *switch_profile_timer;
 	void (*append_iodev_cb)(void *data);
@@ -381,24 +378,9 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 		(!idev || !cras_iodev_is_open(idev));
 }
 
-void cras_bt_device_add_a2dp_delay_timer(struct cras_bt_device *device,
-					struct cras_timer *timer)
+void cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 {
-	device->a2dp_delay_timer = timer;
-}
-
-void cras_bt_device_cancel_a2dp_delay_timer(struct cras_bt_device *device)
-{
-	struct cras_tm *tm = cras_system_state_get_tm();
-
-	if (device->a2dp_delay_timer)
-		cras_tm_cancel_timer(tm, device->a2dp_delay_timer);
-	device->a2dp_delay_timer = NULL;
-}
-
-void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device)
-{
-	device->a2dp_delay_timer = NULL;
+	cras_hfp_ag_start(device);
 }
 
 int cras_bt_device_get_active_profile(const struct cras_bt_device *device)
