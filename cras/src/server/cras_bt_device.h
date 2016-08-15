@@ -158,4 +158,11 @@ void cras_bt_device_rm_a2dp_delay_timer(struct cras_bt_device *device);
 void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 					   int volume);
 
+/* Cancels any scheduled suspension of device. */
+int cras_bt_device_cancel_suspend(struct cras_bt_device *device);
+
+/* Schedules device to suspend after given delay. */
+int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
+				    unsigned int msec);
+
 #endif /* CRAS_BT_DEVICE_H_ */

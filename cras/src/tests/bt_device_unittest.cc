@@ -231,6 +231,14 @@ struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
   return NULL;
 }
 
+void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device)
+{
+}
+
+void cras_a2dp_suspend_connected_device(struct cras_bt_device *device)
+{
+}
+
 /* From hfp_slc */
 int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 {

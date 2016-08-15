@@ -270,7 +270,7 @@ static void possibly_remove_conflict_dev(void *data)
 	/* Kick out any previously connected a2dp iodev. */
 	a2dp_device = cras_a2dp_connected_device();
 	if (a2dp_device && a2dp_device != device) {
-		cras_a2dp_suspend_connected_device();
+		cras_a2dp_suspend_connected_device(a2dp_device);
 		cras_bt_device_disconnect(new_ag->conn, a2dp_device);
 	}
 }
@@ -385,6 +385,15 @@ void cras_hfp_ag_suspend()
 {
 	struct audio_gateway *ag;
 	DL_FOREACH(connected_ags, ag)
+		destroy_audio_gateway(ag);
+}
+
+void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device)
+{
+	struct audio_gateway *ag;
+
+	DL_SEARCH_SCALAR(connected_ags, ag, device, device);
+	if (ag)
 		destroy_audio_gateway(ag);
 }
 

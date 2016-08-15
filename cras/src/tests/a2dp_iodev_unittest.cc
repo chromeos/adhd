@@ -420,6 +420,17 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
   return 0;
 }
 
+int cras_bt_device_cancel_suspend(struct cras_bt_device *device)
+{
+  return 0;
+}
+
+int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
+                                    unsigned int msec)
+{
+  return 0;
+}
+
 int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 {
   init_a2dp_called++;
@@ -502,21 +513,6 @@ void audio_thread_rm_callback(int fd) {
 }
 
 void audio_thread_enable_callback(int fd, int enabled) {
-}
-
-// From a2dp endpoint
-int cras_a2dp_has_suspend_timer()
-{
-  return 0;
-}
-
-void cras_a2dp_schedule_suspend_timer(struct cras_iodev *iodev,
-                                      unsigned int msec)
-{
-}
-
-void cras_a2dp_cancel_suspend_timer(struct cras_iodev *iodev)
-{
 }
 
 }

@@ -192,6 +192,7 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	int err;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct cras_bt_device *device;
 
 	if (!a2dpio->transport)
 		return 0;
@@ -203,7 +204,9 @@ static int close_dev(struct cras_iodev *iodev)
 	if (err < 0)
 		syslog(LOG_ERR, "transport_release failed");
 
-	cras_a2dp_cancel_suspend_timer(iodev);
+	device = cras_bt_transport_device(a2dpio->transport);
+	if (device)
+		cras_bt_device_cancel_suspend(device);
 	a2dp_drain(&a2dpio->a2dp);
 	byte_buffer_destroy(a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
@@ -257,9 +260,16 @@ static int flush_data(void *arg)
 	size_t format_bytes;
 	int written = 0;
 	struct a2dp_io *a2dpio;
+	struct cras_bt_device *device;
 
 	a2dpio = (struct a2dp_io *)iodev;
 	format_bytes = cras_get_format_bytes(iodev->format);
+	device = cras_bt_transport_device(a2dpio->transport);
+
+	/* If bt device has been destroyed, this a2dp iodev will soon be
+	 * destroyed as well. */
+	if (device == NULL)
+		return -EINVAL;
 
 encode_more:
 	while (buf_queued_bytes(a2dpio->pcm_buf)) {
@@ -291,23 +301,21 @@ encode_more:
 	if (written == -EAGAIN) {
 		/* If EAGAIN error lasts longer than 5 seconds, suspend the
 		 * a2dp connection. */
-		if (!cras_a2dp_has_suspend_timer())
-			cras_a2dp_schedule_suspend_timer(iodev, 5000);
-
+		cras_bt_device_schedule_suspend(device, 5000);
 		audio_thread_enable_callback(
 				cras_bt_transport_fd(a2dpio->transport), 1);
 		return 0;
 	} else if (written < 0) {
 		/* Suspend a2dp immediately when receives error other than
 		 * EAGAIN. */
-		cras_a2dp_cancel_suspend_timer(iodev);
-		cras_a2dp_schedule_suspend_timer(iodev, 0);
+		cras_bt_device_cancel_suspend(device);
+		cras_bt_device_schedule_suspend(device, 0);
 		return written;
 	}
 
 	/* Data succcessfully written to a2dp socket, cancel any scheduled
 	 * suspend timer. */
-	cras_a2dp_cancel_suspend_timer(iodev);
+	cras_bt_device_cancel_suspend(device);
 
 	/* If it looks okay to write more and we do have queued data, try
 	 * encode more. */

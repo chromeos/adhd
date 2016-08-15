@@ -18,6 +18,7 @@
 #include <syslog.h>
 
 #include "bluetooth.h"
+#include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_constants.h"
@@ -54,6 +55,7 @@ static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
  *        device is currently using.
  *    a2dp_delay_timer - The timer used to delay the allocation of HFP/HSP
  *        stuff until a2dp connection is established.
+ *    suspend_timer - The timer used to suspend device.
  *    switch_profile_timer - The timer used to delay enabling iodev after
  *        profile switch.
  *    append_iodev_cb - The callback to trigger when an iodev is appended.
@@ -72,6 +74,7 @@ struct cras_bt_device {
 	unsigned int active_profile;
 	int use_hardware_volume;
 	struct cras_timer *a2dp_delay_timer;
+	struct cras_timer *suspend_timer;
 	struct cras_timer *switch_profile_timer;
 	void (*append_iodev_cb)(void *data);
 
@@ -79,6 +82,8 @@ struct cras_bt_device {
 };
 
 enum BT_DEVICE_COMMAND {
+	BT_DEVICE_CANCEL_SUSPEND,
+	BT_DEVICE_SCHEDULE_SUSPEND,
 	BT_DEVICE_SWITCH_PROFILE,
 	BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV,
 };
@@ -88,6 +93,7 @@ struct bt_device_msg {
 	enum BT_DEVICE_COMMAND cmd;
 	struct cras_bt_device *device;
 	struct cras_iodev *dev;
+	unsigned int arg;
 };
 
 static struct cras_bt_device *devices;
@@ -192,11 +198,13 @@ int cras_bt_device_disconnect(DBusConnection *conn,
 
 void cras_bt_device_destroy(struct cras_bt_device *device)
 {
+	struct cras_tm *tm = cras_system_state_get_tm();
 	DL_DELETE(devices, device);
 
 	if (device->switch_profile_timer)
-		cras_tm_cancel_timer(cras_system_state_get_tm(),
-				     device->switch_profile_timer);
+		cras_tm_cancel_timer(tm, device->switch_profile_timer);
+	if (device->suspend_timer)
+		cras_tm_cancel_timer(tm, device->suspend_timer);
 	free(device->object_path);
 	free(device->address);
 	free(device->name);
@@ -681,6 +689,34 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
 	return device->use_hardware_volume;
 }
 
+int cras_bt_device_cancel_suspend(struct cras_bt_device *device)
+{
+	struct bt_device_msg msg;
+	int rc;
+	msg.header.type = CRAS_MAIN_BT;
+	msg.header.length = sizeof(msg);
+	msg.cmd = BT_DEVICE_CANCEL_SUSPEND;
+	msg.device = device;
+
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
+	return rc;
+}
+
+int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
+				    unsigned int msec)
+{
+	struct bt_device_msg msg;
+	int rc;
+	msg.header.type = CRAS_MAIN_BT;
+	msg.header.length = sizeof(msg);
+	msg.cmd = BT_DEVICE_SCHEDULE_SUSPEND;
+	msg.device = device;
+	msg.arg = msec;
+
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
+	return rc;
+}
+
 /* This diagram describes how the profile switching happens. When
  * certain conditions met, bt iodev will call the APIs below to interact
  * with main thread to switch to another active profile.
@@ -823,6 +859,36 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 	}
 }
 
+static void bt_device_suspend_cb(struct cras_timer *timer, void *arg)
+{
+	struct cras_bt_device *device = (struct cras_bt_device *)arg;
+
+	device->suspend_timer = NULL;
+
+	cras_a2dp_suspend_connected_device(device);
+	cras_hfp_ag_suspend_connected_device(device);
+}
+
+static void bt_device_schedule_suspend(struct cras_bt_device *device,
+				       unsigned int msec)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (device->suspend_timer)
+		return;
+	device->suspend_timer = cras_tm_create_timer(tm, msec,
+			bt_device_suspend_cb, device);
+}
+
+static void bt_device_cancel_suspend(struct cras_bt_device *device)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	if (device->suspend_timer == NULL)
+		return;
+	cras_tm_cancel_timer(tm, device->suspend_timer);
+	device->suspend_timer = NULL;
+}
+
 static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 {
 	struct bt_device_msg *bt_msg = (struct bt_device_msg *)msg;
@@ -833,6 +899,12 @@ static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 		break;
 	case BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV:
 		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 1);
+		break;
+	case BT_DEVICE_SCHEDULE_SUSPEND:
+		bt_device_schedule_suspend(bt_msg->device, bt_msg->arg);
+		break;
+	case BT_DEVICE_CANCEL_SUSPEND:
+		bt_device_cancel_suspend(bt_msg->device);
 		break;
 	default:
 		break;

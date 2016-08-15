@@ -49,6 +49,9 @@ int cras_hsp_ag_profile_create(DBusConnection *conn);
  * an A2DP only device is connected. */
 void cras_hfp_ag_suspend();
 
+/* Suspends audio gateway associated with given bt device. */
+void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device);
+
 /* Gets the active SLC handle. Used for HFP qualification. */
 struct hfp_slc_handle *cras_hfp_ag_get_active_handle();
 
