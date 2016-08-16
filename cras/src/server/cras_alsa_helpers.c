@@ -624,11 +624,15 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		cras_alsa_attempt_resume(handle);
 		frames = 0;
 	} else if (frames < 0) {
-		syslog(LOG_INFO, "pcm_avail error %s\n", snd_strerror(frames));
+		syslog(LOG_ERR, "pcm_avail error %s\n", snd_strerror(frames));
 		rc = frames;
 		frames = 0;
-	} else if (frames > (snd_pcm_sframes_t)buf_size)
+	} else if (frames > (snd_pcm_sframes_t)buf_size) {
+		syslog(LOG_ERR,
+		       "pcm_avail returned frames larger than buf_size: "
+		       "%ld > %lu\n", frames, buf_size);
 		frames = buf_size;
+	}
 	*used = frames;
 	return rc;
 }
