@@ -739,7 +739,7 @@ TEST(AlsaUcm, OptimizeNoStream) {
   EXPECT_EQ(0, ucm_get_optimize_no_stream_flag(mgr));
 }
 
-TEST(AlsaUCM, UseFullySpecifiedUCMConfig) {
+TEST(AlsaUcm, UseFullySpecifiedUCMConfig) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   int fully_specified_flag;
 
