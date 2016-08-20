@@ -155,9 +155,13 @@ static int put_buffer(struct cras_iodev *iodev, unsigned frames)
 static int flush_buffer(struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
+
 	empty_iodev->buffer_level = current_level(iodev);
-	if (iodev->direction == CRAS_STREAM_INPUT)
+	if (iodev->direction == CRAS_STREAM_INPUT) {
 		empty_iodev->buffer_level = 0;
+		clock_gettime(CLOCK_MONOTONIC_RAW,
+			      &empty_iodev->last_buffer_access);
+	}
 	return 0;
 }
 
