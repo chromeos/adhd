@@ -15,3 +15,4 @@ export AR	= /usr/bin/ar
 export ECHO	= /bin/echo
 export MESSAGE	= $(ECHO) "$(foreach v,$(shell seq $(MAKELEVEL))," ") [$(MAKELEVEL)] "
 export INSTALL	= /usr/bin/install
+export LINK	= /bin/ln
