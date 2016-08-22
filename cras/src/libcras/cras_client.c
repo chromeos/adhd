@@ -3033,8 +3033,11 @@ read_nodes_again:
 		num_nodes = state->num_input_nodes;
 	}
 	for (i = 0; i < num_nodes; i++) {
-		if ((enum CRAS_NODE_TYPE)node_list[i].type_enum == type)
-			return node_list[i].iodev_idx;
+		if ((enum CRAS_NODE_TYPE)node_list[i].type_enum == type) {
+			int ret_idx = node_list[i].iodev_idx;
+			server_state_unlock(client, lock_rc);
+			return ret_idx;
+		}
 	}
 	if (end_server_state_read(state, version))
 		goto read_nodes_again;
