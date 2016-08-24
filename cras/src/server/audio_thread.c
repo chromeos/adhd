@@ -221,6 +221,7 @@ static int append_stream(struct audio_thread *thread,
 	struct cras_iodev *dev;
 	struct dev_stream *out;
 	struct timespec init_cb_ts;
+	const struct timespec *stream_ts;
 	unsigned int i;
 	int rc = 0;
 
@@ -240,8 +241,9 @@ static int append_stream(struct audio_thread *thread,
 		 * use the timestamp now as the initial callback time for
 		 * new stream.
 		 */
-		if (dev->streams)
-			init_cb_ts = *dev_stream_next_cb_ts(dev->streams);
+		if (dev->streams &&
+		    (stream_ts = dev_stream_next_cb_ts(dev->streams)))
+			init_cb_ts = *stream_ts;
 		else
 			clock_gettime(CLOCK_MONOTONIC_RAW, &init_cb_ts);
 
