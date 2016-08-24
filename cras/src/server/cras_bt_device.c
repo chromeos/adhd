@@ -41,7 +41,7 @@ static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
  * associate with some CRAS modules if it supports audio.
  * Members:
  *    object_path - Object path of the bluetooth device.
- *    adapter - The adapter object associates with this device.
+ *    adapter - The object path of the adapter associates with this device.
  *    address - The BT address of this device.
  *    name - The readable name of this device.
  *    bluetooth_class - The bluetooth class of this device.
@@ -60,7 +60,7 @@ static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
  */
 struct cras_bt_device {
 	char *object_path;
-	struct cras_bt_adapter *adapter;
+	char *adapter_obj_path;
 	char *address;
 	char *name;
 	uint32_t bluetooth_class;
@@ -257,7 +257,7 @@ const char *cras_bt_device_object_path(const struct cras_bt_device *device)
 struct cras_bt_adapter *cras_bt_device_adapter(
 	const struct cras_bt_device *device)
 {
-	return device->adapter;
+	return cras_bt_adapter_get(device->adapter_obj_path);
 }
 
 const char *cras_bt_device_address(const struct cras_bt_device *device)
@@ -468,16 +468,14 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 			dbus_message_iter_get_basic(&variant_iter, &value);
 
 			if (strcmp(key, "Adapter") == 0) {
-				device->adapter = cras_bt_adapter_get(value);
-
+				free(device->adapter_obj_path);
+				device->adapter_obj_path = strdup(value);
 			} else if (strcmp(key, "Address") == 0) {
 				free(device->address);
 				device->address = strdup(value);
-
 			} else if (strcmp(key, "Alias") == 0) {
 				free(device->name);
 				device->name = strdup(value);
-
 			}
 
 		} else if (type == DBUS_TYPE_UINT32) {
@@ -540,7 +538,8 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 		dbus_message_iter_get_basic(invalidated_array_iter, &key);
 
 		if (strcmp(key, "Adapter") == 0) {
-			device->adapter = NULL;
+			free(device->adapter_obj_path);
+			device->adapter_obj_path = NULL;
 		} else if (strcmp(key, "Address") == 0) {
 			free(device->address);
 			device->address = NULL;
@@ -653,8 +652,10 @@ int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
 {
 	struct sco_options so;
 	socklen_t len = sizeof(so);
+	struct cras_bt_adapter *adapter;
 
-	if (cras_bt_adapter_on_usb(device->adapter))
+	adapter = cras_bt_adapter_get(device->adapter_obj_path);
+	if (cras_bt_adapter_on_usb(adapter))
 		return DEFAULT_HFP_MTU_BYTES;
 
 	if (getsockopt(sco_socket, SOL_SCO, SCO_OPTIONS, &so, &len) < 0) {

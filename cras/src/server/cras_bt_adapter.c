@@ -111,6 +111,9 @@ struct cras_bt_adapter *cras_bt_adapter_get(const char *object_path)
 {
 	struct cras_bt_adapter *adapter;
 
+	if (object_path == NULL)
+		return NULL;
+
 	DL_FOREACH(adapters, adapter) {
 		if (strcmp(adapter->object_path, object_path) == 0)
 			return adapter;
