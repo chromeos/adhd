@@ -294,17 +294,30 @@ static int open_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-/* Check if ALSA device is opened by checking if handle is valid.
- * Note that to fully open a cras_iodev, ALSA device is opened first, then there
- * are some device init settings to be done in init_device_settings.
- * Therefore, when setting volume/mute/gain in init_device_settings,
- * cras_iodev is not in CRAS_IODEV_STATE_OPEN yet. We need to check if handle
- * is valid when setting those properties, instead of checking
- * cras_iodev_is_open.
- */
-static int has_handle(const struct alsa_io *aio)
+static int is_open(const struct cras_iodev *iodev)
 {
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
 	return !!aio->handle;
+}
+
+static int dev_running(const struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	snd_pcm_t *handle = aio->handle;
+
+	/* If device is suspended, resume the device to its previous state.
+	 * Otherwise, we might get 0 from dev_running but the device is
+	 * resumed later by other cras_alsa_attempt_resume call in
+	 * cras_alsa_helpers. */
+	if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
+		/* If cras_alsa_attempt_resume really fails, let it be handled
+		 * in later cras_alsa_attempt_resume calls because it is not
+		 * clean to let the user of dev_running to handle it. */
+		cras_alsa_attempt_resume(handle);
+	}
+
+	return snd_pcm_state(handle) == SND_PCM_STATE_RUNNING;
 }
 
 static int start(const struct cras_iodev *iodev)
@@ -515,7 +528,7 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 	const struct cras_volume_curve *curve;
 
 	/* Only set the limits if the dev is active. */
-	if (!has_handle(aio))
+	if (!is_open(&aio->base))
 		return;
 
 	curve = get_curve_for_active_output(aio);
@@ -529,7 +542,7 @@ static void set_alsa_mute(const struct alsa_io *aio, int muted)
 {
 	struct alsa_output_node *aout;
 
-	if (!has_handle(aio))
+	if (!is_open(&aio->base))
 		return;
 
 	aout = get_active_output(aio);
@@ -556,7 +569,7 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 		return;
 
 	/* Only set the volume if the dev is active. */
-	if (!has_handle(aio))
+	if (!is_open(&aio->base))
 		return;
 
 	volume = cras_system_get_volume();
@@ -595,7 +608,7 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 		return;
 
 	/* Only set the volume if the dev is active. */
-	if (!has_handle(aio))
+	if (!is_open(&aio->base))
 		return;
 
 	gain = cras_system_get_capture_gain();
@@ -1478,10 +1491,7 @@ static int output_should_wake(const struct cras_iodev *odev)
 	if (aio->is_free_running)
 		return 0;
 	else
-		return ((cras_iodev_state(odev) ==
-					CRAS_IODEV_STATE_NO_STREAM_RUN) ||
-		        (cras_iodev_state(odev) ==
-					CRAS_IODEV_STATE_NORMAL_RUN));
+		return dev_running(odev);
 }
 
 /*
@@ -1551,6 +1561,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	}
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;
+	iodev->is_open = is_open;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
@@ -1558,6 +1569,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->put_buffer = put_buffer;
 	iodev->flush_buffer = flush_buffer;
 	iodev->start = start;
+	iodev->dev_running = dev_running;
 	iodev->update_active_node = update_active_node;
 	iodev->update_channel_layout = update_channel_layout;
 	iodev->set_hotword_model = set_hotword_model;

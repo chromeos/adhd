@@ -44,17 +44,24 @@ class BtDeviceTestSuite : public testing::Test {
     virtual void SetUp() {
       ResetStubData();
       bt_iodev1.direction = CRAS_STREAM_OUTPUT;
+      bt_iodev1.is_open = is_open;
       bt_iodev1.update_active_node = update_active_node;
       bt_iodev2.direction = CRAS_STREAM_INPUT;
+      bt_iodev2.is_open = is_open;
       bt_iodev2.update_active_node = update_active_node;
       d1_.direction = CRAS_STREAM_OUTPUT;
+      d1_.is_open = is_open;
       d1_.update_active_node = update_active_node;
       d2_.direction = CRAS_STREAM_OUTPUT;
+      d2_.is_open = is_open;
       d2_.update_active_node = update_active_node;
       d3_.direction = CRAS_STREAM_INPUT;
+      d3_.is_open = is_open;
       d3_.update_active_node = update_active_node;
     }
-
+    static int is_open(const cras_iodev* iodev) {
+      return is_open_;
+    }
     static void update_active_node(struct cras_iodev *iodev,
                                    unsigned node_idx,
                                    unsigned dev_enabled) {
@@ -65,7 +72,10 @@ class BtDeviceTestSuite : public testing::Test {
     struct cras_iodev d3_;
     struct cras_iodev d2_;
     struct cras_iodev d1_;
+    static int is_open_;
 };
+
+int BtDeviceTestSuite::is_open_;
 
 TEST(BtDeviceSuite, CreateBtDevice) {
   struct cras_bt_device *device;

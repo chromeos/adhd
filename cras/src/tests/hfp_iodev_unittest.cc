@@ -124,6 +124,7 @@ TEST(HfpIodev, OpenHfpIodev) {
 
   /* hfp_info is running now */
   hfp_info_running_return_val = 1;
+  ASSERT_EQ(1, iodev->is_open(iodev));
 
   iodev->close_dev(iodev);
   ASSERT_EQ(1, hfp_info_rm_iodev_called);
@@ -147,6 +148,8 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   ASSERT_EQ(0, cras_bt_device_sco_connect_called);
   ASSERT_EQ(0, hfp_info_start_called);
   ASSERT_EQ(1, hfp_info_add_iodev_called);
+
+  ASSERT_EQ(1, iodev->is_open(iodev));
 
   hfp_info_has_iodev_return_val = 1;
   iodev->close_dev(iodev);

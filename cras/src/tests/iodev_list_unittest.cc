@@ -64,6 +64,8 @@ static struct cras_iodev *cras_iodev_close_dev;
 static struct cras_iodev dummy_empty_iodev[2];
 static stream_callback *stream_add_cb;
 static stream_callback *stream_rm_cb;
+static int iodev_is_open;
+static int empty_iodev_is_open[CRAS_NUM_DIRECTIONS];
 static struct cras_rstream *stream_list_get_ret;
 static int audio_thread_drain_stream_return;
 static int audio_thread_drain_stream_called;
@@ -106,6 +108,14 @@ void dummy_update_active_node(struct cras_iodev *iodev,
                               unsigned dev_enabled) {
 }
 
+/* For iodev is_open. */
+int cras_iodev_is_open_stub(const struct cras_iodev *dev) {
+  enum CRAS_STREAM_DIRECTION dir = dev->direction;
+  if (dev == &dummy_empty_iodev[dir])
+    return empty_iodev_is_open[dir];
+  return iodev_is_open;
+}
+
 class IoDevTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
@@ -135,6 +145,7 @@ class IoDevTestSuite : public testing::Test {
       d1_.set_mute = NULL;
       d1_.set_capture_gain = NULL;
       d1_.set_capture_mute = NULL;
+      d1_.is_open = is_open;
       d1_.update_supported_formats = NULL;
       d1_.update_active_node = update_active_node;
       d1_.format = NULL;
@@ -149,6 +160,7 @@ class IoDevTestSuite : public testing::Test {
       d2_.set_mute = NULL;
       d2_.set_capture_gain = NULL;
       d2_.set_capture_mute = NULL;
+      d2_.is_open = is_open;
       d2_.update_supported_formats = NULL;
       d2_.update_active_node = update_active_node;
       d2_.format = NULL;
@@ -163,6 +175,7 @@ class IoDevTestSuite : public testing::Test {
       d3_.set_mute = NULL;
       d3_.set_capture_gain = NULL;
       d3_.set_capture_mute = NULL;
+      d3_.is_open = is_open;
       d3_.update_supported_formats = NULL;
       d3_.update_active_node = update_active_node;
       d3_.format = NULL;
@@ -178,6 +191,7 @@ class IoDevTestSuite : public testing::Test {
       loopback_input.set_mute = NULL;
       loopback_input.set_capture_gain = NULL;
       loopback_input.set_capture_mute = NULL;
+      loopback_input.is_open = is_open;
       loopback_input.update_supported_formats = NULL;
       loopback_input.update_active_node = update_active_node;
       loopback_input.format = NULL;
@@ -208,6 +222,7 @@ class IoDevTestSuite : public testing::Test {
       cras_alert_create_called = 0;
       cras_alert_destroy_called = 0;
       cras_alert_pending_called = 0;
+      is_open_ = 0;
       audio_thread_rm_open_dev_called = 0;
       audio_thread_add_open_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
@@ -248,6 +263,10 @@ class IoDevTestSuite : public testing::Test {
       update_active_node_dev_enabled_val[i] = dev_enabled;
     }
 
+    static int is_open(const cras_iodev* iodev) {
+      return is_open_;
+    }
+
     struct cras_iodev d1_;
     struct cras_iodev d2_;
     struct cras_iodev d3_;
@@ -257,6 +276,7 @@ class IoDevTestSuite : public testing::Test {
     static int set_mute_1_called_;
     static int set_capture_gain_1_called_;
     static int set_capture_mute_1_called_;
+    static int is_open_;
     struct cras_ionode node1, node2, node3;
 };
 
@@ -264,6 +284,7 @@ int IoDevTestSuite::set_volume_1_called_;
 int IoDevTestSuite::set_mute_1_called_;
 int IoDevTestSuite::set_capture_gain_1_called_;
 int IoDevTestSuite::set_capture_mute_1_called_;
+int IoDevTestSuite::is_open_;
 
 // Check that Init registers a volume changed callback. */
 TEST_F(IoDevTestSuite, InitSetup) {
@@ -295,9 +316,11 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
+  iodev_is_open = 0;
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 1));
@@ -305,6 +328,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   stream_add_cb(&rstream);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
 
   DL_APPEND(stream_list, &rstream2);
   stream_add_cb(&rstream2);
@@ -314,6 +338,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   audio_thread_rm_open_dev_called = 0;
   suspend_cb(NULL, NULL);
   EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+  iodev_is_open = 0;
 
   /* Test disable/enable dev won't cause add_stream to audio_thread. */
   audio_thread_add_stream_called = 0;
@@ -340,6 +365,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
   EXPECT_EQ(2, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream3, audio_thread_add_stream_stream);
+  iodev_is_open = 1;
 
   cras_iodev_list_deinit();
   EXPECT_EQ(3, cras_observer_notify_active_node_called);
@@ -357,13 +383,16 @@ TEST_F(IoDevTestSuite, SelectNode) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
 
+  iodev_is_open = 0;
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 1));
@@ -371,6 +400,7 @@ TEST_F(IoDevTestSuite, SelectNode) {
   stream_add_cb(&rstream);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
 
   DL_APPEND(stream_list, &rstream2);
   stream_add_cb(&rstream2);
@@ -390,10 +420,12 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
 
@@ -426,6 +458,7 @@ TEST_F(IoDevTestSuite, SelectNonExistingNode) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
@@ -749,6 +782,7 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   d2_.direction = CRAS_STREAM_OUTPUT;
   d3_.direction = CRAS_STREAM_OUTPUT;
+  d3_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
   rc = cras_iodev_list_add_output(&d2_);
@@ -756,6 +790,7 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   rc = cras_iodev_list_add_output(&d3_);
   ASSERT_EQ(0, rc);
 
+  iodev_is_open = 0;
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d3_.info.idx, 1));
@@ -765,6 +800,7 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   // If a stream is added, the device should be opened.
   stream_add_cb(&rstream);
   ASSERT_EQ(audio_thread_add_open_dev_called, 1);
+  iodev_is_open = 1;
   audio_thread_rm_open_dev_called = 0;
   audio_thread_drain_stream_return = 10;
   stream_rm_cb(&rstream);
@@ -781,6 +817,7 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   clock_gettime_retspec.tv_sec += 30;
   cras_tm_timer_cb(NULL, NULL);
   ASSERT_EQ(1, audio_thread_rm_open_dev_called);
+  iodev_is_open = 0;
 
   audio_thread_rm_open_dev_called = 0;
   cras_iodev_list_rm_output(&d3_);
@@ -800,9 +837,11 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
 
+  iodev_is_open = 0;
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 1));
@@ -812,6 +851,7 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
   // If a stream is added, the device should be opened.
   stream_add_cb(&rstream);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  iodev_is_open = 1;
 
   audio_thread_rm_open_dev_called = 0;
   audio_thread_drain_stream_return = 0;
@@ -872,6 +912,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   // Add 2 output devices.
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.is_open = cras_iodev_is_open_stub;
   EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
   d2_.direction = CRAS_STREAM_OUTPUT;
   EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
@@ -886,6 +927,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  iodev_is_open = 1;
 
   // Enable d2, check pinned stream is not added to d2.
   cras_iodev_list_enable_dev(&d2_);
@@ -1108,6 +1150,7 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
 
 struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction) {
   dummy_empty_iodev[direction].direction = direction;
+  dummy_empty_iodev[direction].is_open = cras_iodev_is_open_stub;
   dummy_empty_iodev[direction].update_active_node = dummy_update_active_node;
   if (dummy_empty_iodev[direction].active_node == NULL) {
     struct cras_ionode *node = (struct cras_ionode *)calloc(1, sizeof(*node));
@@ -1136,12 +1179,17 @@ void loopback_iodev_destroy(struct cras_iodev *iodev) {
 
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
-  iodev->state = CRAS_IODEV_STATE_OPEN;
+  enum CRAS_STREAM_DIRECTION dir = iodev->direction;
+  if (iodev == &dummy_empty_iodev[dir])
+    empty_iodev_is_open[dir] = 1;
+  iodev_is_open = 1;
   return 0;
 }
 
 int cras_iodev_close(struct cras_iodev *iodev) {
-  iodev->state = CRAS_IODEV_STATE_CLOSE;
+  enum CRAS_STREAM_DIRECTION dir = iodev->direction;
+  if (iodev == &dummy_empty_iodev[dir])
+    empty_iodev_is_open[dir] = 0;
   cras_iodev_close_called++;
   cras_iodev_close_dev = iodev;
   return 0;

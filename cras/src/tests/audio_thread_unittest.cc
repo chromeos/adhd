@@ -74,6 +74,8 @@ class StreamDeviceSuite : public testing::Test {
       iodev->direction = direction;
       iodev->open_dev = open_dev;
       iodev->close_dev = close_dev;
+      iodev->dev_running = dev_running;
+      iodev->is_open = is_open;
       iodev->frames_queued = frames_queued;
       iodev->delay_frames = delay_frames;
       iodev->get_buffer = get_buffer;
@@ -88,6 +90,9 @@ class StreamDeviceSuite : public testing::Test {
       device_id_ = 0;
       open_dev_called_ = 0;
       close_dev_called_ = 0;
+      dev_running_called_ = 0;
+      dev_running_ret = 0;
+      is_open_ = 0;
       frames_queued_ = 0;
       delay_frames_ = 0;
       audio_buffer_size_ = 0;
@@ -122,6 +127,15 @@ class StreamDeviceSuite : public testing::Test {
     static int close_dev(cras_iodev* iodev) {
       close_dev_called_++;
       return 0;
+    }
+
+    static int dev_running(const cras_iodev* iodev) {
+      dev_running_called_++;
+      return dev_running_ret;
+    }
+
+    static int is_open(const cras_iodev* iodev) {
+      return is_open_;
     }
 
     static int frames_queued(const cras_iodev* iodev) {
@@ -168,16 +182,22 @@ class StreamDeviceSuite : public testing::Test {
 
     static int open_dev_called_;
     static int close_dev_called_;
+    static int dev_running_called_;
+    static int is_open_;
     static int frames_queued_;
     static int delay_frames_;
     static struct cras_audio_format format_;
     static struct cras_audio_area *area_;
     static uint8_t audio_buffer_[BUFFER_SIZE];
     static unsigned int audio_buffer_size_;
+    static int dev_running_ret;
 };
 
 int StreamDeviceSuite::open_dev_called_;
 int StreamDeviceSuite::close_dev_called_;
+int StreamDeviceSuite::dev_running_called_;
+int StreamDeviceSuite::dev_running_ret;
+int StreamDeviceSuite::is_open_;
 int StreamDeviceSuite::frames_queued_;
 int StreamDeviceSuite::delay_frames_;
 struct cras_audio_format StreamDeviceSuite::format_;
@@ -399,7 +419,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
   // Assume device is started.
-  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  dev_running_ret = 1;
 
   // cras_iodev should handle no stream playback.
   write_output_samples(thread_, adev);
@@ -426,7 +446,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
   // Assume device in no stream state.
-  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  iodev.no_stream_state = 1;
 
   SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
   thread_add_stream(thread_, &rstream, &piodev, 1);
@@ -509,7 +529,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
   // Assume device is running and there is an underrun. There is no frame
   // queued and there is no sample written in this cycle.
   // Audio thread should fill one cb level of zeros.
-  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  dev_running_ret = 1;
   frames_queued_ = 0;
   cras_iodev_all_streams_written_ret = 0;
   write_output_samples(thread_, adev);
@@ -887,11 +907,6 @@ struct cras_audio_area *cras_audio_area_create(int num_channels)
   area->channels[0].buf = (uint8_t*)calloc(1, BUFFER_SIZE * 2 * num_channels);
 
   return area;
-}
-
-enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
-{
-  return iodev->state;
 }
 
 }  // extern "C"

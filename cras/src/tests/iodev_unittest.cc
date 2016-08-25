@@ -64,8 +64,10 @@ static const uint8_t *post_dsp_hook_frames;
 static void *post_dsp_hook_cb_data;
 static int iodev_buffer_size;
 static long cras_system_get_capture_gain_ret_value;
+static int is_open_ret;
 static uint8_t audio_buffer[BUFFER_SIZE];
 static struct cras_audio_area *audio_area;
+static int dev_running_ret_value;
 static unsigned int put_buffer_nframes;
 static int output_should_wake_ret;
 static int no_stream_called;
@@ -125,12 +127,14 @@ void ResetStubData() {
   post_dsp_hook_frames = NULL;
   iodev_buffer_size = 0;
   cras_system_get_capture_gain_ret_value = 0;
+  is_open_ret = 0;
   // Assume there is some data in audio buffer.
   memset(audio_buffer, 0xff, sizeof(audio_buffer));
   if (audio_area) {
     free(audio_area);
     audio_area = NULL;
   }
+  dev_running_ret_value = 0;
   put_buffer_nframes = 0;
   output_should_wake_ret= 0;
   no_stream_called = 0;
@@ -512,6 +516,11 @@ static int post_dsp_hook(const uint8_t *frames, unsigned int nframes,
   post_dsp_hook_frames = frames;
   post_dsp_hook_cb_data = cb_data;
   return 0;
+}
+
+static int dev_running(const struct cras_iodev *iodev)
+{
+  return dev_running_ret_value;
 }
 
 TEST(IoDevPutOutputBuffer, SystemMuted) {
@@ -906,86 +915,21 @@ static int open_dev(struct cras_iodev *iodev) {
   return 0;
 }
 
-TEST(IoDev, OpenOutputDeviceNoStart) {
+TEST(IoDev, OpenDevice) {
   struct cras_iodev iodev;
 
   memset(&iodev, 0, sizeof(iodev));
   iodev.open_dev = open_dev;
-  iodev.direction = CRAS_STREAM_OUTPUT;
   ResetStubData();
 
-  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  // Test that this flag is cleared after cras_iodev_open.
+  iodev.no_stream_state = 1;
 
   iodev_buffer_size = 1024;
   cras_iodev_open(&iodev, 240);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(240, iodev.min_cb_level);
-
-  // Test that state is no stream run when there is no start ops.
-  EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
-}
-
-int fake_start(const struct cras_iodev *iodev) {
-  return 0;
-}
-
-TEST(IoDev, OpenOutputDeviceWithStart) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
-  iodev.direction = CRAS_STREAM_OUTPUT;
-  ResetStubData();
-
-  iodev.state = CRAS_IODEV_STATE_CLOSE;
-  iodev.start = fake_start;
-
-  iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
-  EXPECT_EQ(0, iodev.max_cb_level);
-  EXPECT_EQ(240, iodev.min_cb_level);
-
-  // Test that state is no stream run when there is start ops.
-  EXPECT_EQ(CRAS_IODEV_STATE_OPEN, iodev.state);
-}
-
-TEST(IoDev, OpenInputDeviceNoStart) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
-  iodev.direction = CRAS_STREAM_INPUT;
-  ResetStubData();
-
-  iodev.state = CRAS_IODEV_STATE_CLOSE;
-
-  iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
-  EXPECT_EQ(0, iodev.max_cb_level);
-  EXPECT_EQ(240, iodev.min_cb_level);
-
-  // Test that state is normal run when there is start ops.
-  EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
-}
-
-TEST(IoDev, OpenInputDeviceWithStart) {
-  struct cras_iodev iodev;
-
-  memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
-  iodev.direction = CRAS_STREAM_INPUT;
-  ResetStubData();
-
-  iodev.state = CRAS_IODEV_STATE_CLOSE;
-  iodev.start = fake_start;
-
-  iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
-  EXPECT_EQ(0, iodev.max_cb_level);
-  EXPECT_EQ(240, iodev.min_cb_level);
-
-  // Test that state is normal run when there is start ops.
-  EXPECT_EQ(CRAS_IODEV_STATE_OPEN, iodev.state);
+  EXPECT_EQ(0, iodev.no_stream_state);
 }
 
 TEST(IoDev, AddRmStream) {
@@ -1029,18 +973,23 @@ static int start(const struct cras_iodev *iodev) {
   return 0;
 }
 
+static int is_open(const struct cras_iodev *iodev) {
+  return is_open_ret;
+}
+
 TEST(IoDev, StartDevice) {
   struct cras_iodev iodev;
 
   memset(&iodev, 0, sizeof(iodev));
+  iodev.is_open = is_open;
   iodev.start = start;
 
   // Start fails if it is called in closed state.
-  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  is_open_ret = 0;
   ASSERT_TRUE(cras_iodev_start(&iodev));
 
   // Start can only be called in open state.
-  iodev.state = CRAS_IODEV_STATE_OPEN;
+  is_open_ret = 1;
   EXPECT_EQ(0, cras_iodev_start(&iodev));
 }
 
@@ -1094,6 +1043,7 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   iodev.min_cb_level = min_cb_level;
   iodev.get_buffer = get_buffer;
   iodev.put_buffer = put_buffer;
+  iodev.dev_running = dev_running;
   iodev.frames_queued = frames_queued;
   iodev.min_buffer_level = 0;
   iodev.direction = CRAS_STREAM_OUTPUT;
@@ -1104,7 +1054,7 @@ TEST(IoDev, NoStreamPlaybackRunning) {
 
   // Device is running. hw_level is less than target.
   // Need to fill to callback level * 2;
-  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  dev_running_ret_value = 1;
   fr_queued = hw_level;
   zeros_to_fill = min_cb_level * 2 - hw_level;
 
@@ -1113,7 +1063,7 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, no_stream_called);
   EXPECT_EQ(1, no_stream_enable);
-  EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
+  EXPECT_EQ(1, iodev.no_stream_state);
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
   zeros = (int16_t *)calloc(zeros_to_fill * 2, sizeof(*zeros));
   EXPECT_EQ(0, memcmp(audio_buffer, zeros, zeros_to_fill * 2 * 2));
@@ -1123,7 +1073,7 @@ TEST(IoDev, NoStreamPlaybackRunning) {
 
   // Device is running. hw_level is not less than target.
   // No need to fill zeros.
-  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  dev_running_ret_value = 1;
   hw_level = min_cb_level * 2;
   fr_queued = hw_level;
   zeros_to_fill = 0;
@@ -1132,18 +1082,18 @@ TEST(IoDev, NoStreamPlaybackRunning) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, no_stream_called);
   EXPECT_EQ(1, no_stream_enable);
-  EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
+  EXPECT_EQ(1, iodev.no_stream_state);
   EXPECT_EQ(zeros_to_fill, put_buffer_nframes);
 
   ResetStubData();
 
   // Device is running. Resume normal playback.
-  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  dev_running_ret_value = 1;
   rc = cras_iodev_no_stream_playback(&iodev, 0);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, no_stream_called);
   EXPECT_EQ(0, no_stream_enable);
-  EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
+  EXPECT_EQ(0, iodev.no_stream_state);
 }
 
 TEST(IoDev, OutputDeviceShouldWake) {
@@ -1151,16 +1101,17 @@ TEST(IoDev, OutputDeviceShouldWake) {
   int rc;
 
   memset(&iodev, 0, sizeof(iodev));
+  iodev.dev_running = dev_running;
 
   ResetStubData();
 
   // Device is not running. No need to wake for this device.
-  iodev.state = CRAS_IODEV_STATE_OPEN;
+  dev_running_ret_value = 0;
   rc = cras_iodev_odev_should_wake(&iodev);
   EXPECT_EQ(0, rc);
 
   // Device is running. Need to wake for this device.
-  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  dev_running_ret_value = 1;
   rc = cras_iodev_odev_should_wake(&iodev);
   EXPECT_EQ(1, rc);
 
@@ -1187,6 +1138,7 @@ TEST(IoDev, FramesToPlayInSleep) {
   unsigned int got_hw_level, got_frames;
 
   memset(&iodev, 0, sizeof(iodev));
+  iodev.dev_running = dev_running;
   iodev.frames_queued = frames_queued;
   iodev.min_buffer_level = 0;
   iodev.direction = CRAS_STREAM_OUTPUT;
@@ -1197,7 +1149,7 @@ TEST(IoDev, FramesToPlayInSleep) {
 
   // Device is running. There is at least one stream for this device.
   // hw_level is greater than min_cb_level.
-  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  dev_running_ret_value = 1;
   hw_level = min_cb_level + 50;
   fr_queued = hw_level;
   iodev.streams = reinterpret_cast<struct dev_stream *>(0x1);

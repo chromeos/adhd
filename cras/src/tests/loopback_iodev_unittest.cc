@@ -85,12 +85,18 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
   // Expect that a hook was added to the iodev
   ASSERT_NE(reinterpret_cast<loopback_hook_t>(NULL), loop_hook);
 
+  // Check device open status.
+  EXPECT_EQ(1, loop_in_->is_open(loop_in_));
+
   // Check zero frames queued.
   EXPECT_EQ(0, loop_in_->frames_queued(loop_in_));
 
   // Close loopback devices.
   EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
   EXPECT_EQ(reinterpret_cast<loopback_hook_t>(NULL), loop_hook);
+
+  // Check device open status.
+  EXPECT_EQ(0, loop_in_->is_open(loop_in_));
 }
 
 // Test how loopback works if there isn't any output devices open.

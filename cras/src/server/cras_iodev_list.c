@@ -153,7 +153,7 @@ static int rm_dev_from_list(struct cras_iodev *dev)
 
 	DL_FOREACH(devs[dev->direction].iodevs, tmp)
 		if (tmp == dev) {
-			if (cras_iodev_is_open(dev))
+			if (dev->is_open(dev))
 				return -EBUSY;
 			DL_DELETE(devs[dev->direction].iodevs, dev);
 			devs[dev->direction].size--;
@@ -281,7 +281,7 @@ void sys_vol_change(void *arc, void *data)
 	struct cras_iodev *dev;
 
 	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-		if (dev->set_volume && cras_iodev_is_open(dev))
+		if (dev->set_volume && dev->is_open(dev))
 			dev->set_volume(dev);
 	}
 }
@@ -293,7 +293,7 @@ void sys_mute_change(void *arg, void *data)
 	struct cras_iodev *dev;
 
 	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-		if (dev->set_mute && cras_iodev_is_open(dev))
+		if (dev->set_mute && dev->is_open(dev))
 			dev->set_mute(dev);
 	}
 }
@@ -452,7 +452,7 @@ void sys_cap_gain_change(void *arg, void *data)
 	struct cras_iodev *dev;
 
 	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
-		if (dev->set_capture_gain && cras_iodev_is_open(dev))
+		if (dev->set_capture_gain && dev->is_open(dev))
 			dev->set_capture_gain(dev);
 	}
 }
@@ -464,7 +464,7 @@ void sys_cap_mute_change(void *arg, void *data)
 	struct cras_iodev *dev;
 
 	DL_FOREACH(devs[CRAS_STREAM_INPUT].iodevs, dev) {
-		if (dev->set_capture_mute && cras_iodev_is_open(dev))
+		if (dev->set_capture_mute && dev->is_open(dev))
 			dev->set_capture_mute(dev);
 	}
 }
