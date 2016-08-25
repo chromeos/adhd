@@ -426,6 +426,9 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev);
 /* Open an iodev, does setup and invokes the open_dev callback. */
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level);
 
+/* Starts an opened iodev, invokes the start callback. */
+int cras_iodev_start(struct cras_iodev *iodev);
+
 /* Open an iodev, does teardown and invokes the close_dev callback. */
 int cras_iodev_close(struct cras_iodev *iodev);
 
@@ -520,6 +523,15 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
  */
 int cras_iodev_odev_should_wake(const struct cras_iodev *odev);
 
+/* Let device enter/leave no stream playback.
+ * Args:
+ *    iodev[in] - The output device.
+ *    enable[in] - 1 to enter no stream playback, 0 to leave.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_no_stream_playback(struct cras_iodev *iodev, int enable);
+
 /* The default implementation of no_stream ops.
  * The default behavior is to fill some zeros when entering no stream state.
  * Note that when a device in no stream state enters into no stream state again,
@@ -541,16 +553,5 @@ int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable);
  *    One of states defined in CRAS_IODEV_STATE.
  */
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev);
-
-/* Possibly transit state for output device.
- * Check if this output device needs to transit from open state/no_stream state
- * into normal run state. If device does not need transition and is still in
- * no stream state, call no_stream ops to do its work for one cycle.
- * Args:
- *    odev[in] - The output device.
- * Returns:
- *    0 on success. Negative error code on failure.
- */
-int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev);
 
 #endif /* CRAS_IODEV_H_ */
