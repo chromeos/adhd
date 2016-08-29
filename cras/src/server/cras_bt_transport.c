@@ -276,7 +276,8 @@ void cras_bt_transport_update_properties(
 				       "transport properties",
 				       obj_path);
 				transport->device =
-					cras_bt_device_create(obj_path);
+					cras_bt_device_create(transport->conn,
+							      obj_path);
 				cras_bt_transport_update_device(transport);
 			}
 		} else if (strcmp(

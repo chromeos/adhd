@@ -26,7 +26,8 @@ enum cras_bt_device_profile {
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid);
 
-struct cras_bt_device *cras_bt_device_create(const char *object_path);
+struct cras_bt_device *cras_bt_device_create(DBusConnection *conn,
+					     const char *object_path);
 void cras_bt_device_destroy(struct cras_bt_device *device);
 void cras_bt_device_reset();
 

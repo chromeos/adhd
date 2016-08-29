@@ -59,7 +59,7 @@ static void cras_bt_interface_added(DBusConnection *conn,
 			cras_bt_device_update_properties(
 				device, properties_array_iter, NULL);
 		} else {
-			device = cras_bt_device_create(object_path);
+			device = cras_bt_device_create(conn, object_path);
 			if (device) {
 				cras_bt_device_update_properties(
 					device, properties_array_iter, NULL);
