@@ -41,15 +41,6 @@
 	"</node>\n"
 
 
-static void cras_bt_endpoint_start(struct cras_bt_endpoint *endpoint,
-				   struct cras_bt_transport *transport)
-{
-	cras_bt_transport_set_endpoint(transport, endpoint);
-	endpoint->transport = transport;
-
-	endpoint->start(endpoint, transport);
-}
-
 static void cras_bt_endpoint_suspend(struct cras_bt_endpoint *endpoint)
 {
 	if (!endpoint->transport)
@@ -115,7 +106,9 @@ static DBusHandlerResult cras_bt_endpoint_set_configuration(
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
-	cras_bt_endpoint_start(endpoint, transport);
+	cras_bt_transport_set_endpoint(transport, endpoint);
+	endpoint->transport = transport;
+	endpoint->set_configuration(endpoint, transport);
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)

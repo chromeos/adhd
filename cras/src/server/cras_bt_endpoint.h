@@ -24,8 +24,8 @@ struct cras_bt_endpoint {
 				    void *capabilities, int len,
 				    void *configuration);
 
-	void (*start)(struct cras_bt_endpoint *endpoint,
-		      struct cras_bt_transport *transport);
+	void (*set_configuration)(struct cras_bt_endpoint *endpoint,
+				  struct cras_bt_transport *transport);
 	void (*suspend)(struct cras_bt_endpoint *endpoint,
 			struct cras_bt_transport *transport);
 

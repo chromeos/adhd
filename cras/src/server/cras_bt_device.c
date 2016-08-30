@@ -440,6 +440,12 @@ destroy_bt_io:
 		cras_bt_device_set_active_profile(device, 0);
 }
 
+void cras_bt_device_a2dp_configured(struct cras_bt_device *device)
+{
+	device->connected_profiles |= CRAS_BT_DEVICE_PROFILE_A2DP_SINK;
+	cras_a2dp_start(device);
+}
+
 int cras_bt_device_has_a2dp(struct cras_bt_device *device)
 {
 	struct cras_iodev *odev = device->bt_iodevs[CRAS_STREAM_OUTPUT];

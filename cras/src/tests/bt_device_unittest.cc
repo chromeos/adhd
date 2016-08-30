@@ -239,6 +239,10 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device *device)
 {
 }
 
+void cras_a2dp_start(struct cras_bt_device *device)
+{
+}
+
 int cras_hfp_ag_start(struct cras_bt_device *device)
 {
   return 0;

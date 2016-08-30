@@ -20,4 +20,7 @@ struct cras_bt_device *cras_a2dp_connected_device();
  * device. */
 void cras_a2dp_suspend_connected_device(struct cras_bt_device *device);
 
+/* Starts A2DP output by creating the cras_iodev. */
+void cras_a2dp_start(struct cras_bt_device *device);
+
 #endif /* CRAS_A2DP_ENDPOINT_H_ */

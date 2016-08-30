@@ -132,31 +132,13 @@ static int cras_a2dp_select_configuration(struct cras_bt_endpoint *endpoint,
 	return 0;
 }
 
-static void cras_a2dp_start(struct cras_bt_endpoint *endpoint,
+static void cras_a2dp_set_configuration(struct cras_bt_endpoint *endpoint,
 			    struct cras_bt_transport *transport)
 {
-	syslog(LOG_INFO, "Creating iodev for A2DP device");
+	struct cras_bt_device *device;
 
-	if (connected_a2dp.iodev) {
-		syslog(LOG_WARNING,
-		       "Replacing existing endpoint configuration");
-		a2dp_iodev_destroy(connected_a2dp.iodev);
-	}
-
-	/* When A2DP-only device connected, suspend all HFP/HSP audio
-	 * gateways. */
-	if (!cras_bt_device_supports_profile(
-			cras_bt_transport_device(transport),
-			CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
-			CRAS_BT_DEVICE_PROFILE_HSP_HEADSET))
-		cras_hfp_ag_suspend();
-
-
-	connected_a2dp.iodev = a2dp_iodev_create(transport);
-	connected_a2dp.device = cras_bt_transport_device(transport);
-
-	if (!connected_a2dp.iodev)
-		syslog(LOG_WARNING, "Failed to create a2dp iodev");
+	device = cras_bt_transport_device(transport);
+	cras_bt_device_a2dp_configured(device);
 }
 
 static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
@@ -190,7 +172,7 @@ static struct cras_bt_endpoint cras_a2dp_endpoint = {
 
 	.get_capabilities = cras_a2dp_get_capabilities,
 	.select_configuration = cras_a2dp_select_configuration,
-	.start = cras_a2dp_start,
+	.set_configuration = cras_a2dp_set_configuration,
 	.suspend = cras_a2dp_suspend,
 	.transport_state_changed = a2dp_transport_state_changed
 };
@@ -198,6 +180,37 @@ static struct cras_bt_endpoint cras_a2dp_endpoint = {
 int cras_a2dp_endpoint_create(DBusConnection *conn)
 {
 	return cras_bt_endpoint_add(conn, &cras_a2dp_endpoint);
+}
+
+void cras_a2dp_start(struct cras_bt_device *device)
+{
+	struct cras_bt_transport *transport = cras_a2dp_endpoint.transport;
+
+	if (!transport || device != cras_bt_transport_device(transport)) {
+		syslog(LOG_ERR, "Device and active transport not match.");
+		return;
+	}
+
+	if (connected_a2dp.iodev) {
+		syslog(LOG_WARNING,
+		       "Replacing existing endpoint configuration");
+		a2dp_iodev_destroy(connected_a2dp.iodev);
+	}
+
+	/* When A2DP-only device connected, suspend all HFP/HSP audio
+	 * gateways. */
+	if (!cras_bt_device_supports_profile(
+			cras_bt_transport_device(transport),
+			CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
+			CRAS_BT_DEVICE_PROFILE_HSP_HEADSET))
+		cras_hfp_ag_suspend();
+
+
+	connected_a2dp.iodev = a2dp_iodev_create(transport);
+	connected_a2dp.device = cras_bt_transport_device(transport);
+
+	if (!connected_a2dp.iodev)
+		syslog(LOG_WARNING, "Failed to create a2dp iodev");
 }
 
 struct cras_bt_device *cras_a2dp_connected_device()

@@ -149,6 +149,9 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);
 void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 					   int volume);
 
+/* Notifies bt_device that a2dp connection is configured. */
+void cras_bt_device_a2dp_configured(struct cras_bt_device *device);
+
 /* Cancels any scheduled suspension of device. */
 int cras_bt_device_cancel_suspend(struct cras_bt_device *device);
 
