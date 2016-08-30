@@ -13,7 +13,6 @@
 #include "cras_iodev.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_endpoint.h"
-#include "cras_hfp_ag_profile.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 
@@ -196,15 +195,6 @@ void cras_a2dp_start(struct cras_bt_device *device)
 		       "Replacing existing endpoint configuration");
 		a2dp_iodev_destroy(connected_a2dp.iodev);
 	}
-
-	/* When A2DP-only device connected, suspend all HFP/HSP audio
-	 * gateways. */
-	if (!cras_bt_device_supports_profile(
-			cras_bt_transport_device(transport),
-			CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
-			CRAS_BT_DEVICE_PROFILE_HSP_HEADSET))
-		cras_hfp_ag_suspend();
-
 
 	connected_a2dp.iodev = a2dp_iodev_create(transport);
 	connected_a2dp.device = cras_bt_transport_device(transport);

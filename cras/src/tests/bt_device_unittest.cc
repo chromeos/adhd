@@ -248,6 +248,10 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
   return 0;
 }
 
+void cras_hfp_ag_suspend()
+{
+}
+
 /* From hfp_slc */
 int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 {

@@ -443,7 +443,6 @@ destroy_bt_io:
 void cras_bt_device_a2dp_configured(struct cras_bt_device *device)
 {
 	device->connected_profiles |= CRAS_BT_DEVICE_PROFILE_A2DP_SINK;
-	cras_a2dp_start(device);
 }
 
 int cras_bt_device_has_a2dp(struct cras_bt_device *device)
@@ -549,25 +548,49 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_tm *tm;
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
-	struct cras_iodev *odev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
 
 	device->conn_watch_timer = NULL;
 
-	if (odev && cras_bt_io_get_profile(odev,
-				CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE)) {
-		if (cras_bt_device_is_profile_connected(
-				device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE))
-			cras_hfp_ag_start(device);
-		return;
-	}
-
-	if (device->conn_watch_retries % PROFILE_CONN_RETRIES == 0) {
-		if (!odev || !cras_bt_io_get_profile(
-				odev, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE))
+	/* If A2DP is not ready, try connect it after a while. */
+	if (cras_bt_device_supports_profile(
+			device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK) &&
+	    !cras_bt_device_is_profile_connected(
+			device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
+		if (0 == device->conn_watch_retries % PROFILE_CONN_RETRIES)
 			cras_bt_device_connect_profile(
 					device->conn, device, A2DP_SINK_UUID);
+		goto arm_retry_timer;
 	}
 
+	/* If HFP is not ready, try connect it after a while. */
+	if (cras_bt_device_supports_profile(
+			device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE) &&
+	    !cras_bt_device_is_profile_connected(
+			device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
+		if (0 == device->conn_watch_retries % PROFILE_CONN_RETRIES)
+			cras_bt_device_connect_profile(
+					device->conn, device, HFP_HF_UUID);
+		goto arm_retry_timer;
+	}
+
+	if (cras_bt_device_is_profile_connected(
+			device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
+		/* When A2DP-only device connected, suspend all HFP/HSP audio
+		 * gateways. */
+		if (!cras_bt_device_supports_profile(device,
+				CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
+				CRAS_BT_DEVICE_PROFILE_HSP_HEADSET))
+			cras_hfp_ag_suspend();
+
+		cras_a2dp_start(device);
+	}
+
+	if (cras_bt_device_is_profile_connected(
+			device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE))
+		cras_hfp_ag_start(device);
+	return;
+
+arm_retry_timer:
 	if (--device->conn_watch_retries) {
 		tm = cras_system_state_get_tm();
 		device->conn_watch_timer = cras_tm_create_timer(tm,
