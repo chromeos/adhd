@@ -29,7 +29,6 @@ static int profile_cancel_called;
 static struct cras_bt_profile *profile_cancel_arg_value;
 static int cras_bt_transport_get_called;
 static const char *cras_bt_transport_get_arg_value;
-static int cras_bt_transport_fill_properties_called;
 
 void fake_profile_release(struct cras_bt_profile *profile);
 void fake_profile_new_connection(struct cras_bt_profile *profile,
@@ -59,7 +58,6 @@ class BtProfileTestSuite : public DBusTest {
     fake_profile.cancel = fake_profile_cancel;
 
     fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x321);
-    cras_bt_transport_fill_properties_called = 0;
     cras_bt_transport_get_called = 0;
   }
 };
@@ -109,7 +107,6 @@ TEST_F(BtProfileTestSuite, HandleMessage) {
   ASSERT_EQ(1, profile_new_connection_called);
   ASSERT_STREQ("device", cras_bt_transport_get_arg_value);
   ASSERT_EQ(1, cras_bt_transport_get_called);
-  ASSERT_EQ(1, cras_bt_transport_fill_properties_called);
   ASSERT_EQ(fake_transport, profile_new_connection_arg_value);
 
   CreateMessageCall("/fake", "org.bluez.Profile1", "RequestDisconnection")
@@ -186,13 +183,6 @@ struct cras_bt_transport *cras_bt_transport_create(DBusConnection *conn,
   return fake_transport;
 }
 
-void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
-		int fd, const char *uuid)
-{
-  cras_bt_transport_fill_properties_called++;
-  /* Close the duplicated fd */
-  close(fd);
-}
 } // extern "C"
 
 int main(int argc, char **argv) {

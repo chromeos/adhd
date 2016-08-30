@@ -38,27 +38,13 @@ struct cras_bt_device *cras_bt_transport_device(
 	const struct cras_bt_transport *transport);
 enum cras_bt_device_profile cras_bt_transport_profile(
 	const struct cras_bt_transport *transport);
-int cras_bt_transport_codec(const struct cras_bt_transport *transport);
 int cras_bt_transport_configuration(const struct cras_bt_transport *transport,
 				    void *configuration, int len);
 enum cras_bt_transport_state cras_bt_transport_state(
 	const struct cras_bt_transport *transport);
-struct cras_bt_endpoint *cras_bt_transport_endpoint(
-	const struct cras_bt_transport *transport);
 
 int cras_bt_transport_fd(const struct cras_bt_transport *transport);
-uint16_t cras_bt_transport_read_mtu(const struct cras_bt_transport *transport);
 uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport);
-
-/* Fills the necessary fields in cras_bt_tranport for cras_bt_profile
- * to create cras_iodev.
- * Args:
- *    transport - The transport object carries the fields
- *    fd - File descriptor of the rfcomm socket
- *    uuid - The UUID of the profile
- */
-void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
-		int fd, const char *uuid);
 
 void cras_bt_transport_update_properties(
 	struct cras_bt_transport *transport,

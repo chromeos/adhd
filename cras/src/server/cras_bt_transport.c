@@ -149,11 +149,6 @@ enum cras_bt_device_profile cras_bt_transport_profile(
 	return transport->profile;
 }
 
-int cras_bt_transport_codec(const struct cras_bt_transport *transport)
-{
-	return transport->codec;
-}
-
 int cras_bt_transport_configuration(const struct cras_bt_transport *transport,
 				    void *configuration, int len)
 {
@@ -172,20 +167,9 @@ enum cras_bt_transport_state cras_bt_transport_state(
 	return transport->state;
 }
 
-struct cras_bt_endpoint *cras_bt_transport_endpoint(
-	const struct cras_bt_transport *transport)
-{
-	return transport->endpoint;
-}
-
 int cras_bt_transport_fd(const struct cras_bt_transport *transport)
 {
 	return transport->fd;
-}
-
-uint16_t cras_bt_transport_read_mtu(const struct cras_bt_transport *transport)
-{
-	return transport->read_mtu;
 }
 
 uint16_t cras_bt_transport_write_mtu(const struct cras_bt_transport *transport)
@@ -232,20 +216,6 @@ static void cras_bt_transport_update_device(struct cras_bt_transport *transport)
 				transport->device,
 				transport->volume * 100 / 127);
 	}
-}
-
-void cras_bt_transport_fill_properties(struct cras_bt_transport *transport,
-				       int fd, const char *uuid)
-{
-	transport->device = cras_bt_device_get(transport->object_path);
-	transport->profile = cras_bt_device_profile_from_uuid(uuid);
-	free(transport->configuration);
-
-	/* For HFP, the configuration is just the file descriptor of
-	 * the rfcomm socket */
-	transport->configuration = (int *)malloc(sizeof(fd));
-	memcpy(transport->configuration, &fd, sizeof(fd));
-	transport->configuration_len = sizeof(fd);
 }
 
 void cras_bt_transport_update_properties(
