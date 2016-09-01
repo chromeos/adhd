@@ -71,6 +71,7 @@ static unsigned int put_buffer_nframes;
 static int output_should_wake_ret;
 static int no_stream_called;
 static int no_stream_enable;
+// This will be used extensively in cras_iodev.
 struct audio_thread_event_log *atlog;
 static unsigned int simple_no_stream_called;
 static int simple_no_stream_enable;
@@ -144,6 +145,8 @@ void ResetStubData() {
   simple_no_stream_called = 0;
   simple_no_stream_enable = 0;
   dev_stream_playback_frames_ret = 0;
+  if (!atlog)
+    atlog = audio_thread_event_log_init();
 }
 
 namespace {
@@ -1165,8 +1168,6 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   iodev.info = info;
   iodev_buffer_size = BUFFER_SIZE;
 
-  atlog = audio_thread_event_log_init();
-
   // Open device.
   cras_iodev_open(&iodev, rstream1.cb_threshold);
 
@@ -1239,8 +1240,6 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   EXPECT_EQ(0, no_stream_called);
 
   ResetStubData();
-
-  audio_thread_event_log_deinit(atlog);
 }
 
 TEST(IoDev, OutputDeviceShouldWake) {
@@ -1615,5 +1614,8 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream) {
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int rc = RUN_ALL_TESTS();
+
+  audio_thread_event_log_deinit(atlog);
+  return rc;
 }

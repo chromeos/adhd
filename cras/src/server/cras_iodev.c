@@ -47,8 +47,10 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 		return rc;
 	hw_level = rc;
 
-	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
+	ATLOG(atlog, AUDIO_THREAD_ODEV_DEFAULT_NO_STREAMS,
+	      odev->info.idx, hw_level, target_hw_level);
 
+	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
 	if (hw_level <= target_hw_level) {
 		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
 		return cras_iodev_fill_odev_zeros(odev, fr_to_write);
@@ -123,6 +125,14 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
 
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
+
+	if (enable) {
+		ATLOG(atlog, AUDIO_THREAD_ODEV_NO_STREAMS,
+		      odev->info.idx, 0, 0);
+	} else {
+		ATLOG(atlog, AUDIO_THREAD_ODEV_LEAVE_NO_STREAMS,
+		      odev->info.idx, 0, 0);
+	}
 
 	rc = odev->no_stream(odev, enable);
 	if (rc < 0)
@@ -952,6 +962,8 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
+
+	ATLOG(atlog, AUDIO_THREAD_FILL_ODEV_ZEROS, odev->info.idx, frames, 0);
 
 	frame_bytes = cras_get_format_bytes(odev->ext_format);
 	while (frames > 0) {
