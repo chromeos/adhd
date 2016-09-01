@@ -142,7 +142,8 @@ static int frames_queued(const struct cras_iodev *iodev)
 
 	rc = cras_alsa_get_avail_frames(aio->handle,
 					aio->base.buffer_size,
-					&frames);
+					&frames,
+					&aio->num_underruns);
 	if (rc < 0)
 		return rc;
 
@@ -1484,6 +1485,12 @@ static int output_should_wake(const struct cras_iodev *odev)
 					CRAS_IODEV_STATE_NORMAL_RUN));
 }
 
+static unsigned int get_num_underruns(const struct cras_iodev *iodev)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)iodev;
+	return aio->num_underruns;
+}
+
 /*
  * Exported Interface.
  */
@@ -1563,6 +1570,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->set_hotword_model = set_hotword_model;
 	iodev->get_hotword_models = get_hotword_models;
 	iodev->no_stream = cras_iodev_default_no_stream_playback;
+	iodev->get_num_underruns = get_num_underruns;
 
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;

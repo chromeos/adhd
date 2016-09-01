@@ -891,6 +891,11 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
   return iodev->state;
 }
 
+unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
+{
+  return 0;
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {

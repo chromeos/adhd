@@ -76,6 +76,7 @@ struct audio_thread_event_log *atlog;
 static unsigned int simple_no_stream_called;
 static int simple_no_stream_enable;
 static int dev_stream_playback_frames_ret;
+static int get_num_underruns_ret;
 
 
 // Iodev callback
@@ -147,6 +148,7 @@ void ResetStubData() {
   dev_stream_playback_frames_ret = 0;
   if (!atlog)
     atlog = audio_thread_event_log_init();
+  get_num_underruns_ret = 0;
 }
 
 namespace {
@@ -1319,6 +1321,21 @@ TEST(IoDev, FramesToPlayInSleep) {
   got_frames = cras_iodev_frames_to_play_in_sleep(&iodev, &got_hw_level);
   EXPECT_EQ(hw_level, got_hw_level);
   EXPECT_EQ(0, got_frames);
+}
+
+static unsigned int get_num_underruns(const struct cras_iodev *iodev) {
+  return get_num_underruns_ret;
+}
+
+TEST(IoDev, GetNumUnderruns) {
+  struct cras_iodev iodev;
+  memset(&iodev, 0, sizeof(iodev));
+
+  EXPECT_EQ(0, cras_iodev_get_num_underruns(&iodev));
+
+  iodev.get_num_underruns = get_num_underruns;
+  get_num_underruns_ret = 10;
+  EXPECT_EQ(10, cras_iodev_get_num_underruns(&iodev));
 }
 
 extern "C" {

@@ -2048,7 +2048,8 @@ int cras_alsa_set_swparams(snd_pcm_t *handle)
   return 0;
 }
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t *used)
+			       snd_pcm_uframes_t *used,
+			       unsigned int *num_underruns)
 {
   *used = cras_alsa_get_avail_frames_avail;
   return cras_alsa_get_avail_frames_ret;

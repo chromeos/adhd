@@ -748,6 +748,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	di->min_cb_level = adev->dev->min_cb_level;
 	di->max_cb_level = adev->dev->max_cb_level;
 	di->direction = adev->dev->direction;
+	di->num_underruns = cras_iodev_get_num_underruns(adev->dev);
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;
 		di->num_channels = fmt->num_channels;

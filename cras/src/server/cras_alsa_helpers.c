@@ -614,7 +614,8 @@ int cras_alsa_set_swparams(snd_pcm_t *handle)
 }
 
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t *used)
+			       snd_pcm_uframes_t *used,
+			       unsigned int *underruns)
 {
 	snd_pcm_sframes_t frames;
 	int rc = 0;
@@ -632,6 +633,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		       "pcm_avail returned frames larger than buf_size: "
 		       "%ld > %lu\n", frames, buf_size);
 		frames = buf_size;
+		*underruns = *underruns + 1;
 	}
 	*used = frames;
 	return rc;

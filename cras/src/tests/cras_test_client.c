@@ -545,14 +545,22 @@ static void audio_debug_info(struct cras_client *client)
 		       (info->devs[i].direction == CRAS_STREAM_INPUT)
 				? "Input" : "Output",
 		       info->devs[i].dev_name);
-		printf("%u %u %u %u %u %u %lf\n",
+		printf("buffer_size: %u\n"
+		       "min_buffer_level: %u\n"
+		       "min_cb_level: %u\n"
+		       "max_cb_level: %u\n"
+		       "frame_rate: %u\n"
+		       "num_channels: %u\n"
+		       "est_rate_ratio: %lf\n"
+		       "num_underruns: %u\n",
 		       (unsigned int)info->devs[i].buffer_size,
 		       (unsigned int)info->devs[i].min_buffer_level,
 		       (unsigned int)info->devs[i].min_cb_level,
 		       (unsigned int)info->devs[i].max_cb_level,
 		       (unsigned int)info->devs[i].frame_rate,
 		       (unsigned int)info->devs[i].num_channels,
-		       info->devs[i].est_rate_ratio);
+		       info->devs[i].est_rate_ratio,
+		       (unsigned int)info->devs[i].num_underruns);
 	}
 
 	printf("-------------stream_dump------------\n");

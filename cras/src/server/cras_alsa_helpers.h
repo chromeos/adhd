@@ -148,11 +148,13 @@ int cras_alsa_set_swparams(snd_pcm_t *handle);
  *    handle - The open PCM to configure.
  *    buf_size - Number of frames in the ALSA buffer.
  *    used - Filled with the number of used frames.
+ *    underruns - Pointer to the underrun counter.
  * Returns:
  *    0 on success, negative error on failure.
  */
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t *used);
+			       snd_pcm_uframes_t *used,
+			       unsigned int *underruns);
 
 /* Get the current alsa delay, make sure it's no bigger than the buffer size.
  * Args:

@@ -1050,3 +1050,10 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev)
 
 	return 0;
 }
+
+unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
+{
+	if (iodev->get_num_underruns)
+		return iodev->get_num_underruns(iodev);
+	return 0;
+}
