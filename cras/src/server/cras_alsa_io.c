@@ -1882,7 +1882,7 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 
 	/* Disable jack ucm before switching node. */
 	enable_active_ucm(aio, 0);
-	if (iodev->direction == CRAS_STREAM_OUTPUT)
+	if (dev_enabled && (iodev->direction == CRAS_STREAM_OUTPUT))
 		alsa_iodev_unmute_node(aio, ionode);
 
 	cras_iodev_set_active_node(iodev, ionode);
