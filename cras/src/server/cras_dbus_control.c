@@ -96,6 +96,10 @@
     "      <arg name=\"num_channels\" type=\"i\" direction=\"in\"/>\n"  \
     "      <arg name=\"coefficient\" type=\"ad\" direction=\"in\"/>\n"  \
     "    </method>\n"                                                   \
+    "    <method name=\"SetHotwordModel\">\n"                           \
+    "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
+    "      <arg name=\"model_name\" type=\"s\" direction=\"in\"/>\n"    \
+    "    </method>\n"                                                   \
     "  </interface>\n"                                                  \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"        \
     "    <method name=\"Introspect\">\n"                                \
@@ -140,6 +144,24 @@ static void send_empty_reply(DBusMessage *message)
 	if (!reply)
 		return;
 
+	dbus_connection_send(dbus_control.conn, reply, &serial);
+
+	dbus_message_unref(reply);
+}
+
+/* Helper to send an int32 reply. */
+static void send_int32_reply(DBusMessage *message, dbus_int32_t value)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+
+	reply = dbus_message_new_method_return(message);
+	if (!reply)
+		return;
+
+	dbus_message_append_args(reply,
+				 DBUS_TYPE_INT32, &value,
+				 DBUS_TYPE_INVALID);
 	dbus_connection_send(dbus_control.conn, reply, &serial);
 
 	dbus_message_unref(reply);
@@ -403,6 +425,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		node->plugged_time.tv_usec;
 	dbus_uint64_t node_volume = node->volume;
 	dbus_int64_t node_capture_gain = node->capture_gain;
+	char *models, *empty_models = "";
 
 	is_input = (direction == CRAS_STREAM_INPUT);
 	id = node->iodev_idx;
@@ -445,6 +468,16 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	if (!append_key_value(&dict, "NodeCaptureGain", DBUS_TYPE_INT64,
 			      DBUS_TYPE_INT64_AS_STRING, &node_capture_gain))
 		return FALSE;
+
+	models = cras_iodev_list_get_hotword_models(id);
+	if (!append_key_value(&dict, "HotwordModels", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING,
+			      models ? &models : &empty_models)) {
+		free(models);
+		return FALSE;
+	}
+	free(models);
+
 	if (!dbus_message_iter_close_container(iter, &dict))
 		return FALSE;
 
@@ -572,18 +605,7 @@ static DBusHandlerResult handle_get_num_active_streams(
 	DBusMessage *message,
 	void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_int32_t num;
-
-	reply = dbus_message_new_method_return(message);
-	num = cras_system_state_get_active_streams();
-	dbus_message_append_args(reply,
-				 DBUS_TYPE_INT32, &num,
-				 DBUS_TYPE_INVALID);
-	dbus_connection_send(dbus_control.conn, reply, &serial);
-	dbus_message_unref(reply);
-
+	send_int32_reply(message, cras_system_state_get_active_streams());
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
@@ -592,23 +614,14 @@ static DBusHandlerResult handle_get_num_active_streams_use_input_hw(
 	DBusMessage *message,
 	void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
 	dbus_int32_t num = 0;
 	unsigned i;
-
-	reply = dbus_message_new_method_return(message);
 
 	for (i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
 		if (cras_stream_uses_input_hw(i))
 			num += cras_system_state_get_active_streams_by_direction(i);
 	}
-
-	dbus_message_append_args(reply,
-				 DBUS_TYPE_INT32, &num,
-				 DBUS_TYPE_INVALID);
-	dbus_connection_send(dbus_control.conn, reply, &serial);
-	dbus_message_unref(reply);
+	send_int32_reply(message, num);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -618,23 +631,14 @@ static DBusHandlerResult handle_get_num_active_streams_use_output_hw(
 	DBusMessage *message,
 	void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
 	dbus_int32_t num = 0;
 	unsigned i;
-
-	reply = dbus_message_new_method_return(message);
 
 	for (i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
 		if (cras_stream_uses_output_hw(i))
 			num += cras_system_state_get_active_streams_by_direction(i);
 	}
-
-	dbus_message_append_args(reply,
-				 DBUS_TYPE_INT32, &num,
-				 DBUS_TYPE_INVALID);
-	dbus_connection_send(dbus_control.conn, reply, &serial);
-	dbus_message_unref(reply);
+	send_int32_reply(message, num);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -678,6 +682,35 @@ static DBusHandlerResult handle_set_global_output_channel_remix(
 
 	send_empty_reply(message);
 	free(coefficient);
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_set_hotword_model(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	cras_node_id_t id;
+	const char *model_name;
+	DBusError dbus_error;
+	dbus_int32_t ret;
+
+	dbus_error_init(&dbus_error);
+
+	if (!dbus_message_get_args(message, &dbus_error,
+				   DBUS_TYPE_UINT64, &id,
+				   DBUS_TYPE_STRING, &model_name,
+				   DBUS_TYPE_INVALID)) {
+		syslog(LOG_WARNING,
+		       "Bad method received: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	ret = cras_iodev_list_set_hotword_model(id, model_name);
+	send_int32_reply(message, ret);
+
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
@@ -803,6 +836,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       "SetGlobalOutputChannelRemix")) {
 		return handle_set_global_output_channel_remix(
 				conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "SetHotwordModel")) {
+		return handle_set_hotword_model(conn, message, arg);
 	}
 
 

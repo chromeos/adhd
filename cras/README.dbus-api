@@ -107,6 +107,12 @@ Methods		void SetOutputVolume(int32 volume)
 				string MicPositions
 					The string formed by floating numbers
 					describing the position of mic array.
+				string HotwordModels
+					A string of comma-separated hotword
+					language model locales supported by this
+					node. e.g. "en_au,en_gb,en_us"
+					The string is empty if the node type is
+					not HOTWORD.
 
 		void SetActiveOutputNode(uint64 node_id);
 
@@ -148,6 +154,14 @@ Methods		void SetOutputVolume(int32 volume)
 			result in:
 			L' = 0.1 * L + 0.9 * R
 			R' = 0.4 * L + 0.6 * R
+
+		int32 SetHotwordModel(uint64_t node_id, string model_name)
+
+			Set the hotword language model on the specified node.
+			The node must have type HOTWORD and the model_name must
+			be one of the supported locales returned by
+			GetNodes() HotwordModels string.
+			Returns 0 on success, or a negative errno on failure.
 
 Signals		OutputVolumeChanged(int32 volume)
 

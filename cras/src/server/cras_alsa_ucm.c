@@ -743,8 +743,6 @@ int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
 	snprintf(model_mod, model_mod_size,
 		 "%s %s", hotword_model_prefix, model);
 	if (!ucm_mod_exists_with_name(mgr, model_mod)) {
-		syslog(LOG_ERR, "Can not find hotword model modifier %s",
-		       model_mod);
 		free((void *)model_mod);
 		return -EINVAL;
 	}
