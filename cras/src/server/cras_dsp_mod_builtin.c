@@ -56,6 +56,56 @@ static void empty_init_module(struct dsp_module *module)
 }
 
 /*
+ *  swap_lr module functions
+ */
+static int swap_lr_instantiate(struct dsp_module *module,
+			       unsigned long sample_rate)
+{
+	module->data = calloc(4, sizeof(float*));
+	return 0;
+}
+
+static void swap_lr_connect_port(struct dsp_module *module,
+				 unsigned long port, float *data_location)
+{
+	float **ports;
+	ports = (float **)module->data;
+	ports[port] = data_location;
+}
+
+static void swap_lr_run(struct dsp_module *module,
+			unsigned long sample_count)
+{
+	size_t i;
+	float **ports = (float **)module->data;
+
+	/* This module runs dsp in-place, so ports[0] == ports[2],
+	 * ports[1] == ports[3]. Here we swap data on two channels.
+	 */
+	for (i = 0; i < sample_count; i++) {
+		float temp = ports[0][i];
+		ports[2][i] = ports[1][i];
+		ports[3][i] = temp;
+	}
+}
+
+static void swap_lr_deinstantiate(struct dsp_module *module)
+{
+	free(module->data);
+}
+
+static void swap_lr_init_module(struct dsp_module *module)
+{
+	module->instantiate = &swap_lr_instantiate;
+	module->connect_port = &swap_lr_connect_port;
+	module->get_delay = &empty_get_delay;
+	module->run = &swap_lr_run;
+	module->deinstantiate = &swap_lr_deinstantiate;
+	module->free_module = &empty_free_module;
+	module->get_properties = &empty_get_properties;
+}
+
+/*
  *  invert_lr module functions
  */
 static int invert_lr_instantiate(struct dsp_module *module,
@@ -424,6 +474,8 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
 		eq2_init_module(module);
 	} else if (strcmp(plugin->label, "drc") == 0) {
 		drc_init_module(module);
+	} else if (strcmp(plugin->label, "swap_lr") == 0) {
+		swap_lr_init_module(module);
 	} else {
 		empty_init_module(module);
 	}
