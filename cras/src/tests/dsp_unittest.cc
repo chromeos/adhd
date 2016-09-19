@@ -65,9 +65,9 @@ TEST_F(DspTestSuite, Simple) {
   ctx3 = cras_dsp_context_new(44100, "capture");
   ctx4 = cras_dsp_context_new(44100, "capture");
 
-  cras_dsp_set_variable(ctx1, "variable", "foo");
-  cras_dsp_set_variable(ctx3, "variable", "bar");  /* wrong value */
-  cras_dsp_set_variable(ctx4, "variable", "foo");
+  cras_dsp_set_variable_string(ctx1, "variable", "foo");
+  cras_dsp_set_variable_string(ctx3, "variable", "bar");  /* wrong value */
+  cras_dsp_set_variable_string(ctx4, "variable", "foo");
 
   cras_dsp_load_pipeline(ctx1);
   cras_dsp_load_pipeline(ctx3);
@@ -82,12 +82,12 @@ TEST_F(DspTestSuite, Simple) {
   cras_dsp_put_pipeline(ctx4);
 
   /* change the variable to a wrong value, and we should fail to reload. */
-  cras_dsp_set_variable(ctx4, "variable", "bar");
+  cras_dsp_set_variable_string(ctx4, "variable", "bar");
   cras_dsp_load_pipeline(ctx4);
   ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx4));
 
   /* change the variable back, and we should reload successfully. */
-  cras_dsp_set_variable(ctx4, "variable", "foo");
+  cras_dsp_set_variable_string(ctx4, "variable", "foo");
   cras_dsp_reload_ini();
   ASSERT_TRUE(cras_dsp_get_pipeline(ctx4));
 

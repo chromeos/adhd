@@ -170,10 +170,17 @@ void cras_dsp_context_free(struct cras_dsp_context *ctx)
 	free(ctx);
 }
 
-void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
+void cras_dsp_set_variable_string(struct cras_dsp_context *ctx, const char *key,
 			   const char *value)
 {
 	cras_expr_env_set_variable_string(&ctx->env, key, value);
+}
+
+void cras_dsp_set_variable_boolean(struct cras_dsp_context *ctx,
+				   const char *key,
+				   char value)
+{
+	cras_expr_env_set_variable_boolean(&ctx->env, key, value);
 }
 
 void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)

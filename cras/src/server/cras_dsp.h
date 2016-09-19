@@ -40,9 +40,13 @@ struct cras_dsp_context *cras_dsp_context_new(int sample_rate,
 /* Frees a dsp context. */
 void cras_dsp_context_free(struct cras_dsp_context *ctx);
 
-/* Sets a configuration variable in the context. */
-void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
-			   const char *value);
+/* Sets a configuration string variable in the context. */
+void cras_dsp_set_variable_string(struct cras_dsp_context *ctx, const char *key,
+				  const char *value);
+
+/* Sets a configuration boolean variable in the context. */
+void cras_dsp_set_variable_boolean(struct cras_dsp_context *ctx, const char *key,
+				   char value);
 
 /* Loads the pipeline to the context. This should be called again when
  * new values of configuration variables may change the plugin
@@ -71,19 +75,6 @@ unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context *ctx);
 
 /* Number of channels input. */
 unsigned int cras_dsp_num_input_channels(const struct cras_dsp_context *ctx);
-
-/* Wait for the previous asynchronous requests to finish. The
- * asynchronous requests include:
- *
- * cras_dsp_context_free()
- * cras_dsp_set_variable()
- * cras_dsp_load_pipeline()
- * cras_dsp_reload_ini()
- * cras_dsp_dump_info()
- *
- * This is mainly used for testing.
- */
-void cras_dsp_sync();
 
 #ifdef __cplusplus
 } /* extern "C" */

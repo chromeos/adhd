@@ -444,8 +444,9 @@ void cras_iodev_update_dsp(struct cras_iodev *iodev)
 	if (!iodev->dsp_context)
 		return;
 
-	cras_dsp_set_variable(iodev->dsp_context, "dsp_name",
-			      iodev->dsp_name ? : "");
+	cras_dsp_set_variable_string(iodev->dsp_context, "dsp_name",
+				     iodev->dsp_name ? : "");
+
 	cras_dsp_load_pipeline(iodev->dsp_context);
 }
 

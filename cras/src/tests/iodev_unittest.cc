@@ -1428,8 +1428,8 @@ void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
 {
 }
 
-void cras_dsp_set_variable(struct cras_dsp_context *ctx, const char *key,
-                           const char *value)
+void cras_dsp_set_variable_string(struct cras_dsp_context *ctx, const char *key,
+                                  const char *value)
 {
 }
 
