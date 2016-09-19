@@ -1577,6 +1577,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->get_hotword_models = get_hotword_models;
 	iodev->no_stream = cras_iodev_default_no_stream_playback;
 	iodev->get_num_underruns = get_num_underruns;
+	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
 
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;

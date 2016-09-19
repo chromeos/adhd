@@ -45,6 +45,7 @@ static void initialize_environment(struct cras_expr_env *env)
 	cras_expr_env_set_variable_boolean(env, "disable_eq", 0);
 	cras_expr_env_set_variable_boolean(env, "disable_drc", 0);
 	cras_expr_env_set_variable_string(env, "dsp_name", "");
+	cras_expr_env_set_variable_boolean(env, "swap_lr_disabled", 1);
 }
 
 static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx)

@@ -441,13 +441,40 @@ error:
 
 void cras_iodev_update_dsp(struct cras_iodev *iodev)
 {
+	char swap_lr_disabled = 1;
+
 	if (!iodev->dsp_context)
 		return;
 
 	cras_dsp_set_variable_string(iodev->dsp_context, "dsp_name",
 				     iodev->dsp_name ? : "");
 
+	if (iodev->active_node && iodev->active_node->left_right_swapped)
+		swap_lr_disabled = 0;
+
+	cras_dsp_set_variable_boolean(iodev->dsp_context, "swap_lr_disabled",
+				      swap_lr_disabled);
+
 	cras_dsp_load_pipeline(iodev->dsp_context);
+}
+
+
+int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev *iodev,
+					   struct cras_ionode *node, int enable)
+{
+	if (node->left_right_swapped == enable)
+		return 0;
+
+	/* Sets left_right_swapped property on the node. It will be used
+	 * when cras_iodev_update_dsp is called. */
+	node->left_right_swapped = enable;
+
+	/* Possibly updates dsp if the node is active on the device and there
+	 * is dsp context. If dsp context is not created yet,
+	 * cras_iodev_update_dsp returns right away. */
+	if (iodev->active_node == node)
+		cras_iodev_update_dsp(iodev);
+	return 0;
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)

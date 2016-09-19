@@ -296,6 +296,22 @@ void cras_iodev_set_capture_timestamp(size_t frame_rate,
  */
 void cras_iodev_update_dsp(struct cras_iodev *iodev);
 
+
+/* Sets swap mode on a node using dsp. This function can be called when
+ * dsp pipline is not created yet. It will take effect when dsp pipeline
+ * is created later. If there is dsp pipeline, this function causes the dsp
+ * pipeline to be reloaded and swap mode takes effect right away.
+ * Args:
+ *    iodev - device to be changed for swap mode.
+ *    node - the node to be changed for swap mode.
+ *    enable - 1 to enable swap mode, 0 otherwise.
+ * Returns:
+ *    0 on success, error code on failure.
+ */
+int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev *iodev,
+					   struct cras_ionode *node,
+					   int enable);
+
 /* Handles a plug event happening on this node.
  * Args:
  *    node - ionode on which a plug event was detected.

@@ -1433,6 +1433,12 @@ void cras_dsp_set_variable_string(struct cras_dsp_context *ctx, const char *key,
 {
 }
 
+void cras_dsp_set_variable_boolean(struct cras_dsp_context *ctx,
+                                   const char *key,
+                                   char value)
+{
+}
+
 struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)
 {
   cras_dsp_get_pipeline_called++;

@@ -148,6 +148,7 @@ static int cras_alsa_resume_appl_ptr_ahead;
 static int ucm_get_optimize_no_stream_flag_ret;
 static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve *fake_get_dBFS_volume_curve_val;
+static int cras_iodev_dsp_set_swap_mode_for_node_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -234,6 +235,7 @@ void ResetStubData() {
   ucm_get_optimize_no_stream_flag_ret = 0;
   ucm_get_enable_htimestamp_flag_ret = 0;
   fake_get_dBFS_volume_curve_val = NULL;
+  cras_iodev_dsp_set_swap_mode_for_node_called = 0;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve *curve, size_t volume)
@@ -821,7 +823,10 @@ TEST(AlsaIoInit, SwapMode) {
                                             fake_mixer, fake_ucm, fake_hctl,
                                             CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
-  EXPECT_EQ(NULL, aio->base.set_swap_mode_for_node);
+
+  aio->base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
+  /* Swap mode is implemented by dsp. */
+  EXPECT_EQ(1, cras_iodev_dsp_set_swap_mode_for_node_called);
 
   // Stub replies that swap mode exists.
   ucm_swap_mode_exists_ret_value = 1;
@@ -2603,6 +2608,14 @@ int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
 {
   return iodev->state;
+}
+
+int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev *iodev,
+                                          struct cras_ionode *node,
+                                          int enable)
+{
+  cras_iodev_dsp_set_swap_mode_for_node_called++;
+  return 0;
 }
 
 }
