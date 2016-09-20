@@ -137,31 +137,17 @@ static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 	cras_hfp_ag_suspend();
 }
 
-/* Callback triggered when SLC is initialized. Base on A2DP's
- * availability to start audio gateway right away or let bt_device
- * handle everything.
- */
+/* Callback triggered when SLC is initialized.  */
 static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 {
 	struct audio_gateway *ag;
-	int rc;
 
 	DL_SEARCH_SCALAR(connected_ags, ag, slc_handle, handle);
 	if (!ag)
 		return -EINVAL;
 
-	/* This is a HFP/HSP only headset. */
-	if (!cras_bt_device_supports_profile(
-			ag->device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
-		rc = cras_hfp_ag_start(ag->device);
-		if (rc)
-			syslog(LOG_ERR, "Start audio gateway failed");
-		return rc;
-	}
-
 	/* Defer the starting of audio gateway to bt_device. */
-	cras_bt_device_audio_gateway_initialized(ag->device);
-	return 0;
+	return cras_bt_device_audio_gateway_initialized(ag->device);
 }
 
 static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)

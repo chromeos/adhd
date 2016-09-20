@@ -159,7 +159,12 @@ int cras_bt_device_cancel_suspend(struct cras_bt_device *device);
 int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
 				    unsigned int msec);
 
-/* Notifies bt device that audio gateway is ititialized. */
-void cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
+/* Notifies bt device that audio gateway is initialized.
+ * Args:
+ *   device - The bluetooth device.
+ * Returns:
+ *   0 on success, error code otherwise.
+ */
+int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
 
 #endif /* CRAS_BT_DEVICE_H_ */

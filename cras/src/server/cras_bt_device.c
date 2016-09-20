@@ -462,10 +462,13 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 		(!idev || !cras_iodev_is_open(idev));
 }
 
-void cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
+int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 {
+	int rc = 0;
 	struct cras_tm *tm;
 
+	/* Marks HFP/HSP as connected. This is what connection watcher
+	 * checks. */
 	device->connected_profiles |=
 			(CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
 			 CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
@@ -473,14 +476,26 @@ void cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 	/* If this is a HFP/HSP only headset, no need to wait for A2DP. */
 	if (!cras_bt_device_supports_profile(
 			device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
-		if (cras_hfp_ag_start(device))
+
+		syslog(LOG_DEBUG,
+		       "Start HFP audio gateway as A2DP is not supported");
+
+		rc = cras_hfp_ag_start(device);
+		if (rc) {
 			syslog(LOG_ERR, "Start audio gateway failed");
+			return rc;
+		}
 		if (device->conn_watch_timer) {
 			tm = cras_system_state_get_tm();
 			cras_tm_cancel_timer(tm, device->conn_watch_timer);
 			device->conn_watch_timer = NULL;
 		}
+	} else {
+		syslog(LOG_DEBUG, "HFP audio gateway is connected but A2DP "
+				  "is not connected yet");
 	}
+
+	return rc;
 }
 
 int cras_bt_device_get_active_profile(const struct cras_bt_device *device)
@@ -591,6 +606,9 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 	return;
 
 arm_retry_timer:
+
+	syslog(LOG_DEBUG, "conn_watch_retries: %d", device->conn_watch_retries);
+
 	if (--device->conn_watch_retries) {
 		tm = cras_system_state_get_tm();
 		device->conn_watch_timer = cras_tm_create_timer(tm,
