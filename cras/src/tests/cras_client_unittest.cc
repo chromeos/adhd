@@ -16,6 +16,8 @@ static const cras_stream_id_t FIRST_STREAM_ID = 1;
 
 static int pthread_create_called;
 static int pthread_join_called;
+static int pthread_cond_timedwait_called;
+static int pthread_cond_timedwait_retval;
 static int close_called;
 static int pipe_called;
 static int sendmsg_called;
@@ -29,6 +31,8 @@ namespace {
 void InitStaticVariables() {
   pthread_create_called = 0;
   pthread_join_called = 0;
+  pthread_cond_timedwait_called = 0;
+  pthread_cond_timedwait_retval = 0;
   close_called = 0;
   pipe_called = 0;
   sendmsg_called = 0;
@@ -128,7 +132,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
 
   stream_connected(&stream_, &msg, shm_fds, 2);
 
-  EXPECT_NE(0, stream_.thread.running);
+  EXPECT_EQ(CRAS_THREAD_RUNNING, stream_.thread.state);
 
   if (direction == CRAS_STREAM_OUTPUT) {
     EXPECT_EQ(NULL, stream_.capture_shm.area);
@@ -155,12 +159,18 @@ void CrasClientTestSuite::StreamConnectedFail(
   int shm_max_size = 600;
   size_t format_bytes;
   struct cras_audio_shm_area area;
+  int rc;
 
   stream_.direction = direction;
   set_audio_format(&stream_.config->format, SND_PCM_FORMAT_S16_LE, 48000, 4);
 
   struct cras_audio_format server_format;
   set_audio_format(&server_format, SND_PCM_FORMAT_S16_LE, 44100, 2);
+
+  // Thread setup
+  rc = pipe(stream_.wake_fds);
+  ASSERT_EQ(0, rc);
+  stream_.thread.state = CRAS_THREAD_WARMUP;
 
   // Initialize shm area
   format_bytes = cras_get_format_bytes(&server_format);
@@ -170,20 +180,17 @@ void CrasClientTestSuite::StreamConnectedFail(
 
   mmap_return_value = &area;
 
-  // let pthread_create fail
-  pthread_create_returned_value = -1;
-
+  // Put an error in the message.
   cras_fill_client_stream_connected(
       &msg,
-      0,
+      1,
       stream_.id,
       &server_format,
       shm_max_size);
 
   stream_connected(&stream_, &msg, shm_fds, 2);
 
-  EXPECT_EQ(0, stream_.thread.running);
-  EXPECT_EQ(1, pipe_called);
+  EXPECT_EQ(CRAS_THREAD_STOP, stream_.thread.state);
   EXPECT_EQ(4, close_called); // close the pipefds and shm_fds
 }
 
@@ -206,14 +213,23 @@ TEST_F(CrasClientTestSuite, AddAndRemoveStream) {
       malloc(sizeof(*(stream_ptr->config)));
   memcpy(stream_ptr->config, stream_.config, sizeof(*(stream_.config)));
 
+  pthread_cond_timedwait_retval = ETIMEDOUT;
+  EXPECT_EQ(-ETIMEDOUT, client_thread_add_stream(
+                              &client_, stream_ptr, &stream_id, NO_DEVICE));
+  EXPECT_EQ(pthread_cond_timedwait_called, 1);
+  EXPECT_EQ(pthread_join_called, 0);
+
+  InitStaticVariables();
   EXPECT_EQ(0, client_thread_add_stream(
       &client_, stream_ptr, &stream_id, NO_DEVICE));
   EXPECT_EQ(&client_, stream_ptr->client);
   EXPECT_EQ(stream_id, stream_ptr->id);
+  EXPECT_EQ(pthread_create_called, 1);
+  EXPECT_EQ(pipe_called, 1);
   EXPECT_EQ(1, sendmsg_called); // send connect message to server
   EXPECT_EQ(stream_ptr, stream_from_id(&client_, stream_id));
 
-  stream_ptr->thread.running = 1;
+  stream_ptr->thread.state = CRAS_THREAD_RUNNING;
 
   EXPECT_EQ(0, client_thread_rm_stream(&client_, stream_id));
 
@@ -268,6 +284,13 @@ int pthread_create(pthread_t *thread,
 int pthread_join(pthread_t thread, void **retval) {
   ++pthread_join_called;
   return 0;
+}
+
+int pthread_cond_timedwait(pthread_cond_t *__restrict cond,
+                           pthread_mutex_t *__restrict mutex,
+                           const struct timespec *__restrict timeout) {
+  ++pthread_cond_timedwait_called;
+  return pthread_cond_timedwait_retval;
 }
 
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {

@@ -222,9 +222,8 @@ int cras_client_connect_timeout(struct cras_client *client,
  * Args:
  *    client - the client to start (from cras_client_create).
  * Returns:
- *    0 on success, -EINVAL if the client pointer is NULL or the client is
- *    already running, or -ENOMEM if there isn't enough memory to start the
- *    thread.
+ *    0 on success or if the thread is already running, -EINVAL if the client
+ *    pointer is NULL, or the negative result of pthread_create().
  */
 int cras_client_run_thread(struct cras_client *client);
 
@@ -233,7 +232,8 @@ int cras_client_run_thread(struct cras_client *client);
  * Args:
  *    client - the client to stop (from cras_client_create).
  * Returns:
- *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ *    0 on success or if the thread was already stopped, -EINVAL if the client
+ *    isn't valid.
  */
 int cras_client_stop(struct cras_client *client);
 

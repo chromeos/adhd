@@ -102,10 +102,17 @@ struct stream_msg {
 	cras_stream_id_t stream_id;
 };
 
+enum CRAS_THREAD_STATE {
+	CRAS_THREAD_STOP,	/* Isn't (shouldn't be) running. */
+	CRAS_THREAD_WARMUP,	/* Is started, but not fully functional: waiting
+				 * for resources to be ready for example. */
+	CRAS_THREAD_RUNNING,	/* Is running and fully functional. */
+};
+
 /* Manage information for a thread. */
 struct thread_state {
 	pthread_t tid;
-	unsigned  running;
+	enum CRAS_THREAD_STATE state;
 };
 
 /* Parameters used when setting up a capture or playback stream. See comment
@@ -190,6 +197,8 @@ typedef enum cras_socket_state {
  * sock_file_exists - Set to true when the socket file exists.
  * running - The client thread will run while this is non zero.
  * next_stream_id - ID to give the next stream.
+ * stream_start_cond - Condition used during stream startup.
+ * stream_start_lock - Lock used during stream startup.
  * tid - Thread ID of the client thread started by "cras_client_run_thread".
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
@@ -217,6 +226,8 @@ struct cras_client {
 	bool sock_file_exists;
 	struct thread_state thread;
 	cras_stream_id_t next_stream_id;
+	pthread_cond_t stream_start_cond;
+	pthread_mutex_t stream_start_lock;
 	int last_command_result;
 	struct client_stream *streams;
 	const struct cras_server_state *server_state;
@@ -855,6 +866,12 @@ static int check_server_connected_wait(struct cras_client *client,
 	return rc > 0;
 }
 
+/* Returns non-zero if the thread is running (not stopped). */
+static inline int thread_is_running(struct thread_state *thread)
+{
+	return thread->state != CRAS_THREAD_STOP;
+}
+
 /*
  * Opens the server socket and connects to it.
  * Args:
@@ -874,7 +891,7 @@ static int connect_to_server(struct cras_client *client,
 	if (!client)
 		return -EINVAL;
 
-	if (client->thread.running && use_command_thread) {
+	if (thread_is_running(&client->thread) && use_command_thread) {
 		rc = cras_client_connect_async(client);
 		if (rc == 0) {
 			rc = check_server_connected_wait(client, timeout);
@@ -982,23 +999,27 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 {
 	struct pollfd pollfds[2];
 	int nread = 0;
+	int nfds = 1;
 	int rc;
 	char tmp;
 
-	pollfds[0].fd = read_fd;
+	pollfds[0].fd = wake_fd;
 	pollfds[0].events = POLLIN;
-	pollfds[1].fd = wake_fd;
-	pollfds[1].events = POLLIN;
+	if (read_fd >= 0) {
+		nfds++;
+		pollfds[1].fd = read_fd;
+		pollfds[1].events = POLLIN;
+	}
 
-	rc = poll(pollfds, 2, -1);
+	rc = poll(pollfds, nfds, -1);
 	if (rc < 0)
 		return rc;
-	if (pollfds[0].revents & POLLIN) {
+	if (read_fd >= 0 && pollfds[1].revents & POLLIN) {
 		nread = read(read_fd, buf, len);
 		if (nread != (int)len)
 			return -EIO;
 	}
-	if (pollfds[1].revents & POLLIN) {
+	if (pollfds[0].revents & POLLIN) {
 		rc = read(wake_fd, &tmp, 1);
 		if (rc < 0)
 			return rc;
@@ -1186,6 +1207,7 @@ static void *audio_thread(void *arg)
 	struct client_stream *stream = (struct client_stream *)arg;
 	int thread_terminated = 0;
 	struct audio_message aud_msg;
+	int aud_fd;
 	int num_read;
 
 	if (arg == NULL)
@@ -1193,9 +1215,18 @@ static void *audio_thread(void *arg)
 
 	audio_thread_set_priority(stream);
 
-	while (stream->thread.running && !thread_terminated) {
+	/* Notify the control thread that we've started. */
+	pthread_mutex_lock(&stream->client->stream_start_lock);
+	pthread_cond_broadcast(&stream->client->stream_start_cond);
+	pthread_mutex_unlock(&stream->client->stream_start_lock);
+
+	while (thread_is_running(&stream->thread) && !thread_terminated) {
+		/* While we are warming up, aud_fd may not be valid and some
+		 * shared memory resources may not yet be available. */
+		aud_fd = (stream->thread.state == CRAS_THREAD_WARMUP) ?
+			 -1 : stream->aud_fd;
 		num_read = read_with_wake_fd(stream->wake_fds[0],
-					     stream->aud_fd,
+					     aud_fd,
 					     (uint8_t *)&aud_msg,
 					     sizeof(aud_msg));
 		if (num_read < 0)
@@ -1230,6 +1261,77 @@ static int wake_aud_thread(struct client_stream *stream)
 	rc = write(stream->wake_fds[1], &rc, 1);
 	if (rc != 1)
 		return rc;
+	return 0;
+}
+
+/* Stop the audio thread for the given stream.
+ * Args:
+ *    stream - Stream for which to stop the audio thread.
+ *    join - When non-zero, attempt to join the audio thread (wait for it to
+ *           complete).
+ */
+static void stop_aud_thread(struct client_stream *stream, int join)
+{
+	if (thread_is_running(&stream->thread)) {
+		stream->thread.state = CRAS_THREAD_STOP;
+		wake_aud_thread(stream);
+		if (join)
+			pthread_join(stream->thread.tid, NULL);
+	}
+
+	if (stream->wake_fds[0] >= 0) {
+		close(stream->wake_fds[0]);
+		close(stream->wake_fds[1]);
+		stream->wake_fds[0] = -1;
+	}
+}
+
+/* Start the audio thread for this stream.
+ * Returns when the thread has started and is waiting.
+ * Args:
+ *    stream - The stream that needs an audio thread.
+ * Returns:
+ *    0 for success, or a negative error code.
+ */
+static int start_aud_thread(struct client_stream *stream)
+{
+	int rc;
+	struct timespec future;
+
+	rc = pipe(stream->wake_fds);
+	if (rc < 0) {
+		rc = -errno;
+		syslog(LOG_ERR, "cras_client: pipe: %s", strerror(-rc));
+		return rc;
+	}
+
+	stream->thread.state = CRAS_THREAD_WARMUP;
+
+	pthread_mutex_lock(&stream->client->stream_start_lock);
+	rc = pthread_create(&stream->thread.tid, NULL, audio_thread, stream);
+	if (rc) {
+		pthread_mutex_unlock(&stream->client->stream_start_lock);
+		syslog(LOG_ERR,
+		       "cras_client: Couldn't create audio stream: %s",
+		       strerror(rc));
+		stream->thread.state = CRAS_THREAD_STOP;
+		stop_aud_thread(stream, 0);
+		return -rc;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC, &future);
+	future.tv_sec += 2; /* Wait up to two seconds. */
+	rc = pthread_cond_timedwait(&stream->client->stream_start_cond,
+				    &stream->client->stream_start_lock, &future);
+	pthread_mutex_unlock(&stream->client->stream_start_lock);
+	if (rc != 0) {
+		/* Something is very wrong: try to cancel the thread and don't
+		 * wait for it. */
+		syslog(LOG_ERR, "cras_client: Client thread not responding: %s",
+		       strerror(rc));
+		stop_aud_thread(stream, 0);
+		return -rc;
+	}
 	return 0;
 }
 
@@ -1306,7 +1408,8 @@ static int stream_connected(struct client_stream *stream,
 	if (msg->err || num_fds != 2) {
 		syslog(LOG_ERR, "cras_client: Error Setting up stream %d\n",
 		       msg->err);
-		return msg->err;
+		rc = msg->err;
+		goto err_ret;
 	}
 
 	unpack_cras_audio_format(&mfmt, &msg->format);
@@ -1338,29 +1441,14 @@ static int stream_connected(struct client_stream *stream,
 					   stream->volume_scaler);
 	}
 
-	rc = pipe(stream->wake_fds);
-	if (rc < 0) {
-		goto err_ret;
-	}
-
-	stream->thread.running = 1;
-
-	rc = pthread_create(&stream->thread.tid, NULL, audio_thread, stream);
-	if (rc) {
-		syslog(LOG_ERR,
-		       "cras_client: Couldn't create audio stream.");
-		stream->thread.running = 0;
-		goto err_ret;
-	}
+	stream->thread.state = CRAS_THREAD_RUNNING;
+	wake_aud_thread(stream);
 
 	close(stream_fds[0]);
 	close(stream_fds[1]);
 	return 0;
 err_ret:
-	if (stream->wake_fds[0] >= 0) {
-		close(stream->wake_fds[0]);
-		close(stream->wake_fds[1]);
-	}
+	stop_aud_thread(stream, 1);
 	close(stream_fds[0]);
 	close(stream_fds[1]);
 	free_shm(stream);
@@ -1378,7 +1466,8 @@ static int send_connect_message(struct cras_client *client,
 	/* Create a socket pair for the server to notify of audio events. */
 	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
 	if (rc != 0) {
-		syslog(LOG_ERR, "cras_client: socketpair fails.");
+		rc = -errno;
+		syslog(LOG_ERR, "cras_client: socketpair: %s", strerror(-rc));
 		goto fail;
 	}
 
@@ -1449,10 +1538,18 @@ static int client_thread_add_stream(struct cras_client *client,
 	*stream_id_out = new_id;
 	stream->client = client;
 
-	/* send a message to the server asking that the stream be started. */
-	rc = send_connect_message(client, stream, dev_idx);
+	/* Start the audio thread. */
+	rc = start_aud_thread(stream);
 	if (rc != 0)
 		return rc;
+
+	/* Start the thread associated with this stream. */
+	/* send a message to the server asking that the stream be started. */
+	rc = send_connect_message(client, stream, dev_idx);
+	if (rc != 0) {
+		stop_aud_thread(stream, 1);
+		return rc;
+	}
 
 	/* Add the stream to the linked list */
 	DL_APPEND(client->streams, stream);
@@ -1484,12 +1581,7 @@ static int client_thread_rm_stream(struct cras_client *client,
 	}
 
 	/* And shut down locally. */
-	if (stream->thread.running) {
-		stream->thread.running = 0;
-		wake_aud_thread(stream);
-		pthread_join(stream->thread.tid, NULL);
-	}
-
+	stop_aud_thread(stream, 1);
 
 	free_shm(stream);
 
@@ -1497,10 +1589,6 @@ static int client_thread_rm_stream(struct cras_client *client,
 	if (stream->aud_fd >= 0)
 		close(stream->aud_fd);
 
-	if (stream->wake_fds[0] >= 0) {
-		close(stream->wake_fds[0]);
-		close(stream->wake_fds[1]);
-	}
 	free(stream->config);
 	free(stream);
 
@@ -1785,7 +1873,7 @@ static int handle_command_message(struct cras_client *client,
 			client_thread_rm_stream(client, s->id);
 
 		/* And stop this client */
-		client->thread.running = 0;
+		client->thread.state = CRAS_THREAD_STOP;
 		rc = 0;
 		break;
 	}
@@ -1842,7 +1930,7 @@ static void *client_thread(void *arg)
 	if (arg == NULL)
 		return (void *)-EINVAL;
 
-	while (client->thread.running) {
+	while (thread_is_running(&client->thread)) {
 		num_pollfds = 0;
 
 		rc = cras_file_wait_get_fd(client->sock_file_wait);
@@ -1902,7 +1990,7 @@ static int send_command_message(struct cras_client *client,
 				struct command_msg *msg)
 {
 	int rc, cmd_res;
-	if (client == NULL || !client->thread.running)
+	if (client == NULL || !thread_is_running(&client->thread))
 		return -EINVAL;
 
 	rc = write(client->command_fds[1], msg, msg->len);
@@ -1980,6 +2068,7 @@ int cras_client_create(struct cras_client **client)
 	size_t sock_file_size;
 	int rc;
 	struct client_int *client_int;
+	pthread_condattr_t cond_attr;
 
 	/* Ignore SIGPIPE while using this API. */
 	signal(SIGPIPE, SIG_IGN);
@@ -2002,11 +2091,28 @@ int cras_client_create(struct cras_client **client)
 		goto free_client;
 	}
 
+	rc = pthread_mutex_init(&(*client)->stream_start_lock, NULL);
+	if (rc != 0) {
+		syslog(LOG_ERR, "cras_client: Could not init start lock.");
+		rc = -rc;
+		goto free_rwlock;
+	}
+
+	pthread_condattr_init(&cond_attr);
+	pthread_condattr_setclock(&cond_attr, CLOCK_MONOTONIC);
+	rc = pthread_cond_init(&(*client)->stream_start_cond, &cond_attr);
+	pthread_condattr_destroy(&cond_attr);
+	if (rc != 0) {
+		syslog(LOG_ERR, "cras_client: Could not init start cond.");
+		rc = -rc;
+		goto free_lock;
+	}
+
 	(*client)->server_event_fd = eventfd(0, EFD_CLOEXEC|EFD_NONBLOCK);
 	if ((*client)->server_event_fd < 0) {
 		syslog(LOG_ERR, "cras_client: Could not setup server eventfd.");
 		rc = -errno;
-		goto free_lock;
+		goto free_cond;
 	}
 
 	sock_file_size = strlen(sock_dir) + strlen(CRAS_SOCKET_FILE) + 2;
@@ -2051,7 +2157,11 @@ free_error:
 		close((*client)->server_event_fd);
 	cras_file_wait_destroy((*client)->sock_file_wait);
 	free((void *)(*client)->sock_file);
+free_cond:
+	pthread_cond_destroy(&(*client)->stream_start_cond);
 free_lock:
+	pthread_mutex_destroy(&(*client)->stream_start_lock);
+free_rwlock:
 	pthread_rwlock_destroy(&client_int->server_state_rwlock);
 free_client:
 	*client = NULL;
@@ -2521,25 +2631,34 @@ read_active_streams_again:
 
 int cras_client_run_thread(struct cras_client *client)
 {
-	if (client == NULL || client->thread.running)
+	int rc;
+
+	if (client == NULL)
 		return -EINVAL;
+	if (thread_is_running(&client->thread))
+		return 0;
 
 	assert(client->command_reply_fds[0] == -1 &&
 	       client->command_reply_fds[1] == -1);
 
-	client->thread.running = 1;
 	if (pipe(client->command_reply_fds) < 0)
 		return -EIO;
-	if (pthread_create(&client->thread.tid, NULL, client_thread, client))
-		return -ENOMEM;
+	client->thread.state = CRAS_THREAD_RUNNING;
+	rc = pthread_create(&client->thread.tid, NULL, client_thread, client);
+	if (rc) {
+		client->thread.state = CRAS_THREAD_STOP;
+		return -rc;
+	}
 
 	return 0;
 }
 
 int cras_client_stop(struct cras_client *client)
 {
-	if (client == NULL || !client->thread.running)
+	if (client == NULL)
 		return -EINVAL;
+	if (!thread_is_running(&client->thread))
+		return 0;
 
 	send_simple_cmd_msg(client, 0, CLIENT_STOP);
 	pthread_join(client->thread.tid, NULL);
