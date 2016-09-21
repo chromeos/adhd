@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include "cras_dsp_ini.h"
@@ -192,6 +193,114 @@ static void fill_flow_info(struct ini *ini)
 	}
 }
 
+/* Adds a port to a plugin with specified flow id and direction. */
+static void add_audio_port(struct ini *ini,
+			   struct plugin *plugin,
+			   int flow_id,
+			   enum port_direction port_direction)
+{
+	struct port *p;
+	p = ARRAY_APPEND_ZERO(&plugin->ports);
+	p->type = PORT_AUDIO;
+	p->flow_id = flow_id;
+	p->init_value = 0;
+	p->direction = port_direction;
+}
+
+/* Fills fields for a swap_lr plugin.*/
+static void fill_swap_lr_plugin(struct ini *ini,
+				struct plugin *plugin,
+				int input_flowid_0,
+				int input_flowid_1,
+				int output_flowid_0,
+				int output_flowid_1)
+{
+	plugin->title = "swap_lr";
+	plugin->library = "builtin";
+	plugin->label = "swap_lr";
+	plugin->purpose = "playback";
+	plugin->disable_expr = cras_expr_expression_parse("swap_lr_disabled");
+
+	add_audio_port(ini, plugin, input_flowid_0, PORT_INPUT);
+	add_audio_port(ini, plugin, input_flowid_1, PORT_INPUT);
+	add_audio_port(ini, plugin, output_flowid_0, PORT_OUTPUT);
+	add_audio_port(ini, plugin, output_flowid_1, PORT_OUTPUT);
+}
+
+/* Adds a new flow with name. If there is already a flow with the name, returns
+ * INVALID_FLOW_ID.
+ */
+static int add_new_flow(struct ini *ini, const char *name)
+{
+	struct flow *flow;
+	int i = lookup_flow(ini, name);
+	if (i != -1)
+		return INVALID_FLOW_ID;
+	i = ARRAY_COUNT(&ini->flows);
+	flow = ARRAY_APPEND_ZERO(&ini->flows);
+	flow->name = name;
+	return i;
+}
+
+/* Inserts a swap_lr plugin before sink. Handles the port change such that
+ * the port originally connects to sink will connect to swap_lr.
+ */
+static int insert_swap_lr_plugin(struct ini *ini , struct plugin *sink)
+{
+	struct plugin *swap_lr;
+	int sink_input_flowid_0, sink_input_flowid_1;
+	int swap_lr_output_flowid_0, swap_lr_output_flowid_1;
+
+	/* Gets the original flow ids of the sink input ports. */
+	sink_input_flowid_0 = ARRAY_ELEMENT(&sink->ports, 0)->flow_id;
+	sink_input_flowid_1 = ARRAY_ELEMENT(&sink->ports, 1)->flow_id;
+
+	/* Create new flow ids for swap_lr output ports. */
+	swap_lr_output_flowid_0 = add_new_flow(ini, "{swap_lr_out:0}");
+	swap_lr_output_flowid_1 = add_new_flow(ini, "{swap_lr_out:1}");
+
+	if (swap_lr_output_flowid_0 == INVALID_FLOW_ID ||
+	    swap_lr_output_flowid_1 == INVALID_FLOW_ID) {
+		syslog(LOG_ERR, "Can not create flow id for swap_lr_out");
+		return -EINVAL;
+	}
+
+	/* Creates a swap_lr plugin and sets the input and output ports. */
+	swap_lr = ARRAY_APPEND_ZERO(&ini->plugins);
+	fill_swap_lr_plugin(ini,
+			    swap_lr,
+			    sink_input_flowid_0,
+			    sink_input_flowid_1,
+			    swap_lr_output_flowid_0,
+			    swap_lr_output_flowid_1);
+
+	/* The flow ids of sink input ports should be changed to flow ids of
+	 * {swap_lr_out:0}, {swap_lr_out:1}. */
+	ARRAY_ELEMENT(&sink->ports, 0)->flow_id = swap_lr_output_flowid_0;
+	ARRAY_ELEMENT(&sink->ports, 1)->flow_id = swap_lr_output_flowid_1;
+
+	return 0;
+}
+
+/* Finds the first playback sink plugin in ini. */
+struct plugin *find_first_playback_sink_plugin(struct ini *ini)
+{
+	int i;
+	struct plugin *plugin;
+
+	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
+		if (strcmp(plugin->library, "builtin") != 0)
+			continue;
+		if (strcmp(plugin->label, "sink") != 0)
+			continue;
+		if (!plugin->purpose ||
+		    strcmp(plugin->purpose, "playback") != 0)
+			continue;
+		return plugin;
+	}
+
+	return NULL;
+}
 
 struct ini *cras_dsp_ini_create(const char *ini_filename)
 {
@@ -200,6 +309,8 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 	int nsec, i;
 	const char *sec_name;
 	struct plugin *plugin;
+	struct plugin *sink;
+	int rc;
 
 	ini = calloc(1, sizeof(struct ini));
 	if (!ini) {
@@ -221,6 +332,19 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 		plugin = ARRAY_APPEND_ZERO(&ini->plugins);
 		if (parse_plugin_section(ini, sec_name, plugin) < 0)
 			goto bail;
+	}
+
+	/* TODO(cychiang): Handle multiple sinks if needed. */
+	sink = find_first_playback_sink_plugin(ini);
+
+	/* Only add swap_lr plugin for two-channel playback dsp. */
+	if (sink && ARRAY_COUNT(&sink->ports) == 2) {
+		/* Insert a swap_lr plugin before sink. */
+		rc = insert_swap_lr_plugin(ini, sink);
+		if (rc < 0) {
+			syslog(LOG_ERR, "failed to insert swap_lr plugin");
+			goto bail;
+		}
 	}
 
 	/* Fill flow info now because now the plugin array won't change */

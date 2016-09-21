@@ -411,6 +411,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   struct cras_expr_env env = CRAS_EXPR_ENV_INIT;
   cras_expr_env_install_builtins(&env);
   cras_expr_env_set_variable_string(&env, "output_device", "HDMI");
+  cras_expr_env_set_variable_boolean(&env, "swap_lr_disabled", 1);
 
   struct ini *ini = cras_dsp_ini_create(filename);
   ASSERT_TRUE(ini);
