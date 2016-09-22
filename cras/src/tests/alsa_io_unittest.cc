@@ -1993,6 +1993,17 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
   return 0;
 }
 
+char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id)
+{
+	return NULL;
+}
+
+int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
+				      const char *model_name)
+{
+	return 0;
+}
+
 //  From alsa helper.
 int cras_alsa_set_channel_map(snd_pcm_t *handle,
 			      struct cras_audio_format *fmt)

@@ -1497,6 +1497,21 @@ static unsigned int get_num_underruns(const struct cras_iodev *iodev)
 	return aio->num_underruns;
 }
 
+
+static void set_default_hotword_model(struct cras_iodev *iodev)
+{
+	const char *default_model = "en_us";
+	cras_node_id_t node_id;
+
+	if (!iodev->active_node ||
+	     iodev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
+		return;
+
+	node_id = cras_make_node_id(iodev->info.idx, iodev->active_node->idx);
+	/* This is a no-op if the default_model is not supported */
+	cras_iodev_list_set_hotword_model(node_id, default_model);
+}
+
 /*
  * Exported Interface.
  */
@@ -1739,6 +1754,9 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 	if (aio->card_type == ALSA_CARD_TYPE_USB && is_first)
 		cras_iodev_set_node_attr(iodev->active_node,
 					 IONODE_ATTR_PLUGGED, 1);
+
+	set_default_hotword_model(iodev);
+
 	return 0;
 }
 
@@ -1821,6 +1839,8 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 	if (aio->card_type == ALSA_CARD_TYPE_USB && aio->is_first)
 		cras_iodev_set_node_attr(iodev->active_node,
 					 IONODE_ATTR_PLUGGED, 1);
+
+	set_default_hotword_model(iodev);
 }
 
 void alsa_iodev_destroy(struct cras_iodev *iodev)
