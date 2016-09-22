@@ -13,6 +13,7 @@
 #define CRAS_NODE_TYPE_BUFFER_SIZE 32
 #define CRAS_NODE_MIC_POS_BUFFER_SIZE 128
 #define CRAS_NODE_NAME_BUFFER_SIZE 64
+#define CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE 16
 
 /* Identifying information about an IO device.
  *    idx - iodev index.
@@ -38,6 +39,7 @@ struct __attribute__ ((__packed__)) cras_iodev_info {
  *    mic_positions - Positions of the mic array.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
+ *    active_hotword_model - name of the currently selected hotword model.
  */
 struct __attribute__ ((__packed__)) cras_ionode_info {
 	uint32_t iodev_idx;
@@ -53,6 +55,7 @@ struct __attribute__ ((__packed__)) cras_ionode_info {
 	char mic_positions[CRAS_NODE_MIC_POS_BUFFER_SIZE];
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
+	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 };
 
 /* This is used in the cras_client_set_node_attr API.

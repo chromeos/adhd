@@ -239,6 +239,8 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->stable_id = node->stable_id;
 			strcpy(node_info->mic_positions, node->mic_positions);
 			strcpy(node_info->name, node->name);
+			strcpy(node_info->active_hotword_model,
+				node->active_hotword_model);
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
 				node_type_to_str(node->type));
 			node_info->type_enum = node->type;
@@ -908,13 +910,18 @@ char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id)
 int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
 				      const char *model_name)
 {
+	int ret;
 	struct cras_iodev *dev =
 			 find_dev(dev_index_of(node_id));
 	if (!dev || !dev->get_hotword_models ||
 	    (dev->active_node->type != CRAS_NODE_TYPE_HOTWORD))
 		return -EINVAL;
 
-	return dev->set_hotword_model(dev, model_name);
+	ret = dev->set_hotword_model(dev, model_name);
+	if (!ret)
+		strncpy(dev->active_node->active_hotword_model, model_name,
+			sizeof(dev->active_node->active_hotword_model) - 1);
+	return ret;
 }
 
 int cras_iodev_list_register_nodes_changed_cb(cras_alert_cb cb, void *arg)

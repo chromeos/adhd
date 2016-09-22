@@ -59,6 +59,7 @@ enum CRAS_IODEV_STATE {
  *      coordinates in meters with ordering x, y, z. The string is formatted as:
  *      "x1 y1 z1 ... xn yn zn" for an n-microphone array.
  *    name - Name displayed to the user.
+ *    active_hotword_model - name of the currently selected hotword model.
  *    softvol_scalers - pointer to software volume scalers.
  *    software_volume_needed - For output: True if the volume range of the node
  *      is smaller than desired. For input: True if this node needs software
@@ -77,6 +78,7 @@ struct cras_ionode {
 	enum CRAS_NODE_TYPE type;
 	char mic_positions[CRAS_NODE_MIC_POS_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
+	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 	float *softvol_scalers;
 	int software_volume_needed;
 	long max_software_gain;
