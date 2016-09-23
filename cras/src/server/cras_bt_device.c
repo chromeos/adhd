@@ -639,13 +639,15 @@ static void cras_bt_device_set_connected(struct cras_bt_device *device,
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
 
-	if (device->connected && !value)
+	if (device->connected && !value) {
 		cras_bt_profile_on_device_disconnected(device);
+		/* Device is disconnected, resets connected profiles. */
+		device->connected_profiles = 0;
+	}
 
 	device->connected = value;
 
 	if (device->connected) {
-		device->connected_profiles = 0;
 		cras_bt_device_start_new_conn_watch_timer(device);
 	} else if (device->conn_watch_timer) {
 		cras_tm_cancel_timer(tm, device->conn_watch_timer);
