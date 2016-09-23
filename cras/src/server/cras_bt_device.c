@@ -620,6 +620,20 @@ arm_retry_timer:
 	}
 }
 
+static void cras_bt_device_start_new_conn_watch_timer(
+		struct cras_bt_device *device)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (device->conn_watch_timer) {
+		cras_tm_cancel_timer(tm, device->conn_watch_timer);
+	}
+	device->conn_watch_retries = CONN_WATCH_MAX_RETRIES;
+	device->conn_watch_timer = cras_tm_create_timer(tm,
+			CONN_WATCH_PERIOD_MS,
+			bt_device_conn_watch_cb, device);
+}
+
 static void cras_bt_device_set_connected(struct cras_bt_device *device,
 					 int value)
 {
@@ -632,12 +646,7 @@ static void cras_bt_device_set_connected(struct cras_bt_device *device,
 
 	if (device->connected) {
 		device->connected_profiles = 0;
-		if (device->conn_watch_timer)
-			cras_tm_cancel_timer(tm, device->conn_watch_timer);
-		device->conn_watch_retries = CONN_WATCH_MAX_RETRIES;
-		device->conn_watch_timer = cras_tm_create_timer(tm,
-				CONN_WATCH_PERIOD_MS,
-				bt_device_conn_watch_cb, device);
+		cras_bt_device_start_new_conn_watch_timer(device);
 	} else if (device->conn_watch_timer) {
 		cras_tm_cancel_timer(tm, device->conn_watch_timer);
 		device->conn_watch_timer = NULL;
@@ -648,6 +657,9 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter)
 {
+
+	int get_profile = 0;
+
 	while (dbus_message_iter_get_arg_type(properties_array_iter) !=
 	       DBUS_TYPE_INVALID) {
 		DBusMessageIter properties_dict_iter, variant_iter;
@@ -713,6 +725,8 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				const char *uuid;
 				enum cras_bt_device_profile profile;
 
+				get_profile = 1;
+
 				dbus_message_iter_get_basic(&uuid_array_iter,
 							    &uuid);
 				profile = cras_bt_device_profile_from_uuid(
@@ -757,6 +771,15 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 		}
 
 		dbus_message_iter_next(invalidated_array_iter);
+	}
+
+	/* If updated properties includes profile, and device is connected,
+	 * we need to start connection watcher. This is needed because on
+	 * some bluetooth device, supported profiles do not present when
+	 * device interface is added and they are updated later.
+	 */
+	if (get_profile && device->connected) {
+		cras_bt_device_start_new_conn_watch_timer(device);
 	}
 }
 
