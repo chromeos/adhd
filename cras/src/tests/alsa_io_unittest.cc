@@ -2468,6 +2468,12 @@ unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
   return ucm_get_dma_period_for_dev_ret;
 }
 
+int ucm_get_sample_rate_for_dev(snd_use_case_mgr_t *mgr, const char *dev,
+				enum CRAS_STREAM_DIRECTION direction)
+{
+  return -EINVAL;
+}
+
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }

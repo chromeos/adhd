@@ -1319,11 +1319,31 @@ static void set_iodev_name(struct cras_iodev *dev,
 	syslog(LOG_DEBUG, "Stable ID=%08x", dev->info.stable_id);
 }
 
+static int get_fixed_rate(struct alsa_io *aio)
+{
+	const char *name;
+
+	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+		struct alsa_output_node *active = get_active_output(aio);
+		if (!active)
+			return -ENOENT;
+		name = active->base.name;
+	} else {
+		struct alsa_input_node *active = get_active_input(aio);
+		if (!active)
+			return -ENOENT;
+		name = active->base.name;
+	}
+
+	return ucm_get_sample_rate_for_dev(aio->ucm, name, aio->base.direction);
+}
+
 /* Updates the supported sample rates and channel counts. */
 static int update_supported_formats(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int err;
+	int fixed_rate;
 
 	free(iodev->supported_rates);
 	iodev->supported_rates = NULL;
@@ -1336,7 +1356,21 @@ static int update_supported_formats(struct cras_iodev *iodev)
 					&iodev->supported_rates,
 					&iodev->supported_channel_counts,
 					&iodev->supported_formats);
-	return err;
+	if (err)
+		return err;
+
+	if (aio->ucm) {
+		/* Allow UCM to override supplied rates. */
+		fixed_rate = get_fixed_rate(aio);
+		if (fixed_rate > 0) {
+			free(iodev->supported_rates);
+			iodev->supported_rates = (size_t*)malloc(
+					2 * sizeof(iodev->supported_rates[0]));
+			iodev->supported_rates[0] = fixed_rate;
+			iodev->supported_rates[1] = 0;
+		}
+	}
+	return 0;
 }
 
 /* Builds software volume scalers for output nodes in the device. */
