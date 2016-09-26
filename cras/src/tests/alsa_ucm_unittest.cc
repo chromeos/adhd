@@ -393,6 +393,34 @@ TEST(AlsaUcm, GetDeviceNameForDevice) {
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
 }
 
+TEST(AlsaUcm, GetDeviceRateForDevice) {
+  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  int input_dev_rate, output_dev_rate;
+  const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
+                            "Comment for Dev2" };
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=CaptureRate/Dev1/HiFi";
+  std::string id_2 = "=PlaybackRate/Dev2/HiFi";
+  std::string value_1 = "44100";
+  std::string value_2 = "48000";
+
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_value[id_2] = value_2;
+  input_dev_rate = ucm_get_sample_rate_for_dev(mgr, "Dev1", CRAS_STREAM_INPUT);
+  output_dev_rate = ucm_get_sample_rate_for_dev(mgr, "Dev2",
+						CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(44100, input_dev_rate);
+  EXPECT_EQ(48000, output_dev_rate);
+
+  ASSERT_EQ(2, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id_1);
+  EXPECT_EQ(snd_use_case_get_id[1], id_2);
+}
+
 TEST(AlsaUcm, GetHotwordModels) {
   snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   const char *models;

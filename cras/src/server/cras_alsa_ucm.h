@@ -205,6 +205,18 @@ const char *ucm_get_device_name_for_dev(
 		snd_use_case_mgr_t *mgr, const char *dev,
 		enum CRAS_STREAM_DIRECTION direction);
 
+/* Gets the sample rate at which to run this device.
+ *
+ * Args:
+ *    mgr - The snd_use_case_mgr_t pointer returned from alsa_ucm_create.
+ *    dev - The device to check for sample rate.
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ * Returns:
+ *    The sample rate if specified, or negative error if not.
+ */
+int ucm_get_sample_rate_for_dev(snd_use_case_mgr_t *mgr, const char *dev,
+				enum CRAS_STREAM_DIRECTION direction);
+
 /* Gets the mixer names for the coupled mixer controls of this device
  * on the card.
  *

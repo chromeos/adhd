@@ -28,7 +28,9 @@ static const char min_buffer_level_var[] = "MinBufferLevel";
 static const char dma_period_var[] = "DmaPeriodMicrosecs";
 static const char disable_software_volume[] = "DisableSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
+static const char playback_device_rate_var[] = "PlaybackRate";
 static const char capture_device_name_var[] = "CapturePCM";
+static const char capture_device_rate_var[] = "CaptureRate";
 static const char coupled_mixers[] = "CoupledMixers";
 /* Set this value in a SectionDevice to specify the maximum software gain in dBm
  * and enable software gain on this node. */
@@ -565,6 +567,27 @@ const char *ucm_get_device_name_for_dev(
 	else if (direction == CRAS_STREAM_INPUT)
 		return ucm_get_capture_device_name_for_dev(mgr, dev);
 	return NULL;
+}
+
+int ucm_get_sample_rate_for_dev(snd_use_case_mgr_t *mgr, const char *dev,
+				enum CRAS_STREAM_DIRECTION direction)
+{
+	int value;
+	int rc;
+	const char *var_name;
+
+	if (direction == CRAS_STREAM_OUTPUT)
+		var_name = playback_device_rate_var;
+	else if (direction == CRAS_STREAM_INPUT)
+		var_name = capture_device_rate_var;
+	else
+		return -EINVAL;
+
+	rc = get_int(mgr, var_name, dev, default_verb, &value);
+	if (rc)
+		return rc;
+
+	return value;
 }
 
 struct mixer_name *ucm_get_coupled_mixer_names(
