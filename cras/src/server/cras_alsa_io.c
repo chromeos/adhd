@@ -1597,14 +1597,11 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
-	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
-					&iodev->supported_rates,
-					&iodev->supported_channel_counts,
-					&iodev->supported_formats);
+	err = update_supported_formats(iodev);
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
 	    iodev->supported_channel_counts[0] == 0 ||
 	    iodev->supported_formats[0] == 0) {
-		syslog(LOG_ERR, "cras_alsa_fill_properties: %s", strerror(err));
+		syslog(LOG_ERR, "Updating formats: %s", strerror(err));
 		goto cleanup_iodev;
 	}
 
