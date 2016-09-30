@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+#include <poll.h>
 #include <time.h>
 
 #include "cras_types.h"

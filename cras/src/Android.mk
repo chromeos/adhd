@@ -5,6 +5,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	common/cras_audio_format.c \
 	common/cras_config.c \
+	common/cras_file_wait.c \
 	common/cras_util.c \
 	common/edid_utils.c \
 	libcras/cras_client.c \
@@ -17,6 +18,9 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/common \
 	$(LOCAL_PATH)/libcras \
 	external/tinyalsa/include
+
+LOCAL_CFLAGS += \
+	-DCRAS_SOCKET_FILE_DIR=\"/var/run/cras\"
 
 LOCAL_MODULE := libcras
 
