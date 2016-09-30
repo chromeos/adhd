@@ -135,7 +135,6 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 	int flags;
 	ssize_t read_rc;
 	ssize_t read_offset;
-	struct stat stat_buf;
 
 	if (!file_wait)
 		return -EINVAL;
@@ -237,7 +236,7 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 
 		/* Satisfy the race condition between existence of the
 		 * file and creation of the watch. */
-		rc = stat(file_wait->watch_path, &stat_buf);
+		rc = access(file_wait->watch_path, F_OK);
 		if (rc < 0) {
 			rc = -errno;
 			if (rc == -ENOENT) {
