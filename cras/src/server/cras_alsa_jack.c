@@ -851,17 +851,6 @@ static int hctl_jack_cb(snd_hctl_elem_t *elem, unsigned int mask)
 	       name,
 	       snd_ctl_elem_value_get_boolean(elem_value, 0) ? "plugged"
 							     : "unplugged");
-
-	/* Reports jack status right away because hctl jack is plugged only if
-	 * external device supports audio. Note that this is different from
-	 * gpio jack with EDID file because EDID file can tell system that
-	 * external device does not support audio. */
-	jack->jack_list->change_callback(jack,
-					 get_jack_current_state(jack),
-					 jack->jack_list->callback_data);
-
-	/* Polls and checks if ELD info is ready and reports jack state again
-	 * to update display info and node name. */
 	jack_state_change_cb(jack, 1);
 	return 0;
 }
