@@ -56,7 +56,10 @@ static int frames_queued(const struct cras_iodev *iodev,
 	if (!hfp_info_running(hfpio->info))
 		return -1;
 
-	return hfp_buf_queued(hfpio->info, iodev, tstamp);
+	/* Do not enable timestamp mechanism on HFP device because last time
+	 * stamp might be a long time ago and it is not really useful. */
+	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+	return hfp_buf_queued(hfpio->info, iodev);
 }
 
 /* Modify the hfpio's buffer_size when the SCO packet size has changed. */
@@ -178,11 +181,10 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 static int flush_buffer(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	struct timespec tstamp;
 	unsigned nframes;
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
-		nframes = hfp_buf_queued(hfpio->info, iodev, &tstamp);
+		nframes = hfp_buf_queued(hfpio->info, iodev);
 		hfp_buf_release(hfpio->info, iodev, nframes);
 	}
 	return 0;

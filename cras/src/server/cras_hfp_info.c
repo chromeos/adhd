@@ -34,8 +34,6 @@
  *         adapter, could be different than mtu.
  *     capture_buf - The buffer to hold samples read from SCO socket.
  *     playback_buf - The buffer to hold samples about to write to SCO socket.
- *     transfer_ts - Timestamp when the playback or capture buffer was last
- *                   modified.
  *     idev - The input iodev using this hfp_info.
  *     odev - The output iodev using this hfp_info.
  *     packet_size_changed_cbs - The callbacks to trigger when SCO packet
@@ -48,7 +46,6 @@ struct hfp_info {
 	unsigned int packet_size;
 	struct byte_buffer *capture_buf;
 	struct byte_buffer *playback_buf;
-	struct timespec transfer_ts;
 
 	struct cras_iodev *idev;
 	struct cras_iodev *odev;
@@ -132,13 +129,11 @@ void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
 		buf_increment_read(info->capture_buf, written_frames);
 }
 
-int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev,
-		   struct timespec *tstamp)
+int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
 {
 	size_t format_bytes;
 	format_bytes = cras_get_format_bytes(dev->format);
 
-	*tstamp = info->transfer_ts;
 	if (dev->direction == CRAS_STREAM_OUTPUT)
 		return buf_queued_bytes(info->playback_buf) / format_bytes;
 	else
@@ -294,7 +289,6 @@ static int hfp_info_callback(void *arg)
 		}
 	}
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &info->transfer_ts);
 	return 0;
 
 read_write_error:
@@ -364,8 +358,6 @@ int hfp_info_stop(struct hfp_info *info)
 	close(info->fd);
 	info->fd = 0;
 	info->started = 0;
-	info->transfer_ts.tv_sec = 0;
-	info->transfer_ts.tv_nsec = 0;
 
 	return 0;
 }
