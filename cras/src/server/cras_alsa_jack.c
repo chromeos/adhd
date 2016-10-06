@@ -19,7 +19,8 @@
 #include "utlist.h"
 
 static const unsigned int DISPLAY_INFO_RETRY_DELAY_MS = 200;
-static const unsigned int DISPLAY_INFO_MAX_RETRIES = 25;
+static const unsigned int DISPLAY_INFO_MAX_RETRIES = 10;
+static const unsigned int DISPLAY_INFO_GPIO_MAX_RETRIES = 25;
 
 /* Constants used to retrieve monitor name from ELD buffer. */
 static const unsigned int ELD_MNL_MASK = 31;
@@ -295,8 +296,11 @@ static inline void jack_state_change_cb(struct cras_alsa_jack *jack, int retry)
 		cras_tm_cancel_timer(tm, jack->display_info_timer);
 		jack->display_info_timer = NULL;
 	}
-	if (retry)
-		jack->display_info_retries = DISPLAY_INFO_MAX_RETRIES;
+	if (retry) {
+		jack->display_info_retries =
+				jack->is_gpio ? DISPLAY_INFO_GPIO_MAX_RETRIES
+					      : DISPLAY_INFO_MAX_RETRIES;
+	}
 
 	if (!get_jack_current_state(jack))
 		goto report_jack_state;
