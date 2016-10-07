@@ -364,6 +364,7 @@ void cras_observer_remove(struct cras_observer_client *client)
 	if (!client)
 		return;
 	DL_DELETE(g_observer->clients, client);
+	free(client);
 }
 
 /*
