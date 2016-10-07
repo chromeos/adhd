@@ -127,6 +127,13 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
+	/* This function is for transition between normal run and
+	 * no stream run state.
+	 */
+	if ((odev->state != CRAS_IODEV_STATE_NORMAL_RUN) &&
+	    (odev->state != CRAS_IODEV_STATE_NO_STREAM_RUN))
+		return -EINVAL;
+
 	if (enable) {
 		ATLOG(atlog, AUDIO_THREAD_ODEV_NO_STREAMS,
 		      odev->info.idx, 0, 0);
@@ -712,11 +719,12 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 		buffer_share_destroy(iodev->buf_state);
 		iodev->buf_state = NULL;
 		iodev->min_cb_level = old_min_cb_level;
-		/* Let output device transit into no stream state.
-		 * Leave input device in normal run state. */
-		if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		/* Let output device transit into no stream state if it's
+		 * in normal run state now. Leave input device in normal
+		 * run state. */
+		if ((iodev->direction == CRAS_STREAM_OUTPUT) &&
+		    (iodev->state == CRAS_IODEV_STATE_NORMAL_RUN))
 			cras_iodev_no_stream_playback_transition(iodev, 1);
-		}
 	}
 	return ret;
 }
