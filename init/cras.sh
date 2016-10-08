@@ -20,5 +20,5 @@ if [ -f /etc/cras/get_device_config_dir ]; then
   DEVICE_CONFIG_DIR="--device_config_dir=${device_config_dir}"
   DSP_CONFIG="--dsp_config=${device_config_dir}/dsp.ini"
 fi
-exec minijail0 -u cras -g cras -G -- /usr/bin/cras \
+exec minijail0 -i -u cras -g cras -G -- /usr/bin/cras \
     ${DSP_CONFIG} ${DEVICE_CONFIG_DIR}
