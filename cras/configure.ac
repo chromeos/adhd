@@ -74,7 +74,7 @@ AC_ARG_WITH(socketdir,
     AS_HELP_STRING([--with-socketdir=dir],
         [path where CRAS stores its sockets]),
     socketdir="$withval",
-    socketdir="/var/run/cras")
+    socketdir="/run/cras")
 AC_DEFINE_UNQUOTED(CRAS_SOCKET_FILE_DIR, "$socketdir",
                    [directory containing CRAS socket files])
 
