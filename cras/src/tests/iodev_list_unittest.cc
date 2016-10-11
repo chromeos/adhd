@@ -22,32 +22,13 @@ struct cras_server_state server_state_stub;
 struct cras_server_state *server_state_update_begin_return;
 
 /* Data for stubs. */
-static cras_alert_cb volume_changed_cb;
-static void* volume_changed_arg;
-static unsigned int register_volume_changed_cb_called;
-static unsigned int remove_volume_changed_cb_called;
-static cras_alert_cb mute_changed_cb;
 static cras_alert_cb suspend_cb;
-static void* mute_changed_arg;
-static unsigned int register_mute_changed_cb_called;
-static unsigned int remove_mute_changed_cb_called;
 static unsigned int register_suspend_cb_called;
 static unsigned int remove_suspend_cb_called;
 static unsigned int cras_system_get_suspended_val;
-static cras_alert_cb capture_gain_changed_cb;
-static void* capture_gain_changed_arg;
-static unsigned int register_capture_gain_changed_cb_called;
-static unsigned int remove_capture_gain_changed_cb_called;
-static cras_alert_cb capture_mute_changed_cb;
-static void* capture_mute_changed_arg;
-static unsigned int register_capture_mute_changed_cb_called;
-static unsigned int remove_capture_mute_changed_cb_called;
 static int add_stream_called;
 static int rm_stream_called;
 static unsigned int set_node_attr_called;
-static int cras_alert_create_called;
-static int cras_alert_destroy_called;
-static int cras_alert_pending_called;
 static cras_iodev *audio_thread_remove_streams_active_dev;
 static cras_iodev *audio_thread_set_active_dev_val;
 static int audio_thread_set_active_dev_called;
@@ -79,6 +60,8 @@ static unsigned update_active_node_called;
 static struct cras_iodev *update_active_node_iodev_val[5];
 static unsigned update_active_node_node_idx_val[5];
 static unsigned update_active_node_dev_enabled_val[5];
+static size_t cras_observer_add_called;
+static size_t cras_observer_remove_called;
 static size_t cras_observer_notify_nodes_called;
 static size_t cras_observer_notify_active_node_called;
 static size_t cras_observer_notify_output_node_volume_called;
@@ -192,22 +175,11 @@ class IoDevTestSuite : public testing::Test {
       server_state_update_begin_return = &server_state_stub;
 
       /* Reset stub data. */
-      register_volume_changed_cb_called = 0;
-      remove_volume_changed_cb_called = 0;
-      register_capture_gain_changed_cb_called = 0;
-      remove_capture_gain_changed_cb_called = 0;
-      register_mute_changed_cb_called = 0;
-      remove_mute_changed_cb_called = 0;
       register_suspend_cb_called = 0;
       remove_suspend_cb_called = 0;
-      register_capture_mute_changed_cb_called = 0;
-      remove_capture_mute_changed_cb_called = 0;
       add_stream_called = 0;
       rm_stream_called = 0;
       set_node_attr_called = 0;
-      cras_alert_create_called = 0;
-      cras_alert_destroy_called = 0;
-      cras_alert_pending_called = 0;
       audio_thread_rm_open_dev_called = 0;
       audio_thread_add_open_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
@@ -216,6 +188,8 @@ class IoDevTestSuite : public testing::Test {
       node_gain_cb_called = 0;
       audio_thread_add_stream_called = 0;
       update_active_node_called = 0;
+      cras_observer_add_called = 0;
+      cras_observer_remove_called = 0;
       cras_observer_notify_nodes_called = 0;
       cras_observer_notify_active_node_called = 0;
       cras_observer_notify_output_node_volume_called = 0;
@@ -265,20 +239,12 @@ int IoDevTestSuite::set_mute_1_called_;
 int IoDevTestSuite::set_capture_gain_1_called_;
 int IoDevTestSuite::set_capture_mute_1_called_;
 
-// Check that Init registers a volume changed callback. */
+// Check that Init registers observer client. */
 TEST_F(IoDevTestSuite, InitSetup) {
   cras_iodev_list_init();
-  EXPECT_EQ(1, register_volume_changed_cb_called);
-  EXPECT_EQ(1, register_mute_changed_cb_called);
-  EXPECT_EQ(1, register_suspend_cb_called);
-  EXPECT_EQ(1, register_capture_gain_changed_cb_called);
-  EXPECT_EQ(1, register_capture_mute_changed_cb_called);
+  EXPECT_EQ(1, cras_observer_add_called);
   cras_iodev_list_deinit();
-  EXPECT_EQ(1, remove_volume_changed_cb_called);
-  EXPECT_EQ(1, remove_mute_changed_cb_called);
-  EXPECT_EQ(1, remove_suspend_cb_called);
-  EXPECT_EQ(1, remove_capture_gain_changed_cb_called);
-  EXPECT_EQ(1, remove_capture_mute_changed_cb_called);
+  EXPECT_EQ(1, cras_observer_remove_called);
 }
 
 /* Check that the suspend alert from cras_system will trigger suspend
@@ -654,19 +620,14 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
 
 // Test nodes changed notification is sent.
 TEST_F(IoDevTestSuite, NodesChangedNotification) {
-  EXPECT_EQ(0, cras_alert_create_called);
   cras_iodev_list_init();
-  /* One for nodes changed and one for active node changed */
-  EXPECT_EQ(2, cras_alert_create_called);
+  EXPECT_EQ(1, cras_observer_add_called);
 
-  EXPECT_EQ(0, cras_alert_pending_called);
   cras_iodev_list_notify_nodes_changed();
-  EXPECT_EQ(1, cras_alert_pending_called);
   EXPECT_EQ(1, cras_observer_notify_nodes_called);
 
-  EXPECT_EQ(0, cras_alert_destroy_called);
   cras_iodev_list_deinit();
-  EXPECT_EQ(2, cras_alert_destroy_called);
+  EXPECT_EQ(1, cras_observer_remove_called);
 }
 
 // Test callback function for left right swap mode is set and called.
@@ -915,30 +876,6 @@ struct cras_server_state *cras_system_state_update_begin() {
 void cras_system_state_update_complete() {
 }
 
-int cras_system_register_volume_changed_cb(cras_alert_cb cb, void *arg) {
-  volume_changed_cb = cb;
-  volume_changed_arg = arg;
-  register_volume_changed_cb_called++;
-  return 0;
-}
-
-int cras_system_remove_volume_changed_cb(cras_alert_cb cb, void *arg) {
-  remove_volume_changed_cb_called++;
-  return 0;
-}
-
-int cras_system_register_mute_changed_cb(cras_alert_cb cb, void *arg) {
-  mute_changed_cb = cb;
-  mute_changed_arg = arg;
-  register_mute_changed_cb_called++;
-  return 0;
-}
-
-int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg) {
-  remove_mute_changed_cb_called++;
-  return 0;
-}
-
 int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg)
 {
   suspend_cb = cb;
@@ -955,54 +892,6 @@ int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg)
 int cras_system_get_suspended()
 {
   return cras_system_get_suspended_val;
-}
-
-int cras_system_register_capture_gain_changed_cb(cras_alert_cb cb, void *arg) {
-  capture_gain_changed_cb = cb;
-  capture_gain_changed_arg = arg;
-  register_capture_gain_changed_cb_called++;
-  return 0;
-}
-
-int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg) {
-  remove_capture_gain_changed_cb_called++;
-  return 0;
-}
-
-int cras_system_register_capture_mute_changed_cb(cras_alert_cb cb, void *arg) {
-  capture_mute_changed_cb = cb;
-  capture_mute_changed_arg = arg;
-  register_capture_mute_changed_cb_called++;
-  return 0;
-}
-
-int cras_system_remove_capture_mute_changed_cb(cras_alert_cb cb, void *arg) {
-  remove_capture_mute_changed_cb_called++;
-  return 0;
-}
-
-struct cras_alert *cras_alert_create(cras_alert_prepare prepare,
-                                     unsigned int flags) {
-  cras_alert_create_called++;
-  return NULL;
-}
-
-int cras_alert_add_callback(struct cras_alert *alert, cras_alert_cb cb,
-                            void *arg) {
-  return 0;
-}
-
-int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
-                           void *arg) {
-  return 0;
-}
-
-void cras_alert_pending(struct cras_alert *alert) {
-  cras_alert_pending_called++;
-}
-
-void cras_alert_destroy(struct cras_alert *alert) {
-  cras_alert_destroy_called++;
 }
 
 struct audio_thread *audio_thread_create() {
@@ -1206,6 +1095,19 @@ struct cras_fmt_conv *cras_channel_remix_conv_create(
 void cras_channel_remix_convert(struct cras_fmt_conv *conv,
     uint8_t *in_buf, size_t frames)
 {
+}
+
+struct cras_observer_client *cras_observer_add(
+      const struct cras_observer_ops *ops,
+      void *context)
+{
+  cras_observer_add_called++;
+  return reinterpret_cast<struct cras_observer_client *>(0x55);
+}
+
+void cras_observer_remove(struct cras_observer_client *client)
+{
+  cras_observer_remove_called++;
 }
 
 void cras_observer_notify_nodes(void) {

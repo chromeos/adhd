@@ -275,7 +275,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(capture_gain, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(capture_mute, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(nodes, nodes_prepare, 0);
-	CRAS_OBSERVER_SET_ALERT(active_node, NULL,
+	CRAS_OBSERVER_SET_ALERT(active_node, nodes_prepare,
 				CRAS_ALERT_FLAG_KEEP_ALL_DATA);
 	CRAS_OBSERVER_SET_ALERT(output_node_volume, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(node_left_right_swapped, NULL, 0);

@@ -37,13 +37,7 @@ struct card_list {
  *    shm_size - Size of the shm area.
  *    device_config_dir - Directory of device configs where volume curves live.
  *    device_blacklist - Blacklist of device the server will ignore.
- *    volume_alert - Called when the system volume changes.
- *    mute_alert - Called when the system mute state changes.
  *    suspend_alert - Called when the audio suspend state changes.
- *    capture_gain_alert - Called when the capture gain changes.
- *    capture_mute_alert - Called when the capture mute changes.
- *    volume_limits_alert - Called when the volume limits are changed.
- *    active_streams_alert - Called when the number of active streams changes.
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
@@ -57,13 +51,7 @@ static struct {
 	size_t shm_size;
 	const char *device_config_dir;
 	struct cras_device_blacklist *device_blacklist;
-	struct cras_alert *volume_alert;
-	struct cras_alert *mute_alert;
 	struct cras_alert *suspend_alert;
-	struct cras_alert *capture_gain_alert;
-	struct cras_alert *capture_mute_alert;
-	struct cras_alert *volume_limits_alert;
-	struct cras_alert *active_streams_alert;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
 	struct cras_tm *tm;
@@ -131,13 +119,7 @@ void cras_system_state_init(const char *device_config_dir)
 	state.device_config_dir = device_config_dir;
 
 	/* Initialize alerts. */
-	state.volume_alert = cras_alert_create(NULL, 0);
-	state.mute_alert = cras_alert_create(NULL, 0);
 	state.suspend_alert = cras_alert_create(NULL, 0);
-	state.capture_gain_alert = cras_alert_create(NULL, 0);
-	state.capture_mute_alert = cras_alert_create(NULL, 0);
-	state.volume_limits_alert = cras_alert_create(NULL, 0);
-	state.active_streams_alert = cras_alert_create(NULL, 0);
 
 	state.tm = cras_tm_init();
 	if (!state.tm) {
@@ -165,21 +147,8 @@ void cras_system_state_deinit()
 			close(state.shm_fd_ro);
 	}
 
-	cras_alert_destroy(state.volume_alert);
-	cras_alert_destroy(state.mute_alert);
 	cras_alert_destroy(state.suspend_alert);
-	cras_alert_destroy(state.capture_gain_alert);
-	cras_alert_destroy(state.capture_mute_alert);
-	cras_alert_destroy(state.volume_limits_alert);
-	cras_alert_destroy(state.active_streams_alert);
-
-	state.volume_alert = NULL;
-	state.mute_alert = NULL;
 	state.suspend_alert = NULL;
-	state.capture_gain_alert = NULL;
-	state.capture_mute_alert = NULL;
-	state.volume_limits_alert = NULL;
-	state.active_streams_alert = NULL;
 
 	pthread_mutex_destroy(&state.update_lock);
 }
@@ -190,7 +159,6 @@ void cras_system_set_volume(size_t volume)
 		syslog(LOG_DEBUG, "system volume set out of range %zu", volume);
 
 	state.exp_state->volume = MIN(volume, CRAS_MAX_SYSTEM_VOLUME);
-	cras_alert_pending(state.volume_alert);
 	cras_observer_notify_output_volume(state.exp_state->volume);
 }
 
@@ -199,21 +167,10 @@ size_t cras_system_get_volume()
 	return state.exp_state->volume;
 }
 
-int cras_system_register_volume_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.volume_alert, cb, arg);
-}
-
-int cras_system_remove_volume_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.volume_alert, cb, arg);
-}
-
 void cras_system_set_capture_gain(long gain)
 {
 	state.exp_state->capture_gain =
 		MAX(gain, state.exp_state->min_capture_gain);
-	cras_alert_pending(state.capture_gain_alert);
 	cras_observer_notify_capture_gain(state.exp_state->capture_gain);
 }
 
@@ -222,19 +179,8 @@ long cras_system_get_capture_gain()
 	return state.exp_state->capture_gain;
 }
 
-int cras_system_register_capture_gain_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.capture_gain_alert, cb, arg);
-}
-
-int cras_system_remove_capture_gain_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.capture_gain_alert, cb, arg);
-}
-
 void cras_system_notify_mute(void)
 {
-	cras_alert_pending(state.mute_alert);
 	cras_observer_notify_output_mute(state.exp_state->mute,
 					 state.exp_state->user_mute,
 					 state.exp_state->mute_locked);
@@ -281,19 +227,8 @@ int cras_system_get_mute_locked()
 	return state.exp_state->mute_locked;
 }
 
-int cras_system_register_mute_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.mute_alert, cb, arg);
-}
-
-int cras_system_remove_mute_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.mute_alert, cb, arg);
-}
-
 void cras_system_notify_capture_mute(void)
 {
-	cras_alert_pending(state.capture_mute_alert);
 	cras_observer_notify_capture_mute(state.exp_state->capture_mute,
 					  state.exp_state->capture_mute_locked);
 }
@@ -323,16 +258,6 @@ int cras_system_get_capture_mute_locked()
 	return state.exp_state->capture_mute_locked;
 }
 
-int cras_system_register_capture_mute_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.capture_mute_alert, cb, arg);
-}
-
-int cras_system_remove_capture_mute_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.capture_mute_alert, cb, arg);
-}
-
 int cras_system_get_suspended()
 {
 	return state.exp_state->suspended;
@@ -358,7 +283,6 @@ void cras_system_set_volume_limits(long min, long max)
 {
 	state.exp_state->min_volume_dBFS = min;
 	state.exp_state->max_volume_dBFS = max;
-	cras_alert_pending(state.volume_limits_alert);
 }
 
 long cras_system_get_min_volume()
@@ -371,21 +295,10 @@ long cras_system_get_max_volume()
 	return state.exp_state->max_volume_dBFS;
 }
 
-int cras_system_register_volume_limits_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.volume_limits_alert, cb, arg);
-}
-
-int cras_system_remove_volume_limits_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.volume_limits_alert, cb, arg);
-}
-
 void cras_system_set_capture_gain_limits(long min, long max)
 {
 	state.exp_state->min_capture_gain = MAX(min, DEFAULT_MIN_CAPTURE_GAIN);
 	state.exp_state->max_capture_gain = max;
-	cras_alert_pending(state.volume_limits_alert);
 }
 
 long cras_system_get_min_capture_gain()
@@ -495,7 +408,6 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction)
 	s->num_streams_attached++;
 
 	cras_system_state_update_complete();
-	cras_alert_pending(state.active_streams_alert);
 	cras_observer_notify_num_active_streams(
 		direction, s->num_active_streams[direction]);
 }
@@ -521,7 +433,6 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
 	s->num_active_streams[direction]--;
 
 	cras_system_state_update_complete();
-	cras_alert_pending(state.active_streams_alert);
 	cras_observer_notify_num_active_streams(
 		direction, s->num_active_streams[direction]);
 }
@@ -539,16 +450,6 @@ unsigned cras_system_state_get_active_streams_by_direction(
 	enum CRAS_STREAM_DIRECTION direction)
 {
 	return state.exp_state->num_active_streams[direction];
-}
-
-int cras_system_register_active_streams_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.active_streams_alert, cb, arg);
-}
-
-int cras_system_remove_active_streams_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.active_streams_alert, cb, arg);
 }
 
 void cras_system_state_get_last_stream_active_time(struct cras_timespec *ts)

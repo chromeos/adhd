@@ -42,6 +42,8 @@ struct enabled_dev {
 
 /* Lists for devs[CRAS_STREAM_INPUT] and devs[CRAS_STREAM_OUTPUT]. */
 static struct iodev_list devs[CRAS_NUM_DIRECTIONS];
+/* The observer client iodev_list used to listen on various events. */
+static struct cras_observer_client *list_observer;
 /* Keep a list of enabled inputs and outputs. */
 static struct enabled_dev *enabled_devs[CRAS_NUM_DIRECTIONS];
 /* Keep an empty device per direction. */
@@ -49,10 +51,7 @@ static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
-/* Called when the nodes are added/removed. */
-static struct cras_alert *nodes_changed_alert;
-/* Called when the active output/input is changed */
-static struct cras_alert *active_node_changed_alert;
+
 /* Call when the volume of a node changes. */
 static node_volume_callback_t node_volume_callback;
 static node_volume_callback_t node_input_gain_callback;
@@ -69,8 +68,6 @@ static struct cras_timer *idle_timer;
 /* Flag to indicate that the stream list is disconnected from audio thread. */
 static int stream_list_suspended = 0;
 
-static void nodes_changed_prepare(struct cras_alert *alert);
-static void active_node_changed_prepare(struct cras_alert *alert);
 static void idle_dev_check(struct cras_timer *timer, void *data);
 
 static struct cras_iodev *find_dev(size_t dev_index)
@@ -278,7 +275,7 @@ static int get_dev_list(struct iodev_list *list,
 
 /* Called when the system volume changes.  Pass the current volume setting to
  * the default output if it is active. */
-void sys_vol_change(void *arc, void *data)
+static void sys_vol_change(void *context, int32_t volume)
 {
 	struct cras_iodev *dev;
 
@@ -290,7 +287,8 @@ void sys_vol_change(void *arc, void *data)
 
 /* Called when the system mute state changes.  Pass the current mute setting
  * to the default output if it is active. */
-void sys_mute_change(void *arg, void *data)
+static void sys_mute_change(void *context, int muted, int user_muted,
+			    int mute_locked)
 {
 	struct cras_iodev *dev;
 
@@ -449,7 +447,7 @@ void sys_suspend_change(void *arg, void *data)
 
 /* Called when the system capture gain changes.  Pass the current capture_gain
  * setting to the default input if it is active. */
-void sys_cap_gain_change(void *arg, void *data)
+void sys_cap_gain_change(void *context, int32_t gain)
 {
 	struct cras_iodev *dev;
 
@@ -461,7 +459,7 @@ void sys_cap_gain_change(void *arg, void *data)
 
 /* Called when the system capture mute state changes.  Pass the current capture
  * mute setting to the default input if it is active. */
-void sys_cap_mute_change(void *arg, void *data)
+static void sys_cap_mute_change(void *context, int muted, int mute_locked)
 {
 	struct cras_iodev *dev;
 
@@ -670,14 +668,16 @@ static int disable_device(struct enabled_dev *edev)
 
 void cras_iodev_list_init()
 {
-	cras_system_register_volume_changed_cb(sys_vol_change, NULL);
-	cras_system_register_mute_changed_cb(sys_mute_change, NULL);
+	struct cras_observer_ops observer_ops;
+
+	memset(&observer_ops, 0, sizeof(observer_ops));
+	observer_ops.output_volume_changed = sys_vol_change;
+	observer_ops.output_mute_changed = sys_mute_change;
+	observer_ops.capture_gain_changed = sys_cap_gain_change;
+	observer_ops.capture_mute_changed = sys_cap_mute_change;
+	list_observer = cras_observer_add(&observer_ops, NULL);
+
 	cras_system_register_suspend_cb(sys_suspend_change, NULL);
-	cras_system_register_capture_gain_changed_cb(sys_cap_gain_change, NULL);
-	cras_system_register_capture_mute_changed_cb(sys_cap_mute_change, NULL);
-	nodes_changed_alert = cras_alert_create(nodes_changed_prepare, 0);
-	active_node_changed_alert = cras_alert_create(
-		active_node_changed_prepare, 0);
 
 	/* Create the audio stream list for the system. */
 	stream_list = stream_list_create(stream_added_cb, stream_removed_cb,
@@ -710,15 +710,11 @@ void cras_iodev_list_init()
 
 void cras_iodev_list_deinit()
 {
-	cras_system_remove_volume_changed_cb(sys_vol_change, NULL);
-	cras_system_remove_mute_changed_cb(sys_mute_change, NULL);
+	if (list_observer) {
+		cras_observer_remove(list_observer);
+		list_observer = NULL;
+	}
 	cras_system_remove_suspend_cb(sys_suspend_change, NULL);
-	cras_system_remove_capture_gain_changed_cb(sys_cap_gain_change, NULL);
-	cras_system_remove_capture_mute_changed_cb(sys_cap_mute_change, NULL);
-	cras_alert_destroy(nodes_changed_alert);
-	cras_alert_destroy(active_node_changed_alert);
-	nodes_changed_alert = NULL;
-	active_node_changed_alert = NULL;
 	audio_thread_destroy(audio_thread);
 	stream_list_destroy(stream_list);
 }
@@ -934,50 +930,16 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
 	return ret;
 }
 
-int cras_iodev_list_register_nodes_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(nodes_changed_alert, cb, arg);
-}
-
-int cras_iodev_list_remove_nodes_changed_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(nodes_changed_alert, cb, arg);
-}
-
 void cras_iodev_list_notify_nodes_changed()
 {
-	cras_alert_pending(nodes_changed_alert);
 	cras_observer_notify_nodes();
-}
-
-static void nodes_changed_prepare(struct cras_alert *alert)
-{
-	cras_iodev_list_update_device_list();
-}
-
-int cras_iodev_list_register_active_node_changed_cb(cras_alert_cb cb,
-						    void *arg)
-{
-	return cras_alert_add_callback(active_node_changed_alert, cb, arg);
-}
-
-int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
-						  void *arg)
-{
-	return cras_alert_rm_callback(active_node_changed_alert, cb, arg);
 }
 
 void cras_iodev_list_notify_active_node_changed(
 		enum CRAS_STREAM_DIRECTION direction)
 {
-	cras_alert_pending(active_node_changed_alert);
 	cras_observer_notify_active_node(direction,
 			cras_iodev_list_get_active_node_id(direction));
-}
-
-static void active_node_changed_prepare(struct cras_alert *alert)
-{
-	cras_iodev_list_update_device_list();
 }
 
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,

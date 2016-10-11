@@ -11,7 +11,6 @@
 
 #include <stdint.h>
 
-#include "cras_alert.h"
 #include "cras_types.h"
 
 struct cras_iodev;
@@ -125,38 +124,8 @@ char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id);
 int cras_iodev_list_set_hotword_model(cras_node_id_t id,
 				      const char *model_name);
 
-/* Adds a callback to call when the nodes are added/removed.
- * Args:
- *    cb - Function to call when there is a change.
- *    arg - Value to pass back to callback.
- */
-int cras_iodev_list_register_nodes_changed_cb(cras_alert_cb cb, void *arg);
-
-/* Removes a callback to call when the nodes are added/removed.
- * Args:
- *    cb - Function to call when there is a change.
- *    arg - Value to pass back to callback.
- */
-int cras_iodev_list_remove_nodes_changed_cb(cras_alert_cb cb, void *arg);
-
 /* Notify that nodes are added/removed. */
 void cras_iodev_list_notify_nodes_changed();
-
-/* Adds a callback to call when the active output/input node changes.
- * Args:
- *    cb - Function to call when there is a change.
- *    arg - Value to pass back to callback.
- */
-int cras_iodev_list_register_active_node_changed_cb(cras_alert_cb cb,
-						    void *arg);
-
-/* Removes a callback to call when the active output/input node changes.
- * Args:
- *    cb - Function to call when there is a change.
- *    arg - Value to pass back to callback.
- */
-int cras_iodev_list_remove_active_node_changed_cb(cras_alert_cb cb,
-						  void *arg);
 
 /* Notify that active node is changed for the given direction.
  * Args:
