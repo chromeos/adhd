@@ -15,7 +15,6 @@
 
 #include <stddef.h>
 
-#include "cras_alert.h"
 #include "cras_types.h"
 
 #define CRAS_MAX_SYSTEM_VOLUME 100
@@ -69,12 +68,6 @@ int cras_system_get_suspended();
  *    suspend - True for suspend, false for resume.
  */
 void cras_system_set_suspended(int suspend);
-
-/* Adds a callback to call when the suspend state changes. */
-int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg);
-
-/* Removes a callback to call when the suspend state changes. */
-int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg);
 
 /* Sets if the system capture path is muted or not. */
 void cras_system_set_capture_mute(int muted);

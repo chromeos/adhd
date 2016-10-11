@@ -196,7 +196,7 @@ class ObserverTest : public testing::Test {
     ResetStubData();
     rc = cras_observer_server_init();
     ASSERT_EQ(0, rc);
-    EXPECT_EQ(12, cras_alert_create_called);
+    EXPECT_EQ(13, cras_alert_create_called);
     EXPECT_EQ(reinterpret_cast<void *>(output_volume_alert),
               cras_alert_add_callback_map[g_observer->alerts.output_volume]);
     EXPECT_EQ(reinterpret_cast<void *>(output_mute_alert),
@@ -228,6 +228,8 @@ class ObserverTest : public testing::Test {
     EXPECT_EQ(reinterpret_cast<void *>(num_active_streams_alert),
        cras_alert_add_callback_map[g_observer->alerts.num_active_streams[
                                                CRAS_STREAM_POST_MIX_PRE_DSP]]);
+    EXPECT_EQ(reinterpret_cast<void *>(suspend_changed_alert),
+       cras_alert_add_callback_map[g_observer->alerts.suspend_changed]);
 
     cras_observer_get_ops(NULL, &ops1_);
     EXPECT_NE(0, cras_observer_ops_are_empty(&ops1_));
@@ -241,7 +243,7 @@ class ObserverTest : public testing::Test {
 
   virtual void TearDown() {
     cras_observer_server_free();
-    EXPECT_EQ(12, cras_alert_destroy_called);
+    EXPECT_EQ(13, cras_alert_destroy_called);
     ResetStubData();
   }
 
@@ -515,6 +517,28 @@ TEST_F(ObserverTest, NotifyInputNodeGain) {
 
   DoObserverRemoveClear(input_node_gain_alert, data);
 };
+
+TEST_F(ObserverTest, NotifySuspendChanged) {
+  struct cras_observer_alert_data_suspend *data;
+
+  cras_observer_notify_suspend_changed(1);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.suspend_changed);
+  ASSERT_EQ(cras_alert_pending_data_size_value, sizeof(*data));
+  ASSERT_NE(cras_alert_pending_data_value, reinterpret_cast<void *>(NULL));
+  data = reinterpret_cast<struct cras_observer_alert_data_suspend *>(
+      cras_alert_pending_data_value);
+  EXPECT_EQ(data->suspended, 1);
+
+  cras_observer_notify_suspend_changed(0);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.suspend_changed);
+  ASSERT_EQ(cras_alert_pending_data_size_value, sizeof(*data));
+  ASSERT_NE(cras_alert_pending_data_value, reinterpret_cast<void *>(NULL));
+  data = reinterpret_cast<struct cras_observer_alert_data_suspend *>(
+      cras_alert_pending_data_value);
+  EXPECT_EQ(data->suspended, 0);
+}
 
 TEST_F(ObserverTest, NotifyNumActiveStreams) {
   struct cras_observer_alert_data_streams *data;

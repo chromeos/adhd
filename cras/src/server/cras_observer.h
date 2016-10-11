@@ -87,6 +87,9 @@ void cras_observer_notify_node_left_right_swapped(cras_node_id_t node_id,
 void cras_observer_notify_input_node_gain(cras_node_id_t node_id,
 					  int32_t gain);
 
+/* Notify observers of suspend state changed. */
+void cras_observer_notify_suspend_changed(int suspended);
+
 /* Notify observers of the number of active streams. */
 void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,
 					     uint32_t num_active_streams);

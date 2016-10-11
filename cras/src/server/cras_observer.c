@@ -25,6 +25,7 @@ struct cras_observer_alerts {
 	struct cras_alert *output_node_volume;
 	struct cras_alert *node_left_right_swapped;
 	struct cras_alert *input_node_gain;
+	struct cras_alert *suspend_changed;
 	/* If all events for active streams went through a single alert then
          * we might miss some because the alert code does not send every
          * alert message. To ensure that the event sent contains the correct
@@ -61,6 +62,10 @@ struct cras_observer_alert_data_node_volume {
 struct cras_observer_alert_data_node_lr_swapped {
 	cras_node_id_t node_id;
 	int swapped;
+};
+
+struct cras_observer_alert_data_suspend {
+	int suspended;
 };
 
 struct cras_observer_alert_data_streams {
@@ -212,6 +217,20 @@ static void input_node_gain_alert(void *arg, void *data)
 	}
 }
 
+static void suspend_changed_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+	struct cras_observer_alert_data_suspend *suspend_data =
+		(struct cras_observer_alert_data_suspend *)data;
+
+	DL_FOREACH(g_observer->clients, client) {
+		if (client->ops.suspend_changed)
+			client->ops.suspend_changed(
+					client->context,
+					suspend_data->suspended);
+	}
+}
+
 static void num_active_streams_alert(void *arg, void *data)
 {
 	struct cras_observer_client *client;
@@ -280,6 +299,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(output_node_volume, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(node_left_right_swapped, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(input_node_gain, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(suspend_changed, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(
 		num_active_streams, CRAS_STREAM_OUTPUT);
@@ -307,6 +327,7 @@ void cras_observer_server_free()
 	cras_alert_destroy(g_observer->alerts.output_node_volume);
 	cras_alert_destroy(g_observer->alerts.node_left_right_swapped);
 	cras_alert_destroy(g_observer->alerts.input_node_gain);
+	cras_alert_destroy(g_observer->alerts.suspend_changed);
 	cras_alert_destroy(g_observer->alerts.num_active_streams[
 							CRAS_STREAM_OUTPUT]);
 	cras_alert_destroy(g_observer->alerts.num_active_streams[
@@ -458,6 +479,15 @@ void cras_observer_notify_input_node_gain(cras_node_id_t node_id,
 	data.node_id = node_id;
 	data.volume = gain;
 	cras_alert_pending_data(g_observer->alerts.input_node_gain,
+				&data, sizeof(data));
+}
+
+void cras_observer_notify_suspend_changed(int suspended)
+{
+	struct cras_observer_alert_data_suspend data;
+
+	data.suspended = suspended;
+	cras_alert_pending_data(g_observer->alerts.suspend_changed,
 				&data, sizeof(data));
 }
 

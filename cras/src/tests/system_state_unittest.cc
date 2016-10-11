@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "cras_alert.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 }
@@ -31,6 +32,7 @@ static size_t cras_observer_notify_output_volume_called;
 static size_t cras_observer_notify_output_mute_called;
 static size_t cras_observer_notify_capture_gain_called;
 static size_t cras_observer_notify_capture_mute_called;
+static size_t cras_observer_notify_suspend_changed_called;
 static size_t cras_observer_notify_num_active_streams_called;
 
 static void ResetStubData() {
@@ -49,6 +51,7 @@ static void ResetStubData() {
   cras_observer_notify_output_mute_called = 0;
   cras_observer_notify_capture_gain_called = 0;
   cras_observer_notify_capture_mute_called = 0;
+  cras_observer_notify_suspend_changed_called = 0;
   cras_observer_notify_num_active_streams_called = 0;
 }
 
@@ -165,6 +168,21 @@ TEST(SystemStateSuite, MuteLocked) {
   EXPECT_EQ(1, cras_system_get_capture_mute_locked());
   cras_system_state_deinit();
   EXPECT_EQ(2, cras_observer_notify_capture_mute_called);
+}
+
+TEST(SystemStateSuite, Suspend) {
+  cras_system_state_init(device_config_dir);
+  ResetStubData();
+
+  cras_system_set_suspended(1);
+  EXPECT_EQ(1, cras_observer_notify_suspend_changed_called);
+  EXPECT_EQ(1, cras_system_get_suspended());
+
+  cras_system_set_suspended(0);
+  EXPECT_EQ(2, cras_observer_notify_suspend_changed_called);
+  EXPECT_EQ(0, cras_system_get_suspended());
+
+  cras_system_state_deinit();
 }
 
 TEST(SystemStateSuite, AddCardFailCreate) {
@@ -374,6 +392,11 @@ void cras_observer_notify_capture_gain(int32_t gain)
 void cras_observer_notify_capture_mute(int muted, int mute_locked)
 {
   cras_observer_notify_capture_mute_called++;
+}
+
+void cras_observer_notify_suspend_changed(int suspended)
+{
+  cras_observer_notify_suspend_changed_called++;
 }
 
 void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,

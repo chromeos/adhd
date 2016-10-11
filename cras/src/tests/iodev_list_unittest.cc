@@ -9,6 +9,7 @@ extern "C" {
 #include "audio_thread.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_observer_ops.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
@@ -22,9 +23,7 @@ struct cras_server_state server_state_stub;
 struct cras_server_state *server_state_update_begin_return;
 
 /* Data for stubs. */
-static cras_alert_cb suspend_cb;
-static unsigned int register_suspend_cb_called;
-static unsigned int remove_suspend_cb_called;
+static struct cras_observer_ops *observer_ops;
 static unsigned int cras_system_get_suspended_val;
 static int add_stream_called;
 static int rm_stream_called;
@@ -175,8 +174,6 @@ class IoDevTestSuite : public testing::Test {
       server_state_update_begin_return = &server_state_stub;
 
       /* Reset stub data. */
-      register_suspend_cb_called = 0;
-      remove_suspend_cb_called = 0;
       add_stream_called = 0;
       rm_stream_called = 0;
       set_node_attr_called = 0;
@@ -278,7 +275,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
   cras_system_get_suspended_val = 1;
   audio_thread_rm_open_dev_called = 0;
-  suspend_cb(NULL, NULL);
+  observer_ops->suspend_changed(NULL, 1);
   EXPECT_EQ(1, audio_thread_rm_open_dev_called);
 
   /* Test disable/enable dev won't cause add_stream to audio_thread. */
@@ -302,7 +299,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   audio_thread_add_stream_called = 0;
   cras_system_get_suspended_val = 0;
   stream_list_get_ret = stream_list;
-  suspend_cb(NULL, NULL);
+  observer_ops->suspend_changed(NULL, 0);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
   EXPECT_EQ(2, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream3, audio_thread_add_stream_stream);
@@ -876,19 +873,6 @@ struct cras_server_state *cras_system_state_update_begin() {
 void cras_system_state_update_complete() {
 }
 
-int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg)
-{
-  suspend_cb = cb;
-  register_suspend_cb_called++;
-  return 0;
-}
-
-int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg)
-{
-  remove_suspend_cb_called++;
-  return 0;
-}
-
 int cras_system_get_suspended()
 {
   return cras_system_get_suspended_val;
@@ -1101,12 +1085,16 @@ struct cras_observer_client *cras_observer_add(
       const struct cras_observer_ops *ops,
       void *context)
 {
+  observer_ops = (struct cras_observer_ops *)calloc(1, sizeof(*ops));
+  memcpy(observer_ops, ops, sizeof(*ops));
   cras_observer_add_called++;
   return reinterpret_cast<struct cras_observer_client *>(0x55);
 }
 
 void cras_observer_remove(struct cras_observer_client *client)
 {
+  if (observer_ops)
+    free(observer_ops);
   cras_observer_remove_called++;
 }
 

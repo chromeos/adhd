@@ -42,6 +42,9 @@ struct cras_observer_ops {
 	void (*input_node_gain_changed)(void *context,
 					cras_node_id_t node_id,
 					int32_t gain);
+	/* Suspend state changed. */
+	void (*suspend_changed)(void *context,
+				int suspended);
 	/* Number of active streams changed. */
 	void (*num_active_streams_changed)(void *context,
 					   enum CRAS_STREAM_DIRECTION dir,

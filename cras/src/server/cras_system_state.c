@@ -37,7 +37,6 @@ struct card_list {
  *    shm_size - Size of the shm area.
  *    device_config_dir - Directory of device configs where volume curves live.
  *    device_blacklist - Blacklist of device the server will ignore.
- *    suspend_alert - Called when the audio suspend state changes.
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
@@ -51,7 +50,6 @@ static struct {
 	size_t shm_size;
 	const char *device_config_dir;
 	struct cras_device_blacklist *device_blacklist;
-	struct cras_alert *suspend_alert;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
 	struct cras_tm *tm;
@@ -118,9 +116,6 @@ void cras_system_state_init(const char *device_config_dir)
 	 * to change device blacklist at run time. */
 	state.device_config_dir = device_config_dir;
 
-	/* Initialize alerts. */
-	state.suspend_alert = cras_alert_create(NULL, 0);
-
 	state.tm = cras_tm_init();
 	if (!state.tm) {
 		syslog(LOG_ERR, "Fatal: system state timer init");
@@ -146,9 +141,6 @@ void cras_system_state_deinit()
 		if (state.shm_fd_ro != state.shm_fd)
 			close(state.shm_fd_ro);
 	}
-
-	cras_alert_destroy(state.suspend_alert);
-	state.suspend_alert = NULL;
 
 	pthread_mutex_destroy(&state.update_lock);
 }
@@ -266,17 +258,7 @@ int cras_system_get_suspended()
 void cras_system_set_suspended(int suspended)
 {
 	state.exp_state->suspended = suspended;
-	cras_alert_pending(state.suspend_alert);
-}
-
-int cras_system_register_suspend_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_add_callback(state.suspend_alert, cb, arg);
-}
-
-int cras_system_remove_suspend_cb(cras_alert_cb cb, void *arg)
-{
-	return cras_alert_rm_callback(state.suspend_alert, cb, arg);
+	cras_observer_notify_suspend_changed(suspended);
 }
 
 void cras_system_set_volume_limits(long min, long max)

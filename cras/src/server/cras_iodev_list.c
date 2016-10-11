@@ -437,9 +437,9 @@ static void resume_devs()
 }
 
 /* Called when the system audio is suspended or resumed. */
-void sys_suspend_change(void *arg, void *data)
+void sys_suspend_change(void *arg, int suspended)
 {
-	if (cras_system_get_suspended())
+	if (suspended)
 		suspend_devs();
 	else
 		resume_devs();
@@ -675,9 +675,8 @@ void cras_iodev_list_init()
 	observer_ops.output_mute_changed = sys_mute_change;
 	observer_ops.capture_gain_changed = sys_cap_gain_change;
 	observer_ops.capture_mute_changed = sys_cap_mute_change;
+	observer_ops.suspend_changed = sys_suspend_change;
 	list_observer = cras_observer_add(&observer_ops, NULL);
-
-	cras_system_register_suspend_cb(sys_suspend_change, NULL);
 
 	/* Create the audio stream list for the system. */
 	stream_list = stream_list_create(stream_added_cb, stream_removed_cb,
@@ -714,7 +713,6 @@ void cras_iodev_list_deinit()
 		cras_observer_remove(list_observer);
 		list_observer = NULL;
 	}
-	cras_system_remove_suspend_cb(sys_suspend_change, NULL);
 	audio_thread_destroy(audio_thread);
 	stream_list_destroy(stream_list);
 }

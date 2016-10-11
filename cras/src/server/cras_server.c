@@ -33,6 +33,7 @@
 #include "cras_hfp_ag_profile.h"
 #include "cras_telephony.h"
 #endif
+#include "cras_alert.h"
 #include "cras_config.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
