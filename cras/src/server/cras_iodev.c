@@ -207,6 +207,25 @@ int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 	return 0;
 }
 
+static int output_should_mute(struct cras_iodev *odev)
+{
+	size_t system_volume;
+	unsigned int adjusted_node_volume;
+
+	/* System mute has highest priority. */
+	if (cras_system_get_mute())
+		return 1;
+
+	/* Then, consider system volume and active node volume. */
+	system_volume = cras_system_get_volume();
+	if (odev->active_node) {
+		adjusted_node_volume = cras_iodev_adjust_node_volume(
+				odev->active_node, system_volume);
+		return (adjusted_node_volume == 0);
+	}
+	return (system_volume == 0);
+}
+
 /*
  * Exported Interface.
  */
@@ -831,7 +850,8 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
 				    iodev->pre_dsp_hook_cb_data);
 
-	if (cras_system_get_mute()) {
+
+	if (output_should_mute(iodev)) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
 	} else {

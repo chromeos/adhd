@@ -126,6 +126,7 @@ void ResetStubData() {
   rate_estimator_add_frames_num_frames = 0;
   rate_estimator_add_frames_called = 0;
   cras_system_get_mute_return = 0;
+  cras_system_get_volume_return = 100;
   cras_mix_mute_count = 0;
   pre_dsp_hook_called = 0;
   pre_dsp_hook_frames = NULL;
@@ -551,14 +552,50 @@ TEST(IoDevPutOutputBuffer, SystemMuted) {
   EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
 }
 
-TEST(IoDevPutOutputBuffer, NoDSP) {
+TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
+  struct cras_ionode ionode;
   uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
   int rc;
 
   ResetStubData();
   memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+  iodev.active_node->volume = 0;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(20, cras_mix_mute_count);
+  EXPECT_EQ(20, put_buffer_nframes);
+  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+}
+
+TEST(IoDevPutOutputBuffer, NoDSP) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+  iodev.active_node->volume = 100;
 
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 48000;
