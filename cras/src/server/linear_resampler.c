@@ -35,6 +35,8 @@ struct linear_resampler *linear_resampler_create(unsigned int num_channels,
 	struct linear_resampler *lr;
 
 	lr = (struct linear_resampler *)calloc(1, sizeof(*lr));
+	if (!lr)
+		return NULL;
 	lr->num_channels = num_channels;
 	lr->format_bytes = format_bytes;
 
