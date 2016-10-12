@@ -32,7 +32,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	struct dev_stream *out;
 	struct cras_audio_format *stream_fmt = &stream->format;
 	int rc = 0;
-	unsigned int max_frames;
+	unsigned int max_frames, dev_frames, buf_bytes;
+	const struct cras_audio_format *ofmt;
 
 	out = calloc(1, sizeof(*out));
 	out->dev_id = dev_id;
@@ -64,28 +65,23 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		return NULL;
 	}
 
-	if (out->conv) {
-		unsigned int dev_frames;
-		unsigned int buf_bytes;
-		const struct cras_audio_format *ofmt =
-				cras_fmt_conv_out_format(out->conv);
+	ofmt = cras_fmt_conv_out_format(out->conv);
 
-		dev_frames = (stream->direction == CRAS_STREAM_OUTPUT)
-			? cras_fmt_conv_in_frames_to_out(out->conv,
-							 stream->buffer_frames)
-			: cras_fmt_conv_out_frames_to_in(out->conv,
-							 stream->buffer_frames);
+	dev_frames = (stream->direction == CRAS_STREAM_OUTPUT)
+		? cras_fmt_conv_in_frames_to_out(out->conv,
+						 stream->buffer_frames)
+		: cras_fmt_conv_out_frames_to_in(out->conv,
+						 stream->buffer_frames);
 
-		out->conv_buffer_size_frames = 2 * MAX(dev_frames,
-						       stream->buffer_frames);
+	out->conv_buffer_size_frames = 2 * MAX(dev_frames,
+					       stream->buffer_frames);
 
-		/* Create conversion buffer and area using the output format
-		 * of the format converter. Note that this format might not be
-		 * identical to stream_fmt for capture. */
-		buf_bytes = out->conv_buffer_size_frames * cras_get_format_bytes(ofmt);
-		out->conv_buffer = byte_buffer_create(buf_bytes);
-		out->conv_area = cras_audio_area_create(ofmt->num_channels);
-	}
+	/* Create conversion buffer and area using the output format
+	 * of the format converter. Note that this format might not be
+	 * identical to stream_fmt for capture. */
+	buf_bytes = out->conv_buffer_size_frames * cras_get_format_bytes(ofmt);
+	out->conv_buffer = byte_buffer_create(buf_bytes);
+	out->conv_area = cras_audio_area_create(ofmt->num_channels);
 
 	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
 			    stream_fmt->frame_rate,

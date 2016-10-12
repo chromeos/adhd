@@ -263,35 +263,6 @@ TEST_F(CreateSuite, CaptureSRC) {
   free(devstr.conv_area);
 }
 
-TEST_F(CreateSuite, CreateNoSRCOutput) {
-  struct dev_stream *dev_stream;
-
-  rstream_.format = fmt_s16le_44_1;
-  in_fmt.frame_rate = 44100;
-  out_fmt.frame_rate = 44100;
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
-                                 &cb_ts);
-  EXPECT_EQ(1, config_format_converter_called);
-  EXPECT_EQ(NULL, dev_stream->conv_buffer);
-  EXPECT_EQ(0, dev_stream->conv_buffer_size_frames);
-  dev_stream_destroy(dev_stream);
-}
-
-TEST_F(CreateSuite, CreateNoSRCInput) {
-  struct dev_stream *dev_stream;
-
-  rstream_.format = fmt_s16le_44_1;
-  rstream_.direction = CRAS_STREAM_INPUT;
-  in_fmt.frame_rate = 44100;
-  out_fmt.frame_rate = 44100;
-  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_44_1, (void *)0x55,
-                                 &cb_ts);
-  EXPECT_EQ(1, config_format_converter_called);
-  EXPECT_EQ(NULL, dev_stream->conv_buffer);
-  EXPECT_EQ(0, dev_stream->conv_buffer_size_frames);
-  dev_stream_destroy(dev_stream);
-}
-
 TEST_F(CreateSuite, CreateSRC44to48) {
   struct dev_stream *dev_stream;
 
