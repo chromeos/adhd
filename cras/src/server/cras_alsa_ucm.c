@@ -38,7 +38,6 @@ static const char max_software_gain[] = "MaxSoftwareGain";
 static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
-static const char optimize_no_stream[] = "OptimizeNoStream";
 static const char enable_htimestamp_var[] = "EnableHtimestamp";
 
 /* Represents a list of section names found in UCM. */
@@ -902,18 +901,6 @@ unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
 	if (rc || value < 0)
 		return 0;
 	return value;
-}
-
-unsigned int ucm_get_optimize_no_stream_flag(snd_use_case_mgr_t *mgr)
-{
-	char *flag;
-	int ret = 0;
-	flag = ucm_get_flag(mgr, optimize_no_stream);
-	if (!flag)
-		return 0;
-	ret = !strcmp(flag, "1");
-	free(flag);
-	return ret;
 }
 
 unsigned int ucm_get_enable_htimestamp_flag(snd_use_case_mgr_t *mgr)

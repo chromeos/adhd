@@ -1624,7 +1624,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->update_channel_layout = update_channel_layout;
 	iodev->set_hotword_model = set_hotword_model;
 	iodev->get_hotword_models = get_hotword_models;
-	iodev->no_stream = cras_iodev_default_no_stream_playback;
+	iodev->no_stream = no_stream;
+	iodev->output_should_wake = output_should_wake;
 	iodev->get_num_underruns = get_num_underruns;
 	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
 
@@ -1647,14 +1648,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		level = ucm_get_min_buffer_level(ucm);
 		if (level && direction == CRAS_STREAM_OUTPUT)
 			iodev->min_buffer_level = level;
-
-		if (ucm_get_optimize_no_stream_flag(ucm) &&
-		    direction == CRAS_STREAM_OUTPUT) {
-			syslog(LOG_DEBUG, "Use no_stream ops on %s:%s",
-			       card_name, dev_name);
-			iodev->no_stream = no_stream;
-			iodev->output_should_wake = output_should_wake;
-		}
 
 		aio->enable_htimestamp =
 			ucm_get_enable_htimestamp_flag(ucm);

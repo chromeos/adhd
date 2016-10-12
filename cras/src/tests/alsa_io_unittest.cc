@@ -145,7 +145,6 @@ static int cras_iodev_frames_queued_ret;
 static int cras_iodev_buffer_avail_ret;
 static int cras_alsa_resume_appl_ptr_called;
 static int cras_alsa_resume_appl_ptr_ahead;
-static int ucm_get_optimize_no_stream_flag_ret;
 static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve *fake_get_dBFS_volume_curve_val;
 static int cras_iodev_dsp_set_swap_mode_for_node_called;
@@ -232,7 +231,6 @@ void ResetStubData() {
   cras_iodev_buffer_avail_ret = 0;
   cras_alsa_resume_appl_ptr_called = 0;
   cras_alsa_resume_appl_ptr_ahead = 0;
-  ucm_get_optimize_no_stream_flag_ret = 0;
   ucm_get_enable_htimestamp_flag_ret = 0;
   fake_get_dBFS_volume_curve_val = NULL;
   cras_iodev_dsp_set_swap_mode_for_node_called = 0;
@@ -290,7 +288,6 @@ TEST(AlsaIoInit, InitializePlayback) {
 TEST(AlsaIoInit, DefaultNodeInternalCard) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
 
   ResetStubData();
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -301,9 +298,8 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void *)cras_iodev_default_no_stream_playback,
-            (void *)aio->base.no_stream);
-  ASSERT_EQ(NULL, (void *)aio->base.output_should_wake);
+  ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
+  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -314,9 +310,8 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("Speaker", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void *)cras_iodev_default_no_stream_playback,
-            (void *)aio->base.no_stream);
-  ASSERT_EQ(NULL, (void *)aio->base.output_should_wake);
+  ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
+  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -327,6 +322,8 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
+  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create(0, test_card_name, 0, test_dev_name,
@@ -337,15 +334,6 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
 
   ASSERT_STREQ("Internal Mic", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
-  alsa_iodev_destroy((struct cras_iodev *)aio);
-
-  /* Enables no_stream ops. */
-  ucm_get_optimize_no_stream_flag_ret = 1;
-  aio = (struct alsa_io *)alsa_iodev_create(
-                                            0, test_card_name, 0, test_dev_name,
-                                            NULL, ALSA_CARD_TYPE_INTERNAL, 0,
-                                            fake_mixer, fake_ucm, fake_hctl,
-                                            CRAS_STREAM_OUTPUT, 0, 0);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
   ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
   alsa_iodev_destroy((struct cras_iodev *)aio);
@@ -2426,11 +2414,6 @@ int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
 unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
 {
   return 0;
-}
-
-unsigned int ucm_get_optimize_no_stream_flag(snd_use_case_mgr_t *mgr)
-{
-  return ucm_get_optimize_no_stream_flag_ret;
 }
 
 unsigned int ucm_get_enable_htimestamp_flag(snd_use_case_mgr_t *mgr)
