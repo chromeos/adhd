@@ -2,16 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# For Samus only, check which dsp.ini to load.
-if [ "$(mosys platform name)" = "Samus" ]; then
-  hw_version="$(mosys platform version)"
-  if [ "$hw_version" = "MP.A" ] ||
-     [ "$hw_version" = "EVT" ] ||
-     [ "$hw_version" = "DVT" ] ||
-     [ "$hw_version" = "PVT" ]; then
-       DSP_CONFIG="--dsp_config=/etc/cras/dsp.samus.orig.ini"
-  fi
-fi
 # For board needs different device configs, check which config
 # directory to use. Use that directory for both volume curves
 # and dsp config.
