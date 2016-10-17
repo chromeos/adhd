@@ -105,6 +105,11 @@ static inline int cras_stream_is_loopback(enum CRAS_STREAM_DIRECTION dir)
 /* Types of audio streams. */
 enum CRAS_STREAM_TYPE {
 	CRAS_STREAM_TYPE_DEFAULT,
+	CRAS_STREAM_TYPE_MULTIMEDIA,
+	CRAS_STREAM_TYPE_VOICE_COMMUNICATION,
+	CRAS_STREAM_TYPE_VOICE_RECOGNITION,
+	CRAS_STREAM_TYPE_PRO_AUDIO,
+	CRAS_STREAM_NUM_TYPES,
 };
 
 /* Information about a client attached to the server. */

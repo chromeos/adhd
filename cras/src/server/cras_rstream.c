@@ -85,6 +85,7 @@ static inline int buffer_meets_size_limit(size_t buffer_size, size_t rate)
 /* Verifies that the given stream parameters are valid. */
 static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 				     const struct cras_audio_format *format,
+				     enum CRAS_STREAM_TYPE stream_type,
 				     size_t buffer_frames,
 				     size_t cb_threshold,
 				     struct cras_rclient *client,
@@ -115,6 +116,11 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		syslog(LOG_ERR, "rstream: Invalid direction.\n");
 		return -EINVAL;
 	}
+	if (stream_type < CRAS_STREAM_TYPE_DEFAULT ||
+	    stream_type >= CRAS_STREAM_NUM_TYPES) {
+		syslog(LOG_ERR, "rstream: Invalid stream type.\n");
+		return -EINVAL;
+	}
 	if (!buffer_meets_size_limit(cb_threshold, format->frame_rate)) {
 		syslog(LOG_ERR, "rstream: cb_threshold too low\n");
 		return -EINVAL;
@@ -131,6 +137,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	int rc;
 
 	rc = verify_rstream_parameters(config->direction, config->format,
+				       config->stream_type,
 				       config->buffer_frames,
 				       config->cb_threshold, config->client,
 				       stream_out);

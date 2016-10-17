@@ -55,6 +55,15 @@ TEST_F(RstreamTestSuite, InvalidDirection) {
   EXPECT_NE(0, rc);
 }
 
+TEST_F(RstreamTestSuite, InvalidStreamType) {
+  struct cras_rstream *s;
+  int rc;
+
+  config_.stream_type = (enum CRAS_STREAM_TYPE)7;
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_NE(0, rc);
+}
+
 TEST_F(RstreamTestSuite, InvalidBufferSize) {
   struct cras_rstream *s;
   int rc;
@@ -150,6 +159,37 @@ TEST_F(RstreamTestSuite, CreateInput) {
   EXPECT_EQ(cras_shm_used_size(&shm_mapped), cras_shm_used_size(shm_ret));
   munmap(shm_mapped.area, shm_size);
 
+  cras_rstream_destroy(s);
+}
+
+TEST_F(RstreamTestSuite, VerifyStreamTypes) {
+  struct cras_rstream *s;
+  int rc;
+
+  config_.stream_type = CRAS_STREAM_TYPE_DEFAULT;
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
+  EXPECT_NE(CRAS_STREAM_TYPE_MULTIMEDIA, cras_rstream_get_type(s));
+  cras_rstream_destroy(s);
+
+  config_.stream_type = CRAS_STREAM_TYPE_VOICE_COMMUNICATION;
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_STREAM_TYPE_VOICE_COMMUNICATION, cras_rstream_get_type(s));
+  cras_rstream_destroy(s);
+
+  config_.direction = CRAS_STREAM_INPUT;
+  config_.stream_type = CRAS_STREAM_TYPE_VOICE_RECOGNITION;
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_STREAM_TYPE_VOICE_RECOGNITION, cras_rstream_get_type(s));
+  cras_rstream_destroy(s);
+
+  config_.stream_type = CRAS_STREAM_TYPE_PRO_AUDIO;
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_STREAM_TYPE_PRO_AUDIO, cras_rstream_get_type(s));
   cras_rstream_destroy(s);
 }
 
