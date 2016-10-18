@@ -504,10 +504,20 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			syslog(LOG_ERR, "too many enabled devices");
 			break;
 		}
-		/* Negative EAGAIN code indicates dev will be opened later. */
+		/* Negative EAGAIN code indicates dev will be opened later.
+		 * Negative ENOENT code indicates that device just got
+		 * unplugged, since this is a non-pinned stream we don't
+		 * treat it as error. Chrome should soon select to another
+		 * device. */
 		rc = init_device(edev->dev, rstream);
-		if (rc && (rc != -EAGAIN))
+		if (rc && (rc != -EAGAIN) && (rc != -ENOENT))
 			return rc;
+
+		/* This should happen rarely. Error log the name so we can
+		 * know what device has encountered this problem.*/
+		if (rc == -ENOENT)
+			syslog(LOG_ERR, "%s not found at init_device",
+			       edev->dev->info.name);
 
 		iodevs[num_iodevs++] = edev->dev;
 	}
