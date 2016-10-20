@@ -242,14 +242,41 @@ static int add_new_flow(struct ini *ini, const char *name)
 	return i;
 }
 
+/* Finds the first playback sink plugin in ini. */
+struct plugin *find_first_playback_sink_plugin(struct ini *ini)
+{
+	int i;
+	struct plugin *plugin;
+
+	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
+		if (strcmp(plugin->library, "builtin") != 0)
+			continue;
+		if (strcmp(plugin->label, "sink") != 0)
+			continue;
+		if (!plugin->purpose ||
+		    strcmp(plugin->purpose, "playback") != 0)
+			continue;
+		return plugin;
+	}
+
+	return NULL;
+}
+
 /* Inserts a swap_lr plugin before sink. Handles the port change such that
  * the port originally connects to sink will connect to swap_lr.
  */
-static int insert_swap_lr_plugin(struct ini *ini , struct plugin *sink)
+static int insert_swap_lr_plugin(struct ini *ini)
 {
-	struct plugin *swap_lr;
+	struct plugin *swap_lr, *sink;
 	int sink_input_flowid_0, sink_input_flowid_1;
 	int swap_lr_output_flowid_0, swap_lr_output_flowid_1;
+
+	/* Only add swap_lr plugin for two-channel playback dsp.
+	 * TODO(cychiang): Handle multiple sinks if needed.
+	 */
+	sink = find_first_playback_sink_plugin(ini);
+	if ((sink == NULL) || ARRAY_COUNT(&sink->ports) != 2)
+		return 0;
 
 	/* Gets the original flow ids of the sink input ports. */
 	sink_input_flowid_0 = ARRAY_ELEMENT(&sink->ports, 0)->flow_id;
@@ -274,32 +301,15 @@ static int insert_swap_lr_plugin(struct ini *ini , struct plugin *sink)
 			    swap_lr_output_flowid_0,
 			    swap_lr_output_flowid_1);
 
+	/* Look up first sink again because ini->plugins could be realloc'ed */
+	sink = find_first_playback_sink_plugin(ini);
+
 	/* The flow ids of sink input ports should be changed to flow ids of
 	 * {swap_lr_out:0}, {swap_lr_out:1}. */
 	ARRAY_ELEMENT(&sink->ports, 0)->flow_id = swap_lr_output_flowid_0;
 	ARRAY_ELEMENT(&sink->ports, 1)->flow_id = swap_lr_output_flowid_1;
 
 	return 0;
-}
-
-/* Finds the first playback sink plugin in ini. */
-struct plugin *find_first_playback_sink_plugin(struct ini *ini)
-{
-	int i;
-	struct plugin *plugin;
-
-	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
-		if (strcmp(plugin->library, "builtin") != 0)
-			continue;
-		if (strcmp(plugin->label, "sink") != 0)
-			continue;
-		if (!plugin->purpose ||
-		    strcmp(plugin->purpose, "playback") != 0)
-			continue;
-		return plugin;
-	}
-
-	return NULL;
 }
 
 struct ini *cras_dsp_ini_create(const char *ini_filename)
@@ -309,7 +319,6 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 	int nsec, i;
 	const char *sec_name;
 	struct plugin *plugin;
-	struct plugin *sink;
 	int rc;
 
 	ini = calloc(1, sizeof(struct ini));
@@ -334,17 +343,11 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 			goto bail;
 	}
 
-	/* TODO(cychiang): Handle multiple sinks if needed. */
-	sink = find_first_playback_sink_plugin(ini);
-
-	/* Only add swap_lr plugin for two-channel playback dsp. */
-	if (sink && ARRAY_COUNT(&sink->ports) == 2) {
-		/* Insert a swap_lr plugin before sink. */
-		rc = insert_swap_lr_plugin(ini, sink);
-		if (rc < 0) {
-			syslog(LOG_ERR, "failed to insert swap_lr plugin");
-			goto bail;
-		}
+	/* Insert a swap_lr plugin before sink. */
+	rc = insert_swap_lr_plugin(ini);
+	if (rc < 0) {
+		syslog(LOG_ERR, "failed to insert swap_lr plugin");
+		goto bail;
 	}
 
 	/* Fill flow info now because now the plugin array won't change */
