@@ -396,7 +396,7 @@ int cras_server_init()
 	return 0;
 }
 
-int cras_server_run()
+int cras_server_run(unsigned int profile_disable_mask)
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
 #ifdef CRAS_DBUS
@@ -429,10 +429,13 @@ int cras_server_run()
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
 		cras_bt_start(dbus_conn);
-		cras_hfp_ag_profile_create(dbus_conn);
-		cras_hsp_ag_profile_create(dbus_conn);
+		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_HFP))
+			cras_hfp_ag_profile_create(dbus_conn);
+		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_HSP))
+			cras_hsp_ag_profile_create(dbus_conn);
 		cras_telephony_start(dbus_conn);
-		cras_a2dp_endpoint_create(dbus_conn);
+		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_A2DP))
+			cras_a2dp_endpoint_create(dbus_conn);
 		cras_bt_player_create(dbus_conn);
 		cras_dbus_control_start(dbus_conn);
 	}
