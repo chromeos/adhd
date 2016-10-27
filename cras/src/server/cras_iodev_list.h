@@ -21,9 +21,6 @@ struct cras_rstream;
 struct cras_audio_format;
 struct stream_list;
 
-typedef void (*node_volume_callback_t)(cras_node_id_t, int);
-typedef void (*node_left_right_swapped_callback_t)(cras_node_id_t, int);
-
 /* Device enabled/disabled callback.
  * enabled=1 when a device is enabled, enabled=0 when a device is disabled.
  */
@@ -183,20 +180,11 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION direction,
 /* Returns 1 if the node is selected, 0 otherwise. */
 int cras_iodev_list_node_selected(struct cras_ionode *node);
 
-/* Sets the function to call when a node volume changes. */
-void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
-					       node_volume_callback_t gain_cb);
-
 /* Notify the current volume of the given node. */
 void cras_iodev_list_notify_node_volume(struct cras_ionode *node);
 
 /* Notify the current capture gain of the given node. */
 void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node);
-
-/* Sets the function to call when a node's left right channel swapping state
- * is changes. */
-void cras_iodev_list_set_node_left_right_swapped_callbacks(
-				node_left_right_swapped_callback_t swapped_cb);
 
 /* Notify the current left right channel swapping state of the given node. */
 void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node);

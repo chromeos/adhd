@@ -52,10 +52,6 @@ static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
 
-/* Call when the volume of a node changes. */
-static node_volume_callback_t node_volume_callback;
-static node_volume_callback_t node_input_gain_callback;
-static node_left_right_swapped_callback_t node_left_right_swapped_callback;
 /* Call when a device is enabled or disabled. */
 static device_enabled_callback_t device_enabled_callback;
 static void *device_enabled_cb_data;
@@ -998,26 +994,10 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
 	return rc;
 }
 
-void cras_iodev_list_set_node_volume_callbacks(node_volume_callback_t volume_cb,
-					       node_volume_callback_t gain_cb)
-{
-	node_volume_callback = volume_cb;
-	node_input_gain_callback = gain_cb;
-}
-
-void cras_iodev_list_set_node_left_right_swapped_callbacks(
-		node_left_right_swapped_callback_t swapped_cb)
-{
-	node_left_right_swapped_callback = swapped_cb;
-}
-
 void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	cras_iodev_list_update_device_list();
-
-	if (node_volume_callback)
-		node_volume_callback(id, node->volume);
 	cras_observer_notify_output_node_volume(id, node->volume);
 }
 
@@ -1025,9 +1005,6 @@ void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	cras_iodev_list_update_device_list();
-
-	if (node_left_right_swapped_callback)
-		node_left_right_swapped_callback(id, node->left_right_swapped);
 	cras_observer_notify_node_left_right_swapped(id,
 						     node->left_right_swapped);
 }
@@ -1036,9 +1013,6 @@ void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	cras_iodev_list_update_device_list();
-
-	if (node_input_gain_callback)
-		node_input_gain_callback(id, node->capture_gain);
 	cras_observer_notify_input_node_gain(id, node->capture_gain);
 }
 

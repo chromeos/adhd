@@ -35,9 +35,6 @@ static cras_iodev *audio_thread_add_open_dev_dev;
 static int audio_thread_add_open_dev_called;
 static int audio_thread_rm_open_dev_called;
 static struct audio_thread thread;
-static size_t node_left_right_swapped_cb_called;
-static size_t node_volume_cb_called;
-static size_t node_gain_cb_called;
 static struct cras_iodev loopback_input;
 static int cras_iodev_close_called;
 static struct cras_iodev *cras_iodev_close_dev;
@@ -66,22 +63,6 @@ static size_t cras_observer_notify_active_node_called;
 static size_t cras_observer_notify_output_node_volume_called;
 static size_t cras_observer_notify_node_left_right_swapped_called;
 static size_t cras_observer_notify_input_node_gain_called;
-
-/* Callback in iodev_list. */
-void node_left_right_swapped_cb(cras_node_id_t, int)
-{
-  node_left_right_swapped_cb_called++;
-}
-
-void node_volume_cb(cras_node_id_t, int)
-{
-  node_volume_cb_called++;
-}
-
-void node_gain_cb(cras_node_id_t, int)
-{
-  node_gain_cb_called++;
-}
 
 void dummy_update_active_node(struct cras_iodev *iodev,
                               unsigned node_idx,
@@ -180,9 +161,6 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_rm_open_dev_called = 0;
       audio_thread_add_open_dev_called = 0;
       audio_thread_set_active_dev_called = 0;
-      node_left_right_swapped_cb_called = 0;
-      node_volume_cb_called = 0;
-      node_gain_cb_called = 0;
       audio_thread_add_stream_called = 0;
       update_active_node_called = 0;
       cras_observer_add_called = 0;
@@ -635,10 +613,7 @@ TEST_F(IoDevTestSuite, NodesLeftRightSwappedCallback) {
   memset(&iodev, 0, sizeof(iodev));
   memset(&ionode, 0, sizeof(ionode));
   ionode.dev = &iodev;
-  cras_iodev_list_set_node_left_right_swapped_callbacks(
-      node_left_right_swapped_cb);
   cras_iodev_list_notify_node_left_right_swapped(&ionode);
-  EXPECT_EQ(1, node_left_right_swapped_cb_called);
   EXPECT_EQ(1, cras_observer_notify_node_left_right_swapped_called);
 }
 
@@ -650,11 +625,8 @@ TEST_F(IoDevTestSuite, VolumeGainCallback) {
   memset(&iodev, 0, sizeof(iodev));
   memset(&ionode, 0, sizeof(ionode));
   ionode.dev = &iodev;
-  cras_iodev_list_set_node_volume_callbacks(node_volume_cb, node_gain_cb);
   cras_iodev_list_notify_node_volume(&ionode);
   cras_iodev_list_notify_node_capture_gain(&ionode);
-  EXPECT_EQ(1, node_volume_cb_called);
-  EXPECT_EQ(1, node_gain_cb_called);
   EXPECT_EQ(1, cras_observer_notify_output_node_volume_called);
   EXPECT_EQ(1, cras_observer_notify_input_node_gain_called);
 }
