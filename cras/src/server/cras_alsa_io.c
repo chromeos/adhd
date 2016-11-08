@@ -995,6 +995,10 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	output->base.stable_id = SuperFastHash(name,
 					       strlen(name),
 					       aio->base.info.stable_id);
+	output->base.stable_id_new = SuperFastHash(name,
+						   strlen(name),
+						   aio->base.info.stable_id_new
+						   );
 	output->mixer_output = cras_output;
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
@@ -1067,6 +1071,9 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	input->base.stable_id = SuperFastHash(name,
 					      strlen(name),
 					      aio->base.info.stable_id);
+	input->base.stable_id_new = SuperFastHash(name,
+						  strlen(name),
+						  aio->base.info.stable_id_new);
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
@@ -1306,7 +1313,8 @@ static void set_iodev_name(struct cras_iodev *dev,
 			   size_t device_index,
 			   enum CRAS_ALSA_CARD_TYPE card_type,
 			   size_t usb_vid,
-			   size_t usb_pid)
+			   size_t usb_pid,
+			   char *usb_serial_number)
 {
 	snprintf(dev->info.name,
 		 sizeof(dev->info.name),
@@ -1330,6 +1338,7 @@ static void set_iodev_name(struct cras_iodev *dev,
 		dev->info.stable_id = SuperFastHash((const char *)&device_index,
 						    sizeof(device_index),
 						    dev->info.stable_id);
+		dev->info.stable_id_new = dev->info.stable_id;
 		break;
 	case ALSA_CARD_TYPE_USB:
 		dev->info.stable_id = SuperFastHash((const char *)&usb_vid,
@@ -1338,9 +1347,17 @@ static void set_iodev_name(struct cras_iodev *dev,
 		dev->info.stable_id = SuperFastHash((const char *)&usb_pid,
 						    sizeof(usb_pid),
 						    dev->info.stable_id);
+		dev->info.stable_id_new =
+			SuperFastHash(usb_serial_number,
+				      strlen(usb_serial_number),
+				      dev->info.stable_id);
+		break;
+	default:
+		dev->info.stable_id_new = dev->info.stable_id;
 		break;
 	}
-	syslog(LOG_DEBUG, "Stable ID=%08x", dev->info.stable_id);
+	syslog(LOG_DEBUG, "Stable ID=%08x, New Stable ID=%08x",
+	       dev->info.stable_id, dev->info.stable_id_new);
 }
 
 static int get_fixed_rate(struct alsa_io *aio)
@@ -1591,7 +1608,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
-				     size_t usb_pid)
+				     size_t usb_pid,
+				     char *usb_serial_number)
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
@@ -1682,7 +1700,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 		aio->enable_htimestamp =
 			ucm_get_enable_htimestamp_flag(ucm);
-        }
+	}
 
 	err = update_supported_formats(iodev);
 	if (err < 0 || iodev->supported_rates[0] == 0 ||
@@ -1694,7 +1712,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
-		       card_type, usb_vid, usb_pid);
+		       card_type, usb_vid, usb_pid, usb_serial_number);
 
 	aio->jack_list =
 		cras_alsa_jack_list_create(

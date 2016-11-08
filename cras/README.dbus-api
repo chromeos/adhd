@@ -96,6 +96,10 @@ Methods		void SetOutputVolume(int32 volume)
 				uint64 StableDeviceId
 					The stable ID does not change due to
 					device plug/unplug or reboot.
+				uint64 StableDeviceIdNew
+					The new stable ID. Keeping both stable
+					ID and stable ID new is for backward
+					compatibility.
 				boolean Active
 					Whether this node is currently used
 					for output/input. There is one active

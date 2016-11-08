@@ -117,7 +117,8 @@ struct cras_iodev *create_iodev_for_device(
 					   alsa_card->hctl,
 					   direction,
 					   info->usb_vendor_id,
-					   info->usb_product_id);
+					   info->usb_product_id,
+					   info->usb_serial_number);
 	if (new_dev->iodev == NULL) {
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %u:%u\n",
 		       info->card_index, device_index);

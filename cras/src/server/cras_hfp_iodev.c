@@ -240,6 +240,7 @@ struct cras_iodev *hfp_iodev_create(
 			cras_bt_device_object_path(device),
 			strlen(cras_bt_device_object_path(device)),
 			strlen(cras_bt_device_object_path(device)));
+	iodev->info.stable_id_new = iodev->info.stable_id;
 
 	iodev->open_dev= open_dev;
 	iodev->frames_queued = frames_queued;

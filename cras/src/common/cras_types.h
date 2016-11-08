@@ -326,6 +326,7 @@ enum cras_notify_device_action { /* Must match gavd action definitions.  */
  *      lowered priority.
  *    usb_vendor_id - vendor ID if the device is on the USB bus.
  *    usb_product_id - product ID if the device is on the USB bus.
+ *    usb_serial_number - serial number if the device is on the USB bus.
  *    usb_desc_checksum - the checksum of the USB descriptors if the device
  *      is on the USB bus.
  */
@@ -333,11 +334,13 @@ enum CRAS_ALSA_CARD_TYPE {
 	ALSA_CARD_TYPE_INTERNAL,
 	ALSA_CARD_TYPE_USB,
 };
+#define USB_SERIAL_NUMBER_BUFFER_SIZE 64
 struct __attribute__ ((__packed__)) cras_alsa_card_info {
 	enum CRAS_ALSA_CARD_TYPE card_type;
 	uint32_t card_index;
 	uint32_t usb_vendor_id;
 	uint32_t usb_product_id;
+	char usb_serial_number[USB_SERIAL_NUMBER_BUFFER_SIZE];
 	uint32_t usb_desc_checksum;
 };
 

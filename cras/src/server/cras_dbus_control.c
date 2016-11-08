@@ -420,6 +420,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_uint64_t id;
 	const char *dev_name = dev->name;
 	dbus_uint64_t stable_dev_id = node->stable_id;
+	dbus_uint64_t stable_dev_id_new = node->stable_id_new;
 	const char *node_type = node->type;
 	const char *node_name = node->name;
 	const char *mic_positions = node->mic_positions;
@@ -449,6 +450,9 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		return FALSE;
 	if (!append_key_value(&dict, "StableDeviceId", DBUS_TYPE_UINT64,
 			      DBUS_TYPE_UINT64_AS_STRING, &stable_dev_id))
+		return FALSE;
+	if (!append_key_value(&dict, "StableDeviceIdNew", DBUS_TYPE_UINT64,
+			      DBUS_TYPE_UINT64_AS_STRING, &stable_dev_id_new))
 		return FALSE;
 	if (!append_key_value(&dict, "Type", DBUS_TYPE_STRING,
 			      DBUS_TYPE_STRING_AS_STRING, &node_type))

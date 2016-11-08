@@ -831,8 +831,9 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     snd_use_case_mgr_t *ucm,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
-                                     size_t usb_vid,
-                                     size_t usb_pid) {
+				     size_t usb_vid,
+				     size_t usb_pid,
+				     char *usb_serial_number) {
   struct cras_iodev *result = NULL;
   if (cras_alsa_iodev_create_called < cras_alsa_iodev_create_return_size)
     result = cras_alsa_iodev_create_return[cras_alsa_iodev_create_called];

@@ -30,6 +30,7 @@ struct ucm_section;
  *    direction - input or output.
  *    usb_vid - vendor ID of USB device.
  *    usb_pid - product ID of USB device.
+ *    usb_serial_number - serial number of USB device.
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
@@ -45,7 +46,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
-				     size_t usb_pid);
+				     size_t usb_pid,
+				     char *usb_serial_number);
 
 /* Complete initializeation of this iodev with the legacy method.
  * Add IO nodes and find jacks for this iodev with magic sauce, then choose

@@ -66,6 +66,8 @@ enum CRAS_IODEV_STATE {
  *      gain.
  *    max_software_gain - The maximum software gain in dBm if needed.
  *    stable_id - id for node that doesn't change after unplug/plug.
+ *    stable_id_new - New stable_id, it will be deprecated and be put on
+ *      stable_id.
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -83,6 +85,7 @@ struct cras_ionode {
 	int software_volume_needed;
 	long max_software_gain;
 	unsigned int stable_id;
+	unsigned int stable_id_new;
 	struct cras_ionode *prev, *next;
 };
 
