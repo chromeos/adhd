@@ -1234,6 +1234,7 @@ static unsigned int get_stream_limit_set_delay(struct open_dev *adev,
 	struct cras_audio_shm *shm;
 	struct dev_stream *stream;
 	int delay;
+	unsigned int avail;
 
 	/* TODO(dgreid) - Setting delay from last dev only. */
 	delay = input_delay_frames(adev);
@@ -1244,8 +1245,8 @@ static unsigned int get_stream_limit_set_delay(struct open_dev *adev,
 		shm = cras_rstream_input_shm(rstream);
 		cras_shm_check_write_overrun(shm);
 		dev_stream_set_delay(stream, delay);
-		write_limit = MIN(write_limit,
-				  dev_stream_capture_avail(stream));
+		avail = dev_stream_capture_avail(stream);
+		write_limit = MIN(write_limit, avail);
 	}
 
 	return write_limit;
@@ -1260,7 +1261,7 @@ static int capture_to_streams(struct audio_thread *thread,
 			      struct open_dev *adev)
 {
 	struct cras_iodev *idev = adev->dev;
-	snd_pcm_uframes_t remainder, hw_level;
+	snd_pcm_uframes_t remainder, hw_level, cap_limit;
 	struct timespec hw_tstamp;
 	int rc;
 
@@ -1285,7 +1286,8 @@ static int capture_to_streams(struct audio_thread *thread,
 			update_estimated_rate(thread, adev);
 	}
 
-	remainder = MIN(hw_level, get_stream_limit_set_delay(adev, hw_level));
+	cap_limit = get_stream_limit_set_delay(adev, hw_level);
+	remainder = MIN(hw_level, cap_limit);
 
 	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO,
 				    idev->info.idx, hw_level, remainder);
@@ -1360,7 +1362,7 @@ static int send_captured_samples(struct audio_thread *thread)
 	DL_FOREACH(idev_list, adev) {
 		struct dev_stream *stream;
 		unsigned int min_needed = adev->dev->max_cb_level;
-		unsigned int curr_level;
+		unsigned int curr_level, cap_avail;
 
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
@@ -1371,8 +1373,8 @@ static int send_captured_samples(struct audio_thread *thread)
 
 		DL_FOREACH(adev->dev->streams, stream) {
 			dev_stream_capture_update_rstream(stream);
-			min_needed = MIN(min_needed,
-					 dev_stream_capture_avail(stream));
+			cap_avail = dev_stream_capture_avail(stream);
+			min_needed = MIN(min_needed, cap_avail);
 		}
 
 		if (min_needed > curr_level)
