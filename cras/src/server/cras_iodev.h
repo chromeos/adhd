@@ -500,6 +500,9 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev);
  * Args:
  *    iodev - The device.
  *    tstamp - The associated hardware time stamp.
+ * Returns:
+ *    Number of frames in the hardware buffer.
+ *    Returns -EPIPE if there is severe underrun.
  */
 int cras_iodev_frames_queued(struct cras_iodev *iodev,
 			     struct timespec *tstamp);

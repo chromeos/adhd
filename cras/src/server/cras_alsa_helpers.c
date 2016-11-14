@@ -22,6 +22,9 @@
 /* Assert the channel is defined in CRAS_CHANNELS. */
 #define ALSA_CH_VALID(ch) ((ch >= SND_CHMAP_FL) && (ch <= SND_CHMAP_FRC))
 
+/* Time difference between two consecutive underrun logs. */
+#define UNDERRUN_LOG_TIME_SECS 30
+
 /* Chances to give mmap_begin to work. */
 static const size_t MAX_MMAP_BEGIN_ATTEMPTS = 3;
 /* Time to sleep between resume attempts. */
@@ -663,12 +666,16 @@ int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp)
 }
 
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
+			       snd_pcm_uframes_t severe_underrun_frames,
+			       const char *dev_name,
 			       snd_pcm_uframes_t *avail,
 			       struct timespec *tstamp,
 			       unsigned int *underruns)
 {
 	snd_pcm_sframes_t frames;
 	int rc = 0;
+	static struct timespec tstamp_last_underrun_log =
+			{.tv_sec = 0, .tv_nsec = 0};
 
 	/* Use snd_pcm_avail still to ensure that the hardware pointer is
 	 * up to date. Otherwise, we could use the deprecated snd_pcm_hwsync().
@@ -684,14 +691,30 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		rc = 0;
 		goto error;
 	} else if (rc < 0) {
-		syslog(LOG_ERR, "pcm_avail error %s\n", snd_strerror(rc));
+		syslog(LOG_ERR, "pcm_avail error %s, %s\n",
+		       dev_name, snd_strerror(rc));
 		goto error;
 	} else if (frames > (snd_pcm_sframes_t)buf_size) {
-		syslog(LOG_ERR,
-		       "pcm_avail returned frames larger than buf_size: "
-		       "%ld > %lu\n", frames, buf_size);
-		frames = buf_size;
+		struct timespec tstamp_now;
 		*underruns = *underruns + 1;
+		clock_gettime(CLOCK_MONOTONIC_RAW, &tstamp_now);
+		/* Limit the log rate. */
+		if ((tstamp_now.tv_sec - tstamp_last_underrun_log.tv_sec) >
+		    UNDERRUN_LOG_TIME_SECS) {
+			syslog(LOG_ERR,
+			       "pcm_avail returned frames larger than buf_size: "
+			       "%s: %ld > %lu for %u times\n",
+			       dev_name, frames, buf_size, *underruns);
+			tstamp_last_underrun_log.tv_sec = tstamp_now.tv_sec;
+			tstamp_last_underrun_log.tv_nsec = tstamp_now.tv_nsec;
+		}
+		if ((frames - (snd_pcm_sframes_t)buf_size) >
+		    (snd_pcm_sframes_t)severe_underrun_frames) {
+			rc = -EPIPE;
+			goto error;
+		} else {
+			frames = buf_size;
+		}
 	}
 	*avail = frames;
 	return 0;

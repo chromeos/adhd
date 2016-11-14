@@ -166,9 +166,11 @@ TEST(AlsaHelper, MatchChannelMapCapability51) {
 TEST(AlsaHelper, Htimestamp) {
   snd_pcm_t *dummy_handle = reinterpret_cast<snd_pcm_t*>(0x1);
   snd_pcm_uframes_t used;
+  snd_pcm_uframes_t severe_underrun_frames = 480;
   struct timespec tstamp;
   unsigned int underruns = 0;
   int htimestamp_enabled = 1;
+  const char *dev_name = "dev_name";
 
   // Enable htimestamp use.
   ResetStubData();
@@ -198,12 +200,40 @@ TEST(AlsaHelper, Htimestamp) {
   snd_pcm_htimestamp_tstamp_ret_val.tv_sec = 10;
   snd_pcm_htimestamp_tstamp_ret_val.tv_nsec = 10000;
 
-  cras_alsa_get_avail_frames(dummy_handle, 48000, &used, &tstamp, &underruns);
+  cras_alsa_get_avail_frames(dummy_handle, 48000, severe_underrun_frames,
+                             dev_name, &used, &tstamp, &underruns);
   EXPECT_EQ(used, snd_pcm_htimestamp_avail_ret_val);
   EXPECT_EQ(tstamp.tv_sec, snd_pcm_htimestamp_tstamp_ret_val.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, snd_pcm_htimestamp_tstamp_ret_val.tv_nsec);
 }
 
+TEST(AlsaHelper, GetAvailFramesSevereUnderrun) {
+  snd_pcm_t *dummy_handle = reinterpret_cast<snd_pcm_t*>(0x1);
+  snd_pcm_uframes_t avail;
+  snd_pcm_uframes_t severe_underrun_frames = 480;
+  snd_pcm_uframes_t buffer_size = 48000;
+  struct timespec tstamp;
+  unsigned int underruns = 0;
+  int rc;
+  const char *dev_name = "dev_name";
+
+  ResetStubData();
+  snd_pcm_htimestamp_avail_ret_val = buffer_size + severe_underrun_frames + 1;
+  rc = cras_alsa_get_avail_frames(dummy_handle, buffer_size,
+                                  severe_underrun_frames, dev_name,
+                                  &avail, &tstamp, &underruns);
+  // Returns -EPIPE when severe underrun happens.
+  EXPECT_EQ(rc, -EPIPE);
+
+  ResetStubData();
+  snd_pcm_htimestamp_avail_ret_val = buffer_size + severe_underrun_frames;
+  rc = cras_alsa_get_avail_frames(dummy_handle, buffer_size,
+                                  severe_underrun_frames, dev_name,
+                                  &avail, &tstamp, &underruns);
+  // Underrun which is not severe enough will be masked.
+  EXPECT_EQ(avail, buffer_size);
+  EXPECT_EQ(rc, 0);
+}
 } // namespace
 
 extern "C" {

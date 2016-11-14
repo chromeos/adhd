@@ -148,9 +148,16 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp);
 
 /* Get the number of used frames in the alsa buffer.
+ *
+ * When underrun is not severe, this function masks the underrun situation
+ * and set avail as 0. When underrun is severe, returns -EPIPE so caller
+ * can handle it.
  * Args:
  *    handle[in] - The open PCM to configure.
  *    buf_size[in] - Number of frames in the ALSA buffer.
+ *    severe_underrun_frames[in] - Number of frames as the threshold for severe
+ *                                 underrun.
+ *    dev_name[in] - Device name for logging.
  *    avail[out] - Filled with the number of frames available in the buffer.
  *    tstamp[out] - Filled with the hardware timestamp for the available frames.
  *                  This value is {0, 0} when the device hasn't actually started
@@ -158,9 +165,12 @@ int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp);
  *    underruns[in,out] - Pointer to the underrun counter updated if there was
  *                        an underrun.
  * Returns:
- *    0 on success, negative error on failure.
+ *    0 on success, negative error on failure. -EPIPE if severe underrun
+ *    happens.
  */
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
+			       snd_pcm_uframes_t severe_underrun_frames,
+			       const char *dev_name,
 			       snd_pcm_uframes_t *avail,
 			       struct timespec *tstamp,
 			       unsigned int *underruns);

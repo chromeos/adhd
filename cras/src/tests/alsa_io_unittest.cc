@@ -384,6 +384,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
 
   aio = (struct alsa_io *)iodev;
+  format.frame_rate = 48000;
   cras_iodev_set_format(iodev, &format);
 
   // Test that these flags are cleared after open_dev.
@@ -398,6 +399,8 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
   EXPECT_EQ(0, aio->is_free_running);
   EXPECT_EQ(0, aio->filled_zeros_for_draining);
+  EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
+            aio->severe_underrun_frames);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -590,6 +593,7 @@ TEST(AlsaIoInit, InitializeCapture) {
 TEST(AlsaIoInit, OpenCapture) {
   struct cras_iodev *iodev;
   struct cras_audio_format format;
+  struct alsa_io *aio;
 
   iodev = alsa_iodev_create(0, test_card_name, 0, test_dev_name,
                             NULL, ALSA_CARD_TYPE_INTERNAL, 0,
@@ -597,6 +601,8 @@ TEST(AlsaIoInit, OpenCapture) {
                             CRAS_STREAM_INPUT, 0, 0);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
 
+  aio = (struct alsa_io *)iodev;
+  format.frame_rate = 48000;
   cras_iodev_set_format(iodev, &format);
 
   ResetStubData();
@@ -610,6 +616,8 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, sys_get_capture_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
   EXPECT_EQ(1, cras_alsa_start_called);
+  EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
+            aio->severe_underrun_frames);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -2054,9 +2062,11 @@ int cras_alsa_set_swparams(snd_pcm_t *handle, int *enable_htimestamp)
   return 0;
 }
 int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t *used,
-			       struct timespec *tstamp,
-			       unsigned int *num_underruns)
+                               snd_pcm_uframes_t severe_underrun_frames,
+                               const char* dev_name,
+                               snd_pcm_uframes_t *used,
+                               struct timespec *tstamp,
+                               unsigned int *num_underruns)
 {
   *used = cras_alsa_get_avail_frames_avail;
   clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
@@ -2465,6 +2475,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			  const struct cras_audio_format *fmt)
 {
   fake_format = (struct cras_audio_format *)calloc(1, sizeof(*fake_format));
+  // Copy the content of format from fmt into format of iodev.
+  memcpy(fake_format, fmt, sizeof(*fake_format));
   iodev->format = fake_format;
   return 0;
 }

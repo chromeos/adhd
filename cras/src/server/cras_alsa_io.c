@@ -52,6 +52,14 @@
  * predict the exact interval. */
 #define USB_EXTRA_BUFFER_FRAMES 768
 
+
+/* When snd_pcm_avail returns a value that is greater than buffer size,
+ * we know there is an underrun. If the number of underrun samples
+ * (avail - buffer_size) is greater than SEVERE_UNDERRUN_MS * rate,
+ * it is a severe underrun. Main thread should disable and then enable
+ * device to recover it from underrun. */
+#define SEVERE_UNDERRUN_MS 20
+
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
@@ -101,6 +109,7 @@ struct alsa_input_node {
  *                   with zeros. In this state, appl_ptr remains the same
  *                   while hw_ptr keeps running ahead.
  * filled_zeros_for_draining - The number of zeros filled for draining.
+ * severe_underrun_frames - The threshold for severe underrun.
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -125,6 +134,7 @@ struct alsa_io {
 	unsigned int dma_period_set_microsecs;
 	int is_free_running;
 	unsigned int filled_zeros_for_draining;
+	snd_pcm_uframes_t severe_underrun_frames;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -146,6 +156,8 @@ static int frames_queued(const struct cras_iodev *iodev,
 
 	rc = cras_alsa_get_avail_frames(aio->handle,
 					aio->base.buffer_size,
+					aio->severe_underrun_frames,
+					iodev->info.name,
 					&frames, tstamp,
 					&aio->num_underruns);
 	if (rc < 0)
@@ -215,6 +227,9 @@ static int open_dev(struct cras_iodev *iodev)
 	aio->num_underruns = 0;
 	aio->is_free_running = 0;
 	aio->filled_zeros_for_draining = 0;
+	aio->severe_underrun_frames =
+			SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
+
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
