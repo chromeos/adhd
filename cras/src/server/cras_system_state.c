@@ -470,13 +470,19 @@ struct cras_server_state *cras_system_state_update_begin()
 		return NULL;
 	}
 
-	__sync_fetch_and_add(&state.exp_state->update_count, 1);
+	/* Double pointer casts to avoid clang error in taking address
+	 * of packed structure member.
+	 */
+	__sync_fetch_and_add((unsigned *) ((char *)&state.exp_state->update_count), 1);
 	return state.exp_state;
 }
 
 void cras_system_state_update_complete()
 {
-	__sync_fetch_and_add(&state.exp_state->update_count, 1);
+	/* Double pointer casts to avoid clang error in taking address
+	 * of packed structure member.
+	 */
+	__sync_fetch_and_add((unsigned *)((char *)&state.exp_state->update_count), 1);
 	pthread_mutex_unlock(&state.update_lock);
 }
 

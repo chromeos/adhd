@@ -277,7 +277,7 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *        use it.
  */
 #define CRAS_SERVER_STATE_VERSION 2
-struct __attribute__ ((__packed__)) cras_server_state {
+struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	uint32_t state_version;
 	uint32_t volume;
 	int32_t min_volume_dBFS;
