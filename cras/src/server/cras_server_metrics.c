@@ -32,7 +32,7 @@ static void init_longest_fetch_delay_msg(
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.type = CRAS_MAIN_METRICS;
-	msg->header.length = sizeof(msg);
+	msg->header.length = sizeof(*msg);
 	msg->metrics_type = type;
 	msg->data = data;
 }
@@ -52,7 +52,7 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
 	return 0;
 }
 
-void metrics_longest_fetch_delay(unsigned delay_msec)
+static void metrics_longest_fetch_delay(unsigned delay_msec)
 {
 	static const int fetch_delay_min_msec = 1;
 	static const int fetch_delay_max_msec = 10000;
@@ -65,7 +65,7 @@ void metrics_longest_fetch_delay(unsigned delay_msec)
 				   fetch_delay_nbuckets);
 }
 
-void handle_metrics_message(struct cras_main_message *msg, void *arg)
+static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 {
 	struct cras_server_metrics_message *metrics_msg =
 			(struct cras_server_metrics_message *)msg;

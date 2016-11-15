@@ -303,6 +303,7 @@ TESTS = \
 	rclient_unittest \
 	rstream_unittest \
 	shm_unittest \
+	server_metrics_unittest \
 	softvol_curve_unittest \
 	stream_list_unittest \
 	system_state_unittest \
@@ -660,6 +661,11 @@ rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 rstream_unittest_LDADD = -lasound -lgtest -lpthread -lrt
+
+server_metrics_unittest_SOURCES = tests/server_metrics_unittest.cc
+server_metrics_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+server_metrics_unittest_LDADD = -lgtest -lpthread
 
 shm_unittest_SOURCES = tests/shm_unittest.cc
 shm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
