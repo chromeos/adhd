@@ -15,6 +15,7 @@
 #include "cras_audio_area.h"
 #include "audio_thread_log.h"
 #include "cras_config.h"
+#include "cras_device_monitor.h"
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_rstream.h"
@@ -1204,8 +1205,15 @@ static int do_playback(struct audio_thread *thread)
 
 		rc = write_output_samples(thread, adev);
 		if (rc < 0) {
-			/* Device error, close it. */
-			thread_rm_open_adev(thread, adev);
+			if (rc == -EPIPE) {
+				/* Handle severe underrun. */
+				ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN,
+				      adev->dev->info.idx, 0, 0);
+				cras_device_monitor_reset_device(adev->dev);
+			} else {
+				/* Device error, close it. */
+				thread_rm_open_adev(thread, adev);
+			}
 		}
 	}
 

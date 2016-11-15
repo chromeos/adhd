@@ -96,6 +96,7 @@ cras_SOURCES = \
 	server/cras_alsa_ucm.c \
 	server/cras_alsa_ucm_section.c \
 	server/cras_audio_area.c \
+	server/cras_device_monitor.c \
 	server/cras_dsp.c \
 	server/cras_dsp_ini.c \
 	server/cras_dsp_mod_builtin.c \
@@ -280,6 +281,7 @@ TESTS = \
 	checksum_unittest \
 	cras_client_unittest \
 	cras_tm_unittest \
+	device_monitor_unittest \
 	dev_stream_unittest \
 	device_blacklist_unittest \
 	dsp_core_unittest \
@@ -528,6 +530,11 @@ device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(CRAS_UT_TMPDIR_CFLAGS)
 device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
+
+device_monitor_unittest_SOURCES = tests/device_monitor_unittest.cc
+device_monitor_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+device_monitor_unittest_LDADD = -lgtest -lpthread
 
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
 	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/crossover2.c dsp/drc.c \

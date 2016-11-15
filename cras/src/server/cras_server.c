@@ -35,6 +35,7 @@
 #endif
 #include "cras_alert.h"
 #include "cras_config.h"
+#include "cras_device_monitor.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
 #include "cras_messages.h"
@@ -423,6 +424,8 @@ int cras_server_run(unsigned int profile_disable_mask)
 #endif
 
 	cras_server_metrics_init();
+
+	cras_device_monitor_init();
 
 #ifdef CRAS_DBUS
 	dbus_threads_init_default();

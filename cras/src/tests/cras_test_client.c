@@ -529,6 +529,9 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s dev:%x hw_level:%u target:%u\n",
 		       "DEFAULT_NO_STREAMS", data1, data2, data3);
 		break;
+	case AUDIO_THREAD_SEVERE_UNDERRUN:
+		printf("%-30s dev:%x\n", "SEVERE_UNDERRUN", data1);
+		break;
 	default:
 		printf("%-30s tag:%u\n","UNKNOWN", tag);
 		break;

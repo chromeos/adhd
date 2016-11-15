@@ -16,6 +16,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
 	CRAS_MAIN_A2DP,
 	CRAS_MAIN_BT,
 	CRAS_MAIN_METRICS,
+	CRAS_MAIN_MONITOR_DEVICE,
 };
 
 /* Structure of the header of the message handled by main thread.
