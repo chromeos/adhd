@@ -216,6 +216,7 @@ struct __attribute__ ((__packed__)) audio_dev_debug_info {
 	double est_rate_ratio;
 	uint8_t direction;
 	uint32_t num_underruns;
+	uint32_t num_severe_underruns;
 };
 
 struct __attribute__ ((__packed__)) audio_stream_debug_info {

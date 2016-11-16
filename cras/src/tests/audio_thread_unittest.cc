@@ -946,6 +946,11 @@ int cras_device_monitor_reset_device(struct cras_iodev *iodev)
   return 0;
 }
 
+unsigned int cras_iodev_get_num_severe_underruns(const struct cras_iodev *iodev)
+{
+  return 0;
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {

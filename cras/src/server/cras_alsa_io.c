@@ -95,6 +95,11 @@ struct alsa_input_node {
  * enable_htimestamp - True when the device's htimestamp is used.
  * handle - Handle to the opened ALSA device.
  * num_underruns - Number of times we have run out of data (playback only).
+ * num_severe_underruns - Number of times we have run out of data badly.
+                          Unlike num_underruns which records for the duration
+                          where device is opened, num_severe_underruns records
+                          since device is created. When severe underrun occurs
+                          a possible action is to close/open device.
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * jack_list - List of alsa jack controls for this device.
@@ -124,6 +129,7 @@ struct alsa_io {
 	int enable_htimestamp;
 	snd_pcm_t *handle;
 	unsigned int num_underruns;
+	unsigned int num_severe_underruns;
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
 	struct cras_alsa_jack_list *jack_list;
@@ -160,8 +166,11 @@ static int frames_queued(const struct cras_iodev *iodev,
 					iodev->info.name,
 					&frames, tstamp,
 					&aio->num_underruns);
-	if (rc < 0)
+	if (rc < 0) {
+		if (rc == -EPIPE)
+			aio->num_severe_underruns++;
 		return rc;
+	}
 	if (!aio->enable_htimestamp)
 		clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	if (iodev->direction == CRAS_STREAM_INPUT)
@@ -1546,6 +1555,11 @@ static unsigned int get_num_underruns(const struct cras_iodev *iodev)
 	return aio->num_underruns;
 }
 
+static unsigned int get_num_severe_underruns(const struct cras_iodev *iodev)
+{
+	const struct alsa_io *aio = (const struct alsa_io *)iodev;
+	return aio->num_severe_underruns;
+}
 
 static void set_default_hotword_model(struct cras_iodev *iodev)
 {
@@ -1596,6 +1610,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->card_type = card_type;
 	aio->is_first = is_first;
 	aio->handle = NULL;
+	aio->num_severe_underruns = 0;
 	if (dev_name) {
 		aio->dev_name = strdup(dev_name);
 		if (!aio->dev_name)
@@ -1642,6 +1657,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->no_stream = no_stream;
 	iodev->output_should_wake = output_should_wake;
 	iodev->get_num_underruns = get_num_underruns;
+	iodev->get_num_severe_underruns = get_num_severe_underruns;
 	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
 
 	if (card_type == ALSA_CARD_TYPE_USB)

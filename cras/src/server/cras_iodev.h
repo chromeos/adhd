@@ -125,6 +125,8 @@ struct cras_ionode {
  * get_hotword_models - Gets a comma separated string of the list of supported
  *     hotword models of this iodev.
  * get_num_underruns - Gets number of underrun recorded so far.
+ * get_num_severe_underruns - Gets number of severe underrun recorded since
+ *                            iodev was created.
  * format - The audio format being rendered or captured to hardware.
  * ext_format - The audio format that is visible to the rest of the system.
  *     This can be different than the hardware if the device dsp changes it.
@@ -187,6 +189,7 @@ struct cras_iodev {
 				 const char *model_name);
 	char *(*get_hotword_models)(struct cras_iodev *iodev);
 	unsigned int (*get_num_underruns)(const struct cras_iodev *iodev);
+	unsigned int (*get_num_severe_underruns)(const struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct cras_audio_format *ext_format;
 	struct rate_estimator *rate_est;
@@ -594,5 +597,15 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev);
  *    An unsigned int for number of underruns recorded.
  */
 unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev);
+
+/* Get number of severe underruns recorded so far.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    An unsigned int for number of severe underruns recorded since iodev
+ *    was created.
+ */
+unsigned int cras_iodev_get_num_severe_underruns(
+		const struct cras_iodev *iodev);
 
 #endif /* CRAS_IODEV_H_ */

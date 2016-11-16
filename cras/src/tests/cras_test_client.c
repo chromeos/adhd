@@ -564,7 +564,8 @@ static void audio_debug_info(struct cras_client *client)
 		       "frame_rate: %u\n"
 		       "num_channels: %u\n"
 		       "est_rate_ratio: %lf\n"
-		       "num_underruns: %u\n",
+		       "num_underruns: %u\n"
+		       "num_severe_underruns: %u\n",
 		       (unsigned int)info->devs[i].buffer_size,
 		       (unsigned int)info->devs[i].min_buffer_level,
 		       (unsigned int)info->devs[i].min_cb_level,
@@ -572,7 +573,8 @@ static void audio_debug_info(struct cras_client *client)
 		       (unsigned int)info->devs[i].frame_rate,
 		       (unsigned int)info->devs[i].num_channels,
 		       info->devs[i].est_rate_ratio,
-		       (unsigned int)info->devs[i].num_underruns);
+		       (unsigned int)info->devs[i].num_underruns,
+		       (unsigned int)info->devs[i].num_severe_underruns);
 	}
 
 	printf("-------------stream_dump------------\n");
