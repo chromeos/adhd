@@ -78,7 +78,7 @@ int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,
 		int format_bytes, size_t link_mtu);
 
 /*
- * Writes samples using a2dp, returns numbewr of bytes written.
+ * Writes samples using a2dp, returns number of frames written.
  * Args:
  *    a2dp: The a2dp info object.
  *    stream_fd: The file descriptor to send stream to.

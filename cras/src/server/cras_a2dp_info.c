@@ -115,7 +115,7 @@ void a2dp_drain(struct a2dp_info *a2dp)
 
 static int avdtp_write(int stream_fd, struct a2dp_info *a2dp)
 {
-	int err;
+	int err, samples;
 	struct rtp_header *header;
 	struct rtp_payload *payload;
 
@@ -135,13 +135,16 @@ static int avdtp_write(int stream_fd, struct a2dp_info *a2dp)
 	if (err < 0)
 		return -errno;
 
+	/* Returns the number of samples in frame. */
+	samples = a2dp->samples;
+
 	/* Reset some data */
 	a2dp->a2dp_buf_used = sizeof(*header) + sizeof(*payload);
 	a2dp->frame_count = 0;
 	a2dp->samples = 0;
 	a2dp->seq_num++;
 
-	return err;
+	return samples;
 }
 
 int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,

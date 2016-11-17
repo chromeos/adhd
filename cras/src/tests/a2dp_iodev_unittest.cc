@@ -20,7 +20,7 @@ extern "C" {
 
 #define FAKE_OBJECT_PATH "/fake/obj/path"
 
-#define MAX_A2DP_ENCODE_CALLS 2
+#define MAX_A2DP_ENCODE_CALLS 8
 #define MAX_A2DP_WRITE_CALLS 4
 
 static struct cras_bt_transport *fake_transport;
@@ -301,6 +301,54 @@ TEST(A2dpIoInif, FramesQueued) {
   iodev->put_buffer(iodev, 200);
   EXPECT_EQ(1200, pcm_buf_size_val[0]);
   EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
+  EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
+  EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
+}
+
+TEST(A2dpIo, FlushAtLowBufferLevel) {
+  struct cras_iodev *iodev;
+  struct cras_audio_area *area;
+  struct timespec tstamp;
+  unsigned frames;
+
+  ResetStubData();
+  iodev = a2dp_iodev_create(fake_transport);
+
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->open_dev(iodev);
+  ASSERT_NE(write_callback, (void *)NULL);
+
+  ASSERT_EQ(iodev->min_buffer_level, 400);
+
+  frames = 700;
+  iodev->get_buffer(iodev, &area, &frames);
+  ASSERT_EQ(700, frames);
+  ASSERT_EQ(700, area->frames);
+
+  /* Fake 111 frames in pre-fill*/
+  a2dp_encode_processed_bytes_val[0] = 111;
+  a2dp_write_return_val[0] = -EAGAIN;
+
+  /* First call to a2dp_encode() processed 800 bytes. */
+  a2dp_encode_processed_bytes_val[1] = 800;
+  a2dp_encode_processed_bytes_val[2] = 0;
+  a2dp_write_return_val[1] = 200;
+
+  /* put_buffer shouldn't trigger the 2nd call to a2dp_encode() because
+   * buffer is low. Fake some data to make sure this test case will fail
+   * when a2dp_encode() called twice.
+   */
+  a2dp_encode_processed_bytes_val[3] = 800;
+  a2dp_encode_processed_bytes_val[4] = 0;
+  a2dp_write_return_val[2] = -EAGAIN;
+
+  time_now.tv_nsec = 10000000;
+  iodev->put_buffer(iodev, 700);
+
+  time_now.tv_nsec = 20000000;
+  EXPECT_EQ(500, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 }

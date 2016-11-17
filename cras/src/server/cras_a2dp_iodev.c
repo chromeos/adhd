@@ -129,7 +129,6 @@ static int frames_queued(const struct cras_iodev *iodev,
 			a2dp_queued_frames(&a2dpio->a2dp) +
 			buf_queued_bytes(a2dpio->pcm_buf) /
 				cras_get_format_bytes(iodev->format);
-
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	return MIN(iodev->buffer_size,
 		   MAX(estimate_queued_frames, local_queued_frames));
@@ -261,6 +260,7 @@ static int flush_data(void *arg)
 	int processed;
 	size_t format_bytes;
 	int written = 0;
+	int queued_frames;
 	struct a2dp_io *a2dpio;
 	struct cras_bt_device *device;
 
@@ -320,8 +320,11 @@ encode_more:
 	cras_bt_device_cancel_suspend(device);
 
 	/* If it looks okay to write more and we do have queued data, try
-	 * encode more. */
-	if (written && buf_queued_bytes(a2dpio->pcm_buf))
+	 * encode more. But avoid the case when PCM buffer level is too close
+	 * to min_buffer_level so that another A2DP write could causes underrun.
+	 */
+	queued_frames = buf_queued_bytes(a2dpio->pcm_buf) / format_bytes;
+	if (written && (iodev->min_buffer_level + written < queued_frames))
 		goto encode_more;
 
 	/* everything written. */
