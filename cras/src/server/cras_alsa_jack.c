@@ -640,7 +640,7 @@ static int wait_for_dev_input_access()
 
 		timeout.tv_sec	= 0;
 		timeout.tv_usec = 500000;   /* 1/2 second. */
-		readable = access(pathname, O_RDONLY);
+		readable = access(pathname, R_OK);
 
 		/* If the file could be opened, then the udev rule has been
 		 * applied and gavd can read the event files.  If there are no
