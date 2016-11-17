@@ -129,6 +129,9 @@ static int got_samples(struct cras_client *client,
 	int write_size;
 	int frame_bytes;
 
+	while (pause_client)
+		usleep(10000);
+
 	cras_client_calc_capture_latency(captured_time, &last_latency);
 
 	frame_bytes = cras_client_format_bytes_per_frame(aud_format);

@@ -1034,7 +1034,11 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 				       uint8_t **captured_frames,
 				       unsigned int num_frames)
 {
-	*captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm);
+	unsigned int readable;
+
+	*captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm,
+						         &readable);
+	num_frames = MIN(num_frames, readable);
 
 	/* Don't ask for more frames than the client desires. */
 	if (stream->flags & BULK_AUDIO_OK)
@@ -1076,6 +1080,9 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	}
 
 	num_frames = config_capture_buf(stream, &captured_frames, num_frames);
+	if (num_frames == 0)
+		return 0;
+
 	cras_timespec_to_timespec(&ts, &stream->capture_shm.area->ts);
 
 	if (config->unified_cb)
