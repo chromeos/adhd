@@ -1345,11 +1345,8 @@ unsigned begin_server_state_read(const struct cras_server_state *state)
 {
 	unsigned count;
 
-	/* Version will be odd when the server is writing.
-	 * Double pointer casts to avoid clang error in taking address
-	 * of packed structure member
-	 */
-	while ((count = *((volatile unsigned *)((volatile char *)&state->update_count))) & 1)
+	/* Version will be odd when the server is writing. */
+	while ((count = *(volatile unsigned *)&state->update_count) & 1)
 		sched_yield();
 	__sync_synchronize();
 	return count;
@@ -1362,10 +1359,7 @@ static inline
 int end_server_state_read(const struct cras_server_state *state, unsigned count)
 {
 	__sync_synchronize();
-	/* Double pointer casts to avoid clang error in taking address
-	 * of packed structure member
-	 */
-	if (count != *((volatile unsigned *)((volatile char *)&state->update_count)))
+	if (count != *(volatile unsigned *)&state->update_count)
 		return -EAGAIN;
 	return 0;
 
