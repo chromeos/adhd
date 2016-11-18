@@ -258,23 +258,27 @@ size_t cras_shm_get_num_writeable(const struct cras_audio_shm *shm)
 	return shm->config.used_size / shm->config.frame_bytes;
 }
 
-/* Flags an overrun if writing would cause one. */
-static inline void cras_shm_check_write_overrun(struct cras_audio_shm *shm)
+/* Flags an overrun if writing would cause one and reset the write offset.
+ * Return 1 if overrun happens, otherwise return 0. */
+static inline int cras_shm_check_write_overrun(struct cras_audio_shm *shm)
 {
+	int ret = 0;
 	size_t write_buf_idx = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
-	size_t read_buf_idx = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
 
 	if (!shm->area->write_in_progress[write_buf_idx]) {
 		unsigned int used_size = shm->config.used_size;
 
-		if (write_buf_idx != read_buf_idx)
+		if (shm->area->write_offset[write_buf_idx]) {
 			shm->area->num_overruns++; /* Will over-write unread */
+			ret = 1;
+		}
 
 		memset(cras_shm_buff_for_idx(shm, write_buf_idx), 0, used_size);
 
 		shm->area->write_in_progress[write_buf_idx] = 1;
 		shm->area->write_offset[write_buf_idx] = 0;
 	}
+	return ret;
 }
 
 /* Increment the write pointer for the current buffer. */

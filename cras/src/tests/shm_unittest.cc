@@ -17,7 +17,8 @@ class ShmTestSuite : public testing::Test{
     virtual void SetUp() {
       memset(&shm_, 0, sizeof(shm_));
       shm_.area =
-          static_cast<cras_audio_shm_area *>(calloc(1, sizeof(*shm_.area)));
+          static_cast<cras_audio_shm_area *>(
+              calloc(1, sizeof(*shm_.area) + 2048));
       cras_shm_set_frame_bytes(&shm_, 4);
       cras_shm_set_used_size(&shm_, 1024);
       memcpy(&shm_.area->config, &shm_.config, sizeof(shm_.config));
@@ -221,6 +222,33 @@ TEST_F(ShmTestSuite, InvalidReadAndWriteOffset) {
   shm_.area->read_offset[0] = shm_.config.used_size + 25;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(shm_.config.used_size / 4, frames_);
+}
+
+TEST_F(ShmTestSuite, InputBufferOverrun) {
+  int rc;
+  shm_.area->write_offset[0] = 0;
+  shm_.area->read_offset[0] = 0;
+  shm_.area->write_offset[1] = 0;
+  shm_.area->read_offset[1] = 0;
+
+  shm_.area->write_buf_idx = 0;
+  shm_.area->read_buf_idx = 0;
+
+  EXPECT_EQ(0, cras_shm_num_overruns(&shm_));
+  rc = cras_shm_check_write_overrun(&shm_);
+  EXPECT_EQ(0, rc);
+  cras_shm_buffer_written(&shm_, 100);
+  cras_shm_buffer_write_complete(&shm_);
+
+  rc = cras_shm_check_write_overrun(&shm_);
+  EXPECT_EQ(0, rc);
+  cras_shm_buffer_written(&shm_, 100);
+  cras_shm_buffer_write_complete(&shm_);
+
+  // Assert two consecutive writes causes overrun.
+  rc = cras_shm_check_write_overrun(&shm_);
+  EXPECT_EQ(1, rc);
+  EXPECT_EQ(1, cras_shm_num_overruns(&shm_));
 }
 
 }  //  namespace
