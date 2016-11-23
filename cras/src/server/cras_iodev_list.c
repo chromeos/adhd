@@ -465,6 +465,25 @@ static void sys_cap_mute_change(void *context, int muted, int mute_locked)
 	}
 }
 
+static int disable_device(struct enabled_dev *edev);
+static int enable_device(struct cras_iodev *dev);
+
+static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
+{
+	struct enabled_dev *edev;
+
+	DL_FOREACH(enabled_devs[dir], edev) {
+		if (edev->dev == fallback_devs[dir])
+			disable_device(edev);
+	}
+}
+
+static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
+{
+	if (!cras_iodev_list_dev_is_enabled(fallback_devs[dir]))
+		enable_device(fallback_devs[dir]);
+}
+
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
@@ -498,27 +517,38 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			syslog(LOG_ERR, "too many enabled devices");
 			break;
 		}
-		/* Negative EAGAIN code indicates dev will be opened later.
-		 * Negative ENOENT code indicates that device just got
-		 * unplugged, since this is a non-pinned stream we don't
-		 * treat it as error. Chrome should soon select to another
-		 * device. */
-		rc = init_device(edev->dev, rstream);
-		if (rc && (rc != -EAGAIN) && (rc != -ENOENT))
-			return rc;
 
-		/* This should happen rarely. Error log the name so we can
-		 * know what device has encountered this problem.*/
-		if (rc == -ENOENT)
-			syslog(LOG_ERR, "%s not found at init_device",
-			       edev->dev->info.name);
+		rc = init_device(edev->dev, rstream);
+		if (rc) {
+			/* Error log but don't return error here, because
+			 * stopping audio could block video playback.
+			 */
+			syslog(LOG_ERR, "Init %s failed, rc = %d",
+			       edev->dev->info.name, rc);
+			continue;
+		}
 
 		iodevs[num_iodevs++] = edev->dev;
 	}
-	rc = audio_thread_add_stream(audio_thread, rstream, iodevs, num_iodevs);
-	if (rc) {
-		syslog(LOG_ERR, "adding stream to thread fail");
-		return rc;
+	if (num_iodevs) {
+		rc = audio_thread_add_stream(audio_thread, rstream,
+					     iodevs, num_iodevs);
+		if (rc) {
+			syslog(LOG_ERR, "adding stream to thread fail");
+			return rc;
+		}
+	} else {
+		/* Enable fallback device if no other iodevs can be initialized
+		 * successfully.
+		 * For error codes like EAGAIN and ENOENT, a new iodev will be
+		 * enabled soon so streams are going to route there. As for the
+		 * rest of the error cases, silence will be played or recorded
+		 * so client won't be blocked.
+		 * The enabled fallback device will be disabled when
+		 * cras_iodev_list_select_node() is called to re-select the
+		 * active node.
+		 */
+		possibly_enable_fallback(rstream->direction);
 	}
 	return 0;
 }
@@ -580,27 +610,9 @@ static int stream_removed_cb(struct cras_rstream *rstream)
 	return 0;
 }
 
-static int disable_device(struct enabled_dev *edev);
-static int enable_device(struct cras_iodev *dev);
-
-static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
-{
-	struct enabled_dev *edev;
-
-	DL_FOREACH(enabled_devs[dir], edev) {
-		if (edev->dev == fallback_devs[dir])
-			disable_device(edev);
-	}
-}
-
-static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
-{
-	if (!cras_iodev_list_dev_is_enabled(fallback_devs[dir]))
-		enable_device(fallback_devs[dir]);
-}
-
 static int enable_device(struct cras_iodev *dev)
 {
+	int rc;
 	struct enabled_dev *edev;
 	struct cras_rstream *stream;
 	enum CRAS_STREAM_DIRECTION dir = dev->direction;
@@ -621,11 +633,16 @@ static int enable_device(struct cras_iodev *dev)
 		/* If there are active streams to attach to this device,
 		 * open it. */
 		DL_FOREACH(stream_list_get(stream_list), stream) {
-			if (stream->direction == dir && !stream->is_pinned) {
-				init_device(dev, stream);
-				audio_thread_add_stream(audio_thread,
-							stream, &dev, 1);
+			if (stream->direction != dir || stream->is_pinned)
+				continue;
+			rc = init_device(dev, stream);
+			if (rc) {
+				syslog(LOG_ERR, "Enable %s failed, rc = %d",
+				       edev->dev->info.name, rc);
+				return rc;
 			}
+			audio_thread_add_stream(audio_thread,
+						stream, &dev, 1);
 		}
 	}
 	if (device_enabled_callback)
@@ -941,6 +958,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 {
 	struct cras_iodev *new_dev = NULL;
 	struct enabled_dev *edev;
+	int rc;
 
 	/* find the devices for the id. */
 	new_dev = find_dev(dev_index_of(node_id));
@@ -971,10 +989,13 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 
 	if (new_dev) {
 		new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
-		enable_device(new_dev);
-		/* Disable fallback device after new device is enabled.
-		 * Leave the fallback device enabled in new_dev == NULL case. */
-		possibly_disable_fallback(direction);
+		rc = enable_device(new_dev);
+		if (rc == 0) {
+			/* Disable fallback device after new device is enabled.
+			 * Leave the fallback device enabled if new_dev failed
+			 * to open, or the new_dev == NULL case. */
+			possibly_disable_fallback(direction);
+		}
 	}
 
 	cras_iodev_list_notify_active_node_changed(direction);

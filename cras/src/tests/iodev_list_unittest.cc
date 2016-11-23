@@ -63,6 +63,8 @@ static size_t cras_observer_notify_active_node_called;
 static size_t cras_observer_notify_output_node_volume_called;
 static size_t cras_observer_notify_node_left_right_swapped_called;
 static size_t cras_observer_notify_input_node_gain_called;
+static int cras_iodev_open_called;
+static int cras_iodev_open_ret[8];
 
 void dummy_update_active_node(struct cras_iodev *iodev,
                               unsigned node_idx,
@@ -170,6 +172,8 @@ class IoDevTestSuite : public testing::Test {
       cras_observer_notify_output_node_volume_called = 0;
       cras_observer_notify_node_left_right_swapped_called = 0;
       cras_observer_notify_input_node_gain_called = 0;
+      cras_iodev_open_called = 0;
+      memset(cras_iodev_open_ret, 0, sizeof(cras_iodev_open_ret));
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -284,6 +288,72 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
   cras_iodev_list_deinit();
   EXPECT_EQ(3, cras_observer_notify_active_node_called);
+}
+
+TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
+  int rc;
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 0));
+
+  cras_iodev_open_ret[0] = -5;
+  cras_iodev_open_ret[1] = 0;
+
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream);
+  /* open dev called twice, one for fallback device. */
+  EXPECT_EQ(2, cras_iodev_open_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+}
+
+TEST_F(IoDevTestSuite, SelectNodeOpenFail) {
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 1));
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream);
+
+  /* Select node triggers: fallback open, d1 close, d2 open, fallback close. */
+  cras_iodev_close_called = 0;
+  cras_iodev_open_called = 0;
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 1));
+  EXPECT_EQ(2, cras_iodev_close_called);
+  EXPECT_EQ(2, cras_iodev_open_called);
+
+  /* Test that if select to d1 and open d1 fail, fallback doesn't close. */
+  cras_iodev_open_called = 0;
+  cras_iodev_open_ret[0] = 0;
+  cras_iodev_open_ret[1] = -5;
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 1));
+  EXPECT_EQ(3, cras_iodev_close_called);
+  EXPECT_EQ(&d2_, cras_iodev_close_dev);
 }
 
 TEST_F(IoDevTestSuite, SelectNode) {
@@ -982,7 +1052,7 @@ void loopback_iodev_destroy(struct cras_iodev *iodev) {
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
   iodev->state = CRAS_IODEV_STATE_OPEN;
-  return 0;
+  return cras_iodev_open_ret[cras_iodev_open_called++];
 }
 
 int cras_iodev_close(struct cras_iodev *iodev) {
