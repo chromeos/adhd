@@ -299,7 +299,7 @@ static int dev_has_pinned_stream(unsigned int dev_idx)
 	const struct cras_rstream *rstream;
 
 	DL_FOREACH(stream_list_get(stream_list), rstream) {
-		if (rstream->pinned_dev_idx == dev_idx)
+		if (rstream->is_pinned && (rstream->pinned_dev_idx == dev_idx))
 			return 1;
 	}
 	return 0;
