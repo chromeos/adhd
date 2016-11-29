@@ -194,8 +194,9 @@ static int get_record_buffer(struct cras_iodev *iodev,
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
+	unsigned int avail_frames = buf_readable_bytes(sbuf) / frame_bytes;
 
-	*frames = buf_readable_bytes(sbuf) / frame_bytes;
+	*frames = MIN(avail_frames, *frames);
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
 					    buf_read_pointer(sbuf));
