@@ -44,7 +44,10 @@ static stream_callback *stream_rm_cb;
 static struct cras_rstream *stream_list_get_ret;
 static int audio_thread_drain_stream_return;
 static int audio_thread_drain_stream_called;
+static int cras_tm_create_timer_called;
+static int cras_tm_cancel_timer_called;
 static void (*cras_tm_timer_cb)(struct cras_timer *t, void *data);
+static void *cras_tm_timer_cb_data;
 static struct timespec clock_gettime_retspec;
 static struct cras_iodev *device_enabled_dev;
 static struct cras_iodev *device_disabled_dev;
@@ -80,6 +83,8 @@ class IoDevTestSuite : public testing::Test {
       stream_list_get_ret = 0;
       audio_thread_drain_stream_return = 0;
       audio_thread_drain_stream_called = 0;
+      cras_tm_create_timer_called = 0;
+      cras_tm_cancel_timer_called = 0;
 
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
@@ -316,7 +321,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
   EXPECT_EQ(1, audio_thread_add_stream_called);
 }
 
-TEST_F(IoDevTestSuite, SelectNodeOpenFail) {
+TEST_F(IoDevTestSuite, SelectNodeOpenFailShouldScheduleRetry) {
   struct cras_rstream rstream;
   struct cras_rstream *stream_list = NULL;
   int rc;
@@ -345,16 +350,99 @@ TEST_F(IoDevTestSuite, SelectNodeOpenFail) {
       cras_make_node_id(d2_.info.idx, 1));
   EXPECT_EQ(2, cras_iodev_close_called);
   EXPECT_EQ(2, cras_iodev_open_called);
+  EXPECT_EQ(0, cras_tm_create_timer_called);
+  EXPECT_EQ(0, cras_tm_cancel_timer_called);
 
   /* Test that if select to d1 and open d1 fail, fallback doesn't close. */
   cras_iodev_open_called = 0;
   cras_iodev_open_ret[0] = 0;
   cras_iodev_open_ret[1] = -5;
+  cras_iodev_open_ret[2] = 0;
+  cras_tm_timer_cb = NULL;
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 1));
   EXPECT_EQ(3, cras_iodev_close_called);
   EXPECT_EQ(&d2_, cras_iodev_close_dev);
+  EXPECT_EQ(2, cras_iodev_open_called);
+  EXPECT_EQ(0, cras_tm_cancel_timer_called);
+
+  /* Assert a timer is scheduled to retry open. */
+  EXPECT_NE((void *)NULL, cras_tm_timer_cb);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  audio_thread_add_stream_called = 0;
+  cras_tm_timer_cb(NULL, cras_tm_timer_cb_data);
+  EXPECT_EQ(3, cras_iodev_open_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  /* Retry open success will close fallback dev. */
+  EXPECT_EQ(4, cras_iodev_close_called);
+  EXPECT_EQ(0, cras_tm_cancel_timer_called);
+
+  /* Select to d2 and fake an open failure. */
+  cras_iodev_close_called = 0;
+  cras_iodev_open_called = 0;
+  cras_iodev_open_ret[0] = 0;
+  cras_iodev_open_ret[1] = -5;
+  cras_iodev_open_ret[2] = 0;
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 1));
+  EXPECT_EQ(1, cras_iodev_close_called);
+  EXPECT_EQ(&d1_, cras_iodev_close_dev);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_NE((void *)NULL, cras_tm_timer_cb);
+
+  /* Select to another iodev should cancel the timer. */
+  memset(cras_iodev_open_ret, 0, sizeof(cras_iodev_open_ret));
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 1));
+  EXPECT_EQ(1, cras_tm_cancel_timer_called);
 }
+
+TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
+  int rc;
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 0));
+
+  cras_iodev_open_ret[0] = -5;
+  cras_iodev_open_ret[1] = 0;
+  cras_tm_timer_cb = NULL;
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream);
+  /* open dev called twice, one for fallback device. */
+  EXPECT_EQ(2, cras_iodev_open_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  EXPECT_NE((void *)NULL, cras_tm_timer_cb);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  /* If retry still fail, won't schedule more retry. */
+  cras_iodev_open_ret[2] = -5;
+  cras_tm_timer_cb(NULL, cras_tm_timer_cb_data);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  cras_tm_timer_cb = NULL;
+  cras_iodev_open_ret[3] = -5;
+  stream_add_cb(&rstream);
+  EXPECT_NE((void *)NULL, cras_tm_timer_cb);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+
+  cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(1, cras_tm_cancel_timer_called);
+}
+
 
 TEST_F(IoDevTestSuite, SelectNode) {
   struct cras_rstream rstream, rstream2, rstream3;
@@ -1051,7 +1139,8 @@ void loopback_iodev_destroy(struct cras_iodev *iodev) {
 
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
-  iodev->state = CRAS_IODEV_STATE_OPEN;
+  if (cras_iodev_open_ret[cras_iodev_open_called] == 0)
+    iodev->state = CRAS_IODEV_STATE_OPEN;
   return cras_iodev_open_ret[cras_iodev_open_called++];
 }
 
@@ -1102,10 +1191,13 @@ struct cras_timer *cras_tm_create_timer(
                 void (*cb)(struct cras_timer *t, void *data),
                 void *cb_data) {
   cras_tm_timer_cb = cb;
+  cras_tm_timer_cb_data = cb_data;
+  cras_tm_create_timer_called++;
   return reinterpret_cast<struct cras_timer *>(0x404);
 }
 
 void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t) {
+  cras_tm_cancel_timer_called++;
 }
 
 void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)

@@ -34,9 +34,11 @@ struct iodev_list {
 
 /* List of enabled input/output devices.
  *    dev - The device.
+ *    init_timer - Timer for a delayed call to init this iodev.
  */
 struct enabled_dev {
 	struct cras_iodev *dev;
+	struct cras_timer *init_timer;
 	struct enabled_dev *prev, *next;
 };
 
@@ -63,6 +65,8 @@ static struct stream_list *stream_list;
 static struct cras_timer *idle_timer;
 /* Flag to indicate that the stream list is disconnected from audio thread. */
 static int stream_list_suspended = 0;
+/* If init device failed, retry after 1 second. */
+static const unsigned int INIT_DEV_DELAY_MS = 1000;
 
 static void idle_dev_check(struct cras_timer *timer, void *data);
 
@@ -484,6 +488,59 @@ static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
 		enable_device(fallback_devs[dir]);
 }
 
+static int init_and_attach_streams(struct cras_iodev *dev)
+{
+	int rc;
+	enum CRAS_STREAM_DIRECTION dir = dev->direction;
+	struct cras_rstream *stream;
+
+	/* If called after suspend, for example bluetooth
+	 * profile switching, don't add back the stream list. */
+	if (!stream_list_suspended) {
+		/* If there are active streams to attach to this device,
+		 * open it. */
+		DL_FOREACH(stream_list_get(stream_list), stream) {
+			if (stream->direction != dir || stream->is_pinned)
+				continue;
+			rc = init_device(dev, stream);
+			if (rc) {
+				syslog(LOG_ERR, "Enable %s failed, rc = %d",
+				       dev->info.name, rc);
+				return rc;
+			}
+			audio_thread_add_stream(audio_thread,
+						stream, &dev, 1);
+		}
+	}
+	return 0;
+}
+
+static void init_device_cb(struct cras_timer *timer, void *arg)
+{
+	int rc;
+	struct enabled_dev *edev = (struct enabled_dev *)arg;
+	struct cras_iodev *dev = edev->dev;
+
+	edev->init_timer = NULL;
+	if (cras_iodev_is_open(dev))
+		return;
+
+	rc = init_and_attach_streams(dev);
+	if (rc < 0)
+		syslog(LOG_ERR, "Init device retry failed");
+	else
+		possibly_disable_fallback(dev->direction);
+}
+
+static void schedule_init_device_retry(struct enabled_dev *edev)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (edev->init_timer == NULL)
+		edev->init_timer = cras_tm_create_timer(
+				tm, INIT_DEV_DELAY_MS, init_device_cb, edev);
+}
+
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
@@ -525,6 +582,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			 */
 			syslog(LOG_ERR, "Init %s failed, rc = %d",
 			       edev->dev->info.name, rc);
+			schedule_init_device_retry(edev);
 			continue;
 		}
 
@@ -614,7 +672,6 @@ static int enable_device(struct cras_iodev *dev)
 {
 	int rc;
 	struct enabled_dev *edev;
-	struct cras_rstream *stream;
 	enum CRAS_STREAM_DIRECTION dir = dev->direction;
 
 	DL_FOREACH(enabled_devs[dir], edev) {
@@ -624,27 +681,16 @@ static int enable_device(struct cras_iodev *dev)
 
 	edev = calloc(1, sizeof(*edev));
 	edev->dev = dev;
+	edev->init_timer = NULL;
 	DL_APPEND(enabled_devs[dir], edev);
 	dev->is_enabled = 1;
 
-	/* If enable_device is called after suspend, for example bluetooth
-	 * profile switching, don't add back the stream list. */
-	if (!stream_list_suspended) {
-		/* If there are active streams to attach to this device,
-		 * open it. */
-		DL_FOREACH(stream_list_get(stream_list), stream) {
-			if (stream->direction != dir || stream->is_pinned)
-				continue;
-			rc = init_device(dev, stream);
-			if (rc) {
-				syslog(LOG_ERR, "Enable %s failed, rc = %d",
-				       edev->dev->info.name, rc);
-				return rc;
-			}
-			audio_thread_add_stream(audio_thread,
-						stream, &dev, 1);
-		}
+	rc = init_and_attach_streams(dev);
+	if (rc < 0) {
+		schedule_init_device_retry(edev);
+		return rc;
 	}
+
 	if (device_enabled_callback)
 		device_enabled_callback(dev, 1, device_enabled_cb_data);
 
@@ -658,6 +704,11 @@ static int disable_device(struct enabled_dev *edev)
 	struct cras_rstream *stream;
 
 	DL_DELETE(enabled_devs[dir], edev);
+	if (edev->init_timer) {
+		cras_tm_cancel_timer(cras_system_state_get_tm(),
+				     edev->init_timer);
+		edev->init_timer = NULL;
+	}
 	free(edev);
 	dev->is_enabled = 0;
 
@@ -690,6 +741,7 @@ void cras_iodev_list_init()
 	observer_ops.capture_mute_changed = sys_cap_mute_change;
 	observer_ops.suspend_changed = sys_suspend_change;
 	list_observer = cras_observer_add(&observer_ops, NULL);
+	idle_timer = NULL;
 
 	/* Create the audio stream list for the system. */
 	stream_list = stream_list_create(stream_added_cb, stream_removed_cb,
