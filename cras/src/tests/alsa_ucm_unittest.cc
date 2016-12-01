@@ -36,6 +36,7 @@ static std::map<std::string, unsigned> fake_list_size;
 static unsigned snd_use_case_free_list_called;
 static std::vector<std::string> list_devices_callback_names;
 static std::vector<void*> list_devices_callback_args;
+static struct cras_use_case_mgr cras_ucm_mgr;
 
 static void ResetStubData() {
   snd_use_case_mgr_open_called = 0;
@@ -52,6 +53,7 @@ static void ResetStubData() {
   fake_list_size.clear();
   list_devices_callback_names.clear();
   list_devices_callback_args.clear();
+  snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
 }
 
 static void list_devices_callback(const char* section_name, void *arg) {
@@ -108,13 +110,12 @@ TEST(AlsaUcm, CreateFailNoHiFi) {
 }
 
 TEST(AlsaUcm, CreateSuccess) {
-  snd_use_case_mgr_t* mgr;
+  struct cras_use_case_mgr *mgr;
 
   ResetStubData();
-  snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
 
   mgr = ucm_create("foo");
-  EXPECT_NE(static_cast<snd_use_case_mgr_t*>(NULL), mgr);
+  EXPECT_NE(static_cast<snd_use_case_mgr_t*>(NULL), mgr->mgr);
   EXPECT_EQ(1, snd_use_case_mgr_open_called);
   EXPECT_EQ(1, snd_use_case_set_called);
   EXPECT_EQ(0, snd_use_case_mgr_close_called);
@@ -124,7 +125,7 @@ TEST(AlsaUcm, CreateSuccess) {
 }
 
 TEST(AlsaUcm, CheckEnabledEmptyList) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
 
   ResetStubData();
   fake_list["_enadevs"] = NULL;
@@ -140,7 +141,7 @@ TEST(AlsaUcm, CheckEnabledEmptyList) {
 }
 
 TEST(AlsaUcm, CheckEnabledAlready) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *enabled[] = { "Dev2", "Dev1" };
 
   ResetStubData();
@@ -158,7 +159,7 @@ TEST(AlsaUcm, CheckEnabledAlready) {
 }
 
 TEST(AlsaUcm, GetEdidForDev) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   std::string id = "=EDIDFile/Dev1/HiFi";
   std::string value = "EdidFileName";
   const char *file_name;
@@ -177,7 +178,7 @@ TEST(AlsaUcm, GetEdidForDev) {
 }
 
 TEST(AlsaUcm, GetCapControlForDev) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   char *cap_control;
   std::string id = "=CaptureControl/Dev1/HiFi";
   std::string value = "MIC";
@@ -196,7 +197,7 @@ TEST(AlsaUcm, GetCapControlForDev) {
 }
 
 TEST(AlsaUcm, GetOverrideType) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *override_type_name;
   std::string id = "=OverrideNodeType/Dev1/HiFi";
   std::string value = "HDMI";
@@ -215,7 +216,7 @@ TEST(AlsaUcm, GetOverrideType) {
 }
 
 TEST(AlsaUcm, GetSectionsForVar) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct section_name *section_names, *c;
 
   ResetStubData();
@@ -256,7 +257,7 @@ TEST(AlsaUcm, GetSectionsForVar) {
 }
 
 TEST(AlsaUcm, GetDevForJack) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *dev_name;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -283,7 +284,7 @@ TEST(AlsaUcm, GetDevForJack) {
 }
 
 TEST(AlsaUcm, GetDevForHeadphoneJack) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *dev_name;
   const char *devices[] = { "Mic", "Comment for Dev1", "Headphone",
                             "Comment for Dev2" };
@@ -309,7 +310,7 @@ TEST(AlsaUcm, GetDevForHeadphoneJack) {
 }
 
 TEST(AlsaUcm, GetDevForMicJack) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *dev_name;
   const char *devices[] = { "Headphone", "Comment for Dev1", "Mic",
                             "Comment for Dev2" };
@@ -335,7 +336,7 @@ TEST(AlsaUcm, GetDevForMicJack) {
 }
 
 TEST(AlsaUcm, GetDevForMixer) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *dev_name_out, *dev_name_in;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -365,7 +366,7 @@ TEST(AlsaUcm, GetDevForMixer) {
 }
 
 TEST(AlsaUcm, GetDeviceNameForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *input_dev_name, *output_dev_name;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -394,7 +395,7 @@ TEST(AlsaUcm, GetDeviceNameForDevice) {
 }
 
 TEST(AlsaUcm, GetDeviceRateForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int input_dev_rate, output_dev_rate;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -422,7 +423,7 @@ TEST(AlsaUcm, GetDeviceRateForDevice) {
 }
 
 TEST(AlsaUcm, GetHotwordModels) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *models;
   const char *modifiers[] = { "Mod1",
                             "Comment1",
@@ -445,7 +446,7 @@ TEST(AlsaUcm, GetHotwordModels) {
 }
 
 TEST(AlsaUcm, SetHotwordModel) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *modifiers[] = { "Hotword Model en",
                               "Comment1",
                               "Hotword Model jp",
@@ -473,7 +474,7 @@ TEST(AlsaUcm, SetHotwordModel) {
 }
 
 TEST(AlsaUcm, SwapModeExists) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int rc;
   const char *modifiers_1[] = { "Speaker Swap Mode",
                                 "Comment for Speaker Swap Mode",
@@ -498,7 +499,7 @@ TEST(AlsaUcm, SwapModeExists) {
 }
 
 TEST(AlsaUcm, EnableSwapMode) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int rc;
   const char *modifiers[] = { "Speaker Swap Mode",
                               "Comment for Speaker Swap Mode",
@@ -530,7 +531,7 @@ TEST(AlsaUcm, EnableSwapMode) {
 }
 
 TEST(AlsaUcm, DisableSwapMode) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int rc;
   const char *modifiers[] = { "Speaker Swap Mode",
                               "Comment for Speaker Swap Mode",
@@ -563,7 +564,7 @@ TEST(AlsaUcm, DisableSwapMode) {
 }
 
 TEST(AlsaFlag, GetFlag) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   char *flag_value;
 
   std::string id = "=FlagName//HiFi";
@@ -582,7 +583,7 @@ TEST(AlsaFlag, GetFlag) {
 }
 
 TEST(AlsaUcm, ModifierEnabled) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int enabled;
 
   ResetStubData();
@@ -600,7 +601,7 @@ TEST(AlsaUcm, ModifierEnabled) {
 }
 
 TEST(AlsaUcm, SetModifierEnabled) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
 
   ResetStubData();
 
@@ -621,7 +622,7 @@ TEST(AlsaUcm, EndWithSuffix) {
 }
 
 TEST(AlsaUcm, SectionExistsWithName) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *sections[] = { "Sec1", "Comment for Sec1", "Sec2",
                              "Comment for Sec2" };
 
@@ -635,7 +636,7 @@ TEST(AlsaUcm, SectionExistsWithName) {
 }
 
 TEST(AlsaUcm, SectionExistsWithSuffix) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
 
   ResetStubData();
 
@@ -649,7 +650,7 @@ TEST(AlsaUcm, SectionExistsWithSuffix) {
 }
 
 TEST(AlsaUcm, DisableSoftwareVolume) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   unsigned int disable_software_volume;
   std::string id = "=DisableSoftwareVolume//HiFi";
   std::string value = "1";
@@ -666,7 +667,7 @@ TEST(AlsaUcm, DisableSoftwareVolume) {
 }
 
 TEST(AlsaUcm, GetCoupledMixersForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct mixer_name *mixer_names_1, *mixer_names_2, *c;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -700,7 +701,7 @@ TEST(AlsaUcm, GetCoupledMixersForDevice) {
 }
 
 TEST(AlsaUcm, FreeMixerNames) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct mixer_name *mixer_names_1;
   const char *devices[] = { "Dev1", "Comment for Dev1"};
 
@@ -725,7 +726,7 @@ TEST(AlsaUcm, FreeMixerNames) {
 }
 
 TEST(AlsaUcm, MaxSoftwareGain) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   long max_software_gain;
   int ret;
   std::string id = "=MaxSoftwareGain/Internal Mic/HiFi";
@@ -750,7 +751,7 @@ TEST(AlsaUcm, MaxSoftwareGain) {
 }
 
 TEST(AlsaUcm, UseFullySpecifiedUCMConfig) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int fully_specified_flag;
 
   std::string id = "=FullySpecifiedUCM//HiFi";
@@ -772,7 +773,7 @@ TEST(AlsaUcm, UseFullySpecifiedUCMConfig) {
 }
 
 TEST(AlsaUcm, EnableHtimestampFlag) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   unsigned int enable_htimestamp_flag;
 
   std::string id = "=EnableHtimestamp//HiFi";
@@ -794,7 +795,7 @@ TEST(AlsaUcm, EnableHtimestampFlag) {
 }
 
 TEST(AlsaUcm, GetMixerNameForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *mixer_name_1, *mixer_name_2;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -818,7 +819,7 @@ TEST(AlsaUcm, GetMixerNameForDevice) {
 }
 
 TEST(AlsaUcm, GetMainVolumeMixerName) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct mixer_name *mixer_names_1, *mixer_names_2, *c;
 
   ResetStubData();
@@ -850,7 +851,7 @@ TEST(AlsaUcm, GetMainVolumeMixerName) {
 }
 
 TEST(AlsaUcm, ListSectionsByDeviceNameOutput) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   void* callback_arg = reinterpret_cast<void*>(0x56);
   int listed = 0;
 
@@ -875,7 +876,7 @@ TEST(AlsaUcm, ListSectionsByDeviceNameOutput) {
 }
 
 TEST(AlsaUcm, ListSectionsByDeviceNameInput) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   void* callback_arg = reinterpret_cast<void*>(0x56);
   int listed = 0;
 
@@ -900,7 +901,7 @@ TEST(AlsaUcm, ListSectionsByDeviceNameInput) {
 }
 
 TEST(AlsaUcm, GetJackNameForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *jack_name_1, *jack_name_2;
   const char *devices[] = { "Dev1", "Comment for Dev1", "Dev2",
                             "Comment for Dev2" };
@@ -921,7 +922,7 @@ TEST(AlsaUcm, GetJackNameForDevice) {
 }
 
 TEST(AlsaUcm, GetJackTypeForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *jack_type_1, *jack_type_2, *jack_type_3, *jack_type_4;
   const char *devices[] = { "Dev1", "Comment for Dev1",
                             "Dev2", "Comment for Dev2",
@@ -956,7 +957,7 @@ TEST(AlsaUcm, GetJackTypeForDevice) {
 }
 
 TEST(AlsaUcm, GetPeriodFramesForDevice) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   int dma_period_1, dma_period_2, dma_period_3;
   const char *devices[] = { "Dev1", "Comment for Dev1",
                             "Dev2", "Comment for Dev2",
@@ -1055,7 +1056,7 @@ TEST(AlsaUcm, UcmSection) {
 }
 
 TEST(AlsaUcm, GetSections) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct ucm_section* sections;
   struct ucm_section* section;
   struct mixer_name* m_name;
@@ -1207,7 +1208,7 @@ TEST(AlsaUcm, GetSections) {
 }
 
 TEST(AlsaUcm, GetSectionsMissingPCM) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct ucm_section* sections;
   int i = 0;
   const char *devices[] = { "Headphone", "The headphones jack." };
@@ -1236,7 +1237,7 @@ TEST(AlsaUcm, GetSectionsMissingPCM) {
 }
 
 TEST(AlsaUcm, GetSectionsBadPCM) {
-  snd_use_case_mgr_t* mgr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   struct ucm_section* sections;
   int i = 0;
   const char *devices[] = { "Headphone", "The headphones jack." };
@@ -1300,7 +1301,7 @@ int snd_use_case_set(snd_use_case_mgr_t* uc_mgr,
   snd_use_case_set_called++;
   snd_use_case_set_param.push_back(
       std::make_pair(std::string(identifier), std::string(value)));
-  return snd_use_case_set_return;;
+  return snd_use_case_set_return;
 }
 
 int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,

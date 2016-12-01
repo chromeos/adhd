@@ -4,7 +4,6 @@
  */
 
 #include <alsa/asoundlib.h>
-#include <alsa/use-case.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -103,7 +102,7 @@ struct alsa_input_node {
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
  * jack_list - List of alsa jack controls for this device.
- * ucm - ALSA use case manager, if configuration is found.
+ * ucm - CRAS use case manager, if configuration is found.
  * mmap_offset - offset returned from mmap_begin.
  * dsp_name_default - the default dsp name for the device. It can be overridden
  *     by the jack specific dsp name.
@@ -133,7 +132,7 @@ struct alsa_io {
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
 	struct cras_alsa_jack_list *jack_list;
-	snd_use_case_mgr_t *ucm;
+	struct cras_use_case_mgr *ucm;
 	snd_pcm_uframes_t mmap_offset;
 	const char *dsp_name_default;
 	int poll_fd;
@@ -1604,7 +1603,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
-				     snd_use_case_mgr_t *ucm,
+				     struct cras_use_case_mgr *ucm,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,

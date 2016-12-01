@@ -4,7 +4,6 @@
  */
 
 #include <alsa/asoundlib.h>
-#include <alsa/use-case.h>
 #include <syslog.h>
 
 #include "cras_alsa_card.h"
@@ -44,7 +43,7 @@ struct hctl_poll_fd {
  * card_index - 0 based index, value of "XX" in the name.
  * iodevs - Input and output devices for this card.
  * mixer - Controls the mixer controls for this card.
- * ucm - ALSA use case manager if available.
+ * ucm - CRAS use case manager if available.
  * hctl - ALSA high-level control interface.
  * hctl_poll_fds - List of fds registered with cras_system_state.
  * config - Config info for this card, can be NULL if none found.
@@ -54,7 +53,7 @@ struct cras_alsa_card {
 	size_t card_index;
 	struct iodev_list_node *iodevs;
 	struct cras_alsa_mixer *mixer;
-	snd_use_case_mgr_t *ucm;
+	struct cras_use_case_mgr *ucm;
 	snd_hctl_t *hctl;
 	struct hctl_poll_fd *hctl_poll_fds;
 	struct cras_card_config *config;
@@ -167,7 +166,7 @@ static int should_ignore_dev(struct cras_alsa_card_info *info,
 
 /* Filters an array of mixer control names. Keep a name if it is
  * specified in the ucm config. */
-static struct mixer_name *filter_controls(snd_use_case_mgr_t *ucm,
+static struct mixer_name *filter_controls(struct cras_use_case_mgr *ucm,
 					  struct mixer_name *controls)
 {
 	struct mixer_name *control;

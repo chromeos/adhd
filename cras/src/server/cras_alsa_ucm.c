@@ -46,14 +46,19 @@ struct section_name {
 	struct section_name  *prev, *next;
 };
 
-static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
+struct cras_use_case_mgr {
+	snd_use_case_mgr_t *mgr;
+	enum CRAS_STREAM_TYPE use_case;
+};
+
+static int device_enabled(struct cras_use_case_mgr *mgr, const char *dev)
 {
 	const char **list;
 	unsigned int i;
 	int num_devs;
 	int enabled = 0;
 
-	num_devs = snd_use_case_get_list(mgr, "_enadevs", &list);
+	num_devs = snd_use_case_get_list(mgr->mgr, "_enadevs", &list);
 	if (num_devs <= 0)
 		return 0;
 
@@ -67,13 +72,13 @@ static int device_enabled(snd_use_case_mgr_t *mgr, const char *dev)
 	return enabled;
 }
 
-static int modifier_enabled(snd_use_case_mgr_t *mgr, const char *mod)
+static int modifier_enabled(struct cras_use_case_mgr *mgr, const char *mod)
 {
 	const char **list;
 	unsigned int mod_idx;
 	int num_mods;
 
-	num_mods = snd_use_case_get_list(mgr, "_enamods", &list);
+	num_mods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
 	if (num_mods <= 0)
 		return 0;
 
@@ -85,8 +90,8 @@ static int modifier_enabled(snd_use_case_mgr_t *mgr, const char *mod)
 	return (mod_idx < (unsigned int)num_mods);
 }
 
-static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
-		   const char *verb, const char **value)
+static int get_var(struct cras_use_case_mgr *mgr, const char *var,
+		   const char *dev, const char *verb, const char **value)
 {
 	char *id;
 	int rc;
@@ -96,14 +101,14 @@ static int get_var(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 	if (!id)
 		return -ENOMEM;
 	snprintf(id, len, "=%s/%s/%s", var, dev, verb);
-	rc = snd_use_case_get(mgr, id, value);
+	rc = snd_use_case_get(mgr->mgr, id, value);
 
 	free((void *)id);
 	return rc;
 }
 
-static int get_int(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
-		   const char *verb, int *value)
+static int get_int(struct cras_use_case_mgr *mgr, const char *var,
+		   const char *dev, const char *verb, int *value)
 {
 	const char *str_value;
 	int rc;
@@ -118,10 +123,10 @@ static int get_int(snd_use_case_mgr_t *mgr, const char *var, const char *dev,
 	return 0;
 }
 
-static int ucm_set_modifier_enabled(snd_use_case_mgr_t *mgr, const char *mod,
-				    int enable)
+static int ucm_set_modifier_enabled(struct cras_use_case_mgr *mgr,
+				    const char *mod, int enable)
 {
-	return snd_use_case_set(mgr, enable ? "_enamod" : "_dismod", mod);
+	return snd_use_case_set(mgr->mgr, enable ? "_enamod" : "_dismod", mod);
 }
 
 static int ucm_str_ends_with_suffix(const char *str, const char *suffix)
@@ -135,7 +140,7 @@ static int ucm_str_ends_with_suffix(const char *str, const char *suffix)
 	return strncmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
 }
 
-static int ucm_section_exists_with_name(snd_use_case_mgr_t *mgr,
+static int ucm_section_exists_with_name(struct cras_use_case_mgr *mgr,
 		const char *name, const char *identifier)
 {
 	const char **list;
@@ -143,7 +148,7 @@ static int ucm_section_exists_with_name(snd_use_case_mgr_t *mgr,
 	int num_entries;
 	int exist = 0;
 
-	num_entries = snd_use_case_get_list(mgr, identifier, &list);
+	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	if (num_entries <= 0)
 		return 0;
 
@@ -161,7 +166,7 @@ static int ucm_section_exists_with_name(snd_use_case_mgr_t *mgr,
 	return exist;
 }
 
-static int ucm_section_exists_with_suffix(snd_use_case_mgr_t *mgr,
+static int ucm_section_exists_with_suffix(struct cras_use_case_mgr *mgr,
 		const char *suffix, const char *identifier)
 {
 	const char **list;
@@ -169,7 +174,7 @@ static int ucm_section_exists_with_suffix(snd_use_case_mgr_t *mgr,
 	int num_entries;
 	int exist = 0;
 
-	num_entries = snd_use_case_get_list(mgr, identifier, &list);
+	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	if (num_entries <= 0)
 		return 0;
 
@@ -187,22 +192,24 @@ static int ucm_section_exists_with_suffix(snd_use_case_mgr_t *mgr,
 	return exist;
 }
 
-static int ucm_mod_exists_with_suffix(snd_use_case_mgr_t *mgr,
-				const char *suffix)
+static int ucm_mod_exists_with_suffix(struct cras_use_case_mgr *mgr,
+				      const char *suffix)
 {
 	return ucm_section_exists_with_suffix(mgr, suffix, "_modifiers/HiFi");
 }
 
-static int ucm_mod_exists_with_name(snd_use_case_mgr_t *mgr, const char *name)
+static int ucm_mod_exists_with_name(struct cras_use_case_mgr *mgr,
+				    const char *name)
 {
 	return ucm_section_exists_with_name(mgr, name, "_modifiers/HiFi");
 }
 
 /* Get a list of section names whose variable is the matched value. */
-static struct section_name * ucm_get_sections_for_var(snd_use_case_mgr_t *mgr,
-			const char *var, const char *value,
-			const char *identifier,
-			enum CRAS_STREAM_DIRECTION direction)
+static struct section_name * ucm_get_sections_for_var(
+		struct cras_use_case_mgr *mgr,
+		const char *var, const char *value,
+		const char *identifier,
+		enum CRAS_STREAM_DIRECTION direction)
 {
 	const char **list;
 	struct section_name *section_names = NULL, *s_name;
@@ -210,7 +217,7 @@ static struct section_name * ucm_get_sections_for_var(snd_use_case_mgr_t *mgr,
 	int num_entries;
 	int rc;
 
-	num_entries = snd_use_case_get_list(mgr, identifier, &list);
+	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	if (num_entries <= 0)
 		return NULL;
 
@@ -246,14 +253,15 @@ static struct section_name * ucm_get_sections_for_var(snd_use_case_mgr_t *mgr,
 	return section_names;
 }
 
-static struct section_name *ucm_get_devices_for_var(snd_use_case_mgr_t *mgr,
+static struct section_name *ucm_get_devices_for_var(
+		struct cras_use_case_mgr *mgr,
 		const char *var, const char *value,
 		enum CRAS_STREAM_DIRECTION dir) {
 	return ucm_get_sections_for_var(mgr, var, value, "_devices/HiFi", dir);
 }
 
 static const char *ucm_get_playback_device_name_for_dev(
-	snd_use_case_mgr_t *mgr, const char *dev)
+		struct cras_use_case_mgr *mgr, const char *dev)
 {
 	const char *name = NULL;
 	int rc;
@@ -266,7 +274,7 @@ static const char *ucm_get_playback_device_name_for_dev(
 }
 
 static const char *ucm_get_capture_device_name_for_dev(
-	snd_use_case_mgr_t *mgr, const char *dev)
+		struct cras_use_case_mgr *mgr, const char *dev)
 {
 	const char *name = NULL;
 	int rc;
@@ -281,7 +289,7 @@ static const char *ucm_get_capture_device_name_for_dev(
 /* Get a list of mixer names specified in a UCM variable separated by ",".
  * E.g. "Left Playback,Right Playback".
  */
-static struct mixer_name *ucm_get_mixer_names(snd_use_case_mgr_t *mgr,
+static struct mixer_name *ucm_get_mixer_names(struct cras_use_case_mgr *mgr,
 				const char *dev, const char* var,
 				enum CRAS_STREAM_DIRECTION dir,
 				mixer_name_type type)
@@ -308,44 +316,56 @@ static struct mixer_name *ucm_get_mixer_names(snd_use_case_mgr_t *mgr,
 
 /* Exported Interface */
 
-snd_use_case_mgr_t *ucm_create(const char *name)
+struct cras_use_case_mgr *ucm_create(const char *name)
 {
-	snd_use_case_mgr_t *mgr;
+	struct cras_use_case_mgr *mgr;
 	int rc;
 
 	if (!name)
 		return NULL;
 
-	rc = snd_use_case_mgr_open(&mgr, name);
+	mgr = (struct cras_use_case_mgr *)malloc(sizeof(*mgr));
+	if (!mgr)
+		return NULL;
+
+	rc = snd_use_case_mgr_open(&mgr->mgr, name);
 	if (rc) {
 		syslog(LOG_WARNING, "Can not open ucm for card %s, rc = %d",
 		       name, rc);
-		return NULL;
+		goto cleanup;
 	}
 
-	rc = snd_use_case_set(mgr, "_verb", default_verb);
+	mgr->use_case = CRAS_STREAM_TYPE_DEFAULT;
+
+	rc = snd_use_case_set(mgr->mgr, "_verb", default_verb);
 	if (rc) {
 		syslog(LOG_ERR, "Can not set verb %s for card %s, rc = %d",
 		       default_verb, name, rc);
-		ucm_destroy(mgr);
-		return NULL;
+		goto cleanup_mgr;
 	}
 
 	return mgr;
+
+cleanup_mgr:
+	snd_use_case_mgr_close(mgr->mgr);
+cleanup:
+	free(mgr);
+	return NULL;
 }
 
-void ucm_destroy(snd_use_case_mgr_t *mgr)
+void ucm_destroy(struct cras_use_case_mgr *mgr)
 {
-	snd_use_case_mgr_close(mgr);
+	snd_use_case_mgr_close(mgr->mgr);
+	free(mgr);
 }
 
-int ucm_swap_mode_exists(snd_use_case_mgr_t *mgr)
+int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr)
 {
 	return ucm_mod_exists_with_suffix(mgr, swap_mode_suffix);
 }
 
-int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
-		       int enable)
+int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
+			 int enable)
 {
 	char *swap_mod = NULL;
 	int rc;
@@ -368,15 +388,15 @@ int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
 	return rc;
 }
 
-int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable)
+int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable)
 {
 	if (device_enabled(mgr, dev) == !!enable)
 		return 0;
 	syslog(LOG_DEBUG, "UCM %s %s", enable ? "enable" : "disable", dev);
-	return snd_use_case_set(mgr, enable ? "_enadev" : "_disdev", dev);
+	return snd_use_case_set(mgr->mgr, enable ? "_enadev" : "_disdev", dev);
 }
 
-char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name)
+char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name)
 {
 	char *flag_value = NULL;
 	const char *value;
@@ -392,7 +412,7 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name)
 	return flag_value;
 }
 
-char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev)
+char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev)
 {
 	char *control_name = NULL;
 	const char *value;
@@ -407,7 +427,7 @@ char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev)
 	return control_name;
 }
 
-char *ucm_get_mic_positions(snd_use_case_mgr_t *mgr)
+char *ucm_get_mic_positions(struct cras_use_case_mgr *mgr)
 {
 	char *control_name = NULL;
 	const char *value;
@@ -422,8 +442,8 @@ char *ucm_get_mic_positions(snd_use_case_mgr_t *mgr)
 	return control_name;
 }
 
-const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
-					const char *dev)
+const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
+				       const char *dev)
 {
 	const char *override_type_name;
 	int rc;
@@ -436,7 +456,7 @@ const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
 	return override_type_name;
 }
 
-char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
+char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
 			   enum CRAS_STREAM_DIRECTION direction)
 {
 	struct section_name *section_names, *c;
@@ -467,7 +487,7 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
 	return ret;
 }
 
-char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer,
+char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
 			    enum CRAS_STREAM_DIRECTION dir)
 {
 	struct section_name *section_names, *c;
@@ -487,7 +507,8 @@ char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer,
 	return ret;
 }
 
-const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
+				      const char *dev)
 {
 	const char *file_name;
 	int rc;
@@ -499,7 +520,7 @@ const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 	return file_name;
 }
 
-const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
+const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
 			     int direction)
 {
 	const char *var = (direction == CRAS_STREAM_OUTPUT)
@@ -515,12 +536,13 @@ const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
 	return dsp_name;
 }
 
-const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
+const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
+				     int direction)
 {
 	return ucm_get_dsp_name(mgr, "", direction);
 }
 
-unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
+unsigned int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr)
 {
 	int value;
 	int rc;
@@ -532,7 +554,7 @@ unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
 	return value;
 }
 
-unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
+unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
 {
 	int value;
 	int rc;
@@ -544,7 +566,7 @@ unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
 	return value;
 }
 
-int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
+int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
 			      long *gain)
 {
 	int value;
@@ -558,7 +580,7 @@ int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
 }
 
 const char *ucm_get_device_name_for_dev(
-	snd_use_case_mgr_t *mgr, const char *dev,
+	struct cras_use_case_mgr *mgr, const char *dev,
 	enum CRAS_STREAM_DIRECTION direction)
 {
 	if (direction == CRAS_STREAM_OUTPUT)
@@ -568,7 +590,7 @@ const char *ucm_get_device_name_for_dev(
 	return NULL;
 }
 
-int ucm_get_sample_rate_for_dev(snd_use_case_mgr_t *mgr, const char *dev,
+int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 				enum CRAS_STREAM_DIRECTION direction)
 {
 	int value;
@@ -590,7 +612,7 @@ int ucm_get_sample_rate_for_dev(snd_use_case_mgr_t *mgr, const char *dev,
 }
 
 struct mixer_name *ucm_get_coupled_mixer_names(
-		snd_use_case_mgr_t *mgr, const char *dev)
+		struct cras_use_case_mgr *mgr, const char *dev)
 {
 	return ucm_get_mixer_names(mgr, dev, coupled_mixers,
 				   CRAS_STREAM_OUTPUT,
@@ -612,7 +634,7 @@ static int get_device_index_from_target(const char *target_device_name)
 	return -1;
 }
 
-struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr)
+struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 {
 	struct ucm_section *sections = NULL;
 	struct ucm_section *dev_sec;
@@ -622,7 +644,7 @@ struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr)
 
 	/* Find the list of all mixers using the control names defined in
 	 * the header definintion for this function.  */
-	num_devs = snd_use_case_get_list(mgr, "_devices/HiFi", &list);
+	num_devs = snd_use_case_get_list(mgr->mgr, "_devices/HiFi", &list);
 
 	/* snd_use_case_get_list fills list with pairs of device name and
 	 * comment, so device names are in even-indexed elements. */
@@ -719,7 +741,7 @@ error_cleanup:
 	return NULL;
 }
 
-char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
+char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 {
 	const char **list;
 	int i, num_entries;
@@ -727,7 +749,7 @@ char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
 	char *models = NULL;
 	const char *tmp;
 
-	num_entries = snd_use_case_get_list(mgr, "_modifiers/HiFi", &list);
+	num_entries = snd_use_case_get_list(mgr->mgr, "_modifiers/HiFi", &list);
 	if (num_entries <= 0)
 		return 0;
 	models = (char *)malloc(num_entries * 8);
@@ -752,7 +774,7 @@ char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
 	return models;
 }
 
-int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
+int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
 {
 	const char **list;
 	int num_enmods, mod_idx;
@@ -770,7 +792,7 @@ int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
 	}
 
 	/* Disable all currently enabled horword model modifiers. */
-	num_enmods = snd_use_case_get_list(mgr, "_enamods", &list);
+	num_enmods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
 	if (num_enmods <= 0)
 		goto enable_mod;
 
@@ -787,7 +809,7 @@ enable_mod:
 	return 0;
 }
 
-int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr)
+int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr)
 {
 	char *flag;
 	int ret = 0;
@@ -799,7 +821,7 @@ int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr)
 	return ret;
 }
 
-const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr, const char *dev)
 {
 	const char *name = NULL;
 	int rc;
@@ -811,14 +833,14 @@ const char *ucm_get_mixer_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 	return name;
 }
 
-struct mixer_name *ucm_get_main_volume_names(snd_use_case_mgr_t *mgr)
+struct mixer_name *ucm_get_main_volume_names(struct cras_use_case_mgr *mgr)
 {
 	return ucm_get_mixer_names(mgr, "", main_volume_names,
 				   CRAS_STREAM_OUTPUT, MIXER_NAME_MAIN_VOLUME);
 }
 
 int ucm_list_section_devices_by_device_name(
-		snd_use_case_mgr_t *mgr,
+		struct cras_use_case_mgr *mgr,
 		enum CRAS_STREAM_DIRECTION direction,
 		const char *device_name,
 		ucm_list_section_devices_callback cb,
@@ -854,7 +876,8 @@ int ucm_list_section_devices_by_device_name(
 	return listed;
 }
 
-const char *ucm_get_jack_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+const char *ucm_get_jack_name_for_dev(struct cras_use_case_mgr *mgr,
+				      const char *dev)
 {
 	const char *name = NULL;
 	int rc;
@@ -866,7 +889,8 @@ const char *ucm_get_jack_name_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 	return name;
 }
 
-const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
+				      const char *dev)
 {
 	const char *name = NULL;
 	int rc;
@@ -882,7 +906,7 @@ const char *ucm_get_jack_type_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 	return name;
 }
 
-int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
+int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr *mgr, const char *dev)
 {
 	int value;
 
@@ -892,7 +916,7 @@ int ucm_get_jack_switch_for_dev(snd_use_case_mgr_t *mgr, const char *dev)
 	return value;
 }
 
-unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
+unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
 					const char *dev)
 {
 	int value;
@@ -903,7 +927,7 @@ unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
 	return value;
 }
 
-unsigned int ucm_get_enable_htimestamp_flag(snd_use_case_mgr_t *mgr)
+unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr *mgr)
 {
 	char *flag;
 	int ret = 0;

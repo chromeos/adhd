@@ -828,7 +828,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
-				     snd_use_case_mgr_t *ucm,
+                                     struct cras_use_case_mgr *ucm,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
@@ -1004,40 +1004,40 @@ int cras_device_blacklist_check(
   return cras_device_blacklist_check_retval;
 }
 
-snd_use_case_mgr_t* ucm_create(const char* name) {
+struct cras_use_case_mgr *ucm_create(const char* name) {
   ucm_create_called++;
-  return reinterpret_cast<snd_use_case_mgr_t*>(0x44);
+  return reinterpret_cast<struct cras_use_case_mgr *>(0x44);
 }
 
-void ucm_destroy(snd_use_case_mgr_t* mgr) {
+void ucm_destroy(struct cras_use_case_mgr *mgr) {
   ucm_destroy_called++;
 }
 
-char *ucm_get_dev_for_mixer(snd_use_case_mgr_t *mgr, const char *mixer,
+char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
                             enum CRAS_STREAM_DIRECTION dir)
 {
   ucm_get_dev_for_mixer_called++;
   return strdup("device");
 }
 
-char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
+char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name) {
   ucm_get_flag_called++;
   strncpy(ucm_get_flag_name, flag_name, sizeof(ucm_get_flag_name));
   return NULL;
 }
 
 struct mixer_name *ucm_get_coupled_mixer_names(
-  snd_use_case_mgr_t *mgr, const char *dev)
+    struct cras_use_case_mgr *mgr, const char *dev)
 {
   return ucm_get_coupled_mixer_names_return_value;
 }
 
-int ucm_has_fully_specified_ucm_flag(snd_use_case_mgr_t *mgr)
+int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr)
 {
   return ucm_has_fully_specified_ucm_flag_return_value;
 }
 
-struct ucm_section *ucm_get_sections(snd_use_case_mgr_t *mgr)
+struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 {
   ucm_get_sections_called++;
   return ucm_get_sections_return_value;

@@ -7,12 +7,12 @@
 #define CRAS_ALSA_IO_H_
 
 #include <alsa/asoundlib.h>
-#include <alsa/use-case.h>
 
 #include "cras_types.h"
 
 struct cras_alsa_mixer;
 struct cras_ionode;
+struct cras_use_case_mgr;
 struct ucm_section;
 
 /* Initializes an alsa iodev.
@@ -25,7 +25,7 @@ struct ucm_section;
  *    card_type - the type of the card this iodev belongs.
  *    is_first - if this is the first iodev on the card.
  *    mixer - The mixer for the alsa device.
- *    ucm - ALSA use case manager if available.
+ *    ucm - CRAS use case manager if available.
  *    hctl - high-level control manager if available.
  *    direction - input or output.
  *    usb_vid - vendor ID of USB device.
@@ -42,7 +42,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
-				     snd_use_case_mgr_t *ucm,
+				     struct cras_use_case_mgr *ucm,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,

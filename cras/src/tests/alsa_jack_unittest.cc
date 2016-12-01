@@ -202,7 +202,7 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
     CRAS_STREAM_DIRECTION direction,
     std::string *elems,
     unsigned int device_index,
-    snd_use_case_mgr_t *ucm,
+    struct cras_use_case_mgr *ucm,
     size_t nelems,
     size_t nhdmi_jacks,
     size_t njacks) {
@@ -250,7 +250,7 @@ static struct cras_alsa_jack_list *run_test_with_section(
     std::string *elems,
     size_t nelems,
     unsigned int device_index,
-    snd_use_case_mgr_t *ucm,
+    struct cras_use_case_mgr *ucm,
     struct ucm_section *ucm_section,
     int add_jack_rc,
     size_t njacks) {
@@ -365,7 +365,7 @@ TEST(AlsaJacks, CreateGPIOMic) {
       0,
       1,
       fake_mixer,
-      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55),
       fake_hctl,
       CRAS_STREAM_INPUT,
       fake_jack_cb,
@@ -417,7 +417,8 @@ void run_gpio_jack_test(
     const char* jack_name)
 {
   struct cras_alsa_jack_list *jack_list;
-  snd_use_case_mgr_t *ucm = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  struct cras_use_case_mgr *ucm =
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55);
 
   gpio_switch_list_for_each_dev_names.push_back("some-other-device one");
   gpio_switch_eviocgbit_fd = 2;
@@ -617,7 +618,7 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
       0,
       1,
       fake_mixer,
-      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55),
       fake_hctl,
       CRAS_STREAM_OUTPUT,
       fake_jack_cb,
@@ -767,7 +768,7 @@ TEST(AlsaJacks, CreateOneHpTwoHDMIJacks) {
       CRAS_STREAM_OUTPUT,
       elem_names,
       5,
-      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55),
       ARRAY_SIZE(elem_names),
       1,
       1);
@@ -812,7 +813,7 @@ TEST(AlsaJacks, CreateHCTLHeadphoneJackFromUCM) {
       elem_names,
       ARRAY_SIZE(elem_names),
       5,
-      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55),
       section,
       0,
       1);
@@ -899,7 +900,7 @@ TEST(AlsaJacks, BadJackTypeFromUCM) {
       elem_names,
       ARRAY_SIZE(elem_names),
       5,
-      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55),
       section,
       -22,
       1);
@@ -927,7 +928,7 @@ TEST(AlsaJacks, NoJackTypeFromUCM) {
       elem_names,
       ARRAY_SIZE(elem_names),
       5,
-      reinterpret_cast<snd_use_case_mgr_t*>(0x55),
+      reinterpret_cast<struct cras_use_case_mgr *>(0x55),
       section,
       -22,
       1);
@@ -1127,17 +1128,18 @@ void gpio_switch_list_for_each(gpio_switch_list_callback callback, void *arg)
   }
 }
 
-int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enable) {
+int ucm_set_enabled(
+    struct cras_use_case_mgr *mgr, const char *dev, int enable) {
   ucm_set_enabled_value = enable;
   return 0;
 }
 
-char *ucm_get_cap_control(snd_use_case_mgr_t *mgr, const char *ucm_dev) {
+char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev) {
   ++ucm_get_cap_control_called;
   return ucm_get_cap_control_value;
 }
 
-char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
+char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
                            CRAS_STREAM_DIRECTION direction) {
   ++ucm_get_dev_for_jack_called;
   if (ucm_get_dev_for_jack_return)
@@ -1145,25 +1147,25 @@ char *ucm_get_dev_for_jack(snd_use_case_mgr_t *mgr, const char *jack,
   return NULL;
 }
 
-const char *ucm_get_dsp_name(snd_use_case_mgr_t *mgr, const char *ucm_dev,
+const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
                        int direction) {
   ++ucm_get_dsp_name_called;
   return NULL;
 }
 
-const char *ucm_get_edid_file_for_dev(snd_use_case_mgr_t *mgr,
+const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
 				      const char *dev) {
   return edid_file_ret;
 }
 
-const char *ucm_get_override_type_name(snd_use_case_mgr_t *mgr,
+const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
                                        const char *ucm_dev)
 {
   ++ucm_get_override_type_name_called;
   return NULL;
 }
 
-const char *ucm_get_device_name_for_dev(snd_use_case_mgr_t *mgr,
+const char *ucm_get_device_name_for_dev(struct cras_use_case_mgr *mgr,
                                         const char *dev,
                                         enum CRAS_STREAM_DIRECTION direction)
 {

@@ -251,7 +251,7 @@ static struct cras_iodev *alsa_iodev_create_with_default_parameters(
     enum CRAS_ALSA_CARD_TYPE card_type,
     int is_first,
     struct cras_alsa_mixer *mixer,
-    snd_use_case_mgr_t *ucm,
+    struct cras_use_case_mgr *ucm,
     enum CRAS_STREAM_DIRECTION direction) {
   return alsa_iodev_create(card_index, test_card_name, 0, test_dev_name,
                            dev_id, card_type, is_first,
@@ -472,7 +472,7 @@ TEST(AlsaIoInit, UsbCardUseSoftwareVolume) {
 
 TEST(AlsaIoInit, UseSoftwareGain) {
   struct cras_iodev *iodev;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
 
   /* Meet the requirements of using software gain. */
   ResetStubData();
@@ -621,7 +621,7 @@ TEST(AlsaIoInit, OpenCapture) {
 TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   struct cras_iodev *iodev;
   struct cras_audio_format format;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
 
   /* Meet the requirements of using software gain. */
   ResetStubData();
@@ -722,7 +722,7 @@ TEST(AlsaIoInit, ResumeDevice) {
 TEST(AlsaIoInit, DspNameDefault) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
 
   ResetStubData();
   ucm_get_dsp_name_default_value = "hello";
@@ -741,7 +741,7 @@ TEST(AlsaIoInit, DspNameDefault) {
 TEST(AlsaIoInit, DspNameJackOverride) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
 
   ResetStubData();
@@ -780,7 +780,7 @@ TEST(AlsaIoInit, DspNameJackOverride) {
 TEST(AlsaIoInit, NodeTypeOverride) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
 
   ResetStubData();
@@ -800,7 +800,7 @@ TEST(AlsaIoInit, NodeTypeOverride) {
 TEST(AlsaIoInit, SwapMode) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_ionode * const fake_node = (cras_ionode *)4;
   ResetStubData();
   // Stub replies that swap mode does not exist.
@@ -919,7 +919,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
 TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer *)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t *)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr *)3;
   struct cras_iodev *iodev;
   struct mixer_control *output;
   struct ucm_section *section;
@@ -970,7 +970,7 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
 TEST(AlsaOutputNode, OutputsFromUCM) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev *iodev;
   static const char *jack_name = "TestCard - Headset Jack";
   struct mixer_control *outputs[2];
@@ -1058,7 +1058,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
 
 TEST(AlsaOutputNode, OutputNoControlsUCM) {
   struct alsa_io *aio;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev *iodev;
   struct ucm_section *section;
 
@@ -1097,7 +1097,7 @@ TEST(AlsaOutputNode, OutputNoControlsUCM) {
 
 TEST(AlsaOutputNode, OutputFromJackUCM) {
   struct alsa_io *aio;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev *iodev;
   static const char *jack_name = "TestCard - Headset Jack";
   struct ucm_section *section;
@@ -1138,7 +1138,7 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
 TEST(AlsaOutputNode, InputsFromUCM) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct mixer_control *inputs[2];
   struct cras_iodev *iodev;
   static const char *jack_name = "TestCard - Headset Jack";
@@ -1227,7 +1227,7 @@ TEST(AlsaOutputNode, InputsFromUCM) {
 
 TEST(AlsaOutputNode, InputNoControlsUCM) {
   struct alsa_io *aio;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev *iodev;
   struct ucm_section *section;
 
@@ -1267,7 +1267,7 @@ TEST(AlsaOutputNode, InputNoControlsUCM) {
 
 TEST(AlsaOutputNode, InputFromJackUCM) {
   struct alsa_io *aio;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev *iodev;
   static const char *jack_name = "TestCard - Headset Jack";
   struct ucm_section *section;
@@ -1306,7 +1306,7 @@ TEST(AlsaOutputNode, InputFromJackUCM) {
 TEST(AlsaOutputNode, AutoUnplugOutputNode) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct mixer_control *outputs[2];
   const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
 
@@ -1350,7 +1350,7 @@ TEST(AlsaOutputNode, AutoUnplugOutputNode) {
 TEST(AlsaOutputNode, AutoUnplugInputNode) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   struct mixer_control *inputs[2];
   const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
 
@@ -1566,7 +1566,7 @@ TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
 TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
-  snd_use_case_mgr_t * const fake_ucm = (snd_use_case_mgr_t*)3;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
   const struct cras_alsa_jack *jack = (struct cras_alsa_jack*)4;
 
   ResetStubData();
@@ -2290,7 +2290,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int device_index,
 		int check_gpio_jack,
 		struct cras_alsa_mixer *mixer,
-		snd_use_case_mgr_t *ucm,
+                struct cras_use_case_mgr *ucm,
 		snd_hctl_t *hctl,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
@@ -2350,7 +2350,8 @@ const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack)
   return jack ? cras_alsa_jack_get_dsp_name_value : NULL;
 }
 
-const char *ucm_get_dsp_name_default(snd_use_case_mgr_t *mgr, int direction)
+const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
+                                     int direction)
 {
   ucm_get_dsp_name_default_called++;
   if (ucm_get_dsp_name_default_value)
@@ -2371,12 +2372,13 @@ struct mixer_control *cras_alsa_jack_get_mixer_input(
   return cras_alsa_jack_get_mixer_input_ret;
 }
 
-int ucm_set_enabled(snd_use_case_mgr_t *mgr, const char *dev, int enabled) {
+int ucm_set_enabled(
+    struct cras_use_case_mgr *mgr, const char *dev, int enabled) {
   ucm_set_enabled_called++;
   return 0;
 }
 
-char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
+char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name) {
   char *ret = (char *)malloc(8);
   if ((!strcmp(flag_name, "AutoUnplugInputNode") &&
        auto_unplug_input_node_ret) ||
@@ -2389,38 +2391,38 @@ char *ucm_get_flag(snd_use_case_mgr_t *mgr, const char *flag_name) {
   return NULL;
 }
 
-char *ucm_get_mic_positions(snd_use_case_mgr_t *mgr) {
+char *ucm_get_mic_positions(struct cras_use_case_mgr *mgr) {
   return NULL;
 }
 
-int ucm_swap_mode_exists(snd_use_case_mgr_t *mgr)
+int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr)
 {
   return ucm_swap_mode_exists_ret_value;
 }
 
-int ucm_enable_swap_mode(snd_use_case_mgr_t *mgr, const char *node_name,
+int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
                          int enable)
 {
   ucm_enable_swap_mode_called++;
   return ucm_enable_swap_mode_ret_value;
 }
 
-unsigned int ucm_get_min_buffer_level(snd_use_case_mgr_t *mgr)
+unsigned int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr)
 {
   return 0;
 }
 
-unsigned int ucm_get_enable_htimestamp_flag(snd_use_case_mgr_t *mgr)
+unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr *mgr)
 {
   return ucm_get_enable_htimestamp_flag_ret;
 }
 
-unsigned int ucm_get_disable_software_volume(snd_use_case_mgr_t *mgr)
+unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
 {
   return 0;
 }
 
-int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
+int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
     long *gain)
 {
   ucm_get_max_software_gain_called++;
@@ -2428,24 +2430,24 @@ int ucm_get_max_software_gain(snd_use_case_mgr_t *mgr, const char *dev,
   return ucm_get_max_software_gain_ret_value;
 }
 
-char *ucm_get_hotword_models(snd_use_case_mgr_t *mgr)
+char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 {
   return NULL;
 }
 
-int ucm_set_hotword_model(snd_use_case_mgr_t *mgr, const char *model)
+int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
 {
   return 0;
 }
 
-unsigned int ucm_get_dma_period_for_dev(snd_use_case_mgr_t *mgr,
+unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
                                         const char *dev)
 {
   ucm_get_dma_period_for_dev_called++;
   return ucm_get_dma_period_for_dev_ret;
 }
 
-int ucm_get_sample_rate_for_dev(snd_use_case_mgr_t *mgr, const char *dev,
+int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 				enum CRAS_STREAM_DIRECTION direction)
 {
   return -EINVAL;

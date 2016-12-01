@@ -101,6 +101,7 @@ struct cras_alsa_jack {
  *    hctl - alsa hcontrol for this device's card
  *         - not opened by the jack list.
  *    mixer - cras mixer for the card providing this device.
+ *    ucm - CRAS use case manager if available.
  *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
  *    card_name - The name of the card.
  *    device_index - Index ALSA uses to refer to the device.  The Y in "hw:X,Y".
@@ -113,7 +114,7 @@ struct cras_alsa_jack {
 struct cras_alsa_jack_list {
 	snd_hctl_t *hctl;
 	struct cras_alsa_mixer *mixer;
-	snd_use_case_mgr_t *ucm;
+	struct cras_use_case_mgr *ucm;
 	unsigned int card_index;
 	const char *card_name;
 	size_t device_index;
@@ -1141,7 +1142,7 @@ struct cras_alsa_jack_list *cras_alsa_jack_list_create(
 		unsigned int device_index,
 		int is_first_device,
 		struct cras_alsa_mixer *mixer,
-		snd_use_case_mgr_t *ucm,
+		struct cras_use_case_mgr *ucm,
 		snd_hctl_t *hctl,
 		enum CRAS_STREAM_DIRECTION direction,
 		jack_state_change_callback *cb,
