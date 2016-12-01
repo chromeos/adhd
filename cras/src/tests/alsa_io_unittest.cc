@@ -1756,7 +1756,8 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(1, sys_get_volume_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
-  EXPECT_EQ(1, alsa_mixer_set_mute_value);
+  // Mute control is not set at volume 0.
+  EXPECT_EQ(0, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 

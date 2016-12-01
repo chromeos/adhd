@@ -607,7 +607,7 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 		curve->get_dBFS(curve, volume),
 		aout ? aout->mixer_output : NULL);
 	/* Mute for zero. */
-	set_alsa_mute(aio, mute || (volume == 0));
+	set_alsa_mute(aio, mute);
 }
 
 /* Sets the capture gain to the current system input gain level, given in dBFS.
