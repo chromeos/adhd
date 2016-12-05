@@ -57,6 +57,7 @@ static void ResetStubData() {
   list_devices_callback_names.clear();
   list_devices_callback_args.clear();
   snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
+  cras_ucm_mgr.use_case = CRAS_STREAM_TYPE_DEFAULT;
 }
 
 static void list_devices_callback(const char* section_name, void *arg) {

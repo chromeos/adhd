@@ -12,7 +12,6 @@
 #include "cras_alsa_ucm.h"
 #include "utlist.h"
 
-static const char default_verb[] = "HiFi";
 static const char jack_var[] = "JackName";
 static const char jack_type_var[] = "JackType";
 static const char jack_switch_var[] = "JackSwitch";
@@ -211,13 +210,25 @@ static int ucm_section_exists_with_suffix(struct cras_use_case_mgr *mgr,
 static int ucm_mod_exists_with_suffix(struct cras_use_case_mgr *mgr,
 				      const char *suffix)
 {
-	return ucm_section_exists_with_suffix(mgr, suffix, "_modifiers/HiFi");
+	char *identifier;
+	int rc;
+
+	identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
+	rc = ucm_section_exists_with_suffix(mgr, suffix, identifier);
+	free(identifier);
+	return rc;
 }
 
 static int ucm_mod_exists_with_name(struct cras_use_case_mgr *mgr,
 				    const char *name)
 {
-	return ucm_section_exists_with_name(mgr, name, "_modifiers/HiFi");
+	char *identifier;
+	int rc;
+
+	identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
+	rc = ucm_section_exists_with_name(mgr, name, identifier);
+	free(identifier);
+	return rc;
 }
 
 /* Get a list of section names whose variable is the matched value. */
@@ -245,7 +256,7 @@ static struct section_name * ucm_get_sections_for_var(
 		if (!list[i])
 			continue;
 
-		rc = get_var(mgr, var, list[i], default_verb, &this_value);
+		rc = get_var(mgr, var, list[i], uc_verb(mgr), &this_value);
 		if (rc)
 			continue;
 
@@ -272,8 +283,16 @@ static struct section_name * ucm_get_sections_for_var(
 static struct section_name *ucm_get_devices_for_var(
 		struct cras_use_case_mgr *mgr,
 		const char *var, const char *value,
-		enum CRAS_STREAM_DIRECTION dir) {
-	return ucm_get_sections_for_var(mgr, var, value, "_devices/HiFi", dir);
+		enum CRAS_STREAM_DIRECTION dir)
+{
+	char *identifier;
+	struct section_name *section_names;
+
+	identifier = snd_use_case_identifier("_devices/%s", uc_verb(mgr));
+	section_names = ucm_get_sections_for_var(mgr, var, value, identifier,
+						 dir);
+	free(identifier);
+	return section_names;
 }
 
 static const char *ucm_get_playback_device_name_for_dev(
@@ -282,7 +301,7 @@ static const char *ucm_get_playback_device_name_for_dev(
 	const char *name = NULL;
 	int rc;
 
-	rc = get_var(mgr, playback_device_name_var, dev, default_verb, &name);
+	rc = get_var(mgr, playback_device_name_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
@@ -295,7 +314,7 @@ static const char *ucm_get_capture_device_name_for_dev(
 	const char *name = NULL;
 	int rc;
 
-	rc = get_var(mgr, capture_device_name_var, dev, default_verb, &name);
+	rc = get_var(mgr, capture_device_name_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
@@ -315,7 +334,7 @@ static struct mixer_name *ucm_get_mixer_names(struct cras_use_case_mgr *mgr,
 	char *tokens, *name, *laststr;
 	struct mixer_name *names = NULL;
 
-	rc = get_var(mgr, var, dev, default_verb, &names_in_string);
+	rc = get_var(mgr, var, dev, uc_verb(mgr), &names_in_string);
 	if (rc)
 		return NULL;
 
@@ -453,7 +472,7 @@ char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name)
 	int rc;
 
 	/* Set device to empty string since flag is specified in verb section */
-	rc = get_var(mgr, flag_name, "", default_verb, &value);
+	rc = get_var(mgr, flag_name, "", uc_verb(mgr), &value);
 	if (!rc) {
 		flag_value = strdup(value);
 		free((void *)value);
@@ -468,7 +487,7 @@ char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev)
 	const char *value;
 	int rc;
 
-	rc = get_var(mgr, cap_var, ucm_dev, default_verb, &value);
+	rc = get_var(mgr, cap_var, ucm_dev, uc_verb(mgr), &value);
 	if (!rc) {
 		control_name = strdup(value);
 		free((void *)value);
@@ -483,7 +502,7 @@ char *ucm_get_mic_positions(struct cras_use_case_mgr *mgr)
 	const char *value;
 	int rc;
 
-	rc = get_var(mgr, mic_positions, "", default_verb, &value);
+	rc = get_var(mgr, mic_positions, "", uc_verb(mgr), &value);
 	if (!rc) {
 		control_name = strdup(value);
 		free((void *)value);
@@ -498,7 +517,7 @@ const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
 	const char *override_type_name;
 	int rc;
 
-	rc = get_var(mgr, override_type_name_var, dev, default_verb,
+	rc = get_var(mgr, override_type_name_var, dev, uc_verb(mgr),
 		     &override_type_name);
 	if (rc)
 		return NULL;
@@ -563,7 +582,7 @@ const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
 	const char *file_name;
 	int rc;
 
-	rc = get_var(mgr, edid_var, dev, default_verb, &file_name);
+	rc = get_var(mgr, edid_var, dev, uc_verb(mgr), &file_name);
 	if (rc)
 		return NULL;
 
@@ -579,7 +598,7 @@ const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
 	const char *dsp_name = NULL;
 	int rc;
 
-	rc = get_var(mgr, var, ucm_dev, default_verb, &dsp_name);
+	rc = get_var(mgr, var, ucm_dev, uc_verb(mgr), &dsp_name);
 	if (rc)
 		return NULL;
 
@@ -597,7 +616,7 @@ unsigned int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr)
 	int value;
 	int rc;
 
-	rc = get_int(mgr, min_buffer_level_var, "", default_verb, &value);
+	rc = get_int(mgr, min_buffer_level_var, "", uc_verb(mgr), &value);
 	if (rc)
 		return 0;
 
@@ -609,7 +628,7 @@ unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
 	int value;
 	int rc;
 
-	rc = get_int(mgr, disable_software_volume, "", default_verb, &value);
+	rc = get_int(mgr, disable_software_volume, "", uc_verb(mgr), &value);
 	if (rc)
 		return 0;
 
@@ -622,7 +641,7 @@ int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
 	int value;
 	int rc;
 
-	rc = get_int(mgr, max_software_gain, dev, default_verb, &value);
+	rc = get_int(mgr, max_software_gain, dev, uc_verb(mgr), &value);
 	if (rc)
 		return rc;
 	*gain = value;
@@ -654,7 +673,7 @@ int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 	else
 		return -EINVAL;
 
-	rc = get_int(mgr, var_name, dev, default_verb, &value);
+	rc = get_int(mgr, var_name, dev, uc_verb(mgr), &value);
 	if (rc)
 		return rc;
 
@@ -691,10 +710,13 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 	const char **list;
 	int num_devs;
 	int i;
+	char *identifier;
 
 	/* Find the list of all mixers using the control names defined in
 	 * the header definintion for this function.  */
-	num_devs = snd_use_case_get_list(mgr->mgr, "_devices/HiFi", &list);
+	identifier = snd_use_case_identifier("_devices/%s", uc_verb(mgr));
+	num_devs = snd_use_case_get_list(mgr->mgr, identifier, &list);
+	free(identifier);
 
 	/* snd_use_case_get_list fills list with pairs of device name and
 	 * comment, so device names are in even-indexed elements. */
@@ -798,8 +820,11 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	int models_len = 0;
 	char *models = NULL;
 	const char *tmp;
+	char *identifier;
 
-	num_entries = snd_use_case_get_list(mgr->mgr, "_modifiers/HiFi", &list);
+	identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
+	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
+	free(identifier);
 	if (num_entries <= 0)
 		return 0;
 	models = (char *)malloc(num_entries * 8);
@@ -876,7 +901,7 @@ const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr, const char
 	const char *name = NULL;
 	int rc;
 
-	rc = get_var(mgr, mixer_var, dev, default_verb, &name);
+	rc = get_var(mgr, mixer_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
@@ -899,6 +924,7 @@ int ucm_list_section_devices_by_device_name(
 	int listed= 0;
 	struct section_name *section_names, *c;
 	const char* var;
+	char *identifier;
 
 	if (direction == CRAS_STREAM_OUTPUT)
 		var = playback_device_name_var;
@@ -907,9 +933,10 @@ int ucm_list_section_devices_by_device_name(
 	else
 		return 0;
 
+	identifier = snd_use_case_identifier("_devices/%s", uc_verb(mgr));
 	section_names = ucm_get_sections_for_var(
-		mgr, var, device_name, "_devices/HiFi", direction);
-
+		mgr, var, device_name, identifier, direction);
+	free(identifier);
 	if (!section_names)
 		return 0;
 
@@ -932,7 +959,7 @@ const char *ucm_get_jack_name_for_dev(struct cras_use_case_mgr *mgr,
 	const char *name = NULL;
 	int rc;
 
-	rc = get_var(mgr, jack_var, dev, default_verb, &name);
+	rc = get_var(mgr, jack_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
@@ -945,7 +972,7 @@ const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
 	const char *name = NULL;
 	int rc;
 
-	rc = get_var(mgr, jack_type_var, dev, default_verb, &name);
+	rc = get_var(mgr, jack_type_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
@@ -960,7 +987,7 @@ int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr *mgr, const char *dev)
 {
 	int value;
 
-	int rc = get_int(mgr, jack_switch_var, dev, default_verb, &value);
+	int rc = get_int(mgr, jack_switch_var, dev, uc_verb(mgr), &value);
 	if (rc || value < 0)
 		return -1;
 	return value;
@@ -971,7 +998,7 @@ unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
 {
 	int value;
 
-	int rc = get_int(mgr, dma_period_var, dev, default_verb, &value);
+	int rc = get_int(mgr, dma_period_var, dev, uc_verb(mgr), &value);
 	if (rc || value < 0)
 		return 0;
 	return value;
