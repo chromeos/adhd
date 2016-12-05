@@ -1201,6 +1201,12 @@ int edid_get_monitor_name(const unsigned char *edid_data,
   return 0;
 }
 
+// Overwrite this function so unittest can run without 2 seconds of wait
+// in find_gpio_jacks.
+int wait_for_dev_input_access() {
+  return 0;
+}
+
 } /* extern "C" */
 
 }  //  namespace

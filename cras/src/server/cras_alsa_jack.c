@@ -618,53 +618,6 @@ static int open_and_monitor_gpio_with_section(
 	return cras_complete_gpio_jack(data, jack, switch_event);
 }
 
-static int wait_for_dev_input_access()
-{
-	/* Wait for /dev/input/event* files to become accessible by
-	 * having group 'input'.  Setting these files to have 'rw'
-	 * access to group 'input' is done through a udev rule
-	 * installed by adhd into /lib/udev/rules.d.
-	 *
-	 * Wait for up to 2 seconds for the /dev/input/event* files to be
-	 * readable by gavd.
-	 *
-	 * TODO(thutt): This could also be done with a udev enumerate
-	 *              and then a udev monitor.
-	 */
-	const unsigned max_iterations = 4;
-	unsigned i = 0;
-
-	while (i < max_iterations) {
-		int		   readable;
-		struct timeval	   timeout;
-		const char * const pathname = "/dev/input/event0";
-
-		timeout.tv_sec	= 0;
-		timeout.tv_usec = 500000;   /* 1/2 second. */
-		readable = access(pathname, R_OK);
-
-		/* If the file could be opened, then the udev rule has been
-		 * applied and gavd can read the event files.  If there are no
-		 * event files, then we don't need to wait.
-		 *
-		 * If access does not become available, then headphone &
-		 * microphone jack autoswitching will not function properly.
-		 */
-		if (readable == 0 || (readable == -1 && errno == ENOENT)) {
-			/* Access allowed, or file does not exist. */
-			break;
-		}
-		if (readable != -1 || errno != EACCES) {
-			syslog(LOG_ERR, "Bad access for input devs.");
-			return errno;
-		}
-		select(1, NULL, NULL, NULL, &timeout);
-		++i;
-	}
-
-	return 0;
-}
-
 /* Monitor GPIO switches for this jack_list.
  * Args:
  *    data - Data for GPIO switch search.

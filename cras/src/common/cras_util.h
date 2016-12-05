@@ -210,6 +210,13 @@ static inline unsigned int cras_frames_since_time(const struct timespec *beg,
 int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
               const sigset_t *sigmask);
 
+/* Wait for /dev/input/event* files to become accessible.
+ *
+ * Returns:
+ *   Zero on success. Otherwise a negative error code.
+ */
+int wait_for_dev_input_access();
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
