@@ -94,6 +94,34 @@ static void copy_scaled_s16_le(int16_t *dst,
 		dst[i] = src[i] * volume_scaler;
 }
 
+static void cras_scale_buffer_inc_s16_le(uint8_t *buffer, unsigned int count,
+					 float scaler, float increment, int step)
+{
+	int i = 0, j;
+	int16_t *out = (int16_t *)buffer;
+
+	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
+		return;
+
+	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
+		memset(out, 0, count * sizeof(*out));
+		return;
+	}
+
+	while (i + step <= count) {
+		for (j = 0; j < step; j++) {
+			if (scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+				out[i] = 0;
+			} else {
+				out[i] *= scaler;
+			}
+			i++;
+		}
+		scaler += increment;
+	}
+}
+
 static void cras_scale_buffer_s16_le(uint8_t *buffer, unsigned int count,
 				     float scaler)
 {
@@ -255,6 +283,34 @@ static void copy_scaled_s24_le(int32_t *dst,
 		dst[i] = src[i] * volume_scaler;
 }
 
+static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
+					 float scaler, float increment, int step)
+{
+	int i = 0, j;
+	int32_t *out = (int32_t *)buffer;
+
+	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
+		return;
+
+	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
+		memset(out, 0, count * sizeof(*out));
+		return;
+	}
+
+	while (i + step <= count) {
+		for (j = 0; j < step; j++) {
+			if (scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+				out[i] = 0;
+			} else {
+				out[i] *= scaler;
+			}
+			i++;
+		}
+		scaler += increment;
+	}
+}
+
 static void cras_scale_buffer_s24_le(uint8_t *buffer, unsigned int count,
 				     float scaler)
 {
@@ -398,6 +454,34 @@ static void copy_scaled_s32_le(int32_t *dst,
 
 	for (i = 0; i < count; i++)
 		dst[i] = src[i] * volume_scaler;
+}
+
+static void cras_scale_buffer_inc_s32_le(uint8_t *buffer, unsigned int count,
+					 float scaler, float increment, int step)
+{
+	int i = 0, j;
+	int32_t *out = (int32_t *)buffer;
+
+	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
+		return;
+
+	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
+		memset(out, 0, count * sizeof(*out));
+		return;
+	}
+
+	while (i + step <= count) {
+		for (j = 0; j < step; j++) {
+			if (scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+				out[i] = 0;
+			} else {
+				out[i] *= scaler;
+			}
+			i++;
+		}
+		scaler += increment;
+	}
 }
 
 static void cras_scale_buffer_s32_le(uint8_t *buffer, unsigned int count,
@@ -574,6 +658,40 @@ static void copy_scaled_s24_3le(uint8_t *dst,
 	}
 }
 
+static void cras_scale_buffer_inc_s24_3le(uint8_t *buffer, unsigned int count,
+					  float scaler, float increment, int step)
+{
+	int32_t frame;
+	int i = 0, j;
+
+	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
+		return;
+
+	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
+		memset(buffer, 0, 3 * count * sizeof(*buffer));
+		return;
+	}
+
+	while (i + step <= count) {
+		for (j = 0; j < step; j++) {
+			convert_single_s243le_to_s32le(&frame, buffer);
+
+			if (scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+				frame = 0;
+			} else {
+				frame *= scaler;
+			}
+
+			convert_single_s32le_to_s243le(buffer, &frame);
+
+			i++;
+			buffer += 3;
+		}
+		scaler += increment;
+	}
+}
+
 static void cras_scale_buffer_s24_3le(uint8_t *buffer, unsigned int count,
 				      float scaler)
 {
@@ -640,6 +758,28 @@ static void cras_mix_add_scale_stride_s24_3le(uint8_t *dst, uint8_t *src,
 		convert_single_s32le_to_s243le(dst, &dst_frame);
 		dst += dst_stride;
 		src += src_stride;
+	}
+}
+
+static void scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
+				   unsigned int count, float scaler,
+				   float increment, int step)
+{
+	switch (fmt) {
+	case SND_PCM_FORMAT_S16_LE:
+		return cras_scale_buffer_inc_s16_le(buff, count, scaler,
+						    increment, step);
+	case SND_PCM_FORMAT_S24_LE:
+		return cras_scale_buffer_inc_s24_le(buff, count, scaler,
+						    increment, step);
+	case SND_PCM_FORMAT_S32_LE:
+		return cras_scale_buffer_inc_s32_le(buff, count, scaler,
+						    increment, step);
+	case SND_PCM_FORMAT_S24_3LE:
+		return cras_scale_buffer_inc_s24_3le(buff, count, scaler,
+						     increment, step);
+	default:
+		break;
 	}
 }
 
@@ -715,6 +855,7 @@ static size_t mix_mute_buffer(uint8_t *dst,
 
 const struct cras_mix_ops OPS(mixer_ops) = {
 	.scale_buffer = scale_buffer,
+	.scale_buffer_increment = scale_buffer_increment,
 	.add = mix_add,
 	.add_scale_stride = mix_add_scale_stride,
 	.mute_buffer = mix_mute_buffer,

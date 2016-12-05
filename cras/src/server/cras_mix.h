@@ -16,6 +16,20 @@ struct cras_audio_shm;
 
 void cras_mix_init(unsigned int flags);
 
+/* Scale the given buffer with the provided scaler and increment.
+ * Args:
+ *    fmt - The format (SND_PCM_FORMAT_*)
+ *    buff - Buffer of samples to scale.
+ *    frame - The number of frames to render.
+ *    scaler - Amount to scale samples (0.0 - 1.0).
+ *    increment - The increment(+/-) of scaler at each frame. The scaler after
+ *                increasing/descreasing will be clipped to (0.0 - 1.0).
+ *    channel - Number of samples in a frame.
+ */
+void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
+				 unsigned int frame, float scaler,
+				 float increment, int channel);
+
 /* Scale the given buffer with the provided scaler.
  * Args:
  *    fmt - The format (SND_PCM_FORMAT_*)

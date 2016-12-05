@@ -43,6 +43,14 @@ void cras_mix_init(unsigned int flags)
  * Exported Interface
  */
 
+void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
+				 unsigned int frame, float scaler,
+				 float increment, int channel)
+{
+	ops->scale_buffer_increment(fmt, buff, frame * channel, scaler,
+				    increment, channel);
+}
+
 void cras_scale_buffer(snd_pcm_format_t fmt, uint8_t *buff, unsigned int count,
 		       float scaler)
 {
