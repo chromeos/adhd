@@ -40,6 +40,15 @@ static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
 static const char enable_htimestamp_var[] = "EnableHtimestamp";
 
+/* Use case verbs corresponding to CRAS_STREAM_TYPE. */
+static const char *use_case_verbs[] = {
+	"HiFi",
+	"Multimedia",
+	"Voice Call",
+	"Voice",
+	"Pro Audio",
+};
+
 /* Represents a list of section names found in UCM. */
 struct section_name {
 	const char* name;
@@ -48,8 +57,15 @@ struct section_name {
 
 struct cras_use_case_mgr {
 	snd_use_case_mgr_t *mgr;
+	const char *name;
+	unsigned int avail_use_cases;
 	enum CRAS_STREAM_TYPE use_case;
 };
+
+static inline const char *uc_verb(struct cras_use_case_mgr *mgr)
+{
+	return use_case_verbs[mgr->use_case];
+}
 
 static int device_enabled(struct cras_use_case_mgr *mgr, const char *dev)
 {
@@ -320,6 +336,8 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 {
 	struct cras_use_case_mgr *mgr;
 	int rc;
+	const char **list;
+	int num_verbs, i, j;
 
 	if (!name)
 		return NULL;
@@ -335,14 +353,23 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 		goto cleanup;
 	}
 
-	mgr->use_case = CRAS_STREAM_TYPE_DEFAULT;
-
-	rc = snd_use_case_set(mgr->mgr, "_verb", default_verb);
-	if (rc) {
-		syslog(LOG_ERR, "Can not set verb %s for card %s, rc = %d",
-		       default_verb, name, rc);
-		goto cleanup_mgr;
+	mgr->name = name;
+	mgr->avail_use_cases = 0;
+	num_verbs = snd_use_case_get_list(mgr->mgr, "_verbs", &list);
+	for (i = 0; i < num_verbs; i += 2) {
+		for (j = 0; j < CRAS_STREAM_NUM_TYPES; ++j) {
+			if (strcmp(list[i], use_case_verbs[j]) == 0)
+				break;
+		}
+		if (j < CRAS_STREAM_NUM_TYPES)
+			mgr->avail_use_cases |= (1 << j);
 	}
+	if (num_verbs > 0)
+		snd_use_case_free_list(list, num_verbs);
+
+	rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_DEFAULT);
+	if (rc)
+		goto cleanup_mgr;
 
 	return mgr;
 
@@ -357,6 +384,29 @@ void ucm_destroy(struct cras_use_case_mgr *mgr)
 {
 	snd_use_case_mgr_close(mgr->mgr);
 	free(mgr);
+}
+
+int ucm_set_use_case(struct cras_use_case_mgr *mgr,
+		     enum CRAS_STREAM_TYPE use_case)
+{
+	int rc;
+
+	if (mgr->avail_use_cases & (1 << use_case)) {
+		mgr->use_case = use_case;
+	} else {
+		syslog(LOG_ERR, "Unavailable use case %d for card %s",
+		       use_case, mgr->name);
+		return -1;
+	}
+
+	rc = snd_use_case_set(mgr->mgr, "_verb", uc_verb(mgr));
+	if (rc) {
+		syslog(LOG_ERR, "Can not set verb %s for card %s, rc = %d",
+		       uc_verb(mgr), mgr->name, rc);
+		return rc;
+	}
+
+	return 0;
 }
 
 int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr)

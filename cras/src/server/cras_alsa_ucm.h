@@ -38,6 +38,16 @@ struct cras_use_case_mgr *ucm_create(const char *name);
  */
 void ucm_destroy(struct cras_use_case_mgr *mgr);
 
+/* Sets the new use case for the given cras_use_case_mgr.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from ucm_create.
+ *    use_case - The new use case to be set.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_set_use_case(struct cras_use_case_mgr *mgr,
+		     enum CRAS_STREAM_TYPE use_case);
+
 /* Checks if modifier for left right swap mode exists in ucm.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.

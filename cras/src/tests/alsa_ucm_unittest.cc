@@ -37,6 +37,7 @@ static unsigned snd_use_case_free_list_called;
 static std::vector<std::string> list_devices_callback_names;
 static std::vector<void*> list_devices_callback_args;
 static struct cras_use_case_mgr cras_ucm_mgr;
+static const char *avail_verbs[] = { "HiFi", "Comment for Verb1" };
 
 static void ResetStubData() {
   snd_use_case_mgr_open_called = 0;
@@ -51,6 +52,8 @@ static void ResetStubData() {
   snd_use_case_get_value.clear();
   fake_list.clear();
   fake_list_size.clear();
+  fake_list["_verbs"] = avail_verbs;
+  fake_list_size["_verbs"] = 2;
   list_devices_callback_names.clear();
   list_devices_callback_args.clear();
   snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
@@ -1265,6 +1268,71 @@ TEST(AlsaUcm, GetSectionsBadPCM) {
 
   sections = ucm_get_sections(mgr);
   EXPECT_EQ(NULL, sections);
+}
+
+TEST(AlsaUcm, CheckUseCaseVerbs) {
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
+
+  /* Verifies the mapping between stream types and verbs are correct. */
+  mgr->use_case = CRAS_STREAM_TYPE_DEFAULT;
+  EXPECT_EQ(0, strcmp("HiFi", uc_verb(mgr)));
+  mgr->use_case = CRAS_STREAM_TYPE_MULTIMEDIA;
+  EXPECT_EQ(0, strcmp("Multimedia", uc_verb(mgr)));
+  mgr->use_case = CRAS_STREAM_TYPE_VOICE_COMMUNICATION;
+  EXPECT_EQ(0, strcmp("Voice Call", uc_verb(mgr)));
+  mgr->use_case = CRAS_STREAM_TYPE_VOICE_RECOGNITION;
+  EXPECT_EQ(0, strcmp("Voice", uc_verb(mgr)));
+  mgr->use_case = CRAS_STREAM_TYPE_PRO_AUDIO;
+  EXPECT_EQ(0, strcmp("Pro Audio", uc_verb(mgr)));
+}
+
+TEST(AlsaUcm, GetAvailUseCases) {
+  struct cras_use_case_mgr *mgr;
+  const char *verbs[] = { "HiFi", "Comment for Verb1",
+                          "Voice Call", "Comment for Verb2",
+                          "Voice", "Comment for Verb3" };
+
+  ResetStubData();
+
+  fake_list["_verbs"] = verbs;
+  fake_list_size["_verbs"] = 6;
+
+  mgr = ucm_create("foo");
+  EXPECT_EQ(0x0D, mgr->avail_use_cases);
+  ucm_destroy(mgr);
+}
+
+TEST(AlsaUcm, SetUseCase) {
+  struct cras_use_case_mgr *mgr;
+  const char *verbs[] = { "HiFi", "Comment for Verb1",
+                          "Voice Call", "Comment for Verb2",
+                          "Voice", "Comment for Verb3" };
+  int rc;
+
+  ResetStubData();
+
+  fake_list["_verbs"] = verbs;
+  fake_list_size["_verbs"] = 6;
+
+  mgr = ucm_create("foo");
+  EXPECT_EQ(snd_use_case_set_param[0],
+      std::make_pair(std::string("_verb"), std::string("HiFi")));
+
+  rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(mgr->use_case, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
+  EXPECT_EQ(snd_use_case_set_param[1],
+      std::make_pair(std::string("_verb"), std::string("Voice Call")));
+
+  /* Request unavailable use case will fail. */
+  rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_PRO_AUDIO);
+  EXPECT_EQ(-1, rc);
+  /* cras_use_case_mgr's use case should not be changed. */
+  EXPECT_EQ(mgr->use_case, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
+  /* And snd_use_case_set not being called. */
+  EXPECT_EQ(2, snd_use_case_set_param.size());
+
+  ucm_destroy(mgr);
 }
 
 /* Stubs */
