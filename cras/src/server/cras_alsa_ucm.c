@@ -30,6 +30,7 @@ static const char playback_device_name_var[] = "PlaybackPCM";
 static const char playback_device_rate_var[] = "PlaybackRate";
 static const char capture_device_name_var[] = "CapturePCM";
 static const char capture_device_rate_var[] = "CaptureRate";
+static const char capture_channel_map_var[] = "CaptureChannelMap";
 static const char coupled_mixers[] = "CoupledMixers";
 /* Set this value in a SectionDevice to specify the maximum software gain in dBm
  * and enable software gain on this node. */
@@ -678,6 +679,30 @@ int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 		return rc;
 
 	return value;
+}
+
+int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr *mgr,
+				  const char *dev,
+				  int8_t *channel_layout)
+{
+	const char *var_str;
+	char *tokens, *token;
+	int i, rc;
+
+	rc = get_var(mgr, capture_channel_map_var, dev, uc_verb(mgr), &var_str);
+	if (rc)
+		return rc;
+
+	tokens = strdup(var_str);
+	token = strtok(tokens, " ");
+	for (i = 0; token && (i < CRAS_CH_MAX); i++) {
+		channel_layout[i] = atoi(token);
+		token = strtok(NULL, " ");
+	}
+
+	free((void *)tokens);
+	free((void *)var_str);
+	return (i == CRAS_CH_MAX) ? 0 : -EINVAL;
 }
 
 struct mixer_name *ucm_get_coupled_mixer_names(

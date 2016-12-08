@@ -78,6 +78,7 @@ struct alsa_input_node {
 	struct cras_ionode base;
 	struct mixer_control* mixer_input;
 	const struct cras_alsa_jack *jack;
+	int8_t *channel_layout;
 };
 
 /* Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
@@ -455,6 +456,20 @@ static int update_channel_layout(struct cras_iodev *iodev)
 	snd_pcm_t *handle = NULL;
 	snd_pcm_uframes_t buf_size = 0;
 	int err = 0;
+
+	/* If the capture channel map is specified in UCM, prefer it over
+	 * what ALSA provides. */
+	if (aio->ucm && (iodev->direction == CRAS_STREAM_INPUT)) {
+		struct alsa_input_node *input =
+			(struct alsa_input_node *)iodev->active_node;
+
+		if (input->channel_layout) {
+			memcpy(iodev->format->channel_layout,
+			       input->channel_layout,
+			       CRAS_CH_MAX * sizeof(*input->channel_layout));
+			return 0;
+		}
+	}
 
 	err = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
 	if (err < 0) {
@@ -1063,6 +1078,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 {
 	struct alsa_input_node *input;
 	char *mic_positions;
+	int err;
 
 	input = (struct alsa_input_node *)calloc(1, sizeof(*input));
 	if (input == NULL) {
@@ -1082,13 +1098,26 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	set_node_initial_state(&input->base, aio->card_type);
 	set_input_node_software_volume_needed(input, aio);
 
-	/* Check mic positions only for internal mic. */
-	if (aio->ucm && input->base.type == CRAS_NODE_TYPE_INTERNAL_MIC) {
-		mic_positions = ucm_get_mic_positions(aio->ucm);
-		if (mic_positions) {
-			strncpy(input->base.mic_positions, mic_positions,
-				sizeof(input->base.mic_positions) - 1);
-			free(mic_positions);
+	if (aio->ucm) {
+		/* Check mic positions only for internal mic. */
+		if (input->base.type == CRAS_NODE_TYPE_INTERNAL_MIC) {
+			mic_positions = ucm_get_mic_positions(aio->ucm);
+			if (mic_positions) {
+				strncpy(input->base.mic_positions,
+					mic_positions,
+					sizeof(input->base.mic_positions) - 1);
+				free(mic_positions);
+			}
+		}
+
+		/* Check if channel map is specified in UCM. */
+		input->channel_layout = (int8_t *)malloc(
+				CRAS_CH_MAX * sizeof(*input->channel_layout));
+		err = ucm_get_capture_chmap_for_dev(aio->ucm, name,
+						    input->channel_layout);
+		if (err) {
+			free(input->channel_layout);
+			input->channel_layout = 0;
 		}
 	}
 

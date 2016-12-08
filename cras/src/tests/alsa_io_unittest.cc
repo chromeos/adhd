@@ -2506,6 +2506,13 @@ int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
   return -EINVAL;
 }
 
+int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr *mgr,
+          const char *dev,
+          int8_t *channel_layout)
+{
+  return -EINVAL;
+}
+
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 }

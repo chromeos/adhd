@@ -426,6 +426,36 @@ TEST(AlsaUcm, GetDeviceRateForDevice) {
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
 }
 
+TEST(AlsaUcm, GetCaptureChannelMapForDevice) {
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
+  int8_t channel_layout[CRAS_CH_MAX];
+  int rc;
+
+  ResetStubData();
+
+  std::string id_1 = "=CaptureChannelMap/Dev1/HiFi";
+  std::string value_1 = "-1 -1 0 1 -1 -1 -1 -1 -1 -1 -1";
+
+  snd_use_case_get_value[id_1] = value_1;
+  rc = ucm_get_capture_chmap_for_dev(mgr, "Dev1", channel_layout);
+
+  EXPECT_EQ(0, rc);
+
+  ASSERT_EQ(1, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id_1);
+  EXPECT_EQ(channel_layout[0], -1);
+  EXPECT_EQ(channel_layout[1], -1);
+  EXPECT_EQ(channel_layout[2], 0);
+  EXPECT_EQ(channel_layout[3], 1);
+  EXPECT_EQ(channel_layout[4], -1);
+  EXPECT_EQ(channel_layout[5], -1);
+  EXPECT_EQ(channel_layout[6], -1);
+  EXPECT_EQ(channel_layout[7], -1);
+  EXPECT_EQ(channel_layout[8], -1);
+  EXPECT_EQ(channel_layout[9], -1);
+  EXPECT_EQ(channel_layout[10], -1);
+}
+
 TEST(AlsaUcm, GetHotwordModels) {
   struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *models;
