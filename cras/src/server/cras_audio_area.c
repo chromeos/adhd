@@ -27,22 +27,13 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
 				  const struct cras_audio_format *dst_fmt,
 				  const struct cras_audio_area *src,
 				  unsigned int src_offset,
-				  unsigned int skip_zero,
 				  float software_gain_scaler)
 {
 	unsigned int src_idx, dst_idx;
 	unsigned int ncopy;
-	unsigned int dst_format_bytes = cras_get_format_bytes(dst_fmt);
 	uint8_t *schan, *dchan;
 
 	ncopy = MIN(src->frames - src_offset, dst->frames - dst_offset);
-
-	/* TODO(dgreid) - make it so this isn't needed, can copy first stream of
-	 * each channel. */
-	if (!skip_zero)
-		memset(dst->channels[0].buf +
-				dst_offset * dst->channels[0].step_bytes, 0,
-		       ncopy * dst_format_bytes);
 
 	/* TODO(dgreid) - this replaces a memcpy, it needs to be way faster. */
 	for (src_idx = 0; src_idx < src->num_channels; src_idx++) {

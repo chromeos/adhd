@@ -303,7 +303,7 @@ static unsigned int capture_copy_converted_to_stream(
 
 		cras_audio_area_copy(rstream->audio_area, offset,
 				     &rstream->format,
-				     dev_stream->conv_area, 0, 1,
+				     dev_stream->conv_area, 0,
 				     software_gain_scaler);
 
 		buf_increment_read(dev_stream->conv_buffer,
@@ -359,7 +359,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 
 		nread = cras_audio_area_copy(rstream->audio_area, offset,
 					     &rstream->format, area,
-					     area_offset, 1,
+					     area_offset,
 					     software_gain_scaler);
 
 		ATLOG(atlog, AUDIO_THREAD_CAPTURE_WRITE,

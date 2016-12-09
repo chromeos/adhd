@@ -47,7 +47,6 @@ struct cras_audio_area_copy_call {
   unsigned int dst_format_bytes;
   const struct cras_audio_area *src;
   unsigned int src_offset;
-  unsigned int src_index;
   float software_gain_scaler;
 };
 
@@ -188,7 +187,6 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   EXPECT_EQ(0, copy_area_call.dst_offset);
   EXPECT_EQ(4, copy_area_call.dst_format_bytes);
   EXPECT_EQ(area, copy_area_call.src);
-  EXPECT_EQ(1, copy_area_call.src_index);
   EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
   free(area);
@@ -254,7 +252,6 @@ TEST_F(CreateSuite, CaptureSRC) {
   EXPECT_EQ(0, copy_area_call.dst_offset);
   EXPECT_EQ(4, copy_area_call.dst_format_bytes);
   EXPECT_EQ(devstr.conv_area, copy_area_call.src);
-  EXPECT_EQ(1, copy_area_call.src_index);
   EXPECT_EQ(conv_frames_ret, devstr.conv_area->frames);
   EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
@@ -727,17 +724,15 @@ void cras_audio_area_config_channels(struct cras_audio_area *area,
 
 unsigned int cras_audio_area_copy(const struct cras_audio_area *dst,
                                   unsigned int dst_offset,
-				  const struct cras_audio_format *dst_fmt,
+                                  const struct cras_audio_format *dst_fmt,
                                   const struct cras_audio_area *src,
                                   unsigned int src_offset,
-                                  unsigned int src_index,
                                   float software_gain_scaler) {
   copy_area_call.dst = dst;
   copy_area_call.dst_offset = dst_offset;
   copy_area_call.dst_format_bytes = cras_get_format_bytes(dst_fmt);
   copy_area_call.src = src;
   copy_area_call.src_offset = src_offset;
-  copy_area_call.src_index = src_index;
   copy_area_call.software_gain_scaler = software_gain_scaler;
   return src->frames;
 }
