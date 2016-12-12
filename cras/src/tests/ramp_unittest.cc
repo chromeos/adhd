@@ -9,7 +9,12 @@ extern "C" {
 #include "cras_ramp.c"
 }
 
+static int callback_called;
+static void *callback_arg;
+
 void ResetStubData() {
+  callback_called = 0;
+  callback_arg = NULL;
 }
 
 namespace {
@@ -40,7 +45,7 @@ TEST(RampTestSuite, RampUpInitialIncrement) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -64,7 +69,7 @@ TEST(RampTestSuite, RampUpUpdateRampedFrames) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -89,7 +94,7 @@ TEST(RampTestSuite, RampUpPassedRamp) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -118,7 +123,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
 
   ramp = cras_ramp_create();
   ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -128,7 +133,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
   up_increment = (1 - scaler) / 48000;
 
   ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -155,7 +160,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
 
   ramp = cras_ramp_create();
   ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -165,7 +170,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
   second_increment = (1 - scaler) / 48000;
 
   ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -187,7 +192,7 @@ TEST(RampTestSuite, RampDownInitialIncrement) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -211,7 +216,7 @@ TEST(RampTestSuite, RampDownUpdateRampedFrames) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -236,7 +241,7 @@ TEST(RampTestSuite, RampDownPassedRamp) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -266,7 +271,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
   ramp = cras_ramp_create();
   // Ramp up first.
   ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -278,7 +283,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
 
   // Ramp down will start from current scaler.
   ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -306,7 +311,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
   ramp = cras_ramp_create();
   // Ramp down.
   ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -318,7 +323,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
 
   // Ramp down starting from current scaler.
   ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames);
+  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -329,6 +334,68 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
 
   cras_ramp_destroy(ramp);
 }
+
+void ramp_callback(void *arg) {
+  callback_called++;
+  callback_arg = arg;
+}
+
+TEST(RampTestSuite, RampUpPassedRampCallback) {
+  int ramp_up = 1;
+  int duration_frames = 48000;
+  int rc;
+  int ramped_frames = 48000;
+  struct cras_ramp *ramp;
+  struct cras_ramp_action action;
+  void *cb_data = reinterpret_cast<void*>(0x123);
+
+  ResetStubData();
+
+  ramp = cras_ramp_create();
+  cras_ramp_start(ramp, ramp_up, duration_frames, ramp_callback, cb_data);
+
+  rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
+
+  action = cras_ramp_get_current_action(ramp);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_RAMP_ACTION_NONE, action.type);
+  EXPECT_FLOAT_EQ(1.0, action.scaler);
+  EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_EQ(1, callback_called);
+  EXPECT_EQ(cb_data, callback_arg);
+
+  cras_ramp_destroy(ramp);
+}
+
+TEST(RampTestSuite, RampDownPassedRampCallback) {
+  int ramp_up = 0;
+  int duration_frames = 48000;
+  int rc;
+  int ramped_frames = 48000;
+  struct cras_ramp *ramp;
+  struct cras_ramp_action action;
+  void *cb_data = reinterpret_cast<void*>(0x123);
+
+  ResetStubData();
+
+  ramp = cras_ramp_create();
+  cras_ramp_start(ramp, ramp_up, duration_frames, ramp_callback, cb_data);
+
+  rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
+
+  action = cras_ramp_get_current_action(ramp);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_RAMP_ACTION_NONE, action.type);
+  EXPECT_FLOAT_EQ(1.0, action.scaler);
+  EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_EQ(1, callback_called);
+  EXPECT_EQ(cb_data, callback_arg);
+
+  cras_ramp_destroy(ramp);
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {

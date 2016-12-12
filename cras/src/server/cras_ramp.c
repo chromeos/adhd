@@ -29,6 +29,8 @@ enum CRAS_RAMP_STATE {
  *   increment: The scaler increment that should be added to scaler for
  *              every frame.
  *   start_scaler: The initial scaler.
+ *   cb: Callback function to call after ramping is done.
+ *   cb_data: Data passed to cb.
  */
 struct cras_ramp {
 	enum CRAS_RAMP_STATE state;
@@ -36,6 +38,8 @@ struct cras_ramp {
 	int duration_frames;
 	float increment;
 	float start_scaler;
+	void (*cb)(void *data);
+	void *cb_data;
 };
 
 void cras_ramp_destroy(struct cras_ramp* ramp)
@@ -63,7 +67,9 @@ int cras_ramp_reset(struct cras_ramp *ramp) {
 	return 0;
 }
 
-int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames) {
+int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames,
+		    cras_ramp_cb cb, void *cb_data)
+{
 	struct cras_ramp_action action;
 
 	/* Get current scaler position so it can serve as new start scaler. */
@@ -91,6 +97,8 @@ int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames) {
 	}
 	ramp->ramped_frames = 0;
 	ramp->duration_frames = duration_frames;
+	ramp->cb = cb;
+	ramp->cb_data = cb_data;
 	return 0;
 }
 
@@ -133,7 +141,10 @@ int cras_ramp_update_ramped_frames(
 	if (ramp->state == CRAS_RAMP_STATE_IDLE)
 		return -EINVAL;
 	ramp->ramped_frames += num_frames;
-	if (ramp->ramped_frames >= ramp->duration_frames)
+	if (ramp->ramped_frames >= ramp->duration_frames) {
 		ramp->state = CRAS_RAMP_STATE_IDLE;
+		if (ramp->cb)
+			ramp->cb(ramp->cb_data);
+	}
 	return 0;
 }
