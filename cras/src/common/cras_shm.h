@@ -106,10 +106,9 @@ unsigned cras_shm_check_write_offset(const struct cras_audio_shm *shm,
 	return offset;
 }
 
-/* Get a pointer to the current read buffer */
+/* Get the number of frames readable in current read buffer */
 static inline
-uint8_t *cras_shm_get_curr_read_buffer(const struct cras_audio_shm *shm,
-				       unsigned *frames)
+unsigned cras_shm_get_curr_read_frames(const struct cras_audio_shm *shm)
 {
 	unsigned i = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
 	unsigned read_offset, write_offset;
@@ -120,12 +119,17 @@ uint8_t *cras_shm_get_curr_read_buffer(const struct cras_audio_shm *shm,
 		cras_shm_check_write_offset(shm, shm->area->write_offset[i]);
 
 	if (read_offset > write_offset)
-		*frames = 0;
+		return 0;
 	else
-		*frames = (write_offset - read_offset) /
-				shm->config.frame_bytes;
+		return (write_offset - read_offset) / shm->config.frame_bytes;
+}
 
-	return cras_shm_buff_for_idx(shm, i) + read_offset;
+/* Get the base of the current read buffer. */
+static inline
+uint8_t *cras_shm_get_read_buffer_base(const struct cras_audio_shm *shm)
+{
+	unsigned i = shm->area->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	return cras_shm_buff_for_idx(shm, i);
 }
 
 /* Get the base of the current write buffer. */

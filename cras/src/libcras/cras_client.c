@@ -1027,18 +1027,26 @@ static int read_with_wake_fd(int wake_fd, int read_fd, uint8_t *buf, size_t len)
 
 	return nread;
 }
-
-/* Check if doing format conversion and configure a capture buffer appropriately
- * before passing to the client. */
+/* Check the availability and configures a capture buffer.
+ * Args:
+ *     stream - The input stream to configure buffer for.
+ *     captured_frames - To be filled with the pointer to the beginning of
+ *         captured buffer.
+ *     num_frames - Number of captured frames.
+ * Returns:
+ *     Number of frames available in captured_frames.
+ */
 static unsigned int config_capture_buf(struct client_stream *stream,
 				       uint8_t **captured_frames,
 				       unsigned int num_frames)
 {
-	unsigned int readable;
+	/* Zero readable frames means overrun has happened in server side. */
+	if (cras_shm_get_curr_read_frames(&stream->capture_shm) == 0)
+		return 0;
 
-	*captured_frames = cras_shm_get_curr_read_buffer(&stream->capture_shm,
-						         &readable);
-	num_frames = MIN(num_frames, readable);
+	/* Always return the beginning of the read buffer because Chrome expects
+	 * so. */
+	*captured_frames = cras_shm_get_read_buffer_base(&stream->capture_shm);
 
 	/* Don't ask for more frames than the client desires. */
 	if (stream->flags & BULK_AUDIO_OK)
