@@ -57,7 +57,7 @@
  * (avail - buffer_size) is greater than SEVERE_UNDERRUN_MS * rate,
  * it is a severe underrun. Main thread should disable and then enable
  * device to recover it from underrun. */
-#define SEVERE_UNDERRUN_MS 20
+#define SEVERE_UNDERRUN_MS 5000
 
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
