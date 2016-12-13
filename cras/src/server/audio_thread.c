@@ -43,6 +43,7 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_DUMP_THREAD_INFO,
 	AUDIO_THREAD_DRAIN_STREAM,
 	AUDIO_THREAD_CONFIG_GLOBAL_REMIX,
+	AUDIO_THREAD_DEV_START_RAMP,
 };
 
 struct audio_thread_msg {
@@ -70,6 +71,12 @@ struct audio_thread_add_rm_stream_msg {
 struct audio_thread_dump_debug_info_msg {
 	struct audio_thread_msg header;
 	struct audio_debug_info *info;
+};
+
+struct audio_thread_dev_start_ramp_msg {
+	struct audio_thread_msg header;
+	struct cras_iodev *dev;
+	enum CRAS_IODEV_RAMP_REQUEST request;
 };
 
 /* Audio thread logging. */
@@ -386,6 +393,20 @@ static int thread_rm_open_dev(struct audio_thread *thread,
 	thread_rm_open_adev(thread, adev);
 	return 0;
 }
+
+/* Handles messages from the main thread to start ramping on a device. */
+static int thread_dev_start_ramp(struct audio_thread *thread,
+				 struct cras_iodev *iodev,
+				 enum CRAS_IODEV_RAMP_REQUEST request)
+{
+	/* Do nothing if device wasn't already in the active dev list. */
+	struct open_dev *adev = find_adev(
+			thread->open_devs[iodev->direction], iodev);
+	if (!adev)
+		return -EINVAL;
+	return cras_iodev_start_ramp(iodev, request);
+}
+
 
 /* Return non-zero if the stream is attached to any device. */
 static int thread_find_stream(struct audio_thread *thread,
@@ -908,6 +929,13 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		remix_converter = rmsg->fmt_conv;
 
 		return write(thread->to_main_fds[1], &rsp, sizeof(rsp));
+	}
+	case AUDIO_THREAD_DEV_START_RAMP: {
+		struct audio_thread_dev_start_ramp_msg *rmsg;
+
+		rmsg = (struct audio_thread_dev_start_ramp_msg*)msg;
+		ret = thread_dev_start_ramp(thread, rmsg->dev, rmsg->request);
+		break;
 	}
 	default:
 		ret = -EINVAL;
@@ -1637,6 +1665,19 @@ static void init_config_global_remix_msg(
 	msg->header.length = sizeof(*msg);
 }
 
+static void init_device_start_ramp_msg(
+		struct audio_thread_dev_start_ramp_msg *msg,
+		enum AUDIO_THREAD_COMMAND id,
+		struct cras_iodev *dev,
+		enum CRAS_IODEV_RAMP_REQUEST request)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.id = id;
+	msg->header.length = sizeof(*msg);
+	msg->dev = dev;
+	msg->request = request;
+}
+
 /* Exported Interface */
 
 int audio_thread_add_stream(struct audio_thread *thread,
@@ -1804,6 +1845,22 @@ int audio_thread_rm_open_dev(struct audio_thread *thread,
 		return -EINVAL;
 
 	init_open_device_msg(&msg, AUDIO_THREAD_RM_OPEN_DEV, dev);
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_dev_start_ramp(struct audio_thread *thread,
+				struct cras_iodev *dev,
+				enum CRAS_IODEV_RAMP_REQUEST request)
+{
+	struct audio_thread_dev_start_ramp_msg msg;
+
+	assert(thread && dev);
+
+	if (!thread->started)
+		return -EINVAL;
+
+	init_device_start_ramp_msg(&msg, AUDIO_THREAD_DEV_START_RAMP,
+				   dev, request);
 	return audio_thread_post_message(thread, &msg.header);
 }
 

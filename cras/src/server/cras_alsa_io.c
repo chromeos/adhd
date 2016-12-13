@@ -26,6 +26,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
+#include "cras_ramp.h"
 #include "cras_rclient.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
@@ -1700,6 +1701,10 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
+
+	iodev->ramp = cras_ramp_create();
+	if (iodev->ramp == NULL)
+		goto cleanup_iodev;
 
 	aio->mixer = mixer;
 	aio->ucm = ucm;

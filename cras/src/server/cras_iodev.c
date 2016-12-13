@@ -21,6 +21,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_mix.h"
+#include "cras_ramp.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
@@ -28,6 +29,8 @@
 #include "utlist.h"
 #include "rate_estimator.h"
 #include "softvol_curve.h"
+
+static const float RAMP_DURATION_SEC = 0.5;
 
 static const struct timespec rate_estimation_window_sz = {
 	20, 0 /* 20 sec. */
@@ -182,8 +185,16 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
  * cras_iodev_output_event_sample_ready change device state from S1 or S3 into
  * S2.
  */
-int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
+static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 {
+	if (odev->state == CRAS_IODEV_STATE_OPEN ||
+	    odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
+		if (odev->ramp)
+			cras_iodev_start_ramp(
+				odev,
+				CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK);
+	}
+
 	if (odev->state == CRAS_IODEV_STATE_OPEN) {
 		/* S1 => S2:
 		 * If device is not started yet, and there is sample ready from
@@ -208,6 +219,8 @@ int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 	return 0;
 }
 
+/* Determines if the output device should mute. It considers system mute,
+ * system volume, and active node volume on the device. */
 static int output_should_mute(struct cras_iodev *odev)
 {
 	size_t system_volume;
@@ -536,6 +549,8 @@ void cras_iodev_free_resources(struct cras_iodev *iodev)
 {
 	cras_iodev_free_dsp(iodev);
 	rate_estimator_destroy(iodev->rate_est);
+	if (iodev->ramp)
+		cras_ramp_destroy(iodev->ramp);
 }
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
@@ -832,6 +847,8 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	if (rc)
 		return rc;
 	iodev->state = CRAS_IODEV_STATE_CLOSE;
+	if (iodev->ramp)
+		cras_ramp_reset(iodev->ramp);
 	return 0;
 }
 
@@ -847,13 +864,24 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	const struct cras_audio_format *fmt = iodev->format;
 	struct cras_fmt_conv * remix_converter =
 			audio_thread_get_global_remix_converter();
+	struct cras_ramp_action ramp_action;
+	float software_volume_scaler;
+	int software_volume_needed = cras_iodev_software_volume_needed(iodev);
+	int is_ramping = 0;
 
 	if (iodev->pre_dsp_hook)
 		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
 				    iodev->pre_dsp_hook_cb_data);
 
+	if (iodev->ramp) {
+		ramp_action = cras_ramp_get_current_action(iodev->ramp);
+		if (ramp_action.type == CRAS_RAMP_ACTION_PARTIAL)
+			is_ramping = 1;
+	}
 
-	if (output_should_mute(iodev)) {
+	/* Mute samples if adjusted volume is 0 or system is muted, plus
+	 * that this device is not ramping. */
+	if (output_should_mute(iodev) && !is_ramping) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
 	} else {
@@ -863,13 +891,35 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 			iodev->post_dsp_hook(frames, nframes, fmt,
 					     iodev->post_dsp_hook_cb_data);
 
-		if (cras_iodev_software_volume_needed(iodev)) {
-			unsigned int nsamples = nframes * fmt->num_channels;
-			float scaler =
+		/* Compute scaler for software volume if needed. */
+		if (software_volume_needed) {
+			software_volume_scaler =
 				cras_iodev_get_software_volume_scaler(iodev);
+		}
 
+		if (iodev->ramp &&
+		    ramp_action.type == CRAS_RAMP_ACTION_PARTIAL) {
+			/* Scale with increment for ramp and possibly
+			 * software volume using cras_scale_buffer_increment.*/
+			float starting_scaler = ramp_action.scaler;
+			float increment = ramp_action.increment;
+
+			if (software_volume_needed) {
+				starting_scaler *= software_volume_scaler;
+				increment *= software_volume_scaler;
+			}
+
+			cras_scale_buffer_increment(
+					fmt->format, frames, nframes,
+					starting_scaler, increment,
+					fmt->num_channels);
+			cras_ramp_update_ramped_frames(iodev->ramp, nframes);
+		} else if (software_volume_needed) {
+			/* Just scale for software volume using
+			 * cras_scale_buffer. */
+			unsigned int nsamples = nframes * fmt->num_channels;
 			cras_scale_buffer(fmt->format, frames,
-					  nsamples, scaler);
+					  nsamples, software_volume_scaler);
 		}
 	}
 
@@ -1147,6 +1197,57 @@ int cras_iodev_reset_request(struct cras_iodev* iodev)
 		return 0;
 	iodev->reset_request_pending = 1;
 	return cras_device_monitor_reset_device(iodev);
+}
+
+static void ramp_mute_callback(void *data)
+{
+	struct cras_iodev *odev = (struct cras_iodev *)data;
+	cras_device_monitor_set_device_mute_state(odev);
+}
+
+/* Used in audio thread. Check the docstrings of CRAS_IODEV_RAMP_REQUEST. */
+int cras_iodev_start_ramp(struct cras_iodev *odev,
+			  enum CRAS_IODEV_RAMP_REQUEST request)
+{
+	cras_ramp_cb cb = NULL;
+	void *cb_data = NULL;
+	int rc, up;
+
+	/* Ignores request if device is closed. */
+	if (!cras_iodev_is_open(odev))
+		return 0;
+
+	switch (request) {
+	case CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE:
+	case CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK:
+		up = 1;
+		break;
+	/* Unmute -> mute. Callback to set mute state should be called after
+	 * ramping is done. */
+	case CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE:
+		up = 0;
+		cb = ramp_mute_callback;
+		cb_data = (void*)odev;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/* Starts ramping. */
+	rc = cras_ramp_start(
+			odev->ramp, up,
+			RAMP_DURATION_SEC * odev->format->frame_rate,
+			cb, cb_data);
+
+	if (rc)
+		return rc;
+
+	/* Mute -> unmute case, unmute state should be set after ramping is
+	 * started so device can start playing with samples close to 0. */
+	if (request == CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE)
+		cras_device_monitor_set_device_mute_state(odev);
+
+	return 0;
 }
 
 int cras_iodev_set_mute(struct cras_iodev* iodev)

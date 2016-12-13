@@ -34,6 +34,10 @@ static int cras_iodev_prepare_output_before_write_samples_ret;
 static int cras_iodev_reset_request_called;
 static struct cras_iodev *cras_iodev_reset_request_iodev;
 static int cras_iodev_output_underrun_called;
+static int cras_device_monitor_reset_device_called;
+static struct cras_iodev *cras_device_monitor_reset_device_iodev;
+static struct cras_iodev *cras_iodev_start_ramp_odev;
+static enum CRAS_IODEV_RAMP_REQUEST cras_iodev_start_ramp_request;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -62,6 +66,10 @@ void ResetGlobalStubData() {
   cras_iodev_reset_request_called = 0;
   cras_iodev_reset_request_iodev = NULL;
   cras_iodev_output_underrun_called = 0;
+  cras_device_monitor_reset_device_called = 0;
+  cras_device_monitor_reset_device_iodev = NULL;
+  cras_iodev_start_ramp_odev = NULL;
+  cras_iodev_start_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
 }
 
 // Test streams and devices manipulation.
@@ -208,6 +216,38 @@ TEST_F(StreamDeviceSuite, AddRemoveOpenOutputDevice) {
   thread_rm_open_dev(thread_, &iodev);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(NULL, adev);
+}
+
+TEST_F(StreamDeviceSuite, StartRamp) {
+  struct cras_iodev iodev;
+  struct open_dev *adev;
+  int rc;
+  enum CRAS_IODEV_RAMP_REQUEST req;
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+
+  // Check the newly added device is open.
+  thread_add_open_dev(thread_, &iodev);
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(adev->dev, &iodev);
+
+  // Ramp up for unmute.
+  req = CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE;
+  rc = thread_dev_start_ramp(thread_, &iodev, req);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(&iodev, cras_iodev_start_ramp_odev);
+  EXPECT_EQ(req, cras_iodev_start_ramp_request);
+
+  // Ramp down for mute.
+  ResetStubData();
+  req = CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE;
+
+  rc = thread_dev_start_ramp(thread_, &iodev, req);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(&iodev, cras_iodev_start_ramp_odev);
+  EXPECT_EQ(req, cras_iodev_start_ramp_request);
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveOpenInputDevice) {
@@ -956,6 +996,14 @@ int cras_iodev_reset_request(struct cras_iodev *iodev)
 
 unsigned int cras_iodev_get_num_severe_underruns(const struct cras_iodev *iodev)
 {
+  return 0;
+}
+
+int cras_iodev_start_ramp(struct cras_iodev *odev,
+                          enum CRAS_IODEV_RAMP_REQUEST request)
+{
+  cras_iodev_start_ramp_odev = odev;
+  cras_iodev_start_ramp_request = request;
   return 0;
 }
 

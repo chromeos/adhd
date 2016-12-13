@@ -19,6 +19,7 @@
 #include "cras_messages.h"
 
 struct buffer_share;
+struct cras_ramp;
 struct cras_rstream;
 struct cras_audio_area;
 struct cras_audio_format;
@@ -164,6 +165,8 @@ struct cras_ionode {
  * pre_dsp_hook_cb_data - Callback data that will be passing to pre_dsp_hook.
  * post_dsp_hook_cb_data - Callback data that will be passing to post_dsp_hook.
  * reset_request_pending - The flag for pending reset request.
+ * ramp - The cras_ramp struct to control ramping up/down at mute/unmute and
+ *        start of playback.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -224,7 +227,40 @@ struct cras_iodev {
 	void *pre_dsp_hook_cb_data;
 	void *post_dsp_hook_cb_data;
 	int reset_request_pending;
+	struct cras_ramp* ramp;
 	struct cras_iodev *prev, *next;
+};
+
+/*
+ * Ramp request used in cras_iodev_start_ramp.
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE: Mute->unmute.
+ *   Change device to unmute state after ramping is stared,
+ *                 that is, (a) in the plot.
+ *
+ *                                  ____
+ *                            .... /
+ *                      _____/
+ *                          (a)
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE: Unmute->mute.
+ *   Change device to mute state after ramping is done, that is,
+ *                 (b) in the plot.
+ *
+ *                      _____
+ *                           \....
+ *                                \____
+ *                                (b)
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK: Ramping is requested because
+ *   first sample of new stream is ready, there is no need to change mute/unmute
+ *   state.
+ */
+
+enum CRAS_IODEV_RAMP_REQUEST {
+	CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE = 0,
+	CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE  = 1,
+	CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK = 2,
 };
 
 /*
@@ -632,6 +668,17 @@ int cras_iodev_reset_request(struct cras_iodev* iodev);
  *    0 on success. Negative error code on failure.
  */
 int cras_iodev_output_underrun(struct cras_iodev *odev);
+
+/* Start ramping samples up/down on a device.
+ * Args:
+ *    iodev[in] - The device.
+ *    request[in] - The request type. Check the docstrings of
+ *                  CRAS_IODEV_RAMP_REQUEST.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_start_ramp(struct cras_iodev *odev,
+			  enum CRAS_IODEV_RAMP_REQUEST request);
 
 /* Set iodev to mute/unmute state.
  * Args:

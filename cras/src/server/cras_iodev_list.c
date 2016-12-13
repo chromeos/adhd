@@ -292,10 +292,31 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 			    int mute_locked)
 {
 	struct cras_iodev *dev;
+	int should_mute = muted || user_muted;
 
 	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-		if (dev->set_mute && cras_iodev_is_open(dev))
-			dev->set_mute(dev);
+		if (cras_iodev_list_dev_is_enabled(dev) && dev->ramp) {
+			/* Start ramping in audio thread and set mute/unmute
+			 * state on device.
+			 *
+			 * 1. Mute -> Unmute: Set device unmute state after
+			 *                    ramping is started.
+			 * 2. Unmute -> Mute: Set device mute state after
+			 *                    ramping is done.
+			 *
+			 * The above transition will be handled by cras_iodev_ramp_start.
+			 */
+			audio_thread_dev_start_ramp(
+					audio_thread,
+					dev,
+					(should_mute ?
+					 CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE :
+					 CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE));
+
+		} else {
+			/* For device without ramp, just set its mute state. */
+			cras_iodev_set_mute(dev);
+		}
 	}
 }
 

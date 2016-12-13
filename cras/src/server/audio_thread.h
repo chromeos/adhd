@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include "cras_iodev.h"
 #include "cras_types.h"
 
 struct buffer_share;
@@ -172,4 +173,20 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 /* Gets the global remix converter. */
 struct cras_fmt_conv *audio_thread_get_global_remix_converter();
 
+
+/* Start ramping on a device.
+ *
+ * Ramping is started/updated in audio thread. This function lets the main
+ * thread request that the audio thread start ramping.
+ *
+ * Args:
+ *   thread - a pointer to the audio thread.
+ *   dev - the device to start ramping.
+ *   request - Check the docstrings of CRAS_IODEV_RAMP_REQUEST.
+ * Returns:
+ *    0 on success, negative if error.
+ */
+int audio_thread_dev_start_ramp(struct audio_thread *thread,
+				struct cras_iodev *dev,
+				enum CRAS_IODEV_RAMP_REQUEST request);
 #endif /* AUDIO_THREAD_H_ */

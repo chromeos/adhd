@@ -7,6 +7,7 @@
 
 extern "C" {
 #include "cras_iodev.h"
+#include "cras_ramp.h"
 #include "cras_rstream.h"
 #include "dev_stream.h"
 #include "utlist.h"
@@ -18,6 +19,8 @@ float softvol_scalers[101];
 }
 
 #define BUFFER_SIZE 8192
+
+#define RAMP_DURATION_SECS 0.5
 
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
@@ -57,8 +60,10 @@ static unsigned int rate_estimator_add_frames_called;
 static int cras_system_get_mute_return;
 static snd_pcm_format_t cras_scale_buffer_fmt;
 static float cras_scale_buffer_scaler;
+static int cras_scale_buffer_called;
 static unsigned int pre_dsp_hook_called;
 static const uint8_t *pre_dsp_hook_frames;
+
 static void *pre_dsp_hook_cb_data;
 static unsigned int post_dsp_hook_called;
 static const uint8_t *post_dsp_hook_frames;
@@ -80,7 +85,22 @@ static int get_num_underruns_ret;
 static int device_monitor_reset_device_called;
 static int output_underrun_called;
 static int set_mute_called;
-
+static int cras_ramp_start_is_up;
+static int cras_ramp_start_duration_frames;
+static int cras_ramp_start_is_called;
+static int cras_ramp_reset_is_called;
+static struct cras_ramp_action cras_ramp_get_current_action_ret;
+static int cras_ramp_update_ramped_frames_num_frames;
+static cras_ramp_cb cras_ramp_start_cb;
+static void* cras_ramp_start_cb_data;
+static int cras_device_monitor_set_device_mute_state_called;
+static struct cras_iodev* cras_device_monitor_set_device_mute_state_dev;
+static snd_pcm_format_t cras_scale_buffer_increment_fmt;
+static uint8_t *cras_scale_buffer_increment_buff;
+static unsigned int cras_scale_buffer_increment_frame;
+static float cras_scale_buffer_increment_scaler;
+static float cras_scale_buffer_increment_increment;
+static int cras_scale_buffer_increment_channel;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -134,8 +154,7 @@ void ResetStubData() {
   pre_dsp_hook_called = 0;
   pre_dsp_hook_frames = NULL;
   post_dsp_hook_called = 0;
-  post_dsp_hook_frames = NULL;
-  iodev_buffer_size = 0;
+  post_dsp_hook_frames = NULL; iodev_buffer_size = 0;
   cras_system_get_capture_gain_ret_value = 0;
   // Assume there is some data in audio buffer.
   memset(audio_buffer, 0xff, sizeof(audio_buffer));
@@ -156,6 +175,23 @@ void ResetStubData() {
   device_monitor_reset_device_called = 0;
   output_underrun_called = 0;
   set_mute_called = 0;
+  cras_ramp_start_is_up = 0;
+  cras_ramp_start_duration_frames = 0;
+  cras_ramp_start_cb = NULL;
+  cras_ramp_start_cb_data = NULL;
+  cras_ramp_start_is_called = 0;
+  cras_ramp_reset_is_called = 0;
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
+  cras_ramp_update_ramped_frames_num_frames = 0;
+  cras_device_monitor_set_device_mute_state_called = 0;
+  cras_device_monitor_set_device_mute_state_dev = NULL;
+  cras_scale_buffer_called = 0;
+  cras_scale_buffer_increment_fmt = SND_PCM_FORMAT_UNKNOWN;
+  cras_scale_buffer_increment_buff = NULL;
+  cras_scale_buffer_increment_frame = 0;
+  cras_scale_buffer_increment_scaler = 0;
+  cras_scale_buffer_increment_increment = 0;
+  cras_scale_buffer_increment_channel = 0;
 }
 
 namespace {
@@ -587,6 +623,96 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
   EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
 }
 
+TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  cras_system_get_mute_return = 1;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Assume ramping is done.
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20);
+  // Output should be muted.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(20, cras_mix_mute_count);
+  EXPECT_EQ(20, put_buffer_nframes);
+  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+
+  // Test for the case where ramping is not done yet.
+  ResetStubData();
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20);
+
+  // Output should not be muted.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  // Ramped frames should be increased by 20.
+  EXPECT_EQ(20, cras_ramp_update_ramped_frames_num_frames);
+  EXPECT_EQ(20, put_buffer_nframes);
+  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+}
+
+TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+  iodev.active_node->volume = 0;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Assume ramping is done.
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(20, cras_mix_mute_count);
+  EXPECT_EQ(20, put_buffer_nframes);
+  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+
+  // Test for the case where ramping is not done yet.
+  ResetStubData();
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20);
+
+  // Output should not be muted.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  // Ramped frames should be increased by 20.
+  EXPECT_EQ(20, cras_ramp_update_ramped_frames_num_frames);
+  EXPECT_EQ(20, put_buffer_nframes);
+  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+}
 TEST(IoDevPutOutputBuffer, NoDSP) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
@@ -675,6 +801,132 @@ TEST(IoDevPutOutputBuffer, SoftVol) {
   EXPECT_EQ(53, rate_estimator_add_frames_num_frames);
   EXPECT_EQ(softvol_scalers[13], cras_scale_buffer_scaler);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, cras_scale_buffer_fmt);
+}
+
+TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+  int n_frames = 53;
+  float ramp_scaler = 0.2;
+  float increment = 0.001;
+  int volume = 13;
+  float volume_scaler = 0.435;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.software_volume_needed = 1;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Assume ramping is done.
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
+
+  cras_system_get_volume_return = volume;
+  softvol_scalers[volume] = volume_scaler;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  EXPECT_EQ(n_frames, put_buffer_nframes);
+  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(softvol_scalers[volume], cras_scale_buffer_scaler);
+  EXPECT_EQ(SND_PCM_FORMAT_S16_LE, cras_scale_buffer_fmt);
+
+  ResetStubData();
+  // Assume ramping is not done.
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
+  cras_ramp_get_current_action_ret.scaler = ramp_scaler;
+  cras_ramp_get_current_action_ret.increment = increment;
+
+  cras_system_get_volume_return = volume;
+  softvol_scalers[volume] = volume_scaler;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  // cras_scale_buffer is not called.
+  EXPECT_EQ(0, cras_scale_buffer_called);
+
+  // Verify the arguments passed to cras_scale_buffer_increment.
+  EXPECT_EQ(fmt.format, cras_scale_buffer_increment_fmt);
+  EXPECT_EQ(frames, cras_scale_buffer_increment_buff);
+  EXPECT_EQ(n_frames, cras_scale_buffer_increment_frame);
+  // Initial scaler will be product of software volume scaler and
+  // ramp scaler.
+  EXPECT_FLOAT_EQ(softvol_scalers[volume] * ramp_scaler,
+                  cras_scale_buffer_increment_scaler);
+  // Increment scaler will be product of software volume scaler and
+  // ramp increment.
+  EXPECT_FLOAT_EQ(softvol_scalers[volume] * increment,
+                  cras_scale_buffer_increment_increment);
+  EXPECT_EQ(fmt.num_channels, cras_scale_buffer_increment_channel);
+
+  EXPECT_EQ(n_frames, put_buffer_nframes);
+  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+}
+
+TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
+  int rc;
+  int n_frames = 53;
+  float ramp_scaler = 0.2;
+  float increment = 0.001;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.software_volume_needed = 0;
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Assume ramping is done.
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  // cras_scale_buffer is not called.
+  EXPECT_EQ(0, cras_scale_buffer_called);
+  EXPECT_EQ(n_frames, put_buffer_nframes);
+  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+
+  ResetStubData();
+  // Assume ramping is not done.
+  cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
+  cras_ramp_get_current_action_ret.scaler = ramp_scaler;
+  cras_ramp_get_current_action_ret.increment = increment;
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_mix_mute_count);
+  // cras_scale_buffer is not called.
+  EXPECT_EQ(0, cras_scale_buffer_called);
+
+  // Verify the arguments passed to cras_scale_buffer_increment.
+  EXPECT_EQ(fmt.format, cras_scale_buffer_increment_fmt);
+  EXPECT_EQ(frames, cras_scale_buffer_increment_buff);
+  EXPECT_EQ(n_frames, cras_scale_buffer_increment_frame);
+  EXPECT_FLOAT_EQ(ramp_scaler, cras_scale_buffer_increment_scaler);
+  EXPECT_FLOAT_EQ(increment, cras_scale_buffer_increment_increment);
+  EXPECT_EQ(fmt.num_channels, cras_scale_buffer_increment_channel);
+
+  EXPECT_EQ(n_frames, put_buffer_nframes);
+  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
 }
 
 TEST(IoDevPutOutputBuffer, Scale32Bit) {
@@ -1227,6 +1479,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   fmt.frame_rate = 48000;
   fmt.num_channels = 2;
   iodev.ext_format = &fmt;
+  iodev.format = &fmt;
   iodev.min_cb_level = min_cb_level;
   iodev.get_buffer = get_buffer;
   iodev.put_buffer = put_buffer;
@@ -1312,6 +1565,161 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   EXPECT_EQ(0, no_stream_called);
 
   ResetStubData();
+
+  // Test for device with ramp. Device should start ramping
+  // when sample is ready.
+
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Case 4: Assume device with ramp is started and is in no stream state.
+  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  // Assume sample is ready.
+  dev_stream_playback_frames_ret = 100;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  // Device should start ramping up without setting mute callback.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+            cras_ramp_start_duration_frames);
+  EXPECT_EQ(NULL, cras_ramp_start_cb);
+  EXPECT_EQ(NULL, cras_ramp_start_cb_data);
+
+  ResetStubData();
+
+  // Case 5: Assume device with ramp is in open state.
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  // Assume sample is ready.
+  dev_stream_playback_frames_ret = 100;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  // Device should start ramping up without setting mute callback.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+            cras_ramp_start_duration_frames);
+  EXPECT_EQ(NULL, cras_ramp_start_cb);
+  EXPECT_EQ(NULL, cras_ramp_start_cb_data);
+}
+
+TEST(IoDev, StartRampUp) {
+  struct cras_iodev iodev;
+  int rc;
+  struct cras_audio_format fmt;
+  enum CRAS_IODEV_RAMP_REQUEST req;
+  memset(&iodev, 0, sizeof(iodev));
+
+  // Format will be used in cras_iodev_start_ramp to determine ramp duration.
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Case 1: Device is not opened yet.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  req = CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE;
+
+  rc = cras_iodev_start_ramp(&iodev, req);
+
+  // Ramp request is ignored.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  // Case 2: Ramp up without mute.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  req = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
+
+  rc = cras_iodev_start_ramp(&iodev, req);
+
+  // Device should start ramping up without setting mute callback.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+            cras_ramp_start_duration_frames);
+  EXPECT_EQ(NULL, cras_ramp_start_cb);
+  EXPECT_EQ(NULL, cras_ramp_start_cb_data);
+
+  // Case 3: Ramp up for unmute.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  req = CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE;
+
+  rc = cras_iodev_start_ramp(&iodev, req);
+
+  // Device should start ramping up.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+            cras_ramp_start_duration_frames);
+  // Callback for unmute is not used.
+  EXPECT_EQ(NULL, cras_ramp_start_cb);
+  // Device mute state is set after ramping starts.
+  EXPECT_EQ(1, cras_device_monitor_set_device_mute_state_called);
+  EXPECT_EQ(&iodev, cras_device_monitor_set_device_mute_state_dev);
+}
+
+TEST(IoDev, StartRampDown) {
+  struct cras_iodev iodev;
+  int rc;
+  struct cras_audio_format fmt;
+  enum CRAS_IODEV_RAMP_REQUEST req;
+  memset(&iodev, 0, sizeof(iodev));
+
+  // Format will be used in cras_iodev_start_ramp to determine ramp duration.
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Case 1: Device is not opened yet.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  req = CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE;
+
+  rc = cras_iodev_start_ramp(&iodev, req);
+
+  // Ramp request is ignored.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  // Case 2: Ramp down for mute.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  req = CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE;
+
+  rc = cras_iodev_start_ramp(&iodev, req);
+
+  // Device should start ramping down with mute callback.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(0, cras_ramp_start_is_up);
+  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+            cras_ramp_start_duration_frames);
+
+  // Device mute state is not set yet. It should wait for ramp to finish.
+  EXPECT_EQ(0, cras_device_monitor_set_device_mute_state_called);
+  EXPECT_EQ(NULL, cras_device_monitor_set_device_mute_state_dev);
+
+  // Assume the callback is set, and it is later called after ramp is done.
+  // It should trigger cras_device_monitor_set_device_mute_state.
+  cras_ramp_start_cb(cras_ramp_start_cb_data);
+  EXPECT_EQ(1, cras_device_monitor_set_device_mute_state_called);
+  EXPECT_EQ(&iodev, cras_device_monitor_set_device_mute_state_dev);
 }
 
 TEST(IoDev, OutputDeviceShouldWake) {
@@ -1723,8 +2131,21 @@ int cras_system_get_capture_mute() {
 
 void cras_scale_buffer(snd_pcm_format_t fmt, uint8_t *buffer,
                        unsigned int count, float scaler) {
+  cras_scale_buffer_called++;
   cras_scale_buffer_fmt = fmt;
   cras_scale_buffer_scaler = scaler;
+}
+
+void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
+                                 unsigned int frame, float scaler,
+                                 float increment, int channel)
+{
+  cras_scale_buffer_increment_fmt = fmt;
+  cras_scale_buffer_increment_buff = buff;
+  cras_scale_buffer_increment_frame = frame;
+  cras_scale_buffer_increment_scaler = scaler;
+  cras_scale_buffer_increment_increment = increment;
+  cras_scale_buffer_increment_channel = channel;
 }
 
 size_t cras_mix_mute_buffer(uint8_t *dst,
@@ -1779,6 +2200,44 @@ int dev_stream_playback_frames(const struct dev_stream *dev_stream) {
 
 int cras_device_monitor_reset_device(struct cras_iodev *iodev) {
   device_monitor_reset_device_called++;
+  return 0;
+}
+
+void cras_ramp_destroy(struct cras_ramp* ramp) {
+  return;
+}
+
+int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames,
+                    cras_ramp_cb cb, void *cb_data)
+{
+  cras_ramp_start_is_called++;
+  cras_ramp_start_is_up = is_up;
+  cras_ramp_start_duration_frames = duration_frames;
+  cras_ramp_start_cb = cb;
+  cras_ramp_start_cb_data = cb_data;
+  return 0;
+}
+
+int cras_ramp_reset(struct cras_ramp *ramp) {
+  cras_ramp_reset_is_called++;
+  return 0;
+}
+
+struct cras_ramp_action cras_ramp_get_current_action(
+    const struct cras_ramp *ramp) {
+  return cras_ramp_get_current_action_ret;
+}
+
+int cras_ramp_update_ramped_frames(
+    struct cras_ramp *ramp, int num_frames) {
+  cras_ramp_update_ramped_frames_num_frames = num_frames;
+  return 0;
+}
+
+int cras_device_monitor_set_device_mute_state(struct cras_iodev *iodev)
+{
+  cras_device_monitor_set_device_mute_state_called++;
+  cras_device_monitor_set_device_mute_state_dev = iodev;
   return 0;
 }
 
