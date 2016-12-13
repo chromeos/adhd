@@ -78,6 +78,7 @@ static int simple_no_stream_enable;
 static int dev_stream_playback_frames_ret;
 static int get_num_underruns_ret;
 static int device_monitor_reset_device_called;
+static int output_underrun_called;
 
 
 // Iodev callback
@@ -152,6 +153,7 @@ void ResetStubData() {
     atlog = audio_thread_event_log_init();
   get_num_underruns_ret = 0;
   device_monitor_reset_device_called = 0;
+  output_underrun_called = 0;
 }
 
 namespace {
@@ -1414,6 +1416,46 @@ TEST(IoDev, RequestReset) {
   // The reset request works.
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
   EXPECT_EQ(2, device_monitor_reset_device_called);
+}
+
+static int output_underrun(struct cras_iodev *iodev) {
+  output_underrun_called++;
+  return 0;
+}
+
+
+TEST(IoDev, HandleOutputUnderrun) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  unsigned int frames = 240;
+  int16_t *zeros;
+  int rc;
+
+  ResetStubData();
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.ext_format = &fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.min_cb_level = frames;
+
+  // Default case, fill one block of zeros.
+  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev));
+
+  EXPECT_EQ(frames, put_buffer_nframes);
+  zeros = (int16_t *)calloc(frames * 2, sizeof(*zeros));
+  rc = memcmp(audio_buffer, zeros, frames * 2 * 2);
+  free(zeros);
+  EXPECT_EQ(0, rc);
+
+  // Test iodev has output_underrun ops.
+  iodev.output_underrun = output_underrun;
+  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev));
+  EXPECT_EQ(1, output_underrun_called);
 }
 
 extern "C" {

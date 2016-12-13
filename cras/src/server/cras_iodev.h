@@ -120,6 +120,7 @@ struct cras_ionode {
  *                      wake for this output device. The default condition is
  *                      whether the device is running. Device can implement this
  *                      function to use its own condition.
+ * output_underrun - (Optional) Handle output device underrun.
  * update_active_node - Update the active node when the selected device/node has
  *     changed.
  * update_channel_layout - Update the channel layout base on set iodev->format,
@@ -185,6 +186,7 @@ struct cras_iodev {
 	int (*flush_buffer)(struct cras_iodev *iodev);
 	int (*start)(const struct cras_iodev *iodev);
 	int (*output_should_wake)(const struct cras_iodev *iodev);
+	int (*output_underrun)(struct cras_iodev *iodev);
 	int (*no_stream)(struct cras_iodev *iodev, int enable);
 	void (*update_active_node)(struct cras_iodev *iodev,
 				   unsigned node_idx, unsigned dev_enabled);
@@ -622,5 +624,13 @@ unsigned int cras_iodev_get_num_severe_underruns(
  *    0 on success. Negative error code on failure.
  */
 int cras_iodev_reset_request(struct cras_iodev* iodev);
+
+/* Handle output underrun.
+ * Args:
+ *    odev[in] - The output device.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_output_underrun(struct cras_iodev *odev);
 
 #endif /* CRAS_IODEV_H_ */

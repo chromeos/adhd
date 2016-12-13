@@ -1177,7 +1177,7 @@ static int write_output_samples(struct audio_thread *thread,
 	/* Empty hardware and nothing written, zero fill it if it is running. */
 	if (!hw_level && !total_written &&
 	    odev->min_cb_level < odev->buffer_size)
-		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+		cras_iodev_output_underrun(odev);
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE,
 			hw_level, total_written, odev->min_cb_level);

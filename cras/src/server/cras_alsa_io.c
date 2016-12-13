@@ -1477,6 +1477,30 @@ static int fill_whole_buffer_with_zeros(struct cras_iodev *iodev)
 	return 0;
 }
 
+static int adjust_appl_ptr(struct cras_iodev *odev)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+
+	/* Move appl_ptr to min_buffer_level + min_cb_level frames ahead of
+	 * hw_ptr when resuming from free run or adjusting appl_ptr from
+	 * underrun. */
+	return cras_alsa_resume_appl_ptr(
+			aio->handle,
+			odev->min_buffer_level + odev->min_cb_level);
+}
+
+static int alsa_output_underrun(struct cras_iodev *odev)
+{
+	int rc;
+	/* Fill whole buffer with zeros. This avoids samples left in buffer causing
+	 * noise when device plays them. */
+	rc = fill_whole_buffer_with_zeros(odev);
+	if (rc)
+		return rc;
+	/* Adjust appl_ptr to leave underrun. */
+	return adjust_appl_ptr(odev);
+}
+
 static int possibly_enter_free_run(struct cras_iodev *odev)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
@@ -1525,11 +1549,7 @@ static int leave_free_run(struct cras_iodev *odev)
 	if (!aio->is_free_running)
 		return 0;
 
-	/* Move appl_ptr to min_buffer_level + min_cb_level frames ahead of
-	 * hw_ptr when resuming from free run. */
-	rc = cras_alsa_resume_appl_ptr(
-			aio->handle,
-			odev->min_buffer_level + odev->min_cb_level);
+	rc = adjust_appl_ptr(odev);
 	if (rc) {
 		syslog(LOG_ERR, "device %s failed to leave free run, rc = %d",
 		       odev->info.name, rc);
@@ -1657,6 +1677,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->alsa_stream = SND_PCM_STREAM_PLAYBACK;
 		aio->base.set_volume = set_alsa_volume;
 		aio->base.set_mute = set_alsa_volume;
+		aio->base.output_underrun = alsa_output_underrun;
 	}
 	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;

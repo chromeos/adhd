@@ -33,6 +33,7 @@ static unsigned int cras_iodev_get_output_buffer_called;
 static int cras_iodev_prepare_output_before_write_samples_ret;
 static int cras_iodev_reset_request_called;
 static struct cras_iodev *cras_iodev_reset_request_iodev;
+static int cras_iodev_output_underrun_called;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -60,6 +61,7 @@ void ResetGlobalStubData() {
   cras_iodev_prepare_output_before_write_samples_ret = 0;
   cras_iodev_reset_request_called = 0;
   cras_iodev_reset_request_iodev = NULL;
+  cras_iodev_output_underrun_called = 0;
 }
 
 // Test streams and devices manipulation.
@@ -510,7 +512,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
 
   // Assume device is running and there is an underrun. There is no frame
   // queued and there is no sample written in this cycle.
-  // Audio thread should fill one cb level of zeros.
+  // Audio thread should ask iodev to handle output underrun.
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   frames_queued_ = 0;
   cras_iodev_all_streams_written_ret = 0;
@@ -520,7 +522,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
       CRAS_IODEV_STATE_NORMAL_RUN;
 
   write_output_samples(thread_, adev);
-  EXPECT_EQ(FIRST_CB_LEVEL, cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(1, cras_iodev_output_underrun_called);
 
   thread_rm_open_dev(thread_, &iodev);
   TearDownRstream(&rstream);
@@ -882,6 +884,12 @@ int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 {
   cras_iodev_fill_odev_zeros_frames = frames;
+  return 0;
+}
+
+int cras_iodev_output_underrun(struct cras_iodev *odev)
+{
+  cras_iodev_output_underrun_called++;
   return 0;
 }
 

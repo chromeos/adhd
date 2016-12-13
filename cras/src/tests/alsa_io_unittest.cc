@@ -1942,6 +1942,37 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
   EXPECT_EQ(0, aio.filled_zeros_for_draining);
 }
 
+// Reuse AlsaFreeRunTestSuite for output underrun handling because they are
+// similar.
+TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
+  int rc;
+  int16_t *zeros;
+
+  cras_alsa_mmap_begin_buffer = (uint8_t *)calloc(
+      BUFFER_SIZE * 2 * 2,
+      sizeof(*cras_alsa_mmap_begin_buffer));
+  memset(cras_alsa_mmap_begin_buffer, 0xff,
+         sizeof(*cras_alsa_mmap_begin_buffer));
+
+  // Ask alsa_io to handle output underrun.
+  rc = alsa_output_underrun(&aio.base);
+  EXPECT_EQ(0, rc);
+
+  // mmap buffer should be filled with zeros.
+  zeros = (int16_t *)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
+  EXPECT_EQ(0, memcmp(zeros, cras_alsa_mmap_begin_buffer, BUFFER_SIZE * 2 * 2));
+
+  // appl_ptr should be moved to min_buffer_level + min_cb_level ahead of
+  // hw_ptr.
+  EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
+  EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
+            cras_alsa_resume_appl_ptr_ahead);
+
+  free(zeros);
+  free(cras_alsa_mmap_begin_buffer);
+}
+
+
 }  //  namespace
 
 int main(int argc, char **argv) {

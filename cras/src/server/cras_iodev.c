@@ -1042,6 +1042,13 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 	return 0;
 }
 
+int cras_iodev_output_underrun(struct cras_iodev *odev) {
+	if (odev->output_underrun)
+		return odev->output_underrun(odev);
+	else
+		return cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+}
+
 int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 {
 	if (odev->direction != CRAS_STREAM_OUTPUT)
