@@ -11,6 +11,9 @@
 /* Asks main thread to reset a device */
 int cras_device_monitor_reset_device(struct cras_iodev *iodev);
 
+/* Asks main thread to set mute/unmute state on a device. */
+int cras_device_monitor_set_device_mute_state(struct cras_iodev *iodev);
+
 /* Initializes device monitor and sets main thread callback. */
 int cras_device_monitor_init();
 

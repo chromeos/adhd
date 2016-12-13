@@ -11,6 +11,7 @@
 
 enum CRAS_DEVICE_MONITOR_MSG_TYPE {
 	RESET_DEVICE,
+	SET_MUTE_STATE,
 };
 
 struct cras_device_monitor_message {
@@ -39,11 +40,28 @@ int cras_device_monitor_reset_device(struct cras_iodev *iodev)
 	init_device_msg(&msg, RESET_DEVICE, iodev);
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send device message");
+		syslog(LOG_ERR, "Failed to send device message %d",
+		       RESET_DEVICE);
 		return err;
 	}
 	return 0;
 }
+
+int cras_device_monitor_set_device_mute_state(struct cras_iodev *iodev)
+{
+	struct cras_device_monitor_message msg;
+	int err;
+
+	init_device_msg(&msg, SET_MUTE_STATE, iodev);
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send device message %d",
+		       SET_MUTE_STATE);
+		return err;
+	}
+	return 0;
+}
+
 
 /* When device is in a bad state, e.g. severe underrun,
  * it might break how audio thread works and cause busy wake up loop.
@@ -64,6 +82,9 @@ static void handle_device_message(struct cras_main_message *msg, void *arg)
 		       iodev->info.idx);
 		cras_iodev_list_disable_dev(iodev);
 		cras_iodev_list_enable_dev(iodev);
+		break;
+	case SET_MUTE_STATE:
+		cras_iodev_set_mute(iodev);
 		break;
 	default:
 		syslog(LOG_ERR, "Unknown device message type %u",
