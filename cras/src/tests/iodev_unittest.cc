@@ -79,6 +79,7 @@ static int dev_stream_playback_frames_ret;
 static int get_num_underruns_ret;
 static int device_monitor_reset_device_called;
 static int output_underrun_called;
+static int set_mute_called;
 
 
 // Iodev callback
@@ -154,6 +155,7 @@ void ResetStubData() {
   get_num_underruns_ret = 0;
   device_monitor_reset_device_called = 0;
   output_underrun_called = 0;
+  set_mute_called = 0;
 }
 
 namespace {
@@ -772,6 +774,11 @@ static void dev_set_capture_gain(struct cras_iodev *iodev)
 {
 }
 
+static void dev_set_mute(struct cras_iodev *iodev)
+{
+  set_mute_called++;
+}
+
 TEST(IoNodePlug, PlugUnplugNode) {
   struct cras_iodev iodev;
   struct cras_ionode ionode, ionode2;
@@ -863,6 +870,24 @@ TEST(IoDev, SetNodeSwapLeftRight) {
   EXPECT_EQ(2, notify_node_left_right_swapped_called);
 }
 
+TEST(IoDev, SetMute) {
+  struct cras_iodev iodev;
+  int rc;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.set_mute = dev_set_mute;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+
+  ResetStubData();
+  rc = cras_iodev_set_mute(&iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, set_mute_called);
+
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  rc = cras_iodev_set_mute(&iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, set_mute_called);
+}
 
 // Test software volume changes for default output.
 TEST(IoDev, SoftwareVolume) {

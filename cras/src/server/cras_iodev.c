@@ -1148,3 +1148,13 @@ int cras_iodev_reset_request(struct cras_iodev* iodev)
 	iodev->reset_request_pending = 1;
 	return cras_device_monitor_reset_device(iodev);
 }
+
+int cras_iodev_set_mute(struct cras_iodev* iodev)
+{
+	if (!cras_iodev_is_open(iodev))
+		return 0;
+
+	if (iodev->set_mute)
+		iodev->set_mute(iodev);
+	return 0;
+}

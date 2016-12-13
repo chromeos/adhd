@@ -633,4 +633,12 @@ int cras_iodev_reset_request(struct cras_iodev* iodev);
  */
 int cras_iodev_output_underrun(struct cras_iodev *odev);
 
+/* Set iodev to mute/unmute state.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_set_mute(struct cras_iodev* iodev);
+
 #endif /* CRAS_IODEV_H_ */
