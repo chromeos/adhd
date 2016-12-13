@@ -473,8 +473,7 @@ int dev_stream_playback_update_rstream(struct dev_stream *dev_stream)
 int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
-	unsigned int str_cb_threshold = cras_rstream_get_cb_threshold(rstream);
-	unsigned int frames_ready = str_cb_threshold;
+	unsigned int frames_ready = cras_rstream_get_cb_threshold(rstream);
 	struct timespec now;
 
 	cras_rstream_update_input_write_pointer(rstream);
