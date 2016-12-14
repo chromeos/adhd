@@ -31,8 +31,8 @@ static unsigned int cras_iodev_prepare_output_before_write_samples_called;
 static enum CRAS_IODEV_STATE cras_iodev_prepare_output_before_write_samples_state;
 static unsigned int cras_iodev_get_output_buffer_called;
 static int cras_iodev_prepare_output_before_write_samples_ret;
-static int cras_device_monitor_reset_device_called;
-static struct cras_iodev *cras_device_monitor_reset_device_iodev;
+static int cras_iodev_reset_request_called;
+static struct cras_iodev *cras_iodev_reset_request_iodev;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -58,8 +58,8 @@ void ResetGlobalStubData() {
   cras_iodev_prepare_output_before_write_samples_state = CRAS_IODEV_STATE_OPEN;
   cras_iodev_get_output_buffer_called = 0;
   cras_iodev_prepare_output_before_write_samples_ret = 0;
-  cras_device_monitor_reset_device_called = 0;
-  cras_device_monitor_reset_device_iodev = NULL;
+  cras_iodev_reset_request_called = 0;
+  cras_iodev_reset_request_iodev = NULL;
 }
 
 // Test streams and devices manipulation.
@@ -552,9 +552,9 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
 
   do_playback(thread_);
 
-  // Audio thread should trigger device monitor to reset device.
-  EXPECT_EQ(1, cras_device_monitor_reset_device_called);
-  EXPECT_EQ(&iodev, cras_device_monitor_reset_device_iodev);
+  // Audio thread should ask main thread to reset device.
+  EXPECT_EQ(1, cras_iodev_reset_request_called);
+  EXPECT_EQ(&iodev, cras_iodev_reset_request_iodev);
 
   thread_rm_open_dev(thread_, &iodev);
   TearDownRstream(&rstream);
@@ -939,10 +939,10 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
   return 0;
 }
 
-int cras_device_monitor_reset_device(struct cras_iodev *iodev)
+int cras_iodev_reset_request(struct cras_iodev *iodev)
 {
-  cras_device_monitor_reset_device_called++;
-  cras_device_monitor_reset_device_iodev = iodev;
+  cras_iodev_reset_request_called++;
+  cras_iodev_reset_request_iodev = iodev;
   return 0;
 }
 

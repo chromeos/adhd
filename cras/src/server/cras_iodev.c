@@ -14,6 +14,7 @@
 #include "audio_thread_log.h"
 #include "buffer_share.h"
 #include "cras_audio_area.h"
+#include "cras_device_monitor.h"
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
 #include "cras_fmt_conv.h"
@@ -796,6 +797,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;
 
+	iodev->reset_request_pending = 0;
 	iodev->state = CRAS_IODEV_STATE_OPEN;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
@@ -1120,4 +1122,22 @@ unsigned int cras_iodev_get_num_severe_underruns(const struct cras_iodev *iodev)
 	if (iodev->get_num_severe_underruns)
 		return iodev->get_num_severe_underruns(iodev);
 	return 0;
+}
+
+int cras_iodev_reset_request(struct cras_iodev* iodev)
+{
+	/* Ignore requests if there is a pending request.
+	 * This function sends the request from audio thread to main
+	 * thread when audio thread finds a device is in a bad state
+	 * e.g. severe underrun. Before main thread receives the
+	 * request and resets device, audio thread might try to send
+	 * multiple requests because it finds device is still in bad
+	 * state. We should ignore requests in this cause. Otherwise,
+	 * main thread will reset device multiple times.
+	 * The flag is cleared in cras_iodev_open.
+	 * */
+	if (iodev->reset_request_pending)
+		return 0;
+	iodev->reset_request_pending = 1;
+	return cras_device_monitor_reset_device(iodev);
 }

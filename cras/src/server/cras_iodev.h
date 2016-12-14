@@ -162,6 +162,7 @@ struct cras_ionode {
  *     reference.
  * pre_dsp_hook_cb_data - Callback data that will be passing to pre_dsp_hook.
  * post_dsp_hook_cb_data - Callback data that will be passing to post_dsp_hook.
+ * reset_request_pending - The flag for pending reset request.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -220,6 +221,7 @@ struct cras_iodev {
 	loopback_hook_t post_dsp_hook;
 	void *pre_dsp_hook_cb_data;
 	void *post_dsp_hook_cb_data;
+	int reset_request_pending;
 	struct cras_iodev *prev, *next;
 };
 
@@ -610,5 +612,15 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev);
  */
 unsigned int cras_iodev_get_num_severe_underruns(
 		const struct cras_iodev *iodev);
+
+/* Request main thread to re-open device. This should be used in audio thread
+ * when it finds device is in a bad state. The request will be ignored if
+ * there is still a pending request.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_reset_request(struct cras_iodev* iodev);
 
 #endif /* CRAS_IODEV_H_ */
