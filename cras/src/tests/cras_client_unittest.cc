@@ -23,6 +23,9 @@ static int pipe_called;
 static int sendmsg_called;
 static int write_called;
 static void *mmap_return_value;
+static int samples_ready_called;
+static int samples_ready_frames_value;
+static uint8_t *samples_ready_samples_value;
 
 static int pthread_create_returned_value;
 
@@ -39,6 +42,8 @@ void InitStaticVariables() {
   write_called = 0;
   pthread_create_returned_value = 0;
   mmap_return_value = NULL;
+  samples_ready_called = 0;
+  samples_ready_frames_value = 0;
 }
 
 class CrasClientTestSuite : public testing::Test {
@@ -100,6 +105,65 @@ void set_audio_format(struct cras_audio_format* format,
   format->num_channels = num_channels;
   for (size_t i = 0; i < CRAS_CH_MAX; ++i)
     format->channel_layout[i] = i < num_channels ? i : -1;
+}
+
+int capture_samples_ready(cras_client* client,
+                          cras_stream_id_t stream_id,
+                          uint8_t* samples,
+                          size_t frames,
+                          const timespec* sample_ts,
+                          void* arg) {
+  samples_ready_called++;
+  samples_ready_samples_value = samples;
+  samples_ready_frames_value = frames;
+  return frames;
+}
+
+TEST_F(CrasClientTestSuite, HandleCaptureDataReady) {
+  struct cras_audio_shm *shm = &stream_.capture_shm;
+
+  stream_.direction = CRAS_STREAM_INPUT;
+
+  shm_writable_frames_ = 480;
+  InitShm(shm);
+  stream_.config->buffer_frames = 480;
+  stream_.config->cb_threshold = 480;
+  stream_.config->aud_cb = capture_samples_ready;
+  stream_.config->unified_cb = 0;
+
+  shm->area->write_buf_idx = 0;
+  shm->area->read_buf_idx = 0;
+  shm->area->write_offset[0] = 480 * 4;
+  shm->area->read_offset[0] = 0;
+
+  /* Normal scenario: read buffer has full of data written,
+   * handle_capture_data_ready() should consume all 480 frames and move
+   * read_buf_idx to the next buffer. */
+  handle_capture_data_ready(&stream_, 480);
+  EXPECT_EQ(1, samples_ready_called);
+  EXPECT_EQ(480, samples_ready_frames_value);
+  EXPECT_EQ(cras_shm_buff_for_idx(shm, 0), samples_ready_samples_value);
+  EXPECT_EQ(1, shm->area->read_buf_idx);
+  EXPECT_EQ(0, shm->area->write_offset[0]);
+  EXPECT_EQ(0, shm->area->read_offset[0]);
+
+  /* At the beginning of overrun: handle_capture_data_ready() should not
+   * proceed to call audio_cb because there's no data captured. */
+  shm->area->read_buf_idx = 0;
+  shm->area->write_offset[0] = 0;
+  shm->area->read_offset[0] = 0;
+  handle_capture_data_ready(&stream_, 480);
+  EXPECT_EQ(1, samples_ready_called);
+  EXPECT_EQ(0, shm->area->read_buf_idx);
+
+  /* In the middle of overrun: partially written buffer should trigger
+   * audio_cb, feed the full-sized read buffer to client. */
+  shm->area->read_buf_idx = 0;
+  shm->area->write_offset[0] = 123;
+  shm->area->read_offset[0] = 0;
+  handle_capture_data_ready(&stream_, 480);
+  EXPECT_EQ(1, samples_ready_called);
+  EXPECT_EQ(0, shm->area->read_buf_idx);
 }
 
 void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {

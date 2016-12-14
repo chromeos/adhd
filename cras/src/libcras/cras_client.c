@@ -1040,10 +1040,6 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 				       uint8_t **captured_frames,
 				       unsigned int num_frames)
 {
-	/* Zero readable frames means overrun has happened in server side. */
-	if (cras_shm_get_curr_read_frames(&stream->capture_shm) == 0)
-		return 0;
-
 	/* Always return the beginning of the read buffer because Chrome expects
 	 * so. */
 	*captured_frames = cras_shm_get_read_buffer_base(&stream->capture_shm);
@@ -1053,6 +1049,12 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 		num_frames = MIN(num_frames, stream->config->buffer_frames);
 	else
 		num_frames = MIN(num_frames, stream->config->cb_threshold);
+
+	/* If shm readable frames is less than client requests, that means
+	 * overrun has happened in server side. Don't send partial corrupted
+	 * buffer to client. */
+	if (cras_shm_get_curr_read_frames(&stream->capture_shm) < num_frames)
+		return 0;
 
 	return num_frames;
 }
