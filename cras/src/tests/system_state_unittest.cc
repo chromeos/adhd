@@ -115,6 +115,17 @@ TEST(SystemStateSuite, SetCaptureVolume) {
   EXPECT_EQ(3, cras_observer_notify_capture_gain_called);
 }
 
+TEST(SystemStateSuite, SetMinMaxCaptureGain) {
+  cras_system_state_init(device_config_dir);
+  cras_system_set_capture_gain(3000);
+  cras_system_set_capture_gain_limits(-2000, 2000);
+  EXPECT_EQ(-2000, cras_system_get_min_capture_gain());
+  EXPECT_EQ(2000, cras_system_get_max_capture_gain());
+  // Current gain is adjusted for range.
+  EXPECT_EQ(2000, cras_system_get_capture_gain());
+  cras_system_state_deinit();
+}
+
 TEST(SystemStateSuite, SetMute) {
   cras_system_state_init(device_config_dir);
   EXPECT_EQ(0, cras_system_get_mute());

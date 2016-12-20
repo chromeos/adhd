@@ -161,8 +161,10 @@ size_t cras_system_get_volume()
 
 void cras_system_set_capture_gain(long gain)
 {
-	state.exp_state->capture_gain =
-		MAX(gain, state.exp_state->min_capture_gain);
+	/* Adjust targeted gain to be in supported range. */
+	gain = MAX(gain, state.exp_state->min_capture_gain);
+	gain = MIN(gain, state.exp_state->max_capture_gain);
+	state.exp_state->capture_gain = gain;
 	cras_observer_notify_capture_gain(state.exp_state->capture_gain);
 }
 
@@ -281,6 +283,8 @@ void cras_system_set_capture_gain_limits(long min, long max)
 {
 	state.exp_state->min_capture_gain = MAX(min, DEFAULT_MIN_CAPTURE_GAIN);
 	state.exp_state->max_capture_gain = max;
+	/* Current gain needs to be in the supported range. */
+	cras_system_set_capture_gain(state.exp_state->capture_gain);
 }
 
 long cras_system_get_min_capture_gain()
