@@ -1713,7 +1713,7 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromJack)
   EXPECT_EQ(&hp_curve, fake_get_dBFS_volume_curve_val);
 }
 
-TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
+TEST_F(AlsaVolumeMuteSuite, SetVolume) {
   int rc;
   struct cras_audio_format *fmt;
   const size_t fake_system_volume = 55;
@@ -1730,34 +1730,23 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
-  EXPECT_EQ(1, alsa_mixer_set_mute_called);
-  EXPECT_EQ(0, alsa_mixer_set_mute_value);
 
-  alsa_mixer_set_mute_called = 0;
-  alsa_mixer_set_mute_value = 0;
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_dBFS_value = 0;
   sys_get_volume_return_value = 50;
   sys_get_volume_called = 0;
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(1, sys_get_volume_called);
-  EXPECT_EQ(1, alsa_mixer_set_mute_called);
-  EXPECT_EQ(0, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-5000, alsa_mixer_set_dBFS_value);
   EXPECT_EQ(output_control_, alsa_mixer_set_dBFS_output);
 
-  alsa_mixer_set_mute_called = 0;
-  alsa_mixer_set_mute_value = 0;
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_dBFS_value = 0;
   sys_get_volume_return_value = 0;
   sys_get_volume_called = 0;
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(1, sys_get_volume_called);
-  EXPECT_EQ(1, alsa_mixer_set_mute_called);
-  // Mute control is not set at volume 0.
-  EXPECT_EQ(0, alsa_mixer_set_mute_value);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 
@@ -1772,6 +1761,38 @@ TEST_F(AlsaVolumeMuteSuite, SetVolumeAndMute) {
   EXPECT_EQ((void *)NULL, aio_output_->handle);
 
   free(fmt);
+}
+
+TEST_F(AlsaVolumeMuteSuite, SetMute) {
+  int muted;
+
+  aio_output_->handle = (snd_pcm_t *)0x24;
+
+  // Test mute.
+  ResetStubData();
+  muted = 1;
+
+  sys_get_mute_return_value = muted;
+
+  aio_output_->base.set_mute(&aio_output_->base);
+
+  EXPECT_EQ(1, sys_get_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(muted, alsa_mixer_set_mute_value);
+  EXPECT_EQ(output_control_, alsa_mixer_set_mute_output);
+
+  // Test unmute.
+  ResetStubData();
+  muted = 0;
+
+  sys_get_mute_return_value = muted;
+
+  aio_output_->base.set_mute(&aio_output_->base);
+
+  EXPECT_EQ(1, sys_get_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
+  EXPECT_EQ(muted, alsa_mixer_set_mute_value);
+  EXPECT_EQ(output_control_, alsa_mixer_set_mute_output);
 }
 
 //  Test free run.

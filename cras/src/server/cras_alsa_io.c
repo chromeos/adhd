@@ -554,8 +554,8 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 			curve->get_dBFS(curve, CRAS_MAX_SYSTEM_VOLUME));
 }
 
-/* Sets the alsa mute state for this iodev. */
-static void set_alsa_mute(const struct alsa_io *aio, int muted)
+/* Sets the alsa mute control for this iodev. */
+static void set_alsa_mute_control(const struct alsa_io *aio, int muted)
 {
 	struct alsa_output_node *aout;
 
@@ -571,14 +571,12 @@ static void set_alsa_mute(const struct alsa_io *aio, int muted)
 
 /* Sets the volume of the playback device to the specified level. Receives a
  * volume index from the system settings, ranging from 0 to 100, converts it to
- * dB using the volume curve, and sends the dB value to alsa. Handles mute and
- * unmute, including muting when volume is zero. */
+ * dB using the volume curve, and sends the dB value to alsa. */
 static void set_alsa_volume(struct cras_iodev *iodev)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)iodev;
 	const struct cras_volume_curve *curve;
 	size_t volume;
-	int mute;
 	struct alsa_output_node *aout;
 
 	assert(aio);
@@ -590,7 +588,6 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 		return;
 
 	volume = cras_system_get_volume();
-	mute = cras_system_get_mute();
 	curve = get_curve_for_active_output(aio);
 	if (curve == NULL)
 		return;
@@ -607,8 +604,13 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 		aio->mixer,
 		curve->get_dBFS(curve, volume),
 		aout ? aout->mixer_output : NULL);
+}
+
+static void set_alsa_mute(struct cras_iodev *iodev)
+{
 	/* Mute for zero. */
-	set_alsa_mute(aio, mute);
+	const struct alsa_io *aio = (const struct alsa_io *)iodev;
+	set_alsa_mute_control(aio, cras_system_get_mute());
 }
 
 /* Sets the capture gain to the current system input gain level, given in dBFS.
@@ -663,6 +665,7 @@ static void init_device_settings(struct alsa_io *aio)
 	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 		set_alsa_volume_limits(aio);
 		set_alsa_volume(&aio->base);
+		set_alsa_mute(&aio->base);
 	} else {
 		struct mixer_control *mixer_input = NULL;
 		struct alsa_input_node *ain = get_active_input(aio);
@@ -1677,7 +1680,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	} else {
 		aio->alsa_stream = SND_PCM_STREAM_PLAYBACK;
 		aio->base.set_volume = set_alsa_volume;
-		aio->base.set_mute = set_alsa_volume;
+		aio->base.set_mute = set_alsa_mute;
 		aio->base.output_underrun = alsa_output_underrun;
 	}
 	iodev->open_dev = open_dev;
@@ -1987,7 +1990,7 @@ static void alsa_iodev_unmute_node(struct alsa_io *aio,
 	 * active mixer output and mute all others, otherwise just set
 	 * the node as active and set the volume curve. */
 	if (mixer) {
-		set_alsa_mute(aio, 1);
+		set_alsa_mute_control(aio, 1);
 		/* Unmute the active mixer output, mute all others. */
 		DL_FOREACH(aio->base.nodes, node) {
 			output = (struct alsa_output_node *)node;
