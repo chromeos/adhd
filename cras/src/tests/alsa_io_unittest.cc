@@ -1404,6 +1404,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
   ASSERT_EQ(CRAS_NODE_TYPE_UNKNOWN, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1413,6 +1414,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_INTERNAL_SPEAKER, node.type);
+  ASSERT_EQ(NODE_POSITION_INTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1421,7 +1423,8 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
-  ASSERT_EQ(CRAS_NODE_TYPE_INTERNAL_MIC, node.type);
+  ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
+  ASSERT_EQ(NODE_POSITION_INTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1431,6 +1434,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(0, node.plugged_time.tv_sec);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1439,6 +1443,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1447,6 +1452,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1455,6 +1461,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1463,6 +1470,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1471,6 +1479,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1479,6 +1488,25 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  strcpy(node.name, "Front Mic");
+  dev.direction = CRAS_STREAM_INPUT;
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
+  ASSERT_EQ(NODE_POSITION_FRONT, node.position);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  strcpy(node.name, "Rear Mic");
+  dev.direction = CRAS_STREAM_INPUT;
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(1, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
+  ASSERT_EQ(NODE_POSITION_REAR, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1487,6 +1515,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1495,6 +1524,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1503,6 +1533,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1512,6 +1543,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1521,6 +1553,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_HAPTIC, node.type);
+  ASSERT_EQ(NODE_POSITION_INTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1530,6 +1563,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(1, node.plugged);
   ASSERT_GT(node.plugged_time.tv_sec, 0);
   ASSERT_EQ(CRAS_NODE_TYPE_HAPTIC, node.type);
+  ASSERT_EQ(NODE_POSITION_INTERNAL, node.position);
 }
 
 TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {

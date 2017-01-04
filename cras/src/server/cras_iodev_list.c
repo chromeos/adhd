@@ -176,9 +176,9 @@ static void fill_dev_list(struct iodev_list *list,
 	}
 }
 
-static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
+static const char *node_type_to_str(struct cras_ionode *node)
 {
-	switch (type) {
+	switch (node->type) {
 	case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
 		return "INTERNAL_SPEAKER";
 	case CRAS_NODE_TYPE_HEADPHONE:
@@ -187,10 +187,20 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "HDMI";
 	case CRAS_NODE_TYPE_HAPTIC:
 		return "HAPTIC";
-	case CRAS_NODE_TYPE_INTERNAL_MIC:
-		return "INTERNAL_MIC";
 	case CRAS_NODE_TYPE_MIC:
-		return "MIC";
+		switch (node->position) {
+		case NODE_POSITION_INTERNAL:
+			return "INTERNAL_MIC";
+		case NODE_POSITION_FRONT:
+			return "FRONT_MIC";
+		case NODE_POSITION_REAR:
+			return "REAR_MIC";
+		case NODE_POSITION_KEYBOARD:
+			return "KEYBOARD_MIC";
+		case NODE_POSITION_EXTERNAL:
+		default:
+			return "MIC";
+		}
 	case CRAS_NODE_TYPE_HOTWORD:
 		return "HOTWORD";
 	case CRAS_NODE_TYPE_LINEOUT:
@@ -203,8 +213,6 @@ static const char *node_type_to_str(enum CRAS_NODE_TYPE type)
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:
 		return "BLUETOOTH";
-	case CRAS_NODE_TYPE_KEYBOARD_MIC:
-		return "KEYBOARD_MIC";
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
 		return "UNKNOWN";
@@ -240,7 +248,7 @@ static int fill_node_list(struct iodev_list *list,
 			strcpy(node_info->active_hotword_model,
 				node->active_hotword_model);
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
-				node_type_to_str(node->type));
+				node_type_to_str(node));
 			node_info->type_enum = node->type;
 			node_info++;
 			i++;

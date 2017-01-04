@@ -364,7 +364,6 @@ enum CRAS_NODE_TYPE {
 	CRAS_NODE_TYPE_HAPTIC,
 	CRAS_NODE_TYPE_LINEOUT,
 	/* These value can be used for input nodes. */
-	CRAS_NODE_TYPE_INTERNAL_MIC,
 	CRAS_NODE_TYPE_MIC,
 	CRAS_NODE_TYPE_HOTWORD,
 	CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
@@ -372,8 +371,26 @@ enum CRAS_NODE_TYPE {
 	/* These value can be used for both output and input nodes. */
 	CRAS_NODE_TYPE_USB,
 	CRAS_NODE_TYPE_BLUETOOTH,
-	CRAS_NODE_TYPE_KEYBOARD_MIC,
 	CRAS_NODE_TYPE_UNKNOWN,
+};
+
+/* Position values to described where a node locates on the system.
+ * NODE_POSITION_EXTERNAL - The node works only when peripheral
+ *     is plugged.
+ * NODE_POSITION_INTERNAL - The node lives on the system and doesn't
+ *     have specific direction.
+ * NODE_POSITION_FRONT - The node locates on the side of system that
+ *     faces user.
+ * NODE_POSITION_REAR - The node locates on the opposite side of
+ *     the system that faces user.
+ * NODE_POSITION_KEYBOARD - The node locates under the keyboard.
+ */
+enum CRAS_NODE_POSITION {
+	NODE_POSITION_EXTERNAL,
+	NODE_POSITION_INTERNAL,
+	NODE_POSITION_FRONT,
+	NODE_POSITION_REAR,
+	NODE_POSITION_KEYBOARD,
 };
 
 #endif /* CRAS_TYPES_H_ */

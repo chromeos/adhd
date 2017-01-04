@@ -150,6 +150,89 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 				      struct cras_ionode *ionode,
 				      unsigned dev_enabled);
 
+/* Defines the default values of nodes. */
+static const struct {
+	const char *name;
+	enum CRAS_NODE_TYPE type;
+	enum CRAS_NODE_POSITION position;
+} node_defaults[] = {
+	{
+		.name = DEFAULT,
+		.type = CRAS_NODE_TYPE_UNKNOWN,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = INTERNAL_SPEAKER,
+		.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = INTERNAL_MICROPHONE,
+		.type = CRAS_NODE_TYPE_MIC,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = KEYBOARD_MIC,
+		.type = CRAS_NODE_TYPE_MIC,
+		.position = NODE_POSITION_KEYBOARD,
+	},
+	{
+		.name = HDMI,
+		.type = CRAS_NODE_TYPE_HDMI,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+	{
+		.name = "IEC958",
+		.type = CRAS_NODE_TYPE_HDMI,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+	{
+		.name = "Headphone",
+		.type = CRAS_NODE_TYPE_HEADPHONE,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+	{
+		.name = "Front Headphone",
+		.type = CRAS_NODE_TYPE_HEADPHONE,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+	{
+		.name = "Front Mic",
+		.type = CRAS_NODE_TYPE_MIC,
+		.position = NODE_POSITION_FRONT,
+	},
+	{
+		.name = "Rear Mic",
+		.type = CRAS_NODE_TYPE_MIC,
+		.position = NODE_POSITION_REAR,
+	},
+	{
+		.name = "Mic",
+		.type = CRAS_NODE_TYPE_MIC,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+	{
+		.name = HOTWORD_DEV,
+		.type = CRAS_NODE_TYPE_HOTWORD,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = "Haptic",
+		.type = CRAS_NODE_TYPE_HAPTIC,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = "Rumbler",
+		.type = CRAS_NODE_TYPE_HAPTIC,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = "Line Out",
+		.type = CRAS_NODE_TYPE_LINEOUT,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+};
+
 /*
  * iodev callbacks.
  */
@@ -790,25 +873,7 @@ static void drop_node_name(struct cras_ionode *node)
 static void set_node_initial_state(struct cras_ionode *node,
 				   enum CRAS_ALSA_CARD_TYPE card_type)
 {
-	static const struct {
-		const char *name;
-		int initial_plugged;
-		enum CRAS_NODE_TYPE type;
-	} node_defaults[] = {
-		{ DEFAULT, 1, CRAS_NODE_TYPE_UNKNOWN},
-		{ INTERNAL_SPEAKER, 1, CRAS_NODE_TYPE_INTERNAL_SPEAKER },
-		{ INTERNAL_MICROPHONE, 1, CRAS_NODE_TYPE_INTERNAL_MIC },
-		{ KEYBOARD_MIC, 1, CRAS_NODE_TYPE_KEYBOARD_MIC },
-		{ HDMI, 0, CRAS_NODE_TYPE_HDMI },
-		{ "IEC958", 0, CRAS_NODE_TYPE_HDMI },
-		{ "Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
-		{ "Front Headphone", 0, CRAS_NODE_TYPE_HEADPHONE },
-		{ "Mic", 0, CRAS_NODE_TYPE_MIC },
-		{ HOTWORD_DEV, 1, CRAS_NODE_TYPE_HOTWORD },
-		{ "Haptic", 1, CRAS_NODE_TYPE_HAPTIC },
-		{ "Rumbler", 1, CRAS_NODE_TYPE_HAPTIC },
-		{ "Line Out", 0, CRAS_NODE_TYPE_LINEOUT},
-	};
+
 	unsigned i;
 
 	node->volume = 100;
@@ -817,7 +882,9 @@ static void set_node_initial_state(struct cras_ionode *node,
 	for (i = 0; i < ARRAY_SIZE(node_defaults); i++)
 		if (!strncmp(node->name, node_defaults[i].name,
 			     strlen(node_defaults[i].name))) {
-			node->plugged = node_defaults[i].initial_plugged;
+			node->position = node_defaults[i].position;
+			node->plugged = (node->position
+					!= NODE_POSITION_EXTERNAL);
 			node->type = node_defaults[i].type;
 			if (node->plugged)
 				gettimeofday(&node->plugged_time, NULL);
@@ -845,8 +912,10 @@ static void set_node_initial_state(struct cras_ionode *node,
 	/* Regardless of the node name of a USB headset (it can be "Speaker"),
 	 * set it's type to usb.
 	 */
-	if (card_type == ALSA_CARD_TYPE_USB)
+	if (card_type == ALSA_CARD_TYPE_USB) {
 		node->type = CRAS_NODE_TYPE_USB;
+		node->position = NODE_POSITION_EXTERNAL;
+	}
 
 	if (!is_utf8_string(node->name))
 		drop_node_name(node);
@@ -1100,7 +1169,8 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 
 	if (aio->ucm) {
 		/* Check mic positions only for internal mic. */
-		if (input->base.type == CRAS_NODE_TYPE_INTERNAL_MIC) {
+		if ((input->base.type == CRAS_NODE_TYPE_MIC) &&
+		    (input->base.position == NODE_POSITION_INTERNAL)) {
 			mic_positions = ucm_get_mic_positions(aio->ucm);
 			if (mic_positions) {
 				strncpy(input->base.mic_positions,
