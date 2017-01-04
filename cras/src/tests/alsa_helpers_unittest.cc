@@ -224,6 +224,7 @@ TEST(AlsaHelper, GetAvailFramesSevereUnderrun) {
                                   &avail, &tstamp, &underruns);
   // Returns -EPIPE when severe underrun happens.
   EXPECT_EQ(rc, -EPIPE);
+  EXPECT_EQ(1, underruns);
 
   ResetStubData();
   snd_pcm_htimestamp_avail_ret_val = buffer_size + severe_underrun_frames;
@@ -231,8 +232,30 @@ TEST(AlsaHelper, GetAvailFramesSevereUnderrun) {
                                   severe_underrun_frames, dev_name,
                                   &avail, &tstamp, &underruns);
   // Underrun which is not severe enough will be masked.
+  // avail will be adjusted to buffer_size.
   EXPECT_EQ(avail, buffer_size);
   EXPECT_EQ(rc, 0);
+  EXPECT_EQ(2, underruns);
+
+  ResetStubData();
+  snd_pcm_htimestamp_avail_ret_val = buffer_size;
+  rc = cras_alsa_get_avail_frames(dummy_handle, buffer_size,
+                                  severe_underrun_frames, dev_name,
+                                  &avail, &tstamp, &underruns);
+  // When avail == buffer_size, num_underruns will be increased.
+  EXPECT_EQ(avail, buffer_size);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(3, underruns);
+
+  ResetStubData();
+  snd_pcm_htimestamp_avail_ret_val = buffer_size - 1;
+  rc = cras_alsa_get_avail_frames(dummy_handle, buffer_size,
+                                  severe_underrun_frames, dev_name,
+                                  &avail, &tstamp, &underruns);
+  // When avail < buffer_size, there is no underrun.
+  EXPECT_EQ(avail, buffer_size - 1);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(3, underruns);
 }
 } // namespace
 
