@@ -45,7 +45,7 @@ static const char *use_case_verbs[] = {
 	"HiFi",
 	"Multimedia",
 	"Voice Call",
-	"Voice",
+	"Speech",
 	"Pro Audio",
 };
 

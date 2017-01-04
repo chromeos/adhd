@@ -180,10 +180,10 @@ TEST_F(RstreamTestSuite, VerifyStreamTypes) {
   cras_rstream_destroy(s);
 
   config_.direction = CRAS_STREAM_INPUT;
-  config_.stream_type = CRAS_STREAM_TYPE_VOICE_RECOGNITION;
+  config_.stream_type = CRAS_STREAM_TYPE_SPEECH_RECOGNITION;
   rc = cras_rstream_create(&config_, &s);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(CRAS_STREAM_TYPE_VOICE_RECOGNITION, cras_rstream_get_type(s));
+  EXPECT_EQ(CRAS_STREAM_TYPE_SPEECH_RECOGNITION, cras_rstream_get_type(s));
   cras_rstream_destroy(s);
 
   config_.stream_type = CRAS_STREAM_TYPE_PRO_AUDIO;

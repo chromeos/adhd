@@ -1311,8 +1311,8 @@ TEST(AlsaUcm, CheckUseCaseVerbs) {
   EXPECT_EQ(0, strcmp("Multimedia", uc_verb(mgr)));
   mgr->use_case = CRAS_STREAM_TYPE_VOICE_COMMUNICATION;
   EXPECT_EQ(0, strcmp("Voice Call", uc_verb(mgr)));
-  mgr->use_case = CRAS_STREAM_TYPE_VOICE_RECOGNITION;
-  EXPECT_EQ(0, strcmp("Voice", uc_verb(mgr)));
+  mgr->use_case = CRAS_STREAM_TYPE_SPEECH_RECOGNITION;
+  EXPECT_EQ(0, strcmp("Speech", uc_verb(mgr)));
   mgr->use_case = CRAS_STREAM_TYPE_PRO_AUDIO;
   EXPECT_EQ(0, strcmp("Pro Audio", uc_verb(mgr)));
 }
@@ -1321,7 +1321,7 @@ TEST(AlsaUcm, GetAvailUseCases) {
   struct cras_use_case_mgr *mgr;
   const char *verbs[] = { "HiFi", "Comment for Verb1",
                           "Voice Call", "Comment for Verb2",
-                          "Voice", "Comment for Verb3" };
+                          "Speech", "Comment for Verb3" };
 
   ResetStubData();
 
@@ -1337,7 +1337,7 @@ TEST(AlsaUcm, SetUseCase) {
   struct cras_use_case_mgr *mgr;
   const char *verbs[] = { "HiFi", "Comment for Verb1",
                           "Voice Call", "Comment for Verb2",
-                          "Voice", "Comment for Verb3" };
+                          "Speech", "Comment for Verb3" };
   int rc;
 
   ResetStubData();
