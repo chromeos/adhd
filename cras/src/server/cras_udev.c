@@ -287,6 +287,7 @@ static void device_add_alsa(struct udev_device *dev,
 			    unsigned internal)
 {
 	struct cras_alsa_card_info card_info;
+	memset(&card_info, 0, sizeof(card_info));
 
 	udev_delay_for_alsa();
 	card_info.card_index = card;
