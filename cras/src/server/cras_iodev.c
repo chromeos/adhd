@@ -864,10 +864,13 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	const struct cras_audio_format *fmt = iodev->format;
 	struct cras_fmt_conv * remix_converter =
 			audio_thread_get_global_remix_converter();
-	struct cras_ramp_action ramp_action;
+	struct cras_ramp_action ramp_action = {
+		.type = CRAS_RAMP_ACTION_NONE,
+		.scaler = 0.0f,
+		.increment = 0.0f,
+	};
 	float software_volume_scaler;
 	int software_volume_needed = cras_iodev_software_volume_needed(iodev);
-	int is_ramping = 0;
 
 	if (iodev->pre_dsp_hook)
 		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
@@ -875,13 +878,12 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 
 	if (iodev->ramp) {
 		ramp_action = cras_ramp_get_current_action(iodev->ramp);
-		if (ramp_action.type == CRAS_RAMP_ACTION_PARTIAL)
-			is_ramping = 1;
 	}
 
 	/* Mute samples if adjusted volume is 0 or system is muted, plus
 	 * that this device is not ramping. */
-	if (output_should_mute(iodev) && !is_ramping) {
+	if (output_should_mute(iodev) &&
+	    ramp_action.type != CRAS_RAMP_ACTION_PARTIAL) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
 	} else {
@@ -897,8 +899,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				cras_iodev_get_software_volume_scaler(iodev);
 		}
 
-		if (iodev->ramp &&
-		    ramp_action.type == CRAS_RAMP_ACTION_PARTIAL) {
+		if (ramp_action.type == CRAS_RAMP_ACTION_PARTIAL) {
 			/* Scale with increment for ramp and possibly
 			 * software volume using cras_scale_buffer_increment.*/
 			float starting_scaler = ramp_action.scaler;
