@@ -16,5 +16,10 @@ if [ -f /etc/cras/get_device_config_dir ]; then
   DEVICE_CONFIG_DIR="--device_config_dir=${device_config_dir}"
   DSP_CONFIG="--dsp_config=${device_config_dir}/dsp.ini"
 fi
+if [ -f /etc/cras/get_internal_ucm_suffix ]; then
+  internal_ucm_suffix="$(sh /etc/cras/get_internal_ucm_suffix)"
+  INTERNAL_UCM_SUFFIX="--internal_ucm_suffix=${internal_ucm_suffix}"
+fi
 exec minijail0 -u cras -g cras -G -- /usr/bin/cras \
-    ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE}
+    ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE} \
+    ${INTERNAL_UCM_SUFFIX}
