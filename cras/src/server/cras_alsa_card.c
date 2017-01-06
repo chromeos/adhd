@@ -3,6 +3,10 @@
  * found in the LICENSE file.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* For asprintf */
+#endif
+
 #include <alsa/asoundlib.h>
 #include <syslog.h>
 
@@ -412,7 +416,8 @@ error:
 struct cras_alsa_card *cras_alsa_card_create(
 		struct cras_alsa_card_info *info,
 		const char *device_config_dir,
-		struct cras_device_blacklist *blacklist)
+		struct cras_device_blacklist *blacklist,
+		const char *ucm_suffix)
 {
 	snd_ctl_t *handle = NULL;
 	int rc, n;
@@ -464,9 +469,23 @@ struct cras_alsa_card *cras_alsa_card_create(
 		syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
 
 	/* Create a use case manager if a configuration is available. */
-	alsa_card->ucm = ucm_create(card_name);
-	syslog(LOG_INFO, "Card %s (%s) has UCM: %s",
-		alsa_card->name, card_name, alsa_card->ucm ? "yes" : "no");
+	if (ucm_suffix) {
+		char *ucm_name;
+		if (asprintf(&ucm_name, "%s.%s", card_name, ucm_suffix) == -1) {
+			syslog(LOG_ERR, "Error creating ucm name");
+			goto error_bail;
+		}
+		alsa_card->ucm = ucm_create(ucm_name);
+		syslog(LOG_INFO, "Card %s (%s) has UCM: %s",
+		       alsa_card->name, ucm_name,
+		       alsa_card->ucm ? "yes" : "no");
+		free(ucm_name);
+	} else {
+		alsa_card->ucm = ucm_create(card_name);
+		syslog(LOG_INFO, "Card %s (%s) has UCM: %s",
+		       alsa_card->name, card_name,
+		       alsa_card->ucm ? "yes" : "no");
+	}
 
 	rc = snd_hctl_open(&alsa_card->hctl,
 			   alsa_card->name,

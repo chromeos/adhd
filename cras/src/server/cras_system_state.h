@@ -35,6 +35,9 @@ struct cras_tm;
 void cras_system_state_init(const char *device_config_dir);
 void cras_system_state_deinit();
 
+/* Sets the suffix string to control which UCM config fo load. */
+void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix);
+
 /* Sets the system volume.  Will be applied by the active device. */
 void cras_system_set_volume(size_t volume);
 /* Gets the current system volume. */

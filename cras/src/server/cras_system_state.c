@@ -36,6 +36,8 @@ struct card_list {
  *    shm_fd_ro - fd for shm area of system_state struct, opened read-only.
  *    shm_size - Size of the shm area.
  *    device_config_dir - Directory of device configs where volume curves live.
+ *    internal_ucm_suffix - The suffix to append to internal card name to
+ *        control which ucm config file to load.
  *    device_blacklist - Blacklist of device the server will ignore.
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
@@ -49,6 +51,7 @@ static struct {
 	int shm_fd_ro;
 	size_t shm_size;
 	const char *device_config_dir;
+	const char *internal_ucm_suffix;
 	struct cras_device_blacklist *device_blacklist;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
@@ -115,6 +118,7 @@ void cras_system_state_init(const char *device_config_dir)
 	 * Device blacklist is common to all boards so we do not need
 	 * to change device blacklist at run time. */
 	state.device_config_dir = device_config_dir;
+	state.internal_ucm_suffix = NULL;
 
 	state.tm = cras_tm_init();
 	if (!state.tm) {
@@ -125,6 +129,11 @@ void cras_system_state_init(const char *device_config_dir)
 	/* Read config file for blacklisted devices. */
 	state.device_blacklist =
 		cras_device_blacklist_create(CRAS_CONFIG_FILE_DIR);
+}
+
+void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix)
+{
+	state.internal_ucm_suffix = internal_ucm_suffix;
 }
 
 void cras_system_state_deinit()
@@ -312,9 +321,13 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 		if (card_index == cras_alsa_card_get_index(card->card))
 			return -EINVAL;
 	}
-	alsa_card = cras_alsa_card_create(alsa_card_info,
-					  state.device_config_dir,
-					  state.device_blacklist);
+	alsa_card = cras_alsa_card_create(
+			alsa_card_info,
+			state.device_config_dir,
+			state.device_blacklist,
+			(alsa_card_info->card_type == ALSA_CARD_TYPE_INTERNAL)
+				? state.internal_ucm_suffix
+				: NULL);
 	if (alsa_card == NULL)
 		return -ENOMEM;
 	card = calloc(1, sizeof(*card));
