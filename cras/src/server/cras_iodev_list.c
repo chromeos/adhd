@@ -1040,6 +1040,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 {
 	struct cras_iodev *new_dev = NULL;
 	struct enabled_dev *edev;
+        int new_node_already_enabled = 0;
 	int rc;
 
 	/* find the devices for the id. */
@@ -1053,23 +1054,35 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	if (new_dev && new_dev->direction != direction)
 		return;
 
-	/* If the new device and new node are active already, do nothing. */
-	DL_FOREACH(enabled_devs[direction], edev)
+	/* Determine whether the new device and node are already enabled - if
+	 * they are, the selection algorithm should avoid disabling the new
+	 * device. */
+	DL_FOREACH(enabled_devs[direction], edev) {
 		if (edev->dev == new_dev &&
-		    edev->dev->active_node->idx == node_index_of(node_id))
-			return;
+		    edev->dev->active_node->idx == node_index_of(node_id)) {
+			new_node_already_enabled = 1;
+			break;
+		}
+	}
 
 	/* Enable fallback device during the transition so client will not be
 	 * blocked in this duration, which is as long as 300 ms on some boards
-	 * before new device is opened. */
-	possibly_enable_fallback(direction);
+	 * before new device is opened.
+	 * Note that the fallback node is not needed if the new node is already
+	 * enabled - the new node will remain enabled. */
+	if (!new_node_already_enabled)
+		possibly_enable_fallback(direction);
 
-	/* Disable all devices except for fallback device. */
-	DL_FOREACH(enabled_devs[direction], edev)
-		if (edev->dev != fallback_devs[direction])
+	/* Disable all devices except for fallback device, and the new device,
+	 * provided it is already enabled. */
+	DL_FOREACH(enabled_devs[direction], edev) {
+		if (edev->dev != fallback_devs[direction] &&
+		    !(new_node_already_enabled && edev->dev == new_dev)) {
 			disable_device(edev);
+		}
+	}
 
-	if (new_dev) {
+	if (new_dev && !new_node_already_enabled) {
 		new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
 		rc = enable_device(new_dev);
 		if (rc == 0) {
@@ -1152,6 +1165,12 @@ struct stream_list *cras_iodev_list_get_stream_list()
 int cras_iodev_list_set_device_enabled_callback(
 		device_enabled_callback_t device_enabled_cb, void *cb_data)
 {
+	if (!device_enabled_cb) {
+		device_enabled_callback = NULL;
+		device_enabled_cb_data = NULL;
+		return 0;
+	}
+
 	/* TODO(chinyue): Allow multiple callbacks to be registered. */
 	if (device_enabled_callback) {
 		syslog(LOG_ERR, "Device enabled callback already registered.");

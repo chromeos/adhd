@@ -52,7 +52,9 @@ static void (*cras_tm_timer_cb)(struct cras_timer *t, void *data);
 static void *cras_tm_timer_cb_data;
 static struct timespec clock_gettime_retspec;
 static struct cras_iodev *device_enabled_dev;
+static int device_enabled_count;
 static struct cras_iodev *device_disabled_dev;
+static int device_disabled_count;
 static void *device_enabled_cb_data;
 static struct cras_rstream *audio_thread_add_stream_stream;
 static struct cras_iodev *audio_thread_add_stream_dev;
@@ -451,45 +453,164 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   EXPECT_EQ(1, cras_tm_cancel_timer_called);
 }
 
+static void device_enabled_cb(struct cras_iodev *dev, int enabled,
+                              void *cb_data)
+{
+  if (enabled) {
+    device_enabled_dev = dev;
+    device_enabled_count++;
+  } else {
+    device_disabled_dev = dev;
+    device_disabled_count++;
+  }
+  device_enabled_cb_data = cb_data;
+}
 
 TEST_F(IoDevTestSuite, SelectNode) {
-  struct cras_rstream rstream, rstream2, rstream3;
-  struct cras_rstream *stream_list = NULL;
+  struct cras_rstream rstream, rstream2;
   int rc;
 
   memset(&rstream, 0, sizeof(rstream));
   memset(&rstream2, 0, sizeof(rstream2));
-  memset(&rstream3, 0, sizeof(rstream3));
 
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  node1.idx = 1;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
+  node2.idx = 2;
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
 
   audio_thread_add_open_dev_called = 0;
+  audio_thread_rm_open_dev_called = 0;
+
+  device_enabled_count = 0;
+  device_disabled_count = 0;
+
+  EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(
+      device_enabled_cb, (void *)0xABCD));
+
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 1));
-  DL_APPEND(stream_list, &rstream);
+
+  EXPECT_EQ(1, device_enabled_count);
+  EXPECT_EQ(1, cras_observer_notify_active_node_called);
+  EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+
+  // There should be a disable device call for the fallback device.
+  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+  EXPECT_EQ(1, device_disabled_count);
+  EXPECT_NE(&d1_, device_disabled_dev);
+
+  DL_APPEND(stream_list_get_ret, &rstream);
   stream_add_cb(&rstream);
+
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
 
-  DL_APPEND(stream_list, &rstream2);
+  DL_APPEND(stream_list_get_ret, &rstream2);
   stream_add_cb(&rstream2);
-  EXPECT_EQ(2, audio_thread_add_stream_called);
 
-  stream_list_get_ret = stream_list;
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
-      cras_make_node_id(d2_.info.idx, 1));
-  EXPECT_EQ(6, audio_thread_add_stream_called);
+      cras_make_node_id(d2_.info.idx, 2));
+
+  // Additional enabled devices: fallback device, d2_.
+  EXPECT_EQ(3, device_enabled_count);
+  // Additional disabled devices: d1_, fallback device.
+  EXPECT_EQ(3, device_disabled_count);
+  EXPECT_EQ(3, audio_thread_rm_open_dev_called);
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
+  EXPECT_EQ(&d2_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+
+  // For each stream, the stream is added for fallback device and d2_.
+  EXPECT_EQ(6, audio_thread_add_stream_called);
+
+  EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(NULL, NULL));
 }
 
+TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  node1.idx = 1;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  node2.idx = 2;
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
+
+  audio_thread_add_open_dev_called = 0;
+  audio_thread_rm_open_dev_called = 0;
+  device_enabled_count = 0;
+  device_disabled_count = 0;
+
+  EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(
+      device_enabled_cb, (void *)0xABCD));
+
+  // Add an active node.
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 1));
+
+  EXPECT_EQ(1, device_enabled_count);
+  EXPECT_EQ(1, cras_observer_notify_active_node_called);
+  EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+
+  // There should be a disable device call for the fallback device.
+  EXPECT_EQ(1, device_disabled_count);
+  EXPECT_NE(&d1_, device_disabled_dev);
+  EXPECT_NE(&d2_, device_disabled_dev);
+
+  DL_APPEND(stream_list_get_ret, &rstream);
+  stream_add_cb(&rstream);
+
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  // Add a second active node.
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 2));
+
+  EXPECT_EQ(2, device_enabled_count);
+  EXPECT_EQ(1, device_disabled_count);
+  EXPECT_EQ(2, cras_observer_notify_active_node_called);
+  EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+
+  EXPECT_EQ(2, audio_thread_add_open_dev_called);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+
+  // Select the second added active node - the initially added node should get
+  // disabled.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d2_.info.idx, 2));
+
+  EXPECT_EQ(2, device_enabled_count);
+  EXPECT_EQ(2, device_disabled_count);
+  EXPECT_EQ(3, cras_observer_notify_active_node_called);
+
+  EXPECT_EQ(&d2_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+  EXPECT_EQ(&d1_, device_disabled_dev);
+
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(2, audio_thread_add_open_dev_called);
+  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+
+  EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(NULL, NULL));
+}
 
 TEST_F(IoDevTestSuite, UpdateActiveNode) {
   int rc;
@@ -662,18 +783,11 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 }
 
-static void device_enabled_cb(struct cras_iodev *dev, int enabled,
-                              void *cb_data)
-{
-  if (enabled)
-    device_enabled_dev = dev;
-  else
-    device_disabled_dev = dev;
-  device_enabled_cb_data = cb_data;
-}
-
 // Test enable/disable an iodev.
 TEST_F(IoDevTestSuite, EnableDisableDevice) {
+  device_enabled_count = 0;
+  device_disabled_count = 0;
+
   EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
 
   EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(
@@ -683,16 +797,20 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   cras_iodev_list_enable_dev(&d1_);
   EXPECT_EQ(&d1_, device_enabled_dev);
   EXPECT_EQ((void *)0xABCD, device_enabled_cb_data);
+  EXPECT_EQ(1, device_enabled_count);
   EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
 
   // Disable a device.
   cras_iodev_list_disable_dev(&d1_);
   EXPECT_EQ(&d1_, device_disabled_dev);
+  EXPECT_EQ(1, device_disabled_count);
   EXPECT_EQ((void *)0xABCD, device_enabled_cb_data);
 
   EXPECT_EQ(-EEXIST, cras_iodev_list_set_device_enabled_callback(
       device_enabled_cb, (void *)0xABCD));
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
+
+  EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(NULL, NULL));
 }
 
 // Test adding/removing an input dev to the list.
