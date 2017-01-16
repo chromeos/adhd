@@ -303,9 +303,11 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 	int should_mute = muted || user_muted;
 
 	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-		if (cras_iodev_list_dev_is_enabled(dev) && dev->ramp) {
+		if (cras_iodev_list_dev_is_enabled(dev) && dev->ramp &&
+		    cras_iodev_state(dev) == CRAS_IODEV_STATE_NORMAL_RUN) {
 			/* Start ramping in audio thread and set mute/unmute
-			 * state on device.
+			 * state on device. This should only be done when
+			 * device is running with valid streams.
 			 *
 			 * 1. Mute -> Unmute: Set device unmute state after
 			 *                    ramping is started.

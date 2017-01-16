@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <stdio.h>
 #include <gtest/gtest.h>
+#include <map>
 
 extern "C" {
 #include "audio_thread.h"
@@ -77,6 +78,7 @@ static std::vector<struct cras_iodev*> set_mute_dev_vector;
 static struct cras_iodev *audio_thread_dev_start_ramp_dev;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req ;
+static std::map<const struct cras_iodev*, enum CRAS_IODEV_STATE> cras_iodev_state_ret;
 
 void dummy_update_active_node(struct cras_iodev *iodev,
                               unsigned node_idx,
@@ -733,6 +735,12 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   cras_iodev_list_enable_dev(&d1_);
   cras_iodev_list_enable_dev(&d2_);
 
+  // Assume d1 and d2 devices are in normal run.
+  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NORMAL_RUN;
+  cras_iodev_state_ret[&d2_] = CRAS_IODEV_STATE_NORMAL_RUN;
+  cras_iodev_state_ret[&d3_] = CRAS_IODEV_STATE_CLOSE;
+
+  // Execute the callback.
   observer_ops->output_mute_changed(NULL, 0, 1, 0);
 
   // d1_ should set mute state through audio_thread_dev_start_ramp.
@@ -745,6 +753,28 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   // because it is not enabled.
   EXPECT_EQ(2, set_mute_called);
   EXPECT_EQ(2, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
+
+  // Assume d1_ is changed to no_stream run state
+  // It should not use ramp.
+  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NO_STREAM_RUN;
+
+  // Clear stub data of interest.
+  audio_thread_dev_start_ramp_dev = NULL;
+  audio_thread_dev_start_ramp_called = 0;
+  set_mute_called = 0;
+  set_mute_dev_vector.clear();
+
+  // Execute the callback.
+  observer_ops->output_mute_changed(NULL, 0, 1, 0);
+
+  // Verify three devices all set mute state right away.
+  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
+  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
+  EXPECT_EQ(3, set_mute_called);
+  EXPECT_EQ(3, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 }
@@ -766,6 +796,12 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   cras_iodev_list_enable_dev(&d1_);
   cras_iodev_list_enable_dev(&d2_);
 
+  // Assume d1 and d2 devices are in normal run.
+  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NORMAL_RUN;
+  cras_iodev_state_ret[&d2_] = CRAS_IODEV_STATE_NORMAL_RUN;
+  cras_iodev_state_ret[&d3_] = CRAS_IODEV_STATE_CLOSE;
+
+  // Execute the callback.
   observer_ops->output_mute_changed(NULL, 0, 0, 0);
 
   // d1_ should set mute state through audio_thread_dev_start_ramp.
@@ -779,6 +815,28 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   // because it is not enabled.
   EXPECT_EQ(2, set_mute_called);
   EXPECT_EQ(2, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
+
+  // Assume d1_ is changed to no_stream run state
+  // It should not use ramp.
+  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NO_STREAM_RUN;
+
+  // Clear stub data of interest.
+  audio_thread_dev_start_ramp_dev = NULL;
+  audio_thread_dev_start_ramp_called = 0;
+  set_mute_called = 0;
+  set_mute_dev_vector.clear();
+
+  // Execute the callback.
+  observer_ops->output_mute_changed(NULL, 0, 1, 0);
+
+  // Verify three devices all set mute state right away.
+  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
+  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
+  EXPECT_EQ(3, set_mute_called);
+  EXPECT_EQ(3, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 }
@@ -1353,6 +1411,11 @@ int cras_iodev_set_mute(struct cras_iodev* iodev) {
   set_mute_called++;
   set_mute_dev_vector.push_back(iodev);
   return 0;
+}
+
+enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
+{
+	return cras_iodev_state_ret[iodev];
 }
 
 struct stream_list *stream_list_create(stream_callback *add_cb,
