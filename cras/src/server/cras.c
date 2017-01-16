@@ -84,7 +84,8 @@ int main(int argc, char **argv)
 			}
 			break;
 		case 'u':
-			internal_ucm_suffix = optarg;
+			if (*optarg != 0)
+				internal_ucm_suffix = optarg;
 			break;
 		default:
 			break;
