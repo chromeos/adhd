@@ -191,6 +191,9 @@ void cras_system_notify_mute(void)
 
 void cras_system_set_user_mute(int mute)
 {
+	if (state.exp_state->user_mute == !!mute)
+		return;
+
 	state.exp_state->user_mute = !!mute;
 	cras_system_notify_mute();
 }
@@ -200,12 +203,18 @@ void cras_system_set_mute(int mute)
 	if (state.exp_state->mute_locked)
 		return;
 
+	if (state.exp_state->mute == !!mute)
+		return;
+
 	state.exp_state->mute = !!mute;
 	cras_system_notify_mute();
 }
 
 void cras_system_set_mute_locked(int locked)
 {
+	if (state.exp_state->mute_locked == !!locked)
+		return;
+
 	state.exp_state->mute_locked = !!locked;
 	cras_system_notify_mute();
 }

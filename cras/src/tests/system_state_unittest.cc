@@ -126,17 +126,46 @@ TEST(SystemStateSuite, SetMinMaxCaptureGain) {
   cras_system_state_deinit();
 }
 
-TEST(SystemStateSuite, SetMute) {
+TEST(SystemStateSuite, SetUserMute) {
+  ResetStubData();
   cras_system_state_init(device_config_dir);
+
   EXPECT_EQ(0, cras_system_get_mute());
+
+  cras_system_set_user_mute(0);
+  EXPECT_EQ(0, cras_system_get_mute());
+  EXPECT_EQ(0, cras_observer_notify_output_mute_called);
+
+  cras_system_set_user_mute(1);
+  EXPECT_EQ(1, cras_system_get_mute());
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+
+  cras_system_set_user_mute(22);
+  EXPECT_EQ(1, cras_system_get_mute());
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemStateSuite, SetMute) {
+  ResetStubData();
+  cras_system_state_init(device_config_dir);
+
+  EXPECT_EQ(0, cras_system_get_mute());
+
   cras_system_set_mute(0);
   EXPECT_EQ(0, cras_system_get_mute());
+  EXPECT_EQ(0, cras_observer_notify_output_mute_called);
+
   cras_system_set_mute(1);
   EXPECT_EQ(1, cras_system_get_mute());
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+
   cras_system_set_mute(22);
   EXPECT_EQ(1, cras_system_get_mute());
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+
   cras_system_state_deinit();
-  EXPECT_EQ(3, cras_observer_notify_output_mute_called);
 }
 
 TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
