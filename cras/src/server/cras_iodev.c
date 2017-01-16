@@ -156,6 +156,27 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
 	return 0;
 }
 
+/* Determines if the output device should mute. It considers system mute,
+ * system volume, and active node volume on the device. */
+static int output_should_mute(struct cras_iodev *odev)
+{
+	size_t system_volume;
+	unsigned int adjusted_node_volume;
+
+	/* System mute has highest priority. */
+	if (cras_system_get_mute())
+		return 1;
+
+	/* Then, consider system volume and active node volume. */
+	system_volume = cras_system_get_volume();
+	if (odev->active_node) {
+		adjusted_node_volume = cras_iodev_adjust_node_volume(
+				odev->active_node, system_volume);
+		return (adjusted_node_volume == 0);
+	}
+	return (system_volume == 0);
+}
+
 /* Output device state transition diagram:
  *
  *                           ----------------
@@ -189,7 +210,10 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 {
 	if (odev->state == CRAS_IODEV_STATE_OPEN ||
 	    odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
-		if (odev->ramp)
+		/* Starts ramping up if device should not be muted.
+		 * Both mute and volume are taken into consideration.
+		 */
+		if (odev->ramp && !output_should_mute(odev))
 			cras_iodev_start_ramp(
 				odev,
 				CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK);
@@ -217,27 +241,6 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 		return -EINVAL;
 	}
 	return 0;
-}
-
-/* Determines if the output device should mute. It considers system mute,
- * system volume, and active node volume on the device. */
-static int output_should_mute(struct cras_iodev *odev)
-{
-	size_t system_volume;
-	unsigned int adjusted_node_volume;
-
-	/* System mute has highest priority. */
-	if (cras_system_get_mute())
-		return 1;
-
-	/* Then, consider system volume and active node volume. */
-	system_volume = cras_system_get_volume();
-	if (odev->active_node) {
-		adjusted_node_volume = cras_iodev_adjust_node_volume(
-				odev->active_node, system_volume);
-		return (adjusted_node_volume == 0);
-	}
-	return (system_volume == 0);
 }
 
 /*

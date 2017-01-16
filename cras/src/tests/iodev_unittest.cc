@@ -1572,7 +1572,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
 
-  // Case 4: Assume device with ramp is started and is in no stream state.
+  // Case 4.1: Assume device with ramp is started and is in no stream state.
   iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
   // Assume sample is ready.
   dev_stream_playback_frames_ret = 100;
@@ -1590,7 +1590,23 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
 
   ResetStubData();
 
-  // Case 5: Assume device with ramp is in open state.
+  // Case 4.2: Assume device with ramp is started and is in no stream state.
+  //           But system is muted.
+  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  // Assume system is muted.
+  cras_system_get_mute_return = 1;
+  // Assume sample is ready.
+  dev_stream_playback_frames_ret = 100;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  // Device should not start ramping up because system is muted.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  ResetStubData();
+
+  // Case 5.1: Assume device with ramp is in open state.
   iodev.state = CRAS_IODEV_STATE_OPEN;
   // Assume sample is ready.
   dev_stream_playback_frames_ret = 100;
@@ -1605,6 +1621,21 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
   EXPECT_EQ(NULL, cras_ramp_start_cb_data);
+
+  ResetStubData();
+
+  // Case 5.2: Assume device with ramp is in open state. But system is muted.
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  // Assume system is muted.
+  cras_system_get_mute_return = 1;
+  // Assume sample is ready.
+  dev_stream_playback_frames_ret = 100;
+
+  rc = cras_iodev_prepare_output_before_write_samples(&iodev);
+
+  // Device should not start ramping up because system is muted.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_ramp_start_is_called);
 }
 
 TEST(IoDev, StartRampUp) {
