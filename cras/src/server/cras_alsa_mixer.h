@@ -27,15 +27,12 @@ struct ucm_section;
  * Args:
  *    card_name - Name of the card to open a mixer for.  This is an alsa name of
  *      the form "hw:X" where X ranges from 0 to 31 inclusive.
- *    config - Config info for this card, can be NULL if none found.
  * Returns:
  *    A pointer to the newly created cras_alsa_mixer which must later be freed
  *    by calling cras_alsa_mixer_destroy. The control in the mixer is not added
  *    yet.
  */
-struct cras_alsa_mixer *cras_alsa_mixer_create(
-		const char *card_name,
-		const struct cras_card_config *config);
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name);
 
 /* Adds controls to a cras_alsa_mixer from the given UCM section.
  * Args:
@@ -67,12 +64,6 @@ int cras_alsa_mixer_add_controls_by_name_matching(
  *        cras_alsa_mixer_create.
  */
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer);
-
-/* Gets the default volume curve for this mixer.  This curve will be used if
- * there is not output-node specific curve to use.
- */
-const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
-		const struct cras_alsa_mixer *mixer);
 
 /* Returns if the mixer has any main volume control. */
 int cras_alsa_mixer_has_main_volume(const struct cras_alsa_mixer *cras_mixer);
@@ -239,17 +230,5 @@ struct mixer_control *cras_alsa_mixer_get_input_matching_name(
 int cras_alsa_mixer_set_output_active_state(
 		struct mixer_control *output,
 		int active);
-
-/* Returns a volume curve for the given name.  The name can be that of a
- * control or of a Jack.  Looks for an entry in the ini file (See README
- * for format), or return NULL if the ini file doesn't specify a curve for
- * this name. */
-struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
-		const struct cras_alsa_mixer *cmix,
-		const char *name);
-
-/* Returns a volume curve stored in the output control element, can be null. */
-struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
-		const struct mixer_control *control);
 
 #endif /* _CRAS_ALSA_MIXER_H */

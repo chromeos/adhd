@@ -116,6 +116,7 @@ struct cras_iodev *create_iodev_for_device(
 					   info->card_type,
 					   first,
 					   alsa_card->mixer,
+					   alsa_card->config,
 					   alsa_card->ucm,
 					   alsa_card->hctl,
 					   direction,
@@ -511,8 +512,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 	}
 
 	/* Create one mixer per card. */
-	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name,
-						  alsa_card->config);
+	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name);
 
 	if (alsa_card->mixer == NULL) {
 		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);

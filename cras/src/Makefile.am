@@ -443,7 +443,8 @@ alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	server/cras_alsa_ucm_section.c \
 	server/cras_alsa_mixer_name.c
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server/config
 alsa_io_unittest_LDADD = -lgtest -lpthread
 
 alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \

@@ -63,14 +63,13 @@
 /* This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
- *    jack_curve - In absense of a mixer output, holds a volume curve to use
- *        when this jack is plugged.
- *    jack - The jack associated with the jack_curve (if it exists).
+ *    volume_curve - Volume curve for this node.
+ *    jack - The jack associated with the node.
  */
 struct alsa_output_node {
 	struct cras_ionode base;
 	struct mixer_control *mixer_output;
-	struct cras_volume_curve *jack_curve;
+	struct cras_volume_curve *volume_curve;
 	const struct cras_alsa_jack *jack;
 };
 
@@ -103,6 +102,7 @@ struct alsa_input_node {
                           a possible action is to close/open device.
  * alsa_stream - Playback or capture type.
  * mixer - Alsa mixer used to control volume and mute of the device.
+ * config - Card config for this alsa device.
  * jack_list - List of alsa jack controls for this device.
  * ucm - CRAS use case manager, if configuration is found.
  * mmap_offset - offset returned from mmap_begin.
@@ -116,6 +116,8 @@ struct alsa_input_node {
  *                   while hw_ptr keeps running ahead.
  * filled_zeros_for_draining - The number of zeros filled for draining.
  * severe_underrun_frames - The threshold for severe underrun.
+ * default_volume_curve - Default volume curve that converts from an index
+ *                        to dBFS.
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -133,6 +135,7 @@ struct alsa_io {
 	unsigned int num_severe_underruns;
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
+	const struct cras_card_config *config;
 	struct cras_alsa_jack_list *jack_list;
 	struct cras_use_case_mgr *ucm;
 	snd_pcm_uframes_t mmap_offset;
@@ -142,6 +145,7 @@ struct alsa_io {
 	int is_free_running;
 	unsigned int filled_zeros_for_draining;
 	snd_pcm_uframes_t severe_underrun_frames;
+	struct cras_volume_curve *default_volume_curve;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -607,26 +611,16 @@ static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
 	return (struct alsa_input_node *)aio->base.active_node;
 }
 
-/* Gets the curve for the active output node by below priority:
- * 1. Jack's volume curve.
- * 2. Output mixer control's volume curve.
- * 3. Card mixer's default volume curve.
+/* Gets the curve for the active output node. If the node doesn't have volume
+ * curve specified, return the default volume curve of the parent iodev.
  */
 static const struct cras_volume_curve *get_curve_for_output_node(
 		const struct alsa_io *aio,
 		const struct alsa_output_node *node)
 {
-	struct cras_volume_curve *curve = NULL;
-	if (node) {
-		if (node->jack_curve)
-			return node->jack_curve;
-
-		curve = cras_alsa_mixer_get_output_volume_curve(
-				node->mixer_output);
-		if (curve)
-			return curve;
-	}
-	return cras_alsa_mixer_default_volume_curve(aio->mixer);
+	if (node && node->volume_curve)
+		return node->volume_curve;
+	return aio->default_volume_curve;
 }
 
 /* Gets the curve for the active output. */
@@ -810,7 +804,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	DL_FOREACH(aio->base.nodes, node) {
 		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 			aout = (struct alsa_output_node *)node;
-			cras_volume_curve_destroy(aout->jack_curve);
+			cras_volume_curve_destroy(aout->volume_curve);
 		}
 		cras_iodev_rm_node(&aio->base, node);
 		free(node->softvol_scalers);
@@ -1087,6 +1081,13 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 						   aio->base.info.stable_id_new
 						   );
 	output->mixer_output = cras_output;
+
+	/* Volume curve. */
+	output->volume_curve = cras_card_config_get_volume_curve_for_control(
+			aio->config,
+			name ? name
+			     : cras_alsa_mixer_get_control_name(cras_output));
+
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
 	set_output_node_software_volume_needed(output, aio);
@@ -1277,7 +1278,7 @@ static const char *get_active_dsp_name(struct alsa_io *aio)
 
 /* Creates volume curve for the node associated with given jack. */
 static struct cras_volume_curve *create_volume_curve_for_jack(
-		const struct cras_alsa_mixer *mixer,
+		const struct cras_card_config *config,
 		const struct cras_alsa_jack *jack)
 {
 	struct cras_volume_curve *curve;
@@ -1285,13 +1286,13 @@ static struct cras_volume_curve *create_volume_curve_for_jack(
 
 	/* Use jack's UCM device name as key to get volume curve. */
 	name = cras_alsa_jack_get_ucm_device(jack);
-	curve = cras_alsa_mixer_create_volume_curve_for_name(mixer, name);
+	curve = cras_card_config_get_volume_curve_for_control(config, name);
 	if (curve)
 		return curve;
 
 	/* Use alsa jack's name as key to get volume curve. */
 	name = cras_alsa_jack_get_name(jack);
-	curve = cras_alsa_mixer_create_volume_curve_for_name(mixer, name);
+	curve = cras_card_config_get_volume_curve_for_control(config, name);
 	if (curve)
 		return curve;
 
@@ -1339,9 +1340,10 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			       jack_name, node->base.name);
 
 		/* If we already have the node, associate with the jack. */
-		node->jack_curve = create_volume_curve_for_jack(aio->mixer,
-								jack);
 		node->jack = jack;
+		if (node->volume_curve == NULL)
+			node->volume_curve = create_volume_curve_for_jack(
+					aio->config, jack);
 	}
 
 	syslog(LOG_DEBUG, "%s plugged: %d, %s", jack_name, plugged,
@@ -1726,6 +1728,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
+				     const struct cras_card_config *config,
 				     struct cras_use_case_mgr *ucm,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
@@ -1809,6 +1812,15 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		goto cleanup_iodev;
 
 	aio->mixer = mixer;
+	aio->config = config;
+	if (direction == CRAS_STREAM_OUTPUT) {
+		aio->default_volume_curve =
+				cras_card_config_get_volume_curve_for_control(
+						config, "Default");
+		if (aio->default_volume_curve == NULL)
+			aio->default_volume_curve =
+					cras_volume_curve_create_default();
+	}
 	aio->ucm = ucm;
 	if (ucm) {
 		unsigned int level;
@@ -2008,8 +2020,10 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 	if (jack) {
 		if (output_node) {
 			output_node->jack = jack;
-			output_node->jack_curve =
-				create_volume_curve_for_jack(aio->mixer, jack);
+			if (!output_node->volume_curve)
+				output_node->volume_curve =
+					create_volume_curve_for_jack(
+						aio->config, jack);
 		} else if (input_node) {
 			input_node->jack = jack;
 		}
@@ -2062,6 +2076,7 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 
 	/* Free resources when device successfully removed. */
 	free_alsa_iodev_resources(aio);
+	cras_volume_curve_destroy(aio->default_volume_curve);
 	free(iodev);
 }
 

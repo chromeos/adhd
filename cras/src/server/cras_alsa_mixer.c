@@ -11,9 +11,7 @@
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_mixer_name.h"
 #include "cras_alsa_ucm.h"
-#include "cras_card_config.h"
 #include "cras_util.h"
-#include "cras_volume_curve.h"
 #include "utlist.h"
 
 #define MIXER_CONTROL_VOLUME_DB_INVALID LONG_MAX
@@ -57,7 +55,6 @@ struct mixer_control_element {
  * has_mute - non-zero indicates there is a mute switch.
  * max_volume_dB - Maximum volume available in the volume control.
  * min_volume_dB - Minimum volume available in the volume control.
- * volume_curve - Volume curve for this control.
  */
 struct mixer_control {
 	const char *name;
@@ -67,7 +64,6 @@ struct mixer_control {
 	int has_mute;
 	long max_volume_dB;
 	long min_volume_dB;
-	struct cras_volume_curve *volume_curve;
 	struct mixer_control *prev, *next;
 };
 
@@ -77,11 +73,9 @@ struct mixer_control {
  * playback_switch - Switch used to mute the device.
  * main_capture_controls - List of capture gain controls (normally 'Capture').
  * capture_switch - Switch used to mute the capture stream.
- * volume_curve - Default volume curve that converts from an index to dBFS.
  * max_volume_dB - Maximum volume available in main volume controls.  The dBFS
  *   value setting will be applied relative to this.
  * min_volume_dB - Minimum volume available in main volume controls.
- * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_mixer {
 	snd_mixer_t *mixer;
@@ -91,10 +85,8 @@ struct cras_alsa_mixer {
 	struct mixer_control *main_capture_controls;
 	struct mixer_control *input_controls;
 	snd_mixer_elem_t *capture_switch;
-	struct cras_volume_curve *volume_curve;
 	long max_volume_dB;
 	long min_volume_dB;
-	const struct cras_card_config *config;
 };
 
 /* Wrapper for snd_mixer_open and helpers.
@@ -193,8 +185,6 @@ static void mixer_control_destroy(struct mixer_control *control) {
 	}
 	if (control->name)
 		free((void *)control->name);
-	if (control->volume_curve)
-		cras_volume_curve_destroy(control->volume_curve);
 	free(control);
 }
 
@@ -528,14 +518,6 @@ static int add_main_capture_control(struct cras_alsa_mixer *cmix,
 	return 0;
 }
 
-/* Creates a volume curve for a new output. */
-static struct cras_volume_curve *create_volume_curve_for_output(
-		const struct cras_alsa_mixer *cmix, const char* output_name)
-{
-	return cras_card_config_get_volume_curve_for_control(
-			cmix->config, output_name);
-}
-
 /* Adds a control to the list. */
 static int add_control_with_name(struct cras_alsa_mixer *cmix,
 				 enum CRAS_STREAM_DIRECTION dir,
@@ -559,14 +541,10 @@ static int add_control_with_name(struct cras_alsa_mixer *cmix,
 		syslog(LOG_DEBUG, "Control '%s' volume range: [%ld:%ld]",
 		       c->name, c->min_volume_dB, c->max_volume_dB);
 
-	if (dir == CRAS_STREAM_OUTPUT) {
-		c->volume_curve =
-			create_volume_curve_for_output(cmix, c->name);
+	if (dir == CRAS_STREAM_OUTPUT)
 		DL_APPEND(cmix->output_controls, c);
-	}
-	else if (dir == CRAS_STREAM_INPUT) {
+	else if (dir == CRAS_STREAM_INPUT)
 		DL_APPEND(cmix->input_controls, c);
-	}
 	return 0;
 }
 
@@ -624,14 +602,10 @@ static int add_control_with_coupled_mixers(
 		syslog(LOG_DEBUG, "Control '%s' volume range: [%ld:%ld]",
 		       c->name, c->min_volume_dB, c->max_volume_dB);
 
-	if (dir == CRAS_STREAM_OUTPUT) {
-		c->volume_curve =
-			create_volume_curve_for_output(cmix, c->name);
+	if (dir == CRAS_STREAM_OUTPUT)
 		DL_APPEND(cmix->output_controls, c);
-	}
-	else if (dir == CRAS_STREAM_INPUT) {
+	else if (dir == CRAS_STREAM_INPUT)
 		DL_APPEND(cmix->input_controls, c);
-	}
 	return 0;
 }
 
@@ -659,14 +633,10 @@ static int add_control_by_name(struct cras_alsa_mixer *cmix,
 		syslog(LOG_DEBUG, "Control '%s' volume range: [%ld:%ld]",
 		       c->name, c->min_volume_dB, c->max_volume_dB);
 
-	if (dir == CRAS_STREAM_OUTPUT) {
-		c->volume_curve =
-			create_volume_curve_for_output(cmix, c->name);
+	if (dir == CRAS_STREAM_OUTPUT)
 		DL_APPEND(cmix->output_controls, c);
-	}
-	else if (dir == CRAS_STREAM_INPUT) {
+	else if (dir == CRAS_STREAM_INPUT)
 		DL_APPEND(cmix->input_controls, c);
-	}
 	return 0;
 }
 
@@ -674,9 +644,7 @@ static int add_control_by_name(struct cras_alsa_mixer *cmix,
  * Exported interface.
  */
 
-struct cras_alsa_mixer *cras_alsa_mixer_create(
-		const char *card_name,
-		const struct cras_card_config *config)
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 {
 	struct cras_alsa_mixer *cmix;
 
@@ -685,13 +653,6 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(
 		return NULL;
 
 	syslog(LOG_DEBUG, "Add mixer for device %s", card_name);
-
-	cmix->config = config;
-	cmix->volume_curve =
-		cras_card_config_get_volume_curve_for_control(cmix->config,
-							      "Default");
-	if (cmix->volume_curve == NULL)
-		cmix->volume_curve = cras_volume_curve_create_default();
 
 	alsa_mixer_open(card_name, &cmix->mixer);
 
@@ -944,18 +905,9 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer *cras_mixer)
 	mixer_control_destroy_list(cras_mixer->main_capture_controls);
 	mixer_control_destroy_list(cras_mixer->output_controls);
 	mixer_control_destroy_list(cras_mixer->input_controls);
-	cras_volume_curve_destroy(cras_mixer->volume_curve);
 	if (cras_mixer->mixer)
 		snd_mixer_close(cras_mixer->mixer);
 	free(cras_mixer);
-}
-
-const struct cras_volume_curve *cras_alsa_mixer_default_volume_curve(
-		const struct cras_alsa_mixer *cras_mixer)
-{
-	assert(cras_mixer);
-	assert(cras_mixer->volume_curve);
-	return cras_mixer->volume_curve;
 }
 
 int cras_alsa_mixer_has_main_volume(
@@ -1217,23 +1169,4 @@ int cras_alsa_mixer_set_output_active_state(
 	if (!output->has_mute)
 		return -1;
 	return mixer_control_set_mute(output, !active);
-}
-
-struct cras_volume_curve *cras_alsa_mixer_create_volume_curve_for_name(
-		const struct cras_alsa_mixer *cmix,
-		const char *name)
-{
-	if (!cmix)
-		return NULL;
-	return cras_card_config_get_volume_curve_for_control(
-			cmix->config, name);
-}
-
-struct cras_volume_curve *cras_alsa_mixer_get_output_volume_curve(
-		const struct mixer_control *output)
-{
-	if (output)
-		return output->volume_curve;
-	else
-		return NULL;
 }

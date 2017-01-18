@@ -814,8 +814,7 @@ TEST(AlsaCard, CreateFullyUCMFourDevicesFiveSections) {
 /* Stubs */
 
 extern "C" {
-struct cras_alsa_mixer *cras_alsa_mixer_create(
-    const char *card_name, const struct cras_card_config *config) {
+struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name) {
   cras_alsa_mixer_create_called++;
   return cras_alsa_mixer_create_return;
 }
@@ -849,7 +848,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 				     enum CRAS_ALSA_CARD_TYPE card_type,
 				     int is_first,
 				     struct cras_alsa_mixer *mixer,
-                                     struct cras_use_case_mgr *ucm,
+				     const struct cras_card_config *config,
+				     struct cras_use_case_mgr *ucm,
 				     snd_hctl_t *hctl,
 				     enum CRAS_STREAM_DIRECTION direction,
 				     size_t usb_vid,
