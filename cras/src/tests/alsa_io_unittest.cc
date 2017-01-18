@@ -267,9 +267,6 @@ TEST(AlsaIoInit, InitializeInvalidDirection) {
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, NULL,
       CRAS_NUM_DIRECTIONS);
-  aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, NULL,
-      CRAS_NUM_DIRECTIONS);
   ASSERT_EQ(aio, (void *)NULL);
 }
 
