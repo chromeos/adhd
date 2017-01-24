@@ -708,9 +708,11 @@ static void set_alsa_mute(struct cras_iodev *iodev)
 	set_alsa_mute_control(aio, cras_system_get_mute());
 }
 
-/* Sets the capture gain to the current system input gain level, given in dBFS.
+/*
+ * Sets the capture gain to the current system input gain level, given in dBFS.
  * Set mute based on the system mute state.  This gain can be positive or
- * negative and might be adjusted often if and app is running an AGC. */
+ * negative and might be adjusted often if an app is running an AGC.
+ */
 static void set_alsa_capture_gain(struct cras_iodev *iodev)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)iodev;
@@ -724,14 +726,15 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	/* Only set the volume if the dev is active. */
 	if (!has_handle(aio))
 		return;
+	gain = cras_iodev_adjust_active_node_gain(
+				iodev, cras_system_get_capture_gain());
 
-	gain = cras_system_get_capture_gain();
-	ain = get_active_input(aio);
-	if (ain)
-		gain += ain->base.capture_gain;
 	/* Set hardware gain to 0dB if software gain is needed. */
 	if (cras_iodev_software_volume_needed(iodev))
 		gain = 0;
+
+	ain = get_active_input(aio);
+
 	cras_alsa_mixer_set_capture_dBFS(
 			aio->mixer,
 			gain,
@@ -750,8 +753,10 @@ static int set_alsa_node_swapped(struct cras_iodev *iodev,
 	return ucm_enable_swap_mode(aio->ucm, node->name, enable);
 }
 
-/* Initializes the device settings and registers for callbacks when system
- * settings have been changed.
+/*
+ * Initializes the device settings according to system volume, mute, gain
+ * settings.
+ * Updates system capture gain limits based on current active device/node.
  */
 static void init_device_settings(struct alsa_io *aio)
 {
@@ -1030,6 +1035,23 @@ static void set_input_node_software_volume_needed(
 	       " in UCM", input->base.name, max_software_gain);
 }
 
+static void set_input_default_node_gain(struct alsa_input_node *input,
+					struct alsa_io *aio)
+{
+	long default_node_gain;
+	int rc;
+
+	if (!aio->ucm)
+		return;
+
+	rc = ucm_get_default_node_gain(aio->ucm, input->base.name,
+					 &default_node_gain);
+	if (rc)
+		return;
+
+	input->base.capture_gain = default_node_gain;
+}
+
 static void check_auto_unplug_output_node(struct alsa_io *aio,
 					  struct cras_ionode *node,
 					  int plugged)
@@ -1170,6 +1192,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
 	set_input_node_software_volume_needed(input, aio);
+	set_input_default_node_gain(input, aio);
 
 	if (aio->ucm) {
 		/* Check mic positions only for internal mic. */

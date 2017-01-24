@@ -146,6 +146,7 @@ static int cras_alsa_resume_appl_ptr_ahead;
 static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve *fake_get_dBFS_volume_curve_val;
 static int cras_iodev_dsp_set_swap_mode_for_node_called;
+static std::map<std::string, long> ucm_get_default_node_gain_values;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -231,6 +232,7 @@ void ResetStubData() {
   ucm_get_enable_htimestamp_flag_ret = 0;
   fake_get_dBFS_volume_curve_val = NULL;
   cras_iodev_dsp_set_swap_mode_for_node_called = 0;
+  ucm_get_default_node_gain_values.clear();
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve *curve, size_t volume)
@@ -520,6 +522,40 @@ TEST(AlsaIoInit, UseSoftwareGain) {
   alsa_iodev_destroy(iodev);
 }
 
+TEST(AlsaIoInit, SoftwareGainWithDefaultNodeGain) {
+  struct cras_iodev *iodev;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
+  long system_gain = 500;
+  long default_node_gain = -1000;
+
+  ResetStubData();
+
+  // Use software gain.
+  ucm_get_max_software_gain_ret_value = 0;
+  ucm_get_max_software_gain_value = 2000;
+
+  // Set default node gain to -1000 dBm.
+  ucm_get_default_node_gain_values["Internal Mic"] = default_node_gain;
+
+  // Assume this is the first device so it gets internal mic node name.
+  iodev = alsa_iodev_create_with_default_parameters(0, NULL,
+                                                    ALSA_CARD_TYPE_INTERNAL, 1,
+                                                    fake_mixer, fake_config,
+                                                    fake_ucm,
+                                                    CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+
+  // Gain on node is 300 dBm.
+  iodev->active_node->capture_gain = default_node_gain;
+
+  // cras_iodev will call cras_iodev_adjust_active_node_gain to get gain for
+  // software gain.
+  ASSERT_EQ(system_gain + default_node_gain,
+            cras_iodev_adjust_active_node_gain(iodev, system_gain));
+
+  alsa_iodev_destroy(iodev);
+}
+
 TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
@@ -626,6 +662,42 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, cras_alsa_start_called);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
             aio->severe_underrun_frames);
+
+  alsa_iodev_destroy(iodev);
+  free(fake_format);
+}
+
+TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
+  struct cras_iodev *iodev;
+  struct cras_audio_format format;
+  struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
+  long system_gain = 2000;
+  long default_node_gain = -1000;
+
+  ResetStubData();
+  // Set default node gain to -1000 dBm.
+  ucm_get_default_node_gain_values["Internal Mic"] = default_node_gain;
+
+  // Assume this is the first device so it gets internal mic node name.
+  iodev = alsa_iodev_create_with_default_parameters(0, NULL,
+                                                    ALSA_CARD_TYPE_INTERNAL, 1,
+                                                    fake_mixer, fake_config,
+                                                    fake_ucm,
+                                                    CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+
+  cras_iodev_set_format(iodev, &format);
+
+  // Check the default node gain is the same as what specified in UCM.
+  EXPECT_EQ(default_node_gain, iodev->active_node->capture_gain);
+  // System gain is set to 2000 dBm.
+  sys_get_capture_gain_return_value = system_gain;
+
+  iodev->open_dev(iodev);
+  iodev->close_dev(iodev);
+
+  // Hardware gain is set to 2000 - 1000 dBm.
+  EXPECT_EQ(system_gain + default_node_gain, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -2638,6 +2710,17 @@ void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
 const char *cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack *jack)
 {
   return NULL;
+}
+
+int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
+                              long *gain)
+{
+  if (ucm_get_default_node_gain_values.find(dev) ==
+      ucm_get_default_node_gain_values.end())
+    return 1;
+
+  *gain = ucm_get_default_node_gain_values[dev];
+  return 0;
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev *iodev,

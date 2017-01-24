@@ -35,6 +35,8 @@ static const char coupled_mixers[] = "CoupledMixers";
 /* Set this value in a SectionDevice to specify the maximum software gain in dBm
  * and enable software gain on this node. */
 static const char max_software_gain[] = "MaxSoftwareGain";
+/* Set this value in a SectionDevice to specify the default node gain in dBm. */
+static const char default_node_gain[] = "DefaultNodeGain";
 static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
@@ -643,6 +645,19 @@ int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
 	int rc;
 
 	rc = get_int(mgr, max_software_gain, dev, uc_verb(mgr), &value);
+	if (rc)
+		return rc;
+	*gain = value;
+	return 0;
+}
+
+int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
+			      long *gain)
+{
+	int value;
+	int rc;
+
+	rc = get_int(mgr, default_node_gain, dev, uc_verb(mgr), &value);
 	if (rc)
 		return rc;
 	*gain = value;
