@@ -254,6 +254,12 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *    mute_locked - 0 = unlocked, 1 = locked.
  *    suspended - 1 = suspended, 0 = resumed.
  *    capture_gain - Capture gain in dBFS * 100.
+ *    capture_gain_target - Target capture gain in dBFS * 100. The actual
+ *                          capture gain will be subjected to current
+ *                          supported range. When active device/node changes,
+ *                          supported range changes accordingly. System state
+ *                          should try to re-apply target gain subjected to new
+ *                          range.
  *    capture_mute - 0 = unmuted, 1 = muted.
  *    capture_mute_locked - 0 = unlocked, 1 = locked.
  *    min_capture_gain - Min allowed capture gain in dBFS * 100.
@@ -290,6 +296,7 @@ struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	int32_t mute_locked;
 	int32_t suspended;
 	int32_t capture_gain;
+	int32_t capture_gain_target;
 	int32_t capture_mute;
 	int32_t capture_mute_locked;
 	int32_t min_capture_gain;

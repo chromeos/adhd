@@ -98,6 +98,7 @@ void cras_system_state_init(const char *device_config_dir)
 	exp_state->mute_locked = 0;
 	exp_state->suspended = 0;
 	exp_state->capture_gain = DEFAULT_CAPTURE_GAIN;
+	exp_state->capture_gain_target = DEFAULT_CAPTURE_GAIN;
 	exp_state->capture_mute = 0;
 	exp_state->capture_mute_locked = 0;
 	exp_state->min_volume_dBFS = DEFAULT_MIN_VOLUME_DBFS;
@@ -171,6 +172,7 @@ size_t cras_system_get_volume()
 void cras_system_set_capture_gain(long gain)
 {
 	/* Adjust targeted gain to be in supported range. */
+	state.exp_state->capture_gain_target = gain;
 	gain = MAX(gain, state.exp_state->min_capture_gain);
 	gain = MIN(gain, state.exp_state->max_capture_gain);
 	state.exp_state->capture_gain = gain;
@@ -301,8 +303,8 @@ void cras_system_set_capture_gain_limits(long min, long max)
 {
 	state.exp_state->min_capture_gain = MAX(min, DEFAULT_MIN_CAPTURE_GAIN);
 	state.exp_state->max_capture_gain = max;
-	/* Current gain needs to be in the supported range. */
-	cras_system_set_capture_gain(state.exp_state->capture_gain);
+	/* Re-apply target gain subjected to the new supported range. */
+	cras_system_set_capture_gain(state.exp_state->capture_gain_target);
 }
 
 long cras_system_get_min_capture_gain()

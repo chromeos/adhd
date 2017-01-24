@@ -2126,6 +2126,7 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 
 	if (iodev->active_node == ionode) {
 		enable_active_ucm(aio, dev_enabled);
+		init_device_settings(aio);
 		return 0;
 	}
 
