@@ -863,6 +863,13 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 		goto error;
 	}
 
+	if (pollfds[0].revents & (POLLERR | POLLHUP)) {
+		syslog(LOG_ERR, "SCO socket error, revents: %u",
+		       pollfds[0].revents);
+		bt_device_schedule_suspend(device, 0);
+		goto error;
+	}
+
 	return sk;
 
 error:
