@@ -127,13 +127,24 @@ int cras_tm_get_next_timeout(const struct cras_tm *tm, struct timespec *ts)
 void cras_tm_call_callbacks(struct cras_tm *tm)
 {
 	struct timespec now;
-	struct cras_timer *t;
+	struct cras_timer *t, *next;
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
-	DL_FOREACH(tm->timers, t)
+	/* Don't use DL_FOREACH to iterate timers because in each loop the
+	 * next timer pointer is stored for later access but it could be
+	 * cancelled and freed in current timer's callback causing invalid
+	 * memory access. */
+	t = tm->timers;
+	while (t) {
+		next = t->next;
 		if (timespec_sooner(&t->ts, &now)) {
 			t->cb(t, t->cb_data);
+			/* Update next timer because it could have been modified
+			 * in t->cb(). */
+			next = t->next;
 			cras_tm_cancel_timer(tm, t);
 		}
+		t = next;
+	}
 }
