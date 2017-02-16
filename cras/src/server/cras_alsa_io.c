@@ -46,21 +46,25 @@
 #define KEYBOARD_MIC "Keyboard Mic"
 #define USB "USB"
 
-/* For USB, pad the output buffer.  This avoids a situation where there isn't a
+/*
+ * For USB, pad the output buffer.  This avoids a situation where there isn't a
  * complete URB's worth of audio ready to be transmitted when it is requested.
  * The URB interval does track directly to the audio clock, making it hard to
- * predict the exact interval. */
+ * predict the exact interval.
+ */
 #define USB_EXTRA_BUFFER_FRAMES 768
 
-
-/* When snd_pcm_avail returns a value that is greater than buffer size,
+/*
+ * When snd_pcm_avail returns a value that is greater than buffer size,
  * we know there is an underrun. If the number of underrun samples
  * (avail - buffer_size) is greater than SEVERE_UNDERRUN_MS * rate,
  * it is a severe underrun. Main thread should disable and then enable
- * device to recover it from underrun. */
+ * device to recover it from underrun.
+ */
 #define SEVERE_UNDERRUN_MS 5000
 
-/* This extends cras_ionode to include alsa-specific information.
+/*
+ * This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
  *    volume_curve - Volume curve for this node.
@@ -80,7 +84,8 @@ struct alsa_input_node {
 	int8_t *channel_layout;
 };
 
-/* Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
+/*
+ * Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
  * base - The cras_iodev structure "base class".
  * dev - String that names this device (e.g. "hw:0,0").
  * dev_name - value from snd_pcm_info_get_name
@@ -154,7 +159,9 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 				      struct cras_ionode *ionode,
 				      unsigned dev_enabled);
 
-/* Defines the default values of nodes. */
+/*
+ * Defines the default values of nodes.
+ */
 static const struct {
 	const char *name;
 	enum CRAS_NODE_TYPE type;
@@ -415,7 +422,8 @@ static int open_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-/* Check if ALSA device is opened by checking if handle is valid.
+/*
+ * Check if ALSA device is opened by checking if handle is valid.
  * Note that to fully open a cras_iodev, ALSA device is opened first, then there
  * are some device init settings to be done in init_device_settings.
  * Therefore, when setting volume/mute/gain in init_device_settings,
@@ -506,9 +514,10 @@ static int flush_buffer(struct cras_iodev *iodev)
 	return 0;
 }
 
- /* Gets the first plugged node in list. This is used as the
-  * default node to set as active.
-  */
+/*
+ * Gets the first plugged node in list. This is used as the
+ * default node to set as active.
+ */
 static struct cras_ionode *first_plugged_node(struct cras_iodev *iodev)
 {
 	struct cras_ionode *n;
@@ -614,7 +623,8 @@ static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
 	return (struct alsa_input_node *)aio->base.active_node;
 }
 
-/* Gets the curve for the active output node. If the node doesn't have volume
+/*
+ * Gets the curve for the active output node. If the node doesn't have volume
  * curve specified, return the default volume curve of the parent iodev.
  */
 static const struct cras_volume_curve *get_curve_for_output_node(
@@ -626,7 +636,9 @@ static const struct cras_volume_curve *get_curve_for_output_node(
 	return aio->default_volume_curve;
 }
 
-/* Gets the curve for the active output. */
+/*
+ * Gets the curve for the active output.
+ */
 static const struct cras_volume_curve *get_curve_for_active_output(
 		const struct alsa_io *aio)
 {
@@ -634,7 +646,9 @@ static const struct cras_volume_curve *get_curve_for_active_output(
 	return get_curve_for_output_node(aio, node);
 }
 
-/* Informs the system of the volume limits for this device. */
+/*
+ * Informs the system of the volume limits for this device.
+ */
 static void set_alsa_volume_limits(struct alsa_io *aio)
 {
 	const struct cras_volume_curve *curve;
@@ -649,7 +663,9 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 			curve->get_dBFS(curve, CRAS_MAX_SYSTEM_VOLUME));
 }
 
-/* Sets the alsa mute control for this iodev. */
+/*
+ * Sets the alsa mute control for this iodev.
+ */
 static void set_alsa_mute_control(const struct alsa_io *aio, int muted)
 {
 	struct alsa_output_node *aout;
@@ -664,9 +680,11 @@ static void set_alsa_mute_control(const struct alsa_io *aio, int muted)
 		aout ? aout->mixer_output : NULL);
 }
 
-/* Sets the volume of the playback device to the specified level. Receives a
+/*
+ * Sets the volume of the playback device to the specified level. Receives a
  * volume index from the system settings, ranging from 0 to 100, converts it to
- * dB using the volume curve, and sends the dB value to alsa. */
+ * dB using the volume curve, and sends the dB value to alsa.
+ */
 static void set_alsa_volume(struct cras_iodev *iodev)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)iodev;
@@ -744,7 +762,9 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 					 ain ? ain->mixer_input : NULL);
 }
 
-/* Swaps the left and right channels of the given node. */
+/*
+ * Swaps the left and right channels of the given node.
+ */
 static int set_alsa_node_swapped(struct cras_iodev *iodev,
 				 struct cras_ionode *node, int enable)
 {
@@ -796,7 +816,8 @@ static void init_device_settings(struct alsa_io *aio)
  * Functions run in the main server context.
  */
 
-/* Frees resources used by the alsa iodev.
+/*
+ * Frees resources used by the alsa iodev.
  * Args:
  *    iodev - the iodev to free the resources from.
  */
@@ -828,13 +849,17 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		free(aio->dev_name);
 }
 
-/* Returns true if this is the first internal device */
+/*
+ * Returns true if this is the first internal device.
+ */
 static int first_internal_device(struct alsa_io *aio)
 {
 	return aio->is_first && aio->card_type == ALSA_CARD_TYPE_INTERNAL;
 }
 
-/* Returns true if there is already a node created with the given name */
+/*
+ * Returns true if there is already a node created with the given name.
+ */
 static int has_node(struct alsa_io *aio, const char *name)
 {
 	struct cras_ionode *node;
@@ -846,7 +871,9 @@ static int has_node(struct alsa_io *aio, const char *name)
 	return 0;
 }
 
-/* Returns true if string s ends with the given suffix */
+/*
+ * Returns true if string s ends with the given suffix.
+ */
 int endswith(const char *s, const char *suffix)
 {
 	size_t n = strlen(s);
@@ -854,7 +881,9 @@ int endswith(const char *s, const char *suffix)
 	return n >= m && !strcmp(s + (n - m), suffix);
 }
 
-/* Drop the node name and replace it with node type.  */
+/*
+ * Drop the node name and replace it with node type.
+ */
 static void drop_node_name(struct cras_ionode *node)
 {
 	if (node->type == CRAS_NODE_TYPE_USB)
@@ -869,7 +898,8 @@ static void drop_node_name(struct cras_ionode *node)
 	}
 }
 
-/* Sets the initial plugged state and type of a node based on its
+/*
+ * Sets the initial plugged state and type of a node based on its
  * name. Chrome will assign priority to nodes base on node type.
  */
 static void set_node_initial_state(struct cras_ionode *node,
@@ -1078,9 +1108,11 @@ static void check_auto_unplug_output_node(struct alsa_io *aio,
 	}
 }
 
-/* Callback for listing mixer outputs.  The mixer will call this once for each
- * output associated with this device.  Most commonly this is used to tell the
- * device it has Headphones and Speakers. */
+/*
+ * Callback for listing mixer outputs. The mixer will call this once for each
+ * output associated with this device. Most commonly this is used to tell the
+ * device it has Headphones and Speakers.
+ */
 static struct alsa_output_node *new_output(struct alsa_io *aio,
 					   struct mixer_control *cras_output,
 					   const char *name)
@@ -1240,7 +1272,9 @@ static void new_input_by_mixer_control(struct mixer_control *cras_input,
 	}
 }
 
-/* Finds the output node associated with the jack. Returns NULL if not found. */
+/*
+ * Finds the output node associated with the jack. Returns NULL if not found.
+ */
 static struct alsa_output_node *get_output_node_from_jack(
 		struct alsa_io *aio, const struct cras_alsa_jack *jack)
 {
@@ -1283,9 +1317,11 @@ static struct alsa_input_node *get_input_node_from_jack(
 	return ain;
 }
 
-/* Returns the dsp name specified in the ucm config. If there is a dsp
+/*
+ * Returns the dsp name specified in the ucm config. If there is a dsp
  * name specified for the jack of the active node, use that. Otherwise
- * use the default dsp name for the alsa_io device. */
+ * use the default dsp name for the alsa_io device.
+ */
 static const char *get_active_dsp_name(struct alsa_io *aio)
 {
 	struct cras_ionode *node = aio->base.active_node;
@@ -1302,7 +1338,9 @@ static const char *get_active_dsp_name(struct alsa_io *aio)
 	return cras_alsa_jack_get_dsp_name(jack) ? : aio->dsp_name_default;
 }
 
-/* Creates volume curve for the node associated with given jack. */
+/*
+ * Creates volume curve for the node associated with given jack.
+ */
 static struct cras_volume_curve *create_volume_curve_for_jack(
 		const struct cras_card_config *config,
 		const struct cras_alsa_jack *jack)
@@ -1325,7 +1363,9 @@ static struct cras_volume_curve *create_volume_curve_for_jack(
 	return NULL;
 }
 
-/* Callback that is called when an output jack is plugged or unplugged. */
+/*
+ * Callback that is called when an output jack is plugged or unplugged.
+ */
 static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 				    int plugged,
 				    void *arg)
@@ -1386,7 +1426,9 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 	check_auto_unplug_output_node(aio, &node->base, plugged);
 }
 
-/* Callback that is called when an input jack is plugged or unplugged. */
+/*
+ * Callback that is called when an input jack is plugged or unplugged.
+ */
 static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 				  int plugged,
 				  void *arg)
@@ -1434,8 +1476,10 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 	check_auto_unplug_input_node(aio, &node->base, plugged);
 }
 
-/* Sets the name of the given iodev, using the name and index of the card
- * combined with the device index and direction */
+/*
+ * Sets the name of the given iodev, using the name and index of the card
+ * combined with the device index and direction.
+ */
 static void set_iodev_name(struct cras_iodev *dev,
 			   const char *card_name,
 			   const char *dev_name,
@@ -1509,7 +1553,9 @@ static int get_fixed_rate(struct alsa_io *aio)
 	return ucm_get_sample_rate_for_dev(aio->ucm, name, aio->base.direction);
 }
 
-/* Updates the supported sample rates and channel counts. */
+/*
+ * Updates the supported sample rates and channel counts.
+ */
 static int update_supported_formats(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
@@ -1544,7 +1590,9 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
-/* Builds software volume scalers for output nodes in the device. */
+/*
+ * Builds software volume scalers for output nodes in the device.
+ */
 static void build_softvol_scalers(struct alsa_io *aio)
 {
 	struct cras_ionode *ionode;
@@ -1692,10 +1740,12 @@ static int leave_free_run(struct cras_iodev *odev)
 	return 0;
 }
 
-/* Free run state is the optimization of no_stream playback on alsa_io.
+/*
+ * Free run state is the optimization of no_stream playback on alsa_io.
  * The whole buffer will be filled with zeros. Device can play these zeros
  * indefinitely. When there is new meaningful sample, appl_ptr should be
- * resumed to some distance ahead of hw_ptr. */
+ * resumed to some distance ahead of hw_ptr.
+ */
 static int no_stream(struct cras_iodev *odev, int enable)
 {
 	if (enable)
