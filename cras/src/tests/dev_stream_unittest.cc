@@ -707,6 +707,106 @@ TEST_F(CreateSuite, StreamCanSendBulkAudio) {
   dev_stream_destroy(dev_stream);
 }
 
+TEST_F(CreateSuite, InputDevStreamWakeTimeByNextCbTs) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+  int rc;
+  unsigned int curr_level = 0;
+  int written_frames;
+  struct timespec level_tstamp = {.tv_sec = 1, .tv_nsec = 0};
+  struct timespec wake_time_out = {.tv_sec = 0, .tv_nsec = 0};
+
+  rstream_.direction = CRAS_STREAM_INPUT;
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55, &cb_ts);
+
+  // Assume there is a next_cb_ts on rstream.
+  rstream_.next_cb_ts.tv_sec = 1;
+  rstream_.next_cb_ts.tv_nsec = 500000;
+
+  // Assume there are enough samples for stream.
+  written_frames = rstream_.cb_threshold + 10;
+  cras_shm_buffer_written(&rstream_.shm, written_frames);
+
+  rc = dev_stream_wake_time(dev_stream, curr_level,
+                            &level_tstamp, &wake_time_out);
+
+  // The next wake up time is determined by next_cb_ts on dev_stream.
+  EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
+  EXPECT_EQ(rstream_.next_cb_ts.tv_nsec, wake_time_out.tv_nsec);
+  EXPECT_EQ(0, rc);
+}
+
+TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+  int rc;
+  unsigned int curr_level = 100;
+  int written_frames;
+  struct timespec level_tstamp = {.tv_sec = 1, .tv_nsec = 0};
+  struct timespec wake_time_out = {.tv_sec = 0, .tv_nsec = 0};
+  struct timespec expected_tstamp = {.tv_sec = 0, .tv_nsec = 0};
+  struct timespec needed_time_for_device = {.tv_sec = 0, .tv_nsec = 0};
+  int needed_frames_from_device = 0;
+
+  rstream_.direction = CRAS_STREAM_INPUT;
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_48,
+                                 (void *)0x55, &cb_ts);
+
+  // Assume there is a next_cb_ts on rstream, that is, 1.005 seconds.
+  rstream_.next_cb_ts.tv_sec = 1;
+  rstream_.next_cb_ts.tv_nsec = 5000000; // 5ms
+
+  // Assume there are not enough samples for stream.
+  written_frames = 123;
+  cras_shm_buffer_written(&rstream_.shm, written_frames);
+
+  // Compute wake up time for device level to reach enough samples
+  // for one cb_threshold:
+  // Device has 100 samples (48K rate).
+  // Stream has 123 samples (44.1K rate)
+  // cb_threshold = 512 samples.
+  // Stream needs 512 - 123 = 389 samples.
+  // Converted to device rate => 389 * 48000.0 / 44100 = 423.4 samples
+  // => 424 samples.
+  // Device needs another 424 - 100 = 324 samples.
+  // Time for 252 samples = 324 / 48000 = 0.00675 sec.
+  // So expected wake up time for samples is at level_tstamp + 0.00675 sec =
+  // 1.00675 seconds.
+  needed_frames_from_device = cras_frames_at_rate(
+       44100, rstream_.cb_threshold - written_frames, 48000);
+  needed_frames_from_device -= curr_level;
+  cras_frames_to_time(needed_frames_from_device, 48000,
+                      &needed_time_for_device);
+
+  expected_tstamp.tv_sec = level_tstamp.tv_sec;
+  expected_tstamp.tv_nsec = level_tstamp.tv_nsec;
+
+  add_timespecs(&expected_tstamp, &needed_time_for_device);
+
+  // Set the stub data for cras_fmt_conv_out_frames_to_in.
+  out_fmt.frame_rate = 44100;
+  in_fmt.frame_rate = 48000;
+
+  rc = dev_stream_wake_time(dev_stream, curr_level,
+                            &level_tstamp, &wake_time_out);
+
+  // The next wake up time is determined by needed time for device level
+  // to reach enough samples for one cb_threshold.
+  EXPECT_EQ(expected_tstamp.tv_sec, wake_time_out.tv_sec);
+  EXPECT_EQ(expected_tstamp.tv_nsec, wake_time_out.tv_nsec);
+  EXPECT_EQ(0, rc);
+
+  // Assume current level is larger than cb_threshold.
+  // The wake up time is determined by next_cb_ts.
+  curr_level += rstream_.cb_threshold;
+  rc = dev_stream_wake_time(dev_stream, curr_level,
+                            &level_tstamp, &wake_time_out);
+  EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
+  EXPECT_EQ(rstream_.next_cb_ts.tv_nsec, wake_time_out.tv_nsec);
+  EXPECT_EQ(0, rc);
+}
+
 //  Test set_playback_timestamp.
 TEST(DevStreamTimimg, SetPlaybackTimeStampSimple) {
   struct cras_timespec ts;

@@ -27,6 +27,8 @@ struct cras_iodev;
  *    conv - Sample rate or format converter.
  *    conv_buffer - The buffer for converter if needed.
  *    conv_buffer_size_frames - Size of conv_buffer in frames.
+ *    dev_rate - Sampling rate of device. This is set when dev_stream is
+ *               created.
  */
 struct dev_stream {
 	unsigned int dev_id;
@@ -35,6 +37,7 @@ struct dev_stream {
 	struct byte_buffer *conv_buffer;
 	struct cras_audio_area *conv_area;
 	unsigned int conv_buffer_size_frames;
+	size_t dev_rate;
 	struct dev_stream *prev, *next;
 };
 
@@ -151,6 +154,22 @@ int dev_stream_can_fetch(struct dev_stream *dev_stream);
 /* Ask the client for cb_threshold samples of audio to play. */
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
 					const struct timespec *now);
+
+/*
+ * Gets the wake up time for a dev_stream.
+ * For an input stream, it considers both needed samples and proper time
+ * interval between each callbacks.
+ * Args:
+ *   dev_stream[in]: The dev_stream to check wake up time.
+ *   curr_level[in]: The current level of device.
+ *   wake_time_out[out]: A timespec for wake up time.
+ * Returns:
+ *   0 on success; negative error code on failure.
+ */
+int dev_stream_wake_time(struct dev_stream *dev_stream,
+			 unsigned int curr_level,
+			 struct timespec *level_tstamp,
+			 struct timespec *wake_time_out);
 
 /*
  * Returns a non-negative fd if the fd is expecting a message and should be

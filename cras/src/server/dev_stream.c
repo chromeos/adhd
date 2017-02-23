@@ -47,6 +47,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	out = calloc(1, sizeof(*out));
 	out->dev_id = dev_id;
 	out->stream = stream;
+	out->dev_rate = dev_fmt->frame_rate;
 
 	if (stream->direction == CRAS_STREAM_OUTPUT) {
 		max_frames = MAX(stream->buffer_frames,
@@ -639,4 +640,99 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
 		return -1;
 
 	return stream->fd;
+}
+
+/*
+ * Needed frames from this device such that written frames in shm meets
+ * cb_threshold.
+ */
+static int get_input_needed_frames(struct dev_stream *dev_stream,
+				   unsigned int curr_level)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	unsigned int rstream_level = cras_rstream_level(rstream);
+	unsigned int dev_offset = cras_rstream_dev_offset(
+			rstream, dev_stream->dev_id);
+	unsigned int needed_for_stream;
+
+	/*
+	 * rstream_level + def_offset is the number of frames written to shm
+	 * from this device.
+	 */
+	if (rstream_level + dev_offset > rstream->cb_threshold) {
+		/* Enough frames from this device for this stream. */
+		return 0;
+	}
+
+	/*
+	 * Needed number of frames in shm such that written frames in shm meets
+	 * cb_threshold.
+	 */
+	needed_for_stream = rstream->cb_threshold - rstream_level - dev_offset;
+
+	/* Convert the number of frames from stream format to device format. */
+	return cras_fmt_conv_out_frames_to_in(dev_stream->conv,
+					      needed_for_stream);
+
+}
+
+/*
+ * Gets proper wake up time for an input stream. It considers both
+ * time for samples to reach one callback level, and the time for next callback.
+ */
+static int get_input_wake_time(struct dev_stream *dev_stream,
+			       unsigned int curr_level,
+			       struct timespec *level_tstamp,
+			       struct timespec *wake_time_out)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	struct timespec time_for_sample;
+	int needed_frames_from_device;
+
+	needed_frames_from_device = get_input_needed_frames(
+			dev_stream, curr_level);
+
+	/*
+	 * If current frames in the device can provide needed amount for stream,
+	 * there is no need to wait.
+	 */
+	if (curr_level >= needed_frames_from_device)
+		needed_frames_from_device = 0;
+
+	else
+		needed_frames_from_device -= curr_level;
+
+	cras_frames_to_time(needed_frames_from_device,
+			    dev_stream->dev_rate,
+			    &time_for_sample);
+
+	add_timespecs(&time_for_sample, level_tstamp);
+
+	/* Select the time that is later so both sample and time conditions
+	 * are met. */
+	if (timespec_after(&time_for_sample, &rstream->next_cb_ts)) {
+		*wake_time_out =  time_for_sample;
+	} else {
+		*wake_time_out =  rstream->next_cb_ts;
+	}
+
+	return 0;
+}
+
+int dev_stream_wake_time(struct dev_stream *dev_stream,
+			 unsigned int curr_level,
+			 struct timespec *level_tstamp,
+			 struct timespec *wake_time_out)
+{
+	if (dev_stream->stream->direction == CRAS_STREAM_OUTPUT) {
+		/*
+                 * TODO(cychiang) Implement the method for output stream.
+		 * The logic should be similar to what
+		 * get_next_stream_wake_from_list in audio_thread.c is doing.
+		 */
+		return -EINVAL;
+	}
+
+	return get_input_wake_time(dev_stream, curr_level, level_tstamp,
+				   wake_time_out);
 }
