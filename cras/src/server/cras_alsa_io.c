@@ -287,8 +287,11 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
+	/* Removes audio thread callback from main thread. */
 	if (aio->poll_fd >= 0)
-		audio_thread_rm_callback(aio->poll_fd);
+		audio_thread_rm_callback_sync(
+				cras_iodev_list_get_audio_thread(),
+				aio->poll_fd);
 	if (!aio->handle)
 		return 0;
 	cras_alsa_pcm_close(aio->handle);

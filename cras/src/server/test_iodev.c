@@ -156,7 +156,10 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 static void play_file_as_hotword(struct test_iodev *testio, const char *path)
 {
 	if (testio->fd >= 0) {
-		audio_thread_rm_callback(testio->fd);
+		/* Remove audio thread callback from main thread. */
+		audio_thread_rm_callback_sync(
+				cras_iodev_list_get_audio_thread(),
+				testio->fd);
 		close(testio->fd);
 	}
 

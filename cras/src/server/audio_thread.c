@@ -44,6 +44,7 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_DRAIN_STREAM,
 	AUDIO_THREAD_CONFIG_GLOBAL_REMIX,
 	AUDIO_THREAD_DEV_START_RAMP,
+	AUDIO_THREAD_REMOVE_CALLBACK,
 };
 
 struct audio_thread_msg {
@@ -59,6 +60,11 @@ struct audio_thread_config_global_remix {
 struct audio_thread_open_device_msg {
 	struct audio_thread_msg header;
 	struct cras_iodev *dev;
+};
+
+struct audio_thread_rm_callback_msg {
+	struct audio_thread_msg header;
+	int fd;
 };
 
 struct audio_thread_add_rm_stream_msg {
@@ -917,6 +923,13 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		ret = thread_drain_stream(thread, rmsg->stream);
 		break;
 	}
+	case AUDIO_THREAD_REMOVE_CALLBACK: {
+		struct audio_thread_rm_callback_msg *rmsg;
+
+		rmsg = (struct audio_thread_rm_callback_msg *)msg;
+		audio_thread_rm_callback(rmsg->fd);
+		break;
+	}
 	case AUDIO_THREAD_CONFIG_GLOBAL_REMIX: {
 		struct audio_thread_config_global_remix *rmsg;
 		void *rsp;
@@ -1728,6 +1741,17 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 	struct audio_thread_dump_debug_info_msg msg;
 
 	init_dump_debug_info_msg(&msg, info);
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd) {
+	struct audio_thread_rm_callback_msg msg;
+
+	memset(&msg, 0, sizeof(msg));
+	msg.header.id = AUDIO_THREAD_REMOVE_CALLBACK;
+	msg.header.length = sizeof(msg);
+	msg.fd = fd;
+
 	return audio_thread_post_message(thread, &msg.header);
 }
 

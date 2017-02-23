@@ -11,6 +11,7 @@
 
 #include "audio_thread.h"
 #include "byte_buffer.h"
+#include "cras_iodev_list.h"
 #include "cras_hfp_info.h"
 #include "utlist.h"
 
@@ -353,7 +354,9 @@ int hfp_info_stop(struct hfp_info *info)
 	if (!info->started)
 		return 0;
 
-	audio_thread_rm_callback(info->fd);
+	audio_thread_rm_callback_sync(
+		cras_iodev_list_get_audio_thread(),
+		info->fd);
 
 	close(info->fd);
 	info->fd = 0;

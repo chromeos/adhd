@@ -14,6 +14,7 @@
 #include "audio_thread.h"
 #include "audio_thread_log.h"
 #include "byte_buffer.h"
+#include "cras_iodev_list.h"
 #include "cras_a2dp_endpoint.h"
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
@@ -198,7 +199,11 @@ static int close_dev(struct cras_iodev *iodev)
 	if (!a2dpio->transport)
 		return 0;
 
-	audio_thread_rm_callback(cras_bt_transport_fd(a2dpio->transport));
+	/* Remove audio thread callback and sync before releasing
+	 * the transport. */
+	audio_thread_rm_callback_sync(
+			cras_iodev_list_get_audio_thread(),
+			cras_bt_transport_fd(a2dpio->transport));
 
 	err = cras_bt_transport_release(a2dpio->transport,
 					!a2dpio->destroyed);

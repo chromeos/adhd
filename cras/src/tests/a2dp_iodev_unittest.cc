@@ -556,6 +556,10 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
   dummy_audio_area->channels[0].buf = base_buffer;
 }
 
+struct audio_thread *cras_iodev_list_get_audio_thread()
+{
+  return NULL;
+}
 // From audio_thread
 struct audio_thread_event_log *atlog;
 
@@ -564,7 +568,8 @@ void audio_thread_add_write_callback(int fd, thread_callback cb, void *data) {
   write_callback_data = data;
 }
 
-void audio_thread_rm_callback(int fd) {
+int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd) {
+  return 0;
 }
 
 void audio_thread_enable_callback(int fd, int enabled) {

@@ -105,6 +105,14 @@ void audio_thread_add_write_callback(int fd, thread_callback cb,
  */
 void audio_thread_rm_callback(int fd);
 
+/* Removes a thread_callback from main thread.
+ * Args:
+ *     thread - The thread to remove callback from.
+ *     fd - The file descriptor of the previous added callback.
+ */
+int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd);
+
+
 /* Enables or Disabled the callback associated with fd. */
 void audio_thread_enable_callback(int fd, int enabled);
 
