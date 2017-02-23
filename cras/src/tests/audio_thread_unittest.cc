@@ -8,6 +8,7 @@ extern "C" {
 }
 
 #include <gtest/gtest.h>
+#include <map>
 
 #define MAX_CALLS 10
 #define BUFFER_SIZE 8192
@@ -38,6 +39,7 @@ static int cras_device_monitor_reset_device_called;
 static struct cras_iodev *cras_device_monitor_reset_device_iodev;
 static struct cras_iodev *cras_iodev_start_ramp_odev;
 static enum CRAS_IODEV_RAMP_REQUEST cras_iodev_start_ramp_request;
+static std::map<const struct dev_stream*, struct timespec> dev_stream_wake_time_val;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -70,6 +72,7 @@ void ResetGlobalStubData() {
   cras_device_monitor_reset_device_iodev = NULL;
   cras_iodev_start_ramp_odev = NULL;
   cras_iodev_start_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
+  dev_stream_wake_time_val.clear();
 }
 
 // Test streams and devices manipulation.
@@ -363,6 +366,47 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   TearDownRstream(&rstream);
   TearDownRstream(&rstream2);
   TearDownRstream(&rstream3);
+}
+
+TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
+  struct cras_iodev iodev;
+  struct cras_iodev *iodevs[] = {&iodev};
+  struct cras_rstream rstream1, rstream2;
+  struct timespec ts_wake_1 = {.tv_sec = 1, .tv_nsec = 500};
+  struct timespec ts_wake_2 = {.tv_sec = 1, .tv_nsec = 1000};
+  struct open_dev *adev;
+
+  SetupDevice(&iodev, CRAS_STREAM_INPUT);
+  SetupRstream(&rstream1, CRAS_STREAM_INPUT);
+  SetupRstream(&rstream2, CRAS_STREAM_INPUT);
+
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &rstream1, iodevs, 1);
+  thread_add_stream(thread_, &rstream2, iodevs, 1);
+  EXPECT_NE((void *)NULL, iodev.streams);
+
+  // Assume device is running.
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  // Set stub data for dev_stream_wake_time.
+  dev_stream_wake_time_val[iodev.streams] = ts_wake_1;
+  dev_stream_wake_time_val[iodev.streams->next] = ts_wake_2;
+
+  // Send captured samples to client.
+  // This will also update wake time for this device based on
+  // dev_stream_wake_time of each stream of this device.
+  send_captured_samples(thread_);
+
+  // wake_ts is maintained in open_dev.
+  adev = thread_->open_devs[CRAS_STREAM_INPUT];
+
+  // The wake up time for this device is the minimum of
+  // ts_wake_1 and ts_wake_2.
+  EXPECT_EQ(ts_wake_1.tv_sec, adev->wake_ts.tv_sec);
+  EXPECT_EQ(ts_wake_1.tv_nsec, adev->wake_ts.tv_nsec);
+
+  TearDownRstream(&rstream1);
+  TearDownRstream(&rstream2);
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
@@ -908,6 +952,19 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 
 void dev_stream_update_frames(const struct dev_stream *dev_stream)
 {
+}
+
+int dev_stream_wake_time(struct dev_stream *dev_stream,
+                         unsigned int curr_level,
+                         struct timespec *level_tstamp,
+                         struct timespec *wake_time)
+{
+  if (dev_stream_wake_time_val.find(dev_stream) !=
+      dev_stream_wake_time_val.end()) {
+    wake_time->tv_sec = dev_stream_wake_time_val[dev_stream].tv_sec;
+    wake_time->tv_nsec = dev_stream_wake_time_val[dev_stream].tv_nsec;
+  }
+  return 0;
 }
 
 int cras_iodev_frames_queued(struct cras_iodev *iodev, struct timespec *tstamp)

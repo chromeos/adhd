@@ -1406,40 +1406,71 @@ static int do_capture(struct audio_thread *thread)
 	return 0;
 }
 
+/*
+ * Set wake_ts for this device to be the earliest wake up time for
+ * dev_streams.
+ */
+static int set_input_dev_wake_ts(struct open_dev *adev)
+{
+	int rc;
+	struct timespec level_tstamp, wake_time_out, min_ts, now;
+	unsigned int curr_level;
+	struct dev_stream *stream;
+
+	/* Limit the sleep time to 20 seconds. */
+	min_ts.tv_sec = 20;
+	min_ts.tv_nsec = 0;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	add_timespecs(&min_ts, &now);
+
+	curr_level = cras_iodev_frames_queued(adev->dev, &level_tstamp);
+	if (!timespec_is_nonzero(&level_tstamp))
+		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
+
+	/*
+	 * Loop through streams to find the earliest time audio thread
+	 * should wake up.
+	 */
+	DL_FOREACH(adev->dev->streams, stream) {
+		rc = dev_stream_wake_time(
+			stream,
+			curr_level,
+			&level_tstamp,
+			&wake_time_out);
+
+		if (rc < 0)
+			return rc;
+
+		if (timespec_after(&min_ts, &wake_time_out)) {
+			min_ts = wake_time_out;
+		}
+	}
+	adev->wake_ts = min_ts;
+	return 0;
+}
+
 static int send_captured_samples(struct audio_thread *thread)
 {
 	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
 	struct open_dev *adev;
-	struct timespec level_tstamp;
+	int rc;
 
 	// TODO(dgreid) - once per rstream, not once per dev_stream.
 	DL_FOREACH(idev_list, adev) {
 		struct dev_stream *stream;
-		unsigned int min_needed = adev->dev->max_cb_level;
-		unsigned int curr_level, cap_avail;
 
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
-		curr_level = cras_iodev_frames_queued(adev->dev, &level_tstamp);
-		if (!timespec_is_nonzero(&level_tstamp))
-			clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
-
+		/* Post samples to rstream if there are enough samples. */
 		DL_FOREACH(adev->dev->streams, stream) {
 			dev_stream_capture_update_rstream(stream);
-			cap_avail = dev_stream_capture_avail(stream);
-			min_needed = MIN(min_needed, cap_avail);
 		}
 
-		if (min_needed > curr_level)
-			min_needed -= curr_level;
-		else
-			min_needed = 0;
-
-		cras_frames_to_time(min_needed + 10,
-				    adev->dev->ext_format->frame_rate,
-				    &adev->wake_ts);
-		add_timespecs(&adev->wake_ts, &level_tstamp);
+		/* Set wake_ts for this device. */
+		rc = set_input_dev_wake_ts(adev);
+		if (rc < 0)
+			return rc;
 	}
 
 	return 0;
