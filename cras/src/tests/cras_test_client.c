@@ -582,6 +582,7 @@ static void audio_debug_info(struct cras_client *client)
 		       info->devs[i].est_rate_ratio,
 		       (unsigned int)info->devs[i].num_underruns,
 		       (unsigned int)info->devs[i].num_severe_underruns);
+		printf("\n");
 	}
 
 	printf("-------------stream_dump------------\n");
@@ -593,17 +594,26 @@ static void audio_debug_info(struct cras_client *client)
 		printf("stream: %llx dev: %u\n",
 		       (unsigned long long)info->streams[i].stream_id,
 		       (unsigned int)info->streams[i].dev_idx);
-		printf("%d %u %u %u %u %u.%09u\n",
-		       info->streams[i].direction,
+		printf("direction: %s\n",
+		       (info->streams[i].direction == CRAS_STREAM_INPUT)
+				? "Input" : "Output");
+		printf("buffer_frames: %u\n"
+		       "cb_threshold: %u\n"
+		       "frame_rate: %u\n"
+		       "num_channels: %u\n"
+		       "longest_fetch_sec: %u.%09u\n"
+		       "num_overruns: %u\n",
 		       (unsigned int)info->streams[i].buffer_frames,
 		       (unsigned int)info->streams[i].cb_threshold,
 		       (unsigned int)info->streams[i].frame_rate,
 		       (unsigned int)info->streams[i].num_channels,
 		       (unsigned int)info->streams[i].longest_fetch_sec,
-		       (unsigned int)info->streams[i].longest_fetch_nsec);
+		       (unsigned int)info->streams[i].longest_fetch_nsec,
+		       (unsigned int)info->streams[i].num_overruns);
+		printf("channel map:");
 		for (channel = 0; channel < CRAS_CH_MAX; channel++)
 			printf("%d ", info->streams[i].channel_layout[channel]);
-		printf("\n");
+		printf("\n\n");
 	}
 
 	printf("Audio Thread Event Log:\n");
