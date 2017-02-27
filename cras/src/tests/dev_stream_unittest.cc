@@ -93,6 +93,9 @@ static struct rstream_get_readable_call rstream_get_readable_call;
 static unsigned int rstream_get_readable_num;
 static uint8_t *rstream_get_readable_ptr;
 
+static int cras_rstream_audio_ready_called;
+static int cras_rstream_audio_ready_count;
+
 class CreateSuite : public testing::Test{
   protected:
     virtual void SetUp() {
@@ -117,6 +120,9 @@ class CreateSuite : public testing::Test{
       config_format_converter_called = 0;
       cras_fmt_conversion_needed_val = 0;
       cras_fmt_conv_set_linear_resample_rates_called = 0;
+
+      cras_rstream_audio_ready_called = 0;
+      cras_rstream_audio_ready_count = 0;
 
       memset(&copy_area_call, 0xff, sizeof(copy_area_call));
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
@@ -530,6 +536,177 @@ TEST_F(CreateSuite, StreamCanFetch) {
   dev_stream_destroy(dev_stream);
 }
 
+TEST_F(CreateSuite, StreamCanSend) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+  int written_frames;
+  int rc;
+  struct timespec expected_next_cb_ts;
+
+  rstream_.direction = CRAS_STREAM_INPUT;
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55, &cb_ts);
+
+  // Assume there is a next_cb_ts on rstream.
+  rstream_.next_cb_ts.tv_sec = 1;
+  rstream_.next_cb_ts.tv_nsec = 0;
+
+  // Case 1: Not enough samples. Time is not late enough.
+  //         Stream can not send data to client.
+  clock_gettime_retspec.tv_sec = 0;
+  clock_gettime_retspec.tv_nsec = 0;
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, rc);
+
+  // Case 2: Not enough samples. Time is late enough.
+  //         Stream can not send data to client.
+
+  // Assume time is greater than next_cb_ts.
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 500;
+  // However, written frames is less than cb_threshold.
+  // Stream still can not send samples to client.
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, rc);
+
+  // Case 3: Enough samples. Time is not late enough.
+  //         Stream can not send data to client.
+
+  // Assume time is less than next_cb_ts.
+  clock_gettime_retspec.tv_sec = 0;
+  clock_gettime_retspec.tv_nsec = 0;
+  // Enough samples are written.
+  written_frames = rstream_.cb_threshold + 10;
+  cras_shm_buffer_written(&rstream_.shm, written_frames);
+  // Stream still can not send samples to client.
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, rc);
+
+  // Case 4: Enough samples. Time is late enough.
+  //         Stream should send one cb_threshold to client.
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 500;
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(rstream_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(0, rc);
+
+  // Check next_cb_ts is increased by one sleep interval.
+  expected_next_cb_ts.tv_sec = 1;
+  expected_next_cb_ts.tv_nsec = 0;
+  add_timespecs(&expected_next_cb_ts,
+                &rstream_.sleep_interval_ts);
+  EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
+  EXPECT_EQ(expected_next_cb_ts.tv_nsec, rstream_.next_cb_ts.tv_nsec);
+
+  // Reset stub data of interest.
+  cras_rstream_audio_ready_called = 0;
+  cras_rstream_audio_ready_count = 0;
+  rstream_.next_cb_ts.tv_sec = 1;
+  rstream_.next_cb_ts.tv_nsec = 0;
+
+  // Case 5: Enough samples. Time is late enough and it is too late
+  //         such that a new next_cb_ts is in the past.
+  //         Stream should send one cb_threshold to client and reset schedule.
+  clock_gettime_retspec.tv_sec = 2;
+  clock_gettime_retspec.tv_nsec = 0;
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(rstream_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(0, rc);
+
+  // Check next_cb_ts is rest to be now plus one sleep interval.
+  expected_next_cb_ts.tv_sec = 2;
+  expected_next_cb_ts.tv_nsec = 0;
+  add_timespecs(&expected_next_cb_ts,
+                &rstream_.sleep_interval_ts);
+  EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
+  EXPECT_EQ(expected_next_cb_ts.tv_nsec, rstream_.next_cb_ts.tv_nsec);
+
+  dev_stream_destroy(dev_stream);
+}
+
+TEST_F(CreateSuite, StreamCanSendBulkAudio) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+  int written_frames;
+  int rc;
+  struct timespec expected_next_cb_ts;
+
+  rstream_.direction = CRAS_STREAM_INPUT;
+  rstream_.flags |= BULK_AUDIO_OK;
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55, &cb_ts);
+
+  // Assume there is a next_cb_ts on rstream.
+  rstream_.next_cb_ts.tv_sec = 1;
+  rstream_.next_cb_ts.tv_nsec = 0;
+
+  // Case 1: Not enough samples. Time is not late enough.
+  //         Bulk audio stream can not send data to client.
+  clock_gettime_retspec.tv_sec = 0;
+  clock_gettime_retspec.tv_nsec = 0;
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, rc);
+
+  // Case 2: Not enough samples. Time is late enough.
+  //         Bulk audio stream can not send data to client.
+
+  // Assume time is greater than next_cb_ts.
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 500;
+  // However, written frames is less than cb_threshold.
+  // Stream still can not send samples to client.
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, rc);
+
+  // Case 3: Enough samples. Time is not late enough.
+  //         Bulk audio stream CAN send data to client.
+
+  // Assume time is less than next_cb_ts.
+  clock_gettime_retspec.tv_sec = 0;
+  clock_gettime_retspec.tv_nsec = 0;
+  // Enough samples are written.
+  written_frames = rstream_.cb_threshold + 10;
+  cras_shm_buffer_written(&rstream_.shm, written_frames);
+  // Bulk audio stream can send all written samples to client.
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(written_frames, cras_rstream_audio_ready_count);
+  EXPECT_EQ(0, rc);
+
+  // Case 4: Enough samples. Time is late enough.
+  //         Bulk audio stream can send all written samples to client.
+
+  // Reset stub data of interest.
+  cras_rstream_audio_ready_called = 0;
+  cras_rstream_audio_ready_count = 0;
+  rstream_.next_cb_ts.tv_sec = 1;
+  rstream_.next_cb_ts.tv_nsec = 0;
+
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 500;
+  rc = dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(written_frames, cras_rstream_audio_ready_count);
+  EXPECT_EQ(0, rc);
+
+  // Check next_cb_ts is increased by one sleep interval.
+  expected_next_cb_ts.tv_sec = 1;
+  expected_next_cb_ts.tv_nsec = 0;
+  add_timespecs(&expected_next_cb_ts,
+                &rstream_.sleep_interval_ts);
+  EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
+  EXPECT_EQ(expected_next_cb_ts.tv_nsec, rstream_.next_cb_ts.tv_nsec);
+
+  dev_stream_destroy(dev_stream);
+}
+
 //  Test set_playback_timestamp.
 TEST(DevStreamTimimg, SetPlaybackTimeStampSimple) {
   struct cras_timespec ts;
@@ -602,6 +779,8 @@ TEST(DevStreamTimimg, SetCaptureTimeStampWrapPartial) {
 extern "C" {
 
 int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count) {
+  cras_rstream_audio_ready_count = count;
+  cras_rstream_audio_ready_called++;
   return 0;
 }
 

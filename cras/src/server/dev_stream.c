@@ -23,6 +23,15 @@ static const unsigned int capture_extra_sleep_frames = 20;
  */
 static const int coarse_rate_adjust_step = 3;
 
+/*
+ * Allow capture callback to fire this much earlier than the scheduled
+ * next_cb_ts to avoid an extra wake of audio thread.
+ */
+static const struct timespec capture_callback_fuzz_ts = {
+	.tv_sec = 0,
+	.tv_nsec = 1000000, /* 1 ms. */
+};
+
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
@@ -470,17 +479,32 @@ int dev_stream_playback_update_rstream(struct dev_stream *dev_stream)
 	return 0;
 }
 
+static int late_enough_for_capture_callback(struct dev_stream *dev_stream)
+{
+	struct timespec now;
+	struct cras_rstream *rstream = dev_stream->stream;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	add_timespecs(&now, &capture_callback_fuzz_ts);
+	return timespec_after(&now, &rstream->next_cb_ts);
+}
+
 int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	unsigned int frames_ready = cras_rstream_get_cb_threshold(rstream);
-	struct timespec now;
+	int rc;
 
 	cras_rstream_update_input_write_pointer(rstream);
 
-	/* If it isn't time for this stream then skip it. */
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	/*
+	 * For stream without BULK_AUDIO_OK flag, if it isn't time for
+	 * this stream then skip it.
+	 */
+	if (!(rstream->flags & BULK_AUDIO_OK) &&
+	    !late_enough_for_capture_callback(dev_stream))
+		return 0;
 
+	/* If there is not enough data for one callback, skip it. */
 	if (!cras_rstream_input_level_met(rstream))
 		return 0;
 
@@ -493,7 +517,18 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 				    frames_ready,
 				    rstream->shm.area->read_buf_idx);
 
-	return cras_rstream_audio_ready(rstream, frames_ready);
+	rc = cras_rstream_audio_ready(rstream, frames_ready);
+
+	if (rc < 0)
+		return rc;
+
+	/* Update next callback time according to perfect schedule. */
+	add_timespecs(&rstream->next_cb_ts,
+		      &rstream->sleep_interval_ts);
+	/* Reset schedule if the schedule is missed. */
+	check_next_wake_time(dev_stream);
+
+	return 0;
 }
 
 void cras_set_playback_timestamp(size_t frame_rate,
