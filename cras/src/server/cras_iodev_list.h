@@ -151,7 +151,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 				 cras_node_id_t node_id);
 
 /* Checks if an iodev is enabled. */
-int cras_iodev_list_dev_is_enabled(struct cras_iodev *dev);
+int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev);
 
 /* Enables an iodev. If the fallback device was already enabled, this
  * call will disable it. */

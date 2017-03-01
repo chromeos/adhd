@@ -268,7 +268,7 @@ int cras_iodev_close(struct cras_iodev *dev) {
   return 0;
 }
 
-int cras_iodev_list_dev_is_enabled(struct cras_iodev *dev)
+int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev)
 {
   return 0;
 }

@@ -814,7 +814,7 @@ void cras_iodev_list_deinit()
 	stream_list_destroy(stream_list);
 }
 
-int cras_iodev_list_dev_is_enabled(struct cras_iodev *dev)
+int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev)
 {
 	struct enabled_dev *edev;
 
