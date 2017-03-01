@@ -79,6 +79,7 @@ static struct cras_iodev *audio_thread_dev_start_ramp_dev;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req ;
 static std::map<const struct cras_iodev*, enum CRAS_IODEV_STATE> cras_iodev_state_ret;
+static int cras_iodev_is_zero_volume_ret;
 
 void dummy_update_active_node(struct cras_iodev *iodev,
                               unsigned node_idx,
@@ -197,6 +198,7 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_dev_start_ramp_called = 0;
       audio_thread_dev_start_ramp_req =
           CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
+      cras_iodev_is_zero_volume_ret = 0;
     }
 
     static void set_volume_1(struct cras_iodev* iodev) {
@@ -756,6 +758,28 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 
+  // Assume d1_ should mute for volume.
+  // It should not use ramp.
+  cras_iodev_is_zero_volume_ret = 1;
+
+  // Clear stub data of interest.
+  audio_thread_dev_start_ramp_dev = NULL;
+  audio_thread_dev_start_ramp_called = 0;
+  set_mute_called = 0;
+  set_mute_dev_vector.clear();
+
+  // Execute the callback.
+  observer_ops->output_mute_changed(NULL, 0, 1, 0);
+
+  // Verify three devices all set mute state right away.
+  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
+  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
+  EXPECT_EQ(3, set_mute_called);
+  EXPECT_EQ(3, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
+
   // Assume d1_ is changed to no_stream run state
   // It should not use ramp.
   cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NO_STREAM_RUN;
@@ -815,6 +839,28 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   // because it is not enabled.
   EXPECT_EQ(2, set_mute_called);
   EXPECT_EQ(2, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
+
+  // Assume d1_ should mute for volume.
+  // It should not use ramp.
+  cras_iodev_is_zero_volume_ret = 1;
+
+  // Clear stub data of interest.
+  audio_thread_dev_start_ramp_dev = NULL;
+  audio_thread_dev_start_ramp_called = 0;
+  set_mute_called = 0;
+  set_mute_dev_vector.clear();
+
+  // Execute the callback.
+  observer_ops->output_mute_changed(NULL, 0, 1, 0);
+
+  // Verify three devices all set mute state right away.
+  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
+  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
+  EXPECT_EQ(3, set_mute_called);
+  EXPECT_EQ(3, set_mute_dev_vector.size());
+  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 
@@ -1411,6 +1457,11 @@ int cras_iodev_set_mute(struct cras_iodev* iodev) {
   set_mute_called++;
   set_mute_dev_vector.push_back(iodev);
   return 0;
+}
+
+int cras_iodev_is_zero_volume(const struct cras_iodev *iodev)
+{
+  return cras_iodev_is_zero_volume_ret;
 }
 
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
