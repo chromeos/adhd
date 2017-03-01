@@ -160,14 +160,19 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
  * system volume, and active node volume on the device. */
 static int output_should_mute(struct cras_iodev *odev)
 {
-	size_t system_volume;
-	unsigned int adjusted_node_volume;
-
 	/* System mute has highest priority. */
 	if (cras_system_get_mute())
 		return 1;
 
-	/* Then, consider system volume and active node volume. */
+	/* consider system volume and active node volume. */
+	return cras_iodev_is_zero_volume(odev);
+}
+
+int cras_iodev_is_zero_volume(const struct cras_iodev *odev)
+{
+	size_t system_volume;
+	unsigned int adjusted_node_volume;
+
 	system_volume = cras_system_get_volume();
 	if (odev->active_node) {
 		adjusted_node_volume = cras_iodev_adjust_node_volume(

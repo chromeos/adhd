@@ -690,4 +690,15 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
  */
 int cras_iodev_set_mute(struct cras_iodev* iodev);
 
+/*
+ * Checks if an output iodev's volume is zero.
+ * If there is an active node, check the adjusted node volume.
+ * If there is no active node, check system volume.
+ * Args:
+ *    odev[in] - The device.
+ * Returns:
+ *    1 if device's volume is 0. 0 otherwise.
+ */
+int cras_iodev_is_zero_volume(const struct cras_iodev *odev);
+
 #endif /* CRAS_IODEV_H_ */

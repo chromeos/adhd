@@ -594,6 +594,39 @@ TEST(IoDevPutOutputBuffer, SystemMuted) {
   EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
 }
 
+TEST(IoDevPutOutputBuffer, MuteForVolume) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+
+  // Case: System volume 100; Node volume 0. => Mute
+  cras_system_get_volume_return = 100;
+  iodev.active_node->volume = 0;
+  EXPECT_EQ(1, cras_iodev_is_zero_volume(&iodev));
+
+  // Case: System volume 100; Node volume 50. => Not mute
+  cras_system_get_volume_return = 100;
+  iodev.active_node->volume = 50;
+  EXPECT_EQ(0, cras_iodev_is_zero_volume(&iodev));
+
+  // Case: System volume 0; Node volume 50. => Mute
+  cras_system_get_volume_return = 0;
+  iodev.active_node->volume = 50;
+  EXPECT_EQ(1, cras_iodev_is_zero_volume(&iodev));
+
+  // Case: System volume 50; Node volume 50. => Mute
+  cras_system_get_volume_return = 50;
+  iodev.active_node->volume = 50;
+  EXPECT_EQ(1, cras_iodev_is_zero_volume(&iodev));
+}
+
 TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
