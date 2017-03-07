@@ -406,26 +406,26 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "SLEEP", (int)data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO:
-		printf("%-30s dev:%x hw_level:%u read:%u\n",
+		printf("%-30s dev:%u hw_level:%u read:%u\n",
 		       "READ_AUDIO", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO_TSTAMP:
-		printf("%-30s dev:%x tstamp:%09d.%09d\n",
+		printf("%-30s dev:%u tstamp:%09d.%09d\n",
 		       "READ_AUDIO_TSTAMP", data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO_DONE:
 		printf("%-30s read_remainder:%u\n", "READ_AUDIO_DONE", data1);
 		break;
 	case AUDIO_THREAD_READ_OVERRUN:
-		printf("%-30s dev:%x stream:%x num_overruns:%u\n",
+		printf("%-30s dev:%u stream:%x num_overruns:%u\n",
 		       "READ_AUDIO_OVERRUN", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
-		printf("%-30s dev:%x hw_level:%u\n",
+		printf("%-30s dev:%u hw_level:%u\n",
 		       "FILL_AUDIO", data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_TSTAMP:
-		printf("%-30s dev:%x tstamp:%09d.%09d\n",
+		printf("%-30s dev:%u tstamp:%09d.%09d\n",
 		       "FILL_AUDIO_TSTAMP", data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
@@ -454,7 +454,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "WRITE_STREAMS_FETCH_STREAM", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_STREAM_ADDED:
-		printf("%-30s id:%x dev:%x\n",
+		printf("%-30s id:%x dev:%u\n",
 		       "STREAM_ADDED", data1, data2);
 		break;
 	case AUDIO_THREAD_STREAM_REMOVED:
@@ -497,18 +497,18 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "STREAM_SKIP_CB", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_SLEEP_TIME:
-		printf("%-30s dev:%x wake:%09u.%09d\n",
+		printf("%-30s dev:%u wake:%09u.%09d\n",
 		       "DEV_SLEEP_TIME", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_SET_DEV_WAKE:
-		printf("%-30s dev:%x hw_level:%u sleep:%u\n",
+		printf("%-30s dev:%u hw_level:%u sleep:%u\n",
 		       "SET_DEV_WAKE", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_ADDED:
-		printf("%-30s dev:%x\n", "DEV_ADDED", data1);
+		printf("%-30s dev:%u\n", "DEV_ADDED", data1);
 		break;
 	case AUDIO_THREAD_DEV_REMOVED:
-		printf("%-30s dev:%x\n", "DEV_REMOVED", data1);
+		printf("%-30s dev:%u\n", "DEV_REMOVED", data1);
 		break;
 	case AUDIO_THREAD_IODEV_CB:
 		printf("%-30s is_write:%u\n", "IODEV_CB", data1);
@@ -517,27 +517,27 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s msg_id:%u\n", "PB_MSG", data1);
 		break;
 	case AUDIO_THREAD_ODEV_NO_STREAMS:
-		printf("%-30s dev:%x\n",
+		printf("%-30s dev:%u\n",
 		       "ODEV_NO_STREAMS", data1);
 		break;
 	case AUDIO_THREAD_ODEV_LEAVE_NO_STREAMS:
-		printf("%-30s dev:%x\n",
+		printf("%-30s dev:%u\n",
 		       "ODEV_LEAVE_NO_STREAMS", data1);
 		break;
 	case AUDIO_THREAD_ODEV_START:
-		printf("%-30s dev:%x min_cb_level:%u\n",
+		printf("%-30s dev:%u min_cb_level:%u\n",
 		       "ODEV_START", data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_ODEV_ZEROS:
-		printf("%-30s dev:%x write:%u\n",
+		printf("%-30s dev:%u write:%u\n",
 		       "FILL_ODEV_ZEROS", data1, data2);
 		break;
 	case AUDIO_THREAD_ODEV_DEFAULT_NO_STREAMS:
-		printf("%-30s dev:%x hw_level:%u target:%u\n",
+		printf("%-30s dev:%u hw_level:%u target:%u\n",
 		       "DEFAULT_NO_STREAMS", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_SEVERE_UNDERRUN:
-		printf("%-30s dev:%x\n", "SEVERE_UNDERRUN", data1);
+		printf("%-30s dev:%u\n", "SEVERE_UNDERRUN", data1);
 		break;
 	default:
 		printf("%-30s tag:%u\n","UNKNOWN", tag);
@@ -590,7 +590,7 @@ static void audio_debug_info(struct cras_client *client)
 
 	for (i = 0; i < info->num_streams; i++) {
 		int channel;
-		printf("stream: %llx dev: %x\n",
+		printf("stream: %llx dev: %u\n",
 		       (unsigned long long)info->streams[i].stream_id,
 		       (unsigned int)info->streams[i].dev_idx);
 		printf("%d %u %u %u %u %u.%09u\n",
