@@ -107,6 +107,8 @@ static void ResetStubData() {
   snd_hctl_elem_next_ret_vals_poped.clear();
   snd_hctl_elem_get_name_called = 0;
   snd_hctl_elem_set_callback_called = 0;
+  snd_hctl_elem_set_callback_obj = NULL;
+  snd_hctl_elem_set_callback_value = NULL;
   snd_hctl_find_elem_called = 0;
   snd_hctl_find_elem_return_vals.clear();
   snd_ctl_elem_id_set_name_map.clear();
@@ -680,6 +682,9 @@ TEST(AlsaJacks, CreateOneHpJack) {
                                       0,
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  ASSERT_NE(reinterpret_cast<snd_hctl_elem_callback_t>(NULL),
+            snd_hctl_elem_set_callback_value);
+  EXPECT_EQ(1, snd_hctl_elem_set_callback_called);
 
   snd_hctl_elem_get_hctl_return_value = reinterpret_cast<snd_hctl_t *>(0x33);
   snd_hctl_elem_get_name_called = 0;
@@ -699,6 +704,9 @@ TEST(AlsaJacks, CreateOneHpJack) {
   EXPECT_EQ(1, fake_jack_cb_called);
 
   cras_alsa_jack_list_destroy(jack_list);
+  EXPECT_EQ(2, snd_hctl_elem_set_callback_called);
+  EXPECT_EQ(reinterpret_cast<snd_hctl_elem_callback_t>(NULL),
+            snd_hctl_elem_set_callback_value);
 }
 
 TEST(AlsaJacks, CreateOneMicJack) {
@@ -720,9 +728,15 @@ TEST(AlsaJacks, CreateOneMicJack) {
                                       0,
                                       1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list *>(NULL), jack_list);
+  ASSERT_NE(reinterpret_cast<snd_hctl_elem_callback_t>(NULL),
+            snd_hctl_elem_set_callback_value);
+  EXPECT_EQ(1, snd_hctl_elem_set_callback_called);
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(0, cras_system_rm_select_fd_called);
+  EXPECT_EQ(2, snd_hctl_elem_set_callback_called);
+  EXPECT_EQ(reinterpret_cast<snd_hctl_elem_callback_t>(NULL),
+            snd_hctl_elem_set_callback_value);
 }
 
 TEST(AlsaJacks, CreateHDMIJacksWithELD) {

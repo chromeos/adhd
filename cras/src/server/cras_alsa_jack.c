@@ -199,6 +199,13 @@ static void cras_free_jack(struct cras_alsa_jack *jack,
 		}
 	}
 
+	/*
+	 * Remove the jack callback set on hctl. Otherwise, snd_hctl_close will
+	 * trigger a callback while iodev might already be destroyed.
+	 */
+	if (!jack->is_gpio && jack->elem)
+		snd_hctl_elem_set_callback(jack->elem, NULL);
+
 	free((void *)jack->override_type_name);
 	free((void *)jack->dsp_name);
 	free(jack);
