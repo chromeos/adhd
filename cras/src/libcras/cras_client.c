@@ -373,33 +373,10 @@ void server_fill_pollfd(const struct cras_client *client,
 static void server_fd_move_to_state(struct cras_client *client,
 				    cras_socket_state_t state)
 {
-	const char *state_str = "unknown";
-
 	if (state == client->server_fd_state)
 		return;
 
 	client->server_fd_state = state;
-	switch (state) {
-	case CRAS_SOCKET_STATE_DISCONNECTED:
-		state_str = "disconnected";
-		break;
-	case CRAS_SOCKET_STATE_ERROR_DELAY:
-		state_str = "error_delay";
-		break;
-	case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
-		state_str = "wait_for_socket";
-		break;
-	case CRAS_SOCKET_STATE_FIRST_MESSAGE:
-		state_str = "first_message";
-		break;
-	case CRAS_SOCKET_STATE_CONNECTED:
-		state_str = "connected";
-		break;
-	case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
-		state_str = "wait_for_writable";
-		break;
-	}
-	syslog(LOG_DEBUG, "cras_client: server_fd_state: %s", state_str);
 }
 
 /*
@@ -1586,7 +1563,6 @@ static int client_thread_rm_stream(struct cras_client *client,
 
 	if (stream == NULL)
 		return 0;
-	syslog(LOG_INFO, "cras_client: remove stream %u", stream_id);
 
 	/* Tell server to remove. */
 	if (client->server_fd_state == CRAS_SOCKET_STATE_CONNECTED) {

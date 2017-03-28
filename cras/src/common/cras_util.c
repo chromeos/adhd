@@ -33,8 +33,6 @@ int cras_set_rt_scheduling(int rt_lim)
 		       (unsigned) rt_lim, errno);
 		return -EACCES;
 	}
-
-	syslog(LOG_INFO, "set rlimit success\n");
 	return 0;
 }
 
@@ -47,8 +45,10 @@ int cras_set_thread_priority(int priority)
 	sched_param.sched_priority = priority;
 
 	err = pthread_setschedparam(pthread_self(), SCHED_RR, &sched_param);
-	if (err < 0)
-		syslog(LOG_WARNING, "Set sched params for thread\n");
+	if (err)
+		syslog(LOG_WARNING,
+		       "Failed to set thread sched params to priority %d"
+		       ", rc: %d\n", priority, err);
 
 	return err;
 }
@@ -63,7 +63,9 @@ int cras_set_nice_level(int nice)
 	 * has been granted permission to adjust nice values on the system.
 	 */
 	rc = setpriority(PRIO_PROCESS, syscall(__NR_gettid), nice);
-	syslog(LOG_DEBUG, "Set nice to %d %s.", nice, rc ? "Fail" : "Success");
+	if (rc)
+		syslog(LOG_WARNING, "Failed to set nice to %d, rc: %d",
+		       nice, rc);
 
 	return rc;
 }
