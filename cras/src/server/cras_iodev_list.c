@@ -593,6 +593,28 @@ static void schedule_init_device_retry(struct enabled_dev *edev)
 				tm, INIT_DEV_DELAY_MS, init_device_cb, edev);
 }
 
+static int pinned_stream_added(struct cras_rstream *rstream)
+{
+	struct cras_iodev *dev;
+	int rc;
+
+	/* Check that the target device is valid for pinned streams. */
+	dev = find_dev(rstream->pinned_dev_idx);
+	if (!dev)
+		return -EINVAL;
+
+	/* Make sure the active node is configured properly, it could be
+	 * disabled when last normal stream removed. */
+	dev->update_active_node(dev, dev->active_node->idx, 1);
+
+	/* Negative EAGAIN code indicates dev will be opened later. */
+	rc = init_device(dev, rstream);
+	if (rc && (rc != -EAGAIN))
+		return rc;
+
+	return audio_thread_add_stream(audio_thread, rstream, &dev, 1);
+}
+
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
@@ -603,20 +625,8 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	if (stream_list_suspended)
 		return 0;
 
-	/* Check that the target device is valid for pinned streams. */
-	if (rstream->is_pinned) {
-		struct cras_iodev *dev;
-		dev = find_dev(rstream->pinned_dev_idx);
-		if (!dev)
-			return -EINVAL;
-
-		/* Negative EAGAIN code indicates dev will be opened later. */
-		rc = init_device(dev, rstream);
-		if (rc && (rc != -EAGAIN))
-			return rc;
-
-		return audio_thread_add_stream(audio_thread, rstream, &dev, 1);
-	}
+	if (rstream->is_pinned)
+		return pinned_stream_added(rstream);
 
 	/* Add the new stream to all enabled iodevs at once to avoid offset
 	 * in shm level between different ouput iodevs. */
@@ -697,8 +707,10 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
 	struct cras_iodev *dev;
 
 	dev = find_dev(rstream->pinned_dev_idx);
-	if (!cras_iodev_list_dev_is_enabled(dev))
+	if (!cras_iodev_list_dev_is_enabled(dev)) {
 		close_dev(dev);
+		dev->update_active_node(dev, dev->active_node->idx, 0);
+	}
 }
 
 /* Returns the number of milliseconds left to drain this stream.  This is passed
