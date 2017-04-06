@@ -452,7 +452,7 @@ class EventLogParser(object):
             return StreamAddedEvent(time, name, stream=props['id'])
         if name == 'STREAM_REMOVED':
             return StreamRemovedEvent(time, name, stream=props['id'])
-        if name in ['FILL_AUDIO', 'SET_DEV_WAKE', 'ODEV_NO_STREAMS']:
+        if name in ['FILL_AUDIO', 'SET_DEV_WAKE']:
             return LevelEvent(
                     time, name, device=props['dev'],
                     level=int(props['hw_level']))
