@@ -20,7 +20,9 @@ float softvol_scalers[101];
 
 #define BUFFER_SIZE 8192
 
-#define RAMP_DURATION_SECS 0.5
+static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
+static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
+static const float RAMP_MUTE_DURATION_SECS = 0.1;
 
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
@@ -1616,7 +1618,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
   EXPECT_EQ(1, cras_ramp_start_is_up);
-  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+  EXPECT_EQ(fmt.frame_rate * RAMP_NEW_STREAM_DURATION_SECS,
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
   EXPECT_EQ(NULL, cras_ramp_start_cb_data);
@@ -1650,7 +1652,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
   EXPECT_EQ(1, cras_ramp_start_is_up);
-  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+  EXPECT_EQ(fmt.frame_rate * RAMP_NEW_STREAM_DURATION_SECS,
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
   EXPECT_EQ(NULL, cras_ramp_start_cb_data);
@@ -1709,7 +1711,7 @@ TEST(IoDev, StartRampUp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
   EXPECT_EQ(1, cras_ramp_start_is_up);
-  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+  EXPECT_EQ(fmt.frame_rate * RAMP_NEW_STREAM_DURATION_SECS,
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
   EXPECT_EQ(NULL, cras_ramp_start_cb_data);
@@ -1725,7 +1727,7 @@ TEST(IoDev, StartRampUp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
   EXPECT_EQ(1, cras_ramp_start_is_up);
-  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+  EXPECT_EQ(fmt.frame_rate * RAMP_UNMUTE_DURATION_SECS,
             cras_ramp_start_duration_frames);
   // Callback for unmute is not used.
   EXPECT_EQ(NULL, cras_ramp_start_cb);
@@ -1772,7 +1774,7 @@ TEST(IoDev, StartRampDown) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
   EXPECT_EQ(0, cras_ramp_start_is_up);
-  EXPECT_EQ(fmt.frame_rate * RAMP_DURATION_SECS,
+  EXPECT_EQ(fmt.frame_rate * RAMP_MUTE_DURATION_SECS,
             cras_ramp_start_duration_frames);
 
   // Device mute state is not set yet. It should wait for ramp to finish.

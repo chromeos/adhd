@@ -30,7 +30,9 @@
 #include "rate_estimator.h"
 #include "softvol_curve.h"
 
-static const float RAMP_DURATION_SEC = 0.5;
+static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
+static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
+static const float RAMP_MUTE_DURATION_SECS = 0.1;
 
 static const struct timespec rate_estimation_window_sz = {
 	20, 0 /* 20 sec. */
@@ -1221,6 +1223,7 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 	cras_ramp_cb cb = NULL;
 	void *cb_data = NULL;
 	int rc, up;
+	float duration_secs;
 
 	/* Ignores request if device is closed. */
 	if (!cras_iodev_is_open(odev))
@@ -1228,13 +1231,18 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 
 	switch (request) {
 	case CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE:
+		up = 1;
+		duration_secs = RAMP_UNMUTE_DURATION_SECS;
+		break;
 	case CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK:
 		up = 1;
+		duration_secs = RAMP_NEW_STREAM_DURATION_SECS;
 		break;
 	/* Unmute -> mute. Callback to set mute state should be called after
 	 * ramping is done. */
 	case CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE:
 		up = 0;
+		duration_secs = RAMP_MUTE_DURATION_SECS;
 		cb = ramp_mute_callback;
 		cb_data = (void*)odev;
 		break;
@@ -1245,7 +1253,7 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 	/* Starts ramping. */
 	rc = cras_ramp_start(
 			odev->ramp, up,
-			RAMP_DURATION_SEC * odev->format->frame_rate,
+			duration_secs * odev->format->frame_rate,
 			cb, cb_data);
 
 	if (rc)
