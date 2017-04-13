@@ -1047,11 +1047,9 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
 	if (cras_mixer->playback_switch) {
 		snd_mixer_selem_set_playback_switch_all(
 				cras_mixer->playback_switch, !muted);
-		return;
 	}
 	if (mixer_output && mixer_output->has_mute) {
 		mixer_control_set_mute(mixer_output, muted);
-		return;
 	}
 }
 

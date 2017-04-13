@@ -133,9 +133,10 @@ long cras_alsa_mixer_get_maximum_capture_gain(
 
 /* Sets the playback switch for the device.
  * Args:
- *    cras_mixer - Mixer to set the volume in.
+ *    cras_mixer - Mixer to set the playback switch.
  *    muted - 1 if muted, 0 if not.
- *    mixer_output - The mixer output to mute if no master mute.
+ *    mixer_output - The output specific mixer control to mute/unmute. Pass NULL
+ *                   to skip it.
  */
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer,
 			      int muted,

@@ -343,7 +343,7 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_range_called);
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
 
-  /* should use the unknown element as a fallback */
+  /* Should use "Playback" since it has playback switch. */
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
 
@@ -365,9 +365,12 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   EXPECT_EQ(1, snd_mixer_selem_has_playback_switch_called);
   EXPECT_EQ(0, snd_mixer_selem_get_playback_dB_range_called);
 
-  /* if passed a mixer output then it should mute that. */
+  /*
+   * If passed a mixer output then it should mute both "Playback" and that
+   * mixer_output.
+   */
   cras_alsa_mixer_set_mute(c, 0, mixer_output);
-  EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
+  EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_dB_all_called);
 
