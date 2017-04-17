@@ -1429,6 +1429,7 @@ int main(int argc, char **argv)
 			else
 				print_hotword_models(client, id);
 			break;
+		}
 		case 'L': {
 			int log_level = atoi(optarg);
 
@@ -1438,7 +1439,6 @@ int main(int argc, char **argv)
 		case 'M':
 			mute_loop_test(client, atoi(optarg));
 			break;
-		}
 		default:
 			break;
 		}
