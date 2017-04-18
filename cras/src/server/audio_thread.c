@@ -802,6 +802,7 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->stream_id = stream->stream->stream_id;
 	si->dev_idx = dev_idx;
 	si->direction = stream->stream->direction;
+	si->stream_type = stream->stream->stream_type;
 	si->buffer_frames = stream->stream->buffer_frames;
 	si->cb_threshold = stream->stream->cb_threshold;
 	si->frame_rate = stream->stream->format.frame_rate;

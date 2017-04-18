@@ -597,6 +597,8 @@ static void audio_debug_info(struct cras_client *client)
 		printf("direction: %s\n",
 		       (info->streams[i].direction == CRAS_STREAM_INPUT)
 				? "Input" : "Output");
+		printf("stream_type: %s\n",
+		       cras_stream_type_str(info->streams[i].stream_type));
 		printf("buffer_frames: %u\n"
 		       "cb_threshold: %u\n"
 		       "frame_rate: %u\n"

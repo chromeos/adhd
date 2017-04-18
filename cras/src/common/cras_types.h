@@ -112,6 +112,22 @@ enum CRAS_STREAM_TYPE {
 	CRAS_STREAM_NUM_TYPES,
 };
 
+#define ENUM_STR(x) case x: return #x;
+
+static inline const char *cras_stream_type_str(
+		enum CRAS_STREAM_TYPE stream_type)
+{
+	switch(stream_type) {
+	ENUM_STR(CRAS_STREAM_TYPE_DEFAULT)
+	ENUM_STR(CRAS_STREAM_TYPE_MULTIMEDIA)
+	ENUM_STR(CRAS_STREAM_TYPE_VOICE_COMMUNICATION)
+	ENUM_STR(CRAS_STREAM_TYPE_SPEECH_RECOGNITION)
+	ENUM_STR(CRAS_STREAM_TYPE_PRO_AUDIO)
+	default:
+		return "INVALID_STREAM_TYPE";
+	}
+}
+
 /* Information about a client attached to the server. */
 struct __attribute__ ((__packed__)) cras_attached_client_info {
 	uint32_t id;
@@ -224,6 +240,7 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint64_t stream_id;
 	uint32_t dev_idx;
 	uint32_t direction;
+	uint32_t stream_type;
 	uint32_t buffer_frames;
 	uint32_t cb_threshold;
 	uint32_t flags;
