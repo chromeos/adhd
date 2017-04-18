@@ -671,6 +671,7 @@ static int run_file_io_stream(struct cras_client *client,
 			      int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
 			      size_t block_size,
+			      enum CRAS_STREAM_TYPE stream_type,
 			      size_t rate,
 			      size_t num_channels,
 			      uint32_t flags,
@@ -734,7 +735,7 @@ static int run_file_io_stream(struct cras_client *client,
 
 	params = cras_client_unified_params_create(direction,
 						   block_size,
-						   0,
+						   stream_type,
 						   flags,
 						   pfd,
 						   aud_cb,
@@ -898,6 +899,7 @@ static int run_file_io_stream(struct cras_client *client,
 static int run_capture(struct cras_client *client,
 		       const char *file,
 		       size_t block_size,
+		       enum CRAS_STREAM_TYPE stream_type,
 		       size_t rate,
 		       size_t num_channels,
 		       int is_loopback)
@@ -908,8 +910,8 @@ static int run_capture(struct cras_client *client,
 		return -errno;
 	}
 
-	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size, rate,
-			   num_channels, 0, is_loopback);
+	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size,
+			   stream_type, rate, num_channels, 0, is_loopback);
 
 	close(fd);
 	return 0;
@@ -918,6 +920,7 @@ static int run_capture(struct cras_client *client,
 static int run_playback(struct cras_client *client,
 			const char *file,
 			size_t block_size,
+			enum CRAS_STREAM_TYPE stream_type,
 			size_t rate,
 			size_t num_channels)
 {
@@ -929,8 +932,8 @@ static int run_playback(struct cras_client *client,
 		return -errno;
 	}
 
-	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT,
-			   block_size, rate, num_channels, 0, 0);
+	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, block_size,
+			   stream_type, rate, num_channels, 0, 0);
 
 	close(fd);
 	return 0;
@@ -940,8 +943,9 @@ static int run_hotword(struct cras_client *client,
 		       size_t block_size,
 		       size_t rate)
 {
-	run_file_io_stream(client, -1, CRAS_STREAM_INPUT, block_size, rate, 1,
-			   HOTWORD_STREAM, 0);
+	run_file_io_stream(client, -1, CRAS_STREAM_INPUT, block_size,
+			   CRAS_STREAM_TYPE_DEFAULT, rate, 1, HOTWORD_STREAM,
+			   0);
 	return 0;
 }
 static void print_server_info(struct cras_client *client)
@@ -1067,6 +1071,7 @@ static struct option long_options[] = {
 	{"get_hotword_models",	required_argument,	0, '>'},
 	{"syslog_mask",		required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
+	{"stream_type",		required_argument,	0, 'T'},
 	{0, 0, 0, 0}
 };
 
@@ -1120,6 +1125,7 @@ static void show_usage()
 	printf("--swap_left_right <N>:<M>:<0|1> - Swap or unswap (1 or 0) the"
 	       " left and right channel for the ionode with the given index M"
 	       " on the device with index N\n");
+	printf("--stream_type <N> - Specify the type of the stream.\n");
 	printf("--syslog_mask <n> - Set the syslog mask to the given log level.\n");
 	printf("--test_hotword_file <N>:<filename> - Use filename as a hotword buffer for device N\n");
 	printf("--user_mute <0|1> - Set user mute state.\n");
@@ -1138,6 +1144,7 @@ int main(int argc, char **argv)
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
 	const char *loopback_file = NULL;
+	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	int rc = 0;
 
 	option_index = 0;
@@ -1439,6 +1446,9 @@ int main(int argc, char **argv)
 		case 'M':
 			mute_loop_test(client, atoi(optarg));
 			break;
+		case 'T':
+			stream_type = atoi(optarg);
+			break;
 		default:
 			break;
 		}
@@ -1451,20 +1461,22 @@ int main(int argc, char **argv)
 	if (capture_file != NULL) {
 		if (strcmp(capture_file, "-") == 0)
 			rc = run_file_io_stream(client, 1, CRAS_STREAM_INPUT,
-					block_size, rate, num_channels, 0, 0);
+					block_size, stream_type, rate,
+					num_channels, 0, 0);
 		else
-			rc = run_capture(client, capture_file,
-					block_size, rate, num_channels, 0);
+			rc = run_capture(client, capture_file, block_size,
+					 stream_type, rate, num_channels, 0);
 	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
-					block_size, rate, num_channels, 0, 0);
+					block_size, stream_type, rate,
+					num_channels, 0, 0);
 		else
-			rc = run_playback(client, playback_file,
-					block_size, rate, num_channels);
+			rc = run_playback(client, playback_file, block_size,
+					  stream_type, rate, num_channels);
 	} else if (loopback_file != NULL) {
-		rc = run_capture(client, loopback_file,
-				 block_size, rate, num_channels, 1);
+		rc = run_capture(client, loopback_file, block_size,
+				 stream_type, rate, num_channels, 1);
 	}
 
 destroy_exit:
