@@ -61,6 +61,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	stream_config.direction = msg->direction;
 	stream_config.dev_idx = msg->dev_idx;
 	stream_config.flags = msg->flags;
+	stream_config.effects = msg->effects;
 	stream_config.format = &remote_fmt;
 	stream_config.buffer_frames = msg->buffer_frames;
 	stream_config.cb_threshold = msg->cb_threshold;
@@ -80,7 +81,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 			0, /* No error. */
 			msg->stream_id,
 			&remote_fmt,
-			cras_rstream_get_total_shm_size(stream));
+			cras_rstream_get_total_shm_size(stream),
+			cras_rstream_get_effects(stream));
 	stream_fds[0] = cras_rstream_input_shm_fd(stream);
 	stream_fds[1] = cras_rstream_output_shm_fd(stream);
 	rc = cras_rclient_send_message(client, &reply.header, stream_fds, 2);
@@ -96,7 +98,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
-					  &remote_fmt, 0);
+					  &remote_fmt, 0, msg->effects);
 	cras_rclient_send_message(client, &reply.header, NULL, 0);
 
 	if (aud_fd >= 0)

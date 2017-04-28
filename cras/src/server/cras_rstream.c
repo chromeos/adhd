@@ -242,6 +242,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
 	stream->fd = config->audio_fd;
+	stream->effects = config->effects;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {

@@ -134,6 +134,14 @@ static inline const char *cras_stream_type_str(
 	}
 }
 
+/* Effects that can be enabled for a CRAS stream. */
+enum CRAS_STREAM_EFFECT {
+	APM_ECHO_CANCELLATION = (1 << 0),
+	APM_NOISE_SUPRESSION = (1 << 1),
+	APM_GAIN_CONTROL = (1 << 2),
+	APM_VOICE_DETECTION = (1 << 3),
+};
+
 /* Information about a client attached to the server. */
 struct __attribute__ ((__packed__)) cras_attached_client_info {
 	uint32_t id;
@@ -249,6 +257,7 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint32_t stream_type;
 	uint32_t buffer_frames;
 	uint32_t cb_threshold;
+	uint32_t effects;
 	uint32_t flags;
 	uint32_t frame_rate;
 	uint32_t num_channels;
