@@ -64,6 +64,7 @@ struct master_dev_info {
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
  *    pinned_dev_idx - device the stream is pinned, 0 if none.
  *    triggered - True if already notified TRIGGER_ONLY stream, false otherwise.
+ *    effects - Bit map of effects to be enabled on this stream.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -90,6 +91,7 @@ struct cras_rstream {
 	int is_pinned;
 	uint32_t pinned_dev_idx;
 	int triggered;
+	uint32_t effects;
 	struct cras_rstream *prev, *next;
 };
 
@@ -98,6 +100,7 @@ struct cras_rstream {
  *    direction - CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
  *    dev_idx - Pin to this device if != NO_DEVICE.
  *    flags - Any special handling for this stream.
+ *    effects - Bit map of effects to be enabled on this stream.
  *    format - The audio format the stream wishes to use.
  *    buffer_frames - Total number of audio frames to buffer.
  *    cb_threshold - # of frames when to request more from the client.
@@ -110,6 +113,7 @@ struct cras_rstream_config {
 	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t dev_idx;
 	uint32_t flags;
+	uint32_t effects;
 	const struct cras_audio_format *format;
 	size_t buffer_frames;
 	size_t cb_threshold;
@@ -231,6 +235,13 @@ static inline size_t cras_rstream_get_total_shm_size(
 
 	/* Use the shm size for loopback streams. */
 	return cras_shm_total_size(&stream->shm);
+}
+
+/* Gets the enabled effects of this stream. */
+static inline unsigned int cras_rstream_get_effects(
+		const struct cras_rstream *stream)
+{
+	return stream->effects;
 }
 
 /* Gets shared memory region for this stream. */

@@ -533,6 +533,7 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->longest_fetch_sec = stream->stream->longest_fetch_interval.tv_sec;
 	si->longest_fetch_nsec = stream->stream->longest_fetch_interval.tv_nsec;
 	si->num_overruns = cras_shm_num_overruns(&stream->stream->shm);
+	si->effects = stream->stream->effects;
 
 	longest_wake.tv_sec = 0;
 	longest_wake.tv_nsec = 0;

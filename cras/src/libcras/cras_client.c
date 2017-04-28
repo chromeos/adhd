@@ -125,6 +125,7 @@ struct cras_stream_params {
 	size_t cb_threshold;
 	enum CRAS_STREAM_TYPE stream_type;
 	uint32_t flags;
+	uint64_t effects;
 	void *user_data;
 	cras_playback_cb_t aud_cb;
 	cras_unified_cb_t unified_cb;
@@ -1512,6 +1513,7 @@ static int send_connect_message(struct cras_client *client,
 				  stream->config->buffer_frames,
 				  stream->config->cb_threshold,
 				  stream->flags,
+				  stream->config->effects,
 				  stream->config->format,
 				  dev_idx);
 	rc = cras_send_with_fds(client->server_fd, &serv_msg, sizeof(serv_msg),
@@ -2288,6 +2290,46 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->err_cb = err_cb;
 	memcpy(&(params->format), format, sizeof(*format));
 	return params;
+}
+
+void cras_client_stream_params_enable_aec(struct cras_stream_params *params)
+{
+	params->effects |= APM_ECHO_CANCELLATION;
+}
+
+void cras_client_stream_params_disable_aec(struct cras_stream_params *params)
+{
+	params->effects &= ~APM_ECHO_CANCELLATION;
+}
+
+void cras_client_stream_params_enable_ns(struct cras_stream_params *params)
+{
+	params->effects |= APM_NOISE_SUPRESSION;
+}
+
+void cras_client_stream_params_disable_ns(struct cras_stream_params *params)
+{
+	params->effects &= ~APM_NOISE_SUPRESSION;
+}
+
+void cras_client_stream_params_enable_agc(struct cras_stream_params *params)
+{
+	params->effects |= APM_GAIN_CONTROL;
+}
+
+void cras_client_stream_params_disable_agc(struct cras_stream_params *params)
+{
+	params->effects &= ~APM_GAIN_CONTROL;
+}
+
+void cras_client_stream_params_enable_vad(struct cras_stream_params *params)
+{
+	params->effects |= APM_VOICE_DETECTION;
+}
+
+void cras_client_stream_params_disable_vad(struct cras_stream_params *params)
+{
+	params->effects &= ~APM_VOICE_DETECTION;
 }
 
 struct cras_stream_params *cras_client_unified_params_create(

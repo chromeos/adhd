@@ -139,6 +139,7 @@ class RClientMessagesSuite : public testing::Test {
       stream_id_ = 0x10002;
       connect_msg_.header.id = CRAS_SERVER_CONNECT_STREAM;
       connect_msg_.header.length = sizeof(connect_msg_);
+      connect_msg_.proto_version = CRAS_PROTO_VER;
       connect_msg_.stream_type = CRAS_STREAM_TYPE_DEFAULT;
       connect_msg_.direction = CRAS_STREAM_OUTPUT;
       connect_msg_.stream_id = stream_id_;
@@ -202,6 +203,28 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(stream_list_add_stream_called,
             stream_list_disconnect_stream_called);
+}
+
+TEST_F(RClientMessagesSuite, ConnectMsgFromOldClient) {
+  struct cras_client_stream_connected_old out_msg;
+  int rc;
+
+  cras_rstream_create_stream_out = rstream_;
+  cras_iodev_attach_stream_retval = 0;
+
+  connect_msg_.header.length = sizeof(struct cras_connect_message_old);
+  connect_msg_.proto_version = CRAS_PROTO_VER - 1;
+
+  rc = cras_rclient_message_from_client(rclient_, &connect_msg_.header, 100);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_make_fd_nonblocking_called);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(stream_id_, out_msg.stream_id);
+  EXPECT_EQ(0, out_msg.err);
+  EXPECT_EQ(1, stream_list_add_stream_called);
+  EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
 
 TEST_F(RClientMessagesSuite, SuccessReply) {

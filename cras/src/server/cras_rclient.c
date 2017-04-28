@@ -38,7 +38,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 					int aud_fd)
 {
 	struct cras_rstream *stream;
-	struct cras_client_stream_connected reply;
+	struct cras_client_stream_connected stream_connected;
+	struct cras_client_stream_connected_old stream_connected_old;
+	struct cras_client_message *reply;
 	struct cras_audio_format remote_fmt;
 	struct cras_rstream_config stream_config;
 	int rc;
@@ -61,6 +63,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	stream_config.direction = msg->direction;
 	stream_config.dev_idx = msg->dev_idx;
 	stream_config.flags = msg->flags;
+	stream_config.effects = msg->effects;
 	stream_config.format = &remote_fmt;
 	stream_config.buffer_frames = msg->buffer_frames;
 	stream_config.cb_threshold = msg->cb_threshold;
@@ -75,15 +78,27 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
-	cras_fill_client_stream_connected(
-			&reply,
-			0, /* No error. */
-			msg->stream_id,
-			&remote_fmt,
-			cras_rstream_get_total_shm_size(stream));
+	if (msg->proto_version == CRAS_PROTO_VER) {
+		cras_fill_client_stream_connected(
+				&stream_connected,
+				0, /* No error. */
+				msg->stream_id,
+				&remote_fmt,
+				cras_rstream_get_total_shm_size(stream),
+				cras_rstream_get_effects(stream));
+		reply = &stream_connected.header;
+	} else {
+		cras_fill_client_stream_connected_old(
+				&stream_connected_old,
+				0, /* No error. */
+				msg->stream_id,
+				&remote_fmt,
+				cras_rstream_get_total_shm_size(stream));
+		reply = &stream_connected_old.header;
+	}
 	stream_fds[0] = cras_rstream_input_shm_fd(stream);
 	stream_fds[1] = cras_rstream_output_shm_fd(stream);
-	rc = cras_rclient_send_message(client, &reply.header, stream_fds, 2);
+	rc = cras_rclient_send_message(client, reply, stream_fds, 2);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
@@ -95,9 +110,18 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 reply_err:
 	/* Send the error code to the client. */
-	cras_fill_client_stream_connected(&reply, rc, msg->stream_id,
-					  &remote_fmt, 0);
-	cras_rclient_send_message(client, &reply.header, NULL, 0);
+	if (msg->proto_version == CRAS_PROTO_VER) {
+		cras_fill_client_stream_connected(
+				&stream_connected, rc, msg->stream_id,
+				&remote_fmt, 0, msg->effects);
+		reply = &stream_connected.header;
+	} else {
+		cras_fill_client_stream_connected_old(
+				&stream_connected_old, rc, msg->stream_id,
+				&remote_fmt, 0);
+		reply = &stream_connected_old.header;
+	}
+	cras_rclient_send_message(client, reply, NULL, 0);
 
 	if (aud_fd >= 0)
 		close(aud_fd);
@@ -391,11 +415,37 @@ static int direction_valid(enum CRAS_STREAM_DIRECTION direction)
 
 #define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
 
+/*
+ * Check if client is sending an old version of connect message
+ * and converts it to the correct cras_connect_message.
+ * Note that this is special check only for libcras transition in
+ * clients, from CRAS_PROTO_VER = 1 to 2.
+ * TODO(hychao): clean up the check once clients transition is done.
+ */
+static int is_connect_msg_old(const struct cras_server_message *msg,
+			      struct cras_connect_message *cmsg)
+{
+	struct cras_connect_message_old *old;
+
+	if (!MSG_LEN_VALID(msg, struct cras_connect_message_old))
+		return 0;
+
+	old = (struct cras_connect_message_old *)msg;
+	if (old->proto_version + 1 != CRAS_PROTO_VER)
+		return 0;
+
+	memcpy(cmsg, old, sizeof(*old));
+	cmsg->effects = 0;
+	return 1;
+}
+
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
 int cras_rclient_message_from_client(struct cras_rclient *client,
 				     const struct cras_server_message *msg,
 				     int fd) {
+	struct cras_connect_message cmsg;
+
 	assert(client && msg);
 
 	/* Most messages should not have a file descriptor. */
@@ -415,10 +465,14 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM:
-		if (!MSG_LEN_VALID(msg, struct cras_connect_message))
+		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
+			handle_client_stream_connect(client,
+				(const struct cras_connect_message *)msg, fd);
+		} else if (is_connect_msg_old(msg, &cmsg)) {
+			handle_client_stream_connect(client, &cmsg, fd);
+		} else {
 			return -EINVAL;
-		handle_client_stream_connect(client,
-			(const struct cras_connect_message *)msg, fd);
+		}
 		break;
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))

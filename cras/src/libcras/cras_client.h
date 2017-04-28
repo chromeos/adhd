@@ -537,6 +537,19 @@ struct cras_stream_params *cras_client_stream_params_create(
 		cras_error_cb_t err_cb,
 		struct cras_audio_format *format);
 
+/* Functions to enable or disable specific effect on given stream parameter.
+ * Args:
+ *    params - Stream configuration parameters.
+ */
+void cras_client_stream_params_enable_aec(struct cras_stream_params *params);
+void cras_client_stream_params_disable_aec(struct cras_stream_params *params);
+void cras_client_stream_params_enable_ns(struct cras_stream_params *params);
+void cras_client_stream_params_disable_ns(struct cras_stream_params *params);
+void cras_client_stream_params_enable_agc(struct cras_stream_params *params);
+void cras_client_stream_params_disable_agc(struct cras_stream_params *params);
+void cras_client_stream_params_enable_vad(struct cras_stream_params *params);
+void cras_client_stream_params_disable_vad(struct cras_stream_params *params);
+
 /* Setup stream configuration parameters.
  * Args:
  *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT) or
