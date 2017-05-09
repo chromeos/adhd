@@ -324,10 +324,8 @@ static snd_pcm_format_t get_best_pcm_format(struct cras_iodev *iodev,
 	return iodev->supported_formats[0];
 }
 
-/* Set default channel count and layout to an iodev.
- * iodev->format->num_channels is from get_best_channel_count.
- */
-static void set_default_channel_count_layout(struct cras_iodev *iodev)
+/* Set default channel layout to an iodev. */
+static void set_default_channel_layout(struct cras_iodev *iodev)
 {
 	int8_t default_layout[CRAS_CH_MAX];
 	size_t i;
@@ -335,7 +333,6 @@ static void set_default_channel_count_layout(struct cras_iodev *iodev)
 	for (i = 0; i < CRAS_CH_MAX; i++)
 		default_layout[i] = i < iodev->format->num_channels ? i : -1;
 
-	iodev->ext_format->num_channels = iodev->format->num_channels;
 	cras_audio_format_set_channel_layout(iodev->format, default_layout);
 	cras_audio_format_set_channel_layout(iodev->ext_format, default_layout);
 }
@@ -401,12 +398,25 @@ static inline void adjust_dev_channel_for_dsp(const struct cras_iodev *iodev)
 static void update_channel_layout(struct cras_iodev *iodev)
 {
 	int rc;
+
+	/*
+	 * Output devices like internal speakers and headphones are 2-channel
+	 * and do not need to update channel layout.
+	 * For HDMI and USB devices that might have more than 2 channels, update
+	 * channel layout only if more than 2 channel is requested.
+	 */
+	if (iodev->direction == CRAS_STREAM_OUTPUT &&
+	    iodev->format->num_channels <= 2) {
+		set_default_channel_layout(iodev);
+		return;
+	}
+
 	if (iodev->update_channel_layout == NULL)
 		return;
 
 	rc = iodev->update_channel_layout(iodev);
 	if (rc < 0) {
-		set_default_channel_count_layout(iodev);
+		set_default_channel_layout(iodev);
 	} else {
 		cras_audio_format_set_channel_layout(
 				iodev->ext_format,
