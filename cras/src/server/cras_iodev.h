@@ -99,6 +99,7 @@ struct cras_ionode {
  * set_capture_mute - Function to call if the system capture mute state changes.
  * set_swap_mode_for_node - Function to call to set swap mode for the node.
  * open_dev - Opens the device.
+ * configure_dev - Configures the device.
  * close_dev - Closes the device if it is open.
  * update_supported_formats - Refresh supported frame rates and channel counts.
  * frames_queued - The number of frames in the audio buffer, and fills tstamp
@@ -179,6 +180,7 @@ struct cras_iodev {
 				      struct cras_ionode *node,
 				      int enable);
 	int (*open_dev)(struct cras_iodev *iodev);
+	int (*configure_dev)(struct cras_iodev *iodev);
 	int (*close_dev)(struct cras_iodev *iodev);
 	int (*update_supported_formats)(struct cras_iodev *iodev);
 	int (*frames_queued)(const struct cras_iodev *iodev,
@@ -495,7 +497,8 @@ unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev);
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev);
 
 /* Open an iodev, does setup and invokes the open_dev callback. */
-int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level);
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
+		    const struct cras_audio_format *fmt);
 
 /* Open an iodev, does teardown and invokes the close_dev callback. */
 int cras_iodev_close(struct cras_iodev *iodev);

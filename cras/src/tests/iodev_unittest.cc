@@ -103,6 +103,7 @@ static unsigned int cras_scale_buffer_increment_frame;
 static float cras_scale_buffer_increment_scaler;
 static float cras_scale_buffer_increment_increment;
 static int cras_scale_buffer_increment_channel;
+static struct cras_audio_format audio_fmt;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -194,6 +195,9 @@ void ResetStubData() {
   cras_scale_buffer_increment_scaler = 0;
   cras_scale_buffer_increment_increment = 0;
   cras_scale_buffer_increment_channel = 0;
+  audio_fmt.format = SND_PCM_FORMAT_S16_LE;
+  audio_fmt.frame_rate = 48000;
+  audio_fmt.num_channels = 2;
 }
 
 namespace {
@@ -1272,7 +1276,7 @@ TEST(IoDev, GetBufferInvalidFrames) {
   EXPECT_EQ(-EINVAL, cras_iodev_get_input_buffer(&iodev, area, &frames));
 }
 
-static int open_dev(struct cras_iodev *iodev) {
+static int configure_dev(struct cras_iodev *iodev) {
   iodev->buffer_size = iodev_buffer_size;
   return 0;
 }
@@ -1281,14 +1285,15 @@ TEST(IoDev, OpenOutputDeviceNoStart) {
   struct cras_iodev iodev;
 
   memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.ext_format = &audio_fmt;
   ResetStubData();
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
 
   iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
+  cras_iodev_open(&iodev, 240, &audio_fmt);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(240, iodev.min_cb_level);
 
@@ -1304,15 +1309,16 @@ TEST(IoDev, OpenOutputDeviceWithStart) {
   struct cras_iodev iodev;
 
   memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.ext_format = &audio_fmt;
   ResetStubData();
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
   iodev.start = fake_start;
 
   iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
+  cras_iodev_open(&iodev, 240, &audio_fmt);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(240, iodev.min_cb_level);
 
@@ -1324,14 +1330,15 @@ TEST(IoDev, OpenInputDeviceNoStart) {
   struct cras_iodev iodev;
 
   memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_INPUT;
+  iodev.ext_format = &audio_fmt;
   ResetStubData();
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
 
   iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
+  cras_iodev_open(&iodev, 240, &audio_fmt);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(240, iodev.min_cb_level);
 
@@ -1343,15 +1350,16 @@ TEST(IoDev, OpenInputDeviceWithStart) {
   struct cras_iodev iodev;
 
   memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_INPUT;
+  iodev.ext_format = &audio_fmt;
   ResetStubData();
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
   iodev.start = fake_start;
 
   iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, 240);
+  cras_iodev_open(&iodev, 240, &audio_fmt);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(240, iodev.min_cb_level);
 
@@ -1372,8 +1380,9 @@ TEST(IoDev, AddRmStream) {
   struct dev_stream stream1, stream2;
 
   memset(&iodev, 0, sizeof(iodev));
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.no_stream = simple_no_stream;
+  iodev.ext_format = &audio_fmt;
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   rstream1.cb_threshold = 800;
   stream1.stream = &rstream1;
@@ -1382,7 +1391,7 @@ TEST(IoDev, AddRmStream) {
   ResetStubData();
 
   iodev_buffer_size = 1024;
-  cras_iodev_open(&iodev, rstream1.cb_threshold);
+  cras_iodev_open(&iodev, rstream1.cb_threshold, &audio_fmt);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
 
@@ -1523,13 +1532,13 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.buffer_size = BUFFER_SIZE;
   iodev.no_stream = no_stream;
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.start = fake_start;
   iodev.info = info;
   iodev_buffer_size = BUFFER_SIZE;
 
   // Open device.
-  cras_iodev_open(&iodev, rstream1.cb_threshold);
+  cras_iodev_open(&iodev, rstream1.cb_threshold, &fmt);
 
   // Add one stream to device.
   cras_iodev_add_stream(&iodev, &stream1);
@@ -1892,14 +1901,15 @@ TEST(IoDev, RequestReset) {
 
   ResetStubData();
 
-  iodev.open_dev = open_dev;
+  iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.ext_format = &audio_fmt;
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
   iodev_buffer_size = 1024;
 
   // Open device.
-  cras_iodev_open(&iodev, 240);
+  cras_iodev_open(&iodev, 240, &audio_fmt);
 
   // The first reset request works.
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
@@ -1910,7 +1920,7 @@ TEST(IoDev, RequestReset) {
   EXPECT_EQ(1, device_monitor_reset_device_called);
 
   // Assume device is opened again.
-  cras_iodev_open(&iodev, 240);
+  cras_iodev_open(&iodev, 240, &audio_fmt);
 
   // The reset request works.
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));

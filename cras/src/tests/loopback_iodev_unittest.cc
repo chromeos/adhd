@@ -76,7 +76,7 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
   enabled_dev = &iodev;
 
   // Open loopback devices.
-  EXPECT_EQ(0, loop_in_->open_dev(loop_in_));
+  EXPECT_EQ(0, loop_in_->configure_dev(loop_in_));
   EXPECT_EQ(1, cras_iodev_list_set_device_enabled_callback_called);
 
   // Signal an output device is enabled.
@@ -106,7 +106,7 @@ TEST_F(LoopBackTestSuite, OpenIdleSystem) {
   time_now.tv_sec = 100;
   time_now.tv_nsec = 0;
 
-  EXPECT_EQ(0, loop_in_->open_dev(loop_in_));
+  EXPECT_EQ(0, loop_in_->configure_dev(loop_in_));
   EXPECT_EQ(1, cras_iodev_list_set_device_enabled_callback_called);
 
   // Should be 480 samples after 480/frame rate seconds
@@ -139,7 +139,7 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
   iodev.streams = &stream;
   enabled_dev = &iodev;
 
-  loop_in_->open_dev(loop_in_);
+  loop_in_->configure_dev(loop_in_);
   ASSERT_NE(reinterpret_cast<void *>(NULL), loop_hook);
 
   // Loopback callback for the hook.

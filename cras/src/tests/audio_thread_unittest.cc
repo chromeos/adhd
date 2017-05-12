@@ -91,7 +91,7 @@ class StreamDeviceSuite : public testing::Test {
       memset(iodev, 0, sizeof(*iodev));
       iodev->info.idx = ++device_id_;
       iodev->direction = direction;
-      iodev->open_dev = open_dev;
+      iodev->configure_dev = configure_dev;
       iodev->close_dev = close_dev;
       iodev->frames_queued = frames_queued;
       iodev->delay_frames = delay_frames;
@@ -133,7 +133,7 @@ class StreamDeviceSuite : public testing::Test {
       rstream->pinned_dev_idx = pin_to_dev->info.idx;
     }
 
-    static int open_dev(cras_iodev* iodev) {
+    static int configure_dev(cras_iodev* iodev) {
       open_dev_called_++;
       return 0;
     }
@@ -709,7 +709,8 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
   return 0;
 }
 
-int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
+                    const struct cras_audio_format *fmt)
 {
   return 0;
 }

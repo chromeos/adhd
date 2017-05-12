@@ -173,7 +173,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int open_dev(struct cras_iodev *iodev)
+static int configure_dev(struct cras_iodev *iodev)
 {
 	int rc;
 	struct cras_iodev *dev = active_profile_dev(iodev);
@@ -183,7 +183,7 @@ static int open_dev(struct cras_iodev *iodev)
 	/* Fill back the format iodev is using. */
 	*dev->format = *iodev->format;
 
-	rc = dev->open_dev(dev);
+	rc = dev->configure_dev(dev);
 	if (rc) {
 		/* Free format here to assure the update_supported_format
 		 * callback will be called before any future open_dev call. */
@@ -331,7 +331,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->info.stable_id = dev->info.stable_id;
 	iodev->info.stable_id_new = dev->info.stable_id_new;
 
-	iodev->open_dev = open_dev;
+	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
