@@ -1814,7 +1814,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
-	int err;
 
 	if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT)
 		return NULL;
@@ -1916,15 +1915,6 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->enable_htimestamp =
 			ucm_get_enable_htimestamp_flag(ucm);
 	}
-
-	err = update_supported_formats(iodev);
-	if (err < 0 || iodev->supported_rates[0] == 0 ||
-	    iodev->supported_channel_counts[0] == 0 ||
-	    iodev->supported_formats[0] == 0) {
-		syslog(LOG_ERR, "Updating formats: %s", strerror(err));
-		goto cleanup_iodev;
-	}
-
 
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
 		       card_type, usb_vid, usb_pid, usb_serial_number);

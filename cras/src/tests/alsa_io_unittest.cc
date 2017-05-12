@@ -282,7 +282,7 @@ TEST(AlsaIoInit, InitializePlayback) {
   /* Get volume curve twice for iodev, and default node. */
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(0, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(0, strncmp(test_card_name,
                        aio->base.info.name,
@@ -568,7 +568,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(0, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
@@ -599,7 +599,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
 
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(0, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
   EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section_called);
@@ -628,7 +628,7 @@ TEST(AlsaIoInit, InitializeCapture) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
 
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(0, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
