@@ -93,7 +93,7 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int configure_dev(struct cras_iodev *iodev)
+static int open_dev(struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 
@@ -196,7 +196,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	iodev->supported_formats = empty_supported_formats;
 	iodev->buffer_size = EMPTY_FRAMES;
 
-	iodev->configure_dev = configure_dev;
+	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;

@@ -170,7 +170,7 @@ static int close_record_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int configure_record_dev(struct cras_iodev *iodev)
+static int open_record_dev(struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct cras_iodev *edev;
@@ -265,7 +265,7 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->update_active_node = update_active_node;
-	iodev->configure_dev = configure_record_dev;
+	iodev->open_dev = open_record_dev;
 	iodev->close_dev = close_record_dev;
 	iodev->get_buffer = get_record_buffer;
 	iodev->put_buffer = put_record_buffer;

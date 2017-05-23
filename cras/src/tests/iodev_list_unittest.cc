@@ -1441,8 +1441,7 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type) {
 void loopback_iodev_destroy(struct cras_iodev *iodev) {
 }
 
-int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
-                    const struct cras_audio_format *fmt)
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
   if (cras_iodev_open_ret[cras_iodev_open_called] == 0)
     iodev->state = CRAS_IODEV_STATE_OPEN;

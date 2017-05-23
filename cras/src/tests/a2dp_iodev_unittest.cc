@@ -161,7 +161,7 @@ TEST(A2dpIoInit, OpenIodev) {
   iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
 
   ASSERT_EQ(1, cras_bt_transport_acquire_called);
 
@@ -183,7 +183,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
   ASSERT_NE(write_callback, (void *)NULL);
 
   frames = 256;
@@ -248,7 +248,7 @@ TEST(A2dpIoInif, FramesQueued) {
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
   ASSERT_NE(write_callback, (void *)NULL);
 
   frames = 256;
@@ -317,7 +317,7 @@ TEST(A2dpIo, FlushAtLowBufferLevel) {
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
   ASSERT_NE(write_callback, (void *)NULL);
 
   ASSERT_EQ(iodev->min_buffer_level, 400);

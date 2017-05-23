@@ -820,30 +820,13 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
 	return max;
 }
 
-int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
-		    const struct cras_audio_format *fmt)
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
 {
 	int rc;
 
-	if (iodev->open_dev) {
-		rc = iodev->open_dev(iodev);
-		if (rc)
-			return rc;
-	}
-
-	if (iodev->ext_format == NULL) {
-		rc = cras_iodev_set_format(iodev, fmt);
-		if (rc) {
-			iodev->close_dev(iodev);
-			return rc;
-		}
-	}
-
-	rc = iodev->configure_dev(iodev);
-	if (rc < 0) {
-		iodev->close_dev(iodev);
+	rc = iodev->open_dev(iodev);
+	if (rc < 0)
 		return rc;
-	}
 
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);

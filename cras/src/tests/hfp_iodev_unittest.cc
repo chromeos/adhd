@@ -116,7 +116,7 @@ TEST(HfpIodev, OpenHfpIodev) {
 
   /* hfp_info not start yet */
   hfp_info_running_return_val = 0;
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
 
   ASSERT_EQ(1, cras_bt_device_sco_connect_called);
   ASSERT_EQ(1, hfp_info_start_called);
@@ -142,7 +142,7 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
 
   /* hfp_info already started by another device */
   hfp_info_running_return_val = 1;
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
 
   ASSERT_EQ(0, cras_bt_device_sco_connect_called);
   ASSERT_EQ(0, hfp_info_start_called);
@@ -164,7 +164,7 @@ TEST(HfpIodev, PutGetBuffer) {
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                   			   fake_info);
   iodev->format = &fake_format;
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
 
   hfp_buf_acquire_return_val = 100;
   iodev->get_buffer(iodev, &area, &frames);

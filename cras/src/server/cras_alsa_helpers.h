@@ -105,7 +105,8 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead);
 
 /* Probes properties of the alsa device.
  * Args:
- *    handle - The open PCM to configure.
+ *    dev - Path to the alsa device to test.
+ *    stream - Alsa stream type, input or output.
  *    rates - Pointer that will be set to the arrary of valid samples rates.
  *            Must be freed by the caller.
  *    channel_counts - Pointer that will be set to the array of valid channel
@@ -115,7 +116,7 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead);
  * Returns:
  *   0 on success.  On failure an error code from alsa or -ENOMEM.
  */
-int cras_alsa_fill_properties(snd_pcm_t *handle,
+int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 			      size_t **rates, size_t **channel_counts,
 			      snd_pcm_format_t **formats);
 

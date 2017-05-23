@@ -400,8 +400,6 @@ TEST(AlsaIoInit, OpenPlayback) {
   aio->filled_zeros_for_draining = 512;
   iodev->open_dev(iodev);
   EXPECT_EQ(1, cras_alsa_open_called);
-  iodev->configure_dev(iodev);
-  EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, sys_set_volume_limits_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
@@ -654,8 +652,6 @@ TEST(AlsaIoInit, OpenCapture) {
   ResetStubData();
   iodev->open_dev(iodev);
   EXPECT_EQ(1, cras_alsa_open_called);
-  iodev->configure_dev(iodev);
-  EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_minimum_capture_gain_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_maximum_capture_gain_called);
   EXPECT_EQ(1, sys_set_capture_gain_limits_called);
@@ -698,7 +694,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
   sys_get_capture_gain_return_value = system_gain;
 
   iodev->open_dev(iodev);
-  iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
   // Hardware gain is set to 2000 - 1000 dBm.
@@ -731,7 +726,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   sys_get_capture_gain_return_value = 1000;
 
   iodev->open_dev(iodev);
-  iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
   /* Hardware gain is set to 0dB when software gain is used. */
@@ -740,7 +734,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   /* Test the case where software gain is not needed. */
   iodev->active_node->software_volume_needed = 0;
   iodev->open_dev(iodev);
-  iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
   /* Hardware gain is set to 1000dBm as got from system capture gain.*/
@@ -1792,7 +1785,7 @@ TEST_F(AlsaVolumeMuteSuite, GetDefaultVolumeCurve) {
   aio_output_->base.format = fmt;
   aio_output_->handle = (snd_pcm_t *)0x24;
 
-  rc = aio_output_->base.configure_dev(&aio_output_->base);
+  rc = aio_output_->base.open_dev(&aio_output_->base);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
 
@@ -1827,7 +1820,7 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode)
   node = aio_output_->base.nodes->next;
   aio_output_->base.active_node = node;
 
-  rc = aio_output_->base.configure_dev(&aio_output_->base);
+  rc = aio_output_->base.open_dev(&aio_output_->base);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(&hp_curve, fake_get_dBFS_volume_curve_val);
 
@@ -1848,7 +1841,7 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
 
   aio_output_->num_underruns = 3; //  Something non-zero.
   sys_get_volume_return_value = fake_system_volume;
-  rc = aio_output_->base.configure_dev(&aio_output_->base);
+  rc = aio_output_->base.open_dev(&aio_output_->base);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
@@ -2195,7 +2188,8 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 {
   return 0;
 }
-int cras_alsa_fill_properties(snd_pcm_t *handle,
+int cras_alsa_fill_properties(const char *dev,
+			      snd_pcm_stream_t stream,
 			      size_t **rates,
 			      size_t **channel_counts,
 			      snd_pcm_format_t **formats)
