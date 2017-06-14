@@ -491,10 +491,11 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
   EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
   EXPECT_EQ(2, iodev_.ext_format->num_channels);
-  EXPECT_EQ(2, cras_audio_format_set_channel_layout_called);
   EXPECT_EQ(0, dsp_context_free_called);
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
+    EXPECT_EQ(iodev_.ext_format->channel_layout[i], stereo_layout[i]);
+  }
 }
 
 TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
@@ -518,10 +519,11 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.ext_format->format);
   EXPECT_EQ(48000, iodev_.ext_format->frame_rate);
   EXPECT_EQ(6, iodev_.ext_format->num_channels);
-  EXPECT_EQ(2, cras_audio_format_set_channel_layout_called);
   EXPECT_EQ(0, dsp_context_free_called);
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(iodev_.format->channel_layout[i], default_6ch_layout[i]);
+    EXPECT_EQ(iodev_.ext_format->channel_layout[i], default_6ch_layout[i]);
+  }
 }
 
 // Put buffer tests

@@ -50,6 +50,7 @@
  *    buffer - Stores the processed/interleaved data ready for stream to read.
  *    fbuffer - Stores the floating pointer buffer from input device waiting
  *        for APM to process.
+ *    dev_fmt - The format used by the iodev this APM attaches to.
  *    fmt - The audio data format configured for this APM.
  *    area - The cras_audio_area used for copying processed data to client
  *        stream.
@@ -59,6 +60,7 @@ struct cras_apm {
 	void *dev_ptr;
 	struct byte_buffer *buffer;
 	struct float_buffer *fbuffer;
+	struct cras_audio_format dev_fmt;
 	struct cras_audio_format fmt;
 	struct cras_audio_area *area;
 	struct cras_apm *prev, *next;
@@ -184,9 +186,48 @@ void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr)
 	}
 }
 
+/*
+ * WebRTC APM handles no more than stereo + keyboard mic channels.
+ * Ignore keyboard mic feature for now because that requires processing on
+ * mixed buffer from two input devices. Based on that we should modify the best
+ * channel layout for APM use.
+ * Args:
+ *    apm_fmt - Pointer to a format struct already filled with the value of
+ *        the open device format. Its content may be modified for APM use.
+ */
+static void get_best_channels(struct cras_audio_format *apm_fmt)
+{
+	int ch;
+	int8_t layout[CRAS_CH_MAX];
+
+	/* Assume device format has correct channel layout populated. */
+	if (apm_fmt->num_channels <= 2)
+		return;
+
+	/* If the device provides recording from more channels than we care
+	 * about, construct a new channel layout containing subset of original
+	 * channels that matches either FL, FR, or FC.
+	 * TODO(hychao): extend the logic when we have a stream that wants
+	 * to record channels like RR(rear right).
+	 */
+	for (ch = 0 ; ch < CRAS_CH_MAX; ch++)
+		layout[ch] = -1;
+
+	apm_fmt->num_channels = 0;
+	if (apm_fmt->channel_layout[CRAS_CH_FL] != -1)
+		layout[CRAS_CH_FL] = apm_fmt->num_channels++;
+	if (apm_fmt->channel_layout[CRAS_CH_FR] != -1)
+		layout[CRAS_CH_FR] = apm_fmt->num_channels++;
+	if (apm_fmt->channel_layout[CRAS_CH_FC] != -1)
+		layout[CRAS_CH_FC] = apm_fmt->num_channels++;
+
+	for (ch = 0 ; ch < CRAS_CH_MAX; ch++)
+		apm_fmt->channel_layout[ch] = layout[ch];
+}
+
 struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 				   void *dev_ptr,
-				   const struct cras_audio_format *fmt)
+				   const struct cras_audio_format *dev_fmt)
 {
 	struct cras_apm *apm;
 
@@ -203,21 +244,27 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 
 	apm = (struct cras_apm *)calloc(1, sizeof(*apm));
 
+	/* Configures APM to the format used by input device. If the channel
+	 * count is larger than stereo, use the standard channel count/layout
+	 * in APM. */
+	apm->dev_fmt = *dev_fmt;
+	apm->fmt = *dev_fmt;
+	get_best_channels(&apm->fmt);
+
 	apm->apm_ptr = webrtc_apm_create(
-			fmt->num_channels,
-			fmt->frame_rate,
+			apm->fmt.num_channels,
+			apm->fmt.frame_rate,
 			list->effects & APM_ECHO_CANCELLATION);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR, "Fail to create webrtc apm for ch %zu"
 				" rate %zu effect %lu",
-				fmt->num_channels,
-				fmt->frame_rate,
+				dev_fmt->num_channels,
+				dev_fmt->frame_rate,
 				list->effects);
 		free(apm);
 		return NULL;
 	}
 
-	apm->fmt = *fmt;
 	apm->dev_ptr = dev_ptr;
 
 	/* WebRTC APM wants 10 ms equivalence of data to process. */
@@ -407,7 +454,7 @@ int cras_apm_list_process(struct cras_apm *apm,
 			  unsigned int offset)
 {
 	unsigned int writable, nframes, nread;
-	int i, ret;
+	int ch, i, j, ret;
 	float *const *wp;
 	float *const *rp;
 
@@ -426,8 +473,22 @@ int cras_apm_list_process(struct cras_apm *apm,
 		wp = float_buffer_write_pointer(apm->fbuffer);
 		rp = float_buffer_read_pointer(input, offset, &nread);
 
-		for (i = 0; i < apm->fbuffer->num_channels; i++)
-			memcpy(wp[i], rp[i], nread * sizeof(float));
+		for (i = 0; i < apm->fbuffer->num_channels; i++) {
+			/* Look up the channel position and copy from
+			 * the correct index of |input| buffer.
+			 */
+			for (ch = 0; ch < CRAS_CH_MAX; ch++)
+				if (apm->fmt.channel_layout[ch] == i)
+					break;
+			if (ch == CRAS_CH_MAX)
+				continue;
+
+			j = apm->dev_fmt.channel_layout[ch];
+			if (j == -1)
+				continue;
+
+			memcpy(wp[i], rp[j], nread * sizeof(float));
+		}
 
 		nframes -= nread;
 		offset += nread;

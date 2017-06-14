@@ -330,19 +330,6 @@ static snd_pcm_format_t get_best_pcm_format(struct cras_iodev *iodev,
 	return iodev->supported_formats[0];
 }
 
-/* Set default channel layout to an iodev. */
-static void set_default_channel_layout(struct cras_iodev *iodev)
-{
-	int8_t default_layout[CRAS_CH_MAX];
-	size_t i;
-
-	for (i = 0; i < CRAS_CH_MAX; i++)
-		default_layout[i] = i < iodev->format->num_channels ? i : -1;
-
-	cras_audio_format_set_channel_layout(iodev->format, default_layout);
-	cras_audio_format_set_channel_layout(iodev->ext_format, default_layout);
-}
-
 /* Applies the DSP to the samples for the iodev if applicable. */
 static int apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 {
@@ -413,7 +400,8 @@ static void update_channel_layout(struct cras_iodev *iodev)
 
 	rc = iodev->update_channel_layout(iodev);
 	if (rc < 0) {
-		set_default_channel_layout(iodev);
+		cras_audio_format_set_default_channel_layout(iodev->format);
+		cras_audio_format_set_default_channel_layout(iodev->ext_format);
 	} else {
 		cras_audio_format_set_channel_layout(
 				iodev->ext_format,
