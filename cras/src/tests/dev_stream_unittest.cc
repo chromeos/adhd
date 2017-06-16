@@ -89,9 +89,7 @@ static struct cras_audio_format in_fmt;
 static struct cras_audio_format out_fmt;
 static struct cras_audio_area_copy_call copy_area_call;
 static struct fmt_conv_call conv_frames_call;
-static size_t conv_frames_ret;
 static int cras_audio_area_create_num_channels_val;
-static int cras_fmt_conv_convert_frames_in_frames_val;
 static int cras_fmt_conversion_needed_val;
 static int cras_fmt_conv_set_linear_resample_rates_called;
 static float cras_fmt_conv_set_linear_resample_rates_from;
@@ -142,6 +140,32 @@ class CreateSuite : public testing::Test{
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
 
       atlog = audio_thread_event_log_init();
+
+      devstr.stream = &rstream_;
+      devstr.conv = NULL;
+      devstr.conv_buffer = NULL;
+      devstr.conv_buffer_size_frames = 0;
+
+      area = (struct cras_audio_area*)calloc(1,
+          sizeof(*area) + 2 * sizeof(*area->channels));
+      area->num_channels = 2;
+      channel_area_set_channel(&area->channels[0], CRAS_CH_FL);
+      channel_area_set_channel(&area->channels[1], CRAS_CH_FR);
+      area->channels[0].step_bytes = 4;
+      area->channels[0].buf = (uint8_t *)(cap_buf);
+      area->channels[1].step_bytes = 4;
+      area->channels[1].buf = (uint8_t *)(cap_buf + 1);
+      area->frames = kBufferFrames;
+
+      stream_area = (struct cras_audio_area*)calloc(1,
+          sizeof(*area) + 2 * sizeof(*area->channels));
+      stream_area->num_channels = 2;
+      rstream_.audio_area = stream_area;
+      int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
+      stream_area->channels[0].step_bytes = 4;
+      stream_area->channels[0].buf = (uint8_t *)(shm_samples);
+      stream_area->channels[1].step_bytes = 4;
+      stream_area->channels[1].buf = (uint8_t *)(shm_samples + 1);
     }
 
     virtual void TearDown() {
@@ -165,41 +189,36 @@ class CreateSuite : public testing::Test{
       cras_shm_set_volume_scaler(shm, 1.0);
     }
 
-  int16_t *compare_buffer_;
-  struct cras_rstream rstream_;
-};
+    void SetUpFmtConv(unsigned int in_rate, unsigned int out_rate,
+                      unsigned int conv_buf_size) {
+      in_fmt.frame_rate = in_rate;
+      out_fmt.frame_rate = out_rate;
+      cras_fmt_conversion_needed_val = 1;
 
-TEST_F(CreateSuite, CaptureNoSRC) {
+      devstr.conv = (struct cras_fmt_conv *)0xdead;
+      devstr.conv_buffer =
+          (struct byte_buffer *)byte_buffer_create(conv_buf_size * 4);
+      devstr.conv_buffer_size_frames = kBufferFrames * 2;
+
+      devstr.conv_area = (struct cras_audio_area*)calloc(1,
+          sizeof(*area) + 2 * sizeof(*area->channels));
+      devstr.conv_area->num_channels = 2;
+      devstr.conv_area->channels[0].step_bytes = 4;
+      devstr.conv_area->channels[0].buf = (uint8_t *)(devstr.conv_buffer->bytes);
+      devstr.conv_area->channels[1].step_bytes = 4;
+      devstr.conv_area->channels[1].buf =
+          (uint8_t *)(devstr.conv_buffer->bytes + 1);
+    }
+
   struct dev_stream devstr;
   struct cras_audio_area *area;
   struct cras_audio_area *stream_area;
   int16_t cap_buf[kBufferFrames * 2];
+  struct cras_rstream rstream_;
+};
+
+TEST_F(CreateSuite, CaptureNoSRC) {
   float software_gain_scaler = 10;
-
-  devstr.stream = &rstream_;
-  devstr.conv = NULL;
-  devstr.conv_buffer = NULL;
-  devstr.conv_buffer_size_frames = 0;
-
-  area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
-                                               2 * sizeof(*area->channels));
-  area->num_channels = 2;
-  channel_area_set_channel(&area->channels[0], CRAS_CH_FL);
-  channel_area_set_channel(&area->channels[1], CRAS_CH_FR);
-  area->channels[0].step_bytes = 4;
-  area->channels[0].buf = (uint8_t *)(cap_buf);
-  area->channels[1].step_bytes = 4;
-  area->channels[1].buf = (uint8_t *)(cap_buf + 1);
-
-  stream_area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
-                                                  2 * sizeof(*area->channels));
-  stream_area->num_channels = 2;
-  rstream_.audio_area = stream_area;
-  int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
-  stream_area->channels[0].step_bytes = 4;
-  stream_area->channels[0].buf = (uint8_t *)(shm_samples);
-  stream_area->channels[1].step_bytes = 4;
-  stream_area->channels[1].buf = (uint8_t *)(shm_samples + 1);
 
   dev_stream_capture(&devstr, area, 0, software_gain_scaler);
 
@@ -213,66 +232,73 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   free(stream_area);
 }
 
-TEST_F(CreateSuite, CaptureSRC) {
-  struct dev_stream devstr;
-  struct cras_audio_area *area;
-  struct cras_audio_area *stream_area;
-  int16_t cap_buf[kBufferFrames * 2];
+TEST_F(CreateSuite, CaptureSRCSmallConverterBuffer) {
   float software_gain_scaler = 10;
+  unsigned int conv_buf_avail_at_input_rate;
+  int nread;
 
-  devstr.stream = &rstream_;
-  devstr.conv = (struct cras_fmt_conv *)0xdead;
-  devstr.conv_buffer =
-      (struct byte_buffer *)byte_buffer_create(kBufferFrames * 2 * 4);
-  devstr.conv_buffer_size_frames = kBufferFrames * 2;
+  SetUpFmtConv(44100, 32000, kBufferFrames / 4);
+  nread = dev_stream_capture(&devstr, area, 0, software_gain_scaler);
 
-  area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
-                                               2 * sizeof(*area->channels));
-  area->num_channels = 2;
-  channel_area_set_channel(&area->channels[0], CRAS_CH_FL);
-  channel_area_set_channel(&area->channels[1], CRAS_CH_FR);
-  area->channels[0].step_bytes = 4;
-  area->channels[0].buf = (uint8_t *)(cap_buf);
-  area->channels[1].step_bytes = 4;
-  area->channels[1].buf = (uint8_t *)(cap_buf + 1);
-  area->frames = kBufferFrames;
+  // |nread| is bound by small converter buffer size (kBufferFrames / 4)
+  conv_buf_avail_at_input_rate =
+      cras_frames_at_rate(out_fmt.frame_rate,
+                          (kBufferFrames / 4),
+                          in_fmt.frame_rate);
 
-  stream_area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
-                                                  2 * sizeof(*area->channels));
-  stream_area->num_channels = 2;
-  rstream_.audio_area = stream_area;
-  int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
-  stream_area->channels[0].step_bytes = 4;
-  stream_area->channels[0].buf = (uint8_t *)(shm_samples);
-  stream_area->channels[1].step_bytes = 4;
-  stream_area->channels[1].buf = (uint8_t *)(shm_samples + 1);
-  rstream_.audio_area = stream_area;
-
-  devstr.conv_area = (struct cras_audio_area*)calloc(1, sizeof(*area) +
-                                                  2 * sizeof(*area->channels));
-  devstr.conv_area->num_channels = 2;
-  devstr.conv_area->channels[0].step_bytes = 4;
-  devstr.conv_area->channels[0].buf = (uint8_t *)(devstr.conv_buffer->bytes);
-  devstr.conv_area->channels[1].step_bytes = 4;
-  devstr.conv_area->channels[1].buf =
-      (uint8_t *)(devstr.conv_buffer->bytes + 1);
-
-  conv_frames_ret = kBufferFrames / 2;
-  cras_fmt_conv_convert_frames_in_frames_val = kBufferFrames;
-  cras_fmt_conversion_needed_val = 1;
-  dev_stream_capture(&devstr, area, 0, software_gain_scaler);
-
+  EXPECT_EQ(conv_buf_avail_at_input_rate, nread);
   EXPECT_EQ((struct cras_fmt_conv *)0xdead, conv_frames_call.conv);
   EXPECT_EQ((uint8_t *)cap_buf, conv_frames_call.in_buf);
   EXPECT_EQ(devstr.conv_buffer->bytes, conv_frames_call.out_buf);
-  EXPECT_EQ(kBufferFrames, conv_frames_call.in_frames);
+
+  EXPECT_EQ(conv_buf_avail_at_input_rate, conv_frames_call.in_frames);
+
+  // Expect number of output frames is limited by the size of converter buffer.
+  EXPECT_EQ(kBufferFrames / 4, conv_frames_call.out_frames);
+
+  EXPECT_EQ(stream_area, copy_area_call.dst);
+  EXPECT_EQ(0, copy_area_call.dst_offset);
+  EXPECT_EQ(4, copy_area_call.dst_format_bytes);
+  EXPECT_EQ(devstr.conv_area, copy_area_call.src);
+  EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
+
+  free(area);
+  free(stream_area);
+  free(devstr.conv_area);
+  byte_buffer_destroy(&devstr.conv_buffer);
+}
+
+TEST_F(CreateSuite, CaptureSRCLargeConverterBuffer) {
+  float software_gain_scaler = 10;
+  unsigned int stream_avail_at_input_rate;
+  int nread;
+
+  SetUpFmtConv(44100, 32000, kBufferFrames * 2);
+  nread = dev_stream_capture(&devstr, area, 0, software_gain_scaler);
+
+  // Available frames at stream side is bound by cb_threshold, which
+  // equals to kBufferFrames / 2.
+  stream_avail_at_input_rate =
+      cras_frames_at_rate(out_fmt.frame_rate,
+                          (kBufferFrames / 2),
+                          in_fmt.frame_rate);
+
+  EXPECT_EQ(stream_avail_at_input_rate, nread);
+  EXPECT_EQ((struct cras_fmt_conv *)0xdead, conv_frames_call.conv);
+  EXPECT_EQ((uint8_t *)cap_buf, conv_frames_call.in_buf);
+  EXPECT_EQ(devstr.conv_buffer->bytes, conv_frames_call.out_buf);
+
+  // Expect number of input frames is limited by |stream_avail_at_input_rate|
+  // at format conversion.
+  EXPECT_EQ(stream_avail_at_input_rate, conv_frames_call.in_frames);
+
+  // Expect number of output frames is limited by the size of converter buffer.
   EXPECT_EQ(kBufferFrames * 2, conv_frames_call.out_frames);
 
   EXPECT_EQ(stream_area, copy_area_call.dst);
   EXPECT_EQ(0, copy_area_call.dst_offset);
   EXPECT_EQ(4, copy_area_call.dst_format_bytes);
   EXPECT_EQ(devstr.conv_area, copy_area_call.src);
-  EXPECT_EQ(conv_frames_ret, devstr.conv_area->frames);
   EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
   free(area);
@@ -1139,14 +1165,23 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 				    uint8_t *out_buf,
 				    unsigned int *in_frames,
 				    unsigned int out_frames) {
+  unsigned int ret;
   conv_frames_call.conv = conv;
   conv_frames_call.in_buf = in_buf;
   conv_frames_call.out_buf = out_buf;
   conv_frames_call.in_frames = *in_frames;
-  *in_frames = cras_fmt_conv_convert_frames_in_frames_val;
+  ret = cras_frames_at_rate(in_fmt.frame_rate,
+                            *in_frames,
+                            out_fmt.frame_rate);
   conv_frames_call.out_frames = out_frames;
+  if (ret > out_frames) {
+    ret = out_frames;
+    *in_frames = cras_frames_at_rate(
+      out_fmt.frame_rate,
+      ret, in_fmt.frame_rate);
+  }
 
-  return conv_frames_ret;
+  return ret;
 }
 
 void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,

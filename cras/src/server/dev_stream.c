@@ -371,14 +371,18 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 
 	/* Check if format conversion is needed. */
 	if (cras_fmt_conversion_needed(dev_stream->conv)) {
-		unsigned int format_bytes;
+		unsigned int format_bytes, fr_to_capture;
+
+		fr_to_capture = dev_stream_capture_avail(dev_stream);
+		fr_to_capture = MIN(fr_to_capture, area->frames - area_offset);
 
 		format_bytes = cras_get_format_bytes(
 				cras_fmt_conv_in_format(dev_stream->conv));
 		nread = capture_with_fmt_conv(
 			dev_stream,
 			area->channels[0].buf + area_offset * format_bytes,
-			area->frames - area_offset);
+			fr_to_capture);
+
 		capture_copy_converted_to_stream(dev_stream, rstream,
 						 software_gain_scaler);
 	} else {
@@ -476,7 +480,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 	 * take this buffer into account. */
 	conv_buf_level = buf_queued_bytes(dev_stream->conv_buffer) /
 			format_bytes;
-	if (frames_avail < conv_buf_level)
+	if (frames_avail <= conv_buf_level)
 		return 0;
 	else
 		frames_avail -= conv_buf_level;
