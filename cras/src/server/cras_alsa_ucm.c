@@ -334,7 +334,8 @@ static struct mixer_name *ucm_get_mixer_names(struct cras_use_case_mgr *mgr,
 {
 	const char *names_in_string = NULL;
 	int rc;
-	char *tokens, *name, *laststr;
+	char *tokens, *name;
+	char *laststr = NULL;
 	struct mixer_name *names = NULL;
 
 	rc = get_var(mgr, var, dev, uc_verb(mgr), &names_in_string);
