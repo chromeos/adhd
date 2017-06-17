@@ -27,7 +27,7 @@ AC_ARG_ENABLE([DBUS], AS_HELP_STRING([--disable-DBUS], [Disable all DBUS uses]),
 AM_CONDITIONAL(HAVE_DBUS, test "$have_dbus" = "yes")
 if test "$have_dbus" = "yes"; then
     PKG_CHECK_MODULES([DBUS], [ dbus-1 >= 1.4.12 ])
-    DBUS_CFLAGS+=-DCRAS_DBUS
+    DBUS_CFLAGS+=" -DCRAS_DBUS"
     AC_SUBST(DBUS_CFLAGS)
 else
     DBUS_CFLAGS=
