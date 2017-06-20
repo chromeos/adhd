@@ -10,6 +10,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_ucm.h"
+#include "cras_util.h"
 #include "utlist.h"
 
 static const char jack_var[] = "JackName";
@@ -49,6 +50,7 @@ static const char *use_case_verbs[] = {
 	"Voice Call",
 	"Speech",
 	"Pro Audio",
+	"Accessibility",
 };
 
 /* Represents a list of section names found in UCM. */
@@ -361,6 +363,8 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 	int rc;
 	const char **list;
 	int num_verbs, i, j;
+
+	assert_on_compile(ARRAY_SIZE(use_case_verbs) == CRAS_STREAM_NUM_TYPES);
 
 	if (!name)
 		return NULL;
