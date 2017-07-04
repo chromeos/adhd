@@ -1689,8 +1689,27 @@ static int handle_message_from_server(struct cras_client *client)
 			(struct cras_client_stream_connected *)msg;
 		struct client_stream *stream =
 			stream_from_id(client, cmsg->stream_id);
-		if (stream == NULL)
+		if (stream == NULL) {
+			if (num_fds != 2) {
+				syslog(LOG_ERR, "cras_client: Error receiving "
+				       "stream 0x%x connected message",
+				       cmsg->stream_id);
+				return -EINVAL;
+			}
+
+			syslog(LOG_DEBUG,
+			       "cras_client: stream 0x%x was removed."
+			       " Close server_fds", cmsg->stream_id);
+
+			/*
+			 * Usually, the fds should be closed in stream_connected
+			 * callback. However, sometimes a stream is removed
+			 * before it is connected.
+			 */
+			close(server_fds[0]);
+			close(server_fds[1]);
 			break;
+		}
 		rc = stream_connected(stream, cmsg, server_fds, num_fds);
 		if (rc < 0)
 			stream->config->err_cb(stream->client,
