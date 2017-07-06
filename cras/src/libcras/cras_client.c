@@ -1697,10 +1697,6 @@ static int handle_message_from_server(struct cras_client *client)
 				return -EINVAL;
 			}
 
-			syslog(LOG_DEBUG,
-			       "cras_client: stream 0x%x was removed."
-			       " Close server_fds", cmsg->stream_id);
-
 			/*
 			 * Usually, the fds should be closed in stream_connected
 			 * callback. However, sometimes a stream is removed
