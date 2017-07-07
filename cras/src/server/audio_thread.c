@@ -1277,17 +1277,25 @@ static int do_playback(struct audio_thread *thread)
 
 /* Gets the minimum amount of space available for writing across all streams.
  * Args:
- *    adev - The device to capture from.
- *    write_limit - Initial limit to number of frames to capture.
+ *    adev[in] - The device to capture from.
+ *    write_limit[in] - Initial limit to number of frames to capture.
+ *    limit_stream[out] - The pointer to the pointer of stream which
+ *                        causes capture limit.
+ *                        Output NULL if there is no stream that causes
+ *                        capture limit less than the initial limit.
  */
-static unsigned int get_stream_limit_set_delay(struct open_dev *adev,
-					      unsigned int write_limit)
+static unsigned int get_stream_limit_set_delay(
+		struct open_dev *adev,
+		unsigned int write_limit,
+		struct dev_stream **limit_stream)
 {
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
 	struct dev_stream *stream;
 	int delay;
 	unsigned int avail;
+
+	*limit_stream = NULL;
 
 	/* TODO(dgreid) - Setting delay from last dev only. */
 	delay = input_delay_frames(adev);
@@ -1302,7 +1310,10 @@ static unsigned int get_stream_limit_set_delay(struct open_dev *adev,
 			      shm->area->num_overruns);
 		dev_stream_set_delay(stream, delay);
 		avail = dev_stream_capture_avail(stream);
-		write_limit = MIN(write_limit, avail);
+		if (avail < write_limit) {
+			write_limit = avail;
+			*limit_stream = stream;
+		}
 	}
 
 	return write_limit;
@@ -1320,6 +1331,7 @@ static int capture_to_streams(struct audio_thread *thread,
 	snd_pcm_uframes_t remainder, hw_level, cap_limit;
 	struct timespec hw_tstamp;
 	int rc;
+	struct dev_stream *cap_limit_stream;
 
 	rc = cras_iodev_frames_queued(idev, &hw_tstamp);
 	if (rc < 0)
@@ -1342,7 +1354,7 @@ static int capture_to_streams(struct audio_thread *thread,
 			update_estimated_rate(thread, adev);
 	}
 
-	cap_limit = get_stream_limit_set_delay(adev, hw_level);
+	cap_limit = get_stream_limit_set_delay(adev, hw_level, &cap_limit_stream);
 	remainder = MIN(hw_level, cap_limit);
 
 	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO,
@@ -1416,8 +1428,9 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 {
 	int rc;
 	struct timespec level_tstamp, wake_time_out, min_ts, now;
-	unsigned int curr_level;
+	unsigned int curr_level, cap_limit;
 	struct dev_stream *stream;
+	struct dev_stream *cap_limit_stream;
 
 	/* Limit the sleep time to 20 seconds. */
 	min_ts.tv_sec = 20;
@@ -1429,6 +1442,9 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	if (!timespec_is_nonzero(&level_tstamp))
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
+
+	cap_limit = get_stream_limit_set_delay(adev, adev->dev->buffer_size,
+					       &cap_limit_stream);
 	/*
 	 * Loop through streams to find the earliest time audio thread
 	 * should wake up.
@@ -1438,7 +1454,16 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 			stream,
 			curr_level,
 			&level_tstamp,
+			cap_limit,
+			cap_limit_stream == stream,
 			&wake_time_out);
+
+		/*
+		 * rc > 0 means there is no need to set wake up time for this
+		 * stream.
+		 */
+		if (rc > 0)
+			continue;
 
 		if (rc < 0)
 			return rc;

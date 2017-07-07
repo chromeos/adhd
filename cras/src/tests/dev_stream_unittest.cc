@@ -729,7 +729,8 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByNextCbTs) {
   cras_shm_buffer_written(&rstream_.shm, written_frames);
 
   rc = dev_stream_wake_time(dev_stream, curr_level,
-                            &level_tstamp, &wake_time_out);
+                            &level_tstamp, rstream_.cb_threshold, 0,
+                            &wake_time_out);
 
   // The next wake up time is determined by next_cb_ts on dev_stream.
   EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
@@ -789,7 +790,8 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
   in_fmt.frame_rate = 48000;
 
   rc = dev_stream_wake_time(dev_stream, curr_level,
-                            &level_tstamp, &wake_time_out);
+                            &level_tstamp, rstream_.cb_threshold, 0,
+                            &wake_time_out);
 
   // The next wake up time is determined by needed time for device level
   // to reach enough samples for one cb_threshold.
@@ -801,7 +803,8 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
   // The wake up time is determined by next_cb_ts.
   curr_level += rstream_.cb_threshold;
   rc = dev_stream_wake_time(dev_stream, curr_level,
-                            &level_tstamp, &wake_time_out);
+                            &level_tstamp, rstream_.cb_threshold, 0,
+                            &wake_time_out);
   EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
   EXPECT_EQ(rstream_.next_cb_ts.tv_nsec, wake_time_out.tv_nsec);
   EXPECT_EQ(0, rc);

@@ -643,54 +643,43 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
 }
 
 /*
- * Needed frames from this device such that written frames in shm meets
- * cb_threshold.
- */
-static int get_input_needed_frames(struct dev_stream *dev_stream,
-				   unsigned int curr_level)
-{
-	struct cras_rstream *rstream = dev_stream->stream;
-	unsigned int rstream_level = cras_rstream_level(rstream);
-	unsigned int dev_offset = cras_rstream_dev_offset(
-			rstream, dev_stream->dev_id);
-	unsigned int needed_for_stream;
-
-	/*
-	 * rstream_level + def_offset is the number of frames written to shm
-	 * from this device.
-	 */
-	if (rstream_level + dev_offset > rstream->cb_threshold) {
-		/* Enough frames from this device for this stream. */
-		return 0;
-	}
-
-	/*
-	 * Needed number of frames in shm such that written frames in shm meets
-	 * cb_threshold.
-	 */
-	needed_for_stream = rstream->cb_threshold - rstream_level - dev_offset;
-
-	/* Convert the number of frames from stream format to device format. */
-	return cras_fmt_conv_out_frames_to_in(dev_stream->conv,
-					      needed_for_stream);
-
-}
-
-/*
  * Gets proper wake up time for an input stream. It considers both
  * time for samples to reach one callback level, and the time for next callback.
+ * Returns:
+ *   0 on success; negavite error code on failure. A positive value if
+ *   there is no need to set wake up time for this stream.
  */
 static int get_input_wake_time(struct dev_stream *dev_stream,
 			       unsigned int curr_level,
 			       struct timespec *level_tstamp,
+			       unsigned int cap_limit,
+			       int is_cap_limit_stream,
 			       struct timespec *wake_time_out)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
 	struct timespec time_for_sample;
 	int needed_frames_from_device;
 
-	needed_frames_from_device = get_input_needed_frames(
-			dev_stream, curr_level);
+	needed_frames_from_device = dev_stream_capture_avail(dev_stream);
+
+	/*
+	 * If this stream is not cap_limit stream, and it needs more
+	 * frames than the capture limit from audio thread, don't bother
+	 * re-calculating the wake time for it because
+	 * |needed_frames_from_device| cannot be all copied to shm until
+	 * the cap_limit stream get its samples in shm read by client
+	 * and relieve the cap_limit.
+	 *
+	 * Note that we need to know whether this stream is cap_limit
+	 * stream here because the client of cap_limit stream may read
+	 * the data from shm during this time window, and cause
+	 * needed_frames_from_device to be greater than cap_limit which
+	 * was calculated before.
+	 */
+	if (!is_cap_limit_stream && needed_frames_from_device > cap_limit)
+		return 1;
+
+	*wake_time_out = rstream->next_cb_ts;
 
 	/*
 	 * If current frames in the device can provide needed amount for stream,
@@ -698,7 +687,6 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 	 */
 	if (curr_level >= needed_frames_from_device)
 		needed_frames_from_device = 0;
-
 	else
 		needed_frames_from_device -= curr_level;
 
@@ -710,11 +698,8 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 
 	/* Select the time that is later so both sample and time conditions
 	 * are met. */
-	if (timespec_after(&time_for_sample, &rstream->next_cb_ts)) {
+	if (timespec_after(&time_for_sample, &rstream->next_cb_ts))
 		*wake_time_out =  time_for_sample;
-	} else {
-		*wake_time_out =  rstream->next_cb_ts;
-	}
 
 	return 0;
 }
@@ -722,6 +707,8 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 int dev_stream_wake_time(struct dev_stream *dev_stream,
 			 unsigned int curr_level,
 			 struct timespec *level_tstamp,
+			 unsigned int cap_limit,
+			 int is_cap_limit_stream,
 			 struct timespec *wake_time_out)
 {
 	if (dev_stream->stream->direction == CRAS_STREAM_OUTPUT) {
@@ -734,5 +721,6 @@ int dev_stream_wake_time(struct dev_stream *dev_stream,
 	}
 
 	return get_input_wake_time(dev_stream, curr_level, level_tstamp,
+				   cap_limit, is_cap_limit_stream,
 				   wake_time_out);
 }

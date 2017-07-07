@@ -957,6 +957,8 @@ void dev_stream_update_frames(const struct dev_stream *dev_stream)
 int dev_stream_wake_time(struct dev_stream *dev_stream,
                          unsigned int curr_level,
                          struct timespec *level_tstamp,
+                         unsigned int cap_limit,
+                         int is_cap_limit_stream,
                          struct timespec *wake_time)
 {
   if (dev_stream_wake_time_val.find(dev_stream) !=
