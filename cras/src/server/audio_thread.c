@@ -249,12 +249,13 @@ static int append_stream(struct audio_thread *thread,
 		if (out)
 			continue;
 
-		/* If open device already has stream, get the first stream
-		 * and use its next callback time to align with. Otherwise
-		 * use the timestamp now as the initial callback time for
-		 * new stream.
+		/* For output, if open device already has stream, get the first
+		 * stream and use its next callback time to align with.
+		 * This is to avoid device buffer level stacking up.
+		 * Otherwise, use the timestamp now as the initial callback time
+		 * for new stream so dev_stream can set its own schedule.
 		 */
-		if (dev->streams &&
+		if (stream->direction == CRAS_STREAM_OUTPUT && dev->streams &&
 		    (stream_ts = dev_stream_next_cb_ts(dev->streams)))
 			init_cb_ts = *stream_ts;
 		else
