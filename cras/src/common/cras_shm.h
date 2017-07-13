@@ -150,11 +150,17 @@ uint8_t *cras_shm_get_writeable_frames(const struct cras_audio_shm *shm,
 	unsigned i = shm->area->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
 	unsigned write_offset;
 	const unsigned frame_bytes = shm->config.frame_bytes;
+	unsigned written;
 
 	write_offset = cras_shm_check_write_offset(shm,
 						   shm->area->write_offset[i]);
-	if (frames)
-		*frames = limit_frames - (write_offset / frame_bytes);
+	written = write_offset / frame_bytes;
+	if (frames) {
+		if (limit_frames >= written)
+			*frames = limit_frames - written;
+		else
+			*frames = 0;
+	}
 
 	return cras_shm_buff_for_idx(shm, i) + write_offset;
 }
