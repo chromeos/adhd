@@ -74,7 +74,7 @@ static void hfp_packet_size_changed(void *data)
 	cras_bt_device_iodev_buffer_size_changed(hfpio->device);
 }
 
-static int open_dev(struct cras_iodev *iodev)
+static int configure_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 	int sk, err, mtu;
@@ -242,7 +242,7 @@ struct cras_iodev *hfp_iodev_create(
 			strlen(cras_bt_device_object_path(device)));
 	iodev->info.stable_id_new = iodev->info.stable_id;
 
-	iodev->open_dev= open_dev;
+	iodev->configure_dev= configure_dev;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;

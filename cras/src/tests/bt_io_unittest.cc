@@ -62,7 +62,7 @@ class BtIoBasicSuite : public testing::Test {
       delay_frames_called_ = 0;
       get_buffer_called_ = 0;
       put_buffer_called_ = 0;
-      open_dev_called_ = 0;
+      configure_dev_called_ = 0;
       close_dev_called_ = 0;
     }
 
@@ -77,7 +77,7 @@ class BtIoBasicSuite : public testing::Test {
       d->delay_frames = delay_frames;
       d->get_buffer = get_buffer;
       d->put_buffer = put_buffer;
-      d->open_dev = open_dev;
+      d->configure_dev = configure_dev;
       d->close_dev = close_dev;
     }
 
@@ -118,8 +118,8 @@ class BtIoBasicSuite : public testing::Test {
       put_buffer_called_++;
       return 0;
     }
-    static int open_dev(cras_iodev* iodev) {
-      open_dev_called_++;
+    static int configure_dev(cras_iodev* iodev) {
+      configure_dev_called_++;
       return 0;
     }
     static int close_dev(cras_iodev* iodev) {
@@ -135,7 +135,7 @@ class BtIoBasicSuite : public testing::Test {
   static unsigned int delay_frames_called_;
   static unsigned int get_buffer_called_;
   static unsigned int put_buffer_called_;
-  static unsigned int open_dev_called_;
+  static unsigned int configure_dev_called_;
   static unsigned int close_dev_called_;
 };
 
@@ -147,7 +147,7 @@ unsigned int BtIoBasicSuite::frames_queued_called_;
 unsigned int BtIoBasicSuite::delay_frames_called_;
 unsigned int BtIoBasicSuite::get_buffer_called_;
 unsigned int BtIoBasicSuite::put_buffer_called_;
-unsigned int BtIoBasicSuite::open_dev_called_;
+unsigned int BtIoBasicSuite::configure_dev_called_;
 unsigned int BtIoBasicSuite::close_dev_called_;
 
 TEST_F(BtIoBasicSuite, CreateBtIo) {
@@ -164,8 +164,8 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   bt_iodev->update_supported_formats(bt_iodev);
   EXPECT_EQ(1, update_supported_formats_called_);
 
-  bt_iodev->open_dev(bt_iodev);
-  EXPECT_EQ(1, open_dev_called_);
+  bt_iodev->configure_dev(bt_iodev);
+  EXPECT_EQ(1, configure_dev_called_);
   bt_iodev->frames_queued(bt_iodev, &tstamp);
   EXPECT_EQ(1, frames_queued_called_);
   bt_iodev->get_buffer(bt_iodev, &fake_area, &fr);

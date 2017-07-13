@@ -151,6 +151,7 @@ struct alsa_io {
 	unsigned int filled_zeros_for_draining;
 	snd_pcm_uframes_t severe_underrun_frames;
 	struct cras_volume_curve *default_volume_curve;
+	int hwparams_set;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -244,6 +245,31 @@ static const struct {
 	},
 };
 
+static int set_hwparams(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int period_wakeup;
+	int rc;
+
+	/* Only need to set hardware params once. */
+	if (aio->hwparams_set)
+		return 0;
+
+	/* If it's a wake on voice device, period_wakeups are required. */
+	period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD);
+
+	/* Sets frame rate and channel count to alsa device before
+	 * we test channel mapping. */
+	rc = cras_alsa_set_hwparams(aio->handle, iodev->format,
+				    &iodev->buffer_size, period_wakeup,
+				    aio->dma_period_set_microsecs);
+	if (rc < 0)
+		return rc;
+
+	aio->hwparams_set = 1;
+	return 0;
+}
+
 /*
  * iodev callbacks.
  */
@@ -305,6 +331,7 @@ static int close_dev(struct cras_iodev *iodev)
 	aio->handle = NULL;
 	aio->is_free_running = 0;
 	aio->filled_zeros_for_draining = 0;
+	aio->hwparams_set = 0;
 	cras_iodev_free_format(&aio->base);
 	cras_iodev_free_audio_area(&aio->base);
 	return 0;
@@ -323,7 +350,20 @@ static int open_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle;
-	int period_wakeup;
+	int rc;
+
+	rc = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
+	if (rc < 0)
+		return rc;
+
+	aio->handle = handle;
+
+	return 0;
+}
+
+static int configure_dev(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
 
 	/* This is called after the first stream added so configure for it.
@@ -342,39 +382,23 @@ static int open_dev(struct cras_iodev *iodev)
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
 	       aio->dev, iodev->format->frame_rate,
 	       iodev->format->num_channels);
-	handle = 0; /* Avoid unused warning. */
-	rc = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
+
+	rc = set_hwparams(iodev);
 	if (rc < 0)
 		return rc;
 
-	/* If it's a wake on voice device, period_wakeups are required. */
-	period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD);
-
-	rc = cras_alsa_set_hwparams(handle, iodev->format,
-				    &iodev->buffer_size, period_wakeup,
-				    aio->dma_period_set_microsecs);
-	if (rc < 0) {
-		cras_alsa_pcm_close(handle);
-		return rc;
-	}
-
 	/* Set channel map to device */
-	rc = cras_alsa_set_channel_map(handle,
+	rc = cras_alsa_set_channel_map(aio->handle,
 				       iodev->format);
-	if (rc < 0) {
-		cras_alsa_pcm_close(handle);
+	if (rc < 0)
 		return rc;
-	}
 
 	/* Configure software params. */
-	rc = cras_alsa_set_swparams(handle, &aio->enable_htimestamp);
-	if (rc < 0) {
-		cras_alsa_pcm_close(handle);
+	rc = cras_alsa_set_swparams(aio->handle, &aio->enable_htimestamp);
+	if (rc < 0)
 		return rc;
-	}
 
-	/* Assign pcm handle then initialize device settings. */
-	aio->handle = handle;
+	/* Initialize device settings. */
 	init_device_settings(aio);
 
 	aio->poll_fd = -1;
@@ -382,7 +406,7 @@ static int open_dev(struct cras_iodev *iodev)
 		struct pollfd *ufds;
 		int count, i;
 
-		count = snd_pcm_poll_descriptors_count(handle);
+		count = snd_pcm_poll_descriptors_count(aio->handle);
 		if (count <= 0) {
 			syslog(LOG_ERR, "Invalid poll descriptors count\n");
 			return count;
@@ -392,7 +416,7 @@ static int open_dev(struct cras_iodev *iodev)
 		if (ufds == NULL)
 			return -ENOMEM;
 
-		rc = snd_pcm_poll_descriptors(handle, ufds, count);
+		rc = snd_pcm_poll_descriptors(aio->handle, ufds, count);
 		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "Getting hotword poll descriptors: %s\n",
@@ -552,8 +576,6 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 static int update_channel_layout(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
-	snd_pcm_t *handle = NULL;
-	snd_pcm_uframes_t buf_size = 0;
 	int err = 0;
 
 	/* If the capture channel map is specified in UCM, prefer it over
@@ -570,25 +592,11 @@ static int update_channel_layout(struct cras_iodev *iodev)
 		}
 	}
 
-	err = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
-	if (err < 0) {
-		syslog(LOG_ERR, "snd_pcm_open_failed: %s", snd_strerror(err));
+	err = set_hwparams(iodev);
+	if (err < 0)
 		return err;
-	}
 
-	/* Sets frame rate and channel count to alsa device before
-	 * we test channel mapping. */
-	err = cras_alsa_set_hwparams(handle, iodev->format, &buf_size, 0,
-				     aio->dma_period_set_microsecs);
-	if (err < 0) {
-		cras_alsa_pcm_close(handle);
-		return err;
-	}
-
-	err = cras_alsa_get_channel_map(handle, iodev->format);
-
-	cras_alsa_pcm_close(handle);
-	return err;
+	return cras_alsa_get_channel_map(aio->handle, iodev->format);
 }
 
 static int set_hotword_model(struct cras_iodev *iodev, const char *model_name)
@@ -1569,7 +1577,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	free(iodev->supported_formats);
 	iodev->supported_formats = NULL;
 
-	err = cras_alsa_fill_properties(aio->dev, aio->alsa_stream,
+	err = cras_alsa_fill_properties(aio->handle,
 					&iodev->supported_rates,
 					&iodev->supported_channel_counts,
 					&iodev->supported_formats);
@@ -1861,6 +1869,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		aio->base.output_underrun = alsa_output_underrun;
 	}
 	iodev->open_dev = open_dev;
+	iodev->configure_dev = configure_dev;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->frames_queued = frames_queued;

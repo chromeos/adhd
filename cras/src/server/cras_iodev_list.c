@@ -419,13 +419,7 @@ static int init_device(struct cras_iodev *dev,
 	if (cras_iodev_is_open(dev))
 		return 0;
 
-	if (dev->ext_format == NULL) {
-		rc = cras_iodev_set_format(dev, &rstream->format);
-		if (rc)
-			return rc;
-	}
-
-	rc = cras_iodev_open(dev, rstream->cb_threshold);
+	rc = cras_iodev_open(dev, rstream->cb_threshold, &rstream->format);
 	if (rc)
 		return rc;
 

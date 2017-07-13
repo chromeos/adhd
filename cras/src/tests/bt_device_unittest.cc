@@ -260,7 +260,9 @@ int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 
 /* From iodev_list */
 
-int cras_iodev_open(struct cras_iodev *dev, unsigned int cb_level) {
+int cras_iodev_open(struct cras_iodev *dev, unsigned int cb_level,
+                    const struct cras_audio_format *fmt)
+{
   return 0;
 }
 

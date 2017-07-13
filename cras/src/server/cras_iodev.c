@@ -399,18 +399,6 @@ static void update_channel_layout(struct cras_iodev *iodev)
 {
 	int rc;
 
-	/*
-	 * Output devices like internal speakers and headphones are 2-channel
-	 * and do not need to update channel layout.
-	 * For HDMI and USB devices that might have more than 2 channels, update
-	 * channel layout only if more than 2 channel is requested.
-	 */
-	if (iodev->direction == CRAS_STREAM_OUTPUT &&
-	    iodev->format->num_channels <= 2) {
-		set_default_channel_layout(iodev);
-		return;
-	}
-
 	if (iodev->update_channel_layout == NULL)
 		return;
 
@@ -820,13 +808,30 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
 	return max;
 }
 
-int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level)
+int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
+		    const struct cras_audio_format *fmt)
 {
 	int rc;
 
-	rc = iodev->open_dev(iodev);
-	if (rc < 0)
+	if (iodev->open_dev) {
+		rc = iodev->open_dev(iodev);
+		if (rc)
+			return rc;
+	}
+
+	if (iodev->ext_format == NULL) {
+		rc = cras_iodev_set_format(iodev, fmt);
+		if (rc) {
+			iodev->close_dev(iodev);
+			return rc;
+		}
+	}
+
+	rc = iodev->configure_dev(iodev);
+	if (rc < 0) {
+		iodev->close_dev(iodev);
 		return rc;
+	}
 
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);

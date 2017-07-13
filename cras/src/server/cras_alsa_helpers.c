@@ -385,48 +385,34 @@ done:
 	return rc;
 }
 
-int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
+int cras_alsa_fill_properties(snd_pcm_t *handle,
 			      size_t **rates, size_t **channel_counts,
 			      snd_pcm_format_t **formats)
 {
 	int rc;
-	snd_pcm_t *handle;
 	size_t i, num_found;
 	snd_pcm_hw_params_t *params;
 
 	snd_pcm_hw_params_alloca(&params);
 
-	rc = cras_alsa_pcm_open(&handle,
-				dev,
-				stream);
-	if (rc < 0) {
-		syslog(LOG_ERR, "snd_pcm_open_failed: %s", snd_strerror(rc));
-		return rc;
-	}
-
 	rc = snd_pcm_hw_params_any(handle, params);
 	if (rc < 0) {
-		snd_pcm_close(handle);
 		syslog(LOG_ERR, "snd_pcm_hw_params_any: %s", snd_strerror(rc));
 		return rc;
 	}
 
 	*rates = (size_t *)malloc(sizeof(test_sample_rates));
-	if (*rates == NULL) {
-		snd_pcm_close(handle);
+	if (*rates == NULL)
 		return -ENOMEM;
-	}
 	*channel_counts = (size_t *)malloc(sizeof(test_channel_counts));
 	if (*channel_counts == NULL) {
 		free(*rates);
-		snd_pcm_close(handle);
 		return -ENOMEM;
 	}
 	*formats = (snd_pcm_format_t *)malloc(sizeof(test_formats));
 	if (*formats == NULL) {
 		free(*channel_counts);
 		free(*rates);
-		snd_pcm_close(handle);
 		return -ENOMEM;
 	}
 
@@ -456,8 +442,6 @@ int cras_alsa_fill_properties(const char *dev, snd_pcm_stream_t stream,
 			(*formats)[num_found++] = test_formats[i];
 	}
 	(*formats)[num_found] = (snd_pcm_format_t)0;
-
-	snd_pcm_close(handle);
 
 	return 0;
 }

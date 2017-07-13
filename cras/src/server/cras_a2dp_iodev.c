@@ -135,7 +135,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 		   MAX(estimate_queued_frames, local_queued_frames));
 }
 
-static int open_dev(struct cras_iodev *iodev)
+static int configure_dev(struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	int sock_depth;
@@ -484,7 +484,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 			strlen(cras_bt_device_object_path(device)));
 	iodev->info.stable_id_new = iodev->info.stable_id;
 
-	iodev->open_dev = open_dev;
+	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
