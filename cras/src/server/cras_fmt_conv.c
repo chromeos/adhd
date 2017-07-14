@@ -456,7 +456,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			break;
 		default:
 			syslog(LOG_WARNING, "Invalid format %d", in->format);
-			cras_fmt_conv_destroy(conv);
+			cras_fmt_conv_destroy(&conv);
 			return NULL;
 		}
 	}
@@ -479,7 +479,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			break;
 		default:
 			syslog(LOG_WARNING, "Invalid format %d", out->format);
-			cras_fmt_conv_destroy(conv);
+			cras_fmt_conv_destroy(&conv);
 			return NULL;
 		}
 	}
@@ -516,7 +516,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 						in->num_channels,
 						out->num_channels);
 				if (conv->ch_conv_mtx == NULL) {
-					cras_fmt_conv_destroy(conv);
+					cras_fmt_conv_destroy(&conv);
 					return NULL;
 				}
 				conv->channel_converter = convert_channels;
@@ -538,7 +538,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		conv->ch_conv_mtx = cras_channel_conv_matrix_create(in, out);
 		if (conv->ch_conv_mtx == NULL) {
 			syslog(LOG_ERR, "Failed to create channel conversion matrix");
-			cras_fmt_conv_destroy(conv);
+			cras_fmt_conv_destroy(&conv);
 			return NULL;
 		}
 		conv->channel_converter = convert_channels;
@@ -559,7 +559,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			       in->frame_rate,
 			       out->frame_rate,
 			       rc);
-			cras_fmt_conv_destroy(conv);
+			cras_fmt_conv_destroy(&conv);
 			return NULL;
 		}
 	}
@@ -573,7 +573,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			out->frame_rate);
 	if (conv->resampler == NULL) {
 		syslog(LOG_ERR, "Fail to create linear resampler");
-		cras_fmt_conv_destroy(conv);
+		cras_fmt_conv_destroy(&conv);
 		return NULL;
 	}
 
@@ -585,7 +585,7 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			4 * /* width in bytes largest format. */
 			MAX(in->num_channels, out->num_channels));
 		if (conv->tmp_bufs[i] == NULL) {
-			cras_fmt_conv_destroy(conv);
+			cras_fmt_conv_destroy(&conv);
 			return NULL;
 		}
 	}
@@ -595,9 +595,11 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	return conv;
 }
 
-void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
+void cras_fmt_conv_destroy(struct cras_fmt_conv **convp)
 {
 	unsigned i;
+	struct cras_fmt_conv *conv = *convp;
+
 	if (conv->ch_conv_mtx)
 		cras_channel_conv_matrix_destroy(conv->ch_conv_mtx,
 						 conv->out_fmt.num_channels);
@@ -608,6 +610,7 @@ void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
 	for (i = 0; i < MAX_NUM_CONVERTERS - 1; i++)
 		free(conv->tmp_bufs[i]);
 	free(conv);
+	*convp = NULL;
 }
 
 struct cras_fmt_conv *cras_channel_remix_conv_create(

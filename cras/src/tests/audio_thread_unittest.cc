@@ -795,7 +795,7 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
   return 0;
 }
 
-void cras_fmt_conv_destroy(struct cras_fmt_conv *conv)
+void cras_fmt_conv_destroy(struct cras_fmt_conv **conv)
 {
 }
 

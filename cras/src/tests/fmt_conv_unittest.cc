@@ -98,7 +98,7 @@ TEST(FormatConverterTest, MonoToStereo) {
     }
   }
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -149,7 +149,7 @@ TEST(FormatConverterTest, StereoToMono) {
     EXPECT_EQ(1, out_buff[i]);
   }
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -208,7 +208,7 @@ TEST(FormatConverterTest, StereoToMono24bit) {
 	    EXPECT_EQ(0x10000, out_buff[i]);
     }
 
-    cras_fmt_conv_destroy(c);
+    cras_fmt_conv_destroy(&c);
     free(in_buff);
     free(out_buff);
   }
@@ -317,7 +317,7 @@ TEST(FormatConverterTest, SurroundToStereo) {
     EXPECT_GT(0, out_buff[i * 2 + 1]);
   }
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -353,7 +353,7 @@ TEST(FormatConverterTest,  Convert2To1) {
                                             (uint8_t *)out_buff,
                                             &in_buf_size,
                                             buf_size / 2);
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -388,7 +388,7 @@ TEST(FormatConverterTest,  Convert1To2) {
                                             (uint8_t *)out_buff,
                                             &in_buf_size,
                                             buf_size * 2);
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -427,7 +427,7 @@ TEST(FormatConverterTest,  Convert1To2MonoToStereo) {
                                             (uint8_t *)out_buff,
                                             &in_buf_size,
                                             buf_size * 2);
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -468,7 +468,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LE) {
   for (unsigned int i = 0; i < buf_size; i++)
     EXPECT_EQ((int16_t)(in_buff[i] >> 16), out_buff[i]);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -509,7 +509,7 @@ TEST(FormatConverterTest, ConvertS24LEToS16LE) {
   for (unsigned int i = 0; i < buf_size; i++)
     EXPECT_EQ((int16_t)(in_buff[i] >> 8), out_buff[i]);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -551,7 +551,7 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
   for (unsigned int i = 0; i < buf_size; i++)
     EXPECT_EQ(((int16_t)(in_buff[i] - 128) << 8), out_buff[i]);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -592,7 +592,7 @@ TEST(FormatConverterTest, ConvertS16LEToS32LE) {
   for (unsigned int i = 0; i < buf_size; i++)
     EXPECT_EQ(((int32_t)in_buff[i] << 16), out_buff[i]);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -633,7 +633,7 @@ TEST(FormatConverterTest, ConvertS16LEToS24LE) {
   for (unsigned int i = 0; i < buf_size; i++)
     EXPECT_EQ(((int32_t)in_buff[i] << 8), out_buff[i]);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -675,7 +675,7 @@ TEST(FormatConverterTest, ConvertS16LEToU8) {
   for (unsigned int i = 0; i < buf_size; i++)
     EXPECT_EQ((in_buff[i] >> 8) + 128, out_buff[i]);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -718,7 +718,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo) {
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -770,7 +770,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEStereoTo51) {
     EXPECT_EQ(0, out_buff[6 * i + 5]);
   }
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -822,7 +822,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEMonoTo51) {
     EXPECT_EQ(0, out_buff[6 * i + 5]);
   }
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -865,7 +865,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To96) {
                                             buf_size * 2);
   EXPECT_EQ(buf_size * 2, out_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -908,7 +908,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48) {
                                             buf_size / 2);
   EXPECT_EQ(buf_size / 2, out_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -952,7 +952,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo48To441) {
                                             out_frames);
   EXPECT_EQ(out_frames, ret_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -997,7 +997,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo441To48) {
                                             out_frames - 1);
   EXPECT_EQ(out_frames - 1, ret_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -1042,7 +1042,7 @@ TEST(FormatConverterTest, ConvertS32LEToS16LEDownmix51ToStereo96To48Short) {
                                             out_frames - 2);
   EXPECT_EQ(out_frames - 2, ret_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -1091,7 +1091,7 @@ TEST(FormatConverterTest, Convert96to48PreLinearResample) {
                                             out_frames);
   EXPECT_EQ(expected_fr, out_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -1140,7 +1140,7 @@ TEST(FormatConverterTest, Convert96to48PostLinearResample) {
                                             buf_size);
   EXPECT_EQ(expected_fr, out_frames);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
@@ -1167,7 +1167,7 @@ TEST(FormatConverterTest, ConfigConverter) {
   config_format_converter(&c, CRAS_STREAM_OUTPUT, &in_fmt, &out_fmt, 4096);
   ASSERT_NE(c, (void *)NULL);
 
-  cras_fmt_conv_destroy(c);
+  cras_fmt_conv_destroy(&c);
 }
 
 // Test format converter not created when in/out format conversion is not
@@ -1252,7 +1252,7 @@ TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
   for (i = 0; i < 100; i++)
     EXPECT_EQ(res[i],  buf[i]);
 
-  cras_fmt_conv_destroy(conv);
+  cras_fmt_conv_destroy(&conv);
 }
 
 int main(int argc, char **argv) {

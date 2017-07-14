@@ -1862,7 +1862,7 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 	}
 
 	if (rsp)
-		cras_fmt_conv_destroy((struct cras_fmt_conv *)rsp);
+		cras_fmt_conv_destroy((struct cras_fmt_conv **)&rsp);
 	return 0;
 }
 
@@ -1985,7 +1985,7 @@ void audio_thread_destroy(struct audio_thread *thread)
 	}
 
 	if (remix_converter)
-		cras_fmt_conv_destroy(remix_converter);
+		cras_fmt_conv_destroy(&remix_converter);
 
 	free(thread);
 }
