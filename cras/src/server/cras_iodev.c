@@ -882,7 +882,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				 unsigned int nframes)
 {
 	const struct cras_audio_format *fmt = iodev->format;
-	struct cras_fmt_conv * remix_converter =
+	struct cras_fmt_conv *remix_converter =
 			audio_thread_get_global_remix_converter();
 	struct cras_ramp_action ramp_action = {
 		.type = CRAS_RAMP_ACTION_NONE,
