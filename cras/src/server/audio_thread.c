@@ -211,9 +211,6 @@ static void fill_odevs_zeros_min_level(struct cras_iodev *odev)
 	cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level);
 }
 
-static void thread_rm_open_adev(struct audio_thread *thread,
-				struct open_dev *adev);
-
 static void delete_stream_from_dev(struct cras_iodev *dev,
 				   struct cras_rstream *stream)
 {
