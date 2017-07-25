@@ -566,14 +566,12 @@ static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
 
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
- *    thread - The thread to fetch samples for.
  *    adev - The output device streams are attached to.
  * Returns:
  *    0 on success, negative error on failure. If failed, can assume that all
  *    streams have been removed from the device.
  */
-static int fetch_streams(struct audio_thread *thread,
-			 struct open_dev *adev)
+static int fetch_streams(struct open_dev *adev)
 {
 	struct dev_stream *dev_stream;
 	struct cras_iodev *odev = adev->dev;
@@ -1094,7 +1092,7 @@ static int output_stream_fetch(struct audio_thread *thread)
 	DL_FOREACH(odev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
-		fetch_streams(thread, adev);
+		fetch_streams(adev);
 	}
 
 	return 0;
