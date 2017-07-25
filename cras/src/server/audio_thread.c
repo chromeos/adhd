@@ -1084,9 +1084,8 @@ static int get_next_input_wake(struct audio_thread *thread,
 	return ret;
 }
 
-static int output_stream_fetch(struct audio_thread *thread)
+static int output_stream_fetch(struct open_dev *odev_list)
 {
-	struct open_dev *odev_list = thread->open_devs[CRAS_STREAM_OUTPUT];
 	struct open_dev *adev;
 
 	DL_FOREACH(odev_list, adev) {
@@ -1501,7 +1500,7 @@ static int send_captured_samples(struct audio_thread *thread)
 /* Reads and/or writes audio sampels from/to the devices. */
 static int stream_dev_io(struct audio_thread *thread)
 {
-	output_stream_fetch(thread);
+	output_stream_fetch(thread->open_devs[CRAS_STREAM_OUTPUT]);
 	do_capture(thread);
 	send_captured_samples(thread);
 	wait_pending_output_streams(thread);
