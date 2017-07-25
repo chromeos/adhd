@@ -90,7 +90,7 @@ static int fetch_streams(struct open_dev *adev)
 
 		if (!dev_stream_can_fetch(dev_stream)) {
 			ATLOG(atlog, AUDIO_THREAD_STREAM_SKIP_CB,
-			      rstream->stream_id,
+			      cras_rstream_id(rstream),
 			      shm->area->write_offset[0],
 			      shm->area->write_offset[1]);
 			continue;
@@ -104,7 +104,7 @@ static int fetch_streams(struct open_dev *adev)
 		rc = dev_stream_request_playback_samples(dev_stream, &now);
 		if (rc < 0) {
 			syslog(LOG_ERR, "fetch err: %d for %x",
-			       rc, rstream->stream_id);
+			       rc, cras_rstream_id(rstream));
 			cras_rstream_set_is_draining(rstream, 1);
 		}
 	}
