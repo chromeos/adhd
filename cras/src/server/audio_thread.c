@@ -356,19 +356,18 @@ static struct open_dev *find_adev(struct open_dev *adev_list,
 	return NULL;
 }
 
-static void thread_rm_open_adev(struct audio_thread *thread,
-				struct open_dev *dev_to_rm)
+static void rm_open_adev(struct open_dev **odev_list,
+			 struct open_dev *dev_to_rm)
 {
-	enum CRAS_STREAM_DIRECTION dir = dev_to_rm->dev->direction;
 	struct open_dev *adev;
 	struct dev_stream *dev_stream;
 
 	/* Do nothing if dev_to_rm wasn't already in the active dev list. */
-	adev = find_adev(thread->open_devs[dir], dev_to_rm->dev);
+	adev = find_adev(*odev_list, dev_to_rm->dev);
 	if (!adev)
 		return;
 
-	DL_DELETE(thread->open_devs[dir], dev_to_rm);
+	DL_DELETE(*odev_list, dev_to_rm);
 
 	ATLOG(atlog,
 				    AUDIO_THREAD_DEV_REMOVED,
@@ -391,7 +390,7 @@ static int thread_rm_open_dev(struct audio_thread *thread,
 	if (!adev)
 		return -EINVAL;
 
-	thread_rm_open_adev(thread, adev);
+	rm_open_adev(&thread->open_devs[iodev->direction], adev);
 	return 0;
 }
 
@@ -1137,7 +1136,9 @@ static int do_playback(struct audio_thread *thread)
 				cras_iodev_reset_request(adev->dev);
 			} else {
 				/* Device error, close it. */
-				thread_rm_open_adev(thread, adev);
+				rm_open_adev(
+					&thread->open_devs[CRAS_STREAM_OUTPUT],
+					adev);
 			}
 		}
 	}
@@ -1284,16 +1285,16 @@ static int capture_to_streams(struct open_dev *adev)
 	return 0;
 }
 
-static int do_capture(struct audio_thread *thread)
+static int do_capture(struct open_dev **list)
 {
-	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
+	struct open_dev *idev_list = *list;
 	struct open_dev *adev;
 
 	DL_FOREACH(idev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 		if (capture_to_streams(adev) < 0)
-			thread_rm_open_adev(thread, adev);
+			rm_open_adev(list, adev);
 	}
 
 	return 0;
@@ -1386,7 +1387,7 @@ static int send_captured_samples(struct audio_thread *thread)
 static int stream_dev_io(struct audio_thread *thread)
 {
 	dev_io_playback_fetch(thread->open_devs[CRAS_STREAM_OUTPUT]);
-	do_capture(thread);
+	do_capture(&thread->open_devs[CRAS_STREAM_INPUT]);
 	send_captured_samples(thread);
 	wait_pending_output_streams(thread);
 	do_playback(thread);
