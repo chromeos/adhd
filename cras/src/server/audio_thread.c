@@ -1000,8 +1000,7 @@ struct cras_iodev *get_master_dev(const struct dev_stream *stream)
 /* Updates the estimated sample rate of open device to all attached
  * streams.
  */
-static void update_estimated_rate(struct audio_thread *thread,
-				  struct open_dev *adev)
+static void update_estimated_rate(struct open_dev *adev)
 {
 	struct cras_iodev *master_dev;
 	struct cras_iodev *dev = adev->dev;
@@ -1063,7 +1062,7 @@ static int write_output_samples(struct audio_thread *thread,
 			adev->coarse_rate_adjust = 0;
 
 		if (cras_iodev_update_rate(odev, hw_level, &hw_tstamp))
-			update_estimated_rate(thread, adev);
+			update_estimated_rate(adev);
 	}
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO,
 				    adev->dev->info.idx, hw_level, 0);
@@ -1205,8 +1204,7 @@ static unsigned int get_stream_limit_set_delay(
  *    adev - The device to capture samples from.
  * Returns 0 on success.
  */
-static int capture_to_streams(struct audio_thread *thread,
-			      struct open_dev *adev)
+static int capture_to_streams(struct open_dev *adev)
 {
 	struct cras_iodev *idev = adev->dev;
 	snd_pcm_uframes_t remainder, hw_level, cap_limit;
@@ -1232,7 +1230,7 @@ static int capture_to_streams(struct audio_thread *thread,
 		else
 			adev->coarse_rate_adjust = 0;
 		if (cras_iodev_update_rate(idev, hw_level, &hw_tstamp))
-			update_estimated_rate(thread, adev);
+			update_estimated_rate(adev);
 	}
 
 	cap_limit = get_stream_limit_set_delay(adev, hw_level, &cap_limit_stream);
@@ -1294,7 +1292,7 @@ static int do_capture(struct audio_thread *thread)
 	DL_FOREACH(idev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
-		if (capture_to_streams(thread, adev) < 0)
+		if (capture_to_streams(adev) < 0)
 			thread_rm_open_adev(thread, adev);
 	}
 
