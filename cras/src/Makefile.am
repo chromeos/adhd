@@ -312,6 +312,7 @@ TESTS = \
 	softvol_curve_unittest \
 	stream_list_unittest \
 	system_state_unittest \
+	timing_unittest \
 	utf8_unittest \
 	util_unittest \
 	volume_curve_unittest
@@ -713,6 +714,34 @@ system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 system_state_unittest_LDADD = -lgtest -lrt -lpthread
+
+timing_unittest_SOURCES = \
+	common/cras_audio_format.c \
+	common/cras_shm.c \
+	server/cras_audio_area.c \
+	server/cras_fmt_conv.c \
+	server/cras_mix.c \
+	server/cras_mix_ops.c \
+	server/dev_io.c \
+	server/dev_stream.c \
+	server/linear_resampler.c \
+	tests/iodev_stub.cc \
+	tests/rstream_stub.cc \
+	tests/timing_unittest.cc
+timing_unittest_CXXFLAGS = \
+	-std=c++11
+timing_unittest_CPPFLAGS = \
+	$(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config
+timing_unittest_LDADD = \
+	libcrasmix.la \
+	$(CRAS_SSE4_2) \
+	$(CRAS_AVX) \
+	$(CRAS_AVX2) \
+	$(CRAS_FMA) \
+	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
 
 utf8_unittest_SOURCES = tests/utf8_unittest.cc server/cras_utf8.c
 utf8_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
