@@ -346,51 +346,16 @@ static int thread_add_open_dev(struct audio_thread *thread,
 	return 0;
 }
 
-static struct open_dev *find_adev(struct open_dev *adev_list,
-				  struct cras_iodev *dev)
-{
-	struct open_dev *adev;
-	DL_FOREACH(adev_list, adev)
-		if (adev->dev == dev)
-			return adev;
-	return NULL;
-}
-
-static void rm_open_adev(struct open_dev **odev_list,
-			 struct open_dev *dev_to_rm)
-{
-	struct open_dev *adev;
-	struct dev_stream *dev_stream;
-
-	/* Do nothing if dev_to_rm wasn't already in the active dev list. */
-	adev = find_adev(*odev_list, dev_to_rm->dev);
-	if (!adev)
-		return;
-
-	DL_DELETE(*odev_list, dev_to_rm);
-
-	ATLOG(atlog,
-				    AUDIO_THREAD_DEV_REMOVED,
-				    dev_to_rm->dev->info.idx, 0, 0);
-
-	DL_FOREACH(dev_to_rm->dev->streams, dev_stream) {
-		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream->stream);
-		dev_stream_destroy(dev_stream);
-	}
-
-	free(dev_to_rm);
-}
-
 /* Handles messages from the main thread to remove an active device. */
 static int thread_rm_open_dev(struct audio_thread *thread,
 			      struct cras_iodev *iodev)
 {
-	struct open_dev *adev = find_adev(
+	struct open_dev *adev = dev_io_find_open_dev(
 			thread->open_devs[iodev->direction], iodev);
 	if (!adev)
 		return -EINVAL;
 
-	rm_open_adev(&thread->open_devs[iodev->direction], adev);
+	dev_io_rm_open_dev(&thread->open_devs[iodev->direction], adev);
 	return 0;
 }
 
@@ -400,7 +365,7 @@ static int thread_dev_start_ramp(struct audio_thread *thread,
 				 enum CRAS_IODEV_RAMP_REQUEST request)
 {
 	/* Do nothing if device wasn't already in the active dev list. */
-	struct open_dev *adev = find_adev(
+	struct open_dev *adev = dev_io_find_open_dev(
 			thread->open_devs[iodev->direction], iodev);
 	if (!adev)
 		return -EINVAL;
@@ -1136,7 +1101,7 @@ static int do_playback(struct audio_thread *thread)
 				cras_iodev_reset_request(adev->dev);
 			} else {
 				/* Device error, close it. */
-				rm_open_adev(
+				dev_io_rm_open_dev(
 					&thread->open_devs[CRAS_STREAM_OUTPUT],
 					adev);
 			}
@@ -1294,7 +1259,7 @@ static int do_capture(struct open_dev **list)
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 		if (capture_to_streams(adev) < 0)
-			rm_open_adev(list, adev);
+			dev_io_rm_open_dev(list, adev);
 	}
 
 	return 0;

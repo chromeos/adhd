@@ -122,3 +122,36 @@ void dev_io_playback_fetch(struct open_dev *odev_list)
 		fetch_streams(adev);
 	}
 }
+
+struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
+				      const struct cras_iodev *dev)
+{
+	struct open_dev *odev;
+	DL_FOREACH(odev_list, odev)
+		if (odev->dev == dev)
+			return odev;
+	return NULL;
+}
+
+void dev_io_rm_open_dev(struct open_dev **odev_list,
+			struct open_dev *dev_to_rm)
+{
+	struct open_dev *odev;
+	struct dev_stream *dev_stream;
+
+	/* Do nothing if dev_to_rm wasn't already in the active dev list. */
+	odev = dev_io_find_open_dev(*odev_list, dev_to_rm->dev);
+	if (!odev)
+		return;
+
+	DL_DELETE(*odev_list, dev_to_rm);
+
+	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);
+
+	DL_FOREACH(dev_to_rm->dev->streams, dev_stream) {
+		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream->stream);
+		dev_stream_destroy(dev_stream);
+	}
+
+	free(dev_to_rm);
+}

@@ -33,4 +33,16 @@ struct open_dev {
  */
 void dev_io_playback_fetch(struct open_dev *odev_list);
 
+/*
+ * Removes a device from a list of devices.
+ *    odev_list - A pointer to the list to modify.
+ *    dev_to_rm - Find this device in the list and remove it.
+ */
+void dev_io_rm_open_dev(struct open_dev **odev_list,
+			struct open_dev *dev_to_rm);
+
+/* Returns a pointer to an open_dev if it is in the list, otherwise NULL. */
+struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
+                                      const struct cras_iodev *dev);
+
 #endif /* DEV_IO_H_ */
