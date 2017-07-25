@@ -58,7 +58,7 @@ typedef int (*thread_callback)(void *data);
 
 /* Creates an audio thread.
  * Returns:
- *    A pointer to the newly create audio thread.  It must be freed by calling
+ *    A pointer to the newly created audio thread.  It must be freed by calling
  *    audio_thread_destroy().  Returns NULL on error.
  */
 struct audio_thread *audio_thread_create();
