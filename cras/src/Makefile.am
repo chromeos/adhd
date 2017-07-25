@@ -122,6 +122,7 @@ cras_SOURCES = \
 	server/cras_tm.c \
 	server/cras_udev.c \
 	server/cras_volume_curve.c \
+	server/dev_io.c \
 	server/dev_stream.c \
 	server/linear_resampler.c \
 	server/stream_list.c \
@@ -485,7 +486,8 @@ array_unittest_SOURCES = tests/array_unittest.cc
 array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 array_unittest_LDADD = -lgtest -lpthread
 
-audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc
+audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
+	server/dev_io.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt

@@ -11,25 +11,12 @@
 
 #include "cras_iodev.h"
 #include "cras_types.h"
+#include "dev_io.h"
 
 struct buffer_share;
 struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;
-
-/* Open input/output devices.
- *    dev - The device.
- *    wake_ts - When callback is needed to avoid xrun.
- *    coarse_rate_adjust - Hack for when the sample rate needs heavy correction.
- *    input_streaming - For capture, has the input started?
- */
-struct open_dev {
-	struct cras_iodev *dev;
-	struct timespec wake_ts;
-	int coarse_rate_adjust;
-	int input_streaming;
-	struct open_dev *prev, *next;
-};
 
 /* Hold communication pipes and pthread info for the thread used to play or
  * record audio.
