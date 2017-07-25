@@ -318,27 +318,6 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 				      size_t frame_rate,
 				      struct timespec *ts);
 
-/* Sets the timestamp for when the next sample will be rendered.  Determined by
- * combining the current time with the playback latency specified in frames.
- * Args:
- *    frame_rate - in Hz.
- *    frames - Delay specified in frames.
- *    ts - Filled with the time that the next sample will be played.
- */
-void cras_iodev_set_playback_timestamp(size_t frame_rate,
-				       size_t frames,
-				       struct cras_timespec *ts);
-
-/* Sets the time that the first sample in the buffer was captured at the ADC.
- * Args:
- *    frame_rate - in Hz.
- *    frames - Delay specified in frames.
- *    ts - Filled with the time that the next sample was captured.
- */
-void cras_iodev_set_capture_timestamp(size_t frame_rate,
-				      size_t frames,
-				      struct cras_timespec *ts);
-
 /* Update the "dsp_name" dsp variable. This may cause the dsp pipeline to be
  * reloaded.
  * Args:
