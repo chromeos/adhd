@@ -34,6 +34,18 @@ struct open_dev {
 void dev_io_playback_fetch(struct open_dev *odev_list);
 
 /*
+ * Captures samples from each device in the list.
+ *    list - Pointer to the list of input devices.  Devices that fail to read
+ *           will be removed from the list.
+ */
+int dev_io_capture(struct open_dev **list);
+
+/*
+ * Send samples that have been captured to their streams.
+ */
+int dev_io_send_captured_samples(struct open_dev *idev_list);
+
+/*
  * Removes a device from a list of devices.
  *    odev_list - A pointer to the list to modify.
  *    dev_to_rm - Find this device in the list and remove it.
