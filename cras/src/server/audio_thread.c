@@ -1321,9 +1321,8 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	return 0;
 }
 
-static int send_captured_samples(struct audio_thread *thread)
+static int send_captured_samples(struct open_dev *idev_list)
 {
-	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
 	struct open_dev *adev;
 	int rc;
 
@@ -1353,7 +1352,7 @@ static int stream_dev_io(struct audio_thread *thread)
 {
 	dev_io_playback_fetch(thread->open_devs[CRAS_STREAM_OUTPUT]);
 	do_capture(&thread->open_devs[CRAS_STREAM_INPUT]);
-	send_captured_samples(thread);
+	send_captured_samples(thread->open_devs[CRAS_STREAM_INPUT]);
 	wait_pending_output_streams(thread);
 	do_playback(thread);
 

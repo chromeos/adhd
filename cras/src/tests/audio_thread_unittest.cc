@@ -395,7 +395,7 @@ TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
   // Send captured samples to client.
   // This will also update wake time for this device based on
   // dev_stream_wake_time of each stream of this device.
-  send_captured_samples(thread_);
+  send_captured_samples(thread_->open_devs[CRAS_STREAM_INPUT]);
 
   // wake_ts is maintained in open_dev.
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
