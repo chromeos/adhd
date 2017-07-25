@@ -83,7 +83,7 @@ static int fetch_streams(struct open_dev *adev)
 			continue;
 
 		/* Check if it's time to get more data from this stream.
-		 * Allowing for waking up half a little early. */
+		 * Allow for waking up a little early. */
 		add_timespecs(&now, &playback_wake_fuzz_ts);
 		if (!timespec_after(&now, next_cb_ts))
 			continue;
