@@ -18,7 +18,6 @@
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_rstream.h"
-#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -208,16 +207,6 @@ static void fill_odevs_zeros_min_level(struct cras_iodev *odev)
 	cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level);
 }
 
-static void delete_stream_from_dev(struct cras_iodev *dev,
-				   struct cras_rstream *stream)
-{
-	struct dev_stream *out;
-
-	out = cras_iodev_rm_stream(dev, stream);
-	if (out)
-		dev_stream_destroy(out);
-}
-
 /* Append a new stream to a specified set of iodevs. */
 static int append_stream(struct audio_thread *thread,
 			 struct cras_rstream *stream,
@@ -389,43 +378,6 @@ static int thread_find_stream(struct audio_thread *thread,
 	return 0;
 }
 
-/* Remove a stream from the provided list of devices. */
-static int thread_remove_stream(struct open_dev **dev_list,
-				struct cras_rstream *stream,
-				struct cras_iodev *dev)
-{
-	struct open_dev *open_dev;
-	struct timespec delay;
-	unsigned fetch_delay_msec;
-
-	/* Metrics log the longest fetch delay of this stream. */
-	if (timespec_after(&stream->longest_fetch_interval,
-			   &stream->sleep_interval_ts)) {
-		subtract_timespecs(&stream->longest_fetch_interval,
-				   &stream->sleep_interval_ts,
-				   &delay);
-		fetch_delay_msec = delay.tv_sec * 1000 +
-				   delay.tv_nsec / 1000000;
-		if (fetch_delay_msec)
-			cras_server_metrics_longest_fetch_delay(
-					fetch_delay_msec);
-	}
-
-	ATLOG(atlog,
-				    AUDIO_THREAD_STREAM_REMOVED,
-				    stream->stream_id, 0, 0);
-
-	if (dev == NULL) {
-		DL_FOREACH(*dev_list, open_dev) {
-			delete_stream_from_dev(open_dev->dev, stream);
-		}
-	} else {
-		delete_stream_from_dev(dev, stream);
-	}
-
-	return 0;
-}
-
 /* Handles the disconnect_stream message from the main thread. */
 static int thread_disconnect_stream(struct audio_thread* thread,
 				    struct cras_rstream* stream,
@@ -436,7 +388,7 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	if (!thread_find_stream(thread, stream))
 		return 0;
 
-	rc = thread_remove_stream(&thread->open_devs[stream->direction],
+	rc = dev_io_remove_stream(&thread->open_devs[stream->direction],
 				  stream, dev);
 
 	return rc;
@@ -480,7 +432,7 @@ static int thread_drain_stream(struct audio_thread *thread,
 
 	ms_left = thread_drain_stream_ms_remaining(thread, rstream);
 	if (ms_left == 0)
-		thread_remove_stream(&thread->open_devs[rstream->direction],
+		dev_io_remove_stream(&thread->open_devs[rstream->direction],
 				     rstream, NULL);
 
 	return ms_left;
@@ -544,7 +496,7 @@ static int write_streams(struct audio_thread *thread,
 
 		dev_frames = dev_stream_playback_frames(curr);
 		if (dev_frames < 0) {
-			thread_remove_stream(
+			dev_io_remove_stream(
 				&thread->open_devs[CRAS_STREAM_OUTPUT],
 				curr->stream, NULL);
 			continue;
@@ -557,7 +509,7 @@ static int write_streams(struct audio_thread *thread,
 		if (cras_rstream_get_is_draining(curr->stream)) {
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
 			if (!dev_frames)
-				thread_remove_stream(
+				dev_io_remove_stream(
 					&thread->open_devs[CRAS_STREAM_OUTPUT],
 					curr->stream, NULL);
 		} else {
@@ -588,7 +540,7 @@ static int write_streams(struct audio_thread *thread,
 					  write_limit - offset);
 
 		if (nwritten < 0) {
-			thread_remove_stream(
+			dev_io_remove_stream(
 				&thread->open_devs[CRAS_STREAM_OUTPUT],
 				curr->stream, NULL);
 			continue;

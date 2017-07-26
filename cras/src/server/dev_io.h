@@ -57,4 +57,9 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
                                       const struct cras_iodev *dev);
 
+/* Remove a stream from the provided list of devices. */
+int dev_io_remove_stream(struct open_dev **dev_list,
+			 struct cras_rstream *stream,
+			 struct cras_iodev *dev);
+
 #endif /* DEV_IO_H_ */
