@@ -685,9 +685,9 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 	return ret;
 }
 
-static int get_next_output_wake(struct audio_thread *thread,
-				 struct timespec *min_ts,
-				 const struct timespec *now)
+static int get_next_output_wake(struct open_dev **odevs,
+				struct timespec *min_ts,
+				const struct timespec *now)
 {
 	struct open_dev *adev;
 	struct timespec sleep_time;
@@ -696,12 +696,12 @@ static int get_next_output_wake(struct audio_thread *thread,
 	unsigned int frames_to_play_in_sleep;
 	unsigned int hw_level = 0;
 
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev)
+	DL_FOREACH(*odevs, adev)
 		ret += get_next_stream_wake_from_list(
 				adev->dev->streams,
 				min_ts);
 
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+	DL_FOREACH(*odevs, adev) {
 		if (!cras_iodev_odev_should_wake(adev->dev))
 			continue;
 
@@ -748,14 +748,14 @@ static int input_adev_ignore_wake(const struct open_dev *adev)
 	return 0;
 }
 
-static int get_next_input_wake(struct audio_thread *thread,
+static int get_next_input_wake(struct open_dev **idevs,
 			       struct timespec *min_ts,
 			       const struct timespec *now)
 {
 	struct open_dev *adev;
 	int ret = 0; /* The total number of devices to wait on. */
 
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_INPUT], adev) {
+	DL_FOREACH(*idevs, adev) {
 		if (input_adev_ignore_wake(adev))
 			continue;
 		ret++;
@@ -783,8 +783,10 @@ static int fill_next_sleep_interval(struct audio_thread *thread,
 	min_ts.tv_nsec = 0;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	add_timespecs(&min_ts, &now);
-	ret = get_next_output_wake(thread, &min_ts, &now);
-	ret += get_next_input_wake(thread, &min_ts, &now);
+	ret = get_next_output_wake(&thread->open_devs[CRAS_STREAM_OUTPUT],
+				   &min_ts, &now);
+	ret += get_next_input_wake(&thread->open_devs[CRAS_STREAM_INPUT],
+				   &min_ts, &now);
 	if (timespec_after(&min_ts, &now))
 		subtract_timespecs(&min_ts, &now, ts);
 
