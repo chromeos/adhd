@@ -78,6 +78,9 @@ static struct cras_iodev *audio_thread_dev_start_ramp_dev;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req ;
 static std::map<const struct cras_iodev*, enum CRAS_IODEV_STATE> cras_iodev_state_ret;
+static std::map<const struct cras_iodev*, int> cras_iodev_has_pinned_stream_ret;
+static struct cras_rstream *audio_thread_disconnect_stream_stream;
+static int audio_thread_disconnect_stream_called;
 static int cras_iodev_is_zero_volume_ret;
 
 void dummy_update_active_node(struct cras_iodev *iodev,
@@ -101,6 +104,10 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_drain_stream_called = 0;
       cras_tm_create_timer_called = 0;
       cras_tm_cancel_timer_called = 0;
+
+      audio_thread_disconnect_stream_called = 0;
+      audio_thread_disconnect_stream_stream = NULL;
+      cras_iodev_has_pinned_stream_ret.clear();
 
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
@@ -1286,6 +1293,61 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
 }
 
+TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
+  struct cras_rstream rstream;
+
+  cras_iodev_list_init();
+
+  // Add 2 output devices.
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+
+  // Setup pinned stream.
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+
+  // Add pinned stream to d1.
+  EXPECT_EQ(0, stream_add_cb(&rstream));
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+
+  DL_APPEND(stream_list_get_ret, &rstream);
+
+  // Test for suspend
+
+  // Device state enters no_stream after stream is disconnected.
+  d1_.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  // Device has no pinned stream now. But this pinned stream remains in stream_list.
+  cras_iodev_has_pinned_stream_ret[&d1_] = 0;
+
+  // Suspend
+  observer_ops->suspend_changed(NULL, 1);
+
+  // Verify that stream is disconnected and d1 is closed.
+  EXPECT_EQ(1, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
+  EXPECT_EQ(1, cras_iodev_close_called);
+  EXPECT_EQ(&d1_, cras_iodev_close_dev);
+
+  // Test for resume
+  cras_iodev_open_called = 0;
+  audio_thread_add_stream_called = 0;
+  audio_thread_add_stream_stream = NULL;
+  d1_.state = CRAS_IODEV_STATE_CLOSE;
+
+  // Resume
+  observer_ops->suspend_changed(NULL, 0);
+
+  // Verify that device is opened and stream is attached to the device.
+  EXPECT_EQ(1, cras_iodev_open_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -1357,6 +1419,8 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
                                    struct cras_rstream *stream,
                                    struct cras_iodev *iodev)
 {
+  audio_thread_disconnect_stream_called++;
+  audio_thread_disconnect_stream_stream = stream;
   return 0;
 }
 
@@ -1466,6 +1530,11 @@ int cras_iodev_is_zero_volume(const struct cras_iodev *iodev)
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
 {
 	return cras_iodev_state_ret[iodev];
+}
+
+int cras_iodev_has_pinned_stream(const struct cras_iodev *dev)
+{
+  return cras_iodev_has_pinned_stream_ret[dev];
 }
 
 struct stream_list *stream_list_create(stream_callback *add_cb,

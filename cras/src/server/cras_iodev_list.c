@@ -350,21 +350,10 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 	}
 }
 
-static int dev_has_pinned_stream(unsigned int dev_idx)
-{
-	const struct cras_rstream *rstream;
-
-	DL_FOREACH(stream_list_get(stream_list), rstream) {
-		if (rstream->is_pinned && (rstream->pinned_dev_idx == dev_idx))
-			return 1;
-	}
-	return 0;
-}
-
 static void close_dev(struct cras_iodev *dev)
 {
 	if (!cras_iodev_is_open(dev) ||
-	    dev_has_pinned_stream(dev->info.idx))
+	    cras_iodev_has_pinned_stream(dev))
 		return;
 	audio_thread_rm_open_dev(audio_thread, dev);
 	dev->idle_timeout.tv_sec = 0;
@@ -687,7 +676,7 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
 	/* No more default streams, close any device that doesn't have a stream
 	 * pinned to it. */
 	DL_FOREACH(enabled_devs[dir], edev) {
-		if (dev_has_pinned_stream(edev->dev->info.idx))
+		if (cras_iodev_has_pinned_stream(edev->dev))
 			continue;
 		if (dir == CRAS_STREAM_INPUT) {
 			close_dev(edev->dev);
