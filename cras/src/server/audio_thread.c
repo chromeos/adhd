@@ -929,12 +929,6 @@ static int get_next_input_wake(struct audio_thread *thread,
 	return ret;
 }
 
-static int wait_pending_output_streams(struct audio_thread *thread)
-{
-	/* TODO(dgreid) - is this needed? */
-	return 0;
-}
-
 /* Gets the master device which the stream is attached to. */
 static inline
 struct cras_iodev *get_master_dev(const struct dev_stream *stream)
@@ -1108,7 +1102,6 @@ static int stream_dev_io(struct audio_thread *thread)
 	dev_io_playback_fetch(thread->open_devs[CRAS_STREAM_OUTPUT]);
 	dev_io_capture(&thread->open_devs[CRAS_STREAM_INPUT]);
 	dev_io_send_captured_samples(thread->open_devs[CRAS_STREAM_INPUT]);
-	wait_pending_output_streams(thread);
 	do_playback(thread);
 
 	return 0;
