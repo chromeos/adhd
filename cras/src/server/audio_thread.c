@@ -768,11 +768,13 @@ static int get_next_input_wake(struct audio_thread *thread,
 	return ret;
 }
 
-int fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
+/* Returns the number of active streams plus the number of active devices. */
+static int fill_next_sleep_interval(struct audio_thread *thread,
+				    struct timespec *ts)
 {
 	struct timespec min_ts;
 	struct timespec now;
-	int ret; /* The sum of active streams and devices. */
+	int ret;
 
 	ts->tv_sec = 0;
 	ts->tv_nsec = 0;
