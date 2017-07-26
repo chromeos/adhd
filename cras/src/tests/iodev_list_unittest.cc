@@ -27,7 +27,6 @@ struct cras_server_state *server_state_update_begin_return;
 
 /* Data for stubs. */
 static struct cras_observer_ops *observer_ops;
-static unsigned int cras_system_get_suspended_val;
 static int add_stream_called;
 static int rm_stream_called;
 static unsigned int set_node_attr_called;
@@ -274,7 +273,6 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   stream_add_cb(&rstream2);
   EXPECT_EQ(2, audio_thread_add_stream_called);
 
-  cras_system_get_suspended_val = 1;
   audio_thread_rm_open_dev_called = 0;
   observer_ops->suspend_changed(NULL, 1);
   EXPECT_EQ(1, audio_thread_rm_open_dev_called);
@@ -298,7 +296,6 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
   audio_thread_add_open_dev_called = 0;
   audio_thread_add_stream_called = 0;
-  cras_system_get_suspended_val = 0;
   stream_list_get_ret = stream_list;
   observer_ops->suspend_changed(NULL, 0);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
@@ -1305,11 +1302,6 @@ struct cras_server_state *cras_system_state_update_begin() {
 }
 
 void cras_system_state_update_complete() {
-}
-
-int cras_system_get_suspended()
-{
-  return cras_system_get_suspended_val;
 }
 
 struct audio_thread *audio_thread_create() {
