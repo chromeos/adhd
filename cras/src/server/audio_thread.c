@@ -460,7 +460,8 @@ static int thread_add_stream(struct audio_thread *thread,
 
 /* Fill the buffer with samples from the attached streams.
  * Args:
- *    thread - The thread object the device is attached to.
+ *    odevs - The list of open output devices, provided so streams can be
+ *            removed from all devices on error.
  *    adev - The device to write to.
  *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
  *    write_limit - The maximum number of frames to write to dst.
@@ -470,7 +471,7 @@ static int thread_add_stream(struct audio_thread *thread,
  *    This number of frames is the minimum of the amount of frames each stream
  *    could provide which is the maximum that can currently be rendered.
  */
-static int write_streams(struct audio_thread *thread,
+static int write_streams(struct open_dev **odevs,
 			 struct open_dev *adev,
 			 uint8_t *dst,
 			 size_t write_limit)
@@ -497,7 +498,7 @@ static int write_streams(struct audio_thread *thread,
 		dev_frames = dev_stream_playback_frames(curr);
 		if (dev_frames < 0) {
 			dev_io_remove_stream(
-				&thread->open_devs[CRAS_STREAM_OUTPUT],
+				odevs,
 				curr->stream, NULL);
 			continue;
 		}
@@ -510,7 +511,7 @@ static int write_streams(struct audio_thread *thread,
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
 			if (!dev_frames)
 				dev_io_remove_stream(
-					&thread->open_devs[CRAS_STREAM_OUTPUT],
+					odevs,
 					curr->stream, NULL);
 		} else {
 			write_limit = MIN((size_t)dev_frames, write_limit);
@@ -541,7 +542,7 @@ static int write_streams(struct audio_thread *thread,
 
 		if (nwritten < 0) {
 			dev_io_remove_stream(
-				&thread->open_devs[CRAS_STREAM_OUTPUT],
+				odevs,
 				curr->stream, NULL);
 			continue;
 		}
@@ -918,7 +919,7 @@ static void update_estimated_rate(struct open_dev *adev)
 }
 
 /* Returns 0 on success negative error on device failure. */
-static int write_output_samples(struct audio_thread *thread,
+static int write_output_samples(struct open_dev **odevs,
 				struct open_dev *adev)
 {
 	struct cras_iodev *odev = adev->dev;
@@ -979,7 +980,7 @@ static int write_output_samples(struct audio_thread *thread,
 
 		/* TODO(dgreid) - This assumes interleaved audio. */
 		dst = area->channels[0].buf;
-		written = write_streams(thread, adev, dst, frames);
+		written = write_streams(odevs, adev, dst, frames);
 		if (written < 0) /* pcm has been closed */
 			return (int)written;
 
@@ -1004,7 +1005,7 @@ static int write_output_samples(struct audio_thread *thread,
 	return 0;
 }
 
-static int do_playback(struct audio_thread *thread)
+static int do_playback(struct open_dev **odevs)
 {
 	struct open_dev *adev;
 	struct dev_stream *curr;
@@ -1012,19 +1013,19 @@ static int do_playback(struct audio_thread *thread)
 
 	/* For multiple output case, update the number of queued frames in shm
 	 * of all streams before starting write output samples. */
-	adev = thread->open_devs[CRAS_STREAM_OUTPUT];
+	adev = *odevs;
 	if (adev && adev->next) {
-		DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+		DL_FOREACH(*odevs, adev) {
 			DL_FOREACH(adev->dev->streams, curr)
 				dev_stream_update_frames(curr);
 		}
 	}
 
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+	DL_FOREACH(*odevs, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
-		rc = write_output_samples(thread, adev);
+		rc = write_output_samples(odevs, adev);
 		if (rc < 0) {
 			if (rc == -EPIPE) {
 				/* Handle severe underrun. */
@@ -1033,15 +1034,13 @@ static int do_playback(struct audio_thread *thread)
 				cras_iodev_reset_request(adev->dev);
 			} else {
 				/* Device error, close it. */
-				dev_io_rm_open_dev(
-					&thread->open_devs[CRAS_STREAM_OUTPUT],
-					adev);
+				dev_io_rm_open_dev(odevs, adev);
 			}
 		}
 	}
 
 	/* TODO(dgreid) - once per rstream, not once per dev_stream. */
-	DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+	DL_FOREACH(*odevs, adev) {
 		struct dev_stream *stream;
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
@@ -1059,7 +1058,7 @@ static int stream_dev_io(struct audio_thread *thread)
 	dev_io_playback_fetch(thread->open_devs[CRAS_STREAM_OUTPUT]);
 	dev_io_capture(&thread->open_devs[CRAS_STREAM_INPUT]);
 	dev_io_send_captured_samples(thread->open_devs[CRAS_STREAM_INPUT]);
-	do_playback(thread);
+	do_playback(&thread->open_devs[CRAS_STREAM_OUTPUT]);
 
 	return 0;
 }

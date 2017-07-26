@@ -500,7 +500,9 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesPrepareOutputFailed) {
   cras_iodev_prepare_output_before_write_samples_ret = -EINVAL;
 
   // cras_iodev should handle no stream playback.
-  EXPECT_EQ(-EINVAL, write_output_samples(thread_, adev));
+  EXPECT_EQ(-EINVAL,
+	    write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT],
+				 adev));
 
   // cras_iodev_get_output_buffer in audio_thread write_output_samples is not
   // called.
@@ -528,7 +530,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
       CRAS_IODEV_STATE_NO_STREAM_RUN;
 
   // cras_iodev should handle no stream playback.
-  write_output_samples(thread_, adev);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev);
   EXPECT_EQ(1, cras_iodev_prepare_output_before_write_samples_called);
   // cras_iodev_get_output_buffer in audio_thread write_output_samples is not
   // called.
@@ -560,7 +562,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
       CRAS_IODEV_STATE_NO_STREAM_RUN;
 
   // cras_iodev should NOT leave no stream state;
-  write_output_samples(thread_, adev);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev);
   EXPECT_EQ(1, cras_iodev_prepare_output_before_write_samples_called);
   // cras_iodev_get_output_buffer in audio_thread write_output_samples is not
   // called.
@@ -571,7 +573,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
       CRAS_IODEV_STATE_NORMAL_RUN;
 
   // cras_iodev should write samples from streams.
-  write_output_samples(thread_, adev);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev);
   EXPECT_EQ(2, cras_iodev_prepare_output_before_write_samples_called);
   EXPECT_EQ(1, cras_iodev_get_output_buffer_called);
 
@@ -607,7 +609,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
   cras_iodev_prepare_output_before_write_samples_state = \
       CRAS_IODEV_STATE_NORMAL_RUN;
 
-  write_output_samples(thread_, adev);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev);
   EXPECT_EQ(1, cras_iodev_output_underrun_called);
 
   thread_rm_open_dev(thread_, &iodev);
@@ -638,7 +640,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
   cras_iodev_prepare_output_before_write_samples_state = \
       CRAS_IODEV_STATE_NORMAL_RUN;
 
-  do_playback(thread_);
+  do_playback(&thread_->open_devs[CRAS_STREAM_OUTPUT]);
 
   // Audio thread should ask main thread to reset device.
   EXPECT_EQ(1, cras_iodev_reset_request_called);
