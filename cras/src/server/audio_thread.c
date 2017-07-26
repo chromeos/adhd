@@ -786,17 +786,6 @@ static int get_next_input_wake(struct audio_thread *thread,
 	return ret;
 }
 
-/* Reads and/or writes audio sampels from/to the devices. */
-static int stream_dev_io(struct audio_thread *thread)
-{
-	dev_io_playback_fetch(thread->open_devs[CRAS_STREAM_OUTPUT]);
-	dev_io_capture(&thread->open_devs[CRAS_STREAM_INPUT]);
-	dev_io_send_captured_samples(thread->open_devs[CRAS_STREAM_INPUT]);
-	dev_io_playback_write(&thread->open_devs[CRAS_STREAM_OUTPUT]);
-
-	return 0;
-}
-
 int fill_next_sleep_interval(struct audio_thread *thread, struct timespec *ts)
 {
 	struct timespec min_ts;
@@ -859,9 +848,8 @@ static void *audio_io_thread(void *arg)
 		num_pollfds = 1;
 
 		/* device opened */
-		rc = stream_dev_io(thread);
-		if (rc < 0)
-			syslog(LOG_ERR, "audio cb error %d", rc);
+		dev_io_run(&thread->open_devs[CRAS_STREAM_OUTPUT],
+			   &thread->open_devs[CRAS_STREAM_INPUT]);
 
 		if (fill_next_sleep_interval(thread, &ts))
 			wait_ts = &ts;

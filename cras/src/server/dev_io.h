@@ -56,6 +56,9 @@ int dev_io_capture(struct open_dev **list);
  */
 int dev_io_send_captured_samples(struct open_dev *idev_list);
 
+/* Reads and/or writes audio samples from/to the devices. */
+void dev_io_run(struct open_dev **odevs, struct open_dev **idevs);
+
 /*
  * Removes a device from a list of devices.
  *    odev_list - A pointer to the list to modify.

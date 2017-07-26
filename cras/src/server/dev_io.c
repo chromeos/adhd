@@ -634,6 +634,14 @@ int dev_io_playback_write(struct open_dev **odevs)
 	return 0;
 }
 
+void dev_io_run(struct open_dev **odevs, struct open_dev **idevs)
+{
+	dev_io_playback_fetch(*odevs);
+	dev_io_capture(idevs);
+	dev_io_send_captured_samples(*idevs);
+	dev_io_playback_write(odevs);
+}
+
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
 				      const struct cras_iodev *dev)
 {
