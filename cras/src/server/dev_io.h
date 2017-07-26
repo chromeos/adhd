@@ -60,6 +60,12 @@ int dev_io_send_captured_samples(struct open_dev *idev_list);
 void dev_io_run(struct open_dev **odevs, struct open_dev **idevs);
 
 /*
+ * Fills min_ts with the next time the system should wake to service input.
+ * Returns the number of devices waiting.
+ */
+int dev_io_next_input_wake(struct open_dev **idevs, struct timespec *min_ts);
+
+/*
  * Removes a device from a list of devices.
  *    odev_list - A pointer to the list to modify.
  *    dev_to_rm - Find this device in the list and remove it.

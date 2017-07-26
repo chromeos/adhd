@@ -642,6 +642,39 @@ void dev_io_run(struct open_dev **odevs, struct open_dev **idevs)
 	dev_io_playback_write(odevs);
 }
 
+static int input_adev_ignore_wake(const struct open_dev *adev)
+{
+	if (!cras_iodev_is_open(adev->dev))
+		return 1;
+
+	if (!adev->dev->active_node)
+		return 1;
+
+	if (adev->dev->active_node->type == CRAS_NODE_TYPE_HOTWORD &&
+	    !adev->input_streaming)
+		return 1;
+
+	return 0;
+}
+
+int dev_io_next_input_wake(struct open_dev **idevs, struct timespec *min_ts)
+{
+	struct open_dev *adev;
+	int ret = 0; /* The total number of devices to wait on. */
+
+	DL_FOREACH(*idevs, adev) {
+		if (input_adev_ignore_wake(adev))
+			continue;
+		ret++;
+		ATLOG(atlog, AUDIO_THREAD_DEV_SLEEP_TIME, adev->dev->info.idx,
+		      adev->wake_ts.tv_sec, adev->wake_ts.tv_nsec);
+		if (timespec_after(min_ts, &adev->wake_ts))
+			*min_ts = adev->wake_ts;
+	}
+
+	return ret;
+}
+
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
 				      const struct cras_iodev *dev)
 {

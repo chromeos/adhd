@@ -733,41 +733,6 @@ static int get_next_output_wake(struct open_dev **odevs,
 	return ret;
 }
 
-static int input_adev_ignore_wake(const struct open_dev *adev)
-{
-	if (!cras_iodev_is_open(adev->dev))
-		return 1;
-
-	if (!adev->dev->active_node)
-		return 1;
-
-	if (adev->dev->active_node->type == CRAS_NODE_TYPE_HOTWORD &&
-	    !adev->input_streaming)
-		return 1;
-
-	return 0;
-}
-
-static int get_next_input_wake(struct open_dev **idevs,
-			       struct timespec *min_ts,
-			       const struct timespec *now)
-{
-	struct open_dev *adev;
-	int ret = 0; /* The total number of devices to wait on. */
-
-	DL_FOREACH(*idevs, adev) {
-		if (input_adev_ignore_wake(adev))
-			continue;
-		ret++;
-		ATLOG(atlog, AUDIO_THREAD_DEV_SLEEP_TIME, adev->dev->info.idx,
-		      adev->wake_ts.tv_sec, adev->wake_ts.tv_nsec);
-		if (timespec_after(min_ts, &adev->wake_ts))
-			*min_ts = adev->wake_ts;
-	}
-
-	return ret;
-}
-
 /* Returns the number of active streams plus the number of active devices. */
 static int fill_next_sleep_interval(struct audio_thread *thread,
 				    struct timespec *ts)
@@ -785,8 +750,8 @@ static int fill_next_sleep_interval(struct audio_thread *thread,
 	add_timespecs(&min_ts, &now);
 	ret = get_next_output_wake(&thread->open_devs[CRAS_STREAM_OUTPUT],
 				   &min_ts, &now);
-	ret += get_next_input_wake(&thread->open_devs[CRAS_STREAM_INPUT],
-				   &min_ts, &now);
+	ret += dev_io_next_input_wake(&thread->open_devs[CRAS_STREAM_INPUT],
+				      &min_ts);
 	if (timespec_after(&min_ts, &now))
 		subtract_timespecs(&min_ts, &now, ts);
 
