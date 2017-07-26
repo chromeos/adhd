@@ -325,9 +325,7 @@ static int thread_add_open_dev(struct audio_thread *thread,
 	else
 		adev->input_streaming = 0;
 
-	ATLOG(atlog,
-				    AUDIO_THREAD_DEV_ADDED,
-				    iodev->info.idx, 0, 0);
+	ATLOG(atlog, AUDIO_THREAD_DEV_ADDED, iodev->info.idx, 0, 0);
 
 	DL_APPEND(thread->open_devs[iodev->direction], adev);
 
@@ -449,11 +447,8 @@ static int thread_add_stream(struct audio_thread *thread,
 	if (rc < 0)
 		return rc;
 
-	ATLOG(atlog,
-				    AUDIO_THREAD_STREAM_ADDED,
-				    stream->stream_id,
-				    num_iodevs ? iodevs[0]->info.idx : 0,
-				    num_iodevs);
+	ATLOG(atlog, AUDIO_THREAD_STREAM_ADDED, stream->stream_id,
+	      num_iodevs ? iodevs[0]->info.idx : 0, num_iodevs);
 	return 0;
 }
 
@@ -533,10 +528,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	case AUDIO_THREAD_ADD_STREAM: {
 		struct audio_thread_add_rm_stream_msg *amsg;
 		amsg = (struct audio_thread_add_rm_stream_msg *)msg;
-		ATLOG(
-			atlog,
-			AUDIO_THREAD_WRITE_STREAMS_WAIT,
-			amsg->stream->stream_id, 0, 0);
+		ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_WAIT,
+		      amsg->stream->stream_id, 0, 0);
 		ret = thread_add_stream(thread, amsg->stream, amsg->devs,
 				amsg->num_devs);
 		break;
@@ -681,11 +674,9 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 		if (!next_cb_ts)
 			continue;
 
-		ATLOG(atlog,
-					    AUDIO_THREAD_STREAM_SLEEP_TIME,
-					    dev_stream->stream->stream_id,
-					    next_cb_ts->tv_sec,
-					    next_cb_ts->tv_nsec);
+		ATLOG(atlog, AUDIO_THREAD_STREAM_SLEEP_TIME,
+		      dev_stream->stream->stream_id, next_cb_ts->tv_sec,
+		      next_cb_ts->tv_nsec);
 		if (timespec_after(min_ts, next_cb_ts))
 			*min_ts = *next_cb_ts;
 		ret++;
@@ -722,11 +713,8 @@ static int get_next_output_wake(struct audio_thread *thread,
 		est_rate = adev->dev->ext_format->frame_rate *
 				cras_iodev_get_est_rate_ratio(adev->dev);
 
-		ATLOG(atlog,
-	              AUDIO_THREAD_SET_DEV_WAKE,
-		      adev->dev->info.idx,
-		      hw_level,
-		      frames_to_play_in_sleep);
+		ATLOG(atlog, AUDIO_THREAD_SET_DEV_WAKE, adev->dev->info.idx,
+		      hw_level, frames_to_play_in_sleep);
 
 		cras_frames_to_time_precise(
 				frames_to_play_in_sleep,
@@ -736,11 +724,8 @@ static int get_next_output_wake(struct audio_thread *thread,
 		add_timespecs(&adev->wake_ts, &sleep_time);
 
 		ret++;
-		ATLOG(atlog,
-					    AUDIO_THREAD_DEV_SLEEP_TIME,
-					    adev->dev->info.idx,
-					    adev->wake_ts.tv_sec,
-					    adev->wake_ts.tv_nsec);
+		ATLOG(atlog, AUDIO_THREAD_DEV_SLEEP_TIME, adev->dev->info.idx,
+		      adev->wake_ts.tv_sec, adev->wake_ts.tv_nsec);
 		if (timespec_after(min_ts, &adev->wake_ts))
 			*min_ts = adev->wake_ts;
 	}
@@ -774,11 +759,8 @@ static int get_next_input_wake(struct audio_thread *thread,
 		if (input_adev_ignore_wake(adev))
 			continue;
 		ret++;
-		ATLOG(atlog,
-					    AUDIO_THREAD_DEV_SLEEP_TIME,
-					    adev->dev->info.idx,
-					    adev->wake_ts.tv_sec,
-					    adev->wake_ts.tv_nsec);
+		ATLOG(atlog, AUDIO_THREAD_DEV_SLEEP_TIME, adev->dev->info.idx,
+		      adev->wake_ts.tv_sec, adev->wake_ts.tv_nsec);
 		if (timespec_after(min_ts, &adev->wake_ts))
 			*min_ts = adev->wake_ts;
 	}
@@ -903,10 +885,8 @@ restart_poll_loop:
 				longest_wake = this_wake;
 		}
 
-		ATLOG(atlog, AUDIO_THREAD_SLEEP,
-					    wait_ts ? wait_ts->tv_sec : 0,
-					    wait_ts ? wait_ts->tv_nsec : 0,
-					    longest_wake.tv_nsec);
+		ATLOG(atlog, AUDIO_THREAD_SLEEP, wait_ts ? wait_ts->tv_sec : 0,
+		      wait_ts ? wait_ts->tv_nsec : 0, longest_wake.tv_nsec);
 		rc = ppoll(pollfds, num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
 		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
@@ -922,9 +902,8 @@ restart_poll_loop:
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
 			if (iodev_cb->pollfd &&
 			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT)) {
-				ATLOG(
-					atlog, AUDIO_THREAD_IODEV_CB,
-					iodev_cb->is_write, 0, 0);
+				ATLOG(atlog, AUDIO_THREAD_IODEV_CB,
+				      iodev_cb->is_write, 0, 0);
 				iodev_cb->cb(iodev_cb->cb_data);
 			}
 		}
