@@ -458,8 +458,10 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   EXPECT_EQ(NULL, dev_stream->next);
 
   // Remove 2 streams, check the streams are removed from both open devices.
-  thread_remove_stream(thread_, &rstream, &iodev);
-  thread_remove_stream(thread_, &rstream3, &iodev2);
+  thread_remove_stream(&thread_->open_devs[rstream.direction],
+		       &rstream, &iodev);
+  thread_remove_stream(&thread_->open_devs[rstream3.direction],
+		       &rstream3, &iodev2);
   dev_stream = iodev2.streams;
   EXPECT_EQ(NULL, dev_stream);
 

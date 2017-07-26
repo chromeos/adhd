@@ -389,10 +389,8 @@ static int thread_find_stream(struct audio_thread *thread,
 	return 0;
 }
 
-/* Remove stream from the audio thread. If this is the last stream to be
- * removed close the device.
- */
-static int thread_remove_stream(struct audio_thread *thread,
+/* Remove a stream from the provided list of devices. */
+static int thread_remove_stream(struct open_dev **dev_list,
 				struct cras_rstream *stream,
 				struct cras_iodev *dev)
 {
@@ -418,7 +416,7 @@ static int thread_remove_stream(struct audio_thread *thread,
 				    stream->stream_id, 0, 0);
 
 	if (dev == NULL) {
-		DL_FOREACH(thread->open_devs[stream->direction], open_dev) {
+		DL_FOREACH(*dev_list, open_dev) {
 			delete_stream_from_dev(open_dev->dev, stream);
 		}
 	} else {
@@ -438,7 +436,8 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	if (!thread_find_stream(thread, stream))
 		return 0;
 
-	rc = thread_remove_stream(thread, stream, dev);
+	rc = thread_remove_stream(&thread->open_devs[stream->direction],
+				  stream, dev);
 
 	return rc;
 }
@@ -481,7 +480,8 @@ static int thread_drain_stream(struct audio_thread *thread,
 
 	ms_left = thread_drain_stream_ms_remaining(thread, rstream);
 	if (ms_left == 0)
-		thread_remove_stream(thread, rstream, NULL);
+		thread_remove_stream(&thread->open_devs[rstream->direction],
+				     rstream, NULL);
 
 	return ms_left;
 }
@@ -544,7 +544,9 @@ static int write_streams(struct audio_thread *thread,
 
 		dev_frames = dev_stream_playback_frames(curr);
 		if (dev_frames < 0) {
-			thread_remove_stream(thread, curr->stream, NULL);
+			thread_remove_stream(
+				&thread->open_devs[CRAS_STREAM_OUTPUT],
+				curr->stream, NULL);
 			continue;
 		}
 		ATLOG(atlog,
@@ -555,8 +557,9 @@ static int write_streams(struct audio_thread *thread,
 		if (cras_rstream_get_is_draining(curr->stream)) {
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
 			if (!dev_frames)
-				thread_remove_stream(thread, curr->stream,
-						     NULL);
+				thread_remove_stream(
+					&thread->open_devs[CRAS_STREAM_OUTPUT],
+					curr->stream, NULL);
 		} else {
 			write_limit = MIN((size_t)dev_frames, write_limit);
 			num_playing++;
@@ -585,7 +588,9 @@ static int write_streams(struct audio_thread *thread,
 					  write_limit - offset);
 
 		if (nwritten < 0) {
-			thread_remove_stream(thread, curr->stream, NULL);
+			thread_remove_stream(
+				&thread->open_devs[CRAS_STREAM_OUTPUT],
+				curr->stream, NULL);
 			continue;
 		}
 
