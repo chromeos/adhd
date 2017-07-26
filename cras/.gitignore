@@ -1,6 +1,7 @@
 *.o
 *.lo
 *.d
+*.swp
 src/cras
 src/libcras.a
 src/libcras.so*
@@ -8,6 +9,7 @@ tags
 libcras.pc
 src/mix_unittest
 src/cras_monitor
+src/cras_router
 src/cras_test_client
 src/*_unittest
 /.__autoconf_trace_data
