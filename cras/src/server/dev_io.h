@@ -34,6 +34,17 @@ struct open_dev {
 void dev_io_playback_fetch(struct open_dev *odev_list);
 
 /*
+ * Writes the samples fetched from the streams to the playback devices.
+ *    odev_list - The list of open devices.  Devices will be removed when
+ *                writing returns an error.
+ */
+int dev_io_playback_write(struct open_dev **odevs);
+
+/* Only public for testing. */
+int write_output_samples(struct open_dev **odevs,
+			 struct open_dev *adev);
+
+/*
  * Captures samples from each device in the list.
  *    list - Pointer to the list of input devices.  Devices that fail to read
  *           will be removed from the list.

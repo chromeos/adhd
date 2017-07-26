@@ -640,7 +640,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
   cras_iodev_prepare_output_before_write_samples_state = \
       CRAS_IODEV_STATE_NORMAL_RUN;
 
-  do_playback(&thread_->open_devs[CRAS_STREAM_OUTPUT]);
+  dev_io_playback_write(&thread_->open_devs[CRAS_STREAM_OUTPUT]);
 
   // Audio thread should ask main thread to reset device.
   EXPECT_EQ(1, cras_iodev_reset_request_called);
