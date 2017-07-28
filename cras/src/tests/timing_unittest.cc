@@ -168,9 +168,9 @@ void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream) {
                                static_cast<size_t>(dev->max_cb_level));
 }
 
-void fill_audio_format(cras_audio_format* format) {
+void fill_audio_format(cras_audio_format* format, unsigned int rate) {
   format->format = SND_PCM_FORMAT_S16_LE;
-  format->frame_rate = 48000;
+  format->frame_rate = rate;
   format->num_channels = 2;
   format->channel_layout[0] = 0;
   format->channel_layout[1] = 1;
@@ -189,107 +189,89 @@ class TimingSuite : public testing::Test{
   virtual void TearDown() {
     free(atlog);
   }
+
+  timespec SingleInputDevNextWake(
+      size_t dev_cb_threshold,
+      size_t dev_level,
+      const timespec* level_timestamp,
+      cras_audio_format* dev_format,
+      const std::vector<StreamPtr>& streams) {
+    struct open_dev* dev_list_ = NULL;
+
+    DevicePtr dev = create_device(CRAS_STREAM_INPUT, dev_cb_threshold,
+                                  dev_format, CRAS_NODE_TYPE_MIC);
+    DL_APPEND(dev_list_, dev->odev.get());
+
+    for (auto const& stream : streams) {
+      add_stream_to_dev(dev->dev, stream);
+    }
+
+    // Set response for frames_queued.
+    iodev_stub_frames_queued(dev->dev.get(), dev_level, *level_timestamp);
+
+    dev_io_send_captured_samples(dev_list_);
+
+    struct timespec dev_time;
+    dev_time.tv_sec = level_timestamp->tv_sec + 500; // Far in the future.
+    dev_io_next_input_wake(&dev_list_, &dev_time);
+    return dev_time;
+  }
 };
 
 TEST_F(TimingSuite, WaitAfterFill) {
-  struct open_dev* dev_list_ = NULL;
+  const size_t cb_threshold = 480;
 
   cras_audio_format format;
-  fill_audio_format(&format);
-
-  const size_t cb_threshold = 480;
-  DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold,
-                                &format, CRAS_NODE_TYPE_MIC);
-  DL_APPEND(dev_list_, dev->odev.get());
+  fill_audio_format(&format, 48000);
 
   StreamPtr stream =
       create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
-
-  add_stream_to_dev(dev->dev, stream);
-
   // rstream's next callback is now and there is enough data to fill.
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
   stream->rstream->next_cb_ts = start;
   cras_shm_buffer_written(&stream->rstream->shm, 480);
 
-  // Set response for frames_queued.
-  iodev_stub_frames_queued(dev->dev.get(), 0, start);
-
-  int rc = dev_io_send_captured_samples(dev_list_);
-  ASSERT_EQ(0, rc);
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(cb_threshold, 0, &start,
+                                             &format, streams);
 
   // The next callback should be scheduled 10ms in the future.
-  ASSERT_TRUE(timespec_after(&stream->rstream->next_cb_ts, &start));
-  struct timespec delta;
-  subtract_timespecs(&stream->rstream->next_cb_ts, &start, &delta);
-  EXPECT_EQ(0, delta.tv_sec);
-  EXPECT_EQ(10 * 1000 * 1000, delta.tv_nsec);
-
   // And the next wake up should reflect the only attached stream.
-  struct timespec dev_time;
-  dev_time.tv_sec = start.tv_sec + 5; // Far in the future.
-  int num_devs = dev_io_next_input_wake(&dev_list_, &dev_time);
-  EXPECT_EQ(1, num_devs);
-  EXPECT_EQ(dev_time.tv_sec, stream->rstream->next_cb_ts.tv_sec);
-  EXPECT_EQ(dev_time.tv_nsec, stream->rstream->next_cb_ts.tv_nsec);
+  EXPECT_EQ(dev_time.tv_sec, streams[0]->rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(dev_time.tv_nsec, streams[0]->rstream->next_cb_ts.tv_nsec);
 }
 
 TEST_F(TimingSuite, WaitTwoStreamsSameFormat) {
-  struct open_dev* dev_list_ = NULL;
+  const size_t cb_threshold = 480;
 
   cras_audio_format format;
-  fill_audio_format(&format);
+  fill_audio_format(&format, 48000);
 
-  const size_t cb_threshold = 480;
-  DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold,
-                                &format, CRAS_NODE_TYPE_MIC);
-  DL_APPEND(dev_list_, dev->odev.get());
-
+  // stream1's next callback is now and there is enough data to fill.
   StreamPtr stream1 =
       create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
-  StreamPtr stream2  =
-      create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
-
-  add_stream_to_dev(dev->dev, stream1);
-  add_stream_to_dev(dev->dev, stream2);
-
-  // rstream's next callback is now and there is enough data to fill.
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
   stream1->rstream->next_cb_ts = start;
-  cras_shm_buffer_written(&stream1->rstream->shm, 480);
-  // stream2 is ony half full.
+  cras_shm_buffer_written(&stream1->rstream->shm, cb_threshold);
+  // stream2 is only half full.
+  StreamPtr stream2  =
+      create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
   stream2->rstream->next_cb_ts = start;
   cras_shm_buffer_written(&stream2->rstream->shm, 240);
   rstream_stub_dev_offset(stream2->rstream.get(), 1, 240);
 
-  // Set response for frames_queued.
-  iodev_stub_frames_queued(dev->dev.get(), 0, start);
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+  timespec dev_time = SingleInputDevNextWake(cb_threshold, 0, &start,
+                                             &format, streams);
 
-  int rc = dev_io_send_captured_samples(dev_list_);
-  ASSERT_EQ(0, rc);
-
-  // The next callback for stream1 should be scheduled 10ms in the future.
-  ASSERT_TRUE(timespec_after(&stream1->rstream->next_cb_ts, &start));
-  struct timespec delta1;
-  subtract_timespecs(&stream1->rstream->next_cb_ts, &start, &delta1);
-  EXPECT_EQ(0, delta1.tv_sec);
-  EXPECT_EQ(10 * 1000 * 1000, delta1.tv_nsec);
-
-  // The next callback for stream2 should not change (not enough data).
-  EXPECT_EQ(start.tv_sec, stream2->rstream->next_cb_ts.tv_sec);
-  EXPECT_EQ(start.tv_nsec, stream2->rstream->next_cb_ts.tv_nsec);
-
-  // And the next wake up should reflect the shorter attached stream,
-  // five milliseconds in the future in this case.
-  struct timespec dev_time;
-  dev_time.tv_sec = start.tv_sec + 5; // Far in the future.
-  int num_devs = dev_io_next_input_wake(&dev_list_, &dev_time);
-  EXPECT_EQ(1, num_devs); // Stream1 is skipped because it is later than 2.
+  // Should wait for approximately 5 milliseconds for 240 samples at 48k.
   struct timespec delta2;
   subtract_timespecs(&dev_time, &start, &delta2);
-  // Should wait for approximately 5 milliseconds for 240 samples at 48k.
   EXPECT_LT(4900 * 1000, delta2.tv_nsec);
   EXPECT_GT(5100 * 1000, delta2.tv_nsec);
 }
