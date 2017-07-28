@@ -88,6 +88,7 @@ void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream) {
 }
 
 int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count) {
+  cras_shm_buffer_write_complete(&stream->shm);
   return 0;
 }
 

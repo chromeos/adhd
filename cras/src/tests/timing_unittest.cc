@@ -62,7 +62,7 @@ using DevicePtr = std::unique_ptr<Device>;
 ShmPtr create_shm(size_t cb_threshold) {
   uint32_t frame_bytes = 4;
   uint32_t used_size = cb_threshold * 2 * frame_bytes;
-  uint32_t shm_size = sizeof(cras_audio_shm_area) + used_size;
+  uint32_t shm_size = sizeof(cras_audio_shm_area) + used_size * 2;
   ShmPtr shm(reinterpret_cast<cras_audio_shm_area*>(calloc(1, shm_size)),
               free);
   shm->config.used_size = used_size;
@@ -115,6 +115,11 @@ StreamPtr create_stream(cras_stream_id_t id,
                          std::move(rstream),
                          std::move(dstream)));
   return s;
+}
+
+void AddFakeDataToStream(Stream* stream, unsigned int frames) {
+  cras_shm_check_write_overrun(&stream->rstream->shm);
+  cras_shm_buffer_written(&stream->rstream->shm, frames);
 }
 
 int delay_frames_stub(const struct cras_iodev* iodev) {
@@ -218,6 +223,8 @@ class TimingSuite : public testing::Test{
   }
 };
 
+// One device, one stream, write a callback of data and check the sleep time is
+// one more wakeup interval.
 TEST_F(TimingSuite, WaitAfterFill) {
   const size_t cb_threshold = 480;
 
@@ -230,7 +237,7 @@ TEST_F(TimingSuite, WaitAfterFill) {
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
   stream->rstream->next_cb_ts = start;
-  cras_shm_buffer_written(&stream->rstream->shm, 480);
+  AddFakeDataToStream(stream.get(), 480);
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
@@ -243,6 +250,37 @@ TEST_F(TimingSuite, WaitAfterFill) {
   EXPECT_EQ(dev_time.tv_nsec, streams[0]->rstream->next_cb_ts.tv_nsec);
 }
 
+// One device(48k), one stream(44.1k), write a callback of data and check that
+// the sleep time is correct when doing SRC.
+TEST_F(TimingSuite, WaitAfterFillSRC) {
+  cras_audio_format dev_format;
+  fill_audio_format(&dev_format, 48000);
+  cras_audio_format stream_format;
+  fill_audio_format(&stream_format, 44100);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 441, &stream_format);
+  // rstream's next callback is now and there is enough data to fill.
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  stream->rstream->next_cb_ts = start;
+  AddFakeDataToStream(stream.get(), 441);
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(480, 0, &start,
+                                             &dev_format, streams);
+
+  // The next callback should be scheduled 10ms in the future.
+  struct timespec delta;
+  subtract_timespecs(&dev_time, &start, &delta);
+  EXPECT_LT(9900 * 1000, delta.tv_nsec);
+  EXPECT_GT(10100 * 1000, delta.tv_nsec);
+}
+
+// One device, two streams. One stream is ready the other still needs data.
+// Checks that the sleep interval is based on the time the device will take to
+// supply the needed samples for stream2.
 TEST_F(TimingSuite, WaitTwoStreamsSameFormat) {
   const size_t cb_threshold = 480;
 
@@ -255,13 +293,13 @@ TEST_F(TimingSuite, WaitTwoStreamsSameFormat) {
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
   stream1->rstream->next_cb_ts = start;
-  cras_shm_buffer_written(&stream1->rstream->shm, cb_threshold);
+  AddFakeDataToStream(stream1.get(), cb_threshold);
+
   // stream2 is only half full.
   StreamPtr stream2  =
       create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
   stream2->rstream->next_cb_ts = start;
-  cras_shm_buffer_written(&stream2->rstream->shm, 240);
-  rstream_stub_dev_offset(stream2->rstream.get(), 1, 240);
+  AddFakeDataToStream(stream2.get(), 240);
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream1));
@@ -274,6 +312,81 @@ TEST_F(TimingSuite, WaitTwoStreamsSameFormat) {
   subtract_timespecs(&dev_time, &start, &delta2);
   EXPECT_LT(4900 * 1000, delta2.tv_nsec);
   EXPECT_GT(5100 * 1000, delta2.tv_nsec);
+}
+
+// One device(44.1), two streams(44.1, 48). One stream is ready the other still
+// needs data. Checks that the sleep interval is based on the time the device
+// will take to supply the needed samples for stream2, stream2 is sample rate
+// converted from the 44.1k device to the 48k stream.
+TEST_F(TimingSuite, WaitTwoStreamsDifferentRates) {
+  cras_audio_format s1_format, s2_format;
+  fill_audio_format(&s1_format, 44100);
+  fill_audio_format(&s2_format, 48000);
+
+  // stream1's next callback is now and there is enough data to fill.
+  StreamPtr stream1 =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 441, &s1_format);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  stream1->rstream->next_cb_ts = start;
+  AddFakeDataToStream(stream1.get(), 441);
+  // stream2's next callback is now but there is only half a callback of data.
+  StreamPtr stream2  =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 480, &s2_format);
+  stream2->rstream->next_cb_ts = start;
+  AddFakeDataToStream(stream2.get(), 240);
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+  timespec dev_time = SingleInputDevNextWake(441, 0, &start,
+                                             &s1_format, streams);
+
+  // Should wait for approximately 5 milliseconds for 240 48k samples from the
+  // 44.1k device.
+  struct timespec delta2;
+  subtract_timespecs(&dev_time, &start, &delta2);
+  EXPECT_LT(4900 * 1000, delta2.tv_nsec);
+  EXPECT_GT(5100 * 1000, delta2.tv_nsec);
+}
+
+// One device, two streams. Both streams get a full callback of data and the
+// device has enough samples for the next callback already. Checks that the
+// shorter of the two streams times is used for the next sleep interval.
+TEST_F(TimingSuite, WaitTwoStreamsDifferentWakeupTimes) {
+  cras_audio_format s1_format, s2_format;
+  fill_audio_format(&s1_format, 44100);
+  fill_audio_format(&s2_format, 48000);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // stream1's next callback is in 3ms.
+  StreamPtr stream1 =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 441, &s1_format);
+  stream1->rstream->next_cb_ts = start;
+  const timespec three_millis = { 0, 3 * 1000 * 1000 };
+  add_timespecs(&stream1->rstream->next_cb_ts, &three_millis);
+  AddFakeDataToStream(stream1.get(), 441);
+  // stream2 is also ready next cb in 5ms..
+  StreamPtr stream2  =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 480, &s2_format);
+  stream2->rstream->next_cb_ts = start;
+  const timespec five_millis = { 0, 5 * 1000 * 1000 };
+  add_timespecs(&stream2->rstream->next_cb_ts, &five_millis);
+  AddFakeDataToStream(stream1.get(), 480);
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+  timespec dev_time = SingleInputDevNextWake(441, 441, &start,
+                                             &s1_format, streams);
+
+  // Should wait for approximately 3 milliseconds for stream 1 first.
+  struct timespec delta2;
+  subtract_timespecs(&dev_time, &start, &delta2);
+  EXPECT_LT(2900 * 1000, delta2.tv_nsec);
+  EXPECT_GT(3100 * 1000, delta2.tv_nsec);
 }
 
 /* Stubs */
