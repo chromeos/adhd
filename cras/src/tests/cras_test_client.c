@@ -152,21 +152,6 @@ static int got_samples(struct cras_client *client,
 }
 
 /* Run from callback thread. */
-static int got_hotword(struct cras_client *client,
-		       cras_stream_id_t stream_id,
-		       uint8_t *captured_samples,
-		       uint8_t *playback_samples,
-		       unsigned int frames,
-		       const struct timespec *captured_time,
-		       const struct timespec *playback_time,
-		       void *user_arg)
-{
-	printf("got hotword %u frames\n", frames);
-
-	return frames;
-}
-
-/* Run from callback thread. */
 static int put_samples(struct cras_client *client,
 		       cras_stream_id_t stream_id,
 		       uint8_t *captured_samples,
@@ -709,14 +694,10 @@ static int run_file_io_stream(struct cras_client *client,
 	total_rms_sqr_sum = 0;
 	total_rms_size = 0;
 
-	if (direction == CRAS_STREAM_INPUT) {
-		if (flags == HOTWORD_STREAM)
-			aud_cb = got_hotword;
-		else
-			aud_cb = got_samples;
-	} else {
+	if (direction == CRAS_STREAM_INPUT)
+		aud_cb = got_samples;
+	else
 		aud_cb = put_samples;
-	}
 
 	if (fd == 0) {
 		if (direction != CRAS_STREAM_OUTPUT)
@@ -904,6 +885,7 @@ static int run_capture(struct cras_client *client,
 		       enum CRAS_STREAM_TYPE stream_type,
 		       size_t rate,
 		       size_t num_channels,
+		       uint32_t flags,
 		       int is_loopback)
 {
 	int fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0666);
@@ -913,7 +895,7 @@ static int run_capture(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size,
-			   stream_type, rate, num_channels, 0, is_loopback);
+			   stream_type, rate, num_channels, flags, is_loopback);
 
 	close(fd);
 	return 0;
@@ -941,15 +923,6 @@ static int run_playback(struct cras_client *client,
 	return 0;
 }
 
-static int run_hotword(struct cras_client *client,
-		       size_t block_size,
-		       size_t rate)
-{
-	run_file_io_stream(client, -1, CRAS_STREAM_INPUT, block_size,
-			   CRAS_STREAM_TYPE_DEFAULT, rate, 1, HOTWORD_STREAM,
-			   0);
-	return 0;
-}
 static void print_server_info(struct cras_client *client)
 {
 	cras_client_run_thread(client);
@@ -1063,7 +1036,7 @@ static struct option long_options[] = {
 	{"version",             no_argument,            0, '4'},
 	{"add_test_dev",        required_argument,      0, '5'},
 	{"test_hotword_file",   required_argument,      0, '6'},
-	{"listen_for_hotword",  no_argument,            0, '7'},
+	{"listen_for_hotword",  required_argument,      0, '7'},
 	{"pin_device",		required_argument,	0, '8'},
 	{"suspend",		required_argument,	0, '9'},
 	{"set_node_gain",	required_argument,	0, ':'},
@@ -1096,7 +1069,7 @@ static void show_usage()
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
 	printf("--get_hotword_models <N>:<M> - Get the supported hotword models of node\n");
 	printf("--help - Print this message.\n");
-	printf("--listen_for_hotword - Listen for a hotword if supported\n");
+	printf("--listen_for_hotword <name> - Listen and capture hotword stream if supported\n");
 	printf("--loopback_file <name> - Name of file to record loopback to.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
 	printf("--mute_loop_test <0|1> - Continuously loop mute/umute. Argument: 0 - stop on error.\n"
@@ -1148,6 +1121,7 @@ int main(int argc, char **argv)
 	const char *loopback_file = NULL;
 	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	int rc = 0;
+	uint32_t stream_flags = 0;
 
 	option_index = 0;
 	openlog("cras_test_client", LOG_PERROR, LOG_USER);
@@ -1369,7 +1343,8 @@ int main(int argc, char **argv)
 			break;
 		}
 		case '7': {
-			run_hotword(client, 4096, 16000);
+			stream_flags = HOTWORD_STREAM;
+			capture_file = optarg;
 			break;
 		}
 		case '8':
@@ -1464,21 +1439,23 @@ int main(int argc, char **argv)
 		if (strcmp(capture_file, "-") == 0)
 			rc = run_file_io_stream(client, 1, CRAS_STREAM_INPUT,
 					block_size, stream_type, rate,
-					num_channels, 0, 0);
+					num_channels, stream_flags, 0);
 		else
 			rc = run_capture(client, capture_file, block_size,
-					 stream_type, rate, num_channels, 0);
+					 stream_type, rate, num_channels,
+					 stream_flags, 0);
 	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
 					block_size, stream_type, rate,
-					num_channels, 0, 0);
+					num_channels, stream_flags, 0);
 		else
 			rc = run_playback(client, playback_file, block_size,
 					  stream_type, rate, num_channels);
 	} else if (loopback_file != NULL) {
 		rc = run_capture(client, loopback_file, block_size,
-				 stream_type, rate, num_channels, 1);
+				 stream_type, rate, num_channels,
+				 stream_flags, 1);
 	}
 
 destroy_exit:
