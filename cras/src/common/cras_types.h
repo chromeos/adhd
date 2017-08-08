@@ -284,6 +284,7 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *    capture_mute_locked - 0 = unlocked, 1 = locked.
  *    min_capture_gain - Min allowed capture gain in dBFS * 100.
  *    max_capture_gain - Max allowed capture gain in dBFS * 100.
+ *    min_output_buffer_size - Minimum output buffer size in frames.
  *    num_streams_attached - Total number of streams since server started.
  *    num_output_devs - Number of available output devices.
  *    num_input_devs - Number of available input devices.
@@ -305,7 +306,7 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *        isn't protected against concurrent updating, only one client should
  *        use it.
  */
-#define CRAS_SERVER_STATE_VERSION 2
+#define CRAS_SERVER_STATE_VERSION 3
 struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	uint32_t state_version;
 	uint32_t volume;
@@ -321,6 +322,7 @@ struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	int32_t capture_mute_locked;
 	int32_t min_capture_gain;
 	int32_t max_capture_gain;
+	int32_t min_output_buffer_size;
 	uint32_t num_streams_attached;
 	uint32_t num_output_devs;
 	uint32_t num_input_devs;

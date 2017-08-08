@@ -58,6 +58,10 @@ Methods		void SetOutputVolume(int32 volume)
 				boolean input_mute
 				boolean output_user_mute
 
+		void GetMinOutputBufferSize()
+
+			Returns the minimum output buffer size in bytes.
+
 		{dict},{dict},... GetNodes()
 
 			Returns information about nodes. A node can be either

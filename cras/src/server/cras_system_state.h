@@ -107,6 +107,9 @@ long cras_system_get_min_capture_gain();
 /* Returns the min value allowed for capture gain in dB * 100. */
 long cras_system_get_max_capture_gain();
 
+/* Returns the min value allowed for output buffer size in frames. */
+int cras_system_get_min_output_buffer_size();
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.
