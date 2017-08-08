@@ -58,6 +58,10 @@ Methods		void SetOutputVolume(int32 volume)
 				boolean input_mute
 				boolean output_user_mute
 
+		void GetDefaultOutputBufferSize()
+
+			Returns the default output buffer size in frames.
+
 		{dict},{dict},... GetNodes()
 
 			Returns information about nodes. A node can be either
