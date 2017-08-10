@@ -845,6 +845,24 @@ restart_poll_loop:
 				}
 			}
 		}
+		DL_FOREACH(thread->open_devs[CRAS_STREAM_INPUT], adev) {
+			DL_FOREACH(adev->dev->streams, curr) {
+				int fd = dev_stream_poll_stream_fd(curr);
+				if (fd < 0)
+					continue;
+				pollfds[num_pollfds].fd = fd;
+				pollfds[num_pollfds].events = POLLIN;
+				num_pollfds++;
+				if (num_pollfds >= pollfds_size) {
+					pollfds_size *= 2;
+					pollfds = (struct pollfd *)realloc(
+							pollfds,
+							sizeof(*pollfds) *
+								pollfds_size);
+					goto restart_poll_loop;
+				}
+			}
+		}
 
 		if (last_wake.tv_sec) {
 			struct timespec this_wake;

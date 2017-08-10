@@ -24,6 +24,8 @@ struct audio_thread_event_log* atlog;
 #include "iodev_stub.h"
 #include "rstream_stub.h"
 
+#define FAKE_POLL_FD 33
+
 namespace {
 
 using DevStreamPtr = std::unique_ptr<dev_stream, decltype(free)*>;
@@ -80,7 +82,7 @@ RstreamPtr create_rstream(cras_stream_id_t id,
       reinterpret_cast<cras_rstream*>(calloc(1, sizeof(cras_rstream))), free);
   rstream->stream_id = id;
   rstream->direction = direction;
-  rstream->fd = -1;
+  rstream->fd = FAKE_POLL_FD;
   rstream->buffer_frames = cb_threshold * 2;
   rstream->cb_threshold = cb_threshold;
   rstream->shm.area = shm;
@@ -387,6 +389,68 @@ TEST_F(TimingSuite, WaitTwoStreamsDifferentWakeupTimes) {
   subtract_timespecs(&dev_time, &start, &delta2);
   EXPECT_LT(2900 * 1000, delta2.tv_nsec);
   EXPECT_GT(3100 * 1000, delta2.tv_nsec);
+}
+
+// One hotword stream attaches to hotword device. Input data has copied from
+// device to stream but total number is less than cb_threshold. Hotword stream
+// should be scheduled wake base on the samples needed to fill full shm.
+TEST_F(TimingSuite, HotwordStreamUseDevTiming) {
+  cras_audio_format fmt;
+  fill_audio_format(&fmt, 48000);
+
+  struct timespec start, delay;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
+  stream->rstream->flags = HOTWORD_STREAM;
+  stream->rstream->next_cb_ts = start;
+  delay.tv_sec = 0;
+  delay.tv_nsec = 3 * 1000 * 1000;
+  add_timespecs(&stream->rstream->next_cb_ts, &delay);
+
+  // Add fake data to stream and device so its slightly less than cb_threshold.
+  // Expect to wait for samples to fill the full buffer (480 - 192) frames
+  // instead of using the next_cb_ts.
+  AddFakeDataToStream(stream.get(), 192);
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(4096, 0, &start,
+                                             &fmt, streams);
+  struct timespec delta;
+  subtract_timespecs(&dev_time, &start, &delta);
+  // 288 frames worth of time = 6 ms.
+  EXPECT_EQ(6 * 1000 * 1000, delta.tv_nsec);
+}
+
+// One hotword stream attaches to hotword device. Input data burst to a number
+// larger than cb_threshold. In this case stream fd is used to poll for next
+// wake. And the dev wake time is unchanged from the default 20 seconds limit.
+TEST_F(TimingSuite, HotwordStreamBulkData) {
+  cras_audio_format fmt;
+  fill_audio_format(&fmt, 48000);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
+  stream->rstream->flags = HOTWORD_STREAM;
+  stream->rstream->next_cb_ts = start;
+
+  AddFakeDataToStream(stream.get(), 480);
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(4096, 7000, &start,
+                                             &fmt, streams);
+
+  int poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
+  EXPECT_EQ(FAKE_POLL_FD, poll_fd);
+
+  struct timespec delta;
+  subtract_timespecs(&dev_time, &start, &delta);
+  EXPECT_LT(19, delta.tv_sec);
+  EXPECT_GT(21, delta.tv_sec);
 }
 
 /* Stubs */

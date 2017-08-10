@@ -238,6 +238,7 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	 * should wake up.
 	 */
 	DL_FOREACH(adev->dev->streams, stream) {
+		wake_time_out = min_ts;
 		rc = dev_stream_wake_time(
 			stream,
 			curr_level,
@@ -276,6 +277,14 @@ static int capture_to_streams(struct open_dev *adev)
 	struct timespec hw_tstamp;
 	int rc;
 	struct dev_stream *cap_limit_stream;
+	struct dev_stream *stream;
+
+	DL_FOREACH(adev->dev->streams, stream) {
+		struct cras_rstream *rstream = stream->stream;
+		flush_old_aud_messages(
+			cras_rstream_output_shm(rstream),
+			cras_rstream_get_audio_fd(rstream));
+	}
 
 	rc = cras_iodev_frames_queued(idev, &hw_tstamp);
 	if (rc < 0)
@@ -310,7 +319,6 @@ static int capture_to_streams(struct open_dev *adev)
 
 	while (remainder > 0) {
 		struct cras_audio_area *area = NULL;
-		struct dev_stream *stream;
 		unsigned int nread, total_read;
 
 		nread = remainder;

@@ -1042,6 +1042,27 @@ static void complete_capture_read_current(struct client_stream *stream,
 	cras_shm_buffer_read_current(&stream->capture_shm, num_frames);
 }
 
+static int send_capture_reply(struct client_stream *stream,
+			      unsigned int frames,
+			      int err)
+{
+	struct audio_message aud_msg;
+	int rc;
+
+	if (!cras_stream_uses_input_hw(stream->direction))
+		return 0;
+
+	aud_msg.id = AUDIO_MESSAGE_DATA_CAPTURED;
+	aud_msg.frames = frames;
+	aud_msg.error = err;
+
+	rc = write(stream->aud_fd, &aud_msg, sizeof(aud_msg));
+	if (rc != sizeof(aud_msg))
+		return -EPIPE;
+
+	return 0;
+}
+
 /* For capture streams this handles the message signalling that data is ready to
  * be passed to the user of this stream.  Calls the audio callback with the new
  * samples, and mark them as read.
@@ -1058,6 +1079,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	struct cras_stream_params *config;
 	uint8_t *captured_frames;
 	struct timespec ts;
+	int rc = 0;
 
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
@@ -1088,15 +1110,17 @@ static int handle_capture_data_ready(struct client_stream *stream,
 					num_frames,
 					&ts,
 					config->user_data);
-	if (frames == EOF) {
+	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
-		return EOF;
+		rc = frames;
+		goto reply_captured;
 	}
 	if (frames == 0)
 		return 0;
 
 	complete_capture_read_current(stream, frames);
-	return 0;
+reply_captured:
+	return send_capture_reply(stream, frames, rc);
 }
 
 /* Notifies the server that "frames" samples have been written. */

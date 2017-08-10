@@ -634,6 +634,12 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
 {
 	const struct cras_rstream *stream = dev_stream->stream;
 
+	/* For streams rely on dev level timing, we should poll for client
+	 * response otherwise data could be sent faster than client side
+	 * can handle. */
+	if (stream_uses_input(stream) && (stream->flags & USE_DEV_TIMING))
+		return stream->fd;
+
 	if (!stream_uses_output(stream) ||
 	    !cras_shm_callback_pending(&stream->shm) ||
 	    cras_rstream_get_is_draining(stream))
@@ -679,6 +685,16 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 	if (!is_cap_limit_stream && needed_frames_from_device > cap_limit)
 		return 1;
 
+	/* For stream using device timing, we don't set wake up time and just
+	 * send more data when client responds data is consumed.
+	 * However if data is less than one cb_threshold, we have to schedule
+	 * next wake up time based on the needed frames. This is needed to poll
+	 * the samples from device to check whether key phrase is detected.
+	 */
+	if ((rstream->flags & USE_DEV_TIMING) &&
+	    (curr_level >= cras_rstream_get_cb_threshold(rstream)))
+		return 1;
+
 	*wake_time_out = rstream->next_cb_ts;
 
 	/*
@@ -699,6 +715,9 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 	/* Select the time that is later so both sample and time conditions
 	 * are met. */
 	if (timespec_after(&time_for_sample, &rstream->next_cb_ts))
+		*wake_time_out =  time_for_sample;
+	/* Using device timing means the stream neglects next callback time. */
+	if (rstream->flags & USE_DEV_TIMING)
 		*wake_time_out =  time_for_sample;
 
 	return 0;
