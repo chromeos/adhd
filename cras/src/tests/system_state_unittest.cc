@@ -45,7 +45,7 @@ static void ResetStubData() {
   add_callback_called = 0;
   rm_callback_called = 0;
   alert_pending_called = 0;
-  device_config_dir = NULL;
+  device_config_dir = reinterpret_cast<char *>(3);
   cras_alsa_card_config_dir = NULL;
   cras_observer_notify_output_volume_called = 0;
   cras_observer_notify_output_mute_called = 0;

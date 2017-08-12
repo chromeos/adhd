@@ -63,9 +63,6 @@
     "      <arg name=\"input_mute\" type=\"b\" direction=\"out\"/>\n"   \
     "      <arg name=\"output_user_mute\" type=\"b\" direction=\"out\"/>\n"\
     "    </method>\n"                                                   \
-    "    <method name=\"GetMinOutputBufferSize\">\n"                    \
-    "      <arg name=\"buffer_size\" type=\"i\" direction=\"out\"/>\n"  \
-    "    </method>\n"                                                   \
     "    <method name=\"GetNodes\">\n"                                  \
     "      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"    \
     "    </method>\n"                                                   \
@@ -402,29 +399,6 @@ static DBusHandlerResult handle_get_volume_state(
 				 DBUS_TYPE_INT32, &capture_gain,
 				 DBUS_TYPE_BOOLEAN, &capture_muted,
 				 DBUS_TYPE_BOOLEAN, &user_muted,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
-
-	return DBUS_HANDLER_RESULT_HANDLED;
-}
-
-static DBusHandlerResult handle_get_min_output_buffer_size(
-	DBusConnection *conn,
-	DBusMessage *message,
-	void *arg)
-{
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_int32_t buffer_size;
-
-	reply = dbus_message_new_method_return(message);
-
-	buffer_size = cras_system_get_min_output_buffer_size();
-	dbus_message_append_args(reply,
-				 DBUS_TYPE_INT32, &buffer_size,
 				 DBUS_TYPE_INVALID);
 
 	dbus_connection_send(conn, reply, &serial);
@@ -816,10 +790,6 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "GetVolumeState")) {
 		return handle_get_volume_state(conn, message, arg);
-	} else if (dbus_message_is_method_call(message,
-					       CRAS_CONTROL_INTERFACE,
-					       "GetMinOutputBufferSize")) {
-		return handle_get_min_output_buffer_size(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "GetNodes")) {

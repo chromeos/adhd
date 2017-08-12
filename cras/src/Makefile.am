@@ -83,7 +83,6 @@ cras_SOURCES = \
 	dsp/eq2.c \
 	server/audio_thread.c \
 	server/buffer_share.c \
-	server/config/cras_board_config.c \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
 	server/cras.c \
@@ -710,11 +709,11 @@ stream_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 stream_list_unittest_LDADD = -lgtest -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
-	server/cras_system_state.c common/cras_shm.c server/config/cras_board_config.c
+	server/cras_system_state.c common/cras_shm.c
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
-system_state_unittest_LDADD = -lgtest -liniparser -lpthread -lrt
+system_state_unittest_LDADD = -lgtest -lrt -lpthread
 
 timing_unittest_SOURCES = \
 	common/cras_audio_format.c \

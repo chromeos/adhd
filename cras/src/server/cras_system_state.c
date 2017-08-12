@@ -13,7 +13,6 @@
 #include <syslog.h>
 
 #include "cras_alsa_card.h"
-#include "cras_board_config.h"
 #include "cras_config.h"
 #include "cras_device_blacklist.h"
 #include "cras_observer.h"
@@ -72,7 +71,6 @@ void cras_system_state_init(const char *device_config_dir)
 {
 	struct cras_server_state *exp_state;
 	int rc;
-	struct cras_board_config board_config;
 
 	state.shm_size = sizeof(*exp_state);
 
@@ -93,10 +91,6 @@ void cras_system_state_init(const char *device_config_dir)
 	if (state.shm_fd_ro < 0)
 		exit(state.shm_fd_ro);
 
-	/* Read board config. */
-	memset(&board_config, 0, sizeof(board_config));
-	cras_board_config_get(device_config_dir, &board_config);
-
 	/* Initial system state. */
 	exp_state->state_version = CRAS_SERVER_STATE_VERSION;
 	exp_state->volume = CRAS_MAX_SYSTEM_VOLUME;
@@ -112,7 +106,6 @@ void cras_system_state_init(const char *device_config_dir)
 	exp_state->min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	exp_state->max_capture_gain = DEFAULT_MAX_CAPTURE_GAIN;
 	exp_state->num_streams_attached = 0;
-	exp_state->min_output_buffer_size = board_config.min_output_buffer_size;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -322,11 +315,6 @@ long cras_system_get_min_capture_gain()
 long cras_system_get_max_capture_gain()
 {
 	return state.exp_state->max_capture_gain;
-}
-
-int cras_system_get_min_output_buffer_size()
-{
-	return state.exp_state->min_output_buffer_size;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
