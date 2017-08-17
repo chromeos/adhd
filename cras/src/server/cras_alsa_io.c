@@ -1915,6 +1915,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->ucm = ucm;
 	if (ucm) {
 		unsigned int level;
+		int rc;
 
 		aio->dsp_name_default = ucm_get_dsp_name_default(ucm,
 								 direction);
@@ -1924,8 +1925,8 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 			aio->base.set_swap_mode_for_node =
 				set_alsa_node_swapped;
 
-		level = ucm_get_min_buffer_level(ucm);
-		if (level && direction == CRAS_STREAM_OUTPUT)
+		rc = ucm_get_min_buffer_level(ucm, &level);
+		if (!rc && direction == CRAS_STREAM_OUTPUT)
 			iodev->min_buffer_level = level;
 
 		aio->enable_htimestamp =

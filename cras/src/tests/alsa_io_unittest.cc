@@ -2574,8 +2574,10 @@ int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
   return ucm_enable_swap_mode_ret_value;
 }
 
-unsigned int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr)
+int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr,
+			     unsigned int *level)
 {
+  *level = 0;
   return 0;
 }
 

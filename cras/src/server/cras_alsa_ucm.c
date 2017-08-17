@@ -620,16 +620,18 @@ const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
 	return ucm_get_dsp_name(mgr, "", direction);
 }
 
-unsigned int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr)
+int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr,
+			     unsigned int *level)
 {
 	int value;
 	int rc;
 
 	rc = get_int(mgr, min_buffer_level_var, "", uc_verb(mgr), &value);
 	if (rc)
-		return 0;
+		return -ENOENT;
+	*level = value;
 
-	return value;
+	return 0;
 }
 
 unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
