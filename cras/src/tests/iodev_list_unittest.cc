@@ -40,6 +40,7 @@ static struct audio_thread thread;
 static struct cras_iodev loopback_input;
 static int cras_iodev_close_called;
 static struct cras_iodev *cras_iodev_close_dev;
+static struct cras_iodev dummy_hotword_iodev;
 static struct cras_iodev dummy_empty_iodev[2];
 static stream_callback *stream_add_cb;
 static stream_callback *stream_rm_cb;
@@ -58,6 +59,7 @@ static int device_disabled_count;
 static void *device_enabled_cb_data;
 static struct cras_rstream *audio_thread_add_stream_stream;
 static struct cras_iodev *audio_thread_add_stream_dev;
+static struct cras_iodev *audio_thread_disconnect_stream_dev;
 static int audio_thread_add_stream_called;
 static unsigned update_active_node_called;
 static struct cras_iodev *update_active_node_iodev_val[5];
@@ -1348,6 +1350,89 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
 }
 
+TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+  cras_iodev_list_init();
+
+  node1.type = CRAS_NODE_TYPE_HOTWORD;
+  d1_.direction = CRAS_STREAM_INPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+  rstream.flags = HOTWORD_STREAM;
+
+  /* Add a hotword stream. */
+  EXPECT_EQ(0, stream_add_cb(&rstream));
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+
+  /* Suspend hotword streams, verify the existing stream disconnects
+   * from the hotword device and connects to the empty iodev. */
+  EXPECT_EQ(0, cras_iodev_list_suspend_hotword_streams());
+  EXPECT_EQ(1, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
+  EXPECT_EQ(&d1_, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_add_stream_dev);
+
+  /* Resume hotword streams, verify the stream disconnects from
+   * the empty iodev and connects back to the real hotword iodev. */
+  EXPECT_EQ(0, cras_iodev_list_resume_hotword_stream());
+  EXPECT_EQ(2, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
+  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(3, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+}
+
+TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+  cras_iodev_list_init();
+
+  node1.type = CRAS_NODE_TYPE_HOTWORD;
+  d1_.direction = CRAS_STREAM_INPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+  rstream.flags = HOTWORD_STREAM;
+
+  /* Suspends hotword streams before a stream connected. */
+  EXPECT_EQ(0, cras_iodev_list_suspend_hotword_streams());
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(0, audio_thread_add_stream_called);
+
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+
+  /* Hotword stream connected, verify it is added to the empty iodev. */
+  EXPECT_EQ(0, stream_add_cb(&rstream));
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_add_stream_dev);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+
+  /* Resume hotword streams, now the existing hotword stream should disconnect
+   * from the empty iodev and connect to the real hotword iodev. */
+  EXPECT_EQ(0, cras_iodev_list_resume_hotword_stream());
+  EXPECT_EQ(1, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
+  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -1421,6 +1506,7 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 {
   audio_thread_disconnect_stream_called++;
   audio_thread_disconnect_stream_stream = stream;
+  audio_thread_disconnect_stream_dev = iodev;
   return 0;
 }
 
@@ -1469,14 +1555,22 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
   return 0;
 }
 
-struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction) {
-  dummy_empty_iodev[direction].direction = direction;
-  dummy_empty_iodev[direction].update_active_node = dummy_update_active_node;
-  if (dummy_empty_iodev[direction].active_node == NULL) {
-    struct cras_ionode *node = (struct cras_ionode *)calloc(1, sizeof(*node));
-    dummy_empty_iodev[direction].active_node = node;
+struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
+                                      enum CRAS_NODE_TYPE node_type) {
+  struct cras_iodev *dev;
+  if (node_type == CRAS_NODE_TYPE_HOTWORD) {
+    dev = &dummy_hotword_iodev;
+  } else {
+    dev = &dummy_empty_iodev[direction];
   }
-  return &dummy_empty_iodev[direction];
+  dev->direction = direction;
+  dev->update_active_node = dummy_update_active_node;
+  if (dev->active_node == NULL) {
+    struct cras_ionode *node = (struct cras_ionode *)calloc(1, sizeof(*node));
+    node->type = node_type;
+    dev->active_node = node;
+  }
+  return dev;
 }
 
 struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,

@@ -208,6 +208,12 @@ struct stream_list *cras_iodev_list_get_stream_list();
 int cras_iodev_list_set_device_enabled_callback(
 		device_enabled_callback_t device_enabled_cb, void *cb_data);
 
+/* Suspends all hotwording streams. */
+int cras_iodev_list_suspend_hotword_streams();
+
+/* Resumes all hotwording streams. */
+int cras_iodev_list_resume_hotword_stream();
+
 /* For unit test only. */
 void cras_iodev_list_reset();
 

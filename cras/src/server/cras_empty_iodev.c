@@ -52,6 +52,9 @@ static unsigned int current_level(const struct cras_iodev *iodev)
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 	unsigned int frames, frames_since_last;
 
+	if (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD)
+		return 0;
+
 	frames = empty_iodev->buffer_level;
 	frames_since_last = cras_frames_since_time(
 			&empty_iodev->last_buffer_access,
@@ -176,7 +179,8 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
  * Exported Interface.
  */
 
-struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
+struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
+				      enum CRAS_NODE_TYPE node_type)
 {
 	struct empty_iodev *empty_iodev;
 	struct cras_iodev *iodev;
@@ -209,7 +213,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
-	node->type = CRAS_NODE_TYPE_UNKNOWN;
+	node->type = node_type;
 	node->volume = 100;
 	strcpy(node->name, "(default)");
 	cras_iodev_add_node(iodev, node);
@@ -217,11 +221,21 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction)
 
 	/* Finally add it to the appropriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT) {
-		snprintf(iodev->info.name,
-			 ARRAY_SIZE(iodev->info.name),
-			 "Silent record device.");
-		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-		iodev->info.idx = SILENT_RECORD_DEVICE;
+		if (node->type == CRAS_NODE_TYPE_HOTWORD) {
+			snprintf(iodev->info.name,
+				 ARRAY_SIZE(iodev->info.name),
+				 "Silent hotword device.");
+			iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] =
+				'\0';
+			iodev->info.idx = SILENT_HOTWORD_DEVICE;
+		} else {
+			snprintf(iodev->info.name,
+				 ARRAY_SIZE(iodev->info.name),
+				 "Silent record device.");
+			iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] =
+				'\0';
+			iodev->info.idx = SILENT_RECORD_DEVICE;
+		}
 	} else {
 		snprintf(iodev->info.name,
 			 ARRAY_SIZE(iodev->info.name),

@@ -50,6 +50,8 @@ static struct cras_observer_client *list_observer;
 static struct enabled_dev *enabled_devs[CRAS_NUM_DIRECTIONS];
 /* Keep an empty device per direction. */
 static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
+/* Special empty device for hotword streams. */
+static struct cras_iodev *empty_hotword_dev;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
@@ -67,6 +69,8 @@ static struct cras_timer *idle_timer;
 static int stream_list_suspended = 0;
 /* If init device failed, retry after 1 second. */
 static const unsigned int INIT_DEV_DELAY_MS = 1000;
+/* Flag to indicate that hotword streams are suspended. */
+static int hotword_suspended = 0;
 
 static void idle_dev_check(struct cras_timer *timer, void *data);
 
@@ -576,15 +580,10 @@ static void schedule_init_device_retry(struct enabled_dev *edev)
 				tm, INIT_DEV_DELAY_MS, init_device_cb, edev);
 }
 
-static int pinned_stream_added(struct cras_rstream *rstream)
+static int init_pinned_device(struct cras_iodev *dev,
+			      struct cras_rstream *rstream)
 {
-	struct cras_iodev *dev;
 	int rc;
-
-	/* Check that the target device is valid for pinned streams. */
-	dev = find_dev(rstream->pinned_dev_idx);
-	if (!dev)
-		return -EINVAL;
 
 	/* Make sure the active node is configured properly, it could be
 	 * disabled when last normal stream removed. */
@@ -593,6 +592,50 @@ static int pinned_stream_added(struct cras_rstream *rstream)
 	/* Negative EAGAIN code indicates dev will be opened later. */
 	rc = init_device(dev, rstream);
 	if (rc && (rc != -EAGAIN))
+		return rc;
+	return 0;
+}
+
+static int close_pinned_device(struct cras_iodev *dev)
+{
+	close_dev(dev);
+	dev->update_active_node(dev, dev->active_node->idx, 0);
+	return 0;
+}
+
+static struct cras_iodev *find_pinned_device(struct cras_rstream *rstream)
+{
+	struct cras_iodev *dev;
+	if (!rstream->is_pinned)
+		return NULL;
+
+	dev = find_dev(rstream->pinned_dev_idx);
+
+	if (rstream->flags != HOTWORD_STREAM)
+		return dev;
+
+	/* Double check node type for hotword stream */
+	if (dev && dev->active_node->type != CRAS_NODE_TYPE_HOTWORD) {
+		syslog(LOG_ERR, "Hotword stream pinned to invalid dev %u",
+		       dev->info.idx);
+		return NULL;
+	}
+
+	return hotword_suspended ? empty_hotword_dev : dev;
+}
+
+static int pinned_stream_added(struct cras_rstream *rstream)
+{
+	struct cras_iodev *dev;
+	int rc;
+
+	/* Check that the target device is valid for pinned streams. */
+	dev = find_pinned_device(rstream);
+	if (!dev)
+		return -EINVAL;
+
+	rc = init_pinned_device(dev, rstream);
+	if (rc)
 		return rc;
 
 	return audio_thread_add_stream(audio_thread, rstream, &dev, 1);
@@ -689,14 +732,12 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
 {
 	struct cras_iodev *dev;
 
-	dev = find_dev(rstream->pinned_dev_idx);
+	dev = find_pinned_device(rstream);
 	if (!dev)
 		return;
 	if (!cras_iodev_list_dev_is_enabled(dev) &&
-	    !cras_iodev_has_pinned_stream(dev)) {
-		close_dev(dev);
-		dev->update_active_node(dev, dev->active_node->idx, 0);
-	}
+	    !cras_iodev_has_pinned_stream(dev))
+		close_pinned_device(dev);
 }
 
 /* Returns the number of milliseconds left to drain this stream.  This is passed
@@ -801,12 +842,18 @@ void cras_iodev_list_init()
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */
-	fallback_devs[CRAS_STREAM_OUTPUT] =
-			empty_iodev_create(CRAS_STREAM_OUTPUT);
-	fallback_devs[CRAS_STREAM_INPUT] =
-			empty_iodev_create(CRAS_STREAM_INPUT);
+	fallback_devs[CRAS_STREAM_OUTPUT] = empty_iodev_create(
+			CRAS_STREAM_OUTPUT,
+			CRAS_NODE_TYPE_UNKNOWN);
+	fallback_devs[CRAS_STREAM_INPUT] = empty_iodev_create(
+			CRAS_STREAM_INPUT,
+			CRAS_NODE_TYPE_UNKNOWN);
 	enable_device(fallback_devs[CRAS_STREAM_OUTPUT]);
 	enable_device(fallback_devs[CRAS_STREAM_INPUT]);
+
+	empty_hotword_dev = empty_iodev_create(
+			CRAS_STREAM_INPUT,
+			CRAS_NODE_TYPE_HOTWORD);
 
 	/* Create loopback devices. */
 	loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
@@ -1012,6 +1059,97 @@ void cras_iodev_list_update_device_list()
 						CRAS_MAX_IONODES);
 
 	cras_system_state_update_complete();
+}
+
+/* Look up the first hotword stream and the device it pins to. */
+int find_hotword_stream_dev(struct cras_iodev **dev,
+			    struct cras_rstream **stream)
+{
+	DL_FOREACH(stream_list_get(stream_list), *stream) {
+		if ((*stream)->flags != HOTWORD_STREAM)
+			continue;
+
+		*dev = find_dev((*stream)->pinned_dev_idx);
+		if (*dev == NULL)
+			return -ENOENT;
+		break;
+	}
+	return 0;
+}
+
+/* Suspend/resume hotword streams functions are used to provide seamless
+ * experience to cras clients when there's hardware limitation about concurrent
+ * DSP and normal recording. The empty hotword iodev is used to hold all
+ * hotword streams during suspend, so client side will not know about the
+ * transition, and can still remove or add streams. At resume, the real hotword
+ * device will be initialized and opened again to re-arm the DSP.
+ */
+int cras_iodev_list_suspend_hotword_streams()
+{
+	struct cras_iodev *hotword_dev;
+	struct cras_rstream *stream = NULL;
+	int rc;
+
+	rc = find_hotword_stream_dev(&hotword_dev, &stream);
+	if (rc)
+		return rc;
+
+	if (stream == NULL) {
+		hotword_suspended = 1;
+		return 0;
+	}
+	/* Move all existing hotword streams to the empty hotword iodev. */
+	init_pinned_device(empty_hotword_dev, stream);
+	DL_FOREACH(stream_list_get(stream_list), stream) {
+		if (stream->flags != HOTWORD_STREAM)
+			continue;
+		if (stream->pinned_dev_idx != hotword_dev->info.idx) {
+			syslog(LOG_ERR,
+			       "Failed to suspend hotword stream on dev %u",
+				stream->pinned_dev_idx);
+			continue;
+		}
+
+		audio_thread_disconnect_stream(audio_thread, stream, hotword_dev);
+		audio_thread_add_stream(audio_thread, stream, &empty_hotword_dev, 1);
+	}
+	close_pinned_device(hotword_dev);
+	hotword_suspended = 1;
+	return 0;
+}
+
+int cras_iodev_list_resume_hotword_stream()
+{
+	struct cras_iodev *hotword_dev;
+	struct cras_rstream *stream = NULL;
+	int rc;
+
+	rc = find_hotword_stream_dev(&hotword_dev, &stream);
+	if (rc)
+		return rc;
+
+	if (stream == NULL) {
+		hotword_suspended = 0;
+		return 0;
+	}
+	/* Move all existing hotword streams to the real hotword iodev. */
+	init_pinned_device(hotword_dev, stream);
+	DL_FOREACH(stream_list_get(stream_list), stream) {
+		if (stream->flags != HOTWORD_STREAM)
+			continue;
+		if (stream->pinned_dev_idx != hotword_dev->info.idx) {
+			syslog(LOG_ERR,
+			       "Fail to resume hotword stream on dev %u",
+			       stream->pinned_dev_idx);
+			continue;
+		}
+
+		audio_thread_disconnect_stream(audio_thread, stream, empty_hotword_dev);
+		audio_thread_add_stream(audio_thread, stream, &hotword_dev, 1);
+	}
+	close_pinned_device(empty_hotword_dev);
+	hotword_suspended = 0;
+	return 0;
 }
 
 char *cras_iodev_list_get_hotword_models(cras_node_id_t node_id)
