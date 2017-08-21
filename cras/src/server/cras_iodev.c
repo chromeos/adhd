@@ -813,6 +813,9 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 {
 	int rc;
 
+	if (iodev->pre_open_iodev_hook)
+		iodev->pre_open_iodev_hook();
+
 	if (iodev->open_dev) {
 		rc = iodev->open_dev(iodev);
 		if (rc)
@@ -874,6 +877,9 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	iodev->state = CRAS_IODEV_STATE_CLOSE;
 	if (iodev->ramp)
 		cras_ramp_reset(iodev->ramp);
+
+	if (iodev->post_close_iodev_hook)
+		iodev->post_close_iodev_hook();
 	return 0;
 }
 

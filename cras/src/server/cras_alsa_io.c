@@ -1211,6 +1211,7 @@ static void check_auto_unplug_input_node(struct alsa_io *aio,
 static struct alsa_input_node *new_input(struct alsa_io *aio,
 		struct mixer_control *cras_input, const char *name)
 {
+	struct cras_iodev *iodev = &aio->base;
 	struct alsa_input_node *input;
 	char *mic_positions;
 	int err;
@@ -1255,6 +1256,12 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 		if (err) {
 			free(input->channel_layout);
 			input->channel_layout = 0;
+		}
+		if (ucm_get_preempt_hotword(aio->ucm, name)) {
+			iodev->pre_open_iodev_hook =
+				cras_iodev_list_suspend_hotword_streams;
+			iodev->post_close_iodev_hook =
+				cras_iodev_list_resume_hotword_stream;
 		}
 	}
 

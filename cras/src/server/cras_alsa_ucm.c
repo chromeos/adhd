@@ -33,6 +33,7 @@ static const char capture_device_name_var[] = "CapturePCM";
 static const char capture_device_rate_var[] = "CaptureRate";
 static const char capture_channel_map_var[] = "CaptureChannelMap";
 static const char coupled_mixers[] = "CoupledMixers";
+static const char preempt_hotword_var[] = "PreemptHotword";
 /* Set this value in a SectionDevice to specify the maximum software gain in dBm
  * and enable software gain on this node. */
 static const char max_software_gain[] = "MaxSoftwareGain";
@@ -667,6 +668,17 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
 		return rc;
 	*gain = value;
 	return 0;
+}
+
+int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev)
+{
+	int value;
+	int rc;
+
+	rc = get_int(mgr, preempt_hotword_var, dev, uc_verb(mgr), &value);
+	if (rc)
+		return 0;
+	return value;
 }
 
 const char *ucm_get_device_name_for_dev(

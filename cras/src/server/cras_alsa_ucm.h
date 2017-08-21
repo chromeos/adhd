@@ -215,6 +215,16 @@ int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
 int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
 			      long *gain);
 
+/* Gets the flag if an input device can preempt hotword recording.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for preempt hotword flag.
+ * Returns:
+ *    Non-zero value means input can preempt hotword recording, otherwise
+ *    return zero.
+ */
+int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev);
+
 /* Gets the device name of this device on the card..
  *
  * Args:

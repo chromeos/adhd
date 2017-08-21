@@ -2159,6 +2159,16 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
 	return 0;
 }
 
+int cras_iodev_list_suspend_hotword_streams()
+{
+  return 0;
+}
+
+int cras_iodev_list_resume_hotword_stream()
+{
+  return 0;
+}
+
 struct audio_thread *cras_iodev_list_get_audio_thread()
 {
   return NULL;
@@ -2615,6 +2625,11 @@ int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr *mgr,
           int8_t *channel_layout)
 {
   return -EINVAL;
+}
+
+int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev)
+{
+  return 0;
 }
 
 struct cras_volume_curve *cras_volume_curve_create_default()

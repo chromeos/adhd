@@ -34,6 +34,9 @@ typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
 			       const struct cras_audio_format *fmt,
 			       void *cb_data);
 
+/* Callback type for an iodev event. */
+typedef int (*iodev_hook_t)();
+
 /* State of an iodev.
  * no_stream state is only supported on output device.
  * Open state is only supported for device supporting start ops.
@@ -167,6 +170,8 @@ struct cras_ionode {
  *     reference.
  * pre_dsp_hook_cb_data - Callback data that will be passing to pre_dsp_hook.
  * post_dsp_hook_cb_data - Callback data that will be passing to post_dsp_hook.
+ * pre_open_iodev_hook - Optional callback to call before iodev open.
+ * post_close_iodev_hook - Optional callback to call after iodev close.
  * reset_request_pending - The flag for pending reset request.
  * ramp - The cras_ramp struct to control ramping up/down at mute/unmute and
  *        start of playback.
@@ -230,6 +235,8 @@ struct cras_iodev {
 	loopback_hook_t post_dsp_hook;
 	void *pre_dsp_hook_cb_data;
 	void *post_dsp_hook_cb_data;
+	iodev_hook_t pre_open_iodev_hook;
+	iodev_hook_t post_close_iodev_hook;
 	int reset_request_pending;
 	struct cras_ramp* ramp;
 	struct cras_iodev *prev, *next;
