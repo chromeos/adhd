@@ -184,6 +184,52 @@ TEST(SystemStateSuite, SetMute) {
   cras_system_state_deinit();
 }
 
+TEST(SystemStateSuite, SetSystemMuteThenSwitchUserMute) {
+  ResetStubData();
+  cras_system_state_init(device_config_dir);
+
+  EXPECT_EQ(0, cras_system_get_mute());
+
+  // Set system mute.
+  cras_system_set_mute(1);
+
+  // Switching user mute will not notify observer.
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+  cras_system_set_user_mute(1);
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+  cras_system_set_user_mute(0);
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+
+  // Unset system mute.
+  cras_system_set_mute(0);
+  EXPECT_EQ(2, cras_observer_notify_output_mute_called);
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemStateSuite, SetUserMuteThenSwitchSystemMute) {
+  ResetStubData();
+  cras_system_state_init(device_config_dir);
+
+  EXPECT_EQ(0, cras_system_get_mute());
+
+  // Set user mute.
+  cras_system_set_user_mute(1);
+
+  // Switching system mute will not notify observer.
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+  cras_system_set_mute(1);
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+  cras_system_set_mute(0);
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
+
+  // Unset user mute.
+  cras_system_set_user_mute(0);
+  EXPECT_EQ(2, cras_observer_notify_output_mute_called);
+
+  cras_system_state_deinit();
+}
+
 TEST(SystemStateSuite, CaptureMuteChangedCallbackMultiple) {
   cras_system_state_init(device_config_dir);
   ResetStubData();
@@ -211,7 +257,7 @@ TEST(SystemStateSuite, MuteLocked) {
   cras_system_set_mute(0);
   EXPECT_EQ(1, cras_system_get_mute());
   EXPECT_EQ(1, cras_system_get_mute_locked());
-  EXPECT_EQ(2, cras_observer_notify_output_mute_called);
+  EXPECT_EQ(1, cras_observer_notify_output_mute_called);
 
   cras_system_set_capture_mute(1);
   EXPECT_EQ(1, cras_system_get_capture_mute());
