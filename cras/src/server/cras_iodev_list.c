@@ -696,6 +696,8 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
 	struct cras_iodev *dev;
 
 	dev = find_dev(rstream->pinned_dev_idx);
+	if (!dev)
+		return;
 	if (!cras_iodev_list_dev_is_enabled(dev) &&
 	    !cras_iodev_has_pinned_stream(dev)) {
 		close_dev(dev);
