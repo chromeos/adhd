@@ -4,6 +4,7 @@
  */
 
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <sys/param.h>
 #include <sys/time.h>
@@ -602,7 +603,7 @@ static void plug_node(struct cras_ionode *node, int plugged)
 	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
 	} else if (node == node->dev->active_node) {
-		cras_iodev_list_disable_dev(node->dev);
+		cras_iodev_list_disable_dev(node->dev, false);
 	}
 	cras_iodev_list_notify_nodes_changed();
 }

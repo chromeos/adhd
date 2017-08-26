@@ -356,9 +356,10 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 
 static void close_dev(struct cras_iodev *dev)
 {
-	if (!cras_iodev_is_open(dev) ||
-	    cras_iodev_has_pinned_stream(dev))
-		return;
+	if (!cras_iodev_is_open(dev))
+	       return;
+	if (cras_iodev_has_pinned_stream(dev))
+		syslog(LOG_ERR, "Closing device with pinned streams.");
 	audio_thread_rm_open_dev(audio_thread, dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
@@ -508,7 +509,7 @@ static void sys_cap_mute_change(void *context, int muted, int mute_locked)
 	}
 }
 
-static int disable_device(struct enabled_dev *edev);
+static int disable_device(struct enabled_dev *edev, bool force);
 static int enable_device(struct cras_iodev *dev);
 
 static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
@@ -517,7 +518,7 @@ static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 
 	DL_FOREACH(enabled_devs[dir], edev) {
 		if (edev->dev == fallback_devs[dir])
-			disable_device(edev);
+			disable_device(edev, false);
 	}
 }
 
@@ -788,7 +789,8 @@ static int enable_device(struct cras_iodev *dev)
 	return 0;
 }
 
-static int disable_device(struct enabled_dev *edev)
+/* Set `force to true to flush any pinned streams before closing the device. */
+static int disable_device(struct enabled_dev *edev, bool force)
 {
 	struct cras_iodev *dev = edev->dev;
 	enum CRAS_STREAM_DIRECTION dir = dev->direction;
@@ -803,17 +805,52 @@ static int disable_device(struct enabled_dev *edev)
 	free(edev);
 	dev->is_enabled = 0;
 
-	/* Pull all default streams off this device. */
+	/*
+	 * Pull all default streams off this device.
+	 * Pull all pinned streams off as well if force is true.
+	 */
 	DL_FOREACH(stream_list_get(stream_list), stream) {
-		if (stream->direction != dev->direction || stream->is_pinned)
+		if (stream->direction != dev->direction)
+			continue;
+		if (stream->is_pinned && !force)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, stream, dev);
 	}
+	if (cras_iodev_has_pinned_stream(dev))
+		return 0;
 	if (device_enabled_callback)
 		device_enabled_callback(dev, 0, device_enabled_cb_data);
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 
+	return 0;
+}
+
+/*
+ * Assume the device is not in enabled_devs list.
+ * Assume there is no default stream on the device.
+ * An example is that this device is unplugged while it is playing
+ * a pinned stream. The device and stream may have been removed in
+ * audio thread due to I/O error handling.
+ */
+static int force_close_pinned_only_device(struct cras_iodev *dev)
+{
+	struct cras_rstream *rstream;
+
+	/* Pull pinned streams off this device. */
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->direction != dev->direction)
+			continue;
+		if (!rstream->is_pinned)
+			continue;
+		if (dev->info.idx != rstream->pinned_dev_idx)
+			continue;
+		audio_thread_disconnect_stream(audio_thread, rstream, dev);
+	}
+	if (cras_iodev_has_pinned_stream(dev))
+		return -EEXIST;
+	close_dev(dev);
+	dev->update_active_node(dev, dev->active_node->idx, 0);
 	return 0;
 }
 
@@ -910,7 +947,10 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	cras_iodev_list_enable_dev(new_dev);
 }
 
-void cras_iodev_list_disable_dev(struct cras_iodev *dev)
+/*
+ * Disables device which may or may not be in enabled_devs list.
+ */
+void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close)
 {
 	struct enabled_dev *edev, *edev_to_disable = NULL;
 
@@ -923,8 +963,17 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev)
 			is_the_only_enabled_device = 0;
 	}
 
-	if (!edev_to_disable)
+	/*
+	 * Disables the device for these two cases:
+	 * 1. Disable a device in the enabled_devs list.
+	 * 2. Force close a device that is not in the enabled_devs list,
+	 *    but it is running a pinned stream.
+	 */
+	if (!edev_to_disable) {
+		if (force_close)
+			force_close_pinned_only_device(dev);
 		return;
+	}
 
 	/* If the device to be closed is the only enabled device, we should
 	 * enable the fallback device first then disable the target
@@ -932,7 +981,7 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev)
 	if (is_the_only_enabled_device)
 		enable_device(fallback_devs[dev->direction]);
 
-	disable_device(edev_to_disable);
+	disable_device(edev_to_disable, force_close);
 
 	cras_iodev_list_notify_active_node_changed(dev->direction);
 	return;
@@ -947,7 +996,7 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (!dev)
 		return;
 
-	cras_iodev_list_disable_dev(dev);
+	cras_iodev_list_disable_dev(dev, false);
 }
 
 int cras_iodev_list_add_output(struct cras_iodev *output)
@@ -985,7 +1034,7 @@ int cras_iodev_list_rm_output(struct cras_iodev *dev)
 	/* Retire the current active output device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	cras_iodev_list_disable_dev(dev);
+	cras_iodev_list_disable_dev(dev, true);
 	res = rm_dev_from_list(dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -999,7 +1048,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *dev)
 	/* Retire the current active input device before removing it from
 	 * list, otherwise it could be busy and remain in the list.
 	 */
-	cras_iodev_list_disable_dev(dev);
+	cras_iodev_list_disable_dev(dev, true);
 	res = rm_dev_from_list(dev);
 	if (res == 0)
 		cras_iodev_list_update_device_list();
@@ -1236,7 +1285,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	DL_FOREACH(enabled_devs[direction], edev) {
 		if (edev->dev != fallback_devs[direction] &&
 		    !(new_node_already_enabled && edev->dev == new_dev)) {
-			disable_device(edev);
+			disable_device(edev, false);
 		}
 	}
 

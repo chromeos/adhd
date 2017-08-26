@@ -288,7 +288,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
   /* Test disable/enable dev won't cause add_stream to audio_thread. */
   audio_thread_add_stream_called = 0;
-  cras_iodev_list_disable_dev(&d1_);
+  cras_iodev_list_disable_dev(&d1_, false);
   cras_iodev_list_enable_dev(&d1_);
   EXPECT_EQ(0, audio_thread_add_stream_called);
 
@@ -911,7 +911,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
 
   // Disable a device.
-  cras_iodev_list_disable_dev(&d1_);
+  cras_iodev_list_disable_dev(&d1_, false);
   EXPECT_EQ(&d1_, device_disabled_dev);
   EXPECT_EQ(1, device_disabled_count);
   EXPECT_EQ((void *)0xABCD, device_enabled_cb_data);

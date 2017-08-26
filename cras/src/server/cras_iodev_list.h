@@ -9,6 +9,7 @@
 #ifndef CRAS_IODEV_LIST_H_
 #define CRAS_IODEV_LIST_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "cras_types.h"
@@ -157,9 +158,13 @@ int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev);
  * call will disable it. */
 void cras_iodev_list_enable_dev(struct cras_iodev *dev);
 
-/* Disables an iodev. If this is the last device to disable, the
- * fallback devices will be enabled accordingly. */
-void cras_iodev_list_disable_dev(struct cras_iodev *dev);
+/*
+ * Disables an iodev. If this is the last device to disable, the
+ * fallback devices will be enabled accordingly.
+ * Set `foce_close` to true if the device must be closed regardless of having
+ * pinned streams attached.
+ */
+void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close);
 
 /* Adds a node to the active devices list.
  * Args:

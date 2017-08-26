@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <poll.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1053,7 +1054,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		if (!iodev)
 			continue;
 		was_enabled[dir] = cras_iodev_list_dev_is_enabled(iodev);
-		cras_iodev_list_disable_dev(iodev);
+		cras_iodev_list_disable_dev(iodev, false);
 	}
 
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
