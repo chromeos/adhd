@@ -934,6 +934,25 @@ int cras_client_test_iodev_command(struct cras_client *client,
 				   unsigned int data_len,
 				   const uint8_t *data);
 
+/* Finds the first node of the given type.
+ *
+ * This is used for finding a special hotword node.
+ *
+ * Requires that the connection to the server has been established.
+ *
+ * Args:
+ *    client - The client from cras_client_create.
+ *    type - The type of device to find.
+ *    direction - Search input or output devices.
+ *    node_id - The found node on success.
+ * Returns:
+ *    0 on success, a negative error on failure.
+ */
+int cras_client_get_first_node_type_idx(const struct cras_client *client,
+					enum CRAS_NODE_TYPE type,
+					enum CRAS_STREAM_DIRECTION direction,
+					cras_node_id_t *node_id);
+
 /* Finds the first device that contains a node of the given type.
  *
  * This is used for finding a special hotword device.

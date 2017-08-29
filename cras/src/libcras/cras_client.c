@@ -3157,10 +3157,10 @@ int cras_client_config_global_remix(struct cras_client *client,
 	return rc;
 }
 
-/* Return the index of the device used for listening to hotwords. */
-int cras_client_get_first_dev_type_idx(const struct cras_client *client,
-				       enum CRAS_NODE_TYPE type,
-				       enum CRAS_STREAM_DIRECTION direction)
+int cras_client_get_first_node_type_idx(const struct cras_client *client,
+					enum CRAS_NODE_TYPE type,
+					enum CRAS_STREAM_DIRECTION direction,
+					cras_node_id_t *node_id)
 {
 	const struct cras_server_state *state;
 	unsigned int version;
@@ -3185,9 +3185,10 @@ read_nodes_again:
 	}
 	for (i = 0; i < num_nodes; i++) {
 		if ((enum CRAS_NODE_TYPE)node_list[i].type_enum == type) {
-			int ret_idx = node_list[i].iodev_idx;
+			*node_id = cras_make_node_id(node_list[i].iodev_idx,
+						     node_list[i].ionode_idx);
 			server_state_unlock(client, lock_rc);
-			return ret_idx;
+			return 0;
 		}
 	}
 	if (end_server_state_read(state, version))
@@ -3195,6 +3196,21 @@ read_nodes_again:
 	server_state_unlock(client, lock_rc);
 
 	return -ENODEV;
+}
+
+int cras_client_get_first_dev_type_idx(const struct cras_client *client,
+				       enum CRAS_NODE_TYPE type,
+				       enum CRAS_STREAM_DIRECTION direction)
+{
+	cras_node_id_t node_id;
+	int rc;
+
+	rc = cras_client_get_first_node_type_idx(client, type, direction,
+						 &node_id);
+	if (rc)
+		return rc;
+
+	return dev_index_of(node_id);
 }
 
 int cras_client_set_suspend(struct cras_client *client, int suspend)
