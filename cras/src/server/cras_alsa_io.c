@@ -45,6 +45,8 @@
 #define INTERNAL_MICROPHONE "Internal Mic"
 #define INTERNAL_SPEAKER "Speaker"
 #define KEYBOARD_MIC "Keyboard Mic"
+#define HEADPHONE "Headphone"
+#define MIC "Mic"
 #define USB "USB"
 
 /*
@@ -937,18 +939,27 @@ static void set_node_initial_state(struct cras_ionode *node,
 			break;
 		}
 
-	/* If we didn't find a matching name above, but the node is a jack node,
-	 * set its type to headphone/mic. This matches node names like "DAISY-I2S Mic
-	 * Jack".
+	/*
+	 * If we didn't find a matching name above, but the node is a jack node,
+	 * and there is no "HDMI" in the node name, then this must be a 3.5mm
+	 * headphone/mic.
+	 * Set its type and name to headphone/mic. The name is important because
+	 * it associates the UCM section to the node so the properties like
+	 * default node gain can be obtained.
+	 * This matches node names like "DAISY-I2S Mic Jack".
 	 * If HDMI is in the node name, set its type to HDMI. This matches node names
 	 * like "Rockchip HDMI Jack".
 	 */
 	if (i == ARRAY_SIZE(node_defaults)) {
-		if (endswith(node->name, "Jack")) {
-			if (node->dev->direction == CRAS_STREAM_OUTPUT)
+		if (endswith(node->name, "Jack") && !strstr(node->name, HDMI)) {
+			if (node->dev->direction == CRAS_STREAM_OUTPUT) {
 				node->type = CRAS_NODE_TYPE_HEADPHONE;
-			else
+				strncpy(node->name, HEADPHONE, sizeof(node->name) - 1);
+			}
+			else {
 				node->type = CRAS_NODE_TYPE_MIC;
+				strncpy(node->name, MIC, sizeof(node->name) - 1);
+			}
 		}
 		if (strstr(node->name, HDMI) &&
 		    node->dev->direction == CRAS_STREAM_OUTPUT)

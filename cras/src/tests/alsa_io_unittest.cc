@@ -1651,6 +1651,19 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
   ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
+  // Node name is changed to "Mic".
+  ASSERT_EQ(0, strcmp(node.name, "Mic"));
+
+  memset(&node, 0, sizeof(node));
+  node.dev = &dev;
+  dev.direction = CRAS_STREAM_OUTPUT;
+  strcpy(node.name, "DAISY-I2S Headphone Jack");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  ASSERT_EQ(0, node.plugged);
+  ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
+  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
+  // Node name is changed to "Headphone".
+  ASSERT_EQ(0, strcmp(node.name, "Headphone"));
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
