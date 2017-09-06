@@ -1087,6 +1087,26 @@ static void signal_num_active_streams_changed(void *context,
 	dbus_message_unref(msg);
 }
 
+static void signal_hotword_triggered(void *context,
+				     int64_t tv_sec,
+				     int64_t tv_nsec)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+
+	msg = create_dbus_message("HotwordTriggered");
+	if (!msg)
+		return;
+
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_INT64, &tv_sec,
+				 DBUS_TYPE_INT64, &tv_nsec,
+				 DBUS_TYPE_INVALID);
+	dbus_connection_send(control->conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -1125,6 +1145,7 @@ void cras_dbus_control_start(DBusConnection *conn)
 	observer_ops.output_node_volume_changed = signal_node_volume_changed;
 	observer_ops.node_left_right_swapped_changed =
 			signal_node_left_right_swapped_changed;
+	observer_ops.hotword_triggered = signal_hotword_triggered;
 
 	dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }

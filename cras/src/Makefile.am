@@ -107,6 +107,7 @@ cras_SOURCES = \
 	server/cras_expr.c \
 	server/cras_fmt_conv.c \
 	server/cras_gpio_jack.c \
+	server/cras_hotword_handler.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \

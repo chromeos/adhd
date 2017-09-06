@@ -221,3 +221,7 @@ Signals		OutputVolumeChanged(int32 volume)
 		NumberOfActiveStreamsChanged(int32 num_active_streams)
 
 			Indicates the number of active streams has changed.
+
+		HotwordTriggered(int64 tv_sec, int64 tv_nsec)
+
+			Indicates that hotword was triggered at the given timestamp.

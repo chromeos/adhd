@@ -196,7 +196,7 @@ class ObserverTest : public testing::Test {
     ResetStubData();
     rc = cras_observer_server_init();
     ASSERT_EQ(0, rc);
-    EXPECT_EQ(13, cras_alert_create_called);
+    EXPECT_EQ(14, cras_alert_create_called);
     EXPECT_EQ(reinterpret_cast<void *>(output_volume_alert),
               cras_alert_add_callback_map[g_observer->alerts.output_volume]);
     EXPECT_EQ(reinterpret_cast<void *>(output_mute_alert),
@@ -230,6 +230,8 @@ class ObserverTest : public testing::Test {
                                                CRAS_STREAM_POST_MIX_PRE_DSP]]);
     EXPECT_EQ(reinterpret_cast<void *>(suspend_changed_alert),
        cras_alert_add_callback_map[g_observer->alerts.suspend_changed]);
+    EXPECT_EQ(reinterpret_cast<void *>(hotword_triggered_alert),
+        cras_alert_add_callback_map[g_observer->alerts.hotword_triggered]);
 
     cras_observer_get_ops(NULL, &ops1_);
     EXPECT_NE(0, cras_observer_ops_are_empty(&ops1_));
@@ -243,7 +245,7 @@ class ObserverTest : public testing::Test {
 
   virtual void TearDown() {
     cras_observer_server_free();
-    EXPECT_EQ(13, cras_alert_destroy_called);
+    EXPECT_EQ(14, cras_alert_destroy_called);
     ResetStubData();
   }
 
@@ -566,6 +568,20 @@ TEST_F(ObserverTest, NotifyNumActiveStreams) {
 
   DoObserverRemoveClear(num_active_streams_alert, data);
 };
+
+TEST_F(ObserverTest, NotifyHotwordTriggered) {
+  struct cras_observer_alert_data_hotword_triggered *data;
+
+  cras_observer_notify_hotword_triggered(100, 200);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+      g_observer->alerts.hotword_triggered);
+  ASSERT_EQ(cras_alert_pending_data_size_value, sizeof(*data));
+  ASSERT_NE(cras_alert_pending_data_value, reinterpret_cast<void *>(NULL));
+  data = reinterpret_cast<struct cras_observer_alert_data_hotword_triggered *>(
+          cras_alert_pending_data_value);
+  EXPECT_EQ(data->tv_sec, 100);
+  EXPECT_EQ(data->tv_nsec, 200);
+}
 
 // Stubs
 extern "C" {

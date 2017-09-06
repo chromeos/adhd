@@ -49,6 +49,9 @@ struct cras_observer_ops {
 	void (*num_active_streams_changed)(void *context,
 					   enum CRAS_STREAM_DIRECTION dir,
 					   uint32_t num_active_streams);
+	/* Hotword triggered. */
+	void (*hotword_triggered)(void *context,
+				  int64_t tv_sec, int64_t tv_nsec);
 };
 
 #endif /* CRAS_OBSERVER_OPS_H */

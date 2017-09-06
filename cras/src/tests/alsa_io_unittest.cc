@@ -147,6 +147,9 @@ static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve *fake_get_dBFS_volume_curve_val;
 static int cras_iodev_dsp_set_swap_mode_for_node_called;
 static std::map<std::string, long> ucm_get_default_node_gain_values;
+static thread_callback audio_thread_cb;
+static void *audio_thread_cb_data;
+static int hotword_send_triggered_msg_called;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -2116,6 +2119,36 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   free(cras_alsa_mmap_begin_buffer);
 }
 
+TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
+  struct cras_iodev *iodev;
+  struct cras_audio_format format;
+  struct cras_ionode node;
+  int rc;
+
+  ResetStubData();
+  iodev = alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_INPUT);
+  format.frame_rate = 16000;
+  format.num_channels = 1;
+  cras_iodev_set_format(iodev, &format);
+
+  memset(&node, 0, sizeof(node));
+  node.dev = iodev;
+  strcpy(node.name, "Wake on Voice");
+  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
+  EXPECT_EQ(CRAS_NODE_TYPE_HOTWORD, node.type);
+
+  iodev->active_node = &node;
+  iodev->open_dev(iodev);
+  rc = iodev->configure_dev(iodev);
+  free(fake_format);
+  ASSERT_EQ(0, rc);
+
+  ASSERT_NE(reinterpret_cast<thread_callback>(NULL), audio_thread_cb);
+  audio_thread_cb(audio_thread_cb_data);
+  EXPECT_EQ(1, hotword_send_triggered_msg_called);
+}
 
 }  //  namespace
 
@@ -2784,6 +2817,8 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 
 void audio_thread_add_callback(int fd, thread_callback cb, void *data)
 {
+  audio_thread_cb = cb;
+  audio_thread_cb_data = data;
 }
 
 void audio_thread_rm_callback(int fd)
@@ -2791,6 +2826,27 @@ void audio_thread_rm_callback(int fd)
 }
 
 int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd) {
+  return 0;
+}
+
+int cras_hotword_send_triggered_msg()
+{
+  hotword_send_triggered_msg_called++;
+  return 0;
+}
+
+int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
+{
+  return 1;
+}
+
+int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds,
+                             unsigned int space)
+{
+  if (space >= 1) {
+    pfds[0].events = POLLIN;
+    pfds[0].fd = 99;
+  }
   return 0;
 }
 

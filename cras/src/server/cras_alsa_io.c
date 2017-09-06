@@ -23,6 +23,7 @@
 #include "cras_audio_area.h"
 #include "cras_config.h"
 #include "cras_utf8.h"
+#include "cras_hotword_handler.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
@@ -344,6 +345,10 @@ static int dummy_hotword_cb(void *arg)
 	audio_thread_rm_callback(aio->poll_fd);
 	aio->poll_fd = -1;
 	aio->base.input_streaming = 1;
+
+	/* Send hotword triggered signal. */
+	cras_hotword_send_triggered_msg();
+
 	return 0;
 }
 
