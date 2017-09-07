@@ -343,6 +343,7 @@ static int dummy_hotword_cb(void *arg)
 	struct alsa_io *aio = (struct alsa_io *)arg;
 	audio_thread_rm_callback(aio->poll_fd);
 	aio->poll_fd = -1;
+	aio->base.input_streaming = 1;
 	return 0;
 }
 

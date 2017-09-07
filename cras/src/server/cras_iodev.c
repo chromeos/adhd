@@ -856,6 +856,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		 * No stream state is only for output device. Input device
 		 * should be in normal run state. */
 		iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+		/* Initialize the input_streaming flag to zero.*/
+		iodev->input_streaming = 0;
 	}
 
 	return 0;
@@ -1058,8 +1060,14 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev,
 	int rc;
 
 	rc = iodev->frames_queued(iodev, hw_tstamp);
-	if (rc < 0 || iodev->direction == CRAS_STREAM_INPUT)
+	if (rc < 0)
 		return rc;
+
+	if (iodev->direction == CRAS_STREAM_INPUT) {
+		if (rc > 0)
+			iodev->input_streaming = 1;
+		return rc;
+	}
 
 	if (rc < iodev->min_buffer_level)
 		return 0;

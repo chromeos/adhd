@@ -17,13 +17,11 @@
  *    dev - The device.
  *    wake_ts - When callback is needed to avoid xrun.
  *    coarse_rate_adjust - Hack for when the sample rate needs heavy correction.
- *    input_streaming - For capture, has the input received samples?
  */
 struct open_dev {
 	struct cras_iodev *dev;
 	struct timespec wake_ts;
 	int coarse_rate_adjust;
-	int input_streaming;
 	struct open_dev *prev, *next;
 };
 

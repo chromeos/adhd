@@ -175,6 +175,7 @@ struct cras_ionode {
  * reset_request_pending - The flag for pending reset request.
  * ramp - The cras_ramp struct to control ramping up/down at mute/unmute and
  *        start of playback.
+ * input_streaming - For capture only. Indicate if input has started.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -239,6 +240,7 @@ struct cras_iodev {
 	iodev_hook_t post_close_iodev_hook;
 	int reset_request_pending;
 	struct cras_ramp* ramp;
+	int input_streaming;
 	struct cras_iodev *prev, *next;
 };
 
@@ -548,6 +550,12 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev,
 static inline int cras_iodev_delay_frames(const struct cras_iodev *iodev)
 {
 	return iodev->delay_frames(iodev) + cras_iodev_get_dsp_delay(iodev);
+}
+
+/* Returns if input iodev has started streaming. */
+static inline int cras_iodev_input_streaming(const struct cras_iodev *iodev)
+{
+	return iodev->input_streaming;
 }
 
 /* Returns true if the device is open. */

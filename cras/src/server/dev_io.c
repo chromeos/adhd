@@ -297,9 +297,6 @@ static int capture_to_streams(struct open_dev *adev)
 	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO_TSTAMP, idev->info.idx,
 	      hw_tstamp.tv_sec, hw_tstamp.tv_nsec);
 	if (timespec_is_nonzero(&hw_tstamp)) {
-		if (hw_level)
-			adev->input_streaming = 1;
-
 		if (hw_level < idev->min_cb_level / 2)
 			adev->coarse_rate_adjust = 1;
 		else if (hw_level > idev->max_cb_level * 2)
@@ -662,7 +659,7 @@ static int input_adev_ignore_wake(const struct open_dev *adev)
 		return 1;
 
 	if (adev->dev->active_node->type == CRAS_NODE_TYPE_HOTWORD &&
-	    !adev->input_streaming)
+	    !cras_iodev_input_streaming(adev->dev))
 		return 1;
 
 	return 0;

@@ -322,8 +322,6 @@ static int thread_add_open_dev(struct audio_thread *thread,
 	 */
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		fill_odevs_zeros_min_level(iodev);
-	else
-		adev->input_streaming = 0;
 
 	ATLOG(atlog, AUDIO_THREAD_DEV_ADDED, iodev->info.idx, 0, 0);
 
