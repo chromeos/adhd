@@ -443,6 +443,9 @@ static void suspend_devs()
 		if (rstream->is_pinned) {
 			struct cras_iodev *dev;
 
+			if (rstream->flags == HOTWORD_STREAM)
+				continue;
+
 			dev = find_dev(rstream->pinned_dev_idx);
 			if (dev) {
 				audio_thread_disconnect_stream(audio_thread,
@@ -472,8 +475,11 @@ static void resume_devs()
 	struct cras_rstream *rstream;
 
 	stream_list_suspended = 0;
-	DL_FOREACH(stream_list_get(stream_list), rstream)
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->flags == HOTWORD_STREAM)
+			continue;
 		stream_added_cb(rstream);
+	}
 }
 
 /* Called when the system audio is suspended or resumed. */
