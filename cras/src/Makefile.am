@@ -726,6 +726,7 @@ timing_unittest_SOURCES = \
 	server/dev_io.c \
 	server/dev_stream.c \
 	server/linear_resampler.c \
+	tests/dev_io_stubs.cc \
 	tests/iodev_stub.cc \
 	tests/rstream_stub.cc \
 	tests/timing_unittest.cc
