@@ -285,6 +285,7 @@ TESTS = \
 	cras_client_unittest \
 	cras_tm_unittest \
 	device_monitor_unittest \
+	dev_io_unittest \
 	dev_stream_unittest \
 	device_blacklist_unittest \
 	dsp_core_unittest \
@@ -532,6 +533,35 @@ cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 cras_tm_unittest_LDADD = -lgtest -lpthread
+
+dev_io_unittest_SOURCES = \
+	common/cras_audio_format.c \
+	common/cras_shm.c \
+	server/cras_audio_area.c \
+	server/cras_fmt_conv.c \
+	server/cras_mix.c \
+	server/cras_mix_ops.c \
+	server/dev_io.c \
+	server/dev_stream.c \
+	server/linear_resampler.c \
+	tests/dev_io_stubs.cc \
+	tests/iodev_stub.cc \
+	tests/rstream_stub.cc \
+	tests/dev_io_unittest.cc
+dev_io_unittest_CXXFLAGS = \
+	-std=c++11
+dev_io_unittest_CPPFLAGS = \
+	$(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config
+dev_io_unittest_LDADD = \
+	libcrasmix.la \
+	$(CRAS_SSE4_2) \
+	$(CRAS_AVX) \
+	$(CRAS_AVX2) \
+	$(CRAS_FMA) \
+	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
 
 dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
 	server/dev_stream.c
