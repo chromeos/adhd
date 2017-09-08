@@ -226,7 +226,10 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	add_timespecs(&min_ts, &now);
 
-	curr_level = cras_iodev_frames_queued(adev->dev, &level_tstamp);
+	rc = cras_iodev_frames_queued(adev->dev, &level_tstamp);
+	if (rc < 0)
+		return rc;
+	curr_level = rc;
 	if (!timespec_is_nonzero(&level_tstamp))
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
