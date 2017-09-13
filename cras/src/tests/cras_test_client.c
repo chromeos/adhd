@@ -662,7 +662,8 @@ static int run_file_io_stream(struct cras_client *client,
 			      size_t rate,
 			      size_t num_channels,
 			      uint32_t flags,
-			      int is_loopback)
+			      int is_loopback,
+			      int is_post_dsp)
 {
 	int rc, tty;
 	struct cras_stream_params *params;
@@ -729,10 +730,13 @@ static int run_file_io_stream(struct cras_client *client,
 
 	cras_client_run_thread(client);
 	if (is_loopback) {
+		enum CRAS_NODE_TYPE type = (is_post_dsp ?
+					    CRAS_NODE_TYPE_POST_DSP :
+					    CRAS_NODE_TYPE_POST_MIX_PRE_DSP);
+
 		cras_client_connected_wait(client);
-		pin_device_id = cras_client_get_first_dev_type_idx(client,
-				CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
-				CRAS_STREAM_INPUT);
+		pin_device_id = cras_client_get_first_dev_type_idx(
+				client, type, CRAS_STREAM_INPUT);
 	}
 
 	stream_playing =
@@ -886,7 +890,8 @@ static int run_capture(struct cras_client *client,
 		       size_t rate,
 		       size_t num_channels,
 		       uint32_t flags,
-		       int is_loopback)
+		       int is_loopback,
+		       int is_post_dsp)
 {
 	int fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0666);
 	if (fd == -1) {
@@ -895,7 +900,8 @@ static int run_capture(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size,
-			   stream_type, rate, num_channels, flags, is_loopback);
+			   stream_type, rate, num_channels, flags, is_loopback,
+			   is_post_dsp);
 
 	close(fd);
 	return 0;
@@ -917,7 +923,7 @@ static int run_playback(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, block_size,
-			   stream_type, rate, num_channels, 0, 0);
+			   stream_type, rate, num_channels, 0, 0, 0);
 
 	close(fd);
 	return 0;
@@ -1047,6 +1053,7 @@ static struct option long_options[] = {
 	{"syslog_mask",		required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
 	{"stream_type",		required_argument,	0, 'T'},
+	{"post_dsp",            required_argument,	0, 'A'},
 	{0, 0, 0, 0}
 };
 
@@ -1070,7 +1077,7 @@ static void show_usage()
 	printf("--get_hotword_models <N>:<M> - Get the supported hotword models of node\n");
 	printf("--help - Print this message.\n");
 	printf("--listen_for_hotword <name> - Listen and capture hotword stream if supported\n");
-	printf("--loopback_file <name> - Name of file to record loopback to.\n");
+	printf("--loopback_file <name> - Name of file to record from loopback device.\n");
 	printf("--mute <0|1> - Set system mute state.\n");
 	printf("--mute_loop_test <0|1> - Continuously loop mute/umute. Argument: 0 - stop on error.\n"
 	       "                         1 - automatically reconnect to CRAS.\n");
@@ -1092,6 +1099,9 @@ static void show_usage()
 	printf("--select_output <N>:<M> - Select the ionode with the given id as preferred output\n");
 	printf("--set_hotword_model <N>:<M>:<model> - Set the model to node\n");
 	printf("--playback_delay_us <N> - Set the time in us to delay a reply for playback when i is pressed\n");
+	printf("--post_dsp <0|1> - Use this flag with --loopback_file. The default value is 0.\n"
+	       "                   Argument: 0 - Record from post-mix, pre-DSP loopback device.\n"
+	       "                             1 - Record from post-DSP loopback device.\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
 	printf("--show_rms - Display RMS value of loopback stream.\n");
@@ -1119,6 +1129,7 @@ int main(int argc, char **argv)
 	const char *capture_file = NULL;
 	const char *playback_file = NULL;
 	const char *loopback_file = NULL;
+	int post_dsp = 0;
 	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	int rc = 0;
 	uint32_t stream_flags = 0;
@@ -1153,6 +1164,9 @@ int main(int argc, char **argv)
 			break;
 		case 'l':
 			loopback_file = optarg;
+			break;
+		case 'A':
+			post_dsp = atoi(optarg);
 			break;
 		case 'b':
 			block_size = atoi(optarg);
@@ -1439,23 +1453,23 @@ int main(int argc, char **argv)
 		if (strcmp(capture_file, "-") == 0)
 			rc = run_file_io_stream(client, 1, CRAS_STREAM_INPUT,
 					block_size, stream_type, rate,
-					num_channels, stream_flags, 0);
+					num_channels, stream_flags, 0, 0);
 		else
 			rc = run_capture(client, capture_file, block_size,
 					 stream_type, rate, num_channels,
-					 stream_flags, 0);
+					 stream_flags, 0, 0);
 	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
 					block_size, stream_type, rate,
-					num_channels, stream_flags, 0);
+					num_channels, stream_flags, 0, 0);
 		else
 			rc = run_playback(client, playback_file, block_size,
 					  stream_type, rate, num_channels);
 	} else if (loopback_file != NULL) {
 		rc = run_capture(client, loopback_file, block_size,
 				 stream_type, rate, num_channels,
-				 stream_flags, 1);
+				 stream_flags, 1, post_dsp);
 	}
 
 destroy_exit:
