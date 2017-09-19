@@ -54,6 +54,7 @@ void ResetGlobalStubData() {
   }
   cras_iodev_all_streams_written_ret = 0;
   if (cras_iodev_get_output_buffer_area) {
+    free(cras_iodev_get_output_buffer_area->channels[0].buf);
     free(cras_iodev_get_output_buffer_area);
     cras_iodev_get_output_buffer_area = NULL;
   }
@@ -84,6 +85,8 @@ class StreamDeviceSuite : public testing::Test {
     }
 
     virtual void TearDown() {
+      audio_thread_destroy(thread_);
+      ResetGlobalStubData();
     }
 
     virtual void SetupDevice(cras_iodev *iodev,
@@ -118,7 +121,7 @@ class StreamDeviceSuite : public testing::Test {
       rstream->direction = direction;
       rstream->cb_threshold = 480;
       rstream->shm.area = static_cast<cras_audio_shm_area*>(
-          calloc(1, sizeof(rstream->shm.area)));
+          calloc(1, sizeof(*rstream->shm.area)));
     }
 
     void TearDownRstream(struct cras_rstream *rstream) {
@@ -251,6 +254,7 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(&iodev, cras_iodev_start_ramp_odev);
   EXPECT_EQ(req, cras_iodev_start_ramp_request);
+  thread_rm_open_dev(thread_, &iodev);
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveOpenInputDevice) {
@@ -320,6 +324,9 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
   thread_rm_open_dev(thread_, &idev3);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &idev2);
+  thread_rm_open_dev(thread_, &idev2);
+  thread_rm_open_dev(thread_, &odev2);
+  thread_rm_open_dev(thread_, &odev3);
 }
 
 TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
@@ -363,6 +370,8 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   EXPECT_EQ(&rstream2, cras_rstream_dev_offset_update_rstream_val[1]);
   EXPECT_EQ(0, cras_rstream_dev_offset_update_frames_val[1]);
 
+  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, &iodev2);
   TearDownRstream(&rstream);
   TearDownRstream(&rstream2);
   TearDownRstream(&rstream3);
@@ -405,6 +414,7 @@ TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
   EXPECT_EQ(ts_wake_1.tv_sec, adev->wake_ts.tv_sec);
   EXPECT_EQ(ts_wake_1.tv_nsec, adev->wake_ts.tv_nsec);
 
+  thread_rm_open_dev(thread_, &iodev);
   TearDownRstream(&rstream1);
   TearDownRstream(&rstream2);
 }
@@ -473,6 +483,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   dev_stream = iodev.streams;
   EXPECT_EQ(NULL, dev_stream);
 
+  thread_rm_open_dev(thread_, &iodev);
   TearDownRstream(&rstream);
   TearDownRstream(&rstream2);
   TearDownRstream(&rstream3);
