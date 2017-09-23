@@ -375,13 +375,15 @@ int cras_rclient_buffer_from_client(struct cras_rclient *client,
                                     int fd) {
         struct cras_server_message *msg = (struct cras_server_message *)buf;
 
-        if (buf_len < sizeof(msg->length))
+        if (buf_len < sizeof(*msg))
                 return -EINVAL;
         if (msg->length != buf_len)
                 return -EINVAL;
         cras_rclient_message_from_client(client, msg, fd);
         return 0;
 }
+
+#define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
 
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
@@ -407,64 +409,90 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM:
+                if (!MSG_LEN_VALID(msg, struct cras_connect_message))
+                        return -EINVAL;
 		handle_client_stream_connect(client,
 			(const struct cras_connect_message *)msg, fd);
 		break;
 	case CRAS_SERVER_DISCONNECT_STREAM:
+                if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))
+                        return -EINVAL;
 		handle_client_stream_disconnect(client,
 			(const struct cras_disconnect_stream_message *)msg);
 		break;
 	case CRAS_SERVER_SET_SYSTEM_VOLUME:
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_volume))
+                        return -EINVAL;
 		cras_system_set_volume(
 			((const struct cras_set_system_volume *)msg)->volume);
 		break;
 	case CRAS_SERVER_SET_SYSTEM_MUTE:
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_mute))
+                        return -EINVAL;
 		cras_system_set_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
 	case CRAS_SERVER_SET_USER_MUTE:
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_mute))
+                        return -EINVAL;
 		cras_system_set_user_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
 	case CRAS_SERVER_SET_SYSTEM_MUTE_LOCKED:
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_mute))
+                        return -EINVAL;
 		cras_system_set_mute_locked(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
 	case CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN: {
 		const struct cras_set_system_capture_gain *m =
 			(const struct cras_set_system_capture_gain *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_capture_gain))
+                        return -EINVAL;
 		cras_system_set_capture_gain(m->gain);
 		break;
 	}
 	case CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE:
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_mute))
+                        return -EINVAL;
 		cras_system_set_capture_mute(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
 	case CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED:
+                if (!MSG_LEN_VALID(msg, struct cras_set_system_mute))
+                        return -EINVAL;
 		cras_system_set_capture_mute_locked(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
 	case CRAS_SERVER_SET_NODE_ATTR: {
 		const struct cras_set_node_attr *m =
 			(const struct cras_set_node_attr *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_set_node_attr))
+                        return -EINVAL;
 		cras_iodev_list_set_node_attr(m->node_id, m->attr, m->value);
 		break;
 	}
 	case CRAS_SERVER_SELECT_NODE: {
 		const struct cras_select_node *m =
 			(const struct cras_select_node *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_select_node))
+                        return -EINVAL;
 		cras_iodev_list_select_node(m->direction, m->node_id);
 		break;
 	}
 	case CRAS_SERVER_ADD_ACTIVE_NODE: {
 		const struct cras_add_active_node *m =
 			(const struct cras_add_active_node *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_add_active_node))
+                        return -EINVAL;
 		cras_iodev_list_add_active_node(m->direction, m->node_id);
 		break;
 	}
 	case CRAS_SERVER_RM_ACTIVE_NODE: {
 		const struct cras_rm_active_node *m =
 			(const struct cras_rm_active_node *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_rm_active_node))
+                        return -EINVAL;
 		cras_iodev_list_rm_active_node(m->direction, m->node_id);
 		break;
 	}
@@ -480,12 +508,16 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_ADD_TEST_DEV: {
 		const struct cras_add_test_dev *m =
 			(const struct cras_add_test_dev *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_add_test_dev))
+                        return -EINVAL;
 		cras_iodev_list_add_test_dev(m->type);
 		break;
 	}
 	case CRAS_SERVER_TEST_DEV_COMMAND: {
 		const struct cras_test_dev_command *m =
 			(const struct cras_test_dev_command *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_test_dev_command))
+                        return -EINVAL;
 		cras_iodev_list_test_dev_command(
 			m->iodev_idx, (enum CRAS_TEST_IODEV_CMD)m->command,
 			m->data_len, m->data);
@@ -500,6 +532,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_CONFIG_GLOBAL_REMIX: {
 		const struct cras_config_global_remix *m =
 			(const struct cras_config_global_remix *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_config_global_remix))
+                        return -EINVAL;
 		audio_thread_config_global_remix(
 				cras_iodev_list_get_audio_thread(),
 				m->num_channels,
@@ -507,6 +541,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		break;
 	}
 	case CRAS_SERVER_GET_HOTWORD_MODELS: {
+                if (!MSG_LEN_VALID(msg, struct cras_get_hotword_models))
+                        return -EINVAL;
 		handle_get_hotword_models(client,
 			((const struct cras_get_hotword_models *)msg)->node_id);
 		break;
@@ -514,6 +550,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_SET_HOTWORD_MODEL: {
 		const struct cras_set_hotword_model *m =
 			(const struct cras_set_hotword_model *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_set_hotword_model))
+                        return -EINVAL;
 		cras_iodev_list_set_hotword_model(m->node_id,
 						  m->model_name);
 		break;
@@ -521,6 +559,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_REGISTER_NOTIFICATION: {
 		const struct cras_register_notification *m =
 			(struct cras_register_notification *)msg;
+                if (!MSG_LEN_VALID(msg, struct cras_register_notification))
+                        return -EINVAL;
 		register_for_notification(
 			client, (enum CRAS_CLIENT_MESSAGE_ID)m->msg_id,
 			m->do_register);
