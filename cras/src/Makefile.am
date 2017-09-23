@@ -56,7 +56,8 @@ CRAS_DBUS_SOURCES = \
 	server/cras_a2dp_endpoint.c \
 	server/cras_a2dp_info.c \
 	server/cras_a2dp_iodev.c \
-	server/cras_telephony.c
+	server/cras_telephony.c \
+	server/cras_utf8.c
 else
 CRAS_DBUS_SOURCES =
 endif
@@ -117,7 +118,6 @@ cras_SOURCES = \
 	server/cras_ramp.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
-	server/cras_utf8.c \
 	server/cras_server.c \
 	server/cras_server_metrics.c \
 	server/cras_system_state.c \
@@ -455,7 +455,8 @@ alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	common/sfh.c \
 	server/cras_alsa_ucm_section.c \
 	server/cras_alsa_mixer_name.c
-alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
+alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DBUS_CFLAGS) \
+	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server/config
 alsa_io_unittest_LDADD = -lgtest -lpthread

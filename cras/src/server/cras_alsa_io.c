@@ -897,6 +897,7 @@ int endswith(const char *s, const char *suffix)
 	return n >= m && !strcmp(s + (n - m), suffix);
 }
 
+#ifdef CRAS_DBUS
 /*
  * Drop the node name and replace it with node type.
  */
@@ -913,6 +914,7 @@ static void drop_node_name(struct cras_ionode *node)
 		strcpy(node->name, DEFAULT);
 	}
 }
+#endif
 
 /*
  * Sets the initial plugged state and type of a node based on its
@@ -974,8 +976,10 @@ static void set_node_initial_state(struct cras_ionode *node,
 		node->position = NODE_POSITION_EXTERNAL;
 	}
 
+#ifdef CRAS_DBUS
 	if (!is_utf8_string(node->name))
 		drop_node_name(node);
+#endif
 }
 
 static int get_ucm_flag_integer(struct alsa_io *aio,
@@ -1449,9 +1453,12 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 
 	cras_alsa_jack_update_monitor_name(jack, node->base.name,
 					   sizeof(node->base.name));
+
+#ifdef CRAS_DBUS
 	/* The name got from jack might be an invalid UTF8 string. */
 	if (!is_utf8_string(node->base.name))
 		drop_node_name(&node->base);
+#endif
 
 	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
 
