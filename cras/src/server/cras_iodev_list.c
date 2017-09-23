@@ -52,6 +52,9 @@ static struct enabled_dev *enabled_devs[CRAS_NUM_DIRECTIONS];
 static struct cras_iodev *fallback_devs[CRAS_NUM_DIRECTIONS];
 /* Special empty device for hotword streams. */
 static struct cras_iodev *empty_hotword_dev;
+/* Loopback devices. */
+static struct cras_iodev *loopdev_post_mix;
+static struct cras_iodev *loopdev_post_dsp;
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
@@ -899,8 +902,8 @@ void cras_iodev_list_init()
 			CRAS_NODE_TYPE_HOTWORD);
 
 	/* Create loopback devices. */
-	loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
-	loopback_iodev_create(LOOPBACK_POST_DSP);
+	loopdev_post_mix = loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
+	loopdev_post_dsp = loopback_iodev_create(LOOPBACK_POST_DSP);
 
 	audio_thread = audio_thread_create();
 	if (!audio_thread) {
@@ -914,12 +917,17 @@ void cras_iodev_list_init()
 
 void cras_iodev_list_deinit()
 {
+	audio_thread_destroy(audio_thread);
+	loopback_iodev_destroy(loopdev_post_dsp);
+	loopback_iodev_destroy(loopdev_post_mix);
+	empty_iodev_destroy(empty_hotword_dev);
+	empty_iodev_destroy(fallback_devs[CRAS_STREAM_INPUT]);
+	empty_iodev_destroy(fallback_devs[CRAS_STREAM_OUTPUT]);
+	stream_list_destroy(stream_list);
 	if (list_observer) {
 		cras_observer_remove(list_observer);
 		list_observer = NULL;
 	}
-	audio_thread_destroy(audio_thread);
-	stream_list_destroy(stream_list);
 }
 
 int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev)

@@ -1573,6 +1573,9 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
   return dev;
 }
 
+void empty_iodev_destroy(struct cras_iodev *iodev) {
+}
+
 struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
                                      enum TEST_IODEV_TYPE type) {
   return NULL;
