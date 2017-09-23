@@ -62,7 +62,7 @@ else
 CRAS_DBUS_SOURCES =
 endif
 
-cras_SOURCES = \
+cras_server_SOURCES = \
 	$(CRAS_DBUS_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
@@ -87,7 +87,6 @@ cras_SOURCES = \
 	server/config/cras_board_config.c \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blacklist.c \
-	server/cras.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -118,7 +117,6 @@ cras_SOURCES = \
 	server/cras_ramp.c \
 	server/cras_rclient.c \
 	server/cras_rstream.c \
-	server/cras_server.c \
 	server/cras_server_metrics.c \
 	server/cras_system_state.c \
 	server/cras_tm.c \
@@ -132,6 +130,26 @@ cras_SOURCES = \
 	server/rate_estimator.c \
 	server/softvol_curve.c
 
+libcrasserver_la_SOURCES = \
+	$(cras_server_SOURCES)
+libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/server/config \
+	$(DBUS_CFLAGS) $(SBC_CFLAGS)
+libcrasserver_la_LIBADD = \
+	libcrasmix.la \
+	$(CRAS_SSE4_2) \
+	$(CRAS_AVX) \
+	$(CRAS_AVX2) \
+	$(CRAS_FMA) \
+	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
+	$(SBC_LIBS) \
+	$(DBUS_LIBS)
+
+cras_SOURCES = \
+	server/cras.c \
+	server/cras_server.c
+
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
@@ -139,6 +157,7 @@ cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 
 cras_LDADD = \
 	libcrasmix.la \
+	libcrasserver.la \
 	$(CRAS_SSE4_2) \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
@@ -152,7 +171,8 @@ noinst_LTLIBRARIES = \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
-	libcrasmix.la
+	libcrasmix.la \
+	libcrasserver.la
 
 libcrasmix_la_SOURCES = \
 	server/cras_mix_ops.c
