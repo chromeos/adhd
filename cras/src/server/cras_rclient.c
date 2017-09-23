@@ -369,6 +369,22 @@ void cras_rclient_destroy(struct cras_rclient *client)
 
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
+int cras_rclient_buffer_from_client(struct cras_rclient *client,
+                                    const uint8_t *buf,
+                                    size_t buf_len,
+                                    int fd) {
+        struct cras_server_message *msg = (struct cras_server_message *)buf;
+
+        if (buf_len < sizeof(msg->length))
+                return -EINVAL;
+        if (msg->length != buf_len)
+                return -EINVAL;
+        cras_rclient_message_from_client(client, msg, fd);
+        return 0;
+}
+
+/* Entry point for handling a message from the client.  Called from the main
+ * server context. */
 int cras_rclient_message_from_client(struct cras_rclient *client,
 				     const struct cras_server_message *msg,
 				     int fd) {

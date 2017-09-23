@@ -42,6 +42,22 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 				     const struct cras_server_message *msg,
 				     int fd);
 
+/* Handles a received buffer from the client.
+ * Args:
+ *    client - The client that received this message.
+ *    buf - The raw byte buffer the client sent. It should contain a valid
+ *      cras_server_message.
+ *    buf_len - The length of |buf|.
+ *    fd - The file descriptor that was sent by the remote client (or -1 if no
+ *         file descriptor was sent).
+ * Returns:
+ *    0 on success, otherwise a negative error code.
+ */
+int cras_rclient_buffer_from_client(struct cras_rclient *client,
+				    const uint8_t *buf,
+                                    size_t buf_len,
+                                    int fd);
+
 /* Sends a message to the client.
  * Args:
  *    client - The client to send the message to.
