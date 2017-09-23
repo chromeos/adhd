@@ -26,6 +26,9 @@ struct dev_stream;
  *    started - Non-zero if the thread has started successfully.
  *    suspended - Non-zero if the thread is suspended.
  *    open_devs - Lists of open input and output devices.
+ *    pollfds - What FDs wake up this thread.
+ *    pollfds_size - Number of available poll fds.
+ *    num_pollfds - Number of currently registered poll fds.
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -34,7 +37,9 @@ struct audio_thread {
 	int started;
 	int suspended;
 	struct open_dev *open_devs[CRAS_NUM_DIRECTIONS];
-
+	struct pollfd *pollfds;
+	size_t pollfds_size;
+	size_t num_pollfds;
 };
 
 /* Callback function to be handled in main loop in audio thread.

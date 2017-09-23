@@ -756,6 +756,27 @@ static int fill_next_sleep_interval(struct audio_thread *thread,
 	return ret;
 }
 
+static struct pollfd *add_pollfd(struct audio_thread *thread,
+				 int fd, int is_write)
+{
+	thread->pollfds[thread->num_pollfds].fd = fd;
+	if (is_write)
+		thread->pollfds[thread->num_pollfds].events = POLLOUT;
+	else
+		thread->pollfds[thread->num_pollfds].events = POLLIN;
+	thread->num_pollfds++;
+	if (thread->num_pollfds >= thread->pollfds_size) {
+		thread->pollfds_size *= 2;
+		thread->pollfds =
+			(struct pollfd *)realloc(thread->pollfds,
+						 sizeof(*thread->pollfds) *
+						 thread->pollfds_size);
+		return NULL;
+	}
+
+	return &thread->pollfds[thread->num_pollfds - 1];
+}
+
 /* For playback, fill the audio buffer when needed, for capture, pull out
  * samples when they are ready.
  * This thread will attempt to run at a high priority to allow for low latency
@@ -769,9 +790,6 @@ static void *audio_io_thread(void *arg)
 	struct open_dev *adev;
 	struct dev_stream *curr;
 	struct timespec ts, now, last_wake;
-	struct pollfd *pollfds;
-	unsigned int num_pollfds;
-	unsigned int pollfds_size = 32;
 	int msg_fd;
 	int rc;
 
@@ -785,16 +803,15 @@ static void *audio_io_thread(void *arg)
 	longest_wake.tv_sec = 0;
 	longest_wake.tv_nsec = 0;
 
-	pollfds = (struct pollfd *)malloc(sizeof(*pollfds) * pollfds_size);
-	pollfds[0].fd = msg_fd;
-	pollfds[0].events = POLLIN;
+	thread->pollfds[0].fd = msg_fd;
+	thread->pollfds[0].events = POLLIN;
 
 	while (1) {
 		struct timespec *wait_ts;
 		struct iodev_callback_list *iodev_cb;
 
 		wait_ts = NULL;
-		num_pollfds = 1;
+		thread->num_pollfds = 1;
 
 		/* device opened */
 		dev_io_run(&thread->open_devs[CRAS_STREAM_OUTPUT],
@@ -804,24 +821,15 @@ static void *audio_io_thread(void *arg)
 			wait_ts = &ts;
 
 restart_poll_loop:
-		num_pollfds = 1;
+		thread->num_pollfds = 1;
 
 		DL_FOREACH(iodev_callbacks, iodev_cb) {
 			if (!iodev_cb->enabled)
 				continue;
-			pollfds[num_pollfds].fd = iodev_cb->fd;
-			iodev_cb->pollfd = &pollfds[num_pollfds];
-			if (iodev_cb->is_write)
-				pollfds[num_pollfds].events = POLLOUT;
-			else
-				pollfds[num_pollfds].events = POLLIN;
-			num_pollfds++;
-			if (num_pollfds >= pollfds_size) {
-				pollfds_size *= 2;
-				pollfds = (struct pollfd *)realloc(pollfds,
-					sizeof(*pollfds) * pollfds_size);
-				goto restart_poll_loop;
-			}
+			iodev_cb->pollfd = add_pollfd(thread, iodev_cb->fd,
+						      iodev_cb->is_write);
+			if (!iodev_cb->pollfd)
+			    goto restart_poll_loop;
 		}
 
 		/* TODO(dgreid) - once per rstream not per dev_stream */
@@ -830,17 +838,8 @@ restart_poll_loop:
 				int fd = dev_stream_poll_stream_fd(curr);
 				if (fd < 0)
 					continue;
-				pollfds[num_pollfds].fd = fd;
-				pollfds[num_pollfds].events = POLLIN;
-				num_pollfds++;
-				if (num_pollfds >= pollfds_size) {
-					pollfds_size *= 2;
-					pollfds = (struct pollfd *)realloc(
-							pollfds,
-							sizeof(*pollfds) *
-								pollfds_size);
+				if (!add_pollfd(thread, fd, 0))
 					goto restart_poll_loop;
-				}
 			}
 		}
 		DL_FOREACH(thread->open_devs[CRAS_STREAM_INPUT], adev) {
@@ -848,17 +847,8 @@ restart_poll_loop:
 				int fd = dev_stream_poll_stream_fd(curr);
 				if (fd < 0)
 					continue;
-				pollfds[num_pollfds].fd = fd;
-				pollfds[num_pollfds].events = POLLIN;
-				num_pollfds++;
-				if (num_pollfds >= pollfds_size) {
-					pollfds_size *= 2;
-					pollfds = (struct pollfd *)realloc(
-							pollfds,
-							sizeof(*pollfds) *
-								pollfds_size);
+				if (!add_pollfd(thread, fd, 0))
 					goto restart_poll_loop;
-				}
 			}
 		}
 
@@ -872,13 +862,13 @@ restart_poll_loop:
 
 		ATLOG(atlog, AUDIO_THREAD_SLEEP, wait_ts ? wait_ts->tv_sec : 0,
 		      wait_ts ? wait_ts->tv_nsec : 0, longest_wake.tv_nsec);
-		rc = ppoll(pollfds, num_pollfds, wait_ts, NULL);
+		rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
 		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
 		if (rc <= 0)
 			continue;
 
-		if (pollfds[0].revents & POLLIN) {
+		if (thread->pollfds[0].revents & POLLIN) {
 			rc = handle_playback_thread_message(thread);
 			if (rc < 0)
 				syslog(LOG_INFO, "handle message %d", rc);
@@ -1135,6 +1125,11 @@ struct audio_thread *audio_thread_create()
 
 	atlog = audio_thread_event_log_init();
 
+	thread->pollfds_size = 32;
+	thread->pollfds =
+		(struct pollfd *)malloc(sizeof(*thread->pollfds)
+					* thread->pollfds_size);
+
 	return thread;
 }
 
@@ -1206,6 +1201,8 @@ void audio_thread_destroy(struct audio_thread *thread)
 		audio_thread_post_message(thread, &msg);
 		pthread_join(thread->tid, NULL);
 	}
+
+	free(thread->pollfds);
 
 	audio_thread_event_log_deinit(atlog);
 
