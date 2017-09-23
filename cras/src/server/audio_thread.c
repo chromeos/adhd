@@ -1198,8 +1198,6 @@ int audio_thread_start(struct audio_thread *thread)
 
 void audio_thread_destroy(struct audio_thread *thread)
 {
-	audio_thread_event_log_deinit(atlog);
-
 	if (thread->started) {
 		struct audio_thread_msg msg;
 
@@ -1208,6 +1206,8 @@ void audio_thread_destroy(struct audio_thread *thread)
 		audio_thread_post_message(thread, &msg);
 		pthread_join(thread->tid, NULL);
 	}
+
+	audio_thread_event_log_deinit(atlog);
 
 	if (thread->to_thread_fds[0] != -1) {
 		close(thread->to_thread_fds[0]);
