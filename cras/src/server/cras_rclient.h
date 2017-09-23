@@ -9,8 +9,10 @@
 #ifndef CRAS_RCLIENT_H_
 #define CRAS_RCLIENT_H_
 
+struct cras_client_message;
 struct cras_message;
 struct cras_rclient;
+struct cras_server_message;
 
 /* Creates an rclient structure.
  * Args:
