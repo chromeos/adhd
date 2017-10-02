@@ -20,6 +20,7 @@
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_HOTWORD_NAME_MAX_SIZE 8
+#define CRAS_MAX_REMIX_CHANNELS 32
 
 /* Message IDs. */
 enum CRAS_SERVER_MESSAGE_ID {
@@ -369,7 +370,10 @@ static inline void cras_fill_suspend_message(struct cras_server_message *m,
 	m->length = sizeof(*m);
 }
 
-/* Configures the global remix converter. */
+/*
+ * Configures the global remix converter.
+ * `num_channels` must be less than `CRAS_MAX_REMIX_CHANNELS`.
+ */
 struct __attribute__ ((__packed__)) cras_config_global_remix {
 	struct cras_server_message header;
 	unsigned int num_channels;

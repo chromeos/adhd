@@ -541,8 +541,13 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_CONFIG_GLOBAL_REMIX: {
 		const struct cras_config_global_remix *m =
 			(const struct cras_config_global_remix *)msg;
-                if (!MSG_LEN_VALID(msg, struct cras_config_global_remix))
-                        return -EINVAL;
+		if (!MSG_LEN_VALID(msg, struct cras_config_global_remix) ||
+		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
+			return -EINVAL;
+		size_t size_with_coefficients = sizeof(*m) +
+			m->num_channels * sizeof(m->coefficient[0]);
+		if (size_with_coefficients != msg->length)
+			return -EINVAL;
 		audio_thread_config_global_remix(
 				cras_iodev_list_get_audio_thread(),
 				m->num_channels,
