@@ -383,6 +383,12 @@ int cras_rclient_buffer_from_client(struct cras_rclient *client,
         return 0;
 }
 
+static int direction_valid(enum CRAS_STREAM_DIRECTION direction)
+{
+	return direction < CRAS_NUM_DIRECTIONS &&
+		direction != CRAS_STREAM_UNDEFINED;
+}
+
 #define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
 
 /* Entry point for handling a message from the client.  Called from the main
@@ -475,24 +481,27 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_SELECT_NODE: {
 		const struct cras_select_node *m =
 			(const struct cras_select_node *)msg;
-                if (!MSG_LEN_VALID(msg, struct cras_select_node))
-                        return -EINVAL;
+		if (!MSG_LEN_VALID(msg, struct cras_select_node) ||
+		    !direction_valid(m->direction))
+			return -EINVAL;
 		cras_iodev_list_select_node(m->direction, m->node_id);
 		break;
 	}
 	case CRAS_SERVER_ADD_ACTIVE_NODE: {
 		const struct cras_add_active_node *m =
 			(const struct cras_add_active_node *)msg;
-                if (!MSG_LEN_VALID(msg, struct cras_add_active_node))
-                        return -EINVAL;
+		if (!MSG_LEN_VALID(msg, struct cras_add_active_node) ||
+		    !direction_valid(m->direction))
+			return -EINVAL;
 		cras_iodev_list_add_active_node(m->direction, m->node_id);
 		break;
 	}
 	case CRAS_SERVER_RM_ACTIVE_NODE: {
 		const struct cras_rm_active_node *m =
 			(const struct cras_rm_active_node *)msg;
-                if (!MSG_LEN_VALID(msg, struct cras_rm_active_node))
-                        return -EINVAL;
+		if (!MSG_LEN_VALID(msg, struct cras_rm_active_node) ||
+		    !direction_valid(m->direction))
+			return -EINVAL;
 		cras_iodev_list_rm_active_node(m->direction, m->node_id);
 		break;
 	}
