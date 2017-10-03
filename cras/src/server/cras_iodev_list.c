@@ -533,6 +533,8 @@ static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 
 static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
 {
+	if (fallback_devs[dir] == NULL)
+		return;
 	if (!cras_iodev_list_dev_is_enabled(fallback_devs[dir]))
 		enable_device(fallback_devs[dir]);
 }
@@ -992,7 +994,7 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close)
 	/* If the device to be closed is the only enabled device, we should
 	 * enable the fallback device first then disable the target
 	 * device. */
-	if (is_the_only_enabled_device)
+	if (is_the_only_enabled_device && fallback_devs[dev->direction])
 		enable_device(fallback_devs[dev->direction]);
 
 	disable_device(edev_to_disable, force_close);
