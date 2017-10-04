@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include "cras_dsp_ini.h"
+#include "iniparser_wrapper.h"
 
 #define MAX_INI_KEY_LENGTH 64  /* names like "output_source:output_0" */
 #define MAX_NR_PORT 128	/* the max number of ports for a plugin */
@@ -327,7 +328,7 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 		return NULL;
 	}
 
-	dict = iniparser_load((char *)ini_filename);
+	dict = iniparser_load_wrapper((char *)ini_filename);
 	if (!dict) {
 		syslog(LOG_ERR, "no ini file %s", ini_filename);
 		goto bail;

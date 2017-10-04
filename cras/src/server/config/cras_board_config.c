@@ -3,10 +3,10 @@
  * found in the LICENSE file.
  */
 
-#include <iniparser.h>
 #include <syslog.h>
 
 #include "cras_board_config.h"
+#include "iniparser_wrapper.h"
 
 /* Allocate 63 chars + 1 for null where declared. */
 static const unsigned int MAX_INI_NAME_LEN = 63;
@@ -31,7 +31,7 @@ void cras_board_config_get(const char *config_path,
 	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", config_path,
 		CONFIG_NAME);
 	ini_name[MAX_INI_NAME_LEN] = '\0';
-	ini = iniparser_load(ini_name);
+	ini = iniparser_load_wrapper(ini_name);
 	if (ini == NULL) {
 		syslog(LOG_DEBUG, "No ini file %s", ini_name);
 		return;
