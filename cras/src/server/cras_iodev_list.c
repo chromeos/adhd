@@ -446,7 +446,7 @@ static void suspend_devs()
 		if (rstream->is_pinned) {
 			struct cras_iodev *dev;
 
-			if (rstream->flags == HOTWORD_STREAM)
+			if ((rstream->flags & HOTWORD_STREAM) == HOTWORD_STREAM)
 				continue;
 
 			dev = find_dev(rstream->pinned_dev_idx);
@@ -479,7 +479,7 @@ static void resume_devs()
 
 	stream_list_suspended = 0;
 	DL_FOREACH(stream_list_get(stream_list), rstream) {
-		if (rstream->flags == HOTWORD_STREAM)
+		if ((rstream->flags & HOTWORD_STREAM) == HOTWORD_STREAM)
 			continue;
 		stream_added_cb(rstream);
 	}
@@ -623,7 +623,7 @@ static struct cras_iodev *find_pinned_device(struct cras_rstream *rstream)
 
 	dev = find_dev(rstream->pinned_dev_idx);
 
-	if (rstream->flags != HOTWORD_STREAM)
+	if ((rstream->flags & HOTWORD_STREAM) != HOTWORD_STREAM)
 		return dev;
 
 	/* Double check node type for hotword stream */
@@ -1131,7 +1131,7 @@ int find_hotword_stream_dev(struct cras_iodev **dev,
 			    struct cras_rstream **stream)
 {
 	DL_FOREACH(stream_list_get(stream_list), *stream) {
-		if ((*stream)->flags != HOTWORD_STREAM)
+		if (((*stream)->flags & HOTWORD_STREAM) != HOTWORD_STREAM)
 			continue;
 
 		*dev = find_dev((*stream)->pinned_dev_idx);
@@ -1166,7 +1166,7 @@ int cras_iodev_list_suspend_hotword_streams()
 	/* Move all existing hotword streams to the empty hotword iodev. */
 	init_pinned_device(empty_hotword_dev, stream);
 	DL_FOREACH(stream_list_get(stream_list), stream) {
-		if (stream->flags != HOTWORD_STREAM)
+		if ((stream->flags & HOTWORD_STREAM) != HOTWORD_STREAM)
 			continue;
 		if (stream->pinned_dev_idx != hotword_dev->info.idx) {
 			syslog(LOG_ERR,
@@ -1200,7 +1200,7 @@ int cras_iodev_list_resume_hotword_stream()
 	/* Move all existing hotword streams to the real hotword iodev. */
 	init_pinned_device(hotword_dev, stream);
 	DL_FOREACH(stream_list_get(stream_list), stream) {
-		if (stream->flags != HOTWORD_STREAM)
+		if ((stream->flags & HOTWORD_STREAM) != HOTWORD_STREAM)
 			continue;
 		if (stream->pinned_dev_idx != hotword_dev->info.idx) {
 			syslog(LOG_ERR,
