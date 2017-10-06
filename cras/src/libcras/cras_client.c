@@ -57,6 +57,8 @@
 static const size_t MAX_CMD_MSG_LEN = 256;
 static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;
 static const size_t SERVER_CONNECT_TIMEOUT_MS = 1000;
+static const size_t HOTWORD_FRAME_RATE = 16000;
+static const size_t HOTWORD_BLOCK_SIZE = 320;
 
 /* Commands sent from the user to the running client. */
 enum {
@@ -254,6 +256,20 @@ struct client_int {
 
 #define to_client_int(cptr) \
 ((struct client_int *)((char *)cptr - offsetof(struct client_int, client)))
+
+/*
+ * Holds the hotword stream format, params, and ID used when waiting for a
+ * hotword. The structure is created by cras_client_enable_hotword_callback and
+ * destroyed by cras_client_disable_hotword_callback.
+ */
+struct cras_hotword_handle {
+	struct cras_audio_format *format;
+	struct cras_stream_params *params;
+	cras_stream_id_t stream_id;
+	cras_hotword_trigger_cb_t trigger_cb;
+	cras_hotword_error_cb_t err_cb;
+	void *user_data;
+};
 
 /*
  * Local Helpers
@@ -3453,5 +3469,108 @@ static int reregister_notifications(struct cras_client *client)
 		if (rc != 0)
 			return rc;
 	}
+	return 0;
+}
+
+static int hotword_read_cb(struct cras_client *client,
+			   cras_stream_id_t stream_id,
+			   uint8_t *captured_samples,
+			   uint8_t *playback_samples,
+			   unsigned int frames,
+			   const struct timespec *captured_time,
+			   const struct timespec *playback_time,
+			   void *user_arg)
+{
+	struct cras_hotword_handle *handle;
+
+	handle = (struct cras_hotword_handle *)user_arg;
+	if (handle->trigger_cb)
+		handle->trigger_cb(client, handle, handle->user_data);
+
+	return 0;
+}
+
+static int hotword_err_cb(struct cras_client *client,
+			  cras_stream_id_t stream_id,
+			  int error,
+			  void *user_arg)
+{
+	struct cras_hotword_handle *handle;
+
+	handle = (struct cras_hotword_handle *)user_arg;
+	if (handle->err_cb)
+		handle->err_cb(client, handle, error, handle->user_data);
+
+	return 0;
+}
+
+int cras_client_enable_hotword_callback(struct cras_client *client,
+					void *user_data,
+					cras_hotword_trigger_cb_t trigger_cb,
+					cras_hotword_error_cb_t err_cb,
+					struct cras_hotword_handle **handle_out)
+{
+	struct cras_hotword_handle *handle;
+	int ret = 0;
+
+	if (!client)
+		return -EINVAL;
+
+	handle = (struct cras_hotword_handle *)calloc(1, sizeof(*handle));
+	if (!handle)
+		return -ENOMEM;
+
+	handle->format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE,
+						  HOTWORD_FRAME_RATE, 1);
+	if (!handle->format) {
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+
+	handle->params = cras_client_unified_params_create(
+		CRAS_STREAM_INPUT,
+		HOTWORD_BLOCK_SIZE,
+		CRAS_STREAM_TYPE_DEFAULT,
+		HOTWORD_STREAM | TRIGGER_ONLY,
+		(void *)handle,
+		hotword_read_cb,
+		hotword_err_cb,
+		handle->format);
+	if (!handle->params) {
+		ret = -ENOMEM;
+		goto cleanup_format;
+	}
+
+	handle->trigger_cb = trigger_cb;
+	handle->err_cb = err_cb;
+	handle->user_data = user_data;
+
+	ret = cras_client_add_stream(client, &handle->stream_id,
+				     handle->params);
+	if (ret)
+		goto cleanup_params;
+
+	*handle_out = handle;
+	return 0;
+
+cleanup_params:
+	cras_client_stream_params_destroy(handle->params);
+cleanup_format:
+	cras_audio_format_destroy(handle->format);
+cleanup:
+	free(handle);
+	return ret;
+}
+
+int cras_client_disable_hotword_callback(struct cras_client *client,
+					 struct cras_hotword_handle *handle)
+{
+	if (!client || !handle)
+		return -EINVAL;
+
+	cras_client_rm_stream(client, handle->stream_id);
+	cras_audio_format_destroy(handle->format);
+	cras_client_stream_params_destroy(handle->params);
+	free(handle);
 	return 0;
 }

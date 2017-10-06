@@ -367,4 +367,16 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 {
   return mmap_return_value;
 }
+
+struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
+                                                   size_t frame_rate,
+                                                   size_t num_channels)
+{
+  return reinterpret_cast<struct cras_audio_format*>(0x123);
+}
+
+void cras_audio_format_destroy(struct cras_audio_format *fmt)
+{
+}
+
 }

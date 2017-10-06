@@ -707,6 +707,32 @@ TEST_F(CreateSuite, StreamCanSendBulkAudio) {
   dev_stream_destroy(dev_stream);
 }
 
+TEST_F(CreateSuite, TriggerOnlyStreamSendOnlyOnce) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+
+  rstream_.direction = CRAS_STREAM_INPUT;
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *) 0x55, &cb_ts);
+  dev_stream->stream->flags = TRIGGER_ONLY;
+  dev_stream->stream->triggered = 0;
+
+  // Check first trigger callback called.
+  cras_shm_buffer_written(&rstream_.shm, rstream_.cb_threshold);
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 0;
+  dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  EXPECT_EQ(1, dev_stream->stream->triggered);
+
+  // No future callback will be called for TRIGGER_ONLY streams.
+  cras_shm_buffer_written(&rstream_.shm, rstream_.cb_threshold);
+  clock_gettime_retspec.tv_sec = 2;
+  clock_gettime_retspec.tv_nsec = 0;
+  dev_stream_capture_update_rstream(dev_stream);
+  EXPECT_EQ(1, cras_rstream_audio_ready_called);
+}
+
 TEST_F(CreateSuite, InputDevStreamWakeTimeByNextCbTs) {
   struct dev_stream *dev_stream;
   unsigned int dev_id = 9;

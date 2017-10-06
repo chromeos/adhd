@@ -729,7 +729,13 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 
 	if (!iodev->buf_state)
 		iodev->buf_state = buffer_share_create(iodev->buffer_size);
-	buffer_share_add_id(iodev->buf_state, stream->stream->stream_id, NULL);
+	/*
+	 * TRIGGER_ONLY streams do not want to receive data, so do not add them
+	 * to buffer_share, otherwise they'll affect other streams to receive.
+	 */
+	if (!(stream->stream->flags & TRIGGER_ONLY))
+		buffer_share_add_id(iodev->buf_state, stream->stream->stream_id,
+				    NULL);
 
 	iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
 	iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);

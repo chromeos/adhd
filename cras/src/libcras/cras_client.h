@@ -59,6 +59,7 @@ extern "C" {
 #include "cras_util.h"
 
 struct cras_client;
+struct cras_hotword_handle;
 struct cras_stream_params;
 
 /* Callback for audio received or transmitted.
@@ -176,6 +177,17 @@ typedef void (*cras_thread_priority_cb_t)(struct cras_client *client);
 /* Callback for handling get hotword models reply. */
 typedef void (*get_hotword_models_cb_t)(struct cras_client *client,
 					const char *hotword_models);
+
+/* Callback to wait for a hotword trigger. */
+typedef void (*cras_hotword_trigger_cb_t)(struct cras_client *client,
+					  struct cras_hotword_handle *handle,
+					  void *user_data);
+
+/* Callback for handling hotword errors. */
+typedef int (*cras_hotword_error_cb_t)(struct cras_client *client,
+				       struct cras_hotword_handle *handle,
+				       int error,
+				       void *user_data);
 
 /*
  * Client handling.
@@ -1021,6 +1033,37 @@ int cras_client_get_hotword_models(struct cras_client *client,
 int cras_client_set_hotword_model(struct cras_client *client,
 				  cras_node_id_t node_id,
 				  const char *model_name);
+
+/*
+ * Creates a hotword stream and waits for the hotword to trigger.
+ *
+ * Args:
+ *    client - The client to add the stream to (from cras_client_create).
+ *    user_data - Pointer that will be passed to the callback.
+ *    trigger_cb - Called when a hotword is triggered.
+ *    err_cb - Called when there is an error with the stream.
+ *    handle_out - On success will be filled with a cras_hotword_handle.
+ * Returns:
+ *    0 on success, negative error code on failure (from errno.h).
+ */
+int cras_client_enable_hotword_callback(
+		struct cras_client *client,
+		void *user_data,
+		cras_hotword_trigger_cb_t trigger_cb,
+		cras_hotword_error_cb_t err_cb,
+		struct cras_hotword_handle **handle_out);
+
+/*
+ * Closes a hotword stream that was created by cras_client_wait_for_hotword.
+ *
+ * Args:
+ *    client - Client to remove the stream (returned from cras_client_create).
+ *    handle - cras_hotword_handle returned from cras_client_wait_for_hotword.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+int cras_client_disable_hotword_callback(struct cras_client *client,
+					 struct cras_hotword_handle *handle);
 
 /* Set the context pointer for system state change callbacks.
  * Args:

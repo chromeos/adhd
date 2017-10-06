@@ -104,6 +104,7 @@ static float cras_scale_buffer_increment_scaler;
 static float cras_scale_buffer_increment_increment;
 static int cras_scale_buffer_increment_channel;
 static struct cras_audio_format audio_fmt;
+static int buffer_share_add_id_called;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -198,6 +199,7 @@ void ResetStubData() {
   audio_fmt.format = SND_PCM_FORMAT_S16_LE;
   audio_fmt.frame_rate = 48000;
   audio_fmt.num_channels = 2;
+  buffer_share_add_id_called = 0;
 }
 
 namespace {
@@ -1380,6 +1382,8 @@ TEST(IoDev, AddRmStream) {
   struct dev_stream stream1, stream2;
 
   memset(&iodev, 0, sizeof(iodev));
+  memset(&rstream1, 0, sizeof(rstream1));
+  memset(&rstream2, 0, sizeof(rstream2));
   iodev.configure_dev = configure_dev;
   iodev.no_stream = simple_no_stream;
   iodev.ext_format = &audio_fmt;
@@ -1399,10 +1403,12 @@ TEST(IoDev, AddRmStream) {
   cras_iodev_add_stream(&iodev, &stream1);
   EXPECT_EQ(800, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
+  EXPECT_EQ(1, buffer_share_add_id_called);
 
   cras_iodev_add_stream(&iodev, &stream2);
   EXPECT_EQ(800, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
+  EXPECT_EQ(2, buffer_share_add_id_called);
 
   cras_iodev_rm_stream(&iodev, &rstream1);
   EXPECT_EQ(400, iodev.max_cb_level);
@@ -1413,6 +1419,27 @@ TEST(IoDev, AddRmStream) {
   cras_iodev_rm_stream(&iodev, &rstream2);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
+}
+
+TEST(IoDev, TriggerOnlyStreamNoBufferShare) {
+  struct cras_iodev iodev;
+  struct cras_rstream rstream;
+  struct dev_stream stream;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&rstream, 0, sizeof(rstream));
+  iodev.configure_dev = configure_dev;
+  iodev.ext_format = &audio_fmt;
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  rstream.cb_threshold = 800;
+  rstream.flags = TRIGGER_ONLY;
+  stream.stream = &rstream;
+  ResetStubData();
+
+  cras_iodev_open(&iodev, rstream.cb_threshold, &audio_fmt);
+  /* TRIGGER_ONLY streams shall not be added to buffer_share. */
+  cras_iodev_add_stream(&iodev, &stream);
+  EXPECT_EQ(0, buffer_share_add_id_called);
 }
 
 TEST(IoDev, FillZeros) {
@@ -2011,6 +2038,7 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share *mix) {
 }
 
 int buffer_share_add_id(struct buffer_share *mix, unsigned int id) {
+  buffer_share_add_id_called++;
   return 0;
 }
 

@@ -67,11 +67,14 @@ enum CRAS_STREAM_DIRECTION {
  *      device is ready. Input streams only.
  *  HOTWORD_STREAM - This stream is used only to listen for hotwords such as "OK
  *      Google".  Hardware will wake the device when this phrase is heard.
+ *  TRIGGER_ONLY - This stream only wants to receive when the data is available
+ *      and does not want to receive data. Used with HOTWORD_STREAM.
  */
 enum CRAS_INPUT_STREAM_FLAG {
 	BULK_AUDIO_OK = 0x01,
 	USE_DEV_TIMING = 0x02,
 	HOTWORD_STREAM = BULK_AUDIO_OK | USE_DEV_TIMING,
+	TRIGGER_ONLY = 0x04,
 };
 
 /*

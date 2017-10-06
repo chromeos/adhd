@@ -191,6 +191,8 @@ static unsigned int get_stream_limit_set_delay(
 
 	DL_FOREACH(adev->dev->streams, stream) {
 		rstream = stream->stream;
+		if (rstream->flags & TRIGGER_ONLY)
+			continue;
 
 		shm = cras_rstream_input_shm(rstream);
 		if (cras_shm_check_write_overrun(shm))
@@ -330,6 +332,10 @@ static int capture_to_streams(struct open_dev *adev)
 		DL_FOREACH(adev->dev->streams, stream) {
 			unsigned int this_read;
 			unsigned int area_offset;
+
+			if ((stream->stream->flags & TRIGGER_ONLY) &&
+			    stream->stream->triggered)
+				continue;
 
 			area_offset = cras_iodev_stream_offset(idev, stream);
 			this_read = dev_stream_capture(

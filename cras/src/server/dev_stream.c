@@ -495,6 +495,9 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	unsigned int frames_ready = cras_rstream_get_cb_threshold(rstream);
 	int rc;
 
+	if ((rstream->flags & TRIGGER_ONLY) && rstream->triggered)
+		return 0;
+
 	cras_rstream_update_input_write_pointer(rstream);
 
 	/*
@@ -522,6 +525,9 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 
 	if (rc < 0)
 		return rc;
+
+	if (rstream->flags & TRIGGER_ONLY)
+		rstream->triggered = 1;
 
 	/* Update next callback time according to perfect schedule. */
 	add_timespecs(&rstream->next_cb_ts,

@@ -63,6 +63,7 @@ struct master_dev_info {
  *    queued_frames - Cached value of the number of queued frames in shm.
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
  *    pinned_dev_idx - device the stream is pinned, 0 if none.
+ *    triggered - True if already notified TRIGGER_ONLY stream, false otherwise.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -88,6 +89,7 @@ struct cras_rstream {
 	int queued_frames;
 	int is_pinned;
 	uint32_t pinned_dev_idx;
+	int triggered;
 	struct cras_rstream *prev, *next;
 };
 
