@@ -12,6 +12,7 @@ extern "C" {
 #include "cras_mix.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
+#include "cras_shm.h"
 #include "cras_system_state.h"
 }
 
@@ -24,7 +25,26 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 }
 
 extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
-  cras_system_state_init("/tmp");
+  char *shm_name;
+  if (asprintf(&shm_name, "/cras-%d", getpid()) < 0)
+    exit(-ENOMEM);
+  int rw_shm_fd;
+  int ro_shm_fd;
+  struct cras_server_state *exp_state = (struct cras_server_state *)
+    cras_shm_setup(shm_name,
+                   sizeof(*exp_state),
+                   &rw_shm_fd,
+                   &ro_shm_fd);
+  if (!exp_state)
+    exit(-1);
+  cras_system_state_init("/tmp",
+                         shm_name,
+                         rw_shm_fd,
+                         ro_shm_fd,
+                         exp_state,
+                         sizeof(*exp_state));
+  free(shm_name);
+
   cras_observer_server_init();
   cras_mix_init(0);
   cras_iodev_list_init();

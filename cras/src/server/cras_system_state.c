@@ -35,6 +35,7 @@ struct card_list {
  *    shm_name - Name of posix shm region for exported state.
  *    shm_fd - fd for shm area of system_state struct.
  *    shm_fd_ro - fd for shm area of system_state struct, opened read-only.
+ *        This copy is to dup and pass to clients.
  *    shm_size - Size of the shm area.
  *    device_config_dir - Directory of device configs where volume curves live.
  *    internal_ucm_suffix - The suffix to append to internal card name to
@@ -68,30 +69,23 @@ static struct {
  * Exported Interface.
  */
 
-void cras_system_state_init(const char *device_config_dir)
+void cras_system_state_init(const char *device_config_dir,
+                            const char *shm_name,
+                            int rw_shm_fd,
+                            int ro_shm_fd,
+                            struct cras_server_state *exp_state,
+                            size_t exp_state_size)
 {
-	struct cras_server_state *exp_state;
-	int rc;
 	struct cras_board_config board_config;
+	int rc;
 
+        assert(sizeof(*exp_state) == exp_state_size);
 	state.shm_size = sizeof(*exp_state);
 
-	snprintf(state.shm_name, sizeof(state.shm_name), "/cras-%d", getpid());
-	state.shm_fd = cras_shm_open_rw(state.shm_name, state.shm_size);
-	if (state.shm_fd < 0)
-		exit(state.shm_fd);
-
-	/* mmap shm. */
-	exp_state = mmap(NULL, state.shm_size,
-			 PROT_READ | PROT_WRITE, MAP_SHARED,
-			 state.shm_fd, 0);
-	if (exp_state == (struct cras_server_state *)-1)
-		exit(-ENOMEM);
-
-	/* Open a read-only copy to dup and pass to clients. */
-	state.shm_fd_ro = cras_shm_reopen_ro(state.shm_name, state.shm_fd);
-	if (state.shm_fd_ro < 0)
-		exit(state.shm_fd_ro);
+        strncpy(state.shm_name, shm_name, sizeof(state.shm_name));
+        state.shm_name[sizeof(state.shm_name) - 1] = '\0';
+	state.shm_fd = rw_shm_fd;
+	state.shm_fd_ro = ro_shm_fd;
 
 	/* Read board config. */
 	memset(&board_config, 0, sizeof(board_config));

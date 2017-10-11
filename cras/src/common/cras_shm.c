@@ -96,3 +96,30 @@ void cras_shm_close_unlink (const char *name, int fd)
 }
 
 #endif
+
+void *cras_shm_setup(const char *name,
+		     size_t mmap_size,
+		     int *rw_fd_out,
+		     int *ro_fd_out)
+{
+	int rw_shm_fd = cras_shm_open_rw(name, mmap_size);
+	if (rw_shm_fd < 0)
+		return NULL;
+
+	/* mmap shm. */
+	void *exp_state = mmap(NULL, mmap_size,
+			       PROT_READ | PROT_WRITE, MAP_SHARED,
+			       rw_shm_fd, 0);
+	if (exp_state == (void *)-1)
+		return NULL;
+
+	/* Open a read-only copy to dup and pass to clients. */
+	int ro_shm_fd = cras_shm_reopen_ro(name, rw_shm_fd);
+	if (ro_shm_fd < 0)
+		return NULL;
+
+	*rw_fd_out = rw_shm_fd;
+	*ro_fd_out = ro_shm_fd;
+
+	return exp_state;
+}

@@ -31,8 +31,18 @@ struct cras_tm;
  *
  * Args:
  *    device_config_dir - Directory for device configs where volume curves live.
+ *    shm_name - Name of the shared memory region used to store the state.
+ *    rw_shm_fd - FD of the shm region.
+ *    ro_shm_fd - FD of the shm region opened RO for sharing with clients.
+ *    exp_state - Shared memory region for storing state.
+ *    exp_state_size - Size of |exp_state|.
  */
-void cras_system_state_init(const char *device_config_dir);
+void cras_system_state_init(const char *device_config_dir,
+                            const char *shm_name,
+                            int rw_shm_fd,
+                            int ro_shm_fd,
+                            struct cras_server_state *exp_state,
+                            size_t exp_state_size);
 void cras_system_state_deinit();
 
 /* Sets the suffix string to control which UCM config fo load. */
