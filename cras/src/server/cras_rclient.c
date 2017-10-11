@@ -545,7 +545,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
 			return -EINVAL;
 		size_t size_with_coefficients = sizeof(*m) +
-			m->num_channels * sizeof(m->coefficient[0]);
+			m->num_channels * m->num_channels *
+			sizeof(m->coefficient[0]);
 		if (size_with_coefficients != msg->length)
 			return -EINVAL;
 		audio_thread_config_global_remix(
