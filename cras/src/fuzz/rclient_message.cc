@@ -16,17 +16,18 @@ extern "C" {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+  cras_rclient *client = cras_rclient_create(0, 0);
+  cras_rclient_buffer_from_client(client, data, size, -1);
+  cras_rclient_destroy(client);
+
+  return 0;
+}
+
+extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
   cras_system_state_init("/tmp");
   cras_observer_server_init();
   cras_mix_init(0);
   cras_iodev_list_init();
 
-  cras_rclient *client = cras_rclient_create(0, 0);
-  cras_rclient_buffer_from_client(client, data, size, -1);
-  cras_rclient_destroy(client);
-
-  cras_iodev_list_deinit();
-  cras_observer_server_free();
-  cras_system_state_deinit();
   return 0;
 }
