@@ -28,15 +28,12 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
   char *shm_name;
   if (asprintf(&shm_name, "/cras-%d", getpid()) < 0)
     exit(-ENOMEM);
-  int rw_shm_fd;
-  int ro_shm_fd;
   struct cras_server_state *exp_state = (struct cras_server_state *)
-    cras_shm_setup(shm_name,
-                   sizeof(*exp_state),
-                   &rw_shm_fd,
-                   &ro_shm_fd);
+    calloc(1, sizeof(*exp_state));
   if (!exp_state)
     exit(-1);
+  int rw_shm_fd = open("/dev/null", O_RDWR);
+  int ro_shm_fd = open("/dev/null", O_RDONLY);
   cras_system_state_init("/tmp",
                          shm_name,
                          rw_shm_fd,
