@@ -160,6 +160,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   EXPECT_NE((void *)NULL, bt_iodev);
   EXPECT_EQ(&iodev_, active_profile_dev(bt_iodev));
   EXPECT_EQ(1, cras_iodev_list_add_output_called);
+  bt_iodev->open_dev(bt_iodev);
   bt_iodev->format = &fake_fmt;
   bt_iodev->update_supported_formats(bt_iodev);
   EXPECT_EQ(1, update_supported_formats_called_);
@@ -179,14 +180,14 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   EXPECT_EQ(1, cras_iodev_list_rm_output_called);
 }
 
-TEST_F(BtIoBasicSuite, SwitchProfileOnUpdateFormatForInputDev) {
+TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
   bt_iodev = cras_bt_io_create(fake_device, &iodev_,
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
   cras_bt_device_get_active_profile_ret = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
-  bt_iodev->update_supported_formats(bt_iodev);
+  bt_iodev->open_dev(bt_iodev);
 
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
@@ -194,7 +195,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnUpdateFormatForInputDev) {
   EXPECT_EQ(1, cras_bt_device_switch_profile_enable_dev_called);
 }
 
-TEST_F(BtIoBasicSuite, NoSwitchProfileOnUpdateFormatForInputDevAlreadyOnHfp) {
+TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
   bt_iodev = cras_bt_io_create(fake_device, &iodev_,
@@ -203,7 +204,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnUpdateFormatForInputDevAlreadyOnHfp) {
   /* No need to switch profile if already on HFP. */
   cras_bt_device_get_active_profile_ret =
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
-  bt_iodev->update_supported_formats(bt_iodev);
+  bt_iodev->open_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_device_switch_profile_enable_dev_called);
 }

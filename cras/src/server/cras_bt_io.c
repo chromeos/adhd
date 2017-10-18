@@ -112,20 +112,17 @@ static int device_using_profile(struct cras_bt_device *device,
 	return cras_bt_device_get_active_profile(device) & profile;
 }
 
-/* Checks if the condition is met to switch to a different profile
- * when trying to set the format to btio before open it. Base on two
- * rules:
+/* Checks if the condition is met to switch to a different profile based
+ * on two rules:
  * (1) Prefer to use A2DP for output since the audio quality is better.
  * (2) Must use HFP/HSP for input since A2DP doesn't support audio input.
  *
  * If the profile switch happens, return non-zero error code, otherwise
  * return zero.
  */
-static int update_supported_formats(struct cras_iodev *iodev)
+static int open_dev(struct cras_iodev *iodev)
 {
 	struct bt_io *btio = (struct bt_io *)iodev;
-	struct cras_iodev *dev = active_profile_dev(iodev);
-	int rc, length, i;
 
 	/* Force to use HFP if opening input dev. */
 	if (device_using_profile(btio->device,
@@ -136,6 +133,14 @@ static int update_supported_formats(struct cras_iodev *iodev)
 		cras_bt_device_switch_profile_enable_dev(btio->device, iodev);
 		return -EAGAIN;
 	}
+
+	return 0;
+}
+
+static int update_supported_formats(struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	int rc, length, i;
 
 	if (dev->format == NULL) {
 		dev->format = (struct cras_audio_format *)
@@ -331,6 +336,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->info.stable_id = dev->info.stable_id;
 	iodev->info.stable_id_new = dev->info.stable_id_new;
 
+	iodev->open_dev = open_dev;
 	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
