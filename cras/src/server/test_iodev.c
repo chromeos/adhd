@@ -67,7 +67,7 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct test_iodev *testio = (struct test_iodev *)iodev;
 
-	byte_buffer_destroy(testio->audbuff);
+	byte_buffer_destroy(&testio->audbuff);
 	testio->audbuff = NULL;
 	cras_iodev_free_audio_area(iodev);
 	return 0;

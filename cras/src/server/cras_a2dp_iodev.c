@@ -214,7 +214,7 @@ static int close_dev(struct cras_iodev *iodev)
 	if (device)
 		cras_bt_device_cancel_suspend(device);
 	a2dp_drain(&a2dpio->a2dp);
-	byte_buffer_destroy(a2dpio->pcm_buf);
+	byte_buffer_destroy(&a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
 	return 0;

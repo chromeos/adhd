@@ -318,9 +318,9 @@ struct hfp_info *hfp_info_create()
 error:
 	if (info) {
 		if (info->capture_buf)
-			byte_buffer_destroy(info->capture_buf);
+			byte_buffer_destroy(&info->capture_buf);
 		if (info->playback_buf)
-			byte_buffer_destroy(info->playback_buf);
+			byte_buffer_destroy(&info->playback_buf);
 		free(info);
 	}
 	return NULL;
@@ -368,10 +368,10 @@ int hfp_info_stop(struct hfp_info *info)
 void hfp_info_destroy(struct hfp_info *info)
 {
 	if (info->capture_buf)
-		byte_buffer_destroy(info->capture_buf);
+		byte_buffer_destroy(&info->capture_buf);
 
 	if (info->playback_buf)
-		byte_buffer_destroy(info->playback_buf);
+		byte_buffer_destroy(&info->playback_buf);
 
 	free(info);
 }

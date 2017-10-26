@@ -326,6 +326,6 @@ void loopback_iodev_destroy(struct cras_iodev *iodev)
 	cras_iodev_list_rm_input(iodev);
         free(iodev->nodes);
 
-	byte_buffer_destroy(sbuf);
+	byte_buffer_destroy(&sbuf);
 	free(loopdev);
 }

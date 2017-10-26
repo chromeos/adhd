@@ -44,7 +44,7 @@ TEST(ByteBuffer, ReadWrite) {
   EXPECT_NE((void *)NULL, data);
   EXPECT_EQ(40, data_size);
 
-  byte_buffer_destroy(b);
+  byte_buffer_destroy(&b);
 }
 
 TEST(ByteBuffer, SetUsedSizeReadWrite) {
@@ -92,7 +92,7 @@ TEST(ByteBuffer, SetUsedSizeReadWrite) {
   EXPECT_NE((void *)NULL, data);
   EXPECT_EQ(50, data_size);
 
-  byte_buffer_destroy(b);
+  byte_buffer_destroy(&b);
 }
 
 } // namespace

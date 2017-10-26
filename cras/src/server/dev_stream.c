@@ -118,7 +118,7 @@ void dev_stream_destroy(struct dev_stream *dev_stream)
 	if (dev_stream->conv) {
 		cras_audio_area_destroy(dev_stream->conv_area);
 		cras_fmt_conv_destroy(&dev_stream->conv);
-		byte_buffer_destroy(dev_stream->conv_buffer);
+		byte_buffer_destroy(&dev_stream->conv_buffer);
 	}
 	free(dev_stream);
 }

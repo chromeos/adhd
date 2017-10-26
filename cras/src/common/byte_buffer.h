@@ -36,9 +36,10 @@ static inline void byte_buffer_set_used_size(struct byte_buffer *buf,
 }
 
 /* Destory a byte_buffer created with byte_buffer_create. */
-static inline void byte_buffer_destroy(struct byte_buffer *buf)
+static inline void byte_buffer_destroy(struct byte_buffer **buf)
 {
-	free(buf);
+	free(*buf);
+	*buf = NULL;
 }
 
 static inline unsigned int buf_writable_bytes(struct byte_buffer *buf)
