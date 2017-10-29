@@ -23,6 +23,9 @@ if [ -z "${device_config_dir}" ]; then
   if [ -f /etc/cras/get_internal_ucm_suffix ]; then
     internal_ucm_suffix="$(sh /etc/cras/get_internal_ucm_suffix)"
   fi
+else
+  # cros_config doesn't output the fully qualified path
+  device_config_dir="/etc/cras/${device_config_dir}"
 fi
 
 if [ -n "${device_config_dir}" ]; then
