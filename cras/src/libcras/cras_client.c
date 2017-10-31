@@ -1353,7 +1353,7 @@ static int start_aud_thread(struct client_stream *stream)
 		return -rc;
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &future);
+	clock_gettime(CLOCK_REALTIME, &future);
 	future.tv_sec += 2; /* Wait up to two seconds. */
 	rc = pthread_cond_timedwait(&stream->client->stream_start_cond,
 				    &stream->client->stream_start_lock, &future);
