@@ -1163,18 +1163,22 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
 						unsigned int *hw_level,
 						struct timespec *hw_tstamp)
 {
-	int rc;
-
-	rc = cras_iodev_frames_queued(odev, hw_tstamp);
-	*hw_level = (rc < 0) ? 0 : rc;
+	int rc = cras_iodev_frames_queued(odev, hw_tstamp);
+	unsigned int level = (rc < 0) ? 0 : rc;
+	*hw_level = level;
 
 	if (odev->streams) {
-		/* Schedule that audio thread will wake up when
-		 * hw_level drops to 0.
-		 * This should not cause underrun because audio thread
-		 * should be waken up by the reply from client. */
-		return *hw_level;
+		/* Schedule that audio thread will wake up when hw_level drops to
+		 * 1ms. Normally, this isn't hit because the client will wake us
+		 * up before then. This helps with cases where the hardware
+		 * buffer is smaller than the client stream buffer. */
+		unsigned int one_ms_frames = odev->format->frame_rate / 1000;
+		if (level > one_ms_frames)
+			return level - one_ms_frames;
+		else
+			return level;
 	}
+
 	/* When this device has no stream, schedule audio thread to wake up
 	 * when hw_level drops to min_cb_level so audio thread can fill
 	 * zeros to it. */

@@ -1861,30 +1861,51 @@ TEST(IoDev, OutputDeviceShouldWake) {
 
 TEST(IoDev, FramesToPlayInSleep) {
   struct cras_iodev iodev;
-  unsigned int min_cb_level = 240, hw_level;
+  struct cras_audio_format fmt;
+  unsigned int min_cb_level = 512, hw_level;
   unsigned int got_hw_level, got_frames;
   struct timespec hw_tstamp;
 
   memset(&iodev, 0, sizeof(iodev));
+  memset(&fmt, 0, sizeof(fmt));
   iodev.frames_queued = frames_queued;
   iodev.min_buffer_level = 0;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.buffer_size = BUFFER_SIZE;
   iodev.min_cb_level = min_cb_level;
+  iodev.streams = reinterpret_cast<struct dev_stream *>(0x1);
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev.format = &fmt;
+  fmt.frame_rate = 48000;
 
   ResetStubData();
 
   // Device is running. There is at least one stream for this device.
   // hw_level is greater than min_cb_level.
-  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   hw_level = min_cb_level + 50;
   fr_queued = hw_level;
-  iodev.streams = reinterpret_cast<struct dev_stream *>(0x1);
-
   got_frames = cras_iodev_frames_to_play_in_sleep(
                    &iodev, &got_hw_level, &hw_tstamp);
-  EXPECT_EQ(hw_level, got_hw_level);
-  EXPECT_EQ(hw_level, got_frames);
+  EXPECT_EQ(got_hw_level, hw_level);
+  EXPECT_EQ(got_frames, 514);
+
+  // Device is running. There is at least one stream for this device.
+  // hw_level is 2x greater than min_cb_level.
+  hw_level = 2 * min_cb_level + 50;
+  fr_queued = hw_level;
+  got_frames = cras_iodev_frames_to_play_in_sleep(
+                   &iodev, &got_hw_level, &hw_tstamp);
+  EXPECT_EQ(got_hw_level, hw_level);
+  EXPECT_EQ(got_frames, 1026);
+
+  // Device is running. There is at least one stream for this device.
+  // hw_level is less than min_cb_level.
+  hw_level = min_cb_level / 2;
+  fr_queued = hw_level;
+  got_frames = cras_iodev_frames_to_play_in_sleep(
+                   &iodev, &got_hw_level, &hw_tstamp);
+  EXPECT_EQ(got_hw_level, hw_level);
+  EXPECT_EQ(got_frames, 208);
 
   // Device is running. There is no stream for this device.
   // hw_level is greater than min_cb_level.
@@ -1892,8 +1913,8 @@ TEST(IoDev, FramesToPlayInSleep) {
 
   got_frames = cras_iodev_frames_to_play_in_sleep(
                    &iodev, &got_hw_level, &hw_tstamp);
-  EXPECT_EQ(hw_level, got_hw_level);
-  EXPECT_EQ(hw_level - min_cb_level, got_frames);
+  EXPECT_EQ(got_hw_level, hw_level);
+  EXPECT_EQ(got_frames, 0);
 
   // Device is running. There is no stream for this device.
   // hw_level is less than min_cb_level.
@@ -1903,8 +1924,8 @@ TEST(IoDev, FramesToPlayInSleep) {
 
   got_frames = cras_iodev_frames_to_play_in_sleep(
                    &iodev, &got_hw_level, &hw_tstamp);
-  EXPECT_EQ(hw_level, got_hw_level);
-  EXPECT_EQ(0, got_frames);
+  EXPECT_EQ(got_hw_level, hw_level);
+  EXPECT_EQ(got_frames, 0);
 }
 
 static unsigned int get_num_underruns(const struct cras_iodev *iodev) {
@@ -2017,6 +2038,12 @@ void cras_channel_remix_convert(struct cras_fmt_conv *conv,
     uint8_t *in_buf,
     size_t frames)
 {
+}
+
+size_t cras_fmt_conv_in_frames_to_out(struct cras_fmt_conv *conv,
+				      size_t in_frames)
+{
+	return in_frames;
 }
 
 // From buffer_share
