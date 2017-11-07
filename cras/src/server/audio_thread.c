@@ -190,6 +190,11 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	nread = read(thread->to_thread_fds[0], buf, sizeof(msg->length));
 	if (nread < 0)
 		return nread;
+	if (nread == 0) {
+		syslog(LOG_ERR, "Pipe has been closed.");
+		return -EPIPE;
+	}
+
 	if (msg->length > max_len)
 		return -ENOMEM;
 
@@ -197,6 +202,10 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	rc = read(thread->to_thread_fds[0], &buf[0] + nread, to_read);
 	if (rc < 0)
 		return rc;
+	if (rc == 0) {
+		syslog(LOG_ERR, "Pipe has been closed.");
+		return -EPIPE;
+	}
 	return 0;
 }
 
@@ -915,6 +924,10 @@ static int audio_thread_post_message(struct audio_thread *thread,
 		syslog(LOG_ERR, "Failed to read reply from thread.");
 		return err;
 	}
+	if (err == 0) {
+		syslog(LOG_ERR, "Pipe has been closed.");
+		return -EPIPE;
+	}
 
 	return (intptr_t)rsp;
 }
@@ -1084,6 +1097,10 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 		syslog(LOG_ERR, "Failed to read reply from thread.");
 		return err;
 	}
+	if (err == 0) {
+		syslog(LOG_ERR, "Pipe has been closed.");
+		return -EPIPE;
+	}
 
 	if (rsp)
 		cras_fmt_conv_destroy((struct cras_fmt_conv **)&rsp);
@@ -1198,8 +1215,9 @@ void audio_thread_destroy(struct audio_thread *thread)
 
 		msg.id = AUDIO_THREAD_STOP;
 		msg.length = sizeof(msg);
-		audio_thread_post_message(thread, &msg);
-		pthread_join(thread->tid, NULL);
+		if (audio_thread_post_message(thread, &msg) == 0) {
+			pthread_join(thread->tid, NULL);
+		}
 	}
 
 	free(thread->pollfds);
