@@ -724,6 +724,13 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 	return 0;
 }
 
+/*
+ * Attempts to resume a PCM.
+ * Note that this path does not get executed for default playback/capture
+ * stream. Default playback/capture stream are removed from the device
+ * upon suspend, and re-attached to the device after resume.
+ * The only stream that lives across suspend resume is hotword stream.
+ */
 int cras_alsa_attempt_resume(snd_pcm_t *handle)
 {
 	int rc;
@@ -732,12 +739,26 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 	while ((rc = snd_pcm_resume(handle)) == -EAGAIN)
 		usleep(ALSA_SUSPENDED_SLEEP_TIME_US);
 	if (rc < 0) {
+		/*
+		 * Some devices do not support snd_pcm_resume, that is
+		 * acceptable.
+		 */
 		syslog(LOG_INFO, "System suspended, failed to resume %s.",
 		       snd_strerror(rc));
 		rc = snd_pcm_prepare(handle);
-		if (rc < 0)
-			syslog(LOG_INFO, "Suspended, failed to prepare: %s.",
+		if (rc < 0) {
+			syslog(LOG_ERR, "Suspended, failed to prepare: %s.",
 			       snd_strerror(rc));
+		}
+		/*
+		 * CRAS does not use auto-start (start_threshold = 0), so start
+		 * PCM after it is prepared. This is only for hotword stream.
+		 */
+		rc = snd_pcm_start(handle);
+		if (rc < 0) {
+			syslog(LOG_ERR, "Suspended, failed to start: %s.",
+			       snd_strerror(rc));
+		}
 	}
 	return rc;
 }
