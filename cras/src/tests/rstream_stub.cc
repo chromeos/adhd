@@ -13,6 +13,7 @@ namespace {
 
 struct cb_data {
 	std::unordered_map<unsigned int, unsigned int> dev_offset;
+	int pending_reply;
 };
 std::unordered_map<const cras_rstream*, cb_data> data_map;
 
@@ -32,6 +33,18 @@ void rstream_stub_dev_offset(const cras_rstream* rstream,
     data_map.insert({rstream, new_data});
   } else {
     data->second.dev_offset[dev_id] = offset;
+  }
+}
+
+void rstream_stub_pending_reply(const cras_rstream* rstream,
+                                int ret_value) {
+  auto data = data_map.find(rstream);
+  if (data == data_map.end()) {
+    cb_data new_data;
+    new_data.pending_reply = ret_value;
+    data_map.insert({rstream, new_data});
+  } else {
+    data->second.pending_reply = ret_value;
   }
 }
 
@@ -103,6 +116,9 @@ void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
 
 int cras_rstream_is_pending_reply(const struct cras_rstream *rstream)
 {
+  auto elem = data_map.find(rstream);
+  if (elem != data_map.end())
+    return elem->second.pending_reply;
   return 0;
 }
 

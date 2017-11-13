@@ -639,10 +639,10 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
 {
 	const struct cras_rstream *stream = dev_stream->stream;
 
-	/* For streams rely on dev level timing, we should poll for client
-	 * response otherwise data could be sent faster than client side
-	 * can handle. */
-	if (stream_uses_input(stream) && (stream->flags & USE_DEV_TIMING))
+	/* For streams which rely on dev level timing, we should
+	 * let client response wake audio thread up. */
+	if (stream_uses_input(stream) && (stream->flags & USE_DEV_TIMING) &&
+	    cras_rstream_is_pending_reply(stream))
 		return stream->fd;
 
 	if (!stream_uses_output(stream) ||
@@ -690,14 +690,30 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 	if (!is_cap_limit_stream && needed_frames_from_device > cap_limit)
 		return 1;
 
-	/* For stream using device timing, we don't set wake up time and just
-	 * send more data when client responds data is consumed.
-	 * However if data is less than one cb_threshold, we have to schedule
-	 * next wake up time based on the needed frames. This is needed to poll
-	 * the samples from device to check whether key phrase is detected.
+	/*
+	 * For capture stream using device timing, the flow would be:
+	 * 1. Device has less than one cb_threshold of data.
+	 * 2. Device has a large chunk of data that client needs to consume
+	 *    in multiple cycles.
+	 * 3. Audio thread sends one block to client and goes to sleep.
+	 * 4. Client sends reply to wake up audio thread.
+	 * 5. Repeat 3 and 4 until there is less than one cb_threshold of data.
+	 * 6. Goes to 1.
+	 *
+	 * In 1, we schedule the next wake up time based on the needed frames.
+	 * This is needed to poll the samples from device.
+	 *
+	 * In 3, we do not schedule a wake up time for this stream.
+	 * We let reply from client wakes up audio thread to send next
+	 * cb_threshold of data.
+	 *
+	 * TODO(cychiang) Do we want to actually block sending data to client
+	 * until client replies ? Or control the scheduling of wake up time
+	 * is enough ?
+	 *
 	 */
 	if ((rstream->flags & USE_DEV_TIMING) &&
-	    (curr_level >= cras_rstream_get_cb_threshold(rstream)))
+	     cras_rstream_is_pending_reply(rstream))
 		return 1;
 
 	*wake_time_out = rstream->next_cb_ts;

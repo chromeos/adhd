@@ -268,9 +268,11 @@ TEST_F(TimingSuite, HotwordStreamUseDevTiming) {
 }
 
 // One hotword stream attaches to hotword device. Input data burst to a number
-// larger than cb_threshold. In this case stream fd is used to poll for next
-// wake. And the dev wake time is unchanged from the default 20 seconds limit.
-TEST_F(TimingSuite, HotwordStreamBulkData) {
+// larger than cb_threshold. Also, stream is pending client reply.
+// In this case stream fd is used to poll for next wake.
+// And the dev wake time is unchanged from the default 20 seconds limit.
+TEST_F(TimingSuite, HotwordStreamBulkDataIsPending) {
+  int poll_fd = 0;
   cras_audio_format fmt;
   fill_audio_format(&fmt, 48000);
 
@@ -285,16 +287,62 @@ TEST_F(TimingSuite, HotwordStreamBulkData) {
   AddFakeDataToStream(stream.get(), 480);
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
+  // Stream is pending the reply from client.
+  rstream_stub_pending_reply(streams[0]->rstream.get(), 1);
+
+  // There is more than 1 cb_threshold of data in device.
   timespec dev_time = SingleInputDevNextWake(4096, 7000, &start,
                                              &fmt, streams);
 
-  int poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
+  // Need to wait for stream fd in the next ppoll.
+  poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
   EXPECT_EQ(FAKE_POLL_FD, poll_fd);
 
   struct timespec delta;
   subtract_timespecs(&dev_time, &start, &delta);
+  // Wake up time should be default 20 seconds because audio thread
+  // depends on reply from client to wake it up.
   EXPECT_LT(19, delta.tv_sec);
   EXPECT_GT(21, delta.tv_sec);
+}
+
+// One hotword stream attaches to hotword device. Input data burst to a number
+// larger than cb_threshold. However, stream is not pending client reply.
+// This happens if there was no data during capture_to_stream.
+// In this case stream fd is NOT used to poll for next wake.
+// And the dev wake time is changed to a 0 instead of default 20 seconds.
+TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
+  int poll_fd = 0;
+  cras_audio_format fmt;
+  fill_audio_format(&fmt, 48000);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
+  stream->rstream->flags = HOTWORD_STREAM;
+  stream->rstream->next_cb_ts = start;
+
+  AddFakeDataToStream(stream.get(), 480);
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  // Stream is not pending the reply from client.
+  rstream_stub_pending_reply(streams[0]->rstream.get(), 0);
+
+  // There is more than 1 cb_threshold of data in device.
+  timespec dev_time = SingleInputDevNextWake(4096, 7000, &start,
+                                             &fmt, streams);
+
+  // Does not need to wait for stream fd in the next ppoll.
+  poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
+  EXPECT_EQ(-1, poll_fd);
+
+  struct timespec delta;
+  subtract_timespecs(&dev_time, &start, &delta);
+  // Wake up time should be very small because there is enough
+  // data to be send to client.
+  EXPECT_LT(delta.tv_sec, 0.1);
 }
 
 /* Stubs */
