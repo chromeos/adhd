@@ -270,8 +270,6 @@ int cras_rstream_request_audio(struct cras_rstream *stream,
 
 /* Tells a capture client that count frames are ready. */
 int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count);
-/* Waits for the response to a request for audio. */
-int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream);
 
 /* Let the rstream know when a device is added or removed. */
 void cras_rstream_dev_attach(struct cras_rstream *rstream,
@@ -331,5 +329,10 @@ int cras_rstream_get_mute(const struct cras_rstream *rstream);
  *   from client.
  */
 int cras_rstream_is_pending_reply(const struct cras_rstream *stream);
+
+/*
+ * Reads any pending audio message from the socket.
+ */
+int cras_rstream_flush_old_audio_messages(struct cras_rstream *stream);
 
 #endif /* CRAS_RSTREAM_H_ */

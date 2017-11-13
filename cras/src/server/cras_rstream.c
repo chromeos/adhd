@@ -136,6 +136,75 @@ static void set_pending_reply(struct cras_rstream *stream)
 	cras_shm_set_callback_pending(&stream->shm, 1);
 }
 
+/*
+ * Clearing pending reply is only needed inside this module.
+ */
+static void clear_pending_reply(struct cras_rstream *stream)
+{
+	cras_shm_set_callback_pending(&stream->shm, 0);
+}
+
+/*
+ * Reads one response of audio request from client.
+ * Args:
+ *   stream[in]: A pointer to cras_rstream.
+ *   msg[out]: A pointer to audio_message to hold the message.
+ * Returns:
+ *   Number of bytes read from the socket.
+ *   A negative error code if read fails or the message from client
+ *   has errors.
+ */
+static int get_audio_request_reply(
+	const struct cras_rstream *stream, struct audio_message *msg)
+{
+	int rc;
+
+	rc = read(stream->fd, msg, sizeof(*msg));
+	if (rc < 0)
+		return -errno;
+	if (msg->error < 0)
+		return msg->error;
+	return rc;
+}
+
+/*
+ * Reads and handles one audio message from client.
+ * Returns:
+ *   Number of bytes read from the socket.
+ *   A negative error code if read fails or the message from client
+ *   has errors.
+ */
+static int read_and_handle_client_message(struct cras_rstream *stream) {
+
+	struct audio_message msg;
+	int rc;
+
+	rc = get_audio_request_reply(stream, &msg);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Got error from client: rc: %d, msg.error: %d",
+		       rc, msg.error);
+		return rc;
+	}
+
+	/*
+	 * Got client reply that data in the input stream is captured.
+	 */
+	if (stream->direction == CRAS_STREAM_INPUT &&
+	    msg.id == AUDIO_MESSAGE_DATA_CAPTURED) {
+		clear_pending_reply(stream);
+	}
+
+	/*
+	 * Got client reply that data for output stream is ready in shm.
+	 */
+	if (stream->direction == CRAS_STREAM_OUTPUT &&
+	    msg.id == AUDIO_MESSAGE_DATA_READY) {
+		clear_pending_reply(stream);
+	}
+
+	return rc;
+}
+
 /* Exported functions */
 
 int cras_rstream_create(struct cras_rstream_config *config,
@@ -264,19 +333,6 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 	return rc;
 }
 
-int cras_rstream_get_audio_request_reply(const struct cras_rstream *stream)
-{
-	struct audio_message msg;
-	int rc;
-
-	rc = read(stream->fd, &msg, sizeof(msg));
-	if (rc < 0)
-		return -errno;
-	if (msg.error < 0)
-		return msg.error;
-	return 0;
-}
-
 void cras_rstream_dev_attach(struct cras_rstream *rstream,
 			     unsigned int dev_id,
 			     void *dev_ptr)
@@ -383,4 +439,25 @@ int cras_rstream_get_mute(const struct cras_rstream *rstream)
 int cras_rstream_is_pending_reply(const struct cras_rstream *stream)
 {
 	return cras_shm_callback_pending(&stream->shm);
+}
+
+int cras_rstream_flush_old_audio_messages(struct cras_rstream *stream)
+{
+	struct pollfd pollfd;
+	int err;
+
+	if (!stream->fd)
+		return 0;
+
+	pollfd.fd = stream->fd;
+	pollfd.events = POLLIN;
+
+	do {
+		err = poll(&pollfd, 1, 0);
+		if (pollfd.revents & POLLIN) {
+			err = read_and_handle_client_message(stream);
+		}
+	} while (err > 0);
+
+	return 0;
 }

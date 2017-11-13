@@ -57,6 +57,20 @@ class RstreamTestSuite : public testing::Test {
           fmt1->num_channels == fmt2->num_channels;
     }
 
+    void stub_client_reply(enum CRAS_AUDIO_MESSAGE_ID id, int frames, int err) {
+      int rc;
+      struct audio_message aud_msg;
+      // Create a message.
+      aud_msg.id = id;
+      aud_msg.frames = frames;
+      aud_msg.error = err;
+
+      // Use socket fd to stub message from client.
+      rc = write(client_fd_, &aud_msg, sizeof(aud_msg));
+      EXPECT_EQ(sizeof(aud_msg), rc);
+      return;
+    }
+
     struct cras_audio_format fmt_;
     struct cras_rstream_config config_;
     int client_fd_;
@@ -232,6 +246,39 @@ TEST_F(RstreamTestSuite, OutputStreamIsPendingReply) {
   cras_rstream_destroy(s);
 }
 
+TEST_F(RstreamTestSuite, OutputStreamFlushMessages) {
+  struct cras_rstream *s;
+  int rc;
+  struct timespec ts;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+
+  // Not pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(0, rc);
+
+  // Request some data from client.
+  rc = cras_rstream_request_audio(s, &ts);
+  EXPECT_GT(rc, 0);
+
+  // Pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(1, rc);
+
+  // Client replies that data is ready.
+  stub_client_reply(AUDIO_MESSAGE_DATA_READY, 10, 0);
+
+  // Read messages.
+  cras_rstream_flush_old_audio_messages(s);
+
+  // NOT Pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(0, rc);
+
+  cras_rstream_destroy(s);
+}
+
 TEST_F(RstreamTestSuite, InputStreamIsPendingReply) {
   struct cras_rstream *s;
   int rc;
@@ -252,6 +299,40 @@ TEST_F(RstreamTestSuite, InputStreamIsPendingReply) {
   // Pending reply.
   rc = cras_rstream_is_pending_reply(s);
   EXPECT_EQ(1, rc);
+
+  cras_rstream_destroy(s);
+}
+
+TEST_F(RstreamTestSuite, InputStreamFlushMessages) {
+  struct cras_rstream *s;
+  int rc;
+
+  config_.direction = CRAS_STREAM_INPUT;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+
+  // Not pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(0, rc);
+
+  // Some data is ready. Sends it to client.
+  rc = cras_rstream_audio_ready(s, 10);
+  EXPECT_GT(rc, 0);
+
+  // Pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(1, rc);
+
+  // Client replies that data is captured.
+  stub_client_reply(AUDIO_MESSAGE_DATA_CAPTURED, 10, 0);
+
+  // Read messages.
+  cras_rstream_flush_old_audio_messages(s);
+
+  // NOT Pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(0, rc);
 
   cras_rstream_destroy(s);
 }
