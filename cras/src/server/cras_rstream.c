@@ -128,6 +128,14 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 	return 0;
 }
 
+/*
+ * Setting pending reply is only needed inside this module.
+ */
+static void set_pending_reply(struct cras_rstream *stream)
+{
+	cras_shm_set_callback_pending(&stream->shm, 1);
+}
+
 /* Exported functions */
 
 int cras_rstream_create(struct cras_rstream_config *config,
@@ -233,6 +241,9 @@ int cras_rstream_request_audio(struct cras_rstream *stream,
 	rc = write(stream->fd, &msg, sizeof(msg));
 	if (rc < 0)
 		return -errno;
+
+	set_pending_reply(stream);
+
 	return rc;
 }
 
@@ -247,6 +258,9 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 	rc = write(stream->fd, &msg, sizeof(msg));
 	if (rc < 0)
 		return -errno;
+
+	set_pending_reply(stream);
+
 	return rc;
 }
 
@@ -364,4 +378,9 @@ uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
 int cras_rstream_get_mute(const struct cras_rstream *rstream)
 {
 	return cras_shm_get_mute(&rstream->shm);
+}
+
+int cras_rstream_is_pending_reply(const struct cras_rstream *stream)
+{
+	return cras_shm_callback_pending(&stream->shm);
 }

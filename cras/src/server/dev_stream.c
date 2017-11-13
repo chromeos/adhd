@@ -631,7 +631,6 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
 	add_timespecs(&rstream->next_cb_ts,
 		      &rstream->sleep_interval_ts);
 	check_next_wake_time(dev_stream);
-	cras_shm_set_callback_pending(cras_rstream_output_shm(rstream), 1);
 
 	return 0;
 }

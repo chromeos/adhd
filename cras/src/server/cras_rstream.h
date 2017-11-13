@@ -323,4 +323,13 @@ uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
 /* Returns non-zero if the stream is muted. */
 int cras_rstream_get_mute(const struct cras_rstream *rstream);
 
+/*
+ * Returns non-zero if the stream is pending a reply from client.
+ * - For playback, stream is waiting for AUDIO_MESSAGE_DATA_READY message from
+ *   client.
+ * - For capture, stream is waiting for AUDIO_MESSAGE_DATA_CAPTURED message
+ *   from client.
+ */
+int cras_rstream_is_pending_reply(const struct cras_rstream *stream);
+
 #endif /* CRAS_RSTREAM_H_ */

@@ -41,12 +41,14 @@ class RstreamTestSuite : public testing::Test {
       rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
       ASSERT_EQ(0, rc);
       config_.audio_fd = sock[1];
+      client_fd_ = sock[0];
 
       config_.client = NULL;
     }
 
     virtual void TearDown() {
       close(config_.audio_fd);
+      close(client_fd_);
     }
 
     static bool format_equal(cras_audio_format *fmt1, cras_audio_format *fmt2) {
@@ -57,6 +59,7 @@ class RstreamTestSuite : public testing::Test {
 
     struct cras_audio_format fmt_;
     struct cras_rstream_config config_;
+    int client_fd_;
 };
 
 TEST_F(RstreamTestSuite, InvalidDirection) {
@@ -203,6 +206,53 @@ TEST_F(RstreamTestSuite, VerifyStreamTypes) {
   rc = cras_rstream_create(&config_, &s);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(CRAS_STREAM_TYPE_PRO_AUDIO, cras_rstream_get_type(s));
+  cras_rstream_destroy(s);
+}
+
+TEST_F(RstreamTestSuite, OutputStreamIsPendingReply) {
+  struct cras_rstream *s;
+  int rc;
+  struct timespec ts;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+
+  // Not pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(0, rc);
+
+  // Request some data from client.
+  rc = cras_rstream_request_audio(s, &ts);
+  EXPECT_GT(rc, 0);
+
+  // Pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(1, rc);
+
+  cras_rstream_destroy(s);
+}
+
+TEST_F(RstreamTestSuite, InputStreamIsPendingReply) {
+  struct cras_rstream *s;
+  int rc;
+
+  config_.direction = CRAS_STREAM_INPUT;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+
+  // Not pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(0, rc);
+
+  // Some data is ready. Sends it to client.
+  rc = cras_rstream_audio_ready(s, 10);
+  EXPECT_GT(rc, 0);
+
+  // Pending reply.
+  rc = cras_rstream_is_pending_reply(s);
+  EXPECT_EQ(1, rc);
+
   cras_rstream_destroy(s);
 }
 
