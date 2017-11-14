@@ -985,6 +985,16 @@ int dev_stream_wake_time(struct dev_stream *dev_stream,
   return 0;
 }
 
+int dev_stream_is_pending_reply(const struct dev_stream *dev_stream)
+{
+  return 0;
+}
+
+int dev_stream_flush_old_audio_messages(struct dev_stream *dev_stream)
+{
+  return 0;
+}
+
 int cras_iodev_frames_queued(struct cras_iodev *iodev, struct timespec *tstamp)
 {
 	return iodev->frames_queued(iodev, tstamp);

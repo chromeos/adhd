@@ -21,25 +21,6 @@ static const struct timespec playback_wake_fuzz_ts = {
 	0, 500 * 1000 /* 500 usec. */
 };
 
-/* Reads any pending audio message from the socket. */
-static void flush_old_aud_messages(struct cras_audio_shm *shm, int fd)
-{
-	struct audio_message msg;
-	struct pollfd pollfd;
-	int err;
-
-	pollfd.fd = fd;
-	pollfd.events = POLLIN;
-
-	do {
-		err = poll(&pollfd, 1, 0);
-		if (pollfd.revents & POLLIN) {
-			err = read(fd, &msg, sizeof(msg));
-			cras_shm_set_callback_pending(shm, 0);
-		}
-	} while (err > 0);
-}
-
 /* Gets the master device which the stream is attached to. */
 static inline
 struct cras_iodev *get_master_dev(const struct dev_stream *stream)
@@ -93,14 +74,13 @@ static int fetch_streams(struct open_dev *adev)
 		struct cras_rstream *rstream = dev_stream->stream;
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(rstream);
-		int fd = cras_rstream_get_audio_fd(rstream);
 		const struct timespec *next_cb_ts;
 		struct timespec now;
 
 		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
-		if (cras_shm_callback_pending(shm) && fd >= 0) {
-			flush_old_aud_messages(shm, fd);
+		if (dev_stream_is_pending_reply(dev_stream)) {
+			dev_stream_flush_old_audio_messages(dev_stream);
 			cras_rstream_record_fetch_interval(dev_stream->stream,
 							   &now);
 		}
@@ -284,12 +264,8 @@ static int capture_to_streams(struct open_dev *adev)
 	struct dev_stream *cap_limit_stream;
 	struct dev_stream *stream;
 
-	DL_FOREACH(adev->dev->streams, stream) {
-		struct cras_rstream *rstream = stream->stream;
-		flush_old_aud_messages(
-			cras_rstream_output_shm(rstream),
-			cras_rstream_get_audio_fd(rstream));
-	}
+	DL_FOREACH(adev->dev->streams, stream)
+		dev_stream_flush_old_audio_messages(stream);
 
 	rc = cras_iodev_frames_queued(idev, &hw_tstamp);
 	if (rc < 0)
@@ -409,8 +385,7 @@ static int write_streams(struct open_dev **odevs,
 		}
 		ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_STREAM,
 		      curr->stream->stream_id, dev_frames,
-		      cras_shm_callback_pending(
-				cras_rstream_output_shm(curr->stream)));
+		      dev_stream_is_pending_reply(curr));
 		if (cras_rstream_get_is_draining(curr->stream)) {
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
 			if (!dev_frames)
