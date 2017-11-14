@@ -201,4 +201,9 @@ dev_stream_sleep_interval_ts(struct dev_stream *dev_stream)
 
 int dev_stream_is_pending_reply(const struct dev_stream *dev_stream);
 
+/*
+ * Reads any pending audio message from the socket.
+ */
+int dev_stream_flush_old_audio_messages(struct dev_stream *dev_stream);
+
 #endif /* DEV_STREAM_H_ */

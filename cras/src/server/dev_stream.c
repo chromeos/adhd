@@ -753,3 +753,8 @@ int dev_stream_is_pending_reply(const struct dev_stream *dev_stream)
 {
 	return cras_rstream_is_pending_reply(dev_stream->stream);
 }
+
+int dev_stream_flush_old_audio_messages(struct dev_stream *dev_stream)
+{
+	return cras_rstream_flush_old_audio_messages(dev_stream->stream);
+}

@@ -96,6 +96,7 @@ static uint8_t *rstream_get_readable_ptr;
 static int cras_rstream_audio_ready_called;
 static int cras_rstream_audio_ready_count;
 static int cras_rstream_is_pending_reply_ret;
+static int cras_rstream_flush_old_audio_messages_called;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -125,6 +126,7 @@ class CreateSuite : public testing::Test{
       cras_rstream_audio_ready_called = 0;
       cras_rstream_audio_ready_count = 0;
       cras_rstream_is_pending_reply_ret = 0;
+      cras_rstream_flush_old_audio_messages_called = 0;
 
       memset(&copy_area_call, 0xff, sizeof(copy_area_call));
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
@@ -512,6 +514,17 @@ TEST_F(CreateSuite, StreamMixNoConvTwoPass) {
   EXPECT_EQ(dev_stream.stream, rstream_get_readable_call.rstream);
   EXPECT_EQ(nfr/2, rstream_get_readable_call.offset);
   EXPECT_EQ(2, rstream_get_readable_call.num_called);
+}
+
+TEST_F(CreateSuite, DevStreamFlushAudioMessages) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *)0x55, &cb_ts);
+
+  dev_stream_flush_old_audio_messages(dev_stream);
+  EXPECT_EQ(1, cras_rstream_flush_old_audio_messages_called);
 }
 
 TEST_F(CreateSuite, DevStreamIsPending) {
@@ -1106,6 +1119,12 @@ void cras_fmt_conv_set_linear_resample_rates(struct cras_fmt_conv *conv,
 int cras_rstream_is_pending_reply(const struct cras_rstream *stream)
 {
   return cras_rstream_is_pending_reply_ret;
+}
+
+int cras_rstream_flush_old_audio_messages(struct  cras_rstream *stream)
+{
+  cras_rstream_flush_old_audio_messages_called++;
+  return 0;
 }
 
 //  From librt.

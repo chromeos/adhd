@@ -106,4 +106,9 @@ int cras_rstream_is_pending_reply(const struct cras_rstream *rstream)
   return 0;
 }
 
+int cras_rstream_flush_old_audio_messages(struct cras_rstream *rstream)
+{
+  return 0;
+}
+
 } // extern "C"
