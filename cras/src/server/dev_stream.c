@@ -748,3 +748,8 @@ int dev_stream_wake_time(struct dev_stream *dev_stream,
 				   cap_limit, is_cap_limit_stream,
 				   wake_time_out);
 }
+
+int dev_stream_is_pending_reply(const struct dev_stream *dev_stream)
+{
+	return cras_rstream_is_pending_reply(dev_stream->stream);
+}

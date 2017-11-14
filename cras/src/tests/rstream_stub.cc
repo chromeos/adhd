@@ -101,4 +101,9 @@ void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
 {
 }
 
+int cras_rstream_is_pending_reply(const struct cras_rstream *rstream)
+{
+  return 0;
+}
+
 } // extern "C"

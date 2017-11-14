@@ -199,4 +199,6 @@ dev_stream_sleep_interval_ts(struct dev_stream *dev_stream)
 	return &dev_stream->stream->sleep_interval_ts;
 }
 
+int dev_stream_is_pending_reply(const struct dev_stream *dev_stream);
+
 #endif /* DEV_STREAM_H_ */
