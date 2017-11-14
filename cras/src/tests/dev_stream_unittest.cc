@@ -552,16 +552,17 @@ TEST_F(CreateSuite, StreamCanFetch) {
                                  (void *)0x55, &cb_ts);
 
   /* Verify stream cannot fetch when it's still pending. */
-  cras_shm_set_callback_pending(&rstream_.shm, 1);
+  cras_rstream_is_pending_reply_ret = 1;
   EXPECT_EQ(0, dev_stream_can_fetch(dev_stream));
 
   /* Verify stream can fetch when buffer available. */
-  cras_shm_set_callback_pending(&rstream_.shm, 0);
+  cras_rstream_is_pending_reply_ret = 0;
   rstream_.shm.area->write_offset[0] = 0;
   rstream_.shm.area->write_offset[1] = 0;
   EXPECT_EQ(1, dev_stream_can_fetch(dev_stream));
 
   /* Verify stream cannot fetch when there's still buffer. */
+  cras_rstream_is_pending_reply_ret = 0;
   rstream_.shm.area->write_offset[0] = kBufferFrames;
   rstream_.shm.area->write_offset[1] = kBufferFrames;
   EXPECT_EQ(0, dev_stream_can_fetch(dev_stream));

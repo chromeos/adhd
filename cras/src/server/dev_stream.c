@@ -614,7 +614,7 @@ int dev_stream_can_fetch(struct dev_stream *dev_stream)
 	shm = cras_rstream_output_shm(rstream);
 
 	/* Don't fetch if the previous request hasn't got response. */
-	return !cras_shm_callback_pending(shm) &&
+	return !cras_rstream_is_pending_reply(rstream) &&
 	       cras_shm_is_buffer_available(shm);
 }
 
@@ -646,7 +646,7 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
 		return stream->fd;
 
 	if (!stream_uses_output(stream) ||
-	    !cras_shm_callback_pending(&stream->shm) ||
+	    !cras_rstream_is_pending_reply(stream) ||
 	    cras_rstream_get_is_draining(stream))
 		return -1;
 
