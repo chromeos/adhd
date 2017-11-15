@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <gtest/gtest.h>
 
@@ -20,6 +21,9 @@ namespace {
 class RstreamTestSuite : public testing::Test {
   protected:
     virtual void SetUp() {
+      int rc;
+      int sock[2] = {-1, -1};
+
       fmt_.format = SND_PCM_FORMAT_S16_LE;
       fmt_.frame_rate = 48000;
       fmt_.num_channels = 2;
@@ -32,8 +36,17 @@ class RstreamTestSuite : public testing::Test {
       config_.format = &fmt_;
       config_.buffer_frames = 4096;
       config_.cb_threshold = 2048;
-      config_.audio_fd = 1;
+
+      // Create a socket pair because it will be used in rstream.
+      rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
+      ASSERT_EQ(0, rc);
+      config_.audio_fd = sock[1];
+
       config_.client = NULL;
+    }
+
+    virtual void TearDown() {
+      close(config_.audio_fd);
     }
 
     static bool format_equal(cras_audio_format *fmt1, cras_audio_format *fmt2) {
