@@ -169,6 +169,31 @@ static int audio_thread_send_response(struct audio_thread *thread, int rc)
 	return write(thread->to_main_fds[1], &rc, sizeof(rc));
 }
 
+/* Reads from a file descriptor until all bytes are read.
+ *
+ * Args:
+ *    fd - file descriptor to read
+ *    buf - the buffer to be written.
+ *    count - the number of bytes to read from fd
+ * Returns:
+ *    |count| on success, negative error code on failure.
+ */
+static int read_until_finished(int fd, void *buf, size_t count) {
+	int nread, count_left = count;
+
+	while (count_left > 0) {
+		nread = read(fd, (uint8_t *)buf + count - count_left, count_left);
+		if (nread < 0)
+			return nread;
+		if (nread == 0) {
+			syslog(LOG_ERR, "Pipe has been closed.");
+			return -EPIPE;
+		}
+		count_left -= nread;
+	}
+	return count;
+}
+
 /* Reads a command from the main thread.  Called from the playback/capture
  * thread.  This will read the next available command from the main thread and
  * put it in buf.
@@ -187,25 +212,19 @@ static int audio_thread_read_command(struct audio_thread *thread,
 	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
 
 	/* Get the length of the message first */
-	nread = read(thread->to_thread_fds[0], buf, sizeof(msg->length));
+	nread = read_until_finished(
+			thread->to_thread_fds[0], buf, sizeof(msg->length));
 	if (nread < 0)
 		return nread;
-	if (nread == 0) {
-		syslog(LOG_ERR, "Pipe has been closed.");
-		return -EPIPE;
-	}
 
 	if (msg->length > max_len)
 		return -ENOMEM;
 
-	to_read = msg->length - nread;
-	rc = read(thread->to_thread_fds[0], &buf[0] + nread, to_read);
+	to_read = msg->length - sizeof(msg->length);
+	rc = read_until_finished(thread->to_thread_fds[0],
+			&buf[0] + sizeof(msg->length), to_read);
 	if (rc < 0)
 		return rc;
-	if (rc == 0) {
-		syslog(LOG_ERR, "Pipe has been closed.");
-		return -EPIPE;
-	}
 	return 0;
 }
 
@@ -918,14 +937,10 @@ static int audio_thread_post_message(struct audio_thread *thread,
 		return err;
 	}
 	/* Synchronous action, wait for response. */
-	err = read(thread->to_main_fds[0], &rsp, sizeof(rsp));
+	err = read_until_finished(thread->to_main_fds[0], &rsp, sizeof(rsp));
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to read reply from thread.");
 		return err;
-	}
-	if (err == 0) {
-		syslog(LOG_ERR, "Pipe has been closed.");
-		return -EPIPE;
 	}
 
 	return rsp;
@@ -1091,14 +1106,10 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 		return err;
 	}
 	/* Synchronous action, wait for response. */
-	err = read(thread->to_main_fds[0], &rsp, sizeof(rsp));
+	err = read_until_finished(thread->to_main_fds[0], &rsp, sizeof(rsp));
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to read reply from thread.");
 		return err;
-	}
-	if (err == 0) {
-		syslog(LOG_ERR, "Pipe has been closed.");
-		return -EPIPE;
 	}
 
 	if (rsp)
@@ -1214,9 +1225,8 @@ void audio_thread_destroy(struct audio_thread *thread)
 
 		msg.id = AUDIO_THREAD_STOP;
 		msg.length = sizeof(msg);
-		if (audio_thread_post_message(thread, &msg) == 0) {
-			pthread_join(thread->tid, NULL);
-		}
+		audio_thread_post_message(thread, &msg);
+		pthread_join(thread->tid, NULL);
 	}
 
 	free(thread->pollfds);
