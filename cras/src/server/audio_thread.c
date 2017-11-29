@@ -910,8 +910,7 @@ restart_poll_loop:
 static int audio_thread_post_message(struct audio_thread *thread,
 				     struct audio_thread_msg *msg)
 {
-	int err;
-	void *rsp;
+	int err, rsp;
 
 	err = write(thread->to_thread_fds[1], msg, msg->length);
 	if (err < 0) {
@@ -929,7 +928,7 @@ static int audio_thread_post_message(struct audio_thread *thread,
 		return -EPIPE;
 	}
 
-	return (intptr_t)rsp;
+	return rsp;
 }
 
 static void init_open_device_msg(struct audio_thread_open_device_msg *msg,
