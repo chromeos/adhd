@@ -33,6 +33,19 @@ if [ -n "${internal_ucm_suffix}" ]; then
   INTERNAL_UCM_SUFFIX="--internal_ucm_suffix=${internal_ucm_suffix}"
 fi
 
-exec minijail0 -u cras -g cras -G -n -- /usr/bin/cras \
-    ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE} \
-    ${INTERNAL_UCM_SUFFIX}
+# Leave cras in the init pid namespace as it uses its PID as an IPC identifier.
+exec minijail0 -u cras -g cras -G -n --uts -v -l \
+        -P /var/empty \
+        -b /,/ \
+        -k tmpfs,/run,tmpfs \
+        -b /run/cras,/run/cras,1 \
+        -b /run/dbus,/run/dbus,1 \
+        -b /run/udev,/run/udev \
+        -b /dev,/dev \
+        -b /dev/shm,/dev/shm,1 \
+        -k proc,/proc,proc \
+        -b /sys,/sys \
+        -- \
+        /usr/bin/cras \
+        ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE} \
+        ${INTERNAL_UCM_SUFFIX}
