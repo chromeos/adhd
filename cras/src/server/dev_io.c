@@ -144,6 +144,28 @@ static int input_delay_frames(struct open_dev *adevs)
 	return max_delay;
 }
 
+/* Sets the stream delay.
+ * Args:
+ *    adev[in] - The device to capture from.
+ */
+static unsigned int set_stream_delay(struct open_dev *adev)
+{
+	struct dev_stream *stream;
+	int delay;
+
+	/* TODO(dgreid) - Setting delay from last dev only. */
+	delay = input_delay_frames(adev);
+
+	DL_FOREACH(adev->dev->streams, stream) {
+		if (stream->stream->flags & TRIGGER_ONLY)
+			continue;
+
+		dev_stream_set_delay(stream, delay);
+	}
+
+	return 0;
+}
+
 /* Gets the minimum amount of space available for writing across all streams.
  * Args:
  *    adev[in] - The device to capture from.
@@ -153,7 +175,7 @@ static int input_delay_frames(struct open_dev *adevs)
  *                        Output NULL if there is no stream that causes
  *                        capture limit less than the initial limit.
  */
-static unsigned int get_stream_limit_set_delay(
+static unsigned int get_stream_limit(
 		struct open_dev *adev,
 		unsigned int write_limit,
 		struct dev_stream **limit_stream)
@@ -161,13 +183,9 @@ static unsigned int get_stream_limit_set_delay(
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
 	struct dev_stream *stream;
-	int delay;
 	unsigned int avail;
 
 	*limit_stream = NULL;
-
-	/* TODO(dgreid) - Setting delay from last dev only. */
-	delay = input_delay_frames(adev);
 
 	DL_FOREACH(adev->dev->streams, stream) {
 		rstream = stream->stream;
@@ -179,7 +197,6 @@ static unsigned int get_stream_limit_set_delay(
 			ATLOG(atlog, AUDIO_THREAD_READ_OVERRUN,
 			      adev->dev->info.idx, rstream->stream_id,
 			      shm->area->num_overruns);
-		dev_stream_set_delay(stream, delay);
 		avail = dev_stream_capture_avail(stream);
 		if (avail < write_limit) {
 			write_limit = avail;
@@ -216,8 +233,8 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
 
-	cap_limit = get_stream_limit_set_delay(adev, adev->dev->buffer_size,
-					       &cap_limit_stream);
+	cap_limit = get_stream_limit(adev, adev->dev->buffer_size,
+				     &cap_limit_stream);
 	/*
 	 * Loop through streams to find the earliest time audio thread
 	 * should wake up.
@@ -285,8 +302,9 @@ static int capture_to_streams(struct open_dev *adev)
 			update_estimated_rate(adev);
 	}
 
-	cap_limit = get_stream_limit_set_delay(adev, hw_level,
-					       &cap_limit_stream);
+	cap_limit = get_stream_limit(adev, hw_level, &cap_limit_stream);
+	set_stream_delay(adev);
+
 	remainder = MIN(hw_level, cap_limit);
 
 	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO, idev->info.idx,
