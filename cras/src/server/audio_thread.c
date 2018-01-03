@@ -1087,9 +1087,10 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 		}
 		for (j = i + 1; j < num_channels; j++) {
 			if (coefficient[i * num_channels + j] != 0 ||
-			    coefficient[j * num_channels + i] != 0)
+			    coefficient[j * num_channels + i] != 0) {
 				identity_remix = 0;
 				break;
+			}
 		}
 	}
 
