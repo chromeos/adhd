@@ -176,6 +176,10 @@ struct cras_ionode {
  * ramp - The cras_ramp struct to control ramping up/down at mute/unmute and
  *        start of playback.
  * input_streaming - For capture only. Indicate if input has started.
+ * input_frames_read - The number of frames read from the device, but that
+ *                     haven't been "put" yet.
+ * input_dsp_offset - The number of frames in the HW buffer that have already
+ *                    been processed by the input DSP.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -241,6 +245,8 @@ struct cras_iodev {
 	int reset_request_pending;
 	struct cras_ramp* ramp;
 	int input_streaming;
+	unsigned int input_frames_read;
+	unsigned int input_dsp_offset;
 	struct cras_iodev *prev, *next;
 };
 

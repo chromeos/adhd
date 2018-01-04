@@ -895,6 +895,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
 int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 {
 	rate_estimator_add_frames(iodev->rate_est, -nframes);
+	iodev->input_dsp_offset = iodev->input_frames_read - nframes;
 	return iodev->put_buffer(iodev, nframes);
 }
 
@@ -993,13 +994,19 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
 		return -EINVAL;
 	}
 
+	iodev->input_frames_read = *frames;
+
 	/* TODO(dgreid) - This assumes interleaved audio. */
 	hw_buffer = (*area)->channels[0].buf;
 
-	if (cras_system_get_capture_mute())
+	if (cras_system_get_capture_mute()) {
 		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
-	else
-		apply_dsp(iodev, hw_buffer, *frames); /* TODO-applied 2x */
+	} else {
+		apply_dsp(iodev, hw_buffer +
+			  iodev->input_dsp_offset *
+				cras_get_format_bytes(iodev->format),
+			  *frames - iodev->input_dsp_offset);
+	}
 
 	return rc;
 }
