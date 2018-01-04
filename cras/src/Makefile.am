@@ -76,6 +76,7 @@ cras_server_SOURCES = \
 	dsp/biquad.c \
 	dsp/crossover.c \
 	dsp/crossover2.c \
+	dsp/dcblock.c \
 	dsp/drc.c \
 	dsp/drc_kernel.c \
 	dsp/drc_math.c \
@@ -382,6 +383,7 @@ common/cras_version.h:
 check_PROGRAMS += \
 	crossover_test \
 	crossover2_test \
+	dcblock_test \
 	drc_test \
 	dsp_util_test \
 	eq_test \
@@ -397,6 +399,11 @@ crossover2_test_SOURCES = dsp/crossover2.c dsp/biquad.c dsp/dsp_util.c \
 	dsp/tests/crossover2_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 crossover2_test_LDADD = -lrt -lm
 crossover2_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+
+dcblock_test_SOURCES = dsp/dcblock.c dsp/dsp_util.c dsp/tests/dcblock_test.c \
+	dsp/tests/dsp_test_util.c dsp/tests/raw.c
+dcblock_test_LDADD = -lrt -lm
+dcblock_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
 
 drc_test_SOURCES = dsp/drc.c dsp/drc_kernel.c dsp/drc_math.c \
 	dsp/crossover2.c dsp/eq2.c dsp/biquad.c dsp/dsp_util.c \
