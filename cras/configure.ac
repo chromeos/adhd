@@ -35,6 +35,18 @@ fi
 AC_SUBST(DBUS_LIBS)
 AC_SUBST(DBUS_CFLAGS)
 
+AC_ARG_ENABLE([selinux], AS_HELP_STRING([--enable-selinux], [Enable SELinux calls]), have_selinux=$enableval, have_selinux=no)
+AM_CONDITIONAL(HAVE_SELINUX, test "$have_selinux" = "yes")
+if test "$have_selinux" = "yes"; then
+    PKG_CHECK_MODULES([SELINUX], [ libselinux ])
+    AS_VAR_APPEND([SELINUX_CFLAGS], [" -DCRAS_SELINUX"])
+else
+    SELINUX_CFLAGS=
+    SELINUX_LIBS=
+fi
+AC_SUBST(SELINUX_CFLAGS)
+AC_SUBST(SELINUX_LIBS)
+
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)

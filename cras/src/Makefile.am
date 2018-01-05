@@ -136,7 +136,7 @@ libcrasserver_la_SOURCES = \
 libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
-	$(DBUS_CFLAGS) $(SBC_CFLAGS)
+	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS)
 libcrasserver_la_LIBADD = \
 	libcrasmix.la \
 	$(CRAS_SSE4_2) \
@@ -145,7 +145,8 @@ libcrasserver_la_LIBADD = \
 	$(CRAS_FMA) \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(SBC_LIBS) \
-	$(DBUS_LIBS)
+	$(DBUS_LIBS) \
+	$(SELINUX_LIBS)
 
 cras_SOURCES = \
 	server/cras.c \
@@ -583,13 +584,15 @@ dev_io_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config
+	-I$(top_srcdir)/src/server/config \
+	$(SELINUX_CFLAGS)
 dev_io_unittest_LDADD = \
 	libcrasmix.la \
 	$(CRAS_SSE4_2) \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
+	$(SELINUX_LIBS) \
 	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
 
 dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
@@ -745,8 +748,9 @@ rclient_unittest_LDADD = -lgtest -lpthread
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
 	common/cras_shm.c
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	 -I$(top_srcdir)/src/server
-rstream_unittest_LDADD = -lasound -lgtest -lpthread -lrt
+	 -I$(top_srcdir)/src/server $(SELINUX_CFLAGS)
+rstream_unittest_LDADD = $(SELINUX_LIBS) \
+	-lasound -lgtest -lpthread -lrt
 
 server_metrics_unittest_SOURCES = tests/server_metrics_unittest.cc
 server_metrics_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
@@ -772,8 +776,9 @@ system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 	server/cras_system_state.c common/cras_shm.c server/config/cras_board_config.c
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config
-system_state_unittest_LDADD = -lgtest -liniparser -lpthread -lrt
+	-I$(top_srcdir)/src/server/config $(SELINUX_CFLAGS)
+system_state_unittest_LDADD = $(SELINUX_LIBS) \
+	-lgtest -liniparser -lpthread -lrt
 
 timing_unittest_SOURCES = \
 	common/cras_audio_format.c \
@@ -795,13 +800,15 @@ timing_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config
+	-I$(top_srcdir)/src/server/config \
+	$(SELINUX_CFLAGS)
 timing_unittest_LDADD = \
 	libcrasmix.la \
 	$(CRAS_SSE4_2) \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
+	$(SELINUX_LIBS) \
 	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
 
 utf8_unittest_SOURCES = tests/utf8_unittest.cc server/cras_utf8.c

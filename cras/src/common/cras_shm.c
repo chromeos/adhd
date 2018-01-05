@@ -12,9 +12,42 @@
 #endif
 #include <errno.h>
 #include <syslog.h>
+#include <stdio.h>
 #include <string.h>
+#ifdef CRAS_SELINUX
+#include <selinux/restorecon.h>
+#endif
 
 #include "cras_shm.h"
+
+/* Set the correct SELinux label for SHM fds. */
+static void cras_shm_restorecon(int fd)
+{
+#ifdef CRAS_SELINUX
+	char fd_proc_path[64];
+
+	if (snprintf(fd_proc_path, sizeof(fd_proc_path), "/proc/self/fd/%d", fd) < 0) {
+		syslog(LOG_WARNING,
+		       "Couldn't construct proc symlink path of fd: %d", fd);
+		return;
+	}
+
+	/* Get the actual file-path for this fd. */
+	char *path = realpath(fd_proc_path, NULL);
+	if (path == NULL) {
+		syslog(LOG_WARNING, "Couldn't run realpath() for %s: %s",
+		       fd_proc_path, strerror(errno));
+		return;
+	}
+
+	if (selinux_restorecon(path, 0) < 0) {
+		syslog(LOG_WARNING, "Restorecon on %s failed: %s",
+		       fd_proc_path, strerror(errno));
+	}
+
+	free(path);
+#endif
+}
 
 #ifdef __BIONIC__
 
@@ -73,6 +106,9 @@ int cras_shm_open_rw (const char *name, size_t size)
 		       name, strerror(-rc));
 		return rc;
 	}
+
+	cras_shm_restorecon(fd);
+
 	return fd;
 }
 
