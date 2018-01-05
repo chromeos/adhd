@@ -5,7 +5,7 @@ AC_INIT([cras], [0.1], [dgreid@chromium.org],
              [cras], [http://www.chromium.org/])
 AC_PREREQ([2.59])
 
-AC_CANONICAL_TARGET
+AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE([1.10 -Wall no-define])
 #AC_CONFIG_HEADERS([config.h])
@@ -95,7 +95,7 @@ AC_SUBST([INIPARSER_LIBS])
 
 # SSE4_2 support
 AC_ARG_ENABLE(sse42, [AS_HELP_STRING([--enable-sse42],[enable SSE42 optimizations])], have_sse42=$enableval, have_sse42=yes)
-if  test "x$target_cpu" != xx86_64; then
+if  test "x$host_cpu" != xx86_64; then
 	have_sse42=no
 fi
 if test "$have_sse42" = "yes"; then
@@ -107,7 +107,7 @@ AC_SUBST(SSE42_CFLAGS)
 
 # AVX support
 AC_ARG_ENABLE(avx, [AS_HELP_STRING([--enable-avx],[enable AVX optimizations])], have_avx=$enableval, have_avx=yes)
-if  test "x$target_cpu" != xx86_64; then
+if  test "x$host_cpu" != xx86_64; then
 	have_avx=no
 fi
 if test "$have_avx" = "yes"; then
@@ -119,7 +119,7 @@ AC_SUBST(AVX_CFLAGS)
 
 # AVX2 support
 AC_ARG_ENABLE(avx2, [AS_HELP_STRING([--enable-avx2],[enable AVX2 optimizations])], have_avx2=$enableval, have_avx2=yes)
-if  test "x$target_cpu" != xx86_64; then
+if  test "x$host_cpu" != xx86_64; then
 	have_avx2=no
 fi
 if test "$have_avx2" = "yes"; then
@@ -131,7 +131,7 @@ AC_SUBST(AVX2_CFLAGS)
 
 # FMA support
 AC_ARG_ENABLE(fma, [AS_HELP_STRING([--enable-fma],[enable FMA optimizations])], have_fma=$enableval, have_fma=yes)
-if  test "x$target_cpu" != xx86_64; then
+if  test "x$host_cpu" != xx86_64; then
 	have_fma=no
 fi
 if test "$have_fma" = "yes"; then
