@@ -18,7 +18,7 @@ AC_PROG_CXX
 AC_LANG_C
 AM_PROG_CC_C_O
 PKG_PROG_PKG_CONFIG
-#AC_CONFIG_FILES([Makefile src/Makefile libcras.pc])
+AC_CONFIG_FILES([Makefile src/Makefile libcras.pc])
 
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
 PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.1.0 ])
@@ -125,11 +125,7 @@ fi
 AM_CONDITIONAL(HAVE_FMA, test "$have_fma" = "yes")
 AC_SUBST(FMA_CFLAGS)
 
-AC_OUTPUT([
-	Makefile
-	src/Makefile
-	libcras.pc
-])
+AC_OUTPUT
 
 AC_MSG_NOTICE([
 
