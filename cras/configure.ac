@@ -23,18 +23,17 @@ PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
 PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.1.0 ])
 
-AC_ARG_ENABLE([DBUS], AS_HELP_STRING([--disable-DBUS], [Disable all DBUS uses]), have_dbus=$enableval, have_dbus=yes)
+AC_ARG_ENABLE([dbus], AS_HELP_STRING([--disable-dbus], [Disable all DBUS uses]), have_dbus=$enableval, have_dbus=yes)
 AM_CONDITIONAL(HAVE_DBUS, test "$have_dbus" = "yes")
 if test "$have_dbus" = "yes"; then
     PKG_CHECK_MODULES([DBUS], [ dbus-1 >= 1.4.12 ])
-    DBUS_CFLAGS+=" -DCRAS_DBUS"
-    AC_SUBST(DBUS_CFLAGS)
+    AS_VAR_APPEND([DBUS_CFLAGS], [" -DCRAS_DBUS"])
 else
     DBUS_CFLAGS=
-    AC_SUBST(DBUS_CFLAGS)
     DBUS_LIBS=
-    AC_SUBST(DBUS_LIBS)
 fi
+AC_SUBST(DBUS_LIBS)
+AC_SUBST(DBUS_CFLAGS)
 
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
