@@ -147,14 +147,10 @@ AC_OUTPUT([
 	libcras.pc
 ])
 
-AS_IF([test "$have_sse42" = "yes"], ENABLE_SSE42=yes, ENABLE_SSE42=no)
-AS_IF([test "$have_avx" = "yes"], ENABLE_AVX=yes, ENABLE_AVX=no)
-AS_IF([test "$have_avx2" = "yes"], ENABLE_AVX2=yes, ENABLE_AVX2=no)
-AS_IF([test "$have_fma" = "yes"], ENABLE_FMA=yes, ENABLE_FMA=no)
+AC_MSG_NOTICE([
 
-echo "
-Enable SSE42:                  ${ENABLE_SSE42}
-Enable AVX:                    ${ENABLE_AVX}
-Enable AVX2:                   ${ENABLE_AVX2}
-Enable FMA:                    ${ENABLE_FMA}
-"
+Enable SSE42:                  ${have_sse42}
+Enable AVX:                    ${have_avx}
+Enable AVX2:                   ${have_avx2}
+Enable FMA:                    ${have_fma}
+])
