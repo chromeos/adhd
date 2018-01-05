@@ -78,21 +78,6 @@ AC_ARG_WITH(socketdir,
 AC_DEFINE_UNQUOTED(CRAS_SOCKET_FILE_DIR, "$socketdir",
                    [directory containing CRAS socket files])
 
-# Get iniparser library and include locations
-AC_ARG_WITH([iniparser-include-path],
-  [AS_HELP_STRING([--with-iniparser-include-path],
-      [location of the iniparser headers, defaults to /usr/include/])],
-        [INIPARSER_CFLAGS="-I$withval"],
-	  [INIPARSER_CFLAGS='-I/usr/include'])
-AC_SUBST([INIPARSER_CFLAGS])
-
-AC_ARG_WITH([iniparser-lib-path],
-  [AS_HELP_STRING([--with-iniparser-lib-path],
-      [location of the iniparser libraries])],
-        [INIPARSER_LIBS="-L$withval -liniparser"],
-          [INIPARSER_LIBS='-liniparser'])
-AC_SUBST([INIPARSER_LIBS])
-
 # SSE4_2 support
 AC_ARG_ENABLE(sse42, [AS_HELP_STRING([--enable-sse42],[enable SSE42 optimizations])], have_sse42=$enableval, have_sse42=yes)
 if  test "x$host_cpu" != xx86_64; then
