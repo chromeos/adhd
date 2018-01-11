@@ -539,7 +539,7 @@ TEST(AlsaIoInit, SoftwareGainWithDefaultNodeGain) {
   ucm_get_max_software_gain_ret_value = 0;
   ucm_get_max_software_gain_value = 2000;
 
-  // Set default node gain to -1000 dBm.
+  // Set default node gain to -1000 * 0.01 dB.
   ucm_get_default_node_gain_values["Internal Mic"] = default_node_gain;
 
   // Assume this is the first device so it gets internal mic node name.
@@ -550,7 +550,7 @@ TEST(AlsaIoInit, SoftwareGainWithDefaultNodeGain) {
                                                     CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
 
-  // Gain on node is 300 dBm.
+  // Gain on node is 300 * 0.01 dB.
   iodev->active_node->capture_gain = default_node_gain;
 
   // cras_iodev will call cras_iodev_adjust_active_node_gain to get gain for
@@ -682,7 +682,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
   long default_node_gain = -1000;
 
   ResetStubData();
-  // Set default node gain to -1000 dBm.
+  // Set default node gain to -1000 * 0.01 dB.
   ucm_get_default_node_gain_values["Internal Mic"] = default_node_gain;
 
   // Assume this is the first device so it gets internal mic node name.
@@ -697,14 +697,14 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
 
   // Check the default node gain is the same as what specified in UCM.
   EXPECT_EQ(default_node_gain, iodev->active_node->capture_gain);
-  // System gain is set to 2000 dBm.
+  // System gain is set to 2000 * 0.01 dB.
   sys_get_capture_gain_return_value = system_gain;
 
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
-  // Hardware gain is set to 2000 - 1000 dBm.
+  // Hardware gain is set to (2000 - 1000) * 0.01 dB.
   EXPECT_EQ(system_gain + default_node_gain, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);
@@ -730,7 +730,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
 
   cras_iodev_set_format(iodev, &format);
 
-  /* System gain is set to 1000dBm */
+  /* System gain is set to 1000 * 0.01 dB */
   sys_get_capture_gain_return_value = 1000;
 
   iodev->open_dev(iodev);
@@ -746,7 +746,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
-  /* Hardware gain is set to 1000dBm as got from system capture gain.*/
+  /* Hardware gain is set to 1000 * 0.01 dB as got from system capture gain.*/
   EXPECT_EQ(1000, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);

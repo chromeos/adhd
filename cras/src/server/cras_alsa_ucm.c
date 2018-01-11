@@ -34,10 +34,15 @@ static const char capture_device_rate_var[] = "CaptureRate";
 static const char capture_channel_map_var[] = "CaptureChannelMap";
 static const char coupled_mixers[] = "CoupledMixers";
 static const char preempt_hotword_var[] = "PreemptHotword";
-/* Set this value in a SectionDevice to specify the maximum software gain in dBm
- * and enable software gain on this node. */
+/*
+ * Set this value in a SectionDevice to specify the maximum software gain in
+ * 0.01 dB and enable software gain on this node.
+ */
 static const char max_software_gain[] = "MaxSoftwareGain";
-/* Set this value in a SectionDevice to specify the default node gain in dBm. */
+/*
+ * Set this value in a SectionDevice to specify the default node gain in
+ * 0.01 dB.
+ */
 static const char default_node_gain[] = "DefaultNodeGain";
 static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";

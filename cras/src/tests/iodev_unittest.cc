@@ -1233,7 +1233,7 @@ TEST(IoDev, SoftwareGain) {
   // Check that system volume changes software volume if needed.
   cras_system_get_capture_gain_ret_value = 2000;
   // system_gain + node_gain = 2000 + 400  = 2400
-  // 2400 dBm is 15.848931
+  // 2400 * 0.01 dB is 15.848931
   EXPECT_FLOAT_EQ(15.848931, cras_iodev_get_software_gain_scaler(&iodev));
   EXPECT_FLOAT_EQ(3000, cras_iodev_maximum_software_gain(&iodev));
 

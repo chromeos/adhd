@@ -69,7 +69,7 @@ enum CRAS_IODEV_STATE {
  *    software_volume_needed - For output: True if the volume range of the node
  *      is smaller than desired. For input: True if this node needs software
  *      gain.
- *    max_software_gain - The maximum software gain in dBm if needed.
+ *    max_software_gain - The maximum software gain in 0.01 dB if needed.
  *    stable_id - id for node that doesn't change after unplug/plug.
  *    stable_id_new - New stable_id, it will be deprecated and be put on
  *      stable_id.
@@ -453,7 +453,7 @@ static inline long cras_iodev_maximum_software_gain(
  * Args:
  *    iodev - The device.
  * Returns:
- *    A scaler translated from system gain and active node gain dBm value.
+ *    A scaler translated from system gain and active node gain.
  *    Returns 1.0 if software gain is not needed. */
 float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev);
 
