@@ -14,9 +14,6 @@
 #include <syslog.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef CRAS_SELINUX
-#include <selinux/restorecon.h>
-#endif
 
 #include "cras_shm.h"
 
@@ -40,7 +37,7 @@ static void cras_shm_restorecon(int fd)
 		return;
 	}
 
-	if (selinux_restorecon(path, 0) < 0) {
+	if (cras_selinux_restorecon(path) < 0) {
 		syslog(LOG_WARNING, "Restorecon on %s failed: %s",
 		       fd_proc_path, strerror(errno));
 	}

@@ -530,4 +530,17 @@ void *cras_shm_setup(const char *name,
 		     int *rw_fd_out,
 		     int *ro_fd_out);
 
+#ifdef CRAS_SELINUX
+/*
+ * Wrapper around selinux_restorecon(). This is helpful in unit tests because
+ * we can mock out the selinux_restorecon() behaviour there. That is required
+ * because selinux_restorecon() would fail in the unit tests, since there
+ * is no file_contexts file.
+ * Args:
+ *    pathname - Name of the file on which to run restorecon
+ * Returns 0 on success, otherwise -1 and errno is set appropriately.
+ */
+int cras_selinux_restorecon(const char *pathname);
+#endif
+
 #endif /* CRAS_SHM_H_ */

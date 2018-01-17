@@ -62,8 +62,17 @@ else
 CRAS_DBUS_SOURCES =
 endif
 
+if HAVE_SELINUX
+CRAS_SELINUX_SOURCES = common/cras_selinux_helper.c
+CRAS_SELINUX_UNITTEST_SOURCES = tests/cras_selinux_helper_unittest.c
+else
+CRAS_SELINUX_SOURCES =
+CRAS_SELINUX_UNITTEST_SOURCES =
+endif
+
 cras_server_SOURCES = \
 	$(CRAS_DBUS_SOURCES) \
+	$(CRAS_SELINUX_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
@@ -565,6 +574,7 @@ cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 cras_tm_unittest_LDADD = -lgtest -lpthread
 
 dev_io_unittest_SOURCES = \
+	$(CRAS_SELINUX_UNITTEST_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_shm.c \
 	server/cras_audio_area.c \
@@ -746,7 +756,7 @@ rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 rclient_unittest_LDADD = -lgtest -lpthread
 
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
-	common/cras_shm.c
+	common/cras_shm.c $(CRAS_SELINUX_UNITTEST_SOURCES)
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server $(SELINUX_CFLAGS)
 rstream_unittest_LDADD = $(SELINUX_LIBS) \
@@ -773,7 +783,8 @@ stream_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 stream_list_unittest_LDADD = -lgtest -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
-	server/cras_system_state.c common/cras_shm.c server/config/cras_board_config.c
+	server/cras_system_state.c common/cras_shm.c \
+	server/config/cras_board_config.c $(CRAS_SELINUX_UNITTEST_SOURCES)
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(SELINUX_CFLAGS)
@@ -781,6 +792,7 @@ system_state_unittest_LDADD = $(SELINUX_LIBS) \
 	-lgtest -liniparser -lpthread -lrt
 
 timing_unittest_SOURCES = \
+	$(CRAS_SELINUX_UNITTEST_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_shm.c \
 	server/cras_audio_area.c \
