@@ -346,7 +346,8 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->software_volume_needed = 1;
+	iodev->software_volume_needed =
+			!cras_bt_device_get_use_hardware_volume(device);
 	iodev->set_volume = set_bt_volume;
 	iodev->no_stream = cras_iodev_default_no_stream_playback;
 
