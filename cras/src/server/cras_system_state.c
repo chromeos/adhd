@@ -509,6 +509,16 @@ int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes)
 	return state.exp_state->num_input_nodes;
 }
 
+void cras_system_state_set_non_empty_status(int non_empty)
+{
+	state.exp_state->non_empty_status = non_empty;
+}
+
+int cras_system_state_get_non_empty_status()
+{
+	return state.exp_state->non_empty_status;
+}
+
 struct cras_server_state *cras_system_state_update_begin()
 {
 	if (pthread_mutex_lock(&state.update_lock)) {

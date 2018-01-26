@@ -251,6 +251,16 @@ int cras_system_state_get_output_nodes(const struct cras_ionode_info **nodes);
  */
 int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes);
 
+/*
+ * Sets the non-empty audio status.
+ */
+void cras_system_state_set_non_empty_status(int non_empty);
+
+/*
+ * Returns the non-empty audio status.
+ */
+int cras_system_state_get_non_empty_status();
+
 /* Returns a pointer to the current system state that is shared with clients.
  * This also 'locks' the structure by incrementing the update count to an odd
  * value.

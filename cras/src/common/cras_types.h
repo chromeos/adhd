@@ -309,6 +309,8 @@ struct __attribute__ ((__packed__)) audio_debug_info {
  *        isn't protected against concurrent updating, only one client should
  *        use it.
  *    default_output_buffer_size - Default output buffer size in frames.
+ *    non_empty_status - Whether any non-empty audio is being
+ *        played/captured.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__ ((packed, aligned(4))) cras_server_state {
@@ -342,6 +344,7 @@ struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	struct cras_timespec last_active_stream_time;
 	struct audio_debug_info audio_debug_info;
 	int32_t default_output_buffer_size;
+	int32_t non_empty_status;
 };
 
 /* Actions for card add/remove/change. */
