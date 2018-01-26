@@ -18,6 +18,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
 	CRAS_MAIN_METRICS,
 	CRAS_MAIN_MONITOR_DEVICE,
 	CRAS_MAIN_HOTWORD_TRIGGERED,
+	CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
 };
 
 /* Structure of the header of the message handled by main thread.

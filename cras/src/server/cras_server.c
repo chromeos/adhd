@@ -41,6 +41,7 @@
 #include "cras_main_message.h"
 #include "cras_messages.h"
 #include "cras_metrics.h"
+#include "cras_non_empty_audio_handler.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
 #include "cras_server.h"
@@ -426,6 +427,8 @@ int cras_server_run(unsigned int profile_disable_mask)
 	cras_device_monitor_init();
 
 	cras_hotword_handler_init();
+
+	cras_non_empty_audio_handler_init();
 
 #ifdef CRAS_DBUS
 	dbus_threads_init_default();
