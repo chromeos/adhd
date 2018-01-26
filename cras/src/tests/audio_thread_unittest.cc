@@ -783,7 +783,7 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 }
 
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
-				 unsigned int nframes)
+				 unsigned int nframes, int* non_empty)
 {
   cras_iodev_put_output_buffer_called++;
   cras_iodev_put_output_buffer_nframes = nframes;

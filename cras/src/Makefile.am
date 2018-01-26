@@ -136,6 +136,7 @@ cras_server_SOURCES = \
 	server/dev_io.c \
 	server/dev_stream.c \
 	server/linear_resampler.c \
+	server/polled_interval_checker.c \
 	server/stream_list.c \
 	server/test_iodev.c \
 	server/rate_estimator.c \
@@ -338,6 +339,7 @@ TESTS = \
 	mix_unittest \
 	linear_resampler_unittest \
 	observer_unittest \
+	polled_interval_checker_unittest \
 	ramp_unittest \
 	rate_estimator_unittest \
 	rclient_unittest \
@@ -530,7 +532,7 @@ array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 array_unittest_LDADD = -lgtest -lpthread
 
 audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
-	server/dev_io.c
+	server/dev_io.c tests/empty_audio_stub.cc
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
@@ -587,6 +589,7 @@ dev_io_unittest_SOURCES = \
 	server/linear_resampler.c \
 	tests/dev_io_stubs.cc \
 	tests/iodev_stub.cc \
+	tests/empty_audio_stub.cc \
 	tests/rstream_stub.cc \
 	tests/dev_io_unittest.cc
 dev_io_unittest_CXXFLAGS = \
@@ -741,6 +744,12 @@ observer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 observer_unittest_LDADD = -lgtest -lpthread
 
+polled_interval_checker_unittest_SOURCES = tests/polled_interval_checker_unittest.cc \
+    server/polled_interval_checker.c
+polled_interval_checker_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+polled_interval_checker_unittest_LDADD = -lgtest -lpthread
+
 ramp_unittest_SOURCES = tests/ramp_unittest.cc
 ramp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
@@ -805,6 +814,7 @@ timing_unittest_SOURCES = \
 	server/linear_resampler.c \
 	tests/dev_io_stubs.cc \
 	tests/iodev_stub.cc \
+	tests/empty_audio_stub.cc \
 	tests/rstream_stub.cc \
 	tests/timing_unittest.cc
 timing_unittest_CXXFLAGS = \

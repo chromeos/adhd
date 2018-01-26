@@ -505,7 +505,7 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes);
 
 /* Marks a buffer from get_buffer as written. */
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
-				 unsigned int nframes);
+				 unsigned int nframes, int *is_non_empty);
 
 /* Returns a buffer to read from.
  * Args:

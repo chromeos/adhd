@@ -9,10 +9,11 @@
 #include "audio_thread_log.h"
 #include "cras_audio_area.h"
 #include "cras_iodev.h"
-#include "cras_server_metrics.h"
+#include "cras_non_empty_audio_handler.h"
 #include "cras_rstream.h"
-#include "cras_util.h"
+#include "cras_server_metrics.h"
 #include "dev_stream.h"
+#include "polled_interval_checker.h"
 #include "utlist.h"
 
 #include "dev_io.h"
@@ -20,6 +21,18 @@
 static const struct timespec playback_wake_fuzz_ts = {
 	0, 500 * 1000 /* 500 usec. */
 };
+
+/* The maximum time to wait before checking the device's non-empty status. */
+static const int NON_EMPTY_UPDATE_INTERVAL_SEC = 5;
+
+/*
+ * The minimum number of consecutive seconds of empty audio that must be
+ * played before a device is considered to be playing empty audio.
+ */
+static const int MIN_EMPTY_PERIOD_SEC = 30;
+
+/* The number of devices playing/capturing non-empty stream(s). */
+static int non_empty_device_count = 0;
 
 /* Gets the master device which the stream is attached to. */
 static inline
@@ -50,6 +63,32 @@ static void update_estimated_rate(struct open_dev *adev)
 				cras_iodev_get_est_rate_ratio(master_dev),
 				adev->coarse_rate_adjust);
 	}
+}
+
+/*
+ * Counts the number of devices which are currently playing/capturing non-empty
+ * audio.
+ */
+static inline int count_non_empty_dev(struct open_dev *adevs) {
+	int count = 0;
+	struct open_dev *adev;
+	DL_FOREACH(adevs, adev) {
+		if (!adev->empty_pi || !pic_interval_elapsed(adev->empty_pi))
+			count++;
+	}
+	return count;
+}
+
+static void check_non_empty_state_transition(struct open_dev *adevs) {
+	int new_non_empty_dev_count = count_non_empty_dev(adevs);
+
+	// If we have transitioned to or from a state with 0 non-empty devices,
+	// notify the main thread to update system state.
+	if ((non_empty_device_count == 0) != (new_non_empty_dev_count == 0))
+		cras_non_empty_audio_send_msg(
+			new_non_empty_dev_count > 0 ? 1 : 0);
+
+	non_empty_device_count = new_non_empty_dev_count;
 }
 
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
@@ -463,6 +502,8 @@ int write_output_samples(struct open_dev **odevs,
 	snd_pcm_sframes_t written;
 	snd_pcm_uframes_t total_written = 0;
 	int rc;
+	int non_empty = 0;
+	int *non_empty_ptr = NULL;
 	uint8_t *dst = NULL;
 	struct cras_audio_area *area = NULL;
 
@@ -522,10 +563,41 @@ int write_output_samples(struct open_dev **odevs,
 			 * won't fill the request. */
 			fr_to_req = 0; /* break out after committing samples */
 
-		rc = cras_iodev_put_output_buffer(odev, dst, written);
+		// This interval is lazily initialized once per device.
+		// Note that newly opened devices are considered non-empty
+		// (until their status is updated through the normal flow).
+		if (!adev->non_empty_check_pi) {
+			adev->non_empty_check_pi = pic_polled_interval_create(
+				NON_EMPTY_UPDATE_INTERVAL_SEC);
+		}
+
+		// If we were empty last iteration, or the sampling interval
+		// has elapsed, check for emptiness.
+		if (adev->empty_pi ||
+			pic_interval_elapsed(adev->non_empty_check_pi)) {
+			non_empty_ptr = &non_empty;
+			pic_interval_reset(adev->non_empty_check_pi);
+		}
+
+
+		rc = cras_iodev_put_output_buffer(odev, dst, written,
+						  non_empty_ptr);
+
 		if (rc < 0)
 			return rc;
 		total_written += written;
+
+		if (non_empty && adev->empty_pi) {
+			// We're not empty, but we were previously.
+			// Reset the empty period.
+			pic_polled_interval_destroy(&adev->empty_pi);
+		}
+
+		if (non_empty_ptr && !non_empty && !adev->empty_pi)
+			// We checked for emptiness, we were empty, and we
+			// previously weren't. Start the empty period.
+			adev->empty_pi = pic_polled_interval_create(
+				MIN_EMPTY_PERIOD_SEC);
 	}
 
 	/* Empty hardware and nothing written, zero fill it if it is running. */
@@ -643,10 +715,14 @@ int dev_io_playback_write(struct open_dev **odevs)
 
 void dev_io_run(struct open_dev **odevs, struct open_dev **idevs)
 {
+	pic_update_current_time();
+
 	dev_io_playback_fetch(*odevs);
 	dev_io_capture(idevs);
 	dev_io_send_captured_samples(*idevs);
 	dev_io_playback_write(odevs);
+
+	check_non_empty_state_transition(*odevs);
 }
 
 static int input_adev_ignore_wake(const struct open_dev *adev)
@@ -703,7 +779,10 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 	if (!odev)
 		return;
 
+
 	DL_DELETE(*odev_list, dev_to_rm);
+
+	check_non_empty_state_transition(*odev_list);
 
 	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);
 
@@ -712,6 +791,10 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 		dev_stream_destroy(dev_stream);
 	}
 
+	if (dev_to_rm->empty_pi)
+		pic_polled_interval_destroy(&dev_to_rm->empty_pi);
+	if (dev_to_rm->non_empty_check_pi)
+		pic_polled_interval_destroy(&dev_to_rm->non_empty_check_pi);
 	free(dev_to_rm);
 }
 

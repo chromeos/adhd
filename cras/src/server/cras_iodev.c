@@ -900,7 +900,7 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 }
 
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
-				 unsigned int nframes)
+				 unsigned int nframes, int *is_non_empty)
 {
 	const struct cras_audio_format *fmt = iodev->format;
 	struct cras_fmt_conv *remix_converter =
@@ -927,6 +927,8 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	    ramp_action.type != CRAS_RAMP_ACTION_PARTIAL) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
+		// Skip non-empty check, since we know it's empty.
+		is_non_empty = NULL;
 	} else {
 		apply_dsp(iodev, frames, nframes);
 
@@ -971,6 +973,17 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				   frames,
 				   nframes);
 	rate_estimator_add_frames(iodev->rate_est, nframes);
+
+	// Calculate whether the final output was non-empty, if requested.
+	if (is_non_empty) {
+		for (unsigned int i = 0; i < nframes * cras_get_format_bytes(fmt); i++) {
+			if (frames[i]) {
+				*is_non_empty = 1;
+				break;
+			}
+		}
+	}
+
 	return iodev->put_buffer(iodev, nframes);
 }
 
@@ -1139,7 +1152,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 		/* This assumes consecutive channel areas. */
 		buf = area->channels[0].buf;
 		memset(buf, 0, frames_written * frame_bytes);
-		cras_iodev_put_output_buffer(odev, buf, frames_written);
+		cras_iodev_put_output_buffer(odev, buf, frames_written, NULL);
 		frames -= frames_written;
 	}
 
