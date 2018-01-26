@@ -149,6 +149,13 @@ Methods		void SetOutputVolume(int32 volume)
 
 			Returns the number of streams currently using output hardware.
 
+		int32 IsAudioOutputActive()
+
+			Returns 1 if there are currently any active output streams,
+			excluding 'dummy' streams that are not actually outputting any
+			audio. Returns 0 if there are no active streams, or all active
+			streams are 'dummy' streams.
+
 		void SetGlobalOutputChannelRemix(int32 num_channels,
 						 array:double coefficient)
 
@@ -221,6 +228,11 @@ Signals		OutputVolumeChanged(int32 volume)
 		NumberOfActiveStreamsChanged(int32 num_active_streams)
 
 			Indicates the number of active streams has changed.
+
+		AudioOutputActiveStateChanged(boolean active)
+
+			Indicates active output state has changed.
+			See IsAudioOutputActive for details.
 
 		HotwordTriggered(int64 tv_sec, int64 tv_nsec)
 

@@ -33,6 +33,7 @@ struct cras_observer_alerts {
          * number of active streams per direction, make the alerts
          * per-direciton. */
 	struct cras_alert *num_active_streams[CRAS_NUM_DIRECTIONS];
+	struct cras_alert *non_empty_audio_state_changed;
 };
 
 struct cras_observer_server {
@@ -77,6 +78,10 @@ struct cras_observer_alert_data_streams {
 struct cras_observer_alert_data_hotword_triggered {
 	int64_t tv_sec;
 	int64_t tv_nsec;
+};
+
+struct cras_observer_non_empty_audio_state {
+	int non_empty;
 };
 
 /* Global observer instance. */
@@ -267,6 +272,21 @@ static void hotword_triggered_alert(void *arg, void *data)
 	}
 }
 
+static void non_empty_audio_state_changed_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+	struct cras_observer_non_empty_audio_state *non_empty_audio_data =
+			(struct cras_observer_non_empty_audio_state *)data;
+
+	DL_FOREACH(g_observer->clients, client) {
+		if (client->ops.non_empty_audio_state_changed) {
+			client->ops.non_empty_audio_state_changed(
+					client->context,
+					non_empty_audio_data->non_empty);
+		}
+	}
+}
+
 static int cras_observer_server_set_alert(struct cras_alert **alert,
 					  cras_alert_cb cb,
 					  cras_alert_prepare prepare,
@@ -322,6 +342,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(input_node_gain, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(suspend_changed, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(hotword_triggered, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(non_empty_audio_state_changed, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(
 		num_active_streams, CRAS_STREAM_OUTPUT);
@@ -329,6 +350,7 @@ int cras_observer_server_init()
 		num_active_streams, CRAS_STREAM_INPUT);
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(
 		num_active_streams, CRAS_STREAM_POST_MIX_PRE_DSP);
+
 	return 0;
 
 error:
@@ -351,6 +373,7 @@ void cras_observer_server_free()
 	cras_alert_destroy(g_observer->alerts.input_node_gain);
 	cras_alert_destroy(g_observer->alerts.suspend_changed);
 	cras_alert_destroy(g_observer->alerts.hotword_triggered);
+	cras_alert_destroy(g_observer->alerts.non_empty_audio_state_changed);
 	cras_alert_destroy(g_observer->alerts.num_active_streams[
 							CRAS_STREAM_OUTPUT]);
 	cras_alert_destroy(g_observer->alerts.num_active_streams[
@@ -536,5 +559,15 @@ void cras_observer_notify_hotword_triggered(int64_t tv_sec, int64_t tv_nsec)
 	data.tv_sec = tv_sec;
 	data.tv_nsec = tv_nsec;
 	cras_alert_pending_data(g_observer->alerts.hotword_triggered,
+				&data, sizeof(data));
+}
+
+void cras_observer_notify_non_empty_audio_state_changed(int non_empty)
+{
+	struct cras_observer_non_empty_audio_state data;
+
+	data.non_empty = non_empty;
+
+	cras_alert_pending_data(g_observer->alerts.non_empty_audio_state_changed,
 				&data, sizeof(data));
 }

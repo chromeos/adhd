@@ -97,4 +97,7 @@ void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,
 /* Notify observers of the timestamp when hotword triggered. */
 void cras_observer_notify_hotword_triggered(int64_t tv_sec, int64_t tv_nsec);
 
+/* Notify observers the non-empty audio state changed. */
+void cras_observer_notify_non_empty_audio_state_changed(int active);
+
 #endif /* CRAS_OBSERVER_H */

@@ -52,6 +52,9 @@ struct cras_observer_ops {
 	/* Hotword triggered. */
 	void (*hotword_triggered)(void *context,
 				  int64_t tv_sec, int64_t tv_nsec);
+	/* State regarding whether non-empty audio is being played/captured has
+	 * changed. */
+	void (*non_empty_audio_state_changed)(void *context, int non_empty);
 };
 
 #endif /* CRAS_OBSERVER_OPS_H */

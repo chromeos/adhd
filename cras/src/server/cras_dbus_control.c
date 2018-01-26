@@ -104,6 +104,9 @@
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
     "      <arg name=\"model_name\" type=\"s\" direction=\"in\"/>\n"    \
     "    </method>\n"                                                   \
+    "    <method name=\"IsAudioOutputActive\">\n"                       \
+    "      <arg name=\"active\" type=\"b\" direction=\"out\"/>\n"       \
+    "    </method>\n"                                                   \
     "  </interface>\n"                                                  \
     "  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"        \
     "    <method name=\"Introspect\">\n"                                \
@@ -747,6 +750,18 @@ static DBusHandlerResult handle_set_hotword_model(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_is_audio_active(
+		DBusConnection *conn,
+		DBusMessage *message,
+		void* arg)
+{
+	dbus_int32_t active = cras_system_state_get_non_empty_status();
+
+	send_int32_reply(conn, message, active);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message,
@@ -877,8 +892,11 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetHotwordModel")) {
 		return handle_set_hotword_model(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "IsAudioOutputActive")) {
+		return handle_is_audio_active(conn, message, arg);
 	}
-
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
@@ -1107,6 +1125,25 @@ static void signal_hotword_triggered(void *context,
 	dbus_message_unref(msg);
 }
 
+static void signal_non_empty_audio_state_changed(void *context, int non_empty)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+
+	msg = create_dbus_message("AudioOutputActiveStateChanged");
+	if (!msg)
+		return;
+
+	dbus_message_append_args(msg,
+				 DBUS_TYPE_BOOLEAN, &non_empty,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(control->conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -1146,6 +1183,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	observer_ops.node_left_right_swapped_changed =
 			signal_node_left_right_swapped_changed;
 	observer_ops.hotword_triggered = signal_hotword_triggered;
+	observer_ops.non_empty_audio_state_changed =
+			signal_non_empty_audio_state_changed;
 
 	dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }
