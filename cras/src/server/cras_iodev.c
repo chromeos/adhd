@@ -35,10 +35,14 @@ static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
 
+/*
+ * Check issu b/72496547 and commit message for the history of
+ * rate estimator tuning.
+ */
 static const struct timespec rate_estimation_window_sz = {
-	20, 0 /* 20 sec. */
+	5, 0 /* 5 sec. */
 };
-static const double rate_estimation_smooth_factor = 0.9f;
+static const double rate_estimation_smooth_factor = 0.3f;
 
 static void cras_iodev_alloc_dsp(struct cras_iodev *iodev);
 
