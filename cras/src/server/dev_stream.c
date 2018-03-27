@@ -32,6 +32,38 @@ static const struct timespec capture_callback_fuzz_ts = {
 	.tv_nsec = 1000000, /* 1 ms. */
 };
 
+/*
+ * Returns the size in frames that a format converter must allocate for its
+ * temporary buffers to be able to convert the specified number of stream
+ * frames to or from the corresponding number of device frames, at the
+ * specified device rate.
+ */
+unsigned int max_frames_for_conversion(unsigned int stream_frames,
+				       unsigned int stream_rate,
+				       unsigned int device_rate) {
+	/*
+	 * There are multiple temp buffers in the format converter,
+	 * which are all the same size. Some of these contain audio
+	 * in the source sample rate, and others in the converted
+	 * sample rate. We need to make sure the converter is large
+	 * enough to hold either.
+	 */
+	return MAX(
+	    // Number of stream frames does not require conversion.
+	    stream_frames,
+	    // Calculate corresponding number of frames at device rate.
+	    cras_frames_at_rate(stream_rate,
+				stream_frames,
+				device_rate))
+			/*
+			 * Add 1 because the linear resampler's frame rate
+			 * conversion does this, and is used to calculate
+			 * how many frames to read from the device.
+			 * See linear_resampler_{in,out}_frames_to_{out,in}(..)
+			 */
+			+ 1;
+}
+
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
@@ -49,21 +81,17 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	out->stream = stream;
 	out->dev_rate = dev_fmt->frame_rate;
 
+	max_frames = max_frames_for_conversion(stream->buffer_frames,
+					       stream_fmt->frame_rate,
+					       dev_fmt->frame_rate);
+
 	if (stream->direction == CRAS_STREAM_OUTPUT) {
-		max_frames = MAX(stream->buffer_frames,
-				 cras_frames_at_rate(stream_fmt->frame_rate,
-						     stream->buffer_frames,
-						     dev_fmt->frame_rate));
 		rc = config_format_converter(&out->conv,
 					     stream->direction,
 					     stream_fmt,
 					     dev_fmt,
 					     max_frames);
 	} else {
-		max_frames = MAX(stream->buffer_frames,
-				 cras_frames_at_rate(dev_fmt->frame_rate,
-						     stream->buffer_frames,
-						     stream_fmt->frame_rate));
 		rc = config_format_converter(&out->conv,
 					     stream->direction,
 					     dev_fmt,

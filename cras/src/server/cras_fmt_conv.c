@@ -739,6 +739,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	unsigned int linear_resample_fr = 0;
 
 	assert(conv);
+	assert(*in_frames <= conv->tmp_buf_frames);
 
 	if (linear_resampler_needed(conv->resampler)) {
 		post_linear_resample = !conv->pre_linear_resample;
