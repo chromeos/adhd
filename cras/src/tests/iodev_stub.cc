@@ -66,7 +66,7 @@ unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev) {
   return 0;
 }
 
-int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes) {
+int cras_iodev_put_input_buffer(struct cras_iodev *iodev) {
   return 0;
 }
 
@@ -77,7 +77,6 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 }
 
 int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
-                                struct cras_audio_area **area,
                                 unsigned *frames) {
   return 0;
 }

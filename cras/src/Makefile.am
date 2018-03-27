@@ -135,6 +135,7 @@ cras_server_SOURCES = \
 	server/cras_volume_curve.c \
 	server/dev_io.c \
 	server/dev_stream.c \
+	server/input_data.c \
 	server/linear_resampler.c \
 	server/polled_interval_checker.c \
 	server/stream_list.c \

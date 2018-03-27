@@ -181,6 +181,8 @@ struct cras_ionode {
  *                     haven't been "put" yet.
  * input_dsp_offset - The number of frames in the HW buffer that have already
  *                    been processed by the input DSP.
+ * input_data - Used to pass audio input data to streams with or without
+ *              stream side processing.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -248,6 +250,7 @@ struct cras_iodev {
 	int input_streaming;
 	unsigned int input_frames_read;
 	unsigned int input_dsp_offset;
+	struct input_data *input_data;
 	struct cras_iodev *prev, *next;
 };
 
@@ -502,7 +505,7 @@ int cras_iodev_close(struct cras_iodev *iodev);
 int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level);
 
 /* Marks a buffer from get_buffer as read. */
-int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes);
+int cras_iodev_put_input_buffer(struct cras_iodev *iodev);
 
 /* Marks a buffer from get_buffer as written. */
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
@@ -512,12 +515,9 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 /* Returns a buffer to read from.
  * Args:
  *    iodev - The device.
- *    area - Filled with a pointer to the audio to read/write.
  *    frames - Filled with the number of frames that can be read/written.
  */
-int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
-				struct cras_audio_area **area,
-				unsigned *frames);
+int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned *frames);
 
 /* Returns a buffer to read from.
  * Args:

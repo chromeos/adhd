@@ -74,6 +74,23 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec) {
   return 0;
 }
 
+int input_data_get_for_stream(
+		struct input_data *data,
+		struct cras_rstream *stream,
+		struct buffer_share *offsets,
+		struct cras_audio_area **area,
+		unsigned int *offset)
+{
+  return 0;
+}
+
+int input_data_put_for_stream(struct input_data *data,
+			   struct cras_rstream *stream,
+			   struct buffer_share *offsets,
+			   unsigned int frames)
+{
+  return 0;
+}
 }  // extern "C"
 
 }  //  namespace

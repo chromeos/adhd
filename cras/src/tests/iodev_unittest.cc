@@ -1275,7 +1275,7 @@ TEST(IoDev, GetBufferInvalidFrames) {
   iodev.get_buffer = bad_get_buffer;
 
   EXPECT_EQ(-EINVAL, cras_iodev_get_output_buffer(&iodev, area, &frames));
-  EXPECT_EQ(-EINVAL, cras_iodev_get_input_buffer(&iodev, area, &frames));
+  EXPECT_EQ(-EINVAL, cras_iodev_get_input_buffer(&iodev, &frames));
 }
 
 static int configure_dev(struct cras_iodev *iodev) {
@@ -2410,6 +2410,15 @@ int cras_device_monitor_set_device_mute_state(struct cras_iodev *iodev)
   cras_device_monitor_set_device_mute_state_called++;
   cras_device_monitor_set_device_mute_state_dev = iodev;
   return 0;
+}
+
+struct input_data *input_data_create(void *dev_ptr)
+{
+  return NULL;
+}
+
+void input_data_destroy(struct input_data **data)
+{
 }
 
 }  // extern "C"

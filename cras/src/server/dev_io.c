@@ -13,6 +13,7 @@
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
 #include "dev_stream.h"
+#include "input_data.h"
 #include "polled_interval_checker.h"
 #include "utlist.h"
 
@@ -358,7 +359,7 @@ static int capture_to_streams(struct open_dev *adev)
 
 		nread = remainder;
 
-		rc = cras_iodev_get_input_buffer(idev, &area, &nread);
+		rc = cras_iodev_get_input_buffer(idev, &nread);
 		if (rc < 0 || nread == 0)
 			return rc;
 
@@ -370,21 +371,23 @@ static int capture_to_streams(struct open_dev *adev)
 			    stream->stream->triggered)
 				continue;
 
-			area_offset = cras_iodev_stream_offset(idev, stream);
+			input_data_get_for_stream(idev->input_data, stream->stream,
+						  idev->buf_state,
+						  &area, &area_offset);
+
 			this_read = dev_stream_capture(
 				stream, area, area_offset,
 				cras_iodev_get_software_gain_scaler(idev));
 
-			cras_iodev_stream_written(idev, stream, this_read);
+			input_data_put_for_stream(idev->input_data, stream->stream,
+						  idev->buf_state, this_read);
 		}
-		if (adev->dev->streams)
-			total_read = cras_iodev_all_streams_written(idev);
-		else
-			total_read = nread; /* No streams, drop. */
 
-		rc = cras_iodev_put_input_buffer(idev, total_read);
+		rc = cras_iodev_put_input_buffer(idev);
 		if (rc < 0)
 			return rc;
+
+		total_read = rc;
 		remainder -= nread;
 
 		if (total_read < nread)
@@ -579,7 +582,6 @@ int write_output_samples(struct open_dev **odevs,
 			non_empty_ptr = &non_empty;
 			pic_interval_reset(adev->non_empty_check_pi);
 		}
-
 
 		rc = cras_iodev_put_output_buffer(odev, dst, written,
 						  non_empty_ptr,

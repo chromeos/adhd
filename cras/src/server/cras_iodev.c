@@ -27,6 +27,7 @@
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "dev_stream.h"
+#include "input_data.h"
 #include "utlist.h"
 #include "rate_estimator.h"
 #include "softvol_curve.h"
@@ -881,6 +882,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		else
 			iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
 	} else {
+		iodev->input_data = input_data_create(iodev);
+
 		/* Input device starts running right after opening.
 		 * No stream state is only for output device. Input device
 		 * should be in normal run state. */
@@ -900,8 +903,12 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
 int cras_iodev_close(struct cras_iodev *iodev)
 {
 	int rc;
+
 	if (!cras_iodev_is_open(iodev))
 		return 0;
+
+	if (iodev->input_data)
+		input_data_destroy(&iodev->input_data);
 
 	rc = iodev->close_dev(iodev);
 	if (rc)
@@ -915,11 +922,19 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	return 0;
 }
 
-int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
+int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 {
-	rate_estimator_add_frames(iodev->rate_est, -nframes);
-	iodev->input_dsp_offset = iodev->input_frames_read - nframes;
-	return iodev->put_buffer(iodev, nframes);
+	unsigned int min_frames;
+	struct input_data *data = iodev->input_data;
+
+	if (iodev->streams)
+		min_frames = buffer_share_get_new_write_point(iodev->buf_state);
+	else
+		min_frames = data->area->frames;
+
+	iodev->input_dsp_offset = iodev->input_frames_read - min_frames;
+	rate_estimator_add_frames(iodev->rate_est, -min_frames);
+	return iodev->put_buffer(iodev, min_frames);
 }
 
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
@@ -1009,19 +1024,18 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	return iodev->put_buffer(iodev, nframes);
 }
 
-int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
-				struct cras_audio_area **area,
-				unsigned *frames)
+int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 {
-	const struct cras_audio_format *fmt = iodev->format;
-	const unsigned int frame_bytes = cras_get_format_bytes(fmt);
-	uint8_t *hw_buffer;
+	const unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
+	struct input_data *data = iodev->input_data;
 	int rc;
+	uint8_t *hw_buffer;
 	unsigned frame_requested = *frames;
 
-	rc = iodev->get_buffer(iodev, area, frames);
+	rc = iodev->get_buffer(iodev, &data->area, frames);
 	if (rc < 0 || *frames == 0)
 		return rc;
+
 	if (*frames > frame_requested) {
 		syslog(LOG_ERR,
 		       "frames returned from get_buffer is greater than "
@@ -1031,8 +1045,8 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
 
 	iodev->input_frames_read = *frames;
 
-	/* TODO(dgreid) - This assumes interleaved audio. */
-	hw_buffer = (*area)->channels[0].buf;
+	/* TODO(hychao) - This assumes interleaved audio. */
+	hw_buffer = data->area->channels[0].buf;
 
 	if (cras_system_get_capture_mute()) {
 		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);

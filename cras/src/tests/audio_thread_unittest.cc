@@ -777,7 +777,7 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
   return 0;
 }
 
-int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
+int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 {
   return 0;
 }
@@ -791,7 +791,6 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 }
 
 int cras_iodev_get_input_buffer(struct cras_iodev *iodev,
-				struct cras_audio_area **area,
 				unsigned *frames)
 {
   return 0;
@@ -1089,6 +1088,24 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 {
   cras_iodev_start_ramp_odev = odev;
   cras_iodev_start_ramp_request = request;
+  return 0;
+}
+
+int input_data_get_for_stream(
+		struct input_data *data,
+		struct cras_rstream *stream,
+		struct buffer_share *offsets,
+		struct cras_audio_area **area,
+		unsigned int *offset)
+{
+  return 0;
+}
+
+int input_data_put_for_stream(struct input_data *data,
+			   struct cras_rstream *stream,
+			   struct buffer_share *offsets,
+			   unsigned int frames)
+{
   return 0;
 }
 
