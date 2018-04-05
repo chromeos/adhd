@@ -1196,9 +1196,10 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 	        return;
 
 	if (aio->card_type == ALSA_CARD_TYPE_USB) {
-		snprintf(node_name, sizeof(node_name), "%s: %s",
-			aio->base.info.name, ctl_name);
-		new_output(aio, cras_output, node_name);
+		if (snprintf(node_name, sizeof(node_name), "%s: %s",
+			     aio->base.info.name, ctl_name) > 0) {
+			new_output(aio, cras_output, node_name);
+		}
 	} else {
 		new_output(aio, cras_output, ctl_name);
 	}
@@ -1300,8 +1301,11 @@ static void new_input_by_mixer_control(struct mixer_control *cras_input,
 	const char *ctl_name = cras_alsa_mixer_get_control_name(cras_input);
 
 	if (aio->card_type == ALSA_CARD_TYPE_USB) {
-		snprintf(node_name , sizeof(node_name), "%s: %s",
-			 aio->base.info.name, ctl_name);
+		int ret = snprintf(node_name , sizeof(node_name), "%s: %s",
+				   aio->base.info.name, ctl_name);
+		// Truncation is OK, but add a check to make the compiler happy.
+		if (ret == sizeof(node_name))
+			node_name[sizeof(node_name) - 1] = '\0';
 		new_input(aio, cras_input, node_name);
 	} else {
 		new_input(aio, cras_input, ctl_name);
