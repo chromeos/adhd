@@ -41,11 +41,13 @@ void dev_io_playback_fetch(struct open_dev *odev_list);
  *    odev_list - The list of open devices.  Devices will be removed when
  *                writing returns an error.
  */
-int dev_io_playback_write(struct open_dev **odevs);
+int dev_io_playback_write(struct open_dev **odevs,
+			  struct cras_fmt_conv *output_converter);
 
 /* Only public for testing. */
 int write_output_samples(struct open_dev **odevs,
-			 struct open_dev *adev);
+			 struct open_dev *adev,
+			 struct cras_fmt_conv *output_converter);
 
 /*
  * Captures samples from each device in the list.
@@ -60,7 +62,8 @@ int dev_io_capture(struct open_dev **list);
 int dev_io_send_captured_samples(struct open_dev *idev_list);
 
 /* Reads and/or writes audio samples from/to the devices. */
-void dev_io_run(struct open_dev **odevs, struct open_dev **idevs);
+void dev_io_run(struct open_dev **odevs, struct open_dev **idevs,
+		struct cras_fmt_conv *output_converter);
 
 /*
  * Fills min_ts with the next time the system should wake to service input.

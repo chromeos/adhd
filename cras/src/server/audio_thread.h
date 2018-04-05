@@ -14,6 +14,7 @@
 #include "dev_io.h"
 
 struct buffer_share;
+struct cras_fmt_conv;
 struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;
@@ -29,6 +30,7 @@ struct dev_stream;
  *    pollfds - What FDs wake up this thread.
  *    pollfds_size - Number of available poll fds.
  *    num_pollfds - Number of currently registered poll fds.
+ *    remix_converter - Format converter used to remix output channels.
  */
 struct audio_thread {
 	int to_thread_fds[2];
@@ -40,6 +42,7 @@ struct audio_thread {
 	struct pollfd *pollfds;
 	size_t pollfds_size;
 	size_t num_pollfds;
+	struct cras_fmt_conv *remix_converter;
 };
 
 /* Callback function to be handled in main loop in audio thread.
@@ -169,10 +172,6 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 int audio_thread_config_global_remix(struct audio_thread *thread,
 				     unsigned int num_channels,
 				     const float *coefficient);
-
-/* Gets the global remix converter. */
-struct cras_fmt_conv *audio_thread_get_global_remix_converter();
-
 
 /* Start ramping on a device.
  *

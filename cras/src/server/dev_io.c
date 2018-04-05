@@ -493,7 +493,8 @@ static int write_streams(struct open_dev **odevs,
 
 /* Returns 0 on success negative error on device failure. */
 int write_output_samples(struct open_dev **odevs,
-			 struct open_dev *adev)
+			 struct open_dev *adev,
+			 struct cras_fmt_conv *output_converter)
 {
 	struct cras_iodev *odev = adev->dev;
 	unsigned int hw_level;
@@ -581,7 +582,8 @@ int write_output_samples(struct open_dev **odevs,
 
 
 		rc = cras_iodev_put_output_buffer(odev, dst, written,
-						  non_empty_ptr);
+						  non_empty_ptr,
+						  output_converter);
 
 		if (rc < 0)
 			return rc;
@@ -666,7 +668,8 @@ void dev_io_playback_fetch(struct open_dev *odev_list)
 	}
 }
 
-int dev_io_playback_write(struct open_dev **odevs)
+int dev_io_playback_write(struct open_dev **odevs,
+			  struct cras_fmt_conv *output_converter)
 {
 	struct open_dev *adev;
 	struct dev_stream *curr;
@@ -686,7 +689,7 @@ int dev_io_playback_write(struct open_dev **odevs)
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
-		rc = write_output_samples(odevs, adev);
+		rc = write_output_samples(odevs, adev, output_converter);
 		if (rc < 0) {
 			if (rc == -EPIPE) {
 				/* Handle severe underrun. */
@@ -713,14 +716,15 @@ int dev_io_playback_write(struct open_dev **odevs)
 	return 0;
 }
 
-void dev_io_run(struct open_dev **odevs, struct open_dev **idevs)
+void dev_io_run(struct open_dev **odevs, struct open_dev **idevs,
+		struct cras_fmt_conv *output_converter)
 {
 	pic_update_current_time();
 
 	dev_io_playback_fetch(*odevs);
 	dev_io_capture(idevs);
 	dev_io_send_captured_samples(*idevs);
-	dev_io_playback_write(odevs);
+	dev_io_playback_write(odevs, output_converter);
 
 	check_non_empty_state_transition(*odevs);
 }

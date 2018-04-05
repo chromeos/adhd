@@ -595,7 +595,7 @@ TEST(IoDevPutOutputBuffer, SystemMuted) {
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
@@ -657,7 +657,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
@@ -686,7 +686,7 @@ TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   // Output should be muted.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
@@ -696,7 +696,7 @@ TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
   // Test for the case where ramping is not done yet.
   ResetStubData();
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
 
   // Output should not be muted.
   EXPECT_EQ(0, rc);
@@ -735,7 +735,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
@@ -744,7 +744,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
   // Test for the case where ramping is not done yet.
   ResetStubData();
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
 
   // Output should not be muted.
   EXPECT_EQ(0, rc);
@@ -776,7 +776,7 @@ TEST(IoDevPutOutputBuffer, NoDSP) {
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 22, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 22, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(22, put_buffer_nframes);
@@ -802,7 +802,7 @@ TEST(IoDevPutOutputBuffer, DSP) {
   cras_iodev_register_pre_dsp_hook(&iodev, pre_dsp_hook, (void *)0x1234);
   cras_iodev_register_post_dsp_hook(&iodev, post_dsp_hook, (void *)0x5678);
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 32, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 32, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(1, pre_dsp_hook_called);
@@ -835,7 +835,7 @@ TEST(IoDevPutOutputBuffer, SoftVol) {
   cras_system_get_volume_return = 13;
   softvol_scalers[13] = 0.435;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 53, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 53, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(53, put_buffer_nframes);
@@ -873,7 +873,7 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   cras_system_get_volume_return = volume;
   softvol_scalers[volume] = volume_scaler;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(n_frames, put_buffer_nframes);
@@ -890,7 +890,7 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   cras_system_get_volume_return = volume;
   softvol_scalers[volume] = volume_scaler;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   // cras_scale_buffer is not called.
@@ -938,7 +938,7 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   // cras_scale_buffer is not called.
@@ -952,7 +952,7 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   cras_ramp_get_current_action_ret.scaler = ramp_scaler;
   cras_ramp_get_current_action_ret.increment = increment;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   // cras_scale_buffer is not called.
@@ -989,7 +989,7 @@ TEST(IoDevPutOutputBuffer, Scale32Bit) {
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
 
-  rc = cras_iodev_put_output_buffer(&iodev, frames, 53, NULL);
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 53, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(53, put_buffer_nframes);
@@ -2025,12 +2025,6 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
 int pthread_join(pthread_t thread, void **value_ptr) {
   return 0;
-}
-
-// From audio_thread
-struct cras_fmt_conv *audio_thread_get_global_remix_converter()
-{
-  return NULL;
 }
 
 // Fromt fmt_conv

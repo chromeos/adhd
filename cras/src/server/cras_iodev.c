@@ -904,11 +904,10 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes)
 }
 
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
-				 unsigned int nframes, int *is_non_empty)
+				 unsigned int nframes, int *is_non_empty,
+				 struct cras_fmt_conv *remix_converter)
 {
 	const struct cras_audio_format *fmt = iodev->format;
-	struct cras_fmt_conv *remix_converter =
-			audio_thread_get_global_remix_converter();
 	struct cras_ramp_action ramp_action = {
 		.type = CRAS_RAMP_ACTION_NONE,
 		.scaler = 0.0f,
@@ -1156,7 +1155,8 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 		/* This assumes consecutive channel areas. */
 		buf = area->channels[0].buf;
 		memset(buf, 0, frames_written * frame_bytes);
-		cras_iodev_put_output_buffer(odev, buf, frames_written, NULL);
+		cras_iodev_put_output_buffer(odev, buf, frames_written,
+					     NULL, NULL);
 		frames -= frames_written;
 	}
 

@@ -19,6 +19,7 @@
 #include "cras_messages.h"
 
 struct buffer_share;
+struct cras_fmt_conv;
 struct cras_ramp;
 struct cras_rstream;
 struct cras_audio_area;
@@ -505,7 +506,8 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev, unsigned int nframes);
 
 /* Marks a buffer from get_buffer as written. */
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
-				 unsigned int nframes, int *is_non_empty);
+				 unsigned int nframes, int *is_non_empty,
+				 struct cras_fmt_conv *remix_converter);
 
 /* Returns a buffer to read from.
  * Args:

@@ -82,8 +82,6 @@ struct audio_thread_dev_start_ramp_msg {
 
 /* Audio thread logging. */
 struct audio_thread_event_log *atlog;
-/* Global fmt converter used to remix output channels. */
-static struct cras_fmt_conv *remix_converter = NULL;
 
 static struct iodev_callback_list *iodev_callbacks;
 static struct timespec longest_wake;
@@ -655,10 +653,10 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 		/* Respond the pointer to the old remix converter, so it can be
 		 * freed later in main thread. */
-		rsp = (void *)remix_converter;
+		rsp = (void *)thread->remix_converter;
 
 		rmsg = (struct audio_thread_config_global_remix *)msg;
-		remix_converter = rmsg->fmt_conv;
+		thread->remix_converter = rmsg->fmt_conv;
 
 		return write(thread->to_main_fds[1], &rsp, sizeof(rsp));
 	}
@@ -843,7 +841,8 @@ static void *audio_io_thread(void *arg)
 
 		/* device opened */
 		dev_io_run(&thread->open_devs[CRAS_STREAM_OUTPUT],
-			   &thread->open_devs[CRAS_STREAM_INPUT]);
+			   &thread->open_devs[CRAS_STREAM_INPUT],
+			   thread->remix_converter);
 
 		if (fill_next_sleep_interval(thread, &ts))
 			wait_ts = &ts;
@@ -1118,11 +1117,6 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 	return 0;
 }
 
-struct cras_fmt_conv *audio_thread_get_global_remix_converter()
-{
-	return remix_converter;
-}
-
 struct audio_thread *audio_thread_create()
 {
 	int rc;
@@ -1243,8 +1237,8 @@ void audio_thread_destroy(struct audio_thread *thread)
 		close(thread->to_main_fds[1]);
 	}
 
-	if (remix_converter)
-		cras_fmt_conv_destroy(&remix_converter);
+	if (thread->remix_converter)
+		cras_fmt_conv_destroy(&thread->remix_converter);
 
 	free(thread);
 }
