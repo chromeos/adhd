@@ -593,7 +593,7 @@ dev_io_unittest_SOURCES = \
 	tests/rstream_stub.cc \
 	tests/dev_io_unittest.cc
 dev_io_unittest_CXXFLAGS = \
-	-std=c++11
+	-std=c++11 -Wno-noexcept-type
 dev_io_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
@@ -818,7 +818,7 @@ timing_unittest_SOURCES = \
 	tests/rstream_stub.cc \
 	tests/timing_unittest.cc
 timing_unittest_CXXFLAGS = \
-	-std=c++11
+	-std=c++11 -Wno-noexcept-type
 timing_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
