@@ -361,8 +361,9 @@ void RClientMessagesSuite::RegisterNotification(
   }
   if (!msg.do_register)
     cras_observer_num_ops_registered--;
-  if (cras_observer_num_ops_registered)
+  if (cras_observer_num_ops_registered) {
     EXPECT_EQ(callback, *ops_address);
+  }
 }
 
 TEST_F(RClientMessagesSuite, RegisterStatusNotification) {

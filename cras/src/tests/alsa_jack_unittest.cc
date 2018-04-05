@@ -239,10 +239,12 @@ static struct cras_alsa_jack_list *run_test_with_elem_list(
   EXPECT_GE(snd_hctl_elem_next_called, nelems + nhdmi_jacks);
   EXPECT_GE(snd_hctl_elem_get_name_called, nelems + njacks);
 
-  if (direction == CRAS_STREAM_OUTPUT)
+  if (direction == CRAS_STREAM_OUTPUT) {
     EXPECT_EQ(njacks, cras_alsa_mixer_get_output_matching_name_called);
-  if (direction == CRAS_STREAM_INPUT && ucm_get_dev_for_jack_return)
+  }
+  if (direction == CRAS_STREAM_INPUT && ucm_get_dev_for_jack_return) {
     EXPECT_EQ(njacks, ucm_get_cap_control_called);
+  }
 
   return jack_list;
 }
