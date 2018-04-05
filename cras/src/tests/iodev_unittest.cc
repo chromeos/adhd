@@ -1539,6 +1539,8 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   struct dev_stream stream1;
   struct cras_iodev_info info;
 
+  memset(&info, 0, sizeof(info));
+
   ResetStubData();
 
   rstream1.cb_threshold = min_cb_level;
