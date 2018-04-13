@@ -14,6 +14,7 @@ extern "C" {
 
 #include "dumper.h"
 #include "cras_dsp_ini.h"
+#include "cras_dsp_module.h"
 
 /* These are the functions to create and use dsp pipelines. A dsp
  * pipeline is a collection of dsp plugins that process audio
@@ -99,6 +100,15 @@ float *cras_dsp_pipeline_get_source_buffer(struct pipeline *pipeline,
  *            cras_dsp_pipeline_get_num_channels() - 1.
  */
 float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index);
+
+/*
+ * Connects |ext_module| to the sink of given dsp pipeline.
+ * Args:
+ *    pipeline - The pipeline whose sink should connect to ext_module.
+ *    ext_module - The external dsp module to connect to pipeline sink.
+ */
+void cras_dsp_pipeline_set_sink_ext_module(struct pipeline *pipeline,
+					   struct ext_dsp_module *ext_module);
 
 /* Returns the number of internal audio buffers allocated by the
  * pipeline. This is used by the unit test only */

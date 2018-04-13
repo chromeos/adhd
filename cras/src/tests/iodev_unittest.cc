@@ -52,6 +52,7 @@ static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
 static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
 static int cras_dsp_pipeline_get_delay_called;
 static int cras_dsp_pipeline_apply_called;
+static int cras_dsp_pipeline_set_sink_ext_module_called;
 static int cras_dsp_pipeline_apply_sample_count;
 static unsigned int cras_mix_mute_count;
 static unsigned int cras_dsp_num_input_channels_return;
@@ -105,6 +106,7 @@ static float cras_scale_buffer_increment_increment;
 static int cras_scale_buffer_increment_channel;
 static struct cras_audio_format audio_fmt;
 static int buffer_share_add_id_called;
+static int ext_mod_configure_called;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -146,6 +148,7 @@ void ResetStubData() {
          sizeof(cras_dsp_pipeline_sink_buffer));
   cras_dsp_pipeline_get_delay_called = 0;
   cras_dsp_pipeline_apply_called = 0;
+  cras_dsp_pipeline_set_sink_ext_module_called = 0;
   cras_dsp_pipeline_apply_sample_count = 0;
   cras_dsp_num_input_channels_return = 2;
   cras_dsp_num_output_channels_return = 2;
@@ -200,6 +203,7 @@ void ResetStubData() {
   audio_fmt.frame_rate = 48000;
   audio_fmt.num_channels = 2;
   buffer_share_add_id_called = 0;
+  ext_mod_configure_called = 0;
 }
 
 namespace {
@@ -2061,6 +2065,58 @@ TEST(IoDev, HandleOutputUnderrun) {
   EXPECT_EQ(1, output_underrun_called);
 }
 
+static void ext_mod_configure(
+    struct ext_dsp_module *ext,
+    unsigned int buffer_size,
+    unsigned int num_channels,
+    unsigned int rate)
+{
+  ext_mod_configure_called++;
+}
+
+TEST(IoDev, SetExtDspMod) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  struct ext_dsp_module ext;
+
+  ResetStubData();
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.configure_dev = configure_dev;
+  iodev.ext_format = &fmt;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  ext.configure = ext_mod_configure;
+
+  iodev.dsp_context = reinterpret_cast<cras_dsp_context *>(0xf0f);
+  cras_dsp_get_pipeline_ret = 0x25;
+
+  cras_iodev_set_ext_dsp_module(&iodev, &ext);
+  EXPECT_EQ(0, ext_mod_configure_called);
+
+  cras_iodev_open(&iodev, 240, &fmt);
+  EXPECT_EQ(1, ext_mod_configure_called);
+  EXPECT_EQ(1, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_pipeline_set_sink_ext_module_called);
+
+  cras_iodev_set_ext_dsp_module(&iodev, NULL);
+  EXPECT_EQ(1, ext_mod_configure_called);
+
+  cras_iodev_set_ext_dsp_module(&iodev, &ext);
+  EXPECT_EQ(2, ext_mod_configure_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_set_sink_ext_module_called);
+
+  /* If pipeline doesn't exist. */
+  cras_dsp_get_pipeline_ret = 0x0;
+  cras_iodev_set_ext_dsp_module(&iodev, &ext);
+  EXPECT_EQ(3, ext_mod_configure_called);
+  EXPECT_EQ(3, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_set_sink_ext_module_called);
+}
+
 extern "C" {
 
 //  From libpthread.
@@ -2196,6 +2252,11 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
                                      const struct timespec *time_delta,
                                      int samples)
 {
+}
+void cras_dsp_pipeline_set_sink_ext_module(struct pipeline *pipeline,
+					   struct ext_dsp_module *ext_module)
+{
+  cras_dsp_pipeline_set_sink_ext_module_called++;
 }
 
 unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context *ctx)

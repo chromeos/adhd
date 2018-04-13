@@ -780,6 +780,14 @@ float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index)
 			   index);
 }
 
+void cras_dsp_pipeline_set_sink_ext_module(struct pipeline *pipeline,
+					   struct ext_dsp_module *ext_module)
+{
+	cras_dsp_module_set_sink_ext_module(
+			pipeline->sink_instance->module,
+			ext_module);
+}
+
 void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
 {
 	int i;

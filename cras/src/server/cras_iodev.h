@@ -173,6 +173,8 @@ struct cras_ionode {
  * post_dsp_hook_cb_data - Callback data that will be passing to post_dsp_hook.
  * pre_open_iodev_hook - Optional callback to call before iodev open.
  * post_close_iodev_hook - Optional callback to call after iodev close.
+ * ext_dsp_module - External dsp module to process audio data in stream level
+ *        after dsp_context.
  * reset_request_pending - The flag for pending reset request.
  * ramp - The cras_ramp struct to control ramping up/down at mute/unmute and
  *        start of playback.
@@ -245,6 +247,7 @@ struct cras_iodev {
 	void *post_dsp_hook_cb_data;
 	iodev_hook_t pre_open_iodev_hook;
 	iodev_hook_t post_close_iodev_hook;
+	struct ext_dsp_module *ext_dsp_module;
 	int reset_request_pending;
 	struct cras_ramp* ramp;
 	int input_streaming;
@@ -583,6 +586,17 @@ void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
 void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
 				       loopback_hook_t loop_cb,
 				       void *cb_data);
+
+/*
+ * Sets the external dsp module for |iodev| and configures the module
+ * accordingly if iodev is already open. This function should be called
+ * in main thread.
+ * Args:
+ *    iodev - The iodev to hold the dsp module.
+ *    ext - External dsp module to set to iodev.
+ */
+void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
+				   struct ext_dsp_module *ext);
 
 /* Put 'frames' worth of zero samples into odev. */
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);

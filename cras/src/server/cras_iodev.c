@@ -507,6 +507,46 @@ error:
 	return rc;
 }
 
+/*
+ * Configures the external dsp module and adds it to the existing dsp pipeline.
+ */
+static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
+{
+	struct pipeline *pipeline;
+
+	if (!iodev->ext_dsp_module)
+		return;
+
+	iodev->ext_dsp_module->configure(
+			iodev->ext_dsp_module,
+			iodev->buffer_size,
+			iodev->ext_format->num_channels,
+			iodev->ext_format->frame_rate);
+
+	pipeline = iodev->dsp_context
+			? cras_dsp_get_pipeline(iodev->dsp_context)
+			: NULL;
+
+	if (!pipeline)
+		return;
+
+	cras_dsp_pipeline_set_sink_ext_module(
+			pipeline,
+			iodev->ext_dsp_module);
+
+	cras_dsp_put_pipeline(iodev->dsp_context);
+}
+
+void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
+				   struct ext_dsp_module *ext)
+{
+	iodev->ext_dsp_module = ext;
+
+	if (!ext || !cras_iodev_is_open(iodev))
+		return;
+	add_ext_dsp_module_to_pipeline(iodev);
+}
+
 void cras_iodev_update_dsp(struct cras_iodev *iodev)
 {
 	char swap_lr_disabled = 1;
@@ -891,6 +931,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		/* Initialize the input_streaming flag to zero.*/
 		iodev->input_streaming = 0;
 	}
+
+	add_ext_dsp_module_to_pipeline(iodev);
 
 	return 0;
 }
