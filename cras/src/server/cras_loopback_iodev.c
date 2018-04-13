@@ -91,8 +91,7 @@ static void register_loopback_hook(enum CRAS_LOOPBACK_TYPE loopback_type,
 		cras_iodev_register_post_dsp_hook(iodev, hook, cb_data);
 }
 
-static void device_enabled_hook(struct cras_iodev *iodev, int enabled,
-				void *cb_data)
+static void device_enabled_hook(struct cras_iodev *iodev, void *cb_data)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)cb_data;
 	struct cras_iodev *edev;
@@ -100,17 +99,23 @@ static void device_enabled_hook(struct cras_iodev *iodev, int enabled,
 	if (iodev->direction != CRAS_STREAM_OUTPUT)
 		return;
 
-	if (!enabled) {
-		/* Unregister loopback hook from disabled iodev. */
-		register_loopback_hook(loopdev->loopback_type, iodev, NULL,
-				       NULL);
-	} else {
-		/* Register loopback hook onto first enabled iodev. */
-		edev = cras_iodev_list_get_first_enabled_iodev(
-				CRAS_STREAM_OUTPUT);
-		register_loopback_hook(loopdev->loopback_type, edev,
-				       sample_hook, cb_data);
-	}
+	/* Register loopback hook onto first enabled iodev. */
+	edev = cras_iodev_list_get_first_enabled_iodev(
+			CRAS_STREAM_OUTPUT);
+	register_loopback_hook(loopdev->loopback_type, edev,
+			       sample_hook, cb_data);
+}
+
+static void device_disabled_hook(struct cras_iodev *iodev, void *cb_data)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)cb_data;
+
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return;
+
+	/* Unregister loopback hook from disabled iodev. */
+	register_loopback_hook(loopdev->loopback_type, iodev, NULL,
+			       NULL);
 }
 
 /*
@@ -165,7 +170,7 @@ static int close_record_dev(struct cras_iodev *iodev)
 
 	edev = cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT);
 	register_loopback_hook(loopdev->loopback_type, edev, NULL, NULL);
-	cras_iodev_list_set_device_enabled_callback(NULL, NULL);
+	cras_iodev_list_set_device_enabled_callback(NULL, NULL, (void *)iodev);
 
 	return 0;
 }
@@ -182,6 +187,7 @@ static int configure_record_dev(struct cras_iodev *iodev)
 	register_loopback_hook(loopdev->loopback_type, edev, sample_hook,
 			       (void *)iodev);
 	cras_iodev_list_set_device_enabled_callback(device_enabled_hook,
+						    device_disabled_hook,
 						    (void *)iodev);
 
 	return 0;

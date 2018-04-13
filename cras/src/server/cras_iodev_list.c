@@ -42,6 +42,13 @@ struct enabled_dev {
 	struct enabled_dev *prev, *next;
 };
 
+struct device_enabled_cb {
+	device_enabled_callback_t enabled_cb;
+	device_disabled_callback_t disabled_cb;
+	void *cb_data;
+	struct device_enabled_cb *next, *prev;
+};
+
 /* Lists for devs[CRAS_STREAM_INPUT] and devs[CRAS_STREAM_OUTPUT]. */
 static struct iodev_list devs[CRAS_NUM_DIRECTIONS];
 /* The observer client iodev_list used to listen on various events. */
@@ -60,8 +67,8 @@ static struct cras_iodev *loopdev_post_dsp;
 static uint32_t next_iodev_idx = MAX_SPECIAL_DEVICE_IDX;
 
 /* Call when a device is enabled or disabled. */
-static device_enabled_callback_t device_enabled_callback;
-static void *device_enabled_cb_data;
+struct device_enabled_cb *device_enable_cbs;
+
 /* Thread that handles audio input and output. */
 static struct audio_thread *audio_thread;
 /* List of all streams. */
@@ -776,6 +783,7 @@ static int enable_device(struct cras_iodev *dev)
 	int rc;
 	struct enabled_dev *edev;
 	enum CRAS_STREAM_DIRECTION dir = dev->direction;
+	struct device_enabled_cb *callback;
 
 	DL_FOREACH(enabled_devs[dir], edev) {
 		if (edev->dev == dev)
@@ -794,8 +802,8 @@ static int enable_device(struct cras_iodev *dev)
 		return rc;
 	}
 
-	if (device_enabled_callback)
-		device_enabled_callback(dev, 1, device_enabled_cb_data);
+	DL_FOREACH(device_enable_cbs, callback)
+		callback->enabled_cb(dev, callback->cb_data);
 
 	return 0;
 }
@@ -806,6 +814,7 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	struct cras_iodev *dev = edev->dev;
 	enum CRAS_STREAM_DIRECTION dir = dev->direction;
 	struct cras_rstream *stream;
+	struct device_enabled_cb *callback;
 
 	DL_DELETE(enabled_devs[dir], edev);
 	if (edev->init_timer) {
@@ -829,8 +838,8 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	}
 	if (cras_iodev_has_pinned_stream(dev))
 		return 0;
-	if (device_enabled_callback)
-		device_enabled_callback(dev, 0, device_enabled_cb_data);
+	DL_FOREACH(device_enable_cbs, callback)
+		callback->disabled_cb(dev, callback->cb_data);
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 
@@ -1386,22 +1395,29 @@ struct stream_list *cras_iodev_list_get_stream_list()
 }
 
 int cras_iodev_list_set_device_enabled_callback(
-		device_enabled_callback_t device_enabled_cb, void *cb_data)
+		device_enabled_callback_t enabled_cb,
+		device_disabled_callback_t disabled_cb,
+		void *cb_data)
 {
-	if (!device_enabled_cb) {
-		device_enabled_callback = NULL;
-		device_enabled_cb_data = NULL;
-		return 0;
+	struct device_enabled_cb *callback;
+
+	DL_FOREACH(device_enable_cbs, callback) {
+		if (callback->cb_data != cb_data)
+			continue;
+
+		DL_DELETE(device_enable_cbs, callback);
+		free(callback);
 	}
 
-	/* TODO(chinyue): Allow multiple callbacks to be registered. */
-	if (device_enabled_callback) {
-		syslog(LOG_ERR, "Device enabled callback already registered.");
-		return -EEXIST;
+	if (enabled_cb && disabled_cb) {
+		callback = (struct device_enabled_cb *)
+				calloc(1, sizeof(*callback));
+		callback->enabled_cb = enabled_cb;
+		callback->disabled_cb = disabled_cb;
+		callback->cb_data = cb_data;
+		DL_APPEND(device_enable_cbs, callback);
 	}
 
-	device_enabled_callback = device_enabled_cb;
-	device_enabled_cb_data = cb_data;
 	return 0;
 }
 

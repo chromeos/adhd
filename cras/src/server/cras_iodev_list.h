@@ -22,11 +22,9 @@ struct cras_rstream;
 struct cras_audio_format;
 struct stream_list;
 
-/* Device enabled/disabled callback.
- * enabled=1 when a device is enabled, enabled=0 when a device is disabled.
- */
-typedef void (*device_enabled_callback_t)(struct cras_iodev *dev, int enabled,
-					  void *cb_data);
+/* Device enabled/disabled callback. */
+typedef void (*device_enabled_callback_t)(struct cras_iodev *dev, void *cb_data);
+typedef void (*device_disabled_callback_t)(struct cras_iodev *dev, void *cb_data);
 
 /* Initialize the list of iodevs. */
 void cras_iodev_list_init();
@@ -211,7 +209,9 @@ struct stream_list *cras_iodev_list_get_stream_list();
 
 /* Sets the function to call when a device is enabled or disabled. */
 int cras_iodev_list_set_device_enabled_callback(
-		device_enabled_callback_t device_enabled_cb, void *cb_data);
+		device_enabled_callback_t enabled_cb,
+		device_disabled_callback_t disabled_cb,
+		void *cb_data);
 
 /* Suspends all hotwording streams. */
 int cras_iodev_list_suspend_hotword_streams();
