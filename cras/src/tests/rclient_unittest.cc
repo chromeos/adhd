@@ -712,6 +712,11 @@ int cras_rstream_create(struct cras_rstream_config *stream_config,
   return cras_rstream_create_return;
 }
 
+unsigned int cras_rstream_get_effects(const struct cras_rstream *stream)
+{
+  return 0;
+}
+
 int cras_iodev_move_stream_type(uint32_t type, uint32_t index)
 {
   return 0;

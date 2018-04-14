@@ -9,6 +9,7 @@
 #ifndef CRAS_RSTREAM_H_
 #define CRAS_RSTREAM_H_
 
+#include "cras_apm_list.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 
@@ -59,12 +60,12 @@ struct master_dev_info {
  *    last_fetch_ts - The time of the last stream fetch.
  *    longest_fetch_interval_ts - Longest interval between two fetches.
  *    buf_state - State of the buffer from all devices for this stream.
+ *    apm_list - List of audio processing module instances.
  *    num_attached_devs - Number of iodevs this stream has attached to.
  *    queued_frames - Cached value of the number of queued frames in shm.
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
  *    pinned_dev_idx - device the stream is pinned, 0 if none.
  *    triggered - True if already notified TRIGGER_ONLY stream, false otherwise.
- *    effects - Bit map of effects to be enabled on this stream.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -86,12 +87,12 @@ struct cras_rstream {
 	struct timespec last_fetch_ts;
 	struct timespec longest_fetch_interval;
 	struct buffer_share *buf_state;
+	struct cras_apm_list *apm_list;
 	int num_attached_devs;
 	int queued_frames;
 	int is_pinned;
 	uint32_t pinned_dev_idx;
 	int triggered;
-	uint32_t effects;
 	struct cras_rstream *prev, *next;
 };
 
@@ -237,13 +238,6 @@ static inline size_t cras_rstream_get_total_shm_size(
 	return cras_shm_total_size(&stream->shm);
 }
 
-/* Gets the enabled effects of this stream. */
-static inline unsigned int cras_rstream_get_effects(
-		const struct cras_rstream *stream)
-{
-	return stream->effects;
-}
-
 /* Gets shared memory region for this stream. */
 static inline
 struct cras_audio_shm *cras_rstream_input_shm(struct cras_rstream *stream)
@@ -269,6 +263,9 @@ static inline int stream_uses_input(const struct cras_rstream *s)
 {
 	return cras_stream_uses_input_hw(s->direction);
 }
+
+/* Gets the enabled effects of this stream. */
+unsigned int cras_rstream_get_effects(const struct cras_rstream *stream);
 
 /* Checks how much time has passed since last stream fetch and records
  * the longest fetch interval. */

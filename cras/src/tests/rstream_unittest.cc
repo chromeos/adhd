@@ -393,5 +393,17 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {
 
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {
 }
-
+struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
+					   uint64_t effects)
+{
+  return NULL;
+}
+int cras_apm_list_destroy(struct cras_apm_list *list)
+{
+  return 0;
+}
+uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
+{
+  return APM_ECHO_CANCELLATION;
+}
 }

@@ -1108,6 +1108,10 @@ int input_data_put_for_stream(struct input_data *data,
 {
   return 0;
 }
+uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
+{
+  return 0;
+}
 
 }  // extern "C"
 

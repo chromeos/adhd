@@ -47,6 +47,17 @@ fi
 AC_SUBST(SELINUX_CFLAGS)
 AC_SUBST(SELINUX_LIBS)
 
+# WEBRTC APM support
+AC_ARG_ENABLE([webrtc-apm], AS_HELP_STRING([--disable-webrtc-apm], [Disable webrtc-apm uses]), have_webrtc_apm=$enableval, have_webrtc_apm=yes)
+AM_CONDITIONAL(HAVE_WEBRTC_APM, test "$have_webrtc_apm" = "yes")
+if test "$have_webrtc_apm" = "yes"; then
+    PKG_CHECK_MODULES([WEBRTC_APM], [ libwebrtc_apm ])
+    AC_DEFINE(HAVE_WEBRTC_APM, 1, [Define to use webrtc-apm.])
+else
+    WEBRTC_APM_LIBS=
+fi
+AC_SUBST(WEBRTC_APM_LIBS)
+
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)

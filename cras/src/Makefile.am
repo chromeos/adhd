@@ -29,6 +29,13 @@ else
 CRAS_FMA =
 endif
 
+if HAVE_WEBRTC_APM
+CRAS_WEBRTC_APM_SOURCES = \
+	server/cras_apm_list.c
+else
+CRAS_WEBRTC_APM_SOURCES =
+endif
+
 CRAS_UT_TMPDIR_CFLAGS=-DCRAS_UT_TMPDIR=\"/tmp\"
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
 COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
@@ -73,6 +80,7 @@ endif
 cras_server_SOURCES = \
 	$(CRAS_DBUS_SOURCES) \
 	$(CRAS_SELINUX_SOURCES) \
+	$(CRAS_WEBRTC_APM_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
@@ -178,7 +186,8 @@ cras_LDADD = \
 	$(CRAS_FMA) \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(SBC_LIBS) \
-	$(DBUS_LIBS)
+	$(DBUS_LIBS) \
+	$(WEBRTC_APM_LIBS)
 
 noinst_LTLIBRARIES = \
 	$(CRAS_SSE4_2) \
@@ -302,8 +311,16 @@ else
 DBUS_TESTS =
 endif
 
+if HAVE_WEBRTC_APM
+CRAS_WEBRTC_APM_TESTS = \
+	apm_list_unittest
+else
+CRAS_WEBRTC_APM_TESTS =
+endif
+
 TESTS = \
 	$(DBUS_TESTS) \
+	$(CRAS_WEBRTC_APM_TESTS) \
 	audio_area_unittest \
 	audio_format_unittest \
 	audio_thread_unittest \
@@ -527,6 +544,16 @@ alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
 alsa_ucm_unittest_LDADD = -lgtest -lpthread
+
+if HAVE_WEBRTC_APM
+apm_list_unittest_SOURCES = tests/apm_list_unittest.cc \
+	server/cras_apm_list.c
+apm_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server \
+	$(WEBRTC_APM_CFLAGS)
+apm_list_unittest_LDADD = -lgtest
+endif
 
 array_unittest_SOURCES = tests/array_unittest.cc
 array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common

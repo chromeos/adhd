@@ -242,7 +242,6 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
 	stream->fd = config->audio_fd;
-	stream->effects = config->effects;
 
 	rc = setup_shm_area(stream);
 	if (rc < 0) {
@@ -252,6 +251,9 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	}
 
 	stream->buf_state = buffer_share_create(stream->buffer_frames);
+	stream->apm_list = (stream->direction == CRAS_STREAM_INPUT)
+			? cras_apm_list_create(stream, config->effects)
+			: NULL;
 
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       config->stream_id, config->buffer_frames, config->cb_threshold);
@@ -273,7 +275,16 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 		cras_audio_area_destroy(stream->audio_area);
 	}
 	buffer_share_destroy(stream->buf_state);
+	if (stream->apm_list)
+		cras_apm_list_destroy(stream->apm_list);
 	free(stream);
+}
+
+unsigned int cras_rstream_get_effects(const struct cras_rstream *stream)
+{
+	return stream->apm_list
+			? cras_apm_list_get_effects(stream->apm_list)
+			: 0;
 }
 
 void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,

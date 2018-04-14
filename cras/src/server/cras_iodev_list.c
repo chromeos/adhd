@@ -364,13 +364,27 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 	}
 }
 
+static void remove_all_streams_from_dev(struct cras_iodev *dev)
+{
+	struct cras_rstream *rstream;
+
+	audio_thread_rm_open_dev(audio_thread, dev);
+
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->apm_list == NULL)
+			continue;
+		cras_apm_list_remove(rstream->apm_list, dev);
+	}
+}
+
 static void close_dev(struct cras_iodev *dev)
 {
 	if (!cras_iodev_is_open(dev))
 	       return;
 	if (cras_iodev_has_pinned_stream(dev))
 		syslog(LOG_ERR, "Closing device with pinned streams.");
-	audio_thread_rm_open_dev(audio_thread, dev);
+
+	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
 	if (idle_timer)
@@ -394,7 +408,7 @@ static void idle_dev_check(struct cras_timer *timer, void *data)
 		if (edev->dev->idle_timeout.tv_sec == 0)
 			continue;
 		if (timespec_after(&now, &edev->dev->idle_timeout)) {
-			audio_thread_rm_open_dev(audio_thread, edev->dev);
+			remove_all_streams_from_dev(edev->dev);
 			edev->dev->idle_timeout.tv_sec = 0;
 			cras_iodev_close(edev->dev);
 			continue;
@@ -546,6 +560,26 @@ static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
 		enable_device(fallback_devs[dir]);
 }
 
+/*
+ * Adds stream to one or more open iodevs. If the stream has processing effect
+ * turned on, create new APM instance and add to the list. This makes sure the
+ * time consuming APM creation happens in main thread.
+ */
+static int add_stream_to_open_devs(struct cras_rstream *stream,
+				    struct cras_iodev **iodevs,
+				    unsigned int num_iodevs)
+{
+	int i;
+	if (stream->apm_list) {
+		for (i = 0; i < num_iodevs; i++)
+			cras_apm_list_add(stream->apm_list,
+					  iodevs[i],
+					  iodevs[i]->ext_format);
+	}
+	return audio_thread_add_stream(audio_thread,
+				       stream, iodevs, num_iodevs);
+}
+
 static int init_and_attach_streams(struct cras_iodev *dev)
 {
 	int rc;
@@ -566,8 +600,7 @@ static int init_and_attach_streams(struct cras_iodev *dev)
 				       dev->info.name, rc);
 				return rc;
 			}
-			audio_thread_add_stream(audio_thread,
-						stream, &dev, 1);
+			add_stream_to_open_devs(stream, &dev, 1);
 		}
 	}
 	return 0;
@@ -657,7 +690,7 @@ static int pinned_stream_added(struct cras_rstream *rstream)
 	if (rc)
 		return rc;
 
-	return audio_thread_add_stream(audio_thread, rstream, &dev, 1);
+	return add_stream_to_open_devs(rstream, &dev, 1);
 }
 
 static int stream_added_cb(struct cras_rstream *rstream)
@@ -696,8 +729,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 		iodevs[num_iodevs++] = edev->dev;
 	}
 	if (num_iodevs) {
-		rc = audio_thread_add_stream(audio_thread, rstream,
-					     iodevs, num_iodevs);
+		rc = add_stream_to_open_devs(rstream, iodevs, num_iodevs);
 		if (rc) {
 			syslog(LOG_ERR, "adding stream to thread fail");
 			return rc;

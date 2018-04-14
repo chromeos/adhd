@@ -1775,6 +1775,15 @@ int audio_thread_dev_start_ramp(struct audio_thread *thread,
   audio_thread_dev_start_ramp_req = request;
   return 0;
 }
+struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
+				   void *dev_ptr,
+				   const struct cras_audio_format *fmt)
+{
+  return NULL;
+}
+void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr)
+{
+}
 
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
