@@ -180,10 +180,14 @@ static int read_until_finished(int fd, void *buf, size_t count) {
 	int nread, count_left = count;
 
 	while (count_left > 0) {
-		nread = read(fd, (uint8_t *)buf + count - count_left, count_left);
-		if (nread < 0)
-			return nread;
-		if (nread == 0) {
+		nread = read(fd, (uint8_t *)buf + count - count_left,
+			     count_left);
+		if (nread < 0) {
+			if (errno == EINTR)
+				continue;
+			else
+				return nread;
+		} else if (nread == 0) {
 			syslog(LOG_ERR, "Pipe has been closed.");
 			return -EPIPE;
 		}
