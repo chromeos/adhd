@@ -423,6 +423,10 @@ int cras_alsa_fill_properties(snd_pcm_t *handle,
 			(*rates)[num_found++] = test_sample_rates[i];
 	}
 	(*rates)[num_found] = 0;
+	if (num_found == 0) {
+		syslog(LOG_WARNING, "No valid sample rates.");
+		return -EINVAL;
+	}
 
 	num_found = 0;
 	for (i = 0; test_channel_counts[i] != 0; i++) {
@@ -432,6 +436,10 @@ int cras_alsa_fill_properties(snd_pcm_t *handle,
 			(*channel_counts)[num_found++] = test_channel_counts[i];
 	}
 	(*channel_counts)[num_found] = 0;
+	if (num_found == 0) {
+		syslog(LOG_WARNING, "No valid channel counts found.");
+		return -EINVAL;
+	}
 
 	num_found = 0;
 	for (i = 0; test_formats[i] != 0; i++) {
@@ -441,6 +449,10 @@ int cras_alsa_fill_properties(snd_pcm_t *handle,
 			(*formats)[num_found++] = test_formats[i];
 	}
 	(*formats)[num_found] = (snd_pcm_format_t)0;
+	if (num_found == 0) {
+		syslog(LOG_WARNING, "No valid sample formats.");
+		return -EINVAL;
+	}
 
 	return 0;
 }
