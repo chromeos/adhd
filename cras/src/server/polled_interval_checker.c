@@ -26,7 +26,7 @@ void pic_update_current_time() {
 
 struct polled_interval *pic_polled_interval_create(int interval_sec) {
 	struct polled_interval *pi;
-	pi = malloc(sizeof *pi);
+	pi = malloc(sizeof(*pi));
 	pi->last_interval_start_ts = now;
 	pi->interval_sec = interval_sec;
 	return pi;
