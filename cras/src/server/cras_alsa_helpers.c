@@ -305,7 +305,6 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
 int cras_alsa_set_channel_map(snd_pcm_t *handle,
 			      struct cras_audio_format *fmt)
 {
-	int rc = 0;
 	size_t i, ch;
 	snd_pcm_chmap_query_t **chmaps;
 	snd_pcm_chmap_query_t *match;
@@ -316,14 +315,12 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle,
 	chmaps = snd_pcm_query_chmaps(handle);
 	if (chmaps == NULL) {
 		syslog(LOG_WARNING, "No chmap queried! Skip chmap set");
-		rc = 0;
 		goto done;
 	}
 
 	match = cras_chmap_caps_best(handle, chmaps, fmt);
 	if (!match) {
 		syslog(LOG_ERR, "Unable to find the best channel map");
-		rc = -1;
 		goto done;
 	}
 
@@ -338,11 +335,12 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle,
 		if (ch != CRAS_CH_MAX)
 			match->map.pos[i] = CH_TO_ALSA(ch);
 	}
-	rc = snd_pcm_set_chmap(handle, &match->map);
+	if (snd_pcm_set_chmap(handle, &match->map) != 0)
+		syslog(LOG_ERR, "Unable to set channel map");
 
 done:
 	snd_pcm_free_chmaps(chmaps);
-	return rc;
+	return 0;
 }
 
 int cras_alsa_get_channel_map(snd_pcm_t *handle,
