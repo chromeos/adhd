@@ -300,8 +300,7 @@ static size_t s16_default_all_to_all(struct cras_fmt_conv *conv,
 	unsigned int num_out_ch = conv->out_fmt.num_channels;
 	unsigned int in_ch, out_ch, i;
 
-	memset(out, 0, num_out_ch * in_frames *
-				cras_get_format_bytes(&conv->out_fmt));
+	memset(out, 0, in_frames * cras_get_format_bytes(&conv->out_fmt));
 	for (out_ch = 0; out_ch < num_out_ch; out_ch++) {
 		for (in_ch = 0; in_ch < num_in_ch; in_ch++) {
 			for (i = 0; i < in_frames; i++) {
