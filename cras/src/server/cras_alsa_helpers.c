@@ -53,6 +53,7 @@ static const size_t test_channel_counts[] = {
 	4,
 	2,
 	1,
+	8,
 	0
 };
 
