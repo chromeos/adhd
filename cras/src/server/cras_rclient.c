@@ -452,6 +452,9 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM:
 		break;
+	case CRAS_SERVER_SET_AEC_DUMP:
+		syslog(LOG_ERR, "client msg for APM debug, fd %d", fd);
+		break;
 	default:
 		if (fd != -1) {
 			syslog(LOG_ERR,
@@ -633,6 +636,15 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		register_for_notification(
 			client, (enum CRAS_CLIENT_MESSAGE_ID)m->msg_id,
 			m->do_register);
+		break;
+	}
+	case CRAS_SERVER_SET_AEC_DUMP: {
+		const struct cras_set_aec_dump *m =
+			(const struct cras_set_aec_dump *)msg;
+		audio_thread_set_aec_dump(
+				cras_iodev_list_get_audio_thread(),
+				m->stream_id,
+				m->start, fd);
 		break;
 	}
 	default:

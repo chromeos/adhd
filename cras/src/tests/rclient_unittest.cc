@@ -700,6 +700,14 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
   return 0;
 }
 
+int audio_thread_set_aec_dump(struct audio_thread *thread,
+			      cras_stream_id_t stream_id,
+			      unsigned int start,
+			      int fd)
+{
+  return 0;
+}
+
 const char *cras_config_get_socket_file_dir()
 {
   return CRAS_UT_TMPDIR;

@@ -100,6 +100,18 @@ struct cras_audio_area *cras_apm_list_get_processed(struct cras_apm *apm);
  */
 void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames);
 
+/* Sets debug recording to start or stop.
+ * Args:
+ *    list - List contains the apm instance to start/stop debug recording.
+ *    dev_ptr - Use as key to look up specific apm to do aec dump.
+ *    start - True to set debug recording start, otherwise stop.
+ *    fd - File descriptor to aec dump destination.
+ */
+void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
+				void *dev_ptr,
+			        int start,
+			        int fd);
+
 #else
 
 /*
@@ -156,6 +168,13 @@ static inline struct cras_audio_area *cras_apm_list_get_processed(
 
 static inline void cras_apm_list_put_processed(struct cras_apm *apm,
 					       unsigned int frames)
+{
+}
+
+static inline void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
+					      void *dev_ptr,
+					      int start,
+					      int fd)
 {
 }
 

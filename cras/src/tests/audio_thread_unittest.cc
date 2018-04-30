@@ -1113,6 +1113,17 @@ uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
   return 0;
 }
 
+void cras_apm_list_set_debug_recording(struct cras_apm *apm,
+    unsigned int stream_id, int start, const char *file_name_base)
+{
+}
+void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
+				void *dev_ptr,
+			        int start,
+			        int fd)
+{
+}
+
 }  // extern "C"
 
 int main(int argc, char **argv) {

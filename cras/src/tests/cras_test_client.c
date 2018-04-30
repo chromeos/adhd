@@ -60,6 +60,7 @@ static int effect_aec = 0;
 static int effect_ns = 0;
 static int effect_agc = 0;
 static int effect_vad = 0;
+static char *aecdump_file = NULL;
 
 /* Conditional so the client thread can signal that main should exit. */
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -581,7 +582,7 @@ static void audio_debug_info(struct cras_client *client)
 
 	for (i = 0; i < info->num_streams; i++) {
 		int channel;
-		printf("stream: %llx dev: %u\n",
+		printf("stream: %lu dev: %u\n",
 		       (unsigned long long)info->streams[i].stream_id,
 		       (unsigned int)info->streams[i].dev_idx);
 		printf("direction: %s\n",
@@ -659,6 +660,27 @@ static int parse_channel_layout(char *channel_layout_str,
 	}
 
 	return 0;
+}
+
+static void run_aecdump(struct cras_client *client, uint64_t stream_id,
+			int start)
+{
+	int aecdump_fd;
+	if (start) {
+		aecdump_fd = open(aecdump_file, O_CREAT | O_RDWR | O_TRUNC,
+				  0666);
+		if (aecdump_fd == -1) {
+			printf("Fail to open file %s", aecdump_file);
+			return;
+		}
+
+		printf("Dumping AEC info to %s, stream %lu, fd %d\n",
+		       aecdump_file, stream_id, aecdump_fd);
+		cras_client_set_aec_dump(client, stream_id, 1, aecdump_fd);
+	} else {
+		cras_client_set_aec_dump(client, stream_id, 0, -1);
+		printf("Close AEC dump file %s\n", aecdump_file);
+	}
 }
 
 static int run_file_io_stream(struct cras_client *client,
@@ -1071,6 +1093,8 @@ static struct option long_options[] = {
 	{"stream_type",		required_argument,	0, 'T'},
 	{"post_dsp",            required_argument,	0, 'A'},
 	{"effects",		required_argument,	0, 'E'},
+	{"stream_id",		required_argument,	0, 'B'},
+	{"aecdump",		required_argument,	0, 'C'},
 	{0, 0, 0, 0}
 };
 
@@ -1150,6 +1174,7 @@ int main(int argc, char **argv)
 	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	int rc = 0;
 	uint32_t stream_flags = 0;
+	cras_stream_id_t stream_id;
 
 	option_index = 0;
 	openlog("cras_test_client", LOG_PERROR, LOG_USER);
@@ -1476,6 +1501,12 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
+		case 'B':
+			stream_id = atoi(optarg);
+			break;
+		case 'C':
+			aecdump_file = optarg;
+			break;
 		default:
 			break;
 		}
@@ -1506,6 +1537,10 @@ int main(int argc, char **argv)
 		rc = run_capture(client, loopback_file, block_size,
 				 stream_type, rate, num_channels,
 				 stream_flags, 1, post_dsp);
+	} else if (aecdump_file != NULL) {
+		run_aecdump(client, stream_id, 1);
+		sleep(duration_seconds);
+		run_aecdump(client, stream_id, 0);
 	}
 
 destroy_exit:

@@ -3303,6 +3303,18 @@ int cras_client_set_hotword_model(struct cras_client *client,
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_set_aec_dump(struct cras_client *client,
+			      cras_stream_id_t stream_id,
+			      int start,
+			      int fd)
+{
+	struct cras_set_aec_dump msg;
+
+	cras_fill_set_aec_dump_message(&msg, stream_id, start);
+	return cras_send_with_fds(client->server_fd, &msg, sizeof(msg),
+			       &fd, 1);
+}
+
 void cras_client_set_state_change_callback_context(
 		struct cras_client *client, void *context)
 {

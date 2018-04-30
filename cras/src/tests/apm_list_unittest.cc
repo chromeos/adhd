@@ -239,6 +239,11 @@ int webrtc_apm_process_reverse_stream_f(
   webrtc_apm_process_reverse_stream_f_called++;
   return 0;
 }
+int webrtc_apm_aec_dump(webrtc_apm ptr, void** work_queue,
+                        int start, FILE *handle)
+{
+  return 0;
+}
 
 } // extern "C"
 } // namespace

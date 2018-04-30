@@ -1078,6 +1078,18 @@ int cras_client_enable_hotword_callback(
 int cras_client_disable_hotword_callback(struct cras_client *client,
 					 struct cras_hotword_handle *handle);
 
+/* Starts or stops the aec dump task on server side.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    stream_id - The id of the input stream running with aec effect.
+ *    start - True to start APM debugging, otherwise to stop it.
+ *    fd - File descriptor of the file to store aec dump result.
+ */
+int cras_client_set_aec_dump(struct cras_client *client,
+			     cras_stream_id_t stream_id,
+			     int start,
+			     int fd);
+
 /* Set the context pointer for system state change callbacks.
  * Args:
  *    client - The client from cras_client_create.

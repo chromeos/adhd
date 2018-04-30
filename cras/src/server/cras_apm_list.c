@@ -54,6 +54,9 @@
  *    fmt - The audio data format configured for this APM.
  *    area - The cras_audio_area used for copying processed data to client
  *        stream.
+ *    work_queue - A task queue instance created and destroyed by
+ *        libwebrtc_apm.
+ *    handle - A FILE pointer to store AEC dump.
  */
 struct cras_apm {
 	webrtc_apm apm_ptr;
@@ -63,6 +66,8 @@ struct cras_apm {
 	struct cras_audio_format dev_fmt;
 	struct cras_audio_format fmt;
 	struct cras_audio_area *area;
+	void *work_queue;
+	FILE *handle;
 	struct cras_apm *prev, *next;
 };
 
@@ -127,6 +132,8 @@ static void apm_destroy(struct cras_apm **apm)
 	float_buffer_destroy(&(*apm)->fbuffer);
 	cras_audio_area_destroy((*apm)->area);
 	webrtc_apm_destroy((*apm)->apm_ptr);
+	if ((*apm)->handle)
+		fclose((*apm)->handle);
 	free(*apm);
 	*apm = NULL;
 }
@@ -266,6 +273,8 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 	}
 
 	apm->dev_ptr = dev_ptr;
+	apm->work_queue = NULL;
+	apm->handle = NULL;
 
 	/* WebRTC APM wants 10 ms equivalence of data to process. */
 	apm->buffer = byte_buffer_create(10 * apm->fmt.frame_rate / 1000 *
@@ -537,4 +546,37 @@ void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames)
 {
 	buf_increment_read(apm->buffer,
 			   frames * cras_get_format_bytes(&apm->fmt));
+}
+
+void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
+				int start, int fd)
+{
+	struct cras_apm *apm;
+	char file_name[256];
+	int rc;
+
+	DL_SEARCH_SCALAR(list->apms, apm, dev_ptr, dev_ptr);
+	if (apm == NULL)
+		return;
+
+	if (start) {
+		apm->handle = fdopen(fd, "w");
+		if (apm->handle == NULL) {
+			syslog(LOG_ERR, "Create dump handle fail, errno %d",
+			       errno);
+			return ;
+		}
+		rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, start,
+					 apm->handle);
+		if (rc)
+			syslog(LOG_ERR, "Fail to dump debug file %s, rc %d",
+			       file_name, rc);
+	} else if (apm->handle) {
+		rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 0,
+					 NULL);
+		if (rc)
+			syslog(LOG_ERR, "Failed to stop apm debug, rc %d", rc);
+		fclose(apm->handle);
+		apm->handle = NULL;
+	}
 }

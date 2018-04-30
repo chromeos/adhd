@@ -167,6 +167,18 @@ int audio_thread_disconnect_stream(struct audio_thread *thread,
 int audio_thread_dump_thread_info(struct audio_thread *thread,
 				  struct audio_debug_info *info);
 
+/* Starts or stops the aec dump task.
+ * Args:
+ *    thread - pointer to the audio thread.
+ *    stream_id - id of the target stream for aec dump.
+ *    start - True to start the aec dump, false to stop.
+ *    fd - File to store aec dump result.
+ */
+int audio_thread_set_aec_dump(struct audio_thread *thread,
+			      cras_stream_id_t stream_id,
+			      unsigned int start,
+			      int fd);
+
 /* Configures the global converter for output remixing. Called by main
  * thread. */
 int audio_thread_config_global_remix(struct audio_thread *thread,

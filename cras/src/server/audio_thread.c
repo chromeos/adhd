@@ -40,6 +40,7 @@ enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_CONFIG_GLOBAL_REMIX,
 	AUDIO_THREAD_DEV_START_RAMP,
 	AUDIO_THREAD_REMOVE_CALLBACK,
+	AUDIO_THREAD_AEC_DUMP,
 };
 
 struct audio_thread_msg {
@@ -78,6 +79,13 @@ struct audio_thread_dev_start_ramp_msg {
 	struct audio_thread_msg header;
 	struct cras_iodev *dev;
 	enum CRAS_IODEV_RAMP_REQUEST request;
+};
+
+struct audio_thread_aec_dump_msg {
+	struct audio_thread_msg header;
+	cras_stream_id_t stream_id;
+	unsigned int start; /* */
+	int fd;
 };
 
 /* Audio thread logging. */
@@ -480,6 +488,32 @@ static int thread_add_stream(struct audio_thread *thread,
 	return 0;
 }
 
+/* Starts or stops aec dump task. */
+static int thread_set_aec_dump(struct audio_thread *thread,
+			       cras_stream_id_t stream_id,
+			       unsigned int start,
+			       int fd)
+{
+	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
+	struct open_dev *adev;
+	struct dev_stream *stream;
+
+	DL_FOREACH(idev_list, adev) {
+		if (!cras_iodev_is_open(adev->dev))
+			continue;
+
+		DL_FOREACH(adev->dev->streams, stream) {
+			if ((stream->stream->apm_list == NULL) ||
+			    (stream->stream->stream_id != stream_id))
+				continue;
+
+			cras_apm_list_set_aec_dump(stream->stream->apm_list,
+						   adev->dev, start, fd);
+		}
+	}
+	return 0;
+}
+
 /* Stop the playback thread */
 static void terminate_pb_thread()
 {
@@ -670,6 +704,13 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 		rmsg = (struct audio_thread_dev_start_ramp_msg*)msg;
 		ret = thread_dev_start_ramp(thread, rmsg->dev, rmsg->request);
+		break;
+	}
+	case AUDIO_THREAD_AEC_DUMP: {
+		struct audio_thread_aec_dump_msg *rmsg;
+		rmsg = (struct audio_thread_aec_dump_msg *)msg;
+		ret = thread_set_aec_dump(thread, rmsg->stream_id,
+					  rmsg->start, rmsg->fd);
 		break;
 	}
 	default:
@@ -1055,6 +1096,22 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 	struct audio_thread_dump_debug_info_msg msg;
 
 	init_dump_debug_info_msg(&msg, info);
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_set_aec_dump(struct audio_thread *thread,
+			       cras_stream_id_t stream_id,
+			       unsigned int start,
+			       int fd)
+{
+	struct audio_thread_aec_dump_msg msg;
+
+	memset(&msg, 0, sizeof(msg));
+	msg.header.id = AUDIO_THREAD_AEC_DUMP;
+	msg.header.length = sizeof(msg);
+	msg.stream_id = stream_id;
+	msg.start = start;
+	msg.fd = fd;
 	return audio_thread_post_message(thread, &msg.header);
 }
 

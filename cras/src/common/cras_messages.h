@@ -23,6 +23,7 @@
 #define CRAS_MAX_HOTWORD_MODELS 244
 #define CRAS_MAX_REMIX_CHANNELS 32
 #define CRAS_MAX_TEST_DATA_LEN 224
+#define CRAS_AEC_DUMP_FILE_NAME_LEN 128
 
 /* Message IDs. */
 enum CRAS_SERVER_MESSAGE_ID {
@@ -52,6 +53,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_GET_HOTWORD_MODELS,
 	CRAS_SERVER_SET_HOTWORD_MODEL,
 	CRAS_SERVER_REGISTER_NOTIFICATION,
+	CRAS_SERVER_SET_AEC_DUMP,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -448,6 +450,24 @@ static inline void cras_fill_set_hotword_model_message(
 	m->header.length = sizeof(*m);
 	m->node_id = node_id;
 	memcpy(m->model_name, model_name, CRAS_HOTWORD_NAME_MAX_SIZE);
+}
+
+/* Set aec dump to start or stop. */
+struct __attribute__ ((__packed__)) cras_set_aec_dump {
+	struct cras_server_message header;
+	cras_stream_id_t stream_id;
+	unsigned int start;
+};
+
+static inline void cras_fill_set_aec_dump_message(
+		struct cras_set_aec_dump *m,
+		cras_stream_id_t stream_id,
+		unsigned int start)
+{
+	m->header.id = CRAS_SERVER_SET_AEC_DUMP;
+	m->header.length = sizeof(*m);
+	m->stream_id = stream_id;
+	m->start = start;
 }
 
 struct __attribute__ ((__packed__)) cras_register_notification {
