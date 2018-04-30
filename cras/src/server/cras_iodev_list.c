@@ -954,6 +954,7 @@ void cras_iodev_list_init()
 		exit(-ENOMEM);
 	}
 	audio_thread_start(audio_thread);
+	cras_apm_list_init();
 
 	cras_iodev_list_update_device_list();
 }

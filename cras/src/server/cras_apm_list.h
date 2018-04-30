@@ -16,6 +16,12 @@ struct float_buffer;
 
 #ifdef HAVE_WEBRTC_APM
 
+/* Initialize the apm list for analyzing output data. */
+int cras_apm_list_init();
+
+/* Deinitialize apm list to free all allocated resources. */
+int cras_apm_list_deinit();
+
 /*
  * Creates an list to hold all APM instances created when a stream
  * attaches to an iodev.
@@ -101,6 +107,10 @@ void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames);
  * cras_apm_list functions as dummy. As long as cras_apm_list_add returns
  * NULL, non of the other functions should be called.
  */
+static inline int cras_apm_list_init()
+{
+	return 0;
+}
 static inline struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
 							 unsigned int effects)
 {

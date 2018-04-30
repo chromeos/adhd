@@ -8,6 +8,9 @@
 extern "C" {
 #include "cras_apm_list.h"
 #include "cras_audio_area.h"
+#include "cras_dsp_pipeline.h"
+#include "cras_iodev.h"
+#include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "float_buffer.h"
 #include "webrtc_apm.h"
@@ -22,6 +25,10 @@ static struct cras_apm_list *list;
 static struct cras_audio_area fake_audio_area;
 static unsigned int dsp_util_interleave_frames;
 static unsigned int webrtc_apm_process_stream_f_called;
+static unsigned int webrtc_apm_process_reverse_stream_f_called;
+static device_enabled_callback_t device_enabled_callback_val;
+static struct ext_dsp_module *ext_dsp_module_value;
+
 
 TEST(ApmList, ApmListCreate) {
   list = cras_apm_list_create(stream_ptr, 0);
@@ -112,7 +119,77 @@ TEST(ApmList, ApmProcessForwardBuffer) {
   cras_apm_list_destroy(list);
 }
 
+TEST(ApmList, ApmProcessReverseData) {
+  struct cras_apm *apm;
+  struct cras_audio_format fmt;
+  struct float_buffer *buf;
+  float *const *rp;
+  unsigned int nread;
+  struct cras_iodev fake_iodev;
+
+  fmt.num_channels = 2;
+  fmt.frame_rate = 48000;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+
+  fake_iodev.direction = CRAS_STREAM_OUTPUT;
+  device_enabled_callback_val = NULL;
+  ext_dsp_module_value = NULL;
+  webrtc_apm_process_reverse_stream_f_called = 0;
+
+  cras_apm_list_init();
+  EXPECT_NE((void *)NULL, device_enabled_callback_val);
+
+  device_enabled_callback_val(&fake_iodev, NULL);
+  EXPECT_NE((void *)NULL, ext_dsp_module_value);
+  EXPECT_NE((void *)NULL, ext_dsp_module_value->ports);
+
+  buf = float_buffer_create(500, 2);
+  float_buffer_written(buf, 500);
+  nread = 500;
+  rp = float_buffer_read_pointer(buf, 0, &nread);
+
+  for (int i = 0; i < buf->num_channels; i++)
+    ext_dsp_module_value->ports[i] = rp[i];
+
+  ext_dsp_module_value->configure(ext_dsp_module_value,
+                                  800, 2, 48000);
+  ext_dsp_module_value->run(ext_dsp_module_value, 500);
+  EXPECT_EQ(0, webrtc_apm_process_reverse_stream_f_called);
+
+  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  EXPECT_NE((void *)NULL, list);
+
+  apm = cras_apm_list_add(list, dev_ptr, &fmt);
+
+  ext_dsp_module_value->run(ext_dsp_module_value, 250);
+  EXPECT_EQ(0, webrtc_apm_process_reverse_stream_f_called);
+
+  ext_dsp_module_value->run(ext_dsp_module_value, 250);
+  EXPECT_EQ(1, webrtc_apm_process_reverse_stream_f_called);
+
+  float_buffer_destroy(&buf);
+  cras_apm_list_deinit();
+}
+
 extern "C" {
+int cras_iodev_list_set_device_enabled_callback(
+		device_enabled_callback_t enabled_cb,
+		device_disabled_callback_t disabled_cb,
+		void *cb_data)
+{
+  device_enabled_callback_val = enabled_cb;
+  return 0;
+}
+struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
+	enum CRAS_STREAM_DIRECTION direction)
+{
+  return reinterpret_cast<struct cras_iodev *>(0x111);
+}
+void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
+				   struct ext_dsp_module *ext)
+{
+  ext_dsp_module_value = ext;
+}
 struct cras_audio_area *cras_audio_area_create(int num_channels)
 {
   return &fake_audio_area;
@@ -151,6 +228,15 @@ int webrtc_apm_process_stream_f(webrtc_apm ptr,
 				float *const *data)
 {
   webrtc_apm_process_stream_f_called++;
+  return 0;
+}
+
+int webrtc_apm_process_reverse_stream_f(
+		webrtc_apm ptr,
+		int num_channels, int rate,
+		float *const *data)
+{
+  webrtc_apm_process_reverse_stream_f_called++;
   return 0;
 }
 

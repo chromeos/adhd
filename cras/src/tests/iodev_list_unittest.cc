@@ -1784,6 +1784,10 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr)
 {
 }
+int cras_apm_list_init()
+{
+  return 0;
+}
 
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {

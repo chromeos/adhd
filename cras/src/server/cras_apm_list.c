@@ -12,6 +12,9 @@
 #include "cras_apm_list.h"
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
+#include "cras_dsp_pipeline.h"
+#include "cras_iodev.h"
+#include "cras_iodev_list.h"
 #include "dsp_util.h"
 #include "float_buffer.h"
 #include "utlist.h"
@@ -74,6 +77,26 @@ struct cras_apm_list {
 	struct cras_apm_list *prev, *next;
 };
 
+/*
+ * Object used to analyze playback audio from output iodev. It is responsible
+ * to get buffer containing latest output data and provide it to the APM
+ * instances which want to analyze reverse stream.
+ * Member:
+ *    ext - The interface implemented to process reverse(output) stream
+ *        data in various formats.
+ *    fbuf - Middle buffer holding reverse data for APMs to analyze.
+ *    odev - Pointer to the output iodev playing audio as the reverse
+ *        stream. NULL if there's no playback stream.
+ *    dev_rate - The sample rate odev is opened for.
+ */
+struct cras_apm_reverse_module {
+	struct ext_dsp_module ext;
+	struct float_buffer *fbuf;
+	struct cras_iodev *odev;
+	unsigned int dev_rate;
+};
+
+static struct cras_apm_reverse_module *rmodule = NULL;
 static struct cras_apm_list *apm_list = NULL;
 
 static void apm_destroy(struct cras_apm **apm)
@@ -213,6 +236,145 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
 	}
 	free(list);
 
+	return 0;
+}
+
+/*
+ * Updates the first enabled output iodev in the list and register
+ * rmodule as ext dsp module to it. When this iodev is opened and
+ * output data starts flow, APMs can anaylize the reverse stream.
+ * This is expected to be called in main thread when output devices
+ * enable/dsiable state changes.
+ */
+static void update_first_output_dev_to_process()
+{
+	struct cras_iodev *iodev =
+			cras_iodev_list_get_first_enabled_iodev(
+				CRAS_STREAM_OUTPUT);
+
+	rmodule->odev = iodev;
+	cras_iodev_set_ext_dsp_module(iodev, &rmodule->ext);
+}
+
+static void handle_device_enabled(struct cras_iodev *iodev, void *cb_data)
+{
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return;
+
+	/* Register to the first enabled output device. */
+	update_first_output_dev_to_process();
+}
+
+static void handle_device_disabled(struct cras_iodev *iodev, void *cb_data)
+{
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return;
+
+	if (rmodule->odev == iodev) {
+		cras_iodev_set_ext_dsp_module(iodev, NULL);
+		rmodule->odev = NULL;
+	}
+
+	/* Register to the first enabled output device. */
+	update_first_output_dev_to_process();
+}
+
+static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
+{
+	struct cras_apm_list *list;
+	struct cras_apm *apm;
+	int ret;
+	float *const *wp;
+
+	if (float_buffer_writable(fbuf))
+		return 0;
+
+	wp = float_buffer_write_pointer(fbuf);
+
+	DL_FOREACH(apm_list, list) {
+		if (!(list->effects & APM_ECHO_CANCELLATION))
+			continue;
+
+		DL_FOREACH(list->apms, apm) {
+			ret = webrtc_apm_process_reverse_stream_f(
+					apm->apm_ptr,
+					fbuf->num_channels,
+					frame_rate,
+					wp);
+			if (ret) {
+				syslog(LOG_ERR,
+				       "APM process reverse err");
+				return ret;
+			}
+		}
+	}
+	float_buffer_reset(fbuf);
+	return 0;
+}
+
+void reverse_data_run(struct ext_dsp_module *ext,
+		      unsigned int nframes)
+{
+	struct cras_apm_reverse_module *rmod =
+			(struct cras_apm_reverse_module *)ext;
+	unsigned int writable;
+	int i, offset = 0;
+	float *const *wp;
+
+	while (nframes) {
+		process_reverse(rmod->fbuf, rmod->dev_rate);
+		writable = float_buffer_writable(rmod->fbuf);
+		writable = MIN(nframes, writable);
+		wp = float_buffer_write_pointer(rmod->fbuf);
+		for (i = 0; i < rmod->fbuf->num_channels; i++)
+			memcpy(wp[i], ext->ports[i] + offset,
+			       writable * sizeof(float));
+
+		offset += writable;
+		float_buffer_written(rmod->fbuf, writable);
+		nframes -= writable;
+	}
+}
+
+void reverse_data_configure(struct ext_dsp_module *ext,
+			    unsigned int buffer_size,
+			    unsigned int num_channels,
+			    unsigned int rate)
+{
+	struct cras_apm_reverse_module *rmod =
+			(struct cras_apm_reverse_module *)ext;
+	if (rmod->fbuf)
+		float_buffer_destroy(&rmod->fbuf);
+	rmod->fbuf = float_buffer_create(rate / 100,
+					 num_channels);
+	rmod->dev_rate = rate;
+}
+
+int cras_apm_list_init()
+{
+	if (rmodule == NULL) {
+		rmodule = (struct cras_apm_reverse_module *)
+				calloc(1, sizeof(*rmodule));
+		rmodule->ext.run = reverse_data_run;
+		rmodule->ext.configure = reverse_data_configure;
+	}
+
+	update_first_output_dev_to_process();
+	cras_iodev_list_set_device_enabled_callback(
+			handle_device_enabled,
+			handle_device_disabled,
+			rmodule);
+
+	return 0;
+}
+
+int cras_apm_list_deinit()
+{
+	if (rmodule) {
+		if (rmodule->fbuf)
+			float_buffer_destroy(&rmodule->fbuf);
+		free(rmodule);
+	}
 	return 0;
 }
 
