@@ -550,6 +550,7 @@ apm_list_unittest_SOURCES = tests/apm_list_unittest.cc \
 	server/cras_apm_list.c
 apm_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/dsp \
 	-I$(top_srcdir)/src/server \
 	$(WEBRTC_APM_CFLAGS)
 apm_list_unittest_LDADD = -lgtest

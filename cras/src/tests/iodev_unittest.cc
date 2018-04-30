@@ -2492,6 +2492,10 @@ struct input_data *input_data_create(void *dev_ptr)
 void input_data_destroy(struct input_data **data)
 {
 }
+void input_data_set_all_streams_read(struct input_data *data,
+				     unsigned int nframes)
+{
+}
 
 }  // extern "C"
 }  //  namespace

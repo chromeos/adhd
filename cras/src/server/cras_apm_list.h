@@ -12,6 +12,7 @@ struct cras_audio_area;
 struct cras_audio_format;
 struct cras_apm;
 struct cras_apm_list;
+struct float_buffer;
 
 #ifdef HAVE_WEBRTC_APM
 
@@ -64,6 +65,35 @@ int cras_apm_list_destroy(struct cras_apm_list *list);
  */
 void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr);
 
+/* Passes audio data from hardware for cras_apm to process.
+ * Args:
+ *    apm - The cras_apm instance.
+ *    input - Float buffer from device for apm to process.
+ *    offset - Offset in |input| to note the data position to start
+ *        reading.
+ */
+int cras_apm_list_process(struct cras_apm *apm,
+			  struct float_buffer *input,
+			  unsigned int offset);
+
+/* Gets the APM processed data in the form of audio area.
+ * Args:
+ *    apm - The cras_apm instance that owns the audio area pointer and
+ *        processed data.
+ * Returns:
+ *    The audio area used to read processed data. No need to free
+ *    by caller.
+ */
+struct cras_audio_area *cras_apm_list_get_processed(struct cras_apm *apm);
+
+/* Tells |apm| that |frames| of processed data has been used, so |apm|
+ * can allocate space to read more from input device.
+ * Args:
+ *    apm - The cras_apm instance owns the processed data.
+ *    frames - The number in frames of processed data to mark as used.
+ */
+void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames);
+
 #else
 
 /*
@@ -98,6 +128,24 @@ static inline int cras_apm_list_destroy(struct cras_apm_list *list)
 }
 static inline void cras_apm_list_remove(struct cras_apm_list *list,
 					void *dev_ptr)
+{
+}
+
+static inline int cras_apm_list_process(struct cras_apm *apm,
+					struct float_buffer *input,
+					unsigned int offset)
+{
+	return 0;
+}
+
+static inline struct cras_audio_area *cras_apm_list_get_processed(
+		struct cras_apm *apm)
+{
+	return NULL;
+}
+
+static inline void cras_apm_list_put_processed(struct cras_apm *apm,
+					       unsigned int frames)
 {
 }
 

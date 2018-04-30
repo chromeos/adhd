@@ -931,6 +931,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 			iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
 	} else {
 		iodev->input_data = input_data_create(iodev);
+		iodev->ext_dsp_module = &iodev->input_data->ext;
 
 		/* Input device starts running right after opening.
 		 * No stream state is only for output device. Input device
@@ -983,6 +984,7 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 		min_frames = data->area->frames;
 
 	iodev->input_dsp_offset = iodev->input_frames_read - min_frames;
+	input_data_set_all_streams_read(data, min_frames);
 	rate_estimator_add_frames(iodev->rate_est, -min_frames);
 	return iodev->put_buffer(iodev, min_frames);
 }

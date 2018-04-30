@@ -6,17 +6,24 @@
 #ifndef INPUT_DATA_H_
 #define INPUT_DATA_H_
 
+#include "cras_dsp_pipeline.h"
+#include "float_buffer.h"
+
 /*
  * Structure holding the information used when a chunk of input buffer
  * is accessed by multiple streams with different properties and
  * processing requirements.
  * Member:
+ *    ext - Provides interface to read and process buffer in dsp pipeline.
  *    dev_ptr - Pointer to the associated input iodev.
  *    area - The audio area used for deinterleaved data copy.
+ *    fbuffer - Floating point buffer from input device.
  */
 struct input_data {
+	struct ext_dsp_module ext;
 	void *dev_ptr;
 	struct cras_audio_area *area;
+	struct float_buffer *fbuffer;
 };
 
 /*
@@ -28,6 +35,10 @@ struct input_data *input_data_create(void *dev_ptr);
 
 /* Destroys an input_data instance. */
 void input_data_destroy(struct input_data **data);
+
+/* Sets how many frames in buffer has been read by all input streams. */
+void input_data_set_all_streams_read(struct input_data *data,
+				     unsigned int nframes);
 
 /*
  * Gets an audio area for |stream| to read data from. An input_data may be
