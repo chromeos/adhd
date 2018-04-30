@@ -88,16 +88,34 @@ struct cras_apm_list {
  *    odev - Pointer to the output iodev playing audio as the reverse
  *        stream. NULL if there's no playback stream.
  *    dev_rate - The sample rate odev is opened for.
+ *    process_reverse - Flag to indicate if there's APM has effect that
+ *        needs to process reverse stream.
  */
 struct cras_apm_reverse_module {
 	struct ext_dsp_module ext;
 	struct float_buffer *fbuf;
 	struct cras_iodev *odev;
 	unsigned int dev_rate;
+	unsigned process_reverse;
 };
 
 static struct cras_apm_reverse_module *rmodule = NULL;
 static struct cras_apm_list *apm_list = NULL;
+
+/* Update the global process reverse flag. Should be called when apms are added
+ * or removed. */
+static void update_process_reverse_flag()
+{
+	struct cras_apm_list *list;
+
+	if (!rmodule)
+		return;
+	rmodule->process_reverse = 0;
+	DL_FOREACH(apm_list, list) {
+		rmodule->process_reverse |=
+			!!(list->effects & APM_ECHO_CANCELLATION);
+	}
+}
 
 static void apm_destroy(struct cras_apm **apm)
 {
@@ -211,6 +229,7 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 	cras_audio_area_config_channels(apm->area, &apm->fmt);
 
 	DL_APPEND(list->apms, apm);
+	update_process_reverse_flag();
 
 	return apm;
 }
@@ -235,6 +254,8 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
 		apm_destroy(&apm);
 	}
 	free(list);
+
+	update_process_reverse_flag();
 
 	return 0;
 }
@@ -320,6 +341,9 @@ void reverse_data_run(struct ext_dsp_module *ext,
 	unsigned int writable;
 	int i, offset = 0;
 	float *const *wp;
+
+	if (!rmod->process_reverse)
+		return;
 
 	while (nframes) {
 		process_reverse(rmod->fbuf, rmod->dev_rate);
