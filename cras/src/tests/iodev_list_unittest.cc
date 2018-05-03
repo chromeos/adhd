@@ -1784,7 +1784,7 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr)
 {
 }
-int cras_apm_list_init()
+int cras_apm_list_init(const char *device_config_dir)
 {
   return 0;
 }

@@ -136,7 +136,7 @@ TEST(ApmList, ApmProcessReverseData) {
   ext_dsp_module_value = NULL;
   webrtc_apm_process_reverse_stream_f_called = 0;
 
-  cras_apm_list_init();
+  cras_apm_list_init("");
   EXPECT_NE((void *)NULL, device_enabled_callback_val);
 
   device_enabled_callback_val(&fake_iodev, NULL);
@@ -212,9 +212,16 @@ void dsp_util_interleave(float *const *input, int16_t *output, int channels,
 {
   dsp_util_interleave_frames = frames;
 }
+struct aec_config *aec_config_get(const char *device_config_dir)
+{
+  return NULL;
+}
+void aec_config_dump(struct aec_config *config)
+{
+}
 webrtc_apm webrtc_apm_create(unsigned int num_channels,
 			     unsigned int frame_rate,
-			     unsigned int enable_echo_cancellation)
+			     struct aec_config *aec_config)
 {
   return reinterpret_cast<webrtc_apm>(0x11);
 }

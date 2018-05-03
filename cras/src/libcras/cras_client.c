@@ -3315,6 +3315,14 @@ int cras_client_set_aec_dump(struct cras_client *client,
 			       &fd, 1);
 }
 
+int cras_client_reload_aec_config(struct cras_client *client)
+{
+	struct cras_reload_aec_config msg;
+
+	cras_fill_reload_aec_config(&msg);
+	return write_message_to_server(client, &msg.header);
+}
+
 void cras_client_set_state_change_callback_context(
 		struct cras_client *client, void *context)
 {

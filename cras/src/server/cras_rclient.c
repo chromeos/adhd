@@ -8,6 +8,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
+#include "cras_apm_list.h"
 #include "cras_config.h"
 #include "cras_dsp.h"
 #include "cras_iodev.h"
@@ -647,6 +648,9 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 				m->start, fd);
 		break;
 	}
+	case CRAS_SERVER_RELOAD_AEC_CONFIG:
+		cras_apm_list_reload_aec_config();
+		break;
 	default:
 		break;
 	}

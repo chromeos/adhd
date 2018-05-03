@@ -54,6 +54,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_HOTWORD_MODEL,
 	CRAS_SERVER_REGISTER_NOTIFICATION,
 	CRAS_SERVER_SET_AEC_DUMP,
+	CRAS_SERVER_RELOAD_AEC_CONFIG,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -468,6 +469,17 @@ static inline void cras_fill_set_aec_dump_message(
 	m->header.length = sizeof(*m);
 	m->stream_id = stream_id;
 	m->start = start;
+}
+
+/* Reload the aec configuration. */
+struct __attribute__ ((__packed__)) cras_reload_aec_config {
+	struct cras_server_message header;
+};
+static inline void cras_fill_reload_aec_config(
+		struct cras_reload_aec_config *m)
+{
+	m->header.id = CRAS_SERVER_RELOAD_AEC_CONFIG;
+	m->header.length = sizeof(*m);
 }
 
 struct __attribute__ ((__packed__)) cras_register_notification {

@@ -1089,6 +1089,10 @@ int cras_client_set_aec_dump(struct cras_client *client,
 			     cras_stream_id_t stream_id,
 			     int start,
 			     int fd);
+/*
+ * Reloads the aec.ini config file on server side.
+ */
+int cras_client_reload_aec_config(struct cras_client *client);
 
 /* Set the context pointer for system state change callbacks.
  * Args:

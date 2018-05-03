@@ -8,6 +8,7 @@
 
 #include <webrtc-apm/webrtc_apm.h>
 
+#include "aec_config.h"
 #include "byte_buffer.h"
 #include "cras_apm_list.h"
 #include "cras_audio_area.h"
@@ -16,6 +17,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "dsp_util.h"
+#include "dumper.h"
 #include "float_buffer.h"
 #include "utlist.h"
 
@@ -108,6 +110,8 @@ struct cras_apm_reverse_module {
 
 static struct cras_apm_reverse_module *rmodule = NULL;
 static struct cras_apm_list *apm_list = NULL;
+static struct aec_config *aec_config = NULL;
+static const char *aec_config_dir = NULL;
 
 /* Update the global process reverse flag. Should be called when apms are added
  * or removed. */
@@ -261,7 +265,7 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 	apm->apm_ptr = webrtc_apm_create(
 			apm->fmt.num_channels,
 			apm->fmt.frame_rate,
-			list->effects & APM_ECHO_CANCELLATION);
+			aec_config);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR, "Fail to create webrtc apm for ch %zu"
 				" rate %zu effect %lu",
@@ -328,6 +332,9 @@ static void update_first_output_dev_to_process()
 	struct cras_iodev *iodev =
 			cras_iodev_list_get_first_enabled_iodev(
 				CRAS_STREAM_OUTPUT);
+
+	if (iodev == NULL)
+		return;
 
 	rmodule->odev = iodev;
 	cras_iodev_set_ext_dsp_module(iodev, &rmodule->ext);
@@ -430,7 +437,7 @@ void reverse_data_configure(struct ext_dsp_module *ext,
 	rmod->dev_rate = rate;
 }
 
-int cras_apm_list_init()
+int cras_apm_list_init(const char *device_config_dir)
 {
 	if (rmodule == NULL) {
 		rmodule = (struct cras_apm_reverse_module *)
@@ -439,6 +446,11 @@ int cras_apm_list_init()
 		rmodule->ext.configure = reverse_data_configure;
 	}
 
+	aec_config_dir = device_config_dir;
+	if (aec_config)
+		free(aec_config);
+	aec_config = aec_config_get(device_config_dir);
+
 	update_first_output_dev_to_process();
 	cras_iodev_list_set_device_enabled_callback(
 			handle_device_enabled,
@@ -446,6 +458,20 @@ int cras_apm_list_init()
 			rmodule);
 
 	return 0;
+}
+
+void cras_apm_list_reload_aec_config()
+{
+	if (NULL == aec_config_dir)
+		return;
+
+	if (aec_config)
+		free(aec_config);
+	aec_config = aec_config_get(aec_config_dir);
+
+	/* Dump the config content at reload only, for debug. */
+	if (aec_config)
+		aec_config_dump(aec_config);
 }
 
 int cras_apm_list_deinit()

@@ -1095,6 +1095,7 @@ static struct option long_options[] = {
 	{"effects",		required_argument,	0, 'E'},
 	{"stream_id",		required_argument,	0, 'B'},
 	{"aecdump",		required_argument,	0, 'C'},
+	{"reload_aec_config",	no_argument,		0, 'D'},
 	{0, 0, 0, 0}
 };
 
@@ -1506,6 +1507,9 @@ int main(int argc, char **argv)
 			break;
 		case 'C':
 			aecdump_file = optarg;
+			break;
+		case 'D':
+			cras_client_reload_aec_config(client);
 			break;
 		default:
 			break;

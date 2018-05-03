@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <syslog.h>
 
+#include "cras_apm_list.h"
 #include "cras_config.h"
 #include "cras_iodev_list.h"
 #include "cras_server.h"
@@ -133,6 +134,7 @@ int main(int argc, char **argv)
 	if (internal_ucm_suffix)
 		cras_system_state_set_internal_ucm_suffix(internal_ucm_suffix);
 	cras_dsp_init(dsp_config);
+	cras_apm_list_init(device_config_dir);
 	cras_iodev_list_init();
 
 	/* Start the server. */
