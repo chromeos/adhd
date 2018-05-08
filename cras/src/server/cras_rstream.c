@@ -162,6 +162,8 @@ static int get_audio_request_reply(
 	rc = read(stream->fd, msg, sizeof(*msg));
 	if (rc < 0)
 		return -errno;
+	if (rc == 0)
+		return rc;
 	if (msg->error < 0)
 		return msg->error;
 	return rc;
@@ -180,9 +182,10 @@ static int read_and_handle_client_message(struct cras_rstream *stream) {
 	int rc;
 
 	rc = get_audio_request_reply(stream, &msg);
-	if (rc < 0) {
+	if (rc <= 0) {
 		syslog(LOG_ERR, "Got error from client: rc: %d, msg.error: %d",
 		       rc, msg.error);
+		clear_pending_reply(stream);
 		return rc;
 	}
 
