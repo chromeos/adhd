@@ -1418,7 +1418,7 @@ TEST(IoDev, AddRmStream) {
   /* When all streams are removed, keep the last min_cb_level for draining. */
   cras_iodev_rm_stream(&iodev, &rstream2);
   EXPECT_EQ(0, iodev.max_cb_level);
-  EXPECT_EQ(400, iodev.min_cb_level);
+  EXPECT_EQ(512, iodev.min_cb_level);
 }
 
 TEST(IoDev, TriggerOnlyStreamNoBufferShare) {

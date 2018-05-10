@@ -752,7 +752,6 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 	struct dev_stream *out;
 	struct dev_stream *ret = NULL;
 	unsigned int cb_threshold;
-	unsigned int old_min_cb_level = iodev->min_cb_level;
 
 	iodev->min_cb_level = iodev->buffer_size / 2;
 	iodev->max_cb_level = 0;
@@ -772,7 +771,7 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 	if (!iodev->streams) {
 		buffer_share_destroy(iodev->buf_state);
 		iodev->buf_state = NULL;
-		iodev->min_cb_level = old_min_cb_level;
+		iodev->min_cb_level = iodev->buffer_size / 2;
 		/* Let output device transit into no stream state if it's
 		 * in normal run state now. Leave input device in normal
 		 * run state. */
