@@ -846,6 +846,12 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		return rc;
 	}
 
+	/*
+	 * Convert cb_level from input format to device format
+	 */
+	cb_level = cras_frames_at_rate(fmt->frame_rate,
+				       cb_level,
+				       iodev->ext_format->frame_rate);
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;

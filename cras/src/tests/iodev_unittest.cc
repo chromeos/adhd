@@ -1303,6 +1303,28 @@ TEST(IoDev, OpenOutputDeviceNoStart) {
   EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
 }
 
+TEST(IoDev, OpenOutputDeviceWithLowRateFmt) {
+  struct cras_iodev iodev;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.configure_dev = configure_dev;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.ext_format = &audio_fmt;
+  ResetStubData();
+
+  cras_audio_format low_rate_fmt = audio_fmt;
+  low_rate_fmt.frame_rate = 8000;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+
+  iodev_buffer_size = 1024;
+  cras_iodev_open(&iodev, 40, &low_rate_fmt);
+  EXPECT_EQ(0, iodev.max_cb_level);
+
+  // Test that iodev min_cb_level should be set to
+  // 40 * 48000 / 8000 = 240
+  EXPECT_EQ(240, iodev.min_cb_level);
+}
+
 int fake_start(const struct cras_iodev *iodev) {
   return 0;
 }
@@ -1367,6 +1389,28 @@ TEST(IoDev, OpenInputDeviceWithStart) {
 
   // Test that state is normal run even if there is start ops.
   EXPECT_EQ(CRAS_IODEV_STATE_NORMAL_RUN, iodev.state);
+}
+
+TEST(IoDev, OpenInputDeviceWithLowRateFmt) {
+  struct cras_iodev iodev;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.configure_dev = configure_dev;
+  iodev.direction = CRAS_STREAM_INPUT;
+  iodev.ext_format = &audio_fmt;
+  ResetStubData();
+
+  cras_audio_format low_rate_fmt = audio_fmt;
+  low_rate_fmt.frame_rate = 8000;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+
+  iodev_buffer_size = 1024;
+  cras_iodev_open(&iodev, 40, &low_rate_fmt);
+  EXPECT_EQ(0, iodev.max_cb_level);
+
+  // Test that iodev min_cb_level should be set to
+  // 40 * 48000 / 8000 = 240
+  EXPECT_EQ(240, iodev.min_cb_level);
 }
 
 static int simple_no_stream(struct cras_iodev *dev, int enable)
