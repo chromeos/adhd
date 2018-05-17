@@ -233,6 +233,7 @@ TEST(A2dpIoInit, GetPutBuffer) {
   ASSERT_EQ(256, frames);
   EXPECT_EQ(800, area3->channels[0].buf - area1_buf);
 
+  iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
 
@@ -303,6 +304,8 @@ TEST(A2dpIoInif, FramesQueued) {
   EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
+  iodev->close_dev(iodev);
+  a2dp_iodev_destroy(iodev);
 }
 
 TEST(A2dpIo, FlushAtLowBufferLevel) {
@@ -351,6 +354,8 @@ TEST(A2dpIo, FlushAtLowBufferLevel) {
   EXPECT_EQ(500, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
+  iodev->close_dev(iodev);
+  a2dp_iodev_destroy(iodev);
 }
 
 } // namespace

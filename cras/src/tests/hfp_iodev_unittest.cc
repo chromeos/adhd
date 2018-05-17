@@ -126,6 +126,7 @@ TEST(HfpIodev, OpenHfpIodev) {
   hfp_info_running_return_val = 1;
 
   iodev->close_dev(iodev);
+  hfp_iodev_destroy(iodev);
   ASSERT_EQ(1, hfp_info_rm_iodev_called);
   ASSERT_EQ(1, hfp_info_stop_called);
   ASSERT_EQ(1, cras_iodev_free_format_called);
@@ -150,6 +151,7 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
 
   hfp_info_has_iodev_return_val = 1;
   iodev->close_dev(iodev);
+  hfp_iodev_destroy(iodev);
   ASSERT_EQ(1, hfp_info_rm_iodev_called);
   ASSERT_EQ(0, hfp_info_stop_called);
   ASSERT_EQ(1, cras_iodev_free_format_called);
@@ -175,6 +177,7 @@ TEST(HfpIodev, PutGetBuffer) {
   iodev->put_buffer(iodev, 40);
   ASSERT_EQ(1, hfp_buf_release_called);
   ASSERT_EQ(40, hfp_buf_release_nwritten_val);
+  hfp_iodev_destroy(iodev);
 }
 
 } // namespace
