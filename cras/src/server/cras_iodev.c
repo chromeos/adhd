@@ -466,6 +466,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		iodev->ext_format->frame_rate = actual_rate;
 
 		cras_iodev_alloc_dsp(iodev);
+		cras_iodev_update_dsp(iodev);
 		if (iodev->dsp_context)
 			adjust_dev_channel_for_dsp(iodev);
 
@@ -530,8 +531,13 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 			? cras_dsp_get_pipeline(iodev->dsp_context)
 			: NULL;
 
-	if (!pipeline)
-		return;
+	if (!pipeline) {
+		cras_iodev_alloc_dsp(iodev);
+		cras_dsp_load_dummy_pipeline(
+			iodev->dsp_context,
+			iodev->format->num_channels);
+		pipeline = cras_dsp_get_pipeline(iodev->dsp_context);
+	}
 
 	cras_dsp_pipeline_set_sink_ext_module(
 			pipeline,
@@ -636,7 +642,6 @@ static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 	cras_iodev_free_dsp(iodev);
 	iodev->dsp_context = cras_dsp_context_new(iodev->format->frame_rate,
 						  purpose);
-	cras_iodev_update_dsp(iodev);
 }
 
 void cras_iodev_fill_time_from_frames(size_t frames,

@@ -313,6 +313,55 @@ static int insert_swap_lr_plugin(struct ini *ini)
 	return 0;
 }
 
+struct ini *create_dummy_ini(const char *purpose, unsigned int num_channels)
+{
+	static char dummy_flow_names[8][8] = {
+		"{tmp:0}", "{tmp:1}", "{tmp:2}", "{tmp:3}",
+		"{tmp:4}", "{tmp:5}", "{tmp:6}", "{tmp:7}",
+	};
+	struct ini *ini;
+	struct plugin *source, *sink;
+	int tmp_flow_ids[4];
+	int i;
+
+	if (num_channels > 8) {
+		syslog(LOG_ERR, "Unable to create %u channels of dummy ini",
+		       num_channels);
+		return NULL;
+	}
+
+	ini = calloc(1, sizeof(struct ini));
+	if (!ini) {
+		syslog(LOG_ERR, "no memory for ini struct");
+		return NULL;
+	}
+
+	for (i = 0; i < num_channels; i++)
+		tmp_flow_ids[i] = add_new_flow(ini, dummy_flow_names[i]);
+
+	source = ARRAY_APPEND_ZERO(&ini->plugins);
+	source->title = "source";
+	source->library = "builtin";
+	source->label = "source";
+	source->purpose = purpose;
+
+	for (i = 0; i < num_channels; i++)
+		add_audio_port(ini, source, tmp_flow_ids[i], PORT_OUTPUT);
+
+	sink = ARRAY_APPEND_ZERO(&ini->plugins);
+	sink->title = "sink";
+	sink->library = "builtin";
+	sink->label = "sink";
+	sink->purpose = purpose;
+
+	for (i = 0; i < num_channels; i++)
+		add_audio_port(ini, sink, tmp_flow_ids[i], PORT_INPUT);
+
+	fill_flow_info(ini);
+
+	return ini;
+}
+
 struct ini *cras_dsp_ini_create(const char *ini_filename)
 {
 	struct ini *ini;
