@@ -958,50 +958,51 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		ramp_action = cras_ramp_get_current_action(iodev->ramp);
 	}
 
+	apply_dsp(iodev, frames, nframes);
+
+	if (iodev->post_dsp_hook)
+		iodev->post_dsp_hook(frames, nframes, fmt,
+				     iodev->post_dsp_hook_cb_data);
+
 	/* Mute samples if adjusted volume is 0 or system is muted, plus
 	 * that this device is not ramping. */
 	if (output_should_mute(iodev) &&
 	    ramp_action.type != CRAS_RAMP_ACTION_PARTIAL) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
+
 		// Skip non-empty check, since we know it's empty.
 		is_non_empty = NULL;
-	} else {
-		apply_dsp(iodev, frames, nframes);
+	}
 
-		if (iodev->post_dsp_hook)
-			iodev->post_dsp_hook(frames, nframes, fmt,
-					     iodev->post_dsp_hook_cb_data);
+	/* Compute scaler for software volume if needed. */
+	if (software_volume_needed) {
+		software_volume_scaler =
+			cras_iodev_get_software_volume_scaler(iodev);
+	}
 
-		/* Compute scaler for software volume if needed. */
+	if (ramp_action.type == CRAS_RAMP_ACTION_PARTIAL) {
+		/* Scale with increment for ramp and possibly
+		 * software volume using cras_scale_buffer_increment.*/
+		float starting_scaler = ramp_action.scaler;
+		float increment = ramp_action.increment;
+
 		if (software_volume_needed) {
-			software_volume_scaler =
-				cras_iodev_get_software_volume_scaler(iodev);
+			starting_scaler *= software_volume_scaler;
+			increment *= software_volume_scaler;
 		}
 
-		if (ramp_action.type == CRAS_RAMP_ACTION_PARTIAL) {
-			/* Scale with increment for ramp and possibly
-			 * software volume using cras_scale_buffer_increment.*/
-			float starting_scaler = ramp_action.scaler;
-			float increment = ramp_action.increment;
-
-			if (software_volume_needed) {
-				starting_scaler *= software_volume_scaler;
-				increment *= software_volume_scaler;
-			}
-
-			cras_scale_buffer_increment(
-					fmt->format, frames, nframes,
-					starting_scaler, increment,
-					fmt->num_channels);
-			cras_ramp_update_ramped_frames(iodev->ramp, nframes);
-		} else if (software_volume_needed) {
-			/* Just scale for software volume using
-			 * cras_scale_buffer. */
-			unsigned int nsamples = nframes * fmt->num_channels;
-			cras_scale_buffer(fmt->format, frames,
-					  nsamples, software_volume_scaler);
-		}
+		cras_scale_buffer_increment(
+				fmt->format, frames, nframes,
+				starting_scaler, increment,
+				fmt->num_channels);
+		cras_ramp_update_ramped_frames(iodev->ramp, nframes);
+	} else if (!output_should_mute(iodev) && software_volume_needed) {
+		/* Just scale for software volume using
+		 * cras_scale_buffer. */
+		unsigned int nsamples = nframes * fmt->num_channels;
+		cras_scale_buffer(fmt->format, frames,
+				  nsamples, software_volume_scaler);
 	}
 
 	if (remix_converter)
@@ -1048,14 +1049,12 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 	/* TODO(hychao) - This assumes interleaved audio. */
 	hw_buffer = data->area->channels[0].buf;
 
-	if (cras_system_get_capture_mute()) {
+	apply_dsp(iodev, hw_buffer +
+		  iodev->input_dsp_offset * frame_bytes,
+		  *frames - iodev->input_dsp_offset);
+
+	if (cras_system_get_capture_mute())
 		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
-	} else {
-		apply_dsp(iodev, hw_buffer +
-			  iodev->input_dsp_offset *
-				cras_get_format_bytes(iodev->format),
-			  *frames - iodev->input_dsp_offset);
-	}
 
 	return rc;
 }
