@@ -1711,6 +1711,40 @@ static int adjust_appl_ptr(struct cras_iodev *odev)
 			odev->min_buffer_level + odev->min_cb_level);
 }
 
+/* This function is for leaving no-stream state but still not in free run yet.
+ * The device may have valid samples remaining. We need to adjust appl_ptr to
+ * the correct position, which is MAX(min_cb_level + min_buffer_level,
+ * valid_sample) */
+static int adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+	int rc;
+	unsigned int real_hw_level, valid_sample, offset;
+	struct timespec hw_tstamp;
+
+	/* Get the amount of valid samples which haven't been played yet.
+	 * The real_hw_level is the real hw_level in device buffer. It doesn't
+	 * subtract min_buffer_level. */
+	valid_sample = 0;
+	rc = odev->frames_queued(odev, &hw_tstamp);
+	if(rc < 0)
+		return rc;
+	real_hw_level = rc;
+
+	if (real_hw_level > aio->filled_zeros_for_draining)
+		valid_sample = real_hw_level - aio->filled_zeros_for_draining;
+
+	offset = MAX(odev->min_buffer_level + odev->min_cb_level, valid_sample);
+
+	/* Fill zeros to make sure there are enough zero samples in device buffer.*/
+	if (offset > real_hw_level) {
+		rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level);
+		if (rc)
+			return rc;
+	}
+	return cras_alsa_resume_appl_ptr(aio->handle, offset);
+}
+
 static int alsa_output_underrun(struct cras_iodev *odev)
 {
 	int rc;
@@ -1727,21 +1761,22 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
-	unsigned int hw_level, fr_to_write;
-	unsigned int target_hw_level = odev->min_cb_level * 2;
+	unsigned int real_hw_level, fr_to_write;
+	unsigned int target_hw_level = odev->min_cb_level * 2 + odev->min_buffer_level;
 	struct timespec hw_tstamp;
 
 	if (aio->is_free_running)
 		return 0;
 
-	/* Check if all valid samples are played.
-	 * If all valid samples are played, fill whole buffer with zeros. */
-	rc = cras_iodev_frames_queued(odev, &hw_tstamp);
-	if (rc < 0)
+	/* Check if all valid samples are played. If all valid samples are played,
+	 * fill whole buffer with zeros. The real_hw_level is the real hw_level in
+	 * device buffer. It doesn't subtract min_buffer_level.*/
+	rc = odev->frames_queued(odev, &hw_tstamp);
+	if(rc < 0)
 		return rc;
-	hw_level = rc;
+	real_hw_level = rc;
 
-	if (hw_level < aio->filled_zeros_for_draining || hw_level == 0) {
+	if (real_hw_level <= aio->filled_zeros_for_draining || real_hw_level == 0) {
 		rc = fill_whole_buffer_with_zeros(odev);
 		if (rc < 0)
 			return rc;
@@ -1750,10 +1785,9 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	}
 
 	/* Fill some zeros to drain valid samples. */
-	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
-
-	if (hw_level <= target_hw_level) {
-		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
+	fr_to_write = odev->buffer_size - real_hw_level;
+	if (real_hw_level < target_hw_level) {
+		fr_to_write = MIN(target_hw_level - real_hw_level, fr_to_write);
 		rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
 		if (rc)
 			return rc;
@@ -1768,10 +1802,10 @@ static int leave_free_run(struct cras_iodev *odev)
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
 
-	if (!aio->is_free_running)
-		return 0;
-
-	rc = adjust_appl_ptr(odev);
+	if (aio->is_free_running)
+		rc = adjust_appl_ptr(odev);
+	else
+		rc = adjust_appl_ptr_samples_remaining(odev);
 	if (rc) {
 		syslog(LOG_ERR, "device %s failed to leave free run, rc = %d",
 		       odev->info.name, rc);

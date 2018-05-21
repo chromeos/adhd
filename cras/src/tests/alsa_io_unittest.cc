@@ -1950,9 +1950,13 @@ class AlsaFreeRunTestSuite: public testing::Test {
       fmt_.format = SND_PCM_FORMAT_S16_LE;
       fmt_.frame_rate = 48000;
       fmt_.num_channels = 2;
+      aio.base.frames_queued = frames_queued;
+      aio.base.direction = CRAS_STREAM_OUTPUT;
       aio.base.format = &fmt_;
       aio.base.buffer_size = BUFFER_SIZE;
       aio.base.min_cb_level = 240;
+      aio.base.min_buffer_level = 0;
+      aio.filled_zeros_for_draining = 0;
       cras_alsa_mmap_begin_buffer = (uint8_t *)calloc(
         BUFFER_SIZE * 2 * 2,
         sizeof(*cras_alsa_mmap_begin_buffer));
@@ -1997,14 +2001,17 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunAlreadyFreeRunning) {
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
-  int rc;
-
+  int rc, real_hw_level;
+  struct timespec hw_tstamp;
   // Device is not in free run state. There are still valid samples to play.
   // The number of valid samples is less than min_cb_level * 2.
   // Need to fill zeros targeting min_cb_level * 2 = 480.
   // The number of zeros to be filled is 480 - 200 = 280.
-  cras_iodev_frames_queued_ret = 200;
-  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+  real_hw_level = 200;
+  cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
+
+  rc = aio.base.frames_queued(&aio.base, &hw_tstamp);
+  EXPECT_EQ(200, rc);
 
   rc = no_stream(&aio.base, 1);
 
@@ -2017,13 +2024,13 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNoNeedToFillZeros) {
-  int rc;
+  int rc, real_hw_level;
 
   // Device is not in free run state. There are still valid samples to play.
   // The number of valid samples is more than min_cb_level * 2.
   // No need to fill zeros.
-  cras_iodev_frames_queued_ret = 500;
-  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+  real_hw_level = 500;
+  cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
   rc = no_stream(&aio.base, 1);
 
@@ -2034,13 +2041,13 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNoNeedToFillZeros) {
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
-  int rc;
+  int rc, real_hw_level;
 
   // Device is not in free run state. There are still valid samples to play.
   // The number of valid samples is less than filled zeros.
   // Should enter free run state and fill whole buffer with zeros.
-  cras_iodev_frames_queued_ret = 40;
-  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+  real_hw_level = 40;
+  cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
   aio.filled_zeros_for_draining = 100;
 
   rc = no_stream(&aio.base, 1);
@@ -2052,12 +2059,12 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
-  int rc;
+  int rc, real_hw_level;
 
   // Device is not in free run state. There is no sample to play.
   // Should enter free run state and fill whole buffer with zeros.
-  cras_iodev_frames_queued_ret = 0;
-  cras_iodev_buffer_avail_ret = BUFFER_SIZE - cras_iodev_frames_queued_ret;
+  real_hw_level = 0;
+  cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
   rc = no_stream(&aio.base, 1);
 
@@ -2084,13 +2091,50 @@ TEST_F(AlsaFreeRunTestSuite, OutputShouldWake) {
   EXPECT_EQ(0, output_should_wake(&aio.base));
 }
 
-TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRun) {
-  int rc;
+TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunMoreRemain) {
+  int rc, real_hw_level;
+
+  // Compare min_buffer_level + min_cb_level with valid samples left.
+  // 240 + 512 < 900 - 100, so we will get 900 - 100 in appl_ptr_ahead.
+
+  aio.is_free_running = 0;
+  aio.filled_zeros_for_draining = 100;
+  aio.base.min_buffer_level = 512;
+  real_hw_level = 900;
+  cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
   rc = no_stream(&aio.base, 0);
 
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, cras_alsa_resume_appl_ptr_called);
+  EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
+  EXPECT_EQ(800, cras_alsa_resume_appl_ptr_ahead);
+  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.filled_zeros_for_draining);
+}
+
+TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunLessRemain) {
+  int rc, real_hw_level;
+
+  // Compare min_buffer_level + min_cb_level with valid samples left.
+  // 240 + 512 > 400 - 500, so we will get 240 + 512 in appl_ptr_ahead.
+  // And it will fill 240 + 512 - 400 = 352 zeros frames into device.
+
+  aio.is_free_running = 0;
+  aio.filled_zeros_for_draining = 500;
+  aio.base.min_buffer_level = 512;
+  real_hw_level = 400;
+  cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
+
+  rc = no_stream(&aio.base, 0);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
+  EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
+            cras_alsa_resume_appl_ptr_ahead);
+  EXPECT_EQ(352, cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.filled_zeros_for_draining);
 }
 
 TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
