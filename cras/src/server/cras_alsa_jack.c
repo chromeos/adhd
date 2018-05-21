@@ -882,7 +882,6 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list)
 	static const char eld_control_name[] = "ELD";
 	const char * const *jack_names;
 	unsigned int num_jack_names;
-	char device_name[6];
 
 	if (!jack_list->hctl) {
 		syslog(LOG_WARNING, "Can't search hctl for jacks.");
@@ -917,7 +916,6 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list)
 		jack->jack_list = jack_list;
 		DL_APPEND(jack_list->jacks, jack);
 
-		syslog(LOG_DEBUG, "Found Jack: %s for %s", name, device_name);
 		snd_hctl_elem_set_callback(elem, hctl_jack_cb);
 		snd_hctl_elem_set_callback_private(elem, jack);
 
