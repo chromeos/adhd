@@ -116,7 +116,7 @@ static int ucm_swap_mode_exists_ret_value;
 static int ucm_enable_swap_mode_ret_value;
 static size_t ucm_enable_swap_mode_called;
 static int is_utf8_string_ret_value;
-static char *cras_alsa_jack_update_monitor_fake_name = 0;
+static const char *cras_alsa_jack_update_monitor_fake_name = 0;
 static int cras_alsa_jack_get_name_called;
 static const char *cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
@@ -396,6 +396,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   aio = (struct alsa_io *)iodev;
   format.frame_rate = 48000;
+  format.num_channels = 1;
   cras_iodev_set_format(iodev, &format);
 
   // Test that these flags are cleared after open_dev.
@@ -504,6 +505,8 @@ TEST(AlsaIoInit, UseSoftwareGain) {
   ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0],
       DEFAULT_MIN_CAPTURE_GAIN);
   ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
+
+  alsa_iodev_destroy(iodev);
 
   /* MaxSoftwareGain is not specified in UCM */
   ResetStubData();
@@ -652,6 +655,7 @@ TEST(AlsaIoInit, OpenCapture) {
 
   aio = (struct alsa_io *)iodev;
   format.frame_rate = 48000;
+  format.num_channels = 1;
   cras_iodev_set_format(iodev, &format);
 
   ResetStubData();
@@ -728,6 +732,8 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
                                                     CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
 
+  format.frame_rate = 48000;
+  format.num_channels = 1;
   cras_iodev_set_format(iodev, &format);
 
   /* System gain is set to 1000 * 0.01 dB */
@@ -918,6 +924,7 @@ TEST(AlsaIoInit, SwapMode) {
 
   // Stub replies that swap mode exists.
   ucm_swap_mode_exists_ret_value = 1;
+  alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, fake_ucm,
@@ -1743,8 +1750,7 @@ TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
   // HDMI jack, and thus the callback creates an HDMI node.
   cras_alsa_jack_get_name_ret_value = "HDMI Jack";
   // Set the jack name updated from monitor to be an invalid UTF8 string.
-  cras_alsa_jack_update_monitor_fake_name = strdup("Something");
-  cras_alsa_jack_update_monitor_fake_name[0] = 0xfe;
+  cras_alsa_jack_update_monitor_fake_name = "\xfeomething";
   is_utf8_string_ret_value = 0;
 
   // Add the jack node.
@@ -1814,6 +1820,7 @@ TEST_F(AlsaVolumeMuteSuite, GetDefaultVolumeCurve) {
 
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
+  free(fmt);
 }
 
 TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode)
@@ -1849,6 +1856,7 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode)
 
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(&hp_curve, fake_get_dBFS_volume_curve_val);
+  free(fmt);
 }
 
 TEST_F(AlsaVolumeMuteSuite, SetVolume) {
@@ -2154,6 +2162,7 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   ASSERT_NE(reinterpret_cast<thread_callback>(NULL), audio_thread_cb);
   audio_thread_cb(audio_thread_cb_data);
   EXPECT_EQ(1, hotword_send_triggered_msg_called);
+  alsa_iodev_destroy(iodev);
 }
 
 }  //  namespace
@@ -2585,11 +2594,11 @@ int ucm_set_enabled(
 }
 
 char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name) {
-  char *ret = (char *)malloc(8);
   if ((!strcmp(flag_name, "AutoUnplugInputNode") &&
        auto_unplug_input_node_ret) ||
       (!strcmp(flag_name, "AutoUnplugOutputNode") &&
        auto_unplug_output_node_ret)) {
+    char *ret = (char *)malloc(8);
     snprintf(ret, 8, "%s", "1");
     return ret;
   }
@@ -2699,9 +2708,11 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  const struct cras_audio_format *fmt)
 {
-  fake_format = (struct cras_audio_format *)calloc(1, sizeof(*fake_format));
+  fake_format = (struct cras_audio_format *)calloc(
+        1,
+        sizeof(cras_audio_format));
   // Copy the content of format from fmt into format of iodev.
-  memcpy(fake_format, fmt, sizeof(*fake_format));
+  memcpy(fake_format, fmt, sizeof(cras_audio_format));
   iodev->format = fake_format;
   return 0;
 }
