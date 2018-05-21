@@ -359,7 +359,6 @@ TEST(AlsaJacks, CreateGPIOMic) {
   snd_hctl_first_elem_return_val = NULL;
   ucm_get_cap_control_value = reinterpret_cast<char *>(0x1);
 
-  // Freed in destroy.
   cras_alsa_mixer_get_input_matching_name_return_value =
       reinterpret_cast<struct mixer_control *>(malloc(1));
 
@@ -379,6 +378,8 @@ TEST(AlsaJacks, CreateGPIOMic) {
   EXPECT_EQ(ucm_get_cap_control_called, 1);
   EXPECT_EQ(cras_alsa_mixer_get_input_matching_name_called, 1);
   cras_alsa_jack_list_destroy(jack_list);
+  // Mixer will be free by alsa_card_destroy, we should free it explicitly here
+  free(cras_alsa_mixer_get_input_matching_name_return_value);
 }
 
 TEST(AlsaJacks, CreateGPIOHdmi) {
