@@ -1945,9 +1945,15 @@ class AlsaFreeRunTestSuite: public testing::Test {
       aio.base.format = &fmt_;
       aio.base.buffer_size = BUFFER_SIZE;
       aio.base.min_cb_level = 240;
+      cras_alsa_mmap_begin_buffer = (uint8_t *)calloc(
+        BUFFER_SIZE * 2 * 2,
+        sizeof(*cras_alsa_mmap_begin_buffer));
+      memset(cras_alsa_mmap_begin_buffer, 0xff,
+             sizeof(*cras_alsa_mmap_begin_buffer));
     }
 
     virtual void TearDown() {
+      free(cras_alsa_mmap_begin_buffer);
     }
 
   struct alsa_io aio;
@@ -1958,11 +1964,6 @@ TEST_F(AlsaFreeRunTestSuite, FillWholeBufferWithZeros) {
   int rc;
   int16_t *zeros;
 
-  cras_alsa_mmap_begin_buffer = (uint8_t *)calloc(
-      BUFFER_SIZE * 2 * 2,
-      sizeof(*cras_alsa_mmap_begin_buffer));
-  memset(cras_alsa_mmap_begin_buffer, 0xff,
-         sizeof(*cras_alsa_mmap_begin_buffer));
 
   rc = fill_whole_buffer_with_zeros(&aio.base);
 
@@ -1971,7 +1972,6 @@ TEST_F(AlsaFreeRunTestSuite, FillWholeBufferWithZeros) {
   EXPECT_EQ(0, memcmp(zeros, cras_alsa_mmap_begin_buffer, BUFFER_SIZE * 2 * 2));
 
   free(zeros);
-  free(cras_alsa_mmap_begin_buffer);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunAlreadyFreeRunning) {
@@ -2108,12 +2108,6 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   int rc;
   int16_t *zeros;
 
-  cras_alsa_mmap_begin_buffer = (uint8_t *)calloc(
-      BUFFER_SIZE * 2 * 2,
-      sizeof(*cras_alsa_mmap_begin_buffer));
-  memset(cras_alsa_mmap_begin_buffer, 0xff,
-         sizeof(*cras_alsa_mmap_begin_buffer));
-
   // Ask alsa_io to handle output underrun.
   rc = alsa_output_underrun(&aio.base);
   EXPECT_EQ(0, rc);
@@ -2129,7 +2123,6 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
             cras_alsa_resume_appl_ptr_ahead);
 
   free(zeros);
-  free(cras_alsa_mmap_begin_buffer);
 }
 
 TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
