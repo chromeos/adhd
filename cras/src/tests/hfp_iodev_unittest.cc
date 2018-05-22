@@ -73,8 +73,19 @@ void ResetStubData() {
 
 namespace {
 
-TEST(HfpIodev, CreateHfpOutputIodev) {
-  ResetStubData();
+class HfpIodev: public testing::Test {
+  protected:
+    virtual void SetUp() {
+      ResetStubData();
+    }
+
+    virtual void TearDown() {
+      free(dummy_audio_area);
+      dummy_audio_area = NULL;
+    }
+};
+
+TEST_F(HfpIodev, CreateHfpOutputIodev) {
   iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                 		  	   fake_info);
@@ -91,8 +102,7 @@ TEST(HfpIodev, CreateHfpOutputIodev) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
 
-TEST(HfpIodev, CreateHfpInputIodev) {
-  ResetStubData();
+TEST_F(HfpIodev, CreateHfpInputIodev) {
   iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
 
@@ -110,9 +120,7 @@ TEST(HfpIodev, CreateHfpInputIodev) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
 
-TEST(HfpIodev, OpenHfpIodev) {
-  ResetStubData();
-
+TEST_F(HfpIodev, OpenHfpIodev) {
   iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                            fake_info);
@@ -137,9 +145,7 @@ TEST(HfpIodev, OpenHfpIodev) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
 
-TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
-  ResetStubData();
-
+TEST_F(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc,
                            CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
                            fake_info);
@@ -163,7 +169,7 @@ TEST(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
 
-TEST(HfpIodev, PutGetBuffer) {
+TEST_F(HfpIodev, PutGetBuffer) {
   cras_audio_area *area;
   unsigned frames;
 
