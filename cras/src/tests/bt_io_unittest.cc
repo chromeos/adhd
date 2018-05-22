@@ -8,6 +8,7 @@ extern "C" {
 
 // To test static functions.
 #include "cras_bt_io.c"
+#include "utlist.h"
 }
 
 static struct cras_bt_device *fake_device =
@@ -81,10 +82,16 @@ class BtIoBasicSuite : public testing::Test {
       d->put_buffer = put_buffer;
       d->configure_dev = configure_dev;
       d->close_dev = close_dev;
+      d->supported_rates = NULL;
+      d->supported_channel_counts = NULL;
+      d->supported_formats = NULL;
     }
 
     // Stub functions for the iodev structure.
     static int update_supported_formats(struct cras_iodev *iodev) {
+      free(iodev->supported_rates);
+      free(iodev->supported_channel_counts);
+      free(iodev->supported_formats);
       iodev->supported_rates = (size_t *)calloc(
           2, sizeof(*iodev->supported_rates));
       iodev->supported_rates[0] = 48000;
@@ -125,6 +132,10 @@ class BtIoBasicSuite : public testing::Test {
       return 0;
     }
     static int close_dev(cras_iodev* iodev) {
+      free(iodev->format);
+      free(iodev->ext_format);
+      iodev->format = NULL;
+      iodev->ext_format = NULL;
       close_dev_called_++;
       return 0;
     }
@@ -181,6 +192,10 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   cras_bt_io_destroy(bt_iodev);
   EXPECT_EQ(1, cras_iodev_free_resources_called);
   EXPECT_EQ(1, cras_iodev_list_rm_output_called);
+
+  free(iodev_.supported_rates);
+  free(iodev_.supported_channel_counts);
+  free(iodev_.supported_formats);
 }
 
 TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
@@ -196,6 +211,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
             cras_bt_device_set_active_profile_val);
   EXPECT_EQ(1, cras_bt_device_switch_profile_enable_dev_called);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
@@ -210,6 +226,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
   bt_iodev->open_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_device_switch_profile_enable_dev_called);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
@@ -227,6 +244,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE,
             cras_bt_device_set_active_profile_val);
   EXPECT_EQ(1, cras_bt_device_switch_profile_called);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
@@ -242,6 +260,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   bt_iodev->close_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_device_switch_profile_called);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
@@ -257,6 +276,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
             cras_bt_device_set_active_profile_val);
   EXPECT_EQ(0, cras_bt_device_switch_profile_enable_dev_called);
   EXPECT_EQ(1, cras_bt_device_switch_profile_called);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
@@ -269,6 +289,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
   EXPECT_EQ(0, cras_bt_device_switch_profile_enable_dev_called);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToA2DP) {
@@ -319,6 +340,7 @@ TEST_F(BtIoBasicSuite, CreateDeviceWithInvalidUTF8Name) {
       CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
 
   ASSERT_STREQ("BLUETOOTH", bt_iodev->active_node->name);
+  cras_bt_io_destroy(bt_iodev);
 }
 
 } // namespace
@@ -334,13 +356,13 @@ extern "C" {
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
   cras_iodev_add_node_called++;
-  iodev->nodes = node;
+  DL_APPEND(iodev->nodes, node);
 }
 
 void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
   cras_iodev_rm_node_called++;
-  iodev->nodes = NULL;
+  DL_DELETE(iodev->nodes, node);
 }
 
 void cras_iodev_free_format(struct cras_iodev *iodev)
