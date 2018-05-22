@@ -205,6 +205,8 @@ void hfp_free_resources(struct hfp_io *hfpio)
 	}
 	free(hfpio->base.supported_channel_counts);
 	free(hfpio->base.supported_rates);
+	free(hfpio->base.supported_formats);
+	cras_iodev_free_resources(&hfpio->base);
 }
 
 struct cras_iodev *hfp_iodev_create(
