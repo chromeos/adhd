@@ -15,6 +15,7 @@ static struct cras_bt_device *fake_device =
 static unsigned int cras_iodev_add_node_called;
 static unsigned int cras_iodev_rm_node_called;
 static unsigned int cras_iodev_free_format_called;
+static unsigned int cras_iodev_free_resources_called;
 static unsigned int cras_iodev_set_active_node_called;
 static unsigned int cras_iodev_list_add_output_called;
 static unsigned int cras_iodev_list_rm_output_called;
@@ -33,6 +34,7 @@ void ResetStubData() {
   cras_iodev_add_node_called = 0;
   cras_iodev_rm_node_called = 0;
   cras_iodev_free_format_called = 0;
+  cras_iodev_free_resources_called = 0;
   cras_iodev_set_active_node_called = 0;
   cras_iodev_list_add_output_called = 0;
   cras_iodev_list_rm_output_called = 0;
@@ -177,6 +179,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   EXPECT_EQ(1, close_dev_called_);
   EXPECT_EQ(1, cras_iodev_free_format_called);
   cras_bt_io_destroy(bt_iodev);
+  EXPECT_EQ(1, cras_iodev_free_resources_called);
   EXPECT_EQ(1, cras_iodev_list_rm_output_called);
 }
 
@@ -356,6 +359,11 @@ int cras_iodev_set_node_attr(struct cras_ionode *ionode,
            enum ionode_attr attr, int value)
 {
   return 0;
+}
+
+void cras_iodev_free_resources(struct cras_iodev *iodev)
+{
+    cras_iodev_free_resources_called++;
 }
 
 //  From iodev list.

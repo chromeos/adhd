@@ -401,12 +401,28 @@ error:
 	return NULL;
 }
 
+void cras_bt_io_free_resources(struct cras_iodev *bt_iodev)
+{
+	struct cras_ionode *node;
+	struct bt_node *n;
+
+	free(bt_iodev->supported_rates);
+	free(bt_iodev->supported_channel_counts);
+	free(bt_iodev->supported_formats);
+
+	DL_FOREACH(bt_iodev->nodes, node) {
+		n = (struct bt_node *)node;
+		cras_iodev_rm_node(bt_iodev, node);
+		free(n);
+	}
+
+	cras_iodev_free_resources(bt_iodev);
+}
+
 void cras_bt_io_destroy(struct cras_iodev *bt_iodev)
 {
 	int rc;
 	struct bt_io *btio = (struct bt_io *)bt_iodev;
-	struct cras_ionode *node;
-	struct bt_node *n;
 
 	if (bt_iodev->direction == CRAS_STREAM_OUTPUT)
 		rc = cras_iodev_list_rm_output(bt_iodev);
@@ -415,11 +431,7 @@ void cras_bt_io_destroy(struct cras_iodev *bt_iodev)
 	if (rc == -EBUSY)
 		return;
 
-	DL_FOREACH(bt_iodev->nodes, node) {
-		n = (struct bt_node *)node;
-		cras_iodev_rm_node(bt_iodev, node);
-		free(n);
-	}
+	cras_bt_io_free_resources(bt_iodev);
 	free(btio);
 }
 
