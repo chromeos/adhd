@@ -437,6 +437,7 @@ void free_resources(struct a2dp_io *a2dpio)
 	}
 	free(a2dpio->base.supported_channel_counts);
 	free(a2dpio->base.supported_rates);
+	free(a2dpio->base.supported_formats);
 	destroy_a2dp(&a2dpio->a2dp);
 }
 
