@@ -209,6 +209,10 @@ class IoDevTestSuite : public testing::Test {
       cras_iodev_is_zero_volume_ret = 0;
     }
 
+    virtual void TearDown() {
+      cras_iodev_list_reset();
+    }
+
     static void set_volume_1(struct cras_iodev* iodev) {
       set_volume_1_called_++;
     }
@@ -339,6 +343,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
   /* open dev called twice, one for fallback device. */
   EXPECT_EQ(2, cras_iodev_open_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, SelectNodeOpenFailShouldScheduleRetry) {
@@ -417,6 +422,7 @@ TEST_F(IoDevTestSuite, SelectNodeOpenFailShouldScheduleRetry) {
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 1));
   EXPECT_EQ(1, cras_tm_cancel_timer_called);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
@@ -461,6 +467,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
 
   cras_iodev_list_rm_output(&d1_);
   EXPECT_EQ(1, cras_tm_cancel_timer_called);
+  cras_iodev_list_deinit();
 }
 
 static void device_enabled_cb(struct cras_iodev *dev, int enabled,
@@ -543,6 +550,7 @@ TEST_F(IoDevTestSuite, SelectNode) {
   EXPECT_EQ(6, audio_thread_add_stream_called);
 
   EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(NULL, NULL));
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
@@ -620,6 +628,7 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
   EXPECT_EQ(1, audio_thread_rm_open_dev_called);
 
   EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(NULL, NULL));
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, UpdateActiveNode) {
@@ -657,6 +666,7 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
   EXPECT_EQ(0, update_active_node_dev_enabled_val[1]);
   EXPECT_EQ(1, update_active_node_dev_enabled_val[2]);
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, SelectNonExistingNode) {
@@ -676,6 +686,7 @@ TEST_F(IoDevTestSuite, SelectNonExistingNode) {
       cras_make_node_id(2, 1));
   EXPECT_EQ(0, d1_.is_enabled);
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
+  cras_iodev_list_deinit();
 }
 
 // Devices with the wrong direction should be rejected.
@@ -807,6 +818,7 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
+  cras_iodev_list_deinit();
 }
 
 // Test output_mute_changed callback.
@@ -891,6 +903,7 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
+  cras_iodev_list_deinit();
 }
 
 // Test enable/disable an iodev.
@@ -1127,6 +1140,7 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
                                      IONODE_ATTR_PLUGGED, 1);
   EXPECT_EQ(rc, 0);
   EXPECT_EQ(1, set_node_attr_called);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, AddActiveNode) {
@@ -1180,6 +1194,7 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   /* Assert active devices was set to default one, when selected device
    * removed. */
   cras_iodev_list_rm_output(&d1_);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, DrainTimerCancel) {
@@ -1231,6 +1246,7 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
   clock_gettime_retspec.tv_sec += 30;
   cras_tm_timer_cb(NULL, NULL);
   EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
@@ -1254,6 +1270,7 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
   cras_iodev_list_rm_active_node(CRAS_STREAM_OUTPUT, id);
   ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
 
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
@@ -1293,6 +1310,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   EXPECT_EQ(&d1_, cras_iodev_close_dev);
   EXPECT_EQ(3, update_active_node_called);
   EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
@@ -1348,6 +1366,7 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
   EXPECT_EQ(1, cras_iodev_open_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
@@ -1392,6 +1411,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
   EXPECT_EQ(3, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
@@ -1431,6 +1451,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
   EXPECT_EQ(2, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  cras_iodev_list_deinit();
 }
 
 }  //  namespace
@@ -1574,6 +1595,10 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 }
 
 void empty_iodev_destroy(struct cras_iodev *iodev) {
+  if (iodev->active_node) {
+    free(iodev->active_node);
+    iodev->active_node = NULL;
+  }
 }
 
 struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
