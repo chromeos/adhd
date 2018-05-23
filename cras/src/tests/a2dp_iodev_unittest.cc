@@ -99,13 +99,24 @@ int iodev_set_format(struct cras_iodev *iodev,
 namespace {
 
 static struct timespec time_now;
+class A2dpIodev: public testing::Test {
+  protected:
+    virtual void SetUp() {
+      ResetStubData();
+      atlog = (audio_thread_event_log *)calloc(
+          1,
+          sizeof(audio_thread_event_log));
+    }
 
-TEST(A2dpIoInit, InitializeA2dpIodev) {
+    virtual void TearDown() {
+      free(dummy_audio_area);
+      dummy_audio_area = NULL;
+      free(atlog);
+    }
+};
+
+TEST_F(A2dpIodev, InitializeA2dpIodev) {
   struct cras_iodev *iodev;
-
-  atlog = (audio_thread_event_log *)calloc(1, sizeof(audio_thread_event_log));
-
-  ResetStubData();
 
   cras_bt_device_name_ret = NULL;
   iodev = a2dp_iodev_create(fake_transport);
@@ -137,10 +148,8 @@ TEST(A2dpIoInit, InitializeA2dpIodev) {
   a2dp_iodev_destroy(iodev);
 }
 
-TEST(A2dpIoInit, InitializeFail) {
+TEST_F(A2dpIodev, InitializeFail) {
   struct cras_iodev *iodev;
-
-  ResetStubData();
 
   init_a2dp_return_val = -1;
   iodev = a2dp_iodev_create(fake_transport);
@@ -154,10 +163,9 @@ TEST(A2dpIoInit, InitializeFail) {
   ASSERT_EQ(0, cras_iodev_rm_node_called);
 }
 
-TEST(A2dpIoInit, OpenIodev) {
+TEST_F(A2dpIodev, OpenIodev) {
   struct cras_iodev *iodev;
 
-  ResetStubData();
   iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
@@ -173,13 +181,12 @@ TEST(A2dpIoInit, OpenIodev) {
   a2dp_iodev_destroy(iodev);
 }
 
-TEST(A2dpIoInit, GetPutBuffer) {
+TEST_F(A2dpIodev, GetPutBuffer) {
   struct cras_iodev *iodev;
   struct cras_audio_area *area1, *area2, *area3;
   uint8_t *area1_buf;
   unsigned frames;
 
-  ResetStubData();
   iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
@@ -237,13 +244,12 @@ TEST(A2dpIoInit, GetPutBuffer) {
   a2dp_iodev_destroy(iodev);
 }
 
-TEST(A2dpIoInif, FramesQueued) {
+TEST_F(A2dpIodev, FramesQueued) {
   struct cras_iodev *iodev;
   struct cras_audio_area *area;
   struct timespec tstamp;
   unsigned frames;
 
-  ResetStubData();
   iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
@@ -308,13 +314,12 @@ TEST(A2dpIoInif, FramesQueued) {
   a2dp_iodev_destroy(iodev);
 }
 
-TEST(A2dpIo, FlushAtLowBufferLevel) {
+TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   struct cras_iodev *iodev;
   struct cras_audio_area *area;
   struct timespec tstamp;
   unsigned frames;
 
-  ResetStubData();
   iodev = a2dp_iodev_create(fake_transport);
 
   iodev_set_format(iodev, &format);
