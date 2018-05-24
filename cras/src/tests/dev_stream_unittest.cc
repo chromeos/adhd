@@ -278,6 +278,7 @@ TEST_F(CreateSuite, CaptureSRC) {
   free(area);
   free(stream_area);
   free(devstr.conv_area);
+  byte_buffer_destroy(&devstr.conv_buffer);
 }
 
 TEST_F(CreateSuite, CreateSRC44to48) {
@@ -621,6 +622,7 @@ TEST_F(CreateSuite, DevStreamFlushAudioMessages) {
 
   dev_stream_flush_old_audio_messages(dev_stream);
   EXPECT_EQ(1, cras_rstream_flush_old_audio_messages_called);
+  dev_stream_destroy(dev_stream);
 }
 
 TEST_F(CreateSuite, DevStreamIsPending) {
@@ -860,6 +862,7 @@ TEST_F(CreateSuite, TriggerOnlyStreamSendOnlyOnce) {
   clock_gettime_retspec.tv_nsec = 0;
   dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
+  dev_stream_destroy(dev_stream);
 }
 
 TEST_F(CreateSuite, InputDevStreamWakeTimeByNextCbTs) {
@@ -891,6 +894,7 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByNextCbTs) {
   EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
   EXPECT_EQ(rstream_.next_cb_ts.tv_nsec, wake_time_out.tv_nsec);
   EXPECT_EQ(0, rc);
+  dev_stream_destroy(dev_stream);
 }
 
 TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
@@ -963,6 +967,7 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
   EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
   EXPECT_EQ(rstream_.next_cb_ts.tv_nsec, wake_time_out.tv_nsec);
   EXPECT_EQ(0, rc);
+  dev_stream_destroy(dev_stream);
 }
 
 //  Test set_playback_timestamp.
