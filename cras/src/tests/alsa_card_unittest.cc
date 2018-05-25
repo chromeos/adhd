@@ -223,6 +223,7 @@ TEST(AlsaCard, CreateFailHctlOpen) {
   EXPECT_EQ(0, snd_hctl_nonblock_called);
   EXPECT_EQ(0, snd_hctl_load_called);
   EXPECT_EQ(1, cras_alsa_mixer_create_called);
+  cras_alsa_card_destroy(c);
 }
 
 TEST(AlsaCard, CreateFailHctlLoad) {
@@ -632,6 +633,11 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
   mixer_name_2 = (struct mixer_name*)malloc(sizeof(*mixer_name_2));
   mixer_name_1->name = name1;
   mixer_name_2->name = name2;
+  mixer_name_1->dir = CRAS_STREAM_OUTPUT;
+  mixer_name_2->dir = CRAS_STREAM_OUTPUT;
+  mixer_name_1->type = MIXER_NAME_VOLUME;
+  mixer_name_2->type = MIXER_NAME_VOLUME;
+
   DL_APPEND(ucm_get_coupled_mixer_names_return_value, mixer_name_1);
   DL_APPEND(ucm_get_coupled_mixer_names_return_value, mixer_name_2);
 
@@ -714,10 +720,6 @@ struct ucm_section *GenerateUcmSections (void) {
   ucm_section_add_coupled(section, "SPK-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "SPK-R", MIXER_NAME_VOLUME);
   DL_APPEND(sections, section);
-
-  section = ucm_section_create("Mic", 0, CRAS_STREAM_INPUT,
-                               "my-sound-card Headset Jack", "gpio");
-  ucm_section_set_mixer_name(section, "CAPTURE");
 
   section = ucm_section_create("Internal Mic", 0, CRAS_STREAM_INPUT,
                                NULL, NULL);
@@ -928,6 +930,12 @@ void snd_pcm_info_set_device(snd_pcm_info_t *obj, unsigned int val) {
 void snd_pcm_info_set_subdevice(snd_pcm_info_t *obj, unsigned int val) {
 }
 void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val) {
+}
+const char *snd_pcm_info_get_name(const snd_pcm_info_t *obj) {
+  return "Fake device name";
+}
+const char *snd_pcm_info_get_id(const snd_pcm_info_t *obj) {
+  return "Fake device id";
 }
 int snd_ctl_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t *info) {
   int ret;
