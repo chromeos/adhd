@@ -8,6 +8,7 @@
 #include <sys/param.h>
 #include <linux/sockios.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <syslog.h>
 #include <time.h>
 

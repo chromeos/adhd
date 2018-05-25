@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <sys/time.h>
 #include <syslog.h>
 
 #include "cras_bt_io.h"

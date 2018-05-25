@@ -4,6 +4,7 @@
  */
 
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <syslog.h>
 
 #include "cras_audio_area.h"
