@@ -784,10 +784,10 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 
 	/* snd_use_case_get_list fills list with pairs of device name and
 	 * comment, so device names are in even-indexed elements. */
+	const char *dev_name;
 	for (i = 0; i < num_devs; i += 2) {
 		enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_UNDEFINED;
 		int dev_idx = -1;
-		const char *dev_name = strdup(list[i]);
 		const char *jack_name;
 		const char *jack_type;
 		const char *mixer_name;
@@ -795,6 +795,7 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 		int rc;
 		const char *target_device_name;
 
+		dev_name = strdup(list[i]);
 		if (!dev_name)
 			continue;
 
@@ -864,6 +865,7 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 
 		DL_APPEND(sections, dev_sec);
 		ucm_section_dump(dev_sec);
+		free((void *)dev_name);
 	}
 
 	if (num_devs > 0)
@@ -874,6 +876,7 @@ error_cleanup:
 	if (num_devs > 0)
 		snd_use_case_free_list(list, num_devs);
 	ucm_section_free_list(sections);
+	free((void *)dev_name);
 	return NULL;
 }
 
@@ -944,7 +947,7 @@ int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
 
 enable_mod:
 	ucm_set_modifier_enabled(mgr, model_mod, 1);
-
+	free((void *)model_mod);
 	return 0;
 }
 
@@ -1042,6 +1045,8 @@ const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
 
 	if (strcmp(name, "hctl") && strcmp(name, "gpio")) {
 		syslog(LOG_ERR, "Unknown jack type: %s", name);
+		if(name)
+			free((void *)name);
 		return NULL;
 	}
 	return name;
