@@ -396,6 +396,8 @@ TEST(AlsaUcm, GetDeviceNameForDevice) {
   ASSERT_EQ(2, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id_1);
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
+  free((void *)input_dev_name);
+  free((void *)output_dev_name);
 }
 
 TEST(AlsaUcm, GetDeviceRateForDevice) {
@@ -477,6 +479,7 @@ TEST(AlsaUcm, GetHotwordModels) {
   models = ucm_get_hotword_models(mgr);
   ASSERT_TRUE(models);
   EXPECT_EQ(0, strcmp(models, "en,jp,de"));
+  free((void *)models);
 }
 
 TEST(AlsaUcm, SetHotwordModel) {
@@ -875,6 +878,8 @@ TEST(AlsaUcm, GetMixerNameForDevice) {
 
   EXPECT_EQ(0, strcmp(mixer_name_1, value_1.c_str()));
   EXPECT_EQ(0, strcmp(mixer_name_2, value_2.c_str()));
+  free((void *)mixer_name_1);
+  free((void *)mixer_name_2);
 }
 
 TEST(AlsaUcm, GetMainVolumeMixerName) {
@@ -978,6 +983,9 @@ TEST(AlsaUcm, GetJackNameForDevice) {
 
   EXPECT_EQ(0, strcmp(jack_name_1, value_1.c_str()));
   EXPECT_EQ(NULL, jack_name_2);
+
+  free((void *)jack_name_1);
+  free((void *)jack_name_2);
 }
 
 TEST(AlsaUcm, GetJackTypeForDevice) {
@@ -1013,6 +1021,11 @@ TEST(AlsaUcm, GetJackTypeForDevice) {
   EXPECT_EQ(0, strcmp(jack_type_2, value_2.c_str()));
   EXPECT_EQ(NULL, jack_type_3);
   EXPECT_EQ(NULL, jack_type_4);
+
+  free((void *)jack_type_1);
+  free((void *)jack_type_2);
+  free((void *)jack_type_3);
+  free((void *)jack_type_4);
 }
 
 TEST(AlsaUcm, GetPeriodFramesForDevice) {
