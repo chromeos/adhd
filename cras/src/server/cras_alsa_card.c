@@ -180,6 +180,8 @@ static struct mixer_name *filter_controls(struct cras_use_case_mgr *ucm,
 						  CRAS_STREAM_OUTPUT);
 		if (!dev)
 			DL_DELETE(controls, control);
+		else
+			free(dev);
 	}
 	return controls;
 }
