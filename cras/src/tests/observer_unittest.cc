@@ -290,6 +290,7 @@ class ObserverTest : public testing::Test {
     EXPECT_NE(0, cras_observer_ops_are_empty(&ops2_));
     cras_observer_set_ops(client2_, &ops2_);
 
+    cras_observer_remove(client2_);
     cb_context.clear();
     alert(NULL, data);
     // No callbacks executed.
