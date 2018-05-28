@@ -18,6 +18,8 @@ static int surround_channel_layout[CRAS_CH_MAX] =
 	{0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1};
 static int linear_resampler_needed_val;
 static double linear_resampler_ratio = 1.0;
+static unsigned int linear_resampler_num_channels;
+static unsigned int linear_resampler_format_bytes;
 
 void ResetStub() {
   linear_resampler_needed_val = 0;
@@ -268,6 +270,7 @@ TEST(FormatConverterTest, SurroundToStereo) {
   EXPECT_EQ(buf_size, out_frames);
   for (i = 0; i < buf_size; i++)
     EXPECT_LT(0, out_buff[i * 2]);
+  cras_fmt_conv_destroy(&c);
 
   /* Swap channel to FR = 13450, RR = -100.
    * Assert left channel is silent.
@@ -283,6 +286,7 @@ TEST(FormatConverterTest, SurroundToStereo) {
   EXPECT_EQ(buf_size, out_frames);
   for (i = 0; i < buf_size; i++)
     EXPECT_LT(0, out_buff[i * 2 + 1]);
+  cras_fmt_conv_destroy(&c);
 
   /* Swap channel to FC = 13450, LFE = -100.
    * Assert output left and right has equal magnitude.
@@ -300,6 +304,7 @@ TEST(FormatConverterTest, SurroundToStereo) {
     EXPECT_NE(0, out_buff[i * 2]);
     EXPECT_EQ(out_buff[i * 2], out_buff[i * 2 + 1]);
   }
+  cras_fmt_conv_destroy(&c);
 
   /* Swap channel to FR = 13450, FL = -100.
    * Assert output left is positive and right is negative. */
@@ -1193,6 +1198,7 @@ TEST(FormatConverterTest, ConfigConverterNoNeed) {
   config_format_converter(&c, CRAS_STREAM_OUTPUT, &in_fmt, &out_fmt, 4096);
   EXPECT_NE(c, (void *)NULL);
   EXPECT_EQ(0, cras_fmt_conversion_needed(c));
+  cras_fmt_conv_destroy(&c);
 }
 
 // Test format converter not created for input when in/out format differs
@@ -1220,6 +1226,7 @@ TEST(FormatConverterTest, ConfigConverterNoNeedForInput) {
   config_format_converter(&c, CRAS_STREAM_INPUT, &in_fmt, &out_fmt, 4096);
   EXPECT_NE(c, (void *)NULL);
   EXPECT_EQ(0, cras_fmt_conversion_needed(c));
+  cras_fmt_conv_destroy(&c);
 }
 
 TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
@@ -1253,6 +1260,8 @@ TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
     EXPECT_EQ(res[i],  buf[i]);
 
   cras_fmt_conv_destroy(&conv);
+  free(buf);
+  free(res);
 }
 
 int main(int argc, char **argv) {
@@ -1288,6 +1297,8 @@ struct linear_resampler *linear_resampler_create(unsigned int num_channels,
              float src_rate,
              float dst_rate)
 {
+  linear_resampler_format_bytes = format_bytes;
+  linear_resampler_num_channels = num_channels;
   return reinterpret_cast<struct linear_resampler*>(0x33);;
 }
 
@@ -1327,6 +1338,10 @@ unsigned int linear_resampler_resample(struct linear_resampler *lr,
     resampled_fr = dst_frames;
     *src_frames = dst_frames / linear_resampler_ratio;
   }
+  unsigned int resampled_bytes = resampled_fr * linear_resampler_format_bytes *
+                                 linear_resampler_num_channels;
+  for(size_t i = 0; i < resampled_bytes; i++)
+    dst[i] = (uint8_t)rand() & 0xff;
 
   return resampled_fr;
 }
