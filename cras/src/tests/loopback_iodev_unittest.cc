@@ -14,6 +14,7 @@ extern "C" {
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "dev_stream.h"
+#include "utlist.h"
 }
 
 namespace {
@@ -59,6 +60,7 @@ class LoopBackTestSuite : public testing::Test{
       loopback_iodev_destroy(loop_in_);
       EXPECT_EQ(1, cras_iodev_list_rm_input_called);
       EXPECT_EQ(NULL, cras_iodev_list_set_device_enabled_callback_cb);
+      free(dummy_audio_area);
     }
 
     uint8_t buf_[kBufferSize];
@@ -73,6 +75,7 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.format = &fmt_;
   iodev.ext_format = &fmt_;
+  iodev.streams = NULL;
   enabled_dev = &iodev;
 
   // Open loopback devices.
@@ -185,6 +188,7 @@ void cras_iodev_init_audio_area(struct cras_iodev *iodev, int num_channels)
 
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
+  DL_APPEND(iodev->nodes, node);
 }
 
 void cras_iodev_set_active_node(struct cras_iodev *iodev,
