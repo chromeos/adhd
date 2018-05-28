@@ -59,6 +59,7 @@ TEST(PolledIntervalCheckerTest, BasicFlow) {
   // Update time, check the interval has elapsed.
   pic_update_current_time();
   EXPECT_TRUE(pic_interval_elapsed(interval));
+  pic_polled_interval_destroy(&interval);
 }
 
 TEST(PolledIntervalCheckerTest, DoesNotResetAutomatically) {
@@ -88,6 +89,7 @@ TEST(PolledIntervalCheckerTest, DoesNotResetAutomatically) {
 
   // Check repeated calls return true.
   EXPECT_TRUE(pic_interval_elapsed(interval));
+  pic_polled_interval_destroy(&interval);
 }
 
 TEST(PolledIntervalCheckerTest, Reset) {
@@ -134,6 +136,7 @@ TEST(PolledIntervalCheckerTest, Reset) {
 
   // Check the interval has elapsed now.
   EXPECT_TRUE(pic_interval_elapsed(interval));
+  pic_polled_interval_destroy(&interval);
 }
 
 /* Stubs */
