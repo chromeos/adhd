@@ -417,6 +417,18 @@ static void update_channel_layout(struct cras_iodev *iodev)
 	}
 }
 
+/*
+ * For the specified format, removes any channels from the channel layout that
+ * are higher than the supported number of channels. Should be used when the
+ * number of channels of the format been reduced.
+ */
+static void trim_channel_layout(struct cras_audio_format *fmt) {
+	int i;
+	for (i = 0; i < CRAS_CH_MAX; i++)
+		if (fmt->channel_layout[i] >= fmt->num_channels)
+			fmt->channel_layout[i] = -1;
+}
+
 int cras_iodev_set_format(struct cras_iodev *iodev,
 			  const struct cras_audio_format *fmt)
 {
@@ -467,7 +479,9 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		if (iodev->format->num_channels != actual_num_channels) {
 			/* If the DSP for this device doesn't match, drop it. */
 			iodev->format->num_channels = actual_num_channels;
+			trim_channel_layout(iodev->format);
 			iodev->ext_format->num_channels = actual_num_channels;
+			trim_channel_layout(iodev->ext_format);
 			cras_iodev_free_dsp(iodev);
 		}
 
