@@ -20,7 +20,9 @@
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_HOTWORD_NAME_MAX_SIZE 8
+#define CRAS_MAX_HOTWORD_MODELS 244
 #define CRAS_MAX_REMIX_CHANNELS 32
+#define CRAS_MAX_TEST_DATA_LEN 224
 
 /* Message IDs. */
 enum CRAS_SERVER_MESSAGE_ID {
@@ -346,7 +348,7 @@ struct __attribute__ ((__packed__)) cras_test_dev_command {
 	unsigned int command;
 	unsigned int iodev_idx;
 	unsigned int data_len;
-	uint8_t data[];
+	uint8_t data[CRAS_MAX_TEST_DATA_LEN];
 };
 
 static inline void cras_fill_test_dev_command(struct cras_test_dev_command *m,
@@ -377,7 +379,7 @@ static inline void cras_fill_suspend_message(struct cras_server_message *m,
 struct __attribute__ ((__packed__)) cras_config_global_remix {
 	struct cras_server_message header;
 	unsigned int num_channels;
-	float coefficient[];
+	float coefficient[CRAS_MAX_REMIX_CHANNELS];
 };
 
 static inline void cras_fill_config_global_remix_command(
@@ -500,7 +502,7 @@ static inline void cras_fill_client_audio_debug_info_ready(
 struct cras_client_get_hotword_models_ready {
 	struct cras_client_message header;
 	int32_t hotword_models_size;
-	uint8_t hotword_models[0];
+	uint8_t hotword_models[CRAS_MAX_HOTWORD_MODELS];
 };
 static inline void cras_fill_client_get_hotword_models_ready(
 		struct cras_client_get_hotword_models_ready *m,
