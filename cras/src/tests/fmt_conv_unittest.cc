@@ -16,6 +16,8 @@ static int stereo_channel_layout[CRAS_CH_MAX] =
   {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 static int surround_channel_layout[CRAS_CH_MAX] =
 	{0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1};
+static int quad_channel_layout[CRAS_CH_MAX] =
+	{0, 1, 2, 3, -1, -1, -1, -1, -1, -1, -1};
 static int linear_resampler_needed_val;
 static double linear_resampler_ratio = 1.0;
 static unsigned int linear_resampler_num_channels;
@@ -323,6 +325,122 @@ TEST(FormatConverterTest, SurroundToStereo) {
   }
 
   cras_fmt_conv_destroy(&c);
+  free(in_buff);
+  free(out_buff);
+}
+
+// Test Quad to Stereo mix.
+TEST(FormatConverterTest, QuadToStereo) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  int16_t *in_buff;
+  int16_t *out_buff;
+  unsigned int i;
+  const size_t buf_size = 4096;
+  unsigned int in_buf_size = 4096;
+
+  ResetStub();
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 4;
+  out_fmt.num_channels = 2;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    in_fmt.channel_layout[i] = quad_channel_layout[i];
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_out_frames_to_in(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  in_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&in_fmt));
+
+  /*
+   * Set left channel positive, right channel negative, assert values are
+   * copied and scaled as expected.
+   */
+  for (i = 0; i < buf_size; i++) {
+    in_buff[i * 4] = 800;
+    in_buff[i * 4 + 1] = -800;
+    in_buff[i * 4 + 2] = 80;
+    in_buff[i * 4 + 3] = -80;
+  }
+  out_buff = (int16_t *)malloc(buf_size * 2 * cras_get_format_bytes(&out_fmt));
+
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            &in_buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (i = 0; i < buf_size; i++) {
+    EXPECT_EQ(820, out_buff[i * 2]);
+    EXPECT_EQ(-820, out_buff[i * 2 + 1]);
+  }
+  cras_fmt_conv_destroy(&c);
+
+  /*
+   * Swap left and right channels, check channel map is respected.
+   */
+  swap_channel_layout(in_fmt.channel_layout, CRAS_CH_FL, CRAS_CH_FR);
+  swap_channel_layout(in_fmt.channel_layout, CRAS_CH_RL, CRAS_CH_RR);
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            &in_buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (i = 0; i < buf_size; i++) {
+    EXPECT_EQ(-820, out_buff[i * 2]);
+    EXPECT_EQ(820, out_buff[i * 2 + 1]);
+  }
+  cras_fmt_conv_destroy(&c);
+
+  /*
+   * Swap front and rear, check channel map is respected.
+   */
+  swap_channel_layout(in_fmt.channel_layout, CRAS_CH_FR, CRAS_CH_RR);
+  swap_channel_layout(in_fmt.channel_layout, CRAS_CH_FL, CRAS_CH_RL);
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            &in_buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (i = 0; i < buf_size; i++) {
+    EXPECT_EQ(-280, out_buff[i * 2]);
+    EXPECT_EQ(280, out_buff[i * 2 + 1]);
+  }
+  cras_fmt_conv_destroy(&c);
+
+  /*
+   * Empty channel map, check default behavior is applied.
+   */
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    in_fmt.channel_layout[i] = -1;
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            &in_buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (i = 0; i < buf_size; i++) {
+    EXPECT_EQ(820, out_buff[i * 2]);
+    EXPECT_EQ(-820, out_buff[i * 2 + 1]);
+  }
+  cras_fmt_conv_destroy(&c);
+
   free(in_buff);
   free(out_buff);
 }
@@ -828,6 +946,78 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEMonoTo51) {
   }
 
   cras_fmt_conv_destroy(&c);
+  free(in_buff);
+  free(out_buff);
+}
+
+
+// Test 16 bit stereo to quad conversion.
+TEST(FormatConverterTest, ConvertS16LEToS16LEStereoToQuad) {
+  struct cras_fmt_conv *c;
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+
+  size_t out_frames;
+  int16_t *in_buff;
+  int16_t *out_buff;
+  const size_t buf_size = 4096;
+  unsigned int in_buf_size = 4096;
+  int i;
+
+  ResetStub();
+  in_fmt.format = SND_PCM_FORMAT_S16_LE;
+  out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = 2;
+  out_fmt.num_channels = 4;
+  in_fmt.frame_rate = 48000;
+  out_fmt.frame_rate = 48000;
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    out_fmt.channel_layout[i] = quad_channel_layout[i];
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+  ASSERT_NE(c, (void *)NULL);
+
+  out_frames = cras_fmt_conv_in_frames_to_out(c, buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+
+  in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
+  for (i = 0; i < in_buf_size; i++) {
+    in_buff[i * 2] = 40;
+    in_buff[i * 2 + 1] = 80;
+  }
+
+  out_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&out_fmt));
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            &in_buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (unsigned int i = 0; i < buf_size; i++) {
+    EXPECT_EQ(40, out_buff[4 * i]);
+    EXPECT_EQ(80, out_buff[4 * i + 1]);
+    EXPECT_EQ(40, out_buff[4 * i + 2]);
+    EXPECT_EQ(80, out_buff[4 * i + 3]);
+  }
+  cras_fmt_conv_destroy(&c);
+
+  // Swap channels and check channel layout is respected.
+  swap_channel_layout(out_fmt.channel_layout, CRAS_CH_FL, CRAS_CH_RR);
+  swap_channel_layout(out_fmt.channel_layout, CRAS_CH_RL, CRAS_CH_FR);
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
+  out_frames = cras_fmt_conv_convert_frames(c,
+                                            (uint8_t *)in_buff,
+                                            (uint8_t *)out_buff,
+                                            &in_buf_size,
+                                            buf_size);
+  EXPECT_EQ(buf_size, out_frames);
+  for (unsigned int i = 0; i < buf_size; i++) {
+    EXPECT_EQ(80, out_buff[4 * i]);
+    EXPECT_EQ(40, out_buff[4 * i + 1]);
+    EXPECT_EQ(80, out_buff[4 * i + 2]);
+    EXPECT_EQ(40, out_buff[4 * i + 3]);
+  }
+
   free(in_buff);
   free(out_buff);
 }

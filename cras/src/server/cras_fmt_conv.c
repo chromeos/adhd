@@ -289,6 +289,79 @@ static size_t s16_51_to_stereo(struct cras_fmt_conv *conv,
 	return in_frames;
 }
 
+/* Converts S16 stereo to quad (front L/R, rear L/R). Fit left/right of input
+ * to the front left/right of output respectively and fill others
+ * with zero.
+ */
+static size_t s16_stereo_to_quad(struct cras_fmt_conv *conv,
+				 const int16_t *in, size_t in_frames,
+				 int16_t *out)
+{
+	size_t i, front_left, front_right, rear_left, rear_right;
+
+	front_left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	front_right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	rear_left = conv->out_fmt.channel_layout[CRAS_CH_RL];
+	rear_right = conv->out_fmt.channel_layout[CRAS_CH_RR];
+
+	if (front_left != -1 && front_right != -1 &&
+	    rear_left != -1 && rear_right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[4 * i + front_left] = in[2 * i];
+			out[4 * i + front_right] = in[2 * i + 1];
+			out[4 * i + rear_left] = in[2 * i];
+			out[4 * i + rear_right] = in[2 * i + 1];
+		}
+	else
+		/* Select the first four channels to convert to as the
+		 * default behavior.
+		 */
+		for (i = 0; i < in_frames; i++) {
+			out[4 * i] = in[2 * i];
+			out[4 * i + 1] = in[2 * i + 1];
+			out[4 * i + 2] = in[2 * i];
+			out[4 * i + 3] = in[2 * i + 1];
+		}
+
+	return in_frames;
+}
+
+/* Converts S16 quad (front L/R, rear L/R) to S16 stereo. The out buffer
+ * can have room for just stereo samples.
+ */
+static size_t s16_quad_to_stereo(struct cras_fmt_conv *conv,
+			       const int16_t *in, size_t in_frames,
+			       int16_t *out)
+{
+	size_t i;
+	unsigned int left_idx =
+			conv->in_fmt.channel_layout[CRAS_CH_FL];
+	unsigned int right_idx =
+			conv->in_fmt.channel_layout[CRAS_CH_FR];
+	unsigned int left_rear_idx =
+			conv->in_fmt.channel_layout[CRAS_CH_RL];
+	unsigned int right_rear_idx =
+			conv->in_fmt.channel_layout[CRAS_CH_RR];
+
+	if (left_idx == -1 || right_idx == -1 ||
+	    left_rear_idx == -1 || right_rear_idx == -1) {
+		left_idx = 0;
+		right_idx = 1;
+		left_rear_idx = 2;
+		right_rear_idx = 3;
+	}
+
+	for (i = 0; i < in_frames; i++) {
+		out[2 * i] = s16_add_and_clip(
+		    in[4 * i + left_idx],
+		    in[4 * i + left_rear_idx] / 4);
+		out[2 * i + 1] = s16_add_and_clip(
+		    in[4 * i + right_idx],
+		    in[4 * i + right_rear_idx] / 4);
+	}
+	return in_frames;
+}
+
 /* Converts S16 N channels to S16 M channels.  The out buffer must have room for
  * M channel. This convert function is used as the default behavior when channel
  * layout is not set from the client side. */
@@ -497,6 +570,10 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			conv->channel_converter = s16_mono_to_51;
 		} else if (in->num_channels == 2 && out->num_channels == 1) {
 			conv->channel_converter = s16_stereo_to_mono;
+		} else if (in->num_channels == 2 && out->num_channels == 4) {
+			conv->channel_converter = s16_stereo_to_quad;
+		} else if (in->num_channels == 4 && out->num_channels == 2) {
+			conv->channel_converter = s16_quad_to_stereo;
 		} else if (in->num_channels == 2 && out->num_channels == 6) {
 			conv->channel_converter = s16_stereo_to_51;
 		} else if (in->num_channels == 6 && out->num_channels == 2) {
