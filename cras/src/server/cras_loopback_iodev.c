@@ -64,7 +64,7 @@ static int sample_hook(const uint8_t *frames, unsigned int nframes,
 	if (!edev || !edev->streams)
 		return 0;
 
-	frames_to_copy = MIN(buf_writable_bytes(sbuf) / frame_bytes, nframes);
+	frames_to_copy = MIN(buf_writable(sbuf) / frame_bytes, nframes);
 	if (!frames_to_copy)
 		return 0;
 
@@ -137,7 +137,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 		frames_since_last = cras_frames_since_time(
 				&loopdev->last_filled,
 				iodev->format->frame_rate);
-		frames_to_fill = MIN(buf_writable_bytes(sbuf) / frame_bytes,
+		frames_to_fill = MIN(buf_writable(sbuf) / frame_bytes,
 				     frames_since_last);
 		if (frames_to_fill > 0) {
 			bytes_to_fill = frames_to_fill * frame_bytes;
@@ -148,7 +148,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 		}
 	}
 	*hw_tstamp = loopdev->last_filled;
-	return buf_queued_bytes(sbuf) / frame_bytes;
+	return buf_queued(sbuf) / frame_bytes;
 }
 
 static int delay_frames(const struct cras_iodev *iodev)
@@ -200,7 +200,7 @@ static int get_record_buffer(struct cras_iodev *iodev,
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
-	unsigned int avail_frames = buf_readable_bytes(sbuf) / frame_bytes;
+	unsigned int avail_frames = buf_readable(sbuf) / frame_bytes;
 
 	*frames = MIN(avail_frames, *frames);
 	iodev->area->frames = *frames;
@@ -226,7 +226,7 @@ static int flush_record_buffer(struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
-	unsigned int queued_bytes = buf_queued_bytes(sbuf);
+	unsigned int queued_bytes = buf_queued(sbuf);
 	buf_increment_read(sbuf, queued_bytes);
 	return 0;
 }

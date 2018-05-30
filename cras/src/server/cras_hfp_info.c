@@ -136,9 +136,9 @@ int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
 	format_bytes = cras_get_format_bytes(dev->format);
 
 	if (dev->direction == CRAS_STREAM_OUTPUT)
-		return buf_queued_bytes(info->playback_buf) / format_bytes;
+		return buf_queued(info->playback_buf) / format_bytes;
 	else
-		return buf_queued_bytes(info->capture_buf) / format_bytes;
+		return buf_queued(info->capture_buf) / format_bytes;
 }
 
 int hfp_write(struct hfp_info *info)

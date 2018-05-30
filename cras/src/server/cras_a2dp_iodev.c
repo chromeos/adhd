@@ -129,7 +129,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 	int estimate_queued_frames = bt_queued_frames(iodev, 0);
 	int local_queued_frames =
 			a2dp_queued_frames(&a2dpio->a2dp) +
-			buf_queued_bytes(a2dpio->pcm_buf) /
+			buf_queued(a2dpio->pcm_buf) /
 				cras_get_format_bytes(iodev->format);
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	return MIN(iodev->buffer_size,
@@ -280,17 +280,17 @@ static int flush_data(void *arg)
 		return -EINVAL;
 
 encode_more:
-	while (buf_queued_bytes(a2dpio->pcm_buf)) {
+	while (buf_queued(a2dpio->pcm_buf)) {
 		processed = a2dp_encode(
 				&a2dpio->a2dp,
 				buf_read_pointer(a2dpio->pcm_buf),
-				buf_readable_bytes(a2dpio->pcm_buf),
+				buf_readable(a2dpio->pcm_buf),
 				format_bytes,
 				cras_bt_transport_write_mtu(a2dpio->transport));
 		ATLOG(atlog, AUDIO_THREAD_A2DP_ENCODE,
 					    processed,
-					    buf_queued_bytes(a2dpio->pcm_buf),
-					    buf_readable_bytes(a2dpio->pcm_buf)
+					    buf_queued(a2dpio->pcm_buf),
+					    buf_readable(a2dpio->pcm_buf)
 					    );
 		if (processed == -ENOSPC || processed == 0)
 			break;
@@ -329,7 +329,7 @@ encode_more:
 	 * encode more. But avoid the case when PCM buffer level is too close
 	 * to min_buffer_level so that another A2DP write could causes underrun.
 	 */
-	queued_frames = buf_queued_bytes(a2dpio->pcm_buf) / format_bytes;
+	queued_frames = buf_queued(a2dpio->pcm_buf) / format_bytes;
 	if (written && (iodev->min_buffer_level + written < queued_frames))
 		goto encode_more;
 
@@ -363,7 +363,7 @@ static int get_buffer(struct cras_iodev *iodev,
 	if (iodev->direction != CRAS_STREAM_OUTPUT)
 		return 0;
 
-	*frames = MIN(*frames, buf_writable_bytes(a2dpio->pcm_buf) /
+	*frames = MIN(*frames, buf_writable(a2dpio->pcm_buf) /
 					format_bytes);
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(
@@ -382,7 +382,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	format_bytes = cras_get_format_bytes(iodev->format);
 	written_bytes = nwritten * format_bytes;
 
-	if (written_bytes > buf_writable_bytes(a2dpio->pcm_buf))
+	if (written_bytes > buf_writable(a2dpio->pcm_buf))
 		return -EINVAL;
 
 	buf_increment_write(a2dpio->pcm_buf, written_bytes);

@@ -314,7 +314,7 @@ static unsigned int capture_copy_converted_to_stream(
 			cras_rstream_get_cb_threshold(rstream),
 			&rstream->audio_area->frames);
 	num_frames = MIN(rstream->audio_area->frames - offset,
-			 buf_queued_bytes(dev_stream->conv_buffer) /
+			 buf_queued(dev_stream->conv_buffer) /
 							frame_bytes);
 
 	ATLOG(atlog, AUDIO_THREAD_CONV_COPY,
@@ -478,7 +478,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 
 	/* Sample rate conversion may cause some sample left in conv_buffer
 	 * take this buffer into account. */
-	conv_buf_level = buf_queued_bytes(dev_stream->conv_buffer) /
+	conv_buf_level = buf_queued(dev_stream->conv_buffer) /
 			format_bytes;
 	if (frames_avail <= conv_buf_level)
 		return 0;
@@ -486,7 +486,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 		frames_avail -= conv_buf_level;
 
 	frames_avail = MIN(frames_avail,
-			   buf_available_bytes(dev_stream->conv_buffer) /
+			   buf_available(dev_stream->conv_buffer) /
 					format_bytes);
 
 	return cras_fmt_conv_out_frames_to_in(dev_stream->conv, frames_avail);
