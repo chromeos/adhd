@@ -7,6 +7,7 @@
 #define CRAS_IODEV_INFO_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define CRAS_IODEV_NAME_BUFFER_SIZE 64
 #define CRAS_NODE_TYPE_BUFFER_SIZE 32
