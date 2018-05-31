@@ -2241,11 +2241,13 @@ int cras_dsp_pipeline_get_delay(struct pipeline *pipeline)
   return 0;
 }
 
-void cras_dsp_pipeline_apply(struct pipeline *pipeline,
-			     uint8_t *buf, unsigned int frames)
+int cras_dsp_pipeline_apply(struct pipeline *pipeline,
+			    uint8_t *buf, snd_pcm_format_t format,
+			    unsigned int frames)
 {
   cras_dsp_pipeline_apply_called++;
   cras_dsp_pipeline_apply_sample_count = frames;
+  return 0;
 }
 
 void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,

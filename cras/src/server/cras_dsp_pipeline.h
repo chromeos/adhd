@@ -13,6 +13,7 @@ extern "C" {
 #include <stdint.h>
 
 #include "dumper.h"
+#include "cras_audio_format.h"
 #include "cras_dsp_ini.h"
 #include "cras_dsp_module.h"
 
@@ -137,10 +138,13 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
  * Args:
  *    pipeline - The pipeline to run.
  *    buf - The samples to be processed, interleaved.
+ *    format - Sample format of the buffer.
  *    frames - the numver of samples in the buffer.
+ * Returns:
+ *    Negative code if error, otherwise 0.
  */
-void cras_dsp_pipeline_apply(struct pipeline *pipeline,
-			     uint8_t *buf, unsigned int frames);
+int cras_dsp_pipeline_apply(struct pipeline *pipeline, uint8_t *buf,
+			    snd_pcm_format_t format, unsigned int frames);
 
 /* Dumps the current state of the pipeline. For debugging only */
 void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline);

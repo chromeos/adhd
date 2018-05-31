@@ -344,24 +344,27 @@ static void set_default_channel_layout(struct cras_iodev *iodev)
 }
 
 /* Applies the DSP to the samples for the iodev if applicable. */
-static void apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
+static int apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 {
 	struct cras_dsp_context *ctx;
 	struct pipeline *pipeline;
+	int rc;
 
 	ctx = iodev->dsp_context;
 	if (!ctx)
-		return;
+		return 0;
 
 	pipeline = cras_dsp_get_pipeline(ctx);
 	if (!pipeline)
-		return;
+		return 0;
 
-	cras_dsp_pipeline_apply(pipeline,
-				buf,
-				frames);
+	rc = cras_dsp_pipeline_apply(pipeline,
+				     buf,
+				     iodev->format->format,
+				     frames);
 
 	cras_dsp_put_pipeline(ctx);
+	return rc;
 }
 
 static void cras_iodev_free_dsp(struct cras_iodev *iodev)
@@ -991,6 +994,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	};
 	float software_volume_scaler;
 	int software_volume_needed = cras_iodev_software_volume_needed(iodev);
+	int rc;
 
 	if (iodev->pre_dsp_hook)
 		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
@@ -1000,7 +1004,9 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		ramp_action = cras_ramp_get_current_action(iodev->ramp);
 	}
 
-	apply_dsp(iodev, frames, nframes);
+	rc = apply_dsp(iodev, frames, nframes);
+	if (rc)
+		return rc;
 
 	if (iodev->post_dsp_hook)
 		iodev->post_dsp_hook(frames, nframes, fmt,
@@ -1091,9 +1097,11 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 	/* TODO(hychao) - This assumes interleaved audio. */
 	hw_buffer = data->area->channels[0].buf;
 
-	apply_dsp(iodev, hw_buffer +
-		  iodev->input_dsp_offset * frame_bytes,
-		  *frames - iodev->input_dsp_offset);
+	rc = apply_dsp(iodev, hw_buffer +
+		       iodev->input_dsp_offset * frame_bytes,
+		       *frames - iodev->input_dsp_offset);
+	if (rc)
+		return rc;
 
 	if (cras_system_get_capture_mute())
 		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
