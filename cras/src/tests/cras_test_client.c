@@ -56,11 +56,6 @@ static int play_short_sound = 0;
 static int play_short_sound_periods = 0;
 static int play_short_sound_periods_left = 0;
 
-static int effect_aec = 0;
-static int effect_ns = 0;
-static int effect_agc = 0;
-static int effect_vad = 0;
-
 /* Conditional so the client thread can signal that main should exit. */
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
@@ -591,14 +586,12 @@ static void audio_debug_info(struct cras_client *client)
 		       cras_stream_type_str(info->streams[i].stream_type));
 		printf("buffer_frames: %u\n"
 		       "cb_threshold: %u\n"
-		       "effects: 0x%.4x\n"
 		       "frame_rate: %u\n"
 		       "num_channels: %u\n"
 		       "longest_fetch_sec: %u.%09u\n"
 		       "num_overruns: %u\n",
 		       (unsigned int)info->streams[i].buffer_frames,
 		       (unsigned int)info->streams[i].cb_threshold,
-		       (unsigned int)info->streams[i].effects,
 		       (unsigned int)info->streams[i].frame_rate,
 		       (unsigned int)info->streams[i].num_channels,
 		       (unsigned int)info->streams[i].longest_fetch_sec,
@@ -734,15 +727,6 @@ static int run_file_io_stream(struct cras_client *client,
 						   aud_format);
 	if (params == NULL)
 		return -ENOMEM;
-
-	if (effect_aec)
-		cras_client_stream_params_enable_aec(params);
-	if (effect_ns)
-		cras_client_stream_params_enable_ns(params);
-	if (effect_agc)
-		cras_client_stream_params_enable_agc(params);
-	if (effect_vad)
-		cras_client_stream_params_enable_vad(params);
 
 	cras_client_run_thread(client);
 	if (is_loopback) {
@@ -1070,7 +1054,6 @@ static struct option long_options[] = {
 	{"mute_loop_test",	required_argument,	0, 'M'},
 	{"stream_type",		required_argument,	0, 'T'},
 	{"post_dsp",            required_argument,	0, 'A'},
-	{"effects",		required_argument,	0, 'E'},
 	{0, 0, 0, 0}
 };
 
@@ -1457,25 +1440,6 @@ int main(int argc, char **argv)
 		case 'T':
 			stream_type = atoi(optarg);
 			break;
-		case 'E': {
-			char *s;
-
-			s = strtok(optarg, ",");
-			while (s) {
-				if (strcmp("aec", s) == 0)
-					effect_aec = 1;
-				else if (strcmp("ns", s) == 0)
-					effect_ns = 1;
-				else if (strcmp("agc", s) == 0)
-					effect_agc = 1;
-				else if (strcmp("vad", s) == 0)
-					effect_vad = 1;
-				else
-					printf("Unknown effect %s\n", s);
-				s = strtok(NULL, ",");
-			}
-			break;
-		}
 		default:
 			break;
 		}

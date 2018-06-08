@@ -99,7 +99,6 @@ struct __attribute__ ((__packed__)) cras_connect_message {
 	uint32_t buffer_frames; /* Buffer size in frames. */
 	uint32_t cb_threshold; /* callback client when this much is left */
 	uint32_t flags;
-	uint32_t effects; /* Bit map of requested effects. */
 	struct cras_audio_format_packed format; /* rate, channel, sample size */
 	uint32_t dev_idx; /* device to attach stream, 0 if none */
 };
@@ -110,7 +109,6 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 					   size_t buffer_frames,
 					   size_t cb_threshold,
 					   uint32_t flags,
-					   uint32_t effects,
 					   struct cras_audio_format format,
 					   uint32_t dev_idx)
 {
@@ -121,7 +119,6 @@ static inline void cras_fill_connect_message(struct cras_connect_message *m,
 	m->buffer_frames = buffer_frames;
 	m->cb_threshold = cb_threshold;
 	m->flags = flags;
-	m->effects = effects;
 	pack_cras_audio_format(&m->format, &format);
 	m->dev_idx = dev_idx;
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;
@@ -472,21 +469,18 @@ struct __attribute__ ((__packed__)) cras_client_stream_connected {
 	cras_stream_id_t stream_id;
 	struct cras_audio_format_packed format;
 	uint32_t shm_max_size;
-	uint32_t effects;
 };
 static inline void cras_fill_client_stream_connected(
 		struct cras_client_stream_connected *m,
 		int err,
 		cras_stream_id_t stream_id,
 		struct cras_audio_format *format,
-		size_t shm_max_size,
-		size_t effects)
+		size_t shm_max_size)
 {
 	m->err = err;
 	m->stream_id = stream_id;
 	pack_cras_audio_format(&m->format, format);
 	m->shm_max_size = shm_max_size;
-	m->effects = effects;
 	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
 	m->header.length = sizeof(struct cras_client_stream_connected);
 }

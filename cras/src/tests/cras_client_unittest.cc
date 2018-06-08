@@ -171,7 +171,6 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   int shm_fds[2] = {0, 1};
   int shm_max_size = 600;
   size_t format_bytes;
-  size_t effects = 123;
   struct cras_audio_shm_area area;
 
   stream_.direction = direction;
@@ -193,8 +192,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
       0,
       stream_.id,
       &server_format,
-      shm_max_size,
-      effects);
+      shm_max_size);
 
   stream_connected(&stream_, &msg, shm_fds, 2);
 
@@ -224,7 +222,6 @@ void CrasClientTestSuite::StreamConnectedFail(
   int shm_fds[2] = {0, 1};
   int shm_max_size = 600;
   size_t format_bytes;
-  size_t effects = 123;
   struct cras_audio_shm_area area;
   int rc;
 
@@ -253,8 +250,7 @@ void CrasClientTestSuite::StreamConnectedFail(
       1,
       stream_.id,
       &server_format,
-      shm_max_size,
-      effects);
+      shm_max_size);
 
   stream_connected(&stream_, &msg, shm_fds, 2);
 
