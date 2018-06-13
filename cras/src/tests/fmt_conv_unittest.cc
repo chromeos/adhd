@@ -962,7 +962,6 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEStereoToQuad) {
   int16_t *out_buff;
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
-  int i;
 
   ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
@@ -971,7 +970,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEStereoToQuad) {
   out_fmt.num_channels = 4;
   in_fmt.frame_rate = 48000;
   out_fmt.frame_rate = 48000;
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (unsigned int i = 0; i < CRAS_CH_MAX; i++)
     out_fmt.channel_layout[i] = quad_channel_layout[i];
 
   c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size, 0);
@@ -981,7 +980,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEStereoToQuad) {
   EXPECT_EQ(buf_size, out_frames);
 
   in_buff = (int16_t *)malloc(buf_size * cras_get_format_bytes(&in_fmt));
-  for (i = 0; i < in_buf_size; i++) {
+  for (unsigned int i = 0; i < in_buf_size; i++) {
     in_buff[i * 2] = 40;
     in_buff[i * 2 + 1] = 80;
   }
