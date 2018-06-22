@@ -120,6 +120,9 @@ long cras_system_get_max_capture_gain();
 /* Returns the default value of output buffer size in frames. */
 int cras_system_get_default_output_buffer_size();
 
+/* Returns if system aec is supported. */
+int cras_system_get_aec_supported();
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.

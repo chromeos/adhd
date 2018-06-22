@@ -10,6 +10,7 @@
 
 struct cras_board_config {
 	int32_t default_output_buffer_size;
+	int32_t aec_supported;
 };
 
 /* Gets a configuration based on the config file specified.

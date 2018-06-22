@@ -12,9 +12,11 @@
 static const unsigned int MAX_INI_NAME_LEN = 63;
 static const unsigned int MAX_KEY_LEN = 63;
 static const int32_t DEFAULT_OUTPUT_BUFFER_SIZE = 512;
+static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 
 #define CONFIG_NAME "board.ini"
-#define INI_KEY_NAME "output:default_output_buffer_size"
+#define DEFAULT_OUTPUT_BUF_SIZE_INI_KEY "output:default_output_buffer_size"
+#define AEC_SUPPORTED_INI_KEY "processing:aec_supported"
 
 
 void cras_board_config_get(const char *config_path,
@@ -25,6 +27,7 @@ void cras_board_config_get(const char *config_path,
 	dictionary *ini;
 
 	board_config->default_output_buffer_size = DEFAULT_OUTPUT_BUFFER_SIZE;
+	board_config->aec_supported = AEC_SUPPORTED_DEFAULT;
 	if (config_path == NULL)
 		return;
 
@@ -37,10 +40,15 @@ void cras_board_config_get(const char *config_path,
 		return;
 	}
 
-	snprintf(ini_key, MAX_KEY_LEN, INI_KEY_NAME);
+	snprintf(ini_key, MAX_KEY_LEN, DEFAULT_OUTPUT_BUF_SIZE_INI_KEY);
 	ini_key[MAX_KEY_LEN] = 0;
 	board_config->default_output_buffer_size =
 		iniparser_getint(ini, ini_key, DEFAULT_OUTPUT_BUFFER_SIZE);
+
+	snprintf(ini_key, MAX_KEY_LEN, AEC_SUPPORTED_INI_KEY);
+	ini_key[MAX_KEY_LEN] = 0;
+	board_config->aec_supported =
+		iniparser_getint(ini, ini_key, AEC_SUPPORTED_DEFAULT);
 
 	iniparser_freedict(ini);
 	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);

@@ -108,6 +108,8 @@ void cras_system_state_init(const char *device_config_dir,
 	exp_state->num_streams_attached = 0;
 	exp_state->default_output_buffer_size =
 		board_config.default_output_buffer_size;
+	exp_state->aec_supported =
+		board_config.aec_supported;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -333,6 +335,11 @@ long cras_system_get_max_capture_gain()
 int cras_system_get_default_output_buffer_size()
 {
 	return state.exp_state->default_output_buffer_size;
+}
+
+int cras_system_get_aec_supported()
+{
+	return state.exp_state->aec_supported;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)

@@ -122,6 +122,11 @@ Methods		void SetOutputVolume(int32 volume)
 					The string is empty if the node type is
 					not HOTWORD.
 
+		void GetSystemAecSupported();
+
+			Returns 1 if system echo cancellation is supported,
+			otherwise return 0.
+
 		void SetActiveOutputNode(uint64 node_id);
 
 			Requests the specified node to be used for
