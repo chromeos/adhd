@@ -2281,7 +2281,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->direction = direction;
 	params->buffer_frames = buffer_frames;
 	params->cb_threshold = cb_threshold;
-
+	params->effects = 0;
 	params->stream_type = stream_type;
 	params->flags = flags;
 	params->user_data = user_data;
