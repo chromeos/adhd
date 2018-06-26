@@ -9,7 +9,7 @@
 mkdir $WORK/cras
 cd $SRC/cras
 ./git_prepare.sh
-./configure --disable-DBUS
+./configure --disable-dbus --disable-webrtc-apm
 make -j$(nproc)
 
 $CXX $CXXFLAGS $FUZZER_LDFLAGS \
