@@ -146,7 +146,7 @@ static inline struct cras_apm *cras_apm_list_get(struct cras_apm_list *list,
 {
 	return NULL;
 }
-static inline unsigned int cras_apm_list_get_effects(struct cras_apm_list *list)
+static inline uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
 {
 	return 0;
 }
