@@ -1175,7 +1175,7 @@ int main(int argc, char **argv)
 	enum CRAS_STREAM_TYPE stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	int rc = 0;
 	uint32_t stream_flags = 0;
-	cras_stream_id_t stream_id;
+	cras_stream_id_t stream_id = 0;
 
 	option_index = 0;
 	openlog("cras_test_client", LOG_PERROR, LOG_USER);
