@@ -642,6 +642,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_SET_AEC_DUMP: {
 		const struct cras_set_aec_dump *m =
 			(const struct cras_set_aec_dump *)msg;
+		if (!MSG_LEN_VALID(msg, struct cras_set_aec_dump))
+			return -EINVAL;
 		audio_thread_set_aec_dump(
 				cras_iodev_list_get_audio_thread(),
 				m->stream_id,
