@@ -143,7 +143,8 @@ static int pcm_cras_process_cb(struct cras_client *client,
 	sample_bytes = snd_pcm_format_physical_width(io->format) / 8;
 
 	if (io->stream == SND_PCM_STREAM_PLAYBACK) {
-		if (io->state != SND_PCM_STATE_RUNNING) {
+		if (io->state != SND_PCM_STATE_RUNNING &&
+		    io->state != SND_PCM_STATE_DRAINING) {
 			memset(samples, 0, nframes * frame_bytes);
 			return nframes;
 		}
