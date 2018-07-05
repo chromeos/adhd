@@ -147,7 +147,7 @@ class CreateSuite : public testing::Test{
       devstr.conv_buffer_size_frames = 0;
 
       area = (struct cras_audio_area*)calloc(1,
-          sizeof(*area) + 2 * sizeof(*area->channels));
+          sizeof(*area) + 2 * sizeof(struct cras_channel_area));
       area->num_channels = 2;
       channel_area_set_channel(&area->channels[0], CRAS_CH_FL);
       channel_area_set_channel(&area->channels[1], CRAS_CH_FR);
@@ -158,7 +158,7 @@ class CreateSuite : public testing::Test{
       area->frames = kBufferFrames;
 
       stream_area = (struct cras_audio_area*)calloc(1,
-          sizeof(*area) + 2 * sizeof(*area->channels));
+          sizeof(*area) + 2 * sizeof(struct cras_channel_area));
       stream_area->num_channels = 2;
       rstream_.audio_area = stream_area;
       int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
@@ -169,6 +169,8 @@ class CreateSuite : public testing::Test{
     }
 
     virtual void TearDown() {
+      free(area);
+      free(stream_area);
       free(rstream_.shm.area);
       audio_thread_event_log_deinit(atlog);
     }
@@ -228,8 +230,6 @@ TEST_F(CreateSuite, CaptureNoSRC) {
   EXPECT_EQ(area, copy_area_call.src);
   EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
-  free(area);
-  free(stream_area);
 }
 
 TEST_F(CreateSuite, CaptureSRCSmallConverterBuffer) {
@@ -262,8 +262,6 @@ TEST_F(CreateSuite, CaptureSRCSmallConverterBuffer) {
   EXPECT_EQ(devstr.conv_area, copy_area_call.src);
   EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
-  free(area);
-  free(stream_area);
   free(devstr.conv_area);
   byte_buffer_destroy(&devstr.conv_buffer);
 }
@@ -301,8 +299,6 @@ TEST_F(CreateSuite, CaptureSRCLargeConverterBuffer) {
   EXPECT_EQ(devstr.conv_area, copy_area_call.src);
   EXPECT_EQ(software_gain_scaler, copy_area_call.software_gain_scaler);
 
-  free(area);
-  free(stream_area);
   free(devstr.conv_area);
   byte_buffer_destroy(&devstr.conv_buffer);
 }

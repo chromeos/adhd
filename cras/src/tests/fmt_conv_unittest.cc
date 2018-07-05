@@ -1051,6 +1051,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEStereoToQuad) {
     EXPECT_EQ(40, out_buff[4 * i + 3]);
   }
 
+  cras_fmt_conv_destroy(&c);
   free(in_buff);
   free(out_buff);
 }
