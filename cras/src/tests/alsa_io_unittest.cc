@@ -908,7 +908,8 @@ TEST(AlsaIoInit, SwapMode) {
   struct alsa_io *aio;
   struct cras_alsa_mixer * const fake_mixer = (struct cras_alsa_mixer*)2;
   struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
-  struct cras_ionode * const fake_node = (cras_ionode *)4;
+  struct cras_ionode * const fake_node = (cras_ionode *)calloc(
+      1, sizeof(struct cras_ionode));
   ResetStubData();
   // Stub replies that swap mode does not exist.
   ucm_swap_mode_exists_ret_value = 0;
@@ -938,6 +939,7 @@ TEST(AlsaIoInit, SwapMode) {
   EXPECT_EQ(1, ucm_enable_swap_mode_called);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
+  free(fake_node);
 }
 
 // Test that system settins aren't touched if no streams active.
@@ -2180,7 +2182,8 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
 TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   struct cras_iodev *iodev;
   struct cras_audio_format format;
-  struct cras_ionode node;
+  struct alsa_input_node alsa_node;
+  struct cras_ionode *node = &alsa_node.base;
   int rc;
 
   ResetStubData();
@@ -2191,13 +2194,13 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   format.num_channels = 1;
   cras_iodev_set_format(iodev, &format);
 
-  memset(&node, 0, sizeof(node));
-  node.dev = iodev;
-  strcpy(node.name, "Wake on Voice");
-  set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
-  EXPECT_EQ(CRAS_NODE_TYPE_HOTWORD, node.type);
+  memset(&alsa_node, 0, sizeof(alsa_node));
+  node->dev = iodev;
+  strcpy(node->name, "Wake on Voice");
+  set_node_initial_state(node, ALSA_CARD_TYPE_INTERNAL);
+  EXPECT_EQ(CRAS_NODE_TYPE_HOTWORD, node->type);
 
-  iodev->active_node = &node;
+  iodev->active_node = node;
   iodev->open_dev(iodev);
   rc = iodev->configure_dev(iodev);
   free(fake_format);
