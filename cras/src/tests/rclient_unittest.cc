@@ -572,7 +572,7 @@ TEST_F(RClientMessagesSuite, SendActiveNodeChanged) {
   ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
   EXPECT_EQ(msg->header.id, CRAS_CLIENT_ACTIVE_NODE_CHANGED);
   EXPECT_EQ(msg->direction, (int32_t)dir);
-  EXPECT_EQ(msg->node_id, node_id);
+  EXPECT_EQ((uint64_t)msg->node_id, node_id);
 }
 
 TEST_F(RClientMessagesSuite, SendOutputNodeVolumeChanged) {
