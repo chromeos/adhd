@@ -164,6 +164,7 @@ TEST_F(CrasClientTestSuite, HandleCaptureDataReady) {
   handle_capture_data_ready(&stream_, 480);
   EXPECT_EQ(1, samples_ready_called);
   EXPECT_EQ(0, shm->area->read_buf_idx);
+  FreeShm(shm);
 }
 
 void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
