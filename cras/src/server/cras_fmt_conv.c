@@ -858,9 +858,19 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 		 * resample limit and round it to the lower bound in order
 		 * not to convert too many frames in the pre linear resampler.
 		 */
-		if (conv->speex_state != NULL)
-			resample_limit = resample_limit * conv->in_fmt.frame_rate /
+		if (conv->speex_state != NULL) {
+			resample_limit = resample_limit *
+					conv->in_fmt.frame_rate /
 					conv->out_fmt.frame_rate;
+			/*
+			 * However if the limit frames count is less than
+			 * |out_rate / in_rate|, the final limit value could be
+			 * rounded to zero so it confuses linear resampler to
+			 * do nothing. Make sure it's non-zero in that case.
+			 */
+			if (resample_limit == 0)
+				resample_limit = 1;
+		}
 
 		resample_limit = MIN(resample_limit, conv->tmp_buf_frames);
 		fr_in = linear_resampler_resample(

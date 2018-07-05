@@ -44,6 +44,40 @@ static void swap_channel_layout(int8_t *layout,
 	layout[b] = tmp;
 }
 
+TEST(FormatConverterTest, SmallFramesSRCWithLinearResampler) {
+  struct cras_audio_format in_fmt;
+  struct cras_audio_format out_fmt;
+  struct cras_fmt_conv *c;
+  int16_t *in_buf;
+  int16_t *out_buf;
+  unsigned int in_frames = 1;
+  unsigned int out_frames = 2;
+
+  ResetStub();
+  in_fmt.format = out_fmt.format = SND_PCM_FORMAT_S16_LE;
+  in_fmt.num_channels = out_fmt.num_channels = 1;
+  in_fmt.frame_rate = 16000;
+  out_fmt.frame_rate = 48000;
+  linear_resampler_needed_val = 1;
+
+  in_buf = (int16_t *)malloc(10 * 2 * 2);
+  out_buf = (int16_t *)malloc(10 * 2 * 2);
+
+  c = cras_fmt_conv_create(&in_fmt, &out_fmt, 10, 1);
+  EXPECT_NE((void *)NULL, c);
+
+  out_frames = cras_fmt_conv_convert_frames(c, (uint8_t *)in_buf,
+                               (uint8_t *)out_buf,
+                               &in_frames,
+                               out_frames);
+  EXPECT_EQ(2, out_frames);
+  EXPECT_EQ(1, in_frames);
+
+  cras_fmt_conv_destroy(&c);
+  free(in_buf);
+  free(out_buf);
+}
+
 // Only support LE, BE should fail.
 TEST(FormatConverterTest,  InvalidParamsOnlyLE) {
   struct cras_audio_format in_fmt;
