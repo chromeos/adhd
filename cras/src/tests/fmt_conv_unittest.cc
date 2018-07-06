@@ -706,7 +706,8 @@ TEST(FormatConverterTest, ConvertU8LEToS16LE) {
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
-    EXPECT_EQ(((int16_t)(in_buff[i] - 128) << 8), out_buff[i]);
+    EXPECT_EQ((int16_t)((uint16_t)((int16_t)(in_buff[i]) - 128) << 8),
+              out_buff[i]);
 
   cras_fmt_conv_destroy(&c);
   free(in_buff);
@@ -747,7 +748,7 @@ TEST(FormatConverterTest, ConvertS16LEToS32LE) {
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
-    EXPECT_EQ(((int32_t)in_buff[i] << 16), out_buff[i]);
+    EXPECT_EQ((int32_t)((uint32_t)(int32_t)in_buff[i] << 16), out_buff[i]);
 
   cras_fmt_conv_destroy(&c);
   free(in_buff);
@@ -788,7 +789,7 @@ TEST(FormatConverterTest, ConvertS16LEToS24LE) {
                                             buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++)
-    EXPECT_EQ(((int32_t)in_buff[i] << 8), out_buff[i]);
+    EXPECT_EQ((int32_t)((uint32_t)(int32_t)in_buff[i] << 8), out_buff[i]);
 
   cras_fmt_conv_destroy(&c);
   free(in_buff);

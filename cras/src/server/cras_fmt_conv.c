@@ -69,7 +69,7 @@ static void convert_u8_to_s16le(const uint8_t *in, size_t in_samples,
 	uint16_t *_out = (uint16_t *)out;
 
 	for (i = 0; i < in_samples; i++, in++, _out++)
-		*_out = ((int16_t)*in - 0x80) << 8;
+		*_out = (uint16_t)((int16_t)*in - 0x80) << 8;
 }
 
 /* Converts from S24 to S16. */
@@ -131,7 +131,7 @@ static void convert_s16le_to_s24le(const uint8_t *in, size_t in_samples,
 	uint32_t *_out = (uint32_t *)out;
 
 	for (i = 0; i < in_samples; i++, _in++, _out++)
-		*_out = ((int32_t)*_in << 8);
+		*_out = ((uint32_t)(int32_t)*_in << 8);
 }
 
 /* Converts from S16 to S32. */
@@ -143,7 +143,7 @@ static void convert_s16le_to_s32le(const uint8_t *in, size_t in_samples,
 	uint32_t *_out = (uint32_t *)out;
 
 	for (i = 0; i < in_samples; i++, _in++, _out++)
-		*_out = ((int32_t)*_in << 16);
+		*_out = ((uint32_t)(int32_t)*_in << 16);
 }
 
 /* Converts from S16 to S24_3LE. */
