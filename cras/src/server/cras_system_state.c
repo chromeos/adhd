@@ -355,7 +355,7 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 
 	DL_FOREACH(state.cards, card) {
 		if (card_index == cras_alsa_card_get_index(card->card))
-			return -EINVAL;
+			return -EEXIST;
 	}
 	alsa_card = cras_alsa_card_create(
 			alsa_card_info,
