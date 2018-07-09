@@ -359,13 +359,10 @@ void cras_shm_buffer_read(struct cras_audio_shm *shm, size_t frames)
 		buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
 		if (remainder < area->write_offset[buf_idx]) {
 			area->read_offset[buf_idx] = remainder;
-		} else {
-			area->read_offset[buf_idx] = 0;
+		} else if (remainder) {
+			/* Read all of this buffer too. */
 			area->write_offset[buf_idx] = 0;
-			if (remainder) {
-				/* Read all of this buffer too. */
-				buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
-			}
+			buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
 		}
 		area->read_buf_idx = buf_idx;
 	}
