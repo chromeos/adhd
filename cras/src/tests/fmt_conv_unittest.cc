@@ -66,11 +66,29 @@ TEST(FormatConverterTest, SmallFramesSRCWithLinearResampler) {
   c = cras_fmt_conv_create(&in_fmt, &out_fmt, 10, 1);
   EXPECT_NE((void *)NULL, c);
 
+  /* When process on small buffers doing SRC 16KHz -> 48KHz,
+   * speex does the work in two steps:
+   *
+   * (1) 0 -> 2 frames in output
+   * (2) 1 -> 1 frame in output
+   *
+   * Total result is 1 frame consumed in input and generated
+   * 3 frames in output.
+   */
   out_frames = cras_fmt_conv_convert_frames(c, (uint8_t *)in_buf,
                                (uint8_t *)out_buf,
                                &in_frames,
                                out_frames);
   EXPECT_EQ(2, out_frames);
+  EXPECT_EQ(0, in_frames);
+
+  in_frames = 1;
+  out_frames = 2;
+  out_frames = cras_fmt_conv_convert_frames(c, (uint8_t *)in_buf,
+                               (uint8_t *)out_buf,
+                               &in_frames,
+                               out_frames);
+  EXPECT_EQ(1, out_frames);
   EXPECT_EQ(1, in_frames);
 
   cras_fmt_conv_destroy(&c);

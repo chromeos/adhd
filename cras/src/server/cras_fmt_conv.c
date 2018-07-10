@@ -947,10 +947,23 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 		buf_idx++;
 	}
 
-	if (pre_linear_resample)
+	if (pre_linear_resample) {
 		*in_frames = linear_resample_fr;
-	else
+
+		/* When buffer sizes are small, there's a corner case that
+		 * speex library resamples 0 frame to N-1 frames, where N
+		 * is the integer ratio of output and input rate. For example,
+		 * 16KHz to 48KHz. In this case fmt_conv should claim zero
+		 * frames processed, instead of using the linear resampler
+		 * processed frames count. Otherwise there will be a frame
+		 * leak and, if accumulated, causes delay in multiple devices
+		 * use case.
+		 */
+		if (conv->speex_state && (fr_in == 0))
+			*in_frames = 0;
+	} else {
 		*in_frames = fr_in;
+	}
 	return fr_out;
 }
 
