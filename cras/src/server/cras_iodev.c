@@ -1124,6 +1124,11 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
 			   struct timespec *level_tstamp)
 {
+	/* If output underruns, reset to avoid incorrect estimated rate. */
+	if ((iodev->direction == CRAS_STREAM_OUTPUT) && !level)
+		rate_estimator_reset_rate(iodev->rate_est,
+					  iodev->ext_format->frame_rate);
+
 	return rate_estimator_check(iodev->rate_est, level, level_tstamp);
 }
 
