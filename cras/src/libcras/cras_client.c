@@ -3311,8 +3311,12 @@ int cras_client_set_aec_dump(struct cras_client *client,
 	struct cras_set_aec_dump msg;
 
 	cras_fill_set_aec_dump_message(&msg, stream_id, start);
-	return cras_send_with_fds(client->server_fd, &msg, sizeof(msg),
-			       &fd, 1);
+
+	if (fd != -1)
+		return cras_send_with_fds(client->server_fd, &msg,
+					  sizeof(msg), &fd, 1);
+	else
+		return write_message_to_server(client, &msg.header);
 }
 
 int cras_client_reload_aec_config(struct cras_client *client)
