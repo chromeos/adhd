@@ -1093,11 +1093,23 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 	/* TODO(hychao) - This assumes interleaved audio. */
 	hw_buffer = data->area->channels[0].buf;
 
-	rc = apply_dsp(iodev, hw_buffer +
-		       iodev->input_dsp_offset * frame_bytes,
-		       *frames - iodev->input_dsp_offset);
-	if (rc)
-		return rc;
+
+	/*
+	 * input_dsp_offset records the position where input dsp has applied to
+	 * last time. It's possible the requested |frames| count is smaller
+	 * than the tracked offset. That could happen when client stream uses
+	 * small buffer size and runs APM processing (which requires 10 ms
+	 * equivalent of data to process).
+	 * Only apply input dsp to the part of read buffer beyond where we've
+	 * already applied dsp.
+	 */
+	if (*frames > iodev->input_dsp_offset) {
+		rc = apply_dsp(iodev, hw_buffer +
+			       iodev->input_dsp_offset * frame_bytes,
+			       *frames - iodev->input_dsp_offset);
+		if (rc)
+			return rc;
+	}
 
 	if (cras_system_get_capture_mute())
 		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
