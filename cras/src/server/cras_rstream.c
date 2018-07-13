@@ -183,8 +183,7 @@ static int read_and_handle_client_message(struct cras_rstream *stream) {
 
 	rc = get_audio_request_reply(stream, &msg);
 	if (rc <= 0) {
-		syslog(LOG_ERR, "Got error from client: rc: %d, msg.error: %d",
-		       rc, msg.error);
+		syslog(LOG_ERR, "Got error from client: rc: %d", rc);
 		clear_pending_reply(stream);
 		return rc;
 	}
