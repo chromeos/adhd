@@ -1016,6 +1016,18 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
 	if (!iodev)
 		return;
+
+	/*
+	 * During the |PROFILE_SWITCH_DELAY_MS| time interval, BT iodev could
+	 * have been enabled by others, and its active profile may have changed.
+	 * If iodev has been enabled, that means it has already picked up a
+	 * reasonable profile to use and audio thread is accessing iodev now.
+	 * We should NOT call into update_active_node from main thread
+	 * because that may mess up the active node content.
+	 */
+	if (cras_iodev_list_dev_is_enabled(iodev))
+		return;
+
 	iodev->update_active_node(iodev, 0, 1);
 	cras_iodev_list_enable_dev(iodev);
 }
