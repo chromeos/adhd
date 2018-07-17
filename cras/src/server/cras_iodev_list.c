@@ -637,6 +637,9 @@ static int init_pinned_device(struct cras_iodev *dev,
 {
 	int rc;
 
+	if (cras_iodev_list_dev_is_enabled(dev))
+		return 0;
+
 	/* Make sure the active node is configured properly, it could be
 	 * disabled when last normal stream removed. */
 	dev->update_active_node(dev, dev->active_node->idx, 1);
@@ -999,6 +1002,17 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	new_dev = find_dev(dev_index_of(node_id));
 	if (!new_dev || new_dev->direction != dir)
 		return;
+
+	/* If the new dev is already enabled but its active node needs to be
+	 * changed. Disable new dev first, update active node, and then
+	 * re-enable it again.
+	 */
+	if (cras_iodev_list_dev_is_enabled(new_dev)) {
+		if (node_index_of(node_id) == new_dev->active_node->idx)
+			return;
+		else
+			cras_iodev_list_disable_dev(new_dev, true);
+	}
 
 	new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
 	cras_iodev_list_enable_dev(new_dev);
