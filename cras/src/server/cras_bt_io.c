@@ -347,10 +347,18 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->software_volume_needed =
-			!cras_bt_device_get_use_hardware_volume(device);
-	iodev->set_volume = set_bt_volume;
 	iodev->no_stream = cras_iodev_default_no_stream_playback;
+
+	/* Input also checks |software_volume_needed| flag for using software
+	 * gain. Keep it as false for BT input.
+	 * TODO(hychao): after wide band speech mode is supported, consider
+	 * enable software gain.
+	 */
+	if (dev->direction == CRAS_STREAM_OUTPUT) {
+		iodev->software_volume_needed =
+				!cras_bt_device_get_use_hardware_volume(device);
+		iodev->set_volume = set_bt_volume;
+	}
 
 	/* Create the dummy node set to plugged so it's the only node exposed
 	 * to UI, and point it to the first profile dev. */
