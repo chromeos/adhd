@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <math.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -674,7 +675,7 @@ static void run_aecdump(struct cras_client *client, uint64_t stream_id,
 			return;
 		}
 
-		printf("Dumping AEC info to %s, stream %lu, fd %d\n",
+		printf("Dumping AEC info to %s, stream %" PRId64 ", fd %d\n",
 		       aecdump_file, stream_id, aecdump_fd);
 		cras_client_set_aec_dump(client, stream_id, 1, aecdump_fd);
 	} else {

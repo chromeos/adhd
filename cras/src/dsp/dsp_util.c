@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <limits.h>
 #include <syslog.h>
 
 #include "dsp_util.h"
@@ -508,7 +509,7 @@ static void dsp_util_interleave_s24le(float *const *input, int32_t *output,
 		for (j = 0; j < channels; j++, output++) {
 			float f = *(input_ptr[j]++) * 2147483648.0f;
 			f += (f >= 0) ? 0.5f : -0.5f;
-			*output = max(-2147483648, min(2147483647, (int)(f)));
+			*output = max((float)INT_MIN, min((float)INT_MAX, f));
 			*output >>= 8;
 		}
 }
@@ -527,7 +528,7 @@ static void dsp_util_interleave_s243le(float *const *input, uint8_t *output,
 		for (j = 0; j < channels; j++, output += 3) {
 			float f = *(input_ptr[j]++) * 2147483648.0f;
 			f += (f >= 0) ? 0.5f : -0.5f;
-			tmp = max(-2147483648, min(2147483647, (int)(f)));
+			tmp = max((float)INT_MIN, min((float)INT_MAX, f));
 			tmp >>= 8;
 			memcpy(output, &tmp, 3);
 		}
@@ -546,7 +547,7 @@ static void dsp_util_interleave_s32le(float *const *input, int32_t *output,
 		for (j = 0; j < channels; j++, output++) {
 			float f = *(input_ptr[j]++) * 2147483648.0f;
 			f += (f >= 0) ? 0.5f : -0.5f;
-			*output = max(-2147483648, min(2147483647, (int)(f)));
+			*output = max((float)INT_MIN, min((float)INT_MAX, f));
 		}
 }
 

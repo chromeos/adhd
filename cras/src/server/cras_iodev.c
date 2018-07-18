@@ -1057,7 +1057,8 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 
 	// Calculate whether the final output was non-empty, if requested.
 	if (is_non_empty) {
-		for (unsigned int i = 0; i < nframes * cras_get_format_bytes(fmt); i++) {
+		unsigned int i;
+		for (i = 0; i < nframes * cras_get_format_bytes(fmt); i++) {
 			if (frames[i]) {
 				*is_non_empty = 1;
 				break;
