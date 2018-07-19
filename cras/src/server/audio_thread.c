@@ -9,6 +9,7 @@
 
 #include <pthread.h>
 #include <poll.h>
+#include <stdbool.h>
 #include <sys/param.h>
 #include <syslog.h>
 
@@ -256,6 +257,7 @@ static int append_stream(struct audio_thread *thread,
 	struct timespec init_cb_ts;
 	const struct timespec *stream_ts;
 	unsigned int i;
+	bool cb_ts_set = false;
 	int rc = 0;
 
 	for (i = 0; i < num_iodevs; i++) {
@@ -269,16 +271,26 @@ static int append_stream(struct audio_thread *thread,
 		if (out)
 			continue;
 
-		/* For output, if open device already has stream, get the first
-		 * stream and use its next callback time to align with.
-		 * This is to avoid device buffer level stacking up.
-		 * Otherwise, use the timestamp now as the initial callback time
-		 * for new stream so dev_stream can set its own schedule.
+		/* For output, if open device already has stream, get the earliest next
+		 * callback time from these streams to align with. Otherwise, use the
+		 * timestamp now as the initial callback time for new stream so dev_stream
+		 * can set its own schedule.
+		 * If next callback time is too far from now, it will block writing and
+		 * lower hardware level. Else if we fetch the new stream immediately, it
+		 * may cause device buffer level stack up.
 		 */
-		if (stream->direction == CRAS_STREAM_OUTPUT && dev->streams &&
-		    (stream_ts = dev_stream_next_cb_ts(dev->streams)))
-			init_cb_ts = *stream_ts;
-		else
+		if (stream->direction == CRAS_STREAM_OUTPUT && dev->streams) {
+			DL_FOREACH(dev->streams, out) {
+				stream_ts =  dev_stream_next_cb_ts(out);
+				if (stream_ts &&
+				    (!cb_ts_set || timespec_after(&init_cb_ts, stream_ts))) {
+					init_cb_ts = *stream_ts;
+					cb_ts_set = true;
+				}
+			}
+		}
+
+		if (!cb_ts_set)
 			clock_gettime(CLOCK_MONOTONIC_RAW, &init_cb_ts);
 
 		out = dev_stream_create(stream, dev->info.idx,
