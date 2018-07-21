@@ -63,6 +63,7 @@ static struct {
 		      void *cb_data, void *select_data);
 	void (*fd_rm)(int fd, void *select_data);
 	void *select_data;
+	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 } state;
 
 /*
@@ -134,6 +135,10 @@ void cras_system_state_init(const char *device_config_dir,
 	/* Read config file for blacklisted devices. */
 	state.device_blacklist =
 		cras_device_blacklist_create(CRAS_CONFIG_FILE_DIR);
+
+	/* Initialize snapshot buffer memory */
+	memset(&state.snapshot_buffer, 0,
+	       sizeof(struct cras_audio_thread_snapshot_buffer));
 }
 
 void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix)
@@ -556,4 +561,13 @@ key_t cras_sys_state_shm_fd()
 struct cras_tm *cras_system_state_get_tm()
 {
 	return state.tm;
+}
+
+void cras_system_state_add_snapshot(
+	struct cras_audio_thread_snapshot *snapshot)
+{
+	state.snapshot_buffer.snapshots[state.snapshot_buffer.pos++] =
+			(*snapshot);
+	state.snapshot_buffer.pos %=
+		CRAS_MAX_AUDIO_THREAD_SNAPSHOTS;
 }

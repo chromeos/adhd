@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 The Chromium OS Authors. All rights reserved.
+/* Copyright 2015 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -14,6 +14,7 @@
 enum CRAS_MAIN_MESSAGE_TYPE {
 	/* Audio thread -> main thread */
 	CRAS_MAIN_A2DP,
+	CRAS_MAIN_AUDIO_THREAD_EVENT,
 	CRAS_MAIN_BT,
 	CRAS_MAIN_METRICS,
 	CRAS_MAIN_MONITOR_DEVICE,

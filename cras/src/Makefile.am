@@ -116,6 +116,7 @@ cras_server_SOURCES = \
 	server/cras_alsa_ucm.c \
 	server/cras_alsa_ucm_section.c \
 	server/cras_audio_area.c \
+	server/cras_audio_thread_monitor.c \
 	server/cras_device_monitor.c \
 	server/cras_dsp.c \
 	server/cras_dsp_ini.c \
@@ -325,6 +326,7 @@ TESTS = \
 	audio_area_unittest \
 	audio_format_unittest \
 	audio_thread_unittest \
+	audio_thread_monitor_unittest \
 	alert_unittest \
 	alsa_card_unittest \
 	alsa_helpers_unittest \
@@ -567,6 +569,11 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
+
+audio_thread_monitor_unittest_SOURCES = tests/audio_thread_monitor_unittest.cc
+audio_thread_monitor_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+audio_thread_monitor_unittest_LDADD = -lgtest -lpthread -lrt
 
 if HAVE_DBUS
 bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \

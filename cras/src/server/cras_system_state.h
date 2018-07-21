@@ -285,4 +285,9 @@ key_t cras_sys_state_shm_fd();
 /* Returns the timer manager. */
 struct cras_tm *cras_system_state_get_tm();
 
+/*
+ * Add snapshot to snapshot buffer in system state
+ */
+void cras_system_state_add_snapshot(struct cras_audio_thread_snapshot *);
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

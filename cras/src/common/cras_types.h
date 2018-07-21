@@ -174,6 +174,7 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define CRAS_MAX_IODEVS 20
 #define CRAS_MAX_IONODES 20
 #define CRAS_MAX_ATTACHED_CLIENTS 20
+#define CRAS_MAX_AUDIO_THREAD_SNAPSHOTS 10
 #define CRAS_HOTWORD_STRING_SIZE 256
 #define MAX_DEBUG_DEVS 4
 #define MAX_DEBUG_STREAMS 8
@@ -276,6 +277,35 @@ struct __attribute__ ((__packed__)) audio_debug_info {
 	struct audio_thread_event_log log;
 };
 
+/*
+ * All event enums should be less then AUDIO_THREAD_EVENT_TYPE_COUNT,
+ * or they will be ignored by the handler.
+ */
+enum CRAS_AUDIO_THREAD_EVENT_TYPE {
+	AUDIO_THREAD_EVENT_BUSYLOOP,
+	AUDIO_THREAD_EVENT_DEBUG,
+	AUDIO_THREAD_EVENT_SEVERE_UNDERRUN,
+	AUDIO_THREAD_EVENT_UNDERRUN,
+	AUDIO_THREAD_EVENT_TYPE_COUNT,
+};
+
+/*
+ * Structure of snapshot for audio thread.
+ */
+struct __attribute__ ((__packed__)) cras_audio_thread_snapshot {
+	struct timespec timestamp;
+	enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type;
+	struct audio_debug_info audio_debug_info;
+};
+
+/*
+ * Ring buffer for storing snapshots.
+ */
+struct __attribute__ ((__packed__)) cras_audio_thread_snapshot_buffer{
+	struct cras_audio_thread_snapshot snapshots[
+			CRAS_MAX_AUDIO_THREAD_SNAPSHOTS];
+	int pos;
+};
 
 /* The server state that is shared with clients.
  *    state_version - Version of this structure.
