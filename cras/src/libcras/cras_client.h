@@ -504,6 +504,17 @@ int cras_client_dump_dsp_info(struct cras_client *client);
 int cras_client_update_audio_debug_info(
 	struct cras_client *client, void (*cb)(struct cras_client *));
 
+/* Asks the server to dump current audio thread snapshots.
+ *
+ * Args:
+ *    client - The client from cras_client_create.
+ *    cb - A function to call when the data is received.
+ * Returns:
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ */
+int cras_client_update_audio_thread_snapshots(
+	struct cras_client *client, void (*cb)(struct cras_client *));
+
 /*
  * Stream handling.
  */
@@ -844,6 +855,21 @@ long cras_client_get_system_max_capture_gain(const struct cras_client *client);
  *    calling cras_client_update_audio_debug_info.
  */
 const struct audio_debug_info *cras_client_get_audio_debug_info(
+		const struct cras_client *client);
+
+/* Gets audio thread snapshot buffer.
+ *
+ * Requires that the connection to the server has been established.
+ * Access to the resulting pointer is not thread-safe.
+ *
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    A pointer to the snapshot buffer.  This info is only updated when
+ *    requested by calling cras_client_update_audio_thread_snapshots.
+ */
+const struct cras_audio_thread_snapshot_buffer *
+	cras_client_get_audio_thread_snapshot_buffer(
 		const struct cras_client *client);
 
 /* Gets the number of streams currently attached to the server.

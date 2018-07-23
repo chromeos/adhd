@@ -1759,6 +1759,7 @@ static int handle_message_from_server(struct cras_client *client)
 	case CRAS_CLIENT_AUDIO_DEBUG_INFO_READY:
 		if (client->debug_info_callback)
 			client->debug_info_callback(client);
+		client->debug_info_callback = NULL;
 		break;
 	case CRAS_CLIENT_GET_HOTWORD_MODELS_READY: {
 		struct cras_client_get_hotword_models_ready *cmsg =
@@ -2690,6 +2691,22 @@ const struct audio_debug_info *cras_client_get_audio_debug_info(
 	return debug_info;
 }
 
+const struct cras_audio_thread_snapshot_buffer*
+	cras_client_get_audio_thread_snapshot_buffer(
+		const struct cras_client *client)
+{
+	const struct cras_audio_thread_snapshot_buffer *snapshot_buffer;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return 0;
+
+	snapshot_buffer = &client->server_state->snapshot_buffer;
+	server_state_unlock(client, lock_rc);
+	return snapshot_buffer;
+}
+
 unsigned cras_client_get_num_active_streams(const struct cras_client *client,
 					    struct timespec *ts)
 {
@@ -3126,9 +3143,28 @@ int cras_client_update_audio_debug_info(
 	if (client == NULL)
 		return -EINVAL;
 
+	if (client->debug_info_callback != NULL)
+		return -EINVAL;
 	client->debug_info_callback = debug_info_cb;
 
 	cras_fill_dump_audio_thread(&msg);
+	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_update_audio_thread_snapshots(
+	struct cras_client *client,
+	void (*debug_info_cb)(struct cras_client *))
+{
+	struct cras_dump_snapshots msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	if (client->debug_info_callback != NULL)
+		return -EINVAL;
+	client->debug_info_callback = debug_info_cb;
+
+	cras_fill_dump_snapshots(&msg);
 	return write_message_to_server(client, &msg.header);
 }
 
