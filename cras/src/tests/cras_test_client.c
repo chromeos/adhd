@@ -537,15 +537,9 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	}
 }
 
-static void audio_debug_info(struct cras_client *client)
+static void print_audio_debug_info(const struct audio_debug_info *info)
 {
-	const struct audio_debug_info *info;
 	int i, j;
-
-	info = cras_client_get_audio_debug_info(client);
-	if (!info)
-		return;
-
 	printf("Audio Debug Stats:\n");
 	printf("-------------devices------------\n");
 	if (info->num_devs > MAX_DEBUG_DEVS)
@@ -622,6 +616,15 @@ static void audio_debug_info(struct cras_client *client)
 		j++;
 		j %= info->log.len;
 	}
+}
+
+static void audio_debug_info(struct cras_client *client)
+{
+	const struct audio_debug_info *info;
+	info = cras_client_get_audio_debug_info(client);
+	if (!info)
+		return;
+	print_audio_debug_info(info);
 
 	/* Signal main thread we are done after the last chunk. */
 	pthread_mutex_lock(&done_mutex);
@@ -979,7 +982,7 @@ static void print_server_info(struct cras_client *client)
 	print_active_stream_info(client);
 }
 
-static void print_audio_debug_info(struct cras_client *client)
+static void show_audio_debug_info(struct cras_client *client)
 {
 	struct timespec wait_time;
 
@@ -1371,7 +1374,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		case 'm':
-			print_audio_debug_info(client);
+			show_audio_debug_info(client);
 			break;
 		case 'o':
 			channel_layout = optarg;
