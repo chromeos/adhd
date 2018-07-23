@@ -126,4 +126,13 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
   return 0;
 }
 
+unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
+                                                unsigned int *hw_level,
+                                                struct timespec *hw_tstamp)
+{
+  clock_gettime(CLOCK_MONOTONIC_RAW, hw_tstamp);
+  *hw_level = 0;
+  return 0;
+}
+
 } // extern "C"

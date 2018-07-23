@@ -494,6 +494,42 @@ static int write_streams(struct open_dev **odevs,
 	return write_limit;
 }
 
+/* Update next wake up time of the device.
+ * Args:
+ *    adev[in] - The device to update to.
+ *    hw_level[out] - Pointer to number of frames in hardware.
+ */
+void update_dev_wakeup_time(struct open_dev *adev, unsigned int *hw_level)
+{
+	struct timespec now;
+	struct timespec sleep_time;
+	double est_rate;
+	unsigned int frames_to_play_in_sleep;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+
+	frames_to_play_in_sleep = cras_iodev_frames_to_play_in_sleep(
+			adev->dev, hw_level, &adev->wake_ts);
+	if (!timespec_is_nonzero(&adev->wake_ts))
+		adev->wake_ts = now;
+
+	est_rate = adev->dev->ext_format->frame_rate *
+			cras_iodev_get_est_rate_ratio(adev->dev);
+
+	ATLOG(atlog, AUDIO_THREAD_SET_DEV_WAKE, adev->dev->info.idx,
+	      *hw_level, frames_to_play_in_sleep);
+
+	cras_frames_to_time_precise(
+			frames_to_play_in_sleep,
+			est_rate,
+			&sleep_time);
+
+	add_timespecs(&adev->wake_ts, &sleep_time);
+
+	ATLOG(atlog, AUDIO_THREAD_DEV_SLEEP_TIME, adev->dev->info.idx,
+	      adev->wake_ts.tv_sec, adev->wake_ts.tv_nsec);
+}
+
 /* Returns 0 on success negative error on device failure. */
 int write_output_samples(struct open_dev **odevs,
 			 struct open_dev *adev,
@@ -604,13 +640,25 @@ int write_output_samples(struct open_dev **odevs,
 				MIN_EMPTY_PERIOD_SEC);
 	}
 
-	/* Empty hardware and nothing written, zero fill it if it is running. */
-	if (!hw_level && !total_written &&
-	    odev->min_cb_level < odev->buffer_size)
-		cras_iodev_output_underrun(odev);
-
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE, hw_level,
 	      total_written, odev->min_cb_level);
+
+	/* Update device wake up time and get the new hardware level. */
+	update_dev_wakeup_time(adev, &hw_level);
+
+	/*
+	 * If new hardware level is less than or equal to the written frames, we can
+	 * suppose underrun happened. But keep in mind there may have a false
+	 * positive. If hardware level changed just after frames being written, we may
+	 * get hw_level <= total _written here without underrun happened. However, we
+	 * can still treat it as underrun because it is an abnormal state we should
+	 * handle it.
+	 */
+	if (hw_level <= total_written) {
+		ATLOG(atlog, AUDIO_THREAD_UNDERRUN, adev->dev->info.idx, hw_level,
+		      total_written);
+		return cras_iodev_output_underrun(odev);
+	}
 	return 0;
 }
 

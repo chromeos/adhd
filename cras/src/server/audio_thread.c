@@ -777,11 +777,7 @@ static int get_next_output_wake(struct open_dev **odevs,
 				const struct timespec *now)
 {
 	struct open_dev *adev;
-	struct timespec sleep_time;
-	double est_rate;
 	int ret = 0;
-	unsigned int frames_to_play_in_sleep;
-	unsigned int hw_level = 0;
 
 	DL_FOREACH(*odevs, adev)
 		ret += get_next_stream_wake_from_list(
@@ -792,27 +788,7 @@ static int get_next_output_wake(struct open_dev **odevs,
 		if (!cras_iodev_odev_should_wake(adev->dev))
 			continue;
 
-		frames_to_play_in_sleep = cras_iodev_frames_to_play_in_sleep(
-				adev->dev, &hw_level, &adev->wake_ts);
-		if (!timespec_is_nonzero(&adev->wake_ts))
-			adev->wake_ts = *now;
-
-		est_rate = adev->dev->ext_format->frame_rate *
-				cras_iodev_get_est_rate_ratio(adev->dev);
-
-		ATLOG(atlog, AUDIO_THREAD_SET_DEV_WAKE, adev->dev->info.idx,
-		      hw_level, frames_to_play_in_sleep);
-
-		cras_frames_to_time_precise(
-				frames_to_play_in_sleep,
-				est_rate,
-				&sleep_time);
-
-		add_timespecs(&adev->wake_ts, &sleep_time);
-
 		ret++;
-		ATLOG(atlog, AUDIO_THREAD_DEV_SLEEP_TIME, adev->dev->info.idx,
-		      adev->wake_ts.tv_sec, adev->wake_ts.tv_nsec);
 		if (timespec_after(min_ts, &adev->wake_ts))
 			*min_ts = adev->wake_ts;
 	}

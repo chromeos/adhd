@@ -1747,7 +1747,15 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
 
 static int alsa_output_underrun(struct cras_iodev *odev)
 {
+	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
+
+	/*
+	 * Update number of underrun we got. One underrun may be computed twice
+	 * because we also update it when getting hardware level.
+	 */
+	aio->num_underruns++;
+
 	/* Fill whole buffer with zeros. This avoids samples left in buffer causing
 	 * noise when device plays them. */
 	rc = fill_whole_buffer_with_zeros(odev);

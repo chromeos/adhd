@@ -610,17 +610,19 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesUnderrun) {
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   thread_add_stream(thread_, &rstream, &piodev, 1);
 
-  // Assume device is running and there is an underrun. There is no frame
-  // queued and there is no sample written in this cycle.
+  // Assume device is running and there is an underrun.
+  // It wrote 11 frames into device but new hw_level is only 10.
+  // It means underrun may happened because 10 - 11 < 0.
   // Audio thread should ask iodev to handle output underrun.
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
-  frames_queued_ = 0;
-  cras_iodev_all_streams_written_ret = 0;
+  frames_queued_ = 10;
+  cras_iodev_all_streams_written_ret = 11;
 
   // Assume device in normal run stream state;
   cras_iodev_prepare_output_before_write_samples_state = \
       CRAS_IODEV_STATE_NORMAL_RUN;
 
+  EXPECT_EQ(0, cras_iodev_output_underrun_called);
   write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev, nullptr);
   EXPECT_EQ(1, cras_iodev_output_underrun_called);
 
@@ -1066,8 +1068,7 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
                                                 unsigned int *hw_level,
                                                 struct timespec *hw_tstamp)
 {
-  clock_gettime(CLOCK_MONOTONIC_RAW, hw_tstamp);
-  *hw_level = 0;
+  *hw_level = cras_iodev_frames_queued(odev, hw_tstamp);
   return 0;
 }
 
