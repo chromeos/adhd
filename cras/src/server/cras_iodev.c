@@ -61,6 +61,18 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 		return rc;
 	hw_level = rc;
 
+	/* If underrun happened, handle underrun and get hw_level again. */
+	if (hw_level == 0) {
+		rc = cras_iodev_output_underrun(odev);
+		if (rc < 0)
+			return rc;
+
+		rc = cras_iodev_frames_queued(odev, &hw_tstamp);
+		if (rc < 0)
+			return rc;
+		hw_level = rc;
+	}
+
 	ATLOG(atlog, AUDIO_THREAD_ODEV_DEFAULT_NO_STREAMS,
 	      odev->info.idx, hw_level, target_hw_level);
 

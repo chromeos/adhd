@@ -288,8 +288,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 					aio->base.buffer_size,
 					aio->severe_underrun_frames,
 					iodev->info.name,
-					&frames, tstamp,
-					&aio->num_underruns);
+					&frames, tstamp);
 	if (rc < 0) {
 		if (rc == -EPIPE)
 			aio->num_severe_underruns++;
@@ -512,8 +511,7 @@ static int get_buffer(struct cras_iodev *iodev,
 				  format_bytes,
 				  &dst,
 				  &aio->mmap_offset,
-				  &nframes,
-				  &aio->num_underruns);
+				  &nframes);
 
 	iodev->area->frames = nframes;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
@@ -530,8 +528,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 
 	return cras_alsa_mmap_commit(aio->handle,
 				     aio->mmap_offset,
-				     nwritten,
-				     &aio->num_underruns);
+				     nwritten);
 }
 
 static int flush_buffer(struct cras_iodev *iodev)
@@ -1707,8 +1704,7 @@ static int fill_whole_buffer_with_zeros(struct cras_iodev *iodev)
 	size_t format_bytes;
 
 	/* Fill whole buffer with zeros. */
-	rc = cras_alsa_mmap_get_whole_buffer(
-			aio->handle, &dst, &aio->num_underruns);
+	rc = cras_alsa_mmap_get_whole_buffer(aio->handle, &dst);
 
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to get whole buffer: %s",
@@ -1754,6 +1750,13 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
 		return rc;
 	real_hw_level = rc;
 
+	/*
+	 * If underrun happened, handle it. Because alsa_output_underrun function
+	 * has already called adjust_appl_ptr, we don't need to call it again.
+	 */
+	if (real_hw_level < odev->min_buffer_level)
+		return odev->output_underrun(odev);
+
 	if (real_hw_level > aio->filled_zeros_for_draining)
 		valid_sample = real_hw_level - aio->filled_zeros_for_draining;
 
@@ -1773,10 +1776,7 @@ static int alsa_output_underrun(struct cras_iodev *odev)
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
 
-	/*
-	 * Update number of underrun we got. One underrun may be computed twice
-	 * because we also update it when getting hardware level.
-	 */
+	/* Update number of underruns we got. */
 	aio->num_underruns++;
 
 	/* Fill whole buffer with zeros. This avoids samples left in buffer causing
@@ -1806,6 +1806,15 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	if(rc < 0)
 		return rc;
 	real_hw_level = rc;
+
+	/* If underrun happened, handle it and enter free run state. */
+	if (real_hw_level < odev->min_buffer_level) {
+		rc = odev->output_underrun(odev);
+		if (rc < 0)
+			return rc;
+		aio->is_free_running = 1;
+		return 0;
+	}
 
 	if (real_hw_level <= aio->filled_zeros_for_draining || real_hw_level == 0) {
 		rc = fill_whole_buffer_with_zeros(odev);

@@ -663,8 +663,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 			       snd_pcm_uframes_t severe_underrun_frames,
 			       const char *dev_name,
 			       snd_pcm_uframes_t *avail,
-			       struct timespec *tstamp,
-			       unsigned int *underruns)
+			       struct timespec *tstamp)
 {
 	snd_pcm_sframes_t frames;
 	int rc = 0;
@@ -690,15 +689,14 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		goto error;
 	} else if (frames >= (snd_pcm_sframes_t)buf_size) {
 		struct timespec tstamp_now;
-		*underruns = *underruns + 1;
 		clock_gettime(CLOCK_MONOTONIC_RAW, &tstamp_now);
 		/* Limit the log rate. */
 		if ((tstamp_now.tv_sec - tstamp_last_underrun_log.tv_sec) >
 		    UNDERRUN_LOG_TIME_SECS) {
 			syslog(LOG_ERR,
 			       "pcm_avail returned frames larger than buf_size: "
-			       "%s: %ld > %lu for %u times\n",
-			       dev_name, frames, buf_size, *underruns);
+			       "%s: %ld > %lu\n",
+			       dev_name, frames, buf_size);
 			tstamp_last_underrun_log.tv_sec = tstamp_now.tv_sec;
 			tstamp_last_underrun_log.tv_nsec = tstamp_now.tv_nsec;
 		}
@@ -774,8 +772,7 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 	return rc;
 }
 
-int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
-				    unsigned int *underruns)
+int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst)
 {
 	snd_pcm_uframes_t offset;
 	/* The purpose of calling cras_alsa_mmap_begin is to get the base
@@ -788,13 +785,12 @@ int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
 	 */
 	snd_pcm_uframes_t frames = 1;
 
-	return cras_alsa_mmap_begin(
-			handle, 0, dst, &offset, &frames, underruns);
+	return cras_alsa_mmap_begin(handle, 0, dst, &offset, &frames);
 }
 
 int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
-			 snd_pcm_uframes_t *frames, unsigned int *underruns)
+			 snd_pcm_uframes_t *frames)
 {
 	int rc;
 	unsigned int attempts = 0;
@@ -809,7 +805,6 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 				return rc;
 			continue; /* Recovered from suspend, try again. */
 		} else if (rc < 0) {
-			*underruns = *underruns + 1;
 			/* If we can recover, continue and try again. */
 			if (snd_pcm_recover(handle, rc, 0) == 0)
 				continue;
@@ -834,7 +829,7 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 }
 
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
-			  snd_pcm_uframes_t frames, unsigned int *underruns)
+			  snd_pcm_uframes_t frames)
 {
 	int rc;
 	snd_pcm_sframes_t res;
@@ -848,7 +843,6 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 			if (rc < 0)
 				return rc;
 		} else {
-			*underruns = *underruns + 1;
 			/* If we can recover, continue and try again. */
 			rc = snd_pcm_recover(handle, res, 0);
 			if (rc < 0) {

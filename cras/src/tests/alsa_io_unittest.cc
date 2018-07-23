@@ -2173,12 +2173,12 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunLessRemain) {
   int rc, real_hw_level;
 
   // Compare min_buffer_level + min_cb_level with valid samples left.
-  // 240 + 512 > 400 - 500, so we will get 240 + 512 in appl_ptr_ahead.
-  // And it will fill 240 + 512 - 400 = 352 zeros frames into device.
+  // 240 + 256 > 400 - 500, so we will get 240 + 256 in appl_ptr_ahead.
+  // And it will fill 240 + 256 - 400 = 96 zeros frames into device.
 
   aio.is_free_running = 0;
   aio.filled_zeros_for_draining = 500;
-  aio.base.min_buffer_level = 512;
+  aio.base.min_buffer_level = 256;
   real_hw_level = 400;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
@@ -2188,7 +2188,7 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunLessRemain) {
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
   EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
             cras_alsa_resume_appl_ptr_ahead);
-  EXPECT_EQ(352, cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(96, cras_iodev_fill_odev_zeros_frames);
   EXPECT_EQ(0, aio.is_free_running);
   EXPECT_EQ(0, aio.filled_zeros_for_draining);
 }
@@ -2216,9 +2216,12 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   int rc;
   int16_t *zeros;
 
+  aio.num_underruns = 0;
+
   // Ask alsa_io to handle output underrun.
   rc = alsa_output_underrun(&aio.base);
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, aio.num_underruns);
 
   // mmap buffer should be filled with zeros.
   zeros = (int16_t *)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
@@ -2387,8 +2390,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
                                snd_pcm_uframes_t severe_underrun_frames,
                                const char* dev_name,
                                snd_pcm_uframes_t *used,
-                               struct timespec *tstamp,
-                               unsigned int *num_underruns)
+                               struct timespec *tstamp)
 {
   *used = cras_alsa_get_avail_frames_avail;
   clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
@@ -2402,14 +2404,14 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 }
 int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
 			 uint8_t **dst, snd_pcm_uframes_t *offset,
-			 snd_pcm_uframes_t *frames, unsigned int *underruns)
+			 snd_pcm_uframes_t *frames)
 {
   *dst = cras_alsa_mmap_begin_buffer;
   *frames = cras_alsa_mmap_begin_frames;
   return 0;
 }
 int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
-			  snd_pcm_uframes_t frames, unsigned int *underruns)
+			  snd_pcm_uframes_t frames)
 {
   return 0;
 }
@@ -2981,13 +2983,12 @@ int is_utf8_string(const char* string)
   return is_utf8_string_ret_value;
 }
 
-int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst,
-				    unsigned int *underruns)
+int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst)
 {
   snd_pcm_uframes_t offset, frames;
 
   cras_alsa_mmap_get_whole_buffer_called++;
-  return cras_alsa_mmap_begin(handle, 0, dst, &offset, &frames, underruns);
+  return cras_alsa_mmap_begin(handle, 0, dst, &offset, &frames);
 }
 
 int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
