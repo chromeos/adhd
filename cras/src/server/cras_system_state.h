@@ -290,4 +290,9 @@ struct cras_tm *cras_system_state_get_tm();
  */
 void cras_system_state_add_snapshot(struct cras_audio_thread_snapshot *);
 
+/*
+ * Dump snapshots from system state to shared memory with client
+ */
+void cras_system_state_dump_snapshots();
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

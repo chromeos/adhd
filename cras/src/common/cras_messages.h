@@ -43,6 +43,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_RELOAD_DSP,
 	CRAS_SERVER_DUMP_DSP_INFO,
 	CRAS_SERVER_DUMP_AUDIO_THREAD,
+	CRAS_SERVER_DUMP_SNAPSHOTS,
 	CRAS_SERVER_ADD_ACTIVE_NODE,
 	CRAS_SERVER_RM_ACTIVE_NODE,
 	CRAS_SERVER_ADD_TEST_DEV,
@@ -351,6 +352,18 @@ static inline void cras_fill_dump_audio_thread(
 		struct cras_dump_audio_thread *m)
 {
 	m->header.id = CRAS_SERVER_DUMP_AUDIO_THREAD;
+	m->header.length = sizeof(*m);
+}
+
+/* Dump current audio thread snapshots to shard memory with the client. */
+struct __attribute__ ((__packed__)) cras_dump_snapshots {
+	struct cras_server_message header;
+};
+
+static inline void cras_fill_dump_snapshots(
+		struct cras_dump_snapshots *m)
+{
+	m->header.id = CRAS_SERVER_DUMP_SNAPSHOTS;
 	m->header.length = sizeof(*m);
 }
 

@@ -35,6 +35,7 @@ static size_t cras_system_set_capture_mute_value;
 static int cras_system_set_capture_mute_called;
 static size_t cras_system_set_capture_mute_locked_value;
 static int cras_system_set_capture_mute_locked_called;
+static int cras_system_state_dump_snapshots_called;
 static size_t cras_make_fd_nonblocking_called;
 static audio_thread* iodev_get_thread_return;
 static int stream_list_add_stream_return;
@@ -73,6 +74,7 @@ void ResetStubData() {
   cras_system_set_capture_mute_called = 0;
   cras_system_set_capture_mute_locked_value = 0;
   cras_system_set_capture_mute_locked_called = 0;
+  cras_system_state_dump_snapshots_called = 0;
   cras_make_fd_nonblocking_called = 0;
   iodev_get_thread_return = reinterpret_cast<audio_thread*>(0xad);
   stream_list_add_stream_return = 0;
@@ -345,6 +347,15 @@ TEST_F(RClientMessagesSuite, SetCaptureMute) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_system_set_capture_mute_locked_called);
   EXPECT_EQ(1, cras_system_set_capture_mute_locked_value);
+}
+
+TEST_F(RClientMessagesSuite, DumpSnapshots) {
+  struct cras_dump_snapshots msg;
+  int rc;
+  cras_fill_dump_snapshots(&msg);
+  rc = cras_rclient_message_from_client(rclient_, &msg.header, -1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_system_state_dump_snapshots_called);
 }
 
 void RClientMessagesSuite::RegisterNotification(
@@ -751,6 +762,11 @@ int cras_make_fd_nonblocking(int fd)
 {
   cras_make_fd_nonblocking_called++;
   return 0;
+}
+
+void cras_system_state_dump_snapshots()
+{
+  cras_system_state_dump_snapshots_called ++;
 }
 
 void cras_system_set_volume(size_t volume)

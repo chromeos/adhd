@@ -563,6 +563,13 @@ struct cras_tm *cras_system_state_get_tm()
 	return state.tm;
 }
 
+
+void cras_system_state_dump_snapshots()
+{
+	memcpy(&state.exp_state->snapshot_buffer, &state.snapshot_buffer,
+			sizeof(struct cras_audio_thread_snapshot_buffer));
+}
+
 void cras_system_state_add_snapshot(
 	struct cras_audio_thread_snapshot *snapshot)
 {

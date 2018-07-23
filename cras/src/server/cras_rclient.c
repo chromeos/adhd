@@ -153,6 +153,16 @@ static void dump_audio_thread_info(struct cras_rclient *client)
 	cras_rclient_send_message(client, &msg.header, NULL, 0);
 }
 
+/* Handles dumping audio snapshots to shared memory for the client. */
+static void dump_audio_thread_snapshots(struct cras_rclient *client)
+{
+	struct cras_client_audio_debug_info_ready msg;
+
+	cras_fill_client_audio_debug_info_ready(&msg);
+	cras_system_state_dump_snapshots();
+	cras_rclient_send_message(client, &msg.header, NULL, 0);
+}
+
 static void handle_get_hotword_models(struct cras_rclient *client,
 				      cras_node_id_t node_id)
 {
@@ -571,6 +581,9 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		break;
 	case CRAS_SERVER_DUMP_AUDIO_THREAD:
 		dump_audio_thread_info(client);
+		break;
+	case CRAS_SERVER_DUMP_SNAPSHOTS:
+		dump_audio_thread_snapshots(client);
 		break;
 	case CRAS_SERVER_ADD_TEST_DEV: {
 		const struct cras_add_test_dev *m =
