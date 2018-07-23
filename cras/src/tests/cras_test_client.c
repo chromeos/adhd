@@ -632,6 +632,63 @@ static void audio_debug_info(struct cras_client *client)
 	pthread_mutex_unlock(&done_mutex);
 }
 
+static void print_cras_audio_thread_snapshot(
+	const struct cras_audio_thread_snapshot *snapshot)
+{
+	printf("-------------snapshot------------\n");
+	printf("Event time: %u.%d\n",
+	       snapshot->timestamp.tv_sec,
+	       snapshot->timestamp.tv_nsec);
+
+	printf("Event type: ");
+	switch(snapshot->event_type) {
+	case AUDIO_THREAD_EVENT_BUSYLOOP:
+		printf("busyloop\n");
+		break;
+	case AUDIO_THREAD_EVENT_UNDERRUN:
+		printf("underrun\n");
+		break;
+	case AUDIO_THREAD_EVENT_SEVERE_UNDERRUN:
+		printf("severe underrun\n");
+		break;
+	case AUDIO_THREAD_EVENT_DEBUG:
+		printf("debug\n");
+		break;
+	default:
+		printf("no such type\n");
+	}
+	print_audio_debug_info(&snapshot->audio_debug_info);
+}
+
+static void audio_thread_snapshots(struct cras_client *client)
+{
+	const struct cras_audio_thread_snapshot_buffer *snapshot_buffer;
+	uint32_t i;
+	int j;
+	int count = 0;
+
+	snapshot_buffer = cras_client_get_audio_thread_snapshot_buffer(client);
+	i = snapshot_buffer->pos;
+	for(j = 0; j < CRAS_MAX_AUDIO_THREAD_SNAPSHOTS; j++)
+	{
+		if(snapshot_buffer->snapshots[i].timestamp.tv_sec ||
+		   snapshot_buffer->snapshots[i].timestamp.tv_nsec)
+		{
+			print_cras_audio_thread_snapshot(
+				&snapshot_buffer->snapshots[i]);
+			count++;
+		}
+		i++;
+		i %= CRAS_MAX_AUDIO_THREAD_SNAPSHOTS;
+	}
+	printf("There are %d, snapshots.\n", count);
+
+	/* Signal main thread we are done after the last chunk. */
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_signal(&done_cond);
+	pthread_mutex_unlock(&done_mutex);
+}
+
 static int start_stream(struct cras_client *client,
 			cras_stream_id_t *stream_id,
 			struct cras_stream_params *params,
@@ -982,6 +1039,23 @@ static void print_server_info(struct cras_client *client)
 	print_active_stream_info(client);
 }
 
+static void show_audio_thread_snapshots(struct cras_client *client)
+{
+	struct timespec wait_time;
+
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client); /* To synchronize data. */
+	cras_client_update_audio_thread_snapshots(client,
+						  audio_thread_snapshots);
+
+	clock_gettime(CLOCK_REALTIME, &wait_time);
+	wait_time.tv_sec += 2;
+
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
+	pthread_mutex_unlock(&done_mutex);
+}
+
 static void show_audio_debug_info(struct cras_client *client)
 {
 	struct timespec wait_time;
@@ -1056,6 +1130,7 @@ static struct option long_options[] = {
 	{"block_size",		required_argument,	0, 'b'},
 	{"capture_file",	required_argument,	0, 'c'},
 	{"duration_seconds",	required_argument,	0, 'd'},
+	{"dump_events",	        no_argument,            0, 'e'},
 	{"dump_dsp",            no_argument,            0, 'f'},
 	{"capture_gain",        required_argument,      0, 'g'},
 	{"help",                no_argument,            0, 'h'},
@@ -1373,6 +1448,9 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
+		case 'e':
+			show_audio_thread_snapshots(client);
+			break;
 		case 'm':
 			show_audio_debug_info(client);
 			break;
