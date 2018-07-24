@@ -15,6 +15,7 @@
 #include "audio_thread_log.h"
 #include "buffer_share.h"
 #include "cras_audio_area.h"
+#include "cras_audio_thread_monitor.h"
 #include "cras_device_monitor.h"
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
@@ -1184,6 +1185,9 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev,
 	int rc;
 
 	rc = iodev->frames_queued(iodev, hw_tstamp);
+	if(rc == -EPIPE)
+		cras_audio_thread_severe_underrun();
+
 	if (rc < 0)
 		return rc;
 
@@ -1259,6 +1263,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 }
 
 int cras_iodev_output_underrun(struct cras_iodev *odev) {
+	cras_audio_thread_underrun();
 	if (odev->output_underrun)
 		return odev->output_underrun(odev);
 	else

@@ -2499,6 +2499,16 @@ void input_data_set_all_streams_read(struct input_data *data,
 {
 }
 
+int cras_audio_thread_severe_underrun()
+{
+  return 0;
+}
+
+int cras_audio_thread_underrun()
+{
+  return 0;
+}
+
 }  // extern "C"
 }  //  namespace
 
