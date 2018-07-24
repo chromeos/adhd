@@ -14,6 +14,7 @@ extern "C" {
 #define BUFFER_SIZE 8192
 #define FIRST_CB_LEVEL 480
 
+static int cras_audio_thread_busyloop_called;
 static unsigned int cras_rstream_dev_offset_called;
 static unsigned int cras_rstream_dev_offset_ret[MAX_CALLS];
 static const struct cras_rstream *cras_rstream_dev_offset_rstream_val[MAX_CALLS];
@@ -690,6 +691,28 @@ TEST(AUdioThreadStreams, DrainStream) {
   EXPECT_EQ(0, thread_drain_stream_ms_remaining(&thread, &rstream));
 }
 
+TEST(BusyloopDetectSuite, CheckerTest) {
+  continuous_zero_sleep_count = 0;
+  cras_audio_thread_busyloop_called = 0;
+  timespec wait_ts;
+  wait_ts.tv_sec = 0;
+  wait_ts.tv_nsec = 0;
+
+  check_busyloop(&wait_ts);
+  EXPECT_EQ(continuous_zero_sleep_count, 1);
+  EXPECT_EQ(cras_audio_thread_busyloop_called, 0);
+  check_busyloop(&wait_ts);
+  EXPECT_EQ(continuous_zero_sleep_count, 2);
+  EXPECT_EQ(cras_audio_thread_busyloop_called, 1);
+  check_busyloop(&wait_ts);
+  EXPECT_EQ(continuous_zero_sleep_count, 3);
+  EXPECT_EQ(cras_audio_thread_busyloop_called, 1);
+
+  wait_ts.tv_sec = 1;
+  check_busyloop(&wait_ts);
+  EXPECT_EQ(continuous_zero_sleep_count, 0);
+  EXPECT_EQ(cras_audio_thread_busyloop_called, 1);
+}
 
 extern "C" {
 
@@ -1127,6 +1150,12 @@ void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
 			        int start,
 			        int fd)
 {
+}
+
+int cras_audio_thread_busyloop()
+{
+  cras_audio_thread_busyloop_called ++;
+  return 0;
 }
 
 }  // extern "C"

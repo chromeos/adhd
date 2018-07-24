@@ -34,6 +34,7 @@
 #include "cras_telephony.h"
 #endif
 #include "cras_alert.h"
+#include "cras_audio_thread_monitor.h"
 #include "cras_config.h"
 #include "cras_device_monitor.h"
 #include "cras_hotword_handler.h"
@@ -429,6 +430,8 @@ int cras_server_run(unsigned int profile_disable_mask)
 	cras_hotword_handler_init();
 
 	cras_non_empty_audio_handler_init();
+
+	cras_audio_thread_monitor_init();
 
 #ifdef CRAS_DBUS
 	dbus_threads_init_default();

@@ -14,6 +14,7 @@
 #include <syslog.h>
 
 #include "audio_thread_log.h"
+#include "cras_audio_thread_monitor.h"
 #include "cras_config.h"
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
@@ -28,6 +29,10 @@
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */
 #define MIN_READ_WAIT_US 2000 /* 2ms */
+/*
+ * # to check whether a busyloop event happens
+ */
+#define MAX_CONTINUOUS_ZERO_SLEEP_COUNT 2
 
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
@@ -861,6 +866,22 @@ static struct pollfd *add_pollfd(struct audio_thread *thread,
 	return &thread->pollfds[thread->num_pollfds - 1];
 }
 
+static int continuous_zero_sleep_count = 0;
+static void check_busyloop(struct timespec* wait_ts)
+{
+	if(wait_ts->tv_sec == 0 && wait_ts->tv_nsec == 0)
+	{
+		continuous_zero_sleep_count ++;
+		if(continuous_zero_sleep_count ==
+		   MAX_CONTINUOUS_ZERO_SLEEP_COUNT)
+			cras_audio_thread_busyloop();
+	}
+	else
+	{
+		continuous_zero_sleep_count = 0;
+	}
+}
+
 /* For playback, fill the audio buffer when needed, for capture, pull out
  * samples when they are ready.
  * This thread will attempt to run at a high priority to allow for low latency
@@ -947,6 +968,8 @@ restart_poll_loop:
 
 		ATLOG(atlog, AUDIO_THREAD_SLEEP, wait_ts ? wait_ts->tv_sec : 0,
 		      wait_ts ? wait_ts->tv_nsec : 0, longest_wake.tv_nsec);
+		if(wait_ts)
+			check_busyloop(wait_ts);
 		rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
 		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
