@@ -788,6 +788,10 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 
 	DL_DELETE(*odev_list, dev_to_rm);
 
+	/* Metrics logs the number of underruns of this device. */
+	cras_server_metrics_num_underruns(
+		cras_iodev_get_num_underruns(dev_to_rm->dev));
+
 	check_non_empty_state_transition(*odev_list);
 
 	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);

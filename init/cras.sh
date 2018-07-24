@@ -45,6 +45,8 @@ exec minijail0 -u cras -g cras -G -n --uts -v -l \
         -b /dev/shm,/dev/shm,1 \
         -k proc,/proc,proc \
         -b /sys,/sys \
+        -k tmpfs,/var,tmpfs \
+        -b /var/lib/metrics/,/var/lib/metrics/,1 \
         -- \
         /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE} \

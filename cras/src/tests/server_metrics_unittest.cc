@@ -27,7 +27,7 @@ TEST(ServerMetricsTestSuite, Init) {
   EXPECT_EQ(type_set, CRAS_MAIN_METRICS);
 }
 
-TEST(ServerMetricsTestSuite, SetMetrics) {
+TEST(ServerMetricsTestSuite, SetMetricsLongestFetchDelay) {
   ResetStubData();
   unsigned int delay = 100;
   sent_msg = (struct cras_server_metrics_message *)calloc(1, sizeof(*sent_msg));
@@ -38,6 +38,21 @@ TEST(ServerMetricsTestSuite, SetMetrics) {
   EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
   EXPECT_EQ(sent_msg->metrics_type, LONGEST_FETCH_DELAY);
   EXPECT_EQ(sent_msg->data, delay);
+
+  free(sent_msg);
+}
+
+TEST(ServerMetricsTestSuite, SetMetricsNumUnderruns) {
+  ResetStubData();
+  unsigned int underrun = 10;
+  sent_msg = (struct cras_server_metrics_message *)calloc(1, sizeof(*sent_msg));
+
+  cras_server_metrics_num_underruns(underrun);
+
+  EXPECT_EQ(sent_msg->header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
+  EXPECT_EQ(sent_msg->metrics_type, NUM_UNDERRUNS);
+  EXPECT_EQ(sent_msg->data, underrun);
 
   free(sent_msg);
 }

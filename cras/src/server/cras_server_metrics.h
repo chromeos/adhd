@@ -12,6 +12,9 @@ extern const char kStreamTimeoutMilliSeconds[];
 /* Logs the longest fetch delay of a stream in millisecond. */
 int cras_server_metrics_longest_fetch_delay(int delay_msec);
 
+/* Logs the number of underruns of a device. */
+int cras_server_metrics_num_underruns(unsigned num_underruns);
+
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();
 

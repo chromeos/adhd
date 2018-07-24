@@ -348,7 +348,13 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
 /* Stubs */
 extern "C" {
 
-int cras_server_metrics_longest_fetch_delay(unsigned delay_msec) {
+int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
+{
+  return 0;
+}
+
+int cras_server_metrics_num_underruns(unsigned num_underruns)
+{
   return 0;
 }
 

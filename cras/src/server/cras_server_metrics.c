@@ -13,10 +13,12 @@
 
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
+const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
 	LONGEST_FETCH_DELAY,
+	NUM_UNDERRUNS
 };
 
 struct cras_server_metrics_message {
@@ -25,7 +27,7 @@ struct cras_server_metrics_message {
 	unsigned data;
 };
 
-static void init_longest_fetch_delay_msg(
+static void init_server_metrics_msg(
 		struct cras_server_metrics_message *msg,
 		enum CRAS_SERVER_METRICS_TYPE type,
 		unsigned data)
@@ -42,10 +44,27 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
 	struct cras_server_metrics_message msg;
 	int err;
 
-	init_longest_fetch_delay_msg(&msg, LONGEST_FETCH_DELAY, delay_msec);
+	init_server_metrics_msg(&msg, LONGEST_FETCH_DELAY, delay_msec);
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message");
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: LONGEST_FETCH_DELAY");
+		return err;
+	}
+
+	return 0;
+}
+
+int cras_server_metrics_num_underruns(unsigned num_underruns)
+{
+	struct cras_server_metrics_message msg;
+	int err;
+
+	init_server_metrics_msg(&msg, NUM_UNDERRUNS, num_underruns);
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: NUM_UNDERRUNS");
 		return err;
 	}
 
@@ -65,6 +84,19 @@ static void metrics_longest_fetch_delay(unsigned delay_msec)
 				   fetch_delay_nbuckets);
 }
 
+static void metrics_num_underruns(unsigned num_underruns)
+{
+	static const int num_underruns_min = 0;
+	static const int num_underruns_max = 1000;
+	static const int num_underruns_nbuckets = 10;
+
+	cras_metrics_log_histogram(kUnderrunsPerDevice,
+				   num_underruns,
+				   num_underruns_min,
+				   num_underruns_max,
+				   num_underruns_nbuckets);
+}
+
 static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 {
 	struct cras_server_metrics_message *metrics_msg =
@@ -72,6 +104,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	switch (metrics_msg->metrics_type) {
 	case LONGEST_FETCH_DELAY:
 		metrics_longest_fetch_delay(metrics_msg->data);
+		break;
+	case NUM_UNDERRUNS:
+		metrics_num_underruns(metrics_msg->data);
 		break;
 	default:
 		syslog(LOG_ERR, "Unknown metrics type %u",

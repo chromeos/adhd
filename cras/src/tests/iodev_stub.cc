@@ -121,4 +121,9 @@ unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
   return 0;
 }
 
+unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
+{
+  return 0;
+}
+
 } // extern "C"
