@@ -47,6 +47,7 @@ exec minijail0 -u cras -g cras -G -n --uts -v -l \
         -b /sys,/sys \
         -k 'tmpfs,/var,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /var/lib/metrics/,/var/lib/metrics/,1 \
+	-S /usr/share/policy/cras-seccomp.policy \
         -- \
         /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE} \
