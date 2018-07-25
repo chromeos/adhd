@@ -1097,6 +1097,7 @@ static struct option long_options[] = {
 	{"stream_id",		required_argument,	0, 'B'},
 	{"aecdump",		required_argument,	0, 'C'},
 	{"reload_aec_config",	no_argument,		0, 'D'},
+	{"get_aec_supported",	no_argument,		0, 'F'},
 	{0, 0, 0, 0}
 };
 
@@ -1512,6 +1513,9 @@ int main(int argc, char **argv)
 		case 'D':
 			cras_client_reload_aec_config(client);
 			break;
+		case 'F':
+			printf("AEC supported %d\n",
+			       !!cras_client_get_aec_supported(client));
 		default:
 			break;
 		}

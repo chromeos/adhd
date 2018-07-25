@@ -1094,6 +1094,11 @@ int cras_client_set_aec_dump(struct cras_client *client,
  */
 int cras_client_reload_aec_config(struct cras_client *client);
 
+/*
+ * Returns if AEC is supported.
+ */
+int cras_client_get_aec_supported(struct cras_client *client);
+
 /* Set the context pointer for system state change callbacks.
  * Args:
  *    client - The client from cras_client_create.

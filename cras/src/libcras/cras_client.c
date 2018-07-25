@@ -3327,6 +3327,20 @@ int cras_client_reload_aec_config(struct cras_client *client)
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_get_aec_supported(struct cras_client *client)
+{
+	int aec_supported;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return 0;
+
+	aec_supported = client->server_state->aec_supported;
+	server_state_unlock(client, lock_rc);
+	return aec_supported;
+}
+
 void cras_client_set_state_change_callback_context(
 		struct cras_client *client, void *context)
 {
