@@ -1282,8 +1282,15 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   // Add 2 output devices.
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.info.idx = 1;
   EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 0));
+  EXPECT_EQ(1, update_active_node_called);
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[0]);
+
   d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.info.idx = 2;
   EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
 
   // Setup pinned stream.
@@ -1296,22 +1303,26 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
-  EXPECT_EQ(1, update_active_node_called);
-  EXPECT_EQ(&d1_, update_active_node_iodev_val[0]);
+  EXPECT_EQ(2, update_active_node_called);
+  // Init d1_ because of pinned stream
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[1]);
 
   // Select d2, check pinned stream is not added to d2.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 0));
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(2, update_active_node_called);
-  EXPECT_EQ(&d2_, update_active_node_iodev_val[1]);
+  EXPECT_EQ(4, update_active_node_called);
+  // Unselect d1_ and select to d2_
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
+  EXPECT_EQ(&d2_, update_active_node_iodev_val[3]);
 
   // Remove pinned stream from d1, check d1 is closed after stream removed.
   EXPECT_EQ(0, stream_rm_cb(&rstream));
   EXPECT_EQ(1, cras_iodev_close_called);
   EXPECT_EQ(&d1_, cras_iodev_close_dev);
-  EXPECT_EQ(3, update_active_node_called);
-  EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
+  EXPECT_EQ(5, update_active_node_called);
+  // close pinned device
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[4]);
   cras_iodev_list_deinit();
 }
 

@@ -637,9 +637,6 @@ static int init_pinned_device(struct cras_iodev *dev,
 {
 	int rc;
 
-	if (cras_iodev_list_dev_is_enabled(dev))
-		return 0;
-
 	/* Make sure the active node is configured properly, it could be
 	 * disabled when last normal stream removed. */
 	dev->update_active_node(dev, dev->active_node->idx, 1);
