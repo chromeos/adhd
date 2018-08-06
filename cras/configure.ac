@@ -65,6 +65,15 @@ AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 AC_ARG_ENABLE([alsa-plugin], AS_HELP_STRING([--disable-alsa-plugin],
                                             [Disable building of ALSA plugin]))
 
+AC_ARG_ENABLE([metrics], AS_HELP_STRING([--enable-metrics], [Enable metrics uses]), have_metrics=$enableval, have_metrics=no)
+if test "$have_metrics" = "yes"; then
+    AC_DEFINE(HAVE_LIB_METRICS, 1, [Define to use libmetrics])
+    METRICS_LIBS=-lmetrics-${BASE_VER}
+else
+    METRICS_LIBS=
+fi
+AC_SUBST(METRICS_LIBS)
+
 # Determine ALSA plugin directory.
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 test "x$exec_prefix" = xNONE && exec_prefix=$prefix

@@ -187,6 +187,7 @@ cras_LDADD = \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
+	$(METRICS_LIBS) \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
 	$(WEBRTC_APM_LIBS)
