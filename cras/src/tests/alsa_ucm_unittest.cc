@@ -787,6 +787,31 @@ TEST(AlsaUcm, MaxSoftwareGain) {
   ASSERT_TRUE(ret);
 }
 
+TEST(AlsaUcm, MinSoftwareGain) {
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
+  long min_software_gain;
+  int ret;
+  std::string id = "=MinSoftwareGain/Internal Mic/HiFi";
+  std::string value = "2000";
+
+  ResetStubData();
+
+  /* Value can be found in UCM. */
+  snd_use_case_get_value[id] = value;
+
+  ret = ucm_get_min_software_gain(mgr, "Internal Mic", &min_software_gain);
+
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(2000, min_software_gain);
+
+  ResetStubData();
+
+  /* Value can not be found in UCM. */
+  ret = ucm_get_min_software_gain(mgr, "Internal Mic", &min_software_gain);
+
+  ASSERT_TRUE(ret);
+}
+
 TEST(AlsaUcm, DefaultNodeGain) {
   struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   long default_node_gain;

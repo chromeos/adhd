@@ -122,6 +122,9 @@ static const char *cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
 static int auto_unplug_input_node_ret = 0;
 static int auto_unplug_output_node_ret = 0;
+static int ucm_get_min_software_gain_called;
+static int ucm_get_min_software_gain_ret_value;
+static long ucm_get_min_software_gain_value;
 static int ucm_get_max_software_gain_called;
 static int ucm_get_max_software_gain_ret_value;
 static long ucm_get_max_software_gain_value;
@@ -212,6 +215,9 @@ void ResetStubData() {
   cras_alsa_jack_get_name_called = 0;
   cras_alsa_jack_get_name_ret_value = default_jack_name;
   cras_alsa_jack_update_monitor_fake_name = 0;
+  ucm_get_min_software_gain_called = 0;
+  ucm_get_min_software_gain_ret_value = -1;
+  ucm_get_min_software_gain_value = 0;
   ucm_get_max_software_gain_called = 0;
   ucm_get_max_software_gain_ret_value = -1;
   ucm_get_max_software_gain_value = 0;
@@ -488,8 +494,10 @@ TEST(AlsaIoInit, UseSoftwareGain) {
   struct cras_iodev *iodev;
   struct cras_use_case_mgr * const fake_ucm = (struct cras_use_case_mgr*)3;
 
-  /* Meet the requirements of using software gain. */
+  /* MaxSoftwareGain is specified in UCM */
   ResetStubData();
+  ucm_get_min_software_gain_ret_value = 1;
+  ucm_get_min_software_gain_value = 1;
   ucm_get_max_software_gain_ret_value = 0;
   ucm_get_max_software_gain_value = 2000;
   iodev = alsa_iodev_create_with_default_parameters(0, NULL,
@@ -499,16 +507,62 @@ TEST(AlsaIoInit, UseSoftwareGain) {
                                                     CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
   EXPECT_EQ(1, iodev->active_node->software_volume_needed);
+  EXPECT_EQ(DEFAULT_MIN_CAPTURE_GAIN, iodev->active_node->min_software_gain);
   EXPECT_EQ(2000, iodev->active_node->max_software_gain);
   ASSERT_EQ(1, sys_set_capture_gain_limits_called);
-  /* The gain range is [DEFAULT_MIN_CAPTURE_GAIN, maximum softare gain]. */
+  /* The gain range is [DEFAULT_MIN_CAPTURE_GAIN, maximum software gain]. */
   ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0],
       DEFAULT_MIN_CAPTURE_GAIN);
   ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
 
   alsa_iodev_destroy(iodev);
 
-  /* MaxSoftwareGain is not specified in UCM */
+  /* MaxSoftwareGain and MinSoftwareGain are specified in UCM. */
+  ResetStubData();
+  ucm_get_min_software_gain_ret_value = 0;
+  ucm_get_min_software_gain_value = 1000;
+  ucm_get_max_software_gain_ret_value = 0;
+  ucm_get_max_software_gain_value = 2000;
+  iodev = alsa_iodev_create_with_default_parameters(0, NULL,
+                                                    ALSA_CARD_TYPE_INTERNAL, 1,
+                                                    fake_mixer, fake_config,
+                                                    fake_ucm,
+                                                    CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
+  EXPECT_EQ(1000, iodev->active_node->min_software_gain);
+  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
+  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
+  /* The gain range is [minimum software gain, maximum software gain]. */
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0], 1000);
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
+
+  alsa_iodev_destroy(iodev);
+
+  /* MinSoftwareGain is larger than MaxSoftwareGain in UCM. */
+  ResetStubData();
+  ucm_get_min_software_gain_ret_value = 0;
+  ucm_get_min_software_gain_value = 3000;
+  ucm_get_max_software_gain_ret_value = 0;
+  ucm_get_max_software_gain_value = 2000;
+  iodev = alsa_iodev_create_with_default_parameters(0, NULL,
+                                                    ALSA_CARD_TYPE_INTERNAL, 1,
+                                                    fake_mixer, fake_config,
+                                                    fake_ucm,
+                                                    CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
+  EXPECT_EQ(DEFAULT_MIN_CAPTURE_GAIN, iodev->active_node->min_software_gain);
+  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
+  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
+  /* The gain range is [DEFAULT_MIN_CAPTURE_GAIN, maximum software gain]. */
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0],
+      DEFAULT_MIN_CAPTURE_GAIN);
+  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
+
+  alsa_iodev_destroy(iodev);
+
+  /* MaxSoftwareGain is not specified in UCM. */
   ResetStubData();
   ucm_get_max_software_gain_ret_value = 1;
   ucm_get_max_software_gain_value = 1;
@@ -2684,6 +2738,14 @@ unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr *mgr)
 unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
 {
   return 0;
+}
+
+int ucm_get_min_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
+    long *gain)
+{
+  ucm_get_min_software_gain_called++;
+  *gain = ucm_get_min_software_gain_value;
+  return ucm_get_min_software_gain_ret_value;
 }
 
 int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,

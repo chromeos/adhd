@@ -811,7 +811,8 @@ static void init_device_settings(struct alsa_io *aio)
 			mixer_input = ain->mixer_input;
 
 		if (cras_iodev_software_volume_needed(&aio->base)) {
-			min_capture_gain = DEFAULT_MIN_CAPTURE_GAIN;
+			min_capture_gain = cras_iodev_minimum_software_gain(
+					&aio->base);
 			max_capture_gain = cras_iodev_maximum_software_gain(
 					&aio->base);
 		} else {
@@ -1072,18 +1073,22 @@ static void set_output_node_software_volume_needed(
 static void set_input_node_software_volume_needed(
 	struct alsa_input_node *input, struct alsa_io *aio)
 {
+	long min_software_gain;
 	long max_software_gain;
 	int rc;
 
 	input->base.software_volume_needed = 0;
+	input->base.min_software_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	input->base.max_software_gain = 0;
 
-	/* Enable software gain only if max software gain is specified in UCM.*/
+	/* Enable software gain only if max software gain is specified in UCM. */
 	if (!aio->ucm)
 		return;
 
 	rc = ucm_get_max_software_gain(aio->ucm, input->base.name,
 	                               &max_software_gain);
+
+	/* If max software gain doesn't exist, skip min software gain setting. */
 	if (rc)
 		return;
 
@@ -1092,6 +1097,24 @@ static void set_input_node_software_volume_needed(
 	syslog(LOG_INFO,
 	       "Use software gain for %s with max %ld because it is specified"
 	       " in UCM", input->base.name, max_software_gain);
+
+	/* Enable min software gain if it is specified in UCM. */
+	rc = ucm_get_min_software_gain(aio->ucm, input->base.name,
+	                               &min_software_gain);
+	if (rc)
+		return;
+
+	if (min_software_gain > max_software_gain) {
+		syslog(LOG_ERR,
+		       "Ignore MinSoftwareGain %ld because it is larger than "
+		       "MaxSoftwareGain %ld", min_software_gain, max_software_gain);
+		return;
+	}
+
+	syslog(LOG_INFO,
+	       "Use software gain for %s with min %ld because it is specified"
+	       " in UCM", input->base.name, min_software_gain);
+	input->base.min_software_gain = min_software_gain;
 }
 
 static void set_input_default_node_gain(struct alsa_input_node *input,

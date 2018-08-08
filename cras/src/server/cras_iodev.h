@@ -70,6 +70,7 @@ enum CRAS_IODEV_STATE {
  *    software_volume_needed - For output: True if the volume range of the node
  *      is smaller than desired. For input: True if this node needs software
  *      gain.
+ *    min_software_gain - The minimum software gain in 0.01 dB if needed.
  *    max_software_gain - The maximum software gain in 0.01 dB if needed.
  *    stable_id - id for node that doesn't change after unplug/plug.
  *    stable_id_new - New stable_id, it will be deprecated and be put on
@@ -90,6 +91,7 @@ struct cras_ionode {
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 	float *softvol_scalers;
 	int software_volume_needed;
+	long min_software_gain;
 	long max_software_gain;
 	unsigned int stable_id;
 	unsigned int stable_id_new;
@@ -438,6 +440,22 @@ static inline int cras_iodev_software_volume_needed(
 		return 0;
 
 	return iodev->active_node->software_volume_needed;
+}
+
+/* Returns minimum software gain for the iodev.
+ * Args:
+ *    iodev - The device.
+ * Returs:
+ *    0 if software gain is not needed, or if there is no active node.
+ *    Returns min_software_gain on active node if there is one. */
+static inline long cras_iodev_minimum_software_gain(
+		const struct cras_iodev *iodev)
+{
+	if (!cras_iodev_software_volume_needed(iodev))
+		return 0;
+	if (!iodev->active_node)
+		return 0;
+	return iodev->active_node->min_software_gain;
 }
 
 /* Returns maximum software gain for the iodev.

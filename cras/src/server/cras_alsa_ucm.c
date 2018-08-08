@@ -35,6 +35,12 @@ static const char capture_channel_map_var[] = "CaptureChannelMap";
 static const char coupled_mixers[] = "CoupledMixers";
 static const char preempt_hotword_var[] = "PreemptHotword";
 /*
+ * Set this value in a SectionDevice to specify the minimum software gain in
+ * 0.01 dB and enable software gain on this node. It must be used with
+ * MaxSoftwareGain. If not, the value will be ignored.
+ */
+static const char min_software_gain[] = "MinSoftwareGain";
+/*
  * Set this value in a SectionDevice to specify the maximum software gain in
  * 0.01 dB and enable software gain on this node.
  */
@@ -649,6 +655,19 @@ unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
 		return 0;
 
 	return value;
+}
+
+int ucm_get_min_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
+			      long *gain)
+{
+	int value;
+	int rc;
+
+	rc = get_int(mgr, min_software_gain, dev, uc_verb(mgr), &value);
+	if (rc)
+		return rc;
+	*gain = value;
+	return 0;
 }
 
 int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
