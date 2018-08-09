@@ -640,8 +640,8 @@ static void print_cras_audio_thread_snapshot(
 	const struct cras_audio_thread_snapshot *snapshot)
 {
 	printf("-------------snapshot------------\n");
-	printf("Event time: %u.%d\n",
-	       snapshot->timestamp.tv_sec,
+	printf("Event time: %" PRId64 ".%ld\n",
+	       (int64_t)snapshot->timestamp.tv_sec,
 	       snapshot->timestamp.tv_nsec);
 
 	printf("Event type: ");

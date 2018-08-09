@@ -988,7 +988,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		.scaler = 0.0f,
 		.increment = 0.0f,
 	};
-	float software_volume_scaler;
+	float software_volume_scaler = 1.0;
 	int software_volume_needed = cras_iodev_software_volume_needed(iodev);
 	int rc;
 
