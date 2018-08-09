@@ -37,7 +37,7 @@ fi
 exec minijail0 -u cras -g cras -G -n --uts -v -l \
         -P /var/empty \
         -b /,/ \
-        -k tmpfs,/run,tmpfs \
+        -k 'tmpfs,/run,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /run/cras,/run/cras,1 \
         -b /run/dbus,/run/dbus,1 \
         -b /run/udev,/run/udev \
@@ -45,7 +45,7 @@ exec minijail0 -u cras -g cras -G -n --uts -v -l \
         -b /dev/shm,/dev/shm,1 \
         -k proc,/proc,proc \
         -b /sys,/sys \
-        -k tmpfs,/var,tmpfs \
+        -k 'tmpfs,/var,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /var/lib/metrics/,/var/lib/metrics/,1 \
         -- \
         /usr/bin/cras \
