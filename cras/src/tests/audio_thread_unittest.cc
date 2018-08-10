@@ -1137,6 +1137,9 @@ int input_data_put_for_stream(struct input_data *data,
 {
   return 0;
 }
+
+#ifdef HAVE_WEBRTC_APM
+
 uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
 {
   return 0;
@@ -1152,6 +1155,8 @@ void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
 			        int fd)
 {
 }
+
+#endif
 
 int cras_audio_thread_busyloop()
 {

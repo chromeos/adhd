@@ -425,44 +425,46 @@ check_PROGRAMS += \
 	eq2_test \
 	cmpraw
 
+DSP_INCLUDE_PATHS = -I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/common
+
 crossover_test_SOURCES = dsp/crossover.c dsp/biquad.c dsp/dsp_util.c \
 	dsp/tests/crossover_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 crossover_test_LDADD = -lrt -lm
-crossover_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+crossover_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 crossover2_test_SOURCES = dsp/crossover2.c dsp/biquad.c dsp/dsp_util.c \
 	dsp/tests/crossover2_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 crossover2_test_LDADD = -lrt -lm
-crossover2_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+crossover2_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 dcblock_test_SOURCES = dsp/dcblock.c dsp/dsp_util.c dsp/tests/dcblock_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
 dcblock_test_LDADD = -lrt -lm
-dcblock_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+dcblock_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 drc_test_SOURCES = dsp/drc.c dsp/drc_kernel.c dsp/drc_math.c \
 	dsp/crossover2.c dsp/eq2.c dsp/biquad.c dsp/dsp_util.c \
 	dsp/tests/drc_test.c dsp/tests/dsp_test_util.c dsp/tests/raw.c
 drc_test_LDADD = -lrt -lm
-drc_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+drc_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 dsp_util_test_SOURCES = dsp/tests/dsp_util_test.c dsp/dsp_util.c
 dsp_util_test_LDADD = -lm
-dsp_util_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp -Wno-error=strict-aliasing
+dsp_util_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) -Wno-error=strict-aliasing
 
 eq_test_SOURCES = dsp/biquad.c dsp/eq.c dsp/dsp_util.c dsp/tests/eq_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
 eq_test_LDADD = -lrt -lm
-eq_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+eq_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 eq2_test_SOURCES = dsp/biquad.c dsp/eq2.c dsp/dsp_util.c dsp/tests/eq2_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
 eq2_test_LDADD = -lrt -lm
-eq2_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+eq2_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 cmpraw_SOURCES = dsp/tests/cmpraw.c dsp/tests/raw.c
 cmpraw_LDADD = -lm
-cmpraw_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+cmpraw_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 # unit tests
 alert_unittest_SOURCES = tests/alert_unittest.cc \
@@ -553,8 +555,7 @@ if HAVE_WEBRTC_APM
 apm_list_unittest_SOURCES = tests/apm_list_unittest.cc \
 	server/cras_apm_list.c
 apm_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/dsp \
+	$(DSP_INCLUDE_PATHS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(WEBRTC_APM_CFLAGS)
@@ -669,7 +670,7 @@ device_monitor_unittest_LDADD = -lgtest -lpthread
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
 	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/crossover2.c dsp/drc.c \
 	dsp/drc_kernel.c dsp/drc_math.c
-dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/dsp
+dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 dsp_core_unittest_LDADD = -lgtest -lpthread
 
 dsp_ini_unittest_SOURCES = tests/dsp_ini_unittest.cc \
@@ -681,16 +682,16 @@ dsp_ini_unittest_LDADD = -lgtest -liniparser -lpthread
 dsp_pipeline_unittest_SOURCES = tests/cras_dsp_pipeline_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c server/cras_dsp_pipeline.c \
 	common/dumper.c dsp/dsp_util.c
-dsp_pipeline_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/dsp
+dsp_pipeline_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/server $(DSP_INCLUDE_PATHS)
 dsp_pipeline_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 dsp_unittest_SOURCES = tests/dsp_unittest.cc \
 	server/cras_dsp.c server/cras_dsp_ini.c server/cras_dsp_pipeline.c \
 	server/cras_expr.c common/dumper.c dsp/dsp_util.c \
 	dsp/tests/dsp_test_util.c
-dsp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/dsp
+dsp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/server $(DSP_INCLUDE_PATHS)
 dsp_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
 
 dumper_unittest_SOURCES = tests/dumper_unittest.cc common/dumper.c

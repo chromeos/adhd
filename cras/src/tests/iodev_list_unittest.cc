@@ -1786,6 +1786,8 @@ int audio_thread_dev_start_ramp(struct audio_thread *thread,
   audio_thread_dev_start_ramp_req = request;
   return 0;
 }
+
+#ifdef HAVE_WEBRTC_APM
 struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 				   void *dev_ptr,
 				   const struct cras_audio_format *fmt)
@@ -1799,6 +1801,7 @@ int cras_apm_list_init(const char *device_config_dir)
 {
   return 0;
 }
+#endif
 
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
