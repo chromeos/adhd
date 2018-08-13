@@ -34,6 +34,7 @@ static const char capture_device_rate_var[] = "CaptureRate";
 static const char capture_channel_map_var[] = "CaptureChannelMap";
 static const char coupled_mixers[] = "CoupledMixers";
 static const char preempt_hotword_var[] = "PreemptHotword";
+static const char echo_reference_dev_name_var[] = "EchoReferenceDev";
 /*
  * Set this value in a SectionDevice to specify the minimum software gain in
  * 0.01 dB and enable software gain on this node. It must be used with
@@ -716,6 +717,19 @@ const char *ucm_get_device_name_for_dev(
 	else if (direction == CRAS_STREAM_INPUT)
 		return ucm_get_capture_device_name_for_dev(mgr, dev);
 	return NULL;
+}
+
+const char *ucm_get_echo_reference_dev_name_for_dev(
+		struct cras_use_case_mgr *mgr, const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, echo_reference_dev_name_var, dev,
+		     uc_verb(mgr), &name);
+	if (rc)
+		return NULL;
+	return name;
 }
 
 int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,

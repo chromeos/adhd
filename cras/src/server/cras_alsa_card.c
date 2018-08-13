@@ -412,6 +412,37 @@ error:
 	return rc;
 }
 
+static void configure_echo_reference_dev(struct cras_alsa_card *alsa_card)
+{
+	struct iodev_list_node *dev_node, *echo_ref_node;
+	const char *echo_ref_name;
+
+	DL_FOREACH(alsa_card->iodevs, dev_node) {
+		if (!dev_node->iodev->nodes)
+			continue;
+
+		echo_ref_name = ucm_get_echo_reference_dev_name_for_dev(
+				alsa_card->ucm,
+				dev_node->iodev->nodes->name);
+		if (!echo_ref_name)
+			continue;
+		DL_FOREACH(alsa_card->iodevs, echo_ref_node) {
+			if (echo_ref_node->iodev->nodes == NULL)
+				continue;
+			if (!strcmp(echo_ref_name,
+				    echo_ref_node->iodev->nodes->name))
+				break;
+		}
+		if (echo_ref_node)
+			dev_node->iodev->echo_reference_dev =
+					echo_ref_node->iodev;
+		else
+			syslog(LOG_ERR,
+			       "Echo ref dev %s doesn't exist on card %s",
+			       echo_ref_name, alsa_card->name);
+	}
+}
+
 /*
  * Exported Interface.
  */
@@ -529,6 +560,8 @@ struct cras_alsa_card *cras_alsa_card_create(
 				info, blacklist, alsa_card, card_name, handle);
 	if (rc)
 		goto error_bail;
+
+	configure_echo_reference_dev(alsa_card);
 
 	n = alsa_card->hctl ?
 		snd_hctl_poll_descriptors_count(alsa_card->hctl) : 0;

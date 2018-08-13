@@ -458,6 +458,23 @@ TEST(AlsaUcm, GetCaptureChannelMapForDevice) {
   EXPECT_EQ(channel_layout[10], -1);
 }
 
+TEST(AlsaUcm, GetEchoReferenceDev) {
+  struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
+  const char *echo_ref_dev;
+
+  ResetStubData();
+
+  std::string id_1 = "=EchoReferenceDev/Dev1/HiFi";
+  std::string value_1 = "Echo Ref";
+
+  snd_use_case_get_value[id_1] = value_1;
+  echo_ref_dev = ucm_get_echo_reference_dev_name_for_dev(mgr, "Dev1");
+
+  ASSERT_EQ(1, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id_1);
+  EXPECT_EQ(0, strcmp(echo_ref_dev, value_1.c_str()));
+}
+
 TEST(AlsaUcm, GetHotwordModels) {
   struct cras_use_case_mgr *mgr = &cras_ucm_mgr;
   const char *models;

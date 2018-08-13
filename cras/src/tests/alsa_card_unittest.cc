@@ -14,6 +14,7 @@ extern "C" {
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
+#include "cras_iodev.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -26,11 +27,12 @@ static struct cras_alsa_mixer *cras_alsa_mixer_create_return;
 static size_t cras_alsa_mixer_destroy_called;
 static size_t cras_alsa_iodev_create_called;
 static struct cras_iodev **cras_alsa_iodev_create_return;
+static struct cras_iodev fake_dev1, fake_dev2, fake_dev3, fake_dev4;
 static struct cras_iodev *cras_alsa_iodev_create_default_return[] = {
-  reinterpret_cast<struct cras_iodev *>(2),
-  reinterpret_cast<struct cras_iodev *>(3),
-  reinterpret_cast<struct cras_iodev *>(4),
-  reinterpret_cast<struct cras_iodev *>(5),
+  &fake_dev1,
+  &fake_dev2,
+  &fake_dev3,
+  &fake_dev4,
 };
 static size_t cras_alsa_iodev_create_return_size;
 static size_t cras_alsa_iodev_legacy_complete_init_called;
@@ -89,6 +91,8 @@ static int ucm_get_sections_called;
 static struct ucm_section *ucm_get_sections_return_value;
 static size_t cras_alsa_mixer_add_controls_in_section_called;
 static int cras_alsa_mixer_add_controls_in_section_return_value;
+static int ucm_get_echo_reference_dev_name_for_dev_called;
+static const char *ucm_get_echo_reference_dev_name_for_dev_return_value[4];
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -154,6 +158,7 @@ static void ResetStubData() {
   ucm_get_sections_return_value = NULL;
   cras_alsa_mixer_add_controls_in_section_called = 0;
   cras_alsa_mixer_add_controls_in_section_return_value = 0;
+  ucm_get_echo_reference_dev_name_for_dev_called = 0;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -812,6 +817,39 @@ TEST(AlsaCard, CreateFullyUCMFourDevicesFiveSections) {
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
+TEST(AlsaCard, GG) {
+  struct cras_alsa_card *c;
+  cras_alsa_card_info card_info;
+  int info_rets[] = {0, 0, 0, 0, 0, -1};
+  struct cras_ionode nodes[4];
+  const char *echo_ref = "echo ref";
+
+  ResetStubData();
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  ucm_has_fully_specified_ucm_flag_return_value = 1;
+  ucm_get_sections_return_value = GenerateUcmSections();
+
+  fake_dev1.nodes = nodes;
+  fake_dev2.nodes = nodes + 1;
+  fake_dev3.nodes = nodes + 2;
+  fake_dev4.nodes = nodes + 3;
+  snprintf(nodes[0].name, CRAS_NODE_NAME_BUFFER_SIZE, "dev1");
+  snprintf(nodes[1].name, CRAS_NODE_NAME_BUFFER_SIZE, "dev2");
+  snprintf(nodes[2].name, CRAS_NODE_NAME_BUFFER_SIZE, "dev3");
+  snprintf(nodes[3].name, CRAS_NODE_NAME_BUFFER_SIZE, "echo ref");
+
+  ucm_get_echo_reference_dev_name_for_dev_return_value[0] = echo_ref;
+
+  c = cras_alsa_card_create(&card_info, device_config_dir,
+                            fake_blacklist, NULL);
+
+  EXPECT_NE(static_cast<struct cras_alsa_card *>(NULL), c);
+  EXPECT_EQ(fake_dev1.echo_reference_dev, &fake_dev4);
+  cras_alsa_card_destroy(c);
+}
 
 /* Stubs */
 
@@ -1070,6 +1108,12 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 {
   ucm_get_sections_called++;
   return ucm_get_sections_return_value;
+}
+const char *ucm_get_echo_reference_dev_name_for_dev(
+    struct cras_use_case_mgr *mgr, const char *dev)
+{
+  int idx = ucm_get_echo_reference_dev_name_for_dev_called++;
+  return ucm_get_echo_reference_dev_name_for_dev_return_value[idx];
 }
 
 int cras_alsa_mixer_add_controls_in_section(

@@ -256,6 +256,17 @@ const char *ucm_get_device_name_for_dev(
 		struct cras_use_case_mgr *mgr, const char *dev,
 		enum CRAS_STREAM_DIRECTION direction);
 
+/* Gets the node name of the echo reference device on the card.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check echo reference for.
+ * Returns:
+ *    String containing the node name of the echo reference to this
+ *    dev. NULL if echo reference doesn't exist.
+ */
+const char *ucm_get_echo_reference_dev_name_for_dev(
+		struct cras_use_case_mgr *mgr, const char *dev);
+
 /* Gets the sample rate at which to run this device.
  *
  * Args:
