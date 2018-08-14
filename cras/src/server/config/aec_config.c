@@ -96,7 +96,7 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 		AEC_GET_FLOAT(ini, FILTER_SHADOW_INIT, NOISE_GATE);
 
 	config->filter.config_change_duration_blocks =
-		AEC_GET_FLOAT(ini, FILTER, CONFIG_CHANGE_DURATION_BLOCKS);
+		AEC_GET_INT(ini, FILTER, CONFIG_CHANGE_DURATION_BLOCKS);
 
 	config->erle.min =
 		AEC_GET_FLOAT(ini, ERLE, MIN);
@@ -113,11 +113,15 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 		AEC_GET_FLOAT(ini, EP_STRENGTH, HF);
 	config->ep_strength.default_len =
 		AEC_GET_FLOAT(ini, EP_STRENGTH, DEFAULT_LEN);
+	config->ep_strength.reverb_based_on_render =
+		AEC_GET_INT(ini, EP_STRENGTH, REVERB_BASED_ON_RENDER);
 	config->ep_strength.bounded_erl =
 		AEC_GET_INT(ini, EP_STRENGTH, BOUNDED_ERL);
 	config->ep_strength.echo_can_saturate =
 		AEC_GET_INT(ini, EP_STRENGTH, ECHO_CAN_SATURATE);
 
+	config->gain_mask.m0 =
+		AEC_GET_FLOAT(ini, GAIN_MASK, M0);
 	config->gain_mask.m1 =
 		AEC_GET_FLOAT(ini, GAIN_MASK, M1);
 	config->gain_mask.m2 =
@@ -164,6 +168,8 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 		AEC_GET_FLOAT(ini, RENDER_LEVELS, ACTIVE_RENDER_LIMIT);
 	config->render_levels.poor_excitation_render_limit =
 		AEC_GET_FLOAT(ini, RENDER_LEVELS, POOR_EXCITATION_RENDER_LIMIT);
+	config->render_levels.poor_excitation_render_limit_ds8 =
+		AEC_GET_FLOAT(ini, RENDER_LEVELS, POOR_EXCITATION_RENDER_LIMIT_DS8);
 
 	config->gain_updates.low_noise.max_inc =
 		AEC_GET_FLOAT(ini, GAIN_UPDATES_LOW_NOISE, MAX_INC);
@@ -229,9 +235,15 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 		AEC_GET_FLOAT(ini, GAIN_UPDATES_NONLINEAR, MIN_INC);
 	config->gain_updates.nonlinear.min_dec =
 		AEC_GET_FLOAT(ini, GAIN_UPDATES_NONLINEAR, MIN_DEC);
+	config->gain_updates.max_inc_factor =
+		AEC_GET_FLOAT(ini, GAIN_UPDATES, MAX_INC_FACTOR);
+	config->gain_updates.max_dec_factor_lf =
+		AEC_GET_FLOAT(ini, GAIN_UPDATES, MAX_DEC_FACTOR_LF);
 	config->gain_updates.floor_first_increase =
 		AEC_GET_FLOAT(ini, GAIN_UPDATES, FLOOR_FIRST_INCREASE);
 
+	config->echo_removal_control.gain_rampup.initial_gain =
+		AEC_GET_FLOAT(ini, ECHO_REMOVAL_CTL, INITIAL_GAIN);
 	config->echo_removal_control.gain_rampup.first_non_zero_gain =
 		AEC_GET_FLOAT(ini, ECHO_REMOVAL_CTL, FIRST_NON_ZERO_GAIN);
 	config->echo_removal_control.gain_rampup.non_zero_gain_blocks =
@@ -240,6 +252,8 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 		AEC_GET_INT(ini, ECHO_REMOVAL_CTL, FULL_GAIN_BLOCKS);
 	config->echo_removal_control.has_clock_drift =
 		AEC_GET_INT(ini, ECHO_REMOVAL_CTL, HAS_CLOCK_DRIFT);
+	config->echo_removal_control.linear_and_stable_echo_path =
+		AEC_GET_INT(ini, ECHO_REMOVAL_CTL, LINEAR_AND_STABLE_ECHO_PATH);
 
 	config->echo_model.noise_floor_hold =
 		AEC_GET_INT(ini, ECHO_MODEL, NOISE_FLOOR_HOLD);
@@ -255,6 +269,10 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 		AEC_GET_INT(ini, ECHO_MODEL, RENDER_PRE_WINDOW_SIZE);
 	config->echo_model.render_post_window_size =
 		AEC_GET_INT(ini, ECHO_MODEL, RENDER_POST_WINDOW_SIZE);
+	config->echo_model.render_pre_window_size_init =
+		AEC_GET_INT(ini, ECHO_MODEL, RENDER_PRE_WINDOW_SIZE_INIT);
+	config->echo_model.render_post_window_size_init =
+		AEC_GET_INT(ini, ECHO_MODEL, RENDER_POST_WINDOW_SIZE_INIT);
 	config->echo_model.nonlinear_hold =
 		AEC_GET_FLOAT(ini, ECHO_MODEL, NONLINEAR_HOLD);
 	config->echo_model.nonlinear_release =
@@ -262,6 +280,21 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 
 	config->suppressor.bands_with_reliable_coherence =
 		AEC_GET_INT(ini, SUPPRESSOR, BANDS_WITH_RELIABLE_COHERENCE);
+	config->suppressor.nearend_average_blocks =
+		AEC_GET_INT(ini, SUPPRESSOR, NEAREND_AVERAGE_BLOCKS);
+	config->suppressor.mask_lf_enr_transparent =
+		AEC_GET_FLOAT(ini, SUPPRESSOR, MASK_LF_ENR_TRANSPARENT);
+	config->suppressor.mask_lf_enr_suppress =
+		AEC_GET_FLOAT(ini, SUPPRESSOR, MASK_LF_ENR_SUPPRESS);
+	config->suppressor.mask_lf_emr_transparent =
+		AEC_GET_FLOAT(ini, SUPPRESSOR, MASK_LF_EMR_TRANSPARENT);
+	config->suppressor.mask_hf_enr_transparent =
+		AEC_GET_FLOAT(ini, SUPPRESSOR, MASK_HF_ENR_TRANSPARENT);
+	config->suppressor.mask_hf_enr_suppress =
+		AEC_GET_FLOAT(ini, SUPPRESSOR, MASK_HF_ENR_SUPPRESS);
+	config->suppressor.mask_hf_emr_transparent =
+		AEC_GET_FLOAT(ini, SUPPRESSOR, MASK_HF_EMR_TRANSPARENT);
+
 	return config;
 }
 
@@ -319,10 +352,13 @@ void aec_config_dump(struct aec_config *config)
 			config->ep_strength.mf,
 			config->ep_strength.hf,
 			config->ep_strength.default_len);
-	syslog(LOG_ERR, "    echo_can_saturate %d, bounded_erl %d",
+	syslog(LOG_ERR, "    echo_can_saturate %d, bounded_erl %d,"
+			"    ep_strength.reverb_based_on_render %d",
 			config->ep_strength.echo_can_saturate,
-			config->ep_strength.bounded_erl);
-	syslog(LOG_ERR, "Gain mask: m1 %f m2 %f m3 %f m5 %f",
+			config->ep_strength.bounded_erl,
+			config->ep_strength.reverb_based_on_render);
+	syslog(LOG_ERR, "Gain mask: m0 %f m1 %f m2 %f m3 %f m5 %f",
+			config->gain_mask.m0,
 			config->gain_mask.m1,
 			config->gain_mask.m2,
 			config->gain_mask.m3,
@@ -358,6 +394,8 @@ void aec_config_dump(struct aec_config *config)
 			config->render_levels.active_render_limit);
 	syslog(LOG_ERR, "    poor_excitation_render_limit %f",
 			config->render_levels.poor_excitation_render_limit);
+	syslog(LOG_ERR, "    poor_excitation_render_limit_ds8 %f",
+			config->render_levels.poor_excitation_render_limit_ds8);
 	syslog(LOG_ERR, "Gain updates:");
 	syslog(LOG_ERR, "    low_noise:");
 	syslog(LOG_ERR, "        max_inc %f max_dec %f",
@@ -409,17 +447,23 @@ void aec_config_dump(struct aec_config *config)
 	syslog(LOG_ERR, "        min_inc %f min_dec %f",
 			config->gain_updates.nonlinear.min_inc,
 			config->gain_updates.nonlinear.min_dec);
+	syslog(LOG_ERR, "        max_inc_factor %f max_dec_factor_lf %f",
+			config->gain_updates.max_inc_factor,
+			config->gain_updates.max_dec_factor_lf);
 	syslog(LOG_ERR, "    floor_first_increase %f",
 			config->gain_updates.floor_first_increase);
 	syslog(LOG_ERR, "Echo removal control:");
 	syslog(LOG_ERR, "    gain rampup:");
-	syslog(LOG_ERR, "        first_non_zero_gain %f non_zero_gain_blocks %d",
-			config->echo_removal_control.gain_rampup.first_non_zero_gain,
-			config->echo_removal_control.gain_rampup.non_zero_gain_blocks);
-	syslog(LOG_ERR, "        full_gain_blocks %d",
+	syslog(LOG_ERR, "        initial_gain %f, first_non_zero_gain %f",
+			config->echo_removal_control.gain_rampup.initial_gain,
+			config->echo_removal_control.gain_rampup.first_non_zero_gain);
+	syslog(LOG_ERR, "        non_zero_gain_blocks %d, full_gain_blocks %d",
+			config->echo_removal_control.gain_rampup.non_zero_gain_blocks,
 			config->echo_removal_control.gain_rampup.full_gain_blocks);
 	syslog(LOG_ERR, "    has_clock_drift %d",
 			config->echo_removal_control.has_clock_drift);
+	syslog(LOG_ERR, "    linear_and_stable_echo_path %d",
+			config->echo_removal_control.linear_and_stable_echo_path);
 	syslog(LOG_ERR, "Echo model:");
 	syslog(LOG_ERR, "    noise_floor_hold %zu, min_noise_floor_power %f",
 			config->echo_model.noise_floor_hold,
@@ -433,8 +477,26 @@ void aec_config_dump(struct aec_config *config)
 	syslog(LOG_ERR, "    render_post_window_size %zu nonlinear_hold %f",
 			config->echo_model.render_post_window_size,
 			config->echo_model.nonlinear_hold);
+	syslog(LOG_ERR, "    render_pre_window_size_init %u, "
+			"render_post_window_size_init %u",
+			config->echo_model.render_pre_window_size_init,
+			config->echo_model.render_post_window_size_init);
 	syslog(LOG_ERR, "    nonlinear_release %f",
 			config->echo_model.nonlinear_release);
 	syslog(LOG_ERR, "Suppressor: bands_with_reliable_coherence %zu",
 			config->suppressor.bands_with_reliable_coherence);
+	syslog(LOG_ERR, "    nearend_average_blocks %u",
+			config->suppressor.nearend_average_blocks);
+	syslog(LOG_ERR, "    mask_lf_enr_transparent %f",
+			config->suppressor.mask_lf_enr_transparent);
+	syslog(LOG_ERR, "    mask_lf_enr_suppress %f",
+			config->suppressor.mask_lf_enr_suppress);
+	syslog(LOG_ERR, "    mask_lf_emr_transparent %f",
+			config->suppressor.mask_lf_emr_transparent);
+	syslog(LOG_ERR, "    mask_hf_enr_transparent %f",
+			config->suppressor.mask_hf_enr_transparent);
+	syslog(LOG_ERR, "    mask_hf_enr_suppress %f",
+			config->suppressor.mask_hf_enr_suppress);
+	syslog(LOG_ERR, "    mask_hf_emr_transparent %f",
+			config->suppressor.mask_hf_emr_transparent);
 }
