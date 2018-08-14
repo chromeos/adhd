@@ -219,9 +219,17 @@ struct aec_config *aec_config_get(const char *device_config_dir)
 void aec_config_dump(struct aec_config *config)
 {
 }
+struct apm_config *apm_config_get(const char *device_config_dir)
+{
+  return NULL;
+}
+void apm_config_dump(struct apm_config *config)
+{
+}
 webrtc_apm webrtc_apm_create(unsigned int num_channels,
 			     unsigned int frame_rate,
-			     struct aec_config *aec_config)
+			     struct aec_config *aec_config,
+                             struct apm_config *apm_config)
 {
   return reinterpret_cast<webrtc_apm>(0x11);
 }

@@ -32,7 +32,8 @@ endif
 if HAVE_WEBRTC_APM
 CRAS_WEBRTC_APM_SOURCES = \
 	server/cras_apm_list.c \
-	server/config/aec_config.c
+	server/config/aec_config.c \
+	server/config/apm_config.c
 else
 CRAS_WEBRTC_APM_SOURCES =
 endif

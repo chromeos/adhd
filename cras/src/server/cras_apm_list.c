@@ -9,6 +9,7 @@
 #include <webrtc-apm/webrtc_apm.h>
 
 #include "aec_config.h"
+#include "apm_config.h"
 #include "byte_buffer.h"
 #include "cras_apm_list.h"
 #include "cras_audio_area.h"
@@ -109,6 +110,7 @@ struct cras_apm_reverse_module {
 static struct cras_apm_reverse_module *rmodule = NULL;
 static struct cras_apm_list *apm_list = NULL;
 static struct aec_config *aec_config = NULL;
+static struct apm_config *apm_config = NULL;
 static const char *aec_config_dir = NULL;
 
 /* Update the global process reverse flag. Should be called when apms are added
@@ -263,7 +265,8 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 	apm->apm_ptr = webrtc_apm_create(
 			apm->fmt.num_channels,
 			apm->fmt.frame_rate,
-			aec_config);
+			aec_config,
+			apm_config);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR, "Fail to create webrtc apm for ch %zu"
 				" rate %zu effect %lu",
@@ -447,6 +450,9 @@ int cras_apm_list_init(const char *device_config_dir)
 	if (aec_config)
 		free(aec_config);
 	aec_config = aec_config_get(device_config_dir);
+	if (apm_config)
+		free(apm_config);
+	apm_config = apm_config_get(device_config_dir);
 
 	update_first_output_dev_to_process();
 	cras_iodev_list_set_device_enabled_callback(
@@ -469,6 +475,14 @@ void cras_apm_list_reload_aec_config()
 	/* Dump the config content at reload only, for debug. */
 	if (aec_config)
 		aec_config_dump(aec_config);
+
+	if (apm_config)
+		free(apm_config);
+	apm_config = apm_config_get(aec_config_dir);
+
+	/* Dump the config content at reload only, for debug. */
+	if (apm_config)
+		apm_config_dump(apm_config);
 }
 
 int cras_apm_list_deinit()
