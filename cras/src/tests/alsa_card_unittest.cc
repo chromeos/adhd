@@ -165,6 +165,10 @@ static void ResetStubData() {
   cras_alsa_mixer_add_main_volume_control_by_name_called = 0;
   cras_alsa_mixer_add_main_volume_control_by_name_return_value = 0;
   ucm_get_echo_reference_dev_name_for_dev_called = 0;
+  fake_dev1.nodes = NULL;
+  fake_dev2.nodes = NULL;
+  fake_dev3.nodes = NULL;
+  fake_dev4.nodes = NULL;
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {

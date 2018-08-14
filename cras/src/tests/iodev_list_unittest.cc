@@ -88,6 +88,8 @@ static std::map<const struct cras_iodev*, int> cras_iodev_has_pinned_stream_ret;
 static struct cras_rstream *audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
 static int cras_iodev_is_zero_volume_ret;
+static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
+static struct cras_ionode fake_sco_in_node, fake_sco_out_node;
 
 int device_in_vector(std::vector<struct cras_iodev*> v, struct cras_iodev *dev)
 {
@@ -211,7 +213,10 @@ class IoDevTestSuite : public testing::Test {
       cras_iodev_is_zero_volume_ret = 0;
       for (int i = 0; i < 5 ; i++)
         update_active_node_iodev_val[i] = NULL;
-
+      DL_APPEND(fake_sco_in_dev.nodes, &fake_sco_in_node);
+      DL_APPEND(fake_sco_out_dev.nodes, &fake_sco_out_node);
+      fake_sco_in_node.is_sco_pcm = 0;
+      fake_sco_out_node.is_sco_pcm = 0;
       dummy_empty_iodev[0].state = CRAS_IODEV_STATE_CLOSE;
       dummy_empty_iodev[0].update_active_node = update_active_node;
       dummy_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
@@ -1576,6 +1581,24 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
   EXPECT_EQ(2, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, GetSCOPCMIodevs) {
+  cras_iodev_list_init();
+
+  fake_sco_in_dev.direction = CRAS_STREAM_INPUT;
+  fake_sco_in_node.is_sco_pcm = 1;
+  cras_iodev_list_add_input(&fake_sco_in_dev);
+  fake_sco_out_dev.direction = CRAS_STREAM_OUTPUT;
+  fake_sco_out_node.is_sco_pcm = 1;
+  cras_iodev_list_add_output(&fake_sco_out_dev);
+
+  EXPECT_EQ(&fake_sco_in_dev,
+	    cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT));
+  EXPECT_EQ(&fake_sco_out_dev,
+	    cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT));
+
   cras_iodev_list_deinit();
 }
 

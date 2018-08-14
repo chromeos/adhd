@@ -1281,6 +1281,22 @@ struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
 	return edev ? edev->dev : NULL;
 }
 
+struct cras_iodev *cras_iodev_list_get_sco_pcm_iodev(
+		enum CRAS_STREAM_DIRECTION direction)
+{
+	struct cras_iodev *dev;
+	struct cras_ionode *node;
+
+	DL_FOREACH(devs[direction].iodevs, dev) {
+		DL_FOREACH(dev->nodes, node) {
+			if (node->is_sco_pcm)
+				return dev;
+		}
+	}
+
+	return NULL;
+}
+
 cras_node_id_t cras_iodev_list_get_active_node_id(
 	enum CRAS_STREAM_DIRECTION direction)
 {

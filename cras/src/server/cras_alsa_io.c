@@ -257,6 +257,16 @@ static const struct {
 		.type = CRAS_NODE_TYPE_LINEOUT,
 		.position = NODE_POSITION_EXTERNAL,
 	},
+	{
+		.name = "SCO Line In",
+		.type = CRAS_NODE_TYPE_BLUETOOTH,
+		.position = NODE_POSITION_EXTERNAL,
+	},
+	{
+		.name = "SCO Line Out",
+		.type = CRAS_NODE_TYPE_BLUETOOTH,
+		.position = NODE_POSITION_EXTERNAL,
+	},
 };
 
 static int set_hwparams(struct cras_iodev *iodev)
@@ -1198,6 +1208,8 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 						   strlen(name),
 						   aio->base.info.stable_id_new
 						   );
+	if (strcmp(name, "SCO Line Out") == 0)
+		output->base.is_sco_pcm = 1;
 	output->mixer_output = cras_output;
 
 	/* Volume curve. */
@@ -1283,6 +1295,8 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	input->base.stable_id_new = SuperFastHash(name,
 						  strlen(name),
 						  aio->base.info.stable_id_new);
+	if (strcmp(name, "SCO Line In") == 0)
+		input->base.is_sco_pcm = 1;
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);

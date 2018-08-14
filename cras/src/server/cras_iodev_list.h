@@ -93,6 +93,15 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out);
 struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
 	enum CRAS_STREAM_DIRECTION direction);
 
+/* Returns SCO PCM device.
+ * Args:
+ *    direction - Playback or capture.
+ * Returns:
+ *    Pointer to the SCO PCM device of direction.
+ */
+struct cras_iodev *cras_iodev_list_get_sco_pcm_iodev(
+	enum CRAS_STREAM_DIRECTION direction);
+
 /* Returns the active node id.
  * Args:
  *    direction - Playback or capture.
