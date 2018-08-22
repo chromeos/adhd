@@ -13,6 +13,7 @@ extern "C" {
 #include "utlist.h"
 #include "cras_audio_area.h"
 #include "audio_thread_log.h"
+#include "input_data.h"
 
 // Mock software volume scalers.
 float softvol_scalers[101];
@@ -107,7 +108,9 @@ static float cras_scale_buffer_increment_increment;
 static int cras_scale_buffer_increment_channel;
 static struct cras_audio_format audio_fmt;
 static int buffer_share_add_id_called;
+static int buffer_share_get_new_write_point_ret;
 static int ext_mod_configure_called;
+static struct input_data *input_data_create_ret;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -2123,6 +2126,55 @@ TEST(IoDev, SetExtDspMod) {
   EXPECT_EQ(3, cras_dsp_pipeline_set_sink_ext_module_called);
 }
 
+TEST(IoDev, InputDspOffset) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  struct cras_rstream rstream1;
+  struct dev_stream stream1;
+  struct input_data data;
+  unsigned int frames = 240;
+
+  ResetStubData();
+
+  rstream1.cb_threshold = 240;
+  rstream1.stream_id = 123;
+  stream1.stream = &rstream1;
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.configure_dev = configure_dev;
+  iodev.ext_format = &fmt;
+  iodev.format = &fmt;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+  iodev.direction = CRAS_STREAM_INPUT;
+  iodev.buffer_size = 480;
+
+  iodev.dsp_context = reinterpret_cast<cras_dsp_context *>(0xf0f);
+  cras_dsp_get_pipeline_ret = 0x25;
+  input_data_create_ret = &data;
+
+  cras_iodev_open(&iodev, 240, &fmt);
+
+  cras_iodev_add_stream(&iodev, &stream1);
+  cras_iodev_get_input_buffer(&iodev, &frames);
+
+  buffer_share_get_new_write_point_ret = 100;
+  cras_iodev_put_input_buffer(&iodev);
+  EXPECT_EQ(140, iodev.input_dsp_offset);
+
+  frames = 130;
+  cras_iodev_get_input_buffer(&iodev, &frames);
+  EXPECT_EQ(130, iodev.input_frames_read);
+
+  buffer_share_get_new_write_point_ret = 80;
+  cras_iodev_put_input_buffer(&iodev);
+  EXPECT_EQ(60, iodev.input_dsp_offset);
+}
+
 extern "C" {
 
 //  From libpthread.
@@ -2163,7 +2215,7 @@ int buffer_share_offset_update(struct buffer_share *mix, unsigned int id,
 }
 
 unsigned int buffer_share_get_new_write_point(struct buffer_share *mix) {
-  return 0;
+  return buffer_share_get_new_write_point_ret;
 }
 
 int buffer_share_add_id(struct buffer_share *mix, unsigned int id) {
@@ -2486,9 +2538,25 @@ int cras_device_monitor_set_device_mute_state(struct cras_iodev *iodev)
   return 0;
 }
 
+static void mod_run(struct ext_dsp_module *ext,
+                    unsigned int nframes)
+{
+}
+
+static void mod_configure(struct ext_dsp_module *ext,
+                          unsigned int buffer_size,
+                          unsigned int num_channels,
+                          unsigned int rate)
+{
+}
+
 struct input_data *input_data_create(void *dev_ptr)
 {
-  return NULL;
+  if (input_data_create_ret) {
+    input_data_create_ret->ext.run = mod_run;
+    input_data_create_ret->ext.configure = mod_configure;
+  }
+  return input_data_create_ret;
 }
 
 void input_data_destroy(struct input_data **data)

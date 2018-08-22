@@ -977,6 +977,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
 int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 {
 	unsigned int min_frames;
+	unsigned int dsp_frames;
 	struct input_data *data = iodev->input_data;
 
 	if (iodev->streams)
@@ -984,7 +985,10 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 	else
 		min_frames = data->area->frames;
 
-	iodev->input_dsp_offset = iodev->input_frames_read - min_frames;
+	// Update the max number of frames has applied input dsp.
+	dsp_frames = MAX(iodev->input_frames_read, iodev->input_dsp_offset);
+	iodev->input_dsp_offset = dsp_frames - min_frames;
+
 	input_data_set_all_streams_read(data, min_frames);
 	rate_estimator_add_frames(iodev->rate_est, -min_frames);
 	return iodev->put_buffer(iodev, min_frames);
