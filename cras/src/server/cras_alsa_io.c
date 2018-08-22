@@ -537,6 +537,7 @@ static int flush_buffer(struct cras_iodev *iodev)
 	snd_pcm_uframes_t nframes;
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
+		nframes = snd_pcm_avail(aio->handle);
 		nframes = snd_pcm_forwardable(aio->handle);
 		return snd_pcm_forward(aio->handle, nframes);
 	}
