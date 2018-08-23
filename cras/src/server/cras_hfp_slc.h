@@ -7,6 +7,7 @@
 #define CRAS_HFP_SLC_H_
 
 struct hfp_slc_handle;
+struct cras_bt_device;
 
 /* Callback to call when service level connection initialized. */
 typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle *handle);
