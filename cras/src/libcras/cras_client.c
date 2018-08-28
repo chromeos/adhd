@@ -2230,6 +2230,7 @@ void cras_client_destroy(struct cras_client *client)
 	client->server_err_cb = NULL;
 	cras_client_stop(client);
 	server_disconnect(client);
+	close(client->server_event_fd);
 	close(client->command_fds[0]);
 	close(client->command_fds[1]);
 	close(client->stream_fds[0]);
