@@ -46,11 +46,13 @@ class TimingSuite : public testing::Test{
       size_t dev_level,
       const timespec* level_timestamp,
       cras_audio_format* dev_format,
-      const std::vector<StreamPtr>& streams) {
+      const std::vector<StreamPtr>& streams,
+      CRAS_NODE_TYPE active_node_type = CRAS_NODE_TYPE_MIC) {
     struct open_dev* dev_list_ = NULL;
 
     DevicePtr dev = create_device(CRAS_STREAM_INPUT, dev_cb_threshold,
-                                  dev_format, CRAS_NODE_TYPE_MIC);
+                                  dev_format, active_node_type);
+    dev->dev->input_streaming = true;
     DL_APPEND(dev_list_, dev->odev.get());
 
     for (auto const& stream : streams) {
@@ -94,6 +96,67 @@ TEST_F(TimingSuite, WaitAfterFill) {
   // And the next wake up should reflect the only attached stream.
   EXPECT_EQ(dev_time.tv_sec, streams[0]->rstream->next_cb_ts.tv_sec);
   EXPECT_EQ(dev_time.tv_nsec, streams[0]->rstream->next_cb_ts.tv_nsec);
+}
+
+// One device with one stream which has block_size larger than the device buffer
+// level. If the device buffer level = 0, the input device wake time should be
+// set to (buffer_size / 2) / device_rate secs.
+TEST_F(TimingSuite, LargeCallbackStreamWithEmptyBuffer) {
+  const size_t cb_threshold = 3000;
+  const size_t dev_cb_threshold = 1200;
+  const size_t dev_level = 0;
+
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  stream->rstream->next_cb_ts = start;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(
+      dev_cb_threshold, dev_level, &start, &format, streams);
+
+  struct timespec delta;
+  subtract_timespecs(&dev_time, &start, &delta);
+  // The next dev wake ts should be 25ms since the buffer level is empty and
+  // 1200 / 48000 = 0.025.
+  EXPECT_EQ(delta.tv_sec, 0);
+  EXPECT_LT(delta.tv_nsec, 25000000 + 5000 * 1000);
+  EXPECT_GT(delta.tv_nsec, 25000000 - 5000 * 1000);
+}
+
+// One device with one stream which has block_size larger than the device buffer
+// level. If the device buffer level = buffer_size / 2, the input device wake
+// time should be set to max(0, 5ms) = 5ms to prevent busy loop occurs.
+TEST_F(TimingSuite, LargeCallbackStreamWithHalfFullBuffer) {
+  const size_t cb_threshold = 3000;
+  const size_t dev_cb_threshold = 1200;
+  const size_t dev_level = 1200;
+
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  stream->rstream->next_cb_ts = start;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(
+      dev_cb_threshold, dev_level, &start, &format, streams);
+
+  struct timespec delta;
+  subtract_timespecs(&dev_time, &start, &delta);
+  // The next dev wake ts should be 5ms since the buffer level is half full.
+  EXPECT_EQ(delta.tv_sec, 0);
+  EXPECT_LT(delta.tv_nsec, 5000000 + 5000 * 1000);
+  EXPECT_GT(delta.tv_nsec, 5000000 - 5000 * 1000);
 }
 
 // One device(48k), one stream(44.1k), write a callback of data and check that
@@ -291,8 +354,8 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsPending) {
   rstream_stub_pending_reply(streams[0]->rstream.get(), 1);
 
   // There is more than 1 cb_threshold of data in device.
-  timespec dev_time = SingleInputDevNextWake(4096, 7000, &start,
-                                             &fmt, streams);
+  timespec dev_time = SingleInputDevNextWake(
+      4096, 7000, &start, &fmt, streams, CRAS_NODE_TYPE_HOTWORD);
 
   // Need to wait for stream fd in the next ppoll.
   poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());

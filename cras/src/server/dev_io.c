@@ -19,6 +19,11 @@
 
 #include "dev_io.h"
 
+/* The minimum wake time for a input device, which is 5ms */
+static const struct timespec min_input_dev_wake_ts = {
+	0, 5 * 1000 * 1000 /* 5 ms. */
+};
+
 static const struct timespec playback_wake_fuzz_ts = {
 	0, 500 * 1000 /* 500 usec. */
 };
@@ -248,13 +253,55 @@ static unsigned int get_stream_limit(
 }
 
 /*
+ * Get input device maximum sleep time, which is the approximate time that the
+ * device will have hw_level = buffer_size / 2 samples. Some devices have
+ * capture period = 2 so the audio_thread should wake up and consume some
+ * samples from hardware at that time. To prevent busy loop occurs, the returned
+ * sleep time should be >= 5ms.
+ *
+ * Returns: 0 on success negative error on device failure.
+ */
+
+static int get_input_dev_max_wake_ts(
+	struct open_dev *adev,
+	unsigned int curr_level,
+	struct timespec *res_ts)
+{
+	struct timespec dev_wake_ts, now;
+	unsigned int dev_rate, half_buffer_size, target_frames;
+
+	if(!adev || !adev->dev || !adev->dev->format ||
+	   !adev->dev->format->frame_rate || !adev->dev->buffer_size)
+		return -EINVAL;
+
+	*res_ts = min_input_dev_wake_ts;
+
+	dev_rate = adev->dev->format->frame_rate;
+	half_buffer_size = adev->dev->buffer_size / 2;
+	if(curr_level < half_buffer_size)
+		target_frames = half_buffer_size - curr_level;
+	else
+		target_frames = 0;
+
+	cras_frames_to_time(target_frames, dev_rate, &dev_wake_ts);
+
+	if (timespec_after(&dev_wake_ts, res_ts)) {
+		*res_ts = dev_wake_ts;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	add_timespecs(res_ts, &now);
+	return 0;
+}
+
+/*
  * Set wake_ts for this device to be the earliest wake up time for
  * dev_streams.
  */
 static int set_input_dev_wake_ts(struct open_dev *adev)
 {
 	int rc;
-	struct timespec level_tstamp, wake_time_out, min_ts, now;
+	struct timespec level_tstamp, wake_time_out, min_ts, now, dev_wake_ts;
 	unsigned int curr_level, cap_limit;
 	struct dev_stream *stream;
 	struct dev_stream *cap_limit_stream;
@@ -273,8 +320,8 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
 
-	cap_limit = get_stream_limit(adev, adev->dev->buffer_size,
-				     &cap_limit_stream);
+	cap_limit = get_stream_limit(adev, UINT_MAX, &cap_limit_stream);
+
 	/*
 	 * Loop through streams to find the earliest time audio thread
 	 * should wake up.
@@ -303,8 +350,22 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 			min_ts = wake_time_out;
 		}
 	}
+
+	if(adev->dev->active_node &&
+	   adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
+	{
+		rc = get_input_dev_max_wake_ts(adev, curr_level, &dev_wake_ts);
+		if(rc < 0) {
+			syslog(LOG_ERR,
+			       "Failed to call get_input_dev_max_wake_ts."
+			       "rc = %d", rc);
+		} else if(timespec_after(&min_ts, &dev_wake_ts)) {
+			min_ts = dev_wake_ts;
+		}
+	}
+
 	adev->wake_ts = min_ts;
-	return 0;
+	return rc;
 }
 
 /* Read samples from an input device to the specified stream.
