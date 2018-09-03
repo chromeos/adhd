@@ -264,6 +264,11 @@ static inline int stream_uses_input(const struct cras_rstream *s)
 	return cras_stream_uses_input_hw(s->direction);
 }
 
+static inline int stream_is_server_only(const struct cras_rstream *s)
+{
+	return s->flags & SERVER_ONLY;
+}
+
 /* Gets the enabled effects of this stream. */
 unsigned int cras_rstream_get_effects(const struct cras_rstream *stream);
 

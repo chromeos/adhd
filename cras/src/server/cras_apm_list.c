@@ -321,14 +321,28 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
 }
 
 /*
- * Updates the first enabled output iodev in the list and register
- * rmodule as ext dsp module to it. When this iodev is opened and
- * output data starts flow, APMs can anaylize the reverse stream.
- * This is expected to be called in main thread when output devices
- * enable/dsiable state changes.
+ * Determines the iodev to be used as the echo reference for APM reverse
+ * analysis. If there exists the special purpose "echo reference dev" then
+ * use it. Otherwise just use this output iodev.
+ */
+static struct cras_iodev *get_echo_reference_target(struct cras_iodev *iodev)
+{
+	return iodev->echo_reference_dev
+			? iodev->echo_reference_dev
+			: iodev;
+}
+
+/*
+ * Updates the first enabled output iodev in the list, determine the echo
+ * reference target base on this output iodev, and register rmodule as ext dsp
+ * module to this echo reference target.
+ * When this echo reference iodev is opened and audio data flows through its
+ * dsp pipeline, APMs will anaylize the reverse stream. This is expected to be
+ * called in main thread when output devices enable/dsiable state changes.
  */
 static void update_first_output_dev_to_process()
 {
+	struct cras_iodev *echo_ref;
 	struct cras_iodev *iodev =
 			cras_iodev_list_get_first_enabled_iodev(
 				CRAS_STREAM_OUTPUT);
@@ -336,8 +350,9 @@ static void update_first_output_dev_to_process()
 	if (iodev == NULL)
 		return;
 
-	rmodule->odev = iodev;
-	cras_iodev_set_ext_dsp_module(iodev, &rmodule->ext);
+	echo_ref = get_echo_reference_target(iodev);
+	rmodule->odev = echo_ref;
+	cras_iodev_set_ext_dsp_module(echo_ref, &rmodule->ext);
 }
 
 static void handle_device_enabled(struct cras_iodev *iodev, void *cb_data)
@@ -351,11 +366,15 @@ static void handle_device_enabled(struct cras_iodev *iodev, void *cb_data)
 
 static void handle_device_disabled(struct cras_iodev *iodev, void *cb_data)
 {
+	struct cras_iodev *echo_ref;
+
 	if (iodev->direction != CRAS_STREAM_OUTPUT)
 		return;
 
-	if (rmodule->odev == iodev) {
-		cras_iodev_set_ext_dsp_module(iodev, NULL);
+	echo_ref = get_echo_reference_target(iodev);
+
+	if (rmodule->odev == echo_ref) {
+		cras_iodev_set_ext_dsp_module(echo_ref, NULL);
 		rmodule->odev = NULL;
 	}
 

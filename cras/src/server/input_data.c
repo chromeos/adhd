@@ -74,6 +74,9 @@ void input_data_destroy(struct input_data **data)
 void input_data_set_all_streams_read(struct input_data *data,
 				     unsigned int nframes)
 {
+	if (!data->fbuffer)
+		return;
+
 	if (float_buffer_level(data->fbuffer) < nframes) {
 		syslog(LOG_ERR, "All streams read %u frames exceeds %u"
 		       " in input_data's buffer",

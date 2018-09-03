@@ -17,6 +17,7 @@
 #include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_system_state.h"
+#include "server_stream.h"
 #include "stream_list.h"
 #include "test_iodev.h"
 #include "utlist.h"
@@ -377,16 +378,60 @@ static void remove_all_streams_from_dev(struct cras_iodev *dev)
 	}
 }
 
-static void close_dev(struct cras_iodev *dev)
+/*
+ * If output dev has an echo reference dev associated, add a server
+ * stream to read audio data from it so APM can analyze.
+ */
+static void possibly_enable_echo_reference(struct cras_iodev *dev)
+{
+	if (dev->direction != CRAS_STREAM_OUTPUT)
+		return;
+
+	if (dev->echo_reference_dev == NULL)
+		return;
+
+	server_stream_create(stream_list, dev->echo_reference_dev->info.idx);
+}
+
+/*
+ * If output dev has an echo reference dev associated, check if there
+ * is server stream opened for it and remove it.
+ */
+static void possibly_disable_echo_reference(struct cras_iodev *dev)
+{
+	if (dev->echo_reference_dev == NULL)
+		return;
+
+	server_stream_destroy(stream_list, dev->echo_reference_dev->info.idx);
+}
+
+/*
+ * Close dev if it's opened, without the extra call to idle_dev_check.
+ * This is useful for closing a dev inside idle_dev_check function to
+ * avoid infinite recursive call.
+ *
+ * Returns:
+ *    -EINVAL if device was not opened, otherwise return 0.
+ */
+static int close_dev_without_idle_check(struct cras_iodev *dev)
 {
 	if (!cras_iodev_is_open(dev))
-	       return;
+	       return -EINVAL;
 	if (cras_iodev_has_pinned_stream(dev))
 		syslog(LOG_ERR, "Closing device with pinned streams.");
 
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
+	possibly_disable_echo_reference(dev);
+	return 0;
+}
+
+static void close_dev(struct cras_iodev *dev)
+{
+	if (close_dev_without_idle_check(dev))
+		return;
+
 	if (idle_timer)
 		cras_tm_cancel_timer(cras_system_state_get_tm(), idle_timer);
 	idle_dev_check(NULL, NULL);
@@ -408,9 +453,7 @@ static void idle_dev_check(struct cras_timer *timer, void *data)
 		if (edev->dev->idle_timeout.tv_sec == 0)
 			continue;
 		if (timespec_after(&now, &edev->dev->idle_timeout)) {
-			remove_all_streams_from_dev(edev->dev);
-			edev->dev->idle_timeout.tv_sec = 0;
-			cras_iodev_close(edev->dev);
+			close_dev_without_idle_check(edev->dev);
 			continue;
 		}
 		num_idle_devs++;
@@ -455,6 +498,9 @@ static int init_device(struct cras_iodev *dev,
 	rc = audio_thread_add_open_dev(audio_thread, dev);
 	if (rc)
 		cras_iodev_close(dev);
+
+	possibly_enable_echo_reference(dev);
+
 	return rc;
 }
 

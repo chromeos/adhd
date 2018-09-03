@@ -69,12 +69,15 @@ enum CRAS_STREAM_DIRECTION {
  *      Google".  Hardware will wake the device when this phrase is heard.
  *  TRIGGER_ONLY - This stream only wants to receive when the data is available
  *      and does not want to receive data. Used with HOTWORD_STREAM.
+ *  SERVER_ONLY - This stream doesn't associate to a client. It's used mainly
+ *      for audio data to flow from hardware through iodev's dsp pipeline.
  */
 enum CRAS_INPUT_STREAM_FLAG {
 	BULK_AUDIO_OK = 0x01,
 	USE_DEV_TIMING = 0x02,
 	HOTWORD_STREAM = BULK_AUDIO_OK | USE_DEV_TIMING,
 	TRIGGER_ONLY = 0x04,
+	SERVER_ONLY = 0x08,
 };
 
 /*

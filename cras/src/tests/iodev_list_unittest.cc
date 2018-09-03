@@ -45,6 +45,8 @@ static struct cras_iodev dummy_empty_iodev[2];
 static stream_callback *stream_add_cb;
 static stream_callback *stream_rm_cb;
 static struct cras_rstream *stream_list_get_ret;
+static int server_stream_create_called;
+static int server_stream_destroy_called;
 static int audio_thread_drain_stream_return;
 static int audio_thread_drain_stream_called;
 static int cras_tm_create_timer_called;
@@ -103,6 +105,8 @@ class IoDevTestSuite : public testing::Test {
 
       cras_iodev_close_called = 0;
       stream_list_get_ret = 0;
+      server_stream_create_called = 0;
+      server_stream_destroy_called = 0;
       audio_thread_drain_stream_return = 0;
       audio_thread_drain_stream_called = 0;
       cras_tm_create_timer_called = 0;
@@ -344,6 +348,53 @@ TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
   /* open dev called twice, one for fallback device. */
   EXPECT_EQ(2, cras_iodev_open_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, InitDevWithEchoRef) {
+  int rc;
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.echo_reference_dev = &d2_;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d2_.direction = CRAS_STREAM_INPUT;
+  snprintf(d2_.active_node->name, CRAS_NODE_NAME_BUFFER_SIZE, "echo ref");
+  rc = cras_iodev_list_add_input(&d2_);
+  ASSERT_EQ(0, rc);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+      cras_make_node_id(d1_.info.idx, 0));
+  /* Default dev closed. */
+  EXPECT_EQ(1, cras_iodev_close_called);
+
+  cras_iodev_open_ret[1] = 0;
+
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream);
+
+  EXPECT_EQ(1, cras_iodev_open_called);
+  EXPECT_EQ(1, server_stream_create_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  DL_DELETE(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_rm_cb(&rstream);
+
+  clock_gettime_retspec.tv_sec = 11;
+  clock_gettime_retspec.tv_nsec = 0;
+  cras_tm_timer_cb(NULL, NULL);
+
+  EXPECT_EQ(2, cras_iodev_close_called);
+  EXPECT_EQ(1, server_stream_destroy_called);
+
   cras_iodev_list_deinit();
 }
 
@@ -1688,6 +1739,16 @@ void stream_list_destroy(struct stream_list *list) {
 
 struct cras_rstream *stream_list_get(struct stream_list *list) {
   return stream_list_get_ret;
+}
+void server_stream_create(struct stream_list *stream_list,
+			  unsigned int dev_idx)
+{
+  server_stream_create_called++;
+}
+void server_stream_destroy(struct stream_list *stream_list,
+			   unsigned int dev_idx)
+{
+  server_stream_destroy_called++;
 }
 
 int cras_rstream_create(struct cras_rstream_config *config,

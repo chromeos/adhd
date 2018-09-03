@@ -414,6 +414,8 @@ int cras_server_init()
 	/* Log to syslog. */
 	openlog("cras_server", LOG_PID, LOG_USER);
 
+	server_instance.next_client_id = RESERVED_CLIENT_IDS;
+
 	/* Initialize global observer. */
 	cras_observer_server_init();
 

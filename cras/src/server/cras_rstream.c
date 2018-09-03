@@ -337,6 +337,12 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 
 	cras_shm_buffer_write_complete(&stream->shm);
 
+	/* Mark shm as used. */
+	if (stream_is_server_only(stream)) {
+		cras_shm_buffer_read_current(&stream->shm, count);
+		return 0;
+	}
+
 	init_audio_message(&msg, AUDIO_MESSAGE_DATA_READY, count);
 	rc = write(stream->fd, &msg, sizeof(msg));
 	if (rc < 0)
@@ -461,6 +467,9 @@ int cras_rstream_flush_old_audio_messages(struct cras_rstream *stream)
 	int err;
 
 	if (!stream->fd)
+		return 0;
+
+	if (stream_is_server_only(stream))
 		return 0;
 
 	pollfd.fd = stream->fd;

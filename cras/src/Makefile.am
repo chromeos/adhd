@@ -149,6 +149,7 @@ cras_server_SOURCES = \
 	server/input_data.c \
 	server/linear_resampler.c \
 	server/polled_interval_checker.c \
+	server/server_stream.c \
 	server/stream_list.c \
 	server/test_iodev.c \
 	server/rate_estimator.c \

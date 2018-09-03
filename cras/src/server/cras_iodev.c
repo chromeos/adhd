@@ -932,7 +932,11 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 			iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
 	} else {
 		iodev->input_data = input_data_create(iodev);
-		iodev->ext_dsp_module = &iodev->input_data->ext;
+		/* If this is the echo reference dev, its ext_dsp_module will
+		 * be set to APM reverse module. Do not override it to its
+		 * input data. */
+		if (iodev->ext_dsp_module == NULL)
+			iodev->ext_dsp_module = &iodev->input_data->ext;
 
 		/* Input device starts running right after opening.
 		 * No stream state is only for output device. Input device
@@ -959,8 +963,11 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	if (!cras_iodev_is_open(iodev))
 		return 0;
 
-	if (iodev->input_data)
+	if (iodev->input_data) {
+		if (iodev->ext_dsp_module == &iodev->input_data->ext)
+			iodev->ext_dsp_module = NULL;
 		input_data_destroy(&iodev->input_data);
+	}
 
 	rc = iodev->close_dev(iodev);
 	if (rc)

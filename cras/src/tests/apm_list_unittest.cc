@@ -28,6 +28,7 @@ static unsigned int webrtc_apm_process_stream_f_called;
 static unsigned int webrtc_apm_process_reverse_stream_f_called;
 static device_enabled_callback_t device_enabled_callback_val;
 static struct ext_dsp_module *ext_dsp_module_value;
+static struct cras_iodev fake_iodev;
 
 
 TEST(ApmList, ApmListCreate) {
@@ -183,7 +184,7 @@ int cras_iodev_list_set_device_enabled_callback(
 struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
 	enum CRAS_STREAM_DIRECTION direction)
 {
-  return reinterpret_cast<struct cras_iodev *>(0x111);
+  return &fake_iodev;
 }
 void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
 				   struct ext_dsp_module *ext)
