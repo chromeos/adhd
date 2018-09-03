@@ -687,7 +687,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		syslog(LOG_ERR, "pcm_avail error %s, %s\n",
 		       dev_name, snd_strerror(rc));
 		goto error;
-	} else if (frames >= (snd_pcm_sframes_t)buf_size) {
+	} else if (frames > (snd_pcm_sframes_t)buf_size) {
 		struct timespec tstamp_now;
 		clock_gettime(CLOCK_MONOTONIC_RAW, &tstamp_now);
 		/* Limit the log rate. */
