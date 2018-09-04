@@ -704,23 +704,7 @@ int write_output_samples(struct open_dev **odevs,
 	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE, hw_level,
 	      total_written, odev->min_cb_level);
 
-	/* Update device wake up time and get the new hardware level. */
-	update_dev_wakeup_time(adev, &hw_level);
-
-	/*
-	 * If new hardware level is less than or equal to the written frames, we can
-	 * suppose underrun happened. But keep in mind there may have a false
-	 * positive. If hardware level changed just after frames being written, we may
-	 * get hw_level <= total _written here without underrun happened. However, we
-	 * can still treat it as underrun because it is an abnormal state we should
-	 * handle it.
-	 */
-	if (hw_level <= total_written) {
-		ATLOG(atlog, AUDIO_THREAD_UNDERRUN, adev->dev->info.idx, hw_level,
-		      total_written);
-		return cras_iodev_output_underrun(odev);
-	}
-	return 0;
+	return total_written;
 }
 
 /*
@@ -779,12 +763,29 @@ void dev_io_playback_fetch(struct open_dev *odev_list)
 	}
 }
 
+static void handle_output_dev_err(
+		int err_rc,
+		struct open_dev **odevs,
+		struct open_dev *adev)
+{
+	if (err_rc == -EPIPE) {
+		/* Handle severe underrun. */
+		ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN,
+		      adev->dev->info.idx, 0, 0);
+		cras_iodev_reset_request(adev->dev);
+	} else {
+		/* Device error, close it. */
+		dev_io_rm_open_dev(odevs, adev);
+	}
+}
+
 int dev_io_playback_write(struct open_dev **odevs,
 			  struct cras_fmt_conv *output_converter)
 {
 	struct open_dev *adev;
 	struct dev_stream *curr;
 	int rc;
+	unsigned int hw_level, total_written;
 
 	/* For multiple output case, update the number of queued frames in shm
 	 * of all streams before starting write output samples. */
@@ -802,14 +803,36 @@ int dev_io_playback_write(struct open_dev **odevs,
 
 		rc = write_output_samples(odevs, adev, output_converter);
 		if (rc < 0) {
-			if (rc == -EPIPE) {
-				/* Handle severe underrun. */
-				ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN,
-				      adev->dev->info.idx, 0, 0);
-				cras_iodev_reset_request(adev->dev);
-			} else {
-				/* Device error, close it. */
-				dev_io_rm_open_dev(odevs, adev);
+			handle_output_dev_err(rc, odevs, adev);
+		} else {
+			total_written = rc;
+
+			/*
+			 * Update device wake up time and get the new hardware
+			 * level.
+			 */
+			update_dev_wakeup_time(adev, &hw_level);
+
+			/*
+			 * If new hardware level is less than or equal to the
+			 * written frames, we can suppose underrun happened. But
+			 * keep in mind there may have a false positive. If
+			 * hardware level changed just after frames being
+			 * written, we may get hw_level <= total_written here
+			 * without underrun happened. However, we can still
+			 * treat it as underrun because it is an abnormal state
+			 * we should handle it.
+			 */
+			if (hw_level <= total_written) {
+				ATLOG(atlog, AUDIO_THREAD_UNDERRUN,
+				      adev->dev->info.idx,
+				      hw_level, total_written);
+				rc = cras_iodev_output_underrun(adev->dev);
+				if(rc < 0) {
+					handle_output_dev_err(rc, odevs, adev);
+				} else {
+					update_dev_wakeup_time(adev, &hw_level);
+				}
 			}
 		}
 	}
