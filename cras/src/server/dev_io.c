@@ -19,11 +19,6 @@
 
 #include "dev_io.h"
 
-/* The minimum wake time for a input device, which is 5ms */
-static const struct timespec min_input_dev_wake_ts = {
-	0, 5 * 1000 * 1000 /* 5 ms. */
-};
-
 static const struct timespec playback_wake_fuzz_ts = {
 	0, 500 * 1000 /* 500 usec. */
 };
@@ -253,6 +248,14 @@ static unsigned int get_stream_limit(
 }
 
 /*
+ * The minimum wake time for a input device, which is 5ms. It's only used by
+ * function get_input_dev_max_wake_ts.
+ */
+static const struct timespec min_input_dev_wake_ts = {
+	0, 5 * 1000 * 1000 /* 5 ms. */
+};
+
+/*
  * Get input device maximum sleep time, which is the approximate time that the
  * device will have hw_level = buffer_size / 2 samples. Some devices have
  * capture period = 2 so the audio_thread should wake up and consume some
@@ -261,7 +264,6 @@ static unsigned int get_stream_limit(
  *
  * Returns: 0 on success negative error on device failure.
  */
-
 static int get_input_dev_max_wake_ts(
 	struct open_dev *adev,
 	unsigned int curr_level,
@@ -352,8 +354,7 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	}
 
 	if(adev->dev->active_node &&
-	   adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
-	{
+	   adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD) {
 		rc = get_input_dev_max_wake_ts(adev, curr_level, &dev_wake_ts);
 		if(rc < 0) {
 			syslog(LOG_ERR,
