@@ -1719,16 +1719,31 @@ static int fill_whole_buffer_with_zeros(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int adjust_appl_ptr(struct cras_iodev *odev)
+/*
+ * Move appl_ptr to min_buffer_level + min_cb_level frames ahead of hw_ptr
+ * when resuming from free run.
+ */
+static int adjust_appl_ptr_for_leaving_free_run(struct cras_iodev *odev)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
+	snd_pcm_uframes_t ahead;
 
-	/* Move appl_ptr to min_buffer_level + min_cb_level frames ahead of
-	 * hw_ptr when resuming from free run or adjusting appl_ptr from
-	 * underrun. */
-	return cras_alsa_resume_appl_ptr(
-			aio->handle,
-			odev->min_buffer_level + odev->min_cb_level);
+	ahead = odev->min_buffer_level + odev->min_cb_level;
+	return cras_alsa_resume_appl_ptr(aio->handle, ahead);
+}
+
+/*
+ * Move appl_ptr to min_buffer_level + min_cb_level * 1.5 frames ahead of
+ * hw_ptr when adjusting appl_ptr from underrun.
+ */
+static int adjust_appl_ptr_for_underrun(struct cras_iodev *odev)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+	snd_pcm_uframes_t ahead;
+
+	ahead = odev->min_buffer_level + odev->min_cb_level +
+		odev->min_cb_level / 2;
+	return cras_alsa_resume_appl_ptr(aio->handle, ahead);
 }
 
 /* This function is for leaving no-stream state but still not in free run yet.
@@ -1786,7 +1801,7 @@ static int alsa_output_underrun(struct cras_iodev *odev)
 	if (rc)
 		return rc;
 	/* Adjust appl_ptr to leave underrun. */
-	return adjust_appl_ptr(odev);
+	return adjust_appl_ptr_for_underrun(odev);
 }
 
 static int possibly_enter_free_run(struct cras_iodev *odev)
@@ -1844,7 +1859,7 @@ static int leave_free_run(struct cras_iodev *odev)
 	int rc;
 
 	if (aio->is_free_running)
-		rc = adjust_appl_ptr(odev);
+		rc = adjust_appl_ptr_for_leaving_free_run(odev);
 	else
 		rc = adjust_appl_ptr_samples_remaining(odev);
 	if (rc) {
