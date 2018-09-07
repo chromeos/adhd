@@ -45,6 +45,8 @@ struct card_list {
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
  *    tm - The system-wide timer manager.
+ *    add_task - Function to handle adding a task for main thread to execute.
+ *    task_data - Data to be passed to add_task handler function.
  */
 static struct {
 	struct cras_server_state *exp_state;
@@ -63,6 +65,10 @@ static struct {
 		      void *cb_data, void *select_data);
 	void (*fd_rm)(int fd, void *select_data);
 	void *select_data;
+	int (*add_task)(void (*callback)(void *data),
+					 void *callback_data,
+					 void *task_data);
+	void *task_data;
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 } state;
 
@@ -428,6 +434,27 @@ int cras_system_add_select_fd(int fd,
 		return -EINVAL;
 	return state.fd_add(fd, callback, callback_data,
 			    state.select_data);
+}
+
+int cras_system_set_add_task_handler(int (*add_task)(void (*cb)(void *data),
+						     void *callback_data,
+						     void *task_data),
+				     void *task_data)
+{
+	if (state.add_task != NULL)
+		return -EEXIST;
+
+	state.add_task = add_task;
+	state.task_data = task_data;
+	return 0;
+}
+
+int cras_system_add_task(void (*callback)(void *data), void *callback_data)
+{
+	if (state.add_task == NULL)
+		return -EINVAL;
+
+	return state.add_task(callback, callback_data, state.task_data);
 }
 
 void cras_system_rm_select_fd(int fd)

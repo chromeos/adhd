@@ -91,11 +91,19 @@ struct client_callback {
 	struct client_callback *prev, *next;
 };
 
+/* Stores callback function and argument data to be executed later. */
+struct system_task {
+	void (*callback)(void *);
+	void *callback_data;
+	struct system_task *next, *prev;
+};
+
 /* Local server data. */
 struct server_data {
 	struct attached_client *clients_head;
 	size_t num_clients;
 	struct client_callback *client_callbacks;
+	struct system_task *system_tasks;
 	size_t num_client_callbacks;
 	size_t next_client_id;
 } server_instance;
@@ -291,6 +299,31 @@ static void rm_select_fd(int fd, void *server_data)
 			client_cb->deleted = 1;
 }
 
+/* Creates a new task entry and append to system_tasks list, which will be
+ * executed in main loop later without wait time.
+ */
+static int add_task(void (*cb)(void *data),
+		    void *callback_data,
+		    void *server_data)
+{
+	struct server_data *serv;
+	struct system_task *new_task;
+
+	serv = (struct server_data *)server_data;
+	if (serv == NULL)
+		return -EINVAL;
+
+	new_task = (struct system_task *)calloc(1, sizeof(*new_task));
+	if (new_task == NULL)
+		return -ENOMEM;
+
+	new_task->callback = cb;
+	new_task->callback_data = callback_data;
+
+	DL_APPEND(serv->system_tasks, new_task);
+	return 0;
+}
+
 /* Cleans up the file descriptor list removing items deleted during the main
  * loop iteration. */
 static void cleanup_select_fds(void *server_data)
@@ -392,6 +425,7 @@ int cras_server_init()
 	 * from the list that are passed to select in the main loop below. */
 	cras_system_set_select_handler(add_select_fd, rm_select_fd,
 				       &server_instance);
+	cras_system_set_add_task_handler(add_task, &server_instance);
 	cras_main_message_init();
 
 	return 0;
@@ -409,8 +443,10 @@ int cras_server_run(unsigned int profile_disable_mask)
 	struct sockaddr_un addr;
 	struct attached_client *elm;
 	struct client_callback *client_cb;
+	struct system_task *tasks;
+	struct system_task *system_task;
 	struct cras_tm *tm;
-	struct timespec ts;
+	struct timespec ts, *poll_timeout;
 	int timers_active;
 	struct pollfd *pollfds;
 	unsigned int pollfds_size = 32;
@@ -533,10 +569,26 @@ int cras_server_run(unsigned int profile_disable_mask)
 			num_pollfds++;
 		}
 
+		tasks = server_instance.system_tasks;
+		server_instance.system_tasks = NULL;
+		DL_FOREACH(tasks, system_task) {
+			system_task->callback(system_task->callback_data);
+			DL_DELETE(tasks, system_task);
+			free(system_task);
+		}
+
 		timers_active = cras_tm_get_next_timeout(tm, &ts);
 
-		rc = ppoll(pollfds, num_pollfds,
-			   timers_active ? &ts : NULL, NULL);
+		/*
+		 * If new client task has been scheduled, no need to wait
+		 * for timeout, just do another loop to execute them.
+		 */
+		if (server_instance.system_tasks)
+			poll_timeout = NULL;
+		else
+			poll_timeout = timers_active ? &ts : NULL;
+
+		rc = ppoll(pollfds, num_pollfds, poll_timeout, NULL);
 		if  (rc < 0)
 			continue;
 

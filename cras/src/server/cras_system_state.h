@@ -191,6 +191,30 @@ int cras_system_add_select_fd(int fd,
  */
 void cras_system_rm_select_fd(int fd);
 
+/*
+ * Register the function to use to add a task for main thread to execute.
+ * Args:
+ *    add_task - The function to call when new task is added.
+ *    task_data - Additional data to pass back to add_task.
+ * Returns:
+ *    0 on success, or -EEXIST if there's already a registered handler.
+ */
+int cras_system_set_add_task_handler(int (*add_task)(void (*cb)(void *data),
+						     void *callback_data,
+						     void *task_data),
+				     void *task_data);
+
+/*
+ * Adds a task callback and data pair, to be executed in the next main thread
+ * loop without additional wait time.
+ * Args:
+ *    callback - The function to execute.
+ *    callback_data - The data to be passed to callback when executed.
+ * Returns:
+ *    0 on success, or -EINVAL if there's no handler for adding task.
+ */
+int cras_system_add_task(void (*callback)(void *data), void *callback_data);
+
 /* Signals that an audio input or output stream has been added to the system.
  * This allows the count of active streams can be used to notice when the audio
  * subsystem is idle.

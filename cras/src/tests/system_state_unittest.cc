@@ -18,8 +18,10 @@ size_t cras_alsa_card_create_called;
 size_t cras_alsa_card_destroy_called;
 static size_t add_stub_called;
 static size_t rm_stub_called;
+static size_t add_task_stub_called;
 static size_t callback_stub_called;
 static void *select_data_value;
+static void *task_data_value;
 static size_t add_callback_called;
 static cras_alert_cb add_callback_cb;
 static void *add_callback_arg;
@@ -42,6 +44,7 @@ static void ResetStubData() {
   kFakeAlsaCard = reinterpret_cast<struct cras_alsa_card*>(0x33);
   add_stub_called = 0;
   rm_stub_called = 0;
+  add_task_stub_called = 0;
   callback_stub_called = 0;
   add_callback_called = 0;
   rm_callback_called = 0;
@@ -66,6 +69,15 @@ static int add_stub(int fd, void (*cb)(void *data),
 static void rm_stub(int fd, void *select_data) {
   rm_stub_called++;
   select_data_value = select_data;
+}
+
+static int add_task_stub(void (*cb)(void *data),
+                         void *callback_data,
+                         void *task_data)
+{
+  add_task_stub_called++;
+  task_data_value = task_data;
+  return 0;
 }
 
 static void callback_stub(void *data) {
@@ -370,6 +382,26 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   EXPECT_EQ(1, rm_stub_called);
   EXPECT_EQ(0, callback_stub_called);
   EXPECT_EQ(select_data, select_data_value);
+  cras_system_state_deinit();
+}
+
+TEST(SystemSettingsAddTask, AddTask) {
+  void *stub_data = reinterpret_cast<void *>(44);
+  void *task_data = reinterpret_cast<void *>(33);
+  int rc;
+
+  do_sys_init();
+  rc = cras_system_add_task(callback_stub, stub_data);
+  EXPECT_NE(0, rc);
+  EXPECT_EQ(0, add_task_stub_called);
+  rc = cras_system_set_add_task_handler(add_task_stub, task_data);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, add_task_stub_called);
+  rc = cras_system_add_task(callback_stub, stub_data);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, add_task_stub_called);
+  EXPECT_EQ(task_data, task_data_value);
+
   cras_system_state_deinit();
 }
 
