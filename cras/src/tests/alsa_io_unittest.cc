@@ -2210,6 +2210,7 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
 TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   int rc;
   int16_t *zeros;
+  snd_pcm_uframes_t offset;
 
   aio.num_underruns = 0;
 
@@ -2222,11 +2223,12 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   zeros = (int16_t *)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
   EXPECT_EQ(0, memcmp(zeros, cras_alsa_mmap_begin_buffer, BUFFER_SIZE * 2 * 2));
 
-  // appl_ptr should be moved to min_buffer_level + min_cb_level ahead of
+  // appl_ptr should be moved to min_buffer_level + 1.5 * min_cb_level ahead of
   // hw_ptr.
+  offset = aio.base.min_buffer_level + aio.base.min_cb_level +
+	   aio.base.min_cb_level / 2;
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
-  EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
-            cras_alsa_resume_appl_ptr_ahead);
+  EXPECT_EQ(offset, cras_alsa_resume_appl_ptr_ahead);
 
   free(zeros);
 }
