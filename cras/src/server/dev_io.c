@@ -815,6 +815,13 @@ int dev_io_playback_write(struct open_dev **odevs,
 			update_dev_wakeup_time(adev, &hw_level);
 
 			/*
+			 * Skip the underrun check for non-normal state device.
+			 */
+			if (cras_iodev_state(adev->dev) !=
+			    CRAS_IODEV_STATE_NORMAL_RUN)
+				continue;
+
+			/*
 			 * If new hardware level is less than or equal to the
 			 * written frames, we can suppose underrun happened. But
 			 * keep in mind there may have a false positive. If
