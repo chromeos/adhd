@@ -22,6 +22,7 @@ void input_data_run(struct ext_dsp_module *ext,
 	float *const *wp;
 	int i;
 	unsigned int writable;
+	unsigned int offset = 0;
 
 	while (nframes) {
 		writable = float_buffer_writable(data->fbuffer);
@@ -32,9 +33,11 @@ void input_data_run(struct ext_dsp_module *ext,
 		}
 		wp = float_buffer_write_pointer(data->fbuffer);
 		for (i = 0; i < data->fbuffer->num_channels; i++)
-			memcpy(wp[i], ext->ports[i], writable * sizeof(float));
+			memcpy(wp[i], ext->ports[i] + offset, writable * sizeof(float));
+
 		float_buffer_written(data->fbuffer, writable);
 		nframes -= writable;
+		offset += writable;
 	}
 }
 
