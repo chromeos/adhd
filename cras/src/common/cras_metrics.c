@@ -32,12 +32,30 @@ void cras_metrics_log_histogram(const char *name, int sample, int min,
 	CMetricsLibrarySendToUMA(handle, name, sample, min, max, nbuckets);
 	CMetricsLibraryDelete(handle);
 }
+
+void cras_metrics_log_sparse_histogram(const char *name, int sample)
+{
+	CMetricsLibrary handle;
+
+	syslog(LOG_DEBUG, "UMA name: %s", name);
+	handle = CMetricsLibraryNew();
+	CMetricsLibraryInit(handle);
+	CMetricsLibrarySendSparseToUMA(handle, name, sample);
+	CMetricsLibraryDelete(handle);
+}
+
 #else
 void cras_metrics_log_event(const char *event)
 {
 }
 void cras_metrics_log_histogram(const char *name, int sample, int min,
 				int max, int nbuckets)
+{
+}
+void cras_metrics_log_enum_histogram(const char *name, int sample, int max)
+{
+}
+void cras_metrics_log_sparse_histogram(const char *name, int sample)
 {
 }
 #endif

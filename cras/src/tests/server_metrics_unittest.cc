@@ -8,6 +8,7 @@
 extern "C" {
 #include "cras_server_metrics.c"
 #include "cras_main_message.h"
+#include "cras_rstream.h"
 }
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;
@@ -37,7 +38,7 @@ TEST(ServerMetricsTestSuite, SetMetricsLongestFetchDelay) {
   EXPECT_EQ(sent_msg->header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
   EXPECT_EQ(sent_msg->metrics_type, LONGEST_FETCH_DELAY);
-  EXPECT_EQ(sent_msg->data, delay);
+  EXPECT_EQ(sent_msg->data.value, delay);
 
   free(sent_msg);
 }
@@ -52,7 +53,32 @@ TEST(ServerMetricsTestSuite, SetMetricsNumUnderruns) {
   EXPECT_EQ(sent_msg->header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
   EXPECT_EQ(sent_msg->metrics_type, NUM_UNDERRUNS);
-  EXPECT_EQ(sent_msg->data, underrun);
+  EXPECT_EQ(sent_msg->data.value, underrun);
+
+  free(sent_msg);
+}
+
+TEST(ServerMetricsTestSuite, SetMetricsStreamConfig) {
+  ResetStubData();
+  struct cras_rstream_config config;
+  struct cras_audio_format format;
+  sent_msg = (struct cras_server_metrics_message *)calloc(1, sizeof(*sent_msg));
+
+  config.cb_threshold = 1024;
+  config.flags = BULK_AUDIO_OK;
+  format.format = SND_PCM_FORMAT_S16_LE;
+  format.frame_rate = 48000;
+
+  config.format = &format;
+  cras_server_metrics_stream_config(&config);
+
+  EXPECT_EQ(sent_msg->header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
+  EXPECT_EQ(sent_msg->metrics_type, STREAM_CONFIG);
+  EXPECT_EQ(sent_msg->data.stream_config.cb_threshold, 1024);
+  EXPECT_EQ(sent_msg->data.stream_config.flags, BULK_AUDIO_OK);
+  EXPECT_EQ(sent_msg->data.stream_config.format, SND_PCM_FORMAT_S16_LE);
+  EXPECT_EQ(sent_msg->data.stream_config.rate, 48000);
 
   free(sent_msg);
 }

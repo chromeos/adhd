@@ -17,6 +17,7 @@
 #include "cras_observer.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -106,6 +107,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 			       stream->stream_id);
 		goto reply_err;
 	}
+
+	/* Metrics logs the stream configurations. */
+	cras_server_metrics_stream_config(&stream_config);
 
 	return 0;
 
