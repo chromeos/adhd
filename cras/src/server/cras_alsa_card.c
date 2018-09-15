@@ -417,6 +417,9 @@ static void configure_echo_reference_dev(struct cras_alsa_card *alsa_card)
 	struct iodev_list_node *dev_node, *echo_ref_node;
 	const char *echo_ref_name;
 
+	if (!alsa_card->ucm)
+		return;
+
 	DL_FOREACH(alsa_card->iodevs, dev_node) {
 		if (!dev_node->iodev->nodes)
 			continue;
