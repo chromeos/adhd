@@ -841,7 +841,7 @@ TEST(AlsaCard, GG) {
   snprintf(nodes[2].name, CRAS_NODE_NAME_BUFFER_SIZE, "dev3");
   snprintf(nodes[3].name, CRAS_NODE_NAME_BUFFER_SIZE, "echo ref");
 
-  ucm_get_echo_reference_dev_name_for_dev_return_value[0] = echo_ref;
+  ucm_get_echo_reference_dev_name_for_dev_return_value[0] = strdup(echo_ref);
 
   c = cras_alsa_card_create(&card_info, device_config_dir,
                             fake_blacklist, NULL);

@@ -473,6 +473,7 @@ TEST(AlsaUcm, GetEchoReferenceDev) {
   ASSERT_EQ(1, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id_1);
   EXPECT_EQ(0, strcmp(echo_ref_dev, value_1.c_str()));
+  free((void *)echo_ref_dev);
 }
 
 TEST(AlsaUcm, GetHotwordModels) {

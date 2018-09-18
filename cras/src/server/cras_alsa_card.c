@@ -443,6 +443,7 @@ static void configure_echo_reference_dev(struct cras_alsa_card *alsa_card)
 			syslog(LOG_ERR,
 			       "Echo ref dev %s doesn't exist on card %s",
 			       echo_ref_name, alsa_card->name);
+		free((void *)echo_ref_name);
 	}
 }
 
