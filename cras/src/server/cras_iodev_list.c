@@ -1034,6 +1034,8 @@ int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev)
 void cras_iodev_list_enable_dev(struct cras_iodev *dev)
 {
 	possibly_disable_fallback(dev->direction);
+	/* Enable ucm setting of active node. */
+	dev->update_active_node(dev, dev->active_node->idx, 1);
 	enable_device(dev);
 	cras_iodev_list_notify_active_node_changed(dev->direction);
 }
