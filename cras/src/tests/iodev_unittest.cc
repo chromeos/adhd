@@ -607,6 +607,7 @@ TEST(IoDevPutOutputBuffer, SystemMuted) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
@@ -669,6 +670,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
@@ -695,6 +697,7 @@ TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
 
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
@@ -741,6 +744,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
@@ -788,6 +792,7 @@ TEST(IoDevPutOutputBuffer, NoDSP) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 22, NULL, nullptr);
   EXPECT_EQ(0, rc);
@@ -812,6 +817,7 @@ TEST(IoDevPutOutputBuffer, DSP) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
   cras_iodev_register_pre_dsp_hook(&iodev, pre_dsp_hook, (void *)0x1234);
   cras_iodev_register_post_dsp_hook(&iodev, post_dsp_hook, (void *)0x5678);
 
@@ -844,6 +850,7 @@ TEST(IoDevPutOutputBuffer, SoftVol) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   cras_system_get_volume_return = 13;
   softvol_scalers[13] = 0.435;
@@ -880,6 +887,7 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   iodev.put_buffer = put_buffer;
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
@@ -952,6 +960,7 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   iodev.put_buffer = put_buffer;
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
@@ -1008,6 +1017,7 @@ TEST(IoDevPutOutputBuffer, Scale32Bit) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 53, NULL, nullptr);
   EXPECT_EQ(0, rc);

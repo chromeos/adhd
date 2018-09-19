@@ -58,6 +58,7 @@ CRAS_DBUS_SOURCES = \
 	server/cras_dbus_control.c \
 	server/cras_hfp_ag_profile.c \
 	server/cras_hfp_iodev.c \
+	server/cras_hfp_alsa_iodev.c \
 	server/cras_hfp_info.c \
 	server/cras_hfp_slc.c \
 	server/cras_a2dp_endpoint.c \
@@ -310,6 +311,8 @@ DBUS_TESTS = \
 	bt_device_unittest \
 	bt_io_unittest \
 	hfp_iodev_unittest \
+	hfp_alsa_iodev_unittest \
+	hfp_ag_profile_unittest \
 	hfp_slc_unittest
 else
 DBUS_TESTS =
@@ -754,6 +757,18 @@ hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
 hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+hfp_alsa_iodev_unittest_SOURCES = tests/hfp_alsa_iodev_unittest.cc \
+	server/cras_hfp_alsa_iodev.c common/sfh.c
+hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+hfp_ag_profile_unittest_SOURCES = tests/hfp_ag_profile_unittest.cc \
+	server/cras_hfp_ag_profile.c common/sfh.c
+hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
 	server/cras_hfp_slc.c

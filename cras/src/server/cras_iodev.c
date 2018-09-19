@@ -1161,7 +1161,8 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 				   iodev->format,
 				   frames,
 				   nframes);
-	rate_estimator_add_frames(iodev->rate_est, nframes);
+	if (iodev->rate_est)
+		rate_estimator_add_frames(iodev->rate_est, nframes);
 
 	// Calculate whether the final output was non-empty, if requested.
 	if (is_non_empty) {

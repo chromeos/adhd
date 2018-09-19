@@ -167,4 +167,23 @@ int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
  */
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
 
+/*
+ * Establishes SCO connection if it has not been established on the BT device.
+ * Note: this function should be only used for hfp_alsa_io.
+ * Args:
+ *   device - The bluetooth device.
+ * Returns:
+ *   0 on success, error code otherwise.
+ */
+int cras_bt_device_get_sco(struct cras_bt_device *device);
+
+/*
+ * Closes SCO connection if the caller is the last user for the connection on
+ * the BT device.
+ * Note: this function should be only used for hfp_alsa_io.
+ * Args:
+ *   device - The bluetooth device.
+ */
+void cras_bt_device_put_sco(struct cras_bt_device *device);
+
 #endif /* CRAS_BT_DEVICE_H_ */

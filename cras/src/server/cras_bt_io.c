@@ -124,6 +124,7 @@ static int device_using_profile(struct cras_bt_device *device,
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct bt_io *btio = (struct bt_io *)iodev;
+	struct cras_iodev *dev = active_profile_dev(iodev);
 
 	/* Force to use HFP if opening input dev. */
 	if (device_using_profile(btio->device,
@@ -134,6 +135,9 @@ static int open_dev(struct cras_iodev *iodev)
 		cras_bt_device_switch_profile_enable_dev(btio->device, iodev);
 		return -EAGAIN;
 	}
+
+	if (dev && dev->open_dev)
+		return dev->open_dev(dev);
 
 	return 0;
 }
@@ -289,9 +293,10 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 	struct bt_io *btio = (struct bt_io *)iodev;
 	struct cras_ionode *node;
 	struct bt_node *active = (struct bt_node *)iodev->active_node;
+	struct cras_iodev *dev;
 
 	if (device_using_profile(btio->device, active->profile))
-		return;
+		goto leave;
 
 	/* Switch to the correct dev using active_profile. */
 	DL_FOREACH(iodev->nodes, node) {
@@ -307,6 +312,56 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 			set_bt_volume(iodev);
 		}
 	}
+
+leave:
+	dev = active_profile_dev(iodev);
+	if (dev && dev->update_active_node)
+		dev->update_active_node(dev, node_idx, dev_enabled);
+}
+
+static int no_stream(struct cras_iodev *iodev, int enable)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+
+	if (dev->no_stream) {
+		/*
+		 * The code is for hfp_alsa_iodev only.
+		 *
+		 * Copy iodev->min_cb_level and iodev->max_cb_level from the
+		 * parent (i.e. bt_io).  no_stream() of hfp_alsa_iodev will
+		 * use them.
+		 */
+		dev->min_cb_level = iodev->min_cb_level;
+		dev->max_cb_level = iodev->max_cb_level;
+		return dev->no_stream(dev, enable);
+	}
+
+	return cras_iodev_default_no_stream_playback(iodev, enable);
+}
+
+static int is_free_running(const struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+
+	if (dev->is_free_running)
+		return dev->is_free_running(dev);
+
+	return 0;
+}
+
+static int start(const struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+
+	if (dev->start)
+		return dev->start(dev);
+	return 0;
 }
 
 struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
@@ -343,7 +398,9 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->no_stream = cras_iodev_default_no_stream_playback;
+	iodev->no_stream = no_stream;
+	iodev->is_free_running = is_free_running;
+	iodev->start = start;
 
 	/* Input also checks |software_volume_needed| flag for using software
 	 * gain. Keep it as false for BT input.

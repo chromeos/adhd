@@ -15,8 +15,10 @@
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_info.h"
 #include "cras_hfp_iodev.h"
+#include "cras_hfp_alsa_iodev.h"
 #include "cras_hfp_slc.h"
 #include "cras_system_state.h"
+#include "cras_iodev_list.h"
 #include "utlist.h"
 
 #define STR(s) #s
@@ -97,14 +99,28 @@ struct audio_gateway {
 
 static struct audio_gateway *connected_ags;
 
+static int need_go_sco_pcm(struct cras_bt_device *device)
+{
+	return cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT) ||
+	       cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
+}
+
 static void destroy_audio_gateway(struct audio_gateway *ag)
 {
 	DL_DELETE(connected_ags, ag);
 
-	if (ag->idev)
-		hfp_iodev_destroy(ag->idev);
-	if (ag->odev)
-		hfp_iodev_destroy(ag->odev);
+	if (need_go_sco_pcm(ag->device)) {
+		if (ag->idev)
+			hfp_alsa_iodev_destroy(ag->idev);
+		if (ag->odev)
+			hfp_alsa_iodev_destroy(ag->odev);
+	} else {
+		if (ag->idev)
+			hfp_iodev_destroy(ag->idev);
+		if (ag->odev)
+			hfp_iodev_destroy(ag->odev);
+	}
+
 	if (ag->info) {
 		if (hfp_info_running(ag->info))
 			hfp_info_stop(ag->info);
@@ -324,13 +340,27 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 	if (ag == NULL)
 		return -EEXIST;
 
-	ag->info = hfp_info_create();
-	ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
-				    ag->slc_handle,
-				    ag->profile, ag->info);
-	ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
-				    ag->slc_handle,
-				    ag->profile, ag->info);
+	if (need_go_sco_pcm(device)) {
+		struct cras_iodev *in_aio, *out_aio;
+		
+		in_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT);
+		out_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
+
+		ag->idev = hfp_alsa_iodev_create(in_aio, ag->device,
+						 ag->slc_handle,
+						 ag->profile);
+		ag->odev = hfp_alsa_iodev_create(out_aio, ag->device,
+						 ag->slc_handle,
+						 ag->profile);
+	} else {
+		ag->info = hfp_info_create();
+		ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
+					    ag->slc_handle,
+					    ag->profile, ag->info);
+		ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
+					    ag->slc_handle,
+					    ag->profile, ag->info);
+	}
 
 	if (!ag->idev && !ag->odev) {
 		destroy_audio_gateway(ag);

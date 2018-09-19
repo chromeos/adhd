@@ -70,6 +70,8 @@ static const unsigned int PROFILE_CONN_RETRIES = 3;
  *    switch_profile_timer - The timer used to delay enabling iodev after
  *        profile switch.
  *    append_iodev_cb - The callback to trigger when an iodev is appended.
+ *    sco_fd - The file descriptor of the SCO connection.
+ *    sco_ref_count - The reference counts of the SCO connection.
  */
 struct cras_bt_device {
 	DBusConnection *conn;
@@ -91,6 +93,8 @@ struct cras_bt_device {
 	struct cras_timer *suspend_timer;
 	struct cras_timer *switch_profile_timer;
 	void (*append_iodev_cb)(void *data);
+	int sco_fd;
+	size_t sco_ref_count;
 
 	struct cras_bt_device *prev, *next;
 };
@@ -1172,4 +1176,25 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 
 	iodev->active_node->volume = volume;
 	cras_iodev_list_notify_node_volume(iodev->active_node);
+}
+
+int cras_bt_device_get_sco(struct cras_bt_device *device)
+{
+	if (device->sco_ref_count == 0) {
+		device->sco_fd = cras_bt_device_sco_connect(device);
+		if (device->sco_fd < 0)
+			return device->sco_fd;
+	}
+
+	++device->sco_ref_count;
+	return 0;
+}
+
+void cras_bt_device_put_sco(struct cras_bt_device *device)
+{
+	if (device->sco_ref_count == 0)
+		return;
+
+	if (--device->sco_ref_count == 0)
+		close(device->sco_fd);
 }
