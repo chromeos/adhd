@@ -811,17 +811,17 @@ int dev_io_playback_write(struct open_dev **odevs,
 			total_written = rc;
 
 			/*
+			 * Skip the underrun check and device wake up time update if
+			 * device should not wake up.
+			 */
+			if (!cras_iodev_odev_should_wake(adev->dev))
+				continue;
+
+			/*
 			 * Update device wake up time and get the new hardware
 			 * level.
 			 */
 			update_dev_wakeup_time(adev, &hw_level);
-
-			/*
-			 * Skip the underrun check for non-normal state device.
-			 */
-			if (cras_iodev_state(adev->dev) !=
-			    CRAS_IODEV_STATE_NORMAL_RUN)
-				continue;
 
 			/*
 			 * If new hardware level is less than or equal to the
