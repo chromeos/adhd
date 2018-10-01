@@ -38,6 +38,7 @@
 enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_ADD_OPEN_DEV,
 	AUDIO_THREAD_RM_OPEN_DEV,
+	AUDIO_THREAD_IS_DEV_OPEN,
 	AUDIO_THREAD_ADD_STREAM,
 	AUDIO_THREAD_DISCONNECT_STREAM,
 	AUDIO_THREAD_STOP,
@@ -398,6 +399,18 @@ static int thread_rm_open_dev(struct audio_thread *thread,
 	return 0;
 }
 
+/*
+ * Handles message from the main thread to check if an iodev is in the
+ * open dev list.
+ */
+static int thread_is_dev_open(struct audio_thread *thread,
+			      struct cras_iodev *iodev)
+{
+	struct open_dev *adev = dev_io_find_open_dev(
+			thread->open_devs[iodev->direction], iodev);
+	return !!adev;
+}
+
 /* Handles messages from the main thread to start ramping on a device. */
 static int thread_dev_start_ramp(struct audio_thread *thread,
 				 struct cras_iodev *iodev,
@@ -636,6 +649,13 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 
 		rmsg = (struct audio_thread_open_device_msg *)msg;
 		ret = thread_rm_open_dev(thread, rmsg->dev);
+		break;
+	}
+	case AUDIO_THREAD_IS_DEV_OPEN: {
+		struct audio_thread_open_device_msg *rmsg;
+
+		rmsg = (struct audio_thread_open_device_msg *)msg;
+		ret = thread_is_dev_open(thread, rmsg->dev);
 		break;
 	}
 	case AUDIO_THREAD_STOP:
@@ -1253,6 +1273,18 @@ int audio_thread_rm_open_dev(struct audio_thread *thread,
 		return -EINVAL;
 
 	init_open_device_msg(&msg, AUDIO_THREAD_RM_OPEN_DEV, dev);
+	return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_is_dev_open(struct audio_thread *thread,
+			     struct cras_iodev *dev)
+{
+	struct audio_thread_open_device_msg msg;
+
+	if (!dev)
+		return 0;
+
+	init_open_device_msg(&msg, AUDIO_THREAD_IS_DEV_OPEN, dev);
 	return audio_thread_post_message(thread, &msg.header);
 }
 

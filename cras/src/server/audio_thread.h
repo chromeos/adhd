@@ -74,6 +74,14 @@ int audio_thread_add_open_dev(struct audio_thread *thread,
 int audio_thread_rm_open_dev(struct audio_thread *thread,
 			     struct cras_iodev *dev);
 
+/* Checks if dev is open and used by audio thread.
+ * Args:
+ *    thread - The thread accessing open devs.
+ *    dev - The device to check if it has already been open.
+ */
+int audio_thread_is_dev_open(struct audio_thread *thread,
+			     struct cras_iodev *dev);
+
 /* Adds an thread_callback to audio thread.
  * Args:
  *    fd - The file descriptor to be polled for the callback.
