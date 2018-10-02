@@ -527,6 +527,42 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, PinnedStreamInitFailShouldScheduleRetry) {
+  int rc;
+  struct cras_rstream rstream;
+  struct cras_rstream *stream_list = NULL;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+
+  cras_iodev_open_ret[0] = -5;
+  cras_iodev_open_ret[1] = 0;
+  cras_tm_timer_cb = NULL;
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream);
+  /* Init pinned dev fail, not proceed to add stream. */
+  EXPECT_EQ(1, cras_iodev_open_called);
+  EXPECT_EQ(0, audio_thread_add_stream_called);
+
+  EXPECT_NE((void *)NULL, cras_tm_timer_cb);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  cras_tm_timer_cb(NULL, cras_tm_timer_cb_data);
+  EXPECT_EQ(2, cras_iodev_open_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  cras_iodev_list_rm_output(&d1_);
+  cras_iodev_list_deinit();
+}
+
 static void device_enabled_cb(struct cras_iodev *dev, void *cb_data)
 {
   device_enabled_dev = dev;
