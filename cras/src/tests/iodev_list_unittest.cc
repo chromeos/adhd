@@ -214,6 +214,9 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_dev_start_ramp_req =
           CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
       cras_iodev_is_zero_volume_ret = 0;
+
+      dummy_empty_iodev[0].state = CRAS_IODEV_STATE_CLOSE;
+      dummy_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
     }
 
     virtual void TearDown() {
@@ -373,8 +376,8 @@ TEST_F(IoDevTestSuite, InitDevWithEchoRef) {
 
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 0));
-  /* Default dev closed. */
-  EXPECT_EQ(1, cras_iodev_close_called);
+  /* No close call happened, because no stream exists. */
+  EXPECT_EQ(0, cras_iodev_close_called);
 
   cras_iodev_open_ret[1] = 0;
 
@@ -394,7 +397,7 @@ TEST_F(IoDevTestSuite, InitDevWithEchoRef) {
   clock_gettime_retspec.tv_nsec = 0;
   cras_tm_timer_cb(NULL, NULL);
 
-  EXPECT_EQ(2, cras_iodev_close_called);
+  EXPECT_EQ(1, cras_iodev_close_called);
   EXPECT_EQ(1, server_stream_destroy_called);
 
   cras_iodev_list_deinit();
@@ -574,7 +577,8 @@ TEST_F(IoDevTestSuite, SelectNode) {
   EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
 
   // There should be a disable device call for the fallback device.
-  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+  // But no close call actually happened, because no stream exists.
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
   EXPECT_EQ(1, device_disabled_count);
   EXPECT_NE(&d1_, device_disabled_dev);
 
@@ -597,7 +601,7 @@ TEST_F(IoDevTestSuite, SelectNode) {
   EXPECT_EQ(3, device_enabled_count);
   // Additional disabled devices: d1_, fallback device.
   EXPECT_EQ(3, device_disabled_count);
-  EXPECT_EQ(3, audio_thread_rm_open_dev_called);
+  EXPECT_EQ(2, audio_thread_rm_open_dev_called);
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
   EXPECT_EQ(&d2_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
 
