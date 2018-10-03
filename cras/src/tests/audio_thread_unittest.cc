@@ -596,7 +596,6 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
 
 TEST_F(StreamDeviceSuite, DoPlaybackNoStream) {
   struct cras_iodev iodev;
-  struct open_dev *adev;
 
   ResetGlobalStubData();
 
@@ -604,7 +603,6 @@ TEST_F(StreamDeviceSuite, DoPlaybackNoStream) {
 
   // Add the device.
   thread_add_open_dev(thread_, &iodev);
-  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
   // Assume device is started.
   iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
@@ -631,7 +629,6 @@ TEST_F(StreamDeviceSuite, DoPlaybackNoStream) {
 
 TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
   struct cras_iodev iodev, *piodev = &iodev;
-  struct open_dev *adev;
   struct cras_rstream rstream;
 
   ResetGlobalStubData();
@@ -644,7 +641,6 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
 
   // Add the device and add the stream.
   thread_add_open_dev(thread_, &iodev);
-  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   thread_add_stream(thread_, &rstream, &piodev, 1);
 
   // Assume device is running and there is an underrun.

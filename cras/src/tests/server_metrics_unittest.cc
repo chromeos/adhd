@@ -96,6 +96,10 @@ void cras_metrics_log_histogram(const char *name, int sample, int min,
                                 int max, int nbuckets) {
 }
 
+void cras_metrics_log_sparse_histogram(const char *name, int sample)
+{
+}
+
 int cras_main_message_send(struct cras_main_message *msg) {
   // Copy the sent message so we can examine it in the test later.
   memcpy(sent_msg, msg, sizeof(*sent_msg));
