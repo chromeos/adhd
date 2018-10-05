@@ -550,6 +550,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	di->num_underruns = cras_iodev_get_num_underruns(adev->dev);
 	di->num_severe_underruns = cras_iodev_get_num_severe_underruns(
 			adev->dev);
+	di->highest_hw_level = adev->dev->highest_hw_level;
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;
 		di->num_channels = fmt->num_channels;

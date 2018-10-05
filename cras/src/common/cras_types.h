@@ -253,6 +253,7 @@ struct __attribute__ ((__packed__)) audio_dev_debug_info {
 	uint8_t direction;
 	uint32_t num_underruns;
 	uint32_t num_severe_underruns;
+	uint32_t highest_hw_level;
 };
 
 struct __attribute__ ((__packed__)) audio_stream_debug_info {

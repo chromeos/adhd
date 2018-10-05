@@ -1146,6 +1146,11 @@ unsigned int cras_iodev_get_num_severe_underruns(const struct cras_iodev *iodev)
   return 0;
 }
 
+void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
+		unsigned int hw_level)
+{
+}
+
 int cras_iodev_start_ramp(struct cras_iodev *odev,
                           enum CRAS_IODEV_RAMP_REQUEST request)
 {

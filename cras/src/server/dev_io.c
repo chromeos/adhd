@@ -391,6 +391,8 @@ static int capture_to_streams(struct open_dev *adev)
 		return rc;
 	hw_level = rc;
 
+	cras_iodev_update_highest_hw_level(idev, hw_level);
+
 	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO_TSTAMP, idev->info.idx,
 	      hw_tstamp.tv_sec, hw_tstamp.tv_nsec);
 	if (timespec_is_nonzero(&hw_tstamp)) {
@@ -574,6 +576,9 @@ void update_dev_wakeup_time(struct open_dev *adev, unsigned int *hw_level)
 			adev->dev, hw_level, &adev->wake_ts);
 	if (!timespec_is_nonzero(&adev->wake_ts))
 		adev->wake_ts = now;
+
+	if (cras_iodev_state(adev->dev) == CRAS_IODEV_STATE_NORMAL_RUN)
+		cras_iodev_update_highest_hw_level(adev->dev, *hw_level);
 
 	est_rate = adev->dev->ext_format->frame_rate *
 			cras_iodev_get_est_rate_ratio(adev->dev);

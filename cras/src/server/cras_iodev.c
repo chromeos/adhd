@@ -922,6 +922,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 
 	iodev->reset_request_pending = 0;
 	iodev->state = CRAS_IODEV_STATE_OPEN;
+	iodev->highest_hw_level = 0;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
 		/* If device supports start ops, device can be in open state.
@@ -1473,3 +1474,10 @@ int cras_iodev_has_pinned_stream(const struct cras_iodev *dev)
 	}
 	return 0;
 }
+
+void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
+		unsigned int hw_level)
+{
+	iodev->highest_hw_level = MAX(iodev->highest_hw_level, hw_level);
+}
+

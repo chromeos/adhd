@@ -139,4 +139,10 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
   *hw_level = 0;
   return 0;
 }
+
+void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
+		unsigned int hw_level)
+{
+}
+
 } // extern "C"

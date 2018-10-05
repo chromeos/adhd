@@ -259,6 +259,7 @@ struct cras_iodev {
 	int input_streaming;
 	unsigned int input_frames_read;
 	unsigned int input_dsp_offset;
+	unsigned int highest_hw_level;
 	struct input_data *input_data;
 	struct cras_iodev *prev, *next;
 };
@@ -750,5 +751,13 @@ int cras_iodev_is_zero_volume(const struct cras_iodev *odev);
  *    1 if device has pinned stream. 0 otherwise.
  */
 int cras_iodev_has_pinned_stream(const struct cras_iodev *dev);
+
+/*
+ * Updates the highest hardware level of the device.
+ * Args:
+ *    iodev - The device.
+ */
+void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
+		unsigned int hw_level);
 
 #endif /* CRAS_IODEV_H_ */
