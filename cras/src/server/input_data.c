@@ -96,8 +96,15 @@ int input_data_get_for_stream(struct input_data *data,
 	unsigned int apm_processed;
 	struct cras_apm *apm;
 
+	/*
+	 * It is possible that area buffer frames is smaller than the
+	 * offset of stream. In this case, just reset the offset value
+	 * to area->frames to prevent caller using these information get
+	 * bad access to data.
+	 */
 	*area = data->area;
-	*offset = buffer_share_id_offset(offsets, stream->stream_id);
+	*offset = MIN(buffer_share_id_offset(offsets, stream->stream_id),
+		      data->area->frames);
 
 	apm = cras_apm_list_get(stream->apm_list, data->dev_ptr);
 	if (apm == NULL)
