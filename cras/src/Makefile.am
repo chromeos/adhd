@@ -354,6 +354,7 @@ TESTS = \
 	edid_utils_unittest \
 	expr_unittest \
 	file_wait_unittest \
+	float_buffer_unittest \
 	fmt_conv_unittest \
 	hfp_info_unittest \
 	buffer_share_unittest \
@@ -714,6 +715,12 @@ file_wait_unittest_SOURCES = tests/file_wait_unittest.cc \
 file_wait_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	$(CRAS_UT_TMPDIR_CFLAGS)
 file_wait_unittest_LDADD = -lgtest -lpthread
+
+
+float_buffer_unittest_SOURCES = tests/float_buffer_unittest.cc
+float_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+float_buffer_unittest_LDADD = -lgtest -lpthread
 
 fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc server/cras_fmt_conv.c
 fmt_conv_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
