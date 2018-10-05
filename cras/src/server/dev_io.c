@@ -939,6 +939,10 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 	cras_server_metrics_num_underruns(
 		cras_iodev_get_num_underruns(dev_to_rm->dev));
 
+	/* Metrics logs the highest_hw_level of this device. */
+	cras_server_metrics_highest_hw_level(
+		dev_to_rm->dev->highest_hw_level, dev_to_rm->dev->direction);
+
 	check_non_empty_state_transition(*odev_list);
 
 	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);

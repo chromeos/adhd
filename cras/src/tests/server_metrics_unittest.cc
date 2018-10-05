@@ -28,6 +28,32 @@ TEST(ServerMetricsTestSuite, Init) {
   EXPECT_EQ(type_set, CRAS_MAIN_METRICS);
 }
 
+TEST(ServerMetricsTestSuite, SetMetricHighestHardwareLevel) {
+  ResetStubData();
+  unsigned int hw_level = 1000;
+  sent_msg = (struct cras_server_metrics_message *)calloc(1, sizeof(*sent_msg));
+
+  cras_server_metrics_highest_hw_level(hw_level, CRAS_STREAM_INPUT);
+
+  EXPECT_EQ(sent_msg->header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
+  EXPECT_EQ(sent_msg->metrics_type, HIGHEST_INPUT_HW_LEVEL);
+  EXPECT_EQ(sent_msg->data.value, hw_level);
+
+  free(sent_msg);
+
+  sent_msg = (struct cras_server_metrics_message *)calloc(1, sizeof(*sent_msg));
+
+  cras_server_metrics_highest_hw_level(hw_level, CRAS_STREAM_OUTPUT);
+
+  EXPECT_EQ(sent_msg->header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msg->header.length, sizeof(*sent_msg));
+  EXPECT_EQ(sent_msg->metrics_type, HIGHEST_OUTPUT_HW_LEVEL);
+  EXPECT_EQ(sent_msg->data.value, hw_level);
+
+  free(sent_msg);
+}
+
 TEST(ServerMetricsTestSuite, SetMetricsLongestFetchDelay) {
   ResetStubData();
   unsigned int delay = 100;

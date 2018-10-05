@@ -1082,6 +1082,12 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev)
   return cras_iodev_prepare_output_before_write_samples_ret;
 }
 
+int cras_server_metrics_highest_hw_level(unsigned hw_level,
+		enum CRAS_STREAM_DIRECTION direction)
+{
+  return 0;
+}
+
 int cras_server_metrics_longest_fetch_delay(int delay_msec)
 {
   return 0;
