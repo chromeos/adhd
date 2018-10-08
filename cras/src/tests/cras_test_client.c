@@ -1173,15 +1173,15 @@ static struct option long_options[] = {
 	{"config_global_remix", required_argument,	0, ';'},
 	{"set_hotword_model",	required_argument,	0, '<'},
 	{"get_hotword_models",	required_argument,	0, '>'},
-	{"syslog_mask",		required_argument,	0, 'L'},
-	{"mute_loop_test",	required_argument,	0, 'M'},
-	{"stream_type",		required_argument,	0, 'T'},
 	{"post_dsp",            required_argument,	0, 'A'},
-	{"effects",		required_argument,	0, 'E'},
 	{"stream_id",		required_argument,	0, 'B'},
 	{"aecdump",		required_argument,	0, 'C'},
 	{"reload_aec_config",	no_argument,		0, 'D'},
+	{"effects",		required_argument,	0, 'E'},
 	{"get_aec_supported",	no_argument,		0, 'F'},
+	{"syslog_mask",		required_argument,	0, 'L'},
+	{"mute_loop_test",	required_argument,	0, 'M'},
+	{"stream_type",		required_argument,	0, 'T'},
 	{0, 0, 0, 0}
 };
 
