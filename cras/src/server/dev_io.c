@@ -430,6 +430,7 @@ static int capture_to_streams(struct open_dev *adev)
 		DL_FOREACH(adev->dev->streams, stream) {
 			unsigned int this_read;
 			unsigned int area_offset;
+			float software_gain_scaler;
 
 			if ((stream->stream->flags & TRIGGER_ONLY) &&
 			    stream->stream->triggered)
@@ -438,10 +439,18 @@ static int capture_to_streams(struct open_dev *adev)
 			input_data_get_for_stream(idev->input_data, stream->stream,
 						  idev->buf_state,
 						  &area, &area_offset);
+			/*
+			 * APM has more advanced gain control mechanism, so
+			 * don't apply the CRAS software gain to this stream
+			 * if APM is used.
+			 */
+			software_gain_scaler = stream->stream->apm_list
+				? 1.0f
+				: cras_iodev_get_software_gain_scaler(idev);
 
 			this_read = dev_stream_capture(
-				stream, area, area_offset,
-				cras_iodev_get_software_gain_scaler(idev));
+					stream, area, area_offset,
+					software_gain_scaler);
 
 			input_data_put_for_stream(idev->input_data, stream->stream,
 						  idev->buf_state, this_read);
