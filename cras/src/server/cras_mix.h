@@ -23,12 +23,13 @@ void cras_mix_init(unsigned int flags);
  *    frame - The number of frames to render.
  *    scaler - Amount to scale samples (0.0 - 1.0).
  *    increment - The increment(+/-) of scaler at each frame. The scaler after
- *                increasing/descreasing will be clipped to (0.0 - 1.0).
+ *                increasing/descreasing will be clipped to (0.0 - max).
+ *    max - The upper bound of scaler.
  *    channel - Number of samples in a frame.
  */
 void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
 				 unsigned int frame, float scaler,
-				 float increment, int channel);
+				 float increment, float max, int channel);
 
 /* Scale the given buffer with the provided scaler.
  * Args:

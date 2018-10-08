@@ -95,13 +95,11 @@ static void copy_scaled_s16_le(int16_t *dst,
 }
 
 static void cras_scale_buffer_inc_s16_le(uint8_t *buffer, unsigned int count,
-					 float scaler, float increment, int step)
+					 float scaler, float increment,
+					 float max, int step)
 {
 	int i = 0, j;
 	int16_t *out = (int16_t *)buffer;
-
-	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
-		return;
 
 	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
 		memset(out, 0, count * sizeof(*out));
@@ -110,11 +108,16 @@ static void cras_scale_buffer_inc_s16_le(uint8_t *buffer, unsigned int count,
 
 	while (i + step <= count) {
 		for (j = 0; j < step; j++) {
-			if (scaler > MAX_VOLUME_TO_SCALE) {
-			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+			float applied_scaler = scaler;
+
+			if (applied_scaler > max)
+				applied_scaler = max;
+
+			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
 				out[i] = 0;
 			} else {
-				out[i] *= scaler;
+				out[i] *= applied_scaler;
 			}
 			i++;
 		}
@@ -284,13 +287,11 @@ static void copy_scaled_s24_le(int32_t *dst,
 }
 
 static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
-					 float scaler, float increment, int step)
+					 float scaler, float increment,
+					 float max, int step)
 {
 	int i = 0, j;
 	int32_t *out = (int32_t *)buffer;
-
-	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
-		return;
 
 	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
 		memset(out, 0, count * sizeof(*out));
@@ -299,11 +300,16 @@ static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
 
 	while (i + step <= count) {
 		for (j = 0; j < step; j++) {
-			if (scaler > MAX_VOLUME_TO_SCALE) {
-			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+			float applied_scaler = scaler;
+
+			if (applied_scaler > max)
+				applied_scaler = max;
+
+			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
 				out[i] = 0;
 			} else {
-				out[i] *= scaler;
+				out[i] *= applied_scaler;
 			}
 			i++;
 		}
@@ -457,13 +463,11 @@ static void copy_scaled_s32_le(int32_t *dst,
 }
 
 static void cras_scale_buffer_inc_s32_le(uint8_t *buffer, unsigned int count,
-					 float scaler, float increment, int step)
+					 float scaler, float increment,
+					 float max, int step)
 {
 	int i = 0, j;
 	int32_t *out = (int32_t *)buffer;
-
-	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
-		return;
 
 	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
 		memset(out, 0, count * sizeof(*out));
@@ -472,11 +476,16 @@ static void cras_scale_buffer_inc_s32_le(uint8_t *buffer, unsigned int count,
 
 	while (i + step <= count) {
 		for (j = 0; j < step; j++) {
-			if (scaler > MAX_VOLUME_TO_SCALE) {
-			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+			float applied_scaler = scaler;
+
+			if (applied_scaler > max)
+				applied_scaler = max;
+
+			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
 				out[i] = 0;
 			} else {
-				out[i] *= scaler;
+				out[i] *= applied_scaler;
 			}
 			i++;
 		}
@@ -659,13 +668,11 @@ static void copy_scaled_s24_3le(uint8_t *dst,
 }
 
 static void cras_scale_buffer_inc_s24_3le(uint8_t *buffer, unsigned int count,
-					  float scaler, float increment, int step)
+					  float scaler, float increment,
+					  float max, int step)
 {
 	int32_t frame;
 	int i = 0, j;
-
-	if (scaler > MAX_VOLUME_TO_SCALE && increment > 0)
-		return;
 
 	if (scaler < MIN_VOLUME_TO_SCALE && increment < 0) {
 		memset(buffer, 0, 3 * count * sizeof(*buffer));
@@ -674,13 +681,18 @@ static void cras_scale_buffer_inc_s24_3le(uint8_t *buffer, unsigned int count,
 
 	while (i + step <= count) {
 		for (j = 0; j < step; j++) {
+			float applied_scaler = scaler;
+
+			if (applied_scaler > max)
+				applied_scaler = max;
+
 			convert_single_s243le_to_s32le(&frame, buffer);
 
-			if (scaler > MAX_VOLUME_TO_SCALE) {
-			} else if (scaler < MIN_VOLUME_TO_SCALE) {
+			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
+			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
 				frame = 0;
 			} else {
-				frame *= scaler;
+				frame *= applied_scaler;
 			}
 
 			convert_single_s32le_to_s243le(buffer, &frame);
@@ -763,21 +775,21 @@ static void cras_mix_add_scale_stride_s24_3le(uint8_t *dst, uint8_t *src,
 
 static void scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
 				   unsigned int count, float scaler,
-				   float increment, int step)
+				   float increment, float max, int step)
 {
 	switch (fmt) {
 	case SND_PCM_FORMAT_S16_LE:
 		return cras_scale_buffer_inc_s16_le(buff, count, scaler,
-						    increment, step);
+						    increment, max, step);
 	case SND_PCM_FORMAT_S24_LE:
 		return cras_scale_buffer_inc_s24_le(buff, count, scaler,
-						    increment, step);
+						    increment, max, step);
 	case SND_PCM_FORMAT_S32_LE:
 		return cras_scale_buffer_inc_s32_le(buff, count, scaler,
-						    increment, step);
+						    increment, max, step);
 	case SND_PCM_FORMAT_S24_3LE:
 		return cras_scale_buffer_inc_s24_3le(buff, count, scaler,
-						     increment, step);
+						     increment, max, step);
 	default:
 		break;
 	}
