@@ -759,6 +759,7 @@ static int run_file_io_stream(struct cras_client *client,
 			      size_t block_size,
 			      enum CRAS_STREAM_TYPE stream_type,
 			      size_t rate,
+			      snd_pcm_format_t format,
 			      size_t num_channels,
 			      uint32_t flags,
 			      int is_loopback,
@@ -805,8 +806,7 @@ static int run_file_io_stream(struct cras_client *client,
 		aud_cb = put_stdin_samples;
 	}
 
-	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
-					      num_channels);
+	aud_format = cras_audio_format_create(format, rate, num_channels);
 	if (aud_format == NULL)
 		return -ENOMEM;
 
@@ -996,6 +996,7 @@ static int run_capture(struct cras_client *client,
 		       size_t block_size,
 		       enum CRAS_STREAM_TYPE stream_type,
 		       size_t rate,
+		       snd_pcm_format_t format,
 		       size_t num_channels,
 		       uint32_t flags,
 		       int is_loopback,
@@ -1008,8 +1009,8 @@ static int run_capture(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size,
-			   stream_type, rate, num_channels, flags, is_loopback,
-			   is_post_dsp);
+			   stream_type, rate, format, num_channels, flags,
+			   is_loopback, is_post_dsp);
 
 	close(fd);
 	return 0;
@@ -1020,6 +1021,7 @@ static int run_playback(struct cras_client *client,
 			size_t block_size,
 			enum CRAS_STREAM_TYPE stream_type,
 			size_t rate,
+			snd_pcm_format_t format,
 			size_t num_channels)
 {
 	int fd;
@@ -1031,7 +1033,7 @@ static int run_playback(struct cras_client *client,
 	}
 
 	run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, block_size,
-			   stream_type, rate, num_channels, 0, 0, 0);
+			   stream_type, rate, format, num_channels, 0, 0, 0);
 
 	close(fd);
 	return 0;
@@ -1184,6 +1186,7 @@ static struct option long_options[] = {
 	{"get_aec_supported",	no_argument,		0, 'F'},
 	{"syslog_mask",		required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
+	{"sample_width",	required_argument,	0, 'S'},
 	{"stream_type",		required_argument,	0, 'T'},
 	{0, 0, 0, 0}
 };
@@ -1233,6 +1236,7 @@ static void show_usage()
 	printf("--post_dsp <0|1> - Use this flag with --loopback_file. The default value is 0.\n"
 	       "                   Argument: 0 - Record from post-mix, pre-DSP loopback device.\n"
 	       "                             1 - Record from post-DSP loopback device.\n");
+	printf("--sample_width <16|24|32> - The sample size in bits, defaults to 16.\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
 	printf("--show_rms - Display RMS value of loopback stream.\n");
@@ -1265,6 +1269,7 @@ int main(int argc, char **argv)
 	int rc = 0;
 	uint32_t stream_flags = 0;
 	cras_stream_id_t stream_id = 0;
+	snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
 
 	option_index = 0;
 	openlog("cras_test_client", LOG_PERROR, LOG_USER);
@@ -1606,6 +1611,25 @@ int main(int argc, char **argv)
 		case 'F':
 			printf("AEC supported %d\n",
 			       !!cras_client_get_aec_supported(client));
+			break;
+		case 'S': {
+			unsigned int width = atoi(optarg);
+			switch (width) {
+			case 16:
+				format = SND_PCM_FORMAT_S16_LE;
+				break;
+			case 24:
+				format = SND_PCM_FORMAT_S24_LE;
+				break;
+			case 32:
+				format = SND_PCM_FORMAT_S32_LE;
+				break;
+			default:
+				printf("Unsupported sample depth\n");
+				return -EINVAL;
+			}
+			break;
+		}
 		default:
 			break;
 		}
@@ -1618,23 +1642,24 @@ int main(int argc, char **argv)
 	if (capture_file != NULL) {
 		if (strcmp(capture_file, "-") == 0)
 			rc = run_file_io_stream(client, 1, CRAS_STREAM_INPUT,
-					block_size, stream_type, rate,
+					block_size, stream_type, rate, format,
 					num_channels, stream_flags, 0, 0);
 		else
 			rc = run_capture(client, capture_file, block_size,
-					 stream_type, rate, num_channels,
-					 stream_flags, 0, 0);
+					 stream_type, rate, format,
+					 num_channels, stream_flags, 0, 0);
 	} else if (playback_file != NULL) {
 		if (strcmp(playback_file, "-") == 0)
 			rc = run_file_io_stream(client, 0, CRAS_STREAM_OUTPUT,
-					block_size, stream_type, rate,
+					block_size, stream_type, rate, format,
 					num_channels, stream_flags, 0, 0);
 		else
 			rc = run_playback(client, playback_file, block_size,
-					  stream_type, rate, num_channels);
+					  stream_type, rate, format,
+					  num_channels);
 	} else if (loopback_file != NULL) {
 		rc = run_capture(client, loopback_file, block_size,
-				 stream_type, rate, num_channels,
+				 stream_type, rate, format, num_channels,
 				 stream_flags, 1, post_dsp);
 	} else if (aecdump_file != NULL) {
 		run_aecdump(client, stream_id, 1);
