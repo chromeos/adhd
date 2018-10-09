@@ -2355,6 +2355,7 @@ struct cras_stream_params *cras_client_unified_params_create(
 	params->cb_threshold = block_size;
 	params->stream_type = stream_type;
 	params->flags = flags;
+	params->effects = 0;
 	params->user_data = user_data;
 	params->aud_cb = 0;
 	params->unified_cb = unified_cb;
