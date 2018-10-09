@@ -286,6 +286,20 @@ unsigned int cras_rstream_get_effects(const struct cras_rstream *stream)
 			: 0;
 }
 
+struct cras_audio_format *cras_rstream_post_processing_format(
+		const struct cras_rstream *stream, void *dev_ptr)
+{
+	struct cras_apm *apm;
+
+	if (NULL == stream->apm_list)
+		return NULL;
+
+	apm = cras_apm_list_get(stream->apm_list, dev_ptr);
+	if (NULL == apm)
+		return NULL;
+	return cras_apm_list_get_format(apm);
+}
+
 void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 					const struct timespec *now)
 {

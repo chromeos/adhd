@@ -83,6 +83,7 @@ struct rstream_get_readable_call {
 };
 
 static int config_format_converter_called;
+static const struct cras_audio_format *config_format_converter_from_fmt;
 static int config_format_converter_frames;
 static struct cras_fmt_conv *config_format_converter_conv;
 static struct cras_audio_format in_fmt;
@@ -101,6 +102,7 @@ static struct rstream_get_readable_call rstream_get_readable_call;
 static unsigned int rstream_get_readable_num;
 static uint8_t *rstream_get_readable_ptr;
 
+static struct cras_audio_format *cras_rstream_post_processing_format_val;
 static int cras_rstream_audio_ready_called;
 static int cras_rstream_audio_ready_count;
 static int cras_rstream_is_pending_reply_ret;
@@ -127,6 +129,7 @@ class CreateSuite : public testing::Test{
       rstream_.format = fmt_s16le_44_1;
       rstream_.flags = 0;
 
+      config_format_converter_from_fmt = NULL;
       config_format_converter_called = 0;
       cras_fmt_conversion_needed_val = 0;
       cras_fmt_conv_set_linear_resample_rates_called = 0;
@@ -326,12 +329,15 @@ TEST_F(CreateSuite, CreateSRC44to48) {
 
 TEST_F(CreateSuite, CreateSRC44from48Input) {
   struct dev_stream *dev_stream;
+  struct cras_audio_format processed_fmt = fmt_s16le_48;
 
+  processed_fmt.num_channels = 1;
   rstream_.format = fmt_s16le_44_1;
   rstream_.direction = CRAS_STREAM_INPUT;
   in_fmt.frame_rate = 48000;  // Input to converter is device rate.
   out_fmt.frame_rate = 44100;  // Output from converter is stream rate.
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
+  cras_rstream_post_processing_format_val = &processed_fmt;
   dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, (void *)0x55,
                                  &cb_ts);
   EXPECT_EQ(1, config_format_converter_called);
@@ -342,6 +348,7 @@ TEST_F(CreateSuite, CreateSRC44from48Input) {
                           in_fmt.frame_rate);
   EXPECT_LE(kBufferFrames, device_frames); // Sanity check.
   EXPECT_LE(device_frames, config_format_converter_frames);
+  EXPECT_EQ(&processed_fmt, config_format_converter_from_fmt);
   EXPECT_LE(device_frames, dev_stream->conv_buffer_size_frames);
   dev_stream_destroy(dev_stream);
 }
@@ -1137,9 +1144,14 @@ uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
 int cras_rstream_get_mute(const struct cras_rstream *rstream) {
   return 0;
 }
-
 void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
 {
+}
+
+struct cras_audio_format *cras_rstream_post_processing_format(
+    const struct cras_rstream *stream, void *dev_ptr)
+{
+  return cras_rstream_post_processing_format_val;
 }
 
 int config_format_converter(struct cras_fmt_conv **conv,
@@ -1148,6 +1160,7 @@ int config_format_converter(struct cras_fmt_conv **conv,
 			    const struct cras_audio_format *to,
 			    unsigned int frames) {
   config_format_converter_called++;
+  config_format_converter_from_fmt = from;
   config_format_converter_frames = frames;
   *conv = config_format_converter_conv;
   return 0;

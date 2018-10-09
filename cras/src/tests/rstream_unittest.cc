@@ -407,5 +407,14 @@ uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
 {
   return APM_ECHO_CANCELLATION;
 }
+struct cras_apm *cras_apm_list_get(struct cras_apm_list *list,
+           void *dev_ptr)
+{
+  return NULL;
+}
+struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm)
+{
+  return NULL;
+}
 #endif
 }

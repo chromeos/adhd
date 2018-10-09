@@ -604,6 +604,11 @@ void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames)
 			   frames * cras_get_format_bytes(&apm->fmt));
 }
 
+struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm)
+{
+	return &apm->fmt;
+}
+
 void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
 				int start, int fd)
 {

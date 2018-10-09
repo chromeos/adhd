@@ -92,9 +92,16 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 					     dev_fmt,
 					     max_frames);
 	} else {
+		/*
+		 * For input, take into account the stream specific processing
+		 * like AEC. Use the post processing format to configure format
+		 * converter.
+		 */
+		ofmt = cras_rstream_post_processing_format(
+				stream, dev_ptr) ? : dev_fmt,
 		rc = config_format_converter(&out->conv,
 					     stream->direction,
-					     dev_fmt,
+					     ofmt,
 					     stream_fmt,
 					     max_frames);
 	}

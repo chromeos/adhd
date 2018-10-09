@@ -103,6 +103,12 @@ struct cras_audio_area *cras_apm_list_get_processed(struct cras_apm *apm);
  */
 void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames);
 
+/* Gets the format of the actual data processed by webrtc-apm library.
+ * Args:
+ *    apm - The cras_apm instance holding audio data and format info.
+ */
+struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm);
+
 /* Sets debug recording to start or stop.
  * Args:
  *    list - List contains the apm instance to start/stop debug recording.
@@ -175,6 +181,12 @@ static inline struct cras_audio_area *cras_apm_list_get_processed(
 static inline void cras_apm_list_put_processed(struct cras_apm *apm,
 					       unsigned int frames)
 {
+}
+
+static inline struct cras_audio_format *cras_apm_list_get_format(
+		struct cras_apm *apm)
+{
+	return NULL;
 }
 
 static inline void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
