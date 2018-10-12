@@ -671,31 +671,6 @@ TEST_F(CreateSuite, DevStreamIsPending) {
   dev_stream_destroy(dev_stream);
 }
 
-TEST_F(CreateSuite, StreamCanFetch) {
-  struct dev_stream *dev_stream;
-  unsigned int dev_id = 9;
-
-  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
-                                 (void *)0x55, &cb_ts);
-
-  /* Verify stream cannot fetch when it's still pending. */
-  cras_rstream_is_pending_reply_ret = 1;
-  EXPECT_EQ(0, dev_stream_can_fetch(dev_stream));
-
-  /* Verify stream can fetch when buffer available. */
-  cras_rstream_is_pending_reply_ret = 0;
-  rstream_.shm.area->write_offset[0] = 0;
-  rstream_.shm.area->write_offset[1] = 0;
-  EXPECT_EQ(1, dev_stream_can_fetch(dev_stream));
-
-  /* Verify stream cannot fetch when there's still buffer. */
-  cras_rstream_is_pending_reply_ret = 0;
-  rstream_.shm.area->write_offset[0] = kBufferFrames;
-  rstream_.shm.area->write_offset[1] = kBufferFrames;
-  EXPECT_EQ(0, dev_stream_can_fetch(dev_stream));
-  dev_stream_destroy(dev_stream);
-}
-
 TEST_F(CreateSuite, StreamCanSend) {
   struct dev_stream *dev_stream;
   unsigned int dev_id = 9;

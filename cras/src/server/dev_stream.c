@@ -513,6 +513,16 @@ static void check_next_wake_time(struct dev_stream *dev_stream)
 	}
 }
 
+void dev_stream_update_next_wake_time(struct dev_stream *dev_stream)
+{
+	struct cras_rstream *rstream = dev_stream->stream;
+	/* Update next callback time according to perfect schedule. */
+	add_timespecs(&rstream->next_cb_ts,
+		      &rstream->sleep_interval_ts);
+	/* Reset schedule if the schedule is missed. */
+	check_next_wake_time(dev_stream);
+}
+
 int dev_stream_playback_update_rstream(struct dev_stream *dev_stream)
 {
 	cras_rstream_update_output_read_pointer(dev_stream->stream);
@@ -568,11 +578,7 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	if (rstream->flags & TRIGGER_ONLY)
 		rstream->triggered = 1;
 
-	/* Update next callback time according to perfect schedule. */
-	add_timespecs(&rstream->next_cb_ts,
-		      &rstream->sleep_interval_ts);
-	/* Reset schedule if the schedule is missed. */
-	check_next_wake_time(dev_stream);
+	dev_stream_update_next_wake_time(dev_stream);
 
 	return 0;
 }
@@ -645,31 +651,16 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 	}
 }
 
-int dev_stream_can_fetch(struct dev_stream *dev_stream)
-{
-	struct cras_rstream *rstream = dev_stream->stream;
-	struct cras_audio_shm *shm;
-
-	shm = cras_rstream_output_shm(rstream);
-
-	/* Don't fetch if the previous request hasn't got response. */
-	return !cras_rstream_is_pending_reply(rstream) &&
-	       cras_shm_is_buffer_available(shm);
-}
-
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
 					const struct timespec *now)
 {
-	struct cras_rstream *rstream = dev_stream->stream;
 	int rc;
 
 	rc = cras_rstream_request_audio(dev_stream->stream, now);
 	if (rc < 0)
 		return rc;
 
-	add_timespecs(&rstream->next_cb_ts,
-		      &rstream->sleep_interval_ts);
-	check_next_wake_time(dev_stream);
+	dev_stream_update_next_wake_time(dev_stream);
 
 	return 0;
 }

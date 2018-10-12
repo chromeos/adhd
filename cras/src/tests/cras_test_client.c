@@ -476,6 +476,9 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s wr_buf:%u shm_writable:%u offset:%u\n",
 		       "CONV_COPY", data1, data2, data3);
 		break;
+	case AUDIO_THREAD_STREAM_FETCH_PENDING:
+		printf("%-30s id:%x\n", "STREAM_FETCH_PENGING", data1);
+		break;
 	case AUDIO_THREAD_STREAM_SLEEP_TIME:
 		printf("%-30s id:%x wake:%09u.%09d\n",
 		       "STREAM_SLEEP_TIME", data1, (int)data2, (int)data3);

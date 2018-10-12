@@ -775,7 +775,8 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 		if (cras_rstream_get_is_draining(dev_stream->stream) &&
 		    dev_stream_playback_frames(dev_stream) <= 0)
 			continue;
-		if (!dev_stream_can_fetch(dev_stream))
+
+		if (cras_rstream_is_pending_reply(dev_stream->stream))
 			continue;
 
 		next_cb_ts = dev_stream_next_cb_ts(dev_stream);

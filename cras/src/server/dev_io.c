@@ -135,17 +135,33 @@ static int fetch_streams(struct open_dev *adev)
 		if (!next_cb_ts)
 			continue;
 
-		/* Check if it's time to get more data from this stream.
-		 * Allow for waking up a little early. */
+		/*
+		 * Check if it's time to get more data from this stream.
+		 * Allow for waking up a little early.
+		 */
 		add_timespecs(&now, &playback_wake_fuzz_ts);
 		if (!timespec_after(&now, next_cb_ts))
 			continue;
 
-		if (!dev_stream_can_fetch(dev_stream)) {
+
+		/*
+		 * Skip fetching if client still has not replied yet.
+		 */
+		if (cras_rstream_is_pending_reply(rstream)) {
+			ATLOG(atlog, AUDIO_THREAD_STREAM_FETCH_PENDING,
+			      cras_rstream_id(rstream), 0, 0);
+			continue;
+		}
+
+		/*
+		 * Skip fetching if there are enough frames in shared memory.
+		 */
+		if(!cras_shm_is_buffer_available(shm)) {
 			ATLOG(atlog, AUDIO_THREAD_STREAM_SKIP_CB,
 			      cras_rstream_id(rstream),
 			      shm->area->write_offset[0],
 			      shm->area->write_offset[1]);
+			dev_stream_update_next_wake_time(dev_stream);
 			continue;
 		}
 

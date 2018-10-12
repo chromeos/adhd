@@ -23,12 +23,15 @@ static unsigned int cras_rstream_dev_offset_update_called;
 static const struct cras_rstream *cras_rstream_dev_offset_update_rstream_val[MAX_CALLS];
 static unsigned int cras_rstream_dev_offset_update_frames_val[MAX_CALLS];
 static unsigned int cras_rstream_dev_offset_update_dev_id_val[MAX_CALLS];
+static int cras_rstream_is_pending_reply_ret;
 static int cras_iodev_all_streams_written_ret;
 static struct cras_audio_area *cras_iodev_get_output_buffer_area;
 static int cras_iodev_put_output_buffer_called;
 static unsigned int cras_iodev_put_output_buffer_nframes;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
 static int dev_stream_playback_frames_ret;
+static unsigned int dev_stream_update_next_wake_time_called;
+static unsigned int dev_stream_request_playback_samples_called;
 static unsigned int cras_iodev_prepare_output_before_write_samples_called;
 static enum CRAS_IODEV_STATE cras_iodev_prepare_output_before_write_samples_state;
 static unsigned int cras_iodev_get_output_buffer_called;
@@ -46,6 +49,7 @@ static std::map<const struct dev_stream*, struct timespec> dev_stream_wake_time_
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
   cras_rstream_dev_offset_update_called = 0;
+  cras_rstream_is_pending_reply_ret = 0;
   for (int i = 0; i < MAX_CALLS; i++) {
     cras_rstream_dev_offset_ret[i] = 0;
     cras_rstream_dev_offset_rstream_val[i] = NULL;
@@ -65,6 +69,8 @@ void ResetGlobalStubData() {
   cras_iodev_fill_odev_zeros_frames = 0;
   cras_iodev_frames_to_play_in_sleep_called = 0;
   dev_stream_playback_frames_ret = 0;
+  dev_stream_request_playback_samples_called = 0;
+  dev_stream_update_next_wake_time_called = 0;
   cras_iodev_prepare_output_before_write_samples_called = 0;
   cras_iodev_prepare_output_before_write_samples_state = CRAS_IODEV_STATE_OPEN;
   cras_iodev_get_output_buffer_called = 0;
@@ -490,6 +496,70 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   TearDownRstream(&rstream);
   TearDownRstream(&rstream2);
   TearDownRstream(&rstream3);
+}
+
+TEST_F(StreamDeviceSuite, FetchStreams) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct open_dev *adev;
+  struct cras_rstream rstream;
+  struct cras_audio_shm_area shm_area;
+
+  memset(&rstream, 0, sizeof(rstream));
+  memset(&shm_area, 0, sizeof(shm_area));
+  rstream.direction = CRAS_STREAM_OUTPUT;
+  ResetGlobalStubData();
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+
+  /* Add the device and add the stream. */
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &rstream, &piodev, 1);
+
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+
+  /* Set stream config. */
+  rstream.shm.config.frame_bytes = 4;
+  rstream.shm.config.used_size = 4096 * 4;
+  rstream.shm.config.frame_bytes = 4;
+  rstream.shm.area = &shm_area;
+  rstream.format.frame_rate = 48000;
+
+  /* Set shm config. */
+  shm_area.config.frame_bytes = 4;
+  shm_area.config.used_size = 4096 * 4;
+  shm_area.write_buf_idx = 0;
+
+  /* Assume device is started. */
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  /*
+   * If the stream is pending a reply and shm buffer for writing is empty,
+   * just skip it.
+   */
+  cras_rstream_is_pending_reply_ret = 1;
+  shm_area.write_offset[0] = 0;
+  dev_io_playback_fetch(adev);
+
+  EXPECT_EQ(dev_stream_request_playback_samples_called, 0);
+  EXPECT_EQ(dev_stream_update_next_wake_time_called, 0);
+
+  /*
+   * If the stream is not pending a reply and shm buffer for writing is full,
+   * update next wake up time and skip fetching.
+   */
+  cras_rstream_is_pending_reply_ret = 0;
+  shm_area.write_offset[0] = 4096 * 4;
+  dev_io_playback_fetch(adev);
+  EXPECT_EQ(dev_stream_request_playback_samples_called, 0);
+  EXPECT_EQ(dev_stream_update_next_wake_time_called, 1);
+
+  /* If the stream can be fetched, fetch it. */
+  cras_rstream_is_pending_reply_ret = 0;
+  shm_area.write_offset[0] = 0;
+  dev_io_playback_fetch(adev);
+  EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
+
+  thread_rm_open_dev(thread_, &iodev);
 }
 
 TEST_F(StreamDeviceSuite, WriteOutputSamplesPrepareOutputFailed) {
@@ -924,6 +994,11 @@ void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 {
 }
 
+int cras_rstream_is_pending_reply(const struct cras_rstream *stream)
+{
+  return cras_rstream_is_pending_reply_ret;
+}
+
 int cras_set_rt_scheduling(int rt_lim)
 {
   return 0;
@@ -999,14 +1074,10 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
   return dev_stream->stream->fd;
 }
 
-int dev_stream_can_fetch(struct dev_stream *dev_stream)
-{
-  return 1;
-}
-
 int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
                                         const struct timespec *now)
 {
+  dev_stream_request_playback_samples_called++;
   return 0;
 }
 
@@ -1025,6 +1096,11 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 
 void dev_stream_update_frames(const struct dev_stream *dev_stream)
 {
+}
+
+void dev_stream_update_next_wake_time(struct dev_stream *dev_stream)
+{
+  dev_stream_update_next_wake_time_called++;
 }
 
 int dev_stream_wake_time(struct dev_stream *dev_stream,
