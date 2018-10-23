@@ -314,7 +314,8 @@ static int get_input_dev_max_wake_ts(
 
 /*
  * Set wake_ts for this device to be the earliest wake up time for
- * dev_streams.
+ * dev_streams. Default value for adev->wake_ts will be now + 20s even if
+ * any error occurs in this function.
  */
 static int set_input_dev_wake_ts(struct open_dev *adev)
 {
@@ -329,6 +330,8 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	min_ts.tv_nsec = 0;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	add_timespecs(&min_ts, &now);
+	/* Set default value for device wake_ts. */
+	adev->wake_ts = min_ts;
 
 	rc = cras_iodev_frames_queued(adev->dev, &level_tstamp);
 	if (rc < 0)
