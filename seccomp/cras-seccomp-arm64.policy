@@ -81,3 +81,4 @@ uname: 1
 unlinkat: 1
 getpid: 1
 prlimit64: 1
+tgkill: 1
