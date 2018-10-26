@@ -919,31 +919,45 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	int i, num_entries;
 	int models_len = 0;
 	char *models = NULL;
-	const char *tmp;
+	const char *model_name;
 	char *identifier;
 
 	identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	free(identifier);
+
 	if (num_entries <= 0)
 		return 0;
-	models = (char *)malloc(num_entries * 8);
-	for (i = 0; i < num_entries; i+=2) {
+
+	models = (char *)malloc(
+			num_entries * (CRAS_MAX_HOTWORD_MODEL_NAME_SIZE + 1));
+
+	for (i = 0; i < num_entries; i += 2) {
 		if (!list[i])
 			continue;
-		if (0 == strncmp(list[i], hotword_model_prefix,
-				 strlen(hotword_model_prefix))) {
-			tmp = list[i] + strlen(hotword_model_prefix);
-			while (isspace(*tmp))
-				tmp++;
-			strcpy(models + models_len, tmp);
-			models_len += strlen(tmp);
-			if (i + 2 >= num_entries)
-				models[models_len] = '\0';
-			else
-				models[models_len++] = ',';
+
+		if (strncmp(list[i], hotword_model_prefix,
+			    strlen(hotword_model_prefix)))
+			continue;
+
+		model_name = list[i] + strlen(hotword_model_prefix);
+		while (isspace(*model_name))
+			model_name++;
+
+		if (strlen(model_name) > CRAS_MAX_HOTWORD_MODEL_NAME_SIZE) {
+			syslog(LOG_ERR,
+			       "Ignore hotword model %s because the it is"
+			       "too long.", list[i]);
+			continue;
 		}
+
+		if (models_len != 0)
+			models[models_len++] = ',';
+
+		strcpy(models + models_len, model_name);
+		models_len += strlen(model_name);
 	}
+	models[models_len++] = 0;
 	snd_use_case_free_list(list, num_entries);
 
 	return models;
