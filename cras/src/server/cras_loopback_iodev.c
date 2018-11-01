@@ -38,12 +38,16 @@ static snd_pcm_format_t loopback_supported_formats[] = {
 };
 
 /* loopack iodev.  Keep state of a loopback device.
+ *    loopback_type - Pre-dsp or post-dsp.
+ *    read_frames - Frames of audio data read since last dev start.
+ *    dev_start_time - The timestamp of the last call to configure_dev.
  *    sample_buffer - Pointer to sample buffer.
  */
 struct loopback_iodev {
 	struct cras_iodev base;
 	enum CRAS_LOOPBACK_TYPE loopback_type;
-	struct timespec last_filled;
+	uint64_t read_frames;
+	struct timespec dev_start_time;
 	struct byte_buffer *sample_buffer;
 };
 
@@ -71,7 +75,6 @@ static int sample_hook(const uint8_t *frames, unsigned int nframes,
 	bytes_to_copy = frames_to_copy * frame_bytes;
 	memcpy(buf_write_pointer(sbuf), frames, bytes_to_copy);
 	buf_increment_write(sbuf, bytes_to_copy);
-	clock_gettime(CLOCK_MONOTONIC_RAW, &loopdev->last_filled);
 
 	return frames_to_copy;
 }
@@ -132,22 +135,23 @@ static int frames_queued(const struct cras_iodev *iodev,
 			CRAS_STREAM_OUTPUT);
 
 	if (!edev || !edev->streams) {
-		unsigned int frames_since_last, frames_to_fill, bytes_to_fill;
+		unsigned int frames_since_start, frames_to_fill, bytes_to_fill;
 
-		frames_since_last = cras_frames_since_time(
-				&loopdev->last_filled,
+		frames_since_start = cras_frames_since_time(
+				&loopdev->dev_start_time,
 				iodev->format->frame_rate);
+		frames_to_fill = frames_since_start > loopdev->read_frames
+				? frames_since_start - loopdev->read_frames
+				: 0;
 		frames_to_fill = MIN(buf_writable(sbuf) / frame_bytes,
-				     frames_since_last);
+				     frames_to_fill);
 		if (frames_to_fill > 0) {
 			bytes_to_fill = frames_to_fill * frame_bytes;
 			memset(buf_write_pointer(sbuf), 0, bytes_to_fill);
 			buf_increment_write(sbuf, bytes_to_fill);
-			clock_gettime(CLOCK_MONOTONIC_RAW,
-				      &loopdev->last_filled);
 		}
 	}
-	*hw_tstamp = loopdev->last_filled;
+	clock_gettime(CLOCK_MONOTONIC_RAW, hw_tstamp);
 	return buf_queued(sbuf) / frame_bytes;
 }
 
@@ -181,7 +185,8 @@ static int configure_record_dev(struct cras_iodev *iodev)
 	struct cras_iodev *edev;
 
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
-	clock_gettime(CLOCK_MONOTONIC_RAW, &loopdev->last_filled);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &loopdev->dev_start_time);
+	loopdev->read_frames = 0;
 
 	edev = cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT);
 	register_loopback_hook(loopdev->loopback_type, edev, sample_hook,
@@ -218,7 +223,7 @@ static int put_record_buffer(struct cras_iodev *iodev, unsigned nframes)
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
 	buf_increment_read(sbuf, nframes * frame_bytes);
-
+	loopdev->read_frames += nframes;
 	return 0;
 }
 
@@ -228,6 +233,7 @@ static int flush_record_buffer(struct cras_iodev *iodev)
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	unsigned int queued_bytes = buf_queued(sbuf);
 	buf_increment_read(sbuf, queued_bytes);
+	loopdev->read_frames = 0;
 	return 0;
 }
 
