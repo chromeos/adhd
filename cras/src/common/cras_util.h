@@ -57,8 +57,8 @@ static inline void cras_frames_to_time_precise(unsigned int frames,
 }
 
 /* Converts a timespec duration to a frame count. */
-static inline unsigned int cras_time_to_frames(const struct timespec *t,
-					       unsigned int rate)
+static inline uint64_t cras_time_to_frames(const struct timespec *t,
+					   unsigned int rate)
 {
 	return t->tv_nsec * (uint64_t)rate / 1000000000 + rate * t->tv_sec;
 }
@@ -171,8 +171,8 @@ static inline int timespec_is_nonzero(const struct timespec *ts) {
 }
 
 /* Calculates frames since time beg. */
-static inline unsigned int cras_frames_since_time(const struct timespec *beg,
-						  unsigned int rate)
+static inline uint64_t cras_frames_since_time(const struct timespec *beg,
+					      unsigned int rate)
 {
 	struct timespec now, time_since;
 

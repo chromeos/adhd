@@ -246,7 +246,7 @@ TEST(Util, TimespecToMs) {
 
 TEST(Util, FramesSinceTime) {
   struct timespec t, tn;
-  unsigned int frames;
+  uint64_t frames;
 
   t.tv_sec = 0;
   t.tv_nsec = 500000000;
