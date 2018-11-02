@@ -1,0 +1,11 @@
+[package]
+name = "cras-sys"
+version = "0.1.0"
+authors = ["The Chromium OS Authors"]
+
+[dependencies]
+data_model = "*"
+
+[patch.crates-io]
+assertions = { path = "../../../../../platform/crosvm/assertions" }
+data_model = { path = "../../../../../platform/crosvm/data_model" }
