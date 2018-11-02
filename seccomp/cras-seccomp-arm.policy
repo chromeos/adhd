@@ -90,3 +90,4 @@ ioctl: arg1 in 0xffff41ff && arg1 & 0x00004100 || arg1 in 0xffff55ff && arg1 & 0
 getpid: 1
 prlimit64: 1
 tgkill: 1
+mremap: 1

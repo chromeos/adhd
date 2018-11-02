@@ -82,3 +82,4 @@ unlinkat: 1
 getpid: 1
 prlimit64: 1
 tgkill: 1
+mremap: 1
