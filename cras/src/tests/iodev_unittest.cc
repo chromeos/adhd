@@ -1928,6 +1928,8 @@ TEST(IoDev, FramesToPlayInSleep) {
   unsigned int min_cb_level = 512, hw_level;
   unsigned int got_hw_level, got_frames;
   struct timespec hw_tstamp;
+  struct cras_rstream rstream;
+  struct dev_stream stream;
 
   memset(&iodev, 0, sizeof(iodev));
   memset(&fmt, 0, sizeof(fmt));
@@ -1936,12 +1938,27 @@ TEST(IoDev, FramesToPlayInSleep) {
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.buffer_size = BUFFER_SIZE;
   iodev.min_cb_level = min_cb_level;
-  iodev.streams = reinterpret_cast<struct dev_stream *>(0x1);
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   iodev.format = &fmt;
   fmt.frame_rate = 48000;
+  rstream.cb_threshold = min_cb_level;
+  stream.stream = &rstream;
 
   ResetStubData();
+
+  cras_iodev_add_stream(&iodev, &stream);
+
+  // Device is running. There is at least one stream for this device
+  // and there are frames waiting to be played. hw_level is greater
+  // than min_cb_level.
+  dev_stream_playback_frames_ret = 100;
+  hw_level = min_cb_level + 50;
+  fr_queued = hw_level;
+  got_frames = cras_iodev_frames_to_play_in_sleep(
+                   &iodev, &got_hw_level, &hw_tstamp);
+  EXPECT_EQ(got_hw_level, hw_level);
+  EXPECT_EQ(got_frames, 50);
+  dev_stream_playback_frames_ret = 0;
 
   // Device is running. There is at least one stream for this device.
   // hw_level is greater than min_cb_level.
@@ -1973,16 +1990,18 @@ TEST(IoDev, FramesToPlayInSleep) {
   // Device is running. There is no stream for this device.
   // hw_level is greater than min_cb_level.
   iodev.streams = NULL;
+  hw_level = min_cb_level + 50;
+  fr_queued = hw_level;
 
   got_frames = cras_iodev_frames_to_play_in_sleep(
                    &iodev, &got_hw_level, &hw_tstamp);
   EXPECT_EQ(got_hw_level, hw_level);
-  EXPECT_EQ(got_frames, 0);
+  EXPECT_EQ(got_frames, hw_level - min_cb_level);
 
   // Device is running. There is no stream for this device.
   // hw_level is less than min_cb_level.
   iodev.streams = NULL;
-  hw_level = min_cb_level - 50;
+  hw_level = min_cb_level / 2;
   fr_queued = hw_level;
 
   got_frames = cras_iodev_frames_to_play_in_sleep(
