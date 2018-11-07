@@ -706,7 +706,7 @@ static void init_device_cb(struct cras_timer *timer, void *arg)
 	DL_DELETE(init_retries, retry);
 	free(retry);
 
-	if (cras_iodev_is_open(dev))
+	if (!dev || cras_iodev_is_open(dev))
 		return;
 
 	rc = init_and_attach_streams(dev);
