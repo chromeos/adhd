@@ -510,7 +510,7 @@ static void dsp_util_interleave_s24le(float *const *input, int32_t *output,
 			float f = *(input_ptr[j]++) * 2147483648.0f;
 			f += (f >= 0) ? 0.5f : -0.5f;
 			*output = max((float)INT_MIN, min((float)INT_MAX, f));
-			*output >>= 8;
+			*output = (*output >> 8) & 0x00ffffff;
 		}
 }
 
