@@ -229,10 +229,14 @@ void apm_config_dump(struct apm_config *config)
 }
 webrtc_apm webrtc_apm_create(unsigned int num_channels,
 			     unsigned int frame_rate,
-			     struct aec_config *aec_config,
-                             struct apm_config *apm_config)
+			     dictionary *aec_ini,
+                             dictionary *apm_ini)
 {
   return reinterpret_cast<webrtc_apm>(0x11);
+}
+void webrtc_apm_dump_configs(dictionary *aec_ini,
+			     dictionary *apm_ini)
+{
 }
 void webrtc_apm_destroy(webrtc_apm apm)
 {

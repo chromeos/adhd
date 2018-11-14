@@ -31,9 +31,7 @@ endif
 
 if HAVE_WEBRTC_APM
 CRAS_WEBRTC_APM_SOURCES = \
-	server/cras_apm_list.c \
-	server/config/aec_config.c \
-	server/config/apm_config.c
+	server/cras_apm_list.c
 else
 CRAS_WEBRTC_APM_SOURCES =
 endif
@@ -562,7 +560,7 @@ apm_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(WEBRTC_APM_CFLAGS)
-apm_list_unittest_LDADD = -lgtest
+apm_list_unittest_LDADD = -lgtest -liniparser
 endif
 
 array_unittest_SOURCES = tests/array_unittest.cc

@@ -8,8 +8,6 @@
 
 #include <webrtc-apm/webrtc_apm.h>
 
-#include "aec_config.h"
-#include "apm_config.h"
 #include "byte_buffer.h"
 #include "cras_apm_list.h"
 #include "cras_audio_area.h"
@@ -20,8 +18,13 @@
 #include "dsp_util.h"
 #include "dumper.h"
 #include "float_buffer.h"
+#include "iniparser_wrapper.h"
 #include "utlist.h"
 
+static const unsigned int MAX_INI_NAME_LEN = 63;
+
+#define AEC_CONFIG_NAME "aec.ini"
+#define APM_CONFIG_NAME "apm.ini"
 
 /*
  * Structure holding a WebRTC audio processing module and necessary
@@ -109,9 +112,10 @@ struct cras_apm_reverse_module {
 
 static struct cras_apm_reverse_module *rmodule = NULL;
 static struct cras_apm_list *apm_list = NULL;
-static struct aec_config *aec_config = NULL;
-static struct apm_config *apm_config = NULL;
 static const char *aec_config_dir = NULL;
+static char ini_name[MAX_INI_NAME_LEN + 1];
+static dictionary *aec_ini = NULL;
+static dictionary *apm_ini = NULL;
 
 /* Update the global process reverse flag. Should be called when apms are added
  * or removed. */
@@ -265,8 +269,8 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 	apm->apm_ptr = webrtc_apm_create(
 			apm->fmt.num_channels,
 			apm->fmt.frame_rate,
-			aec_config,
-			apm_config);
+			aec_ini,
+			apm_ini);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR, "Fail to create webrtc apm for ch %zu"
 				" rate %zu effect %lu",
@@ -456,6 +460,36 @@ void reverse_data_configure(struct ext_dsp_module *ext,
 	rmod->dev_rate = rate;
 }
 
+static void get_aec_ini(const char *config_dir)
+{
+	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s",
+		 config_dir, AEC_CONFIG_NAME);
+	ini_name[MAX_INI_NAME_LEN] = '\0';
+
+	if (aec_ini) {
+		iniparser_freedict(aec_ini);
+		aec_ini = NULL;
+	}
+	aec_ini = iniparser_load_wrapper(ini_name);
+	if (aec_ini == NULL)
+		syslog(LOG_INFO, "No aec ini file %s", ini_name);
+}
+
+static void get_apm_ini(const char *config_dir)
+{
+	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s",
+		 config_dir, APM_CONFIG_NAME);
+	ini_name[MAX_INI_NAME_LEN] = '\0';
+
+	if (apm_ini) {
+		iniparser_freedict(apm_ini);
+		apm_ini = NULL;
+	}
+	apm_ini = iniparser_load_wrapper(ini_name);
+	if (apm_ini == NULL)
+		syslog(LOG_INFO, "No apm ini file %s", ini_name);
+}
+
 int cras_apm_list_init(const char *device_config_dir)
 {
 	if (rmodule == NULL) {
@@ -466,12 +500,8 @@ int cras_apm_list_init(const char *device_config_dir)
 	}
 
 	aec_config_dir = device_config_dir;
-	if (aec_config)
-		free(aec_config);
-	aec_config = aec_config_get(device_config_dir);
-	if (apm_config)
-		free(apm_config);
-	apm_config = apm_config_get(device_config_dir);
+	get_aec_ini(aec_config_dir);
+	get_apm_ini(aec_config_dir);
 
 	update_first_output_dev_to_process();
 	cras_iodev_list_set_device_enabled_callback(
@@ -487,21 +517,11 @@ void cras_apm_list_reload_aec_config()
 	if (NULL == aec_config_dir)
 		return;
 
-	if (aec_config)
-		free(aec_config);
-	aec_config = aec_config_get(aec_config_dir);
+	get_aec_ini(aec_config_dir);
+	get_apm_ini(aec_config_dir);
 
 	/* Dump the config content at reload only, for debug. */
-	if (aec_config)
-		aec_config_dump(aec_config);
-
-	if (apm_config)
-		free(apm_config);
-	apm_config = apm_config_get(aec_config_dir);
-
-	/* Dump the config content at reload only, for debug. */
-	if (apm_config)
-		apm_config_dump(apm_config);
+	webrtc_apm_dump_configs(apm_ini, aec_ini);
 }
 
 int cras_apm_list_deinit()
