@@ -746,7 +746,7 @@ static int init_pinned_device(struct cras_iodev *dev,
 
 	/* Negative EAGAIN code indicates dev will be opened later. */
 	rc = init_device(dev, rstream);
-	if (rc && (rc != -EAGAIN))
+	if (rc)
 		return rc;
 	return 0;
 }
