@@ -5,3 +5,4 @@
 mod audio_socket;
 mod cras_server_socket;
 mod cras_shm;
+mod cras_stream;
