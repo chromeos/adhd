@@ -758,6 +758,12 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_AUDIO_GATEWAY_START:
 		printf("%-30s \n", "AUDIO_GATEWAY_START");
 		break;
+	case BT_AVAILABLE_CODECS:
+		printf("%-30s codec #%u id %u\n", "AVAILABLE_CODECS", data1, data2);
+		break;
+	case BT_CODEC_SELECTION:
+		printf("%-30s dir %u codec id %u\n", "CODEC_SELECTION", data1, data2);
+		break;
 	case BT_DEV_CONNECTED_CHANGE:
 		printf("%-30s profiles %u now %u\n", "DEV_CONENCTED_CHANGE",
 		       data1, data2);
@@ -774,6 +780,10 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		break;
 	case BT_HFP_REQUEST_DISCONNECT:
 		printf("%-30s\n", "HFP_REQUEST_DISCONNECT");
+		break;
+	case BT_HFP_SUPPORTED_FEATURES:
+		printf("%-30s role %s features %u\n", "HFP_SUPPORTED_FEATURES",
+		       data1 ? "AG" : "HF", data2);
 		break;
 	case BT_HSP_NEW_CONNECTION:
 		printf("%-30s\n", "HSP_NEW_CONNECTION");

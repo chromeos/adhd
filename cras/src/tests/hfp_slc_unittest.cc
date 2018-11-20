@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 extern "C" {
+  #include "cras_bt_log.h"
   #include "cras_hfp_slc.h"
   #include "cras_telephony.h"
 }
@@ -145,6 +146,9 @@ int slc_disconnected_cb(struct hfp_slc_handle *handle) {
 }
 
 extern "C" {
+
+struct cras_bt_event_log *btlog;
+
 int cras_system_add_select_fd(int fd,
 			      void (*callback)(void *data),
 			      void *callback_data) {
@@ -167,6 +171,25 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 int *__errno_location() {
   return &fake_errno;
 }
+
+struct cras_tm *cras_system_state_get_tm()
+{
+  return NULL;
+}
+
+struct cras_timer *cras_tm_create_timer(
+    struct cras_tm *tm,
+    unsigned int ms,
+    void (*cb)(struct cras_timer *t, void *data),
+    void *cb_data)
+{
+  return NULL;
+}
+
+void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t)
+{
+}
+
 }
 
 // For telephony
