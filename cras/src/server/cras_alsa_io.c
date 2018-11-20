@@ -2268,7 +2268,6 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int rc;
 
-	cras_alsa_jack_list_destroy(aio->jack_list);
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		rc = cras_iodev_list_rm_input(iodev);
 	else
@@ -2280,6 +2279,7 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 	}
 
 	/* Free resources when device successfully removed. */
+	cras_alsa_jack_list_destroy(aio->jack_list);
 	free_alsa_iodev_resources(aio);
 	cras_volume_curve_destroy(aio->default_volume_curve);
 	free(iodev);
