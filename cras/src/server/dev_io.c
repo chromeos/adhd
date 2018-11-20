@@ -92,6 +92,27 @@ static void check_non_empty_state_transition(struct open_dev *adevs) {
 	non_empty_device_count = new_non_empty_dev_count;
 }
 
+/* Checks whether it is time to fetch. */
+static int is_time_to_fetch(const struct dev_stream *dev_stream)
+{
+	const struct timespec *next_cb_ts;
+	struct timespec now;
+	next_cb_ts = dev_stream_next_cb_ts(dev_stream);
+	if (!next_cb_ts)
+		return 0;
+
+	/*
+	 * Check if it's time to get more data from this stream.
+	 * Allow for waking up a little early.
+	 */
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	add_timespecs(&now, &playback_wake_fuzz_ts);
+	if (timespec_after(&now, next_cb_ts))
+		return 1;
+
+	return 0;
+}
+
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
  *    adev - The output device streams are attached to.
@@ -110,11 +131,15 @@ static int fetch_streams(struct open_dev *adev)
 	if (delay < 0)
 		return delay;
 
+	DL_FOREACH(adev->dev->pending_streams, dev_stream) {
+		if (is_time_to_fetch(dev_stream))
+			cras_iodev_change_stream_to_running(adev->dev, dev_stream);
+	}
+
 	DL_FOREACH(adev->dev->streams, dev_stream) {
 		struct cras_rstream *rstream = dev_stream->stream;
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(rstream);
-		const struct timespec *next_cb_ts;
 		struct timespec now;
 
 		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
@@ -131,18 +156,8 @@ static int fetch_streams(struct open_dev *adev)
 		if (cras_rstream_get_is_draining(dev_stream->stream))
 			continue;
 
-		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
-		if (!next_cb_ts)
+		if (!is_time_to_fetch(dev_stream))
 			continue;
-
-		/*
-		 * Check if it's time to get more data from this stream.
-		 * Allow for waking up a little early.
-		 */
-		add_timespecs(&now, &playback_wake_fuzz_ts);
-		if (!timespec_after(&now, next_cb_ts))
-			continue;
-
 
 		/*
 		 * Skip fetching if client still has not replied yet.
@@ -976,6 +991,11 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);
 
 	DL_FOREACH(dev_to_rm->dev->streams, dev_stream) {
+		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream->stream);
+		dev_stream_destroy(dev_stream);
+	}
+
+	DL_FOREACH(dev_to_rm->dev->pending_streams, dev_stream) {
 		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream->stream);
 		dev_stream_destroy(dev_stream);
 	}

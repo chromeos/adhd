@@ -29,6 +29,11 @@ void iodev_stub_frames_queued(cras_iodev* iodev, int ret, timespec ts) {
 
 extern "C" {
 
+void cras_iodev_change_stream_to_running(struct cras_iodev *iodev,
+                                         struct dev_stream *stream)
+{
+}
+
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev) {
   return 48000.0;
 }

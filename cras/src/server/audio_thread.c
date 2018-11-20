@@ -273,8 +273,7 @@ static int append_stream(struct audio_thread *thread,
 			continue;
 
 		dev = iodevs[i];
-		DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
-		if (out)
+		if (cras_iodev_find_stream(dev, stream))
 			continue;
 
 		/* For output, if open device already has stream, get the earliest next
@@ -285,8 +284,16 @@ static int append_stream(struct audio_thread *thread,
 		 * lower hardware level. Else if we fetch the new stream immediately, it
 		 * may cause device buffer level stack up.
 		 */
-		if (stream->direction == CRAS_STREAM_OUTPUT && dev->streams) {
+		if (stream->direction == CRAS_STREAM_OUTPUT) {
 			DL_FOREACH(dev->streams, out) {
+				stream_ts =  dev_stream_next_cb_ts(out);
+				if (stream_ts &&
+				    (!cb_ts_set || timespec_after(&init_cb_ts, stream_ts))) {
+					init_cb_ts = *stream_ts;
+					cb_ts_set = true;
+				}
+			}
+			DL_FOREACH(dev->pending_streams, out) {
 				stream_ts =  dev_stream_next_cb_ts(out);
 				if (stream_ts &&
 				    (!cb_ts_set || timespec_after(&init_cb_ts, stream_ts))) {
@@ -437,6 +444,10 @@ static int thread_find_stream(struct audio_thread *thread,
 			if (s->stream == rstream)
 				return 1;
 		}
+		DL_FOREACH(open_dev->dev->pending_streams, s) {
+			if (s->stream == rstream)
+				return 1;
+		}
 	}
 	return 0;
 }
@@ -513,8 +524,6 @@ static int thread_add_stream(struct audio_thread *thread,
 	if (rc < 0)
 		return rc;
 
-	ATLOG(atlog, AUDIO_THREAD_STREAM_ADDED, stream->stream_id,
-	      num_iodevs ? iodevs[0]->info.idx : 0, num_iodevs);
 	return 0;
 }
 
@@ -677,7 +686,11 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		dmsg = (struct audio_thread_dump_debug_info_msg *)msg;
 		info = dmsg->info;
 
-		/* Go through all open devices. */
+		/*
+		 * Go through all open devices.
+		 * TODO(yuhsuan) - Also dump information of pending streams.
+		 */
+
 		DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
 			append_dev_dump_info(&info->devs[num_devs], adev);
 			if (++num_devs == MAX_DEBUG_DEVS)

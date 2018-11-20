@@ -449,6 +449,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s id:%x dev:%u\n",
 		       "STREAM_ADDED", data1, data2);
 		break;
+	case AUDIO_THREAD_PENDING_STREAM_ADDED:
+		printf("%-30s id:%x dev:%u\n",
+		       "PENDING_STREAM_ADDED", data1, data2);
+		break;
 	case AUDIO_THREAD_STREAM_REMOVED:
 		printf("%-30s id:%x\n", "STREAM_REMOVED", data1);
 		break;

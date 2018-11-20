@@ -1461,12 +1461,12 @@ TEST(IoDev, AddRmStream) {
   EXPECT_EQ(512, iodev.min_cb_level);
 
   /* min_cb_level should not exceed half the buffer size. */
-  cras_iodev_add_stream(&iodev, &stream1);
+  cras_iodev_add_running_stream(&iodev, &stream1);
   EXPECT_EQ(800, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
   EXPECT_EQ(1, buffer_share_add_id_called);
 
-  cras_iodev_add_stream(&iodev, &stream2);
+  cras_iodev_add_running_stream(&iodev, &stream2);
   EXPECT_EQ(800, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
   EXPECT_EQ(2, buffer_share_add_id_called);
@@ -1499,7 +1499,7 @@ TEST(IoDev, TriggerOnlyStreamNoBufferShare) {
 
   cras_iodev_open(&iodev, rstream.cb_threshold, &audio_fmt);
   /* TRIGGER_ONLY streams shall not be added to buffer_share. */
-  cras_iodev_add_stream(&iodev, &stream);
+  cras_iodev_add_running_stream(&iodev, &stream);
   EXPECT_EQ(0, buffer_share_add_id_called);
 }
 
@@ -1631,7 +1631,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   cras_iodev_open(&iodev, rstream1.cb_threshold, &fmt);
 
   // Add one stream to device.
-  cras_iodev_add_stream(&iodev, &stream1);
+  cras_iodev_add_running_stream(&iodev, &stream1);
 
   // Case 1: Assume device is not started yet.
   iodev.state = CRAS_IODEV_STATE_OPEN;
@@ -1946,7 +1946,7 @@ TEST(IoDev, FramesToPlayInSleep) {
 
   ResetStubData();
 
-  cras_iodev_add_stream(&iodev, &stream);
+  cras_iodev_add_running_stream(&iodev, &stream);
 
   // Device is running. There is at least one stream for this device
   // and there are frames waiting to be played. hw_level is greater
@@ -2184,7 +2184,7 @@ TEST(IoDev, InputDspOffset) {
 
   cras_iodev_open(&iodev, 240, &fmt);
 
-  cras_iodev_add_stream(&iodev, &stream1);
+  cras_iodev_add_running_stream(&iodev, &stream1);
   cras_iodev_get_input_buffer(&iodev, &frames);
 
   buffer_share_get_new_write_point_ret = 100;

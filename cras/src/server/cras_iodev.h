@@ -163,6 +163,7 @@ struct cras_ionode {
  * is_enabled - True if this iodev is enabled, false otherwise.
  * software_volume_needed - True if volume control is not supported by hardware.
  * streams - List of audio streams serviced by dev.
+ * pending_streams - List of audio streams which have not started running yet.
  * state - Device is in one of close, open, normal, or no_stream state defined
  *         in enum CRAS_IODEV_STATE.
  * min_cb_level - min callback level of any stream attached.
@@ -242,6 +243,7 @@ struct cras_iodev {
 	int is_enabled;
 	int software_volume_needed;
 	struct dev_stream *streams;
+	struct dev_stream *pending_streams;
 	enum CRAS_IODEV_STATE state;
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
@@ -491,9 +493,25 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev);
  * applied if the device needs software volume. */
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev);
 
-/* Indicate that a stream has been added from the device. */
-int cras_iodev_add_stream(struct cras_iodev *iodev,
-			  struct dev_stream *stream);
+/* Adds a stream into pending stream list. */
+void cras_iodev_add_pending_stream(struct cras_iodev *iodev,
+				   struct dev_stream *stream);
+
+/* Adds a stream into stream list. */
+void cras_iodev_add_running_stream(struct cras_iodev *iodev,
+				   struct dev_stream *stream);
+
+/* Adds a stream into this device. */
+void cras_iodev_add_stream(struct cras_iodev *iodev,
+			   struct dev_stream *stream);
+
+/* Move the stream from pending list to running list. */
+void cras_iodev_change_stream_to_running(struct cras_iodev *iodev,
+					 struct dev_stream *stream);
+
+/* Return non-zero if the stream is attached to this device. */
+int cras_iodev_find_stream(const struct cras_iodev *iodev,
+			   const struct cras_rstream *rstream);
 
 /* Indicate that a stream has been removed from the device. */
 struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
