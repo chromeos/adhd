@@ -71,6 +71,8 @@
     "    </method>\n"                                                   \
     "    <method name=\"GetSystemAecSupported\">\n"                     \
     "      <arg name=\"supported\" type=\"b\" direction=\"out\"/>\n"    \
+    "    <method name=\"GetSystemAecGroupId\">\n"                     \
+    "      <arg name=\"group_id\" type=\"i\" direction=\"out\"/>\n"    \
     "    </method>\n"                                                   \
     "    <method name=\"SetActiveOutputNode\">\n"                       \
     "      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"       \
@@ -602,6 +604,30 @@ static DBusHandlerResult handle_get_system_aec_supported(
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_system_aec_group_id(
+	DBusConnection *conn,
+	DBusMessage *message,
+	void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_int32_t system_aec_group_id;
+
+	reply = dbus_message_new_method_return(message);
+
+	system_aec_group_id = cras_system_get_aec_group_id();
+	dbus_message_append_args(reply,
+				 DBUS_TYPE_INT32, &system_aec_group_id,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+
 static DBusHandlerResult
 handle_set_active_node(DBusConnection *conn,
 		       DBusMessage *message,
@@ -869,6 +895,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       CRAS_CONTROL_INTERFACE,
 					       "GetSystemAecSupported")) {
 		return handle_get_system_aec_supported(conn, message, arg);
+	} else if (dbus_message_is_method_call(message,
+					       CRAS_CONTROL_INTERFACE,
+					       "GetSystemAecGroupId")) {
+		return handle_get_system_aec_group_id(conn, message, arg);
 	} else if (dbus_message_is_method_call(message,
 					       CRAS_CONTROL_INTERFACE,
 					       "SetActiveOutputNode")) {

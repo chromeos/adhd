@@ -1188,6 +1188,7 @@ static struct option long_options[] = {
 	{"mute_loop_test",	required_argument,	0, 'M'},
 	{"sample_width",	required_argument,	0, 'S'},
 	{"stream_type",		required_argument,	0, 'T'},
+        {"get_aec_group_id",	no_argument,		0, 'U'},
 	{0, 0, 0, 0}
 };
 
@@ -1629,6 +1630,11 @@ int main(int argc, char **argv)
 				return -EINVAL;
 			}
 			break;
+                case 'U':
+                        printf("AEC group ID %d\n",
+                               cras_client_get_aec_group_id(client));
+                        break;
+
 		}
 		default:
 			break;

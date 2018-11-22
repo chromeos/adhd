@@ -3379,6 +3379,21 @@ int cras_client_get_aec_supported(struct cras_client *client)
 	return aec_supported;
 }
 
+int cras_client_get_aec_group_id(struct cras_client *client)
+{
+	int aec_group_id;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return -1;
+
+	aec_group_id = client->server_state->aec_group_id;
+	server_state_unlock(client, lock_rc);
+	return aec_group_id;
+}
+
+
 void cras_client_set_state_change_callback_context(
 		struct cras_client *client, void *context)
 {

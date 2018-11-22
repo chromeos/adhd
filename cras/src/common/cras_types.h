@@ -357,6 +357,8 @@ struct __attribute__ ((__packed__)) cras_audio_thread_snapshot_buffer{
  *    non_empty_status - Whether any non-empty audio is being
  *        played/captured.
  *    aec_supported - Flag to indicate if system aec is supported.
+ *    aec_group_id  - Group ID for the system aec to use for separating aec
+ *        tunings.
  *    snapshot_buffer - ring buffer for storing audio thread snapshots.
  */
 #define CRAS_SERVER_STATE_VERSION 2
@@ -393,6 +395,7 @@ struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	int32_t default_output_buffer_size;
 	int32_t non_empty_status;
 	int32_t aec_supported;
+  	int32_t aec_group_id;
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 };
 

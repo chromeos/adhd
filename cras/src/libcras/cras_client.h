@@ -1125,6 +1125,12 @@ int cras_client_reload_aec_config(struct cras_client *client);
  */
 int cras_client_get_aec_supported(struct cras_client *client);
 
+/*
+ * Returns the AEC group ID if available.
+ */
+int cras_client_get_aec_group_id(struct cras_client *client);
+
+
 /* Set the context pointer for system state change callbacks.
  * Args:
  *    client - The client from cras_client_create.
