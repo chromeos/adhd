@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 # Unified build config.
-device_config_dir="$(cros_config --abspath /audio/main cras-config-dir)"
+device_config_dir="$(cros_config /audio/main cras-config-dir)"
 internal_ucm_suffix="$(cros_config /audio/main ucm-suffix)"
 
 # Handle legacy config.
@@ -23,6 +23,8 @@ if [ -z "${device_config_dir}" ]; then
   if [ -f /etc/cras/get_internal_ucm_suffix ]; then
     internal_ucm_suffix="$(sh /etc/cras/get_internal_ucm_suffix)"
   fi
+else
+  device_config_dir="/etc/cras/${device_config_dir}"
 fi
 
 if [ -n "${device_config_dir}" ]; then
