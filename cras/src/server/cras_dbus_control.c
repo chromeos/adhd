@@ -71,6 +71,7 @@
     "    </method>\n"                                                   \
     "    <method name=\"GetSystemAecSupported\">\n"                     \
     "      <arg name=\"supported\" type=\"b\" direction=\"out\"/>\n"    \
+    "    </method>\n"                                                   \
     "    <method name=\"GetSystemAecGroupId\">\n"                     \
     "      <arg name=\"group_id\" type=\"i\" direction=\"out\"/>\n"    \
     "    </method>\n"                                                   \
