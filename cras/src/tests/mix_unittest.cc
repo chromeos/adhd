@@ -356,12 +356,12 @@ class MixTestSuiteS24_LE : public testing::Test{
     void _SetupBuffer() {
       for (size_t i = 0; i < kBufferFrames; i++) {
         src_buffer_[i] = i + (0x007fffff >> 2);
-        mix_buffer_[i] = i + (0x007fffff  >> 2);
+        mix_buffer_[i] = i + (0x007fffff >> 2);
         compare_buffer_[i] = mix_buffer_[i];
       }
       for (size_t i = kBufferFrames; i < kBufferFrames * 2; i++) {
-        src_buffer_[i] = i - (0x007fffff >> 2);
-        mix_buffer_[i] = i - (0x007fffff >> 2);
+        src_buffer_[i] = -i - (0x007fffff >> 2);
+        mix_buffer_[i] = -i - (0x007fffff >> 2);
         compare_buffer_[i] = mix_buffer_[i];
       }
     }
@@ -371,7 +371,7 @@ class MixTestSuiteS24_LE : public testing::Test{
       for (size_t i = 0; i < kBufferFrames * 2; i += 2) {
         int32_t tmp;
         if (need_to_scale(scaler))
-          tmp = mix_buffer_[i] + src_buffer_[i/2] * scaler;
+          tmp = mix_buffer_[i] + Scale(src_buffer_[i/2], scaler);
         else
           tmp = mix_buffer_[i] + src_buffer_[i/2];
         if (tmp > 0x007fffff)
@@ -401,12 +401,17 @@ class MixTestSuiteS24_LE : public testing::Test{
         } else if (applied_scaler < kMinVolumeToScale) {
           compare_buffer_[i] = 0;
         } else {
-          compare_buffer_[i] = mix_buffer_[i] * applied_scaler;
+          compare_buffer_[i] = Scale(mix_buffer_[i], applied_scaler);
         }
 
         if (i % 2 == 1)
           scaler += increment;
       }
+    }
+
+    int32_t Scale(int32_t value, float scaler)
+    {
+      return (((int32_t)((value << 8) * scaler)) >> 8) & 0x00ffffff;
     }
 
   int32_t *mix_buffer_;
@@ -429,7 +434,7 @@ TEST_F(MixTestSuiteS24_LE, MixTwo) {
                kNumSamples, 1, 0, 1.0);
 
   for (size_t i = 0; i < kBufferFrames * 2; i++)
-    compare_buffer_[i] = src_buffer_[i] * 2;
+    compare_buffer_[i] = Scale(src_buffer_[i], 2);
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -469,7 +474,7 @@ TEST_F(MixTestSuiteS24_LE, MixFirstHalfVolume) {
                       kNumSamples, 0, 0, 0.5);
 
   for (size_t i = 0; i < kBufferFrames * 2; i++)
-    compare_buffer_[i] = src_buffer_[i] * 0.5;
+    compare_buffer_[i] = Scale(src_buffer_[i], 0.5);
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -480,7 +485,7 @@ TEST_F(MixTestSuiteS24_LE, MixTwoSecondHalfVolume) {
                kNumSamples, 1, 0, 0.5);
 
   for (size_t i = 0; i < kBufferFrames * 2; i++)
-    compare_buffer_[i] = src_buffer_[i] + (int32_t)(src_buffer_[i] * 0.5);
+    compare_buffer_[i] = src_buffer_[i] + Scale(src_buffer_[i], 0.5);
   EXPECT_EQ(0, memcmp(mix_buffer_, compare_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -625,7 +630,7 @@ TEST_F(MixTestSuiteS24_LE, ScaleMinVolume) {
 
 TEST_F(MixTestSuiteS24_LE, ScaleHalfVolume) {
   for (size_t i = 0; i < kBufferFrames * 2; i++)
-    compare_buffer_[i] = src_buffer_[i] * 0.5;
+    compare_buffer_[i] = Scale(src_buffer_[i], 0.5);
   cras_scale_buffer(fmt_, (uint8_t *)src_buffer_, kNumSamples, 0.5);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, src_buffer_, kBufferFrames * fr_bytes_));

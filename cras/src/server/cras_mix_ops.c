@@ -228,6 +228,11 @@ static void cras_mix_add_scale_stride_s16_le(uint8_t *dst, uint8_t *src,
  * Signed 24 bit little endian functions.
  */
 
+static int32_t scale_s24_le(int32_t value, float scaler)
+{
+	return (((int32_t)((value << 8) * scaler)) >> 8) & 0x00ffffff;
+}
+
 static void cras_mix_add_clip_s24_le(int32_t *dst,
 				     const int32_t *src,
 				     size_t count)
@@ -283,7 +288,7 @@ static void copy_scaled_s24_le(int32_t *dst,
 	}
 
 	for (i = 0; i < count; i++)
-		dst[i] = src[i] * volume_scaler;
+		dst[i] = scale_s24_le(src[i], volume_scaler);
 }
 
 static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
@@ -309,7 +314,7 @@ static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
 			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
 				out[i] = 0;
 			} else {
-				out[i] *= applied_scaler;
+				out[i] = scale_s24_le(out[i], applied_scaler);
 			}
 			i++;
 		}
@@ -332,7 +337,7 @@ static void cras_scale_buffer_s24_le(uint8_t *buffer, unsigned int count,
 	}
 
 	for (i = 0; i < count; i++)
-		out[i] *= scaler;
+		out[i] = scale_s24_le(out[i], scaler);
 }
 
 static void cras_mix_add_s24_le(uint8_t *dst, uint8_t *src,
@@ -369,7 +374,7 @@ static void cras_mix_add_scale_stride_s24_le(uint8_t *dst, uint8_t *src,
 			int32_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int32_t *)dst +
-						*(int32_t *)src * scaler;
+				      scale_s24_le(*(int32_t *)src, scaler);
 			else
 				sum = *(int32_t *)dst + *(int32_t *)src;
 			if (sum > 0x007fffff)
@@ -386,7 +391,7 @@ static void cras_mix_add_scale_stride_s24_le(uint8_t *dst, uint8_t *src,
 			int32_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int32_t *)dst +
-						*(int32_t *)src * scaler;
+				      scale_s24_le(*(int32_t *)src, scaler);
 			else
 				sum = *(int32_t *)dst + *(int32_t *)src;
 			if (sum > 0x007fffff)
