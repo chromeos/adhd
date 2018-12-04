@@ -73,10 +73,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	stream_config.client = client;
 	rc = stream_list_add(cras_iodev_list_get_stream_list(),
 			     &stream_config, &stream);
-	if (rc) {
-		rc = -ENOMEM;
+	if (rc)
 		goto reply_err;
-	}
 
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
