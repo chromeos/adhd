@@ -1143,24 +1143,24 @@ static struct option long_options[] = {
 	{"show_total_rms",      no_argument, &show_total_rms, 1},
 	{"select_input",        required_argument,      0, 'a'},
 	{"block_size",		required_argument,	0, 'b'},
-	{"capture_file",	required_argument,	0, 'c'},
+	{"num_channels",        required_argument,      0, 'c'},
 	{"duration_seconds",	required_argument,	0, 'd'},
 	{"dump_events",	        no_argument,            0, 'e'},
-	{"dump_dsp",            no_argument,            0, 'f'},
+	{"format",	        required_argument,      0, 'f'},
 	{"capture_gain",        required_argument,      0, 'g'},
 	{"help",                no_argument,            0, 'h'},
 	{"dump_server_info",    no_argument,            0, 'i'},
 	{"check_output_plugged",required_argument,      0, 'j'},
 	{"add_active_input",	required_argument,	0, 'k'},
-	{"add_active_output",	required_argument,	0, 't'},
-	{"loopback_file",	required_argument,	0, 'l'},
+	{"dump_dsp",            no_argument,            0, 'l'},
 	{"dump_audio_thread",   no_argument,            0, 'm'},
-	{"num_channels",        required_argument,      0, 'n'},
+	{"syslog_mask",		required_argument,	0, 'n'},
 	{"channel_layout",      required_argument,      0, 'o'},
-	{"playback_file",	required_argument,	0, 'p'},
+	{"get_aec_group_id",	no_argument,		0, 'p'},
 	{"user_mute",           required_argument,      0, 'q'},
 	{"rate",		required_argument,	0, 'r'},
 	{"reload_dsp",          no_argument,            0, 's'},
+	{"add_active_output",	required_argument,	0, 't'},
 	{"mute",                required_argument,      0, 'u'},
 	{"volume",              required_argument,      0, 'v'},
 	{"set_node_volume",	required_argument,      0, 'w'},
@@ -1184,15 +1184,16 @@ static struct option long_options[] = {
 	{"get_hotword_models",	required_argument,	0, '>'},
 	{"post_dsp",            required_argument,	0, 'A'},
 	{"stream_id",		required_argument,	0, 'B'},
-	{"aecdump",		required_argument,	0, 'C'},
+	{"capture_file",	required_argument,	0, 'C'},
 	{"reload_aec_config",	no_argument,		0, 'D'},
 	{"effects",		required_argument,	0, 'E'},
 	{"get_aec_supported",	no_argument,		0, 'F'},
-	{"syslog_mask",		required_argument,	0, 'L'},
+	{"aecdump",		required_argument,	0, 'G'},
+	{"loopback_file",	required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
+	{"playback_file",	required_argument,	0, 'P'},
 	{"sample_width",	required_argument,	0, 'S'},
 	{"stream_type",		required_argument,	0, 'T'},
-        {"get_aec_group_id",	no_argument,		0, 'U'},
 	{0, 0, 0, 0}
 };
 
@@ -1293,97 +1294,11 @@ int main(int argc, char **argv)
 	}
 
 	while (1) {
-		c = getopt_long(argc, argv, "o:s:p:c:r:n:S:",
+		c = getopt_long(argc, argv, "o:s:P:C:r:c:S:h",
 				long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
-		case 'c':
-			capture_file = optarg;
-			break;
-		case 'p':
-			playback_file = optarg;
-			break;
-		case 'l':
-			loopback_file = optarg;
-			break;
-		case 'A':
-			post_dsp = atoi(optarg);
-			break;
-		case 'b':
-			block_size = atoi(optarg);
-			break;
-		case 'r':
-			rate = atoi(optarg);
-			break;
-		case 'n':
-			num_channels = atoi(optarg);
-			break;
-		case 'd':
-			duration_seconds = atof(optarg);
-			break;
-		case 'u': {
-			int mute = atoi(optarg);
-			rc = cras_client_set_system_mute(client, mute);
-			if (rc < 0) {
-				fprintf(stderr, "problem setting mute\n");
-				goto destroy_exit;
-			}
-			break;
-		}
-		case 'q': {
-			int mute = atoi(optarg);
-			rc = cras_client_set_user_mute(client, mute);
-			if (rc < 0) {
-				fprintf(stderr, "problem setting mute\n");
-				goto destroy_exit;
-			}
-			break;
-		}
-		case 'v': {
-			int volume = atoi(optarg);
-			volume = MIN(100, MAX(0, volume));
-			rc = cras_client_set_system_volume(client, volume);
-			if (rc < 0) {
-				fprintf(stderr, "problem setting volume\n");
-				goto destroy_exit;
-			}
-			break;
-		}
-		case 'g': {
-			long gain = atol(optarg);
-			rc = cras_client_set_system_capture_gain(client, gain);
-			if (rc < 0) {
-				fprintf(stderr, "problem setting capture\n");
-				goto destroy_exit;
-			}
-			break;
-		}
-		case 'j':
-			check_output_plugged(client, optarg);
-			break;
-		case 's':
-			cras_client_reload_dsp(client);
-			break;
-		case 'f':
-			cras_client_dump_dsp_info(client);
-			break;
-		case 'i':
-			print_server_info(client);
-			break;
-		case 'h':
-			show_usage();
-			break;
-		case 'x': {
-			int dev_index = atoi(strtok(optarg, ":"));
-			int node_index = atoi(strtok(NULL, ":"));
-			int value = atoi(strtok(NULL, ":")) ;
-			cras_node_id_t id = cras_make_node_id(dev_index,
-							      node_index);
-			enum ionode_attr attr = IONODE_ATTR_PLUGGED;
-			cras_client_set_node_attr(client, id, attr, value);
-			break;
-		}
 		case 'y':
 		case 'a': {
 			int dev_index = atoi(strtok(optarg, ":"));
@@ -1396,13 +1311,40 @@ int main(int argc, char **argv)
 			cras_client_select_node(client, direction, id);
 			break;
 		}
-		case 'z':
-			pause_in_playback_reply = atoi(optarg);
+		case 'b':
+			block_size = atoi(optarg);
+			break;
+		case 'c':
+			num_channels = atoi(optarg);
+			break;
+		case 'd':
+			duration_seconds = atof(optarg);
+			break;
+		case 'e':
+			show_audio_thread_snapshots(client);
+			break;
+		case 'g': {
+			long gain = atol(optarg);
+			rc = cras_client_set_system_capture_gain(client, gain);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting capture\n");
+				goto destroy_exit;
+			}
+			break;
+		}
+		case 'h':
+			show_usage();
+			break;
+		case 'i':
+			print_server_info(client);
+			break;
+		case 'j':
+			check_output_plugged(client, optarg);
 			break;
 		case 'k':
 		case 't':
 		case '1':
-		case '2':{
+		case '2': {
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
 			enum CRAS_STREAM_DIRECTION dir;
@@ -1418,6 +1360,59 @@ int main(int argc, char **argv)
 				cras_client_add_active_node(client, dir, id);
 			else
 				cras_client_rm_active_node(client, dir, id);
+			break;
+		}
+		case 'l':
+			cras_client_dump_dsp_info(client);
+			break;
+		case 'm':
+			show_audio_debug_info(client);
+			break;
+		case 'n': {
+			int log_level = atoi(optarg);
+
+			setlogmask(LOG_UPTO(log_level));
+			break;
+		}
+		case 'o':
+			channel_layout = optarg;
+			break;
+		case 'p':
+			printf("AEC group ID %d\n",
+					cras_client_get_aec_group_id(client));
+			break;
+		case 'q': {
+			int mute = atoi(optarg);
+			rc = cras_client_set_user_mute(client, mute);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting mute\n");
+				goto destroy_exit;
+			}
+			break;
+		}
+		case 'r':
+			rate = atoi(optarg);
+			break;
+		case 's':
+			cras_client_reload_dsp(client);
+			break;
+		case 'u': {
+			int mute = atoi(optarg);
+			rc = cras_client_set_system_mute(client, mute);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting mute\n");
+				goto destroy_exit;
+			}
+			break;
+		}
+		case 'v': {
+			int volume = atoi(optarg);
+			volume = MIN(100, MAX(0, volume));
+			rc = cras_client_set_system_volume(client, volume);
+			if (rc < 0) {
+				fprintf(stderr, "problem setting volume\n");
+				goto destroy_exit;
+			}
 			break;
 		}
 		case ':':
@@ -1458,6 +1453,20 @@ int main(int argc, char **argv)
 						client, id, value);
 			break;
 		}
+		case 'x': {
+			int dev_index = atoi(strtok(optarg, ":"));
+			int node_index = atoi(strtok(NULL, ":"));
+			int value = atoi(strtok(NULL, ":")) ;
+			cras_node_id_t id = cras_make_node_id(dev_index,
+							      node_index);
+			enum ionode_attr attr = IONODE_ATTR_PLUGGED;
+			cras_client_set_node_attr(client, id, attr, value);
+			break;
+		}
+		case 'z':
+			pause_in_playback_reply = atoi(optarg);
+			break;
+
 		case '0': {
 			int mute = atoi(optarg);
 			rc = cras_client_set_system_capture_mute(client, mute);
@@ -1467,15 +1476,6 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
-		case 'e':
-			show_audio_thread_snapshots(client);
-			break;
-		case 'm':
-			show_audio_debug_info(client);
-			break;
-		case 'o':
-			channel_layout = optarg;
-			break;
 		case '3': {
 			int dev_index = atoi(strtok(optarg, ":"));
 			int node_index = atoi(strtok(NULL, ":"));
@@ -1514,6 +1514,7 @@ int main(int argc, char **argv)
 			cras_client_set_suspend(client, suspend);
 			break;
 		}
+
 		case '!': {
 			play_short_sound = 1;
 			play_short_sound_periods = atoi(optarg);
@@ -1561,6 +1562,7 @@ int main(int argc, char **argv)
 
 			s = strtok(NULL, ":");
 			if (!s && c == ';') {
+				//TODO: c never == ';'
 				show_usage();
 				return -EINVAL;
 			}
@@ -1573,17 +1575,18 @@ int main(int argc, char **argv)
 				print_hotword_models(client, id);
 			break;
 		}
-		case 'L': {
-			int log_level = atoi(optarg);
 
-			setlogmask(LOG_UPTO(log_level));
+		case 'A':
+			post_dsp = atoi(optarg);
 			break;
-		}
-		case 'M':
-			mute_loop_test(client, atoi(optarg));
+		case 'B':
+			stream_id = atoi(optarg);
 			break;
-		case 'T':
-			stream_type = atoi(optarg);
+		case 'C':
+			capture_file = optarg;
+			break;
+		case 'D':
+			cras_client_reload_aec_config(client);
 			break;
 		case 'E': {
 			char *s;
@@ -1604,18 +1607,21 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
-		case 'B':
-			stream_id = atoi(optarg);
-			break;
-		case 'C':
-			aecdump_file = optarg;
-			break;
-		case 'D':
-			cras_client_reload_aec_config(client);
-			break;
 		case 'F':
 			printf("AEC supported %d\n",
 			       !!cras_client_get_aec_supported(client));
+			break;
+		case 'G':
+			aecdump_file = optarg;
+			break;
+		case 'L':
+			loopback_file = optarg;
+			break;
+		case 'M':
+			mute_loop_test(client, atoi(optarg));
+			break;
+		case 'P':
+			playback_file = optarg;
 			break;
 		case 'S': {
 			unsigned int width = atoi(optarg);
@@ -1634,12 +1640,11 @@ int main(int argc, char **argv)
 				return -EINVAL;
 			}
 			break;
-                case 'U':
-                        printf("AEC group ID %d\n",
-                               cras_client_get_aec_group_id(client));
-                        break;
-
 		}
+		case 'T':
+			stream_type = atoi(optarg);
+			break;
+
 		default:
 			break;
 		}
