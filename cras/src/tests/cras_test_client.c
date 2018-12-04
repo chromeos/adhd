@@ -68,6 +68,15 @@ static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
 
 struct cras_audio_format *aud_format;
+struct {
+	char *name;
+	snd_pcm_format_t format;
+} supported_formats[] = {
+	{ "S16_LE", SND_PCM_FORMAT_S16_LE },
+	{ "S24_LE", SND_PCM_FORMAT_S24_LE },
+	{ "S32_LE", SND_PCM_FORMAT_S32_LE },
+	{ NULL, 0 },
+};
 
 static int terminate_stream_loop()
 {
@@ -1192,13 +1201,14 @@ static struct option long_options[] = {
 	{"loopback_file",	required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
 	{"playback_file",	required_argument,	0, 'P'},
-	{"sample_width",	required_argument,	0, 'S'},
 	{"stream_type",		required_argument,	0, 'T'},
 	{0, 0, 0, 0}
 };
 
 static void show_usage()
 {
+	int i;
+
 	printf("--add_active_input <N>:<M> - Add the ionode with the given id"
 	       "to active input device list\n");
 	printf("--add_active_output <N>:<M> - Add the ionode with the given id"
@@ -1214,6 +1224,10 @@ static void show_usage()
 	printf("--dump_dsp - Print status of dsp to syslog.\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
+	printf("--format <name> - The sample format. Either");
+	for (i = 0; supported_formats[i].name; ++i)
+		printf(" %s", supported_formats[i].name);
+	printf(" (default to S16_LE).\n");
 	printf("--get_hotword_models <N>:<M> - Get the supported hotword models of node\n");
 	printf("--help - Print this message.\n");
 	printf("--listen_for_hotword <name> - Listen and capture hotword stream if supported\n");
@@ -1242,7 +1256,6 @@ static void show_usage()
 	printf("--post_dsp <0|1> - Use this flag with --loopback_file. The default value is 0.\n"
 	       "                   Argument: 0 - Record from post-mix, pre-DSP loopback device.\n"
 	       "                             1 - Record from post-DSP loopback device.\n");
-	printf("--sample_width <16|24|32> - The sample size in bits, defaults to 16.\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - Set the volume of the ionode with the given id\n");
 	printf("--show_latency - Display latency while playing or recording.\n");
 	printf("--show_rms - Display RMS value of loopback stream.\n");
@@ -1294,7 +1307,7 @@ int main(int argc, char **argv)
 	}
 
 	while (1) {
-		c = getopt_long(argc, argv, "o:s:P:C:r:c:S:h",
+		c = getopt_long(argc, argv, "o:s:P:C:r:c:f:h",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1323,6 +1336,23 @@ int main(int argc, char **argv)
 		case 'e':
 			show_audio_thread_snapshots(client);
 			break;
+		case 'f': {
+			int i;
+
+			for (i = 0; supported_formats[i].name; ++i) {
+				if (strcasecmp(optarg,
+					       supported_formats[i].name) == 0) {
+					format = supported_formats[i].format;
+					break;
+				}
+			}
+
+			if (!supported_formats[i].name) {
+				printf("Unsupported format: %s\n", optarg);
+				return -EINVAL;
+			}
+			break;
+		}
 		case 'g': {
 			long gain = atol(optarg);
 			rc = cras_client_set_system_capture_gain(client, gain);
@@ -1623,24 +1653,6 @@ int main(int argc, char **argv)
 		case 'P':
 			playback_file = optarg;
 			break;
-		case 'S': {
-			unsigned int width = atoi(optarg);
-			switch (width) {
-			case 16:
-				format = SND_PCM_FORMAT_S16_LE;
-				break;
-			case 24:
-				format = SND_PCM_FORMAT_S24_LE;
-				break;
-			case 32:
-				format = SND_PCM_FORMAT_S32_LE;
-				break;
-			default:
-				printf("Unsupported sample depth\n");
-				return -EINVAL;
-			}
-			break;
-		}
 		case 'T':
 			stream_type = atoi(optarg);
 			break;
