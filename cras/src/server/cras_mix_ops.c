@@ -230,7 +230,9 @@ static void cras_mix_add_scale_stride_s16_le(uint8_t *dst, uint8_t *src,
 
 static int32_t scale_s24_le(int32_t value, float scaler)
 {
-	return (((int32_t)((value << 8) * scaler)) >> 8) & 0x00ffffff;
+	value = ((uint32_t)(value & 0x00ffffff)) << 8;
+	value *= scaler;
+	return (value >> 8) & 0x00ffffff;
 }
 
 static void cras_mix_add_clip_s24_le(int32_t *dst,
