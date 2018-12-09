@@ -129,6 +129,7 @@ class StreamDeviceSuite : public testing::Test {
       memset(rstream, 0, sizeof(*rstream));
       rstream->direction = direction;
       rstream->cb_threshold = 480;
+      rstream->format.frame_rate = 48000;
       rstream->shm.area = static_cast<cras_audio_shm_area*>(
           calloc(1, sizeof(*rstream->shm.area)));
     }

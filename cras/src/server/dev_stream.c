@@ -13,11 +13,6 @@
 #include "cras_mix.h"
 #include "cras_shm.h"
 
-/*
- * Sleep this much time past the buffer size to be sure at least
- * the buffer size is captured when the audio thread wakes up.
- */
-static const unsigned int capture_extra_sleep_frames = 20;
 /* Adjust device's sample rate by this step faster or slower. Used
  * to make sure multiple active device has stable buffer level.
  */
@@ -132,15 +127,6 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 			    stream_fmt->frame_rate,
 			    &stream->sleep_interval_ts);
 	stream->next_cb_ts = *cb_ts;
-
-	if (stream->direction != CRAS_STREAM_OUTPUT) {
-		struct timespec extra_sleep;
-
-		cras_frames_to_time(capture_extra_sleep_frames,
-				    stream->format.frame_rate, &extra_sleep);
-		add_timespecs(&stream->next_cb_ts, &stream->sleep_interval_ts);
-		add_timespecs(&stream->next_cb_ts, &extra_sleep);
-	}
 
 	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
 

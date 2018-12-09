@@ -34,6 +34,12 @@
  */
 #define MAX_CONTINUOUS_ZERO_SLEEP_COUNT 2
 
+/*
+ * Sleep this much time past the buffer size to be sure at least
+ * the buffer size is captured when the audio thread wakes up.
+ */
+static const unsigned int capture_extra_sleep_frames = 20;
+
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_ADD_OPEN_DEV,
@@ -264,6 +270,8 @@ static int append_stream(struct audio_thread *thread,
 	const struct timespec *stream_ts;
 	unsigned int i;
 	bool cb_ts_set = false;
+	int needed_frames_from_device;
+	int level;
 	int rc = 0;
 
 	for (i = 0; i < num_iodevs; i++) {
@@ -276,7 +284,21 @@ static int append_stream(struct audio_thread *thread,
 		if (cras_iodev_find_stream(dev, stream))
 			continue;
 
-		/* For output, if open device already has stream, get the earliest next
+		/*
+		 * When the first input stream is added, flush the input buffer
+		 * so that we can read from multiple input devices of the same
+		 * buffer level.
+		 */
+		if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
+			int num_flushed = dev->flush_buffer(dev);
+			if (num_flushed < 0) {
+				rc = num_flushed;
+				break;
+			}
+		}
+
+		/*
+		 * For output, if open device already has stream, get the earliest next
 		 * callback time from these streams to align with. Otherwise, use the
 		 * timestamp now as the initial callback time for new stream so dev_stream
 		 * can set its own schedule.
@@ -301,28 +323,40 @@ static int append_stream(struct audio_thread *thread,
 					cb_ts_set = true;
 				}
 			}
-		}
+			if (!cb_ts_set)
+				clock_gettime(CLOCK_MONOTONIC_RAW, &init_cb_ts);
+		} else {
+			/*
+		 	 * If the new stream is a capture stream, we need to consider the
+			 * samples in the device. To avoid hw_level rise, we want the stream
+			 * to wake up when it gets enough samples to post.
+		 	 */
+			struct timespec extra_sleep;
 
-		if (!cb_ts_set)
-			clock_gettime(CLOCK_MONOTONIC_RAW, &init_cb_ts);
+			needed_frames_from_device = cras_rstream_get_cb_threshold(stream) +
+						    capture_extra_sleep_frames;
+
+			level = cras_iodev_frames_queued(dev, &init_cb_ts);
+			if (level < 0) {
+				syslog(LOG_ERR, "Failed to set init_cb_ts, rc = %d", level);
+				rc = -EINVAL;
+				break;
+			}
+
+			needed_frames_from_device -= level;
+
+			if (needed_frames_from_device > 0) {
+				cras_frames_to_time(needed_frames_from_device,
+						    stream->format.frame_rate, &extra_sleep);
+				add_timespecs(&init_cb_ts, &extra_sleep);
+			}
+		}
 
 		out = dev_stream_create(stream, dev->info.idx,
 					dev->ext_format, dev, &init_cb_ts);
 		if (!out) {
 			rc = -EINVAL;
 			break;
-		}
-
-		/* When the first input stream is added, flush the input buffer
-		 * so that we can read from multiple input devices of the same
-		 * buffer level.
-		 */
-		if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
-			int num_flushed = dev->flush_buffer(dev);
-			if (num_flushed < 0) {
-				rc = num_flushed;
-				break;
-			}
 		}
 
 		cras_iodev_add_stream(dev, out);
