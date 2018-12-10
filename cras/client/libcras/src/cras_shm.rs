@@ -323,6 +323,7 @@ unsafe fn cras_mmap(
 
 /// A structure that points to RO shared memory area - `cras_server_state`
 /// The structure is created from a shared memory fd which contains the structure.
+#[allow(dead_code)]
 pub struct CrasServerState {
     addr: *mut libc::c_void,
     size: usize,
@@ -332,6 +333,7 @@ impl CrasServerState {
     /// An unsafe function for creating `CrasServerState`. To use this function safely, we neet to
     /// - Make sure that the `shm_fd` must come from the server's message that provides the shared
     /// memory region. The Id for the message is `CRAS_CLIENT_MESSAGE_ID::CRAS_CLIENT_CONNECTED`.
+    #[allow(dead_code)]
     pub unsafe fn new(shm_fd: CrasShmFd) -> io::Result<Self> {
         let size = mem::size_of::<cras_server_state>();
         if size > shm_fd.shm_max_size {
@@ -346,6 +348,7 @@ impl CrasServerState {
     }
 
     // Gets `cras_server_state` reference from the structure.
+    #[allow(dead_code)]
     fn get_ref(&self) -> VolatileRef<cras_server_state> {
         unsafe { VolatileRef::new(self.addr as *mut _) }
     }
@@ -470,6 +473,34 @@ impl Drop for CrasShmFd {
         // in `new` function
         unsafe {
             libc::close(self.fd);
+        }
+    }
+}
+
+/// A structure wrapping a fd which contains a shared `cras_server_state`.
+/// * `shm_fd` - A shared memory fd contains a `cras_server_state`
+pub struct CrasServerStateShmFd {
+    #[allow(dead_code)]
+    shm_fd: CrasShmFd,
+}
+
+impl CrasServerStateShmFd {
+    /// Creates a `CrasServerStateShmFd` by shared memory fd
+    /// # Arguments
+    /// * `fd` - A shared memory file descriptor, which will be owned by the resulting structure and
+    /// the fd will be closed on drop.
+    ///
+    /// # Returns
+    /// A structure wraping a `CrasShmFd` with the input fd and `shm_max_size` which equals to
+    /// the size of `cras_server_sate`.
+    ///
+    /// To use this function safely, we need to make sure
+    /// - The input fd is a valid shared memory fd.
+    /// - The input shared memory fd won't be used by others.
+    /// - The shared memory area in the input fd contains a `cras_server_state`.
+    pub unsafe fn new(fd: libc::c_int) -> Self {
+        Self {
+            shm_fd: CrasShmFd::new(fd, mem::size_of::<cras_server_state>()),
         }
     }
 }

@@ -13,6 +13,8 @@ use gen::{
 };
 
 unsafe impl data_model::DataInit for gen::audio_message {}
+unsafe impl data_model::DataInit for gen::cras_client_connected {}
+unsafe impl data_model::DataInit for gen::cras_client_stream_connected {}
 unsafe impl data_model::DataInit for gen::cras_connect_message {}
 unsafe impl data_model::DataInit for gen::cras_disconnect_stream_message {}
 unsafe impl data_model::DataInit for gen::cras_server_state {}
