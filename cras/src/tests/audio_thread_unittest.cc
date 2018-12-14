@@ -40,12 +40,15 @@ static unsigned int cras_iodev_frames_to_play_in_sleep_called;
 static int cras_iodev_prepare_output_before_write_samples_ret;
 static int cras_iodev_reset_request_called;
 static struct cras_iodev *cras_iodev_reset_request_iodev;
+static int cras_iodev_get_valid_frames_ret;
 static int cras_iodev_output_underrun_called;
 static int cras_iodev_start_stream_called;
 static int cras_device_monitor_reset_device_called;
 static struct cras_iodev *cras_device_monitor_reset_device_iodev;
 static struct cras_iodev *cras_iodev_start_ramp_odev;
 static enum CRAS_IODEV_RAMP_REQUEST cras_iodev_start_ramp_request;
+static struct timespec clock_gettime_retspec;
+static struct timespec init_cb_ts_;
 static std::map<const struct dev_stream*, struct timespec> dev_stream_wake_time_val;
 
 void ResetGlobalStubData() {
@@ -80,12 +83,15 @@ void ResetGlobalStubData() {
   cras_iodev_prepare_output_before_write_samples_ret = 0;
   cras_iodev_reset_request_called = 0;
   cras_iodev_reset_request_iodev = NULL;
+  cras_iodev_get_valid_frames_ret = 0;
   cras_iodev_output_underrun_called = 0;
   cras_iodev_start_stream_called = 0;
   cras_device_monitor_reset_device_called = 0;
   cras_device_monitor_reset_device_iodev = NULL;
   cras_iodev_start_ramp_odev = NULL;
   cras_iodev_start_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
+  clock_gettime_retspec.tv_sec = 0;
+  clock_gettime_retspec.tv_nsec = 0;
   dev_stream_wake_time_val.clear();
 }
 
@@ -484,6 +490,69 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   TearDownRstream(&rstream);
 }
 
+TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct cras_rstream rstream1, rstream2;
+  struct dev_stream *dev_stream;
+  struct timespec expect_ts;
+
+  memset(&rstream1, 0, sizeof(rstream1));
+  memset(&rstream2, 0, sizeof(rstream2));
+  ResetGlobalStubData();
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream1, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream2, CRAS_STREAM_OUTPUT);
+
+  thread_add_open_dev(thread_, &iodev);
+
+  /* Add a new stream. init_cb_ts should be the time right now. */
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 500;
+  cras_iodev_get_valid_frames_ret = 0;
+  expect_ts = clock_gettime_retspec;
+  thread_add_stream(thread_, &rstream1, &piodev, 1);
+  dev_stream = iodev.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream1);
+  EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
+  EXPECT_EQ(init_cb_ts_.tv_nsec, expect_ts.tv_nsec);
+
+  thread_rm_open_dev(thread_, &iodev);
+
+  thread_add_open_dev(thread_, &iodev);
+
+  /*
+   * Add a new stream when there are remaining frames in device buffer.
+   * init_cb_ts should be the time that hw_level drops to min_cb_level.
+   * In this case, we should wait 480 / 48000 = 0.01s.
+   */
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 500;
+  expect_ts = clock_gettime_retspec;
+  cras_iodev_get_valid_frames_ret = 960;
+  rstream1.cb_threshold = 480;
+  expect_ts.tv_nsec += 10 * 1000000;
+  thread_add_stream(thread_, &rstream1, &piodev, 1);
+  dev_stream = iodev.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream1);
+  EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
+  EXPECT_EQ(init_cb_ts_.tv_nsec, expect_ts.tv_nsec);
+
+  /*
+   * Add a new stream when there are other streams exist. init_cb_ts should
+   * be the earliest next callback time from other streams.
+   */
+  rstream1.next_cb_ts = expect_ts;
+  thread_add_stream(thread_, &rstream2, &piodev, 1);
+  dev_stream = iodev.streams->prev;
+  EXPECT_EQ(dev_stream->stream, &rstream2);
+  EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
+  EXPECT_EQ(init_cb_ts_.tv_nsec, expect_ts.tv_nsec);
+
+  thread_rm_open_dev(thread_, &iodev);
+  TearDownRstream(&rstream1);
+  TearDownRstream(&rstream2);
+}
+
 TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct cras_iodev iodev2, *piodev2 = &iodev2;
@@ -567,23 +636,24 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
 
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
 
-  /* Add the device and add the stream. */
-  thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &piodev, 1);
-
-  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
-
   /* Set stream config. */
   rstream.shm.config.frame_bytes = 4;
   rstream.shm.config.used_size = 4096 * 4;
   rstream.shm.config.frame_bytes = 4;
   rstream.shm.area = &shm_area;
+  rstream.cb_threshold = 480;
   rstream.format.frame_rate = 48000;
 
   /* Set shm config. */
   shm_area.config.frame_bytes = 4;
   shm_area.config.used_size = 4096 * 4;
   shm_area.write_buf_idx = 0;
+
+  /* Add the device and add the stream. */
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &rstream, &piodev, 1);
+
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
   /* Assume device is started. */
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
@@ -1172,6 +1242,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 {
   struct dev_stream *out = static_cast<dev_stream*>(calloc(1, sizeof(*out)));
   out->stream = stream;
+  init_cb_ts_ = *cb_ts;
   return out;
 }
 
@@ -1346,6 +1417,13 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
   return 0;
 }
 
+int cras_iodev_get_valid_frames(struct cras_iodev *iodev,
+				struct timespec *hw_tstamp)
+{
+  clock_gettime(CLOCK_MONOTONIC_RAW, hw_tstamp);
+  return cras_iodev_get_valid_frames_ret;
+}
+
 int cras_iodev_reset_request(struct cras_iodev *iodev)
 {
   cras_iodev_reset_request_called++;
@@ -1386,6 +1464,12 @@ int input_data_put_for_stream(struct input_data *data,
 			   struct buffer_share *offsets,
 			   unsigned int frames)
 {
+  return 0;
+}
+
+//  From librt.
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+  *tp = clock_gettime_retspec;
   return 0;
 }
 

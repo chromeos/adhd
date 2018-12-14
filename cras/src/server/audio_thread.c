@@ -267,6 +267,7 @@ static int append_stream(struct audio_thread *thread,
 	struct cras_iodev *dev;
 	struct dev_stream *out;
 	struct timespec init_cb_ts;
+	struct timespec extra_sleep;
 	const struct timespec *stream_ts;
 	unsigned int i;
 	bool cb_ts_set = false;
@@ -300,9 +301,9 @@ static int append_stream(struct audio_thread *thread,
 
 		/*
 		 * For output, if open device already has stream, get the earliest next
-		 * callback time from these streams to align with. Otherwise, use the
-		 * timestamp now as the initial callback time for new stream so dev_stream
-		 * can set its own schedule.
+		 * callback time from these streams to align with. Otherwise, check whether
+		 * there are remaining frames in the device. Set the initial callback time to
+		 * the time when hw_level of device is close to min_cb_level.
 		 * If next callback time is too far from now, it will block writing and
 		 * lower hardware level. Else if we fetch the new stream immediately, it
 		 * may cause device buffer level stack up.
@@ -316,15 +317,29 @@ static int append_stream(struct audio_thread *thread,
 					cb_ts_set = true;
 				}
 			}
-			if (!cb_ts_set)
-				clock_gettime(CLOCK_MONOTONIC_RAW, &init_cb_ts);
+			if (!cb_ts_set) {
+				level = cras_iodev_get_valid_frames(dev, &init_cb_ts);
+				if (level < 0) {
+					syslog(LOG_ERR, "Failed to set output init_cb_ts, rc = %d",
+					       level);
+					rc = -EINVAL;
+					break;
+				}
+				level -= cras_frames_at_rate(stream->format.frame_rate,
+							     cras_rstream_get_cb_threshold(stream),
+							     dev->ext_format->frame_rate);
+				if (level < 0)
+					level = 0;
+				cras_frames_to_time(level, dev->ext_format->frame_rate,
+						    &extra_sleep);
+				add_timespecs(&init_cb_ts, &extra_sleep);
+			}
 		} else {
 			/*
 		 	 * If the new stream is a capture stream, we need to consider the
 			 * samples in the device. To avoid hw_level rise, we want the stream
 			 * to wake up when it gets enough samples to post.
 		 	 */
-			struct timespec extra_sleep;
 
 			needed_frames_from_device =
 				cras_frames_at_rate(stream->format.frame_rate,

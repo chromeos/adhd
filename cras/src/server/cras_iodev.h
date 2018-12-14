@@ -141,6 +141,9 @@ struct cras_ionode {
  * get_num_underruns - Gets number of underrun recorded so far.
  * get_num_severe_underruns - Gets number of severe underrun recorded since
  *                            iodev was created.
+ * get_valid_frames - Gets number of valid frames in device which have not
+ *                    played yet. Valid frames does not include zero samples
+ *                    we filled under no streams state.
  * format - The audio format being rendered or captured to hardware.
  * ext_format - The audio format that is visible to the rest of the system.
  *     This can be different than the hardware if the device dsp changes it.
@@ -223,6 +226,8 @@ struct cras_iodev {
 	char *(*get_hotword_models)(struct cras_iodev *iodev);
 	unsigned int (*get_num_underruns)(const struct cras_iodev *iodev);
 	unsigned int (*get_num_severe_underruns)(const struct cras_iodev *iodev);
+	int (*get_valid_frames)(const struct cras_iodev *odev,
+				struct timespec *tstamp);
 	struct cras_audio_format *format;
 	struct cras_audio_format *ext_format;
 	struct rate_estimator *rate_est;
@@ -706,6 +711,18 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev);
  */
 unsigned int cras_iodev_get_num_severe_underruns(
 		const struct cras_iodev *iodev);
+
+/* Get number of valid frames in the hardware buffer. The valid frames does
+ * not include zero samples we filled with before.
+ * Args:
+ *    iodev[in] - The device.
+ *    hw_tstamp[out] - Pointer to the timestamp for hw_level.
+ * Returns:
+ *    Number of valid frames in the hardware buffer.
+ *    Negative error code on failure.
+ */
+int cras_iodev_get_valid_frames(struct cras_iodev *iodev,
+			        struct timespec *hw_tstamp);
 
 /* Request main thread to re-open device. This should be used in audio thread
  * when it finds device is in a bad state. The request will be ignored if

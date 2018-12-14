@@ -809,6 +809,28 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev) {
 	return scaler;
 }
 
+int cras_iodev_get_valid_frames(struct cras_iodev *odev,
+				struct timespec *hw_tstamp)
+{
+	int rc;
+
+	if (odev->direction != CRAS_STREAM_OUTPUT)
+		return -EINVAL;
+
+	if (odev->get_valid_frames) {
+		rc = odev->get_valid_frames(odev, hw_tstamp);
+		if (rc < 0)
+			return rc;
+
+		if (rc < odev->min_buffer_level)
+			return 0;
+
+		return rc - odev->min_buffer_level;
+	} else {
+		return cras_iodev_frames_queued(odev, hw_tstamp);
+	}
+}
+
 int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct dev_stream *stream)
 {

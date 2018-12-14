@@ -1934,6 +1934,32 @@ static void set_default_hotword_model(struct cras_iodev *iodev)
 	cras_iodev_list_set_hotword_model(node_id, default_model);
 }
 
+static int get_valid_frames(const struct cras_iodev *odev,
+			     struct timespec *tstamp)
+{
+	struct alsa_io *aio = (struct alsa_io *)odev;
+	int rc;
+	unsigned int real_hw_level;
+
+	/*
+	 * Get the amount of valid frames which haven't been played yet.
+	 * The real_hw_level is the real hw_level in device buffer. It doesn't
+	 * subtract min_buffer_level.
+	 */
+	if (aio->is_free_running)
+		return 0;
+
+	rc = odev->frames_queued(odev, tstamp);
+	if(rc < 0)
+		return rc;
+	real_hw_level = rc;
+
+	if (real_hw_level > aio->filled_zeros_for_draining)
+		return real_hw_level - aio->filled_zeros_for_draining;
+
+	return 0;
+}
+
 /*
  * Exported Interface.
  */
@@ -2021,6 +2047,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->output_should_wake = output_should_wake;
 	iodev->get_num_underruns = get_num_underruns;
 	iodev->get_num_severe_underruns = get_num_severe_underruns;
+	iodev->get_valid_frames = get_valid_frames;
 	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
 
 	if (card_type == ALSA_CARD_TYPE_USB)
