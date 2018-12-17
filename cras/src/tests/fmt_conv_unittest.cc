@@ -26,6 +26,8 @@ static int linear_resampler_needed_val;
 static double linear_resampler_ratio = 1.0;
 static unsigned int linear_resampler_num_channels;
 static unsigned int linear_resampler_format_bytes;
+static int linear_resampler_src_rate;
+static int linear_resampler_dst_rate;
 
 void ResetStub() {
   linear_resampler_needed_val = 0;
@@ -69,6 +71,8 @@ TEST(FormatConverterTest, SmallFramesSRCWithLinearResampler) {
 
   c = cras_fmt_conv_create(&in_fmt, &out_fmt, 10, 1);
   EXPECT_NE((void *)NULL, c);
+  EXPECT_EQ(out_fmt.frame_rate, linear_resampler_src_rate);
+  EXPECT_EQ(out_fmt.frame_rate, linear_resampler_dst_rate);
 
   /* When process on small buffers doing SRC 16KHz -> 48KHz,
    * speex does the work in two steps:
@@ -1434,6 +1438,8 @@ TEST(FormatConverterTest, Convert96to48PreLinearResample) {
 
   c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size * 2, 1);
   ASSERT_NE(c, (void *)NULL);
+  EXPECT_EQ(out_fmt.frame_rate, linear_resampler_src_rate);
+  EXPECT_EQ(out_fmt.frame_rate, linear_resampler_dst_rate);
 
   linear_resampler_needed_val = 1;
   linear_resampler_ratio = 1.01;
@@ -1483,6 +1489,8 @@ TEST(FormatConverterTest, Convert96to48PostLinearResample) {
 
   c = cras_fmt_conv_create(&in_fmt, &out_fmt, buf_size * 2, 0);
   ASSERT_NE(c, (void *)NULL);
+  EXPECT_EQ(out_fmt.frame_rate, linear_resampler_src_rate);
+  EXPECT_EQ(out_fmt.frame_rate, linear_resampler_dst_rate);
 
   linear_resampler_needed_val = 1;
   linear_resampler_ratio = 0.99;
@@ -1653,6 +1661,8 @@ struct linear_resampler *linear_resampler_create(unsigned int num_channels,
 {
   linear_resampler_format_bytes = format_bytes;
   linear_resampler_num_channels = num_channels;
+  linear_resampler_src_rate = src_rate;
+  linear_resampler_dst_rate = dst_rate;
   return reinterpret_cast<struct linear_resampler*>(0x33);;
 }
 
@@ -1665,6 +1675,8 @@ void linear_resampler_set_rates(struct linear_resampler *lr,
                                 unsigned int from,
                                 unsigned int to)
 {
+  linear_resampler_src_rate = from;
+  linear_resampler_dst_rate = to;
 }
 
 unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,

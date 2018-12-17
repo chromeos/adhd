@@ -640,7 +640,14 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		}
 	}
 
-	/* Set up linear resampler. */
+	/*
+	 * Set up linear resampler.
+	 *
+	 * Note: intended to give both src_rate and dst_rate the same value
+	 * (i.e. out->frame_rate).  They will be updated in runtime in
+	 * update_estimated_rate() when the audio thread wants to adjust the
+	 * rate for inaccurate device consumption rate.
+	 */
 	conv->num_converters++;
 	conv->resampler = linear_resampler_create(
 			out->num_channels,
