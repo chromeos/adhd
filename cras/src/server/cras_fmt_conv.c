@@ -213,7 +213,7 @@ static size_t s16_mono_to_51(struct cras_fmt_conv *conv,
 	else if (left != -1 && right != -1)
 		for (i = 0; i < in_frames; i++) {
 			out[6 * i + right] = in[i] / 2;
-			out[6 * 1 + left] = in[i] / 2;
+			out[6 * i + left] = in[i] / 2;
 		}
 	else
 		/* Select the first channel to convert to as the
