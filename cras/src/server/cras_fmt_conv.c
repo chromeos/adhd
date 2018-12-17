@@ -489,6 +489,23 @@ static void surround51_to_stereo_downmix_mtx(float **mtx,
 	normalize_buf(mtx[STEREO_R], 6);
 }
 
+static int is_supported_format(const struct cras_audio_format *fmt)
+{
+	if (!fmt)
+		return 0;
+
+	switch (fmt->format) {
+	case SND_PCM_FORMAT_U8:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S24_3LE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S32_LE:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 /*
  * Exported interface
  */
@@ -509,6 +526,18 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	conv->out_fmt = *out;
 	conv->tmp_buf_frames = max_frames;
 	conv->pre_linear_resample = pre_linear_resample;
+
+	if (!is_supported_format(in)) {
+		syslog(LOG_ERR, "Invalid input format %d", in->format);
+		cras_fmt_conv_destroy(&conv);
+		return NULL;
+	}
+
+	if (!is_supported_format(out)) {
+		syslog(LOG_ERR, "Invalid output format %d", out->format);
+		cras_fmt_conv_destroy(&conv);
+		return NULL;
+	}
 
 	/* Set up sample format conversion. */
 	/* TODO(dgreid) - modify channel and sample rate conversion so
@@ -531,9 +560,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			conv->in_format_converter = convert_s243le_to_s16le;
 			break;
 		default:
-			syslog(LOG_WARNING, "Invalid format %d", in->format);
-			cras_fmt_conv_destroy(&conv);
-			return NULL;
+			syslog(LOG_ERR, "Should never reachable");
+			break;
 		}
 	}
 	if (out->format != SND_PCM_FORMAT_S16_LE) {
@@ -554,9 +582,8 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			conv->out_format_converter = convert_s16le_to_s243le;
 			break;
 		default:
-			syslog(LOG_WARNING, "Invalid format %d", out->format);
-			cras_fmt_conv_destroy(&conv);
-			return NULL;
+			syslog(LOG_ERR, "Should never reachable");
+			break;
 		}
 	}
 
