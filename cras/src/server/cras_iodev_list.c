@@ -512,7 +512,7 @@ static int init_device(struct cras_iodev *dev,
 {
 	int rc;
 
-	dev->idle_timeout.tv_sec = 0;
+	cras_iodev_exit_idle(dev);
 
 	if (cras_iodev_is_open(dev))
 		return 0;
@@ -736,6 +736,8 @@ static int init_pinned_device(struct cras_iodev *dev,
 			      struct cras_rstream *rstream)
 {
 	int rc;
+
+	cras_iodev_exit_idle(dev);
 
 	if (audio_thread_is_dev_open(audio_thread, dev))
 		return 0;

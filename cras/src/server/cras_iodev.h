@@ -618,6 +618,12 @@ static inline int cras_iodev_is_open(const struct cras_iodev *iodev)
 	return 0;
 }
 
+/* Configure iodev to exit idle mode. */
+static inline void cras_iodev_exit_idle(struct cras_iodev *iodev)
+{
+	iodev->idle_timeout.tv_sec = 0;
+}
+
 /* Register a pre-dsp loopback hook.  Pass NULL to clear. */
 void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
 				      loopback_hook_t loop_cb,
