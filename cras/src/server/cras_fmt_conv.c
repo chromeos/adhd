@@ -7,6 +7,8 @@
 #include <speex/speex_resampler.h>
 #include <sys/param.h>
 #include <syslog.h>
+#include <endian.h>
+#include <limits.h>
 
 #include "cras_fmt_conv.h"
 #include "cras_audio_format.h"
@@ -51,10 +53,12 @@ static int16_t s16_add_and_clip(int16_t a, int16_t b)
 {
 	int32_t sum;
 
-	sum = a + b;
-	sum = MAX(sum, -0x8000);
-	sum = MIN(sum, 0x7fff);
-	return (int16_t)sum;
+	a = htole16(a);
+	b = htole16(b);
+	sum = (int32_t)a + (int32_t)b;
+	sum = MAX(sum, SHRT_MIN);
+	sum = MIN(sum, SHRT_MAX);
+	return (int16_t)le16toh(sum);
 }
 
 /*
