@@ -613,7 +613,9 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "frame_rate: %u\n"
 		       "num_channels: %u\n"
 		       "longest_fetch_sec: %u.%09u\n"
-		       "num_overruns: %u\n",
+		       "num_overruns: %u\n"
+		       "is_pinned: %x\n"
+		       "pinned_dev_idx: %x\n",
 		       (unsigned int)info->streams[i].buffer_frames,
 		       (unsigned int)info->streams[i].cb_threshold,
 		       (unsigned int)info->streams[i].effects,
@@ -621,7 +623,9 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       (unsigned int)info->streams[i].num_channels,
 		       (unsigned int)info->streams[i].longest_fetch_sec,
 		       (unsigned int)info->streams[i].longest_fetch_nsec,
-		       (unsigned int)info->streams[i].num_overruns);
+		       (unsigned int)info->streams[i].num_overruns,
+		       (unsigned int)info->streams[i].is_pinned,
+		       (unsigned int)info->streams[i].pinned_dev_idx);
 		printf("channel map:");
 		for (channel = 0; channel < CRAS_CH_MAX; channel++)
 			printf("%d ", info->streams[i].channel_layout[channel]);
