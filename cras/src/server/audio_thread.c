@@ -855,6 +855,11 @@ static int get_next_output_wake(struct open_dev **odevs,
 				adev->dev->streams,
 				min_ts);
 
+	DL_FOREACH(*odevs, adev)
+		ret += get_next_stream_wake_from_list(
+				adev->dev->pending_streams,
+				min_ts);
+
 	DL_FOREACH(*odevs, adev) {
 		if (!cras_iodev_odev_should_wake(adev->dev))
 			continue;
