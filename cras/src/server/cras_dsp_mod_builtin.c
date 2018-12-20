@@ -207,6 +207,7 @@ static void mix_stereo_init_module(struct dsp_module *module)
 struct dcblock_data {
 	struct dcblock *dcblockl;
 	struct dcblock *dcblockr;
+	unsigned long sample_rate;
 
 	/* One port for input, one for output, and 1 parameter */
 	float *ports[5];
@@ -215,7 +216,12 @@ struct dcblock_data {
 static int dcblock_instantiate(struct dsp_module *module,
 			       unsigned long sample_rate)
 {
+	struct dcblock_data *data;
+
 	module->data = calloc(1, sizeof(struct dcblock_data));
+	data = (struct dcblock_data *) module->data;
+	data->sample_rate = sample_rate;
+
 	return 0;
 }
 
@@ -230,9 +236,11 @@ static void dcblock_run(struct dsp_module *module, unsigned long sample_count)
 {
 	struct dcblock_data *data = (struct dcblock_data *) module->data;
 	if (!data->dcblockl)
-		data->dcblockl = dcblock_new(*data->ports[4]);
+		data->dcblockl = dcblock_new(*data->ports[4],
+					     data->sample_rate);
 	if (!data->dcblockr)
-		data->dcblockr = dcblock_new(*data->ports[4]);
+		data->dcblockr = dcblock_new(*data->ports[4],
+					     data->sample_rate);
 	if (data->ports[0] != data->ports[2])
 		memcpy(data->ports[2], data->ports[0],
 		       sizeof(float) * sample_count);

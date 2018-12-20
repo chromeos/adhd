@@ -44,8 +44,8 @@ static void test_file(const char *input_filename, const char *output_filename)
 
 	float *data = read_raw(input_filename, &frames);
 
-	dcblockl = dcblock_new(0.995);
-	dcblockr = dcblock_new(0.995);
+	dcblockl = dcblock_new(0.995, 48000);
+	dcblockr = dcblock_new(0.995, 48000);
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tp1);
 	process(dcblockl, data, frames);
 	process(dcblockr, data+frames, frames);
