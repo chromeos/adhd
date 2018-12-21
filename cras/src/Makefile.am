@@ -125,6 +125,7 @@ cras_server_SOURCES = \
 	server/cras_empty_iodev.c \
 	server/cras_expr.c \
 	server/cras_fmt_conv.c \
+	server/cras_fmt_conv_ops.c \
 	server/cras_gpio_jack.c \
 	server/cras_hotword_handler.c \
 	server/cras_iodev.c \
@@ -354,6 +355,7 @@ TESTS = \
 	file_wait_unittest \
 	float_buffer_unittest \
 	fmt_conv_unittest \
+	fmt_conv_ops_unittest \
 	hfp_info_unittest \
 	buffer_share_unittest \
 	iodev_list_unittest \
@@ -623,6 +625,7 @@ dev_io_unittest_SOURCES = \
 	common/cras_shm.c \
 	server/cras_audio_area.c \
 	server/cras_fmt_conv.c \
+	server/cras_fmt_conv_ops.c \
 	server/cras_mix.c \
 	server/cras_mix_ops.c \
 	server/dev_io.c \
@@ -721,10 +724,17 @@ float_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 float_buffer_unittest_LDADD = -lgtest -lpthread
 
-fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc server/cras_fmt_conv.c
+fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc server/cras_fmt_conv.c \
+	server/cras_fmt_conv_ops.c
 fmt_conv_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 fmt_conv_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
+
+fmt_conv_ops_unittest_SOURCES = tests/fmt_conv_ops_unittest.cc \
+	server/cras_fmt_conv_ops.c
+fmt_conv_ops_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	 -I$(top_srcdir)/src/server
+fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
 
 hfp_info_unittest_SOURCES = tests/hfp_info_unittest.cc
 hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
@@ -855,6 +865,7 @@ timing_unittest_SOURCES = \
 	common/cras_shm.c \
 	server/cras_audio_area.c \
 	server/cras_fmt_conv.c \
+	server/cras_fmt_conv_ops.c \
 	server/cras_mix.c \
 	server/cras_mix_ops.c \
 	server/dev_io.c \

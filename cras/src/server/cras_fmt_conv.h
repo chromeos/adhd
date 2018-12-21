@@ -18,6 +18,36 @@
 struct cras_audio_format;
 struct cras_fmt_conv;
 
+//TODO: to be removed
+#include <speex/speex_resampler.h>
+//TODO: to be moved back, no need to export these structures
+/* Max number of converters, src, down/up mix, 2xformat, and linear resample. */
+#define MAX_NUM_CONVERTERS 5
+typedef void (*sample_format_converter_t)(const uint8_t *in,
+					  size_t in_samples,
+					  uint8_t *out);
+typedef size_t (*channel_converter_t)(struct cras_fmt_conv *conv,
+				      const int16_t *in,
+				      size_t in_frames,
+				      int16_t *out);
+
+/* Member data for the resampler. */
+struct cras_fmt_conv {
+	SpeexResamplerState *speex_state;
+	channel_converter_t channel_converter;
+	float **ch_conv_mtx; /* Coefficient matrix for mixing channels. */
+	sample_format_converter_t in_format_converter;
+	sample_format_converter_t out_format_converter;
+	struct linear_resampler *resampler;
+	struct cras_audio_format in_fmt;
+	struct cras_audio_format out_fmt;
+	uint8_t *tmp_bufs[MAX_NUM_CONVERTERS - 1];
+	size_t tmp_buf_frames;
+	size_t pre_linear_resample;
+	size_t num_converters; /* Incremented once for SRC, channel, format. */
+};
+//End of TODO
+
 /* Create and destroy format converters. */
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   const struct cras_audio_format *out,
