@@ -552,7 +552,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   /* If it is not time to fetch, just skip it. */
-  rstream.next_cb_ts = future_ts;
+  rstream.init_cb_ts = future_ts;
   dev_io_playback_fetch(adev);
 
   dev_stream = iodev.pending_streams;
@@ -563,7 +563,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
    * If it is time to fetch, check whether the stream is moved to running
    * list.
    */
-  rstream.next_cb_ts = now;
+  rstream.init_cb_ts = now;
   cras_rstream_is_pending_reply_ret = 0;
   shm_area.write_offset[0] = 0;
   dev_io_playback_fetch(adev);

@@ -316,9 +316,8 @@ static int append_stream(struct audio_thread *thread,
 				}
 			}
 			DL_FOREACH(dev->pending_streams, out) {
-				stream_ts =  dev_stream_next_cb_ts(out);
-				if (stream_ts &&
-				    (!cb_ts_set || timespec_after(&init_cb_ts, stream_ts))) {
+				stream_ts =  &out->stream->init_cb_ts;
+				if (!cb_ts_set || timespec_after(&init_cb_ts, stream_ts)) {
 					init_cb_ts = *stream_ts;
 					cb_ts_set = true;
 				}
@@ -812,13 +811,14 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 }
 
 /* Fills the time that the next stream needs to be serviced. */
-static int get_next_stream_wake_from_list(struct dev_stream *streams,
+static int get_next_stream_wake_from_list(struct cras_iodev *odev,
 					  struct timespec *min_ts)
 {
 	struct dev_stream *dev_stream;
+	struct timespec *next_cb_ts;
 	int ret = 0; /* The total number of streams to wait on. */
 
-	DL_FOREACH(streams, dev_stream) {
+	DL_FOREACH(odev->streams, dev_stream) {
 		const struct timespec *next_cb_ts;
 
 		if (cras_rstream_get_is_draining(dev_stream->stream) &&
@@ -840,6 +840,16 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 		ret++;
 	}
 
+	DL_FOREACH(odev->pending_streams, dev_stream) {
+		next_cb_ts = &dev_stream->stream->init_cb_ts;
+		ATLOG(atlog, AUDIO_THREAD_STREAM_SLEEP_TIME,
+		      dev_stream->stream->stream_id, next_cb_ts->tv_sec,
+		      next_cb_ts->tv_nsec);
+		if (timespec_after(min_ts, next_cb_ts))
+			*min_ts = *next_cb_ts;
+		ret++;
+	}
+
 	return ret;
 }
 
@@ -852,12 +862,7 @@ static int get_next_output_wake(struct open_dev **odevs,
 
 	DL_FOREACH(*odevs, adev)
 		ret += get_next_stream_wake_from_list(
-				adev->dev->streams,
-				min_ts);
-
-	DL_FOREACH(*odevs, adev)
-		ret += get_next_stream_wake_from_list(
-				adev->dev->pending_streams,
+				adev->dev,
 				min_ts);
 
 	DL_FOREACH(*odevs, adev) {
