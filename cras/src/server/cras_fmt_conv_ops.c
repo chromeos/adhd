@@ -8,9 +8,6 @@
 
 #include "cras_fmt_conv_ops.h"
 
-//TODO: to be removed, fmt_conv_ops don't depend on fmt_conv
-#include "cras_fmt_conv.h"
-
 #define MAX(a, b) \
 	({ __typeof__ (a) _a = (a); \
 	 __typeof__ (b) _b = (b); \
@@ -124,11 +121,11 @@ void convert_s16le_to_s32le(const uint8_t *in, size_t in_samples, uint8_t *out)
 /*
  * Channel converter: mono to stereo.
  */
-size_t s16_mono_to_stereo(struct cras_fmt_conv *conv,
-			  const int16_t *in, size_t in_frames,
-			  int16_t *out)
+size_t s16_mono_to_stereo(const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
 	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
 	for (i = 0; i < in_frames; i++) {
 		out[2 * i] = in[i];
@@ -140,11 +137,11 @@ size_t s16_mono_to_stereo(struct cras_fmt_conv *conv,
 /*
  * Channel converter: stereo to mono.
  */
-size_t s16_stereo_to_mono(struct cras_fmt_conv *conv,
-			  const int16_t *in, size_t in_frames,
-			  int16_t *out)
+size_t s16_stereo_to_mono(const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
 	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
 	for (i = 0; i < in_frames; i++)
 		out[i] = s16_add_and_clip(in[2 * i], in[2 * i + 1]);
@@ -157,16 +154,14 @@ size_t s16_stereo_to_mono(struct cras_fmt_conv *conv,
  * Fit mono to front center of the output, or split to front left/right
  * if front center is missing from the output channel layout.
  */
-size_t s16_mono_to_51(struct cras_fmt_conv *conv,
-		      const int16_t *in, size_t in_frames,
-		      int16_t *out)
+size_t s16_mono_to_51(size_t left, size_t right, size_t center,
+		      const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
-	size_t i, left, right, center;
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
 	memset(out, 0, sizeof(*out) * 6 * in_frames);
-	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
-	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
-	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
 	if (center != -1)
 		for (i = 0; i < in_frames; i++)
@@ -193,16 +188,14 @@ size_t s16_mono_to_51(struct cras_fmt_conv *conv,
  * and fill others with zero. If any of the front left/right is missed from
  * the output channel layout, mix to front center.
  */
-size_t s16_stereo_to_51(struct cras_fmt_conv *conv,
-			const int16_t *in, size_t in_frames,
-			int16_t *out)
+size_t s16_stereo_to_51(size_t left, size_t right, size_t center,
+			const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
-	size_t i, left, right, center;
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
 	memset(out, 0, sizeof(*out) * 6 * in_frames);
-	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
-	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
-	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
 	if (left != -1 && right != -1)
 		for (i = 0; i < in_frames; i++) {
@@ -232,10 +225,10 @@ size_t s16_stereo_to_51(struct cras_fmt_conv *conv,
  * is used as the default behavior when channel layout is not set from the
  * client side.
  */
-size_t s16_51_to_stereo(struct cras_fmt_conv *conv,
-			const int16_t *in, size_t in_frames,
-			int16_t *out)
+size_t s16_51_to_stereo(const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 	static const unsigned int left_idx = 0;
 	static const unsigned int right_idx = 1;
 	/* static const unsigned int left_surround_idx = 2; */
@@ -262,16 +255,13 @@ size_t s16_51_to_stereo(struct cras_fmt_conv *conv,
  * Fit left/right of input to the front left/right of output respectively
  * and fill others with zero.
  */
-size_t s16_stereo_to_quad(struct cras_fmt_conv *conv,
-			  const int16_t *in, size_t in_frames,
-			  int16_t *out)
+size_t s16_stereo_to_quad(size_t front_left, size_t front_right,
+			  size_t rear_left, size_t rear_right,
+			  const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
-	size_t i, front_left, front_right, rear_left, rear_right;
-
-	front_left = conv->out_fmt.channel_layout[CRAS_CH_FL];
-	front_right = conv->out_fmt.channel_layout[CRAS_CH_FR];
-	rear_left = conv->out_fmt.channel_layout[CRAS_CH_RL];
-	rear_right = conv->out_fmt.channel_layout[CRAS_CH_RR];
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
 	if (front_left != -1 && front_right != -1 &&
 	    rear_left != -1 && rear_right != -1)
@@ -298,35 +288,29 @@ size_t s16_stereo_to_quad(struct cras_fmt_conv *conv,
 /*
  * Channel converter: quad (front L/R, rear L/R) to stereo.
  */
-size_t s16_quad_to_stereo(struct cras_fmt_conv *conv,
-			  const int16_t *in, size_t in_frames,
-			  int16_t *out)
+size_t s16_quad_to_stereo(size_t front_left, size_t front_right,
+			  size_t rear_left, size_t rear_right,
+			  const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
 	size_t i;
-	unsigned int left_idx =
-			conv->in_fmt.channel_layout[CRAS_CH_FL];
-	unsigned int right_idx =
-			conv->in_fmt.channel_layout[CRAS_CH_FR];
-	unsigned int left_rear_idx =
-			conv->in_fmt.channel_layout[CRAS_CH_RL];
-	unsigned int right_rear_idx =
-			conv->in_fmt.channel_layout[CRAS_CH_RR];
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
-	if (left_idx == -1 || right_idx == -1 ||
-	    left_rear_idx == -1 || right_rear_idx == -1) {
-		left_idx = 0;
-		right_idx = 1;
-		left_rear_idx = 2;
-		right_rear_idx = 3;
+	if (front_left == -1 || front_right == -1 ||
+	    rear_left == -1 || rear_right == -1) {
+		front_left = 0;
+		front_right = 1;
+		rear_left = 2;
+		rear_right = 3;
 	}
 
 	for (i = 0; i < in_frames; i++) {
 		out[2 * i] = s16_add_and_clip(
-		    in[4 * i + left_idx],
-		    in[4 * i + left_rear_idx] / 4);
+		    in[4 * i + front_left],
+		    in[4 * i + rear_left] / 4);
 		out[2 * i + 1] = s16_add_and_clip(
-		    in[4 * i + right_idx],
-		    in[4 * i + right_rear_idx] / 4);
+		    in[4 * i + front_right],
+		    in[4 * i + rear_right] / 4);
 	}
 	return in_frames;
 }
@@ -337,15 +321,16 @@ size_t s16_quad_to_stereo(struct cras_fmt_conv *conv,
  * The out buffer must have room for M channel. This convert function is used
  * as the default behavior when channel layout is not set from the client side.
  */
-size_t s16_default_all_to_all(struct cras_fmt_conv *conv,
-			      const int16_t *in, size_t in_frames,
-			      int16_t *out)
+size_t s16_default_all_to_all(struct cras_audio_format *out_fmt,
+			      size_t num_in_ch, size_t num_out_ch,
+			      const uint8_t *_in, size_t in_frames,
+			      uint8_t *_out)
 {
-	unsigned int num_in_ch = conv->in_fmt.num_channels;
-	unsigned int num_out_ch = conv->out_fmt.num_channels;
 	unsigned int in_ch, out_ch, i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
-	memset(out, 0, in_frames * cras_get_format_bytes(&conv->out_fmt));
+	memset(out, 0, in_frames * cras_get_format_bytes(out_fmt));
 	for (out_ch = 0; out_ch < num_out_ch; out_ch++) {
 		for (in_ch = 0; in_ch < num_in_ch; in_ch++) {
 			for (i = 0; i < in_frames; i++) {
@@ -360,7 +345,7 @@ size_t s16_default_all_to_all(struct cras_fmt_conv *conv,
 /*
  * Multiplies buffer vector with coefficient vector.
  */
-int16_t multiply_buf_with_coef(float *coef, const int16_t *buf, size_t size)
+int16_t s16_multiply_buf_with_coef(float *coef, const int16_t *buf, size_t size)
 {
 	int32_t sum = 0;
 	int i;
@@ -377,22 +362,24 @@ int16_t multiply_buf_with_coef(float *coef, const int16_t *buf, size_t size)
  *
  * Converts channels based on the channel conversion coefficient matrix.
  */
-size_t convert_channels(struct cras_fmt_conv *conv,
-			const int16_t *in, size_t in_frames,
-			int16_t *out)
+size_t s16_convert_channels(float **ch_conv_mtx,
+			    size_t num_in_ch, size_t num_out_ch,
+			    const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
 	unsigned i, fr;
 	unsigned in_idx = 0;
 	unsigned out_idx = 0;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
 
 	for (fr = 0; fr < in_frames; fr++) {
-		for (i = 0; i < conv->out_fmt.num_channels; i++)
-			out[out_idx + i] = multiply_buf_with_coef(
-					conv->ch_conv_mtx[i],
+		for (i = 0; i < num_out_ch; i++)
+			out[out_idx + i] = s16_multiply_buf_with_coef(
+					ch_conv_mtx[i],
 					&in[in_idx],
-					conv->in_fmt.num_channels);
-		in_idx += conv->in_fmt.num_channels;
-		out_idx += conv->out_fmt.num_channels;
+					num_in_ch);
+		in_idx += num_in_ch;
+		out_idx += num_out_ch;
 	}
 
 	return in_frames;

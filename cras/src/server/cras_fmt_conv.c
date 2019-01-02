@@ -19,9 +19,35 @@
 /* The quality level is a value between 0 and 10. This is a tradeoff between
  * performance, latency, and quality. */
 #define SPEEX_QUALITY_LEVEL 4
+/* Max number of converters, src, down/up mix, 2xformat, and linear resample. */
+#define MAX_NUM_CONVERTERS 5
 /* Channel index for stereo. */
 #define STEREO_L 0
 #define STEREO_R 1
+
+typedef void (*sample_format_converter_t)(const uint8_t *in,
+					  size_t in_samples,
+					  uint8_t *out);
+typedef size_t (*channel_converter_t)(struct cras_fmt_conv *conv,
+				      const uint8_t *in,
+				      size_t in_frames,
+				      uint8_t *out);
+
+/* Member data for the resampler. */
+struct cras_fmt_conv {
+	SpeexResamplerState *speex_state;
+	channel_converter_t channel_converter;
+	float **ch_conv_mtx; /* Coefficient matrix for mixing channels. */
+	sample_format_converter_t in_format_converter;
+	sample_format_converter_t out_format_converter;
+	struct linear_resampler *resampler;
+	struct cras_audio_format in_fmt;
+	struct cras_audio_format out_fmt;
+	uint8_t *tmp_bufs[MAX_NUM_CONVERTERS - 1];
+	size_t tmp_buf_frames;
+	size_t pre_linear_resample;
+	size_t num_converters; /* Incremented once for SRC, channel, format. */
+};
 
 static int is_channel_layout_equal(const struct cras_audio_format *a,
 				   const struct cras_audio_format *b)
@@ -98,6 +124,106 @@ static int is_supported_format(const struct cras_audio_format *fmt)
 	default:
 		return 0;
 	}
+}
+
+static size_t mono_to_stereo(struct cras_fmt_conv *conv,
+			     const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	return s16_mono_to_stereo(in, in_frames, out);
+}
+
+static size_t stereo_to_mono(struct cras_fmt_conv *conv,
+			     const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	return s16_stereo_to_mono(in, in_frames, out);
+}
+
+static size_t mono_to_51(struct cras_fmt_conv *conv,
+			 const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	size_t left, right, center;
+
+	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
+
+	return s16_mono_to_51(left, right, center, in, in_frames, out);
+}
+
+static size_t stereo_to_51(struct cras_fmt_conv *conv,
+			   const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	size_t left, right, center;
+
+	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
+
+	return s16_stereo_to_51(left, right, center, in, in_frames, out);
+}
+
+static size_t _51_to_stereo(struct cras_fmt_conv *conv,
+			    const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	return s16_51_to_stereo(in, in_frames, out);
+}
+
+static size_t stereo_to_quad(struct cras_fmt_conv *conv,
+			     const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	size_t front_left, front_right, rear_left, rear_right;
+
+	front_left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	front_right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	rear_left = conv->out_fmt.channel_layout[CRAS_CH_RL];
+	rear_right = conv->out_fmt.channel_layout[CRAS_CH_RR];
+
+	return s16_stereo_to_quad(front_left, front_right,
+				  rear_left, rear_right,
+				  in, in_frames, out);
+}
+
+static size_t quad_to_stereo(struct cras_fmt_conv *conv,
+			     const uint8_t *in, size_t in_frames, uint8_t *out)
+{
+	size_t front_left, front_right, rear_left, rear_right;
+
+	front_left = conv->in_fmt.channel_layout[CRAS_CH_FL];
+	front_right = conv->in_fmt.channel_layout[CRAS_CH_FR];
+	rear_left = conv->in_fmt.channel_layout[CRAS_CH_RL];
+	rear_right = conv->in_fmt.channel_layout[CRAS_CH_RR];
+
+	return s16_quad_to_stereo(front_left, front_right,
+				  rear_left, rear_right,
+				  in, in_frames, out);
+}
+
+static size_t default_all_to_all(struct cras_fmt_conv *conv,
+				 const uint8_t *in, size_t in_frames,
+				 uint8_t *out)
+{
+	size_t num_in_ch, num_out_ch;
+
+	num_in_ch = conv->in_fmt.num_channels;
+	num_out_ch = conv->out_fmt.num_channels;
+
+	return s16_default_all_to_all(&conv->out_fmt, num_in_ch, num_out_ch,
+				      in, in_frames, out);
+}
+
+static size_t convert_channels(struct cras_fmt_conv *conv,
+			       const uint8_t *in, size_t in_frames,
+			       uint8_t *out)
+{
+	float **ch_conv_mtx;
+	size_t num_in_ch, num_out_ch;
+
+	ch_conv_mtx = conv->ch_conv_mtx;
+	num_in_ch = conv->in_fmt.num_channels;
+	num_out_ch = conv->out_fmt.num_channels;
+
+	return s16_convert_channels(ch_conv_mtx, num_in_ch, num_out_ch,
+				    in, in_frames, out);
 }
 
 /*
@@ -190,17 +316,17 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		/* Populate the conversion matrix base on in/out channel count
 		 * and layout. */
 		if (in->num_channels == 1 && out->num_channels == 2) {
-			conv->channel_converter = s16_mono_to_stereo;
+			conv->channel_converter = mono_to_stereo;
 		} else if (in->num_channels == 1 && out->num_channels == 6) {
-			conv->channel_converter = s16_mono_to_51;
+			conv->channel_converter = mono_to_51;
 		} else if (in->num_channels == 2 && out->num_channels == 1) {
-			conv->channel_converter = s16_stereo_to_mono;
+			conv->channel_converter = stereo_to_mono;
 		} else if (in->num_channels == 2 && out->num_channels == 4) {
-			conv->channel_converter = s16_stereo_to_quad;
+			conv->channel_converter = stereo_to_quad;
 		} else if (in->num_channels == 4 && out->num_channels == 2) {
-			conv->channel_converter = s16_quad_to_stereo;
+			conv->channel_converter = quad_to_stereo;
 		} else if (in->num_channels == 2 && out->num_channels == 6) {
-			conv->channel_converter = s16_stereo_to_51;
+			conv->channel_converter = stereo_to_51;
 		} else if (in->num_channels == 6 && out->num_channels == 2) {
 			int in_channel_layout_set = 0;
 
@@ -225,13 +351,13 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 						conv->ch_conv_mtx,
 						conv->in_fmt.channel_layout);
 			} else {
-				conv->channel_converter = s16_51_to_stereo;
+				conv->channel_converter = _51_to_stereo;
 			}
 		} else {
 			syslog(LOG_WARNING,
 			       "Using default channel map for %zu to %zu",
 			       in->num_channels, out->num_channels);
-			conv->channel_converter = s16_default_all_to_all;
+			conv->channel_converter = default_all_to_all;
 		}
 	} else if (in->num_channels > 2 &&
 		   !is_channel_layout_equal(in, out)){
@@ -363,7 +489,7 @@ void cras_channel_remix_convert(struct cras_fmt_conv *conv,
 
 	for (fr = 0; fr < nframes; fr++) {
 		for (ch = 0; ch < conv->in_fmt.num_channels; ch++)
-			tmp[ch] = multiply_buf_with_coef(
+			tmp[ch] = s16_multiply_buf_with_coef(
 				conv->ch_conv_mtx[ch],
 				buf,
 				conv->in_fmt.num_channels);
@@ -525,9 +651,9 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv *conv,
 	/* Then channel conversion. */
 	if (conv->channel_converter != NULL) {
 		conv->channel_converter(conv,
-					(int16_t *)buffers[buf_idx],
+					buffers[buf_idx],
 					fr_in,
-					(int16_t *)buffers[buf_idx + 1]);
+					buffers[buf_idx + 1]);
 		buf_idx++;
 	}
 
