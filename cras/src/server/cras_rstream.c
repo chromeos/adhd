@@ -14,6 +14,7 @@
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "buffer_share.h"
@@ -238,6 +239,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->shm.area = NULL;
 	stream->master_dev.dev_id = NO_DEVICE;
 	stream->master_dev.dev_ptr = NULL;
+	stream->num_missed_cb = 0;
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
 	stream->fd = config->audio_fd;
@@ -260,11 +262,14 @@ int cras_rstream_create(struct cras_rstream_config *config,
 
 	cras_system_state_stream_added(stream->direction);
 
+	clock_gettime(CLOCK_MONOTONIC_RAW, &stream->start_ts);
+
 	return 0;
 }
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
+	cras_server_metrics_missed_cb_frequency(stream);
 	cras_system_state_stream_removed(stream->direction);
 	close(stream->fd);
 	if (stream->shm.area != NULL) {

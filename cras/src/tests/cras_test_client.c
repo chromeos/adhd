@@ -492,6 +492,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_STREAM_FETCH_PENDING:
 		printf("%-30s id:%x\n", "STREAM_FETCH_PENGING", data1);
 		break;
+	case AUDIO_THREAD_STREAM_RESCHEDULE:
+		printf("%-30s id:%x next_cb_ts:%09u.%09d\n",
+		       "STREAM_RESCHEDULE", data1, (int)data2, (int)data3);
+		break;
 	case AUDIO_THREAD_STREAM_SLEEP_TIME:
 		printf("%-30s id:%x wake:%09u.%09d\n",
 		       "STREAM_SLEEP_TIME", data1, (int)data2, (int)data3);
@@ -615,7 +619,9 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "longest_fetch_sec: %u.%09u\n"
 		       "num_overruns: %u\n"
 		       "is_pinned: %x\n"
-		       "pinned_dev_idx: %x\n",
+		       "pinned_dev_idx: %x\n"
+		       "num_missed_cb: %u\n"
+		       "runtime: %u.%09u\n",
 		       (unsigned int)info->streams[i].buffer_frames,
 		       (unsigned int)info->streams[i].cb_threshold,
 		       (unsigned int)info->streams[i].effects,
@@ -625,7 +631,10 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       (unsigned int)info->streams[i].longest_fetch_nsec,
 		       (unsigned int)info->streams[i].num_overruns,
 		       (unsigned int)info->streams[i].is_pinned,
-		       (unsigned int)info->streams[i].pinned_dev_idx);
+		       (unsigned int)info->streams[i].pinned_dev_idx,
+		       (unsigned int)info->streams[i].num_missed_cb,
+		       (unsigned int)info->streams[i].runtime_sec,
+		       (unsigned int)info->streams[i].runtime_nsec);
 		printf("channel map:");
 		for (channel = 0; channel < CRAS_CH_MAX; channel++)
 			printf("%d ", info->streams[i].channel_layout[channel]);

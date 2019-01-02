@@ -107,6 +107,7 @@ static int cras_rstream_audio_ready_called;
 static int cras_rstream_audio_ready_count;
 static int cras_rstream_is_pending_reply_ret;
 static int cras_rstream_flush_old_audio_messages_called;
+static int cras_server_metrics_missed_cb_first_time_called;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -128,6 +129,7 @@ class CreateSuite : public testing::Test{
       rstream_.format.num_channels = 2;
       rstream_.format = fmt_s16le_44_1;
       rstream_.flags = 0;
+      rstream_.num_missed_cb = 0;
 
       config_format_converter_from_fmt = NULL;
       config_format_converter_called = 0;
@@ -138,6 +140,7 @@ class CreateSuite : public testing::Test{
       cras_rstream_audio_ready_count = 0;
       cras_rstream_is_pending_reply_ret = 0;
       cras_rstream_flush_old_audio_messages_called = 0;
+      cras_server_metrics_missed_cb_first_time_called = 0;
 
       memset(&copy_area_call, 0xff, sizeof(copy_area_call));
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
@@ -692,6 +695,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   clock_gettime_retspec.tv_nsec = 0;
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
   EXPECT_EQ(0, rc);
 
   // Case 2: Not enough samples. Time is late enough.
@@ -704,6 +708,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   // Stream still can not send samples to client.
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
   EXPECT_EQ(0, rc);
 
   // Case 3: Enough samples. Time is not late enough.
@@ -718,6 +723,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   // Stream still can not send samples to client.
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
   EXPECT_EQ(0, rc);
 
   // Case 4: Enough samples. Time is late enough.
@@ -727,6 +733,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(rstream_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
   EXPECT_EQ(0, rc);
 
   // Check next_cb_ts is increased by one sleep interval.
@@ -751,6 +758,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(rstream_.cb_threshold, cras_rstream_audio_ready_count);
+  EXPECT_EQ(1, cras_server_metrics_missed_cb_first_time_called);
   EXPECT_EQ(0, rc);
 
   // Check next_cb_ts is rest to be now plus one sleep interval.
@@ -971,6 +979,45 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
   EXPECT_EQ(rstream_.next_cb_ts.tv_sec, wake_time_out.tv_sec);
   EXPECT_EQ(rstream_.next_cb_ts.tv_nsec, wake_time_out.tv_nsec);
   EXPECT_EQ(0, rc);
+  dev_stream_destroy(dev_stream);
+}
+
+TEST_F(CreateSuite, UpdateNextWakeTime) {
+  struct dev_stream *dev_stream;
+  unsigned int dev_id = 9;
+  struct timespec expected_next_cb_ts;
+
+  rstream_.direction = CRAS_STREAM_OUTPUT;
+  dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
+                                 (void *) 0x55, &cb_ts);
+
+  // Case 1: The new next_cb_ts is greater than now. Do not need to reschedule.
+  rstream_.next_cb_ts.tv_sec = 2;
+  rstream_.next_cb_ts.tv_nsec = 0;
+  clock_gettime_retspec.tv_sec = 2;
+  clock_gettime_retspec.tv_nsec = 500;
+  expected_next_cb_ts = rstream_.next_cb_ts;
+
+  dev_stream_update_next_wake_time(dev_stream);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
+  add_timespecs(&expected_next_cb_ts,
+                &rstream_.sleep_interval_ts);
+  EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
+  EXPECT_EQ(expected_next_cb_ts.tv_nsec, rstream_.next_cb_ts.tv_nsec);
+
+  // Case 2: The new next_cb_ts is less than now. Need to reset schedule.
+  rstream_.next_cb_ts.tv_sec = 2;
+  rstream_.next_cb_ts.tv_nsec = 0;
+  clock_gettime_retspec.tv_sec = 3;
+  clock_gettime_retspec.tv_nsec = 0;
+  expected_next_cb_ts = clock_gettime_retspec;
+
+  dev_stream_update_next_wake_time(dev_stream);
+  EXPECT_EQ(1, cras_server_metrics_missed_cb_first_time_called);
+  add_timespecs(&expected_next_cb_ts,
+                &rstream_.sleep_interval_ts);
+  EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
+  EXPECT_EQ(expected_next_cb_ts.tv_nsec, rstream_.next_cb_ts.tv_nsec);
   dev_stream_destroy(dev_stream);
 }
 
@@ -1265,6 +1312,12 @@ int cras_rstream_flush_old_audio_messages(struct  cras_rstream *stream)
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;
   tp->tv_nsec = clock_gettime_retspec.tv_nsec;
+  return 0;
+}
+
+int cras_server_metrics_missed_cb_first_time(
+    const struct cras_rstream *stream) {
+  cras_server_metrics_missed_cb_first_time_called++;
   return 0;
 }
 

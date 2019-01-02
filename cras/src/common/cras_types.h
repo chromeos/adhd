@@ -210,6 +210,7 @@ enum AUDIO_THREAD_LOG_EVENTS {
 	AUDIO_THREAD_CAPTURE_WRITE,
 	AUDIO_THREAD_CONV_COPY,
 	AUDIO_THREAD_STREAM_FETCH_PENDING,
+	AUDIO_THREAD_STREAM_RESCHEDULE,
 	AUDIO_THREAD_STREAM_SLEEP_TIME,
 	AUDIO_THREAD_STREAM_SLEEP_ADJUST,
 	AUDIO_THREAD_STREAM_SKIP_CB,
@@ -271,9 +272,12 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint32_t num_channels;
 	uint32_t longest_fetch_sec;
 	uint32_t longest_fetch_nsec;
+	uint32_t num_missed_cb;
 	uint32_t num_overruns;
 	uint32_t is_pinned;
 	uint32_t pinned_dev_idx;
+	uint32_t runtime_sec;
+	uint32_t runtime_nsec;
 	int8_t channel_layout[CRAS_CH_MAX];
 };
 

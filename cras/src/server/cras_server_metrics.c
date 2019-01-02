@@ -4,6 +4,7 @@
  */
 
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
@@ -14,6 +15,14 @@
 
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
 const char kHighestOutputHardwareLevel[] = "Cras.HighestOutputHardwareLevel";
+const char kMissedCallbackFirstTimeInput[] =
+		"Cras.MissedCallbackFirstTimeInput";
+const char kMissedCallbackFirstTimeOutput[] =
+		"Cras.MissedCallbackFirstTimeOutput";
+const char kMissedCallbackFrequencyInput[] =
+		"Cras.MissedCallbackFrequencyInput";
+const char kMissedCallbackFrequencyOutput[] =
+		"Cras.MissedCallbackFrequencyOutput";
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
@@ -22,11 +31,21 @@ const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 
+/*
+ * Records missed callback frequency only when the runtime of stream is larger
+ * than the threshold.
+ */
+const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
+
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
 	HIGHEST_INPUT_HW_LEVEL,
 	HIGHEST_OUTPUT_HW_LEVEL,
 	LONGEST_FETCH_DELAY,
+	MISSED_CB_FIRST_TIME_INPUT,
+	MISSED_CB_FIRST_TIME_OUTPUT,
+	MISSED_CB_FREQUENCY_INPUT,
+	MISSED_CB_FREQUENCY_OUTPUT,
 	NUM_UNDERRUNS,
 	STREAM_CONFIG
 };
@@ -127,6 +146,81 @@ int cras_server_metrics_num_underruns(unsigned num_underruns)
 	return 0;
 }
 
+int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	struct timespec now, time_since;
+	double seconds, frequency;
+	int err;
+
+	/* Do not record missed cb if the stream has these flags. */
+	if (stream->flags & (BULK_AUDIO_OK | USE_DEV_TIMING | TRIGGER_ONLY))
+		return 0;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &stream->start_ts, &time_since);
+	seconds = (double)time_since.tv_sec + time_since.tv_nsec / 1000000000.0;
+
+	/* Ignore streams which do not have enough runtime. */
+	if (seconds < MISSED_CB_FREQUENCY_SECONDS_MIN)
+		return 0;
+
+	/* Compute how many callbacks are missed in a day. */
+	frequency = (double)stream->num_missed_cb * 86400.0 / seconds;
+	data.value = (unsigned)(round(frequency) + 1e-9);
+
+	if (stream->direction == CRAS_STREAM_INPUT) {
+		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_INPUT,
+					data);
+	} else {
+		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_OUTPUT,
+					data);
+	}
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: MISSING_CB_PER_FREQUENCY");
+		return err;
+	}
+
+	return 0;
+}
+
+int cras_server_metrics_missed_cb_first_time(
+		const struct cras_rstream *stream)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	struct timespec now, time_since;
+	int err;
+
+	/* Do not record missed cb if the stream has these flags. */
+	if (stream->flags & (BULK_AUDIO_OK | USE_DEV_TIMING | TRIGGER_ONLY))
+		return 0;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &stream->start_ts, &time_since);
+	data.value = (unsigned)time_since.tv_sec;
+
+	if (stream->direction == CRAS_STREAM_INPUT) {
+		init_server_metrics_msg(&msg, MISSED_CB_FIRST_TIME_INPUT,
+					data);
+	} else {
+		init_server_metrics_msg(&msg, MISSED_CB_FIRST_TIME_OUTPUT,
+					data);
+	}
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: "
+		       "MISSING_CB_FIRST_TIME");
+		return err;
+	}
+
+	return 0;
+}
+
 int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 {
 	struct cras_server_metrics_message msg;
@@ -185,6 +279,22 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	case LONGEST_FETCH_DELAY:
 		cras_metrics_log_histogram(kStreamTimeoutMilliSeconds,
 				metrics_msg->data.value, 1, 20000, 10);
+		break;
+	case MISSED_CB_FIRST_TIME_INPUT:
+		cras_metrics_log_histogram(kMissedCallbackFirstTimeInput,
+				metrics_msg->data.value, 0, 90000, 20);
+		break;
+	case MISSED_CB_FIRST_TIME_OUTPUT:
+		cras_metrics_log_histogram(kMissedCallbackFirstTimeOutput,
+				metrics_msg->data.value, 0, 90000, 20);
+		break;
+	case MISSED_CB_FREQUENCY_INPUT:
+		cras_metrics_log_histogram(kMissedCallbackFrequencyInput,
+				metrics_msg->data.value, 0, 90000, 20);
+		break;
+	case MISSED_CB_FREQUENCY_OUTPUT:
+		cras_metrics_log_histogram(kMissedCallbackFrequencyOutput,
+				metrics_msg->data.value, 0, 90000, 20);
 		break;
 	case NUM_UNDERRUNS:
 		cras_metrics_log_histogram(kUnderrunsPerDevice,

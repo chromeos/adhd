@@ -9,14 +9,6 @@
 #include "cras_rstream.h"
 
 extern const char kNoCodecsFoundMetric[];
-extern const char kHighestInputHardwareLevel[];
-extern const char kHighestOutputHardwareLevel[];
-extern const char kStreamTimeoutMilliSeconds[];
-extern const char kStreamCallbackThreshold[];
-extern const char kStreamFlags[];
-extern const char kStreamSamplingFormat[];
-extern const char kStreamSamplingRate[];
-extern const char kUnderrunsPerDevice[];
 
 /* Logs the highest hardware level of a device. */
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
@@ -27,6 +19,13 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec);
 
 /* Logs the number of underruns of a device. */
 int cras_server_metrics_num_underruns(unsigned num_underruns);
+
+/* Logs the frequency of missed callback. */
+int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream);
+
+/* Logs how long after the first time missed callback happened. */
+int cras_server_metrics_missed_cb_first_time(
+		const struct cras_rstream *stream);
 
 /* Logs the stream configurations from clients. */
 int cras_server_metrics_stream_config(struct cras_rstream_config *config);

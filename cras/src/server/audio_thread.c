@@ -624,6 +624,7 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 				    int index)
 {
 	struct audio_stream_debug_info *si;
+	struct timespec now, time_since;
 
 	si = &info->streams[index];
 
@@ -643,6 +644,12 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->effects = cras_apm_list_get_effects(stream->stream->apm_list);
 	si->pinned_dev_idx = stream->stream->pinned_dev_idx;
 	si->is_pinned = stream->stream->is_pinned;
+	si->num_missed_cb = stream->stream->num_missed_cb;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &stream->stream->start_ts, &time_since);
+	si->runtime_sec = time_since.tv_sec;
+	si->runtime_nsec = time_since.tv_nsec;
 
 	longest_wake.tv_sec = 0;
 	longest_wake.tv_nsec = 0;
