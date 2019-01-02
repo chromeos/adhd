@@ -631,6 +631,7 @@ dev_io_unittest_SOURCES = \
 	tests/dev_io_stubs.cc \
 	tests/iodev_stub.cc \
 	tests/empty_audio_stub.cc \
+	tests/metrics_stub.cc \
 	tests/rstream_stub.cc \
 	tests/dev_io_unittest.cc
 dev_io_unittest_CXXFLAGS = \
@@ -862,6 +863,7 @@ timing_unittest_SOURCES = \
 	tests/dev_io_stubs.cc \
 	tests/iodev_stub.cc \
 	tests/empty_audio_stub.cc \
+	tests/metrics_stub.cc \
 	tests/rstream_stub.cc \
 	tests/timing_unittest.cc
 timing_unittest_CXXFLAGS = \

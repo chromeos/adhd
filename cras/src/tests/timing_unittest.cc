@@ -23,6 +23,7 @@ struct audio_thread_event_log* atlog;
 
 #include "dev_io_stubs.h"
 #include "iodev_stub.h"
+#include "metrics_stub.h"
 #include "rstream_stub.h"
 
 #define FAKE_POLL_FD 33
@@ -410,22 +411,6 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
 
 /* Stubs */
 extern "C" {
-
-int cras_server_metrics_highest_hw_level(unsigned hw_level,
-		enum CRAS_STREAM_DIRECTION direction)
-{
-  return 0;
-}
-
-int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
-{
-  return 0;
-}
-
-int cras_server_metrics_num_underruns(unsigned num_underruns)
-{
-  return 0;
-}
 
 int input_data_get_for_stream(
 		struct input_data *data,
