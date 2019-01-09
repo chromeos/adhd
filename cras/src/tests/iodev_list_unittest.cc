@@ -89,11 +89,6 @@ static struct cras_rstream *audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
 static int cras_iodev_is_zero_volume_ret;
 
-void dummy_update_active_node(struct cras_iodev *iodev,
-                              unsigned node_idx,
-                              unsigned dev_enabled) {
-}
-
 int device_in_vector(std::vector<struct cras_iodev*> v, struct cras_iodev *dev)
 {
   return std::find(v.begin(), v.end(), dev) != v.end();
@@ -214,9 +209,14 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_dev_start_ramp_req =
           CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
       cras_iodev_is_zero_volume_ret = 0;
+      for (int i = 0; i < 5 ; i++)
+        update_active_node_iodev_val[i] = NULL;
 
       dummy_empty_iodev[0].state = CRAS_IODEV_STATE_CLOSE;
+      dummy_empty_iodev[0].update_active_node = update_active_node;
       dummy_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
+      dummy_empty_iodev[1].update_active_node = update_active_node;
+      dummy_hotword_iodev.update_active_node = update_active_node;
     }
 
     virtual void TearDown() {
@@ -497,6 +497,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 0));
 
+  update_active_node_called = 0;
   cras_iodev_open_ret[0] = -5;
   cras_iodev_open_ret[1] = 0;
   cras_tm_timer_cb = NULL;
@@ -506,6 +507,9 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   /* open dev called twice, one for fallback device. */
   EXPECT_EQ(2, cras_iodev_open_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(0, update_active_node_called);
+  EXPECT_EQ(&dummy_empty_iodev[CRAS_STREAM_OUTPUT],
+            audio_thread_add_stream_dev);
 
   EXPECT_NE((void *)NULL, cras_tm_timer_cb);
   EXPECT_EQ(1, cras_tm_create_timer_called);
@@ -742,7 +746,7 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 1));
 
-  EXPECT_EQ(1, update_active_node_called);
+  EXPECT_EQ(2, update_active_node_called);
   EXPECT_EQ(&d2_, update_active_node_iodev_val[0]);
   EXPECT_EQ(1, update_active_node_node_idx_val[0]);
   EXPECT_EQ(1, update_active_node_dev_enabled_val[0]);
@@ -753,13 +757,13 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 0));
 
-  EXPECT_EQ(3, update_active_node_called);
-  EXPECT_EQ(&d2_, update_active_node_iodev_val[1]);
-  EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
-  EXPECT_EQ(2, update_active_node_node_idx_val[1]);
-  EXPECT_EQ(0, update_active_node_node_idx_val[2]);
-  EXPECT_EQ(0, update_active_node_dev_enabled_val[1]);
-  EXPECT_EQ(1, update_active_node_dev_enabled_val[2]);
+  EXPECT_EQ(5, update_active_node_called);
+  EXPECT_EQ(&d2_, update_active_node_iodev_val[2]);
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[3]);
+  EXPECT_EQ(2, update_active_node_node_idx_val[2]);
+  EXPECT_EQ(0, update_active_node_node_idx_val[3]);
+  EXPECT_EQ(0, update_active_node_dev_enabled_val[2]);
+  EXPECT_EQ(1, update_active_node_dev_enabled_val[3]);
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
   cras_iodev_list_deinit();
 }
@@ -1379,7 +1383,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d1_.info.idx, 0));
-  EXPECT_EQ(1, update_active_node_called);
+  EXPECT_EQ(2, update_active_node_called);
   EXPECT_EQ(&d1_, update_active_node_iodev_val[0]);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
@@ -1392,36 +1396,43 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   rstream.pinned_dev_idx = d1_.info.idx;
 
   // Add pinned stream to d1.
+  update_active_node_called = 0;
   EXPECT_EQ(0, stream_add_cb(&rstream));
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
-  EXPECT_EQ(2, update_active_node_called);
+  EXPECT_EQ(1, update_active_node_called);
   // Init d1_ because of pinned stream
-  EXPECT_EQ(&d1_, update_active_node_iodev_val[1]);
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[0]);
 
   // Select d2, check pinned stream is not added to d2.
+  update_active_node_called = 0;
+  cras_iodev_has_pinned_stream_ret[&d1_] = 1;
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 0));
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(4, update_active_node_called);
+  EXPECT_EQ(2, update_active_node_called);
   // Unselect d1_ and select to d2_
-  EXPECT_EQ(&d1_, update_active_node_iodev_val[2]);
-  EXPECT_EQ(&d2_, update_active_node_iodev_val[3]);
+  EXPECT_EQ(&d2_, update_active_node_iodev_val[0]);
+  EXPECT_EQ(&dummy_empty_iodev[CRAS_STREAM_OUTPUT],
+            update_active_node_iodev_val[1]);
 
   // Remove pinned stream from d1, check d1 is closed after stream removed.
+  update_active_node_called = 0;
+  cras_iodev_has_pinned_stream_ret[&d1_] = 0;
   EXPECT_EQ(0, stream_rm_cb(&rstream));
   EXPECT_EQ(1, cras_iodev_close_called);
   EXPECT_EQ(&d1_, cras_iodev_close_dev);
-  EXPECT_EQ(5, update_active_node_called);
+  EXPECT_EQ(1, update_active_node_called);
   // close pinned device
-  EXPECT_EQ(&d1_, update_active_node_iodev_val[4]);
+  EXPECT_EQ(&d1_, update_active_node_iodev_val[0]);
 
   // Assume dev is already opened, add pin stream should not trigger another
   // update_active_node call, but will trigger audio_thread_add_stream.
   audio_thread_is_dev_open_ret = 1;
+  update_active_node_called = 0;
   EXPECT_EQ(0, stream_add_cb(&rstream));
-  EXPECT_EQ(5, update_active_node_called);
+  EXPECT_EQ(0, update_active_node_called);
   EXPECT_EQ(2, audio_thread_add_stream_called);
 
   cras_iodev_list_deinit();
@@ -1705,7 +1716,6 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
     dev = &dummy_empty_iodev[direction];
   }
   dev->direction = direction;
-  dev->update_active_node = dummy_update_active_node;
   if (dev->active_node == NULL) {
     struct cras_ionode *node = (struct cras_ionode *)calloc(1, sizeof(*node));
     node->type = node_type;
