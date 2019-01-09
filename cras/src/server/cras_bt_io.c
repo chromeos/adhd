@@ -190,12 +190,8 @@ static int configure_dev(struct cras_iodev *iodev)
 	*dev->format = *iodev->format;
 
 	rc = dev->configure_dev(dev);
-	if (rc) {
-		/* Free format here to assure the update_supported_format
-		 * callback will be called before any future open_dev call. */
-		cras_iodev_free_format(iodev);
+	if (rc)
 		return rc;
-	}
 
 	iodev->buffer_size = dev->buffer_size;
 	iodev->min_buffer_level = dev->min_buffer_level;
