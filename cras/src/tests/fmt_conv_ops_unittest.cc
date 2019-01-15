@@ -666,7 +666,7 @@ TEST(FormatConverterOpsTest, ConvertChannelsS16LE) {
   FloatPtr ch_conv_mtx = CreateFloat(out_ch * in_ch);
   std::unique_ptr<float *[]> mtx(new float *[out_ch]);
   for (size_t i = 0; i < out_ch; ++i)
-    mtx[i] = &ch_conv_mtx[i * out_ch];
+    mtx[i] = &ch_conv_mtx[i * in_ch];
 
   size_t ret = s16_convert_channels(mtx.get(), in_ch, out_ch,
                                     (uint8_t *)src.get(), frames,
