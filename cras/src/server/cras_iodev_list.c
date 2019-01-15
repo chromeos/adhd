@@ -317,25 +317,6 @@ static void sys_vol_change(void *context, int32_t volume)
 	}
 }
 
-/*
- * Checks if a device should start ramping for mute/unmute change.
- * Device must meet all the conditions:
- *
- * - Device is enabled in iodev_list.
- * - Device has ramp support.
- * - Device is in normal run state, that is, it must be running with valid
- *   streams.
- * - Device volume, which considers both system volume and adjusted active
- *   node volume, is not zero. If device volume is zero, all the samples are
- *   suppressed to zero and there is no need to ramp.
- */
-static int device_should_start_ramp_for_mute(const struct cras_iodev *dev)
-{
-	return (cras_iodev_list_dev_is_enabled(dev) && dev->ramp &&
-		cras_iodev_state(dev) == CRAS_IODEV_STATE_NORMAL_RUN &&
-		!cras_iodev_is_zero_volume(dev));
-}
-
 /* Called when the system mute state changes.  Pass the current mute setting
  * to the default output if it is active. */
 static void sys_mute_change(void *context, int muted, int user_muted,
@@ -345,30 +326,16 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 	int should_mute = muted || user_muted;
 
 	DL_FOREACH(devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-		if (device_should_start_ramp_for_mute(dev)) {
-			/*
-			 * Start ramping in audio thread and set mute/unmute
-			 * state on device. This should only be done when
-			 * device is running with valid streams.
-			 *
-			 * 1. Mute -> Unmute: Set device unmute state after
-			 *                    ramping is started.
-			 * 2. Unmute -> Mute: Set device mute state after
-			 *                    ramping is done.
-			 *
-			 * The above transition will be handled by
-			 * cras_iodev_ramp_start.
-			 */
+		if (!cras_iodev_is_open(dev)) {
+			/* For closed devices, just set its mute state. */
+			cras_iodev_set_mute(dev);
+		} else {
 			audio_thread_dev_start_ramp(
 					audio_thread,
 					dev,
 					(should_mute ?
 					 CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE :
 					 CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE));
-
-		} else {
-			/* For device without ramp, just set its mute state. */
-			cras_iodev_set_mute(dev);
 		}
 	}
 }

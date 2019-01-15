@@ -80,14 +80,12 @@ static int cras_iodev_open_called;
 static int cras_iodev_open_ret[8];
 static int set_mute_called;
 static std::vector<struct cras_iodev*> set_mute_dev_vector;
-static struct cras_iodev *audio_thread_dev_start_ramp_dev;
+static std::vector<struct cras_iodev*> audio_thread_dev_start_ramp_dev_vector;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req ;
-static std::map<const struct cras_iodev*, enum CRAS_IODEV_STATE> cras_iodev_state_ret;
 static std::map<int, bool> stream_list_has_pinned_stream_ret;
 static struct cras_rstream *audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
-static int cras_iodev_is_zero_volume_ret;
 static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
 static struct cras_ionode fake_sco_in_node, fake_sco_out_node;
 
@@ -206,11 +204,10 @@ class IoDevTestSuite : public testing::Test {
       memset(cras_iodev_open_ret, 0, sizeof(cras_iodev_open_ret));
       set_mute_called = 0;
       set_mute_dev_vector.clear();
-      audio_thread_dev_start_ramp_dev = NULL;
+      audio_thread_dev_start_ramp_dev_vector.clear();
       audio_thread_dev_start_ramp_called = 0;
       audio_thread_dev_start_ramp_req =
           CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
-      cras_iodev_is_zero_volume_ret = 0;
       for (int i = 0; i < 5 ; i++)
         update_active_node_iodev_val[i] = NULL;
       DL_APPEND(fake_sco_in_dev.nodes, &fake_sco_in_node);
@@ -845,11 +842,6 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
 TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   cras_iodev_list_init();
 
-  // d1_ and d3_ have ramp while d2_ does not have ramp.
-  d1_.ramp = reinterpret_cast<cras_ramp*>(0x123);
-  d2_.ramp = NULL;
-  d3_.ramp = reinterpret_cast<cras_ramp*>(0x124);
-
   cras_iodev_list_add_output(&d1_);
   cras_iodev_list_add_output(&d2_);
   cras_iodev_list_add_output(&d3_);
@@ -858,70 +850,27 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   cras_iodev_list_enable_dev(&d1_);
   cras_iodev_list_enable_dev(&d2_);
 
-  // Assume d1 and d2 devices are in normal run.
-  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NORMAL_RUN;
-  cras_iodev_state_ret[&d2_] = CRAS_IODEV_STATE_NORMAL_RUN;
-  cras_iodev_state_ret[&d3_] = CRAS_IODEV_STATE_CLOSE;
+  // Assume d1 and d2 devices are open.
+  d1_.state = CRAS_IODEV_STATE_OPEN;
+  d2_.state = CRAS_IODEV_STATE_OPEN;
+  d3_.state = CRAS_IODEV_STATE_CLOSE;
 
   // Execute the callback.
   observer_ops->output_mute_changed(NULL, 0, 1, 0);
 
-  // d1_ should set mute state through audio_thread_dev_start_ramp.
-  EXPECT_EQ(&d1_, audio_thread_dev_start_ramp_dev);
-  EXPECT_EQ(1, audio_thread_dev_start_ramp_called);
+  // d1_ and d2_ should set mute state through audio_thread_dev_start_ramp
+  // because they are both open.
+  ASSERT_TRUE(device_in_vector(audio_thread_dev_start_ramp_dev_vector, &d1_));
+  ASSERT_TRUE(device_in_vector(audio_thread_dev_start_ramp_dev_vector, &d2_));
+  EXPECT_EQ(2, audio_thread_dev_start_ramp_called);
   EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE, audio_thread_dev_start_ramp_req);
 
-  // d2_ should set mute state right away.
   // d3_ should set mute state right away without calling ramp
-  // because it is not enabled.
-  EXPECT_EQ(2, set_mute_called);
-  EXPECT_EQ(2, set_mute_dev_vector.size());
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
+  // because it is not open.
+  EXPECT_EQ(1, set_mute_called);
+  EXPECT_EQ(1, set_mute_dev_vector.size());
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 
-  // Assume d1_ should mute for volume.
-  // It should not use ramp.
-  cras_iodev_is_zero_volume_ret = 1;
-
-  // Clear stub data of interest.
-  audio_thread_dev_start_ramp_dev = NULL;
-  audio_thread_dev_start_ramp_called = 0;
-  set_mute_called = 0;
-  set_mute_dev_vector.clear();
-
-  // Execute the callback.
-  observer_ops->output_mute_changed(NULL, 0, 1, 0);
-
-  // Verify three devices all set mute state right away.
-  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
-  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
-  EXPECT_EQ(3, set_mute_called);
-  EXPECT_EQ(3, set_mute_dev_vector.size());
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
-
-  // Assume d1_ is changed to no_stream run state
-  // It should not use ramp.
-  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NO_STREAM_RUN;
-
-  // Clear stub data of interest.
-  audio_thread_dev_start_ramp_dev = NULL;
-  audio_thread_dev_start_ramp_called = 0;
-  set_mute_called = 0;
-  set_mute_dev_vector.clear();
-
-  // Execute the callback.
-  observer_ops->output_mute_changed(NULL, 0, 1, 0);
-
-  // Verify three devices all set mute state right away.
-  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
-  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
-  EXPECT_EQ(3, set_mute_called);
-  EXPECT_EQ(3, set_mute_dev_vector.size());
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
   cras_iodev_list_deinit();
 }
 
@@ -929,11 +878,6 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
 TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   cras_iodev_list_init();
 
-  // d1_ and d3_ have ramp while d2_ does not have ramp.
-  d1_.ramp = reinterpret_cast<cras_ramp*>(0x123);
-  d2_.ramp = NULL;
-  d3_.ramp = reinterpret_cast<cras_ramp*>(0x124);
-
   cras_iodev_list_add_output(&d1_);
   cras_iodev_list_add_output(&d2_);
   cras_iodev_list_add_output(&d3_);
@@ -942,71 +886,27 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   cras_iodev_list_enable_dev(&d1_);
   cras_iodev_list_enable_dev(&d2_);
 
-  // Assume d1 and d2 devices are in normal run.
-  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NORMAL_RUN;
-  cras_iodev_state_ret[&d2_] = CRAS_IODEV_STATE_NORMAL_RUN;
-  cras_iodev_state_ret[&d3_] = CRAS_IODEV_STATE_CLOSE;
+  // Assume d1 and d2 devices are open.
+  d1_.state = CRAS_IODEV_STATE_OPEN;
+  d2_.state = CRAS_IODEV_STATE_CLOSE;
+  d3_.state = CRAS_IODEV_STATE_CLOSE;
 
   // Execute the callback.
   observer_ops->output_mute_changed(NULL, 0, 0, 0);
 
   // d1_ should set mute state through audio_thread_dev_start_ramp.
-  EXPECT_EQ(&d1_, audio_thread_dev_start_ramp_dev);
+  ASSERT_TRUE(device_in_vector(audio_thread_dev_start_ramp_dev_vector, &d1_));
   EXPECT_EQ(1, audio_thread_dev_start_ramp_called);
   EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE,
             audio_thread_dev_start_ramp_req);
 
-  // d2_ should set mute state right away.
-  // d3_ should set mute state right away without calling ramp
-  // because it is not enabled.
+  // d2_ and d3_ should set mute state right away because they both
+  // are closed.
   EXPECT_EQ(2, set_mute_called);
   EXPECT_EQ(2, set_mute_dev_vector.size());
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 
-  // Assume d1_ should mute for volume.
-  // It should not use ramp.
-  cras_iodev_is_zero_volume_ret = 1;
-
-  // Clear stub data of interest.
-  audio_thread_dev_start_ramp_dev = NULL;
-  audio_thread_dev_start_ramp_called = 0;
-  set_mute_called = 0;
-  set_mute_dev_vector.clear();
-
-  // Execute the callback.
-  observer_ops->output_mute_changed(NULL, 0, 1, 0);
-
-  // Verify three devices all set mute state right away.
-  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
-  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
-  EXPECT_EQ(3, set_mute_called);
-  EXPECT_EQ(3, set_mute_dev_vector.size());
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
-
-  // Assume d1_ is changed to no_stream run state
-  // It should not use ramp.
-  cras_iodev_state_ret[&d1_] = CRAS_IODEV_STATE_NO_STREAM_RUN;
-
-  // Clear stub data of interest.
-  audio_thread_dev_start_ramp_dev = NULL;
-  audio_thread_dev_start_ramp_called = 0;
-  set_mute_called = 0;
-  set_mute_dev_vector.clear();
-
-  // Execute the callback.
-  observer_ops->output_mute_changed(NULL, 0, 1, 0);
-
-  // Verify three devices all set mute state right away.
-  EXPECT_EQ(NULL, audio_thread_dev_start_ramp_dev);
-  EXPECT_EQ(0, audio_thread_dev_start_ramp_called);
-  EXPECT_EQ(3, set_mute_called);
-  EXPECT_EQ(3, set_mute_dev_vector.size());
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d1_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
-  ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
   cras_iodev_list_deinit();
 }
 
@@ -1798,16 +1698,6 @@ int cras_iodev_set_mute(struct cras_iodev* iodev) {
   return 0;
 }
 
-int cras_iodev_is_zero_volume(const struct cras_iodev *iodev)
-{
-  return cras_iodev_is_zero_volume_ret;
-}
-
-enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
-{
-	return cras_iodev_state_ret[iodev];
-}
-
 bool stream_list_has_pinned_stream(struct stream_list *list,
                                    unsigned int dev_idx)
 {
@@ -1933,7 +1823,7 @@ int audio_thread_dev_start_ramp(struct audio_thread *thread,
                                 enum CRAS_IODEV_RAMP_REQUEST request)
 {
   audio_thread_dev_start_ramp_called++;
-  audio_thread_dev_start_ramp_dev = dev;
+  audio_thread_dev_start_ramp_dev_vector.push_back(dev);
   audio_thread_dev_start_ramp_req = request;
   return 0;
 }

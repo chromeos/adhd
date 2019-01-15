@@ -16,6 +16,7 @@
 #include "audio_thread_log.h"
 #include "cras_audio_thread_monitor.h"
 #include "cras_config.h"
+#include "cras_device_monitor.h"
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_rstream.h"
@@ -438,7 +439,19 @@ static int thread_is_dev_open(struct audio_thread *thread,
 	return !!adev;
 }
 
-/* Handles messages from the main thread to start ramping on a device. */
+/*
+ * Handles messages from the main thread to start ramping on a device.
+ * Start ramping in audio thread and set mute/unmute
+ * state on device. This should only be done when
+ * device is running with valid streams.
+ *
+ * 1. Mute -> Unmute: Set device unmute state after
+ *                    ramping is started.
+ * 2. Unmute -> Mute: Set device mute state after
+ *                    ramping is done.
+ *
+ * The above transition will be handled by cras_iodev_start_ramp.
+ */
 static int thread_dev_start_ramp(struct audio_thread *thread,
 				 struct cras_iodev *iodev,
 				 enum CRAS_IODEV_RAMP_REQUEST request)
@@ -448,7 +461,24 @@ static int thread_dev_start_ramp(struct audio_thread *thread,
 			thread->open_devs[iodev->direction], iodev);
 	if (!adev)
 		return -EINVAL;
-	return cras_iodev_start_ramp(iodev, request);
+
+	/*
+	 * Checks if a device should start ramping for mute/unmute change.
+	 * Device must meet all the conditions:
+	 *
+	 * - Device has ramp support.
+	 * - Device is in normal run state, that is, it must be running with valid
+	 *   streams.
+	 * - Device volume, which considers both system volume and adjusted active
+	 *   node volume, is not zero. If device volume is zero, all the samples are
+	 *   suppressed to zero and there is no need to ramp.
+	 */
+	if (iodev->ramp &&
+	    cras_iodev_state(iodev) == CRAS_IODEV_STATE_NORMAL_RUN &&
+	    !cras_iodev_is_zero_volume(iodev))
+		return cras_iodev_start_ramp(iodev, request);
+	else
+		return cras_device_monitor_set_device_mute_state(iodev->info.idx);
 }
 
 

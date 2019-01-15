@@ -50,6 +50,8 @@ static enum CRAS_IODEV_RAMP_REQUEST cras_iodev_start_ramp_request;
 static struct timespec clock_gettime_retspec;
 static struct timespec init_cb_ts_;
 static std::map<const struct dev_stream*, struct timespec> dev_stream_wake_time_val;
+static int cras_device_monitor_set_device_mute_state_called;
+static int cras_iodev_is_zero_volume_ret;
 
 void ResetGlobalStubData() {
   cras_rstream_dev_offset_called = 0;
@@ -90,6 +92,8 @@ void ResetGlobalStubData() {
   cras_device_monitor_reset_device_iodev = NULL;
   cras_iodev_start_ramp_odev = NULL;
   cras_iodev_start_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
+  cras_device_monitor_set_device_mute_state_called = 0;
+  cras_iodev_is_zero_volume_ret = 0;
   clock_gettime_retspec.tv_sec = 0;
   clock_gettime_retspec.tv_nsec = 0;
   dev_stream_wake_time_val.clear();
@@ -123,6 +127,7 @@ class StreamDeviceSuite : public testing::Test {
       iodev->ext_format = &format_;
       iodev->buffer_size = BUFFER_SIZE;
       iodev->min_cb_level = FIRST_CB_LEVEL;
+      iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
       format_.frame_rate = 48000;
     }
 
@@ -133,6 +138,8 @@ class StreamDeviceSuite : public testing::Test {
       frames_queued_ = 0;
       delay_frames_ = 0;
       audio_buffer_size_ = 0;
+      cras_iodev_start_ramp_odev = NULL;
+      cras_iodev_is_zero_volume_ret = 0;
     }
 
     void SetupRstream(struct cras_rstream *rstream,
@@ -259,6 +266,7 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   EXPECT_EQ(adev->dev, &iodev);
 
   // Ramp up for unmute.
+  iodev.ramp = reinterpret_cast<cras_ramp*>(0x123);
   req = CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE;
   rc = thread_dev_start_ramp(thread_, &iodev, req);
 
@@ -275,6 +283,25 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(&iodev, cras_iodev_start_ramp_odev);
   EXPECT_EQ(req, cras_iodev_start_ramp_request);
+
+  // If device's volume percentage is zero, than ramp won't start.
+  ResetStubData();
+  cras_iodev_is_zero_volume_ret = 1;
+  rc = thread_dev_start_ramp(thread_, &iodev, req);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(NULL, cras_iodev_start_ramp_odev);
+  EXPECT_EQ(1, cras_device_monitor_set_device_mute_state_called);
+
+  // Assume iodev changed to no_stream run state, it should not use ramp.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+  rc = thread_dev_start_ramp(thread_, &iodev, req);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(NULL, cras_iodev_start_ramp_odev);
+  EXPECT_EQ(2, cras_device_monitor_set_device_mute_state_called);
+
   thread_rm_open_dev(thread_, &iodev);
 }
 
@@ -1087,6 +1114,11 @@ unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
   return 0;
 }
 
+int cras_iodev_is_zero_volume(const struct cras_iodev *iodev)
+{
+  return cras_iodev_is_zero_volume_ret;
+}
+
 int dev_stream_attached_devs(const struct dev_stream *dev_stream)
 {
   return 1;
@@ -1469,6 +1501,12 @@ int input_data_put_for_stream(struct input_data *data,
 			   struct buffer_share *offsets,
 			   unsigned int frames)
 {
+  return 0;
+}
+
+int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
+{
+  cras_device_monitor_set_device_mute_state_called++;
   return 0;
 }
 
