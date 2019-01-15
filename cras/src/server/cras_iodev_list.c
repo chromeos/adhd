@@ -377,33 +377,19 @@ static void possibly_disable_echo_reference(struct cras_iodev *dev)
 }
 
 /*
- * Close dev if it's opened, without the extra call to idle_dev_check.
- * This is useful for closing a dev inside idle_dev_check function to
- * avoid infinite recursive call.
- *
- * Returns:
- *    -EINVAL if device was not opened, otherwise return 0.
+ * Removes all attached streams and close dev if it's opened.
  */
-static int close_dev_without_idle_check(struct cras_iodev *dev)
+static void close_dev(struct cras_iodev *dev)
 {
-	if (!cras_iodev_is_open(dev))
-		return -EINVAL;
+	if (!cras_iodev_is_open(dev)) {
+		syslog(LOG_WARNING, "Unexpected closed dev %s", dev->info.name);
+		return;
+	}
 
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
 	possibly_disable_echo_reference(dev);
-	return 0;
-}
-
-static void close_dev(struct cras_iodev *dev)
-{
-	if (close_dev_without_idle_check(dev))
-		return;
-
-	if (idle_timer)
-		cras_tm_cancel_timer(cras_system_state_get_tm(), idle_timer);
-	idle_dev_check(NULL, NULL);
 }
 
 static void idle_dev_check(struct cras_timer *timer, void *data)
@@ -422,7 +408,7 @@ static void idle_dev_check(struct cras_timer *timer, void *data)
 		if (edev->dev->idle_timeout.tv_sec == 0)
 			continue;
 		if (timespec_after(&now, &edev->dev->idle_timeout)) {
-			close_dev_without_idle_check(edev->dev);
+			close_dev(edev->dev);
 			continue;
 		}
 		num_idle_devs++;

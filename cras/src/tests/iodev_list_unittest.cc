@@ -1448,6 +1448,57 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, OutputDevIdleClose) {
+  int rc;
+  struct cras_rstream rstream;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+                                  cras_make_node_id(d1_.info.idx, 1));
+  EXPECT_EQ(0, audio_thread_add_open_dev_called);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+
+  // If a stream is added, the device should be opened.
+  stream_add_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+
+  audio_thread_rm_open_dev_called = 0;
+  audio_thread_drain_stream_return = 0;
+  clock_gettime_retspec.tv_sec = 15;
+  stream_rm_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_drain_stream_called);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  // Expect no rm dev happen because idle time not yet expire, and
+  // new timer should be scheduled for the rest of the idle time.
+  clock_gettime_retspec.tv_sec += 7;
+  cras_tm_timer_cb(NULL, NULL);
+  EXPECT_EQ(0, audio_thread_rm_open_dev_called);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+
+  // Expect d1_ be closed upon unplug, and the timer stay armed.
+  cras_iodev_list_rm_output(&d1_);
+  EXPECT_EQ(1, audio_thread_rm_open_dev_called);
+  EXPECT_EQ(0, cras_tm_cancel_timer_called);
+
+  // When timer eventually fired expect there's no more new
+  // timer scheduled because d1_ has closed already.
+  clock_gettime_retspec.tv_sec += 4;
+  cras_tm_timer_cb(NULL, NULL);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, DrainTimerCancel) {
   int rc;
   struct cras_rstream rstream;
