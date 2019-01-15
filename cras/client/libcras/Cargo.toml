@@ -5,5 +5,5 @@ authors = ["The Chromium OS Authors"]
 
 [dependencies]
 libc = "*"
-cras-sys = "*"
-data_model = "*"
+cras-sys = { path = "../cras-sys" } # provided by ebuild
+data_model = { path = "../../../../../platform/crosvm/data_model" } # provided by ebuild
