@@ -1612,16 +1612,6 @@ int cras_iodev_set_mute(struct cras_iodev* iodev)
 	return 0;
 }
 
-int cras_iodev_has_pinned_stream(const struct cras_iodev *dev)
-{
-	const struct dev_stream *out;
-	DL_FOREACH(dev->streams, out) {
-		if (out->stream->is_pinned)
-			return 1;
-	}
-	return 0;
-}
-
 void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 		unsigned int hw_level)
 {

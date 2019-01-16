@@ -84,7 +84,7 @@ static struct cras_iodev *audio_thread_dev_start_ramp_dev;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req ;
 static std::map<const struct cras_iodev*, enum CRAS_IODEV_STATE> cras_iodev_state_ret;
-static std::map<const struct cras_iodev*, int> cras_iodev_has_pinned_stream_ret;
+static std::map<int, bool> stream_list_has_pinned_stream_ret;
 static struct cras_rstream *audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
 static int cras_iodev_is_zero_volume_ret;
@@ -113,7 +113,7 @@ class IoDevTestSuite : public testing::Test {
       audio_thread_disconnect_stream_called = 0;
       audio_thread_disconnect_stream_stream = NULL;
       audio_thread_is_dev_open_ret = 0;
-      cras_iodev_has_pinned_stream_ret.clear();
+      stream_list_has_pinned_stream_ret.clear();
 
       sample_rates_[0] = 44100;
       sample_rates_[1] = 48000;
@@ -1412,7 +1412,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   // Select d2, check pinned stream is not added to d2.
   update_active_node_called = 0;
-  cras_iodev_has_pinned_stream_ret[&d1_] = 1;
+  stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
       cras_make_node_id(d2_.info.idx, 0));
   EXPECT_EQ(1, audio_thread_add_stream_called);
@@ -1424,7 +1424,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   // Remove pinned stream from d1, check d1 is closed after stream removed.
   update_active_node_called = 0;
-  cras_iodev_has_pinned_stream_ret[&d1_] = 0;
+  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
   EXPECT_EQ(0, stream_rm_cb(&rstream));
   EXPECT_EQ(1, cras_iodev_close_called);
   EXPECT_EQ(&d1_, cras_iodev_close_dev);
@@ -1472,7 +1472,7 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
   // Device state enters no_stream after stream is disconnected.
   d1_.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
   // Device has no pinned stream now. But this pinned stream remains in stream_list.
-  cras_iodev_has_pinned_stream_ret[&d1_] = 0;
+  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   // Suspend
   observer_ops->suspend_changed(NULL, 1);
@@ -1808,9 +1808,10 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
 	return cras_iodev_state_ret[iodev];
 }
 
-int cras_iodev_has_pinned_stream(const struct cras_iodev *dev)
+bool stream_list_has_pinned_stream(struct stream_list *list,
+                                   unsigned int dev_idx)
 {
-  return cras_iodev_has_pinned_stream_ret[dev];
+  return stream_list_has_pinned_stream_ret[dev_idx];
 }
 
 struct stream_list *stream_list_create(stream_callback *add_cb,

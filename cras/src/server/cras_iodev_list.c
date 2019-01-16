@@ -425,7 +425,7 @@ static int close_dev_without_idle_check(struct cras_iodev *dev)
 {
 	if (!cras_iodev_is_open(dev))
 	       return -EINVAL;
-	if (cras_iodev_has_pinned_stream(dev))
+	if (stream_list_has_pinned_stream(stream_list, dev->info.idx))
 		syslog(LOG_ERR, "Closing device with pinned streams.");
 
 	remove_all_streams_from_dev(dev);
@@ -871,7 +871,8 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir)
 	/* No more default streams, close any device that doesn't have a stream
 	 * pinned to it. */
 	DL_FOREACH(enabled_devs[dir], edev) {
-		if (cras_iodev_has_pinned_stream(edev->dev))
+		if (stream_list_has_pinned_stream(stream_list,
+						  edev->dev->info.idx))
 			continue;
 		if (dir == CRAS_STREAM_INPUT) {
 			close_dev(edev->dev);
@@ -894,7 +895,7 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
 	if (!dev)
 		return;
 	if (!cras_iodev_list_dev_is_enabled(dev) &&
-	    !cras_iodev_has_pinned_stream(dev))
+	    !stream_list_has_pinned_stream(stream_list, dev->info.idx))
 		close_pinned_device(dev);
 }
 
@@ -976,7 +977,7 @@ static int disable_device(struct enabled_dev *edev, bool force)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, stream, dev);
 	}
-	if (cras_iodev_has_pinned_stream(dev))
+	if (stream_list_has_pinned_stream(stream_list, dev->info.idx))
 		return 0;
 	DL_FOREACH(device_enable_cbs, callback)
 		callback->disabled_cb(dev, callback->cb_data);
@@ -1007,7 +1008,7 @@ static int force_close_pinned_only_device(struct cras_iodev *dev)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, rstream, dev);
 	}
-	if (cras_iodev_has_pinned_stream(dev))
+	if (stream_list_has_pinned_stream(stream_list, dev->info.idx))
 		return -EEXIST;
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);

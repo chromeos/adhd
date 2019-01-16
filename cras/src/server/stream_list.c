@@ -134,3 +134,15 @@ int stream_list_rm_all_client_streams(struct stream_list *list,
 
 }
 
+bool stream_list_has_pinned_stream(struct stream_list *list,
+				   unsigned int dev_idx)
+{
+	struct cras_rstream *rstream;
+	DL_FOREACH(list->streams, rstream) {
+		if (!rstream->is_pinned)
+			continue;
+		if (rstream->pinned_dev_idx == dev_idx)
+			return true;
+	}
+	return false;
+}

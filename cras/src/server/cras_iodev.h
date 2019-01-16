@@ -784,15 +784,6 @@ int cras_iodev_set_mute(struct cras_iodev* iodev);
 int cras_iodev_is_zero_volume(const struct cras_iodev *odev);
 
 /*
- * Checks if a iodev has pinned stream attached to it.
- * Args:
- *    dev[in] - The device.
- * Returns:
- *    1 if device has pinned stream. 0 otherwise.
- */
-int cras_iodev_has_pinned_stream(const struct cras_iodev *dev);
-
-/*
  * Updates the highest hardware level of the device.
  * Args:
  *    iodev - The device.

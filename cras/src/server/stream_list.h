@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <stdbool.h>
+
 #include "cras_types.h"
 #include "utlist.h"
 
@@ -35,3 +37,9 @@ int stream_list_rm(struct stream_list *list, cras_stream_id_t id);
 
 int stream_list_rm_all_client_streams(struct stream_list *list,
 				      struct cras_rclient *rclient);
+
+/*
+ * Checks if there is a stream pinned to the given device.
+ */
+bool stream_list_has_pinned_stream(struct stream_list *list,
+				   unsigned int dev_idx);
