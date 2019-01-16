@@ -38,6 +38,7 @@
 use std::error;
 use std::fmt::{self, Display};
 use std::io::{self, Write};
+use std::os::unix::io::RawFd;
 use std::result::Result;
 use std::time::{Duration, Instant};
 
@@ -51,6 +52,12 @@ pub trait StreamSource: Send {
         frame_rate: usize,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<error::Error>>;
+
+    /// Returns any open file descriptors needed by the implementor. The FD list helps users of the
+    /// StreamSource enter Linux jails making sure not to close needed FDs.
+    fn keep_fds(&self) -> Option<Vec<RawFd>> {
+        None
+    }
 }
 
 /// `PlaybackBufferStream` provides `PlaybackBuffer`s to fill with audio samples for playback.
