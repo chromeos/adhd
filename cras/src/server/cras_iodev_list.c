@@ -1686,6 +1686,73 @@ int cras_iodev_list_set_device_enabled_callback(
 	return 0;
 }
 
+void cras_iodev_list_register_loopback(
+		enum CRAS_LOOPBACK_TYPE loopback_type,
+		unsigned int output_dev_idx,
+		loopback_hook_data_t hook_data,
+		loopback_hook_control_t hook_control,
+		unsigned int loopback_dev_idx)
+{
+	struct cras_iodev *iodev = find_dev(output_dev_idx);
+	struct cras_iodev *loopback_dev;
+	struct cras_loopback *loopback;
+	bool dev_open;
+
+	if (iodev == NULL) {
+		syslog(LOG_ERR, "Output dev %u not found for loopback",
+		       output_dev_idx);
+		return;
+	}
+
+	loopback_dev = find_dev(loopback_dev_idx);
+	if (loopback_dev == NULL) {
+		syslog(LOG_ERR, "Loopback dev %u not found",
+		       loopback_dev_idx);
+		return;
+	}
+
+	dev_open = cras_iodev_is_open(iodev);
+
+	loopback = (struct cras_loopback *)calloc(1, sizeof(*loopback));
+	if (NULL == loopback) {
+		syslog(LOG_ERR, "Not enough memory for loopback");
+		return;
+	}
+
+	loopback->type = loopback_type;
+	loopback->hook_data = hook_data;
+	loopback->hook_control = hook_control;
+	loopback->cb_data = loopback_dev;
+	if (loopback->hook_control && dev_open)
+		loopback->hook_control(true, loopback->cb_data);
+
+	DL_APPEND(iodev->loopbacks, loopback);
+}
+
+void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
+					 unsigned int output_dev_idx,
+					 unsigned int loopback_dev_idx)
+{
+	struct cras_iodev *iodev = find_dev(output_dev_idx);
+	struct cras_iodev *loopback_dev;
+	struct cras_loopback *loopback;
+
+	if (iodev == NULL)
+		return;
+
+	loopback_dev = find_dev(loopback_dev_idx);
+	if (loopback_dev == NULL)
+		return;
+
+	DL_FOREACH(iodev->loopbacks, loopback) {
+		if ((loopback->cb_data == loopback_dev) &&
+		     (loopback->type == type)) {
+			DL_DELETE(iodev->loopbacks, loopback);
+			free(loopback);
+		}
+	}
+}
+
 void cras_iodev_list_reset()
 {
 	struct enabled_dev *edev;

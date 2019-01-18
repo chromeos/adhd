@@ -12,14 +12,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cras_iodev.h"
 #include "cras_types.h"
 
-struct cras_iodev;
-struct cras_iodev_info;
-struct cras_ionode;
 struct cras_rclient;
-struct cras_rstream;
-struct cras_audio_format;
 struct stream_list;
 
 /* Device enabled/disabled callback. */
@@ -243,6 +239,35 @@ int cras_iodev_list_set_device_enabled_callback(
 		device_enabled_callback_t enabled_cb,
 		device_disabled_callback_t disabled_cb,
 		void *cb_data);
+
+/* Registers loopback to an output device.
+ * Args:
+ *    loopback_type - Pre or post software DSP.
+ *    output_dev_idx - Index of the target output device.
+ *    hook_data - Callback function to process loopback data.
+ *    hook_start - Callback for starting or stopping loopback.
+ *    loopback_dev_idx - Index of the loopback device that
+ *        listens for output data.
+ */
+void cras_iodev_list_register_loopback(
+		enum CRAS_LOOPBACK_TYPE loopback_type,
+		unsigned int output_dev_idx,
+		loopback_hook_data_t hook_data,
+		loopback_hook_control_t hook_start,
+		unsigned int loopback_dev_idx);
+
+/* Unregisters loopback from an output device by matching
+ * loopback type and loopback device index.
+ * Args:
+ *    loopback_type - Pre or post software DSP.
+ *    output_dev_idx - Index of the target output device.
+ *    loopback_dev_idx - Index of the loopback device that
+ *        listens for output data.
+ */
+void cras_iodev_list_unregister_loopback(
+		enum CRAS_LOOPBACK_TYPE loopback_type,
+		unsigned int output_dev_idx,
+		unsigned int loopback_dev_idx);
 
 /* Suspends all hotwording streams. */
 int cras_iodev_list_suspend_hotword_streams();

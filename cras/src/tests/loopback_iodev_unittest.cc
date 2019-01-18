@@ -25,8 +25,7 @@ static const unsigned int kBufferSize = kBufferFrames * kFrameBytes;
 
 static struct timespec time_now;
 static cras_audio_area *dummy_audio_area;
-static loopback_hook_t loop_hook;
-static void *loop_hook_cb_data;
+static loopback_hook_data_t loop_hook;
 static struct cras_iodev *enabled_dev;
 static unsigned int cras_iodev_list_add_input_called;
 static unsigned int cras_iodev_list_rm_input_called;
@@ -34,6 +33,8 @@ static unsigned int cras_iodev_list_set_device_enabled_callback_called;
 static device_enabled_callback_t device_enabled_callback_cb;
 static device_disabled_callback_t device_disabled_callback_cb;
 static void *device_enabled_callback_cb_data;
+static int cras_iodev_list_register_loopback_called;
+static int cras_iodev_list_unregister_loopback_called;
 
 class LoopBackTestSuite : public testing::Test{
   protected:
@@ -55,6 +56,8 @@ class LoopBackTestSuite : public testing::Test{
       cras_iodev_list_add_input_called = 0;
       cras_iodev_list_rm_input_called = 0;
       cras_iodev_list_set_device_enabled_callback_called = 0;
+      cras_iodev_list_register_loopback_called = 0;
+      cras_iodev_list_unregister_loopback_called = 0;
     }
 
     virtual void TearDown() {
@@ -78,24 +81,35 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
   iodev.format = &fmt_;
   iodev.ext_format = &fmt_;
   iodev.streams = NULL;
+  iodev.info.idx = 123;
   enabled_dev = &iodev;
 
   // Open loopback devices.
   EXPECT_EQ(0, loop_in_->configure_dev(loop_in_));
   EXPECT_EQ(1, cras_iodev_list_set_device_enabled_callback_called);
+  EXPECT_EQ(1, cras_iodev_list_register_loopback_called);
 
   // Signal an output device is enabled.
   device_enabled_callback_cb(&iodev, device_enabled_callback_cb_data);
 
   // Expect that a hook was added to the iodev
-  ASSERT_NE(reinterpret_cast<loopback_hook_t>(NULL), loop_hook);
+  EXPECT_EQ(2, cras_iodev_list_register_loopback_called);
+  ASSERT_NE(reinterpret_cast<loopback_hook_data_t>(NULL), loop_hook);
 
   // Check zero frames queued.
   EXPECT_EQ(0, loop_in_->frames_queued(loop_in_, &tstamp));
 
+  device_disabled_callback_cb(&iodev, device_enabled_callback_cb_data);
+  EXPECT_EQ(1, cras_iodev_list_unregister_loopback_called);
+
+  enabled_dev->info.idx = 456;
+  device_enabled_callback_cb(&iodev, device_enabled_callback_cb_data);
+  EXPECT_EQ(3, cras_iodev_list_register_loopback_called);
+
   // Close loopback devices.
   EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
-  EXPECT_EQ(reinterpret_cast<loopback_hook_t>(NULL), loop_hook);
+  EXPECT_EQ(2, cras_iodev_list_unregister_loopback_called);
+  EXPECT_EQ(2, cras_iodev_list_set_device_enabled_callback_called);
 }
 
 // Test how loopback works if there isn't any output devices open.
@@ -147,7 +161,7 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
   ASSERT_NE(reinterpret_cast<void *>(NULL), loop_hook);
 
   // Loopback callback for the hook.
-  loop_hook(buf_, nframes, &fmt_, loop_hook_cb_data);
+  loop_hook(buf_, nframes, &fmt_, loop_in_);
 
   // Verify frames from loopback record.
   loop_in_->get_buffer(loop_in_, &area, &nread);
@@ -196,21 +210,23 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
                                 struct cras_ionode *node)
 {
 }
-
-void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
-				      loopback_hook_t loop_cb,
-				      void *cb_data)
+void cras_iodev_list_register_loopback(
+    enum CRAS_LOOPBACK_TYPE loopback_type,
+    unsigned int output_dev_idx,
+    loopback_hook_data_t hook_data,
+    loopback_hook_control_t hook_start,
+    unsigned int loopback_dev_idx)
 {
-  loop_hook = loop_cb;
-  loop_hook_cb_data = cb_data;
+  cras_iodev_list_register_loopback_called++;
+  loop_hook = hook_data;
 }
 
-void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
-				       loopback_hook_t loop_cb,
-				       void *cb_data)
+void cras_iodev_list_unregister_loopback(
+    enum CRAS_LOOPBACK_TYPE loopback_type,
+    unsigned int output_dev_idx,
+    unsigned int loopback_dev_idx)
 {
-  loop_hook = loop_cb;
-  loop_hook_cb_data = cb_data;
+  cras_iodev_list_unregister_loopback_called++;
 }
 
 int cras_iodev_list_add_input(struct cras_iodev *input)

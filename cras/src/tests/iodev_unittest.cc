@@ -577,6 +577,11 @@ static int post_dsp_hook(const uint8_t *frames, unsigned int nframes,
   return 0;
 }
 
+static int loopback_hook_control(bool start, void *cb_data)
+{
+  return 0;
+}
+
 TEST(IoDevPutOutputBuffer, SystemMuted) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
@@ -791,6 +796,8 @@ TEST(IoDevPutOutputBuffer, DSP) {
   struct cras_iodev iodev;
   uint8_t *frames = reinterpret_cast<uint8_t*>(0x44);
   int rc;
+  struct cras_loopback pre_dsp;
+  struct cras_loopback post_dsp;
 
   ResetStubData();
   memset(&iodev, 0, sizeof(iodev));
@@ -803,8 +810,16 @@ TEST(IoDevPutOutputBuffer, DSP) {
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
   iodev.rate_est = reinterpret_cast<struct rate_estimator *>(0xdeadbeef);
-  cras_iodev_register_pre_dsp_hook(&iodev, pre_dsp_hook, (void *)0x1234);
-  cras_iodev_register_post_dsp_hook(&iodev, post_dsp_hook, (void *)0x5678);
+  pre_dsp.type = LOOPBACK_POST_MIX_PRE_DSP;
+  pre_dsp.hook_data = pre_dsp_hook;
+  pre_dsp.hook_control = loopback_hook_control;
+  pre_dsp.cb_data = (void *)0x1234;
+  DL_APPEND(iodev.loopbacks, &pre_dsp);
+  post_dsp.type = LOOPBACK_POST_DSP;
+  post_dsp.hook_data = post_dsp_hook;
+  post_dsp.hook_control = loopback_hook_control;
+  post_dsp.cb_data = (void *)0x5678;
+  DL_APPEND(iodev.loopbacks, &post_dsp);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 32, NULL, nullptr);
   EXPECT_EQ(0, rc);

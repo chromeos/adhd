@@ -894,10 +894,16 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
 int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		    const struct cras_audio_format *fmt)
 {
+	struct cras_loopback *loopback;
 	int rc;
 
 	if (iodev->pre_open_iodev_hook)
 		iodev->pre_open_iodev_hook();
+
+	DL_FOREACH(iodev->loopbacks, loopback) {
+		if (loopback->hook_control)
+			loopback->hook_control(true, loopback->cb_data);
+	}
 
 	if (iodev->open_dev) {
 		rc = iodev->open_dev(iodev);
@@ -979,6 +985,7 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev)
 
 int cras_iodev_close(struct cras_iodev *iodev)
 {
+	struct cras_loopback *loopback;
 	int rc;
 
 	if (!cras_iodev_is_open(iodev))
@@ -999,6 +1006,12 @@ int cras_iodev_close(struct cras_iodev *iodev)
 
 	if (iodev->post_close_iodev_hook)
 		iodev->post_close_iodev_hook();
+
+	DL_FOREACH(iodev->loopbacks, loopback) {
+		if (loopback->hook_control)
+			loopback->hook_control(false, loopback->cb_data);
+	}
+
 	return 0;
 }
 
@@ -1036,18 +1049,23 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	float software_volume_scaler = 1.0;
 	int software_volume_needed = cras_iodev_software_volume_needed(iodev);
 	int rc;
+	struct cras_loopback *loopback;
 
-	if (iodev->pre_dsp_hook)
-		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
-				    iodev->pre_dsp_hook_cb_data);
+	DL_FOREACH(iodev->loopbacks, loopback) {
+		if (loopback->type == LOOPBACK_POST_MIX_PRE_DSP)
+			loopback->hook_data(frames, nframes, iodev->ext_format,
+					    loopback->cb_data);
+	}
 
 	rc = apply_dsp(iodev, frames, nframes);
 	if (rc)
 		return rc;
 
-	if (iodev->post_dsp_hook)
-		iodev->post_dsp_hook(frames, nframes, fmt,
-				     iodev->post_dsp_hook_cb_data);
+	DL_FOREACH(iodev->loopbacks, loopback) {
+		if (loopback->type == LOOPBACK_POST_DSP)
+			loopback->hook_data(frames, nframes, iodev->ext_format,
+					    loopback->cb_data);
+	}
 
 	if (iodev->ramp) {
 		ramp_action = cras_ramp_get_current_action(iodev->ramp);
@@ -1260,22 +1278,6 @@ int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
 		return 0;
 
 	return iodev->buffer_size - iodev->min_buffer_level - hw_level;
-}
-
-void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
-				      loopback_hook_t loop_cb,
-				      void *cb_data)
-{
-	iodev->pre_dsp_hook = loop_cb;
-	iodev->pre_dsp_hook_cb_data = cb_data;
-}
-
-void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
-				       loopback_hook_t loop_cb,
-				       void *cb_data)
-{
-	iodev->post_dsp_hook = loop_cb;
-	iodev->post_dsp_hook_cb_data = cb_data;
 }
 
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)

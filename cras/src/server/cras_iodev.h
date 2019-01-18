@@ -14,6 +14,8 @@
 #ifndef CRAS_IODEV_H_
 #define CRAS_IODEV_H_
 
+#include <stdbool.h>
+
 #include "cras_dsp.h"
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
@@ -28,15 +30,52 @@ struct audio_thread;
 struct cras_iodev;
 struct rate_estimator;
 
-/* Callback type for loopback listeners.  When enabled, this is called from the
- * playback path of an iodev with the samples that are being played back.
+/*
+ * Type of callback function to execute when loopback sender transfers audio
+ * to the receiver. For example, this is called in audio thread when playback
+ * samples are mixed and about to write to hardware.
+ * Args:
+ *    frames - Loopback audio data from sender.
+ *    nframes - Number loopback audio data in frames.
+ *    fmt - Format of the loopback audio data.
+ *    cb_data - Pointer to the loopback receiver.
  */
-typedef int (*loopback_hook_t)(const uint8_t *frames, unsigned int nframes,
-			       const struct cras_audio_format *fmt,
-			       void *cb_data);
+typedef int (*loopback_hook_data_t)(const uint8_t *frames, unsigned int nframes,
+				    const struct cras_audio_format *fmt,
+				    void *cb_data);
+
+/*
+ * Type of callback function to notify loopback receiver that the loopback path
+ * starts or stops.
+ * Args:
+ *    start - True to notify receiver that loopback starts. False to notify
+ *        loopback stops.
+ *    cb_data - Pointer to the loopback receiver.
+ */
+typedef int (*loopback_hook_control_t)(bool start, void *cb_data);
 
 /* Callback type for an iodev event. */
 typedef int (*iodev_hook_t)();
+
+/*
+ * Holds the information of a receiver of loopback audio, used to register
+ * with the sender of loopback audio. A sender keeps a list of cras_loopback
+ * objects representing all the receivers.
+ * Members:
+ *    type - Pre-dsp loopback can be used for system loopback. Post-dsp
+ *        loopback can be used for echo reference.
+ *    hook_data - Callback used for playback samples after mixing, before or
+ *        after applying DSP depends on the value of |type|.
+ *    hook_control - Callback to notify receiver that loopback starts or stops.
+ *    cb_data - Pointer to the loopback receiver, will be passing to hook functions.
+ */
+struct cras_loopback {
+	enum CRAS_LOOPBACK_TYPE type;
+	loopback_hook_data_t hook_data;
+	loopback_hook_control_t hook_control;
+	void *cb_data;
+	struct cras_loopback *prev, *next;
+};
 
 /* State of an iodev.
  * no_stream state is only supported on output device.
@@ -181,12 +220,8 @@ struct cras_ionode {
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
  * idle_timeout - The timestamp when to close the dev after being idle.
- * pre_dsp_hook - Hook called before applying DSP, but after mixing.  Used for
- *     system loopback.
- * post_dsp_hook - Hook called after applying DSP.  Can be used for echo
- *     reference.
- * pre_dsp_hook_cb_data - Callback data that will be passing to pre_dsp_hook.
- * post_dsp_hook_cb_data - Callback data that will be passing to post_dsp_hook.
+ * loopbacks - List of registered cras_loopback objects representing the
+ *    receivers who wants a copy of the audio sending through this iodev.
  * pre_open_iodev_hook - Optional callback to call before iodev open.
  * post_close_iodev_hook - Optional callback to call after iodev close.
  * ext_dsp_module - External dsp module to process audio data in stream level
@@ -263,10 +298,7 @@ struct cras_iodev {
 	unsigned int largest_cb_level;
 	struct buffer_share *buf_state;
 	struct timespec idle_timeout;
-	loopback_hook_t pre_dsp_hook;
-	loopback_hook_t post_dsp_hook;
-	void *pre_dsp_hook_cb_data;
-	void *post_dsp_hook_cb_data;
+	struct cras_loopback *loopbacks;
 	iodev_hook_t pre_open_iodev_hook;
 	iodev_hook_t post_close_iodev_hook;
 	struct ext_dsp_module *ext_dsp_module;
@@ -620,16 +652,6 @@ static inline void cras_iodev_exit_idle(struct cras_iodev *iodev)
 {
 	iodev->idle_timeout.tv_sec = 0;
 }
-
-/* Register a pre-dsp loopback hook.  Pass NULL to clear. */
-void cras_iodev_register_pre_dsp_hook(struct cras_iodev *iodev,
-				      loopback_hook_t loop_cb,
-				      void *cb_data);
-
-/* Register a post-dsp loopback hook.  Pass NULL to clear. */
-void cras_iodev_register_post_dsp_hook(struct cras_iodev *iodev,
-				       loopback_hook_t loop_cb,
-				       void *cb_data);
 
 /*
  * Sets the external dsp module for |iodev| and configures the module
