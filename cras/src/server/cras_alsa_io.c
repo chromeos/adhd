@@ -1159,15 +1159,11 @@ static void check_auto_unplug_output_node(struct alsa_io *aio,
 	if (!strcmp(node->name, INTERNAL_SPEAKER) && plugged) {
 		DL_FOREACH(aio->base.nodes, tmp)
 			if (tmp->plugged && (tmp != node))
-				cras_iodev_set_node_attr(node,
-							 IONODE_ATTR_PLUGGED,
-							 0);
+				cras_iodev_set_node_plugged(node, 0);
 	} else {
 		DL_FOREACH(aio->base.nodes, tmp) {
 			if (!strcmp(tmp->name, INTERNAL_SPEAKER))
-				cras_iodev_set_node_attr(tmp,
-							 IONODE_ATTR_PLUGGED,
-							 !plugged);
+				cras_iodev_set_node_plugged(tmp, !plugged);
 		}
 	}
 }
@@ -1255,15 +1251,11 @@ static void check_auto_unplug_input_node(struct alsa_io *aio,
 	if (!strcmp(node->name, INTERNAL_MICROPHONE) && plugged) {
 		DL_FOREACH(aio->base.nodes, tmp)
 			if (tmp->plugged && (tmp != node))
-				cras_iodev_set_node_attr(node,
-							 IONODE_ATTR_PLUGGED,
-							 0);
+				cras_iodev_set_node_plugged(node, 0);
 	} else {
 		DL_FOREACH(aio->base.nodes, tmp)
 			if (!strcmp(tmp->name, INTERNAL_MICROPHONE))
-				cras_iodev_set_node_attr(tmp,
-							 IONODE_ATTR_PLUGGED,
-							 !plugged);
+				cras_iodev_set_node_plugged(tmp, !plugged);
 	}
 }
 
@@ -1518,7 +1510,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		drop_node_name(&node->base);
 #endif
 
-	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
+	cras_iodev_set_node_plugged(&node->base, plugged);
 
 	check_auto_unplug_output_node(aio, &node->base, plugged);
 }
@@ -1568,7 +1560,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 		node->jack = jack;
 	}
 
-	cras_iodev_set_node_attr(&node->base, IONODE_ATTR_PLUGGED, plugged);
+	cras_iodev_set_node_plugged(&node->base, plugged);
 
 	check_auto_unplug_input_node(aio, &node->base, plugged);
 }
@@ -2222,8 +2214,7 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 	 * there is no jack reporting plug status. */
 	if (aio->card_type == ALSA_CARD_TYPE_USB && is_first &&
 			!get_jack_from_node(iodev->active_node))
-		cras_iodev_set_node_attr(iodev->active_node,
-					 IONODE_ATTR_PLUGGED, 1);
+		cras_iodev_set_node_plugged(iodev->active_node, 1);
 
 	set_default_hotword_model(iodev);
 
@@ -2318,9 +2309,9 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 	if (aio->card_type == ALSA_CARD_TYPE_USB &&
 			aio->jack_always_plugged &&
 			!get_jack_from_node(iodev->active_node)) {
-		cras_iodev_set_node_attr(iodev->active_node,
-					 IONODE_ATTR_PLUGGED, 1);
+		cras_iodev_set_node_plugged(iodev->active_node, 1);
 	}
+
 	set_default_hotword_model(iodev);
 }
 

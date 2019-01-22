@@ -108,24 +108,12 @@ static struct cras_iodev *find_dev(size_t dev_index)
 	return NULL;
 }
 
-static struct cras_ionode *find_node(cras_node_id_t id)
+static struct cras_ionode *find_node(struct cras_iodev *iodev,
+				     unsigned int node_idx)
 {
-	struct cras_iodev *dev;
 	struct cras_ionode *node;
-	uint32_t dev_index, node_index;
-
-	dev_index = dev_index_of(id);
-	node_index = node_index_of(id);
-
-	dev = find_dev(dev_index);
-	if (!dev)
-		return NULL;
-
-	DL_FOREACH(dev->nodes, node)
-		if (node->idx == node_index)
-			return node;
-
-	return NULL;
+	DL_SEARCH_SCALAR(iodev->nodes, node, idx, node_idx);
+	return node;
 }
 
 /* Adds a device to the list.  Used from add_input and add_output. */
@@ -1512,17 +1500,110 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	cras_iodev_list_notify_active_node_changed(direction);
 }
 
-int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
-				  enum ionode_attr attr, int value)
+static int set_node_plugged(struct cras_iodev *iodev,
+			    unsigned int node_idx,
+			    int plugged)
+{
+	struct cras_ionode *node;
+
+	node = find_node(iodev, node_idx);
+	if (!node)
+		return -EINVAL;
+	cras_iodev_set_node_plugged(node, plugged);
+	return 0;
+}
+
+static int set_node_volume(struct cras_iodev *iodev,
+			   unsigned int node_idx,
+			   int volume)
+{
+	struct cras_ionode *node;
+
+	node = find_node(iodev, node_idx);
+	if (!node)
+		return -EINVAL;
+
+	if (iodev->ramp && cras_iodev_software_volume_needed(iodev))
+		cras_iodev_start_volume_ramp(iodev, node->volume, volume);
+
+	node->volume = volume;
+	if (iodev->set_volume)
+		iodev->set_volume(iodev);
+	cras_iodev_list_notify_node_volume(node);
+	return 0;
+}
+
+static int set_node_capture_gain(struct cras_iodev *iodev,
+				 unsigned int node_idx,
+				 int capture_gain)
+{
+	struct cras_ionode *node;
+
+	node = find_node(iodev, node_idx);
+	if (!node)
+		return -EINVAL;
+
+	node->capture_gain = capture_gain;
+	if (iodev->set_capture_gain)
+		iodev->set_capture_gain(iodev);
+	cras_iodev_list_notify_node_capture_gain(node);
+	return 0;
+}
+
+static int set_node_left_right_swapped(struct cras_iodev *iodev,
+				       unsigned int node_idx,
+				       int left_right_swapped)
 {
 	struct cras_ionode *node;
 	int rc;
 
-	node = find_node(node_id);
+	if (!iodev->set_swap_mode_for_node)
+		return -EINVAL;
+	node = find_node(iodev, node_idx);
 	if (!node)
 		return -EINVAL;
 
-	rc = cras_iodev_set_node_attr(node, attr, value);
+	rc = iodev->set_swap_mode_for_node(
+			iodev, node, left_right_swapped);
+	if (rc) {
+		syslog(LOG_ERR, "Failed to set swap mode on node %s to %d",
+		       node->name, left_right_swapped);
+		return rc;
+	}
+	node->left_right_swapped = left_right_swapped;
+	cras_iodev_list_notify_node_left_right_swapped(node);
+	return 0;
+}
+
+int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
+				  enum ionode_attr attr, int value)
+{
+	struct cras_iodev *iodev;
+	int rc = 0;
+
+	iodev = find_dev(dev_index_of(node_id));
+	if (!iodev)
+		return -EINVAL;
+
+	switch (attr) {
+	case IONODE_ATTR_PLUGGED:
+		rc = set_node_plugged(iodev, node_index_of(node_id), value);
+		break;
+	case IONODE_ATTR_VOLUME:
+		rc = set_node_volume(iodev, node_index_of(node_id), value);
+		break;
+	case IONODE_ATTR_CAPTURE_GAIN:
+		rc = set_node_capture_gain(iodev,
+					   node_index_of(node_id), value);
+		break;
+	case IONODE_ATTR_SWAP_LEFT_RIGHT:
+		rc = set_node_left_right_swapped(
+				iodev, node_index_of(node_id), value);
+		break;
+	default:
+		return -EINVAL;
+	}
+
 	return rc;
 }
 

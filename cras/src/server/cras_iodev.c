@@ -684,7 +684,7 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 }
 
 /* This is called when a node is plugged/unplugged */
-static void plug_node(struct cras_ionode *node, int plugged)
+void cras_iodev_set_node_plugged(struct cras_ionode *node, int plugged)
 {
 	if (node->plugged == plugged)
 		return;
@@ -695,80 +695,6 @@ static void plug_node(struct cras_ionode *node, int plugged)
 		cras_iodev_list_disable_dev(node->dev, false);
 	}
 	cras_iodev_list_notify_nodes_changed();
-}
-
-static void set_node_volume(struct cras_ionode *node, int value)
-{
-	struct cras_iodev *dev = node->dev;
-	unsigned int volume;
-
-	if (dev->direction != CRAS_STREAM_OUTPUT)
-		return;
-
-	volume = (unsigned int)MIN(value, 100);
-	if (dev->ramp && cras_iodev_software_volume_needed(dev))
-		cras_iodev_start_volume_ramp(dev, node->volume, volume);
-	node->volume = volume;
-	if (dev->set_volume)
-		dev->set_volume(dev);
-
-	cras_iodev_list_notify_node_volume(node);
-}
-
-static void set_node_capture_gain(struct cras_ionode *node, int value)
-{
-	struct cras_iodev *dev = node->dev;
-
-	if (dev->direction != CRAS_STREAM_INPUT)
-		return;
-
-	node->capture_gain = (long)value;
-	if (dev->set_capture_gain)
-		dev->set_capture_gain(dev);
-
-	cras_iodev_list_notify_node_capture_gain(node);
-}
-
-static void set_node_left_right_swapped(struct cras_ionode *node, int value)
-{
-	struct cras_iodev *dev = node->dev;
-	int rc;
-
-	if (!dev->set_swap_mode_for_node)
-		return;
-	rc = dev->set_swap_mode_for_node(dev, node, value);
-	if (rc) {
-		syslog(LOG_ERR,
-		       "Failed to set swap mode on node %s to %d; error %d",
-		       node->name, value, rc);
-		return;
-	}
-	node->left_right_swapped = value;
-	cras_iodev_list_notify_node_left_right_swapped(node);
-	return;
-}
-
-int cras_iodev_set_node_attr(struct cras_ionode *ionode,
-			     enum ionode_attr attr, int value)
-{
-	switch (attr) {
-	case IONODE_ATTR_PLUGGED:
-		plug_node(ionode, value);
-		break;
-	case IONODE_ATTR_VOLUME:
-		set_node_volume(ionode, value);
-		break;
-	case IONODE_ATTR_CAPTURE_GAIN:
-		set_node_capture_gain(ionode, value);
-		break;
-	case IONODE_ATTR_SWAP_LEFT_RIGHT:
-		set_node_left_right_swapped(ionode, value);
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
 }
 
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)

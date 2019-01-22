@@ -395,14 +395,8 @@ void cras_ionode_plug_event(struct cras_ionode *node, int plugged);
 /* Returns true if node a is preferred over node b. */
 int cras_ionode_better(struct cras_ionode *a, struct cras_ionode *b);
 
-/* Sets an attribute of an ionode on a device.
- * Args:
- *    ionode - ionode whose attribute we want to change.
- *    attr - the attribute we want to change.
- *    value - the value we want to set.
- */
-int cras_iodev_set_node_attr(struct cras_ionode *ionode,
-			     enum ionode_attr attr, int value);
+/* Sets the plugged state of a node. */
+void cras_iodev_set_node_plugged(struct cras_ionode *node, int plugged);
 
 /* Adds a node to the iodev's node list. */
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node);

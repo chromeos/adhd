@@ -33,16 +33,11 @@ static cras_node_id_t select_node_id;
 static struct cras_ionode *node_selected;
 static size_t notify_nodes_changed_called;
 static size_t notify_active_node_changed_called;
-static size_t notify_node_volume_called;
-static size_t notify_node_capture_gain_called;
 static int dsp_context_new_sample_rate;
 static const char *dsp_context_new_purpose;
 static int dsp_context_free_called;
 static int update_channel_layout_called;
 static int update_channel_layout_return_val;
-static int  set_swap_mode_for_node_called;
-static int  set_swap_mode_for_node_enable;
-static int notify_node_left_right_swapped_called;
 static int cras_audio_format_set_channel_layout_called;
 static unsigned int cras_system_get_volume_return;
 static int cras_dsp_get_pipeline_called;
@@ -69,7 +64,6 @@ static float cras_scale_buffer_scaler;
 static int cras_scale_buffer_called;
 static unsigned int pre_dsp_hook_called;
 static const uint8_t *pre_dsp_hook_frames;
-
 static void *pre_dsp_hook_cb_data;
 static unsigned int post_dsp_hook_called;
 static const uint8_t *post_dsp_hook_frames;
@@ -122,28 +116,14 @@ int update_channel_layout(struct cras_iodev *iodev) {
   return update_channel_layout_return_val;
 }
 
-// Iodev callback
-int set_swap_mode_for_node(struct cras_iodev *iodev, struct cras_ionode *node,
-                           int enable)
-{
-  set_swap_mode_for_node_called++;
-  set_swap_mode_for_node_enable = enable;
-  return 0;
-}
-
 void ResetStubData() {
   cras_iodev_list_disable_dev_called = 0;
   select_node_called = 0;
   notify_nodes_changed_called = 0;
   notify_active_node_changed_called = 0;
-  notify_node_volume_called = 0;
-  notify_node_capture_gain_called = 0;
   dsp_context_new_sample_rate = 0;
   dsp_context_new_purpose = NULL;
   dsp_context_free_called = 0;
-  set_swap_mode_for_node_called = 0;
-  set_swap_mode_for_node_enable = 0;
-  notify_node_left_right_swapped_called = 0;
   cras_audio_format_set_channel_layout_called = 0;
   cras_dsp_get_pipeline_called = 0;
   cras_dsp_get_pipeline_ret = 0;
@@ -1094,14 +1074,6 @@ static void update_active_node(struct cras_iodev *iodev,
 {
 }
 
-static void dev_set_volume(struct cras_iodev *iodev)
-{
-}
-
-static void dev_set_capture_gain(struct cras_iodev *iodev)
-{
-}
-
 static void dev_set_mute(struct cras_iodev *iodev)
 {
   set_mute_called++;
@@ -1122,15 +1094,15 @@ TEST(IoNodePlug, PlugUnplugNode) {
   cras_iodev_add_node(&iodev, &ionode2);
   cras_iodev_set_active_node(&iodev, &ionode);
   ResetStubData();
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 1);
+  cras_iodev_set_node_plugged(&ionode, 1);
   EXPECT_EQ(0, cras_iodev_list_disable_dev_called);
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_PLUGGED, 0);
+  cras_iodev_set_node_plugged(&ionode, 0);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
 
   /* Unplug non-active node shouldn't disable iodev. */
-  cras_iodev_set_node_attr(&ionode2, IONODE_ATTR_PLUGGED, 1);
+  cras_iodev_set_node_plugged(&ionode2, 1);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
-  cras_iodev_set_node_attr(&ionode2, IONODE_ATTR_PLUGGED, 0);
+  cras_iodev_set_node_plugged(&ionode2, 0);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
 }
 
@@ -1158,75 +1130,6 @@ TEST(IoDev, SetActiveNode) {
   EXPECT_EQ(0, notify_active_node_changed_called);
   cras_iodev_set_active_node(&iodev, &ionode);
   EXPECT_EQ(1, notify_active_node_changed_called);
-}
-
-TEST(IoDev, SetNodeVolume) {
-  struct cras_iodev iodev;
-  struct cras_ionode ionode;
-  struct cras_audio_format fmt;
-
-  memset(&iodev, 0, sizeof(iodev));
-  memset(&ionode, 0, sizeof(ionode));
-
-  // Format is used when start volume ramp is called.
-  fmt.format = SND_PCM_FORMAT_S16_LE;
-  fmt.frame_rate = 48000;
-  fmt.num_channels = 2;
-
-  iodev.format = &fmt;
-  iodev.set_volume = dev_set_volume;
-  iodev.set_capture_gain = dev_set_capture_gain;
-  iodev.software_volume_needed = 0;
-  iodev.state = CRAS_IODEV_STATE_OPEN;
-  iodev.direction = CRAS_STREAM_OUTPUT;
-  ionode.dev = &iodev;
-  softvol_scalers[20] = 0.5;
-  softvol_scalers[30] = 0.55;
-
-  ResetStubData();
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 10);
-  EXPECT_EQ(1, notify_node_volume_called);
-  // Do not ramp without software volume.
-  EXPECT_EQ(0, cras_ramp_start_is_called);
-
-  ResetStubData();
-  iodev.software_volume_needed = 1;
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 20);
-  EXPECT_EQ(1, notify_node_volume_called);
-  // Even with software volume, device with NULL ramp won't trigger ramp start.
-  EXPECT_EQ(0, cras_ramp_start_is_called);
-
-  ResetStubData();
-  iodev.software_volume_needed = 1;
-  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 30);
-  EXPECT_EQ(1, notify_node_volume_called);
-  EXPECT_EQ(1, cras_ramp_start_is_called);
-
-  iodev.direction = CRAS_STREAM_INPUT;
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_CAPTURE_GAIN, 10);
-  EXPECT_EQ(1, notify_node_capture_gain_called);
-}
-
-TEST(IoDev, SetNodeSwapLeftRight) {
-  struct cras_iodev iodev;
-  struct cras_ionode ionode;
-
-  memset(&iodev, 0, sizeof(iodev));
-  memset(&ionode, 0, sizeof(ionode));
-  iodev.set_swap_mode_for_node = set_swap_mode_for_node;
-  ionode.dev = &iodev;
-  ResetStubData();
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_SWAP_LEFT_RIGHT, 1);
-  EXPECT_EQ(1, set_swap_mode_for_node_called);
-  EXPECT_EQ(1, set_swap_mode_for_node_enable);
-  EXPECT_EQ(1, ionode.left_right_swapped);
-  EXPECT_EQ(1, notify_node_left_right_swapped_called);
-  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_SWAP_LEFT_RIGHT, 0);
-  EXPECT_EQ(2, set_swap_mode_for_node_called);
-  EXPECT_EQ(0, set_swap_mode_for_node_enable);
-  EXPECT_EQ(0, ionode.left_right_swapped);
-  EXPECT_EQ(2, notify_node_left_right_swapped_called);
 }
 
 TEST(IoDev, SetMute) {
@@ -2610,21 +2513,6 @@ void cras_iodev_list_notify_active_node_changed(
 				enum CRAS_STREAM_DIRECTION direction)
 {
   notify_active_node_changed_called++;
-}
-
-void cras_iodev_list_notify_node_volume(struct cras_ionode *node)
-{
-	notify_node_volume_called++;
-}
-
-void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
-{
-	notify_node_capture_gain_called++;
-}
-
-void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
-{
-  notify_node_left_right_swapped_called++;
 }
 
 struct cras_audio_area *cras_audio_area_create(int num_channels) {
