@@ -590,7 +590,7 @@ mod tests {
                 0x0600,
             );
             assert!(fd > 0);
-            libc::ftruncate(fd, size as i64);
+            libc::ftruncate(fd, size as libc::off_t);
             fd
         }
     }
