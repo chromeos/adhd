@@ -93,7 +93,7 @@ int input_data_get_for_stream(struct input_data *data,
 			      struct cras_audio_area **area,
 			      unsigned int *offset)
 {
-	unsigned int apm_processed;
+	int apm_processed;
 	struct cras_apm *apm;
 
 	/*

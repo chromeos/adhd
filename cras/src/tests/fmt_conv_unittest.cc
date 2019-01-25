@@ -1124,7 +1124,7 @@ TEST(FormatConverterTest, ConvertS16LEToS16LEMonoTo51LeftRight) {
   int16_t *out_buff;
   const size_t buf_size = 4096;
   unsigned int in_buf_size = 4096;
-  int i, left, right;
+  unsigned int i, left, right;
 
   ResetStub();
   in_fmt.format = SND_PCM_FORMAT_S16_LE;
