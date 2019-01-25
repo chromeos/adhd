@@ -416,10 +416,10 @@ struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm)
 {
   return NULL;
 }
+#endif
 
 int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 {
   return 0;
 }
-#endif
 }
