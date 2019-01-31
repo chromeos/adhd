@@ -508,9 +508,10 @@ impl CrasServerStateShmFd {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::CString;
     #[test]
     fn cras_audio_header_switch_test() {
-        let mut header = create_cras_audio_header("/tmp/cras_audio_hedaer1", 0);
+        let mut header = create_cras_audio_header("/tmp_cras_audio_header1", 0);
         assert_eq!(0, header.get_write_buf_idx());
         header.switch_write_buf_idx();
         assert_eq!(1, header.get_write_buf_idx());
@@ -518,7 +519,7 @@ mod tests {
 
     #[test]
     fn cras_audio_header_write_offset_test() {
-        let mut header = create_cras_audio_header("/tmp/cras_audio_hedaer2", 20);
+        let mut header = create_cras_audio_header("/tmp_cras_audio_header2", 20);
         header.frame_size.store(2);
         header.used_size.store(5);
 
@@ -535,7 +536,7 @@ mod tests {
 
     #[test]
     fn cras_audio_header_read_offset_test() {
-        let mut header = create_cras_audio_header("/tmp/cras_audio_hedaer3", 20);
+        let mut header = create_cras_audio_header("/tmp_cras_audio_header3", 20);
         header.frame_size.store(2);
         header.used_size.store(5);
 
@@ -551,7 +552,7 @@ mod tests {
 
     #[test]
     fn cras_audio_header_commit_written_frame_test() {
-        let mut header = create_cras_audio_header("/tmp/cras_audio_hedaer4", 20);
+        let mut header = create_cras_audio_header("/tmp_cras_audio_header4", 20);
         header.frame_size.store(2);
         header.used_size.store(10);
         header.read_offset[0].store(10);
@@ -564,7 +565,7 @@ mod tests {
     #[test]
     fn create_header_and_buffers_test() {
         let samples_offset = CrasAudioShmArea::offset_of_samples() as usize;
-        let fd = cras_audio_header_fd("/tmp/audio_shm_area", samples_offset + 20);
+        let fd = cras_audio_header_fd("/tmp_audio_shm_area", samples_offset + 20);
         let res = create_header_and_buffers(fd);
         assert!(res.is_ok());
     }
@@ -584,12 +585,13 @@ mod tests {
 
     fn cras_shm_open_rw(name: &str, size: usize) -> libc::c_int {
         unsafe {
+            let cstr_name = CString::new(name).expect("cras_shm_open_rw: new CString failed");
             let fd = libc::shm_open(
-                &name as *const _ as *const _,
+                cstr_name.into_raw() as *const _,
                 libc::O_CREAT | libc::O_EXCL | libc::O_RDWR,
                 0x0600,
             );
-            assert!(fd > 0);
+            assert_ne!(fd, -1, "cras_shm_open_rw: shm_open error");
             libc::ftruncate(fd, size as libc::off_t);
             fd
         }
@@ -597,7 +599,7 @@ mod tests {
 
     #[test]
     fn cras_mmap_pass() {
-        let fd = cras_shm_open_rw("/tmp/cras_shm_test_1", 100);
+        let fd = cras_shm_open_rw("/tmp_cras_shm_test_1", 100);
         let rc = unsafe { cras_mmap(10, libc::PROT_READ, fd) };
         assert!(rc.is_ok());
         unsafe { libc::munmap(rc.unwrap(), 10) };
