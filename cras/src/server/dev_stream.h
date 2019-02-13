@@ -185,7 +185,7 @@ int dev_stream_wake_time(struct dev_stream *dev_stream,
 int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream);
 
 static inline const struct timespec *
-dev_stream_next_cb_ts(const struct dev_stream *dev_stream)
+dev_stream_next_cb_ts(struct dev_stream *dev_stream)
 {
 	if (dev_stream->stream->flags & USE_DEV_TIMING)
 		return NULL;
@@ -194,7 +194,7 @@ dev_stream_next_cb_ts(const struct dev_stream *dev_stream)
 }
 
 static inline const struct timespec *
-dev_stream_sleep_interval_ts(const struct dev_stream *dev_stream)
+dev_stream_sleep_interval_ts(struct dev_stream *dev_stream)
 {
 	return &dev_stream->stream->sleep_interval_ts;
 }

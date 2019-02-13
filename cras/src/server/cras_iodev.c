@@ -805,17 +805,8 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev) {
 	return scaler;
 }
 
-void cras_iodev_add_pending_stream(struct cras_iodev *iodev,
-				   struct dev_stream *stream)
-{
-	DL_APPEND(iodev->pending_streams, stream);
-
-	ATLOG(atlog, AUDIO_THREAD_PENDING_STREAM_ADDED, stream->stream->stream_id,
-	      iodev->info.idx, 0);
-}
-
-void cras_iodev_add_running_stream(struct cras_iodev *iodev,
-				   struct dev_stream *stream)
+int cras_iodev_add_stream(struct cras_iodev *iodev,
+			  struct dev_stream *stream)
 {
 	unsigned int cb_threshold = dev_stream_cb_threshold(stream);
 	DL_APPEND(iodev->streams, stream);
@@ -832,47 +823,6 @@ void cras_iodev_add_running_stream(struct cras_iodev *iodev,
 
 	iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
 	iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
-
-	ATLOG(atlog, AUDIO_THREAD_STREAM_ADDED, stream->stream->stream_id,
-	      iodev->info.idx, 0);
-}
-
-void cras_iodev_add_stream(struct cras_iodev *iodev,
-			   struct dev_stream *stream)
-{
-	/*
-	 * Mixing new streams might triggers underrun because they keep empty
-	 * before first fetching. To avoid it, add output streams into pending
-	 * list at the beginning and move it to running list after first
-	 * fetching.
-	 */
-	if (stream->stream->direction == CRAS_STREAM_OUTPUT)
-		cras_iodev_add_pending_stream(iodev, stream);
-	else
-		cras_iodev_add_running_stream(iodev, stream);
-}
-
-
-void cras_iodev_change_stream_to_running(struct cras_iodev *iodev,
-					 struct dev_stream *stream)
-{
-	DL_DELETE(iodev->pending_streams, stream);
-	cras_iodev_add_running_stream(iodev, stream);
-}
-
-int cras_iodev_find_stream(const struct cras_iodev *iodev,
-			   const struct cras_rstream *rstream)
-{
-	struct dev_stream *s;
-
-	DL_FOREACH(iodev->streams, s) {
-		if (s->stream == rstream)
-			return 1;
-	}
-	DL_FOREACH(iodev->pending_streams, s) {
-		if (s->stream == rstream)
-			return 1;
-	}
 	return 0;
 }
 
@@ -896,14 +846,6 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 		cb_threshold = dev_stream_cb_threshold(out);
 		iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
 		iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
-	}
-
-	DL_FOREACH(iodev->pending_streams, out) {
-		if (out->stream == rstream) {
-			ret = out;
-			DL_DELETE(iodev->pending_streams, out);
-			continue;
-		}
 	}
 
 	if (!iodev->streams) {
@@ -1561,10 +1503,6 @@ int cras_iodev_has_pinned_stream(const struct cras_iodev *dev)
 {
 	const struct dev_stream *out;
 	DL_FOREACH(dev->streams, out) {
-		if (out->stream->is_pinned)
-			return 1;
-	}
-	DL_FOREACH(dev->pending_streams, out) {
 		if (out->stream->is_pinned)
 			return 1;
 	}

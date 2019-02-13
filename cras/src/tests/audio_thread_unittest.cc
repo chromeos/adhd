@@ -444,62 +444,54 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   SetupRstream(&rstream2, CRAS_STREAM_OUTPUT);
   SetupRstream(&rstream3, CRAS_STREAM_OUTPUT);
 
-  /*
-   * Add first device as open and check 2 streams can be added into pending
-   * list.
-   */
+  // Add first device as open and check 2 streams can be added.
   thread_add_open_dev(thread_, &iodev);
   thread_add_stream(thread_, &rstream, &piodev, 1);
-  dev_stream = iodev.pending_streams;
+  dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
   thread_add_stream(thread_, &rstream2, &piodev, 1);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
 
-  /* Add second device as open and check no streams are copied over. */
+  // Add second device as open and check no streams are copied over.
   thread_add_open_dev(thread_, &iodev2);
-  dev_stream = iodev2.pending_streams;
+  dev_stream = iodev2.streams;
   EXPECT_EQ(NULL, dev_stream);
-  /* Also check the 2 streams on first device remain intact. */
-  dev_stream = iodev.pending_streams;
+  // Also check the 2 streams on first device remain intact.
+  dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
 
-  /*
-   * Add a stream to the second dev and check it isn't also added to the
-   * first.
-   */
+  // Add a stream to the second dev and check it isn't also added to the first.
   thread_add_stream(thread_, &rstream3, &piodev2, 1);
-  dev_stream = iodev.pending_streams;
+  dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
   EXPECT_EQ(NULL, dev_stream->next->next);
-  dev_stream = iodev2.pending_streams;
+  dev_stream = iodev2.streams;
   EXPECT_EQ(&rstream3, dev_stream->stream);
   EXPECT_EQ(NULL, dev_stream->next);
 
-  /*
-   * Remove first device from open and streams on second device remain
-   * intact.
-   */
+  // Remove first device from open and streams on second device remain
+  // intact.
   thread_rm_open_dev(thread_, &iodev);
-  dev_stream = iodev2.pending_streams;
+  dev_stream = iodev2.streams;
   EXPECT_EQ(&rstream3, dev_stream->stream);
   EXPECT_EQ(NULL, dev_stream->next);
 
-  /* Remove 2 streams, check the streams are removed from both open devices. */
+  // Remove 2 streams, check the streams are removed from both open devices.
   dev_io_remove_stream(&thread_->open_devs[rstream.direction],
 		       &rstream, &iodev);
   dev_io_remove_stream(&thread_->open_devs[rstream3.direction],
 		       &rstream3, &iodev2);
-  dev_stream = iodev2.pending_streams;
+  dev_stream = iodev2.streams;
   EXPECT_EQ(NULL, dev_stream);
 
-  /* Remove open devices and check stream is on fallback device. */
+  // Remove open devices and check stream is on fallback device.
   thread_rm_open_dev(thread_, &iodev2);
 
-  /* Add open device, again check it is empty of streams. */
+  // Add open device, again check it is empty of streams.
   thread_add_open_dev(thread_, &iodev);
-  dev_stream = iodev.pending_streams;
+  dev_stream = iodev.streams;
   EXPECT_EQ(NULL, dev_stream);
 
   thread_rm_open_dev(thread_, &iodev);
@@ -513,13 +505,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   struct open_dev *adev;
   struct cras_rstream rstream;
   struct cras_audio_shm_area shm_area;
-  struct dev_stream *dev_stream;
-  struct timespec now;
-  struct timespec future_ts;
 
-  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-  future_ts = now;
-  future_ts.tv_sec += 10000;
   memset(&rstream, 0, sizeof(rstream));
   memset(&shm_area, 0, sizeof(shm_area));
   rstream.direction = CRAS_STREAM_OUTPUT;
@@ -530,10 +516,6 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   /* Add the device and add the stream. */
   thread_add_open_dev(thread_, &iodev);
   thread_add_stream(thread_, &rstream, &piodev, 1);
-
-  /* The stream must be in pending list first. */
-  dev_stream = iodev.pending_streams;
-  EXPECT_EQ(dev_stream->stream, &rstream);
 
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
@@ -552,32 +534,10 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   /* Assume device is started. */
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
 
-  /* If it is not time to fetch, just skip it. */
-  rstream.next_cb_ts = future_ts;
-  dev_io_playback_fetch(adev);
-
-  dev_stream = iodev.pending_streams;
-  EXPECT_EQ(dev_stream->stream, &rstream);
-  EXPECT_EQ(dev_stream_request_playback_samples_called, 0);
-
-  /*
-   * If it is time to fetch, check whether the stream is moved to running
-   * list.
-   */
-  rstream.next_cb_ts = now;
-  cras_rstream_is_pending_reply_ret = 0;
-  shm_area.write_offset[0] = 0;
-  dev_io_playback_fetch(adev);
-
-  dev_stream = iodev.streams;
-  EXPECT_EQ(dev_stream->stream, &rstream);
-  EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
-
   /*
    * If the stream is pending a reply and shm buffer for writing is empty,
    * just skip it.
    */
-  dev_stream_request_playback_samples_called = 0;
   cras_rstream_is_pending_reply_ret = 1;
   shm_area.write_offset[0] = 0;
   dev_io_playback_fetch(adev);
@@ -863,46 +823,9 @@ TEST(BusyloopDetectSuite, CheckerTest) {
 
 extern "C" {
 
-void cras_iodev_add_pending_stream(struct cras_iodev *iodev,
-                                   struct dev_stream *stream)
-{
-  DL_APPEND(iodev->pending_streams, stream);
-}
-
-void cras_iodev_add_running_stream(struct cras_iodev *iodev,
-                                   struct dev_stream *stream)
+int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 {
   DL_APPEND(iodev->streams, stream);
-}
-
-void cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
-{
-  if (stream->stream->direction == CRAS_STREAM_OUTPUT)
-    cras_iodev_add_pending_stream(iodev, stream);
-  else
-    cras_iodev_add_running_stream(iodev, stream);
-}
-
-void cras_iodev_change_stream_to_running(struct cras_iodev *iodev,
-                                         struct dev_stream *stream)
-{
-  DL_DELETE(iodev->pending_streams, stream);
-  cras_iodev_add_running_stream(iodev, stream);
-}
-
-int cras_iodev_find_stream(const struct cras_iodev *iodev,
-                           const struct cras_rstream *rstream)
-{
-  struct dev_stream *s;
-
-  DL_FOREACH(iodev->streams, s) {
-    if (s->stream == rstream)
-      return 1;
-  }
-  DL_FOREACH(iodev->pending_streams, s) {
-    if (s->stream == rstream)
-      return 1;
-  }
   return 0;
 }
 
@@ -949,12 +872,6 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
   DL_FOREACH(iodev->streams, out) {
     if (out->stream == stream) {
       DL_DELETE(iodev->streams, out);
-      return out;
-    }
-  }
-  DL_FOREACH(iodev->pending_streams, out) {
-    if (out->stream == stream) {
-      DL_DELETE(iodev->pending_streams, out);
       return out;
     }
   }
