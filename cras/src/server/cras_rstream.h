@@ -55,8 +55,6 @@ struct master_dev_info {
  *    shm - shared memory
  *    audio_area - space for playback/capture audio
  *    format - format of the stream
- *    init_cb_ts - The time to move this output stream from pending to running
- *                 list.
  *    next_cb_ts - Next callback time for this stream.
  *    sleep_interval_ts - Time between audio callbacks.
  *    last_fetch_ts - The time of the last stream fetch.
@@ -86,7 +84,6 @@ struct cras_rstream {
 	struct cras_audio_shm shm;
 	struct cras_audio_area *audio_area;
 	struct cras_audio_format format;
-	struct timespec init_cb_ts;
 	struct timespec next_cb_ts;
 	struct timespec sleep_interval_ts;
 	struct timespec last_fetch_ts;

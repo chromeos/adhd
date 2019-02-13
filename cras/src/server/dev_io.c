@@ -124,7 +124,6 @@ static int fetch_streams(struct open_dev *adev)
 {
 	struct dev_stream *dev_stream;
 	struct cras_iodev *odev = adev->dev;
-	struct timespec now;
 	int rc;
 	int delay;
 
@@ -133,9 +132,7 @@ static int fetch_streams(struct open_dev *adev)
 		return delay;
 
 	DL_FOREACH(adev->dev->pending_streams, dev_stream) {
-		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-		add_timespecs(&now, &playback_wake_fuzz_ts);
-		if (timespec_after(&now, &dev_stream->stream->init_cb_ts))
+		if (is_time_to_fetch(dev_stream))
 			cras_iodev_change_stream_to_running(adev->dev, dev_stream);
 	}
 
@@ -143,6 +140,7 @@ static int fetch_streams(struct open_dev *adev)
 		struct cras_rstream *rstream = dev_stream->stream;
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(rstream);
+		struct timespec now;
 
 		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 

@@ -127,7 +127,6 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
 			    stream_fmt->frame_rate,
 			    &stream->sleep_interval_ts);
-	stream->init_cb_ts = *cb_ts;
 	stream->next_cb_ts = *cb_ts;
 
 	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
