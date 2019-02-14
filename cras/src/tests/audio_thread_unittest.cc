@@ -113,6 +113,7 @@ class StreamDeviceSuite : public testing::Test {
       iodev->ext_format = &format_;
       iodev->buffer_size = BUFFER_SIZE;
       iodev->min_cb_level = FIRST_CB_LEVEL;
+      format_.frame_rate = 48000;
     }
 
     void ResetStubData() {

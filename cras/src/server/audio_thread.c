@@ -332,12 +332,16 @@ static int append_stream(struct audio_thread *thread,
 		 	 */
 			struct timespec extra_sleep;
 
-			needed_frames_from_device = cras_rstream_get_cb_threshold(stream) +
-						    capture_extra_sleep_frames;
+			needed_frames_from_device =
+				cras_frames_at_rate(stream->format.frame_rate,
+						    cras_rstream_get_cb_threshold(stream),
+						    dev->ext_format->frame_rate);
+
+			needed_frames_from_device += capture_extra_sleep_frames;
 
 			level = cras_iodev_frames_queued(dev, &init_cb_ts);
 			if (level < 0) {
-				syslog(LOG_ERR, "Failed to set init_cb_ts, rc = %d", level);
+				syslog(LOG_ERR, "Failed to set input init_cb_ts, rc = %d", level);
 				rc = -EINVAL;
 				break;
 			}
@@ -346,7 +350,7 @@ static int append_stream(struct audio_thread *thread,
 
 			if (needed_frames_from_device > 0) {
 				cras_frames_to_time(needed_frames_from_device,
-						    stream->format.frame_rate, &extra_sleep);
+						    dev->ext_format->frame_rate, &extra_sleep);
 				add_timespecs(&init_cb_ts, &extra_sleep);
 			}
 		}
