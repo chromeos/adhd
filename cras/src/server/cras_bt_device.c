@@ -1025,11 +1025,8 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 	 * We should NOT call into update_active_node from main thread
 	 * because that may mess up the active node content.
 	 */
-	if (cras_iodev_list_dev_is_enabled(iodev))
-		return;
-
 	iodev->update_active_node(iodev, 0, 1);
-	cras_iodev_list_enable_dev(iodev);
+	cras_iodev_list_resume_dev(iodev);
 }
 
 static void bt_device_switch_profile_with_delay(struct cras_bt_device *device,
@@ -1053,7 +1050,6 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 				     int enable_dev)
 {
 	struct cras_iodev *iodev;
-	int was_enabled[CRAS_NUM_DIRECTIONS] = {0};
 	int dir;
 
 	/* If a bt iodev is active, temporarily force close it.
@@ -1064,8 +1060,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		iodev = device->bt_iodevs[dir];
 		if (!iodev)
 			continue;
-		was_enabled[dir] = cras_iodev_list_dev_is_enabled(iodev);
-		cras_iodev_list_disable_dev(iodev, true);
+		cras_iodev_list_suspend_dev(iodev);
 	}
 
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
@@ -1081,16 +1076,13 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		 * would fail to playback afterwards when the switching happens
 		 * too soon, so put this task in a delayed callback.
 		 */
-		if (was_enabled[dir] ||
-		    (enable_dev && iodev == bt_iodev)) {
-			if (dir == CRAS_STREAM_INPUT) {
-				iodev->update_active_node(iodev, 0, 1);
-				cras_iodev_list_enable_dev(iodev);
-			} else {
-				bt_device_switch_profile_with_delay(
-						device,
-						PROFILE_SWITCH_DELAY_MS);
-			}
+		if (dir == CRAS_STREAM_INPUT) {
+			iodev->update_active_node(iodev, 0, 1);
+			cras_iodev_list_resume_dev(iodev);
+		} else {
+			bt_device_switch_profile_with_delay(
+					device,
+					PROFILE_SWITCH_DELAY_MS);
 		}
 	}
 }

@@ -1165,6 +1165,36 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close)
 	return;
 }
 
+void cras_iodev_list_suspend_dev(struct cras_iodev *dev)
+{
+	struct cras_rstream *rstream;
+
+	DL_FOREACH(stream_list_get(stream_list), rstream) {
+		if (rstream->direction != dev->direction)
+			continue;
+		/* Disconnect all streams that are either:
+		 * (1) normal stream while dev is enabled by UI, or
+		 * (2) stream specifically pins to this dev.
+		 */
+		if ((dev->is_enabled && !rstream->is_pinned) ||
+		    (rstream->is_pinned && (dev->info.idx != rstream->pinned_dev_idx)))
+			audio_thread_disconnect_stream(audio_thread, rstream, dev);
+	}
+	close_dev(dev);
+	dev->update_active_node(dev, dev->active_node->idx, 0);
+}
+
+void cras_iodev_list_resume_dev(struct cras_iodev *dev)
+{
+	int rc;
+
+	rc = init_and_attach_streams(dev);
+	if (rc < 0) {
+		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
+		schedule_init_device_retry(dev);
+	}
+}
+
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
 				    cras_node_id_t node_id)
 {

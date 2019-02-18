@@ -149,12 +149,27 @@ int cras_iodev_list_set_node_attr(cras_node_id_t id,
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 				 cras_node_id_t node_id);
 
-/* Checks if an iodev is enabled. */
+/*
+ * Checks if an iodev is enabled. By enabled we mean all default streams will
+ * be routed to this iodev.
+ */
 int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev);
 
 /* Enables an iodev. If the fallback device was already enabled, this
  * call will disable it. */
 void cras_iodev_list_enable_dev(struct cras_iodev *dev);
+
+/*
+ * Suspends the connection of all types of stream attached to given iodev.
+ * This call doesn't disable the given iodev.
+ */
+void cras_iodev_list_suspend_dev(struct cras_iodev *dev);
+
+/*
+ * Resumes the connection of all types of stream attached to given iodev.
+ * This call doesn't enable the given dev.
+ */
+void cras_iodev_list_resume_dev(struct cras_iodev *dev);
 
 /*
  * Disables an iodev. If this is the last device to disable, the

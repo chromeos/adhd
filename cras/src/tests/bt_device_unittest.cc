@@ -283,11 +283,11 @@ int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev)
   return 0;
 }
 
-void cras_iodev_list_disable_dev(struct cras_iodev *dev)
+void cras_iodev_list_suspend_dev(struct cras_iodev *dev)
 {
 }
 
-void cras_iodev_list_enable_dev(struct cras_iodev *dev)
+void cras_iodev_list_resume_dev(struct cras_iodev *dev)
 {
 }
 

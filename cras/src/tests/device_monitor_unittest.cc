@@ -13,19 +13,19 @@ extern "C" {
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;
 static struct cras_device_monitor_message *sent_msg;
-static int enable_dev_called;
-static cras_iodev *enable_dev;
-static int disable_dev_called;
-static cras_iodev *disable_dev;
+static int resume_dev_called;
+static cras_iodev *resume_dev;
+static int suspend_dev_called;
+static cras_iodev *suspend_dev;
 static int set_mute_called;
 static cras_iodev *mute_dev;
 
 void ResetStubData() {
   type_set = (enum CRAS_MAIN_MESSAGE_TYPE)0;
-  enable_dev_called = 0;
-  enable_dev = NULL;
-  disable_dev_called = 0;
-  disable_dev = NULL;
+  resume_dev_called = 0;
+  resume_dev = NULL;
+  suspend_dev_called = 0;
+  suspend_dev = NULL;
   set_mute_called = 0;
   mute_dev = NULL;
 }
@@ -71,10 +71,10 @@ TEST(DeviceMonitorTestSuite, HandleResetDevice) {
   handle_device_message(main_message, NULL);
 
   // Verify that disable/enable functions are called with correct device.
-  EXPECT_EQ(enable_dev_called, 1);
-  EXPECT_EQ(enable_dev, &dev);
-  EXPECT_EQ(disable_dev_called, 1);
-  EXPECT_EQ(disable_dev, &dev);
+  EXPECT_EQ(resume_dev_called, 1);
+  EXPECT_EQ(resume_dev, &dev);
+  EXPECT_EQ(suspend_dev_called, 1);
+  EXPECT_EQ(suspend_dev, &dev);
 }
 
 TEST(DeviceMonitorTestSuite, MuteDevice) {
@@ -127,14 +127,14 @@ int cras_main_message_send(struct cras_main_message *msg) {
   return 0;
 };
 
-void cras_iodev_list_enable_dev(struct cras_iodev *dev) {
-  enable_dev_called++;
-  enable_dev = dev;
+void cras_iodev_list_resume_dev(struct cras_iodev *dev) {
+  resume_dev_called++;
+  resume_dev = dev;
 }
 
-void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force) {
-  disable_dev_called++;
-  disable_dev = dev;
+void cras_iodev_list_suspend_dev(struct cras_iodev *dev) {
+  suspend_dev_called++;
+  suspend_dev = dev;
 }
 
 int cras_iodev_set_mute(struct cras_iodev *dev) {
