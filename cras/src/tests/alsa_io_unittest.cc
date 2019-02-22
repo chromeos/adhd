@@ -1062,7 +1062,7 @@ TEST(AlsaOutputNode, TwoOutputs) {
   rc = alsa_iodev_set_active_node((struct cras_iodev *)aio,
                                   aio->base.nodes->next, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(2, alsa_mixer_set_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_mute_output);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_dBFS_output);
@@ -1205,7 +1205,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   ResetStubData();
   rc = alsa_iodev_set_active_node(iodev, aio->base.nodes->next, 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(2, alsa_mixer_set_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_mute_output);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_dBFS_output);
