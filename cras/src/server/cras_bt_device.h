@@ -131,10 +131,6 @@ int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
 int cras_bt_device_switch_profile(struct cras_bt_device *device,
 				  struct cras_iodev *bt_iodev);
 
-/* Calls this function when the buffer size of an underlying profile iodev
- * has changed and update it for the virtual bt iodev. */
-void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device);
-
 void cras_bt_device_start_monitor();
 
 /* Checks if the device has an iodev for A2DP. */

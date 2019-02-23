@@ -999,18 +999,6 @@ int cras_bt_device_switch_profile(struct cras_bt_device *device,
 	return rc;
 }
 
-void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
-{
-	struct cras_iodev *iodev;
-
-	iodev = device->bt_iodevs[CRAS_STREAM_INPUT];
-	if (iodev && cras_iodev_is_open(iodev))
-		cras_bt_io_update_buffer_size(iodev);
-	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (iodev && cras_iodev_is_open(iodev))
-		cras_bt_io_update_buffer_size(iodev);
-}
-
 static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;

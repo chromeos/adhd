@@ -292,9 +292,6 @@ int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
 {
   return 48;
 }
-void cras_bt_device_iodev_buffer_size_changed(struct cras_bt_device *device)
-{
-}
 const char *cras_bt_device_object_path(const struct cras_bt_device *device)
 {
   return "/fake/object/path";
@@ -376,17 +373,6 @@ int hfp_force_output_level(struct hfp_info *info,
   hfp_force_output_level_called++;
   hfp_force_output_level_target = level;
   return 0;
-}
-
-void hfp_register_packet_size_changed_callback(struct hfp_info *info,
-                 void (*cb)(void *data),
-                 void *data)
-{
-}
-
-void hfp_unregister_packet_size_changed_callback(struct hfp_info *info,
-             void *data)
-{
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev *iodev,

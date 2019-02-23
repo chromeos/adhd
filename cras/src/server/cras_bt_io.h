@@ -32,9 +32,6 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev,
 int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
 			  enum cras_bt_device_profile profile);
 
-/* Updates the buffer size to the profile specific iodev. */
-int cras_bt_io_update_buffer_size(struct cras_iodev *bt_iodev);
-
 /* Dry-run the profile device removal from bt_iodev.
  * Returns:
  *    0 if the bt_iodev will be empty and should to be destroied
