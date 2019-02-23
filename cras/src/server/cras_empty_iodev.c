@@ -37,7 +37,6 @@ static snd_pcm_format_t empty_supported_formats[] = {
 
 struct empty_iodev {
 	struct cras_iodev base;
-	int open;
 	uint8_t *audio_buffer;
 	uint64_t read_frames, written_frames;
 	struct timespec dev_start_time;
@@ -91,7 +90,6 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
 
-	empty_iodev->open = 0;
 	free(empty_iodev->audio_buffer);
 	empty_iodev->audio_buffer = NULL;
 	cras_iodev_free_audio_area(iodev);
@@ -106,7 +104,6 @@ static int configure_dev(struct cras_iodev *iodev)
 		return -EINVAL;
 
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
-	empty_iodev->open = 1;
 	empty_iodev->audio_buffer = calloc(1, EMPTY_BUFFER_SIZE);
 	empty_iodev->read_frames = 0;
 	empty_iodev->written_frames = 0;
