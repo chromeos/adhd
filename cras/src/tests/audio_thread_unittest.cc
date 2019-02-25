@@ -1198,6 +1198,11 @@ int cras_rstream_is_pending_reply(const struct cras_rstream *stream)
   return cras_rstream_is_pending_reply_ret;
 }
 
+float cras_rstream_get_volume_scaler(struct cras_rstream *rstream)
+{
+  return 1.0f;
+}
+
 int cras_set_rt_scheduling(int rt_lim)
 {
   return 0;

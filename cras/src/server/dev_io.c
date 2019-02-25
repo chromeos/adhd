@@ -478,7 +478,7 @@ static int capture_to_streams(struct open_dev *adev)
 			 */
 			software_gain_scaler = stream->stream->apm_list
 				? 1.0f
-				: cras_iodev_get_software_gain_scaler(idev);
+				: cras_rstream_get_volume_scaler(stream->stream);
 
 			this_read = dev_stream_capture(
 					stream, area, area_offset,
