@@ -326,12 +326,26 @@ static int add_controls_and_iodevs_with_ucm(
 		snd_ctl_t *handle)
 {
 	snd_pcm_info_t *dev_info;
+	struct mixer_name *main_volume_control_names;
 	struct iodev_list_node *node;
 	int rc = 0;
 	struct ucm_section *section;
 	struct ucm_section *ucm_sections;
 
 	snd_pcm_info_alloca(&dev_info);
+
+	main_volume_control_names = ucm_get_main_volume_names(alsa_card->ucm);
+	if (main_volume_control_names){
+		rc = cras_alsa_mixer_add_main_volume_control_by_name(
+			alsa_card->mixer,
+			main_volume_control_names);
+		if (rc) {
+			syslog(LOG_ERR,
+				"Failed adding main volume controls to"
+				" mixer for '%s'.'",card_name);
+			goto cleanup_names;
+		}
+	}
 
 	/* Get info on the devices specified in the UCM config. */
 	ucm_sections = ucm_get_sections(alsa_card->ucm);
@@ -340,7 +354,7 @@ static int add_controls_and_iodevs_with_ucm(
 		       "Could not retrieve any UCM SectionDevice"
 		       " info for '%s'.", card_name);
 		rc = -ENOENT;
-		goto error;
+		goto cleanup_names;
 	}
 
 	/* Create all of the controls first. */
@@ -352,7 +366,7 @@ static int add_controls_and_iodevs_with_ucm(
 					" mixer for '%s:%s'",
 					card_name,
 					section->name);
-			goto error;
+			goto cleanup;
 		}
 	}
 
@@ -370,7 +384,7 @@ static int add_controls_and_iodevs_with_ucm(
 			syslog(LOG_ERR, "Unexpected direction: %d",
 			       section->dir);
 			rc = -EINVAL;
-			goto error;
+			goto cleanup;
 		}
 
 		if (snd_ctl_pcm_info(handle, dev_info)) {
@@ -399,7 +413,7 @@ static int add_controls_and_iodevs_with_ucm(
 			rc = alsa_iodev_ucm_add_nodes_and_jacks(
 				node->iodev, section);
 			if (rc < 0)
-				goto error;
+				goto cleanup;
 		}
 	}
 
@@ -407,8 +421,10 @@ static int add_controls_and_iodevs_with_ucm(
 		alsa_iodev_ucm_complete_init(node->iodev);
 	}
 
-error:
+cleanup:
 	ucm_section_free_list(ucm_sections);
+cleanup_names:
+	mixer_name_free(main_volume_control_names);
 	return rc;
 }
 

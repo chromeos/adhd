@@ -45,6 +45,18 @@ int cras_alsa_mixer_add_controls_in_section(
 		struct cras_alsa_mixer *cmix,
 		struct ucm_section *section);
 
+/* Adds main volume controls to a cras_alsa_mixer from the given list of mixer
+ * names of main volume controls.
+ * Args:
+ *    cmix - A pointer to cras_alsa_mixer.
+ *    mixer_names - A list of mixer names from the given UCM MainVolumeNames.
+ * Returns:
+ *    0 on success. Negative error code otherwise.
+ */
+int cras_alsa_mixer_add_main_volume_control_by_name(
+		struct cras_alsa_mixer *cmix,
+		struct mixer_name *mixer_names);
+
 /* Adds controls to a cras_alsa_mixer instance by name matching.
  * Args:
  *    cmix - A pointer to cras_alsa_mixer.
