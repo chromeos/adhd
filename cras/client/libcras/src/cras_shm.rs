@@ -587,7 +587,7 @@ mod tests {
         unsafe {
             let cstr_name = CString::new(name).expect("cras_shm_open_rw: new CString failed");
             let fd = libc::shm_open(
-                cstr_name.into_raw() as *const _,
+                cstr_name.as_ptr() as *const _,
                 libc::O_CREAT | libc::O_EXCL | libc::O_RDWR,
                 0x0600,
             );
