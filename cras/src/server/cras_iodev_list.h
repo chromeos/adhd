@@ -172,13 +172,20 @@ void cras_iodev_list_enable_dev(struct cras_iodev *dev);
  * Suspends the connection of all types of stream attached to given iodev.
  * This call doesn't disable the given iodev.
  */
-void cras_iodev_list_suspend_dev(struct cras_iodev *dev);
+void cras_iodev_list_suspend_dev(unsigned int dev_idx);
 
 /*
  * Resumes the connection of all types of stream attached to given iodev.
  * This call doesn't enable the given dev.
  */
-void cras_iodev_list_resume_dev(struct cras_iodev *dev);
+void cras_iodev_list_resume_dev(unsigned int dev_idx);
+
+/*
+ * Sets mute state to device of given index.
+ * Args:
+ *    dev_idx - Index of the device to set mute state.
+ */
+void cras_iodev_list_set_dev_mute(unsigned int dev_idx);
 
 /*
  * Disables an iodev. If this is the last device to disable, the

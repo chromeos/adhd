@@ -102,7 +102,7 @@ static int cras_ramp_update_ramped_frames_num_frames;
 static cras_ramp_cb cras_ramp_start_cb;
 static void* cras_ramp_start_cb_data;
 static int cras_device_monitor_set_device_mute_state_called;
-static struct cras_iodev* cras_device_monitor_set_device_mute_state_dev;
+unsigned int cras_device_monitor_set_device_mute_state_dev_idx;
 static snd_pcm_format_t cras_scale_buffer_increment_fmt;
 static uint8_t *cras_scale_buffer_increment_buff;
 static unsigned int cras_scale_buffer_increment_frame;
@@ -202,7 +202,7 @@ void ResetStubData() {
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
   cras_ramp_update_ramped_frames_num_frames = 0;
   cras_device_monitor_set_device_mute_state_called = 0;
-  cras_device_monitor_set_device_mute_state_dev = NULL;
+  cras_device_monitor_set_device_mute_state_dev_idx = 0;
   cras_scale_buffer_called = 0;
   cras_scale_buffer_increment_fmt = SND_PCM_FORMAT_UNKNOWN;
   cras_scale_buffer_increment_buff = NULL;
@@ -1973,7 +1973,7 @@ TEST(IoDev, StartRampUp) {
   EXPECT_EQ(NULL, cras_ramp_start_cb);
   // Device mute state is set after ramping starts.
   EXPECT_EQ(1, cras_device_monitor_set_device_mute_state_called);
-  EXPECT_EQ(&iodev, cras_device_monitor_set_device_mute_state_dev);
+  EXPECT_EQ(iodev.info.idx, cras_device_monitor_set_device_mute_state_dev_idx);
 }
 
 TEST(IoDev, StartRampDown) {
@@ -2021,13 +2021,12 @@ TEST(IoDev, StartRampDown) {
 
   // Device mute state is not set yet. It should wait for ramp to finish.
   EXPECT_EQ(0, cras_device_monitor_set_device_mute_state_called);
-  EXPECT_EQ(NULL, cras_device_monitor_set_device_mute_state_dev);
 
   // Assume the callback is set, and it is later called after ramp is done.
   // It should trigger cras_device_monitor_set_device_mute_state.
   cras_ramp_start_cb(cras_ramp_start_cb_data);
   EXPECT_EQ(1, cras_device_monitor_set_device_mute_state_called);
-  EXPECT_EQ(&iodev, cras_device_monitor_set_device_mute_state_dev);
+  EXPECT_EQ(iodev.info.idx, cras_device_monitor_set_device_mute_state_dev_idx);
 }
 
 TEST(IoDev, StartVolumeRamp) {
@@ -2769,10 +2768,10 @@ int cras_ramp_update_ramped_frames(
   return 0;
 }
 
-int cras_device_monitor_set_device_mute_state(struct cras_iodev *iodev)
+int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
 {
   cras_device_monitor_set_device_mute_state_called++;
-  cras_device_monitor_set_device_mute_state_dev = iodev;
+  cras_device_monitor_set_device_mute_state_dev_idx = dev_idx;
   return 0;
 }
 

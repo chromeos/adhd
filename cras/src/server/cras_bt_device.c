@@ -1014,7 +1014,7 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 	 * because that may mess up the active node content.
 	 */
 	iodev->update_active_node(iodev, 0, 1);
-	cras_iodev_list_resume_dev(iodev);
+	cras_iodev_list_resume_dev(iodev->info.idx);
 }
 
 static void bt_device_switch_profile_with_delay(struct cras_bt_device *device,
@@ -1048,7 +1048,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		iodev = device->bt_iodevs[dir];
 		if (!iodev)
 			continue;
-		cras_iodev_list_suspend_dev(iodev);
+		cras_iodev_list_suspend_dev(iodev->info.idx);
 	}
 
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
@@ -1066,7 +1066,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 		 */
 		if (dir == CRAS_STREAM_INPUT) {
 			iodev->update_active_node(iodev, 0, 1);
-			cras_iodev_list_resume_dev(iodev);
+			cras_iodev_list_resume_dev(iodev->info.idx);
 		} else {
 			bt_device_switch_profile_with_delay(
 					device,

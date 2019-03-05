@@ -1507,13 +1507,13 @@ int cras_iodev_reset_request(struct cras_iodev* iodev)
 	if (iodev->reset_request_pending)
 		return 0;
 	iodev->reset_request_pending = 1;
-	return cras_device_monitor_reset_device(iodev);
+	return cras_device_monitor_reset_device(iodev->info.idx);
 }
 
 static void ramp_mute_callback(void *data)
 {
 	struct cras_iodev *odev = (struct cras_iodev *)data;
-	cras_device_monitor_set_device_mute_state(odev);
+	cras_device_monitor_set_device_mute_state(odev->info.idx);
 }
 
 /* Used in audio thread. Check the docstrings of CRAS_IODEV_RAMP_REQUEST. */
@@ -1565,7 +1565,7 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 	/* Mute -> unmute case, unmute state should be set after ramping is
 	 * started so device can start playing with samples close to 0. */
 	if (request == CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE)
-		cras_device_monitor_set_device_mute_state(odev);
+		cras_device_monitor_set_device_mute_state(odev->info.idx);
 
 	return 0;
 }

@@ -1166,9 +1166,10 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close)
 	return;
 }
 
-void cras_iodev_list_suspend_dev(struct cras_iodev *dev)
+void cras_iodev_list_suspend_dev(unsigned int dev_idx)
 {
 	struct cras_rstream *rstream;
+	struct cras_iodev *dev = find_dev(dev_idx);
 
 	DL_FOREACH(stream_list_get(stream_list), rstream) {
 		if (rstream->direction != dev->direction)
@@ -1185,8 +1186,9 @@ void cras_iodev_list_suspend_dev(struct cras_iodev *dev)
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 }
 
-void cras_iodev_list_resume_dev(struct cras_iodev *dev)
+void cras_iodev_list_resume_dev(unsigned int dev_idx)
 {
+	struct cras_iodev *dev = find_dev(dev_idx);
 	int rc;
 
 	rc = init_and_attach_streams(dev);
@@ -1194,6 +1196,17 @@ void cras_iodev_list_resume_dev(struct cras_iodev *dev)
 		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
 		schedule_init_device_retry(dev);
 	}
+}
+
+void cras_iodev_list_set_dev_mute(unsigned int dev_idx)
+{
+	struct cras_iodev *dev;
+
+	dev = find_dev(dev_idx);
+	if (!dev)
+		return;
+
+	cras_iodev_set_mute(dev);
 }
 
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
