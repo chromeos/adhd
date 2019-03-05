@@ -83,7 +83,7 @@ static int cras_iodev_open_called;
 static int cras_iodev_open_ret[8];
 static int set_mute_called;
 static std::vector<struct cras_iodev*> set_mute_dev_vector;
-static std::vector<struct cras_iodev*> audio_thread_dev_start_ramp_dev_vector;
+static std::vector<unsigned int> audio_thread_dev_start_ramp_dev_vector;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req ;
 static std::map<int, bool> stream_list_has_pinned_stream_ret;
@@ -91,6 +91,11 @@ static struct cras_rstream *audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
 static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
 static struct cras_ionode fake_sco_in_node, fake_sco_out_node;
+
+int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx)
+{
+  return std::find(v.begin(), v.end(), idx) != v.end();
+}
 
 int device_in_vector(std::vector<struct cras_iodev*> v, struct cras_iodev *dev)
 {
@@ -876,9 +881,11 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
 
   // d1_ and d2_ should set mute state through audio_thread_dev_start_ramp
   // because they are both open.
-  ASSERT_TRUE(device_in_vector(audio_thread_dev_start_ramp_dev_vector, &d1_));
-  ASSERT_TRUE(device_in_vector(audio_thread_dev_start_ramp_dev_vector, &d2_));
   EXPECT_EQ(2, audio_thread_dev_start_ramp_called);
+  ASSERT_TRUE(dev_idx_in_vector(audio_thread_dev_start_ramp_dev_vector,
+                                d2_.info.idx));
+  ASSERT_TRUE(dev_idx_in_vector(audio_thread_dev_start_ramp_dev_vector,
+                                d1_.info.idx));
   EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE, audio_thread_dev_start_ramp_req);
 
   // d3_ should set mute state right away without calling ramp
@@ -911,8 +918,9 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   observer_ops->output_mute_changed(NULL, 0, 0, 0);
 
   // d1_ should set mute state through audio_thread_dev_start_ramp.
-  ASSERT_TRUE(device_in_vector(audio_thread_dev_start_ramp_dev_vector, &d1_));
   EXPECT_EQ(1, audio_thread_dev_start_ramp_called);
+  ASSERT_TRUE(dev_idx_in_vector(audio_thread_dev_start_ramp_dev_vector,
+                                d1_.info.idx));
   EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE,
             audio_thread_dev_start_ramp_req);
 
@@ -1634,7 +1642,8 @@ int audio_thread_add_open_dev(struct audio_thread *thread,
 }
 
 int audio_thread_rm_open_dev(struct audio_thread *thread,
-                               struct cras_iodev *dev)
+                             enum CRAS_STREAM_DIRECTION dir,
+                             unsigned int dev_idx)
 {
   audio_thread_rm_open_dev_called++;
   return 0;
@@ -1876,11 +1885,11 @@ void cras_observer_notify_input_node_gain(cras_node_id_t node_id,
 }
 
 int audio_thread_dev_start_ramp(struct audio_thread *thread,
-                                struct cras_iodev *dev,
+                                unsigned int dev_idx,
                                 enum CRAS_IODEV_RAMP_REQUEST request)
 {
   audio_thread_dev_start_ramp_called++;
-  audio_thread_dev_start_ramp_dev_vector.push_back(dev);
+  audio_thread_dev_start_ramp_dev_vector.push_back(dev_idx);
   audio_thread_dev_start_ramp_req = request;
   return 0;
 }

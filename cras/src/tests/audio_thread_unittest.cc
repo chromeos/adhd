@@ -248,7 +248,7 @@ TEST_F(StreamDeviceSuite, AddRemoveOpenOutputDevice) {
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(adev->dev, &iodev);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(NULL, adev);
 }
@@ -269,7 +269,7 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   // Ramp up for unmute.
   iodev.ramp = reinterpret_cast<cras_ramp*>(0x123);
   req = CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE;
-  rc = thread_dev_start_ramp(thread_, &iodev, req);
+  rc = thread_dev_start_ramp(thread_, iodev.info.idx, req);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(&iodev, cras_iodev_start_ramp_odev);
@@ -279,7 +279,7 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   ResetStubData();
   req = CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE;
 
-  rc = thread_dev_start_ramp(thread_, &iodev, req);
+  rc = thread_dev_start_ramp(thread_, iodev.info.idx, req);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(&iodev, cras_iodev_start_ramp_odev);
@@ -288,7 +288,7 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   // If device's volume percentage is zero, than ramp won't start.
   ResetStubData();
   cras_iodev_is_zero_volume_ret = 1;
-  rc = thread_dev_start_ramp(thread_, &iodev, req);
+  rc = thread_dev_start_ramp(thread_, iodev.info.idx, req);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(NULL, cras_iodev_start_ramp_odev);
@@ -297,13 +297,13 @@ TEST_F(StreamDeviceSuite, StartRamp) {
   // Assume iodev changed to no_stream run state, it should not use ramp.
   ResetStubData();
   iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
-  rc = thread_dev_start_ramp(thread_, &iodev, req);
+  rc = thread_dev_start_ramp(thread_, iodev.info.idx, req);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(NULL, cras_iodev_start_ramp_odev);
   EXPECT_EQ(2, cras_device_monitor_set_device_mute_state_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, AddRemoveOpenInputDevice) {
@@ -317,7 +317,7 @@ TEST_F(StreamDeviceSuite, AddRemoveOpenInputDevice) {
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &iodev);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, iodev.info.idx);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(NULL, adev);
 }
@@ -346,7 +346,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
   EXPECT_EQ(adev->next->dev, &odev2);
 
   // Remove first open device and check the second one is still open.
-  thread_rm_open_dev(thread_, &odev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, odev.info.idx);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
   EXPECT_EQ(adev->dev, &odev2);
 
@@ -364,18 +364,18 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleOpenDevices) {
   EXPECT_EQ(adev->next->dev, &idev2);
 
   // Remove first open device and check the second one is still open.
-  thread_rm_open_dev(thread_, &idev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, idev.info.idx);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &idev2);
 
   // Add and remove another open device and check still open.
   thread_add_open_dev(thread_, &idev3);
-  thread_rm_open_dev(thread_, &idev3);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, idev3.info.idx);
   adev = thread_->open_devs[CRAS_STREAM_INPUT];
   EXPECT_EQ(adev->dev, &idev2);
-  thread_rm_open_dev(thread_, &idev2);
-  thread_rm_open_dev(thread_, &odev2);
-  thread_rm_open_dev(thread_, &odev3);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, idev2.info.idx);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, odev2.info.idx);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, odev3.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
@@ -419,8 +419,8 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   EXPECT_EQ(&rstream2, cras_rstream_dev_offset_update_rstream_val[1]);
   EXPECT_EQ(0, cras_rstream_dev_offset_update_frames_val[1]);
 
-  thread_rm_open_dev(thread_, &iodev);
-  thread_rm_open_dev(thread_, &iodev2);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, iodev.info.idx);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, iodev2.info.idx);
   TearDownRstream(&rstream);
   TearDownRstream(&rstream2);
   TearDownRstream(&rstream3);
@@ -463,7 +463,7 @@ TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
   EXPECT_EQ(ts_wake_1.tv_sec, adev->wake_ts.tv_sec);
   EXPECT_EQ(ts_wake_1.tv_nsec, adev->wake_ts.tv_nsec);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_INPUT, iodev.info.idx);
   TearDownRstream(&rstream1);
   TearDownRstream(&rstream2);
 }
@@ -514,7 +514,7 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
   EXPECT_EQ(cras_iodev_start_stream_called, 1);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream);
 }
 
@@ -544,7 +544,7 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
   EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
   EXPECT_EQ(init_cb_ts_.tv_nsec, expect_ts.tv_nsec);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 
   thread_add_open_dev(thread_, &iodev);
 
@@ -576,7 +576,7 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
   EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
   EXPECT_EQ(init_cb_ts_.tv_nsec, expect_ts.tv_nsec);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream1);
   TearDownRstream(&rstream2);
 }
@@ -624,7 +624,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
 
   // Remove first device from open and streams on second device remain
   // intact.
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   dev_stream = iodev2.streams;
   EXPECT_EQ(&rstream3, dev_stream->stream);
   EXPECT_EQ(NULL, dev_stream->next);
@@ -638,14 +638,14 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   EXPECT_EQ(NULL, dev_stream);
 
   // Remove open devices and check stream is on fallback device.
-  thread_rm_open_dev(thread_, &iodev2);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev2.info.idx);
 
   // Add open device, again check it is empty of streams.
   thread_add_open_dev(thread_, &iodev);
   dev_stream = iodev.streams;
   EXPECT_EQ(NULL, dev_stream);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream);
   TearDownRstream(&rstream2);
   TearDownRstream(&rstream3);
@@ -713,7 +713,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   dev_io_playback_fetch(adev);
   EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, WriteOutputSamplesPrepareOutputFailed) {
@@ -746,7 +746,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesPrepareOutputFailed) {
   // called.
   EXPECT_EQ(0, cras_iodev_get_output_buffer_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
@@ -774,7 +774,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesNoStream) {
   // called.
   EXPECT_EQ(0, cras_iodev_get_output_buffer_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
@@ -815,7 +815,7 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
   EXPECT_EQ(2, cras_iodev_prepare_output_before_write_samples_called);
   EXPECT_EQ(1, cras_iodev_get_output_buffer_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, MixOutputSamples) {
@@ -880,7 +880,7 @@ TEST_F(StreamDeviceSuite, MixOutputSamples) {
   EXPECT_EQ(4, cras_iodev_get_output_buffer_called);
   EXPECT_EQ(4, dev_stream_mix_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream1);
   TearDownRstream(&rstream2);
 }
@@ -915,7 +915,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackNoStream) {
   // update_dev_wakeup_time.
   EXPECT_EQ(1, cras_iodev_frames_to_play_in_sleep_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
 }
 
 TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
@@ -950,7 +950,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
   dev_io_playback_write(&thread_->open_devs[CRAS_STREAM_OUTPUT], nullptr);
   EXPECT_EQ(1, cras_iodev_output_underrun_called);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream);
 }
 
@@ -984,7 +984,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
   EXPECT_EQ(1, cras_iodev_reset_request_called);
   EXPECT_EQ(&iodev, cras_iodev_reset_request_iodev);
 
-  thread_rm_open_dev(thread_, &iodev);
+  thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream);
 }
 

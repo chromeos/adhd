@@ -72,7 +72,8 @@ int audio_thread_add_open_dev(struct audio_thread *thread,
  *    dev - The open device to remove.
  */
 int audio_thread_rm_open_dev(struct audio_thread *thread,
-			     struct cras_iodev *dev);
+			     enum CRAS_STREAM_DIRECTION dir,
+			     unsigned int dev_idx);
 
 /* Checks if dev is open and used by audio thread.
  * Args:
@@ -200,12 +201,12 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
  *
  * Args:
  *   thread - a pointer to the audio thread.
- *   dev - the device to start ramping.
+ *   dev_idx - Index of the the device to start ramping.
  *   request - Check the docstrings of CRAS_IODEV_RAMP_REQUEST.
  * Returns:
  *    0 on success, negative if error.
  */
 int audio_thread_dev_start_ramp(struct audio_thread *thread,
-				struct cras_iodev *dev,
+				unsigned int dev_idx,
 				enum CRAS_IODEV_RAMP_REQUEST request);
 #endif /* AUDIO_THREAD_H_ */

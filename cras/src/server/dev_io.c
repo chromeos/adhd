@@ -968,11 +968,11 @@ int dev_io_next_input_wake(struct open_dev **idevs, struct timespec *min_ts)
 }
 
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
-				      const struct cras_iodev *dev)
+				      unsigned int dev_idx)
 {
 	struct open_dev *odev;
 	DL_FOREACH(odev_list, odev)
-		if (odev->dev == dev)
+		if (odev->dev->info.idx == dev_idx)
 			return odev;
 	return NULL;
 }
@@ -984,7 +984,10 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 	struct dev_stream *dev_stream;
 
 	/* Do nothing if dev_to_rm wasn't already in the active dev list. */
-	odev = dev_io_find_open_dev(*odev_list, dev_to_rm->dev);
+	DL_FOREACH(*odev_list, odev) {
+		if (odev == dev_to_rm)
+			break;
+	}
 	if (!odev)
 		return;
 

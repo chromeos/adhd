@@ -66,6 +66,12 @@ struct audio_thread_open_device_msg {
 	struct cras_iodev *dev;
 };
 
+struct audio_thread_rm_device_msg {
+	struct audio_thread_msg header;
+	enum CRAS_STREAM_DIRECTION dir;
+	unsigned dev_idx;
+};
+
 struct audio_thread_rm_callback_msg {
 	struct audio_thread_msg header;
 	int fd;
@@ -85,7 +91,7 @@ struct audio_thread_dump_debug_info_msg {
 
 struct audio_thread_dev_start_ramp_msg {
 	struct audio_thread_msg header;
-	struct cras_iodev *dev;
+	unsigned int dev_idx;
 	enum CRAS_IODEV_RAMP_REQUEST request;
 };
 
@@ -416,14 +422,15 @@ static int thread_add_open_dev(struct audio_thread *thread,
 
 /* Handles messages from the main thread to remove an active device. */
 static int thread_rm_open_dev(struct audio_thread *thread,
-			      struct cras_iodev *iodev)
+			      enum CRAS_STREAM_DIRECTION dir,
+			      unsigned int dev_idx)
 {
 	struct open_dev *adev = dev_io_find_open_dev(
-			thread->open_devs[iodev->direction], iodev);
+			thread->open_devs[dir], dev_idx);
 	if (!adev)
 		return -EINVAL;
 
-	dev_io_rm_open_dev(&thread->open_devs[iodev->direction], adev);
+	dev_io_rm_open_dev(&thread->open_devs[dir], adev);
 	return 0;
 }
 
@@ -435,7 +442,7 @@ static int thread_is_dev_open(struct audio_thread *thread,
 			      struct cras_iodev *iodev)
 {
 	struct open_dev *adev = dev_io_find_open_dev(
-			thread->open_devs[iodev->direction], iodev);
+			thread->open_devs[iodev->direction], iodev->info.idx);
 	return !!adev;
 }
 
@@ -453,14 +460,16 @@ static int thread_is_dev_open(struct audio_thread *thread,
  * The above transition will be handled by cras_iodev_start_ramp.
  */
 static int thread_dev_start_ramp(struct audio_thread *thread,
-				 struct cras_iodev *iodev,
+				 unsigned int dev_idx,
 				 enum CRAS_IODEV_RAMP_REQUEST request)
 {
 	/* Do nothing if device wasn't already in the active dev list. */
+	struct cras_iodev *iodev;
 	struct open_dev *adev = dev_io_find_open_dev(
-			thread->open_devs[iodev->direction], iodev);
+			thread->open_devs[CRAS_STREAM_OUTPUT], dev_idx);
 	if (!adev)
 		return -EINVAL;
+	iodev = adev->dev;
 
 	/*
 	 * Checks if a device should start ramping for mute/unmute change.
@@ -715,10 +724,10 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		break;
 	}
 	case AUDIO_THREAD_RM_OPEN_DEV: {
-		struct audio_thread_open_device_msg *rmsg;
+		struct audio_thread_rm_device_msg *rmsg;
 
-		rmsg = (struct audio_thread_open_device_msg *)msg;
-		ret = thread_rm_open_dev(thread, rmsg->dev);
+		rmsg = (struct audio_thread_rm_device_msg *)msg;
+		ret = thread_rm_open_dev(thread, rmsg->dir, rmsg->dev_idx);
 		break;
 	}
 	case AUDIO_THREAD_IS_DEV_OPEN: {
@@ -811,7 +820,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		struct audio_thread_dev_start_ramp_msg *rmsg;
 
 		rmsg = (struct audio_thread_dev_start_ramp_msg*)msg;
-		ret = thread_dev_start_ramp(thread, rmsg->dev, rmsg->request);
+		ret = thread_dev_start_ramp(thread, rmsg->dev_idx,
+					    rmsg->request);
 		break;
 	}
 	case AUDIO_THREAD_AEC_DUMP: {
@@ -1104,6 +1114,17 @@ static void init_open_device_msg(struct audio_thread_open_device_msg *msg,
 	msg->dev = dev;
 }
 
+static void init_rm_device_msg(struct audio_thread_rm_device_msg *msg,
+			       enum CRAS_STREAM_DIRECTION dir,
+			       unsigned int dev_idx)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.id = AUDIO_THREAD_RM_OPEN_DEV;
+	msg->header.length = sizeof(*msg);
+	msg->dir = dir;
+	msg->dev_idx = dev_idx;
+}
+
 static void init_add_rm_stream_msg(struct audio_thread_add_rm_stream_msg *msg,
 				   enum AUDIO_THREAD_COMMAND id,
 				   struct cras_rstream *stream,
@@ -1139,13 +1160,13 @@ static void init_config_global_remix_msg(
 static void init_device_start_ramp_msg(
 		struct audio_thread_dev_start_ramp_msg *msg,
 		enum AUDIO_THREAD_COMMAND id,
-		struct cras_iodev *dev,
+		unsigned int dev_idx,
 		enum CRAS_IODEV_RAMP_REQUEST request)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.id = id;
 	msg->header.length = sizeof(*msg);
-	msg->dev = dev;
+	msg->dev_idx = dev_idx;
 	msg->request = request;
 }
 
@@ -1335,15 +1356,16 @@ int audio_thread_add_open_dev(struct audio_thread *thread,
 }
 
 int audio_thread_rm_open_dev(struct audio_thread *thread,
-			     struct cras_iodev *dev)
+			     enum CRAS_STREAM_DIRECTION dir,
+			     unsigned int dev_idx)
 {
-	struct audio_thread_open_device_msg msg;
+	struct audio_thread_rm_device_msg msg;
 
-	assert(thread && dev);
+	assert(thread);
 	if (!thread->started)
 		return -EINVAL;
 
-	init_open_device_msg(&msg, AUDIO_THREAD_RM_OPEN_DEV, dev);
+	init_rm_device_msg(&msg, dir, dev_idx);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1360,18 +1382,18 @@ int audio_thread_is_dev_open(struct audio_thread *thread,
 }
 
 int audio_thread_dev_start_ramp(struct audio_thread *thread,
-				struct cras_iodev *dev,
+				unsigned int dev_idx,
 				enum CRAS_IODEV_RAMP_REQUEST request)
 {
 	struct audio_thread_dev_start_ramp_msg msg;
 
-	assert(thread && dev);
+	assert(thread);
 
 	if (!thread->started)
 		return -EINVAL;
 
 	init_device_start_ramp_msg(&msg, AUDIO_THREAD_DEV_START_RAMP,
-				   dev, request);
+				   dev_idx, request);
 	return audio_thread_post_message(thread, &msg.header);
 }
 

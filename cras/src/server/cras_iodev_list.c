@@ -320,7 +320,7 @@ static void sys_mute_change(void *context, int muted, int user_muted,
 		} else {
 			audio_thread_dev_start_ramp(
 					audio_thread,
-					dev,
+					dev->info.idx,
 					(should_mute ?
 					 CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE :
 					 CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE));
@@ -332,7 +332,7 @@ static void remove_all_streams_from_dev(struct cras_iodev *dev)
 {
 	struct cras_rstream *rstream;
 
-	audio_thread_rm_open_dev(audio_thread, dev);
+	audio_thread_rm_open_dev(audio_thread, dev->direction, dev->info.idx);
 
 	DL_FOREACH(stream_list_get(stream_list), rstream) {
 		if (rstream->apm_list == NULL)

@@ -81,7 +81,7 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 
 /* Returns a pointer to an open_dev if it is in the list, otherwise NULL. */
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
-                                      const struct cras_iodev *dev);
+                                      unsigned int dev_idx);
 
 /* Remove a stream from the provided list of devices. */
 int dev_io_remove_stream(struct open_dev **dev_list,
