@@ -147,6 +147,9 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	struct cras_iodev *dev = active_profile_dev(iodev);
 	int rc, length, i;
 
+	if (!dev)
+		return -EINVAL;
+
 	if (dev->format == NULL) {
 		dev->format = (struct cras_audio_format *)
 				malloc(sizeof(*dev->format));
@@ -207,6 +210,8 @@ static int close_dev(struct cras_iodev *iodev)
 	struct bt_io *btio = (struct bt_io *)iodev;
 	int rc;
 	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
 
 	/* Force back to A2DP if closing HFP. */
 	if (device_using_profile(btio->device,
@@ -229,6 +234,8 @@ static int close_dev(struct cras_iodev *iodev)
 static void set_bt_volume(struct cras_iodev *iodev)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return;
 
 	if (dev->active_node)
 		dev->active_node->volume = iodev->active_node->volume;
