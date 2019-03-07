@@ -37,7 +37,7 @@ fi
 
 # Leave cras in the init pid namespace as it uses its PID as an IPC identifier.
 exec minijail0 -u cras -g cras -G -n --uts -v -l \
-        -P /var/empty \
+        -P /mnt/empty \
         -b /,/ \
         -k 'tmpfs,/run,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /run/cras,/run/cras,1 \
