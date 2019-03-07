@@ -336,6 +336,7 @@ TESTS = \
 	alsa_mixer_unittest \
 	alsa_ucm_unittest \
 	array_unittest \
+	biquad_unittest \
 	byte_buffer_unittest \
 	card_config_unittest \
 	checksum_unittest \
@@ -592,6 +593,12 @@ bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 endif
+
+biquad_unittest_SOURCES = tests/biquad_unittest.cc \
+	dsp/biquad.c
+biquad_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
+	-I$(top_srcdir)/src/server
+biquad_unittest_LDADD = -lgtest -lpthread -lm
 
 byte_buffer_unittest_SOURCES = tests/byte_buffer_unittest.cc
 byte_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
