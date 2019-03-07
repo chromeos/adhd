@@ -2059,10 +2059,9 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunAlreadyFreeRunning) {
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
   int rc, real_hw_level;
   struct timespec hw_tstamp;
+  int fill_zeros_duration = 50;
   // Device is not in free run state. There are still valid samples to play.
-  // The number of valid samples is less than min_cb_level * 2.
-  // Need to fill zeros targeting min_cb_level * 2 = 480.
-  // The number of zeros to be filled is 480 - 200 = 280.
+  // In cras_alsa_io.c, we defined there are 50ms zeros to be filled.
   real_hw_level = 200;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
@@ -2074,25 +2073,30 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
   EXPECT_EQ(1, cras_iodev_fill_odev_zeros_called);
-  EXPECT_EQ(280, cras_iodev_fill_odev_zeros_frames);
-  EXPECT_EQ(280, aio.filled_zeros_for_draining);
+  EXPECT_EQ(fmt_.frame_rate / 1000 * fill_zeros_duration,
+            cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(fmt_.frame_rate / 1000 * fill_zeros_duration,
+            aio.filled_zeros_for_draining);
   EXPECT_EQ(0, aio.is_free_running);
 }
 
-TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNoNeedToFillZeros) {
+TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetFillZerosExceedBuffer) {
   int rc, real_hw_level;
 
   // Device is not in free run state. There are still valid samples to play.
-  // The number of valid samples is more than min_cb_level * 2.
-  // No need to fill zeros.
-  real_hw_level = 500;
+  // If frames avail is smaller than 50ms(48 * 50 = 2400 zeros), only fill
+  // zeros until buffer size.
+  real_hw_level = 7000;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
   rc = no_stream(&aio.base, 1);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
-  EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(1, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(cras_alsa_get_avail_frames_avail,
+            cras_iodev_fill_odev_zeros_frames);
+  EXPECT_EQ(cras_alsa_get_avail_frames_avail, aio.filled_zeros_for_draining);
   EXPECT_EQ(0, aio.is_free_running);
 }
 

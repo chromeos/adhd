@@ -67,6 +67,15 @@
 #define SEVERE_UNDERRUN_MS 5000
 
 /*
+ * When entering no stream state, audio thread needs to fill extra zeros in
+ * order to play remaining valid frames. The value indicates how many
+ * time will be filled.
+ */
+static const struct timespec no_stream_fill_zeros_duration = {
+	0, 50 * 1000 * 1000 /* 50 msec. */
+};
+
+/*
  * This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
@@ -1809,7 +1818,6 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
 	unsigned int real_hw_level, fr_to_write;
-	unsigned int target_hw_level = odev->min_cb_level * 2 + odev->min_buffer_level;
 	struct timespec hw_tstamp;
 
 	if (aio->is_free_running)
@@ -1840,15 +1848,14 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 		return 0;
 	}
 
-	/* Fill some zeros to drain valid samples. */
-	fr_to_write = odev->buffer_size - real_hw_level;
-	if (real_hw_level < target_hw_level) {
-		fr_to_write = MIN(target_hw_level - real_hw_level, fr_to_write);
-		rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
-		if (rc)
-			return rc;
-		aio->filled_zeros_for_draining += fr_to_write;
-	}
+	/* Fill zeros to drain valid samples. */
+	fr_to_write = MIN(cras_time_to_frames(&no_stream_fill_zeros_duration,
+					      odev->format->frame_rate),
+			  odev->buffer_size - real_hw_level);
+	rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+	if (rc)
+		return rc;
+	aio->filled_zeros_for_draining += fr_to_write;
 
 	return 0;
 }

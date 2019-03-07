@@ -38,6 +38,22 @@ static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
 
 /*
+ * It is the lastest time for the device to wake up when it is in the normal
+ * run state. It represents how many remaining frames in the device buffer.
+ */
+static const struct timespec dev_normal_run_wake_up_time = {
+	0, 1 * 1000 * 1000 /* 1 msec. */
+};
+
+/*
+ * It is the lastest time for the device to wake up when it is in the no stream
+ * state. It represents how many remaining frames in the device buffer.
+ */
+static const struct timespec dev_no_stream_wake_up_time = {
+	0, 5 * 1000 * 1000 /* 5 msec. */
+};
+
+/*
  * Check issu b/72496547 and commit message for the history of
  * rate estimator tuning.
  */
@@ -1373,33 +1389,41 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
 {
 	int rc = cras_iodev_frames_queued(odev, hw_tstamp);
 	unsigned int level = (rc < 0) ? 0 : rc;
+	unsigned int wakeup_frames;
 	*hw_level = level;
 
 	if (odev->streams) {
 		/*
-		 * If there are frames waiting to be played but device buffer is full,
-		 * audio thread will wake up when hw_level drops to min_cb_level. If
-		 * not, wake up when hw_level drops to 1ms. Normally, this isn't hit
-		 * because the client will wake us up before then. This helps with
-		 * cases where the hardware buffer is smaller than the client stream
-		 * buffer.
+		 * We have two cases in this scope. The first one is if there are frames
+		 * waiting to be played, audio thread will wake up when hw_level drops
+		 * to min_cb_level. This situation only happens when hardware buffer is
+		 * smaller than the client stream buffer. The second one is waking up
+		 * when hw_level drops to dev_normal_run_wake_up_time. It is a default
+		 * behavior. This wake up time is the bottom line to avoid underrun.
+		 * Normally, the audio thread does not wake up at that time because the
+		 * streams should wake it up before then.
 		 */
-		unsigned int one_ms_frames = odev->format->frame_rate / 1000;
-
 		if (*hw_level > odev->min_cb_level && dev_playback_frames(odev))
 			return *hw_level - odev->min_cb_level;
 
-		if (level > one_ms_frames)
-			return level - one_ms_frames;
+		wakeup_frames = cras_time_to_frames(&dev_normal_run_wake_up_time,
+						    odev->format->frame_rate);
+		if (level > wakeup_frames)
+			return level - wakeup_frames;
 		else
 			return level;
 	}
 
-	/* When this device has no stream, schedule audio thread to wake up
-	 * when hw_level drops to min_cb_level so audio thread can fill
-	 * zeros to it. */
-	if (*hw_level > odev->min_cb_level)
-		return *hw_level - odev->min_cb_level;
+	/*
+	 * When this device has no stream, schedule audio thread to wake up when
+	 * hw_level drops to dev_no_stream_wake_up_time so audio thread can
+	 * fill zeros to it. We also need to consider min_cb_level in order to avoid
+	 * busyloop when device buffer size is smaller than wake up time.
+	 */
+	wakeup_frames = cras_time_to_frames(&dev_no_stream_wake_up_time,
+					    odev->format->frame_rate);
+	if (level > MIN(odev->min_cb_level, wakeup_frames))
+		return level - MIN(odev->min_cb_level, wakeup_frames);
 	else
 		return 0;
 }

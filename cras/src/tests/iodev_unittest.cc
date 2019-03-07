@@ -1987,27 +1987,16 @@ TEST(IoDev, FramesToPlayInSleep) {
   EXPECT_EQ(got_hw_level, hw_level);
   EXPECT_EQ(got_frames, 208);
 
-  // Device is running. There is no stream for this device.
-  // hw_level is greater than min_cb_level.
+  // Device is running. There is no stream for this device. The audio thread
+  // will wake up until hw_level drops to DEV_NO_STREAM_WAKE_UP_LATEST_TIME,
+  // which is defined as 5 milliseconds in cras_iodev.c.
   iodev.streams = NULL;
-  hw_level = min_cb_level + 50;
+  hw_level = min_cb_level;
   fr_queued = hw_level;
-
   got_frames = cras_iodev_frames_to_play_in_sleep(
                    &iodev, &got_hw_level, &hw_tstamp);
   EXPECT_EQ(got_hw_level, hw_level);
-  EXPECT_EQ(got_frames, hw_level - min_cb_level);
-
-  // Device is running. There is no stream for this device.
-  // hw_level is less than min_cb_level.
-  iodev.streams = NULL;
-  hw_level = min_cb_level / 2;
-  fr_queued = hw_level;
-
-  got_frames = cras_iodev_frames_to_play_in_sleep(
-                   &iodev, &got_hw_level, &hw_tstamp);
-  EXPECT_EQ(got_hw_level, hw_level);
-  EXPECT_EQ(got_frames, 0);
+  EXPECT_EQ(got_frames, hw_level - fmt.frame_rate / 1000 * 5);
 }
 
 static unsigned int get_num_underruns(const struct cras_iodev *iodev) {
