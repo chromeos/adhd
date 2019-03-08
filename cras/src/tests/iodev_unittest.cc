@@ -1451,8 +1451,10 @@ TEST(IoDev, AddRmStream) {
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   rstream1.cb_threshold = 800;
   stream1.stream = &rstream1;
+  stream1.is_running = 0;
   rstream2.cb_threshold = 400;
   stream2.stream = &rstream2;
+  stream2.is_running = 0;
   ResetStubData();
 
   iodev_buffer_size = 1024;
@@ -1462,11 +1464,13 @@ TEST(IoDev, AddRmStream) {
 
   /* min_cb_level should not exceed half the buffer size. */
   cras_iodev_add_stream(&iodev, &stream1);
+  cras_iodev_start_stream(&iodev, &stream1);
   EXPECT_EQ(800, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
   EXPECT_EQ(1, buffer_share_add_id_called);
 
   cras_iodev_add_stream(&iodev, &stream2);
+  cras_iodev_start_stream(&iodev, &stream2);
   EXPECT_EQ(800, iodev.max_cb_level);
   EXPECT_EQ(400, iodev.min_cb_level);
   EXPECT_EQ(2, buffer_share_add_id_called);
@@ -1480,6 +1484,45 @@ TEST(IoDev, AddRmStream) {
   cras_iodev_rm_stream(&iodev, &rstream2);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
+}
+
+TEST(IoDev, StartStreams) {
+  struct cras_iodev iodev1, iodev2;
+  struct cras_rstream rstream1, rstream2;
+  struct dev_stream stream1, stream2;
+
+  memset(&iodev1, 0, sizeof(iodev1));
+  memset(&iodev2, 0, sizeof(iodev2));
+  memset(&rstream1, 0, sizeof(rstream1));
+  memset(&rstream2, 0, sizeof(rstream2));
+  memset(&stream1, 0, sizeof(stream1));
+  memset(&stream2, 0, sizeof(stream2));
+  iodev1.configure_dev = configure_dev;
+  iodev1.ext_format = &audio_fmt;
+  iodev1.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev2.configure_dev = configure_dev;
+  iodev2.ext_format = &audio_fmt;
+  iodev2.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  rstream1.direction = CRAS_STREAM_INPUT;
+  rstream2.direction = CRAS_STREAM_OUTPUT;
+  stream1.stream = &rstream1;
+  stream2.stream = &rstream2;
+
+  /* An input stream starts running immediately. */
+  ResetStubData();
+  iodev1.direction = CRAS_STREAM_INPUT;
+  cras_iodev_open(&iodev1, 1024, &audio_fmt);
+  cras_iodev_add_stream(&iodev1, &stream1);
+  EXPECT_EQ(1, dev_stream_is_running(&stream1));
+  EXPECT_EQ(1, buffer_share_add_id_called);
+
+  /* An output stream starts running after its first fetch. */
+  ResetStubData();
+  iodev2.direction = CRAS_STREAM_OUTPUT;
+  cras_iodev_open(&iodev2, 1024, &audio_fmt);
+  cras_iodev_add_stream(&iodev2, &stream2);
+  EXPECT_EQ(0, dev_stream_is_running(&stream2));
+  EXPECT_EQ(0, buffer_share_add_id_called);
 }
 
 TEST(IoDev, TriggerOnlyStreamNoBufferShare) {
@@ -1606,6 +1649,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
 
   rstream1.cb_threshold = min_cb_level;
   stream1.stream = &rstream1;
+  stream1.is_running = 1;
 
   memset(&iodev, 0, sizeof(iodev));
 
@@ -1947,6 +1991,7 @@ TEST(IoDev, FramesToPlayInSleep) {
   ResetStubData();
 
   cras_iodev_add_stream(&iodev, &stream);
+  cras_iodev_start_stream(&iodev, &stream);
 
   // Device is running. There is at least one stream for this device
   // and there are frames waiting to be played. hw_level is greater

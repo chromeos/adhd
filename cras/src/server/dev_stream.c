@@ -76,6 +76,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	out->dev_id = dev_id;
 	out->stream = stream;
 	out->dev_rate = dev_fmt->frame_rate;
+	out->is_running = 0;
 
 	max_frames = max_frames_for_conversion(stream->buffer_frames,
 					       stream_fmt->frame_rate,

@@ -30,6 +30,7 @@ static int cras_iodev_put_output_buffer_called;
 static unsigned int cras_iodev_put_output_buffer_nframes;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
 static int dev_stream_playback_frames_ret;
+static int dev_stream_mix_called;
 static unsigned int dev_stream_update_next_wake_time_called;
 static unsigned int dev_stream_request_playback_samples_called;
 static unsigned int cras_iodev_prepare_output_before_write_samples_called;
@@ -40,6 +41,7 @@ static int cras_iodev_prepare_output_before_write_samples_ret;
 static int cras_iodev_reset_request_called;
 static struct cras_iodev *cras_iodev_reset_request_iodev;
 static int cras_iodev_output_underrun_called;
+static int cras_iodev_start_stream_called;
 static int cras_device_monitor_reset_device_called;
 static struct cras_iodev *cras_device_monitor_reset_device_iodev;
 static struct cras_iodev *cras_iodev_start_ramp_odev;
@@ -69,6 +71,7 @@ void ResetGlobalStubData() {
   cras_iodev_fill_odev_zeros_frames = 0;
   cras_iodev_frames_to_play_in_sleep_called = 0;
   dev_stream_playback_frames_ret = 0;
+  dev_stream_mix_called = 0;
   dev_stream_request_playback_samples_called = 0;
   dev_stream_update_next_wake_time_called = 0;
   cras_iodev_prepare_output_before_write_samples_called = 0;
@@ -78,6 +81,7 @@ void ResetGlobalStubData() {
   cras_iodev_reset_request_called = 0;
   cras_iodev_reset_request_iodev = NULL;
   cras_iodev_output_underrun_called = 0;
+  cras_iodev_start_stream_called = 0;
   cras_device_monitor_reset_device_called = 0;
   cras_device_monitor_reset_device_iodev = NULL;
   cras_iodev_start_ramp_odev = NULL;
@@ -430,6 +434,56 @@ TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
   TearDownRstream(&rstream2);
 }
 
+TEST_F(StreamDeviceSuite, AddOutputStream) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct cras_rstream rstream;
+  struct cras_audio_shm_area *shm_area;
+  struct dev_stream *dev_stream;
+  struct open_dev *adev;
+
+  memset(&rstream, 0, sizeof(rstream));
+  memset(&shm_area, 0, sizeof(shm_area));
+  ResetGlobalStubData();
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &rstream, &piodev, 1);
+  dev_stream = iodev.streams;
+  EXPECT_EQ(dev_stream->stream, &rstream);
+  /*
+   * When a output stream is added, the start_stream function will be called
+   * after its first fetch.
+   */
+  EXPECT_EQ(cras_iodev_start_stream_called, 0);
+
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+
+  /* Set stream config. */
+  rstream.shm.config.frame_bytes = 4;
+  rstream.shm.config.used_size = 4096 * 4;
+  rstream.shm.config.frame_bytes = 4;
+
+  /* Set shm config. */
+  shm_area = rstream.shm.area;
+  shm_area->config.frame_bytes = 4;
+  shm_area->config.used_size = 4096 * 4;
+  shm_area->write_buf_idx = 0;
+  shm_area->write_offset[0] = 0;
+
+  /* Assume device is started. */
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  /* Fetch stream. */
+  cras_rstream_is_pending_reply_ret = 0;
+  dev_io_playback_fetch(adev);
+  EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
+  EXPECT_EQ(cras_iodev_start_stream_called, 1);
+
+  thread_rm_open_dev(thread_, &iodev);
+  TearDownRstream(&rstream);
+}
+
 TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct cras_iodev iodev2, *piodev2 = &iodev2;
@@ -666,6 +720,73 @@ TEST_F(StreamDeviceSuite, WriteOutputSamplesLeaveNoStream) {
   thread_rm_open_dev(thread_, &iodev);
 }
 
+TEST_F(StreamDeviceSuite, MixOutputSamples) {
+  struct cras_iodev iodev, *piodev = &iodev;
+  struct cras_rstream rstream1;
+  struct cras_rstream rstream2;
+  struct open_dev *adev;
+  struct dev_stream *dev_stream;
+
+  ResetGlobalStubData();
+
+  SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream1, CRAS_STREAM_OUTPUT);
+  SetupRstream(&rstream2, CRAS_STREAM_OUTPUT);
+
+  // Setup the output buffer for device.
+  cras_iodev_get_output_buffer_area = cras_audio_area_create(2);
+
+  // Add the device and add the stream.
+  thread_add_open_dev(thread_, &iodev);
+  thread_add_stream(thread_, &rstream1, &piodev, 1);
+  adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
+
+  // Assume device is running.
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  // Assume device in normal run stream state.
+  cras_iodev_prepare_output_before_write_samples_state = \
+      CRAS_IODEV_STATE_NORMAL_RUN;
+
+  // cras_iodev should not mix samples because the stream has not started
+  // running.
+  frames_queued_ = 0;
+  dev_stream_playback_frames_ret = 100;
+  dev_stream = iodev.streams;
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev, nullptr);
+  EXPECT_EQ(1, cras_iodev_prepare_output_before_write_samples_called);
+  EXPECT_EQ(1, cras_iodev_get_output_buffer_called);
+  EXPECT_EQ(0, dev_stream_mix_called);
+
+  // Set rstream1 to be running. cras_iodev should mix samples from rstream1.
+  dev_stream_set_running(dev_stream);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev, nullptr);
+  EXPECT_EQ(2, cras_iodev_prepare_output_before_write_samples_called);
+  EXPECT_EQ(2, cras_iodev_get_output_buffer_called);
+  EXPECT_EQ(1, dev_stream_mix_called);
+
+  // Add rstream2. cras_iodev should mix samples from rstream1 but not from
+  // rstream2.
+  thread_add_stream(thread_, &rstream2, &piodev, 1);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev, nullptr);
+  EXPECT_EQ(3, cras_iodev_prepare_output_before_write_samples_called);
+  EXPECT_EQ(3, cras_iodev_get_output_buffer_called);
+  EXPECT_EQ(2, dev_stream_mix_called);
+
+  // Set rstream2 to be running. cras_iodev should mix samples from rstream1
+  // and rstream2.
+  dev_stream = iodev.streams->prev;
+  dev_stream_set_running(dev_stream);
+  write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev, nullptr);
+  EXPECT_EQ(4, cras_iodev_prepare_output_before_write_samples_called);
+  EXPECT_EQ(4, cras_iodev_get_output_buffer_called);
+  EXPECT_EQ(4, dev_stream_mix_called);
+
+  thread_rm_open_dev(thread_, &iodev);
+  TearDownRstream(&rstream1);
+  TearDownRstream(&rstream2);
+}
+
 TEST_F(StreamDeviceSuite, DoPlaybackNoStream) {
   struct cras_iodev iodev;
 
@@ -827,6 +948,12 @@ int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 {
   DL_APPEND(iodev->streams, stream);
   return 0;
+}
+
+void cras_iodev_start_stream(struct cras_iodev *iodev,
+			     struct dev_stream *stream)
+{
+  cras_iodev_start_stream_called++;
 }
 
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev)
@@ -1058,6 +1185,7 @@ int dev_stream_mix(struct dev_stream *dev_stream,
                    uint8_t *dst,
                    unsigned int num_to_write)
 {
+  dev_stream_mix_called++;
   return num_to_write;
 }
 

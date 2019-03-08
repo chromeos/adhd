@@ -145,4 +145,9 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 {
 }
 
+void cras_iodev_start_stream(struct cras_iodev *iodev,
+			     struct dev_stream *stream)
+{
+}
+
 } // extern "C"

@@ -4,6 +4,7 @@
  */
 
 #include <poll.h>
+#include <stdbool.h>
 #include <syslog.h>
 
 #include "audio_thread_log.h"
@@ -92,6 +93,26 @@ static void check_non_empty_state_transition(struct open_dev *adevs) {
 	non_empty_device_count = new_non_empty_dev_count;
 }
 
+/* Checks whether it is time to fetch. */
+static bool is_time_to_fetch(const struct dev_stream* dev_stream,
+			     struct timespec now)
+{
+	const struct timespec *next_cb_ts;
+	next_cb_ts = dev_stream_next_cb_ts(dev_stream);
+	if (!next_cb_ts)
+		return 0;
+
+	/*
+	 * Check if it's time to get more data from this stream.
+	 * Allow for waking up a little early.
+	 */
+	add_timespecs(&now, &playback_wake_fuzz_ts);
+	if (timespec_after(&now, next_cb_ts))
+		return 1;
+
+	return 0;
+}
+
 /* Asks any stream with room for more data. Sets the time stamp for all streams.
  * Args:
  *    adev - The output device streams are attached to.
@@ -114,7 +135,6 @@ static int fetch_streams(struct open_dev *adev)
 		struct cras_rstream *rstream = dev_stream->stream;
 		struct cras_audio_shm *shm =
 			cras_rstream_output_shm(rstream);
-		const struct timespec *next_cb_ts;
 		struct timespec now;
 
 		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
@@ -125,24 +145,17 @@ static int fetch_streams(struct open_dev *adev)
 							   &now);
 		}
 
+		if (!is_time_to_fetch(dev_stream, now))
+			continue;
+
+		if (!dev_stream_is_running(dev_stream))
+		    cras_iodev_start_stream(odev, dev_stream);
+
 		if (cras_shm_get_frames(shm) < 0)
 			cras_rstream_set_is_draining(rstream, 1);
 
 		if (cras_rstream_get_is_draining(dev_stream->stream))
 			continue;
-
-		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
-		if (!next_cb_ts)
-			continue;
-
-		/*
-		 * Check if it's time to get more data from this stream.
-		 * Allow for waking up a little early.
-		 */
-		add_timespecs(&now, &playback_wake_fuzz_ts);
-		if (!timespec_after(&now, next_cb_ts))
-			continue;
-
 
 		/*
 		 * Skip fetching if client still has not replied yet.
@@ -523,6 +536,10 @@ static int write_streams(struct open_dev **odevs,
 	DL_FOREACH(adev->dev->streams, curr) {
 		int dev_frames;
 
+		/* Skip stream which hasn't started running yet. */
+		if (!dev_stream_is_running(curr))
+			continue;
+
 		/* If this is a single output dev stream, updates the latest
 		 * number of frames for playback. */
 		if (dev_stream_attached_devs(curr) == 1)
@@ -563,6 +580,9 @@ static int write_streams(struct open_dev **odevs,
 	DL_FOREACH(adev->dev->streams, curr) {
 		unsigned int offset;
 		int nwritten;
+
+		if (!dev_stream_is_running(curr))
+			continue;
 
 		offset = cras_iodev_stream_offset(odev, curr);
 		if (offset >= write_limit)

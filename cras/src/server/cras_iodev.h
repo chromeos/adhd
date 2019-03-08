@@ -495,6 +495,12 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev);
 int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct dev_stream *stream);
 
+/* Indicate that a stream is taken into consideration of device's I/O. This
+ * function is for output stream only. For input stream, it is already included
+ * by add_stream function. */
+void cras_iodev_start_stream(struct cras_iodev *iodev,
+			     struct dev_stream *stream);
+
 /* Indicate that a stream has been removed from the device. */
 struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 					const struct cras_rstream *stream);

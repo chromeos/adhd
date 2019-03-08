@@ -129,6 +129,10 @@ static unsigned int dev_playback_frames(struct cras_iodev* odev)
 	DL_FOREACH(odev->streams, curr) {
 		int dev_frames;
 
+		/* Skip stream which hasn't started running yet. */
+		if (!dev_stream_is_running(curr))
+			continue;
+
 		/* If this is a single output dev stream, updates the latest
 		 * number of frames for playback. */
 		if (dev_stream_attached_devs(curr) == 1)
@@ -808,8 +812,24 @@ float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev) {
 int cras_iodev_add_stream(struct cras_iodev *iodev,
 			  struct dev_stream *stream)
 {
-	unsigned int cb_threshold = dev_stream_cb_threshold(stream);
+	/*
+	 * For input stream, start stream right after adding stream.
+	 * For output stream, start stream after its first fetch such that it does not
+	 * block other existing streams.
+	 */
 	DL_APPEND(iodev->streams, stream);
+	if (stream->stream->direction == CRAS_STREAM_INPUT)
+		cras_iodev_start_stream(iodev, stream);
+	return 0;
+}
+
+void cras_iodev_start_stream(struct cras_iodev *iodev,
+			    struct dev_stream *stream)
+{
+	unsigned int cb_threshold = dev_stream_cb_threshold(stream);
+
+	if (dev_stream_is_running(stream))
+		return;
 
 	if (!iodev->buf_state)
 		iodev->buf_state = buffer_share_create(iodev->buffer_size);
@@ -820,10 +840,9 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 	if (!(stream->stream->flags & TRIGGER_ONLY))
 		buffer_share_add_id(iodev->buf_state, stream->stream->stream_id,
 				    NULL);
-
 	iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
 	iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
-	return 0;
+	dev_stream_set_running(stream);
 }
 
 struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
@@ -890,6 +909,10 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
 	struct dev_stream *curr;
 
 	DL_FOREACH(iodev->streams, curr) {
+		/* Skip stream which hasn't started running yet. */
+		if (!dev_stream_is_running(curr))
+			continue;
+
 		max = MAX(max,
 			  buffer_share_id_offset(iodev->buf_state,
 						 curr->stream->stream_id));
