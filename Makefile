@@ -54,6 +54,9 @@ $(DESTDIR)/etc/cras/device_blacklist:	$(ADHD_DIR)/cras-config/device_blacklist
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
 
+# Note: $(BOARD) usage is deprecated.  Configs should be added in board overlays
+# or via cros_config data for newer unibuild systems.
+
 optional_alsa_conf := $(wildcard $(ADHD_DIR)/alsa-module-config/alsa-$(BOARD).conf)
 
 ifneq ($(strip $(optional_alsa_conf)),)
