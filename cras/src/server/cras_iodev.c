@@ -851,6 +851,8 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 	struct dev_stream *out;
 	struct dev_stream *ret = NULL;
 	unsigned int cb_threshold;
+	struct timespec earliest_next_cb_ts;
+	int set_earliest = 0;
 
 	iodev->min_cb_level = iodev->buffer_size / 2;
 	iodev->max_cb_level = 0;
@@ -862,9 +864,17 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 			DL_DELETE(iodev->streams, out);
 			continue;
 		}
+		if (!dev_stream_is_running(out))
+			continue;
 		cb_threshold = dev_stream_cb_threshold(out);
 		iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
 		iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
+		if (!set_earliest) {
+			set_earliest = 1;
+			earliest_next_cb_ts = out->stream->next_cb_ts;
+		}
+		if (timespec_after(&earliest_next_cb_ts, &out->stream->next_cb_ts))
+			earliest_next_cb_ts = out->stream->next_cb_ts;
 	}
 
 	if (!iodev->streams) {
@@ -878,6 +888,15 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 		    (iodev->state == CRAS_IODEV_STATE_NORMAL_RUN))
 			cras_iodev_no_stream_playback_transition(iodev, 1);
 	}
+
+	if (!set_earliest)
+		return ret;
+
+	DL_FOREACH(iodev->streams, out) {
+		if (!dev_stream_is_running(out))
+			out->stream->next_cb_ts = earliest_next_cb_ts;
+	}
+
 	return ret;
 }
 

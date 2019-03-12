@@ -1486,6 +1486,55 @@ TEST(IoDev, AddRmStream) {
   EXPECT_EQ(512, iodev.min_cb_level);
 }
 
+TEST(IoDev, RmStreamUpdateFetchTime) {
+  struct cras_iodev iodev;
+  struct cras_rstream rstream1, rstream2, rstream3;
+  struct dev_stream stream1, stream2, stream3;
+
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&rstream1, 0, sizeof(rstream1));
+  memset(&rstream2, 0, sizeof(rstream2));
+  memset(&rstream3, 0, sizeof(rstream2));
+  memset(&stream1, 0, sizeof(stream2));
+  memset(&stream2, 0, sizeof(stream2));
+  memset(&stream3, 0, sizeof(stream2));
+  iodev.configure_dev = configure_dev;
+  iodev.no_stream = simple_no_stream;
+  iodev.ext_format = &audio_fmt;
+  iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  rstream1.direction = CRAS_STREAM_OUTPUT;
+  rstream2.direction = CRAS_STREAM_OUTPUT;
+  rstream3.direction = CRAS_STREAM_OUTPUT;
+  stream1.stream = &rstream1;
+  stream2.stream = &rstream2;
+  stream3.stream = &rstream3;
+  ResetStubData();
+
+  cras_iodev_open(&iodev, 1024, &audio_fmt);
+
+  cras_iodev_add_stream(&iodev, &stream1);
+  cras_iodev_start_stream(&iodev, &stream1);
+  cras_iodev_add_stream(&iodev, &stream2);
+  cras_iodev_start_stream(&iodev, &stream2);
+  cras_iodev_add_stream(&iodev, &stream3);
+
+  rstream1.next_cb_ts.tv_sec = 2;
+  rstream1.next_cb_ts.tv_nsec = 0;
+  rstream2.next_cb_ts.tv_sec = 1;
+  rstream2.next_cb_ts.tv_nsec = 0;
+  rstream3.next_cb_ts.tv_sec = 1;
+  rstream3.next_cb_ts.tv_nsec = 0;
+
+  /*
+   * Because rstream3 has not started yet, the next_cb_ts will be change to the
+   * earliest fetch time of remaining streams, which is rstream1.
+   */
+  cras_iodev_rm_stream(&iodev, &rstream2);
+
+  EXPECT_EQ(rstream3.next_cb_ts.tv_sec, rstream1.next_cb_ts.tv_sec);
+  EXPECT_EQ(rstream3.next_cb_ts.tv_nsec, rstream1.next_cb_ts.tv_nsec);
+}
+
 TEST(IoDev, StartStreams) {
   struct cras_iodev iodev1, iodev2;
   struct cras_rstream rstream1, rstream2;
