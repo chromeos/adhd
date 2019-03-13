@@ -71,9 +71,58 @@ fn playback(args: &[String]) -> Result<()> {
     Ok(())
 }
 
+fn capture(args: &[String]) -> Result<()> {
+    let mut opts = Options::new();
+    opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
+        .optopt("c", "", "Number of channels", "NUM")
+        .optopt("f", "file", "Path to capture file", "FILE")
+        .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
+        .optflag("h", "help", "Print help message");
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => m,
+        Err(e) => {
+            show_subcommand_usage(&args[0], &args[1], &opts);
+            return Err(Box::new(e));
+        }
+    };
+    if matches.opt_present("h") {
+        show_subcommand_usage(&args[0], &args[1], &opts);
+        return Ok(());
+    }
+    let file_name = match matches.opt_str("f") {
+        None => {
+            println!("Must input capture file name.");
+            show_subcommand_usage(&args[0], &args[1], &opts);
+            return Ok(());
+        }
+        Some(file_name) => file_name,
+    };
+    let buffer_size = matches.opt_get_default::<usize>("b", 256)?;
+    let num_channels = matches.opt_get_default::<usize>("c", 2)?;
+    let frame_rate = matches.opt_get_default::<usize>("r", 48000)?;
+
+    let mut cras_client = CrasClient::new()?;
+    let (_control, mut stream) =
+        cras_client.new_capture_stream(num_channels, frame_rate, buffer_size)?;
+    let mut file = File::create(&file_name).unwrap();
+    let mut local_buffer = vec![0u8; buffer_size * num_channels * 2];
+    loop {
+        let _frames = match stream.next_capture_buffer() {
+            Err(e) => {
+                return Err(e.into());
+            }
+            Ok(mut buf) => {
+                buf.read(&mut local_buffer)?;
+                file.write(local_buffer.as_ref())?
+            }
+        };
+    }
+}
+
 fn show_usage(program_name: &str) {
     println!("Usage: {} [subcommand] <subcommand args>", program_name);
     println!("\nSubcommands:\n");
+    println!("capture - Test capture function");
     println!("playback - Test playback function");
     println!("\nhelp - Print help message");
 }
@@ -90,6 +139,7 @@ fn main() -> Result<()> {
     }
 
     match args[1].as_ref() {
+        "capture" => capture(&args)?,
         "playback" => playback(&args)?,
         "help" => show_usage(&args[0]),
         subcommand => {
