@@ -146,10 +146,23 @@ impl<'a> CrasAudioHeader<'a> {
     }
 
     /// Gets the write offset of the buffer and the writable length.
+    ///
+    /// # Returns
+    ///
+    ///  * (`usize`, `usize`) - write offset in bytes and buffer length in bytes.
     pub fn get_offset_and_len(&self) -> (usize, usize) {
         let used_size = self.get_used_size();
         let offset = self.get_write_buf_idx() as usize * used_size;
         (offset, used_size)
+    }
+
+    /// Gets the read offset of the readable buffer.
+    ///
+    ///  # Returns
+    ///
+    ///  * `usize` - read offset in bytes
+    pub fn get_read_offset(&self) -> usize {
+        self.get_read_buf_idx() as usize * self.get_used_size()
     }
 
     /// Gets the number of bytes per frame from the shared memory structure.
@@ -174,10 +187,20 @@ impl<'a> CrasAudioHeader<'a> {
         self.write_buf_idx.load() & CRAS_NUM_SHM_BUFFERS_MASK
     }
 
+    fn get_read_buf_idx(&self) -> u32 {
+        self.read_buf_idx.load() & CRAS_NUM_SHM_BUFFERS_MASK
+    }
+
     /// Switches the written buffer.
     fn switch_write_buf_idx(&mut self) {
         self.write_buf_idx
             .store(self.get_write_buf_idx() as u32 ^ 1u32)
+    }
+
+    /// Switches the buffer to read.
+    fn switch_read_buf_idx(&mut self) {
+        self.read_buf_idx
+            .store(self.get_read_buf_idx() as u32 ^ 1u32)
     }
 
     /// Checks if the offset value for setting write_offset or read_offset is
@@ -271,6 +294,53 @@ impl<'a> CrasAudioHeader<'a> {
             self.switch_write_buf_idx();
             Ok(())
         }
+    }
+
+    /// Get readable frames in current buffer.
+    ///
+    /// # Returns
+    ///
+    /// * `usize` - number of readable frames.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if index out of range.
+    pub fn get_readable_frames(&self) -> io::Result<usize> {
+        let idx = self.get_read_buf_idx() as usize;
+        let read_offset = self.read_offset.get(idx).ok_or_else(index_out_of_range)?;
+        let write_offset = self.write_offset.get(idx).ok_or_else(index_out_of_range)?;
+        let nframes =
+            (write_offset.load() as i32 - read_offset.load() as i32) / self.get_frame_size() as i32;
+        if nframes < 0 {
+            Ok(0)
+        } else {
+            Ok(nframes as usize)
+        }
+    }
+
+    /// Commit read frames from reader, .
+    /// - Sets `read_offset` of current buffer to `read_offset + frame_count * frame_size`.
+    /// If `read_offset` is larger than or equal to `write_offset`, then
+    /// - Sets `read_offset` and `write_offset` to `0` and switch `read_buf_idx`.
+    ///
+    /// # Arguments
+    ///
+    /// * `frame_count` - Read frames in current read buffer.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if index out of range.
+    pub fn commit_read_frames(&mut self, frame_count: u32) -> io::Result<()> {
+        let idx = self.get_read_buf_idx() as usize;
+        let read_offset = self.read_offset.get(idx).ok_or_else(index_out_of_range)?;
+        let write_offset = self.write_offset.get(idx).ok_or_else(index_out_of_range)?;
+        read_offset.store(read_offset.load() + frame_count * self.get_frame_size() as u32);
+        if read_offset.load() >= write_offset.load() {
+            read_offset.store(0);
+            write_offset.store(0);
+            self.switch_read_buf_idx();
+        }
+        Ok(())
     }
 }
 
@@ -563,11 +633,46 @@ mod tests {
     }
 
     #[test]
+    fn cras_audio_header_get_readable_frames_test() {
+        let header = create_cras_audio_header("/tmp_cras_audio_header5", 20);
+        header.frame_size.store(2);
+        header.used_size.store(10);
+        header.read_offset[0].store(2);
+        header.write_offset[0].store(10);
+        let frames = header
+            .get_readable_frames()
+            .expect("Failed to get readable frames.");
+        assert_eq!(frames, 4);
+    }
+
+    #[test]
+    fn cras_audio_header_commit_read_frames_test() {
+        let mut header = create_cras_audio_header("/tmp_cras_audio_header6", 20);
+        header.frame_size.store(2);
+        header.used_size.store(10);
+        header.read_offset[0].store(2);
+        header.write_offset[0].store(10);
+        header
+            .commit_read_frames(3)
+            .expect("Failed to commit read frames.");
+        assert_eq!(header.get_read_buf_idx(), 0);
+        assert_eq!(header.read_offset[0].load(), 8);
+
+        header
+            .commit_read_frames(1)
+            .expect("Failed to commit read frames.");
+        // Read buffer should be switched
+        assert_eq!(header.get_read_buf_idx(), 1);
+        assert_eq!(header.read_offset[0].load(), 0);
+        assert_eq!(header.read_offset[0].load(), 0);
+    }
+
+    #[test]
     fn create_header_and_buffers_test() {
         let samples_offset = CrasAudioShmArea::offset_of_samples() as usize;
         let fd = cras_audio_header_fd("/tmp_audio_shm_area", samples_offset + 20);
         let res = create_header_and_buffers(fd);
-        assert!(res.is_ok());
+        res.expect("Failed to create header and buffer.");
     }
 
     fn create_cras_audio_header(name: &str, samples_len: usize) -> CrasAudioHeader {

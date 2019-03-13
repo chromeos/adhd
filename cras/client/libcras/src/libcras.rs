@@ -3,8 +3,13 @@
 // found in the LICENSE file.
 //! Provides an interface for playing and recording audio through CRAS server.
 //!
-//! `CrasClient` implements `StreamSource` trait and it can create playback stream - `CrasStream`
-//! which is a `PlaybackBufferStream` for audio playback.
+//! `CrasClient` implements `StreamSource` trait and it can create playback or capture
+//! stream - `CrasStream` which can be a
+//! - `PlaybackBufferStream` for audio playback or
+//! - `CaptureBufferStream` for audio capture.
+//!
+//! # Example of file audio playback
+//!
 //! `PlaybackBuffer`s to be filled with audio samples are obtained by calling
 //! `next_playback_buffer` from `CrasStream`.
 //!
@@ -50,13 +55,63 @@
 //!              // Stream and client should gracefully be closed out of this scope
 //! #        }
 //! #        _ => {
-//! #            println!("cras_tests /path/to/playback_file.raw");
+//! #            println!("{} /path/to/playback_file.raw", args[0]);
 //! #        }
 //! #    };
 //! #    Ok(())
 //! # }
 //! ```
-
+//!
+//! # Example of file audio capture
+//!
+//! `CaptureBuffer`s which contain audio samples are obtained by calling
+//! `next_capture_buffer` from `CrasStream`.
+//!
+//! Users get captured audio samples from the provided buffers. When a `CaptureBuffer` is dropped,
+//! the number of read samples will be committed to the `CrasStream` it came from.
+//! ```
+//! use std::env;
+//! use std::fs::File;
+//! use std::io::{Read, Write};
+//! use std::thread::{spawn, JoinHandle};
+//! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
+//!
+//! use libcras::CrasClient;
+//! use audio_streams::StreamSource;
+//!
+//! const BUFFER_SIZE: usize = 256;
+//! const FRAME_RATE: usize = 44100;
+//! const NUM_CHANNELS: usize = 2;
+//!
+//! # fn main() -> Result<()> {
+//! #    let args: Vec<String> = env::args().collect();
+//! #    match args.len() {
+//! #        2 => {
+//!              let mut cras_client = CrasClient::new()?;
+//!              let (_control, mut stream) = cras_client
+//!                  .new_capture_stream(NUM_CHANNELS, FRAME_RATE, BUFFER_SIZE)?;
+//!
+//!              // Capture 1000 * BUFFER_SIZE samples to the given file
+//!              let mut file = File::create(&args[1])?;
+//!              let mut local_buffer = [0u8; BUFFER_SIZE * NUM_CHANNELS * 2];
+//!              for _i in 0..1000 {
+//!
+//!                  // Gets readable buffer from stream and
+//!                  let mut buffer = stream.next_capture_buffer()?;
+//!                  // Reads data to local buffer
+//!                  let read_count = buffer.read(&mut local_buffer)?;
+//!                  // Writes data to file
+//!                  let _read_frames = file.write(&local_buffer[..read_count])?;
+//!              }
+//!              // Stream and client should gracefully be closed out of this scope
+//! #        }
+//! #        _ => {
+//! #            println!("{} /path/to/capture_file.raw", args[0]);
+//! #        }
+//! #    };
+//! #    Ok(())
+//! # }
+//! ```
 use std::io;
 use std::mem;
 use std::os::unix::{
@@ -65,7 +120,10 @@ use std::os::unix::{
 };
 use std::{error, fmt};
 
-use audio_streams::{DummyStreamControl, PlaybackBufferStream, StreamControl, StreamSource};
+use audio_streams::{
+    capture::CaptureBufferStream, BufferDrop, DummyStreamControl, PlaybackBufferStream,
+    StreamControl, StreamSource,
+};
 use cras_sys::gen::*;
 use sys_util::{PollContext, PollToken};
 
@@ -75,7 +133,7 @@ mod cras_server_socket;
 use crate::cras_server_socket::CrasServerSocket;
 mod cras_shm;
 mod cras_stream;
-use crate::cras_stream::CrasStream;
+use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
 use crate::cras_client_message::*;
 
@@ -196,14 +254,14 @@ impl CrasClient {
     }
 
     // Creates general stream with given parameters
-    fn create_stream<'a>(
+    fn create_stream<'a, T: BufferDrop + CrasStreamData<'a>>(
         &mut self,
         block_size: u32,
         direction: CRAS_STREAM_DIRECTION,
         rate: usize,
         channel_num: usize,
         format: snd_pcm_format_t,
-    ) -> Result<CrasStream<'a>> {
+    ) -> Result<CrasStream<'a, T>> {
         let stream_id = self.next_server_stream_id()?;
 
         // Prepares server message
@@ -295,9 +353,30 @@ impl StreamSource for CrasClient {
     > {
         Ok((
             Box::new(DummyStreamControl::new()),
-            Box::new(self.create_stream(
+            Box::new(self.create_stream::<CrasPlaybackData>(
                 buffer_size as u32,
                 CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
+                frame_rate,
+                num_channels,
+                _snd_pcm_format::SND_PCM_FORMAT_S16_LE,
+            )?),
+        ))
+    }
+
+    fn new_capture_stream(
+        &mut self,
+        num_channels: usize,
+        frame_rate: usize,
+        buffer_size: usize,
+    ) -> std::result::Result<
+        (Box<dyn StreamControl>, Box<dyn CaptureBufferStream>),
+        Box<error::Error>,
+    > {
+        Ok((
+            Box::new(DummyStreamControl::new()),
+            Box::new(self.create_stream::<CrasCaptureData>(
+                buffer_size as u32,
+                CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
                 frame_rate,
                 num_channels,
                 _snd_pcm_format::SND_PCM_FORMAT_S16_LE,

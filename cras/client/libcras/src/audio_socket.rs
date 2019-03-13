@@ -162,6 +162,18 @@ impl AudioSocket {
             frames,
         })
     }
+
+    /// Sends the capture ready message with read frame count.
+    ///
+    /// # Arguments
+    ///
+    /// * `frames` - An `u32` indicating the number of read frames.
+    pub fn capture_ready(&mut self, frames: u32) -> io::Result<()> {
+        self.send_audio_message(AudioMessage::Success {
+            id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_CAPTURED,
+            frames,
+        })
+    }
 }
 
 impl AsRawFd for AudioSocket {
@@ -242,6 +254,30 @@ mod tests {
     }
 
     #[test]
+    fn audio_socket_capture_ready() {
+        let (sock1, sock2) = UnixStream::pair().unwrap();
+        let mut audio_socket_send = AudioSocket::new(sock1);
+        let mut audio_socket_recv = AudioSocket::new(sock2);
+        audio_socket_send
+            .capture_ready(256)
+            .expect("Failed to send capture ready message.");
+
+        // Test receiving by using raw audio_message since CRAS audio server use this.
+        let audio_msg: audio_message = audio_socket_recv
+            .read_from_socket()
+            .expect("Failed to read audio message from AudioSocket.");
+        let ref_audio_msg = audio_message {
+            id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_CAPTURED,
+            error: 0,
+            frames: 256,
+        };
+        // Use brace to copy unaligned data locally
+        assert_eq!({ audio_msg.id }, { ref_audio_msg.id });
+        assert_eq!({ audio_msg.error }, { ref_audio_msg.error });
+        assert_eq!({ audio_msg.frames }, { ref_audio_msg.frames });
+    }
+
+    #[test]
     fn audio_socket_send_when_broken_pipe() {
         let sock1 = {
             let (sock1, _) = UnixStream::pair().unwrap();
@@ -251,8 +287,9 @@ mod tests {
         let res = audio_socket.data_ready(256);
         //Broken pipe
         assert_eq!(
-            res.unwrap_err().kind(),
-            io::Error::from_raw_os_error(32).kind()
+            res.expect_err("Result should be an error.").kind(),
+            io::Error::from_raw_os_error(32).kind(),
+            "Error should be broken pipe.",
         );
     }
 }
