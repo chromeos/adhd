@@ -1090,7 +1090,7 @@ const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
 	if (rc)
 		return NULL;
 
-	if (strcmp(name, "hctl") && strcmp(name, "gpio")) {
+	if (strcmp(name, "hctl") && strcmp(name, "gpio") && strcmp(name, "always")) {
 		syslog(LOG_ERR, "Unknown jack type: %s", name);
 		if(name)
 			free((void *)name);

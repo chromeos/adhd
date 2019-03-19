@@ -109,6 +109,7 @@ struct alsa_input_node {
  * is_first - true if this is the first iodev on the card.
  * fully_specified - true if this device and it's nodes were fully specified.
  *     That is, don't automatically create nodes for it.
+ * jack_always_plugged - true if this node is always plugged even without jack.
  * enable_htimestamp - True when the device's htimestamp is used.
  * handle - Handle to the opened ALSA device.
  * num_underruns - Number of times we have run out of data (playback only).
@@ -146,6 +147,7 @@ struct alsa_io {
 	enum CRAS_ALSA_CARD_TYPE card_type;
 	int is_first;
 	int fully_specified;
+	int jack_always_plugged;
 	int enable_htimestamp;
 	snd_pcm_t *handle;
 	unsigned int num_underruns;
@@ -1969,6 +1971,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->is_first = is_first;
 	aio->handle = NULL;
 	aio->num_severe_underruns = 0;
+	aio->jack_always_plugged = 0;
 	if (dev_name) {
 		aio->dev_name = strdup(dev_name);
 		if (!aio->dev_name)
@@ -2220,6 +2223,9 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 			return -ENOMEM;
 	}
 
+	if (section->jack_type && !strcmp(section->jack_type, "always"))
+		aio->jack_always_plugged = 1;
+
 	/* Find any jack controls for this device. */
 	rc = cras_alsa_jack_list_add_jack_for_section(
 					aio->jack_list, section, &jack);
@@ -2260,13 +2266,17 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 				   first_plugged_node(&aio->base),
 				   0);
 
-	/* Set plugged for the first USB device per card when it appears if
-	 * there is no jack reporting plug status. */
-	if (aio->card_type == ALSA_CARD_TYPE_USB && aio->is_first &&
-			!get_jack_from_node(iodev->active_node))
+	/*
+	 * Set plugged for the USB device per card when it appears if
+	 * there is no jack reporting plug status and the jack is set
+	 * to be always plugged.
+	 */
+	if (aio->card_type == ALSA_CARD_TYPE_USB &&
+			aio->jack_always_plugged &&
+			!get_jack_from_node(iodev->active_node)) {
 		cras_iodev_set_node_attr(iodev->active_node,
 					 IONODE_ATTR_PLUGGED, 1);
-
+	}
 	set_default_hotword_model(iodev);
 }
 
