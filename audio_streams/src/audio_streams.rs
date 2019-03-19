@@ -42,6 +42,8 @@ use std::os::unix::io::RawFd;
 use std::result::Result;
 use std::time::{Duration, Instant};
 
+pub mod capture;
+
 /// `StreamSource` creates streams for playback or capture of audio.
 pub trait StreamSource: Send {
     /// Returns a stream control and buffer generator object. These are separate as the buffer
@@ -52,6 +54,31 @@ pub trait StreamSource: Send {
         frame_rate: usize,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<error::Error>>;
+
+    /// Returns a stream control and buffer generator object. These are separate as the buffer
+    /// generator might want to be passed to the audio stream.
+    /// Default implementation returns `DummyStreamControl` and `DummyCaptureStream`.
+    fn new_capture_stream(
+        &mut self,
+        num_channels: usize,
+        frame_rate: usize,
+        buffer_size: usize,
+    ) -> Result<
+        (
+            Box<dyn StreamControl>,
+            Box<dyn capture::CaptureBufferStream>,
+        ),
+        Box<error::Error>,
+    > {
+        Ok((
+            Box::new(DummyStreamControl::new()),
+            Box::new(capture::DummyCaptureStream::new(
+                num_channels,
+                frame_rate,
+                buffer_size,
+            )),
+        ))
+    }
 
     /// Returns any open file descriptors needed by the implementor. The FD list helps users of the
     /// StreamSource enter Linux jails making sure not to close needed FDs.
@@ -97,13 +124,19 @@ impl Display for PlaybackBufferError {
     }
 }
 
+/// `AudioBuffer` is one buffer that holds buffer_size audio frames and its drop function.
+/// It is the inner data of `PlaybackBuffer` and `CaptureBuffer`.
+struct AudioBuffer<'a> {
+    buffer: &'a mut [u8],
+    offset: usize,     // Read or Write offset in frames.
+    frame_size: usize, // Size of a frame in bytes.
+    drop: &'a mut BufferDrop,
+}
+
 /// `PlaybackBuffer` is one buffer that holds buffer_size audio frames. It is used to temporarily
 /// allow access to an audio buffer and notifes the owning stream of write completion when dropped.
 pub struct PlaybackBuffer<'a> {
-    pub buffer: &'a mut [u8],
-    offset: usize,     // Write offset in frames.
-    frame_size: usize, // Size of a frame in bytes.
-    drop: &'a mut BufferDrop,
+    buffer: AudioBuffer<'a>,
 }
 
 impl<'a> PlaybackBuffer<'a> {
@@ -122,25 +155,27 @@ impl<'a> PlaybackBuffer<'a> {
         }
 
         Ok(PlaybackBuffer {
-            buffer,
-            offset: 0,
-            frame_size,
-            drop,
+            buffer: AudioBuffer {
+                buffer,
+                offset: 0,
+                frame_size,
+                drop,
+            },
         })
     }
 
     /// Returns the number of audio frames that fit in the buffer.
     pub fn frame_capacity(&self) -> usize {
-        self.buffer.len() / self.frame_size
+        self.buffer.buffer.len() / self.buffer.frame_size
     }
 }
 
 impl<'a> Write for PlaybackBuffer<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         // only write complete frames.
-        let len = buf.len() / self.frame_size * self.frame_size;
-        let written = (&mut self.buffer[self.offset..]).write(&buf[..len])?;
-        self.offset += written;
+        let len = buf.len() / self.buffer.frame_size * self.buffer.frame_size;
+        let written = (&mut self.buffer.buffer[self.buffer.offset..]).write(&buf[..len])?;
+        self.buffer.offset += written;
         Ok(written)
     }
 
@@ -151,7 +186,9 @@ impl<'a> Write for PlaybackBuffer<'a> {
 
 impl<'a> Drop for PlaybackBuffer<'a> {
     fn drop(&mut self) {
-        self.drop.trigger(self.offset / self.frame_size);
+        self.buffer
+            .drop
+            .trigger(self.buffer.offset / self.buffer.frame_size);
     }
 }
 
