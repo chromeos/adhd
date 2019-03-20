@@ -101,15 +101,42 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
 
   device_disabled_callback_cb(&iodev, device_enabled_callback_cb_data);
   EXPECT_EQ(1, cras_iodev_list_unregister_loopback_called);
+  EXPECT_EQ(3, cras_iodev_list_register_loopback_called);
 
   enabled_dev->info.idx = 456;
   device_enabled_callback_cb(&iodev, device_enabled_callback_cb_data);
-  EXPECT_EQ(3, cras_iodev_list_register_loopback_called);
+  EXPECT_EQ(4, cras_iodev_list_register_loopback_called);
 
   // Close loopback devices.
   EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
   EXPECT_EQ(2, cras_iodev_list_unregister_loopback_called);
   EXPECT_EQ(2, cras_iodev_list_set_device_enabled_callback_called);
+}
+
+TEST_F(LoopBackTestSuite, SelectDevFromAToB) {
+  struct cras_iodev iodev1, iodev2;
+
+  iodev1.direction = CRAS_STREAM_OUTPUT;
+  iodev2.direction = CRAS_STREAM_OUTPUT;
+  enabled_dev = &iodev1;
+
+  enabled_dev->info.idx = 111;
+  EXPECT_EQ(0, loop_in_->configure_dev(loop_in_));
+  EXPECT_EQ(1, cras_iodev_list_set_device_enabled_callback_called);
+  EXPECT_EQ(1, cras_iodev_list_register_loopback_called);
+
+  /* Not the current sender being disabled, assert unregister not called. */
+  iodev2.info.idx = 222;
+  device_disabled_callback_cb(&iodev2, device_enabled_callback_cb_data);
+  EXPECT_EQ(0, cras_iodev_list_unregister_loopback_called);
+  EXPECT_EQ(1, cras_iodev_list_register_loopback_called);
+
+  enabled_dev = &iodev2;
+  device_disabled_callback_cb(&iodev1, device_enabled_callback_cb_data);
+  EXPECT_EQ(1, cras_iodev_list_unregister_loopback_called);
+  EXPECT_EQ(2, cras_iodev_list_register_loopback_called);
+
+  EXPECT_EQ(0, loop_in_->close_dev(loop_in_));
 }
 
 // Test how loopback works if there isn't any output devices open.

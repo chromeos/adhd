@@ -85,13 +85,9 @@ static int sample_hook(const uint8_t *frames, unsigned int nframes,
 	return frames_to_copy;
 }
 
-static void device_enabled_hook(struct cras_iodev *iodev, void *cb_data)
+static void update_first_output_to_loopback(struct loopback_iodev *loopdev)
 {
-	struct loopback_iodev *loopdev = (struct loopback_iodev *)cb_data;
 	struct cras_iodev *edev;
-
-	if (iodev->direction != CRAS_STREAM_OUTPUT)
-		return;
 
 	/* Register loopback hook onto first enabled iodev. */
 	edev = cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT);
@@ -102,6 +98,16 @@ static void device_enabled_hook(struct cras_iodev *iodev, void *cb_data)
 				sample_hook, sample_hook_start,
 				loopdev->base.info.idx);
 	}
+}
+
+static void device_enabled_hook(struct cras_iodev *iodev, void *cb_data)
+{
+	struct loopback_iodev *loopdev = (struct loopback_iodev *)cb_data;
+
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return;
+
+	update_first_output_to_loopback(loopdev);
 }
 
 static void device_disabled_hook(struct cras_iodev *iodev, void *cb_data)
@@ -115,7 +121,7 @@ static void device_disabled_hook(struct cras_iodev *iodev, void *cb_data)
 	cras_iodev_list_unregister_loopback(loopdev->loopback_type,
 					    loopdev->sender_idx,
 					    loopdev->base.info.idx);
-	loopdev->sender_idx = NO_DEVICE;
+	update_first_output_to_loopback(loopdev);
 }
 
 /*
