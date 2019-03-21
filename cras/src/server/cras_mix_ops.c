@@ -96,7 +96,7 @@ static void copy_scaled_s16_le(int16_t *dst,
 
 static void cras_scale_buffer_inc_s16_le(uint8_t *buffer, unsigned int count,
 					 float scaler, float increment,
-					 float max, int step)
+					 float target, int step)
 {
 	int i = 0, j;
 	int16_t *out = (int16_t *)buffer;
@@ -110,8 +110,9 @@ static void cras_scale_buffer_inc_s16_le(uint8_t *buffer, unsigned int count,
 		for (j = 0; j < step; j++) {
 			float applied_scaler = scaler;
 
-			if (applied_scaler > max)
-				applied_scaler = max;
+			if ((applied_scaler > target && increment > 0) ||
+			    (applied_scaler < target && increment < 0))
+				applied_scaler = target;
 
 			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
 			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
@@ -295,7 +296,7 @@ static void copy_scaled_s24_le(int32_t *dst,
 
 static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
 					 float scaler, float increment,
-					 float max, int step)
+					 float target, int step)
 {
 	int i = 0, j;
 	int32_t *out = (int32_t *)buffer;
@@ -309,8 +310,9 @@ static void cras_scale_buffer_inc_s24_le(uint8_t *buffer, unsigned int count,
 		for (j = 0; j < step; j++) {
 			float applied_scaler = scaler;
 
-			if (applied_scaler > max)
-				applied_scaler = max;
+			if ((applied_scaler > target && increment > 0) ||
+			    (applied_scaler < target && increment < 0))
+				applied_scaler = target;
 
 			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
 			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
@@ -471,7 +473,7 @@ static void copy_scaled_s32_le(int32_t *dst,
 
 static void cras_scale_buffer_inc_s32_le(uint8_t *buffer, unsigned int count,
 					 float scaler, float increment,
-					 float max, int step)
+					 float target, int step)
 {
 	int i = 0, j;
 	int32_t *out = (int32_t *)buffer;
@@ -485,8 +487,9 @@ static void cras_scale_buffer_inc_s32_le(uint8_t *buffer, unsigned int count,
 		for (j = 0; j < step; j++) {
 			float applied_scaler = scaler;
 
-			if (applied_scaler > max)
-				applied_scaler = max;
+			if ((applied_scaler > target && increment > 0) ||
+			    (applied_scaler < target && increment < 0))
+				applied_scaler = target;
 
 			if (applied_scaler > MAX_VOLUME_TO_SCALE) {
 			} else if (applied_scaler < MIN_VOLUME_TO_SCALE) {
@@ -676,7 +679,7 @@ static void copy_scaled_s24_3le(uint8_t *dst,
 
 static void cras_scale_buffer_inc_s24_3le(uint8_t *buffer, unsigned int count,
 					  float scaler, float increment,
-					  float max, int step)
+					  float target, int step)
 {
 	int32_t frame;
 	int i = 0, j;
@@ -690,8 +693,9 @@ static void cras_scale_buffer_inc_s24_3le(uint8_t *buffer, unsigned int count,
 		for (j = 0; j < step; j++) {
 			float applied_scaler = scaler;
 
-			if (applied_scaler > max)
-				applied_scaler = max;
+			if ((applied_scaler > target && increment > 0) ||
+			    (applied_scaler < target && increment < 0))
+				applied_scaler = target;
 
 			convert_single_s243le_to_s32le(&frame, buffer);
 
@@ -782,21 +786,21 @@ static void cras_mix_add_scale_stride_s24_3le(uint8_t *dst, uint8_t *src,
 
 static void scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
 				   unsigned int count, float scaler,
-				   float increment, float max, int step)
+				   float increment, float target, int step)
 {
 	switch (fmt) {
 	case SND_PCM_FORMAT_S16_LE:
 		return cras_scale_buffer_inc_s16_le(buff, count, scaler,
-						    increment, max, step);
+						    increment, target, step);
 	case SND_PCM_FORMAT_S24_LE:
 		return cras_scale_buffer_inc_s24_le(buff, count, scaler,
-						    increment, max, step);
+						    increment, target, step);
 	case SND_PCM_FORMAT_S32_LE:
 		return cras_scale_buffer_inc_s32_le(buff, count, scaler,
-						    increment, max, step);
+						    increment, target, step);
 	case SND_PCM_FORMAT_S24_3LE:
 		return cras_scale_buffer_inc_s24_3le(buff, count, scaler,
-						     increment, max, step);
+						     increment, target, step);
 	default:
 		break;
 	}

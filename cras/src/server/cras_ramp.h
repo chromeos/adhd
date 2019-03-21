@@ -35,6 +35,7 @@ struct cras_ramp_action {
 	enum CRAS_RAMP_ACTION_TYPE type;
 	float scaler;
 	float increment;
+	float target;
 };
 
 typedef void (*cras_ramp_cb)(void *arg);

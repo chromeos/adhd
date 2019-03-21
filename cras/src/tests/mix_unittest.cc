@@ -81,13 +81,14 @@ class MixTestSuiteS16_LE : public testing::Test{
       EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
     }
 
-    void ScaleIncrement(float start_scaler, float increment, float max) {
+    void ScaleIncrement(float start_scaler, float increment, float target) {
       float scaler = start_scaler;
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         float applied_scaler = scaler;
 
-        if (applied_scaler > max)
-           applied_scaler = max;
+        if ((applied_scaler > target && increment > 0) ||
+            (applied_scaler < target && increment < 0))
+           applied_scaler = target;
 
         if (applied_scaler > kMaxVolumeToScale) {
         } else if (applied_scaler < kMinVolumeToScale) {
@@ -179,14 +180,14 @@ TEST_F(MixTestSuiteS16_LE, ScaleFullVolumeIncrement) {
   float increment = 0.01;
   int step = 2;
   float start_scaler = 0.999999999;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
   // Scale full volume with positive increment will not change buffer.
   memcpy(compare_buffer_, src_buffer_, kBufferFrames * 4);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -195,14 +196,14 @@ TEST_F(MixTestSuiteS16_LE, ScaleMinVolumeIncrement) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.000000001;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
   // Scale min volume with negative increment will change buffer to zeros.
   memset(compare_buffer_, 0, kBufferFrames * 4);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -211,14 +212,14 @@ TEST_F(MixTestSuiteS16_LE, ScaleVolumePositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
@@ -226,14 +227,14 @@ TEST_F(MixTestSuiteS16_LE, ScaleVolumeNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -242,14 +243,14 @@ TEST_F(MixTestSuiteS16_LE, ScaleVolumeStartFullNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 1.0;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -258,45 +259,45 @@ TEST_F(MixTestSuiteS16_LE, ScaleVolumeStartZeroPositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.0;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
-TEST_F(MixTestSuiteS16_LE, ScaleVolumePositiveIncrementCappedByMax) {
+TEST_F(MixTestSuiteS16_LE, ScaleVolumePositiveIncrementCappedByTarget) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
-TEST_F(MixTestSuiteS16_LE, ScaleVolumeNegativeIncrementCappedByMax) {
+TEST_F(MixTestSuiteS16_LE, ScaleVolumeNegativeIncrementCappedByTarget) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
@@ -388,14 +389,16 @@ class MixTestSuiteS24_LE : public testing::Test{
       EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 8));
     }
 
-    void ScaleIncrement(float start_scaler, float increment, float max) {
+    void ScaleIncrement(float start_scaler, float increment, float target) {
       float scaler = start_scaler;
 
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         float applied_scaler = scaler;
 
-        if (applied_scaler > max)
-          applied_scaler = max;
+        if ((applied_scaler > target && increment > 0) ||
+            (applied_scaler < target && increment < 0))
+           applied_scaler = target;
+
 
         if (applied_scaler > kMaxVolumeToScale) {
         } else if (applied_scaler < kMinVolumeToScale) {
@@ -494,14 +497,14 @@ TEST_F(MixTestSuiteS24_LE, ScaleFullVolumeIncrement) {
   float increment = 0.01;
   int step = 2;
   float start_scaler = 0.999999999;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
   // Scale full volume with positive increment will not change buffer.
   memcpy(compare_buffer_, src_buffer_, kBufferFrames * fr_bytes_);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -510,14 +513,14 @@ TEST_F(MixTestSuiteS24_LE, ScaleMinVolumeIncrement) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.000000001;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
   // Scale min volume with negative increment will change buffer to zeros.
   memset(compare_buffer_, 0, kBufferFrames * fr_bytes_);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -526,14 +529,14 @@ TEST_F(MixTestSuiteS24_LE, ScaleVolumePositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -541,14 +544,14 @@ TEST_F(MixTestSuiteS24_LE, ScaleVolumeNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -557,14 +560,14 @@ TEST_F(MixTestSuiteS24_LE, ScaleVolumeStartFullNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 1.0;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -573,45 +576,45 @@ TEST_F(MixTestSuiteS24_LE, ScaleVolumeStartZeroPositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.0;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
-TEST_F(MixTestSuiteS24_LE, ScaleVolumePositiveIncrementCappedByMax) {
+TEST_F(MixTestSuiteS24_LE, ScaleVolumePositiveIncrementCappedByTarget) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
-TEST_F(MixTestSuiteS24_LE, ScaleVolumeNegativeIncrementCappedByMax) {
+TEST_F(MixTestSuiteS24_LE, ScaleVolumeNegativeIncrementCappedByTarget) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -701,14 +704,15 @@ class MixTestSuiteS32_LE : public testing::Test{
       EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 8));
     }
 
-    void ScaleIncrement(float start_scaler, float increment, float max) {
+    void ScaleIncrement(float start_scaler, float increment, float target) {
       float scaler = start_scaler;
 
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         float applied_scaler = scaler;
 
-        if (applied_scaler > max)
-          applied_scaler = max;
+        if ((applied_scaler > target && increment > 0) ||
+            (applied_scaler < target && increment < 0))
+           applied_scaler = target;
 
         if (applied_scaler > kMaxVolumeToScale) {
         } else if (applied_scaler < kMinVolumeToScale) {
@@ -801,14 +805,14 @@ TEST_F(MixTestSuiteS32_LE, ScaleFullVolumeIncrement) {
   float increment = 0.01;
   int step = 2;
   float start_scaler = 0.999999999;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
   // Scale full volume with positive increment will not change buffer.
   memcpy(compare_buffer_, src_buffer_, kBufferFrames * fr_bytes_);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -817,14 +821,14 @@ TEST_F(MixTestSuiteS32_LE, ScaleMinVolumeIncrement) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.000000001;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
   // Scale min volume with negative increment will change buffer to zeros.
   memset(compare_buffer_, 0, kBufferFrames * fr_bytes_);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -833,14 +837,14 @@ TEST_F(MixTestSuiteS32_LE, ScaleVolumePositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -848,14 +852,14 @@ TEST_F(MixTestSuiteS32_LE, ScaleVolumeNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -864,14 +868,14 @@ TEST_F(MixTestSuiteS32_LE, ScaleVolumeStartFullNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 1.0;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -880,45 +884,45 @@ TEST_F(MixTestSuiteS32_LE, ScaleVolumeStartZeroPositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.0;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
-TEST_F(MixTestSuiteS32_LE, ScaleVolumePositiveIncrementCappedByMax) {
+TEST_F(MixTestSuiteS32_LE, ScaleVolumePositiveIncrementCappedByTarget) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
-TEST_F(MixTestSuiteS32_LE, ScaleVolumeNegativeIncrementCappedByMax) {
+TEST_F(MixTestSuiteS32_LE, ScaleVolumeNegativeIncrementCappedByTarget) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -1017,7 +1021,7 @@ class MixTestSuiteS24_3LE : public testing::Test{
       EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 6));
     }
 
-    void ScaleIncrement(float start_scaler, float increment, float max) {
+    void ScaleIncrement(float start_scaler, float increment, float target) {
       float scaler = start_scaler;
 
       for (size_t i = 0; i < kBufferFrames * kNumChannels; i++) {
@@ -1025,8 +1029,9 @@ class MixTestSuiteS24_3LE : public testing::Test{
         int32_t tmp = 0;
         memcpy((uint8_t *)&tmp + 1, src_buffer_ + 3*i, 3);
 
-        if (applied_scaler > max)
-          applied_scaler = max;
+        if ((applied_scaler > target && increment > 0) ||
+            (applied_scaler < target && increment < 0))
+           applied_scaler = target;
 
         if (applied_scaler > kMaxVolumeToScale) {
         } else if (applied_scaler < kMinVolumeToScale) {
@@ -1138,14 +1143,14 @@ TEST_F(MixTestSuiteS24_3LE, ScaleFullVolumeIncrement) {
   float increment = 0.01;
   int step = 2;
   float start_scaler = 0.999999999;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
   // Scale full volume with positive increment will not change buffer.
   memcpy(compare_buffer_, src_buffer_, kBufferFrames * fr_bytes_);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -1154,14 +1159,14 @@ TEST_F(MixTestSuiteS24_3LE, ScaleMinVolumeIncrement) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.000000001;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
   // Scale min volume with negative increment will change buffer to zeros.
   memset(compare_buffer_, 0, kBufferFrames * fr_bytes_);
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -1170,14 +1175,14 @@ TEST_F(MixTestSuiteS24_3LE, ScaleVolumePositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
@@ -1185,14 +1190,14 @@ TEST_F(MixTestSuiteS24_3LE, ScaleVolumeNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
@@ -1201,14 +1206,14 @@ TEST_F(MixTestSuiteS24_3LE, ScaleVolumeStartFullNegativeIncrement) {
   float increment = -0.0001;
   int step = 2;
   float start_scaler = 1.0;
-  float max = 1.0;
+  float target = 0.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
@@ -1217,45 +1222,45 @@ TEST_F(MixTestSuiteS24_3LE, ScaleVolumeStartZeroPositiveIncrement) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.0;
-  float max = 1.0;
+  float target = 1.0;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
 
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * 4));
 }
 
-TEST_F(MixTestSuiteS24_3LE, ScaleVolumePositiveIncrementCappedByMax) {
+TEST_F(MixTestSuiteS24_3LE, ScaleVolumePositiveIncrementCappedByTarget) {
   float increment = 0.0001;
   int step = 2;
   float start_scaler = 0.1;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 
-TEST_F(MixTestSuiteS24_3LE, ScaleVolumeNegativeIncrementCappedByMax) {
+TEST_F(MixTestSuiteS24_3LE, ScaleVolumeNegativeIncrementCappedByTarget) {
   float increment = -0.01;
   int step = 2;
   float start_scaler = 0.8;
-  float max = 0.5;
+  float target = 0.5;
 
   _SetupBuffer();
-  ScaleIncrement(start_scaler, increment, max);
+  ScaleIncrement(start_scaler, increment, target);
 
   cras_scale_buffer_increment(
       fmt_, (uint8_t *)mix_buffer_, kBufferFrames, start_scaler,
-      increment, max, step);
+      increment, target, step);
   EXPECT_EQ(0, memcmp(compare_buffer_, mix_buffer_, kBufferFrames * fr_bytes_));
 }
 

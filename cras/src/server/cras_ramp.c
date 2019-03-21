@@ -38,6 +38,7 @@ struct cras_ramp {
 	int duration_frames;
 	float increment;
 	float start_scaler;
+	float target;
 	void (*cb)(void *data);
 	void *cb_data;
 };
@@ -64,6 +65,7 @@ int cras_ramp_reset(struct cras_ramp *ramp) {
 	ramp->duration_frames = 0;
 	ramp->increment = 0;
 	ramp->start_scaler = 1.0;
+	ramp->target = 1.0;
 	return 0;
 }
 
@@ -86,6 +88,7 @@ int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames,
 		else
 			ramp->start_scaler = action.scaler;
 		ramp->increment = (1 - ramp->start_scaler) / duration_frames;
+		ramp->target = 1.0;
 	} else {
 		ramp->state = CRAS_RAMP_STATE_DOWN;
 		if (action.type == CRAS_RAMP_ACTION_NONE)
@@ -94,6 +97,7 @@ int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames,
 			ramp->start_scaler = action.scaler;
 
 		ramp->increment = -ramp->start_scaler / duration_frames;
+		ramp->target = 0.0;
 	}
 	ramp->ramped_frames = 0;
 	ramp->duration_frames = duration_frames;
@@ -124,12 +128,14 @@ struct cras_ramp_action cras_ramp_get_current_action(const struct cras_ramp *ram
 		action.scaler = ramp->start_scaler +
 				ramp->ramped_frames * ramp->increment;
 		action.increment = ramp->increment;
+		action.target = ramp->target;
 		break;
 	case CRAS_RAMP_STATE_UP:
 		action.type = CRAS_RAMP_ACTION_PARTIAL;
 		action.scaler = ramp->start_scaler +
 				ramp->ramped_frames * ramp->increment;
 		action.increment = ramp->increment;
+		action.target = ramp->target;
 		break;
 	}
 	return action;

@@ -1070,6 +1070,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		.type = CRAS_RAMP_ACTION_NONE,
 		.scaler = 0.0f,
 		.increment = 0.0f,
+		.target = 1.0f,
 	};
 	float software_volume_scaler = 1.0;
 	int software_volume_needed = cras_iodev_software_volume_needed(iodev);
@@ -1113,17 +1114,18 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		 * software volume using cras_scale_buffer_increment.*/
 		float starting_scaler = ramp_action.scaler;
 		float increment = ramp_action.increment;
+		float target = ramp_action.target;
 
 		if (software_volume_needed) {
 			starting_scaler *= software_volume_scaler;
 			increment *= software_volume_scaler;
+			target *= software_volume_scaler;
 		}
 
 		cras_scale_buffer_increment(
 				fmt->format, frames, nframes,
 				starting_scaler, increment,
-				software_volume_scaler,
-				fmt->num_channels);
+				target, fmt->num_channels);
 		cras_ramp_update_ramped_frames(iodev->ramp, nframes);
 	} else if (!output_should_mute(iodev) && software_volume_needed) {
 		/* Just scale for software volume using

@@ -105,7 +105,7 @@ static uint8_t *cras_scale_buffer_increment_buff;
 static unsigned int cras_scale_buffer_increment_frame;
 static float cras_scale_buffer_increment_scaler;
 static float cras_scale_buffer_increment_increment;
-static float cras_scale_buffer_increment_max;
+static float cras_scale_buffer_increment_target;
 static int cras_scale_buffer_increment_channel;
 static struct cras_audio_format audio_fmt;
 static int buffer_share_add_id_called;
@@ -204,7 +204,7 @@ void ResetStubData() {
   cras_scale_buffer_increment_frame = 0;
   cras_scale_buffer_increment_scaler = 0;
   cras_scale_buffer_increment_increment = 0;
-  cras_scale_buffer_increment_max = 0;
+  cras_scale_buffer_increment_target = 0.0;
   cras_scale_buffer_increment_channel = 0;
   audio_fmt.format = SND_PCM_FORMAT_S16_LE;
   audio_fmt.frame_rate = 48000;
@@ -865,6 +865,7 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   int n_frames = 53;
   float ramp_scaler = 0.2;
   float increment = 0.001;
+  float target = 1.0;
   int volume = 13;
   float volume_scaler = 0.435;
 
@@ -899,6 +900,7 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
   cras_ramp_get_current_action_ret.scaler = ramp_scaler;
   cras_ramp_get_current_action_ret.increment = increment;
+  cras_ramp_get_current_action_ret.target = target;
 
   cras_system_get_volume_return = volume;
   softvol_scalers[volume] = volume_scaler;
@@ -921,9 +923,8 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   // ramp increment.
   EXPECT_FLOAT_EQ(softvol_scalers[volume] * increment,
                   cras_scale_buffer_increment_increment);
-  // Max for scaler will be software volume scaler.
-  EXPECT_FLOAT_EQ(softvol_scalers[volume],
-                  cras_scale_buffer_increment_max);
+  EXPECT_FLOAT_EQ(softvol_scalers[volume] * target,
+                  cras_scale_buffer_increment_target);
   EXPECT_EQ(fmt.num_channels, cras_scale_buffer_increment_channel);
 
   EXPECT_EQ(n_frames, put_buffer_nframes);
@@ -938,6 +939,7 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   int n_frames = 53;
   float ramp_scaler = 0.2;
   float increment = 0.001;
+  float target = 1.0;
 
   ResetStubData();
   memset(&iodev, 0, sizeof(iodev));
@@ -967,6 +969,7 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_PARTIAL;
   cras_ramp_get_current_action_ret.scaler = ramp_scaler;
   cras_ramp_get_current_action_ret.increment = increment;
+  cras_ramp_get_current_action_ret.target = target;
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, n_frames, NULL, nullptr);
   EXPECT_EQ(0, rc);
@@ -980,7 +983,7 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   EXPECT_EQ(n_frames, cras_scale_buffer_increment_frame);
   EXPECT_FLOAT_EQ(ramp_scaler, cras_scale_buffer_increment_scaler);
   EXPECT_FLOAT_EQ(increment, cras_scale_buffer_increment_increment);
-  EXPECT_FLOAT_EQ(1.0, cras_scale_buffer_increment_max);
+  EXPECT_FLOAT_EQ(1.0, cras_scale_buffer_increment_target);
   EXPECT_EQ(fmt.num_channels, cras_scale_buffer_increment_channel);
 
   EXPECT_EQ(n_frames, put_buffer_nframes);
@@ -2543,14 +2546,14 @@ void cras_scale_buffer(snd_pcm_format_t fmt, uint8_t *buffer,
 
 void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
                                  unsigned int frame, float scaler,
-                                 float increment, float max, int channel)
+                                 float increment, float target, int channel)
 {
   cras_scale_buffer_increment_fmt = fmt;
   cras_scale_buffer_increment_buff = buff;
   cras_scale_buffer_increment_frame = frame;
   cras_scale_buffer_increment_scaler = scaler;
   cras_scale_buffer_increment_increment = increment;
-  cras_scale_buffer_increment_max = max;
+  cras_scale_buffer_increment_target = target;
   cras_scale_buffer_increment_channel = channel;
 }
 

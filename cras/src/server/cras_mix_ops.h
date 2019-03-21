@@ -32,7 +32,7 @@ extern const struct cras_mix_ops mixer_ops_fma;
 struct cras_mix_ops {
 	void (*scale_buffer_increment)(snd_pcm_format_t fmt, uint8_t *buff,
 				       unsigned int count, float scaler,
-				       float increment, float max, int step);
+				       float increment, float target, int step);
 	void (*scale_buffer)(snd_pcm_format_t fmt, uint8_t *buff,
 			unsigned int count, float scaler);
 	void (*add)(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
