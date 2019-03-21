@@ -24,6 +24,7 @@ float softvol_scalers[101];
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
+static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.3;
 
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
@@ -90,7 +91,9 @@ static int get_num_underruns_ret;
 static int device_monitor_reset_device_called;
 static int output_underrun_called;
 static int set_mute_called;
-static int cras_ramp_start_is_up;
+static int cras_ramp_start_mute_ramp;
+static float cras_ramp_start_from;
+static float cras_ramp_start_to;
 static int cras_ramp_start_duration_frames;
 static int cras_ramp_start_is_called;
 static int cras_ramp_reset_is_called;
@@ -188,7 +191,9 @@ void ResetStubData() {
   device_monitor_reset_device_called = 0;
   output_underrun_called = 0;
   set_mute_called = 0;
-  cras_ramp_start_is_up = 0;
+  cras_ramp_start_mute_ramp = 0;
+  cras_ramp_start_from = 0.0;
+  cras_ramp_start_to = 0.0;
   cras_ramp_start_duration_frames = 0;
   cras_ramp_start_cb = NULL;
   cras_ramp_start_cb_data = NULL;
@@ -1158,15 +1163,37 @@ TEST(IoDev, SetActiveNode) {
 TEST(IoDev, SetNodeVolume) {
   struct cras_iodev iodev;
   struct cras_ionode ionode;
+  struct cras_audio_format fmt;
 
   memset(&iodev, 0, sizeof(iodev));
   memset(&ionode, 0, sizeof(ionode));
+
+  // Format is used when start volume ramp is called.
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+
+  iodev.format = &fmt;
   iodev.set_volume = dev_set_volume;
   iodev.set_capture_gain = dev_set_capture_gain;
+  iodev.software_volume_needed = 0;
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  iodev.direction = CRAS_STREAM_OUTPUT;
   ionode.dev = &iodev;
+  softvol_scalers[20] = 0.5;
+
   ResetStubData();
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 10);
   EXPECT_EQ(1, notify_node_volume_called);
+  // Do not ramp without software volume.
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  ResetStubData();
+  iodev.software_volume_needed = 1;
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 20);
+  EXPECT_EQ(1, notify_node_volume_called);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+
   iodev.direction = CRAS_STREAM_INPUT;
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_CAPTURE_GAIN, 10);
   EXPECT_EQ(1, notify_node_capture_gain_called);
@@ -1822,7 +1849,9 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   // Device should start ramping up without setting mute callback.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
-  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(1, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(0.0, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_to);
   EXPECT_EQ(fmt.frame_rate * RAMP_NEW_STREAM_DURATION_SECS,
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
@@ -1856,7 +1885,9 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   // Device should start ramping up without setting mute callback.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
-  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(1, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(0.0, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_to);
   EXPECT_EQ(fmt.frame_rate * RAMP_NEW_STREAM_DURATION_SECS,
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
@@ -1915,7 +1946,9 @@ TEST(IoDev, StartRampUp) {
   // Device should start ramping up without setting mute callback.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
-  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(1, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(0.0, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_to);
   EXPECT_EQ(fmt.frame_rate * RAMP_NEW_STREAM_DURATION_SECS,
             cras_ramp_start_duration_frames);
   EXPECT_EQ(NULL, cras_ramp_start_cb);
@@ -1931,7 +1964,9 @@ TEST(IoDev, StartRampUp) {
   // Device should start ramping up.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
-  EXPECT_EQ(1, cras_ramp_start_is_up);
+  EXPECT_EQ(1, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(0.0, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_to);
   EXPECT_EQ(fmt.frame_rate * RAMP_UNMUTE_DURATION_SECS,
             cras_ramp_start_duration_frames);
   // Callback for unmute is not used.
@@ -1978,7 +2013,9 @@ TEST(IoDev, StartRampDown) {
   // Device should start ramping down with mute callback.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_ramp_start_is_called);
-  EXPECT_EQ(0, cras_ramp_start_is_up);
+  EXPECT_EQ(1, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(0.0, cras_ramp_start_to);
   EXPECT_EQ(fmt.frame_rate * RAMP_MUTE_DURATION_SECS,
             cras_ramp_start_duration_frames);
 
@@ -1991,6 +2028,83 @@ TEST(IoDev, StartRampDown) {
   cras_ramp_start_cb(cras_ramp_start_cb_data);
   EXPECT_EQ(1, cras_device_monitor_set_device_mute_state_called);
   EXPECT_EQ(&iodev, cras_device_monitor_set_device_mute_state_dev);
+}
+
+TEST(IoDev, StartVolumeRamp) {
+  struct cras_ionode ionode;
+  struct cras_iodev iodev;
+  int rc;
+  struct cras_audio_format fmt;
+  int expected_frames;
+  float ionode_softvol_scalers[101];
+  memset(&iodev, 0, sizeof(iodev));
+
+  // Format will be used in cras_iodev_start_ramp to determine ramp duration.
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  expected_frames = fmt.frame_rate * RAMP_VOLUME_CHANGE_DURATION_SECS;
+
+  // Assume device has ramp member.
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+
+  // Case 1: Device is not opened yet.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  rc = cras_iodev_start_volume_ramp(&iodev, 30, 94);
+
+  // Ramp request is ignored.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  // Case 2: Volumes are equal.
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  rc = cras_iodev_start_volume_ramp(&iodev, 70, 70);
+
+  // Ramp request is ignored.
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  // Case 3: Ramp up, global scalers
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+  softvol_scalers[40] = 0.2;
+  softvol_scalers[60] = 0.8;
+
+  rc = cras_iodev_start_volume_ramp(&iodev, 40, 60);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(0, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(0.25, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_to);
+  EXPECT_EQ(expected_frames,
+            cras_ramp_start_duration_frames);
+  EXPECT_EQ(NULL, cras_ramp_start_cb);
+  EXPECT_EQ(NULL, cras_ramp_start_cb_data);
+
+  // Case 4: Ramp down, device saclers
+  ResetStubData();
+  iodev.state = CRAS_IODEV_STATE_OPEN;
+
+  ionode_softvol_scalers[40] = 0.4;
+  ionode_softvol_scalers[60] = 0.5;
+  ionode.softvol_scalers = ionode_softvol_scalers;
+  iodev.active_node = &ionode;
+
+  rc = cras_iodev_start_volume_ramp(&iodev, 60, 40);
+
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_ramp_start_is_called);
+  EXPECT_EQ(0, cras_ramp_start_mute_ramp);
+  EXPECT_FLOAT_EQ(1.25, cras_ramp_start_from);
+  EXPECT_FLOAT_EQ(1.0, cras_ramp_start_to);
+  EXPECT_EQ(expected_frames,
+            cras_ramp_start_duration_frames);
+  EXPECT_EQ(NULL, cras_ramp_start_cb);
+  EXPECT_EQ(NULL, cras_ramp_start_cb_data);
 }
 
 TEST(IoDev, OutputDeviceShouldWake) {
@@ -2626,11 +2740,13 @@ void cras_ramp_destroy(struct cras_ramp* ramp) {
   return;
 }
 
-int cras_ramp_start(struct cras_ramp *ramp, int is_up, int duration_frames,
-                    cras_ramp_cb cb, void *cb_data)
+int cras_ramp_start(struct cras_ramp *ramp, int mute_ramp, float from, float to,
+                    int duration_frames, cras_ramp_cb cb, void *cb_data)
 {
   cras_ramp_start_is_called++;
-  cras_ramp_start_is_up = is_up;
+  cras_ramp_start_mute_ramp = mute_ramp;
+  cras_ramp_start_from = from;
+  cras_ramp_start_to = to;
   cras_ramp_start_duration_frames = duration_frames;
   cras_ramp_start_cb = cb;
   cras_ramp_start_cb_data = cb_data;

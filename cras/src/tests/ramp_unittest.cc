@@ -31,12 +31,14 @@ TEST(RampTestSuite, Init) {
   EXPECT_EQ(action.type, CRAS_RAMP_ACTION_NONE);
   EXPECT_FLOAT_EQ(1.0, action.scaler);
   EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_FLOAT_EQ(1.0, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampUpInitialIncrement) {
-  int ramp_up = 1;
+  float from = 0.0;
+  float to = 1.0;
   int duration_frames = 48000;
   float increment = 1.0 / 48000;
   cras_ramp *ramp;
@@ -45,19 +47,21 @@ TEST(RampTestSuite, RampUpInitialIncrement) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(0.0, action.scaler);
   EXPECT_FLOAT_EQ(increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampUpUpdateRampedFrames) {
-  int ramp_up = 1;
+  float from = 0.0;
+  float to = 1.0;
   int duration_frames = 48000;
   float increment = 1.0 / 48000;
   int rc;
@@ -69,7 +73,7 @@ TEST(RampTestSuite, RampUpUpdateRampedFrames) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -79,12 +83,14 @@ TEST(RampTestSuite, RampUpUpdateRampedFrames) {
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(scaler, action.scaler);
   EXPECT_FLOAT_EQ(increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampUpPassedRamp) {
-  int ramp_up = 1;
+  float from = 0.0;
+  float to = 1.0;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
@@ -94,7 +100,7 @@ TEST(RampTestSuite, RampUpPassedRamp) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -104,12 +110,14 @@ TEST(RampTestSuite, RampUpPassedRamp) {
   EXPECT_EQ(CRAS_RAMP_ACTION_NONE, action.type);
   EXPECT_FLOAT_EQ(1.0, action.scaler);
   EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_FLOAT_EQ(1.0, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
-  int ramp_up;
+  float from;
+  float to;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
@@ -122,8 +130,9 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  from = 1.0;
+  to = 0.0;
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -132,8 +141,9 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
   // The increment will be calculated by ramping to 1 starting from scaler.
   up_increment = (1 - scaler) / 48000;
 
-  ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  from = 0.0;
+  to = 1.0;
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -141,12 +151,14 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(scaler, action.scaler);
   EXPECT_FLOAT_EQ(up_increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
-  int ramp_up;
+  float from = 0.0;
+  float to = 1.0;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
@@ -159,8 +171,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -169,8 +180,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
   // The increment will be calculated by ramping to 1 starting from scaler.
   second_increment = (1 - scaler) / 48000;
 
-  ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -178,12 +188,14 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(scaler, action.scaler);
   EXPECT_FLOAT_EQ(second_increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampDownInitialIncrement) {
-  int ramp_up = 0;
+  float from = 1.0;
+  float to = 0.0;
   int duration_frames = 48000;
   float increment = -1.0 / 48000;
   cras_ramp *ramp;
@@ -192,19 +204,21 @@ TEST(RampTestSuite, RampDownInitialIncrement) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(1.0, action.scaler);
   EXPECT_FLOAT_EQ(increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampDownUpdateRampedFrames) {
-  int ramp_up = 0;
+  float from = 1.0;
+  float to = 0.0;
   int duration_frames = 48000;
   float increment = -1.0 / 48000;
   int rc;
@@ -216,7 +230,7 @@ TEST(RampTestSuite, RampDownUpdateRampedFrames) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -226,12 +240,14 @@ TEST(RampTestSuite, RampDownUpdateRampedFrames) {
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(scaler, action.scaler);
   EXPECT_FLOAT_EQ(increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampDownPassedRamp) {
-  int ramp_up = 0;
+  float from = 1.0;
+  float to = 0.0;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
@@ -241,7 +257,7 @@ TEST(RampTestSuite, RampDownPassedRamp) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -251,12 +267,14 @@ TEST(RampTestSuite, RampDownPassedRamp) {
   EXPECT_EQ(CRAS_RAMP_ACTION_NONE, action.type);
   EXPECT_FLOAT_EQ(1.0, action.scaler);
   EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_FLOAT_EQ(1.0, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
-  int ramp_up;
+  float from;
+  float to;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
@@ -270,8 +288,9 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
 
   ramp = cras_ramp_create();
   // Ramp up first.
-  ramp_up = 1;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  from = 0.0;
+  to = 1.0;
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -282,8 +301,9 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
 
 
   // Ramp down will start from current scaler.
-  ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  from = 1.0;
+  to = 0.0;
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -291,12 +311,14 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(scaler, action.scaler);
   EXPECT_FLOAT_EQ(down_increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
 
   cras_ramp_destroy(ramp);
 }
 
 TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
-  int ramp_up;
+  float from = 1.0;
+  float to = 0.0;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
@@ -310,8 +332,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
 
   ramp = cras_ramp_create();
   // Ramp down.
-  ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -322,8 +343,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
 
 
   // Ramp down starting from current scaler.
-  ramp_up = 0;
-  cras_ramp_start(ramp, ramp_up, duration_frames, NULL, NULL);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
 
   action = cras_ramp_get_current_action(ramp);
 
@@ -331,6 +351,53 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
   EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
   EXPECT_FLOAT_EQ(scaler, action.scaler);
   EXPECT_FLOAT_EQ(second_down_increment, action.increment);
+  EXPECT_FLOAT_EQ(to, action.target);
+
+  cras_ramp_destroy(ramp);
+}
+
+TEST(RampTestSuite, PartialRamp) {
+  float from_one = 0.75;
+  float to_one = 0.4;
+  float from_two = 0.6;
+  float to_two = 0.9;
+  int duration_frames = 1200;
+  int rc;
+  int ramped_frames = 600;
+  struct cras_ramp *ramp;
+  struct cras_ramp_action action;
+  float down_increment = (to_one - from_one) / duration_frames;
+  float up_increment;
+  float scaler;
+
+  ResetStubData();
+
+  ramp = cras_ramp_create();
+  // Ramp down.
+  cras_volume_ramp_start(ramp, from_one, to_one, duration_frames, NULL, NULL);
+
+  rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
+
+  scaler = from_one + ramped_frames * down_increment;
+  action = cras_ramp_get_current_action(ramp);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
+  EXPECT_FLOAT_EQ(scaler, action.scaler);
+  EXPECT_FLOAT_EQ(down_increment, action.increment);
+  EXPECT_FLOAT_EQ(to_one, action.target);
+
+  // Ramp up starting from current scaler.
+  cras_volume_ramp_start(ramp, from_two, to_two, duration_frames, NULL, NULL);
+
+  // we start by multiplying by previous scaler
+  scaler = scaler * from_two;
+  action = cras_ramp_get_current_action(ramp);
+  up_increment = (to_two - scaler) / duration_frames;
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
+  EXPECT_FLOAT_EQ(scaler, action.scaler);
+  EXPECT_FLOAT_EQ(up_increment, action.increment);
+  EXPECT_FLOAT_EQ(to_two, action.target);
 
   cras_ramp_destroy(ramp);
 }
@@ -341,7 +408,8 @@ void ramp_callback(void *arg) {
 }
 
 TEST(RampTestSuite, RampUpPassedRampCallback) {
-  int ramp_up = 1;
+  float from = 0.0;
+  float to = 1.0;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
@@ -352,7 +420,7 @@ TEST(RampTestSuite, RampUpPassedRampCallback) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, ramp_callback, cb_data);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, ramp_callback, cb_data);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -362,6 +430,7 @@ TEST(RampTestSuite, RampUpPassedRampCallback) {
   EXPECT_EQ(CRAS_RAMP_ACTION_NONE, action.type);
   EXPECT_FLOAT_EQ(1.0, action.scaler);
   EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_FLOAT_EQ(1.0, action.target);
   EXPECT_EQ(1, callback_called);
   EXPECT_EQ(cb_data, callback_arg);
 
@@ -369,7 +438,8 @@ TEST(RampTestSuite, RampUpPassedRampCallback) {
 }
 
 TEST(RampTestSuite, RampDownPassedRampCallback) {
-  int ramp_up = 0;
+  float from = 1.0;
+  float to = 0.0;
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
@@ -380,7 +450,7 @@ TEST(RampTestSuite, RampDownPassedRampCallback) {
   ResetStubData();
 
   ramp = cras_ramp_create();
-  cras_ramp_start(ramp, ramp_up, duration_frames, ramp_callback, cb_data);
+  cras_mute_ramp_start(ramp, from, to, duration_frames, ramp_callback, cb_data);
 
   rc = cras_ramp_update_ramped_frames(ramp, ramped_frames);
 
@@ -390,6 +460,7 @@ TEST(RampTestSuite, RampDownPassedRampCallback) {
   EXPECT_EQ(CRAS_RAMP_ACTION_NONE, action.type);
   EXPECT_FLOAT_EQ(1.0, action.scaler);
   EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_FLOAT_EQ(1.0, action.target);
   EXPECT_EQ(1, callback_called);
   EXPECT_EQ(cb_data, callback_arg);
 

@@ -36,6 +36,7 @@
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
+static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.3;
 
 /*
  * It is the lastest time for the device to wake up when it is in the normal
@@ -705,6 +706,8 @@ static void set_node_volume(struct cras_ionode *node, int value)
 		return;
 
 	volume = (unsigned int)MIN(value, 100);
+	if (cras_iodev_software_volume_needed(dev))
+		cras_iodev_start_volume_ramp(dev, node->volume, volume);
 	node->volume = volume;
 	if (dev->set_volume)
 		dev->set_volume(dev);
@@ -1101,10 +1104,6 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		iodev->pre_dsp_hook(frames, nframes, iodev->ext_format,
 				    iodev->pre_dsp_hook_cb_data);
 
-	if (iodev->ramp) {
-		ramp_action = cras_ramp_get_current_action(iodev->ramp);
-	}
-
 	rc = apply_dsp(iodev, frames, nframes);
 	if (rc)
 		return rc;
@@ -1112,6 +1111,10 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	if (iodev->post_dsp_hook)
 		iodev->post_dsp_hook(frames, nframes, fmt,
 				     iodev->post_dsp_hook_cb_data);
+
+	if (iodev->ramp) {
+		ramp_action = cras_ramp_get_current_action(iodev->ramp);
+	}
 
 	/* Mute samples if adjusted volume is 0 or system is muted, plus
 	 * that this device is not ramping. */
@@ -1510,8 +1513,8 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 {
 	cras_ramp_cb cb = NULL;
 	void *cb_data = NULL;
-	int rc, up;
-	float duration_secs;
+	int rc;
+	float from, to, duration_secs;
 
 	/* Ignores request if device is closed. */
 	if (!cras_iodev_is_open(odev))
@@ -1519,17 +1522,20 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 
 	switch (request) {
 	case CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE:
-		up = 1;
+		from = 0.0;
+		to = 1.0;
 		duration_secs = RAMP_UNMUTE_DURATION_SECS;
 		break;
 	case CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK:
-		up = 1;
+		from = 0.0;
+		to = 1.0;
 		duration_secs = RAMP_NEW_STREAM_DURATION_SECS;
 		break;
 	/* Unmute -> mute. Callback to set mute state should be called after
 	 * ramping is done. */
 	case CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE:
-		up = 0;
+		from = 1.0;
+		to = 0.0;
 		duration_secs = RAMP_MUTE_DURATION_SECS;
 		cb = ramp_mute_callback;
 		cb_data = (void*)odev;
@@ -1539,8 +1545,8 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 	}
 
 	/* Starts ramping. */
-	rc = cras_ramp_start(
-			odev->ramp, up,
+	rc = cras_mute_ramp_start(
+			odev->ramp, from, to,
 			duration_secs * odev->format->frame_rate,
 			cb, cb_data);
 
@@ -1553,6 +1559,47 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 		cras_device_monitor_set_device_mute_state(odev);
 
 	return 0;
+}
+
+int cras_iodev_start_volume_ramp(struct cras_iodev *odev,
+				 unsigned int old_volume,
+				 unsigned int new_volume)
+{
+	float old_scaler, new_scaler;
+	float from, to;
+
+	if (old_volume == new_volume)
+		return 0;
+
+	if (!cras_iodev_is_open(odev))
+		return 0;
+
+	if (!odev->format)
+		return -EINVAL;
+
+	if (odev->active_node && odev->active_node->softvol_scalers) {
+		old_scaler = odev->active_node->softvol_scalers[old_volume];
+		new_scaler = odev->active_node->softvol_scalers[new_volume];
+	} else {
+		old_scaler = softvol_get_scaler(old_volume);
+		new_scaler = softvol_get_scaler(new_volume);
+	}
+
+	if (new_scaler == 0.0) {
+		return -EINVAL;
+	}
+
+	/* We will soon set odev's volume to new_volume from old_volume.
+	 * Because we're using softvol, we were previously scaling our volume by
+	 * old_scaler. If we want to avoid a jump in volume, we need to start
+	 * our ramp so that (from * new_scaler) = old_scaler. */
+	from = old_scaler / new_scaler;
+	to = 1.0;
+
+	return cras_volume_ramp_start(
+			odev->ramp, from, to,
+			RAMP_VOLUME_CHANGE_DURATION_SECS * odev->format->frame_rate,
+			NULL, NULL);
 }
 
 int cras_iodev_set_mute(struct cras_iodev* iodev)

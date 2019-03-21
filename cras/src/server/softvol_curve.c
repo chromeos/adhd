@@ -136,6 +136,11 @@ float *softvol_build_from_curve(const struct cras_volume_curve *curve)
 				curve->get_dBFS(curve, volume));
 		if (scalers[volume] > 1.0)
 			scalers[volume] = 1.0;
+		/* Clip scalers so that all values are non-zero to make volume
+		 * ramping simpler. Because of how mix_ops treats small values,
+		 * this should be effectively the same as a 0 value. */
+		else if (scalers[volume] < 1e-7)
+			scalers[volume] = 1e-7;
 	}
 
 	return scalers;

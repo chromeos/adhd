@@ -752,6 +752,18 @@ int cras_iodev_output_underrun(struct cras_iodev *odev);
 int cras_iodev_start_ramp(struct cras_iodev *odev,
 			  enum CRAS_IODEV_RAMP_REQUEST request);
 
+/* Start ramping samples up/down on a device after a volume change.
+ * Args:
+ *    iodev[in] - The device.
+ *    old_volume[in] - The previous volume percentage of the device.
+ *    new_volume[in] - The new volume percentage of the device.
+ * Returns:
+ *    0 on success. Negative error code on failure.
+ */
+int cras_iodev_start_volume_ramp(struct cras_iodev *odev,
+					unsigned int old_volume,
+					unsigned int new_volume);
+
 /* Set iodev to mute/unmute state.
  * Args:
  *    iodev[in] - The device.
