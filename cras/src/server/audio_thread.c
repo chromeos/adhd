@@ -34,12 +34,6 @@
  */
 #define MAX_CONTINUOUS_ZERO_SLEEP_COUNT 2
 
-/*
- * Sleep this much time past the buffer size to be sure at least
- * the buffer size is captured when the audio thread wakes up.
- */
-static const unsigned int capture_extra_sleep_frames = 20;
-
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_ADD_OPEN_DEV,
@@ -271,7 +265,6 @@ static int append_stream(struct audio_thread *thread,
 	const struct timespec *stream_ts;
 	unsigned int i;
 	bool cb_ts_set = false;
-	int needed_frames_from_device;
 	int level;
 	int rc = 0;
 
@@ -336,32 +329,13 @@ static int append_stream(struct audio_thread *thread,
 			}
 		} else {
 			/*
-		 	 * If the new stream is a capture stream, we need to consider the
-			 * samples in the device. To avoid hw_level rise, we want the stream
-			 * to wake up when it gets enough samples to post.
-		 	 */
-
-			needed_frames_from_device =
-				cras_frames_at_rate(stream->format.frame_rate,
-						    cras_rstream_get_cb_threshold(stream),
-						    dev->ext_format->frame_rate);
-
-			needed_frames_from_device += capture_extra_sleep_frames;
-
-			level = cras_iodev_frames_queued(dev, &init_cb_ts);
-			if (level < 0) {
-				syslog(LOG_ERR, "Failed to set input init_cb_ts, rc = %d", level);
-				rc = -EINVAL;
-				break;
-			}
-
-			needed_frames_from_device -= level;
-
-			if (needed_frames_from_device > 0) {
-				cras_frames_to_time(needed_frames_from_device,
-						    dev->ext_format->frame_rate, &extra_sleep);
-				add_timespecs(&init_cb_ts, &extra_sleep);
-			}
+			 * For input streams, because audio thread can calculate wake up time
+			 * by hw_level of input device, set the first cb_ts to zero. The stream
+			 * will wake up when it gets enough samples to post. The next_cb_ts will
+			 * be updated after its first post.
+			 */
+			init_cb_ts.tv_sec = 0;
+			init_cb_ts.tv_nsec = 0;
 		}
 
 		out = dev_stream_create(stream, dev->info.idx,

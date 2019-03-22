@@ -509,9 +509,19 @@ static void check_next_wake_time(struct dev_stream *dev_stream)
 void dev_stream_update_next_wake_time(struct dev_stream *dev_stream)
 {
 	struct cras_rstream *rstream = dev_stream->stream;
+
+	/*
+	 * The empty next_cb_ts means it is the first time update for input stream.
+	 * Initialize next_cb_ts without recording missed callback.
+	 */
+	if (rstream->direction == CRAS_STREAM_INPUT &&
+	    !timespec_is_nonzero(&rstream->next_cb_ts)) {
+		clock_gettime(CLOCK_MONOTONIC_RAW, &rstream->next_cb_ts);
+		add_timespecs(&rstream->next_cb_ts, &rstream->sleep_interval_ts);
+		return;
+	}
 	/* Update next callback time according to perfect schedule. */
-	add_timespecs(&rstream->next_cb_ts,
-		      &rstream->sleep_interval_ts);
+	add_timespecs(&rstream->next_cb_ts, &rstream->sleep_interval_ts);
 	/* Reset schedule if the schedule is missed. */
 	check_next_wake_time(dev_stream);
 }
@@ -763,6 +773,9 @@ static int get_input_wake_time(struct dev_stream *dev_stream,
 	/* Using device timing means the stream neglects next callback time. */
 	if (rstream->flags & USE_DEV_TIMING)
 		*wake_time_out =  time_for_sample;
+
+	ATLOG(atlog, AUDIO_THREAD_STREAM_SLEEP_TIME, dev_stream->stream->stream_id,
+	      wake_time_out->tv_sec, wake_time_out->tv_nsec);
 
 	return 0;
 }

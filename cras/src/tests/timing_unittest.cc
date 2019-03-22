@@ -72,6 +72,39 @@ class TimingSuite : public testing::Test{
   }
 };
 
+// Add a new stream, check the wake up time is the time when it has enough
+// data to post.
+TEST_F(TimingSuite, Test) {
+  const size_t cb_threshold = 480;
+
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream =
+      create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // The next callback of the new stream is 0.
+  stream->rstream->next_cb_ts.tv_sec = 0;
+  stream->rstream->next_cb_ts.tv_nsec = 0;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(cb_threshold, 0, &start,
+                                             &format, streams);
+
+  // The device wake up time should be 10ms from now. At that time the
+  // stream will have 480 samples to post.
+  const timespec ten_millis = { 0, 10 * 1000 * 1000 };
+  add_timespecs(&start, &ten_millis);
+  EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_nsec);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
 // One device, one stream, write a callback of data and check the sleep time is
 // one more wakeup interval.
 TEST_F(TimingSuite, WaitAfterFill) {
