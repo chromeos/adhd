@@ -818,6 +818,8 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 	 * block other existing streams.
 	 */
 	DL_APPEND(iodev->streams, stream);
+	if (!iodev->buf_state)
+		iodev->buf_state = buffer_share_create(iodev->buffer_size);
 	if (stream->stream->direction == CRAS_STREAM_INPUT)
 		cras_iodev_start_stream(iodev, stream);
 	return 0;
@@ -830,9 +832,6 @@ void cras_iodev_start_stream(struct cras_iodev *iodev,
 
 	if (dev_stream_is_running(stream))
 		return;
-
-	if (!iodev->buf_state)
-		iodev->buf_state = buffer_share_create(iodev->buffer_size);
 	/*
 	 * TRIGGER_ONLY streams do not want to receive data, so do not add them
 	 * to buffer_share, otherwise they'll affect other streams to receive.
