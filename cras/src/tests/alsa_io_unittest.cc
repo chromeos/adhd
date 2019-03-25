@@ -406,7 +406,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   cras_iodev_set_format(iodev, &format);
 
   // Test that these flags are cleared after open_dev.
-  aio->is_free_running = 1;
+  aio->free_running = 1;
   aio->filled_zeros_for_draining = 512;
   iodev->open_dev(iodev);
   EXPECT_EQ(1, cras_alsa_open_called);
@@ -416,7 +416,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
   EXPECT_EQ(0, cras_iodev_set_node_attr_called);
-  EXPECT_EQ(0, aio->is_free_running);
+  EXPECT_EQ(0, aio->free_running);
   EXPECT_EQ(0, aio->filled_zeros_for_draining);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
             aio->severe_underrun_frames);
@@ -2046,7 +2046,7 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunAlreadyFreeRunning) {
   int rc;
 
   // Device is in free run state, no need to fill zeros or fill whole buffer.
-  aio.is_free_running = 1;
+  aio.free_running = 1;
 
   rc = no_stream(&aio.base, 1);
 
@@ -2077,7 +2077,7 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
             cras_iodev_fill_odev_zeros_frames);
   EXPECT_EQ(fmt_.frame_rate / 1000 * fill_zeros_duration,
             aio.filled_zeros_for_draining);
-  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetFillZerosExceedBuffer) {
@@ -2097,7 +2097,7 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetFillZerosExceedBuffer) {
   EXPECT_EQ(cras_alsa_get_avail_frames_avail,
             cras_iodev_fill_odev_zeros_frames);
   EXPECT_EQ(cras_alsa_get_avail_frames_avail, aio.filled_zeros_for_draining);
-  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
@@ -2115,7 +2115,7 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_mmap_get_whole_buffer_called);
   EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
-  EXPECT_EQ(1, aio.is_free_running);
+  EXPECT_EQ(1, aio.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
@@ -2131,16 +2131,16 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_mmap_get_whole_buffer_called);
   EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
-  EXPECT_EQ(1, aio.is_free_running);
+  EXPECT_EQ(1, aio.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, OutputShouldWake) {
 
-  aio.is_free_running = 1;
+  aio.free_running = 1;
 
   EXPECT_EQ(0, output_should_wake(&aio.base));
 
-  aio.is_free_running = 0;
+  aio.free_running = 0;
   aio.base.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
   EXPECT_EQ(1, output_should_wake(&aio.base));
 
@@ -2157,7 +2157,7 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunMoreRemain) {
   // Compare min_buffer_level + min_cb_level with valid samples left.
   // 240 + 512 < 900 - 100, so we will get 900 - 100 in appl_ptr_ahead.
 
-  aio.is_free_running = 0;
+  aio.free_running = 0;
   aio.filled_zeros_for_draining = 100;
   aio.base.min_buffer_level = 512;
   real_hw_level = 900;
@@ -2169,7 +2169,7 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunMoreRemain) {
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
   EXPECT_EQ(800, cras_alsa_resume_appl_ptr_ahead);
   EXPECT_EQ(0, cras_iodev_fill_odev_zeros_frames);
-  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.free_running);
   EXPECT_EQ(0, aio.filled_zeros_for_draining);
 }
 
@@ -2180,7 +2180,7 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunLessRemain) {
   // 240 + 256 > 400 - 500, so we will get 240 + 256 in appl_ptr_ahead.
   // And it will fill 240 + 256 - 400 = 96 zeros frames into device.
 
-  aio.is_free_running = 0;
+  aio.free_running = 0;
   aio.filled_zeros_for_draining = 500;
   aio.base.min_buffer_level = 256;
   real_hw_level = 400;
@@ -2193,14 +2193,14 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunLessRemain) {
   EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
             cras_alsa_resume_appl_ptr_ahead);
   EXPECT_EQ(96, cras_iodev_fill_odev_zeros_frames);
-  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.free_running);
   EXPECT_EQ(0, aio.filled_zeros_for_draining);
 }
 
 TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
   int rc;
 
-  aio.is_free_running = 1;
+  aio.free_running = 1;
   aio.filled_zeros_for_draining = 100;
   aio.base.min_buffer_level = 512;
 
@@ -2210,7 +2210,7 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
   EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
             cras_alsa_resume_appl_ptr_ahead);
-  EXPECT_EQ(0, aio.is_free_running);
+  EXPECT_EQ(0, aio.free_running);
   EXPECT_EQ(0, aio.filled_zeros_for_draining);
 }
 

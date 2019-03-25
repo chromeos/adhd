@@ -128,10 +128,10 @@ struct alsa_input_node {
  *     by the jack specific dsp name.
  * poll_fd - Descriptor used to block until data is ready.
  * dma_period_set_microsecs - If non-zero, the value to apply to the dma_period.
- * is_free_running - true if device is playing zeros in the buffer without
- *                   user filling meaningful data. The device buffer is filled
- *                   with zeros. In this state, appl_ptr remains the same
- *                   while hw_ptr keeps running ahead.
+ * free_running - true if device is playing zeros in the buffer without
+ *                user filling meaningful data. The device buffer is filled
+ *                with zeros. In this state, appl_ptr remains the same
+ *                while hw_ptr keeps running ahead.
  * filled_zeros_for_draining - The number of zeros filled for draining.
  * severe_underrun_frames - The threshold for severe underrun.
  * default_volume_curve - Default volume curve that converts from an index
@@ -161,7 +161,7 @@ struct alsa_io {
 	const char *dsp_name_default;
 	int poll_fd;
 	unsigned int dma_period_set_microsecs;
-	int is_free_running;
+	int free_running;
 	unsigned int filled_zeros_for_draining;
 	snd_pcm_uframes_t severe_underrun_frames;
 	struct cras_volume_curve *default_volume_curve;
@@ -342,7 +342,7 @@ static int close_dev(struct cras_iodev *iodev)
 		return 0;
 	cras_alsa_pcm_close(aio->handle);
 	aio->handle = NULL;
-	aio->is_free_running = 0;
+	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
 	aio->hwparams_set = 0;
 	cras_iodev_free_format(&aio->base);
@@ -390,7 +390,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (iodev->format == NULL)
 		return -EINVAL;
 	aio->num_underruns = 0;
-	aio->is_free_running = 0;
+	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
 	aio->severe_underrun_frames =
 			SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
@@ -1822,7 +1822,7 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	unsigned int real_hw_level, fr_to_write;
 	struct timespec hw_tstamp;
 
-	if (aio->is_free_running)
+	if (aio->free_running)
 		return 0;
 
 	/* Check if all valid samples are played. If all valid samples are played,
@@ -1838,7 +1838,7 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 		rc = odev->output_underrun(odev);
 		if (rc < 0)
 			return rc;
-		aio->is_free_running = 1;
+		aio->free_running = 1;
 		return 0;
 	}
 
@@ -1846,7 +1846,7 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 		rc = fill_whole_buffer_with_zeros(odev);
 		if (rc < 0)
 			return rc;
-		aio->is_free_running = 1;
+		aio->free_running = 1;
 		return 0;
 	}
 
@@ -1867,7 +1867,7 @@ static int leave_free_run(struct cras_iodev *odev)
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
 
-	if (aio->is_free_running)
+	if (aio->free_running)
 		rc = adjust_appl_ptr(odev);
 	else
 		rc = adjust_appl_ptr_samples_remaining(odev);
@@ -1876,7 +1876,7 @@ static int leave_free_run(struct cras_iodev *odev)
 		       odev->info.name, rc);
 		return rc;
 	}
-	aio->is_free_running = 0;
+	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
 
 	return 0;
@@ -1899,7 +1899,7 @@ static int no_stream(struct cras_iodev *odev, int enable)
 static int output_should_wake(const struct cras_iodev *odev)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
-	if (aio->is_free_running)
+	if (aio->free_running)
 		return 0;
 	else
 		return ((cras_iodev_state(odev) ==
@@ -1946,7 +1946,7 @@ static int get_valid_frames(const struct cras_iodev *odev,
 	 * The real_hw_level is the real hw_level in device buffer. It doesn't
 	 * subtract min_buffer_level.
 	 */
-	if (aio->is_free_running)
+	if (aio->free_running)
 		return 0;
 
 	rc = odev->frames_queued(odev, tstamp);
@@ -2008,7 +2008,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		if (!aio->dev_id)
 			goto cleanup_iodev;
 	}
-	aio->is_free_running = 0;
+	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
 	if (aio->dev == NULL)
