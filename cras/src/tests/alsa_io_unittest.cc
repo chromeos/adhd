@@ -320,7 +320,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
-  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
+  ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
@@ -331,7 +331,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_STREQ("Speaker", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
-  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
+  ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
@@ -343,7 +343,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_STREQ("(default)", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
-  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
+  ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
@@ -354,7 +354,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_STREQ("Internal Mic", aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
-  ASSERT_EQ((void *)output_should_wake, (void *)aio->base.output_should_wake);
+  ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
 
@@ -2134,21 +2134,12 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
   EXPECT_EQ(1, aio.free_running);
 }
 
-TEST_F(AlsaFreeRunTestSuite, OutputShouldWake) {
-
+TEST_F(AlsaFreeRunTestSuite, IsFreeRunning) {
   aio.free_running = 1;
-
-  EXPECT_EQ(0, output_should_wake(&aio.base));
+  EXPECT_EQ(1, is_free_running(&aio.base));
 
   aio.free_running = 0;
-  aio.base.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
-  EXPECT_EQ(1, output_should_wake(&aio.base));
-
-  aio.base.state = CRAS_IODEV_STATE_NORMAL_RUN;
-  EXPECT_EQ(1, output_should_wake(&aio.base));
-
-  aio.base.state = CRAS_IODEV_STATE_OPEN;
-  EXPECT_EQ(0, output_should_wake(&aio.base));
+  EXPECT_EQ(0, is_free_running(&aio.base));
 }
 
 TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunMoreRemain) {

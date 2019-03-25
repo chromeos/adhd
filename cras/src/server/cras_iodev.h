@@ -126,10 +126,7 @@ struct cras_ionode {
  *             The default action of no stream state is to fill zeros
  *             periodically. Device can implement this function to define
  *             its own optimization of entering/exiting no stream state.
- * output_should_wake - (Optional) Checks if audio thread should schedule a
- *                      wake for this output device. The default condition is
- *                      whether the device is running. Device can implement this
- *                      function to use its own condition.
+ * is_free_running - (Optional) Checks if the device is in free running state.
  * output_underrun - (Optional) Handle output device underrun.
  * update_active_node - Update the active node when the selected device/node has
  *     changed.
@@ -215,7 +212,7 @@ struct cras_iodev {
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*flush_buffer)(struct cras_iodev *iodev);
 	int (*start)(const struct cras_iodev *iodev);
-	int (*output_should_wake)(const struct cras_iodev *iodev);
+	int (*is_free_running)(const struct cras_iodev *iodev);
 	int (*output_underrun)(struct cras_iodev *iodev);
 	int (*no_stream)(struct cras_iodev *iodev, int enable);
 	void (*update_active_node)(struct cras_iodev *iodev,

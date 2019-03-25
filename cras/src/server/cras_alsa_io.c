@@ -1896,16 +1896,11 @@ static int no_stream(struct cras_iodev *odev, int enable)
 		return leave_free_run(odev);
 }
 
-static int output_should_wake(const struct cras_iodev *odev)
+static int is_free_running(const struct cras_iodev *odev)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
-	if (aio->free_running)
-		return 0;
-	else
-		return ((cras_iodev_state(odev) ==
-					CRAS_IODEV_STATE_NO_STREAM_RUN) ||
-		        (cras_iodev_state(odev) ==
-					CRAS_IODEV_STATE_NORMAL_RUN));
+
+	return aio->free_running;
 }
 
 static unsigned int get_num_underruns(const struct cras_iodev *iodev)
@@ -2044,7 +2039,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	iodev->set_hotword_model = set_hotword_model;
 	iodev->get_hotword_models = get_hotword_models;
 	iodev->no_stream = no_stream;
-	iodev->output_should_wake = output_should_wake;
+	iodev->is_free_running = is_free_running;
 	iodev->get_num_underruns = get_num_underruns;
 	iodev->get_num_severe_underruns = get_num_severe_underruns;
 	iodev->get_valid_frames = get_valid_frames;

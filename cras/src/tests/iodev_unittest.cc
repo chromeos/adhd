@@ -78,7 +78,7 @@ static long cras_system_get_capture_gain_ret_value;
 static uint8_t audio_buffer[BUFFER_SIZE];
 static struct cras_audio_area *audio_area;
 static unsigned int put_buffer_nframes;
-static int output_should_wake_ret;
+static int is_free_running_ret;
 static int no_stream_called;
 static int no_stream_enable;
 // This will be used extensively in cras_iodev.
@@ -176,7 +176,7 @@ void ResetStubData() {
     audio_area = NULL;
   }
   put_buffer_nframes = 0;
-  output_should_wake_ret= 0;
+  is_free_running_ret= 0;
   no_stream_called = 0;
   no_stream_enable = 0;
   simple_no_stream_called = 0;
@@ -569,9 +569,9 @@ static int no_stream(struct cras_iodev *odev, int enable)
   return cras_iodev_default_no_stream_playback(odev, enable);
 }
 
-static int output_should_wake(const struct cras_iodev *odev)
+static int is_free_running(const struct cras_iodev *odev)
 {
-  return output_should_wake_ret;
+  return is_free_running_ret;
 }
 
 static int pre_dsp_hook(const uint8_t *frames, unsigned int nframes,
@@ -2001,14 +2001,14 @@ TEST(IoDev, OutputDeviceShouldWake) {
   rc = cras_iodev_odev_should_wake(&iodev);
   EXPECT_EQ(1, rc);
 
-  // Device is running. Device has output_should_wake ops.
-  iodev.output_should_wake = output_should_wake;
-  output_should_wake_ret = 0;
+  // Device is running. Device has is_free_running ops.
+  iodev.is_free_running = is_free_running;
+  is_free_running_ret = 1;
   rc = cras_iodev_odev_should_wake(&iodev);
   EXPECT_EQ(0, rc);
 
-  // Device is running. Device has output_should_wake ops.
-  output_should_wake_ret = 1;
+  // Device is running. Device has is_free_running ops.
+  is_free_running_ret = 0;
   rc = cras_iodev_odev_should_wake(&iodev);
   EXPECT_EQ(1, rc);
 

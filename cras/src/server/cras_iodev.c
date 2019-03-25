@@ -1382,8 +1382,8 @@ int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return 0;
 
-	if (odev->output_should_wake)
-		return odev->output_should_wake(odev);
+	if (odev->is_free_running && odev->is_free_running(odev))
+		return 0;
 
 	/* Do not wake up for device not started yet. */
 	return (odev->state == CRAS_IODEV_STATE_NORMAL_RUN ||
