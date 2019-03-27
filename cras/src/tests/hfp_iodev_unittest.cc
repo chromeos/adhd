@@ -38,6 +38,10 @@ static size_t hfp_buf_acquire_called;
 static unsigned hfp_buf_acquire_return_val;
 static size_t hfp_buf_release_called;
 static unsigned hfp_buf_release_nwritten_val;
+static size_t hfp_fill_output_with_zeros_called;
+static size_t hfp_force_output_level_called;
+static size_t hfp_force_output_level_target;
+static size_t fake_buffer_size = 500;
 static cras_audio_area *dummy_audio_area;
 
 void ResetStubData() {
@@ -62,6 +66,9 @@ void ResetStubData() {
   hfp_buf_acquire_return_val = 0;
   hfp_buf_release_called = 0;
   hfp_buf_release_nwritten_val = 0;
+  hfp_fill_output_with_zeros_called = 0;
+  hfp_force_output_level_called = 0;
+  hfp_force_output_level_target = 0;
 
   fake_info = reinterpret_cast<struct hfp_info *>(0x123);
 
@@ -193,6 +200,32 @@ TEST_F(HfpIodev, PutGetBuffer) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
 
+TEST_F(HfpIodev, NoStreamState) {
+  cras_audio_area *area;
+  unsigned frames;
+
+  ResetStubData();
+  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
+                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
+                           fake_info);
+  iodev->format = &fake_format;
+  iodev->configure_dev(iodev);
+  iodev->min_cb_level = iodev->buffer_size / 2;
+
+  hfp_buf_acquire_return_val = 100;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 100);
+
+  iodev->no_stream(iodev, 1);
+  ASSERT_EQ(1, hfp_fill_output_with_zeros_called);
+
+  iodev->no_stream(iodev, 0);
+  ASSERT_EQ(1, hfp_force_output_level_called);
+  ASSERT_EQ(fake_buffer_size / 2, hfp_force_output_level_target);
+
+  hfp_iodev_destroy(iodev);
+}
+
 } // namespace
 
 extern "C" {
@@ -311,8 +344,7 @@ int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
 
 int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev)
 {
-  /* 1008 / 2 */
-  return 504;
+  return fake_buffer_size;
 }
 
 void hfp_buf_acquire(struct hfp_info *info,  struct cras_iodev *dev,
@@ -327,6 +359,23 @@ void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
 {
   hfp_buf_release_called++;
   hfp_buf_release_nwritten_val = written_bytes;
+}
+
+int hfp_fill_output_with_zeros(struct hfp_info *info,
+             struct cras_iodev *dev,
+             unsigned int nframes)
+{
+  hfp_fill_output_with_zeros_called++;
+  return 0;
+}
+
+int hfp_force_output_level(struct hfp_info *info,
+         struct cras_iodev *dev,
+         unsigned int level)
+{
+  hfp_force_output_level_called++;
+  hfp_force_output_level_target = level;
+  return 0;
 }
 
 void hfp_register_packet_size_changed_callback(struct hfp_info *info,

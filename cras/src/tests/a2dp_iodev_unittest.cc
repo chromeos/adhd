@@ -363,6 +363,37 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   a2dp_iodev_destroy(iodev);
 }
 
+TEST_F(A2dpIodev, NoStreamState) {
+  struct cras_iodev *iodev;
+  struct cras_audio_area *area;
+  struct timespec tstamp;
+  unsigned frames;
+
+  iodev = a2dp_iodev_create(fake_transport);
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->configure_dev(iodev);
+  ASSERT_NE(write_callback, (void *)NULL);
+
+  iodev->min_cb_level = 888;
+  frames = 700;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 700);
+
+  iodev->no_stream(iodev, 1);
+
+  /* Full buffer will be filled by zero in no stream state .*/
+  frames = iodev->frames_queued(iodev, &tstamp);
+  ASSERT_EQ(iodev->buffer_size, frames);
+
+  /* After leaving no stream state, output buffer is adjusted to
+   * min_cb_level */
+  iodev->no_stream(iodev, 0);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  ASSERT_EQ(888, frames);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {

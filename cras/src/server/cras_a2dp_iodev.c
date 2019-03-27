@@ -43,6 +43,10 @@
  *        together with the device open timestamp to estimate how many virtual
  *        buffer is queued there.
  *    dev_open_time - The last time a2dp_ios is opened.
+ *    drain_complete - Flag to indicate if valid frames have all been drained
+ *        in no stream state.
+ *    filled_zeros_bytes - Number of zero data in bytes that have been filled
+ *        in no stream state.
  */
 struct a2dp_io {
 	struct cras_iodev base;
@@ -54,6 +58,8 @@ struct a2dp_io {
 	int pre_fill_complete;
 	uint64_t bt_written_frames;
 	struct timespec dev_open_time;
+	bool drain_complete;
+	int filled_zeros_bytes;
 };
 
 static int flush_data(void *arg);
@@ -136,6 +142,63 @@ static int frames_queued(const struct cras_iodev *iodev,
 		   MAX(estimate_queued_frames, local_queued_frames));
 }
 
+static int no_stream(struct cras_iodev *iodev, int enable)
+{
+	unsigned int pcm_bytes;
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	unsigned int buf_avail;
+	unsigned int format_bytes;
+	unsigned int target_bytes;
+	uint8_t *buf;
+	int i;
+
+	format_bytes = cras_get_format_bytes(iodev->format);
+	pcm_bytes = buf_queued(a2dpio->pcm_buf);
+
+	if (enable) {
+		if (!a2dpio->drain_complete &&
+		    (pcm_bytes <= a2dpio->filled_zeros_bytes))
+			a2dpio->drain_complete = 1;
+
+		/* Loop twice to make sure ring buffer is filled. */
+		for (i = 0; i < 2; i++) {
+			buf = buf_write_pointer_size(a2dpio->pcm_buf,
+						&buf_avail);
+			if (buf_avail == 0)
+				break;
+			target_bytes = iodev->buffer_size * format_bytes;
+			target_bytes = MIN(buf_avail, target_bytes);
+			memset(buf, 0, target_bytes);
+			buf_increment_write(a2dpio->pcm_buf, target_bytes);
+			a2dpio->filled_zeros_bytes += target_bytes;
+		}
+		return 0;
+	}
+	/* Leave no stream state. */
+	target_bytes = iodev->min_cb_level * format_bytes;
+	if (a2dpio->drain_complete) {
+		buf_adjust_readable(a2dpio->pcm_buf, target_bytes);
+	} else {
+		unsigned int valid_bytes = 0;
+		if (pcm_bytes > a2dpio->filled_zeros_bytes)
+			valid_bytes = pcm_bytes - a2dpio->filled_zeros_bytes;
+
+		target_bytes = MAX(target_bytes, valid_bytes);
+		if (target_bytes > pcm_bytes) {
+			target_bytes -= pcm_bytes;
+			buf = buf_write_pointer_size(a2dpio->pcm_buf, &buf_avail);
+			target_bytes = MIN(target_bytes, buf_avail);
+			memset(buf, 0, target_bytes);
+			buf_increment_write(a2dpio->pcm_buf, target_bytes);
+		} else {
+			buf_adjust_readable(a2dpio->pcm_buf, target_bytes);
+		}
+	}
+	a2dpio->drain_complete = 0;
+	a2dpio->filled_zeros_bytes = 0;
+	return 0;
+}
+
 static int configure_dev(struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
@@ -179,6 +242,8 @@ static int configure_dev(struct cras_iodev *iodev)
 	iodev->min_buffer_level = a2dpio->sock_depth_frames;
 
 	a2dpio->pre_fill_complete = 0;
+	a2dpio->drain_complete = 0;
+	a2dpio->filled_zeros_bytes = 0;
 
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;
@@ -492,6 +557,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->flush_buffer = flush_buffer;
+	iodev->no_stream = no_stream;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;

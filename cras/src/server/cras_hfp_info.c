@@ -141,6 +141,43 @@ int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
 		return buf_queued(info->capture_buf) / format_bytes;
 }
 
+int hfp_fill_output_with_zeros(struct hfp_info *info,
+			       struct cras_iodev *dev,
+			       unsigned int nframes)
+{
+	unsigned int buf_avail;
+	unsigned int format_bytes;
+	unsigned int nbytes;
+	uint8_t *buf;
+	int i;
+	int ret = 0;
+
+	format_bytes = cras_get_format_bytes(dev->format);
+	nbytes = nframes * format_bytes;
+	/* Loop twice to make sure ring buffer is filled. */
+	for (i = 0; i < 2; i++) {
+		buf = buf_write_pointer_size(info->playback_buf, &buf_avail);
+		if (buf_avail == 0)
+			break;
+		buf_avail = MIN(nbytes, buf_avail);
+		memset(buf, 0, buf_avail);
+		buf_increment_write(info->playback_buf, buf_avail);
+		nbytes -= buf_avail;
+		ret += buf_avail / format_bytes;
+	}
+	return ret;
+}
+
+int hfp_force_output_level(struct hfp_info *info,
+			   struct cras_iodev *dev,
+			   unsigned int level)
+{
+	level *= cras_get_format_bytes(dev->format);
+	level = MIN(level, MAX_HFP_BUF_SIZE_BYTES);
+	buf_adjust_readable(info->playback_buf, level);
+	return 0;
+}
+
 int hfp_write(struct hfp_info *info)
 {
 	int err = 0;

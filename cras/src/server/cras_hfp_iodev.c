@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <stdbool.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <syslog.h>
@@ -17,12 +19,24 @@
 #include "sfh.h"
 #include "utlist.h"
 
-
+/* Implementation of bluetooth hands-free profile iodev.
+ * Members:
+ *    base - The cras_iodev structure base class.
+ *    device - The assciated bt_device.
+ *    slc - Handle to the HFP service level connection.
+ *    info - hfp_info taking care of SCO data read/write.
+ *    drain_complete - Flag to indicate if valid samples are drained
+ *        in no stream state. Only used for output.
+ *    filled_zeros - Number of zero data in frames have been filled
+ *        to buffer of hfp_info in no stream state. Only used for output
+ */
 struct hfp_io {
 	struct cras_iodev base;
 	struct cras_bt_device *device;
 	struct hfp_slc_handle *slc;
 	struct hfp_info *info;
+	bool drain_complete;
+	unsigned int filled_zeros;
 };
 
 static int update_supported_formats(struct cras_iodev *iodev)
@@ -45,6 +59,50 @@ static int update_supported_formats(struct cras_iodev *iodev)
 		(snd_pcm_format_t *)malloc(2 * sizeof(snd_pcm_format_t));
 	iodev->supported_formats[0] = SND_PCM_FORMAT_S16_LE;
 	iodev->supported_formats[1] = 0;
+
+	return 0;
+}
+
+static int no_stream(struct cras_iodev *iodev, int enable)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+	struct timespec hw_tstamp;
+	unsigned int hw_level;
+	unsigned int level_target;
+
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return 0;
+
+	hw_level = iodev->frames_queued(iodev, &hw_tstamp);
+	if (enable) {
+		if (!hfpio->drain_complete &&
+		    (hw_level <= hfpio->filled_zeros))
+			hfpio->drain_complete = 1;
+		hfpio->filled_zeros +=
+			hfp_fill_output_with_zeros(hfpio->info, iodev,
+						   iodev->buffer_size);
+		return 0;
+	}
+
+	/* Leave no stream state.*/
+	level_target = iodev->min_cb_level;
+	if (hfpio->drain_complete) {
+		hfp_force_output_level(hfpio->info, iodev, level_target);
+	} else {
+		unsigned int valid_samples = 0;
+		if (hw_level > hfpio->filled_zeros)
+			valid_samples = hw_level - hfpio->filled_zeros;
+		level_target = MAX(level_target, valid_samples);
+
+		if (level_target > hw_level)
+			hfp_fill_output_with_zeros(hfpio->info, iodev,
+						   level_target - hw_level);
+		else
+			hfp_force_output_level(hfpio->info, iodev,
+					       level_target);
+	}
+	hfpio->drain_complete = 0;
+	hfpio->filled_zeros = 0;
 
 	return 0;
 }
@@ -100,6 +158,8 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (err)
 		goto error;
 
+	hfpio->drain_complete = 0;
+	hfpio->filled_zeros = 0;
 add_dev:
 	hfp_info_add_iodev(hfpio->info, iodev);
 	hfp_set_call_status(hfpio->slc, 1);
@@ -251,6 +311,7 @@ struct cras_iodev *hfp_iodev_create(
 	iodev->get_buffer = get_buffer;
 	iodev->put_buffer = put_buffer;
 	iodev->flush_buffer = flush_buffer;
+	iodev->no_stream = no_stream;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;

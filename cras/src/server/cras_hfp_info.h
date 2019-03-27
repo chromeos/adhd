@@ -51,6 +51,30 @@ int hfp_info_stop(struct hfp_info *info);
  */
 int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev);
 
+/* Fill output buffer with zero frames.
+ * Args:
+ *    info - The hfp_info holding the output buffer.
+ *    dev - The associated output device.
+ *    nframes - How many zero frames to fill.
+ * Returns:
+ *    The actual number of zero frames filled.
+ */
+int hfp_fill_output_with_zeros(struct hfp_info *info,
+			       struct cras_iodev *dev,
+			       unsigned int nframes);
+
+/* Force output buffer level to given value. Calling this may override
+ * existing data so use it only when buffer has been filled by zeros.
+ * Args:
+ *    info - The hfp_info holding output buffer.
+ *    dev - The associated output device.
+ *    level - Value of the target output level.
+ * Returns:
+ *    0 for success, otherwise failure.
+ */
+int hfp_force_output_level(struct hfp_info *info,
+			   struct cras_iodev *dev,
+			   unsigned int level);
 
 /* Gets how many bytes of the buffer are used.
  * Args:

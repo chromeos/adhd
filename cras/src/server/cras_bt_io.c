@@ -334,18 +334,18 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 
 	if (dev->no_stream) {
 		/*
-		 * The code is for hfp_alsa_iodev only.
-		 *
 		 * Copy iodev->min_cb_level and iodev->max_cb_level from the
 		 * parent (i.e. bt_io).  no_stream() of hfp_alsa_iodev will
 		 * use them.
+		 * A2DP and HFP dev will use buffer and callback sizes to fill
+		 * zeros in no stream state.
 		 */
 		dev->min_cb_level = iodev->min_cb_level;
 		dev->max_cb_level = iodev->max_cb_level;
+		dev->buffer_size = iodev->buffer_size;
 		return dev->no_stream(dev, enable);
 	}
-
-	return cras_iodev_default_no_stream_playback(iodev, enable);
+	return 0;
 }
 
 static int is_free_running(const struct cras_iodev *iodev)

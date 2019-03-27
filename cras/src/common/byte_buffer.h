@@ -66,6 +66,15 @@ static inline unsigned int buf_readable(struct byte_buffer *buf)
 	return buf->used_size - buf->read_idx;
 }
 
+/* Adjust readable size to given value. Use with caution. */
+static inline unsigned int buf_adjust_readable(struct byte_buffer *buf,
+					       size_t readable)
+{
+	buf->level = MIN(readable, buf->used_size);
+	buf->write_idx = (buf->read_idx + buf->level) % buf->used_size;
+	return 0;
+}
+
 static inline unsigned int buf_queued(struct byte_buffer *buf)
 {
 	return buf->level;
