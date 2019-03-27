@@ -866,6 +866,7 @@ void cras_iodev_start_stream(struct cras_iodev *iodev,
 				    NULL);
 	iodev->min_cb_level = MIN(iodev->min_cb_level, cb_threshold);
 	iodev->max_cb_level = MAX(iodev->max_cb_level, cb_threshold);
+	iodev->largest_cb_level = MAX(iodev->largest_cb_level, cb_threshold);
 	dev_stream_set_running(stream);
 }
 
@@ -1001,6 +1002,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;
+	iodev->largest_cb_level = 0;
 
 	iodev->reset_request_pending = 0;
 	iodev->state = CRAS_IODEV_STATE_OPEN;

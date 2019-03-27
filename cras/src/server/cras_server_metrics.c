@@ -13,6 +13,8 @@
 #include "cras_main_message.h"
 #include "cras_rstream.h"
 
+const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
+const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
 const char kHighestOutputHardwareLevel[] = "Cras.HighestOutputHardwareLevel";
 const char kMissedCallbackFirstTimeInput[] =
@@ -39,6 +41,8 @@ const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	HIGHEST_DEVICE_DELAY_INPUT,
+	HIGHEST_DEVICE_DELAY_OUTPUT,
 	HIGHEST_INPUT_HW_LEVEL,
 	HIGHEST_OUTPUT_HW_LEVEL,
 	LONGEST_FETCH_DELAY,
@@ -78,6 +82,50 @@ static void init_server_metrics_msg(
 	msg->header.length = sizeof(*msg);
 	msg->metrics_type = type;
 	msg->data = data;
+}
+
+int cras_server_metrics_highest_device_delay(unsigned int hw_level,
+		unsigned int largest_cb_level, enum CRAS_STREAM_DIRECTION direction)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	if (largest_cb_level == 0) {
+		syslog(LOG_ERR, "Failed to record device delay: devided by zero");
+		return -1;
+	}
+
+	/*
+	 * Because the latency depends on the callback threshold of streams, it
+	 * should be calculated as dividing the highest hardware level by largest
+	 * callback threshold of streams. For output device, this value should fall
+	 * around 2 because CRAS 's scheduling maintain device buffer level around
+	 * 1~2 minimum callback level. For input device, this value should be around
+	 * 1 because the device buffer level is around 0~1 minimum callback level.
+	 * Besides, UMA cannot record float so this ratio is multiplied by 1000.
+	 */
+	data.value = hw_level * 1000 / largest_cb_level;
+
+	switch (direction) {
+	case CRAS_STREAM_INPUT:
+		init_server_metrics_msg(&msg, HIGHEST_DEVICE_DELAY_INPUT, data);
+		break;
+	case CRAS_STREAM_OUTPUT:
+		init_server_metrics_msg(&msg, HIGHEST_DEVICE_DELAY_OUTPUT, data);
+		break;
+	default:
+		return 0;
+	}
+
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: HIGHEST_DEVICE_DELAY");
+		return err;
+	}
+
+	return 0;
 }
 
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
@@ -268,6 +316,14 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	struct cras_server_metrics_message *metrics_msg =
 			(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
+	case HIGHEST_DEVICE_DELAY_INPUT:
+		cras_metrics_log_histogram(kHighestDeviceDelayInput,
+				metrics_msg->data.value, 1, 10000, 20);
+		break;
+	case HIGHEST_DEVICE_DELAY_OUTPUT:
+		cras_metrics_log_histogram(kHighestDeviceDelayOutput,
+				metrics_msg->data.value, 1, 10000, 20);
+		break;
 	case HIGHEST_INPUT_HW_LEVEL:
 		cras_metrics_log_histogram(kHighestInputHardwareLevel,
 				metrics_msg->data.value, 1, 10000, 20);

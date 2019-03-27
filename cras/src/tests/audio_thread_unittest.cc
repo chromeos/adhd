@@ -5,6 +5,7 @@
 extern "C" {
 #include "audio_thread.c"
 #include "cras_audio_area.h"
+#include "metrics_stub.h"
 }
 
 #include <gtest/gtest.h>
@@ -1394,22 +1395,6 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev)
   cras_iodev_prepare_output_before_write_samples_called++;
   odev->state = cras_iodev_prepare_output_before_write_samples_state;
   return cras_iodev_prepare_output_before_write_samples_ret;
-}
-
-int cras_server_metrics_highest_hw_level(unsigned hw_level,
-		enum CRAS_STREAM_DIRECTION direction)
-{
-  return 0;
-}
-
-int cras_server_metrics_longest_fetch_delay(int delay_msec)
-{
-  return 0;
-}
-
-int cras_server_metrics_num_underruns(unsigned num_underruns)
-{
-  return 0;
 }
 
 float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)

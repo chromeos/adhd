@@ -575,7 +575,7 @@ array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 array_unittest_LDADD = -lgtest -lpthread
 
 audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
-	server/dev_io.c tests/empty_audio_stub.cc
+	server/dev_io.c tests/empty_audio_stub.cc tests/metrics_stub.cc
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt

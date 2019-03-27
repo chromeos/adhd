@@ -10,6 +10,10 @@
 
 extern const char kNoCodecsFoundMetric[];
 
+/* Logs the highest delay time of a device. */
+int cras_server_metrics_highest_device_delay(unsigned int hw_level,
+		unsigned int largest_cb_level, enum CRAS_STREAM_DIRECTION direction);
+
 /* Logs the highest hardware level of a device. */
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
 		enum CRAS_STREAM_DIRECTION direction);

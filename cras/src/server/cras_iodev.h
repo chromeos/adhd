@@ -172,6 +172,10 @@ struct cras_ionode {
  *         in enum CRAS_IODEV_STATE.
  * min_cb_level - min callback level of any stream attached.
  * max_cb_level - max callback level of any stream attached.
+ * highest_hw_level - The highest hardware level of the device.
+ * largest_cb_level - The largest callback level of streams attached to this
+ *                    device. The difference with max_cb_level is it takes all
+ *                    streams into account even if they have been removed.
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
  * idle_timeout - The timestamp when to close the dev after being idle.
@@ -253,6 +257,8 @@ struct cras_iodev {
 	enum CRAS_IODEV_STATE state;
 	unsigned int min_cb_level;
 	unsigned int max_cb_level;
+	unsigned int highest_hw_level;
+	unsigned int largest_cb_level;
 	struct buffer_share *buf_state;
 	struct timespec idle_timeout;
 	loopback_hook_t pre_dsp_hook;
@@ -267,7 +273,6 @@ struct cras_iodev {
 	int input_streaming;
 	unsigned int input_frames_read;
 	unsigned int input_dsp_offset;
-	unsigned int highest_hw_level;
 	struct input_data *input_data;
 	struct cras_iodev *prev, *next;
 };

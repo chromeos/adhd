@@ -988,12 +988,15 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 	if (!odev)
 		return;
 
-
 	DL_DELETE(*odev_list, dev_to_rm);
 
 	/* Metrics logs the number of underruns of this device. */
 	cras_server_metrics_num_underruns(
 		cras_iodev_get_num_underruns(dev_to_rm->dev));
+
+	/* Metrics logs the delay of this device. */
+	cras_server_metrics_highest_device_delay(dev_to_rm->dev->highest_hw_level,
+		dev_to_rm->dev->largest_cb_level, dev_to_rm->dev->direction);
 
 	/* Metrics logs the highest_hw_level of this device. */
 	cras_server_metrics_highest_hw_level(

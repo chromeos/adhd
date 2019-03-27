@@ -6,8 +6,15 @@
 extern "C" {
 #include "cras_server_metrics.h"
 
+int cras_server_metrics_highest_device_delay(unsigned int hw_level,
+    unsigned int largest_cb_level,
+    enum CRAS_STREAM_DIRECTION direction)
+{
+  return 0;
+}
+
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
-                                         enum CRAS_STREAM_DIRECTION direction)
+    enum CRAS_STREAM_DIRECTION direction)
 {
   return 0;
 }
