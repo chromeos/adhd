@@ -51,7 +51,7 @@ struct empty_iodev {
 static unsigned int current_level(const struct cras_iodev *iodev)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
-	uint64_t frames_since_start;
+	uint64_t frames_since_start, nframes;
 
 	if (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD)
 		return 0;
@@ -60,8 +60,10 @@ static unsigned int current_level(const struct cras_iodev *iodev)
 			&empty_iodev->dev_start_time,
 			iodev->format->frame_rate);
 
-	if (iodev->direction == CRAS_STREAM_INPUT)
-		return (frames_since_start - empty_iodev->read_frames);
+	if (iodev->direction == CRAS_STREAM_INPUT) {
+		nframes = frames_since_start - empty_iodev->read_frames;
+		return MIN(nframes, EMPTY_FRAMES);
+	}
 
 	/* output */
 	if (empty_iodev->written_frames <= frames_since_start)
