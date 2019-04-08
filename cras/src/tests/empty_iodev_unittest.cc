@@ -42,6 +42,7 @@ TEST(EmptyIodev, GetInputBuffer) {
   iodev->get_buffer(iodev, &area, &nframes);
   ASSERT_EQ(4096, nframes);
 
+  iodev->close_dev(iodev);
   empty_iodev_destroy(iodev);
 }
 
