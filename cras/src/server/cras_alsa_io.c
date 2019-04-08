@@ -866,6 +866,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		}
 		cras_iodev_rm_node(&aio->base, node);
 		free(node->softvol_scalers);
+		free((void *)node->dsp_name);
 		free(node);
 	}
 
@@ -1197,6 +1198,10 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 						   strlen(name),
 						   aio->base.info.stable_id_new
 						   );
+	if(aio->ucm)
+		output->base.dsp_name = ucm_get_dsp_name_for_dev(aio->ucm,
+								 name);
+
 	if (strcmp(name, "SCO Line Out") == 0)
 		output->base.is_sco_pcm = 1;
 	output->mixer_output = cras_output;
@@ -1316,6 +1321,8 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 			iodev->post_close_iodev_hook =
 				cras_iodev_list_resume_hotword_stream;
 		}
+
+		input->base.dsp_name = ucm_get_dsp_name_for_dev(aio->ucm, name);
 	}
 
 	cras_iodev_add_node(&aio->base, &input->base);
@@ -1404,24 +1411,18 @@ static const struct cras_alsa_jack *get_jack_from_node(struct cras_ionode *node)
 }
 
 /*
- * Returns the dsp name specified in the ucm config. If there is a dsp
- * name specified for the jack of the active node, use that. Otherwise
- * use the default dsp name for the alsa_io device.
+ * Returns the dsp name specified in the ucm config. If there is a dsp name
+ * specified for the active node, use that. Otherwise use the default dsp name
+ * for the alsa_io device.
  */
 static const char *get_active_dsp_name(struct alsa_io *aio)
 {
 	struct cras_ionode *node = aio->base.active_node;
-	const struct cras_alsa_jack *jack;
 
 	if (node == NULL)
 		return NULL;
 
-	if (aio->base.direction == CRAS_STREAM_OUTPUT)
-		jack = ((struct alsa_output_node *) node)->jack;
-	else
-		jack = ((struct alsa_input_node *) node)->jack;
-
-	return cras_alsa_jack_get_dsp_name(jack) ? : aio->dsp_name_default;
+	return node->dsp_name ? : aio->dsp_name_default;
 }
 
 /*

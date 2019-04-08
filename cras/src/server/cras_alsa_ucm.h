@@ -156,18 +156,6 @@ char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
 const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
 				      const char *dev);
 
-/* Gets the dsp name which is associated with the given ucm device.
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- *    ucm_dev - The ucm device to get dsp name for.
- *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
- * Returns:
- *    A pointer to the allocated string containing the dsp name, or NULL if no
- *    dsp name is found.
- */
-const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
-			     int direction);
-
 /* Gets the default dsp name.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
@@ -178,6 +166,17 @@ const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
  */
 const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
 				     int direction);
+
+/* Gets the dsp name which is associated with the given ucm device.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to get dsp name for.
+ * Returns:
+ *    A pointer to the allocated string containing the dsp name, or NULL if no
+ *    dsp name is found.
+ */
+const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,
+				     const char *dev);
 
 /* Gets the minimum buffer level for an output.  This level will add latency to
  * all streams playing on the output, but can be used to work around an

@@ -84,7 +84,6 @@ static int ucm_set_enabled_value;
 static unsigned long eviocbit_ret[NBITS(SW_CNT)];
 static int gpio_switch_eviocgbit_fd;
 static const char *edid_file_ret;
-static size_t ucm_get_dsp_name_called;
 static unsigned ucm_get_override_type_name_called;
 static char *ucm_get_device_name_for_dev_value;
 static snd_hctl_t *fake_hctl = (snd_hctl_t *)2;
@@ -136,7 +135,6 @@ static void ResetStubData() {
   ucm_get_cap_control_value = NULL;
   ucm_get_dev_for_jack_return = false;
   edid_file_ret = NULL;
-  ucm_get_dsp_name_called = 0;
   ucm_get_override_type_name_called = 0;
   ucm_get_device_name_for_dev_value = NULL;
 
@@ -281,14 +279,13 @@ static struct cras_alsa_jack_list *run_test_with_section(
   EXPECT_EQ(add_jack_rc,
       cras_alsa_jack_list_add_jack_for_section(jack_list, ucm_section, &jack));
   if (add_jack_rc == 0) {
-    EXPECT_EQ(njacks, ucm_get_dsp_name_called);
     EXPECT_NE(jack, reinterpret_cast<struct cras_alsa_jack *>(NULL));
   } else {
     EXPECT_EQ(jack, reinterpret_cast<struct cras_alsa_jack *>(NULL));
   }
-  if (add_jack_rc != 0 || njacks != ucm_get_dsp_name_called) {
-      cras_alsa_jack_list_destroy(jack_list);
-      return NULL;
+  if (add_jack_rc != 0) {
+    cras_alsa_jack_list_destroy(jack_list);
+    return NULL;
   }
   EXPECT_EQ(njacks, snd_hctl_elem_set_callback_called);
   EXPECT_EQ(njacks, cras_alsa_mixer_get_control_for_section_called);
@@ -1161,12 +1158,6 @@ char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
   ++ucm_get_dev_for_jack_called;
   if (ucm_get_dev_for_jack_return)
     return static_cast<char*>(malloc(1)); // Will be freed in jack_list_destroy.
-  return NULL;
-}
-
-const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
-                       int direction) {
-  ++ucm_get_dsp_name_called;
   return NULL;
 }
 

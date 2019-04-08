@@ -22,6 +22,7 @@ static const char mic_positions[] = "MicPositions";
 static const char override_type_name_var[] = "OverrideNodeType";
 static const char output_dsp_name_var[] = "OutputDspName";
 static const char input_dsp_name_var[] = "InputDspName";
+static const char dsp_name_var[] = "DspName";
 static const char mixer_var[] = "MixerName";
 static const char swap_mode_suffix[] = "Swap Mode";
 static const char min_buffer_level_var[] = "MinBufferLevel";
@@ -610,8 +611,8 @@ const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
 	return file_name;
 }
 
-const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
-			     int direction)
+const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
+				     int direction)
 {
 	const char *var = (direction == CRAS_STREAM_OUTPUT)
 		? output_dsp_name_var
@@ -619,17 +620,24 @@ const char *ucm_get_dsp_name(struct cras_use_case_mgr *mgr, const char *ucm_dev,
 	const char *dsp_name = NULL;
 	int rc;
 
-	rc = get_var(mgr, var, ucm_dev, uc_verb(mgr), &dsp_name);
+	rc = get_var(mgr, var, "", uc_verb(mgr), &dsp_name);
 	if (rc)
 		return NULL;
 
 	return dsp_name;
 }
 
-const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
-				     int direction)
+const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,
+				     const char *dev)
 {
-	return ucm_get_dsp_name(mgr, "", direction);
+	const char *dsp_name = NULL;
+	int rc;
+
+	rc = get_var(mgr, dsp_name_var, dev, uc_verb(mgr), &dsp_name);
+	if (rc)
+		return NULL;
+
+	return dsp_name;
 }
 
 int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr,

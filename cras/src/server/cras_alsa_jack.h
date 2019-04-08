@@ -147,12 +147,6 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 void cras_alsa_jack_update_node_type(const struct cras_alsa_jack *jack,
 				     enum CRAS_NODE_TYPE *type);
 
-/* Gets the dsp name of a jack.
- * Args:
- *    jack_list - The jack list to query.
- */
-const char *cras_alsa_jack_get_dsp_name(const struct cras_alsa_jack *jack);
-
 /* Enables the ucm device for this jack if any.
  * Args:
  *    jack - The jack to query for a mixer output.
