@@ -286,6 +286,7 @@ void cras_bt_device_destroy(struct cras_bt_device *device)
 		cras_tm_cancel_timer(tm, device->switch_profile_timer);
 	if (device->suspend_timer)
 		cras_tm_cancel_timer(tm, device->suspend_timer);
+	free(device->adapter_obj_path);
 	free(device->object_path);
 	free(device->address);
 	free(device->name);
