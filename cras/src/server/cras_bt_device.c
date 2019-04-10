@@ -315,30 +315,6 @@ struct cras_bt_device *cras_bt_device_get(const char *object_path)
 	return NULL;
 }
 
-size_t cras_bt_device_get_list(struct cras_bt_device ***device_list_out)
-{
-	struct cras_bt_device *device;
-	struct cras_bt_device **device_list = NULL;
-	size_t num_devices = 0;
-
-	DL_FOREACH(devices, device) {
-		struct cras_bt_device **tmp;
-
-		tmp = realloc(device_list,
-			      sizeof(device_list[0]) * (num_devices + 1));
-		if (!tmp) {
-			free(device_list);
-			return -ENOMEM;
-		}
-
-		device_list = tmp;
-		device_list[num_devices++] = device;
-	}
-
-	*device_list_out = device_list;
-	return num_devices;
-}
-
 const char *cras_bt_device_object_path(const struct cras_bt_device *device)
 {
 	return device->object_path;

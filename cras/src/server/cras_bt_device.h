@@ -32,7 +32,6 @@ void cras_bt_device_destroy(struct cras_bt_device *device);
 void cras_bt_device_reset();
 
 struct cras_bt_device *cras_bt_device_get(const char *object_path);
-size_t cras_bt_device_get_list(struct cras_bt_device ***device_list_out);
 
 const char *cras_bt_device_object_path(const struct cras_bt_device *device);
 struct cras_bt_adapter *cras_bt_device_adapter(
