@@ -591,6 +591,9 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	di->num_severe_underruns = cras_iodev_get_num_severe_underruns(
 			adev->dev);
 	di->highest_hw_level = adev->dev->highest_hw_level;
+	di->software_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT)
+			? adev->dev->software_gain_scaler
+			: 0.0f;
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;
 		di->num_channels = fmt->num_channels;
@@ -630,6 +633,7 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->pinned_dev_idx = stream->stream->pinned_dev_idx;
 	si->is_pinned = stream->stream->is_pinned;
 	si->num_missed_cb = stream->stream->num_missed_cb;
+	si->stream_volume = cras_rstream_get_volume_scaler(stream->stream);
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &stream->stream->start_ts, &time_since);

@@ -256,6 +256,7 @@ struct __attribute__ ((__packed__)) audio_dev_debug_info {
 	uint32_t num_underruns;
 	uint32_t num_severe_underruns;
 	uint32_t highest_hw_level;
+	double software_gain_scaler;
 };
 
 struct __attribute__ ((__packed__)) audio_stream_debug_info {
@@ -277,6 +278,7 @@ struct __attribute__ ((__packed__)) audio_stream_debug_info {
 	uint32_t pinned_dev_idx;
 	uint32_t runtime_sec;
 	uint32_t runtime_nsec;
+	double stream_volume;
 	int8_t channel_layout[CRAS_CH_MAX];
 };
 

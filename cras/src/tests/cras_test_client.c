@@ -579,7 +579,8 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "est_rate_ratio: %lf\n"
 		       "num_underruns: %u\n"
 		       "num_severe_underruns: %u\n"
-		       "highest_hw_level: %u\n",
+		       "highest_hw_level: %u\n"
+		       "software_gain_scaler: %lf\n",
 		       (unsigned int)info->devs[i].buffer_size,
 		       (unsigned int)info->devs[i].min_buffer_level,
 		       (unsigned int)info->devs[i].min_cb_level,
@@ -589,7 +590,8 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       info->devs[i].est_rate_ratio,
 		       (unsigned int)info->devs[i].num_underruns,
 		       (unsigned int)info->devs[i].num_severe_underruns,
-		       (unsigned int)info->devs[i].highest_hw_level);
+		       (unsigned int)info->devs[i].highest_hw_level,
+		       info->devs[i].software_gain_scaler);
 		printf("\n");
 	}
 
@@ -617,6 +619,7 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "is_pinned: %x\n"
 		       "pinned_dev_idx: %x\n"
 		       "num_missed_cb: %u\n"
+		       "%s: %lf\n"
 		       "runtime: %u.%09u\n",
 		       (unsigned int)info->streams[i].buffer_frames,
 		       (unsigned int)info->streams[i].cb_threshold,
@@ -629,6 +632,9 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       (unsigned int)info->streams[i].is_pinned,
 		       (unsigned int)info->streams[i].pinned_dev_idx,
 		       (unsigned int)info->streams[i].num_missed_cb,
+		       (info->streams[i].direction == CRAS_STREAM_INPUT)
+				? "gain" : "volume",
+		       info->streams[i].stream_volume,
 		       (unsigned int)info->streams[i].runtime_sec,
 		       (unsigned int)info->streams[i].runtime_nsec);
 		printf("channel map:");
