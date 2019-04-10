@@ -164,6 +164,9 @@ struct cras_ionode {
  *        iodev. This will be used as the echo reference for echo cancellation.
  * is_enabled - True if this iodev is enabled, false otherwise.
  * software_volume_needed - True if volume control is not supported by hardware.
+ * software_gain_scaler - Scaler value to apply to captured data. This can
+ *     be different when active node changes. Configured when there's no
+ *     hardware gain control.
  * streams - List of audio streams serviced by dev.
  * state - Device is in one of close, open, normal, or no_stream state defined
  *         in enum CRAS_IODEV_STATE.
@@ -245,6 +248,7 @@ struct cras_iodev {
 	struct cras_iodev *echo_reference_dev;
 	int is_enabled;
 	int software_volume_needed;
+	float software_gain_scaler;
 	struct dev_stream *streams;
 	enum CRAS_IODEV_STATE state;
 	unsigned int min_cb_level;

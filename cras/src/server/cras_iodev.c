@@ -1028,6 +1028,15 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 		/* Initialize the input_streaming flag to zero.*/
 		iodev->input_streaming = 0;
+
+		/*
+		 * The device specific gain scaler to be used in audio thread.
+		 * It's expected to stick to 1.0f if device has hardware gain
+		 * control. For alsa device, this gain value can be configured
+		 * through UCM labels DefaultNodeGain.
+		 */
+		iodev->software_gain_scaler =
+				cras_iodev_get_software_gain_scaler(iodev);
 	}
 
 	add_ext_dsp_module_to_pipeline(iodev);

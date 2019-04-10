@@ -472,13 +472,21 @@ static int capture_to_streams(struct open_dev *adev)
 						  idev->buf_state,
 						  &area, &area_offset);
 			/*
+			 * The software gain scaler consist of two parts:
+			 * (1) The device gain scaler used when lack of hardware
+			 * gain control. Configured by the DefaultNodeGain label
+			 * in alsa UCM config.
+			 * (2) The gain scaler in cras_rstream set by app, for
+			 * example the AGC module in Chrome.
+			 *
 			 * APM has more advanced gain control mechanism, so
-			 * don't apply the CRAS software gain to this stream
-			 * if APM is used.
+			 * don't apply the software gain of this stream if APM
+			 * is used.
 			 */
-			software_gain_scaler = stream->stream->apm_list
-				? 1.0f
-				: cras_rstream_get_volume_scaler(stream->stream);
+			software_gain_scaler = idev->software_gain_scaler;
+			if (stream->stream->apm_list == NULL)
+				software_gain_scaler *=
+					cras_rstream_get_volume_scaler(stream->stream);
 
 			this_read = dev_stream_capture(
 					stream, area, area_offset,
