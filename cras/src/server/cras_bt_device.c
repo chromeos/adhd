@@ -275,7 +275,7 @@ int cras_bt_device_disconnect(DBusConnection *conn,
 	return 0;
 }
 
-void cras_bt_device_destroy(struct cras_bt_device *device)
+static void cras_bt_device_destroy(struct cras_bt_device *device)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
 	DL_DELETE(devices, device);
@@ -291,6 +291,25 @@ void cras_bt_device_destroy(struct cras_bt_device *device)
 	free(device->address);
 	free(device->name);
 	free(device);
+}
+
+void cras_bt_device_remove(struct cras_bt_device *device)
+{
+	/*
+	 * We expect BT stack to disconnect this device before removing it,
+	 * but it may not the case if there's issue at BT side. Print error
+	 * log whenever this happens.
+	 */
+	if (device->connected)
+		syslog(LOG_ERR, "Removing dev with connected profiles %u",
+		       device->connected_profiles);
+	/*
+	 * Possibly clean up the associated A2DP and HFP AG iodevs that are
+	 * still accessing this device.
+	 */
+	cras_a2dp_suspend_connected_device(device);
+	cras_hfp_ag_suspend_connected_device(device);
+	cras_bt_device_destroy(device);
 }
 
 void cras_bt_device_reset()

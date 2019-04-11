@@ -122,7 +122,7 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 		if (device) {
 			syslog(LOG_INFO, "Bluetooth Device: %s removed",
 			       cras_bt_device_address(device));
-			cras_bt_device_destroy(device);
+			cras_bt_device_remove(device);
 		}
 
 	} else if (strcmp(interface_name,

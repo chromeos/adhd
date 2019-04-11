@@ -28,7 +28,13 @@ enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid);
 
 struct cras_bt_device *cras_bt_device_create(DBusConnection *conn,
 					     const char *object_path);
-void cras_bt_device_destroy(struct cras_bt_device *device);
+
+/*
+ * Removes a BT device from record. If this device is connected state,
+ * ensure the associated A2DP and HFP AG be removed cleanly.
+ */
+void cras_bt_device_remove(struct cras_bt_device *device);
+
 void cras_bt_device_reset();
 
 struct cras_bt_device *cras_bt_device_get(const char *object_path);

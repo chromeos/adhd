@@ -82,7 +82,7 @@ TEST(BtDeviceSuite, CreateBtDevice) {
   device = cras_bt_device_get(FAKE_OBJ_PATH);
   EXPECT_NE((void *)NULL, device);
 
-  cras_bt_device_destroy(device);
+  cras_bt_device_remove(device);
   device = cras_bt_device_get(FAKE_OBJ_PATH);
   EXPECT_EQ((void *)NULL, device);
 }
@@ -123,7 +123,7 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   EXPECT_EQ(1, cras_bt_io_remove_called);
   EXPECT_EQ(1, cras_bt_io_destroy_called);
   EXPECT_EQ(0, cras_bt_device_get_active_profile(device));
-  cras_bt_device_destroy(device);
+  cras_bt_device_remove(device);
 }
 
 TEST_F(BtDeviceTestSuite, SwitchProfile) {
@@ -157,7 +157,7 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
   cras_main_message_add_handler_callback(
       cras_main_message_send_msg,
       cras_main_message_add_handler_callback_data);
-  cras_bt_device_destroy(device);
+  cras_bt_device_remove(device);
 }
 
 /* Stubs */
