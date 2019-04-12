@@ -15,7 +15,7 @@ use cras_sys::gen::{
     cras_disconnect_stream_message, cras_server_message, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID,
     CRAS_SERVER_MESSAGE_ID, CRAS_STREAM_DIRECTION,
 };
-use sys_util::{error, log};
+use sys_util::error;
 
 use crate::audio_socket::{AudioMessage, AudioSocket};
 use crate::cras_server_socket::CrasServerSocket;
