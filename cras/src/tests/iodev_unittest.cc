@@ -1181,6 +1181,7 @@ TEST(IoDev, SetNodeVolume) {
   iodev.direction = CRAS_STREAM_OUTPUT;
   ionode.dev = &iodev;
   softvol_scalers[20] = 0.5;
+  softvol_scalers[30] = 0.55;
 
   ResetStubData();
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 10);
@@ -1191,6 +1192,14 @@ TEST(IoDev, SetNodeVolume) {
   ResetStubData();
   iodev.software_volume_needed = 1;
   cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 20);
+  EXPECT_EQ(1, notify_node_volume_called);
+  // Even with software volume, device with NULL ramp won't trigger ramp start.
+  EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  ResetStubData();
+  iodev.software_volume_needed = 1;
+  iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+  cras_iodev_set_node_attr(&ionode, IONODE_ATTR_VOLUME, 30);
   EXPECT_EQ(1, notify_node_volume_called);
   EXPECT_EQ(1, cras_ramp_start_is_called);
 

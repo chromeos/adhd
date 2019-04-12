@@ -706,7 +706,7 @@ static void set_node_volume(struct cras_ionode *node, int value)
 		return;
 
 	volume = (unsigned int)MIN(value, 100);
-	if (cras_iodev_software_volume_needed(dev))
+	if (dev->ramp && cras_iodev_software_volume_needed(dev))
 		cras_iodev_start_volume_ramp(dev, node->volume, volume);
 	node->volume = volume;
 	if (dev->set_volume)
@@ -1579,13 +1579,10 @@ int cras_iodev_start_volume_ramp(struct cras_iodev *odev,
 
 	if (old_volume == new_volume)
 		return 0;
-
 	if (!cras_iodev_is_open(odev))
 		return 0;
-
 	if (!odev->format)
 		return -EINVAL;
-
 	if (odev->active_node && odev->active_node->softvol_scalers) {
 		old_scaler = odev->active_node->softvol_scalers[old_volume];
 		new_scaler = odev->active_node->softvol_scalers[new_volume];
@@ -1593,11 +1590,9 @@ int cras_iodev_start_volume_ramp(struct cras_iodev *odev,
 		old_scaler = softvol_get_scaler(old_volume);
 		new_scaler = softvol_get_scaler(new_volume);
 	}
-
 	if (new_scaler == 0.0) {
 		return -EINVAL;
 	}
-
 	/* We will soon set odev's volume to new_volume from old_volume.
 	 * Because we're using softvol, we were previously scaling our volume by
 	 * old_scaler. If we want to avoid a jump in volume, we need to start
