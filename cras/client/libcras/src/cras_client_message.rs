@@ -91,7 +91,7 @@ impl ServerResult {
     ///
     /// # Arguments
     /// * `server_socket`: A reference to `CrasServerSocket`.
-    pub fn handle_server_message<'a>(server_socket: &CrasServerSocket) -> Result<ServerResult> {
+    pub fn handle_server_message(server_socket: &CrasServerSocket) -> Result<ServerResult> {
         let message = CrasClientMessage::try_new(&server_socket)?;
         match message.get_id()? {
             CRAS_CLIENT_MESSAGE_ID::CRAS_CLIENT_CONNECTED => {

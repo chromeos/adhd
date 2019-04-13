@@ -123,10 +123,7 @@ impl AudioSocket {
         // Check the first readable message
         let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
         match tokens.get(0) {
-            None => Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Unexpected exit"),
-            )),
+            None => Err(io::Error::new(io::ErrorKind::Other, "Unexpected exit")),
             Some(&Token::AudioMsg) => {
                 let raw_msg: audio_message = self.read_from_socket()?;
                 Ok(AudioMessage::from(raw_msg))

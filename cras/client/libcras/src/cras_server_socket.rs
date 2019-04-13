@@ -8,7 +8,7 @@ use sys_util::{net::UnixSeqpacket, ScmSocket};
 
 use data_model::DataInit;
 
-const CRAS_SERVER_SOCKET_PATH: &'static str = "/run/cras/.cras_socket";
+const CRAS_SERVER_SOCKET_PATH: &str = "/run/cras/.cras_socket";
 /// A socket connecting to the CRAS audio server.
 pub struct CrasServerSocket {
     socket: UnixSeqpacket,

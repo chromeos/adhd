@@ -97,11 +97,11 @@ impl<'a> CrasStreamData<'a> for CrasPlaybackData<'a> {
 impl<'a> BufferDrop for CrasPlaybackData<'a> {
     fn trigger(&mut self, nframes: usize) {
         let log_err = |e| error!("BufferDrop error: {}", e);
-        self.header.as_mut().map(|header| {
+        if let Some(header) = &mut self.header {
             if let Err(e) = header.commit_written_frames(nframes as u32) {
                 log_err(e);
             }
-        });
+        }
         if let Err(e) = self.audio_sock.data_ready(nframes as u32) {
             log_err(e);
         }
@@ -138,11 +138,11 @@ impl<'a> CrasStreamData<'a> for CrasCaptureData<'a> {
 impl<'a> BufferDrop for CrasCaptureData<'a> {
     fn trigger(&mut self, nframes: usize) {
         let log_err = |e| error!("BufferDrop error: {}", e);
-        self.header.as_mut().map(|header| {
+        if let Some(header) = &mut self.header {
             if let Err(e) = header.commit_read_frames(nframes as u32) {
                 log_err(e);
             }
-        });
+        }
         if let Err(e) = self.audio_sock.capture_ready(nframes as u32) {
             log_err(e);
         }
@@ -204,7 +204,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
 
     fn wait_request_data(&mut self) -> Result<(), Error> {
         match self.controls.audio_sock_mut().read_audio_message()? {
-            AudioMessage::Success { id, frames: _ } => match id {
+            AudioMessage::Success { id, .. } => match id {
                 CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA => Ok(()),
                 _ => Err(Error::new(ErrorType::MessageTypeError)),
             },
@@ -249,7 +249,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> Drop for CrasStream<'a, T> {
 impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream<'a, T> {
     fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, Box<error::Error>> {
         // Wait for request audio message
-        self.wait_request_data().map_err(|e| Box::new(e))?;
+        self.wait_request_data()?;
         let (frame_size, (offset, len)) = match self.controls.header_mut() {
             None => return Err(Error::new(ErrorType::NoShmError).into()),
             Some(header) => (header.get_frame_size(), header.get_offset_and_len()),
@@ -258,7 +258,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
             None => return Err(Error::new(ErrorType::NoShmError).into()),
             Some(audio_buffer) => &mut audio_buffer.get_buffer()[offset..offset + len],
         };
-        PlaybackBuffer::new(frame_size, buf, &mut self.controls).map_err(|e| e.into())
+        PlaybackBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)
     }
 }
 
@@ -279,6 +279,6 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<
             None => return Err(Error::new(ErrorType::NoShmError).into()),
             Some(audio_buffer) => &mut audio_buffer.get_buffer()[offset..offset + len],
         };
-        CaptureBuffer::new(frame_size, buf, &mut self.controls).map_err(|e| e.into())
+        CaptureBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)
     }
 }

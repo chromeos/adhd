@@ -305,13 +305,11 @@ impl CrasClient {
         );
 
         loop {
-            match self.handle_server_message()? {
-                ServerResult::StreamConnected(_stream_id, shm_fd) => {
-                    stream.init_shm(shm_fd)?;
-                    break;
-                }
-                _ => (),
-            };
+            let result = self.handle_server_message()?;
+            if let ServerResult::StreamConnected(_stream_id, shm_fd) = result {
+                stream.init_shm(shm_fd)?;
+                break;
+            }
         }
 
         Ok(stream)
@@ -336,7 +334,7 @@ impl CrasClient {
                 match token {
                     Token::ServerMsg => ServerResult::handle_server_message(&self.server_socket),
                 }
-                .map_err(|e| e.into())
+                .map_err(Into::into)
             })
     }
 }
