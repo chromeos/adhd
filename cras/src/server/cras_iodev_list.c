@@ -392,8 +392,6 @@ static int close_dev_without_idle_check(struct cras_iodev *dev)
 {
 	if (!cras_iodev_is_open(dev))
 	       return -EINVAL;
-	if (stream_list_has_pinned_stream(stream_list, dev->info.idx))
-		syslog(LOG_ERR, "Closing device with pinned streams.");
 
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
@@ -944,7 +942,11 @@ static int disable_device(struct enabled_dev *edev, bool force)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, stream, dev);
 	}
-	if (stream_list_has_pinned_stream(stream_list, dev->info.idx))
+	/* If this is a force disable call, that guarantees pinned streams have
+	 * all been detached. Otherwise check with stream_list to see if
+	 * there's still a pinned stream using this device.
+	 */
+	if (!force && stream_list_has_pinned_stream(stream_list, dev->info.idx))
 		return 0;
 	DL_FOREACH(device_enable_cbs, callback)
 		callback->disabled_cb(dev, callback->cb_data);
@@ -965,7 +967,10 @@ static int force_close_pinned_only_device(struct cras_iodev *dev)
 {
 	struct cras_rstream *rstream;
 
-	/* Pull pinned streams off this device. */
+	/* Pull pinned streams off this device. Note that this is initiated
+	 * from server side, so the pin stream still exist in stream_list
+	 * pending client side to actually remove it.
+	 */
 	DL_FOREACH(stream_list_get(stream_list), rstream) {
 		if (rstream->direction != dev->direction)
 			continue;
@@ -975,8 +980,7 @@ static int force_close_pinned_only_device(struct cras_iodev *dev)
 			continue;
 		audio_thread_disconnect_stream(audio_thread, rstream, dev);
 	}
-	if (stream_list_has_pinned_stream(stream_list, dev->info.idx))
-		return -EEXIST;
+
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 	return 0;
