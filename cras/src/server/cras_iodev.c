@@ -405,25 +405,19 @@ static inline void adjust_dev_channel_for_dsp(const struct cras_iodev *iodev)
 	if (!ctx || !cras_dsp_get_pipeline(ctx))
 		return;
 
-	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		iodev->format->num_channels =
 			cras_dsp_num_output_channels(ctx);
-		iodev->ext_format->num_channels =
-			cras_dsp_num_input_channels(ctx);
-	} else {
+	else
 		iodev->format->num_channels =
 			cras_dsp_num_input_channels(ctx);
-		iodev->ext_format->num_channels =
-			cras_dsp_num_output_channels(ctx);
-	}
 
 	cras_dsp_put_pipeline(ctx);
 }
 
 /* Updates channel layout based on the number of channels set by a
- * client stream. When successful we need to update the new channel
- * layout to ext_format, otherwise we should set a default value
- * to both format and ext_format.
+ * client stream. Set a default value to format if the update call
+ * fails.
  */
 static void update_channel_layout(struct cras_iodev *iodev)
 {
@@ -433,14 +427,8 @@ static void update_channel_layout(struct cras_iodev *iodev)
 		return;
 
 	rc = iodev->update_channel_layout(iodev);
-	if (rc < 0) {
+	if (rc < 0)
 		cras_audio_format_set_default_channel_layout(iodev->format);
-		cras_audio_format_set_default_channel_layout(iodev->ext_format);
-	} else {
-		cras_audio_format_set_channel_layout(
-				iodev->ext_format,
-				iodev->format->channel_layout);
-	}
 }
 
 /*
@@ -466,11 +454,9 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 	 * requested in "fmt". */
 	if (iodev->format == NULL) {
 		iodev->format = malloc(sizeof(struct cras_audio_format));
-		iodev->ext_format = malloc(sizeof(struct cras_audio_format));
-		if (!iodev->format || !iodev->ext_format)
+		if (!iodev->format)
 			return -ENOMEM;
 		*iodev->format = *fmt;
-		*iodev->ext_format = *fmt;
 
 		if (iodev->update_supported_formats) {
 			rc = iodev->update_supported_formats(iodev);
@@ -485,7 +471,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		 * stream. */
 		actual_rate = get_best_rate(iodev, fmt->frame_rate);
 		iodev->format->frame_rate = actual_rate;
-		iodev->ext_format->frame_rate = actual_rate;
 
 		cras_iodev_alloc_dsp(iodev);
 		cras_iodev_update_dsp(iodev);
@@ -502,13 +487,10 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 			goto error;
 		}
 		iodev->format->format = actual_format;
-		iodev->ext_format->format = actual_format;
 		if (iodev->format->num_channels != actual_num_channels) {
 			/* If the DSP for this device doesn't match, drop it. */
 			iodev->format->num_channels = actual_num_channels;
 			trim_channel_layout(iodev->format);
-			iodev->ext_format->num_channels = actual_num_channels;
-			trim_channel_layout(iodev->ext_format);
 			cras_iodev_free_dsp(iodev);
 		}
 
@@ -527,9 +509,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 
 error:
 	free(iodev->format);
-	free(iodev->ext_format);
 	iodev->format = NULL;
-	iodev->ext_format = NULL;
 	return rc;
 }
 
@@ -546,8 +526,8 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 	iodev->ext_dsp_module->configure(
 			iodev->ext_dsp_module,
 			iodev->buffer_size,
-			iodev->ext_format->num_channels,
-			iodev->ext_format->frame_rate);
+			iodev->format->num_channels,
+			iodev->format->frame_rate);
 
 	pipeline = iodev->dsp_context
 			? cras_dsp_get_pipeline(iodev->dsp_context)
@@ -619,9 +599,7 @@ int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev *iodev,
 void cras_iodev_free_format(struct cras_iodev *iodev)
 {
 	free(iodev->format);
-	free(iodev->ext_format);
 	iodev->format = NULL;
-	iodev->ext_format = NULL;
 }
 
 
@@ -911,7 +889,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 			return rc;
 	}
 
-	if (iodev->ext_format == NULL) {
+	if (iodev->format == NULL) {
 		rc = cras_iodev_set_format(iodev, fmt);
 		if (rc) {
 			iodev->close_dev(iodev);
@@ -930,7 +908,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	 */
 	cb_level = cras_frames_at_rate(fmt->frame_rate,
 				       cb_level,
-				       iodev->ext_format->frame_rate);
+				       iodev->format->frame_rate);
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;
@@ -1053,7 +1031,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 
 	DL_FOREACH(iodev->loopbacks, loopback) {
 		if (loopback->type == LOOPBACK_POST_MIX_PRE_DSP)
-			loopback->hook_data(frames, nframes, iodev->ext_format,
+			loopback->hook_data(frames, nframes, iodev->format,
 					    loopback->cb_data);
 	}
 
@@ -1063,7 +1041,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 
 	DL_FOREACH(iodev->loopbacks, loopback) {
 		if (loopback->type == LOOPBACK_POST_DSP)
-			loopback->hook_data(frames, nframes, iodev->ext_format,
+			loopback->hook_data(frames, nframes, iodev->format,
 					    loopback->cb_data);
 	}
 
@@ -1207,7 +1185,7 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
 	/* If output underruns, reset to avoid incorrect estimated rate. */
 	if ((iodev->direction == CRAS_STREAM_OUTPUT) && !level)
 		rate_estimator_reset_rate(iodev->rate_est,
-					  iodev->ext_format->frame_rate);
+					  iodev->format->frame_rate);
 
 	return rate_estimator_check(iodev->rate_est, level, level_tstamp);
 }
@@ -1215,14 +1193,14 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
 int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
 {
 	rate_estimator_reset_rate(iodev->rate_est,
-				  iodev->ext_format->frame_rate);
+				  iodev->format->frame_rate);
 	return 0;
 }
 
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 {
 	return rate_estimator_get_rate(iodev->rate_est) /
-			iodev->ext_format->frame_rate;
+			iodev->format->frame_rate;
 }
 
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
@@ -1292,7 +1270,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_ODEV_ZEROS, odev->info.idx, frames, 0);
 
-	frame_bytes = cras_get_format_bytes(odev->ext_format);
+	frame_bytes = cras_get_format_bytes(odev->format);
 	while (frames > 0) {
 		frames_written = frames;
 		rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);

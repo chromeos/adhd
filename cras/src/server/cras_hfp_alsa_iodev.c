@@ -78,12 +78,6 @@ static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
 	aio->format->frame_rate = 8000;
 	aio->format->num_channels = 1;
 
-	free(aio->ext_format);
-	aio->ext_format = malloc(sizeof(struct cras_audio_format));
-	if (!aio->ext_format)
-		return -ENOMEM;
-	memcpy(aio->ext_format, aio->format, sizeof(struct cras_audio_format));
-
 	free(iodev->supported_rates);
 	iodev->supported_rates = malloc(2 * sizeof(*iodev->supported_rates));
 	if (!iodev->supported_rates)

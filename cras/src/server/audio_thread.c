@@ -327,10 +327,10 @@ static int append_stream(struct audio_thread *thread,
 				}
 				level -= cras_frames_at_rate(stream->format.frame_rate,
 							     cras_rstream_get_cb_threshold(stream),
-							     dev->ext_format->frame_rate);
+							     dev->format->frame_rate);
 				if (level < 0)
 					level = 0;
-				cras_frames_to_time(level, dev->ext_format->frame_rate,
+				cras_frames_to_time(level, dev->format->frame_rate,
 						    &extra_sleep);
 				add_timespecs(&init_cb_ts, &extra_sleep);
 			}
@@ -346,7 +346,7 @@ static int append_stream(struct audio_thread *thread,
 		}
 
 		out = dev_stream_create(stream, dev->info.idx,
-					dev->ext_format, dev, &init_cb_ts);
+					dev->format, dev, &init_cb_ts);
 		if (!out) {
 			rc = -EINVAL;
 			break;
@@ -619,7 +619,7 @@ static void terminate_pb_thread()
 static void append_dev_dump_info(struct audio_dev_debug_info *di,
 				 struct open_dev *adev)
 {
-	struct cras_audio_format *fmt = adev->dev->ext_format;
+	struct cras_audio_format *fmt = adev->dev->format;
 	strncpy(di->dev_name, adev->dev->info.name, sizeof(di->dev_name));
 	di->buffer_size = adev->dev->buffer_size;
 	di->min_buffer_level = adev->dev->min_buffer_level;

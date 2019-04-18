@@ -125,7 +125,7 @@ class StreamDeviceSuite : public testing::Test {
       iodev->get_buffer = get_buffer;
       iodev->put_buffer = put_buffer;
       iodev->flush_buffer = flush_buffer;
-      iodev->ext_format = &format_;
+      iodev->format = &format_;
       iodev->buffer_size = BUFFER_SIZE;
       iodev->min_cb_level = FIRST_CB_LEVEL;
       iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;

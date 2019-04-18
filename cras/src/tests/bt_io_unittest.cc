@@ -133,9 +133,7 @@ class BtIoBasicSuite : public testing::Test {
     }
     static int close_dev(cras_iodev* iodev) {
       free(iodev->format);
-      free(iodev->ext_format);
       iodev->format = NULL;
-      iodev->ext_format = NULL;
       close_dev_called_++;
       return 0;
     }

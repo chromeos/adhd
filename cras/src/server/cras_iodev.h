@@ -185,8 +185,6 @@ struct cras_ionode {
  *                    played yet. Valid frames does not include zero samples
  *                    we filled under no streams state.
  * format - The audio format being rendered or captured to hardware.
- * ext_format - The audio format that is visible to the rest of the system.
- *     This can be different than the hardware if the device dsp changes it.
  * rate_est - Rate estimator to estimate the actual device rate.
  * area - Information about how the samples are stored.
  * info - Unique identifier for this device (index and name).
@@ -272,7 +270,6 @@ struct cras_iodev {
 	int (*get_valid_frames)(const struct cras_iodev *odev,
 				struct timespec *tstamp);
 	struct cras_audio_format *format;
-	struct cras_audio_format *ext_format;
 	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
 	struct cras_iodev_info info;

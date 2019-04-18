@@ -128,7 +128,7 @@ static int add_dev_to_list(struct cras_iodev *dev)
 			return -EEXIST;
 
 	dev->format = NULL;
-	dev->ext_format = NULL;
+	dev->format = NULL;
 	dev->prev = dev->next = NULL;
 
 	/* Move to the next index and make sure it isn't taken. */
@@ -600,7 +600,7 @@ static int add_stream_to_open_devs(struct cras_rstream *stream,
 		for (i = 0; i < num_iodevs; i++)
 			cras_apm_list_add(stream->apm_list,
 					  iodevs[i],
-					  iodevs[i]->ext_format);
+					  iodevs[i]->format);
 	}
 	return audio_thread_add_stream(audio_thread,
 				       stream, iodevs, num_iodevs);

@@ -79,7 +79,6 @@ TEST_F(LoopBackTestSuite, InstallLoopHook) {
 
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.format = &fmt_;
-  iodev.ext_format = &fmt_;
   iodev.streams = NULL;
   iodev.info.idx = 123;
   enabled_dev = &iodev;

@@ -60,7 +60,7 @@ static void update_estimated_rate(struct open_dev *adev)
 		}
 
 		dev_stream_set_dev_rate(dev_stream,
-				dev->ext_format->frame_rate,
+				dev->format->frame_rate,
 				cras_iodev_get_est_rate_ratio(dev),
 				cras_iodev_get_est_rate_ratio(master_dev),
 				adev->coarse_rate_adjust);
@@ -533,7 +533,7 @@ static int write_streams(struct open_dev **odevs,
 	struct cras_iodev *odev = adev->dev;
 	struct dev_stream *curr;
 	unsigned int max_offset = 0;
-	unsigned int frame_bytes = cras_get_format_bytes(odev->ext_format);
+	unsigned int frame_bytes = cras_get_format_bytes(odev->format);
 	unsigned int num_playing = 0;
 	unsigned int drain_limit = write_limit;
 
@@ -595,7 +595,7 @@ static int write_streams(struct open_dev **odevs,
 		offset = cras_iodev_stream_offset(odev, curr);
 		if (offset >= write_limit)
 			continue;
-		nwritten = dev_stream_mix(curr, odev->ext_format,
+		nwritten = dev_stream_mix(curr, odev->format,
 					  dst + frame_bytes * offset,
 					  write_limit - offset);
 
@@ -636,7 +636,7 @@ void update_dev_wakeup_time(struct open_dev *adev, unsigned int *hw_level)
 	if (cras_iodev_state(adev->dev) == CRAS_IODEV_STATE_NORMAL_RUN)
 		cras_iodev_update_highest_hw_level(adev->dev, *hw_level);
 
-	est_rate = adev->dev->ext_format->frame_rate *
+	est_rate = adev->dev->format->frame_rate *
 			cras_iodev_get_est_rate_ratio(adev->dev);
 
 	ATLOG(atlog, AUDIO_THREAD_SET_DEV_WAKE, adev->dev->info.idx,
