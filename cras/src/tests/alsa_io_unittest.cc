@@ -317,7 +317,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ("(default)", aio->base.active_node->name);
+  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
   ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
@@ -328,7 +328,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ("Speaker", aio->base.active_node->name);
+  ASSERT_STREQ(INTERNAL_SPEAKER, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
   ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
@@ -340,7 +340,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   /* No more call to get volume curve for input device. */
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ("(default)", aio->base.active_node->name);
+  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
   ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
@@ -351,7 +351,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ("Internal Mic", aio->base.active_node->name);
+  ASSERT_STREQ(INTERNAL_MICROPHONE, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   ASSERT_EQ((void *)no_stream, (void *)aio->base.no_stream);
   ASSERT_EQ((void *)is_free_running, (void *)aio->base.is_free_running);
@@ -368,7 +368,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ("(default)", aio->base.active_node->name);
+  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
   alsa_iodev_destroy((struct cras_iodev *)aio);
@@ -378,7 +378,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev *)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ("(default)", aio->base.active_node->name);
+  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
   alsa_iodev_destroy((struct cras_iodev *)aio);
@@ -592,7 +592,7 @@ TEST(AlsaIoInit, SoftwareGainWithDefaultNodeGain) {
   ucm_get_max_software_gain_value = 2000;
 
   // Set default node gain to -1000 * 0.01 dB.
-  ucm_get_default_node_gain_values["Internal Mic"] = default_node_gain;
+  ucm_get_default_node_gain_values[INTERNAL_MICROPHONE] = default_node_gain;
 
   // Assume this is the first device so it gets internal mic node name.
   iodev = alsa_iodev_create_with_default_parameters(0, NULL,
@@ -732,7 +732,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
 
   ResetStubData();
   // Set default node gain to -1000 * 0.01 dB.
-  ucm_get_default_node_gain_values["Internal Mic"] = default_node_gain;
+  ucm_get_default_node_gain_values[INTERNAL_MICROPHONE] = default_node_gain;
 
   // Assume this is the first device so it gets internal mic node name.
   iodev = alsa_iodev_create_with_default_parameters(0, NULL,
@@ -1105,7 +1105,7 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
 
   ResetStubData();
   output = reinterpret_cast<struct mixer_control *>(3);
-  cras_alsa_mixer_get_control_name_values[output] = "Headphone";
+  cras_alsa_mixer_get_control_name_values[output] = HEADPHONE;
 
   // Create the iodev
   iodev = alsa_iodev_create_with_default_parameters(
@@ -1116,9 +1116,9 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   EXPECT_EQ(1, cras_card_config_get_volume_curve_for_control_called);
 
   // First node 'Headphone'
-  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create(HEADPHONE, 0, CRAS_STREAM_OUTPUT,
                                "fake-jack", "gpio");
-  ucm_section_set_mixer_name(section, "Headphone");
+  ucm_section_set_mixer_name(section, HEADPHONE);
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack *>(10);
   cras_alsa_mixer_get_control_for_section_return_value = output;
@@ -1129,7 +1129,7 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   // Second node 'Line Out'
   section = ucm_section_create("Line Out", 0, CRAS_STREAM_OUTPUT,
                                "fake-jack", "gpio");
-  ucm_section_set_mixer_name(section, "Headphone");
+  ucm_section_set_mixer_name(section, HEADPHONE);
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack *>(20);
   cras_alsa_mixer_get_control_for_section_return_value = output;
@@ -1141,7 +1141,7 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   // report should trigger different node attribute change.
   cras_alsa_jack_get_mixer_output_ret = output;
   jack_output_plug_event(reinterpret_cast<struct cras_alsa_jack *>(10), 0, aio);
-  EXPECT_STREQ(cras_iodev_set_node_plugged_ionode->name, "Headphone");
+  EXPECT_STREQ(cras_iodev_set_node_plugged_ionode->name, HEADPHONE);
 
   jack_output_plug_event(reinterpret_cast<struct cras_alsa_jack *>(20), 0, aio);
   EXPECT_STREQ(cras_iodev_set_node_plugged_ionode->name, "Line Out");
@@ -1165,7 +1165,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_mixer_list_outputs_outputs = outputs;
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
   cras_alsa_mixer_get_control_name_values[outputs[0]] = INTERNAL_SPEAKER;
-  cras_alsa_mixer_get_control_name_values[outputs[1]] = "Headphone";
+  cras_alsa_mixer_get_control_name_values[outputs[1]] = HEADPHONE;
   ucm_get_dma_period_for_dev_ret = 1000;
 
   // Create the IO device.
@@ -1190,7 +1190,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
 
   // Add a second node (will use the same iodev).
-  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create(HEADPHONE, 0, CRAS_STREAM_OUTPUT,
                                jack_name, "hctl");
   ucm_section_add_coupled(section, "HP-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "HP-R", MIXER_NAME_VOLUME);
@@ -1306,7 +1306,7 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   // Node without controls or jacks.
   cras_alsa_jack_list_add_jack_for_section_result_jack =
     reinterpret_cast<struct cras_alsa_jack *>(1);
-  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create(HEADPHONE, 0, CRAS_STREAM_OUTPUT,
       jack_name, "hctl");
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
@@ -1341,8 +1341,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   inputs[1] = reinterpret_cast<struct mixer_control *>(4);
   cras_alsa_mixer_list_inputs_outputs = inputs;
   cras_alsa_mixer_list_inputs_outputs_length = ARRAY_SIZE(inputs);
-  cras_alsa_mixer_get_control_name_values[inputs[0]] = "Internal Mic";
-  cras_alsa_mixer_get_control_name_values[inputs[1]] = "Mic";
+  cras_alsa_mixer_get_control_name_values[inputs[0]] = INTERNAL_MICROPHONE;
+  cras_alsa_mixer_get_control_name_values[inputs[1]] = MIC;
 
   // Create the IO device.
   iodev = alsa_iodev_create_with_default_parameters(0, NULL,
@@ -1370,8 +1370,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack *>(1);
   cras_alsa_mixer_get_control_for_section_return_value = inputs[1];
-  section = ucm_section_create("Mic", 0, CRAS_STREAM_INPUT, jack_name, "hctl");
-  ucm_section_set_mixer_name(section, "Mic");
+  section = ucm_section_create(MIC, 0, CRAS_STREAM_INPUT, jack_name, "hctl");
+  ucm_section_set_mixer_name(section, MIC);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   ucm_section_free_list(section);
 
@@ -1479,7 +1479,7 @@ TEST(AlsaOutputNode, InputFromJackUCM) {
   // Node without controls or jacks.
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack *>(1);
-  section = ucm_section_create("Mic", 0, CRAS_STREAM_INPUT, jack_name, "hctl");
+  section = ucm_section_create(MIC, 0, CRAS_STREAM_INPUT, jack_name, "hctl");
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_iodev_add_node_called);
@@ -1512,7 +1512,7 @@ TEST(AlsaOutputNode, AutoUnplugOutputNode) {
   cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
 
   cras_alsa_mixer_get_control_name_values[outputs[0]] = INTERNAL_SPEAKER;
-  cras_alsa_mixer_get_control_name_values[outputs[1]] = "Headphone";
+  cras_alsa_mixer_get_control_name_values[outputs[1]] = HEADPHONE;
   auto_unplug_output_node_ret = 1;
 
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
@@ -1558,7 +1558,7 @@ TEST(AlsaOutputNode, AutoUnplugInputNode) {
   cras_alsa_mixer_list_inputs_outputs_length = ARRAY_SIZE(inputs);
 
   cras_alsa_mixer_get_control_name_values[inputs[0]] = INTERNAL_MICROPHONE;
-  cras_alsa_mixer_get_control_name_values[inputs[1]] = "Mic";
+  cras_alsa_mixer_get_control_name_values[inputs[1]] = MIC;
   auto_unplug_input_node_ret = 1;
 
   aio = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
@@ -1604,7 +1604,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "Speaker");
+  strcpy(node.name, INTERNAL_SPEAKER);
   dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.plugged);
@@ -1614,7 +1614,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "Internal Mic");
+  strcpy(node.name, INTERNAL_MICROPHONE);
   dev.direction = CRAS_STREAM_INPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(1, node.plugged);
@@ -1624,7 +1624,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "HDMI");
+  strcpy(node.name, HDMI);
   dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
@@ -1661,7 +1661,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "Headphone");
+  strcpy(node.name, HEADPHONE);
   dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
@@ -1679,7 +1679,7 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "Mic");
+  strcpy(node.name, MIC);
   dev.direction = CRAS_STREAM_INPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(0, node.plugged);
@@ -1730,8 +1730,8 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(0, node.plugged);
   ASSERT_EQ(CRAS_NODE_TYPE_MIC, node.type);
   ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
-  // Node name is changed to "Mic".
-  ASSERT_EQ(0, strcmp(node.name, "Mic"));
+  // Node name is changed to "MIC".
+  ASSERT_EQ(0, strcmp(node.name, MIC));
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1742,11 +1742,11 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(CRAS_NODE_TYPE_HEADPHONE, node.type);
   ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
   // Node name is changed to "Headphone".
-  ASSERT_EQ(0, strcmp(node.name, "Headphone"));
+  ASSERT_EQ(0, strcmp(node.name, HEADPHONE));
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "Speaker");
+  strcpy(node.name, INTERNAL_SPEAKER);
   dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(1, node.plugged);
@@ -1792,7 +1792,7 @@ TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
   dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
   ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
-  ASSERT_STREQ("USB", node.name);
+  ASSERT_STREQ(USB, node.name);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -1803,7 +1803,7 @@ TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
   dev.direction = CRAS_STREAM_OUTPUT;
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, node.type);
-  ASSERT_STREQ("HDMI", node.name);
+  ASSERT_STREQ(HDMI, node.name);
 }
 
 TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
@@ -1831,7 +1831,7 @@ TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
   EXPECT_EQ(2, cras_alsa_jack_get_name_called);
   ASSERT_EQ(CRAS_NODE_TYPE_HDMI, aio->base.nodes->next->type);
   // The node name should be "HDMI".
-  ASSERT_STREQ("HDMI", aio->base.nodes->next->name);
+  ASSERT_STREQ(HDMI, aio->base.nodes->next->name);
 
   alsa_iodev_destroy((struct cras_iodev *)aio);
 }
@@ -1844,7 +1844,8 @@ class AlsaVolumeMuteSuite : public testing::Test {
       output_control_ = reinterpret_cast<struct mixer_control *>(10);
       cras_alsa_mixer_list_outputs_outputs = &output_control_;
       cras_alsa_mixer_list_outputs_outputs_length = 1;
-      cras_alsa_mixer_get_control_name_values[output_control_] = "Speaker";
+      cras_alsa_mixer_get_control_name_values[output_control_] =
+          INTERNAL_SPEAKER;
       cras_alsa_mixer_list_outputs_outputs_length = 1;
       aio_output_ = (struct alsa_io *)alsa_iodev_create_with_default_parameters(
           0, NULL,
@@ -1912,8 +1913,8 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode)
 
   // Headphone jack plugged and has its own volume curve.
   cras_alsa_jack_get_mixer_output_ret = NULL;
-  cras_alsa_jack_get_name_ret_value = "Headphone";
-  cras_card_config_get_volume_curve_vals["Headphone"] = &hp_curve;
+  cras_alsa_jack_get_name_ret_value = HEADPHONE;
+  cras_card_config_get_volume_curve_vals[HEADPHONE] = &hp_curve;
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_alsa_jack_update_node_type_called);
   EXPECT_EQ(3, cras_card_config_get_volume_curve_for_control_called);
@@ -2266,7 +2267,7 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
 
   memset(&alsa_node, 0, sizeof(alsa_node));
   node->dev = iodev;
-  strcpy(node->name, "Wake on Voice");
+  strcpy(node->name, HOTWORD_DEV);
   set_node_initial_state(node, ALSA_CARD_TYPE_INTERNAL);
   EXPECT_EQ(CRAS_NODE_TYPE_HOTWORD, node->type);
 
