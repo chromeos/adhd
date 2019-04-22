@@ -15,11 +15,13 @@
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_endpoint.h"
+#include "cras_bt_log.h"
 #include "cras_bt_player.h"
 #include "cras_bt_profile.h"
 #include "cras_bt_transport.h"
 #include "utlist.h"
 
+struct cras_bt_event_log *btlog;
 
 static void cras_bt_interface_added(DBusConnection *conn,
 				    const char *object_path,
@@ -34,6 +36,7 @@ static void cras_bt_interface_added(DBusConnection *conn,
 			cras_bt_adapter_update_properties(
 				adapter, properties_array_iter, NULL);
 		} else {
+			BTLOG(btlog, BT_ADAPTER_ADDED, 0, 0);
 			adapter = cras_bt_adapter_create(object_path);
 			if (adapter) {
 				cras_bt_adapter_update_properties(
@@ -108,6 +111,7 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 	if (strcmp(interface_name, BLUEZ_INTERFACE_ADAPTER) == 0) {
 		struct cras_bt_adapter *adapter;
 
+		BTLOG(btlog, BT_ADAPTER_REMOVED, 0, 0);
 		adapter = cras_bt_adapter_get(object_path);
 		if (adapter) {
 			syslog(LOG_INFO, "Bluetooth Adapter: %s removed",
@@ -184,6 +188,7 @@ static void cras_bt_update_properties(DBusConnection *conn,
  */
 static void cras_bt_reset()
 {
+	BTLOG(btlog, BT_RESET, 0, 0);
 	cras_bt_endpoint_reset();
 	cras_bt_transport_reset();
 	cras_bt_profile_reset();
@@ -455,6 +460,8 @@ static DBusHandlerResult cras_bt_handle_properties_changed(DBusConnection *conn,
 void cras_bt_start(DBusConnection *conn)
 {
 	DBusError dbus_error;
+
+	btlog = cras_bt_event_log_init();
 
 	dbus_error_init(&dbus_error);
 

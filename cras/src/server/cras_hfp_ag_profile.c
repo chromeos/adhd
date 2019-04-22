@@ -11,6 +11,7 @@
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
+#include "cras_bt_log.h"
 #include "cras_bt_profile.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_info.h"
@@ -233,6 +234,8 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 {
 	struct audio_gateway *ag;
 
+	BTLOG(btlog, BT_HFP_NEW_CONNECTION, 0, 0);
+
 	if (has_audio_gateway(device)) {
 		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
 			cras_bt_device_name(device), profile->name);
@@ -261,6 +264,9 @@ static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 					      struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
+
+	BTLOG(btlog, BT_HFP_REQUEST_DISCONNECT, 0, 0);
+
 	DL_FOREACH(connected_ags, ag) {
 		if (ag->slc_handle && ag->device == device)
 			destroy_audio_gateway(ag);
@@ -297,6 +303,8 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 {
 	struct audio_gateway *ag;
 
+	BTLOG(btlog, BT_HSP_NEW_CONNECTION, 0, 0);
+
 	if (has_audio_gateway(device)) {
 		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
 			cras_bt_device_name(device), profile->name);
@@ -319,6 +327,19 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	return 0;
 }
 
+static void cras_hsp_ag_request_disconnection(struct cras_bt_profile *profile,
+					      struct cras_bt_device *device)
+{
+	struct audio_gateway *ag;
+
+	BTLOG(btlog, BT_HSP_REQUEST_DISCONNECT, 0, 0);
+
+	DL_FOREACH(connected_ags, ag) {
+		if (ag->slc_handle && ag->device == device)
+			destroy_audio_gateway(ag);
+	}
+}
+
 static struct cras_bt_profile cras_hsp_ag_profile = {
 	.name = HSP_AG_PROFILE_NAME,
 	.object_path = HSP_AG_PROFILE_PATH,
@@ -328,7 +349,7 @@ static struct cras_bt_profile cras_hsp_ag_profile = {
 	.record = HSP_AG_RECORD,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hsp_ag_new_connection,
-	.request_disconnection = cras_hfp_ag_request_disconnection,
+	.request_disconnection = cras_hsp_ag_request_disconnection,
 	.cancel = cras_hfp_ag_cancel
 };
 
@@ -336,13 +357,15 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
 
+	BTLOG(btlog, BT_AUDIO_GATEWAY_START, 0, 0);
+
 	DL_SEARCH_SCALAR(connected_ags, ag, device, device);
 	if (ag == NULL)
 		return -EEXIST;
 
 	if (need_go_sco_pcm(device)) {
 		struct cras_iodev *in_aio, *out_aio;
-		
+
 		in_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT);
 		out_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
 

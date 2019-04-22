@@ -669,6 +669,111 @@ static void audio_debug_info(struct cras_client *client)
 	pthread_mutex_unlock(&done_mutex);
 }
 
+static void show_btlog_tag(const struct cras_bt_event_log *log,
+			  unsigned int tag_idx)
+{
+	unsigned int tag = (log->log[tag_idx].tag_sec >> 24) & 0xff;
+	time_t sec = log->log[tag_idx].tag_sec & 0x00ffffff;
+	unsigned int nsec = log->log[tag_idx].nsec;
+	unsigned int data1 = log->log[tag_idx].data1;
+	unsigned int data2 = log->log[tag_idx].data2;
+	struct tm *t;
+
+	/* Skip unused log entries. */
+	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
+		return;
+
+	t = localtime(&sec);
+	printf("%02u:%02u:%02u.%09u  ", t->tm_hour, t->tm_min, t->tm_sec, nsec);
+
+	switch (tag) {
+	case BT_ADAPTER_ADDED:
+		printf("%-30s\n", "ADAPTER_ADDED");
+		break;
+	case BT_ADAPTER_REMOVED:
+		printf("%-30s\n", "ADAPTER_REMOVED");
+		break;
+	case BT_A2DP_CONFIGURED:
+		printf("%-30s connected profiles %u\n", "A2DP_CONFIGURED",
+		       data1);
+		break;
+	case BT_A2DP_START:
+		printf("%-30s\n", "A2DP_START");
+		break;
+	case BT_A2DP_SUSPENDED:
+		printf("%-30s\n", "A2DP_SUSPENDED");
+		break;
+	case BT_AUDIO_GATEWAY_INIT:
+		printf("%-30s supported profiles %u\n", "AUDIO_GATEWAY_INIT",
+		       data1);
+		break;
+	case BT_AUDIO_GATEWAY_START:
+		printf("%-30s \n", "AUDIO_GATEWAY_START");
+		break;
+	case BT_DEV_CONNECTED_CHANGE:
+		printf("%-30s profiles %u now %u\n", "DEV_CONENCTED_CHANGE",
+		       data1, data2);
+		break;
+	case BT_DEV_CONN_WATCH_CB:
+		printf("%-30s %u retries left, supported profiles %u\n",
+		       "DEV_CONN_WATCH_CB", data1, data2);
+		break;
+	case BT_DEV_SUSPEND_CB:
+		printf("%-30s\n", "DEV_SUSPEND_CB");
+		break;
+	case BT_HFP_NEW_CONNECTION:
+		printf("%-30s\n", "HFP_NEW_CONNECTION");
+		break;
+	case BT_HFP_REQUEST_DISCONNECT:
+		printf("%-30s\n", "HFP_REQUEST_DISCONNECT");
+		break;
+	case BT_HSP_NEW_CONNECTION:
+		printf("%-30s\n", "HSP_NEW_CONNECTION");
+		break;
+	case BT_HSP_REQUEST_DISCONNECT:
+		printf("%-30s\n", "HSP_REQUEST_DISCONNECT");
+		break;
+	case BT_RESET:
+		printf("%-30s\n", "RESET");
+		break;
+	case BT_SCO_CONNECT:
+		printf("%-30s %s sk %d\n", "SCO_CONNECT", data1 ? "success" : "failed",
+		       (int)data2);
+		break;
+	case BT_TRANSPORT_ACQUIRE:
+		printf("%-30s %s fd %d\n", "TRANSPORT_ACQUIRE",
+		       data1 ? "success" : "failed", (int)data2);
+		break;
+	case BT_TRANSPORT_RELEASE:
+		printf("%-30s\n", "TRANSPORT_RELEASE");
+		break;
+	default:
+		printf("%-30s\n", "UNKNOWN");
+		break;
+	}
+}
+
+static void cras_bt_debug_info(struct cras_client *client)
+{
+	const struct cras_bt_debug_info *info;
+	int i, j;
+
+	info = cras_client_get_bt_debug_info(client);
+	j = info->bt_log.write_pos;
+	i = 0;
+	printf("BT debug log:\n");
+	for (; i < info->bt_log.len; i++) {
+		show_btlog_tag(&info->bt_log, j);
+		j++;
+		j %= info->bt_log.len;
+	}
+
+	/* Signal main thread we are done after the last chunk. */
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_signal(&done_cond);
+	pthread_mutex_unlock(&done_mutex);
+}
+
 static void print_cras_audio_thread_snapshot(
 	const struct cras_audio_thread_snapshot *snapshot)
 {
@@ -1111,6 +1216,23 @@ static void show_audio_debug_info(struct cras_client *client)
 	pthread_mutex_unlock(&done_mutex);
 }
 
+static void show_cras_bt_debug_info(struct cras_client *client)
+{
+	struct timespec wait_time;
+
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client); /* To synchronize data. */
+	cras_client_update_bt_debug_info(client, cras_bt_debug_info);
+
+	clock_gettime(CLOCK_REALTIME, &wait_time);
+	wait_time.tv_sec += 2;
+
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
+	pthread_mutex_unlock(&done_mutex);
+
+}
+
 static void hotword_models_cb(struct cras_client *client,
 			      const char *hotword_models)
 {
@@ -1213,6 +1335,7 @@ static struct option long_options[] = {
 	{"effects",		required_argument,	0, 'E'},
 	{"get_aec_supported",	no_argument,		0, 'F'},
 	{"aecdump",		required_argument,	0, 'G'},
+	{"dump_bt",		no_argument,		0, 'H'},
 	{"loopback_file",	required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
 	{"playback_file",	required_argument,	0, 'P'},
@@ -1236,6 +1359,7 @@ static void show_usage()
 	printf("--channel_layout <layout_str> - Set multiple channel layout.\n");
 	printf("--check_output_plugged <output name> - Check if the output is plugged in\n");
 	printf("--dump_audio_thread - Dumps audio thread info.\n");
+	printf("--dump_bt - Dumps debug info for bt audio\n");
 	printf("--dump_dsp - Print status of dsp to syslog.\n");
 	printf("--dump_server_info - Print status of the server.\n");
 	printf("--duration_seconds <N> - Seconds to record or playback.\n");
@@ -1664,6 +1788,9 @@ int main(int argc, char **argv)
 			break;
 		case 'G':
 			aecdump_file = optarg;
+			break;
+		case 'H':
+			show_cras_bt_debug_info(client);
 			break;
 		case 'L':
 			loopback_file = optarg;

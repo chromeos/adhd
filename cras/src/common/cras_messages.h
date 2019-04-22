@@ -56,6 +56,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_REGISTER_NOTIFICATION,
 	CRAS_SERVER_SET_AEC_DUMP,
 	CRAS_SERVER_RELOAD_AEC_CONFIG,
+	CRAS_SERVER_DUMP_BT,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -352,6 +353,17 @@ static inline void cras_fill_dump_audio_thread(
 		struct cras_dump_audio_thread *m)
 {
 	m->header.id = CRAS_SERVER_DUMP_AUDIO_THREAD;
+	m->header.length = sizeof(*m);
+}
+
+/* Dump bluetooth events and state changes. */
+struct __attribute__ ((__packed__)) cras_dump_bt {
+	struct cras_server_message header;
+};
+
+static inline void cras_fill_dump_bt(struct cras_dump_bt *m)
+{
+	m->header.id = CRAS_SERVER_DUMP_BT;
 	m->header.length = sizeof(*m);
 }
 

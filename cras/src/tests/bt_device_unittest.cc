@@ -7,6 +7,7 @@
 extern "C" {
 #include "cras_bt_io.h"
 #include "cras_bt_device.h"
+#include "cras_bt_log.h"
 #include "cras_iodev.h"
 #include "cras_main_message.h"
 
@@ -54,11 +55,13 @@ class BtDeviceTestSuite : public testing::Test {
       d2_.update_active_node = update_active_node;
       d3_.direction = CRAS_STREAM_INPUT;
       d3_.update_active_node = update_active_node;
+      btlog = cras_bt_event_log_init();
     }
 
     virtual void TearDown() {
       if(cras_main_message_send_msg)
         free(cras_main_message_send_msg);
+      cras_bt_event_log_deinit(btlog);
     }
 
     static void update_active_node(struct cras_iodev *iodev,
@@ -162,6 +165,8 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
 
 /* Stubs */
 extern "C" {
+
+struct cras_bt_event_log *btlog;
 
 /* From bt_io */
 struct cras_iodev *cras_bt_io_create(

@@ -14,6 +14,7 @@
 
 #include "cras_bt_device.h"
 #include "cras_bt_endpoint.h"
+#include "cras_bt_log.h"
 #include "cras_bt_transport.h"
 #include "cras_bt_constants.h"
 #include "utlist.h"
@@ -404,6 +405,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 {
 	DBusMessage *method_call, *reply;
 	DBusError dbus_error;
+	int rc = 0;
 
 	if (transport->fd >= 0)
 		return 0;
@@ -428,7 +430,8 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		       transport->object_path, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(method_call);
-		return -EIO;
+		rc = -EIO;
+		goto acquire_fail;
 	}
 
 	dbus_message_unref(method_call);
@@ -437,7 +440,8 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		syslog(LOG_ERR, "Acquire returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
-		return -EIO;
+		rc = -EIO;
+		goto acquire_fail;
 	}
 
 	if (!dbus_message_get_args(reply, &dbus_error,
@@ -449,11 +453,17 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(reply);
-		return -EINVAL;
+		rc = -EINVAL;
+		goto acquire_fail;
 	}
 
+	BTLOG(btlog, BT_TRANSPORT_ACQUIRE, 1, transport->fd);
 	dbus_message_unref(reply);
 	return 0;
+
+acquire_fail:
+	BTLOG(btlog, BT_TRANSPORT_ACQUIRE, 0, 0);
+	return rc;
 }
 
 int cras_bt_transport_try_acquire(struct cras_bt_transport *transport)
@@ -543,6 +553,8 @@ int cras_bt_transport_release(struct cras_bt_transport *transport,
 
 	if (transport->fd < 0)
 		return 0;
+
+	BTLOG(btlog, BT_TRANSPORT_RELEASE, transport->fd, 0);
 
 	/* Close the transport on our end no matter whether or not the server
 	 * gives us an error.

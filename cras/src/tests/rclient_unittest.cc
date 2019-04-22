@@ -8,6 +8,7 @@
 
 extern "C" {
 #include "audio_thread.h"
+#include "cras_bt_log.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
@@ -154,7 +155,7 @@ class RClientMessagesSuite : public testing::Test {
       connect_msg_.format.frame_rate = 48000;
       connect_msg_.format.format = SND_PCM_FORMAT_S16_LE;
       connect_msg_.dev_idx = NO_DEVICE;
-
+      btlog = cras_bt_event_log_init();
       ResetStubData();
     }
 
@@ -163,6 +164,7 @@ class RClientMessagesSuite : public testing::Test {
       free(rstream_);
       close(pipe_fds_[0]);
       close(pipe_fds_[1]);
+      cras_bt_event_log_deinit(btlog);
     }
 
     void RegisterNotification(enum CRAS_CLIENT_MESSAGE_ID msg_id,
@@ -670,6 +672,8 @@ int main(int argc, char **argv) {
 
 /* stubs */
 extern "C" {
+
+struct cras_bt_event_log *btlog;
 
 struct audio_thread* cras_iodev_list_get_audio_thread() {
   return iodev_get_thread_return;

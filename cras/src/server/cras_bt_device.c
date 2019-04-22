@@ -23,6 +23,7 @@
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
 #include "cras_bt_constants.h"
+#include "cras_bt_log.h"
 #include "cras_bt_io.h"
 #include "cras_bt_profile.h"
 #include "cras_hfp_ag_profile.h"
@@ -443,6 +444,7 @@ destroy_bt_io:
 
 void cras_bt_device_a2dp_configured(struct cras_bt_device *device)
 {
+	BTLOG(btlog, BT_A2DP_CONFIGURED, device->connected_profiles, 0);
 	device->connected_profiles |= CRAS_BT_DEVICE_PROFILE_A2DP_SINK;
 }
 
@@ -468,6 +470,7 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 	int rc = 0;
 	struct cras_tm *tm;
 
+	BTLOG(btlog, BT_AUDIO_GATEWAY_INIT, device->profiles, 0);
 	/* Marks HFP/HSP as connected. This is what connection watcher
 	 * checks. */
 	device->connected_profiles |=
@@ -565,6 +568,9 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 	struct cras_tm *tm;
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
 
+	BTLOG(btlog, BT_DEV_CONN_WATCH_CB,
+	      device->conn_watch_retries,
+	      device->profiles);
 	device->conn_watch_timer = NULL;
 
 	/* If A2DP is not ready, try connect it after a while. */
@@ -639,6 +645,9 @@ static void cras_bt_device_set_connected(struct cras_bt_device *device,
 					 int value)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (device->connected || value)
+		BTLOG(btlog, BT_DEV_CONNECTED_CHANGE, device->profiles, value);
 
 	if (device->connected && !value) {
 		cras_bt_profile_on_device_disconnected(device);
@@ -871,9 +880,11 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 		goto error;
 	}
 
+	BTLOG(btlog, BT_SCO_CONNECT, 1, sk);
 	return sk;
 
 error:
+	BTLOG(btlog, BT_SCO_CONNECT, 0, sk);
 	if (sk)
 		close(sk);
 	return -1;
@@ -1079,6 +1090,7 @@ static void bt_device_suspend_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
 
+	BTLOG(btlog, BT_DEV_SUSPEND_CB, 0, 0);
 	device->suspend_timer = NULL;
 
 	cras_a2dp_suspend_connected_device(device);

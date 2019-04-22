@@ -182,6 +182,7 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define MAX_DEBUG_DEVS 4
 #define MAX_DEBUG_STREAMS 8
 #define AUDIO_THREAD_EVENT_LOG_SIZE (1024*6)
+#define CRAS_BT_EVENT_LOG_SIZE 1024
 
 /* There are 8 bits of space for events. */
 enum AUDIO_THREAD_LOG_EVENTS {
@@ -226,6 +227,28 @@ enum AUDIO_THREAD_LOG_EVENTS {
 	AUDIO_THREAD_FILL_ODEV_ZEROS,
 	AUDIO_THREAD_UNDERRUN,
 	AUDIO_THREAD_SEVERE_UNDERRUN,
+};
+
+/* There are 8 bits of space for events. */
+enum CRAS_BT_LOG_EVENTS {
+	BT_ADAPTER_ADDED,
+	BT_ADAPTER_REMOVED,
+	BT_AUDIO_GATEWAY_INIT,
+	BT_AUDIO_GATEWAY_START,
+	BT_A2DP_CONFIGURED,
+	BT_A2DP_START,
+	BT_A2DP_SUSPENDED,
+	BT_DEV_CONNECTED_CHANGE,
+	BT_DEV_CONN_WATCH_CB,
+	BT_DEV_SUSPEND_CB,
+	BT_HFP_NEW_CONNECTION,
+	BT_HFP_REQUEST_DISCONNECT,
+	BT_HSP_NEW_CONNECTION,
+	BT_HSP_REQUEST_DISCONNECT,
+	BT_RESET,
+	BT_SCO_CONNECT,
+	BT_TRANSPORT_ACQUIRE,
+	BT_TRANSPORT_RELEASE,
 };
 
 struct __attribute__ ((__packed__)) audio_thread_event {
@@ -289,6 +312,23 @@ struct __attribute__ ((__packed__)) audio_debug_info {
 	struct audio_dev_debug_info devs[MAX_DEBUG_DEVS];
 	struct audio_stream_debug_info streams[MAX_DEBUG_STREAMS];
 	struct audio_thread_event_log log;
+};
+
+struct __attribute__ ((__packed__)) cras_bt_event {
+	uint32_t tag_sec;
+	uint32_t nsec;
+	uint32_t data1;
+	uint32_t data2;
+};
+
+struct __attribute__ ((__packed__)) cras_bt_event_log {
+	uint32_t write_pos;
+	uint32_t len;
+	struct cras_bt_event log[CRAS_BT_EVENT_LOG_SIZE];
+};
+
+struct __attribute__ ((__packed__)) cras_bt_debug_info {
+	struct cras_bt_event_log bt_log;
 };
 
 /*
@@ -368,6 +408,7 @@ struct __attribute__ ((__packed__)) cras_audio_thread_snapshot_buffer{
  *    aec_group_id  - Group ID for the system aec to use for separating aec
  *        tunings.
  *    snapshot_buffer - ring buffer for storing audio thread snapshots.
+ *    bt_debug_info - ring buffer for storing bluetooth event logs.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__ ((packed, aligned(4))) cras_server_state {
@@ -405,6 +446,7 @@ struct __attribute__ ((packed, aligned(4))) cras_server_state {
 	int32_t aec_supported;
   	int32_t aec_group_id;
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
+	struct cras_bt_debug_info bt_debug_info;
 };
 
 /* Actions for card add/remove/change. */

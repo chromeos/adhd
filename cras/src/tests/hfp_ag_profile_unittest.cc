@@ -8,6 +8,7 @@
 extern "C" {
 #include "cras_iodev.h"
 #include "cras_hfp_ag_profile.h"
+#include "cras_bt_log.h"
 #include "cras_bt_profile.h"
 }
 
@@ -33,10 +34,12 @@ namespace {
 class HfpAgProfile: public testing::Test {
   protected:
     virtual void SetUp() {
+      btlog = cras_bt_event_log_init();
       ResetStubData();
     }
 
     virtual void TearDown() {
+      cras_bt_event_log_deinit(btlog);
     }
 };
 
@@ -85,6 +88,8 @@ TEST_F(HfpAgProfile, StartWithScoPCM) {
 } // namespace
 
 extern "C" {
+
+struct cras_bt_event_log *btlog;
 
 struct cras_iodev *cras_iodev_list_get_sco_pcm_iodev(
     enum CRAS_STREAM_DIRECTION direction) {

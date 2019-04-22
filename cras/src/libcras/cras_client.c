@@ -2689,6 +2689,21 @@ const struct audio_debug_info *cras_client_get_audio_debug_info(
 	return debug_info;
 }
 
+const struct cras_bt_debug_info *cras_client_get_bt_debug_info(
+		const struct cras_client *client)
+{
+	const struct cras_bt_debug_info *debug_info;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return 0;
+
+	debug_info = &client->server_state->bt_debug_info;
+	server_state_unlock(client, lock_rc);
+	return debug_info;
+}
+
 const struct cras_audio_thread_snapshot_buffer*
 	cras_client_get_audio_thread_snapshot_buffer(
 		const struct cras_client *client)
@@ -3146,6 +3161,23 @@ int cras_client_update_audio_debug_info(
 	client->debug_info_callback = debug_info_cb;
 
 	cras_fill_dump_audio_thread(&msg);
+	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_update_bt_debug_info(
+	struct cras_client *client,
+	void (*debug_info_cb)(struct cras_client *))
+{
+	struct cras_dump_bt msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	if (client->debug_info_callback != NULL)
+		return -EINVAL;
+	client->debug_info_callback = debug_info_cb;
+
+	cras_fill_dump_bt(&msg);
 	return write_message_to_server(client, &msg.header);
 }
 

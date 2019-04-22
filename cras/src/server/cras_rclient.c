@@ -9,6 +9,7 @@
 
 #include "audio_thread.h"
 #include "cras_apm_list.h"
+#include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_dsp.h"
 #include "cras_iodev.h"
@@ -584,6 +585,18 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DUMP_AUDIO_THREAD:
 		dump_audio_thread_info(client);
 		break;
+	case CRAS_SERVER_DUMP_BT: {
+		struct cras_client_audio_debug_info_ready msg;
+		struct cras_server_state *state;
+
+		state = cras_system_state_get_no_lock();
+		memcpy(&state->bt_debug_info.bt_log, btlog,
+		       sizeof(struct cras_bt_debug_info));
+
+		cras_fill_client_audio_debug_info_ready(&msg);
+		cras_rclient_send_message(client, &msg.header, NULL, 0);
+		break;
+	}
 	case CRAS_SERVER_DUMP_SNAPSHOTS:
 		dump_audio_thread_snapshots(client);
 		break;

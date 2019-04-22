@@ -13,6 +13,7 @@
 #include "cras_iodev.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_endpoint.h"
+#include "cras_bt_log.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 
@@ -144,6 +145,8 @@ static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
 			      struct cras_bt_transport *transport)
 {
 	struct cras_bt_device *device = cras_bt_transport_device(transport);
+
+	BTLOG(btlog, BT_A2DP_SUSPENDED, 0, 0);
 	cras_a2dp_suspend_connected_device(device);
 }
 
@@ -184,6 +187,8 @@ int cras_a2dp_endpoint_create(DBusConnection *conn)
 void cras_a2dp_start(struct cras_bt_device *device)
 {
 	struct cras_bt_transport *transport = cras_a2dp_endpoint.transport;
+
+	BTLOG(btlog, BT_A2DP_START, 0, 0);
 
 	if (!transport || device != cras_bt_transport_device(transport)) {
 		syslog(LOG_ERR, "Device and active transport not match.");
