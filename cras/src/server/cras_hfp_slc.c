@@ -552,7 +552,7 @@ static int handle_at_command(struct hfp_slc_handle *slc_handle,
 		if (!strncmp(cmd, atc->cmd, strlen(atc->cmd)))
 			return atc->callback(slc_handle, cmd);
 
-	syslog(LOG_ERR, "AT command %s not supported", cmd);
+	syslog(LOG_DEBUG, "AT command %s not supported", cmd);
 	return hfp_send(slc_handle, "ERROR");
 }
 
