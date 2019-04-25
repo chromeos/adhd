@@ -83,6 +83,11 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
                                       unsigned int dev_idx);
 
+/* Append a new stream to a specified set of iodevs. */
+int dev_io_append_stream(struct open_dev **dev_list,
+			 struct cras_rstream *stream,
+			 struct cras_iodev **iodevs, unsigned int num_iodevs);
+
 /* Remove a stream from the provided list of devices. */
 int dev_io_remove_stream(struct open_dev **dev_list,
 			 struct cras_rstream *stream,

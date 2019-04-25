@@ -192,6 +192,13 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 {
   return dev_stream_capture_avail_ret;
 }
+struct dev_stream* dev_stream_create(struct cras_rstream* stream,
+                                     unsigned int dev_id,
+                                     const struct cras_audio_format* dev_fmt,
+                                     void* dev_ptr,
+                                     struct timespec* cb_ts) {
+  return 0;
+}
 }  // extern "C"
 
 }  //  namespace

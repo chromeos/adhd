@@ -8,6 +8,8 @@
 
 extern "C" {
 #include "cras_iodev.h"
+#include "dev_stream.h"
+#include "utlist.h"
 }
 
 namespace {
@@ -15,19 +17,42 @@ namespace {
     int frames_queued_ret;
     timespec frames_queued_ts;
   };
-  std::unordered_map<cras_iodev*, cb_data> data_map;
+  std::unordered_map<cras_iodev*, cb_data> frames_queued_map;
+  std::unordered_map<cras_iodev*, cb_data> valid_frames_map;
 } // namespace
 
 void iodev_stub_reset() {
-  data_map.clear();
+  frames_queued_map.clear();
+  valid_frames_map.clear();
 }
 
 void iodev_stub_frames_queued(cras_iodev* iodev, int ret, timespec ts) {
-  cb_data data = { ret, ts };
-  data_map.insert({iodev, data});
+  cb_data data = {ret, ts};
+  frames_queued_map.insert({iodev, data});
+}
+
+void iodev_stub_valid_frames(cras_iodev* iodev, int ret, timespec ts) {
+  cb_data data = {ret, ts};
+  valid_frames_map.insert({iodev, data});
 }
 
 extern "C" {
+
+int cras_iodev_add_stream(struct cras_iodev* iodev, struct dev_stream* stream) {
+  DL_APPEND(iodev->streams, stream);
+  return 0;
+}
+
+int cras_iodev_get_valid_frames(struct cras_iodev* iodev,
+                                struct timespec* tstamp) {
+  auto elem = valid_frames_map.find(iodev);
+  if (elem != valid_frames_map.end()) {
+    *tstamp = elem->second.frames_queued_ts;
+    return elem->second.frames_queued_ret;
+  }
+  clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+  return 0;
+}
 
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev) {
   return 48000.0;
@@ -39,8 +64,8 @@ int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev) {
 
 int cras_iodev_frames_queued(struct cras_iodev *iodev,
                              struct timespec *tstamp) {
-  auto elem = data_map.find(iodev);
-  if (elem != data_map.end()) {
+  auto elem = frames_queued_map.find(iodev);
+  if (elem != frames_queued_map.end()) {
     *tstamp = elem->second.frames_queued_ts;
     return elem->second.frames_queued_ret;
   }

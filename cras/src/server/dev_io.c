@@ -1053,6 +1053,145 @@ static void delete_stream_from_dev(struct cras_iodev *dev,
 		dev_stream_destroy(out);
 }
 
+int dev_io_append_stream(struct open_dev **dev_list,
+			 struct cras_rstream *stream,
+			 struct cras_iodev **iodevs, unsigned int num_iodevs)
+{
+	struct open_dev *open_dev;
+	struct cras_iodev *dev;
+	struct dev_stream *out;
+	struct timespec init_cb_ts;
+	struct timespec extra_sleep;
+	const struct timespec *stream_ts;
+	unsigned int i;
+	bool cb_ts_set = false;
+	int level;
+	int rc = 0;
+
+	for (i = 0; i < num_iodevs; i++) {
+		DL_SEARCH_SCALAR(*dev_list, open_dev, dev, iodevs[i]);
+		if (!open_dev)
+			continue;
+
+		dev = iodevs[i];
+		DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
+		if (out)
+			continue;
+
+		/*
+		 * When the first input stream is added, flush the input buffer
+		 * so that we can read from multiple input devices of the same
+		 * buffer level.
+		 */
+		if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
+			int num_flushed = dev->flush_buffer(dev);
+			if (num_flushed < 0) {
+				rc = num_flushed;
+				break;
+			}
+		}
+
+		/*
+		 * For output, if open device already has stream, get the earliest next
+		 * callback time from these streams to align with. Otherwise, check whether
+		 * there are remaining frames in the device. Set the initial callback time to
+		 * the time when hw_level of device is close to min_cb_level.
+		 * If next callback time is too far from now, it will block writing and
+		 * lower hardware level. Else if we fetch the new stream immediately, it
+		 * may cause device buffer level stack up.
+		 */
+		if (stream->direction == CRAS_STREAM_OUTPUT) {
+			DL_FOREACH (dev->streams, out) {
+				stream_ts = dev_stream_next_cb_ts(out);
+				if (stream_ts &&
+				    (!cb_ts_set ||
+				     timespec_after(&init_cb_ts, stream_ts))) {
+					init_cb_ts = *stream_ts;
+					cb_ts_set = true;
+				}
+			}
+			if (!cb_ts_set) {
+				level = cras_iodev_get_valid_frames(
+					dev, &init_cb_ts);
+				if (level < 0) {
+					syslog(LOG_ERR,
+					       "Failed to set output init_cb_ts, rc = %d",
+					       level);
+					rc = -EINVAL;
+					break;
+				}
+				level -= cras_frames_at_rate(
+					stream->format.frame_rate,
+					cras_rstream_get_cb_threshold(stream),
+					dev->format->frame_rate);
+				if (level < 0)
+					level = 0;
+				cras_frames_to_time(level,
+						    dev->format->frame_rate,
+						    &extra_sleep);
+				add_timespecs(&init_cb_ts, &extra_sleep);
+			}
+		} else {
+			/*
+			 * For input streams, because audio thread can calculate wake up time
+			 * by hw_level of input device, set the first cb_ts to zero. The stream
+			 * will wake up when it gets enough samples to post. The next_cb_ts will
+			 * be updated after its first post.
+			 */
+			init_cb_ts.tv_sec = 0;
+			init_cb_ts.tv_nsec = 0;
+		}
+
+		out = dev_stream_create(stream, dev->info.idx, dev->format, dev,
+					&init_cb_ts);
+		if (!out) {
+			rc = -EINVAL;
+			break;
+		}
+
+		cras_iodev_add_stream(dev, out);
+
+		/*
+		 * For multiple inputs case, if the new stream is not the first
+		 * one to append, copy the 1st stream's offset to it so that
+		 * future read offsets can be aligned across all input streams
+		 * to avoid the deadlock scenario when multiple streams reading
+		 * from multiple devices.
+		 */
+		if ((stream->direction == CRAS_STREAM_INPUT) &&
+		    (dev->streams != out)) {
+			unsigned int offset =
+				cras_iodev_stream_offset(dev, dev->streams);
+			if (offset > stream->cb_threshold)
+				offset = stream->cb_threshold;
+			cras_iodev_stream_written(dev, out, offset);
+
+			offset = cras_rstream_dev_offset(dev->streams->stream,
+							 dev->info.idx);
+			if (offset > stream->cb_threshold)
+				offset = stream->cb_threshold;
+			cras_rstream_dev_offset_update(stream, offset,
+						       dev->info.idx);
+		}
+		ATLOG(atlog, AUDIO_THREAD_STREAM_ADDED, stream->stream_id,
+		      dev->info.idx, 0);
+	}
+
+	if (rc) {
+		DL_FOREACH (*dev_list, open_dev) {
+			dev = open_dev->dev;
+			DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
+			if (!out)
+				continue;
+
+			cras_iodev_rm_stream(dev, stream);
+			dev_stream_destroy(out);
+		}
+	}
+
+	return rc;
+}
+
 int dev_io_remove_stream(struct open_dev **dev_list,
 			 struct cras_rstream *stream,
 			 struct cras_iodev *dev)
