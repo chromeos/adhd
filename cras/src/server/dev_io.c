@@ -145,11 +145,11 @@ static int fetch_streams(struct open_dev *adev)
 							   &now);
 		}
 
-		if (!is_time_to_fetch(dev_stream, now))
+		if (!dev_stream_is_running(dev_stream))
 			continue;
 
-		if (!dev_stream_is_running(dev_stream))
-		    cras_iodev_start_stream(odev, dev_stream);
+		if (!is_time_to_fetch(dev_stream, now))
+			continue;
 
 		if (cras_shm_get_frames(shm) < 0)
 			cras_rstream_set_is_draining(rstream, 1);
@@ -832,9 +832,33 @@ int dev_io_capture(struct open_dev **list)
 	return 0;
 }
 
+/* If it is the time to fetch, start dev_stream. */
+static void dev_io_check_dev_stream_start(struct open_dev *adev)
+{
+	struct dev_stream *dev_stream;
+	struct cras_rstream *rstream;
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+
+	DL_FOREACH(adev->dev->streams, dev_stream) {
+		rstream = dev_stream->stream;
+		if (!is_time_to_fetch(dev_stream, now))
+			continue;
+		if (!dev_stream_is_running(dev_stream))
+			cras_iodev_start_stream(adev->dev, dev_stream);
+	}
+}
+
 void dev_io_playback_fetch(struct open_dev *odev_list)
 {
 	struct open_dev *adev;
+
+	/* Check whether it is the time to start dev_stream before fetching. */
+	DL_FOREACH(odev_list, adev) {
+		if (!cras_iodev_is_open(adev->dev))
+			continue;
+		dev_io_check_dev_stream_start(adev);
+	}
 
 	DL_FOREACH(odev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))

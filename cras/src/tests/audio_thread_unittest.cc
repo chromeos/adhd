@@ -487,7 +487,7 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   EXPECT_EQ(dev_stream->stream, &rstream);
   /*
    * When a output stream is added, the start_stream function will be called
-   * after its first fetch.
+   * just before its first fetch.
    */
   EXPECT_EQ(cras_iodev_start_stream_called, 0);
 
@@ -1051,6 +1051,7 @@ int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 void cras_iodev_start_stream(struct cras_iodev *iodev,
 			     struct dev_stream *stream)
 {
+  dev_stream_set_running(stream);
   cras_iodev_start_stream_called++;
 }
 

@@ -31,7 +31,7 @@ struct cras_iodev;
  *               created.
  *    is_running - For input stream, it should be set to true after it is added
  *                 into device. For output stream, it should be set to true
- *                 just after its first fetch to avoid affecting other existing
+ *                 just before its first fetch to avoid affecting other existing
  *                 streams.
  */
 struct dev_stream {
