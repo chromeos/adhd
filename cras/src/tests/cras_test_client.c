@@ -62,6 +62,7 @@ static int effect_ns = 0;
 static int effect_agc = 0;
 static int effect_vad = 0;
 static char *aecdump_file = NULL;
+static char time_str[128];
 
 /* Conditional so the client thread can signal that main should exit. */
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -382,8 +383,29 @@ static void print_user_muted(struct cras_client *client)
 	       cras_client_get_user_muted(client) ? "Muted" : "Not muted");
 }
 
+/*
+ * Convert time value from one clock to the other using given offset
+ * in sec and nsec.
+ */
+static void convert_time(unsigned int *sec, unsigned int *nsec,
+			 int32_t sec_offset, int32_t nsec_offset)
+{
+	sec_offset += *sec;
+	nsec_offset += *nsec;
+	if (nsec_offset >= 1000000000L) {
+		sec_offset++;
+		nsec_offset -= 1000000000L;
+	} else if (nsec_offset < 0) {
+		sec--;
+		nsec_offset += 1000000000L;
+	}
+	*sec = sec_offset;
+	*nsec = nsec_offset;
+}
+
 static void show_alog_tag(const struct audio_thread_event_log *log,
-			  unsigned int tag_idx)
+			  unsigned int tag_idx, int32_t sec_offset,
+			  int32_t nsec_offset)
 {
 	unsigned int tag = (log->log[tag_idx].tag_sec >> 24) & 0xff;
 	unsigned int sec = log->log[tag_idx].tag_sec & 0x00ffffff;
@@ -391,12 +413,20 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	unsigned int data1 = log->log[tag_idx].data1;
 	unsigned int data2 = log->log[tag_idx].data2;
 	unsigned int data3 = log->log[tag_idx].data3;
+	time_t lt;
+	struct tm *t;
 
 	/* Skip unused log entries. */
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
 		return;
 
-	printf("%10u.%09u  ", sec, nsec);
+	/* Convert from monotomic raw clock to realtime clock. */
+	convert_time(&sec, &nsec, sec_offset, nsec_offset);
+	lt = sec;
+	t = localtime(&lt);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+
+	printf("%s.%09u cras atlog  ", time_str, nsec);
 
 	switch (tag) {
 	case AUDIO_THREAD_WAKE:
@@ -559,7 +589,11 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 
 static void print_audio_debug_info(const struct audio_debug_info *info)
 {
+	struct timespec mono_time, real_time;
+	int32_t sec_offset;
+	int32_t nsec_offset;
 	int i, j;
+
 	printf("Audio Debug Stats:\n");
 	printf("-------------devices------------\n");
 	if (info->num_devs > MAX_DEBUG_DEVS)
@@ -645,11 +679,15 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 
 	printf("Audio Thread Event Log:\n");
 
+	clock_gettime(CLOCK_MONOTONIC_RAW, &mono_time);
+	clock_gettime(CLOCK_REALTIME, &real_time);
+	sec_offset = real_time.tv_sec - mono_time.tv_sec;
+	nsec_offset = real_time.tv_nsec - mono_time.tv_nsec;
 	j = info->log.write_pos;
 	i = 0;
 	printf("start at %d\n", j);
 	for (; i < info->log.len; i++) {
-		show_alog_tag(&info->log, j);
+		show_alog_tag(&info->log, j, sec_offset, nsec_offset);
 		j++;
 		j %= info->log.len;
 	}
@@ -670,21 +708,28 @@ static void audio_debug_info(struct cras_client *client)
 }
 
 static void show_btlog_tag(const struct cras_bt_event_log *log,
-			  unsigned int tag_idx)
+			  unsigned int tag_idx, int32_t sec_offset,
+			  int32_t nsec_offset)
 {
 	unsigned int tag = (log->log[tag_idx].tag_sec >> 24) & 0xff;
-	time_t sec = log->log[tag_idx].tag_sec & 0x00ffffff;
+	unsigned int sec = log->log[tag_idx].tag_sec & 0x00ffffff;
 	unsigned int nsec = log->log[tag_idx].nsec;
 	unsigned int data1 = log->log[tag_idx].data1;
 	unsigned int data2 = log->log[tag_idx].data2;
+	time_t lt;
 	struct tm *t;
 
 	/* Skip unused log entries. */
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
 		return;
 
-	t = localtime(&sec);
-	printf("%02u:%02u:%02u.%09u  ", t->tm_hour, t->tm_min, t->tm_sec, nsec);
+	/* Convert from monotomic raw clock to realtime clock. */
+	convert_time(&sec, &nsec, sec_offset, nsec_offset);
+	lt = sec;
+	t = localtime(&lt);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+
+	printf("%s.%09u cras btlog  ", time_str, nsec);
 
 	switch (tag) {
 	case BT_ADAPTER_ADDED:
@@ -756,14 +801,21 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 static void cras_bt_debug_info(struct cras_client *client)
 {
 	const struct cras_bt_debug_info *info;
+	struct timespec mono_time, real_time;
+	int32_t sec_offset;
+	int32_t nsec_offset;
 	int i, j;
 
 	info = cras_client_get_bt_debug_info(client);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &mono_time);
+	clock_gettime(CLOCK_REALTIME, &real_time);
+	sec_offset = real_time.tv_sec - mono_time.tv_sec;
+	nsec_offset = real_time.tv_nsec - mono_time.tv_nsec;
 	j = info->bt_log.write_pos;
 	i = 0;
 	printf("BT debug log:\n");
 	for (; i < info->bt_log.len; i++) {
-		show_btlog_tag(&info->bt_log, j);
+		show_btlog_tag(&info->bt_log, j, sec_offset, nsec_offset);
 		j++;
 		j %= info->bt_log.len;
 	}
