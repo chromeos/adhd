@@ -72,16 +72,166 @@ class TimingSuite : public testing::Test{
   }
 };
 
-// Add a new stream, check the wake up time is the time when it has enough
-// data to post.
-TEST_F(TimingSuite, Test) {
-  const size_t cb_threshold = 480;
+extern "C" {
+//  From librt. Fix now at this time.
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  tp->tv_sec = 12345;
+  tp->tv_nsec = 987654321;
+  return 0;
+}
+};
+
+// Add a new input stream, make sure the initial next_cb_ts is 0.
+TEST_F(TimingSuite, NewInputStreamInit) {
+  struct open_dev* dev_list_ = NULL;
 
   cras_audio_format format;
   fill_audio_format(&format, 48000);
+  DevicePtr dev =
+      create_device(CRAS_STREAM_INPUT, 1024, &format, CRAS_NODE_TYPE_MIC);
+  DL_APPEND(dev_list_, dev->odev.get());
+  struct cras_iodev* iodev = dev->odev->dev;
 
-  StreamPtr stream =
-      create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
+  ShmPtr shm = create_shm(480);
+  RstreamPtr rstream =
+      create_rstream(1, CRAS_STREAM_INPUT, 480, &format, shm.get());
+
+  dev_io_append_stream(&dev_list_, rstream.get(), &iodev, 1);
+
+  EXPECT_EQ(0, rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(0, rstream->next_cb_ts.tv_nsec);
+
+  dev_stream_destroy(iodev->streams);
+}
+
+// There is the pseudo code about wake up time for an input device.
+//
+// function set_input_dev_wake_ts(dev):
+//   wake_ts = now + 20s #rule_1
+//
+//   cap_limit = MIN(dev_stream_capture_avail(stream)) for stream on dev
+//
+//   for stream in dev:
+//   wake_ts = MIN(get_input_wake_time(stream, cap_limit), wake_ts)
+//             for stream on dev #rule_2
+//
+//   wake_ts = MIN(get_input_dev_max_wake_ts(dev), wake_ts) #rule_3
+//   device.wake_ts = wake_ts
+//
+// function get_input_wake_time(stream, cap_limit):
+//   needed_frames_from_device = dev_stream_capture_avail(stream)
+//
+//   if needed_frames_from_device > cap_limit: #rule_4
+//     return None
+//
+//   if stream is USE_DEV_TIMING and stream is pending reply: #rule_5
+//     return None
+//
+//   time_for_sample = The time when device gets enough samples #rule_6
+//
+//   wake_time_out = MAX(stream.next_cb_ts, time_for_sample) #rule_7
+//
+//   if stream is USE_DEV_TIMING:
+//     wake_time_out =  time_for_sample #rule_8
+//
+//   return wake_time_out
+//
+// function get_input_dev_max_wake_ts(dev):
+//   return MAX(5ms, The time when hw_level = buffer_size / 2) #rule_9
+//
+//
+// dev_stream_capture_avail: The number of frames free to be written to in a
+//                           capture stream.
+//
+// The following unittests will check these logics.
+
+// Test rule_1.
+// The device wake up time should be 20s from now.
+TEST_F(TimingSuite, InputWakeTimeNoStreamWithBigBufferDevice) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  std::vector<StreamPtr> streams;
+  timespec dev_time =
+      SingleInputDevNextWake(4800000, 0, &start, &format, streams);
+
+  const timespec add_millis = {20, 0};
+  add_timespecs(&start, &add_millis);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_2, rule_4(Stream 1), rule_7(Stream 2)
+// Stream 1: next_cb_ts = now, cb_threshold = 480, dev_offset = 0
+// Stream 2: next_cb_ts = now + 5s, cb_threshold = 480, dev_offset = 200
+// Stream 1 need 480 frames and Stream 2 need 240 frames. So 240 will be the
+// cap_limit and Stream 1 will be ignored. The next wake up time should be
+// the next_cb_ts of stream2.
+TEST_F(TimingSuite, InputWakeTimeTwoStreamsWithFramesInside) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+  stream1->rstream->next_cb_ts = start;
+
+  StreamPtr stream2 = create_stream(1, 2, CRAS_STREAM_INPUT, 480, &format);
+  stream2->rstream->next_cb_ts = start;
+  stream2->rstream->next_cb_ts.tv_sec += 5;
+  rstream_stub_dev_offset(stream2->rstream.get(), 1, 200);
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+  timespec dev_time =
+      SingleInputDevNextWake(480000, 0, &start, &format, streams);
+
+  EXPECT_EQ(start.tv_sec + 5, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_2, rule_7
+// Stream 1: next_cb_ts = now + 2s, cb_threshold = 480, dev_offset = 0
+// Stream 2: next_cb_ts = now + 5s, cb_threshold = 480, dev_offset = 0
+// The audio thread will choose the earliest next_cb_ts because the they have
+// the same value of needed_frames_from_device. The next wake up time should
+// be the next_cb_ts of stream1.
+TEST_F(TimingSuite, InputWakeTimeTwoEmptyStreams) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+  stream1->rstream->next_cb_ts = start;
+  stream1->rstream->next_cb_ts.tv_sec += 2;
+
+  StreamPtr stream2 = create_stream(1, 2, CRAS_STREAM_INPUT, 480, &format);
+  stream2->rstream->next_cb_ts = start;
+  stream2->rstream->next_cb_ts.tv_sec += 5;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+  timespec dev_time =
+      SingleInputDevNextWake(480000, 0, &start, &format, streams);
+
+  EXPECT_EQ(start.tv_sec + 2, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_3 and rule_9.
+// One empty stream with small device buffer. It should wake up when there are
+// buffer_size / 2 frames in device buffer.
+TEST_F(TimingSuite, InputWakeTimeOneStreamWithDeviceWakeUp) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
 
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
@@ -92,8 +242,63 @@ TEST_F(TimingSuite, Test) {
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
-  timespec dev_time = SingleInputDevNextWake(cb_threshold, 0, &start,
-                                             &format, streams);
+  timespec dev_time = SingleInputDevNextWake(240, 0, &start, &format, streams);
+  // The device wake up time should be 5ms from now. At that time there are
+  // 240 frames in the device.
+  const timespec add_millis = {0, 5 * 1000 * 1000};
+  add_timespecs(&start, &add_millis);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_5.
+// The stream with USE_DEV_TIMING flag will be ignore if it is pending reply.
+TEST_F(TimingSuite, InputWakeTimeOneStreamUsingDevTimingWithPendingReply) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // The next callback should be ignored.
+  stream->rstream->next_cb_ts = start;
+  stream->rstream->next_cb_ts.tv_sec += 10;
+  stream->rstream->flags = USE_DEV_TIMING;
+  rstream_stub_pending_reply(stream->rstream.get(), 1);
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(4800, 0, &start, &format, streams);
+
+  // The device wake up time should be 100ms from now. At that time the hw_level
+  // is buffer_size / 2.
+  const timespec add_millis = {0, 100 * 1000 * 1000};
+  add_timespecs(&start, &add_millis);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_6.
+// Add a new stream, the wake up time is the time when it has enough data to
+// post.
+TEST_F(TimingSuite, InputWakeTimeOneStreamWithEmptyDevice) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // The next callback of the new stream is 0.
+  stream->rstream->next_cb_ts.tv_sec = 0;
+  stream->rstream->next_cb_ts.tv_nsec = 0;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(600, 0, &start, &format, streams);
 
   // The device wake up time should be 10ms from now. At that time the
   // stream will have 480 samples to post.
@@ -101,6 +306,108 @@ TEST_F(TimingSuite, Test) {
   add_timespecs(&start, &ten_millis);
   EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_sec);
   EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_nsec);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_6.
+// Add a new stream with enough frames in device, check the wake up time is
+// right now.
+TEST_F(TimingSuite, InputWakeTimeOneStreamWithFullDevice) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // The next callback of the new stream is 0.
+  stream->rstream->next_cb_ts.tv_sec = 0;
+  stream->rstream->next_cb_ts.tv_nsec = 0;
+
+  // If there are enough frames in the device, we should wake up immediately.
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time =
+      SingleInputDevNextWake(480, 480, &start, &format, streams);
+  EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_nsec);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_8.
+// The stream with USE_DEV_TIMING flag should wake up when it has enough frames
+// to post.
+TEST_F(TimingSuite, InputWakeTimeOneStreamUsingDevTiming) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // The next callback should be ignored.
+  stream->rstream->next_cb_ts = start;
+  stream->rstream->next_cb_ts.tv_sec += 10;
+  stream->rstream->flags = USE_DEV_TIMING;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time = SingleInputDevNextWake(600, 0, &start, &format, streams);
+
+  // The device wake up time should be 10ms from now. At that time the
+  // stream will have 480 samples to post.
+  const timespec add_millis = {0, 10 * 1000 * 1000};
+  add_timespecs(&start, &add_millis);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_9.
+// The device wake up time should be 10ms from now. At that time the hw_level
+// is buffer_size / 2.
+TEST_F(TimingSuite, InputWakeTimeNoStreamSmallBufferDevice) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  std::vector<StreamPtr> streams;
+  timespec dev_time = SingleInputDevNextWake(480, 0, &start, &format, streams);
+
+  const timespec add_millis = {0, 10 * 1000 * 1000};
+  add_timespecs(&start, &add_millis);
+  EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_9.
+// There are more than buffer_size / 2 frames in the device. The device needs
+// to sleep at least 5ms.
+TEST_F(TimingSuite, InputWakeTimeOneStreamWithEnoughFramesInDevice) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // Make next_cb_ts far from now.
+  stream->rstream->next_cb_ts = start;
+  stream->rstream->next_cb_ts.tv_sec += 10;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec dev_time =
+      SingleInputDevNextWake(480, 480, &start, &format, streams);
+
+  const timespec add_millis = {0, 5 * 1000 * 1000};
+  add_timespecs(&start, &add_millis);
   EXPECT_EQ(start.tv_sec, dev_time.tv_sec);
   EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
 }
@@ -128,6 +435,10 @@ TEST_F(TimingSuite, WaitAfterFill) {
 
   // The next callback should be scheduled 10ms in the future.
   // And the next wake up should reflect the only attached stream.
+  const timespec ten_millis = {0, 10 * 1000 * 1000};
+  add_timespecs(&start, &ten_millis);
+  EXPECT_EQ(start.tv_sec, streams[0]->rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(start.tv_nsec, streams[0]->rstream->next_cb_ts.tv_nsec);
   EXPECT_EQ(dev_time.tv_sec, streams[0]->rstream->next_cb_ts.tv_sec);
   EXPECT_EQ(dev_time.tv_nsec, streams[0]->rstream->next_cb_ts.tv_nsec);
 }

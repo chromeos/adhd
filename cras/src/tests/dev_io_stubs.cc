@@ -93,6 +93,10 @@ IonodePtr create_ionode(CRAS_NODE_TYPE type) {
   return ionode;
 }
 
+int fake_flush_buffer(struct cras_iodev* iodev) {
+  return 0;
+}
+
 IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
                            size_t cb_threshold,
                            cras_audio_format* format,
@@ -108,6 +112,7 @@ IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
   iodev->buffer_size = cb_threshold * 2;
   iodev->min_cb_level = UINT_MAX;
   iodev->max_cb_level = 0;
+  iodev->flush_buffer = &fake_flush_buffer;
   return iodev;
 }
 
