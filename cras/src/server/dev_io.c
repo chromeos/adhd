@@ -836,12 +836,10 @@ int dev_io_capture(struct open_dev **list)
 static void dev_io_check_dev_stream_start(struct open_dev *adev)
 {
 	struct dev_stream *dev_stream;
-	struct cras_rstream *rstream;
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	DL_FOREACH(adev->dev->streams, dev_stream) {
-		rstream = dev_stream->stream;
 		if (!is_time_to_fetch(dev_stream, now))
 			continue;
 		if (!dev_stream_is_running(dev_stream))
