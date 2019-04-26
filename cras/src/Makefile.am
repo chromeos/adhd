@@ -722,7 +722,7 @@ empty_iodev_unittest_SOURCES = tests/empty_iodev_unittest.cc \
 	server/cras_empty_iodev.c
 empty_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-empty_iodev_unittest_LDADD = -lgtest
+empty_iodev_unittest_LDADD = -lgtest -lpthread
 
 expr_unittest_SOURCES = tests/expr_unittest.cc server/cras_expr.c common/dumper.c
 expr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
