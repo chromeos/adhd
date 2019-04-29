@@ -590,8 +590,13 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		struct cras_server_state *state;
 
 		state = cras_system_state_get_no_lock();
+#ifdef CRAS_DBUS
 		memcpy(&state->bt_debug_info.bt_log, btlog,
 		       sizeof(struct cras_bt_debug_info));
+#else
+		memset(&state->bt_debug_info.bt_log, 0,
+		       sizeof(struct cras_bt_debug_info));
+#endif
 
 		cras_fill_client_audio_debug_info_ready(&msg);
 		cras_rclient_send_message(client, &msg.header, NULL, 0);
