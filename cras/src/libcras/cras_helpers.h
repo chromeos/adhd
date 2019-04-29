@@ -58,13 +58,11 @@ int cras_helper_create_connect(struct cras_client **client);
  */
 int cras_helper_add_stream_simple(struct cras_client *client,
 				  enum CRAS_STREAM_DIRECTION direction,
-				  void *user_data,
-				  cras_unified_cb_t unified_cb,
+				  void *user_data, cras_unified_cb_t unified_cb,
 				  cras_error_cb_t err_cb,
 				  snd_pcm_format_t format,
 				  unsigned int frame_rate,
-				  unsigned int num_channels,
-				  int dev_idx,
+				  unsigned int num_channels, int dev_idx,
 				  cras_stream_id_t *stream_id_out);
 
 /* Plays the given buffer at a default latency.
@@ -80,12 +78,9 @@ int cras_helper_add_stream_simple(struct cras_client *client,
  * Returns:
  *    0 on success, negative error code on failure (from errno.h).
  */
-int cras_helper_play_buffer(struct cras_client *client,
-			    const void *buffer,
-			    unsigned int num_frames,
-			    snd_pcm_format_t format,
-			    unsigned int frame_rate,
-			    unsigned int num_channels,
+int cras_helper_play_buffer(struct cras_client *client, const void *buffer,
+			    unsigned int num_frames, snd_pcm_format_t format,
+			    unsigned int frame_rate, unsigned int num_channels,
 			    int dev_idx);
 
 #ifdef __cplusplus
