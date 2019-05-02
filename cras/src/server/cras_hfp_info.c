@@ -48,6 +48,17 @@ static const uint8_t h2_header_frames_count[] = {
 	0x08, 0x38, 0xc8, 0xf8
 };
 
+/* The pre-computed zero input bit stream of mSBC codec, per HFP 1.7 spec.
+ * This mSBC frame will be decoded into all-zero input PCM. */
+static const uint8_t msbc_zero_frame[] = {
+	0xad, 0x00, 0x00, 0xc5, 0x00, 0x00, 0x00, 0x00, 0x77, 0x6d,
+	0xb6, 0xdd, 0xdb, 0x6d, 0xb7, 0x76, 0xdb, 0x6d, 0xdd, 0xb6,
+	0xdb, 0x77, 0x6d, 0xb6, 0xdd, 0xdb, 0x6d, 0xb7, 0x76, 0xdb,
+	0x6d, 0xdd, 0xb6, 0xdb, 0x77, 0x6d, 0xb6, 0xdd, 0xdb, 0x6d,
+	0xb7, 0x76, 0xdb, 0x6d, 0xdd, 0xb6, 0xdb, 0x77, 0x6d, 0xb6,
+	0xdd, 0xdb, 0x6d, 0xb7, 0x76, 0xdb, 0x6c
+};
+
 /* Structure to hold variables for a HFP connection. Since HFP supports
  * bi-direction audio, two iodevs should share one hfp_info if they
  * represent two directions of the same HFP headset
@@ -62,6 +73,7 @@ static const uint8_t h2_header_frames_count[] = {
  *     msbc_read - mSBC codec to decode input audio in wideband speech mode.
  *     msbc_write - mSBC codec to encode output audio in wideband speech mode.
  *     msbc_num_out_frames - Number of total written mSBC frames.
+ *     msbc_num_in_frames - Number of total read mSBC frames.
  *     read_cb - Callback to call when SCO socket can read.
  *     write_cb - Callback to call when SCO socket can write.
  *     read_buf - Buffer to hold input audio bytes.
@@ -79,6 +91,7 @@ struct hfp_info {
 	struct cras_audio_codec *msbc_read;
 	struct cras_audio_codec *msbc_write;
 	unsigned int msbc_num_out_frames;
+	unsigned int msbc_num_in_frames;
 	int (*read_cb)(struct hfp_info *info);
 	int (*write_cb)(struct hfp_info *info);
 	uint8_t write_buf[WRITE_BUF_SIZE_BYTES];
@@ -290,6 +303,77 @@ send_sample:
 	return err;
 }
 
+static int h2_header_get_seq(const uint8_t *p) {
+	int i;
+	for (i = 0; i < 4; i++) {
+		if (*p == h2_header_frames_count[i])
+			return i;
+	}
+	return -1;
+}
+
+/*
+ * Extract mSBC frame from SCO socket input bytes, given that the mSBC frame
+ * could be lost or corrupted.
+ * Args:
+ *    input - Pointer to input bytes read from SCO socket.
+ *    len - Length of input bytes.
+ *    seq - To be filled by the sequence number of mSBC packet.
+ *    frame_head - To be filled by the starting position of mSBC frame if found.
+ * Returns:
+ *    The position of input bytes that has been read during the extraction.
+ */
+static int extract_msbc_frame(const uint8_t *input, int len,
+			      int *seq, const uint8_t **frame_head)
+{
+	int rp = 0;
+	while (len - rp >= MSBC_FRAME_SIZE) {
+		if ((input[rp] != H2_HEADER_0) ||
+		    (input[rp + 2] != MSBC_SYNC_WORD)) {
+			rp++;
+			continue;
+		}
+		*seq = h2_header_get_seq(input + rp + 1);
+		if (*seq < 0) {
+			rp++;
+			continue;
+		}
+		*frame_head = input + rp;
+		break;
+	}
+	return rp;
+}
+
+/*
+ * Handle the case when mSBC frame is considered lost.
+ * Args:
+ *    msbc - The mSBC codec handles audio input.
+ *    capture_buf - The buf to store decoded PCM audio.
+ *    pcm_avail - Available room of capture_buf in bytes.
+ */
+static int handle_packet_loss(struct cras_audio_codec *msbc,
+			      uint8_t *capture_buf, unsigned int pcm_avail)
+{
+	size_t pcm_decoded = 0;
+	int decoded;
+
+	/*
+	 * Handle packet loss by feeding one zero input bit stream of mSBC.
+	 * TODO(enshuo): add PLC.
+	 */
+	decoded = msbc->decode(
+			msbc,
+			msbc_zero_frame,
+			MSBC_FRAME_LEN,
+			capture_buf,
+			pcm_avail,
+			&pcm_decoded);
+	if (decoded < 0)
+		return decoded;
+
+	return pcm_decoded;
+}
+
 int hfp_read_msbc(struct hfp_info *info)
 {
 	int err = 0;
@@ -298,6 +382,8 @@ int hfp_read_msbc(struct hfp_info *info)
 	int rp = 0;
 	size_t pcm_decoded = 0;
 	uint8_t *capture_buf;
+	const uint8_t *frame_head = NULL;
+	int seq;
 
 	/* Check if there's room for more PCM. */
 	capture_buf = buf_write_pointer_size(info->capture_buf, &pcm_avail);
@@ -313,31 +399,68 @@ recv_msbc_bytes:
 			goto recv_msbc_bytes;
 		return err;
 	}
-
-	info->read_buf_level += err;
-	while (info->read_buf_level - rp >= MSBC_FRAME_SIZE) {
-		if ((info->read_buf[rp] != H2_HEADER_0) ||
-		    (info->read_buf[rp + 2] != MSBC_SYNC_WORD)) {
-			rp++;
-			continue;
-		}
-		decoded = info->msbc_read->decode(
-				info->msbc_read,
-				info->read_buf + rp + MSBC_H2_HEADER_LEN,
-				info->read_buf_level - rp - MSBC_H2_HEADER_LEN,
-				capture_buf,
-				pcm_avail,
-				&pcm_decoded);
-		if (decoded < 0)
-			syslog(LOG_ERR, "mSBC decode err, %d", decoded);
-
-		rp += MSBC_FRAME_SIZE;
-		buf_increment_write(info->capture_buf, pcm_decoded);
+	/*
+	 * Treat return code 0 (socket shutdown) as error here. BT stack
+	 * shall send signal to main thread for device disconnection.
+	 */
+	if (err != (int)info->packet_size) {
+		syslog(LOG_ERR, "Partially read %d bytes for mSBC packet", err);
+		return -1;
 	}
+	info->read_buf_level += err;
+
+	rp = extract_msbc_frame(info->read_buf, info->read_buf_level,
+				&seq, &frame_head);
+	if (!frame_head) {
+		info->read_buf_level -= rp;
+		memmove(info->read_buf, info->read_buf + rp,
+			info->read_buf_level);
+		return err;
+	}
+
+	/*
+	 * Consider packet loss when found discontinuity in sequence number.
+	 * TODO(hychao): Integrate with erroneous data reporting feature from
+	 * controller that sets packet statue flag on HCI SCO packet.
+	 */
+	while (seq != (info->msbc_num_in_frames % 4)) {
+		err = handle_packet_loss(info->msbc_read,
+					 capture_buf,
+					 pcm_avail);
+		if (err < 0)
+			return err;
+		buf_increment_write(info->capture_buf, err);
+		info->msbc_num_in_frames++;
+	}
+
+	decoded = info->msbc_read->decode(
+			info->msbc_read,
+			frame_head + MSBC_H2_HEADER_LEN,
+			MSBC_FRAME_LEN,
+			capture_buf,
+			pcm_avail,
+			&pcm_decoded);
+	if (decoded < 0) {
+		/*
+		 * If mSBC frame cannot be decoded, consider this packet is
+		 * corrupted and lost.
+		 */
+		err = handle_packet_loss(info->msbc_read,
+					 capture_buf,
+					 pcm_avail);
+		if (err < 0)
+			return err;
+		pcm_decoded = err;
+	}
+
+	rp += MSBC_FRAME_SIZE;
+	buf_increment_write(info->capture_buf, pcm_decoded);
+	info->msbc_num_in_frames++;
+
 	info->read_buf_level -= rp;
 	memmove(info->read_buf, info->read_buf + rp, info->read_buf_level);
 
-	return err;
+	return 0;
 }
 
 int hfp_read(struct hfp_info *info)
@@ -483,6 +606,7 @@ int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 	info->read_buf_level = 0;
 	info->started = 1;
 	info->msbc_num_out_frames = 0;
+	info->msbc_num_in_frames = 0;
 
 	return 0;
 }
