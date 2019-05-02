@@ -24,9 +24,7 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
   return 0;
 }
 
-int cras_server_metrics_missed_cb_first_time(
-    const struct cras_rstream *stream)
-{
+int cras_server_metrics_missed_cb_event(const struct cras_rstream* stream) {
   return 0;
 }
 

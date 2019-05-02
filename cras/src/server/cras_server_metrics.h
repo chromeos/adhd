@@ -27,9 +27,8 @@ int cras_server_metrics_num_underruns(unsigned num_underruns);
 /* Logs the frequency of missed callback. */
 int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream);
 
-/* Logs how long after the first time missed callback happened. */
-int cras_server_metrics_missed_cb_first_time(
-		const struct cras_rstream *stream);
+/* Logs the missed callback event. */
+int cras_server_metrics_missed_cb_event(const struct cras_rstream *stream);
 
 /* Logs the stream configurations from clients. */
 int cras_server_metrics_stream_config(struct cras_rstream_config *config);
@@ -38,4 +37,3 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config);
 int cras_server_metrics_init();
 
 #endif /* CRAS_SERVER_METRICS_H_ */
-

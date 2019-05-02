@@ -60,6 +60,7 @@ struct master_dev_info {
  *    last_fetch_ts - The time of the last stream fetch.
  *    longest_fetch_interval_ts - Longest interval between two fetches.
  *    start_ts - The time when the stream started.
+ *    first_missed_cb_ts - The time when the first missed callback happens.
  *    buf_state - State of the buffer from all devices for this stream.
  *    apm_list - List of audio processing module instances.
  *    num_attached_devs - Number of iodevs this stream has attached to.
@@ -89,6 +90,7 @@ struct cras_rstream {
 	struct timespec last_fetch_ts;
 	struct timespec longest_fetch_interval;
 	struct timespec start_ts;
+	struct timespec first_missed_cb_ts;
 	struct buffer_share *buf_state;
 	struct cras_apm_list *apm_list;
 	int num_attached_devs;

@@ -18,13 +18,21 @@ const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
 const char kHighestOutputHardwareLevel[] = "Cras.HighestOutputHardwareLevel";
 const char kMissedCallbackFirstTimeInput[] =
-		"Cras.MissedCallbackFirstTimeInput";
+	"Cras.MissedCallbackFirstTimeInput";
 const char kMissedCallbackFirstTimeOutput[] =
-		"Cras.MissedCallbackFirstTimeOutput";
+	"Cras.MissedCallbackFirstTimeOutput";
 const char kMissedCallbackFrequencyInput[] =
-		"Cras.MissedCallbackFrequencyInput";
+	"Cras.MissedCallbackFrequencyInput";
 const char kMissedCallbackFrequencyOutput[] =
-		"Cras.MissedCallbackFrequencyOutput";
+	"Cras.MissedCallbackFrequencyOutput";
+const char kMissedCallbackFrequencyAfterReschedulingInput[] =
+	"Cras.MissedCallbackFrequencyAfterReschedulingInput";
+const char kMissedCallbackFrequencyAfterReschedulingOutput[] =
+	"Cras.MissedCallbackFrequencyAfterReschedulingOutput";
+const char kMissedCallbackSecondTimeInput[] =
+	"Cras.MissedCallbackSecondTimeInput";
+const char kMissedCallbackSecondTimeOutput[] =
+	"Cras.MissedCallbackSecondTimeOutput";
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
@@ -50,6 +58,10 @@ enum CRAS_SERVER_METRICS_TYPE {
 	MISSED_CB_FIRST_TIME_OUTPUT,
 	MISSED_CB_FREQUENCY_INPUT,
 	MISSED_CB_FREQUENCY_OUTPUT,
+	MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT,
+	MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_OUTPUT,
+	MISSED_CB_SECOND_TIME_INPUT,
+	MISSED_CB_SECOND_TIME_OUTPUT,
 	NUM_UNDERRUNS,
 	STREAM_CONFIG
 };
@@ -202,10 +214,6 @@ int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 	double seconds, frequency;
 	int err;
 
-	/* Do not record missed cb if the stream has these flags. */
-	if (stream->flags & (BULK_AUDIO_OK | USE_DEV_TIMING | TRIGGER_ONLY))
-		return 0;
-
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &stream->start_ts, &time_since);
 	seconds = (double)time_since.tv_sec + time_since.tv_nsec / 1000000000.0;
@@ -218,55 +226,133 @@ int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 	frequency = (double)stream->num_missed_cb * 86400.0 / seconds;
 	data.value = (unsigned)(round(frequency) + 1e-9);
 
-	if (stream->direction == CRAS_STREAM_INPUT) {
-		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_INPUT,
-					data);
-	} else {
-		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_OUTPUT,
-					data);
-	}
+	if (stream->direction == CRAS_STREAM_INPUT)
+		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_INPUT, data);
+	else
+		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_OUTPUT, data);
+
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
-		       "Failed to send metrics message: MISSING_CB_PER_FREQUENCY");
+		       "Failed to send metrics message: MISSED_CB_FREQUENCY");
+		return err;
+	}
+
+	/*
+	 * If missed callback happened at least once, also record frequncy after
+	 * rescheduling.
+	 */
+	if (!stream->num_missed_cb)
+		return 0;
+
+	subtract_timespecs(&now, &stream->first_missed_cb_ts, &time_since);
+	seconds = (double)time_since.tv_sec + time_since.tv_nsec / 1000000000.0;
+
+	/* Compute how many callbacks are missed in a day. */
+	frequency = (double)(stream->num_missed_cb - 1) * 86400.0 / seconds;
+	data.value = (unsigned)(round(frequency) + 1e-9);
+
+	if (stream->direction == CRAS_STREAM_INPUT) {
+		init_server_metrics_msg(
+			&msg, MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT,
+			data);
+	} else {
+		init_server_metrics_msg(
+			&msg, MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_OUTPUT,
+			data);
+	}
+
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: MISSED_CB_FREQUENCY");
 		return err;
 	}
 
 	return 0;
 }
 
-int cras_server_metrics_missed_cb_first_time(
-		const struct cras_rstream *stream)
+/*
+ * Logs the duration between stream starting time and the first missed
+ * callback.
+ */
+static int
+cras_server_metrics_missed_cb_first_time(const struct cras_rstream *stream)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
-	struct timespec now, time_since;
+	struct timespec time_since;
 	int err;
 
-	/* Do not record missed cb if the stream has these flags. */
-	if (stream->flags & (BULK_AUDIO_OK | USE_DEV_TIMING | TRIGGER_ONLY))
-		return 0;
-
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	subtract_timespecs(&now, &stream->start_ts, &time_since);
+	subtract_timespecs(&stream->first_missed_cb_ts, &stream->start_ts,
+			   &time_since);
 	data.value = (unsigned)time_since.tv_sec;
 
 	if (stream->direction == CRAS_STREAM_INPUT) {
-		init_server_metrics_msg(&msg, MISSED_CB_FIRST_TIME_INPUT,
-					data);
+		init_server_metrics_msg(&msg, MISSED_CB_FIRST_TIME_INPUT, data);
 	} else {
 		init_server_metrics_msg(&msg, MISSED_CB_FIRST_TIME_OUTPUT,
 					data);
 	}
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
-		       "Failed to send metrics message: "
-		       "MISSING_CB_FIRST_TIME");
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"MISSED_CB_FIRST_TIME");
 		return err;
 	}
 
 	return 0;
+}
+
+/* Logs the duration between the first and the second missed callback events. */
+static int
+cras_server_metrics_missed_cb_second_time(const struct cras_rstream *stream)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	struct timespec now, time_since;
+	int err;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &stream->first_missed_cb_ts, &time_since);
+	data.value = (unsigned)time_since.tv_sec;
+
+	if (stream->direction == CRAS_STREAM_INPUT) {
+		init_server_metrics_msg(&msg, MISSED_CB_SECOND_TIME_INPUT,
+					data);
+	} else {
+		init_server_metrics_msg(&msg, MISSED_CB_SECOND_TIME_OUTPUT,
+					data);
+	}
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"MISSED_CB_SECOND_TIME");
+		return err;
+	}
+
+	return 0;
+}
+
+int cras_server_metrics_missed_cb_event(struct cras_rstream *stream)
+{
+	int rc = 0;
+
+	stream->num_missed_cb += 1;
+	if (stream->num_missed_cb == 1)
+		clock_gettime(CLOCK_MONOTONIC_RAW, &stream->first_missed_cb_ts);
+
+	/* Do not record missed cb if the stream has these flags. */
+	if (stream->flags & (BULK_AUDIO_OK | USE_DEV_TIMING | TRIGGER_ONLY))
+		return 0;
+
+	/* Only record the first and the second events. */
+	if (stream->num_missed_cb == 1)
+		rc = cras_server_metrics_missed_cb_first_time(stream);
+	else if (stream->num_missed_cb == 2)
+		rc = cras_server_metrics_missed_cb_second_time(stream);
+
+	return rc;
 }
 
 int cras_server_metrics_stream_config(struct cras_rstream_config *config)
@@ -351,6 +437,26 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	case MISSED_CB_FREQUENCY_OUTPUT:
 		cras_metrics_log_histogram(kMissedCallbackFrequencyOutput,
 				metrics_msg->data.value, 0, 90000, 20);
+		break;
+	case MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT:
+		cras_metrics_log_histogram(
+			kMissedCallbackFrequencyAfterReschedulingInput,
+			metrics_msg->data.value, 0, 90000, 20);
+		break;
+	case MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_OUTPUT:
+		cras_metrics_log_histogram(
+			kMissedCallbackFrequencyAfterReschedulingOutput,
+			metrics_msg->data.value, 0, 90000, 20);
+		break;
+	case MISSED_CB_SECOND_TIME_INPUT:
+		cras_metrics_log_histogram(kMissedCallbackSecondTimeInput,
+					   metrics_msg->data.value, 0, 90000,
+					   20);
+		break;
+	case MISSED_CB_SECOND_TIME_OUTPUT:
+		cras_metrics_log_histogram(kMissedCallbackSecondTimeOutput,
+					   metrics_msg->data.value, 0, 90000,
+					   20);
 		break;
 	case NUM_UNDERRUNS:
 		cras_metrics_log_histogram(kUnderrunsPerDevice,

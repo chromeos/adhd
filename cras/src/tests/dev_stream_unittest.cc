@@ -107,7 +107,7 @@ static int cras_rstream_audio_ready_called;
 static int cras_rstream_audio_ready_count;
 static int cras_rstream_is_pending_reply_ret;
 static int cras_rstream_flush_old_audio_messages_called;
-static int cras_server_metrics_missed_cb_first_time_called;
+static int cras_server_metrics_missed_cb_event_called;
 
 class CreateSuite : public testing::Test{
   protected:
@@ -140,7 +140,7 @@ class CreateSuite : public testing::Test{
       cras_rstream_audio_ready_count = 0;
       cras_rstream_is_pending_reply_ret = 0;
       cras_rstream_flush_old_audio_messages_called = 0;
-      cras_server_metrics_missed_cb_first_time_called = 0;
+      cras_server_metrics_missed_cb_event_called = 0;
 
       memset(&copy_area_call, 0xff, sizeof(copy_area_call));
       memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
@@ -695,7 +695,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   clock_gettime_retspec.tv_nsec = 0;
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
-  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_event_called);
   EXPECT_EQ(0, rc);
 
   // Case 2: Not enough samples. Time is late enough.
@@ -708,7 +708,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   // Stream still can not send samples to client.
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
-  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_event_called);
   EXPECT_EQ(0, rc);
 
   // Case 3: Enough samples. Time is not late enough.
@@ -723,7 +723,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   // Stream still can not send samples to client.
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
-  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_event_called);
   EXPECT_EQ(0, rc);
 
   // Case 4: Enough samples. Time is late enough.
@@ -733,7 +733,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(rstream_.cb_threshold, cras_rstream_audio_ready_count);
-  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_event_called);
   EXPECT_EQ(0, rc);
 
   // Check next_cb_ts is increased by one sleep interval.
@@ -758,7 +758,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
   EXPECT_EQ(rstream_.cb_threshold, cras_rstream_audio_ready_count);
-  EXPECT_EQ(1, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(1, cras_server_metrics_missed_cb_event_called);
   EXPECT_EQ(0, rc);
 
   // Check next_cb_ts is rest to be now plus one sleep interval.
@@ -999,7 +999,7 @@ TEST_F(CreateSuite, UpdateNextWakeTime) {
   expected_next_cb_ts = rstream_.next_cb_ts;
 
   dev_stream_update_next_wake_time(dev_stream);
-  EXPECT_EQ(0, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(0, cras_server_metrics_missed_cb_event_called);
   add_timespecs(&expected_next_cb_ts,
                 &rstream_.sleep_interval_ts);
   EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
@@ -1013,7 +1013,7 @@ TEST_F(CreateSuite, UpdateNextWakeTime) {
   expected_next_cb_ts = clock_gettime_retspec;
 
   dev_stream_update_next_wake_time(dev_stream);
-  EXPECT_EQ(1, cras_server_metrics_missed_cb_first_time_called);
+  EXPECT_EQ(1, cras_server_metrics_missed_cb_event_called);
   add_timespecs(&expected_next_cb_ts,
                 &rstream_.sleep_interval_ts);
   EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
@@ -1308,16 +1308,15 @@ int cras_rstream_flush_old_audio_messages(struct  cras_rstream *stream)
   return 0;
 }
 
-//  From librt.
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
-  tp->tv_sec = clock_gettime_retspec.tv_sec;
-  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
+int cras_server_metrics_missed_cb_event(const struct cras_rstream* stream) {
+  cras_server_metrics_missed_cb_event_called++;
   return 0;
 }
 
-int cras_server_metrics_missed_cb_first_time(
-    const struct cras_rstream *stream) {
-  cras_server_metrics_missed_cb_first_time_called++;
+//  From librt.
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  tp->tv_sec = clock_gettime_retspec.tv_sec;
+  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
   return 0;
 }
 

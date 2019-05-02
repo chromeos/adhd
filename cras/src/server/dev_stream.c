@@ -495,14 +495,12 @@ static void check_next_wake_time(struct dev_stream *dev_stream)
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	if (timespec_after(&now, &rstream->next_cb_ts)) {
-		rstream->num_missed_cb += 1;
 		rstream->next_cb_ts = now;
 		add_timespecs(&rstream->next_cb_ts,
 			      &rstream->sleep_interval_ts);
 		ATLOG(atlog, AUDIO_THREAD_STREAM_RESCHEDULE, rstream->stream_id,
 		      rstream->next_cb_ts.tv_sec, rstream->next_cb_ts.tv_nsec);
-		if (rstream->num_missed_cb == 1)
-			cras_server_metrics_missed_cb_first_time(rstream);
+		cras_server_metrics_missed_cb_event(rstream);
 	}
 }
 
