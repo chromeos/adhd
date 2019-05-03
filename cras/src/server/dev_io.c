@@ -989,6 +989,59 @@ int dev_io_next_input_wake(struct open_dev **idevs, struct timespec *min_ts)
 	return ret;
 }
 
+/* Fills the time that the next stream needs to be serviced. */
+static int get_next_stream_wake_from_list(struct dev_stream *streams,
+					  struct timespec *min_ts)
+{
+	struct dev_stream *dev_stream;
+	int ret = 0; /* The total number of streams to wait on. */
+
+	DL_FOREACH (streams, dev_stream) {
+		const struct timespec *next_cb_ts;
+
+		if (cras_rstream_get_is_draining(dev_stream->stream))
+			continue;
+
+		if (cras_rstream_is_pending_reply(dev_stream->stream))
+			continue;
+
+		next_cb_ts = dev_stream_next_cb_ts(dev_stream);
+		if (!next_cb_ts)
+			continue;
+
+		ATLOG(atlog, AUDIO_THREAD_STREAM_SLEEP_TIME,
+		      dev_stream->stream->stream_id, next_cb_ts->tv_sec,
+		      next_cb_ts->tv_nsec);
+		if (timespec_after(min_ts, next_cb_ts))
+			*min_ts = *next_cb_ts;
+		ret++;
+	}
+
+	return ret;
+}
+
+int dev_io_next_output_wake(struct open_dev **odevs, struct timespec *min_ts,
+			    const struct timespec *now)
+{
+	struct open_dev *adev;
+	int ret = 0;
+
+	DL_FOREACH (*odevs, adev)
+		ret += get_next_stream_wake_from_list(adev->dev->streams,
+						      min_ts);
+
+	DL_FOREACH (*odevs, adev) {
+		if (!cras_iodev_odev_should_wake(adev->dev))
+			continue;
+
+		ret++;
+		if (timespec_after(min_ts, &adev->wake_ts))
+			*min_ts = adev->wake_ts;
+	}
+
+	return ret;
+}
+
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
 				      unsigned int dev_idx)
 {
