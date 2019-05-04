@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <inttypes.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -272,11 +273,11 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 			aec_ini,
 			apm_ini);
 	if (apm->apm_ptr == NULL) {
-		syslog(LOG_ERR, "Fail to create webrtc apm for ch %zu"
-				" rate %zu effect %lu",
-				dev_fmt->num_channels,
-				dev_fmt->frame_rate,
-				list->effects);
+		syslog(LOG_ERR,
+		       "Fail to create webrtc apm for ch %zu"
+		       " rate %zu effect %" PRIu64,
+		       dev_fmt->num_channels, dev_fmt->frame_rate,
+		       list->effects);
 		free(apm);
 		return NULL;
 	}
