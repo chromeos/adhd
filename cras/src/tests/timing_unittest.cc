@@ -9,6 +9,8 @@
 
 #include <gtest/gtest.h>
 
+#include <syslog.h>
+
 extern "C" {
 #include "dev_io.h" // tested
 #include "dev_stream.h" // tested
@@ -68,6 +70,36 @@ class TimingSuite : public testing::Test{
     struct timespec dev_time;
     dev_time.tv_sec = level_timestamp->tv_sec + 500; // Far in the future.
     dev_io_next_input_wake(&dev_list_, &dev_time);
+    return dev_time;
+  }
+
+  timespec SingleOutputDevNextWake(
+      size_t dev_cb_threshold,
+      size_t dev_level,
+      const timespec* level_timestamp,
+      cras_audio_format* dev_format,
+      const std::vector<StreamPtr>& streams,
+      const timespec* dev_wake_ts,
+      CRAS_NODE_TYPE active_node_type = CRAS_NODE_TYPE_HEADPHONE) {
+    struct open_dev* dev_list_ = NULL;
+
+    DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, dev_cb_threshold,
+                                  dev_format, active_node_type);
+    DL_APPEND(dev_list_, dev->odev.get());
+
+    for (auto const& stream : streams) {
+      add_stream_to_dev(dev->dev, stream);
+    }
+
+    dev->odev->wake_ts = *dev_wake_ts;
+
+    // Set response for frames_queued.
+    iodev_stub_frames_queued(dev->dev.get(), dev_level, *level_timestamp);
+
+    struct timespec dev_time, now;
+    dev_time.tv_sec = level_timestamp->tv_sec + 500;  // Far in the future.
+    clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+    dev_io_next_output_wake(&dev_list_, &dev_time, &now);
     return dev_time;
   }
 };
@@ -753,6 +785,346 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
   EXPECT_LT(delta.tv_sec, 0.1);
 }
 
+// When a new output stream is added, there are two rules to determine the
+// initial next_cb_ts.
+// 1. If the device already has streams, the next_cb_ts will be the earliest
+// next callback time from these streams.
+// 2. If there are no other streams, the next_cb_ts will be set to the time
+// when the valid frames in device is lower than cb_threshold. (If it is
+// already lower than cb_threshold, set next_cb_ts to now.)
+
+// Test rule 1.
+// The device already has streams, the next_cb_ts will be the earliest
+// next_cb_ts from these streams.
+TEST_F(TimingSuite, NewOutputStreamInitStreamInDevice) {
+  struct open_dev* dev_list_ = NULL;
+
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
+                                CRAS_NODE_TYPE_HEADPHONE);
+  DL_APPEND(dev_list_, dev->odev.get());
+  struct cras_iodev* iodev = dev->odev->dev;
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  add_stream_to_dev(dev->dev, stream);
+  stream->rstream->next_cb_ts.tv_sec = 54321;
+  stream->rstream->next_cb_ts.tv_nsec = 12345;
+
+  ShmPtr shm = create_shm(480);
+  RstreamPtr rstream =
+      create_rstream(1, CRAS_STREAM_OUTPUT, 480, &format, shm.get());
+
+  dev_io_append_stream(&dev_list_, rstream.get(), &iodev, 1);
+
+  EXPECT_EQ(stream->rstream->next_cb_ts.tv_sec, rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(stream->rstream->next_cb_ts.tv_nsec, rstream->next_cb_ts.tv_nsec);
+
+  dev_stream_destroy(iodev->streams->next);
+}
+
+// Test rule 2.
+// The there are no streams and no frames in device buffer. The next_cb_ts
+// will be set to now.
+TEST_F(TimingSuite, NewOutputStreamInitNoStreamNoFramesInDevice) {
+  struct open_dev* dev_list_ = NULL;
+
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
+                                CRAS_NODE_TYPE_HEADPHONE);
+  DL_APPEND(dev_list_, dev->odev.get());
+  struct cras_iodev* iodev = dev->odev->dev;
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  ShmPtr shm = create_shm(480);
+  RstreamPtr rstream =
+      create_rstream(1, CRAS_STREAM_OUTPUT, 480, &format, shm.get());
+
+  dev_io_append_stream(&dev_list_, rstream.get(), &iodev, 1);
+
+  EXPECT_EQ(start.tv_sec, rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(start.tv_nsec, rstream->next_cb_ts.tv_nsec);
+
+  dev_stream_destroy(iodev->streams);
+}
+
+// Test rule 2.
+// The there are no streams and some valid frames in device buffer. The
+// next_cb_ts will be set to the time that valid frames in device is lower
+// than cb_threshold.
+TEST_F(TimingSuite, NewOutputStreamInitNoStreamSomeFramesInDevice) {
+  struct open_dev* dev_list_ = NULL;
+
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
+                                CRAS_NODE_TYPE_HEADPHONE);
+  DL_APPEND(dev_list_, dev->odev.get());
+  struct cras_iodev* iodev = dev->odev->dev;
+
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  iodev_stub_valid_frames(iodev, 960, start);
+
+  ShmPtr shm = create_shm(480);
+  RstreamPtr rstream =
+      create_rstream(1, CRAS_STREAM_OUTPUT, 480, &format, shm.get());
+
+  dev_io_append_stream(&dev_list_, rstream.get(), &iodev, 1);
+
+  // The next_cb_ts should be 10ms from now. At that time there are
+  // only 480 valid frames in the device.
+  const timespec add_millis = {0, 10 * 1000 * 1000};
+  add_timespecs(&start, &add_millis);
+  EXPECT_EQ(start.tv_sec, rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(start.tv_nsec, rstream->next_cb_ts.tv_nsec);
+
+  dev_stream_destroy(iodev->streams);
+}
+
+// There is the pseudo code about wake up time for a output device.
+//
+// function dev_io_next_output_wake(dev):
+//   wake_ts = get_next_stream_wake_from_list(dev.streams)
+//   if cras_iodev_odev_should_wake(dev):
+//     wake_ts = MIN(wake_ts, dev.wake_ts) # rule_1
+//
+// function get_next_stream_wake_from_list(streams):
+//   for stream in streams:
+//     if stream is draining: # rule_2
+//     	 continue
+//     if stream is pending reply: # rule_3
+//       continue
+//     if stream is USE_DEV_TIMING: # rule_4
+//       continue
+//     min_ts = MIN(min_ts, stream.next_cb_ts) # rule_5
+//   return min_ts
+//
+// # This function is in iodev so we don't test its logic here.
+// function cras_iodev_odev_should_wake(dev):
+//   if dev.is_free_running:
+//     return False
+//   if dev.state == NORMAL_RUN or dev.state == NO_STREAM_RUN:
+//     return True
+//   return False
+
+// Test rule_1.
+// The wake up time should be the earlier time amoung streams and devices.
+TEST_F(TimingSuite, OutputWakeTimeOneStreamWithEarlierStreamWakeTime) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  stream->rstream->next_cb_ts = start;
+  stream->rstream->next_cb_ts.tv_sec += 1;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+
+  struct timespec dev_wake_ts = start;
+  dev_wake_ts.tv_sec += 2;
+
+  timespec dev_time =
+      SingleOutputDevNextWake(48000, 0, &start, &format, streams, &dev_wake_ts);
+
+  EXPECT_EQ(start.tv_sec + 1, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_1.
+// The wake up time should be the earlier time amoung streams and devices.
+TEST_F(TimingSuite, OutputWakeTimeOneStreamWithEarlierDeviceWakeTime) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  stream->rstream->next_cb_ts = start;
+  stream->rstream->next_cb_ts.tv_sec += 2;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+
+  struct timespec dev_wake_ts = start;
+  dev_wake_ts.tv_sec += 1;
+
+  timespec dev_time =
+      SingleOutputDevNextWake(48000, 0, &start, &format, streams, &dev_wake_ts);
+
+  EXPECT_EQ(start.tv_sec + 1, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_2.
+// The stream 1 is draining so it will be ignored. The wake up time should be
+// the next_cb_ts of stream 2.
+TEST_F(TimingSuite, OutputWakeTimeTwoStreamsWithOneIsDraining) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  stream1->rstream->next_cb_ts = start;
+  stream1->rstream->next_cb_ts.tv_sec += 2;
+  stream1->rstream->is_draining = 1;
+  stream1->rstream->queued_frames = 480;
+
+  StreamPtr stream2 = create_stream(1, 2, CRAS_STREAM_OUTPUT, 480, &format);
+  stream2->rstream->next_cb_ts = start;
+  stream2->rstream->next_cb_ts.tv_sec += 5;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+
+  struct timespec dev_wake_ts = start;
+  dev_wake_ts.tv_sec += 10;
+
+  timespec dev_time =
+      SingleOutputDevNextWake(48000, 0, &start, &format, streams, &dev_wake_ts);
+
+  EXPECT_EQ(start.tv_sec + 5, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_3.
+// The stream 1 is pending reply so it will be ignored. The wake up time should
+// be the next_cb_ts of stream 2.
+TEST_F(TimingSuite, OutputWakeTimeTwoStreamsWithOneIsPendingReply) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  stream1->rstream->next_cb_ts = start;
+  stream1->rstream->next_cb_ts.tv_sec += 2;
+  rstream_stub_pending_reply(stream1->rstream.get(), 1);
+
+  StreamPtr stream2 = create_stream(1, 2, CRAS_STREAM_OUTPUT, 480, &format);
+  stream2->rstream->next_cb_ts = start;
+  stream2->rstream->next_cb_ts.tv_sec += 5;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+
+  struct timespec dev_wake_ts = start;
+  dev_wake_ts.tv_sec += 10;
+
+  timespec dev_time =
+      SingleOutputDevNextWake(48000, 0, &start, &format, streams, &dev_wake_ts);
+
+  EXPECT_EQ(start.tv_sec + 5, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_4.
+// The stream 1 is uning device timing so it will be ignored. The wake up time
+// should be the next_cb_ts of stream 2.
+TEST_F(TimingSuite, OutputWakeTimeTwoStreamsWithOneIsUsingDevTiming) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  stream1->rstream->next_cb_ts = start;
+  stream1->rstream->next_cb_ts.tv_sec += 2;
+  stream1->rstream->flags = USE_DEV_TIMING;
+
+  StreamPtr stream2 = create_stream(1, 2, CRAS_STREAM_OUTPUT, 480, &format);
+  stream2->rstream->next_cb_ts = start;
+  stream2->rstream->next_cb_ts.tv_sec += 5;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+
+  struct timespec dev_wake_ts = start;
+  dev_wake_ts.tv_sec += 10;
+
+  timespec dev_time =
+      SingleOutputDevNextWake(48000, 0, &start, &format, streams, &dev_wake_ts);
+
+  EXPECT_EQ(start.tv_sec + 5, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_5.
+// The wake up time should be the next_cb_ts of streams.
+TEST_F(TimingSuite, OutputWakeTimeTwoStreams) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+  stream1->rstream->next_cb_ts = start;
+  stream1->rstream->next_cb_ts.tv_sec += 2;
+
+  StreamPtr stream2 = create_stream(1, 2, CRAS_STREAM_OUTPUT, 480, &format);
+  stream2->rstream->next_cb_ts = start;
+  stream2->rstream->next_cb_ts.tv_sec += 5;
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream1));
+  streams.emplace_back(std::move(stream2));
+
+  struct timespec dev_wake_ts = start;
+  dev_wake_ts.tv_sec += 10;
+
+  timespec dev_time =
+      SingleOutputDevNextWake(48000, 0, &start, &format, streams, &dev_wake_ts);
+
+  EXPECT_EQ(start.tv_sec + 2, dev_time.tv_sec);
+  EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// One device, one stream, fetch stream and check the sleep time is one more
+// wakeup interval.
+TEST_F(TimingSuite, OutputStreamsUpdateAfterFetching) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_OUTPUT, 480, &format);
+
+  // rstream's next callback is now.
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  stream->rstream->next_cb_ts = start;
+
+  struct open_dev* dev_list_ = NULL;
+
+  DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
+                                CRAS_NODE_TYPE_HEADPHONE);
+  DL_APPEND(dev_list_, dev->odev.get());
+
+  add_stream_to_dev(dev->dev, stream);
+
+  dev_io_playback_fetch(dev_list_);
+
+  // The next callback should be scheduled 10ms in the future.
+  const timespec ten_millis = {0, 10 * 1000 * 1000};
+  add_timespecs(&start, &ten_millis);
+  EXPECT_EQ(start.tv_sec, stream->rstream->next_cb_ts.tv_sec);
+  EXPECT_EQ(start.tv_nsec, stream->rstream->next_cb_ts.tv_nsec);
+}
+
+// TODO(yuhsuan): There are some time scheduling rules in cras_iodev. Maybe we
+// can move them into dev_io so that all timing related codes are in the same
+// file or leave them in iodev_unittest like now.
+// 1. Device's wake_ts update: cras_iodev_frames_to_play_in_sleep.
+// 2. wake_ts update when removing stream: cras_iodev_rm_stream.
+
 /* Stubs */
 extern "C" {
 
@@ -784,5 +1156,6 @@ struct cras_audio_format *cras_rstream_post_processing_format(
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  openlog(NULL, LOG_PERROR, LOG_USER);
   return RUN_ALL_TESTS();
 }

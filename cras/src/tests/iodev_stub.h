@@ -12,4 +12,6 @@ void iodev_stub_reset();
 
 void iodev_stub_frames_queued(cras_iodev* iodev, int ret, timespec ts);
 
+void iodev_stub_valid_frames(cras_iodev* iodev, int ret, timespec ts);
+
 #endif // IODEV_STUB_H_

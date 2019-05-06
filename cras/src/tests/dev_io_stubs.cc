@@ -59,6 +59,7 @@ DevStreamPtr create_dev_stream(unsigned int dev_id, cras_rstream* rstream) {
   dstream->dev_id = dev_id;
   dstream->stream = rstream;
   dstream->dev_rate = rstream->format.frame_rate;
+  dstream->is_running = true;
   return dstream;
 }
 
