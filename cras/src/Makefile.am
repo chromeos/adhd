@@ -633,15 +633,7 @@ cras_tm_unittest_LDADD = -lgtest -lpthread
 dev_io_unittest_SOURCES = \
 	$(CRAS_SELINUX_UNITTEST_SOURCES) \
 	common/cras_audio_format.c \
-	common/cras_shm.c \
-	server/cras_audio_area.c \
-	server/cras_fmt_conv.c \
-	server/cras_fmt_conv_ops.c \
-	server/cras_mix.c \
-	server/cras_mix_ops.c \
 	server/dev_io.c \
-	server/dev_stream.c \
-	server/linear_resampler.c \
 	tests/dev_io_stubs.cc \
 	tests/iodev_stub.cc \
 	tests/empty_audio_stub.cc \

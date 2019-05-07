@@ -81,7 +81,7 @@ unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 }
 
 float cras_rstream_get_volume_scaler(struct cras_rstream *rstream) {
-  return 0.0;
+  return 1.0;
 }
 
 int cras_rstream_get_mute(const struct cras_rstream *rstream) {

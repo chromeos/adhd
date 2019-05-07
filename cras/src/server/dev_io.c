@@ -479,13 +479,13 @@ static int capture_to_streams(struct open_dev *adev)
 			 * (2) The gain scaler in cras_rstream set by app, for
 			 * example the AGC module in Chrome.
 			 *
-			 * APM has more advanced gain control mechanism, so
-			 * don't apply the software gain of this stream if APM
-			 * is used.
+			 * APM has more advanced gain control mechanism, we shall
+			 * give APM total control of the captured samples without
+			 * additional gain scaler at all.
 			 */
-			software_gain_scaler = idev->software_gain_scaler;
-			if (stream->stream->apm_list == NULL)
-				software_gain_scaler *=
+			software_gain_scaler = stream->stream->apm_list
+				? 1.0f
+				: idev->software_gain_scaler *
 					cras_rstream_get_volume_scaler(stream->stream);
 
 			this_read = dev_stream_capture(

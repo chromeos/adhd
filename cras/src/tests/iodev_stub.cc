@@ -59,7 +59,7 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
 }
 
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev *iodev) {
-  return CRAS_IODEV_STATE_OPEN;
+  return iodev->state;
 }
 
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev) {
