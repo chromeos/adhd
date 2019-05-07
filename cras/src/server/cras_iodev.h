@@ -218,6 +218,7 @@ struct cras_ionode {
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
  * idle_timeout - The timestamp when to close the dev after being idle.
+ * open_ts - The time when the device opened.
  * loopbacks - List of registered cras_loopback objects representing the
  *    receivers who wants a copy of the audio sending through this iodev.
  * pre_open_iodev_hook - Optional callback to call before iodev open.
@@ -295,6 +296,7 @@ struct cras_iodev {
 	unsigned int largest_cb_level;
 	struct buffer_share *buf_state;
 	struct timespec idle_timeout;
+	struct timespec open_ts;
 	struct cras_loopback *loopbacks;
 	iodev_hook_t pre_open_iodev_hook;
 	iodev_hook_t post_close_iodev_hook;

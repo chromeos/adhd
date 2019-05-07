@@ -952,6 +952,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	}
 
 	add_ext_dsp_module_to_pipeline(iodev);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &iodev->open_ts);
 
 	return 0;
 }

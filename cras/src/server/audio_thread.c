@@ -620,6 +620,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 				 struct open_dev *adev)
 {
 	struct cras_audio_format *fmt = adev->dev->format;
+	struct timespec now, time_since;
 	strncpy(di->dev_name, adev->dev->info.name, sizeof(di->dev_name));
 	di->buffer_size = adev->dev->buffer_size;
 	di->min_buffer_level = adev->dev->min_buffer_level;
@@ -633,6 +634,12 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	di->software_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT)
 			? adev->dev->software_gain_scaler
 			: 0.0f;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &adev->dev->open_ts, &time_since);
+	di->runtime_sec = time_since.tv_sec;
+	di->runtime_nsec = time_since.tv_nsec;
+
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;
 		di->num_channels = fmt->num_channels;

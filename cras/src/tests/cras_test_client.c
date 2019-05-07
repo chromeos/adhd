@@ -614,6 +614,7 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "num_underruns: %u\n"
 		       "num_severe_underruns: %u\n"
 		       "highest_hw_level: %u\n"
+		       "runtime: %u.%09u\n"
 		       "software_gain_scaler: %lf\n",
 		       (unsigned int)info->devs[i].buffer_size,
 		       (unsigned int)info->devs[i].min_buffer_level,
@@ -625,6 +626,8 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       (unsigned int)info->devs[i].num_underruns,
 		       (unsigned int)info->devs[i].num_severe_underruns,
 		       (unsigned int)info->devs[i].highest_hw_level,
+		       (unsigned int)info->devs[i].runtime_sec,
+		       (unsigned int)info->devs[i].runtime_nsec,
 		       info->devs[i].software_gain_scaler);
 		printf("\n");
 	}
