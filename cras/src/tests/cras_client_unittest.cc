@@ -310,6 +310,38 @@ TEST_F(CrasClientTestSuite, AddAndRemoveStream) {
   EXPECT_EQ(NULL, stream_from_id(&client_, stream_id));
 }
 
+TEST_F(CrasClientTestSuite, SetOutputStreamVolume) {
+  cras_stream_id_t stream_id;
+
+  client_thread_add_stream(&client_, &stream_, &stream_id, NO_DEVICE);
+  EXPECT_EQ(&stream_, stream_from_id(&client_, stream_id));
+
+  /* Set volume before stream connected. */
+  client_thread_set_stream_volume(&client_, stream_id, 0.3f);
+  StreamConnected(CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(&stream_.play_shm));
+
+  /* Set volume after stream connected. */
+  client_thread_set_stream_volume(&client_, stream_id, 0.6f);
+  EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(&stream_.play_shm));
+}
+
+TEST_F(CrasClientTestSuite, SetInputStreamVolume) {
+  cras_stream_id_t stream_id;
+
+  client_thread_add_stream(&client_, &stream_, &stream_id, NO_DEVICE);
+  EXPECT_EQ(&stream_, stream_from_id(&client_, stream_id));
+
+  /* Set volume before stream connected. */
+  client_thread_set_stream_volume(&client_, stream_id, 0.3f);
+  StreamConnected(CRAS_STREAM_INPUT);
+  EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(&stream_.capture_shm));
+
+  /* Set volume after stream connected. */
+  client_thread_set_stream_volume(&client_, stream_id, 0.6f);
+  EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(&stream_.capture_shm));
+}
+
 } // namepsace
 
 int main(int argc, char **argv) {

@@ -139,6 +139,9 @@ struct cras_stream_params {
  * aud_fd - After server connects audio messages come in here.
  * direction - playback, capture, both, or loopback (see CRAS_STREAM_DIRECTION).
  * flags - Currently not used.
+ * volume_scaler - Amount to scale the stream by, 0.0 to 1.0. Client could
+ *    change this scaler value before stream actually connected, so we need
+ *    to cache it until shm is prepared and apply it.
  * tid - Thread id of the audio thread spawned for this stream.
  * running - Audio thread runs while this is non-zero.
  * wake_fds - Pipe to wake the audio thread.
@@ -153,6 +156,7 @@ struct client_stream {
 	int aud_fd; /* audio messages from server come in here. */
 	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t flags;
+	float volume_scaler;
 	struct thread_state thread;
 	int wake_fds[2]; /* Pipe to wake the thread */
 	struct cras_client *client;
@@ -1424,6 +1428,8 @@ static int stream_connected(struct client_stream *stream,
 			goto err_ret;
 		}
 		stream->capture_shm_size = msg->shm_max_size;
+		cras_shm_set_volume_scaler(&stream->capture_shm,
+					   stream->volume_scaler);
 	}
 
 	if (cras_stream_uses_output_hw(stream->direction)) {
@@ -1435,6 +1441,8 @@ static int stream_connected(struct client_stream *stream,
 			goto err_ret;
 		}
 		stream->play_shm_size = msg->shm_max_size;
+		cras_shm_set_volume_scaler(&stream->play_shm,
+					   stream->volume_scaler);
 	}
 
 	stream->thread.state = CRAS_THREAD_RUNNING;
@@ -1596,6 +1604,7 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 	if (stream == NULL || volume_scaler > 1.0 || volume_scaler < 0.0)
 		return -EINVAL;
 
+	stream->volume_scaler = volume_scaler;
 	if (stream->capture_shm.area != NULL)
 		cras_shm_set_volume_scaler(&stream->capture_shm, volume_scaler);
 
