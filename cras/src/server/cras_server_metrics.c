@@ -9,10 +9,16 @@
 #include <string.h>
 #include <syslog.h>
 
+#ifdef CRAS_DBUS
+#include "cras_bt_io.h"
+#endif
+#include "cras_iodev.h"
 #include "cras_metrics.h"
 #include "cras_main_message.h"
 #include "cras_rstream.h"
 #include "cras_system_state.h"
+
+#define METRICS_NAME_BUFFER_SIZE 50
 
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
@@ -50,6 +56,7 @@ const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	DEVICE_RUNTIME,
 	HIGHEST_DEVICE_DELAY_INPUT,
 	HIGHEST_DEVICE_DELAY_OUTPUT,
 	HIGHEST_INPUT_HW_LEVEL,
@@ -74,9 +81,16 @@ struct cras_server_metrics_stream_config {
 	unsigned rate;
 };
 
+struct cras_server_metrics_device_data {
+	const char *type;
+	enum CRAS_STREAM_DIRECTION direction;
+	struct timespec runtime;
+};
+
 union cras_server_metrics_data {
 	unsigned value;
 	struct cras_server_metrics_stream_config stream_config;
+	struct cras_server_metrics_device_data device_data;
 };
 
 /*
@@ -115,6 +129,85 @@ static int cras_server_metrics_message_send(struct cras_main_message *msg)
 		return 0;
 	}
 	return cras_main_message_send(msg);
+}
+
+static const char *get_metrics_device_type_str(struct cras_iodev *iodev)
+{
+	switch (iodev->active_node->type) {
+	case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
+		return "InternalSpeaker";
+	case CRAS_NODE_TYPE_HEADPHONE:
+		return "Headphone";
+	case CRAS_NODE_TYPE_HDMI:
+		return "HDMI";
+	case CRAS_NODE_TYPE_HAPTIC:
+		return "Haptic";
+	case CRAS_NODE_TYPE_LINEOUT:
+		return "Lineout";
+	case CRAS_NODE_TYPE_MIC:
+		switch (iodev->active_node->position) {
+		case NODE_POSITION_INTERNAL:
+			return "InternalMic";
+		case NODE_POSITION_FRONT:
+			return "FrontMic";
+		case NODE_POSITION_REAR:
+			return "RearMic";
+		case NODE_POSITION_KEYBOARD:
+			return "KeyboardMic";
+		case NODE_POSITION_EXTERNAL:
+		default:
+			return "Mic";
+		}
+	case CRAS_NODE_TYPE_HOTWORD:
+		return "Hotword";
+	case CRAS_NODE_TYPE_POST_MIX_PRE_DSP:
+		return "PostMixLoopback";
+	case CRAS_NODE_TYPE_POST_DSP:
+		return "PostDspLoopback";
+	case CRAS_NODE_TYPE_USB:
+		return "USB";
+	case CRAS_NODE_TYPE_BLUETOOTH:
+#ifdef CRAS_DBUS
+		if (cras_bt_io_on_profile(iodev,
+					  CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE))
+			return "A2DP";
+		if (cras_bt_io_on_profile(
+			    iodev, CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY))
+			return "HFP";
+		if (cras_bt_io_on_profile(
+			    iodev, CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY))
+			return "HSP";
+#endif
+		return "Bluetooth";
+	case CRAS_NODE_TYPE_UNKNOWN:
+	default:
+		return "Unknown";
+	}
+}
+
+int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	struct timespec now;
+	int err;
+
+	data.device_data.type = get_metrics_device_type_str(iodev);
+	data.device_data.direction = iodev->direction;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &iodev->open_ts, &data.device_data.runtime);
+
+	init_server_metrics_msg(&msg, DEVICE_RUNTIME, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: DEVICE_RUNTIME");
+		return err;
+	}
+
+	return 0;
 }
 
 int cras_server_metrics_highest_device_delay(unsigned int hw_level,
@@ -407,6 +500,18 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 	return 0;
 }
 
+static void metrics_device_runtime(struct cras_server_metrics_device_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
+		 "Cras.%sDevice%sRuntime",
+		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
+		 data.type);
+	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
+				   0, 10000, 20);
+}
+
 static void metrics_stream_config(
 		struct cras_server_metrics_stream_config config)
 {
@@ -432,6 +537,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	struct cras_server_metrics_message *metrics_msg =
 			(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
+	case DEVICE_RUNTIME:
+		metrics_device_runtime(metrics_msg->data.device_data);
+		break;
 	case HIGHEST_DEVICE_DELAY_INPUT:
 		cras_metrics_log_histogram(kHighestDeviceDelayInput,
 				metrics_msg->data.value, 1, 10000, 20);

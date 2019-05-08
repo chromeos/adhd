@@ -25,6 +25,7 @@
 #include "cras_mix.h"
 #include "cras_ramp.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "dev_stream.h"
@@ -970,6 +971,8 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	if (!cras_iodev_is_open(iodev))
 		return 0;
 
+	cras_server_metrics_device_runtime(iodev);
+
 	if (iodev->input_data) {
 		if (iodev->ext_dsp_module == &iodev->input_data->ext)
 			iodev->ext_dsp_module = NULL;
@@ -1530,4 +1533,3 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 {
 	iodev->highest_hw_level = MAX(iodev->highest_hw_level, hw_level);
 }
-

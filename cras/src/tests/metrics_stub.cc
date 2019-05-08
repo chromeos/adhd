@@ -6,21 +6,23 @@
 extern "C" {
 #include "cras_server_metrics.h"
 
-int cras_server_metrics_highest_device_delay(unsigned int hw_level,
+int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
+  return 0;
+}
+
+int cras_server_metrics_highest_device_delay(
+    unsigned int hw_level,
     unsigned int largest_cb_level,
-    enum CRAS_STREAM_DIRECTION direction)
-{
+    enum CRAS_STREAM_DIRECTION direction) {
   return 0;
 }
 
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
-    enum CRAS_STREAM_DIRECTION direction)
-{
+                                         enum CRAS_STREAM_DIRECTION direction) {
   return 0;
 }
 
-int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
-{
+int cras_server_metrics_longest_fetch_delay(unsigned delay_msec) {
   return 0;
 }
 
@@ -28,8 +30,7 @@ int cras_server_metrics_missed_cb_event(const struct cras_rstream* stream) {
   return 0;
 }
 
-int cras_server_metrics_num_underruns(unsigned num_underruns)
-{
+int cras_server_metrics_num_underruns(unsigned num_underruns) {
   return 0;
 }
 

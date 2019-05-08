@@ -32,7 +32,53 @@ TEST(ServerMetricsTestSuite, Init) {
   EXPECT_EQ(type_set, CRAS_MAIN_METRICS);
 }
 
-TEST(ServerMetricsTestSuite, SetMetricHighestDeviceDelay) {
+TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
+  ResetStubData();
+  struct cras_iodev iodev;
+  struct cras_ionode active_node;
+
+  clock_gettime_retspec.tv_sec = 200;
+  clock_gettime_retspec.tv_nsec = 0;
+  iodev.open_ts.tv_sec = 100;
+  iodev.open_ts.tv_nsec = 0;
+  iodev.direction = CRAS_STREAM_INPUT;
+  iodev.active_node = &active_node;
+  active_node.type = CRAS_NODE_TYPE_USB;
+
+  cras_server_metrics_device_runtime(&iodev);
+
+  EXPECT_EQ(sent_msgs.size(), 1);
+  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[0].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[0].metrics_type, DEVICE_RUNTIME);
+  EXPECT_STREQ(sent_msgs[0].data.device_data.type, "USB");
+  EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_INPUT);
+  EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 100);
+
+  sent_msgs.clear();
+
+  clock_gettime_retspec.tv_sec = 300;
+  clock_gettime_retspec.tv_nsec = 0;
+  iodev.open_ts.tv_sec = 100;
+  iodev.open_ts.tv_nsec = 0;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.active_node = &active_node;
+  active_node.type = CRAS_NODE_TYPE_HEADPHONE;
+
+  cras_server_metrics_device_runtime(&iodev);
+
+  EXPECT_EQ(sent_msgs.size(), 1);
+  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[0].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[0].metrics_type, DEVICE_RUNTIME);
+  EXPECT_STREQ(sent_msgs[0].data.device_data.type, "Headphone");
+  EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_OUTPUT);
+  EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 200);
+}
+
+TEST(ServerMetricsTestSuite, SetMetricsHighestDeviceDelay) {
   ResetStubData();
   unsigned int hw_level = 1000;
   unsigned int largest_cb_level = 500;

@@ -6,9 +6,13 @@
 #ifndef CRAS_SERVER_METRICS_H_
 #define CRAS_SERVER_METRICS_H_
 
+#include "cras_iodev.h"
 #include "cras_rstream.h"
 
 extern const char kNoCodecsFoundMetric[];
+
+/* Logs runtime of a device. */
+int cras_server_metrics_device_runtime(struct cras_iodev *iodev);
 
 /* Logs the highest delay time of a device. */
 int cras_server_metrics_highest_device_delay(unsigned int hw_level,
