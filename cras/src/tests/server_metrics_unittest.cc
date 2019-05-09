@@ -315,7 +315,11 @@ int cras_main_message_send(struct cras_main_message* msg) {
   memcpy(&sent_msg, msg, sizeof(sent_msg));
   sent_msgs.push_back(sent_msg);
   return 0;
-};
+}
+
+int cras_system_state_in_main_thread() {
+  return 0;
+}
 
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {

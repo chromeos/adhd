@@ -12,6 +12,7 @@
 #include "cras_metrics.h"
 #include "cras_main_message.h"
 #include "cras_rstream.h"
+#include "cras_system_state.h"
 
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
@@ -78,6 +79,13 @@ union cras_server_metrics_data {
 	struct cras_server_metrics_stream_config stream_config;
 };
 
+/*
+ * Make sure the size of message in the acceptable range. Otherwise, it may
+ * be split into mutiple packets while sending.
+ */
+static_assert(sizeof(union cras_server_metrics_data) <= 256,
+	      "The size is too large.");
+
 struct cras_server_metrics_message {
 	struct cras_main_message header;
 	enum CRAS_SERVER_METRICS_TYPE metrics_type;
@@ -94,6 +102,19 @@ static void init_server_metrics_msg(
 	msg->header.length = sizeof(*msg);
 	msg->metrics_type = type;
 	msg->data = data;
+}
+
+static void handle_metrics_message(struct cras_main_message *msg, void *arg);
+
+/* The wrapper function of cras_main_message_send. */
+static int cras_server_metrics_message_send(struct cras_main_message *msg)
+{
+	/* If current function is in the main thread, call handler directly. */
+	if (cras_system_state_in_main_thread()) {
+		handle_metrics_message(msg, NULL);
+		return 0;
+	}
+	return cras_main_message_send(msg);
 }
 
 int cras_server_metrics_highest_device_delay(unsigned int hw_level,
@@ -130,7 +151,8 @@ int cras_server_metrics_highest_device_delay(unsigned int hw_level,
 		return 0;
 	}
 
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: HIGHEST_DEVICE_DELAY");
@@ -160,7 +182,8 @@ int cras_server_metrics_highest_hw_level(unsigned hw_level,
 		return 0;
 	}
 
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: HIGHEST_HW_LEVEL");
@@ -178,7 +201,8 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
 
 	data.value = delay_msec;
 	init_server_metrics_msg(&msg, LONGEST_FETCH_DELAY, data);
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: LONGEST_FETCH_DELAY");
@@ -196,7 +220,8 @@ int cras_server_metrics_num_underruns(unsigned num_underruns)
 
 	data.value = num_underruns;
 	init_server_metrics_msg(&msg, NUM_UNDERRUNS, data);
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: NUM_UNDERRUNS");
@@ -231,7 +256,8 @@ int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 	else
 		init_server_metrics_msg(&msg, MISSED_CB_FREQUENCY_OUTPUT, data);
 
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: MISSED_CB_FREQUENCY");
@@ -262,7 +288,8 @@ int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 			data);
 	}
 
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: MISSED_CB_FREQUENCY");
@@ -294,7 +321,8 @@ cras_server_metrics_missed_cb_first_time(const struct cras_rstream *stream)
 		init_server_metrics_msg(&msg, MISSED_CB_FIRST_TIME_OUTPUT,
 					data);
 	}
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to send metrics message: "
 				"MISSED_CB_FIRST_TIME");
@@ -324,7 +352,8 @@ cras_server_metrics_missed_cb_second_time(const struct cras_rstream *stream)
 		init_server_metrics_msg(&msg, MISSED_CB_SECOND_TIME_OUTPUT,
 					data);
 	}
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to send metrics message: "
 				"MISSED_CB_SECOND_TIME");
@@ -367,7 +396,8 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 	data.stream_config.rate = (unsigned)config->format->frame_rate;
 
 	init_server_metrics_msg(&msg, STREAM_CONFIG, data);
-	err = cras_main_message_send((struct cras_main_message *)&msg);
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
 			"Failed to send metrics message: STREAM_CONFIG");

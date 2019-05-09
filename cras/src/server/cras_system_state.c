@@ -47,6 +47,7 @@ struct card_list {
  *    tm - The system-wide timer manager.
  *    add_task - Function to handle adding a task for main thread to execute.
  *    task_data - Data to be passed to add_task handler function.
+ *    main_thread_tid - The thread id of the main thread.
  */
 static struct {
 	struct cras_server_state *exp_state;
@@ -70,6 +71,7 @@ static struct {
 					 void *task_data);
 	void *task_data;
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
+	pthread_t main_thread_tid;
 } state;
 
 /*
@@ -147,6 +149,9 @@ void cras_system_state_init(const char *device_config_dir,
 	/* Initialize snapshot buffer memory */
 	memset(&state.snapshot_buffer, 0,
 	       sizeof(struct cras_audio_thread_snapshot_buffer));
+
+	/* Save thread id of the main thread. */
+	state.main_thread_tid = pthread_self();
 }
 
 void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix)
@@ -611,4 +616,9 @@ void cras_system_state_add_snapshot(
 			(*snapshot);
 	state.snapshot_buffer.pos %=
 		CRAS_MAX_AUDIO_THREAD_SNAPSHOTS;
+}
+
+int cras_system_state_in_main_thread()
+{
+	return pthread_self() == state.main_thread_tid;
 }

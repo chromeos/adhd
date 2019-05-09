@@ -322,4 +322,9 @@ void cras_system_state_add_snapshot(struct cras_audio_thread_snapshot *);
  */
 void cras_system_state_dump_snapshots();
 
+/*
+ * Returns true if in the main thread.
+ */
+int cras_system_state_in_main_thread();
+
 #endif /* CRAS_SYSTEM_STATE_H_ */
