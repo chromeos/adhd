@@ -2346,6 +2346,10 @@ static inline int cras_client_send_add_stream_command_message(
 	stream->direction = config->direction;
 	stream->flags = config->flags;
 
+	/* Caller might not set this volume scaler after stream created,
+	 * so always initialize it to 1.0f */
+	stream->volume_scaler = 1.0f;
+
 	cmd_msg.header.len = sizeof(cmd_msg);
 	cmd_msg.header.msg_id = CLIENT_ADD_STREAM;
 	cmd_msg.header.stream_id = stream->id;
