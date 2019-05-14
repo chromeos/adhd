@@ -12,15 +12,21 @@
 #include "biquad.h"
 
 #ifndef max
-#define max(a, b) ({ __typeof__(a) _a = (a);	\
-			__typeof__(b) _b = (b);	\
-			_a > _b ? _a : _b; })
+#define max(a, b)                                                              \
+	({                                                                     \
+		__typeof__(a) _a = (a);                                        \
+		__typeof__(b) _b = (b);                                        \
+		_a > _b ? _a : _b;                                             \
+	})
 #endif
 
 #ifndef min
-#define min(a, b) ({ __typeof__(a) _a = (a);	\
-			__typeof__(b) _b = (b);	\
-			_a < _b ? _a : _b; })
+#define min(a, b)                                                              \
+	({                                                                     \
+		__typeof__(a) _a = (a);                                        \
+		__typeof__(b) _b = (b);                                        \
+		_a < _b ? _a : _b;                                             \
+	})
 #endif
 
 #ifndef M_PI
@@ -84,7 +90,7 @@ static void biquad_highpass(struct biquad *bq, double cutoff, double resonance)
 		 * and zeros on the unit circle in the same place. When cutoff
 		 * is zero, the z-transform is 1.
 		 */
-		set_coefficient(bq, 1-cutoff, 0, 0, 1, 0, 0);
+		set_coefficient(bq, 1 - cutoff, 0, 0, 1, 0, 0);
 		return;
 	}
 
@@ -169,8 +175,7 @@ static void biquad_lowshelf(struct biquad *bq, double frequency, double db_gain)
 
 	double w0 = M_PI * frequency;
 	double S = 1; /* filter slope (1 is max value) */
-	double alpha = 0.5 * sin(w0) *
-		sqrt((A + 1 / A) * (1 / S - 1) + 2);
+	double alpha = 0.5 * sin(w0) * sqrt((A + 1 / A) * (1 / S - 1) + 2);
 	double k = cos(w0);
 	double k2 = 2 * sqrt(A) * alpha;
 	double a_plus_one = A + 1;
@@ -207,8 +212,7 @@ static void biquad_highshelf(struct biquad *bq, double frequency,
 
 	double w0 = M_PI * frequency;
 	double S = 1; /* filter slope (1 is max value) */
-	double alpha = 0.5 * sin(w0) *
-		sqrt((A + 1 / A) * (1 / S - 1) + 2);
+	double alpha = 0.5 * sin(w0) * sqrt((A + 1 / A) * (1 / S - 1) + 2);
 	double k = cos(w0);
 	double k2 = 2 * sqrt(A) * alpha;
 	double a_plus_one = A + 1;

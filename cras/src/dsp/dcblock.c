@@ -9,11 +9,11 @@
 #define RAMP_TIME_MS 20
 
 struct dcblock {
-        float R;
-        float x_prev;
-        float y_prev;
-        float ramp_factor;
-        float ramp_increment;
+	float R;
+	float x_prev;
+	float y_prev;
+	float ramp_factor;
+	float ramp_increment;
 };
 
 struct dcblock *dcblock_new(float R, unsigned long sample_rate)
