@@ -198,6 +198,11 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device) {
   return 0;
 }
 
+bool cras_system_get_bt_wbs_enabled()
+{
+  return true;
+}
+
 } // extern "C"
 
 int main(int argc, char **argv) {

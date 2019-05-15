@@ -121,6 +121,7 @@ void cras_system_state_init(const char *device_config_dir,
 		board_config.aec_supported;
 	exp_state->aec_group_id =
 		board_config.aec_group_id;
+	exp_state->bt_wbs_enabled = 0;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -363,6 +364,16 @@ int cras_system_get_aec_supported()
 int cras_system_get_aec_group_id()
 {
 	return state.exp_state->aec_group_id;
+}
+
+void cras_system_set_bt_wbs_enabled(bool enabled)
+{
+	state.exp_state->bt_wbs_enabled = enabled;
+}
+
+bool cras_system_get_bt_wbs_enabled()
+{
+	return !!state.exp_state->bt_wbs_enabled;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)

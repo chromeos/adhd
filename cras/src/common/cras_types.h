@@ -411,6 +411,7 @@ struct __attribute__ ((__packed__)) cras_audio_thread_snapshot_buffer{
  *        tunings.
  *    snapshot_buffer - ring buffer for storing audio thread snapshots.
  *    bt_debug_info - ring buffer for storing bluetooth event logs.
+ *    bt_wbs_enabled - Whether or not bluetooth wideband speech is enabled.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__ ((packed, aligned(4))) cras_server_state {
@@ -449,6 +450,7 @@ struct __attribute__ ((packed, aligned(4))) cras_server_state {
   	int32_t aec_group_id;
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 	struct cras_bt_debug_info bt_debug_info;
+	int32_t bt_wbs_enabled;
 };
 
 /* Actions for card add/remove/change. */

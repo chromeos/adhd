@@ -1391,6 +1391,7 @@ static struct option long_options[] = {
 	{"get_aec_supported",	no_argument,		0, 'F'},
 	{"aecdump",		required_argument,	0, 'G'},
 	{"dump_bt",		no_argument,		0, 'H'},
+	{"set_wbs_enabled",	required_argument,	0, 'I'},
 	{"loopback_file",	required_argument,	0, 'L'},
 	{"mute_loop_test",	required_argument,	0, 'M'},
 	{"playback_file",	required_argument,	0, 'P'},
@@ -1846,6 +1847,9 @@ int main(int argc, char **argv)
 			break;
 		case 'H':
 			show_cras_bt_debug_info(client);
+			break;
+		case 'I':
+			cras_client_set_bt_wbs_enabled(client, atoi(optarg));
 			break;
 		case 'L':
 			loopback_file = optarg;

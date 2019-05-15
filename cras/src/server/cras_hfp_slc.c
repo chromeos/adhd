@@ -59,7 +59,6 @@ struct hfp_slc_handle {
 	char buf[SLC_BUF_SIZE_BYTES];
 	int buf_read_idx;
 	int buf_write_idx;
-
 	int is_hsp;
 	int rfcomm_fd;
 	hfp_slc_init_cb init_cb;

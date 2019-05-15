@@ -3349,6 +3349,14 @@ int cras_client_get_aec_group_id(struct cras_client *client)
 	return aec_group_id;
 }
 
+int cras_client_set_bt_wbs_enabled(struct cras_client * client, bool enabled)
+{
+	struct cras_set_bt_wbs_enabled msg;
+
+	cras_fill_set_bt_wbs_enabled(&msg, enabled);
+	return write_message_to_server(client, &msg.header);
+}
+
 void cras_client_set_state_change_callback_context(struct cras_client *client,
 						   void *context)
 {

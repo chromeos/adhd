@@ -602,6 +602,12 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 		cras_rclient_send_message(client, &msg.header, NULL, 0);
 		break;
 	}
+	case CRAS_SERVER_SET_BT_WBS_ENABLED: {
+		const struct cras_set_bt_wbs_enabled *m =
+			(const struct cras_set_bt_wbs_enabled *)msg;
+		cras_system_set_bt_wbs_enabled(m->enabled);
+		break;
+	}
 	case CRAS_SERVER_DUMP_SNAPSHOTS:
 		dump_audio_thread_snapshots(client);
 		break;
