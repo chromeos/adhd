@@ -10,6 +10,7 @@
 #include <syslog.h>
 
 #include "cras_audio_area.h"
+#include "cras_hfp_ag_profile.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_info.h"
 #include "cras_hfp_slc.h"
@@ -41,12 +42,17 @@ struct hfp_io {
 
 static int update_supported_formats(struct cras_iodev *iodev)
 {
-	// 16 bit, mono, 8kHz
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+
+	/* 16 bit, mono, 8kHz for narrowband and 16KHz for wideband */
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 
 	free(iodev->supported_rates);
 	iodev->supported_rates = (size_t *)malloc(2 * sizeof(size_t));
-	iodev->supported_rates[0] = 8000;
+
+	iodev->supported_rates[0] =
+		(hfp_slc_get_selected_codec(hfpio->slc) == HFP_CODEC_ID_MSBC)
+			? 16000 : 8000;
 	iodev->supported_rates[1] = 0;
 
 	free(iodev->supported_channel_counts);
@@ -135,11 +141,14 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (hfp_info_running(hfpio->info))
 		goto add_dev;
 
-	sk = cras_bt_device_sco_connect(hfpio->device);
+	sk = cras_bt_device_sco_connect(
+			hfpio->device,
+			hfp_slc_get_selected_codec(hfpio->slc));
 	if (sk < 0)
 		goto error;
 
-	mtu = cras_bt_device_sco_mtu(hfpio->device, sk);
+	mtu = cras_bt_device_sco_packet_size(hfpio->device, sk,
+			hfp_slc_get_selected_codec(hfpio->slc));
 
 	/* Start hfp_info */
 	err = hfp_info_start(sk, mtu, hfpio->info);

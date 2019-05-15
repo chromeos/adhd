@@ -65,3 +65,12 @@ struct hci_dev_info {
 struct sco_options {
 	uint16_t mtu;
 };
+
+#define SOL_BLUETOOTH	274
+
+#define BT_VOICE	11
+struct bt_voice {
+	uint16_t setting;
+};
+
+#define BT_VOICE_TRANSPARENT	0x0003

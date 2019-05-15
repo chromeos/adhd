@@ -24,8 +24,11 @@ struct hfp_packet_size_changed_callback {
  */
 struct hfp_info;
 
-/* Creates an hfp_info instance. */
-struct hfp_info *hfp_info_create();
+/* Creates an hfp_info instance.
+ * Args:
+ *    codec - 1 for CVSD, 2 for mSBC per HFP 1.7 specification.
+ */
+struct hfp_info *hfp_info_create(int codec);
 
 /* Destroys given hfp_info instance. */
 void hfp_info_destroy(struct hfp_info *info);

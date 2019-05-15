@@ -7,6 +7,7 @@
 
 extern "C" {
 #include "cras_hfp_alsa_iodev.h"
+#include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_audio_format.h"
 }
@@ -468,11 +469,16 @@ int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain) {
   return 0;
 }
 
-int cras_bt_device_get_sco(struct cras_bt_device *device) {
+int cras_bt_device_get_sco(struct cras_bt_device *device, int codec) {
   return 0;
 }
 
 void cras_bt_device_put_sco(struct cras_bt_device *device) {
+}
+
+int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
+{
+  return HFP_CODEC_ID_CVSD;
 }
 
 } // extern "C"

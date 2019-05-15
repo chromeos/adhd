@@ -8,6 +8,7 @@
 extern "C" {
 #include "cras_audio_area.h"
 #include "cras_hfp_iodev.h"
+#include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_hfp_info.h"
 }
@@ -260,7 +261,7 @@ size_t cras_system_get_volume()
 }
 
 // From bt device
-int cras_bt_device_sco_connect(struct cras_bt_device *device)
+int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 {
   cras_bt_device_sco_connect_called++;
   return cras_bt_transport_sco_connect_return_val;
@@ -288,7 +289,9 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
   cras_bt_device_rm_iodev_called++;
 }
 
-int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
+int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
+                                   int sco_socket,
+                                   int codec)
 {
   return 48;
 }
@@ -402,6 +405,11 @@ int hfp_set_call_status(struct hfp_slc_handle *handle, int call)
 int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 {
   return 0;
+}
+
+int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
+{
+  return HFP_CODEC_ID_CVSD;
 }
 
 } // extern "C"

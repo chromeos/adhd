@@ -13,6 +13,8 @@
 #include "byte_buffer.h"
 #include "cras_iodev_list.h"
 #include "cras_hfp_info.h"
+#include "cras_hfp_slc.h"
+#include "cras_sbc_codec.h"
 #include "utlist.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
@@ -25,6 +27,27 @@
 /* rate(8kHz) * sample_size(2 bytes) * channels(1) */
 #define HFP_BYTE_RATE 16000
 
+/* Per Bluetooth Core v5.0 and HFP 1.7 specification. */
+#define MSBC_H2_HEADER_LEN	2
+#define MSBC_FRAME_LEN		57
+#define MSBC_FRAME_SIZE		59
+#define MSBC_CODE_SIZE		240
+#define MSBC_SYNC_WORD		0xAD
+
+/* For one mSBC 1 compressed wideband audio channel the HCI packets will
+ * be 3 octets of HCI header + 60 octets of data. */
+#define MSBC_PKT_SIZE 60
+#define WRITE_BUF_SIZE_BYTES	MSBC_PKT_SIZE
+#define READ_BUF_SIZE_BYTES	(2 * MSBC_PKT_SIZE)
+
+#define H2_HEADER_0		0x01
+
+/* Second octet of H2 header is composed by 4 bits fixed 0x8 and 4 bits
+ * sequence number 0000, 0011, 1100, 1111. */
+static const uint8_t h2_header_frames_count[] = {
+	0x08, 0x38, 0xc8, 0xf8
+};
+
 /* Structure to hold variables for a HFP connection. Since HFP supports
  * bi-direction audio, two iodevs should share one hfp_info if they
  * represent two directions of the same HFP headset
@@ -36,6 +59,13 @@
  *         adapter, could be different than mtu.
  *     capture_buf - The buffer to hold samples read from SCO socket.
  *     playback_buf - The buffer to hold samples about to write to SCO socket.
+ *     msbc_read - mSBC codec to decode input audio in wideband speech mode.
+ *     msbc_write - mSBC codec to encode output audio in wideband speech mode.
+ *     msbc_num_out_frames - Number of total written mSBC frames.
+ *     read_cb - Callback to call when SCO socket can read.
+ *     write_cb - Callback to call when SCO socket can write.
+ *     read_buf - Buffer to hold input audio bytes.
+ *     read_buf_level - Read input audio level in bytes.
  *     idev - The input iodev using this hfp_info.
  *     odev - The output iodev using this hfp_info.
  */
@@ -46,7 +76,14 @@ struct hfp_info {
 	unsigned int packet_size;
 	struct byte_buffer *capture_buf;
 	struct byte_buffer *playback_buf;
-
+	struct cras_audio_codec *msbc_read;
+	struct cras_audio_codec *msbc_write;
+	unsigned int msbc_num_out_frames;
+	int (*read_cb)(struct hfp_info *info);
+	int (*write_cb)(struct hfp_info *info);
+	uint8_t write_buf[WRITE_BUF_SIZE_BYTES];
+	uint8_t read_buf[READ_BUF_SIZE_BYTES];
+	int read_buf_level;
 	struct cras_iodev *idev;
 	struct cras_iodev *odev;
 };
@@ -176,6 +213,50 @@ int hfp_force_output_level(struct hfp_info *info,
 	return 0;
 }
 
+int hfp_write_msbc(struct hfp_info *info)
+{
+	int to_write = 0;
+	size_t encoded;
+	int err;
+	int pcm_encoded;
+	unsigned int pcm_avail;
+	uint8_t *samples;
+	uint8_t *wp;
+
+	samples = buf_read_pointer_size(info->playback_buf, &pcm_avail);
+	wp = info->write_buf;
+	if (pcm_avail >= MSBC_CODE_SIZE) {
+		/* Encode more */
+		wp[0] = H2_HEADER_0;
+		wp[1] = h2_header_frames_count[info->msbc_num_out_frames % 4];
+		pcm_encoded = info->msbc_write->encode(
+				info->msbc_write, samples, pcm_avail,
+				wp + MSBC_H2_HEADER_LEN,
+				WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN,
+				&encoded);
+		buf_increment_read(info->playback_buf, pcm_encoded);
+		pcm_avail -= pcm_encoded;
+	} else {
+		memset(wp, 0, WRITE_BUF_SIZE_BYTES);
+	}
+	to_write = info->packet_size;
+
+msbc_send_again:
+	err = send(info->fd, info->write_buf, to_write, 0);
+	if (err < 0) {
+		if (errno == EINTR)
+			goto msbc_send_again;
+		return err;
+	}
+	if (err != (int)info->packet_size) {
+		syslog(LOG_ERR, "Partially write %d bytes for mSBC", err);
+		return -1;
+	}
+	info->msbc_num_out_frames++;
+
+	return err;
+}
+
 int hfp_write(struct hfp_info *info)
 {
 	int err = 0;
@@ -205,6 +286,56 @@ send_sample:
 	}
 
 	buf_increment_read(info->playback_buf, to_send);
+
+	return err;
+}
+
+int hfp_read_msbc(struct hfp_info *info)
+{
+	int err = 0;
+	unsigned int pcm_avail = 0;
+	int decoded;
+	int rp = 0;
+	size_t pcm_decoded = 0;
+	uint8_t *capture_buf;
+
+	/* Check if there's room for more PCM. */
+	capture_buf = buf_write_pointer_size(info->capture_buf, &pcm_avail);
+	if (pcm_avail < MSBC_CODE_SIZE)
+		return 0;
+
+recv_msbc_bytes:
+	err = recv(info->fd, info->read_buf + info->read_buf_level,
+		   info->packet_size, 0);
+	if (err < 0) {
+		syslog(LOG_ERR, "mSBC read err %s", strerror(errno));
+		if (errno == EINTR)
+			goto recv_msbc_bytes;
+		return err;
+	}
+
+	info->read_buf_level += err;
+	while (info->read_buf_level - rp >= MSBC_FRAME_SIZE) {
+		if ((info->read_buf[rp] != H2_HEADER_0) ||
+		    (info->read_buf[rp + 2] != MSBC_SYNC_WORD)) {
+			rp++;
+			continue;
+		}
+		decoded = info->msbc_read->decode(
+				info->msbc_read,
+				info->read_buf + rp + MSBC_H2_HEADER_LEN,
+				info->read_buf_level - rp - MSBC_H2_HEADER_LEN,
+				capture_buf,
+				pcm_avail,
+				&pcm_decoded);
+		if (decoded < 0)
+			syslog(LOG_ERR, "mSBC decode err, %d", decoded);
+
+		rp += MSBC_FRAME_SIZE;
+		buf_increment_write(info->capture_buf, pcm_decoded);
+	}
+	info->read_buf_level -= rp;
+	memmove(info->read_buf, info->read_buf + rp, info->read_buf_level);
 
 	return err;
 }
@@ -268,7 +399,7 @@ static int hfp_info_callback(void *arg)
 	if (!info->started)
 		goto read_write_error;
 
-	err = hfp_read(info);
+	err = info->read_cb(info);
 	if (err < 0) {
 		syslog(LOG_ERR, "Read error");
 		goto read_write_error;
@@ -279,7 +410,7 @@ static int hfp_info_callback(void *arg)
 		buf_increment_read(info->capture_buf, info->packet_size);
 
 	if (info->odev) {
-		err = hfp_write(info);
+		err = info->write_cb(info);
 		if (err < 0) {
 			syslog(LOG_ERR, "Write error");
 			goto read_write_error;
@@ -294,7 +425,7 @@ read_write_error:
 	return 0;
 }
 
-struct hfp_info *hfp_info_create()
+struct hfp_info *hfp_info_create(int codec)
 {
 	struct hfp_info *info;
 	info = (struct hfp_info *)calloc(1, sizeof(*info));
@@ -308,6 +439,16 @@ struct hfp_info *hfp_info_create()
 	info->playback_buf = byte_buffer_create(MAX_HFP_BUF_SIZE_BYTES);
 	if (!info->playback_buf)
 		goto error;
+
+	if (codec == HFP_CODEC_ID_MSBC) {
+		info->write_cb = hfp_write_msbc;
+		info->read_cb = hfp_read_msbc;
+		info->msbc_read = cras_msbc_codec_create();
+		info->msbc_write = cras_msbc_codec_create();
+	} else {
+		info->write_cb = hfp_write;
+		info->read_cb = hfp_read;
+	}
 
 	return info;
 
@@ -339,7 +480,9 @@ int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 
 	audio_thread_add_callback(info->fd, hfp_info_callback, info);
 
+	info->read_buf_level = 0;
 	info->started = 1;
+	info->msbc_num_out_frames = 0;
 
 	return 0;
 }
@@ -367,6 +510,11 @@ void hfp_info_destroy(struct hfp_info *info)
 
 	if (info->playback_buf)
 		byte_buffer_destroy(&info->playback_buf);
+
+	if (info->msbc_read)
+		cras_sbc_codec_destroy(info->msbc_read);
+	if (info->msbc_write)
+		cras_sbc_codec_destroy(info->msbc_write);
 
 	free(info);
 }

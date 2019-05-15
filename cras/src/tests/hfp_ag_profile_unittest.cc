@@ -183,6 +183,11 @@ struct hfp_slc_handle *hfp_slc_create(
   return NULL;
 }
 
+int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
+{
+  return HFP_CODEC_ID_CVSD;
+}
+
 struct cras_bt_device *cras_a2dp_connected_device() {
   return NULL;
 }

@@ -85,11 +85,22 @@ int cras_bt_device_disconnect(DBusConnection *conn,
 /* Gets the SCO socket for the device.
  * Args:
  *     device - The device object to get SCO socket for.
+ *     codec - 1 for CVSD, 2 for mSBC
  */
-int cras_bt_device_sco_connect(struct cras_bt_device *device);
+int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec);
 
-/* Queries the preffered mtu value for SCO socket. */
-int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket);
+/* Gets the SCO packet size in bytes, used by HFP iodev for audio I/O.
+ * The logic is built base on experience: for USB bus, respect BT Core spec
+ * that has clear recommendation of packet size of codecs (CVSD, mSBC).
+ * As for other buses, use the MTU value of SCO socket filled by driver.
+ * Args:
+ *    device - The bt device to query mtu.
+ *    sco_socket - The SCO socket.
+ *    codec - 1 for CVSD, 2 for mSBC per HFP 1.7 specification.
+ */
+int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
+				   int sco_socket,
+				   int codec);
 
 /* Appends an iodev to bt device.
  * Args:
@@ -172,11 +183,12 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
  * Establishes SCO connection if it has not been established on the BT device.
  * Note: this function should be only used for hfp_alsa_io.
  * Args:
- *   device - The bluetooth device.
+ *    device - The bluetooth device.
+ *    codec - 1 for CVSD, 2 for mSBC
  * Returns:
  *   0 on success, error code otherwise.
  */
-int cras_bt_device_get_sco(struct cras_bt_device *device);
+int cras_bt_device_get_sco(struct cras_bt_device *device, int codec);
 
 /*
  * Closes SCO connection if the caller is the last user for the connection on

@@ -35,7 +35,15 @@
 #include "cras_tm.h"
 #include "utlist.h"
 
-#define DEFAULT_HFP_MTU_BYTES 48
+
+/*
+ * Bluetooth Core 5.0 spec, vol 4, part B, section 2 describes
+ * the recommended HCI packet size in one USB transfer for CVSD
+ * and MSBC codec.
+ */
+#define USB_MSBC_PKT_SIZE	60
+#define USB_CVSD_PKT_SIZE	48
+#define DEFAULT_SCO_PKT_SIZE	USB_CVSD_PKT_SIZE
 
 
 static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
@@ -821,7 +829,30 @@ static int bt_address(const char *str, struct sockaddr *addr)
 	return 0;
 }
 
-int cras_bt_device_sco_connect(struct cras_bt_device *device)
+/* Apply codec specific settings to the socket fd. */
+static int apply_codec_settings(int fd, uint8_t codec)
+{
+	struct bt_voice voice;
+
+	memset(&voice, 0, sizeof(voice));
+	if (codec == HFP_CODEC_ID_CVSD)
+		return 0;
+
+	if (codec != HFP_CODEC_ID_MSBC) {
+		syslog(LOG_ERR, "Unsupported codec %d", codec);
+		return -1;
+	}
+
+	voice.setting = BT_VOICE_TRANSPARENT;
+
+	if (setsockopt(fd, SOL_BLUETOOTH, BT_VOICE, &voice, sizeof(voice)) < 0) {
+		syslog(LOG_ERR, "Failed to apply voice setting");
+		return -1;
+	}
+	return 0;
+}
+
+int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 {
 	int sk = 0, err;
 	struct sockaddr addr;
@@ -836,7 +867,8 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 		goto error;
 	}
 
-	sk = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_SCO);
+	sk = socket(PF_BLUETOOTH, SOCK_SEQPACKET | O_NONBLOCK | SOCK_CLOEXEC,
+		    BTPROTO_SCO);
 	if (sk < 0) {
 		syslog(LOG_ERR, "Failed to create socket: %s (%d)",
 				strerror(errno), errno);
@@ -860,6 +892,11 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device)
 
 	if (bt_address(cras_bt_device_address(device), &addr))
 		goto error;
+
+	err = apply_codec_settings(sk, codec);
+	if (err)
+		goto error;
+
 	err = connect(sk, (struct sockaddr *) &addr, sizeof(addr));
 	if (err && errno != EINPROGRESS) {
 		syslog(LOG_ERR, "Failed to connect: %s (%d)",
@@ -890,19 +927,27 @@ error:
 	return -1;
 }
 
-int cras_bt_device_sco_mtu(struct cras_bt_device *device, int sco_socket)
+
+
+int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
+				   int sco_socket, int codec)
 {
 	struct sco_options so;
 	socklen_t len = sizeof(so);
 	struct cras_bt_adapter *adapter;
 
 	adapter = cras_bt_adapter_get(device->adapter_obj_path);
-	if (cras_bt_adapter_on_usb(adapter))
-		return DEFAULT_HFP_MTU_BYTES;
 
+	if (cras_bt_adapter_on_usb(adapter)) {
+		return (codec == HFP_CODEC_ID_MSBC)
+				? USB_MSBC_PKT_SIZE
+				: USB_CVSD_PKT_SIZE;
+	}
+
+	/* For non-USB cases, query the SCO MTU from driver. */
 	if (getsockopt(sco_socket, SOL_SCO, SCO_OPTIONS, &so, &len) < 0) {
 		syslog(LOG_ERR, "Get SCO options error: %s", strerror(errno));
-		return DEFAULT_HFP_MTU_BYTES;
+		return DEFAULT_SCO_PKT_SIZE;
 	}
 	return so.mtu;
 }
@@ -1174,10 +1219,10 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 	cras_iodev_list_notify_node_volume(iodev->active_node);
 }
 
-int cras_bt_device_get_sco(struct cras_bt_device *device)
+int cras_bt_device_get_sco(struct cras_bt_device *device, int codec)
 {
 	if (device->sco_ref_count == 0) {
-		device->sco_fd = cras_bt_device_sco_connect(device);
+		device->sco_fd = cras_bt_device_sco_connect(device, codec);
 		if (device->sco_fd < 0)
 			return device->sco_fd;
 	}

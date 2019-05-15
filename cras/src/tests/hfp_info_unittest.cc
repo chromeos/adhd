@@ -29,7 +29,7 @@ void ResetStubData() {
 namespace {
 
 TEST(HfpInfo, AddRmDev) {
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
@@ -45,7 +45,7 @@ TEST(HfpInfo, AddRmDev) {
 }
 
 TEST(HfpInfo, AddRmDevInvalid) {
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   dev.direction = CRAS_STREAM_OUTPUT;
@@ -66,7 +66,7 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
 
   ResetStubData();
 
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   hfp_info_start(1, 48, info);
@@ -114,7 +114,7 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
 
   ResetStubData();
 
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   hfp_info_start(1, 48, info);
@@ -160,7 +160,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
@@ -211,7 +211,7 @@ TEST(HfpInfo, StartHfpInfo) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   hfp_info_start(sock[0], 48, info);
@@ -234,7 +234,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   /* Start and send two chunk of fake data */
@@ -277,7 +277,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
+  info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void *)NULL);
 
   hfp_info_start(sock[1], 48, info);
@@ -329,6 +329,16 @@ int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd)
   cb_data = NULL;
   return 0;
 }
+
+struct cras_audio_codec *cras_msbc_codec_create()
+{
+  return NULL;
+}
+
+void cras_sbc_codec_destroy(struct cras_audio_codec *codec)
+{
+}
+
 }
 
 int main(int argc, char **argv) {

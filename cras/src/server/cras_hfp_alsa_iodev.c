@@ -116,7 +116,9 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 		return rc;
 	}
 
-	rc = cras_bt_device_get_sco(hfp_alsa_io->device);
+	rc = cras_bt_device_get_sco(
+			hfp_alsa_io->device,
+			hfp_slc_get_selected_codec(hfp_alsa_io->slc));
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to get sco: %d\n", rc);
 		return rc;
