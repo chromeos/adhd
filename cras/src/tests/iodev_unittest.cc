@@ -24,7 +24,7 @@ float softvol_scalers[101];
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
-static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.3;
+static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.1;
 
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
