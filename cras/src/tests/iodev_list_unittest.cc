@@ -24,6 +24,7 @@ namespace {
 
 struct cras_server_state server_state_stub;
 struct cras_server_state *server_state_update_begin_return;
+int system_get_mute_return;
 
 /* Data for stubs. */
 static struct cras_observer_ops *observer_ops;
@@ -192,6 +193,7 @@ class IoDevTestSuite : public testing::Test {
       loopback_input.supported_channel_counts = channel_counts_;
 
       server_state_update_begin_return = &server_state_stub;
+      system_get_mute_return = false;
 
       /* Reset stub data. */
       add_stream_called = 0;
@@ -1196,11 +1198,20 @@ TEST_F(IoDevTestSuite, SetNodeVolumeCaptureGain) {
   EXPECT_EQ(2, cras_observer_notify_output_node_volume_called);
   EXPECT_EQ(0, cras_iodev_start_volume_ramp_called);
 
-  // Ramp starts only when it's non-NULL and software volume is used.
-  d1_.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+  // System mute prevents volume ramp from starting
+  system_get_mute_return = true;
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_VOLUME, 20);
   EXPECT_EQ(3, cras_observer_notify_output_node_volume_called);
+  EXPECT_EQ(0, cras_iodev_start_volume_ramp_called);
+
+  // Ramp starts only when it's non-NULL, software volume is used, and
+  // system is not muted
+  system_get_mute_return = false;
+  d1_.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
+  cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                IONODE_ATTR_VOLUME, 20);
+  EXPECT_EQ(4, cras_observer_notify_output_node_volume_called);
   EXPECT_EQ(1, cras_iodev_start_volume_ramp_called);
 
   d1_.direction = CRAS_STREAM_INPUT;
@@ -1608,6 +1619,10 @@ struct cras_server_state *cras_system_state_update_begin() {
 }
 
 void cras_system_state_update_complete() {
+}
+
+int cras_system_get_mute() {
+  return system_get_mute_return;
 }
 
 struct audio_thread *audio_thread_create() {

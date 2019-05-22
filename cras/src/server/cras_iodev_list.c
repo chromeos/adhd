@@ -1523,7 +1523,8 @@ static int set_node_volume(struct cras_iodev *iodev,
 	if (!node)
 		return -EINVAL;
 
-	if (iodev->ramp && cras_iodev_software_volume_needed(iodev))
+	if (iodev->ramp && cras_iodev_software_volume_needed(iodev) &&
+	    !cras_system_get_mute())
 		cras_iodev_start_volume_ramp(iodev, node->volume, volume);
 
 	node->volume = volume;
