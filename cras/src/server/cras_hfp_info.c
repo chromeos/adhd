@@ -520,7 +520,7 @@ static int hfp_info_callback(void *arg)
 	int err;
 
 	if (!info->started)
-		goto read_write_error;
+		return 0;
 
 	err = info->read_cb(info);
 	if (err < 0) {
@@ -543,7 +543,14 @@ static int hfp_info_callback(void *arg)
 	return 0;
 
 read_write_error:
-	hfp_info_stop(info);
+	/*
+	 * This callback is executing in audio thread, so it's safe to
+	 * unregister itself by audio_thread_rm_callback().
+	 */
+	audio_thread_rm_callback(info->fd);
+	close(info->fd);
+	info->fd = 0;
+	info->started = 0;
 
 	return 0;
 }

@@ -330,6 +330,10 @@ int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd)
   return 0;
 }
 
+void audio_thread_rm_callback(int fd)
+{
+}
+
 struct cras_audio_codec *cras_msbc_codec_create()
 {
   return NULL;
