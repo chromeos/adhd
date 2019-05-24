@@ -17,7 +17,6 @@
 #include "cras_hfp_info.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_alsa_iodev.h"
-#include "cras_hfp_slc.h"
 #include "cras_system_state.h"
 #include "cras_iodev_list.h"
 #include "utlist.h"
@@ -233,6 +232,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 				       int rfcomm_fd)
 {
 	struct audio_gateway *ag;
+	int ag_features;
 
 	BTLOG(btlog, BT_HFP_NEW_CONNECTION, 0, 0);
 
@@ -251,8 +251,19 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	ag->device = device;
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
+
+	/*
+	 * If the WBS enabled flag is set, add codec negotiation feature.
+	 * TODO(hychao): replace this check by query bluetooth stack whether
+	 * controller supports WBS feature.
+	 */
+	ag_features = profile->features;
+	if (cras_system_get_bt_wbs_enabled())
+		ag_features |= AG_CODEC_NEGOTIATION;
+
 	ag->slc_handle = hfp_slc_create(rfcomm_fd,
 					0,
+					ag_features,
 					device,
 					cras_hfp_ag_slc_initialized,
 					cras_hfp_ag_slc_disconnected);
@@ -283,7 +294,7 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 	.uuid = HFP_AG_UUID,
 	.version = HFP_VERSION_1_5,
 	.role = NULL,
-	.features = HFP_SUPPORTED_FEATURE & 0x1F,
+	.features = CRAS_AG_SUPPORTED_FEATURES & 0x1F,
 	.record = NULL,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hfp_ag_new_connection,
@@ -320,7 +331,11 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	ag->device = device;
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
-	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, device, NULL,
+	ag->slc_handle = hfp_slc_create(rfcomm_fd,
+					1,
+					profile->features,
+					device,
+					NULL,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
 	cras_hfp_ag_slc_initialized(ag->slc_handle);

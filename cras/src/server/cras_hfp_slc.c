@@ -8,7 +8,6 @@
 
 #include "cras_bt_device.h"
 #include "cras_telephony.h"
-#include "cras_hfp_ag_profile.h"
 #include "cras_hfp_slc.h"
 #include "cras_system_state.h"
 
@@ -52,6 +51,7 @@
  *    service - Current service availability of AG stored in SLC.
  *    callheld - Current callheld status of AG stored in SLC.
  *    ind_event_report - Activate status of indicator events reporting.
+ *    ag_supported_features - Supported AG features bitmap.
  *    telephony - A reference of current telephony handle.
  *    device - The associated bt device.
  */
@@ -70,6 +70,7 @@ struct hfp_slc_handle {
 	int service;
 	int callheld;
 	int ind_event_report;
+	int ag_supported_features;
 	struct cras_bt_device *device;
 
 	struct cras_telephony_handle *telephony;
@@ -454,7 +455,7 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	 * for now. Respond with +BRSF:<feature> to notify mandatory supported
 	 * features in AG(audio gateway).
 	 */
-	snprintf(response, 128, "+BRSF: %u", HFP_SUPPORTED_FEATURE);
+	snprintf(response, 128, "+BRSF: %u", handle->ag_supported_features);
 	err = hfp_send(handle, response);
 	if (err < 0)
 		return err;
@@ -615,6 +616,7 @@ static void slc_watch_callback(void *arg)
 
 struct hfp_slc_handle *hfp_slc_create(int fd,
 				      int is_hsp,
+				      int ag_supported_features,
 				      struct cras_bt_device *device,
 				      hfp_slc_init_cb init_cb,
 				      hfp_slc_disconnect_cb disconnect_cb)
@@ -627,6 +629,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 
 	handle->rfcomm_fd = fd;
 	handle->is_hsp = is_hsp;
+	handle->ag_supported_features = ag_supported_features;
 	handle->device = device;
 	handle->init_cb = init_cb;
 	handle->disconnect_cb = disconnect_cb;

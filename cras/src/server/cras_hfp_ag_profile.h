@@ -9,32 +9,10 @@
 #include <dbus/dbus.h>
 
 #include "cras_bt_device.h"
+#include "cras_hfp_slc.h"
 
-/* Hands-free Audio Gateway feature bits, listed in according
- * to their order in the bitmap defined in HFP spec.
- */
-/* Call waiting and 3-way calling */
-#define HFP_THREE_WAY_CALLING           0x0001
-/* EC and/or NR function */
-#define HFP_EC_ANDOR_NR                 0x0002
-/* Voice recognition activation */
-#define HFP_VOICE_RECOGNITION           0x0004
-/* Inband ringtone */
-#define HFP_INBAND_RINGTONE             0x0008
-/* Attach a number to voice tag */
-#define HFP_ATTACH_NUMBER_TO_VOICETAG   0x0010
-/* Ability to reject a call */
-#define HFP_REJECT_A_CALL               0x0020
-/* Enhanced call status */
-#define HFP_ENHANCED_CALL_STATUS        0x0040
-/* Enhanced call control */
-#define HFP_ENHANCED_CALL_CONTRO        0x0080
-/* Extended error result codes */
-#define HFP_EXTENDED_ERROR_RESULT_CODES 0x0100
-/* Codec negotiation */
-#define HFP_CODEC_NEGOTIATION           0x0200
-
-#define HFP_SUPPORTED_FEATURE           (HFP_ENHANCED_CALL_STATUS)
+/* The bitmap of HFP AG feature supported by CRAS */
+#define CRAS_AG_SUPPORTED_FEATURES           (AG_ENHANCED_CALL_STATUS)
 
 struct hfp_slc_handle;
 
