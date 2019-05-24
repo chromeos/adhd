@@ -44,7 +44,6 @@
  *    buf_write_idx - Write index for buf.
  *    rfcomm_fd - File descriptor for the established RFCOMM connection.
  *    init_cb - Callback to be triggered when an SLC is initialized.
- *    initialized - The service level connection is fully initilized of not.
  *    cli_active - Calling line identification notification is enabled or not.
  *    battery - Current battery level of AG stored in SLC.
  *    signal - Current signal strength of AG stored in SLC.
@@ -63,7 +62,6 @@ struct hfp_slc_handle {
 	int rfcomm_fd;
 	hfp_slc_init_cb init_cb;
 	hfp_slc_disconnect_cb disconnect_cb;
-	int initialized;
 	int cli_active;
 	int battery;
 	int signal;
@@ -252,10 +250,9 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 	/* Consider the Service Level Connection to be fully initialized,
 	 * and thereby established, after successfully responded with OK.
 	 */
-	if (!handle->initialized) {
-		handle->initialized = 1;
-		if (handle->init_cb)
-			handle->init_cb(handle);
+	if (handle->init_cb) {
+		handle->init_cb(handle);
+		handle->init_cb = NULL;
 	}
 
 event_reporting_err:
