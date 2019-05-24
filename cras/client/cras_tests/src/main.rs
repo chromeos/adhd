@@ -102,6 +102,7 @@ fn capture(args: &[String]) -> Result<()> {
     let frame_rate = matches.opt_get_default::<usize>("r", 48000)?;
 
     let mut cras_client = CrasClient::new()?;
+    cras_client.enable_cras_capture();
     let (_control, mut stream) =
         cras_client.new_capture_stream(num_channels, frame_rate, buffer_size)?;
     let mut file = File::create(&file_name).unwrap();

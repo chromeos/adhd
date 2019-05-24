@@ -121,8 +121,8 @@ use std::os::unix::{
 use std::{error, fmt};
 
 use audio_streams::{
-    capture::CaptureBufferStream, BufferDrop, DummyStreamControl, PlaybackBufferStream,
-    StreamControl, StreamSource,
+    capture::{CaptureBufferStream, DummyCaptureStream},
+    BufferDrop, DummyStreamControl, PlaybackBufferStream, StreamControl, StreamSource,
 };
 use cras_sys::gen::*;
 use sys_util::{PollContext, PollToken};
@@ -207,6 +207,7 @@ pub struct CrasClient {
     server_socket: CrasServerSocket,
     client_id: Option<u32>,
     next_stream_id: u32,
+    cras_capture: bool,
 }
 
 impl CrasClient {
@@ -227,6 +228,7 @@ impl CrasClient {
             server_socket,
             client_id: None,
             next_stream_id: 0,
+            cras_capture: false,
         };
 
         // Gets client ID from server
@@ -239,6 +241,11 @@ impl CrasClient {
             }
         });
         Ok(cras_client)
+    }
+
+    /// Enables capturing audio through CRAS server.
+    pub fn enable_cras_capture(&mut self) {
+        self.cras_capture = true;
     }
 
     // Gets next server_stream_id from client and increment stream_id counter.
@@ -370,16 +377,27 @@ impl StreamSource for CrasClient {
         (Box<dyn StreamControl>, Box<dyn CaptureBufferStream>),
         Box<error::Error>,
     > {
-        Ok((
-            Box::new(DummyStreamControl::new()),
-            Box::new(self.create_stream::<CrasCaptureData>(
-                buffer_size as u32,
-                CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
-                frame_rate,
-                num_channels,
-                _snd_pcm_format::SND_PCM_FORMAT_S16_LE,
-            )?),
-        ))
+        if self.cras_capture {
+            Ok((
+                Box::new(DummyStreamControl::new()),
+                Box::new(self.create_stream::<CrasCaptureData>(
+                    buffer_size as u32,
+                    CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
+                    frame_rate,
+                    num_channels,
+                    _snd_pcm_format::SND_PCM_FORMAT_S16_LE,
+                )?),
+            ))
+        } else {
+            Ok((
+                Box::new(DummyStreamControl::new()),
+                Box::new(DummyCaptureStream::new(
+                    num_channels,
+                    frame_rate,
+                    buffer_size,
+                )),
+            ))
+        }
     }
 
     fn keep_fds(&self) -> Option<Vec<RawFd>> {
