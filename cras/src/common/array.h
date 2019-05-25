@@ -27,7 +27,7 @@ void f()
 	ARRAY_APPEND(&a, 1.0);
 	*ARRAY_APPEND_ZERO(&a) = 2.0;
 
-	FOR_ARRAY_ELEMENT(&a, i, p) {
+	ARRAY_ELEMENT_FOREACH(&a, i, p) {
 		printf("%f\n", *p);  // prints 1.0 2.0
 	}
 
@@ -87,7 +87,7 @@ void f()
 
 /* Go through each element in the array a and assign index and pointer
    to the element to the variable i and ptr */
-#define FOR_ARRAY_ELEMENT(a, i, ptr)				    \
+#define ARRAY_ELEMENT_FOREACH(a, i, ptr)				    \
 	for ((i) = 0, (ptr) = (a)->element; (i) < (a)->count;	    \
 	     (i)++, (ptr)++)
 

@@ -120,7 +120,7 @@ static struct cras_expr_value *find_value(struct cras_expr_env *env,
 	int i;
 	const char **key;
 
-	FOR_ARRAY_ELEMENT(&env->keys, i, key) {
+	ARRAY_ELEMENT_FOREACH(&env->keys, i, key) {
 		if (strcmp(*key, name) == 0)
 			return ARRAY_ELEMENT(&env->values, i);
 	}
@@ -178,7 +178,7 @@ static void function_and(cras_expr_value_array *operands,
 	}
 
 	/* if there is any #f, return it */
-	FOR_ARRAY_ELEMENT(operands, i, value) {
+	ARRAY_ELEMENT_FOREACH(operands, i, value) {
 		if (i == 0)
 			continue;  /* ignore "and" itself */
 		if (value->type == CRAS_EXPR_VALUE_TYPE_BOOLEAN &&
@@ -198,7 +198,7 @@ static void function_or(cras_expr_value_array *operands,
 	int i;
 	struct cras_expr_value *value;
 
-	FOR_ARRAY_ELEMENT(operands, i, value) {
+	ARRAY_ELEMENT_FOREACH(operands, i, value) {
 		if (i == 0)
 			continue;  /* ignore "or" itself */
 		if (value->type != CRAS_EXPR_VALUE_TYPE_BOOLEAN ||
@@ -216,7 +216,7 @@ static char function_equal_real(cras_expr_value_array *operands)
 	int i;
 	struct cras_expr_value *value, *prev;
 
-	FOR_ARRAY_ELEMENT(operands, i, value) {
+	ARRAY_ELEMENT_FOREACH(operands, i, value) {
 		if (i <= 1)
 			continue;  /* ignore equal? and first operand */
 		/* compare with the previous operand */
@@ -311,11 +311,11 @@ void cras_expr_env_free(struct cras_expr_env *env)
 	const char **key;
 	struct cras_expr_value *value;
 
-	FOR_ARRAY_ELEMENT(&env->keys, i, key) {
+	ARRAY_ELEMENT_FOREACH(&env->keys, i, key) {
 		free((char *)*key);
 	}
 
-	FOR_ARRAY_ELEMENT(&env->values, i, value) {
+	ARRAY_ELEMENT_FOREACH(&env->values, i, value) {
 		cras_expr_value_free(value);
 	}
 
@@ -330,7 +330,7 @@ void cras_expr_env_dump(struct dumper *d, const struct cras_expr_env *env)
 	struct cras_expr_value *value;
 
 	dumpf(d, "--- environment ---\n");
-	FOR_ARRAY_ELEMENT(&env->keys, i, key) {
+	ARRAY_ELEMENT_FOREACH(&env->keys, i, key) {
 		dumpf(d, " key=%s,", *key);
 		dumpf(d, " value=");
 		value = ARRAY_ELEMENT(&env->values, i);
@@ -527,7 +527,7 @@ static void dump_one_expression(struct dumper *d,
 		break;
 	case EXPR_TYPE_COMPOUND:
 		dumpf(d, "%*scompound", indent, "");
-		FOR_ARRAY_ELEMENT(&expr->u.children, i, sub) {
+		ARRAY_ELEMENT_FOREACH(&expr->u.children, i, sub) {
 			dump_one_expression(d, *sub, indent + 2);
 		}
 		break;
@@ -558,7 +558,7 @@ void cras_expr_expression_free(struct cras_expr_expression *expr)
 	{
 		int i;
 		struct cras_expr_expression **psub;
-		FOR_ARRAY_ELEMENT(&expr->u.children, i, psub) {
+		ARRAY_ELEMENT_FOREACH(&expr->u.children, i, psub) {
 			cras_expr_expression_free(*psub);
 		}
 		ARRAY_FREE(&expr->u.children);
@@ -599,7 +599,7 @@ void cras_expr_expression_eval(struct cras_expr_expression *expr,
 		cras_expr_value_array values = ARRAY_INIT;
 		struct cras_expr_value *value;
 
-		FOR_ARRAY_ELEMENT(&expr->u.children, i, psub) {
+		ARRAY_ELEMENT_FOREACH(&expr->u.children, i, psub) {
 			value = ARRAY_APPEND_ZERO(&values);
 			cras_expr_expression_eval(*psub, env, value);
 		}
@@ -615,7 +615,7 @@ void cras_expr_expression_eval(struct cras_expr_expression *expr,
 			syslog(LOG_ERR, "empty compound expression?");
 		}
 
-		FOR_ARRAY_ELEMENT(&values, i, value) {
+		ARRAY_ELEMENT_FOREACH(&values, i, value) {
 			cras_expr_value_free(value);
 		}
 

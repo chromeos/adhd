@@ -150,7 +150,7 @@ static struct instance *find_instance_by_plugin(instance_array *instances,
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(instances, i, instance) {
 		if (instance->plugin == plugin)
 			return instance;
 	}
@@ -197,7 +197,7 @@ static int find_origin_port(struct ini *ini, instance_array *instances,
 
 	k = 0;
 	found = 0;
-	FOR_ARRAY_ELEMENT(&plugin->ports, i, port) {
+	ARRAY_ELEMENT_FOREACH(&plugin->ports, i, port) {
 		if (index == i) {
 			found = 1;
 			break;
@@ -209,7 +209,7 @@ static int find_origin_port(struct ini *ini, instance_array *instances,
 		return -1;
 
 	found = 0;
-	FOR_ARRAY_ELEMENT(&plugin->ports, i, port) {
+	ARRAY_ELEMENT_FOREACH(&plugin->ports, i, port) {
 		if (port->direction == PORT_INPUT && port->type == type) {
 			if (k-- == 0) {
 				index = i;
@@ -237,7 +237,7 @@ static struct audio_port *find_output_audio_port(instance_array *instances,
 	if (!instance)
 		return NULL;
 
-	FOR_ARRAY_ELEMENT(&instance->output_audio_ports, i, audio_port) {
+	ARRAY_ELEMENT_FOREACH(&instance->output_audio_ports, i, audio_port) {
 		if (audio_port->original_index == index)
 			return audio_port;
 	}
@@ -257,7 +257,7 @@ static struct control_port *find_output_control_port(instance_array *instances,
 	if (!instance)
 		return NULL;
 
-	FOR_ARRAY_ELEMENT(&instance->output_control_ports, i, control_port) {
+	ARRAY_ELEMENT_FOREACH(&instance->output_control_ports, i, control_port) {
 		if (control_port->original_index == index)
 			return control_port;
 	}
@@ -291,7 +291,7 @@ static int topological_sort(struct pipeline *pipeline,
 		return 0;
 	visited[index] = 1;
 
-	FOR_ARRAY_ELEMENT(&plugin->ports, i, port) {
+	ARRAY_ELEMENT_FOREACH(&plugin->ports, i, port) {
 		if (port->flow_id == INVALID_FLOW_ID)
 			continue;
 		flow_id = port->flow_id;
@@ -313,7 +313,7 @@ static int topological_sort(struct pipeline *pipeline,
 	instance->plugin = plugin;
 
 	/* constructs audio and control ports for the instance */
-	FOR_ARRAY_ELEMENT(&plugin->ports, i, port) {
+	ARRAY_ELEMENT_FOREACH(&plugin->ports, i, port) {
 		int need_connect = (port->flow_id != INVALID_FLOW_ID &&
 				    port->direction == PORT_INPUT);
                 struct plugin *origin = NULL;
@@ -378,7 +378,7 @@ static struct plugin *find_enabled_builtin_plugin(struct ini *ini,
 	int i;
 	struct plugin *plugin, *found = NULL;
 
-	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
+	ARRAY_ELEMENT_FOREACH(&ini->plugins, i, plugin) {
 		if (strcmp(plugin->library, "builtin") != 0)
 			continue;
 		if (strcmp(plugin->label, label) != 0)
@@ -481,7 +481,7 @@ static void use_buffers(char *busy, audio_port_array *audio_ports)
 	int i, k = 0;
 	struct audio_port *audio_port;
 
-	FOR_ARRAY_ELEMENT(audio_ports, i, audio_port) {
+	ARRAY_ELEMENT_FOREACH(audio_ports, i, audio_port) {
 		while (busy[k])
 			k++;
 		audio_port->buf_index = k;
@@ -494,7 +494,7 @@ static void unuse_buffers(char *busy, audio_port_array *audio_ports)
 	int i;
 	struct audio_port *audio_port;
 
-	FOR_ARRAY_ELEMENT(audio_ports, i, audio_port) {
+	ARRAY_ELEMENT_FOREACH(audio_ports, i, audio_port) {
 		busy[audio_port->buf_index] = 0;
 	}
 }
@@ -508,7 +508,7 @@ static int allocate_buffers(struct pipeline *pipeline)
 	char *busy;
 
 	/* first figure out how many buffers do we need */
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		int in = ARRAY_COUNT(&instance->input_audio_ports);
 		int out = ARRAY_COUNT(&instance->output_audio_ports);
 
@@ -545,12 +545,12 @@ static int allocate_buffers(struct pipeline *pipeline)
 
 	/* Now assign buffer index for each instance's input/output ports */
 	busy = calloc(peak_buf, sizeof(*busy));
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		int j;
 		struct audio_port *audio_port;
 
 		/* Collect input buffers from upstream */
-		FOR_ARRAY_ELEMENT(&instance->input_audio_ports, j, audio_port) {
+		ARRAY_ELEMENT_FOREACH(&instance->input_audio_ports, j, audio_port) {
 			audio_port->buf_index = audio_port->peer->buf_index;
 		}
 
@@ -598,7 +598,7 @@ int cras_dsp_pipeline_load(struct pipeline *pipeline)
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct plugin *plugin = instance->plugin;
 		if (load_module(plugin, instance) != 0)
 			return -1;
@@ -616,7 +616,7 @@ static void calculate_audio_delay(struct pipeline *pipeline)
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
 		audio_port_array *audio_in = &instance->input_audio_ports;
 		struct audio_port *audio_port;
@@ -625,7 +625,7 @@ static void calculate_audio_delay(struct pipeline *pipeline)
 
 		/* Finds the max delay of all modules that provide input to this
 		 * instance. */
-		FOR_ARRAY_ELEMENT(audio_in, j, audio_port) {
+		ARRAY_ELEMENT_FOREACH(audio_in, j, audio_port) {
 			struct instance *upstream = find_instance_by_plugin(
 				&pipeline->instances, audio_port->peer->plugin);
 			delay = MAX(upstream->total_delay, delay);
@@ -640,7 +640,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
 		if (module->instantiate(module, sample_rate) != 0)
 			return -1;
@@ -649,7 +649,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 	}
 	pipeline->sample_rate = sample_rate;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		audio_port_array *audio_in = &instance->input_audio_ports;
 		audio_port_array *audio_out = &instance->output_audio_ports;
 		control_port_array *control_in = &instance->input_control_ports;
@@ -661,7 +661,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 		struct dsp_module *module = instance->module;
 
 		/* connect audio ports */
-		FOR_ARRAY_ELEMENT(audio_in, j, audio_port) {
+		ARRAY_ELEMENT_FOREACH(audio_in, j, audio_port) {
 			float *buf = pipeline->buffers[audio_port->buf_index];
 			module->connect_port(module,
 					     audio_port->original_index,
@@ -670,7 +670,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 			       audio_port->buf_index, instance->plugin->title,
 			       audio_port->original_index);
 		}
-		FOR_ARRAY_ELEMENT(audio_out, j, audio_port) {
+		ARRAY_ELEMENT_FOREACH(audio_out, j, audio_port) {
 			float *buf = pipeline->buffers[audio_port->buf_index];
 			module->connect_port(module,
 					     audio_port->original_index,
@@ -681,7 +681,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 		}
 
 		/* connect control ports */
-		FOR_ARRAY_ELEMENT(control_in, j, control_port) {
+		ARRAY_ELEMENT_FOREACH(control_in, j, control_port) {
 			/* Note for input control ports which has a
 			 * peer, we use &control_port->peer->value, so
 			 * we can get the peer port's output value
@@ -697,7 +697,7 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
 			       control_port->value, instance->plugin->title,
 			       control_port->original_index);
 		}
-		FOR_ARRAY_ELEMENT(control_out, j, control_port) {
+		ARRAY_ELEMENT_FOREACH(control_out, j, control_port) {
 			module->connect_port(module,
 					     control_port->original_index,
 					     &control_port->value);
@@ -717,7 +717,7 @@ void cras_dsp_pipeline_deinstantiate(struct pipeline *pipeline)
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
 		if (instance->instantiated) {
 			module->deinstantiate(module);
@@ -759,7 +759,7 @@ static float *find_buffer(struct pipeline *pipeline,
 	int i;
 	struct audio_port *audio_port;
 
-	FOR_ARRAY_ELEMENT(audio_ports, i, audio_port) {
+	ARRAY_ELEMENT_FOREACH(audio_ports, i, audio_port) {
 		if (audio_port->original_index == index)
 			return pipeline->buffers[audio_port->buf_index];
 	}
@@ -793,7 +793,7 @@ void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
 		module->run(module, sample_count);
 	}
@@ -882,7 +882,7 @@ void cras_dsp_pipeline_free(struct pipeline *pipeline)
 	int i;
 	struct instance *instance;
 
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
 		instance->plugin = NULL;
 		ARRAY_FREE(&instance->input_audio_ports);
@@ -920,7 +920,7 @@ static void dump_audio_ports(struct dumper *d, const char *name,
 		return;
 	dumpf(d, "   %s (%d) =\n", name, n);
 
-	FOR_ARRAY_ELEMENT(audio_ports, i, audio_port) {
+	ARRAY_ELEMENT_FOREACH(audio_ports, i, audio_port) {
 		dumpf(d, "   %p, peer %p, orig=%d, buf=%d\n",
 		      audio_port, audio_port->peer,
 		      audio_port->original_index, audio_port->buf_index);
@@ -938,7 +938,7 @@ static void dump_control_ports(struct dumper *d, const char *name,
 		return;
 	dumpf(d, "   %s (%d) =\n", name, ARRAY_COUNT(control_ports));
 
-	FOR_ARRAY_ELEMENT(control_ports, i, control_port) {
+	ARRAY_ELEMENT_FOREACH(control_ports, i, control_port) {
 		dumpf(d, "   %p, peer %p, orig=%d, value=%g\n",
 		      control_port, control_port->peer,
 		      control_port->original_index, control_port->value);
@@ -973,7 +973,7 @@ void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline)
 	      / pipeline->total_samples * pipeline->sample_rate * 100);
 	dumpf(d, " instances (%d):\n",
 	      ARRAY_COUNT(&pipeline->instances));
-	FOR_ARRAY_ELEMENT(&pipeline->instances, i, instance) {
+	ARRAY_ELEMENT_FOREACH(&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
 		dumpf(d, "  [%d]%s mod=%p, total delay=%d\n",
 		      i, instance->plugin->title, module,

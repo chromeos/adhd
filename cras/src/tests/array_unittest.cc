@@ -94,7 +94,7 @@ TEST(ArrayTest, ForLoop) {
 
   int expectedIndex = 0;
   double expectedValue = 0;
-  FOR_ARRAY_ELEMENT(&a, i, p) {
+  ARRAY_ELEMENT_FOREACH(&a, i, p) {
     EXPECT_EQ(expectedIndex, i);
     EXPECT_EQ(expectedValue, *p);
     expectedIndex++;

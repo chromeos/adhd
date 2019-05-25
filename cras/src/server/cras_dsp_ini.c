@@ -73,7 +73,7 @@ static int lookup_flow(struct ini *ini, const char *name)
 	int i;
 	const struct flow *flow;
 
-	FOR_ARRAY_ELEMENT(&ini->flows, i, flow) {
+	ARRAY_ELEMENT_FOREACH(&ini->flows, i, flow) {
 		if (strcmp(flow->name, name) == 0)
 			return i;
 	}
@@ -175,8 +175,8 @@ static void fill_flow_info(struct ini *ini)
 	struct plugin **pplugin;
 	int *pport;
 
-	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
-		FOR_ARRAY_ELEMENT(&plugin->ports, j, port) {
+	ARRAY_ELEMENT_FOREACH(&ini->plugins, i, plugin) {
+		ARRAY_ELEMENT_FOREACH(&plugin->ports, j, port) {
 			int flow_id = port->flow_id;
 			if (flow_id == INVALID_FLOW_ID)
 				continue;
@@ -250,7 +250,7 @@ struct plugin *find_first_playback_sink_plugin(struct ini *ini)
 	int i;
 	struct plugin *plugin;
 
-	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
+	ARRAY_ELEMENT_FOREACH(&ini->plugins, i, plugin) {
 		if (strcmp(plugin->library, "builtin") != 0)
 			continue;
 		if (strcmp(plugin->label, "sink") != 0)
@@ -416,7 +416,7 @@ void cras_dsp_ini_free(struct ini *ini)
 	int i;
 
 	/* free plugins */
-	FOR_ARRAY_ELEMENT(&ini->plugins, i, p) {
+	ARRAY_ELEMENT_FOREACH(&ini->plugins, i, p) {
 		cras_expr_expression_free(p->disable_expr);
 		ARRAY_FREE(&p->ports);
 	}
@@ -467,13 +467,13 @@ void cras_dsp_ini_dump(struct dumper *d, struct ini *ini)
 	dumpf(d, "ini->dict = %p\n", ini->dict);
 
 	dumpf(d, "number of plugins = %d\n", ARRAY_COUNT(&ini->plugins));
-	FOR_ARRAY_ELEMENT(&ini->plugins, i, plugin) {
+	ARRAY_ELEMENT_FOREACH(&ini->plugins, i, plugin) {
 		dumpf(d, "[plugin %d: %s]\n", i, plugin->title);
 		dumpf(d, "library=%s\n", plugin->library);
 		dumpf(d, "label=%s\n", plugin->label);
 		dumpf(d, "purpose=%s\n", plugin->purpose);
 		dumpf(d, "disable=%p\n", plugin->disable_expr);
-		FOR_ARRAY_ELEMENT(&plugin->ports, j, port) {
+		ARRAY_ELEMENT_FOREACH(&plugin->ports, j, port) {
 			dumpf(d,
 			      "  [%s port %d] type=%s, flow_id=%d, value=%g\n",
 			      port_direction_str(port->direction), j,
@@ -483,7 +483,7 @@ void cras_dsp_ini_dump(struct dumper *d, struct ini *ini)
 	}
 
 	dumpf(d, "number of flows = %d\n", ARRAY_COUNT(&ini->flows));
-	FOR_ARRAY_ELEMENT(&ini->flows, i, flow) {
+	ARRAY_ELEMENT_FOREACH(&ini->flows, i, flow) {
 		dumpf(d, "  [flow %d] %s, %s, %s:%d -> %s:%d\n",
 		      i, flow->name, port_type_str(flow->type),
 		      plugin_title(flow->from), flow->from_port,

@@ -134,7 +134,7 @@ static int verify_plugin_descriptor(struct plugin *plugin,
 		return -1;
 	}
 
-	FOR_ARRAY_ELEMENT(&plugin->ports, i, port) {
+	ARRAY_ELEMENT_FOREACH(&plugin->ports, i, port) {
 		LADSPA_PortDescriptor port_desc = desc->PortDescriptors[i];
 		if ((port->direction == PORT_INPUT) !=
 		    !!(port_desc & LADSPA_PORT_INPUT)) {

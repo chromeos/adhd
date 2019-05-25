@@ -69,6 +69,7 @@ ExperimentalAutoDetectBinPacking: false
 #   | sed "s,^#define \([^[:space:]]*FOREACH[^[:space:]]*\)(.*$,  - '\1'," \
 #   | sort | uniq
 ForEachMacros:
+  - 'ARRAY_ELEMENT_FOREACH'
   - 'DL_FOREACH'
   - 'DL_FOREACH_INTERNAL'
   - 'LL_FOREACH'
