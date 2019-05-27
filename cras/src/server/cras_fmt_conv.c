@@ -483,6 +483,13 @@ void cras_channel_remix_convert(struct cras_fmt_conv *conv,
 	int16_t *tmp = (int16_t *)conv->tmp_bufs[0];
 	int16_t *buf = (int16_t *)in_buf;
 
+	/*
+	 * Skip remix for non S16_LE format.
+	 * TODO(tzungbi): support 24 bits remix convert.
+	 */
+	if (fmt->format != SND_PCM_FORMAT_S16_LE)
+		return;
+
 	/* Do remix only when input buffer has the same number of channels. */
 	if (fmt->num_channels != conv->in_fmt.num_channels)
 		return;

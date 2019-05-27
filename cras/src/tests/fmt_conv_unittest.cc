@@ -1706,6 +1706,14 @@ TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
   buf = (int16_t *)ralloc(50 * 4);
   res = (int16_t *)malloc(50 * 4);
 
+  memcpy(res, buf, 50 * 4);
+
+  /* Remix conversion will not apply for non S16_LE format. */
+  fmt.format = SND_PCM_FORMAT_S24_LE;
+  cras_channel_remix_convert(conv, &fmt, (uint8_t *)buf, 50);
+  for (i = 0; i < 100; i++)
+    EXPECT_EQ(res[i],  buf[i]);
+
   for (i = 0; i < 100; i += 2) {
     res[i] = coeff[0] * buf[i];
     res[i] += coeff[1] * buf[i + 1];
@@ -1713,6 +1721,7 @@ TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
     res[i + 1] += coeff[3] * buf[i + 1];
   }
 
+  fmt.format = SND_PCM_FORMAT_S16_LE;
   cras_channel_remix_convert(conv, &fmt, (uint8_t *)buf, 50);
   for (i = 0; i < 100; i++)
     EXPECT_EQ(res[i],  buf[i]);
