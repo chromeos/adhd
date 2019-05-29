@@ -433,16 +433,86 @@ int cras_server_init()
 	return 0;
 }
 
+/*
+ * Creates a server socket with a given socket_file name and listens on it.
+ * The socket_file will be created under cras_config_get_system_socket_file_dir
+ * with permission=0770. The socket_fd will be listened with parameter
+ * backlog=5.
+ *
+ * Returns the socket_fd and leaves the address information in addr.
+ * When error occurs, the created fd will be closed and the file path will be
+ * unlinked.
+ */
+static int create_and_listen_server_socket(const char *socket_file,
+					   struct sockaddr_un *addr)
+{
+	int socket_fd = -1;
+	int rc = 0;
+	const char *sockdir;
+
+	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
+	if (socket_fd < 0) {
+		syslog(LOG_ERR, "Main server socket failed.");
+		rc = socket_fd;
+		goto error;
+	}
+
+	sockdir = cras_config_get_system_socket_file_dir();
+	if (sockdir == NULL) {
+		rc = -ENOTDIR;
+		goto error;
+	}
+
+	memset(addr, 0, sizeof(*addr));
+	addr->sun_family = AF_UNIX;
+	snprintf(addr->sun_path, sizeof(addr->sun_path), "%s/%s", sockdir,
+		 socket_file);
+	unlink(addr->sun_path);
+
+	/* Linux quirk: calling fchmod before bind, sets the permissions of the
+	 * file created by bind, leaving no window for it to be modified. Start
+	 * with very restricted permissions. */
+	rc = fchmod(socket_fd, 0700);
+	if (rc < 0)
+		goto error;
+
+	rc = bind(socket_fd, (struct sockaddr *)addr,
+		  sizeof(struct sockaddr_un));
+	if (rc < 0) {
+		syslog(LOG_ERR, "Bind to server socket failed.");
+		rc = errno;
+		goto error;
+	}
+
+	/* Let other members in our group play audio through this socket. */
+	rc = chmod(addr->sun_path, 0770);
+	if (rc < 0)
+		goto error;
+
+	if (listen(socket_fd, 5) != 0) {
+		syslog(LOG_ERR, "Listen on server socket failed.");
+		rc = errno;
+		goto error;
+	}
+
+	return socket_fd;
+error:
+	if (socket_fd >= 0) {
+		close(socket_fd);
+		unlink(addr->sun_path);
+	}
+	return rc;
+}
+
 int cras_server_run(unsigned int profile_disable_mask)
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
 #ifdef CRAS_DBUS
 	DBusConnection *dbus_conn;
 #endif
-	int socket_fd = -1;
+	int control_fd = -1;
 	int rc = 0;
-	const char *sockdir;
-	struct sockaddr_un addr;
+	struct sockaddr_un control_addr;
 	struct attached_client *elm;
 	struct client_callback *client_cb;
 	struct system_task *tasks;
@@ -488,49 +558,10 @@ int cras_server_run(unsigned int profile_disable_mask)
 	}
 #endif
 
-	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
-	if (socket_fd < 0) {
-		syslog(LOG_ERR, "Main server socket failed.");
-		rc = socket_fd;
+	control_fd = create_and_listen_server_socket(CRAS_SOCKET_FILE,
+						     &control_addr);
+	if (control_fd < 0)
 		goto bail;
-	}
-
-	sockdir = cras_config_get_system_socket_file_dir();
-	if (sockdir == NULL) {
-		rc = -ENOTDIR;
-		goto bail;
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, sizeof(addr.sun_path),
-		 "%s/%s", sockdir, CRAS_SOCKET_FILE);
-	unlink(addr.sun_path);
-
-	/* Linux quirk: calling fchmod before bind, sets the permissions of the
-	 * file created by bind, leaving no window for it to be modified. Start
-	 * with very restricted permissions. */
-	rc = fchmod(socket_fd, 0700);
-	if (rc < 0)
-		goto bail;
-
-	if (bind(socket_fd, (struct sockaddr *) &addr,
-		 sizeof(struct sockaddr_un)) != 0) {
-		syslog(LOG_ERR, "Bind to server socket failed.");
-		rc = errno;
-		goto bail;
-	}
-
-	/* Let other members in our group play audio through this socket. */
-	rc = chmod(addr.sun_path, 0770);
-	if (rc < 0)
-		goto bail;
-
-	if (listen(socket_fd, 5) != 0) {
-		syslog(LOG_ERR, "Listen on server socket failed.");
-		rc = errno;
-		goto bail;
-	}
 
 	tm = cras_system_state_get_tm();
 	if (!tm) {
@@ -552,7 +583,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 					sizeof(*pollfds) * pollfds_size);
 		}
 
-		pollfds[0].fd = socket_fd;
+		pollfds[0].fd = control_fd;
 		pollfds[0].events = POLLIN;
 		num_pollfds = 1;
 
@@ -598,7 +629,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 
 		/* Check for new connections. */
 		if (pollfds[0].revents & POLLIN)
-			handle_new_connection(&addr, socket_fd);
+			handle_new_connection(&control_addr, control_fd);
 		/* Check if there are messages pending for any clients. */
 		DL_FOREACH(server_instance.clients_head, elm)
 			if (elm->pollfd && elm->pollfd->revents & POLLIN)
@@ -621,9 +652,9 @@ int cras_server_run(unsigned int profile_disable_mask)
 	}
 
 bail:
-	if (socket_fd >= 0) {
-		close(socket_fd);
-		unlink(addr.sun_path);
+	if (control_fd >= 0) {
+		close(control_fd);
+		unlink(control_addr.sun_path);
 	}
 	free(pollfds);
 	cras_observer_server_free();
