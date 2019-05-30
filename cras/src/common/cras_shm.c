@@ -14,6 +14,7 @@
 #include <syslog.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "cras_shm.h"
 
@@ -29,6 +30,25 @@ int cras_shm_info_init(const char *stream_name, uint32_t used_size,
 	info.length = sizeof(struct cras_audio_shm_area) +
 		      used_size * CRAS_NUM_SHM_BUFFERS;
 	info.fd = cras_shm_open_rw(info.name, info.length);
+	if (info.fd < 0)
+		return info.fd;
+
+	*info_out = info;
+
+	return 0;
+}
+
+int cras_shm_info_init_with_fd(int fd, size_t length,
+			       struct cras_shm_info *info_out)
+{
+	struct cras_shm_info info;
+
+	if (!info_out)
+		return -EINVAL;
+
+	info.name[0] = '\0';
+	info.length = length;
+	info.fd = dup(fd);
 	if (info.fd < 0)
 		return info.fd;
 
@@ -98,6 +118,7 @@ int cras_audio_shm_create(struct cras_shm_info *info,
 
 	if (shm->area == (struct cras_audio_shm_area *)-1) {
 		ret = errno;
+		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for stream.");
 		goto cleanup_shm_info;
 	}
 

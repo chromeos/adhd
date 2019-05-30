@@ -84,9 +84,20 @@ struct cras_shm_info {
 int cras_shm_info_init(const char *stream_name, uint32_t used_size,
 		       struct cras_shm_info *info_out);
 
+/* Initializes a cras_shm_info to be used as the backing shared memory for a
+ * cras_audio_shm.
+ *
+ * fd - file descriptor for the shm to be used. fd must be closed after
+ *      calling this function.
+ * length - the size of the shm referenced by fd.
+ * info_out - pointer where the created cras_shm_info will be stored.
+ */
+int cras_shm_info_init_with_fd(int fd, size_t length,
+			       struct cras_shm_info *info_out);
+
 /* Cleans up the resources for a cras_shm_info returned from cras_shm_info_init.
  *
- * info - the cras_shm_info to destroy.
+ * info - the cras_shm_info to cleanup.
  */
 void cras_shm_info_cleanup(struct cras_shm_info *info);
 

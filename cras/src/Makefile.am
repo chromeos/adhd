@@ -253,6 +253,7 @@ libcras_la_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_config.c \
 	common/cras_file_wait.c \
+	common/cras_shm.c \
 	common/cras_util.c \
 	common/edid_utils.c \
 	libcras/cras_client.c \
@@ -621,10 +622,11 @@ checksum_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 checksum_unittest_LDADD = -lgtest -lpthread
 
 cras_client_unittest_SOURCES = tests/cras_client_unittest.cc \
-	common/cras_config.c common/cras_util.c common/cras_file_wait.c
+	common/cras_config.c common/cras_shm.c common/cras_util.c \
+	common/cras_file_wait.c
 cras_client_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
-cras_client_unittest_LDADD = -lgtest -lpthread -lspeexdsp
+cras_client_unittest_LDADD = -lgtest -lpthread -lrt -lspeexdsp
 
 cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
