@@ -20,57 +20,35 @@
 #include "buffer_share.h"
 #include "cras_system_state.h"
 
-/* Configure the shm area for the stream. */
-static int setup_shm(struct cras_rstream *stream,
-		     struct cras_audio_shm *shm,
-		     struct rstream_shm_info *shm_info)
-{
-	size_t used_size, samples_size, frame_bytes;
-	const struct cras_audio_format *fmt = &stream->format;
-
-	if (shm->area != NULL) /* already setup */
-		return -EEXIST;
-
-	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
-			fmt->num_channels;
-	used_size = stream->buffer_frames * frame_bytes;
-	samples_size = used_size * CRAS_NUM_SHM_BUFFERS;
-	shm_info->length = sizeof(struct cras_audio_shm_area) + samples_size;
-
-	snprintf(shm_info->shm_name, sizeof(shm_info->shm_name),
-		 "/cras-%d-stream-%08x", getpid(), stream->stream_id);
-
-	shm_info->shm_fd = cras_shm_open_rw(shm_info->shm_name, shm_info->length);
-	if (shm_info->shm_fd < 0)
-		return shm_info->shm_fd;
-
-	/* mmap shm. */
-	shm->area = mmap(NULL, shm_info->length,
-			 PROT_READ | PROT_WRITE, MAP_SHARED,
-			 shm_info->shm_fd, 0);
-	if (shm->area == (struct cras_audio_shm_area *)-1) {
-		close(shm_info->shm_fd);
-		return errno;
-	}
-
-	cras_shm_set_volume_scaler(shm, 1.0);
-	/* Set up config and copy to shared area. */
-	cras_shm_set_frame_bytes(shm, frame_bytes);
-	shm->config.frame_bytes = frame_bytes;
-	cras_shm_set_used_size(shm, used_size);
-	memcpy(&shm->area->config, &shm->config, sizeof(shm->config));
-	return 0;
-}
-
 /* Setup the shared memory area used for audio samples. */
 static inline int setup_shm_area(struct cras_rstream *stream)
 {
+	const struct cras_audio_format *fmt = &stream->format;
+	char stream_name[NAME_MAX];
+	struct cras_shm_info info;
+	uint32_t frame_bytes, used_size;
 	int rc;
 
-	rc = setup_shm(stream, &stream->shm,
-			&stream->shm_info);
+	if (stream->shm) /* already setup */
+		return -EEXIST;
+
+	snprintf(stream_name, sizeof(stream_name), "/cras-%d-stream-%08x",
+		 getpid(), stream->stream_id);
+
+	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
+		      fmt->num_channels;
+	used_size = stream->buffer_frames * frame_bytes;
+
+	rc = cras_shm_info_init(stream_name, used_size, &info);
 	if (rc)
 		return rc;
+
+	rc = cras_audio_shm_create(&info, &stream->shm);
+	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
+	cras_shm_set_used_size(stream->shm, used_size);
+	if (rc)
+		return rc;
+
 	stream->audio_area =
 		cras_audio_area_create(stream->format.num_channels);
 	cras_audio_area_config_channels(stream->audio_area, &stream->format);
@@ -134,7 +112,7 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
  */
 static void set_pending_reply(struct cras_rstream *stream)
 {
-	cras_shm_set_callback_pending(&stream->shm, 1);
+	cras_shm_set_callback_pending(stream->shm, 1);
 }
 
 /*
@@ -142,7 +120,7 @@ static void set_pending_reply(struct cras_rstream *stream)
  */
 static void clear_pending_reply(struct cras_rstream *stream)
 {
-	cras_shm_set_callback_pending(&stream->shm, 0);
+	cras_shm_set_callback_pending(stream->shm, 0);
 }
 
 /*
@@ -236,7 +214,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->buffer_frames = config->buffer_frames;
 	stream->cb_threshold = config->cb_threshold;
 	stream->client = config->client;
-	stream->shm.area = NULL;
+	stream->shm = NULL;
 	stream->master_dev.dev_id = NO_DEVICE;
 	stream->master_dev.dev_ptr = NULL;
 	stream->num_missed_cb = 0;
@@ -272,12 +250,8 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	cras_server_metrics_missed_cb_frequency(stream);
 	cras_system_state_stream_removed(stream->direction);
 	close(stream->fd);
-	if (stream->shm.area != NULL) {
-		munmap(stream->shm.area, stream->shm_info.length);
-		cras_shm_close_unlink(stream->shm_info.shm_name,
-				      stream->shm_info.shm_fd);
-		cras_audio_area_destroy(stream->audio_area);
-	}
+	cras_audio_shm_destroy(stream->shm);
+	cras_audio_area_destroy(stream->audio_area);
 	buffer_share_destroy(stream->buf_state);
 	if (stream->apm_list)
 		cras_apm_list_destroy(stream->apm_list);
@@ -354,11 +328,11 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 	struct audio_message msg;
 	int rc;
 
-	cras_shm_buffer_write_complete(&stream->shm);
+	cras_shm_buffer_write_complete(stream->shm);
 
 	/* Mark shm as used. */
 	if (stream_is_server_only(stream)) {
-		cras_shm_buffer_read_current(&stream->shm, count);
+		cras_shm_buffer_read_current(stream->shm, count);
 		return 0;
 	}
 
@@ -467,17 +441,17 @@ uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
 					  unsigned int offset,
 					  size_t *frames)
 {
-	return cras_shm_get_readable_frames(&rstream->shm, offset, frames);
+	return cras_shm_get_readable_frames(rstream->shm, offset, frames);
 }
 
 int cras_rstream_get_mute(const struct cras_rstream *rstream)
 {
-	return cras_shm_get_mute(&rstream->shm);
+	return cras_shm_get_mute(rstream->shm);
 }
 
 int cras_rstream_is_pending_reply(const struct cras_rstream *stream)
 {
-	return cras_shm_callback_pending(&stream->shm);
+	return cras_shm_callback_pending(stream->shm);
 }
 
 int cras_rstream_flush_old_audio_messages(struct cras_rstream *stream)

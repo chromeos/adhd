@@ -566,10 +566,8 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 	if (rstream->flags & BULK_AUDIO_OK)
 		frames_ready = cras_rstream_level(rstream);
 
-	ATLOG(atlog, AUDIO_THREAD_CAPTURE_POST,
-				    rstream->stream_id,
-				    frames_ready,
-				    rstream->shm.area->read_buf_idx);
+	ATLOG(atlog, AUDIO_THREAD_CAPTURE_POST, rstream->stream_id,
+	      frames_ready, rstream->shm->area->read_buf_idx);
 
 	rc = cras_rstream_audio_ready(rstream, frames_ready);
 

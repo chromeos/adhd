@@ -27,16 +27,21 @@ using IodevPtr = std::unique_ptr<cras_iodev, decltype(free)*>;
 using IonodePtr = std::unique_ptr<cras_ionode, decltype(free)*>;
 using OpendevPtr = std::unique_ptr<open_dev, decltype(free)*>;
 using RstreamPtr = std::unique_ptr<cras_rstream, decltype(free)*>;
-using ShmPtr = std::unique_ptr<cras_audio_shm_area, decltype(free)*>;
+using ShmPtr = std::unique_ptr<cras_audio_shm, decltype(free)*>;
+using ShmAreaPtr = std::unique_ptr<cras_audio_shm_area, decltype(free)*>;
 
 // Holds the rstream and devstream pointers for an attached stream.
 struct Stream {
-  Stream(ShmPtr shm, RstreamPtr rstream, DevStreamPtr dstream) :
-    shm(std::move(shm)),
-    rstream(std::move(rstream)),
-    dstream(std::move(dstream)) {
-  }
+  Stream(ShmPtr shm,
+         ShmAreaPtr shm_area,
+         RstreamPtr rstream,
+         DevStreamPtr dstream)
+      : shm(std::move(shm)),
+        shm_area(std::move(shm_area)),
+        rstream(std::move(rstream)),
+        dstream(std::move(dstream)) {}
   ShmPtr shm;
+  ShmAreaPtr shm_area;
   RstreamPtr rstream;
   DevStreamPtr dstream;
 };
@@ -55,12 +60,13 @@ struct Device {
 };
 using DevicePtr = std::unique_ptr<Device>;
 
-ShmPtr create_shm(size_t cb_threshold);
+ShmAreaPtr create_shm_area(size_t cb_threshold);
+ShmPtr create_shm(cras_audio_shm_area* shm_area);
 RstreamPtr create_rstream(cras_stream_id_t id,
                           CRAS_STREAM_DIRECTION direction,
                           size_t cb_threshold,
                           const cras_audio_format* format,
-                          cras_audio_shm_area* shm);
+                          cras_audio_shm* shm);
 DevStreamPtr create_dev_stream(unsigned int dev_id, cras_rstream* rstream);
 StreamPtr create_stream(cras_stream_id_t id,
                         unsigned int dev_id,

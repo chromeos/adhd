@@ -124,7 +124,8 @@ TEST_F(TimingSuite, NewInputStreamInit) {
   DL_APPEND(dev_list_, dev->odev.get());
   struct cras_iodev* iodev = dev->odev->dev;
 
-  ShmPtr shm = create_shm(480);
+  ShmAreaPtr shm_area = create_shm_area(480);
+  ShmPtr shm = create_shm(shm_area.get());
   RstreamPtr rstream =
       create_rstream(1, CRAS_STREAM_INPUT, 480, &format, shm.get());
 
@@ -811,7 +812,8 @@ TEST_F(TimingSuite, NewOutputStreamInitStreamInDevice) {
   stream->rstream->next_cb_ts.tv_sec = 54321;
   stream->rstream->next_cb_ts.tv_nsec = 12345;
 
-  ShmPtr shm = create_shm(480);
+  ShmAreaPtr shm_area = create_shm_area(480);
+  ShmPtr shm = create_shm(shm_area.get());
   RstreamPtr rstream =
       create_rstream(1, CRAS_STREAM_OUTPUT, 480, &format, shm.get());
 
@@ -839,7 +841,8 @@ TEST_F(TimingSuite, NewOutputStreamInitNoStreamNoFramesInDevice) {
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-  ShmPtr shm = create_shm(480);
+  ShmAreaPtr shm_area = create_shm_area(480);
+  ShmPtr shm = create_shm(shm_area.get());
   RstreamPtr rstream =
       create_rstream(1, CRAS_STREAM_OUTPUT, 480, &format, shm.get());
 
@@ -870,7 +873,8 @@ TEST_F(TimingSuite, NewOutputStreamInitNoStreamSomeFramesInDevice) {
 
   iodev_stub_valid_frames(iodev, 960, start);
 
-  ShmPtr shm = create_shm(480);
+  ShmAreaPtr shm_area = create_shm_area(480);
+  ShmPtr shm = create_shm(shm_area.get());
   RstreamPtr rstream =
       create_rstream(1, CRAS_STREAM_OUTPUT, 480, &format, shm.get());
 

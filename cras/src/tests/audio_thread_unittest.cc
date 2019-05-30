@@ -149,12 +149,15 @@ class StreamDeviceSuite : public testing::Test {
       rstream->direction = direction;
       rstream->cb_threshold = 480;
       rstream->format.frame_rate = 48000;
-      rstream->shm.area = static_cast<cras_audio_shm_area*>(
-          calloc(1, sizeof(*rstream->shm.area)));
+      rstream->shm =
+          static_cast<cras_audio_shm*>(calloc(1, sizeof(*rstream->shm)));
+      rstream->shm->area = static_cast<cras_audio_shm_area*>(
+          calloc(1, sizeof(*rstream->shm->area)));
     }
 
     void TearDownRstream(struct cras_rstream *rstream) {
-      free(rstream->shm.area);
+      free(rstream->shm->area);
+      free(rstream->shm);
     }
 
     void SetupPinnedStream(struct cras_rstream *rstream,
@@ -494,12 +497,11 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
   /* Set stream config. */
-  rstream.shm.config.frame_bytes = 4;
-  rstream.shm.config.used_size = 4096 * 4;
-  rstream.shm.config.frame_bytes = 4;
+  rstream.shm->config.frame_bytes = 4;
+  rstream.shm->config.used_size = 4096 * 4;
 
   /* Set shm config. */
-  shm_area = rstream.shm.area;
+  shm_area = rstream.shm->area;
   shm_area->config.frame_bytes = 4;
   shm_area->config.used_size = 4096 * 4;
   shm_area->write_buf_idx = 0;
@@ -655,20 +657,23 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct open_dev *adev;
   struct cras_rstream rstream;
+  struct cras_audio_shm shm;
   struct cras_audio_shm_area shm_area;
 
   memset(&rstream, 0, sizeof(rstream));
+  memset(&shm, 0, sizeof(shm));
   memset(&shm_area, 0, sizeof(shm_area));
   rstream.direction = CRAS_STREAM_OUTPUT;
+  rstream.shm = &shm;
   ResetGlobalStubData();
 
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
 
   /* Set stream config. */
-  rstream.shm.config.frame_bytes = 4;
-  rstream.shm.config.used_size = 4096 * 4;
-  rstream.shm.config.frame_bytes = 4;
-  rstream.shm.area = &shm_area;
+  rstream.shm->config.frame_bytes = 4;
+  rstream.shm->config.used_size = 4096 * 4;
+  rstream.shm->config.frame_bytes = 4;
+  rstream.shm->area = &shm_area;
   rstream.cb_threshold = 480;
   rstream.format.frame_rate = 48000;
 
@@ -988,18 +993,21 @@ TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
   TearDownRstream(&rstream);
 }
 
-TEST(AUdioThreadStreams, DrainStream) {
+TEST(AudioThreadStreams, DrainStream) {
   struct cras_rstream rstream;
+  struct cras_audio_shm shm;
   struct cras_audio_shm_area shm_area;
   struct audio_thread thread;
 
   memset(&rstream, 0, sizeof(rstream));
+  memset(&shm, 0, sizeof(shm));
   memset(&shm_area, 0, sizeof(shm_area));
-  rstream.shm.config.frame_bytes = 4;
   shm_area.config.frame_bytes = 4;
   shm_area.config.used_size = 4096 * 4;
-  rstream.shm.config.used_size = 4096 * 4;
-  rstream.shm.area = &shm_area;
+  shm.config.frame_bytes = 4;
+  shm.config.used_size = 4096 * 4;
+  shm.area = &shm_area;
+  rstream.shm = &shm;
   rstream.format.frame_rate = 48000;
   rstream.direction = CRAS_STREAM_OUTPUT;
 

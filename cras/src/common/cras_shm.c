@@ -17,6 +17,114 @@
 
 #include "cras_shm.h"
 
+int cras_shm_info_init(const char *stream_name, uint32_t used_size,
+		       struct cras_shm_info *info_out)
+{
+	struct cras_shm_info info;
+
+	if (!info_out)
+		return -EINVAL;
+
+	strncpy(info.name, stream_name, sizeof(info.name));
+	info.length = sizeof(struct cras_audio_shm_area) +
+		      used_size * CRAS_NUM_SHM_BUFFERS;
+	info.fd = cras_shm_open_rw(info.name, info.length);
+	if (info.fd < 0)
+		return info.fd;
+
+	*info_out = info;
+
+	return 0;
+}
+
+/* Move the resources from the cras_shm_info 'from' into the cras_shm_info 'to'.
+ * The owner of 'to' will be responsible for cleaning up those resources with
+ * cras_shm_info_cleanup.
+ */
+static int cras_shm_info_move(struct cras_shm_info *from,
+			      struct cras_shm_info *to)
+{
+	if (!from || !to)
+		return -EINVAL;
+
+	*to = *from;
+	from->fd = -1;
+	from->name[0] = '\0';
+	return 0;
+}
+
+void cras_shm_info_cleanup(struct cras_shm_info *info)
+{
+	if (!info)
+		return;
+
+	if (info->name[0] != '\0')
+		cras_shm_close_unlink(info->name, info->fd);
+	else
+		close(info->fd);
+
+	info->fd = -1;
+	info->name[0] = '\0';
+}
+
+int cras_audio_shm_create(struct cras_shm_info *info,
+			  struct cras_audio_shm **shm_out)
+{
+	struct cras_audio_shm *shm;
+	int ret;
+
+	if (!info || !shm_out) {
+		ret = -EINVAL;
+		goto cleanup_info;
+	}
+
+	shm = calloc(1, sizeof(*shm));
+	if (!shm) {
+		ret = -ENOMEM;
+		goto cleanup_info;
+	}
+
+	/* Move info into the new cras_audio_shm object.
+	 * The info parameter is cleared, and the owner of cras_audio_shm
+	 * is now responsible for closing the fd and unlinking any associated
+	 * shm file using cras_audio_shm_destroy
+	 */
+	ret = cras_shm_info_move(info, &shm->info);
+	if (ret)
+		goto free_shm;
+
+	shm->area = mmap(NULL, shm->info.length, PROT_READ | PROT_WRITE,
+			 MAP_SHARED, shm->info.fd, 0);
+
+	if (shm->area == (struct cras_audio_shm_area *)-1) {
+		ret = errno;
+		goto cleanup_shm_info;
+	}
+
+	cras_shm_set_volume_scaler(shm, 1.0);
+
+	*shm_out = shm;
+	return 0;
+
+cleanup_shm_info:
+	cras_shm_info_cleanup(&shm->info);
+free_shm:
+	free(shm);
+cleanup_info:
+	cras_shm_info_cleanup(info);
+	return ret;
+}
+
+void cras_audio_shm_destroy(struct cras_audio_shm *shm)
+{
+	if (!shm)
+		return;
+
+	munmap(shm->area, shm->info.length);
+	cras_shm_info_cleanup(&shm->info);
+	free(shm);
+}
+
 /* Set the correct SELinux label for SHM fds. */
 static void cras_shm_restorecon(int fd)
 {

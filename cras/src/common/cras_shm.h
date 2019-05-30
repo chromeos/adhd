@@ -61,15 +61,64 @@ struct __attribute__ ((__packed__)) cras_audio_shm_area {
 	uint8_t samples[];
 };
 
-/* Structure that holds the config for and a pointer to the audio shm area.
+/* Holds identifiers for a shm segment. All valid cras_shm_info objects will
+ * have an fd and a length, and they may have the name of the shm file as well.
+ *
+ *  fd - File descriptor to access shm (shared between client/server).
+ *  name - Name of the shm area. May be empty.
+ *  length - Size of the shm region.
+ */
+struct cras_shm_info {
+	int fd;
+	char name[NAME_MAX];
+	size_t length;
+};
+
+/* Initializes a cras_shm_info to be used as the backing shared memory for a
+ * cras_audio_shm.
+ *
+ * stream_name - the name of the stream that is creating the shm.
+ * used_size - the size of an individual sample buffer in the audio_shm_area.
+ * info_out - pointer where the created cras_shm_info will be stored.
+ */
+int cras_shm_info_init(const char *stream_name, uint32_t used_size,
+		       struct cras_shm_info *info_out);
+
+/* Cleans up the resources for a cras_shm_info returned from cras_shm_info_init.
+ *
+ * info - the cras_shm_info to destroy.
+ */
+void cras_shm_info_cleanup(struct cras_shm_info *info);
+
+/* Structure that holds the config for and a pointer to the audio shm header and
+ * samples area.
  *
  *  config - Size config data, kept separate so it can be checked.
+ *  info - fd, name, and length of shm area.
  *  area - Acutal shm region that is shared.
  */
 struct cras_audio_shm {
 	struct cras_audio_shm_config config;
+	struct cras_shm_info info;
 	struct cras_audio_shm_area *area;
 };
+
+/* Sets up a cras_audio_shm given info about the shared memory to use
+ *
+ * info - the underlying shm area to use. The shm specified in info will be
+ *        managed by the created cras_audio_shm object which will handle
+ *        deletion. The info parameter will be returned to an unitialized state,
+ *        and the client need not call cras_shm_info_destroy.
+ * shm_out - pointer where the created cras_audio_shm will be stored.
+ */
+int cras_audio_shm_create(struct cras_shm_info *info,
+			  struct cras_audio_shm **shm_out);
+
+/* Destroys a cras_audio_shm returned from cras_audio_shm_create.
+ *
+ * shm - the cras_audio_shm to destroy.
+ */
+void cras_audio_shm_destroy(struct cras_audio_shm *shm);
 
 /* Get a pointer to the buffer at idx. */
 static inline uint8_t *cras_shm_buff_for_idx(const struct cras_audio_shm *shm,

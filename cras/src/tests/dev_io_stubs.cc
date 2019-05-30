@@ -19,15 +19,24 @@ extern "C" {
 
 #include "dev_io_stubs.h"
 
-ShmPtr create_shm(size_t cb_threshold) {
+ShmAreaPtr create_shm_area(size_t cb_threshold) {
   uint32_t frame_bytes = 4;
   uint32_t used_size = cb_threshold * 2 * frame_bytes;
   uint32_t shm_size = sizeof(cras_audio_shm_area) + used_size * 2;
-  ShmPtr shm(reinterpret_cast<cras_audio_shm_area*>(calloc(1, shm_size)),
-              free);
-  shm->config.used_size = used_size;
-  shm->config.frame_bytes = frame_bytes;
-  shm->volume_scaler = 1.0;
+  ShmAreaPtr shm_area(
+      reinterpret_cast<cras_audio_shm_area*>(calloc(1, shm_size)), free);
+  shm_area->config.used_size = used_size;
+  shm_area->config.frame_bytes = frame_bytes;
+  shm_area->volume_scaler = 1.0;
+  return shm_area;
+}
+
+ShmPtr create_shm(cras_audio_shm_area* shm_area) {
+  ShmPtr shm(reinterpret_cast<cras_audio_shm*>(
+                 calloc(1, sizeof(struct cras_audio_shm))),
+             free);
+  shm->area = shm_area;
+  shm->config = shm_area->config;
   return shm;
 }
 
@@ -35,7 +44,7 @@ RstreamPtr create_rstream(cras_stream_id_t id,
                           CRAS_STREAM_DIRECTION direction,
                           size_t cb_threshold,
                           const cras_audio_format* format,
-                          cras_audio_shm_area* shm) {
+                          cras_audio_shm* shm) {
   RstreamPtr rstream(
       reinterpret_cast<cras_rstream*>(calloc(1, sizeof(cras_rstream))), free);
   rstream->stream_id = id;
@@ -43,8 +52,7 @@ RstreamPtr create_rstream(cras_stream_id_t id,
   rstream->fd = RSTREAM_FAKE_POLL_FD;
   rstream->buffer_frames = cb_threshold * 2;
   rstream->cb_threshold = cb_threshold;
-  rstream->shm.area = shm;
-  rstream->shm.config = shm->config;
+  rstream->shm = shm;
   rstream->format = *format;
   cras_frames_to_time(cb_threshold,
                       rstream->format.frame_rate,
@@ -68,19 +76,19 @@ StreamPtr create_stream(cras_stream_id_t id,
                         CRAS_STREAM_DIRECTION direction,
                         size_t cb_threshold,
                         const cras_audio_format* format) {
-  ShmPtr shm = create_shm(cb_threshold);
+  ShmAreaPtr shm_area = create_shm_area(cb_threshold);
+  ShmPtr shm = create_shm(shm_area.get());
   RstreamPtr rstream = create_rstream(1, CRAS_STREAM_INPUT, cb_threshold,
                                       format, shm.get());
   DevStreamPtr dstream = create_dev_stream(1, rstream.get());
-  StreamPtr s(new Stream(std::move(shm),
-                         std::move(rstream),
-                         std::move(dstream)));
+  StreamPtr s(new Stream(std::move(shm), std::move(shm_area),
+                         std::move(rstream), std::move(dstream)));
   return s;
 }
 
 void AddFakeDataToStream(Stream* stream, unsigned int frames) {
-  cras_shm_check_write_overrun(&stream->rstream->shm);
-  cras_shm_buffer_written(&stream->rstream->shm, frames);
+  cras_shm_check_write_overrun(stream->rstream->shm);
+  cras_shm_buffer_written(stream->rstream->shm, frames);
 }
 
 int delay_frames_stub(const struct cras_iodev* iodev) {

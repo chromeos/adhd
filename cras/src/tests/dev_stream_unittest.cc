@@ -167,7 +167,7 @@ class CreateSuite : public testing::Test{
           sizeof(*area) + 2 * sizeof(struct cras_channel_area));
       stream_area->num_channels = 2;
       rstream_.audio_area = stream_area;
-      int16_t *shm_samples = (int16_t *)rstream_.shm.area->samples;
+      int16_t* shm_samples = (int16_t*)rstream_.shm->area->samples;
       stream_area->channels[0].step_bytes = 4;
       stream_area->channels[0].buf = (uint8_t *)(shm_samples);
       stream_area->channels[1].step_bytes = 4;
@@ -177,12 +177,16 @@ class CreateSuite : public testing::Test{
     virtual void TearDown() {
       free(area);
       free(stream_area);
-      free(rstream_.shm.area);
+      free(rstream_.shm->area);
       audio_thread_event_log_deinit(atlog);
     }
 
-    void SetupShm(struct cras_audio_shm *shm) {
+    void SetupShm(struct cras_audio_shm** shm_out) {
       int16_t *buf;
+      struct cras_audio_shm* shm;
+
+      shm = static_cast<struct cras_audio_shm*>(
+          calloc(1, sizeof(struct cras_audio_shm)));
 
       shm->area = static_cast<struct cras_audio_shm_area *>(
           calloc(1, kBufferFrames * 4 + sizeof(cras_audio_shm_area)));
@@ -195,6 +199,8 @@ class CreateSuite : public testing::Test{
         buf[i] = i;
       cras_shm_set_mute(shm, 0);
       cras_shm_set_volume_scaler(shm, 1.0);
+
+      *shm_out = shm;
     }
 
     void SetUpFmtConv(unsigned int in_rate, unsigned int out_rate,
@@ -719,7 +725,7 @@ TEST_F(CreateSuite, StreamCanSend) {
   clock_gettime_retspec.tv_nsec = 0;
   // Enough samples are written.
   written_frames = rstream_.cb_threshold + 10;
-  cras_shm_buffer_written(&rstream_.shm, written_frames);
+  cras_shm_buffer_written(rstream_.shm, written_frames);
   // Stream still can not send samples to client.
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(0, cras_rstream_audio_ready_called);
@@ -816,7 +822,7 @@ TEST_F(CreateSuite, StreamCanSendBulkAudio) {
   clock_gettime_retspec.tv_nsec = 0;
   // Enough samples are written.
   written_frames = rstream_.cb_threshold + 10;
-  cras_shm_buffer_written(&rstream_.shm, written_frames);
+  cras_shm_buffer_written(rstream_.shm, written_frames);
   // Bulk audio stream can send all written samples to client.
   rc = dev_stream_capture_update_rstream(dev_stream);
   EXPECT_EQ(1, cras_rstream_audio_ready_called);
@@ -861,7 +867,7 @@ TEST_F(CreateSuite, TriggerOnlyStreamSendOnlyOnce) {
   dev_stream->stream->triggered = 0;
 
   // Check first trigger callback called.
-  cras_shm_buffer_written(&rstream_.shm, rstream_.cb_threshold);
+  cras_shm_buffer_written(rstream_.shm, rstream_.cb_threshold);
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 0;
   dev_stream_capture_update_rstream(dev_stream);
@@ -869,7 +875,7 @@ TEST_F(CreateSuite, TriggerOnlyStreamSendOnlyOnce) {
   EXPECT_EQ(1, dev_stream->stream->triggered);
 
   // No future callback will be called for TRIGGER_ONLY streams.
-  cras_shm_buffer_written(&rstream_.shm, rstream_.cb_threshold);
+  cras_shm_buffer_written(rstream_.shm, rstream_.cb_threshold);
   clock_gettime_retspec.tv_sec = 2;
   clock_gettime_retspec.tv_nsec = 0;
   dev_stream_capture_update_rstream(dev_stream);
@@ -896,7 +902,7 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByNextCbTs) {
 
   // Assume there are enough samples for stream.
   written_frames = rstream_.cb_threshold + 10;
-  cras_shm_buffer_written(&rstream_.shm, written_frames);
+  cras_shm_buffer_written(rstream_.shm, written_frames);
 
   rc = dev_stream_wake_time(dev_stream, curr_level,
                             &level_tstamp, rstream_.cb_threshold, 0,
@@ -931,7 +937,7 @@ TEST_F(CreateSuite, InputDevStreamWakeTimeByDevice) {
 
   // Assume there are not enough samples for stream.
   written_frames = 123;
-  cras_shm_buffer_written(&rstream_.shm, written_frames);
+  cras_shm_buffer_written(rstream_.shm, written_frames);
 
   // Compute wake up time for device level to reach enough samples
   // for one cb_threshold:
