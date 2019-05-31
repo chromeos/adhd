@@ -91,6 +91,13 @@ impl<'a> CaptureBuffer<'a> {
     pub fn frame_capacity(&self) -> usize {
         self.buffer.buffer.len() / self.buffer.frame_size
     }
+
+    /// Reads up to `size` bytes directly from this buffer inside of the given callback function.
+    pub fn copy_cb<F: FnOnce(&[u8])>(&mut self, size: usize, cb: F) {
+        let len = size / self.buffer.frame_size * self.buffer.frame_size;
+        cb(&self.buffer.buffer[self.buffer.offset..(self.buffer.offset + len)]);
+        self.buffer.offset += len;
+    }
 }
 
 impl<'a> Read for CaptureBuffer<'a> {
