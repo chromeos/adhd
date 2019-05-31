@@ -153,6 +153,7 @@ static std::map<std::string, long> ucm_get_default_node_gain_values;
 static thread_callback audio_thread_cb;
 static void *audio_thread_cb_data;
 static int hotword_send_triggered_msg_called;
+static struct timespec clock_gettime_retspec;
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -2283,6 +2284,55 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   alsa_iodev_destroy(iodev);
 }
 
+TEST(AlsaGetValidFrames, GetValidFramesNormalState) {
+  struct cras_iodev* iodev;
+  struct alsa_io* aio;
+  struct timespec tstamp;
+  int rc;
+
+  ResetStubData();
+  iodev = alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  aio = (struct alsa_io*)iodev;
+
+  aio->free_running = 0;
+  aio->filled_zeros_for_draining = 200;
+  cras_alsa_get_avail_frames_avail = iodev->buffer_size - 500;
+  cras_alsa_get_avail_frames_ret = 0;
+  clock_gettime_retspec.tv_sec = 123;
+  clock_gettime_retspec.tv_nsec = 321;
+  rc = iodev->get_valid_frames(iodev, &tstamp);
+  EXPECT_EQ(rc, 300);
+  EXPECT_EQ(tstamp.tv_sec, clock_gettime_retspec.tv_sec);
+  EXPECT_EQ(tstamp.tv_nsec, clock_gettime_retspec.tv_nsec);
+
+  alsa_iodev_destroy(iodev);
+}
+
+TEST(AlsaGetValidFrames, GetValidFramesFreeRunning) {
+  struct cras_iodev* iodev;
+  struct alsa_io* aio;
+  struct timespec tstamp;
+  int rc;
+
+  ResetStubData();
+  iodev = alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  aio = (struct alsa_io*)iodev;
+
+  aio->free_running = 1;
+  clock_gettime_retspec.tv_sec = 123;
+  clock_gettime_retspec.tv_nsec = 321;
+  rc = iodev->get_valid_frames(iodev, &tstamp);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(tstamp.tv_sec, clock_gettime_retspec.tv_sec);
+  EXPECT_EQ(tstamp.tv_nsec, clock_gettime_retspec.tv_nsec);
+
+  alsa_iodev_destroy(iodev);
+}
+
 }  //  namespace
 
 int main(int argc, char **argv) {
@@ -3039,4 +3089,11 @@ struct cras_ramp* cras_ramp_create() {
   return (struct cras_ramp*)0x1;
 }
 
+//  From librt.
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  tp->tv_sec = clock_gettime_retspec.tv_sec;
+  tp->tv_nsec = clock_gettime_retspec.tv_nsec;
+  return 0;
 }
+
+}  // extern "C"

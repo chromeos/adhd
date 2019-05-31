@@ -1956,8 +1956,10 @@ static int get_valid_frames(const struct cras_iodev *odev,
 	 * The real_hw_level is the real hw_level in device buffer. It doesn't
 	 * subtract min_buffer_level.
 	 */
-	if (aio->free_running)
+	if (aio->free_running) {
+		clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 		return 0;
+	}
 
 	rc = odev->frames_queued(odev, tstamp);
 	if(rc < 0)
