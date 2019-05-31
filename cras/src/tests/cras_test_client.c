@@ -791,6 +791,10 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_HSP_REQUEST_DISCONNECT:
 		printf("%-30s\n", "HSP_REQUEST_DISCONNECT");
 		break;
+	case BT_NEW_AUDIO_PROFILE_AFTER_CONNECT:
+		printf("%-30s old %u, new %u\n", "NEW_AUDIO_PROFILE_AFTER_CONNECT",
+			data1, data2);
+		break;
 	case BT_RESET:
 		printf("%-30s\n", "RESET");
 		break;
