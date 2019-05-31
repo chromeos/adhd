@@ -59,6 +59,11 @@ TEST_F(HfpAgProfile, StartWithoutScoPCM) {
   EXPECT_EQ(0, ret);
   EXPECT_EQ(2, hfp_iodev_create_called);
 
+  /* Start ag twice won't create more iodev. */
+  ret = cras_hfp_ag_start(fake_device);
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(2, hfp_iodev_create_called);
+
   cras_hfp_ag_suspend();
 
   EXPECT_EQ(2, hfp_iodev_destroy_called);

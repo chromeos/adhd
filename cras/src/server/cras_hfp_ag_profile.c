@@ -378,6 +378,15 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 	if (ag == NULL)
 		return -EEXIST;
 
+	/*
+	 * There is chance that bluetooth stack notifies us about remote
+	 * device's capability incrementally in multiple events. That could
+	 * cause hfp_ag_start be called more than once. Check if the input
+	 * HFP iodev is already created so we don't re-create HFP resources.
+	 */
+	if (ag->idev)
+		return 0;
+
 	if (need_go_sco_pcm(device)) {
 		struct cras_iodev *in_aio, *out_aio;
 
