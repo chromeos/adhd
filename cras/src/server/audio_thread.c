@@ -724,8 +724,7 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 	DL_FOREACH(streams, dev_stream) {
 		const struct timespec *next_cb_ts;
 
-		if (cras_rstream_get_is_draining(dev_stream->stream) &&
-		    dev_stream_playback_frames(dev_stream) <= 0)
+		if (cras_rstream_get_is_draining(dev_stream->stream))
 			continue;
 
 		if (cras_rstream_is_pending_reply(dev_stream->stream))
