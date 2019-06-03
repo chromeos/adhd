@@ -18,8 +18,7 @@
 #include "cras_util.h"
 
 #define A2DP_SOURCE_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSource"
-#define A2DP_SINK_ENDPOINT_PATH   "/org/chromium/Cras/Bluetooth/A2DPSink"
-
+#define A2DP_SINK_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSink"
 
 /* Pointers for the only connected a2dp device. */
 static struct a2dp {
@@ -38,21 +37,17 @@ static int cras_a2dp_get_capabilities(struct cras_bt_endpoint *endpoint,
 	*len = sizeof(*sbc_caps);
 
 	/* Return all capabilities. */
-	sbc_caps->channel_mode = SBC_CHANNEL_MODE_MONO |
-			SBC_CHANNEL_MODE_DUAL_CHANNEL |
-			SBC_CHANNEL_MODE_STEREO |
-			SBC_CHANNEL_MODE_JOINT_STEREO;
+	sbc_caps->channel_mode =
+		SBC_CHANNEL_MODE_MONO | SBC_CHANNEL_MODE_DUAL_CHANNEL |
+		SBC_CHANNEL_MODE_STEREO | SBC_CHANNEL_MODE_JOINT_STEREO;
 	sbc_caps->frequency = SBC_SAMPLING_FREQ_16000 |
-			SBC_SAMPLING_FREQ_32000 |
-			SBC_SAMPLING_FREQ_44100 |
-			SBC_SAMPLING_FREQ_48000;
-	sbc_caps->allocation_method = SBC_ALLOCATION_SNR |
-			SBC_ALLOCATION_LOUDNESS;
+			      SBC_SAMPLING_FREQ_32000 |
+			      SBC_SAMPLING_FREQ_44100 | SBC_SAMPLING_FREQ_48000;
+	sbc_caps->allocation_method =
+		SBC_ALLOCATION_SNR | SBC_ALLOCATION_LOUDNESS;
 	sbc_caps->subbands = SBC_SUBBANDS_4 | SBC_SUBBANDS_8;
-	sbc_caps->block_length = SBC_BLOCK_LENGTH_4 |
-			SBC_BLOCK_LENGTH_8 |
-			SBC_BLOCK_LENGTH_12 |
-			SBC_BLOCK_LENGTH_16;
+	sbc_caps->block_length = SBC_BLOCK_LENGTH_4 | SBC_BLOCK_LENGTH_8 |
+				 SBC_BLOCK_LENGTH_12 | SBC_BLOCK_LENGTH_16;
 	sbc_caps->min_bitpool = MIN_BITPOOL;
 	sbc_caps->max_bitpool = MAX_BITPOOL;
 
@@ -124,16 +119,18 @@ static int cras_a2dp_select_configuration(struct cras_bt_endpoint *endpoint,
 		return -ENOSYS;
 	}
 
-	sbc_config->min_bitpool = (sbc_caps->min_bitpool > MIN_BITPOOL
-				   ? sbc_caps->min_bitpool : MIN_BITPOOL);
-	sbc_config->max_bitpool = (sbc_caps->max_bitpool < MAX_BITPOOL
-				   ? sbc_caps->max_bitpool : MAX_BITPOOL);
+	sbc_config->min_bitpool =
+		(sbc_caps->min_bitpool > MIN_BITPOOL ? sbc_caps->min_bitpool :
+						       MIN_BITPOOL);
+	sbc_config->max_bitpool =
+		(sbc_caps->max_bitpool < MAX_BITPOOL ? sbc_caps->max_bitpool :
+						       MAX_BITPOOL);
 
 	return 0;
 }
 
 static void cras_a2dp_set_configuration(struct cras_bt_endpoint *endpoint,
-			    struct cras_bt_transport *transport)
+					struct cras_bt_transport *transport)
 {
 	struct cras_bt_device *device;
 
@@ -158,7 +155,7 @@ static void a2dp_transport_state_changed(struct cras_bt_endpoint *endpoint,
 		 * the transport. */
 		if (cras_bt_transport_fd(transport) != -1 &&
 		    cras_bt_transport_state(transport) ==
-				CRAS_BT_TRANSPORT_STATE_PENDING)
+			    CRAS_BT_TRANSPORT_STATE_PENDING)
 			cras_bt_transport_try_acquire(transport);
 	}
 }
