@@ -605,6 +605,8 @@ int cras_rclient_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_SET_BT_WBS_ENABLED: {
 		const struct cras_set_bt_wbs_enabled *m =
 			(const struct cras_set_bt_wbs_enabled *)msg;
+		if (!MSG_LEN_VALID(msg, struct cras_set_bt_wbs_enabled))
+			return -EINVAL;
 		cras_system_set_bt_wbs_enabled(m->enabled);
 		break;
 	}
