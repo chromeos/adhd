@@ -21,10 +21,9 @@ struct cras_device_monitor_message {
 	unsigned int dev_idx;
 };
 
-static void init_device_msg(
-		struct cras_device_monitor_message *msg,
-		enum CRAS_DEVICE_MONITOR_MSG_TYPE type,
-		unsigned int dev_idx)
+static void init_device_msg(struct cras_device_monitor_message *msg,
+			    enum CRAS_DEVICE_MONITOR_MSG_TYPE type,
+			    unsigned int dev_idx)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.type = CRAS_MAIN_MONITOR_DEVICE;
@@ -63,7 +62,6 @@ int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
 	return 0;
 }
 
-
 /* When device is in a bad state, e.g. severe underrun,
  * it might break how audio thread works and cause busy wake up loop.
  * Resetting the device can bring device back to normal state.
@@ -74,7 +72,7 @@ int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
 static void handle_device_message(struct cras_main_message *msg, void *arg)
 {
 	struct cras_device_monitor_message *device_msg =
-			(struct cras_device_monitor_message *)msg;
+		(struct cras_device_monitor_message *)msg;
 
 	switch (device_msg->message_type) {
 	case RESET_DEVICE:
