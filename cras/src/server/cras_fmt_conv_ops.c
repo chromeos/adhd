@@ -8,14 +8,18 @@
 
 #include "cras_fmt_conv_ops.h"
 
-#define MAX(a, b) \
-	({ __typeof__ (a) _a = (a); \
-	 __typeof__ (b) _b = (b); \
-	 _a > _b ? _a : _b; })
-#define MIN(a, b) \
-	({ __typeof__ (a) _a = (a); \
-	 __typeof__ (b) _b = (b); \
-	 _a < _b ? _a : _b; })
+#define MAX(a, b)                                                              \
+	({                                                                     \
+		__typeof__(a) _a = (a);                                        \
+		__typeof__(b) _b = (b);                                        \
+		_a > _b ? _a : _b;                                             \
+	})
+#define MIN(a, b)                                                              \
+	({                                                                     \
+		__typeof__(a) _a = (a);                                        \
+		__typeof__(b) _b = (b);                                        \
+		_a < _b ? _a : _b;                                             \
+	})
 
 /*
  * Add and clip.
@@ -204,8 +208,8 @@ size_t s16_stereo_to_51(size_t left, size_t right, size_t center,
 		}
 	else if (center != -1)
 		for (i = 0; i < in_frames; i++)
-			out[6 * i + center] = s16_add_and_clip(
-					in[2 * i], in[2 * i + 1]);
+			out[6 * i + center] =
+				s16_add_and_clip(in[2 * i], in[2 * i + 1]);
 	else
 		/* Select the first two channels to convert to as the
 		 * default behavior.
@@ -241,10 +245,10 @@ size_t s16_51_to_stereo(const uint8_t *_in, size_t in_frames, uint8_t *_out)
 		unsigned int half_center;
 
 		half_center = in[6 * i + center_idx] / 2;
-		out[2 * i + left_idx] = s16_add_and_clip(in[6 * i + left_idx],
-							 half_center);
-		out[2 * i + right_idx] = s16_add_and_clip(in[6 * i + right_idx],
-							  half_center);
+		out[2 * i + left_idx] =
+			s16_add_and_clip(in[6 * i + left_idx], half_center);
+		out[2 * i + right_idx] =
+			s16_add_and_clip(in[6 * i + right_idx], half_center);
 	}
 	return in_frames;
 }
@@ -263,8 +267,8 @@ size_t s16_stereo_to_quad(size_t front_left, size_t front_right,
 	const int16_t *in = (const int16_t *)_in;
 	int16_t *out = (int16_t *)_out;
 
-	if (front_left != -1 && front_right != -1 &&
-	    rear_left != -1 && rear_right != -1)
+	if (front_left != -1 && front_right != -1 && rear_left != -1 &&
+	    rear_right != -1)
 		for (i = 0; i < in_frames; i++) {
 			out[4 * i + front_left] = in[2 * i];
 			out[4 * i + front_right] = in[2 * i + 1];
@@ -296,8 +300,8 @@ size_t s16_quad_to_stereo(size_t front_left, size_t front_right,
 	const int16_t *in = (const int16_t *)_in;
 	int16_t *out = (int16_t *)_out;
 
-	if (front_left == -1 || front_right == -1 ||
-	    rear_left == -1 || rear_right == -1) {
+	if (front_left == -1 || front_right == -1 || rear_left == -1 ||
+	    rear_right == -1) {
 		front_left = 0;
 		front_right = 1;
 		rear_left = 2;
@@ -305,12 +309,10 @@ size_t s16_quad_to_stereo(size_t front_left, size_t front_right,
 	}
 
 	for (i = 0; i < in_frames; i++) {
-		out[2 * i] = s16_add_and_clip(
-		    in[4 * i + front_left],
-		    in[4 * i + rear_left] / 4);
-		out[2 * i + 1] = s16_add_and_clip(
-		    in[4 * i + front_right],
-		    in[4 * i + rear_right] / 4);
+		out[2 * i] = s16_add_and_clip(in[4 * i + front_left],
+					      in[4 * i + rear_left] / 4);
+		out[2 * i + 1] = s16_add_and_clip(in[4 * i + front_right],
+						  in[4 * i + rear_right] / 4);
 	}
 	return in_frames;
 }
@@ -362,9 +364,9 @@ int16_t s16_multiply_buf_with_coef(float *coef, const int16_t *buf, size_t size)
  *
  * Converts channels based on the channel conversion coefficient matrix.
  */
-size_t s16_convert_channels(float **ch_conv_mtx,
-			    size_t num_in_ch, size_t num_out_ch,
-			    const uint8_t *_in, size_t in_frames, uint8_t *_out)
+size_t s16_convert_channels(float **ch_conv_mtx, size_t num_in_ch,
+			    size_t num_out_ch, const uint8_t *_in,
+			    size_t in_frames, uint8_t *_out)
 {
 	unsigned i, fr;
 	unsigned in_idx = 0;
@@ -375,9 +377,7 @@ size_t s16_convert_channels(float **ch_conv_mtx,
 	for (fr = 0; fr < in_frames; fr++) {
 		for (i = 0; i < num_out_ch; i++)
 			out[out_idx + i] = s16_multiply_buf_with_coef(
-					ch_conv_mtx[i],
-					&in[in_idx],
-					num_in_ch);
+				ch_conv_mtx[i], &in[in_idx], num_in_ch);
 		in_idx += num_in_ch;
 		out_idx += num_out_ch;
 	}

@@ -75,14 +75,14 @@ size_t s16_default_all_to_all(struct cras_audio_format *out_fmt,
 /*
  * Multiplies buffer vector with coefficient vector.
  */
-int16_t s16_multiply_buf_with_coef(float *coef,
-				   const int16_t *buf, size_t size);
+int16_t s16_multiply_buf_with_coef(float *coef, const int16_t *buf,
+				   size_t size);
 
 /*
  * Channel layout converter.
  */
-size_t s16_convert_channels(float **ch_conv_mtx,
-			    size_t num_in_ch, size_t num_out_ch,
-			    const uint8_t *in, size_t in_frames, uint8_t *out);
+size_t s16_convert_channels(float **ch_conv_mtx, size_t num_in_ch,
+			    size_t num_out_ch, const uint8_t *in,
+			    size_t in_frames, uint8_t *out);
 
 #endif /* CRAS_FMT_CONV_OPS_H_ */
