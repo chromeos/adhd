@@ -45,6 +45,7 @@
 #include "cras_non_empty_audio_handler.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
+#include "cras_control_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
@@ -232,8 +233,8 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	poll_client->next = NULL;
 	poll_client->pollfd = NULL;
 	fill_client_info(poll_client);
-	poll_client->client = cras_rclient_create(connection_fd,
-						  poll_client->id);
+	poll_client->client =
+		cras_control_rclient_create(connection_fd, poll_client->id);
 	if (poll_client->client == NULL) {
 		syslog(LOG_ERR, "failed to create client");
 		close(connection_fd);

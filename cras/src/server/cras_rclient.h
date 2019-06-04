@@ -11,8 +11,36 @@
 
 struct cras_client_message;
 struct cras_message;
-struct cras_rclient;
 struct cras_server_message;
+
+/* An attached client.
+ *  id - The id of the client.
+ *  fd - Connection for client communication.
+ *  ops - cras_rclient_ops for the cras_rclient.
+ */
+struct cras_rclient {
+	struct cras_observer_client *observer;
+	size_t id;
+	int fd;
+	const struct cras_rclient_ops *ops;
+};
+
+/* Operations for cras_rclient.
+ * handle_message_from_client - Entry point for handling a message from the
+ * corresponded client.
+ * send_message_to_client - Method for sending message to the corresponded
+ * client.
+ * destroy - Method to destroy and free the cras_rclient.
+ */
+struct cras_rclient_ops {
+	int (*handle_message_from_client)(struct cras_rclient *,
+					  const struct cras_server_message *,
+					  int fd);
+	int (*send_message_to_client)(const struct cras_rclient *,
+				      const struct cras_client_message *,
+				      int *fds, unsigned int num_fds);
+	void (*destroy)(struct cras_rclient *);
+};
 
 /* Creates an rclient structure.
  * Args:
@@ -28,19 +56,6 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id);
  *    client - The client to destroy.
  */
 void cras_rclient_destroy(struct cras_rclient *client);
-
-/* Handles a message from the client.
- * Args:
- *    client - The client that received this message.
- *    msg - The message that was sent by the remote client.
- *    fd - The file descriptor that was sent by the remote client (or -1 if no
- *         file descriptor was sent).
- * Returns:
- *    0 on success, otherwise a negative error code.
- */
-int cras_rclient_message_from_client(struct cras_rclient *client,
-				     const struct cras_server_message *msg,
-				     int fd);
 
 /* Handles a received buffer from the client.
  * Args:
