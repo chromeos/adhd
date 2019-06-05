@@ -2224,19 +2224,21 @@ TEST(IoDev, SetExtDspMod) {
 
   cras_iodev_set_ext_dsp_module(&iodev, NULL);
   EXPECT_EQ(1, ext_mod_configure_called);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_set_sink_ext_module_called);
 
   cras_iodev_set_ext_dsp_module(&iodev, &ext);
   EXPECT_EQ(2, ext_mod_configure_called);
-  EXPECT_EQ(2, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(2, cras_dsp_pipeline_set_sink_ext_module_called);
+  EXPECT_EQ(3, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(3, cras_dsp_pipeline_set_sink_ext_module_called);
 
   /* If pipeline doesn't exist, dummy pipeline should be loaded. */
   cras_dsp_get_pipeline_ret = 0x0;
   cras_iodev_set_ext_dsp_module(&iodev, &ext);
   EXPECT_EQ(3, ext_mod_configure_called);
-  EXPECT_EQ(4, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(5, cras_dsp_get_pipeline_called);
   EXPECT_EQ(1, cras_dsp_load_dummy_pipeline_called);
-  EXPECT_EQ(3, cras_dsp_pipeline_set_sink_ext_module_called);
+  EXPECT_EQ(4, cras_dsp_pipeline_set_sink_ext_module_called);
 }
 
 TEST(IoDev, InputDspOffset) {

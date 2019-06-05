@@ -521,9 +521,6 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 {
 	struct pipeline *pipeline;
 
-	if (!iodev->ext_dsp_module)
-		return;
-
 	pipeline = iodev->dsp_context
 			? cras_dsp_get_pipeline(iodev->dsp_context)
 			: NULL;
@@ -538,15 +535,37 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 	/* dsp_context mutex locked. Now it's safe to modify dsp
 	 * pipeline resources. */
 
-	iodev->ext_dsp_module->configure(
-			iodev->ext_dsp_module,
-			iodev->buffer_size,
-			iodev->format->num_channels,
-			iodev->format->frame_rate);
+	if (iodev->ext_dsp_module)
+		iodev->ext_dsp_module->configure(
+				iodev->ext_dsp_module,
+				iodev->buffer_size,
+				iodev->format->num_channels,
+				iodev->format->frame_rate);
 
 	cras_dsp_pipeline_set_sink_ext_module(
 			pipeline,
 			iodev->ext_dsp_module);
+
+	/* Unlock dsp_context mutex. */
+	cras_dsp_put_pipeline(iodev->dsp_context);
+}
+
+/*
+ * Releases the ext_dsp_module if it ever added to iodev's dsp pipeline.
+ */
+static void release_ext_dsp_module_from_pipeline(struct cras_iodev *iodev)
+{
+	struct pipeline *pipeline;
+
+	if (iodev->dsp_context == NULL)
+		return;
+
+	pipeline = cras_dsp_get_pipeline(iodev->dsp_context);
+	if (pipeline == NULL)
+		return;
+	/* dsp_context mutex locked. */
+
+	cras_dsp_pipeline_set_sink_ext_module(pipeline, NULL);
 
 	/* Unlock dsp_context mutex. */
 	cras_dsp_put_pipeline(iodev->dsp_context);
@@ -557,9 +576,13 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
 {
 	iodev->ext_dsp_module = ext;
 
-	if (!ext || !cras_iodev_is_open(iodev))
+	if (!cras_iodev_is_open(iodev))
 		return;
-	add_ext_dsp_module_to_pipeline(iodev);
+
+	if (iodev->ext_dsp_module)
+		add_ext_dsp_module_to_pipeline(iodev);
+	else
+		release_ext_dsp_module_from_pipeline(iodev);
 }
 
 void cras_iodev_update_dsp(struct cras_iodev *iodev)

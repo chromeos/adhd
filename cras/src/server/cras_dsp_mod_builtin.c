@@ -583,6 +583,9 @@ void cras_dsp_module_set_sink_ext_module(struct dsp_module *module,
 	int i;
 	data->ext_module = ext_module;
 
+	if (data->ext_module == NULL)
+		return;
+
 	for (i = 0; i < MAX_EXT_DSP_PORTS; i++)
 		ext_module->ports[i] = data->ports[i];
 }

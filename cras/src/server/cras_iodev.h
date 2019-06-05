@@ -658,7 +658,8 @@ static inline void cras_iodev_exit_idle(struct cras_iodev *iodev)
  * in main thread.
  * Args:
  *    iodev - The iodev to hold the dsp module.
- *    ext - External dsp module to set to iodev.
+ *    ext - External dsp module to set to iodev. Pass NULL to release
+ *        the ext_dsp_module already added to dsp pipeline.
  */
 void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
 				   struct ext_dsp_module *ext);
