@@ -47,6 +47,7 @@ const char kStreamFlags[] = "Cras.StreamFlags";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
+const char kHfpWidebandSpeechSupported[] = "Cras.HfpWidebandSpeechSupported";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -56,6 +57,7 @@ const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	BT_WIDEBAND_SUPPORTED,
 	DEVICE_RUNTIME,
 	HIGHEST_DEVICE_DELAY_INPUT,
 	HIGHEST_DEVICE_DELAY_OUTPUT,
@@ -183,6 +185,25 @@ static const char *get_metrics_device_type_str(struct cras_iodev *iodev)
 	default:
 		return "Unknown";
 	}
+}
+
+int cras_server_metrics_hfp_wideband_support(bool supported)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.value = supported;
+	init_server_metrics_msg(&msg, BT_WIDEBAND_SUPPORTED, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: BT_WIDEBAND_SUPPORTED");
+		return err;
+	}
+	return 0;
 }
 
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
@@ -537,6 +558,10 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	struct cras_server_metrics_message *metrics_msg =
 			(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
+	case BT_WIDEBAND_SUPPORTED:
+		cras_metrics_log_sparse_histogram(kHfpWidebandSpeechSupported,
+						  metrics_msg->data.value);
+		break;
 	case DEVICE_RUNTIME:
 		metrics_device_runtime(metrics_msg->data.device_data);
 		break;

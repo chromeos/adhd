@@ -851,3 +851,9 @@ int hfp_event_set_service(struct hfp_slc_handle *handle, int avail)
 	handle->service = !!avail;
 	return hfp_send_ind_event_report(handle, SERVICE_IND_INDEX, avail);
 }
+
+int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle)
+{
+	return handle->hf_supports_codec_negotiation;
+}
+

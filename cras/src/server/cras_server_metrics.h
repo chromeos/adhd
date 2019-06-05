@@ -6,10 +6,15 @@
 #ifndef CRAS_SERVER_METRICS_H_
 #define CRAS_SERVER_METRICS_H_
 
+#include <stdbool.h>
+
 #include "cras_iodev.h"
 #include "cras_rstream.h"
 
 extern const char kNoCodecsFoundMetric[];
+
+/* Logs if connected HFP headset supports wideband speech. */
+int cras_server_metrics_hfp_wideband_support(bool supported);
 
 /* Logs runtime of a device. */
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev);

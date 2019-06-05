@@ -106,4 +106,7 @@ int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain);
 /* Gets the selected codec for HFP, mSBC or CVSD. */
 int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle);
 
+/* Gets if the remote HF supports codec negotiation. */
+int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle);
+
 #endif /* CRAS_HFP_SLC_H_ */

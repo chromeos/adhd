@@ -193,6 +193,16 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
   return HFP_CODEC_ID_CVSD;
 }
 
+int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle)
+{
+  return 1;
+}
+
+int cras_server_metrics_hfp_wideband_support(bool supported)
+{
+  return 0;
+}
+
 struct cras_bt_device *cras_a2dp_connected_device() {
   return NULL;
 }

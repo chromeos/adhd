@@ -17,6 +17,7 @@
 #include "cras_hfp_info.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_alsa_iodev.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_iodev_list.h"
 #include "utlist.h"
@@ -161,6 +162,12 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 	DL_SEARCH_SCALAR(connected_ags, ag, slc_handle, handle);
 	if (!ag)
 		return -EINVAL;
+
+	/* Log if the hands-free device supports WBS or not. Assuming the
+	 * codec negotiation feature means the WBS capability on headset.
+	 */
+	cras_server_metrics_hfp_wideband_support(
+			hfp_slc_get_hf_codec_negotiation_supported(handle));
 
 	/* Defer the starting of audio gateway to bt_device. */
 	return cras_bt_device_audio_gateway_initialized(ag->device);
