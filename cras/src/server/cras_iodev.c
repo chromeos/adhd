@@ -524,12 +524,6 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 	if (!iodev->ext_dsp_module)
 		return;
 
-	iodev->ext_dsp_module->configure(
-			iodev->ext_dsp_module,
-			iodev->buffer_size,
-			iodev->format->num_channels,
-			iodev->format->frame_rate);
-
 	pipeline = iodev->dsp_context
 			? cras_dsp_get_pipeline(iodev->dsp_context)
 			: NULL;
@@ -541,11 +535,20 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 			iodev->format->num_channels);
 		pipeline = cras_dsp_get_pipeline(iodev->dsp_context);
 	}
+	/* dsp_context mutex locked. Now it's safe to modify dsp
+	 * pipeline resources. */
+
+	iodev->ext_dsp_module->configure(
+			iodev->ext_dsp_module,
+			iodev->buffer_size,
+			iodev->format->num_channels,
+			iodev->format->frame_rate);
 
 	cras_dsp_pipeline_set_sink_ext_module(
 			pipeline,
 			iodev->ext_dsp_module);
 
+	/* Unlock dsp_context mutex. */
 	cras_dsp_put_pipeline(iodev->dsp_context);
 }
 
