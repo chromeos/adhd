@@ -356,6 +356,17 @@ static void update_first_output_dev_to_process()
 		return;
 
 	echo_ref = get_echo_reference_target(iodev);
+
+	/* If rmodule is already tracking echo_ref, do nothing. */
+	if (rmodule->odev == echo_ref)
+		return;
+
+	/* Detach from the old iodev that rmodule was tracking. */
+	if (rmodule->odev) {
+		cras_iodev_set_ext_dsp_module(rmodule->odev, NULL);
+		rmodule->odev = NULL;
+	}
+
 	rmodule->odev = echo_ref;
 	cras_iodev_set_ext_dsp_module(echo_ref, &rmodule->ext);
 }
