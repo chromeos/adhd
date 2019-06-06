@@ -394,20 +394,18 @@ void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 {
-	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
 	unsigned int nwritten = buffer_share_get_new_write_point(
 					rstream->buf_state);
 
-	cras_shm_buffer_written(shm, nwritten);
+	cras_shm_buffer_written(rstream->shm, nwritten);
 }
 
 void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream)
 {
-	struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
 	unsigned int nwritten = buffer_share_get_new_write_point(
 					rstream->buf_state);
 
-	cras_shm_buffer_read(shm, nwritten);
+	cras_shm_buffer_read(rstream->shm, nwritten);
 }
 
 unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
@@ -418,9 +416,8 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 
 void cras_rstream_update_queued_frames(struct cras_rstream *rstream)
 {
-	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
-	rstream->queued_frames = MIN(cras_shm_get_frames(shm),
-				     rstream->buffer_frames);
+	rstream->queued_frames =
+		MIN(cras_shm_get_frames(rstream->shm), rstream->buffer_frames);
 }
 
 unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
@@ -432,9 +429,7 @@ unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 
 float cras_rstream_get_volume_scaler(struct cras_rstream *rstream)
 {
-	const struct cras_audio_shm *shm = cras_rstream_output_shm(rstream);
-
-	return cras_shm_get_volume_scaler(shm);
+	return cras_shm_get_volume_scaler(rstream->shm);
 }
 
 uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,

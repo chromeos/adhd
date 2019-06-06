@@ -83,8 +83,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 			cras_rstream_get_total_shm_size(stream));
 		reply = &stream_connected_old.header;
 	}
-	stream_fds[0] = cras_rstream_input_shm_fd(stream);
-	stream_fds[1] = cras_rstream_output_shm_fd(stream);
+	stream_fds[0] = cras_rstream_shm_fd(stream);
+	stream_fds[1] = cras_rstream_shm_fd(stream);
 	rc = client->ops->send_message_to_client(client, reply, stream_fds, 2);
 	if (rc < 0) {
 		syslog(LOG_ERR, "Failed to send connected messaged\n");

@@ -208,41 +208,24 @@ static inline void cras_rstream_set_is_draining(struct cras_rstream *stream,
 	stream->is_draining = is_draining;
 }
 
-/* Gets the shm key used to find the output shm region. */
-static inline int cras_rstream_output_shm_fd(const struct cras_rstream *stream)
+/* Gets the backing fd for this stream's shm region. */
+static inline int cras_rstream_shm_fd(const struct cras_rstream *stream)
 {
 	return stream->shm->info.fd;
 }
 
-/* Gets the shm key used to find the input shm region. */
-static inline int cras_rstream_input_shm_fd(const struct cras_rstream *stream)
+/* Gets shared memory region for this stream. */
+static inline struct cras_audio_shm *
+cras_rstream_shm(struct cras_rstream *stream)
 {
-	return stream->shm->info.fd;
+	return stream->shm;
 }
 
 /* Gets the total size of shm memory allocated. */
 static inline size_t cras_rstream_get_total_shm_size(
 		const struct cras_rstream *stream)
 {
-	if (stream->direction == CRAS_STREAM_OUTPUT)
-		return cras_shm_total_size(stream->shm);
-
-	/* Use the shm size for loopback streams. */
 	return cras_shm_total_size(stream->shm);
-}
-
-/* Gets shared memory region for this stream. */
-static inline
-struct cras_audio_shm *cras_rstream_input_shm(struct cras_rstream *stream)
-{
-	return stream->shm;
-}
-
-/* Gets shared memory region for this stream. */
-static inline
-struct cras_audio_shm *cras_rstream_output_shm(struct cras_rstream *stream)
-{
-	return stream->shm;
 }
 
 /* Checks if the stream uses an output device. */
@@ -300,13 +283,13 @@ unsigned int cras_rstream_dev_offset(const struct cras_rstream *rstream,
 
 static inline unsigned int cras_rstream_level(struct cras_rstream *rstream)
 {
-	const struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	const struct cras_audio_shm *shm = cras_rstream_shm(rstream);
 	return cras_shm_frames_written(shm);
 }
 
 static inline int cras_rstream_input_level_met(struct cras_rstream *rstream)
 {
-	const struct cras_audio_shm *shm = cras_rstream_input_shm(rstream);
+	const struct cras_audio_shm *shm = cras_rstream_shm(rstream);
 	return cras_shm_frames_written(shm) >= rstream->cb_threshold;
 }
 

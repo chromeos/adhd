@@ -134,15 +134,15 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_OUTPUT, cras_rstream_get_direction(s));
-  EXPECT_NE((void *)NULL, cras_rstream_output_shm(s));
+  EXPECT_NE((void*)NULL, cras_rstream_shm(s));
   rc = cras_rstream_get_format(s, &fmt_ret);
   EXPECT_EQ(0, rc);
   EXPECT_TRUE(format_equal(&fmt_ret, &fmt_));
 
   // Check if shm is really set up.
-  shm_ret = cras_rstream_output_shm(s);
+  shm_ret = cras_rstream_shm(s);
   ASSERT_NE((void *)NULL, shm_ret);
-  fd_ret = cras_rstream_output_shm_fd(s);
+  fd_ret = cras_rstream_shm_fd(s);
   shm_size = cras_rstream_get_total_shm_size(s);
   EXPECT_GT(shm_size, 4096);
   shm_mapped.area = (struct cras_audio_shm_area *)mmap(
@@ -171,15 +171,15 @@ TEST_F(RstreamTestSuite, CreateInput) {
   EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
   EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
   EXPECT_EQ(CRAS_STREAM_INPUT, cras_rstream_get_direction(s));
-  EXPECT_NE((void *)NULL, cras_rstream_input_shm(s));
+  EXPECT_NE((void*)NULL, cras_rstream_shm(s));
   rc = cras_rstream_get_format(s, &fmt_ret);
   EXPECT_EQ(0, rc);
   EXPECT_TRUE(format_equal(&fmt_ret, &fmt_));
 
   // Check if shm is really set up.
-  shm_ret = cras_rstream_input_shm(s);
+  shm_ret = cras_rstream_shm(s);
   ASSERT_NE((void *)NULL, shm_ret);
-  fd_ret = cras_rstream_input_shm_fd(s);
+  fd_ret = cras_rstream_shm_fd(s);
   shm_size = cras_rstream_get_total_shm_size(s);
   EXPECT_GT(shm_size, 4096);
   shm_mapped.area = (struct cras_audio_shm_area *)mmap(

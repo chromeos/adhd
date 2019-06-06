@@ -403,7 +403,7 @@ static int thread_drain_stream_ms_remaining(struct audio_thread *thread,
 	if (rstream->direction != CRAS_STREAM_OUTPUT)
 		return 0;
 
-	shm = cras_rstream_output_shm(rstream);
+	shm = cras_rstream_shm(rstream);
 	fr_in_buff = cras_shm_get_frames(shm);
 
 	if (fr_in_buff <= 0)

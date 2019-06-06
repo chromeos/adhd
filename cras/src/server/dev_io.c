@@ -133,8 +133,7 @@ static int fetch_streams(struct open_dev *adev)
 
 	DL_FOREACH(adev->dev->streams, dev_stream) {
 		struct cras_rstream *rstream = dev_stream->stream;
-		struct cras_audio_shm *shm =
-			cras_rstream_output_shm(rstream);
+		struct cras_audio_shm *shm = cras_rstream_shm(rstream);
 		struct timespec now;
 
 		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
@@ -261,7 +260,7 @@ static unsigned int get_stream_limit(
 		if (rstream->flags & TRIGGER_ONLY)
 			continue;
 
-		shm = cras_rstream_input_shm(rstream);
+		shm = cras_rstream_shm(rstream);
 		if (cras_shm_check_write_overrun(shm))
 			ATLOG(atlog, AUDIO_THREAD_READ_OVERRUN,
 			      adev->dev->info.idx, rstream->stream_id,

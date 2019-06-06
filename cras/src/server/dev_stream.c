@@ -297,7 +297,7 @@ static unsigned int capture_copy_converted_to_stream(
 	unsigned int offset;
 	const struct cras_audio_format *fmt;
 
-	shm = cras_rstream_input_shm(rstream);
+	shm = cras_rstream_shm(rstream);
 
 	fmt = cras_fmt_conv_out_format(dev_stream->conv);
 	frame_bytes = cras_get_format_bytes(fmt);
@@ -385,7 +385,7 @@ unsigned int dev_stream_capture(struct dev_stream *dev_stream,
 			cras_rstream_dev_offset(rstream, dev_stream->dev_id);
 
 		/* Set up the shm area and copy to it. */
-		shm = cras_rstream_input_shm(rstream);
+		shm = cras_rstream_shm(rstream);
 		stream_samples = cras_shm_get_writeable_frames(
 				shm,
 				cras_rstream_get_cb_threshold(rstream),
@@ -459,7 +459,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream *dev_stream)
 	unsigned int dev_offset =
 		cras_rstream_dev_offset(rstream, dev_stream->dev_id);
 
-	shm = cras_rstream_input_shm(rstream);
+	shm = cras_rstream_shm(rstream);
 
 	wlimit = cras_rstream_get_max_write_frames(rstream);
 	wlimit -= dev_offset;
@@ -631,7 +631,7 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 	unsigned int stream_frames;
 
 	if (rstream->direction == CRAS_STREAM_OUTPUT) {
-		shm = cras_rstream_output_shm(rstream);
+		shm = cras_rstream_shm(rstream);
 		stream_frames = cras_fmt_conv_out_frames_to_in(dev_stream->conv,
 							       delay_frames);
 		cras_set_playback_timestamp(rstream->format.frame_rate,
@@ -639,7 +639,7 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 						cras_shm_get_frames(shm),
 					    &shm->area->ts);
 	} else {
-		shm = cras_rstream_input_shm(rstream);
+		shm = cras_rstream_shm(rstream);
 		stream_frames = cras_fmt_conv_in_frames_to_out(dev_stream->conv,
 							       delay_frames);
 		if (cras_shm_frames_written(shm) == 0)
