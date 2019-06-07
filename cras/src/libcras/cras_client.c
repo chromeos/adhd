@@ -137,7 +137,7 @@ struct cras_stream_params {
 /* Represents an attached audio stream.
  * id - Unique stream identifier.
  * aud_fd - After server connects audio messages come in here.
- * direction - playback, capture, both, or loopback (see CRAS_STREAM_DIRECTION).
+ * direction - playback, capture, or loopback (see CRAS_STREAM_DIRECTION).
  * flags - Currently not used.
  * volume_scaler - Amount to scale the stream by, 0.0 to 1.0. Client could
  *    change this scaler value before stream actually connected, so we need
@@ -147,8 +147,7 @@ struct cras_stream_params {
  * wake_fds - Pipe to wake the audio thread.
  * client - The client this stream is attached to.
  * config - Audio stream configuration.
- * capture_shm - Shared memory used to exchange audio samples with the server.
- * play_shm - Shared memory used to exchange audio samples with the server.
+ * shm - Shared memory used to exchange audio samples with the server.
  * prev, next - Form a linked list of streams attached to a client.
  */
 struct client_stream {
@@ -161,10 +160,7 @@ struct client_stream {
 	int wake_fds[2]; /* Pipe to wake the thread */
 	struct cras_client *client;
 	struct cras_stream_params *config;
-	struct cras_audio_shm *capture_shm;
-	int capture_shm_size;
-	struct cras_audio_shm *play_shm;
-	int play_shm_size;
+	struct cras_audio_shm *shm;
 	struct client_stream *prev, *next;
 };
 
@@ -1029,7 +1025,7 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 {
 	/* Always return the beginning of the read buffer because Chrome expects
 	 * so. */
-	*captured_frames = cras_shm_get_read_buffer_base(stream->capture_shm);
+	*captured_frames = cras_shm_get_read_buffer_base(stream->shm);
 
 	/* Don't ask for more frames than the client desires. */
 	if (stream->flags & BULK_AUDIO_OK)
@@ -1040,7 +1036,7 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 	/* If shm readable frames is less than client requests, that means
 	 * overrun has happened in server side. Don't send partial corrupted
 	 * buffer to client. */
-	if (cras_shm_get_curr_read_frames(stream->capture_shm) < num_frames)
+	if (cras_shm_get_curr_read_frames(stream->shm) < num_frames)
 		return 0;
 
 	return num_frames;
@@ -1049,7 +1045,7 @@ static unsigned int config_capture_buf(struct client_stream *stream,
 static void complete_capture_read_current(struct client_stream *stream,
 					  unsigned int num_frames)
 {
-	cras_shm_buffer_read_current(stream->capture_shm, num_frames);
+	cras_shm_buffer_read_current(stream->shm, num_frames);
 }
 
 static int send_capture_reply(struct client_stream *stream, unsigned int frames,
@@ -1101,7 +1097,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	if (num_frames == 0)
 		return 0;
 
-	cras_timespec_to_timespec(&ts, &stream->capture_shm->area->ts);
+	cras_timespec_to_timespec(&ts, &stream->shm->area->ts);
 
 	if (config->unified_cb)
 		frames = config->unified_cb(stream->client, stream->id,
@@ -1155,7 +1151,7 @@ static int handle_playback_request(struct client_stream *stream,
 	int frames;
 	int rc = 0;
 	struct cras_stream_params *config;
-	struct cras_audio_shm *shm = stream->play_shm;
+	struct cras_audio_shm *shm = stream->shm;
 	struct timespec ts;
 
 	config = stream->config;
@@ -1374,10 +1370,8 @@ static inline int end_server_state_read(const struct cras_server_state *state,
 /* Release shm areas if references to them are held. */
 static void free_shm(struct client_stream *stream)
 {
-	cras_audio_shm_destroy(stream->capture_shm);
-	stream->capture_shm = NULL;
-	cras_audio_shm_destroy(stream->play_shm);
-	stream->play_shm = NULL;
+	cras_audio_shm_destroy(stream->shm);
+	stream->shm = NULL;
 }
 
 /* Handles the stream connected message from the server.  Check if we need a
@@ -1392,7 +1386,7 @@ static int stream_connected(struct client_stream *stream,
 	struct cras_shm_info info;
 
 	if (msg->err || num_fds != 2) {
-		syslog(LOG_ERR, "cras_client: Error Setting up stream %d\n",
+		syslog(LOG_ERR, "cras_client: Error setting up stream %d\n",
 		       msg->err);
 		rc = msg->err;
 		goto err_ret;
@@ -1400,42 +1394,18 @@ static int stream_connected(struct client_stream *stream,
 
 	unpack_cras_audio_format(&mfmt, &msg->format);
 
-	if (cras_stream_has_input(stream->direction)) {
-		rc = cras_shm_info_init_with_fd(stream_fds[0],
-						msg->shm_max_size, &info);
-		if (rc < 0)
-			goto err_ret;
+	rc = cras_shm_info_init_with_fd(stream_fds[0], msg->shm_max_size,
+					&info);
+	if (rc < 0)
+		goto err_ret;
 
-		rc = cras_audio_shm_create(&info, &stream->capture_shm);
-		if (rc < 0) {
-			syslog(LOG_ERR,
-			       "cras_client: Error configuring capture shm");
-			goto err_ret;
-		}
-		stream->capture_shm_size = msg->shm_max_size;
-		cras_shm_copy_shared_config(stream->capture_shm);
-		cras_shm_set_volume_scaler(stream->capture_shm,
-					   stream->volume_scaler);
+	rc = cras_audio_shm_create(&info, &stream->shm);
+	if (rc < 0) {
+		syslog(LOG_ERR, "cras_client: Error configuring shm");
+		goto err_ret;
 	}
-
-	if (cras_stream_uses_output_hw(stream->direction)) {
-		rc = cras_shm_info_init_with_fd(stream_fds[1],
-						msg->shm_max_size, &info);
-		if (rc < 0)
-			goto err_ret;
-
-		rc = cras_audio_shm_create(&info, &stream->play_shm);
-		if (rc < 0) {
-			syslog(LOG_ERR,
-			       "cras_client: Error configuring playback shm");
-			goto err_ret;
-		}
-
-		stream->play_shm_size = msg->shm_max_size;
-		cras_shm_copy_shared_config(stream->play_shm);
-		cras_shm_set_volume_scaler(stream->play_shm,
-					   stream->volume_scaler);
-	}
+	cras_shm_copy_shared_config(stream->shm);
+	cras_shm_set_volume_scaler(stream->shm, stream->volume_scaler);
 
 	stream->thread.state = CRAS_THREAD_RUNNING;
 	wake_aud_thread(stream);
@@ -1597,11 +1567,8 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 		return -EINVAL;
 
 	stream->volume_scaler = volume_scaler;
-	if (stream->capture_shm)
-		cras_shm_set_volume_scaler(stream->capture_shm, volume_scaler);
-
-	if (stream->play_shm)
-		cras_shm_set_volume_scaler(stream->play_shm, volume_scaler);
+	if (stream->shm)
+		cras_shm_set_volume_scaler(stream->shm, volume_scaler);
 
 	return 0;
 }

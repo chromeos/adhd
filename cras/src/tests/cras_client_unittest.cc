@@ -84,11 +84,8 @@ class CrasClientTestSuite : public testing::Test {
         stream_.config = NULL;
       }
 
-      free(stream_.capture_shm);
-      stream_.capture_shm = NULL;
-
-      free(stream_.play_shm);
-      stream_.play_shm = NULL;
+      free(stream_.shm);
+      stream_.shm = NULL;
     }
 
     void StreamConnected(CRAS_STREAM_DIRECTION direction);
@@ -130,7 +127,7 @@ TEST_F(CrasClientTestSuite, HandleCaptureDataReady) {
 
   shm_writable_frames_ = 480;
   shm = InitShm();
-  stream_.capture_shm = shm;
+  stream_.shm = shm;
   stream_.config->buffer_frames = 480;
   stream_.config->cb_threshold = 480;
   stream_.config->aud_cb = capture_samples_ready;
@@ -206,13 +203,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
 
   EXPECT_EQ(CRAS_THREAD_RUNNING, stream_.thread.state);
 
-  if (direction == CRAS_STREAM_OUTPUT) {
-    EXPECT_EQ(NULL, stream_.capture_shm);
-    EXPECT_EQ(&area, stream_.play_shm->area);
-  } else {
-    EXPECT_EQ(NULL, stream_.play_shm);
-    EXPECT_EQ(&area, stream_.capture_shm->area);
-  }
+  EXPECT_EQ(&area, stream_.shm->area);
 }
 
 TEST_F(CrasClientTestSuite, InputStreamConnected) {
@@ -336,11 +327,11 @@ TEST_F(CrasClientTestSuite, SetOutputStreamVolume) {
   /* Set volume before stream connected. */
   client_thread_set_stream_volume(&client_, stream_id, 0.3f);
   StreamConnected(CRAS_STREAM_OUTPUT);
-  EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(stream_.play_shm));
+  EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(stream_.shm));
 
   /* Set volume after stream connected. */
   client_thread_set_stream_volume(&client_, stream_id, 0.6f);
-  EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(stream_.play_shm));
+  EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(stream_.shm));
 }
 
 TEST_F(CrasClientTestSuite, SetInputStreamVolume) {
@@ -352,11 +343,11 @@ TEST_F(CrasClientTestSuite, SetInputStreamVolume) {
   /* Set volume before stream connected. */
   client_thread_set_stream_volume(&client_, stream_id, 0.3f);
   StreamConnected(CRAS_STREAM_INPUT);
-  EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(stream_.capture_shm));
+  EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(stream_.shm));
 
   /* Set volume after stream connected. */
   client_thread_set_stream_volume(&client_, stream_id, 0.6f);
-  EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(stream_.capture_shm));
+  EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(stream_.shm));
 }
 
 TEST(CrasClientTest, InitStreamVolume) {

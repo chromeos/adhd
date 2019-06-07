@@ -557,7 +557,9 @@ void cras_client_stream_params_disable_agc(struct cras_stream_params *params);
 void cras_client_stream_params_enable_vad(struct cras_stream_params *params);
 void cras_client_stream_params_disable_vad(struct cras_stream_params *params);
 
-/* Setup stream configuration parameters.
+/* Setup stream configuration parameters. DEPRECATED.
+ * TODO(crbug.com/972928): remove this
+ * Use cras_client_stream_params_create instead.
  * Args:
  *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT) or
  *        loopback(CRAS_STREAM_POST_MIX_PRE_DSP).
@@ -565,7 +567,10 @@ void cras_client_stream_params_disable_vad(struct cras_stream_params *params);
  *    stream_type - media or talk (currently only support "default").
  *    flags - None currently used.
  *    user_data - Pointer that will be passed to the callback.
- *    unified_cb - Called for streams that do simultaneous input/output.
+ *    unified_cb - Called to request audio data or to notify the client when
+ *                 captured audio is available. Though this is a unified_cb,
+ *                 only one direction will be used for a stream, depending
+ *                 on the 'direction' parameter.
  *    err_cb - Called when there is an error with the stream.
  *    format - The format of the audio stream.  Specifies bits per sample,
  *        number of channels, and sample rate.

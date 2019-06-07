@@ -38,12 +38,17 @@ int cras_helper_create_connect_async(struct cras_client **client,
 int cras_helper_create_connect(struct cras_client **client);
 
 /* Adds a stream with the given parameters, no flags and a buffer size of 2048
+ * Note that the unified_cb parameter is being phased out.
+ * TODO(crbug.com/972928): convert this from unified_cb.
  * Args:
  *    client - The client to add the stream to (from cras_client_create).
  *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT) or
  *        loopback(CRAS_STREAM_POST_MIX_PRE_DSP).
  *    user_data - Pointer that will be passed to the callback.
- *    unified_cb - Called for streams that do simultaneous input/output.
+ *    unified_cb - Called to request audio data or to notify the client when
+ *                 captured audio is available. Though this is a unified_cb,
+ *                 only one direction will be used for a stream, depending
+ *                 on the 'direction' parameter.
  *    err_cb - Called when there is an error with the stream.
  *    format - The type of the samples, ex. S16_LE.
  *    frame_rate - Sample rate.
