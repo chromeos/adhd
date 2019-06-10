@@ -380,7 +380,7 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 
 	dict = iniparser_load_wrapper((char *)ini_filename);
 	if (!dict) {
-		syslog(LOG_ERR, "no ini file %s", ini_filename);
+		syslog(LOG_DEBUG, "no ini file %s", ini_filename);
 		goto bail;
 	}
 	ini->dict = dict;

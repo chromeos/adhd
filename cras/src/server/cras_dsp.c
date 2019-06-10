@@ -113,7 +113,7 @@ static void cmd_reload_ini()
 
 	ini = cras_dsp_ini_create(ini_filename);
 	if (!ini) {
-		syslog(LOG_ERR, "cannot create dsp ini");
+		syslog(LOG_DEBUG, "cannot create dsp ini");
 		return;
 	}
 
