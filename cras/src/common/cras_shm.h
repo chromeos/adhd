@@ -26,7 +26,7 @@ struct __attribute__ ((__packed__)) cras_audio_shm_config {
 	uint32_t frame_bytes;
 };
 
-/* Structure that is shared as shm between client and server.
+/* Structure containing stream metadata shared between client and server.
  *
  *  config - Size config data.  A copy of the config shared with clients.
  *  read_buf_idx - index of the current buffer to read from (0 or 1 if double
@@ -43,6 +43,8 @@ struct __attribute__ ((__packed__)) cras_audio_shm_config {
  *  ts - For capture, the time stamp of the next sample at read_index.  For
  *    playback, this is the time that the next sample written will be played.
  *    This is only valid in audio callbacks.
+ *
+ *  TODO(fletcherw) remove once libcras in ARC++ has been upreved
  *  samples - Audio data - a double buffered area that is used to exchange
  *    audio samples.
  */
@@ -61,6 +63,19 @@ struct __attribute__((__packed__)) cras_audio_shm_header {
 	uint8_t samples[];
 };
 
+/* Returns the number of bytes needed to hold a cras_audio_shm_header. */
+inline uint32_t cras_shm_header_size()
+{
+	return sizeof(struct cras_audio_shm_header);
+}
+
+/* Returns the number of bytes needed to hold the samples area for an audio
+ * shm with the given used_size */
+inline uint32_t cras_shm_calculate_samples_size(uint32_t used_size)
+{
+	return used_size * CRAS_NUM_SHM_BUFFERS;
+}
+
 /* Holds identifiers for a shm segment. All valid cras_shm_info objects will
  * have an fd and a length, and they may have the name of the shm file as well.
  *
@@ -77,11 +92,11 @@ struct cras_shm_info {
 /* Initializes a cras_shm_info to be used as the backing shared memory for a
  * cras_audio_shm.
  *
- * stream_name - the name of the stream that is creating the shm.
- * used_size - the size of an individual sample buffer in the audio_shm_header.
+ * shm_name - the name of the shm area to create.
+ * length - the length of the shm area to create.
  * info_out - pointer where the created cras_shm_info will be stored.
  */
-int cras_shm_info_init(const char *stream_name, uint32_t used_size,
+int cras_shm_info_init(const char *shm_name, uint32_t length,
 		       struct cras_shm_info *info_out);
 
 /* Initializes a cras_shm_info to be used as the backing shared memory for a
@@ -105,25 +120,48 @@ void cras_shm_info_cleanup(struct cras_shm_info *info);
  * samples area.
  *
  *  config - Size config data, kept separate so it can be checked.
- *  info - fd, name, and length of shm area.
- *  header - Actual shm region that is shared.
+ *  header_info - fd, name, and length of shm containing header.
+ *  header - Shm region containing audio metadata
+ *  samples_info - fd, name, and length of shm containing samples.
+ *  samples - Shm region containing audio data.
  */
 struct cras_audio_shm {
 	struct cras_audio_shm_config config;
-	struct cras_shm_info info;
+	struct cras_shm_info header_info;
 	struct cras_audio_shm_header *header;
+	struct cras_shm_info samples_info;
+	uint8_t *samples;
 };
 
 /* Sets up a cras_audio_shm given info about the shared memory to use
  *
- * info - the underlying shm area to use. The shm specified in info will be
- *        managed by the created cras_audio_shm object which will handle
- *        deletion. The info parameter will be returned to an unitialized state,
- *        and the client need not call cras_shm_info_destroy.
+ * header_info - the underlying shm area to use for the header. The shm
+ *               will be managed by the created cras_audio_shm object.
+ *               The header_info parameter will be returned to an uninitialized
+ *               state, and the client need not call cras_shm_info_destroy.
+ * samples_info - the underlying shm area to use for the samples. The shm
+ *               will be managed by the created cras_audio_shm object.
+ *               The samples_info parameter will be returned to an
+ *               uninitialized state, and the client need not call
+ *               cras_shm_info_destroy.
+ *               This parameter may be NULL. In that case, no shared memory will
+ *               be mapped for the samples.
  * shm_out - pointer where the created cras_audio_shm will be stored.
  */
-int cras_audio_shm_create(struct cras_shm_info *info,
+int cras_audio_shm_create(struct cras_shm_info *header_info,
+			  struct cras_shm_info *samples_info,
 			  struct cras_audio_shm **shm_out);
+
+/* Sets up a legacy cras_audio_shm given info about the shared memory to use
+ *
+ * shm_info - the underlying shm area to use for the audio shm. The shm
+ *            will be managed by the created cras_audio_shm object.
+ *            The shm_info parameter will be returned to an uninitialized
+ *            state, and the client need not call cras_shm_info_destroy.
+ * shm_out - pointer where the created cras_audio_shm will be stored.
+ */
+int cras_audio_unsplit_shm_create(struct cras_shm_info *shm_info,
+				  struct cras_audio_shm **shm_out);
 
 /* Destroys a cras_audio_shm returned from cras_audio_shm_create.
  *
@@ -137,7 +175,8 @@ static inline uint8_t *cras_shm_buff_for_idx(const struct cras_audio_shm *shm,
 {
 	assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 	idx = idx & CRAS_SHM_BUFFERS_MASK;
-	return shm->header->samples + shm->config.used_size * idx;
+
+	return shm->samples + shm->config.used_size * idx;
 }
 
 /* Limit a read offset to within the buffer size. */
@@ -523,11 +562,10 @@ static inline unsigned cras_shm_used_frames(const struct cras_audio_shm *shm)
 	return shm->config.used_size / shm->config.frame_bytes;
 }
 
-/* Returns the total size of the shared memory region. */
-static inline unsigned cras_shm_total_size(const struct cras_audio_shm *shm)
+/* Returns the size of the samples shm region. */
+static inline unsigned cras_shm_samples_size(const struct cras_audio_shm *shm)
 {
-	return cras_shm_used_size(shm) * CRAS_NUM_SHM_BUFFERS +
-	       sizeof(*shm->header);
+	return cras_shm_used_size(shm) * CRAS_NUM_SHM_BUFFERS;
 }
 
 /* Gets the counter of over-runs. */

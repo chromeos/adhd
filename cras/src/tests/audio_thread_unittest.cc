@@ -112,13 +112,17 @@ void SetupRstream(struct cras_rstream* rstream,
 
   rstream->shm = static_cast<cras_audio_shm*>(calloc(1, sizeof(*rstream->shm)));
   rstream->shm->header = static_cast<cras_audio_shm_header*>(
-      calloc(1, sizeof(*rstream->shm->header) + used_size * 2));
+      calloc(1, sizeof(*rstream->shm->header)));
+
+  rstream->shm->samples = static_cast<uint8_t*>(
+      calloc(1, cras_shm_calculate_samples_size(used_size)));
 
   cras_shm_set_frame_bytes(rstream->shm, frame_bytes);
   cras_shm_set_used_size(rstream->shm, used_size);
 }
 
 void TearDownRstream(struct cras_rstream* rstream) {
+  free(rstream->shm->samples);
   free(rstream->shm->header);
   free(rstream->shm);
 }

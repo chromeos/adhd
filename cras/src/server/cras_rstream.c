@@ -24,8 +24,59 @@
 static inline int setup_shm_area(struct cras_rstream *stream)
 {
 	const struct cras_audio_format *fmt = &stream->format;
+	char header_name[NAME_MAX];
+	char samples_name[NAME_MAX];
+	struct cras_shm_info header_info, samples_info;
+	uint32_t frame_bytes, used_size;
+	int rc;
+
+	if (stream->shm) /* already setup */
+		return -EEXIST;
+
+	snprintf(header_name, sizeof(header_name),
+		 "/cras-%d-stream-%08x-header", getpid(), stream->stream_id);
+
+	rc = cras_shm_info_init(header_name, cras_shm_header_size(),
+				&header_info);
+	if (rc)
+		return rc;
+
+	snprintf(samples_name, sizeof(samples_name),
+		 "/cras-%d-stream-%08x-samples", getpid(), stream->stream_id);
+
+	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
+		      fmt->num_channels;
+	used_size = stream->buffer_frames * frame_bytes;
+
+	rc = cras_shm_info_init(samples_name,
+				cras_shm_calculate_samples_size(used_size),
+				&samples_info);
+	if (rc) {
+		cras_shm_info_cleanup(&header_info);
+		return rc;
+	}
+
+	rc = cras_audio_shm_create(&header_info, &samples_info, &stream->shm);
+	if (rc)
+		return rc;
+
+	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
+	cras_shm_set_used_size(stream->shm, used_size);
+
+	stream->audio_area =
+		cras_audio_area_create(stream->format.num_channels);
+	cras_audio_area_config_channels(stream->audio_area, &stream->format);
+
+	return 0;
+}
+
+/* Setup a legacy unsplit shared memory area for audio samples.
+ * Will be removed once ARC++ transitions to a split shm */
+static inline int setup_unsplit_shm_area(struct cras_rstream *stream)
+{
+	const struct cras_audio_format *fmt = &stream->format;
 	char stream_name[NAME_MAX];
-	struct cras_shm_info info;
+	struct cras_shm_info shm_info;
 	uint32_t frame_bytes, used_size;
 	int rc;
 
@@ -39,15 +90,20 @@ static inline int setup_shm_area(struct cras_rstream *stream)
 		      fmt->num_channels;
 	used_size = stream->buffer_frames * frame_bytes;
 
-	rc = cras_shm_info_init(stream_name, used_size, &info);
+	rc = cras_shm_info_init(
+		stream_name,
+		cras_shm_header_size() +
+			cras_shm_calculate_samples_size(used_size),
+		&shm_info);
 	if (rc)
 		return rc;
 
-	rc = cras_audio_shm_create(&info, &stream->shm);
-	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
-	cras_shm_set_used_size(stream->shm, used_size);
+	rc = cras_audio_unsplit_shm_create(&shm_info, &stream->shm);
 	if (rc)
 		return rc;
+
+	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
+	cras_shm_set_used_size(stream->shm, used_size);
 
 	stream->audio_area =
 		cras_audio_area_create(stream->format.num_channels);
@@ -221,7 +277,11 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->pinned_dev_idx = config->dev_idx;
 	stream->fd = config->audio_fd;
 
-	rc = setup_shm_area(stream);
+	if (config->use_split_shm) {
+		rc = setup_shm_area(stream);
+	} else {
+		rc = setup_unsplit_shm_area(stream);
+	}
 	if (rc < 0) {
 		syslog(LOG_ERR, "failed to setup shm %d\n", rc);
 		free(stream);

@@ -100,6 +100,10 @@ struct cras_rstream {
  *    cb_threshold - # of frames when to request more from the client.
  *    audio_fd - The fd to read/write audio signals to.
  *    client - The client that owns this stream.
+ *
+ *    TODO(fletcherw) remove once libcras in ARC++ has been upreved
+ *    use_split_shm - Should this stream use the new split shm area.
+ *                    Will be removed after all clients transition to split shm.
  */
 struct cras_rstream_config {
 	cras_stream_id_t stream_id;
@@ -113,6 +117,7 @@ struct cras_rstream_config {
 	size_t cb_threshold;
 	int audio_fd;
 	struct cras_rclient *client;
+	int use_split_shm;
 };
 
 /* Creates an rstream.
@@ -208,10 +213,24 @@ static inline void cras_rstream_set_is_draining(struct cras_rstream *stream,
 	stream->is_draining = is_draining;
 }
 
-/* Gets the backing fd for this stream's shm region. */
-static inline int cras_rstream_shm_fd(const struct cras_rstream *stream)
+/* Gets the shm fds used for the stream shm */
+static inline int cras_rstream_get_shm_fds(const struct cras_rstream *stream,
+					   int *header_fd, int *samples_fd)
 {
-	return stream->shm->info.fd;
+	if (!header_fd || !samples_fd)
+		return -EINVAL;
+
+	*header_fd = stream->shm->header_info.fd;
+	*samples_fd = stream->shm->samples_info.fd;
+
+	return 0;
+}
+
+/* Gets the size of the shm area used for samples for this stream. */
+static inline size_t
+cras_rstream_get_samples_shm_size(const struct cras_rstream *stream)
+{
+	return cras_shm_samples_size(stream->shm);
 }
 
 /* Gets shared memory region for this stream. */
@@ -219,13 +238,6 @@ static inline struct cras_audio_shm *
 cras_rstream_shm(struct cras_rstream *stream)
 {
 	return stream->shm;
-}
-
-/* Gets the total size of shm memory allocated. */
-static inline size_t
-cras_rstream_get_total_shm_size(const struct cras_rstream *stream)
-{
-	return cras_shm_total_size(stream->shm);
 }
 
 /* Checks if the stream uses an output device. */

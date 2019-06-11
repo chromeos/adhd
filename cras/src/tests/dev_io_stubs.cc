@@ -22,22 +22,25 @@ extern "C" {
 ShmPtr create_shm(size_t cb_threshold) {
   uint32_t frame_bytes = 4;
   uint32_t used_size = cb_threshold * 2 * frame_bytes;
-  uint32_t shm_size = sizeof(struct cras_audio_shm_header) + used_size * 2;
 
   ShmPtr shm(reinterpret_cast<struct cras_audio_shm*>(
                  calloc(1, sizeof(struct cras_audio_shm))),
              destroy_shm);
 
-  shm->header =
-      reinterpret_cast<struct cras_audio_shm_header*>(calloc(1, shm_size));
+  shm->header = reinterpret_cast<struct cras_audio_shm_header*>(
+      calloc(1, sizeof(struct cras_audio_shm_header)));
   shm->header->config.used_size = used_size;
   shm->header->config.frame_bytes = frame_bytes;
   shm->config = shm->header->config;
+
+  shm->samples = reinterpret_cast<uint8_t*>(
+      calloc(1, cras_shm_calculate_samples_size(used_size)));
   return shm;
 }
 
 void destroy_shm(struct cras_audio_shm* shm) {
   free(shm->header);
+  free(shm->samples);
   free(shm);
 }
 

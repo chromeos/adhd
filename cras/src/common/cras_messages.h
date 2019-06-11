@@ -16,7 +16,7 @@
 
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
-#define CRAS_PROTO_VER 2
+#define CRAS_PROTO_VER 3
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_HOTWORD_NAME_MAX_SIZE 8
@@ -540,28 +540,29 @@ static inline void cras_fill_client_connected(
 /*
  * Reply from server that a stream has been successfully added.
  * Two file descriptors are added, input shm followed by out shm.
+ *
+ * samples_shm_size is shm_max_size for old clients.
+ * TODO(fletcherw) remove comment once all clients are on CRAS_PROTO_VER >= 3.
  */
 struct __attribute__ ((__packed__)) cras_client_stream_connected {
 	struct cras_client_message header;
 	int32_t err;
 	cras_stream_id_t stream_id;
 	struct cras_audio_format_packed format;
-	uint32_t shm_max_size;
+	uint32_t samples_shm_size;
 	uint64_t effects;
 };
 
-static inline void cras_fill_client_stream_connected(
-		struct cras_client_stream_connected *m,
-		int err,
-		cras_stream_id_t stream_id,
-		struct cras_audio_format *format,
-		size_t shm_max_size,
-		uint64_t effects)
+static inline void
+cras_fill_client_stream_connected(struct cras_client_stream_connected *m,
+				  int err, cras_stream_id_t stream_id,
+				  struct cras_audio_format *format,
+				  size_t samples_shm_size, uint64_t effects)
 {
 	m->err = err;
 	m->stream_id = stream_id;
 	pack_cras_audio_format(&m->format, format);
-	m->shm_max_size = shm_max_size;
+	m->samples_shm_size = samples_shm_size;
 	m->effects = effects;
 	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
 	m->header.length = sizeof(struct cras_client_stream_connected);

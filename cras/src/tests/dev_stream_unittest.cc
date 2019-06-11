@@ -167,7 +167,7 @@ class CreateSuite : public testing::Test{
           sizeof(*area) + 2 * sizeof(struct cras_channel_area));
       stream_area->num_channels = 2;
       rstream_.audio_area = stream_area;
-      int16_t* shm_samples = (int16_t*)rstream_.shm->header->samples;
+      int16_t* shm_samples = (int16_t*)rstream_.shm->samples;
       stream_area->channels[0].step_bytes = 4;
       stream_area->channels[0].buf = (uint8_t *)(shm_samples);
       stream_area->channels[1].step_bytes = 4;
@@ -178,6 +178,7 @@ class CreateSuite : public testing::Test{
       free(area);
       free(stream_area);
       free(rstream_.shm->header);
+      free(rstream_.shm->samples);
       free(rstream_.shm);
       audio_thread_event_log_deinit(atlog);
     }
@@ -190,11 +191,14 @@ class CreateSuite : public testing::Test{
           calloc(1, sizeof(struct cras_audio_shm)));
 
       shm->header = static_cast<struct cras_audio_shm_header*>(
-          calloc(1, kBufferFrames * 4 + sizeof(struct cras_audio_shm_header)));
+          calloc(1, sizeof(struct cras_audio_shm_header)));
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(shm, kBufferFrames * cras_shm_frame_bytes(shm));
 
-      buf = (int16_t*)shm->header->samples;
+      shm->samples =
+          static_cast<uint8_t*>(calloc(1, cras_shm_samples_size(shm)));
+
+      buf = (int16_t*)shm->samples;
       for (size_t i = 0; i < kBufferFrames * 2; i++)
         buf[i] = i;
       cras_shm_set_mute(shm, 0);

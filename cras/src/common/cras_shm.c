@@ -18,7 +18,7 @@
 
 #include "cras_shm.h"
 
-int cras_shm_info_init(const char *stream_name, uint32_t used_size,
+int cras_shm_info_init(const char *stream_name, uint32_t length,
 		       struct cras_shm_info *info_out)
 {
 	struct cras_shm_info info;
@@ -27,8 +27,7 @@ int cras_shm_info_init(const char *stream_name, uint32_t used_size,
 		return -EINVAL;
 
 	strncpy(info.name, stream_name, sizeof(info.name));
-	info.length = sizeof(struct cras_audio_shm_header) +
-		      used_size * CRAS_NUM_SHM_BUFFERS;
+	info.length = length;
 	info.fd = cras_shm_open_rw(info.name, info.length);
 	if (info.fd < 0)
 		return info.fd;
@@ -87,13 +86,14 @@ void cras_shm_info_cleanup(struct cras_shm_info *info)
 	info->name[0] = '\0';
 }
 
-int cras_audio_shm_create(struct cras_shm_info *info,
+int cras_audio_shm_create(struct cras_shm_info *header_info,
+			  struct cras_shm_info *samples_info,
 			  struct cras_audio_shm **shm_out)
 {
 	struct cras_audio_shm *shm;
 	int ret;
 
-	if (!info || !shm_out) {
+	if (!header_info || !samples_info || !shm_out) {
 		ret = -EINVAL;
 		goto cleanup_info;
 	}
@@ -104,22 +104,39 @@ int cras_audio_shm_create(struct cras_shm_info *info,
 		goto cleanup_info;
 	}
 
-	/* Move info into the new cras_audio_shm object.
-	 * The info parameter is cleared, and the owner of cras_audio_shm
-	 * is now responsible for closing the fd and unlinking any associated
-	 * shm file using cras_audio_shm_destroy
+	/* Move the cras_shm_info params into the new cras_audio_shm object.
+	 * The parameters are cleared, and the owner of cras_audio_shm is now
+	 * responsible for closing the fds and unlinking any associated shm
+	 * files using cras_audio_shm_destroy.
+	 *
+	 * The source pointers are updated to point to the moved structs so that
+	 * they will be properly cleaned up in the error case.
 	 */
-	ret = cras_shm_info_move(info, &shm->info);
+	ret = cras_shm_info_move(header_info, &shm->header_info);
 	if (ret)
 		goto free_shm;
+	header_info = &shm->header_info;
 
-	shm->header = mmap(NULL, shm->info.length, PROT_READ | PROT_WRITE,
-			   MAP_SHARED, shm->info.fd, 0);
+	ret = cras_shm_info_move(samples_info, &shm->samples_info);
+	if (ret)
+		goto free_shm;
+	samples_info = &shm->samples_info;
 
+	shm->header = mmap(NULL, header_info->length, PROT_READ | PROT_WRITE,
+			   MAP_SHARED, header_info->fd, 0);
 	if (shm->header == (struct cras_audio_shm_header *)-1) {
 		ret = errno;
-		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for stream.");
-		goto cleanup_shm_info;
+		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for header.");
+		goto free_shm;
+	}
+
+	shm->samples = mmap(NULL, samples_info->length, PROT_READ | PROT_WRITE,
+			    MAP_SHARED, samples_info->fd, 0);
+	if (shm->samples == (uint8_t *)-1) {
+		ret = errno;
+		syslog(LOG_ERR,
+		       "cras_shm: mmap failed to map shm for samples.");
+		goto unmap_header;
 	}
 
 	cras_shm_set_volume_scaler(shm, 1.0);
@@ -127,12 +144,64 @@ int cras_audio_shm_create(struct cras_shm_info *info,
 	*shm_out = shm;
 	return 0;
 
-cleanup_shm_info:
-	cras_shm_info_cleanup(&shm->info);
+unmap_header:
+	munmap(shm->header, shm->header_info.length);
 free_shm:
 	free(shm);
 cleanup_info:
-	cras_shm_info_cleanup(info);
+	cras_shm_info_cleanup(samples_info);
+	cras_shm_info_cleanup(header_info);
+	return ret;
+}
+
+// TODO(fletcherw) remove once libcras in ARC++ has been upreved
+int cras_audio_unsplit_shm_create(struct cras_shm_info *shm_info,
+				  struct cras_audio_shm **shm_out)
+{
+	struct cras_audio_shm *shm;
+	int ret;
+
+	if (!shm_info || !shm_out) {
+		ret = -EINVAL;
+		goto cleanup_info;
+	}
+
+	shm = calloc(1, sizeof(*shm));
+	if (!shm) {
+		ret = -ENOMEM;
+		goto cleanup_info;
+	}
+	/* Move the shm info param into the new cras_audio_shm object.
+	 * shm_info is cleared, and the owner of cras_audio_shm is now
+	 * responsible for closing the fd and unlinking any associated shm
+	 * file using cras_audio_shm_destroy.
+	 */
+	ret = cras_shm_info_move(shm_info, &shm->header_info);
+	if (ret)
+		goto free_shm;
+
+	shm->header =
+		mmap(NULL, shm->header_info.length, PROT_READ | PROT_WRITE,
+		     MAP_SHARED, shm->header_info.fd, 0);
+	if (shm->header == (struct cras_audio_shm_header *)-1) {
+		ret = errno;
+		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for header.");
+		goto free_shm;
+	}
+
+	// Point the samples pointer in shm into the header shm area so that
+	// the legacy unsplit shm can share code with the new split shm.
+	shm->samples = shm->header->samples;
+
+	cras_shm_set_volume_scaler(shm, 1.0);
+
+	*shm_out = shm;
+	return 0;
+
+free_shm:
+	free(shm);
+cleanup_info:
+	cras_shm_info_cleanup(shm_info);
 	return ret;
 }
 
@@ -141,8 +210,10 @@ void cras_audio_shm_destroy(struct cras_audio_shm *shm)
 	if (!shm)
 		return;
 
-	munmap(shm->header, shm->info.length);
-	cras_shm_info_cleanup(&shm->info);
+	munmap(shm->samples, shm->samples_info.length);
+	cras_shm_info_cleanup(&shm->samples_info);
+	munmap(shm->header, shm->header_info.length);
+	cras_shm_info_cleanup(&shm->header_info);
 	free(shm);
 }
 
