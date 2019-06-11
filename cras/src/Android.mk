@@ -6,6 +6,7 @@ LOCAL_SRC_FILES := \
 	common/cras_audio_format.c \
 	common/cras_config.c \
 	common/cras_file_wait.c \
+	common/cras_shm.c \
 	common/cras_util.c \
 	common/edid_utils.c \
 	libcras/cras_client.c \
