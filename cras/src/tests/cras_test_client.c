@@ -428,6 +428,23 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 
 	printf("%s.%09u cras atlog  ", time_str, nsec);
 
+	/* Prepare realtime string for arguments. */
+	switch (tag) {
+	case AUDIO_THREAD_READ_AUDIO_TSTAMP:
+	case AUDIO_THREAD_FILL_AUDIO_TSTAMP:
+	case AUDIO_THREAD_STREAM_RESCHEDULE:
+	case AUDIO_THREAD_STREAM_SLEEP_TIME:
+	case AUDIO_THREAD_STREAM_SLEEP_ADJUST:
+	case AUDIO_THREAD_DEV_SLEEP_TIME:
+		sec = data2;
+		nsec = data3;
+		break;
+	}
+	convert_time(&sec, &nsec, sec_offset, nsec_offset);
+	lt = sec;
+	t = localtime(&lt);
+	strftime(time_str, 128, " %H:%M:%S", t);
+
 	switch (tag) {
 	case AUDIO_THREAD_WAKE:
 		printf("%-30s num_fds:%d\n", "WAKE", (int)data1);
@@ -441,8 +458,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "READ_AUDIO", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO_TSTAMP:
-		printf("%-30s dev:%u tstamp:%09d.%09d\n",
-		       "READ_AUDIO_TSTAMP", data1, (int)data2, (int)data3);
+		printf("%-30s dev:%u tstamp:%s.%09u\n",
+		       "READ_AUDIO_TSTAMP", data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_READ_AUDIO_DONE:
 		printf("%-30s read_remainder:%u\n", "READ_AUDIO_DONE", data1);
@@ -456,8 +473,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "FILL_AUDIO", data1, data2);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_TSTAMP:
-		printf("%-30s dev:%u tstamp:%09d.%09d\n",
-		       "FILL_AUDIO_TSTAMP", data1, (int)data2, (int)data3);
+		printf("%-30s dev:%u tstamp:%s.%09u\n",
+		       "FILL_AUDIO_TSTAMP", data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_DONE:
 		printf("%-30s hw_level:%u total_written:%u min_cb_level:%u\n",
@@ -519,24 +536,24 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s id:%x\n", "STREAM_FETCH_PENGING", data1);
 		break;
 	case AUDIO_THREAD_STREAM_RESCHEDULE:
-		printf("%-30s id:%x next_cb_ts:%09u.%09d\n",
-		       "STREAM_RESCHEDULE", data1, (int)data2, (int)data3);
+		printf("%-30s id:%x next_cb_ts:%s.%09u\n",
+		       "STREAM_RESCHEDULE", data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_STREAM_SLEEP_TIME:
-		printf("%-30s id:%x wake:%09u.%09d\n",
-		       "STREAM_SLEEP_TIME", data1, (int)data2, (int)data3);
+		printf("%-30s id:%x wake:%s.%09u\n",
+		       "STREAM_SLEEP_TIME", data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_STREAM_SLEEP_ADJUST:
-		printf("%-30s id:%x from:%09u.%09d\n",
-		       "STREAM_SLEEP_ADJUST", data1, data2, data3);
+		printf("%-30s id:%x from:%s.%09u\n",
+		       "STREAM_SLEEP_ADJUST", data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_STREAM_SKIP_CB:
 		printf("%-30s id:%x write_offset_0:%u write_offset_1:%u\n",
 		       "STREAM_SKIP_CB", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_DEV_SLEEP_TIME:
-		printf("%-30s dev:%u wake:%09u.%09d\n",
-		       "DEV_SLEEP_TIME", data1, data2, data3);
+		printf("%-30s dev:%u wake:%s.%09u\n",
+		       "DEV_SLEEP_TIME", data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_SET_DEV_WAKE:
 		printf("%-30s dev:%u hw_level:%u sleep:%u\n",
