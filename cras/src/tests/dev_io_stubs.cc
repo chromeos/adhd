@@ -19,25 +19,26 @@ extern "C" {
 
 #include "dev_io_stubs.h"
 
-ShmAreaPtr create_shm_area(size_t cb_threshold) {
+ShmPtr create_shm(size_t cb_threshold) {
   uint32_t frame_bytes = 4;
   uint32_t used_size = cb_threshold * 2 * frame_bytes;
-  uint32_t shm_size = sizeof(cras_audio_shm_area) + used_size * 2;
-  ShmAreaPtr shm_area(
-      reinterpret_cast<cras_audio_shm_area*>(calloc(1, shm_size)), free);
-  shm_area->config.used_size = used_size;
-  shm_area->config.frame_bytes = frame_bytes;
-  shm_area->volume_scaler = 1.0;
-  return shm_area;
+  uint32_t shm_size = sizeof(struct cras_audio_shm_header) + used_size * 2;
+
+  ShmPtr shm(reinterpret_cast<struct cras_audio_shm*>(
+                 calloc(1, sizeof(struct cras_audio_shm))),
+             destroy_shm);
+
+  shm->header =
+      reinterpret_cast<struct cras_audio_shm_header*>(calloc(1, shm_size));
+  shm->header->config.used_size = used_size;
+  shm->header->config.frame_bytes = frame_bytes;
+  shm->config = shm->header->config;
+  return shm;
 }
 
-ShmPtr create_shm(cras_audio_shm_area* shm_area) {
-  ShmPtr shm(reinterpret_cast<cras_audio_shm*>(
-                 calloc(1, sizeof(struct cras_audio_shm))),
-             free);
-  shm->area = shm_area;
-  shm->config = shm_area->config;
-  return shm;
+void destroy_shm(struct cras_audio_shm* shm) {
+  free(shm->header);
+  free(shm);
 }
 
 RstreamPtr create_rstream(cras_stream_id_t id,
@@ -76,13 +77,12 @@ StreamPtr create_stream(cras_stream_id_t id,
                         CRAS_STREAM_DIRECTION direction,
                         size_t cb_threshold,
                         const cras_audio_format* format) {
-  ShmAreaPtr shm_area = create_shm_area(cb_threshold);
-  ShmPtr shm = create_shm(shm_area.get());
+  ShmPtr shm = create_shm(cb_threshold);
   RstreamPtr rstream = create_rstream(1, CRAS_STREAM_INPUT, cb_threshold,
                                       format, shm.get());
   DevStreamPtr dstream = create_dev_stream(1, rstream.get());
-  StreamPtr s(new Stream(std::move(shm), std::move(shm_area),
-                         std::move(rstream), std::move(dstream)));
+  StreamPtr s(
+      new Stream(std::move(shm), std::move(rstream), std::move(dstream)));
   return s;
 }
 

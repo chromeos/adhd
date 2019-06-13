@@ -27,7 +27,7 @@ int cras_shm_info_init(const char *stream_name, uint32_t used_size,
 		return -EINVAL;
 
 	strncpy(info.name, stream_name, sizeof(info.name));
-	info.length = sizeof(struct cras_audio_shm_area) +
+	info.length = sizeof(struct cras_audio_shm_header) +
 		      used_size * CRAS_NUM_SHM_BUFFERS;
 	info.fd = cras_shm_open_rw(info.name, info.length);
 	if (info.fd < 0)
@@ -113,10 +113,10 @@ int cras_audio_shm_create(struct cras_shm_info *info,
 	if (ret)
 		goto free_shm;
 
-	shm->area = mmap(NULL, shm->info.length, PROT_READ | PROT_WRITE,
-			 MAP_SHARED, shm->info.fd, 0);
+	shm->header = mmap(NULL, shm->info.length, PROT_READ | PROT_WRITE,
+			   MAP_SHARED, shm->info.fd, 0);
 
-	if (shm->area == (struct cras_audio_shm_area *)-1) {
+	if (shm->header == (struct cras_audio_shm_header *)-1) {
 		ret = errno;
 		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for stream.");
 		goto cleanup_shm_info;
@@ -141,7 +141,7 @@ void cras_audio_shm_destroy(struct cras_audio_shm *shm)
 	if (!shm)
 		return;
 
-	munmap(shm->area, shm->info.length);
+	munmap(shm->header, shm->info.length);
 	cras_shm_info_cleanup(&shm->info);
 	free(shm);
 }

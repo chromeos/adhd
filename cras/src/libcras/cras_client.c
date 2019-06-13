@@ -1097,7 +1097,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	if (num_frames == 0)
 		return 0;
 
-	cras_timespec_to_timespec(&ts, &stream->shm->area->ts);
+	cras_timespec_to_timespec(&ts, &stream->shm->header->ts);
 
 	if (config->unified_cb)
 		frames = config->unified_cb(stream->client, stream->id,
@@ -1167,7 +1167,7 @@ static int handle_playback_request(struct client_stream *stream,
 	/* Limit the amount of frames to the configured amount. */
 	num_frames = MIN(num_frames, config->cb_threshold);
 
-	cras_timespec_to_timespec(&ts, &shm->area->ts);
+	cras_timespec_to_timespec(&ts, &shm->header->ts);
 
 	/* Get samples from the user */
 	if (config->unified_cb)

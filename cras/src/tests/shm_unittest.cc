@@ -16,19 +16,16 @@ class ShmTestSuite : public testing::Test{
   protected:
     virtual void SetUp() {
       memset(&shm_, 0, sizeof(shm_));
-      shm_.area =
-          static_cast<cras_audio_shm_area *>(
-              calloc(1, sizeof(*shm_.area) + 2048));
+      shm_.header = static_cast<cras_audio_shm_header*>(
+          calloc(1, sizeof(*shm_.header) + 2048));
       cras_shm_set_frame_bytes(&shm_, 4);
       cras_shm_set_used_size(&shm_, 1024);
-      memcpy(&shm_.area->config, &shm_.config, sizeof(shm_.config));
+      memcpy(&shm_.header->config, &shm_.config, sizeof(shm_.config));
 
       frames_ = 0;
     }
 
-    virtual void TearDown() {
-      free(shm_.area);
-    }
+    virtual void TearDown() { free(shm_.header); }
 
     struct cras_audio_shm shm_;
     uint8_t *buf_;
@@ -40,110 +37,112 @@ TEST_F(ShmTestSuite, NoneReadableWhenEmpty) {
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(0, frames_);
   cras_shm_buffer_read(&shm_, frames_);
-  EXPECT_EQ(0, shm_.area->read_offset[0]);
+  EXPECT_EQ(0, shm_.header->read_offset[0]);
 }
 
 // Buffer with 100 frames filled.
 TEST_F(ShmTestSuite, OneHundredFilled) {
-  shm_.area->write_offset[0] = 100 * shm_.area->config.frame_bytes;
+  shm_.header->write_offset[0] = 100 * shm_.header->config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(100, frames_);
-  EXPECT_EQ(shm_.area->samples, buf_);
+  EXPECT_EQ(shm_.header->samples, buf_);
   cras_shm_buffer_read(&shm_, frames_ - 9);
-  EXPECT_EQ((frames_ - 9) * shm_.config.frame_bytes, shm_.area->read_offset[0]);
+  EXPECT_EQ((frames_ - 9) * shm_.config.frame_bytes,
+            shm_.header->read_offset[0]);
   cras_shm_buffer_read(&shm_, 9);
-  EXPECT_EQ(0, shm_.area->read_offset[0]);
-  EXPECT_EQ(1, shm_.area->read_buf_idx);
+  EXPECT_EQ(0, shm_.header->read_offset[0]);
+  EXPECT_EQ(1, shm_.header->read_buf_idx);
 }
 
 // Buffer with 100 frames filled, 50 read.
 TEST_F(ShmTestSuite, OneHundredFilled50Read) {
-  shm_.area->write_offset[0] = 100 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 50 * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = 100 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 50 * shm_.config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(50, frames_);
-  EXPECT_EQ((shm_.area->samples + shm_.area->read_offset[0]), buf_);
+  EXPECT_EQ((shm_.header->samples + shm_.header->read_offset[0]), buf_);
   cras_shm_buffer_read(&shm_, frames_ - 10);
-  EXPECT_EQ(shm_.area->write_offset[0] - 10 * shm_.config.frame_bytes,
-            shm_.area->read_offset[0]);
+  EXPECT_EQ(shm_.header->write_offset[0] - 10 * shm_.config.frame_bytes,
+            shm_.header->read_offset[0]);
   cras_shm_buffer_read(&shm_, 10);
-  EXPECT_EQ(0, shm_.area->read_offset[0]);
+  EXPECT_EQ(0, shm_.header->read_offset[0]);
 }
 
 // Buffer with 100 frames filled, 50 read, offset by 25.
 TEST_F(ShmTestSuite, OneHundredFilled50Read25offset) {
-  shm_.area->write_offset[0] = 100 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 50 * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = 100 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 50 * shm_.config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 25, &frames_);
   EXPECT_EQ(25, frames_);
-  EXPECT_EQ(shm_.area->samples + shm_.area->read_offset[0] +
-                25 * shm_.area->config.frame_bytes,
-            (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.header->read_offset[0] +
+                25 * shm_.header->config.frame_bytes,
+            (uint8_t*)buf_);
 }
 
 // Test wrapping across buffers.
 TEST_F(ShmTestSuite, WrapToNextBuffer) {
   shm_.config.used_size = 480 * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = 240 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 120 * shm_.config.frame_bytes;
-  shm_.area->write_offset[1] = 240 * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = 240 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 120 * shm_.config.frame_bytes;
+  shm_.header->write_offset[1] = 240 * shm_.config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(120, frames_);
-  EXPECT_EQ(shm_.area->samples + shm_.area->read_offset[0], (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.header->read_offset[0], (uint8_t*)buf_);
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(240, frames_);
-  EXPECT_EQ(shm_.area->samples + shm_.config.used_size, (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.config.used_size, (uint8_t*)buf_);
   cras_shm_buffer_read(&shm_, 350); /* Mark all-10 as read */
-  EXPECT_EQ(0, shm_.area->read_offset[0]);
-  EXPECT_EQ(230 * shm_.config.frame_bytes, shm_.area->read_offset[1]);
+  EXPECT_EQ(0, shm_.header->read_offset[0]);
+  EXPECT_EQ(230 * shm_.config.frame_bytes, shm_.header->read_offset[1]);
 }
 
 // Test wrapping across buffers reading all samples.
 TEST_F(ShmTestSuite, WrapToNextBufferReadAll) {
   shm_.config.used_size = 480 * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = 240 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 120 * shm_.config.frame_bytes;
-  shm_.area->write_offset[1] = 240 * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = 240 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 120 * shm_.config.frame_bytes;
+  shm_.header->write_offset[1] = 240 * shm_.config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(120, frames_);
-  EXPECT_EQ(shm_.area->samples + shm_.area->read_offset[0], (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.header->read_offset[0], (uint8_t*)buf_);
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(240, frames_);
-  EXPECT_EQ(shm_.area->samples + shm_.config.used_size, (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.config.used_size, (uint8_t*)buf_);
   cras_shm_buffer_read(&shm_, 360); /* Mark all as read */
-  EXPECT_EQ(0, shm_.area->read_offset[0]);
-  EXPECT_EQ(0, shm_.area->read_offset[1]);
-  EXPECT_EQ(0, shm_.area->read_buf_idx);
+  EXPECT_EQ(0, shm_.header->read_offset[0]);
+  EXPECT_EQ(0, shm_.header->read_offset[1]);
+  EXPECT_EQ(0, shm_.header->read_buf_idx);
 }
 
 // Test wrapping last buffer.
 TEST_F(ShmTestSuite, WrapFromFinalBuffer) {
-  shm_.area->read_buf_idx = CRAS_NUM_SHM_BUFFERS - 1;
+  shm_.header->read_buf_idx = CRAS_NUM_SHM_BUFFERS - 1;
   shm_.config.used_size = 480 * shm_.config.frame_bytes;
-  shm_.area->write_offset[shm_.area->read_buf_idx] =
+  shm_.header->write_offset[shm_.header->read_buf_idx] =
       240 * shm_.config.frame_bytes;
-  shm_.area->read_offset[shm_.area->read_buf_idx] =
+  shm_.header->read_offset[shm_.header->read_buf_idx] =
       120 * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = 240 * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = 240 * shm_.config.frame_bytes;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(120, frames_);
-  EXPECT_EQ((uint8_t *)buf_, shm_.area->samples +
-      shm_.config.used_size * shm_.area->read_buf_idx +
-      shm_.area->read_offset[shm_.area->read_buf_idx]);
+  EXPECT_EQ((uint8_t*)buf_,
+            shm_.header->samples +
+                shm_.config.used_size * shm_.header->read_buf_idx +
+                shm_.header->read_offset[shm_.header->read_buf_idx]);
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(240, frames_);
-  EXPECT_EQ(shm_.area->samples, (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->samples, (uint8_t*)buf_);
   cras_shm_buffer_read(&shm_, 350); /* Mark all-10 as read */
-  EXPECT_EQ(0, shm_.area->read_offset[1]);
-  EXPECT_EQ(230 * shm_.config.frame_bytes, shm_.area->read_offset[0]);
+  EXPECT_EQ(0, shm_.header->read_offset[1]);
+  EXPECT_EQ(230 * shm_.config.frame_bytes, shm_.header->read_offset[0]);
 }
 
 // Test Check available to write returns 0 if not free buffer.
 TEST_F(ShmTestSuite, WriteAvailNotFree) {
   size_t ret;
-  shm_.area->write_buf_idx = 0;
-  shm_.area->write_offset[0] = 100 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 50 * shm_.config.frame_bytes;
+  shm_.header->write_buf_idx = 0;
+  shm_.header->write_offset[0] = 100 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 50 * shm_.config.frame_bytes;
   ret = cras_shm_get_num_writeable(&shm_);
   EXPECT_EQ(0, ret);
 }
@@ -151,10 +150,10 @@ TEST_F(ShmTestSuite, WriteAvailNotFree) {
 // Test Check available to write returns num_frames if free buffer.
 TEST_F(ShmTestSuite, WriteAvailValid) {
   size_t ret;
-  shm_.area->write_buf_idx = 0;
+  shm_.header->write_buf_idx = 0;
   shm_.config.used_size = 480 * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = 0;
-  shm_.area->read_offset[0] = 0;
+  shm_.header->write_offset[0] = 0;
+  shm_.header->read_offset[0] = 0;
   ret = cras_shm_get_num_writeable(&shm_);
   EXPECT_EQ(480, ret);
 }
@@ -162,10 +161,10 @@ TEST_F(ShmTestSuite, WriteAvailValid) {
 // Test get frames_written returns the number of frames written.
 TEST_F(ShmTestSuite, GetNumWritten) {
   size_t ret;
-  shm_.area->write_buf_idx = 0;
+  shm_.header->write_buf_idx = 0;
   shm_.config.used_size = 480 * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = 200 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 0;
+  shm_.header->write_offset[0] = 200 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 0;
   ret = cras_shm_frames_written(&shm_);
   EXPECT_EQ(200, ret);
 }
@@ -174,65 +173,65 @@ TEST_F(ShmTestSuite, GetNumWritten) {
 TEST_F(ShmTestSuite, GetWriteBufferBase) {
   uint8_t* ret;
 
-  shm_.area->write_buf_idx = 0;
+  shm_.header->write_buf_idx = 0;
   shm_.config.used_size = 480 * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = 200 * shm_.config.frame_bytes;
-  shm_.area->write_offset[1] = 200 * shm_.config.frame_bytes;
-  shm_.area->read_offset[0] = 0;
-  shm_.area->read_offset[1] = 0;
+  shm_.header->write_offset[0] = 200 * shm_.config.frame_bytes;
+  shm_.header->write_offset[1] = 200 * shm_.config.frame_bytes;
+  shm_.header->read_offset[0] = 0;
+  shm_.header->read_offset[1] = 0;
   ret = cras_shm_get_write_buffer_base(&shm_);
-  EXPECT_EQ(shm_.area->samples, ret);
+  EXPECT_EQ(shm_.header->samples, ret);
 
-  shm_.area->write_buf_idx = 1;
+  shm_.header->write_buf_idx = 1;
   ret = cras_shm_get_write_buffer_base(&shm_);
-  EXPECT_EQ(shm_.area->samples + shm_.config.used_size, ret);
+  EXPECT_EQ(shm_.header->samples + shm_.config.used_size, ret);
 }
 
 TEST_F(ShmTestSuite, SetVolume) {
   cras_shm_set_volume_scaler(&shm_, 1.0);
-  EXPECT_EQ(shm_.area->volume_scaler, 1.0);
+  EXPECT_EQ(shm_.header->volume_scaler, 1.0);
   cras_shm_set_volume_scaler(&shm_, 1.4);
-  EXPECT_EQ(shm_.area->volume_scaler, 1.0);
+  EXPECT_EQ(shm_.header->volume_scaler, 1.0);
   cras_shm_set_volume_scaler(&shm_, -0.5);
-  EXPECT_EQ(shm_.area->volume_scaler, 0.0);
+  EXPECT_EQ(shm_.header->volume_scaler, 0.0);
   cras_shm_set_volume_scaler(&shm_, 0.5);
-  EXPECT_EQ(shm_.area->volume_scaler, 0.5);
+  EXPECT_EQ(shm_.header->volume_scaler, 0.5);
 }
 
 // Test that invalid read/write offsets are detected.
 
 TEST_F(ShmTestSuite, InvalidWriteOffset) {
-  shm_.area->write_offset[0] = shm_.config.used_size + 50;
-  shm_.area->read_offset[0] = 0;
+  shm_.header->write_offset[0] = shm_.config.used_size + 50;
+  shm_.header->read_offset[0] = 0;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(shm_.config.used_size / 4, frames_);
 }
 
 TEST_F(ShmTestSuite, InvalidReadOffset) {
   // Should ignore read+_offset and assume 0.
-  shm_.area->write_offset[0] = 44;
-  shm_.area->read_offset[0] = shm_.config.used_size + 25;
+  shm_.header->write_offset[0] = 44;
+  shm_.header->read_offset[0] = shm_.config.used_size + 25;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
-  EXPECT_EQ(shm_.area->write_offset[0] / shm_.config.frame_bytes, frames_);
-  EXPECT_EQ(shm_.area->samples, (uint8_t *)buf_);
+  EXPECT_EQ(shm_.header->write_offset[0] / shm_.config.frame_bytes, frames_);
+  EXPECT_EQ(shm_.header->samples, (uint8_t*)buf_);
 }
 
 TEST_F(ShmTestSuite, InvalidReadAndWriteOffset) {
-  shm_.area->write_offset[0] = shm_.config.used_size + 50;
-  shm_.area->read_offset[0] = shm_.config.used_size + 25;
+  shm_.header->write_offset[0] = shm_.config.used_size + 50;
+  shm_.header->read_offset[0] = shm_.config.used_size + 25;
   buf_ = cras_shm_get_readable_frames(&shm_, 0, &frames_);
   EXPECT_EQ(shm_.config.used_size / 4, frames_);
 }
 
 TEST_F(ShmTestSuite, InputBufferOverrun) {
   int rc;
-  shm_.area->write_offset[0] = 0;
-  shm_.area->read_offset[0] = 0;
-  shm_.area->write_offset[1] = 0;
-  shm_.area->read_offset[1] = 0;
+  shm_.header->write_offset[0] = 0;
+  shm_.header->read_offset[0] = 0;
+  shm_.header->write_offset[1] = 0;
+  shm_.header->read_offset[1] = 0;
 
-  shm_.area->write_buf_idx = 0;
-  shm_.area->read_buf_idx = 0;
+  shm_.header->write_buf_idx = 0;
+  shm_.header->read_buf_idx = 0;
 
   EXPECT_EQ(0, cras_shm_num_overruns(&shm_));
   rc = cras_shm_check_write_overrun(&shm_);
@@ -256,12 +255,12 @@ TEST_F(ShmTestSuite, GetWritableFramesNeedToWrite) {
   unsigned limit = 480;
   unsigned written = 200;
   unsigned frames;
-  shm_.area->write_buf_idx = 0;
+  shm_.header->write_buf_idx = 0;
   shm_.config.used_size = buffer_size * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = written * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = written * shm_.config.frame_bytes;
   buf_ = cras_shm_get_writeable_frames(&shm_, limit, &frames);
   EXPECT_EQ(limit - written, frames);
-  EXPECT_EQ(shm_.area->samples + shm_.area->write_offset[0], buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.header->write_offset[0], buf_);
 }
 
 TEST_F(ShmTestSuite, GetWritableFramesNoNeedToWrite) {
@@ -269,12 +268,12 @@ TEST_F(ShmTestSuite, GetWritableFramesNoNeedToWrite) {
   unsigned limit = 240;
   unsigned written = 300;
   unsigned frames;
-  shm_.area->write_buf_idx = 0;
+  shm_.header->write_buf_idx = 0;
   shm_.config.used_size = buffer_size * shm_.config.frame_bytes;
-  shm_.area->write_offset[0] = written * shm_.config.frame_bytes;
+  shm_.header->write_offset[0] = written * shm_.config.frame_bytes;
   buf_ = cras_shm_get_writeable_frames(&shm_, limit, &frames);
   EXPECT_EQ(0, frames);
-  EXPECT_EQ(shm_.area->samples + shm_.area->write_offset[0], buf_);
+  EXPECT_EQ(shm_.header->samples + shm_.header->write_offset[0], buf_);
 }
 
 }  //  namespace

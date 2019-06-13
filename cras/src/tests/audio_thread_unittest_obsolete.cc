@@ -138,8 +138,8 @@ class ReadStreamSuite : public testing::Test {
       (*rstream)->client = (struct cras_rclient *)this;
 
       shm = cras_rstream_input_shm(*rstream);
-      shm->area = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm->area) + cb_threshold_ * 8);
+      shm->header = (struct cras_audio_shm_header*)calloc(
+          1, sizeof(*shm->header) + cb_threshold_ * 8);
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
           shm, cb_threshold_ * cras_shm_frame_bytes(shm));
@@ -566,8 +566,8 @@ class WriteStreamSuite : public testing::Test {
       (*rstream)->client = (struct cras_rclient *)this;
 
       shm = cras_rstream_output_shm(*rstream);
-      shm->area = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm->area) + cb_threshold_ * 8);
+      shm->header = (struct cras_audio_shm_header*)calloc(
+          1, sizeof(*shm->header) + cb_threshold_ * 8);
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
           shm, buffer_frames_ * cras_shm_frame_bytes(shm));
@@ -1209,7 +1209,8 @@ class AddStreamSuite : public testing::Test {
       new_stream->direction = direction;
       memcpy(&new_stream->format, fmt, sizeof(*fmt));
       shm = cras_rstream_output_shm(new_stream);
-      shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+      shm->header =
+          (struct cras_audio_shm_header*)calloc(1, sizeof(*shm->header));
 
       if (direction == CRAS_STREAM_INPUT)
         thread_set_active_dev(thread, &iodev_);
@@ -1234,7 +1235,8 @@ class AddStreamSuite : public testing::Test {
       second_stream->direction = direction;
       memcpy(&second_stream->format, fmt, sizeof(*fmt));
       shm = cras_rstream_output_shm(second_stream);
-      shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+      shm->header =
+          (struct cras_audio_shm_header*)calloc(1, sizeof(*shm->header));
 
       is_open_called_ = 0;
       thread_add_stream(thread, second_stream);
@@ -1268,10 +1270,10 @@ class AddStreamSuite : public testing::Test {
       free(fmt);
       shm = cras_rstream_output_shm(new_stream);
       audio_thread_destroy(thread);
-      free(shm->area);
+      free(shm->header);
       free(new_stream);
       shm = cras_rstream_output_shm(second_stream);
-      free(shm->area);
+      free(shm->header);
       free(second_stream);
     }
 
@@ -1317,7 +1319,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
          sizeof(cras_iodev_set_format_val));
 
   shm = cras_rstream_output_shm(new_stream);
-  shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+  shm->header = (struct cras_audio_shm_header*)calloc(1, sizeof(*shm->header));
 
   thread_set_active_dev(thread, &iodev_);
 
@@ -1340,7 +1342,7 @@ TEST_F(AddStreamSuite, SimpleAddOutputStream) {
   rc = thread_disconnect_stream(thread, new_stream);
   EXPECT_EQ(1, cras_rstream_destroy_called);
 
-  free(shm->area);
+  free(shm->header);
   audio_thread_destroy(thread);
   free(new_stream);
 }
@@ -1357,7 +1359,7 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
   printf("1\n");
 
   shm = cras_rstream_output_shm(&new_stream);
-  shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+  shm->header = (struct cras_audio_shm_header*)calloc(1, sizeof(*shm->header));
 
   open_dev_return_val_ = -1;
   new_stream.direction = CRAS_STREAM_OUTPUT;
@@ -1368,7 +1370,7 @@ TEST_F(AddStreamSuite, AddStreamOpenFail) {
   EXPECT_EQ(1, cras_iodev_set_format_called);
   audio_thread_destroy(thread);
   printf("3\n");
-  free(shm->area);
+  free(shm->header);
 }
 
 TEST_F(AddStreamSuite, AddRmTwoOutputStreams) {
@@ -1395,7 +1397,7 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
          sizeof(cras_iodev_set_format_val));
 
   shm = cras_rstream_output_shm(new_stream);
-  shm->area = (struct cras_audio_shm_area *)calloc(1, sizeof(*shm->area));
+  shm->header = (struct cras_audio_shm_header*)calloc(1, sizeof(*shm->header));
 
   thread_set_active_dev(thread, &iodev_);
   rc = thread_add_stream(thread, new_stream);
@@ -1419,7 +1421,7 @@ TEST_F(AddStreamSuite, RmStreamLogLongestTimeout) {
   EXPECT_STREQ(kStreamTimeoutMilliSeconds, cras_metrics_log_histogram_name);
   EXPECT_EQ(90, cras_metrics_log_histogram_sample);
 
-  free(shm->area);
+  free(shm->header);
   free(new_stream);
   audio_thread_destroy(thread);
 }
@@ -1501,7 +1503,7 @@ class ActiveDevicesSuite : public testing::Test {
       struct cras_audio_shm *shm;
       audio_thread_destroy(thread_);
       shm = cras_rstream_output_shm(rstream_);
-      free(shm->area);
+      free(shm->header);
       free(rstream_);
       free(dummy_audio_area1);
       free(dummy_audio_area2);
@@ -1516,14 +1518,14 @@ class ActiveDevicesSuite : public testing::Test {
       (*rstream)->buffer_frames = buffer_frames_;
       (*rstream)->cb_threshold = cb_threshold_;
       shm = cras_rstream_output_shm(*rstream);
-      shm->area = (struct cras_audio_shm_area *)calloc(1,
-          sizeof(*shm->area) + cb_threshold_ * 8);
+      shm->header = (struct cras_audio_shm_header*)calloc(
+          1, sizeof(*shm->header) + cb_threshold_ * 8);
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
           shm, buffer_frames_ * cras_shm_frame_bytes(shm));
       shm = cras_rstream_input_shm(*rstream);
-      shm->area = (struct cras_audio_shm_area *)calloc(1,
-	  sizeof(*shm->area) + buffer_frames_ * 8);
+      shm->header = (struct cras_audio_shm_header*)calloc(
+          1, sizeof(*shm->header) + buffer_frames_ * 8);
       cras_shm_set_frame_bytes(shm, 4);
       cras_shm_set_used_size(
           shm, cb_threshold_* cras_shm_frame_bytes(shm));

@@ -47,24 +47,13 @@ class CrasClientTestSuite : public testing::Test {
    struct cras_audio_shm* InitShm() {
      struct cras_audio_shm* shm =
          static_cast<struct cras_audio_shm*>(calloc(1, sizeof(*shm)));
-     shm->area =
-         static_cast<cras_audio_shm_area*>(calloc(1, sizeof(*shm->area)));
+     shm->header =
+         static_cast<cras_audio_shm_header*>(calloc(1, sizeof(*shm->header)));
      cras_shm_set_frame_bytes(shm, 4);
      cras_shm_set_used_size(shm, shm_writable_frames_ * 4);
-     memcpy(&shm->area->config, &shm->config, sizeof(shm->config));
+     memcpy(&shm->header->config, &shm->config, sizeof(shm->config));
      return shm;
    }
-
-    void FreeShm(struct cras_audio_shm* shm) {
-      if (shm) {
-        if (shm->area) {
-          free(shm->area);
-          shm->area = NULL;
-        }
-        free(shm);
-        shm = NULL;
-      }
-    }
 
     virtual void SetUp() {
       shm_writable_frames_ = 100;
@@ -88,7 +77,11 @@ class CrasClientTestSuite : public testing::Test {
         stream_.config = NULL;
       }
 
-      FreeShm(stream_.shm);
+      if (stream_.shm) {
+        free(stream_.shm->header);
+      }
+      free(stream_.shm);
+      stream_.shm = NULL;
     }
 
     void StreamConnected(CRAS_STREAM_DIRECTION direction);
@@ -136,10 +129,10 @@ TEST_F(CrasClientTestSuite, HandleCaptureDataReady) {
   stream_.config->aud_cb = capture_samples_ready;
   stream_.config->unified_cb = 0;
 
-  shm->area->write_buf_idx = 0;
-  shm->area->read_buf_idx = 0;
-  shm->area->write_offset[0] = 480 * 4;
-  shm->area->read_offset[0] = 0;
+  shm->header->write_buf_idx = 0;
+  shm->header->read_buf_idx = 0;
+  shm->header->write_offset[0] = 480 * 4;
+  shm->header->read_offset[0] = 0;
 
   /* Normal scenario: read buffer has full of data written,
    * handle_capture_data_ready() should consume all 480 frames and move
@@ -148,27 +141,27 @@ TEST_F(CrasClientTestSuite, HandleCaptureDataReady) {
   EXPECT_EQ(1, samples_ready_called);
   EXPECT_EQ(480, samples_ready_frames_value);
   EXPECT_EQ(cras_shm_buff_for_idx(shm, 0), samples_ready_samples_value);
-  EXPECT_EQ(1, shm->area->read_buf_idx);
-  EXPECT_EQ(0, shm->area->write_offset[0]);
-  EXPECT_EQ(0, shm->area->read_offset[0]);
+  EXPECT_EQ(1, shm->header->read_buf_idx);
+  EXPECT_EQ(0, shm->header->write_offset[0]);
+  EXPECT_EQ(0, shm->header->read_offset[0]);
 
   /* At the beginning of overrun: handle_capture_data_ready() should not
    * proceed to call audio_cb because there's no data captured. */
-  shm->area->read_buf_idx = 0;
-  shm->area->write_offset[0] = 0;
-  shm->area->read_offset[0] = 0;
+  shm->header->read_buf_idx = 0;
+  shm->header->write_offset[0] = 0;
+  shm->header->read_offset[0] = 0;
   handle_capture_data_ready(&stream_, 480);
   EXPECT_EQ(1, samples_ready_called);
-  EXPECT_EQ(0, shm->area->read_buf_idx);
+  EXPECT_EQ(0, shm->header->read_buf_idx);
 
   /* In the middle of overrun: partially written buffer should trigger
    * audio_cb, feed the full-sized read buffer to client. */
-  shm->area->read_buf_idx = 0;
-  shm->area->write_offset[0] = 123;
-  shm->area->read_offset[0] = 0;
+  shm->header->read_buf_idx = 0;
+  shm->header->write_offset[0] = 123;
+  shm->header->read_offset[0] = 0;
   handle_capture_data_ready(&stream_, 480);
   EXPECT_EQ(1, samples_ready_called);
-  EXPECT_EQ(0, shm->area->read_buf_idx);
+  EXPECT_EQ(0, shm->header->read_buf_idx);
 }
 
 void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
@@ -177,7 +170,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   int shm_max_size = 600;
   size_t format_bytes;
   size_t effects = 123;
-  struct cras_audio_shm_area* area;
+  struct cras_audio_shm_header* header;
 
   stream_.direction = direction;
   set_audio_format(&stream_.config->format, SND_PCM_FORMAT_S16_LE, 48000, 4);
@@ -187,11 +180,11 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
 
   // Initialize shm area
   format_bytes = cras_get_format_bytes(&server_format);
-  area = (struct cras_audio_shm_area*)calloc(1, sizeof(*area));
-  area->config.frame_bytes = format_bytes;
-  area->config.used_size = shm_writable_frames_ * format_bytes;
+  header = (struct cras_audio_shm_header*)calloc(1, sizeof(*header));
+  header->config.frame_bytes = format_bytes;
+  header->config.used_size = shm_writable_frames_ * format_bytes;
 
-  mmap_return_value = area;
+  mmap_return_value = header;
 
   cras_fill_client_stream_connected(
       &msg,
@@ -204,8 +197,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   stream_connected(&stream_, &msg, shm_fds, 2);
 
   EXPECT_EQ(CRAS_THREAD_RUNNING, stream_.thread.state);
-
-  EXPECT_EQ(area, stream_.shm->area);
+  EXPECT_EQ(header, stream_.shm->header);
 }
 
 TEST_F(CrasClientTestSuite, InputStreamConnected) {
@@ -224,7 +216,7 @@ void CrasClientTestSuite::StreamConnectedFail(
   int shm_max_size = 600;
   size_t format_bytes;
   size_t effects = 123;
-  struct cras_audio_shm_area area;
+  struct cras_audio_shm_header header;
   int rc;
 
   stream_.direction = direction;
@@ -240,11 +232,11 @@ void CrasClientTestSuite::StreamConnectedFail(
 
   // Initialize shm area
   format_bytes = cras_get_format_bytes(&server_format);
-  memset(&area, 0, sizeof(area));
-  area.config.frame_bytes = format_bytes;
-  area.config.used_size = shm_writable_frames_ * format_bytes;
+  memset(&header, 0, sizeof(header));
+  header.config.frame_bytes = format_bytes;
+  header.config.used_size = shm_writable_frames_ * format_bytes;
 
-  mmap_return_value = &area;
+  mmap_return_value = &header;
 
   // Put an error in the message.
   cras_fill_client_stream_connected(

@@ -29,8 +29,8 @@ class MixTestSuiteS16_LE : public testing::Test{
     virtual void SetUp() {
       fmt_ = SND_PCM_FORMAT_S16_LE;
       mix_buffer_ = (int16_t *)malloc(kBufferFrames * 4);
-      src_buffer_ = static_cast<int16_t *>(
-          calloc(1, kBufferFrames * 4 + sizeof(cras_audio_shm_area)));
+      src_buffer_ = static_cast<int16_t*>(
+          calloc(1, kBufferFrames * 4 + sizeof(cras_audio_shm_header)));
 
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         src_buffer_[i] = i;
@@ -337,8 +337,8 @@ class MixTestSuiteS24_LE : public testing::Test{
       fmt_ = SND_PCM_FORMAT_S24_LE;
       fr_bytes_ = 4 * kNumChannels;
       mix_buffer_ = (int32_t *)malloc(kBufferFrames * fr_bytes_);
-      src_buffer_ = static_cast<int32_t *>(
-          calloc(1, kBufferFrames * fr_bytes_ + sizeof(cras_audio_shm_area)));
+      src_buffer_ = static_cast<int32_t*>(
+          calloc(1, kBufferFrames * fr_bytes_ + sizeof(cras_audio_shm_header)));
 
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         src_buffer_[i] = i;
@@ -652,8 +652,8 @@ class MixTestSuiteS32_LE : public testing::Test{
       fmt_ = SND_PCM_FORMAT_S32_LE;
       fr_bytes_ = 4 * kNumChannels;
       mix_buffer_ = (int32_t *)malloc(kBufferFrames * fr_bytes_);
-      src_buffer_ = static_cast<int32_t *>(
-          calloc(1, kBufferFrames * fr_bytes_ + sizeof(cras_audio_shm_area)));
+      src_buffer_ = static_cast<int32_t*>(
+          calloc(1, kBufferFrames * fr_bytes_ + sizeof(cras_audio_shm_header)));
 
       for (size_t i = 0; i < kBufferFrames * 2; i++) {
         src_buffer_[i] = i;
@@ -960,8 +960,8 @@ class MixTestSuiteS24_3LE : public testing::Test{
       fmt_ = SND_PCM_FORMAT_S24_3LE;
       fr_bytes_ = 3 * kNumChannels;
       mix_buffer_ = (uint8_t *)malloc(kBufferFrames * fr_bytes_);
-      src_buffer_ = static_cast<uint8_t *>(
-          calloc(1, kBufferFrames * fr_bytes_ + sizeof(cras_audio_shm_area)));
+      src_buffer_ = static_cast<uint8_t*>(
+          calloc(1, kBufferFrames * fr_bytes_ + sizeof(cras_audio_shm_header)));
 
       for (size_t i = 0; i < kBufferFrames * kNumChannels; i++) {
         memcpy(src_buffer_ + 3*i, &i, 3);

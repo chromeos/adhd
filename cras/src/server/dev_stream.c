@@ -289,7 +289,7 @@ capture_copy_converted_to_stream(struct dev_stream *dev_stream,
 	num_frames = MIN(rstream->audio_area->frames - offset,
 			 buf_queued(dev_stream->conv_buffer) / frame_bytes);
 
-	ATLOG(atlog, AUDIO_THREAD_CONV_COPY, shm->area->write_buf_idx,
+	ATLOG(atlog, AUDIO_THREAD_CONV_COPY, shm->header->write_buf_idx,
 	      rstream->audio_area->frames, offset);
 
 	while (total_written < num_frames) {
@@ -531,7 +531,7 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream)
 		frames_ready = cras_rstream_level(rstream);
 
 	ATLOG(atlog, AUDIO_THREAD_CAPTURE_POST, rstream->stream_id,
-	      frames_ready, rstream->shm->area->read_buf_idx);
+	      frames_ready, rstream->shm->header->read_buf_idx);
 
 	rc = cras_rstream_audio_ready(rstream, frames_ready);
 
@@ -599,7 +599,7 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 		cras_set_playback_timestamp(rstream->format.frame_rate,
 					    stream_frames +
 						    cras_shm_get_frames(shm),
-					    &shm->area->ts);
+					    &shm->header->ts);
 	} else {
 		shm = cras_rstream_shm(rstream);
 		stream_frames = cras_fmt_conv_in_frames_to_out(dev_stream->conv,
@@ -607,7 +607,7 @@ void dev_stream_set_delay(const struct dev_stream *dev_stream,
 		if (cras_shm_frames_written(shm) == 0)
 			cras_set_capture_timestamp(rstream->format.frame_rate,
 						   stream_frames,
-						   &shm->area->ts);
+						   &shm->header->ts);
 	}
 }
 

@@ -171,8 +171,8 @@ static int fetch_streams(struct open_dev *adev)
 		if(!cras_shm_is_buffer_available(shm)) {
 			ATLOG(atlog, AUDIO_THREAD_STREAM_SKIP_CB,
 			      cras_rstream_id(rstream),
-			      shm->area->write_offset[0],
-			      shm->area->write_offset[1]);
+			      shm->header->write_offset[0],
+			      shm->header->write_offset[1]);
 			dev_stream_update_next_wake_time(dev_stream);
 			continue;
 		}
@@ -264,7 +264,7 @@ static unsigned int get_stream_limit(
 		if (cras_shm_check_write_overrun(shm))
 			ATLOG(atlog, AUDIO_THREAD_READ_OVERRUN,
 			      adev->dev->info.idx, rstream->stream_id,
-			      shm->area->num_overruns);
+			      shm->header->num_overruns);
 		avail = dev_stream_capture_avail(stream);
 		if (avail < write_limit) {
 			write_limit = avail;

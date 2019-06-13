@@ -100,6 +100,29 @@ void ResetGlobalStubData() {
   dev_stream_wake_time_val.clear();
 }
 
+void SetupRstream(struct cras_rstream* rstream,
+                  enum CRAS_STREAM_DIRECTION direction) {
+  uint32_t frame_bytes = 4;
+  uint32_t used_size = 4096 * frame_bytes;
+
+  memset(rstream, 0, sizeof(*rstream));
+  rstream->direction = direction;
+  rstream->cb_threshold = 480;
+  rstream->format.frame_rate = 48000;
+
+  rstream->shm = static_cast<cras_audio_shm*>(calloc(1, sizeof(*rstream->shm)));
+  rstream->shm->header = static_cast<cras_audio_shm_header*>(
+      calloc(1, sizeof(*rstream->shm->header) + used_size * 2));
+
+  cras_shm_set_frame_bytes(rstream->shm, frame_bytes);
+  cras_shm_set_used_size(rstream->shm, used_size);
+}
+
+void TearDownRstream(struct cras_rstream* rstream) {
+  free(rstream->shm->header);
+  free(rstream->shm);
+}
+
 // Test streams and devices manipulation.
 class StreamDeviceSuite : public testing::Test {
   protected:
@@ -141,23 +164,6 @@ class StreamDeviceSuite : public testing::Test {
       audio_buffer_size_ = 0;
       cras_iodev_start_ramp_odev = NULL;
       cras_iodev_is_zero_volume_ret = 0;
-    }
-
-    void SetupRstream(struct cras_rstream *rstream,
-                      enum CRAS_STREAM_DIRECTION direction) {
-      memset(rstream, 0, sizeof(*rstream));
-      rstream->direction = direction;
-      rstream->cb_threshold = 480;
-      rstream->format.frame_rate = 48000;
-      rstream->shm =
-          static_cast<cras_audio_shm*>(calloc(1, sizeof(*rstream->shm)));
-      rstream->shm->area = static_cast<cras_audio_shm_area*>(
-          calloc(1, sizeof(*rstream->shm->area)));
-    }
-
-    void TearDownRstream(struct cras_rstream *rstream) {
-      free(rstream->shm->area);
-      free(rstream->shm);
     }
 
     void SetupPinnedStream(struct cras_rstream *rstream,
@@ -474,15 +480,14 @@ TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
 TEST_F(StreamDeviceSuite, AddOutputStream) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct cras_rstream rstream;
-  struct cras_audio_shm_area *shm_area;
+  struct cras_audio_shm_header* shm_header;
   struct dev_stream *dev_stream;
   struct open_dev *adev;
 
-  memset(&rstream, 0, sizeof(rstream));
-  memset(&shm_area, 0, sizeof(shm_area));
   ResetGlobalStubData();
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
   SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  shm_header = rstream.shm->header;
 
   thread_add_open_dev(thread_, &iodev);
   thread_add_stream(thread_, &rstream, &piodev, 1);
@@ -496,16 +501,8 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
 
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
-  /* Set stream config. */
-  rstream.shm->config.frame_bytes = 4;
-  rstream.shm->config.used_size = 4096 * 4;
-
-  /* Set shm config. */
-  shm_area = rstream.shm->area;
-  shm_area->config.frame_bytes = 4;
-  shm_area->config.used_size = 4096 * 4;
-  shm_area->write_buf_idx = 0;
-  shm_area->write_offset[0] = 0;
+  shm_header->write_buf_idx = 0;
+  shm_header->write_offset[0] = 0;
 
   /* Assume device is started. */
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
@@ -526,8 +523,6 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
   struct dev_stream *dev_stream;
   struct timespec expect_ts;
 
-  memset(&rstream1, 0, sizeof(rstream1));
-  memset(&rstream2, 0, sizeof(rstream2));
   ResetGlobalStubData();
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
   SetupRstream(&rstream1, CRAS_STREAM_OUTPUT);
@@ -657,30 +652,15 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct open_dev *adev;
   struct cras_rstream rstream;
-  struct cras_audio_shm shm;
-  struct cras_audio_shm_area shm_area;
+  struct cras_audio_shm_header* shm_header;
 
-  memset(&rstream, 0, sizeof(rstream));
-  memset(&shm, 0, sizeof(shm));
-  memset(&shm_area, 0, sizeof(shm_area));
-  rstream.direction = CRAS_STREAM_OUTPUT;
-  rstream.shm = &shm;
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  shm_header = rstream.shm->header;
   ResetGlobalStubData();
 
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
 
-  /* Set stream config. */
-  rstream.shm->config.frame_bytes = 4;
-  rstream.shm->config.used_size = 4096 * 4;
-  rstream.shm->config.frame_bytes = 4;
-  rstream.shm->area = &shm_area;
-  rstream.cb_threshold = 480;
-  rstream.format.frame_rate = 48000;
-
-  /* Set shm config. */
-  shm_area.config.frame_bytes = 4;
-  shm_area.config.used_size = 4096 * 4;
-  shm_area.write_buf_idx = 0;
+  shm_header->write_buf_idx = 0;
 
   /* Add the device and add the stream. */
   thread_add_open_dev(thread_, &iodev);
@@ -696,7 +676,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
    * just skip it.
    */
   cras_rstream_is_pending_reply_ret = 1;
-  shm_area.write_offset[0] = 0;
+  shm_header->write_offset[0] = 0;
   dev_io_playback_fetch(adev);
 
   EXPECT_EQ(dev_stream_request_playback_samples_called, 0);
@@ -707,18 +687,19 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
    * update next wake up time and skip fetching.
    */
   cras_rstream_is_pending_reply_ret = 0;
-  shm_area.write_offset[0] = 4096 * 4;
+  shm_header->write_offset[0] = cras_shm_used_size(rstream.shm);
   dev_io_playback_fetch(adev);
   EXPECT_EQ(dev_stream_request_playback_samples_called, 0);
   EXPECT_EQ(dev_stream_update_next_wake_time_called, 1);
 
   /* If the stream can be fetched, fetch it. */
   cras_rstream_is_pending_reply_ret = 0;
-  shm_area.write_offset[0] = 0;
+  shm_header->write_offset[0] = 0;
   dev_io_playback_fetch(adev);
   EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
 
   thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
+  TearDownRstream(&rstream);
 }
 
 TEST_F(StreamDeviceSuite, WriteOutputSamplesPrepareOutputFailed) {
@@ -995,34 +976,25 @@ TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
 
 TEST(AudioThreadStreams, DrainStream) {
   struct cras_rstream rstream;
-  struct cras_audio_shm shm;
-  struct cras_audio_shm_area shm_area;
+  struct cras_audio_shm_header* shm_header;
   struct audio_thread thread;
 
-  memset(&rstream, 0, sizeof(rstream));
-  memset(&shm, 0, sizeof(shm));
-  memset(&shm_area, 0, sizeof(shm_area));
-  shm_area.config.frame_bytes = 4;
-  shm_area.config.used_size = 4096 * 4;
-  shm.config.frame_bytes = 4;
-  shm.config.used_size = 4096 * 4;
-  shm.area = &shm_area;
-  rstream.shm = &shm;
-  rstream.format.frame_rate = 48000;
-  rstream.direction = CRAS_STREAM_OUTPUT;
+  SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
+  shm_header = rstream.shm->header;
 
-  shm_area.write_offset[0] = 1 * 4;
+  shm_header->write_offset[0] = 1 * 4;
   EXPECT_EQ(1, thread_drain_stream_ms_remaining(&thread, &rstream));
 
-  shm_area.write_offset[0] = 479 * 4;
+  shm_header->write_offset[0] = 479 * 4;
   EXPECT_EQ(10, thread_drain_stream_ms_remaining(&thread, &rstream));
 
-  shm_area.write_offset[0] = 0;
+  shm_header->write_offset[0] = 0;
   EXPECT_EQ(0, thread_drain_stream_ms_remaining(&thread, &rstream));
 
   rstream.direction = CRAS_STREAM_INPUT;
-  shm_area.write_offset[0] = 479 * 4;
+  shm_header->write_offset[0] = 479 * 4;
   EXPECT_EQ(0, thread_drain_stream_ms_remaining(&thread, &rstream));
+  TearDownRstream(&rstream);
 }
 
 TEST(BusyloopDetectSuite, CheckerTest) {
