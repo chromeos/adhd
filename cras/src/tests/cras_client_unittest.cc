@@ -57,9 +57,13 @@ class CrasClientTestSuite : public testing::Test {
 
     void FreeShm(struct cras_audio_shm* shm) {
       if (shm) {
-        free(shm->area);
+        if (shm->area) {
+          free(shm->area);
+          shm->area = NULL;
+        }
+        free(shm);
+        shm = NULL;
       }
-      free(shm);
     }
 
     virtual void SetUp() {
@@ -84,8 +88,7 @@ class CrasClientTestSuite : public testing::Test {
         stream_.config = NULL;
       }
 
-      free(stream_.shm);
-      stream_.shm = NULL;
+      FreeShm(stream_.shm);
     }
 
     void StreamConnected(CRAS_STREAM_DIRECTION direction);
@@ -166,7 +169,6 @@ TEST_F(CrasClientTestSuite, HandleCaptureDataReady) {
   handle_capture_data_ready(&stream_, 480);
   EXPECT_EQ(1, samples_ready_called);
   EXPECT_EQ(0, shm->area->read_buf_idx);
-  FreeShm(shm);
 }
 
 void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
@@ -175,7 +177,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
   int shm_max_size = 600;
   size_t format_bytes;
   size_t effects = 123;
-  struct cras_audio_shm_area area;
+  struct cras_audio_shm_area* area;
 
   stream_.direction = direction;
   set_audio_format(&stream_.config->format, SND_PCM_FORMAT_S16_LE, 48000, 4);
@@ -185,11 +187,11 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
 
   // Initialize shm area
   format_bytes = cras_get_format_bytes(&server_format);
-  memset(&area, 0, sizeof(area));
-  area.config.frame_bytes = format_bytes;
-  area.config.used_size = shm_writable_frames_ * format_bytes;
+  area = (struct cras_audio_shm_area*)calloc(1, sizeof(*area));
+  area->config.frame_bytes = format_bytes;
+  area->config.used_size = shm_writable_frames_ * format_bytes;
 
-  mmap_return_value = &area;
+  mmap_return_value = area;
 
   cras_fill_client_stream_connected(
       &msg,
@@ -203,7 +205,7 @@ void CrasClientTestSuite::StreamConnected(CRAS_STREAM_DIRECTION direction) {
 
   EXPECT_EQ(CRAS_THREAD_RUNNING, stream_.thread.state);
 
-  EXPECT_EQ(&area, stream_.shm->area);
+  EXPECT_EQ(area, stream_.shm->area);
 }
 
 TEST_F(CrasClientTestSuite, InputStreamConnected) {

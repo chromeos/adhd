@@ -178,6 +178,7 @@ class CreateSuite : public testing::Test{
       free(area);
       free(stream_area);
       free(rstream_.shm->area);
+      free(rstream_.shm);
       audio_thread_event_log_deinit(atlog);
     }
 
