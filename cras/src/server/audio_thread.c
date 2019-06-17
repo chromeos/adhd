@@ -118,13 +118,13 @@ struct iodev_callback_list {
 	struct iodev_callback_list *prev, *next;
 };
 
-static void _audio_thread_add_callback(int fd, thread_callback cb,
-				       void *data, int is_write)
+static void _audio_thread_add_callback(int fd, thread_callback cb, void *data,
+				       int is_write)
 {
 	struct iodev_callback_list *iodev_cb;
 
 	/* Don't add iodev_cb twice */
-	DL_FOREACH(iodev_callbacks, iodev_cb)
+	DL_FOREACH (iodev_callbacks, iodev_cb)
 		if (iodev_cb->fd == fd && iodev_cb->cb_data == data)
 			return;
 
@@ -138,14 +138,12 @@ static void _audio_thread_add_callback(int fd, thread_callback cb,
 	DL_APPEND(iodev_callbacks, iodev_cb);
 }
 
-void audio_thread_add_callback(int fd, thread_callback cb,
-				void *data)
+void audio_thread_add_callback(int fd, thread_callback cb, void *data)
 {
 	_audio_thread_add_callback(fd, cb, data, 0);
 }
 
-void audio_thread_add_write_callback(int fd, thread_callback cb,
-				     void *data)
+void audio_thread_add_write_callback(int fd, thread_callback cb, void *data)
 {
 	_audio_thread_add_callback(fd, cb, data, 1);
 }
@@ -154,7 +152,7 @@ void audio_thread_rm_callback(int fd)
 {
 	struct iodev_callback_list *iodev_cb;
 
-	DL_FOREACH(iodev_callbacks, iodev_cb) {
+	DL_FOREACH (iodev_callbacks, iodev_cb) {
 		if (iodev_cb->fd == fd) {
 			DL_DELETE(iodev_callbacks, iodev_cb);
 			free(iodev_cb);
@@ -167,7 +165,7 @@ void audio_thread_enable_callback(int fd, int enabled)
 {
 	struct iodev_callback_list *iodev_cb;
 
-	DL_FOREACH(iodev_callbacks, iodev_cb) {
+	DL_FOREACH (iodev_callbacks, iodev_cb) {
 		if (iodev_cb->fd == fd) {
 			iodev_cb->enabled = !!enabled;
 			return;
@@ -198,7 +196,8 @@ static int audio_thread_send_response(struct audio_thread *thread, int rc)
  * Returns:
  *    |count| on success, negative error code on failure.
  */
-static int read_until_finished(int fd, void *buf, size_t count) {
+static int read_until_finished(int fd, void *buf, size_t count)
+{
 	int nread, count_left = count;
 
 	while (count_left > 0) {
@@ -228,16 +227,15 @@ static int read_until_finished(int fd, void *buf, size_t count) {
  * Returns:
  *    0 on success, negative error code on failure.
  */
-static int audio_thread_read_command(struct audio_thread *thread,
-				     uint8_t *buf,
+static int audio_thread_read_command(struct audio_thread *thread, uint8_t *buf,
 				     size_t max_len)
 {
 	int to_read, nread, rc;
 	struct audio_thread_msg *msg = (struct audio_thread_msg *)buf;
 
 	/* Get the length of the message first */
-	nread = read_until_finished(
-			thread->to_thread_fds[0], buf, sizeof(msg->length));
+	nread = read_until_finished(thread->to_thread_fds[0], buf,
+				    sizeof(msg->length));
 	if (nread < 0)
 		return nread;
 
@@ -246,7 +244,7 @@ static int audio_thread_read_command(struct audio_thread *thread,
 
 	to_read = msg->length - sizeof(msg->length);
 	rc = read_until_finished(thread->to_thread_fds[0],
-			&buf[0] + sizeof(msg->length), to_read);
+				 &buf[0] + sizeof(msg->length), to_read);
 	if (rc < 0)
 		return rc;
 	return 0;
@@ -264,8 +262,7 @@ static int thread_add_open_dev(struct audio_thread *thread,
 {
 	struct open_dev *adev;
 
-	DL_SEARCH_SCALAR(thread->open_devs[iodev->direction],
-			 adev, dev, iodev);
+	DL_SEARCH_SCALAR(thread->open_devs[iodev->direction], adev, dev, iodev);
 	if (adev)
 		return -EEXIST;
 
@@ -291,8 +288,8 @@ static int thread_rm_open_dev(struct audio_thread *thread,
 			      enum CRAS_STREAM_DIRECTION dir,
 			      unsigned int dev_idx)
 {
-	struct open_dev *adev = dev_io_find_open_dev(
-			thread->open_devs[dir], dev_idx);
+	struct open_dev *adev =
+		dev_io_find_open_dev(thread->open_devs[dir], dev_idx);
 	if (!adev)
 		return -EINVAL;
 
@@ -308,7 +305,7 @@ static int thread_is_dev_open(struct audio_thread *thread,
 			      struct cras_iodev *iodev)
 {
 	struct open_dev *adev = dev_io_find_open_dev(
-			thread->open_devs[iodev->direction], iodev->info.idx);
+		thread->open_devs[iodev->direction], iodev->info.idx);
 	return !!adev;
 }
 
@@ -332,7 +329,7 @@ static int thread_dev_start_ramp(struct audio_thread *thread,
 	/* Do nothing if device wasn't already in the active dev list. */
 	struct cras_iodev *iodev;
 	struct open_dev *adev = dev_io_find_open_dev(
-			thread->open_devs[CRAS_STREAM_OUTPUT], dev_idx);
+		thread->open_devs[CRAS_STREAM_OUTPUT], dev_idx);
 	if (!adev)
 		return -EINVAL;
 	iodev = adev->dev;
@@ -353,9 +350,9 @@ static int thread_dev_start_ramp(struct audio_thread *thread,
 	    !cras_iodev_is_zero_volume(iodev))
 		return cras_iodev_start_ramp(iodev, request);
 	else
-		return cras_device_monitor_set_device_mute_state(iodev->info.idx);
+		return cras_device_monitor_set_device_mute_state(
+			iodev->info.idx);
 }
-
 
 /* Return non-zero if the stream is attached to any device. */
 static int thread_find_stream(struct audio_thread *thread,
@@ -364,8 +361,8 @@ static int thread_find_stream(struct audio_thread *thread,
 	struct open_dev *open_dev;
 	struct dev_stream *s;
 
-	DL_FOREACH(thread->open_devs[rstream->direction], open_dev) {
-		DL_FOREACH(open_dev->dev->streams, s) {
+	DL_FOREACH (thread->open_devs[rstream->direction], open_dev) {
+		DL_FOREACH (open_dev->dev->streams, s) {
 			if (s->stream == rstream)
 				return 1;
 		}
@@ -374,8 +371,8 @@ static int thread_find_stream(struct audio_thread *thread,
 }
 
 /* Handles the disconnect_stream message from the main thread. */
-static int thread_disconnect_stream(struct audio_thread* thread,
-				    struct cras_rstream* stream,
+static int thread_disconnect_stream(struct audio_thread *thread,
+				    struct cras_rstream *stream,
 				    struct cras_iodev *dev)
 {
 	int rc;
@@ -383,8 +380,8 @@ static int thread_disconnect_stream(struct audio_thread* thread,
 	if (!thread_find_stream(thread, stream))
 		return 0;
 
-	rc = dev_io_remove_stream(&thread->open_devs[stream->direction],
-				  stream, dev);
+	rc = dev_io_remove_stream(&thread->open_devs[stream->direction], stream,
+				  dev);
 
 	return rc;
 }
@@ -451,19 +448,18 @@ static int thread_add_stream(struct audio_thread *thread,
 
 /* Starts or stops aec dump task. */
 static int thread_set_aec_dump(struct audio_thread *thread,
-			       cras_stream_id_t stream_id,
-			       unsigned int start,
+			       cras_stream_id_t stream_id, unsigned int start,
 			       int fd)
 {
 	struct open_dev *idev_list = thread->open_devs[CRAS_STREAM_INPUT];
 	struct open_dev *adev;
 	struct dev_stream *stream;
 
-	DL_FOREACH(idev_list, adev) {
+	DL_FOREACH (idev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
-		DL_FOREACH(adev->dev->streams, stream) {
+		DL_FOREACH (adev->dev->streams, stream) {
 			if ((stream->stream->apm_list == NULL) ||
 			    (stream->stream->stream_id != stream_id))
 				continue;
@@ -493,12 +489,12 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	di->max_cb_level = adev->dev->max_cb_level;
 	di->direction = adev->dev->direction;
 	di->num_underruns = cras_iodev_get_num_underruns(adev->dev);
-	di->num_severe_underruns = cras_iodev_get_num_severe_underruns(
-			adev->dev);
+	di->num_severe_underruns =
+		cras_iodev_get_num_severe_underruns(adev->dev);
 	di->highest_hw_level = adev->dev->highest_hw_level;
-	di->software_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT)
-			? adev->dev->software_gain_scaler
-			: 0.0f;
+	di->software_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT) ?
+					   adev->dev->software_gain_scaler :
+					   0.0f;
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &adev->dev->open_ts, &time_since);
@@ -519,8 +515,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 /* Put stream info for the given stream into the info struct. */
 static void append_stream_dump_info(struct audio_debug_info *info,
 				    struct dev_stream *stream,
-				    unsigned int dev_idx,
-				    int index)
+				    unsigned int dev_idx, int index)
 {
 	struct audio_stream_debug_info *si;
 	struct timespec now, time_since;
@@ -576,7 +571,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_WAIT,
 		      amsg->stream->stream_id, 0, 0);
 		ret = thread_add_stream(thread, amsg->stream, amsg->devs,
-				amsg->num_devs);
+					amsg->num_devs);
 		break;
 	}
 	case AUDIO_THREAD_DISCONNECT_STREAM: {
@@ -585,7 +580,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		rmsg = (struct audio_thread_add_rm_stream_msg *)msg;
 
 		ret = thread_disconnect_stream(thread, rmsg->stream,
-				rmsg->devs[0]);
+					       rmsg->devs[0]);
 		break;
 	}
 	case AUDIO_THREAD_ADD_OPEN_DEV: {
@@ -629,11 +624,11 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 		info = dmsg->info;
 
 		/* Go through all open devices. */
-		DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+		DL_FOREACH (thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
 			append_dev_dump_info(&info->devs[num_devs], adev);
 			if (++num_devs == MAX_DEBUG_DEVS)
 				break;
-			DL_FOREACH(adev->dev->streams, curr) {
+			DL_FOREACH (adev->dev->streams, curr) {
 				if (num_streams == MAX_DEBUG_STREAMS)
 					break;
 				append_stream_dump_info(info, curr,
@@ -641,11 +636,11 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 							num_streams++);
 			}
 		}
-		DL_FOREACH(thread->open_devs[CRAS_STREAM_INPUT], adev) {
+		DL_FOREACH (thread->open_devs[CRAS_STREAM_INPUT], adev) {
 			if (num_devs == MAX_DEBUG_DEVS)
 				break;
 			append_dev_dump_info(&info->devs[num_devs], adev);
-			DL_FOREACH(adev->dev->streams, curr) {
+			DL_FOREACH (adev->dev->streams, curr) {
 				if (num_streams == MAX_DEBUG_STREAMS)
 					break;
 				append_stream_dump_info(info, curr,
@@ -691,7 +686,7 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	case AUDIO_THREAD_DEV_START_RAMP: {
 		struct audio_thread_dev_start_ramp_msg *rmsg;
 
-		rmsg = (struct audio_thread_dev_start_ramp_msg*)msg;
+		rmsg = (struct audio_thread_dev_start_ramp_msg *)msg;
 		ret = thread_dev_start_ramp(thread, rmsg->dev_idx,
 					    rmsg->request);
 		break;
@@ -699,8 +694,8 @@ static int handle_playback_thread_message(struct audio_thread *thread)
 	case AUDIO_THREAD_AEC_DUMP: {
 		struct audio_thread_aec_dump_msg *rmsg;
 		rmsg = (struct audio_thread_aec_dump_msg *)msg;
-		ret = thread_set_aec_dump(thread, rmsg->stream_id,
-					  rmsg->start, rmsg->fd);
+		ret = thread_set_aec_dump(thread, rmsg->stream_id, rmsg->start,
+					  rmsg->fd);
 		break;
 	}
 	default:
@@ -739,8 +734,8 @@ static int fill_next_sleep_interval(struct audio_thread *thread,
 	return ret;
 }
 
-static struct pollfd *add_pollfd(struct audio_thread *thread,
-				 int fd, int is_write)
+static struct pollfd *add_pollfd(struct audio_thread *thread, int fd,
+				 int is_write)
 {
 	thread->pollfds[thread->num_pollfds].fd = fd;
 	if (is_write)
@@ -750,10 +745,9 @@ static struct pollfd *add_pollfd(struct audio_thread *thread,
 	thread->num_pollfds++;
 	if (thread->num_pollfds >= thread->pollfds_size) {
 		thread->pollfds_size *= 2;
-		thread->pollfds =
-			(struct pollfd *)realloc(thread->pollfds,
-						 sizeof(*thread->pollfds) *
-						 thread->pollfds_size);
+		thread->pollfds = (struct pollfd *)realloc(
+			thread->pollfds,
+			sizeof(*thread->pollfds) * thread->pollfds_size);
 		return NULL;
 	}
 
@@ -761,17 +755,14 @@ static struct pollfd *add_pollfd(struct audio_thread *thread,
 }
 
 static int continuous_zero_sleep_count = 0;
-static void check_busyloop(struct timespec* wait_ts)
+static void check_busyloop(struct timespec *wait_ts)
 {
-	if(wait_ts->tv_sec == 0 && wait_ts->tv_nsec == 0)
-	{
-		continuous_zero_sleep_count ++;
-		if(continuous_zero_sleep_count ==
-		   MAX_CONTINUOUS_ZERO_SLEEP_COUNT)
+	if (wait_ts->tv_sec == 0 && wait_ts->tv_nsec == 0) {
+		continuous_zero_sleep_count++;
+		if (continuous_zero_sleep_count ==
+		    MAX_CONTINUOUS_ZERO_SLEEP_COUNT)
 			cras_audio_thread_busyloop();
-	}
-	else
-	{
+	} else {
 		continuous_zero_sleep_count = 0;
 	}
 }
@@ -820,21 +811,21 @@ static void *audio_io_thread(void *arg)
 		if (fill_next_sleep_interval(thread, &ts))
 			wait_ts = &ts;
 
-restart_poll_loop:
+	restart_poll_loop:
 		thread->num_pollfds = 1;
 
-		DL_FOREACH(iodev_callbacks, iodev_cb) {
+		DL_FOREACH (iodev_callbacks, iodev_cb) {
 			if (!iodev_cb->enabled)
 				continue;
 			iodev_cb->pollfd = add_pollfd(thread, iodev_cb->fd,
 						      iodev_cb->is_write);
 			if (!iodev_cb->pollfd)
-			    goto restart_poll_loop;
+				goto restart_poll_loop;
 		}
 
 		/* TODO(dgreid) - once per rstream not per dev_stream */
-		DL_FOREACH(thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
-			DL_FOREACH(adev->dev->streams, curr) {
+		DL_FOREACH (thread->open_devs[CRAS_STREAM_OUTPUT], adev) {
+			DL_FOREACH (adev->dev->streams, curr) {
 				int fd = dev_stream_poll_stream_fd(curr);
 				if (fd < 0)
 					continue;
@@ -842,8 +833,8 @@ restart_poll_loop:
 					goto restart_poll_loop;
 			}
 		}
-		DL_FOREACH(thread->open_devs[CRAS_STREAM_INPUT], adev) {
-			DL_FOREACH(adev->dev->streams, curr) {
+		DL_FOREACH (thread->open_devs[CRAS_STREAM_INPUT], adev) {
+			DL_FOREACH (adev->dev->streams, curr) {
 				int fd = dev_stream_poll_stream_fd(curr);
 				if (fd < 0)
 					continue;
@@ -862,7 +853,7 @@ restart_poll_loop:
 
 		ATLOG(atlog, AUDIO_THREAD_SLEEP, wait_ts ? wait_ts->tv_sec : 0,
 		      wait_ts ? wait_ts->tv_nsec : 0, longest_wake.tv_nsec);
-		if(wait_ts)
+		if (wait_ts)
 			check_busyloop(wait_ts);
 		rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
@@ -876,7 +867,7 @@ restart_poll_loop:
 				syslog(LOG_INFO, "handle message %d", rc);
 		}
 
-		DL_FOREACH(iodev_callbacks, iodev_cb) {
+		DL_FOREACH (iodev_callbacks, iodev_cb) {
 			if (iodev_cb->pollfd &&
 			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT)) {
 				ATLOG(atlog, AUDIO_THREAD_IODEV_CB,
@@ -955,9 +946,9 @@ static void init_add_rm_stream_msg(struct audio_thread_add_rm_stream_msg *msg,
 	msg->num_devs = num_devs;
 }
 
-static void init_dump_debug_info_msg(
-		struct audio_thread_dump_debug_info_msg *msg,
-		struct audio_debug_info *info)
+static void
+init_dump_debug_info_msg(struct audio_thread_dump_debug_info_msg *msg,
+			 struct audio_debug_info *info)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.id = AUDIO_THREAD_DUMP_THREAD_INFO;
@@ -965,19 +956,18 @@ static void init_dump_debug_info_msg(
 	msg->info = info;
 }
 
-static void init_config_global_remix_msg(
-		struct audio_thread_config_global_remix *msg)
+static void
+init_config_global_remix_msg(struct audio_thread_config_global_remix *msg)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.id = AUDIO_THREAD_CONFIG_GLOBAL_REMIX;
 	msg->header.length = sizeof(*msg);
 }
 
-static void init_device_start_ramp_msg(
-		struct audio_thread_dev_start_ramp_msg *msg,
-		enum AUDIO_THREAD_COMMAND id,
-		unsigned int dev_idx,
-		enum CRAS_IODEV_RAMP_REQUEST request)
+static void
+init_device_start_ramp_msg(struct audio_thread_dev_start_ramp_msg *msg,
+			   enum AUDIO_THREAD_COMMAND id, unsigned int dev_idx,
+			   enum CRAS_IODEV_RAMP_REQUEST request)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.id = id;
@@ -990,8 +980,7 @@ static void init_device_start_ramp_msg(
 
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream,
-			    struct cras_iodev **devs,
-			    unsigned int num_devs)
+			    struct cras_iodev **devs, unsigned int num_devs)
 {
 	struct audio_thread_add_rm_stream_msg msg;
 
@@ -1000,8 +989,8 @@ int audio_thread_add_stream(struct audio_thread *thread,
 	if (!thread->started)
 		return -EINVAL;
 
-	init_add_rm_stream_msg(&msg, AUDIO_THREAD_ADD_STREAM, stream,
-			       devs, num_devs);
+	init_add_rm_stream_msg(&msg, AUDIO_THREAD_ADD_STREAM, stream, devs,
+			       num_devs);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1025,8 +1014,8 @@ int audio_thread_drain_stream(struct audio_thread *thread,
 
 	assert(thread && stream);
 
-	init_add_rm_stream_msg(&msg, AUDIO_THREAD_DRAIN_STREAM, stream,
-			       NULL, 0);
+	init_add_rm_stream_msg(&msg, AUDIO_THREAD_DRAIN_STREAM, stream, NULL,
+			       0);
 	return audio_thread_post_message(thread, &msg.header);
 }
 
@@ -1040,9 +1029,8 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
 }
 
 int audio_thread_set_aec_dump(struct audio_thread *thread,
-			       cras_stream_id_t stream_id,
-			       unsigned int start,
-			       int fd)
+			      cras_stream_id_t stream_id, unsigned int start,
+			      int fd)
 {
 	struct audio_thread_aec_dump_msg msg;
 
@@ -1055,7 +1043,8 @@ int audio_thread_set_aec_dump(struct audio_thread *thread,
 	return audio_thread_post_message(thread, &msg.header);
 }
 
-int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd) {
+int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd)
+{
 	struct audio_thread_rm_callback_msg msg;
 
 	memset(&msg, 0, sizeof(msg));
@@ -1150,15 +1139,14 @@ struct audio_thread *audio_thread_create()
 	atlog = audio_thread_event_log_init();
 
 	thread->pollfds_size = 32;
-	thread->pollfds =
-		(struct pollfd *)malloc(sizeof(*thread->pollfds)
-					* thread->pollfds_size);
+	thread->pollfds = (struct pollfd *)malloc(sizeof(*thread->pollfds) *
+						  thread->pollfds_size);
 
 	return thread;
 }
 
 int audio_thread_add_open_dev(struct audio_thread *thread,
-				struct cras_iodev *dev)
+			      struct cras_iodev *dev)
 {
 	struct audio_thread_open_device_msg msg;
 
@@ -1208,8 +1196,8 @@ int audio_thread_dev_start_ramp(struct audio_thread *thread,
 	if (!thread->started)
 		return -EINVAL;
 
-	init_device_start_ramp_msg(&msg, AUDIO_THREAD_DEV_START_RAMP,
-				   dev_idx, request);
+	init_device_start_ramp_msg(&msg, AUDIO_THREAD_DEV_START_RAMP, dev_idx,
+				   request);
 	return audio_thread_post_message(thread, &msg.header);
 }
 

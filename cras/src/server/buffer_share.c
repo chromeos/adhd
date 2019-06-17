@@ -21,7 +21,6 @@ static inline struct id_offset *find_unused(const struct buffer_share *mix)
 	return NULL;
 }
 
-
 static inline struct id_offset *find_id(const struct buffer_share *mix,
 					unsigned int id)
 {
@@ -163,8 +162,7 @@ unsigned int buffer_share_id_offset(const struct buffer_share *mix,
 	return o ? o->offset : 0;
 }
 
-void *buffer_share_get_data(const struct buffer_share *mix,
-			    unsigned int id)
+void *buffer_share_get_data(const struct buffer_share *mix, unsigned int id)
 {
 	struct id_offset *o = get_id_offset(mix, id);
 	return o ? o->data : NULL;
