@@ -313,8 +313,8 @@ impl CrasClient {
 
         loop {
             let result = self.handle_server_message()?;
-            if let ServerResult::StreamConnected(_stream_id, shm_fd) = result {
-                stream.init_shm(shm_fd)?;
+            if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
+                stream.init_shm(header_fd, samples_fd)?;
                 break;
             }
         }

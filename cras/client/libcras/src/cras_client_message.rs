@@ -81,8 +81,8 @@ impl From<cras_stream::Error> for Error {
 pub enum ServerResult {
     /// client_id, CrasServerStateShmFd
     Connected(u32, CrasServerStateShmFd),
-    /// stream_id, CrasShmFd
-    StreamConnected(u32, CrasShmFd),
+    /// stream_id, header_fd, samples_fd
+    StreamConnected(u32, CrasAudioShmHeaderFd, CrasShmFd),
 }
 
 impl ServerResult {
@@ -103,13 +103,16 @@ impl ServerResult {
             }
             CRAS_CLIENT_MESSAGE_ID::CRAS_CLIENT_STREAM_CONNECTED => {
                 let cmsg: &cras_client_stream_connected = message.get_message()?;
-                // CRAS server should return a shared memory area which has `shm_max_size` bytes.
-                // In current cras_rstream implementation, `fds[0]` and `fds[1]` are pointing to a
-                // same fd which contains the shared memory area, so we use `fds[0]` for both
-                // playback and capture stream here.
-                Ok(ServerResult::StreamConnected(cmsg.stream_id, unsafe {
-                    CrasShmFd::new(message.fds[0], cmsg.shm_max_size as usize)
-                }))
+                // CRAS should return two shared memory areas the first which has
+                // mem::size_of::<cras_audio_shm_header>() bytes, and the second which has
+                // `samples_shm_size` bytes.
+                Ok(ServerResult::StreamConnected(
+                    cmsg.stream_id,
+                    // Safe because CRAS ensures that the first fd contains a cras_audio_shm_header
+                    unsafe { CrasAudioShmHeaderFd::new(message.fds[0]) },
+                    // Safe because CRAS ensures that the second fd has length 'samples_shm_size'
+                    unsafe { CrasShmFd::new(message.fds[1], cmsg.samples_shm_size as usize) },
+                ))
             }
             _ => Err(Error::new(ErrorType::MessageTypeError)),
         }

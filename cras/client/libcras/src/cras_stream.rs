@@ -195,8 +195,12 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
     }
 
     /// Receives shared memory fd and initialize stream audio shared memory area
-    pub fn init_shm(&mut self, shm_fd: CrasShmFd) -> Result<(), Error> {
-        let (buffer, header) = create_header_and_buffers(shm_fd)?;
+    pub fn init_shm(
+        &mut self,
+        header_fd: CrasAudioShmHeaderFd,
+        samples_fd: CrasShmFd,
+    ) -> Result<(), Error> {
+        let (header, buffer) = create_header_and_buffers(header_fd, samples_fd)?;
         self.controls.set_header(header);
         self.audio_buffer = Some(buffer);
         Ok(())
