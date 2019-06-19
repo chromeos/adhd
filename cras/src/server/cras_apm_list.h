@@ -36,7 +36,9 @@ struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
 					   uint64_t effects);
 
 /*
- * Creates a cras_apm and adds it to the list.
+ * Creates a cras_apm associated to given dev_ptr and adds it to the list.
+ * If there already exists an APM instance linked to dev_ptr, we assume
+ * the open format is unchanged so just return it.
  * Args:
  *    list - The list holding APM instances.
  *    dev_ptr - Pointer to the iodev to add new APM for.

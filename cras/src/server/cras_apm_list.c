@@ -247,12 +247,9 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 {
 	struct cras_apm *apm;
 
-	DL_FOREACH(list->apms, apm) {
-		if (apm->dev_ptr == dev_ptr) {
-			DL_DELETE(list->apms, apm);
-			apm_destroy(&apm);
-		}
-	}
+	DL_FOREACH (list->apms, apm)
+		if (apm->dev_ptr == dev_ptr)
+			return apm;
 
 	// TODO(hychao): Remove the check when we enable more effects.
 	if (!(list->effects & APM_ECHO_CANCELLATION))
