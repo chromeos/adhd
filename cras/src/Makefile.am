@@ -365,6 +365,7 @@ TESTS = \
 	fmt_conv_ops_unittest \
 	hfp_info_unittest \
 	buffer_share_unittest \
+	input_data_unittest \
 	iodev_list_unittest \
 	iodev_unittest \
 	loopback_iodev_unittest \
@@ -797,6 +798,12 @@ loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 loopback_iodev_unittest_LDADD = -lgtest -lpthread
+
+input_data_unittest_SOURCES = tests/input_data_unittest.cc \
+	server/input_data.c
+input_data_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	 -I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server
+input_data_unittest_LDADD = -lgtest -lpthread
 
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
 	server/cras_iodev.c
