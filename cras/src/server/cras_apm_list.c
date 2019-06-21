@@ -127,7 +127,7 @@ static void update_process_reverse_flag()
 	if (!rmodule)
 		return;
 	rmodule->process_reverse = 0;
-	DL_FOREACH(apm_list, list) {
+	DL_FOREACH (apm_list, list) {
 		rmodule->process_reverse |=
 			!!(list->effects & APM_ECHO_CANCELLATION);
 	}
@@ -147,8 +147,7 @@ static void apm_destroy(struct cras_apm **apm)
 	*apm = NULL;
 }
 
-struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
-					   uint64_t effects)
+struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects)
 {
 	struct cras_apm_list *list;
 
@@ -175,7 +174,7 @@ struct cras_apm *cras_apm_list_get(struct cras_apm_list *list, void *dev_ptr)
 	if (list == NULL)
 		return NULL;
 
-	DL_FOREACH(list->apms, apm) {
+	DL_FOREACH (list->apms, apm) {
 		if (apm->dev_ptr == dev_ptr)
 			return apm;
 	}
@@ -194,8 +193,8 @@ void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr)
 {
 	struct cras_apm *apm;
 
-	DL_FOREACH(list->apms, apm) {
-		if (apm->dev_ptr == dev_ptr ) {
+	DL_FOREACH (list->apms, apm) {
+		if (apm->dev_ptr == dev_ptr) {
 			DL_DELETE(list->apms, apm);
 			apm_destroy(&apm);
 		}
@@ -226,7 +225,7 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 	 * TODO(hychao): extend the logic when we have a stream that wants
 	 * to record channels like RR(rear right).
 	 */
-	for (ch = 0 ; ch < CRAS_CH_MAX; ch++)
+	for (ch = 0; ch < CRAS_CH_MAX; ch++)
 		layout[ch] = -1;
 
 	apm_fmt->num_channels = 0;
@@ -237,12 +236,11 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 	if (apm_fmt->channel_layout[CRAS_CH_FC] != -1)
 		layout[CRAS_CH_FC] = apm_fmt->num_channels++;
 
-	for (ch = 0 ; ch < CRAS_CH_MAX; ch++)
+	for (ch = 0; ch < CRAS_CH_MAX; ch++)
 		apm_fmt->channel_layout[ch] = layout[ch];
 }
 
-struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
-				   void *dev_ptr,
+struct cras_apm *cras_apm_list_add(struct cras_apm_list *list, void *dev_ptr,
 				   const struct cras_audio_format *dev_fmt)
 {
 	struct cras_apm *apm;
@@ -264,11 +262,8 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list,
 	apm->fmt = *dev_fmt;
 	get_best_channels(&apm->fmt);
 
-	apm->apm_ptr = webrtc_apm_create(
-			apm->fmt.num_channels,
-			apm->fmt.frame_rate,
-			aec_ini,
-			apm_ini);
+	apm->apm_ptr = webrtc_apm_create(apm->fmt.num_channels,
+					 apm->fmt.frame_rate, aec_ini, apm_ini);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR,
 		       "Fail to create webrtc apm for ch %zu"
@@ -301,7 +296,7 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
 	struct cras_apm_list *tmp;
 	struct cras_apm *apm;
 
-	DL_FOREACH(apm_list, tmp) {
+	DL_FOREACH (apm_list, tmp) {
 		if (tmp == list) {
 			DL_DELETE(apm_list, tmp);
 			break;
@@ -311,7 +306,7 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
 	if (tmp == NULL)
 		return 0;
 
-	DL_FOREACH(list->apms, apm) {
+	DL_FOREACH (list->apms, apm) {
 		DL_DELETE(list->apms, apm);
 		apm_destroy(&apm);
 	}
@@ -329,9 +324,7 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
  */
 static struct cras_iodev *get_echo_reference_target(struct cras_iodev *iodev)
 {
-	return iodev->echo_reference_dev
-			? iodev->echo_reference_dev
-			: iodev;
+	return iodev->echo_reference_dev ? iodev->echo_reference_dev : iodev;
 }
 
 /*
@@ -346,8 +339,7 @@ static void update_first_output_dev_to_process()
 {
 	struct cras_iodev *echo_ref;
 	struct cras_iodev *iodev =
-			cras_iodev_list_get_first_enabled_iodev(
-				CRAS_STREAM_OUTPUT);
+		cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT);
 
 	if (iodev == NULL)
 		return;
@@ -407,19 +399,16 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 
 	wp = float_buffer_write_pointer(fbuf);
 
-	DL_FOREACH(apm_list, list) {
+	DL_FOREACH (apm_list, list) {
 		if (!(list->effects & APM_ECHO_CANCELLATION))
 			continue;
 
-		DL_FOREACH(list->apms, apm) {
+		DL_FOREACH (list->apms, apm) {
 			ret = webrtc_apm_process_reverse_stream_f(
-					apm->apm_ptr,
-					fbuf->num_channels,
-					frame_rate,
-					wp);
+				apm->apm_ptr, fbuf->num_channels, frame_rate,
+				wp);
 			if (ret) {
-				syslog(LOG_ERR,
-				       "APM process reverse err");
+				syslog(LOG_ERR, "APM process reverse err");
 				return ret;
 			}
 		}
@@ -428,11 +417,10 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 	return 0;
 }
 
-void reverse_data_run(struct ext_dsp_module *ext,
-		      unsigned int nframes)
+void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 {
 	struct cras_apm_reverse_module *rmod =
-			(struct cras_apm_reverse_module *)ext;
+		(struct cras_apm_reverse_module *)ext;
 	unsigned int writable;
 	int i, offset = 0;
 	float *const *wp;
@@ -456,23 +444,21 @@ void reverse_data_run(struct ext_dsp_module *ext,
 }
 
 void reverse_data_configure(struct ext_dsp_module *ext,
-			    unsigned int buffer_size,
-			    unsigned int num_channels,
+			    unsigned int buffer_size, unsigned int num_channels,
 			    unsigned int rate)
 {
 	struct cras_apm_reverse_module *rmod =
-			(struct cras_apm_reverse_module *)ext;
+		(struct cras_apm_reverse_module *)ext;
 	if (rmod->fbuf)
 		float_buffer_destroy(&rmod->fbuf);
-	rmod->fbuf = float_buffer_create(rate / 100,
-					 num_channels);
+	rmod->fbuf = float_buffer_create(rate / 100, num_channels);
 	rmod->dev_rate = rate;
 }
 
 static void get_aec_ini(const char *config_dir)
 {
-	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s",
-		 config_dir, AEC_CONFIG_NAME);
+	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", config_dir,
+		 AEC_CONFIG_NAME);
 	ini_name[MAX_INI_NAME_LEN] = '\0';
 
 	if (aec_ini) {
@@ -486,8 +472,8 @@ static void get_aec_ini(const char *config_dir)
 
 static void get_apm_ini(const char *config_dir)
 {
-	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s",
-		 config_dir, APM_CONFIG_NAME);
+	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", config_dir,
+		 APM_CONFIG_NAME);
 	ini_name[MAX_INI_NAME_LEN] = '\0';
 
 	if (apm_ini) {
@@ -502,8 +488,8 @@ static void get_apm_ini(const char *config_dir)
 int cras_apm_list_init(const char *device_config_dir)
 {
 	if (rmodule == NULL) {
-		rmodule = (struct cras_apm_reverse_module *)
-				calloc(1, sizeof(*rmodule));
+		rmodule = (struct cras_apm_reverse_module *)calloc(
+			1, sizeof(*rmodule));
 		rmodule->ext.run = reverse_data_run;
 		rmodule->ext.configure = reverse_data_configure;
 	}
@@ -514,9 +500,7 @@ int cras_apm_list_init(const char *device_config_dir)
 
 	update_first_output_dev_to_process();
 	cras_iodev_list_set_device_enabled_callback(
-			handle_device_enabled,
-			handle_device_disabled,
-			rmodule);
+		handle_device_enabled, handle_device_disabled, rmodule);
 
 	return 0;
 }
@@ -543,8 +527,7 @@ int cras_apm_list_deinit()
 	return 0;
 }
 
-int cras_apm_list_process(struct cras_apm *apm,
-			  struct float_buffer *input,
+int cras_apm_list_process(struct cras_apm *apm, struct float_buffer *input,
 			  unsigned int offset)
 {
 	unsigned int writable, nframes, nread;
@@ -592,22 +575,19 @@ int cras_apm_list_process(struct cras_apm *apm,
 
 	/* process and move to int buffer */
 	if ((float_buffer_writable(apm->fbuffer) == 0) &&
-            (buf_queued(apm->buffer) == 0)) {
+	    (buf_queued(apm->buffer) == 0)) {
 		nread = float_buffer_level(apm->fbuffer);
 		rp = float_buffer_read_pointer(apm->fbuffer, 0, &nread);
 		ret = webrtc_apm_process_stream_f(apm->apm_ptr,
 						  apm->fmt.num_channels,
-						  apm->fmt.frame_rate,
-						  rp);
+						  apm->fmt.frame_rate, rp);
 		if (ret) {
 			syslog(LOG_ERR, "APM process stream f err");
 			return ret;
 		}
 
-		dsp_util_interleave(rp,
-				    buf_write_pointer(apm->buffer),
-				    apm->fbuffer->num_channels,
-				    apm->fmt.format,
+		dsp_util_interleave(rp, buf_write_pointer(apm->buffer),
+				    apm->fbuffer->num_channels, apm->fmt.format,
 				    nread);
 		buf_increment_write(apm->buffer,
 				    nread * cras_get_format_bytes(&apm->fmt));
@@ -655,7 +635,7 @@ void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
 		if (handle == NULL) {
 			syslog(LOG_ERR, "Create dump handle fail, errno %d",
 			       errno);
-			return ;
+			return;
 		}
 		/* webrtc apm will own the FILE handle and close it. */
 		rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, start,
