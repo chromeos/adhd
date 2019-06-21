@@ -38,12 +38,10 @@ struct cras_tm;
  *    exp_state - Shared memory region for storing state.
  *    exp_state_size - Size of |exp_state|.
  */
-void cras_system_state_init(const char *device_config_dir,
-                            const char *shm_name,
-                            int rw_shm_fd,
-                            int ro_shm_fd,
-                            struct cras_server_state *exp_state,
-                            size_t exp_state_size);
+void cras_system_state_init(const char *device_config_dir, const char *shm_name,
+			    int rw_shm_fd, int ro_shm_fd,
+			    struct cras_server_state *exp_state,
+			    size_t exp_state_size);
 void cras_system_state_deinit();
 
 /* Sets the suffix string to control which UCM config fo load. */
@@ -175,12 +173,10 @@ int cras_system_alsa_card_exists(unsigned alsa_card_index);
  * Returns:
  *    0 on success, or -EBUSY if there is already a registered handler.
  */
-int cras_system_set_select_handler(int (*add)(int fd,
-					      void (*callback)(void *data),
-					      void *callback_data,
-					      void *select_data),
-				  void (*rm)(int fd, void *select_data),
-				  void *select_data);
+int cras_system_set_select_handler(
+	int (*add)(int fd, void (*callback)(void *data), void *callback_data,
+		   void *select_data),
+	void (*rm)(int fd, void *select_data), void *select_data);
 
 /* Adds the fd and callback pair.  When select indicates that fd is readable,
  * the callback will be called.
@@ -191,8 +187,7 @@ int cras_system_set_select_handler(int (*add)(int fd,
  * Returns:
  *    0 on success or a negative error code on failure.
  */
-int cras_system_add_select_fd(int fd,
-			      void (*callback)(void *data),
+int cras_system_add_select_fd(int fd, void (*callback)(void *data),
 			      void *callback_data);
 
 /* Removes the fd from the list of fds that are passed to select.
