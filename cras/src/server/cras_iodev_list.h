@@ -19,8 +19,10 @@ struct cras_rclient;
 struct stream_list;
 
 /* Device enabled/disabled callback. */
-typedef void (*device_enabled_callback_t)(struct cras_iodev *dev, void *cb_data);
-typedef void (*device_disabled_callback_t)(struct cras_iodev *dev, void *cb_data);
+typedef void (*device_enabled_callback_t)(struct cras_iodev *dev,
+					  void *cb_data);
+typedef void (*device_disabled_callback_t)(struct cras_iodev *dev,
+					   void *cb_data);
 
 /* Initialize the list of iodevs. */
 void cras_iodev_list_init();
@@ -86,8 +88,8 @@ int cras_iodev_list_get_inputs(struct cras_iodev_info **list_out);
  * Returns:
  *    Pointer to the first enabled device of direction.
  */
-struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
-	enum CRAS_STREAM_DIRECTION direction);
+struct cras_iodev *
+cras_iodev_list_get_first_enabled_iodev(enum CRAS_STREAM_DIRECTION direction);
 
 /* Returns SCO PCM device.
  * Args:
@@ -95,8 +97,8 @@ struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
  * Returns:
  *    Pointer to the SCO PCM device of direction.
  */
-struct cras_iodev *cras_iodev_list_get_sco_pcm_iodev(
-	enum CRAS_STREAM_DIRECTION direction);
+struct cras_iodev *
+cras_iodev_list_get_sco_pcm_iodev(enum CRAS_STREAM_DIRECTION direction);
 
 /* Returns the active node id.
  * Args:
@@ -104,8 +106,8 @@ struct cras_iodev *cras_iodev_list_get_sco_pcm_iodev(
  * Returns:
  *    The id of the active node.
  */
-cras_node_id_t cras_iodev_list_get_active_node_id(
-	enum CRAS_STREAM_DIRECTION direction);
+cras_node_id_t
+cras_iodev_list_get_active_node_id(enum CRAS_STREAM_DIRECTION direction);
 
 /* Stores the following data to the shared memory server state region:
  * (1) device list
@@ -133,7 +135,7 @@ void cras_iodev_list_notify_nodes_changed();
  *    direction - Direction of the node.
  */
 void cras_iodev_list_notify_active_node_changed(
-		enum CRAS_STREAM_DIRECTION direction);
+	enum CRAS_STREAM_DIRECTION direction);
 
 /* Sets an attribute of an ionode on a device.
  * Args:
@@ -142,8 +144,8 @@ void cras_iodev_list_notify_active_node_changed(
  *    attr - the attribute we want to change.
  *    value - the value we want to set.
  */
-int cras_iodev_list_set_node_attr(cras_node_id_t id,
-				  enum ionode_attr attr, int value);
+int cras_iodev_list_set_node_attr(cras_node_id_t id, enum ionode_attr attr,
+				  int value);
 
 /* Select a node as the preferred node.
  * Args:
@@ -236,9 +238,8 @@ struct stream_list *cras_iodev_list_get_stream_list();
 
 /* Sets the function to call when a device is enabled or disabled. */
 int cras_iodev_list_set_device_enabled_callback(
-		device_enabled_callback_t enabled_cb,
-		device_disabled_callback_t disabled_cb,
-		void *cb_data);
+	device_enabled_callback_t enabled_cb,
+	device_disabled_callback_t disabled_cb, void *cb_data);
 
 /* Registers loopback to an output device.
  * Args:
@@ -249,12 +250,11 @@ int cras_iodev_list_set_device_enabled_callback(
  *    loopback_dev_idx - Index of the loopback device that
  *        listens for output data.
  */
-void cras_iodev_list_register_loopback(
-		enum CRAS_LOOPBACK_TYPE loopback_type,
-		unsigned int output_dev_idx,
-		loopback_hook_data_t hook_data,
-		loopback_hook_control_t hook_start,
-		unsigned int loopback_dev_idx);
+void cras_iodev_list_register_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
+				       unsigned int output_dev_idx,
+				       loopback_hook_data_t hook_data,
+				       loopback_hook_control_t hook_start,
+				       unsigned int loopback_dev_idx);
 
 /* Unregisters loopback from an output device by matching
  * loopback type and loopback device index.
@@ -264,10 +264,9 @@ void cras_iodev_list_register_loopback(
  *    loopback_dev_idx - Index of the loopback device that
  *        listens for output data.
  */
-void cras_iodev_list_unregister_loopback(
-		enum CRAS_LOOPBACK_TYPE loopback_type,
-		unsigned int output_dev_idx,
-		unsigned int loopback_dev_idx);
+void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
+					 unsigned int output_dev_idx,
+					 unsigned int loopback_dev_idx);
 
 /* Suspends all hotwording streams. */
 int cras_iodev_list_suspend_hotword_streams();

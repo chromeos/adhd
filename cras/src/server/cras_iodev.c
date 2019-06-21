@@ -91,8 +91,8 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 		hw_level = rc;
 	}
 
-	ATLOG(atlog, AUDIO_THREAD_ODEV_DEFAULT_NO_STREAMS,
-	      odev->info.idx, hw_level, target_hw_level);
+	ATLOG(atlog, AUDIO_THREAD_ODEV_DEFAULT_NO_STREAMS, odev->info.idx,
+	      hw_level, target_hw_level);
 
 	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
 	if (hw_level <= target_hw_level) {
@@ -123,12 +123,12 @@ static int cras_iodev_start(struct cras_iodev *iodev)
 /* Gets the number of frames ready for this device to play.
  * It is the minimum number of available samples in dev_streams.
  */
-static unsigned int dev_playback_frames(struct cras_iodev* odev)
+static unsigned int dev_playback_frames(struct cras_iodev *odev)
 {
 	struct dev_stream *curr;
 	int frames = 0;
 
-	DL_FOREACH(odev->streams, curr) {
+	DL_FOREACH (odev->streams, curr) {
 		int dev_frames;
 
 		/* Skip stream which hasn't started running yet. */
@@ -146,7 +146,7 @@ static unsigned int dev_playback_frames(struct cras_iodev* odev)
 		if (dev_frames < 0)
 			continue;
 		if (!dev_frames) {
-			if(cras_rstream_get_is_draining(curr->stream))
+			if (cras_rstream_get_is_draining(curr->stream))
 				continue;
 			else
 				return 0;
@@ -182,11 +182,11 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev *odev,
 		return -EINVAL;
 
 	if (enable) {
-		ATLOG(atlog, AUDIO_THREAD_ODEV_NO_STREAMS,
-		      odev->info.idx, 0, 0);
+		ATLOG(atlog, AUDIO_THREAD_ODEV_NO_STREAMS, odev->info.idx, 0,
+		      0);
 	} else {
-		ATLOG(atlog, AUDIO_THREAD_ODEV_LEAVE_NO_STREAMS,
-		      odev->info.idx, 0, 0);
+		ATLOG(atlog, AUDIO_THREAD_ODEV_LEAVE_NO_STREAMS, odev->info.idx,
+		      0, 0);
 	}
 
 	rc = odev->no_stream(odev, enable);
@@ -219,7 +219,7 @@ int cras_iodev_is_zero_volume(const struct cras_iodev *odev)
 	system_volume = cras_system_get_volume();
 	if (odev->active_node) {
 		adjusted_node_volume = cras_iodev_adjust_node_volume(
-				odev->active_node, system_volume);
+			odev->active_node, system_volume);
 		return (adjusted_node_volume == 0);
 	}
 	return (system_volume == 0);
@@ -274,8 +274,8 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 		 * from stream later.
 		 * Starts the device here to finish state transition. */
 		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
-		ATLOG(atlog, AUDIO_THREAD_ODEV_START,
-				odev->info.idx, odev->min_cb_level, 0);
+		ATLOG(atlog, AUDIO_THREAD_ODEV_START, odev->info.idx,
+		      odev->min_cb_level, 0);
 		return cras_iodev_start(odev);
 	} else if (odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
 		/* S3 => S2:
@@ -307,8 +307,7 @@ static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
 		return 0;
 
 	for (i = 0, best = 0; iodev->supported_rates[i] != 0; i++) {
-		if (rrate == iodev->supported_rates[i] &&
-		    rrate >= 44100)
+		if (rrate == iodev->supported_rates[i] && rrate >= 44100)
 			return rrate;
 		if (best == 0 && (rrate % iodev->supported_rates[i] == 0 ||
 				  iodev->supported_rates[i] % rrate == 0))
@@ -343,7 +342,7 @@ static size_t get_best_channel_count(struct cras_iodev *iodev, size_t count)
 	 */
 	for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
 		if (iodev->supported_channel_counts[i] ==
-				preferred_channel_count)
+		    preferred_channel_count)
 			return preferred_channel_count;
 	}
 
@@ -380,9 +379,7 @@ static int apply_dsp(struct cras_iodev *iodev, uint8_t *buf, size_t frames)
 	if (!pipeline)
 		return 0;
 
-	rc = cras_dsp_pipeline_apply(pipeline,
-				     buf,
-				     iodev->format->format,
+	rc = cras_dsp_pipeline_apply(pipeline, buf, iodev->format->format,
 				     frames);
 
 	cras_dsp_put_pipeline(ctx);
@@ -407,11 +404,9 @@ static inline void adjust_dev_channel_for_dsp(const struct cras_iodev *iodev)
 		return;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		iodev->format->num_channels =
-			cras_dsp_num_output_channels(ctx);
+		iodev->format->num_channels = cras_dsp_num_output_channels(ctx);
 	else
-		iodev->format->num_channels =
-			cras_dsp_num_input_channels(ctx);
+		iodev->format->num_channels = cras_dsp_num_input_channels(ctx);
 
 	cras_dsp_put_pipeline(ctx);
 }
@@ -437,7 +432,8 @@ static void update_channel_layout(struct cras_iodev *iodev)
  * are higher than the supported number of channels. Should be used when the
  * number of channels of the format been reduced.
  */
-static void trim_channel_layout(struct cras_audio_format *fmt) {
+static void trim_channel_layout(struct cras_audio_format *fmt)
+{
 	int i;
 	for (i = 0; i < CRAS_CH_MAX; i++)
 		if (fmt->channel_layout[i] >= fmt->num_channels)
@@ -478,8 +474,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		if (iodev->dsp_context)
 			adjust_dev_channel_for_dsp(iodev);
 
-		actual_num_channels = get_best_channel_count(iodev,
-					iodev->format->num_channels);
+		actual_num_channels = get_best_channel_count(
+			iodev, iodev->format->num_channels);
 		actual_format = get_best_pcm_format(iodev, fmt->format);
 		if (actual_rate == 0 || actual_num_channels == 0 ||
 		    actual_format == 0) {
@@ -499,9 +495,8 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 
 		if (!iodev->rate_est)
 			iodev->rate_est = rate_estimator_create(
-						actual_rate,
-						&rate_estimation_window_sz,
-						rate_estimation_smooth_factor);
+				actual_rate, &rate_estimation_window_sz,
+				rate_estimation_smooth_factor);
 		else
 			rate_estimator_reset_rate(iodev->rate_est, actual_rate);
 	}
@@ -521,30 +516,26 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 {
 	struct pipeline *pipeline;
 
-	pipeline = iodev->dsp_context
-			? cras_dsp_get_pipeline(iodev->dsp_context)
-			: NULL;
+	pipeline = iodev->dsp_context ?
+			   cras_dsp_get_pipeline(iodev->dsp_context) :
+			   NULL;
 
 	if (!pipeline) {
 		cras_iodev_alloc_dsp(iodev);
-		cras_dsp_load_dummy_pipeline(
-			iodev->dsp_context,
-			iodev->format->num_channels);
+		cras_dsp_load_dummy_pipeline(iodev->dsp_context,
+					     iodev->format->num_channels);
 		pipeline = cras_dsp_get_pipeline(iodev->dsp_context);
 	}
 	/* dsp_context mutex locked. Now it's safe to modify dsp
 	 * pipeline resources. */
 
 	if (iodev->ext_dsp_module)
-		iodev->ext_dsp_module->configure(
-				iodev->ext_dsp_module,
-				iodev->buffer_size,
-				iodev->format->num_channels,
-				iodev->format->frame_rate);
+		iodev->ext_dsp_module->configure(iodev->ext_dsp_module,
+						 iodev->buffer_size,
+						 iodev->format->num_channels,
+						 iodev->format->frame_rate);
 
-	cras_dsp_pipeline_set_sink_ext_module(
-			pipeline,
-			iodev->ext_dsp_module);
+	cras_dsp_pipeline_set_sink_ext_module(pipeline, iodev->ext_dsp_module);
 
 	/* Unlock dsp_context mutex. */
 	cras_dsp_put_pipeline(iodev->dsp_context);
@@ -593,7 +584,7 @@ void cras_iodev_update_dsp(struct cras_iodev *iodev)
 		return;
 
 	cras_dsp_set_variable_string(iodev->dsp_context, "dsp_name",
-				     iodev->dsp_name ? : "");
+				     iodev->dsp_name ?: "");
 
 	if (iodev->active_node && iodev->active_node->left_right_swapped)
 		swap_lr_disabled = 0;
@@ -604,9 +595,8 @@ void cras_iodev_update_dsp(struct cras_iodev *iodev)
 	cras_dsp_load_pipeline(iodev->dsp_context);
 }
 
-
 int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev *iodev,
-					   struct cras_ionode *node, int enable)
+					  struct cras_ionode *node, int enable)
 {
 	if (node->left_right_swapped == enable)
 		return 0;
@@ -629,9 +619,7 @@ void cras_iodev_free_format(struct cras_iodev *iodev)
 	iodev->format = NULL;
 }
 
-
-void cras_iodev_init_audio_area(struct cras_iodev *iodev,
-				int num_channels)
+void cras_iodev_init_audio_area(struct cras_iodev *iodev, int num_channels)
 {
 	if (iodev->area)
 		cras_iodev_free_audio_area(iodev);
@@ -667,12 +655,11 @@ static void cras_iodev_alloc_dsp(struct cras_iodev *iodev)
 		purpose = "capture";
 
 	cras_iodev_free_dsp(iodev);
-	iodev->dsp_context = cras_dsp_context_new(iodev->format->frame_rate,
-						  purpose);
+	iodev->dsp_context =
+		cras_dsp_context_new(iodev->format->frame_rate, purpose);
 }
 
-void cras_iodev_fill_time_from_frames(size_t frames,
-				      size_t frame_rate,
+void cras_iodev_fill_time_from_frames(size_t frames, size_t frame_rate,
 				      struct timespec *ts)
 {
 	uint64_t to_play_usec;
@@ -725,19 +712,20 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
 	unsigned int volume;
 
-	volume = cras_iodev_adjust_active_node_volume(
-			iodev, cras_system_get_volume());
+	volume = cras_iodev_adjust_active_node_volume(iodev,
+						      cras_system_get_volume());
 
 	if (iodev->active_node && iodev->active_node->softvol_scalers)
 		return iodev->active_node->softvol_scalers[volume];
 	return softvol_get_scaler(volume);
 }
 
-float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev) {
+float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
+{
 	float scaler = 1.0f;
 	if (cras_iodev_software_volume_needed(iodev)) {
 		long gain = cras_iodev_adjust_active_node_gain(
-				iodev, cras_system_get_capture_gain());
+			iodev, cras_system_get_capture_gain());
 		scaler = convert_softvol_scaler_from_dB(gain);
 	}
 	return scaler;
@@ -765,8 +753,7 @@ int cras_iodev_get_valid_frames(struct cras_iodev *odev,
 	}
 }
 
-int cras_iodev_add_stream(struct cras_iodev *iodev,
-			  struct dev_stream *stream)
+int cras_iodev_add_stream(struct cras_iodev *iodev, struct dev_stream *stream)
 {
 	/*
 	 * For input stream, start stream right after adding stream.
@@ -782,7 +769,7 @@ int cras_iodev_add_stream(struct cras_iodev *iodev,
 }
 
 void cras_iodev_start_stream(struct cras_iodev *iodev,
-			    struct dev_stream *stream)
+			     struct dev_stream *stream)
 {
 	unsigned int cb_threshold = dev_stream_cb_threshold(stream);
 
@@ -812,7 +799,7 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 
 	iodev->min_cb_level = iodev->buffer_size / 2;
 	iodev->max_cb_level = 0;
-	DL_FOREACH(iodev->streams, out) {
+	DL_FOREACH (iodev->streams, out) {
 		if (out->stream == rstream) {
 			buffer_share_rm_id(iodev->buf_state,
 					   rstream->stream_id);
@@ -829,7 +816,8 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 			set_earliest = 1;
 			earliest_next_cb_ts = out->stream->next_cb_ts;
 		}
-		if (timespec_after(&earliest_next_cb_ts, &out->stream->next_cb_ts))
+		if (timespec_after(&earliest_next_cb_ts,
+				   &out->stream->next_cb_ts))
 			earliest_next_cb_ts = out->stream->next_cb_ts;
 	}
 
@@ -848,7 +836,7 @@ struct dev_stream *cras_iodev_rm_stream(struct cras_iodev *iodev,
 	if (!set_earliest)
 		return ret;
 
-	DL_FOREACH(iodev->streams, out) {
+	DL_FOREACH (iodev->streams, out) {
 		if (!dev_stream_is_running(out))
 			out->stream->next_cb_ts = earliest_next_cb_ts;
 	}
@@ -864,11 +852,10 @@ unsigned int cras_iodev_stream_offset(struct cras_iodev *iodev,
 }
 
 void cras_iodev_stream_written(struct cras_iodev *iodev,
-			       struct dev_stream *stream,
-			       unsigned int nwritten)
+			       struct dev_stream *stream, unsigned int nwritten)
 {
-	buffer_share_offset_update(iodev->buf_state,
-				   stream->stream->stream_id, nwritten);
+	buffer_share_offset_update(iodev->buf_state, stream->stream->stream_id,
+				   nwritten);
 }
 
 unsigned int cras_iodev_all_streams_written(struct cras_iodev *iodev)
@@ -883,14 +870,13 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev *iodev)
 	unsigned int max = 0;
 	struct dev_stream *curr;
 
-	DL_FOREACH(iodev->streams, curr) {
+	DL_FOREACH (iodev->streams, curr) {
 		/* Skip stream which hasn't started running yet. */
 		if (!dev_stream_is_running(curr))
 			continue;
 
-		max = MAX(max,
-			  buffer_share_id_offset(iodev->buf_state,
-						 curr->stream->stream_id));
+		max = MAX(max, buffer_share_id_offset(iodev->buf_state,
+						      curr->stream->stream_id));
 	}
 
 	return max;
@@ -905,7 +891,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	if (iodev->pre_open_iodev_hook)
 		iodev->pre_open_iodev_hook();
 
-	DL_FOREACH(iodev->loopbacks, loopback) {
+	DL_FOREACH (iodev->loopbacks, loopback) {
 		if (loopback->hook_control)
 			loopback->hook_control(true, loopback->cb_data);
 	}
@@ -933,8 +919,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	/*
 	 * Convert cb_level from input format to device format
 	 */
-	cb_level = cras_frames_at_rate(fmt->frame_rate,
-				       cb_level,
+	cb_level = cras_frames_at_rate(fmt->frame_rate, cb_level,
 				       iodev->format->frame_rate);
 	/* Make sure the min_cb_level doesn't get too large. */
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
@@ -975,7 +960,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		 * through UCM labels DefaultNodeGain.
 		 */
 		iodev->software_gain_scaler =
-				cras_iodev_get_software_gain_scaler(iodev);
+			cras_iodev_get_software_gain_scaler(iodev);
 	}
 
 	add_ext_dsp_module_to_pipeline(iodev);
@@ -1015,7 +1000,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	if (iodev->post_close_iodev_hook)
 		iodev->post_close_iodev_hook();
 
-	DL_FOREACH(iodev->loopbacks, loopback) {
+	DL_FOREACH (iodev->loopbacks, loopback) {
 		if (loopback->hook_control)
 			loopback->hook_control(false, loopback->cb_data);
 	}
@@ -1059,7 +1044,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	int rc;
 	struct cras_loopback *loopback;
 
-	DL_FOREACH(iodev->loopbacks, loopback) {
+	DL_FOREACH (iodev->loopbacks, loopback) {
 		if (loopback->type == LOOPBACK_POST_MIX_PRE_DSP)
 			loopback->hook_data(frames, nframes, iodev->format,
 					    loopback->cb_data);
@@ -1069,7 +1054,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	if (rc)
 		return rc;
 
-	DL_FOREACH(iodev->loopbacks, loopback) {
+	DL_FOREACH (iodev->loopbacks, loopback) {
 		if (loopback->type == LOOPBACK_POST_DSP)
 			loopback->hook_data(frames, nframes, iodev->format,
 					    loopback->cb_data);
@@ -1109,24 +1094,21 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 			target *= software_volume_scaler;
 		}
 
-		cras_scale_buffer_increment(
-				fmt->format, frames, nframes,
-				starting_scaler, increment,
-				target, fmt->num_channels);
+		cras_scale_buffer_increment(fmt->format, frames, nframes,
+					    starting_scaler, increment, target,
+					    fmt->num_channels);
 		cras_ramp_update_ramped_frames(iodev->ramp, nframes);
 	} else if (!output_should_mute(iodev) && software_volume_needed) {
 		/* Just scale for software volume using
 		 * cras_scale_buffer. */
 		unsigned int nsamples = nframes * fmt->num_channels;
-		cras_scale_buffer(fmt->format, frames,
-				  nsamples, software_volume_scaler);
+		cras_scale_buffer(fmt->format, frames, nsamples,
+				  software_volume_scaler);
 	}
 
 	if (remix_converter)
-		cras_channel_remix_convert(remix_converter,
-				   iodev->format,
-				   frames,
-				   nframes);
+		cras_channel_remix_convert(remix_converter, iodev->format,
+					   frames, nframes);
 	if (iodev->rate_est)
 		rate_estimator_add_frames(iodev->rate_est, nframes);
 
@@ -1159,7 +1141,8 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 	if (*frames > frame_requested) {
 		syslog(LOG_ERR,
 		       "frames returned from get_buffer is greater than "
-		       "requested: %u > %u", *frames, frame_requested);
+		       "requested: %u > %u",
+		       *frames, frame_requested);
 		return -EINVAL;
 	}
 
@@ -1167,7 +1150,6 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 
 	/* TODO(hychao) - This assumes interleaved audio. */
 	hw_buffer = data->area->channels[0].buf;
-
 
 	/*
 	 * input_dsp_offset records the position where input dsp has applied to
@@ -1179,8 +1161,9 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 	 * already applied dsp.
 	 */
 	if (*frames > iodev->input_dsp_offset) {
-		rc = apply_dsp(iodev, hw_buffer +
-			       iodev->input_dsp_offset * frame_bytes,
+		rc = apply_dsp(iodev,
+			       hw_buffer +
+				       iodev->input_dsp_offset * frame_bytes,
 			       *frames - iodev->input_dsp_offset);
 		if (rc)
 			return rc;
@@ -1203,7 +1186,8 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 	if (*frames > frame_requested) {
 		syslog(LOG_ERR,
 		       "frames returned from get_buffer is greater than "
-		       "requested: %u > %u", *frames, frame_requested);
+		       "requested: %u > %u",
+		       *frames, frame_requested);
 		return -EINVAL;
 	}
 	return rc;
@@ -1222,15 +1206,14 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
 
 int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev)
 {
-	rate_estimator_reset_rate(iodev->rate_est,
-				  iodev->format->frame_rate);
+	rate_estimator_reset_rate(iodev->rate_est, iodev->format->frame_rate);
 	return 0;
 }
 
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 {
 	return rate_estimator_get_rate(iodev->rate_est) /
-			iodev->format->frame_rate;
+	       iodev->format->frame_rate;
 }
 
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)
@@ -1259,7 +1242,7 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev,
 	int rc;
 
 	rc = iodev->frames_queued(iodev, hw_tstamp);
-	if(rc == -EPIPE)
+	if (rc == -EPIPE)
 		cras_audio_thread_severe_underrun();
 
 	if (rc < 0)
@@ -1312,15 +1295,16 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 		/* This assumes consecutive channel areas. */
 		buf = area->channels[0].buf;
 		memset(buf, 0, frames_written * frame_bytes);
-		cras_iodev_put_output_buffer(odev, buf, frames_written,
-					     NULL, NULL);
+		cras_iodev_put_output_buffer(odev, buf, frames_written, NULL,
+					     NULL);
 		frames -= frames_written;
 	}
 
 	return 0;
 }
 
-int cras_iodev_output_underrun(struct cras_iodev *odev) {
+int cras_iodev_output_underrun(struct cras_iodev *odev)
+{
 	cras_audio_thread_underrun();
 	if (odev->output_underrun)
 		return odev->output_underrun(odev);
@@ -1338,7 +1322,7 @@ int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 
 	/* Do not wake up for device not started yet. */
 	return (odev->state == CRAS_IODEV_STATE_NORMAL_RUN ||
-	        odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN);
+		odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN);
 }
 
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
@@ -1364,8 +1348,8 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
 		if (*hw_level > odev->min_cb_level && dev_playback_frames(odev))
 			return *hw_level - odev->min_cb_level;
 
-		wakeup_frames = cras_time_to_frames(&dev_normal_run_wake_up_time,
-						    odev->format->frame_rate);
+		wakeup_frames = cras_time_to_frames(
+			&dev_normal_run_wake_up_time, odev->format->frame_rate);
 		if (level > wakeup_frames)
 			return level - wakeup_frames;
 		else
@@ -1404,7 +1388,7 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev)
 	state = cras_iodev_state(odev);
 
 	may_enter_normal_run = (state == CRAS_IODEV_STATE_OPEN ||
-		                state == CRAS_IODEV_STATE_NO_STREAM_RUN);
+				state == CRAS_IODEV_STATE_NO_STREAM_RUN);
 
 	if (may_enter_normal_run && dev_playback_frames(odev))
 		return cras_iodev_output_event_sample_ready(odev);
@@ -1430,7 +1414,7 @@ unsigned int cras_iodev_get_num_severe_underruns(const struct cras_iodev *iodev)
 	return 0;
 }
 
-int cras_iodev_reset_request(struct cras_iodev* iodev)
+int cras_iodev_reset_request(struct cras_iodev *iodev)
 {
 	/* Ignore requests if there is a pending request.
 	 * This function sends the request from audio thread to main
@@ -1485,17 +1469,16 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 		to = 0.0;
 		duration_secs = RAMP_MUTE_DURATION_SECS;
 		cb = ramp_mute_callback;
-		cb_data = (void*)odev;
+		cb_data = (void *)odev;
 		break;
 	default:
 		return -EINVAL;
 	}
 
 	/* Starts ramping. */
-	rc = cras_mute_ramp_start(
-			odev->ramp, from, to,
-			duration_secs * odev->format->frame_rate,
-			cb, cb_data);
+	rc = cras_mute_ramp_start(odev->ramp, from, to,
+				  duration_secs * odev->format->frame_rate, cb,
+				  cb_data);
 
 	if (rc)
 		return rc;
@@ -1538,13 +1521,13 @@ int cras_iodev_start_volume_ramp(struct cras_iodev *odev,
 	from = old_scaler / new_scaler;
 	to = 1.0;
 
-	return cras_volume_ramp_start(
-			odev->ramp, from, to,
-			RAMP_VOLUME_CHANGE_DURATION_SECS * odev->format->frame_rate,
-			NULL, NULL);
+	return cras_volume_ramp_start(odev->ramp, from, to,
+				      RAMP_VOLUME_CHANGE_DURATION_SECS *
+					      odev->format->frame_rate,
+				      NULL, NULL);
 }
 
-int cras_iodev_set_mute(struct cras_iodev* iodev)
+int cras_iodev_set_mute(struct cras_iodev *iodev)
 {
 	if (!cras_iodev_is_open(iodev))
 		return 0;
@@ -1555,7 +1538,7 @@ int cras_iodev_set_mute(struct cras_iodev* iodev)
 }
 
 void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
-		unsigned int hw_level)
+					unsigned int hw_level)
 {
 	iodev->highest_hw_level = MAX(iodev->highest_hw_level, hw_level);
 }
