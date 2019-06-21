@@ -130,29 +130,29 @@ int cras_rstream_create(struct cras_rstream_config *config,
 void cras_rstream_destroy(struct cras_rstream *stream);
 
 /* Gets the id of the stream */
-static inline cras_stream_id_t cras_rstream_id(
-		const struct cras_rstream *stream)
+static inline cras_stream_id_t
+cras_rstream_id(const struct cras_rstream *stream)
 {
 	return stream->stream_id;
 }
 
 /* Gets the total buffer size in frames for the given client stream. */
-static inline size_t cras_rstream_get_buffer_frames(
-		const struct cras_rstream *stream)
+static inline size_t
+cras_rstream_get_buffer_frames(const struct cras_rstream *stream)
 {
 	return stream->buffer_frames;
 }
 
 /* Gets the callback threshold in frames for the given client stream. */
-static inline size_t cras_rstream_get_cb_threshold(
-		const struct cras_rstream *stream)
+static inline size_t
+cras_rstream_get_cb_threshold(const struct cras_rstream *stream)
 {
 	return stream->cb_threshold;
 }
 
 /* Gets the max write size for the stream. */
-static inline size_t cras_rstream_get_max_write_frames(
-		const struct cras_rstream *stream)
+static inline size_t
+cras_rstream_get_max_write_frames(const struct cras_rstream *stream)
 {
 	if (stream->flags & BULK_AUDIO_OK)
 		return cras_rstream_get_buffer_frames(stream);
@@ -160,15 +160,15 @@ static inline size_t cras_rstream_get_max_write_frames(
 }
 
 /* Gets the stream type of this stream. */
-static inline enum CRAS_STREAM_TYPE cras_rstream_get_type(
-		const struct cras_rstream *stream)
+static inline enum CRAS_STREAM_TYPE
+cras_rstream_get_type(const struct cras_rstream *stream)
 {
 	return stream->stream_type;
 }
 
 /* Gets the direction (input/output/loopback) of the stream. */
-static inline enum CRAS_STREAM_DIRECTION cras_rstream_get_direction(
-		const struct cras_rstream *stream)
+static inline enum CRAS_STREAM_DIRECTION
+cras_rstream_get_direction(const struct cras_rstream *stream)
 {
 	return stream->direction;
 }
@@ -195,15 +195,15 @@ static inline int cras_rstream_get_audio_fd(const struct cras_rstream *stream)
 }
 
 /* Gets the is_draning flag. */
-static inline
-int cras_rstream_get_is_draining(const struct cras_rstream *stream)
+static inline int
+cras_rstream_get_is_draining(const struct cras_rstream *stream)
 {
 	return stream->is_draining;
 }
 
 /* Sets the is_draning flag. */
 static inline void cras_rstream_set_is_draining(struct cras_rstream *stream,
-					    int is_draining)
+						int is_draining)
 {
 	stream->is_draining = is_draining;
 }
@@ -222,8 +222,8 @@ cras_rstream_shm(struct cras_rstream *stream)
 }
 
 /* Gets the total size of shm memory allocated. */
-static inline size_t cras_rstream_get_total_shm_size(
-		const struct cras_rstream *stream)
+static inline size_t
+cras_rstream_get_total_shm_size(const struct cras_rstream *stream)
 {
 	return cras_shm_total_size(stream->shm);
 }
@@ -249,8 +249,9 @@ static inline int stream_is_server_only(const struct cras_rstream *s)
 unsigned int cras_rstream_get_effects(const struct cras_rstream *stream);
 
 /* Gets the format of data after stream specific processing. */
-struct cras_audio_format *cras_rstream_post_processing_format(
-		const struct cras_rstream *stream, void *dev_ptr);
+struct cras_audio_format *
+cras_rstream_post_processing_format(const struct cras_rstream *stream,
+				    void *dev_ptr);
 
 /* Checks how much time has passed since last stream fetch and records
  * the longest fetch interval. */
@@ -265,15 +266,13 @@ int cras_rstream_request_audio(struct cras_rstream *stream,
 int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count);
 
 /* Let the rstream know when a device is added or removed. */
-void cras_rstream_dev_attach(struct cras_rstream *rstream,
-			     unsigned int dev_id,
+void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
 			     void *dev_ptr);
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id);
 
 /* A device using this stream has read or written samples. */
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
-				    unsigned int frames,
-				    unsigned int dev_id);
+				    unsigned int frames, unsigned int dev_id);
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream);
 void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream);
@@ -308,8 +307,7 @@ float cras_rstream_get_volume_scaler(struct cras_rstream *rstream);
 /* Returns a pointer to readable frames, fills frames with the number of frames
  * available. */
 uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
-					  unsigned int offset,
-					  size_t *frames);
+					  unsigned int offset, size_t *frames);
 
 /* Returns non-zero if the stream is muted. */
 int cras_rstream_get_mute(const struct cras_rstream *rstream);

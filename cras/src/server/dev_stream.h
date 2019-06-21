@@ -68,10 +68,8 @@ void dev_stream_destroy(struct dev_stream *dev_stream);
  *        sample rate should adjust to.
  */
 void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
-			     unsigned int dev_rate,
-			     double dev_rate_ratio,
-			     double master_rate_ratio,
-			     int coarse_rate_adjust);
+			     unsigned int dev_rate, double dev_rate_ratio,
+			     double master_rate_ratio, int coarse_rate_adjust);
 
 /*
  * Renders count frames from shm into dst.  Updates count if anything is
@@ -83,8 +81,7 @@ void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
  *    num_to_write - The number of frames written.
  */
 int dev_stream_mix(struct dev_stream *dev_stream,
-		   const struct cras_audio_format *fmt,
-		   uint8_t *dst,
+		   const struct cras_audio_format *fmt, uint8_t *dst,
 		   unsigned int num_to_write);
 
 /*
@@ -96,9 +93,9 @@ int dev_stream_mix(struct dev_stream *dev_stream,
  *    software_gain_scaler - The software gain scaler.
  */
 unsigned int dev_stream_capture(struct dev_stream *dev_stream,
-			const struct cras_audio_area *area,
-			unsigned int area_offset,
-			float software_gain_scaler);
+				const struct cras_audio_area *area,
+				unsigned int area_offset,
+				float software_gain_scaler);
 
 /* Returns the number of iodevs this stream has attached to. */
 int dev_stream_attached_devs(const struct dev_stream *dev_stream);
@@ -138,13 +135,11 @@ int dev_stream_capture_update_rstream(struct dev_stream *dev_stream);
 int dev_stream_playback_update_rstream(struct dev_stream *dev_stream);
 
 /* Fill ts with the time the playback sample will be played. */
-void cras_set_playback_timestamp(size_t frame_rate,
-				 size_t frames,
+void cras_set_playback_timestamp(size_t frame_rate, size_t frames,
 				 struct cras_timespec *ts);
 
 /* Fill ts with the time the capture sample was recorded. */
-void cras_set_capture_timestamp(size_t frame_rate,
-				size_t frames,
+void cras_set_capture_timestamp(size_t frame_rate, size_t frames,
 				struct cras_timespec *ts);
 
 /* Fill shm ts with the time the playback sample will be played or the capture
@@ -176,10 +171,8 @@ int dev_stream_request_playback_samples(struct dev_stream *dev_stream,
  *   0 on success; negative error code on failure.
  *   A positive value if there is no need to set wake up time for this stream.
  */
-int dev_stream_wake_time(struct dev_stream *dev_stream,
-			 unsigned int curr_level,
-			 struct timespec *level_tstamp,
-			 unsigned int cap_limit,
+int dev_stream_wake_time(struct dev_stream *dev_stream, unsigned int curr_level,
+			 struct timespec *level_tstamp, unsigned int cap_limit,
 			 int is_cap_limit_stream,
 			 struct timespec *wake_time_out);
 

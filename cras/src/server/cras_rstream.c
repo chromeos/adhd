@@ -65,8 +65,7 @@ static inline int buffer_meets_size_limit(size_t buffer_size, size_t rate)
 static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 				     const struct cras_audio_format *format,
 				     enum CRAS_STREAM_TYPE stream_type,
-				     size_t buffer_frames,
-				     size_t cb_threshold,
+				     size_t buffer_frames, size_t cb_threshold,
 				     struct cras_rclient *client,
 				     struct cras_rstream **stream_out)
 {
@@ -133,8 +132,8 @@ static void clear_pending_reply(struct cras_rstream *stream)
  *   A negative error code if read fails or the message from client
  *   has errors.
  */
-static int get_audio_request_reply(
-	const struct cras_rstream *stream, struct audio_message *msg)
+static int get_audio_request_reply(const struct cras_rstream *stream,
+				   struct audio_message *msg)
 {
 	int rc;
 
@@ -155,8 +154,8 @@ static int get_audio_request_reply(
  *   A negative error code if read fails or the message from client
  *   has errors.
  */
-static int read_and_handle_client_message(struct cras_rstream *stream) {
-
+static int read_and_handle_client_message(struct cras_rstream *stream)
+{
 	struct audio_message msg;
 	int rc;
 
@@ -230,9 +229,10 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	}
 
 	stream->buf_state = buffer_share_create(stream->buffer_frames);
-	stream->apm_list = (stream->direction == CRAS_STREAM_INPUT)
-			? cras_apm_list_create(stream, config->effects)
-			: NULL;
+	stream->apm_list =
+		(stream->direction == CRAS_STREAM_INPUT) ?
+			cras_apm_list_create(stream, config->effects) :
+			NULL;
 
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       config->stream_id, config->buffer_frames, config->cb_threshold);
@@ -260,13 +260,13 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 
 unsigned int cras_rstream_get_effects(const struct cras_rstream *stream)
 {
-	return stream->apm_list
-			? cras_apm_list_get_effects(stream->apm_list)
-			: 0;
+	return stream->apm_list ? cras_apm_list_get_effects(stream->apm_list) :
+				  0;
 }
 
-struct cras_audio_format *cras_rstream_post_processing_format(
-		const struct cras_rstream *stream, void *dev_ptr)
+struct cras_audio_format *
+cras_rstream_post_processing_format(const struct cras_rstream *stream,
+				    void *dev_ptr)
 {
 	struct cras_apm *apm;
 
@@ -292,8 +292,7 @@ void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 }
 
 static void init_audio_message(struct audio_message *msg,
-			       enum CRAS_AUDIO_MESSAGE_ID id,
-			       uint32_t frames)
+			       enum CRAS_AUDIO_MESSAGE_ID id, uint32_t frames)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->id = id;
@@ -346,8 +345,7 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count)
 	return rc;
 }
 
-void cras_rstream_dev_attach(struct cras_rstream *rstream,
-			     unsigned int dev_id,
+void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
 			     void *dev_ptr)
 {
 	if (buffer_share_add_id(rstream->buf_state, dev_id, dev_ptr) == 0)
@@ -386,24 +384,23 @@ void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 }
 
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
-				    unsigned int frames,
-				    unsigned int dev_id)
+				    unsigned int frames, unsigned int dev_id)
 {
 	buffer_share_offset_update(rstream->buf_state, dev_id, frames);
 }
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 {
-	unsigned int nwritten = buffer_share_get_new_write_point(
-					rstream->buf_state);
+	unsigned int nwritten =
+		buffer_share_get_new_write_point(rstream->buf_state);
 
 	cras_shm_buffer_written(rstream->shm, nwritten);
 }
 
 void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream)
 {
-	unsigned int nwritten = buffer_share_get_new_write_point(
-					rstream->buf_state);
+	unsigned int nwritten =
+		buffer_share_get_new_write_point(rstream->buf_state);
 
 	cras_shm_buffer_read(rstream->shm, nwritten);
 }
@@ -424,7 +421,7 @@ unsigned int cras_rstream_playable_frames(struct cras_rstream *rstream,
 					  unsigned int dev_id)
 {
 	return rstream->queued_frames -
-			cras_rstream_dev_offset(rstream, dev_id);
+	       cras_rstream_dev_offset(rstream, dev_id);
 }
 
 float cras_rstream_get_volume_scaler(struct cras_rstream *rstream)
@@ -433,8 +430,7 @@ float cras_rstream_get_volume_scaler(struct cras_rstream *rstream)
 }
 
 uint8_t *cras_rstream_get_readable_frames(struct cras_rstream *rstream,
-					  unsigned int offset,
-					  size_t *frames)
+					  unsigned int offset, size_t *frames)
 {
 	return cras_shm_get_readable_frames(rstream->shm, offset, frames);
 }

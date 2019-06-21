@@ -12,7 +12,6 @@
 #include "server_stream.h"
 #include "stream_list.h"
 
-
 /* Parameters used for server stream. */
 static unsigned int server_stream_block_size = 480;
 
@@ -22,8 +21,7 @@ static unsigned int server_stream_block_size = 480;
  * make pinned device open and let data flow through its dsp
  * pipeline.
  */
-static struct cras_audio_format format =
-{
+static struct cras_audio_format format = {
 	SND_PCM_FORMAT_S16_LE,
 	48000,
 	2,
@@ -55,11 +53,11 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
 		return;
 	}
 
-	stream_config = (struct cras_rstream_config *)
-			calloc(1, sizeof(*stream_config));
+	stream_config =
+		(struct cras_rstream_config *)calloc(1, sizeof(*stream_config));
 	stream_config->format = &format;
 	stream_config->stream_id =
-			cras_get_stream_id(SERVER_STREAM_CLIENT_ID, 0);
+		cras_get_stream_id(SERVER_STREAM_CLIENT_ID, 0);
 	stream_config->stream_type = CRAS_STREAM_TYPE_DEFAULT;
 	stream_config->direction = CRAS_STREAM_INPUT;
 	stream_config->flags = SERVER_ONLY;

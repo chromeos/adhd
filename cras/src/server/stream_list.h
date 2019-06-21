@@ -14,10 +14,10 @@ struct cras_rstream_config;
 struct cras_audio_format;
 struct stream_list;
 
-typedef int (stream_callback)(struct cras_rstream *rstream);
-typedef int (stream_create_func)(struct cras_rstream_config *stream_config,
-				 struct cras_rstream **rstream);
-typedef void (stream_destroy_func)(struct cras_rstream *rstream);
+typedef int(stream_callback)(struct cras_rstream *rstream);
+typedef int(stream_create_func)(struct cras_rstream_config *stream_config,
+				struct cras_rstream **rstream);
+typedef void(stream_destroy_func)(struct cras_rstream *rstream);
 
 struct stream_list *stream_list_create(stream_callback *add_cb,
 				       stream_callback *rm_cb,
