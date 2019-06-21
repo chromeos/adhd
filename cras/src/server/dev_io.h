@@ -45,8 +45,7 @@ int dev_io_playback_write(struct open_dev **odevs,
 			  struct cras_fmt_conv *output_converter);
 
 /* Only public for testing. */
-int write_output_samples(struct open_dev **odevs,
-			 struct open_dev *adev,
+int write_output_samples(struct open_dev **odevs, struct open_dev *adev,
 			 struct cras_fmt_conv *output_converter);
 
 /*
@@ -88,7 +87,7 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 
 /* Returns a pointer to an open_dev if it is in the list, otherwise NULL. */
 struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
-                                      unsigned int dev_idx);
+				      unsigned int dev_idx);
 
 /* Append a new stream to a specified set of iodevs. */
 int dev_io_append_stream(struct open_dev **dev_list,
@@ -97,7 +96,6 @@ int dev_io_append_stream(struct open_dev **dev_list,
 
 /* Remove a stream from the provided list of devices. */
 int dev_io_remove_stream(struct open_dev **dev_list,
-			 struct cras_rstream *stream,
-			 struct cras_iodev *dev);
+			 struct cras_rstream *stream, struct cras_iodev *dev);
 
 #endif /* DEV_IO_H_ */

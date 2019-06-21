@@ -37,8 +37,7 @@ static const int MIN_EMPTY_PERIOD_SEC = 30;
 static int non_empty_device_count = 0;
 
 /* Gets the master device which the stream is attached to. */
-static inline
-struct cras_iodev *get_master_dev(const struct dev_stream *stream)
+static inline struct cras_iodev *get_master_dev(const struct dev_stream *stream)
 {
 	return (struct cras_iodev *)stream->stream->master_dev.dev_ptr;
 }
@@ -52,18 +51,18 @@ static void update_estimated_rate(struct open_dev *adev)
 	struct cras_iodev *dev = adev->dev;
 	struct dev_stream *dev_stream;
 
-	DL_FOREACH(dev->streams, dev_stream) {
+	DL_FOREACH (dev->streams, dev_stream) {
 		master_dev = get_master_dev(dev_stream);
 		if (master_dev == NULL) {
 			syslog(LOG_ERR, "Fail to find master open dev.");
 			continue;
 		}
 
-		dev_stream_set_dev_rate(dev_stream,
-				dev->format->frame_rate,
-				cras_iodev_get_est_rate_ratio(dev),
-				cras_iodev_get_est_rate_ratio(master_dev),
-				adev->coarse_rate_adjust);
+		dev_stream_set_dev_rate(
+			dev_stream, dev->format->frame_rate,
+			cras_iodev_get_est_rate_ratio(dev),
+			cras_iodev_get_est_rate_ratio(master_dev),
+			adev->coarse_rate_adjust);
 	}
 }
 
@@ -71,30 +70,32 @@ static void update_estimated_rate(struct open_dev *adev)
  * Counts the number of devices which are currently playing/capturing non-empty
  * audio.
  */
-static inline int count_non_empty_dev(struct open_dev *adevs) {
+static inline int count_non_empty_dev(struct open_dev *adevs)
+{
 	int count = 0;
 	struct open_dev *adev;
-	DL_FOREACH(adevs, adev) {
+	DL_FOREACH (adevs, adev) {
 		if (!adev->empty_pi || !pic_interval_elapsed(adev->empty_pi))
 			count++;
 	}
 	return count;
 }
 
-static void check_non_empty_state_transition(struct open_dev *adevs) {
+static void check_non_empty_state_transition(struct open_dev *adevs)
+{
 	int new_non_empty_dev_count = count_non_empty_dev(adevs);
 
 	// If we have transitioned to or from a state with 0 non-empty devices,
 	// notify the main thread to update system state.
 	if ((non_empty_device_count == 0) != (new_non_empty_dev_count == 0))
-		cras_non_empty_audio_send_msg(
-			new_non_empty_dev_count > 0 ? 1 : 0);
+		cras_non_empty_audio_send_msg(new_non_empty_dev_count > 0 ? 1 :
+									    0);
 
 	non_empty_device_count = new_non_empty_dev_count;
 }
 
 /* Checks whether it is time to fetch. */
-static bool is_time_to_fetch(const struct dev_stream* dev_stream,
+static bool is_time_to_fetch(const struct dev_stream *dev_stream,
 			     struct timespec now)
 {
 	const struct timespec *next_cb_ts;
@@ -131,7 +132,7 @@ static int fetch_streams(struct open_dev *adev)
 	if (delay < 0)
 		return delay;
 
-	DL_FOREACH(adev->dev->streams, dev_stream) {
+	DL_FOREACH (adev->dev->streams, dev_stream) {
 		struct cras_rstream *rstream = dev_stream->stream;
 		struct cras_audio_shm *shm = cras_rstream_shm(rstream);
 		struct timespec now;
@@ -168,7 +169,7 @@ static int fetch_streams(struct open_dev *adev)
 		/*
 		 * Skip fetching if there are enough frames in shared memory.
 		 */
-		if(!cras_shm_is_buffer_available(shm)) {
+		if (!cras_shm_is_buffer_available(shm)) {
 			ATLOG(atlog, AUDIO_THREAD_STREAM_SKIP_CB,
 			      cras_rstream_id(rstream),
 			      shm->header->write_offset[0],
@@ -184,8 +185,8 @@ static int fetch_streams(struct open_dev *adev)
 
 		rc = dev_stream_request_playback_samples(dev_stream, &now);
 		if (rc < 0) {
-			syslog(LOG_ERR, "fetch err: %d for %x",
-			       rc, cras_rstream_id(rstream));
+			syslog(LOG_ERR, "fetch err: %d for %x", rc,
+			       cras_rstream_id(rstream));
 			cras_rstream_set_is_draining(rstream, 1);
 		}
 	}
@@ -200,7 +201,7 @@ static int input_delay_frames(struct open_dev *adevs)
 	int delay;
 	int max_delay = 0;
 
-	DL_FOREACH(adevs, adev) {
+	DL_FOREACH (adevs, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 		delay = cras_iodev_delay_frames(adev->dev);
@@ -224,7 +225,7 @@ static unsigned int set_stream_delay(struct open_dev *adev)
 	/* TODO(dgreid) - Setting delay from last dev only. */
 	delay = input_delay_frames(adev);
 
-	DL_FOREACH(adev->dev->streams, stream) {
+	DL_FOREACH (adev->dev->streams, stream) {
 		if (stream->stream->flags & TRIGGER_ONLY)
 			continue;
 
@@ -243,10 +244,9 @@ static unsigned int set_stream_delay(struct open_dev *adev)
  *                        Output NULL if there is no stream that causes
  *                        capture limit less than the initial limit.
  */
-static unsigned int get_stream_limit(
-		struct open_dev *adev,
-		unsigned int write_limit,
-		struct dev_stream **limit_stream)
+static unsigned int get_stream_limit(struct open_dev *adev,
+				     unsigned int write_limit,
+				     struct dev_stream **limit_stream)
 {
 	struct cras_rstream *rstream;
 	struct cras_audio_shm *shm;
@@ -255,7 +255,7 @@ static unsigned int get_stream_limit(
 
 	*limit_stream = NULL;
 
-	DL_FOREACH(adev->dev->streams, stream) {
+	DL_FOREACH (adev->dev->streams, stream) {
 		rstream = stream->stream;
 		if (rstream->flags & TRIGGER_ONLY)
 			continue;
@@ -292,23 +292,22 @@ static const struct timespec min_input_dev_wake_ts = {
  *
  * Returns: 0 on success negative error on device failure.
  */
-static int get_input_dev_max_wake_ts(
-	struct open_dev *adev,
-	unsigned int curr_level,
-	struct timespec *res_ts)
+static int get_input_dev_max_wake_ts(struct open_dev *adev,
+				     unsigned int curr_level,
+				     struct timespec *res_ts)
 {
 	struct timespec dev_wake_ts, now;
 	unsigned int dev_rate, half_buffer_size, target_frames;
 
-	if(!adev || !adev->dev || !adev->dev->format ||
-	   !adev->dev->format->frame_rate || !adev->dev->buffer_size)
+	if (!adev || !adev->dev || !adev->dev->format ||
+	    !adev->dev->format->frame_rate || !adev->dev->buffer_size)
 		return -EINVAL;
 
 	*res_ts = min_input_dev_wake_ts;
 
 	dev_rate = adev->dev->format->frame_rate;
 	half_buffer_size = adev->dev->buffer_size / 2;
-	if(curr_level < half_buffer_size)
+	if (curr_level < half_buffer_size)
 		target_frames = half_buffer_size - curr_level;
 	else
 		target_frames = 0;
@@ -352,22 +351,17 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	if (!timespec_is_nonzero(&level_tstamp))
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
-
 	cap_limit = get_stream_limit(adev, UINT_MAX, &cap_limit_stream);
 
 	/*
 	 * Loop through streams to find the earliest time audio thread
 	 * should wake up.
 	 */
-	DL_FOREACH(adev->dev->streams, stream) {
+	DL_FOREACH (adev->dev->streams, stream) {
 		wake_time_out = min_ts;
-		rc = dev_stream_wake_time(
-			stream,
-			curr_level,
-			&level_tstamp,
-			cap_limit,
-			cap_limit_stream == stream,
-			&wake_time_out);
+		rc = dev_stream_wake_time(stream, curr_level, &level_tstamp,
+					  cap_limit, cap_limit_stream == stream,
+					  &wake_time_out);
 
 		/*
 		 * rc > 0 means there is no need to set wake up time for this
@@ -384,14 +378,15 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 		}
 	}
 
-	if(adev->dev->active_node &&
-	   adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD) {
+	if (adev->dev->active_node &&
+	    adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD) {
 		rc = get_input_dev_max_wake_ts(adev, curr_level, &dev_wake_ts);
-		if(rc < 0) {
+		if (rc < 0) {
 			syslog(LOG_ERR,
 			       "Failed to call get_input_dev_max_wake_ts."
-			       "rc = %d", rc);
-		} else if(timespec_after(&min_ts, &dev_wake_ts)) {
+			       "rc = %d",
+			       rc);
+		} else if (timespec_after(&min_ts, &dev_wake_ts)) {
 			min_ts = dev_wake_ts;
 		}
 	}
@@ -414,7 +409,7 @@ static int capture_to_streams(struct open_dev *adev)
 	struct dev_stream *cap_limit_stream;
 	struct dev_stream *stream;
 
-	DL_FOREACH(adev->dev->streams, stream)
+	DL_FOREACH (adev->dev->streams, stream)
 		dev_stream_flush_old_audio_messages(stream);
 
 	rc = cras_iodev_frames_queued(idev, &hw_tstamp);
@@ -442,8 +437,8 @@ static int capture_to_streams(struct open_dev *adev)
 
 	remainder = MIN(hw_level, cap_limit);
 
-	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO, idev->info.idx,
-	      hw_level, remainder);
+	ATLOG(atlog, AUDIO_THREAD_READ_AUDIO, idev->info.idx, hw_level,
+	      remainder);
 
 	if (cras_iodev_state(idev) != CRAS_IODEV_STATE_NORMAL_RUN)
 		return 0;
@@ -458,7 +453,7 @@ static int capture_to_streams(struct open_dev *adev)
 		if (rc < 0 || nread == 0)
 			return rc;
 
-		DL_FOREACH(adev->dev->streams, stream) {
+		DL_FOREACH (adev->dev->streams, stream) {
 			unsigned int this_read;
 			unsigned int area_offset;
 			float software_gain_scaler;
@@ -467,9 +462,10 @@ static int capture_to_streams(struct open_dev *adev)
 			    stream->stream->triggered)
 				continue;
 
-			input_data_get_for_stream(idev->input_data, stream->stream,
-						  idev->buf_state,
-						  &area, &area_offset);
+			input_data_get_for_stream(idev->input_data,
+						  stream->stream,
+						  idev->buf_state, &area,
+						  &area_offset);
 			/*
 			 * The software gain scaler consist of two parts:
 			 * (1) The device gain scaler used when lack of hardware
@@ -482,16 +478,19 @@ static int capture_to_streams(struct open_dev *adev)
 			 * give APM total control of the captured samples without
 			 * additional gain scaler at all.
 			 */
-			software_gain_scaler = stream->stream->apm_list
-				? 1.0f
-				: idev->software_gain_scaler *
-					cras_rstream_get_volume_scaler(stream->stream);
+			software_gain_scaler =
+				stream->stream->apm_list ?
+					1.0f :
+					idev->software_gain_scaler *
+						cras_rstream_get_volume_scaler(
+							stream->stream);
 
-			this_read = dev_stream_capture(
-					stream, area, area_offset,
-					software_gain_scaler);
+			this_read =
+				dev_stream_capture(stream, area, area_offset,
+						   software_gain_scaler);
 
-			input_data_put_for_stream(idev->input_data, stream->stream,
+			input_data_put_for_stream(idev->input_data,
+						  stream->stream,
 						  idev->buf_state, this_read);
 		}
 
@@ -524,10 +523,8 @@ static int capture_to_streams(struct open_dev *adev)
  *    This number of frames is the minimum of the amount of frames each stream
  *    could provide which is the maximum that can currently be rendered.
  */
-static int write_streams(struct open_dev **odevs,
-			 struct open_dev *adev,
-			 uint8_t *dst,
-			 size_t write_limit)
+static int write_streams(struct open_dev **odevs, struct open_dev *adev,
+			 uint8_t *dst, size_t write_limit)
 {
 	struct cras_iodev *odev = adev->dev;
 	struct dev_stream *curr;
@@ -539,8 +536,8 @@ static int write_streams(struct open_dev **odevs,
 	/* Mix as much as we can, the minimum fill level of any stream. */
 	max_offset = cras_iodev_max_stream_offset(odev);
 
-        /* Mix as much as we can, the minimum fill level of any stream. */
-	DL_FOREACH(adev->dev->streams, curr) {
+	/* Mix as much as we can, the minimum fill level of any stream. */
+	DL_FOREACH (adev->dev->streams, curr) {
 		int dev_frames;
 
 		/* Skip stream which hasn't started running yet. */
@@ -554,9 +551,7 @@ static int write_streams(struct open_dev **odevs,
 
 		dev_frames = dev_stream_playback_frames(curr);
 		if (dev_frames < 0) {
-			dev_io_remove_stream(
-				odevs,
-				curr->stream, NULL);
+			dev_io_remove_stream(odevs, curr->stream, NULL);
 			continue;
 		}
 		ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_STREAM,
@@ -565,9 +560,7 @@ static int write_streams(struct open_dev **odevs,
 		if (cras_rstream_get_is_draining(curr->stream)) {
 			drain_limit = MIN((size_t)dev_frames, drain_limit);
 			if (!dev_frames)
-				dev_io_remove_stream(
-					odevs,
-					curr->stream, NULL);
+				dev_io_remove_stream(odevs, curr->stream, NULL);
 		} else {
 			write_limit = MIN((size_t)dev_frames, write_limit);
 			num_playing++;
@@ -581,10 +574,10 @@ static int write_streams(struct open_dev **odevs,
 		memset(dst + max_offset * frame_bytes, 0,
 		       (write_limit - max_offset) * frame_bytes);
 
-	ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX,
-	      write_limit, max_offset, 0);
+	ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX, write_limit, max_offset,
+	      0);
 
-	DL_FOREACH(adev->dev->streams, curr) {
+	DL_FOREACH (adev->dev->streams, curr) {
 		unsigned int offset;
 		int nwritten;
 
@@ -628,7 +621,7 @@ void update_dev_wakeup_time(struct open_dev *adev, unsigned int *hw_level)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
 	frames_to_play_in_sleep = cras_iodev_frames_to_play_in_sleep(
-			adev->dev, hw_level, &adev->wake_ts);
+		adev->dev, hw_level, &adev->wake_ts);
 	if (!timespec_is_nonzero(&adev->wake_ts))
 		adev->wake_ts = now;
 
@@ -636,15 +629,13 @@ void update_dev_wakeup_time(struct open_dev *adev, unsigned int *hw_level)
 		cras_iodev_update_highest_hw_level(adev->dev, *hw_level);
 
 	est_rate = adev->dev->format->frame_rate *
-			cras_iodev_get_est_rate_ratio(adev->dev);
+		   cras_iodev_get_est_rate_ratio(adev->dev);
 
-	ATLOG(atlog, AUDIO_THREAD_SET_DEV_WAKE, adev->dev->info.idx,
-	      *hw_level, frames_to_play_in_sleep);
+	ATLOG(atlog, AUDIO_THREAD_SET_DEV_WAKE, adev->dev->info.idx, *hw_level,
+	      frames_to_play_in_sleep);
 
-	cras_frames_to_time_precise(
-			frames_to_play_in_sleep,
-			est_rate,
-			&sleep_time);
+	cras_frames_to_time_precise(frames_to_play_in_sleep, est_rate,
+				    &sleep_time);
 
 	add_timespecs(&adev->wake_ts, &sleep_time);
 
@@ -653,8 +644,7 @@ void update_dev_wakeup_time(struct open_dev *adev, unsigned int *hw_level)
 }
 
 /* Returns 0 on success negative error on device failure. */
-int write_output_samples(struct open_dev **odevs,
-			 struct open_dev *adev,
+int write_output_samples(struct open_dev **odevs, struct open_dev *adev,
 			 struct cras_fmt_conv *output_converter)
 {
 	struct cras_iodev *odev = adev->dev;
@@ -736,14 +726,13 @@ int write_output_samples(struct open_dev **odevs,
 		// If we were empty last iteration, or the sampling interval
 		// has elapsed, check for emptiness.
 		if (adev->empty_pi ||
-			pic_interval_elapsed(adev->non_empty_check_pi)) {
+		    pic_interval_elapsed(adev->non_empty_check_pi)) {
 			non_empty_ptr = &non_empty;
 			pic_interval_reset(adev->non_empty_check_pi);
 		}
 
-		rc = cras_iodev_put_output_buffer(odev, dst, written,
-						  non_empty_ptr,
-						  output_converter);
+		rc = cras_iodev_put_output_buffer(
+			odev, dst, written, non_empty_ptr, output_converter);
 
 		if (rc < 0)
 			return rc;
@@ -762,8 +751,8 @@ int write_output_samples(struct open_dev **odevs,
 				MIN_EMPTY_PERIOD_SEC);
 	}
 
-	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE, hw_level,
-	      total_written, odev->min_cb_level);
+	ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE, hw_level, total_written,
+	      odev->min_cb_level);
 
 	return total_written;
 }
@@ -778,14 +767,14 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 	int rc;
 
 	// TODO(dgreid) - once per rstream, not once per dev_stream.
-	DL_FOREACH(idev_list, adev) {
+	DL_FOREACH (idev_list, adev) {
 		struct dev_stream *stream;
 
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
 		/* Post samples to rstream if there are enough samples. */
-		DL_FOREACH(adev->dev->streams, stream) {
+		DL_FOREACH (adev->dev->streams, stream) {
 			dev_stream_capture_update_rstream(stream);
 		}
 
@@ -798,15 +787,13 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 	return 0;
 }
 
-static void handle_dev_err(
-		int err_rc,
-		struct open_dev **odevs,
-		struct open_dev *adev)
+static void handle_dev_err(int err_rc, struct open_dev **odevs,
+			   struct open_dev *adev)
 {
 	if (err_rc == -EPIPE) {
 		/* Handle severe underrun. */
-		ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN,
-		      adev->dev->info.idx, 0, 0);
+		ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN, adev->dev->info.idx,
+		      0, 0);
 		cras_iodev_reset_request(adev->dev);
 	} else {
 		/* Device error, close it. */
@@ -820,7 +807,7 @@ int dev_io_capture(struct open_dev **list)
 	struct open_dev *adev;
 	int rc;
 
-	DL_FOREACH(idev_list, adev) {
+	DL_FOREACH (idev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 		rc = capture_to_streams(adev);
@@ -838,7 +825,7 @@ static void dev_io_check_dev_stream_start(struct open_dev *adev)
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 
-	DL_FOREACH(adev->dev->streams, dev_stream) {
+	DL_FOREACH (adev->dev->streams, dev_stream) {
 		if (!is_time_to_fetch(dev_stream, now))
 			continue;
 		if (!dev_stream_is_running(dev_stream))
@@ -851,13 +838,13 @@ void dev_io_playback_fetch(struct open_dev *odev_list)
 	struct open_dev *adev;
 
 	/* Check whether it is the time to start dev_stream before fetching. */
-	DL_FOREACH(odev_list, adev) {
+	DL_FOREACH (odev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 		dev_io_check_dev_stream_start(adev);
 	}
 
-	DL_FOREACH(odev_list, adev) {
+	DL_FOREACH (odev_list, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 		fetch_streams(adev);
@@ -876,13 +863,13 @@ int dev_io_playback_write(struct open_dev **odevs,
 	 * of all streams before starting write output samples. */
 	adev = *odevs;
 	if (adev && adev->next) {
-		DL_FOREACH(*odevs, adev) {
-			DL_FOREACH(adev->dev->streams, curr)
+		DL_FOREACH (*odevs, adev) {
+			DL_FOREACH (adev->dev->streams, curr)
 				dev_stream_update_frames(curr);
 		}
 	}
 
-	DL_FOREACH(*odevs, adev) {
+	DL_FOREACH (*odevs, adev) {
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
 
@@ -917,10 +904,10 @@ int dev_io_playback_write(struct open_dev **odevs,
 			 */
 			if (hw_level <= total_written) {
 				ATLOG(atlog, AUDIO_THREAD_UNDERRUN,
-				      adev->dev->info.idx,
-				      hw_level, total_written);
+				      adev->dev->info.idx, hw_level,
+				      total_written);
 				rc = cras_iodev_output_underrun(adev->dev);
-				if(rc < 0) {
+				if (rc < 0) {
 					handle_dev_err(rc, odevs, adev);
 				} else {
 					update_dev_wakeup_time(adev, &hw_level);
@@ -930,11 +917,11 @@ int dev_io_playback_write(struct open_dev **odevs,
 	}
 
 	/* TODO(dgreid) - once per rstream, not once per dev_stream. */
-	DL_FOREACH(*odevs, adev) {
+	DL_FOREACH (*odevs, adev) {
 		struct dev_stream *stream;
 		if (!cras_iodev_is_open(adev->dev))
 			continue;
-		DL_FOREACH(adev->dev->streams, stream) {
+		DL_FOREACH (adev->dev->streams, stream) {
 			dev_stream_playback_update_rstream(stream);
 		}
 	}
@@ -975,7 +962,7 @@ int dev_io_next_input_wake(struct open_dev **idevs, struct timespec *min_ts)
 	struct open_dev *adev;
 	int ret = 0; /* The total number of devices to wait on. */
 
-	DL_FOREACH(*idevs, adev) {
+	DL_FOREACH (*idevs, adev) {
 		if (input_adev_ignore_wake(adev))
 			continue;
 		ret++;
@@ -1045,20 +1032,19 @@ struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
 				      unsigned int dev_idx)
 {
 	struct open_dev *odev;
-	DL_FOREACH(odev_list, odev)
+	DL_FOREACH (odev_list, odev)
 		if (odev->dev->info.idx == dev_idx)
 			return odev;
 	return NULL;
 }
 
-void dev_io_rm_open_dev(struct open_dev **odev_list,
-			struct open_dev *dev_to_rm)
+void dev_io_rm_open_dev(struct open_dev **odev_list, struct open_dev *dev_to_rm)
 {
 	struct open_dev *odev;
 	struct dev_stream *dev_stream;
 
 	/* Do nothing if dev_to_rm wasn't already in the active dev list. */
-	DL_FOREACH(*odev_list, odev) {
+	DL_FOREACH (*odev_list, odev) {
 		if (odev == dev_to_rm)
 			break;
 	}
@@ -1072,18 +1058,19 @@ void dev_io_rm_open_dev(struct open_dev **odev_list,
 		cras_iodev_get_num_underruns(dev_to_rm->dev));
 
 	/* Metrics logs the delay of this device. */
-	cras_server_metrics_highest_device_delay(dev_to_rm->dev->highest_hw_level,
+	cras_server_metrics_highest_device_delay(
+		dev_to_rm->dev->highest_hw_level,
 		dev_to_rm->dev->largest_cb_level, dev_to_rm->dev->direction);
 
 	/* Metrics logs the highest_hw_level of this device. */
-	cras_server_metrics_highest_hw_level(
-		dev_to_rm->dev->highest_hw_level, dev_to_rm->dev->direction);
+	cras_server_metrics_highest_hw_level(dev_to_rm->dev->highest_hw_level,
+					     dev_to_rm->dev->direction);
 
 	check_non_empty_state_transition(*odev_list);
 
 	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);
 
-	DL_FOREACH(dev_to_rm->dev->streams, dev_stream) {
+	DL_FOREACH (dev_to_rm->dev->streams, dev_stream) {
 		cras_iodev_rm_stream(dev_to_rm->dev, dev_stream->stream);
 		dev_stream_destroy(dev_stream);
 	}
@@ -1245,8 +1232,7 @@ int dev_io_append_stream(struct open_dev **dev_list,
 }
 
 int dev_io_remove_stream(struct open_dev **dev_list,
-			 struct cras_rstream *stream,
-			 struct cras_iodev *dev)
+			 struct cras_rstream *stream, struct cras_iodev *dev)
 {
 	struct open_dev *open_dev;
 	struct timespec delay;
@@ -1256,19 +1242,18 @@ int dev_io_remove_stream(struct open_dev **dev_list,
 	if (timespec_after(&stream->longest_fetch_interval,
 			   &stream->sleep_interval_ts)) {
 		subtract_timespecs(&stream->longest_fetch_interval,
-				   &stream->sleep_interval_ts,
-				   &delay);
-		fetch_delay_msec = delay.tv_sec * 1000 +
-				   delay.tv_nsec / 1000000;
+				   &stream->sleep_interval_ts, &delay);
+		fetch_delay_msec =
+			delay.tv_sec * 1000 + delay.tv_nsec / 1000000;
 		if (fetch_delay_msec)
 			cras_server_metrics_longest_fetch_delay(
-					fetch_delay_msec);
+				fetch_delay_msec);
 	}
 
 	ATLOG(atlog, AUDIO_THREAD_STREAM_REMOVED, stream->stream_id, 0, 0);
 
 	if (dev == NULL) {
-		DL_FOREACH(*dev_list, open_dev) {
+		DL_FOREACH (*dev_list, open_dev) {
 			delete_stream_from_dev(open_dev->dev, stream);
 		}
 	} else {
