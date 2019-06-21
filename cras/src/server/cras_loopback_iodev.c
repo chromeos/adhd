@@ -24,17 +24,13 @@ static const char *loopdev_names[LOOPBACK_NUM_TYPES] = {
 	"Post DSP Loopback",
 };
 
-static size_t loopback_supported_rates[] = {
-	48000, 0
-};
+static size_t loopback_supported_rates[] = { 48000, 0 };
 
-static size_t loopback_supported_channel_counts[] = {
-	2, 0
-};
+static size_t loopback_supported_channel_counts[] = { 2, 0 };
 
 static snd_pcm_format_t loopback_supported_formats[] = {
 	SND_PCM_FORMAT_S16_LE,
-	0
+	0,
 };
 
 /* loopack iodev.  Keep state of a loopback device.
@@ -66,8 +62,7 @@ static int sample_hook_start(bool start, void *cb_data)
  * Called in the put buffer function of the sender that hooked to.
  */
 static int sample_hook(const uint8_t *frames, unsigned int nframes,
-		       const struct cras_audio_format *fmt,
-		       void *cb_data)
+		       const struct cras_audio_format *fmt, void *cb_data)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)cb_data;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
@@ -94,9 +89,8 @@ static void update_first_output_to_loopback(struct loopback_iodev *loopdev)
 	if (edev) {
 		loopdev->sender_idx = edev->info.idx;
 		cras_iodev_list_register_loopback(
-				loopdev->loopback_type, loopdev->sender_idx,
-				sample_hook, sample_hook_start,
-				loopdev->base.info.idx);
+			loopdev->loopback_type, loopdev->sender_idx,
+			sample_hook, sample_hook_start, loopdev->base.info.idx);
 	}
 }
 
@@ -139,13 +133,13 @@ static int frames_queued(const struct cras_iodev *iodev,
 		unsigned int frames_since_start, frames_to_fill, bytes_to_fill;
 
 		frames_since_start = cras_frames_since_time(
-				&loopdev->dev_start_time,
-				iodev->format->frame_rate);
-		frames_to_fill = frames_since_start > loopdev->read_frames
-				? frames_since_start - loopdev->read_frames
-				: 0;
-		frames_to_fill = MIN(buf_writable(sbuf) / frame_bytes,
-				     frames_to_fill);
+			&loopdev->dev_start_time, iodev->format->frame_rate);
+		frames_to_fill =
+			frames_since_start > loopdev->read_frames ?
+				frames_since_start - loopdev->read_frames :
+				0;
+		frames_to_fill =
+			MIN(buf_writable(sbuf) / frame_bytes, frames_to_fill);
 		if (frames_to_fill > 0) {
 			bytes_to_fill = frames_to_fill * frame_bytes;
 			memset(buf_write_pointer(sbuf), 0, bytes_to_fill);
@@ -195,20 +189,17 @@ static int configure_record_dev(struct cras_iodev *iodev)
 	if (edev) {
 		loopdev->sender_idx = edev->info.idx;
 		cras_iodev_list_register_loopback(
-				loopdev->loopback_type, loopdev->sender_idx,
-				sample_hook, sample_hook_start,
-				iodev->info.idx);
+			loopdev->loopback_type, loopdev->sender_idx,
+			sample_hook, sample_hook_start, iodev->info.idx);
 	}
-	cras_iodev_list_set_device_enabled_callback(device_enabled_hook,
-						    device_disabled_hook,
-						    (void *)iodev);
+	cras_iodev_list_set_device_enabled_callback(
+		device_enabled_hook, device_disabled_hook, (void *)iodev);
 
 	return 0;
 }
 
 static int get_record_buffer(struct cras_iodev *iodev,
-		      struct cras_audio_area **area,
-		      unsigned *frames)
+			     struct cras_audio_area **area, unsigned *frames)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
@@ -259,7 +250,7 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	if (loopback_iodev == NULL)
 		return NULL;
 
-	loopback_iodev->sample_buffer = byte_buffer_create(1024*16*4);
+	loopback_iodev->sample_buffer = byte_buffer_create(1024 * 16 * 4);
 	if (loopback_iodev->sample_buffer == NULL) {
 		free(loopback_iodev);
 		return NULL;
@@ -272,9 +263,9 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name), "%s",
 		 loopdev_names[type]);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-	iodev->info.stable_id = SuperFastHash(iodev->info.name,
-					      strlen(iodev->info.name),
-					      strlen(iodev->info.name));
+	iodev->info.stable_id =
+		SuperFastHash(iodev->info.name, strlen(iodev->info.name),
+			      strlen(iodev->info.name));
 	iodev->info.stable_id_new = iodev->info.stable_id;
 
 	iodev->supported_rates = loopback_supported_rates;
@@ -344,7 +335,7 @@ void loopback_iodev_destroy(struct cras_iodev *iodev)
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 
 	cras_iodev_list_rm_input(iodev);
-        free(iodev->nodes);
+	free(iodev->nodes);
 
 	byte_buffer_destroy(&sbuf);
 	free(loopdev);
