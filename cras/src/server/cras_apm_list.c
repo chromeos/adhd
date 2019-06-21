@@ -523,6 +523,7 @@ int cras_apm_list_deinit()
 		if (rmodule->fbuf)
 			float_buffer_destroy(&rmodule->fbuf);
 		free(rmodule);
+		rmodule = NULL;
 	}
 	return 0;
 }
