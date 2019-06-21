@@ -30,15 +30,15 @@ struct cras_ramp {
 	void *cb_data;
 };
 
-void cras_ramp_destroy(struct cras_ramp* ramp)
+void cras_ramp_destroy(struct cras_ramp *ramp)
 {
 	free(ramp);
 }
 
-struct cras_ramp* cras_ramp_create()
+struct cras_ramp *cras_ramp_create()
 {
-	struct cras_ramp* ramp;
-	ramp = (struct cras_ramp*)malloc(sizeof(*ramp));
+	struct cras_ramp *ramp;
+	ramp = (struct cras_ramp *)malloc(sizeof(*ramp));
 	if (ramp == NULL) {
 		return NULL;
 	}
@@ -46,7 +46,8 @@ struct cras_ramp* cras_ramp_create()
 	return ramp;
 }
 
-int cras_ramp_reset(struct cras_ramp *ramp) {
+int cras_ramp_reset(struct cras_ramp *ramp)
+{
 	ramp->active = 0;
 	ramp->ramped_frames = 0;
 	ramp->duration_frames = 0;
@@ -69,7 +70,7 @@ int cras_ramp_start(struct cras_ramp *ramp, int mute_ramp, float from, float to,
 	if (action.type == CRAS_RAMP_ACTION_INVALID)
 		return -EINVAL;
 
-        /* Set initial scaler to current scaler so ramping up/down can be
+	/* Set initial scaler to current scaler so ramping up/down can be
          * smoothly switched. */
 	ramp->active = 1;
 	if (action.type == CRAS_RAMP_ACTION_NONE) {
@@ -92,7 +93,8 @@ int cras_ramp_start(struct cras_ramp *ramp, int mute_ramp, float from, float to,
 	return 0;
 }
 
-struct cras_ramp_action cras_ramp_get_current_action(const struct cras_ramp *ramp)
+struct cras_ramp_action
+cras_ramp_get_current_action(const struct cras_ramp *ramp)
 {
 	struct cras_ramp_action action;
 
@@ -116,8 +118,7 @@ struct cras_ramp_action cras_ramp_get_current_action(const struct cras_ramp *ram
 	return action;
 }
 
-int cras_ramp_update_ramped_frames(
-		struct cras_ramp *ramp, int num_frames)
+int cras_ramp_update_ramped_frames(struct cras_ramp *ramp, int num_frames)
 {
 	if (!ramp->active)
 		return -EINVAL;
