@@ -20,12 +20,13 @@ int cras_server_metrics_hfp_wideband_support(bool supported);
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev);
 
 /* Logs the highest delay time of a device. */
-int cras_server_metrics_highest_device_delay(unsigned int hw_level,
-		unsigned int largest_cb_level, enum CRAS_STREAM_DIRECTION direction);
+int cras_server_metrics_highest_device_delay(
+	unsigned int hw_level, unsigned int largest_cb_level,
+	enum CRAS_STREAM_DIRECTION direction);
 
 /* Logs the highest hardware level of a device. */
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
-		enum CRAS_STREAM_DIRECTION direction);
+					 enum CRAS_STREAM_DIRECTION direction);
 
 /* Logs the longest fetch delay of a stream in millisecond. */
 int cras_server_metrics_longest_fetch_delay(unsigned delay_msec);

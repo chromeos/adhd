@@ -108,10 +108,9 @@ struct cras_server_metrics_message {
 	union cras_server_metrics_data data;
 };
 
-static void init_server_metrics_msg(
-		struct cras_server_metrics_message *msg,
-		enum CRAS_SERVER_METRICS_TYPE type,
-		union cras_server_metrics_data data)
+static void init_server_metrics_msg(struct cras_server_metrics_message *msg,
+				    enum CRAS_SERVER_METRICS_TYPE type,
+				    union cras_server_metrics_data data)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.type = CRAS_MAIN_METRICS;
@@ -231,15 +230,17 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 	return 0;
 }
 
-int cras_server_metrics_highest_device_delay(unsigned int hw_level,
-		unsigned int largest_cb_level, enum CRAS_STREAM_DIRECTION direction)
+int cras_server_metrics_highest_device_delay(
+	unsigned int hw_level, unsigned int largest_cb_level,
+	enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
 	int err;
 
 	if (largest_cb_level == 0) {
-		syslog(LOG_ERR, "Failed to record device delay: devided by zero");
+		syslog(LOG_ERR,
+		       "Failed to record device delay: devided by zero");
 		return -1;
 	}
 
@@ -259,7 +260,8 @@ int cras_server_metrics_highest_device_delay(unsigned int hw_level,
 		init_server_metrics_msg(&msg, HIGHEST_DEVICE_DELAY_INPUT, data);
 		break;
 	case CRAS_STREAM_OUTPUT:
-		init_server_metrics_msg(&msg, HIGHEST_DEVICE_DELAY_OUTPUT, data);
+		init_server_metrics_msg(&msg, HIGHEST_DEVICE_DELAY_OUTPUT,
+					data);
 		break;
 	default:
 		return 0;
@@ -277,7 +279,7 @@ int cras_server_metrics_highest_device_delay(unsigned int hw_level,
 }
 
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
-		enum CRAS_STREAM_DIRECTION direction)
+					 enum CRAS_STREAM_DIRECTION direction)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
@@ -514,7 +516,7 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR,
-			"Failed to send metrics message: STREAM_CONFIG");
+		       "Failed to send metrics message: STREAM_CONFIG");
 		return err;
 	}
 
@@ -533,30 +535,27 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 				   0, 10000, 20);
 }
 
-static void metrics_stream_config(
-		struct cras_server_metrics_stream_config config)
+static void
+metrics_stream_config(struct cras_server_metrics_stream_config config)
 {
 	/* Logs stream callback threshold. */
 	cras_metrics_log_sparse_histogram(kStreamCallbackThreshold,
 					  config.cb_threshold);
 
 	/* Logs stream flags. */
-	cras_metrics_log_sparse_histogram(kStreamFlags,
-					  config.flags);
+	cras_metrics_log_sparse_histogram(kStreamFlags, config.flags);
 
 	/* Logs stream sampling format. */
-	cras_metrics_log_sparse_histogram(kStreamSamplingFormat,
-					  config.format);
+	cras_metrics_log_sparse_histogram(kStreamSamplingFormat, config.format);
 
 	/* Logs stream sampling rate. */
-	cras_metrics_log_sparse_histogram(kStreamSamplingRate,
-					  config.rate);
+	cras_metrics_log_sparse_histogram(kStreamSamplingRate, config.rate);
 }
 
 static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 {
 	struct cras_server_metrics_message *metrics_msg =
-			(struct cras_server_metrics_message *)msg;
+		(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
 	case BT_WIDEBAND_SUPPORTED:
 		cras_metrics_log_sparse_histogram(kHfpWidebandSpeechSupported,
@@ -567,39 +566,48 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case HIGHEST_DEVICE_DELAY_INPUT:
 		cras_metrics_log_histogram(kHighestDeviceDelayInput,
-				metrics_msg->data.value, 1, 10000, 20);
+					   metrics_msg->data.value, 1, 10000,
+					   20);
 		break;
 	case HIGHEST_DEVICE_DELAY_OUTPUT:
 		cras_metrics_log_histogram(kHighestDeviceDelayOutput,
-				metrics_msg->data.value, 1, 10000, 20);
+					   metrics_msg->data.value, 1, 10000,
+					   20);
 		break;
 	case HIGHEST_INPUT_HW_LEVEL:
 		cras_metrics_log_histogram(kHighestInputHardwareLevel,
-				metrics_msg->data.value, 1, 10000, 20);
+					   metrics_msg->data.value, 1, 10000,
+					   20);
 		break;
 	case HIGHEST_OUTPUT_HW_LEVEL:
 		cras_metrics_log_histogram(kHighestOutputHardwareLevel,
-				metrics_msg->data.value, 1, 10000, 20);
+					   metrics_msg->data.value, 1, 10000,
+					   20);
 		break;
 	case LONGEST_FETCH_DELAY:
 		cras_metrics_log_histogram(kStreamTimeoutMilliSeconds,
-				metrics_msg->data.value, 1, 20000, 10);
+					   metrics_msg->data.value, 1, 20000,
+					   10);
 		break;
 	case MISSED_CB_FIRST_TIME_INPUT:
 		cras_metrics_log_histogram(kMissedCallbackFirstTimeInput,
-				metrics_msg->data.value, 0, 90000, 20);
+					   metrics_msg->data.value, 0, 90000,
+					   20);
 		break;
 	case MISSED_CB_FIRST_TIME_OUTPUT:
 		cras_metrics_log_histogram(kMissedCallbackFirstTimeOutput,
-				metrics_msg->data.value, 0, 90000, 20);
+					   metrics_msg->data.value, 0, 90000,
+					   20);
 		break;
 	case MISSED_CB_FREQUENCY_INPUT:
 		cras_metrics_log_histogram(kMissedCallbackFrequencyInput,
-				metrics_msg->data.value, 0, 90000, 20);
+					   metrics_msg->data.value, 0, 90000,
+					   20);
 		break;
 	case MISSED_CB_FREQUENCY_OUTPUT:
 		cras_metrics_log_histogram(kMissedCallbackFrequencyOutput,
-				metrics_msg->data.value, 0, 90000, 20);
+					   metrics_msg->data.value, 0, 90000,
+					   20);
 		break;
 	case MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT:
 		cras_metrics_log_histogram(
@@ -623,7 +631,8 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case NUM_UNDERRUNS:
 		cras_metrics_log_histogram(kUnderrunsPerDevice,
-				metrics_msg->data.value, 0, 1000, 10);
+					   metrics_msg->data.value, 0, 1000,
+					   10);
 		break;
 	case STREAM_CONFIG:
 		metrics_stream_config(metrics_msg->data.stream_config);
@@ -633,11 +642,11 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		       metrics_msg->metrics_type);
 		break;
 	}
-
 }
 
-int cras_server_metrics_init() {
-	cras_main_message_add_handler(CRAS_MAIN_METRICS,
-				      handle_metrics_message, NULL);
+int cras_server_metrics_init()
+{
+	cras_main_message_add_handler(CRAS_MAIN_METRICS, handle_metrics_message,
+				      NULL);
 	return 0;
 }
