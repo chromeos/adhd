@@ -19,20 +19,13 @@
 #define EMPTY_FRAME_SIZE 4
 #define EMPTY_FRAMES (EMPTY_BUFFER_SIZE / EMPTY_FRAME_SIZE)
 
-static size_t empty_supported_rates[] = {
-	44100, 48000, 0
-};
+static size_t empty_supported_rates[] = { 44100, 48000, 0 };
 
-static size_t empty_supported_channel_counts[] = {
-	1, 2, 0
-};
+static size_t empty_supported_channel_counts[] = { 1, 2, 0 };
 
 static snd_pcm_format_t empty_supported_formats[] = {
-	SND_PCM_FORMAT_S16_LE,
-	SND_PCM_FORMAT_S24_LE,
-	SND_PCM_FORMAT_S32_LE,
-	SND_PCM_FORMAT_S24_3LE,
-	0
+	SND_PCM_FORMAT_S16_LE, SND_PCM_FORMAT_S24_LE, SND_PCM_FORMAT_S32_LE,
+	SND_PCM_FORMAT_S24_3LE, 0
 };
 
 struct empty_iodev {
@@ -56,8 +49,7 @@ static unsigned int current_level(const struct cras_iodev *iodev)
 		return 0;
 
 	frames_since_start = cras_frames_since_time(
-			&empty_iodev->dev_start_time,
-			iodev->format->frame_rate);
+		&empty_iodev->dev_start_time, iodev->format->frame_rate);
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
 		nframes = frames_since_start - empty_iodev->read_frames;
@@ -113,8 +105,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int get_buffer(struct cras_iodev *iodev,
-		      struct cras_audio_area **area,
+static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 		      unsigned *frames)
 {
 	struct empty_iodev *empty_iodev = (struct empty_iodev *)iodev;
@@ -130,7 +121,7 @@ static int get_buffer(struct cras_iodev *iodev,
 
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
-			empty_iodev->audio_buffer);
+					    empty_iodev->audio_buffer);
 	*area = iodev->area;
 	return 0;
 }
@@ -220,23 +211,20 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	/* Finally add it to the appropriate iodev list. */
 	if (direction == CRAS_STREAM_INPUT) {
 		if (node->type == CRAS_NODE_TYPE_HOTWORD) {
-			snprintf(iodev->info.name,
-				 ARRAY_SIZE(iodev->info.name),
+			snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name),
 				 "Silent hotword device.");
 			iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] =
 				'\0';
 			iodev->info.idx = SILENT_HOTWORD_DEVICE;
 		} else {
-			snprintf(iodev->info.name,
-				 ARRAY_SIZE(iodev->info.name),
+			snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name),
 				 "Silent record device.");
 			iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] =
 				'\0';
 			iodev->info.idx = SILENT_RECORD_DEVICE;
 		}
 	} else {
-		snprintf(iodev->info.name,
-			 ARRAY_SIZE(iodev->info.name),
+		snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name),
 			 "Silent playback device.");
 		iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 		iodev->info.idx = SILENT_PLAYBACK_DEVICE;
