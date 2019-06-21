@@ -107,7 +107,6 @@ void cras_bt_adapter_reset()
 	}
 }
 
-
 struct cras_bt_adapter *cras_bt_adapter_get(const char *object_path)
 {
 	struct cras_bt_adapter *adapter;
@@ -115,7 +114,7 @@ struct cras_bt_adapter *cras_bt_adapter_get(const char *object_path)
 	if (object_path == NULL)
 		return NULL;
 
-	DL_FOREACH(adapters, adapter) {
+	DL_FOREACH (adapters, adapter) {
 		if (strcmp(adapter->object_path, object_path) == 0)
 			return adapter;
 	}
@@ -129,7 +128,7 @@ size_t cras_bt_adapter_get_list(struct cras_bt_adapter ***adapter_list_out)
 	struct cras_bt_adapter **adapter_list = NULL;
 	size_t num_adapters = 0;
 
-	DL_FOREACH(adapters, adapter) {
+	DL_FOREACH (adapters, adapter) {
 		struct cras_bt_adapter **tmp;
 
 		tmp = realloc(adapter_list,
@@ -167,7 +166,6 @@ int cras_bt_adapter_powered(const struct cras_bt_adapter *adapter)
 	return adapter->powered;
 }
 
-
 void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 				       DBusMessageIter *properties_array_iter,
 				       DBusMessageIter *invalidated_array_iter)
@@ -199,7 +197,6 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 			} else if (strcmp(key, "Alias") == 0) {
 				free(adapter->name);
 				adapter->name = strdup(value);
-
 			}
 
 		} else if (type == DBUS_TYPE_UINT32) {
@@ -217,7 +214,6 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 
 			if (strcmp(key, "Powered") == 0)
 				adapter->powered = value;
-
 		}
 
 		dbus_message_iter_next(properties_array_iter);
@@ -225,7 +221,7 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 
 	while (invalidated_array_iter &&
 	       dbus_message_iter_get_arg_type(invalidated_array_iter) !=
-	       DBUS_TYPE_INVALID) {
+		       DBUS_TYPE_INVALID) {
 		const char *key;
 
 		dbus_message_iter_get_basic(invalidated_array_iter, &key);

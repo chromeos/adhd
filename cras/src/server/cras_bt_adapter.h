@@ -23,7 +23,6 @@ const char *cras_bt_adapter_name(const struct cras_bt_adapter *adapter);
 
 int cras_bt_adapter_powered(const struct cras_bt_adapter *adapter);
 
-
 void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 				       DBusMessageIter *properties_array_iter,
 				       DBusMessageIter *invalidated_array_iter);

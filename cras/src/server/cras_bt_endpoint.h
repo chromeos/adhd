@@ -19,7 +19,7 @@ struct cras_bt_endpoint {
 	uint8_t codec;
 
 	int (*get_capabilities)(struct cras_bt_endpoint *endpoint,
-				 void *capabilities, int *len);
+				void *capabilities, int *len);
 	int (*select_configuration)(struct cras_bt_endpoint *endpoint,
 				    void *capabilities, int len,
 				    void *configuration);

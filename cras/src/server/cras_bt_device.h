@@ -14,13 +14,13 @@ struct cras_iodev;
 struct cras_timer;
 
 enum cras_bt_device_profile {
-	CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE	= (1 << 0),
-	CRAS_BT_DEVICE_PROFILE_A2DP_SINK	= (1 << 1),
-	CRAS_BT_DEVICE_PROFILE_AVRCP_REMOTE	= (1 << 2),
-	CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET	= (1 << 3),
-	CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE	= (1 << 4),
-	CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY	= (1 << 5),
-	CRAS_BT_DEVICE_PROFILE_HSP_HEADSET	= (1 << 6),
+	CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE = (1 << 0),
+	CRAS_BT_DEVICE_PROFILE_A2DP_SINK = (1 << 1),
+	CRAS_BT_DEVICE_PROFILE_AVRCP_REMOTE = (1 << 2),
+	CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET = (1 << 3),
+	CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE = (1 << 4),
+	CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY = (1 << 5),
+	CRAS_BT_DEVICE_PROFILE_HSP_HEADSET = (1 << 6),
 	CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY = (1 << 7)
 };
 
@@ -40,8 +40,8 @@ void cras_bt_device_reset();
 struct cras_bt_device *cras_bt_device_get(const char *object_path);
 
 const char *cras_bt_device_object_path(const struct cras_bt_device *device);
-struct cras_bt_adapter *cras_bt_device_adapter(
-	const struct cras_bt_device *device);
+struct cras_bt_adapter *
+cras_bt_device_adapter(const struct cras_bt_device *device);
 const char *cras_bt_device_address(const struct cras_bt_device *device);
 const char *cras_bt_device_name(const struct cras_bt_device *device);
 int cras_bt_device_paired(const struct cras_bt_device *device);
@@ -99,8 +99,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec);
  *    codec - 1 for CVSD, 2 for mSBC per HFP 1.7 specification.
  */
 int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
-				   int sco_socket,
-				   int codec);
+				   int sco_socket, int codec);
 
 /* Appends an iodev to bt device.
  * Args:

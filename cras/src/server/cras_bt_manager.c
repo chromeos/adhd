@@ -76,8 +76,8 @@ static void cras_bt_interface_added(DBusConnection *conn,
 			}
 		}
 
-	} else if (strcmp(interface_name,
-			  BLUEZ_INTERFACE_MEDIA_TRANSPORT) == 0) {
+	} else if (strcmp(interface_name, BLUEZ_INTERFACE_MEDIA_TRANSPORT) ==
+		   0) {
 		struct cras_bt_transport *transport;
 
 		transport = cras_bt_transport_get(object_path);
@@ -91,8 +91,9 @@ static void cras_bt_interface_added(DBusConnection *conn,
 					transport, properties_array_iter, NULL);
 
 				syslog(LOG_INFO,
-				      "Bluetooth Transport: %s added",
-				      cras_bt_transport_object_path(transport));
+				       "Bluetooth Transport: %s added",
+				       cras_bt_transport_object_path(
+					       transport));
 			} else {
 				syslog(LOG_WARNING,
 				       "Failed to create Bluetooth Transport: "
@@ -100,7 +101,6 @@ static void cras_bt_interface_added(DBusConnection *conn,
 				       object_path);
 			}
 		}
-
 	}
 }
 
@@ -129,8 +129,8 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 			cras_bt_device_remove(device);
 		}
 
-	} else if (strcmp(interface_name,
-			  BLUEZ_INTERFACE_MEDIA_TRANSPORT) == 0) {
+	} else if (strcmp(interface_name, BLUEZ_INTERFACE_MEDIA_TRANSPORT) ==
+		   0) {
 		struct cras_bt_transport *transport;
 
 		transport = cras_bt_transport_get(object_path);
@@ -139,7 +139,6 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 			       cras_bt_transport_object_path(transport));
 			cras_bt_transport_destroy(transport);
 		}
-
 	}
 }
 
@@ -169,8 +168,8 @@ static void cras_bt_update_properties(DBusConnection *conn,
 				invalidated_array_iter);
 		}
 
-	} else if (strcmp(interface_name,
-			  BLUEZ_INTERFACE_MEDIA_TRANSPORT) == 0) {
+	} else if (strcmp(interface_name, BLUEZ_INTERFACE_MEDIA_TRANSPORT) ==
+		   0) {
 		struct cras_bt_transport *transport;
 
 		transport = cras_bt_transport_get(object_path);
@@ -179,7 +178,6 @@ static void cras_bt_update_properties(DBusConnection *conn,
 				transport, properties_array_iter,
 				invalidated_array_iter);
 		}
-
 	}
 }
 
@@ -195,7 +193,6 @@ static void cras_bt_reset()
 	cras_bt_device_reset();
 	cras_bt_adapter_reset();
 }
-
 
 static void cras_bt_on_get_managed_objects(DBusPendingCall *pending_call,
 					   void *data)
@@ -224,7 +221,7 @@ static void cras_bt_on_get_managed_objects(DBusPendingCall *pending_call,
 	dbus_message_iter_recurse(&message_iter, &object_array_iter);
 
 	while (dbus_message_iter_get_arg_type(&object_array_iter) !=
-		       DBUS_TYPE_INVALID) {
+	       DBUS_TYPE_INVALID) {
 		DBusMessageIter object_dict_iter, interface_array_iter;
 		const char *object_path;
 
@@ -238,7 +235,7 @@ static void cras_bt_on_get_managed_objects(DBusPendingCall *pending_call,
 					  &interface_array_iter);
 
 		while (dbus_message_iter_get_arg_type(&interface_array_iter) !=
-			       DBUS_TYPE_INVALID) {
+		       DBUS_TYPE_INVALID) {
 			DBusMessageIter interface_dict_iter;
 			DBusMessageIter properties_array_iter;
 			const char *interface_name;
@@ -253,8 +250,8 @@ static void cras_bt_on_get_managed_objects(DBusPendingCall *pending_call,
 			dbus_message_iter_recurse(&interface_dict_iter,
 						  &properties_array_iter);
 
-			cras_bt_interface_added(conn,
-						object_path, interface_name,
+			cras_bt_interface_added(conn, object_path,
+						interface_name,
 						&properties_array_iter);
 
 			dbus_message_iter_next(&interface_array_iter);
@@ -271,17 +268,15 @@ static int cras_bt_get_managed_objects(DBusConnection *conn)
 	DBusMessage *method_call;
 	DBusPendingCall *pending_call;
 
-	method_call = dbus_message_new_method_call(
-		BLUEZ_SERVICE,
-		"/",
-		DBUS_INTERFACE_OBJECT_MANAGER,
-		"GetManagedObjects");
+	method_call =
+		dbus_message_new_method_call(BLUEZ_SERVICE, "/",
+					     DBUS_INTERFACE_OBJECT_MANAGER,
+					     "GetManagedObjects");
 	if (!method_call)
 		return -ENOMEM;
 
 	pending_call = NULL;
-	if (!dbus_connection_send_with_reply(conn, method_call,
-					     &pending_call,
+	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
 					     DBUS_TIMEOUT_USE_DEFAULT)) {
 		dbus_message_unref(method_call);
 		return -ENOMEM;
@@ -291,9 +286,8 @@ static int cras_bt_get_managed_objects(DBusConnection *conn)
 	if (!pending_call)
 		return -EIO;
 
-	if (!dbus_pending_call_set_notify(pending_call,
-					  cras_bt_on_get_managed_objects,
-					  conn, NULL)) {
+	if (!dbus_pending_call_set_notify(
+		    pending_call, cras_bt_on_get_managed_objects, conn, NULL)) {
 		dbus_pending_call_cancel(pending_call);
 		dbus_pending_call_unref(pending_call);
 		return -ENOMEM;
@@ -301,7 +295,6 @@ static int cras_bt_get_managed_objects(DBusConnection *conn)
 
 	return 0;
 }
-
 
 static DBusHandlerResult cras_bt_handle_name_owner_changed(DBusConnection *conn,
 							   DBusMessage *message,
@@ -311,13 +304,12 @@ static DBusHandlerResult cras_bt_handle_name_owner_changed(DBusConnection *conn,
 	const char *service_name, *old_owner, *new_owner;
 
 	if (!dbus_message_is_signal(message, DBUS_INTERFACE_DBUS,
-		    "NameOwnerChanged"))
+				    "NameOwnerChanged"))
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
 	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args(message, &dbus_error,
-				   DBUS_TYPE_STRING, &service_name,
-				   DBUS_TYPE_STRING, &old_owner,
+	if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING,
+				   &service_name, DBUS_TYPE_STRING, &old_owner,
 				   DBUS_TYPE_STRING, &new_owner,
 				   DBUS_TYPE_INVALID)) {
 		syslog(LOG_WARNING, "Bad NameOwnerChanged signal received: %s",
@@ -343,7 +335,7 @@ static DBusHandlerResult cras_bt_handle_interfaces_added(DBusConnection *conn,
 	const char *object_path;
 
 	if (!dbus_message_is_signal(message, DBUS_INTERFACE_OBJECT_MANAGER,
-			    "InterfacesAdded"))
+				    "InterfacesAdded"))
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
 	if (!dbus_message_has_signature(message, "oa{sa{sv}}")) {
@@ -359,7 +351,7 @@ static DBusHandlerResult cras_bt_handle_interfaces_added(DBusConnection *conn,
 	dbus_message_iter_recurse(&message_iter, &interface_array_iter);
 
 	while (dbus_message_iter_get_arg_type(&interface_array_iter) !=
-		       DBUS_TYPE_INVALID) {
+	       DBUS_TYPE_INVALID) {
 		DBusMessageIter interface_dict_iter, properties_array_iter;
 		const char *interface_name;
 
@@ -390,7 +382,7 @@ static DBusHandlerResult cras_bt_handle_interfaces_removed(DBusConnection *conn,
 	const char *object_path;
 
 	if (!dbus_message_is_signal(message, DBUS_INTERFACE_OBJECT_MANAGER,
-			    "InterfacesRemoved"))
+				    "InterfacesRemoved"))
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
 	if (!dbus_message_has_signature(message, "oas")) {
@@ -455,7 +447,6 @@ static DBusHandlerResult cras_bt_handle_properties_changed(DBusConnection *conn,
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
-
 
 void cras_bt_start(DBusConnection *conn)
 {
