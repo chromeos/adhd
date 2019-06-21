@@ -15,8 +15,7 @@
 #include "input_data.h"
 #include "utlist.h"
 
-void input_data_run(struct ext_dsp_module *ext,
-		    unsigned int nframes)
+void input_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 {
 	struct input_data *data = (struct input_data *)ext;
 	float *const *wp;
@@ -28,12 +27,14 @@ void input_data_run(struct ext_dsp_module *ext,
 		writable = float_buffer_writable(data->fbuffer);
 		writable = MIN(nframes, writable);
 		if (!writable) {
-			syslog(LOG_ERR, "Not enough space to process input data");
+			syslog(LOG_ERR,
+			       "Not enough space to process input data");
 			break;
 		}
 		wp = float_buffer_write_pointer(data->fbuffer);
 		for (i = 0; i < data->fbuffer->num_channels; i++)
-			memcpy(wp[i], ext->ports[i] + offset, writable * sizeof(float));
+			memcpy(wp[i], ext->ports[i] + offset,
+			       writable * sizeof(float));
 
 		float_buffer_written(data->fbuffer, writable);
 		nframes -= writable;
@@ -78,7 +79,8 @@ void input_data_set_all_streams_read(struct input_data *data,
 		return;
 
 	if (float_buffer_level(data->fbuffer) < nframes) {
-		syslog(LOG_ERR, "All streams read %u frames exceeds %u"
+		syslog(LOG_ERR,
+		       "All streams read %u frames exceeds %u"
 		       " in input_data's buffer",
 		       nframes, float_buffer_level(data->fbuffer));
 		float_buffer_reset(data->fbuffer);
@@ -124,11 +126,10 @@ int input_data_get_for_stream(struct input_data *data,
 
 int input_data_put_for_stream(struct input_data *data,
 			      struct cras_rstream *stream,
-			      struct buffer_share *offsets,
-			      unsigned int frames)
+			      struct buffer_share *offsets, unsigned int frames)
 {
-	struct cras_apm *apm = cras_apm_list_get(
-			stream->apm_list, data->dev_ptr);
+	struct cras_apm *apm =
+		cras_apm_list_get(stream->apm_list, data->dev_ptr);
 
 	if (apm)
 		cras_apm_list_put_processed(apm, frames);
