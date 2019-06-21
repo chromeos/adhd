@@ -131,9 +131,9 @@ static void handle_message_from_client(struct attached_client *client)
 	unsigned int num_fds = 1;
 
 	nread = cras_recv_with_fds(client->fd, buf, sizeof(buf), &fd, &num_fds);
-        if (nread < 0)
-                goto read_error;
-        if (cras_rclient_buffer_from_client(client->client, buf, nread, fd) < 0)
+	if (nread < 0)
+		goto read_error;
+	if (cras_rclient_buffer_from_client(client->client, buf, nread, fd) < 0)
 		goto read_error;
 	return;
 
@@ -157,8 +157,8 @@ static void fill_client_info(struct attached_client *client)
 {
 	socklen_t ucred_length = sizeof(client->ucred);
 
-	if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED,
-		       &client->ucred, &ucred_length))
+	if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED, &client->ucred,
+		       &ucred_length))
 		syslog(LOG_INFO, "Failed to get client socket info\n");
 }
 
@@ -179,7 +179,7 @@ static void send_client_list_to_clients(struct server_data *serv)
 
 	info = state->client_info;
 	i = 0;
-	DL_FOREACH(serv->clients_head, c) {
+	DL_FOREACH (serv->clients_head, c) {
 		info->id = c->id;
 		info->pid = c->ucred.pid;
 		info->uid = c->ucred.uid;
@@ -207,8 +207,7 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	}
 
 	memset(&address_length, 0, sizeof(address_length));
-	connection_fd = accept(fd, (struct sockaddr *) address,
-			       &address_length);
+	connection_fd = accept(fd, (struct sockaddr *)address, &address_length);
 	if (connection_fd < 0) {
 		syslog(LOG_ERR, "connecting");
 		free(poll_client);
@@ -252,8 +251,8 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 /* Add a file descriptor to be passed to select in the main loop. This is
  * registered with system state so that it is called when any client asks to
  * have a callback triggered based on an fd being readable. */
-static int add_select_fd(int fd, void (*cb)(void *data),
-			 void *callback_data, void *server_data)
+static int add_select_fd(int fd, void (*cb)(void *data), void *callback_data,
+			 void *server_data)
 {
 	struct client_callback *new_cb;
 	struct client_callback *client_cb;
@@ -264,11 +263,11 @@ static int add_select_fd(int fd, void (*cb)(void *data),
 		return -EINVAL;
 
 	/* Check if fd already exists. */
-	DL_FOREACH(serv->client_callbacks, client_cb)
+	DL_FOREACH (serv->client_callbacks, client_cb)
 		if (client_cb->select_fd == fd && !client_cb->deleted)
 			return -EEXIST;
 
-	new_cb = (struct  client_callback *)calloc(1, sizeof(*new_cb));
+	new_cb = (struct client_callback *)calloc(1, sizeof(*new_cb));
 	if (new_cb == NULL)
 		return -ENOMEM;
 
@@ -295,7 +294,7 @@ static void rm_select_fd(int fd, void *server_data)
 	if (serv == NULL)
 		return;
 
-	DL_FOREACH(serv->client_callbacks, client_cb)
+	DL_FOREACH (serv->client_callbacks, client_cb)
 		if (client_cb->select_fd == fd)
 			client_cb->deleted = 1;
 }
@@ -303,8 +302,7 @@ static void rm_select_fd(int fd, void *server_data)
 /* Creates a new task entry and append to system_tasks list, which will be
  * executed in main loop later without wait time.
  */
-static int add_task(void (*cb)(void *data),
-		    void *callback_data,
+static int add_task(void (*cb)(void *data), void *callback_data,
 		    void *server_data)
 {
 	struct server_data *serv;
@@ -336,7 +334,7 @@ static void cleanup_select_fds(void *server_data)
 	if (serv == NULL)
 		return;
 
-	DL_FOREACH(serv->client_callbacks, client_cb)
+	DL_FOREACH (serv->client_callbacks, client_cb)
 		if (client_cb->deleted) {
 			DL_DELETE(serv->client_callbacks, client_cb);
 			server_instance.num_client_callbacks--;
@@ -355,8 +353,9 @@ void check_output_exists(struct cras_timer *t, void *data)
 #if defined(__amd64__)
 /* CPU detection - probaby best to move this elsewhere */
 static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
-	          unsigned int *edx, unsigned int op)
+		  unsigned int *edx, unsigned int op)
 {
+	// clang-format off
 	__asm__ __volatile__ (
 		"cpuid"
 		: "=a" (*eax),
@@ -364,7 +363,8 @@ static void cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 		  "=c" (*ecx),
 		  "=d" (*edx)
 		: "a" (op), "c" (0)
-    );
+	);
+	// clang-format on
 }
 
 static unsigned int cpu_x86_flags(void)
@@ -577,24 +577,24 @@ int cras_server_run(unsigned int profile_disable_mask)
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {
 		poll_size_needed = 1 + server_instance.num_clients +
-					server_instance.num_client_callbacks;
+				   server_instance.num_client_callbacks;
 		if (poll_size_needed > pollfds_size) {
 			pollfds_size = 2 * poll_size_needed;
 			pollfds = realloc(pollfds,
-					sizeof(*pollfds) * pollfds_size);
+					  sizeof(*pollfds) * pollfds_size);
 		}
 
 		pollfds[0].fd = control_fd;
 		pollfds[0].events = POLLIN;
 		num_pollfds = 1;
 
-		DL_FOREACH(server_instance.clients_head, elm) {
+		DL_FOREACH (server_instance.clients_head, elm) {
 			pollfds[num_pollfds].fd = elm->fd;
 			pollfds[num_pollfds].events = POLLIN;
 			elm->pollfd = &pollfds[num_pollfds];
 			num_pollfds++;
 		}
-		DL_FOREACH(server_instance.client_callbacks, client_cb) {
+		DL_FOREACH (server_instance.client_callbacks, client_cb) {
 			if (client_cb->deleted)
 				continue;
 			pollfds[num_pollfds].fd = client_cb->select_fd;
@@ -605,7 +605,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 
 		tasks = server_instance.system_tasks;
 		server_instance.system_tasks = NULL;
-		DL_FOREACH(tasks, system_task) {
+		DL_FOREACH (tasks, system_task) {
 			system_task->callback(system_task->callback_data);
 			DL_DELETE(tasks, system_task);
 			free(system_task);
@@ -623,7 +623,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 			poll_timeout = timers_active ? &ts : NULL;
 
 		rc = ppoll(pollfds, num_pollfds, poll_timeout, NULL);
-		if  (rc < 0)
+		if (rc < 0)
 			continue;
 
 		cras_tm_call_callbacks(tm);
@@ -632,13 +632,12 @@ int cras_server_run(unsigned int profile_disable_mask)
 		if (pollfds[0].revents & POLLIN)
 			handle_new_connection(&control_addr, control_fd);
 		/* Check if there are messages pending for any clients. */
-		DL_FOREACH(server_instance.clients_head, elm)
+		DL_FOREACH (server_instance.clients_head, elm)
 			if (elm->pollfd && elm->pollfd->revents & POLLIN)
 				handle_message_from_client(elm);
 		/* Check any client-registered fd/callback pairs. */
-		DL_FOREACH(server_instance.client_callbacks, client_cb)
-			if (!client_cb->deleted &&
-			    client_cb->pollfd &&
+		DL_FOREACH (server_instance.client_callbacks, client_cb)
+			if (!client_cb->deleted && client_cb->pollfd &&
 			    (client_cb->pollfd->revents & POLLIN))
 				client_cb->callback(client_cb->callback_data);
 
@@ -666,6 +665,6 @@ void cras_server_send_to_all_clients(const struct cras_client_message *msg)
 {
 	struct attached_client *client;
 
-	DL_FOREACH(server_instance.clients_head, client)
+	DL_FOREACH (server_instance.clients_head, client)
 		cras_rclient_send_message(client->client, msg, NULL, 0);
 }
