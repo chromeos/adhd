@@ -91,7 +91,7 @@ struct alsa_output_node {
 
 struct alsa_input_node {
 	struct cras_ionode base;
-	struct mixer_control* mixer_input;
+	struct mixer_control *mixer_input;
 	const struct cras_alsa_jack *jack;
 	int8_t *channel_layout;
 };
@@ -305,11 +305,9 @@ static int frames_queued(const struct cras_iodev *iodev,
 	int rc;
 	snd_pcm_uframes_t frames;
 
-	rc = cras_alsa_get_avail_frames(aio->handle,
-					aio->base.buffer_size,
+	rc = cras_alsa_get_avail_frames(aio->handle, aio->base.buffer_size,
 					aio->severe_underrun_frames,
-					iodev->info.name,
-					&frames, tstamp);
+					iodev->info.name, &frames, tstamp);
 	if (rc < 0) {
 		if (rc == -EPIPE)
 			aio->num_severe_underruns++;
@@ -330,8 +328,7 @@ static int delay_frames(const struct cras_iodev *iodev)
 	snd_pcm_sframes_t delay;
 	int rc;
 
-	rc = cras_alsa_get_delay_frames(aio->handle,
-					iodev->buffer_size,
+	rc = cras_alsa_get_delay_frames(aio->handle, iodev->buffer_size,
 					&delay);
 	if (rc < 0)
 		return rc;
@@ -346,8 +343,7 @@ static int close_dev(struct cras_iodev *iodev)
 	/* Removes audio thread callback from main thread. */
 	if (aio->poll_fd >= 0)
 		audio_thread_rm_callback_sync(
-				cras_iodev_list_get_audio_thread(),
-				aio->poll_fd);
+			cras_iodev_list_get_audio_thread(), aio->poll_fd);
 	if (!aio->handle)
 		return 0;
 	cras_alsa_pcm_close(aio->handle);
@@ -403,7 +399,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
 	aio->severe_underrun_frames =
-			SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
+		SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
 
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
@@ -416,8 +412,7 @@ static int configure_dev(struct cras_iodev *iodev)
 		return rc;
 
 	/* Set channel map to device */
-	rc = cras_alsa_set_channel_map(aio->handle,
-				       iodev->format);
+	rc = cras_alsa_set_channel_map(aio->handle, iodev->format);
 	if (rc < 0)
 		return rc;
 
@@ -463,8 +458,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 		if (aio->poll_fd >= 0)
 			audio_thread_add_callback(aio->poll_fd,
-						  dummy_hotword_cb,
-						  aio);
+						  dummy_hotword_cb, aio);
 	}
 
 	/* Capture starts right away, playback will wait for samples. */
@@ -515,8 +509,7 @@ static int start(const struct cras_iodev *iodev)
 	return 0;
 }
 
-static int get_buffer(struct cras_iodev *iodev,
-		      struct cras_audio_area **area,
+static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 		      unsigned *frames)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
@@ -528,11 +521,8 @@ static int get_buffer(struct cras_iodev *iodev,
 	aio->mmap_offset = 0;
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	rc = cras_alsa_mmap_begin(aio->handle,
-				  format_bytes,
-				  &dst,
-				  &aio->mmap_offset,
-				  &nframes);
+	rc = cras_alsa_mmap_begin(aio->handle, format_bytes, &dst,
+				  &aio->mmap_offset, &nframes);
 
 	iodev->area->frames = nframes;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
@@ -547,9 +537,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
-	return cras_alsa_mmap_commit(aio->handle,
-				     aio->mmap_offset,
-				     nwritten);
+	return cras_alsa_mmap_commit(aio->handle, aio->mmap_offset, nwritten);
 }
 
 static int flush_buffer(struct cras_iodev *iodev)
@@ -576,7 +564,7 @@ static struct cras_ionode *first_plugged_node(struct cras_iodev *iodev)
 	/* When this is called at iodev creation, none of the nodes
 	 * are selected. Just pick the first plugged one and let Chrome
 	 * choose it later. */
-	DL_FOREACH(iodev->nodes, n) {
+	DL_FOREACH (iodev->nodes, n) {
 		if (n->plugged)
 			return n;
 	}
@@ -589,7 +577,7 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 	struct cras_ionode *n;
 
 	/* If a node exists for node_idx, set it as active. */
-	DL_FOREACH(iodev->nodes, n) {
+	DL_FOREACH (iodev->nodes, n) {
 		if (n->idx == node_idx) {
 			alsa_iodev_set_active_node(iodev, n, dev_enabled);
 			return;
@@ -662,9 +650,9 @@ static struct alsa_input_node *get_active_input(const struct alsa_io *aio)
  * Gets the curve for the active output node. If the node doesn't have volume
  * curve specified, return the default volume curve of the parent iodev.
  */
-static const struct cras_volume_curve *get_curve_for_output_node(
-		const struct alsa_io *aio,
-		const struct alsa_output_node *node)
+static const struct cras_volume_curve *
+get_curve_for_output_node(const struct alsa_io *aio,
+			  const struct alsa_output_node *node)
 {
 	if (node && node->volume_curve)
 		return node->volume_curve;
@@ -674,8 +662,8 @@ static const struct cras_volume_curve *get_curve_for_output_node(
 /*
  * Gets the curve for the active output.
  */
-static const struct cras_volume_curve *get_curve_for_active_output(
-		const struct alsa_io *aio)
+static const struct cras_volume_curve *
+get_curve_for_active_output(const struct alsa_io *aio)
 {
 	struct alsa_output_node *node = get_active_output(aio);
 	return get_curve_for_output_node(aio, node);
@@ -693,9 +681,9 @@ static void set_alsa_volume_limits(struct alsa_io *aio)
 		return;
 
 	curve = get_curve_for_active_output(aio);
-	cras_system_set_volume_limits(
-			curve->get_dBFS(curve, 1), /* min */
-			curve->get_dBFS(curve, CRAS_MAX_SYSTEM_VOLUME));
+	cras_system_set_volume_limits(curve->get_dBFS(curve, 1), /* min */
+				      curve->get_dBFS(curve,
+						      CRAS_MAX_SYSTEM_VOLUME));
 }
 
 /*
@@ -731,10 +719,8 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 	if (cras_iodev_software_volume_needed(iodev))
 		volume = 100;
 
-	cras_alsa_mixer_set_dBFS(
-		aio->mixer,
-		curve->get_dBFS(curve, volume),
-		aout ? aout->mixer_output : NULL);
+	cras_alsa_mixer_set_dBFS(aio->mixer, curve->get_dBFS(curve, volume),
+				 aout ? aout->mixer_output : NULL);
 }
 
 /*
@@ -749,8 +735,7 @@ static void set_alsa_mute(struct cras_iodev *iodev)
 		return;
 
 	aout = get_active_output(aio);
-	cras_alsa_mixer_set_mute(aio->mixer,
-				 cras_system_get_mute(),
+	cras_alsa_mixer_set_mute(aio->mixer, cras_system_get_mute(),
 				 aout ? aout->mixer_output : NULL);
 }
 
@@ -773,7 +758,7 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	if (!has_handle(aio))
 		return;
 	gain = cras_iodev_adjust_active_node_gain(
-				iodev, cras_system_get_capture_gain());
+		iodev, cras_system_get_capture_gain());
 
 	/* Set hardware gain to 0dB if software gain is needed. */
 	if (cras_iodev_software_volume_needed(iodev))
@@ -781,10 +766,8 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 
 	ain = get_active_input(aio);
 
-	cras_alsa_mixer_set_capture_dBFS(
-			aio->mixer,
-			gain,
-			ain ? ain->mixer_input : NULL);
+	cras_alsa_mixer_set_capture_dBFS(aio->mixer, gain,
+					 ain ? ain->mixer_input : NULL);
 	cras_alsa_mixer_set_capture_mute(aio->mixer,
 					 cras_system_get_capture_mute(),
 					 ain ? ain->mixer_input : NULL);
@@ -823,17 +806,17 @@ static void init_device_settings(struct alsa_io *aio)
 			mixer_input = ain->mixer_input;
 
 		if (cras_iodev_software_volume_needed(&aio->base)) {
-			min_capture_gain = cras_iodev_minimum_software_gain(
-					&aio->base);
-			max_capture_gain = cras_iodev_maximum_software_gain(
-					&aio->base);
+			min_capture_gain =
+				cras_iodev_minimum_software_gain(&aio->base);
+			max_capture_gain =
+				cras_iodev_maximum_software_gain(&aio->base);
 		} else {
 			min_capture_gain =
 				cras_alsa_mixer_get_minimum_capture_gain(
-						aio->mixer, mixer_input);
+					aio->mixer, mixer_input);
 			max_capture_gain =
 				cras_alsa_mixer_get_maximum_capture_gain(
-						aio->mixer, mixer_input);
+					aio->mixer, mixer_input);
 		}
 		cras_system_set_capture_gain_limits(min_capture_gain,
 						    max_capture_gain);
@@ -859,7 +842,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	free(aio->base.supported_channel_counts);
 	free(aio->base.supported_formats);
 
-	DL_FOREACH(aio->base.nodes, node) {
+	DL_FOREACH (aio->base.nodes, node) {
 		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 			aout = (struct alsa_output_node *)node;
 			cras_volume_curve_destroy(aout->volume_curve);
@@ -894,7 +877,7 @@ static int has_node(struct alsa_io *aio, const char *name)
 {
 	struct cras_ionode *node;
 
-	DL_FOREACH(aio->base.nodes, node)
+	DL_FOREACH (aio->base.nodes, node)
 		if (!strcmp(node->name, name))
 			return 1;
 
@@ -923,8 +906,10 @@ static void drop_node_name(struct cras_ionode *node)
 		strcpy(node->name, HDMI);
 	else {
 		/* Only HDMI or USB node might have invalid name to drop */
-		syslog(LOG_ERR, "Unexpectedly drop node name for "
-		       "node: %s, type: %d", node->name, node->type);
+		syslog(LOG_ERR,
+		       "Unexpectedly drop node name for "
+		       "node: %s, type: %d",
+		       node->name, node->type);
 		strcpy(node->name, DEFAULT);
 	}
 }
@@ -937,7 +922,6 @@ static void drop_node_name(struct cras_ionode *node)
 static void set_node_initial_state(struct cras_ionode *node,
 				   enum CRAS_ALSA_CARD_TYPE card_type)
 {
-
 	unsigned i;
 
 	node->volume = 100;
@@ -947,8 +931,8 @@ static void set_node_initial_state(struct cras_ionode *node,
 		if (!strncmp(node->name, node_defaults[i].name,
 			     strlen(node_defaults[i].name))) {
 			node->position = node_defaults[i].position;
-			node->plugged = (node->position
-					!= NODE_POSITION_EXTERNAL);
+			node->plugged =
+				(node->position != NODE_POSITION_EXTERNAL);
 			node->type = node_defaults[i].type;
 			if (node->plugged)
 				gettimeofday(&node->plugged_time, NULL);
@@ -970,11 +954,12 @@ static void set_node_initial_state(struct cras_ionode *node,
 		if (endswith(node->name, "Jack") && !strstr(node->name, HDMI)) {
 			if (node->dev->direction == CRAS_STREAM_OUTPUT) {
 				node->type = CRAS_NODE_TYPE_HEADPHONE;
-				strncpy(node->name, HEADPHONE, sizeof(node->name) - 1);
-			}
-			else {
+				strncpy(node->name, HEADPHONE,
+					sizeof(node->name) - 1);
+			} else {
 				node->type = CRAS_NODE_TYPE_MIC;
-				strncpy(node->name, MIC, sizeof(node->name) - 1);
+				strncpy(node->name, MIC,
+					sizeof(node->name) - 1);
 			}
 		}
 		if (strstr(node->name, HDMI) &&
@@ -996,8 +981,7 @@ static void set_node_initial_state(struct cras_ionode *node,
 #endif
 }
 
-static int get_ucm_flag_integer(struct alsa_io *aio,
-				const char *flag_name,
+static int get_ucm_flag_integer(struct alsa_io *aio, const char *flag_name,
 				int *result)
 {
 	char *value;
@@ -1048,10 +1032,10 @@ static int no_create_default_output_node(struct alsa_io *aio)
 	return result;
 }
 
-static void set_output_node_software_volume_needed(
-	struct alsa_output_node *output, struct alsa_io *aio)
+static void
+set_output_node_software_volume_needed(struct alsa_output_node *output,
+				       struct alsa_io *aio)
 {
-
 	struct cras_alsa_mixer *mixer = aio->mixer;
 	long range = 0;
 
@@ -1074,7 +1058,7 @@ static void set_output_node_software_volume_needed(
 	if (output->base.type == CRAS_NODE_TYPE_USB) {
 		range += cras_alsa_mixer_get_dB_range(mixer);
 		range += cras_alsa_mixer_get_output_dB_range(
-				output->mixer_output);
+			output->mixer_output);
 		if (range < 4000)
 			output->base.software_volume_needed = 1;
 	}
@@ -1083,8 +1067,8 @@ static void set_output_node_software_volume_needed(
 		       output->base.name);
 }
 
-static void set_input_node_software_volume_needed(
-	struct alsa_input_node *input, struct alsa_io *aio)
+static void set_input_node_software_volume_needed(struct alsa_input_node *input,
+						  struct alsa_io *aio)
 {
 	long min_software_gain;
 	long max_software_gain;
@@ -1099,7 +1083,7 @@ static void set_input_node_software_volume_needed(
 		return;
 
 	rc = ucm_get_max_software_gain(aio->ucm, input->base.name,
-	                               &max_software_gain);
+				       &max_software_gain);
 
 	/* If max software gain doesn't exist, skip min software gain setting. */
 	if (rc)
@@ -1109,24 +1093,27 @@ static void set_input_node_software_volume_needed(
 	input->base.max_software_gain = max_software_gain;
 	syslog(LOG_INFO,
 	       "Use software gain for %s with max %ld because it is specified"
-	       " in UCM", input->base.name, max_software_gain);
+	       " in UCM",
+	       input->base.name, max_software_gain);
 
 	/* Enable min software gain if it is specified in UCM. */
 	rc = ucm_get_min_software_gain(aio->ucm, input->base.name,
-	                               &min_software_gain);
+				       &min_software_gain);
 	if (rc)
 		return;
 
 	if (min_software_gain > max_software_gain) {
 		syslog(LOG_ERR,
 		       "Ignore MinSoftwareGain %ld because it is larger than "
-		       "MaxSoftwareGain %ld", min_software_gain, max_software_gain);
+		       "MaxSoftwareGain %ld",
+		       min_software_gain, max_software_gain);
 		return;
 	}
 
 	syslog(LOG_INFO,
 	       "Use software gain for %s with min %ld because it is specified"
-	       " in UCM", input->base.name, min_software_gain);
+	       " in UCM",
+	       input->base.name, min_software_gain);
 	input->base.min_software_gain = min_software_gain;
 }
 
@@ -1140,7 +1127,7 @@ static void set_input_default_node_gain(struct alsa_input_node *input,
 		return;
 
 	rc = ucm_get_default_node_gain(aio->ucm, input->base.name,
-					 &default_node_gain);
+				       &default_node_gain);
 	if (rc)
 		return;
 
@@ -1148,8 +1135,7 @@ static void set_input_default_node_gain(struct alsa_input_node *input,
 }
 
 static void check_auto_unplug_output_node(struct alsa_io *aio,
-					  struct cras_ionode *node,
-					  int plugged)
+					  struct cras_ionode *node, int plugged)
 {
 	struct cras_ionode *tmp;
 
@@ -1158,11 +1144,11 @@ static void check_auto_unplug_output_node(struct alsa_io *aio,
 
 	/* Auto unplug internal speaker if any output node has been created */
 	if (!strcmp(node->name, INTERNAL_SPEAKER) && plugged) {
-		DL_FOREACH(aio->base.nodes, tmp)
+		DL_FOREACH (aio->base.nodes, tmp)
 			if (tmp->plugged && (tmp != node))
 				cras_iodev_set_node_plugged(node, 0);
 	} else {
-		DL_FOREACH(aio->base.nodes, tmp) {
+		DL_FOREACH (aio->base.nodes, tmp) {
 			if (!strcmp(tmp->name, INTERNAL_SPEAKER))
 				cras_iodev_set_node_plugged(tmp, !plugged);
 		}
@@ -1191,16 +1177,13 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	}
 	output->base.dev = &aio->base;
 	output->base.idx = aio->next_ionode_index++;
-	output->base.stable_id = SuperFastHash(name,
-					       strlen(name),
-					       aio->base.info.stable_id);
-	output->base.stable_id_new = SuperFastHash(name,
-						   strlen(name),
-						   aio->base.info.stable_id_new
-						   );
-	if(aio->ucm)
-		output->base.dsp_name = ucm_get_dsp_name_for_dev(aio->ucm,
-								 name);
+	output->base.stable_id =
+		SuperFastHash(name, strlen(name), aio->base.info.stable_id);
+	output->base.stable_id_new =
+		SuperFastHash(name, strlen(name), aio->base.info.stable_id_new);
+	if (aio->ucm)
+		output->base.dsp_name =
+			ucm_get_dsp_name_for_dev(aio->ucm, name);
 
 	if (strcmp(name, "SCO Line Out") == 0)
 		output->base.is_sco_pcm = 1;
@@ -1208,9 +1191,8 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 
 	/* Volume curve. */
 	output->volume_curve = cras_card_config_get_volume_curve_for_control(
-			aio->config,
-			name ? name
-			     : cras_alsa_mixer_get_control_name(cras_output));
+		aio->config,
+		name ? name : cras_alsa_mixer_get_control_name(cras_output));
 
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
@@ -1223,7 +1205,7 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 }
 
 static void new_output_by_mixer_control(struct mixer_control *cras_output,
-				        void *callback_arg)
+					void *callback_arg)
 {
 	struct alsa_io *aio = (struct alsa_io *)callback_arg;
 	char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
@@ -1231,7 +1213,7 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 
 	ctl_name = cras_alsa_mixer_get_control_name(cras_output);
 	if (!ctl_name)
-	        return;
+		return;
 
 	if (aio->card_type == ALSA_CARD_TYPE_USB) {
 		if (snprintf(node_name, sizeof(node_name), "%s: %s",
@@ -1244,8 +1226,7 @@ static void new_output_by_mixer_control(struct mixer_control *cras_output,
 }
 
 static void check_auto_unplug_input_node(struct alsa_io *aio,
-					 struct cras_ionode *node,
-					 int plugged)
+					 struct cras_ionode *node, int plugged)
 {
 	struct cras_ionode *tmp;
 	if (!auto_unplug_input_node(aio))
@@ -1254,18 +1235,19 @@ static void check_auto_unplug_input_node(struct alsa_io *aio,
 	/* Auto unplug internal mic if any input node has already
 	 * been created */
 	if (!strcmp(node->name, INTERNAL_MICROPHONE) && plugged) {
-		DL_FOREACH(aio->base.nodes, tmp)
+		DL_FOREACH (aio->base.nodes, tmp)
 			if (tmp->plugged && (tmp != node))
 				cras_iodev_set_node_plugged(node, 0);
 	} else {
-		DL_FOREACH(aio->base.nodes, tmp)
+		DL_FOREACH (aio->base.nodes, tmp)
 			if (!strcmp(tmp->name, INTERNAL_MICROPHONE))
 				cras_iodev_set_node_plugged(tmp, !plugged);
 	}
 }
 
 static struct alsa_input_node *new_input(struct alsa_io *aio,
-		struct mixer_control *cras_input, const char *name)
+					 struct mixer_control *cras_input,
+					 const char *name)
 {
 	struct cras_iodev *iodev = &aio->base;
 	struct alsa_input_node *input;
@@ -1279,12 +1261,10 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	}
 	input->base.dev = &aio->base;
 	input->base.idx = aio->next_ionode_index++;
-	input->base.stable_id = SuperFastHash(name,
-					      strlen(name),
-					      aio->base.info.stable_id);
-	input->base.stable_id_new = SuperFastHash(name,
-						  strlen(name),
-						  aio->base.info.stable_id_new);
+	input->base.stable_id =
+		SuperFastHash(name, strlen(name), aio->base.info.stable_id);
+	input->base.stable_id_new =
+		SuperFastHash(name, strlen(name), aio->base.info.stable_id_new);
 	if (strcmp(name, "SCO Line In") == 0)
 		input->base.is_sco_pcm = 1;
 	input->mixer_input = cras_input;
@@ -1308,7 +1288,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 
 		/* Check if channel map is specified in UCM. */
 		input->channel_layout = (int8_t *)malloc(
-				CRAS_CH_MAX * sizeof(*input->channel_layout));
+			CRAS_CH_MAX * sizeof(*input->channel_layout));
 		err = ucm_get_capture_chmap_for_dev(aio->ucm, name,
 						    input->channel_layout);
 		if (err) {
@@ -1326,8 +1306,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	}
 
 	cras_iodev_add_node(&aio->base, &input->base);
-	check_auto_unplug_input_node(aio, &input->base,
-				     input->base.plugged);
+	check_auto_unplug_input_node(aio, &input->base, input->base.plugged);
 	return input;
 }
 
@@ -1339,7 +1318,7 @@ static void new_input_by_mixer_control(struct mixer_control *cras_input,
 	const char *ctl_name = cras_alsa_mixer_get_control_name(cras_input);
 
 	if (aio->card_type == ALSA_CARD_TYPE_USB) {
-		int ret = snprintf(node_name , sizeof(node_name), "%s: %s",
+		int ret = snprintf(node_name, sizeof(node_name), "%s: %s",
 				   aio->base.info.name, ctl_name);
 		// Truncation is OK, but add a check to make the compiler happy.
 		if (ret == sizeof(node_name))
@@ -1353,16 +1332,16 @@ static void new_input_by_mixer_control(struct mixer_control *cras_input,
 /*
  * Finds the output node associated with the jack. Returns NULL if not found.
  */
-static struct alsa_output_node *get_output_node_from_jack(
-		struct alsa_io *aio, const struct cras_alsa_jack *jack)
+static struct alsa_output_node *
+get_output_node_from_jack(struct alsa_io *aio,
+			  const struct cras_alsa_jack *jack)
 {
 	struct mixer_control *mixer_output;
 	struct cras_ionode *node = NULL;
 	struct alsa_output_node *aout = NULL;
 
 	/* Search by jack first. */
-	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
-				   jack, jack);
+	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout, jack, jack);
 	if (aout)
 		return aout;
 
@@ -1371,13 +1350,13 @@ static struct alsa_output_node *get_output_node_from_jack(
 	if (mixer_output == NULL)
 		return NULL;
 
-	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout,
-				   mixer_output, mixer_output);
+	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, aout, mixer_output,
+				   mixer_output);
 	return aout;
 }
 
-static struct alsa_input_node *get_input_node_from_jack(
-		struct alsa_io *aio, const struct cras_alsa_jack *jack)
+static struct alsa_input_node *
+get_input_node_from_jack(struct alsa_io *aio, const struct cras_alsa_jack *jack)
 {
 	struct mixer_control *mixer_input;
 	struct cras_ionode *node = NULL;
@@ -1385,13 +1364,13 @@ static struct alsa_input_node *get_input_node_from_jack(
 
 	mixer_input = cras_alsa_jack_get_mixer_input(jack);
 	if (mixer_input == NULL) {
-		DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, ain,
-					   jack, jack);
+		DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, ain, jack,
+					   jack);
 		return ain;
 	}
 
-	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, ain,
-				   mixer_input, mixer_input);
+	DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, ain, mixer_input,
+				   mixer_input);
 	return ain;
 }
 
@@ -1422,15 +1401,15 @@ static const char *get_active_dsp_name(struct alsa_io *aio)
 	if (node == NULL)
 		return NULL;
 
-	return node->dsp_name ? : aio->dsp_name_default;
+	return node->dsp_name ?: aio->dsp_name_default;
 }
 
 /*
  * Creates volume curve for the node associated with given jack.
  */
-static struct cras_volume_curve *create_volume_curve_for_jack(
-		const struct cras_card_config *config,
-		const struct cras_alsa_jack *jack)
+static struct cras_volume_curve *
+create_volume_curve_for_jack(const struct cras_card_config *config,
+			     const struct cras_alsa_jack *jack)
 {
 	struct cras_volume_curve *curve;
 	const char *name;
@@ -1454,8 +1433,7 @@ static struct cras_volume_curve *create_volume_curve_for_jack(
  * Callback that is called when an output jack is plugged or unplugged.
  */
 static void jack_output_plug_event(const struct cras_alsa_jack *jack,
-				    int plugged,
-				    void *arg)
+				   int plugged, void *arg)
 {
 	struct alsa_io *aio;
 	struct alsa_output_node *node;
@@ -1495,8 +1473,8 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 		/* If we already have the node, associate with the jack. */
 		node->jack = jack;
 		if (node->volume_curve == NULL)
-			node->volume_curve = create_volume_curve_for_jack(
-					aio->config, jack);
+			node->volume_curve =
+				create_volume_curve_for_jack(aio->config, jack);
 	}
 
 	syslog(LOG_DEBUG, "%s plugged: %d, %s", jack_name, plugged,
@@ -1520,8 +1498,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
  * Callback that is called when an input jack is plugged or unplugged.
  */
 static void jack_input_plug_event(const struct cras_alsa_jack *jack,
-				  int plugged,
-				  void *arg)
+				  int plugged, void *arg)
 {
 	struct alsa_io *aio;
 	struct alsa_input_node *node;
@@ -1570,32 +1547,21 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
  * Sets the name of the given iodev, using the name and index of the card
  * combined with the device index and direction.
  */
-static void set_iodev_name(struct cras_iodev *dev,
-			   const char *card_name,
-			   const char *dev_name,
-			   size_t card_index,
+static void set_iodev_name(struct cras_iodev *dev, const char *card_name,
+			   const char *dev_name, size_t card_index,
 			   size_t device_index,
-			   enum CRAS_ALSA_CARD_TYPE card_type,
-			   size_t usb_vid,
-			   size_t usb_pid,
-			   char *usb_serial_number)
+			   enum CRAS_ALSA_CARD_TYPE card_type, size_t usb_vid,
+			   size_t usb_pid, char *usb_serial_number)
 {
-	snprintf(dev->info.name,
-		 sizeof(dev->info.name),
-		 "%s: %s:%zu,%zu",
-		 card_name,
-		 dev_name,
-		 card_index,
-		 device_index);
+	snprintf(dev->info.name, sizeof(dev->info.name), "%s: %s:%zu,%zu",
+		 card_name, dev_name, card_index, device_index);
 	dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
 	syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
 
-	dev->info.stable_id = SuperFastHash(card_name,
-					    strlen(card_name),
-					    strlen(card_name));
-	dev->info.stable_id = SuperFastHash(dev_name,
-					    strlen(dev_name),
-					    dev->info.stable_id);
+	dev->info.stable_id =
+		SuperFastHash(card_name, strlen(card_name), strlen(card_name));
+	dev->info.stable_id =
+		SuperFastHash(dev_name, strlen(dev_name), dev->info.stable_id);
 
 	switch (card_type) {
 	case ALSA_CARD_TYPE_INTERNAL:
@@ -1605,12 +1571,12 @@ static void set_iodev_name(struct cras_iodev *dev,
 		dev->info.stable_id_new = dev->info.stable_id;
 		break;
 	case ALSA_CARD_TYPE_USB:
-		dev->info.stable_id = SuperFastHash((const char *)&usb_vid,
-						    sizeof(usb_vid),
-						    dev->info.stable_id);
-		dev->info.stable_id = SuperFastHash((const char *)&usb_pid,
-						    sizeof(usb_pid),
-						    dev->info.stable_id);
+		dev->info.stable_id =
+			SuperFastHash((const char *)&usb_vid, sizeof(usb_vid),
+				      dev->info.stable_id);
+		dev->info.stable_id =
+			SuperFastHash((const char *)&usb_pid, sizeof(usb_pid),
+				      dev->info.stable_id);
 		dev->info.stable_id_new =
 			SuperFastHash(usb_serial_number,
 				      strlen(usb_serial_number),
@@ -1659,8 +1625,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	free(iodev->supported_formats);
 	iodev->supported_formats = NULL;
 
-	err = cras_alsa_fill_properties(aio->handle,
-					&iodev->supported_rates,
+	err = cras_alsa_fill_properties(aio->handle, &iodev->supported_rates,
 					&iodev->supported_channel_counts,
 					&iodev->supported_formats);
 	if (err)
@@ -1671,8 +1636,8 @@ static int update_supported_formats(struct cras_iodev *iodev)
 		fixed_rate = get_fixed_rate(aio);
 		if (fixed_rate > 0) {
 			free(iodev->supported_rates);
-			iodev->supported_rates = (size_t*)malloc(
-					2 * sizeof(iodev->supported_rates[0]));
+			iodev->supported_rates = (size_t *)malloc(
+				2 * sizeof(iodev->supported_rates[0]));
 			iodev->supported_rates[0] = fixed_rate;
 			iodev->supported_rates[1] = 0;
 		}
@@ -1687,7 +1652,7 @@ static void build_softvol_scalers(struct alsa_io *aio)
 {
 	struct cras_ionode *ionode;
 
-	DL_FOREACH(aio->base.nodes, ionode) {
+	DL_FOREACH (aio->base.nodes, ionode) {
 		struct alsa_output_node *aout;
 		const struct cras_volume_curve *curve;
 
@@ -1788,7 +1753,7 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
 	 * subtract min_buffer_level. */
 	valid_sample = 0;
 	rc = odev->frames_queued(odev, &hw_tstamp);
-	if(rc < 0)
+	if (rc < 0)
 		return rc;
 	real_hw_level = rc;
 
@@ -1844,7 +1809,7 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	 * fill whole buffer with zeros. The real_hw_level is the real hw_level in
 	 * device buffer. It doesn't subtract min_buffer_level.*/
 	rc = odev->frames_queued(odev, &hw_tstamp);
-	if(rc < 0)
+	if (rc < 0)
 		return rc;
 	real_hw_level = rc;
 
@@ -1857,7 +1822,8 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 		return 0;
 	}
 
-	if (real_hw_level <= aio->filled_zeros_for_draining || real_hw_level == 0) {
+	if (real_hw_level <= aio->filled_zeros_for_draining ||
+	    real_hw_level == 0) {
 		rc = fill_whole_buffer_with_zeros(odev);
 		if (rc < 0)
 			return rc;
@@ -1936,7 +1902,7 @@ static void set_default_hotword_model(struct cras_iodev *iodev)
 	cras_node_id_t node_id;
 
 	if (!iodev->active_node ||
-	     iodev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
+	    iodev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
 		return;
 
 	node_id = cras_make_node_id(iodev->info.idx, iodev->active_node->idx);
@@ -1945,7 +1911,7 @@ static void set_default_hotword_model(struct cras_iodev *iodev)
 }
 
 static int get_valid_frames(const struct cras_iodev *odev,
-			     struct timespec *tstamp)
+			    struct timespec *tstamp)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
@@ -1962,7 +1928,7 @@ static int get_valid_frames(const struct cras_iodev *odev,
 	}
 
 	rc = odev->frames_queued(odev, tstamp);
-	if(rc < 0)
+	if (rc < 0)
 		return rc;
 	real_hw_level = rc;
 
@@ -1976,21 +1942,15 @@ static int get_valid_frames(const struct cras_iodev *odev,
  * Exported Interface.
  */
 
-struct cras_iodev *alsa_iodev_create(size_t card_index,
-				     const char *card_name,
-				     size_t device_index,
-				     const char *dev_name,
-				     const char *dev_id,
-				     enum CRAS_ALSA_CARD_TYPE card_type,
-				     int is_first,
-				     struct cras_alsa_mixer *mixer,
-				     const struct cras_card_config *config,
-				     struct cras_use_case_mgr *ucm,
-				     snd_hctl_t *hctl,
-				     enum CRAS_STREAM_DIRECTION direction,
-				     size_t usb_vid,
-				     size_t usb_pid,
-				     char *usb_serial_number)
+struct cras_iodev *
+alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
+		  const char *dev_name, const char *dev_id,
+		  enum CRAS_ALSA_CARD_TYPE card_type, int is_first,
+		  struct cras_alsa_mixer *mixer,
+		  const struct cras_card_config *config,
+		  struct cras_use_case_mgr *ucm, snd_hctl_t *hctl,
+		  enum CRAS_STREAM_DIRECTION direction, size_t usb_vid,
+		  size_t usb_pid, char *usb_serial_number)
 {
 	struct alsa_io *aio;
 	struct cras_iodev *iodev;
@@ -2025,10 +1985,7 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
 	if (aio->dev == NULL)
 		goto cleanup_iodev;
-	snprintf(aio->dev,
-		 MAX_ALSA_DEV_NAME_LENGTH,
-		 "hw:%zu,%zu",
-		 card_index,
+	snprintf(aio->dev, MAX_ALSA_DEV_NAME_LENGTH, "hw:%zu,%zu", card_index,
 		 device_index);
 
 	if (direction == CRAS_STREAM_INPUT) {
@@ -2073,19 +2030,19 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 	aio->config = config;
 	if (direction == CRAS_STREAM_OUTPUT) {
 		aio->default_volume_curve =
-				cras_card_config_get_volume_curve_for_control(
-						config, "Default");
+			cras_card_config_get_volume_curve_for_control(
+				config, "Default");
 		if (aio->default_volume_curve == NULL)
 			aio->default_volume_curve =
-					cras_volume_curve_create_default();
+				cras_volume_curve_create_default();
 	}
 	aio->ucm = ucm;
 	if (ucm) {
 		unsigned int level;
 		int rc;
 
-		aio->dsp_name_default = ucm_get_dsp_name_default(ucm,
-								 direction);
+		aio->dsp_name_default =
+			ucm_get_dsp_name_default(ucm, direction);
 		/* Set callback for swap mode if it is supported
 		 * in ucm modifier. */
 		if (ucm_swap_mode_exists(ucm))
@@ -2096,27 +2053,18 @@ struct cras_iodev *alsa_iodev_create(size_t card_index,
 		if (!rc && direction == CRAS_STREAM_OUTPUT)
 			iodev->min_buffer_level = level;
 
-		aio->enable_htimestamp =
-			ucm_get_enable_htimestamp_flag(ucm);
+		aio->enable_htimestamp = ucm_get_enable_htimestamp_flag(ucm);
 	}
 
 	set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
 		       card_type, usb_vid, usb_pid, usb_serial_number);
 
-	aio->jack_list =
-		cras_alsa_jack_list_create(
-			card_index,
-			card_name,
-			device_index,
-			is_first,
-			mixer,
-			ucm,
-			hctl,
-			direction,
-			direction == CRAS_STREAM_OUTPUT ?
-				     jack_output_plug_event :
-				     jack_input_plug_event,
-			aio);
+	aio->jack_list = cras_alsa_jack_list_create(
+		card_index, card_name, device_index, is_first, mixer, ucm, hctl,
+		direction,
+		direction == CRAS_STREAM_OUTPUT ? jack_output_plug_event :
+						  jack_input_plug_event,
+		aio);
 	if (!aio->jack_list)
 		goto cleanup_iodev;
 
@@ -2159,11 +2107,11 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 	/* Create output nodes for mixer controls, such as Headphone
 	 * and Speaker, only for the first device. */
 	if (direction == CRAS_STREAM_OUTPUT && is_first)
-		cras_alsa_mixer_list_outputs(mixer,
-				new_output_by_mixer_control, aio);
+		cras_alsa_mixer_list_outputs(mixer, new_output_by_mixer_control,
+					     aio);
 	else if (direction == CRAS_STREAM_INPUT && is_first)
-		cras_alsa_mixer_list_inputs(mixer,
-				new_input_by_mixer_control, aio);
+		cras_alsa_mixer_list_inputs(mixer, new_input_by_mixer_control,
+					    aio);
 
 	err = cras_alsa_jack_list_find_jacks_by_name_matching(aio->jack_list);
 	if (err)
@@ -2180,10 +2128,9 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 	 * node creation can be supressed by UCM flags for platforms
 	 * which really don't have an internal device. */
 	if ((direction == CRAS_STREAM_OUTPUT) &&
-			!no_create_default_output_node(aio)) {
+	    !no_create_default_output_node(aio)) {
 		if (first_internal_device(aio) &&
-		    !has_node(aio, INTERNAL_SPEAKER) &&
-		    !has_node(aio, HDMI)) {
+		    !has_node(aio, INTERNAL_SPEAKER) && !has_node(aio, HDMI)) {
 			if (strstr(aio->base.info.name, HDMI))
 				new_output(aio, NULL, HDMI);
 			else
@@ -2192,7 +2139,7 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 			new_output(aio, NULL, DEFAULT);
 		}
 	} else if ((direction == CRAS_STREAM_INPUT) &&
-			!no_create_default_input_node(aio)) {
+		   !no_create_default_input_node(aio)) {
 		if (first_internal_device(aio) &&
 		    !has_node(aio, INTERNAL_MICROPHONE))
 			new_input(aio, NULL, INTERNAL_MICROPHONE);
@@ -2209,14 +2156,13 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 		build_softvol_scalers(aio);
 
 	/* Set the active node as the best node we have now. */
-	alsa_iodev_set_active_node(&aio->base,
-				   first_plugged_node(&aio->base),
+	alsa_iodev_set_active_node(&aio->base, first_plugged_node(&aio->base),
 				   0);
 
 	/* Set plugged for the first USB device per card when it appears if
 	 * there is no jack reporting plug status. */
 	if (aio->card_type == ALSA_CARD_TYPE_USB && is_first &&
-			!get_jack_from_node(iodev->active_node))
+	    !get_jack_from_node(iodev->active_node))
 		cras_iodev_set_node_plugged(iodev->active_node, 1);
 
 	set_default_hotword_model(iodev);
@@ -2265,8 +2211,8 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 		aio->jack_always_plugged = 1;
 
 	/* Find any jack controls for this device. */
-	rc = cras_alsa_jack_list_add_jack_for_section(
-					aio->jack_list, section, &jack);
+	rc = cras_alsa_jack_list_add_jack_for_section(aio->jack_list, section,
+						      &jack);
 	if (rc)
 		return rc;
 
@@ -2300,8 +2246,7 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 		build_softvol_scalers(aio);
 
 	/* Set the active node as the best node we have now. */
-	alsa_iodev_set_active_node(&aio->base,
-				   first_plugged_node(&aio->base),
+	alsa_iodev_set_active_node(&aio->base, first_plugged_node(&aio->base),
 				   0);
 
 	/*
@@ -2309,9 +2254,8 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 	 * there is no jack reporting plug status and the jack is set
 	 * to be always plugged.
 	 */
-	if (aio->card_type == ALSA_CARD_TYPE_USB &&
-			aio->jack_always_plugged &&
-			!get_jack_from_node(iodev->active_node)) {
+	if (aio->card_type == ALSA_CARD_TYPE_USB && aio->jack_always_plugged &&
+	    !get_jack_from_node(iodev->active_node)) {
 		cras_iodev_set_node_plugged(iodev->active_node, 1);
 	}
 
@@ -2365,7 +2309,7 @@ static void alsa_iodev_unmute_node(struct alsa_io *aio,
 	 * the node as active and set the volume curve. */
 	if (mixer) {
 		/* Unmute the active mixer output, mute all others. */
-		DL_FOREACH(aio->base.nodes, node) {
+		DL_FOREACH (aio->base.nodes, node) {
 			output = (struct alsa_output_node *)node;
 			if (output->mixer_output)
 				cras_alsa_mixer_set_output_active_state(
