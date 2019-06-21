@@ -34,16 +34,14 @@ struct cras_mix_ops {
 				       unsigned int count, float scaler,
 				       float increment, float target, int step);
 	void (*scale_buffer)(snd_pcm_format_t fmt, uint8_t *buff,
-			unsigned int count, float scaler);
+			     unsigned int count, float scaler);
 	void (*add)(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
-		  unsigned int count, unsigned int index,
-		  int mute, float mix_vol);
+		    unsigned int count, unsigned int index, int mute,
+		    float mix_vol);
 	void (*add_scale_stride)(snd_pcm_format_t fmt, uint8_t *dst,
-			uint8_t *src, unsigned int count,
-			unsigned int dst_stride, unsigned int src_stride,
-			float scaler);
-	size_t (*mute_buffer)(uint8_t *dst,
-			    size_t frame_bytes,
-			    size_t count);
+				 uint8_t *src, unsigned int count,
+				 unsigned int dst_stride,
+				 unsigned int src_stride, float scaler);
+	size_t (*mute_buffer)(uint8_t *dst, size_t frame_bytes, size_t count);
 };
 #endif

@@ -13,22 +13,23 @@
 
 /* function suffixes for SIMD ops */
 #ifdef OPS_SSE42
-	#define OPS(a) a ## _sse42
+#define OPS(a) a##_sse42
 #elif OPS_AVX
-	#define OPS(a) a ## _avx
+#define OPS(a) a##_avx
 #elif OPS_AVX2
-	#define OPS(a) a ## _avx2
+#define OPS(a) a##_avx2
 #elif OPS_FMA
-	#define OPS(a) a ## _fma
+#define OPS(a) a##_fma
 #else
-	#define OPS(a) a
+#define OPS(a) a
 #endif
 
 /* Checks if the scaler needs a scaling operation.
  * We skip scaling for scaler too close to 1.0.
  * Note that this is not subjected to MAX_VOLUME_TO_SCALE
  * and MIN_VOLUME_TO_SCALE. */
-static inline int need_to_scale(float scaler) {
+static inline int need_to_scale(float scaler)
+{
 	return (scaler < 0.99 || scaler > 1.01);
 }
 
@@ -36,8 +37,7 @@ static inline int need_to_scale(float scaler) {
  * Signed 16 bit little endian functions.
  */
 
-static void cras_mix_add_clip_s16_le(int16_t *dst,
-				     const int16_t *src,
+static void cras_mix_add_clip_s16_le(int16_t *dst, const int16_t *src,
 				     size_t count)
 {
 	int32_t sum;
@@ -55,10 +55,8 @@ static void cras_mix_add_clip_s16_le(int16_t *dst,
 
 /* Adds src into dst, after scaling by vol.
  * Just hard limits to the min and max S16 value, can be improved later. */
-static void scale_add_clip_s16_le(int16_t *dst,
-				  const int16_t *src,
-				  size_t count,
-				  float vol)
+static void scale_add_clip_s16_le(int16_t *dst, const int16_t *src,
+				  size_t count, float vol)
 {
 	int32_t sum;
 	size_t i;
@@ -78,9 +76,7 @@ static void scale_add_clip_s16_le(int16_t *dst,
 
 /* Adds the first stream to the mix.  Don't need to mix, just setup to the new
  * values. If volume is 1.0, just memcpy. */
-static void copy_scaled_s16_le(int16_t *dst,
-			       const int16_t *src,
-			       size_t count,
+static void copy_scaled_s16_le(int16_t *dst, const int16_t *src, size_t count,
 			       float volume_scaler)
 {
 	int i;
@@ -144,9 +140,8 @@ static void cras_scale_buffer_s16_le(uint8_t *buffer, unsigned int count,
 		out[i] *= scaler;
 }
 
-static void cras_mix_add_s16_le(uint8_t *dst, uint8_t *src,
-				unsigned int count, unsigned int index,
-				int mute, float mix_vol)
+static void cras_mix_add_s16_le(uint8_t *dst, uint8_t *src, unsigned int count,
+				unsigned int index, int mute, float mix_vol)
 {
 	int16_t *out = (int16_t *)dst;
 	int16_t *in = (int16_t *)src;
@@ -164,45 +159,42 @@ static void cras_mix_add_s16_le(uint8_t *dst, uint8_t *src,
 }
 
 static void cras_mix_add_scale_stride_s16_le(uint8_t *dst, uint8_t *src,
-				unsigned int dst_stride,
-				unsigned int src_stride,
-				unsigned int count,
-				float scaler)
+					     unsigned int dst_stride,
+					     unsigned int src_stride,
+					     unsigned int count, float scaler)
 {
 	unsigned int i;
 
 	/* optimise the loops for vectorization */
 	if (dst_stride == src_stride && dst_stride == 2) {
-
 		for (i = 0; i < count; i++) {
 			int32_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int16_t *)dst +
-						*(int16_t *)src * scaler;
+				      *(int16_t *)src * scaler;
 			else
 				sum = *(int16_t *)dst + *(int16_t *)src;
 			if (sum > INT16_MAX)
 				sum = INT16_MAX;
 			else if (sum < INT16_MIN)
 				sum = INT16_MIN;
-			*(int16_t*)dst = sum;
+			*(int16_t *)dst = sum;
 			dst += 2;
 			src += 2;
 		}
 	} else if (dst_stride == src_stride && dst_stride == 4) {
-
 		for (i = 0; i < count; i++) {
 			int32_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int16_t *)dst +
-						*(int16_t *)src * scaler;
+				      *(int16_t *)src * scaler;
 			else
 				sum = *(int16_t *)dst + *(int16_t *)src;
 			if (sum > INT16_MAX)
 				sum = INT16_MAX;
 			else if (sum < INT16_MIN)
 				sum = INT16_MIN;
-			*(int16_t*)dst = sum;
+			*(int16_t *)dst = sum;
 			dst += 4;
 			src += 4;
 		}
@@ -211,14 +203,14 @@ static void cras_mix_add_scale_stride_s16_le(uint8_t *dst, uint8_t *src,
 			int32_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int16_t *)dst +
-						*(int16_t *)src * scaler;
+				      *(int16_t *)src * scaler;
 			else
 				sum = *(int16_t *)dst + *(int16_t *)src;
 			if (sum > INT16_MAX)
 				sum = INT16_MAX;
 			else if (sum < INT16_MIN)
 				sum = INT16_MIN;
-			*(int16_t*)dst = sum;
+			*(int16_t *)dst = sum;
 			dst += dst_stride;
 			src += src_stride;
 		}
@@ -236,8 +228,7 @@ static int32_t scale_s24_le(int32_t value, float scaler)
 	return (value >> 8) & 0x00ffffff;
 }
 
-static void cras_mix_add_clip_s24_le(int32_t *dst,
-				     const int32_t *src,
+static void cras_mix_add_clip_s24_le(int32_t *dst, const int32_t *src,
 				     size_t count)
 {
 	int32_t sum;
@@ -255,10 +246,8 @@ static void cras_mix_add_clip_s24_le(int32_t *dst,
 
 /* Adds src into dst, after scaling by vol.
  * Just hard limits to the min and max S24 value, can be improved later. */
-static void scale_add_clip_s24_le(int32_t *dst,
-				  const int32_t *src,
-				  size_t count,
-				  float vol)
+static void scale_add_clip_s24_le(int32_t *dst, const int32_t *src,
+				  size_t count, float vol)
 {
 	int32_t sum;
 	size_t i;
@@ -278,9 +267,7 @@ static void scale_add_clip_s24_le(int32_t *dst,
 
 /* Adds the first stream to the mix.  Don't need to mix, just setup to the new
  * values. If volume is 1.0, just memcpy. */
-static void copy_scaled_s24_le(int32_t *dst,
-			       const int32_t *src,
-			       size_t count,
+static void copy_scaled_s24_le(int32_t *dst, const int32_t *src, size_t count,
 			       float volume_scaler)
 {
 	int i;
@@ -344,9 +331,8 @@ static void cras_scale_buffer_s24_le(uint8_t *buffer, unsigned int count,
 		out[i] = scale_s24_le(out[i], scaler);
 }
 
-static void cras_mix_add_s24_le(uint8_t *dst, uint8_t *src,
-				unsigned int count, unsigned int index,
-				int mute, float mix_vol)
+static void cras_mix_add_s24_le(uint8_t *dst, uint8_t *src, unsigned int count,
+				unsigned int index, int mute, float mix_vol)
 {
 	int32_t *out = (int32_t *)dst;
 	int32_t *in = (int32_t *)src;
@@ -364,16 +350,14 @@ static void cras_mix_add_s24_le(uint8_t *dst, uint8_t *src,
 }
 
 static void cras_mix_add_scale_stride_s24_le(uint8_t *dst, uint8_t *src,
-				unsigned int dst_stride,
-				unsigned int src_stride,
-				unsigned int count,
-				float scaler)
+					     unsigned int dst_stride,
+					     unsigned int src_stride,
+					     unsigned int count, float scaler)
 {
 	unsigned int i;
 
 	/* optimise the loops for vectorization */
 	if (dst_stride == src_stride && dst_stride == 4) {
-
 		for (i = 0; i < count; i++) {
 			int32_t sum;
 			if (need_to_scale(scaler))
@@ -385,12 +369,11 @@ static void cras_mix_add_scale_stride_s24_le(uint8_t *dst, uint8_t *src,
 				sum = 0x007fffff;
 			else if (sum < (int32_t)0xff800000)
 				sum = (int32_t)0xff800000;
-			*(int32_t*)dst = sum;
+			*(int32_t *)dst = sum;
 			dst += 4;
 			src += 4;
 		}
 	} else {
-
 		for (i = 0; i < count; i++) {
 			int32_t sum;
 			if (need_to_scale(scaler))
@@ -402,7 +385,7 @@ static void cras_mix_add_scale_stride_s24_le(uint8_t *dst, uint8_t *src,
 				sum = 0x007fffff;
 			else if (sum < (int32_t)0xff800000)
 				sum = (int32_t)0xff800000;
-			*(int32_t*)dst = sum;
+			*(int32_t *)dst = sum;
 			dst += dst_stride;
 			src += src_stride;
 		}
@@ -413,8 +396,7 @@ static void cras_mix_add_scale_stride_s24_le(uint8_t *dst, uint8_t *src,
  * Signed 32 bit little endian functions.
  */
 
-static void cras_mix_add_clip_s32_le(int32_t *dst,
-				     const int32_t *src,
+static void cras_mix_add_clip_s32_le(int32_t *dst, const int32_t *src,
 				     size_t count)
 {
 	int64_t sum;
@@ -432,10 +414,8 @@ static void cras_mix_add_clip_s32_le(int32_t *dst,
 
 /* Adds src into dst, after scaling by vol.
  * Just hard limits to the min and max S32 value, can be improved later. */
-static void scale_add_clip_s32_le(int32_t *dst,
-				  const int32_t *src,
-				  size_t count,
-				  float vol)
+static void scale_add_clip_s32_le(int32_t *dst, const int32_t *src,
+				  size_t count, float vol)
 {
 	int64_t sum;
 	size_t i;
@@ -455,9 +435,7 @@ static void scale_add_clip_s32_le(int32_t *dst,
 
 /* Adds the first stream to the mix.  Don't need to mix, just setup to the new
  * values. If volume is 1.0, just memcpy. */
-static void copy_scaled_s32_le(int32_t *dst,
-			       const int32_t *src,
-			       size_t count,
+static void copy_scaled_s32_le(int32_t *dst, const int32_t *src, size_t count,
 			       float volume_scaler)
 {
 	int i;
@@ -521,9 +499,8 @@ static void cras_scale_buffer_s32_le(uint8_t *buffer, unsigned int count,
 		out[i] *= scaler;
 }
 
-static void cras_mix_add_s32_le(uint8_t *dst, uint8_t *src,
-				unsigned int count, unsigned int index,
-				int mute, float mix_vol)
+static void cras_mix_add_s32_le(uint8_t *dst, uint8_t *src, unsigned int count,
+				unsigned int index, int mute, float mix_vol)
 {
 	int32_t *out = (int32_t *)dst;
 	int32_t *in = (int32_t *)src;
@@ -541,45 +518,42 @@ static void cras_mix_add_s32_le(uint8_t *dst, uint8_t *src,
 }
 
 static void cras_mix_add_scale_stride_s32_le(uint8_t *dst, uint8_t *src,
-				unsigned int dst_stride,
-				unsigned int src_stride,
-				unsigned int count,
-				float scaler)
+					     unsigned int dst_stride,
+					     unsigned int src_stride,
+					     unsigned int count, float scaler)
 {
 	unsigned int i;
 
 	/* optimise the loops for vectorization */
 	if (dst_stride == src_stride && dst_stride == 4) {
-
 		for (i = 0; i < count; i++) {
 			int64_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int32_t *)dst +
-						*(int32_t *)src * scaler;
+				      *(int32_t *)src * scaler;
 			else
 				sum = *(int32_t *)dst + *(int32_t *)src;
 			if (sum > INT32_MAX)
 				sum = INT32_MAX;
 			else if (sum < INT32_MIN)
 				sum = INT32_MIN;
-			*(int32_t*)dst = sum;
+			*(int32_t *)dst = sum;
 			dst += 4;
 			src += 4;
 		}
 	} else {
-
 		for (i = 0; i < count; i++) {
 			int64_t sum;
 			if (need_to_scale(scaler))
 				sum = *(int32_t *)dst +
-						*(int32_t *)src * scaler;
+				      *(int32_t *)src * scaler;
 			else
 				sum = *(int32_t *)dst + *(int32_t *)src;
 			if (sum > INT32_MAX)
 				sum = INT32_MAX;
 			else if (sum < INT32_MIN)
 				sum = INT32_MIN;
-			*(int32_t*)dst = sum;
+			*(int32_t *)dst = sum;
 			dst += dst_stride;
 			src += src_stride;
 		}
@@ -605,8 +579,7 @@ static inline void convert_single_s32le_to_s243le(uint8_t *dst,
 	memcpy(dst, (uint8_t *)src + 1, 3);
 }
 
-static void cras_mix_add_clip_s24_3le(uint8_t *dst,
-				      const uint8_t *src,
+static void cras_mix_add_clip_s24_3le(uint8_t *dst, const uint8_t *src,
 				      size_t count)
 {
 	int64_t sum;
@@ -629,10 +602,8 @@ static void cras_mix_add_clip_s24_3le(uint8_t *dst,
 
 /* Adds src into dst, after scaling by vol.
  * Just hard limits to the min and max S24 value, can be improved later. */
-static void scale_add_clip_s24_3le(uint8_t *dst,
-				   const uint8_t *src,
-				   size_t count,
-				   float vol)
+static void scale_add_clip_s24_3le(uint8_t *dst, const uint8_t *src,
+				   size_t count, float vol)
 {
 	int64_t sum;
 	int32_t dst_frame;
@@ -657,10 +628,8 @@ static void scale_add_clip_s24_3le(uint8_t *dst,
 
 /* Adds the first stream to the mix.  Don't need to mix, just setup to the new
  * values. If volume is 1.0, just memcpy. */
-static void copy_scaled_s24_3le(uint8_t *dst,
-			        const uint8_t *src,
-			        size_t count,
-			        float volume_scaler)
+static void copy_scaled_s24_3le(uint8_t *dst, const uint8_t *src, size_t count,
+				float volume_scaler)
 {
 	int32_t frame;
 	size_t i;
@@ -736,9 +705,8 @@ static void cras_scale_buffer_s24_3le(uint8_t *buffer, unsigned int count,
 	}
 }
 
-static void cras_mix_add_s24_3le(uint8_t *dst, uint8_t *src,
-				 unsigned int count, unsigned int index,
-				 int mute, float mix_vol)
+static void cras_mix_add_s24_3le(uint8_t *dst, uint8_t *src, unsigned int count,
+				 unsigned int index, int mute, float mix_vol)
 {
 	uint8_t *out = dst;
 	uint8_t *in = src;
@@ -756,10 +724,9 @@ static void cras_mix_add_s24_3le(uint8_t *dst, uint8_t *src,
 }
 
 static void cras_mix_add_scale_stride_s24_3le(uint8_t *dst, uint8_t *src,
-				 unsigned int dst_stride,
-				 unsigned int src_stride,
-				 unsigned int count,
-				 float scaler)
+					      unsigned int dst_stride,
+					      unsigned int src_stride,
+					      unsigned int count, float scaler)
 {
 	unsigned int i;
 	int64_t sum;
@@ -806,8 +773,8 @@ static void scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
 	}
 }
 
-static void scale_buffer(snd_pcm_format_t fmt, uint8_t *buff, unsigned int count,
-		       float scaler)
+static void scale_buffer(snd_pcm_format_t fmt, uint8_t *buff,
+			 unsigned int count, float scaler)
 {
 	switch (fmt) {
 	case SND_PCM_FORMAT_S16_LE:
@@ -824,8 +791,8 @@ static void scale_buffer(snd_pcm_format_t fmt, uint8_t *buff, unsigned int count
 }
 
 static void mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
-		  unsigned int count, unsigned int index,
-		  int mute, float mix_vol)
+		    unsigned int count, unsigned int index, int mute,
+		    float mix_vol)
 {
 	switch (fmt) {
 	case SND_PCM_FORMAT_S16_LE:
@@ -846,31 +813,29 @@ static void mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
 }
 
 static void mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst,
-			uint8_t *src, unsigned int count,
-			unsigned int dst_stride, unsigned int src_stride,
-			float scaler)
+				 uint8_t *src, unsigned int count,
+				 unsigned int dst_stride,
+				 unsigned int src_stride, float scaler)
 {
 	switch (fmt) {
 	case SND_PCM_FORMAT_S16_LE:
-		return cras_mix_add_scale_stride_s16_le(dst, src, dst_stride,
-						  src_stride, count, scaler);
+		return cras_mix_add_scale_stride_s16_le(
+			dst, src, dst_stride, src_stride, count, scaler);
 	case SND_PCM_FORMAT_S24_LE:
-		return cras_mix_add_scale_stride_s24_le(dst, src, dst_stride,
-						  src_stride, count, scaler);
+		return cras_mix_add_scale_stride_s24_le(
+			dst, src, dst_stride, src_stride, count, scaler);
 	case SND_PCM_FORMAT_S32_LE:
-		return cras_mix_add_scale_stride_s32_le(dst, src, dst_stride,
-						  src_stride, count, scaler);
+		return cras_mix_add_scale_stride_s32_le(
+			dst, src, dst_stride, src_stride, count, scaler);
 	case SND_PCM_FORMAT_S24_3LE:
-		return cras_mix_add_scale_stride_s24_3le(dst, src, dst_stride,
-						   src_stride, count, scaler);
+		return cras_mix_add_scale_stride_s24_3le(
+			dst, src, dst_stride, src_stride, count, scaler);
 	default:
 		break;
 	}
 }
 
-static size_t mix_mute_buffer(uint8_t *dst,
-			    size_t frame_bytes,
-			    size_t count)
+static size_t mix_mute_buffer(uint8_t *dst, size_t frame_bytes, size_t count)
 {
 	memset(dst, 0, count * frame_bytes);
 	return count;
