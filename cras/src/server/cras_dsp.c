@@ -48,9 +48,8 @@ static void initialize_environment(struct cras_expr_env *env)
 	cras_expr_env_set_variable_boolean(env, "swap_lr_disabled", 1);
 }
 
-static struct pipeline *prepare_pipeline(
-		struct cras_dsp_context *ctx,
-		struct ini *target_ini)
+static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx,
+					 struct ini *target_ini)
 {
 	struct pipeline *pipeline;
 	const char *purpose = ctx->purpose;
@@ -117,8 +116,7 @@ static void cmd_reload_ini()
 		return;
 	}
 
-
-	DL_FOREACH(context_list, ctx) {
+	DL_FOREACH (context_list, ctx) {
 		cmd_load_pipeline(ctx, ini);
 	}
 
@@ -175,14 +173,13 @@ void cras_dsp_context_free(struct cras_dsp_context *ctx)
 }
 
 void cras_dsp_set_variable_string(struct cras_dsp_context *ctx, const char *key,
-			   const char *value)
+				  const char *value)
 {
 	cras_expr_env_set_variable_string(&ctx->env, key, value);
 }
 
 void cras_dsp_set_variable_boolean(struct cras_dsp_context *ctx,
-				   const char *key,
-				   char value)
+				   const char *key, char value)
 {
 	cras_expr_env_set_variable_boolean(&ctx->env, key, value);
 }
@@ -228,7 +225,7 @@ void cras_dsp_dump_info()
 
 	if (ini)
 		cras_dsp_ini_dump(syslog_dumper, ini);
-	DL_FOREACH(context_list, ctx) {
+	DL_FOREACH (context_list, ctx) {
 		cras_expr_env_dump(syslog_dumper, &ctx->env);
 		pipeline = ctx->pipeline;
 		if (pipeline)

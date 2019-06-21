@@ -42,7 +42,7 @@ struct pipeline;
  * Returns:
  *    A pointer to the pipeline, or NULL if the creation fails.
  */
-struct pipeline *cras_dsp_pipeline_create(struct ini* ini,
+struct pipeline *cras_dsp_pipeline_create(struct ini *ini,
 					  struct cras_expr_env *env,
 					  const char *purpose);
 
