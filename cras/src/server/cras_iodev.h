@@ -816,4 +816,15 @@ int cras_iodev_is_zero_volume(const struct cras_iodev *odev);
 void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 					unsigned int hw_level);
 
+/*
+ * Makes an input device drop the specific number of frames by given time.
+ * Args:
+ *    iodev - The device.
+ *    ts - The time indicates how many frames will be dropped in a device.
+ * Returns:
+ *    The number of frames have been dropped. Negative error code on failure.
+ */
+int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev,
+				   struct timespec ts);
+
 #endif /* CRAS_IODEV_H_ */

@@ -16,6 +16,7 @@
 #include "dev_stream.h"
 #include "input_data.h"
 #include "polled_interval_checker.h"
+#include "rate_estimator.h"
 #include "utlist.h"
 
 #include "dev_io.h"
@@ -323,12 +324,31 @@ static int get_input_dev_max_wake_ts(struct open_dev *adev,
 	return 0;
 }
 
+/* Returns whether a device can be reset. */
+static bool input_devices_can_be_reset(struct cras_iodev *iodev)
+{
+	if (!cras_iodev_is_open(iodev))
+		return false;
+	if (!iodev->streams)
+		return false;
+	if (!iodev->active_node ||
+	    iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD)
+		return false;
+	return true;
+}
+
 /*
  * Set wake_ts for this device to be the earliest wake up time for
  * dev_streams. Default value for adev->wake_ts will be now + 20s even if
  * any error occurs in this function.
+ * Args:
+ *    adev - The input device.
+ *    need_to_reset - The pointer to store whether we need to reset devices in
+ *                    order to keep the lower hw_level.
+ * Returns:
+ *    0 on success. Negative error code on failure.
  */
-static int set_input_dev_wake_ts(struct open_dev *adev)
+static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_reset)
 {
 	int rc;
 	struct timespec level_tstamp, wake_time_out, min_ts, now, dev_wake_ts;
@@ -350,6 +370,14 @@ static int set_input_dev_wake_ts(struct open_dev *adev)
 	curr_level = rc;
 	if (!timespec_is_nonzero(&level_tstamp))
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
+
+	/*
+	 * If any input device has more than largest_cb_level * 2 frames, need to
+	 * reset all devices.
+	 */
+	if (input_devices_can_be_reset(adev->dev) &&
+	    rc >= adev->dev->largest_cb_level * 2)
+		*need_to_reset = true;
 
 	cap_limit = get_stream_limit(adev, UINT_MAX, &cap_limit_stream);
 
@@ -758,12 +786,59 @@ int write_output_samples(struct open_dev **odevs, struct open_dev *adev,
 }
 
 /*
+ * Chooses the smallest difference between hw_level and min_cb_level as the
+ * drop time.
+ */
+static void get_input_devices_drop_time(struct open_dev *idev_list,
+					struct timespec *reset_ts)
+{
+	struct open_dev *adev;
+	struct cras_iodev *iodev;
+	struct timespec tmp;
+	struct timespec hw_tstamp;
+	double est_rate;
+	unsigned int target_level;
+	bool is_set = false;
+	int rc;
+
+	DL_FOREACH (idev_list, adev) {
+		iodev = adev->dev;
+		if (!input_devices_can_be_reset(iodev))
+			continue;
+
+		rc = cras_iodev_frames_queued(iodev, &hw_tstamp);
+		if (rc < 0) {
+			syslog(LOG_ERR, "Get frames from device %d, rc = %d",
+			       iodev->info.idx, rc);
+			continue;
+		}
+
+		target_level = iodev->min_cb_level;
+		if (rc <= target_level) {
+			reset_ts->tv_sec = 0;
+			reset_ts->tv_nsec = 0;
+			return;
+		}
+		est_rate = iodev->format->frame_rate *
+			   cras_iodev_get_est_rate_ratio(iodev);
+		cras_frames_to_time(rc - target_level, est_rate, &tmp);
+
+		if (!is_set || timespec_after(reset_ts, &tmp)) {
+			*reset_ts = tmp;
+			is_set = true;
+		}
+	}
+}
+
+/*
  * Public funcitons.
  */
 
 int dev_io_send_captured_samples(struct open_dev *idev_list)
 {
 	struct open_dev *adev;
+	struct timespec drop_time;
+	bool need_to_reset = false;
 	int rc;
 
 	// TODO(dgreid) - once per rstream, not once per dev_stream.
@@ -779,9 +854,32 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 		}
 
 		/* Set wake_ts for this device. */
-		rc = set_input_dev_wake_ts(adev);
+		rc = set_input_dev_wake_ts(adev, &need_to_reset);
 		if (rc < 0)
 			return rc;
+	}
+
+	if (!need_to_reset)
+		return 0;
+
+	get_input_devices_drop_time(idev_list, &drop_time);
+	ATLOG(atlog, AUDIO_THREAD_CAPTURE_DROP_TIME, drop_time.tv_sec,
+	      drop_time.tv_nsec, 0);
+
+	if (timespec_is_zero(&drop_time))
+		return 0;
+
+	DL_FOREACH (idev_list, adev) {
+		if (!input_devices_can_be_reset(adev->dev))
+			continue;
+
+		rc = cras_iodev_drop_frames_by_time(adev->dev, drop_time);
+		if (rc < 0) {
+			syslog(LOG_ERR,
+			       "Failed to drop frames from device %d, rc = %d",
+			       adev->dev->info.idx, rc);
+			continue;
+		}
 	}
 
 	return 0;
@@ -1176,6 +1274,11 @@ int dev_io_append_stream(struct open_dev **dev_list,
 			 * by hw_level of input device, set the first cb_ts to zero. The stream
 			 * will wake up when it gets enough samples to post. The next_cb_ts will
 			 * be updated after its first post.
+			 *
+			 * TODO(yuhsuan) - Align the new stream fetch time to avoid getting a large
+			 * delay. If a new stream with smaller block size starts when the hardware
+			 * level is high, the hardware level will keep high after removing other
+			 * old streams.
 			 */
 			init_cb_ts.tv_sec = 0;
 			init_cb_ts.tv_nsec = 0;

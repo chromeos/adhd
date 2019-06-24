@@ -598,6 +598,14 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_SEVERE_UNDERRUN:
 		printf("%-30s dev:%u\n", "SEVERE_UNDERRUN", data1);
 		break;
+	case AUDIO_THREAD_CAPTURE_DROP_TIME:
+		printf("%-30s time:%09u.%09d\n", "CAPTURE_DROP_TIME", data1,
+		       data2);
+		break;
+	case AUDIO_THREAD_DEV_DROP_FRAMES:
+		printf("%-30s dev:%u frames:%u\n", "DEV_DROP_FRAMES", data1,
+		       data2);
+		break;
 	default:
 		printf("%-30s tag:%u\n","UNKNOWN", tag);
 		break;

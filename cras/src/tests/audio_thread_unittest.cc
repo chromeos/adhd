@@ -1480,6 +1480,11 @@ int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
   return 0;
 }
 
+int cras_iodev_drop_frames_by_time(struct cras_iodev* iodev,
+                                   struct timespec ts) {
+  return 0;
+}
+
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec *tp) {
   *tp = clock_gettime_retspec;

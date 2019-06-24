@@ -95,6 +95,77 @@ TEST_F(DevIoSuite, CaptureGain) {
   EXPECT_EQ(0.99f, dev_stream_capture_software_gain_scaler_val);
 }
 
+/*
+ * If any hw_level is larger than 2 * largest_cb_level, reset all input
+ * devices.
+ */
+TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
+  struct timespec start;
+  struct timespec drop_time;
+  struct open_dev* dev_list = NULL;
+  bool rc;
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  AddFakeDataToStream(stream.get(), 0);
+
+  DevicePtr dev1 =
+      create_device(CRAS_STREAM_INPUT, 1000, &format, CRAS_NODE_TYPE_MIC);
+  DevicePtr dev2 =
+      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC);
+  DL_APPEND(dev_list, dev1->odev.get());
+  DL_APPEND(dev_list, dev2->odev.get());
+  add_stream_to_dev(dev1->dev, stream);
+  add_stream_to_dev(dev2->dev, stream);
+
+  iodev_stub_frames_queued(dev1->dev.get(), 2880, start);
+  iodev_stub_frames_queued(dev2->dev.get(), 4800, start);
+  EXPECT_EQ(0, dev_io_send_captured_samples(dev_list));
+
+  /*
+   * Should drop frames to one min_cb_level, which is MIN(2880, 4800) - 480 =
+   * 2400 (50ms).
+   */
+  rc = iodev_stub_get_drop_time(dev1->dev.get(), &drop_time);
+  EXPECT_EQ(true, rc);
+  EXPECT_EQ(0, drop_time.tv_sec);
+  EXPECT_EQ(50000000, drop_time.tv_nsec);
+
+  rc = iodev_stub_get_drop_time(dev2->dev.get(), &drop_time);
+  EXPECT_EQ(true, rc);
+  EXPECT_EQ(0, drop_time.tv_sec);
+  EXPECT_EQ(50000000, drop_time.tv_nsec);
+}
+
+/* If all hw_level is less than 2 * largest_cb_level, do nothing. */
+TEST_F(DevIoSuite, SendCapturedNoNeedToResetDevices) {
+  struct timespec start;
+  struct timespec drop_time;
+  struct open_dev* dev_list = NULL;
+  bool rc;
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  AddFakeDataToStream(stream.get(), 0);
+
+  DevicePtr dev1 =
+      create_device(CRAS_STREAM_INPUT, 1000, &format, CRAS_NODE_TYPE_MIC);
+  DevicePtr dev2 =
+      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC);
+  DL_APPEND(dev_list, dev1->odev.get());
+  DL_APPEND(dev_list, dev2->odev.get());
+  add_stream_to_dev(dev1->dev, stream);
+  add_stream_to_dev(dev2->dev, stream);
+
+  iodev_stub_frames_queued(dev1->dev.get(), 400, start);
+  iodev_stub_frames_queued(dev2->dev.get(), 400, start);
+  EXPECT_EQ(0, dev_io_send_captured_samples(dev_list));
+
+  rc = iodev_stub_get_drop_time(dev1->dev.get(), &drop_time);
+  EXPECT_EQ(false, rc);
+
+  rc = iodev_stub_get_drop_time(dev2->dev.get(), &drop_time);
+  EXPECT_EQ(false, rc);
+}
+
 /* Stubs */
 extern "C" {
 

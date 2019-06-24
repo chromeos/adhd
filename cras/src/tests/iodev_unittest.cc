@@ -109,6 +109,7 @@ static int buffer_share_add_id_called;
 static int buffer_share_get_new_write_point_ret;
 static int ext_mod_configure_called;
 static struct input_data *input_data_create_ret;
+static double rate_estimator_get_rate_ret;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev *iodev) {
@@ -196,6 +197,7 @@ void ResetStubData() {
   audio_fmt.num_channels = 2;
   buffer_share_add_id_called = 0;
   ext_mod_configure_called = 0;
+  rate_estimator_get_rate_ret = 0;
 }
 
 namespace {
@@ -2293,6 +2295,62 @@ TEST(IoDev, InputDspOffset) {
   EXPECT_EQ(80, rc);
 }
 
+TEST(IoDev, DropDeviceFramesByTime) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+  struct input_data data;
+  struct timespec ts;
+  int rc;
+
+  ResetStubData();
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.configure_dev = configure_dev;
+  iodev.format = &fmt;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+  iodev.frames_queued = frames_queued;
+  iodev.direction = CRAS_STREAM_INPUT;
+  iodev.buffer_size = 480;
+  input_data_create_ret = &data;
+  cras_iodev_open(&iodev, 240, &fmt);
+  rate_estimator_get_rate_ret = 48000.0;
+
+  /* hw_level: 240, drop: 48(1ms). */
+  fr_queued = 240;
+  ts.tv_sec = 0;
+  ts.tv_nsec = 1000000;
+  rc = cras_iodev_drop_frames_by_time(&iodev, ts);
+  EXPECT_EQ(48, rc);
+  EXPECT_EQ(48, put_buffer_nframes);
+  EXPECT_EQ(1, rate_estimator_add_frames_called);
+  EXPECT_EQ(-48, rate_estimator_add_frames_num_frames);
+
+  /* hw_level: 360, drop: 240(5ms). */
+  fr_queued = 360;
+  ts.tv_sec = 0;
+  ts.tv_nsec = 5000000;
+  rc = cras_iodev_drop_frames_by_time(&iodev, ts);
+  EXPECT_EQ(240, rc);
+  EXPECT_EQ(240, put_buffer_nframes);
+  EXPECT_EQ(2, rate_estimator_add_frames_called);
+  EXPECT_EQ(-240, rate_estimator_add_frames_num_frames);
+
+  /* hw_level: 360, drop: 480(10ms). Only drop 360 because of lower hw_level. */
+  fr_queued = 360;
+  ts.tv_sec = 0;
+  ts.tv_nsec = 10000000;
+  rc = cras_iodev_drop_frames_by_time(&iodev, ts);
+  EXPECT_EQ(360, rc);
+  EXPECT_EQ(360, put_buffer_nframes);
+  EXPECT_EQ(3, rate_estimator_add_frames_called);
+  EXPECT_EQ(-360, rate_estimator_add_frames_num_frames);
+}
+
 extern "C" {
 
 //  From libpthread.
@@ -2579,7 +2637,7 @@ void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate) {
 }
 
 double rate_estimator_get_rate(struct rate_estimator *re) {
-  return 0.0;
+  return rate_estimator_get_rate_ret;
 }
 
 unsigned int dev_stream_cb_threshold(const struct dev_stream *dev_stream) {

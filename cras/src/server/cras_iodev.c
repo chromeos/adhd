@@ -1546,3 +1546,59 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 {
 	iodev->highest_hw_level = MAX(iodev->highest_hw_level, hw_level);
 }
+
+/*
+ * Makes an input device drop the given number of frames.
+ * Args:
+ *    iodev - The device.
+ *    frames - How many frames will be dropped in a device.
+ * Returns:
+ *    The number of frames have been dropped. Negative error code on failure.
+ */
+static int cras_iodev_drop_frames(struct cras_iodev *iodev, unsigned int frames)
+{
+	struct timespec hw_tstamp;
+	int rc;
+
+	if (iodev->direction != CRAS_STREAM_INPUT)
+		return -EINVAL;
+
+	rc = cras_iodev_frames_queued(iodev, &hw_tstamp);
+	if (rc < 0)
+		return rc;
+
+	frames = MIN(frames, rc);
+
+	rc = iodev->get_buffer(iodev, &iodev->input_data->area, &frames);
+	if (rc < 0)
+		return rc;
+
+	rc = iodev->put_buffer(iodev, frames);
+	if (rc < 0)
+		return rc;
+
+	/*
+	 * Tell rate estimator that some frames have been dropped to avoid calculating
+	 * the wrong rate.
+	 */
+	rate_estimator_add_frames(iodev->rate_est, -frames);
+
+	ATLOG(atlog, AUDIO_THREAD_DEV_DROP_FRAMES, iodev->info.idx, frames, 0);
+
+	return frames;
+}
+
+int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev, struct timespec ts)
+{
+	int frames_to_set;
+	double est_rate;
+	int rc;
+
+	est_rate = iodev->format->frame_rate *
+		   cras_iodev_get_est_rate_ratio(iodev);
+	frames_to_set = cras_time_to_frames(&ts, est_rate);
+
+	rc = cras_iodev_drop_frames(iodev, frames_to_set);
+
+	return rc;
+}

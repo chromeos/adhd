@@ -19,11 +19,13 @@ namespace {
   };
   std::unordered_map<cras_iodev*, cb_data> frames_queued_map;
   std::unordered_map<cras_iodev*, cb_data> valid_frames_map;
+  std::unordered_map<cras_iodev*, timespec> drop_time_map;
 } // namespace
 
 void iodev_stub_reset() {
   frames_queued_map.clear();
   valid_frames_map.clear();
+  drop_time_map.clear();
 }
 
 void iodev_stub_frames_queued(cras_iodev* iodev, int ret, timespec ts) {
@@ -34,6 +36,15 @@ void iodev_stub_frames_queued(cras_iodev* iodev, int ret, timespec ts) {
 void iodev_stub_valid_frames(cras_iodev* iodev, int ret, timespec ts) {
   cb_data data = {ret, ts};
   valid_frames_map.insert({iodev, data});
+}
+
+bool iodev_stub_get_drop_time(cras_iodev* iodev, timespec* ts) {
+  auto elem = drop_time_map.find(iodev);
+  if (elem != drop_time_map.end()) {
+    *ts = elem->second;
+    return true;
+  }
+  return false;
 }
 
 extern "C" {
@@ -55,7 +66,7 @@ int cras_iodev_get_valid_frames(struct cras_iodev* iodev,
 }
 
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev) {
-  return 48000.0;
+  return 1.0;
 }
 
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev) {
@@ -175,4 +186,9 @@ void cras_iodev_start_stream(struct cras_iodev *iodev,
 {
 }
 
+int cras_iodev_drop_frames_by_time(struct cras_iodev* iodev,
+                                   struct timespec ts) {
+  drop_time_map.insert({iodev, ts});
+  return 0;
+}
 } // extern "C"

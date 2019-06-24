@@ -124,6 +124,7 @@ IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
   iodev->buffer_size = cb_threshold * 2;
   iodev->min_cb_level = UINT_MAX;
   iodev->max_cb_level = 0;
+  iodev->largest_cb_level = 0;
   iodev->flush_buffer = &fake_flush_buffer;
   return iodev;
 }
@@ -148,6 +149,8 @@ void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream) {
                                static_cast<size_t>(dev->min_cb_level));
   dev->max_cb_level = std::max(stream->rstream->cb_threshold,
                                static_cast<size_t>(dev->max_cb_level));
+  dev->largest_cb_level = std::max(stream->rstream->cb_threshold,
+                                   static_cast<size_t>(dev->max_cb_level));
 }
 
 void fill_audio_format(cras_audio_format* format, unsigned int rate) {

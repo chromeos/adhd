@@ -164,6 +164,12 @@ static inline void ms_to_timespec(time_t milliseconds, struct timespec *ts)
 	ts->tv_nsec = (milliseconds % 1000) * 1000000;
 }
 
+/* Returns true if the given timespec is zero. */
+static inline int timespec_is_zero(const struct timespec *ts)
+{
+	return ts && ts->tv_sec == 0 && ts->tv_nsec == 0;
+}
+
 /* Returns non-zero if the given timespec is non-zero. */
 static inline int timespec_is_nonzero(const struct timespec *ts) {
 	return ts && (ts->tv_sec != 0 ||
