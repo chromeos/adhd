@@ -39,7 +39,8 @@ static void alloc_more_ids(struct buffer_share *mix)
 	unsigned int new_size = mix->id_sz * 2;
 	unsigned int i;
 
-	mix->wr_idx = realloc(mix->wr_idx, sizeof(mix->wr_idx[0]) * new_size);
+	mix->wr_idx = (struct id_offset *)realloc(
+		mix->wr_idx, sizeof(mix->wr_idx[0]) * new_size);
 
 	for (i = mix->id_sz; i < new_size; i++)
 		mix->wr_idx[i].used = 0;
@@ -51,9 +52,10 @@ struct buffer_share *buffer_share_create(unsigned int buf_sz)
 {
 	struct buffer_share *mix;
 
-	mix = calloc(1, sizeof(*mix));
+	mix = (struct buffer_share *)calloc(1, sizeof(*mix));
 	mix->id_sz = INITIAL_ID_SIZE;
-	mix->wr_idx = calloc(mix->id_sz, sizeof(mix->wr_idx[0]));
+	mix->wr_idx =
+		(struct id_offset *)calloc(mix->id_sz, sizeof(mix->wr_idx[0]));
 	mix->buf_sz = buf_sz;
 
 	return mix;
