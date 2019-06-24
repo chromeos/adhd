@@ -179,6 +179,15 @@ enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid) {
   return CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
 }
 
+struct cras_bt_adapter* cras_bt_device_adapter(
+    const struct cras_bt_device* device) {
+  return reinterpret_cast<struct cras_bt_adapter*>(0x123);
+}
+
+int cras_bt_adapter_wbs_supported(struct cras_bt_adapter* adapter) {
+  return 1;
+}
+
 struct hfp_slc_handle *hfp_slc_create(
     int fd, int is_hsp,
     int ag_supported_features,

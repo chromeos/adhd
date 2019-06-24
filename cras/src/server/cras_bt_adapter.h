@@ -23,10 +23,21 @@ const char *cras_bt_adapter_name(const struct cras_bt_adapter *adapter);
 
 int cras_bt_adapter_powered(const struct cras_bt_adapter *adapter);
 
+/*
+ * Returns true if adapter supports wide band speech feature.
+ */
+int cras_bt_adapter_wbs_supported(struct cras_bt_adapter *adapter);
+
 void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 				       DBusMessageIter *properties_array_iter,
 				       DBusMessageIter *invalidated_array_iter);
 
 int cras_bt_adapter_on_usb(struct cras_bt_adapter *adapter);
+
+/*
+ * Queries adapter supported capabilies from bluetooth daemon.
+ */
+int cras_bt_adapter_get_supported_capabilities(DBusConnection *conn,
+					       struct cras_bt_adapter *adapter);
 
 #endif /* CRAS_BT_ADAPTER_H_ */

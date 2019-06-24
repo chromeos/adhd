@@ -238,6 +238,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 				       struct cras_bt_device *device,
 				       int rfcomm_fd)
 {
+	struct cras_bt_adapter *adapter;
 	struct audio_gateway *ag;
 	int ag_features;
 
@@ -259,13 +260,16 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
 
+	adapter = cras_bt_device_adapter(device);
 	/*
-	 * If the WBS enabled flag is set, add codec negotiation feature.
-	 * TODO(hychao): replace this check by query bluetooth stack whether
-	 * controller supports WBS feature.
+	 * If the WBS enabled flag is set and adapter reports wbs capability
+	 * then add codec negotiation feature.
+	 * TODO(hychao): AND the two conditions to let bluetooth daemon
+	 * control whether to turn on WBS feature.
 	 */
 	ag_features = profile->features;
-	if (cras_system_get_bt_wbs_enabled())
+	if (cras_system_get_bt_wbs_enabled() &&
+	    cras_bt_adapter_wbs_supported(adapter))
 		ag_features |= AG_CODEC_NEGOTIATION;
 
 	ag->slc_handle = hfp_slc_create(rfcomm_fd,

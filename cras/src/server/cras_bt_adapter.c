@@ -25,6 +25,7 @@ struct cras_bt_adapter {
 	uint32_t bluetooth_class;
 	int powered;
 	int bus_type;
+	int wide_band_speech;
 
 	struct cras_bt_adapter *prev, *next;
 };
@@ -166,6 +167,11 @@ int cras_bt_adapter_powered(const struct cras_bt_adapter *adapter)
 	return adapter->powered;
 }
 
+int cras_bt_adapter_wbs_supported(struct cras_bt_adapter *adapter)
+{
+	return adapter->wide_band_speech;
+}
+
 void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 				       DBusMessageIter *properties_array_iter,
 				       DBusMessageIter *invalidated_array_iter)
@@ -245,4 +251,110 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 int cras_bt_adapter_on_usb(struct cras_bt_adapter *adapter)
 {
 	return !!(adapter->bus_type == HCI_USB);
+}
+
+/*
+ * Expect to receive supported capabilities in reply, like below format:
+ * array [
+ *   dict entry(
+ *     string "wide band speech"
+ *     variant
+ *       boolean <value>
+ *   )
+ * ]
+ */
+static void on_get_supported_capabilities_reply(DBusPendingCall *pending_call,
+						void *data)
+{
+	DBusMessage *reply;
+	DBusMessageIter message_iter, capabilities;
+	struct cras_bt_adapter *adapter;
+	const char *object_path;
+
+	reply = dbus_pending_call_steal_reply(pending_call);
+	dbus_pending_call_unref(pending_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR,
+		       "GetSupportedCapabilities message replied error: %s",
+		       dbus_message_get_error_name(reply));
+		goto get_supported_capabilities_err;
+	}
+
+	if (!dbus_message_iter_init(reply, &message_iter)) {
+		syslog(LOG_ERR, "GetSupportedCapabilities reply doesn't have"
+				"argument");
+		goto get_supported_capabilities_err;
+	}
+
+	object_path = dbus_message_get_path(reply);
+
+	adapter = cras_bt_adapter_get(object_path);
+	if (NULL == adapter)
+		goto get_supported_capabilities_err;
+
+	dbus_message_iter_recurse(&message_iter, &capabilities);
+
+	while (dbus_message_iter_get_arg_type(&capabilities) !=
+	       DBUS_TYPE_INVALID) {
+		DBusMessageIter cap_dict_iter, variant_iter;
+		const char *key;
+		int type;
+
+		dbus_message_iter_recurse(&capabilities, &cap_dict_iter);
+
+		dbus_message_iter_get_basic(&cap_dict_iter, &key);
+		dbus_message_iter_next(&cap_dict_iter);
+
+		dbus_message_iter_recurse(&cap_dict_iter, &variant_iter);
+		type = dbus_message_iter_get_arg_type(&variant_iter);
+
+		if (type == DBUS_TYPE_BOOLEAN) {
+			int value;
+
+			dbus_message_iter_get_basic(&variant_iter, &value);
+
+			if (strcmp(key, "wide band speech") == 0)
+				adapter->wide_band_speech = value;
+		}
+
+		dbus_message_iter_next(&capabilities);
+	}
+
+get_supported_capabilities_err:
+	dbus_message_unref(reply);
+}
+
+int cras_bt_adapter_get_supported_capabilities(DBusConnection *conn,
+					       struct cras_bt_adapter *adapter)
+{
+	DBusMessage *method_call;
+	DBusError dbus_error;
+	DBusPendingCall *pending_call;
+
+	method_call = dbus_message_new_method_call(BLUEZ_SERVICE,
+						   adapter->object_path,
+						   BLUEZ_INTERFACE_ADAPTER,
+						   "GetSupportedCapabilities");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_error_init(&dbus_error);
+	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
+					     DBUS_TIMEOUT_USE_DEFAULT)) {
+		dbus_message_unref(method_call);
+		syslog(LOG_ERR,
+		       "Failed to send GetSupportedCapabilities message");
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+	if (!dbus_pending_call_set_notify(pending_call,
+					  on_get_supported_capabilities_reply,
+					  conn, NULL)) {
+		dbus_pending_call_cancel(pending_call);
+		dbus_pending_call_unref(pending_call);
+		return -EIO;
+	}
+	return 0;
 }
