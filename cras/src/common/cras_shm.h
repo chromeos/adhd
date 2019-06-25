@@ -180,10 +180,12 @@ static inline uint8_t *cras_shm_buff_for_idx(const struct cras_audio_shm *shm,
 }
 
 /* Limit a read offset to within the buffer size. */
-static inline
-unsigned cras_shm_check_read_offset(const struct cras_audio_shm *shm,
-				    unsigned offset)
+static inline unsigned
+cras_shm_get_checked_read_offset(const struct cras_audio_shm *shm,
+				 uint32_t buf_idx)
 {
+	unsigned offset = shm->header->read_offset[buf_idx];
+
 	/* The offset is allowed to be the total size, indicating that the
 	 * buffer is full. If read pointer is invalid assume it is at the
 	 * beginning. */
@@ -193,10 +195,12 @@ unsigned cras_shm_check_read_offset(const struct cras_audio_shm *shm,
 }
 
 /* Limit a write offset to within the buffer size. */
-static inline
-unsigned cras_shm_check_write_offset(const struct cras_audio_shm *shm,
-				     unsigned offset)
+static inline unsigned
+cras_shm_get_checked_write_offset(const struct cras_audio_shm *shm,
+				  uint32_t buf_idx)
 {
+	unsigned offset = shm->header->write_offset[buf_idx];
+
 	/* The offset is allowed to be the total size, indicating that the
 	 * buffer is full. If write pointer is invalid assume it is at the
 	 * end. */
@@ -209,13 +213,11 @@ unsigned cras_shm_check_write_offset(const struct cras_audio_shm *shm,
 static inline
 unsigned cras_shm_get_curr_read_frames(const struct cras_audio_shm *shm)
 {
-	unsigned i = shm->header->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	unsigned buf_idx = shm->header->read_buf_idx & CRAS_SHM_BUFFERS_MASK;
 	unsigned read_offset, write_offset;
 
-	read_offset =
-		cras_shm_check_read_offset(shm, shm->header->read_offset[i]);
-	write_offset =
-		cras_shm_check_write_offset(shm, shm->header->write_offset[i]);
+	read_offset = cras_shm_get_checked_read_offset(shm, buf_idx);
+	write_offset = cras_shm_get_checked_write_offset(shm, buf_idx);
 
 	if (read_offset > write_offset)
 		return 0;
@@ -246,13 +248,12 @@ uint8_t *cras_shm_get_writeable_frames(const struct cras_audio_shm *shm,
 				       unsigned limit_frames,
 				       unsigned *frames)
 {
-	unsigned i = shm->header->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
+	unsigned buf_idx = shm->header->write_buf_idx & CRAS_SHM_BUFFERS_MASK;
 	unsigned write_offset;
 	const unsigned frame_bytes = shm->config.frame_bytes;
 	unsigned written;
 
-	write_offset =
-		cras_shm_check_write_offset(shm, shm->header->write_offset[i]);
+	write_offset = cras_shm_get_checked_write_offset(shm, buf_idx);
 	written = write_offset / frame_bytes;
 	if (frames) {
 		if (limit_frames >= written)
@@ -261,7 +262,7 @@ uint8_t *cras_shm_get_writeable_frames(const struct cras_audio_shm *shm,
 			*frames = 0;
 	}
 
-	return cras_shm_buff_for_idx(shm, i) + write_offset;
+	return cras_shm_buff_for_idx(shm, buf_idx) + write_offset;
 }
 
 /* Get a pointer to the current read buffer plus an offset.  The offset might be
@@ -278,17 +279,14 @@ uint8_t *cras_shm_get_readable_frames(const struct cras_audio_shm *shm,
 
 	assert(frames != NULL);
 
-	read_offset = cras_shm_check_read_offset(
-		shm, shm->header->read_offset[buf_idx]);
-	write_offset = cras_shm_check_write_offset(
-		shm, shm->header->write_offset[buf_idx]);
+	read_offset = cras_shm_get_checked_read_offset(shm, buf_idx);
+	write_offset = cras_shm_get_checked_write_offset(shm, buf_idx);
 	final_offset = read_offset + offset * shm->config.frame_bytes;
 	if (final_offset >= write_offset) {
 		final_offset -= write_offset;
 		assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 		buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
-		write_offset = cras_shm_check_write_offset(
-			shm, shm->header->write_offset[buf_idx]);
+		write_offset = cras_shm_get_checked_write_offset(shm, buf_idx);
 	}
 	if (final_offset >= write_offset) {
 		/* Past end of samples. */
