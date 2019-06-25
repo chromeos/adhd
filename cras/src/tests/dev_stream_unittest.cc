@@ -195,6 +195,7 @@ class CreateSuite : public testing::Test {
     cras_shm_set_used_size(shm, kBufferFrames * cras_shm_frame_bytes(shm));
 
     shm->samples = static_cast<uint8_t*>(calloc(1, cras_shm_samples_size(shm)));
+    shm->samples_info.length = cras_shm_samples_size(shm);
 
     buf = (int16_t*)shm->samples;
     for (size_t i = 0; i < kBufferFrames * 2; i++)

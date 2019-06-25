@@ -43,6 +43,8 @@ struct __attribute__((__packed__)) cras_audio_shm_config {
  *  ts - For capture, the time stamp of the next sample at read_index.  For
  *    playback, this is the time that the next sample written will be played.
  *    This is only valid in audio callbacks.
+ *  buffer_offset - Offset of each buffer from start of samples area.
+ *                  Valid range: 0 <= buffer_offset <= shm->samples_info.length
  */
 struct __attribute__((__packed__)) cras_audio_shm_header {
 	struct cras_audio_shm_config config;
@@ -56,6 +58,7 @@ struct __attribute__((__packed__)) cras_audio_shm_header {
 	int32_t callback_pending;
 	uint32_t num_overruns;
 	struct cras_timespec ts;
+	uint32_t buffer_offset[CRAS_NUM_SHM_BUFFERS];
 };
 
 /* Returns the number of bytes needed to hold a cras_audio_shm_header. */
@@ -151,6 +154,17 @@ int cras_audio_shm_create(struct cras_shm_info *header_info,
  */
 void cras_audio_shm_destroy(struct cras_audio_shm *shm);
 
+/* Limit a buffer offset to within the samples area size. */
+static inline unsigned
+cras_shm_get_checked_buffer_offset(const struct cras_audio_shm *shm,
+				   uint32_t buf_idx)
+{
+	unsigned buffer_offset = shm->header->buffer_offset[buf_idx];
+
+	/* Cap buffer_offset at the length of the samples area */
+	return MIN(buffer_offset, shm->samples_info.length);
+}
+
 /* Get a pointer to the buffer at idx. */
 static inline uint8_t *cras_shm_buff_for_idx(const struct cras_audio_shm *shm,
 					     size_t idx)
@@ -158,7 +172,7 @@ static inline uint8_t *cras_shm_buff_for_idx(const struct cras_audio_shm *shm,
 	assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
 	idx = idx & CRAS_SHM_BUFFERS_MASK;
 
-	return shm->samples + shm->config.used_size * idx;
+	return shm->samples + cras_shm_get_checked_buffer_offset(shm, idx);
 }
 
 /* Limit a read offset to within the buffer size. */
@@ -166,14 +180,18 @@ static inline unsigned
 cras_shm_get_checked_read_offset(const struct cras_audio_shm *shm,
 				 uint32_t buf_idx)
 {
-	unsigned offset = shm->header->read_offset[buf_idx];
+	unsigned buffer_offset =
+		cras_shm_get_checked_buffer_offset(shm, buf_idx);
+	unsigned read_offset = shm->header->read_offset[buf_idx];
 
-	/* The offset is allowed to be the total size, indicating that the
+	/* The read_offset is allowed to be the total size, indicating that the
 	 * buffer is full. If read pointer is invalid assume it is at the
 	 * beginning. */
-	if (offset > shm->config.used_size)
+	if (read_offset > shm->config.used_size)
 		return 0;
-	return offset;
+	if (buffer_offset + read_offset > shm->samples_info.length)
+		return 0;
+	return read_offset;
 }
 
 /* Limit a write offset to within the buffer size. */
@@ -181,14 +199,20 @@ static inline unsigned
 cras_shm_get_checked_write_offset(const struct cras_audio_shm *shm,
 				  uint32_t buf_idx)
 {
-	unsigned offset = shm->header->write_offset[buf_idx];
+	unsigned write_offset = shm->header->write_offset[buf_idx];
+	unsigned buffer_offset =
+		cras_shm_get_checked_buffer_offset(shm, buf_idx);
 
-	/* The offset is allowed to be the total size, indicating that the
-	 * buffer is full. If write pointer is invalid assume it is at the
-	 * end. */
-	if (offset > shm->config.used_size)
-		return shm->config.used_size;
-	return offset;
+	/* The write_offset is allowed to be the total size, indicating that the
+	 * buffer is full. If write pointer is past used size, assume it is at
+	 * used size. */
+	write_offset = MIN(write_offset, shm->config.used_size);
+
+	/* If the buffer offset plus the write offset overruns the samples area,
+	 * return the longest valid write_offset */
+	if (buffer_offset + write_offset > shm->samples_info.length)
+		return shm->samples_info.length - buffer_offset;
+	return write_offset;
 }
 
 /* Get the number of frames readable in current read buffer */
@@ -517,15 +541,29 @@ static inline int cras_shm_callback_pending(const struct cras_audio_shm *shm)
 	return shm->header->callback_pending;
 }
 
+/* Sets the starting offset of a buffer */
+static inline void cras_shm_set_buffer_offset(struct cras_audio_shm *shm,
+					      uint32_t buf_idx, uint32_t offset)
+{
+	shm->header->buffer_offset[buf_idx] = offset;
+}
+
 /* Sets the used_size of the shm region.  This is the maximum number of bytes
  * that is exchanged each time a buffer is passed from client to server.
+ *
+ * Also sets the buffer_offsets to default values based on the used size.
  */
 static inline void cras_shm_set_used_size(struct cras_audio_shm *shm,
 					  unsigned used_size)
 {
+	uint32_t i;
+
 	shm->config.used_size = used_size;
 	if (shm->header)
 		shm->header->config.used_size = used_size;
+
+	for (i = 0; i < CRAS_NUM_SHM_BUFFERS; i++)
+		cras_shm_set_buffer_offset(shm, i, i * used_size);
 }
 
 /* Returns the used size of the shm region in bytes. */

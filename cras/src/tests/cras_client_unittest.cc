@@ -50,7 +50,9 @@ class CrasClientTestSuite : public testing::Test {
      shm->header =
          static_cast<cras_audio_shm_header*>(calloc(1, sizeof(*shm->header)));
      cras_shm_set_frame_bytes(shm, 4);
-     cras_shm_set_used_size(shm, shm_writable_frames_ * 4);
+     uint32_t used_size = shm_writable_frames_ * 4;
+     cras_shm_set_used_size(shm, used_size);
+     shm->samples_info.length = used_size * 2;
      memcpy(&shm->header->config, &shm->config, sizeof(shm->config));
      return shm;
    }

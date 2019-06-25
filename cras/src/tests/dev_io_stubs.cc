@@ -34,8 +34,9 @@ ShmPtr create_shm(size_t cb_threshold) {
   shm->header->config.frame_bytes = frame_bytes;
   shm->config = shm->header->config;
 
-  shm->samples = reinterpret_cast<uint8_t*>(
-      calloc(1, cras_shm_calculate_samples_size(used_size)));
+  uint32_t samples_size = cras_shm_calculate_samples_size(used_size);
+  shm->samples = reinterpret_cast<uint8_t*>(calloc(1, samples_size));
+  shm->samples_info.length = samples_size;
   return shm;
 }
 
