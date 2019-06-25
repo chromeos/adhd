@@ -12,7 +12,10 @@ cc_library_static {
         "libcras/cras_helpers.c",
     ],
 
-    shared_libs: ["libtinyalsa"],
+    shared_libs: [
+        "libcutils",
+        "libtinyalsa",
+    ],
 
     export_include_dirs: [
         "common",
