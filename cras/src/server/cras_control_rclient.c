@@ -61,7 +61,6 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	stream_config.cb_threshold = msg->cb_threshold;
 	stream_config.audio_fd = aud_fd;
 	stream_config.client = client;
-	stream_config.use_split_shm = msg->proto_version > 2;
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
 			     &stream);
 	if (rc)
@@ -69,36 +68,19 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
-	if (stream_config.use_split_shm) {
-		cras_fill_client_stream_connected(
-			&stream_connected, 0, /* No error. */
-			msg->stream_id, &remote_fmt,
-			cras_rstream_get_samples_shm_size(stream),
-			cras_rstream_get_effects(stream));
-		reply = &stream_connected.header;
-
-	} else {
-		cras_fill_client_stream_connected(
-			&stream_connected, 0, /* No error. */
-			msg->stream_id, &remote_fmt,
-			cras_rstream_get_samples_shm_size(stream) +
-				cras_shm_header_size(),
-			cras_rstream_get_effects(stream));
-		reply = &stream_connected.header;
-	}
+	cras_fill_client_stream_connected(
+		&stream_connected, 0, /* No error. */
+		msg->stream_id, &remote_fmt,
+		cras_rstream_get_samples_shm_size(stream),
+		cras_rstream_get_effects(stream));
+	reply = &stream_connected.header;
 
 	rc = cras_rstream_get_shm_fds(stream, &header_fd, &samples_fd);
 	if (rc)
 		goto reply_err;
 
-	if (stream_config.use_split_shm) {
-		stream_fds[0] = header_fd;
-		stream_fds[1] = samples_fd;
-	} else {
-		// for unsplit shm, the client expects both fds to be the same.
-		stream_fds[0] = header_fd;
-		stream_fds[1] = header_fd;
-	}
+	stream_fds[0] = header_fd;
+	stream_fds[1] = samples_fd;
 
 	rc = client->ops->send_message_to_client(client, reply, stream_fds, 2);
 	if (rc < 0) {

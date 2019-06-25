@@ -154,68 +154,13 @@ cleanup_info:
 	return ret;
 }
 
-// TODO(fletcherw) remove once libcras in ARC++ has been upreved
-int cras_audio_unsplit_shm_create(struct cras_shm_info *shm_info,
-				  struct cras_audio_shm **shm_out)
-{
-	struct cras_audio_shm *shm;
-	int ret;
-
-	if (!shm_info || !shm_out) {
-		ret = -EINVAL;
-		goto cleanup_info;
-	}
-
-	shm = calloc(1, sizeof(*shm));
-	if (!shm) {
-		ret = -ENOMEM;
-		goto cleanup_info;
-	}
-	/* Move the shm info param into the new cras_audio_shm object.
-	 * shm_info is cleared, and the owner of cras_audio_shm is now
-	 * responsible for closing the fd and unlinking any associated shm
-	 * file using cras_audio_shm_destroy.
-	 */
-	ret = cras_shm_info_move(shm_info, &shm->header_info);
-	if (ret)
-		goto free_shm;
-
-	shm->header =
-		mmap(NULL, shm->header_info.length, PROT_READ | PROT_WRITE,
-		     MAP_SHARED, shm->header_info.fd, 0);
-	if (shm->header == (struct cras_audio_shm_header *)-1) {
-		ret = errno;
-		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for header.");
-		goto free_shm;
-	}
-
-	// Point the samples pointer in shm into the header shm area so that
-	// the legacy unsplit shm can share code with the new split shm.
-	shm->samples = shm->header->samples;
-
-	cras_shm_set_volume_scaler(shm, 1.0);
-
-	*shm_out = shm;
-	return 0;
-
-free_shm:
-	free(shm);
-cleanup_info:
-	cras_shm_info_cleanup(shm_info);
-	return ret;
-}
-
 void cras_audio_shm_destroy(struct cras_audio_shm *shm)
 {
 	if (!shm)
 		return;
 
-	// Calls munmap only for split version shm.
-	// TODO(paulhsia): Remove this check after cleanup unsplit shm.
-	if (shm->samples_info.length > 0) {
-		munmap(shm->samples, shm->samples_info.length);
-		cras_shm_info_cleanup(&shm->samples_info);
-	}
+	munmap(shm->samples, shm->samples_info.length);
+	cras_shm_info_cleanup(&shm->samples_info);
 	munmap(shm->header, shm->header_info.length);
 	cras_shm_info_cleanup(&shm->header_info);
 	free(shm);

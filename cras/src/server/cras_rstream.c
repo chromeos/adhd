@@ -70,48 +70,6 @@ static inline int setup_shm_area(struct cras_rstream *stream)
 	return 0;
 }
 
-/* Setup a legacy unsplit shared memory area for audio samples.
- * Will be removed once ARC++ transitions to a split shm */
-static inline int setup_unsplit_shm_area(struct cras_rstream *stream)
-{
-	const struct cras_audio_format *fmt = &stream->format;
-	char stream_name[NAME_MAX];
-	struct cras_shm_info shm_info;
-	uint32_t frame_bytes, used_size;
-	int rc;
-
-	if (stream->shm) /* already setup */
-		return -EEXIST;
-
-	snprintf(stream_name, sizeof(stream_name), "/cras-%d-stream-%08x",
-		 getpid(), stream->stream_id);
-
-	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
-		      fmt->num_channels;
-	used_size = stream->buffer_frames * frame_bytes;
-
-	rc = cras_shm_info_init(
-		stream_name,
-		cras_shm_header_size() +
-			cras_shm_calculate_samples_size(used_size),
-		&shm_info);
-	if (rc)
-		return rc;
-
-	rc = cras_audio_unsplit_shm_create(&shm_info, &stream->shm);
-	if (rc)
-		return rc;
-
-	cras_shm_set_frame_bytes(stream->shm, frame_bytes);
-	cras_shm_set_used_size(stream->shm, used_size);
-
-	stream->audio_area =
-		cras_audio_area_create(stream->format.num_channels);
-	cras_audio_area_config_channels(stream->audio_area, &stream->format);
-
-	return 0;
-}
-
 static inline int buffer_meets_size_limit(size_t buffer_size, size_t rate)
 {
 	return buffer_size > (CRAS_MIN_BUFFER_TIME_IN_US * rate) / 1000000;
@@ -277,11 +235,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->pinned_dev_idx = config->dev_idx;
 	stream->fd = config->audio_fd;
 
-	if (config->use_split_shm) {
-		rc = setup_shm_area(stream);
-	} else {
-		rc = setup_unsplit_shm_area(stream);
-	}
+	rc = setup_shm_area(stream);
 	if (rc < 0) {
 		syslog(LOG_ERR, "failed to setup shm %d\n", rc);
 		free(stream);

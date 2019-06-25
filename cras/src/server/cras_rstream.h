@@ -100,10 +100,6 @@ struct cras_rstream {
  *    cb_threshold - # of frames when to request more from the client.
  *    audio_fd - The fd to read/write audio signals to.
  *    client - The client that owns this stream.
- *
- *    TODO(fletcherw) remove once libcras in ARC++ has been upreved
- *    use_split_shm - Should this stream use the new split shm area.
- *                    Will be removed after all clients transition to split shm.
  */
 struct cras_rstream_config {
 	cras_stream_id_t stream_id;
@@ -117,7 +113,6 @@ struct cras_rstream_config {
 	size_t cb_threshold;
 	int audio_fd;
 	struct cras_rclient *client;
-	int use_split_shm;
 };
 
 /* Creates an rstream.

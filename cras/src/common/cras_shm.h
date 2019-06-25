@@ -43,10 +43,6 @@ struct __attribute__ ((__packed__)) cras_audio_shm_config {
  *  ts - For capture, the time stamp of the next sample at read_index.  For
  *    playback, this is the time that the next sample written will be played.
  *    This is only valid in audio callbacks.
- *
- *  TODO(fletcherw) remove once libcras in ARC++ has been upreved
- *  samples - Audio data - a double buffered area that is used to exchange
- *    audio samples.
  */
 struct __attribute__((__packed__)) cras_audio_shm_header {
 	struct cras_audio_shm_config config;
@@ -60,7 +56,6 @@ struct __attribute__((__packed__)) cras_audio_shm_header {
 	int32_t callback_pending;
 	uint32_t num_overruns;
 	struct cras_timespec ts;
-	uint8_t samples[];
 };
 
 /* Returns the number of bytes needed to hold a cras_audio_shm_header. */
@@ -144,24 +139,11 @@ struct cras_audio_shm {
  *               The samples_info parameter will be returned to an
  *               uninitialized state, and the client need not call
  *               cras_shm_info_destroy.
- *               This parameter may be NULL. In that case, no shared memory will
- *               be mapped for the samples.
  * shm_out - pointer where the created cras_audio_shm will be stored.
  */
 int cras_audio_shm_create(struct cras_shm_info *header_info,
 			  struct cras_shm_info *samples_info,
 			  struct cras_audio_shm **shm_out);
-
-/* Sets up a legacy cras_audio_shm given info about the shared memory to use
- *
- * shm_info - the underlying shm area to use for the audio shm. The shm
- *            will be managed by the created cras_audio_shm object.
- *            The shm_info parameter will be returned to an uninitialized
- *            state, and the client need not call cras_shm_info_destroy.
- * shm_out - pointer where the created cras_audio_shm will be stored.
- */
-int cras_audio_unsplit_shm_create(struct cras_shm_info *shm_info,
-				  struct cras_audio_shm **shm_out);
 
 /* Destroys a cras_audio_shm returned from cras_audio_shm_create.
  *
