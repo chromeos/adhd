@@ -26,9 +26,14 @@ int cras_hsp_ag_profile_create(DBusConnection *conn);
 /* Starts the HFP audio gateway for audio input/output. */
 int cras_hfp_ag_start(struct cras_bt_device *device);
 
-/* Suspends all connected audio gateways, used to stop HFP/HSP audio when
- * an A2DP only device is connected. */
-void cras_hfp_ag_suspend();
+/*
+ * Suspends all connected audio gateways except the one associated to device.
+ * Used to stop previously running HFP/HSP audio when a new device is connected.
+ * Args:
+ *    device - The device that we want to keep connection while others should
+ *        be removed.
+ */
+int cras_hfp_ag_remove_conflict(struct cras_bt_device *device);
 
 /* Suspends audio gateway associated with given bt device. */
 void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device);

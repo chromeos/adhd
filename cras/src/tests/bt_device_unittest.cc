@@ -32,12 +32,15 @@ static void *cras_main_message_add_handler_callback_data;
 static int cras_tm_create_timer_called;
 static int cras_a2dp_start_called;
 static int cras_a2dp_suspend_connected_device_called;
+static int cras_hfp_ag_remove_conflict_called;
 static int cras_hfp_ag_start_called;
 static int cras_hfp_ag_suspend_connected_device_called;
 static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
 static void* cras_tm_create_timer_cb_data;
 static int dbus_message_new_method_call_called;
 static const char* dbus_message_new_method_call_method;
+static struct cras_bt_device* cras_a2dp_connected_device_ret;
+static struct cras_bt_device* cras_a2dp_suspend_connected_device_dev;
 
 void ResetStubData() {
   cras_bt_io_get_profile_ret = NULL;
@@ -50,10 +53,12 @@ void ResetStubData() {
   cras_tm_create_timer_called = 0;
   cras_a2dp_start_called = 0;
   cras_a2dp_suspend_connected_device_called = 0;
+  cras_hfp_ag_remove_conflict_called = 0;
   cras_hfp_ag_start_called = 0;
   cras_hfp_ag_suspend_connected_device_called = 0;
   dbus_message_new_method_call_method = NULL;
   dbus_message_new_method_call_called = 0;
+  cras_a2dp_connected_device_ret = NULL;
 }
 
 namespace {
@@ -203,6 +208,7 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   cras_bt_device_a2dp_configured(device);
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
   EXPECT_EQ(1, cras_a2dp_start_called);
 
   cras_bt_device_remove(device);
@@ -233,6 +239,7 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
 
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
   EXPECT_EQ(1, cras_hfp_ag_start_called);
 
   cras_bt_device_remove(device);
@@ -271,6 +278,42 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
 
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(3, cras_tm_create_timer_called);
+  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
+  EXPECT_EQ(1, cras_a2dp_start_called);
+  EXPECT_EQ(1, cras_hfp_ag_start_called);
+
+  cras_bt_device_remove(device);
+}
+
+TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
+  struct cras_bt_device* device;
+
+  ResetStubData();
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_add_supported_profiles(device, A2DP_SINK_UUID);
+  cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
+  cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+
+  cras_bt_device_set_connected(device, 1);
+  cras_bt_device_audio_gateway_initialized(device);
+  cras_bt_device_a2dp_configured(device);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  /* Fake that a different device already connected with A2DP */
+  cras_a2dp_connected_device_ret =
+      reinterpret_cast<struct cras_bt_device*>(0x99);
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  /* Expect check conflict in HFP AG and A2DP. */
+  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
+  EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
+  EXPECT_EQ(cras_a2dp_suspend_connected_device_dev,
+            cras_a2dp_connected_device_ret);
+
   EXPECT_EQ(1, cras_a2dp_start_called);
   EXPECT_EQ(1, cras_hfp_ag_start_called);
 
@@ -347,6 +390,7 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
     EXPECT_EQ(i + 3, cras_tm_create_timer_called);
     EXPECT_EQ(0, cras_a2dp_start_called);
     EXPECT_EQ(0, cras_hfp_ag_start_called);
+    EXPECT_EQ(0, cras_hfp_ag_remove_conflict_called);
   }
 
   dbus_message_new_method_call_called = 0;
@@ -446,11 +490,21 @@ void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device)
 void cras_a2dp_suspend_connected_device(struct cras_bt_device *device)
 {
   cras_a2dp_suspend_connected_device_called++;
+  cras_a2dp_suspend_connected_device_dev = device;
 }
 
 void cras_a2dp_start(struct cras_bt_device *device)
 {
   cras_a2dp_start_called++;
+}
+
+struct cras_bt_device* cras_a2dp_connected_device() {
+  return cras_a2dp_connected_device_ret;
+}
+
+int cras_hfp_ag_remove_conflict(struct cras_bt_device* device) {
+  cras_hfp_ag_remove_conflict_called++;
+  return 0;
 }
 
 int cras_hfp_ag_start(struct cras_bt_device *device)

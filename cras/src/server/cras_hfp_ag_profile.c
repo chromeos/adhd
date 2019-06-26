@@ -146,7 +146,10 @@ static int has_audio_gateway(struct cras_bt_device *device)
 
 static void cras_hfp_ag_release(struct cras_bt_profile *profile)
 {
-	cras_hfp_ag_suspend();
+	struct audio_gateway *ag;
+
+	DL_FOREACH (connected_ags, ag)
+		destroy_audio_gateway(ag);
 }
 
 /* Callback triggered when SLC is initialized.  */
@@ -201,35 +204,18 @@ static int check_for_conflict_ag(struct cras_bt_device *new_connected)
 	return 0;
 }
 
-static void possibly_remove_conflict_dev(void *data)
+int cras_hfp_ag_remove_conflict(struct cras_bt_device *device)
 {
-	struct cras_bt_device *device = (struct cras_bt_device *)data;
-	struct audio_gateway *ag, *new_ag = NULL;
-	struct cras_bt_device *a2dp_device;
+	struct audio_gateway *ag;
 
-	/* Check if the device is still connected. */
 	DL_FOREACH(connected_ags, ag) {
 		if (ag->device == device)
-			new_ag = ag;
-	}
-	if (!new_ag)
-		return;
-
-	/* Kick out any previously connected hfp iodev. */
-	DL_FOREACH(connected_ags, ag) {
-		if (ag == new_ag)
 			continue;
 		destroy_audio_gateway(ag);
 		cras_bt_device_notify_profile_dropped(
 			ag->device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 	}
-
-	/* Kick out any previously connected a2dp iodev. */
-	a2dp_device = cras_a2dp_connected_device();
-	if (a2dp_device && a2dp_device != device) {
-		cras_a2dp_suspend_connected_device(a2dp_device);
-		cras_bt_device_disconnect(new_ag->conn, a2dp_device);
-	}
+	return 0;
 }
 
 static int cras_hfp_ag_new_connection(DBusConnection *conn,
@@ -253,7 +239,6 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	if (check_for_conflict_ag(device))
 		return -1;
 
-	cras_bt_device_set_append_iodev_cb(device, possibly_remove_conflict_dev);
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
 	ag->conn = conn;
@@ -340,7 +325,6 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	if (check_for_conflict_ag(device))
 		return -1;
 
-	cras_bt_device_set_append_iodev_cb(device, possibly_remove_conflict_dev);
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
 	ag->conn = conn;
@@ -433,13 +417,6 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 	}
 
 	return 0;
-}
-
-void cras_hfp_ag_suspend()
-{
-	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag)
-		destroy_audio_gateway(ag);
 }
 
 void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device)

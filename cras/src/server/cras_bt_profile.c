@@ -56,6 +56,8 @@ static DBusHandlerResult cras_bt_profile_handle_release(DBusConnection *conn,
 	if (!profile)
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
+	syslog(LOG_ERR, "Profile %s released by bluetoothd",
+	       profile->name);
 	profile->release(profile);
 
 	reply = dbus_message_new_method_return(message);

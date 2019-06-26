@@ -77,7 +77,6 @@ static const unsigned int PROFILE_CONN_RETRIES = 3;
  *    suspend_timer - The timer used to suspend device.
  *    switch_profile_timer - The timer used to delay enabling iodev after
  *        profile switch.
- *    append_iodev_cb - The callback to trigger when an iodev is appended.
  *    sco_fd - The file descriptor of the SCO connection.
  *    sco_ref_count - The reference counts of the SCO connection.
  */
@@ -100,7 +99,6 @@ struct cras_bt_device {
 	struct cras_timer *conn_watch_timer;
 	struct cras_timer *suspend_timer;
 	struct cras_timer *switch_profile_timer;
-	void (*append_iodev_cb)(void *data);
 	int sco_fd;
 	size_t sco_ref_count;
 
@@ -123,12 +121,6 @@ struct bt_device_msg {
 };
 
 static struct cras_bt_device *devices;
-
-void cras_bt_device_set_append_iodev_cb(struct cras_bt_device *device,
-					void (*cb)(void *data))
-{
-	device->append_iodev_cb = cb;
-}
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid)
 {
@@ -384,10 +376,6 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 	if (bt_iodev) {
 		cras_bt_io_append(bt_iodev, iodev, profile);
 	} else {
-		if (device->append_iodev_cb) {
-			device->append_iodev_cb(device);
-			device->append_iodev_cb = NULL;
-		}
 		device->bt_iodevs[iodev->direction] =
 			cras_bt_io_create(device, iodev, profile);
 	}
@@ -459,6 +447,19 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 
 	return cras_bt_device_has_a2dp(device) &&
 	       (!idev || !cras_iodev_is_open(idev));
+}
+
+static void bt_device_remove_conflict(struct cras_bt_device *device)
+{
+	struct cras_bt_device *connected;
+
+	/* Suspend other HFP audio gateways that conflict with device. */
+	cras_hfp_ag_remove_conflict(device);
+
+	/* Check if there's conflict A2DP headset and suspend it. */
+	connected = cras_a2dp_connected_device();
+	if (connected && (connected != device))
+		cras_a2dp_suspend_connected_device(connected);
 }
 
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
@@ -565,17 +566,17 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 		goto arm_retry_timer;
 	}
 
-	if (cras_bt_device_is_profile_connected(
-		    device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
-		/* When A2DP-only device connected, suspend all HFP/HSP audio
-		 * gateways. */
-		if (!cras_bt_device_supports_profile(
-			    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
-					    CRAS_BT_DEVICE_PROFILE_HSP_HEADSET))
-			cras_hfp_ag_suspend();
+	/* Expected profiles are all connected, no more connection watch
+	 * callback will be scheduled.
+	 * Base on the decision that we expose only the latest connected
+	 * BT audio device to user, treat all other connected devices as
+	 * conflict and remove them before we start A2DP/HFP of this device.
+	 */
+	bt_device_remove_conflict(device);
 
+	if (cras_bt_device_is_profile_connected(
+		    device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
 		cras_a2dp_start(device);
-	}
 
 	if (cras_bt_device_is_profile_connected(
 		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
