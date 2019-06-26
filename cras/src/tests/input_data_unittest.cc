@@ -61,6 +61,7 @@ TEST(InputData, GetForInputStream) {
   EXPECT_EQ(0, offset);
 
   input_data_destroy(&data);
+  buffer_share_destroy(offsets);
 }
 
 extern "C" {
