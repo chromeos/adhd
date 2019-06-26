@@ -11,6 +11,7 @@ fn gen() {
         .header("c_headers/cras_messages.h")
         .header("c_headers/cras_types.h")
         .header("c_headers/cras_audio_format.h")
+        .header("c_headers/cras_shm.h")
         .whitelist_type("cras_.*")
         .whitelist_var("cras_.*")
         .whitelist_type("CRAS_.*")
