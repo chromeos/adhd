@@ -52,6 +52,10 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
 
+/* Updates the supported profiles on dev. Expose for unit test. */
+int cras_bt_device_add_supported_profiles(struct cras_bt_device *device,
+					  const char *uuid);
+
 /* Sets the append_iodev_cb to bt device. */
 void cras_bt_device_set_append_iodev_cb(struct cras_bt_device *device,
 					void (*cb)(void *data));
@@ -71,6 +75,9 @@ void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
 
 /* Gets if the BT audio device should use hardware volume. */
 int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device);
+
+/* Sets device connected state. Expose for unit test. */
+void cras_bt_device_set_connected(struct cras_bt_device *device, int value);
 
 /* Forces disconnect the bt device. Used when handling audio error
  * that we want to make the device be completely disconnected from

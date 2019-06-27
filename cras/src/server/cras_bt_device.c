@@ -462,37 +462,13 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
 
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 {
-	int rc = 0;
-	struct cras_tm *tm;
-
 	BTLOG(btlog, BT_AUDIO_GATEWAY_INIT, device->profiles, 0);
 	/* Marks HFP/HSP as connected. This is what connection watcher
 	 * checks. */
 	device->connected_profiles |= (CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
 				       CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
 
-	/* If this is a HFP/HSP only headset, no need to wait for A2DP. */
-	if (!cras_bt_device_supports_profile(
-		    device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
-		syslog(LOG_DEBUG,
-		       "Start HFP audio gateway as A2DP is not supported");
-
-		rc = cras_hfp_ag_start(device);
-		if (rc) {
-			syslog(LOG_ERR, "Start audio gateway failed");
-			return rc;
-		}
-		if (device->conn_watch_timer) {
-			tm = cras_system_state_get_tm();
-			cras_tm_cancel_timer(tm, device->conn_watch_timer);
-			device->conn_watch_timer = NULL;
-		}
-	} else {
-		syslog(LOG_DEBUG, "HFP audio gateway is connected but A2DP "
-				  "is not connected yet");
-	}
-
-	return rc;
+	return 0;
 }
 
 int cras_bt_device_get_active_profile(const struct cras_bt_device *device)
@@ -632,11 +608,9 @@ cras_bt_device_start_new_conn_watch_timer(struct cras_bt_device *device)
 		tm, CONN_WATCH_PERIOD_MS, bt_device_conn_watch_cb, device);
 }
 
-static void cras_bt_device_set_connected(struct cras_bt_device *device,
-					 int value)
+void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
-
 	if (device->connected || value)
 		BTLOG(btlog, BT_DEV_CONNECTED_CHANGE, device->profiles, value);
 
@@ -665,8 +639,8 @@ static void cras_bt_device_set_connected(struct cras_bt_device *device,
  * Returns:
  *    True if uuid is a new audio profiles not already supported by device.
  */
-static int update_supported_profiles(struct cras_bt_device *device,
-				     const char *uuid)
+int cras_bt_device_add_supported_profiles(struct cras_bt_device *device,
+					  const char *uuid)
 {
 	static unsigned int audio_profiles =
 		CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
@@ -767,7 +741,8 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 							    &uuid);
 
 				has_new_audio_profile =
-					update_supported_profiles(device, uuid);
+					cras_bt_device_add_supported_profiles(
+						device, uuid);
 
 				dbus_message_iter_next(&uuid_array_iter);
 			}

@@ -5,8 +5,9 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_bt_io.h"
+#include "cras_bt_constants.h"
 #include "cras_bt_device.h"
+#include "cras_bt_io.h"
 #include "cras_bt_log.h"
 #include "cras_iodev.h"
 #include "cras_main_message.h"
@@ -28,6 +29,13 @@ static unsigned int cras_bt_io_try_remove_ret;
 static cras_main_message *cras_main_message_send_msg;
 static cras_message_callback cras_main_message_add_handler_callback;
 static void *cras_main_message_add_handler_callback_data;
+static int cras_tm_create_timer_called;
+static int cras_a2dp_start_called;
+static int cras_hfp_ag_start_called;
+static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
+static void* cras_tm_create_timer_cb_data;
+static int dbus_message_new_method_call_called;
+static const char* dbus_message_new_method_call_method;
 
 void ResetStubData() {
   cras_bt_io_get_profile_ret = NULL;
@@ -37,6 +45,11 @@ void ResetStubData() {
   cras_bt_io_destroy_called = 0;
   cras_bt_io_try_remove_ret = 0;
   cras_main_message_send_msg = NULL;
+  cras_tm_create_timer_called = 0;
+  cras_a2dp_start_called = 0;
+  cras_hfp_ag_start_called = 0;
+  dbus_message_new_method_call_method = NULL;
+  dbus_message_new_method_call_called = 0;
 }
 
 namespace {
@@ -163,6 +176,103 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
   cras_bt_device_remove(device);
 }
 
+TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
+  struct cras_bt_device* device;
+
+  ResetStubData();
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_add_supported_profiles(device, A2DP_SINK_UUID);
+
+  cras_bt_device_set_connected(device, 1);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+
+  /* Schedule another timer, if A2DP not yet configured. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
+  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  cras_bt_device_a2dp_configured(device);
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, cras_a2dp_start_called);
+
+  cras_bt_device_remove(device);
+}
+
+TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
+  struct cras_bt_device* device;
+
+  ResetStubData();
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
+  cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+
+  cras_bt_device_set_connected(device, 1);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+
+  /* Schedule another timer, if HFP AG not yet intialized. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
+  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  cras_bt_device_audio_gateway_initialized(device);
+
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, cras_hfp_ag_start_called);
+
+  cras_bt_device_remove(device);
+}
+
+TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
+  struct cras_bt_device* device;
+
+  ResetStubData();
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_add_supported_profiles(device, A2DP_SINK_UUID);
+  cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
+  cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+
+  cras_bt_device_set_connected(device, 1);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+
+  /* Schedule another timer, if not HFP nor A2DP is ready. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+
+  cras_bt_device_audio_gateway_initialized(device);
+
+  /* Schedule another timer, because A2DP is not ready. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(3, cras_tm_create_timer_called);
+  EXPECT_EQ(0, cras_hfp_ag_start_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
+  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  cras_bt_device_a2dp_configured(device);
+
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(3, cras_tm_create_timer_called);
+  EXPECT_EQ(1, cras_a2dp_start_called);
+  EXPECT_EQ(1, cras_hfp_ag_start_called);
+
+  cras_bt_device_remove(device);
+}
+
 /* Stubs */
 extern "C" {
 
@@ -250,10 +360,12 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device *device)
 
 void cras_a2dp_start(struct cras_bt_device *device)
 {
+  cras_a2dp_start_called++;
 }
 
 int cras_hfp_ag_start(struct cras_bt_device *device)
 {
+  cras_hfp_ag_start_called++;
   return 0;
 }
 
@@ -330,11 +442,45 @@ struct cras_timer *cras_tm_create_timer(
     void (*cb)(struct cras_timer *t, void *data),
     void *cb_data)
 {
+  cras_tm_create_timer_called++;
+  cras_tm_create_timer_cb = cb;
+  cras_tm_create_timer_cb_data = cb_data;
   return NULL;
 }
 
 void cras_tm_cancel_timer(struct cras_tm *tm, struct cras_timer *t)
 {
+}
+
+DBusMessage* dbus_message_new_method_call(const char* destination,
+                                          const char* path,
+                                          const char* iface,
+                                          const char* method) {
+  dbus_message_new_method_call_called++;
+  dbus_message_new_method_call_method = method;
+  return reinterpret_cast<DBusMessage*>(0x456);
+}
+
+void dbus_message_unref(DBusMessage* message) {}
+
+dbus_bool_t dbus_message_append_args(DBusMessage* message,
+                                     int first_arg_type,
+                                     ...) {
+  return true;
+}
+
+dbus_bool_t dbus_connection_send_with_reply(DBusConnection* connection,
+                                            DBusMessage* message,
+                                            DBusPendingCall** pending_return,
+                                            int timeout_milliseconds) {
+  return true;
+}
+
+dbus_bool_t dbus_pending_call_set_notify(DBusPendingCall* pending,
+                                         DBusPendingCallNotifyFunction function,
+                                         void* user_data,
+                                         DBusFreeFunction free_user_data) {
+  return true;
 }
 
 } // extern "C"
