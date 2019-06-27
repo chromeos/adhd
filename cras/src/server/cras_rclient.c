@@ -42,8 +42,7 @@ int cras_rclient_buffer_from_client(struct cras_rclient *client,
 		return -EINVAL;
 	if (msg->length != buf_len)
 		return -EINVAL;
-	client->ops->handle_message_from_client(client, msg, fd);
-	return 0;
+	return client->ops->handle_message_from_client(client, msg, fd);
 }
 
 /* Sends a message to the client. */

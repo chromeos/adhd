@@ -12,6 +12,7 @@
 #define CRAS_CLIENT_RT_THREAD_PRIORITY 10
 #define CRAS_CLIENT_NICENESS_LEVEL -10
 #define CRAS_SOCKET_FILE ".cras_socket"
+#define CRAS_PLAYBACK_SOCKET_FILE ".cras_playback"
 
 /* CRAS_CONFIG_FILE_DIR is defined as $sysconfdir/cras by the configure
    script. */

@@ -44,7 +44,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	/* check the aud_fd is valid. */
 	if (aud_fd < 0) {
 		syslog(LOG_ERR, "Invalid fd in stream connect.\n");
-		rc = -EINVAL;
+		rc = -EBADF;
 		goto reply_err;
 	}
 	/* When full, getting an error is preferable to blocking. */
@@ -342,8 +342,6 @@ static int direction_valid(enum CRAS_STREAM_DIRECTION direction)
 	       direction != CRAS_STREAM_UNDEFINED;
 }
 
-#define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
-
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
 static int ccr_handle_message_from_client(struct cras_rclient *client,
@@ -365,7 +363,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 			       "Message %d should not have fd attached.",
 			       msg->id);
 			close(fd);
-			return -1;
+			return -EINVAL;
 		}
 		break;
 	}

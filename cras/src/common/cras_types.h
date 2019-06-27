@@ -9,6 +9,7 @@
 #ifndef CRAS_TYPES_H_
 #define CRAS_TYPES_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -506,6 +507,12 @@ static inline cras_stream_id_t cras_get_stream_id(uint16_t client_id,
 {
 	return (cras_stream_id_t)(((client_id & 0x0000ffff) << 16) |
 				  (stream_id & 0x0000ffff));
+}
+/* Verify if the stream_id fits the given client_id */
+static inline bool cras_valid_stream_id(cras_stream_id_t stream_id,
+					uint16_t client_id)
+{
+	return ((stream_id >> 16) ^ client_id) == 0;
 }
 
 enum CRAS_NODE_TYPE {

@@ -46,6 +46,7 @@
 #include "cras_observer.h"
 #include "cras_rclient.h"
 #include "cras_control_rclient.h"
+#include "cras_playback_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
@@ -192,9 +193,17 @@ static void send_client_list_to_clients(struct server_data *serv)
 	cras_system_state_update_complete();
 }
 
+/* CRAS client connection types. */
+enum CRAS_CONNECTION_TYPE {
+	CRAS_CONTROL, // For legacy client.
+	CRAS_PLAYBACK, // For playback client.
+	CRAS_NUM_CONN_TYPE,
+};
+
 /* Handles requests from a client to attach to the server.  Create a local
  * structure to track the client, assign it a unique id and let it attach */
-static void handle_new_connection(struct sockaddr_un *address, int fd)
+static void handle_new_connection(struct sockaddr_un *address, int fd,
+				  enum CRAS_CONNECTION_TYPE type)
 {
 	int connection_fd;
 	struct attached_client *poll_client;
@@ -232,13 +241,22 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	poll_client->next = NULL;
 	poll_client->pollfd = NULL;
 	fill_client_info(poll_client);
-	poll_client->client =
-		cras_control_rclient_create(connection_fd, poll_client->id);
+	switch (type) {
+	case CRAS_CONTROL:
+		poll_client->client = cras_control_rclient_create(
+			connection_fd, poll_client->id);
+		break;
+	case CRAS_PLAYBACK:
+		poll_client->client = cras_playback_rclient_create(
+			connection_fd, poll_client->id);
+		break;
+	default:
+		syslog(LOG_ERR, "unsupported connection type");
+		goto error;
+	}
 	if (poll_client->client == NULL) {
 		syslog(LOG_ERR, "failed to create client");
-		close(connection_fd);
-		free(poll_client);
-		return;
+		goto error;
 	}
 
 	DL_APPEND(server_instance.clients_head, poll_client);
@@ -246,6 +264,11 @@ static void handle_new_connection(struct sockaddr_un *address, int fd)
 	/* Send a current list of available inputs and outputs. */
 	cras_iodev_list_update_device_list();
 	send_client_list_to_clients(&server_instance);
+	return;
+error:
+	close(connection_fd);
+	free(poll_client);
+	return;
 }
 
 /* Add a file descriptor to be passed to select in the main loop. This is
@@ -512,8 +535,10 @@ int cras_server_run(unsigned int profile_disable_mask)
 	DBusConnection *dbus_conn;
 #endif
 	int control_fd = -1;
+	int playback_fd = -1;
 	int rc = 0;
 	struct sockaddr_un control_addr;
+	struct sockaddr_un playback_addr;
 	struct attached_client *elm;
 	struct client_callback *client_cb;
 	struct system_task *tasks;
@@ -564,6 +589,11 @@ int cras_server_run(unsigned int profile_disable_mask)
 	if (control_fd < 0)
 		goto bail;
 
+	playback_fd = create_and_listen_server_socket(CRAS_PLAYBACK_SOCKET_FILE,
+						      &playback_addr);
+	if (playback_fd < 0)
+		goto bail;
+
 	tm = cras_system_state_get_tm();
 	if (!tm) {
 		syslog(LOG_ERR, "Getting timer manager.");
@@ -576,7 +606,8 @@ int cras_server_run(unsigned int profile_disable_mask)
 
 	/* Main server loop - client callbacks are run from this context. */
 	while (1) {
-		poll_size_needed = 1 + server_instance.num_clients +
+		poll_size_needed = CRAS_NUM_CONN_TYPE +
+				   server_instance.num_clients +
 				   server_instance.num_client_callbacks;
 		if (poll_size_needed > pollfds_size) {
 			pollfds_size = 2 * poll_size_needed;
@@ -584,9 +615,12 @@ int cras_server_run(unsigned int profile_disable_mask)
 					  sizeof(*pollfds) * pollfds_size);
 		}
 
-		pollfds[0].fd = control_fd;
-		pollfds[0].events = POLLIN;
-		num_pollfds = 1;
+		pollfds[CRAS_CONTROL].fd = control_fd;
+		pollfds[CRAS_CONTROL].events = POLLIN;
+
+		pollfds[CRAS_PLAYBACK].fd = playback_fd;
+		pollfds[CRAS_PLAYBACK].events = POLLIN;
+		num_pollfds = CRAS_NUM_CONN_TYPE;
 
 		DL_FOREACH (server_instance.clients_head, elm) {
 			pollfds[num_pollfds].fd = elm->fd;
@@ -629,8 +663,12 @@ int cras_server_run(unsigned int profile_disable_mask)
 		cras_tm_call_callbacks(tm);
 
 		/* Check for new connections. */
-		if (pollfds[0].revents & POLLIN)
-			handle_new_connection(&control_addr, control_fd);
+		if (pollfds[CRAS_CONTROL].revents & POLLIN)
+			handle_new_connection(&control_addr, control_fd,
+					      CRAS_CONTROL);
+		if (pollfds[CRAS_PLAYBACK].revents & POLLIN)
+			handle_new_connection(&playback_addr, playback_fd,
+					      CRAS_PLAYBACK);
 		/* Check if there are messages pending for any clients. */
 		DL_FOREACH (server_instance.clients_head, elm)
 			if (elm->pollfd && elm->pollfd->revents & POLLIN)
@@ -655,6 +693,10 @@ bail:
 	if (control_fd >= 0) {
 		close(control_fd);
 		unlink(control_addr.sun_path);
+	}
+	if (playback_fd >= 0) {
+		close(playback_fd);
+		unlink(playback_addr.sun_path);
 	}
 	free(pollfds);
 	cras_observer_server_free();

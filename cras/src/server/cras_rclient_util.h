@@ -9,6 +9,8 @@
 #ifndef CRAS_RCLIENT_UTIL_H_
 #define CRAS_RCLIENT_UTIL_H_
 
+#define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
+
 struct cras_connect_message;
 struct cras_rclient;
 struct cras_rclient_message;
