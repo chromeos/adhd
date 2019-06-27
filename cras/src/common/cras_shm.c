@@ -210,8 +210,12 @@ void cras_audio_shm_destroy(struct cras_audio_shm *shm)
 	if (!shm)
 		return;
 
-	munmap(shm->samples, shm->samples_info.length);
-	cras_shm_info_cleanup(&shm->samples_info);
+	// Calls munmap only for split version shm.
+	// TODO(paulhsia): Remove this check after cleanup unsplit shm.
+	if (shm->samples_info.length > 0) {
+		munmap(shm->samples, shm->samples_info.length);
+		cras_shm_info_cleanup(&shm->samples_info);
+	}
 	munmap(shm->header, shm->header_info.length);
 	cras_shm_info_cleanup(&shm->header_info);
 	free(shm);
