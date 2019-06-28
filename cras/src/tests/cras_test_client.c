@@ -396,7 +396,7 @@ static void convert_time(unsigned int *sec, unsigned int *nsec,
 		sec_offset++;
 		nsec_offset -= 1000000000L;
 	} else if (nsec_offset < 0) {
-		sec--;
+		sec_offset--;
 		nsec_offset += 1000000000L;
 	}
 	*sec = sec_offset;
