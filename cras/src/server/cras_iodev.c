@@ -1013,6 +1013,7 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 	unsigned int min_frames;
 	unsigned int dsp_frames;
 	struct input_data *data = iodev->input_data;
+	int rc;
 
 	if (iodev->streams)
 		min_frames = buffer_share_get_new_write_point(iodev->buf_state);
@@ -1025,7 +1026,10 @@ int cras_iodev_put_input_buffer(struct cras_iodev *iodev)
 
 	input_data_set_all_streams_read(data, min_frames);
 	rate_estimator_add_frames(iodev->rate_est, -min_frames);
-	return iodev->put_buffer(iodev, min_frames);
+	rc = iodev->put_buffer(iodev, min_frames);
+	if (rc < 0)
+		return rc;
+	return min_frames;
 }
 
 int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,

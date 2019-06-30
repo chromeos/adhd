@@ -2248,6 +2248,7 @@ TEST(IoDev, InputDspOffset) {
   struct dev_stream stream1;
   struct input_data data;
   unsigned int frames = 240;
+  int rc;
 
   ResetStubData();
 
@@ -2278,16 +2279,18 @@ TEST(IoDev, InputDspOffset) {
   cras_iodev_get_input_buffer(&iodev, &frames);
 
   buffer_share_get_new_write_point_ret = 100;
-  cras_iodev_put_input_buffer(&iodev);
+  rc = cras_iodev_put_input_buffer(&iodev);
   EXPECT_EQ(140, iodev.input_dsp_offset);
+  EXPECT_EQ(100, rc);
 
   frames = 130;
   cras_iodev_get_input_buffer(&iodev, &frames);
   EXPECT_EQ(130, iodev.input_frames_read);
 
   buffer_share_get_new_write_point_ret = 80;
-  cras_iodev_put_input_buffer(&iodev);
+  rc = cras_iodev_put_input_buffer(&iodev);
   EXPECT_EQ(60, iodev.input_dsp_offset);
+  EXPECT_EQ(80, rc);
 }
 
 extern "C" {

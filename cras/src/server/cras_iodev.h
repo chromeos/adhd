@@ -571,7 +571,12 @@ int cras_iodev_close(struct cras_iodev *iodev);
 /* Gets the available buffer to write/read audio.*/
 int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level);
 
-/* Marks a buffer from get_buffer as read. */
+/* Marks a buffer from get_buffer as read.
+ * Args:
+ *    iodev - The input device.
+ * Returns:
+ *    Number of frames to put sucessfully. Negative error code on failure.
+ */
 int cras_iodev_put_input_buffer(struct cras_iodev *iodev);
 
 /* Marks a buffer from get_buffer as written. */
