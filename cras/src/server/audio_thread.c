@@ -874,7 +874,7 @@ static void *audio_io_thread(void *arg)
 		if (thread->pollfds[0].revents & POLLIN) {
 			rc = handle_playback_thread_message(thread);
 			if (rc < 0)
-				syslog(LOG_INFO, "handle message %d", rc);
+				syslog(LOG_ERR, "handle message %d", rc);
 		}
 
 		DL_FOREACH (iodev_callbacks, iodev_cb) {
