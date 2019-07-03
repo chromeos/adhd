@@ -332,6 +332,32 @@ leave:
 		dev->update_active_node(dev, node_idx, dev_enabled);
 }
 
+static unsigned int get_num_underruns(const struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+	if (dev->get_num_underruns)
+		return dev->get_num_underruns(dev);
+	return 0;
+}
+
+static int output_underrun(struct cras_iodev *iodev)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+
+	if (dev->output_underrun) {
+		dev->min_cb_level = iodev->min_cb_level;
+		dev->max_cb_level = iodev->max_cb_level;
+		dev->buffer_size = iodev->buffer_size;
+		return dev->output_underrun(dev);
+	}
+
+	return 0;
+}
+
 static int no_stream(struct cras_iodev *iodev, int enable)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
@@ -411,6 +437,8 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
 	iodev->no_stream = no_stream;
+	iodev->output_underrun = output_underrun;
+	iodev->get_num_underruns = get_num_underruns;
 	iodev->is_free_running = is_free_running;
 	iodev->start = start;
 

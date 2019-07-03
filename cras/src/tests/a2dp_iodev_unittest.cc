@@ -52,6 +52,8 @@ static void* write_callback_data;
 static const char* fake_device_name = "fake device name";
 static const char* cras_bt_device_name_ret;
 static unsigned int cras_bt_transport_write_mtu_ret;
+static int cras_iodev_fill_odev_zeros_called;
+static unsigned int cras_iodev_fill_odev_zeros_frames;
 
 void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -75,7 +77,9 @@ void ResetStubData() {
          sizeof(a2dp_encode_processed_bytes_val));
   a2dp_encode_index = 0;
   a2dp_write_index = 0;
+  /* Fake the MTU value. min_buffer_level will be derived from this value. */
   cras_bt_transport_write_mtu_ret = 800;
+  cras_iodev_fill_odev_zeros_called = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x123);
 
@@ -351,6 +355,43 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   a2dp_iodev_destroy(iodev);
 }
 
+TEST_F(A2dpIodev, HandleUnderrun) {
+  struct cras_iodev* iodev;
+  struct cras_audio_area* area;
+  struct timespec tstamp;
+  unsigned frames;
+
+  iodev = a2dp_iodev_create(fake_transport);
+
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->configure_dev(iodev);
+  EXPECT_EQ(400, iodev->min_buffer_level);
+
+  frames = 300;
+  iodev->get_buffer(iodev, &area, &frames);
+  ASSERT_EQ(300, frames);
+  ASSERT_EQ(300, area->frames);
+  a2dp_encode_processed_bytes_val[0] = 0;
+  a2dp_write_return_val[0] = -EAGAIN;
+
+  time_now.tv_nsec = 10000000;
+  iodev->put_buffer(iodev, 300);
+
+  time_now.tv_nsec = 20000000;
+  EXPECT_EQ(300, iodev->frames_queued(iodev, &tstamp));
+
+  /* Frames queued below min_buffer_level, which is derived from transport MTU.
+   * Assert min_cb_level of zero frames are filled. */
+  iodev->min_cb_level = 150;
+  iodev->output_underrun(iodev);
+  ASSERT_EQ(1, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(150, cras_iodev_fill_odev_zeros_frames);
+
+  a2dp_iodev_destroy(iodev);
+}
+
 TEST_F(A2dpIodev, NoStreamState) {
   struct cras_iodev* iodev;
   struct cras_audio_area* area;
@@ -573,6 +614,12 @@ int cras_iodev_frames_queued(struct cras_iodev* iodev,
     return 0;
 
   return num_queued - iodev->min_buffer_level;
+}
+
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+  cras_iodev_fill_odev_zeros_called++;
+  cras_iodev_fill_odev_zeros_frames = frames;
+  return 0;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,

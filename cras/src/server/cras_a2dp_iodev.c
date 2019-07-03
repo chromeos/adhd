@@ -51,6 +51,7 @@ static const struct timespec no_stream_target_frames_ts = {
  *        in no stream state.
  *    filled_zeros_bytes - Number of zero data in bytes that have been filled
  *        in no stream state.
+ *    num_underruns - Number of times a2dp iodev have run out of data.
  */
 struct a2dp_io {
 	struct cras_iodev base;
@@ -63,6 +64,7 @@ struct a2dp_io {
 	struct timespec dev_open_time;
 	bool drain_complete;
 	int filled_zeros_bytes;
+	unsigned int num_underruns;
 };
 
 static int flush_data(void *arg);
@@ -129,17 +131,63 @@ static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
 		return 0;
 }
 
+/* Returns the number of frames queued in a2dp iodev's buffer. */
+static int bt_local_queued_frames(const struct cras_iodev *iodev)
+{
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	return a2dp_queued_frames(&a2dpio->a2dp) +
+	       buf_queued(a2dpio->pcm_buf) /
+		       cras_get_format_bytes(iodev->format);
+}
+
 static int frames_queued(const struct cras_iodev *iodev,
 			 struct timespec *tstamp)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	int estimate_queued_frames = bt_queued_frames(iodev, 0);
-	int local_queued_frames = a2dp_queued_frames(&a2dpio->a2dp) +
-				  buf_queued(a2dpio->pcm_buf) /
-					  cras_get_format_bytes(iodev->format);
+	int local_queued_frames = bt_local_queued_frames(iodev);
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	return MIN(iodev->buffer_size,
 		   MAX(estimate_queued_frames, local_queued_frames));
+}
+
+static unsigned int get_num_underruns(const struct cras_iodev *iodev)
+{
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	return a2dpio->num_underruns;
+}
+
+/*
+ * dev_io_playback_write() has the logic to detect underrun scenario
+ * and calls into this underrun ops, by comparing buffer level with
+ * number of frames just written. Note that it's not correct 100% of
+ * the time in a2dp case, because we lose track of samples once they're
+ * flushed to socket.
+ */
+static int output_underrun(struct cras_iodev *iodev)
+{
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	int local_queued_frames = bt_local_queued_frames(iodev);
+
+	/*
+	 * Examples to help understand the check:
+	 *
+	 * [False-positive underrun]
+	 * Assume min_buffer_level = 1000, written 900, and flushes
+	 * 800 of data. Audio thread sees 1000 + 900 - 800 = 1100 of
+	 * data left. This is merely 100(< 900) above min_buffer_level
+	 * so audio_thread thinks it underruns, but actually not.
+	 *
+	 * [True underrun]
+	 * min_buffer_level = 1000, written 200, and flushes 800 of
+	 * data. Now that buffer runs lower than min_buffer_level so
+	 * it's indeed an underrun.
+	 */
+	if (local_queued_frames > iodev->min_buffer_level)
+		return 0;
+
+	a2dpio->num_underruns++;
+
+	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
 }
 
 static int no_stream(struct cras_iodev *iodev, int enable)
@@ -232,6 +280,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 	iodev->min_buffer_level = a2dpio->sock_depth_frames;
 
+	a2dpio->num_underruns = 0;
 	a2dpio->drain_complete = 0;
 	a2dpio->filled_zeros_bytes = 0;
 
@@ -496,6 +545,8 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->put_buffer = put_buffer;
 	iodev->flush_buffer = flush_buffer;
 	iodev->no_stream = no_stream;
+	iodev->output_underrun = output_underrun;
+	iodev->get_num_underruns = get_num_underruns;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
