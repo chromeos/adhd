@@ -42,14 +42,11 @@ static size_t get_block_size(uint64_t buffer_time_in_ns, size_t rate)
 }
 
 /* Run from callback thread. */
-static int got_samples(struct cras_client *client,
-		       cras_stream_id_t stream_id,
-		       uint8_t *captured_samples,
-		       uint8_t *playback_samples,
+static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
+		       uint8_t *captured_samples, uint8_t *playback_samples,
 		       unsigned int frames,
 		       const struct timespec *captured_time,
-		       const struct timespec *playback_time,
-		       void *user_arg)
+		       const struct timespec *playback_time, void *user_arg)
 {
 	int *fd = (int *)user_arg;
 	int ret;
@@ -65,14 +62,11 @@ static int got_samples(struct cras_client *client,
 }
 
 /* Run from callback thread. */
-static int put_samples(struct cras_client *client,
-		       cras_stream_id_t stream_id,
-		       uint8_t *captured_samples,
-		       uint8_t *playback_samples,
+static int put_samples(struct cras_client *client, cras_stream_id_t stream_id,
+		       uint8_t *captured_samples, uint8_t *playback_samples,
 		       unsigned int frames,
 		       const struct timespec *captured_time,
-		       const struct timespec *playback_time,
-		       void *user_arg)
+		       const struct timespec *playback_time, void *user_arg)
 {
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 	int fd = *(int *)user_arg;
@@ -89,20 +83,16 @@ static int put_samples(struct cras_client *client,
 	return nread / frame_bytes;
 }
 
-static int stream_error(struct cras_client *client,
-			cras_stream_id_t stream_id,
-			int err,
-			void *arg)
+static int stream_error(struct cras_client *client, cras_stream_id_t stream_id,
+			int err, void *arg)
 {
 	printf("Stream error %d\n", err);
 	terminate_stream_loop();
 	return 0;
 }
 
-static int start_stream(struct cras_client *client,
-			cras_stream_id_t *stream_id,
-			struct cras_stream_params *params,
-			float stream_volume)
+static int start_stream(struct cras_client *client, cras_stream_id_t *stream_id,
+			struct cras_stream_params *params, float stream_volume)
 {
 	int rc;
 
@@ -111,17 +101,12 @@ static int start_stream(struct cras_client *client,
 		fprintf(stderr, "adding a stream %d\n", rc);
 		return rc;
 	}
-	return cras_client_set_stream_volume(client,
-					     *stream_id,
-					     stream_volume);
+	return cras_client_set_stream_volume(client, *stream_id, stream_volume);
 }
 
-static int run_file_io_stream(struct cras_client *client,
-			      int fd,
-			      int loop_fd,
+static int run_file_io_stream(struct cras_client *client, int fd, int loop_fd,
 			      enum CRAS_STREAM_DIRECTION direction,
-			      size_t block_size,
-			      size_t rate,
+			      size_t block_size, size_t rate,
 			      size_t num_channels)
 {
 	struct cras_stream_params *params;
@@ -140,14 +125,9 @@ static int run_file_io_stream(struct cras_client *client,
 	if (aud_format == NULL)
 		return -ENOMEM;
 
-	params = cras_client_unified_params_create(direction,
-						   block_size,
-						   0,
-						   0,
-						   pfd,
-						   got_samples,
-						   stream_error,
-						   aud_format);
+	params = cras_client_unified_params_create(direction, block_size, 0, 0,
+						   pfd, got_samples,
+						   stream_error, aud_format);
 	if (params == NULL)
 		return -ENOMEM;
 
@@ -164,17 +144,12 @@ static int run_file_io_stream(struct cras_client *client,
 
 	direction = CRAS_STREAM_OUTPUT;
 
-	loop_params = cras_client_unified_params_create(direction,
-							block_size,
-							0,
-							0,
-							pfd1,
-							put_samples,
-							stream_error,
-							aud_format);
-	stream_playing =
-		start_stream(client, &loop_stream_id,
-			     loop_params, volume_scaler) == 0;
+	loop_params =
+		cras_client_unified_params_create(direction, block_size, 0, 0,
+						  pfd1, put_samples,
+						  stream_error, aud_format);
+	stream_playing = start_stream(client, &loop_stream_id, loop_params,
+				      volume_scaler) == 0;
 	if (!stream_playing)
 		return -EINVAL;
 
@@ -194,11 +169,9 @@ static int run_file_io_stream(struct cras_client *client,
 	return 0;
 }
 
-static struct option long_options[] = {
-	{"help", no_argument, 0, 'h'},
-	{"rate", required_argument, 0, 'r'},
-	{0, 0, 0, 0}
-};
+static struct option long_options[] = { { "help", no_argument, 0, 'h' },
+					{ "rate", required_argument, 0, 'r' },
+					{ 0, 0, 0, 0 } };
 
 static void show_usage(void)
 {
@@ -234,8 +207,7 @@ int main(int argc, char **argv)
 	}
 
 	while (1) {
-		c = getopt_long(argc, argv, "hr:",
-				long_options, &option_index);
+		c = getopt_long(argc, argv, "hr:", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -246,7 +218,7 @@ int main(int argc, char **argv)
 			rate = atoi(optarg);
 			break;
 		default:
-		break;
+			break;
 		}
 	}
 
