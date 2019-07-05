@@ -845,8 +845,10 @@ static void *audio_io_thread(void *arg)
 		thread->num_pollfds = 1;
 
 		DL_FOREACH (iodev_callbacks, iodev_cb) {
-			if (!iodev_cb->enabled)
+			if (!iodev_cb->enabled) {
+				iodev_cb->pollfd = NULL;
 				continue;
+			}
 			iodev_cb->pollfd = add_pollfd(thread, iodev_cb->fd,
 						      iodev_cb->is_write);
 			if (!iodev_cb->pollfd)
