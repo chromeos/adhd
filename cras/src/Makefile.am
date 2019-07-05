@@ -389,27 +389,27 @@ TESTS = \
 
 check_PROGRAMS = $(TESTS)
 
-cras_test_client_SOURCES = tests/cras_test_client.c
+cras_test_client_SOURCES = tools/cras_test_client/cras_test_client.c
 cras_test_client_LDADD = -lm libcras.la
 cras_test_client_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common -I$(top_builddir)/src/common
 
-tests/cras_test_client.c: common/cras_version.h
+tools/cras_test_client/cras_test_client.c: common/cras_version.h
 
-cras_monitor_SOURCES = tests/cras_monitor.c
+cras_monitor_SOURCES = tools/cras_monitor/cras_monitor.c
 cras_monitor_LDADD = -lm libcras.la
 cras_monitor_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 	-I$(top_srcdir)/src/common -I$(top_builddir)/src/common
 
-tests/cras_monitor.c: common/cras_version.h
+tools/cras_monitor/cras_monitor.c: common/cras_version.h
 
-cras_router_SOURCES = tests/cras_router.c
+cras_router_SOURCES = tools/cras_router/cras_router.c
 cras_router_LDADD = -lm libcras.la
 cras_router_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
         -I$(top_srcdir)/src/common -I$(top_srcdir)/src/dsp \
 	-I$(top_srcdir)/src/server -I$(top_builddir)/src/common
 
-tests/cras_router.c: common/cras_version.h
+tools/cras_router/cras_router.c: common/cras_version.h
 
 CLEANFILES = common/cras_version.h
 .PHONY: common/cras_version.h
