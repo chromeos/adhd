@@ -28,6 +28,7 @@ static cras_audio_format format;
 static size_t cras_bt_device_append_iodev_called;
 static size_t cras_bt_device_rm_iodev_called;
 static size_t cras_iodev_add_node_called;
+static int cras_iodev_frames_queued_called;
 static size_t cras_iodev_rm_node_called;
 static size_t cras_iodev_set_active_node_called;
 static size_t cras_bt_transport_acquire_called;
@@ -57,6 +58,7 @@ void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
   cras_bt_device_rm_iodev_called = 0;
   cras_iodev_add_node_called = 0;
+  cras_iodev_frames_queued_called = 0;
   cras_iodev_rm_node_called = 0;
   cras_iodev_set_active_node_called = 0;
   cras_bt_transport_acquire_called = 0;
@@ -375,23 +377,27 @@ TEST_F(A2dpIodev, NoStreamState) {
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void *)NULL);
+  ASSERT_EQ(400, iodev->min_buffer_level);
 
-  iodev->min_cb_level = 888;
-  frames = 700;
+  iodev->min_cb_level = 480;
+  frames = 200;
   iodev->get_buffer(iodev, &area, &frames);
-  iodev->put_buffer(iodev, 700);
+  iodev->put_buffer(iodev, 200);
 
   iodev->no_stream(iodev, 1);
+  EXPECT_EQ(1, cras_iodev_frames_queued_called);
 
-  /* Full buffer will be filled by zero in no stream state .*/
+  /* no_stream will fill the buffer to hw_level = (441 (44100 * 0.01)) * 2
+   * frames, but 200 < min_buffer_level so cras_iodev_frames_queued will return
+   * 0 in no_stream and no_stream will fill 882 frames to device buffer.
+   */
   frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(iodev->buffer_size, frames);
+  ASSERT_EQ(1082, frames);
 
-  /* After leaving no stream state, output buffer is adjusted to
-   * min_cb_level */
+  /* After leaving no stream state, output buffer won't be adjusted */
   iodev->no_stream(iodev, 0);
   frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(888, frames);
+  ASSERT_EQ(1082, frames);
 }
 
 } // namespace
@@ -588,6 +594,17 @@ void cras_iodev_init_audio_area(struct cras_iodev *iodev,
 }
 
 void cras_iodev_free_audio_area(struct cras_iodev *iodev) {
+}
+
+int cras_iodev_frames_queued(struct cras_iodev* iodev,
+                             struct timespec* hw_tstamp) {
+  int rc;
+  cras_iodev_frames_queued_called++;
+  rc = iodev->frames_queued(iodev, hw_tstamp);
+  if (rc < iodev->min_buffer_level)
+    return 0;
+
+  return rc - iodev->min_buffer_level;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,

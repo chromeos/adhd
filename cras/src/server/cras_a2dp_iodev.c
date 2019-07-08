@@ -30,6 +30,11 @@
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
 
+/* no_stream target_frames in timespec. */
+static const struct timespec no_stream_target_frames_ts = {
+	0, 10 * 1000 * 1000 /* 10 msec. */
+};
+
 /* Child of cras_iodev to handle bluetooth A2DP streaming.
  * Members:
  *    base - The cras_iodev structure "base class"
@@ -146,54 +151,43 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 	unsigned int buf_avail;
 	unsigned int format_bytes;
 	unsigned int target_bytes;
+	unsigned int target_total_bytes;
+	unsigned int bt_queued_bytes;
 	uint8_t *buf;
+	struct timespec tstamp;
 	int i;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 	pcm_bytes = buf_queued(a2dpio->pcm_buf);
 
 	if (enable) {
-		if (!a2dpio->drain_complete &&
-		    (pcm_bytes <= a2dpio->filled_zeros_bytes))
-			a2dpio->drain_complete = 1;
+		/* Target to have let hw_level = 2 * (frames in 10ms) */
+		bt_queued_bytes =
+			cras_iodev_frames_queued(iodev, &tstamp) * format_bytes;
+		target_total_bytes =
+			2 *
+			cras_time_to_frames(&no_stream_target_frames_ts,
+					    iodev->format->frame_rate) *
+			format_bytes;
+		if (target_total_bytes <= bt_queued_bytes)
+			return 0;
+		target_total_bytes -= bt_queued_bytes;
 
-		/* Loop twice to make sure ring buffer is filled. */
+		/* Loop twice to make sure target_total_bytes are filled. */
 		for (i = 0; i < 2; i++) {
 			buf = buf_write_pointer_size(a2dpio->pcm_buf,
 						     &buf_avail);
-			if (buf_avail == 0)
+			if (buf_avail == 0 || target_total_bytes == 0)
 				break;
-			target_bytes = iodev->buffer_size * format_bytes;
-			target_bytes = MIN(buf_avail, target_bytes);
+			target_bytes = MIN(buf_avail, target_total_bytes);
 			memset(buf, 0, target_bytes);
 			buf_increment_write(a2dpio->pcm_buf, target_bytes);
-			a2dpio->filled_zeros_bytes += target_bytes;
+			bt_queued_frames(iodev, target_bytes / format_bytes);
+			target_total_bytes -= target_bytes;
 		}
+		flush_data(iodev);
 		return 0;
 	}
-	/* Leave no stream state. */
-	target_bytes = iodev->min_cb_level * format_bytes;
-	if (a2dpio->drain_complete) {
-		buf_adjust_readable(a2dpio->pcm_buf, target_bytes);
-	} else {
-		unsigned int valid_bytes = 0;
-		if (pcm_bytes > a2dpio->filled_zeros_bytes)
-			valid_bytes = pcm_bytes - a2dpio->filled_zeros_bytes;
-
-		target_bytes = MAX(target_bytes, valid_bytes);
-		if (target_bytes > pcm_bytes) {
-			target_bytes -= pcm_bytes;
-			buf = buf_write_pointer_size(a2dpio->pcm_buf,
-						     &buf_avail);
-			target_bytes = MIN(target_bytes, buf_avail);
-			memset(buf, 0, target_bytes);
-			buf_increment_write(a2dpio->pcm_buf, target_bytes);
-		} else {
-			buf_adjust_readable(a2dpio->pcm_buf, target_bytes);
-		}
-	}
-	a2dpio->drain_complete = 0;
-	a2dpio->filled_zeros_bytes = 0;
 	return 0;
 }
 
