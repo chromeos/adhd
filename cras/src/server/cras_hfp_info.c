@@ -71,8 +71,10 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *         number of PCM bytes read.
  *     write_cb - Callback to call when SCO socket can write.
  *     hci_sco_buf - Buffer to read one HCI SCO packet.
- *     idev - The input iodev using this hfp_info.
- *     odev - The output iodev using this hfp_info.
+ *     input_format_bytes - The audio format bytes for input device. 0 means
+ *         there is no input device for the hfp_info.
+ *     output_format_bytes - The audio format bytes for output device. 0 means
+ *         there is no output device for the hfp_info.
  */
 struct hfp_info {
 	int fd;
@@ -91,22 +93,24 @@ struct hfp_info {
 	int (*write_cb)(struct hfp_info *info);
 	uint8_t write_buf[WRITE_BUF_SIZE_BYTES];
 	uint8_t hci_sco_buf[HCI_SCO_PKT_SIZE];
-	struct cras_iodev *idev;
-	struct cras_iodev *odev;
+	size_t input_format_bytes;
+	size_t output_format_bytes;
 };
 
-int hfp_info_add_iodev(struct hfp_info *info, struct cras_iodev *dev)
+int hfp_info_add_iodev(struct hfp_info *info,
+		       enum CRAS_STREAM_DIRECTION direction,
+		       struct cras_audio_format *format)
 {
-	if (dev->direction == CRAS_STREAM_OUTPUT) {
-		if (info->odev)
+	if (direction == CRAS_STREAM_OUTPUT) {
+		if (info->output_format_bytes)
 			goto invalid;
-		info->odev = dev;
+		info->output_format_bytes = cras_get_format_bytes(format);
 
 		buf_reset(info->playback_buf);
-	} else if (dev->direction == CRAS_STREAM_INPUT) {
-		if (info->idev)
+	} else if (direction == CRAS_STREAM_INPUT) {
+		if (info->input_format_bytes)
 			goto invalid;
-		info->idev = dev;
+		info->input_format_bytes = cras_get_format_bytes(format);
 
 		buf_reset(info->capture_buf);
 	}
@@ -117,14 +121,15 @@ invalid:
 	return -EINVAL;
 }
 
-int hfp_info_rm_iodev(struct hfp_info *info, struct cras_iodev *dev)
+int hfp_info_rm_iodev(struct hfp_info *info,
+		      enum CRAS_STREAM_DIRECTION direction)
 {
-	if (dev->direction == CRAS_STREAM_OUTPUT && info->odev == dev) {
+	if (direction == CRAS_STREAM_OUTPUT && info->output_format_bytes) {
 		memset(info->playback_buf->bytes, 0,
 		       info->playback_buf->used_size);
-		info->odev = NULL;
-	} else if (dev->direction == CRAS_STREAM_INPUT && info->idev == dev) {
-		info->idev = NULL;
+		info->output_format_bytes = 0;
+	} else if (direction == CRAS_STREAM_INPUT && info->input_format_bytes) {
+		info->input_format_bytes = 0;
 	} else {
 		return -EINVAL;
 	}
@@ -134,92 +139,99 @@ int hfp_info_rm_iodev(struct hfp_info *info, struct cras_iodev *dev)
 
 int hfp_info_has_iodev(struct hfp_info *info)
 {
-	return info->odev || info->idev;
+	return info->output_format_bytes || info->input_format_bytes;
 }
 
-void hfp_buf_acquire(struct hfp_info *info, struct cras_iodev *dev,
-		     uint8_t **buf, unsigned *count)
+void hfp_buf_acquire(struct hfp_info *info,
+		     enum CRAS_STREAM_DIRECTION direction, uint8_t **buf,
+		     unsigned *count)
 {
 	size_t format_bytes;
 	unsigned int buf_avail;
-	format_bytes = cras_get_format_bytes(dev->format);
 
-	*count *= format_bytes;
-
-	if (dev->direction == CRAS_STREAM_OUTPUT)
+	if (direction == CRAS_STREAM_OUTPUT && info->output_format_bytes) {
 		*buf = buf_write_pointer_size(info->playback_buf, &buf_avail);
-	else
+		format_bytes = info->output_format_bytes;
+	} else if (direction == CRAS_STREAM_INPUT && info->input_format_bytes) {
 		*buf = buf_read_pointer_size(info->capture_buf, &buf_avail);
+		format_bytes = info->input_format_bytes;
+	} else {
+		*count = 0;
+		return;
+	}
 
-	if (*count > buf_avail)
-		*count = buf_avail;
-	*count /= format_bytes;
+	if (*count * format_bytes > buf_avail)
+		*count = buf_avail / format_bytes;
 }
 
-int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev)
+int hfp_buf_size(struct hfp_info *info, enum CRAS_STREAM_DIRECTION direction)
 {
-	return info->playback_buf->used_size /
-	       cras_get_format_bytes(dev->format);
+	if (direction == CRAS_STREAM_OUTPUT && info->output_format_bytes)
+		return info->playback_buf->used_size /
+		       info->output_format_bytes;
+	else if (direction == CRAS_STREAM_INPUT && info->input_format_bytes)
+		return info->capture_buf->used_size / info->input_format_bytes;
+	return 0;
 }
 
-void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
+void hfp_buf_release(struct hfp_info *info,
+		     enum CRAS_STREAM_DIRECTION direction,
 		     unsigned written_frames)
 {
-	size_t format_bytes;
-	format_bytes = cras_get_format_bytes(dev->format);
-
-	written_frames *= format_bytes;
-
-	if (dev->direction == CRAS_STREAM_OUTPUT)
-		buf_increment_write(info->playback_buf, written_frames);
+	if (direction == CRAS_STREAM_OUTPUT && info->output_format_bytes)
+		buf_increment_write(info->playback_buf,
+				    written_frames * info->output_format_bytes);
+	else if (direction == CRAS_STREAM_INPUT && info->input_format_bytes)
+		buf_increment_read(info->capture_buf,
+				   written_frames * info->input_format_bytes);
 	else
-		buf_increment_read(info->capture_buf, written_frames);
+		written_frames = 0;
 }
 
-int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
+int hfp_buf_queued(struct hfp_info *info, enum CRAS_STREAM_DIRECTION direction)
 {
-	size_t format_bytes;
-	format_bytes = cras_get_format_bytes(dev->format);
-
-	if (dev->direction == CRAS_STREAM_OUTPUT)
-		return buf_queued(info->playback_buf) / format_bytes;
+	if (direction == CRAS_STREAM_OUTPUT && info->output_format_bytes)
+		return buf_queued(info->playback_buf) /
+		       info->output_format_bytes;
+	else if (direction == CRAS_STREAM_INPUT && info->input_format_bytes)
+		return buf_queued(info->capture_buf) / info->input_format_bytes;
 	else
-		return buf_queued(info->capture_buf) / format_bytes;
+		return 0;
 }
 
-int hfp_fill_output_with_zeros(struct hfp_info *info, struct cras_iodev *dev,
-			       unsigned int nframes)
+int hfp_fill_output_with_zeros(struct hfp_info *info, unsigned int nframes)
 {
 	unsigned int buf_avail;
-	unsigned int format_bytes;
 	unsigned int nbytes;
 	uint8_t *buf;
 	int i;
 	int ret = 0;
 
-	format_bytes = cras_get_format_bytes(dev->format);
-	nbytes = nframes * format_bytes;
-	/* Loop twice to make sure ring buffer is filled. */
-	for (i = 0; i < 2; i++) {
-		buf = buf_write_pointer_size(info->playback_buf, &buf_avail);
-		if (buf_avail == 0)
-			break;
-		buf_avail = MIN(nbytes, buf_avail);
-		memset(buf, 0, buf_avail);
-		buf_increment_write(info->playback_buf, buf_avail);
-		nbytes -= buf_avail;
-		ret += buf_avail / format_bytes;
+	if (info->output_format_bytes) {
+		nbytes = nframes * info->output_format_bytes;
+		/* Loop twice to make sure ring buffer is filled. */
+		for (i = 0; i < 2; i++) {
+			buf = buf_write_pointer_size(info->playback_buf,
+						     &buf_avail);
+			if (buf_avail == 0)
+				break;
+			buf_avail = MIN(nbytes, buf_avail);
+			memset(buf, 0, buf_avail);
+			buf_increment_write(info->playback_buf, buf_avail);
+			nbytes -= buf_avail;
+			ret += buf_avail / info->output_format_bytes;
+		}
 	}
 	return ret;
 }
 
-int hfp_force_output_level(struct hfp_info *info, struct cras_iodev *dev,
-			   unsigned int level)
+void hfp_force_output_level(struct hfp_info *info, unsigned int level)
 {
-	level *= cras_get_format_bytes(dev->format);
-	level = MIN(level, MAX_HFP_BUF_SIZE_BYTES);
-	buf_adjust_readable(info->playback_buf, level);
-	return 0;
+	if (info->output_format_bytes) {
+		level *= info->output_format_bytes;
+		level = MIN(level, MAX_HFP_BUF_SIZE_BYTES);
+		buf_adjust_readable(info->playback_buf, level);
+	}
 }
 
 int hfp_write_msbc(struct hfp_info *info)
@@ -534,14 +546,14 @@ static int hfp_info_callback(void *arg)
 	}
 
 	/* Ignore the bytes just read if input dev not in present */
-	if (!info->idev)
+	if (!info->input_format_bytes)
 		buf_increment_read(info->capture_buf, err);
 
 	/* Without output stream's presence, we shall still send zero packets
 	 * to HF. This is required for some HF devices to start sending non-zero
 	 * data to AG.
 	 */
-	if (!info->odev)
+	if (!info->output_format_bytes)
 		buf_increment_write(info->playback_buf,
 				    info->msbc_write ? err : info->packet_size);
 

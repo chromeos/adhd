@@ -85,14 +85,14 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 		if (!hfpio->drain_complete && (hw_level <= hfpio->filled_zeros))
 			hfpio->drain_complete = 1;
 		hfpio->filled_zeros += hfp_fill_output_with_zeros(
-			hfpio->info, iodev, iodev->buffer_size);
+			hfpio->info, iodev->buffer_size);
 		return 0;
 	}
 
 	/* Leave no stream state.*/
 	level_target = iodev->min_cb_level;
 	if (hfpio->drain_complete) {
-		hfp_force_output_level(hfpio->info, iodev, level_target);
+		hfp_force_output_level(hfpio->info, level_target);
 	} else {
 		unsigned int valid_samples = 0;
 		if (hw_level > hfpio->filled_zeros)
@@ -100,11 +100,10 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 		level_target = MAX(level_target, valid_samples);
 
 		if (level_target > hw_level)
-			hfp_fill_output_with_zeros(hfpio->info, iodev,
+			hfp_fill_output_with_zeros(hfpio->info,
 						   level_target - hw_level);
 		else
-			hfp_force_output_level(hfpio->info, iodev,
-					       level_target);
+			hfp_force_output_level(hfpio->info, level_target);
 	}
 	hfpio->drain_complete = 0;
 	hfpio->filled_zeros = 0;
@@ -123,7 +122,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 	/* Do not enable timestamp mechanism on HFP device because last time
 	 * stamp might be a long time ago and it is not really useful. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
-	return hfp_buf_queued(hfpio->info, iodev);
+	return hfp_buf_queued(hfpio->info, iodev->direction);
 }
 
 static int configure_dev(struct cras_iodev *iodev)
@@ -156,10 +155,10 @@ static int configure_dev(struct cras_iodev *iodev)
 	hfpio->drain_complete = 0;
 	hfpio->filled_zeros = 0;
 add_dev:
-	hfp_info_add_iodev(hfpio->info, iodev);
+	hfp_info_add_iodev(hfpio->info, iodev->direction, iodev->format);
 	hfp_set_call_status(hfpio->slc, 1);
 
-	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev);
+	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev->direction);
 
 	return 0;
 error:
@@ -171,7 +170,7 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
-	hfp_info_rm_iodev(hfpio->info, iodev);
+	hfp_info_rm_iodev(hfpio->info, iodev->direction);
 	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info)) {
 		hfp_info_stop(hfpio->info);
 		hfp_set_call_status(hfpio->slc, 0);
@@ -211,7 +210,7 @@ static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 	if (!hfp_info_running(hfpio->info))
 		return -1;
 
-	hfp_buf_acquire(hfpio->info, iodev, &dst, frames);
+	hfp_buf_acquire(hfpio->info, iodev->direction, &dst, frames);
 
 	iodev->area->frames = *frames;
 	/* HFP is mono only. */
@@ -230,7 +229,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	if (!hfp_info_running(hfpio->info))
 		return -1;
 
-	hfp_buf_release(hfpio->info, iodev, nwritten);
+	hfp_buf_release(hfpio->info, iodev->direction, nwritten);
 	return 0;
 }
 
@@ -240,8 +239,8 @@ static int flush_buffer(struct cras_iodev *iodev)
 	unsigned nframes;
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
-		nframes = hfp_buf_queued(hfpio->info, iodev);
-		hfp_buf_release(hfpio->info, iodev, nframes);
+		nframes = hfp_buf_queued(hfpio->info, iodev->direction);
+		hfp_buf_release(hfpio->info, iodev->direction, nframes);
 	}
 	return 0;
 }

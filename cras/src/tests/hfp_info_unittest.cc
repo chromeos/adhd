@@ -36,33 +36,37 @@ void ResetStubData() {
 namespace {
 
 TEST(HfpInfo, AddRmDev) {
+  ResetStubData();
+
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void*)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
   /* Test add dev */
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
   ASSERT_TRUE(hfp_info_has_iodev(info));
 
   /* Test remove dev */
-  ASSERT_EQ(0, hfp_info_rm_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_rm_iodev(info, dev.direction));
   ASSERT_FALSE(hfp_info_has_iodev(info));
 
   hfp_info_destroy(info);
 }
 
 TEST(HfpInfo, AddRmDevInvalid) {
+  ResetStubData();
+
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
   ASSERT_NE(info, (void*)NULL);
 
   dev.direction = CRAS_STREAM_OUTPUT;
 
   /* Remove an iodev which doesn't exist */
-  ASSERT_NE(0, hfp_info_rm_iodev(info, &dev));
+  ASSERT_NE(0, hfp_info_rm_iodev(info, dev.direction));
 
   /* Adding an iodev twice returns error code */
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
-  ASSERT_NE(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_NE(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   hfp_info_destroy(info);
 }
@@ -78,37 +82,37 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
 
   hfp_info_start(1, 48, info);
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   buffer_frames = 500;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
   ASSERT_EQ(500, buffer_frames);
 
-  hfp_buf_release(info, &dev, 500);
-  ASSERT_EQ(500, hfp_buf_queued(info, &dev));
+  hfp_buf_release(info, dev.direction, 500);
+  ASSERT_EQ(500, hfp_buf_queued(info, dev.direction));
 
   /* Assert the amount of frames of available buffer + queued buf is
    * greater than or equal to the buffer size, 2 bytes per frame
    */
-  queued = hfp_buf_queued(info, &dev);
+  queued = hfp_buf_queued(info, dev.direction);
   buffer_frames = 500;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
   ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + queued);
 
   /* Consume all queued data from read buffer */
   buf_increment_read(info->playback_buf, queued * 2);
 
-  queued = hfp_buf_queued(info, &dev);
+  queued = hfp_buf_queued(info, dev.direction);
   ASSERT_EQ(0, queued);
 
   /* Assert consecutive acquire buffer will acquire full used size of buffer */
   buffer_frames = 500;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
-  hfp_buf_release(info, &dev, buffer_frames);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
+  hfp_buf_release(info, dev.direction, buffer_frames);
 
   buffer_frames2 = 500;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames2);
-  hfp_buf_release(info, &dev, buffer_frames2);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames2);
+  hfp_buf_release(info, dev.direction, buffer_frames2);
 
   ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + buffer_frames2);
 
@@ -126,18 +130,18 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
 
   hfp_info_start(1, 48, info);
   dev.direction = CRAS_STREAM_INPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Put fake data 100 bytes(50 frames) in capture buf for test */
   buf_increment_write(info->capture_buf, 100);
 
   /* Assert successfully acquire and release 100 bytes of data */
   buffer_frames = 50;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
   ASSERT_EQ(50, buffer_frames);
 
-  hfp_buf_release(info, &dev, buffer_frames);
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  hfp_buf_release(info, dev.direction, buffer_frames);
+  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
 
   /* Push fake data to capture buffer */
   buf_increment_write(info->capture_buf, info->capture_buf->used_size - 100);
@@ -145,13 +149,13 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
 
   /* Assert consecutive acquire call will consume the whole buffer */
   buffer_frames = 1000;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames);
-  hfp_buf_release(info, &dev, buffer_frames);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
+  hfp_buf_release(info, dev.direction, buffer_frames);
   ASSERT_GE(1000, buffer_frames);
 
   buffer_frames2 = 1000;
-  hfp_buf_acquire(info, &dev, &samples, &buffer_frames2);
-  hfp_buf_release(info, &dev, buffer_frames2);
+  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames2);
+  hfp_buf_release(info, dev.direction, buffer_frames2);
 
   ASSERT_GE(info->capture_buf->used_size / 2, buffer_frames + buffer_frames2);
 
@@ -174,7 +178,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
 
   dev.direction = CRAS_STREAM_INPUT;
   hfp_info_start(sock[1], 48, info);
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Mock the sco fd and send some fake data */
   send(sock[0], sample, 48, 0);
@@ -182,7 +186,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   rc = hfp_read(info);
   ASSERT_EQ(48, rc);
 
-  rc = hfp_buf_queued(info, &dev);
+  rc = hfp_buf_queued(info, dev.direction);
   ASSERT_EQ(48 / 2, rc);
 
   /* Fill the write buffer*/
@@ -194,9 +198,9 @@ TEST(HfpInfo, HfpReadWriteFD) {
   rc = hfp_read(info);
   ASSERT_EQ(0, rc);
 
-  ASSERT_EQ(0, hfp_info_rm_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_rm_iodev(info, dev.direction));
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Initial buffer is empty */
   rc = hfp_write(info);
@@ -255,10 +259,10 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   thread_cb((struct hfp_info*)cb_data);
 
   dev.direction = CRAS_STREAM_INPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Expect no data read, since no idev present at previous thread callback */
-  rc = hfp_buf_queued(info, &dev);
+  rc = hfp_buf_queued(info, dev.direction);
   ASSERT_EQ(0, rc);
 
   /* Trigger thread callback after idev added. */
@@ -266,7 +270,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   ts.tv_nsec = 5000000;
   thread_cb((struct hfp_info*)cb_data);
 
-  rc = hfp_buf_queued(info, &dev);
+  rc = hfp_buf_queued(info, dev.direction);
   ASSERT_EQ(48 / 2, rc);
 
   /* Assert wait time is unchanged. */
@@ -303,10 +307,10 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   ASSERT_EQ(48, rc);
 
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Assert queued samples unchanged before output device added */
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
 
   /* Put some fake data and trigger thread callback again */
   buf_increment_write(info->playback_buf, 1008);
@@ -315,7 +319,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   /* Assert some samples written */
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
-  ASSERT_EQ(480, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(480, hfp_buf_queued(info, dev.direction));
 
   hfp_info_stop(info);
   hfp_info_destroy(info);
@@ -376,10 +380,10 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   dev.direction = CRAS_STREAM_INPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Expect no data read, since no idev present at previous thread callback */
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
 
   send_mSBC_packet(sock[0], pkt_count, 0);
 
@@ -388,7 +392,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
-  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
+            hfp_buf_queued(info, dev.direction));
   ASSERT_EQ(2, cras_msbc_plc_handle_good_frames_called);
   pkt_count++;
   /* When the third packet is lost, we should call the handle_bad_packet and
@@ -403,7 +408,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   /* Packet 1, 2, 4 are all good frames */
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(1, cras_msbc_plc_handle_bad_frames_called);
-  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
+            hfp_buf_queued(info, dev.direction));
   pkt_count++;
   /* If the erroneous data reporting marks the packet as broken, we should
    * also call the handle_bad_packet and have the right size of samples queued.
@@ -418,7 +424,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(2, cras_msbc_plc_handle_bad_frames_called);
-  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
+            hfp_buf_queued(info, dev.direction));
   pkt_count++;
   /* If we can't decode the packet, we should also call the handle_bad_packet
    * and have the right size of samples queued
@@ -433,7 +440,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(3, cras_msbc_plc_handle_bad_frames_called);
-  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
+            hfp_buf_queued(info, dev.direction));
 
   hfp_info_stop(info);
   ASSERT_EQ(0, hfp_info_running(info));
@@ -461,10 +469,10 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   thread_cb((struct hfp_info*)cb_data);
 
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Assert queued samples unchanged before output device added */
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
 
   /* Put some fake data and trigger thread callback again */
   send(sock[0], sample, 63, 0);
@@ -474,7 +482,7 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   /* Assert some samples written */
   rc = recv(sock[0], sample, 60, 0);
   ASSERT_EQ(60, rc);
-  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
 
   hfp_info_stop(info);
   hfp_info_destroy(info);

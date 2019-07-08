@@ -283,12 +283,15 @@ const char* cras_bt_device_object_path(const struct cras_bt_device* device) {
 }
 
 // From cras_hfp_info
-int hfp_info_add_iodev(struct hfp_info* info, struct cras_iodev* dev) {
+int hfp_info_add_iodev(struct hfp_info* info,
+                       enum CRAS_STREAM_DIRECTION direction,
+                       struct cras_audio_format* format) {
   hfp_info_add_iodev_called++;
   return 0;
 }
 
-int hfp_info_rm_iodev(struct hfp_info* info, struct cras_iodev* dev) {
+int hfp_info_rm_iodev(struct hfp_info* info,
+                      enum CRAS_STREAM_DIRECTION direction) {
   hfp_info_rm_iodev_called++;
   return 0;
 }
@@ -313,16 +316,17 @@ int hfp_info_stop(struct hfp_info* info) {
   return 0;
 }
 
-int hfp_buf_queued(struct hfp_info* info, const struct cras_iodev* dev) {
+int hfp_buf_queued(struct hfp_info* info,
+                   const enum CRAS_STREAM_DIRECTION direction) {
   return 0;
 }
 
-int hfp_buf_size(struct hfp_info* info, struct cras_iodev* dev) {
+int hfp_buf_size(struct hfp_info* info, enum CRAS_STREAM_DIRECTION direction) {
   return fake_buffer_size;
 }
 
 void hfp_buf_acquire(struct hfp_info* info,
-                     struct cras_iodev* dev,
+                     enum CRAS_STREAM_DIRECTION direction,
                      uint8_t** buf,
                      unsigned* count) {
   hfp_buf_acquire_called++;
@@ -330,25 +334,20 @@ void hfp_buf_acquire(struct hfp_info* info,
 }
 
 void hfp_buf_release(struct hfp_info* info,
-                     struct cras_iodev* dev,
+                     enum CRAS_STREAM_DIRECTION direction,
                      unsigned written_bytes) {
   hfp_buf_release_called++;
   hfp_buf_release_nwritten_val = written_bytes;
 }
 
-int hfp_fill_output_with_zeros(struct hfp_info* info,
-                               struct cras_iodev* dev,
-                               unsigned int nframes) {
+int hfp_fill_output_with_zeros(struct hfp_info* info, unsigned int nframes) {
   hfp_fill_output_with_zeros_called++;
   return 0;
 }
 
-int hfp_force_output_level(struct hfp_info* info,
-                           struct cras_iodev* dev,
-                           unsigned int level) {
+void hfp_force_output_level(struct hfp_info* info, unsigned int level) {
   hfp_force_output_level_called++;
   hfp_force_output_level_target = level;
-  return 0;
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
