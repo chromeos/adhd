@@ -196,6 +196,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	int sock_depth;
 	int err;
+	socklen_t optlen;
 
 	err = cras_bt_transport_acquire(a2dpio->transport);
 	if (err < 0) {
@@ -227,10 +228,12 @@ static int configure_dev(struct cras_iodev *iodev)
 	setsockopt(cras_bt_transport_fd(a2dpio->transport), SOL_SOCKET,
 		   SO_SNDBUF, &sock_depth, sizeof(sock_depth));
 
-	a2dpio->sock_depth_frames =
-		a2dp_block_size(&a2dpio->a2dp, cras_bt_transport_write_mtu(
-						       a2dpio->transport)) /
-		cras_get_format_bytes(iodev->format) * 2;
+	optlen = sizeof(sock_depth);
+	getsockopt(cras_bt_transport_fd(a2dpio->transport), SOL_SOCKET,
+		   SO_SNDBUF, &sock_depth, &optlen);
+	a2dpio->sock_depth_frames = a2dp_block_size(&a2dpio->a2dp, sock_depth) /
+				    cras_get_format_bytes(iodev->format);
+
 	iodev->min_buffer_level = a2dpio->sock_depth_frames;
 
 	a2dpio->pre_fill_complete = 0;
