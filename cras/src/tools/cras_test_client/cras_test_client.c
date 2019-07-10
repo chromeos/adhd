@@ -101,6 +101,16 @@ static void check_stream_terminate(size_t frames)
 	}
 }
 
+static void fill_time_offset(time_t *sec_offset, int32_t *nsec_offset)
+{
+	struct timespec mono_time, real_time;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &mono_time);
+	clock_gettime(CLOCK_REALTIME, &real_time);
+	*sec_offset = real_time.tv_sec - mono_time.tv_sec;
+	*nsec_offset = real_time.tv_nsec - mono_time.tv_nsec;
+}
+
 /* Compute square sum of samples (for calculation of RMS value). */
 float compute_sqr_sum_16(const int16_t *samples, int size)
 {
@@ -444,7 +454,7 @@ static void print_user_muted(struct cras_client *client)
  * in sec and nsec.
  */
 static void convert_time(unsigned int *sec, unsigned int *nsec,
-			 int32_t sec_offset, int32_t nsec_offset)
+			 time_t sec_offset, int32_t nsec_offset)
 {
 	sec_offset += *sec;
 	nsec_offset += *nsec;
@@ -667,8 +677,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 
 static void print_audio_debug_info(const struct audio_debug_info *info)
 {
-	struct timespec mono_time, real_time;
-	int32_t sec_offset;
+	time_t sec_offset;
 	int32_t nsec_offset;
 	int i, j;
 
@@ -765,10 +774,7 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 
 	printf("Audio Thread Event Log:\n");
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &mono_time);
-	clock_gettime(CLOCK_REALTIME, &real_time);
-	sec_offset = real_time.tv_sec - mono_time.tv_sec;
-	nsec_offset = real_time.tv_nsec - mono_time.tv_nsec;
+	fill_time_offset(&sec_offset, &nsec_offset);
 	j = info->log.write_pos;
 	i = 0;
 	printf("start at %d\n", j);
@@ -904,16 +910,12 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 static void cras_bt_debug_info(struct cras_client *client)
 {
 	const struct cras_bt_debug_info *info;
-	struct timespec mono_time, real_time;
-	int32_t sec_offset;
+	time_t sec_offset;
 	int32_t nsec_offset;
 	int i, j;
 
 	info = cras_client_get_bt_debug_info(client);
-	clock_gettime(CLOCK_MONOTONIC_RAW, &mono_time);
-	clock_gettime(CLOCK_REALTIME, &real_time);
-	sec_offset = real_time.tv_sec - mono_time.tv_sec;
-	nsec_offset = real_time.tv_nsec - mono_time.tv_nsec;
+	fill_time_offset(&sec_offset, &nsec_offset);
 	j = info->bt_log.write_pos;
 	i = 0;
 	printf("BT debug log:\n");
