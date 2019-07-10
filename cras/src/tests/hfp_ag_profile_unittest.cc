@@ -228,6 +228,10 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device) {
   return 0;
 }
 
+void cras_bt_device_notify_profile_dropped(
+    struct cras_bt_device* device,
+    enum cras_bt_device_profile profile) {}
+
 bool cras_system_get_bt_wbs_enabled()
 {
   return true;

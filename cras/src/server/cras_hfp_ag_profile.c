@@ -130,11 +130,6 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 	if (ag->slc_handle)
 		hfp_slc_destroy(ag->slc_handle);
 
-	/* If the bt device is not using a2dp, do a deeper clean up
-	 * to force disconnect it. */
-	if (!cras_bt_device_has_a2dp(ag->device))
-		cras_bt_device_disconnect(ag->conn, ag->device);
-
 	free(ag);
 }
 
@@ -182,6 +177,8 @@ static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 		return -EINVAL;
 
 	destroy_audio_gateway(ag);
+	cras_bt_device_notify_profile_dropped(
+		ag->device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 	return 0;
 }
 
@@ -223,6 +220,8 @@ static void possibly_remove_conflict_dev(void *data)
 		if (ag == new_ag)
 			continue;
 		destroy_audio_gateway(ag);
+		cras_bt_device_notify_profile_dropped(
+			ag->device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 	}
 
 	/* Kick out any previously connected a2dp iodev. */
@@ -290,8 +289,12 @@ static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 	BTLOG(btlog, BT_HFP_REQUEST_DISCONNECT, 0, 0);
 
 	DL_FOREACH(connected_ags, ag) {
-		if (ag->slc_handle && ag->device == device)
+		if (ag->slc_handle && ag->device == device) {
 			destroy_audio_gateway(ag);
+			cras_bt_device_notify_profile_dropped(
+				ag->device,
+				CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+		}
 	}
 }
 
@@ -361,8 +364,11 @@ static void cras_hsp_ag_request_disconnection(struct cras_bt_profile *profile,
 	BTLOG(btlog, BT_HSP_REQUEST_DISCONNECT, 0, 0);
 
 	DL_FOREACH(connected_ags, ag) {
-		if (ag->slc_handle && ag->device == device)
+		if (ag->slc_handle && ag->device == device) {
 			destroy_audio_gateway(ag);
+			cras_bt_device_notify_profile_dropped(
+				ag->device, CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
+		}
 	}
 }
 

@@ -45,6 +45,7 @@
 #define DEFAULT_SCO_PKT_SIZE USB_CVSD_PKT_SIZE
 
 static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
+static const unsigned int PROFILE_DROP_SUSPEND_DELAY_MS = 5000;
 
 /* Check profile connections every 2 seconds and rerty 30 times maximum.
  * Attemp to connect profiles which haven't been ready every 3 retries.
@@ -536,6 +537,7 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_tm *tm;
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
+	int rc;
 
 	BTLOG(btlog, BT_DEV_CONN_WATCH_CB, device->conn_watch_retries,
 	      device->profiles);
@@ -576,8 +578,14 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 	}
 
 	if (cras_bt_device_is_profile_connected(
-		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE))
-		cras_hfp_ag_start(device);
+		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
+		rc = cras_hfp_ag_start(device);
+		if (rc) {
+			syslog(LOG_ERR, "Start audio gateway failed, rc %d",
+			       rc);
+			bt_device_schedule_suspend(device, 0);
+		}
+	}
 	return;
 
 arm_retry_timer:
@@ -628,6 +636,19 @@ void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 		cras_tm_cancel_timer(tm, device->conn_watch_timer);
 		device->conn_watch_timer = NULL;
 	}
+}
+
+void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
+					   enum cras_bt_device_profile profile)
+{
+	device->connected_profiles &= !profile;
+
+	/* If any profile, a2dp or hfp/hsp, has dropped for some reason,
+	 * we shall make sure this device is fully disconnected within
+	 * given time so that user does not see a headset stay connected
+	 * but works with partial function.
+	 */
+	bt_device_schedule_suspend(device, PROFILE_DROP_SUSPEND_DELAY_MS);
 }
 
 /*
@@ -1119,11 +1140,13 @@ static void bt_device_suspend_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
 
-	BTLOG(btlog, BT_DEV_SUSPEND_CB, 0, 0);
+	BTLOG(btlog, BT_DEV_SUSPEND_CB, device->profiles,
+	      device->connected_profiles);
 	device->suspend_timer = NULL;
 
 	cras_a2dp_suspend_connected_device(device);
 	cras_hfp_ag_suspend_connected_device(device);
+	cras_bt_device_disconnect(device->conn, device);
 }
 
 static void bt_device_schedule_suspend(struct cras_bt_device *device,

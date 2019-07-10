@@ -145,6 +145,8 @@ static void cras_a2dp_suspend(struct cras_bt_endpoint *endpoint,
 
 	BTLOG(btlog, BT_A2DP_SUSPENDED, 0, 0);
 	cras_a2dp_suspend_connected_device(device);
+	cras_bt_device_notify_profile_dropped(device,
+					      CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
 }
 
 static void a2dp_transport_state_changed(struct cras_bt_endpoint *endpoint,

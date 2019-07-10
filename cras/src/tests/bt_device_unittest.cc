@@ -31,7 +31,9 @@ static cras_message_callback cras_main_message_add_handler_callback;
 static void *cras_main_message_add_handler_callback_data;
 static int cras_tm_create_timer_called;
 static int cras_a2dp_start_called;
+static int cras_a2dp_suspend_connected_device_called;
 static int cras_hfp_ag_start_called;
+static int cras_hfp_ag_suspend_connected_device_called;
 static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
 static void* cras_tm_create_timer_cb_data;
 static int dbus_message_new_method_call_called;
@@ -47,7 +49,9 @@ void ResetStubData() {
   cras_main_message_send_msg = NULL;
   cras_tm_create_timer_called = 0;
   cras_a2dp_start_called = 0;
+  cras_a2dp_suspend_connected_device_called = 0;
   cras_hfp_ag_start_called = 0;
+  cras_hfp_ag_suspend_connected_device_called = 0;
   dbus_message_new_method_call_method = NULL;
   dbus_message_new_method_call_called = 0;
 }
@@ -273,6 +277,90 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   cras_bt_device_remove(device);
 }
 
+TEST_F(BtDeviceTestSuite, A2dpDropped) {
+  struct cras_bt_device* device;
+
+  ResetStubData();
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_add_supported_profiles(device, A2DP_SINK_UUID);
+  cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
+  cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+
+  cras_bt_device_set_connected(device, 1);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+
+  /* Schedule another timer, if HFP AG not yet intialized. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
+  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  cras_bt_device_a2dp_configured(device);
+
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(3, cras_tm_create_timer_called);
+
+  cras_bt_device_notify_profile_dropped(device,
+                                        CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
+  EXPECT_EQ(4, cras_tm_create_timer_called);
+
+  /* Expect suspend timer is scheduled. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
+  EXPECT_EQ(1, cras_hfp_ag_suspend_connected_device_called);
+  EXPECT_EQ(2, dbus_message_new_method_call_called);
+  EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
+
+  cras_bt_device_remove(device);
+}
+
+TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
+  struct cras_bt_device* device;
+
+  ResetStubData();
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_add_supported_profiles(device, A2DP_SINK_UUID);
+  cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
+  cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+
+  cras_bt_device_set_connected(device, 1);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+
+  /* Schedule another timer, if HFP AG not yet intialized. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
+  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  cras_bt_device_a2dp_configured(device);
+
+  for (int i = 0; i < 29; i++) {
+    cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+    EXPECT_EQ(i + 3, cras_tm_create_timer_called);
+    EXPECT_EQ(0, cras_a2dp_start_called);
+    EXPECT_EQ(0, cras_hfp_ag_start_called);
+  }
+
+  dbus_message_new_method_call_called = 0;
+
+  /* Expect suspend timer is scheduled. */
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
+  EXPECT_EQ(1, cras_hfp_ag_suspend_connected_device_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
+  EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
+
+  cras_bt_device_remove(device);
+}
+
 /* Stubs */
 extern "C" {
 
@@ -352,10 +440,12 @@ struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
 
 void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device)
 {
+  cras_hfp_ag_suspend_connected_device_called++;
 }
 
 void cras_a2dp_suspend_connected_device(struct cras_bt_device *device)
 {
+  cras_a2dp_suspend_connected_device_called++;
 }
 
 void cras_a2dp_start(struct cras_bt_device *device)

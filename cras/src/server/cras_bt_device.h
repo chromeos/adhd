@@ -186,6 +186,16 @@ int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
 
 /*
+ * Notifies bt device about a profile no longer works. It could be caused
+ * by initialize failure or fatal error has occurred.
+ * Args:
+ *    device - The bluetooth audio device.
+ *    profile - The BT audio profile that has dropped.
+ */
+void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
+					   enum cras_bt_device_profile profile);
+
+/*
  * Establishes SCO connection if it has not been established on the BT device.
  * Note: this function should be only used for hfp_alsa_io.
  * Args:
