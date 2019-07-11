@@ -247,6 +247,11 @@ int hfp_write_msbc(struct hfp_info *info)
 				wp + MSBC_H2_HEADER_LEN,
 				WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN,
 				&encoded);
+		if (pcm_encoded < 0) {
+			syslog(LOG_ERR, "msbc encoding err: %s",
+			       strerror(pcm_encoded));
+			return pcm_encoded;
+		}
 		buf_increment_read(info->playback_buf, pcm_encoded);
 		pcm_avail -= pcm_encoded;
 	} else {
