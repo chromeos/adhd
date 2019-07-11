@@ -23,8 +23,8 @@ struct byte_buffer {
 static inline struct byte_buffer *byte_buffer_create(size_t buffer_size_bytes)
 {
 	struct byte_buffer *buf;
-	buf = (struct byte_buffer *)
-		calloc(1, sizeof(struct byte_buffer) + buffer_size_bytes);
+	buf = (struct byte_buffer *)calloc(1, sizeof(struct byte_buffer) +
+						      buffer_size_bytes);
 	if (!buf)
 		return buf;
 	buf->max_size = buffer_size_bytes;

@@ -30,7 +30,7 @@ int cras_set_rt_scheduling(int rt_lim)
 
 	if (setrlimit(RLIMIT_RTPRIO, &rl) < 0) {
 		syslog(LOG_WARNING, "setrlimit %u failed: %d\n",
-		       (unsigned) rt_lim, errno);
+		       (unsigned)rt_lim, errno);
 		return -EACCES;
 	}
 	return 0;
@@ -48,7 +48,8 @@ int cras_set_thread_priority(int priority)
 	if (err)
 		syslog(LOG_WARNING,
 		       "Failed to set thread sched params to priority %d"
-		       ", rc: %d\n", priority, err);
+		       ", rc: %d\n",
+		       priority, err);
 
 	return err;
 }
@@ -64,8 +65,8 @@ int cras_set_nice_level(int nice)
 	 */
 	rc = setpriority(PRIO_PROCESS, syscall(__NR_gettid), nice);
 	if (rc)
-		syslog(LOG_WARNING, "Failed to set nice to %d, rc: %d",
-		       nice, rc);
+		syslog(LOG_WARNING, "Failed to set nice to %d, rc: %d", nice,
+		       rc);
 
 	return rc;
 }
@@ -97,7 +98,7 @@ int cras_make_fd_blocking(int fd)
 int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
 		       unsigned int num_fds)
 {
-	struct msghdr msg = {0};
+	struct msghdr msg = { 0 };
 	struct iovec iov;
 	struct cmsghdr *cmsg;
 	char *control;
@@ -128,7 +129,7 @@ int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
 int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
 		       unsigned int *num_fds)
 {
-	struct msghdr msg = {0};
+	struct msghdr msg = { 0 };
 	struct iovec iov;
 	struct cmsghdr *cmsg;
 	char *control;
@@ -156,8 +157,8 @@ int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
 
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
 	     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-		if (cmsg->cmsg_level == SOL_SOCKET
-		    && cmsg->cmsg_type == SCM_RIGHTS) {
+		if (cmsg->cmsg_level == SOL_SOCKET &&
+		    cmsg->cmsg_type == SCM_RIGHTS) {
 			size_t fd_size = cmsg->cmsg_len - sizeof(*cmsg);
 			*num_fds = MIN(*num_fds, fd_size / sizeof(*fd));
 			memcpy(fd, CMSG_DATA(cmsg), *num_fds * sizeof(*fd));
@@ -199,8 +200,7 @@ int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
 	rc = ppoll(fds, nfds, timeout, sigmask);
 	if (rc == 0 && timeout) {
 		rc = -ETIMEDOUT;
-	}
-	else if (rc < 0) {
+	} else if (rc < 0) {
 		rc = -errno;
 	}
 
@@ -229,12 +229,12 @@ int wait_for_dev_input_access()
 	unsigned i = 0;
 
 	while (i < max_iterations) {
-		int		   readable;
-		struct timeval	   timeout;
-		const char * const pathname = "/dev/input/event0";
+		int readable;
+		struct timeval timeout;
+		const char *const pathname = "/dev/input/event0";
 
-		timeout.tv_sec	= 0;
-		timeout.tv_usec = 500000;   /* 1/2 second. */
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 500000; /* 1/2 second. */
 		readable = access(pathname, R_OK);
 
 		/* If the file could be opened, then the udev rule has been

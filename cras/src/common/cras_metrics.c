@@ -20,8 +20,8 @@ void cras_metrics_log_event(const char *event)
 	CMetricsLibraryDelete(handle);
 }
 
-void cras_metrics_log_histogram(const char *name, int sample, int min,
-				int max, int nbuckets)
+void cras_metrics_log_histogram(const char *name, int sample, int min, int max,
+				int nbuckets)
 {
 	CMetricsLibrary handle;
 
@@ -45,8 +45,8 @@ void cras_metrics_log_sparse_histogram(const char *name, int sample)
 void cras_metrics_log_event(const char *event)
 {
 }
-void cras_metrics_log_histogram(const char *name, int sample, int min,
-				int max, int nbuckets)
+void cras_metrics_log_histogram(const char *name, int sample, int min, int max,
+				int nbuckets)
 {
 }
 void cras_metrics_log_enum_histogram(const char *name, int sample, int max)

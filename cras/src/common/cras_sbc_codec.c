@@ -24,7 +24,8 @@ struct cras_sbc_data {
 
 int cras_msbc_decode(struct cras_audio_codec *codec, const void *input,
 		     size_t input_len, void *output, size_t output_len,
-		     size_t *count) {
+		     size_t *count)
+{
 	struct cras_sbc_data *data = (struct cras_sbc_data *)codec->priv_data;
 	size_t written = 0;
 	ssize_t decoded;
@@ -33,11 +34,7 @@ int cras_msbc_decode(struct cras_audio_codec *codec, const void *input,
 	 * Proceed decode when there is buffer left in input and room in
 	 * output.
 	 */
-	decoded = sbc_decode(&data->sbc,
-			     input,
-			     input_len,
-			     output,
-			     output_len,
+	decoded = sbc_decode(&data->sbc, input, input_len, output, output_len,
 			     &written);
 
 	*count = written;
@@ -46,7 +43,8 @@ int cras_msbc_decode(struct cras_audio_codec *codec, const void *input,
 
 int cras_msbc_encode(struct cras_audio_codec *codec, const void *input,
 		     size_t input_len, void *output, size_t output_len,
-		     size_t *count) {
+		     size_t *count)
+{
 	struct cras_sbc_data *data = (struct cras_sbc_data *)codec->priv_data;
 	ssize_t written = 0;
 	ssize_t encoded;
@@ -58,12 +56,8 @@ int cras_msbc_encode(struct cras_audio_codec *codec, const void *input,
 	if (input_len < data->codesize)
 		return -EINVAL;
 
-	encoded = sbc_encode(&data->sbc,
-			     input,
-			     data->codesize,
-			     output,
-			     output_len,
-			     &written);
+	encoded = sbc_encode(&data->sbc, input, data->codesize, output,
+			     output_len, &written);
 
 	*count = written;
 	return encoded;
@@ -71,7 +65,8 @@ int cras_msbc_encode(struct cras_audio_codec *codec, const void *input,
 
 int cras_sbc_decode(struct cras_audio_codec *codec, const void *input,
 		    size_t input_len, void *output, size_t output_len,
-		    size_t *count) {
+		    size_t *count)
+{
 	struct cras_sbc_data *data = (struct cras_sbc_data *)codec->priv_data;
 	size_t written;
 	ssize_t decoded;
@@ -82,12 +77,9 @@ int cras_sbc_decode(struct cras_audio_codec *codec, const void *input,
 	 * output.
 	 */
 	while (input_len > processed && output_len > result) {
-		decoded = sbc_decode(&data->sbc,
-				     input + processed,
-				     input_len - processed,
-				     output + result,
-				     output_len - result,
-				     &written);
+		decoded = sbc_decode(&data->sbc, input + processed,
+				     input_len - processed, output + result,
+				     output_len - result, &written);
 		if (decoded <= 0)
 			break;
 
@@ -100,7 +92,8 @@ int cras_sbc_decode(struct cras_audio_codec *codec, const void *input,
 
 int cras_sbc_encode(struct cras_audio_codec *codec, const void *input,
 		    size_t input_len, void *output, size_t output_len,
-		    size_t *count) {
+		    size_t *count)
+{
 	struct cras_sbc_data *data = (struct cras_sbc_data *)codec->priv_data;
 	ssize_t written, encoded;
 	int processed = 0, result = 0;
@@ -109,13 +102,10 @@ int cras_sbc_encode(struct cras_audio_codec *codec, const void *input,
 	 * there is still room in output buffer.
 	 */
 	while (input_len - processed >= data->codesize &&
-			output_len >= result) {
-		encoded = sbc_encode(&data->sbc,
-				     input + processed,
-				     data->codesize,
-				     output + result,
-				     output_len - result,
-				     &written);
+	       output_len >= result) {
+		encoded = sbc_encode(&data->sbc, input + processed,
+				     data->codesize, output + result,
+				     output_len - result, &written);
 		if (encoded == -ENOSPC)
 			break;
 		else if (encoded < 0)
@@ -149,8 +139,8 @@ struct cras_audio_codec *cras_msbc_codec_create()
 	if (!codec)
 		return NULL;
 
-	codec->priv_data = (struct cras_sbc_data *)calloc(1,
-			sizeof(struct cras_sbc_data));
+	codec->priv_data =
+		(struct cras_sbc_data *)calloc(1, sizeof(struct cras_sbc_data));
 	if (!codec->priv_data) {
 		free(codec);
 		return NULL;
@@ -166,9 +156,10 @@ struct cras_audio_codec *cras_msbc_codec_create()
 	return codec;
 }
 
-struct cras_audio_codec *cras_sbc_codec_create(uint8_t freq,
-		   uint8_t mode, uint8_t subbands, uint8_t alloc,
-		   uint8_t blocks, uint8_t bitpool) {
+struct cras_audio_codec *cras_sbc_codec_create(uint8_t freq, uint8_t mode,
+					       uint8_t subbands, uint8_t alloc,
+					       uint8_t blocks, uint8_t bitpool)
+{
 	struct cras_audio_codec *codec;
 	struct cras_sbc_data *data;
 
@@ -176,8 +167,8 @@ struct cras_audio_codec *cras_sbc_codec_create(uint8_t freq,
 	if (!codec)
 		return NULL;
 
-	codec->priv_data = (struct cras_sbc_data *)calloc(1,
-			sizeof(struct cras_sbc_data));
+	codec->priv_data =
+		(struct cras_sbc_data *)calloc(1, sizeof(struct cras_sbc_data));
 	if (!codec->priv_data)
 		goto create_error;
 
