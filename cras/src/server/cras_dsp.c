@@ -48,6 +48,22 @@ static void initialize_environment(struct cras_expr_env *env)
 	cras_expr_env_set_variable_boolean(env, "swap_lr_disabled", 1);
 }
 
+static void destroy_pipeline(struct pipeline *pipeline)
+{
+	struct ini *private_ini;
+
+	private_ini = cras_dsp_pipeline_get_ini(pipeline);
+	cras_dsp_pipeline_free(pipeline);
+
+	/*
+	 * If pipeline is using an dsp ini other than the global one, free
+	 * this ini so its life cycle is aligned with the associated dsp
+	 * pipeline.
+	 */
+	if (private_ini && (private_ini != ini))
+		cras_dsp_ini_free(private_ini);
+}
+
 static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx,
 					 struct ini *target_ini)
 {
@@ -84,7 +100,7 @@ static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx,
 
 bail:
 	if (pipeline)
-		cras_dsp_pipeline_free(pipeline);
+		destroy_pipeline(pipeline);
 	return NULL;
 }
 
@@ -102,7 +118,7 @@ static void cmd_load_pipeline(struct cras_dsp_context *ctx,
 	pthread_mutex_unlock(&ctx->mutex);
 
 	if (old_pipeline)
-		cras_dsp_pipeline_free(old_pipeline);
+		destroy_pipeline(old_pipeline);
 }
 
 static void cmd_reload_ini()
@@ -164,7 +180,7 @@ void cras_dsp_context_free(struct cras_dsp_context *ctx)
 
 	pthread_mutex_destroy(&ctx->mutex);
 	if (ctx->pipeline) {
-		cras_dsp_pipeline_free(ctx->pipeline);
+		destroy_pipeline(ctx->pipeline);
 		ctx->pipeline = NULL;
 	}
 	cras_expr_env_free(&ctx->env);
@@ -194,8 +210,10 @@ void cras_dsp_load_dummy_pipeline(struct cras_dsp_context *ctx,
 {
 	struct ini *dummy_ini;
 	dummy_ini = create_dummy_ini(ctx->purpose, num_channels);
-	cmd_load_pipeline(ctx, dummy_ini);
-	cras_dsp_ini_free((dummy_ini));
+	if (dummy_ini == NULL)
+		syslog(LOG_ERR, "Failed to create dummy ini");
+	else
+		cmd_load_pipeline(ctx, dummy_ini);
 }
 
 struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)

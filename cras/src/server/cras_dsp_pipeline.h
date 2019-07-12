@@ -119,6 +119,9 @@ int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline *pipeline);
  * or 0 if is has not been called */
 int cras_dsp_pipeline_get_sample_rate(struct pipeline *pipeline);
 
+/* Gets the dsp ini that corresponds to the pipeline. */
+struct ini *cras_dsp_pipeline_get_ini(struct pipeline *pipeline);
+
 /* Processes a block of audio samples. sample_count should be no more
  * than DSP_BUFFER_SIZE */
 void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count);

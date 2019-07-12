@@ -784,6 +784,11 @@ void cras_dsp_pipeline_set_sink_ext_module(struct pipeline *pipeline,
 					    ext_module);
 }
 
+struct ini *cras_dsp_pipeline_get_ini(struct pipeline *pipeline)
+{
+	return pipeline->ini;
+}
+
 void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count)
 {
 	int i;
