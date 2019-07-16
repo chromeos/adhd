@@ -46,15 +46,8 @@ static void cras_audio_thread_event_message_init(
 int cras_audio_thread_event_send(enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type)
 {
 	struct cras_audio_thread_event_message msg;
-	int err;
 	cras_audio_thread_event_message_init(&msg, event_type);
-	err = cras_main_message_send(&msg.header);
-	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send audio thread event message %d",
-		       event_type);
-		return err;
-	}
-	return 0;
+	return cras_main_message_send(&msg.header);
 }
 
 int cras_audio_thread_debug()
