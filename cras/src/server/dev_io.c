@@ -893,10 +893,9 @@ static void handle_dev_err(int err_rc, struct open_dev **odevs,
 		ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN, adev->dev->info.idx,
 		      0, 0);
 		cras_iodev_reset_request(adev->dev);
-	} else {
-		/* Device error, close it. */
-		dev_io_rm_open_dev(odevs, adev);
 	}
+	/* Device error, remove it. */
+	dev_io_rm_open_dev(odevs, adev);
 }
 
 int dev_io_capture(struct open_dev **list)
