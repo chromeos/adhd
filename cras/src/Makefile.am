@@ -477,6 +477,14 @@ cmpraw_SOURCES = dsp/tests/cmpraw.c dsp/tests/raw.c
 cmpraw_LDADD = -lm
 cmpraw_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
+cras_plc_test_SOURCES = plc/cras_plc_test.c plc/cras_plc.c \
+	common/cras_sbc_codec.c
+cras_plc_test_LDADD = -lrt -lm $(SBC_LIBS)
+cras_plc_test_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/plc \
+	-I$(top_srcdir)/src/common \
+	$(SBC_CFLAGS)
+check_PROGRAMS += cras_plc_test
+
 # unit tests
 alert_unittest_SOURCES = tests/alert_unittest.cc \
 	server/cras_alert.c
