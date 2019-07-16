@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <math.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -129,6 +130,76 @@ int update_rms(const uint8_t *samples, int size)
 	total_rms_sqr_sum += last_rms_sqr_sum;
 	total_rms_size += last_rms_size;
 
+	return 0;
+}
+
+/* Parses a string with format <N>:<M> into a node id*/
+static int parse_node_id(char *input, cras_node_id_t *id_out)
+{
+	const char *s;
+	char *endptr;
+	int dev_index;
+	int node_index;
+
+	if (!id_out)
+		return -EINVAL;
+
+	s = strtok(input, ":");
+	if (!s)
+		return -EINVAL;
+	dev_index = strtol(s, &endptr, 10);
+	if (*endptr)
+		return -EINVAL;
+
+	s = strtok(NULL, ":");
+	if (!s)
+		return -EINVAL;
+	node_index = strtol(s, &endptr, 10);
+	if (*endptr)
+		return -EINVAL;
+
+	*id_out = cras_make_node_id(dev_index, node_index);
+	return 0;
+}
+
+/* Parses a string with format <N>:<M>:<0-100> into a node id and a value */
+static int parse_node_id_with_value(char *input, cras_node_id_t *id_out,
+				    int *value_out)
+{
+	const char *s;
+	char *endptr;
+	int dev_index;
+	int node_index;
+	long int value;
+
+	if (!id_out || !value_out)
+		return -EINVAL;
+
+	s = strtok(input, ":");
+	if (!s)
+		return -EINVAL;
+	dev_index = strtol(s, &endptr, 10);
+	if (*endptr)
+		return -EINVAL;
+
+	s = strtok(NULL, ":");
+	if (!s)
+		return -EINVAL;
+	node_index = strtol(s, &endptr, 10);
+	if (*endptr)
+		return -EINVAL;
+
+	s = strtok(NULL, ":");
+	if (!s)
+		return -EINVAL;
+	value = strtol(s, &endptr, 10);
+	if (*endptr)
+		return -EINVAL;
+	if (value > INT_MAX || value < INT_MIN)
+		return -EOVERFLOW;
+
+	*id_out = cras_make_node_id(dev_index, node_index);
+	*value_out = value;
 	return 0;
 }
 
@@ -1568,10 +1639,12 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'y':
 		case 'a': {
-			int dev_index = atoi(strtok(optarg, ":"));
-			int node_index = atoi(strtok(NULL, ":"));
-			cras_node_id_t id =
-				cras_make_node_id(dev_index, node_index);
+			cras_node_id_t id;
+			rc = parse_node_id(optarg, &id);
+			if (rc) {
+				show_usage();
+				return rc;
+			}
 
 			enum CRAS_STREAM_DIRECTION direction =
 				(c == 'y') ? CRAS_STREAM_OUTPUT :
@@ -1631,12 +1704,14 @@ int main(int argc, char **argv)
 		case 't':
 		case '1':
 		case '2': {
-			int dev_index = atoi(strtok(optarg, ":"));
-			int node_index = atoi(strtok(NULL, ":"));
-			enum CRAS_STREAM_DIRECTION dir;
-			cras_node_id_t id =
-				cras_make_node_id(dev_index, node_index);
+			cras_node_id_t id;
+			rc = parse_node_id(optarg, &id);
+			if (rc) {
+				show_usage();
+				return rc;
+			}
 
+			enum CRAS_STREAM_DIRECTION dir;
 			if (c == 't' || c == '2')
 				dir = CRAS_STREAM_OUTPUT;
 			else
@@ -1703,34 +1778,13 @@ int main(int argc, char **argv)
 		}
 		case ':':
 		case 'w': {
-			const char *s;
-			int dev_index;
-			int node_index;
+			cras_node_id_t id;
 			int value;
-
-			s = strtok(optarg, ":");
-			if (!s) {
+			rc = parse_node_id_with_value(optarg, &id, &value);
+			if (rc) {
 				show_usage();
-				return -EINVAL;
+				return rc;
 			}
-			dev_index = atoi(s);
-
-			s = strtok(NULL, ":");
-			if (!s) {
-				show_usage();
-				return -EINVAL;
-			}
-			node_index = atoi(s);
-
-			s = strtok(NULL, ":");
-			if (!s) {
-				show_usage();
-				return -EINVAL;
-			}
-			value = atoi(s);
-
-			cras_node_id_t id =
-				cras_make_node_id(dev_index, node_index);
 
 			if (c == 'w')
 				cras_client_set_node_volume(client, id, value);
@@ -1740,11 +1794,14 @@ int main(int argc, char **argv)
 			break;
 		}
 		case 'x': {
-			int dev_index = atoi(strtok(optarg, ":"));
-			int node_index = atoi(strtok(NULL, ":"));
-			int value = atoi(strtok(NULL, ":"));
-			cras_node_id_t id =
-				cras_make_node_id(dev_index, node_index);
+			cras_node_id_t id;
+			int value;
+			rc = parse_node_id_with_value(optarg, &id, &value);
+			if (rc) {
+				show_usage();
+				return rc;
+			}
+
 			enum ionode_attr attr = IONODE_ATTR_PLUGGED;
 			cras_client_set_node_attr(client, id, attr, value);
 			break;
@@ -1763,11 +1820,14 @@ int main(int argc, char **argv)
 			break;
 		}
 		case '3': {
-			int dev_index = atoi(strtok(optarg, ":"));
-			int node_index = atoi(strtok(NULL, ":"));
-			int value = atoi(strtok(NULL, ":"));
-			cras_node_id_t id =
-				cras_make_node_id(dev_index, node_index);
+			cras_node_id_t id;
+			int value;
+			rc = parse_node_id_with_value(optarg, &id, &value);
+			if (rc) {
+				show_usage();
+				return rc;
+			}
+
 			cras_client_swap_node_left_right(client, id, value);
 			break;
 		}
@@ -1779,8 +1839,21 @@ int main(int argc, char **argv)
 			break;
 		}
 		case '6': {
-			int dev_index = atoi(strtok(optarg, ":"));
+			const char *s;
+			int dev_index;
+
+			s = strtok(optarg, ":");
+			if (!s) {
+				show_usage();
+				return -EINVAL;
+			}
+			dev_index = atoi(s);
+
 			const char *file_name = strtok(NULL, ":");
+			if (!file_name) {
+				show_usage();
+				return -EINVAL;
+			}
 			cras_client_test_iodev_command(
 				client, dev_index,
 				TEST_IODEV_CMD_HOTWORD_TRIGGER,
