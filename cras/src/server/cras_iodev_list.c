@@ -1142,6 +1142,7 @@ void cras_iodev_list_resume_dev(unsigned int dev_idx)
 	struct cras_iodev *dev = find_dev(dev_idx);
 	int rc;
 
+	dev->update_active_node(dev, dev->active_node->idx, 1);
 	rc = init_and_attach_streams(dev);
 	if (rc < 0) {
 		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
