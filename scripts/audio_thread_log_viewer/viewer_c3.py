@@ -11,6 +11,7 @@ import argparse
 import collections
 import logging
 import string
+import time
 
 page_content = string.Template("""
 <html meta charset="UTF8">
@@ -137,7 +138,22 @@ page_content = string.Template("""
 """)
 
 
-Tag = collections.namedtuple('Tag', {'time', 'text', 'position', 'class_name'})
+def StrToTimestamp(s):
+    """Converts a time string to a timestamp.
+
+    @param s: A time string like "2019-07-02T15:30:46.684190644".
+
+    @returns: Returns a timestamp string like "55846.684190644".
+
+    """
+    fmt = "%Y-%m-%dT%H:%M:%S"
+    t = time.strptime(s[:-10], fmt)
+    # Ignore date to avoid a long timestamp.
+    ts = t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec
+    return "{:d}.{}".format(ts, s[-9:])
+
+
+Tag = collections.namedtuple('Tag', ['time', 'text', 'position', 'class_name'])
 """
 The tuple for tags shown on the plot on certain time.
 text is the tag to show, position is the tag position, which is one of
@@ -411,9 +427,9 @@ class EventLogParser(object):
         """Parses one line of event log.
 
         Split a line like
-        169536.504763588  WRITE_STREAMS_FETCH_STREAM     id:0 cbth:512 delay:1136
+        2019-07-02T15:30:46.683829810 cras atlog  WRITE_STREAMS_FETCH_STREAM     id:1e0000 cbth:512 delay:1136
         into time, name, and props where
-        time = '169536.504763588'
+        time = '54946.683829810'
         name = 'WRITE_STREAMS_FETCH_STREAM'
         props = {
             'id': 0,
@@ -427,11 +443,11 @@ class EventLogParser(object):
 
         """
         line_split = line.split()
-        time, name = line_split[0], line_split[1]
+        time, name = StrToTimestamp(line_split[0]), line_split[3]
         logging.debug('time: %s, name: %s', time, name)
         props = {}
-        for index in xrange(2, len(line_split)):
-            key, value = line_split[index].split(':')
+        for index in xrange(4, len(line_split)):
+            key, value = line_split[index].split(':')[:2]
             props[key] = value
         logging.debug('props: %s', props)
         return self._CreateEventData(time, name, props)
