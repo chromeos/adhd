@@ -343,6 +343,23 @@ void cras_sbc_codec_destroy(struct cras_audio_codec *codec)
 {
 }
 
+struct cras_msbc_plc* cras_msbc_plc_create() {
+  return NULL;
+}
+
+void cras_msbc_plc_destroy(struct cras_msbc_plc* plc) {}
+
+int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc* plc,
+                                    struct cras_audio_codec* codec,
+                                    uint8_t* output) {
+  return MSBC_CODE_SIZE;
+}
+
+int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
+                                     const uint8_t* input,
+                                     uint8_t* output) {
+  return MSBC_CODE_SIZE;
+}
 }
 
 int main(int argc, char **argv) {

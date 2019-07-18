@@ -11,9 +11,10 @@
 
 #include "audio_thread.h"
 #include "byte_buffer.h"
-#include "cras_iodev_list.h"
 #include "cras_hfp_info.h"
 #include "cras_hfp_slc.h"
+#include "cras_iodev_list.h"
+#include "cras_plc.h"
 #include "cras_sbc_codec.h"
 #include "utlist.h"
 
@@ -44,20 +45,7 @@
 
 /* Second octet of H2 header is composed by 4 bits fixed 0x8 and 4 bits
  * sequence number 0000, 0011, 1100, 1111. */
-static const uint8_t h2_header_frames_count[] = {
-	0x08, 0x38, 0xc8, 0xf8
-};
-
-/* The pre-computed zero input bit stream of mSBC codec, per HFP 1.7 spec.
- * This mSBC frame will be decoded into all-zero input PCM. */
-static const uint8_t msbc_zero_frame[] = {
-	0xad, 0x00, 0x00, 0xc5, 0x00, 0x00, 0x00, 0x00, 0x77, 0x6d,
-	0xb6, 0xdd, 0xdb, 0x6d, 0xb7, 0x76, 0xdb, 0x6d, 0xdd, 0xb6,
-	0xdb, 0x77, 0x6d, 0xb6, 0xdd, 0xdb, 0x6d, 0xb7, 0x76, 0xdb,
-	0x6d, 0xdd, 0xb6, 0xdb, 0x77, 0x6d, 0xb6, 0xdd, 0xdb, 0x6d,
-	0xb7, 0x76, 0xdb, 0x6d, 0xdd, 0xb6, 0xdb, 0x77, 0x6d, 0xb6,
-	0xdd, 0xdb, 0x6d, 0xb7, 0x76, 0xdb, 0x6c
-};
+static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
 
 /* Structure to hold variables for a HFP connection. Since HFP supports
  * bi-direction audio, two iodevs should share one hfp_info if they
@@ -72,6 +60,8 @@ static const uint8_t msbc_zero_frame[] = {
  *     playback_buf - The buffer to hold samples about to write to SCO socket.
  *     msbc_read - mSBC codec to decode input audio in wideband speech mode.
  *     msbc_write - mSBC codec to encode output audio in wideband speech mode.
+ *     msbc_plc - PLC component to handle the packet loss of input audio in
+ *         wideband speech mode.
  *     msbc_num_out_frames - Number of total written mSBC frames.
  *     msbc_num_in_frames - Number of total read mSBC frames.
  *     read_cb - Callback to call when SCO socket can read.
@@ -90,6 +80,7 @@ struct hfp_info {
 	struct byte_buffer *playback_buf;
 	struct cras_audio_codec *msbc_read;
 	struct cras_audio_codec *msbc_write;
+	struct cras_msbc_plc *msbc_plc;
 	unsigned int msbc_num_out_frames;
 	unsigned int msbc_num_in_frames;
 	int (*read_cb)(struct hfp_info *info);
@@ -125,11 +116,11 @@ invalid:
 
 int hfp_info_rm_iodev(struct hfp_info *info, struct cras_iodev *dev)
 {
-	if (dev->direction == CRAS_STREAM_OUTPUT && info->odev == dev) {
+	if (dev->direction == CRAS_STREAM_OUTPUT && info->odev == dev)
 		info->odev = NULL;
-	} else if (dev->direction == CRAS_STREAM_INPUT && info->idev == dev){
+	else if (dev->direction == CRAS_STREAM_INPUT && info->idev == dev)
 		info->idev = NULL;
-	} else
+	else
 		return -EINVAL;
 
 	return 0;
@@ -352,36 +343,6 @@ static int extract_msbc_frame(const uint8_t *input, int len,
 	return rp;
 }
 
-/*
- * Handle the case when mSBC frame is considered lost.
- * Args:
- *    msbc - The mSBC codec handles audio input.
- *    capture_buf - The buf to store decoded PCM audio.
- *    pcm_avail - Available room of capture_buf in bytes.
- */
-static int handle_packet_loss(struct cras_audio_codec *msbc,
-			      uint8_t *capture_buf, unsigned int pcm_avail)
-{
-	size_t pcm_decoded = 0;
-	int decoded;
-
-	/*
-	 * Handle packet loss by feeding one zero input bit stream of mSBC.
-	 * TODO(enshuo): add PLC.
-	 */
-	decoded = msbc->decode(
-			msbc,
-			msbc_zero_frame,
-			MSBC_FRAME_LEN,
-			capture_buf,
-			pcm_avail,
-			&pcm_decoded);
-	if (decoded < 0)
-		return decoded;
-
-	return pcm_decoded;
-}
-
 int hfp_read_msbc(struct hfp_info *info)
 {
 	int err = 0;
@@ -432,9 +393,9 @@ recv_msbc_bytes:
 	 * controller that sets packet statue flag on HCI SCO packet.
 	 */
 	while (seq != (info->msbc_num_in_frames % 4)) {
-		err = handle_packet_loss(info->msbc_read,
-					 capture_buf,
-					 pcm_avail);
+		err = cras_msbc_plc_handle_bad_frames(info->msbc_plc,
+						      info->msbc_read,
+						      capture_buf);
 		if (err < 0)
 			return err;
 		buf_increment_write(info->capture_buf, err);
@@ -453,12 +414,16 @@ recv_msbc_bytes:
 		 * If mSBC frame cannot be decoded, consider this packet is
 		 * corrupted and lost.
 		 */
-		err = handle_packet_loss(info->msbc_read,
-					 capture_buf,
-					 pcm_avail);
-		if (err < 0)
-			return err;
-		pcm_decoded = err;
+		pcm_decoded =
+			cras_msbc_plc_handle_bad_frames(info->msbc_plc,
+							info->msbc_read,
+							capture_buf);
+		if (pcm_decoded < 0)
+			return pcm_decoded;
+	} else {
+		cras_msbc_plc_handle_good_frames(info->msbc_plc,
+						 capture_buf,
+						 capture_buf);
 	}
 
 	rp += MSBC_FRAME_SIZE;
@@ -583,6 +548,7 @@ struct hfp_info *hfp_info_create(int codec)
 		info->read_cb = hfp_read_msbc;
 		info->msbc_read = cras_msbc_codec_create();
 		info->msbc_write = cras_msbc_codec_create();
+		info->msbc_plc = cras_msbc_plc_create();
 	} else {
 		info->write_cb = hfp_write;
 		info->read_cb = hfp_read;
@@ -631,9 +597,8 @@ int hfp_info_stop(struct hfp_info *info)
 	if (!info->started)
 		return 0;
 
-	audio_thread_rm_callback_sync(
-		cras_iodev_list_get_audio_thread(),
-		info->fd);
+	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
+				      info->fd);
 
 	close(info->fd);
 	info->fd = 0;
@@ -654,6 +619,8 @@ void hfp_info_destroy(struct hfp_info *info)
 		cras_sbc_codec_destroy(info->msbc_read);
 	if (info->msbc_write)
 		cras_sbc_codec_destroy(info->msbc_write);
+	if (info->msbc_plc)
+		cras_msbc_plc_destroy(info->msbc_plc);
 
 	free(info);
 }

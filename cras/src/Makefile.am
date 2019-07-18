@@ -101,6 +101,7 @@ cras_server_SOURCES = \
 	dsp/dsp_util.c \
 	dsp/eq.c \
 	dsp/eq2.c \
+	plc/cras_plc.c\
 	server/audio_thread.c \
 	server/buffer_share.c \
 	server/config/cras_board_config.c \
@@ -160,7 +161,7 @@ libcrasserver_la_SOURCES = \
 	$(cras_server_SOURCES)
 libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS)
 libcrasserver_la_LIBADD = \
 	libcrasmix.la \
@@ -179,7 +180,7 @@ cras_SOURCES = \
 
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
 
 cras_LDADD = \
@@ -209,7 +210,7 @@ libcrasmix_la_SOURCES = \
 libcrasmix_la_CFLAGS = \
 	$(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
 
 libcrasmix_sse42_la_SOURCES = \
@@ -218,7 +219,7 @@ libcrasmix_sse42_la_SOURCES = \
 libcrasmix_sse42_la_CFLAGS = \
 	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(SSE42_CFLAGS)
 
 libcrasmix_avx_la_SOURCES = \
@@ -227,7 +228,7 @@ libcrasmix_avx_la_SOURCES = \
 libcrasmix_avx_la_CFLAGS = \
 	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(AVX_CFLAGS)
 
 libcrasmix_avx2_la_SOURCES = \
@@ -236,7 +237,7 @@ libcrasmix_avx2_la_SOURCES = \
 libcrasmix_avx2_la_CFLAGS = \
 	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(AVX2_CFLAGS)
 
 libcrasmix_fma_la_SOURCES = \
@@ -245,7 +246,7 @@ libcrasmix_fma_la_SOURCES = \
 libcrasmix_fma_la_CFLAGS = \
 	$(COMMON_SIMD_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config \
+	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(FMA_CFLAGS)
 
 lib_LTLIBRARIES = libcras.la
@@ -759,7 +760,7 @@ fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
 
 hfp_info_unittest_SOURCES = tests/hfp_info_unittest.cc
 hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc
 hfp_info_unittest_LDADD = -lgtest -lpthread
 
 if HAVE_DBUS
