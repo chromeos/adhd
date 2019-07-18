@@ -54,17 +54,30 @@ page_content = string.Template("""
     }
   </style>
   <script type="text/javascript">
+    var selected = null;
     draw_chart = function() {
       var chart = c3.generate({
         data: {
           x: 'time',
           columns: [
-              ['time',                   $times],
-              ['buffer_level',           $buffer_levels],
+            ['time',                   $times],
+            ['buffer_level',           $buffer_levels],
           ],
           type: 'bar',
           types: {
-              buffer_level: 'line',
+            buffer_level: 'line',
+          },
+          onclick: function (d, i) {
+            elm = document.getElementById(d.x.toFixed(9));
+            if (selected)
+              selected.style.color = '';
+            if (elm === null) {
+              console.error("Can not find element by ID %s", d.x.toFixed(9));
+              return;
+            }
+            elm.style.color = 'blue';
+            elm.scrollIntoView();
+            selected = elm;
           },
         },
         zoom: {
@@ -525,7 +538,15 @@ class AudioThreadLogParser(object):
         @returns: A string for filled page.
 
         """
-        logs = '\n<br>'.join(self.content)
+        logs = []
+        for s in self.content:
+            if 'atlog' in s:
+                time = StrToTimestamp(s.split()[0])
+                logs.append('<label id="{}">{}</label>'.format(time, s))
+            else:
+                logs.append(s)
+        logs = '\n'.join(logs)
+
         return page_template.substitute(logs=logs)
 
 
