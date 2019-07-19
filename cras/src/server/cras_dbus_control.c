@@ -113,6 +113,9 @@
 	"    <method name=\"IsAudioOutputActive\">\n"                           \
 	"      <arg name=\"active\" type=\"b\" direction=\"out\"/>\n"           \
 	"    </method>\n"                                                       \
+	"    <method name=\"SetWbsEnabled\">\n"                                 \
+	"      <arg name=\"enabled\" type=\"b\" direction=\"in\"/>\n"           \
+	"    </method>\n"                                                       \
 	"  </interface>\n"                                                      \
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"            \
 	"    <method name=\"Introspect\">\n"                                    \
@@ -761,6 +764,23 @@ static DBusHandlerResult handle_is_audio_active(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_wbs_enabled(DBusConnection *conn,
+						DBusMessage *message, void *arg)
+{
+	int rc;
+	dbus_bool_t enabled;
+
+	rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+	if (rc)
+		return rc;
+
+	cras_system_set_bt_wbs_enabled(enabled);
+
+	send_empty_reply(conn, message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -877,6 +897,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "IsAudioOutputActive")) {
 		return handle_is_audio_active(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetWbsEnabled")) {
+		return handle_set_wbs_enabled(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
