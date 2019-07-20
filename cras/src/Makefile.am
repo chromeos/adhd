@@ -139,6 +139,7 @@ cras_server_SOURCES = \
 	server/cras_observer.c \
 	server/cras_ramp.c \
 	server/cras_rclient.c \
+	server/cras_rclient_util.c \
 	server/cras_control_rclient.c \
 	server/cras_rstream.c \
 	server/cras_server_metrics.c \

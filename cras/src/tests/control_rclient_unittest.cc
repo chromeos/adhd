@@ -16,6 +16,7 @@ extern "C" {
 
 // Access to data structures and static functions.
 #include "cras_control_rclient.c"
+#include "cras_rclient_util.c"
 }
 
 //  Stub data.

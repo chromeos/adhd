@@ -17,6 +17,7 @@
 #include "cras_messages.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
+#include "cras_rclient_util.h"
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
@@ -49,18 +50,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
 
-	/* Create the stream with the specified parameters. */
-	stream_config.stream_id = msg->stream_id;
-	stream_config.stream_type = msg->stream_type;
-	stream_config.direction = msg->direction;
-	stream_config.dev_idx = msg->dev_idx;
-	stream_config.flags = msg->flags;
-	stream_config.effects = msg->effects;
-	stream_config.format = &remote_fmt;
-	stream_config.buffer_frames = msg->buffer_frames;
-	stream_config.cb_threshold = msg->cb_threshold;
-	stream_config.audio_fd = aud_fd;
-	stream_config.client = client;
+	rclient_fill_cras_rstream_config(client, msg, aud_fd, &remote_fmt,
+					 &stream_config);
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
 			     &stream);
 	if (rc)
@@ -345,15 +336,6 @@ static void register_for_notification(struct cras_rclient *client,
 	}
 }
 
-/* Removes all streams that the client owns and destroys it. */
-static void ccr_destroy(struct cras_rclient *client)
-{
-	cras_observer_remove(client->observer);
-	stream_list_rm_all_client_streams(cras_iodev_list_get_stream_list(),
-					  client);
-	free(client);
-}
-
 static int direction_valid(enum CRAS_STREAM_DIRECTION direction)
 {
 	return direction < CRAS_NUM_DIRECTIONS &&
@@ -604,20 +586,11 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	return 0;
 }
 
-/* Sends a message to the client. */
-static int ccr_send_message_to_client(const struct cras_rclient *client,
-				      const struct cras_client_message *msg,
-				      int *fds, unsigned int num_fds)
-{
-	return cras_send_with_fds(client->fd, (const void *)msg, msg->length,
-				  fds, num_fds);
-}
-
 /* Declarations of cras_rclient operators for cras_control_rclient. */
 static const struct cras_rclient_ops cras_control_rclient_ops = {
 	.handle_message_from_client = ccr_handle_message_from_client,
-	.send_message_to_client = ccr_send_message_to_client,
-	.destroy = ccr_destroy,
+	.send_message_to_client = rclient_send_message_to_client,
+	.destroy = rclient_destroy,
 };
 
 /*
