@@ -96,8 +96,8 @@ TEST_F(DevIoSuite, CaptureGain) {
 }
 
 /*
- * If any hw_level is larger than 2 * largest_cb_level, reset all input
- * devices.
+ * If any hw_level is larger than 2 * largest_cb_level and
+ * DROP_FRAMES_THRESHOLD_MS, reset all input devices.
  */
 TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
   struct timespec start;
@@ -134,6 +134,31 @@ TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
   EXPECT_EQ(true, rc);
   EXPECT_EQ(0, drop_time.tv_sec);
   EXPECT_EQ(50000000, drop_time.tv_nsec);
+}
+
+/*
+ * If the hw_level is larger than 2 * largest_cb_level but less than
+ * DROP_FRAMES_THRESHOLD_MS, do nothing.
+ */
+TEST_F(DevIoSuite, SendCapturedLevelLessThanThreshold) {
+  struct timespec start;
+  struct timespec drop_time;
+  struct open_dev* dev_list = NULL;
+  bool rc;
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  AddFakeDataToStream(stream.get(), 0);
+
+  DevicePtr dev =
+      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_MIC);
+  DL_APPEND(dev_list, dev->odev.get());
+  add_stream_to_dev(dev->dev, stream);
+
+  iodev_stub_frames_queued(dev->dev.get(), 2048, start);
+  EXPECT_EQ(0, dev_io_send_captured_samples(dev_list));
+
+  rc = iodev_stub_get_drop_time(dev->dev.get(), &drop_time);
+  EXPECT_EQ(false, rc);
 }
 
 /* If all hw_level is less than 2 * largest_cb_level, do nothing. */

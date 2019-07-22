@@ -34,6 +34,15 @@ static const int NON_EMPTY_UPDATE_INTERVAL_SEC = 5;
  */
 static const int MIN_EMPTY_PERIOD_SEC = 30;
 
+/*
+ * When the hw_level is less than this time, do not drop frames.
+ * (unit: millisecond).
+ * TODO(yuhsuan): Reduce the threshold when we create the other overrun op for
+ * boards which captures a lot of frames at one time.
+ * e.g. Input devices on grunt reads 1024 frames each time.
+ */
+static const int DROP_FRAMES_THRESHOLD_MS = 50;
+
 /* The number of devices playing/capturing non-empty stream(s). */
 static int non_empty_device_count = 0;
 
@@ -376,7 +385,9 @@ static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_reset)
 	 * reset all devices.
 	 */
 	if (input_devices_can_be_reset(adev->dev) &&
-	    rc >= adev->dev->largest_cb_level * 2)
+	    rc >= adev->dev->largest_cb_level * 2 &&
+	    cras_frames_to_ms(rc, adev->dev->format->frame_rate) >=
+		    DROP_FRAMES_THRESHOLD_MS)
 		*need_to_reset = true;
 
 	cap_limit = get_stream_limit(adev, UINT_MAX, &cap_limit_stream);
