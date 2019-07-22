@@ -1381,7 +1381,8 @@ static int stream_connected(struct client_stream *stream,
 			    const struct cras_client_stream_connected *msg,
 			    const int stream_fds[2], const unsigned int num_fds)
 {
-	int rc, i;
+	int rc;
+	unsigned int i;
 	struct cras_audio_format mfmt;
 	struct cras_shm_info header_info, samples_info;
 
