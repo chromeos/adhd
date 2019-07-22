@@ -154,7 +154,7 @@ static void handle_get_hotword_models(struct cras_rclient *client,
 	if (!hotword_models)
 		goto empty_reply;
 	hotword_models_size = strlen(hotword_models);
-	if (hotword_models_size + sizeof(*msg) > CRAS_CLIENT_MAX_MSG_SIZE) {
+	if (hotword_models_size >= CRAS_MAX_HOTWORD_MODELS) {
 		free(hotword_models);
 		goto empty_reply;
 	}

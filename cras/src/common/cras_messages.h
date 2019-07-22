@@ -569,9 +569,11 @@ static inline void cras_fill_client_get_hotword_models_ready(
 	const char *hotword_models, size_t hotword_models_size)
 {
 	m->header.id = CRAS_CLIENT_GET_HOTWORD_MODELS_READY;
-	m->header.length = sizeof(*m) + hotword_models_size;
+	m->header.length = sizeof(*m);
 	m->hotword_models_size = hotword_models_size;
-	memcpy(m->hotword_models, hotword_models, hotword_models_size);
+	/* Copy string data with terminator. */
+	strncpy((char *)m->hotword_models, hotword_models,
+		CRAS_MAX_HOTWORD_MODELS);
 }
 
 /* System status messages sent from server to client when state changes. */
