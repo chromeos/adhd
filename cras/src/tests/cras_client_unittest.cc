@@ -352,6 +352,7 @@ TEST(CrasClientTest, InitStreamVolume) {
   struct cras_client client;
 
   memset(&client, 0, sizeof(client));
+  memset(&config, 0, sizeof(config));
   client.server_fd_state = CRAS_SOCKET_STATE_CONNECTED;
 
   config.aud_cb = reinterpret_cast<cras_playback_cb_t>(0x123);
