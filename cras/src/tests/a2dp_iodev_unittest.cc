@@ -601,10 +601,13 @@ int cras_iodev_frames_queued(struct cras_iodev* iodev,
   int rc;
   cras_iodev_frames_queued_called++;
   rc = iodev->frames_queued(iodev, hw_tstamp);
-  if (rc < iodev->min_buffer_level)
+  if (rc < 0)
+    return 0;
+  unsigned int num_queued = (unsigned int)rc;
+  if (num_queued < iodev->min_buffer_level)
     return 0;
 
-  return rc - iodev->min_buffer_level;
+  return num_queued - iodev->min_buffer_level;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
