@@ -19,7 +19,6 @@
 #define CRAS_PROTO_VER 3
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
-#define CRAS_HOTWORD_NAME_MAX_SIZE 8
 #define CRAS_MAX_HOTWORD_MODELS 244
 #define CRAS_MAX_REMIX_CHANNELS 32
 #define CRAS_MAX_TEST_DATA_LEN 224
@@ -428,7 +427,7 @@ cras_fill_get_hotword_models_message(struct cras_get_hotword_models *m,
 struct __attribute__((__packed__)) cras_set_hotword_model {
 	struct cras_server_message header;
 	cras_node_id_t node_id;
-	char model_name[CRAS_HOTWORD_NAME_MAX_SIZE];
+	char model_name[CRAS_MAX_HOTWORD_MODEL_NAME_SIZE];
 };
 
 static inline void
@@ -439,7 +438,7 @@ cras_fill_set_hotword_model_message(struct cras_set_hotword_model *m,
 	m->header.id = CRAS_SERVER_SET_HOTWORD_MODEL;
 	m->header.length = sizeof(*m);
 	m->node_id = node_id;
-	memcpy(m->model_name, model_name, CRAS_HOTWORD_NAME_MAX_SIZE);
+	memcpy(m->model_name, model_name, CRAS_MAX_HOTWORD_MODEL_NAME_SIZE);
 }
 
 /* Set aec dump to start or stop. */
