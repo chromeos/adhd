@@ -329,20 +329,23 @@ static int h2_header_get_seq(const uint8_t *p) {
  *    The position of input bytes that has been read during the extraction.
  */
 static int extract_msbc_frame(const uint8_t *input, int len,
-			      int *seq, const uint8_t **frame_head)
+			      unsigned int *seq_out, const uint8_t **frame_head)
 {
 	int rp = 0;
+	int seq = -1;
 	while (len - rp >= MSBC_FRAME_SIZE) {
 		if ((input[rp] != H2_HEADER_0) ||
 		    (input[rp + 2] != MSBC_SYNC_WORD)) {
 			rp++;
 			continue;
 		}
-		*seq = h2_header_get_seq(input + rp + 1);
-		if (*seq < 0) {
+		seq = h2_header_get_seq(input + rp + 1);
+		if (seq < 0) {
 			rp++;
 			continue;
 		}
+		// `seq` is guaranteed to be positive now.
+		*seq_out = (unsigned int)seq;
 		*frame_head = input + rp;
 		break;
 	}
@@ -388,7 +391,7 @@ int hfp_read_msbc(struct hfp_info *info)
 	size_t pcm_decoded = 0;
 	uint8_t *capture_buf;
 	const uint8_t *frame_head = NULL;
-	int seq;
+	unsigned int seq;
 
 	/* Check if there's room for more PCM. */
 	capture_buf = buf_write_pointer_size(info->capture_buf, &pcm_avail);
