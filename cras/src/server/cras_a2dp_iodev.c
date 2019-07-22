@@ -146,7 +146,6 @@ static int frames_queued(const struct cras_iodev *iodev,
 
 static int no_stream(struct cras_iodev *iodev, int enable)
 {
-	unsigned int pcm_bytes;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	unsigned int buf_avail;
 	unsigned int format_bytes;
@@ -158,7 +157,6 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 	int i;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
-	pcm_bytes = buf_queued(a2dpio->pcm_buf);
 
 	if (enable) {
 		/* Target to have let hw_level = 2 * (frames in 10ms) */
