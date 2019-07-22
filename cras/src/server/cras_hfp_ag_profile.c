@@ -211,9 +211,9 @@ int cras_hfp_ag_remove_conflict(struct cras_bt_device *device)
 	DL_FOREACH(connected_ags, ag) {
 		if (ag->device == device)
 			continue;
-		destroy_audio_gateway(ag);
 		cras_bt_device_notify_profile_dropped(
 			ag->device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+		destroy_audio_gateway(ag);
 	}
 	return 0;
 }
