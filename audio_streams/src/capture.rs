@@ -35,7 +35,7 @@ use super::{AudioBuffer, BufferDrop, DummyBufferDrop};
 
 /// `CaptureBufferStream` provides `CaptureBuffer`s to read with audio samples from capture.
 pub trait CaptureBufferStream: Send {
-    fn next_capture_buffer<'a>(&'a mut self) -> Result<CaptureBuffer<'a>, Box<error::Error>>;
+    fn next_capture_buffer<'a>(&'a mut self) -> Result<CaptureBuffer<'a>, Box<dyn error::Error>>;
 }
 
 /// `CaptureBuffer` contains a block of audio samples got from capture stream. It provides
@@ -146,7 +146,7 @@ impl DummyCaptureStream {
 }
 
 impl CaptureBufferStream for DummyCaptureStream {
-    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<error::Error>> {
+    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<dyn error::Error>> {
         if let Some(start_time) = self.start_time {
             if start_time.elapsed() < self.next_frame {
                 std::thread::sleep(self.next_frame - start_time.elapsed());

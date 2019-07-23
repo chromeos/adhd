@@ -53,7 +53,7 @@ pub trait StreamSource: Send {
         num_channels: usize,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<error::Error>>;
+    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<dyn error::Error>>;
 
     /// Returns a stream control and buffer generator object. These are separate as the buffer
     /// generator might want to be passed to the audio stream.
@@ -68,7 +68,7 @@ pub trait StreamSource: Send {
             Box<dyn StreamControl>,
             Box<dyn capture::CaptureBufferStream>,
         ),
-        Box<error::Error>,
+        Box<dyn error::Error>,
     > {
         Ok((
             Box::new(DummyStreamControl::new()),
@@ -89,7 +89,7 @@ pub trait StreamSource: Send {
 
 /// `PlaybackBufferStream` provides `PlaybackBuffer`s to fill with audio samples for playback.
 pub trait PlaybackBufferStream: Send {
-    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, Box<error::Error>>;
+    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, Box<dyn error::Error>>;
 }
 
 /// `StreamControl` provides a way to set the volume and mute states of a stream. `StreamControl`
@@ -130,7 +130,7 @@ struct AudioBuffer<'a> {
     buffer: &'a mut [u8],
     offset: usize,     // Read or Write offset in frames.
     frame_size: usize, // Size of a frame in bytes.
-    drop: &'a mut BufferDrop,
+    drop: &'a mut dyn BufferDrop,
 }
 
 /// `PlaybackBuffer` is one buffer that holds buffer_size audio frames. It is used to temporarily
@@ -242,7 +242,7 @@ impl DummyStream {
 }
 
 impl PlaybackBufferStream for DummyStream {
-    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, Box<error::Error>> {
+    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, Box<dyn error::Error>> {
         if let Some(start_time) = self.start_time {
             if start_time.elapsed() < self.next_frame {
                 std::thread::sleep(self.next_frame - start_time.elapsed());
@@ -288,7 +288,8 @@ impl StreamSource for DummyStreamSource {
         num_channels: usize,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<error::Error>> {
+    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<dyn error::Error>>
+    {
         Ok((
             Box::new(DummyStreamControl::new()),
             Box::new(DummyStream::new(num_channels, frame_rate, buffer_size)),
