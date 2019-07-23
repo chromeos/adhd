@@ -269,7 +269,6 @@ static void on_get_supported_capabilities_reply(DBusPendingCall *pending_call,
 	DBusMessage *reply;
 	DBusMessageIter message_iter, capabilities;
 	struct cras_bt_adapter *adapter;
-	const char *object_path;
 
 	reply = dbus_pending_call_steal_reply(pending_call);
 	dbus_pending_call_unref(pending_call);
@@ -287,9 +286,10 @@ static void on_get_supported_capabilities_reply(DBusPendingCall *pending_call,
 		goto get_supported_capabilities_err;
 	}
 
-	object_path = dbus_message_get_path(reply);
-
-	adapter = cras_bt_adapter_get(object_path);
+	DL_FOREACH (adapters, adapter) {
+		if (adapter == (struct cras_bt_adapter *)data)
+			break;
+	}
 	if (NULL == adapter)
 		goto get_supported_capabilities_err;
 
@@ -351,7 +351,7 @@ int cras_bt_adapter_get_supported_capabilities(DBusConnection *conn,
 	dbus_message_unref(method_call);
 	if (!dbus_pending_call_set_notify(pending_call,
 					  on_get_supported_capabilities_reply,
-					  conn, NULL)) {
+					  adapter, NULL)) {
 		dbus_pending_call_cancel(pending_call);
 		dbus_pending_call_unref(pending_call);
 		return -EIO;
