@@ -251,7 +251,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> Drop for CrasStream<'a, T> {
 }
 
 impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream<'a, T> {
-    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, Box<error::Error>> {
+    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, Box<dyn error::Error>> {
         // Wait for request audio message
         self.wait_request_data()?;
         let (frame_size, (offset, len)) = match self.controls.header_mut() {
@@ -267,7 +267,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
 }
 
 impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<'a, T> {
-    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<error::Error>> {
+    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<dyn error::Error>> {
         // Wait for data ready message
         let frames = self.wait_data_ready()?;
         let (frame_size, shm_frames, offset) = match self.controls.header_mut() {

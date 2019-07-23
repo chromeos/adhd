@@ -354,7 +354,7 @@ impl StreamSource for CrasClient {
         buffer_size: usize,
     ) -> std::result::Result<
         (Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>),
-        Box<error::Error>,
+        Box<dyn error::Error>,
     > {
         Ok((
             Box::new(DummyStreamControl::new()),
@@ -375,7 +375,7 @@ impl StreamSource for CrasClient {
         buffer_size: usize,
     ) -> std::result::Result<
         (Box<dyn StreamControl>, Box<dyn CaptureBufferStream>),
-        Box<error::Error>,
+        Box<dyn error::Error>,
     > {
         if self.cras_capture {
             Ok((
