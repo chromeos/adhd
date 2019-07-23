@@ -525,8 +525,10 @@ audio_format_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 audio_format_unittest_LDADD = -lgtest -lpthread
 
 if HAVE_DBUS
-a2dp_info_unittest_SOURCES = tests/a2dp_info_unittest.cc \
-	server/cras_a2dp_info.c
+a2dp_info_unittest_SOURCES =  \
+	server/cras_a2dp_info.c \
+	tests/a2dp_info_unittest.cc \
+	tests/sbc_codec_stub.cc
 a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
 a2dp_info_unittest_LDADD = -lgtest -lpthread
