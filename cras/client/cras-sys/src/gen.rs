@@ -4278,7 +4278,6 @@ fn bindgen_test_layout_cras_audio_shm_config() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct cras_audio_shm_header {
     pub config: cras_audio_shm_config,
     pub read_buf_idx: u32,
