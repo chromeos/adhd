@@ -4,7 +4,7 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::thread::spawn;
-type Result<T> = std::result::Result<T, Box<std::error::Error>>;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 use getopts::Options;
 
