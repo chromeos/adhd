@@ -23,7 +23,9 @@ static uint8_t blocks_val;
 static uint8_t bitpool_val;
 static struct cras_audio_codec* sbc_codec;
 static size_t decode_out_decoded_return_val;
+static int decode_fail;
 static size_t encode_out_encoded_return_val;
+static int encode_fail;
 static int cras_sbc_get_frame_length_val;
 static int cras_sbc_get_codesize_val;
 
@@ -44,6 +46,8 @@ void sbc_codec_stub_reset() {
   sbc_codec = NULL;
   decode_out_decoded_return_val = 0;
   encode_out_encoded_return_val = 0;
+  decode_fail = 0;
+  encode_fail = 0;
 
   cras_sbc_get_frame_length_val = 5;
   cras_sbc_get_codesize_val = 5;
@@ -93,8 +97,16 @@ void set_sbc_codec_decoded_out(size_t ret) {
   decode_out_decoded_return_val = ret;
 }
 
+void set_sbc_codec_decoded_fail(int fail) {
+  decode_fail = fail;
+}
+
 void set_sbc_codec_encoded_out(size_t ret) {
   encode_out_encoded_return_val = ret;
+}
+
+void set_sbc_codec_encoded_fail(int fail) {
+  encode_fail = fail;
 }
 
 int decode(struct cras_audio_codec* codec,
@@ -104,7 +116,7 @@ int decode(struct cras_audio_codec* codec,
            size_t output_len,
            size_t* count) {
   *count = decode_out_decoded_return_val;
-  return input_len;
+  return decode_fail ? -1 : input_len;
 }
 
 int encode(struct cras_audio_codec* codec,
@@ -115,7 +127,7 @@ int encode(struct cras_audio_codec* codec,
            size_t* count) {
   // Written half the output buffer.
   *count = encode_out_encoded_return_val;
-  return input_len;
+  return encode_fail ? -1 : input_len;
 }
 
 struct cras_audio_codec* cras_sbc_codec_create(uint8_t freq,

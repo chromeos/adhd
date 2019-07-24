@@ -21,7 +21,9 @@ uint8_t get_sbc_codec_create_blocks_val();
 uint8_t get_sbc_codec_create_bitpool_val();
 int get_sbc_codec_destroy_called();
 void set_sbc_codec_decoded_out(size_t ret);
+void set_sbc_codec_decoded_fail(int fail);
 void set_sbc_codec_encoded_out(size_t ret);
+void set_sbc_codec_encoded_fail(int fail);
 
 struct cras_audio_codec* cras_sbc_codec_create(uint8_t freq,
                                                uint8_t mode,
