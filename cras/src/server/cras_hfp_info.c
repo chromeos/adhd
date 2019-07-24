@@ -65,7 +65,8 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *         wideband speech mode.
  *     msbc_num_out_frames - Number of total written mSBC frames.
  *     msbc_num_in_frames - Number of total read mSBC frames.
- *     read_cb - Callback to call when SCO socket can read.
+ *     read_cb - Callback to call when SCO socket can read. It returns the
+ *         number of PCM bytes read.
  *     write_cb - Callback to call when SCO socket can write.
  *     hci_sco_buf - Buffer to read one HCI SCO packet.
  *     idev - The input iodev using this hfp_info.
@@ -218,7 +219,6 @@ int hfp_force_output_level(struct hfp_info *info,
 
 int hfp_write_msbc(struct hfp_info *info)
 {
-	int to_write = 0;
 	size_t encoded;
 	int err;
 	int pcm_encoded;
@@ -247,16 +247,15 @@ int hfp_write_msbc(struct hfp_info *info)
 	} else {
 		memset(wp, 0, WRITE_BUF_SIZE_BYTES);
 	}
-	to_write = info->packet_size;
 
 msbc_send_again:
-	err = send(info->fd, info->write_buf, to_write, 0);
+	err = send(info->fd, info->write_buf, MSBC_PKT_SIZE, 0);
 	if (err < 0) {
 		if (errno == EINTR)
 			goto msbc_send_again;
 		return err;
 	}
-	if (err != (int)info->packet_size) {
+	if (err != MSBC_PKT_SIZE) {
 		syslog(LOG_ERR, "Partially write %d bytes for mSBC", err);
 		return -1;
 	}
@@ -375,6 +374,7 @@ int hfp_read_msbc(struct hfp_info *info)
 	unsigned int pcm_avail = 0;
 	int decoded;
 	size_t pcm_decoded = 0;
+	size_t pcm_read = 0;
 	uint8_t *capture_buf;
 	const uint8_t *frame_head = NULL;
 	unsigned int seq;
@@ -428,12 +428,13 @@ recv_msbc_bytes:
 		err = handle_packet_loss(info);
 		if (err < 0)
 			return err;
+		pcm_read += err;
 	}
 
 	/* Check if there's room for more PCM. */
 	capture_buf = buf_write_pointer_size(info->capture_buf, &pcm_avail);
 	if (pcm_avail < MSBC_CODE_SIZE)
-		return 0;
+		return pcm_read;
 
 	decoded = info->msbc_read->decode(
 			info->msbc_read,
@@ -451,6 +452,7 @@ recv_msbc_bytes:
 		err = handle_packet_loss(info);
 		if (err < 0)
 			return err;
+		pcm_read += err;
 	} else {
 		/* Good mSBC frame decoded. */
 		buf_increment_write(info->capture_buf, pcm_decoded);
@@ -458,8 +460,9 @@ recv_msbc_bytes:
 		cras_msbc_plc_handle_good_frames(info->msbc_plc,
 						 capture_buf,
 						 capture_buf);
+		pcm_read += pcm_decoded;
 	}
-	return 0;
+	return pcm_read;
 }
 
 int hfp_read(struct hfp_info *info)
@@ -527,9 +530,9 @@ static int hfp_info_callback(void *arg)
 		goto read_write_error;
 	}
 
-	/* Ignore the MTU bytes just read if input dev not in present */
+	/* Ignore the bytes just read if input dev not in present */
 	if (!info->idev)
-		buf_increment_read(info->capture_buf, info->packet_size);
+		buf_increment_read(info->capture_buf, err);
 
 	if (info->odev) {
 		err = info->write_cb(info);
