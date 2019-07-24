@@ -240,6 +240,7 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 {
 	char *tokens = strdup(cmd);
 	char *codec;
+	int err;
 
 	strtok(tokens, "=");
 	codec = strtok(NULL, ",");
@@ -249,10 +250,10 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 		handle->selected_codec = atoi(codec);
 	}
 
+	err = hfp_send(handle, "OK");
 	initialize_slc_handle(NULL, (void *)handle);
-
 	free(tokens);
-	return 0;
+	return err;
 }
 
 /*
