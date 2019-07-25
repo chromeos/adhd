@@ -571,8 +571,9 @@ static inline void cras_fill_client_get_hotword_models_ready(
 	m->header.length = sizeof(*m);
 	m->hotword_models_size = hotword_models_size;
 	/* Copy string data with terminator. */
-	strncpy((char *)m->hotword_models, hotword_models,
-		CRAS_MAX_HOTWORD_MODELS);
+	if (hotword_models)
+		strncpy((char *)m->hotword_models, hotword_models,
+			CRAS_MAX_HOTWORD_MODELS);
 }
 
 /* System status messages sent from server to client when state changes. */
