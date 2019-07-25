@@ -423,6 +423,45 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   hfp_info_destroy(info);
 }
 
+TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
+  int rc;
+  int sock[2];
+  uint8_t sample[480];
+
+  ResetStubData();
+
+  set_sbc_codec_encoded_out(57);
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  info = hfp_info_create(HFP_CODEC_ID_MSBC);
+  ASSERT_NE(info, (void *)NULL);
+
+  hfp_info_start(sock[1], 63, info);
+  send(sock[0], sample, 63, 0);
+
+  /* Trigger thread callback */
+  thread_cb((struct hfp_info *)cb_data);
+
+  dev.direction = CRAS_STREAM_OUTPUT;
+  ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
+
+  /* Assert queued samples unchanged before output device added */
+  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+
+  /* Put some fake data and trigger thread callback again */
+  send(sock[0], sample, 63, 0);
+  buf_increment_write(info->playback_buf, 240);
+  thread_cb((struct hfp_info *)cb_data);
+
+  /* Assert some samples written */
+  rc = recv(sock[0], sample, 60, 0);
+  ASSERT_EQ(60, rc);
+  ASSERT_EQ(0, hfp_buf_queued(info, &dev));
+
+  hfp_info_stop(info);
+  hfp_info_destroy(info);
+}
+
 } // namespace
 
 extern "C" {
