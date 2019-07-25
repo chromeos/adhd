@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 
+#include <memory>
+
 extern "C" {
-#include "dev_io.h"
-#include "dev_stream.h"
-#include "cras_rstream.h"
 #include "cras_iodev.h"
+#include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "dev_io.h"
+#include "dev_stream.h"
 #include "utlist.h"
 }
 
@@ -34,9 +35,7 @@ ShmPtr create_shm(size_t cb_threshold);
 
 // Holds the rstream and devstream pointers for an attached stream.
 struct Stream {
-  Stream(ShmPtr shm,
-         RstreamPtr rstream,
-         DevStreamPtr dstream)
+  Stream(ShmPtr shm, RstreamPtr rstream, DevStreamPtr dstream)
       : shm(std::move(shm)),
         rstream(std::move(rstream)),
         dstream(std::move(dstream)) {}
@@ -48,11 +47,8 @@ using StreamPtr = std::unique_ptr<Stream>;
 
 // Holds the iodev and ionode pointers for an attached device.
 struct Device {
-  Device(IodevPtr dev, IonodePtr node, OpendevPtr odev) :
-    dev(std::move(dev)),
-    node(std::move(node)),
-    odev(std::move(odev)) {
-  }
+  Device(IodevPtr dev, IonodePtr node, OpendevPtr odev)
+      : dev(std::move(dev)), node(std::move(node)), odev(std::move(odev)) {}
   IodevPtr dev;
   IonodePtr node;
   OpendevPtr odev;

@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <algorithm>
-#include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 
+#include <algorithm>
+#include <memory>
+
 extern "C" {
-#include "dev_stream.h"
-#include "cras_rstream.h"
 #include "cras_iodev.h"
+#include "cras_rstream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "dev_stream.h"
 #include "utlist.h"
 }
 
@@ -58,16 +59,14 @@ RstreamPtr create_rstream(cras_stream_id_t id,
   rstream->cb_threshold = cb_threshold;
   rstream->shm = shm;
   rstream->format = *format;
-  cras_frames_to_time(cb_threshold,
-                      rstream->format.frame_rate,
+  cras_frames_to_time(cb_threshold, rstream->format.frame_rate,
                       &rstream->sleep_interval_ts);
   return rstream;
 }
 
 DevStreamPtr create_dev_stream(unsigned int dev_id, cras_rstream* rstream) {
   DevStreamPtr dstream(
-      reinterpret_cast<dev_stream*>(calloc(1, sizeof(dev_stream))),
-      free);
+      reinterpret_cast<dev_stream*>(calloc(1, sizeof(dev_stream))), free);
   dstream->dev_id = dev_id;
   dstream->stream = rstream;
   dstream->dev_rate = rstream->format.frame_rate;
@@ -81,8 +80,8 @@ StreamPtr create_stream(cras_stream_id_t id,
                         size_t cb_threshold,
                         const cras_audio_format* format) {
   ShmPtr shm = create_shm(cb_threshold);
-  RstreamPtr rstream = create_rstream(1, CRAS_STREAM_INPUT, cb_threshold,
-                                      format, shm.get());
+  RstreamPtr rstream =
+      create_rstream(1, CRAS_STREAM_INPUT, cb_threshold, format, shm.get());
   DevStreamPtr dstream = create_dev_stream(1, rstream.get());
   StreamPtr s(
       new Stream(std::move(shm), std::move(rstream), std::move(dstream)));
@@ -114,7 +113,7 @@ IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
                            cras_audio_format* format,
                            cras_ionode* active_node) {
   IodevPtr iodev(reinterpret_cast<cras_iodev*>(calloc(1, sizeof(cras_iodev))),
-                  free);
+                 free);
   iodev->is_enabled = 1;
   iodev->direction = direction;
   iodev->format = format;
@@ -135,8 +134,8 @@ DevicePtr create_device(CRAS_STREAM_DIRECTION direction,
                         CRAS_NODE_TYPE active_node_type) {
   IonodePtr node = create_ionode(active_node_type);
   IodevPtr dev = create_open_iodev(direction, cb_threshold, format, node.get());
-  OpendevPtr odev(
-      reinterpret_cast<open_dev*>(calloc(1, sizeof(open_dev))), free);
+  OpendevPtr odev(reinterpret_cast<open_dev*>(calloc(1, sizeof(open_dev))),
+                  free);
   odev->dev = dev.get();
 
   DevicePtr d(new Device(std::move(dev), std::move(node), std::move(odev)));

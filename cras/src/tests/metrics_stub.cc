@@ -34,4 +34,4 @@ int cras_server_metrics_num_underruns(unsigned num_underruns) {
   return 0;
 }
 
-} // extern "C"
+}  // extern "C"

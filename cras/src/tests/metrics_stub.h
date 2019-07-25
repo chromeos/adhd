@@ -6,4 +6,4 @@
 #ifndef METRICS_STUB_H_
 #define METRICS_STUB_H_
 
-#endif // METRICS_STUB_H_
+#endif  // METRICS_STUB_H_

@@ -16,4 +16,4 @@ void iodev_stub_valid_frames(cras_iodev* iodev, int ret, timespec ts);
 
 bool iodev_stub_get_drop_time(cras_iodev* iodev, timespec* ts);
 
-#endif // IODEV_STUB_H_
+#endif  // IODEV_STUB_H_
