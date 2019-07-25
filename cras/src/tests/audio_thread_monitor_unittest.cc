@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
 #include <gtest/gtest.h>
+#include <stdio.h>
 
 extern "C" {
 #include "cras_audio_thread_monitor.c"
@@ -21,20 +21,17 @@ struct cras_audio_thread_event_message message;
 void ResetStubData() {
   cras_system_state_add_snapshot_called = 0;
   audio_thread_dump_thread_info_called = 0;
-  type_set = (enum CRAS_MAIN_MESSAGE_TYPE) 999;
+  type_set = (enum CRAS_MAIN_MESSAGE_TYPE)999;
   message.event_type = (enum CRAS_AUDIO_THREAD_EVENT_TYPE)999;
 }
 
 namespace {
 
-class AudioThreadMonitorTestSuite: public testing::Test {
-  protected:
-    virtual void SetUp() {
-      ResetStubData();
-    }
+class AudioThreadMonitorTestSuite : public testing::Test {
+ protected:
+  virtual void SetUp() { ResetStubData(); }
 
-    virtual void TearDown() {
-    }
+  virtual void TearDown() {}
 };
 
 TEST_F(AudioThreadMonitorTestSuite, Init) {
@@ -71,12 +68,12 @@ TEST_F(AudioThreadMonitorTestSuite, TakeSnapshot) {
 TEST_F(AudioThreadMonitorTestSuite, EventHandlerDoubleCall) {
   struct cras_audio_thread_event_message msg;
   msg.event_type = AUDIO_THREAD_EVENT_DEBUG;
-  handle_audio_thread_event_message((struct cras_main_message *)&msg, NULL);
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
   EXPECT_EQ(cras_system_state_add_snapshot_called, 1);
   EXPECT_EQ(audio_thread_dump_thread_info_called, 1);
 
   // take_snapshot shouldn't be called since the time interval is short
-  handle_audio_thread_event_message((struct cras_main_message *)&msg, NULL);
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
   EXPECT_EQ(cras_system_state_add_snapshot_called, 1);
   EXPECT_EQ(audio_thread_dump_thread_info_called, 1);
 }
@@ -84,7 +81,7 @@ TEST_F(AudioThreadMonitorTestSuite, EventHandlerDoubleCall) {
 TEST_F(AudioThreadMonitorTestSuite, EventHandlerIgnoreInvalidEvent) {
   struct cras_audio_thread_event_message msg;
   msg.event_type = (enum CRAS_AUDIO_THREAD_EVENT_TYPE)999;
-  handle_audio_thread_event_message((struct cras_main_message *)&msg, NULL);
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
   EXPECT_EQ(cras_system_state_add_snapshot_called, 0);
   EXPECT_EQ(audio_thread_dump_thread_info_called, 0);
 }
@@ -92,28 +89,28 @@ TEST_F(AudioThreadMonitorTestSuite, EventHandlerIgnoreInvalidEvent) {
 extern "C" {
 
 void cras_system_state_add_snapshot(
-  struct cras_audio_thread_snapshot *snapshot) {
-  cras_system_state_add_snapshot_called ++;
+    struct cras_audio_thread_snapshot* snapshot) {
+  cras_system_state_add_snapshot_called++;
 }
 
 struct audio_thread* cras_iodev_list_get_audio_thread() {
-  return reinterpret_cast <struct audio_thread*>(0xff);
+  return reinterpret_cast<struct audio_thread*>(0xff);
 }
 
-int audio_thread_dump_thread_info(struct audio_thread *thread,
-                                  struct audio_debug_info *info) {
-  audio_thread_dump_thread_info_called ++;
+int audio_thread_dump_thread_info(struct audio_thread* thread,
+                                  struct audio_debug_info* info) {
+  audio_thread_dump_thread_info_called++;
   return 0;
 }
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
                                   cras_message_callback callback,
-                                  void *callback_data) {
+                                  void* callback_data) {
   type_set = type;
   return 0;
 }
 
-int cras_main_message_send(struct cras_main_message *msg) {
+int cras_main_message_send(struct cras_main_message* msg) {
   message = *(struct cras_audio_thread_event_message*)msg;
   return 0;
 }
@@ -121,7 +118,7 @@ int cras_main_message_send(struct cras_main_message *msg) {
 }  // extern "C"
 }  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   int rc = RUN_ALL_TESTS();
 
