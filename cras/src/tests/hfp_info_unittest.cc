@@ -8,10 +8,10 @@
 #include <time.h>
 
 extern "C" {
-  #include "cras_hfp_info.c"
-  #include "sbc_codec_stub.h"
+#include "cras_hfp_info.c"
+#include "sbc_codec_stub.h"
 }
-static struct hfp_info *info;
+static struct hfp_info* info;
 static struct cras_iodev dev;
 static cras_audio_format format;
 
@@ -20,7 +20,7 @@ static int cras_msbc_plc_handle_good_frames_called;
 static int cras_msbc_plc_handle_bad_frames_called;
 
 static thread_callback thread_cb;
-static void *cb_data;
+static void* cb_data;
 static timespec ts;
 
 void ResetStubData() {
@@ -37,7 +37,7 @@ namespace {
 
 TEST(HfpInfo, AddRmDev) {
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
   /* Test add dev */
@@ -53,7 +53,7 @@ TEST(HfpInfo, AddRmDev) {
 
 TEST(HfpInfo, AddRmDevInvalid) {
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   dev.direction = CRAS_STREAM_OUTPUT;
 
@@ -69,12 +69,12 @@ TEST(HfpInfo, AddRmDevInvalid) {
 
 TEST(HfpInfo, AcquirePlaybackBuffer) {
   unsigned buffer_frames, buffer_frames2, queued;
-  uint8_t *samples;
+  uint8_t* samples;
 
   ResetStubData();
 
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   hfp_info_start(1, 48, info);
   dev.direction = CRAS_STREAM_OUTPUT;
@@ -117,12 +117,12 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
 
 TEST(HfpInfo, AcquireCaptureBuffer) {
   unsigned buffer_frames, buffer_frames2;
-  uint8_t *samples;
+  uint8_t* samples;
 
   ResetStubData();
 
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   hfp_info_start(1, 48, info);
   dev.direction = CRAS_STREAM_INPUT;
@@ -162,7 +162,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   int rc;
   int sock[2];
   uint8_t sample[480];
-  uint8_t *buf;
+  uint8_t* buf;
   unsigned buffer_count;
 
   ResetStubData();
@@ -170,7 +170,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
   hfp_info_start(sock[1], 48, info);
@@ -189,7 +189,7 @@ TEST(HfpInfo, HfpReadWriteFD) {
   buffer_count = info->capture_buf->used_size;
   buf = buf_write_pointer_size(info->capture_buf, &buffer_count);
   buf_increment_write(info->capture_buf, buffer_count);
-  ASSERT_NE((void *)NULL, buf);
+  ASSERT_NE((void*)NULL, buf);
 
   rc = hfp_read(info);
   ASSERT_EQ(0, rc);
@@ -221,11 +221,11 @@ TEST(HfpInfo, StartHfpInfo) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   hfp_info_start(sock[0], 48, info);
   ASSERT_EQ(1, hfp_info_running(info));
-  ASSERT_EQ(cb_data, (void *)info);
+  ASSERT_EQ(cb_data, (void*)info);
 
   hfp_info_stop(info);
   ASSERT_EQ(0, hfp_info_running(info));
@@ -244,15 +244,15 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   /* Start and send two chunk of fake data */
   hfp_info_start(sock[1], 48, info);
-  send(sock[0], sample ,48, 0);
-  send(sock[0], sample ,48, 0);
+  send(sock[0], sample, 48, 0);
+  send(sock[0], sample, 48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info *)cb_data);
+  thread_cb((struct hfp_info*)cb_data);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
@@ -264,7 +264,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   /* Trigger thread callback after idev added. */
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
-  thread_cb((struct hfp_info *)cb_data);
+  thread_cb((struct hfp_info*)cb_data);
 
   rc = hfp_buf_queued(info, &dev);
   ASSERT_EQ(48 / 2, rc);
@@ -289,14 +289,14 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
   info = hfp_info_create(HFP_CODEC_ID_CVSD);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   hfp_info_start(sock[1], 48, info);
-  send(sock[0], sample ,48, 0);
-  send(sock[0], sample ,48, 0);
+  send(sock[0], sample, 48, 0);
+  send(sock[0], sample, 48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info *)cb_data);
+  thread_cb((struct hfp_info*)cb_data);
 
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
@@ -306,10 +306,10 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
 
   /* Put some fake data and trigger thread callback again */
   buf_increment_write(info->playback_buf, 1008);
-  thread_cb((struct hfp_info *)cb_data);
+  thread_cb((struct hfp_info*)cb_data);
 
   /* Assert some samples written */
-  rc = recv(sock[0], sample ,48, 0);
+  rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
   ASSERT_EQ(480, hfp_buf_queued(info, &dev));
 
@@ -317,7 +317,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   hfp_info_destroy(info);
 }
 
-void send_mSBC_packet(int fd, unsigned seq, int broken_pkt){
+void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
   /* These three bytes are h2 header, frame count and mSBC sync word.
    * The second octet of H2 header is composed by 4 bits fixed 0x8 and 4 bits
    * sequence number 0000, 0011, 1100, 1111.
@@ -346,7 +346,7 @@ void send_mSBC_packet(int fd, unsigned seq, int broken_pkt){
 
 TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   int sock[2];
-  int pkt_count=0;
+  int pkt_count = 0;
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
@@ -376,7 +376,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   /* Trigger thread callback after idev added. */
   thread_cb((struct hfp_info*)cb_data);
 
-  ASSERT_EQ(pkt_count*MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
   ASSERT_EQ(2, cras_msbc_plc_handle_good_frames_called);
   pkt_count++;
   /* When the third packet is lost, we should call the handle_bad_packet and
@@ -434,13 +434,13 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
   info = hfp_info_create(HFP_CODEC_ID_MSBC);
-  ASSERT_NE(info, (void *)NULL);
+  ASSERT_NE(info, (void*)NULL);
 
   hfp_info_start(sock[1], 63, info);
   send(sock[0], sample, 63, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info *)cb_data);
+  thread_cb((struct hfp_info*)cb_data);
 
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
@@ -451,7 +451,7 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   /* Put some fake data and trigger thread callback again */
   send(sock[0], sample, 63, 0);
   buf_increment_write(info->playback_buf, 240);
-  thread_cb((struct hfp_info *)cb_data);
+  thread_cb((struct hfp_info*)cb_data);
 
   /* Assert some samples written */
   rc = recv(sock[0], sample, 60, 0);
@@ -462,33 +462,27 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   hfp_info_destroy(info);
 }
 
-} // namespace
+}  // namespace
 
 extern "C" {
 
-struct audio_thread *cras_iodev_list_get_audio_thread()
-{
+struct audio_thread* cras_iodev_list_get_audio_thread() {
   return NULL;
 }
 
-void audio_thread_add_callback(int fd, thread_callback cb,
-                               void *data)
-{
+void audio_thread_add_callback(int fd, thread_callback cb, void* data) {
   thread_cb = cb;
   cb_data = data;
   return;
 }
 
-int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd)
-{
+int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
   thread_cb = NULL;
   cb_data = NULL;
   return 0;
 }
 
-void audio_thread_rm_callback(int fd)
-{
-}
+void audio_thread_rm_callback(int fd) {}
 
 struct cras_msbc_plc* cras_msbc_plc_create() {
   cras_msbc_plc_create_called++;
@@ -512,7 +506,7 @@ int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
 }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
