@@ -35,6 +35,7 @@ void rclient_fill_cras_rstream_config(
 {
 	stream_config->stream_id = msg->stream_id;
 	stream_config->stream_type = msg->stream_type;
+	stream_config->client_type = msg->client_type;
 	stream_config->direction = msg->direction;
 	stream_config->dev_idx = msg->dev_idx;
 	stream_config->flags = msg->flags;

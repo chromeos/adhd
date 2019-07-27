@@ -120,6 +120,17 @@ enum CRAS_STREAM_TYPE {
 	CRAS_STREAM_NUM_TYPES,
 };
 
+/* Types of audio clients. */
+enum CRAS_CLIENT_TYPE {
+	CRAS_CLIENT_TYPE_UNKNOWN, /* Unknown client */
+	CRAS_CLIENT_TYPE_LEGACY, /* A client with old craslib (CRAS_PROTO_VER = 3) */
+	CRAS_CLIENT_TYPE_TEST, /* cras_test_client */
+	CRAS_CLIENT_TYPE_PCM, /* A client using CRAS via pcm, like aplay */
+	CRAS_CLIENT_TYPE_CHROME, /* Chrome, UI */
+	CRAS_CLIENT_TYPE_ARC, /* ARC++ */
+	CRAS_CLIENT_TYPE_CROSVM, /* CROSVM */
+};
+
 #define ENUM_STR(x)                                                            \
 	case x:                                                                \
 		return #x;
@@ -137,6 +148,24 @@ cras_stream_type_str(enum CRAS_STREAM_TYPE stream_type)
 	ENUM_STR(CRAS_STREAM_TYPE_ACCESSIBILITY)
 	default:
 		return "INVALID_STREAM_TYPE";
+	}
+	// clang-format on
+}
+
+static inline const char *
+cras_client_type_str(enum CRAS_CLIENT_TYPE client_type)
+{
+	// clang-format off
+	switch (client_type) {
+	ENUM_STR(CRAS_CLIENT_TYPE_UNKNOWN)
+	ENUM_STR(CRAS_CLIENT_TYPE_LEGACY)
+	ENUM_STR(CRAS_CLIENT_TYPE_TEST)
+	ENUM_STR(CRAS_CLIENT_TYPE_PCM)
+	ENUM_STR(CRAS_CLIENT_TYPE_CHROME)
+	ENUM_STR(CRAS_CLIENT_TYPE_ARC)
+	ENUM_STR(CRAS_CLIENT_TYPE_CROSVM)
+	default:
+		return "INVALID_CLIENT_TYPE";
 	}
 	// clang-format on
 }
@@ -299,6 +328,7 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
 	uint32_t dev_idx;
 	uint32_t direction;
 	uint32_t stream_type;
+	uint32_t client_type;
 	uint32_t buffer_frames;
 	uint32_t cb_threshold;
 	uint64_t effects;

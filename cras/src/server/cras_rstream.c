@@ -221,6 +221,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 
 	stream->stream_id = config->stream_id;
 	stream->stream_type = config->stream_type;
+	stream->client_type = config->client_type;
 	stream->direction = config->direction;
 	stream->flags = config->flags;
 	stream->format = *config->format;

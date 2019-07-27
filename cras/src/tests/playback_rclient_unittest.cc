@@ -103,8 +103,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessage) {
       .format = SND_PCM_FORMAT_S16_LE,
   };
   cras_fill_connect_message(&msg, CRAS_STREAM_OUTPUT, stream_id,
-                            CRAS_STREAM_TYPE_DEFAULT, 480, 240,
-                            /*flags=*/0, /*effects=*/0, fmt, NO_DEVICE);
+                            CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
+                            480, 240, /*flags=*/0, /*effects=*/0, fmt,
+                            NO_DEVICE);
   ASSERT_EQ(stream_id, msg.stream_id);
 
   rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
@@ -129,8 +130,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
       .format = SND_PCM_FORMAT_S16_LE,
   };
   cras_fill_connect_message(&msg, CRAS_STREAM_INPUT, stream_id,
-                            CRAS_STREAM_TYPE_DEFAULT, 480, 240,
-                            /*flags=*/0, /*effects=*/0, fmt, NO_DEVICE);
+                            CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
+                            480, 240, /*flags=*/0, /*effects=*/0, fmt,
+                            NO_DEVICE);
   ASSERT_EQ(stream_id, msg.stream_id);
 
   rc = rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
@@ -157,8 +159,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
       .format = SND_PCM_FORMAT_S16_LE,
   };
   cras_fill_connect_message(&msg, CRAS_STREAM_OUTPUT, stream_id,
-                            CRAS_STREAM_TYPE_DEFAULT, 480, 240,
-                            /*flags=*/0, /*effects=*/0, fmt, NO_DEVICE);
+                            CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
+                            480, 240, /*flags=*/0, /*effects=*/0, fmt,
+                            NO_DEVICE);
   ASSERT_EQ(stream_id, msg.stream_id);
 
   rc = rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
@@ -170,6 +173,44 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(-EINVAL, out_msg.err);
+  EXPECT_EQ(stream_id, out_msg.stream_id);
+}
+
+/*
+ * TODO(yuhsaun): Remove this test when there are no client uses the old
+ * craslib. (CRAS_PROTO_VER = 3)
+ */
+TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
+  struct cras_client_stream_connected out_msg;
+  int rc;
+
+  struct cras_connect_message_old msg;
+  cras_stream_id_t stream_id = 0x10002;
+  struct cras_audio_format fmt = {
+      .frame_rate = 48000,
+      .num_channels = 2,
+      .format = SND_PCM_FORMAT_S16_LE,
+  };
+  msg.proto_version = 3;
+  msg.direction = CRAS_STREAM_OUTPUT;
+  msg.stream_id = stream_id;
+  msg.stream_type = CRAS_STREAM_TYPE_DEFAULT;
+  msg.buffer_frames = 480;
+  msg.cb_threshold = 240;
+  msg.flags = 0;
+  msg.effects = 0;
+  pack_cras_audio_format(&msg.format, &fmt);
+  msg.dev_idx = NO_DEVICE;
+  msg.header.id = CRAS_SERVER_CONNECT_STREAM;
+  msg.header.length = sizeof(struct cras_connect_message_old);
+
+  rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
+  EXPECT_EQ(1, cras_make_fd_nonblocking_called);
+  EXPECT_EQ(1, stream_list_add_called);
+  EXPECT_EQ(0, stream_list_rm_called);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id, out_msg.stream_id);
 }
 

@@ -125,6 +125,7 @@ struct cras_stream_params {
 	size_t buffer_frames;
 	size_t cb_threshold;
 	enum CRAS_STREAM_TYPE stream_type;
+	enum CRAS_CLIENT_TYPE client_type;
 	uint32_t flags;
 	uint64_t effects;
 	void *user_data;
@@ -1446,6 +1447,7 @@ static int send_connect_message(struct cras_client *client,
 
 	cras_fill_connect_message(&serv_msg, stream->config->direction,
 				  stream->id, stream->config->stream_type,
+				  stream->config->client_type,
 				  stream->config->buffer_frames,
 				  stream->config->cb_threshold, stream->flags,
 				  stream->config->effects,
@@ -2198,6 +2200,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->cb_threshold = cb_threshold;
 	params->effects = 0;
 	params->stream_type = stream_type;
+	params->client_type = CRAS_CLIENT_TYPE_UNKNOWN;
 	params->flags = flags;
 	params->user_data = user_data;
 	params->aud_cb = aud_cb;
@@ -2205,6 +2208,12 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->err_cb = err_cb;
 	memcpy(&(params->format), format, sizeof(*format));
 	return params;
+}
+
+void cras_client_stream_params_set_client_type(
+	struct cras_stream_params *params, enum CRAS_CLIENT_TYPE client_type)
+{
+	params->client_type = client_type;
 }
 
 void cras_client_stream_params_enable_aec(struct cras_stream_params *params)

@@ -30,4 +30,29 @@ void rclient_fill_cras_rstream_config(
 	int aud_fd, const struct cras_audio_format *remote_format,
 	struct cras_rstream_config *stream_config);
 
+/*
+ * Converts an old version of connect message to the correct
+ * cras_connect_message. Returns zero on success, negative on failure.
+ * Note that this is special check only for libcras transition in
+ * clients, from CRAS_PROTO_VER = 3 to 4.
+ * TODO(yuhsuan): clean up the function once clients transition is done.
+ */
+static inline int
+convert_connect_message_old(const struct cras_server_message *msg,
+			    struct cras_connect_message *cmsg)
+{
+	struct cras_connect_message_old *old;
+
+	if (!MSG_LEN_VALID(msg, struct cras_connect_message_old))
+		return -EINVAL;
+
+	old = (struct cras_connect_message_old *)msg;
+	if (old->proto_version != 3 || CRAS_PROTO_VER != 4)
+		return -EINVAL;
+
+	memcpy(cmsg, old, sizeof(*old));
+	cmsg->client_type = CRAS_CLIENT_TYPE_LEGACY;
+	return 0;
+}
+
 #endif /* CRAS_RCLIENT_UTIL_H_ */

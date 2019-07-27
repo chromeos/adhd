@@ -16,7 +16,7 @@
 
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
-#define CRAS_PROTO_VER 3
+#define CRAS_PROTO_VER 4
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_MAX_HOTWORD_MODELS 244
@@ -109,13 +109,35 @@ struct __attribute__((__packed__)) cras_connect_message {
 	struct cras_audio_format_packed format; /* rate, channel, sample size */
 	uint32_t dev_idx; /* device to attach stream, 0 if none */
 	uint64_t effects; /* Bit map of requested effects. */
+	enum CRAS_CLIENT_TYPE client_type; /* chrome, or arc, etc. */
+};
+
+/*
+ * Old version of connect message without 'cras_type' member defined.
+ * Used to check against when receiving invalid size of connect message.
+ * Expected to have proto_version set to 3.
+ * TODO(yuhsuan): remove when all clients migrate to latest libcras.
+ */
+struct __attribute__((__packed__)) cras_connect_message_old {
+	struct cras_server_message header;
+	uint32_t proto_version;
+	enum CRAS_STREAM_DIRECTION direction; /* input/output/loopback */
+	cras_stream_id_t stream_id; /* unique id for this stream */
+	enum CRAS_STREAM_TYPE stream_type; /* media, or call, etc. */
+	uint32_t buffer_frames; /* Buffer size in frames. */
+	uint32_t cb_threshold; /* callback client when this much is left */
+	uint32_t flags;
+	struct cras_audio_format_packed format; /* rate, channel, sample size */
+	uint32_t dev_idx; /* device to attach stream, 0 if none */
+	uint64_t effects; /* Bit map of requested effects. */
 };
 
 static inline void cras_fill_connect_message(
 	struct cras_connect_message *m, enum CRAS_STREAM_DIRECTION direction,
 	cras_stream_id_t stream_id, enum CRAS_STREAM_TYPE stream_type,
-	size_t buffer_frames, size_t cb_threshold, uint32_t flags,
-	uint64_t effects, struct cras_audio_format format, uint32_t dev_idx)
+	enum CRAS_CLIENT_TYPE client_type, size_t buffer_frames,
+	size_t cb_threshold, uint32_t flags, uint64_t effects,
+	struct cras_audio_format format, uint32_t dev_idx)
 {
 	m->proto_version = CRAS_PROTO_VER;
 	m->direction = direction;
@@ -129,6 +151,7 @@ static inline void cras_fill_connect_message(
 	m->dev_idx = dev_idx;
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;
 	m->header.length = sizeof(struct cras_connect_message);
+	m->client_type = client_type;
 }
 
 /* Sent by a client to remove a stream from the server. */

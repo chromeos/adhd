@@ -32,6 +32,7 @@ struct master_dev_info {
  * Members:
  *    stream_id - identifier for this stream.
  *    stream_type - not used.
+ *    client_type - The client type of this stream, like Chrome, ARC++.
  *    direction - input or output.
  *    flags - Indicative of what special handling is needed.
  *    fd - Socket for requesting and sending audio buffer events.
@@ -61,6 +62,7 @@ struct master_dev_info {
 struct cras_rstream {
 	cras_stream_id_t stream_id;
 	enum CRAS_STREAM_TYPE stream_type;
+	enum CRAS_CLIENT_TYPE client_type;
 	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t flags;
 	int fd;
@@ -91,6 +93,7 @@ struct cras_rstream {
 
 /* Config for creating an rstream.
  *    stream_type - CRAS_STREAM_TYPE.
+ *    client_type - CRAS_CLIENT_TYPE.
  *    direction - CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
  *    dev_idx - Pin to this device if != NO_DEVICE.
  *    flags - Any special handling for this stream.
@@ -104,6 +107,7 @@ struct cras_rstream {
 struct cras_rstream_config {
 	cras_stream_id_t stream_id;
 	enum CRAS_STREAM_TYPE stream_type;
+	enum CRAS_CLIENT_TYPE client_type;
 	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t dev_idx;
 	uint32_t flags;

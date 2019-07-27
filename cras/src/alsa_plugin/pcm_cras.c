@@ -241,6 +241,8 @@ static int snd_pcm_cras_start(snd_pcm_ioplug_t *io)
 		goto error_out;
 	}
 
+	cras_client_stream_params_set_client_type(params, CRAS_CLIENT_TYPE_PCM);
+
 	rc = cras_client_run_thread(pcm_cras->client);
 	if (rc < 0)
 		goto error_out;

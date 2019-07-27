@@ -348,6 +348,8 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 					  const struct cras_server_message *msg,
 					  int fd)
 {
+	struct cras_connect_message cmsg;
+
 	assert(client && msg);
 
 	/* Most messages should not have a file descriptor. */
@@ -370,10 +372,15 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM:
-		if (!MSG_LEN_VALID(msg, struct cras_connect_message))
+		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
+			handle_client_stream_connect(
+				client,
+				(const struct cras_connect_message *)msg, fd);
+		} else if (convert_connect_message_old(msg, &cmsg)) {
+			handle_client_stream_connect(client, &cmsg, fd);
+		} else {
 			return -EINVAL;
-		handle_client_stream_connect(
-			client, (const struct cras_connect_message *)msg, fd);
+		}
 		break;
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))

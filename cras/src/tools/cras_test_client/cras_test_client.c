@@ -726,6 +726,8 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 			       "Output");
 		printf("stream_type: %s\n",
 		       cras_stream_type_str(info->streams[i].stream_type));
+		printf("client_type: %s\n",
+		       cras_client_type_str(info->streams[i].client_type));
 		printf("buffer_frames: %u\n"
 		       "cb_threshold: %u\n"
 		       "effects: 0x%.4x\n"
@@ -1099,6 +1101,9 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 						   aud_format);
 	if (params == NULL)
 		return -ENOMEM;
+
+	cras_client_stream_params_set_client_type(params,
+						  CRAS_CLIENT_TYPE_TEST);
 
 	if (effect_aec)
 		cras_client_stream_params_enable_aec(params);

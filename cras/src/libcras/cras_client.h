@@ -544,6 +544,14 @@ struct cras_stream_params *cras_client_stream_params_create(
 	uint32_t flags, void *user_data, cras_playback_cb_t aud_cb,
 	cras_error_cb_t err_cb, struct cras_audio_format *format);
 
+/* Functions to set the client type on given stream parameter.
+ * Args:
+ *    params - Stream configuration parameters.
+ *    client_type - A client type.
+ */
+void cras_client_stream_params_set_client_type(
+	struct cras_stream_params *params, enum CRAS_CLIENT_TYPE client_type);
+
 /* Functions to enable or disable specific effect on given stream parameter.
  * Args:
  *    params - Stream configuration parameters.
