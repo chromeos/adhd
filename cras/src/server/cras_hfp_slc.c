@@ -15,9 +15,9 @@
 #include "cras_system_state.h"
 #include "cras_tm.h"
 
-#define STR(s) #s
-#define VSTR(id) STR(id)
-
+/* The timeout between service level initialized and codec negotiation
+ * completed. */
+#define CODEC_NEGOTIATION_TIMEOUT_MS 500
 #define SLC_BUF_SIZE_BYTES 256
 
 /* Indicator update command response and indicator indices.
@@ -61,7 +61,14 @@
  *    hf_codec_supported - Flags to indicate if codec is supported in HF.
  *    hf_supports_codec_negotiation - If the connected HF supports codec
  *        negotiation.
- *    selected_codec - The selected codec id to use, default to CVSD.
+ *    preferred_codec - CVSD or mSBC based on the situation and strategy. This
+ *        need not to be equal to selected_codec because codec negotiation
+ *        process may fail.
+ *    selected_codec - The codec id defaults to HFP_CODEC_UNUSED and changes
+ *        only if codec negotiation is supported and the negotiation flow
+ *        has completed.
+ *    pending_codec_negotiation - True if codec negotiation process has started
+ *        but haven't got reply from HF.
  *    telephony - A reference of current telephony handle.
  *    device - The associated bt device.
  */
@@ -82,7 +89,9 @@ struct hfp_slc_handle {
 	int ag_supported_features;
 	bool hf_codec_supported[HFP_MAX_CODECS];
 	int hf_supports_codec_negotiation;
+	int preferred_codec;
 	int selected_codec;
+	int pending_codec_negotiation;
 	struct cras_bt_device *device;
 	struct cras_timer *timer;
 
@@ -222,16 +231,54 @@ static int dtmf_tone(struct hfp_slc_handle *handle, const char *buf)
 	return hfp_send(handle, "OK");
 }
 
+/* Sends +BCS command to tell HF about our preferred codec. This shall
+ * be called only if codec negotiation is supported.
+ */
+static void select_preferred_codec(struct hfp_slc_handle *handle)
+{
+	char buf[64];
+	snprintf(buf, 64, "+BCS:%d", handle->preferred_codec);
+	hfp_send(handle, buf);
+	BTLOG(btlog, BT_CODEC_SELECTION, 0, handle->preferred_codec);
+}
+
 /* Marks SLC handle as initialized and trigger HFP AG's init_cb. */
 static void initialize_slc_handle(struct cras_timer *timer, void *arg)
 {
 	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;
 	if (timer)
 		handle->timer = NULL;
+
+	/*
+	 * Catch the case if mSBC codec negotiation never complete or even
+	 * failed. AG side falls back to use codec CVSD and also tells
+	 * HF to select CVSD again.
+	 */
+	if ((handle->selected_codec == HFP_CODEC_UNUSED) &&
+	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
+		handle->preferred_codec = HFP_CODEC_ID_CVSD;
+		select_preferred_codec(handle);
+	}
+
+	/*
+	 * Codec negotiation is considered to be ended at this point.
+	 * The owner of init_cb may use hfp_slc_get_selected_codec() to
+	 * query the final codec to use for this connection.
+	 */
 	if (handle->init_cb) {
 		handle->init_cb(handle);
 		handle->init_cb = NULL;
 	}
+}
+
+/* Tasks to execute after receiving an AT command. This is useful because
+ * some HF replies to command X only after it sends command Y. We rely on
+ * this function to achieve reliable codec negotiation.
+ */
+static void post_at_command_tasks(struct hfp_slc_handle *handle)
+{
+	if (handle->pending_codec_negotiation)
+		select_preferred_codec(handle);
 }
 
 /* Handles the event that headset request to select specific codec. */
@@ -242,6 +289,7 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 	char *codec;
 	int err;
 
+	handle->pending_codec_negotiation = 0;
 	strtok(tokens, "=");
 	codec = strtok(NULL, ",");
 
@@ -265,16 +313,18 @@ static void choose_codec_and_init_slc(struct hfp_slc_handle *handle)
 
 	if (handle->hf_supports_codec_negotiation &&
 	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
-		hfp_send(handle, "+BCS:" VSTR(HFP_CODEC_ID_MSBC));
-		BTLOG(btlog, BT_CODEC_SELECTION, 0, HFP_CODEC_ID_MSBC);
+		/* Sets preferred codec to mSBC, and schedule callback to
+		 * select preferred codec until reply received or timeout.
+		 */
+		handle->preferred_codec = HFP_CODEC_ID_MSBC;
+		handle->pending_codec_negotiation = 1;
 
 		/* Delay init to give headset some time to confirm
 		 * codec selection. */
-		handle->timer = cras_tm_create_timer(
-				cras_system_state_get_tm(),
-				150,
-				initialize_slc_handle,
-				handle);
+		handle->timer =
+			cras_tm_create_timer(cras_system_state_get_tm(),
+					     CODEC_NEGOTIATION_TIMEOUT_MS,
+					     initialize_slc_handle, handle);
 	} else {
 		initialize_slc_handle(NULL, (void *)handle);
 	}
@@ -723,6 +773,8 @@ static void slc_watch_callback(void *arg)
 		}
 	}
 
+	post_at_command_tasks(handle);
+
 	return;
 }
 
@@ -753,7 +805,8 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->service = 1;
 	handle->ind_event_report = 0;
 	handle->telephony = cras_telephony_get();
-	handle->selected_codec = HFP_CODEC_ID_CVSD;
+	handle->preferred_codec = HFP_CODEC_ID_CVSD;
+	handle->selected_codec = HFP_CODEC_UNUSED;
 
 	cras_system_add_select_fd(handle->rfcomm_fd,
 				  slc_watch_callback, handle);
@@ -773,7 +826,12 @@ void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
 {
-	return handle->selected_codec;
+	/* If codec negotiation is not supported on HF, or the negotiation
+	 * process never completed. Fallback to the preffered codec. */
+	if (handle->selected_codec == HFP_CODEC_UNUSED)
+		return handle->preferred_codec;
+	else
+		return handle->selected_codec;
 }
 
 int hfp_set_call_status(struct hfp_slc_handle *handle, int call)

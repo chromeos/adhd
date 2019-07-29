@@ -25,6 +25,8 @@ static void* slc_cb_data;
 static int fake_errno;
 static struct cras_bt_device* device =
     reinterpret_cast<struct cras_bt_device*>(2);
+static void (*cras_tm_timer_cb)(struct cras_timer* t, void* data);
+static void* cras_tm_timer_cb_data;
 
 int slc_initialized_cb(struct hfp_slc_handle* handle);
 int slc_disconnected_cb(struct hfp_slc_handle* handle);
@@ -126,7 +128,138 @@ TEST(HfpSlc, DisconnectSlc) {
 
   hfp_slc_destroy(handle);
 }
-}  // namespace
+
+TEST(HfpSlc, CodecNegotiation) {
+  int codec;
+  int err;
+  int sock[2];
+  char buf[256];
+  char* pos;
+  ResetStubData();
+
+  btlog = cras_bt_event_log_init();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  handle = hfp_slc_create(sock[0], 0, AG_CODEC_NEGOTIATION, device,
+                          slc_initialized_cb, slc_disconnected_cb);
+
+  codec = hfp_slc_get_selected_codec(handle);
+  EXPECT_EQ(HFP_CODEC_ID_CVSD, codec);
+
+  /* Fake that HF supports codec negotiation. */
+  err = write(sock[1], "AT+BRSF=128\r", 12);
+  ASSERT_EQ(err, 12);
+  slc_cb(slc_cb_data);
+  err = read(sock[1], buf, 256);
+
+  /* Fake that HF supports mSBC codec. */
+  err = write(sock[1], "AT+BAC=1,2\r", 11);
+  ASSERT_EQ(err, 11);
+  slc_cb(slc_cb_data);
+  err = read(sock[1], buf, 256);
+
+  /* Fake event reporting command to indicate SLC established. */
+  err = write(sock[1], "AT+CMER=3,0,0,1\r", 16);
+  ASSERT_EQ(err, 16);
+  slc_cb(slc_cb_data);
+
+  /* Assert that AG side prefers mSBC codec. */
+  codec = hfp_slc_get_selected_codec(handle);
+  EXPECT_EQ(HFP_CODEC_ID_MSBC, codec);
+
+  /* Assert CRAS initiates codec selection to mSBC. */
+  memset(buf, 0, 256);
+  err = read(sock[1], buf, 256);
+  pos = strstr(buf, "\r\n+BCS:2\r\n");
+  ASSERT_NE((void*)NULL, pos);
+
+  err = write(sock[1], "AT+VGS=9\r", 9);
+  ASSERT_EQ(err, 9);
+  slc_cb(slc_cb_data);
+
+  /* Assert CRAS initiates codec selection to mSBC. */
+  memset(buf, 0, 256);
+  err = read(sock[1], buf, 256);
+  pos = strstr(buf, "\r\n+BCS:2\r\n");
+  ASSERT_NE((void*)NULL, pos);
+
+  /* Fake that receiving codec selection from HF. */
+  err = write(sock[1], "AT+BCS=2\r", 9);
+  ASSERT_EQ(err, 9);
+  slc_cb(slc_cb_data);
+
+  memset(buf, 0, 256);
+  err = read(sock[1], buf, 256);
+  pos = strstr(buf, "\r\n+BCS:2\r\n");
+  ASSERT_EQ((void*)NULL, pos);
+
+  hfp_slc_destroy(handle);
+  cras_bt_event_log_deinit(btlog);
+}
+
+TEST(HfpSlc, CodecNegotiationTimeout) {
+  int codec;
+  int err;
+  int sock[2];
+  char buf[256];
+  char* pos;
+  ResetStubData();
+
+  btlog = cras_bt_event_log_init();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  handle = hfp_slc_create(sock[0], 0, AG_CODEC_NEGOTIATION, device,
+                          slc_initialized_cb, slc_disconnected_cb);
+
+  codec = hfp_slc_get_selected_codec(handle);
+  EXPECT_EQ(HFP_CODEC_ID_CVSD, codec);
+
+  /* Fake that HF supports codec negotiation. */
+  err = write(sock[1], "AT+BRSF=128\r", 12);
+  ASSERT_EQ(err, 12);
+  slc_cb(slc_cb_data);
+  err = read(sock[1], buf, 256);
+
+  /* Fake that HF supports mSBC codec. */
+  err = write(sock[1], "AT+BAC=1,2\r", 11);
+  ASSERT_EQ(err, 11);
+  slc_cb(slc_cb_data);
+  err = read(sock[1], buf, 256);
+
+  /* Fake event reporting command to indicate SLC established. */
+  err = write(sock[1], "AT+CMER=3,0,0,1\r", 16);
+  ASSERT_EQ(err, 16);
+  slc_cb(slc_cb_data);
+
+  ASSERT_NE((void*)NULL, cras_tm_timer_cb);
+
+  /* Assert that AG side prefers mSBC codec. */
+  codec = hfp_slc_get_selected_codec(handle);
+  EXPECT_EQ(HFP_CODEC_ID_MSBC, codec);
+
+  /* Assert CRAS initiates codec selection to mSBC. */
+  memset(buf, 0, 256);
+  err = read(sock[1], buf, 256);
+  pos = strstr(buf, "\r\n+BCS:2\r\n");
+  ASSERT_NE((void*)NULL, pos);
+
+  /* Assume codec negotiation failed. so timeout is reached. */
+  cras_tm_timer_cb(NULL, cras_tm_timer_cb_data);
+
+  codec = hfp_slc_get_selected_codec(handle);
+  EXPECT_EQ(HFP_CODEC_ID_CVSD, codec);
+
+  /* Expects CRAS fallback and selects to CVSD codec. */
+  memset(buf, 0, 256);
+  err = read(sock[1], buf, 256);
+  pos = strstr(buf, "\r\n+BCS:1\r\n");
+  ASSERT_NE((void*)NULL, pos);
+
+  hfp_slc_destroy(handle);
+  cras_bt_event_log_deinit(btlog);
+}
+
+} // namespace
 
 int slc_initialized_cb(struct hfp_slc_handle* handle) {
   slc_initialized_cb_called++;
@@ -172,7 +305,9 @@ struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         void (*cb)(struct cras_timer* t,
                                                    void* data),
                                         void* cb_data) {
-  return NULL;
+  cras_tm_timer_cb = cb;
+  cras_tm_timer_cb_data = cb_data;
+  return reinterpret_cast<struct cras_timer*>(0x404);
 }
 
 void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {}
