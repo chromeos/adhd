@@ -25,7 +25,7 @@
 //! use std::thread::{spawn, JoinHandle};
 //! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 //!
-//! use libcras::CrasClient;
+//! use libcras::{CrasClient, CrasClientType};
 //! use audio_streams::StreamSource;
 //!
 //! const BUFFER_SIZE: usize = 256;
@@ -37,6 +37,7 @@
 //! #    match args.len() {
 //! #        2 => {
 //!              let mut cras_client = CrasClient::new()?;
+//!              cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
 //!              let (_control, mut stream) = cras_client
 //!                  .new_playback_stream(NUM_CHANNELS, FRAME_RATE, BUFFER_SIZE)?;
 //!
@@ -76,7 +77,7 @@
 //! use std::thread::{spawn, JoinHandle};
 //! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 //!
-//! use libcras::CrasClient;
+//! use libcras::{CrasClient, CrasClientType};
 //! use audio_streams::StreamSource;
 //!
 //! const BUFFER_SIZE: usize = 256;
@@ -88,6 +89,7 @@
 //! #    match args.len() {
 //! #        2 => {
 //!              let mut cras_client = CrasClient::new()?;
+//!              cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
 //!              let (_control, mut stream) = cras_client
 //!                  .new_capture_stream(NUM_CHANNELS, FRAME_RATE, BUFFER_SIZE)?;
 //!
@@ -124,6 +126,7 @@ use audio_streams::{
     capture::{CaptureBufferStream, DummyCaptureStream},
     BufferDrop, DummyStreamControl, PlaybackBufferStream, StreamControl, StreamSource,
 };
+pub use cras_sys::gen::CRAS_CLIENT_TYPE as CrasClientType;
 use cras_sys::gen::*;
 use sys_util::{PollContext, PollToken};
 
@@ -208,6 +211,7 @@ pub struct CrasClient {
     client_id: Option<u32>,
     next_stream_id: u32,
     cras_capture: bool,
+    client_type: CRAS_CLIENT_TYPE,
 }
 
 impl CrasClient {
@@ -229,6 +233,7 @@ impl CrasClient {
             client_id: None,
             next_stream_id: 0,
             cras_capture: false,
+            client_type: CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_UNKNOWN,
         };
 
         // Gets client ID from server
@@ -246,6 +251,11 @@ impl CrasClient {
     /// Enables capturing audio through CRAS server.
     pub fn enable_cras_capture(&mut self) {
         self.cras_capture = true;
+    }
+
+    /// Set the type of this client to report to CRAS when connecting streams.
+    pub fn set_client_type(&mut self, client_type: CRAS_CLIENT_TYPE) {
+        self.client_type = client_type;
     }
 
     // Gets next server_stream_id from client and increment stream_id counter.
@@ -289,6 +299,8 @@ impl CrasClient {
             format: audio_format,
             dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
             effects: 0,
+            client_type: self.client_type,
+            client_shm_size: 0,
         };
 
         // Creates AudioSocket pair

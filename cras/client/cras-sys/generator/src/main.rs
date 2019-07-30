@@ -78,12 +78,15 @@ fn modify_server_state_attributes(dir: &Path) -> Result<(), String> {
         ))
     })?;
 
-    let new = str::replacen(
-        old,
-        "struct __attribute__ ((packed, aligned(4))) cras_server_state {",
-        "struct __attribute__ ((packed)) cras_server_state {",
+    let new = old.replacen(
+        "struct __attribute__((packed, aligned(4))) cras_server_state {",
+        "struct __attribute__((packed)) cras_server_state {",
         1,
     );
+
+    if new.len() >= old.len() {
+        return Err("failed to remove 'aligned(4)' from cras_server_state".to_string());
+    }
 
     fs::write(&cras_types_path, new).or_else(|e| {
         Err(format!(
