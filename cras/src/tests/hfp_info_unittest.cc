@@ -298,6 +298,10 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   /* Trigger thread callback */
   thread_cb((struct hfp_info*)cb_data);
 
+  /* Without odev in presence, zero packet should be sent. */
+  rc = recv(sock[0], sample, 48, 0);
+  ASSERT_EQ(48, rc);
+
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
@@ -347,6 +351,8 @@ void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
 TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   int sock[2];
   int pkt_count = 0;
+  int rc;
+  uint8_t sample[480];
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
@@ -365,6 +371,10 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   /* Trigger thread callback */
   thread_cb((struct hfp_info*)cb_data);
 
+  /* Expect one empty mSBC packet is send, because no odev in presence. */
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
+
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, &dev));
 
@@ -375,6 +385,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   /* Trigger thread callback after idev added. */
   thread_cb((struct hfp_info*)cb_data);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2, hfp_buf_queued(info, &dev));
   ASSERT_EQ(2, cras_msbc_plc_handle_good_frames_called);
@@ -385,6 +397,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   pkt_count++;
   send_mSBC_packet(sock[0], pkt_count, 0);
   thread_cb((struct hfp_info*)cb_data);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   /* Packet 1, 2, 4 are all good frames */
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
@@ -399,6 +413,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   set_sbc_codec_decoded_fail(1);
 
   thread_cb((struct hfp_info*)cb_data);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(2, cras_msbc_plc_handle_bad_frames_called);
@@ -412,6 +428,8 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   set_sbc_codec_decoded_fail(1);
 
   thread_cb((struct hfp_info*)cb_data);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(3, cras_msbc_plc_handle_bad_frames_called);

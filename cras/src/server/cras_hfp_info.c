@@ -116,12 +116,15 @@ invalid:
 
 int hfp_info_rm_iodev(struct hfp_info *info, struct cras_iodev *dev)
 {
-	if (dev->direction == CRAS_STREAM_OUTPUT && info->odev == dev)
+	if (dev->direction == CRAS_STREAM_OUTPUT && info->odev == dev) {
+		memset(info->playback_buf->bytes, 0,
+		       info->playback_buf->used_size);
 		info->odev = NULL;
-	else if (dev->direction == CRAS_STREAM_INPUT && info->idev == dev)
+	} else if (dev->direction == CRAS_STREAM_INPUT && info->idev == dev) {
 		info->idev = NULL;
-	else
+	} else {
 		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -534,12 +537,18 @@ static int hfp_info_callback(void *arg)
 	if (!info->idev)
 		buf_increment_read(info->capture_buf, err);
 
-	if (info->odev) {
-		err = info->write_cb(info);
-		if (err < 0) {
-			syslog(LOG_ERR, "Write error");
-			goto read_write_error;
-		}
+	/* Without output stream's presence, we shall still send zero packets
+	 * to HF. This is required for some HF devices to start sending non-zero
+	 * data to AG.
+	 */
+	if (!info->odev)
+		buf_increment_write(info->playback_buf,
+				    info->msbc_write ? err : info->packet_size);
+
+	err = info->write_cb(info);
+	if (err < 0) {
+		syslog(LOG_ERR, "Write error");
+		goto read_write_error;
 	}
 
 	return 0;
