@@ -43,6 +43,8 @@ const char kMissedCallbackSecondTimeOutput[] =
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
 const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
+const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
+const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
 const char kStreamFlags[] = "Cras.StreamFlags";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
@@ -77,10 +79,12 @@ enum CRAS_SERVER_METRICS_TYPE {
 };
 
 struct cras_server_metrics_stream_config {
+	enum CRAS_STREAM_DIRECTION direction;
 	unsigned cb_threshold;
 	unsigned flags;
 	int format;
 	unsigned rate;
+	enum CRAS_CLIENT_TYPE client_type;
 };
 
 struct cras_server_metrics_device_data {
@@ -506,10 +510,12 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 	union cras_server_metrics_data data;
 	int err;
 
+	data.stream_config.direction = config->direction;
 	data.stream_config.cb_threshold = (unsigned)config->cb_threshold;
 	data.stream_config.flags = (unsigned)config->flags;
 	data.stream_config.format = (int)config->format->format;
 	data.stream_config.rate = (unsigned)config->format->frame_rate;
+	data.stream_config.client_type = config->client_type;
 
 	init_server_metrics_msg(&msg, STREAM_CONFIG, data);
 	err = cras_server_metrics_message_send(
@@ -550,6 +556,14 @@ metrics_stream_config(struct cras_server_metrics_stream_config config)
 
 	/* Logs stream sampling rate. */
 	cras_metrics_log_sparse_histogram(kStreamSamplingRate, config.rate);
+
+	/* Logs stream client type. */
+	if (config.direction == CRAS_STREAM_INPUT)
+		cras_metrics_log_sparse_histogram(kStreamClientTypeInput,
+						  config.client_type);
+	else
+		cras_metrics_log_sparse_histogram(kStreamClientTypeOutput,
+						  config.client_type);
 }
 
 static void handle_metrics_message(struct cras_main_message *msg, void *arg)

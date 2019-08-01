@@ -319,10 +319,12 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamConfig) {
   struct cras_rstream_config config;
   struct cras_audio_format format;
 
+  config.direction = CRAS_STREAM_INPUT;
   config.cb_threshold = 1024;
   config.flags = BULK_AUDIO_OK;
   format.format = SND_PCM_FORMAT_S16_LE;
   format.frame_rate = 48000;
+  config.client_type = CRAS_CLIENT_TYPE_TEST;
 
   config.format = &format;
   cras_server_metrics_stream_config(&config);
@@ -332,10 +334,12 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamConfig) {
   EXPECT_EQ(sent_msgs[0].header.length,
             sizeof(struct cras_server_metrics_message));
   EXPECT_EQ(sent_msgs[0].metrics_type, STREAM_CONFIG);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[0].data.stream_config.cb_threshold, 1024);
   EXPECT_EQ(sent_msgs[0].data.stream_config.flags, BULK_AUDIO_OK);
   EXPECT_EQ(sent_msgs[0].data.stream_config.format, SND_PCM_FORMAT_S16_LE);
   EXPECT_EQ(sent_msgs[0].data.stream_config.rate, 48000);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.client_type, CRAS_CLIENT_TYPE_TEST);
 }
 
 extern "C" {
