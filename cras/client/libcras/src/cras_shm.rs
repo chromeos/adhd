@@ -56,6 +56,7 @@ pub struct CrasAudioHeader<'a> {
     write_buf_idx: VolatileRef<'a, u32>,
     read_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
     write_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
+    buffer_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
 }
 
 // It is safe to send audio buffers between threads as this struct has exclusive ownership of the
@@ -122,28 +123,98 @@ impl<'a> CrasAudioHeader<'a> {
                     vref_from_addr!(addr, write_offset[0]),
                     vref_from_addr!(addr, write_offset[1]),
                 ],
+                buffer_offset: [
+                    vref_from_addr!(addr, buffer_offset[0]),
+                    vref_from_addr!(addr, buffer_offset[1]),
+                ],
             })
         }
     }
 
-    /// Gets the write offset of the buffer and the writable length.
+    /// Calculates the length of a buffer with the given offset. This length will
+    /// be `used_size`, unless the offset is closer than `used_size` to the end
+    /// of samples, in which case the length will be as long as possible.
+    ///
+    /// If that buffer length is invalid (too small to hold a frame of audio data),
+    /// then returns an error.
+    /// The returned buffer length will be rounded down to a multiple of `frame_size`.
+    fn buffer_len_from_offset(&self, offset: usize) -> io::Result<usize> {
+        if offset > self.samples_len {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "Buffer offset {} exceeds the length of samples area ({}).",
+                    offset, self.samples_len
+                ),
+            ));
+        }
+
+        let used_size = self.get_used_size();
+        let frame_size = self.get_frame_size();
+
+        // We explicitly allow a buffer shorter than used_size, but only
+        // at the end of the samples area.
+        // This is useful if we're playing a file where the number of samples is
+        // not a multiple of used_size (meaning the length of the samples area
+        // won't be either). Then, the last buffer played will be smaller than
+        // used_size.
+        let mut buffer_length = used_size.min(self.samples_len - offset);
+        if buffer_length < frame_size {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "Buffer offset {} gives buffer length {} smaller than frame size {}.",
+                    offset, buffer_length, frame_size
+                ),
+            ));
+        }
+
+        // Round buffer_length down to a multiple of frame size
+        buffer_length = buffer_length / frame_size * frame_size;
+        Ok(buffer_length)
+    }
+
+    /// Gets the base of the write buffer and the writable length (rounded to `frame_size`).
+    /// Does not take into account the write offset.
     ///
     /// # Returns
     ///
-    ///  * (`usize`, `usize`) - write offset in bytes and buffer length in bytes.
-    pub fn get_offset_and_len(&self) -> (usize, usize) {
-        let used_size = self.get_used_size();
-        let offset = self.get_write_buf_idx() as usize * used_size;
-        (offset, used_size)
+    ///  * (`usize`, `usize`) - write buffer base as an offset from the start of
+    ///                         the samples area and buffer length in bytes.
+    pub fn get_write_offset_and_len(&self) -> io::Result<(usize, usize)> {
+        let idx = self.get_write_buf_idx() as usize;
+        let offset = self.get_buffer_offset(idx)?;
+        let len = self.buffer_len_from_offset(offset)?;
+
+        Ok((offset, len))
     }
 
-    /// Gets the read offset of the readable buffer.
+    /// Gets the buffer offset of the read buffer.
     ///
     ///  # Returns
     ///
     ///  * `usize` - read offset in bytes
-    pub fn get_read_offset(&self) -> usize {
-        self.get_read_buf_idx() as usize * self.get_used_size()
+    pub fn get_read_buffer_offset(&self) -> io::Result<usize> {
+        let idx = self.get_read_buf_idx() as usize;
+        self.get_buffer_offset(idx)
+    }
+
+    /// Gets the offset of a buffer from the start of samples.
+    ///
+    /// # Arguments
+    /// `index` - 0 <= `index` < `CRAS_NUM_SHM_BUFFERS`. The index of the buffer
+    /// for which we want the `buffer_offset`.
+    ///
+    /// # Returns
+    /// * `usize` - buffer offset in bytes
+    fn get_buffer_offset(&self, idx: usize) -> io::Result<usize> {
+        let buffer_offset = self
+            .buffer_offset
+            .get(idx)
+            .ok_or_else(index_out_of_range)?
+            .load() as usize;
+        self.check_buffer_offset(idx, buffer_offset)?;
+        Ok(buffer_offset)
     }
 
     /// Gets the number of bytes per frame from the shared memory structure.
@@ -188,23 +259,27 @@ impl<'a> CrasAudioHeader<'a> {
     /// out of range or not.
     ///
     /// # Arguments
-    /// `offset` - 0 <= `offset` <= `used_size` && `offset` + `used_size` <=
+    /// `idx` - The index of the buffer for which we're checking the offset.
+    /// `offset` - 0 <= `offset` <= `used_size` && `buffer_offset[idx]` + `offset` <=
     /// `samples_len`. Writable or readable size equals to 0 when offset equals
     /// to `used_size`.
     ///
     /// # Errors
-    /// Returns an error if `offset` is out of range.
-    fn check_offset(&self, offset: u32) -> io::Result<()> {
-        if offset as usize <= self.get_used_size()
-            && offset as usize + self.get_used_size() <= self.samples_len
-        {
-            Ok(())
-        } else {
-            Err(io::Error::new(
+    /// Returns an error if `offset` is out of range or if idx is not a valid
+    /// buffer idx.
+    fn check_rw_offset(&self, idx: usize, offset: u32) -> io::Result<()> {
+        let buffer_len = self.buffer_len_from_offset(self.get_buffer_offset(idx)?)?;
+        if offset as usize > buffer_len {
+            return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "Offset out of range.",
-            ))
+                format!(
+                    "Offset {} is larger than buffer size {}.",
+                    offset, buffer_len
+                ),
+            ));
         }
+
+        Ok(())
     }
 
     /// Sets `write_offset[idx]` to the count of written bytes.
@@ -218,7 +293,7 @@ impl<'a> CrasAudioHeader<'a> {
     /// # Errors
     /// Returns an error if `offset` is out of range.
     fn set_write_offset(&mut self, idx: usize, offset: u32) -> io::Result<()> {
-        self.check_offset(offset)?;
+        self.check_rw_offset(idx, offset)?;
         let write_offset = self.write_offset.get(idx).ok_or_else(index_out_of_range)?;
         write_offset.store(offset);
         Ok(())
@@ -235,9 +310,61 @@ impl<'a> CrasAudioHeader<'a> {
     /// # Errors
     /// Returns error if index out of range.
     fn set_read_offset(&mut self, idx: usize, offset: u32) -> io::Result<()> {
-        self.check_offset(offset)?;
+        self.check_rw_offset(idx, offset)?;
         let read_offset = self.read_offset.get(idx).ok_or_else(index_out_of_range)?;
         read_offset.store(offset);
+        Ok(())
+    }
+
+    /// Check that `offset` is a valid buffer offset for the buffer at `idx`
+    /// An offset is not valid if it is
+    ///  * outside of the samples area
+    ///  * overlaps some other buffer `[other_offset, other_offset + used_size)`
+    ///  * is close enough to the end of the samples area that the buffer would
+    ///    be shorter than `frame_size`.
+    fn check_buffer_offset(&self, idx: usize, offset: usize) -> io::Result<()> {
+        let start = offset;
+        let end = start + self.buffer_len_from_offset(start)?;
+
+        let other_idx = (idx ^ 1) as usize;
+        let other_start = self
+            .buffer_offset
+            .get(other_idx)
+            .ok_or_else(index_out_of_range)?
+            .load() as usize;
+        let other_end = other_start + self.buffer_len_from_offset(other_start)?;
+        if start < other_end && other_start < end {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "Setting buffer {} to [{}, {}) overlaps buffer {} at [{}, {})",
+                    idx, start, end, other_idx, other_start, other_end,
+                ),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Sets the location of the audio buffer `idx` within the samples area to
+    /// `offset`, so that CRAS will read/write samples for that buffer from that
+    /// offset.
+    ///
+    /// # Arguments
+    /// `idx` - 0 <= `idx` < `CRAS_NUM_SHM_BUFFERS`
+    /// `offset` - 0 <= `offset` && `offset` + `frame_size` <= `samples_len`
+    ///
+    /// # Errors
+    /// If `idx` is out of range
+    /// If the offset is invalid, which can happen if `offset` is
+    ///  * outside of the samples area
+    ///  * overlaps some other buffer `[other_offset, other_offset + used_size)`
+    ///  * is close enough to the end of the samples area that the buffer would
+    ///    be shorter than `frame_size`.
+    fn set_buffer_offset(&mut self, idx: usize, offset: usize) -> io::Result<()> {
+        self.check_buffer_offset(idx, offset)?;
+
+        let buffer_offset = self.buffer_offset.get(idx).ok_or_else(index_out_of_range)?;
+        buffer_offset.store(offset as u32);
         Ok(())
     }
 
@@ -574,16 +701,20 @@ mod tests {
         let mut header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(5);
+        header.set_buffer_offset(0, 12).unwrap();
 
         assert_eq!(0, header.write_offset[0].load());
         // Index out of bound
         assert!(header.set_write_offset(2, 5).is_err());
         // Offset out of bound
+        // Buffer length is 4, since that's the largest multiple of frame_size
+        // less than used_size.
         assert!(header.set_write_offset(0, 6).is_err());
         assert_eq!(0, header.write_offset[0].load());
-        assert!(header.set_write_offset(0, 5).is_ok());
-        assert_eq!(5, header.write_offset[0].load());
-        mem::forget(header);
+        assert!(header.set_write_offset(0, 5).is_err());
+        assert_eq!(0, header.write_offset[0].load());
+        assert!(header.set_write_offset(0, 4).is_ok());
+        assert_eq!(4, header.write_offset[0].load());
     }
 
     #[test]
@@ -594,15 +725,20 @@ mod tests {
         let mut header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(5);
+        header.set_buffer_offset(0, 12).unwrap();
 
-        assert_eq!(0, { header.read_offset[0].load() });
+        assert_eq!(0, header.read_offset[0].load());
         // Index out of bound
         assert!(header.set_read_offset(2, 5).is_err());
         // Offset out of bound
+        // Buffer length is 4, since that's the largest multiple of frame_size
+        // less than used_size.
         assert!(header.set_read_offset(0, 6).is_err());
         assert_eq!(0, header.read_offset[0].load());
-        assert!(header.set_read_offset(0, 5).is_ok());
-        assert_eq!(5, header.read_offset[0].load());
+        assert!(header.set_read_offset(0, 5).is_err());
+        assert_eq!(0, header.read_offset[0].load());
+        assert!(header.set_read_offset(0, 4).is_ok());
+        assert_eq!(4, header.read_offset[0].load());
     }
 
     #[test]
@@ -614,6 +750,8 @@ mod tests {
         header.frame_size.store(2);
         header.used_size.store(10);
         header.read_offset[0].store(10);
+        header.set_buffer_offset(0, 10).unwrap();
+
         assert!(header.commit_written_frames(5).is_ok());
         assert_eq!(header.write_offset[0].load(), 10);
         assert_eq!(header.read_offset[0].load(), 0);
@@ -659,6 +797,122 @@ mod tests {
         assert_eq!(header.get_read_buf_idx(), 1);
         assert_eq!(header.read_offset[0].load(), 0);
         assert_eq!(header.read_offset[0].load(), 0);
+    }
+
+    #[test]
+    fn cras_audio_header_get_write_offset_and_len() {
+        if !kernel_has_memfd() {
+            return;
+        }
+        let header = create_cras_audio_header(30);
+        header.frame_size.store(2);
+        header.used_size.store(10);
+        header.write_buf_idx.store(0);
+        header.read_offset[0].store(0);
+        header.write_offset[0].store(0);
+        header.buffer_offset[0].store(0);
+
+        header.read_buf_idx.store(1);
+        header.read_offset[1].store(0);
+        header.write_offset[1].store(0);
+        header.buffer_offset[1].store(10);
+
+        // standard offsets and lens
+        let (offset, len) = header.get_write_offset_and_len().unwrap();
+        assert_eq!(offset, 0);
+        assert_eq!(len, 10);
+
+        header.write_buf_idx.store(1);
+        header.read_buf_idx.store(0);
+        let (offset, len) = header.get_write_offset_and_len().unwrap();
+        assert_eq!(offset, 10);
+        assert_eq!(len, 10);
+
+        // relocate buffer offsets
+        header.buffer_offset[1].store(16);
+        let (offset, len) = header.get_write_offset_and_len().unwrap();
+        assert_eq!(offset, 16);
+        assert_eq!(len, 10);
+
+        header.buffer_offset[0].store(5);
+        header.write_buf_idx.store(0);
+        let (offset, len) = header.get_write_offset_and_len().unwrap();
+        assert_eq!(offset, 5);
+        assert_eq!(len, 10);
+
+        header.write_buf_idx.store(0);
+        header.buffer_offset[0].store(2);
+        header.read_buf_idx.store(1);
+        header.buffer_offset[1].store(10);
+        let result = header.get_write_offset_and_len();
+        // Should be an error as write buffer would overrun into other buffer.
+        assert!(result.is_err());
+
+        header.buffer_offset[0].store(24);
+        header.buffer_offset[1].store(10);
+        let (offset, len) = header.get_write_offset_and_len().unwrap();
+        // Should be ok since we're only running up against the end of samples.
+        assert_eq!(offset, 24);
+        assert_eq!(len, 6);
+
+        header.buffer_offset[0].store(25);
+        let (offset, len) = header.get_write_offset_and_len().unwrap();
+        // Should be ok, but we'll truncate len to frame_size.
+        assert_eq!(offset, 25);
+        assert_eq!(len, 4);
+
+        header.buffer_offset[0].store(29);
+        let result = header.get_write_offset_and_len();
+        // Should be an error as buffer is smaller than frame_size.
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn cras_audio_header_set_buffer_offset() {
+        if !kernel_has_memfd() {
+            return;
+        }
+        let mut header = create_cras_audio_header(30);
+        header.frame_size.store(2);
+        header.used_size.store(10);
+        header.write_buf_idx.store(0);
+        header.read_offset[0].store(0);
+        header.write_offset[0].store(0);
+        header.buffer_offset[0].store(0);
+
+        header.read_buf_idx.store(1);
+        header.read_offset[1].store(0);
+        header.write_offset[1].store(0);
+        header.buffer_offset[1].store(10);
+
+        // Setting buffer_offset to overlap with other buffer is not okay
+        assert!(header.set_buffer_offset(0, 10).is_err());
+
+        header.buffer_offset[0].store(0);
+        header.write_offset[1].store(8);
+        // With samples, it's still an error.
+        assert!(header.set_buffer_offset(0, 10).is_err());
+
+        // Setting the offset past the end of the other buffer is okay
+        assert!(header.set_buffer_offset(0, 20).is_ok());
+
+        // Setting buffer offset such that buffer length is less than used_size
+        // is okay, but only at the end of the samples area.
+        assert!(header.set_buffer_offset(0, 21).is_ok());
+        assert!(header.set_buffer_offset(0, 27).is_ok());
+
+        // It's not okay if we get a buffer with length less than frame_size.
+        assert!(header.set_buffer_offset(0, 29).is_err());
+        assert!(header.set_buffer_offset(0, 30).is_err());
+
+        // If we try to overlap another buffer with that other buffer at the end,
+        // it's not okay.
+        assert!(header.set_buffer_offset(1, 25).is_err());
+        assert!(header.set_buffer_offset(1, 27).is_err());
+        assert!(header.set_buffer_offset(1, 28).is_err());
+
+        // Setting buffer offset past the end of samples is an error.
+        assert!(header.set_buffer_offset(0, 33).is_err());
     }
 
     #[test]

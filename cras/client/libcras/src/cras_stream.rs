@@ -256,7 +256,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
         self.wait_request_data()?;
         let (frame_size, (offset, len)) = match self.controls.header_mut() {
             None => return Err(Error::new(ErrorType::NoShmError).into()),
-            Some(header) => (header.get_frame_size(), header.get_offset_and_len()),
+            Some(header) => (header.get_frame_size(), header.get_write_offset_and_len()?),
         };
         let buf = match self.audio_buffer.as_mut() {
             None => return Err(Error::new(ErrorType::NoShmError).into()),
@@ -275,7 +275,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<
             Some(header) => (
                 header.get_frame_size(),
                 header.get_readable_frames()?,
-                header.get_read_offset(),
+                header.get_read_buffer_offset()?,
             ),
         };
         let len = min(shm_frames, frames as usize) * frame_size;
