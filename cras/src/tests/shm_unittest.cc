@@ -334,7 +334,7 @@ TEST_F(ShmTestSuite, PlaybackWithDifferentSequentialBufferLocations) {
   uint32_t total_frames_written = 0;
 
   // Fill all of the buffers.
-  for (int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+  for (unsigned int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
     cras_shm_set_buffer_offset(&shm_, i, first_offset + i * used_size);
     shm_.header->write_in_progress[i] = 1;
     shm_.header->write_offset[i] = 0;
@@ -360,7 +360,7 @@ TEST_F(ShmTestSuite, PlaybackWithDifferentSequentialBufferLocations) {
   uint32_t second_offset = 1.2 * used_size;
 
   // Fill half of the buffers.
-  for (int i = 0; i < CRAS_NUM_SHM_BUFFERS / 2; i++) {
+  for (unsigned int i = 0; i < CRAS_NUM_SHM_BUFFERS / 2; i++) {
     cras_shm_set_buffer_offset(&shm_, i, second_offset + i * used_size);
     shm_.header->write_in_progress[i] = 1;
     shm_.header->write_offset[i] = 0;
@@ -382,7 +382,8 @@ TEST_F(ShmTestSuite, PlaybackWithDifferentSequentialBufferLocations) {
   EXPECT_EQ(total_frames_written, total_frames_available);
 
   // Fill rest of the buffers.
-  for (int i = CRAS_NUM_SHM_BUFFERS / 2; i < CRAS_NUM_SHM_BUFFERS; i++) {
+  for (unsigned int i = CRAS_NUM_SHM_BUFFERS / 2;
+       i < CRAS_NUM_SHM_BUFFERS; i++) {
     cras_shm_set_buffer_offset(&shm_, i, second_offset + i * used_size);
     shm_.header->write_in_progress[i] = 1;
     shm_.header->write_offset[i] = 0;
@@ -411,7 +412,7 @@ TEST_F(ShmTestSuite, GetCheckedBufferOffset) {
 
   uint32_t offset;
 
-  for (int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+  for (unsigned int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
     shm_.header->buffer_offset[i] = 0;
     offset = cras_shm_get_checked_buffer_offset(&shm_, i);
     EXPECT_EQ(0, offset) << "Expected valid buffer offset for buffer " << i;
@@ -450,7 +451,7 @@ TEST_F(ShmTestSuite, GetCheckedReadOffset) {
 
   uint32_t offset;
 
-  for (int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+  for (unsigned int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
     shm_.header->read_offset[i] = 0;
     offset = cras_shm_get_checked_read_offset(&shm_, i);
     EXPECT_EQ(0, offset) << "Expected valid read offset for buffer " << i;
@@ -507,7 +508,7 @@ TEST_F(ShmTestSuite, GetCheckedWriteOffset) {
 
   uint32_t offset;
 
-  for (int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+  for (unsigned int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
     shm_.header->write_offset[i] = 0;
     offset = cras_shm_get_checked_write_offset(&shm_, i);
     EXPECT_EQ(0, offset) << "Expected valid write offset for buffer " << i;
