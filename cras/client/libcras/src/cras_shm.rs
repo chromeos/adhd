@@ -552,7 +552,9 @@ impl CrasServerStateShmFd {
 mod tests {
     use super::*;
     use std::ffi::CString;
+
     #[test]
+    #[ignore]
     fn cras_audio_header_switch_test() {
         let mut header = create_cras_audio_header("/tmp_cras_audio_header1", 0);
         assert_eq!(0, header.get_write_buf_idx());
@@ -561,6 +563,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn cras_audio_header_write_offset_test() {
         let mut header = create_cras_audio_header("/tmp_cras_audio_header2", 20);
         header.frame_size.store(2);
@@ -578,6 +581,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn cras_audio_header_read_offset_test() {
         let mut header = create_cras_audio_header("/tmp_cras_audio_header3", 20);
         header.frame_size.store(2);
@@ -594,6 +598,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn cras_audio_header_commit_written_frame_test() {
         let mut header = create_cras_audio_header("/tmp_cras_audio_header4", 20);
         header.frame_size.store(2);
@@ -606,6 +611,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn cras_audio_header_get_readable_frames_test() {
         let header = create_cras_audio_header("/tmp_cras_audio_header5", 20);
         header.frame_size.store(2);
@@ -619,6 +625,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn cras_audio_header_commit_read_frames_test() {
         let mut header = create_cras_audio_header("/tmp_cras_audio_header6", 20);
         header.frame_size.store(2);
@@ -641,6 +648,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn create_header_and_buffers_test() {
         let header_fd = cras_audio_header_fd("/tmp_audio_shm_header");
         let samples_fd = cras_audio_samples_fd("/tmp_audio_shm_samples", 20);
@@ -678,6 +686,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn cras_mmap_pass() {
         let fd = cras_shm_open_rw("/tmp_cras_shm_test_1", 100);
         let rc = unsafe { cras_mmap(10, libc::PROT_READ, fd) };
