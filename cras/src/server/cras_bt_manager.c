@@ -37,12 +37,10 @@ static void cras_bt_interface_added(DBusConnection *conn,
 				adapter, properties_array_iter, NULL);
 		} else {
 			BTLOG(btlog, BT_ADAPTER_ADDED, 0, 0);
-			adapter = cras_bt_adapter_create(object_path);
+			adapter = cras_bt_adapter_create(conn, object_path);
 			if (adapter) {
 				cras_bt_adapter_update_properties(
 					adapter, properties_array_iter, NULL);
-				cras_bt_adapter_get_supported_capabilities(
-					conn, adapter);
 				cras_bt_register_endpoints(conn, adapter);
 				cras_bt_register_player(conn, adapter);
 				cras_bt_register_profiles(conn);

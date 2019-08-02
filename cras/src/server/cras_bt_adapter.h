@@ -10,7 +10,14 @@
 
 struct cras_bt_adapter;
 
-struct cras_bt_adapter *cras_bt_adapter_create(const char *object_path);
+/* Creates an bt_adapter instance representing the bluetooth controller
+ * on the system.
+ * Args:
+ *    conn - The dbus connection.
+ *    object_path - Object path of the bluetooth controller.
+ */
+struct cras_bt_adapter *cras_bt_adapter_create(DBusConnection *conn,
+					       const char *object_path);
 void cras_bt_adapter_destroy(struct cras_bt_adapter *adapter);
 void cras_bt_adapter_reset();
 
@@ -35,9 +42,9 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 int cras_bt_adapter_on_usb(struct cras_bt_adapter *adapter);
 
 /*
- * Queries adapter supported capabilies from bluetooth daemon.
+ * Queries adapter supported capabilies from bluetooth daemon. This shall
+ * be called only after adapter powers on.
  */
-int cras_bt_adapter_get_supported_capabilities(DBusConnection *conn,
-					       struct cras_bt_adapter *adapter);
+int cras_bt_adapter_get_supported_capabilities(struct cras_bt_adapter *adapter);
 
 #endif /* CRAS_BT_ADAPTER_H_ */

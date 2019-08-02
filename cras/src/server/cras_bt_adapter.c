@@ -18,7 +18,21 @@
 #include "cras_bt_constants.h"
 #include "utlist.h"
 
+/*
+ * Object to represent a bluetooth adapter on the system. Used to query the
+ * capabilities regarding certain bluetooth audio.
+ * Members:
+ *    conn - The dbus connection used to send message to bluetoothd.
+ *    object_path - Object path of the bluetooth adapter.
+ *    address - The BT address of this adapter.
+ *    name - The readable name of this adapter.
+ *    bluetooth_class - The bluetooth class of device.
+ *    powered - Powered on or off.
+ *    bus_type - Type of bus this adapter runs on.
+ *    wide_band_speech - If this adapter supports wide band speech.
+ */
 struct cras_bt_adapter {
+	DBusConnection *conn;
 	char *object_path;
 	char *address;
 	char *name;
@@ -66,7 +80,8 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 	return 0;
 }
 
-struct cras_bt_adapter *cras_bt_adapter_create(const char *object_path)
+struct cras_bt_adapter *cras_bt_adapter_create(DBusConnection *conn,
+					       const char *object_path)
 {
 	struct cras_bt_adapter *adapter;
 
@@ -74,6 +89,7 @@ struct cras_bt_adapter *cras_bt_adapter_create(const char *object_path)
 	if (adapter == NULL)
 		return NULL;
 
+	adapter->conn = conn;
 	adapter->object_path = strdup(object_path);
 	if (adapter->object_path == NULL) {
 		free(adapter);
@@ -172,6 +188,13 @@ int cras_bt_adapter_wbs_supported(struct cras_bt_adapter *adapter)
 	return adapter->wide_band_speech;
 }
 
+static void bt_adapter_set_powered(struct cras_bt_adapter *adapter, int powered)
+{
+	adapter->powered = powered;
+	if (powered)
+		cras_bt_adapter_get_supported_capabilities(adapter);
+}
+
 void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 				       DBusMessageIter *properties_array_iter,
 				       DBusMessageIter *invalidated_array_iter)
@@ -219,7 +242,7 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter *adapter,
 			dbus_message_iter_get_basic(&variant_iter, &value);
 
 			if (strcmp(key, "Powered") == 0)
-				adapter->powered = value;
+				bt_adapter_set_powered(adapter, value);
 		}
 
 		dbus_message_iter_next(properties_array_iter);
@@ -325,8 +348,7 @@ get_supported_capabilities_err:
 	dbus_message_unref(reply);
 }
 
-int cras_bt_adapter_get_supported_capabilities(DBusConnection *conn,
-					       struct cras_bt_adapter *adapter)
+int cras_bt_adapter_get_supported_capabilities(struct cras_bt_adapter *adapter)
 {
 	DBusMessage *method_call;
 	DBusError dbus_error;
@@ -340,7 +362,8 @@ int cras_bt_adapter_get_supported_capabilities(DBusConnection *conn,
 		return -ENOMEM;
 
 	dbus_error_init(&dbus_error);
-	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
+	if (!dbus_connection_send_with_reply(adapter->conn, method_call,
+					     &pending_call,
 					     DBUS_TIMEOUT_USE_DEFAULT)) {
 		dbus_message_unref(method_call);
 		syslog(LOG_ERR,
