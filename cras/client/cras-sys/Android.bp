@@ -1,0 +1,8 @@
+rust_library_rlib {
+    name: "libcras_sys",
+    host_supported: true,
+    crate_name: "cras_sys",
+    edition: "2015",
+    rlibs: ["libdata_model"],
+    srcs: ["src/lib.rs"],
+}

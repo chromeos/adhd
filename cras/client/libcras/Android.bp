@@ -1,0 +1,14 @@
+rust_library_rlib {
+    name: "liblibcras",
+    host_supported: true,
+    crate_name: "libcras",
+    edition: "2018",
+    srcs: ["src/libcras.rs"],
+    rlibs: [
+        "libc_rust",
+        "libaudio_streams",
+        "libcras_sys",
+        "libdata_model",
+        "libsys_util",
+    ],
+}
