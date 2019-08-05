@@ -551,21 +551,27 @@ impl CrasServerStateShmFd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CString;
+    use std::fs::File;
+    use std::os::unix::io::IntoRawFd;
+    use sys_util::{kernel_has_memfd, SharedMemory};
 
     #[test]
-    #[ignore]
     fn cras_audio_header_switch_test() {
-        let mut header = create_cras_audio_header("/tmp_cras_audio_header1", 0);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let mut header = create_cras_audio_header(20);
         assert_eq!(0, header.get_write_buf_idx());
         header.switch_write_buf_idx();
         assert_eq!(1, header.get_write_buf_idx());
     }
 
     #[test]
-    #[ignore]
     fn cras_audio_header_write_offset_test() {
-        let mut header = create_cras_audio_header("/tmp_cras_audio_header2", 20);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let mut header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(5);
 
@@ -581,9 +587,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn cras_audio_header_read_offset_test() {
-        let mut header = create_cras_audio_header("/tmp_cras_audio_header3", 20);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let mut header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(5);
 
@@ -598,9 +606,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn cras_audio_header_commit_written_frame_test() {
-        let mut header = create_cras_audio_header("/tmp_cras_audio_header4", 20);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let mut header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(10);
         header.read_offset[0].store(10);
@@ -611,9 +621,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn cras_audio_header_get_readable_frames_test() {
-        let header = create_cras_audio_header("/tmp_cras_audio_header5", 20);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(10);
         header.read_offset[0].store(2);
@@ -625,9 +637,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn cras_audio_header_commit_read_frames_test() {
-        let mut header = create_cras_audio_header("/tmp_cras_audio_header6", 20);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let mut header = create_cras_audio_header(20);
         header.frame_size.store(2);
         header.used_size.store(10);
         header.read_offset[0].store(2);
@@ -648,54 +662,53 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn create_header_and_buffers_test() {
-        let header_fd = cras_audio_header_fd("/tmp_audio_shm_header");
-        let samples_fd = cras_audio_samples_fd("/tmp_audio_shm_samples", 20);
+        if !kernel_has_memfd() {
+            return;
+        }
+        let header_fd = cras_audio_header_fd();
+        let samples_fd = cras_audio_samples_fd(20);
         let res = create_header_and_buffers(header_fd, samples_fd);
         res.expect("Failed to create header and buffer.");
     }
 
-    fn create_cras_audio_header(name: &str, samples_len: usize) -> CrasAudioHeader {
-        CrasAudioHeader::new(cras_audio_header_fd(name), samples_len).unwrap()
+    fn create_shm(size: usize) -> File {
+        let mut shm = SharedMemory::new(None).expect("failed to create shm");
+        shm.set_size(size as u64).expect("failed to set shm size");
+        shm.into()
     }
 
-    fn cras_audio_header_fd(name: &str) -> CrasAudioShmHeaderFd {
+    fn create_cras_audio_header<'a>(samples_len: usize) -> CrasAudioHeader<'a> {
+        CrasAudioHeader::new(cras_audio_header_fd(), samples_len).unwrap()
+    }
+
+    fn cras_audio_header_fd() -> CrasAudioShmHeaderFd {
         let size = mem::size_of::<cras_audio_shm_header>();
-        let fd = cras_shm_open_rw(name, size);
-        unsafe { CrasAudioShmHeaderFd::new(fd) }
+        let shm = create_shm(size);
+        unsafe { CrasAudioShmHeaderFd::new(shm.into_raw_fd()) }
     }
 
-    fn cras_audio_samples_fd(name: &str, len: usize) -> CrasShmFd {
-        let fd = cras_shm_open_rw(name, len);
-        unsafe { CrasShmFd::new(fd, len) }
-    }
-
-    fn cras_shm_open_rw(name: &str, size: usize) -> libc::c_int {
-        unsafe {
-            let cstr_name = CString::new(name).expect("cras_shm_open_rw: new CString failed");
-            let fd = libc::shm_open(
-                cstr_name.as_ptr() as *const _,
-                libc::O_CREAT | libc::O_EXCL | libc::O_RDWR,
-                0x0600,
-            );
-            assert_ne!(fd, -1, "cras_shm_open_rw: shm_open error");
-            libc::ftruncate(fd, size as libc::off_t);
-            fd
-        }
+    fn cras_audio_samples_fd(size: usize) -> CrasShmFd {
+        let shm = create_shm(size);
+        unsafe { CrasShmFd::new(shm.into_raw_fd(), size) }
     }
 
     #[test]
-    #[ignore]
     fn cras_mmap_pass() {
-        let fd = cras_shm_open_rw("/tmp_cras_shm_test_1", 100);
-        let rc = unsafe { cras_mmap(10, libc::PROT_READ, fd) };
+        if !kernel_has_memfd() {
+            return;
+        }
+        let shm = create_shm(100);
+        let rc = unsafe { cras_mmap(10, libc::PROT_READ, shm.as_raw_fd()) };
         assert!(rc.is_ok());
         unsafe { libc::munmap(rc.unwrap(), 10) };
     }
 
     #[test]
     fn cras_mmap_failed() {
+        if !kernel_has_memfd() {
+            return;
+        }
         let rc = unsafe { cras_mmap(10, libc::PROT_READ, -1) };
         assert!(rc.is_err());
     }
