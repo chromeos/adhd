@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::thread::spawn;
 use sys_util::{set_rt_prio_limit, set_rt_round_robin};
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -55,25 +55,37 @@ fn playback(args: &[String]) -> Result<()> {
     let buffer_size = matches.opt_get_default::<usize>("b", 256)?;
     let num_channels = matches.opt_get_default::<usize>("c", 2)?;
     let frame_rate = matches.opt_get_default::<usize>("r", 48000)?;
+
+    let file = File::open(&file_name).expect("failed to open file");
+    let mut buffered_file = BufReader::new(file);
+
     let mut cras_client = CrasClient::new()?;
     let (_control, mut stream) =
         cras_client.new_playback_stream(num_channels, frame_rate, buffer_size)?;
-
-    let mut file = File::open(&file_name).unwrap();
     let thread = spawn(move || {
         set_priority_to_realtime();
-        // Play samples from a file
-        let mut local_buffer = vec![0u8; buffer_size * num_channels * 2];
         loop {
-            // Reads data to local buffer
-            let read_count = file.read(&mut local_buffer).unwrap();
-            if read_count == 0 {
+            let local_buffer = buffered_file
+                .fill_buf()
+                .expect("failed to read from input file");
+
+            // Reached EOF
+            if local_buffer.len() == 0 {
                 break;
             }
-            // Gets writable buffer from stream and
-            let mut buffer = stream.next_playback_buffer().unwrap();
+
+            // Gets writable buffer from stream
+            let mut buffer = stream
+                .next_playback_buffer()
+                .expect("failed to get next playback buffer");
+
             // Writes data to stream buffer
-            let _write_frames = buffer.write(&local_buffer[..read_count]).unwrap();
+            let write_frames = buffer
+                .write(&local_buffer)
+                .expect("failed to write output data to buffer");
+
+            // Mark the file data as written
+            buffered_file.consume(write_frames);
         }
     });
     thread.join().expect("Failed to join playback thread");
@@ -117,15 +129,14 @@ fn capture(args: &[String]) -> Result<()> {
     let (_control, mut stream) =
         cras_client.new_capture_stream(num_channels, frame_rate, buffer_size)?;
     let mut file = File::create(&file_name).unwrap();
-    let mut local_buffer = vec![0u8; buffer_size * num_channels * 2];
     loop {
         let _frames = match stream.next_capture_buffer() {
             Err(e) => {
                 return Err(e.into());
             }
             Ok(mut buf) => {
-                buf.read(&mut local_buffer)?;
-                file.write(local_buffer.as_ref())?
+                let written = io::copy(&mut buf, &mut file)?;
+                written
             }
         };
     }
