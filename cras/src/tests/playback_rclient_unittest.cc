@@ -106,7 +106,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessage) {
   cras_fill_connect_message(&msg, CRAS_STREAM_OUTPUT, stream_id,
                             CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
                             480, 240, /*flags=*/0, /*effects=*/0, fmt,
-                            NO_DEVICE);
+                            NO_DEVICE, /*client_shm_size=*/0);
   ASSERT_EQ(stream_id, msg.stream_id);
 
   fd_ = 100;
@@ -134,7 +134,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
   cras_fill_connect_message(&msg, CRAS_STREAM_INPUT, stream_id,
                             CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
                             480, 240, /*flags=*/0, /*effects=*/0, fmt,
-                            NO_DEVICE);
+                            NO_DEVICE, /*client_shm_size=*/0);
   ASSERT_EQ(stream_id, msg.stream_id);
 
   fd_ = 100;
@@ -165,7 +165,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
   cras_fill_connect_message(&msg, CRAS_STREAM_OUTPUT, stream_id,
                             CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
                             480, 240, /*flags=*/0, /*effects=*/0, fmt,
-                            NO_DEVICE);
+                            NO_DEVICE, /*client_shm_size=*/0);
   ASSERT_EQ(stream_id, msg.stream_id);
 
   fd_ = 100;

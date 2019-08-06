@@ -4,6 +4,7 @@
  */
 
 #include "cras_iodev_list.h"
+#include "cras_messages.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
 #include "cras_rclient_util.h"

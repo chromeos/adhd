@@ -128,7 +128,6 @@ static int cpr_handle_message_from_client(struct cras_rclient *client,
 					  const struct cras_server_message *msg,
 					  int *fds, unsigned int num_fds)
 {
-	struct cras_connect_message cmsg;
 	int rc = 0;
 	assert(client && msg);
 
@@ -161,7 +160,8 @@ static int cpr_handle_message_from_client(struct cras_rclient *client,
 	}
 
 	switch (msg->id) {
-	case CRAS_SERVER_CONNECT_STREAM:
+	case CRAS_SERVER_CONNECT_STREAM: {
+		struct cras_connect_message cmsg;
 		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
 			rc = handle_client_stream_connect(
 				client,
@@ -172,6 +172,7 @@ static int cpr_handle_message_from_client(struct cras_rclient *client,
 			return -EINVAL;
 		}
 		break;
+	}
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))
 			return -EINVAL;

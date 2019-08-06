@@ -1436,6 +1436,7 @@ static int send_connect_message(struct cras_client *client,
 	int rc;
 	struct cras_connect_message serv_msg;
 	int sock[2] = { -1, -1 };
+	uint32_t client_shm_size = 0;
 
 	/* Create a socket pair for the server to notify of audio events. */
 	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
@@ -1445,13 +1446,12 @@ static int send_connect_message(struct cras_client *client,
 		goto fail;
 	}
 
-	cras_fill_connect_message(&serv_msg, stream->config->direction,
-				  stream->id, stream->config->stream_type,
-				  stream->config->client_type,
-				  stream->config->buffer_frames,
-				  stream->config->cb_threshold, stream->flags,
-				  stream->config->effects,
-				  stream->config->format, dev_idx);
+	cras_fill_connect_message(
+		&serv_msg, stream->config->direction, stream->id,
+		stream->config->stream_type, stream->config->client_type,
+		stream->config->buffer_frames, stream->config->cb_threshold,
+		stream->flags, stream->config->effects, stream->config->format,
+		dev_idx, client_shm_size);
 	rc = cras_send_with_fds(client->server_fd, &serv_msg, sizeof(serv_msg),
 				&sock[1], 1);
 	if (rc != sizeof(serv_msg)) {

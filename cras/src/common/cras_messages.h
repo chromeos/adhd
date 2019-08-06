@@ -16,7 +16,7 @@
 
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
-#define CRAS_PROTO_VER 4
+#define CRAS_PROTO_VER 5
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_MAX_HOTWORD_MODELS 244
@@ -110,10 +110,12 @@ struct __attribute__((__packed__)) cras_connect_message {
 	uint32_t dev_idx; /* device to attach stream, 0 if none */
 	uint64_t effects; /* Bit map of requested effects. */
 	enum CRAS_CLIENT_TYPE client_type; /* chrome, or arc, etc. */
+	uint32_t client_shm_size; /* Size of client-provided samples shm, if any */
 };
 
 /*
- * Old version of connect message without 'cras_type' member defined.
+ * Old version of connect message without 'cras_type' and 'client_shm_size'
+ * defined.
  * Used to check against when receiving invalid size of connect message.
  * Expected to have proto_version set to 3.
  * TODO(yuhsuan): remove when all clients migrate to latest libcras.
@@ -137,7 +139,8 @@ static inline void cras_fill_connect_message(
 	cras_stream_id_t stream_id, enum CRAS_STREAM_TYPE stream_type,
 	enum CRAS_CLIENT_TYPE client_type, size_t buffer_frames,
 	size_t cb_threshold, uint32_t flags, uint64_t effects,
-	struct cras_audio_format format, uint32_t dev_idx)
+	struct cras_audio_format format, uint32_t dev_idx,
+	uint32_t client_shm_size)
 {
 	m->proto_version = CRAS_PROTO_VER;
 	m->direction = direction;
@@ -149,9 +152,10 @@ static inline void cras_fill_connect_message(
 	m->effects = effects;
 	pack_cras_audio_format(&m->format, &format);
 	m->dev_idx = dev_idx;
+	m->client_type = client_type;
+	m->client_shm_size = client_shm_size;
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;
 	m->header.length = sizeof(struct cras_connect_message);
-	m->client_type = client_type;
 }
 
 /* Sent by a client to remove a stream from the server. */
