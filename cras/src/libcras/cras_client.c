@@ -13,7 +13,7 @@
  *    client_stream struct and send a file descriptor to server. That file
  *    descriptor and aud_fd are a pair created from socketpair().
  *  client_connected - The server will send a connected message to indicate that
- *    the client should start receving audio events from aud_fd. This message
+ *    the client should start receiving audio events from aud_fd. This message
  *    also specifies the shared memory region to use to share audio samples.
  *    This region will be shmat'd.
  *  running - Once the connections are established, the client will listen for
@@ -2097,9 +2097,10 @@ int cras_client_create(struct cras_client **client)
 				   CRAS_FILE_WAIT_FLAG_NONE,
 				   sock_file_wait_callback, *client,
 				   &(*client)->sock_file_wait);
-	if (rc != 0 && rc != -ENOENT) {
-		syslog(LOG_ERR, "cras_client: Could not setup watch for '%s'.",
-		       (*client)->sock_file);
+	if (rc < 0 && rc != -ENOENT) {
+		syslog(LOG_ERR,
+		       "cras_client: Could not setup watch for '%s': %s",
+		       (*client)->sock_file, strerror(-rc));
 		goto free_error;
 	}
 	(*client)->sock_file_exists = (rc == 0);
@@ -3316,7 +3317,7 @@ int cras_client_get_aec_group_id(struct cras_client *client)
 	return aec_group_id;
 }
 
-int cras_client_set_bt_wbs_enabled(struct cras_client * client, bool enabled)
+int cras_client_set_bt_wbs_enabled(struct cras_client *client, bool enabled)
 {
 	struct cras_set_bt_wbs_enabled msg;
 

@@ -170,7 +170,7 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 	}
 
 	/* Report errors from above here. */
-	if (rc != 0)
+	if (rc < 0)
 		return rc;
 
 	if (file_wait->watch_id >= 0) {
@@ -259,7 +259,7 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 
 		/* Start over again. */
 		rc = cras_file_wait_rm_watch(file_wait);
-		if (rc != 0)
+		if (rc < 0)
 			return rc;
 		rc = -ENOENT;
 		strcpy(file_wait->watch_dir, file_wait->file_path);
@@ -309,9 +309,11 @@ int cras_file_wait_create(const char *file_path, cras_file_wait_flag_t flags,
 	/* Setup the first watch. If that fails unexpectedly, then we destroy
 	 * the file wait structure immediately. */
 	rc = cras_file_wait_dispatch(file_wait);
-	if (rc != 0)
+	if (rc < 0) {
 		cras_file_wait_destroy(file_wait);
-	else
-		*file_wait_out = file_wait;
-	return rc;
+		return rc;
+	}
+
+	*file_wait_out = file_wait;
+	return 0;
 }

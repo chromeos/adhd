@@ -104,7 +104,7 @@ int cras_file_wait_get_fd(struct cras_file_wait *file_wait);
  *                cras_file_wait_start().
  *
  * Returns:
- *    - 0 for success, non-zero on error.
+ *    - 0 for success, negative on error.
  *    - -EAGAIN or -EWOULDBLOCK when this function would have blocked.
  */
 int cras_file_wait_dispatch(struct cras_file_wait *file_wait);

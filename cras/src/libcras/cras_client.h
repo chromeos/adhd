@@ -1132,7 +1132,7 @@ int cras_client_get_aec_group_id(struct cras_client *client);
 /*
  * Sets the flag to enable bluetooth wideband speech in server.
  */
-int cras_client_set_bt_wbs_enabled(struct cras_client * client, bool enabled);
+int cras_client_set_bt_wbs_enabled(struct cras_client *client, bool enabled);
 
 /* Set the context pointer for system state change callbacks.
  * Args:
