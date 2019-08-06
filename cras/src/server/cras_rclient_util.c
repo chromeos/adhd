@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <syslog.h>
+
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_observer.h"
@@ -29,10 +31,11 @@ void rclient_destroy(struct cras_rclient *client)
 	free(client);
 }
 
-void rclient_fill_cras_rstream_config(
-	struct cras_rclient *client, const struct cras_connect_message *msg,
-	int aud_fd, const struct cras_audio_format *remote_fmt,
-	struct cras_rstream_config *stream_config)
+void rclient_fill_cras_rstream_config(struct cras_rclient *client,
+				      const struct cras_connect_message *msg,
+				      int aud_fd, int client_shm_fd,
+				      const struct cras_audio_format *remote_fmt,
+				      struct cras_rstream_config *stream_config)
 {
 	stream_config->stream_id = msg->stream_id;
 	stream_config->stream_type = msg->stream_type;
@@ -45,5 +48,29 @@ void rclient_fill_cras_rstream_config(
 	stream_config->buffer_frames = msg->buffer_frames;
 	stream_config->cb_threshold = msg->cb_threshold;
 	stream_config->audio_fd = aud_fd;
+	stream_config->client_shm_fd = client_shm_fd;
+	stream_config->client_shm_size = msg->client_shm_size;
 	stream_config->client = client;
+}
+
+int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
+					size_t client_shm_size)
+{
+	/* check audio_fd is valid. */
+	if (audio_fd < 0) {
+		syslog(LOG_ERR, "Invalid audio fd in stream connect.\n");
+		return -EBADF;
+	}
+
+	/* check client_shm_fd is valid if client wants to use client shm. */
+	if (client_shm_size > 0 && client_shm_fd < 0) {
+		syslog(LOG_ERR,
+		       "client_shm_fd must be valid if client_shm_size > 0.\n");
+		return -EBADF;
+	} else if (client_shm_size == 0 && client_shm_fd >= 0) {
+		syslog(LOG_ERR,
+		       "client_shm_fd can be valid only if client_shm_size > 0.\n");
+		return -EINVAL;
+	}
+	return 0;
 }

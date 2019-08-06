@@ -36,6 +36,8 @@ class RstreamTestSuite : public testing::Test {
     config_.format = &fmt_;
     config_.buffer_frames = 4096;
     config_.cb_threshold = 2048;
+    config_.client_shm_size = 0;
+    config_.client_shm_fd = -1;
 
     // Create a socket pair because it will be used in rstream.
     rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);

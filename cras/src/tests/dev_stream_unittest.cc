@@ -185,6 +185,7 @@ class CreateSuite : public testing::Test {
   void SetupShm(struct cras_audio_shm** shm_out) {
     int16_t* buf;
     struct cras_audio_shm* shm;
+    uint32_t used_size;
 
     shm = static_cast<struct cras_audio_shm*>(
         calloc(1, sizeof(struct cras_audio_shm)));
@@ -192,10 +193,12 @@ class CreateSuite : public testing::Test {
     shm->header = static_cast<struct cras_audio_shm_header*>(
         calloc(1, sizeof(struct cras_audio_shm_header)));
     cras_shm_set_frame_bytes(shm, 4);
-    cras_shm_set_used_size(shm, kBufferFrames * cras_shm_frame_bytes(shm));
+    used_size = kBufferFrames * cras_shm_frame_bytes(shm);
+    cras_shm_set_used_size(shm, used_size);
 
-    shm->samples = static_cast<uint8_t*>(calloc(1, cras_shm_samples_size(shm)));
-    shm->samples_info.length = cras_shm_samples_size(shm);
+    shm->samples = static_cast<uint8_t*>(
+        calloc(1, cras_shm_calculate_samples_size(used_size)));
+    shm->samples_info.length = cras_shm_calculate_samples_size(used_size);
 
     buf = (int16_t*)shm->samples;
     for (size_t i = 0; i < kBufferFrames * 2; i++)

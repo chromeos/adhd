@@ -581,7 +581,7 @@ static inline unsigned cras_shm_used_frames(const struct cras_audio_shm *shm)
 /* Returns the size of the samples shm region. */
 static inline unsigned cras_shm_samples_size(const struct cras_audio_shm *shm)
 {
-	return cras_shm_used_size(shm) * CRAS_NUM_SHM_BUFFERS;
+	return shm->samples_info.length;
 }
 
 /* Gets the counter of over-runs. */

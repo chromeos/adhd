@@ -28,7 +28,8 @@ void rclient_destroy(struct cras_rclient *client);
 /* Fill cras_rstream_config with given rclient parameters */
 void rclient_fill_cras_rstream_config(
 	struct cras_rclient *client, const struct cras_connect_message *msg,
-	int aud_fd, const struct cras_audio_format *remote_format,
+	int aud_fd, int client_shm_fd,
+	const struct cras_audio_format *remote_format,
 	struct cras_rstream_config *stream_config);
 
 /*
@@ -56,5 +57,8 @@ convert_connect_message_old(const struct cras_server_message *msg,
 	cmsg->client_shm_size = 0;
 	return 0;
 }
+
+int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
+					size_t client_shm_size);
 
 #endif /* CRAS_RCLIENT_UTIL_H_ */

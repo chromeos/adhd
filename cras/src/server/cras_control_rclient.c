@@ -29,7 +29,7 @@
 /* Handles a message from the client to connect a new stream */
 static int handle_client_stream_connect(struct cras_rclient *client,
 					const struct cras_connect_message *msg,
-					int aud_fd)
+					int aud_fd, int client_shm_fd)
 {
 	struct cras_rstream *stream;
 	struct cras_client_stream_connected stream_connected;
@@ -41,19 +41,20 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
-	/* check the aud_fd is valid. */
-	if (aud_fd < 0) {
-		syslog(LOG_ERR, "Invalid fd in stream connect.\n");
-		rc = -EBADF;
-		goto reply_err;
-	}
+	rc = rclient_validate_stream_connect_fds(aud_fd, client_shm_fd,
+						 msg->client_shm_size);
+	if (rc)
+		goto close_shm_fd;
+
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
 
-	rclient_fill_cras_rstream_config(client, msg, aud_fd, &remote_fmt,
-					 &stream_config);
+	rclient_fill_cras_rstream_config(client, msg, aud_fd, client_shm_fd,
+					 &remote_fmt, &stream_config);
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
 			     &stream);
+	if (client_shm_fd >= 0)
+		close(client_shm_fd);
 	if (rc)
 		goto reply_err;
 
@@ -71,6 +72,8 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		goto reply_err;
 
 	stream_fds[0] = header_fd;
+	/* If we're using client-provided shm, samples_fd here refers to the
+	 * same shm area as client_shm_fd */
 	stream_fds[1] = samples_fd;
 
 	rc = client->ops->send_message_to_client(client, reply, stream_fds, 2);
@@ -86,6 +89,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	return 0;
 
+close_shm_fd:
+	if (client_shm_fd >= 0)
+		close(client_shm_fd);
 reply_err:
 	/* Send the error code to the client. */
 	cras_fill_client_stream_connected(&stream_connected, rc, msg->stream_id,
@@ -350,10 +356,10 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 {
 	assert(client && msg);
 
-	/* No message needs more than 1 fd. */
-	if (num_fds > 1) {
+	/* No message needs more than 2 fds. */
+	if (num_fds > 2) {
 		syslog(LOG_ERR,
-		       "Message %d should not have more than 1 fd attached.",
+		       "Message %d should not have more than 2 fds attached.",
 		       msg->id);
 		for (int i = 0; i < num_fds; i++)
 			if (fds[i] >= 0)
@@ -383,13 +389,16 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM: {
+		int client_shm_fd = num_fds > 1 ? fds[1] : -1;
 		struct cras_connect_message cmsg;
 		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
 			return handle_client_stream_connect(
 				client,
-				(const struct cras_connect_message *)msg, fd);
+				(const struct cras_connect_message *)msg, fd,
+				client_shm_fd);
 		} else if (!convert_connect_message_old(msg, &cmsg)) {
-			return handle_client_stream_connect(client, &cmsg, fd);
+			return handle_client_stream_connect(client, &cmsg, fd,
+							    client_shm_fd);
 		} else {
 			return -EINVAL;
 		}

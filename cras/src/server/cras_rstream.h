@@ -102,6 +102,8 @@ struct cras_rstream {
  *    buffer_frames - Total number of audio frames to buffer.
  *    cb_threshold - # of frames when to request more from the client.
  *    audio_fd - The fd to read/write audio signals to.
+ *    client_shm_fd - The shm fd to use to back the samples area. May be -1.
+ *    client_shm_size - The size of shm area backed by client_shm_fd.
  *    client - The client that owns this stream.
  */
 struct cras_rstream_config {
@@ -116,6 +118,8 @@ struct cras_rstream_config {
 	size_t buffer_frames;
 	size_t cb_threshold;
 	int audio_fd;
+	int client_shm_fd;
+	size_t client_shm_size;
 	struct cras_rclient *client;
 };
 
