@@ -35,7 +35,7 @@ struct cras_rclient {
 struct cras_rclient_ops {
 	int (*handle_message_from_client)(struct cras_rclient *,
 					  const struct cras_server_message *,
-					  int fd);
+					  int *fds, unsigned int num_fds);
 	int (*send_message_to_client)(const struct cras_rclient *,
 				      const struct cras_client_message *,
 				      int *fds, unsigned int num_fds);
@@ -63,13 +63,14 @@ void cras_rclient_destroy(struct cras_rclient *client);
  *    buf - The raw byte buffer the client sent. It should contain a valid
  *      cras_server_message.
  *    buf_len - The length of |buf|.
- *    fd - The file descriptor that was sent by the remote client (or -1 if no
- *         file descriptor was sent).
+ *    fds - Array of valid file descriptors sent by the remote client.
+ *    num_fds - Length of |fds|.
  * Returns:
  *    0 on success, otherwise a negative error code.
  */
 int cras_rclient_buffer_from_client(struct cras_rclient *client,
-				    const uint8_t *buf, size_t buf_len, int fd);
+				    const uint8_t *buf, size_t buf_len,
+				    int *fds, int num_fds);
 
 /* Sends a message to the client.
  * Args:

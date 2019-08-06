@@ -162,10 +162,12 @@ int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
 			size_t fd_size = cmsg->cmsg_len - sizeof(*cmsg);
 			*num_fds = MIN(*num_fds, fd_size / sizeof(*fd));
 			memcpy(fd, CMSG_DATA(cmsg), *num_fds * sizeof(*fd));
-			break;
+			goto exit;
 		}
 	}
 
+	// If we reach here, we did not find any file descriptors.
+	*num_fds = 0;
 exit:
 	free(control);
 	return rc;

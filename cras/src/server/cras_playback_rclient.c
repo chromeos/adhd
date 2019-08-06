@@ -126,11 +126,24 @@ static int handle_client_stream_disconnect(
  * server context. */
 static int cpr_handle_message_from_client(struct cras_rclient *client,
 					  const struct cras_server_message *msg,
-					  int fd)
+					  int *fds, unsigned int num_fds)
 {
 	struct cras_connect_message cmsg;
 	int rc = 0;
 	assert(client && msg);
+
+	/* No message needs more than 1 fd. */
+	if (num_fds > 1) {
+		syslog(LOG_ERR,
+		       "Message %d should not have more than 1 fd attached.",
+		       msg->id);
+		for (int i = 0; i < num_fds; i++)
+			if (fds[i] >= 0)
+				close(fds[i]);
+		return -EINVAL;
+	}
+
+	int fd = num_fds > 0 ? fds[0] : -1;
 
 	/* Most messages should not have a file descriptor. */
 	switch (msg->id) {

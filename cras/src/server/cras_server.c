@@ -128,19 +128,21 @@ static void handle_message_from_client(struct attached_client *client)
 {
 	uint8_t buf[CRAS_SERV_MAX_MSG_SIZE];
 	int nread;
-	int fd;
-	unsigned int num_fds = 1;
+	unsigned int num_fds = 2;
+	int fds[num_fds];
 
-	nread = cras_recv_with_fds(client->fd, buf, sizeof(buf), &fd, &num_fds);
+	nread = cras_recv_with_fds(client->fd, buf, sizeof(buf), fds, &num_fds);
 	if (nread < 0)
 		goto read_error;
-	if (cras_rclient_buffer_from_client(client->client, buf, nread, fd) < 0)
+	if (cras_rclient_buffer_from_client(client->client, buf, nread, fds,
+					    num_fds) < 0)
 		goto read_error;
 	return;
 
 read_error:
-	if (fd != -1)
-		close(fd);
+	for (int i = 0; i < num_fds; i++)
+		if (fds[i] >= 0)
+			close(fds[i]);
 	switch (nread) {
 	case 0:
 		break;

@@ -89,6 +89,7 @@ class CPRMessageSuite : public testing::Test {
 
   struct cras_rclient* rclient_;
   int pipe_fds_[2];
+  int fd_;
 };
 
 TEST_F(CPRMessageSuite, StreamConnectMessage) {
@@ -108,7 +109,8 @@ TEST_F(CPRMessageSuite, StreamConnectMessage) {
                             NO_DEVICE);
   ASSERT_EQ(stream_id, msg.stream_id);
 
-  rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
+  fd_ = 100;
+  rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(1, cras_make_fd_nonblocking_called);
   EXPECT_EQ(1, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
@@ -135,7 +137,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
                             NO_DEVICE);
   ASSERT_EQ(stream_id, msg.stream_id);
 
-  rc = rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
+  fd_ = 100;
+  rc =
+      rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(-EINVAL, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
   EXPECT_EQ(0, stream_list_add_called);
@@ -164,7 +168,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
                             NO_DEVICE);
   ASSERT_EQ(stream_id, msg.stream_id);
 
-  rc = rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
+  fd_ = 100;
+  rc =
+      rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(-EINVAL, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
   EXPECT_EQ(0, stream_list_add_called);
@@ -219,7 +225,7 @@ TEST_F(CPRMessageSuite, StreamDisconnectMessage) {
   cras_stream_id_t stream_id = 0x10002;
   cras_fill_disconnect_stream_message(&msg, stream_id);
 
-  rclient_->ops->handle_message_from_client(rclient_, &msg.header, -1);
+  rclient_->ops->handle_message_from_client(rclient_, &msg.header, NULL, 0);
   EXPECT_EQ(0, stream_list_add_called);
   EXPECT_EQ(1, stream_list_rm_called);
 }
@@ -229,7 +235,7 @@ TEST_F(CPRMessageSuite, StreamDisconnectMessageInvalidClientId) {
   cras_stream_id_t stream_id = 0x20002;  // stream_id with invalid client_id
   cras_fill_disconnect_stream_message(&msg, stream_id);
 
-  rclient_->ops->handle_message_from_client(rclient_, &msg.header, -1);
+  rclient_->ops->handle_message_from_client(rclient_, &msg.header, NULL, 0);
   EXPECT_EQ(0, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
 }
