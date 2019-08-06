@@ -8,3 +8,4 @@ edition = "2018"
 audio_streams = { path = "../../../audio_streams" } # provided by ebuild
 getopts = "0.2.18"
 libcras = { path = "../libcras" } # provided by ebuild
+sys_util = { path = "../../../../../platform/crosvm/sys_util" } # provided by ebuild

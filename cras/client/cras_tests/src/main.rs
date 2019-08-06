@@ -4,12 +4,22 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::thread::spawn;
+use sys_util::{set_rt_prio_limit, set_rt_round_robin};
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 use getopts::Options;
 
 use audio_streams::StreamSource;
 use libcras::CrasClient;
+
+fn set_priority_to_realtime() {
+    const AUDIO_THREAD_RTPRIO: u16 = 10;
+    if set_rt_prio_limit(AUDIO_THREAD_RTPRIO as u64).is_err()
+        || set_rt_round_robin(AUDIO_THREAD_RTPRIO as i32).is_err()
+    {
+        println!("Attempt to use real-time priority failed, running with default scheduler.");
+    }
+}
 
 fn show_subcommand_usage(program_name: &str, subcommand: &str, opts: &Options) {
     let brief = format!("Usage: {} {} [options]", program_name, subcommand);
@@ -51,6 +61,7 @@ fn playback(args: &[String]) -> Result<()> {
 
     let mut file = File::open(&file_name).unwrap();
     let thread = spawn(move || {
+        set_priority_to_realtime();
         // Play samples from a file
         let mut local_buffer = vec![0u8; buffer_size * num_channels * 2];
         loop {
