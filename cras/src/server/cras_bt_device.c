@@ -762,9 +762,9 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				dbus_message_iter_get_basic(&uuid_array_iter,
 							    &uuid);
 
-				has_new_audio_profile =
-					cras_bt_device_add_supported_profiles(
-						device, uuid);
+				if (cras_bt_device_add_supported_profiles(
+						device, uuid))
+					has_new_audio_profile = 1;
 
 				dbus_message_iter_next(&uuid_array_iter);
 			}
