@@ -1144,7 +1144,13 @@ void cras_iodev_list_resume_dev(unsigned int dev_idx)
 
 	dev->update_active_node(dev, dev->active_node->idx, 1);
 	rc = init_and_attach_streams(dev);
-	if (rc < 0) {
+	if (rc == 0) {
+		/* If dev initialize succeeded and this is not a pinned device,
+		 * disable the silent fallback device because it's just
+		 * unnecessary. */
+		if (!stream_list_has_pinned_stream(stream_list, dev_idx))
+			possibly_disable_fallback(dev->direction);
+	} else {
 		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
 		schedule_init_device_retry(dev);
 	}
