@@ -8,6 +8,7 @@ use std::os::unix::{
     io::{AsRawFd, RawFd},
     net::UnixStream,
 };
+use std::time::Duration;
 
 use cras_sys::gen::{audio_message, CRAS_AUDIO_MESSAGE_ID};
 use data_model::DataInit;
@@ -94,6 +95,25 @@ impl AudioSocket {
     /// # Errors
     /// Returns io::Error if error occurs.
     pub fn read_audio_message(&mut self) -> io::Result<AudioMessage> {
+        match self.read_audio_message_with_timeout(None)? {
+            None => Err(io::Error::new(io::ErrorKind::Other, "Unexpected exit")),
+            Some(message) => Ok(message),
+        }
+    }
+
+    /// Blocks waiting for an `audio message` until `timeout` occurs. If `timeout`
+    /// is None, blocks indefinitely.
+    ///
+    /// # Returns
+    /// Some(AudioMessage) - AudioMessage enum if we receive a message before timeout.
+    /// None - If the timeout expires.
+    ///
+    /// # Errors
+    /// Returns io::Error if error occurs.
+    pub fn read_audio_message_with_timeout(
+        &mut self,
+        timeout: Option<Duration>,
+    ) -> io::Result<Option<AudioMessage>> {
         #[derive(PollToken)]
         enum Token {
             AudioMsg,
@@ -109,7 +129,11 @@ impl AudioSocket {
                 }
             };
         let events = {
-            match poll_ctx.wait() {
+            let result = match timeout {
+                None => poll_ctx.wait(),
+                Some(duration) => poll_ctx.wait_timeout(duration),
+            };
+            match result {
                 Ok(v) => v,
                 Err(e) => {
                     return Err(io::Error::new(
@@ -123,10 +147,10 @@ impl AudioSocket {
         // Check the first readable message
         let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
         match tokens.get(0) {
-            None => Err(io::Error::new(io::ErrorKind::Other, "Unexpected exit")),
+            None => Ok(None),
             Some(&Token::AudioMsg) => {
                 let raw_msg: audio_message = self.read_from_socket()?;
-                Ok(AudioMessage::from(raw_msg))
+                Ok(Some(AudioMessage::from(raw_msg)))
             }
         }
     }
