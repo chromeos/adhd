@@ -1898,8 +1898,9 @@ static unsigned int get_num_severe_underruns(const struct cras_iodev *iodev)
 
 static void set_default_hotword_model(struct cras_iodev *iodev)
 {
-	const char *default_model = "en_us";
+	const char *default_models[] = { "en_all", "en_us" };
 	cras_node_id_t node_id;
+	int i;
 
 	if (!iodev->active_node ||
 	    iodev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
@@ -1907,7 +1908,10 @@ static void set_default_hotword_model(struct cras_iodev *iodev)
 
 	node_id = cras_make_node_id(iodev->info.idx, iodev->active_node->idx);
 	/* This is a no-op if the default_model is not supported */
-	cras_iodev_list_set_hotword_model(node_id, default_model);
+	for (i = 0; i < ARRAY_SIZE(default_models); ++i)
+		if (!cras_iodev_list_set_hotword_model(node_id,
+						       default_models[i]))
+			return;
 }
 
 static int get_valid_frames(const struct cras_iodev *odev,
