@@ -66,6 +66,11 @@ static int effect_vad = 0;
 static char *aecdump_file = NULL;
 static char time_str[128];
 
+/* Sleep interval between cras_client_read_atlog calls. */
+static const struct timespec follow_atlog_sleep_ts = {
+	0, 50 * 1000 * 1000 /* 50 ms. */
+};
+
 /* Conditional so the client thread can signal that main should exit. */
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
@@ -1417,10 +1422,14 @@ static void mute_loop_test(struct cras_client *client, int auto_reconnect)
 }
 
 static void show_atlog(time_t sec_offset, int32_t nsec_offset,
-		       struct audio_thread_event_log *log, int len)
+		       struct audio_thread_event_log *log, int len,
+		       uint64_t missing)
 {
 	int i;
 	printf("Audio Thread Event Log:\n");
+
+	if (missing)
+		printf("%" PRIu64 " logs are missing.\n", missing);
 
 	for (i = 0; i < len; ++i) {
 		show_alog_tag(log, i, sec_offset, nsec_offset);
@@ -1434,12 +1443,13 @@ static void unlock_main_thread(struct cras_client *client)
 	pthread_mutex_unlock(&done_mutex);
 }
 
-static void cras_show_atlog(struct cras_client *client)
+static void cras_show_continuous_atlog(struct cras_client *client)
 {
 	struct audio_thread_event_log log;
 	struct timespec wait_time;
 	static time_t sec_offset;
 	static int32_t nsec_offset;
+	static uint64_t atlog_read_idx = 0, missing;
 	int len, rc;
 
 	cras_client_run_thread(client);
@@ -1453,20 +1463,23 @@ static void cras_show_atlog(struct cras_client *client)
 	rc = pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
 	pthread_mutex_unlock(&done_mutex);
 
+	if (rc)
+		goto fail;
+
 	fill_time_offset(&sec_offset, &nsec_offset);
-	if (rc) {
-		printf("Failed to get audio thread log.\n");
-		return;
+
+	while (1) {
+		len = cras_client_read_atlog(client, &atlog_read_idx, &missing,
+					     &log);
+
+		if (len < 0)
+			break;
+		if (len > 0)
+			show_atlog(sec_offset, nsec_offset, &log, len, missing);
+		nanosleep(&follow_atlog_sleep_ts, NULL);
 	}
-
-	len = cras_client_read_atlog(client, &log);
-
-	if (len < 0)
-		printf("Failed to get audio thread log.\n");
-	else if (len > 0)
-		show_atlog(sec_offset, nsec_offset, &log, len);
-	else
-		printf("No new logs.\n");
+fail:
+	printf("Failed to get audio thread log.\n");
 }
 
 // clang-format off
@@ -1524,7 +1537,7 @@ static struct option long_options[] = {
 	{"aecdump",             required_argument,      0, 'G'},
 	{"dump_bt",             no_argument,            0, 'H'},
 	{"set_wbs_enabled",     required_argument,      0, 'I'},
-	{"dump_atlog",		no_argument,		0, 'J'},
+	{"follow_atlog",	no_argument,		0, 'J'},
 	{"loopback_file",       required_argument,      0, 'L'},
 	{"mute_loop_test",      required_argument,      0, 'M'},
 	{"playback_file",       required_argument,      0, 'P'},
@@ -1557,8 +1570,6 @@ static void show_usage()
 	       "Set multiple channel layout.\n");
 	printf("--check_output_plugged <output name> - "
 	       "Check if the output is plugged in\n");
-	printf("--dump_atlog - "
-	       "Dumps audio thread event log.\n");
 	printf("--dump_audio_thread - "
 	       "Dumps audio thread info.\n");
 	printf("--dump_bt - "
@@ -1569,6 +1580,8 @@ static void show_usage()
 	       "Print status of the server.\n");
 	printf("--duration_seconds <N> - "
 	       "Seconds to record or playback.\n");
+	printf("--follow_atlog - "
+	       "Continuously dumps audio thread event log.\n");
 	printf("--format <name> - "
 	       "The sample format. Either ");
 	for (i = 0; supported_formats[i].name; ++i)
@@ -2043,7 +2056,7 @@ int main(int argc, char **argv)
 			cras_client_set_bt_wbs_enabled(client, atoi(optarg));
 			break;
 		case 'J':
-			cras_show_atlog(client);
+			cras_show_continuous_atlog(client);
 			break;
 		case 'L':
 			loopback_file = optarg;

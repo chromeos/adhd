@@ -517,15 +517,20 @@ int cras_client_update_bt_debug_info(struct cras_client *client,
 int cras_client_get_atlog_access(struct cras_client *client,
 				 void (*atlog_access_cb)(struct cras_client *));
 
-/* Reads continuous audio thread log into 'buf'. Requires calling
- * cras_client_get_atlog_access() beforehand to get access to audio thread log.
+/* Reads continuous audio thread log into 'buf', starting from 'read_idx'-th log
+ * till the latest. The number of missing logs within the range will be stored
+ * in 'missing'. Requires calling cras_client_get_atlog_access() beforehand
+ * to get access to audio thread log.
  * Args:
  *    client - The client from cras_client_create.
+ *    read_idx - The log number to start reading with.
+ *    missing - The pointer to store the number of missing logs.
  *    buf - The buffer to which continuous logs will be copied.
  * Returns:
  *    The number of logs copied. < 0 if failed to read audio thread log.
  */
-int cras_client_read_atlog(struct cras_client *client,
+int cras_client_read_atlog(struct cras_client *client, uint64_t *read_idx,
+			   uint64_t *missing,
 			   struct audio_thread_event_log *buf);
 
 /* Asks the server to dump current audio thread snapshots.

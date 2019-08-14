@@ -3139,11 +3139,12 @@ int cras_client_get_atlog_access(struct cras_client *client,
 	return write_message_to_server(client, &msg.header);
 }
 
-int cras_client_read_atlog(struct cras_client *client,
+int cras_client_read_atlog(struct cras_client *client, uint64_t *read_idx,
+			   uint64_t *missing,
 			   struct audio_thread_event_log *buf)
 {
 	struct audio_thread_event_log log;
-	uint64_t i, sync_write_pos, len = 0, read_idx = 0;
+	uint64_t i, sync_write_pos, len = 0;
 	struct timespec timestamp, last_timestamp;
 
 	if (!client->atlog_ro)
@@ -3153,17 +3154,20 @@ int cras_client_read_atlog(struct cras_client *client,
 	__sync_synchronize();
 	memcpy(&log, client->atlog_ro, sizeof(log));
 
-	if (sync_write_pos == 0)
+	if (sync_write_pos <= *read_idx)
 		return 0;
 
-	for (i = sync_write_pos - 1; i >= 0; --i) {
+	*missing = 0;
+	for (i = sync_write_pos - 1; i >= *read_idx; --i) {
 		uint64_t pos = i % log.len;
 		timestamp.tv_sec = log.log[pos].tag_sec & 0x00ffffff;
 		timestamp.tv_nsec = log.log[pos].nsec;
 
 		if (i != sync_write_pos - 1 &&
 		    timespec_after(&timestamp, &last_timestamp)) {
-			read_idx = i + 1;
+			if (*read_idx)
+				*missing = i - *read_idx + 1;
+			*read_idx = i + 1;
 			break;
 		}
 		last_timestamp = timestamp;
@@ -3173,19 +3177,21 @@ int cras_client_read_atlog(struct cras_client *client,
 	}
 
 	/* Copies the continuous part of log. */
-	if ((sync_write_pos - 1) % log.len < read_idx % log.len) {
-		len = log.len - read_idx % log.len;
-		memcpy(buf->log, &log.log[read_idx % log.len],
+	if ((sync_write_pos - 1) % log.len < *read_idx % log.len) {
+		len = log.len - *read_idx % log.len;
+		memcpy(buf->log, &log.log[*read_idx % log.len],
 		       sizeof(struct audio_thread_event) * len);
 		memcpy(&buf->log[len], log.log,
 		       sizeof(struct audio_thread_event) *
 			       ((sync_write_pos - 1) % log.len + 1));
-		len = sync_write_pos - read_idx;
+		len = sync_write_pos - *read_idx;
 	} else {
-		len = sync_write_pos - read_idx;
-		memcpy(buf->log, &log.log[read_idx % log.len],
+		len = sync_write_pos - *read_idx;
+		memcpy(buf->log, &log.log[*read_idx % log.len],
 		       sizeof(struct audio_thread_event) * len);
 	}
+
+	*read_idx = sync_write_pos;
 	return len;
 }
 
