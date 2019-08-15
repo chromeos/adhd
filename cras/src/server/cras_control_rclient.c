@@ -389,7 +389,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 			handle_client_stream_connect(
 				client,
 				(const struct cras_connect_message *)msg, fd);
-		} else if (convert_connect_message_old(msg, &cmsg)) {
+		} else if (!convert_connect_message_old(msg, &cmsg)) {
 			handle_client_stream_connect(client, &cmsg, fd);
 		} else {
 			return -EINVAL;
