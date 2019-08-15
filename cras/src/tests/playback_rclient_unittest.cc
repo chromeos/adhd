@@ -210,7 +210,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
   msg.header.id = CRAS_SERVER_CONNECT_STREAM;
   msg.header.length = sizeof(struct cras_connect_message_old);
 
-  rclient_->ops->handle_message_from_client(rclient_, &msg.header, 100);
+  fd_ = 100;
+  rc =
+      rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(1, cras_make_fd_nonblocking_called);
   EXPECT_EQ(1, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
