@@ -1,4 +1,4 @@
-/* Copyright 2017 The Chromium Authors. All rights reserved.
+/* Copyright 2017 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -19,7 +19,7 @@ extern "C" {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   cras_rclient *client = cras_control_rclient_create(0, 0);
-  cras_rclient_buffer_from_client(client, data, size, -1);
+  cras_rclient_buffer_from_client(client, data, size, NULL, 0);
   cras_rclient_destroy(client);
 
   return 0;
