@@ -26,42 +26,60 @@ fn show_subcommand_usage(program_name: &str, subcommand: &str, opts: &Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn playback(args: &[String]) -> Result<()> {
-    let mut opts = Options::new();
-    opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
-        .optopt("c", "", "Number of channels", "NUM")
-        .optopt("f", "file", "Path to playback file", "FILE")
-        .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
-        .optflag("h", "help", "Print help message");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(e) => {
-            show_subcommand_usage(&args[0], &args[1], &opts);
-            return Err(Box::new(e));
-        }
-    };
-    if matches.opt_present("h") {
-        show_subcommand_usage(&args[0], &args[1], &opts);
-        return Ok(());
-    }
-    let file_name = match matches.opt_str("f") {
-        None => {
-            println!("Must input playback file name.");
-            show_subcommand_usage(&args[0], &args[1], &opts);
-            return Ok(());
-        }
-        Some(file_name) => file_name,
-    };
-    let buffer_size = matches.opt_get_default::<usize>("b", 256)?;
-    let num_channels = matches.opt_get_default::<usize>("c", 2)?;
-    let frame_rate = matches.opt_get_default::<usize>("r", 48000)?;
+struct AudioOptions {
+    file_name: String,
+    buffer_size: usize,
+    num_channels: usize,
+    frame_rate: usize,
+}
 
-    let file = File::open(&file_name).expect("failed to open file");
+impl AudioOptions {
+    pub fn parse_from_args(args: &[String]) -> Result<Option<Self>> {
+        let mut opts = Options::new();
+        opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
+            .optopt("c", "", "Number of channels", "NUM")
+            .optopt("f", "file", "Path to playback file", "FILE")
+            .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
+            .optflag("h", "help", "Print help message");
+        let matches = match opts.parse(&args[1..]) {
+            Ok(m) => m,
+            Err(e) => {
+                show_subcommand_usage(&args[0], &args[1], &opts);
+                return Err(Box::new(e));
+            }
+        };
+        if matches.opt_present("h") {
+            show_subcommand_usage(&args[0], &args[1], &opts);
+            return Ok(None);
+        }
+        let file_name = match matches.opt_str("f") {
+            None => {
+                println!("Must input playback file name.");
+                show_subcommand_usage(&args[0], &args[1], &opts);
+                return Ok(None);
+            }
+            Some(file_name) => file_name,
+        };
+        let buffer_size = matches.opt_get_default::<usize>("b", 256)?;
+        let num_channels = matches.opt_get_default::<usize>("c", 2)?;
+        let frame_rate = matches.opt_get_default::<usize>("r", 48000)?;
+
+        Ok(Some(AudioOptions {
+            file_name,
+            buffer_size,
+            num_channels,
+            frame_rate,
+        }))
+    }
+}
+
+fn playback(opts: AudioOptions) -> Result<()> {
+    let file = File::open(&opts.file_name).expect("failed to open file");
     let mut buffered_file = BufReader::new(file);
 
     let mut cras_client = CrasClient::new()?;
     let (_control, mut stream) =
-        cras_client.new_playback_stream(num_channels, frame_rate, buffer_size)?;
+        cras_client.new_playback_stream(opts.num_channels, opts.frame_rate, opts.buffer_size)?;
     let thread = spawn(move || {
         set_priority_to_realtime();
         loop {
@@ -94,41 +112,12 @@ fn playback(args: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn capture(args: &[String]) -> Result<()> {
-    let mut opts = Options::new();
-    opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
-        .optopt("c", "", "Number of channels", "NUM")
-        .optopt("f", "file", "Path to capture file", "FILE")
-        .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
-        .optflag("h", "help", "Print help message");
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(e) => {
-            show_subcommand_usage(&args[0], &args[1], &opts);
-            return Err(Box::new(e));
-        }
-    };
-    if matches.opt_present("h") {
-        show_subcommand_usage(&args[0], &args[1], &opts);
-        return Ok(());
-    }
-    let file_name = match matches.opt_str("f") {
-        None => {
-            println!("Must input capture file name.");
-            show_subcommand_usage(&args[0], &args[1], &opts);
-            return Ok(());
-        }
-        Some(file_name) => file_name,
-    };
-    let buffer_size = matches.opt_get_default::<usize>("b", 256)?;
-    let num_channels = matches.opt_get_default::<usize>("c", 2)?;
-    let frame_rate = matches.opt_get_default::<usize>("r", 48000)?;
-
+fn capture(opts: AudioOptions) -> Result<()> {
     let mut cras_client = CrasClient::new()?;
     cras_client.enable_cras_capture();
     let (_control, mut stream) =
-        cras_client.new_capture_stream(num_channels, frame_rate, buffer_size)?;
-    let mut file = File::create(&file_name).unwrap();
+        cras_client.new_capture_stream(opts.num_channels, opts.frame_rate, opts.buffer_size)?;
+    let mut file = File::create(&opts.file_name).unwrap();
     loop {
         let _frames = match stream.next_capture_buffer() {
             Err(e) => {
@@ -161,10 +150,19 @@ fn main() -> Result<()> {
         )));
     }
 
+    if args[1] == "help" {
+        show_usage(&args[0]);
+        return Ok(());
+    }
+
+    let opts = match AudioOptions::parse_from_args(&args[1..])? {
+        None => return Ok(()),
+        Some(v) => v,
+    };
+
     match args[1].as_ref() {
-        "capture" => capture(&args)?,
-        "playback" => playback(&args)?,
-        "help" => show_usage(&args[0]),
+        "capture" => capture(opts)?,
+        "playback" => playback(opts)?,
         subcommand => {
             println!("Subcommand \"{}\" does not exist.", subcommand);
             show_usage(&args[0]);
