@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <sys/mman.h>
 #include <sys/param.h>
 
 #include "cras_types.h"
@@ -142,10 +143,12 @@ struct cras_audio_shm {
  *               The samples_info parameter will be returned to an
  *               uninitialized state, and the client need not call
  *               cras_shm_info_destroy.
+ * samples_prot - the mapping protections to use when mapping samples. Allowed
+ *                values are PROT_READ or PROT_WRITE.
  * shm_out - pointer where the created cras_audio_shm will be stored.
  */
 int cras_audio_shm_create(struct cras_shm_info *header_info,
-			  struct cras_shm_info *samples_info,
+			  struct cras_shm_info *samples_info, int samples_prot,
 			  struct cras_audio_shm **shm_out);
 
 /* Destroys a cras_audio_shm returned from cras_audio_shm_create.

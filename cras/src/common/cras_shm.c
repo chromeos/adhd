@@ -88,7 +88,7 @@ void cras_shm_info_cleanup(struct cras_shm_info *info)
 }
 
 int cras_audio_shm_create(struct cras_shm_info *header_info,
-			  struct cras_shm_info *samples_info,
+			  struct cras_shm_info *samples_info, int samples_prot,
 			  struct cras_audio_shm **shm_out)
 {
 	struct cras_audio_shm *shm;
@@ -96,6 +96,13 @@ int cras_audio_shm_create(struct cras_shm_info *header_info,
 
 	if (!header_info || !samples_info || !shm_out) {
 		ret = -EINVAL;
+		goto cleanup_info;
+	}
+
+	if (samples_prot != PROT_READ && samples_prot != PROT_WRITE) {
+		ret = -EINVAL;
+		syslog(LOG_ERR,
+		       "cras_shm: samples must be mapped read or write only");
 		goto cleanup_info;
 	}
 
@@ -131,7 +138,7 @@ int cras_audio_shm_create(struct cras_shm_info *header_info,
 		goto free_shm;
 	}
 
-	shm->samples = mmap(NULL, samples_info->length, PROT_READ | PROT_WRITE,
+	shm->samples = mmap(NULL, samples_info->length, samples_prot,
 			    MAP_SHARED, samples_info->fd, 0);
 	if (shm->samples == (uint8_t *)-1) {
 		ret = errno;

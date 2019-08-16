@@ -1388,7 +1388,7 @@ static int stream_connected(struct client_stream *stream,
 			    const struct cras_client_stream_connected *msg,
 			    const int stream_fds[2], const unsigned int num_fds)
 {
-	int rc;
+	int rc, samples_prot;
 	unsigned int i;
 	struct cras_audio_format mfmt;
 	struct cras_shm_info header_info, samples_info;
@@ -1414,7 +1414,14 @@ static int stream_connected(struct client_stream *stream,
 		goto err_ret;
 	}
 
-	rc = cras_audio_shm_create(&header_info, &samples_info, &stream->shm);
+	samples_prot = 0;
+	if (stream->direction == CRAS_STREAM_OUTPUT)
+		samples_prot = PROT_WRITE;
+	else
+		samples_prot = PROT_READ;
+
+	rc = cras_audio_shm_create(&header_info, &samples_info, samples_prot,
+				   &stream->shm);
 	if (rc < 0) {
 		syslog(LOG_ERR, "cras_client: Error configuring shm");
 		goto err_ret;

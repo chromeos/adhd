@@ -71,7 +71,14 @@ static inline int setup_shm_area(struct cras_rstream *stream, int client_shm_fd,
 		return rc;
 	}
 
-	rc = cras_audio_shm_create(&header_info, &samples_info, &stream->shm);
+	int samples_prot = 0;
+	if (stream->direction == CRAS_STREAM_OUTPUT)
+		samples_prot = PROT_READ;
+	else
+		samples_prot = PROT_WRITE;
+
+	rc = cras_audio_shm_create(&header_info, &samples_info, samples_prot,
+				   &stream->shm);
 	if (rc)
 		return rc;
 
