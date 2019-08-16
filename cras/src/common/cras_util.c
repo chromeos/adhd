@@ -122,6 +122,8 @@ int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
 	memcpy(CMSG_DATA(cmsg), fd, sizeof(*fd) * num_fds);
 
 	rc = sendmsg(sockfd, &msg, 0);
+	if (rc == -1)
+		rc = -errno;
 	free(control);
 	return rc;
 }
