@@ -26,7 +26,8 @@ int cras_shm_info_init(const char *stream_name, uint32_t length,
 	if (!info_out)
 		return -EINVAL;
 
-	strncpy(info.name, stream_name, sizeof(info.name));
+	strncpy(info.name, stream_name, sizeof(info.name) - 1);
+	info.name[sizeof(info.name) - 1] = '\0';
 	info.length = length;
 	info.fd = cras_shm_open_rw(info.name, info.length);
 	if (info.fd < 0)
