@@ -42,6 +42,13 @@ static const char* dbus_message_new_method_call_method;
 static struct cras_bt_device* cras_a2dp_connected_device_ret;
 static struct cras_bt_device* cras_a2dp_suspend_connected_device_dev;
 
+struct MockDBusMessage {
+  int type;
+  void* value;
+  MockDBusMessage* next;
+  MockDBusMessage* recurse;
+};
+
 void ResetStubData() {
   cras_bt_io_get_profile_ret = NULL;
   cras_bt_io_create_called = 0;
@@ -59,6 +66,28 @@ void ResetStubData() {
   dbus_message_new_method_call_method = NULL;
   dbus_message_new_method_call_called = 0;
   cras_a2dp_connected_device_ret = NULL;
+}
+
+static void FreeMockDBusMessage(MockDBusMessage* head) {
+  if (head->next != NULL)
+    FreeMockDBusMessage(head->next);
+  if (head->recurse != NULL)
+    FreeMockDBusMessage(head->recurse);
+  if (head->type == DBUS_TYPE_STRING)
+    free((char*)head->value);
+  delete head;
+}
+
+static struct MockDBusMessage* NewMockDBusConnectedMessage() {
+  MockDBusMessage* msg = new MockDBusMessage{DBUS_TYPE_ARRAY, NULL};
+  MockDBusMessage* dict =
+      new MockDBusMessage{DBUS_TYPE_STRING, (void*)strdup("Connected")};
+  MockDBusMessage* variant = new MockDBusMessage{DBUS_TYPE_BOOLEAN, (void*)1};
+
+  msg->recurse = dict;
+  dict->next = new MockDBusMessage{DBUS_TYPE_INVALID, NULL};
+  dict->next->recurse = variant;
+  return msg;
 }
 
 namespace {
@@ -179,7 +208,7 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
 
 TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   struct cras_bt_device* device;
-
+  struct MockDBusMessage *msg_root, *cur;
   ResetStubData();
 
   device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
@@ -187,7 +216,8 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
 
   cras_bt_device_add_supported_profiles(device, A2DP_SINK_UUID);
 
-  cras_bt_device_set_connected(device, 1);
+  cur = msg_root = NewMockDBusConnectedMessage();
+  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
@@ -204,10 +234,12 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   EXPECT_EQ(1, cras_a2dp_start_called);
 
   cras_bt_device_remove(device);
+  FreeMockDBusMessage(msg_root);
 }
 
 TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
   struct cras_bt_device* device;
+  struct MockDBusMessage *msg_root, *cur;
 
   ResetStubData();
 
@@ -217,7 +249,8 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
   cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
   cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
 
-  cras_bt_device_set_connected(device, 1);
+  cur = msg_root = NewMockDBusConnectedMessage();
+  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
@@ -235,10 +268,12 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
   EXPECT_EQ(1, cras_hfp_ag_start_called);
 
   cras_bt_device_remove(device);
+  FreeMockDBusMessage(msg_root);
 }
 
 TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   struct cras_bt_device* device;
+  struct MockDBusMessage *msg_root, *cur;
 
   ResetStubData();
 
@@ -249,7 +284,8 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
   cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
 
-  cras_bt_device_set_connected(device, 1);
+  cur = msg_root = NewMockDBusConnectedMessage();
+  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
@@ -275,10 +311,12 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   EXPECT_EQ(1, cras_hfp_ag_start_called);
 
   cras_bt_device_remove(device);
+  FreeMockDBusMessage(msg_root);
 }
 
 TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
   struct cras_bt_device* device;
+  struct MockDBusMessage *msg_root, *cur;
 
   ResetStubData();
 
@@ -289,7 +327,8 @@ TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
   cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
   cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
 
-  cras_bt_device_set_connected(device, 1);
+  cur = msg_root = NewMockDBusConnectedMessage();
+  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   cras_bt_device_audio_gateway_initialized(device);
   cras_bt_device_a2dp_configured(device);
   EXPECT_EQ(1, cras_tm_create_timer_called);
@@ -310,10 +349,12 @@ TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
   EXPECT_EQ(1, cras_hfp_ag_start_called);
 
   cras_bt_device_remove(device);
+  FreeMockDBusMessage(msg_root);
 }
 
 TEST_F(BtDeviceTestSuite, A2dpDropped) {
   struct cras_bt_device* device;
+  struct MockDBusMessage *msg_root, *cur;
 
   ResetStubData();
 
@@ -324,7 +365,8 @@ TEST_F(BtDeviceTestSuite, A2dpDropped) {
   cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
   cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
 
-  cras_bt_device_set_connected(device, 1);
+  cur = msg_root = NewMockDBusConnectedMessage();
+  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
@@ -351,10 +393,12 @@ TEST_F(BtDeviceTestSuite, A2dpDropped) {
   EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
 
   cras_bt_device_remove(device);
+  FreeMockDBusMessage(msg_root);
 }
 
 TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
   struct cras_bt_device* device;
+  struct MockDBusMessage *msg_root, *cur;
 
   ResetStubData();
 
@@ -365,7 +409,8 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
   cras_bt_device_add_supported_profiles(device, HSP_HS_UUID);
   cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
 
-  cras_bt_device_set_connected(device, 1);
+  cur = msg_root = NewMockDBusConnectedMessage();
+  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
@@ -395,6 +440,7 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
   EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
 
   cras_bt_device_remove(device);
+  FreeMockDBusMessage(msg_root);
 }
 
 /* Stubs */
@@ -582,6 +628,44 @@ dbus_bool_t dbus_pending_call_set_notify(DBusPendingCall* pending,
                                          void* user_data,
                                          DBusFreeFunction free_user_data) {
   return true;
+}
+
+void dbus_message_iter_recurse(DBusMessageIter* iter, DBusMessageIter* sub) {
+  MockDBusMessage* msg = *(MockDBusMessage**)iter;
+  MockDBusMessage** cur = (MockDBusMessage**)sub;
+  *cur = msg->recurse;
+}
+
+dbus_bool_t dbus_message_iter_next(DBusMessageIter* iter) {
+  MockDBusMessage** cur = (MockDBusMessage**)iter;
+  MockDBusMessage* msg = *cur;
+  *cur = msg->next;
+  return true;
+}
+
+int dbus_message_iter_get_arg_type(DBusMessageIter* iter) {
+  MockDBusMessage* msg;
+
+  if (iter == NULL)
+    return DBUS_TYPE_INVALID;
+
+  msg = *(MockDBusMessage**)iter;
+  if (msg == NULL)
+    return DBUS_TYPE_INVALID;
+
+  return msg->type;
+}
+
+void dbus_message_iter_get_basic(DBusMessageIter* iter, void* value) {
+  MockDBusMessage* msg = *(MockDBusMessage**)iter;
+  switch (msg->type) {
+    case DBUS_TYPE_BOOLEAN:
+      memcpy(value, &msg->value, sizeof(int));
+      break;
+    case DBUS_TYPE_STRING:
+      memcpy(value, &msg->value, sizeof(char*));
+      break;
+  }
 }
 
 }  // extern "C"

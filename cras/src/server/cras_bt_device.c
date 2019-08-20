@@ -54,6 +54,11 @@ static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
 static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
 static const unsigned int PROFILE_CONN_RETRIES = 3;
 
+static const unsigned int CRAS_SUPPORTED_PROFILES =
+	CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
+	CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
+	CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+
 /* Object to represent a general bluetooth device, and used to
  * associate with some CRAS modules if it supports audio.
  * Members:
@@ -635,9 +640,7 @@ void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 
 	device->connected = value;
 
-	if (device->connected) {
-		cras_bt_device_start_new_conn_watch_timer(device);
-	} else if (device->conn_watch_timer) {
+	if (!device->connected && device->conn_watch_timer) {
 		cras_tm_cancel_timer(tm, device->conn_watch_timer);
 		device->conn_watch_timer = NULL;
 	}
@@ -668,11 +671,6 @@ void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
 int cras_bt_device_add_supported_profiles(struct cras_bt_device *device,
 					  const char *uuid)
 {
-	static unsigned int audio_profiles =
-		CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-		CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
-		CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
-
 	enum cras_bt_device_profile profile =
 		cras_bt_device_profile_from_uuid(uuid);
 
@@ -685,21 +683,20 @@ int cras_bt_device_add_supported_profiles(struct cras_bt_device *device,
 
 	/* Log this event as we might need to re-intialize the BT audio nodes
 	 * if new audio profile is reported for already connected device. */
-	if (device->connected && (profile & audio_profiles))
+	if (device->connected && (profile & CRAS_SUPPORTED_PROFILES))
 		BTLOG(btlog, BT_NEW_AUDIO_PROFILE_AFTER_CONNECT,
 		      device->profiles, profile);
 	device->profiles |= profile;
 	cras_bt_device_log_profile(device, profile);
 
-	return (profile & audio_profiles);
+	return (profile & CRAS_SUPPORTED_PROFILES);
 }
 
 void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter)
 {
-	int has_new_audio_profile = 0;
-
+	int watch_needed = 0;
 	while (dbus_message_iter_get_arg_type(properties_array_iter) !=
 	       DBUS_TYPE_INVALID) {
 		DBusMessageIter properties_dict_iter, variant_iter;
@@ -750,6 +747,10 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				device->trusted = value;
 			} else if (strcmp(key, "Connected") == 0) {
 				cras_bt_device_set_connected(device, value);
+				watch_needed = device->connected &&
+					       cras_bt_device_supports_profile(
+						       device,
+						       CRAS_SUPPORTED_PROFILES);
 			}
 
 		} else if (strcmp(dbus_message_iter_get_signature(&variant_iter),
@@ -766,9 +767,18 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				dbus_message_iter_get_basic(&uuid_array_iter,
 							    &uuid);
 
+				/*
+				 * If updated properties includes new audio
+				 * profile, and device is connected, we need
+				 * to start connection watcher. This is needed
+				 * because on some bluetooth device, supported
+				 * profiles do not present when device
+				 * interface is added and they are updated
+				 * later.
+				 */
 				if (cras_bt_device_add_supported_profiles(
 					    device, uuid))
-					has_new_audio_profile = 1;
+					watch_needed = device->connected;
 
 				dbus_message_iter_next(&uuid_array_iter);
 			}
@@ -808,14 +818,8 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 		dbus_message_iter_next(invalidated_array_iter);
 	}
 
-	/* If updated properties includes new audio profile, and device is
-	 * connected, we need to start connection watcher. This is needed
-	 * because on some bluetooth device, supported profiles do not present
-	 * when device interface is added and they are updated later.
-	 */
-	if (has_new_audio_profile && device->connected) {
+	if (watch_needed)
 		cras_bt_device_start_new_conn_watch_timer(device);
-	}
 }
 
 /* Converts bluetooth address string into sockaddr structure. The address
