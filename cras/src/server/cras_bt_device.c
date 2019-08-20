@@ -544,6 +544,10 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 	      device->profiles);
 	device->conn_watch_timer = NULL;
 
+	/* Skip the callback if it is not an audio device. */
+	if (!device->profiles)
+		return;
+
 	/* If A2DP is not ready, try connect it after a while. */
 	if (cras_bt_device_supports_profile(device,
 					    CRAS_BT_DEVICE_PROFILE_A2DP_SINK) &&
