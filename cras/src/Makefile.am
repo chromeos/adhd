@@ -764,7 +764,7 @@ fmt_conv_ops_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
 
 hfp_info_unittest_SOURCES = tests/hfp_info_unittest.cc \
-	tests/sbc_codec_stub.cc
+	tests/metrics_stub.cc tests/sbc_codec_stub.cc
 hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc
 hfp_info_unittest_LDADD = -lgtest -lpthread

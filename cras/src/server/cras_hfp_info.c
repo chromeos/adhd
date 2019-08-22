@@ -16,6 +16,7 @@
 #include "cras_iodev_list.h"
 #include "cras_plc.h"
 #include "cras_sbc_codec.h"
+#include "cras_server_metrics.h"
 #include "utlist.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
@@ -65,6 +66,7 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *         wideband speech mode.
  *     msbc_num_out_frames - Number of total written mSBC frames.
  *     msbc_num_in_frames - Number of total read mSBC frames.
+ *     msbc_num_lost_frames - Number of total lost mSBC frames.
  *     read_cb - Callback to call when SCO socket can read. It returns the
  *         number of PCM bytes read.
  *     write_cb - Callback to call when SCO socket can write.
@@ -84,6 +86,7 @@ struct hfp_info {
 	struct cras_msbc_plc *msbc_plc;
 	unsigned int msbc_num_out_frames;
 	unsigned int msbc_num_in_frames;
+	unsigned int msbc_num_lost_frames;
 	int (*read_cb)(struct hfp_info *info);
 	int (*write_cb)(struct hfp_info *info);
 	uint8_t write_buf[WRITE_BUF_SIZE_BYTES];
@@ -356,6 +359,7 @@ static int handle_packet_loss(struct hfp_info *info)
 	/* It's possible client doesn't consume data causing overrun. In that
 	 * case we treat it as one mSBC frame read but dropped. */
 	info->msbc_num_in_frames++;
+	info->msbc_num_lost_frames++;
 
 	in_bytes = buf_write_pointer_size(info->capture_buf, &pcm_avail);
 	if (pcm_avail < MSBC_CODE_SIZE)
@@ -625,6 +629,7 @@ int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 	info->started = 1;
 	info->msbc_num_out_frames = 0;
 	info->msbc_num_in_frames = 0;
+	info->msbc_num_lost_frames = 0;
 
 	return 0;
 }
@@ -640,6 +645,12 @@ int hfp_info_stop(struct hfp_info *info)
 	close(info->fd);
 	info->fd = 0;
 	info->started = 0;
+
+	if (info->msbc_num_in_frames) {
+		cras_server_metrics_hfp_packet_loss(
+			(float)info->msbc_num_lost_frames /
+			info->msbc_num_in_frames);
+	}
 
 	return 0;
 }

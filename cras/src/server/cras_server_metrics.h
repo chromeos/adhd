@@ -16,6 +16,9 @@ extern const char kNoCodecsFoundMetric[];
 /* Logs if connected HFP headset supports wideband speech. */
 int cras_server_metrics_hfp_wideband_support(bool supported);
 
+/* Logs the number of packet loss per 1000 packets under HFP capture. */
+int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio);
+
 /* Logs runtime of a device. */
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev);
 

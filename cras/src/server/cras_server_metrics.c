@@ -50,6 +50,7 @@ const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 const char kHfpWidebandSpeechSupported[] = "Cras.HfpWidebandSpeechSupported";
+const char kHfpWidebandSpeechPacketLoss[] = "Cras.HfpWidebandSpeechPacketLoss";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -59,6 +60,7 @@ const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	BT_WIDEBAND_PACKET_LOSS,
 	BT_WIDEBAND_SUPPORTED,
 	DEVICE_RUNTIME,
 	HIGHEST_DEVICE_DELAY_INPUT,
@@ -188,6 +190,27 @@ static const char *get_metrics_device_type_str(struct cras_iodev *iodev)
 	default:
 		return "Unknown";
 	}
+}
+
+int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	/* Percentage is too coarse for packet loss, so we use number of bad
+	 * packets per thousand packets instead. */
+	data.value = (unsigned)(round(packet_loss_ratio * 1000));
+	init_server_metrics_msg(&msg, BT_WIDEBAND_PACKET_LOSS, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: BT_WIDEBAND_PACKET_LOSS");
+		return err;
+	}
+	return 0;
 }
 
 int cras_server_metrics_hfp_wideband_support(bool supported)
@@ -571,6 +594,11 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	struct cras_server_metrics_message *metrics_msg =
 		(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
+	case BT_WIDEBAND_PACKET_LOSS:
+		cras_metrics_log_histogram(kHfpWidebandSpeechPacketLoss,
+					   metrics_msg->data.value, 0, 1000,
+					   20);
+		break;
 	case BT_WIDEBAND_SUPPORTED:
 		cras_metrics_log_sparse_histogram(kHfpWidebandSpeechSupported,
 						  metrics_msg->data.value);
