@@ -783,7 +783,7 @@ hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_ag_profile_unittest_SOURCES = tests/hfp_ag_profile_unittest.cc \
-	server/cras_hfp_ag_profile.c common/sfh.c
+	server/cras_hfp_ag_profile.c common/sfh.c tests/metrics_stub.cc
 hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
