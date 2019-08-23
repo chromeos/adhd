@@ -6,6 +6,8 @@
 #ifndef _CRAS_MIX_H
 #define _CRAS_MIX_H
 
+#include "cras_types.h"
+
 struct cras_audio_shm;
 
 /* SIMD optimisation flags */

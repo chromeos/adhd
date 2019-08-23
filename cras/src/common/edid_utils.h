@@ -5,6 +5,8 @@
 #ifndef __EDID_UTILS_H__
 #define __EDID_UTILS_H__
 
+#include "stdio.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
