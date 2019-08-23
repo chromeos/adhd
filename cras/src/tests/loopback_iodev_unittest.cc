@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <gtest/gtest.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <gtest/gtest.h>
 
 extern "C" {
 #include "cras_audio_area.h"
@@ -24,53 +24,53 @@ static const unsigned int kFrameBytes = 4;
 static const unsigned int kBufferSize = kBufferFrames * kFrameBytes;
 
 static struct timespec time_now;
-static cras_audio_area *dummy_audio_area;
+static cras_audio_area* dummy_audio_area;
 static loopback_hook_data_t loop_hook;
-static struct cras_iodev *enabled_dev;
+static struct cras_iodev* enabled_dev;
 static unsigned int cras_iodev_list_add_input_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_set_device_enabled_callback_called;
 static device_enabled_callback_t device_enabled_callback_cb;
 static device_disabled_callback_t device_disabled_callback_cb;
-static void *device_enabled_callback_cb_data;
+static void* device_enabled_callback_cb_data;
 static int cras_iodev_list_register_loopback_called;
 static int cras_iodev_list_unregister_loopback_called;
 
-class LoopBackTestSuite : public testing::Test{
-  protected:
-    virtual void SetUp() {
-      dummy_audio_area = (cras_audio_area*)calloc(
-          1, sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
-      for (unsigned int i = 0; i < kBufferSize; i++) {
-        buf_[i] = rand();
-      }
-      fmt_.frame_rate = 48000;
-      fmt_.num_channels = 2;
-      fmt_.format = SND_PCM_FORMAT_S16_LE;
-
-      loop_in_ = loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
-      EXPECT_EQ(1, cras_iodev_list_add_input_called);
-      loop_in_->format = &fmt_;
-
-      loop_hook = NULL;
-      cras_iodev_list_add_input_called = 0;
-      cras_iodev_list_rm_input_called = 0;
-      cras_iodev_list_set_device_enabled_callback_called = 0;
-      cras_iodev_list_register_loopback_called = 0;
-      cras_iodev_list_unregister_loopback_called = 0;
+class LoopBackTestSuite : public testing::Test {
+ protected:
+  virtual void SetUp() {
+    dummy_audio_area = (cras_audio_area*)calloc(
+        1, sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+    for (unsigned int i = 0; i < kBufferSize; i++) {
+      buf_[i] = rand();
     }
+    fmt_.frame_rate = 48000;
+    fmt_.num_channels = 2;
+    fmt_.format = SND_PCM_FORMAT_S16_LE;
 
-    virtual void TearDown() {
-      loopback_iodev_destroy(loop_in_);
-      EXPECT_EQ(1, cras_iodev_list_rm_input_called);
-      EXPECT_EQ(NULL, device_enabled_callback_cb);
-      EXPECT_EQ(NULL, device_disabled_callback_cb);
-      free(dummy_audio_area);
-    }
+    loop_in_ = loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
+    EXPECT_EQ(1, cras_iodev_list_add_input_called);
+    loop_in_->format = &fmt_;
 
-    uint8_t buf_[kBufferSize];
-    struct cras_audio_format fmt_;
-    struct cras_iodev *loop_in_;
+    loop_hook = NULL;
+    cras_iodev_list_add_input_called = 0;
+    cras_iodev_list_rm_input_called = 0;
+    cras_iodev_list_set_device_enabled_callback_called = 0;
+    cras_iodev_list_register_loopback_called = 0;
+    cras_iodev_list_unregister_loopback_called = 0;
+  }
+
+  virtual void TearDown() {
+    loopback_iodev_destroy(loop_in_);
+    EXPECT_EQ(1, cras_iodev_list_rm_input_called);
+    EXPECT_EQ(NULL, device_enabled_callback_cb);
+    EXPECT_EQ(NULL, device_disabled_callback_cb);
+    free(dummy_audio_area);
+  }
+
+  uint8_t buf_[kBufferSize];
+  struct cras_audio_format fmt_;
+  struct cras_iodev* loop_in_;
 };
 
 TEST_F(LoopBackTestSuite, InstallLoopHook) {
@@ -140,7 +140,7 @@ TEST_F(LoopBackTestSuite, SelectDevFromAToB) {
 
 // Test how loopback works if there isn't any output devices open.
 TEST_F(LoopBackTestSuite, OpenIdleSystem) {
-  cras_audio_area *area;
+  cras_audio_area* area;
   unsigned int nread = 1024;
   struct timespec tstamp;
   int rc;
@@ -172,7 +172,7 @@ TEST_F(LoopBackTestSuite, OpenIdleSystem) {
 }
 
 TEST_F(LoopBackTestSuite, SimpleLoopback) {
-  cras_audio_area *area;
+  cras_audio_area* area;
   unsigned int nframes = 1024;
   unsigned int nread = 1024;
   int rc;
@@ -184,7 +184,7 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
   enabled_dev = &iodev;
 
   loop_in_->configure_dev(loop_in_);
-  ASSERT_NE(reinterpret_cast<void *>(NULL), loop_hook);
+  ASSERT_NE(reinterpret_cast<void*>(NULL), loop_hook);
 
   // Loopback callback for the hook.
   loop_hook(buf_, nframes, &fmt_, loop_in_);
@@ -207,62 +207,47 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
 /* Stubs */
 extern "C" {
 
-void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
-                                         const struct cras_audio_format *fmt,
-                                         uint8_t *base_buffer)
-{
+void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
+                                         const struct cras_audio_format* fmt,
+                                         uint8_t* base_buffer) {
   dummy_audio_area->channels[0].buf = base_buffer;
 }
 
-void cras_iodev_free_audio_area(struct cras_iodev *iodev)
-{
-}
+void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
-void cras_iodev_free_format(struct cras_iodev *iodev)
-{
-}
+void cras_iodev_free_format(struct cras_iodev* iodev) {}
 
-void cras_iodev_init_audio_area(struct cras_iodev *iodev, int num_channels)
-{
+void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
   iodev->area = dummy_audio_area;
 }
 
-void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
-{
+void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
   DL_APPEND(iodev->nodes, node);
 }
 
-void cras_iodev_set_active_node(struct cras_iodev *iodev,
-                                struct cras_ionode *node)
-{
-}
-void cras_iodev_list_register_loopback(
-    enum CRAS_LOOPBACK_TYPE loopback_type,
-    unsigned int output_dev_idx,
-    loopback_hook_data_t hook_data,
-    loopback_hook_control_t hook_start,
-    unsigned int loopback_dev_idx)
-{
+void cras_iodev_set_active_node(struct cras_iodev* iodev,
+                                struct cras_ionode* node) {}
+void cras_iodev_list_register_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
+                                       unsigned int output_dev_idx,
+                                       loopback_hook_data_t hook_data,
+                                       loopback_hook_control_t hook_start,
+                                       unsigned int loopback_dev_idx) {
   cras_iodev_list_register_loopback_called++;
   loop_hook = hook_data;
 }
 
-void cras_iodev_list_unregister_loopback(
-    enum CRAS_LOOPBACK_TYPE loopback_type,
-    unsigned int output_dev_idx,
-    unsigned int loopback_dev_idx)
-{
+void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
+                                         unsigned int output_dev_idx,
+                                         unsigned int loopback_dev_idx) {
   cras_iodev_list_unregister_loopback_called++;
 }
 
-int cras_iodev_list_add_input(struct cras_iodev *input)
-{
+int cras_iodev_list_add_input(struct cras_iodev* input) {
   cras_iodev_list_add_input_called++;
   return 0;
 }
 
-int cras_iodev_list_rm_input(struct cras_iodev *input)
-{
+int cras_iodev_list_rm_input(struct cras_iodev* input) {
   cras_iodev_list_rm_input_called++;
   return 0;
 }
@@ -270,8 +255,7 @@ int cras_iodev_list_rm_input(struct cras_iodev *input)
 int cras_iodev_list_set_device_enabled_callback(
     device_enabled_callback_t enabled_cb,
     device_disabled_callback_t disabled_cb,
-    void *cb_data)
-{
+    void* cb_data) {
   cras_iodev_list_set_device_enabled_callback_called++;
   device_enabled_callback_cb = enabled_cb;
   device_disabled_callback_cb = disabled_cb;
@@ -279,14 +263,13 @@ int cras_iodev_list_set_device_enabled_callback(
   return 0;
 }
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   *tp = time_now;
   return 0;
 }
 
-struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
-    enum CRAS_STREAM_DIRECTION direction)
-{
+struct cras_iodev* cras_iodev_list_get_first_enabled_iodev(
+    enum CRAS_STREAM_DIRECTION direction) {
   return enabled_dev;
 }
 
@@ -294,7 +277,7 @@ struct cras_iodev *cras_iodev_list_get_first_enabled_iodev(
 
 }  //  namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

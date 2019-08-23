@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
 #include <gtest/gtest.h>
+#include <stdio.h>
 
 extern "C" {
 #include "cras_shm.h"
@@ -12,30 +12,30 @@ extern "C" {
 
 namespace {
 
-class ShmTestSuite : public testing::Test{
-  protected:
-    virtual void SetUp() {
-      memset(&shm_, 0, sizeof(shm_));
-      shm_.header =
-          static_cast<cras_audio_shm_header*>(calloc(1, sizeof(*shm_.header)));
-      shm_.samples = static_cast<uint8_t*>(calloc(1, 2048));
-      shm_.samples_info.length = 2048;
-      cras_shm_set_frame_bytes(&shm_, 4);
+class ShmTestSuite : public testing::Test {
+ protected:
+  virtual void SetUp() {
+    memset(&shm_, 0, sizeof(shm_));
+    shm_.header =
+        static_cast<cras_audio_shm_header*>(calloc(1, sizeof(*shm_.header)));
+    shm_.samples = static_cast<uint8_t*>(calloc(1, 2048));
+    shm_.samples_info.length = 2048;
+    cras_shm_set_frame_bytes(&shm_, 4);
 
-      cras_shm_set_used_size(&shm_, 1024);
-      memcpy(&shm_.header->config, &shm_.config, sizeof(shm_.config));
+    cras_shm_set_used_size(&shm_, 1024);
+    memcpy(&shm_.header->config, &shm_.config, sizeof(shm_.config));
 
-      frames_ = 0;
-    }
+    frames_ = 0;
+  }
 
-    virtual void TearDown() {
-      free(shm_.header);
-      free(shm_.samples);
-    }
+  virtual void TearDown() {
+    free(shm_.header);
+    free(shm_.samples);
+  }
 
-    struct cras_audio_shm shm_;
-    uint8_t *buf_;
-    size_t frames_;
+  struct cras_audio_shm shm_;
+  uint8_t* buf_;
+  size_t frames_;
 };
 
 // Test that and empty buffer returns 0 readable bytes.
@@ -382,8 +382,8 @@ TEST_F(ShmTestSuite, PlaybackWithDifferentSequentialBufferLocations) {
   EXPECT_EQ(total_frames_written, total_frames_available);
 
   // Fill rest of the buffers.
-  for (unsigned int i = CRAS_NUM_SHM_BUFFERS / 2;
-       i < CRAS_NUM_SHM_BUFFERS; i++) {
+  for (unsigned int i = CRAS_NUM_SHM_BUFFERS / 2; i < CRAS_NUM_SHM_BUFFERS;
+       i++) {
     cras_shm_set_buffer_offset(&shm_, i, second_offset + i * used_size);
     shm_.header->write_in_progress[i] = 1;
     shm_.header->write_offset[i] = 0;
@@ -566,7 +566,7 @@ TEST_F(ShmTestSuite, GetCheckedWriteOffset) {
 
 }  //  namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

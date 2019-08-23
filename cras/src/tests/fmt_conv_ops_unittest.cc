@@ -3,8 +3,9 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
-#include <sys/param.h>
 #include <limits.h>
+#include <sys/param.h>
+
 #include <memory>
 
 extern "C" {
@@ -12,8 +13,8 @@ extern "C" {
 #include "cras_types.h"
 }
 
-static uint8_t *AllocateRandomBytes(size_t size) {
-  uint8_t *buf = (uint8_t *)malloc(size);
+static uint8_t* AllocateRandomBytes(size_t size) {
+  uint8_t* buf = (uint8_t*)malloc(size);
   while (size--)
     buf[size] = rand() & 0xff;
   return buf;
@@ -27,44 +28,44 @@ using S32LEPtr = std::unique_ptr<int32_t[], decltype(free)*>;
 using FloatPtr = std::unique_ptr<float[], decltype(free)*>;
 
 static U8Ptr CreateU8(size_t size) {
-  uint8_t *buf = AllocateRandomBytes(size * sizeof(uint8_t));
+  uint8_t* buf = AllocateRandomBytes(size * sizeof(uint8_t));
   U8Ptr ret(buf, free);
   return ret;
 }
 
 static S16LEPtr CreateS16LE(size_t size) {
-  uint8_t *buf = AllocateRandomBytes(size * sizeof(int16_t));
-  S16LEPtr ret(reinterpret_cast<int16_t *>(buf), free);
+  uint8_t* buf = AllocateRandomBytes(size * sizeof(int16_t));
+  S16LEPtr ret(reinterpret_cast<int16_t*>(buf), free);
   return ret;
 }
 
 static S243LEPtr CreateS243LE(size_t size) {
-  uint8_t *buf = AllocateRandomBytes(size * sizeof(uint8_t) * 3);
+  uint8_t* buf = AllocateRandomBytes(size * sizeof(uint8_t) * 3);
   S243LEPtr ret(buf, free);
   return ret;
 }
 
 static S24LEPtr CreateS24LE(size_t size) {
-  uint8_t *buf = AllocateRandomBytes(size * sizeof(int32_t));
-  S24LEPtr ret(reinterpret_cast<int32_t *>(buf), free);
+  uint8_t* buf = AllocateRandomBytes(size * sizeof(int32_t));
+  S24LEPtr ret(reinterpret_cast<int32_t*>(buf), free);
   return ret;
 }
 
 static S32LEPtr CreateS32LE(size_t size) {
-  uint8_t *buf = AllocateRandomBytes(size * sizeof(int32_t));
-  S32LEPtr ret(reinterpret_cast<int32_t *>(buf), free);
+  uint8_t* buf = AllocateRandomBytes(size * sizeof(int32_t));
+  S32LEPtr ret(reinterpret_cast<int32_t*>(buf), free);
   return ret;
 }
 
 static FloatPtr CreateFloat(size_t size) {
-  float *buf = (float *)malloc(size * sizeof(float));
+  float* buf = (float*)malloc(size * sizeof(float));
   while (size--)
     buf[size] = (float)(rand() & 0xff) / 0xfff;
   FloatPtr ret(buf, free);
   return ret;
 }
 
-static int32_t ToS243LE(const uint8_t *in) {
+static int32_t ToS243LE(const uint8_t* in) {
   int32_t ret = 0;
 
   ret |= in[2];
@@ -93,7 +94,7 @@ TEST(FormatConverterOpsTest, ConvertU8ToS16LE) {
   U8Ptr src = CreateU8(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  convert_u8_to_s16le(src.get(), frames * in_ch, (uint8_t *)dst.get());
+  convert_u8_to_s16le(src.get(), frames * in_ch, (uint8_t*)dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int16_t)((uint16_t)((int16_t)(int8_t)src[i] - 0x80) << 8),
@@ -110,9 +111,9 @@ TEST(FormatConverterOpsTest, ConvertS243LEToS16LE) {
   S243LEPtr src = CreateS243LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  convert_s243le_to_s16le(src.get(), frames * in_ch, (uint8_t *)dst.get());
+  convert_s243le_to_s16le(src.get(), frames * in_ch, (uint8_t*)dst.get());
 
-  uint8_t *p = src.get();
+  uint8_t* p = src.get();
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int16_t)(ToS243LE(p) >> 8), dst[i]);
     p += 3;
@@ -128,8 +129,8 @@ TEST(FormatConverterOpsTest, ConvertS24LEToS16LE) {
   S24LEPtr src = CreateS24LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  convert_s24le_to_s16le((uint8_t *)src.get(), frames * in_ch,
-                         (uint8_t *)dst.get());
+  convert_s24le_to_s16le((uint8_t*)src.get(), frames * in_ch,
+                         (uint8_t*)dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int16_t)(src[i] >> 8), dst[i]);
@@ -145,8 +146,8 @@ TEST(FormatConverterOpsTest, ConvertS32LEToS16LE) {
   S32LEPtr src = CreateS32LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  convert_s32le_to_s16le((uint8_t *)src.get(), frames * in_ch,
-                         (uint8_t *)dst.get());
+  convert_s32le_to_s16le((uint8_t*)src.get(), frames * in_ch,
+                         (uint8_t*)dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int16_t)(src[i] >> 16), dst[i]);
@@ -162,7 +163,7 @@ TEST(FormatConverterOpsTest, ConvertS16LEToU8) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   U8Ptr dst = CreateU8(frames * out_ch);
 
-  convert_s16le_to_u8((uint8_t *)src.get(), frames * in_ch, dst.get());
+  convert_s16le_to_u8((uint8_t*)src.get(), frames * in_ch, dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((uint8_t)(int8_t)((src[i] >> 8) + 0x80), dst[i]);
@@ -178,9 +179,9 @@ TEST(FormatConverterOpsTest, ConvertS16LEToS243LE) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S243LEPtr dst = CreateS243LE(frames * out_ch);
 
-  convert_s16le_to_s243le((uint8_t *)src.get(), frames * in_ch, dst.get());
+  convert_s16le_to_s243le((uint8_t*)src.get(), frames * in_ch, dst.get());
 
-  uint8_t *p = dst.get();
+  uint8_t* p = dst.get();
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int32_t)((uint32_t)src[i] << 8) & 0x00ffffff,
               ToS243LE(p) & 0x00ffffff);
@@ -197,8 +198,8 @@ TEST(FormatConverterOpsTest, ConvertS16LEToS24LE) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S24LEPtr dst = CreateS24LE(frames * out_ch);
 
-  convert_s16le_to_s24le((uint8_t *)src.get(), frames * in_ch,
-                         (uint8_t *)dst.get());
+  convert_s16le_to_s24le((uint8_t*)src.get(), frames * in_ch,
+                         (uint8_t*)dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int32_t)((uint32_t)src[i] << 8) & 0x00ffffff,
@@ -215,8 +216,8 @@ TEST(FormatConverterOpsTest, ConvertS16LEToS32LE) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S32LEPtr dst = CreateS32LE(frames * out_ch);
 
-  convert_s16le_to_s32le((uint8_t *)src.get(), frames * in_ch,
-                         (uint8_t *)dst.get());
+  convert_s16le_to_s32le((uint8_t*)src.get(), frames * in_ch,
+                         (uint8_t*)dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int32_t)((uint32_t)src[i] << 16) & 0xffffff00,
@@ -233,8 +234,8 @@ TEST(FormatConverterOpsTest, MonoToStereoS16LE) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_mono_to_stereo((uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_mono_to_stereo((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -256,8 +257,8 @@ TEST(FormatConverterOpsTest, StereoToMonoS16LE) {
     src[i * 2 + 1] = -13449;
   }
 
-  size_t ret = s16_stereo_to_mono((uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_stereo_to_mono((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -278,8 +279,8 @@ TEST(FormatConverterOpsTest, StereoToMonoS16LEOverflow) {
     src[i * 2 + 1] = 1;
   }
 
-  size_t ret = s16_stereo_to_mono((uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_stereo_to_mono((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -300,8 +301,8 @@ TEST(FormatConverterOpsTest, StereoToMonoS16LEUnderflow) {
     src[i * 2 + 1] = -0x1;
   }
 
-  size_t ret = s16_stereo_to_mono((uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_stereo_to_mono((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -321,8 +322,8 @@ TEST(FormatConverterOpsTest, MonoTo51S16LECenter) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_mono_to_51(left, right, center, (uint8_t *)src.get(), frames,
-                              (uint8_t *)dst.get());
+  size_t ret = s16_mono_to_51(left, right, center, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -347,8 +348,8 @@ TEST(FormatConverterOpsTest, MonoTo51S16LELeftRight) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_mono_to_51(left, right, center, (uint8_t *)src.get(), frames,
-                              (uint8_t *)dst.get());
+  size_t ret = s16_mono_to_51(left, right, center, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -375,8 +376,8 @@ TEST(FormatConverterOpsTest, MonoTo51S16LEUnknown) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_mono_to_51(left, right, center, (uint8_t *)src.get(), frames,
-                              (uint8_t *)dst.get());
+  size_t ret = s16_mono_to_51(left, right, center, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -401,15 +402,14 @@ TEST(FormatConverterOpsTest, StereoTo51S16LECenter) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_stereo_to_51(left, right, center, (uint8_t *)src.get(),
-                                frames, (uint8_t *)dst.get());
+  size_t ret = s16_stereo_to_51(left, right, center, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
       if (k == center)
-        EXPECT_EQ(S16AddAndClip(src[i * 2], src[i * 2 + 1]),
-                  dst[i * 6 + k]);
+        EXPECT_EQ(S16AddAndClip(src[i * 2], src[i * 2 + 1]), dst[i * 6 + k]);
       else
         EXPECT_EQ(0, dst[i * 6 + k]);
     }
@@ -428,8 +428,8 @@ TEST(FormatConverterOpsTest, StereoTo51S16LELeftRight) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_stereo_to_51(left, right, center, (uint8_t *)src.get(),
-                                frames, (uint8_t *)dst.get());
+  size_t ret = s16_stereo_to_51(left, right, center, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -456,8 +456,8 @@ TEST(FormatConverterOpsTest, StereoTo51S16LEUnknown) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_stereo_to_51(left, right, center, (uint8_t *)src.get(),
-                                frames, (uint8_t *)dst.get());
+  size_t ret = s16_stereo_to_51(left, right, center, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -482,14 +482,13 @@ TEST(FormatConverterOpsTest, _51ToStereoS16LE) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_51_to_stereo((uint8_t *)src.get(), frames,
-                                (uint8_t *)dst.get());
+  size_t ret =
+      s16_51_to_stereo((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
     int16_t half_center = src[i * 6 + center] / 2;
-    EXPECT_EQ(S16AddAndClip(src[i * 6 + left], half_center),
-              dst[i * 2 + left]);
+    EXPECT_EQ(S16AddAndClip(src[i * 6 + left], half_center), dst[i * 2 + left]);
     EXPECT_EQ(S16AddAndClip(src[i * 6 + right], half_center),
               dst[i * 2 + right]);
   }
@@ -508,10 +507,9 @@ TEST(FormatConverterOpsTest, StereoToQuadS16LESpecify) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_stereo_to_quad(front_left, front_right,
-                                  rear_left, rear_right,
-                                  (uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_stereo_to_quad(front_left, front_right, rear_left, rear_right,
+                         (uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -535,10 +533,9 @@ TEST(FormatConverterOpsTest, StereoToQuadS16LEDefault) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_stereo_to_quad(front_left, front_right,
-                                  rear_left, rear_right,
-                                  (uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_stereo_to_quad(front_left, front_right, rear_left, rear_right,
+                         (uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -562,17 +559,16 @@ TEST(FormatConverterOpsTest, QuadToStereoS16LESpecify) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_quad_to_stereo(front_left, front_right,
-                                  rear_left, rear_right,
-                                  (uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_quad_to_stereo(front_left, front_right, rear_left, rear_right,
+                         (uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
-    int16_t left = S16AddAndClip(src[i * 4 + front_left],
-                                 src[i * 4 + rear_left] / 4);
-    int16_t right = S16AddAndClip(src[i * 4 + front_right],
-                                 src[i * 4 + rear_right] / 4);
+    int16_t left =
+        S16AddAndClip(src[i * 4 + front_left], src[i * 4 + rear_left] / 4);
+    int16_t right =
+        S16AddAndClip(src[i * 4 + front_right], src[i * 4 + rear_right] / 4);
     EXPECT_EQ(left, dst[i * 2 + 0]);
     EXPECT_EQ(right, dst[i * 2 + 1]);
   }
@@ -591,17 +587,14 @@ TEST(FormatConverterOpsTest, QuadToStereoS16LEDefault) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_quad_to_stereo(front_left, front_right,
-                                  rear_left, rear_right,
-                                  (uint8_t *)src.get(), frames,
-                                  (uint8_t *)dst.get());
+  size_t ret =
+      s16_quad_to_stereo(front_left, front_right, rear_left, rear_right,
+                         (uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
-    int16_t left = S16AddAndClip(src[i * 4 + 0],
-                                 src[i * 4 + 2] / 4);
-    int16_t right = S16AddAndClip(src[i * 4 + 1],
-                                  src[i * 4 + 3] / 4);
+    int16_t left = S16AddAndClip(src[i * 4 + 0], src[i * 4 + 2] / 4);
+    int16_t right = S16AddAndClip(src[i * 4 + 1], src[i * 4 + 3] / 4);
     EXPECT_EQ(left, dst[i * 2 + 0]);
     EXPECT_EQ(right, dst[i * 2 + 1]);
   }
@@ -613,17 +606,16 @@ TEST(FormatConverterOpsTest, StereoTo3chS16LE) {
   const size_t in_ch = 2;
   const size_t out_ch = 3;
   struct cras_audio_format fmt = {
-    .format = SND_PCM_FORMAT_S16_LE,
-    .frame_rate = 48000,
-    .num_channels = 3,
+      .format = SND_PCM_FORMAT_S16_LE,
+      .frame_rate = 48000,
+      .num_channels = 3,
   };
 
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret = s16_default_all_to_all(&fmt, in_ch, out_ch,
-                                      (uint8_t *)src.get(), frames,
-                                      (uint8_t *)dst.get());
+  size_t ret = s16_default_all_to_all(&fmt, in_ch, out_ch, (uint8_t*)src.get(),
+                                      frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
@@ -664,13 +656,13 @@ TEST(FormatConverterOpsTest, ConvertChannelsS16LE) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
   FloatPtr ch_conv_mtx = CreateFloat(out_ch * in_ch);
-  std::unique_ptr<float *[]> mtx(new float *[out_ch]);
+  std::unique_ptr<float*[]> mtx(new float*[out_ch]);
   for (size_t i = 0; i < out_ch; ++i)
     mtx[i] = &ch_conv_mtx[i * in_ch];
 
-  size_t ret = s16_convert_channels(mtx.get(), in_ch, out_ch,
-                                    (uint8_t *)src.get(), frames,
-                                    (uint8_t *)dst.get());
+  size_t ret =
+      s16_convert_channels(mtx.get(), in_ch, out_ch, (uint8_t*)src.get(),
+                           frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t fr = 0; fr < frames; ++fr) {
@@ -684,11 +676,9 @@ TEST(FormatConverterOpsTest, ConvertChannelsS16LE) {
   }
 }
 
-extern "C" {
+extern "C" {}  // extern "C"
 
-} // extern "C"
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

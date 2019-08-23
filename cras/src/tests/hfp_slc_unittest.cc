@@ -259,7 +259,7 @@ TEST(HfpSlc, CodecNegotiationTimeout) {
   cras_bt_event_log_deinit(btlog);
 }
 
-} // namespace
+}  // namespace
 
 int slc_initialized_cb(struct hfp_slc_handle* handle) {
   slc_initialized_cb_called++;

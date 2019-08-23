@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
 #include <gtest/gtest.h>
+#include <stdio.h>
 
 extern "C" {
 #include "cras_device_monitor.c"
@@ -12,7 +12,7 @@ extern "C" {
 }
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;
-static struct cras_device_monitor_message *sent_msg;
+static struct cras_device_monitor_message* sent_msg;
 static int resume_dev_called;
 unsigned int resume_dev_idx;
 static int suspend_dev_called;
@@ -44,7 +44,7 @@ TEST(DeviceMonitorTestSuite, Init) {
 TEST(DeviceMonitorTestSuite, ResetDevice) {
   ResetStubData();
   // sent_msg will be filled with message content in cras_main_message_send.
-  sent_msg = (struct cras_device_monitor_message *)calloc(1, sizeof(*sent_msg));
+  sent_msg = (struct cras_device_monitor_message*)calloc(1, sizeof(*sent_msg));
 
   cras_device_monitor_reset_device(fake_dev_idx);
 
@@ -58,8 +58,8 @@ TEST(DeviceMonitorTestSuite, ResetDevice) {
 
 TEST(DeviceMonitorTestSuite, HandleResetDevice) {
   struct cras_device_monitor_message msg;
-  struct cras_main_message *main_message =
-      reinterpret_cast<struct cras_main_message *>(&msg);
+  struct cras_main_message* main_message =
+      reinterpret_cast<struct cras_main_message*>(&msg);
 
   ResetStubData();
 
@@ -79,7 +79,7 @@ TEST(DeviceMonitorTestSuite, HandleResetDevice) {
 TEST(DeviceMonitorTestSuite, MuteDevice) {
   ResetStubData();
   // sent_msg will be filled with message content in cras_main_message_send.
-  sent_msg = (struct cras_device_monitor_message *)calloc(1, sizeof(*sent_msg));
+  sent_msg = (struct cras_device_monitor_message*)calloc(1, sizeof(*sent_msg));
 
   cras_device_monitor_set_device_mute_state(fake_dev_idx);
 
@@ -93,8 +93,8 @@ TEST(DeviceMonitorTestSuite, MuteDevice) {
 
 TEST(DeviceMonitorTestSuite, HandleMuteDevice) {
   struct cras_device_monitor_message msg;
-  struct cras_main_message *main_message =
-      reinterpret_cast<struct cras_main_message *>(&msg);
+  struct cras_main_message* main_message =
+      reinterpret_cast<struct cras_main_message*>(&msg);
 
   ResetStubData();
 
@@ -113,12 +113,12 @@ extern "C" {
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
                                   cras_message_callback callback,
-                                  void *callback_data) {
+                                  void* callback_data) {
   type_set = type;
   return 0;
 }
 
-int cras_main_message_send(struct cras_main_message *msg) {
+int cras_main_message_send(struct cras_main_message* msg) {
   // Copy the sent message so we can examine it in the test later.
   memcpy(sent_msg, msg, sizeof(*sent_msg));
   return 0;
@@ -142,7 +142,7 @@ void cras_iodev_list_set_dev_mute(unsigned int dev_idx) {
 }  // extern "C"
 }  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   int rc = RUN_ALL_TESTS();
 

@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
 #include <gtest/gtest.h>
+#include <stdio.h>
 
 extern "C" {
 #include "cras_ramp.c"
 }
 
 static int callback_called;
-static void *callback_arg;
+static void* callback_arg;
 
 void ResetStubData() {
   callback_called = 0;
@@ -20,7 +20,7 @@ void ResetStubData() {
 namespace {
 
 TEST(RampTestSuite, Init) {
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
 
   ResetStubData();
@@ -41,7 +41,7 @@ TEST(RampTestSuite, RampUpInitialIncrement) {
   float to = 1.0;
   int duration_frames = 48000;
   float increment = 1.0 / 48000;
-  cras_ramp *ramp;
+  cras_ramp* ramp;
   cras_ramp_action action;
 
   ResetStubData();
@@ -66,7 +66,7 @@ TEST(RampTestSuite, RampUpUpdateRampedFrames) {
   float increment = 1.0 / 48000;
   int rc;
   int ramped_frames = 512;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float scaler = increment * ramped_frames;
 
@@ -94,7 +94,7 @@ TEST(RampTestSuite, RampUpPassedRamp) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
 
   ResetStubData();
@@ -121,7 +121,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampDown) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float down_increment = -1.0 / 48000;
   float up_increment;
@@ -162,7 +162,7 @@ TEST(RampTestSuite, RampUpWhileHalfWayRampUp) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float first_increment = 1.0 / 48000;
   float second_increment;
@@ -198,7 +198,7 @@ TEST(RampTestSuite, RampDownInitialIncrement) {
   float to = 0.0;
   int duration_frames = 48000;
   float increment = -1.0 / 48000;
-  cras_ramp *ramp;
+  cras_ramp* ramp;
   cras_ramp_action action;
 
   ResetStubData();
@@ -223,7 +223,7 @@ TEST(RampTestSuite, RampDownUpdateRampedFrames) {
   float increment = -1.0 / 48000;
   int rc;
   int ramped_frames = 512;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float scaler = 1 + increment * ramped_frames;
 
@@ -251,7 +251,7 @@ TEST(RampTestSuite, RampDownPassedRamp) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
 
   ResetStubData();
@@ -278,7 +278,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float up_increment = 1.0 / 48000;
   float down_increment;
@@ -298,7 +298,6 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
   scaler = up_increment * ramped_frames;
   // The increment will be calculated by ramping to 0 starting from scaler.
   down_increment = -scaler / duration_frames;
-
 
   // Ramp down will start from current scaler.
   from = 1.0;
@@ -322,7 +321,7 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 24000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float down_increment = -1.0 / 48000;
   float second_down_increment;
@@ -340,7 +339,6 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
   scaler = 1 + down_increment * ramped_frames;
   // The increment will be calculated by ramping to 0 starting from scaler.
   second_down_increment = -scaler / duration_frames;
-
 
   // Ramp down starting from current scaler.
   cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
@@ -364,7 +362,7 @@ TEST(RampTestSuite, PartialRamp) {
   int duration_frames = 1200;
   int rc;
   int ramped_frames = 600;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
   float down_increment = (to_one - from_one) / duration_frames;
   float up_increment;
@@ -402,7 +400,7 @@ TEST(RampTestSuite, PartialRamp) {
   cras_ramp_destroy(ramp);
 }
 
-void ramp_callback(void *arg) {
+void ramp_callback(void* arg) {
   callback_called++;
   callback_arg = arg;
 }
@@ -413,9 +411,9 @@ TEST(RampTestSuite, RampUpPassedRampCallback) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
-  void *cb_data = reinterpret_cast<void*>(0x123);
+  void* cb_data = reinterpret_cast<void*>(0x123);
 
   ResetStubData();
 
@@ -443,9 +441,9 @@ TEST(RampTestSuite, RampDownPassedRampCallback) {
   int duration_frames = 48000;
   int rc;
   int ramped_frames = 48000;
-  struct cras_ramp *ramp;
+  struct cras_ramp* ramp;
   struct cras_ramp_action action;
-  void *cb_data = reinterpret_cast<void*>(0x123);
+  void* cb_data = reinterpret_cast<void*>(0x123);
 
   ResetStubData();
 
@@ -469,7 +467,7 @@ TEST(RampTestSuite, RampDownPassedRampCallback) {
 
 }  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   int rc = RUN_ALL_TESTS();
 

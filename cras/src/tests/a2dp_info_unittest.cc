@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <gtest/gtest.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <gtest/gtest.h>
 
 extern "C" {
-  #include <sbc/sbc.h>
+#include <sbc/sbc.h>
 
-  #include "cras_sbc_codec.h"
-  #include "cras_a2dp_info.h"
-  #include "sbc_codec_stub.h"
+#include "cras_a2dp_info.h"
+#include "cras_sbc_codec.h"
+#include "sbc_codec_stub.h"
 }
 
 static size_t a2dp_write_link_mtu_val;
@@ -52,7 +52,7 @@ TEST(A2dpInfoInit, InitA2dp) {
   ASSERT_EQ(SBC_BLK_16, get_sbc_codec_create_blocks_val());
   ASSERT_EQ(50, get_sbc_codec_create_bitpool_val());
 
-  ASSERT_NE(a2dp.codec, (void *)NULL);
+  ASSERT_NE(a2dp.codec, (void*)NULL);
   ASSERT_EQ(a2dp.a2dp_buf_used, 13);
   ASSERT_EQ(a2dp.frame_count, 0);
   ASSERT_EQ(a2dp.seq_num, 0);
@@ -69,7 +69,7 @@ TEST(A2dpInfoInit, InitA2dpFail) {
 
   ASSERT_EQ(1, get_sbc_codec_create_called());
   ASSERT_NE(0, err);
-  ASSERT_EQ(a2dp.codec, (void *)NULL);
+  ASSERT_EQ(a2dp.codec, (void*)NULL);
 }
 
 TEST(A2dpInfoInit, DestroyA2dp) {
@@ -125,10 +125,9 @@ TEST(A2dpEncode, WriteA2dp) {
   ASSERT_EQ(0, a2dp.seq_num);
 }
 
-} // namespace
+}  // namespace
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

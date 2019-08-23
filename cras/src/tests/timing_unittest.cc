@@ -2,22 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <memory>
+#include <gtest/gtest.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <syslog.h>
 #include <time.h>
 
-#include <gtest/gtest.h>
-
-#include <syslog.h>
+#include <memory>
 
 extern "C" {
-#include "dev_io.h" // tested
-#include "dev_stream.h" // tested
-#include "cras_rstream.h" // stubbed
-#include "cras_iodev.h" // stubbed
+#include "cras_iodev.h"    // stubbed
+#include "cras_rstream.h"  // stubbed
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "dev_io.h"      // tested
+#include "dev_stream.h"  // tested
 #include "utlist.h"
 
 struct audio_thread_event_log* atlog;
@@ -32,7 +31,7 @@ struct audio_thread_event_log* atlog;
 
 namespace {
 
-class TimingSuite : public testing::Test{
+class TimingSuite : public testing::Test {
  protected:
   virtual void SetUp() {
     atlog = static_cast<audio_thread_event_log*>(calloc(1, sizeof(*atlog)));
@@ -40,9 +39,7 @@ class TimingSuite : public testing::Test{
     rstream_stub_reset();
   }
 
-  virtual void TearDown() {
-    free(atlog);
-  }
+  virtual void TearDown() { free(atlog); }
 
   timespec SingleInputDevNextWake(
       size_t dev_cb_threshold,
@@ -68,7 +65,7 @@ class TimingSuite : public testing::Test{
     dev_io_send_captured_samples(dev_list_);
 
     struct timespec dev_time;
-    dev_time.tv_sec = level_timestamp->tv_sec + 500; // Far in the future.
+    dev_time.tv_sec = level_timestamp->tv_sec + 500;  // Far in the future.
     dev_io_next_input_wake(&dev_list_, &dev_time);
     return dev_time;
   }
@@ -334,7 +331,7 @@ TEST_F(TimingSuite, InputWakeTimeOneStreamWithEmptyDevice) {
 
   // The device wake up time should be 10ms from now. At that time the
   // stream will have 480 samples to post.
-  const timespec ten_millis = { 0, 10 * 1000 * 1000 };
+  const timespec ten_millis = {0, 10 * 1000 * 1000};
   add_timespecs(&start, &ten_millis);
   EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_sec);
   EXPECT_EQ(0, streams[0]->rstream->next_cb_ts.tv_nsec);
@@ -462,8 +459,8 @@ TEST_F(TimingSuite, WaitAfterFill) {
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
-  timespec dev_time = SingleInputDevNextWake(cb_threshold, 0, &start,
-                                             &format, streams);
+  timespec dev_time =
+      SingleInputDevNextWake(cb_threshold, 0, &start, &format, streams);
 
   // The next callback should be scheduled 10ms in the future.
   // And the next wake up should reflect the only attached stream.
@@ -494,8 +491,8 @@ TEST_F(TimingSuite, LargeCallbackStreamWithEmptyBuffer) {
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
-  timespec dev_time = SingleInputDevNextWake(
-      dev_cb_threshold, dev_level, &start, &format, streams);
+  timespec dev_time = SingleInputDevNextWake(dev_cb_threshold, dev_level,
+                                             &start, &format, streams);
 
   struct timespec delta;
   subtract_timespecs(&dev_time, &start, &delta);
@@ -525,8 +522,8 @@ TEST_F(TimingSuite, LargeCallbackStreamWithHalfFullBuffer) {
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
-  timespec dev_time = SingleInputDevNextWake(
-      dev_cb_threshold, dev_level, &start, &format, streams);
+  timespec dev_time = SingleInputDevNextWake(dev_cb_threshold, dev_level,
+                                             &start, &format, streams);
 
   struct timespec delta;
   subtract_timespecs(&dev_time, &start, &delta);
@@ -554,8 +551,8 @@ TEST_F(TimingSuite, WaitAfterFillSRC) {
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
-  timespec dev_time = SingleInputDevNextWake(480, 0, &start,
-                                             &dev_format, streams);
+  timespec dev_time =
+      SingleInputDevNextWake(480, 0, &start, &dev_format, streams);
 
   // The next callback should be scheduled 10ms in the future.
   struct timespec delta;
@@ -582,7 +579,7 @@ TEST_F(TimingSuite, WaitTwoStreamsSameFormat) {
   AddFakeDataToStream(stream1.get(), cb_threshold);
 
   // stream2 is only half full.
-  StreamPtr stream2  =
+  StreamPtr stream2 =
       create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
   stream2->rstream->next_cb_ts = start;
   AddFakeDataToStream(stream2.get(), 240);
@@ -590,8 +587,8 @@ TEST_F(TimingSuite, WaitTwoStreamsSameFormat) {
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream1));
   streams.emplace_back(std::move(stream2));
-  timespec dev_time = SingleInputDevNextWake(cb_threshold, 0, &start,
-                                             &format, streams);
+  timespec dev_time =
+      SingleInputDevNextWake(cb_threshold, 0, &start, &format, streams);
 
   // Should wait for approximately 5 milliseconds for 240 samples at 48k.
   struct timespec delta2;
@@ -610,23 +607,21 @@ TEST_F(TimingSuite, WaitTwoStreamsDifferentRates) {
   fill_audio_format(&s2_format, 48000);
 
   // stream1's next callback is now and there is enough data to fill.
-  StreamPtr stream1 =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 441, &s1_format);
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_INPUT, 441, &s1_format);
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
   stream1->rstream->next_cb_ts = start;
   AddFakeDataToStream(stream1.get(), 441);
   // stream2's next callback is now but there is only half a callback of data.
-  StreamPtr stream2  =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 480, &s2_format);
+  StreamPtr stream2 = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &s2_format);
   stream2->rstream->next_cb_ts = start;
   AddFakeDataToStream(stream2.get(), 240);
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream1));
   streams.emplace_back(std::move(stream2));
-  timespec dev_time = SingleInputDevNextWake(441, 0, &start,
-                                             &s1_format, streams);
+  timespec dev_time =
+      SingleInputDevNextWake(441, 0, &start, &s1_format, streams);
 
   // Should wait for approximately 5 milliseconds for 240 48k samples from the
   // 44.1k device.
@@ -648,25 +643,23 @@ TEST_F(TimingSuite, WaitTwoStreamsDifferentWakeupTimes) {
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
   // stream1's next callback is in 3ms.
-  StreamPtr stream1 =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 441, &s1_format);
+  StreamPtr stream1 = create_stream(1, 1, CRAS_STREAM_INPUT, 441, &s1_format);
   stream1->rstream->next_cb_ts = start;
-  const timespec three_millis = { 0, 3 * 1000 * 1000 };
+  const timespec three_millis = {0, 3 * 1000 * 1000};
   add_timespecs(&stream1->rstream->next_cb_ts, &three_millis);
   AddFakeDataToStream(stream1.get(), 441);
   // stream2 is also ready next cb in 5ms..
-  StreamPtr stream2  =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 480, &s2_format);
+  StreamPtr stream2 = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &s2_format);
   stream2->rstream->next_cb_ts = start;
-  const timespec five_millis = { 0, 5 * 1000 * 1000 };
+  const timespec five_millis = {0, 5 * 1000 * 1000};
   add_timespecs(&stream2->rstream->next_cb_ts, &five_millis);
   AddFakeDataToStream(stream1.get(), 480);
 
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream1));
   streams.emplace_back(std::move(stream2));
-  timespec dev_time = SingleInputDevNextWake(441, 441, &start,
-                                             &s1_format, streams);
+  timespec dev_time =
+      SingleInputDevNextWake(441, 441, &start, &s1_format, streams);
 
   // Should wait for approximately 3 milliseconds for stream 1 first.
   struct timespec delta2;
@@ -685,8 +678,7 @@ TEST_F(TimingSuite, HotwordStreamUseDevTiming) {
   struct timespec start, delay;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-  StreamPtr stream =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
   stream->rstream->flags = HOTWORD_STREAM;
   stream->rstream->next_cb_ts = start;
   delay.tv_sec = 0;
@@ -699,8 +691,7 @@ TEST_F(TimingSuite, HotwordStreamUseDevTiming) {
   AddFakeDataToStream(stream.get(), 192);
   std::vector<StreamPtr> streams;
   streams.emplace_back(std::move(stream));
-  timespec dev_time = SingleInputDevNextWake(4096, 0, &start,
-                                             &fmt, streams);
+  timespec dev_time = SingleInputDevNextWake(4096, 0, &start, &fmt, streams);
   struct timespec delta;
   subtract_timespecs(&dev_time, &start, &delta);
   // 288 frames worth of time = 6 ms.
@@ -719,8 +710,7 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsPending) {
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-  StreamPtr stream =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
   stream->rstream->flags = HOTWORD_STREAM;
   stream->rstream->next_cb_ts = start;
 
@@ -731,8 +721,8 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsPending) {
   rstream_stub_pending_reply(streams[0]->rstream.get(), 1);
 
   // There is more than 1 cb_threshold of data in device.
-  timespec dev_time = SingleInputDevNextWake(
-      4096, 7000, &start, &fmt, streams, CRAS_NODE_TYPE_HOTWORD);
+  timespec dev_time = SingleInputDevNextWake(4096, 7000, &start, &fmt, streams,
+                                             CRAS_NODE_TYPE_HOTWORD);
 
   // Need to wait for stream fd in the next ppoll.
   poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
@@ -759,8 +749,7 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
   struct timespec start;
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
-  StreamPtr stream =
-      create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 240, &fmt);
   stream->rstream->flags = HOTWORD_STREAM;
   stream->rstream->next_cb_ts = start;
 
@@ -771,8 +760,7 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
   rstream_stub_pending_reply(streams[0]->rstream.get(), 0);
 
   // There is more than 1 cb_threshold of data in device.
-  timespec dev_time = SingleInputDevNextWake(4096, 7000, &start,
-                                             &fmt, streams);
+  timespec dev_time = SingleInputDevNextWake(4096, 7000, &start, &fmt, streams);
 
   // Does not need to wait for stream fd in the next ppoll.
   poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
@@ -1128,26 +1116,23 @@ TEST_F(TimingSuite, OutputStreamsUpdateAfterFetching) {
 /* Stubs */
 extern "C" {
 
-int input_data_get_for_stream(
-		struct input_data *data,
-		struct cras_rstream *stream,
-		struct buffer_share *offsets,
-		struct cras_audio_area **area,
-		unsigned int *offset)
-{
+int input_data_get_for_stream(struct input_data* data,
+                              struct cras_rstream* stream,
+                              struct buffer_share* offsets,
+                              struct cras_audio_area** area,
+                              unsigned int* offset) {
   return 0;
 }
 
-int input_data_put_for_stream(struct input_data *data,
-			   struct cras_rstream *stream,
-			   struct buffer_share *offsets,
-			   unsigned int frames)
-{
+int input_data_put_for_stream(struct input_data* data,
+                              struct cras_rstream* stream,
+                              struct buffer_share* offsets,
+                              unsigned int frames) {
   return 0;
 }
-struct cras_audio_format *cras_rstream_post_processing_format(
-    const struct cras_rstream *stream, void *dev_ptr)
-{
+struct cras_audio_format* cras_rstream_post_processing_format(
+    const struct cras_rstream* stream,
+    void* dev_ptr) {
   return NULL;
 }
 }  // extern "C"

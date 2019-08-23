@@ -18,9 +18,9 @@ static cras_audio_area dummy_audio_area;
 namespace {
 
 TEST(EmptyIodev, GetInputBuffer) {
-  struct cras_iodev *iodev;
+  struct cras_iodev* iodev;
   struct timespec ts;
-  cras_audio_area *area;
+  cras_audio_area* area;
   unsigned nframes;
 
   iodev = empty_iodev_create(CRAS_STREAM_INPUT, CRAS_NODE_TYPE_UNKNOWN);
@@ -46,70 +46,55 @@ TEST(EmptyIodev, GetInputBuffer) {
   empty_iodev_destroy(iodev);
 }
 
-} // namespace
+}  // namespace
 
 extern "C" {
 
-void cras_iodev_free_format(struct cras_iodev *iodev)
-{
-}
+void cras_iodev_free_format(struct cras_iodev* iodev) {}
 
-int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
-{
+int cras_iodev_default_no_stream_playback(struct cras_iodev* odev, int enable) {
   return 0;
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev *iodev,
-				int num_channels)
-{
+void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
   iodev->area = &dummy_audio_area;
 }
 
-void cras_iodev_free_audio_area(struct cras_iodev *iodev)
-{
-}
+void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
-void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
-					 const struct cras_audio_format *fmt,
-					 uint8_t *base_buffer)
-{
-}
+void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
+                                         const struct cras_audio_format* fmt,
+                                         uint8_t* base_buffer) {}
 
-int cras_iodev_list_rm_input(struct cras_iodev *input)
-{
+int cras_iodev_list_rm_input(struct cras_iodev* input) {
   return 0;
 }
 
-int cras_iodev_list_rm_output(struct cras_iodev *output)
-{
+int cras_iodev_list_rm_output(struct cras_iodev* output) {
   return 0;
 }
 
-void cras_iodev_free_resources(struct cras_iodev *iodev)
-{
-}
+void cras_iodev_free_resources(struct cras_iodev* iodev) {}
 
-void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
-{
+void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
   iodev->nodes = node;
 }
 
-void cras_iodev_set_active_node(struct cras_iodev *iodev,
-				struct cras_ionode *node)
-{
+void cras_iodev_set_active_node(struct cras_iodev* iodev,
+                                struct cras_ionode* node) {
   iodev->active_node = node;
 }
 
 //  From librt.
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;
   tp->tv_nsec = clock_gettime_retspec.tv_nsec;
   return 0;
 }
 
-} // extern "C"
+}  // extern "C"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
