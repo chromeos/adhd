@@ -501,10 +501,32 @@ int cras_client_update_audio_debug_info(struct cras_client *client,
  *    client - The client from cras_client_create.
  *    cb - Function to call when debug info is ready.
  * Returns:
- *    0 on sucess, -EINVAL if the client isn't valid or isn't running.
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
 int cras_client_update_bt_debug_info(struct cras_client *client,
 				     void (*cb)(struct cras_client *));
+
+/* Gets read-only access to audio thread log. Should be called once before
+   calling cras_client_read_atlog.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    atlog_access_cb - Function to call after getting atlog access.
+ * Returns:
+ *    0 on success, -EINVAL if the client or atlog_access_cb isn't valid.
+ */
+int cras_client_get_atlog_access(struct cras_client *client,
+				 void (*atlog_access_cb)(struct cras_client *));
+
+/* Reads continuous audio thread log into 'buf'. Requires calling
+ * cras_client_get_atlog_access() beforehand to get access to audio thread log.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    buf - The buffer to which continuous logs will be copied.
+ * Returns:
+ *    The number of logs copied. < 0 if failed to read audio thread log.
+ */
+int cras_client_read_atlog(struct cras_client *client,
+			   struct audio_thread_event_log *buf);
 
 /* Asks the server to dump current audio thread snapshots.
  *
@@ -1315,7 +1337,6 @@ int cras_client_set_input_node_gain_changed_callback(
 int cras_client_set_num_active_streams_changed_callback(
 	struct cras_client *client,
 	cras_client_num_active_streams_changed_callback cb);
-
 #ifdef __cplusplus
 }
 #endif

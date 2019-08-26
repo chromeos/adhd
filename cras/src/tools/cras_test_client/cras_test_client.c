@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -775,7 +776,7 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 	printf("Audio Thread Event Log:\n");
 
 	fill_time_offset(&sec_offset, &nsec_offset);
-	j = info->log.write_pos;
+	j = info->log.write_pos % info->log.len;
 	i = 0;
 	printf("start at %d\n", j);
 	for (; i < info->log.len; i++) {
@@ -1415,6 +1416,59 @@ static void mute_loop_test(struct cras_client *client, int auto_reconnect)
 	}
 }
 
+static void show_atlog(time_t sec_offset, int32_t nsec_offset,
+		       struct audio_thread_event_log *log, int len)
+{
+	int i;
+	printf("Audio Thread Event Log:\n");
+
+	for (i = 0; i < len; ++i) {
+		show_alog_tag(log, i, sec_offset, nsec_offset);
+	}
+}
+
+static void unlock_main_thread(struct cras_client *client)
+{
+	pthread_mutex_lock(&done_mutex);
+	pthread_cond_signal(&done_cond);
+	pthread_mutex_unlock(&done_mutex);
+}
+
+static void cras_show_atlog(struct cras_client *client)
+{
+	struct audio_thread_event_log log;
+	struct timespec wait_time;
+	static time_t sec_offset;
+	static int32_t nsec_offset;
+	int len, rc;
+
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client); /* To synchronize data. */
+	cras_client_get_atlog_access(client, unlock_main_thread);
+
+	clock_gettime(CLOCK_REALTIME, &wait_time);
+	wait_time.tv_sec += 2;
+
+	pthread_mutex_lock(&done_mutex);
+	rc = pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
+	pthread_mutex_unlock(&done_mutex);
+
+	fill_time_offset(&sec_offset, &nsec_offset);
+	if (rc) {
+		printf("Failed to get audio thread log.\n");
+		return;
+	}
+
+	len = cras_client_read_atlog(client, &log);
+
+	if (len < 0)
+		printf("Failed to get audio thread log.\n");
+	else if (len > 0)
+		show_atlog(sec_offset, nsec_offset, &log, len);
+	else
+		printf("No new logs.\n");
+}
+
 // clang-format off
 static struct option long_options[] = {
 	{"show_latency",        no_argument,            &show_latency, 1},
@@ -1470,6 +1524,7 @@ static struct option long_options[] = {
 	{"aecdump",             required_argument,      0, 'G'},
 	{"dump_bt",             no_argument,            0, 'H'},
 	{"set_wbs_enabled",     required_argument,      0, 'I'},
+	{"dump_atlog",		no_argument,		0, 'J'},
 	{"loopback_file",       required_argument,      0, 'L'},
 	{"mute_loop_test",      required_argument,      0, 'M'},
 	{"playback_file",       required_argument,      0, 'P'},
@@ -1502,6 +1557,8 @@ static void show_usage()
 	       "Set multiple channel layout.\n");
 	printf("--check_output_plugged <output name> - "
 	       "Check if the output is plugged in\n");
+	printf("--dump_atlog - "
+	       "Dumps audio thread event log.\n");
 	printf("--dump_audio_thread - "
 	       "Dumps audio thread info.\n");
 	printf("--dump_bt - "
@@ -1984,6 +2041,9 @@ int main(int argc, char **argv)
 			break;
 		case 'I':
 			cras_client_set_bt_wbs_enabled(client, atoi(optarg));
+			break;
+		case 'J':
+			cras_show_atlog(client);
 			break;
 		case 'L':
 			loopback_file = optarg;

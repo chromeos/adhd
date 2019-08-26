@@ -128,6 +128,9 @@ int audio_thread_start(struct audio_thread *thread);
 /* Frees an audio thread created with audio_thread_create(). */
 void audio_thread_destroy(struct audio_thread *thread);
 
+/* Returns the shm fd for the ATlog. */
+int audio_thread_event_log_shm_fd();
+
 /* Add a stream to the thread. After this call, the ownership of the stream will
  * be passed to the audio thread. Audio thread is responsible to release the
  * stream's resources.

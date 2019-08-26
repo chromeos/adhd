@@ -726,6 +726,10 @@ int audio_thread_set_aec_dump(struct audio_thread* thread,
   return 0;
 }
 
+int audio_thread_event_log_shm_fd() {
+  return -1;
+}
+
 #ifdef HAVE_WEBRTC_APM
 void cras_apm_list_reload_aec_config() {}
 #endif

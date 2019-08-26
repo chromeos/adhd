@@ -7,6 +7,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
+#include "audio_thread_log.h"
 #include "cras_apm_list.h"
 #include "cras_bt_log.h"
 #include "cras_config.h"
@@ -126,6 +127,17 @@ static void dump_audio_thread_info(struct cras_rclient *client)
 	audio_thread_dump_thread_info(cras_iodev_list_get_audio_thread(),
 				      &state->audio_debug_info);
 	client->ops->send_message_to_client(client, &msg.header, NULL, 0);
+}
+
+/* Sends shared memory fd for audio thread event log back to the client. */
+static void get_atlog_fd(struct cras_rclient *client)
+{
+	struct cras_client_atlog_fd_ready msg;
+	int atlog_fd;
+
+	cras_fill_client_atlog_fd_ready(&msg);
+	atlog_fd = audio_thread_event_log_shm_fd();
+	client->ops->send_message_to_client(client, &msg.header, &atlog_fd, 1);
 }
 
 /* Handles dumping audio snapshots to shared memory for the client. */
@@ -498,6 +510,9 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DUMP_AUDIO_THREAD:
 		dump_audio_thread_info(client);
 		break;
+	case CRAS_SERVER_GET_ATLOG_FD:
+		get_atlog_fd(client);
+		break;
 	case CRAS_SERVER_DUMP_BT: {
 		struct cras_client_audio_debug_info_ready msg;
 		struct cras_server_state *state;
@@ -637,7 +652,6 @@ struct cras_rclient *cras_control_rclient_create(int fd, size_t id)
 
 	client->fd = fd;
 	client->id = id;
-
 	client->ops = &cras_control_rclient_ops;
 
 	cras_fill_client_connected(&msg, client->id);

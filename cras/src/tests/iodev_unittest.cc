@@ -17,6 +17,10 @@ extern "C" {
 
 // Mock software volume scalers.
 float softvol_scalers[101];
+
+// For audio_thread_log.h use.
+int atlog_rw_shm_fd;
+int atlog_ro_shm_fd;
 }
 
 #define BUFFER_SIZE 8192
@@ -111,6 +115,8 @@ static int ext_mod_configure_called;
 static struct input_data* input_data_create_ret;
 static double rate_estimator_get_rate_ret;
 
+static char* atlog_name;
+
 // Iodev callback
 int update_channel_layout(struct cras_iodev* iodev) {
   update_channel_layout_called = 1;
@@ -167,8 +173,14 @@ void ResetStubData() {
   simple_no_stream_called = 0;
   simple_no_stream_enable = 0;
   dev_stream_playback_frames_ret = 0;
-  if (!atlog)
-    atlog = audio_thread_event_log_init();
+  if (!atlog) {
+    if (asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0) {
+      exit(-1);
+    }
+    /* To avoid un-used variable warning. */
+    atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
+    atlog = audio_thread_event_log_init(atlog_name);
+  }
   get_num_underruns_ret = 0;
   device_monitor_reset_device_called = 0;
   output_underrun_called = 0;
@@ -2697,6 +2709,7 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   int rc = RUN_ALL_TESTS();
 
-  audio_thread_event_log_deinit(atlog);
+  audio_thread_event_log_deinit(atlog, atlog_name);
+  free(atlog_name);
   return rc;
 }

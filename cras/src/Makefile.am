@@ -592,7 +592,8 @@ array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 array_unittest_LDADD = -lgtest -lpthread
 
 audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
-	server/dev_io.c tests/empty_audio_stub.cc tests/metrics_stub.cc
+	server/dev_io.c tests/empty_audio_stub.cc tests/metrics_stub.cc \
+	common/cras_shm.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
@@ -676,10 +677,10 @@ dev_io_unittest_LDADD = \
 	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
 
 dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
-	server/dev_stream.c
+	server/dev_stream.c common/cras_shm.c
 dev_stream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-dev_stream_unittest_LDADD = -lgtest -liniparser -lpthread
+dev_stream_unittest_LDADD = -lgtest -liniparser -lpthread -lrt
 
 device_blacklist_unittest_SOURCES = tests/device_blacklist_unittest.cc \
 	server/config/cras_device_blacklist.c
@@ -821,10 +822,10 @@ input_data_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 input_data_unittest_LDADD = -lgtest -lpthread
 
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
-	server/cras_iodev.c
+	server/cras_iodev.c common/cras_shm.c
 iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-iodev_unittest_LDADD = -lgtest -lpthread
+iodev_unittest_LDADD = -lgtest -lpthread -lrt
 
 mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
 mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \

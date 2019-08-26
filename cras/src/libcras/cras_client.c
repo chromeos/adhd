@@ -208,7 +208,9 @@ typedef enum cras_socket_state {
  * last_command_result - Passes back the result of the last user command.
  * streams - Linked list of streams attached to this client.
  * server_state - RO shared memory region holding server state.
+ * atlog_ro - RO shared memory region holding audio thread log.
  * debug_info_callback - Function to call when debug info is received.
+ * atlog_access_callback - Function to call when atlog RO fd is received.
  * get_hotword_models_cb_t - Function to call when hotword models info is ready.
  * server_err_cb - Function to call when failed to read messages from server.
  * server_err_user_arg - User argument for server_err_cb.
@@ -236,7 +238,9 @@ struct cras_client {
 	int last_command_result;
 	struct client_stream *streams;
 	const struct cras_server_state *server_state;
+	struct audio_thread_event_log *atlog_ro;
 	void (*debug_info_callback)(struct cras_client *);
+	void (*atlog_access_callback)(struct cras_client *);
 	get_hotword_models_cb_t get_hotword_models_cb;
 	cras_server_error_cb_t server_err_cb;
 	cras_connection_status_cb_t server_connection_cb;
@@ -1597,6 +1601,14 @@ static int client_thread_set_stream_volume(struct cras_client *client,
 	return 0;
 }
 
+/* Attach to the shm region containing the audio thread log. */
+static void attach_atlog_shm(struct cras_client *client, int fd)
+{
+	client->atlog_ro = (struct audio_thread_event_log *)mmap(
+		NULL, sizeof(*client->atlog_ro), PROT_READ, MAP_SHARED, fd, 0);
+	close(fd);
+}
+
 /* Attach to the shm region containing the server state. */
 static int client_attach_shm(struct cras_client *client, int shm_fd)
 {
@@ -1707,6 +1719,14 @@ static int handle_message_from_server(struct cras_client *client)
 		if (client->debug_info_callback)
 			client->debug_info_callback(client);
 		client->debug_info_callback = NULL;
+		break;
+	case CRAS_CLIENT_ATLOG_FD_READY:
+		if (num_fds != 1)
+			return -EINVAL;
+		attach_atlog_shm(client, server_fds[0]);
+		if (client->atlog_access_callback)
+			client->atlog_access_callback(client);
+		client->atlog_access_callback = NULL;
 		break;
 	case CRAS_CLIENT_GET_HOTWORD_MODELS_READY: {
 		struct cras_client_get_hotword_models_ready *cmsg =
@@ -3101,6 +3121,72 @@ int cras_client_update_audio_debug_info(
 
 	cras_fill_dump_audio_thread(&msg);
 	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_get_atlog_access(struct cras_client *client,
+				 void (*atlog_access_cb)(struct cras_client *))
+{
+	struct cras_get_atlog_fd msg;
+
+	if (client == NULL)
+		return -EINVAL;
+
+	if (client->atlog_access_callback != NULL)
+		return -EINVAL;
+	client->atlog_access_callback = atlog_access_cb;
+
+	cras_fill_get_atlog_fd(&msg);
+	return write_message_to_server(client, &msg.header);
+}
+
+int cras_client_read_atlog(struct cras_client *client,
+			   struct audio_thread_event_log *buf)
+{
+	struct audio_thread_event_log log;
+	uint64_t i, sync_write_pos, len = 0, read_idx = 0;
+	struct timespec timestamp, last_timestamp;
+
+	if (!client->atlog_ro)
+		return -EINVAL;
+
+	sync_write_pos = client->atlog_ro->sync_write_pos;
+	__sync_synchronize();
+	memcpy(&log, client->atlog_ro, sizeof(log));
+
+	if (sync_write_pos == 0)
+		return 0;
+
+	for (i = sync_write_pos - 1; i >= 0; --i) {
+		uint64_t pos = i % log.len;
+		timestamp.tv_sec = log.log[pos].tag_sec & 0x00ffffff;
+		timestamp.tv_nsec = log.log[pos].nsec;
+
+		if (i != sync_write_pos - 1 &&
+		    timespec_after(&timestamp, &last_timestamp)) {
+			read_idx = i + 1;
+			break;
+		}
+		last_timestamp = timestamp;
+
+		if (!i)
+			break;
+	}
+
+	/* Copies the continuous part of log. */
+	if ((sync_write_pos - 1) % log.len < read_idx % log.len) {
+		len = log.len - read_idx % log.len;
+		memcpy(buf->log, &log.log[read_idx % log.len],
+		       sizeof(struct audio_thread_event) * len);
+		memcpy(&buf->log[len], log.log,
+		       sizeof(struct audio_thread_event) *
+			       ((sync_write_pos - 1) % log.len + 1));
+		len = sync_write_pos - read_idx;
+	} else {
+		len = sync_write_pos - read_idx;
+		memcpy(buf->log, &log.log[read_idx % log.len],
+		       sizeof(struct audio_thread_event) * len);
+	}
+	return len;
 }
 
 int cras_client_update_bt_debug_info(

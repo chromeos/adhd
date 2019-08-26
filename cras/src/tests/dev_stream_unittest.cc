@@ -19,6 +19,9 @@ namespace {
 
 extern "C" {
 struct audio_thread_event_log* atlog;
+// For audio_thread_log.h use.
+int atlog_rw_shm_fd;
+int atlog_ro_shm_fd;
 unsigned int max_frames_for_conversion(unsigned int stream_frames,
                                        unsigned int stream_rate,
                                        unsigned int device_rate);
@@ -108,6 +111,8 @@ static int cras_rstream_is_pending_reply_ret;
 static int cras_rstream_flush_old_audio_messages_called;
 static int cras_server_metrics_missed_cb_event_called;
 
+static char* atlog_name;
+
 class CreateSuite : public testing::Test {
  protected:
   virtual void SetUp() {
@@ -144,7 +149,10 @@ class CreateSuite : public testing::Test {
     memset(&copy_area_call, 0xff, sizeof(copy_area_call));
     memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
 
-    atlog = audio_thread_event_log_init();
+    ASSERT_FALSE(asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0);
+    /* To avoid un-used variable warning. */
+    atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
+    atlog = audio_thread_event_log_init(atlog_name);
 
     devstr.stream = &rstream_;
     devstr.conv = NULL;
@@ -179,7 +187,8 @@ class CreateSuite : public testing::Test {
     free(rstream_.shm->header);
     free(rstream_.shm->samples);
     free(rstream_.shm);
-    audio_thread_event_log_deinit(atlog);
+    audio_thread_event_log_deinit(atlog, atlog_name);
+    free(atlog_name);
   }
 
   void SetupShm(struct cras_audio_shm** shm_out) {

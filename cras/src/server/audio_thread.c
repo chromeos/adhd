@@ -4,12 +4,13 @@
  */
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE /* for ppoll */
+#define _GNU_SOURCE /* for ppoll and asprintf*/
 #endif
 
 #include <pthread.h>
 #include <poll.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <sys/param.h>
 #include <syslog.h>
 
@@ -104,6 +105,9 @@ struct audio_thread_aec_dump_msg {
 
 /* Audio thread logging. */
 struct audio_thread_event_log *atlog;
+char *atlog_name;
+int atlog_rw_shm_fd;
+int atlog_ro_shm_fd;
 
 static struct iodev_callback_list *iodev_callbacks;
 static struct timespec longest_wake;
@@ -856,6 +860,11 @@ static void *audio_io_thread(void *arg)
 		      wait_ts ? wait_ts->tv_nsec : 0, longest_wake.tv_nsec);
 		if (wait_ts)
 			check_busyloop(wait_ts);
+
+		/* Sync atlog with shared memory. */
+		__sync_synchronize();
+		atlog->sync_write_pos = atlog->write_pos;
+
 		rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
 		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
 		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
@@ -978,6 +987,11 @@ init_device_start_ramp_msg(struct audio_thread_dev_start_ramp_msg *msg,
 }
 
 /* Exported Interface */
+
+int audio_thread_event_log_shm_fd()
+{
+	return atlog_ro_shm_fd;
+}
 
 int audio_thread_add_stream(struct audio_thread *thread,
 			    struct cras_rstream *stream,
@@ -1137,7 +1151,12 @@ struct audio_thread *audio_thread_create()
 		return NULL;
 	}
 
-	atlog = audio_thread_event_log_init();
+	if (asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0) {
+		syslog(LOG_ERR, "Failed to generate ATlog name.");
+		exit(-1);
+	}
+
+	atlog = audio_thread_event_log_init(atlog_name);
 
 	thread->pollfds_size = 32;
 	thread->pollfds = (struct pollfd *)malloc(sizeof(*thread->pollfds) *
@@ -1230,7 +1249,8 @@ void audio_thread_destroy(struct audio_thread *thread)
 
 	free(thread->pollfds);
 
-	audio_thread_event_log_deinit(atlog);
+	audio_thread_event_log_deinit(atlog, atlog_name);
+	free(atlog_name);
 
 	if (thread->to_thread_fds[0] != -1) {
 		close(thread->to_thread_fds[0]);

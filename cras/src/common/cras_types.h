@@ -300,7 +300,8 @@ struct __attribute__((__packed__)) audio_thread_event {
 
 /* Ring buffer of log events from the audio thread. */
 struct __attribute__((__packed__)) audio_thread_event_log {
-	uint32_t write_pos;
+	uint64_t write_pos;
+	uint64_t sync_write_pos;
 	uint32_t len;
 	struct audio_thread_event log[AUDIO_THREAD_EVENT_LOG_SIZE];
 };

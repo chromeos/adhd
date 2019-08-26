@@ -57,6 +57,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_RELOAD_AEC_CONFIG,
 	CRAS_SERVER_DUMP_BT,
 	CRAS_SERVER_SET_BT_WBS_ENABLED,
+	CRAS_SERVER_GET_ATLOG_FD,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -76,6 +77,8 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_NODE_LEFT_RIGHT_SWAPPED_CHANGED,
 	CRAS_CLIENT_INPUT_NODE_GAIN_CHANGED,
 	CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED,
+	/* Server -> Client */
+	CRAS_CLIENT_ATLOG_FD_READY,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -348,6 +351,16 @@ static inline void cras_fill_dump_audio_thread(struct cras_dump_audio_thread *m)
 	m->header.length = sizeof(*m);
 }
 
+struct __attribute__((__packed__)) cras_get_atlog_fd {
+	struct cras_server_message header;
+};
+
+static inline void cras_fill_get_atlog_fd(struct cras_get_atlog_fd *m)
+{
+	m->header.id = CRAS_SERVER_GET_ATLOG_FD;
+	m->header.length = sizeof(*m);
+}
+
 /* Dump bluetooth events and state changes. */
 struct __attribute__((__packed__)) cras_dump_bt {
 	struct cras_server_message header;
@@ -581,6 +594,17 @@ static inline void cras_fill_client_audio_debug_info_ready(
 	struct cras_client_audio_debug_info_ready *m)
 {
 	m->header.id = CRAS_CLIENT_AUDIO_DEBUG_INFO_READY;
+	m->header.length = sizeof(*m);
+}
+
+struct cras_client_atlog_fd_ready {
+	struct cras_client_message header;
+};
+
+static inline void
+cras_fill_client_atlog_fd_ready(struct cras_client_atlog_fd_ready *m)
+{
+	m->header.id = CRAS_CLIENT_ATLOG_FD_READY;
 	m->header.length = sizeof(*m);
 }
 
