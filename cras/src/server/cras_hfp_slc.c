@@ -26,12 +26,12 @@
 /* Indicator update command response and indicator indices.
  * Note that indicator index starts from '1'.
  */
-#define BATTERY_IND_INDEX		1
-#define SIGNAL_IND_INDEX		2
-#define SERVICE_IND_INDEX		3
-#define CALL_IND_INDEX			4
-#define CALLSETUP_IND_INDEX		5
-#define CALLHELD_IND_INDEX		6
+#define BATTERY_IND_INDEX 1
+#define SIGNAL_IND_INDEX 2
+#define SERVICE_IND_INDEX 3
+#define CALL_IND_INDEX 4
+#define CALLSETUP_IND_INDEX 5
+#define CALLHELD_IND_INDEX 6
 #define INDICATOR_UPDATE_RSP                                                   \
 	"+CIND: "                                                              \
 	"(\"battchg\",(0-5)),"                                                 \
@@ -44,7 +44,7 @@
 	""
 /* Mode values for standard event reporting activation/deactivation AT
  * command AT+CMER. Used for indicator events reporting in HFP. */
-#define FORWARD_UNSOLICIT_RESULT_CODE	3
+#define FORWARD_UNSOLICIT_RESULT_CODE 3
 
 /* Handle object to hold required info to initialize and maintain
  * an HFP service level connection.
@@ -104,7 +104,7 @@ struct hfp_slc_handle {
 /* AT command exchanges between AG(Audio gateway) and HF(Hands-free device) */
 struct at_command {
 	const char *cmd;
-	int (*callback) (struct hfp_slc_handle *handle, const char *cmd);
+	int (*callback)(struct hfp_slc_handle *handle, const char *cmd);
 };
 
 /* Sends a response or command to HF */
@@ -118,8 +118,7 @@ static int hfp_send(struct hfp_slc_handle *handle, const char *buf)
 	len = strlen(buf);
 	written = 0;
 	while (written < len) {
-		err = write(handle->rfcomm_fd,
-			    buf + written, len - written);
+		err = write(handle->rfcomm_fd, buf + written, len - written);
 		if (err < 0)
 			return -errno;
 		written += err;
@@ -130,8 +129,7 @@ static int hfp_send(struct hfp_slc_handle *handle, const char *buf)
 
 /* Sends a response for indicator event reporting. */
 static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
-				     int ind_index,
-				     int value)
+				     int ind_index, int value)
 {
 	char cmd[64];
 
@@ -145,8 +143,7 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 /* Sends calling line identification unsolicited result code and
  * standard call waiting notification. */
 static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
-						const char *number,
-						int type)
+						const char *number, int type)
 {
 	char cmd[64];
 
@@ -203,10 +200,10 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 		 * ATD>nnn...; and lookup. */
 		int memory_location;
 		memory_location = strtol(cmd + 4, NULL, 0);
-		if (handle->telephony->dial_number == NULL || memory_location != 1)
+		if (handle->telephony->dial_number == NULL ||
+		    memory_location != 1)
 			return hfp_send(handle, AT_CMD("ERROR"));
-	}
-	else {
+	} else {
 		/* ATDddddd; Store dial number to the only memory slot. */
 		cras_telephony_store_dial_number(cmd_len - 3 - 1, cmd + 3);
 	}
@@ -304,7 +301,6 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
  */
 static void choose_codec_and_init_slc(struct hfp_slc_handle *handle)
 {
-
 	if (handle->hf_supports_codec_negotiation &&
 	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
 		/* Sets preferred codec to mSBC, and schedule callback to
@@ -461,16 +457,14 @@ static int list_current_calls(struct hfp_slc_handle *handle, const char *cmd)
 	 * This is a hack to pass qualification test which ask us to
 	 * handle the basic case that one call is active and
 	 * the other is on hold. */
-	if (handle->telephony->callheld)
-	{
+	if (handle->telephony->callheld) {
 		snprintf(buf, 64, AT_CMD("+CLCC: %d,1,1,0,0"), idx++);
 		rc = hfp_send(handle, buf);
 		if (rc)
 			return rc;
 	}
 
-	if (handle->telephony->call)
-	{
+	if (handle->telephony->call) {
 		snprintf(buf, 64, AT_CMD("+CLCC: %d,1,0,0,0"), idx++);
 		rc = hfp_send(handle, buf);
 		if (rc)
@@ -486,8 +480,7 @@ static int list_current_calls(struct hfp_slc_handle *handle, const char *cmd)
 static int operator_selection(struct hfp_slc_handle *handle, const char *buf)
 {
 	int rc;
-	if (buf[7] == '?')
-	{
+	if (buf[7] == '?') {
 		/* HF sends AT+COPS? command to find current network operator.
 		 * AG responds with +COPS:<mode>,<format>,<operator>, where
 		 * the mode=0 means automatic for network selection. If no
@@ -547,8 +540,7 @@ static int indicator_activation(struct hfp_slc_handle *handle, const char *cmd)
 /* AT+VGM and AT+VGS command reports the current mic and speaker gain
  * level respectively. Optional support per spec 4.28.
  */
-static int signal_gain_setting(struct hfp_slc_handle *handle,
-			       const char *cmd)
+static int signal_gain_setting(struct hfp_slc_handle *handle, const char *cmd)
 {
 	int gain;
 
@@ -676,31 +668,30 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
  *                     AT+CMER= -->
  *                 <-- OK
  */
-static struct at_command at_commands[] = {
-	{ "ATA", answer_call },
-	{ "ATD", dial_number },
-	{ "AT+BAC", available_codecs },
-	{ "AT+BCS", bluetooth_codec_selection },
-	{ "AT+BIA", indicator_activation },
-	{ "AT+BLDN", last_dialed_number },
-	{ "AT+BRSF", supported_features },
-	{ "AT+CCWA", call_waiting_notify },
-	{ "AT+CHUP", terminate_call },
-	{ "AT+CIND", report_indicators },
-	{ "AT+CKPD", key_press },
-	{ "AT+CLCC", list_current_calls },
-	{ "AT+CLIP", cli_notification },
-	{ "AT+CMEE", extended_errors },
-	{ "AT+CMER", event_reporting },
-	{ "AT+CNUM", subscriber_number },
-	{ "AT+COPS", operator_selection },
-	{ "AT+VG", signal_gain_setting },
-	{ "AT+VTS", dtmf_tone },
-	{ 0 }
-};
+static struct at_command at_commands[] = { { "ATA", answer_call },
+					   { "ATD", dial_number },
+					   { "AT+BAC", available_codecs },
+					   { "AT+BCS",
+					     bluetooth_codec_selection },
+					   { "AT+BIA", indicator_activation },
+					   { "AT+BLDN", last_dialed_number },
+					   { "AT+BRSF", supported_features },
+					   { "AT+CCWA", call_waiting_notify },
+					   { "AT+CHUP", terminate_call },
+					   { "AT+CIND", report_indicators },
+					   { "AT+CKPD", key_press },
+					   { "AT+CLCC", list_current_calls },
+					   { "AT+CLIP", cli_notification },
+					   { "AT+CMEE", extended_errors },
+					   { "AT+CMER", event_reporting },
+					   { "AT+CNUM", subscriber_number },
+					   { "AT+COPS", operator_selection },
+					   { "AT+VG", signal_gain_setting },
+					   { "AT+VTS", dtmf_tone },
+					   { 0 } };
 
-static int handle_at_command(struct hfp_slc_handle *slc_handle,
-			     const char *cmd) {
+static int handle_at_command(struct hfp_slc_handle *slc_handle, const char *cmd)
+{
 	struct at_command *atc;
 
 	for (atc = at_commands; atc->cmd; atc++)
@@ -717,9 +708,9 @@ static void slc_watch_callback(void *arg)
 	ssize_t bytes_read;
 	int err;
 
-	bytes_read = read(handle->rfcomm_fd,
-			  &handle->buf[handle->buf_write_idx],
-			  SLC_BUF_SIZE_BYTES - handle->buf_write_idx - 1);
+	bytes_read =
+		read(handle->rfcomm_fd, &handle->buf[handle->buf_write_idx],
+		     SLC_BUF_SIZE_BYTES - handle->buf_write_idx - 1);
 	if (bytes_read < 0) {
 		syslog(LOG_ERR, "Error reading slc command %s",
 		       strerror(errno));
@@ -752,8 +743,7 @@ static void slc_watch_callback(void *arg)
 	/* Handle the case when buffer is full and no command found. */
 	if (handle->buf_write_idx == SLC_BUF_SIZE_BYTES - 1) {
 		if (handle->buf_read_idx) {
-			memmove(handle->buf,
-				&handle->buf[handle->buf_read_idx],
+			memmove(handle->buf, &handle->buf[handle->buf_read_idx],
 				handle->buf_write_idx - handle->buf_read_idx);
 			handle->buf_write_idx -= handle->buf_read_idx;
 			handle->buf_read_idx = 0;
@@ -771,8 +761,7 @@ static void slc_watch_callback(void *arg)
 
 /* Exported interfaces */
 
-struct hfp_slc_handle *hfp_slc_create(int fd,
-				      int is_hsp,
+struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 				      int ag_supported_features,
 				      struct cras_bt_device *device,
 				      hfp_slc_init_cb init_cb,
@@ -780,7 +769,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 {
 	struct hfp_slc_handle *handle;
 
-	handle = (struct hfp_slc_handle*) calloc(1, sizeof(*handle));
+	handle = (struct hfp_slc_handle *)calloc(1, sizeof(*handle));
 	if (!handle)
 		return NULL;
 
@@ -799,8 +788,8 @@ struct hfp_slc_handle *hfp_slc_create(int fd,
 	handle->preferred_codec = HFP_CODEC_ID_CVSD;
 	handle->selected_codec = HFP_CODEC_UNUSED;
 
-	cras_system_add_select_fd(handle->rfcomm_fd,
-				  slc_watch_callback, handle);
+	cras_system_add_select_fd(handle->rfcomm_fd, slc_watch_callback,
+				  handle);
 
 	return handle;
 }
@@ -843,8 +832,7 @@ int hfp_set_call_status(struct hfp_slc_handle *handle, int call)
  *                 <-- +CIEV: (callsetup = 1)
  *                 <-- RING (ALERT)
  */
-int hfp_event_incoming_call(struct hfp_slc_handle *handle,
-			    const char *number,
+int hfp_event_incoming_call(struct hfp_slc_handle *handle, const char *number,
 			    int type)
 {
 	int rc;
@@ -906,4 +894,3 @@ int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle)
 {
 	return handle->hf_supports_codec_negotiation;
 }
-

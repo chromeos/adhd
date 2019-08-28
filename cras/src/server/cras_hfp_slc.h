@@ -14,35 +14,35 @@ struct cras_bt_device;
  * Per HFP 1.7.1 specification section 4.34.1, command
  * AT+BRSF (Bluetooth Retrieve Supported Features)
  */
-#define HF_EC_ANDOR_NR			0x0001
-#define HF_THREE_WAY_CALLING		0x0002
-#define HF_CLI_PRESENTATION_CAP		0x0004
-#define HF_VOICE_RECOGNITION		0x0008
-#define HF_REMOVE_VOLUME_CTONTROL	0x0010
-#define HF_ENHANCED_CALL_STATUS		0x0020
-#define HF_ENHANCED_CALL_CONTROL	0x0040
-#define HF_CODEC_NEGOTIATION		0x0080
-#define HF_HF_INDICATORS		0x0100
-#define HF_ESCO_S4_T2_SETTINGS		0x0200
+#define HF_EC_ANDOR_NR 0x0001
+#define HF_THREE_WAY_CALLING 0x0002
+#define HF_CLI_PRESENTATION_CAP 0x0004
+#define HF_VOICE_RECOGNITION 0x0008
+#define HF_REMOVE_VOLUME_CTONTROL 0x0010
+#define HF_ENHANCED_CALL_STATUS 0x0020
+#define HF_ENHANCED_CALL_CONTROL 0x0040
+#define HF_CODEC_NEGOTIATION 0x0080
+#define HF_HF_INDICATORS 0x0100
+#define HF_ESCO_S4_T2_SETTINGS 0x0200
 
-#define AG_THREE_WAY_CALLING		0x0001
-#define AG_EC_ANDOR_NR			0x0002
-#define AG_VOICE_RECOGNITION		0x0004
-#define AG_INBAND_RINGTONE		0x0008
-#define AG_ATTACH_NUMBER_TO_VOICETAG	0x0010
-#define AG_REJECT_A_CALL		0x0020
-#define AG_ENHANCED_CALL_STATUS		0x0040
-#define AG_ENHANCED_CALL_CONTROL	0x0080
-#define AG_EXTENDED_ERROR_RESULT_CODES	0x0100
-#define AG_CODEC_NEGOTIATION		0x0200
-#define AG_HF_INDICATORS		0x0400
-#define AG_ESCO_S4_T2_SETTINGS		0x0800
+#define AG_THREE_WAY_CALLING 0x0001
+#define AG_EC_ANDOR_NR 0x0002
+#define AG_VOICE_RECOGNITION 0x0004
+#define AG_INBAND_RINGTONE 0x0008
+#define AG_ATTACH_NUMBER_TO_VOICETAG 0x0010
+#define AG_REJECT_A_CALL 0x0020
+#define AG_ENHANCED_CALL_STATUS 0x0040
+#define AG_ENHANCED_CALL_CONTROL 0x0080
+#define AG_EXTENDED_ERROR_RESULT_CODES 0x0100
+#define AG_CODEC_NEGOTIATION 0x0200
+#define AG_HF_INDICATORS 0x0400
+#define AG_ESCO_S4_T2_SETTINGS 0x0800
 
 /* Codec ids for codec negotiation, per HFP 1.7.1 spec appendix B. */
-#define HFP_CODEC_UNUSED		0
-#define HFP_CODEC_ID_CVSD		1
-#define HFP_CODEC_ID_MSBC		2
-#define HFP_MAX_CODECS			3
+#define HFP_CODEC_UNUSED 0
+#define HFP_CODEC_ID_CVSD 1
+#define HFP_CODEC_ID_MSBC 2
+#define HFP_MAX_CODECS 3
 
 /* Callback to call when service level connection initialized. */
 typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle *handle);
@@ -75,8 +75,7 @@ void hfp_slc_destroy(struct hfp_slc_handle *handle);
 int hfp_set_call_status(struct hfp_slc_handle *handle, int call);
 
 /* Fakes the incoming call event for qualification test. */
-int hfp_event_incoming_call(struct hfp_slc_handle *handle,
-			    const char *number,
+int hfp_event_incoming_call(struct hfp_slc_handle *handle, const char *number,
 			    int type);
 
 /* Handles the call status changed event.

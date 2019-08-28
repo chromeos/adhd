@@ -184,8 +184,8 @@ int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc *state,
 	int16_t *frame_head = &state->hist[PLC_HL];
 	size_t pcm_decoded = 0;
 
-	codec->decode(codec, msbc_zero_frame, MSBC_PKT_LEN,
-		      state->zero_frame, MSBC_FS, &pcm_decoded);
+	codec->decode(codec, msbc_zero_frame, MSBC_PKT_LEN, state->zero_frame,
+		      MSBC_FS, &pcm_decoded);
 
 	if (state->handled_bad_frames == 0) {
 		/* Finds the best matching samples and amplitude */

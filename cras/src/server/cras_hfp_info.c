@@ -30,20 +30,20 @@
 #define HFP_BYTE_RATE 16000
 
 /* Per Bluetooth Core v5.0 and HFP 1.7 specification. */
-#define MSBC_H2_HEADER_LEN	2
-#define MSBC_FRAME_LEN		57
-#define MSBC_FRAME_SIZE		59
-#define MSBC_CODE_SIZE		240
-#define MSBC_SYNC_WORD		0xAD
+#define MSBC_H2_HEADER_LEN 2
+#define MSBC_FRAME_LEN 57
+#define MSBC_FRAME_SIZE 59
+#define MSBC_CODE_SIZE 240
+#define MSBC_SYNC_WORD 0xAD
 
 /* For one mSBC 1 compressed wideband audio channel the HCI packets will
  * be 3 octets of HCI header + 60 octets of data. */
 #define MSBC_PKT_SIZE 60
-#define WRITE_BUF_SIZE_BYTES	MSBC_PKT_SIZE
+#define WRITE_BUF_SIZE_BYTES MSBC_PKT_SIZE
 #define HCI_SCO_HDR_SIZE_BYTES 3
 #define HCI_SCO_PKT_SIZE (MSBC_PKT_SIZE + HCI_SCO_HDR_SIZE_BYTES)
 
-#define H2_HEADER_0		0x01
+#define H2_HEADER_0 0x01
 
 /* Second octet of H2 header is composed by 4 bits fixed 0x8 and 4 bits
  * sequence number 0000, 0011, 1100, 1111. */
@@ -158,7 +158,8 @@ void hfp_buf_acquire(struct hfp_info *info, struct cras_iodev *dev,
 
 int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev)
 {
-	return info->playback_buf->used_size / cras_get_format_bytes(dev->format);
+	return info->playback_buf->used_size /
+	       cras_get_format_bytes(dev->format);
 }
 
 void hfp_buf_release(struct hfp_info *info, struct cras_iodev *dev,
@@ -186,8 +187,7 @@ int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev)
 		return buf_queued(info->capture_buf) / format_bytes;
 }
 
-int hfp_fill_output_with_zeros(struct hfp_info *info,
-			       struct cras_iodev *dev,
+int hfp_fill_output_with_zeros(struct hfp_info *info, struct cras_iodev *dev,
 			       unsigned int nframes)
 {
 	unsigned int buf_avail;
@@ -213,8 +213,7 @@ int hfp_fill_output_with_zeros(struct hfp_info *info,
 	return ret;
 }
 
-int hfp_force_output_level(struct hfp_info *info,
-			   struct cras_iodev *dev,
+int hfp_force_output_level(struct hfp_info *info, struct cras_iodev *dev,
 			   unsigned int level)
 {
 	level *= cras_get_format_bytes(dev->format);
@@ -239,10 +238,9 @@ int hfp_write_msbc(struct hfp_info *info)
 		wp[0] = H2_HEADER_0;
 		wp[1] = h2_header_frames_count[info->msbc_num_out_frames % 4];
 		pcm_encoded = info->msbc_write->encode(
-				info->msbc_write, samples, pcm_avail,
-				wp + MSBC_H2_HEADER_LEN,
-				WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN,
-				&encoded);
+			info->msbc_write, samples, pcm_avail,
+			wp + MSBC_H2_HEADER_LEN,
+			WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN, &encoded);
 		if (pcm_encoded < 0) {
 			syslog(LOG_ERR, "msbc encoding err: %s",
 			       strerror(pcm_encoded));
@@ -293,8 +291,8 @@ send_sample:
 
 	if (err != (int)info->packet_size) {
 		syslog(LOG_ERR,
-		       "Partially write %d bytes for SCO packet size %u",
-		       err, info->packet_size);
+		       "Partially write %d bytes for SCO packet size %u", err,
+		       info->packet_size);
 		return -1;
 	}
 
@@ -303,7 +301,8 @@ send_sample:
 	return err;
 }
 
-static int h2_header_get_seq(const uint8_t *p) {
+static int h2_header_get_seq(const uint8_t *p)
+{
 	int i;
 	for (i = 0; i < 4; i++) {
 		if (*p == h2_header_frames_count[i])
@@ -443,13 +442,10 @@ recv_msbc_bytes:
 	if (pcm_avail < MSBC_CODE_SIZE)
 		return pcm_read;
 
-	decoded = info->msbc_read->decode(
-			info->msbc_read,
-			frame_head + MSBC_H2_HEADER_LEN,
-			MSBC_FRAME_LEN,
-			capture_buf,
-			pcm_avail,
-			&pcm_decoded);
+	decoded = info->msbc_read->decode(info->msbc_read,
+					  frame_head + MSBC_H2_HEADER_LEN,
+					  MSBC_FRAME_LEN, capture_buf,
+					  pcm_avail, &pcm_decoded);
 	if (decoded < 0) {
 		/*
 		 * If mSBC frame cannot be decoded, consider this packet is
@@ -464,8 +460,7 @@ recv_msbc_bytes:
 		/* Good mSBC frame decoded. */
 		buf_increment_write(info->capture_buf, pcm_decoded);
 		info->msbc_num_in_frames++;
-		cras_msbc_plc_handle_good_frames(info->msbc_plc,
-						 capture_buf,
+		cras_msbc_plc_handle_good_frames(info->msbc_plc, capture_buf,
 						 capture_buf);
 		pcm_read += pcm_decoded;
 	}
@@ -503,7 +498,8 @@ recv_sample:
 		if (err && (info->packet_size == info->mtu)) {
 			info->packet_size = err;
 		} else {
-			syslog(LOG_ERR, "Partially read %d bytes for %u size SCO packet",
+			syslog(LOG_ERR,
+			       "Partially read %d bytes for %u size SCO packet",
 			       err, info->packet_size);
 			return -1;
 		}

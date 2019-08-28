@@ -9,7 +9,6 @@
 #include "cras_iodev.h"
 #include "cras_types.h"
 
-
 /* Linked list to hold the information of callbacks to trigger
  * when the size of SCO packet has changed.
  */
@@ -62,8 +61,7 @@ int hfp_buf_queued(struct hfp_info *info, const struct cras_iodev *dev);
  * Returns:
  *    The actual number of zero frames filled.
  */
-int hfp_fill_output_with_zeros(struct hfp_info *info,
-			       struct cras_iodev *dev,
+int hfp_fill_output_with_zeros(struct hfp_info *info, struct cras_iodev *dev,
 			       unsigned int nframes);
 
 /* Force output buffer level to given value. Calling this may override
@@ -75,8 +73,7 @@ int hfp_fill_output_with_zeros(struct hfp_info *info,
  * Returns:
  *    0 for success, otherwise failure.
  */
-int hfp_force_output_level(struct hfp_info *info,
-			   struct cras_iodev *dev,
+int hfp_force_output_level(struct hfp_info *info, struct cras_iodev *dev,
 			   unsigned int level);
 
 /* Gets how many bytes of the buffer are used.
@@ -95,7 +92,7 @@ int hfp_buf_size(struct hfp_info *info, struct cras_iodev *dev);
  *    count - Number of bytes of buffer to acquire, will be filled with the
  *    actual acquired buffer size in bytes.
  */
-void hfp_buf_acquire(struct hfp_info *info,  struct cras_iodev *dev,
+void hfp_buf_acquire(struct hfp_info *info, struct cras_iodev *dev,
 		     uint8_t **buf, unsigned *count);
 
 /* Releases the previously acquired buffer.

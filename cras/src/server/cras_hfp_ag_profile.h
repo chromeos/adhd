@@ -12,13 +12,12 @@
 #include "cras_hfp_slc.h"
 
 /* The bitmap of HFP AG feature supported by CRAS */
-#define CRAS_AG_SUPPORTED_FEATURES           (AG_ENHANCED_CALL_STATUS)
+#define CRAS_AG_SUPPORTED_FEATURES (AG_ENHANCED_CALL_STATUS)
 
 struct hfp_slc_handle;
 
 /* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
 int cras_hfp_ag_profile_create(DBusConnection *conn);
-
 
 /* Adds a profile instance for HSP AG (Headset Profile Audio Gateway). */
 int cras_hsp_ag_profile_create(DBusConnection *conn);

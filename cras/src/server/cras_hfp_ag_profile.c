@@ -22,57 +22,54 @@
 #include "cras_iodev_list.h"
 #include "utlist.h"
 
-#define STR(s) #s
-#define VSTR(id) STR(id)
-
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
 #define HFP_VERSION_1_5 0x0105
 #define HSP_AG_PROFILE_NAME "Headset Voice gateway"
 #define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
 #define HSP_VERSION_1_2 0x0102
+#define HSP_VERSION_1_2_STR "0x0102"
 
-#define HSP_AG_RECORD 							\
-	"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"			\
-	"<record>"							\
-	"  <attribute id=\"0x0001\">"					\
-	"    <sequence>"						\
-	"      <uuid value=\"" HSP_AG_UUID "\" />"			\
-	"      <uuid value=\"" GENERIC_AUDIO_UUID "\" />"		\
-	"    </sequence>"						\
-	"  </attribute>"						\
-	"  <attribute id=\"0x0004\">"					\
-	"    <sequence>"						\
-	"      <sequence>"						\
-	"        <uuid value=\"0x0100\" />"				\
-	"      </sequence>"						\
-	"      <sequence>"						\
-	"        <uuid value=\"0x0003\" />"				\
-	"        <uint8 value=\"0x0c\" />"				\
-	"      </sequence>"						\
-	"    </sequence>"						\
-	"  </attribute>"						\
-	"  <attribute id=\"0x0005\">"					\
-	"    <sequence>"						\
-	"      <uuid value=\"0x1002\" />"				\
-	"    </sequence>"						\
-	"  </attribute>"						\
-	"  <attribute id=\"0x0009\">"					\
-	"    <sequence>"						\
-	"      <sequence>"						\
-	"        <uuid value=\"" HSP_HS_UUID "\" />"			\
-	"        <uint16 value=\"" VSTR(HSP_VERSION_1_2) "\" />"	\
-	"      </sequence>"						\
-	"    </sequence>"						\
-	"  </attribute>"						\
-	"  <attribute id=\"0x0100\">"					\
-	"    <text value=\"" HSP_AG_PROFILE_NAME "\" />"		\
-	"  </attribute>"						\
-	"  <attribute id=\"0x0301\" >"					\
-	"    <uint8 value=\"0x01\" />"					\
-	"  </attribute>"						\
+#define HSP_AG_RECORD                                                          \
+	"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"                          \
+	"<record>"                                                             \
+	"  <attribute id=\"0x0001\">"                                          \
+	"    <sequence>"                                                       \
+	"      <uuid value=\"" HSP_AG_UUID "\" />"                             \
+	"      <uuid value=\"" GENERIC_AUDIO_UUID "\" />"                      \
+	"    </sequence>"                                                      \
+	"  </attribute>"                                                       \
+	"  <attribute id=\"0x0004\">"                                          \
+	"    <sequence>"                                                       \
+	"      <sequence>"                                                     \
+	"        <uuid value=\"0x0100\" />"                                    \
+	"      </sequence>"                                                    \
+	"      <sequence>"                                                     \
+	"        <uuid value=\"0x0003\" />"                                    \
+	"        <uint8 value=\"0x0c\" />"                                     \
+	"      </sequence>"                                                    \
+	"    </sequence>"                                                      \
+	"  </attribute>"                                                       \
+	"  <attribute id=\"0x0005\">"                                          \
+	"    <sequence>"                                                       \
+	"      <uuid value=\"0x1002\" />"                                      \
+	"    </sequence>"                                                      \
+	"  </attribute>"                                                       \
+	"  <attribute id=\"0x0009\">"                                          \
+	"    <sequence>"                                                       \
+	"      <sequence>"                                                     \
+	"        <uuid value=\"" HSP_HS_UUID "\" />"                           \
+	"        <uint16 value=\"" HSP_VERSION_1_2_STR "\" />"                 \
+	"      </sequence>"                                                    \
+	"    </sequence>"                                                      \
+	"  </attribute>"                                                       \
+	"  <attribute id=\"0x0100\">"                                          \
+	"    <text value=\"" HSP_AG_PROFILE_NAME "\" />"                       \
+	"  </attribute>"                                                       \
+	"  <attribute id=\"0x0301\" >"                                         \
+	"    <uint8 value=\"0x01\" />"                                         \
+	"  </attribute>"                                                       \
 	"</record>"
-
 
 /* Object representing the audio gateway role for HFP/HSP.
  * Members:
@@ -137,7 +134,7 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 static int has_audio_gateway(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
+	DL_FOREACH (connected_ags, ag) {
 		if (ag->device == device)
 			return 1;
 	}
@@ -165,7 +162,7 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 	 * codec negotiation feature means the WBS capability on headset.
 	 */
 	cras_server_metrics_hfp_wideband_support(
-			hfp_slc_get_hf_codec_negotiation_supported(handle));
+		hfp_slc_get_hf_codec_negotiation_supported(handle));
 
 	/* Defer the starting of audio gateway to bt_device. */
 	return cras_bt_device_audio_gateway_initialized(ag->device);
@@ -190,15 +187,15 @@ static int check_for_conflict_ag(struct cras_bt_device *new_connected)
 	struct audio_gateway *ag;
 
 	/* Check if there's already an A2DP/HFP device. */
-	DL_FOREACH(connected_ags, ag) {
+	DL_FOREACH (connected_ags, ag) {
 		if (cras_bt_device_has_a2dp(ag->device))
 			return -1;
 	}
 
 	/* Check if there's already an A2DP-only device. */
 	if (cras_a2dp_connected_device() &&
-		cras_bt_device_supports_profile(
-			new_connected, CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
+	    cras_bt_device_supports_profile(new_connected,
+					    CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
 		return -1;
 
 	return 0;
@@ -208,7 +205,7 @@ int cras_hfp_ag_remove_conflict(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
 
-	DL_FOREACH(connected_ags, ag) {
+	DL_FOREACH (connected_ags, ag) {
 		if (ag->device == device)
 			continue;
 		cras_bt_device_notify_profile_dropped(
@@ -219,9 +216,9 @@ int cras_hfp_ag_remove_conflict(struct cras_bt_device *device)
 }
 
 static int cras_hfp_ag_new_connection(DBusConnection *conn,
-					   struct cras_bt_profile *profile,
-				       struct cras_bt_device *device,
-				       int rfcomm_fd)
+				      struct cras_bt_profile *profile,
+				      struct cras_bt_device *device,
+				      int rfcomm_fd)
 {
 	struct cras_bt_adapter *adapter;
 	struct audio_gateway *ag;
@@ -230,8 +227,9 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	BTLOG(btlog, BT_HFP_NEW_CONNECTION, 0, 0);
 
 	if (has_audio_gateway(device)) {
-		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
-			cras_bt_device_name(device), profile->name);
+		syslog(LOG_ERR,
+		       "Audio gateway exists when %s connects for profile %s",
+		       cras_bt_device_name(device), profile->name);
 		close(rfcomm_fd);
 		return 0;
 	}
@@ -256,10 +254,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	    cras_bt_adapter_wbs_supported(adapter))
 		ag_features |= AG_CODEC_NEGOTIATION;
 
-	ag->slc_handle = hfp_slc_create(rfcomm_fd,
-					0,
-					ag_features,
-					device,
+	ag->slc_handle = hfp_slc_create(rfcomm_fd, 0, ag_features, device,
 					cras_hfp_ag_slc_initialized,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
@@ -273,7 +268,7 @@ static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 
 	BTLOG(btlog, BT_HFP_REQUEST_DISCONNECT, 0, 0);
 
-	DL_FOREACH(connected_ags, ag) {
+	DL_FOREACH (connected_ags, ag) {
 		if (ag->slc_handle && ag->device == device) {
 			destroy_audio_gateway(ag);
 			cras_bt_device_notify_profile_dropped(
@@ -307,17 +302,18 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 }
 
 static int cras_hsp_ag_new_connection(DBusConnection *conn,
-					   struct cras_bt_profile *profile,
-				       struct cras_bt_device *device,
-				       int rfcomm_fd)
+				      struct cras_bt_profile *profile,
+				      struct cras_bt_device *device,
+				      int rfcomm_fd)
 {
 	struct audio_gateway *ag;
 
 	BTLOG(btlog, BT_HSP_NEW_CONNECTION, 0, 0);
 
 	if (has_audio_gateway(device)) {
-		syslog(LOG_ERR, "Audio gateway exists when %s connects for profile %s",
-			cras_bt_device_name(device), profile->name);
+		syslog(LOG_ERR,
+		       "Audio gateway exists when %s connects for profile %s",
+		       cras_bt_device_name(device), profile->name);
 		close(rfcomm_fd);
 		return 0;
 	}
@@ -329,12 +325,8 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	ag->device = device;
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
-	ag->slc_handle = hfp_slc_create(rfcomm_fd,
-					1,
-					profile->features,
-					device,
-					NULL,
-					cras_hfp_ag_slc_disconnected);
+	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, profile->features, device,
+					NULL, cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
 	cras_hfp_ag_slc_initialized(ag->slc_handle);
 	return 0;
@@ -347,7 +339,7 @@ static void cras_hsp_ag_request_disconnection(struct cras_bt_profile *profile,
 
 	BTLOG(btlog, BT_HSP_REQUEST_DISCONNECT, 0, 0);
 
-	DL_FOREACH(connected_ags, ag) {
+	DL_FOREACH (connected_ags, ag) {
 		if (ag->slc_handle && ag->device == device) {
 			destroy_audio_gateway(ag);
 			cras_bt_device_notify_profile_dropped(
@@ -395,20 +387,18 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		out_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
 
 		ag->idev = hfp_alsa_iodev_create(in_aio, ag->device,
-						 ag->slc_handle,
-						 ag->profile);
+						 ag->slc_handle, ag->profile);
 		ag->odev = hfp_alsa_iodev_create(out_aio, ag->device,
-						 ag->slc_handle,
-						 ag->profile);
+						 ag->slc_handle, ag->profile);
 	} else {
 		ag->info = hfp_info_create(
-				hfp_slc_get_selected_codec(ag->slc_handle));
-		ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
-					    ag->slc_handle,
-					    ag->profile, ag->info);
-		ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
-					    ag->slc_handle,
-					    ag->profile, ag->info);
+			hfp_slc_get_selected_codec(ag->slc_handle));
+		ag->idev =
+			hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
+					 ag->slc_handle, ag->profile, ag->info);
+		ag->odev =
+			hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
+					 ag->slc_handle, ag->profile, ag->info);
 	}
 
 	if (!ag->idev && !ag->odev) {
@@ -438,7 +428,7 @@ struct hfp_slc_handle *cras_hfp_ag_get_active_handle()
 struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
-	DL_FOREACH(connected_ags, ag) {
+	DL_FOREACH (connected_ags, ag) {
 		if (ag->device == device)
 			return ag->slc_handle;
 	}
