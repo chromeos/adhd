@@ -1721,7 +1721,7 @@ static int handle_message_from_server(struct cras_client *client)
 		client->debug_info_callback = NULL;
 		break;
 	case CRAS_CLIENT_ATLOG_FD_READY:
-		if (num_fds != 1)
+		if (num_fds != 1 || server_fds[0] < 0)
 			return -EINVAL;
 		attach_atlog_shm(client, server_fds[0]);
 		if (client->atlog_access_callback)

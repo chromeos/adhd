@@ -103,7 +103,10 @@ struct audio_thread_aec_dump_msg {
 	int fd;
 };
 
-/* Audio thread logging. */
+/* Audio thread logging. If atlog is successfully created from cras_shm_setup,
+ * then the fds should have valid value. Or audio thread will fallback to use
+ * calloc to create atlog and leave the fds as -1.
+ */
 struct audio_thread_event_log *atlog;
 char *atlog_name;
 int atlog_rw_shm_fd;

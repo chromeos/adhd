@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <syslog.h>
 
 #include "cras_types.h"
 #include "cras_shm.h"
@@ -38,7 +39,14 @@ audio_thread_event_log_init(char *name)
 
 	log = (struct audio_thread_event_log *)cras_shm_setup(
 		name, sizeof(*log), &atlog_rw_shm_fd, &atlog_ro_shm_fd);
-
+	/* Fallback to calloc if device shared memory resource is empty and
+	 * cras_shm_setup fails.
+	 */
+	if (log == NULL) {
+		syslog(LOG_ERR, "Failed to create atlog by cras_shm_setup");
+		log = (struct audio_thread_event_log *)calloc(
+			1, sizeof(struct audio_thread_event_log));
+	}
 	log->len = AUDIO_THREAD_EVENT_LOG_SIZE;
 
 	return log;
@@ -48,9 +56,13 @@ static inline void
 audio_thread_event_log_deinit(struct audio_thread_event_log *log, char *name)
 {
 	if (log) {
-		munmap(log, sizeof(*log));
-		if (atlog_rw_shm_fd >= 0)
+		if (atlog_rw_shm_fd >= 0) {
+			munmap(log, sizeof(*log));
 			cras_shm_close_unlink(name, atlog_rw_shm_fd);
+		} else {
+			free(log);
+		}
+
 		if (atlog_ro_shm_fd >= 0)
 			close(atlog_ro_shm_fd);
 	}
