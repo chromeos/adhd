@@ -333,8 +333,8 @@ static int get_input_dev_max_wake_ts(struct open_dev *adev,
 	return 0;
 }
 
-/* Returns whether a device can be reset. */
-static bool input_devices_can_be_reset(struct cras_iodev *iodev)
+/* Returns whether a device can drop samples. */
+static bool input_devices_can_drop_samples(struct cras_iodev *iodev)
 {
 	if (!cras_iodev_is_open(iodev))
 		return false;
@@ -352,12 +352,12 @@ static bool input_devices_can_be_reset(struct cras_iodev *iodev)
  * any error occurs in this function.
  * Args:
  *    adev - The input device.
- *    need_to_reset - The pointer to store whether we need to reset devices in
- *                    order to keep the lower hw_level.
+ *    need_to_drop - The pointer to store whether we need to drop samples from
+ *                   a device in order to keep the lower hw_level.
  * Returns:
  *    0 on success. Negative error code on failure.
  */
-static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_reset)
+static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_drop)
 {
 	int rc;
 	struct timespec level_tstamp, wake_time_out, min_ts, now, dev_wake_ts;
@@ -382,13 +382,13 @@ static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_reset)
 
 	/*
 	 * If any input device has more than largest_cb_level * 2 frames, need to
-	 * reset all devices.
+	 * drop frames from all devices.
 	 */
-	if (input_devices_can_be_reset(adev->dev) &&
+	if (input_devices_can_drop_samples(adev->dev) &&
 	    rc >= adev->dev->largest_cb_level * 2 &&
 	    cras_frames_to_ms(rc, adev->dev->format->frame_rate) >=
 		    DROP_FRAMES_THRESHOLD_MS)
-		*need_to_reset = true;
+		*need_to_drop = true;
 
 	cap_limit = get_stream_limit(adev, UINT_MAX, &cap_limit_stream);
 
@@ -814,7 +814,7 @@ static void get_input_devices_drop_time(struct open_dev *idev_list,
 
 	DL_FOREACH (idev_list, adev) {
 		iodev = adev->dev;
-		if (!input_devices_can_be_reset(iodev))
+		if (!input_devices_can_drop_samples(iodev))
 			continue;
 
 		rc = cras_iodev_frames_queued(iodev, &hw_tstamp);
@@ -849,7 +849,7 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 {
 	struct open_dev *adev;
 	struct timespec drop_time;
-	bool need_to_reset = false;
+	bool need_to_drop = false;
 	int rc;
 
 	// TODO(dgreid) - once per rstream, not once per dev_stream.
@@ -865,12 +865,12 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 		}
 
 		/* Set wake_ts for this device. */
-		rc = set_input_dev_wake_ts(adev, &need_to_reset);
+		rc = set_input_dev_wake_ts(adev, &need_to_drop);
 		if (rc < 0)
 			return rc;
 	}
 
-	if (!need_to_reset)
+	if (!need_to_drop)
 		return 0;
 
 	get_input_devices_drop_time(idev_list, &drop_time);
@@ -881,7 +881,7 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 		return 0;
 
 	DL_FOREACH (idev_list, adev) {
-		if (!input_devices_can_be_reset(adev->dev))
+		if (!input_devices_can_drop_samples(adev->dev))
 			continue;
 
 		rc = cras_iodev_drop_frames_by_time(adev->dev, drop_time);
