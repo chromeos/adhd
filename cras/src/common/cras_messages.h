@@ -587,7 +587,7 @@ cras_fill_client_stream_connected(struct cras_client_stream_connected *m,
 }
 
 /* Sent from server to client when audio debug information is requested. */
-struct cras_client_audio_debug_info_ready {
+struct __attribute__((__packed__)) cras_client_audio_debug_info_ready {
 	struct cras_client_message header;
 };
 static inline void cras_fill_client_audio_debug_info_ready(
@@ -597,7 +597,7 @@ static inline void cras_fill_client_audio_debug_info_ready(
 	m->header.length = sizeof(*m);
 }
 
-struct cras_client_atlog_fd_ready {
+struct __attribute__((__packed__)) cras_client_atlog_fd_ready {
 	struct cras_client_message header;
 };
 
@@ -609,7 +609,7 @@ cras_fill_client_atlog_fd_ready(struct cras_client_atlog_fd_ready *m)
 }
 
 /* Sent from server to client when hotword models info is ready. */
-struct cras_client_get_hotword_models_ready {
+struct __attribute__((__packed__)) cras_client_get_hotword_models_ready {
 	struct cras_client_message header;
 	int32_t hotword_models_size;
 	uint8_t hotword_models[CRAS_MAX_HOTWORD_MODELS];
