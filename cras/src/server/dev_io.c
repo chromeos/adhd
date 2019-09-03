@@ -381,11 +381,11 @@ static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_drop)
 		clock_gettime(CLOCK_MONOTONIC_RAW, &level_tstamp);
 
 	/*
-	 * If any input device has more than largest_cb_level * 2 frames, need to
+	 * If any input device has more than largest_cb_level * 1.5 frames, need to
 	 * drop frames from all devices.
 	 */
 	if (input_devices_can_drop_samples(adev->dev) &&
-	    rc >= adev->dev->largest_cb_level * 2 &&
+	    rc >= adev->dev->largest_cb_level * 1.5 &&
 	    cras_frames_to_ms(rc, adev->dev->format->frame_rate) >=
 		    DROP_FRAMES_THRESHOLD_MS)
 		*need_to_drop = true;

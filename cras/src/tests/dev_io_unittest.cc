@@ -91,7 +91,7 @@ TEST_F(DevIoSuite, CaptureGain) {
 }
 
 /*
- * If any hw_level is larger than 2 * largest_cb_level and
+ * If any hw_level is larger than 1.5 * largest_cb_level and
  * DROP_FRAMES_THRESHOLD_MS, reset all input devices.
  */
 TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
@@ -132,7 +132,7 @@ TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
 }
 
 /*
- * If the hw_level is larger than 2 * largest_cb_level but less than
+ * If the hw_level is larger than 1.5 * largest_cb_level but less than
  * DROP_FRAMES_THRESHOLD_MS, do nothing.
  */
 TEST_F(DevIoSuite, SendCapturedLevelLessThanThreshold) {
@@ -156,7 +156,7 @@ TEST_F(DevIoSuite, SendCapturedLevelLessThanThreshold) {
   EXPECT_EQ(false, rc);
 }
 
-/* If all hw_level is less than 2 * largest_cb_level, do nothing. */
+/* If all hw_level is less than 1.5 * largest_cb_level, do nothing. */
 TEST_F(DevIoSuite, SendCapturedNoNeedToResetDevices) {
   struct timespec start;
   struct timespec drop_time;
