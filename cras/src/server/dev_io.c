@@ -417,8 +417,11 @@ static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_drop)
 		}
 	}
 
+	/* If there's no room in streams, don't bother schedule wake for more
+	 * input data. */
 	if (adev->dev->active_node &&
-	    adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD) {
+	    adev->dev->active_node->type != CRAS_NODE_TYPE_HOTWORD &&
+	    cap_limit) {
 		rc = get_input_dev_max_wake_ts(adev, curr_level, &dev_wake_ts);
 		if (rc < 0) {
 			syslog(LOG_ERR,

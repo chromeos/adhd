@@ -143,8 +143,9 @@ TEST_F(TimingSuite, NewInputStreamInit) {
 //   for stream in dev:
 //   wake_ts = MIN(get_input_wake_time(stream, cap_limit), wake_ts)
 //             for stream on dev #rule_2
+//   if cap_limit:
+//     wake_ts = MIN(get_input_dev_max_wake_ts(dev), wake_ts) #rule_3
 //
-//   wake_ts = MIN(get_input_dev_max_wake_ts(dev), wake_ts) #rule_3
 //   device.wake_ts = wake_ts
 //
 // function get_input_wake_time(stream, cap_limit):
@@ -251,6 +252,37 @@ TEST_F(TimingSuite, InputWakeTimeTwoEmptyStreams) {
 
   EXPECT_EQ(start.tv_sec + 2, dev_time.tv_sec);
   EXPECT_EQ(start.tv_nsec, dev_time.tv_nsec);
+}
+
+// Test rule_3.
+// If cap_limit is zero from stream, input_dev_max_wake_ts should not
+// be taken into account.
+TEST_F(TimingSuite, InputWakeTimeOneFullStreamWithDeviceWakeUp) {
+  cras_audio_format format;
+  fill_audio_format(&format, 48000);
+
+  StreamPtr stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
+
+  struct timespec start, stream_wake;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
+  // Set the next stream wake to be 10ms from now.
+  const timespec ten_millis = {0, 10 * 1000 * 1000};
+  stream_wake = start;
+  add_timespecs(&stream_wake, &ten_millis);
+  stream->rstream->next_cb_ts = stream_wake;
+
+  // Add fake data so the stream has no room for more data.
+  AddFakeDataToStream(stream.get(), 480);
+
+  std::vector<StreamPtr> streams;
+  streams.emplace_back(std::move(stream));
+  timespec wake_time = SingleInputDevNextWake(240, 0, &start, &format, streams);
+
+  // Input device would wake at 5ms from now, but since stream cap_limit == 0
+  // the final wake_time is determined by stream.
+  EXPECT_EQ(stream_wake.tv_sec, wake_time.tv_sec);
+  EXPECT_EQ(stream_wake.tv_nsec, wake_time.tv_nsec);
 }
 
 // Test rule_3 and rule_9.
