@@ -956,6 +956,9 @@ static void print_cras_audio_thread_snapshot(
 	case AUDIO_THREAD_EVENT_SEVERE_UNDERRUN:
 		printf("severe underrun\n");
 		break;
+	case AUDIO_THREAD_EVENT_DROP_SAMPLES:
+		printf("drop samples\n");
+		break;
 	case AUDIO_THREAD_EVENT_DEBUG:
 		printf("debug\n");
 		break;

@@ -27,6 +27,11 @@ int cras_audio_thread_event_underrun();
 int cras_audio_thread_event_severe_underrun();
 
 /*
+ * Notifies the main thread when a drop samples event happens.
+ */
+int cras_audio_thread_event_drop_samples();
+
+/*
  * Initializes audio thread monitor and sets main thread callback.
  */
 int cras_audio_thread_monitor_init();

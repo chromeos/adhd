@@ -59,6 +59,11 @@ TEST_F(AudioThreadMonitorTestSuite, SevereUnderrun) {
   EXPECT_EQ(message.event_type, AUDIO_THREAD_EVENT_SEVERE_UNDERRUN);
 }
 
+TEST_F(AudioThreadMonitorTestSuite, DropSamples) {
+  cras_audio_thread_event_drop_samples();
+  EXPECT_EQ(message.event_type, AUDIO_THREAD_EVENT_DROP_SAMPLES);
+}
+
 TEST_F(AudioThreadMonitorTestSuite, TakeSnapshot) {
   take_snapshot(AUDIO_THREAD_EVENT_DEBUG);
   EXPECT_EQ(cras_system_state_add_snapshot_called, 1);

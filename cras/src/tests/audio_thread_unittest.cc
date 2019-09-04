@@ -1438,6 +1438,10 @@ int cras_audio_thread_event_busyloop() {
   return 0;
 }
 
+int cras_audio_thread_event_drop_samples() {
+  return 0;
+}
+
 }  // extern "C"
 
 int main(int argc, char** argv) {

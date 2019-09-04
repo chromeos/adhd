@@ -1162,11 +1162,17 @@ int input_data_put_for_stream(struct input_data* data,
                               unsigned int frames) {
   return 0;
 }
+
 struct cras_audio_format* cras_rstream_post_processing_format(
     const struct cras_rstream* stream,
     void* dev_ptr) {
   return NULL;
 }
+
+int cras_audio_thread_event_drop_samples() {
+  return 0;
+}
+
 }  // extern "C"
 
 }  //  namespace

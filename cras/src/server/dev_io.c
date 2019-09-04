@@ -9,6 +9,7 @@
 
 #include "audio_thread_log.h"
 #include "cras_audio_area.h"
+#include "cras_audio_thread_monitor.h"
 #include "cras_iodev.h"
 #include "cras_non_empty_audio_handler.h"
 #include "cras_rstream.h"
@@ -872,6 +873,8 @@ static void dev_io_drop_samples(struct open_dev *idev_list)
 			continue;
 		}
 	}
+
+	cras_audio_thread_event_drop_samples();
 
 	return;
 }
