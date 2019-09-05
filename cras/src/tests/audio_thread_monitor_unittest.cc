@@ -40,22 +40,22 @@ TEST_F(AudioThreadMonitorTestSuite, Init) {
 }
 
 TEST_F(AudioThreadMonitorTestSuite, Busyloop) {
-  cras_audio_thread_busyloop();
+  cras_audio_thread_event_busyloop();
   EXPECT_EQ(message.event_type, AUDIO_THREAD_EVENT_BUSYLOOP);
 }
 
 TEST_F(AudioThreadMonitorTestSuite, Debug) {
-  cras_audio_thread_debug();
+  cras_audio_thread_event_debug();
   EXPECT_EQ(message.event_type, AUDIO_THREAD_EVENT_DEBUG);
 }
 
 TEST_F(AudioThreadMonitorTestSuite, Underrun) {
-  cras_audio_thread_underrun();
+  cras_audio_thread_event_underrun();
   EXPECT_EQ(message.event_type, AUDIO_THREAD_EVENT_UNDERRUN);
 }
 
 TEST_F(AudioThreadMonitorTestSuite, SevereUnderrun) {
-  cras_audio_thread_severe_underrun();
+  cras_audio_thread_event_severe_underrun();
   EXPECT_EQ(message.event_type, AUDIO_THREAD_EVENT_SEVERE_UNDERRUN);
 }
 

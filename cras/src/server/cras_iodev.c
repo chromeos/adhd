@@ -1247,7 +1247,7 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev,
 
 	rc = iodev->frames_queued(iodev, hw_tstamp);
 	if (rc == -EPIPE)
-		cras_audio_thread_severe_underrun();
+		cras_audio_thread_event_severe_underrun();
 
 	if (rc < 0)
 		return rc;
@@ -1309,7 +1309,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 
 int cras_iodev_output_underrun(struct cras_iodev *odev)
 {
-	cras_audio_thread_underrun();
+	cras_audio_thread_event_underrun();
 	if (odev->output_underrun)
 		return odev->output_underrun(odev);
 	else

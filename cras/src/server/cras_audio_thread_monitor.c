@@ -50,22 +50,22 @@ int cras_audio_thread_event_send(enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type)
 	return cras_main_message_send(&msg.header);
 }
 
-int cras_audio_thread_debug()
+int cras_audio_thread_event_debug()
 {
 	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_DEBUG);
 }
 
-int cras_audio_thread_busyloop()
+int cras_audio_thread_event_busyloop()
 {
 	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_BUSYLOOP);
 }
 
-int cras_audio_thread_underrun()
+int cras_audio_thread_event_underrun()
 {
 	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_UNDERRUN);
 }
 
-int cras_audio_thread_severe_underrun()
+int cras_audio_thread_event_severe_underrun()
 {
 	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_SEVERE_UNDERRUN);
 }

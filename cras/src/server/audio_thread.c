@@ -769,7 +769,7 @@ static void check_busyloop(struct timespec *wait_ts)
 		continuous_zero_sleep_count++;
 		if (continuous_zero_sleep_count ==
 		    MAX_CONTINUOUS_ZERO_SLEEP_COUNT)
-			cras_audio_thread_busyloop();
+			cras_audio_thread_event_busyloop();
 	} else {
 		continuous_zero_sleep_count = 0;
 	}

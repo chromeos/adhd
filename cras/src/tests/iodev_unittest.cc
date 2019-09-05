@@ -2690,11 +2690,11 @@ void input_data_destroy(struct input_data** data) {}
 void input_data_set_all_streams_read(struct input_data* data,
                                      unsigned int nframes) {}
 
-int cras_audio_thread_severe_underrun() {
+int cras_audio_thread_event_severe_underrun() {
   return 0;
 }
 
-int cras_audio_thread_underrun() {
+int cras_audio_thread_event_underrun() {
   return 0;
 }
 
