@@ -43,7 +43,6 @@ static const struct timespec no_stream_target_frames_ts = {
  *    sock_depth_frames - Socket depth in frames of the a2dp socket.
  *    pcm_buf - Buffer to hold pcm samples before encode.
  *    destroyed - Flag to note if this a2dp_io is about to destroy.
- *    pre_fill_complete - Flag to note if socket pre-fill is completed.
  *    bt_written_frames - Accumulated frames written to a2dp socket. Used
  *        together with the device open timestamp to estimate how many virtual
  *        buffer is queued there.
@@ -60,7 +59,6 @@ struct a2dp_io {
 	unsigned sock_depth_frames;
 	struct byte_buffer *pcm_buf;
 	int destroyed;
-	int pre_fill_complete;
 	uint64_t bt_written_frames;
 	struct timespec dev_open_time;
 	bool drain_complete;
@@ -234,7 +232,6 @@ static int configure_dev(struct cras_iodev *iodev)
 
 	iodev->min_buffer_level = a2dpio->sock_depth_frames;
 
-	a2dpio->pre_fill_complete = 0;
 	a2dpio->drain_complete = 0;
 	a2dpio->filled_zeros_bytes = 0;
 
@@ -274,38 +271,6 @@ static int close_dev(struct cras_iodev *iodev)
 	byte_buffer_destroy(&a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
-	return 0;
-}
-
-static int pre_fill_socket(struct a2dp_io *a2dpio)
-{
-	static const uint16_t zero_buffer[1024 * 2];
-	int processed;
-	int written = 0;
-
-	while (1) {
-		processed = a2dp_encode(
-			&a2dpio->a2dp, zero_buffer, sizeof(zero_buffer),
-			cras_get_format_bytes(a2dpio->base.format),
-			cras_bt_transport_write_mtu(a2dpio->transport));
-		if (processed < 0)
-			return processed;
-		if (processed == 0)
-			break;
-
-		written = a2dp_write(
-			&a2dpio->a2dp, cras_bt_transport_fd(a2dpio->transport),
-			cras_bt_transport_write_mtu(a2dpio->transport));
-		/* Full when EAGAIN is returned. */
-		if (written == -EAGAIN)
-			break;
-		else if (written < 0)
-			return written;
-		else if (written == 0)
-			break;
-	};
-
-	a2dp_drain(&a2dpio->a2dp);
 	return 0;
 }
 
@@ -432,16 +397,11 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 
 	buf_increment_write(a2dpio->pcm_buf, written_bytes);
 
-	bt_queued_frames(iodev, nwritten);
-
-	/* Until the minimum number of frames have been queued, don't send
-	 * anything. */
-	if (!a2dpio->pre_fill_complete) {
-		pre_fill_socket(a2dpio);
-		a2dpio->pre_fill_complete = 1;
-		/* Start measuring frames_consumed from now. */
+	/* Set dev open time at when the first data arrives. */
+	if (nwritten && !a2dpio->bt_written_frames)
 		clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
-	}
+
+	bt_queued_frames(iodev, nwritten);
 
 	return flush_data(iodev);
 }

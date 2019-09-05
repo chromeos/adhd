@@ -197,16 +197,13 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   area1_buf = area1->channels[0].buf;
 
   /* Test 100 frames(400 bytes) put and all processed. */
-  a2dp_encode_processed_bytes_val[0] = 4096 * 4;
-  a2dp_encode_processed_bytes_val[1] = 400;
+  a2dp_encode_processed_bytes_val[0] = 400;
   a2dp_write_index = 0;
-  a2dp_write_return_val[0] = -EAGAIN;
-  a2dp_write_return_val[1] = 400;
+  a2dp_write_return_val[0] = 400;
   iodev->put_buffer(iodev, 100);
   write_callback(write_callback_data);
   // Start with 4k frames.
-  EXPECT_EQ(4096, pcm_buf_size_val[0]);
-  EXPECT_EQ(400, pcm_buf_size_val[1]);
+  EXPECT_EQ(400, pcm_buf_size_val[0]);
 
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
@@ -264,15 +261,13 @@ TEST_F(A2dpIodev, FramesQueued) {
    * Assume 200 bytes written out, queued 50 frames in a2dp buffer.
    */
   a2dp_encode_processed_bytes_val[0] = 400;
-  a2dp_encode_processed_bytes_val[1] = 0;
-  a2dp_write_return_val[0] = 200;
-  a2dp_write_return_val[1] = -EAGAIN;
+  a2dp_write_return_val[0] = 50;
   a2dp_queued_frames_val = 50;
   time_now.tv_sec = 0;
   time_now.tv_nsec = 1000000;
-  iodev->put_buffer(iodev, 300);
+  iodev->put_buffer(iodev, 200);
   write_callback(write_callback_data);
-  EXPECT_EQ(350, iodev->frames_queued(iodev, &tstamp));
+  EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
@@ -281,12 +276,11 @@ TEST_F(A2dpIodev, FramesQueued) {
   time_now.tv_nsec = 2000000;
   a2dp_encode_index = 0;
   a2dp_write_index = 0;
-  a2dp_encode_processed_bytes_val[0] = 800;
+  a2dp_encode_processed_bytes_val[0] = 400;
   write_callback(write_callback_data);
   /* 1000000 nsec has passed, estimated queued frames adjusted by 44 */
-  EXPECT_EQ(256, iodev->frames_queued(iodev, &tstamp));
-  EXPECT_EQ(1200, pcm_buf_size_val[0]);
-  EXPECT_EQ(400, pcm_buf_size_val[1]);
+  EXPECT_EQ(156, iodev->frames_queued(iodev, &tstamp));
+  EXPECT_EQ(400, pcm_buf_size_val[0]);
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
@@ -302,9 +296,10 @@ TEST_F(A2dpIodev, FramesQueued) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 50000000;
   a2dp_encode_processed_bytes_val[0] = 600;
+  a2dp_queued_frames_val = 50;
   iodev->put_buffer(iodev, 200);
-  EXPECT_EQ(1200, pcm_buf_size_val[0]);
-  EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
+  EXPECT_EQ(800, pcm_buf_size_val[0]);
+  EXPECT_EQ(100, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
   iodev->close_dev(iodev);
@@ -332,22 +327,18 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   ASSERT_EQ(700, frames);
   ASSERT_EQ(700, area->frames);
 
-  /* Fake 111 frames in pre-fill*/
-  a2dp_encode_processed_bytes_val[0] = 111;
-  a2dp_write_return_val[0] = -EAGAIN;
-
   /* First call to a2dp_encode() processed 800 bytes. */
-  a2dp_encode_processed_bytes_val[1] = 800;
-  a2dp_encode_processed_bytes_val[2] = 0;
-  a2dp_write_return_val[1] = 200;
+  a2dp_encode_processed_bytes_val[0] = 800;
+  a2dp_encode_processed_bytes_val[1] = 0;
+  a2dp_write_return_val[0] = 200;
 
   /* put_buffer shouldn't trigger the 2nd call to a2dp_encode() because
    * buffer is low. Fake some data to make sure this test case will fail
    * when a2dp_encode() called twice.
    */
-  a2dp_encode_processed_bytes_val[3] = 800;
-  a2dp_encode_processed_bytes_val[4] = 0;
-  a2dp_write_return_val[2] = -EAGAIN;
+  a2dp_encode_processed_bytes_val[2] = 800;
+  a2dp_encode_processed_bytes_val[3] = 0;
+  a2dp_write_return_val[1] = -EAGAIN;
 
   time_now.tv_nsec = 10000000;
   iodev->put_buffer(iodev, 700);
