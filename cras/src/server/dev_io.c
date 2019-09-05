@@ -845,13 +845,44 @@ static void get_input_devices_drop_time(struct open_dev *idev_list,
 }
 
 /*
+ * Drop samples from all input devices.
+ */
+static void dev_io_drop_samples(struct open_dev *idev_list)
+{
+	struct open_dev *adev;
+	struct timespec drop_time;
+	int rc;
+
+	get_input_devices_drop_time(idev_list, &drop_time);
+	ATLOG(atlog, AUDIO_THREAD_CAPTURE_DROP_TIME, drop_time.tv_sec,
+	      drop_time.tv_nsec, 0);
+
+	if (timespec_is_zero(&drop_time))
+		return;
+
+	DL_FOREACH (idev_list, adev) {
+		if (!input_devices_can_drop_samples(adev->dev))
+			continue;
+
+		rc = cras_iodev_drop_frames_by_time(adev->dev, drop_time);
+		if (rc < 0) {
+			syslog(LOG_ERR,
+			       "Failed to drop frames from device %d, rc = %d",
+			       adev->dev->info.idx, rc);
+			continue;
+		}
+	}
+
+	return;
+}
+
+/*
  * Public funcitons.
  */
 
 int dev_io_send_captured_samples(struct open_dev *idev_list)
 {
 	struct open_dev *adev;
-	struct timespec drop_time;
 	bool need_to_drop = false;
 	int rc;
 
@@ -873,28 +904,8 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 			return rc;
 	}
 
-	if (!need_to_drop)
-		return 0;
-
-	get_input_devices_drop_time(idev_list, &drop_time);
-	ATLOG(atlog, AUDIO_THREAD_CAPTURE_DROP_TIME, drop_time.tv_sec,
-	      drop_time.tv_nsec, 0);
-
-	if (timespec_is_zero(&drop_time))
-		return 0;
-
-	DL_FOREACH (idev_list, adev) {
-		if (!input_devices_can_drop_samples(adev->dev))
-			continue;
-
-		rc = cras_iodev_drop_frames_by_time(adev->dev, drop_time);
-		if (rc < 0) {
-			syslog(LOG_ERR,
-			       "Failed to drop frames from device %d, rc = %d",
-			       adev->dev->info.idx, rc);
-			continue;
-		}
-	}
+	if (need_to_drop)
+		dev_io_drop_samples(idev_list);
 
 	return 0;
 }
