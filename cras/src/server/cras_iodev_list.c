@@ -1120,6 +1120,9 @@ void cras_iodev_list_suspend_dev(unsigned int dev_idx)
 	struct cras_rstream *rstream;
 	struct cras_iodev *dev = find_dev(dev_idx);
 
+	if (!dev)
+		return;
+
 	DL_FOREACH (stream_list_get(stream_list), rstream) {
 		if (rstream->direction != dev->direction)
 			continue;
@@ -1141,6 +1144,9 @@ void cras_iodev_list_resume_dev(unsigned int dev_idx)
 {
 	struct cras_iodev *dev = find_dev(dev_idx);
 	int rc;
+
+	if (!dev)
+		return;
 
 	dev->update_active_node(dev, dev->active_node->idx, 1);
 	rc = init_and_attach_streams(dev);
