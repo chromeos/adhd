@@ -167,9 +167,9 @@ impl CrasClientMessage {
                 _ => Err(Error::new(ErrorType::MessageNumFdError)),
             },
             CRAS_CLIENT_STREAM_CONNECTED => match fd_nums {
-                // In current cras_rstream implementation, `fds[0]` and `fds[1]` are pointing to a
-                // same fd which contains the shared memory area. We should change this while
-                // refactoring that part.
+                // CRAS should return two shared memory areas the first which has
+                // mem::size_of::<cras_audio_shm_header>() bytes, and the second which has
+                // `samples_shm_size` bytes.
                 2 => Ok(()),
                 _ => Err(Error::new(ErrorType::MessageNumFdError)),
             },
