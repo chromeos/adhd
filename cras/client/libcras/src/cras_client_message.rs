@@ -1,7 +1,7 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::{error, fmt, io, mem, os::unix::io::RawFd};
+use std::{array::TryFromSliceError, convert::TryInto, error, fmt, io, mem, os::unix::io::RawFd};
 
 use cras_sys::gen::{
     cras_client_connected, cras_client_message, cras_client_stream_connected,
@@ -20,6 +20,7 @@ enum ErrorType {
     IoError(io::Error),
     SysUtilError(sys_util::Error),
     CrasStreamError(cras_stream::Error),
+    ArrayTryFromSliceError(TryFromSliceError),
     InvalidSize,
     MessageTypeError,
     MessageNumFdError,
@@ -48,6 +49,7 @@ impl fmt::Display for Error {
             ErrorType::SysUtilError(ref err) => err.fmt(f),
             ErrorType::MessageTypeError => write!(f, "Message type error"),
             ErrorType::CrasStreamError(ref err) => err.fmt(f),
+            ErrorType::ArrayTryFromSliceError(ref err) => err.fmt(f),
             ErrorType::MessageNumFdError => write!(f, "Message the number of fds is not matched"),
             ErrorType::MessageTruncated => write!(f, "Read truncated message"),
             ErrorType::MessageIdError => write!(f, "No such id"),
@@ -74,6 +76,12 @@ impl From<sys_util::Error> for Error {
 impl From<cras_stream::Error> for Error {
     fn from(err: cras_stream::Error) -> Self {
         Self::new(ErrorType::CrasStreamError(err))
+    }
+}
+
+impl From<TryFromSliceError> for Error {
+    fn from(err: TryFromSliceError) -> Self {
+        Self::new(ErrorType::ArrayTryFromSliceError(err))
     }
 }
 
@@ -139,11 +147,6 @@ impl Default for CrasClientMessage {
     }
 }
 
-// Converts 4-bytes array to an `u32`.
-fn from_le_bytes(bytes: [u8; 4]) -> u32 {
-    (bytes[0] as u32) | (bytes[1] as u32) << 8 | (bytes[2] as u32) << 16 | (bytes[3] as u32) << 24
-}
-
 impl CrasClientMessage {
     // Reads a message from server_socket and checks validity of the read result
     fn try_new(server_socket: &CrasServerSocket) -> Result<CrasClientMessage> {
@@ -179,13 +182,8 @@ impl CrasClientMessage {
 
     // Gets the message id
     fn get_id(&self) -> Result<CRAS_CLIENT_MESSAGE_ID> {
-        // Reads 4 bytes start from offset = size_of(cras_client_message.length)
-        // [TODO] Change this to `from_le_bytes` when rust version >= 1.32.0
-        let mut data = [0u8; 4];
         let offset = mem::size_of::<u32>();
-        data.copy_from_slice(&self.data[offset..offset + 4]);
-
-        match from_le_bytes(data) {
+        match u32::from_le_bytes(self.data[offset..offset + 4].try_into()?) {
             id if id == (CRAS_CLIENT_CONNECTED as u32) => Ok(CRAS_CLIENT_CONNECTED),
             id if id == (CRAS_CLIENT_STREAM_CONNECTED as u32) => Ok(CRAS_CLIENT_STREAM_CONNECTED),
             _ => Err(Error::new(ErrorType::MessageIdError)),
