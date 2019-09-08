@@ -32,6 +32,20 @@ void rclient_fill_cras_rstream_config(
 	const struct cras_audio_format *remote_format,
 	struct cras_rstream_config *stream_config);
 
+/* Checks if the incoming stream connect message contains
+ * - stream_id matches client->id.
+ * - direction supported by the client.
+ *
+ * Args:
+ *   client - The cras_rclient which gets the message.
+ *
+ * Returns:
+ *   0 on success, negative error on failure.
+ */
+int rclient_validate_stream_connect_message(
+	const struct cras_rclient *client,
+	const struct cras_connect_message *msg);
+
 /*
  * Converts an old version of connect message to the correct
  * cras_connect_message. Returns zero on success, negative on failure.

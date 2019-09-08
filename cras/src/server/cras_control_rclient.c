@@ -40,6 +40,10 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	int rc, header_fd, samples_fd;
 	int stream_fds[2];
 
+	rc = rclient_validate_stream_connect_message(client, msg);
+	if (rc)
+		goto close_shm_fd;
+
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
 	rc = rclient_validate_stream_connect_fds(aud_fd, client_shm_fd,
@@ -653,6 +657,10 @@ struct cras_rclient *cras_control_rclient_create(int fd, size_t id)
 	client->fd = fd;
 	client->id = id;
 	client->ops = &cras_control_rclient_ops;
+	client->supported_directions = CRAS_STREAM_ALL_DIRECTION;
+	/* Filters CRAS_STREAM_UNDEFINED stream out. */
+	client->supported_directions ^=
+		cras_stream_direction_mask(CRAS_STREAM_UNDEFINED);
 
 	cras_fill_client_connected(&msg, client->id);
 	state_fd = cras_sys_state_shm_fd();

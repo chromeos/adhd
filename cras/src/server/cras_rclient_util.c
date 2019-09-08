@@ -12,6 +12,7 @@
 #include "cras_rclient_util.h"
 #include "cras_rstream.h"
 #include "cras_tm.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "stream_list.h"
 
@@ -51,6 +52,29 @@ void rclient_fill_cras_rstream_config(struct cras_rclient *client,
 	stream_config->client_shm_fd = client_shm_fd;
 	stream_config->client_shm_size = msg->client_shm_size;
 	stream_config->client = client;
+}
+
+int rclient_validate_stream_connect_message(
+	const struct cras_rclient *client,
+	const struct cras_connect_message *msg)
+{
+	if (!cras_valid_stream_id(msg->stream_id, client->id)) {
+		syslog(LOG_ERR,
+		       "stream_connect: invalid stream_id: %x for "
+		       "client: %zx.\n",
+		       msg->stream_id, client->id);
+		return -EINVAL;
+	}
+
+	int direction = cras_stream_direction_mask(msg->direction);
+	if (!(client->supported_directions & direction)) {
+		syslog(LOG_ERR,
+		       "stream_connect: invalid stream direction: %x for "
+		       "client: %zx.\n",
+		       msg->direction, client->id);
+		return -EINVAL;
+	}
+	return 0;
 }
 
 int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,

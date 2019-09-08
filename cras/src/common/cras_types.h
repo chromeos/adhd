@@ -59,6 +59,16 @@ enum CRAS_STREAM_DIRECTION {
 	CRAS_NUM_DIRECTIONS
 };
 
+/* Bitmask for supporting all CRAS_STREAM_DIRECTION. */
+#define CRAS_STREAM_ALL_DIRECTION ((1 << CRAS_NUM_DIRECTIONS) - 1)
+
+/* Converts CRAS_STREAM_DIRECTION to bitmask. */
+static inline int
+cras_stream_direction_mask(const enum CRAS_STREAM_DIRECTION dir)
+{
+	return (1 << dir);
+}
+
 /*
  * Flags for stream types.
  *  BULK_AUDIO_OK - This stream is OK with receiving up to a full shm of samples

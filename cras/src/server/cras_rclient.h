@@ -17,12 +17,14 @@ struct cras_server_message;
  *  id - The id of the client.
  *  fd - Connection for client communication.
  *  ops - cras_rclient_ops for the cras_rclient.
+ *  supported_directions - Bit mask for supported stream directions.
  */
 struct cras_rclient {
 	struct cras_observer_client *observer;
 	size_t id;
 	int fd;
 	const struct cras_rclient_ops *ops;
+	int supported_directions;
 };
 
 /* Operations for cras_rclient.

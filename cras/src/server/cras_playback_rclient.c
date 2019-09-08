@@ -30,20 +30,9 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	int rc, header_fd, samples_fd;
 	int stream_fds[2];
 
-	if (!cras_valid_stream_id(msg->stream_id, client->id)) {
-		syslog(LOG_ERR,
-		       "stream_connect: invalid stream_id: %x for "
-		       "client: %zx.\n",
-		       msg->stream_id, client->id);
-		rc = -EINVAL;
+	rc = rclient_validate_stream_connect_message(client, msg);
+	if (rc)
 		goto reply_err;
-	}
-
-	if (msg->direction != CRAS_STREAM_OUTPUT) {
-		syslog(LOG_ERR, "Invalid stream direction.\n");
-		rc = -EINVAL;
-		goto reply_err;
-	}
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
@@ -220,6 +209,8 @@ struct cras_rclient *cras_playback_rclient_create(int fd, size_t id)
 	client->id = id;
 
 	client->ops = &cras_playback_rclient_ops;
+	client->supported_directions =
+		cras_stream_direction_mask(CRAS_STREAM_OUTPUT);
 
 	cras_fill_client_connected(&msg, client->id);
 	state_fd = cras_sys_state_shm_fd();

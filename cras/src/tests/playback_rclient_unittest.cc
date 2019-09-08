@@ -128,24 +128,30 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
 
   struct cras_connect_message msg;
   cras_stream_id_t stream_id = 0x10002;
-  cras_fill_connect_message(&msg, CRAS_STREAM_INPUT, stream_id,
-                            CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
-                            480, 240, /*flags=*/0, /*effects=*/0, fmt,
-                            NO_DEVICE, /*client_shm_size=*/0);
-  ASSERT_EQ(stream_id, msg.stream_id);
 
-  fd_ = 100;
-  rc =
-      rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
-  EXPECT_EQ(-EINVAL, rc);
-  EXPECT_EQ(0, cras_make_fd_nonblocking_called);
-  EXPECT_EQ(0, stream_list_add_called);
-  EXPECT_EQ(0, stream_list_rm_called);
+  for (int i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
+    const auto dir = static_cast<CRAS_STREAM_DIRECTION>(i);
+    if (dir == CRAS_STREAM_OUTPUT)
+      continue;
+    cras_fill_connect_message(&msg, dir, stream_id, CRAS_STREAM_TYPE_DEFAULT,
+                              CRAS_CLIENT_TYPE_UNKNOWN, 480, 240, /*flags=*/0,
+                              /*effects=*/0, fmt, NO_DEVICE,
+                              /*client_shm_size=*/0);
+    ASSERT_EQ(stream_id, msg.stream_id);
 
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(-EINVAL, out_msg.err);
-  EXPECT_EQ(stream_id, out_msg.stream_id);
+    fd_ = 100;
+    rc = rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_,
+                                                   1);
+    EXPECT_EQ(-EINVAL, rc);
+    EXPECT_EQ(0, cras_make_fd_nonblocking_called);
+    EXPECT_EQ(0, stream_list_add_called);
+    EXPECT_EQ(0, stream_list_rm_called);
+
+    rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+    EXPECT_EQ(sizeof(out_msg), rc);
+    EXPECT_EQ(-EINVAL, out_msg.err);
+    EXPECT_EQ(stream_id, out_msg.stream_id);
+  }
 }
 
 TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
