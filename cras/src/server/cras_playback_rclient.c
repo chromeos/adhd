@@ -11,93 +11,10 @@
 #include "cras_rclient.h"
 #include "cras_rclient_util.h"
 #include "cras_rstream.h"
-#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "stream_list.h"
-
-/* Handles a message from the client to connect a new stream */
-static int handle_client_stream_connect(struct cras_rclient *client,
-					const struct cras_connect_message *msg,
-					int aud_fd, int client_shm_fd)
-{
-	struct cras_rstream *stream;
-	struct cras_client_stream_connected stream_connected;
-	struct cras_client_message *reply;
-	struct cras_audio_format remote_fmt;
-	struct cras_rstream_config stream_config;
-	int rc, header_fd, samples_fd;
-	int stream_fds[2];
-
-	rc = rclient_validate_stream_connect_params(client, msg, aud_fd,
-						    client_shm_fd);
-	if (rc) {
-		if (client_shm_fd >= 0)
-			close(client_shm_fd);
-		if (aud_fd >= 0)
-			close(aud_fd);
-		goto reply_err;
-	}
-
-	unpack_cras_audio_format(&remote_fmt, &msg->format);
-
-	/* When full, getting an error is preferable to blocking. */
-	cras_make_fd_nonblocking(aud_fd);
-
-	cras_rstream_config_init_with_message(client, msg, &aud_fd,
-					      &client_shm_fd, &remote_fmt,
-					      &stream_config);
-	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
-			     &stream);
-	if (rc)
-		goto cleanup_config;
-
-	/* Tell client about the stream setup. */
-	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
-	cras_fill_client_stream_connected(
-		&stream_connected, 0, /* No error. */
-		msg->stream_id, &remote_fmt,
-		cras_rstream_get_samples_shm_size(stream),
-		cras_rstream_get_effects(stream));
-	reply = &stream_connected.header;
-
-	rc = cras_rstream_get_shm_fds(stream, &header_fd, &samples_fd);
-	if (rc)
-		goto cleanup_config;
-
-	stream_fds[0] = header_fd;
-	/* If we're using client-provided shm, samples_fd here refers to the
-	 * same shm area as client_shm_fd */
-	stream_fds[1] = samples_fd;
-
-	rc = client->ops->send_message_to_client(client, reply, stream_fds, 2);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to send connected messaged\n");
-		stream_list_rm(cras_iodev_list_get_stream_list(),
-			       stream->stream_id);
-		goto cleanup_config;
-	}
-
-	/* Metrics logs the stream configurations. */
-	cras_server_metrics_stream_config(&stream_config);
-
-	/* Cleanup local object explicitly. */
-	cras_rstream_config_cleanup(&stream_config);
-	return 0;
-
-cleanup_config:
-	cras_rstream_config_cleanup(&stream_config);
-
-reply_err:
-	/* Send the error code to the client. */
-	cras_fill_client_stream_connected(&stream_connected, rc, msg->stream_id,
-					  &remote_fmt, 0, msg->effects);
-	reply = &stream_connected.header;
-	client->ops->send_message_to_client(client, reply, NULL, 0);
-
-	return rc;
-}
 
 /* Handles messages from the client requesting that a stream be removed from the
  * server. */
@@ -158,13 +75,13 @@ static int cpr_handle_message_from_client(struct cras_rclient *client,
 		int client_shm_fd = num_fds > 1 ? fds[1] : -1;
 		struct cras_connect_message cmsg;
 		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
-			rc = handle_client_stream_connect(
+			rc = rclient_handle_client_stream_connect(
 				client,
 				(const struct cras_connect_message *)msg, fd,
 				client_shm_fd);
 		} else if (!convert_connect_message_old(msg, &cmsg)) {
-			rc = handle_client_stream_connect(client, &cmsg, fd,
-							  client_shm_fd);
+			rc = rclient_handle_client_stream_connect(
+				client, &cmsg, fd, client_shm_fd);
 		} else {
 			return -EINVAL;
 		}

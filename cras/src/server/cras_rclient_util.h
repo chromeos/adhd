@@ -43,6 +43,21 @@ int rclient_validate_stream_connect_params(
 	const struct cras_connect_message *msg, int audio_fd,
 	int client_shm_fd);
 
+/* Handles a message from the client to connect a new stream
+ *
+ * Args:
+ *   client - The cras_rclient which gets the message.
+ *   msg - The cras_connect_message from client.
+ *   aud_fd - The audio fd comes from client. Its ownership will be taken.
+ *   client_shm_fd - The client_shm_fd from client. Its ownership will be taken.
+ *
+ * Returns:
+ *   0 on success, negative error on failure.
+ */
+int rclient_handle_client_stream_connect(struct cras_rclient *client,
+					 const struct cras_connect_message *msg,
+					 int aud_fd, int client_shm_fd);
+
 /*
  * Converts an old version of connect message to the correct
  * cras_connect_message. Returns zero on success, negative on failure.
