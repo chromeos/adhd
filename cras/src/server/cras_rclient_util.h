@@ -58,6 +58,20 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 					 const struct cras_connect_message *msg,
 					 int aud_fd, int client_shm_fd);
 
+/* Handles messages from the client requesting that a stream be removed from the
+ * server.
+ *
+ * Args:
+ *   client - The cras_rclient which gets the message.
+ *   msg - The cras_disconnect_stream_message from client.
+ *
+ * Returns:
+ *   0 on success, negative error on failure.
+ */
+int rclient_handle_client_stream_disconnect(
+	struct cras_rclient *client,
+	const struct cras_disconnect_stream_message *msg);
+
 /*
  * Converts an old version of connect message to the correct
  * cras_connect_message. Returns zero on success, negative on failure.

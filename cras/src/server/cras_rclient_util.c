@@ -176,3 +176,20 @@ reply_err:
 
 	return rc;
 }
+
+/* Handles messages from the client requesting that a stream be removed from the
+ * server. */
+int rclient_handle_client_stream_disconnect(
+	struct cras_rclient *client,
+	const struct cras_disconnect_stream_message *msg)
+{
+	if (!cras_valid_stream_id(msg->stream_id, client->id)) {
+		syslog(LOG_ERR,
+		       "stream_disconnect: invalid stream_id: %x for "
+		       "client: %zx.\n",
+		       msg->stream_id, client->id);
+		return -EINVAL;
+	}
+	return stream_list_rm(cras_iodev_list_get_stream_list(),
+			      msg->stream_id);
+}

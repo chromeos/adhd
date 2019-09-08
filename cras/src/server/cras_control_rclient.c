@@ -26,16 +26,6 @@
 #include "stream_list.h"
 #include "utlist.h"
 
-/* Handles messages from the client requesting that a stream be removed from the
- * server. */
-static int handle_client_stream_disconnect(
-	struct cras_rclient *client,
-	const struct cras_disconnect_stream_message *msg)
-{
-	return stream_list_rm(cras_iodev_list_get_stream_list(),
-			      msg->stream_id);
-}
-
 /* Handles dumping audio thread debug info back to the client. */
 static void dump_audio_thread_info(struct cras_rclient *client)
 {
@@ -338,7 +328,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))
 			return -EINVAL;
-		handle_client_stream_disconnect(
+		rclient_handle_client_stream_disconnect(
 			client,
 			(const struct cras_disconnect_stream_message *)msg);
 		break;
