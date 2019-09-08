@@ -65,6 +65,8 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
 	stream_config->cb_threshold = server_stream_block_size;
 	stream_config->dev_idx = dev_idx;
 	stream_config->audio_fd = -1;
+	stream_config->client_shm_fd = -1;
+	stream_config->client_shm_size = 0;
 
 	/* Schedule add stream in next main thread loop. */
 	cras_system_add_task(server_stream_add_cb, stream_list);
