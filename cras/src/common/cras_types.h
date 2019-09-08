@@ -139,6 +139,7 @@ enum CRAS_CLIENT_TYPE {
 	CRAS_CLIENT_TYPE_CHROME, /* Chrome, UI */
 	CRAS_CLIENT_TYPE_ARC, /* ARC++ */
 	CRAS_CLIENT_TYPE_CROSVM, /* CROSVM */
+	CRAS_CLIENT_TYPE_SERVER_STREAM, /* Server stream */
 };
 
 #define ENUM_STR(x)                                                            \

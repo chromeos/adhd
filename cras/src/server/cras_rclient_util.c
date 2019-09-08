@@ -32,28 +32,6 @@ void rclient_destroy(struct cras_rclient *client)
 	free(client);
 }
 
-void rclient_fill_cras_rstream_config(struct cras_rclient *client,
-				      const struct cras_connect_message *msg,
-				      int aud_fd, int client_shm_fd,
-				      const struct cras_audio_format *remote_fmt,
-				      struct cras_rstream_config *stream_config)
-{
-	stream_config->stream_id = msg->stream_id;
-	stream_config->stream_type = msg->stream_type;
-	stream_config->client_type = msg->client_type;
-	stream_config->direction = msg->direction;
-	stream_config->dev_idx = msg->dev_idx;
-	stream_config->flags = msg->flags;
-	stream_config->effects = msg->effects;
-	stream_config->format = remote_fmt;
-	stream_config->buffer_frames = msg->buffer_frames;
-	stream_config->cb_threshold = msg->cb_threshold;
-	stream_config->audio_fd = aud_fd;
-	stream_config->client_shm_fd = client_shm_fd;
-	stream_config->client_shm_size = msg->client_shm_size;
-	stream_config->client = client;
-}
-
 static int
 rclient_validate_stream_connect_message(const struct cras_rclient *client,
 					const struct cras_connect_message *msg)

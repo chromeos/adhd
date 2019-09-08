@@ -15,6 +15,7 @@ struct cras_audio_format;
 struct stream_list;
 
 typedef int(stream_callback)(struct cras_rstream *rstream);
+/* This function will mutably borrow stream_config. */
 typedef int(stream_create_func)(struct cras_rstream_config *stream_config,
 				struct cras_rstream **rstream);
 typedef void(stream_destroy_func)(struct cras_rstream *rstream);
@@ -29,6 +30,17 @@ void stream_list_destroy(struct stream_list *list);
 
 struct cras_rstream *stream_list_get(struct stream_list *list);
 
+/* Creates a cras_rstream from cras_rstreaem_config and adds the cras_rstream
+ * to stream_list.
+ *
+ * Args:
+ *   list - stream_list to add streams.
+ *   stream_config - A mutable borrow of cras_rstream_config.
+ *   stream - A pointer to place created cras_rstream.
+ *
+ * Returns:
+ *   0 on success. Negative error code on failure.
+ */
 int stream_list_add(struct stream_list *list,
 		    struct cras_rstream_config *stream_config,
 		    struct cras_rstream **stream);

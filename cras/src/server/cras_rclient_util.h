@@ -25,13 +25,6 @@ int rclient_send_message_to_client(const struct cras_rclient *client,
 /* Removes all streams that the client owns and destroys it. */
 void rclient_destroy(struct cras_rclient *client);
 
-/* Fill cras_rstream_config with given rclient parameters */
-void rclient_fill_cras_rstream_config(
-	struct cras_rclient *client, const struct cras_connect_message *msg,
-	int aud_fd, int client_shm_fd,
-	const struct cras_audio_format *remote_format,
-	struct cras_rstream_config *stream_config);
-
 /* Checks if the incoming stream connect message contains
  * - stream_id matches client->id.
  * - direction supported by the client.

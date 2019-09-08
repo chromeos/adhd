@@ -32,20 +32,26 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	rc = rclient_validate_stream_connect_params(client, msg, aud_fd,
 						    client_shm_fd);
-	if (rc)
+	if (rc) {
+		if (client_shm_fd >= 0)
+			close(client_shm_fd);
+		if (aud_fd >= 0)
+			close(aud_fd);
 		goto reply_err;
+	}
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
 
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
 
-	rclient_fill_cras_rstream_config(client, msg, aud_fd, client_shm_fd,
-					 &remote_fmt, &stream_config);
+	cras_rstream_config_init_with_message(client, msg, &aud_fd,
+					      &client_shm_fd, &remote_fmt,
+					      &stream_config);
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
 			     &stream);
 	if (rc)
-		goto reply_err;
+		goto cleanup_config;
 
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
@@ -58,7 +64,7 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 
 	rc = cras_rstream_get_shm_fds(stream, &header_fd, &samples_fd);
 	if (rc)
-		goto reply_err;
+		goto cleanup_config;
 
 	stream_fds[0] = header_fd;
 	/* If we're using client-provided shm, samples_fd here refers to the
@@ -70,13 +76,18 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
 			       stream->stream_id);
-		goto reply_err;
+		goto cleanup_config;
 	}
 
 	/* Metrics logs the stream configurations. */
 	cras_server_metrics_stream_config(&stream_config);
 
+	/* Cleanup local object explicitly. */
+	cras_rstream_config_cleanup(&stream_config);
 	return 0;
+
+cleanup_config:
+	cras_rstream_config_cleanup(&stream_config);
 
 reply_err:
 	/* Send the error code to the client. */
@@ -84,11 +95,6 @@ reply_err:
 					  &remote_fmt, 0, msg->effects);
 	reply = &stream_connected.header;
 	client->ops->send_message_to_client(client, reply, NULL, 0);
-
-	if (aud_fd >= 0)
-		close(aud_fd);
-	if (client_shm_fd >= 0)
-		close(client_shm_fd);
 
 	return rc;
 }
