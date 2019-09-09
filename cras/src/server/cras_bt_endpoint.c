@@ -42,13 +42,24 @@
 
 static void cras_bt_endpoint_suspend(struct cras_bt_endpoint *endpoint)
 {
+	struct cras_bt_transport *transport;
+
 	if (!endpoint->transport)
 		return;
 
 	endpoint->suspend(endpoint, endpoint->transport);
 
-	cras_bt_transport_set_endpoint(endpoint->transport, NULL);
+	transport = endpoint->transport;
+	cras_bt_transport_set_endpoint(transport, NULL);
 	endpoint->transport = NULL;
+
+	/*
+	 * If BT stack has notified this transport interface removed.
+	 * Destroy transport now since all related objects has been
+	 * cleaned up.
+	 */
+	if (cras_bt_transport_is_removed(transport))
+		cras_bt_transport_destroy(transport);
 }
 
 static DBusHandlerResult

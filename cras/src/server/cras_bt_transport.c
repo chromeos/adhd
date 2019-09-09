@@ -32,6 +32,7 @@ struct cras_bt_transport {
 	uint16_t read_mtu;
 	uint16_t write_mtu;
 	int volume;
+	int removed;
 
 	struct cras_bt_endpoint *endpoint;
 	struct cras_bt_transport *prev, *next;
@@ -69,6 +70,25 @@ void cras_bt_transport_set_endpoint(struct cras_bt_transport *transport,
 				    struct cras_bt_endpoint *endpoint)
 {
 	transport->endpoint = endpoint;
+}
+
+int cras_bt_transport_is_removed(struct cras_bt_transport *transport)
+{
+	return transport->removed;
+}
+
+void cras_bt_transport_remove(struct cras_bt_transport *transport)
+{
+	/*
+	 * If the transport object is still associated with a valid
+	 * endpoint. Flag it as removed and wait for the ClearConfiguration
+	 * message from BT to actually suspend this A2DP connection and
+	 * destroy the transport.
+	 */
+	if (transport->endpoint)
+		transport->removed = 1;
+	else
+		cras_bt_transport_destroy(transport);
 }
 
 void cras_bt_transport_destroy(struct cras_bt_transport *transport)

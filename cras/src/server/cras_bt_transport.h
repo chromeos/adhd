@@ -24,6 +24,19 @@ struct cras_bt_transport *cras_bt_transport_create(DBusConnection *conn,
 						   const char *object_path);
 void cras_bt_transport_set_endpoint(struct cras_bt_transport *transport,
 				    struct cras_bt_endpoint *endpoint);
+
+/* Handles the event when BT stack notifies specific transport is removed.
+ * Args:
+ *    transport - The transport object representing an A2DP connection.
+ */
+void cras_bt_transport_remove(struct cras_bt_transport *transport);
+
+/* Queries the state if BT stack has removed given transport.
+ * Args:
+ *    transport - The transport object representing an A2DP connection.
+ */
+int cras_bt_transport_is_removed(struct cras_bt_transport *transport);
+
 void cras_bt_transport_destroy(struct cras_bt_transport *transport);
 void cras_bt_transport_reset();
 

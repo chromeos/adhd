@@ -137,7 +137,7 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 		if (transport) {
 			syslog(LOG_INFO, "Bluetooth Transport: %s removed",
 			       cras_bt_transport_object_path(transport));
-			cras_bt_transport_destroy(transport);
+			cras_bt_transport_remove(transport);
 		}
 	}
 }
