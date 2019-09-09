@@ -40,16 +40,12 @@ static int handle_client_stream_connect(struct cras_rclient *client,
 	int rc, header_fd, samples_fd;
 	int stream_fds[2];
 
-	rc = rclient_validate_stream_connect_message(client, msg);
+	rc = rclient_validate_stream_connect_params(client, msg, aud_fd,
+						    client_shm_fd);
 	if (rc)
 		goto close_shm_fd;
 
 	unpack_cras_audio_format(&remote_fmt, &msg->format);
-
-	rc = rclient_validate_stream_connect_fds(aud_fd, client_shm_fd,
-						 msg->client_shm_size);
-	if (rc)
-		goto close_shm_fd;
 
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);

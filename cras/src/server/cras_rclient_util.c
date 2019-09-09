@@ -54,9 +54,9 @@ void rclient_fill_cras_rstream_config(struct cras_rclient *client,
 	stream_config->client = client;
 }
 
-int rclient_validate_stream_connect_message(
-	const struct cras_rclient *client,
-	const struct cras_connect_message *msg)
+static int
+rclient_validate_stream_connect_message(const struct cras_rclient *client,
+					const struct cras_connect_message *msg)
 {
 	if (!cras_valid_stream_id(msg->stream_id, client->id)) {
 		syslog(LOG_ERR,
@@ -77,8 +77,8 @@ int rclient_validate_stream_connect_message(
 	return 0;
 }
 
-int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
-					size_t client_shm_size)
+static int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
+					       size_t client_shm_size)
 {
 	/* check audio_fd is valid. */
 	if (audio_fd < 0) {
@@ -96,5 +96,23 @@ int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
 		       "client_shm_fd can be valid only if client_shm_size > 0.\n");
 		return -EINVAL;
 	}
+	return 0;
+}
+
+int rclient_validate_stream_connect_params(
+	const struct cras_rclient *client,
+	const struct cras_connect_message *msg, int audio_fd, int client_shm_fd)
+{
+	int rc;
+
+	rc = rclient_validate_stream_connect_message(client, msg);
+	if (rc)
+		return rc;
+
+	rc = rclient_validate_stream_connect_fds(audio_fd, client_shm_fd,
+						 msg->client_shm_size);
+	if (rc)
+		return rc;
+
 	return 0;
 }

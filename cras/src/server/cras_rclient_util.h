@@ -38,13 +38,17 @@ void rclient_fill_cras_rstream_config(
  *
  * Args:
  *   client - The cras_rclient which gets the message.
+ *   msg - cras_connect_message from client.
+ *   audio_fd - Audio fd from client.
+ *   client_shm_fd - client shared memory fd from client. It can be -1.
  *
  * Returns:
  *   0 on success, negative error on failure.
  */
-int rclient_validate_stream_connect_message(
+int rclient_validate_stream_connect_params(
 	const struct cras_rclient *client,
-	const struct cras_connect_message *msg);
+	const struct cras_connect_message *msg, int audio_fd,
+	int client_shm_fd);
 
 /*
  * Converts an old version of connect message to the correct
@@ -71,8 +75,5 @@ convert_connect_message_old(const struct cras_server_message *msg,
 	cmsg->client_shm_size = 0;
 	return 0;
 }
-
-int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
-					size_t client_shm_size);
 
 #endif /* CRAS_RCLIENT_UTIL_H_ */
