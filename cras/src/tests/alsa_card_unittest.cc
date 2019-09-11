@@ -82,7 +82,7 @@ static unsigned ucm_create_called;
 static unsigned ucm_destroy_called;
 static size_t ucm_get_dev_for_mixer_called;
 static size_t ucm_get_flag_called;
-static char ucm_get_flag_name[64];
+static char ucm_get_flag_name[65];
 static char* device_config_dir;
 static const char* cras_card_config_dir;
 static struct mixer_name* ucm_get_coupled_mixer_names_return_value;
@@ -1130,7 +1130,7 @@ char* ucm_get_dev_for_mixer(struct cras_use_case_mgr* mgr,
 
 char* ucm_get_flag(struct cras_use_case_mgr* mgr, const char* flag_name) {
   ucm_get_flag_called++;
-  strncpy(ucm_get_flag_name, flag_name, sizeof(ucm_get_flag_name));
+  strncpy(ucm_get_flag_name, flag_name, sizeof(ucm_get_flag_name) - 1);
   return NULL;
 }
 
