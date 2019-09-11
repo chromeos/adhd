@@ -78,6 +78,12 @@ class CPRMessageSuite : public testing::Test {
     if (rc < 0)
       return;
 
+    fmt = {
+        .format = SND_PCM_FORMAT_S16_LE,
+        .frame_rate = 48000,
+        .num_channels = 2,
+    };
+    cras_audio_format_set_default_channel_layout(&fmt);
     ResetStubData();
   }
 
@@ -88,6 +94,7 @@ class CPRMessageSuite : public testing::Test {
   }
 
   struct cras_rclient* rclient_;
+  struct cras_audio_format fmt;
   int pipe_fds_[2];
   int fd_;
 };
@@ -98,11 +105,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessage) {
 
   struct cras_connect_message msg;
   cras_stream_id_t stream_id = 0x10002;
-  struct cras_audio_format fmt = {
-      .frame_rate = 48000,
-      .num_channels = 2,
-      .format = SND_PCM_FORMAT_S16_LE,
-  };
   cras_fill_connect_message(&msg, CRAS_STREAM_OUTPUT, stream_id,
                             CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
                             480, 240, /*flags=*/0, /*effects=*/0, fmt,
@@ -126,11 +128,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
 
   struct cras_connect_message msg;
   cras_stream_id_t stream_id = 0x10002;
-  struct cras_audio_format fmt = {
-      .frame_rate = 48000,
-      .num_channels = 2,
-      .format = SND_PCM_FORMAT_S16_LE,
-  };
   cras_fill_connect_message(&msg, CRAS_STREAM_INPUT, stream_id,
                             CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
                             480, 240, /*flags=*/0, /*effects=*/0, fmt,
@@ -157,11 +154,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
 
   struct cras_connect_message msg;
   cras_stream_id_t stream_id = 0x20002;  // stream_id with invalid client_id
-  struct cras_audio_format fmt = {
-      .frame_rate = 48000,
-      .num_channels = 2,
-      .format = SND_PCM_FORMAT_S16_LE,
-  };
   cras_fill_connect_message(&msg, CRAS_STREAM_OUTPUT, stream_id,
                             CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_UNKNOWN,
                             480, 240, /*flags=*/0, /*effects=*/0, fmt,
@@ -192,11 +184,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
 
   struct cras_connect_message_old msg;
   cras_stream_id_t stream_id = 0x10002;
-  struct cras_audio_format fmt = {
-      .frame_rate = 48000,
-      .num_channels = 2,
-      .format = SND_PCM_FORMAT_S16_LE,
-  };
+
   msg.proto_version = 3;
   msg.direction = CRAS_STREAM_OUTPUT;
   msg.stream_id = stream_id;

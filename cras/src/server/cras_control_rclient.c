@@ -373,7 +373,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		syslog(LOG_ERR,
 		       "Message %d should not have more than 2 fds attached.",
 		       msg->id);
-		for (int i = 0; i < num_fds; i++)
+		for (int i = 0; i < (int)num_fds; i++)
 			if (fds[i] >= 0)
 				close(fds[i]);
 		return -EINVAL;
