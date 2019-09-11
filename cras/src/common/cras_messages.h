@@ -19,7 +19,7 @@
 #define CRAS_PROTO_VER 5
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
-#define CRAS_MAX_HOTWORD_MODELS 244
+#define CRAS_MAX_HOTWORD_MODELS 243
 #define CRAS_MAX_REMIX_CHANNELS 32
 #define CRAS_MAX_TEST_DATA_LEN 224
 #define CRAS_AEC_DUMP_FILE_NAME_LEN 128
@@ -612,7 +612,7 @@ cras_fill_client_atlog_fd_ready(struct cras_client_atlog_fd_ready *m)
 struct __attribute__((__packed__)) cras_client_get_hotword_models_ready {
 	struct cras_client_message header;
 	int32_t hotword_models_size;
-	uint8_t hotword_models[CRAS_MAX_HOTWORD_MODELS];
+	uint8_t hotword_models[CRAS_MAX_HOTWORD_MODELS + 1];
 };
 static inline void cras_fill_client_get_hotword_models_ready(
 	struct cras_client_get_hotword_models_ready *m,
@@ -622,9 +622,11 @@ static inline void cras_fill_client_get_hotword_models_ready(
 	m->header.length = sizeof(*m);
 	m->hotword_models_size = hotword_models_size;
 	/* Copy string data with terminator. */
-	if (hotword_models)
+	if (hotword_models) {
 		strncpy((char *)m->hotword_models, hotword_models,
 			CRAS_MAX_HOTWORD_MODELS);
+		m->hotword_models[CRAS_MAX_HOTWORD_MODELS] = '\0';
+	}
 }
 
 /* System status messages sent from server to client when state changes. */
