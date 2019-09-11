@@ -1900,7 +1900,7 @@ static void set_default_hotword_model(struct cras_iodev *iodev)
 {
 	const char *default_models[] = { "en_all", "en_us" };
 	cras_node_id_t node_id;
-	int i;
+	unsigned i;
 
 	if (!iodev->active_node ||
 	    iodev->active_node->type != CRAS_NODE_TYPE_HOTWORD)
