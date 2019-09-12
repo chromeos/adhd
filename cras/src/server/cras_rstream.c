@@ -20,7 +20,9 @@
 #include "buffer_share.h"
 #include "cras_system_state.h"
 
-/* Setup the shared memory area used for audio samples. */
+/* Setup the shared memory area used for audio samples. client_shm_fd must be
+ * closed after calling this function.
+ */
 static inline int setup_shm_area(struct cras_rstream *stream, int client_shm_fd,
 				 size_t client_shm_size)
 {
@@ -33,8 +35,6 @@ static inline int setup_shm_area(struct cras_rstream *stream, int client_shm_fd,
 
 	if (stream->shm) {
 		/* already setup */
-		if (client_shm_fd >= 0)
-			close(client_shm_fd);
 		return -EEXIST;
 	}
 
@@ -43,11 +43,8 @@ static inline int setup_shm_area(struct cras_rstream *stream, int client_shm_fd,
 
 	rc = cras_shm_info_init(header_name, cras_shm_header_size(),
 				&header_info);
-	if (rc) {
-		if (client_shm_fd >= 0)
-			close(client_shm_fd);
+	if (rc)
 		return rc;
-	}
 
 	frame_bytes = snd_pcm_format_physical_width(fmt->format) / 8 *
 		      fmt->num_channels;
@@ -56,7 +53,6 @@ static inline int setup_shm_area(struct cras_rstream *stream, int client_shm_fd,
 	if (client_shm_fd >= 0 && client_shm_size > 0) {
 		rc = cras_shm_info_init_with_fd(client_shm_fd, client_shm_size,
 						&samples_info);
-		close(client_shm_fd);
 	} else {
 		snprintf(samples_name, sizeof(samples_name),
 			 "/cras-%d-stream-%08x-samples", getpid(),
