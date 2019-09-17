@@ -1048,6 +1048,17 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	int rc;
 	struct cras_loopback *loopback;
 
+	/* Calculate whether the final output was non-empty, if requested. */
+	if (is_non_empty) {
+		unsigned int i;
+		for (i = 0; i < nframes * cras_get_format_bytes(fmt); i++) {
+			if (frames[i]) {
+				*is_non_empty = 1;
+				break;
+			}
+		}
+	}
+
 	DL_FOREACH (iodev->loopbacks, loopback) {
 		if (loopback->type == LOOPBACK_POST_MIX_PRE_DSP)
 			loopback->hook_data(frames, nframes, iodev->format,
@@ -1074,9 +1085,6 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 	    ramp_action.type != CRAS_RAMP_ACTION_PARTIAL) {
 		const unsigned int frame_bytes = cras_get_format_bytes(fmt);
 		cras_mix_mute_buffer(frames, frame_bytes, nframes);
-
-		// Skip non-empty check, since we know it's empty.
-		is_non_empty = NULL;
 	}
 
 	/* Compute scaler for software volume if needed. */
@@ -1115,17 +1123,6 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 					   frames, nframes);
 	if (iodev->rate_est)
 		rate_estimator_add_frames(iodev->rate_est, nframes);
-
-	// Calculate whether the final output was non-empty, if requested.
-	if (is_non_empty) {
-		unsigned int i;
-		for (i = 0; i < nframes * cras_get_format_bytes(fmt); i++) {
-			if (frames[i]) {
-				*is_non_empty = 1;
-				break;
-			}
-		}
-	}
 
 	return iodev->put_buffer(iodev, nframes);
 }
