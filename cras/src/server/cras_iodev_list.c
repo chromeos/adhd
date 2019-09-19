@@ -220,6 +220,10 @@ static const char *node_type_to_str(struct cras_ionode *node)
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:
 		return "BLUETOOTH";
+	case CRAS_NODE_TYPE_FALLBACK_NORMAL:
+		return "FALLBACK_NORMAL";
+	case CRAS_NODE_TYPE_FALLBACK_ABNORMAL:
+		return "FALLBACK_ABNORMAL";
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
 		return "UNKNOWN";
@@ -572,10 +576,31 @@ static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir)
 	}
 }
 
-static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir)
+/*
+ * Possibly enables fallback device to handle streams.
+ * dir - output or input.
+ * error - true if enable fallback device because no other iodevs can be
+ * initialized successfully.
+ */
+static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir, bool error)
 {
 	if (fallback_devs[dir] == NULL)
 		return;
+
+	/*
+	 * The fallback device is a special device. It doesn't have a real
+	 * device to get a correct node type. Therefore, we need to set it by
+	 * ourselves, which indicates the reason to use this device.
+	 * NORMAL - Use it because of nodes changed.
+	 * ABNORMAL - Use it because there are no other usable devices.
+	 */
+	if (error)
+		syslog(LOG_ERR,
+		       "Enable fallback device because there are no other usable devices.");
+
+	fallback_devs[dir]->active_node->type =
+		error ? CRAS_NODE_TYPE_FALLBACK_ABNORMAL :
+			CRAS_NODE_TYPE_FALLBACK_NORMAL;
 	if (!cras_iodev_list_dev_is_enabled(fallback_devs[dir]))
 		enable_device(fallback_devs[dir]);
 }
@@ -798,7 +823,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 		 * cras_iodev_list_select_node() is called to re-select the
 		 * active node.
 		 */
-		possibly_enable_fallback(rstream->direction);
+		possibly_enable_fallback(rstream->direction, true);
 	}
 	return 0;
 }
@@ -992,10 +1017,10 @@ void cras_iodev_list_init()
 
 	/* Add an empty device so there is always something to play to or
 	 * capture from. */
-	fallback_devs[CRAS_STREAM_OUTPUT] =
-		empty_iodev_create(CRAS_STREAM_OUTPUT, CRAS_NODE_TYPE_UNKNOWN);
-	fallback_devs[CRAS_STREAM_INPUT] =
-		empty_iodev_create(CRAS_STREAM_INPUT, CRAS_NODE_TYPE_UNKNOWN);
+	fallback_devs[CRAS_STREAM_OUTPUT] = empty_iodev_create(
+		CRAS_STREAM_OUTPUT, CRAS_NODE_TYPE_FALLBACK_NORMAL);
+	fallback_devs[CRAS_STREAM_INPUT] = empty_iodev_create(
+		CRAS_STREAM_INPUT, CRAS_NODE_TYPE_FALLBACK_NORMAL);
 	enable_device(fallback_devs[CRAS_STREAM_OUTPUT]);
 	enable_device(fallback_devs[CRAS_STREAM_INPUT]);
 
@@ -1482,7 +1507,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	 * Note that the fallback node is not needed if the new node is already
 	 * enabled - the new node will remain enabled. */
 	if (!new_node_already_enabled)
-		possibly_enable_fallback(direction);
+		possibly_enable_fallback(direction, false);
 
 	/* Disable all devices except for fallback device, and the new device,
 	 * provided it is already enabled. */

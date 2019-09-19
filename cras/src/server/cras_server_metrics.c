@@ -140,6 +140,36 @@ static int cras_server_metrics_message_send(struct cras_main_message *msg)
 
 static const char *get_metrics_device_type_str(struct cras_iodev *iodev)
 {
+	/* Check whether it is a special device. */
+	if (iodev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
+		if (iodev->active_node->type ==
+		    CRAS_NODE_TYPE_FALLBACK_NORMAL) {
+			switch (iodev->info.idx) {
+			case NO_DEVICE:
+				syslog(LOG_ERR,
+				       "The invalid device has been used.");
+				return "NoDevice";
+			case SILENT_RECORD_DEVICE:
+			case SILENT_PLAYBACK_DEVICE:
+				return "NormalFallback";
+			case SILENT_HOTWORD_DEVICE:
+				return "NormalSilentHotword";
+			}
+		} else {
+			switch (iodev->info.idx) {
+			case NO_DEVICE:
+				syslog(LOG_ERR,
+				       "The invalid device has been used.");
+				return "NoDevice";
+			case SILENT_RECORD_DEVICE:
+			case SILENT_PLAYBACK_DEVICE:
+				return "AbnormalFallback";
+			case SILENT_HOTWORD_DEVICE:
+				return "AbnormalSilentHotword";
+			}
+		}
+	}
+
 	switch (iodev->active_node->type) {
 	case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
 		return "InternalSpeaker";

@@ -23,7 +23,7 @@ TEST(EmptyIodev, GetInputBuffer) {
   cras_audio_area* area;
   unsigned nframes;
 
-  iodev = empty_iodev_create(CRAS_STREAM_INPUT, CRAS_NODE_TYPE_UNKNOWN);
+  iodev = empty_iodev_create(CRAS_STREAM_INPUT, CRAS_NODE_TYPE_FALLBACK_NORMAL);
 
   clock_gettime_retspec.tv_sec = 0;
   clock_gettime_retspec.tv_nsec = 10000000;
