@@ -52,7 +52,7 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   EXPECT_EQ(sent_msgs[0].header.length,
             sizeof(struct cras_server_metrics_message));
   EXPECT_EQ(sent_msgs[0].metrics_type, DEVICE_RUNTIME);
-  EXPECT_STREQ(sent_msgs[0].data.device_data.type, "USB");
+  EXPECT_EQ(sent_msgs[0].data.device_data.type, CRAS_METRICS_DEVICE_USB);
   EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 100);
 
@@ -73,7 +73,7 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   EXPECT_EQ(sent_msgs[0].header.length,
             sizeof(struct cras_server_metrics_message));
   EXPECT_EQ(sent_msgs[0].metrics_type, DEVICE_RUNTIME);
-  EXPECT_STREQ(sent_msgs[0].data.device_data.type, "Headphone");
+  EXPECT_EQ(sent_msgs[0].data.device_data.type, CRAS_METRICS_DEVICE_HEADPHONE);
   EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_OUTPUT);
   EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 200);
 }

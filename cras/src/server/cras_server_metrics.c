@@ -20,6 +20,8 @@
 
 #define METRICS_NAME_BUFFER_SIZE 50
 
+const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
+const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
@@ -80,6 +82,36 @@ enum CRAS_SERVER_METRICS_TYPE {
 	STREAM_CONFIG
 };
 
+enum CRAS_METRICS_DEVICE_TYPE {
+	/* Output devices. */
+	CRAS_METRICS_DEVICE_INTERNAL_SPEAKER,
+	CRAS_METRICS_DEVICE_HEADPHONE,
+	CRAS_METRICS_DEVICE_HDMI,
+	CRAS_METRICS_DEVICE_HAPTIC,
+	CRAS_METRICS_DEVICE_LINEOUT,
+	/* Input devices. */
+	CRAS_METRICS_DEVICE_INTERNAL_MIC,
+	CRAS_METRICS_DEVICE_FRONT_MIC,
+	CRAS_METRICS_DEVICE_REAR_MIC,
+	CRAS_METRICS_DEVICE_KEYBOARD_MIC,
+	CRAS_METRICS_DEVICE_MIC,
+	CRAS_METRICS_DEVICE_HOTWORD,
+	CRAS_METRICS_DEVICE_POST_MIX_LOOPBACK,
+	CRAS_METRICS_DEVICE_POST_DSP_LOOPBACK,
+	/* Devices supporting input and output function. */
+	CRAS_METRICS_DEVICE_USB,
+	CRAS_METRICS_DEVICE_A2DP,
+	CRAS_METRICS_DEVICE_HFP,
+	CRAS_METRICS_DEVICE_HSP,
+	CRAS_METRICS_DEVICE_BLUETOOTH,
+	CRAS_METRICS_DEVICE_NO_DEVICE,
+	CRAS_METRICS_DEVICE_NORMAL_FALLBACK,
+	CRAS_METRICS_DEVICE_NORMAL_SILENT_HOTWORD,
+	CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK,
+	CRAS_METRICS_DEVICE_ABNORMAL_SILENT_HOTWORD,
+	CRAS_METRICS_DEVICE_UNKNOWN,
+};
+
 struct cras_server_metrics_stream_config {
 	enum CRAS_STREAM_DIRECTION direction;
 	unsigned cb_threshold;
@@ -90,7 +122,7 @@ struct cras_server_metrics_stream_config {
 };
 
 struct cras_server_metrics_device_data {
-	const char *type;
+	enum CRAS_METRICS_DEVICE_TYPE type;
 	enum CRAS_STREAM_DIRECTION direction;
 	struct timespec runtime;
 };
@@ -138,7 +170,67 @@ static int cras_server_metrics_message_send(struct cras_main_message *msg)
 	return cras_main_message_send(msg);
 }
 
-static const char *get_metrics_device_type_str(struct cras_iodev *iodev)
+static inline const char *
+metrics_device_type_str(enum CRAS_METRICS_DEVICE_TYPE device_type)
+{
+	switch (device_type) {
+	case CRAS_METRICS_DEVICE_INTERNAL_SPEAKER:
+		return "InternalSpeaker";
+	case CRAS_METRICS_DEVICE_HEADPHONE:
+		return "Headphone";
+	case CRAS_METRICS_DEVICE_HDMI:
+		return "HDMI";
+	case CRAS_METRICS_DEVICE_HAPTIC:
+		return "Haptic";
+	case CRAS_METRICS_DEVICE_LINEOUT:
+		return "Lineout";
+	/* Input devices. */
+	case CRAS_METRICS_DEVICE_INTERNAL_MIC:
+		return "InternalMic";
+	case CRAS_METRICS_DEVICE_FRONT_MIC:
+		return "FrontMic";
+	case CRAS_METRICS_DEVICE_REAR_MIC:
+		return "RearMic";
+	case CRAS_METRICS_DEVICE_KEYBOARD_MIC:
+		return "KeyboardMic";
+	case CRAS_METRICS_DEVICE_MIC:
+		return "Mic";
+	case CRAS_METRICS_DEVICE_HOTWORD:
+		return "Hotword";
+	case CRAS_METRICS_DEVICE_POST_MIX_LOOPBACK:
+		return "PostMixLoopback";
+	case CRAS_METRICS_DEVICE_POST_DSP_LOOPBACK:
+		return "PostDspLoopback";
+	/* Devices supporting input and output function. */
+	case CRAS_METRICS_DEVICE_USB:
+		return "USB";
+	case CRAS_METRICS_DEVICE_A2DP:
+		return "A2DP";
+	case CRAS_METRICS_DEVICE_HFP:
+		return "HFP";
+	case CRAS_METRICS_DEVICE_HSP:
+		return "HSP";
+	case CRAS_METRICS_DEVICE_BLUETOOTH:
+		return "Bluetooth";
+	case CRAS_METRICS_DEVICE_NO_DEVICE:
+		return "NoDevice";
+	case CRAS_METRICS_DEVICE_NORMAL_FALLBACK:
+		return "NormalFallback";
+	case CRAS_METRICS_DEVICE_NORMAL_SILENT_HOTWORD:
+		return "NormalSlientHotword";
+	case CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK:
+		return "AbnormalFallback";
+	case CRAS_METRICS_DEVICE_ABNORMAL_SILENT_HOTWORD:
+		return "AbnormalSlientHotword";
+	case CRAS_METRICS_DEVICE_UNKNOWN:
+		return "Unknown";
+	default:
+		return "InvalidType";
+	}
+}
+
+static enum CRAS_METRICS_DEVICE_TYPE
+get_metrics_device_type(struct cras_iodev *iodev)
 {
 	/* Check whether it is a special device. */
 	if (iodev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
@@ -148,77 +240,77 @@ static const char *get_metrics_device_type_str(struct cras_iodev *iodev)
 			case NO_DEVICE:
 				syslog(LOG_ERR,
 				       "The invalid device has been used.");
-				return "NoDevice";
+				return CRAS_METRICS_DEVICE_NO_DEVICE;
 			case SILENT_RECORD_DEVICE:
 			case SILENT_PLAYBACK_DEVICE:
-				return "NormalFallback";
+				return CRAS_METRICS_DEVICE_NORMAL_FALLBACK;
 			case SILENT_HOTWORD_DEVICE:
-				return "NormalSilentHotword";
+				return CRAS_METRICS_DEVICE_NORMAL_SILENT_HOTWORD;
 			}
 		} else {
 			switch (iodev->info.idx) {
 			case NO_DEVICE:
 				syslog(LOG_ERR,
 				       "The invalid device has been used.");
-				return "NoDevice";
+				return CRAS_METRICS_DEVICE_NO_DEVICE;
 			case SILENT_RECORD_DEVICE:
 			case SILENT_PLAYBACK_DEVICE:
-				return "AbnormalFallback";
+				return CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK;
 			case SILENT_HOTWORD_DEVICE:
-				return "AbnormalSilentHotword";
+				return CRAS_METRICS_DEVICE_ABNORMAL_SILENT_HOTWORD;
 			}
 		}
 	}
 
 	switch (iodev->active_node->type) {
 	case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
-		return "InternalSpeaker";
+		return CRAS_METRICS_DEVICE_INTERNAL_SPEAKER;
 	case CRAS_NODE_TYPE_HEADPHONE:
-		return "Headphone";
+		return CRAS_METRICS_DEVICE_HEADPHONE;
 	case CRAS_NODE_TYPE_HDMI:
-		return "HDMI";
+		return CRAS_METRICS_DEVICE_HDMI;
 	case CRAS_NODE_TYPE_HAPTIC:
-		return "Haptic";
+		return CRAS_METRICS_DEVICE_HAPTIC;
 	case CRAS_NODE_TYPE_LINEOUT:
-		return "Lineout";
+		return CRAS_METRICS_DEVICE_LINEOUT;
 	case CRAS_NODE_TYPE_MIC:
 		switch (iodev->active_node->position) {
 		case NODE_POSITION_INTERNAL:
-			return "InternalMic";
+			return CRAS_METRICS_DEVICE_INTERNAL_MIC;
 		case NODE_POSITION_FRONT:
-			return "FrontMic";
+			return CRAS_METRICS_DEVICE_FRONT_MIC;
 		case NODE_POSITION_REAR:
-			return "RearMic";
+			return CRAS_METRICS_DEVICE_REAR_MIC;
 		case NODE_POSITION_KEYBOARD:
-			return "KeyboardMic";
+			return CRAS_METRICS_DEVICE_KEYBOARD_MIC;
 		case NODE_POSITION_EXTERNAL:
 		default:
-			return "Mic";
+			return CRAS_METRICS_DEVICE_MIC;
 		}
 	case CRAS_NODE_TYPE_HOTWORD:
-		return "Hotword";
+		return CRAS_METRICS_DEVICE_HOTWORD;
 	case CRAS_NODE_TYPE_POST_MIX_PRE_DSP:
-		return "PostMixLoopback";
+		return CRAS_METRICS_DEVICE_POST_MIX_LOOPBACK;
 	case CRAS_NODE_TYPE_POST_DSP:
-		return "PostDspLoopback";
+		return CRAS_METRICS_DEVICE_POST_DSP_LOOPBACK;
 	case CRAS_NODE_TYPE_USB:
-		return "USB";
+		return CRAS_METRICS_DEVICE_USB;
 	case CRAS_NODE_TYPE_BLUETOOTH:
 #ifdef CRAS_DBUS
 		if (cras_bt_io_on_profile(iodev,
 					  CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE))
-			return "A2DP";
+			return CRAS_METRICS_DEVICE_A2DP;
 		if (cras_bt_io_on_profile(
 			    iodev, CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY))
-			return "HFP";
+			return CRAS_METRICS_DEVICE_HFP;
 		if (cras_bt_io_on_profile(
 			    iodev, CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY))
-			return "HSP";
+			return CRAS_METRICS_DEVICE_HSP;
 #endif
-		return "Bluetooth";
+		return CRAS_METRICS_DEVICE_BLUETOOTH;
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
-		return "Unknown";
+		return CRAS_METRICS_DEVICE_UNKNOWN;
 	}
 }
 
@@ -269,7 +361,7 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 	struct timespec now;
 	int err;
 
-	data.device_data.type = get_metrics_device_type_str(iodev);
+	data.device_data.type = get_metrics_device_type(iodev);
 	data.device_data.direction = iodev->direction;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &iodev->open_ts, &data.device_data.runtime);
@@ -589,9 +681,15 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
 		 "Cras.%sDevice%sRuntime",
 		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
-		 data.type);
+		 metrics_device_type_str(data.type));
 	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
 				   0, 10000, 20);
+
+	/* Logs the usage of each device. */
+	if (data.direction == CRAS_STREAM_INPUT)
+		cras_metrics_log_sparse_histogram(kDeviceTypeInput, data.type);
+	else
+		cras_metrics_log_sparse_histogram(kDeviceTypeOutput, data.type);
 }
 
 static void
