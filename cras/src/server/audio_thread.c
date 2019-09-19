@@ -114,7 +114,6 @@ int atlog_rw_shm_fd;
 int atlog_ro_shm_fd;
 
 static struct iodev_callback_list *iodev_callbacks;
-static struct timespec longest_wake;
 
 struct iodev_callback_list {
 	int fd;
@@ -508,6 +507,8 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	subtract_timespecs(&now, &adev->dev->open_ts, &time_since);
 	di->runtime_sec = time_since.tv_sec;
 	di->runtime_nsec = time_since.tv_nsec;
+	di->longest_wake_sec = adev->longest_wake.tv_sec;
+	di->longest_wake_nsec = adev->longest_wake.tv_nsec;
 
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;
@@ -554,9 +555,6 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	subtract_timespecs(&now, &stream->stream->start_ts, &time_since);
 	si->runtime_sec = time_since.tv_sec;
 	si->runtime_nsec = time_since.tv_nsec;
-
-	longest_wake.tv_sec = 0;
-	longest_wake.tv_nsec = 0;
 }
 
 /* Handle a message sent to the playback thread */
@@ -815,7 +813,7 @@ static void *audio_io_thread(void *arg)
 	struct audio_thread *thread = (struct audio_thread *)arg;
 	struct open_dev *adev;
 	struct dev_stream *curr;
-	struct timespec ts, now, last_wake;
+	struct timespec ts;
 	int msg_fd;
 	int rc;
 
@@ -824,10 +822,6 @@ static void *audio_io_thread(void *arg)
 	/* Attempt to get realtime scheduling */
 	if (cras_set_rt_scheduling(CRAS_SERVER_RT_THREAD_PRIORITY) == 0)
 		cras_set_thread_priority(CRAS_SERVER_RT_THREAD_PRIORITY);
-
-	last_wake.tv_sec = 0;
-	longest_wake.tv_sec = 0;
-	longest_wake.tv_nsec = 0;
 
 	thread->pollfds[0].fd = msg_fd;
 	thread->pollfds[0].events = POLLIN;
@@ -881,16 +875,8 @@ static void *audio_io_thread(void *arg)
 
 		log_busyloop(wait_ts);
 
-		if (last_wake.tv_sec) {
-			struct timespec this_wake;
-			clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-			subtract_timespecs(&now, &last_wake, &this_wake);
-			if (timespec_after(&this_wake, &longest_wake))
-				longest_wake = this_wake;
-		}
-
 		ATLOG(atlog, AUDIO_THREAD_SLEEP, wait_ts ? wait_ts->tv_sec : 0,
-		      wait_ts ? wait_ts->tv_nsec : 0, longest_wake.tv_nsec);
+		      wait_ts ? wait_ts->tv_nsec : 0, 0);
 		if (wait_ts)
 			check_busyloop(wait_ts);
 
@@ -899,7 +885,6 @@ static void *audio_io_thread(void *arg)
 		atlog->sync_write_pos = atlog->write_pos;
 
 		rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
-		clock_gettime(CLOCK_MONOTONIC_RAW, &last_wake);
 		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
 		if (rc <= 0)
 			continue;

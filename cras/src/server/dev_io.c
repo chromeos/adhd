@@ -1054,10 +1054,38 @@ int dev_io_playback_write(struct open_dev **odevs,
 	return 0;
 }
 
+static void update_longest_wake(struct open_dev *dev_list,
+				const struct timespec *ts)
+{
+	struct open_dev *adev;
+	struct timespec wake_interval;
+
+	DL_FOREACH (dev_list, adev) {
+		if (adev->dev->streams == NULL)
+			continue;
+		/*
+		 * Calculate longest wake only when there's stream attached
+		 * and the last wake time has been set.
+		 */
+		if (adev->last_wake.tv_sec) {
+			subtract_timespecs(ts, &adev->last_wake,
+					   &wake_interval);
+			if (timespec_after(&wake_interval, &adev->longest_wake))
+				adev->longest_wake = wake_interval;
+		}
+		adev->last_wake = *ts;
+	}
+}
+
 void dev_io_run(struct open_dev **odevs, struct open_dev **idevs,
 		struct cras_fmt_conv *output_converter)
 {
+	struct timespec now;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	pic_update_current_time();
+	update_longest_wake(*odevs, &now);
+	update_longest_wake(*idevs, &now);
 
 	dev_io_playback_fetch(*odevs);
 	dev_io_capture(idevs);
@@ -1241,6 +1269,17 @@ int dev_io_append_stream(struct open_dev **dev_list,
 		DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
 		if (out)
 			continue;
+
+		/*
+		 * When dev transitions from no stream to the 1st stream, reset
+		 * last_wake and longest_wake so it can start over the tracking.
+		 */
+		if (dev->streams == NULL) {
+			open_dev->last_wake.tv_sec = 0;
+			open_dev->last_wake.tv_nsec = 0;
+			open_dev->longest_wake.tv_sec = 0;
+			open_dev->longest_wake.tv_nsec = 0;
+		}
 
 		/*
 		 * When the first input stream is added, flush the input buffer

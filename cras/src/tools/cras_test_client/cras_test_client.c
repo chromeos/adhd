@@ -522,8 +522,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s num_fds:%d\n", "WAKE", (int)data1);
 		break;
 	case AUDIO_THREAD_SLEEP:
-		printf("%-30s sleep:%09d.%09d longest_wake:%09d\n", "SLEEP",
-		       (int)data1, (int)data2, (int)data3);
+		printf("%-30s sleep:%09d.%09d\n", "SLEEP", (int)data1,
+		       (int)data2);
 		break;
 	case AUDIO_THREAD_READ_AUDIO:
 		printf("%-30s dev:%u hw_level:%u read:%u\n", "READ_AUDIO",
@@ -709,6 +709,7 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "num_severe_underruns: %u\n"
 		       "highest_hw_level: %u\n"
 		       "runtime: %u.%09u\n"
+		       "longest_wake: %u.%09u\n"
 		       "software_gain_scaler: %lf\n",
 		       (unsigned int)info->devs[i].buffer_size,
 		       (unsigned int)info->devs[i].min_buffer_level,
@@ -722,6 +723,8 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       (unsigned int)info->devs[i].highest_hw_level,
 		       (unsigned int)info->devs[i].runtime_sec,
 		       (unsigned int)info->devs[i].runtime_nsec,
+		       (unsigned int)info->devs[i].longest_wake_sec,
+		       (unsigned int)info->devs[i].longest_wake_nsec,
 		       info->devs[i].software_gain_scaler);
 		printf("\n");
 	}
