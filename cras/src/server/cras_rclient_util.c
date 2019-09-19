@@ -46,7 +46,7 @@ rclient_validate_stream_connect_message(const struct cras_rclient *client,
 	}
 
 	int direction = cras_stream_direction_mask(msg->direction);
-	if (!(client->supported_directions & direction)) {
+	if (direction < 0 || !(client->supported_directions & direction)) {
 		syslog(LOG_ERR,
 		       "stream_connect: invalid stream direction: %x for "
 		       "client: %zx.\n",

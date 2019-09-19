@@ -62,11 +62,19 @@ enum CRAS_STREAM_DIRECTION {
 /* Bitmask for supporting all CRAS_STREAM_DIRECTION. */
 #define CRAS_STREAM_ALL_DIRECTION ((1 << CRAS_NUM_DIRECTIONS) - 1)
 
-/* Converts CRAS_STREAM_DIRECTION to bitmask. */
+/* Converts CRAS_STREAM_DIRECTION to bitmask.
+ * Args:
+ *   dir - An enum CRAS_STREAM_DIRECTION.
+ *
+ * Returns:
+ *   bitmask for the given direction on success, negative on failure.
+ */
 static inline int
 cras_stream_direction_mask(const enum CRAS_STREAM_DIRECTION dir)
 {
-	return (1 << dir);
+	if (0 <= dir && dir < CRAS_NUM_DIRECTIONS)
+		return (1 << dir);
+	return -EINVAL;
 }
 
 /*
