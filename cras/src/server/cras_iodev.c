@@ -684,7 +684,11 @@ void cras_iodev_set_node_plugged(struct cras_ionode *node, int plugged)
 	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
 	} else if (node == node->dev->active_node) {
-		cras_iodev_list_disable_dev(node->dev, false);
+		/*
+		 * Remove normal and pinned streams, when node unplugged.
+		 * TODO(hychao): clean this up, per crbug.com/1006646
+		 */
+		cras_iodev_list_disable_dev(node->dev, true);
 	}
 	cras_iodev_list_notify_nodes_changed();
 }

@@ -638,19 +638,33 @@ static int init_and_attach_streams(struct cras_iodev *dev)
 	/* If there are active streams to attach to this device,
 	 * open it. */
 	DL_FOREACH (stream_list_get(stream_list), stream) {
+		bool can_attach = 0;
+
 		if (stream->direction != dir)
 			continue;
 		/*
-		 * Don't attach this stream if (1) this stream pins to a
-		 * different device, or (2) this is a normal stream, but
-		 * device is not enabled.
+		 * For normal stream, if device is enabled by UI then it can
+		 * attach to this dev.
 		 */
-		if (stream->is_pinned) {
-			if (stream->pinned_dev_idx != dev->info.idx)
-				continue;
-		} else if (!dev_enabled) {
-			continue;
+		if (!stream->is_pinned) {
+			can_attach = dev_enabled;
 		}
+		/*
+		 * If this is a pinned stream, attach it if its pinned dev id
+		 * matches this device or any fallback dev. Note that attaching
+		 * a pinned stream to fallback device is temporary. When the
+		 * fallback dev gets disabled in possibly_disable_fallback()
+		 * the check stream_list_has_pinned_stream() is key to allow
+		 * all streams to be removed from fallback and close it.
+		 */
+		else if ((stream->pinned_dev_idx == dev->info.idx) ||
+			 (SILENT_PLAYBACK_DEVICE == dev->info.idx) ||
+			 (SILENT_RECORD_DEVICE == dev->info.idx)) {
+			can_attach = 1;
+		}
+
+		if (!can_attach)
+			continue;
 
 		rc = init_device(dev, stream);
 		if (rc) {
@@ -1508,12 +1522,26 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	if (!new_node_already_enabled)
 		possibly_enable_fallback(direction, false);
 
-	/* Disable all devices except for fallback device, and the new device,
-	 * provided it is already enabled. */
 	DL_FOREACH (enabled_devs[direction], edev) {
-		if (edev->dev != fallback_devs[direction] &&
-		    !(new_node_already_enabled && edev->dev == new_dev)) {
+		/* Don't disable fallback devices. */
+		if (edev->dev == fallback_devs[direction])
+			continue;
+		/*
+		 * Disable enabled device if it's not the new one, use non-force
+		 * disable call so we don't interrupt existing pinned streams on
+		 * it.
+		 */
+		if (edev->dev != new_dev) {
 			disable_device(edev, false);
+		}
+		/*
+		 * Otherwise if this happens to be the new device but about to
+		 * select to a different node (on the same dev). Force disable
+		 * this device to avoid any pinned stream occupies it in audio
+		 * thread and cause problem in later update_active_node call.
+		 */
+		else if (!new_node_already_enabled) {
+			disable_device(edev, true);
 		}
 	}
 
