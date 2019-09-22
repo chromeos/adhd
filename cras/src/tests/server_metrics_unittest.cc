@@ -342,6 +342,23 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamConfig) {
   EXPECT_EQ(sent_msgs[0].data.stream_config.client_type, CRAS_CLIENT_TYPE_TEST);
 }
 
+TEST(ServerMetricsTestSuite, SetMetricsBusyloop) {
+  ResetStubData();
+  struct timespec time = {40, 0};
+  unsigned count = 3;
+
+  cras_server_metrics_busyloop(&time, count);
+
+  EXPECT_EQ(sent_msgs.size(), 1);
+  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[0].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[0].metrics_type, BUSYLOOP);
+  EXPECT_EQ(sent_msgs[0].data.timespec_data.runtime.tv_sec, 40);
+  EXPECT_EQ(sent_msgs[0].data.timespec_data.runtime.tv_nsec, 0);
+  EXPECT_EQ(sent_msgs[0].data.timespec_data.count, 3);
+}
+
 extern "C" {
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,

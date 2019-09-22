@@ -42,4 +42,8 @@ int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio) {
   return 0;
 }
 
+int cras_server_metrics_busyloop(struct timespec* ts, unsigned count) {
+  return 0;
+}
+
 }  // extern "C"

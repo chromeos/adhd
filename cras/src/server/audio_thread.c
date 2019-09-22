@@ -21,6 +21,7 @@
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -763,13 +764,40 @@ static struct pollfd *add_pollfd(struct audio_thread *thread, int fd,
 }
 
 static int continuous_zero_sleep_count = 0;
+static unsigned busyloop_count = 0;
+
+/*
+ * Logs the number of busyloop during one audio thread running state
+ * (wait_ts != NULL).
+ */
+static void log_busyloop(struct timespec *wait_ts)
+{
+	static struct timespec start_time;
+	static bool started = false;
+	struct timespec diff, now;
+
+	/* If wait_ts is NULL, there is no stream running. */
+	if (wait_ts && !started) {
+		started = true;
+		busyloop_count = 0;
+		clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
+	} else if (!wait_ts && started) {
+		started = false;
+		clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+		subtract_timespecs(&now, &start_time, &diff);
+		cras_server_metrics_busyloop(&diff, busyloop_count);
+	}
+}
+
 static void check_busyloop(struct timespec *wait_ts)
 {
 	if (wait_ts->tv_sec == 0 && wait_ts->tv_nsec == 0) {
 		continuous_zero_sleep_count++;
 		if (continuous_zero_sleep_count ==
-		    MAX_CONTINUOUS_ZERO_SLEEP_COUNT)
+		    MAX_CONTINUOUS_ZERO_SLEEP_COUNT) {
+			busyloop_count++;
 			cras_audio_thread_event_busyloop();
+		}
 	} else {
 		continuous_zero_sleep_count = 0;
 	}
@@ -850,6 +878,8 @@ static void *audio_io_thread(void *arg)
 					goto restart_poll_loop;
 			}
 		}
+
+		log_busyloop(wait_ts);
 
 		if (last_wake.tv_sec) {
 			struct timespec this_wake;

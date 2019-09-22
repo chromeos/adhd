@@ -46,6 +46,9 @@ int cras_server_metrics_missed_cb_event(const struct cras_rstream *stream);
 /* Logs the stream configurations from clients. */
 int cras_server_metrics_stream_config(struct cras_rstream_config *config);
 
+/* Logs the number of busyloops for different time periods. */
+int cras_server_metrics_busyloop(struct timespec *ts, unsigned count);
+
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();
 

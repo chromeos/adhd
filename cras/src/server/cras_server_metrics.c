@@ -20,6 +20,7 @@
 
 #define METRICS_NAME_BUFFER_SIZE 50
 
+const char kBusyloop[] = "Cras.Busyloop";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
@@ -60,10 +61,23 @@ const char kHfpWidebandSpeechPacketLoss[] = "Cras.HfpWidebandSpeechPacketLoss";
  */
 const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
 
+const time_t CRAS_METRICS_SHORT_PERIOD_THRESHOLD_SECONDS = 600;
+const time_t CRAS_METRICS_LONG_PERIOD_THRESHOLD_SECONDS = 3600;
+
+static const char *get_timespec_period_str(struct timespec ts)
+{
+	if (ts.tv_sec < CRAS_METRICS_SHORT_PERIOD_THRESHOLD_SECONDS)
+		return "ShortPeriod";
+	if (ts.tv_sec < CRAS_METRICS_LONG_PERIOD_THRESHOLD_SECONDS)
+		return "MediumPeriod";
+	return "LongPeriod";
+}
+
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
 	BT_WIDEBAND_PACKET_LOSS,
 	BT_WIDEBAND_SUPPORTED,
+	BUSYLOOP,
 	DEVICE_RUNTIME,
 	HIGHEST_DEVICE_DELAY_INPUT,
 	HIGHEST_DEVICE_DELAY_OUTPUT,
@@ -127,10 +141,16 @@ struct cras_server_metrics_device_data {
 	struct timespec runtime;
 };
 
+struct cras_server_metrics_timespec_data {
+	struct timespec runtime;
+	unsigned count;
+};
+
 union cras_server_metrics_data {
 	unsigned value;
 	struct cras_server_metrics_stream_config stream_config;
 	struct cras_server_metrics_device_data device_data;
+	struct cras_server_metrics_timespec_data timespec_data;
 };
 
 /*
@@ -674,6 +694,26 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 	return 0;
 }
 
+int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.timespec_data.runtime = *ts;
+	data.timespec_data.count = count;
+
+	init_server_metrics_msg(&msg, BUSYLOOP, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: BUSYLOOP");
+		return err;
+	}
+	return 0;
+}
+
 static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -690,6 +730,16 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 		cras_metrics_log_sparse_histogram(kDeviceTypeInput, data.type);
 	else
 		cras_metrics_log_sparse_histogram(kDeviceTypeOutput, data.type);
+}
+
+static void metrics_busyloop(struct cras_server_metrics_timespec_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s", kBusyloop,
+		 get_timespec_period_str(data.runtime));
+
+	cras_metrics_log_histogram(metrics_name, data.count, 0, 1000, 20);
 }
 
 static void
@@ -806,6 +856,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case STREAM_CONFIG:
 		metrics_stream_config(metrics_msg->data.stream_config);
+		break;
+	case BUSYLOOP:
+		metrics_busyloop(metrics_msg->data.timespec_data);
 		break;
 	default:
 		syslog(LOG_ERR, "Unknown metrics type %u",
