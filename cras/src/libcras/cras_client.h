@@ -115,24 +115,6 @@ typedef int (*cras_error_cb_t)(struct cras_client *client,
 			       cras_stream_id_t stream_id, int error,
 			       void *user_arg);
 
-/* Callback for handling server error. DEPRECATED
- *
- * Deprecated by cras_server_connection_status_cb_t: use that instead.
- * This is equivalent to CRAS_CONN_STATUS_FAILED.
- *
- * This callback is executed rarely: only when the connection to the server has
- * already been interrupted and could not be re-established due to resource
- * allocation failure (memory or file-descriptors). The caller may attempt
- * to reestablish communication once those resources are available with
- * cras_client_connect_async(), or (blocking) cras_client_connect().
- *
- * Args:
- *    client - The client created with cras_client_create().
- *    user_arg - The argument defined in cras_client_set_server_errro_cb().
- */
-typedef void (*cras_server_error_cb_t)(struct cras_client *client,
-				       void *user_arg);
-
 /* Server connection status. */
 typedef enum cras_connection_status {
 	CRAS_CONN_STATUS_FAILED,
@@ -287,19 +269,6 @@ int cras_client_connected_wait(struct cras_client *client);
  *    not running.
  */
 int cras_client_connect_async(struct cras_client *client);
-
-/* Sets server error callback. DEPRECATED
- *
- * See cras_server_error_cb_t for more information about this callback.
- *
- * Args:
- *    client - The client from cras_client_create.
- *    err_cb - The callback function to register.
- *    user_arg - Pointer that will be passed to the callback.
- */
-void cras_client_set_server_error_cb(struct cras_client *client,
-				     cras_server_error_cb_t err_cb,
-				     void *user_arg);
 
 /* Sets server connection status callback.
  *

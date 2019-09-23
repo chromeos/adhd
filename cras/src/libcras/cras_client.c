@@ -212,8 +212,6 @@ typedef enum cras_socket_state {
  * debug_info_callback - Function to call when debug info is received.
  * atlog_access_callback - Function to call when atlog RO fd is received.
  * get_hotword_models_cb_t - Function to call when hotword models info is ready.
- * server_err_cb - Function to call when failed to read messages from server.
- * server_err_user_arg - User argument for server_err_cb.
  * server_connection_cb - Function to called when a connection state changes.
  * server_connection_user_arg - User argument for server_connection_cb.
  * thread_priority_cb - Function to call for setting audio thread priority.
@@ -242,7 +240,6 @@ struct cras_client {
 	void (*debug_info_callback)(struct cras_client *);
 	void (*atlog_access_callback)(struct cras_client *);
 	get_hotword_models_cb_t get_hotword_models_cb;
-	cras_server_error_cb_t server_err_cb;
 	cras_connection_status_cb_t server_connection_cb;
 	void *server_connection_user_arg;
 	cras_thread_priority_cb_t thread_priority_cb;
@@ -670,9 +667,6 @@ static void disconnect_transition_action(struct cras_client *client, bool force)
 			client->server_connection_cb(
 				client, CRAS_CONN_STATUS_FAILED,
 				client->server_connection_user_arg);
-		else if (client->server_err_cb)
-			client->server_err_cb(
-				client, client->server_connection_user_arg);
 		break;
 	case CRAS_SOCKET_STATE_WAIT_FOR_SOCKET:
 	case CRAS_SOCKET_STATE_WAIT_FOR_WRITABLE:
@@ -2225,7 +2219,6 @@ void cras_client_destroy(struct cras_client *client)
 		return;
 	client_int = to_client_int(client);
 	client->server_connection_cb = NULL;
-	client->server_err_cb = NULL;
 	cras_client_stop(client);
 	server_disconnect(client);
 	close(client->server_event_fd);
@@ -2795,14 +2788,6 @@ int cras_client_stop(struct cras_client *client)
 	client->command_reply_fds[0] = -1;
 
 	return 0;
-}
-
-void cras_client_set_server_error_cb(struct cras_client *client,
-				     cras_server_error_cb_t err_cb,
-				     void *user_arg)
-{
-	client->server_err_cb = err_cb;
-	client->server_connection_user_arg = user_arg;
 }
 
 void cras_client_set_connection_status_cb(
