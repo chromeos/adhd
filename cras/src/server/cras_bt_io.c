@@ -216,12 +216,14 @@ static int close_dev(struct cras_iodev *iodev)
 	if (!dev)
 		return -EINVAL;
 
-	/* Force back to A2DP if closing HFP. */
-	if (device_using_profile(
+	/* If input iodev is in open state and being closed, switch profile
+	 * from HFP to A2DP. */
+	if (cras_iodev_is_open(iodev) &&
+	    device_using_profile(
 		    btio->device,
 		    CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
 			    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY) &&
-	    iodev->direction == CRAS_STREAM_INPUT &&
+	    (iodev->direction == CRAS_STREAM_INPUT) &&
 	    cras_bt_device_has_a2dp(btio->device)) {
 		cras_bt_device_set_active_profile(
 			btio->device, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);

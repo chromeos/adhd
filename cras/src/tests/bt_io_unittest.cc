@@ -178,6 +178,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   bt_iodev->update_supported_formats(bt_iodev);
   EXPECT_EQ(1, update_supported_formats_called_);
 
+  bt_iodev->state = CRAS_IODEV_STATE_OPEN;
   bt_iodev->configure_dev(bt_iodev);
   EXPECT_EQ(1, configure_dev_called_);
   bt_iodev->frames_queued(bt_iodev, &tstamp);
@@ -234,6 +235,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   iodev_.direction = CRAS_STREAM_INPUT;
   bt_iodev = cras_bt_io_create(fake_device, &iodev_,
                                CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+  bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
   cras_bt_device_get_active_profile_ret =
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
@@ -252,11 +254,29 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   iodev_.direction = CRAS_STREAM_INPUT;
   bt_iodev = cras_bt_io_create(fake_device, &iodev_,
                                CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+  bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
   cras_bt_device_get_active_profile_ret =
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
       CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
   cras_bt_device_has_a2dp_ret = 0;
+  bt_iodev->close_dev(bt_iodev);
+
+  EXPECT_EQ(0, cras_bt_device_switch_profile_called);
+  cras_bt_io_destroy(bt_iodev);
+}
+
+TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
+  ResetStubData();
+  iodev_.direction = CRAS_STREAM_INPUT;
+  bt_iodev = cras_bt_io_create(fake_device, &iodev_,
+                               CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+  bt_iodev->state = CRAS_IODEV_STATE_CLOSE;
+
+  cras_bt_device_get_active_profile_ret =
+      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
+      CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+  cras_bt_device_has_a2dp_ret = 1;
   bt_iodev->close_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_device_switch_profile_called);
