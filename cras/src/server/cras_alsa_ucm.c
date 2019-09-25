@@ -59,8 +59,8 @@ static const char enable_htimestamp_var[] = "EnableHtimestamp";
 
 /* Use case verbs corresponding to CRAS_STREAM_TYPE. */
 static const char *use_case_verbs[] = {
-	"HiFi",   "Multimedia", "Voice Call",
-	"Speech", "Pro Audio",  "Accessibility",
+	"HiFi",	  "Multimedia", "Voice Call",
+	"Speech", "Pro Audio",	"Accessibility",
 };
 
 /* Represents a list of section names found in UCM. */
