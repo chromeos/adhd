@@ -25,7 +25,7 @@ pub const CRAS_MAX_AUDIO_THREAD_SNAPSHOTS: u32 = 10;
 pub const CRAS_MAX_HOTWORD_MODEL_NAME_SIZE: u32 = 12;
 pub const CRAS_BT_EVENT_LOG_SIZE: u32 = 1024;
 pub const CRAS_SERVER_STATE_VERSION: u32 = 2;
-pub const CRAS_PROTO_VER: u32 = 5;
+pub const CRAS_PROTO_VER: u32 = 6;
 pub const CRAS_SERV_MAX_MSG_SIZE: u32 = 256;
 pub const CRAS_CLIENT_MAX_MSG_SIZE: u32 = 256;
 pub const CRAS_MAX_HOTWORD_MODELS: u32 = 243;
@@ -2350,11 +2350,12 @@ pub enum CRAS_NODE_TYPE {
     CRAS_NODE_TYPE_HOTWORD = 6,
     CRAS_NODE_TYPE_POST_MIX_PRE_DSP = 7,
     CRAS_NODE_TYPE_POST_DSP = 8,
-    CRAS_NODE_TYPE_USB = 9,
-    CRAS_NODE_TYPE_BLUETOOTH = 10,
-    CRAS_NODE_TYPE_FALLBACK_NORMAL = 11,
-    CRAS_NODE_TYPE_FALLBACK_ABNORMAL = 12,
-    CRAS_NODE_TYPE_UNKNOWN = 13,
+    CRAS_NODE_TYPE_BLUETOOTH_NB_MIC = 9,
+    CRAS_NODE_TYPE_USB = 10,
+    CRAS_NODE_TYPE_BLUETOOTH = 11,
+    CRAS_NODE_TYPE_FALLBACK_NORMAL = 12,
+    CRAS_NODE_TYPE_FALLBACK_ABNORMAL = 13,
+    CRAS_NODE_TYPE_UNKNOWN = 14,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -2513,12 +2514,13 @@ pub struct cras_connect_message {
     pub effects: u64,
     pub client_type: CRAS_CLIENT_TYPE,
     pub client_shm_size: u32,
+    pub buffer_offsets: [u32; 2usize],
 }
 #[test]
 fn bindgen_test_layout_cras_connect_message() {
     assert_eq!(
         ::std::mem::size_of::<cras_connect_message>(),
-        79usize,
+        87usize,
         concat!("Size of: ", stringify!(cras_connect_message))
     );
     assert_eq!(
@@ -2668,6 +2670,18 @@ fn bindgen_test_layout_cras_connect_message() {
             stringify!(client_shm_size)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_connect_message>())).buffer_offsets as *const _ as usize
+        },
+        79usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_connect_message),
+            "::",
+            stringify!(buffer_offsets)
+        )
+    );
 }
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
@@ -2683,12 +2697,14 @@ pub struct cras_connect_message_old {
     pub format: cras_audio_format_packed,
     pub dev_idx: u32,
     pub effects: u64,
+    pub client_type: CRAS_CLIENT_TYPE,
+    pub client_shm_size: u32,
 }
 #[test]
 fn bindgen_test_layout_cras_connect_message_old() {
     assert_eq!(
         ::std::mem::size_of::<cras_connect_message_old>(),
-        71usize,
+        79usize,
         concat!("Size of: ", stringify!(cras_connect_message_old))
     );
     assert_eq!(
@@ -2820,6 +2836,31 @@ fn bindgen_test_layout_cras_connect_message_old() {
             stringify!(cras_connect_message_old),
             "::",
             stringify!(effects)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_connect_message_old>())).client_type as *const _ as usize
+        },
+        71usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_connect_message_old),
+            "::",
+            stringify!(client_type)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_connect_message_old>())).client_shm_size as *const _
+                as usize
+        },
+        75usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_connect_message_old),
+            "::",
+            stringify!(client_shm_size)
         )
     );
 }

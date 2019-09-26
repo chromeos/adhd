@@ -353,6 +353,7 @@ impl<'a> CrasClient<'a> {
             effects: 0,
             client_type: self.client_type,
             client_shm_size: 0,
+            buffer_offsets: [0, 0],
         };
 
         // Creates AudioSocket pair
