@@ -232,7 +232,7 @@ TEST_F(RClientMessagesSuite, ConnectMsgFromOldClient) {
   cras_iodev_attach_stream_retval = 0;
 
   connect_msg_.header.length = sizeof(struct cras_connect_message_old);
-  connect_msg_.proto_version = 3;
+  connect_msg_.proto_version = 5;
 
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,

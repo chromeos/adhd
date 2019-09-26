@@ -49,6 +49,7 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
 {
 	int audio_fd = -1;
 	int client_shm_fd = -1;
+	uint32_t buffer_offsets[2] = { 0, 0 };
 
 	if (stream_config) {
 		syslog(LOG_ERR, "server stream already exists, dev %u",
@@ -65,7 +66,7 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
 		/*flags=*/SERVER_ONLY,
 		/*effects=*/0, &format, server_stream_block_size,
 		server_stream_block_size, &audio_fd, &client_shm_fd,
-		/*client_shm_size=*/0, stream_config);
+		/*client_shm_size=*/0, buffer_offsets, stream_config);
 
 	/* Schedule add stream in next main thread loop. */
 	cras_system_add_task(server_stream_add_cb, stream_list);

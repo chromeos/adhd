@@ -90,8 +90,8 @@ int rclient_handle_client_stream_disconnect(
  * Converts an old version of connect message to the correct
  * cras_connect_message. Returns zero on success, negative on failure.
  * Note that this is special check only for libcras transition in
- * clients, from CRAS_PROTO_VER = 3 to 5.
- * TODO(yuhsuan): clean up the function once clients transition is done.
+ * clients, from CRAS_PROTO_VER 5 to 6.
+ * TODO(fletcherw): clean up the function once transition is done.
  */
 static inline int
 convert_connect_message_old(const struct cras_server_message *msg,
@@ -103,12 +103,12 @@ convert_connect_message_old(const struct cras_server_message *msg,
 		return -EINVAL;
 
 	old = (struct cras_connect_message_old *)msg;
-	if (old->proto_version != 3 || CRAS_PROTO_VER != 5)
+	if (old->proto_version != 5 || CRAS_PROTO_VER != 6)
 		return -EINVAL;
 
 	memcpy(cmsg, old, sizeof(*old));
-	cmsg->client_type = CRAS_CLIENT_TYPE_LEGACY;
-	cmsg->client_shm_size = 0;
+	cmsg->buffer_offsets[0] = 0;
+	cmsg->buffer_offsets[1] = 0;
 	return 0;
 }
 

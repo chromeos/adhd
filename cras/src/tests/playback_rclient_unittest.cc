@@ -186,7 +186,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
 
 /*
  * TODO(yuhsaun): Remove this test when there are no client uses the old
- * craslib. (CRAS_PROTO_VER = 3)
+ * craslib. (CRAS_PROTO_VER = 5)
  */
 TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
   struct cras_client_stream_connected out_msg;
@@ -195,7 +195,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
   struct cras_connect_message_old msg;
   cras_stream_id_t stream_id = 0x10002;
 
-  msg.proto_version = 3;
+  msg.proto_version = 5;
   msg.direction = CRAS_STREAM_OUTPUT;
   msg.stream_id = stream_id;
   msg.stream_type = CRAS_STREAM_TYPE_DEFAULT;
@@ -205,6 +205,8 @@ TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
   msg.effects = 0;
   pack_cras_audio_format(&msg.format, &fmt);
   msg.dev_idx = NO_DEVICE;
+  msg.client_shm_size = 0;
+  msg.client_type = CRAS_CLIENT_TYPE_TEST;
   msg.header.id = CRAS_SERVER_CONNECT_STREAM;
   msg.header.length = sizeof(struct cras_connect_message_old);
 

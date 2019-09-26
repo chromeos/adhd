@@ -108,6 +108,7 @@ struct cras_rstream {
  *    client_shm_fd - The shm fd to use to back the samples area. May be -1.
  *                    Some functions may dup this fd while borrowing the config.
  *    client_shm_size - The size of shm area backed by client_shm_fd.
+ *    buffer_offsets - Initial values for buffer_offset for a client shm stream.
  *    client - The client that owns this stream.
  */
 struct cras_rstream_config {
@@ -124,6 +125,7 @@ struct cras_rstream_config {
 	int audio_fd;
 	int client_shm_fd;
 	size_t client_shm_size;
+	uint32_t buffer_offsets[2];
 	struct cras_rclient *client;
 };
 
@@ -143,6 +145,7 @@ void cras_rstream_config_init(
 	uint32_t effects, const struct cras_audio_format *format,
 	size_t buffer_frames, size_t cb_threshold, int *audio_fd,
 	int *client_shm_fd, size_t client_shm_size,
+	const uint32_t buffer_offsets[2],
 	struct cras_rstream_config *stream_config);
 
 /* Fills cras_rstream_config with given parameters and a cras_connect_message.
