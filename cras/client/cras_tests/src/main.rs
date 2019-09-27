@@ -5,15 +5,15 @@
 mod audio_options;
 
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
-use std::thread::spawn;
-use sys_util::{set_rt_prio_limit, set_rt_round_robin};
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+use std::io::{self, BufReader, BufWriter, Read, Write};
 
 use audio_streams::StreamSource;
 use libcras::CrasClient;
+use sys_util::{set_rt_prio_limit, set_rt_round_robin};
 
 use crate::audio_options::{AudioOptions, Subcommand};
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 fn set_priority_to_realtime() {
     const AUDIO_THREAD_RTPRIO: u16 = 10;
@@ -33,11 +33,10 @@ fn channel_string(num_channels: usize) -> String {
 }
 
 fn playback(opts: AudioOptions) -> Result<()> {
-    let file = File::open(&opts.file_name).expect("failed to open file");
-    let mut buffered_file = BufReader::new(file);
-
     let num_channels = opts.num_channels.unwrap_or(2);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
+
+    let mut sample_source: Box<dyn Read> = Box::new(BufReader::new(File::open(&opts.file_name)?));
 
     println!(
         "Playing raw data '{}' : Signed 16 bit Little Endian, Rate {} Hz, {}",
@@ -52,33 +51,24 @@ fn playback(opts: AudioOptions) -> Result<()> {
         frame_rate,
         opts.buffer_size.unwrap_or(256),
     )?;
-    let thread = spawn(move || {
-        set_priority_to_realtime();
-        loop {
-            let local_buffer = buffered_file
-                .fill_buf()
-                .expect("failed to read from input file");
+    set_priority_to_realtime();
 
-            // Reached EOF
-            if local_buffer.len() == 0 {
-                break;
-            }
+    loop {
+        let mut buffer = stream
+            .next_playback_buffer()
+            .expect("failed to get next playback buffer");
 
-            // Gets writable buffer from stream
-            let mut buffer = stream
-                .next_playback_buffer()
-                .expect("failed to get next playback buffer");
+        // We only support S16LE samples.
+        const S16LE_SIZE: usize = 2;
+        let frame_size = S16LE_SIZE * num_channels;
+        let frames = buffer.frame_capacity();
 
-            // Writes data to stream buffer
-            let write_frames = buffer
-                .write(&local_buffer)
-                .expect("failed to write output data to buffer");
-
-            // Mark the file data as written
-            buffered_file.consume(write_frames);
+        let mut chunk = (&mut sample_source).take((frames * frame_size) as u64);
+        let transferred = io::copy(&mut chunk, &mut buffer)?;
+        if transferred == 0 {
+            break;
         }
-    });
-    thread.join().expect("Failed to join playback thread");
+    }
     // Stream and client should gracefully be closed out of this scope
 
     Ok(())
@@ -87,6 +77,8 @@ fn playback(opts: AudioOptions) -> Result<()> {
 fn capture(opts: AudioOptions) -> Result<()> {
     let num_channels = opts.num_channels.unwrap_or(2);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
+
+    let mut sample_sink: Box<dyn Write> = Box::new(BufWriter::new(File::create(&opts.file_name)?));
 
     println!(
         "Recording raw data '{}' : Signed 16 bit Little Endian, Rate {} Hz, {}",
@@ -102,17 +94,10 @@ fn capture(opts: AudioOptions) -> Result<()> {
         frame_rate,
         opts.buffer_size.unwrap_or(256),
     )?;
-    let mut file = File::create(&opts.file_name).unwrap();
+    set_priority_to_realtime();
     loop {
-        let _frames = match stream.next_capture_buffer() {
-            Err(e) => {
-                return Err(e.into());
-            }
-            Ok(mut buf) => {
-                let written = io::copy(&mut buf, &mut file)?;
-                written
-            }
-        };
+        let mut buf = stream.next_capture_buffer()?;
+        io::copy(&mut buf, &mut sample_sink)?;
     }
 }
 
