@@ -429,13 +429,24 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 		return NULL;
 	active->base.dev = iodev;
 	active->base.idx = btio->next_node_id++;
-	active->base.type = CRAS_NODE_TYPE_BLUETOOTH;
+	active->base.type = dev->active_node->type;
 	active->base.volume = 100;
 	active->base.plugged = 1;
 	active->base.stable_id =
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
 			      strlen(cras_bt_device_object_path(device)));
+	/*
+	 * If the same headset is connected in wideband mode, we shall assign
+	 * a separate stable_id so the node priority/preference mechanism in
+	 * Chrome UI doesn't break.
+	 */
+	if ((active->base.type == CRAS_NODE_TYPE_BLUETOOTH) &&
+	    (dev->direction == CRAS_STREAM_INPUT))
+		active->base.stable_id =
+			SuperFastHash((const char *)&active->base.type,
+				      sizeof(active->base.type),
+				      active->base.stable_id);
 	active->profile = profile;
 	active->profile_dev = dev;
 	gettimeofday(&active->base.plugged_time, NULL);

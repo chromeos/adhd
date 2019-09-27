@@ -510,11 +510,12 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
 
-	/* A2DP does output only */
-	cras_bt_device_append_iodev(
-		device, iodev, cras_bt_transport_profile(a2dpio->transport));
+	/* Prepare active node before append, so bt_io can extract correct
+	 * info from A2DP iodev and node. */
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
+	cras_bt_device_append_iodev(
+		device, iodev, cras_bt_transport_profile(a2dpio->transport));
 
 	return iodev;
 error:

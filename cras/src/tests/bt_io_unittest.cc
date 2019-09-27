@@ -59,6 +59,8 @@ class BtIoBasicSuite : public testing::Test {
     ResetStubData();
     SetUpIodev(&iodev_, CRAS_STREAM_OUTPUT);
     SetUpIodev(&iodev2_, CRAS_STREAM_OUTPUT);
+    iodev_.active_node = &node_;
+    iodev2_.active_node = &node2_;
 
     update_supported_formats_called_ = 0;
     frames_queued_called_ = 0;
@@ -137,6 +139,8 @@ class BtIoBasicSuite : public testing::Test {
   static struct cras_iodev* bt_iodev;
   static struct cras_iodev iodev_;
   static struct cras_iodev iodev2_;
+  static struct cras_ionode node_;
+  static struct cras_ionode node2_;
   static unsigned int update_supported_formats_called_;
   static unsigned int frames_queued_called_;
   static unsigned int delay_frames_called_;
@@ -149,6 +153,8 @@ class BtIoBasicSuite : public testing::Test {
 struct cras_iodev* BtIoBasicSuite::bt_iodev;
 struct cras_iodev BtIoBasicSuite::iodev_;
 struct cras_iodev BtIoBasicSuite::iodev2_;
+struct cras_ionode BtIoBasicSuite::node_;
+struct cras_ionode BtIoBasicSuite::node2_;
 unsigned int BtIoBasicSuite::update_supported_formats_called_;
 unsigned int BtIoBasicSuite::frames_queued_called_;
 unsigned int BtIoBasicSuite::delay_frames_called_;

@@ -314,13 +314,21 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	strcpy(node->name, iodev->info.name);
 
 	node->plugged = 1;
+	/* If headset mic uses legacy narrow band, i.e CVSD codec, report a
+	 * different node type so UI can set different plug priority. */
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
+	if ((hfp_slc_get_selected_codec(hfpio->slc) == HFP_CODEC_ID_CVSD) &&
+	    (dir == CRAS_STREAM_INPUT))
+		node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
 
-	cras_bt_device_append_iodev(device, iodev, profile);
+	/* Prepare active node before append, so bt_io can extract correct
+	 * info from HFP iodev and node. */
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
+	cras_bt_device_append_iodev(device, iodev, profile);
 
 	hfpio->info = info;
 

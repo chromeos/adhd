@@ -220,6 +220,8 @@ static const char *node_type_to_str(struct cras_ionode *node)
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:
 		return "BLUETOOTH";
+	case CRAS_NODE_TYPE_BLUETOOTH_NB_MIC:
+		return "BLUETOOTH_NB_MIC";
 	case CRAS_NODE_TYPE_FALLBACK_NORMAL:
 		return "FALLBACK_NORMAL";
 	case CRAS_NODE_TYPE_FALLBACK_ABNORMAL:
