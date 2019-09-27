@@ -13,7 +13,7 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 use audio_streams::StreamSource;
 use libcras::CrasClient;
 
-use crate::audio_options::{show_usage, AudioOptions};
+use crate::audio_options::{AudioOptions, Subcommand};
 
 fn set_priority_to_realtime() {
     const AUDIO_THREAD_RTPRIO: u16 = 10;
@@ -28,9 +28,15 @@ fn playback(opts: AudioOptions) -> Result<()> {
     let file = File::open(&opts.file_name).expect("failed to open file");
     let mut buffered_file = BufReader::new(file);
 
+    let num_channels = opts.num_channels.unwrap_or(2);
+    let frame_rate = opts.frame_rate.unwrap_or(48000);
+
     let mut cras_client = CrasClient::new()?;
-    let (_control, mut stream) =
-        cras_client.new_playback_stream(opts.num_channels, opts.frame_rate, opts.buffer_size)?;
+    let (_control, mut stream) = cras_client.new_playback_stream(
+        num_channels,
+        frame_rate,
+        opts.buffer_size.unwrap_or(256),
+    )?;
     let thread = spawn(move || {
         set_priority_to_realtime();
         loop {
@@ -64,10 +70,16 @@ fn playback(opts: AudioOptions) -> Result<()> {
 }
 
 fn capture(opts: AudioOptions) -> Result<()> {
+    let num_channels = opts.num_channels.unwrap_or(2);
+    let frame_rate = opts.frame_rate.unwrap_or(48000);
+
     let mut cras_client = CrasClient::new()?;
     cras_client.enable_cras_capture();
-    let (_control, mut stream) =
-        cras_client.new_capture_stream(opts.num_channels, opts.frame_rate, opts.buffer_size)?;
+    let (_control, mut stream) = cras_client.new_capture_stream(
+        num_channels,
+        frame_rate,
+        opts.buffer_size.unwrap_or(256),
+    )?;
     let mut file = File::create(&opts.file_name).unwrap();
     loop {
         let _frames = match stream.next_capture_buffer() {
@@ -84,36 +96,14 @@ fn capture(opts: AudioOptions) -> Result<()> {
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        println!("Must specify a subcommand.");
-        show_usage(&args[0]);
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "No subcommand",
-        )));
-    }
-
-    if args[1] == "help" {
-        show_usage(&args[0]);
-        return Ok(());
-    }
-
-    let opts = match AudioOptions::parse_from_args(&args[1..])? {
+    let opts = match AudioOptions::parse_from_args(&args)? {
         None => return Ok(()),
         Some(v) => v,
     };
 
-    match args[1].as_ref() {
-        "capture" => capture(opts)?,
-        "playback" => playback(opts)?,
-        subcommand => {
-            println!("Subcommand \"{}\" does not exist.", subcommand);
-            show_usage(&args[0]);
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Subcommand does not exist",
-            )));
-        }
+    match opts.subcommand {
+        Subcommand::Capture => capture(opts)?,
+        Subcommand::Playback => playback(opts)?,
     };
     Ok(())
 }
