@@ -12,6 +12,7 @@ use getopts::{self, Matches, Options};
 pub enum Error {
     GetOpts(getopts::Fail),
     InvalidArgument(String, String, String),
+    InvalidFiletype(String),
     MissingArgument(String),
     MissingCommand,
     MissingFilename,
@@ -28,6 +29,11 @@ impl fmt::Display for Error {
             InvalidArgument(flag, value, error_msg) => {
                 write!(f, "Invalid {} argument '{}': {}", flag, value, error_msg)
             }
+            InvalidFiletype(extension) => write!(
+                f,
+                "Invalid file extension '{}'. Supported types are 'wav' and 'raw'",
+                extension
+            ),
             MissingArgument(subcommand) => write!(f, "Missing argument for {}", subcommand),
             MissingCommand => write!(f, "A command must be provided"),
             MissingFilename => write!(f, "A file name must be provided"),
@@ -78,6 +84,21 @@ impl Command {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum FileType {
+    Raw,
+    Wav,
+}
+
+impl fmt::Display for FileType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FileType::Raw => write!(f, "raw data"),
+            FileType::Wav => write!(f, "WAVE"),
+        }
+    }
+}
+
 fn show_usage(program_name: &str) {
     eprintln!("Usage: {} [command] <command args>", program_name);
     eprintln!("\nCommands:\n");
@@ -107,6 +128,7 @@ pub enum LoopbackType {
 pub struct AudioOptions {
     pub file_name: PathBuf,
     pub loopback_type: Option<LoopbackType>,
+    pub file_type: FileType,
     pub buffer_size: Option<usize>,
     pub num_channels: Option<usize>,
     pub format: Option<SampleFormat>,
@@ -184,6 +206,16 @@ impl AudioOptions {
             }
             Some(file_name) => PathBuf::from(file_name),
         };
+
+        let extension = file_name
+            .extension()
+            .map(|s| s.to_string_lossy().into_owned());
+        let file_type = match extension.as_ref().map(String::as_str) {
+            Some("wav") | Some("wave") => FileType::Wav,
+            Some("raw") | None => FileType::Raw,
+            Some(extension) => return Err(Error::InvalidFiletype(extension.to_string())),
+        };
+
         let buffer_size = get_usize_param(&matches, "buffer_size")?;
         let num_channels = get_usize_param(&matches, "channels")?;
         let frame_rate = get_usize_param(&matches, "rate")?;
@@ -206,6 +238,7 @@ impl AudioOptions {
         Ok(Some(AudioOptions {
             loopback_type,
             file_name,
+            file_type,
             buffer_size,
             num_channels,
             format,
@@ -333,21 +366,22 @@ mod tests {
             Command::Playback(AudioOptions {
                 file_name: PathBuf::from("output.wav"),
                 loopback_type: None,
+                file_type: FileType::Wav,
                 frame_rate: None,
                 num_channels: None,
                 format: None,
                 buffer_size: None,
             })
         );
-
-        let command = Command::parse(&["cras_tests", "capture", "input.flac"])
+        let command = Command::parse(&["cras_tests", "capture", "input.raw"])
             .unwrap()
             .unwrap();
         assert_eq!(
             command,
             Command::Capture(AudioOptions {
-                file_name: PathBuf::from("input.flac"),
+                file_name: PathBuf::from("input.raw"),
                 loopback_type: None,
+                file_type: FileType::Raw,
                 frame_rate: None,
                 num_channels: None,
                 format: None,
@@ -360,7 +394,7 @@ mod tests {
             "playback",
             "-r",
             "44100",
-            "output.wav",
+            "output.wave",
             "-c",
             "2",
         ])
@@ -369,8 +403,26 @@ mod tests {
         assert_eq!(
             command,
             Command::Playback(AudioOptions {
-                file_name: PathBuf::from("output.wav"),
+                file_name: PathBuf::from("output.wave"),
                 loopback_type: None,
+                file_type: FileType::Wav,
+                frame_rate: Some(44100),
+                num_channels: Some(2),
+                format: None,
+                buffer_size: None,
+            })
+        );
+
+        let command =
+            Command::parse(&["cras_tests", "playback", "-r", "44100", "output", "-c", "2"])
+                .unwrap()
+                .unwrap();
+        assert_eq!(
+            command,
+            Command::Playback(AudioOptions {
+                file_name: PathBuf::from("output"),
+                loopback_type: None,
+                file_type: FileType::Raw,
                 frame_rate: Some(44100),
                 num_channels: Some(2),
                 format: None,
@@ -380,6 +432,9 @@ mod tests {
 
         assert!(Command::parse(&["cras_tests"]).is_err());
         assert!(Command::parse(&["cras_tests", "capture"]).is_err());
+        assert!(Command::parse(&["cras_tests", "capture", "input.mp3"]).is_err());
+        assert!(Command::parse(&["cras_tests", "capture", "input.ogg"]).is_err());
+        assert!(Command::parse(&["cras_tests", "capture", "input.flac"]).is_err());
         assert!(Command::parse(&["cras_tests", "playback"]).is_err());
         assert!(Command::parse(&["cras_tests", "loopback"]).is_err());
         assert!(Command::parse(&["cras_tests", "loopback", "file.ogg"]).is_err());

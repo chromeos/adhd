@@ -65,6 +65,18 @@ impl SampleFormat {
     }
 }
 
+impl Display for SampleFormat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use SampleFormat::*;
+        match self {
+            U8 => write!(f, "Unsigned 8 bit"),
+            S16LE => write!(f, "Signed 16 bit Little Endian"),
+            S24LE => write!(f, "Signed 24 bit Little Endian"),
+            S32LE => write!(f, "Signed 32 bit Little Endian"),
+        }
+    }
+}
+
 pub mod capture;
 
 /// `StreamSource` creates streams for playback or capture of audio.

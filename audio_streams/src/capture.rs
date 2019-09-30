@@ -246,5 +246,4 @@ mod tests {
             elapsed.subsec_millis()
         );
     }
-
 }
