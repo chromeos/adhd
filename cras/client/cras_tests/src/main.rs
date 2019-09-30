@@ -24,12 +24,27 @@ fn set_priority_to_realtime() {
     }
 }
 
+fn channel_string(num_channels: usize) -> String {
+    match num_channels {
+        1 => "Mono".to_string(),
+        2 => "Stereo".to_string(),
+        _ => format!("{} Channels", num_channels),
+    }
+}
+
 fn playback(opts: AudioOptions) -> Result<()> {
     let file = File::open(&opts.file_name).expect("failed to open file");
     let mut buffered_file = BufReader::new(file);
 
     let num_channels = opts.num_channels.unwrap_or(2);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
+
+    println!(
+        "Playing raw data '{}' : Signed 16 bit Little Endian, Rate {} Hz, {}",
+        opts.file_name.display(),
+        frame_rate,
+        channel_string(num_channels)
+    );
 
     let mut cras_client = CrasClient::new()?;
     let (_control, mut stream) = cras_client.new_playback_stream(
@@ -72,6 +87,13 @@ fn playback(opts: AudioOptions) -> Result<()> {
 fn capture(opts: AudioOptions) -> Result<()> {
     let num_channels = opts.num_channels.unwrap_or(2);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
+
+    println!(
+        "Recording raw data '{}' : Signed 16 bit Little Endian, Rate {} Hz, {}",
+        opts.file_name.display(),
+        frame_rate,
+        channel_string(num_channels)
+    );
 
     let mut cras_client = CrasClient::new()?;
     cras_client.enable_cras_capture();
