@@ -1088,18 +1088,22 @@ TEST(AlsaUcm, UcmSection) {
   struct mixer_name* controls = NULL;
   struct mixer_name* m_name;
   int dev_idx = 0;
+  int dependent_dev_idx = -1;
   size_t i;
   enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_OUTPUT;
   static const char* name = "Headphone";
+  static const char* pcm_name = "hw:0,1";
   static const char* jack_name = "my-card-name Headset Jack";
   static const char* jack_type = "gpio";
   static const char* mixer_name = "Control1";
   static const char* coupled_names[] = {"Coupled1", "Coupled2"};
 
-  section = ucm_section_create(NULL, 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+  section =
+      ucm_section_create(NULL, NULL, 0, -1, CRAS_STREAM_OUTPUT, NULL, NULL);
   EXPECT_EQ(reinterpret_cast<struct ucm_section*>(NULL), section);
 
-  section = ucm_section_create(name, dev_idx, dir, jack_name, jack_type);
+  section = ucm_section_create(name, pcm_name, dev_idx, dependent_dev_idx, dir,
+                               jack_name, jack_type);
   EXPECT_NE(reinterpret_cast<struct ucm_section*>(NULL), section);
   EXPECT_NE(name, section->name);
   EXPECT_EQ(0, strcmp(name, section->name));

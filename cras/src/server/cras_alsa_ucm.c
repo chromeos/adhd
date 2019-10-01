@@ -34,6 +34,7 @@ static const char capture_device_name_var[] = "CapturePCM";
 static const char capture_device_rate_var[] = "CaptureRate";
 static const char capture_channel_map_var[] = "CaptureChannelMap";
 static const char coupled_mixers[] = "CoupledMixers";
+static const char dependent_device_name_var[] = "DependentPCM";
 static const char preempt_hotword_var[] = "PreemptHotword";
 static const char echo_reference_dev_name_var[] = "EchoReferenceDev";
 /*
@@ -330,6 +331,24 @@ ucm_get_capture_device_name_for_dev(struct cras_use_case_mgr *mgr,
 	int rc;
 
 	rc = get_var(mgr, capture_device_name_var, dev, uc_verb(mgr), &name);
+	if (rc)
+		return NULL;
+
+	return name;
+}
+
+/* Gets the value of DependentPCM property. This is used to structure two
+ * SectionDevices under one cras iodev to avoid two PCMs be open at the
+ * same time because of restriction in lower layer driver or hardware.
+ */
+static const char *
+ucm_get_dependent_device_name_for_dev(struct cras_use_case_mgr *mgr,
+				      const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, dependent_device_name_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
@@ -824,33 +843,30 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 	for (i = 0; i < num_devs; i += 2) {
 		enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_UNDEFINED;
 		int dev_idx = -1;
+		int dependent_dev_idx = -1;
 		const char *jack_name;
 		const char *jack_type;
 		const char *mixer_name;
 		struct mixer_name *m_name;
 		int rc;
-		const char *target_device_name;
+		const char *pcm_name;
+		const char *dependent_dev_name;
 
 		dev_name = strdup(list[i]);
 		if (!dev_name)
 			continue;
 
-		target_device_name =
-			ucm_get_playback_device_name_for_dev(mgr, dev_name);
-		if (target_device_name)
+		pcm_name = ucm_get_playback_device_name_for_dev(mgr, dev_name);
+		if (pcm_name) {
 			dir = CRAS_STREAM_OUTPUT;
-		else {
-			target_device_name =
-				ucm_get_capture_device_name_for_dev(mgr,
-								    dev_name);
-			if (target_device_name)
+		} else {
+			pcm_name = ucm_get_capture_device_name_for_dev(
+				mgr, dev_name);
+			if (pcm_name)
 				dir = CRAS_STREAM_INPUT;
 		}
-		if (target_device_name) {
-			dev_idx = get_device_index_from_target(
-				target_device_name);
-			free((void *)target_device_name);
-		}
+		if (pcm_name)
+			dev_idx = get_device_index_from_target(pcm_name);
 
 		if (dir == CRAS_STREAM_UNDEFINED) {
 			syslog(LOG_ERR,
@@ -868,12 +884,23 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 			goto error_cleanup;
 		}
 
+		dependent_dev_name =
+			ucm_get_dependent_device_name_for_dev(mgr, dev_name);
+		if (dependent_dev_name) {
+			dependent_dev_idx = get_device_index_from_target(
+				dependent_dev_name);
+			free((void *)dependent_dev_name);
+		}
+
 		jack_name = ucm_get_jack_name_for_dev(mgr, dev_name);
 		jack_type = ucm_get_jack_type_for_dev(mgr, dev_name);
 		mixer_name = ucm_get_mixer_name_for_dev(mgr, dev_name);
 
-		dev_sec = ucm_section_create(dev_name, dev_idx, dir, jack_name,
+		dev_sec = ucm_section_create(dev_name, pcm_name, dev_idx,
+					     dependent_dev_idx, dir, jack_name,
 					     jack_type);
+		if (pcm_name)
+			free((void *)pcm_name);
 		if (jack_name)
 			free((void *)jack_name);
 		if (jack_type)

@@ -1095,8 +1095,8 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   EXPECT_EQ(1, cras_card_config_get_volume_curve_for_control_called);
 
   // First node 'Headphone'
-  section =
-      ucm_section_create(HEADPHONE, 0, CRAS_STREAM_OUTPUT, "fake-jack", "gpio");
+  section = ucm_section_create(HEADPHONE, "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+                               "fake-jack", "gpio");
   ucm_section_set_mixer_name(section, HEADPHONE);
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(10);
@@ -1106,8 +1106,8 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   ucm_section_free_list(section);
 
   // Second node 'Line Out'
-  section = ucm_section_create("Line Out", 0, CRAS_STREAM_OUTPUT, "fake-jack",
-                               "gpio");
+  section = ucm_section_create("Line Out", "hw:0.1", 0, -1, CRAS_STREAM_OUTPUT,
+                               "fake-jack", "gpio");
   ucm_section_set_mixer_name(section, HEADPHONE);
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(20);
@@ -1156,8 +1156,8 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(1, cras_card_config_get_volume_curve_for_control_called);
 
   // First node.
-  section =
-      ucm_section_create(INTERNAL_SPEAKER, 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+  section = ucm_section_create(INTERNAL_SPEAKER, "hw:0,1", 0, -1,
+                               CRAS_STREAM_OUTPUT, NULL, NULL);
   ucm_section_set_mixer_name(section, INTERNAL_SPEAKER);
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(1);
@@ -1167,8 +1167,8 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
 
   // Add a second node (will use the same iodev).
-  section =
-      ucm_section_create(HEADPHONE, 0, CRAS_STREAM_OUTPUT, jack_name, "hctl");
+  section = ucm_section_create(HEADPHONE, "hw:0,2", 0, -1, CRAS_STREAM_OUTPUT,
+                               jack_name, "hctl");
   ucm_section_add_coupled(section, "HP-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "HP-R", MIXER_NAME_VOLUME);
   cras_alsa_jack_list_add_jack_for_section_result_jack = NULL;
@@ -1237,8 +1237,8 @@ TEST(AlsaOutputNode, OutputNoControlsUCM) {
   EXPECT_EQ(1, cras_card_config_get_volume_curve_for_control_called);
 
   // Node without controls or jacks.
-  section =
-      ucm_section_create(INTERNAL_SPEAKER, 1, CRAS_STREAM_OUTPUT, NULL, NULL);
+  section = ucm_section_create(INTERNAL_SPEAKER, "hw:0,1", 1, -1,
+                               CRAS_STREAM_OUTPUT, NULL, NULL);
   // Device index doesn't match.
   EXPECT_EQ(-22, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   section->dev_idx = 0;
@@ -1279,8 +1279,8 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   // Node without controls or jacks.
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(1);
-  section =
-      ucm_section_create(HEADPHONE, 0, CRAS_STREAM_OUTPUT, jack_name, "hctl");
+  section = ucm_section_create(HEADPHONE, "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+                               jack_name, "hctl");
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
@@ -1327,8 +1327,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   // First node.
   cras_alsa_mixer_get_control_for_section_return_value = inputs[0];
   ucm_get_max_software_gain_ret_value = -1;
-  section =
-      ucm_section_create(INTERNAL_MICROPHONE, 0, CRAS_STREAM_INPUT, NULL, NULL);
+  section = ucm_section_create(INTERNAL_MICROPHONE, "hw:0,1", 0, -1,
+                               CRAS_STREAM_INPUT, NULL, NULL);
   ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
@@ -1341,7 +1341,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(1);
   cras_alsa_mixer_get_control_for_section_return_value = inputs[1];
-  section = ucm_section_create(MIC, 0, CRAS_STREAM_INPUT, jack_name, "hctl");
+  section = ucm_section_create(MIC, "hw:0,2", 0, -1, CRAS_STREAM_INPUT,
+                               jack_name, "hctl");
   ucm_section_set_mixer_name(section, MIC);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   ucm_section_free_list(section);
@@ -1404,8 +1405,8 @@ TEST(AlsaOutputNode, InputNoControlsUCM) {
   aio = reinterpret_cast<struct alsa_io*>(iodev);
 
   // Node without controls or jacks.
-  section =
-      ucm_section_create(INTERNAL_MICROPHONE, 1, CRAS_STREAM_INPUT, NULL, NULL);
+  section = ucm_section_create(INTERNAL_MICROPHONE, "hw:0,1", 1, -1,
+                               CRAS_STREAM_INPUT, NULL, NULL);
   // Device index doesn't match.
   EXPECT_EQ(-22, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   section->dev_idx = 0;
@@ -1446,7 +1447,8 @@ TEST(AlsaOutputNode, InputFromJackUCM) {
   // Node without controls or jacks.
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(1);
-  section = ucm_section_create(MIC, 0, CRAS_STREAM_INPUT, jack_name, "hctl");
+  section = ucm_section_create(MIC, "hw:0,1", 0, -1, CRAS_STREAM_INPUT,
+                               jack_name, "hctl");
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_iodev_add_node_called);

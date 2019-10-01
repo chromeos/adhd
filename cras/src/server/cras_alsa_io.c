@@ -79,12 +79,14 @@ static const struct timespec no_stream_fill_zeros_duration = {
  * This extends cras_ionode to include alsa-specific information.
  * Members:
  *    mixer_output - From cras_alsa_mixer.
+ *    pcm_name - PCM name for snd_pcm_open.
  *    volume_curve - Volume curve for this node.
  *    jack - The jack associated with the node.
  */
 struct alsa_output_node {
 	struct cras_ionode base;
 	struct mixer_control *mixer_output;
+	const char *pcm_name;
 	struct cras_volume_curve *volume_curve;
 	const struct cras_alsa_jack *jack;
 };
@@ -92,6 +94,7 @@ struct alsa_output_node {
 struct alsa_input_node {
 	struct cras_ionode base;
 	struct mixer_control *mixer_input;
+	const char *pcm_name;
 	const struct cras_alsa_jack *jack;
 	int8_t *channel_layout;
 };
@@ -375,8 +378,23 @@ static int open_dev(struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle;
 	int rc;
+	const char *pcm_name = NULL;
 
-	rc = cras_alsa_pcm_open(&handle, aio->dev, aio->alsa_stream);
+	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+		struct alsa_output_node *aout =
+			(struct alsa_output_node *)aio->base.active_node;
+		pcm_name = aout->pcm_name;
+	} else {
+		struct alsa_input_node *ain =
+			(struct alsa_input_node *)aio->base.active_node;
+		pcm_name = ain->pcm_name;
+	}
+
+	/* For legacy UCM path which doesn't have PlaybackPCM or CapturePCM. */
+	if (pcm_name == NULL)
+		pcm_name = aio->dev;
+
+	rc = cras_alsa_pcm_open(&handle, pcm_name, aio->alsa_stream);
 	if (rc < 0)
 		return rc;
 
@@ -837,6 +855,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 {
 	struct cras_ionode *node;
 	struct alsa_output_node *aout;
+	struct alsa_input_node *ain;
 
 	free(aio->base.supported_rates);
 	free(aio->base.supported_channel_counts);
@@ -846,6 +865,10 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 			aout = (struct alsa_output_node *)node;
 			cras_volume_curve_destroy(aout->volume_curve);
+			free((void *)aout->pcm_name);
+		} else {
+			ain = (struct alsa_input_node *)node;
+			free((void *)ain->pcm_name);
 		}
 		cras_iodev_rm_node(&aio->base, node);
 		free(node->softvol_scalers);
@@ -2178,7 +2201,11 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 
 	if (!aio || !section)
 		return -EINVAL;
-	if ((uint32_t)section->dev_idx != aio->device_index)
+
+	/* Allow this section to add as a new node only if the device id
+	 * or dependent device id matches this iodev. */
+	if (((uint32_t)section->dev_idx != aio->device_index) &&
+	    ((uint32_t)section->dependent_dev_idx != aio->device_index))
 		return -EINVAL;
 
 	/* This iodev is fully specified. Avoid automatic node creation. */
@@ -2197,10 +2224,12 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 		output_node = new_output(aio, control, section->name);
 		if (!output_node)
 			return -ENOMEM;
+		output_node->pcm_name = strdup(section->pcm_name);
 	} else if (iodev->direction == CRAS_STREAM_INPUT) {
 		input_node = new_input(aio, control, section->name);
 		if (!input_node)
 			return -ENOMEM;
+		input_node->pcm_name = strdup(section->pcm_name);
 	}
 
 	if (section->jack_type && !strcmp(section->jack_type, "always"))
