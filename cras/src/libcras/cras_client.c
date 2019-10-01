@@ -2070,24 +2070,59 @@ static int write_message_to_server(struct cras_client *client,
 		return 0;
 }
 
+/* Fills server socket file to connect by client's connection type. */
+static int fill_socket_file(struct cras_client *client,
+			    enum CRAS_CONNECTION_TYPE conn_type)
+{
+	size_t sock_file_size;
+	const char *sock_dir;
+	const char *sock_file;
+
+	switch (conn_type) {
+	case CRAS_CONTROL:
+		sock_file = CRAS_SOCKET_FILE;
+		break;
+	case CRAS_PLAYBACK:
+		sock_file = CRAS_PLAYBACK_SOCKET_FILE;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	sock_dir = cras_config_get_system_socket_file_dir();
+	if (!sock_dir) {
+		return -ENOMEM;
+	}
+
+	sock_file_size = strlen(sock_dir) + strlen(sock_file) + 2;
+	client->sock_file = (const char *)malloc(sock_file_size);
+	if (!client->sock_file) {
+		return -ENOMEM;
+	}
+	snprintf((char *)client->sock_file, sock_file_size, "%s/%s", sock_dir,
+		 sock_file);
+
+	return 0;
+}
+
 /*
  * Exported Client Interface
  */
 
-int cras_client_create(struct cras_client **client)
+int cras_client_create_with_type(struct cras_client **client,
+				 enum CRAS_CONNECTION_TYPE conn_type)
 {
-	const char *sock_dir;
-	size_t sock_file_size;
 	int rc;
 	struct client_int *client_int;
 	pthread_condattr_t cond_attr;
 
+	if (!cras_validate_connection_type(conn_type)) {
+		syslog(LOG_ERR, "Input connection type is not supported.\n");
+		return -EINVAL;
+	}
+
 	/* Ignore SIGPIPE while using this API. */
 	signal(SIGPIPE, SIG_IGN);
-
-	sock_dir = cras_config_get_system_socket_file_dir();
-	if (!sock_dir)
-		return -ENOMEM;
 
 	client_int = (struct client_int *)calloc(1, sizeof(*client_int));
 	if (!client_int)
@@ -2127,14 +2162,10 @@ int cras_client_create(struct cras_client **client)
 		goto free_cond;
 	}
 
-	sock_file_size = strlen(sock_dir) + strlen(CRAS_SOCKET_FILE) + 2;
-	(*client)->sock_file = (const char *)malloc(sock_file_size);
-	if (!(*client)->sock_file) {
-		rc = -ENOMEM;
+	rc = fill_socket_file((*client), conn_type);
+	if (rc < 0) {
 		goto free_error;
 	}
-	snprintf((char *)(*client)->sock_file, sock_file_size, "%s/%s",
-		 sock_dir, CRAS_SOCKET_FILE);
 
 	rc = cras_file_wait_create((*client)->sock_file,
 				   CRAS_FILE_WAIT_FLAG_NONE,
@@ -2180,6 +2211,11 @@ free_client:
 	*client = NULL;
 	free(client_int);
 	return rc;
+}
+
+int cras_client_create(struct cras_client **client)
+{
+	return cras_client_create_with_type(client, CRAS_CONTROL);
 }
 
 void cras_client_destroy(struct cras_client *client)

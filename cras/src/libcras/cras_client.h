@@ -198,6 +198,18 @@ typedef int (*cras_hotword_error_cb_t)(struct cras_client *client,
  */
 int cras_client_create(struct cras_client **client);
 
+/* Creates a new client with given connection type.
+ * Args:
+ *     client - Filled with a pointer to the new client.
+ *     conn_type - enum CRAS_CONNECTION_TYPE
+ *
+ * Returns:
+ *     0 on success (*client is filled with a valid cras_client pointer).
+ *     Negative error code on failure(*client will be NULL).
+ */
+int cras_client_create_with_type(struct cras_client **client,
+				 enum CRAS_CONNECTION_TYPE conn_type);
+
 /* Destroys a client.
  * Args:
  *    client - returned from "cras_client_create".

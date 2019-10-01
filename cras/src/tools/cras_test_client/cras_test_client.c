@@ -1541,6 +1541,7 @@ static struct option long_options[] = {
 	{"dump_bt",             no_argument,            0, 'H'},
 	{"set_wbs_enabled",     required_argument,      0, 'I'},
 	{"follow_atlog",	no_argument,		0, 'J'},
+	{"connection_type",     required_argument,      0, 'K'},
 	{"loopback_file",       required_argument,      0, 'L'},
 	{"mute_loop_test",      required_argument,      0, 'M'},
 	{"playback_file",       required_argument,      0, 'P'},
@@ -1573,6 +1574,12 @@ static void show_usage()
 	       "Set multiple channel layout.\n");
 	printf("--check_output_plugged <output name> - "
 	       "Check if the output is plugged in\n");
+	printf("--connection_type <connection_type> - "
+	       "Set cras_client connection_type (default to 0).\n"
+	       "                                      "
+	       "Argument: 0 - For control client.\n"
+	       "                                      "
+	       "          1 - For playback client.\n");
 	printf("--dump_audio_thread - "
 	       "Dumps audio thread info.\n");
 	printf("--dump_bt - "
@@ -1671,6 +1678,27 @@ static void show_usage()
 	       "Set system output volume.\n");
 }
 
+static int cras_client_create_and_connect(struct cras_client **client,
+					  enum CRAS_CONNECTION_TYPE conn_type)
+{
+	int rc;
+
+	rc = cras_client_create_with_type(client, conn_type);
+	if (rc < 0) {
+		fprintf(stderr, "Couldn't create client.\n");
+		return rc;
+	}
+
+	rc = cras_client_connect_timeout(*client, 1000);
+	if (rc) {
+		fprintf(stderr, "Couldn't connect to server.\n");
+		cras_client_destroy(*client);
+		return rc;
+	}
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	struct cras_client *client;
@@ -1688,21 +1716,16 @@ int main(int argc, char **argv)
 	uint32_t stream_flags = 0;
 	cras_stream_id_t stream_id = 0;
 	snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
+	enum CRAS_CONNECTION_TYPE conn_type = CRAS_CONTROL;
+	enum CRAS_CONNECTION_TYPE new_conn_type;
 
 	option_index = 0;
 	openlog("cras_test_client", LOG_PERROR, LOG_USER);
 	setlogmask(LOG_UPTO(LOG_INFO));
 
-	rc = cras_client_create(&client);
-	if (rc < 0) {
-		fprintf(stderr, "Couldn't create client.\n");
-		return rc;
-	}
-
-	rc = cras_client_connect_timeout(client, 1000);
+	rc = cras_client_create_and_connect(&client, conn_type);
 	if (rc) {
-		fprintf(stderr, "Couldn't connect to server.\n");
-		goto destroy_exit;
+		return rc;
 	}
 
 	if (argc == 1) {
@@ -2060,6 +2083,27 @@ int main(int argc, char **argv)
 			break;
 		case 'J':
 			cras_show_continuous_atlog(client);
+			break;
+		case 'K':
+			new_conn_type = atoi(optarg);
+			if (cras_validate_connection_type(new_conn_type)) {
+				if (new_conn_type != conn_type) {
+					cras_client_destroy(client);
+					client = NULL;
+					rc = cras_client_create_and_connect(
+						&client, new_conn_type);
+					if (rc) {
+						fprintf(stderr,
+							"Couldn't connect to "
+							"server.\n");
+						return rc;
+					}
+					conn_type = new_conn_type;
+				}
+			} else {
+				printf("Input connection type is not "
+				       "supported.\n");
+			}
 			break;
 		case 'L':
 			loopback_file = optarg;

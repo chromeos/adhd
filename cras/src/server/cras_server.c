@@ -51,6 +51,7 @@
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
+#include "cras_types.h"
 #include "cras_udev.h"
 #include "cras_util.h"
 #include "cras_mix.h"
@@ -194,13 +195,6 @@ static void send_client_list_to_clients(struct server_data *serv)
 
 	cras_system_state_update_complete();
 }
-
-/* CRAS client connection types. */
-enum CRAS_CONNECTION_TYPE {
-	CRAS_CONTROL, // For legacy client.
-	CRAS_PLAYBACK, // For playback client.
-	CRAS_NUM_CONN_TYPE,
-};
 
 /* Handles requests from a client to attach to the server.  Create a local
  * structure to track the client, assign it a unique id and let it attach */

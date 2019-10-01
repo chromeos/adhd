@@ -43,6 +43,19 @@ enum CRAS_TEST_IODEV_CMD {
 	TEST_IODEV_CMD_HOTWORD_TRIGGER,
 };
 
+/* CRAS client connection types. */
+enum CRAS_CONNECTION_TYPE {
+	CRAS_CONTROL, // For legacy client.
+	CRAS_PLAYBACK, // For playback client.
+	CRAS_NUM_CONN_TYPE,
+};
+
+static inline bool
+cras_validate_connection_type(enum CRAS_CONNECTION_TYPE conn_type)
+{
+	return 0 <= conn_type && conn_type < CRAS_NUM_CONN_TYPE;
+}
+
 /* Directions of audio streams.
  * Input, Output, or loopback.
  *
