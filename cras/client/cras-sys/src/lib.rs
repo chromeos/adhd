@@ -18,6 +18,8 @@ unsafe impl data_model::DataInit for gen::cras_client_stream_connected {}
 unsafe impl data_model::DataInit for gen::cras_connect_message {}
 unsafe impl data_model::DataInit for gen::cras_disconnect_stream_message {}
 unsafe impl data_model::DataInit for gen::cras_server_state {}
+unsafe impl data_model::DataInit for gen::cras_set_system_mute {}
+unsafe impl data_model::DataInit for gen::cras_set_system_volume {}
 
 impl cras_audio_format_packed {
     /// Initializes `cras_audio_format_packed` from input parameters.

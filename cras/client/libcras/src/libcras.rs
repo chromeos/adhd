@@ -245,6 +245,47 @@ impl CrasClient {
         self.client_type = client_type;
     }
 
+    /// Sets the system volume to `volume`.
+    ///
+    /// Send a message to the server to request setting the system volume
+    /// to `volume`. No response is returned from the server.
+    ///
+    /// # Errors
+    ///
+    /// If writing the message to the server socket failed.
+    pub fn set_system_volume(&mut self, volume: u32) -> Result<()> {
+        let header = cras_server_message {
+            length: mem::size_of::<cras_set_system_volume>() as u32,
+            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_SET_SYSTEM_VOLUME,
+        };
+        let msg = cras_set_system_volume { header, volume };
+
+        self.server_socket.send_server_message_with_fds(&msg, &[])?;
+        Ok(())
+    }
+
+    /// Sets the system mute status to `mute`.
+    ///
+    /// Send a message to the server to request setting the system mute
+    /// to `mute`. No response is returned from the server.
+    ///
+    /// # Errors
+    ///
+    /// If writing the message to the server socket failed.
+    pub fn set_system_mute(&mut self, mute: bool) -> Result<()> {
+        let header = cras_server_message {
+            length: mem::size_of::<cras_set_system_mute>() as u32,
+            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_SET_SYSTEM_MUTE,
+        };
+        let msg = cras_set_system_mute {
+            header,
+            mute: mute as i32,
+        };
+
+        self.server_socket.send_server_message_with_fds(&msg, &[])?;
+        Ok(())
+    }
+
     // Gets next server_stream_id from client and increment stream_id counter.
     fn next_server_stream_id(&mut self) -> Result<u32> {
         let res = self.next_stream_id;
