@@ -135,6 +135,7 @@ use crate::audio_socket::AudioSocket;
 mod cras_server_socket;
 use crate::cras_server_socket::CrasServerSocket;
 mod cras_shm;
+use crate::cras_shm::CrasServerState;
 mod cras_stream;
 use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
@@ -193,15 +194,16 @@ impl From<cras_client_message::Error> for Error {
 
 /// A CRAS server client, which implements StreamSource. It can create audio streams connecting
 /// to CRAS server.
-pub struct CrasClient {
+pub struct CrasClient<'a> {
     server_socket: CrasServerSocket,
+    server_state: CrasServerState<'a>,
     client_id: u32,
     next_stream_id: u32,
     cras_capture: bool,
     client_type: CRAS_CLIENT_TYPE,
 }
 
-impl CrasClient {
+impl<'a> CrasClient<'a> {
     /// Blocks creating a `CrasClient` with registered `client_id`
     ///
     /// # Results
@@ -216,23 +218,21 @@ impl CrasClient {
         // Create a connection to the server.
         let mut server_socket = CrasServerSocket::new()?;
 
-        // Gets client ID from server
-        let client_id = {
-            match CrasClient::wait_for_message(&mut server_socket)? {
-                ServerResult::Connected(res, _server_state_fd) => res as u32,
-                _ => {
-                    return Err(Error::MessageTypeError);
-                }
-            }
-        };
-
-        Ok(Self {
-            server_socket,
-            client_id,
-            next_stream_id: 0,
-            cras_capture: false,
-            client_type: CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_UNKNOWN,
-        })
+        // Gets client ID and server state fd from server
+        if let ServerResult::Connected(client_id, server_state_fd) =
+            CrasClient::wait_for_message(&mut server_socket)?
+        {
+            Ok(Self {
+                server_socket,
+                server_state: CrasServerState::try_new(server_state_fd)?,
+                client_id,
+                next_stream_id: 0,
+                cras_capture: false,
+                client_type: CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_UNKNOWN,
+            })
+        } else {
+            Err(Error::MessageTypeError)
+        }
     }
 
     /// Enables capturing audio through CRAS server.
@@ -286,6 +286,20 @@ impl CrasClient {
         Ok(())
     }
 
+    /// Gets the system volume.
+    ///
+    /// Read the current value for system volume from the server shared memory.
+    pub fn get_system_volume(&self) -> u32 {
+        self.server_state.get_system_volume()
+    }
+
+    /// Gets the system mute.
+    ///
+    /// Read the current value for system mute from the server shared memory.
+    pub fn get_system_mute(&self) -> bool {
+        self.server_state.get_system_mute()
+    }
+
     // Gets next server_stream_id from client and increment stream_id counter.
     fn next_server_stream_id(&mut self) -> u32 {
         let res = self.next_stream_id;
@@ -299,14 +313,14 @@ impl CrasClient {
     }
 
     // Creates general stream with given parameters
-    fn create_stream<'a, T: BufferDrop + CrasStreamData<'a>>(
+    fn create_stream<'b, T: BufferDrop + CrasStreamData<'b>>(
         &mut self,
         block_size: u32,
         direction: CRAS_STREAM_DIRECTION,
         rate: usize,
         channel_num: usize,
         format: snd_pcm_format_t,
-    ) -> Result<CrasStream<'a, T>> {
+    ) -> Result<CrasStream<'b, T>> {
         let stream_id = self.next_server_stream_id();
 
         // Prepares server message
@@ -385,7 +399,7 @@ impl CrasClient {
     }
 }
 
-impl StreamSource for CrasClient {
+impl<'a> StreamSource for CrasClient<'a> {
     fn new_playback_stream(
         &mut self,
         num_channels: usize,

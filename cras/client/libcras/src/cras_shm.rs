@@ -11,7 +11,8 @@ use std::slice;
 use libc;
 
 use cras_sys::gen::{
-    cras_audio_shm_header, cras_server_state, CRAS_NUM_SHM_BUFFERS, CRAS_SHM_BUFFERS_MASK,
+    cras_audio_shm_header, cras_server_state, CRAS_NUM_SHM_BUFFERS, CRAS_SERVER_STATE_VERSION,
+    CRAS_SHM_BUFFERS_MASK,
 };
 use data_model::VolatileRef;
 
@@ -45,7 +46,6 @@ impl CrasAudioShmHeaderFd {
 /// A wrapper for the raw structure `cras_audio_shm_header` with
 /// size information for the separate audio samples shm area and several
 /// `VolatileRef` to sub fields for safe access to the header.
-#[allow(dead_code)]
 pub struct CrasAudioHeader<'a> {
     addr: *mut libc::c_void,
     /// Size of the buffer for samples in CrasAudioBuffer
@@ -501,43 +501,75 @@ unsafe fn cras_mmap(
 
 /// A structure that points to RO shared memory area - `cras_server_state`
 /// The structure is created from a shared memory fd which contains the structure.
-#[allow(dead_code)]
-pub struct CrasServerState {
+#[derive(Debug)]
+pub struct CrasServerState<'a> {
     addr: *mut libc::c_void,
-    size: usize,
+    volume: VolatileRef<'a, u32>,
+    mute: VolatileRef<'a, i32>,
 }
 
-impl CrasServerState {
-    /// An unsafe function for creating `CrasServerState`. To use this function safely, we need to
-    /// - Make sure that the `shm_fd` must come from the server's message that provides the shared
-    /// memory region. The Id for the message is `CRAS_CLIENT_MESSAGE_ID::CRAS_CLIENT_CONNECTED`.
-    #[allow(dead_code)]
-    pub unsafe fn new(shm_fd: CrasShmFd) -> io::Result<Self> {
-        let size = mem::size_of::<cras_server_state>();
-        if size > shm_fd.size {
-            Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Invalid shared memory size.",
-            ))
-        } else {
-            let addr = cras_mmap(size, libc::PROT_READ, shm_fd.as_raw_fd())?;
-            Ok(CrasServerState { addr, size })
+// It is safe to send server_state between threads as this struct has exclusive
+// ownership of the shared memory area contained in it.
+unsafe impl<'a> Send for CrasServerState<'a> {}
+
+impl<'a> CrasServerState<'a> {
+    /// Create a CrasServerState
+    pub fn try_new(state_fd: CrasServerStateShmFd) -> io::Result<Self> {
+        // Safe because the creator of CrasServerStateShmFd already
+        // ensured that state_fd contains a cras_server_state.
+        let mmap_addr =
+            unsafe { cras_mmap(state_fd.fd.size, libc::PROT_READ, state_fd.fd.as_raw_fd())? };
+
+        let mut addr = NonNull::new(mmap_addr as *mut cras_server_state).ok_or_else(|| {
+            io::Error::new(io::ErrorKind::Other, "Failed to create CrasServerState.")
+        })?;
+
+        // Safe because we know that addr is a non-null pointer to cras_server_state.
+        let state_version = unsafe { vref_from_addr!(addr, state_version) };
+        if state_version.load() != CRAS_SERVER_STATE_VERSION {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "CrasServerState version {} does not match expected version {}",
+                    state_version.load(),
+                    CRAS_SERVER_STATE_VERSION
+                ),
+            ));
+        }
+
+        // Safe because we know that mmap_addr (contained in addr) contains a
+        // cras_server_state, and the mapped area will be exclusively
+        // owned by this struct.
+        unsafe {
+            Ok(CrasServerState {
+                addr: addr.as_ptr() as *mut libc::c_void,
+                volume: vref_from_addr!(addr, volume),
+                mute: vref_from_addr!(addr, mute),
+            })
         }
     }
 
-    // Gets `cras_server_state` reference from the structure.
-    #[allow(dead_code)]
-    fn get_ref(&self) -> VolatileRef<cras_server_state> {
-        unsafe { VolatileRef::new(self.addr as *mut _) }
+    /// Gets the system volume.
+    ///
+    /// Read the current value for system volume from shared memory.
+    pub fn get_system_volume(&self) -> u32 {
+        self.volume.load()
+    }
+
+    /// Gets the system mute.
+    ///
+    /// Read the current value for system mute from shared memory.
+    pub fn get_system_mute(&self) -> bool {
+        self.mute.load() != 0
     }
 }
 
-impl Drop for CrasServerState {
+impl<'a> Drop for CrasServerState<'a> {
     /// Call `munmap` for `addr`.
     fn drop(&mut self) {
         unsafe {
             // Safe because all references must be gone by the time drop is called.
-            libc::munmap(self.addr, self.size);
+            libc::munmap(self.addr, mem::size_of::<cras_server_state>());
         }
     }
 }
@@ -650,8 +682,7 @@ impl Drop for CrasShmFd {
 /// A structure wrapping a fd which contains a shared `cras_server_state`.
 /// * `shm_fd` - A shared memory fd contains a `cras_server_state`
 pub struct CrasServerStateShmFd {
-    #[allow(dead_code)]
-    shm_fd: CrasShmFd,
+    fd: CrasShmFd,
 }
 
 impl CrasServerStateShmFd {
@@ -670,7 +701,7 @@ impl CrasServerStateShmFd {
     /// - The shared memory area in the input fd contains a `cras_server_state`.
     pub unsafe fn new(fd: libc::c_int) -> Self {
         Self {
-            shm_fd: CrasShmFd::new(fd, mem::size_of::<cras_server_state>()),
+            fd: CrasShmFd::new(fd, mem::size_of::<cras_server_state>()),
         }
     }
 }
@@ -965,5 +996,47 @@ mod tests {
         }
         let rc = unsafe { cras_mmap(10, libc::PROT_READ, -1) };
         assert!(rc.is_err());
+    }
+
+    #[test]
+    fn cras_server_state() {
+        let size = mem::size_of::<cras_server_state>();
+        let shm = create_shm(size);
+        unsafe {
+            let addr = cras_mmap(size, libc::PROT_WRITE, shm.as_raw_fd())
+                .expect("failed to mmap state shm");
+            {
+                let state: &mut cras_server_state = &mut *(addr as *mut cras_server_state);
+                state.state_version = CRAS_SERVER_STATE_VERSION;
+                state.volume = 47;
+                state.mute = 1;
+            }
+            libc::munmap(addr, size);
+        };
+        let state_fd = unsafe { CrasServerStateShmFd::new(shm.into_raw_fd()) };
+        let state =
+            CrasServerState::try_new(state_fd).expect("try_new failed for valid server_state fd");
+        assert_eq!(state.get_system_volume(), 47);
+        assert_eq!(state.get_system_mute(), true);
+    }
+
+    #[test]
+    fn cras_server_state_old_version() {
+        let size = mem::size_of::<cras_server_state>();
+        let shm = create_shm(size);
+        unsafe {
+            let addr = cras_mmap(size, libc::PROT_WRITE, shm.as_raw_fd())
+                .expect("failed to mmap state shm");
+            {
+                let state: &mut cras_server_state = &mut *(addr as *mut cras_server_state);
+                state.state_version = CRAS_SERVER_STATE_VERSION - 1;
+                state.volume = 29;
+                state.mute = 0;
+            }
+            libc::munmap(addr, size);
+        };
+        let state_fd = unsafe { CrasServerStateShmFd::new(shm.into_raw_fd()) };
+        CrasServerState::try_new(state_fd)
+            .expect_err("try_new succeeded for invalid state version");
     }
 }
