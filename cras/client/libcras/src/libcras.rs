@@ -146,7 +146,6 @@ pub enum ErrorType {
     CrasStreamError(cras_stream::Error),
     IoError(io::Error),
     SysUtilError(sys_util::Error),
-    NoClientId,
     MessageTypeError,
     UnexpectedExit,
 }
@@ -171,7 +170,6 @@ impl fmt::Display for Error {
             ErrorType::CrasStreamError(ref err) => err.fmt(f),
             ErrorType::IoError(ref err) => err.fmt(f),
             ErrorType::SysUtilError(ref err) => err.fmt(f),
-            ErrorType::NoClientId => write!(f, "client_id dose not exists"),
             ErrorType::MessageTypeError => write!(f, "Message type error"),
             ErrorType::UnexpectedExit => write!(f, "Unexpected exit"),
         }
@@ -208,7 +206,7 @@ impl From<cras_client_message::Error> for Error {
 /// to CRAS server.
 pub struct CrasClient {
     server_socket: CrasServerSocket,
-    client_id: Option<u32>,
+    client_id: u32,
     next_stream_id: u32,
     cras_capture: bool,
     client_type: CRAS_CLIENT_TYPE,
@@ -226,26 +224,26 @@ impl CrasClient {
     /// Returns error if error occurs while handling server message or message
     /// type is incorrect
     pub fn new() -> Result<Self> {
-        // Initializes a client
-        let server_socket = CrasServerSocket::new()?;
-        let mut cras_client = Self {
-            server_socket,
-            client_id: None,
-            next_stream_id: 0,
-            cras_capture: false,
-            client_type: CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_UNKNOWN,
-        };
+        // Create a connection to the server.
+        let mut server_socket = CrasServerSocket::new()?;
 
         // Gets client ID from server
-        cras_client.client_id = Some({
-            match cras_client.handle_server_message()? {
+        let client_id = {
+            match CrasClient::wait_for_message(&mut server_socket)? {
                 ServerResult::Connected(res, _server_state_fd) => res as u32,
                 _ => {
                     return Err(Error::new(ErrorType::MessageTypeError));
                 }
             }
-        });
-        Ok(cras_client)
+        };
+
+        Ok(Self {
+            server_socket,
+            client_id,
+            next_stream_id: 0,
+            cras_capture: false,
+            client_type: CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_UNKNOWN,
+        })
     }
 
     /// Enables capturing audio through CRAS server.
@@ -267,7 +265,7 @@ impl CrasClient {
 
     // Gets server_stream_id from given stream_id
     fn server_stream_id(&self, stream_id: &u32) -> Result<u32> {
-        Ok((self.client_id.ok_or(Error::new(ErrorType::NoClientId))? << 16) | stream_id)
+        Ok((self.client_id << 16) | stream_id)
     }
 
     // Creates general stream with given parameters
@@ -324,7 +322,7 @@ impl CrasClient {
         );
 
         loop {
-            let result = self.handle_server_message()?;
+            let result = CrasClient::wait_for_message(&mut self.server_socket)?;
             if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
                 stream.init_shm(header_fd, samples_fd)?;
                 break;
@@ -334,14 +332,14 @@ impl CrasClient {
         Ok(stream)
     }
 
-    // Blocks handling the first server message received from server socket.
-    fn handle_server_message(&self) -> Result<ServerResult> {
+    // Blocks handling the first server message received from `socket`.
+    fn wait_for_message(socket: &mut CrasServerSocket) -> Result<ServerResult> {
         #[derive(PollToken)]
         enum Token {
             ServerMsg,
         }
-        let poll_ctx: PollContext<Token> = PollContext::new()
-            .and_then(|pc| pc.add(&self.server_socket, Token::ServerMsg).and(Ok(pc)))?;
+        let poll_ctx: PollContext<Token> =
+            PollContext::new().and_then(|pc| pc.add(socket, Token::ServerMsg).and(Ok(pc)))?;
 
         let events = poll_ctx.wait()?;
         // Check the first readable message
@@ -351,7 +349,7 @@ impl CrasClient {
             .ok_or_else(|| Error::new(ErrorType::UnexpectedExit))
             .and_then(|ref token| {
                 match token {
-                    Token::ServerMsg => ServerResult::handle_server_message(&self.server_socket),
+                    Token::ServerMsg => ServerResult::handle_server_message(socket),
                 }
                 .map_err(Into::into)
             })
