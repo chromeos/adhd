@@ -6,14 +6,33 @@ mod audio_options;
 
 use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read, Write};
+use std::os::raw::c_int;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::StreamSource;
 use libcras::CrasClient;
-use sys_util::{set_rt_prio_limit, set_rt_round_robin};
+use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
 use crate::audio_options::{AudioOptions, Subcommand};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+static INTERRUPTED: AtomicBool = AtomicBool::new(false);
+
+extern "C" fn sigint_handler() {
+    // Check if we've already received one SIGINT. If we have, the program may
+    // be misbehaving and not terminating, so to be safe we'll forcefully exit.
+    if INTERRUPTED.load(Ordering::Acquire) {
+        std::process::exit(1);
+    }
+    INTERRUPTED.store(true, Ordering::Release);
+}
+
+fn add_sigint_handler() -> Result<()> {
+    const SIGINT: c_int = 2;
+    unsafe { register_signal_handler(SIGINT, sigint_handler)? };
+    Ok(())
+}
 
 fn set_priority_to_realtime() {
     const AUDIO_THREAD_RTPRIO: u16 = 10;
@@ -53,7 +72,8 @@ fn playback(opts: AudioOptions) -> Result<()> {
     )?;
     set_priority_to_realtime();
 
-    loop {
+    add_sigint_handler()?;
+    while !INTERRUPTED.load(Ordering::Acquire) {
         let mut buffer = stream
             .next_playback_buffer()
             .expect("failed to get next playback buffer");
@@ -95,10 +115,12 @@ fn capture(opts: AudioOptions) -> Result<()> {
         opts.buffer_size.unwrap_or(256),
     )?;
     set_priority_to_realtime();
-    loop {
+    add_sigint_handler()?;
+    while !INTERRUPTED.load(Ordering::Acquire) {
         let mut buf = stream.next_capture_buffer()?;
         io::copy(&mut buf, &mut sample_sink)?;
     }
+    Ok(())
 }
 
 fn main() -> Result<()> {
