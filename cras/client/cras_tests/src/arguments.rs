@@ -12,6 +12,7 @@ use getopts::{self, Matches, Options};
 pub enum Error {
     GetOpts(getopts::Fail),
     InvalidArgument(String, String, String),
+    MissingArgument(String),
     MissingCommand,
     MissingFilename,
     UnknownCommand(String),
@@ -27,6 +28,7 @@ impl fmt::Display for Error {
             InvalidArgument(flag, value, error_msg) => {
                 write!(f, "Invalid {} argument '{}': {}", flag, value, error_msg)
             }
+            MissingArgument(subcommand) => write!(f, "Missing argument for {}", subcommand),
             MissingCommand => write!(f, "A command must be provided"),
             MissingFilename => write!(f, "A file name must be provided"),
             UnknownCommand(s) => write!(f, "Unknown command '{}'", s),
@@ -42,6 +44,7 @@ type Result<T> = std::result::Result<T, Error>;
 pub enum Command {
     Capture(AudioOptions),
     Playback(AudioOptions),
+    Control(ControlCommand),
 }
 
 impl Command {
@@ -64,6 +67,9 @@ impl Command {
                 AudioOptions::parse(program_name, "playback", remaining_args)?
                     .map(Command::Playback),
             ),
+            Some("control") => {
+                Ok(ControlCommand::parse(program_name, remaining_args)?.map(Command::Control))
+            }
             Some(s) => {
                 show_usage(program_name);
                 Err(Error::UnknownCommand(s.to_string()))
@@ -77,10 +83,11 @@ fn show_usage(program_name: &str) {
     eprintln!("\nCommands:\n");
     eprintln!("capture - Capture to a file from CRAS");
     eprintln!("playback - Playback to CRAS from a file");
+    eprintln!("control - Get and set server settings");
     eprintln!("\nhelp - Print help message");
 }
 
-fn show_command_usage(program_name: &str, command: &str, opts: &Options) {
+fn show_audio_command_usage(program_name: &str, command: &str, opts: &Options) {
     let brief = format!("Usage: {} {} [options] [filename]", program_name, command);
     eprint!("{}", opts.usage(&brief));
 }
@@ -128,17 +135,17 @@ impl AudioOptions {
         let matches = match opts.parse(args) {
             Ok(m) => m,
             Err(e) => {
-                show_command_usage(program_name, command_name, &opts);
+                show_audio_command_usage(program_name, command_name, &opts);
                 return Err(Error::GetOpts(e));
             }
         };
         if matches.opt_present("h") {
-            show_command_usage(program_name, command_name, &opts);
+            show_audio_command_usage(program_name, command_name, &opts);
             return Ok(None);
         }
         let file_name = match matches.free.get(0) {
             None => {
-                show_command_usage(program_name, command_name, &opts);
+                show_audio_command_usage(program_name, command_name, &opts);
                 return Err(Error::MissingFilename);
             }
             Some(file_name) => PathBuf::from(file_name),
@@ -152,7 +159,7 @@ impl AudioOptions {
             Some("S24_LE") => Some(SampleFormat::S24LE),
             Some("S32_LE") => Some(SampleFormat::S32LE),
             Some(s) => {
-                show_command_usage(program_name, command_name, &opts);
+                show_audio_command_usage(program_name, command_name, &opts);
                 return Err(Error::InvalidArgument(
                     "format".to_string(),
                     s.to_string(),
@@ -169,6 +176,91 @@ impl AudioOptions {
             format,
             frame_rate,
         }))
+    }
+}
+
+fn show_control_command_usage(program_name: &str) {
+    eprintln!("Usage: {} control [command] <command args>", program_name);
+    eprintln!("");
+    eprintln!("Commands:");
+    let commands = [
+        ("help", "", "Print help message"),
+        ("", "", ""),
+        ("get_volume", "", "Get the system volume (0 - 100)"),
+        (
+            "set_volume",
+            "VOLUME",
+            "Set the system volume to VOLUME (0 - 100)",
+        ),
+        ("get_mute", "", "Get the system mute state (true or false)"),
+        (
+            "set_mute",
+            "MUTE",
+            "Set the system mute state to MUTE (true or false)",
+        ),
+    ];
+    for command in &commands {
+        let command_string = format!("{} {}", command.0, command.1);
+        eprintln!("\t{: <20} {}", command_string, command.2);
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ControlCommand {
+    GetSystemVolume,
+    SetSystemVolume(u32),
+    GetSystemMute,
+    SetSystemMute(bool),
+}
+
+impl ControlCommand {
+    fn parse<T: AsRef<str>>(program_name: &str, args: &[T]) -> Result<Option<Self>> {
+        let mut args = args.iter().map(|s| s.as_ref());
+        match args.next() {
+            Some("help") => {
+                show_control_command_usage(program_name);
+                Ok(None)
+            }
+            Some("get_volume") => Ok(Some(ControlCommand::GetSystemVolume)),
+            Some("set_volume") => {
+                let volume_str = args
+                    .next()
+                    .ok_or_else(|| Error::MissingArgument("set_volume".to_string()))?;
+
+                let volume = volume_str.parse::<u32>().map_err(|e| {
+                    Error::InvalidArgument(
+                        "set_volume".to_string(),
+                        volume_str.to_string(),
+                        e.to_string(),
+                    )
+                })?;
+
+                Ok(Some(ControlCommand::SetSystemVolume(volume)))
+            }
+            Some("get_mute") => Ok(Some(ControlCommand::GetSystemMute)),
+            Some("set_mute") => {
+                let mute_str = args
+                    .next()
+                    .ok_or_else(|| Error::MissingArgument("set_mute".to_string()))?;
+
+                let mute = mute_str.parse::<bool>().map_err(|e| {
+                    Error::InvalidArgument(
+                        "set_mute".to_string(),
+                        mute_str.to_string(),
+                        e.to_string(),
+                    )
+                })?;
+                Ok(Some(ControlCommand::SetSystemMute(mute)))
+            }
+            Some(s) => {
+                show_control_command_usage(program_name);
+                Err(Error::UnknownCommand(s.to_string()))
+            }
+            None => {
+                show_control_command_usage(program_name);
+                Err(Error::MissingCommand)
+            }
+        }
     }
 }
 

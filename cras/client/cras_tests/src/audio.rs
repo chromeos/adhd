@@ -28,12 +28,13 @@ impl error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Error::*;
         match self {
-            Error::CreateStream(e) => write!(f, "Failed to create stream: {}", e),
-            Error::FetchStream(e) => write!(f, "Failed to fetch buffer from stream: {}", e),
-            Error::Io(e) => write!(f, "IO Error: {}", e),
-            Error::Libcras(e) => write!(f, "Libcras Error: {}", e),
-            Error::SysUtil(e) => write!(f, "SysUtil Error: {}", e),
+            CreateStream(e) => write!(f, "Failed to create stream: {}", e),
+            FetchStream(e) => write!(f, "Failed to fetch buffer from stream: {}", e),
+            Io(e) => write!(f, "IO Error: {}", e),
+            Libcras(e) => write!(f, "Libcras Error: {}", e),
+            SysUtil(e) => write!(f, "SysUtil Error: {}", e),
         }
     }
 }

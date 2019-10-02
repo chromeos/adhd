@@ -4,17 +4,20 @@
 
 mod arguments;
 mod audio;
+mod control;
 
 use std::error;
 use std::fmt;
 
 use crate::arguments::Command;
 use crate::audio::{capture, playback};
+use crate::control::control;
 
 #[derive(Debug)]
 pub enum Error {
     Audio(audio::Error),
     ParseArgs(arguments::Error),
+    Control(control::Error),
 }
 
 impl error::Error for Error {}
@@ -25,6 +28,7 @@ impl fmt::Display for Error {
         match self {
             Audio(e) => e.fmt(f),
             ParseArgs(e) => write!(f, "Failed to parse arguments: {}", e),
+            Control(e) => e.fmt(f),
         }
     }
 }
@@ -40,6 +44,7 @@ fn run() -> Result<()> {
 
     match command {
         Command::Capture(audio_opts) => capture(audio_opts).map_err(Error::Audio),
+        Command::Control(command) => control(command).map_err(Error::Control),
         Command::Playback(audio_opts) => playback(audio_opts).map_err(Error::Audio),
     }
 }
