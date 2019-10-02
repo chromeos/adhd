@@ -14,6 +14,7 @@ struct dcblock {
 	float y_prev;
 	float ramp_factor;
 	float ramp_increment;
+	int initialized;
 };
 
 struct dcblock *dcblock_new(float R, unsigned long sample_rate)
@@ -36,6 +37,11 @@ void dcblock_process(struct dcblock *dcblock, float *data, int count)
 	float x_prev = dcblock->x_prev;
 	float y_prev = dcblock->y_prev;
 	float R = dcblock->R;
+
+	if (!dcblock->initialized) {
+		x_prev = data[0];
+		dcblock->initialized = 1;
+	}
 
 	for (n = 0; n < count; n++) {
 		float x = data[n];
