@@ -101,6 +101,12 @@ struct system_task {
 	struct system_task *next, *prev;
 };
 
+/* A structure wraps data related to server socket. */
+struct server_socket {
+	struct sockaddr_un addr;
+	int fd;
+};
+
 /* Local server data. */
 struct server_data {
 	struct attached_client *clients_head;
@@ -109,7 +115,18 @@ struct server_data {
 	struct system_task *system_tasks;
 	size_t num_client_callbacks;
 	size_t next_client_id;
+	struct server_socket server_sockets[CRAS_NUM_CONN_TYPE];
 } server_instance;
+
+/* Cleanup a given server_socket */
+static void server_socket_cleanup(struct server_socket *socket)
+{
+	if (socket && socket->fd >= 0) {
+		close(socket->fd);
+		socket->fd = -1;
+		unlink(socket->addr.sun_path);
+	}
+}
 
 /* Remove a client from the list and destroy it.  Calling rclient_destroy will
  * also free all the streams owned by the client */
@@ -198,7 +215,7 @@ static void send_client_list_to_clients(struct server_data *serv)
 
 /* Handles requests from a client to attach to the server.  Create a local
  * structure to track the client, assign it a unique id and let it attach */
-static void handle_new_connection(struct sockaddr_un *address, int fd,
+static void handle_new_connection(struct server_socket *server_socket,
 				  enum CRAS_CONNECTION_TYPE type)
 {
 	int connection_fd;
@@ -212,7 +229,9 @@ static void handle_new_connection(struct sockaddr_un *address, int fd,
 	}
 
 	memset(&address_length, 0, sizeof(address_length));
-	connection_fd = accept(fd, (struct sockaddr *)address, &address_length);
+	connection_fd = accept(server_socket->fd,
+			       (struct sockaddr *)&server_socket->addr,
+			       &address_length);
 	if (connection_fd < 0) {
 		syslog(LOG_ERR, "connecting");
 		free(poll_client);
@@ -450,6 +469,11 @@ int cras_server_init()
 	cras_system_set_add_task_handler(add_task, &server_instance);
 	cras_main_message_init();
 
+	/* Initializes all server_sockets */
+	for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {
+		server_instance.server_sockets[conn_type].fd = -1;
+	}
+
 	return 0;
 }
 
@@ -459,15 +483,17 @@ int cras_server_init()
  * with permission=0770. The socket_fd will be listened with parameter
  * backlog=5.
  *
- * Returns the socket_fd and leaves the address information in addr.
+ * Returns 0 on success and leaves the created fd and the address information
+ * in server_socket.
  * When error occurs, the created fd will be closed and the file path will be
  * unlinked.
  */
 static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
-					   struct sockaddr_un *addr)
+					   struct server_socket *server_socket)
 {
 	int socket_fd = -1;
 	int rc = 0;
+	struct sockaddr_un *addr = &server_socket->addr;
 
 	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (socket_fd < 0) {
@@ -509,7 +535,8 @@ static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
 		goto error;
 	}
 
-	return socket_fd;
+	server_socket->fd = socket_fd;
+	return 0;
 error:
 	if (socket_fd >= 0) {
 		close(socket_fd);
@@ -518,17 +545,22 @@ error:
 	return rc;
 }
 
+/* Cleans up all server_socket in server_instance */
+static void cleanup_server_sockets()
+{
+	for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {
+		server_socket_cleanup(
+			&server_instance.server_sockets[conn_type]);
+	}
+}
+
 int cras_server_run(unsigned int profile_disable_mask)
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
 #ifdef CRAS_DBUS
 	DBusConnection *dbus_conn;
 #endif
-	int control_fd = -1;
-	int playback_fd = -1;
 	int rc = 0;
-	struct sockaddr_un control_addr;
-	struct sockaddr_un playback_addr;
 	struct attached_client *elm;
 	struct client_callback *client_cb;
 	struct system_task *tasks;
@@ -574,15 +606,12 @@ int cras_server_run(unsigned int profile_disable_mask)
 	}
 #endif
 
-	control_fd =
-		create_and_listen_server_socket(CRAS_CONTROL, &control_addr);
-	if (control_fd < 0)
-		goto bail;
-
-	playback_fd =
-		create_and_listen_server_socket(CRAS_PLAYBACK, &playback_addr);
-	if (playback_fd < 0)
-		goto bail;
+	for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {
+		rc = create_and_listen_server_socket(
+			conn_type, &server_instance.server_sockets[conn_type]);
+		if (rc < 0)
+			goto bail;
+	}
 
 	tm = cras_system_state_get_tm();
 	if (!tm) {
@@ -605,11 +634,12 @@ int cras_server_run(unsigned int profile_disable_mask)
 					  sizeof(*pollfds) * pollfds_size);
 		}
 
-		pollfds[CRAS_CONTROL].fd = control_fd;
-		pollfds[CRAS_CONTROL].events = POLLIN;
-
-		pollfds[CRAS_PLAYBACK].fd = playback_fd;
-		pollfds[CRAS_PLAYBACK].events = POLLIN;
+		for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE;
+		     conn_type++) {
+			pollfds[conn_type].fd =
+				server_instance.server_sockets[conn_type].fd;
+			pollfds[conn_type].events = POLLIN;
+		}
 		num_pollfds = CRAS_NUM_CONN_TYPE;
 
 		DL_FOREACH (server_instance.clients_head, elm) {
@@ -653,12 +683,15 @@ int cras_server_run(unsigned int profile_disable_mask)
 		cras_tm_call_callbacks(tm);
 
 		/* Check for new connections. */
-		if (pollfds[CRAS_CONTROL].revents & POLLIN)
-			handle_new_connection(&control_addr, control_fd,
-					      CRAS_CONTROL);
-		if (pollfds[CRAS_PLAYBACK].revents & POLLIN)
-			handle_new_connection(&playback_addr, playback_fd,
-					      CRAS_PLAYBACK);
+		for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE;
+		     conn_type++) {
+			if (pollfds[conn_type].revents & POLLIN)
+				handle_new_connection(
+					&server_instance
+						 .server_sockets[conn_type],
+					conn_type);
+		}
+
 		/* Check if there are messages pending for any clients. */
 		DL_FOREACH (server_instance.clients_head, elm)
 			if (elm->pollfd && elm->pollfd->revents & POLLIN)
@@ -680,14 +713,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 	}
 
 bail:
-	if (control_fd >= 0) {
-		close(control_fd);
-		unlink(control_addr.sun_path);
-	}
-	if (playback_fd >= 0) {
-		close(playback_fd);
-		unlink(playback_addr.sun_path);
-	}
+	cleanup_server_sockets();
 	free(pollfds);
 	cras_observer_server_free();
 	return rc;
