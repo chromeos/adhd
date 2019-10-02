@@ -39,6 +39,7 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
 
   clock_gettime_retspec.tv_sec = 200;
   clock_gettime_retspec.tv_nsec = 0;
+  iodev.info.idx = MAX_SPECIAL_DEVICE_IDX;
   iodev.open_ts.tv_sec = 100;
   iodev.open_ts.tv_nsec = 0;
   iodev.direction = CRAS_STREAM_INPUT;
