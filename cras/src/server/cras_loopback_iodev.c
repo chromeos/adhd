@@ -266,7 +266,6 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	iodev->info.stable_id =
 		SuperFastHash(iodev->info.name, strlen(iodev->info.name),
 			      strlen(iodev->info.name));
-	iodev->info.stable_id_new = iodev->info.stable_id;
 
 	iodev->supported_rates = loopback_supported_rates;
 	iodev->supported_channel_counts = loopback_supported_channel_counts;
@@ -317,7 +316,6 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type)
 	node->plugged = 1;
 	node->volume = 100;
 	node->stable_id = iodev->info.stable_id;
-	node->stable_id_new = iodev->info.stable_id_new;
 	node->software_volume_needed = 0;
 	node->max_software_gain = 0;
 	strcpy(node->name, loopdev_names[type]);

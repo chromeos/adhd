@@ -113,8 +113,6 @@ enum CRAS_IODEV_STATE {
  *    min_software_gain - The minimum software gain in 0.01 dB if needed.
  *    max_software_gain - The maximum software gain in 0.01 dB if needed.
  *    stable_id - id for node that doesn't change after unplug/plug.
- *    stable_id_new - New stable_id, it will be deprecated and be put on
- *      stable_id.
  *    is_sco_pcm - Bool to indicate whether the ionode is for SCO over PCM.
  */
 struct cras_ionode {
@@ -136,7 +134,6 @@ struct cras_ionode {
 	long min_software_gain;
 	long max_software_gain;
 	unsigned int stable_id;
-	unsigned int stable_id_new;
 	int is_sco_pcm;
 	struct cras_ionode *prev, *next;
 };

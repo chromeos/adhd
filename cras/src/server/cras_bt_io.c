@@ -69,7 +69,6 @@ static struct cras_ionode *add_profile_dev(struct cras_iodev *bt_iodev,
 	n->base.type = CRAS_NODE_TYPE_BLUETOOTH;
 	n->base.volume = 100;
 	n->base.stable_id = dev->info.stable_id;
-	n->base.stable_id_new = dev->info.stable_id_new;
 	n->base.max_software_gain = 0;
 	gettimeofday(&n->base.plugged_time, NULL);
 
@@ -397,7 +396,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->direction = dev->direction;
 	strcpy(iodev->info.name, dev->info.name);
 	iodev->info.stable_id = dev->info.stable_id;
-	iodev->info.stable_id_new = dev->info.stable_id_new;
 
 	iodev->open_dev = open_dev;
 	iodev->configure_dev = configure_dev;
@@ -438,7 +436,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
 			      strlen(cras_bt_device_object_path(device)));
-	active->base.stable_id_new = active->base.stable_id;
 	active->profile = profile;
 	active->profile_dev = dev;
 	gettimeofday(&active->base.plugged_time, NULL);

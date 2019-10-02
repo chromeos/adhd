@@ -488,7 +488,6 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
 			      strlen(cras_bt_device_object_path(device)));
-	iodev->info.stable_id_new = iodev->info.stable_id;
 
 	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;

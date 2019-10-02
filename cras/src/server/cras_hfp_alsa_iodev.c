@@ -266,7 +266,6 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
 			      strlen(cras_bt_device_object_path(device)));
-	iodev->info.stable_id_new = iodev->info.stable_id;
 
 	iodev->open_dev = hfp_alsa_open_dev;
 	iodev->update_supported_formats = hfp_alsa_update_supported_formats;

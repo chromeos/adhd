@@ -296,7 +296,6 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
 			      strlen(cras_bt_device_object_path(device)));
-	iodev->info.stable_id_new = iodev->info.stable_id;
 
 	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;
