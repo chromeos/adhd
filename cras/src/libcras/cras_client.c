@@ -2068,34 +2068,18 @@ static int write_message_to_server(struct cras_client *client,
 static int fill_socket_file(struct cras_client *client,
 			    enum CRAS_CONNECTION_TYPE conn_type)
 {
-	size_t sock_file_size;
-	const char *sock_dir;
-	const char *sock_file;
+	int rc;
 
-	switch (conn_type) {
-	case CRAS_CONTROL:
-		sock_file = CRAS_SOCKET_FILE;
-		break;
-	case CRAS_PLAYBACK:
-		sock_file = CRAS_PLAYBACK_SOCKET_FILE;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	sock_dir = cras_config_get_system_socket_file_dir();
-	if (!sock_dir) {
+	client->sock_file =
+		(const char *)calloc(CRAS_MAX_SOCKET_PATH_SIZE, sizeof(char));
+	if (client->sock_file == NULL)
 		return -ENOMEM;
-	}
 
-	sock_file_size = strlen(sock_dir) + strlen(sock_file) + 2;
-	client->sock_file = (const char *)malloc(sock_file_size);
-	if (!client->sock_file) {
-		return -ENOMEM;
+	rc = cras_fill_socket_path(conn_type, (char *)client->sock_file);
+	if (rc < 0) {
+		free((void *)client->sock_file);
+		return rc;
 	}
-	snprintf((char *)client->sock_file, sock_file_size, "%s/%s", sock_dir,
-		 sock_file);
-
 	return 0;
 }
 

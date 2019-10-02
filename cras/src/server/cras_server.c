@@ -454,7 +454,7 @@ int cras_server_init()
 }
 
 /*
- * Creates a server socket with a given socket_file name and listens on it.
+ * Creates a server socket with given connection type and listens on it.
  * The socket_file will be created under cras_config_get_system_socket_file_dir
  * with permission=0770. The socket_fd will be listened with parameter
  * backlog=5.
@@ -463,12 +463,11 @@ int cras_server_init()
  * When error occurs, the created fd will be closed and the file path will be
  * unlinked.
  */
-static int create_and_listen_server_socket(const char *socket_file,
+static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
 					   struct sockaddr_un *addr)
 {
 	int socket_fd = -1;
 	int rc = 0;
-	const char *sockdir;
 
 	socket_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if (socket_fd < 0) {
@@ -477,16 +476,11 @@ static int create_and_listen_server_socket(const char *socket_file,
 		goto error;
 	}
 
-	sockdir = cras_config_get_system_socket_file_dir();
-	if (sockdir == NULL) {
-		rc = -ENOTDIR;
-		goto error;
-	}
-
 	memset(addr, 0, sizeof(*addr));
 	addr->sun_family = AF_UNIX;
-	snprintf(addr->sun_path, sizeof(addr->sun_path), "%s/%s", sockdir,
-		 socket_file);
+	rc = cras_fill_socket_path(conn_type, addr->sun_path);
+	if (rc < 0)
+		goto error;
 	unlink(addr->sun_path);
 
 	/* Linux quirk: calling fchmod before bind, sets the permissions of the
@@ -580,13 +574,13 @@ int cras_server_run(unsigned int profile_disable_mask)
 	}
 #endif
 
-	control_fd = create_and_listen_server_socket(CRAS_SOCKET_FILE,
-						     &control_addr);
+	control_fd =
+		create_and_listen_server_socket(CRAS_CONTROL, &control_addr);
 	if (control_fd < 0)
 		goto bail;
 
-	playback_fd = create_and_listen_server_socket(CRAS_PLAYBACK_SOCKET_FILE,
-						      &playback_addr);
+	playback_fd =
+		create_and_listen_server_socket(CRAS_PLAYBACK, &playback_addr);
 	if (playback_fd < 0)
 		goto bail;
 
