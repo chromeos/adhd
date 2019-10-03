@@ -9,6 +9,8 @@
 #ifndef CRAS_RCLIENT_H_
 #define CRAS_RCLIENT_H_
 
+#include "cras_types.h"
+
 struct cras_client_message;
 struct cras_message;
 struct cras_server_message;
@@ -48,10 +50,12 @@ struct cras_rclient_ops {
  * Args:
  *    fd - The file descriptor used for communication with the client.
  *    id - Unique identifier for this client.
+ *    conn_type - Client connection type.
  * Returns:
  *    A pointer to the newly created rclient on success, NULL on failure.
  */
-struct cras_rclient *cras_rclient_create(int fd, size_t id);
+struct cras_rclient *cras_rclient_create(int fd, size_t id,
+					 enum CRAS_CONNECTION_TYPE conn_type);
 
 /* Destroys an rclient created with "cras_rclient_create".
  * Args:

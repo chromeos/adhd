@@ -45,8 +45,6 @@
 #include "cras_non_empty_audio_handler.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
-#include "cras_control_rclient.h"
-#include "cras_playback_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
@@ -105,6 +103,7 @@ struct system_task {
 struct server_socket {
 	struct sockaddr_un addr;
 	int fd;
+	enum CRAS_CONNECTION_TYPE type;
 };
 
 /* Local server data. */
@@ -215,8 +214,7 @@ static void send_client_list_to_clients(struct server_data *serv)
 
 /* Handles requests from a client to attach to the server.  Create a local
  * structure to track the client, assign it a unique id and let it attach */
-static void handle_new_connection(struct server_socket *server_socket,
-				  enum CRAS_CONNECTION_TYPE type)
+static void handle_new_connection(struct server_socket *server_socket)
 {
 	int connection_fd;
 	struct attached_client *poll_client;
@@ -256,19 +254,9 @@ static void handle_new_connection(struct server_socket *server_socket,
 	poll_client->next = NULL;
 	poll_client->pollfd = NULL;
 	fill_client_info(poll_client);
-	switch (type) {
-	case CRAS_CONTROL:
-		poll_client->client = cras_control_rclient_create(
-			connection_fd, poll_client->id);
-		break;
-	case CRAS_PLAYBACK:
-		poll_client->client = cras_playback_rclient_create(
-			connection_fd, poll_client->id);
-		break;
-	default:
-		syslog(LOG_ERR, "unsupported connection type");
-		goto error;
-	}
+
+	poll_client->client = cras_rclient_create(
+		connection_fd, poll_client->id, server_socket->type);
 	if (poll_client->client == NULL) {
 		syslog(LOG_ERR, "failed to create client");
 		goto error;
@@ -536,6 +524,7 @@ static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
 	}
 
 	server_socket->fd = socket_fd;
+	server_socket->type = conn_type;
 	return 0;
 error:
 	if (socket_fd >= 0) {
@@ -688,8 +677,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 			if (pollfds[conn_type].revents & POLLIN)
 				handle_new_connection(
 					&server_instance
-						 .server_sockets[conn_type],
-					conn_type);
+						 .server_sockets[conn_type]);
 		}
 
 		/* Check if there are messages pending for any clients. */
