@@ -25,33 +25,14 @@ static int cpr_handle_message_from_client(struct cras_rclient *client,
 	int rc = 0;
 	assert(client && msg);
 
-	/* No message needs more than 2 fds. */
-	if (num_fds > 2) {
-		syslog(LOG_ERR,
-		       "Message %d should not have more than 2 fds attached.",
-		       msg->id);
+	rc = rclient_validate_message_fds(msg, fds, num_fds);
+	if (rc < 0) {
 		for (int i = 0; i < (int)num_fds; i++)
 			if (fds[i] >= 0)
 				close(fds[i]);
-		return -EINVAL;
+		return rc;
 	}
-
 	int fd = num_fds > 0 ? fds[0] : -1;
-
-	/* Most messages should not have a file descriptor. */
-	switch (msg->id) {
-	case CRAS_SERVER_CONNECT_STREAM:
-		break;
-	default:
-		if (fd != -1) {
-			syslog(LOG_ERR,
-			       "Message %d should not have fd attached.",
-			       msg->id);
-			close(fd);
-			return -EINVAL;
-		}
-		break;
-	}
 
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM: {

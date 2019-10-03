@@ -25,6 +25,20 @@ int rclient_send_message_to_client(const struct cras_rclient *client,
 /* Removes all streams that the client owns and destroys it. */
 void rclient_destroy(struct cras_rclient *client);
 
+/* Checks if the number of incoming fds matches the needs of the message from
+ * client.
+ *
+ * Args:
+ *   msg - The cras_server_message from client.
+ *   fds - The array for incoming fds from client.
+ *   num_fds - The number of fds from client.
+ *
+ * Returns:
+ *   0 on success. Or negative value if the number of fds is invalid.
+ */
+int rclient_validate_message_fds(const struct cras_server_message *msg,
+				 int *fds, unsigned int num_fds);
+
 /* Checks if the incoming stream connect message contains
  * - stream_id matches client->id.
  * - direction supported by the client.

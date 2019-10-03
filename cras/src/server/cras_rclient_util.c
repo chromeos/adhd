@@ -33,6 +33,33 @@ void rclient_destroy(struct cras_rclient *client)
 	free(client);
 }
 
+int rclient_validate_message_fds(const struct cras_server_message *msg,
+				 int *fds, unsigned int num_fds)
+{
+	switch (msg->id) {
+	case CRAS_SERVER_CONNECT_STREAM:
+		if (num_fds > 2)
+			goto error;
+		break;
+	case CRAS_SERVER_SET_AEC_DUMP:
+		if (num_fds > 1)
+			goto error;
+		syslog(LOG_ERR, "client msg for APM debug, fd %d", fds[0]);
+		break;
+	default:
+		if (num_fds > 0)
+			goto error;
+		break;
+	}
+
+	return 0;
+
+error:
+	syslog(LOG_ERR, "Message %d should not have %u fds attached.", msg->id,
+	       num_fds);
+	return -EINVAL;
+}
+
 static int
 rclient_validate_stream_connect_message(const struct cras_rclient *client,
 					const struct cras_connect_message *msg)
