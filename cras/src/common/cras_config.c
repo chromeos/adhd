@@ -35,6 +35,9 @@ int cras_fill_socket_path(enum CRAS_CONNECTION_TYPE conn_type, char *sock_path)
 	case CRAS_PLAYBACK:
 		sock_file = CRAS_PLAYBACK_SOCKET_FILE;
 		break;
+	case CRAS_CAPTURE:
+		sock_file = CRAS_CAPTURE_SOCKET_FILE;
+		break;
 	default:
 		return -EINVAL;
 	}

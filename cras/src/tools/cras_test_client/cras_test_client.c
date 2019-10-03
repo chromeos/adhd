@@ -1582,7 +1582,9 @@ static void show_usage()
 	       "                                      "
 	       "Argument: 0 - For control client.\n"
 	       "                                      "
-	       "          1 - For playback client.\n");
+	       "          1 - For playback client.\n"
+	       "                                      "
+	       "          2 - For capture client.\n");
 	printf("--dump_audio_thread - "
 	       "Dumps audio thread info.\n");
 	printf("--dump_bt - "

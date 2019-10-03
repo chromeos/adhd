@@ -47,6 +47,7 @@ enum CRAS_TEST_IODEV_CMD {
 enum CRAS_CONNECTION_TYPE {
 	CRAS_CONTROL, // For legacy client.
 	CRAS_PLAYBACK, // For playback client.
+	CRAS_CAPTURE, // For capture client.
 	CRAS_NUM_CONN_TYPE,
 };
 

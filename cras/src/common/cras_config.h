@@ -15,6 +15,7 @@
 #define CRAS_CLIENT_NICENESS_LEVEL -10
 #define CRAS_SOCKET_FILE ".cras_socket"
 #define CRAS_PLAYBACK_SOCKET_FILE ".cras_playback"
+#define CRAS_CAPTURE_SOCKET_FILE ".cras_capture"
 
 /* Maximum socket_path size, which is equals to sizeof(sun_path) in sockaddr_un
  * structure.

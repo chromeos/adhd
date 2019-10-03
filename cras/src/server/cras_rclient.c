@@ -10,6 +10,7 @@
 #include "audio_thread.h"
 #include "cras_apm_list.h"
 #include "cras_bt_log.h"
+#include "cras_capture_rclient.h"
 #include "cras_config.h"
 #include "cras_control_rclient.h"
 #include "cras_dsp.h"
@@ -68,6 +69,8 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id,
 		return cras_control_rclient_create(fd, id);
 	case CRAS_PLAYBACK:
 		return cras_playback_rclient_create(fd, id);
+	case CRAS_CAPTURE:
+		return cras_capture_rclient_create(fd, id);
 	default:
 		goto error;
 	}
