@@ -120,9 +120,8 @@ enum CRAS_METRICS_DEVICE_TYPE {
 	CRAS_METRICS_DEVICE_BLUETOOTH,
 	CRAS_METRICS_DEVICE_NO_DEVICE,
 	CRAS_METRICS_DEVICE_NORMAL_FALLBACK,
-	CRAS_METRICS_DEVICE_NORMAL_SILENT_HOTWORD,
 	CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK,
-	CRAS_METRICS_DEVICE_ABNORMAL_SILENT_HOTWORD,
+	CRAS_METRICS_DEVICE_SILENT_HOTWORD,
 	CRAS_METRICS_DEVICE_UNKNOWN,
 };
 
@@ -234,14 +233,13 @@ metrics_device_type_str(enum CRAS_METRICS_DEVICE_TYPE device_type)
 		return "Bluetooth";
 	case CRAS_METRICS_DEVICE_NO_DEVICE:
 		return "NoDevice";
+	/* Other dummy devices. */
 	case CRAS_METRICS_DEVICE_NORMAL_FALLBACK:
 		return "NormalFallback";
-	case CRAS_METRICS_DEVICE_NORMAL_SILENT_HOTWORD:
-		return "NormalSlientHotword";
 	case CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK:
 		return "AbnormalFallback";
-	case CRAS_METRICS_DEVICE_ABNORMAL_SILENT_HOTWORD:
-		return "AbnormalSlientHotword";
+	case CRAS_METRICS_DEVICE_SILENT_HOTWORD:
+		return "SilentHotword";
 	case CRAS_METRICS_DEVICE_UNKNOWN:
 		return "Unknown";
 	default:
@@ -254,31 +252,19 @@ get_metrics_device_type(struct cras_iodev *iodev)
 {
 	/* Check whether it is a special device. */
 	if (iodev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
-		if (iodev->active_node->type ==
-		    CRAS_NODE_TYPE_FALLBACK_NORMAL) {
-			switch (iodev->info.idx) {
-			case NO_DEVICE:
-				syslog(LOG_ERR,
-				       "The invalid device has been used.");
-				return CRAS_METRICS_DEVICE_NO_DEVICE;
-			case SILENT_RECORD_DEVICE:
-			case SILENT_PLAYBACK_DEVICE:
+		switch (iodev->info.idx) {
+		case NO_DEVICE:
+			syslog(LOG_ERR, "The invalid device has been used.");
+			return CRAS_METRICS_DEVICE_NO_DEVICE;
+		case SILENT_RECORD_DEVICE:
+		case SILENT_PLAYBACK_DEVICE:
+			if (iodev->active_node->type ==
+			    CRAS_NODE_TYPE_FALLBACK_NORMAL)
 				return CRAS_METRICS_DEVICE_NORMAL_FALLBACK;
-			case SILENT_HOTWORD_DEVICE:
-				return CRAS_METRICS_DEVICE_NORMAL_SILENT_HOTWORD;
-			}
-		} else {
-			switch (iodev->info.idx) {
-			case NO_DEVICE:
-				syslog(LOG_ERR,
-				       "The invalid device has been used.");
-				return CRAS_METRICS_DEVICE_NO_DEVICE;
-			case SILENT_RECORD_DEVICE:
-			case SILENT_PLAYBACK_DEVICE:
+			else
 				return CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK;
-			case SILENT_HOTWORD_DEVICE:
-				return CRAS_METRICS_DEVICE_ABNORMAL_SILENT_HOTWORD;
-			}
+		case SILENT_HOTWORD_DEVICE:
+			return CRAS_METRICS_DEVICE_SILENT_HOTWORD;
 		}
 	}
 
