@@ -22,38 +22,27 @@ use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::*;
 
 #[derive(Debug)]
-pub enum ErrorType {
+pub enum Error {
     IoError(io::Error),
     MessageTypeError,
     NoShmError,
-}
-
-#[derive(Debug)]
-pub struct Error {
-    error_type: ErrorType,
-}
-
-impl Error {
-    fn new(error_type: ErrorType) -> Error {
-        Error { error_type }
-    }
 }
 
 impl error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.error_type {
-            ErrorType::IoError(ref err) => err.fmt(f),
-            ErrorType::MessageTypeError => write!(f, "Message type error"),
-            ErrorType::NoShmError => write!(f, "Shared memory area is not created"),
+        match self {
+            Error::IoError(ref err) => err.fmt(f),
+            Error::MessageTypeError => write!(f, "Message type error"),
+            Error::NoShmError => write!(f, "Shared memory area is not created"),
         }
     }
 }
 
 impl From<io::Error> for Error {
     fn from(io_err: io::Error) -> Error {
-        Error::new(ErrorType::IoError(io_err))
+        Error::IoError(io_err)
     }
 }
 
@@ -210,9 +199,9 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
         match self.controls.audio_sock_mut().read_audio_message()? {
             AudioMessage::Success { id, .. } => match id {
                 CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA => Ok(()),
-                _ => Err(Error::new(ErrorType::MessageTypeError)),
+                _ => Err(Error::MessageTypeError),
             },
-            _ => Err(Error::new(ErrorType::MessageTypeError)),
+            _ => Err(Error::MessageTypeError),
         }
     }
 
@@ -220,9 +209,9 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
         match self.controls.audio_sock_mut().read_audio_message()? {
             AudioMessage::Success { id, frames } => match id {
                 CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_READY => Ok(frames),
-                _ => Err(Error::new(ErrorType::MessageTypeError)),
+                _ => Err(Error::MessageTypeError),
             },
-            _ => Err(Error::new(ErrorType::MessageTypeError)),
+            _ => Err(Error::MessageTypeError),
         }
     }
 }
@@ -255,11 +244,11 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
         // Wait for request audio message
         self.wait_request_data()?;
         let (frame_size, (offset, len)) = match self.controls.header_mut() {
-            None => return Err(Error::new(ErrorType::NoShmError).into()),
+            None => return Err(Error::NoShmError.into()),
             Some(header) => (header.get_frame_size(), header.get_write_offset_and_len()?),
         };
         let buf = match self.audio_buffer.as_mut() {
-            None => return Err(Error::new(ErrorType::NoShmError).into()),
+            None => return Err(Error::NoShmError.into()),
             Some(audio_buffer) => &mut audio_buffer.get_buffer()[offset..offset + len],
         };
         PlaybackBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)
@@ -271,7 +260,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<
         // Wait for data ready message
         let frames = self.wait_data_ready()?;
         let (frame_size, shm_frames, offset) = match self.controls.header_mut() {
-            None => return Err(Error::new(ErrorType::NoShmError).into()),
+            None => return Err(Error::NoShmError.into()),
             Some(header) => (
                 header.get_frame_size(),
                 header.get_readable_frames()?,
@@ -280,7 +269,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<
         };
         let len = min(shm_frames, frames as usize) * frame_size;
         let buf = match self.audio_buffer.as_mut() {
-            None => return Err(Error::new(ErrorType::NoShmError).into()),
+            None => return Err(Error::NoShmError.into()),
             Some(audio_buffer) => &mut audio_buffer.get_buffer()[offset..offset + len],
         };
         CaptureBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)

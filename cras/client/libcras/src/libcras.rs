@@ -141,7 +141,7 @@ mod cras_client_message;
 use crate::cras_client_message::*;
 
 #[derive(Debug)]
-pub enum ErrorType {
+pub enum Error {
     CrasClientMessageError(cras_client_message::Error),
     CrasStreamError(cras_stream::Error),
     IoError(io::Error),
@@ -150,28 +150,17 @@ pub enum ErrorType {
     UnexpectedExit,
 }
 
-#[derive(Debug)]
-pub struct Error {
-    error_type: ErrorType,
-}
-
-impl Error {
-    fn new(error_type: ErrorType) -> Self {
-        Self { error_type }
-    }
-}
-
 impl error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.error_type {
-            ErrorType::CrasClientMessageError(ref err) => err.fmt(f),
-            ErrorType::CrasStreamError(ref err) => err.fmt(f),
-            ErrorType::IoError(ref err) => err.fmt(f),
-            ErrorType::SysUtilError(ref err) => err.fmt(f),
-            ErrorType::MessageTypeError => write!(f, "Message type error"),
-            ErrorType::UnexpectedExit => write!(f, "Unexpected exit"),
+        match self {
+            Error::CrasClientMessageError(ref err) => err.fmt(f),
+            Error::CrasStreamError(ref err) => err.fmt(f),
+            Error::IoError(ref err) => err.fmt(f),
+            Error::SysUtilError(ref err) => err.fmt(f),
+            Error::MessageTypeError => write!(f, "Message type error"),
+            Error::UnexpectedExit => write!(f, "Unexpected exit"),
         }
     }
 }
@@ -180,25 +169,25 @@ type Result<T> = std::result::Result<T, Error>;
 
 impl From<io::Error> for Error {
     fn from(io_err: io::Error) -> Self {
-        Self::new(ErrorType::IoError(io_err))
+        Error::IoError(io_err)
     }
 }
 
 impl From<sys_util::Error> for Error {
     fn from(sys_util_err: sys_util::Error) -> Self {
-        Self::new(ErrorType::SysUtilError(sys_util_err))
+        Error::SysUtilError(sys_util_err)
     }
 }
 
 impl From<cras_stream::Error> for Error {
     fn from(err: cras_stream::Error) -> Self {
-        Self::new(ErrorType::CrasStreamError(err))
+        Error::CrasStreamError(err)
     }
 }
 
 impl From<cras_client_message::Error> for Error {
     fn from(err: cras_client_message::Error) -> Self {
-        Self::new(ErrorType::CrasClientMessageError(err))
+        Error::CrasClientMessageError(err)
     }
 }
 
@@ -232,7 +221,7 @@ impl CrasClient {
             match CrasClient::wait_for_message(&mut server_socket)? {
                 ServerResult::Connected(res, _server_state_fd) => res as u32,
                 _ => {
-                    return Err(Error::new(ErrorType::MessageTypeError));
+                    return Err(Error::MessageTypeError);
                 }
             }
         };
@@ -346,7 +335,7 @@ impl CrasClient {
         let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
         tokens
             .get(0)
-            .ok_or_else(|| Error::new(ErrorType::UnexpectedExit))
+            .ok_or_else(|| Error::UnexpectedExit)
             .and_then(|ref token| {
                 match token {
                     Token::ServerMsg => ServerResult::handle_server_message(socket),
