@@ -25,7 +25,6 @@ use crate::cras_shm::*;
 pub enum Error {
     IoError(io::Error),
     MessageTypeError,
-    NoShmError,
 }
 
 impl error::Error for Error {}
@@ -35,7 +34,6 @@ impl fmt::Display for Error {
         match self {
             Error::IoError(ref err) => err.fmt(f),
             Error::MessageTypeError => write!(f, "Message type error"),
-            Error::NoShmError => write!(f, "Shared memory area is not created"),
         }
     }
 }
@@ -50,31 +48,23 @@ impl From<io::Error> for Error {
 /// interacts with server's audio thread through `AudioSocket`.
 pub trait CrasStreamData<'a>: Send {
     // Creates `CrasStreamData` with only `AudioSocket`.
-    fn new(audio_sock: AudioSocket) -> Self;
-    fn set_header(&mut self, header: CrasAudioHeader<'a>);
-    fn header_mut(&mut self) -> &mut Option<CrasAudioHeader<'a>>;
+    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>) -> Self;
+    fn header_mut(&mut self) -> &mut CrasAudioHeader<'a>;
     fn audio_sock_mut(&mut self) -> &mut AudioSocket;
 }
 
 /// `CrasStreamData` implementation for `PlaybackBufferStream`.
 pub struct CrasPlaybackData<'a> {
     audio_sock: AudioSocket,
-    header: Option<CrasAudioHeader<'a>>,
+    header: CrasAudioHeader<'a>,
 }
 
 impl<'a> CrasStreamData<'a> for CrasPlaybackData<'a> {
-    fn new(audio_sock: AudioSocket) -> Self {
-        Self {
-            audio_sock,
-            header: None,
-        }
+    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>) -> Self {
+        Self { audio_sock, header }
     }
 
-    fn set_header(&mut self, header: CrasAudioHeader<'a>) {
-        self.header = Some(header);
-    }
-
-    fn header_mut(&mut self) -> &mut Option<CrasAudioHeader<'a>> {
+    fn header_mut(&mut self) -> &mut CrasAudioHeader<'a> {
         &mut self.header
     }
 
@@ -86,10 +76,8 @@ impl<'a> CrasStreamData<'a> for CrasPlaybackData<'a> {
 impl<'a> BufferDrop for CrasPlaybackData<'a> {
     fn trigger(&mut self, nframes: usize) {
         let log_err = |e| error!("BufferDrop error: {}", e);
-        if let Some(header) = &mut self.header {
-            if let Err(e) = header.commit_written_frames(nframes as u32) {
-                log_err(e);
-            }
+        if let Err(e) = self.header.commit_written_frames(nframes as u32) {
+            log_err(e);
         }
         if let Err(e) = self.audio_sock.data_ready(nframes as u32) {
             log_err(e);
@@ -100,22 +88,15 @@ impl<'a> BufferDrop for CrasPlaybackData<'a> {
 /// `CrasStreamData` implementation for `CaptureBufferStream`.
 pub struct CrasCaptureData<'a> {
     audio_sock: AudioSocket,
-    header: Option<CrasAudioHeader<'a>>,
+    header: CrasAudioHeader<'a>,
 }
 
 impl<'a> CrasStreamData<'a> for CrasCaptureData<'a> {
-    fn new(audio_sock: AudioSocket) -> Self {
-        Self {
-            audio_sock,
-            header: None,
-        }
+    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>) -> Self {
+        Self { audio_sock, header }
     }
 
-    fn set_header(&mut self, header: CrasAudioHeader<'a>) {
-        self.header = Some(header);
-    }
-
-    fn header_mut(&mut self) -> &mut Option<CrasAudioHeader<'a>> {
+    fn header_mut(&mut self) -> &mut CrasAudioHeader<'a> {
         &mut self.header
     }
 
@@ -127,10 +108,8 @@ impl<'a> CrasStreamData<'a> for CrasCaptureData<'a> {
 impl<'a> BufferDrop for CrasCaptureData<'a> {
     fn trigger(&mut self, nframes: usize) {
         let log_err = |e| error!("BufferDrop error: {}", e);
-        if let Some(header) = &mut self.header {
-            if let Err(e) = header.commit_read_frames(nframes as u32) {
-                log_err(e);
-            }
+        if let Err(e) = self.header.commit_read_frames(nframes as u32) {
+            log_err(e);
         }
         if let Err(e) = self.audio_sock.capture_ready(nframes as u32) {
             log_err(e);
@@ -151,7 +130,7 @@ pub struct CrasStream<'a, T: CrasStreamData<'a> + BufferDrop> {
     controls: T,
     /// The `PhantomData` is used by `controls: T`
     phantom: PhantomData<CrasAudioHeader<'a>>,
-    audio_buffer: Option<CrasAudioBuffer>,
+    audio_buffer: CrasAudioBuffer,
 }
 
 impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
@@ -159,7 +138,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
     ///
     /// # Returns
     /// `CrasStream` - CRAS client stream.
-    pub fn new(
+    pub fn try_new(
         stream_id: u32,
         server_socket: CrasServerSocket,
         block_size: u32,
@@ -168,8 +147,12 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
         num_channels: usize,
         format: snd_pcm_format_t,
         audio_sock: AudioSocket,
-    ) -> Self {
-        Self {
+        header_fd: CrasAudioShmHeaderFd,
+        samples_fd: CrasShmFd,
+    ) -> Result<Self, Error> {
+        let (header, audio_buffer) = create_header_and_buffers(header_fd, samples_fd)?;
+
+        Ok(Self {
             stream_id,
             server_socket,
             block_size,
@@ -177,22 +160,10 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
             rate,
             num_channels,
             format,
-            controls: T::new(audio_sock),
+            controls: T::new(audio_sock, header),
             phantom: PhantomData,
-            audio_buffer: None,
-        }
-    }
-
-    /// Receives shared memory fd and initialize stream audio shared memory area
-    pub fn init_shm(
-        &mut self,
-        header_fd: CrasAudioShmHeaderFd,
-        samples_fd: CrasShmFd,
-    ) -> Result<(), Error> {
-        let (header, buffer) = create_header_and_buffers(header_fd, samples_fd)?;
-        self.controls.set_header(header);
-        self.audio_buffer = Some(buffer);
-        Ok(())
+            audio_buffer,
+        })
     }
 
     fn wait_request_data(&mut self) -> Result<(), Error> {
@@ -243,14 +214,11 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
     fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, Box<dyn error::Error>> {
         // Wait for request audio message
         self.wait_request_data()?;
-        let (frame_size, (offset, len)) = match self.controls.header_mut() {
-            None => return Err(Error::NoShmError.into()),
-            Some(header) => (header.get_frame_size(), header.get_write_offset_and_len()?),
-        };
-        let buf = match self.audio_buffer.as_mut() {
-            None => return Err(Error::NoShmError.into()),
-            Some(audio_buffer) => &mut audio_buffer.get_buffer()[offset..offset + len],
-        };
+        let header = self.controls.header_mut();
+        let frame_size = header.get_frame_size();
+        let (offset, len) = header.get_write_offset_and_len()?;
+        let buf = &mut self.audio_buffer.get_buffer()[offset..offset + len];
+
         PlaybackBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)
     }
 }
@@ -259,19 +227,13 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<
     fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<dyn error::Error>> {
         // Wait for data ready message
         let frames = self.wait_data_ready()?;
-        let (frame_size, shm_frames, offset) = match self.controls.header_mut() {
-            None => return Err(Error::NoShmError.into()),
-            Some(header) => (
-                header.get_frame_size(),
-                header.get_readable_frames()?,
-                header.get_read_buffer_offset()?,
-            ),
-        };
+        let header = self.controls.header_mut();
+        let frame_size = header.get_frame_size();
+        let shm_frames = header.get_readable_frames()?;
         let len = min(shm_frames, frames as usize) * frame_size;
-        let buf = match self.audio_buffer.as_mut() {
-            None => return Err(Error::NoShmError.into()),
-            Some(audio_buffer) => &mut audio_buffer.get_buffer()[offset..offset + len],
-        };
+        let offset = header.get_read_buffer_offset()?;
+        let buf = &mut self.audio_buffer.get_buffer()[offset..offset + len];
+
         CaptureBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)
     }
 }

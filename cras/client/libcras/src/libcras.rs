@@ -287,15 +287,15 @@ impl CrasClient {
     }
 
     // Gets next server_stream_id from client and increment stream_id counter.
-    fn next_server_stream_id(&mut self) -> Result<u32> {
+    fn next_server_stream_id(&mut self) -> u32 {
         let res = self.next_stream_id;
         self.next_stream_id += 1;
-        self.server_stream_id(&res)
+        self.server_stream_id(res)
     }
 
     // Gets server_stream_id from given stream_id
-    fn server_stream_id(&self, stream_id: &u32) -> Result<u32> {
-        Ok((self.client_id << 16) | stream_id)
+    fn server_stream_id(&self, stream_id: u32) -> u32 {
+        (self.client_id << 16) | stream_id
     }
 
     // Creates general stream with given parameters
@@ -307,7 +307,7 @@ impl CrasClient {
         channel_num: usize,
         format: snd_pcm_format_t,
     ) -> Result<CrasStream<'a, T>> {
-        let stream_id = self.next_server_stream_id()?;
+        let stream_id = self.next_server_stream_id();
 
         // Prepares server message
         let audio_format = cras_audio_format_packed::new(format, rate, channel_num);
@@ -340,26 +340,25 @@ impl CrasClient {
             .send_server_message_with_fds(&server_cmsg, &socks)?;
 
         let audio_socket = AudioSocket::new(sock1);
-        let mut stream = CrasStream::new(
-            stream_id,
-            self.server_socket.try_clone()?,
-            block_size,
-            direction,
-            rate,
-            channel_num,
-            format,
-            audio_socket,
-        );
 
         loop {
             let result = CrasClient::wait_for_message(&mut self.server_socket)?;
             if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
-                stream.init_shm(header_fd, samples_fd)?;
-                break;
+                return CrasStream::try_new(
+                    stream_id,
+                    self.server_socket.try_clone()?,
+                    block_size,
+                    direction,
+                    rate,
+                    channel_num,
+                    format,
+                    audio_socket,
+                    header_fd,
+                    samples_fd,
+                )
+                .map_err(Error::CrasStreamError);
             }
         }
-
-        Ok(stream)
     }
 
     // Blocks handling the first server message received from `socket`.
