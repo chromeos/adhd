@@ -42,7 +42,7 @@ int rclient_validate_message_fds(const struct cras_server_message *msg,
 			goto error;
 		break;
 	case CRAS_SERVER_SET_AEC_DUMP:
-		if (num_fds > 1)
+		if (num_fds != 1)
 			goto error;
 		syslog(LOG_ERR, "client msg for APM debug, fd %d", fds[0]);
 		break;
