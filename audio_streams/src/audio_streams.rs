@@ -13,23 +13,25 @@
 //! the samples written to it are committed to the `PlaybackBufferStream` it came from.
 //!
 //! ```
-//! use audio_streams::{StreamSource, DummyStreamSource};
+//! use audio_streams::{SampleFormat, StreamSource, DummyStreamSource};
 //! use std::io::Write;
 //!
 //! const buffer_size: usize = 120;
 //! const num_channels: usize = 2;
-//! const frame_size: usize = num_channels * 2; // 16-bit samples are two bytes.
 //!
 //! # fn main() -> std::result::Result<(), Box<std::error::Error>> {
 //! let mut stream_source = DummyStreamSource::new();
+//! let sample_format = SampleFormat::S16LE;
+//! let frame_size = num_channels * sample_format.sample_bytes();
 //!
 //! let (_, mut stream) = stream_source
-//!     .new_playback_stream(num_channels, 48000, buffer_size)?;
+//!     .new_playback_stream(num_channels, sample_format, 48000, buffer_size)?;
 //! // Play 10 buffers of DC.
-//! let pb_bufs = [[0xa5u8; buffer_size * frame_size]; 10];
-//! for pb_buf in &pb_bufs {
+//! let mut buf = Vec::new();
+//! buf.resize(buffer_size * frame_size, 0xa5u8);
+//! for _ in 0..10 {
 //!     let mut stream_buffer = stream.next_playback_buffer()?;
-//!     assert_eq!(stream_buffer.write(pb_buf)?, buffer_size * frame_size);
+//!     assert_eq!(stream_buffer.write(&buf)?, buffer_size * frame_size);
 //! }
 //! # Ok (())
 //! # }
@@ -42,6 +44,26 @@ use std::os::unix::io::RawFd;
 use std::result::Result;
 use std::time::{Duration, Instant};
 
+#[derive(Copy, Clone, Debug)]
+pub enum SampleFormat {
+    U8,
+    S16LE,
+    S24LE,
+    S32LE,
+}
+
+impl SampleFormat {
+    pub fn sample_bytes(&self) -> usize {
+        use SampleFormat::*;
+        match self {
+            U8 => 1,
+            S16LE => 2,
+            S24LE => 4, // Not a typo, S24_LE samples are stored in 4 byte chunks.
+            S32LE => 4,
+        }
+    }
+}
+
 pub mod capture;
 
 /// `StreamSource` creates streams for playback or capture of audio.
@@ -51,6 +73,7 @@ pub trait StreamSource: Send {
     fn new_playback_stream(
         &mut self,
         num_channels: usize,
+        format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<dyn error::Error>>;
@@ -61,6 +84,7 @@ pub trait StreamSource: Send {
     fn new_capture_stream(
         &mut self,
         num_channels: usize,
+        format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
     ) -> Result<
@@ -74,6 +98,7 @@ pub trait StreamSource: Send {
             Box::new(DummyStreamControl::new()),
             Box::new(capture::DummyCaptureStream::new(
                 num_channels,
+                format,
                 frame_rate,
                 buffer_size,
             )),
@@ -223,10 +248,13 @@ impl BufferDrop for DummyBufferDrop {
 }
 
 impl DummyStream {
-    // TODO(allow other formats)
-    pub fn new(num_channels: usize, frame_rate: usize, buffer_size: usize) -> Self {
-        const S16LE_SIZE: usize = 2;
-        let frame_size = S16LE_SIZE * num_channels;
+    pub fn new(
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+        buffer_size: usize,
+    ) -> Self {
+        let frame_size = format.sample_bytes() * num_channels;
         let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
         DummyStream {
             buffer: vec![0; buffer_size * frame_size],
@@ -286,13 +314,19 @@ impl StreamSource for DummyStreamSource {
     fn new_playback_stream(
         &mut self,
         num_channels: usize,
+        format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<dyn error::Error>>
     {
         Ok((
             Box::new(DummyStreamControl::new()),
-            Box::new(DummyStream::new(num_channels, frame_rate, buffer_size)),
+            Box::new(DummyStream::new(
+                num_channels,
+                format,
+                frame_rate,
+                buffer_size,
+            )),
         ))
     }
 }
@@ -334,7 +368,9 @@ mod tests {
     #[test]
     fn sixteen_bit_stereo() {
         let mut server = DummyStreamSource::new();
-        let (_, mut stream) = server.new_playback_stream(2, 48000, 480).unwrap();
+        let (_, mut stream) = server
+            .new_playback_stream(2, SampleFormat::S16LE, 48000, 480)
+            .unwrap();
         let mut stream_buffer = stream.next_playback_buffer().unwrap();
         assert_eq!(stream_buffer.frame_capacity(), 480);
         let pb_buf = [0xa5u8; 480 * 2 * 2];
@@ -344,7 +380,9 @@ mod tests {
     #[test]
     fn consumption_rate() {
         let mut server = DummyStreamSource::new();
-        let (_, mut stream) = server.new_playback_stream(2, 48000, 480).unwrap();
+        let (_, mut stream) = server
+            .new_playback_stream(2, SampleFormat::S16LE, 48000, 480)
+            .unwrap();
         let start = Instant::now();
         {
             let mut stream_buffer = stream.next_playback_buffer().unwrap();

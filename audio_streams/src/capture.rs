@@ -2,23 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //! ```
-//! use audio_streams::{StreamSource, DummyStreamSource};
+//! use audio_streams::{SampleFormat, StreamSource, DummyStreamSource};
 //! use std::io::Read;
 //!
 //! const buffer_size: usize = 120;
 //! const num_channels: usize = 2;
-//! const frame_size: usize = num_channels * 2; // 16-bit samples are two bytes.
 //!
 //! # fn main() -> std::result::Result<(), Box<std::error::Error>> {
 //! let mut stream_source = DummyStreamSource::new();
+//! let sample_format = SampleFormat::S16LE;
+//! let frame_size = num_channels * sample_format.sample_bytes();
 //!
 //! let (_, mut stream) = stream_source
-//!     .new_capture_stream(num_channels, 48000, buffer_size)?;
+//!     .new_capture_stream(num_channels, sample_format, 48000, buffer_size)?;
 //! // Capture 10 buffers of zeros.
-//! let mut cp_bufs = [[0xa5u8; buffer_size * frame_size]; 10];
-//! for cp_buf in &mut cp_bufs {
+//! let mut buf = Vec::new();
+//! buf.resize(buffer_size * frame_size, 0xa5u8);
+//! for _ in 0..10 {
 //!     let mut stream_buffer = stream.next_capture_buffer()?;
-//!     assert_eq!(stream_buffer.read(cp_buf)?, buffer_size * frame_size);
+//!     assert_eq!(stream_buffer.read(&mut buf)?, buffer_size * frame_size);
 //! }
 //! # Ok (())
 //! # }
@@ -31,7 +33,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::{AudioBuffer, BufferDrop, DummyBufferDrop};
+use super::{AudioBuffer, BufferDrop, DummyBufferDrop, SampleFormat};
 
 /// `CaptureBufferStream` provides `CaptureBuffer`s to read with audio samples from capture.
 pub trait CaptureBufferStream: Send {
@@ -127,10 +129,13 @@ pub struct DummyCaptureStream {
 }
 
 impl DummyCaptureStream {
-    // TODO(allow other formats)
-    pub fn new(num_channels: usize, frame_rate: usize, buffer_size: usize) -> Self {
-        const S16LE_SIZE: usize = 2;
-        let frame_size = S16LE_SIZE * num_channels;
+    pub fn new(
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+        buffer_size: usize,
+    ) -> Self {
+        let frame_size = format.sample_bytes() * num_channels;
         let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
         DummyCaptureStream {
             buffer: vec![0; buffer_size * frame_size],
@@ -204,7 +209,9 @@ mod tests {
     #[test]
     fn sixteen_bit_stereo() {
         let mut server = DummyStreamSource::new();
-        let (_, mut stream) = server.new_capture_stream(2, 48000, 480).unwrap();
+        let (_, mut stream) = server
+            .new_capture_stream(2, SampleFormat::S16LE, 48000, 480)
+            .unwrap();
         let mut stream_buffer = stream.next_capture_buffer().unwrap();
         assert_eq!(stream_buffer.frame_capacity(), 480);
         let mut pb_buf = [0xa5u8; 480 * 2 * 2];
@@ -214,7 +221,9 @@ mod tests {
     #[test]
     fn consumption_rate() {
         let mut server = DummyStreamSource::new();
-        let (_, mut stream) = server.new_capture_stream(2, 48000, 480).unwrap();
+        let (_, mut stream) = server
+            .new_capture_stream(2, SampleFormat::S16LE, 48000, 480)
+            .unwrap();
         let start = Instant::now();
         {
             let mut stream_buffer = stream.next_capture_buffer().unwrap();

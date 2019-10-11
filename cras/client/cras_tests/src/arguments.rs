@@ -3,15 +3,15 @@
 // found in the LICENSE file.
 use std::error;
 use std::fmt;
-use std::num::ParseIntError;
 use std::path::PathBuf;
 
+use audio_streams::SampleFormat;
 use getopts::{self, Matches, Options};
 
 #[derive(Debug)]
 pub enum Error {
     GetOpts(getopts::Fail),
-    InvalidArgument(String, String, ParseIntError),
+    InvalidArgument(String, String, String),
     MissingCommand,
     MissingFilename,
     UnknownCommand(String),
@@ -24,8 +24,8 @@ impl fmt::Display for Error {
         use Error::*;
         match self {
             GetOpts(e) => write!(f, "Getopts Error: {}", e),
-            InvalidArgument(flag, value, e) => {
-                write!(f, "Invalid {} argument '{}': {}", flag, value, e)
+            InvalidArgument(flag, value, error_msg) => {
+                write!(f, "Invalid {} argument '{}': {}", flag, value, error_msg)
             }
             MissingCommand => write!(f, "A command must be provided"),
             MissingFilename => write!(f, "A file name must be provided"),
@@ -69,13 +69,14 @@ pub struct AudioOptions {
     pub file_name: PathBuf,
     pub buffer_size: Option<usize>,
     pub num_channels: Option<usize>,
+    pub format: Option<SampleFormat>,
     pub frame_rate: Option<usize>,
 }
 
 fn get_usize_param(matches: &Matches, option_name: &str) -> Result<Option<usize>> {
     matches.opt_get::<usize>(option_name).map_err(|e| {
         let argument = matches.opt_str(option_name).unwrap_or_default();
-        Error::InvalidArgument(option_name.to_string(), argument, e)
+        Error::InvalidArgument(option_name.to_string(), argument, e.to_string())
     })
 }
 
@@ -84,6 +85,12 @@ impl AudioOptions {
         let mut opts = Options::new();
         opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
             .optopt("c", "channels", "Number of channels", "NUM")
+            .optopt(
+                "f",
+                "format",
+                "Sample format (U8, S16_LE, S24_LE, or S32_LE)",
+                "FORMAT",
+            )
             .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
             .optflag("h", "help", "Print help message");
 
@@ -128,12 +135,28 @@ impl AudioOptions {
         let buffer_size = get_usize_param(&matches, "buffer_size")?;
         let num_channels = get_usize_param(&matches, "channels")?;
         let frame_rate = get_usize_param(&matches, "rate")?;
+        let format = match matches.opt_str("format").as_ref().map(|s| s.as_str()) {
+            Some("U8") => Some(SampleFormat::U8),
+            Some("S16_LE") => Some(SampleFormat::S16LE),
+            Some("S24_LE") => Some(SampleFormat::S24LE),
+            Some("S32_LE") => Some(SampleFormat::S32LE),
+            Some(s) => {
+                show_command_usage(&program_name, &command, &opts);
+                return Err(Error::InvalidArgument(
+                    "format".to_string(),
+                    s.to_string(),
+                    "Format must be 'U8', 'S16_LE', 'S24_LE', or 'S32_LE'".to_string(),
+                ));
+            }
+            None => None,
+        };
 
         Ok(Some(AudioOptions {
             command,
             file_name,
             buffer_size,
             num_channels,
+            format,
             frame_rate,
         }))
     }

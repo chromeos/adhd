@@ -26,11 +26,12 @@
 //! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 //!
 //! use libcras::{CrasClient, CrasClientType};
-//! use audio_streams::StreamSource;
+//! use audio_streams::{SampleFormat, StreamSource};
 //!
 //! const BUFFER_SIZE: usize = 256;
 //! const FRAME_RATE: usize = 44100;
 //! const NUM_CHANNELS: usize = 2;
+//! const FORMAT: SampleFormat = SampleFormat::S16LE;
 //!
 //! # fn main() -> Result<()> {
 //! #    let args: Vec<String> = env::args().collect();
@@ -39,7 +40,7 @@
 //!              let mut cras_client = CrasClient::new()?;
 //!              cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
 //!              let (_control, mut stream) = cras_client
-//!                  .new_playback_stream(NUM_CHANNELS, FRAME_RATE, BUFFER_SIZE)?;
+//!                  .new_playback_stream(NUM_CHANNELS, FORMAT, FRAME_RATE, BUFFER_SIZE)?;
 //!
 //!              // Plays 1000 * BUFFER_SIZE samples from the given file
 //!              let mut file = File::open(&args[1])?;
@@ -78,11 +79,12 @@
 //! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
 //!
 //! use libcras::{CrasClient, CrasClientType};
-//! use audio_streams::StreamSource;
+//! use audio_streams::{SampleFormat, StreamSource};
 //!
 //! const BUFFER_SIZE: usize = 256;
 //! const FRAME_RATE: usize = 44100;
 //! const NUM_CHANNELS: usize = 2;
+//! const FORMAT: SampleFormat = SampleFormat::S16LE;
 //!
 //! # fn main() -> Result<()> {
 //! #    let args: Vec<String> = env::args().collect();
@@ -91,7 +93,7 @@
 //!              let mut cras_client = CrasClient::new()?;
 //!              cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
 //!              let (_control, mut stream) = cras_client
-//!                  .new_capture_stream(NUM_CHANNELS, FRAME_RATE, BUFFER_SIZE)?;
+//!                  .new_capture_stream(NUM_CHANNELS, FORMAT, FRAME_RATE, BUFFER_SIZE)?;
 //!
 //!              // Capture 1000 * BUFFER_SIZE samples to the given file
 //!              let mut file = File::create(&args[1])?;
@@ -124,7 +126,8 @@ use std::{error, fmt};
 
 use audio_streams::{
     capture::{CaptureBufferStream, DummyCaptureStream},
-    BufferDrop, DummyStreamControl, PlaybackBufferStream, StreamControl, StreamSource,
+    BufferDrop, DummyStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
+    StreamSource,
 };
 pub use cras_sys::gen::CRAS_CLIENT_TYPE as CrasClientType;
 use cras_sys::gen::*;
@@ -319,12 +322,19 @@ impl<'a> CrasClient<'a> {
         direction: CRAS_STREAM_DIRECTION,
         rate: usize,
         channel_num: usize,
-        format: snd_pcm_format_t,
+        format: SampleFormat,
     ) -> Result<CrasStream<'b, T>> {
         let stream_id = self.next_server_stream_id();
 
+        let pcm_format = match format {
+            SampleFormat::U8 => snd_pcm_format_t::SND_PCM_FORMAT_U8,
+            SampleFormat::S16LE => snd_pcm_format_t::SND_PCM_FORMAT_S16_LE,
+            SampleFormat::S24LE => snd_pcm_format_t::SND_PCM_FORMAT_S24_LE,
+            SampleFormat::S32LE => snd_pcm_format_t::SND_PCM_FORMAT_S32_LE,
+        };
+
         // Prepares server message
-        let audio_format = cras_audio_format_packed::new(format, rate, channel_num);
+        let audio_format = cras_audio_format_packed::new(pcm_format, rate, channel_num);
         let msg_header = cras_server_message {
             length: mem::size_of::<cras_connect_message>() as u32,
             id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
@@ -354,7 +364,6 @@ impl<'a> CrasClient<'a> {
             .send_server_message_with_fds(&server_cmsg, &socks)?;
 
         let audio_socket = AudioSocket::new(sock1);
-
         loop {
             let result = CrasClient::wait_for_message(&mut self.server_socket)?;
             if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
@@ -365,7 +374,7 @@ impl<'a> CrasClient<'a> {
                     direction,
                     rate,
                     channel_num,
-                    format,
+                    pcm_format,
                     audio_socket,
                     header_fd,
                     samples_fd,
@@ -403,6 +412,7 @@ impl<'a> StreamSource for CrasClient<'a> {
     fn new_playback_stream(
         &mut self,
         num_channels: usize,
+        format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
     ) -> std::result::Result<
@@ -416,7 +426,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                 CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
                 frame_rate,
                 num_channels,
-                _snd_pcm_format::SND_PCM_FORMAT_S16_LE,
+                format,
             )?),
         ))
     }
@@ -424,6 +434,7 @@ impl<'a> StreamSource for CrasClient<'a> {
     fn new_capture_stream(
         &mut self,
         num_channels: usize,
+        format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
     ) -> std::result::Result<
@@ -438,7 +449,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                     CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
                     frame_rate,
                     num_channels,
-                    _snd_pcm_format::SND_PCM_FORMAT_S16_LE,
+                    format,
                 )?),
             ))
         } else {
@@ -446,6 +457,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                 Box::new(DummyStreamControl::new()),
                 Box::new(DummyCaptureStream::new(
                     num_channels,
+                    format,
                     frame_rate,
                     buffer_size,
                 )),
