@@ -728,7 +728,7 @@ TEST(AlsaJacks, CreateHCTLHeadphoneJackFromUCM) {
   struct cras_alsa_jack_list* jack_list;
   struct ucm_section* section;
 
-  section = ucm_section_create("Headphone", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
                                "Headphone Jack", "hctl");
 
   ResetStubData();
@@ -764,7 +764,7 @@ TEST(AlsaJacks, CreateGPIOHeadphoneJackFromUCM) {
   struct cras_alsa_jack* jack;
   struct ucm_section* section;
 
-  section = ucm_section_create("Headphone", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
                                "c1 Headphone Jack", "gpio");
 
   ResetStubData();
@@ -806,7 +806,7 @@ TEST(AlsaJacks, BadJackTypeFromUCM) {
   struct cras_alsa_jack_list* jack_list;
   struct ucm_section* section;
 
-  section = ucm_section_create("Headphone", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
                                "Headphone Jack", "badtype");
 
   ResetStubData();
@@ -828,7 +828,7 @@ TEST(AlsaJacks, NoJackTypeFromUCM) {
   struct cras_alsa_jack_list* jack_list;
   struct ucm_section* section;
 
-  section = ucm_section_create("Headphone", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
                                "Headphone Jack", NULL);
 
   ResetStubData();
