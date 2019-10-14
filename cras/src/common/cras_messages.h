@@ -142,8 +142,7 @@ static inline void cras_fill_connect_message(
 	cras_stream_id_t stream_id, enum CRAS_STREAM_TYPE stream_type,
 	enum CRAS_CLIENT_TYPE client_type, size_t buffer_frames,
 	size_t cb_threshold, uint32_t flags, uint64_t effects,
-	struct cras_audio_format format, uint32_t dev_idx,
-	uint32_t client_shm_size)
+	struct cras_audio_format format, uint32_t dev_idx)
 {
 	m->proto_version = CRAS_PROTO_VER;
 	m->direction = direction;
@@ -156,7 +155,7 @@ static inline void cras_fill_connect_message(
 	pack_cras_audio_format(&m->format, &format);
 	m->dev_idx = dev_idx;
 	m->client_type = client_type;
-	m->client_shm_size = client_shm_size;
+	m->client_shm_size = 0;
 	m->header.id = CRAS_SERVER_CONNECT_STREAM;
 	m->header.length = sizeof(struct cras_connect_message);
 }

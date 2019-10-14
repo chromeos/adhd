@@ -573,16 +573,6 @@ void cras_client_stream_params_disable_agc(struct cras_stream_params *params);
 void cras_client_stream_params_enable_vad(struct cras_stream_params *params);
 void cras_client_stream_params_disable_vad(struct cras_stream_params *params);
 
-/* Function to setup client-provided shm to be used as the backing shm for the
- * samples area in the cras_audio_shm shared with cras.
- * Args:
- *    client_shm_fd - shm fd to use for samples shm area.
- *    client_shm_size - size of shm area backed by 'client_shm_fd'.
- */
-void cras_client_stream_params_configure_client_shm(
-	struct cras_stream_params *params, int client_shm_fd,
-	size_t client_shm_size);
-
 /* Setup stream configuration parameters. DEPRECATED.
  * TODO(crbug.com/972928): remove this
  * Use cras_client_stream_params_create instead.

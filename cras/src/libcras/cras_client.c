@@ -133,8 +133,6 @@ struct cras_stream_params {
 	cras_unified_cb_t unified_cb;
 	cras_error_cb_t err_cb;
 	struct cras_audio_format format;
-	int client_shm_fd;
-	size_t client_shm_size;
 };
 
 /* Represents an attached audio stream.
@@ -1443,8 +1441,6 @@ static int send_connect_message(struct cras_client *client,
 	int rc;
 	struct cras_connect_message serv_msg;
 	int sock[2] = { -1, -1 };
-	int fds[2] = { -1, -1 };
-	unsigned int num_fds;
 
 	/* Create a socket pair for the server to notify of audio events. */
 	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
@@ -1454,21 +1450,16 @@ static int send_connect_message(struct cras_client *client,
 		goto fail;
 	}
 
-	cras_fill_connect_message(
-		&serv_msg, stream->config->direction, stream->id,
-		stream->config->stream_type, stream->config->client_type,
-		stream->config->buffer_frames, stream->config->cb_threshold,
-		stream->flags, stream->config->effects, stream->config->format,
-		dev_idx, stream->config->client_shm_size);
+	cras_fill_connect_message(&serv_msg, stream->config->direction,
+				  stream->id, stream->config->stream_type,
+				  stream->config->client_type,
+				  stream->config->buffer_frames,
+				  stream->config->cb_threshold, stream->flags,
+				  stream->config->effects,
+				  stream->config->format, dev_idx);
 
-	fds[0] = sock[1];
-	num_fds = 1;
-	if (stream->config->client_shm_fd >= 0) {
-		fds[1] = stream->config->client_shm_fd;
-		num_fds++;
-	}
 	rc = cras_send_with_fds(client->server_fd, &serv_msg, sizeof(serv_msg),
-				fds, num_fds);
+				&sock[1], 1);
 	if (rc != sizeof(serv_msg)) {
 		rc = EIO;
 		syslog(LOG_ERR,
@@ -1478,8 +1469,6 @@ static int send_connect_message(struct cras_client *client,
 
 	stream->aud_fd = sock[0];
 	close(sock[1]);
-	if (stream->config->client_shm_fd != -1)
-		close(stream->config->client_shm_fd);
 	return 0;
 
 fail:
@@ -1487,8 +1476,6 @@ fail:
 		close(sock[0]);
 	if (sock[1] != -1)
 		close(sock[1]);
-	if (stream->config->client_shm_fd != -1)
-		close(stream->config->client_shm_fd);
 	return rc;
 }
 
@@ -2260,8 +2247,6 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->aud_cb = aud_cb;
 	params->unified_cb = 0;
 	params->err_cb = err_cb;
-	params->client_shm_fd = -1;
-	params->client_shm_size = 0;
 	memcpy(&(params->format), format, sizeof(*format));
 	return params;
 }
@@ -2312,14 +2297,6 @@ void cras_client_stream_params_disable_vad(struct cras_stream_params *params)
 	params->effects &= ~APM_VOICE_DETECTION;
 }
 
-void cras_client_stream_params_configure_client_shm(
-	struct cras_stream_params *params, int client_shm_fd,
-	size_t client_shm_size)
-{
-	params->client_shm_fd = client_shm_fd;
-	params->client_shm_size = client_shm_size;
-}
-
 struct cras_stream_params *cras_client_unified_params_create(
 	enum CRAS_STREAM_DIRECTION direction, unsigned int block_size,
 	enum CRAS_STREAM_TYPE stream_type, uint32_t flags, void *user_data,
@@ -2343,8 +2320,6 @@ struct cras_stream_params *cras_client_unified_params_create(
 	params->aud_cb = 0;
 	params->unified_cb = unified_cb;
 	params->err_cb = err_cb;
-	params->client_shm_fd = -1;
-	params->client_shm_size = 0;
 	memcpy(&(params->format), format, sizeof(*format));
 
 	return params;
