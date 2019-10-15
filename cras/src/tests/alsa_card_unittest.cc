@@ -766,34 +766,81 @@ TEST(AlsaCard, CreateFullyUCMTwoMainVolume) {
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
+TEST(AlsaCard, TwoUCMSecionsDependentPCM) {
+  struct cras_alsa_card* c;
+  cras_alsa_card_info card_info;
+  struct ucm_section* sections = NULL;
+  struct ucm_section* section;
+
+  /* Create UCM so that MIC1 and MIC2 will be two nodes on the same iodev. */
+  section = ucm_section_create("MIC1", "hw:0,3", 0, -1, CRAS_STREAM_INPUT,
+                               "my-sound-card Headset Jack", "gpio");
+  DL_APPEND(sections, section);
+  section = ucm_section_create("MIC2", "hw:0,5", 0, 3, CRAS_STREAM_INPUT,
+                               "my-sound-card Headset Jack", "gpio");
+  DL_APPEND(sections, section);
+
+  ResetStubData();
+  int info_rets[] = {0, 0};
+  card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  card_info.card_index = 0;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  ucm_has_fully_specified_ucm_flag_return_value = 1;
+  ucm_get_sections_return_value = sections;
+  ASSERT_NE(ucm_get_sections_return_value, (struct ucm_section*)NULL);
+
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blacklist,
+                            NULL);
+
+  EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
+  EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
+  EXPECT_EQ(1, snd_ctl_card_info_called);
+  EXPECT_EQ(1, ucm_get_sections_called);
+  EXPECT_EQ(1, snd_ctl_pcm_info_called);
+  EXPECT_EQ(2, cras_alsa_mixer_add_controls_in_section_called);
+  EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(2, cras_alsa_iodev_ucm_add_nodes_and_jacks_called);
+  EXPECT_EQ(1, cras_alsa_iodev_ucm_complete_init_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, ucm_destroy_called);
+  EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
+  EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
 struct ucm_section* GenerateUcmSections(void) {
   struct ucm_section* sections = NULL;
   struct ucm_section* section;
 
-  section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
+  section = ucm_section_create("Headphone", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
                                "my-sound-card Headset Jack", "gpio");
   ucm_section_add_coupled(section, "HP-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "HP-R", MIXER_NAME_VOLUME);
   DL_APPEND(sections, section);
 
-  section = ucm_section_create("Speaker", 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+  section = ucm_section_create("Speaker", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+                               NULL, NULL);
   ucm_section_add_coupled(section, "SPK-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "SPK-R", MIXER_NAME_VOLUME);
   DL_APPEND(sections, section);
 
-  section =
-      ucm_section_create("Internal Mic", 0, CRAS_STREAM_INPUT, NULL, NULL);
+  section = ucm_section_create("Internal Mic", "hw:0,1", 0, -1,
+                               CRAS_STREAM_INPUT, NULL, NULL);
   ucm_section_add_coupled(section, "INT-MIC-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "INT-MIC-R", MIXER_NAME_VOLUME);
   DL_APPEND(sections, section);
 
-  section = ucm_section_create("Mic", 1, CRAS_STREAM_INPUT,
+  section = ucm_section_create("Mic", "hw:0,1", 1, -1, CRAS_STREAM_INPUT,
                                "my-sound-card Headset Jack", "gpio");
   ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
   DL_APPEND(sections, section);
 
-  section = ucm_section_create("HDMI", 2, CRAS_STREAM_OUTPUT, NULL, NULL);
+  section = ucm_section_create("HDMI", "hw:0,1", 2, -1, CRAS_STREAM_OUTPUT,
+                               NULL, NULL);
   ucm_section_set_mixer_name(section, "HDMI");
   DL_APPEND(sections, section);
 

@@ -1275,29 +1275,32 @@ class AlsaMixerFullySpeced : public testing::Test {
     for (i = 0; i < ARRAY_SIZE(elements); i++)
       snd_mixer_find_elem_map[element_names[i]] = elements[i];
 
-    section =
-        ucm_section_create("NullElement", 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+    section = ucm_section_create("NullElement", "hw:0,1", 0, -1,
+                                 CRAS_STREAM_OUTPUT, NULL, NULL);
     ucm_section_set_mixer_name(section, "Unknown");
     DL_APPEND(sections, section);
-    section = ucm_section_create("Headphone", 0, CRAS_STREAM_OUTPUT,
-                                 "my-sound-card Headset Jack", "gpio");
+    section =
+        ucm_section_create("Headphone", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+                           "my-sound-card Headset Jack", "gpio");
     ucm_section_add_coupled(section, "HP-L", MIXER_NAME_VOLUME);
     ucm_section_add_coupled(section, "HP-R", MIXER_NAME_VOLUME);
     DL_APPEND(sections, section);
-    section = ucm_section_create("Speaker", 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+    section = ucm_section_create("Speaker", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+                                 NULL, NULL);
     ucm_section_add_coupled(section, "SPK-L", MIXER_NAME_VOLUME);
     ucm_section_add_coupled(section, "SPK-R", MIXER_NAME_VOLUME);
     DL_APPEND(sections, section);
-    section = ucm_section_create("Mic", 0, CRAS_STREAM_INPUT,
+    section = ucm_section_create("Mic", "hw:0,1", 0, -1, CRAS_STREAM_INPUT,
                                  "my-sound-card Headset Jack", "gpio");
     ucm_section_set_mixer_name(section, "CAPTURE");
     DL_APPEND(sections, section);
-    section =
-        ucm_section_create("Internal Mic", 0, CRAS_STREAM_INPUT, NULL, NULL);
+    section = ucm_section_create("Internal Mic", "hw:0,1", 0, -1,
+                                 CRAS_STREAM_INPUT, NULL, NULL);
     ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
     ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
     DL_APPEND(sections, section);
-    section = ucm_section_create("HDMI", 0, CRAS_STREAM_OUTPUT, NULL, NULL);
+    section = ucm_section_create("HDMI", "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
+                                 NULL, NULL);
     ucm_section_set_mixer_name(section, "HDMI");
     DL_APPEND(sections, section);
     ASSERT_NE(sections, (struct ucm_section*)NULL);
