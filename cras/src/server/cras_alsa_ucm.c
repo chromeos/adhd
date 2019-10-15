@@ -712,15 +712,24 @@ int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev)
 	return value;
 }
 
-const char *ucm_get_device_name_for_dev(struct cras_use_case_mgr *mgr,
-					const char *dev,
-					enum CRAS_STREAM_DIRECTION direction)
+static int get_device_index_from_target(const char *target_device_name);
+
+int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
+				 enum CRAS_STREAM_DIRECTION direction)
 {
+	const char *pcm_name = NULL;
+	int dev_idx = -1;
+
 	if (direction == CRAS_STREAM_OUTPUT)
-		return ucm_get_playback_device_name_for_dev(mgr, dev);
+		pcm_name = ucm_get_playback_device_name_for_dev(mgr, dev);
 	else if (direction == CRAS_STREAM_INPUT)
-		return ucm_get_capture_device_name_for_dev(mgr, dev);
-	return NULL;
+		pcm_name = ucm_get_capture_device_name_for_dev(mgr, dev);
+
+	if (pcm_name) {
+		dev_idx = get_device_index_from_target(pcm_name);
+		free((void *)pcm_name);
+	}
+	return dev_idx;
 }
 
 const char *

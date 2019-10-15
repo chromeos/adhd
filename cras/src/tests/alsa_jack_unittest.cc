@@ -86,7 +86,7 @@ static unsigned long eviocbit_ret[NBITS(SW_CNT)];
 static int gpio_switch_eviocgbit_fd;
 static const char* edid_file_ret;
 static unsigned ucm_get_override_type_name_called;
-static char* ucm_get_device_name_for_dev_value;
+static int ucm_get_alsa_dev_idx_for_dev_value;
 static snd_hctl_t* fake_hctl = (snd_hctl_t*)2;
 
 static void ResetStubData() {
@@ -137,7 +137,7 @@ static void ResetStubData() {
   ucm_get_dev_for_jack_return = false;
   edid_file_ret = NULL;
   ucm_get_override_type_name_called = 0;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   memset(eviocbit_ret, 0, sizeof(eviocbit_ret));
 }
@@ -417,7 +417,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMMatched) {
 
   /* PlaybackPCM matched, so create jack even if this is not the first device.*/
   ucm_get_dev_for_jack_return = true;
-  ucm_get_device_name_for_dev_value = strdup("hw:c1,1");
+  ucm_get_alsa_dev_idx_for_dev_value = 1;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Headset Jack");
@@ -433,7 +433,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMCapturePCMMatched) {
 
   /* CapturePCM matched, so create jack even if this is not the first device.*/
   ucm_get_dev_for_jack_return = true;
-  ucm_get_device_name_for_dev_value = strdup("hw:c1,1");
+  ucm_get_alsa_dev_idx_for_dev_value = 1;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Mic Jack");
@@ -449,7 +449,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotMatched) {
 
   /* PlaybackPCM not matched, do not create jack. */
   ucm_get_dev_for_jack_return = true;
-  ucm_get_device_name_for_dev_value = strdup("hw:c1,2");
+  ucm_get_alsa_dev_idx_for_dev_value = 2;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Headset Jack");
@@ -465,7 +465,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotSpecifiedFirstDevice) {
 
   /* PlaybackPCM not specified, create jack for the first device. */
   ucm_get_dev_for_jack_return = true;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Headset Jack");
@@ -481,7 +481,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotSpecifiedSecondDevice) {
 
   /* PlaybackPCM not specified, do not create jack for the second device. */
   ucm_get_dev_for_jack_return = true;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Headset Jack");
@@ -497,7 +497,7 @@ TEST(AlsaJacks, CreateGPIOHpNoUCMFirstDevice) {
 
   /* No UCM for this jack, create jack for the first device. */
   ucm_get_dev_for_jack_return = false;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Headset Jack");
@@ -513,7 +513,7 @@ TEST(AlsaJacks, CreateGPIOHpNoUCMSecondDevice) {
 
   /* No UCM for this jack, dot not create jack for the second device. */
   ucm_get_dev_for_jack_return = false;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   run_gpio_jack_test(device_index, is_first_device, direction,
                      should_create_jack, "c1 Headset Jack");
@@ -529,7 +529,7 @@ TEST(AlsaJacks, CreateGPIOMicNoUCMFirstDeviceMicJack) {
 
   // No UCM for this jack, create jack for the first device.
   ucm_get_dev_for_jack_return = false;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   // Mic Jack is a valid name for microphone jack.
   run_gpio_jack_test(device_index, is_first_device, direction,
@@ -546,7 +546,7 @@ TEST(AlsaJacks, CreateGPIOMicNoUCMFirstDeviceHeadsetJack) {
 
   // No UCM for this jack, create jack for the first device.
   ucm_get_dev_for_jack_return = false;
-  ucm_get_device_name_for_dev_value = NULL;
+  ucm_get_alsa_dev_idx_for_dev_value = -1;
 
   // Headset Jack is a valid name for microphone jack.
   run_gpio_jack_test(device_index, is_first_device, direction,
@@ -1053,10 +1053,10 @@ const char* ucm_get_override_type_name(struct cras_use_case_mgr* mgr,
   return NULL;
 }
 
-const char* ucm_get_device_name_for_dev(struct cras_use_case_mgr* mgr,
-                                        const char* dev,
-                                        enum CRAS_STREAM_DIRECTION direction) {
-  return ucm_get_device_name_for_dev_value;
+int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr* mgr,
+                                 const char* dev,
+                                 enum CRAS_STREAM_DIRECTION direction) {
+  return ucm_get_alsa_dev_idx_for_dev_value;
 }
 
 cras_timer* cras_tm_create_timer(cras_tm* tm,

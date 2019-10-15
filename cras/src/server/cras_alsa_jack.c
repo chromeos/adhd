@@ -408,38 +408,30 @@ static void gpio_switch_callback(void *arg)
 static unsigned int
 gpio_jack_match_device(const struct cras_alsa_jack *jack,
 		       struct cras_alsa_jack_list *jack_list,
-		       const char *card_name,
 		       enum CRAS_STREAM_DIRECTION direction)
 {
-	const char *target_device_name = NULL;
-	char current_device_name[CRAS_IODEV_NAME_BUFFER_SIZE];
-	unsigned int rc;
+	int target_dev_idx;
 
 	/* If the device name is not specified in UCM, assume it should be
 	 * associated with device 0. */
 	if (!jack_list->ucm || !jack->ucm_device)
 		return jack_list->is_first_device;
 
-	/* Look for device name specified in a device section of UCM. */
-	target_device_name = ucm_get_device_name_for_dev(
+	/* If jack has valid ucm_device, that means this jack has already been
+	 * associated to this card. Next step to match device index on this
+	 * card. */
+	target_dev_idx = ucm_get_alsa_dev_idx_for_dev(
 		jack_list->ucm, jack->ucm_device, direction);
 
-	if (!target_device_name)
+	if (target_dev_idx < 0)
 		return jack_list->is_first_device;
 
 	syslog(LOG_DEBUG,
-	       "Matching GPIO jack, target device name: %s, "
+	       "Matching GPIO jack, target device idx: %d, "
 	       "current card name: %s, device index: %zu\n",
-	       target_device_name, card_name, jack_list->device_index);
+	       target_dev_idx, jack_list->card_name, jack_list->device_index);
 
-	/* Device name of format "hw:<card_name>,<device_index>", should fit
-	 * in the string of size CRAS_IODEV_NAME_BUFFER_SIZE.*/
-	snprintf(current_device_name, sizeof(current_device_name), "hw:%s,%zu",
-		 card_name, jack_list->device_index);
-
-	rc = !strcmp(current_device_name, target_device_name);
-	free((void *)target_device_name);
-	return rc;
+	return (target_dev_idx == jack_list->device_index);
 }
 
 static int create_jack_for_gpio(struct cras_alsa_jack_list *jack_list,
@@ -540,7 +532,6 @@ static int open_and_monitor_gpio(struct gpio_switch_list_data *data,
 {
 	struct cras_alsa_jack *jack;
 	struct cras_alsa_jack_list *jack_list = data->jack_list;
-	const char *card_name = jack_list->card_name;
 	enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
 	int r;
 
@@ -553,7 +544,7 @@ static int open_and_monitor_gpio(struct gpio_switch_list_data *data,
 		jack->ucm_device = ucm_get_dev_for_jack(
 			jack_list->ucm, jack->gpio.device_name, direction);
 
-	if (!gpio_jack_match_device(jack, jack_list, card_name, direction)) {
+	if (!gpio_jack_match_device(jack, jack_list, direction)) {
 		cras_free_jack(jack, 0);
 		return -EIO;
 	}

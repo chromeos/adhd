@@ -239,20 +239,19 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
  */
 int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev);
 
-/* Gets the device name of this device on the card..
+/* Gets the ALSA device index on the card for given UCM dev.
  *
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- *    dev - The device to check for device name
+ *    dev - The UCM device to check for ALSA device index.
  *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
  * Returns:
- *    A pointer to the allocated string containing the device name, or NULL
- *    if no device name is found. The device name is of format
- *    "card_name:device_index".
+ *    Non-negative integer for the ALSA device index on the card, -1 if not
+ *    found. The ALSA device index is parsed from the PCM name which is
+ *    formatted as "hw:<some-name>,<idx>".
  */
-const char *ucm_get_device_name_for_dev(struct cras_use_case_mgr *mgr,
-					const char *dev,
-					enum CRAS_STREAM_DIRECTION direction);
+int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
+				 enum CRAS_STREAM_DIRECTION direction);
 
 /* Gets the node name of the echo reference device on the card.
  * Args:

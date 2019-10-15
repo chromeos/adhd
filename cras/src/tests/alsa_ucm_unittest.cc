@@ -368,9 +368,8 @@ TEST(AlsaUcm, GetDevForMixer) {
   free((void*)dev_name_in);
 }
 
-TEST(AlsaUcm, GetDeviceNameForDevice) {
+TEST(AlsaUcm, GetAlsaDeviceIndexForDevice) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  const char *input_dev_name, *output_dev_name;
   const char* devices[] = {"Dev1", "Comment for Dev1", "Dev2",
                            "Comment for Dev2"};
 
@@ -380,24 +379,17 @@ TEST(AlsaUcm, GetDeviceNameForDevice) {
   fake_list_size["_devices/HiFi"] = 4;
   std::string id_1 = "=CapturePCM/Dev1/HiFi";
   std::string id_2 = "=PlaybackPCM/Dev2/HiFi";
-  std::string value_1 = "DeviceName1";
-  std::string value_2 = "DeviceName2";
+  std::string value_1 = "PCMName,1";
+  std::string value_2 = "PCMName,2";
 
   snd_use_case_get_value[id_1] = value_1;
   snd_use_case_get_value[id_2] = value_2;
-  input_dev_name = ucm_get_device_name_for_dev(mgr, "Dev1", CRAS_STREAM_INPUT);
-  output_dev_name =
-      ucm_get_device_name_for_dev(mgr, "Dev2", CRAS_STREAM_OUTPUT);
-  ASSERT_TRUE(input_dev_name);
-  ASSERT_TRUE(output_dev_name);
-  EXPECT_EQ(0, strcmp(input_dev_name, value_1.c_str()));
-  EXPECT_EQ(0, strcmp(output_dev_name, value_2.c_str()));
+  EXPECT_EQ(1, ucm_get_alsa_dev_idx_for_dev(mgr, "Dev1", CRAS_STREAM_INPUT));
+  EXPECT_EQ(2, ucm_get_alsa_dev_idx_for_dev(mgr, "Dev2", CRAS_STREAM_OUTPUT));
 
   ASSERT_EQ(2, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id_1);
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
-  free((void*)input_dev_name);
-  free((void*)output_dev_name);
 }
 
 TEST(AlsaUcm, GetDeviceRateForDevice) {
