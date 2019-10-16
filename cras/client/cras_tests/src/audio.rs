@@ -10,10 +10,10 @@ use std::os::raw::c_int;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
-use libcras::CrasClient;
+use libcras::{CrasClient, CrasNodeType};
 use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
-use crate::arguments::AudioOptions;
+use crate::arguments::{AudioOptions, LoopbackType};
 
 #[derive(Debug)]
 pub enum Error {
@@ -21,6 +21,7 @@ pub enum Error {
     FetchStream(Box<dyn error::Error>),
     Io(io::Error),
     Libcras(libcras::Error),
+    NoLoopbackNode(CrasNodeType),
     SysUtil(sys_util::Error),
 }
 
@@ -34,6 +35,7 @@ impl fmt::Display for Error {
             FetchStream(e) => write!(f, "Failed to fetch buffer from stream: {}", e),
             Io(e) => write!(f, "IO Error: {}", e),
             Libcras(e) => write!(f, "Libcras Error: {}", e),
+            NoLoopbackNode(typ) => write!(f, "No loopback node found with type {:?}", typ),
             SysUtil(e) => write!(f, "SysUtil Error: {}", e),
         }
     }
@@ -126,6 +128,7 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
     let num_channels = opts.num_channels.unwrap_or(2);
     let format = opts.format.unwrap_or(SampleFormat::S16LE);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
+    let buffer_size = opts.buffer_size.unwrap_or(256);
 
     let mut sample_sink: Box<dyn Write> = Box::new(BufWriter::new(
         File::create(&opts.file_name).map_err(Error::Io)?,
@@ -140,14 +143,33 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
 
     let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
     cras_client.enable_cras_capture();
-    let (_control, mut stream) = cras_client
-        .new_capture_stream(
-            num_channels,
-            format,
-            frame_rate,
-            opts.buffer_size.unwrap_or(256),
-        )
-        .map_err(Error::CreateStream)?;
+    let (_control, mut stream) = match opts.loopback_type {
+        Some(loopback_type) => {
+            let node_type = match loopback_type {
+                LoopbackType::PreDsp => CrasNodeType::CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
+                LoopbackType::PostDsp => CrasNodeType::CRAS_NODE_TYPE_POST_DSP,
+            };
+
+            let loopback_node = cras_client
+                .input_nodes()
+                .into_iter()
+                .find(|node| node.node_type == node_type)
+                .ok_or(Error::NoLoopbackNode(node_type))?;
+
+            cras_client
+                .new_pinned_capture_stream(
+                    loopback_node.iodev_index,
+                    num_channels,
+                    format,
+                    frame_rate,
+                    buffer_size,
+                )
+                .map_err(Error::CreateStream)?
+        }
+        None => cras_client
+            .new_capture_stream(num_channels, format, frame_rate, buffer_size)
+            .map_err(Error::CreateStream)?,
+    };
     set_priority_to_realtime();
     add_sigint_handler()?;
     while !INTERRUPTED.load(Ordering::Acquire) {

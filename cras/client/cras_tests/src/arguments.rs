@@ -98,8 +98,15 @@ fn show_audio_command_usage(program_name: &str, command: &str, opts: &Options) {
 ///
 /// This struct will be passed to `playback()` and `capture()`.
 #[derive(Debug, PartialEq)]
+pub enum LoopbackType {
+    PreDsp,
+    PostDsp,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct AudioOptions {
     pub file_name: PathBuf,
+    pub loopback_type: Option<LoopbackType>,
     pub buffer_size: Option<usize>,
     pub num_channels: Option<usize>,
     pub format: Option<SampleFormat>,
@@ -131,6 +138,15 @@ impl AudioOptions {
             .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
             .optflag("h", "help", "Print help message");
 
+        if command_name == "capture" {
+            opts.optopt(
+                "",
+                "loopback",
+                "Capture from loopback device ('pre_dsp' or 'post_dsp')",
+                "DEVICE",
+            );
+        }
+
         let args = args.iter().map(|s| s.as_ref());
         let matches = match opts.parse(args) {
             Ok(m) => m,
@@ -143,6 +159,24 @@ impl AudioOptions {
             show_audio_command_usage(program_name, command_name, &opts);
             return Ok(None);
         }
+
+        let loopback_type = if matches.opt_defined("loopback") {
+            match matches.opt_str("loopback").as_ref().map(|s| s.as_str()) {
+                Some("pre_dsp") => Some(LoopbackType::PreDsp),
+                Some("post_dsp") => Some(LoopbackType::PostDsp),
+                Some(s) => {
+                    return Err(Error::InvalidArgument(
+                        "loopback".to_string(),
+                        s.to_string(),
+                        "Loopback type must be 'pre_dsp' or 'post_dsp'".to_string(),
+                    ))
+                }
+                None => None,
+            }
+        } else {
+            None
+        };
+
         let file_name = match matches.free.get(0) {
             None => {
                 show_audio_command_usage(program_name, command_name, &opts);
@@ -170,6 +204,7 @@ impl AudioOptions {
         };
 
         Ok(Some(AudioOptions {
+            loopback_type,
             file_name,
             buffer_size,
             num_channels,
@@ -290,6 +325,7 @@ mod tests {
             command,
             Command::Playback(AudioOptions {
                 file_name: PathBuf::from("output.wav"),
+                loopback_type: None,
                 frame_rate: None,
                 num_channels: None,
                 format: None,
@@ -304,6 +340,7 @@ mod tests {
             command,
             Command::Capture(AudioOptions {
                 file_name: PathBuf::from("input.flac"),
+                loopback_type: None,
                 frame_rate: None,
                 num_channels: None,
                 format: None,
@@ -326,6 +363,7 @@ mod tests {
             command,
             Command::Playback(AudioOptions {
                 file_name: PathBuf::from("output.wav"),
+                loopback_type: None,
                 frame_rate: Some(44100),
                 num_channels: Some(2),
                 format: None,

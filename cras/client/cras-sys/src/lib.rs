@@ -13,6 +13,7 @@ pub mod gen;
 use gen::{
     _snd_pcm_format, audio_message, cras_audio_format_packed, cras_iodev_info, cras_ionode_info,
     cras_ionode_info__bindgen_ty_1, cras_timespec, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL,
+    CRAS_NODE_TYPE,
 };
 
 unsafe impl data_model::DataInit for gen::audio_message {}
@@ -124,6 +125,26 @@ impl Default for cras_ionode_info {
     }
 }
 
+impl From<u32> for CRAS_NODE_TYPE {
+    fn from(node_type: u32) -> CRAS_NODE_TYPE {
+        use CRAS_NODE_TYPE::*;
+        match node_type {
+            0 => CRAS_NODE_TYPE_INTERNAL_SPEAKER,
+            1 => CRAS_NODE_TYPE_HEADPHONE,
+            2 => CRAS_NODE_TYPE_HDMI,
+            3 => CRAS_NODE_TYPE_HAPTIC,
+            4 => CRAS_NODE_TYPE_LINEOUT,
+            5 => CRAS_NODE_TYPE_MIC,
+            6 => CRAS_NODE_TYPE_HOTWORD,
+            7 => CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
+            8 => CRAS_NODE_TYPE_POST_DSP,
+            9 => CRAS_NODE_TYPE_USB,
+            10 => CRAS_NODE_TYPE_BLUETOOTH,
+            _ => CRAS_NODE_TYPE_UNKNOWN,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct CrasIonodeInfo {
     pub name: String,
@@ -132,6 +153,7 @@ pub struct CrasIonodeInfo {
     pub stable_id: u32,
     pub plugged: bool,
     pub active: bool,
+    pub node_type: CRAS_NODE_TYPE,
     pub type_name: String,
     pub volume: u32,
     pub capture_gain: i32,
@@ -147,6 +169,7 @@ impl From<cras_ionode_info> for CrasIonodeInfo {
             stable_id: info.stable_id,
             plugged: info.plugged != 0,
             active: info.active != 0,
+            node_type: CRAS_NODE_TYPE::from(info.type_enum),
             type_name: cstring_to_string(&info.type_),
             volume: info.volume,
             capture_gain: info.capture_gain,

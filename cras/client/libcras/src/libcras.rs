@@ -353,6 +353,7 @@ impl<'a> CrasClient<'a> {
     // Creates general stream with given parameters
     fn create_stream<'b, T: BufferDrop + CrasStreamData<'b>>(
         &mut self,
+        device_index: Option<u32>,
         block_size: u32,
         direction: CRAS_STREAM_DIRECTION,
         rate: usize,
@@ -384,7 +385,7 @@ impl<'a> CrasClient<'a> {
             cb_threshold: block_size,
             flags: 0,
             format: audio_format,
-            dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
+            dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
             effects: 0,
             client_type: self.client_type,
             client_shm_size: 0,
@@ -418,6 +419,42 @@ impl<'a> CrasClient<'a> {
                 .map_err(Error::CrasStreamError);
             }
         }
+    }
+
+    /// Creates a new capture stream pinned to the device at `device_index`.
+    ///
+    /// This is useful for, among other things, capturing from a loopback
+    /// device.
+    ///
+    /// # Arguments
+    ///
+    /// * `device_index` - The device to which the stream will be attached.
+    /// * `num_channels` - The count of audio channels for the stream.
+    /// * `format` - The format to use for stream audio samples.
+    /// * `frame_rate` - The sample rate of the stream.
+    /// * `buffer_size` - The transfer size granularity in frames.
+    pub fn new_pinned_capture_stream(
+        &mut self,
+        device_index: u32,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+        buffer_size: usize,
+    ) -> std::result::Result<
+        (Box<dyn StreamControl>, Box<dyn CaptureBufferStream>),
+        Box<dyn error::Error>,
+    > {
+        Ok((
+            Box::new(DummyStreamControl::new()),
+            Box::new(self.create_stream::<CrasCaptureData>(
+                Some(device_index),
+                buffer_size as u32,
+                CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
+                frame_rate,
+                num_channels,
+                format,
+            )?),
+        ))
     }
 
     // Blocks handling the first server message received from `socket`.
@@ -464,6 +501,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         Ok((
             Box::new(DummyStreamControl::new()),
             Box::new(self.create_stream::<CrasPlaybackData>(
+                None,
                 buffer_size as u32,
                 CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
                 frame_rate,
@@ -487,6 +525,7 @@ impl<'a> StreamSource for CrasClient<'a> {
             Ok((
                 Box::new(DummyStreamControl::new()),
                 Box::new(self.create_stream::<CrasCaptureData>(
+                    None,
                     buffer_size as u32,
                     CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
                     frame_rate,
